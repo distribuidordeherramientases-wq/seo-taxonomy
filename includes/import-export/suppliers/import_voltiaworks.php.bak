@@ -1,0 +1,626 @@
+<?php
+/**
+ * SEO System - Voltia Works directo
+ *
+ * Receta directa tipo SATKIT para SEO System.
+ * - No usa sitemap global.
+ * - No recorre enlaces arbitrarios del sitio.
+ * - Solo lee listados declarados por la receta.
+ * - De esos listados solo encola URLs que coinciden con el patron de producto.
+ * - Cada ficha se normaliza al CSV comun del catalogo de proveedores.
+ *
+ * @version 0.4.0
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+if ( ! class_exists( 'SEO_Supplier_Direct_Catalog_Runtime' ) ) {
+    final class SEO_Supplier_Direct_Catalog_Runtime {
+        public static function text( $value ) {
+            $value = html_entity_decode( (string) $value, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+            $value = wp_strip_all_tags( $value );
+            return trim( (string) preg_replace( '/\\s+/u', ' ', $value ) );
+        }
+
+        private static function absolute_url( $href, $base_url ) {
+            $href = trim( html_entity_decode( (string) $href, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
+            if ( '' === $href || 0 === strpos( $href, '#' ) || preg_match( '#^(?:javascript:|mailto:|tel:|data:)#i', $href ) ) {
+                return '';
+            }
+            if ( preg_match( '#^https?://#i', $href ) ) {
+                return $href;
+            }
+
+            $base = wp_parse_url( (string) $base_url );
+            if ( ! is_array( $base ) || empty( $base['host'] ) ) {
+                return '';
+            }
+
+            $scheme = ! empty( $base['scheme'] ) ? (string) $base['scheme'] : 'https';
+            $origin = $scheme . '://' . $base['host'] . ( ! empty( $base['port'] ) ? ':' . absint( $base['port'] ) : '' );
+
+            if ( 0 === strpos( $href, '//' ) ) {
+                return $scheme . ':' . $href;
+            }
+            if ( 0 === strpos( $href, '/' ) ) {
+                return $origin . $href;
+            }
+
+            $path = (string) ( $base['path'] ?? '/' );
+            $dir  = preg_replace( '#/[^/]*$#', '/', $path );
+            return $origin . $dir . $href;
+        }
+
+        public static function canonicalize( $url, $recipe = [] ) {
+            $url = self::absolute_url( $url, $recipe['base_url'] ?? '' );
+            if ( '' === $url ) {
+                return '';
+            }
+
+            $parts = wp_parse_url( $url );
+            if ( ! is_array( $parts ) || empty( $parts['host'] ) ) {
+                return '';
+            }
+
+            $host = strtolower( (string) $parts['host'] );
+            $allowed = array_map( 'strtolower', (array) ( $recipe['allowed_hosts'] ?? [] ) );
+            if ( ! in_array( $host, $allowed, true ) ) {
+                return '';
+            }
+
+            $base = wp_parse_url( (string) ( $recipe['base_url'] ?? '' ) );
+            $canonical_host = ! empty( $base['host'] ) ? strtolower( (string) $base['host'] ) : $host;
+            $path = '/' . ltrim( (string) ( $parts['path'] ?? '/' ), '/' );
+            $path = preg_replace( '#/{2,}#', '/', $path );
+            if ( '/' !== $path ) {
+                $path = rtrim( $path, '/' );
+            }
+
+            $query_out = [];
+            if ( ! empty( $parts['query'] ) ) {
+                parse_str( (string) $parts['query'], $query );
+                foreach ( (array) ( $recipe['keep_query'] ?? [] ) as $key ) {
+                    if ( isset( $query[ $key ] ) && is_scalar( $query[ $key ] ) && '' !== (string) $query[ $key ] ) {
+                        $query_out[ $key ] = (string) $query[ $key ];
+                    }
+                }
+            }
+
+            $result = 'https://' . $canonical_host . $path;
+            if ( $query_out ) {
+                $result .= '?' . http_build_query( $query_out, '', '&', PHP_QUERY_RFC3986 );
+            }
+            return esc_url_raw( $result );
+        }
+
+        private static function normalized_path( $url ) {
+            $path = (string) wp_parse_url( (string) $url, PHP_URL_PATH );
+            $path = '/' . ltrim( $path, '/' );
+            return '/' === $path ? '/' : rtrim( $path, '/' );
+        }
+
+        public static function classify( $url, $recipe = [] ) {
+            $url = self::canonicalize( $url, $recipe );
+            if ( '' === $url ) {
+                return 'ignore';
+            }
+
+            $path = self::normalized_path( $url );
+            foreach ( (array) ( $recipe['product_patterns'] ?? [] ) as $pattern ) {
+                if ( 1 === @preg_match( $pattern, $path ) ) {
+                    return 'product';
+                }
+            }
+
+            foreach ( (array) ( $recipe['listing_paths'] ?? [] ) as $listing_path ) {
+                $listing_path = '/' . ltrim( (string) $listing_path, '/' );
+                $listing_path = '/' === $listing_path ? '/' : rtrim( $listing_path, '/' );
+                if ( $path === $listing_path ) {
+                    return 'category';
+                }
+            }
+
+            return 'ignore';
+        }
+
+        private static function load_dom( $html ) {
+            if ( ! class_exists( 'DOMDocument' ) ) {
+                return new WP_Error( 'supplier_direct_dom_missing', 'DOMDocument no esta disponible en PHP.' );
+            }
+
+            $dom = new DOMDocument();
+            $previous = libxml_use_internal_errors( true );
+            $loaded = $dom->loadHTML( '<?xml encoding="utf-8" ?>' . (string) $html, LIBXML_NOWARNING | LIBXML_NOERROR );
+            libxml_clear_errors();
+            libxml_use_internal_errors( $previous );
+
+            if ( ! $loaded ) {
+                return new WP_Error( 'supplier_direct_dom_invalid', 'No se pudo interpretar el HTML.' );
+            }
+            return $dom;
+        }
+
+        private static function xpath_text( DOMXPath $xpath, $query ) {
+            $nodes = $xpath->query( $query );
+            if ( ! $nodes || 0 === $nodes->length ) {
+                return '';
+            }
+            return self::text( $nodes->item( 0 )->textContent );
+        }
+
+        private static function xpath_attr( DOMXPath $xpath, $query, $attr ) {
+            $nodes = $xpath->query( $query );
+            if ( ! $nodes || 0 === $nodes->length ) {
+                return '';
+            }
+            $node = $nodes->item( 0 );
+            return $node instanceof DOMElement ? trim( (string) $node->getAttribute( $attr ) ) : '';
+        }
+
+        private static function collect_jsonld_products( $node, &$products ) {
+            if ( ! is_array( $node ) ) {
+                return;
+            }
+
+            $type = $node['@type'] ?? '';
+            $types = is_array( $type ) ? $type : [ $type ];
+            foreach ( $types as $candidate ) {
+                if ( 'product' === strtolower( trim( (string) $candidate ) ) ) {
+                    $products[] = $node;
+                    break;
+                }
+            }
+
+            foreach ( $node as $key => $child ) {
+                if ( '@type' === $key || ! is_array( $child ) ) {
+                    continue;
+                }
+                if ( array_keys( $child ) === range( 0, count( $child ) - 1 ) ) {
+                    foreach ( $child as $nested ) {
+                        self::collect_jsonld_products( $nested, $products );
+                    }
+                } else {
+                    self::collect_jsonld_products( $child, $products );
+                }
+            }
+        }
+
+        private static function jsonld_product( DOMXPath $xpath ) {
+            $products = [];
+            $scripts = $xpath->query( '//script[@type="application/ld+json"]' );
+            if ( $scripts ) {
+                foreach ( $scripts as $script ) {
+                    $decoded = json_decode( trim( (string) $script->textContent ), true );
+                    if ( is_array( $decoded ) ) {
+                        if ( array_keys( $decoded ) === range( 0, count( $decoded ) - 1 ) ) {
+                            foreach ( $decoded as $item ) {
+                                self::collect_jsonld_products( $item, $products );
+                            }
+                        } else {
+                            self::collect_jsonld_products( $decoded, $products );
+                        }
+                    }
+                }
+            }
+            return ! empty( $products ) && is_array( $products[0] ) ? $products[0] : [];
+        }
+
+        private static function offer( $product ) {
+            $offers = $product['offers'] ?? [];
+            if ( is_array( $offers ) && ( isset( $offers['price'] ) || isset( $offers['lowPrice'] ) || isset( $offers['availability'] ) ) ) {
+                return $offers;
+            }
+            if ( is_array( $offers ) ) {
+                foreach ( $offers as $offer ) {
+                    if ( is_array( $offer ) && ( isset( $offer['price'] ) || isset( $offer['lowPrice'] ) || isset( $offer['availability'] ) ) ) {
+                        return $offer;
+                    }
+                }
+            }
+            return [];
+        }
+
+        private static function price_number( $value ) {
+            if ( is_int( $value ) || is_float( $value ) ) {
+                return (float) $value;
+            }
+            $value = self::text( $value );
+            if ( '' === $value ) {
+                return null;
+            }
+            $value = preg_replace( '/[^0-9,.\\-]/', '', $value );
+            if ( false !== strpos( $value, ',' ) && false !== strpos( $value, '.' ) ) {
+                if ( strrpos( $value, ',' ) > strrpos( $value, '.' ) ) {
+                    $value = str_replace( '.', '', $value );
+                    $value = str_replace( ',', '.', $value );
+                } else {
+                    $value = str_replace( ',', '', $value );
+                }
+            } elseif ( false !== strpos( $value, ',' ) ) {
+                $value = str_replace( ',', '.', $value );
+            }
+            return is_numeric( $value ) ? (float) $value : null;
+        }
+
+        private static function price_fields( $price, $vat_percent ) {
+            $price = self::price_number( $price );
+            if ( null === $price || $price < 0 ) {
+                return [ '', '' ];
+            }
+            $with = number_format( $price, 2, '.', '' );
+            $without = $vat_percent > 0 ? number_format( $price / ( 1 + ( $vat_percent / 100 ) ), 2, '.', '' ) : $with;
+            return [ $without, $with ];
+        }
+
+        private static function brand_name( $product ) {
+            $brand = $product['brand'] ?? '';
+            if ( is_array( $brand ) ) {
+                return self::text( $brand['name'] ?? '' );
+            }
+            return self::text( $brand );
+        }
+
+        private static function availability( $offer, $page_text ) {
+            $availability = strtolower( (string) ( $offer['availability'] ?? '' ) );
+            if ( false !== strpos( $availability, 'instock' ) ) {
+                return [ 'in_stock', 'Disponible' ];
+            }
+            if ( false !== strpos( $availability, 'outofstock' ) ) {
+                return [ 'out_of_stock', 'Agotado' ];
+            }
+            if ( false !== strpos( $availability, 'preorder' ) ) {
+                return [ 'preorder', 'Prepedido' ];
+            }
+            if ( false !== strpos( $availability, 'backorder' ) ) {
+                return [ 'backorder', 'Disponible bajo pedido' ];
+            }
+
+            $lower = strtolower( self::text( $page_text ) );
+            if ( false !== strpos( $lower, 'agotado' ) || false !== strpos( $lower, 'sin stock' ) ) {
+                return [ 'out_of_stock', 'Agotado' ];
+            }
+            if ( false !== strpos( $lower, 'disponible' ) || false !== strpos( $lower, 'en stock' ) ) {
+                return [ 'in_stock', 'Disponible' ];
+            }
+            return [ 'unknown', '' ];
+        }
+
+        private static function absolute_asset_url( $url, $base_url ) {
+            $url = trim( (string) $url );
+            if ( '' === $url || 0 === strpos( $url, 'data:' ) ) {
+                return '';
+            }
+            return esc_url_raw( self::absolute_url( $url, $base_url ) );
+        }
+
+        private static function images( $product, DOMXPath $xpath, $base_url ) {
+            $images = [];
+            $json_images = $product['image'] ?? [];
+            if ( is_string( $json_images ) ) {
+                $json_images = [ $json_images ];
+            }
+            if ( is_array( $json_images ) ) {
+                foreach ( $json_images as $image ) {
+                    if ( is_array( $image ) ) {
+                        $image = $image['url'] ?? $image['contentUrl'] ?? '';
+                    }
+                    $image = self::absolute_asset_url( $image, $base_url );
+                    if ( '' !== $image ) {
+                        $images[] = $image;
+                    }
+                }
+            }
+
+            if ( ! $images ) {
+                $og = self::xpath_attr( $xpath, '//meta[@property="og:image"]', 'content' );
+                $og = self::absolute_asset_url( $og, $base_url );
+                if ( '' !== $og ) {
+                    $images[] = $og;
+                }
+            }
+
+            $unique = [];
+            foreach ( $images as $image ) {
+                if ( ! isset( $unique[ $image ] ) ) {
+                    $unique[ $image ] = true;
+                }
+                if ( count( $unique ) >= 12 ) {
+                    break;
+                }
+            }
+            return array_keys( $unique );
+        }
+
+        private static function category( DOMXPath $xpath ) {
+            $names = [];
+            $queries = [
+                '//*[contains(concat(" ", normalize-space(@class), " "), " breadcrumb ")]//a',
+                '//nav[contains(@class,"breadcrumb")]//a',
+            ];
+            foreach ( $queries as $query ) {
+                $nodes = $xpath->query( $query );
+                if ( ! $nodes ) {
+                    continue;
+                }
+                foreach ( $nodes as $node ) {
+                    $name = self::text( $node->textContent );
+                    if ( '' === $name || in_array( strtolower( $name ), [ 'inicio', 'home' ], true ) ) {
+                        continue;
+                    }
+                    $names[] = $name;
+                }
+                if ( $names ) {
+                    break;
+                }
+            }
+            return implode( ' > ', array_values( array_unique( $names ) ) );
+        }
+
+        private static function external_id( $url, $recipe, $sku, $mpn ) {
+            $path = self::normalized_path( $url );
+            foreach ( (array) ( $recipe['external_id_patterns'] ?? [] ) as $pattern ) {
+                if ( preg_match( $pattern, $path, $match ) && ! empty( $match[1] ) ) {
+                    return sanitize_text_field( (string) $match[1] );
+                }
+            }
+            if ( '' !== $sku ) {
+                return $sku;
+            }
+            if ( '' !== $mpn ) {
+                return $mpn;
+            }
+            return substr( hash( 'sha256', (string) $url ), 0, 24 );
+        }
+
+        private static function reference_from_page( $page_text ) {
+            if ( preg_match( '/\\bReferencia\\s*:?\\s*([A-Z0-9._\\-\\/ ]{2,40})/iu', self::text( $page_text ), $match ) ) {
+                $candidate = trim( (string) $match[1] );
+                $candidate = preg_split( '/\\s+(?:EAN|Garant[ií]a|Precio|Disponible)\\b/iu', $candidate )[0] ?? $candidate;
+                return trim( $candidate );
+            }
+            return '';
+        }
+
+        private static function product_record( $html, $url, $recipe, DOMDocument $dom, DOMXPath $xpath ) {
+            $product = self::jsonld_product( $xpath );
+            $offer   = self::offer( $product );
+
+            $canonical = self::xpath_attr( $xpath, '//link[contains(concat(" ", normalize-space(@rel), " "), " canonical ")]', 'href' );
+            $canonical = self::canonicalize( $canonical ?: $url, $recipe );
+            if ( '' === $canonical ) {
+                $canonical = self::canonicalize( $url, $recipe );
+            }
+
+            $name = self::text( $product['name'] ?? '' );
+            if ( '' === $name ) {
+                $name = self::xpath_text( $xpath, '//h1[1]' );
+            }
+            if ( '' === $name ) {
+                return null;
+            }
+
+            $sku = self::text( $product['sku'] ?? '' );
+            $mpn = self::text( $product['mpn'] ?? '' );
+            if ( '' === $sku && '' === $mpn ) {
+                $sku = self::reference_from_page( $dom->textContent );
+            }
+            if ( '' === $mpn && '' !== $sku ) {
+                $mpn = $sku;
+            }
+
+            $description = self::text( $product['description'] ?? '' );
+            if ( '' === $description ) {
+                $description = self::xpath_text( $xpath, '//*[@id="description" or @id="tab-description" or contains(@class,"product-description")][1]' );
+            }
+
+            $brand = self::brand_name( $product );
+            if ( '' === $brand ) {
+                $brand = self::xpath_text( $xpath, '//*[contains(@class,"product-manufacturer") or contains(@class,"manufacturer")][1]' );
+            }
+
+            $price = $offer['price'] ?? $offer['lowPrice'] ?? '';
+            if ( '' === (string) $price ) {
+                $price = self::xpath_attr( $xpath, '//*[@itemprop="price"]', 'content' );
+            }
+            if ( '' === (string) $price ) {
+                $price = self::xpath_text( $xpath, '//*[contains(@class,"current-price") or contains(@class,"product-price")][1]' );
+            }
+
+            $vat = absint( $recipe['vat_percent'] ?? 21 );
+            list( $price_without_vat, $price_with_vat ) = self::price_fields( $price, $vat );
+            list( $stock_status, $stock_text ) = self::availability( $offer, $dom->textContent );
+            $images = self::images( $product, $xpath, $canonical ?: $url );
+
+            return [
+                'proveedor_id_externo' => self::external_id( $canonical ?: $url, $recipe, $sku, $mpn ),
+                'sku'                   => $sku,
+                'mpn'                   => $mpn,
+                'url_origen'            => self::canonicalize( $url, $recipe ),
+                'url_canonica'          => $canonical,
+                'nombre'                => $name,
+                'descripcion'           => $description,
+                'marca'                 => $brand,
+                'categoria_proveedor'   => self::category( $xpath ),
+                'precio_sin_iva'        => $price_without_vat,
+                'precio_con_iva'        => $price_with_vat,
+                'iva_porcentaje'        => (string) $vat,
+                'moneda'                => self::text( $offer['priceCurrency'] ?? 'EUR' ) ?: 'EUR',
+                'stock_estado'          => $stock_status,
+                'stock_cantidad'        => '',
+                'stock_texto'           => $stock_text,
+                'imagenes'              => implode( '|', $images ),
+            ];
+        }
+
+        private static function page_number( $url ) {
+            $query = (string) wp_parse_url( (string) $url, PHP_URL_QUERY );
+            if ( '' === $query ) {
+                return 1;
+            }
+            parse_str( $query, $parts );
+            return max( 1, absint( $parts['page'] ?? 1 ) );
+        }
+
+        private static function listing_result( $dom, DOMXPath $xpath, $url, $recipe ) {
+            $enqueue = [];
+            $seen = [];
+            $product_limit = max( 1, min( 100, absint( $recipe['max_products_per_listing'] ?? 60 ) ) );
+            $max_pages = max( 1, absint( $recipe['max_listing_pages'] ?? 100 ) );
+
+            $links = $xpath->query( '//a[@href]' );
+            if ( $links ) {
+                foreach ( $links as $link ) {
+                    $candidate = self::canonicalize( $link->getAttribute( 'href' ), $recipe );
+                    if ( '' === $candidate || isset( $seen[ $candidate ] ) ) {
+                        continue;
+                    }
+                    if ( 'product' === self::classify( $candidate, $recipe ) ) {
+                        $enqueue[] = [
+                            'url'      => $candidate,
+                            'type'     => 'product',
+                            'priority' => 5,
+                            'source'   => $url,
+                        ];
+                        $seen[ $candidate ] = true;
+                        if ( count( $enqueue ) >= $product_limit ) {
+                            break;
+                        }
+                    }
+                }
+            }
+
+            $pagination = [];
+            $current_path = self::normalized_path( $url );
+            $next_nodes = $xpath->query( '//a[@href and (@rel="next" or contains(@class,"next") or contains(@class,"js-search-link"))]' );
+            if ( $next_nodes ) {
+                foreach ( $next_nodes as $link ) {
+                    $candidate = self::canonicalize( $link->getAttribute( 'href' ), $recipe );
+                    if ( '' === $candidate || isset( $seen[ $candidate ] ) ) {
+                        continue;
+                    }
+                    if ( self::normalized_path( $candidate ) !== $current_path ) {
+                        continue;
+                    }
+                    $page = self::page_number( $candidate );
+                    if ( $page <= 1 || $page > $max_pages ) {
+                        continue;
+                    }
+                    $pagination[] = [
+                        'url'      => $candidate,
+                        'type'     => 'category',
+                        'priority' => 20,
+                        'source'   => $url,
+                    ];
+                    $seen[ $candidate ] = true;
+                    if ( count( $pagination ) >= 3 ) {
+                        break;
+                    }
+                }
+            }
+
+            $enqueue = array_merge( $enqueue, $pagination );
+            return [
+                'type'    => 'category',
+                'records' => [],
+                'enqueue' => $enqueue,
+                'message' => sprintf(
+                    'Listado directo: %d URLs de producto y %d paginas siguientes.',
+                    count( $enqueue ) - count( $pagination ),
+                    count( $pagination )
+                ),
+            ];
+        }
+
+        public static function parse_page( $html, $url, $recipe, $job = [] ) {
+            unset( $job );
+            $dom = self::load_dom( $html );
+            if ( is_wp_error( $dom ) ) {
+                return $dom;
+            }
+            $xpath = new DOMXPath( $dom );
+            $kind = self::classify( $url, $recipe );
+
+            if ( 'product' === $kind ) {
+                $record = self::product_record( $html, $url, $recipe, $dom, $xpath );
+                return [
+                    'type'    => 'product',
+                    'records' => $record ? [ $record ] : [],
+                    'enqueue' => [],
+                    'message' => $record ? 'Ficha de producto normalizada.' : 'Ficha leida sin datos suficientes para crear registro.',
+                ];
+            }
+
+            if ( 'category' === $kind ) {
+                return self::listing_result( $dom, $xpath, $url, $recipe );
+            }
+
+            return [
+                'type'    => 'page',
+                'records' => [],
+                'enqueue' => [],
+                'message' => 'URL fuera de los listados directos de esta receta; se ignora.',
+            ];
+        }
+    }
+}
+
+add_filter( 'seo_supplier_crawl_recipes', static function ( $recipes ) {
+    if ( ! is_array( $recipes ) ) {
+        $recipes = [];
+    }
+
+    $recipes['voltiaworks_direct'] = [
+        'id'          => 'voltiaworks_direct',
+        'label'       => 'Voltia Works - directo productos',
+        'provider'    => 'VOLTIAWORKS',
+        'version'     => '0.4.0',
+        'base_url'    => 'https://voltiaworks.com/',
+        'description' => 'Modelo tipo SATKIT: solo listados principales declarados -> URLs de producto -> ficha -> CSV comun. No rastrea el menu completo.',
+
+        'allowed_hosts' => [ 'voltiaworks.com', 'www.voltiaworks.com' ],
+        'respect_robots'=> true,
+        'auto_enabled'  => false,
+
+        'min_delay'     => 60,
+        'initial_delay' => 90,
+        'max_delay'     => 1800,
+        'refresh_hours' => 72,
+        'revisit_days'  => 21,
+        'max_attempts'  => 4,
+
+        'csv_flush_rows'     => 50,
+        'csv_flush_interval' => 1800,
+        'vat_percent'        => 21,
+
+        // Listados relevantes para una tienda de herramienta profesional.
+        'sitemap_urls' => [],
+        'seed_urls'    => [
+            'https://voltiaworks.com/177-herramientas-electricas?resultsPerPage=24',
+            'https://voltiaworks.com/147-herramientas-manuales?resultsPerPage=24',
+            'https://voltiaworks.com/78-jardineria?resultsPerPage=24',
+            'https://voltiaworks.com/247-seguridad-y-equipamiento?resultsPerPage=24',
+        ],
+
+        'keep_query' => [ 'page', 'resultsPerPage' ],
+        'listing_paths' => [
+            '/177-herramientas-electricas',
+            '/147-herramientas-manuales',
+            '/78-jardineria',
+            '/247-seguridad-y-equipamiento',
+        ],
+        'product_patterns' => [
+            '#^/[^/]+/([0-9]+)-[^/]+\\.html$#i',
+        ],
+        'external_id_patterns' => [
+            '#^/[^/]+/([0-9]+)-[^/]+\\.html$#i',
+        ],
+        'max_products_per_listing' => 40,
+        'max_listing_pages'        => 90,
+
+        'canonicalize_callback' => [ 'SEO_Supplier_Direct_Catalog_Runtime', 'canonicalize' ],
+        'classify_url_callback'  => [ 'SEO_Supplier_Direct_Catalog_Runtime', 'classify' ],
+        'parse_page_callback'    => [ 'SEO_Supplier_Direct_Catalog_Runtime', 'parse_page' ],
+    ];
+
+    return $recipes;
+} );
