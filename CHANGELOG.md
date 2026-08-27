@@ -1,3 +1,39 @@
+## 2.3.0 - Consolidación funcional, seguridad y nueva base de desarrollo
+
+### Funcionalidad
+- Añade la opción de solicitar información para productos fuera de stock (#52).
+- Mejora la gestión de productos y los flujos asociados (#10).
+- Revisa y corrige la representación del estado de stock (#3).
+- Amplía y consolida los procesos relacionados con incorporación y gestión de productos.
+- Corrige los enlaces de clusters y hubs en la navegación (#14).
+
+### Plantillas, interfaz e imágenes
+- Revisa el sistema de plantillas y consolida su funcionamiento (#11).
+- Corrige las plantillas de blog y entradas para mostrar correctamente las imágenes (#47).
+- Mejora la asignación y visualización de imágenes en páginas, entradas, categorías y otros contenidos (#1, #9).
+- Mejora la diferenciación visual del footer (#48).
+- Mejora la presentación de errores y avisos de contenido (#27).
+
+### Seguridad, diagnóstico y monitorización
+- Añade un sistema de chequeo de seguridad (#24).
+- Incorpora información relacionada con Cloudflare dentro de los controles de seguridad (#35).
+- Mueve los logs del plugin fuera de ubicaciones públicas y consolida el sistema de log privado (#26).
+- Añade controles y métricas relacionados con el uso de la base de datos (#34).
+- Separa los resultados generados por distintos sistemas de tests para evitar colisiones de archivos JSON (#33).
+- Corrige incidencias relacionadas con vocabularios y validaciones internas (#32).
+- Revisa el comportamiento del sistema de redirecciones (#25).
+
+### Arquitectura y mantenimiento
+- Incorpora y consolida el subsistema `seo-system/`.
+- Integra los cambios acumulados en producción desde la versión 2.2.8.
+- Elimina archivos auxiliares, copias `.bak` y restos de desarrollo que ya no forman parte de producción.
+- Actualiza documentación y archivos de proyecto.
+
+### Repositorio y flujo de desarrollo
+- Establece GitHub como repositorio público oficial del proyecto (#15, #29, #30).
+- Sincroniza por primera vez el estado real de producción de Webempresa con el repositorio.
+- A partir de esta versión, GitHub pasa a ser la fuente principal del código y Webempresa el destino de despliegue.
+- 
 ## 2.2.8 - Cierre de etiquetas legacy de producto
 
 - Elimina el fallback público a `wp_seo_nodes` para etiquetas de producto: la ficha solo muestra APLICACIÓN, PLATAFORMA y SUBTIPO canónicos.
