@@ -17,8 +17,8 @@
  * @package SEOSystem
  * @subpackage ImportExport
  * @since 2.2.0
- * @version 2026-08-13
- * Build: 032
+ * @version 2026-08-27
+ * Build: 033
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -325,18 +325,35 @@ function seo_ie_batch_detect_entity( $path ) {
     ];
     $post_score = count( array_intersect( $post_markers, $sets['post'] ) );
 
+    /*
+     * Las relaciones comerciales post/page -> product_cat son columnas
+     * compartidas por ambos esquemas y, por si solas, no distinguen una
+     * entrada de una pagina. Si aparecen junto a post_id, en cambio, son un
+     * marcador inequívoco de un CSV de entradas y deben evaluarse antes de
+     * que el alias post_id -> page_id pueda desviarlo al importador de paginas.
+     */
+    $product_cat_relation_markers = [
+        'product_cat_relacion_ids',
+        'product_cat_relacion_slugs',
+        'product_cat_relacion_nombres',
+    ];
+    $post_relation_score = count( array_intersect( $product_cat_relation_markers, $sets['post'] ) );
+
     if (
-        1 <= $post_score
-        && (
-            $has( 'post', 'post_id' )
-            || 2 <= $post_score
+        (
+            1 <= $post_score
+            && (
+                $has( 'post', 'post_id' )
+                || 2 <= $post_score
+            )
         )
+        || ( 1 <= $post_relation_score && $has( 'post', 'post_id' ) )
     ) {
         return [
             'entity'     => 'post',
             'header'     => $sets['post'],
             'raw_header' => $raw,
-            'confidence' => min( 100, 82 + ( 3 * $post_score ) ),
+            'confidence' => min( 100, 82 + ( 3 * $post_score ) + ( 4 * $post_relation_score ) ),
         ];
     }
 
@@ -361,7 +378,7 @@ function seo_ie_batch_detect_entity( $path ) {
 
     $page_markers = [
         'page_id', 'ruta', 'parent_ruta', 'parent_slug', 'menu_order', 'plantilla',
-        'autor_id', 'fecha_gmt', 'meta_seo', 'meta_personalizados', 'comentarios', 'pings',
+        'seo_role', 'autor_id', 'fecha_gmt', 'meta_seo', 'meta_personalizados', 'comentarios', 'pings',
     ];
     $page_score = count( array_intersect( $page_markers, $sets['page'] ) );
 
@@ -751,6 +768,7 @@ function seo_ie_batch_prepare_internal_request( $entity, $path ) {
             'import_page_seo_meta'     => '1',
             'import_page_custom_meta'  => '1',
             'import_page_image'        => '1',
+            'import_page_relations'    => '1',
         ];
         $_FILES['pages_csv'] = [
             'name' => basename( $path ), 'tmp_name' => $path, 'error' => 0,
@@ -767,6 +785,7 @@ function seo_ie_batch_prepare_internal_request( $entity, $path ) {
             'import_post_seo_meta'       => '1',
             'import_post_custom_meta'    => '1',
             'import_post_image'          => '1',
+            'import_post_relations'      => '1',
         ];
         $_FILES['posts_csv'] = [
             'name' => basename( $path ), 'tmp_name' => $path, 'error' => 0,
@@ -1844,7 +1863,7 @@ function seo_ie_batch_render_page() {
     }
     ?>
     <div style="max-width:1300px;">
-        <h2>Importacion por lotes <small style="font-size:13px;font-weight:400;color:#646970;">Build 032</small></h2>
+        <h2>Importacion por lotes <small style="font-size:13px;font-weight:400;color:#646970;">Build 033</small></h2>
         <p>
             Cola secuencial para CSV de WordPress y SEO System. El destino se detecta por la cabecera:
             productos, categorias, paginas, entradas (posts), FAQs o redirects. El catalogo bruto de proveedores se importa desde su pestana independiente.
@@ -2047,6 +2066,7 @@ function seo_ie_batch_render_page() {
                 <li>Orden natural por nombre y un solo archivo en ejecucion.</li>
                 <li><code>pending</code> -&gt; <code>processing</code> -&gt; <code>imported</code> o <code>failed</code>.</li>
                 <li>Productos, categorias, paginas, entradas (posts), FAQs y redirects usan sus importadores de WordPress; no es la importacion del catalogo de proveedores.</li>
+                <li>Paginas/landings y entradas importan tambien su relacion comercial con <code>product_cat</code> mediante <code>seo_relations</code> cuando el CSV incluye las columnas <code>product_cat_relacion_*</code>.</li>
                 <li>Los productos reutilizan el motor adaptativo, Action Scheduler, WP-Cron y continuacion asistida desde esta pestana tras un inicio explicito.</li>
                 <li>Un error detiene la cola para impedir que archivos dependientes se importen sobre datos incompletos.</li>
                 <li>Borrar un archivo de <code>imported</code> solo elimina el CSV y su log; no deshace los cambios ya escritos en WordPress.</li>

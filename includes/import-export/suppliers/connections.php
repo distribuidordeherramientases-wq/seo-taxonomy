@@ -7,7 +7,7 @@
  *
  * @package SEOSystem
  * @subpackage ImportExport
- * @version 0.4.1
+ * @version 0.5.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -37,6 +37,14 @@ $GLOBALS['seo_github_python_runner_loader'] = [
 ];
 unset( $seo_github_python_runner_file, $seo_github_python_runner_file_exists, $seo_github_python_runner_file_readable );
 
+// Integracion de infraestructura Cloudflare. Se centraliza en esta pantalla,
+// pero sus datos podran ser consumidos despues por Estado del servidor > Seguridad.
+$seo_cloudflare_file = __DIR__ . '/cloudflare.php';
+if ( is_readable( $seo_cloudflare_file ) ) {
+    require_once $seo_cloudflare_file;
+}
+unset( $seo_cloudflare_file );
+
 if ( ! function_exists( 'seo_proveedores_api_connections' ) ) {
     function seo_proveedores_api_connections() {
         $connections = [];
@@ -47,6 +55,16 @@ if ( ! function_exists( 'seo_proveedores_api_connections' ) ) {
                 'label'    => 'Amazon Creators API',
                 'provider' => 'Amazon',
                 'market'   => 'amazon.es',
+            ];
+        }
+
+        if ( function_exists( 'seo_cloudflare_settings' ) ) {
+            $connections['cloudflare'] = [
+                'id'       => 'cloudflare',
+                'label'    => 'Cloudflare',
+                'provider' => 'Cloudflare',
+                'market'   => '',
+                'type'     => 'infrastructure',
             ];
         }
 
@@ -103,6 +121,22 @@ if ( ! function_exists( 'seo_proveedores_render_conexiones' ) ) {
                     $error = $token->get_error_message();
                 } else {
                     $notice = 'Conexion correcta: Amazon ha emitido un access token OAuth valido.';
+                }
+            }
+        }
+
+        if ( isset( $_POST['seo_cloudflare_test_connection'] ) ) {
+            check_admin_referer( 'seo_cloudflare_connection_test', 'seo_cloudflare_connection_nonce' );
+
+            if ( ! function_exists( 'seo_cloudflare_test_connection' ) ) {
+                $error = 'El servicio Cloudflare no esta cargado.';
+            } else {
+                $test = seo_cloudflare_test_connection();
+                $messages = array_map( 'sanitize_text_field', (array) ( $test['messages'] ?? [] ) );
+                if ( empty( $test['ok'] ) ) {
+                    $error = implode( ' ', $messages );
+                } else {
+                    $notice = implode( ' ', $messages );
                 }
             }
         }
@@ -179,9 +213,9 @@ if ( ! function_exists( 'seo_proveedores_render_conexiones' ) ) {
         }
 
         echo '<div class="card" style="max-width:none;padding:20px;margin-top:20px;">';
-        echo '<h2 style="margin-top:0;">Conexiones con proveedores</h2>';
-        echo '<p>Configura aqui las APIs de proveedores y los ejecutores externos. Las credenciales se guardan una sola vez y las recetas de importacion reutilizan estas conexiones.</p>';
-        echo '<p><code>Modulo conexiones v0.4.1</code></p>';
+        echo '<h2 style="margin-top:0;">Conexiones e integraciones</h2>';
+        echo '<p>Configura aqui APIs de proveedores, ejecutores externos y servicios de infraestructura. Cada credencial se define una sola vez y los modulos autorizados reutilizan la conexion.</p>';
+        echo '<p><code>Modulo conexiones v0.5.0</code></p>';
 
         if ( ! function_exists( 'seo_github_python_runner_settings' ) ) {
             $gh_loader = isset( $GLOBALS['seo_github_python_runner_loader'] ) && is_array( $GLOBALS['seo_github_python_runner_loader'] )
@@ -192,6 +226,22 @@ if ( ! function_exists( 'seo_proveedores_render_conexiones' ) ) {
             $gh_loaded = ! empty( $gh_loader['loaded'] ) ? 'SI' : 'NO';
             $gh_path = isset( $gh_loader['path'] ) ? (string) $gh_loader['path'] : __DIR__ . '/github-python-runner.php';
             echo '<div class="notice notice-warning inline"><p><strong>GitHub Runner no cargado.</strong> Archivo existe: ' . esc_html( $gh_exists ) . ' · Legible por PHP: ' . esc_html( $gh_readable ) . ' · Funcion cargada: ' . esc_html( $gh_loaded ) . '<br><code>' . esc_html( $gh_path ) . '</code><br>Comprueba que <code>github-python-runner.php</code> tenga permisos 0644.</p></div>';
+        }
+
+        if ( isset( $_GET['cloudflare_saved'] ) ) {
+            echo '<div class="notice notice-success inline"><p>Configuracion de Cloudflare guardada. Usa "Probar conexion" para verificar el token y la zona.</p></div>';
+        }
+        if ( isset( $_GET['cloudflare_error'] ) ) {
+            $cloudflare_error = sanitize_key( $_GET['cloudflare_error'] );
+            $cloudflare_message = 'No se pudo guardar la configuracion de Cloudflare.';
+            if ( 'zone' === $cloudflare_error ) {
+                $cloudflare_message = 'Indica un dominio/zona valido de Cloudflare.';
+            } elseif ( 'token' === $cloudflare_error ) {
+                $cloudflare_message = 'Activa Cloudflare solo cuando exista un API Token guardado o definido en wp-config.php.';
+            } elseif ( 'crypto' === $cloudflare_error ) {
+                $cloudflare_message = 'No se pudo proteger el token en la base de datos. Puedes definir SEO_SYSTEM_CLOUDFLARE_API_TOKEN en wp-config.php.';
+            }
+            echo '<div class="notice notice-error inline"><p>' . esc_html( $cloudflare_message ) . '</p></div>';
         }
 
         if ( isset( $_GET['amazon_saved'] ) ) {
@@ -246,6 +296,58 @@ if ( ! function_exists( 'seo_proveedores_render_conexiones' ) ) {
             echo '<div class="notice notice-warning inline"><p>No hay proveedores API registrados. Para Amazon debe existir <code>suppliers/recipes/import_amazon.php</code>.</p></div>';
             echo '</div>';
             return;
+        }
+
+        if ( isset( $connections['cloudflare'] ) && function_exists( 'seo_cloudflare_settings' ) ) {
+            $cf = seo_cloudflare_settings();
+            $cf_state = function_exists( 'seo_cloudflare_connection_state' ) ? seo_cloudflare_connection_state() : [];
+            $cf_token_source = (string) ( $cf_state['token_source'] ?? 'none' );
+            $cf_has_token = 'none' !== $cf_token_source;
+            $cf_configured = $cf_has_token && '' !== trim( (string) ( $cf['zone_name'] ?? '' ) );
+            $cf_enabled = ! empty( $cf['enabled'] );
+            $cf_verified = ! empty( $cf['last_verified_at'] ) && 'active' === (string) ( $cf['last_token_status'] ?? '' ) && '' !== trim( (string) ( $cf['zone_id'] ?? '' ) );
+            $cf_badge = $cf_verified ? 'Conectado' : ( $cf_configured ? 'Configurado, pendiente de prueba' : 'Pendiente de configurar' );
+            $cf_badge_bg = $cf_verified ? '#edfaef' : '#fff8e5';
+
+            echo '<div style="border:1px solid #8c8f94;border-radius:6px;padding:18px;margin-top:18px;background:#fff;">';
+            echo '<div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;">';
+            echo '<div><p style="margin:0 0 5px;"><strong style="font-size:12px;text-transform:uppercase;color:#646970;">Servicio e infraestructura</strong></p><h3 style="margin:0 0 6px;">Cloudflare</h3><p style="margin:0;max-width:850px;">Conexion de solo lectura para reutilizar la configuracion de Cloudflare en el diagnostico de seguridad. Esta fase verifica el API Token y localiza la zona; no modifica DNS, WAF, SSL ni reglas.</p></div>';
+            echo '<span style="display:inline-block;padding:5px 9px;border-radius:12px;background:' . esc_attr( $cf_badge_bg ) . ';">' . esc_html( $cf_badge ) . '</span>';
+            echo '</div>';
+
+            if ( $cf_verified ) {
+                $cf_last = absint( $cf['last_verified_at'] ?? 0 );
+                $cf_last_text = $cf_last ? wp_date( 'Y-m-d H:i:s', $cf_last ) : 'nunca';
+                echo '<p style="margin:14px 0 0;"><strong>Zona:</strong> <code>' . esc_html( (string) ( $cf['zone_name'] ?? '' ) ) . '</code> · <strong>Estado:</strong> ' . esc_html( (string) ( $cf['zone_status'] ?? 'desconocido' ) ) . ' · <strong>Cuenta:</strong> ' . esc_html( (string) ( $cf['account_name'] ?? 'no indicada' ) ) . ' · <strong>Ultima verificacion:</strong> ' . esc_html( $cf_last_text ) . '</p>';
+            }
+
+            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:18px;">';
+            echo '<input type="hidden" name="action" value="seo_cloudflare_save">';
+            wp_nonce_field( 'seo_cloudflare_save', 'seo_cloudflare_nonce' );
+            echo '<label style="grid-column:1/-1;"><input type="checkbox" name="enabled" value="1" ' . checked( $cf_enabled, true, false ) . '> <strong>Activar Cloudflare para los diagnosticos de SEO System</strong><br><span class="description">Si se desactiva, la credencial puede conservarse pero Seguridad no debera usar la API.</span></label>';
+            echo '<label><strong>Zona / dominio</strong><br><input type="text" name="zone_name" value="' . esc_attr( (string) ( $cf['zone_name'] ?? '' ) ) . '" placeholder="ejemplo.com" class="regular-text" autocomplete="off" style="width:100%;"><br><span class="description">Usa la zona de Cloudflare, normalmente el dominio raiz sin www.</span></label>';
+
+            if ( 'constant' === $cf_token_source ) {
+                echo '<div><strong>API Token</strong><br><span style="display:inline-block;margin-top:6px;padding:5px 9px;border-radius:12px;background:#edfaef;">Definido externamente</span><br><span class="description">SEO_SYSTEM_CLOUDFLARE_API_TOKEN esta definido en wp-config.php. El token no se guarda en la base de datos.</span></div>';
+            } else {
+                echo '<label><strong>API Token</strong><br><input type="password" name="api_token" value="" placeholder="' . esc_attr( $cf_has_token ? 'Token guardado; deja vacio para conservarlo' : 'Pega aqui el API Token de Cloudflare' ) . '" class="regular-text" autocomplete="new-password" style="width:100%;"><br><span class="description">Se cifra antes de guardarse; nunca se vuelve a mostrar en pantalla.</span></label>';
+                if ( $cf_has_token ) {
+                    echo '<label style="grid-column:1/-1;"><input type="checkbox" name="clear_token" value="1"> Eliminar el token guardado al guardar esta configuracion.</label>';
+                }
+            }
+
+            echo '<div style="grid-column:1/-1;"><button class="button button-primary" type="submit">Guardar conexion Cloudflare</button></div>';
+            echo '</form>';
+
+            echo '<form method="post" style="margin-top:12px;">';
+            wp_nonce_field( 'seo_cloudflare_connection_test', 'seo_cloudflare_connection_nonce' );
+            echo '<button class="button" type="submit" name="seo_cloudflare_test_connection" value="1" ' . disabled( ! $cf_configured, true, false ) . '>Probar conexion Cloudflare</button>';
+            echo '</form>';
+
+            echo '<details style="margin-top:14px;"><summary><strong>Permisos recomendados del API Token</strong></summary>';
+            echo '<div style="padding:10px 0 0 18px;"><p style="margin-top:0;">Crea un <strong>API Token</strong>, no uses la Global API Key, y limita los recursos a esta zona. Para dejar preparada la futura auditoria de Seguridad: <code>Zone Read</code>, <code>Zone Settings Read</code>, <code>DNS Read</code>, <code>SSL and Certificates Read</code>, <code>Zone WAF Read</code> y <code>Analytics Read</code>. No concedas permisos Edit/Write.</p>';
+            echo '<p class="description">La prueba actual solo exige poder validar el token y leer la zona. Los permisos adicionales se comprobaran cuando ampliemos la pestaña Seguridad.</p></div></details>';
+            echo '</div>';
         }
 
         if ( isset( $connections['google_search'] ) && function_exists( 'seo_google_search_settings' ) ) {

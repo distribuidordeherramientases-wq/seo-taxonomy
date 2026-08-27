@@ -1,0 +1,3919 @@
+<?php
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+/**
+ * Google Intelligence: OAuth, almacenamiento y sincronización de Search Console.
+ *
+ * Esta primera versión:
+ * - guarda Client ID y Client Secret;
+ * - inicia y completa OAuth 2.0;
+ * - solicita acceso de solo lectura a Search Console;
+ * - guarda y renueva tokens;
+ * - lista las propiedades accesibles;
+ * - permite seleccionar una propiedad y frecuencia de sincronización;
+ * - utiliza un callback dedicado mediante admin-post.php;
+ * - documenta los errores OAuth más habituales.
+ */
+
+const SEO_GOOGLE_SCOPE_SEARCH_CONSOLE = 'https://www.googleapis.com/auth/webmasters.readonly';
+const SEO_GOOGLE_OPTION_SETTINGS       = 'seo_google_intelligence_settings';
+const SEO_GOOGLE_OPTION_TOKENS         = 'seo_google_intelligence_tokens';
+const SEO_GOOGLE_OPTION_DB_VERSION     = 'seo_google_intelligence_db_version';
+const SEO_GOOGLE_MODULE_VERSION        = '1.9.0';
+const SEO_GOOGLE_DB_VERSION            = '1.3.0';
+const SEO_GOOGLE_INITIAL_SYNC_DAYS      = 90;
+const SEO_GOOGLE_FINAL_DATA_DELAY_DAYS = 3;
+const SEO_GOOGLE_ROW_LIMIT              = 25000;
+const SEO_GOOGLE_MAX_ROWS_PER_DAY       = 50000;
+
+// Analisis separado de demanda vs. catalogo para mantener este archivo estable.
+$seo_google_demand_catalog_file = __DIR__ . '/seo-google-demand-catalog.php';
+if (file_exists($seo_google_demand_catalog_file)) {
+    require_once $seo_google_demand_catalog_file;
+}
+
+// Mercado externo mediante Google Trends (datos importados/exportados).
+$seo_google_trends_file = __DIR__ . '/seo-google-trends.php';
+if (file_exists($seo_google_trends_file)) {
+    require_once $seo_google_trends_file;
+}
+
+// Informe final que cruza mercado, Search Console y catalogo.
+$seo_google_growth_guidance_file = __DIR__ . '/seo-google-growth-guidance.php';
+if (file_exists($seo_google_growth_guidance_file)) {
+    require_once $seo_google_growth_guidance_file;
+}
+
+add_action('admin_post_seo_google_save_settings', 'seo_google_save_settings_handler');
+add_action('admin_post_seo_google_connect', 'seo_google_connect_handler');
+add_action('admin_post_seo_google_disconnect', 'seo_google_disconnect_handler');
+add_action('admin_post_seo_google_test_connection', 'seo_google_test_connection_handler');
+add_action('admin_post_seo_google_oauth_callback', 'seo_google_oauth_callback_handler');
+add_action('admin_post_seo_google_repair_tables', 'seo_google_repair_tables_handler');
+add_action('admin_post_seo_google_export_csv', 'seo_google_export_csv_handler');
+add_action('admin_init', 'seo_google_maybe_install_tables', 1);
+add_action('wp_ajax_seo_google_sync_start', 'seo_google_sync_start_handler');
+add_action('wp_ajax_seo_google_sync_day', 'seo_google_sync_day_handler');
+
+
+/**
+ * Intenta instalar el esquema en admin_init cuando el archivo se carga a tiempo.
+ * La pantalla y los endpoints AJAX vuelven a comprobarlo, por lo que también
+ * funciona cuando este archivo se incluye después de admin_init.
+ */
+function seo_google_maybe_install_tables() {
+    seo_google_install_tables(false);
+}
+
+/**
+ * URL base de Google Intelligence.
+ */
+function seo_google_admin_url($view = 'settings', $args = array()) {
+    $url = add_query_arg(
+        array(
+            'page'        => 'seo-reports',
+            'tab'         => 'google_intelligence',
+            'google_view' => sanitize_key($view),
+        ),
+        admin_url('admin.php')
+    );
+
+    return !empty($args) ? add_query_arg($args, $url) : $url;
+}
+
+/**
+ * URI exacta que debe registrarse en Google Cloud.
+ */
+function seo_google_redirect_uri() {
+    return admin_url('admin-post.php?action=seo_google_oauth_callback');
+}
+
+/**
+ * Configuración no sensible o de aplicación.
+ */
+function seo_google_get_settings() {
+    $defaults = array(
+        'client_id'      => '',
+        'client_secret'  => '',
+        'property_id'    => '',
+        'sync_frequency' => 'manual',
+        'last_sync'      => '',
+    );
+
+    $settings = get_option(SEO_GOOGLE_OPTION_SETTINGS, array());
+
+    return wp_parse_args(is_array($settings) ? $settings : array(), $defaults);
+}
+
+/**
+ * Tokens OAuth almacenados por separado.
+ */
+function seo_google_get_tokens() {
+    $defaults = array(
+        'access_token'  => '',
+        'refresh_token' => '',
+        'expires_at'    => 0,
+        'scope'         => '',
+        'token_type'    => 'Bearer',
+    );
+
+    $tokens = get_option(SEO_GOOGLE_OPTION_TOKENS, array());
+
+    return wp_parse_args(is_array($tokens) ? $tokens : array(), $defaults);
+}
+
+/**
+ * Guarda opciones evitando autoload.
+ */
+function seo_google_update_option($option_name, $value) {
+    if (false === get_option($option_name, false)) {
+        add_option($option_name, $value, '', false);
+        return;
+    }
+
+    update_option($option_name, $value, false);
+}
+
+/**
+ * Determina el estado de conexión.
+ */
+function seo_google_connection_status() {
+    $settings = seo_google_get_settings();
+    $tokens   = seo_google_get_tokens();
+
+    if (empty($settings['client_id']) || empty($settings['client_secret'])) {
+        return 'missing_credentials';
+    }
+
+    if (empty($tokens['refresh_token']) && empty($tokens['access_token'])) {
+        return 'not_authorized';
+    }
+
+    if (empty($settings['property_id'])) {
+        return 'missing_property';
+    }
+
+    return 'connected';
+}
+
+/**
+ * Guarda Client ID, secreto, propiedad y frecuencia.
+ * Los campos sensibles vacíos conservan el valor ya almacenado.
+ */
+function seo_google_save_settings_handler() {
+    if (!current_user_can('manage_options')) {
+        wp_die(esc_html__('No tienes permisos para configurar Google Intelligence.', 'seo-system'));
+    }
+
+    check_admin_referer('seo_google_save_settings', 'seo_google_settings_nonce');
+
+    $settings = seo_google_get_settings();
+
+    $client_id = isset($_POST['client_id'])
+        ? sanitize_text_field(wp_unslash($_POST['client_id']))
+        : '';
+
+    $client_secret = isset($_POST['client_secret'])
+        ? sanitize_text_field(wp_unslash($_POST['client_secret']))
+        : '';
+
+    if ('' !== $client_id) {
+        $settings['client_id'] = $client_id;
+    }
+
+    if ('' !== $client_secret) {
+        $settings['client_secret'] = $client_secret;
+    }
+
+    $settings['property_id'] = isset($_POST['property_id'])
+        ? esc_url_raw(wp_unslash($_POST['property_id']))
+        : '';
+
+    // Las propiedades de dominio usan el prefijo sc-domain: y no son URLs.
+    if (isset($_POST['property_id'])) {
+        $raw_property = trim((string) wp_unslash($_POST['property_id']));
+        if (0 === strpos($raw_property, 'sc-domain:')) {
+            $settings['property_id'] = sanitize_text_field($raw_property);
+        }
+    }
+
+    $frequency = isset($_POST['sync_frequency'])
+        ? sanitize_key(wp_unslash($_POST['sync_frequency']))
+        : 'manual';
+
+    $settings['sync_frequency'] = in_array($frequency, array('manual', 'daily', 'weekly'), true)
+        ? $frequency
+        : 'manual';
+
+    seo_google_update_option(SEO_GOOGLE_OPTION_SETTINGS, $settings);
+
+    wp_safe_redirect(seo_google_admin_url('settings', array('google_notice' => 'settings_saved')));
+    exit;
+}
+
+/**
+ * Inicia OAuth en Google.
+ */
+function seo_google_connect_handler() {
+    if (!current_user_can('manage_options')) {
+        wp_die(esc_html__('No tienes permisos para conectar Google.', 'seo-system'));
+    }
+
+    check_admin_referer('seo_google_connect', 'seo_google_connect_nonce');
+
+    $settings = seo_google_get_settings();
+
+    if (empty($settings['client_id']) || empty($settings['client_secret'])) {
+        wp_safe_redirect(seo_google_admin_url('settings', array('google_error' => 'missing_credentials')));
+        exit;
+    }
+
+    $state = wp_generate_password(48, false, false);
+    set_transient(
+        'seo_google_oauth_state_' . get_current_user_id(),
+        $state,
+        15 * MINUTE_IN_SECONDS
+    );
+
+    $authorization_url = add_query_arg(
+        array(
+            'client_id'                => $settings['client_id'],
+            'redirect_uri'             => seo_google_redirect_uri(),
+            'response_type'            => 'code',
+            'scope'                    => SEO_GOOGLE_SCOPE_SEARCH_CONSOLE,
+            'access_type'              => 'offline',
+            'include_granted_scopes'   => 'true',
+            'prompt'                   => 'consent',
+            'state'                    => $state,
+        ),
+        'https://accounts.google.com/o/oauth2/v2/auth'
+    );
+
+    wp_redirect(esc_url_raw($authorization_url));
+    exit;
+}
+
+/**
+ * Recibe el callback OAuth y cambia el código por tokens.
+ */
+function seo_google_oauth_callback_handler() {
+    if (!current_user_can('manage_options')) {
+        wp_die(esc_html__('No tienes permisos para completar esta conexión.', 'seo-system'));
+    }
+
+    if (isset($_GET['error'])) {
+        $oauth_error = sanitize_key(wp_unslash($_GET['error']));
+
+        wp_safe_redirect(
+            seo_google_admin_url(
+                'settings',
+                array('google_error' => $oauth_error ?: 'access_denied')
+            )
+        );
+        exit;
+    }
+
+    $received_state = isset($_GET['state'])
+        ? sanitize_text_field(wp_unslash($_GET['state']))
+        : '';
+
+    $state_key    = 'seo_google_oauth_state_' . get_current_user_id();
+    $stored_state = get_transient($state_key);
+    delete_transient($state_key);
+
+    if (
+        '' === $received_state
+        || empty($stored_state)
+        || !hash_equals((string) $stored_state, (string) $received_state)
+    ) {
+        wp_safe_redirect(seo_google_admin_url('settings', array('google_error' => 'invalid_state')));
+        exit;
+    }
+
+    $code = isset($_GET['code'])
+        ? sanitize_text_field(wp_unslash($_GET['code']))
+        : '';
+
+    if ('' === $code) {
+        wp_safe_redirect(seo_google_admin_url('settings', array('google_error' => 'missing_code')));
+        exit;
+    }
+
+    $settings = seo_google_get_settings();
+
+    if (empty($settings['client_id']) || empty($settings['client_secret'])) {
+        wp_safe_redirect(seo_google_admin_url('settings', array('google_error' => 'missing_credentials')));
+        exit;
+    }
+
+    $response = wp_remote_post(
+        'https://oauth2.googleapis.com/token',
+        array(
+            'timeout' => 30,
+            'body'    => array(
+                'code'          => $code,
+                'client_id'     => $settings['client_id'],
+                'client_secret' => $settings['client_secret'],
+                'redirect_uri'  => seo_google_redirect_uri(),
+                'grant_type'    => 'authorization_code',
+            ),
+        )
+    );
+
+    if (is_wp_error($response)) {
+        set_transient(
+            'seo_google_oauth_error_' . get_current_user_id(),
+            $response->get_error_message(),
+            2 * MINUTE_IN_SECONDS
+        );
+        wp_safe_redirect(seo_google_admin_url('settings', array('google_error' => 'token_request_failed')));
+        exit;
+    }
+
+    $status_code = (int) wp_remote_retrieve_response_code($response);
+    $raw_body    = wp_remote_retrieve_body($response);
+    $body        = json_decode($raw_body, true);
+
+    if (200 !== $status_code || !is_array($body) || empty($body['access_token'])) {
+        $google_message = '';
+
+        if (is_array($body)) {
+            $google_message = sanitize_text_field(
+                $body['error_description']
+                ?? $body['error']['message']
+                ?? $body['error']
+                ?? ''
+            );
+        }
+
+        if ('' === $google_message) {
+            $google_message = 'Google devolvió HTTP ' . $status_code . ' al intercambiar el código.';
+        }
+
+        set_transient(
+            'seo_google_oauth_error_' . get_current_user_id(),
+            $google_message,
+            2 * MINUTE_IN_SECONDS
+        );
+
+        wp_safe_redirect(seo_google_admin_url('settings', array('google_error' => 'token_exchange_failed')));
+        exit;
+    }
+
+    $old_tokens = seo_google_get_tokens();
+
+    $tokens = array(
+        'access_token'  => sanitize_text_field($body['access_token']),
+        'refresh_token' => !empty($body['refresh_token'])
+            ? sanitize_text_field($body['refresh_token'])
+            : $old_tokens['refresh_token'],
+        'expires_at'    => time() + max(60, absint($body['expires_in'] ?? 3600) - 60),
+        'scope'         => sanitize_text_field($body['scope'] ?? SEO_GOOGLE_SCOPE_SEARCH_CONSOLE),
+        'token_type'    => sanitize_text_field($body['token_type'] ?? 'Bearer'),
+    );
+
+    seo_google_update_option(SEO_GOOGLE_OPTION_TOKENS, $tokens);
+
+    wp_safe_redirect(seo_google_admin_url('settings', array('google_notice' => 'connected')));
+    exit;
+}
+
+/**
+ * Devuelve un access token válido, renovándolo cuando sea necesario.
+ */
+function seo_google_get_access_token() {
+    $settings = seo_google_get_settings();
+    $tokens   = seo_google_get_tokens();
+
+    if (!empty($tokens['access_token']) && (int) $tokens['expires_at'] > time()) {
+        return $tokens['access_token'];
+    }
+
+    if (empty($tokens['refresh_token']) || empty($settings['client_id']) || empty($settings['client_secret'])) {
+        return new WP_Error('seo_google_not_authorized', 'Google no está autorizado o faltan credenciales.');
+    }
+
+    $response = wp_remote_post(
+        'https://oauth2.googleapis.com/token',
+        array(
+            'timeout' => 30,
+            'body'    => array(
+                'client_id'     => $settings['client_id'],
+                'client_secret' => $settings['client_secret'],
+                'refresh_token' => $tokens['refresh_token'],
+                'grant_type'    => 'refresh_token',
+            ),
+        )
+    );
+
+    if (is_wp_error($response)) {
+        return $response;
+    }
+
+    $status_code = (int) wp_remote_retrieve_response_code($response);
+    $body        = json_decode(wp_remote_retrieve_body($response), true);
+
+    if (200 !== $status_code || !is_array($body) || empty($body['access_token'])) {
+        return new WP_Error('seo_google_refresh_failed', 'Google no ha podido renovar el token de acceso.');
+    }
+
+    $tokens['access_token'] = sanitize_text_field($body['access_token']);
+    $tokens['expires_at']   = time() + max(60, absint($body['expires_in'] ?? 3600) - 60);
+    $tokens['scope']        = sanitize_text_field($body['scope'] ?? $tokens['scope']);
+    $tokens['token_type']   = sanitize_text_field($body['token_type'] ?? 'Bearer');
+
+    seo_google_update_option(SEO_GOOGLE_OPTION_TOKENS, $tokens);
+
+    return $tokens['access_token'];
+}
+
+/**
+ * Petición autenticada a una API de Google.
+ */
+function seo_google_api_get($url) {
+    $access_token = seo_google_get_access_token();
+
+    if (is_wp_error($access_token)) {
+        return $access_token;
+    }
+
+    $response = wp_remote_get(
+        $url,
+        array(
+            'timeout' => 30,
+            'headers' => array(
+                'Authorization' => 'Bearer ' . $access_token,
+                'Accept'        => 'application/json',
+            ),
+        )
+    );
+
+    if (is_wp_error($response)) {
+        return $response;
+    }
+
+    $status_code = (int) wp_remote_retrieve_response_code($response);
+    $body        = json_decode(wp_remote_retrieve_body($response), true);
+
+    if ($status_code < 200 || $status_code >= 300) {
+        $message = is_array($body) && !empty($body['error']['message'])
+            ? sanitize_text_field($body['error']['message'])
+            : 'Google ha devuelto un error HTTP ' . $status_code . '.';
+
+        return new WP_Error('seo_google_api_error', $message);
+    }
+
+    return is_array($body) ? $body : array();
+}
+
+/**
+ * Lista propiedades de Search Console disponibles para la cuenta autorizada.
+ */
+function seo_google_get_search_console_properties() {
+    $response = seo_google_api_get('https://www.googleapis.com/webmasters/v3/sites');
+
+    if (is_wp_error($response)) {
+        return $response;
+    }
+
+    $properties = array();
+
+    foreach ((array) ($response['siteEntry'] ?? array()) as $entry) {
+        if (empty($entry['siteUrl'])) {
+            continue;
+        }
+
+        $properties[] = array(
+            'site_url'         => sanitize_text_field($entry['siteUrl']),
+            'permission_level' => sanitize_key($entry['permissionLevel'] ?? ''),
+        );
+    }
+
+    usort(
+        $properties,
+        static function ($a, $b) {
+            return strcasecmp($a['site_url'], $b['site_url']);
+        }
+    );
+
+    return $properties;
+}
+
+/**
+ * Prueba la autorización consultando las propiedades disponibles.
+ */
+function seo_google_test_connection_handler() {
+    if (!current_user_can('manage_options')) {
+        wp_die(esc_html__('No tienes permisos para probar esta conexión.', 'seo-system'));
+    }
+
+    check_admin_referer('seo_google_test_connection', 'seo_google_test_nonce');
+
+    $properties = seo_google_get_search_console_properties();
+
+    if (is_wp_error($properties)) {
+        set_transient(
+            'seo_google_test_error_' . get_current_user_id(),
+            $properties->get_error_message(),
+            2 * MINUTE_IN_SECONDS
+        );
+
+        wp_safe_redirect(seo_google_admin_url('settings', array('google_error' => 'test_failed')));
+        exit;
+    }
+
+    wp_safe_redirect(
+        seo_google_admin_url(
+            'settings',
+            array(
+                'google_notice' => 'test_ok',
+                'properties'    => count($properties),
+            )
+        )
+    );
+    exit;
+}
+
+/**
+ * Revoca el token cuando sea posible y elimina la conexión local.
+ */
+function seo_google_disconnect_handler() {
+    if (!current_user_can('manage_options')) {
+        wp_die(esc_html__('No tienes permisos para desconectar Google.', 'seo-system'));
+    }
+
+    check_admin_referer('seo_google_disconnect', 'seo_google_disconnect_nonce');
+
+    $tokens = seo_google_get_tokens();
+    $token  = !empty($tokens['refresh_token']) ? $tokens['refresh_token'] : $tokens['access_token'];
+
+    if ('' !== $token) {
+        wp_remote_post(
+            'https://oauth2.googleapis.com/revoke',
+            array(
+                'timeout' => 15,
+                'body'    => array('token' => $token),
+            )
+        );
+    }
+
+    delete_option(SEO_GOOGLE_OPTION_TOKENS);
+
+    $settings                = seo_google_get_settings();
+    $settings['property_id'] = '';
+    seo_google_update_option(SEO_GOOGLE_OPTION_SETTINGS, $settings);
+
+    wp_safe_redirect(seo_google_admin_url('settings', array('google_notice' => 'disconnected')));
+    exit;
+}
+
+
+/**
+ * Nombre de una tabla propia de Google Intelligence.
+ */
+function seo_google_table($suffix) {
+    global $wpdb;
+
+    return $wpdb->prefix . 'seo_google_' . sanitize_key($suffix);
+}
+
+/**
+ * Comprueba que una tabla existe físicamente en la base de datos.
+ *
+ * Se usa information_schema para evitar falsos positivos de SHOW TABLES LIKE
+ * cuando el nombre contiene guiones bajos. Si el hosting restringe
+ * information_schema, se utiliza SHOW TABLES como alternativa.
+ */
+function seo_google_table_exists($table_name) {
+    global $wpdb;
+
+    $table_name = (string) $table_name;
+    $previous   = $wpdb->suppress_errors(true);
+    $pattern    = $wpdb->esc_like($table_name);
+    $found      = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $pattern));
+    $wpdb->suppress_errors($previous);
+
+    return $table_name === $found;
+}
+
+/**
+ * Estado físico de las tablas requeridas.
+ */
+function seo_google_tables_status() {
+    $runs_table = seo_google_table('sync_runs');
+    $data_table = seo_google_table('search_data');
+
+    return array(
+        'runs_table'  => $runs_table,
+        'data_table'  => $data_table,
+        'runs_exists' => seo_google_table_exists($runs_table),
+        'data_exists' => seo_google_table_exists($data_table),
+    );
+}
+
+/**
+ * Instala o actualiza las tablas del módulo.
+ *
+ * Primero usa dbDelta para mantener compatibilidad con WordPress. Si dbDelta
+ * no llega a crear una tabla, ejecuta CREATE TABLE IF NOT EXISTS directamente
+ * y conserva el error exacto de MySQL para el diagnóstico.
+ */
+function seo_google_install_tables($force = false) {
+    global $wpdb;
+
+    $installed_version = (string) get_option(SEO_GOOGLE_OPTION_DB_VERSION, '');
+    $status            = seo_google_tables_status();
+
+    if (
+        !$force
+        && SEO_GOOGLE_DB_VERSION === $installed_version
+        && $status['runs_exists']
+        && $status['data_exists']
+    ) {
+        return true;
+    }
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+    $runs_table     = $status['runs_table'];
+    $data_table     = $status['data_table'];
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $runs_sql = "CREATE TABLE {$runs_table} (
+        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        property_id varchar(255) NOT NULL,
+        property_hash char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+        date_from date NOT NULL,
+        date_to date NOT NULL,
+        cursor_date date NULL,
+        status varchar(20) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'pending',
+        rows_received bigint(20) unsigned NOT NULL DEFAULT 0,
+        rows_upserted bigint(20) unsigned NOT NULL DEFAULT 0,
+        days_completed int(10) unsigned NOT NULL DEFAULT 0,
+        days_total int(10) unsigned NOT NULL DEFAULT 0,
+        error_message text NULL,
+        created_by bigint(20) unsigned NOT NULL DEFAULT 0,
+        started_at datetime NOT NULL,
+        finished_at datetime NULL,
+        updated_at datetime NOT NULL,
+        PRIMARY KEY  (id),
+        KEY property_hash (property_hash),
+        KEY status (status),
+        KEY started_at (started_at)
+    ) {$charset_collate};";
+
+    $data_sql = "CREATE TABLE {$data_table} (
+        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        property_id varchar(255) NOT NULL,
+        property_hash char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+        data_date date NOT NULL,
+        search_type varchar(20) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'web',
+        query_text text NOT NULL,
+        query_hash char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+        page_url text NOT NULL,
+        page_hash char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+        clicks double NOT NULL DEFAULT 0,
+        impressions double NOT NULL DEFAULT 0,
+        ctr double NOT NULL DEFAULT 0,
+        position double NOT NULL DEFAULT 0,
+        sync_run_id bigint(20) unsigned NOT NULL DEFAULT 0,
+        imported_at datetime NOT NULL,
+        updated_at datetime NOT NULL,
+        PRIMARY KEY  (id),
+        UNIQUE KEY google_row (property_hash,data_date,search_type,query_hash,page_hash),
+        KEY property_date (property_hash,data_date),
+        KEY query_hash (query_hash),
+        KEY page_hash (page_hash),
+        KEY sync_run_id (sync_run_id)
+    ) {$charset_collate};";
+
+    $errors          = array();
+    $previous_errors = $wpdb->suppress_errors(true);
+
+    // Primera pasada: creación directa. Es la vía más predecible en hostings
+    // donde dbDelta no informa con claridad de un índice incompatible.
+    if (!seo_google_table_exists($runs_table)) {
+        $wpdb->last_error = '';
+        $result = $wpdb->query(rtrim($runs_sql, ";\r\n\t "));
+        if (false === $result) {
+            $errors[] = $runs_table . ': ' . ($wpdb->last_error ?: 'CREATE TABLE devolvió false.');
+        }
+    }
+
+    if (!seo_google_table_exists($data_table)) {
+        $wpdb->last_error = '';
+        $result = $wpdb->query(rtrim($data_sql, ";\r\n\t "));
+        if (false === $result) {
+            $errors[] = $data_table . ': ' . ($wpdb->last_error ?: 'CREATE TABLE devolvió false.');
+        }
+    }
+
+    // Segunda pasada: mecanismo oficial de WordPress para futuras mejoras
+    // del esquema. Las columnas hash usan ASCII para que el índice compuesto
+    // sea compatible también con límites InnoDB antiguos.
+    dbDelta($runs_sql);
+    dbDelta($data_sql);
+    $wpdb->suppress_errors($previous_errors);
+
+    $status = seo_google_tables_status();
+    $missing = array();
+
+    if (!$status['runs_exists']) {
+        $missing[] = $runs_table;
+    }
+
+    if (!$status['data_exists']) {
+        $missing[] = $data_table;
+    }
+
+    if ($missing) {
+        delete_option(SEO_GOOGLE_OPTION_DB_VERSION);
+
+        $message = 'No se pudieron crear las tablas de Google Intelligence: ' . implode(', ', $missing) . '.';
+        if ($errors) {
+            $message .= ' MySQL: ' . implode(' | ', $errors);
+        } elseif ($wpdb->last_error) {
+            $message .= ' MySQL: ' . $wpdb->last_error;
+        }
+
+        return new WP_Error('seo_google_tables_missing', $message, array('tables' => $status));
+    }
+
+    seo_google_update_option(SEO_GOOGLE_OPTION_DB_VERSION, SEO_GOOGLE_DB_VERSION);
+
+    return true;
+}
+
+/**
+ * Reparación manual de tablas desde la pantalla de sincronización.
+ */
+function seo_google_repair_tables_handler() {
+    if (!current_user_can('manage_options')) {
+        wp_die(esc_html__('No tienes permisos para reparar las tablas.', 'seo-system'));
+    }
+
+    check_admin_referer('seo_google_repair_tables', 'seo_google_repair_nonce');
+
+    delete_option(SEO_GOOGLE_OPTION_DB_VERSION);
+    $result = seo_google_install_tables(true);
+
+    if (is_wp_error($result)) {
+        set_transient(
+            'seo_google_table_repair_error_' . get_current_user_id(),
+            $result->get_error_message(),
+            5 * MINUTE_IN_SECONDS
+        );
+        wp_safe_redirect(seo_google_admin_url('sync', array('google_error' => 'table_repair_failed')));
+        exit;
+    }
+
+    wp_safe_redirect(seo_google_admin_url('sync', array('google_notice' => 'tables_repaired')));
+    exit;
+}
+
+/**
+ * Fecha final segura para datos finalizados de Search Console.
+ * Search Console interpreta sus fechas en la zona del Pacífico.
+ */
+function seo_google_finalized_end_date() {
+    try {
+        $date = new DateTimeImmutable('now', new DateTimeZone('America/Los_Angeles'));
+        return $date->modify('-' . SEO_GOOGLE_FINAL_DATA_DELAY_DAYS . ' days')->format('Y-m-d');
+    } catch (Exception $exception) {
+        return gmdate('Y-m-d', time() - (SEO_GOOGLE_FINAL_DATA_DELAY_DAYS * DAY_IN_SECONDS));
+    }
+}
+
+/**
+ * Número de días incluidos entre dos fechas.
+ */
+function seo_google_days_inclusive($date_from, $date_to) {
+    try {
+        $from = new DateTimeImmutable($date_from);
+        $to   = new DateTimeImmutable($date_to);
+        return max(1, (int) $from->diff($to)->days + 1);
+    } catch (Exception $exception) {
+        return 1;
+    }
+}
+
+/**
+ * Ejecuta una petición POST JSON autenticada a Google.
+ */
+function seo_google_api_post_json($url, array $payload) {
+    $access_token = seo_google_get_access_token();
+
+    if (is_wp_error($access_token)) {
+        return $access_token;
+    }
+
+    $response = wp_remote_post(
+        $url,
+        array(
+            'timeout' => 90,
+            'headers' => array(
+                'Authorization' => 'Bearer ' . $access_token,
+                'Accept'        => 'application/json',
+                'Content-Type'  => 'application/json; charset=utf-8',
+            ),
+            'body'    => wp_json_encode($payload),
+        )
+    );
+
+    if (is_wp_error($response)) {
+        return $response;
+    }
+
+    $status_code = (int) wp_remote_retrieve_response_code($response);
+    $body        = json_decode(wp_remote_retrieve_body($response), true);
+
+    if ($status_code < 200 || $status_code >= 300) {
+        $message = is_array($body) && !empty($body['error']['message'])
+            ? sanitize_text_field($body['error']['message'])
+            : 'Google ha devuelto un error HTTP ' . $status_code . '.';
+
+        return new WP_Error('seo_google_api_error', $message);
+    }
+
+    return is_array($body) ? $body : array();
+}
+
+/**
+ * Descarga un día de Search Console conservando consulta y página juntas.
+ * Google expone hasta 50.000 filas diarias por tipo de búsqueda.
+ */
+function seo_google_fetch_search_day($property_id, $date) {
+    $endpoint = 'https://www.googleapis.com/webmasters/v3/sites/'
+        . rawurlencode($property_id)
+        . '/searchAnalytics/query';
+
+    $all_rows = array();
+
+    for ($start_row = 0; $start_row < SEO_GOOGLE_MAX_ROWS_PER_DAY; $start_row += SEO_GOOGLE_ROW_LIMIT) {
+        $response = seo_google_api_post_json(
+            $endpoint,
+            array(
+                'startDate'       => $date,
+                'endDate'         => $date,
+                'dimensions'      => array('query', 'page'),
+                'type'            => 'web',
+                'aggregationType' => 'auto',
+                'dataState'       => 'final',
+                'rowLimit'        => SEO_GOOGLE_ROW_LIMIT,
+                'startRow'        => $start_row,
+            )
+        );
+
+        if (is_wp_error($response)) {
+            return $response;
+        }
+
+        $rows      = isset($response['rows']) && is_array($response['rows']) ? $response['rows'] : array();
+        $row_count = count($rows);
+
+        if ($row_count > 0) {
+            $all_rows = array_merge($all_rows, $rows);
+        }
+
+        if ($row_count < SEO_GOOGLE_ROW_LIMIT) {
+            break;
+        }
+    }
+
+    return $all_rows;
+}
+
+/**
+ * Guarda filas en bloques y actualiza las ya existentes.
+ */
+function seo_google_upsert_search_rows($run_id, $property_id, $date, array $rows) {
+    global $wpdb;
+
+    $table         = seo_google_table('search_data');
+    $property_hash = hash('sha256', $property_id);
+    $now           = current_time('mysql', true);
+    $valid_rows    = array();
+
+    foreach ($rows as $row) {
+        $keys = isset($row['keys']) && is_array($row['keys']) ? $row['keys'] : array();
+
+        if (!isset($keys[0], $keys[1])) {
+            continue;
+        }
+
+        $query = sanitize_text_field((string) $keys[0]);
+        $page  = esc_url_raw((string) $keys[1]);
+
+        if ('' === $query || '' === $page) {
+            continue;
+        }
+
+        $valid_rows[] = array(
+            'query'       => $query,
+            'page'        => $page,
+            'clicks'      => (float) ($row['clicks'] ?? 0),
+            'impressions' => (float) ($row['impressions'] ?? 0),
+            'ctr'         => (float) ($row['ctr'] ?? 0),
+            'position'    => (float) ($row['position'] ?? 0),
+        );
+    }
+
+    $stored = 0;
+
+    foreach (array_chunk($valid_rows, 200) as $chunk) {
+        $placeholders = array();
+        $arguments    = array();
+
+        foreach ($chunk as $row) {
+            $placeholders[] = '(%s,%s,%s,%s,%s,%s,%s,%s,%f,%f,%f,%f,%d,%s,%s)';
+
+            array_push(
+                $arguments,
+                $property_id,
+                $property_hash,
+                $date,
+                'web',
+                $row['query'],
+                hash('sha256', $row['query']),
+                $row['page'],
+                hash('sha256', $row['page']),
+                $row['clicks'],
+                $row['impressions'],
+                $row['ctr'],
+                $row['position'],
+                absint($run_id),
+                $now,
+                $now
+            );
+        }
+
+        $sql = "INSERT INTO {$table}
+            (property_id,property_hash,data_date,search_type,query_text,query_hash,page_url,page_hash,clicks,impressions,ctr,position,sync_run_id,imported_at,updated_at)
+            VALUES " . implode(',', $placeholders) . "
+            ON DUPLICATE KEY UPDATE
+                property_id = VALUES(property_id),
+                query_text = VALUES(query_text),
+                page_url = VALUES(page_url),
+                clicks = VALUES(clicks),
+                impressions = VALUES(impressions),
+                ctr = VALUES(ctr),
+                position = VALUES(position),
+                sync_run_id = VALUES(sync_run_id),
+                updated_at = VALUES(updated_at)";
+
+        $prepared = $wpdb->prepare($sql, $arguments);
+        $result   = $wpdb->query($prepared);
+
+        if (false === $result) {
+            return new WP_Error(
+                'seo_google_database_error',
+                $wpdb->last_error ? $wpdb->last_error : 'No se pudieron guardar los datos de Search Console.'
+            );
+        }
+
+        $stored += count($chunk);
+    }
+
+    return $stored;
+}
+
+/**
+ * Inicia una respuesta AJAX limpia. Cualquier aviso o HTML generado por PHP,
+ * WordPress o MySQL queda dentro de un búfer y no contamina el JSON.
+ */
+function seo_google_ajax_begin() {
+    $GLOBALS['seo_google_ajax_active']   = true;
+    $GLOBALS['seo_google_ajax_ob_level'] = ob_get_level();
+
+    if (function_exists('nocache_headers')) {
+        nocache_headers();
+    }
+
+    @ini_set('display_errors', '0');
+    ob_start();
+    register_shutdown_function('seo_google_ajax_shutdown');
+}
+
+/**
+ * Limpia únicamente los búferes abiertos por el módulo.
+ */
+function seo_google_ajax_clean_buffers() {
+    $base_level = isset($GLOBALS['seo_google_ajax_ob_level'])
+        ? (int) $GLOBALS['seo_google_ajax_ob_level']
+        : 0;
+
+    while (ob_get_level() > $base_level) {
+        @ob_end_clean();
+    }
+}
+
+/**
+ * Convierte un error fatal en JSON para evitar "Unexpected token <".
+ */
+function seo_google_ajax_shutdown() {
+    if (empty($GLOBALS['seo_google_ajax_active'])) {
+        return;
+    }
+
+    $error = error_get_last();
+    $fatal_types = array(E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR);
+
+    if (!$error || !in_array((int) $error['type'], $fatal_types, true)) {
+        return;
+    }
+
+    $GLOBALS['seo_google_ajax_active'] = false;
+    seo_google_ajax_clean_buffers();
+
+    error_log(
+        '[SEO Google Intelligence] Error fatal AJAX: '
+        . $error['message'] . ' en ' . $error['file'] . ':' . $error['line']
+    );
+
+    if (!headers_sent()) {
+        status_header(500);
+        header('Content-Type: application/json; charset=' . get_option('blog_charset'));
+    }
+
+    echo wp_json_encode(
+        array(
+            'success' => false,
+            'data'    => array(
+                'message' => 'Error PHP durante la sincronización: '
+                    . wp_strip_all_tags((string) $error['message'])
+                    . ' (línea ' . absint($error['line']) . ').',
+            ),
+        )
+    );
+}
+
+/**
+ * Envía JSON correcto descartando cualquier salida previa.
+ */
+function seo_google_ajax_success($data = null, $status_code = null) {
+    $GLOBALS['seo_google_ajax_active'] = false;
+    seo_google_ajax_clean_buffers();
+    wp_send_json_success($data, $status_code);
+}
+
+/**
+ * Envía un error JSON correcto descartando cualquier salida previa.
+ */
+function seo_google_ajax_error($data = null, $status_code = null) {
+    $GLOBALS['seo_google_ajax_active'] = false;
+    seo_google_ajax_clean_buffers();
+    wp_send_json_error($data, $status_code);
+}
+
+/**
+ * Crea o recupera una ejecución de sincronización manual.
+ */
+function seo_google_sync_start_handler() {
+    seo_google_ajax_begin();
+
+    if (false === check_ajax_referer('seo_google_sync', 'nonce', false)) {
+        seo_google_ajax_error(array('message' => 'La sesión ha caducado. Recarga la página y vuelve a intentarlo.'), 403);
+    }
+
+    if (!current_user_can('manage_options')) {
+        seo_google_ajax_error(array('message' => 'No tienes permisos para sincronizar Google Intelligence.'), 403);
+    }
+
+    if ('connected' !== seo_google_connection_status()) {
+        seo_google_ajax_error(array('message' => 'Completa la conexión y selecciona una propiedad.'), 400);
+    }
+
+    $install_result = seo_google_install_tables(true);
+
+    if (is_wp_error($install_result)) {
+        seo_google_ajax_error(array('message' => $install_result->get_error_message()), 500);
+    }
+
+    global $wpdb;
+
+    $settings      = seo_google_get_settings();
+    $property_id   = $settings['property_id'];
+    $property_hash = hash('sha256', $property_id);
+    $runs_table    = seo_google_table('sync_runs');
+    $data_table    = seo_google_table('search_data');
+    $now           = current_time('mysql', true);
+    $stale_before  = gmdate('Y-m-d H:i:s', time() - (30 * MINUTE_IN_SECONDS));
+
+    $active = $wpdb->get_row(
+        $wpdb->prepare(
+            "SELECT * FROM {$runs_table}
+             WHERE property_hash = %s AND status = 'running'
+             ORDER BY id DESC LIMIT 1",
+            $property_hash
+        ),
+        ARRAY_A
+    );
+
+    if ($active && !empty($active['updated_at']) && $active['updated_at'] >= $stale_before) {
+        seo_google_ajax_success(
+            array(
+                'run_id'         => absint($active['id']),
+                'current_date'   => $active['cursor_date'],
+                'date_from'      => $active['date_from'],
+                'date_to'        => $active['date_to'],
+                'days_completed' => absint($active['days_completed']),
+                'days_total'     => absint($active['days_total']),
+                'mode'           => 'resume',
+            )
+        );
+    }
+
+    if ($active) {
+        $wpdb->update(
+            $runs_table,
+            array(
+                'status'        => 'failed',
+                'error_message' => 'La ejecución anterior quedó interrumpida y fue sustituida.',
+                'finished_at'   => $now,
+                'updated_at'    => $now,
+            ),
+            array('id' => absint($active['id'])),
+            array('%s', '%s', '%s', '%s'),
+            array('%d')
+        );
+    }
+
+    $date_to = seo_google_finalized_end_date();
+
+    try {
+        $initial_from = (new DateTimeImmutable($date_to))
+            ->modify('-' . (SEO_GOOGLE_INITIAL_SYNC_DAYS - 1) . ' days')
+            ->format('Y-m-d');
+    } catch (Exception $exception) {
+        $initial_from = gmdate('Y-m-d', strtotime($date_to . ' -89 days'));
+    }
+
+    $last_date = $wpdb->get_var(
+        $wpdb->prepare(
+            "SELECT MAX(data_date) FROM {$data_table} WHERE property_hash = %s",
+            $property_hash
+        )
+    );
+
+    $mode      = 'initial';
+    $date_from = $initial_from;
+
+    if ($last_date) {
+        $mode = 'incremental';
+        try {
+            $overlap_from = (new DateTimeImmutable($last_date))->modify('-6 days')->format('Y-m-d');
+            $date_from    = max($initial_from, $overlap_from);
+        } catch (Exception $exception) {
+            $date_from = $initial_from;
+        }
+    }
+
+    if ($date_from > $date_to) {
+        $date_from = $date_to;
+    }
+
+    $days_total = seo_google_days_inclusive($date_from, $date_to);
+
+    $inserted = $wpdb->insert(
+        $runs_table,
+        array(
+            'property_id'    => $property_id,
+            'property_hash'  => $property_hash,
+            'date_from'      => $date_from,
+            'date_to'        => $date_to,
+            'cursor_date'    => $date_from,
+            'status'         => 'running',
+            'rows_received'  => 0,
+            'rows_upserted'  => 0,
+            'days_completed' => 0,
+            'days_total'     => $days_total,
+            'error_message'  => null,
+            'created_by'     => get_current_user_id(),
+            'started_at'     => $now,
+            'updated_at'     => $now,
+        ),
+        array('%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s', '%d', '%s', '%s')
+    );
+
+    if (false === $inserted) {
+        seo_google_ajax_error(
+            array('message' => $wpdb->last_error ?: 'No se pudo crear la ejecución de sincronización.'),
+            500
+        );
+    }
+
+    seo_google_ajax_success(
+        array(
+            'run_id'         => absint($wpdb->insert_id),
+            'current_date'   => $date_from,
+            'date_from'      => $date_from,
+            'date_to'        => $date_to,
+            'days_completed' => 0,
+            'days_total'     => $days_total,
+            'mode'           => $mode,
+        )
+    );
+}
+
+/**
+ * Procesa un único día de una ejecución para evitar tiempos de espera largos.
+ */
+function seo_google_sync_day_handler() {
+    seo_google_ajax_begin();
+
+    if (false === check_ajax_referer('seo_google_sync', 'nonce', false)) {
+        seo_google_ajax_error(array('message' => 'La sesión ha caducado. Recarga la página y vuelve a intentarlo.'), 403);
+    }
+
+    if (!current_user_can('manage_options')) {
+        seo_google_ajax_error(array('message' => 'No tienes permisos para sincronizar Google Intelligence.'), 403);
+    }
+
+    if (function_exists('set_time_limit')) {
+        @set_time_limit(120);
+    }
+
+    $run_id = isset($_POST['run_id']) ? absint($_POST['run_id']) : 0;
+
+    if (!$run_id) {
+        seo_google_ajax_error(array('message' => 'Falta el identificador de la sincronización.'), 400);
+    }
+
+    $install_result = seo_google_install_tables(true);
+
+    if (is_wp_error($install_result)) {
+        seo_google_ajax_error(array('message' => $install_result->get_error_message()), 500);
+    }
+
+    global $wpdb;
+
+    $runs_table = seo_google_table('sync_runs');
+    $run        = $wpdb->get_row(
+        $wpdb->prepare("SELECT * FROM {$runs_table} WHERE id = %d", $run_id),
+        ARRAY_A
+    );
+
+    if (!$run) {
+        seo_google_ajax_error(array('message' => 'La sincronización no existe.'), 404);
+    }
+
+    if ('success' === $run['status']) {
+        seo_google_ajax_success(
+            array(
+                'done'           => true,
+                'days_completed' => absint($run['days_completed']),
+                'days_total'     => absint($run['days_total']),
+                'rows_received'  => absint($run['rows_received']),
+                'rows_upserted'  => absint($run['rows_upserted']),
+            )
+        );
+    }
+
+    if ('running' !== $run['status']) {
+        seo_google_ajax_error(array('message' => $run['error_message'] ?: 'La sincronización no está activa.'), 409);
+    }
+
+    $date = $run['cursor_date'];
+
+    if (!$date) {
+        seo_google_ajax_error(array('message' => 'La sincronización no tiene una fecha pendiente.'), 409);
+    }
+
+    $rows = seo_google_fetch_search_day($run['property_id'], $date);
+
+    if (is_wp_error($rows)) {
+        $message = $rows->get_error_message();
+        $now     = current_time('mysql', true);
+
+        $wpdb->update(
+            $runs_table,
+            array(
+                'status'        => 'failed',
+                'error_message' => $message,
+                'finished_at'   => $now,
+                'updated_at'    => $now,
+            ),
+            array('id' => $run_id),
+            array('%s', '%s', '%s', '%s'),
+            array('%d')
+        );
+
+        seo_google_ajax_error(array('message' => $message), 500);
+    }
+
+    $stored = seo_google_upsert_search_rows($run_id, $run['property_id'], $date, $rows);
+
+    if (is_wp_error($stored)) {
+        $message = $stored->get_error_message();
+        $now     = current_time('mysql', true);
+
+        $wpdb->update(
+            $runs_table,
+            array(
+                'status'        => 'failed',
+                'error_message' => $message,
+                'finished_at'   => $now,
+                'updated_at'    => $now,
+            ),
+            array('id' => $run_id),
+            array('%s', '%s', '%s', '%s'),
+            array('%d')
+        );
+
+        seo_google_ajax_error(array('message' => $message), 500);
+    }
+
+    try {
+        $next_date = (new DateTimeImmutable($date))->modify('+1 day')->format('Y-m-d');
+    } catch (Exception $exception) {
+        $next_date = gmdate('Y-m-d', strtotime($date . ' +1 day'));
+    }
+
+    $done           = $next_date > $run['date_to'];
+    $days_completed = min(absint($run['days_total']), absint($run['days_completed']) + 1);
+    $rows_received  = absint($run['rows_received']) + count($rows);
+    $rows_upserted  = absint($run['rows_upserted']) + absint($stored);
+    $now            = current_time('mysql', true);
+
+    $update = array(
+        'cursor_date'    => $done ? null : $next_date,
+        'status'         => $done ? 'success' : 'running',
+        'rows_received'  => $rows_received,
+        'rows_upserted'  => $rows_upserted,
+        'days_completed' => $days_completed,
+        'updated_at'     => $now,
+    );
+    $formats = array('%s', '%s', '%d', '%d', '%d', '%s');
+
+    if ($done) {
+        $update['finished_at'] = $now;
+        $formats[]             = '%s';
+    }
+
+    $wpdb->update($runs_table, $update, array('id' => $run_id), $formats, array('%d'));
+
+    if ($done) {
+        $settings              = seo_google_get_settings();
+        $settings['last_sync'] = current_time('mysql');
+        seo_google_update_option(SEO_GOOGLE_OPTION_SETTINGS, $settings);
+    }
+
+    seo_google_ajax_success(
+        array(
+            'done'           => $done,
+            'processed_date' => $date,
+            'next_date'      => $done ? '' : $next_date,
+            'day_rows'       => count($rows),
+            'days_completed' => $days_completed,
+            'days_total'     => absint($run['days_total']),
+            'rows_received'  => $rows_received,
+            'rows_upserted'  => $rows_upserted,
+        )
+    );
+}
+
+/**
+ * Último día almacenado para una propiedad.
+ */
+function seo_google_latest_data_date($property_id) {
+    global $wpdb;
+
+    $table = seo_google_table('search_data');
+
+    if (!seo_google_table_exists($table)) {
+        return null;
+    }
+
+    return $wpdb->get_var(
+        $wpdb->prepare(
+            "SELECT MAX(data_date) FROM {$table} WHERE property_hash = %s",
+            hash('sha256', $property_id)
+        )
+    );
+}
+
+/**
+ * Métricas agregadas del período más reciente disponible.
+ */
+function seo_google_get_summary_metrics($property_id, $days = 28) {
+    global $wpdb;
+
+    $table       = seo_google_table('search_data');
+    $latest_date = seo_google_latest_data_date($property_id);
+
+    if (!$latest_date) {
+        return null;
+    }
+
+    try {
+        $date_from = (new DateTimeImmutable($latest_date))
+            ->modify('-' . (max(1, absint($days)) - 1) . ' days')
+            ->format('Y-m-d');
+    } catch (Exception $exception) {
+        $date_from = gmdate('Y-m-d', strtotime($latest_date . ' -27 days'));
+    }
+
+    $row = $wpdb->get_row(
+        $wpdb->prepare(
+            "SELECT
+                COALESCE(SUM(clicks),0) AS clicks,
+                COALESCE(SUM(impressions),0) AS impressions,
+                COUNT(DISTINCT query_hash) AS queries,
+                COUNT(DISTINCT page_hash) AS pages,
+                CASE WHEN SUM(impressions) > 0 THEN SUM(clicks) / SUM(impressions) ELSE 0 END AS ctr,
+                CASE WHEN SUM(impressions) > 0 THEN SUM(position * impressions) / SUM(impressions) ELSE 0 END AS position
+             FROM {$table}
+             WHERE property_hash = %s AND data_date BETWEEN %s AND %s",
+            hash('sha256', $property_id),
+            $date_from,
+            $latest_date
+        ),
+        ARRAY_A
+    );
+
+    if (!$row) {
+        return null;
+    }
+
+    $row['date_from'] = $date_from;
+    $row['date_to']   = $latest_date;
+
+    return $row;
+}
+
+/**
+ * Consultas principales de un período.
+ */
+function seo_google_get_top_queries($property_id, $date_from, $date_to, $limit = 15) {
+    global $wpdb;
+
+    $table = seo_google_table('search_data');
+
+    return $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT
+                MAX(query_text) AS label,
+                SUM(clicks) AS clicks,
+                SUM(impressions) AS impressions,
+                CASE WHEN SUM(impressions) > 0 THEN SUM(clicks) / SUM(impressions) ELSE 0 END AS ctr,
+                CASE WHEN SUM(impressions) > 0 THEN SUM(position * impressions) / SUM(impressions) ELSE 0 END AS position
+             FROM {$table}
+             WHERE property_hash = %s AND data_date BETWEEN %s AND %s
+             GROUP BY query_hash
+             ORDER BY impressions DESC, clicks DESC
+             LIMIT %d",
+            hash('sha256', $property_id),
+            $date_from,
+            $date_to,
+            max(1, absint($limit))
+        ),
+        ARRAY_A
+    );
+}
+
+/**
+ * Páginas principales de un período.
+ */
+function seo_google_get_top_pages($property_id, $date_from, $date_to, $limit = 15) {
+    global $wpdb;
+
+    $table = seo_google_table('search_data');
+
+    return $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT
+                MAX(page_url) AS label,
+                SUM(clicks) AS clicks,
+                SUM(impressions) AS impressions,
+                CASE WHEN SUM(impressions) > 0 THEN SUM(clicks) / SUM(impressions) ELSE 0 END AS ctr,
+                CASE WHEN SUM(impressions) > 0 THEN SUM(position * impressions) / SUM(impressions) ELSE 0 END AS position
+             FROM {$table}
+             WHERE property_hash = %s AND data_date BETWEEN %s AND %s
+             GROUP BY page_hash
+             ORDER BY impressions DESC, clicks DESC
+             LIMIT %d",
+            hash('sha256', $property_id),
+            $date_from,
+            $date_to,
+            max(1, absint($limit))
+        ),
+        ARRAY_A
+    );
+}
+
+/**
+ * Historial reciente de sincronizaciones.
+ */
+function seo_google_get_sync_history($property_id, $limit = 10) {
+    global $wpdb;
+
+    $table = seo_google_table('sync_runs');
+
+    if (!seo_google_table_exists($table)) {
+        return array();
+    }
+
+    return $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT * FROM {$table}
+             WHERE property_hash = %s
+             ORDER BY id DESC LIMIT %d",
+            hash('sha256', $property_id),
+            max(1, absint($limit))
+        ),
+        ARRAY_A
+    );
+}
+
+
+/**
+ * Pantalla principal de Google Intelligence.
+ */
+function seo_google_intelligence_page() {
+    $install_result = seo_google_install_tables();
+
+    $view = isset($_GET['google_view'])
+        ? sanitize_key(wp_unslash($_GET['google_view']))
+        : 'summary';
+
+    // Conserva compatibilidad con enlaces de la versión anterior.
+    if ('opportunities' === $view) {
+        $view = 'signals';
+    } elseif ('discrepancies' === $view) {
+        $view = 'comparison';
+    }
+
+    $allowed_views = array(
+        'summary',
+        'signals',
+        'changes',
+        'comparison',
+        'demand_catalog',
+        'trends_market',
+        'growth_guidance',
+        'coverage',
+        'laboratory',
+        'sync',
+        'settings',
+    );
+
+    if (!in_array($view, $allowed_views, true)) {
+        $view = 'summary';
+    }
+
+    $base_url = seo_google_admin_url('summary');
+
+    $tabs = array(
+        'summary'    => 'Resumen',
+        'signals'    => 'Señales',
+        'changes'    => 'Cambios',
+        'comparison'     => 'Google vs. catálogo',
+        'demand_catalog' => 'Demanda × catálogo',
+        'trends_market' => 'Mercado Google (Trends)',
+        'growth_guidance' => 'Qué potenciar',
+        'coverage'       => 'Cobertura',
+        'laboratory' => 'Laboratorio',
+        'sync'       => 'Sincronización',
+        'settings'   => 'Configuración',
+    );
+
+    echo '<div class="seo-google-intelligence">';
+    echo '<h2>Google Intelligence</h2>';
+    echo '<p style="margin-top:-6px;color:#646970;">Módulo de sincronización <strong>V' . esc_html(SEO_GOOGLE_MODULE_VERSION) . '</strong></p>';
+    echo '<p>Compara las señales de Google con la estructura real de SEO System.</p>';
+
+    echo '<nav class="nav-tab-wrapper" style="margin-bottom:20px;">';
+    foreach ($tabs as $tab_key => $tab_label) {
+        $tab_url = add_query_arg('google_view', $tab_key, $base_url);
+        $class   = 'nav-tab' . ($view === $tab_key ? ' nav-tab-active' : '');
+
+        echo '<a class="' . esc_attr($class) . '" href="' . esc_url($tab_url) . '">';
+        echo esc_html($tab_label);
+        echo '</a>';
+    }
+    echo '</nav>';
+
+    seo_google_render_notices();
+
+    if (is_wp_error($install_result) && in_array($view, array('summary', 'sync'), true)) {
+        $table_status = seo_google_tables_status();
+        echo '<div class="notice notice-error inline"><p><strong>Error de base de datos:</strong> ' . esc_html($install_result->get_error_message()) . '</p></div>';
+        echo '<p><strong>Versión cargada:</strong> ' . esc_html(SEO_GOOGLE_MODULE_VERSION) . '</p>';
+        echo '<p><code>' . esc_html($table_status['runs_table']) . '</code>: ' . ($table_status['runs_exists'] ? 'creada' : '<strong>no existe</strong>') . '<br>';
+        echo '<code>' . esc_html($table_status['data_table']) . '</code>: ' . ($table_status['data_exists'] ? 'creada' : '<strong>no existe</strong>') . '</p>';
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin:16px 0;">';
+        echo '<input type="hidden" name="action" value="seo_google_repair_tables">';
+        wp_nonce_field('seo_google_repair_tables', 'seo_google_repair_nonce');
+        submit_button('Crear o reparar tablas', 'primary', 'submit', false);
+        echo '</form>';
+        echo '<p>Si la reparación vuelve a fallar, copia el mensaje completo de MySQL mostrado en esta pantalla.</p>';
+        echo '</div>';
+        return;
+    }
+
+    if ('settings' === $view) {
+        seo_google_render_settings();
+    } elseif ('sync' === $view) {
+        seo_google_render_sync_status();
+    } elseif ('summary' === $view) {
+        seo_google_render_summary();
+    } elseif ('signals' === $view) {
+        seo_google_render_signals();
+    } elseif ('changes' === $view) {
+        seo_google_render_changes();
+    } elseif ('comparison' === $view) {
+        seo_google_render_comparison();
+    } elseif ('demand_catalog' === $view) {
+        if (function_exists('seo_google_render_demand_catalog')) {
+            seo_google_render_demand_catalog();
+        } else {
+            echo '<div class="notice notice-error inline"><p>Falta el archivo <code>seo-google-demand-catalog.php</code>.</p></div>';
+        }
+    } elseif ('trends_market' === $view) {
+        if (function_exists('seo_google_render_trends_market')) {
+            seo_google_render_trends_market();
+        } else {
+            echo '<div class="notice notice-error inline"><p>Falta el archivo <code>seo-google-trends.php</code>.</p></div>';
+        }
+    } elseif ('growth_guidance' === $view) {
+        if (function_exists('seo_google_render_growth_guidance')) {
+            seo_google_render_growth_guidance();
+        } else {
+            echo '<div class="notice notice-error inline"><p>Falta el archivo <code>seo-google-growth-guidance.php</code>.</p></div>';
+        }
+    } elseif ('coverage' === $view) {
+        seo_google_render_coverage();
+    } elseif ('laboratory' === $view) {
+        seo_google_render_laboratory();
+    }
+
+    echo '</div>';
+}
+
+/**
+ * Avisos de acciones.
+ */
+function seo_google_render_notices() {
+    $notice = isset($_GET['google_notice']) ? sanitize_key(wp_unslash($_GET['google_notice'])) : '';
+    $error  = isset($_GET['google_error']) ? sanitize_key(wp_unslash($_GET['google_error'])) : '';
+
+    $notice_messages = array(
+        'settings_saved' => 'Configuración guardada.',
+        'connected'      => 'Google Search Console se ha conectado correctamente.',
+        'disconnected'   => 'La conexión con Google se ha eliminado.',
+        'test_ok'        => 'Conexión correcta. Google ha respondido correctamente.',
+        'tables_repaired' => 'Las tablas de Google Intelligence se han creado o reparado correctamente.',
+    );
+
+    $error_messages = array(
+        'missing_credentials'   => 'Guarda primero el Client ID y el Client Secret.',
+        'access_denied'         => 'Google ha denegado la autorización.',
+        'invalid_state'         => 'La validación de seguridad OAuth ha fallado. Vuelve a iniciar la conexión.',
+        'missing_code'          => 'Google no ha devuelto el código de autorización.',
+        'token_request_failed'  => 'No se pudo contactar con el servicio de tokens de Google.',
+        'token_exchange_failed' => 'Google no aceptó el código de autorización. Revisa las credenciales y la URI de redirección.',
+        'test_failed'           => 'La prueba de conexión ha fallado.',
+        'table_repair_failed'   => 'No se pudieron crear las tablas de Google Intelligence.',
+    );
+
+    if (isset($notice_messages[$notice])) {
+        $message = $notice_messages[$notice];
+
+        if ('test_ok' === $notice && isset($_GET['properties'])) {
+            $message .= ' Propiedades accesibles: ' . absint($_GET['properties']) . '.';
+        }
+
+        echo '<div class="notice notice-success inline"><p>' . esc_html($message) . '</p></div>';
+    }
+
+    if ('table_repair_failed' === $error) {
+        $repair_error = get_transient('seo_google_table_repair_error_' . get_current_user_id());
+        delete_transient('seo_google_table_repair_error_' . get_current_user_id());
+        if ($repair_error) {
+            echo '<div class="notice notice-error inline"><p><strong>Error MySQL:</strong> ' . esc_html($repair_error) . '</p></div>';
+            return;
+        }
+    }
+
+    if ('test_failed' === $error) {
+        $stored_error = get_transient('seo_google_test_error_' . get_current_user_id());
+        delete_transient('seo_google_test_error_' . get_current_user_id());
+
+        if ($stored_error) {
+            $error_messages['test_failed'] .= ' ' . $stored_error;
+        }
+    }
+
+    if (in_array($error, array('token_request_failed', 'token_exchange_failed'), true)) {
+        $oauth_error = get_transient('seo_google_oauth_error_' . get_current_user_id());
+        delete_transient('seo_google_oauth_error_' . get_current_user_id());
+
+        if ($oauth_error && isset($error_messages[$error])) {
+            $error_messages[$error] .= ' Detalle: ' . $oauth_error;
+        }
+    }
+
+    if (isset($error_messages[$error])) {
+        echo '<div class="notice notice-error inline"><p>' . esc_html($error_messages[$error]) . '</p></div>';
+    }
+}
+
+/**
+ * Pantalla de configuración completa.
+ */
+function seo_google_render_settings() {
+    $settings   = seo_google_get_settings();
+    $tokens     = seo_google_get_tokens();
+    $status     = seo_google_connection_status();
+    $properties = array();
+
+    if (!empty($tokens['access_token']) || !empty($tokens['refresh_token'])) {
+        $properties = seo_google_get_search_console_properties();
+    }
+
+    $status_labels = array(
+        'missing_credentials' => array('Faltan credenciales', '#b32d2e'),
+        'not_authorized'      => array('Credenciales guardadas; falta autorizar Google', '#b57d00'),
+        'missing_property'    => array('Google conectado; falta seleccionar propiedad', '#b57d00'),
+        'connected'           => array('Conectado', '#2e7d32'),
+    );
+
+    $status_data = $status_labels[$status] ?? array('Estado desconocido', '#646970');
+
+    echo '<div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(300px,1fr);gap:20px;align-items:start;">';
+
+    echo '<div>';
+    echo '<div style="background:#fff;border:1px solid #dcdcde;padding:20px;border-radius:6px;">';
+    echo '<h3 style="margin-top:0;">Conexión con Google Search Console</h3>';
+    echo '<p><strong>Estado:</strong> <span style="color:' . esc_attr($status_data[1]) . ';font-weight:700;">' . esc_html($status_data[0]) . '</span></p>';
+
+    echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+    echo '<input type="hidden" name="action" value="seo_google_save_settings">';
+    wp_nonce_field('seo_google_save_settings', 'seo_google_settings_nonce');
+
+    echo '<table class="form-table" role="presentation"><tbody>';
+
+    echo '<tr><th scope="row"><label for="seo-google-client-id">Client ID</label></th><td>';
+    echo '<input type="text" id="seo-google-client-id" name="client_id" value="' . esc_attr($settings['client_id']) . '" class="regular-text" autocomplete="off">';
+    echo '<p class="description">Identificador del cliente OAuth 2.0 de tipo “Aplicación web”.</p>';
+    echo '</td></tr>';
+
+    echo '<tr><th scope="row"><label for="seo-google-client-secret">Client Secret</label></th><td>';
+    echo '<input type="password" id="seo-google-client-secret" name="client_secret" value="" class="regular-text" autocomplete="new-password" placeholder="' . (!empty($settings['client_secret']) ? 'Guardado; déjalo vacío para conservarlo' : '') . '">';
+    echo '<p class="description">Se guarda en WordPress y nunca se muestra completo de nuevo.</p>';
+    echo '</td></tr>';
+
+    echo '<tr><th scope="row">URI de redirección</th><td>';
+    echo '<input type="text" readonly value="' . esc_attr(seo_google_redirect_uri()) . '" class="large-text code" onclick="this.select();">';
+    echo '<p class="description"><strong>URI única del módulo.</strong> Cópiala exactamente en “URI de redireccionamiento autorizados” de Google Cloud. La misma dirección se usa al autorizar y al intercambiar el código por tokens.</p>';
+    echo '</td></tr>';
+
+    echo '<tr><th scope="row"><label for="seo-google-property">Propiedad de Search Console</label></th><td>';
+
+    if (is_wp_error($properties)) {
+        echo '<input type="text" id="seo-google-property" name="property_id" value="' . esc_attr($settings['property_id']) . '" class="regular-text">';
+        echo '<p class="description" style="color:#b32d2e;">No se pudo cargar la lista: ' . esc_html($properties->get_error_message()) . '</p>';
+    } elseif (!empty($properties)) {
+        echo '<select id="seo-google-property" name="property_id" style="min-width:420px;max-width:100%;">';
+        echo '<option value="">Selecciona una propiedad</option>';
+        foreach ($properties as $property) {
+            $label = $property['site_url'];
+            if (!empty($property['permission_level'])) {
+                $label .= ' — ' . $property['permission_level'];
+            }
+            echo '<option value="' . esc_attr($property['site_url']) . '" ' . selected($settings['property_id'], $property['site_url'], false) . '>';
+            echo esc_html($label);
+            echo '</option>';
+        }
+        echo '</select>';
+    } else {
+        echo '<input type="text" id="seo-google-property" name="property_id" value="' . esc_attr($settings['property_id']) . '" class="regular-text" placeholder="sc-domain:ejemplo.com">';
+        echo '<p class="description">La lista aparecerá automáticamente después de autorizar Google.</p>';
+    }
+
+    echo '</td></tr>';
+
+    echo '<tr><th scope="row"><label for="seo-google-frequency">Frecuencia</label></th><td>';
+    echo '<select id="seo-google-frequency" name="sync_frequency">';
+    foreach (array('manual' => 'Manual', 'daily' => 'Diaria', 'weekly' => 'Semanal') as $value => $label) {
+        echo '<option value="' . esc_attr($value) . '" ' . selected($settings['sync_frequency'], $value, false) . '>' . esc_html($label) . '</option>';
+    }
+    echo '</select>';
+    echo '<p class="description">La sincronización manual ya está disponible. La ejecución automática diaria o semanal se incorporará en la siguiente fase.</p>';
+    echo '</td></tr>';
+
+    echo '</tbody></table>';
+    submit_button('Guardar configuración');
+    echo '</form>';
+
+    echo '<hr style="margin:24px 0;">';
+
+    if (in_array($status, array('not_authorized', 'missing_property', 'connected'), true)) {
+        echo '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">';
+
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+        echo '<input type="hidden" name="action" value="seo_google_connect">';
+        wp_nonce_field('seo_google_connect', 'seo_google_connect_nonce');
+        submit_button(
+            in_array($status, array('missing_property', 'connected'), true) ? 'Volver a autorizar Google' : 'Conectar con Google',
+            'primary',
+            'submit',
+            false
+        );
+        echo '</form>';
+
+        if (!empty($tokens['access_token']) || !empty($tokens['refresh_token'])) {
+            echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+            echo '<input type="hidden" name="action" value="seo_google_test_connection">';
+            wp_nonce_field('seo_google_test_connection', 'seo_google_test_nonce');
+            submit_button('Probar conexión', 'secondary', 'submit', false);
+            echo '</form>';
+
+            echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" onsubmit="return confirm(\'Se eliminará la autorización de Google almacenada en SEO System. ¿Continuar?\');">';
+            echo '<input type="hidden" name="action" value="seo_google_disconnect">';
+            wp_nonce_field('seo_google_disconnect', 'seo_google_disconnect_nonce');
+            submit_button('Desconectar', 'delete', 'submit', false);
+            echo '</form>';
+        }
+
+        echo '</div>';
+    }
+
+    echo '</div>';
+    echo '</div>';
+
+    echo '<aside style="background:#fff;border:1px solid #dcdcde;padding:20px;border-radius:6px;">';
+    echo '<h3 style="margin-top:0;">Cómo obtener las credenciales</h3>';
+    echo '<ol style="padding-left:20px;line-height:1.65;">';
+    echo '<li>Entra en Google Cloud Console y crea o selecciona un proyecto.</li>';
+    echo '<li>Activa la <strong>Google Search Console API</strong>.</li>';
+    echo '<li>Configura Google Auth Platform y la pantalla de consentimiento OAuth.</li>';
+    echo '<li>Crea credenciales OAuth 2.0 de tipo <strong>Aplicación web</strong>.</li>';
+    echo '<li>En <strong>URIs de redireccionamiento autorizados</strong>, añade exactamente la dirección mostrada en este formulario. No la pongas solo en “Orígenes autorizados de JavaScript”.</li>';
+    echo '<li>Copia aquí el Client ID y el Client Secret y guarda.</li>';
+    echo '<li>Si la aplicación está en modo Pruebas, añade tu cuenta en <strong>Usuarios de prueba</strong>; si está en producción, completa los requisitos que Google solicite.</li>';
+    echo '<li>Pulsa <strong>Conectar con Google</strong> y acepta el permiso de lectura.</li>';
+    echo '<li>Después de autorizar, selecciona la propiedad de Search Console y vuelve a guardar.</li>';
+    echo '</ol>';
+
+    echo '<details style="margin-top:18px;border-top:1px solid #dcdcde;padding-top:14px;">';
+    echo '<summary style="cursor:pointer;font-weight:700;">Problemas frecuentes y solución</summary>';
+    echo '<div style="line-height:1.65;margin-top:12px;">';
+    echo '<p><strong>Error 400: redirect_uri_mismatch</strong><br>La URI enviada por SEO System no coincide exactamente con Google Cloud. Copia la URI mostrada arriba y regístrala, carácter por carácter, en “URIs de redireccionamiento autorizados”.</p>';
+    echo '<p><strong>Error 403: access_denied / solo testers</strong><br>La aplicación está en modo Pruebas y la cuenta no figura como usuario de prueba. Añádela en Google Auth Platform → Público/Audiencia → Usuarios de prueba, o publica la aplicación si corresponde.</p>';
+    echo '<p><strong>Forbidden al volver desde Google</strong><br>La versión actual usa <code>wp-admin/admin-post.php</code> como callback dedicado. Si el hosting sigue bloqueándolo, revisa ModSecurity o el firewall y permite la acción <code>seo_google_oauth_callback</code>.</p>';
+    echo '<p><strong>Credenciales guardadas; falta autorizar Google</strong><br>Las claves existen, pero todavía no hay tokens. Pulsa “Conectar con Google”.</p>';
+    echo '<p><strong>Google conectado; falta seleccionar propiedad</strong><br>Elige una propiedad de la lista y guarda. Para una propiedad de dominio el formato habitual es <code>sc-domain:dominio.com</code>.</p>';
+    echo '</div>';
+    echo '</details>';
+
+    echo '<div style="background:#f6f7f7;border-left:4px solid #2271b1;padding:12px;margin-top:16px;">';
+    echo '<strong>Permiso solicitado</strong><br>';
+    echo '<code style="word-break:break-all;">' . esc_html(SEO_GOOGLE_SCOPE_SEARCH_CONSOLE) . '</code>';
+    echo '<p style="margin-bottom:0;">Es un permiso de solo lectura. SEO System no podrá añadir ni eliminar propiedades o sitemaps.</p>';
+    echo '</div>';
+
+    echo '<p style="margin-top:16px;"><a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer">Abrir credenciales de Google Cloud</a></p>';
+    echo '<p><a href="https://console.cloud.google.com/apis/library/searchconsole.googleapis.com" target="_blank" rel="noopener noreferrer">Activar Search Console API</a></p>';
+    echo '</aside>';
+
+    echo '</div>';
+}
+
+
+/**
+ * Pantalla de sincronización manual y su historial.
+ */
+function seo_google_render_sync_status() {
+    $settings       = seo_google_get_settings();
+    $status         = seo_google_connection_status();
+    $install_result = seo_google_install_tables(false);
+
+    echo '<div style="background:#fff;border:1px solid #dcdcde;padding:20px;border-radius:6px;">';
+    echo '<h3 style="margin-top:0;">Sincronización</h3>';
+
+    $table_status = seo_google_tables_status();
+    echo '<p style="color:#646970;"><strong>Versión:</strong> ' . esc_html(SEO_GOOGLE_MODULE_VERSION)
+        . ' · <strong>Tabla de ejecuciones:</strong> ' . ($table_status['runs_exists'] ? 'OK' : 'NO EXISTE')
+        . ' · <strong>Tabla de datos:</strong> ' . ($table_status['data_exists'] ? 'OK' : 'NO EXISTE') . '</p>';
+
+    if (is_wp_error($install_result)) {
+        echo '<div class="notice notice-error inline"><p><strong>No se pudieron preparar las tablas:</strong> '
+            . esc_html($install_result->get_error_message()) . '</p></div>';
+        echo '<p>No se consultará el historial hasta que las dos tablas indiquen <strong>OK</strong>.</p>';
+        echo '</div>';
+        return;
+    }
+
+    if ('connected' !== $status) {
+        echo '<div class="notice notice-warning inline"><p>Completa la conexión y selecciona una propiedad antes de sincronizar.</p></div>';
+        echo '<p><a class="button button-primary" href="' . esc_url(seo_google_admin_url('settings')) . '">Ir a configuración</a></p>';
+        echo '</div>';
+        return;
+    }
+
+    $history = seo_google_get_sync_history($settings['property_id'], 10);
+    $latest  = seo_google_latest_data_date($settings['property_id']);
+
+    echo '<p><strong>Propiedad:</strong> <code>' . esc_html($settings['property_id']) . '</code></p>';
+    echo '<p><strong>Frecuencia configurada:</strong> ' . esc_html($settings['sync_frequency']) . '</p>';
+    echo '<p><strong>Último día almacenado:</strong> ' . ($latest ? esc_html($latest) : 'Sin datos todavía') . '</p>';
+
+    echo '<div style="background:#f6f7f7;border-left:4px solid #2271b1;padding:12px 14px;margin:16px 0;">';
+    echo '<p style="margin:0 0 6px;"><strong>Primera sincronización:</strong> descarga 90 días de datos finalizados.</p>';
+    echo '<p style="margin:0;"><strong>Sincronizaciones posteriores:</strong> actualizan los últimos 7 días con solapamiento para recoger correcciones de Google.</p>';
+    echo '</div>';
+
+    echo '<button type="button" id="seo-google-sync-button" class="button button-primary button-hero">Sincronizar ahora</button>';
+    echo '<p id="seo-google-sync-message" style="margin-top:14px;"></p>';
+    echo '<div id="seo-google-sync-progress-wrap" style="display:none;max-width:720px;background:#dcdcde;border-radius:999px;overflow:hidden;height:18px;">';
+    echo '<div id="seo-google-sync-progress" style="width:0%;height:18px;background:#2271b1;transition:width .2s;"></div>';
+    echo '</div>';
+    echo '<p class="description">Mantén esta pestaña abierta durante la primera importación. Si se interrumpe, vuelve a pulsar el botón para reanudar.</p>';
+
+    $config = array(
+        'ajaxUrl' => admin_url('admin-ajax.php'),
+        'nonce'   => wp_create_nonce('seo_google_sync'),
+    );
+
+    echo '<script>';
+    echo 'window.seoGoogleSyncConfig=' . wp_json_encode($config) . ';';
+    echo <<<'JS'
+(function(){
+    const button = document.getElementById('seo-google-sync-button');
+    const message = document.getElementById('seo-google-sync-message');
+    const progressWrap = document.getElementById('seo-google-sync-progress-wrap');
+    const progress = document.getElementById('seo-google-sync-progress');
+    const cfg = window.seoGoogleSyncConfig || {};
+
+    if (!button || !cfg.ajaxUrl) return;
+
+    async function request(action, data) {
+        const body = new URLSearchParams(Object.assign({action: action, nonce: cfg.nonce}, data || {}));
+        const response = await fetch(cfg.ajaxUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
+            body: body.toString()
+        });
+
+        const raw = await response.text();
+        let json;
+
+        try {
+            json = JSON.parse(raw);
+        } catch (parseError) {
+            const readable = String(raw || '')
+                .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+                .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+                .replace(/<[^>]*>/g, ' ')
+                .replace(/&nbsp;/gi, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+
+            throw new Error(
+                'El servidor no devolvió JSON. Respuesta HTTP ' + response.status
+                + (readable ? ': ' + readable.slice(0, 500) : '. Respuesta vacía.')
+            );
+        }
+
+        if (!response.ok || !json.success) {
+            const errorMessage = json.data && json.data.message
+                ? json.data.message
+                : 'La sincronización ha fallado con HTTP ' + response.status + '.';
+            throw new Error(errorMessage);
+        }
+
+        return json.data;
+    }
+
+    function updateProgress(done, total) {
+        const percent = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
+        progressWrap.style.display = 'block';
+        progress.style.width = percent + '%';
+    }
+
+    async function processRun(run) {
+        let state = run;
+        updateProgress(state.days_completed || 0, state.days_total || 1);
+
+        while (true) {
+            message.textContent = 'Procesando ' + (state.current_date || state.next_date || '') + '…';
+            const result = await request('seo_google_sync_day', {run_id: state.run_id});
+            updateProgress(result.days_completed, result.days_total);
+
+            message.textContent = 'Días: ' + result.days_completed + '/' + result.days_total
+                + ' · Filas guardadas: ' + Number(result.rows_upserted || 0).toLocaleString('es-ES');
+
+            if (result.done) {
+                progress.style.width = '100%';
+                message.innerHTML = '<strong>Sincronización completada.</strong> Días: '
+                    + result.days_completed + ' · Filas guardadas: '
+                    + Number(result.rows_upserted || 0).toLocaleString('es-ES')
+                    + '. Recargando el informe…';
+                setTimeout(function(){ window.location.reload(); }, 1200);
+                return;
+            }
+
+            state.current_date = result.next_date;
+        }
+    }
+
+    button.addEventListener('click', async function(){
+        button.disabled = true;
+        button.textContent = 'Preparando sincronización…';
+        message.textContent = '';
+
+        try {
+            const run = await request('seo_google_sync_start');
+            button.textContent = run.mode === 'resume' ? 'Reanudando…' : 'Sincronizando…';
+            await processRun(run);
+        } catch (error) {
+            message.textContent = 'Error: ' + String(error.message || error);
+            button.disabled = false;
+            button.textContent = 'Reintentar sincronización';
+        }
+    });
+})();
+JS;
+    echo '</script>';
+
+    echo '</div>';
+
+    echo '<div style="background:#fff;border:1px solid #dcdcde;padding:20px;border-radius:6px;margin-top:20px;">';
+    echo '<h3 style="margin-top:0;">Historial reciente</h3>';
+
+    if (!$history) {
+        echo '<p>No hay sincronizaciones registradas.</p>';
+    } else {
+        echo '<div style="overflow:auto;"><table class="widefat striped"><thead><tr>';
+        echo '<th>Inicio</th><th>Período</th><th>Estado</th><th>Días</th><th>Filas</th><th>Detalle</th>';
+        echo '</tr></thead><tbody>';
+
+        foreach ($history as $run) {
+            $status_label = array(
+                'running' => 'En curso',
+                'success' => 'Correcta',
+                'failed'  => 'Fallida',
+                'pending' => 'Pendiente',
+            );
+
+            echo '<tr>';
+            echo '<td>' . esc_html($run['started_at']) . '</td>';
+            echo '<td><code>' . esc_html($run['date_from']) . '</code> → <code>' . esc_html($run['date_to']) . '</code></td>';
+            echo '<td>' . esc_html($status_label[$run['status']] ?? $run['status']) . '</td>';
+            echo '<td>' . number_format_i18n(absint($run['days_completed'])) . '/' . number_format_i18n(absint($run['days_total'])) . '</td>';
+            echo '<td>' . number_format_i18n(absint($run['rows_upserted'])) . '</td>';
+            echo '<td>' . ($run['error_message'] ? esc_html($run['error_message']) : '—') . '</td>';
+            echo '</tr>';
+        }
+
+        echo '</tbody></table></div>';
+    }
+
+    echo '</div>';
+}
+
+
+/**
+ * Serie diaria histórica para los gráficos del resumen.
+ *
+ * No crea tablas nuevas: reutiliza seo_google_search_data y conserva el mismo
+ * criterio de posición media ponderada por impresiones usado en el resumen.
+ */
+function seo_google_get_summary_trend_data($property_id, $days = 365) {
+    global $wpdb;
+
+    $table       = seo_google_table('search_data');
+    $latest_date = seo_google_latest_data_date($property_id);
+
+    if (!$latest_date || !seo_google_table_exists($table)) {
+        return array();
+    }
+
+    $days = max(7, min(730, absint($days)));
+
+    try {
+        $date_from = (new DateTimeImmutable($latest_date))
+            ->modify('-' . ($days - 1) . ' days')
+            ->format('Y-m-d');
+    } catch (Exception $exception) {
+        $date_from = gmdate('Y-m-d', strtotime($latest_date . ' -364 days'));
+    }
+
+    $rows = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT
+                data_date,
+                COALESCE(SUM(clicks),0) AS clicks,
+                COALESCE(SUM(impressions),0) AS impressions,
+                CASE WHEN SUM(impressions) > 0 THEN SUM(clicks) / SUM(impressions) ELSE 0 END AS ctr,
+                CASE WHEN SUM(impressions) > 0 THEN SUM(position * impressions) / SUM(impressions) ELSE 0 END AS position
+             FROM {$table}
+             WHERE property_hash = %s
+               AND data_date BETWEEN %s AND %s
+             GROUP BY data_date
+             ORDER BY data_date ASC",
+            hash('sha256', $property_id),
+            $date_from,
+            $latest_date
+        ),
+        ARRAY_A
+    );
+
+    foreach ($rows as &$row) {
+        $row['clicks']      = (float) $row['clicks'];
+        $row['impressions'] = (float) $row['impressions'];
+        $row['ctr']         = (float) $row['ctr'];
+        $row['position']    = (float) $row['position'];
+    }
+    unset($row);
+
+    return $rows;
+}
+
+/**
+ * Renderiza tres gráficos ligeros sin librerías externas.
+ *
+ * El navegador agrupa la misma serie diaria por día, semana o mes. Así no se
+ * duplica información ni se necesita otra tabla de histórico.
+ */
+function seo_google_render_summary_charts(array $daily_rows) {
+    if (empty($daily_rows)) {
+        return;
+    }
+
+    $chart_id = 'seo-google-trends-' . wp_rand(1000, 999999);
+    $payload  = array();
+
+    foreach ($daily_rows as $row) {
+        $payload[] = array(
+            'date'        => (string) $row['data_date'],
+            'clicks'      => (float) $row['clicks'],
+            'impressions' => (float) $row['impressions'],
+            'position'    => (float) $row['position'],
+        );
+    }
+
+    echo '<section id="' . esc_attr($chart_id) . '" class="seo-google-trends" style="background:#fff;border:1px solid #dcdcde;padding:20px;border-radius:6px;margin-top:20px;">';
+    echo '<div style="display:flex;gap:14px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;">';
+    echo '<div>';
+    echo '<h3 style="margin:0 0 6px;">Evolución en Google</h3>';
+    echo '<p style="margin:0;color:#646970;">Mismos datos almacenados por Search Console, vistos como tendencia. En posición, <strong>menos es mejor</strong>.</p>';
+    echo '</div>';
+    echo '<div class="seo-google-trend-switch" style="display:flex;gap:6px;flex-wrap:wrap;">';
+    echo '<button type="button" class="button button-primary" data-granularity="day">Diario</button>';
+    echo '<button type="button" class="button" data-granularity="week">Semanal</button>';
+    echo '<button type="button" class="button" data-granularity="month">Mensual</button>';
+    echo '</div>';
+    echo '</div>';
+
+    echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:18px;">';
+
+    $charts = array(
+        'position'    => array('title' => 'Posición media', 'note' => 'La línea sube visualmente cuando mejora el ranking.'),
+        'impressions' => array('title' => 'Impresiones', 'note' => 'Cuántas veces aparecemos en resultados de Google.'),
+        'clicks'      => array('title' => 'Clics', 'note' => 'Visitas recibidas desde los resultados de Google.'),
+    );
+
+    foreach ($charts as $metric => $chart) {
+        echo '<div style="border:1px solid #dcdcde;border-radius:6px;padding:14px;min-width:0;">';
+        echo '<div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;">';
+        echo '<h4 style="margin:0;">' . esc_html($chart['title']) . '</h4>';
+        echo '<strong data-latest="' . esc_attr($metric) . '" style="font-size:18px;white-space:nowrap;"></strong>';
+        echo '</div>';
+        echo '<div data-chart="' . esc_attr($metric) . '" style="margin-top:8px;min-height:220px;"></div>';
+        echo '<p class="description" style="margin:6px 0 0;">' . esc_html($chart['note']) . '</p>';
+        echo '</div>';
+    }
+
+    echo '</div>';
+    echo '<p class="description" style="margin:14px 0 0;"><span data-period-count></span> · La posición sigue ponderada por impresiones, igual que en las tarjetas superiores.</p>';
+    echo '</section>';
+
+    echo '<script>';
+    echo '(function(){';
+    echo 'const root=document.getElementById(' . wp_json_encode($chart_id) . ');';
+    echo 'const raw=' . wp_json_encode($payload) . ';';
+    echo <<<'JS'
+if (!root || !Array.isArray(raw) || !raw.length) return;
+
+const svgNS = 'http://www.w3.org/2000/svg';
+const state = {mode: 'day'};
+
+function mondayKey(dateString) {
+    const d = new Date(dateString + 'T00:00:00Z');
+    const offset = (d.getUTCDay() + 6) % 7;
+    d.setUTCDate(d.getUTCDate() - offset);
+    return d.toISOString().slice(0, 10);
+}
+
+function periodKey(dateString, mode) {
+    if (mode === 'month') return dateString.slice(0, 7);
+    if (mode === 'week') return mondayKey(dateString);
+    return dateString;
+}
+
+function labelFor(key, mode) {
+    if (mode === 'month') {
+        const parts = key.split('-');
+        return parts[1] + '/' + parts[0];
+    }
+
+    const parts = key.split('-');
+    const label = parts[2] + '/' + parts[1];
+    return mode === 'week' ? 'Sem ' + label : label;
+}
+
+function aggregate(mode) {
+    const buckets = new Map();
+
+    raw.forEach(function(row) {
+        const key = periodKey(row.date, mode);
+        if (!buckets.has(key)) {
+            buckets.set(key, {
+                key: key,
+                clicks: 0,
+                impressions: 0,
+                positionWeighted: 0
+            });
+        }
+
+        const bucket = buckets.get(key);
+        const impressions = Number(row.impressions || 0);
+        const position = Number(row.position || 0);
+        bucket.clicks += Number(row.clicks || 0);
+        bucket.impressions += impressions;
+        bucket.positionWeighted += position * impressions;
+    });
+
+    return Array.from(buckets.values()).map(function(bucket) {
+        return {
+            key: bucket.key,
+            label: labelFor(bucket.key, mode),
+            clicks: bucket.clicks,
+            impressions: bucket.impressions,
+            position: bucket.impressions > 0 ? bucket.positionWeighted / bucket.impressions : 0
+        };
+    });
+}
+
+function formatNumber(value, metric) {
+    const number = Number(value || 0);
+    if (metric === 'position') {
+        return number.toLocaleString('es-ES', {minimumFractionDigits: 1, maximumFractionDigits: 1});
+    }
+    return Math.round(number).toLocaleString('es-ES');
+}
+
+function niceMax(value) {
+    if (value <= 0) return 1;
+    const power = Math.pow(10, Math.floor(Math.log10(value)));
+    const scaled = value / power;
+    let nice = 10;
+    if (scaled <= 1) nice = 1;
+    else if (scaled <= 2) nice = 2;
+    else if (scaled <= 5) nice = 5;
+    return nice * power;
+}
+
+function appendText(svg, x, y, text, anchor, size, weight) {
+    const node = document.createElementNS(svgNS, 'text');
+    node.setAttribute('x', x);
+    node.setAttribute('y', y);
+    node.setAttribute('text-anchor', anchor || 'start');
+    node.setAttribute('font-size', size || '11');
+    node.setAttribute('fill', '#646970');
+    if (weight) node.setAttribute('font-weight', weight);
+    node.textContent = text;
+    svg.appendChild(node);
+}
+
+function renderChart(container, rows, metric) {
+    container.innerHTML = '';
+
+    const width = 760;
+    const height = 220;
+    const margin = {top: 16, right: 18, bottom: 34, left: 54};
+    const plotW = width - margin.left - margin.right;
+    const plotH = height - margin.top - margin.bottom;
+    const values = rows.map(function(row){ return Number(row[metric] || 0); });
+
+    if (!values.length) {
+        container.textContent = 'Sin datos.';
+        return;
+    }
+
+    let min = Math.min.apply(null, values);
+    let max = Math.max.apply(null, values);
+
+    if (metric !== 'position') {
+        min = 0;
+        max = niceMax(max);
+    } else {
+        const span = Math.max(1, max - min);
+        min = Math.max(0, min - span * 0.08);
+        max = max + span * 0.08;
+    }
+
+    if (max === min) max = min + 1;
+
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+    svg.setAttribute('width', '100%');
+    svg.setAttribute('height', '220');
+    svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', 'Gráfico de ' + metric);
+
+    const x = function(index) {
+        if (rows.length === 1) return margin.left + plotW / 2;
+        return margin.left + (index / (rows.length - 1)) * plotW;
+    };
+
+    const y = function(value) {
+        const ratio = (Number(value) - min) / (max - min);
+        if (metric === 'position') {
+            // Para ranking: menor posición = más arriba en el gráfico.
+            return margin.top + ratio * plotH;
+        }
+        return margin.top + (1 - ratio) * plotH;
+    };
+
+    for (let i = 0; i <= 4; i++) {
+        const gy = margin.top + (i / 4) * plotH;
+        const line = document.createElementNS(svgNS, 'line');
+        line.setAttribute('x1', margin.left);
+        line.setAttribute('x2', width - margin.right);
+        line.setAttribute('y1', gy);
+        line.setAttribute('y2', gy);
+        line.setAttribute('stroke', '#e2e4e7');
+        line.setAttribute('stroke-width', '1');
+        svg.appendChild(line);
+
+        let value;
+        if (metric === 'position') {
+            value = min + (i / 4) * (max - min);
+        } else {
+            value = max - (i / 4) * (max - min);
+        }
+        appendText(svg, margin.left - 8, gy + 4, formatNumber(value, metric), 'end', '10');
+    }
+
+    const tickIndexes = [];
+    const tickCount = Math.min(5, rows.length);
+    for (let i = 0; i < tickCount; i++) {
+        tickIndexes.push(Math.round((i / Math.max(1, tickCount - 1)) * (rows.length - 1)));
+    }
+    Array.from(new Set(tickIndexes)).forEach(function(index) {
+        appendText(svg, x(index), height - 10, rows[index].label, 'middle', '10');
+    });
+
+    const points = values.map(function(value, index) {
+        return x(index).toFixed(2) + ',' + y(value).toFixed(2);
+    });
+
+    const polyline = document.createElementNS(svgNS, 'polyline');
+    polyline.setAttribute('points', points.join(' '));
+    polyline.setAttribute('fill', 'none');
+    polyline.setAttribute('stroke', '#2271b1');
+    polyline.setAttribute('stroke-width', '3');
+    polyline.setAttribute('stroke-linecap', 'round');
+    polyline.setAttribute('stroke-linejoin', 'round');
+    svg.appendChild(polyline);
+
+    rows.forEach(function(row, index) {
+        const dot = document.createElementNS(svgNS, 'circle');
+        dot.setAttribute('cx', x(index));
+        dot.setAttribute('cy', y(row[metric]));
+        dot.setAttribute('r', rows.length <= 31 ? '3' : '1.8');
+        dot.setAttribute('fill', '#2271b1');
+        const title = document.createElementNS(svgNS, 'title');
+        title.textContent = row.label + ': ' + formatNumber(row[metric], metric);
+        dot.appendChild(title);
+        svg.appendChild(dot);
+    });
+
+    container.appendChild(svg);
+}
+
+function render() {
+    const rows = aggregate(state.mode);
+
+    root.querySelectorAll('[data-chart]').forEach(function(container) {
+        const metric = container.getAttribute('data-chart');
+        renderChart(container, rows, metric);
+
+        const latest = root.querySelector('[data-latest="' + metric + '"]');
+        if (latest && rows.length) {
+            latest.textContent = formatNumber(rows[rows.length - 1][metric], metric);
+        }
+    });
+
+    const count = root.querySelector('[data-period-count]');
+    if (count) {
+        const unit = state.mode === 'month' ? 'meses' : (state.mode === 'week' ? 'semanas' : 'días');
+        count.textContent = rows.length.toLocaleString('es-ES') + ' ' + unit + ' representados';
+    }
+
+    root.querySelectorAll('[data-granularity]').forEach(function(button) {
+        const active = button.getAttribute('data-granularity') === state.mode;
+        button.classList.toggle('button-primary', active);
+    });
+}
+
+root.querySelectorAll('[data-granularity]').forEach(function(button) {
+    button.addEventListener('click', function() {
+        state.mode = button.getAttribute('data-granularity') || 'day';
+        render();
+    });
+});
+
+render();
+JS;
+    echo '})();';
+    echo '</script>';
+}
+
+/**
+ * Primer resumen real de Search Console.
+ */
+function seo_google_render_summary() {
+    $settings = seo_google_get_settings();
+    $status   = seo_google_connection_status();
+
+    if ('connected' !== $status) {
+        echo '<div class="notice notice-info inline"><p><strong>Google Search Console todavía no está conectado completamente.</strong></p></div>';
+        echo '<p><a class="button button-primary" href="' . esc_url(seo_google_admin_url('settings')) . '">Configurar conexión</a></p>';
+        return;
+    }
+
+    $metrics = seo_google_get_summary_metrics($settings['property_id'], 28);
+
+    if (!$metrics) {
+        echo '<div class="notice notice-info inline"><p><strong>La conexión está preparada, pero aún no hay datos almacenados.</strong></p></div>';
+        echo '<p><a class="button button-primary" href="' . esc_url(seo_google_admin_url('sync')) . '">Ejecutar primera sincronización</a></p>';
+        return;
+    }
+
+    $cards = array(
+        'Clics'       => number_format_i18n((float) $metrics['clicks'], 0),
+        'Impresiones' => number_format_i18n((float) $metrics['impressions'], 0),
+        'CTR'         => number_format_i18n(((float) $metrics['ctr']) * 100, 2) . '%',
+        'Posición'    => number_format_i18n((float) $metrics['position'], 1),
+        'Consultas'   => number_format_i18n(absint($metrics['queries'])),
+        'Páginas'     => number_format_i18n(absint($metrics['pages'])),
+    );
+
+    echo '<div style="background:#fff;border:1px solid #dcdcde;padding:20px;border-radius:6px;">';
+    echo '<h3 style="margin-top:0;">Últimos 28 días disponibles</h3>';
+    echo '<p><code>' . esc_html($metrics['date_from']) . '</code> → <code>' . esc_html($metrics['date_to']) . '</code></p>';
+    echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;">';
+
+    foreach ($cards as $label => $value) {
+        echo '<div style="border:1px solid #dcdcde;border-radius:6px;padding:14px;">';
+        echo '<div style="color:#646970;font-size:12px;text-transform:uppercase;font-weight:700;">' . esc_html($label) . '</div>';
+        echo '<div style="font-size:26px;font-weight:700;margin-top:6px;">' . esc_html($value) . '</div>';
+        echo '</div>';
+    }
+
+    echo '</div>';
+    echo '<p class="description" style="margin-top:14px;">La posición se pondera por impresiones. Search Console puede devolver las filas principales y no garantiza un conjunto exhaustivo de consultas.</p>';
+    echo '</div>';
+
+    $trend_rows = seo_google_get_summary_trend_data($settings['property_id'], 365);
+    seo_google_render_summary_charts($trend_rows);
+
+    $queries = seo_google_get_top_queries($settings['property_id'], $metrics['date_from'], $metrics['date_to'], 15);
+    $pages   = seo_google_get_top_pages($settings['property_id'], $metrics['date_from'], $metrics['date_to'], 15);
+
+    echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:20px;margin-top:20px;">';
+    seo_google_render_top_table('Consultas con más impresiones', $queries, false);
+    seo_google_render_top_table('Páginas con más impresiones', $pages, true);
+    echo '</div>';
+}
+
+/**
+ * Tabla reutilizable de consultas o páginas.
+ */
+function seo_google_render_top_table($title, array $rows, $is_url = false) {
+    echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;overflow:auto;">';
+    echo '<h3 style="margin-top:0;">' . esc_html($title) . '</h3>';
+
+    if (!$rows) {
+        echo '<p>No hay datos para este período.</p></div>';
+        return;
+    }
+
+    echo '<table class="widefat striped"><thead><tr><th>Elemento</th><th>Imp.</th><th>Clics</th><th>CTR</th><th>Pos.</th></tr></thead><tbody>';
+
+    foreach ($rows as $row) {
+        $label = (string) $row['label'];
+        echo '<tr><td style="max-width:360px;word-break:break-word;">';
+        if ($is_url) {
+            echo '<a href="' . esc_url($label) . '" target="_blank" rel="noopener noreferrer">' . esc_html($label) . '</a>';
+        } else {
+            echo esc_html($label);
+        }
+        echo '</td>';
+        echo '<td>' . number_format_i18n((float) $row['impressions'], 0) . '</td>';
+        echo '<td>' . number_format_i18n((float) $row['clicks'], 0) . '</td>';
+        echo '<td>' . number_format_i18n(((float) $row['ctr']) * 100, 2) . '%</td>';
+        echo '<td>' . number_format_i18n((float) $row['position'], 1) . '</td></tr>';
+    }
+
+    echo '</tbody></table></div>';
+}
+
+/**
+ * Contexto de análisis basado en el último día realmente almacenado.
+ */
+function seo_google_get_analysis_period($property_id, $days = 28) {
+    $latest = seo_google_latest_data_date($property_id);
+    if (!$latest) {
+        return null;
+    }
+
+    $days = max(1, min(90, absint($days)));
+
+    try {
+        $date_to       = new DateTimeImmutable($latest);
+        $date_from     = $date_to->modify('-' . ($days - 1) . ' days');
+        $previous_to   = $date_from->modify('-1 day');
+        $previous_from = $previous_to->modify('-' . ($days - 1) . ' days');
+    } catch (Exception $exception) {
+        return null;
+    }
+
+    return array(
+        'days'          => $days,
+        'current_from'  => $date_from->format('Y-m-d'),
+        'current_to'    => $date_to->format('Y-m-d'),
+        'previous_from' => $previous_from->format('Y-m-d'),
+        'previous_to'   => $previous_to->format('Y-m-d'),
+    );
+}
+
+/**
+ * Comprueba conexión y datos antes de renderizar una vista analítica.
+ */
+function seo_google_analysis_ready() {
+    $settings = seo_google_get_settings();
+
+    if ('connected' !== seo_google_connection_status()) {
+        echo '<div class="notice notice-info inline"><p><strong>Google Search Console todavía no está conectado completamente.</strong></p></div>';
+        echo '<p><a class="button button-primary" href="' . esc_url(seo_google_admin_url('settings')) . '">Configurar conexión</a></p>';
+        return false;
+    }
+
+    if (!seo_google_latest_data_date($settings['property_id'])) {
+        echo '<div class="notice notice-info inline"><p><strong>Primero debes ejecutar la sincronización.</strong></p></div>';
+        echo '<p><a class="button button-primary" href="' . esc_url(seo_google_admin_url('sync')) . '">Sincronizar Search Console</a></p>';
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * Métricas de consultas con número de URLs y URL principal como evidencia.
+ */
+function seo_google_get_signal_queries($property_id, $date_from, $date_to, $limit = 50, $min_impressions = 1, $search = '') {
+    global $wpdb;
+
+    $table = seo_google_table('search_data');
+    $where = "property_hash = %s AND data_date BETWEEN %s AND %s";
+    $args  = array(hash('sha256', $property_id), $date_from, $date_to);
+
+    if ('' !== $search) {
+        $where .= ' AND query_text LIKE %s';
+        $args[] = '%' . $wpdb->esc_like($search) . '%';
+    }
+
+    $args[] = max(0, (float) $min_impressions);
+    $args[] = max(1, min(250, absint($limit)));
+
+    $sql = "SELECT
+                query_hash,
+                MAX(query_text) AS label,
+                SUM(clicks) AS clicks,
+                SUM(impressions) AS impressions,
+                COUNT(DISTINCT page_hash) AS pages,
+                CASE WHEN SUM(impressions) > 0 THEN SUM(clicks) / SUM(impressions) ELSE 0 END AS ctr,
+                CASE WHEN SUM(impressions) > 0 THEN SUM(position * impressions) / SUM(impressions) ELSE 0 END AS position
+            FROM {$table}
+            WHERE {$where}
+            GROUP BY query_hash
+            HAVING SUM(impressions) >= %f
+            ORDER BY impressions DESC, clicks DESC
+            LIMIT %d";
+
+    $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
+
+    foreach ($rows as &$row) {
+        $evidence = seo_google_get_query_page_evidence(
+            $property_id,
+            $row['query_hash'],
+            $date_from,
+            $date_to,
+            4
+        );
+        $row['evidence'] = $evidence;
+        $row['top_page'] = !empty($evidence[0]['page_url']) ? $evidence[0]['page_url'] : '';
+    }
+    unset($row);
+
+    return $rows;
+}
+
+/**
+ * Páginas que Google asocia a una consulta.
+ */
+function seo_google_get_query_page_evidence($property_id, $query_hash, $date_from, $date_to, $limit = 4) {
+    global $wpdb;
+
+    $table = seo_google_table('search_data');
+
+    return $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT
+                MAX(page_url) AS page_url,
+                SUM(clicks) AS clicks,
+                SUM(impressions) AS impressions,
+                CASE WHEN SUM(impressions) > 0 THEN SUM(position * impressions) / SUM(impressions) ELSE 0 END AS position
+             FROM {$table}
+             WHERE property_hash = %s
+               AND query_hash = %s
+               AND data_date BETWEEN %s AND %s
+             GROUP BY page_hash
+             ORDER BY impressions DESC, clicks DESC
+             LIMIT %d",
+            hash('sha256', $property_id),
+            $query_hash,
+            $date_from,
+            $date_to,
+            max(1, min(10, absint($limit)))
+        ),
+        ARRAY_A
+    );
+}
+
+/**
+ * Consultas principales asociadas a una página.
+ */
+function seo_google_get_page_query_evidence($property_id, $page_hash, $date_from, $date_to, $limit = 5) {
+    global $wpdb;
+
+    $table = seo_google_table('search_data');
+
+    return $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT
+                MAX(query_text) AS query_text,
+                SUM(clicks) AS clicks,
+                SUM(impressions) AS impressions,
+                CASE WHEN SUM(impressions) > 0 THEN SUM(position * impressions) / SUM(impressions) ELSE 0 END AS position
+             FROM {$table}
+             WHERE property_hash = %s
+               AND page_hash = %s
+               AND data_date BETWEEN %s AND %s
+             GROUP BY query_hash
+             ORDER BY impressions DESC, clicks DESC
+             LIMIT %d",
+            hash('sha256', $property_id),
+            $page_hash,
+            $date_from,
+            $date_to,
+            max(1, min(10, absint($limit)))
+        ),
+        ARRAY_A
+    );
+}
+
+/**
+ * Páginas principales con cantidad de consultas asociadas.
+ */
+function seo_google_get_signal_pages($property_id, $date_from, $date_to, $limit = 30, $min_impressions = 1, $search = '') {
+    global $wpdb;
+
+    $table = seo_google_table('search_data');
+    $where = "property_hash = %s AND data_date BETWEEN %s AND %s";
+    $args  = array(hash('sha256', $property_id), $date_from, $date_to);
+
+    if ('' !== $search) {
+        $where .= ' AND page_url LIKE %s';
+        $args[] = '%' . $wpdb->esc_like($search) . '%';
+    }
+
+    $args[] = max(0, (float) $min_impressions);
+    $args[] = max(1, min(250, absint($limit)));
+
+    $sql = "SELECT
+                page_hash,
+                MAX(page_url) AS label,
+                SUM(clicks) AS clicks,
+                SUM(impressions) AS impressions,
+                COUNT(DISTINCT query_hash) AS queries,
+                CASE WHEN SUM(impressions) > 0 THEN SUM(clicks) / SUM(impressions) ELSE 0 END AS ctr,
+                CASE WHEN SUM(impressions) > 0 THEN SUM(position * impressions) / SUM(impressions) ELSE 0 END AS position
+            FROM {$table}
+            WHERE {$where}
+            GROUP BY page_hash
+            HAVING SUM(impressions) >= %f
+            ORDER BY impressions DESC, clicks DESC
+            LIMIT %d";
+
+    $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
+
+    foreach ($rows as &$row) {
+        $row['evidence'] = seo_google_get_page_query_evidence(
+            $property_id,
+            $row['page_hash'],
+            $date_from,
+            $date_to,
+            5
+        );
+    }
+    unset($row);
+
+    return $rows;
+}
+
+/**
+ * Pestaña Señales: datos agrupados y evidencias, sin dictar una conclusión.
+ */
+function seo_google_render_signals() {
+    if (!seo_google_analysis_ready()) {
+        return;
+    }
+
+    $settings        = seo_google_get_settings();
+    $days            = isset($_GET['signal_days']) ? absint($_GET['signal_days']) : 28;
+    $days            = in_array($days, array(7, 14, 28, 60, 90), true) ? $days : 28;
+    $min_impressions = isset($_GET['signal_min']) ? max(0, (float) $_GET['signal_min']) : 5;
+    $search          = isset($_GET['signal_search']) ? sanitize_text_field(wp_unslash($_GET['signal_search'])) : '';
+    $period          = seo_google_get_analysis_period($settings['property_id'], $days);
+
+    if (!$period) {
+        echo '<div class="notice notice-error inline"><p>No se pudo calcular el período de análisis.</p></div>';
+        return;
+    }
+
+    $queries = seo_google_get_signal_queries(
+        $settings['property_id'],
+        $period['current_from'],
+        $period['current_to'],
+        50,
+        $min_impressions,
+        $search
+    );
+    $pages = seo_google_get_signal_pages(
+        $settings['property_id'],
+        $period['current_from'],
+        $period['current_to'],
+        30,
+        $min_impressions,
+        ''
+    );
+
+    echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;margin-bottom:20px;">';
+    echo '<h3 style="margin-top:0;">Señales observadas por Google</h3>';
+    echo '<p>Esta vista agrupa consultas y páginas, pero no decide por ti si una señal es una oportunidad, un error histórico, una búsqueda comercial o una coincidencia accidental.</p>';
+    echo '<form method="get" style="display:flex;gap:12px;flex-wrap:wrap;align-items:end;">';
+    echo '<input type="hidden" name="page" value="seo-reports"><input type="hidden" name="tab" value="google_intelligence"><input type="hidden" name="google_view" value="signals">';
+    echo '<label><strong>Período</strong><br><select name="signal_days">';
+    foreach (array(7, 14, 28, 60, 90) as $option_days) {
+        echo '<option value="' . absint($option_days) . '" ' . selected($days, $option_days, false) . '>' . absint($option_days) . ' días</option>';
+    }
+    echo '</select></label>';
+    echo '<label><strong>Impresiones mínimas</strong><br><input type="number" min="0" step="1" name="signal_min" value="' . esc_attr($min_impressions) . '" style="width:130px;"></label>';
+    echo '<label style="min-width:280px;"><strong>Buscar consulta</strong><br><input type="search" name="signal_search" value="' . esc_attr($search) . '" class="regular-text" placeholder="Ej.: carretillas"></label>';
+    submit_button('Aplicar', 'secondary', 'submit', false);
+    echo '</form>';
+    echo '<p class="description"><code>' . esc_html($period['current_from']) . '</code> → <code>' . esc_html($period['current_to']) . '</code></p>';
+    echo '</div>';
+
+    echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;overflow:auto;">';
+    echo '<h3 style="margin-top:0;">Consultas y páginas asociadas</h3>';
+    if (!$queries) {
+        echo '<p>No hay consultas que cumplan los filtros.</p>';
+    } else {
+        echo '<table class="widefat striped"><thead><tr><th>Consulta</th><th>Imp.</th><th>Clics</th><th>CTR</th><th>Pos.</th><th>URLs</th><th>Evidencias</th></tr></thead><tbody>';
+        foreach ($queries as $row) {
+            echo '<tr>';
+            echo '<td><strong>' . esc_html($row['label']) . '</strong></td>';
+            echo '<td>' . number_format_i18n((float) $row['impressions'], 0) . '</td>';
+            echo '<td>' . number_format_i18n((float) $row['clicks'], 0) . '</td>';
+            echo '<td>' . number_format_i18n(((float) $row['ctr']) * 100, 2) . '%</td>';
+            echo '<td>' . number_format_i18n((float) $row['position'], 1) . '</td>';
+            echo '<td>' . number_format_i18n(absint($row['pages'])) . '</td>';
+            echo '<td style="min-width:360px;">';
+            if (!empty($row['evidence'])) {
+                echo '<details><summary>Ver URLs relacionadas</summary><ul style="margin:8px 0 0 18px;">';
+                foreach ($row['evidence'] as $evidence) {
+                    echo '<li style="margin-bottom:7px;"><a href="' . esc_url($evidence['page_url']) . '" target="_blank" rel="noopener noreferrer">' . esc_html($evidence['page_url']) . '</a><br><small>';
+                    echo number_format_i18n((float) $evidence['impressions'], 0) . ' imp. · ';
+                    echo number_format_i18n((float) $evidence['clicks'], 0) . ' clics · pos. ';
+                    echo number_format_i18n((float) $evidence['position'], 1) . '</small></li>';
+                }
+                echo '</ul></details>';
+            } else {
+                echo '—';
+            }
+            echo '</td></tr>';
+        }
+        echo '</tbody></table>';
+    }
+    echo '</div>';
+
+    echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;overflow:auto;margin-top:20px;">';
+    echo '<h3 style="margin-top:0;">Páginas y consultas asociadas</h3>';
+    if (!$pages) {
+        echo '<p>No hay páginas que cumplan los filtros.</p>';
+    } else {
+        echo '<table class="widefat striped"><thead><tr><th>URL</th><th>Imp.</th><th>Clics</th><th>Pos.</th><th>Consultas</th><th>Evidencias</th></tr></thead><tbody>';
+        foreach ($pages as $row) {
+            echo '<tr><td style="max-width:420px;word-break:break-word;"><a href="' . esc_url($row['label']) . '" target="_blank" rel="noopener noreferrer">' . esc_html($row['label']) . '</a></td>';
+            echo '<td>' . number_format_i18n((float) $row['impressions'], 0) . '</td>';
+            echo '<td>' . number_format_i18n((float) $row['clicks'], 0) . '</td>';
+            echo '<td>' . number_format_i18n((float) $row['position'], 1) . '</td>';
+            echo '<td>' . number_format_i18n(absint($row['queries'])) . '</td><td style="min-width:280px;">';
+            if (!empty($row['evidence'])) {
+                echo '<details><summary>Ver consultas</summary><ul style="margin:8px 0 0 18px;">';
+                foreach ($row['evidence'] as $evidence) {
+                    echo '<li><strong>' . esc_html($evidence['query_text']) . '</strong> — ' . number_format_i18n((float) $evidence['impressions'], 0) . ' imp. · pos. ' . number_format_i18n((float) $evidence['position'], 1) . '</li>';
+                }
+                echo '</ul></details>';
+            } else {
+                echo '—';
+            }
+            echo '</td></tr>';
+        }
+        echo '</tbody></table>';
+    }
+    echo '</div>';
+}
+
+/**
+ * Cambios de consultas o páginas entre dos períodos equivalentes.
+ */
+function seo_google_get_dimension_changes($property_id, $dimension, array $period, $min_impressions = 3, $limit = 25) {
+    global $wpdb;
+
+    $table = seo_google_table('search_data');
+    $dimension = ('page' === $dimension) ? 'page' : 'query';
+    $hash_field = ('page' === $dimension) ? 'page_hash' : 'query_hash';
+    $text_field = ('page' === $dimension) ? 'page_url' : 'query_text';
+
+    $sql = "SELECT
+                {$hash_field} AS item_hash,
+                MAX({$text_field}) AS label,
+                SUM(CASE WHEN data_date BETWEEN %s AND %s THEN impressions ELSE 0 END) AS current_impressions,
+                SUM(CASE WHEN data_date BETWEEN %s AND %s THEN impressions ELSE 0 END) AS previous_impressions,
+                SUM(CASE WHEN data_date BETWEEN %s AND %s THEN clicks ELSE 0 END) AS current_clicks,
+                SUM(CASE WHEN data_date BETWEEN %s AND %s THEN clicks ELSE 0 END) AS previous_clicks,
+                CASE WHEN SUM(CASE WHEN data_date BETWEEN %s AND %s THEN impressions ELSE 0 END) > 0
+                    THEN SUM(CASE WHEN data_date BETWEEN %s AND %s THEN position * impressions ELSE 0 END)
+                       / SUM(CASE WHEN data_date BETWEEN %s AND %s THEN impressions ELSE 0 END)
+                    ELSE 0 END AS current_position,
+                CASE WHEN SUM(CASE WHEN data_date BETWEEN %s AND %s THEN impressions ELSE 0 END) > 0
+                    THEN SUM(CASE WHEN data_date BETWEEN %s AND %s THEN position * impressions ELSE 0 END)
+                       / SUM(CASE WHEN data_date BETWEEN %s AND %s THEN impressions ELSE 0 END)
+                    ELSE 0 END AS previous_position
+            FROM {$table}
+            WHERE property_hash = %s
+              AND data_date BETWEEN %s AND %s
+            GROUP BY {$hash_field}
+            HAVING current_impressions >= %f OR previous_impressions >= %f";
+
+    $args = array(
+        $period['current_from'], $period['current_to'],
+        $period['previous_from'], $period['previous_to'],
+        $period['current_from'], $period['current_to'],
+        $period['previous_from'], $period['previous_to'],
+        $period['current_from'], $period['current_to'],
+        $period['current_from'], $period['current_to'],
+        $period['current_from'], $period['current_to'],
+        $period['previous_from'], $period['previous_to'],
+        $period['previous_from'], $period['previous_to'],
+        $period['previous_from'], $period['previous_to'],
+        hash('sha256', $property_id),
+        $period['previous_from'], $period['current_to'],
+        max(0, (float) $min_impressions),
+        max(0, (float) $min_impressions),
+    );
+
+    $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
+    $groups = array('new' => array(), 'lost' => array(), 'growth' => array(), 'decline' => array());
+
+    foreach ($rows as $row) {
+        $current  = (float) $row['current_impressions'];
+        $previous = (float) $row['previous_impressions'];
+        $row['delta'] = $current - $previous;
+        $row['delta_percent'] = $previous > 0 ? (($current - $previous) / $previous) * 100 : null;
+
+        if ($current > 0 && $previous <= 0) {
+            $groups['new'][] = $row;
+        } elseif ($previous > 0 && $current <= 0) {
+            $groups['lost'][] = $row;
+        } elseif ($row['delta'] > 0) {
+            $groups['growth'][] = $row;
+        } elseif ($row['delta'] < 0) {
+            $groups['decline'][] = $row;
+        }
+    }
+
+    usort($groups['new'], function ($a, $b) { return $b['current_impressions'] <=> $a['current_impressions']; });
+    usort($groups['lost'], function ($a, $b) { return $b['previous_impressions'] <=> $a['previous_impressions']; });
+    usort($groups['growth'], function ($a, $b) { return $b['delta'] <=> $a['delta']; });
+    usort($groups['decline'], function ($a, $b) { return $a['delta'] <=> $b['delta']; });
+
+    foreach ($groups as $key => $items) {
+        $groups[$key] = array_slice($items, 0, max(1, min(100, absint($limit))));
+    }
+
+    return $groups;
+}
+
+/**
+ * Pestaña Cambios: comparación neutral entre períodos equivalentes.
+ */
+function seo_google_render_changes() {
+    if (!seo_google_analysis_ready()) {
+        return;
+    }
+
+    $settings = seo_google_get_settings();
+    $days = isset($_GET['change_days']) ? absint($_GET['change_days']) : 28;
+    $days = in_array($days, array(7, 14, 28), true) ? $days : 28;
+    $min  = isset($_GET['change_min']) ? max(0, (float) $_GET['change_min']) : 3;
+    $period = seo_google_get_analysis_period($settings['property_id'], $days);
+
+    if (!$period) {
+        echo '<div class="notice notice-error inline"><p>No se pudo calcular el período de comparación.</p></div>';
+        return;
+    }
+
+    $query_changes = seo_google_get_dimension_changes($settings['property_id'], 'query', $period, $min, 25);
+    $page_changes  = seo_google_get_dimension_changes($settings['property_id'], 'page', $period, $min, 20);
+
+    echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;margin-bottom:20px;">';
+    echo '<h3 style="margin-top:0;">Cambios entre períodos equivalentes</h3>';
+    echo '<p>Esta vista señala aumentos, descensos, apariciones y desapariciones. Un cambio no implica por sí solo que exista un problema o una oportunidad.</p>';
+    echo '<form method="get" style="display:flex;gap:12px;flex-wrap:wrap;align-items:end;">';
+    echo '<input type="hidden" name="page" value="seo-reports"><input type="hidden" name="tab" value="google_intelligence"><input type="hidden" name="google_view" value="changes">';
+    echo '<label><strong>Duración de cada período</strong><br><select name="change_days">';
+    foreach (array(7, 14, 28) as $option_days) {
+        echo '<option value="' . absint($option_days) . '" ' . selected($days, $option_days, false) . '>' . absint($option_days) . ' días</option>';
+    }
+    echo '</select></label>';
+    echo '<label><strong>Impresiones mínimas</strong><br><input type="number" min="0" step="1" name="change_min" value="' . esc_attr($min) . '"></label>';
+    submit_button('Comparar', 'secondary', 'submit', false);
+    echo '</form>';
+    echo '<p><strong>Actual:</strong> <code>' . esc_html($period['current_from']) . '</code> → <code>' . esc_html($period['current_to']) . '</code><br>';
+    echo '<strong>Anterior:</strong> <code>' . esc_html($period['previous_from']) . '</code> → <code>' . esc_html($period['previous_to']) . '</code></p>';
+    echo '</div>';
+
+    seo_google_render_change_sections('Consultas', $query_changes, false);
+    echo '<div style="height:20px;"></div>';
+    seo_google_render_change_sections('Páginas', $page_changes, true);
+}
+
+/**
+ * Renderiza bloques de cambios sin convertirlos en recomendaciones.
+ */
+function seo_google_render_change_sections($title, array $groups, $is_url) {
+    $labels = array(
+        'new'     => 'Aparecen en el período actual',
+        'growth'  => 'Aumentan impresiones',
+        'decline' => 'Disminuyen impresiones',
+        'lost'    => 'No aparecen en el período actual',
+    );
+
+    echo '<section><h3>' . esc_html($title) . '</h3>';
+    echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(460px,1fr));gap:18px;">';
+    foreach ($labels as $key => $label) {
+        echo '<div style="background:#fff;border:1px solid #dcdcde;padding:16px;border-radius:6px;overflow:auto;">';
+        echo '<h4 style="margin-top:0;">' . esc_html($label) . '</h4>';
+        if (empty($groups[$key])) {
+            echo '<p>No hay elementos con los filtros actuales.</p></div>';
+            continue;
+        }
+        echo '<table class="widefat striped"><thead><tr><th>Elemento</th><th>Antes</th><th>Ahora</th><th>Δ</th><th>Pos. antes</th><th>Pos. ahora</th></tr></thead><tbody>';
+        foreach ($groups[$key] as $row) {
+            $label_text = (string) $row['label'];
+            echo '<tr><td style="max-width:360px;word-break:break-word;">';
+            if ($is_url) {
+                echo '<a href="' . esc_url($label_text) . '" target="_blank" rel="noopener noreferrer">' . esc_html($label_text) . '</a>';
+            } else {
+                echo esc_html($label_text);
+            }
+            echo '</td><td>' . number_format_i18n((float) $row['previous_impressions'], 0) . '</td>';
+            echo '<td>' . number_format_i18n((float) $row['current_impressions'], 0) . '</td>';
+            $delta = (float) $row['delta'];
+            echo '<td>' . ($delta > 0 ? '+' : '') . number_format_i18n($delta, 0) . '</td>';
+            echo '<td>' . ((float) $row['previous_position'] > 0 ? number_format_i18n((float) $row['previous_position'], 1) : '—') . '</td>';
+            echo '<td>' . ((float) $row['current_position'] > 0 ? number_format_i18n((float) $row['current_position'], 1) : '—') . '</td></tr>';
+        }
+        echo '</tbody></table></div>';
+    }
+    echo '</div></section>';
+}
+
+/**
+ * Normaliza URLs para compararlas con entidades locales.
+ *
+ * Se ignoran parámetros y fragmentos porque WordPress identifica la entidad
+ * por la ruta pública. La URL original sí se conserva al comprobar redirects.
+ */
+function seo_google_normalize_url($url) {
+    $url = trim((string) $url);
+    if ('' === $url) {
+        return '';
+    }
+
+    $parts = wp_parse_url($url);
+    if (!$parts || empty($parts['host'])) {
+        return untrailingslashit($url);
+    }
+
+    $scheme = !empty($parts['scheme']) ? strtolower($parts['scheme']) : 'https';
+    $host   = strtolower($parts['host']);
+    $port   = !empty($parts['port']) ? ':' . absint($parts['port']) : '';
+    $path   = isset($parts['path']) ? '/' . ltrim($parts['path'], '/') : '/';
+
+    return untrailingslashit($scheme . '://' . $host . $port . $path);
+}
+
+/**
+ * Normaliza una URL completa para detectar bucles durante una redirección.
+ *
+ * A diferencia de seo_google_normalize_url(), conserva la consulta porque
+ * algunos redirects dependen de sus parámetros.
+ */
+function seo_google_redirect_loop_key($url) {
+    $url = trim((string) $url);
+
+    if ('' === $url) {
+        return '';
+    }
+
+    $parts = wp_parse_url($url);
+
+    if (!$parts || empty($parts['host'])) {
+        return strtolower(preg_replace('/#.*$/', '', $url));
+    }
+
+    $scheme = !empty($parts['scheme']) ? strtolower($parts['scheme']) : 'https';
+    $host   = strtolower($parts['host']);
+    $port   = !empty($parts['port']) ? ':' . absint($parts['port']) : '';
+    $path   = isset($parts['path']) ? '/' . ltrim($parts['path'], '/') : '/';
+    $query  = isset($parts['query']) && '' !== $parts['query'] ? '?' . $parts['query'] : '';
+
+    return $scheme . '://' . $host . $port . $path . $query;
+}
+
+/**
+ * Convierte el destino de una cabecera Location en una URL absoluta.
+ */
+function seo_google_redirect_absolute_url($base_url, $location) {
+    $location = html_entity_decode(
+        trim((string) $location),
+        ENT_QUOTES | ENT_HTML5,
+        'UTF-8'
+    );
+
+    if ('' === $location || '#' === substr($location, 0, 1)) {
+        return '';
+    }
+
+    if (preg_match('#^https?://#i', $location)) {
+        return esc_url_raw($location);
+    }
+
+    $base = wp_parse_url($base_url);
+
+    if (!$base || empty($base['host'])) {
+        return '';
+    }
+
+    $scheme = !empty($base['scheme']) ? strtolower($base['scheme']) : 'https';
+    $host   = strtolower($base['host']);
+    $port   = !empty($base['port']) ? ':' . absint($base['port']) : '';
+
+    if (0 === strpos($location, '//')) {
+        return esc_url_raw($scheme . ':' . $location);
+    }
+
+    $authority = $scheme . '://' . $host . $port;
+    $base_path = isset($base['path']) && '' !== $base['path']
+        ? $base['path']
+        : '/';
+
+    if ('/' === substr($location, 0, 1)) {
+        $target = $location;
+    } elseif ('?' === substr($location, 0, 1)) {
+        $target = $base_path . $location;
+    } else {
+        $directory = preg_replace('#/[^/]*$#', '/', $base_path);
+        $target    = $directory . $location;
+    }
+
+    $query = '';
+    $query_position = strpos($target, '?');
+
+    if (false !== $query_position) {
+        $query  = substr($target, $query_position);
+        $target = substr($target, 0, $query_position);
+    }
+
+    $segments = array();
+
+    foreach (explode('/', $target) as $segment) {
+        if ('' === $segment || '.' === $segment) {
+            continue;
+        }
+
+        if ('..' === $segment) {
+            array_pop($segments);
+            continue;
+        }
+
+        $segments[] = $segment;
+    }
+
+    $path = '/' . implode('/', $segments);
+
+    return esc_url_raw($authority . $path . $query);
+}
+
+/**
+ * Extrae una redirección HTTP normal o una cabecera Refresh inmediata.
+ */
+function seo_google_redirect_location_from_response($response) {
+    if (is_wp_error($response)) {
+        return '';
+    }
+
+    $location = wp_remote_retrieve_header($response, 'location');
+
+    if (is_array($location)) {
+        $location = end($location);
+    }
+
+    $location = trim((string) $location);
+
+    if ('' !== $location) {
+        return $location;
+    }
+
+    $refresh = wp_remote_retrieve_header($response, 'refresh');
+
+    if (is_array($refresh)) {
+        $refresh = end($refresh);
+    }
+
+    if (
+        is_string($refresh)
+        && preg_match('/^\s*(\d+)\s*;\s*url\s*=\s*[\'"]?(.+?)[\'"]?\s*$/i', $refresh, $matches)
+        && 1 >= absint($matches[1])
+    ) {
+        return trim($matches[2]);
+    }
+
+    return '';
+}
+
+/**
+ * Consulta una URL como lo haría un navegador, sin seguir redirects
+ * automáticamente. GET solo se usa si el servidor rechaza HEAD.
+ */
+function seo_google_redirect_http_response($url) {
+    $args = array(
+        'timeout'     => 4,
+        'redirection' => 0,
+        'headers'     => array(
+            'Accept'     => 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.1',
+            'User-Agent' => 'SEO-Google-Intelligence/' . SEO_GOOGLE_MODULE_VERSION . ' ' . home_url('/'),
+        ),
+    );
+
+    $response = wp_safe_remote_head($url, $args);
+
+    if (!is_wp_error($response)) {
+        $status = absint(wp_remote_retrieve_response_code($response));
+
+        if (!in_array($status, array(403, 405, 501), true)) {
+            return $response;
+        }
+    }
+
+    $args['limit_response_size'] = 2048;
+
+    return wp_safe_remote_get($url, $args);
+}
+
+/**
+ * Sigue una cadena de redirects sin abandonar la protección SSRF de
+ * wp_safe_remote_* y almacena el resultado para no castigar al servidor.
+ */
+function seo_google_follow_redirects($url, $max_hops = 5) {
+    $source_url = esc_url_raw(preg_replace('/#.*$/', '', trim((string) $url)));
+    $max_hops   = max(1, min(10, absint($max_hops)));
+
+    $empty = array(
+        'redirected'   => false,
+        'source_url'   => $source_url,
+        'final_url'    => $source_url,
+        'final_status' => 0,
+        'chain'        => array(),
+        'error'        => '',
+    );
+
+    if ('' === $source_url || !preg_match('#^https?://#i', $source_url)) {
+        $empty['error'] = 'La URL no es HTTP/HTTPS.';
+        return $empty;
+    }
+
+    $cache_key = 'seo_google_redirect_' . md5(seo_google_redirect_loop_key($source_url));
+    $cached    = get_transient($cache_key);
+
+    if (is_array($cached) && isset($cached['final_url'], $cached['chain'])) {
+        return wp_parse_args($cached, $empty);
+    }
+
+    $result  = $empty;
+    $current = $source_url;
+    $visited = array();
+
+    for ($hop = 0; $hop <= $max_hops; $hop++) {
+        $loop_key = seo_google_redirect_loop_key($current);
+
+        if ('' === $loop_key || isset($visited[$loop_key])) {
+            $result['error'] = 'Se detectó un bucle de redirección.';
+            break;
+        }
+
+        $visited[$loop_key] = true;
+        $response = seo_google_redirect_http_response($current);
+
+        if (is_wp_error($response)) {
+            $result['error'] = $response->get_error_message();
+            break;
+        }
+
+        $status   = absint(wp_remote_retrieve_response_code($response));
+        $location = seo_google_redirect_location_from_response($response);
+
+        $result['final_url']    = $current;
+        $result['final_status'] = $status;
+
+        $is_http_redirect = 300 <= $status && 400 > $status;
+        $refresh_header   = wp_remote_retrieve_header($response, 'refresh');
+
+        if ('' === $location || (!$is_http_redirect && empty($refresh_header))) {
+            break;
+        }
+
+        if ($hop >= $max_hops) {
+            $result['error'] = sprintf(
+                'La cadena supera el límite de %d redirecciones.',
+                $max_hops
+            );
+            break;
+        }
+
+        $next = seo_google_redirect_absolute_url($current, $location);
+
+        if ('' === $next) {
+            $result['error'] = 'El servidor devolvió un destino de redirección no válido.';
+            break;
+        }
+
+        $result['chain'][] = array(
+            'url'      => $current,
+            'status'   => $status,
+            'location' => $next,
+        );
+        $result['redirected'] = true;
+        $current              = $next;
+    }
+
+    $ttl = '' === $result['error']
+        ? 12 * HOUR_IN_SECONDS
+        : 15 * MINUTE_IN_SECONDS;
+
+    set_transient($cache_key, $result, $ttl);
+
+    return $result;
+}
+
+/**
+ * Resume los códigos HTTP de una cadena de redirecciones.
+ */
+function seo_google_redirect_status_summary($redirect) {
+    $codes = array();
+
+    foreach ((array) ($redirect['chain'] ?? array()) as $hop) {
+        $code = absint($hop['status'] ?? 0);
+
+        if (0 < $code) {
+            $codes[] = $code;
+        }
+    }
+
+    $final_status = absint($redirect['final_status'] ?? 0);
+
+    if (0 < $final_status) {
+        $codes[] = $final_status;
+    }
+
+    return implode(' → ', $codes);
+}
+
+/**
+ * Construye un mapa de categorías de producto por URL.
+ */
+function seo_google_get_product_category_url_map() {
+    static $map = null;
+
+    if (null !== $map) {
+        return $map;
+    }
+
+    $map = array();
+    if (!taxonomy_exists('product_cat')) {
+        return $map;
+    }
+
+    $terms = get_terms(array('taxonomy' => 'product_cat', 'hide_empty' => false));
+    if (is_wp_error($terms)) {
+        return $map;
+    }
+
+    foreach ($terms as $term) {
+        $link = get_term_link($term);
+        if (!is_wp_error($link)) {
+            $map[seo_google_normalize_url($link)] = $term;
+        }
+    }
+
+    return $map;
+}
+
+/**
+ * Resuelve una URL directamente contra WordPress/WooCommerce, sin red.
+ */
+function seo_google_resolve_local_entity_direct($url) {
+    $normalized = seo_google_normalize_url($url);
+    $home       = seo_google_normalize_url(home_url('/'));
+
+    if ($normalized === $home) {
+        return array(
+            'recognized' => true,
+            'type'       => 'Inicio',
+            'title'      => get_bloginfo('name'),
+            'status'     => 'publicada',
+            'id'         => 0,
+        );
+    }
+
+    $post_id = url_to_postid($url);
+
+    if ($post_id) {
+        $post_type = get_post_type($post_id);
+        $object    = get_post_type_object($post_type);
+
+        return array(
+            'recognized' => true,
+            'type'       => $object && !empty($object->labels->singular_name)
+                ? $object->labels->singular_name
+                : $post_type,
+            'title'      => get_the_title($post_id),
+            'status'     => get_post_status($post_id),
+            'id'         => $post_id,
+        );
+    }
+
+    $term_map = seo_google_get_product_category_url_map();
+
+    if (isset($term_map[$normalized])) {
+        $term = $term_map[$normalized];
+
+        return array(
+            'recognized' => true,
+            'type'       => 'Categoría de producto',
+            'title'      => $term->name,
+            'status'     => 'activa',
+            'id'         => $term->term_id,
+        );
+    }
+
+    return array(
+        'recognized' => false,
+        'type'       => 'No reconocida',
+        'title'      => '',
+        'status'     => 'No coincide directamente con una entidad local.',
+        'id'         => 0,
+    );
+}
+
+/**
+ * Intenta resolver una URL de Google contra WordPress/WooCommerce.
+ *
+ * Si la URL no existe directamente, comprueba sus redirects HTTP y vuelve a
+ * resolver el destino final. Así una URL histórica de Search Console puede
+ * relacionarse con el producto, página o categoría vigente.
+ */
+function seo_google_resolve_local_entity($url) {
+    $entity = seo_google_resolve_local_entity_direct($url);
+
+    $entity['redirected']     = false;
+    $entity['source_url']     = (string) $url;
+    $entity['resolved_url']   = (string) $url;
+    $entity['redirect_chain'] = array();
+    $entity['http_summary']   = '';
+
+    if (!empty($entity['recognized'])) {
+        return $entity;
+    }
+
+    $redirect = seo_google_follow_redirects($url, 5);
+
+    $entity['resolved_url']   = (string) ($redirect['final_url'] ?? $url);
+    $entity['redirect_chain'] = (array) ($redirect['chain'] ?? array());
+    $entity['http_summary']   = seo_google_redirect_status_summary($redirect);
+
+    if (empty($redirect['redirected'])) {
+        $status = absint($redirect['final_status'] ?? 0);
+
+        if (!empty($redirect['error'])) {
+            $entity['status'] = 'No reconocida. No se pudo comprobar el redirect: ' . $redirect['error'];
+        } elseif (0 < $status) {
+            $entity['status'] = sprintf(
+                'No reconocida. La URL respondió HTTP %d sin indicar un destino.',
+                $status
+            );
+        }
+
+        return $entity;
+    }
+
+    $entity['redirected'] = true;
+    $destination          = seo_google_resolve_local_entity_direct($entity['resolved_url']);
+
+    $destination['redirected']     = true;
+    $destination['source_url']     = (string) $url;
+    $destination['resolved_url']   = $entity['resolved_url'];
+    $destination['redirect_chain'] = $entity['redirect_chain'];
+    $destination['http_summary']   = $entity['http_summary'];
+
+    if (!empty($destination['recognized'])) {
+        $destination['status'] = sprintf(
+            'Relacionada mediante redirect%s · %s',
+            '' !== $destination['http_summary']
+                ? ' HTTP ' . $destination['http_summary']
+                : '',
+            $destination['status']
+        );
+
+        return $destination;
+    }
+
+    $destination['status'] = sprintf(
+        'Redirect detectado%s, pero el destino «%s» tampoco coincide con una entidad local.%s',
+        '' !== $destination['http_summary']
+            ? ' (' . $destination['http_summary'] . ')'
+            : '',
+        $destination['resolved_url'],
+        !empty($redirect['error'])
+            ? ' ' . $redirect['error']
+            : ''
+    );
+
+    return $destination;
+}
+
+/**
+ * Google vs catálogo: correspondencia básica y verificable con WordPress.
+ */
+function seo_google_render_comparison() {
+    if (!seo_google_analysis_ready()) {
+        return;
+    }
+
+    $settings = seo_google_get_settings();
+    $period   = seo_google_get_analysis_period($settings['property_id'], 28);
+    $pages    = seo_google_get_signal_pages($settings['property_id'], $period['current_from'], $period['current_to'], 100, 1, '');
+
+    $recognized   = 0;
+    $redirected   = 0;
+    $unrecognized = 0;
+
+    foreach ($pages as &$page) {
+        $page['entity'] = seo_google_resolve_local_entity($page['label']);
+
+        if (!empty($page['entity']['recognized'])) {
+            $recognized++;
+
+            if (!empty($page['entity']['redirected'])) {
+                $redirected++;
+            }
+        } else {
+            $unrecognized++;
+        }
+    }
+    unset($page);
+
+    echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;margin-bottom:20px;">';
+    echo '<h3 style="margin-top:0;">Google vs. catálogo</h3>';
+    echo '<p>Relaciona las URLs vistas por Google con entidades locales de WordPress/WooCommerce. Cuando una URL no existe directamente, se comprueba su cadena HTTP y se intenta relacionar el destino final.</p>';
+    echo '<div style="display:flex;gap:14px;flex-wrap:wrap;">';
+    echo '<div style="border:1px solid #dcdcde;padding:12px 18px;border-radius:6px;"><small>Reconocidas</small><br><strong style="font-size:24px;">' . number_format_i18n($recognized) . '</strong></div>';
+    echo '<div style="border:1px solid #dcdcde;padding:12px 18px;border-radius:6px;"><small>Vía redirect</small><br><strong style="font-size:24px;">' . number_format_i18n($redirected) . '</strong></div>';
+    echo '<div style="border:1px solid #dcdcde;padding:12px 18px;border-radius:6px;"><small>No reconocidas</small><br><strong style="font-size:24px;">' . number_format_i18n($unrecognized) . '</strong></div>';
+    echo '</div><p class="description">Se analizan las 100 páginas principales del período <code>' . esc_html($period['current_from']) . '</code> → <code>' . esc_html($period['current_to']) . '</code>. Los redirects comprobados se guardan durante 12 horas para evitar peticiones repetidas.</p>';
+    echo '</div>';
+
+    echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;overflow:auto;">';
+    echo '<table class="widefat striped"><thead><tr><th>URL de Google / destino</th><th>Imp.</th><th>Clics</th><th>Pos.</th><th>Entidad local</th><th>Estado</th><th>Consultas</th></tr></thead><tbody>';
+
+    foreach ($pages as $page) {
+        $entity = $page['entity'];
+
+        echo '<tr><td style="max-width:430px;word-break:break-word;"><a href="' . esc_url($page['label']) . '" target="_blank" rel="noopener noreferrer">' . esc_html($page['label']) . '</a>';
+
+        if (
+            !empty($entity['redirected'])
+            && !empty($entity['resolved_url'])
+            && seo_google_redirect_loop_key($entity['resolved_url']) !== seo_google_redirect_loop_key($page['label'])
+        ) {
+            echo '<br><small><strong>Destino:</strong> <a href="' . esc_url($entity['resolved_url']) . '" target="_blank" rel="noopener noreferrer">' . esc_html($entity['resolved_url']) . '</a>';
+
+            if (!empty($entity['http_summary'])) {
+                echo ' <code>' . esc_html($entity['http_summary']) . '</code>';
+            }
+
+            echo '</small>';
+        }
+
+        echo '</td>';
+        echo '<td>' . number_format_i18n((float) $page['impressions'], 0) . '</td>';
+        echo '<td>' . number_format_i18n((float) $page['clicks'], 0) . '</td>';
+        echo '<td>' . number_format_i18n((float) $page['position'], 1) . '</td>';
+        echo '<td><strong>' . esc_html($entity['type']) . '</strong>';
+
+        if (!empty($entity['redirected']) && !empty($entity['recognized'])) {
+            echo '<br><small>Relacionada por redirección</small>';
+        }
+
+        if ($entity['title']) {
+            echo '<br>' . esc_html($entity['title']);
+        }
+
+        echo '</td><td>' . esc_html($entity['status']) . '</td>';
+        echo '<td>' . number_format_i18n(absint($page['queries'])) . '</td></tr>';
+    }
+
+    echo '</tbody></table></div>';
+}
+
+/**
+ * Métricas de páginas para calcular cobertura por rutas.
+ */
+function seo_google_get_all_page_metrics($property_id, $date_from, $date_to, $limit = 5000) {
+    global $wpdb;
+
+    $table = seo_google_table('search_data');
+    return $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT
+                page_hash,
+                MAX(page_url) AS page_url,
+                SUM(clicks) AS clicks,
+                SUM(impressions) AS impressions,
+                COUNT(DISTINCT query_hash) AS queries,
+                CASE WHEN SUM(impressions) > 0 THEN SUM(position * impressions) / SUM(impressions) ELSE 0 END AS position
+             FROM {$table}
+             WHERE property_hash = %s AND data_date BETWEEN %s AND %s
+             GROUP BY page_hash
+             ORDER BY impressions DESC
+             LIMIT %d",
+            hash('sha256', $property_id),
+            $date_from,
+            $date_to,
+            max(1, min(10000, absint($limit)))
+        ),
+        ARRAY_A
+    );
+}
+
+/**
+ * Convierte una URL en un área navegable basada en su primera carpeta.
+ */
+function seo_google_url_area($url) {
+    $path = (string) wp_parse_url($url, PHP_URL_PATH);
+    $path = trim($path, '/');
+    if ('' === $path) {
+        return '/ (inicio)';
+    }
+    $segments = explode('/', $path);
+    return '/' . sanitize_title($segments[0]) . '/';
+}
+
+/**
+ * Cobertura observada en Google por áreas y rangos de posición.
+ */
+function seo_google_render_coverage() {
+    if (!seo_google_analysis_ready()) {
+        return;
+    }
+
+    $settings = seo_google_get_settings();
+    $period   = seo_google_get_analysis_period($settings['property_id'], 28);
+    $pages    = seo_google_get_all_page_metrics($settings['property_id'], $period['current_from'], $period['current_to'], 5000);
+    $areas    = array();
+    $ranges   = array(
+        '1–3' => 0,
+        '4–10' => 0,
+        '11–20' => 0,
+        '21–50' => 0,
+        '51–100' => 0,
+        'Más de 100' => 0,
+    );
+
+    foreach ($pages as $page) {
+        $area = seo_google_url_area($page['page_url']);
+        if (!isset($areas[$area])) {
+            $areas[$area] = array('pages' => 0, 'impressions' => 0, 'clicks' => 0, 'weighted_position' => 0, 'queries' => 0);
+        }
+        $areas[$area]['pages']++;
+        $areas[$area]['impressions'] += (float) $page['impressions'];
+        $areas[$area]['clicks'] += (float) $page['clicks'];
+        $areas[$area]['weighted_position'] += (float) $page['position'] * (float) $page['impressions'];
+        $areas[$area]['queries'] += absint($page['queries']);
+
+        $position = (float) $page['position'];
+        if ($position <= 3) {
+            $ranges['1–3']++;
+        } elseif ($position <= 10) {
+            $ranges['4–10']++;
+        } elseif ($position <= 20) {
+            $ranges['11–20']++;
+        } elseif ($position <= 50) {
+            $ranges['21–50']++;
+        } elseif ($position <= 100) {
+            $ranges['51–100']++;
+        } else {
+            $ranges['Más de 100']++;
+        }
+    }
+
+    uasort($areas, function ($a, $b) { return $b['impressions'] <=> $a['impressions']; });
+
+    echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;margin-bottom:20px;">';
+    echo '<h3 style="margin-top:0;">Cobertura observada</h3>';
+    echo '<p>Distribución de las páginas que Google ha mostrado. Esta cobertura describe visibilidad; todavía no mide si el catálogo es suficiente o correcto.</p>';
+    echo '<p><code>' . esc_html($period['current_from']) . '</code> → <code>' . esc_html($period['current_to']) . '</code></p>';
+    echo '</div>';
+
+    echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:20px;">';
+    echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;overflow:auto;"><h3 style="margin-top:0;">Áreas URL</h3>';
+    echo '<table class="widefat striped"><thead><tr><th>Área</th><th>Páginas</th><th>Imp.</th><th>Clics</th><th>Pos.</th></tr></thead><tbody>';
+    foreach (array_slice($areas, 0, 50, true) as $area => $values) {
+        $position = $values['impressions'] > 0 ? $values['weighted_position'] / $values['impressions'] : 0;
+        echo '<tr><td><code>' . esc_html($area) . '</code></td><td>' . number_format_i18n($values['pages']) . '</td><td>' . number_format_i18n($values['impressions'], 0) . '</td><td>' . number_format_i18n($values['clicks'], 0) . '</td><td>' . number_format_i18n($position, 1) . '</td></tr>';
+    }
+    echo '</tbody></table></div>';
+
+    echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;"><h3 style="margin-top:0;">Páginas por rango de posición</h3>';
+    echo '<table class="widefat striped"><thead><tr><th>Rango</th><th>Páginas</th></tr></thead><tbody>';
+    foreach ($ranges as $range => $count) {
+        echo '<tr><td>' . esc_html($range) . '</td><td>' . number_format_i18n($count) . '</td></tr>';
+    }
+    echo '</tbody></table><p class="description">Cada página se sitúa según su posición media ponderada del período.</p></div>';
+    echo '</div>';
+}
+
+/**
+ * Lee y valida los filtros del Laboratorio.
+ */
+function seo_google_get_lab_filters($property_id, $source = null) {
+    $source = is_array($source) ? $source : $_GET;
+    $period = seo_google_get_analysis_period($property_id, 28);
+
+    $group = isset($source['lab_group']) ? sanitize_key(wp_unslash($source['lab_group'])) : 'query_page';
+    if (!in_array($group, array('query', 'page', 'query_page', 'date'), true)) {
+        $group = 'query_page';
+    }
+
+    $date_from = isset($source['lab_from']) ? sanitize_text_field(wp_unslash($source['lab_from'])) : $period['current_from'];
+    $date_to   = isset($source['lab_to']) ? sanitize_text_field(wp_unslash($source['lab_to'])) : $period['current_to'];
+
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_from)) {
+        $date_from = $period['current_from'];
+    }
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_to)) {
+        $date_to = $period['current_to'];
+    }
+    if ($date_from > $date_to) {
+        $tmp = $date_from;
+        $date_from = $date_to;
+        $date_to = $tmp;
+    }
+
+    $order = isset($source['lab_order']) ? sanitize_key(wp_unslash($source['lab_order'])) : 'impressions';
+    if (!in_array($order, array('impressions', 'clicks', 'ctr', 'position'), true)) {
+        $order = 'impressions';
+    }
+
+    return array(
+        'group'           => $group,
+        'date_from'       => $date_from,
+        'date_to'         => $date_to,
+        'query'           => isset($source['lab_query']) ? sanitize_text_field(wp_unslash($source['lab_query'])) : '',
+        'url'             => isset($source['lab_url']) ? sanitize_text_field(wp_unslash($source['lab_url'])) : '',
+        'min_impressions' => isset($source['lab_min']) ? max(0, (float) $source['lab_min']) : 0,
+        'limit'           => isset($source['lab_limit']) ? max(10, min(1000, absint($source['lab_limit']))) : 100,
+        'order'           => $order,
+    );
+}
+
+/**
+ * Consulta configurable del Laboratorio.
+ */
+function seo_google_get_lab_rows($property_id, array $filters) {
+    global $wpdb;
+
+    $table = seo_google_table('search_data');
+    $where = 'property_hash = %s AND data_date BETWEEN %s AND %s';
+    $args  = array(hash('sha256', $property_id), $filters['date_from'], $filters['date_to']);
+
+    if ('' !== $filters['query']) {
+        $where .= ' AND query_text LIKE %s';
+        $args[] = '%' . $wpdb->esc_like($filters['query']) . '%';
+    }
+    if ('' !== $filters['url']) {
+        $where .= ' AND page_url LIKE %s';
+        $args[] = '%' . $wpdb->esc_like($filters['url']) . '%';
+    }
+
+    $select = '';
+    $group_by = '';
+    if ('query' === $filters['group']) {
+        $select = "MAX(query_text) AS query_text, '' AS page_url, '' AS data_date";
+        $group_by = 'query_hash';
+    } elseif ('page' === $filters['group']) {
+        $select = "'' AS query_text, MAX(page_url) AS page_url, '' AS data_date";
+        $group_by = 'page_hash';
+    } elseif ('date' === $filters['group']) {
+        $select = "'' AS query_text, '' AS page_url, data_date";
+        $group_by = 'data_date';
+    } else {
+        $select = "MAX(query_text) AS query_text, MAX(page_url) AS page_url, '' AS data_date";
+        $group_by = 'query_hash, page_hash';
+    }
+
+    $order_sql = array(
+        'impressions' => 'impressions DESC, clicks DESC',
+        'clicks'      => 'clicks DESC, impressions DESC',
+        'ctr'         => 'ctr DESC, impressions DESC',
+        'position'    => 'position ASC, impressions DESC',
+    );
+
+    $args[] = max(0, (float) $filters['min_impressions']);
+    $args[] = max(10, min(10000, absint($filters['limit'])));
+
+    $sql = "SELECT
+                {$select},
+                SUM(clicks) AS clicks,
+                SUM(impressions) AS impressions,
+                CASE WHEN SUM(impressions) > 0 THEN SUM(clicks) / SUM(impressions) ELSE 0 END AS ctr,
+                CASE WHEN SUM(impressions) > 0 THEN SUM(position * impressions) / SUM(impressions) ELSE 0 END AS position
+            FROM {$table}
+            WHERE {$where}
+            GROUP BY {$group_by}
+            HAVING SUM(impressions) >= %f
+            ORDER BY {$order_sql[$filters['order']]}
+            LIMIT %d";
+
+    return $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
+}
+
+/**
+ * Exportación CSV de los resultados del Laboratorio.
+ */
+function seo_google_export_csv_handler() {
+    if (!current_user_can('manage_options')) {
+        wp_die(esc_html__('No tienes permisos para exportar estos datos.', 'seo-system'));
+    }
+
+    check_admin_referer('seo_google_export_csv', 'seo_google_export_nonce');
+    $settings = seo_google_get_settings();
+    if ('connected' !== seo_google_connection_status()) {
+        wp_die(esc_html__('Google Search Console no está conectado.', 'seo-system'));
+    }
+
+    $filters = seo_google_get_lab_filters($settings['property_id'], $_GET);
+    $filters['limit'] = min(10000, max(10, isset($_GET['lab_export_limit']) ? absint($_GET['lab_export_limit']) : 5000));
+    $rows = seo_google_get_lab_rows($settings['property_id'], $filters);
+
+    nocache_headers();
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="google-intelligence-' . gmdate('Ymd-His') . '.csv"');
+    echo "\xEF\xBB\xBF";
+    $output = fopen('php://output', 'w');
+    fputcsv($output, array('fecha', 'consulta', 'url', 'impresiones', 'clics', 'ctr', 'posicion'), ';', '"', '');
+    foreach ($rows as $row) {
+        fputcsv($output, array(
+            $row['data_date'],
+            $row['query_text'],
+            $row['page_url'],
+            $row['impressions'],
+            $row['clicks'],
+            $row['ctr'],
+            $row['position'],
+        ), ';', '"', '');
+    }
+    fclose($output);
+    exit;
+}
+
+/**
+ * Laboratorio: consulta abierta, filtrable y exportable.
+ */
+function seo_google_render_laboratory() {
+    if (!seo_google_analysis_ready()) {
+        return;
+    }
+
+    $settings = seo_google_get_settings();
+    $filters  = seo_google_get_lab_filters($settings['property_id']);
+    $rows     = seo_google_get_lab_rows($settings['property_id'], $filters);
+
+    echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;margin-bottom:20px;">';
+    echo '<h3 style="margin-top:0;">Laboratorio de datos</h3>';
+    echo '<p>Consulta los datos con tus propios filtros. El sistema agrupa y resume, pero conserva visibles la consulta, la URL y las métricas utilizadas.</p>';
+    echo '<form method="get" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end;">';
+    echo '<input type="hidden" name="page" value="seo-reports"><input type="hidden" name="tab" value="google_intelligence"><input type="hidden" name="google_view" value="laboratory">';
+    echo '<label><strong>Agrupar por</strong><br><select name="lab_group" style="width:100%;">';
+    foreach (array('query_page' => 'Consulta + URL', 'query' => 'Consulta', 'page' => 'URL', 'date' => 'Fecha') as $value => $label) {
+        echo '<option value="' . esc_attr($value) . '" ' . selected($filters['group'], $value, false) . '>' . esc_html($label) . '</option>';
+    }
+    echo '</select></label>';
+    echo '<label><strong>Desde</strong><br><input type="date" name="lab_from" value="' . esc_attr($filters['date_from']) . '" style="width:100%;"></label>';
+    echo '<label><strong>Hasta</strong><br><input type="date" name="lab_to" value="' . esc_attr($filters['date_to']) . '" style="width:100%;"></label>';
+    echo '<label><strong>Consulta contiene</strong><br><input type="search" name="lab_query" value="' . esc_attr($filters['query']) . '" style="width:100%;"></label>';
+    echo '<label><strong>URL contiene</strong><br><input type="search" name="lab_url" value="' . esc_attr($filters['url']) . '" style="width:100%;"></label>';
+    echo '<label><strong>Impresiones mín.</strong><br><input type="number" min="0" step="1" name="lab_min" value="' . esc_attr($filters['min_impressions']) . '" style="width:100%;"></label>';
+    echo '<label><strong>Orden</strong><br><select name="lab_order" style="width:100%;">';
+    foreach (array('impressions' => 'Más impresiones', 'clicks' => 'Más clics', 'ctr' => 'Mayor CTR', 'position' => 'Mejor posición') as $value => $label) {
+        echo '<option value="' . esc_attr($value) . '" ' . selected($filters['order'], $value, false) . '>' . esc_html($label) . '</option>';
+    }
+    echo '</select></label>';
+    echo '<label><strong>Límite</strong><br><select name="lab_limit" style="width:100%;">';
+    foreach (array(50, 100, 250, 500, 1000) as $limit) {
+        echo '<option value="' . absint($limit) . '" ' . selected($filters['limit'], $limit, false) . '>' . absint($limit) . '</option>';
+    }
+    echo '</select></label>';
+    echo '<div>'; submit_button('Consultar', 'primary', 'submit', false); echo '</div>';
+    echo '</form>';
+
+    $export_args = array(
+        'action'             => 'seo_google_export_csv',
+        'lab_group'          => $filters['group'],
+        'lab_from'           => $filters['date_from'],
+        'lab_to'             => $filters['date_to'],
+        'lab_query'          => $filters['query'],
+        'lab_url'            => $filters['url'],
+        'lab_min'            => $filters['min_impressions'],
+        'lab_order'          => $filters['order'],
+        'lab_export_limit'   => 5000,
+        'seo_google_export_nonce' => wp_create_nonce('seo_google_export_csv'),
+    );
+    echo '<p style="margin-bottom:0;"><a class="button" href="' . esc_url(add_query_arg($export_args, admin_url('admin-post.php'))) . '">Exportar CSV con estos filtros</a></p>';
+    echo '</div>';
+
+    echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;overflow:auto;">';
+    echo '<p><strong>Resultados:</strong> ' . number_format_i18n(count($rows)) . '</p>';
+    if (!$rows) {
+        echo '<p>No hay filas que cumplan los filtros.</p></div>';
+        return;
+    }
+    echo '<table class="widefat striped"><thead><tr><th>Fecha</th><th>Consulta</th><th>URL</th><th>Imp.</th><th>Clics</th><th>CTR</th><th>Pos.</th></tr></thead><tbody>';
+    foreach ($rows as $row) {
+        echo '<tr><td>' . ($row['data_date'] ? esc_html($row['data_date']) : '—') . '</td>';
+        echo '<td style="max-width:300px;word-break:break-word;">' . ($row['query_text'] ? esc_html($row['query_text']) : '—') . '</td>';
+        echo '<td style="max-width:430px;word-break:break-word;">';
+        if ($row['page_url']) {
+            echo '<a href="' . esc_url($row['page_url']) . '" target="_blank" rel="noopener noreferrer">' . esc_html($row['page_url']) . '</a>';
+        } else {
+            echo '—';
+        }
+        echo '</td><td>' . number_format_i18n((float) $row['impressions'], 0) . '</td><td>' . number_format_i18n((float) $row['clicks'], 0) . '</td>';
+        echo '<td>' . number_format_i18n(((float) $row['ctr']) * 100, 2) . '%</td><td>' . number_format_i18n((float) $row['position'], 1) . '</td></tr>';
+    }
+    echo '</tbody></table></div>';
+}
