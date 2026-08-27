@@ -300,28 +300,207 @@ add_action(
     1
 );
 
-add_action('init', 'seo_system_rotate_debug_log');
+/* =========================================================
+   SEO SYSTEM: LOG PRIVADO
+   - No usa wp-content/debug.log.
+   - Crea el log fuera del document root publico.
+   - Guarda la ruta absoluta en wp_options para que el plugin
+     y el panel de diagnostico usen exactamente el mismo archivo.
+========================================================= */
+add_action('init', 'seo_system_private_log_bootstrap', 1);
 
 /**
- * Rota debug.log cuando supera el límite definido.
+ * Devuelve el document root publico normalizado.
  */
-function seo_system_rotate_debug_log() {
+function seo_system_private_log_document_root() {
 
-    $debug_log = WP_CONTENT_DIR . '/debug.log';
-
-    if (!file_exists($debug_log)) {
-        return;
+    if (empty($_SERVER['DOCUMENT_ROOT'])) {
+        return '';
     }
 
-    $max_size = 50 * 1024 * 1024; // 50 MB
+    $document_root = realpath((string) $_SERVER['DOCUMENT_ROOT']);
 
-    if (filesize($debug_log) < $max_size) {
-        return;
+    if ($document_root === false) {
+        return '';
     }
 
-    $backup = WP_CONTENT_DIR . '/debug-' . date('Y-m-d-His') . '.log';
+    return untrailingslashit(wp_normalize_path($document_root));
+}
 
-    rename($debug_log, $backup);
+/**
+ * Comprueba que una ruta no este dentro del document root publico.
+ */
+function seo_system_private_log_is_outside_public_root($path) {
 
-    touch($debug_log);
+    $document_root = seo_system_private_log_document_root();
+
+    if ($document_root === '' || $path === '') {
+        return false;
+    }
+
+    $normalized_path = wp_normalize_path($path);
+    $normalized_root = trailingslashit($document_root);
+
+    return strpos($normalized_path, $normalized_root) !== 0;
+}
+
+/**
+ * Devuelve la ruta prevista/guardada para el log privado de SEO System.
+ */
+function seo_system_get_private_log_path() {
+
+    $saved_path = get_option('seo_system_private_log_path', '');
+
+    if (
+        is_string($saved_path) &&
+        $saved_path !== '' &&
+        seo_system_private_log_is_outside_public_root($saved_path)
+    ) {
+        return wp_normalize_path($saved_path);
+    }
+
+    $document_root = seo_system_private_log_document_root();
+
+    if ($document_root === '') {
+        return '';
+    }
+
+    $private_dir = dirname($document_root) . '/seo-system-private';
+    $log_file = trailingslashit($private_dir) . 'seo-system.log';
+
+    if (!seo_system_private_log_is_outside_public_root($log_file)) {
+        return '';
+    }
+
+    return wp_normalize_path($log_file);
+}
+
+/**
+ * Crea, si hace falta, el directorio y archivo del log privado.
+ * No hace fallback a wp-content: si no puede crearlo fuera del
+ * directorio publico devuelve false.
+ */
+function seo_system_private_log_bootstrap() {
+
+    $log_file = seo_system_get_private_log_path();
+
+    if ($log_file === '' || !seo_system_private_log_is_outside_public_root($log_file)) {
+        return false;
+    }
+
+    $private_dir = dirname($log_file);
+
+    if (!is_dir($private_dir)) {
+        if (!wp_mkdir_p($private_dir)) {
+            return false;
+        }
+        @chmod($private_dir, 0700);
+    }
+
+    if (!is_writable($private_dir)) {
+        return false;
+    }
+
+    $created = false;
+
+    if (!file_exists($log_file)) {
+        if (@file_put_contents($log_file, '', LOCK_EX) === false) {
+            return false;
+        }
+        @chmod($log_file, 0600);
+        $created = true;
+    }
+
+    if (!is_file($log_file) || !is_writable($log_file)) {
+        return false;
+    }
+
+    update_option('seo_system_private_log_path', $log_file, false);
+
+    if ($created) {
+        $line = sprintf(
+            "[%s] [INFO] SEO System: log privado inicializado.%s",
+            current_time('mysql'),
+            PHP_EOL
+        );
+        @file_put_contents($log_file, $line, FILE_APPEND | LOCK_EX);
+    }
+
+    return $log_file;
+}
+
+/**
+ * Oculta valores sensibles del contexto antes de escribirlos.
+ */
+function seo_system_private_log_redact($value, $key = '') {
+
+    if (
+        $key !== '' &&
+        preg_match('/password|passwd|secret|token|nonce|cookie|session|authorization|api[_-]?key|private[_-]?key/i', (string) $key)
+    ) {
+        return '[REDACTED]';
+    }
+
+    if (is_array($value)) {
+        $clean = array();
+        foreach ($value as $child_key => $child_value) {
+            $clean[$child_key] = seo_system_private_log_redact($child_value, (string) $child_key);
+        }
+        return $clean;
+    }
+
+    if (is_object($value)) {
+        return seo_system_private_log_redact((array) $value, $key);
+    }
+
+    return $value;
+}
+
+/**
+ * Logger propio de SEO System.
+ *
+ * Ejemplo:
+ * seo_system_private_log('error', 'Fallo al actualizar', array('id' => 123));
+ */
+function seo_system_private_log($level, $message, array $context = array()) {
+
+    $log_file = seo_system_private_log_bootstrap();
+
+    if (!$log_file) {
+        return false;
+    }
+
+    $allowed_levels = array('debug', 'info', 'warning', 'error', 'critical');
+    $level = strtolower((string) $level);
+
+    if (!in_array($level, $allowed_levels, true)) {
+        $level = 'info';
+    }
+
+    $line = sprintf(
+        '[%s] [%s] %s',
+        current_time('mysql'),
+        strtoupper($level),
+        (string) $message
+    );
+
+    if (!empty($context)) {
+        $safe_context = seo_system_private_log_redact($context);
+        $encoded = wp_json_encode(
+            $safe_context,
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        );
+
+        if (is_string($encoded) && $encoded !== '') {
+            $line .= ' ' . $encoded;
+        }
+    }
+
+    $line .= PHP_EOL;
+
+    return @file_put_contents(
+        $log_file,
+        $line,
+        FILE_APPEND | LOCK_EX
+    ) !== false;
 }
