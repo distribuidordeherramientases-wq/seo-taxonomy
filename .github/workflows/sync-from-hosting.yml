@@ -1,19 +1,4 @@
-name: Diagnosticar FTP Webempresa
-
-on:
-  workflow_dispatch:
-
-jobs:
-  inspect:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Instalar lftp
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y lftp
-
-      - name: Ver carpeta inicial del FTP
+      - name: Ver ruta del plugin
         env:
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
@@ -25,6 +10,22 @@ jobs:
           set ftp:ssl-protect-data true
           set ssl:verify-certificate yes
 
+          echo "=== RAIZ ==="
+          pwd
+          cls -la
+
+          echo "=== WP-CONTENT ==="
+          cd wp-content
+          pwd
+          cls -la
+
+          echo "=== PLUGINS ==="
+          cd plugins
+          pwd
+          cls -la
+
+          echo "=== SEO-TAXONOMY ==="
+          cd seo-taxonomy
           pwd
           cls -la
 
