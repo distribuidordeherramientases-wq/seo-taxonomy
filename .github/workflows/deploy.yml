@@ -22,7 +22,7 @@ jobs:
           port: 21
 
           local-dir: ./
-          server-dir: wp-content/plugins/seo-taxonomy/
+          server-dir: ./
 
           dry-run: true
           security: strict
