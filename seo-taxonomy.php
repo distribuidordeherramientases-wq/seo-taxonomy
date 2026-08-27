@@ -2,7 +2,7 @@
 /**
  * Plugin Name: SEO Taxonomy
  * Description: Sistema SEO basado en relaciones.
- * Version: 2.3.0
+ * Version: 2.2.8
  * Requires PHP: 7.4
  * Requires at least: 5.8
  */
@@ -12,7 +12,7 @@ defined('ABSPATH') || exit;
 /**
  * VERSIONES
  */
-define('SEO_SYSTEM_VERSION', '2.3.');
+define('SEO_SYSTEM_VERSION', '2.2.8');
 define('SEO_SYSTEM_DB_VERSION', '2.1.0');
 
 /**
