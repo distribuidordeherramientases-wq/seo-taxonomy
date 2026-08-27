@@ -31,6 +31,5 @@ jobs:
             **/.git*
             **/.git*/**
             **/node_modules/**
-            README.md
-            LICENSE
-            CHANGELOG.md
+            **/*.bak
+            **/*.md
