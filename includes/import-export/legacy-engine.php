@@ -225,8 +225,6 @@ function seo_ie_normalize_csv_header( $header, $entity ) {
         'description_html'    => 'description',
         'resumen'             => 'excerpt',
         'short_description'   => 'excerpt',
-        'tags'                => 'etiquetas',
-        'keywords'            => 'etiquetas',
         'scope'               => 'ambito',
         'attributes'          => 'atributos_seo',
         'attributes_seo'      => 'atributos_seo',
@@ -240,13 +238,19 @@ function seo_ie_normalize_csv_header( $header, $entity ) {
     ];
 
     $category_aliases = [
-        'id'               => 'category_id',
-        'object_id'        => 'category_id',
-        'term_id'          => 'category_id',
-        'parent'           => 'parent_id',
-        'hub_secondary'    => 'hub_secondary_id',
-        'secondary_id'     => 'hub_secondary_id',
-        'hub_secundario_id'=> 'hub_secondary_id',
+        'id'                 => 'category_id',
+        'object_id'          => 'category_id',
+        'term_id'            => 'category_id',
+        'parent'             => 'parent_id',
+        'hub_secondary'      => 'hub_secondary_id',
+        'secondary_id'       => 'hub_secondary_id',
+        'hub_secundario_id'  => 'hub_secondary_id',
+        'thumbnail_id'       => 'imagen_destacada_id',
+        'thumbnail'          => 'imagen_destacada',
+        'thumbnail_url'      => 'imagen_destacada',
+        'category_image_id'  => 'imagen_destacada_id',
+        'category_image'     => 'imagen_destacada',
+        'category_image_url' => 'imagen_destacada',
     ];
 
     $product_aliases = [
@@ -264,8 +268,6 @@ function seo_ie_normalize_csv_header( $header, $entity ) {
         'product_tags'             => 'etiquetas_wc',
         'product_tag_ids'          => 'etiquetas_wc_ids',
         'wc_tags'                  => 'etiquetas_wc',
-        'seo_tags'                 => 'etiquetas',
-        'seo_keywords'             => 'etiquetas',
         'brand'                    => 'marca',
         'brand_ids'                => 'marca_ids',
         'brand_taxonomy'           => 'marca_taxonomia',
@@ -493,40 +495,6 @@ function seo_ie_build_csv_row( $header, $csv_row ) {
 }
 
 /**
- * Normaliza una lista de etiquetas separadas por comas.
- *
- * Conserva el texto original, elimina valores vacíos y evita duplicados
- * sin distinguir entre mayúsculas y minúsculas.
- *
- * @since 2.0.0
- *
- * @param string $value Lista de etiquetas.
- * @return string
- */
-function seo_ie_normalize_keywords( $value ) {
-
-    $items  = explode( ',', seo_ie_csv_to_utf8( (string) $value ) );
-    $unique = [];
-
-    foreach ( $items as $item ) {
-
-        $item = sanitize_text_field( trim( $item ) );
-
-        if ( '' === $item ) {
-            continue;
-        }
-
-        $key = mb_strtolower( $item );
-
-        if ( ! isset( $unique[ $key ] ) ) {
-            $unique[ $key ] = $item;
-        }
-    }
-
-    return implode( ', ', array_values( $unique ) );
-}
-
-/**
  * Inserta o actualiza un único valor de wp_seo_nodes.
  *
  * Mantiene una sola fila por pareja objeto/rol y elimina duplicados
@@ -536,7 +504,7 @@ function seo_ie_normalize_keywords( $value ) {
  *
  * @param string $object_type category o product.
  * @param int    $object_id   ID real de WordPress.
- * @param string $seo_role    category, product o ambito.
+ * @param string $seo_role    ambito, excerpt o description, según el objeto.
  * @param string $keywords    Valor que se almacenará.
  * @return bool
  */
@@ -551,8 +519,8 @@ function seo_ie_upsert_node_value( $object_type, $object_id, $seo_role, $keyword
     $table       = $wpdb->prefix . 'seo_nodes';
 
     $valid_roles = [
-        'category' => [ 'category', 'ambito', 'excerpt', 'description' ],
-        'product'  => [ 'product', 'ambito' ],
+        'category' => [ 'ambito', 'excerpt', 'description' ],
+        'product'  => [ 'ambito' ],
     ];
 
     if (
@@ -914,11 +882,112 @@ function seo_ie_parse_attributes( $attributes_text, $product_scope ) {
 }
 
 /**
+ * Importa, sustituye o elimina la imagen asociada a una categoría WooCommerce.
+ *
+ * WooCommerce guarda la imagen de product_cat en el term meta thumbnail_id.
+ * Se acepta un attachment ID existente o una URL. Si el CSV contiene las
+ * columnas de imagen pero ambas están vacías, se elimina la imagen actual.
+ * Si las columnas no existen, la imagen actual se conserva.
+ *
+ * @since 2.4.0
+ *
+ * @param int   $category_id ID de categoría.
+ * @param array $row         Fila CSV normalizada.
+ * @param int   $line        Línea del CSV.
+ * @param array $log         Log por referencia.
+ * @return void
+ */
+function seo_ie_import_category_thumbnail( $category_id, $row, $line, &$log ) {
+
+    $has_id_column  = array_key_exists( 'imagen_destacada_id', $row );
+    $has_url_column = array_key_exists( 'imagen_destacada', $row );
+
+    if ( ! $has_id_column && ! $has_url_column ) {
+        return;
+    }
+
+    $category_id   = absint( $category_id );
+    $attachment_id = absint( $row['imagen_destacada_id'] ?? 0 );
+    $image_url     = esc_url_raw( trim( (string) ( $row['imagen_destacada'] ?? '' ) ) );
+
+    if ( 0 === $category_id ) {
+        return;
+    }
+
+    if ( 0 === $attachment_id && '' === $image_url ) {
+        delete_term_meta( $category_id, 'thumbnail_id' );
+        return;
+    }
+
+    if ( 0 < $attachment_id && 'attachment' === get_post_type( $attachment_id ) ) {
+        update_term_meta( $category_id, 'thumbnail_id', $attachment_id );
+        return;
+    }
+
+    if ( 0 < $attachment_id ) {
+        seo_ie_add_log_warning(
+            $log,
+            sprintf(
+                'Fila %d, categoría %d: el adjunto %d no existe; se probará la URL.',
+                $line,
+                $category_id,
+                $attachment_id
+            )
+        );
+    }
+
+    if ( '' === $image_url ) {
+        return;
+    }
+
+    $attachment_id = attachment_url_to_postid( $image_url );
+
+    if ( 0 < $attachment_id ) {
+        update_term_meta( $category_id, 'thumbnail_id', $attachment_id );
+        return;
+    }
+
+    if ( ! wp_http_validate_url( $image_url ) ) {
+        seo_ie_add_log_warning(
+            $log,
+            sprintf(
+                'Fila %d, categoría %d: la URL de imagen no es válida.',
+                $line,
+                $category_id
+            )
+        );
+        return;
+    }
+
+    require_once ABSPATH . 'wp-admin/includes/file.php';
+    require_once ABSPATH . 'wp-admin/includes/media.php';
+    require_once ABSPATH . 'wp-admin/includes/image.php';
+
+    $sideloaded_id = media_sideload_image( $image_url, 0, null, 'id' );
+
+    if ( is_wp_error( $sideloaded_id ) ) {
+        seo_ie_add_log_warning(
+            $log,
+            sprintf(
+                'Fila %d, categoría %d: no se pudo importar la imagen: %s',
+                $line,
+                $category_id,
+                $sideloaded_id->get_error_message()
+            )
+        );
+        return;
+    }
+
+    update_term_meta( $category_id, 'thumbnail_id', absint( $sideloaded_id ) );
+}
+
+/**
  * Exporta todas las categorías WooCommerce a CSV.
  *
  * Orígenes:
  * - WordPress: ID, nombre, slug y padre.
- * - wp_seo_nodes: etiquetas, ámbito, excerpt y description.
+ * - WooCommerce: imagen de product_cat mediante el term meta thumbnail_id.
+ * - wp_seo_nodes: ámbito, excerpt y description.
  * - wp_seo_relations: hub secundario estructural de la categoría cuando es único.
  *
  * @since 2.0.0
@@ -947,7 +1016,7 @@ function seo_export_categories_csv() {
         SELECT object_id, seo_role, keywords
         FROM {$wpdb->prefix}seo_nodes
         WHERE object_type = 'category'
-          AND seo_role IN ('category', 'ambito', 'excerpt', 'description')
+          AND seo_role IN ('ambito', 'excerpt', 'description')
           AND status = 1
         ORDER BY object_id ASC, seo_role ASC, updated_at DESC, id DESC
         "
@@ -962,7 +1031,6 @@ function seo_export_categories_csv() {
 
         if ( ! isset( $nodes_by_category[ $category_id ] ) ) {
             $nodes_by_category[ $category_id ] = [
-                'etiquetas'   => '',
                 'ambito'      => '',
                 'excerpt'     => '',
                 'description' => '',
@@ -970,10 +1038,7 @@ function seo_export_categories_csv() {
         }
 
         // La consulta está ordenada por la fila activa más reciente.
-        if ( 'category' === $seo_role && '' === $nodes_by_category[ $category_id ]['etiquetas'] ) {
-            $nodes_by_category[ $category_id ]['etiquetas'] =
-                seo_ie_normalize_keywords( $node->keywords );
-        } elseif ( 'ambito' === $seo_role && '' === $nodes_by_category[ $category_id ]['ambito'] ) {
+        if ( 'ambito' === $seo_role && '' === $nodes_by_category[ $category_id ]['ambito'] ) {
             $nodes_by_category[ $category_id ]['ambito'] =
                 seo_ie_normalize_ambito( $node->keywords );
         } elseif ( 'excerpt' === $seo_role && '' === $nodes_by_category[ $category_id ]['excerpt'] ) {
@@ -1039,7 +1104,7 @@ function seo_export_categories_csv() {
             'correctos'  => count( $categories ),
             'errores'    => 0,
             'detalles'   => [
-                'WordPress aporta ID, nombre, slug y padre. seo_nodes aporta etiquetas, ámbito, excerpt y description. seo_relations aporta hub_secondary_id cuando la asignación es única.',
+                'WordPress aporta ID, nombre, slug y padre. WooCommerce aporta la imagen de product_cat mediante thumbnail_id. seo_nodes aporta ámbito, excerpt y description. seo_relations aporta hub_secondary_id cuando la asignación es única.',
             ],
         ]
     );
@@ -1054,18 +1119,20 @@ function seo_export_categories_csv() {
             'hub_secondary_id',
             'titulo',
             'slug',
+            'imagen_destacada_id',
+            'imagen_destacada',
             'description',
             'excerpt',
-            'etiquetas',
             'ambito',
         ]
     );
 
     foreach ( $categories as $category ) {
 
-        $category_id = absint( $category->term_id );
-        $node_data   = $nodes_by_category[ $category_id ] ?? [
-            'etiquetas'   => '',
+        $category_id   = absint( $category->term_id );
+        $thumbnail_id  = absint( get_term_meta( $category_id, 'thumbnail_id', true ) );
+        $thumbnail_url = 0 < $thumbnail_id ? ( wp_get_attachment_url( $thumbnail_id ) ?: '' ) : '';
+        $node_data     = $nodes_by_category[ $category_id ] ?? [
             'ambito'      => '',
             'excerpt'     => '',
             'description' => '',
@@ -1081,9 +1148,10 @@ function seo_export_categories_csv() {
                     : '',
                 $category->name,
                 $category->slug,
+                $thumbnail_id ?: '',
+                $thumbnail_url,
                 $node_data['description'],
                 $node_data['excerpt'],
-                $node_data['etiquetas'],
                 $node_data['ambito'],
             ]
         );
@@ -1096,8 +1164,9 @@ function seo_export_categories_csv() {
 /**
  * Importa categorías desde el CSV generado por SEO System.
  *
- * Actualiza o crea categorías, manteniendo ID/nombre/slug/padre en WordPress
- * y etiquetas/ámbito/excerpt/description en wp_seo_nodes.
+ * Actualiza o crea categorías, manteniendo ID/nombre/slug/padre en WordPress,
+ * imagen en el term meta WooCommerce thumbnail_id y ámbito/excerpt/description
+ * en wp_seo_nodes.
  * Si hub_secondary_id está informado, sincroniza la relación estructural única
  * hub_secondary_to_category. Si category_id está vacío, reutiliza primero una
  * categoría existente por slug/nombre y solo crea una nueva si no existe.
@@ -1365,6 +1434,10 @@ if ( ! empty( $term_data ) ) {
             }
         }
 
+        // Imagen WooCommerce de product_cat. El mismo importador es reutilizado
+        // por la cola automática, por lo que esta lógica cubre ambos flujos.
+        seo_ie_import_category_thumbnail( $category_id, $row, $line, $log );
+
         if ( array_key_exists( 'excerpt', $row ) ) {
             $saved_excerpt = seo_ie_upsert_node_value(
                 'category',
@@ -1407,15 +1480,6 @@ if ( ! empty( $term_data ) ) {
                 );
                 continue;
             }
-        }
-
-        if ( array_key_exists( 'etiquetas', $row ) ) {
-            seo_ie_upsert_node_value(
-                'category',
-                $category_id,
-                'category',
-                seo_ie_normalize_keywords( $row['etiquetas'] )
-            );
         }
 
         if ( array_key_exists( 'ambito', $row ) ) {
@@ -2400,8 +2464,8 @@ function seo_ie_product_v2_set_meta( $product_id, $meta_key, $value, $empty_clea
  *
  * 1. WordPress / WooCommerce:
  *    ID, título, slug, estado, categorías, excerpt, descripción e imagen.
- * 2. wp_seo_nodes:
- *    etiquetas (seo_role=product) y ámbito (seo_role=ambito).
+ * 2. Catálogo SEO canónico:
+ *    ámbito/rol vigente del producto.
  * 3. wp_seo_attributes:
  *    ámbito, tipo y valor de cada atributo.
  *
@@ -2561,29 +2625,6 @@ function seo_export_products_csv() {
 
     $posts = get_posts( $query_args );
 
-    $node_rows = $wpdb->get_results(
-        "
-        SELECT object_id, seo_role, keywords
-        FROM {$wpdb->prefix}seo_nodes
-        WHERE object_type = 'product'
-          AND seo_role = 'product'
-        ORDER BY object_id ASC, id ASC
-        "
-    );
-    $nodes_by_product = [];
-
-    foreach ( $node_rows as $node ) {
-        $product_id = absint( $node->object_id );
-
-        if ( ! isset( $nodes_by_product[ $product_id ] ) ) {
-            $nodes_by_product[ $product_id ] = [ 'etiquetas' => [] ];
-        }
-
-        if ( 'product' === $node->seo_role ) {
-            $nodes_by_product[ $product_id ]['etiquetas'][] = (string) $node->keywords;
-        }
-    }
-
     /*
      * El CSV conserva la cabecera pública "ambito", pero para productos su
      * valor sale del ROL canónico (TIPO -> ROL) y no del nodo legacy.
@@ -2631,7 +2672,7 @@ function seo_export_products_csv() {
         'categorias_ids', 'categorias', 'etiquetas_wc_ids', 'etiquetas_wc',
         'marca_taxonomia', 'marca_ids', 'marca', 'fabricante', 'proveedor',
         'proveedor_id_externo', 'proveedor_catalogo_id', 'categoria_proveedor', 'precio_proveedor',
-        'etiquetas', 'ambito', 'atributos_seo_json', 'atributos_seo', 'atributos_wc_json',
+        'ambito', 'atributos_seo_json', 'atributos_seo', 'atributos_wc_json',
         'excerpt', 'description', 'precio_normal', 'precio_rebajado', 'precio_actual', 'moneda',
         'estado_impuesto', 'clase_impuesto', 'gestionar_stock', 'cantidad_stock', 'estado_stock',
         'pedidos_pendientes', 'vendido_individualmente', 'peso', 'longitud', 'anchura', 'altura',
@@ -2650,7 +2691,7 @@ function seo_export_products_csv() {
             'errores'      => 0,
             'advertencias' => 0,
             'detalles'     => [
-                'Incluye datos editoriales, comerciales, stock, marca, proveedor, imágenes, etiquetas y atributos.',
+                'Incluye datos editoriales, comerciales, stock, marca, proveedor, imágenes, etiquetas WooCommerce y atributos.',
                 'La columna atributos_seo se conserva para compatibilidad; atributos_seo_json es el formato recomendado.',
                 'Las variaciones se listan como inventario, pero no se exportan como filas independientes.',
             ],
@@ -2717,7 +2758,6 @@ function seo_export_products_csv() {
         }
 
         $brand = seo_ie_product_v2_brand_data( $product_id );
-        $node_data = $nodes_by_product[ $product_id ] ?? [ 'etiquetas' => [] ];
         $scope = $canonical_roles_by_product[ $product_id ] ?? '';
         if ( '' === $scope && function_exists( 'seo_catalog_get_product_legacy_ambito' ) ) {
             $scope = seo_catalog_get_product_legacy_ambito( $product_id );
@@ -2766,7 +2806,6 @@ function seo_export_products_csv() {
             'proveedor_catalogo_id'      => get_post_meta( $product_id, '_seo_proveedor_catalogo_id', true ),
             'categoria_proveedor'        => get_post_meta( $product_id, '_seo_categoria_proveedor', true ),
             'precio_proveedor'           => get_post_meta( $product_id, '_seo_precio_proveedor', true ),
-            'etiquetas'                  => seo_ie_normalize_keywords( implode( ', ', $node_data['etiquetas'] ) ),
             'ambito'                     => $scope,
             'atributos_seo_json'         => seo_ie_product_v2_seo_attributes_json( $seo_attribute_rows, $scope ),
             'atributos_seo'              => seo_ie_serialize_attributes( $seo_attribute_rows, $scope ),
@@ -4053,7 +4092,7 @@ function seo_ie_product_import_background_worker( $user_id, $token ) {
  *
  * - WordPress: título, slug, estado, excerpt y descripción.
  * - WooCommerce: categorías e imagen destacada.
- * - wp_seo_nodes: etiquetas y ámbito.
+ * - wp_seo_nodes: ámbito legacy cuando procede.
  * - wp_seo_attributes: ámbito, tipo y valor de los atributos.
  *
  * @since 2.0.0
@@ -4454,7 +4493,6 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
             'categories'    => ! empty( $_POST['import_product_categories'] ),
             'wc_tags'       => ! empty( $_POST['import_product_wc_tags'] ),
             'brand_provider'=> ! empty( $_POST['import_product_brand_provider'] ),
-            'labels'        => ! empty( $_POST['import_product_labels'] ),
             'scope'         => ! empty( $_POST['import_product_scope'] ),
             'seo_attributes'=> ! empty( $_POST['import_product_attributes'] ),
             'wc_attributes' => ! empty( $_POST['import_product_wc_attributes'] ),
@@ -4467,7 +4505,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
 
         $selected_blocks = array_intersect_key(
             $options,
-            array_flip( [ 'core', 'commerce', 'categories', 'wc_tags', 'brand_provider', 'labels', 'scope', 'seo_attributes', 'wc_attributes', 'images' ] )
+            array_flip( [ 'core', 'commerce', 'categories', 'wc_tags', 'brand_provider', 'scope', 'seo_attributes', 'wc_attributes', 'images' ] )
         );
 
         if ( ! in_array( true, $selected_blocks, true ) ) {
@@ -5197,12 +5235,6 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
 
                 if ( '' !== $brand_taxonomy ) {
                     update_post_meta( $product_id, '_seo_taxonomia_marca', $brand_taxonomy );
-                }
-            }
-
-            if ( ! empty( $options['labels'] ) && array_key_exists( 'etiquetas', $row ) ) {
-                if ( '' !== trim( (string) $row['etiquetas'] ) || $empty_clears ) {
-                    seo_ie_upsert_node_value( 'product', $product_id, 'product', seo_ie_normalize_keywords( $row['etiquetas'] ) );
                 }
             }
 
@@ -10785,14 +10817,14 @@ function seo_import_export_page() {
 
                 <div class="card" style="max-width:none;padding:20px;">
                     <h2>Exportar categorías</h2>
-                    <p>Exporta la estructura WooCommerce y sus datos SEO.</p>
+                    <p>Exporta la estructura WooCommerce, la imagen asociada (ID y URL) y sus datos SEO.</p>
                     <form method="post">
                         <?php wp_nonce_field( 'seo_export_categories_csv', 'seo_export_categories_nonce' ); ?>
                         <button type="submit" name="seo_export_categories" value="1" class="button button-primary">Exportar categorías</button>
                     </form>
                 </div>
 
-                <div class="card" style="max-width:none;padding:20px;"><h2>Importar categorías</h2><p>Crea o actualiza categorías. Si category_id está vacío, reutiliza por slug/nombre o crea la categoría. hub_secondary_id permite asignarla a la jerarquía SEO.</p><form method="post" enctype="multipart/form-data"><?php wp_nonce_field( 'seo_import_categories_csv', 'seo_import_categories_nonce' ); ?><input type="file" name="categories_csv" accept=".csv,text/csv" required><p><button type="submit" name="seo_import_categories" value="1" class="button button-primary">Importar categorías</button></p></form></div>
+                <div class="card" style="max-width:none;padding:20px;"><h2>Importar categorías</h2><p>Crea o actualiza categorías. Si category_id está vacío, reutiliza por slug/nombre o crea la categoría. Admite imagen_destacada_id o imagen_destacada (URL), y hub_secondary_id permite asignarla a la jerarquía SEO.</p><form method="post" enctype="multipart/form-data"><?php wp_nonce_field( 'seo_import_categories_csv', 'seo_import_categories_nonce' ); ?><input type="file" name="categories_csv" accept=".csv,text/csv" required><p><button type="submit" name="seo_import_categories" value="1" class="button button-primary">Importar categorías</button></p></form></div>
                     
 
                 <div class="card" style="max-width:none;padding:20px;">
@@ -10808,7 +10840,6 @@ function seo_import_export_page() {
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_product_categories" value="1" checked> Categorías WooCommerce</label>
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_product_wc_tags" value="1" checked> Etiquetas WooCommerce</label>
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_product_brand_provider" value="1" checked> Marca, fabricante y datos del proveedor</label>
-                        <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_product_labels" value="1" checked> Etiquetas SEO internas</label>
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_product_scope" value="1" checked> Ámbito del producto</label>
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_product_attributes" value="1" checked> Atributos SEO internos</label>
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_product_wc_attributes" value="1" checked> Atributos WooCommerce en JSON</label>
