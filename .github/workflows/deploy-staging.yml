@@ -28,7 +28,7 @@ jobs:
           local-dir: ./
           server-dir: ./wp-content/plugins/seo-taxonomy/
 
-          dry-run: true
+          dry-run: false
           log-level: verbose
 
           exclude: |
