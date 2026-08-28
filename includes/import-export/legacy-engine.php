@@ -536,7 +536,7 @@ function seo_ie_normalize_keywords( $value ) {
  *
  * @param string $object_type category o product.
  * @param int    $object_id   ID real de WordPress.
- * @param string $seo_role    category, product o ambito.
+ * @param string $seo_role    excerpt/description para category; product/ambito para product.
  * @param string $keywords    Valor que se almacenará.
  * @return bool
  */
@@ -551,7 +551,7 @@ function seo_ie_upsert_node_value( $object_type, $object_id, $seo_role, $keyword
     $table       = $wpdb->prefix . 'seo_nodes';
 
     $valid_roles = [
-        'category' => [ 'category', 'ambito', 'excerpt', 'description' ],
+        'category' => [ 'excerpt', 'description' ],
         'product'  => [ 'product', 'ambito' ],
     ];
 
@@ -575,77 +575,124 @@ function seo_ie_upsert_node_value( $object_type, $object_id, $seo_role, $keyword
         $keywords = sanitize_text_field( $keywords );
     }
 
-    $existing_ids = $wpdb->get_col(
-        $wpdb->prepare(
-            "
-            SELECT id
-            FROM {$table}
-            WHERE object_type = %s
-              AND object_id = %d
-              AND seo_role = %s
-            ORDER BY updated_at DESC, id DESC
-            ",
-            $object_type,
-            $object_id,
-            $seo_role
-        )
-    );
-
-    if ( '' === trim( wp_strip_all_tags( $keywords ) ) ) {
-
-        $deleted = $wpdb->delete(
-            $table,
-            [
-                'object_type' => $object_type,
-                'object_id'   => $object_id,
-                'seo_role'    => $seo_role,
-            ],
-            [ '%s', '%d', '%s' ]
-        );
-
-        return false !== $deleted;
+    if ( ! class_exists( 'SEO_Data_Layer' ) || ! class_exists( 'SEO_Data_Operation' ) ) {
+        error_log( '[SEO Import/Export] Data Layer no disponible para seo_nodes.' );
+        return false;
     }
 
-    if ( ! empty( $existing_ids ) ) {
+    try {
+        SEO_Data_Layer::table( 'nodes' );
 
-        $primary_id = absint( array_shift( $existing_ids ) );
-
-        $updated = $wpdb->update(
-            $table,
-            [
-                'keywords'   => $keywords,
-                'status'     => 1,
-                'updated_at' => current_time( 'mysql' ),
-            ],
-            [ 'id' => $primary_id ],
-            [ '%s', '%d', '%s' ],
-            [ '%d' ]
+        $existing = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id, keywords, status\n"
+                . "FROM {$table}\n"
+                . "WHERE object_type=%s AND object_id=%d AND seo_role=%s\n"
+                . "ORDER BY updated_at DESC, id DESC",
+                $object_type,
+                $object_id,
+                $seo_role
+            ),
+            ARRAY_A
         );
 
-        foreach ( $existing_ids as $duplicate_id ) {
-            $wpdb->delete(
-                $table,
-                [ 'id' => absint( $duplicate_id ) ],
-                [ '%d' ]
+        $is_empty = '' === trim( wp_strip_all_tags( $keywords ) );
+
+        if ( $is_empty ) {
+            if ( empty( $existing ) ) return true;
+
+            $operation = SEO_Data_Layer::operation( [
+                'type'          => 'ie_clear_node_value',
+                'label'         => sprintf( 'Vaciar %s/%s #%d', $object_type, $seo_role, $object_id ),
+                'source_module' => 'import_export',
+                'rollbackable'  => true,
+                'risk_level'    => 'medium',
+                'audit_level'   => 'full',
+                'metadata'      => [ 'object_type' => $object_type, 'object_id' => $object_id, 'seo_role' => $seo_role ],
+            ] );
+            $operation->mark_validated( [ 'validated_rows' => count( $existing ) ] );
+            $operation->mark_previewed( count( $existing ) );
+            $operation->execute(
+                static function ( SEO_Data_Operation $op ) use ( $existing, $object_type, $object_id, $seo_role ) {
+                    foreach ( $existing as $row ) {
+                        $op->delete( 'nodes', [ 'id' => absint( $row['id'] ?? 0 ) ], [
+                            'related_object_type' => $object_type,
+                            'related_object_id'   => $object_id,
+                            'seo_role'            => $seo_role,
+                        ] );
+                    }
+                    return true;
+                }
             );
+            return true;
         }
 
-        return false !== $updated;
-    }
+        $primary = ! empty( $existing ) ? array_shift( $existing ) : null;
+        $needs_update = ! is_array( $primary )
+            || (string) ( $primary['keywords'] ?? '' ) !== $keywords
+            || (int) ( $primary['status'] ?? 0 ) !== 1;
+        $expected = ( $needs_update ? 1 : 0 ) + count( $existing );
 
-    return false !== $wpdb->insert(
-        $table,
-        [
-            'object_type' => $object_type,
-            'object_id'   => $object_id,
-            'seo_role'    => $seo_role,
-            'keywords'    => $keywords,
-            'status'      => 1,
-            'created_at'  => current_time( 'mysql' ),
-            'updated_at'  => current_time( 'mysql' ),
-        ],
-        [ '%s', '%d', '%s', '%s', '%d', '%s', '%s' ]
-    );
+        if ( 0 === $expected ) return true;
+
+        $operation = SEO_Data_Layer::operation( [
+            'type'          => 'ie_upsert_node_value',
+            'label'         => sprintf( 'Guardar %s/%s #%d', $object_type, $seo_role, $object_id ),
+            'source_module' => 'import_export',
+            'rollbackable'  => true,
+            'risk_level'    => 'medium',
+            'audit_level'   => 'full',
+            'metadata'      => [ 'object_type' => $object_type, 'object_id' => $object_id, 'seo_role' => $seo_role ],
+        ] );
+        $operation->mark_validated( [ 'validated_rows' => max( 1, count( $existing ) + ( is_array( $primary ) ? 1 : 0 ) ) ] );
+        $operation->mark_previewed( $expected );
+
+        $operation->execute(
+            static function ( SEO_Data_Operation $op ) use ( $primary, $existing, $needs_update, $object_type, $object_id, $seo_role, $keywords ) {
+                $now = current_time( 'mysql' );
+
+                if ( is_array( $primary ) ) {
+                    if ( $needs_update ) {
+                        $op->update(
+                            'nodes',
+                            [ 'id' => absint( $primary['id'] ?? 0 ) ],
+                            [ 'keywords' => $keywords, 'status' => 1, 'updated_at' => $now ],
+                            [ 'related_object_type' => $object_type, 'related_object_id' => $object_id, 'seo_role' => $seo_role ]
+                        );
+                    }
+                } else {
+                    $op->insert(
+                        'nodes',
+                        [
+                            'object_type' => $object_type,
+                            'object_id'   => $object_id,
+                            'seo_role'    => $seo_role,
+                            'keywords'    => $keywords,
+                            'status'      => 1,
+                            'created_at'  => $now,
+                            'updated_at'  => $now,
+                        ],
+                        [ 'related_object_type' => $object_type, 'related_object_id' => $object_id, 'seo_role' => $seo_role ]
+                    );
+                }
+
+                foreach ( $existing as $duplicate ) {
+                    $op->delete(
+                        'nodes',
+                        [ 'id' => absint( $duplicate['id'] ?? 0 ) ],
+                        [ 'related_object_type' => $object_type, 'related_object_id' => $object_id, 'seo_role' => $seo_role, 'reason' => 'duplicate_node' ]
+                    );
+                }
+
+                return true;
+            }
+        );
+
+        return true;
+    } catch ( Throwable $e ) {
+        error_log( '[SEO Import/Export] ' . $e->getMessage() );
+        return false;
+    }
 }
 
 /**
@@ -914,11 +961,312 @@ function seo_ie_parse_attributes( $attributes_text, $product_scope ) {
 }
 
 /**
+ * Orden estable de grupos semanticos compartidos por categorias.
+ */
+function seo_ie_category_vocabulary_groups() {
+    return [ 'rol', 'tipo', 'aplicacion', 'plataforma', 'subtipo' ];
+}
+
+function seo_ie_category_vocabulary_group_key( $group ) {
+    if ( function_exists( 'seo_category_vocabulary_group_key' ) ) {
+        return seo_category_vocabulary_group_key( $group );
+    }
+    $group = sanitize_key( remove_accents( mb_strtolower( trim( (string) $group ), 'UTF-8' ) ) );
+    $aliases = [ 'aplicación' => 'aplicacion', 'application' => 'aplicacion', 'type' => 'tipo', 'role' => 'rol', 'platform' => 'plataforma', 'subtype' => 'subtipo' ];
+    $group = $aliases[ $group ] ?? $group;
+    return in_array( $group, seo_ie_category_vocabulary_groups(), true ) ? $group : '';
+}
+
+function seo_ie_category_vocabulary_group_label( $group ) {
+    $labels = [ 'rol' => 'ROL', 'tipo' => 'TIPO', 'aplicacion' => 'APLICACIÓN', 'plataforma' => 'PLATAFORMA', 'subtipo' => 'SUBTIPO' ];
+    $group = seo_ie_category_vocabulary_group_key( $group );
+    return $labels[ $group ] ?? strtoupper( $group );
+}
+
+/**
+ * Precarga Vocabulary activo de product_cat para exportacion.
+ */
+function seo_ie_category_vocabulary_export_map() {
+    global $wpdb;
+
+    $rows = $wpdb->get_results(
+        "SELECT ov.object_id, v.semantic_group, v.slug, v.label\n"
+        . "FROM {$wpdb->prefix}seo_object_vocabulary ov\n"
+        . "JOIN {$wpdb->prefix}seo_vocabulary v ON v.id=ov.vocabulary_id\n"
+        . "WHERE ov.object_type='product_cat' AND ov.status=1 AND v.active=1\n"
+        . "  AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')\n"
+        . "ORDER BY ov.object_id, FIELD(v.semantic_group,'rol','tipo','aplicacion','plataforma','subtipo'), v.label, v.id"
+    );
+
+    $map = [];
+    foreach ( (array) $rows as $row ) {
+        $object_id = absint( $row->object_id ?? 0 );
+        $group = seo_ie_category_vocabulary_group_key( $row->semantic_group ?? '' );
+        if ( $object_id < 1 || '' === $group ) continue;
+        if ( ! isset( $map[ $object_id ] ) ) {
+            $map[ $object_id ] = [ 'etiquetas' => [], 'ambito' => [] ];
+        }
+        if ( 'rol' === $group ) {
+            $value = trim( (string) ( $row->slug ?? '' ) );
+            if ( '' !== $value && ! in_array( $value, $map[ $object_id ]['ambito'], true ) ) {
+                $map[ $object_id ]['ambito'][] = $value;
+            }
+        } else {
+            $value = seo_ie_category_vocabulary_group_label( $group ) . ': ' . trim( (string) ( $row->label ?? '' ) );
+            if ( ! in_array( $value, $map[ $object_id ]['etiquetas'], true ) ) {
+                $map[ $object_id ]['etiquetas'][] = $value;
+            }
+        }
+    }
+
+    foreach ( $map as $object_id => $values ) {
+        $map[ $object_id ]['etiquetas'] = implode( ' | ', $values['etiquetas'] );
+        $map[ $object_id ]['ambito'] = implode( ' | ', $values['ambito'] );
+    }
+
+    return $map;
+}
+
+/**
+ * Resuelve un termino activo de Vocabulary de forma inequívoca.
+ */
+function seo_ie_category_find_vocabulary_term( $group, $value ) {
+    global $wpdb;
+
+    $group = seo_ie_category_vocabulary_group_key( $group );
+    $value = trim( seo_ie_csv_to_utf8( (string) $value ) );
+    if ( '' === $group || '' === $value ) return false;
+
+    if ( function_exists( 'seo_category_vocabulary_find_active_term' ) ) {
+        $term = seo_category_vocabulary_find_active_term( $group, $value );
+        if ( $term ) return $term;
+    }
+
+    $slug_a = sanitize_title( $value );
+    $slug_b = str_replace( '-', '_', $slug_a );
+    $rows = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT id, semantic_group, slug, label\n"
+            . "FROM {$wpdb->prefix}seo_vocabulary\n"
+            . "WHERE active=1 AND semantic_group=%s\n"
+            . "  AND (label COLLATE utf8mb4_unicode_ci = %s COLLATE utf8mb4_unicode_ci OR slug IN (%s,%s))\n"
+            . "ORDER BY id ASC LIMIT 2",
+            $group,
+            $value,
+            $slug_a,
+            $slug_b
+        ),
+        ARRAY_A
+    );
+    return count( (array) $rows ) === 1 ? $rows[0] : false;
+}
+
+/**
+ * Devuelve las asignaciones activas actuales por grupo para preservar columnas ausentes.
+ */
+function seo_ie_category_current_vocabulary_groups( $category_id ) {
+    global $wpdb;
+
+    $groups = [];
+    foreach ( seo_ie_category_vocabulary_groups() as $group ) $groups[ $group ] = [];
+
+    if ( function_exists( 'seo_category_vocabulary_rows_map' ) ) {
+        $map = seo_category_vocabulary_rows_map( [ $category_id ] );
+        foreach ( (array) ( $map[ absint( $category_id ) ] ?? [] ) as $row ) {
+            $group = seo_ie_category_vocabulary_group_key( $row['semantic_group'] ?? '' );
+            $id = absint( $row['vocabulary_id'] ?? 0 );
+            if ( '' !== $group && $id > 0 && ! in_array( $id, $groups[ $group ], true ) ) $groups[ $group ][] = $id;
+        }
+        return $groups;
+    }
+
+    $rows = $wpdb->get_results( $wpdb->prepare(
+        "SELECT ov.vocabulary_id, v.semantic_group\n"
+        . "FROM {$wpdb->prefix}seo_object_vocabulary ov\n"
+        . "JOIN {$wpdb->prefix}seo_vocabulary v ON v.id=ov.vocabulary_id AND v.active=1\n"
+        . "WHERE ov.object_type='product_cat' AND ov.object_id=%d AND ov.status=1",
+        absint( $category_id )
+    ), ARRAY_A );
+    foreach ( (array) $rows as $row ) {
+        $group = seo_ie_category_vocabulary_group_key( $row['semantic_group'] ?? '' );
+        $id = absint( $row['vocabulary_id'] ?? 0 );
+        if ( '' !== $group && $id > 0 && ! in_array( $id, $groups[ $group ], true ) ) $groups[ $group ][] = $id;
+    }
+    return $groups;
+}
+
+/**
+ * Parsea la columna etiquetas. El nuevo export usa "GRUPO: Etiqueta | ...".
+ * Para CSV historicos se admite texto sin grupo solo si coincide de forma unica
+ * con un termino activo entre TIPO/APLICACION/PLATAFORMA/SUBTIPO.
+ */
+function seo_ie_category_parse_vocabulary_labels( $value ) {
+    $groups = [ 'tipo' => [], 'aplicacion' => [], 'plataforma' => [], 'subtipo' => [], 'rol' => [] ];
+    $value = trim( seo_ie_csv_to_utf8( (string) $value ) );
+    if ( '' === $value ) return $groups;
+
+    $typed = preg_match( '/(^|[|\r\n])\s*[^:|\r\n]+\s*:/u', $value );
+    $parts = $typed
+        ? preg_split( '/\s*\|\s*|\R+/u', $value, -1, PREG_SPLIT_NO_EMPTY )
+        : array_filter( array_map( 'trim', explode( ',', $value ) ) );
+
+    foreach ( (array) $parts as $part ) {
+        $part = trim( (string) $part );
+        if ( '' === $part ) continue;
+
+        if ( $typed ) {
+            if ( ! preg_match( '/^([^:]+):\s*(.+)$/u', $part, $match ) ) {
+                return new WP_Error( 'seo_ie_category_vocab_format', 'Formato no válido en etiquetas: ' . $part );
+            }
+            $group = seo_ie_category_vocabulary_group_key( $match[1] );
+            if ( '' === $group ) return new WP_Error( 'seo_ie_category_vocab_group', 'Grupo semántico no válido: ' . sanitize_text_field( $match[1] ) );
+            $term = seo_ie_category_find_vocabulary_term( $group, $match[2] );
+            if ( ! $term ) return new WP_Error( 'seo_ie_category_vocab_term', sprintf( 'No existe de forma inequívoca «%s» en %s.', sanitize_text_field( $match[2] ), seo_ie_category_vocabulary_group_label( $group ) ) );
+        } else {
+            $candidates = [];
+            foreach ( [ 'tipo', 'aplicacion', 'plataforma', 'subtipo' ] as $group ) {
+                $term = seo_ie_category_find_vocabulary_term( $group, $part );
+                if ( $term ) $candidates[ absint( $term['id'] ?? 0 ) ] = $term;
+            }
+            if ( 1 !== count( $candidates ) ) {
+                return new WP_Error( 'seo_ie_category_vocab_ambiguous', sprintf( 'La etiqueta legacy «%s» no coincide de forma única con Vocabulary.', sanitize_text_field( $part ) ) );
+            }
+            $term = reset( $candidates );
+            $group = seo_ie_category_vocabulary_group_key( $term['semantic_group'] ?? '' );
+        }
+
+        $term_id = absint( $term['id'] ?? 0 );
+        if ( $term_id > 0 && ! in_array( $term_id, $groups[ $group ], true ) ) $groups[ $group ][] = $term_id;
+    }
+
+    return $groups;
+}
+
+/**
+ * Parsea uno o varios ROL en la columna historica ambito.
+ */
+function seo_ie_category_parse_roles( $value ) {
+    $value = trim( seo_ie_csv_to_utf8( (string) $value ) );
+    if ( '' === $value ) return [];
+
+    $ids = [];
+    foreach ( preg_split( '/\s*\|\s*|\s*,\s*|\R+/u', $value, -1, PREG_SPLIT_NO_EMPTY ) as $raw_role ) {
+        $role = seo_ie_normalize_ambito( $raw_role );
+        if ( '' === $role ) return new WP_Error( 'seo_ie_category_role_invalid', 'ROL de categoría no válido: ' . sanitize_text_field( $raw_role ) );
+        $term = seo_ie_category_find_vocabulary_term( 'rol', $role );
+        if ( ! $term ) return new WP_Error( 'seo_ie_category_role_missing', 'El ROL canónico no existe o está inactivo: ' . $role );
+        $id = absint( $term['id'] ?? 0 );
+        if ( $id > 0 && ! in_array( $id, $ids, true ) ) $ids[] = $id;
+    }
+    return $ids;
+}
+
+/**
+ * Aplica las columnas etiquetas/ambito a Vocabulary conservando grupos ausentes.
+ * La escritura real se delega en seo_category_vocabulary_replace(), que usa Data Layer.
+ */
+function seo_ie_apply_category_vocabulary_row( $category_id, array $row ) {
+    if ( ! function_exists( 'seo_category_vocabulary_replace' ) ) {
+        return new WP_Error( 'seo_ie_category_vocab_runtime', 'No está cargada la capa canónica de Vocabulary para categorías.' );
+    }
+
+    $groups = seo_ie_category_current_vocabulary_groups( $category_id );
+
+    if ( array_key_exists( 'etiquetas', $row ) ) {
+        $parsed = seo_ie_category_parse_vocabulary_labels( $row['etiquetas'] );
+        if ( is_wp_error( $parsed ) ) return $parsed;
+        foreach ( [ 'tipo', 'aplicacion', 'plataforma', 'subtipo' ] as $group ) {
+            $groups[ $group ] = array_values( (array) ( $parsed[ $group ] ?? [] ) );
+        }
+        if ( ! array_key_exists( 'ambito', $row ) && ! empty( $parsed['rol'] ) ) {
+            $groups['rol'] = array_values( (array) $parsed['rol'] );
+        }
+    }
+
+    if ( array_key_exists( 'ambito', $row ) ) {
+        $roles = seo_ie_category_parse_roles( $row['ambito'] );
+        if ( is_wp_error( $roles ) ) return $roles;
+        $groups['rol'] = $roles;
+    }
+
+    return seo_category_vocabulary_replace( absint( $category_id ), $groups, 'category_import' );
+}
+
+/**
+ * Sincroniza la relación única hub_secondary_to_category por Data Layer.
+ */
+function seo_ie_sync_category_hub_secondary_relation( $category_id, $hub_secondary_id ) {
+    global $wpdb;
+
+    $category_id = absint( $category_id );
+    $hub_secondary_id = absint( $hub_secondary_id );
+    if ( $category_id < 1 || $hub_secondary_id < 1 ) return false;
+    if ( ! class_exists( 'SEO_Data_Layer' ) || ! class_exists( 'SEO_Data_Operation' ) ) return false;
+
+    try {
+        SEO_Data_Layer::table( 'relations' );
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            "SELECT id, source_type, source_id\n"
+            . "FROM {$wpdb->prefix}seo_relations\n"
+            . "WHERE target_type='product_cat' AND target_id=%d AND relation_type='hub_secondary_to_category'\n"
+            . "ORDER BY id ASC",
+            $category_id
+        ), ARRAY_A );
+
+        $keep_id = 0;
+        $delete_ids = [];
+        foreach ( (array) $rows as $row ) {
+            $is_target = (string) ( $row['source_type'] ?? '' ) === 'hub_secondary' && absint( $row['source_id'] ?? 0 ) === $hub_secondary_id;
+            if ( $is_target && 0 === $keep_id ) $keep_id = absint( $row['id'] ?? 0 );
+            else $delete_ids[] = absint( $row['id'] ?? 0 );
+        }
+
+        $needs_insert = 0 === $keep_id;
+        $expected = ( $needs_insert ? 1 : 0 ) + count( array_filter( $delete_ids ) );
+        if ( 0 === $expected ) return true;
+
+        $operation = SEO_Data_Layer::operation( [
+            'type'          => 'ie_sync_category_hub_secondary',
+            'label'         => 'Sincronizar hub secundario de categoría #' . $category_id,
+            'source_module' => 'import_export',
+            'rollbackable'  => true,
+            'risk_level'    => 'medium',
+            'audit_level'   => 'full',
+            'metadata'      => [ 'category_id' => $category_id, 'hub_secondary_id' => $hub_secondary_id ],
+        ] );
+        $operation->mark_validated( [ 'validated_rows' => count( $rows ) ] );
+        $operation->mark_previewed( $expected );
+        $operation->execute(
+            static function ( SEO_Data_Operation $op ) use ( $category_id, $hub_secondary_id, $needs_insert, $delete_ids ) {
+                if ( $needs_insert ) {
+                    $op->insert( 'relations', [
+                        'source_type'  => 'hub_secondary',
+                        'source_id'    => $hub_secondary_id,
+                        'target_type'  => 'product_cat',
+                        'target_id'    => $category_id,
+                        'relation_type'=> 'hub_secondary_to_category',
+                    ], [ 'related_object_type' => 'product_cat', 'related_object_id' => $category_id ] );
+                }
+                foreach ( array_filter( $delete_ids ) as $id ) {
+                    $op->delete( 'relations', [ 'id' => absint( $id ) ], [ 'related_object_type' => 'product_cat', 'related_object_id' => $category_id, 'reason' => 'replace_hub_secondary' ] );
+                }
+                return true;
+            }
+        );
+        return true;
+    } catch ( Throwable $e ) {
+        error_log( '[SEO Import/Export] ' . $e->getMessage() );
+        return false;
+    }
+}
+
+/**
  * Exporta todas las categorías WooCommerce a CSV.
  *
  * Orígenes:
  * - WordPress: ID, nombre, slug y padre.
- * - wp_seo_nodes: etiquetas, ámbito, excerpt y description.
+ * - Vocabulary canónico: etiquetas semánticas y ROL(es).
+ * - wp_seo_nodes: excerpt y description editoriales.
  * - wp_seo_relations: hub secundario estructural de la categoría cuando es único.
  *
  * @since 2.0.0
@@ -947,7 +1295,7 @@ function seo_export_categories_csv() {
         SELECT object_id, seo_role, keywords
         FROM {$wpdb->prefix}seo_nodes
         WHERE object_type = 'category'
-          AND seo_role IN ('category', 'ambito', 'excerpt', 'description')
+          AND seo_role IN ('excerpt', 'description')
           AND status = 1
         ORDER BY object_id ASC, seo_role ASC, updated_at DESC, id DESC
         "
@@ -956,32 +1304,19 @@ function seo_export_categories_csv() {
     $nodes_by_category = [];
 
     foreach ( $nodes as $node ) {
-
         $category_id = absint( $node->object_id );
         $seo_role    = (string) $node->seo_role;
-
         if ( ! isset( $nodes_by_category[ $category_id ] ) ) {
-            $nodes_by_category[ $category_id ] = [
-                'etiquetas'   => '',
-                'ambito'      => '',
-                'excerpt'     => '',
-                'description' => '',
-            ];
+            $nodes_by_category[ $category_id ] = [ 'excerpt' => '', 'description' => '' ];
         }
-
-        // La consulta está ordenada por la fila activa más reciente.
-        if ( 'category' === $seo_role && '' === $nodes_by_category[ $category_id ]['etiquetas'] ) {
-            $nodes_by_category[ $category_id ]['etiquetas'] =
-                seo_ie_normalize_keywords( $node->keywords );
-        } elseif ( 'ambito' === $seo_role && '' === $nodes_by_category[ $category_id ]['ambito'] ) {
-            $nodes_by_category[ $category_id ]['ambito'] =
-                seo_ie_normalize_ambito( $node->keywords );
-        } elseif ( 'excerpt' === $seo_role && '' === $nodes_by_category[ $category_id ]['excerpt'] ) {
+        if ( 'excerpt' === $seo_role && '' === $nodes_by_category[ $category_id ]['excerpt'] ) {
             $nodes_by_category[ $category_id ]['excerpt'] = (string) $node->keywords;
         } elseif ( 'description' === $seo_role && '' === $nodes_by_category[ $category_id ]['description'] ) {
             $nodes_by_category[ $category_id ]['description'] = (string) $node->keywords;
         }
     }
+
+    $vocabulary_by_category = seo_ie_category_vocabulary_export_map();
 
     $categories = get_terms(
         [
@@ -1039,7 +1374,7 @@ function seo_export_categories_csv() {
             'correctos'  => count( $categories ),
             'errores'    => 0,
             'detalles'   => [
-                'WordPress aporta ID, nombre, slug y padre. seo_nodes aporta etiquetas, ámbito, excerpt y description. seo_relations aporta hub_secondary_id cuando la asignación es única.',
+                'WordPress aporta ID, nombre, slug y padre. Vocabulary aporta etiquetas y ROL(es); seo_nodes conserva excerpt/description. seo_relations aporta hub_secondary_id cuando la asignación es única.',
             ],
         ]
     );
@@ -1065,10 +1400,12 @@ function seo_export_categories_csv() {
 
         $category_id = absint( $category->term_id );
         $node_data   = $nodes_by_category[ $category_id ] ?? [
-            'etiquetas'   => '',
-            'ambito'      => '',
             'excerpt'     => '',
             'description' => '',
+        ];
+        $vocab_data = $vocabulary_by_category[ $category_id ] ?? [
+            'etiquetas' => '',
+            'ambito'    => '',
         ];
 
         seo_ie_write_csv_row(
@@ -1083,8 +1420,8 @@ function seo_export_categories_csv() {
                 $category->slug,
                 $node_data['description'],
                 $node_data['excerpt'],
-                $node_data['etiquetas'],
-                $node_data['ambito'],
+                $vocab_data['etiquetas'],
+                $vocab_data['ambito'],
             ]
         );
     }
@@ -1097,7 +1434,7 @@ function seo_export_categories_csv() {
  * Importa categorías desde el CSV generado por SEO System.
  *
  * Actualiza o crea categorías, manteniendo ID/nombre/slug/padre en WordPress
- * y etiquetas/ámbito/excerpt/description en wp_seo_nodes.
+ * y semántica en Vocabulary; excerpt/description permanecen en wp_seo_nodes.
  * Si hub_secondary_id está informado, sincroniza la relación estructural única
  * hub_secondary_to_category. Si category_id está vacío, reutiliza primero una
  * categoría existente por slug/nombre y solo crea una nueva si no existe.
@@ -1409,40 +1746,21 @@ if ( ! empty( $term_data ) ) {
             }
         }
 
-        if ( array_key_exists( 'etiquetas', $row ) ) {
-            seo_ie_upsert_node_value(
-                'category',
-                $category_id,
-                'category',
-                seo_ie_normalize_keywords( $row['etiquetas'] )
-            );
-        }
-
-        if ( array_key_exists( 'ambito', $row ) ) {
-
-            $raw_ambito = trim( (string) $row['ambito'] );
-            $ambito     = seo_ie_normalize_ambito( $raw_ambito );
-
-            if ( '' !== $raw_ambito && '' === $ambito ) {
+        if ( array_key_exists( 'etiquetas', $row ) || array_key_exists( 'ambito', $row ) ) {
+            $vocabulary_result = seo_ie_apply_category_vocabulary_row( $category_id, $row );
+            if ( is_wp_error( $vocabulary_result ) ) {
                 $log['errores']++;
                 seo_ie_add_log_detail(
                     $log,
                     sprintf(
-                        'Fila %d, categoría %d: ámbito no válido «%s».',
+                        'Fila %d, categoría %d: %s',
                         $line,
                         $category_id,
-                        $raw_ambito
+                        $vocabulary_result->get_error_message()
                     )
                 );
                 continue;
             }
-
-            seo_ie_upsert_node_value(
-                'category',
-                $category_id,
-                'ambito',
-                $ambito
-            );
         }
 
         /*
@@ -1495,53 +1813,15 @@ if ( ! empty( $term_data ) ) {
                 continue;
             }
 
-            $relations_table = $wpdb->prefix . 'seo_relations';
-
-            // Primero garantiza el destino nuevo; solo después retira relaciones antiguas.
-            $inserted = $wpdb->query(
-                $wpdb->prepare(
-                    "INSERT IGNORE INTO {$relations_table}
-                        (source_type, source_id, target_type, target_id, relation_type)
-                     VALUES ('hub_secondary', %d, 'product_cat', %d, 'hub_secondary_to_category')",
-                    $hub_secondary_id,
-                    $category_id
-                )
-            );
-
-            if ( false === $inserted ) {
+            if ( ! seo_ie_sync_category_hub_secondary_relation( $category_id, $hub_secondary_id ) ) {
                 $log['errores']++;
                 seo_ie_add_log_detail(
                     $log,
                     sprintf(
-                        'Fila %d, categoría %d: no se pudo garantizar la asignación al hub secundario %d.',
+                        'Fila %d, categoría %d: no se pudo sincronizar el hub secundario %d mediante Data Layer.',
                         $line,
                         $category_id,
                         $hub_secondary_id
-                    )
-                );
-                continue;
-            }
-
-            $deleted = $wpdb->query(
-                $wpdb->prepare(
-                    "DELETE FROM {$relations_table}
-                     WHERE target_type = 'product_cat'
-                       AND target_id = %d
-                       AND relation_type = 'hub_secondary_to_category'
-                       AND NOT (source_type = 'hub_secondary' AND source_id = %d)",
-                    $category_id,
-                    $hub_secondary_id
-                )
-            );
-
-            if ( false === $deleted ) {
-                $log['errores']++;
-                seo_ie_add_log_detail(
-                    $log,
-                    sprintf(
-                        'Fila %d, categoría %d: el destino nuevo existe, pero no se pudieron retirar asignaciones estructurales antiguas.',
-                        $line,
-                        $category_id
                     )
                 );
                 continue;
