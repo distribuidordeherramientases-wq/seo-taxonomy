@@ -1,9 +1,40 @@
-<?php
-/**
- * Gestor de variante category: móvil / escritorio.
- */
+name: Deploy STAGING
 
-defined('ABSPATH') || exit;
+on:
+  push:
+    branches:
+      - staging
+  workflow_dispatch:
 
-require_once __DIR__ . '/template-helpers.php';
-require dht_template_device_variant_file('category');
+jobs:
+  deploy-staging:
+    name: Deploy plugin to STAGING
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout staging
+        uses: actions/checkout@v4
+
+      - name: Deploy SEO Taxonomy to STAGING
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+
+          protocol: ftps
+          port: 21
+
+          local-dir: ./
+          server-dir: ./wp-content/plugins/seo-taxonomy/
+
+          dry-run: true
+          log-level: verbose
+
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.github/**
+            **/node_modules/**
+            **/*.bak
+            **/*.md
