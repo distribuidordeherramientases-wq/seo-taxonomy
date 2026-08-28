@@ -8,7 +8,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_CORE_SEMANTIC_TEST_VERSION')) {
-    define('SEO_CORE_SEMANTIC_TEST_VERSION', '2.1.0');
+    define('SEO_CORE_SEMANTIC_TEST_VERSION', '2.2.0');
 }
 
 /**
@@ -186,6 +186,101 @@ function seo_core_system_test_semantic_latest_nodes($object_type, $roles) {
 }
 
 /**
+ * Carga las asignaciones canonicas de Vocabulary de categorias WooCommerce.
+ *
+ * Las etiquetas semanticas de product_cat ya no viven en seo_nodes. Esta
+ * funcion usa exclusivamente seo_object_vocabulary -> seo_vocabulary y solo
+ * considera asignaciones/terminos activos de los cinco grupos canonicos.
+ */
+function seo_core_system_test_semantic_category_vocabulary($category_ids = array()) {
+    global $wpdb;
+
+    $object_table = $wpdb->prefix . 'seo_object_vocabulary';
+    $vocab_table = $wpdb->prefix . 'seo_vocabulary';
+    $allowed_groups = array('rol', 'tipo', 'aplicacion', 'plataforma', 'subtipo');
+
+    $result = array(
+        'available' => seo_core_system_test_semantic_table_exists($object_table)
+            && seo_core_system_test_semantic_table_exists($vocab_table),
+        'assignments' => 0,
+        'objects' => array(),
+    );
+
+    if (!$result['available']) {
+        return $result;
+    }
+
+    $category_ids = array_values(array_unique(array_filter(array_map('absint', (array) $category_ids))));
+    $where_ids = '';
+    if ($category_ids) {
+        $placeholders = implode(',', array_fill(0, count($category_ids), '%d'));
+        $where_ids = $wpdb->prepare(" AND ov.object_id IN ({$placeholders})", ...$category_ids);
+    }
+
+    $rows = $wpdb->get_results(
+        "SELECT ov.object_id, ov.vocabulary_id, v.semantic_group, v.slug, v.label\n"
+        . "FROM {$object_table} ov\n"
+        . "INNER JOIN {$vocab_table} v ON v.id = ov.vocabulary_id\n"
+        . "WHERE ov.object_type = 'product_cat'\n"
+        . "  AND ov.status = 1\n"
+        . "  AND v.active = 1\n"
+        . "  AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')\n"
+        . $where_ids
+        . " ORDER BY ov.object_id ASC, FIELD(v.semantic_group,'rol','tipo','aplicacion','plataforma','subtipo'), v.label ASC, v.id ASC",
+        ARRAY_A
+    );
+
+    foreach ((array) $rows as $row) {
+        $object_id = absint($row['object_id'] ?? 0);
+        $group = sanitize_key((string) ($row['semantic_group'] ?? ''));
+        $label = trim((string) ($row['label'] ?? ''));
+
+        if ($object_id < 1 || !in_array($group, $allowed_groups, true) || $label === '') {
+            continue;
+        }
+
+        if (!isset($result['objects'][$object_id])) {
+            $result['objects'][$object_id] = array(
+                'labels' => array(),
+                'groups' => array(),
+                'roles' => array(),
+            );
+        }
+
+        $result['assignments']++;
+        $result['objects'][$object_id]['labels'][$group . ':' . seo_core_system_test_semantic_normalize_text($label)] = $label;
+        if (!isset($result['objects'][$object_id]['groups'][$group])) {
+            $result['objects'][$object_id]['groups'][$group] = array();
+        }
+        $result['objects'][$object_id]['groups'][$group][] = $label;
+
+        if ($group === 'rol') {
+            $role = trim((string) ($row['slug'] ?? ''));
+            if ($role === '') {
+                $role = $label;
+            }
+            $role = sanitize_key(remove_accents(function_exists('mb_strtolower') ? mb_strtolower($role, 'UTF-8') : strtolower($role)));
+            if ($role !== '') {
+                $result['objects'][$object_id]['roles'][$role] = true;
+            }
+        }
+    }
+
+    foreach ($result['objects'] as &$object) {
+        $object['labels'] = array_values($object['labels']);
+        $object['roles'] = array_keys($object['roles']);
+        sort($object['roles'], SORT_STRING);
+        foreach ($object['groups'] as &$labels) {
+            $labels = array_values(array_unique(array_filter(array_map('trim', (array) $labels))));
+        }
+        unset($labels);
+    }
+    unset($object);
+
+    return $result;
+}
+
+/**
  * Calcula duplicados normalizados. Puede limitar el grupo al mismo objeto.
  */
 function seo_core_system_test_semantic_duplicate_stats($rows, $value_key, $scope_keys, $id_key, $active_key = '', $min_chars = 12, $example_limit = 8) {
@@ -345,9 +440,10 @@ function seo_core_system_test_semantic_snapshot() {
     /* ---------------------------------------------------------------------
      * CATEGORIAS
      * ------------------------------------------------------------------ */
+    // seo_nodes conserva unicamente contenido editorial de categoria.
     $category_nodes = seo_core_system_test_semantic_latest_nodes(
         'category',
-        array('category', 'ambito', 'excerpt', 'description')
+        array('excerpt', 'description')
     );
 
     $category_rows = $wpdb->get_results(
@@ -361,6 +457,7 @@ function seo_core_system_test_semantic_snapshot() {
 
     $category_meta = array();
     $category_ids = wp_list_pluck((array) $category_rows, 'term_id');
+    $category_vocabulary = seo_core_system_test_semantic_category_vocabulary($category_ids);
     if ($category_ids) {
         $ids_sql = implode(',', array_map('absint', $category_ids));
         $meta_rows = $wpdb->get_results(
@@ -417,7 +514,10 @@ function seo_core_system_test_semantic_snapshot() {
         'without_description' => 0,
         'without_excerpt' => 0,
         'without_tags' => 0,
+        'vocabulary_available' => !empty($category_vocabulary['available']),
+        'vocabulary_assignments' => (int) ($category_vocabulary['assignments'] ?? 0),
         'without_image' => 0,
+        // Se conserva la clave por compatibilidad del informe; ahora valida ROL de Vocabulary.
         'invalid_scope' => 0,
         'template_description' => 0,
         'template_excerpt' => 0,
@@ -436,15 +536,15 @@ function seo_core_system_test_semantic_snapshot() {
         $description = (string) ($nodes['description'] ?? '');
         $node_excerpt = (string) ($nodes['excerpt'] ?? '');
         $visible_excerpt = (string) ($category_meta[$category_id]['seo_excerpt'] ?? '');
-        $tags = (string) ($nodes['category'] ?? '');
-        // El ambito de categoria sigue siendo editorial/legacy en esta fase.
-        // No se deriva del ROL de los productos de la categoria.
-        $scope = sanitize_key(remove_accents(trim((string) ($nodes['ambito'] ?? ''))));
+        $vocabulary = $category_vocabulary['objects'][$category_id] ?? array();
+        $tags = implode(', ', (array) ($vocabulary['labels'] ?? array()));
+        // Una categoria admite 0..n ROL. El mapa conserva todos los ROL canonicos.
+        $scopes = array_values(array_unique(array_filter(array_map('sanitize_key', (array) ($vocabulary['roles'] ?? array())))));
         $count = (int) ($row['count'] ?? 0);
         $image_id = absint($category_meta[$category_id]['thumbnail_id'] ?? 0);
 
         $category_ids_existing[$category_id] = true;
-        $category_scope_map[$category_id] = $scope;
+        $category_scope_map[$category_id] = $scopes;
         $category_name_map[$category_id] = $name;
 
         if ($count === 0) {
@@ -468,7 +568,14 @@ function seo_core_system_test_semantic_snapshot() {
         if ($image_id <= 0) {
             $category_counts['without_image']++;
         }
-        if (!seo_core_system_test_semantic_scope_is_valid($scope, true, false)) {
+        $invalid_category_role = false;
+        foreach ($scopes as $scope) {
+            if (!seo_core_system_test_semantic_scope_is_valid($scope, false, false)) {
+                $invalid_category_role = true;
+                break;
+            }
+        }
+        if ($invalid_category_role) {
             $category_counts['invalid_scope']++;
         }
         if (seo_core_system_test_semantic_matches_patterns($description, $category_template_patterns)) {
@@ -1032,13 +1139,16 @@ function seo_core_system_test_semantic_snapshot() {
                 $faq_counts['attribute_only_questions']++;
             }
 
-            $entity_scope = '';
+            $entity_scopes = array();
             if ($object_type === 2) {
-                $entity_scope = $category_scope_map[$object_id] ?? '';
+                $entity_scopes = array_values(array_filter(array_map('sanitize_key', (array) ($category_scope_map[$object_id] ?? array()))));
             } elseif ($object_type === 3) {
-                $entity_scope = $product_scope_map[$object_id] ?? '';
+                $product_scope = sanitize_key((string) ($product_scope_map[$object_id] ?? ''));
+                if ($product_scope !== '') {
+                    $entity_scopes[] = $product_scope;
+                }
             }
-            if ($scope !== '' && $entity_scope !== '' && $scope !== $entity_scope) {
+            if ($scope !== '' && $entity_scopes && !in_array($scope, $entity_scopes, true)) {
                 $faq_counts['scope_mismatch']++;
                 if (count($faq_counts['scope_examples']) < 20) {
                     $faq_counts['scope_examples'][] = array(
@@ -1046,7 +1156,7 @@ function seo_core_system_test_semantic_snapshot() {
                         'object_type' => $object_type,
                         'object_id' => $object_id,
                         'faq_scope' => $scope,
-                        'entity_scope' => $entity_scope,
+                        'entity_scope' => implode(', ', $entity_scopes),
                         'question' => seo_core_system_test_semantic_preview($question, 120),
                     );
                 }
@@ -1338,12 +1448,12 @@ function seo_core_system_test_semantic_snapshot() {
 
     if ((int) $snapshot['categories']['invalid_scope'] > 0) {
         $actions[] = seo_core_system_test_semantic_action(
-            'fix_invalid_category_scope',
+            'fix_invalid_category_role',
             'critical',
             'category',
-            'ambito',
+            'rol',
             $snapshot['categories']['invalid_scope'],
-            'Usar solo accesorio, herramienta, repuesto, equipamiento o consumible. Si no puede determinarse con seguridad, dejar el ambito vacio.'
+            'Corregir los ROL de categoria en Vocabulary. Solo son validos accesorio, herramienta, repuesto, equipamiento o consumible; una categoria puede tener 0..n ROL.'
         );
     }
     if ((int) $snapshot['categories']['excerpt_storage_mismatch'] > 0) {
@@ -1385,7 +1495,7 @@ function seo_core_system_test_semantic_snapshot() {
             'category',
             'tags',
             $snapshot['categories']['title_like_tags'],
-            'Eliminar de las etiquetas de categoria los titulos completos de productos y conservar conceptos estables de uso, familia o criterio de eleccion.'
+            'Revisar en Vocabulary las asignaciones de categoria que reproduzcan titulos completos de productos y conservar conceptos canonicos estables.'
         );
     }
 
@@ -1470,7 +1580,8 @@ function seo_core_system_test_semantic_checks() {
 
     $category_excerpt_limit = (int) seo_core_system_test_semantic_setting('semantic_category_excerpt_mismatch_limit', 0);
     $category_without_excerpt_limit = (int) seo_core_system_test_semantic_setting('semantic_category_without_excerpt_limit', 0);
-    $category_source_critical = (int) $categories['invalid_scope'] > 0
+    $category_source_critical = empty($categories['vocabulary_available'])
+        || (int) $categories['invalid_scope'] > 0
         || (int) $categories['excerpt_storage_mismatch'] > $category_excerpt_limit;
     $category_source_warning = !$category_source_critical
         && (int) $categories['without_excerpt'] > $category_without_excerpt_limit;
@@ -1479,7 +1590,7 @@ function seo_core_system_test_semantic_checks() {
         'semantic',
         '10.1 Integridad de fuentes de categorías',
         $category_source_severity === 'ok',
-        'Ámbitos inválidos: ' . number_format_i18n($categories['invalid_scope']) . '; excerpts desincronizados entre seo_nodes y seo_excerpt: ' . number_format_i18n($categories['excerpt_storage_mismatch']) . ' (límite ' . number_format_i18n($category_excerpt_limit) . '); sin descripción: ' . number_format_i18n($categories['without_description']) . '; sin excerpt visible: ' . number_format_i18n($categories['without_excerpt']) . ' (límite ' . number_format_i18n($category_without_excerpt_limit) . ').',
+        'Vocabulary categorías: ' . (!empty($categories['vocabulary_available']) ? 'disponible' : 'NO disponible') . '; asignaciones activas: ' . number_format_i18n($categories['vocabulary_assignments']) . '; categorías sin Vocabulary: ' . number_format_i18n($categories['without_tags']) . '; ROL inválidos: ' . number_format_i18n($categories['invalid_scope']) . '; excerpts desincronizados entre seo_nodes y seo_excerpt: ' . number_format_i18n($categories['excerpt_storage_mismatch']) . ' (límite ' . number_format_i18n($category_excerpt_limit) . '); sin descripción: ' . number_format_i18n($categories['without_description']) . '; sin excerpt visible: ' . number_format_i18n($categories['without_excerpt']) . ' (límite ' . number_format_i18n($category_without_excerpt_limit) . ').',
         $category_source_severity,
         array(
             'owner' => 'contenido',

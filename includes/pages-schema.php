@@ -1018,13 +1018,17 @@ function seo_gpt_page_semantic_text($page_id) {
         $text .= ' ' . $tags_text;
     }
 
-    // Keywords guardadas en seo_nodes
+    // Keywords estructurales de esta pagina en seo_nodes.
+    // Nunca mezclar con nodos legacy de categorias que puedan compartir el mismo ID numerico.
     $keywords = $wpdb->get_var(
         $wpdb->prepare("
             SELECT keywords
             FROM {$wpdb->prefix}seo_nodes
-            WHERE object_id = %d
-            AND seo_role IN ('cluster','hub_primary','hub_secondary','category')
+            WHERE object_type = 'page'
+              AND object_id = %d
+              AND seo_role IN ('cluster','hub_primary','hub_secondary')
+              AND status = 1
+            ORDER BY updated_at DESC, id DESC
             LIMIT 1
         ", $page_id)
     );
