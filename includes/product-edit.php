@@ -36,7 +36,15 @@ if (!function_exists('seo_page_edit_products')) {
         $status = isset($_GET['status']) ? sanitize_key($_GET['status']) : '';
         $provider = isset($_GET['provider']) ? sanitize_text_field(wp_unslash($_GET['provider'])) : '';
         $paged = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
+        $score_order = isset($_GET['score_order']) && 'asc' === strtolower((string) $_GET['score_order']) ? 'asc' : 'desc';
+        $score_days = 28;
         $per_page = 40;
+
+        // Reutiliza el snapshot agregado de Google. No consulta producto por producto
+        // y queda cacheado por el modulo de informes.
+        if (function_exists('seo_product_reports_catalog_snapshot')) {
+            seo_product_reports_catalog_snapshot($score_days, false);
+        }
 
         $allowed_statuses = ['publish', 'draft', 'pending', 'private'];
         if ($status !== '' && !in_array($status, $allowed_statuses, true)) {
@@ -63,6 +71,11 @@ if (!function_exists('seo_page_edit_products')) {
             'orderby'        => 'modified',
             'order'          => 'DESC',
         ];
+
+        if (function_exists('seo_product_reports_score_posts_clauses')) {
+            $args['seo_product_reports_score_days'] = $score_days;
+            $args['seo_product_reports_score_order'] = $score_order;
+        }
 
         if ($category_id > 0) {
             $args['tax_query'] = [[
@@ -119,7 +132,13 @@ if (!function_exists('seo_page_edit_products')) {
             $args['post__in'] = !empty($forced_ids) ? $forced_ids : [0];
         }
 
+        if (function_exists('seo_product_reports_score_posts_clauses')) {
+            add_filter('posts_clauses', 'seo_product_reports_score_posts_clauses', 20, 2);
+        }
         $query = new WP_Query($args);
+        if (function_exists('seo_product_reports_score_posts_clauses')) {
+            remove_filter('posts_clauses', 'seo_product_reports_score_posts_clauses', 20);
+        }
 
         echo '<div style="padding:10px 0 30px;max-width:1280px;">';
         echo '<h1 style="margin-bottom:8px;">Editar productos</h1>';
@@ -129,6 +148,7 @@ if (!function_exists('seo_page_edit_products')) {
         <form method="get" style="background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:16px;margin:18px 0;display:grid;grid-template-columns:2fr 1.2fr 1fr 1.2fr auto;gap:12px;align-items:end;">
             <input type="hidden" name="page" value="product-page-admin">
             <input type="hidden" name="tab" value="editar">
+            <input type="hidden" name="score_order" value="<?php echo esc_attr($score_order); ?>">
 
             <div>
                 <label style="display:block;font-weight:600;margin-bottom:5px;">Buscar</label>
@@ -170,26 +190,51 @@ if (!function_exists('seo_page_edit_products')) {
             </div>
         </form>
 
+        <?php
+        $toggle_score_order = 'desc' === $score_order ? 'asc' : 'desc';
+        $score_sort_url = add_query_arg(
+            [
+                'page'        => 'product-page-admin',
+                'tab'         => 'editar',
+                'q'           => $search,
+                'cat'         => $category_id,
+                'status'      => $status,
+                'provider'    => $provider,
+                'score_order' => $toggle_score_order,
+                'paged'       => 1,
+            ],
+            admin_url('admin.php')
+        );
+        $score_arrow = 'desc' === $score_order ? '↓' : '↑';
+        ?>
+
         <table class="widefat striped" style="margin-top:15px;">
             <thead>
                 <tr>
                     <th style="width:70px;">ID</th>
                     <th style="width:160px;">SKU</th>
                     <th>Producto</th>
+                    <th style="width:145px;"><a href="<?php echo esc_url($score_sort_url); ?>" title="Cambiar orden por puntuación">Puntuación Google <?php echo esc_html($score_arrow); ?></a><br><small style="font-weight:400;color:#646970;">28 días</small></th>
                     <th style="width:180px;">Proveedor</th>
                     <th style="width:120px;">Estado</th>
-                    <th style="width:90px;">Acción</th>
+                    <th style="width:170px;">Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (!$query->have_posts()): ?>
-                    <tr><td colspan="6">No se han encontrado productos con estos filtros.</td></tr>
+                    <tr><td colspan="7">No se han encontrado productos con estos filtros.</td></tr>
                 <?php else: ?>
                     <?php foreach ($query->posts as $post): ?>
                         <?php
                         $wc_product = wc_get_product($post->ID);
                         $sku = $wc_product ? $wc_product->get_sku('edit') : '';
                         $row_provider = (string) get_post_meta($post->ID, '_seo_proveedor', true);
+                        $score_summary = function_exists('seo_product_reports_get_summary')
+                            ? seo_product_reports_get_summary($post->ID, $score_days)
+                            : [];
+                        $score = max(0, min(100, absint($score_summary['score'] ?? 0)));
+                        $score_bg = $score >= 70 ? '#edfaef' : ($score >= 40 ? '#fff8e5' : '#f0f0f1');
+                        $score_fg = $score >= 70 ? '#008a20' : ($score >= 40 ? '#996800' : '#50575e');
                         $edit_url = add_query_arg(
                             [
                                 'page'       => 'product-page-admin',
@@ -203,9 +248,10 @@ if (!function_exists('seo_page_edit_products')) {
                             <td><?php echo absint($post->ID); ?></td>
                             <td><code><?php echo esc_html($sku ?: '—'); ?></code></td>
                             <td><strong><?php echo esc_html($post->post_title); ?></strong></td>
+                            <td><span title="Índice de rendimiento Google de los últimos 28 días" style="display:inline-block;min-width:58px;text-align:center;padding:5px 8px;border-radius:999px;font-weight:700;background:<?php echo esc_attr($score_bg); ?>;color:<?php echo esc_attr($score_fg); ?>;"><?php echo esc_html($score . '/100'); ?></span></td>
                             <td><?php echo esc_html($row_provider ?: '—'); ?></td>
                             <td><?php echo esc_html($post->post_status); ?></td>
-                            <td><a class="button button-small" href="<?php echo esc_url($edit_url); ?>">Editar</a></td>
+                            <td style="display:flex;gap:5px;flex-wrap:wrap;"><a class="button button-small" href="<?php echo esc_url($edit_url); ?>">Editar</a><?php if (function_exists('seo_product_reports_admin_url')): ?><a class="button button-small" href="<?php echo esc_url(seo_product_reports_admin_url($post->ID, 28)); ?>">Informe</a><?php endif; ?></td>
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>
@@ -219,9 +265,10 @@ if (!function_exists('seo_page_edit_products')) {
                 'tab'      => 'editar',
                 'q'        => $search,
                 'cat'      => $category_id,
-                'status'   => $status,
-                'provider' => $provider,
-                'paged'    => '%#%',
+                'status'      => $status,
+                'provider'    => $provider,
+                'score_order' => $score_order,
+                'paged'       => '%#%',
             ];
 
             echo '<div style="margin-top:18px;">';

@@ -447,10 +447,10 @@ if (!function_exists('seo_product_reports_admin_url')) {
         $args = [
             'page' => 'product-page-admin',
             'tab'  => 'informes',
+            'days' => seo_product_reports_days($days),
         ];
         if (absint($product_id) > 0) {
             $args['product_id'] = absint($product_id);
-            $args['days'] = seo_product_reports_days($days);
         }
         return add_query_arg(array_merge($args, $extra), admin_url('admin.php'));
     }
@@ -480,6 +480,387 @@ if (!function_exists('seo_product_reports_success_label')) {
             return ['label' => 'Tiene visitas', 'detail' => 'GA4 registra vistas, aunque Search Console no atribuye clics organicos en el periodo.', 'class' => 'is-pending'];
         }
         return ['label' => 'Sin senales', 'detail' => 'No hay impresiones, clics ni visitas registradas para este periodo.', 'class' => 'is-pending'];
+    }
+}
+
+if (!function_exists('seo_product_reports_summary_meta_key')) {
+    function seo_product_reports_summary_meta_key($field, $days = 28) {
+        $allowed = ['score', 'impressions', 'clicks', 'pageviews', 'purchased', 'revenue', 'updated'];
+        $field = sanitize_key((string) $field);
+        if (!in_array($field, $allowed, true)) {
+            $field = 'score';
+        }
+        return '_seo_google_' . $field . '_' . seo_product_reports_days($days);
+    }
+}
+
+if (!function_exists('seo_product_reports_get_summary')) {
+    function seo_product_reports_get_summary($product_id, $days = 28) {
+        $product_id = absint($product_id);
+        $days = seo_product_reports_days($days);
+        $score_key = seo_product_reports_summary_meta_key('score', $days);
+        $has_snapshot = $product_id > 0 && metadata_exists('post', $product_id, $score_key);
+
+        return [
+            'has_snapshot' => $has_snapshot,
+            'score'        => $has_snapshot ? max(0, min(100, absint(get_post_meta($product_id, $score_key, true)))) : 0,
+            'impressions'  => max(0, (int) get_post_meta($product_id, seo_product_reports_summary_meta_key('impressions', $days), true)),
+            'clicks'       => max(0, (int) get_post_meta($product_id, seo_product_reports_summary_meta_key('clicks', $days), true)),
+            'pageviews'    => max(0, (int) get_post_meta($product_id, seo_product_reports_summary_meta_key('pageviews', $days), true)),
+            'purchased'    => max(0, (int) get_post_meta($product_id, seo_product_reports_summary_meta_key('purchased', $days), true)),
+            'revenue'      => max(0.0, (float) get_post_meta($product_id, seo_product_reports_summary_meta_key('revenue', $days), true)),
+            'updated'      => max(0, (int) get_post_meta($product_id, seo_product_reports_summary_meta_key('updated', $days), true)),
+        ];
+    }
+}
+
+if (!function_exists('seo_product_reports_resolve_product_url')) {
+    function seo_product_reports_resolve_product_url($url_or_path) {
+        static $cache = [];
+
+        $raw = trim((string) $url_or_path);
+        if ('' === $raw) {
+            return 0;
+        }
+
+        $path = seo_product_reports_path_key($raw);
+        if (isset($cache[$path])) {
+            return $cache[$path];
+        }
+
+        $url = preg_match('#^https?://#i', $raw) ? $raw : home_url($path);
+        $product_id = absint(url_to_postid($url));
+
+        if ($product_id > 0 && 'product_variation' === get_post_type($product_id)) {
+            $product_id = absint(wp_get_post_parent_id($product_id));
+        }
+        if ($product_id > 0 && 'product' !== get_post_type($product_id)) {
+            $product_id = 0;
+        }
+
+        if ($product_id <= 0) {
+            $slug = sanitize_title(basename(untrailingslashit($path)));
+            if ('' !== $slug) {
+                $post = get_page_by_path($slug, OBJECT, 'product');
+                if ($post instanceof WP_Post) {
+                    $product_id = absint($post->ID);
+                }
+            }
+        }
+
+        $cache[$path] = $product_id;
+        return $product_id;
+    }
+}
+
+if (!function_exists('seo_product_reports_resolve_ecommerce_product')) {
+    function seo_product_reports_resolve_ecommerce_product($item_id, $item_name = '') {
+        static $cache = [];
+
+        $item_id = trim((string) $item_id);
+        $item_name = trim((string) $item_name);
+        $cache_key = strtolower($item_id . '|' . $item_name);
+        if (isset($cache[$cache_key])) {
+            return $cache[$cache_key];
+        }
+
+        $product_id = 0;
+        if ('' !== $item_id && ctype_digit($item_id)) {
+            $candidate = absint($item_id);
+            $type = get_post_type($candidate);
+            if ('product' === $type) {
+                $product_id = $candidate;
+            } elseif ('product_variation' === $type) {
+                $product_id = absint(wp_get_post_parent_id($candidate));
+            }
+        }
+
+        if ($product_id <= 0 && '' !== $item_id && function_exists('wc_get_product_id_by_sku')) {
+            $candidate = absint(wc_get_product_id_by_sku($item_id));
+            if ($candidate > 0) {
+                $type = get_post_type($candidate);
+                $product_id = 'product_variation' === $type ? absint(wp_get_post_parent_id($candidate)) : $candidate;
+            }
+        }
+
+        if ($product_id <= 0 && '' !== $item_name) {
+            global $wpdb;
+            $ids = $wpdb->get_col(
+                $wpdb->prepare(
+                    "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'product' AND post_title = %s ORDER BY ID ASC LIMIT 2",
+                    $item_name
+                )
+            );
+            if (1 === count($ids)) {
+                $product_id = absint($ids[0]);
+            }
+        }
+
+        if ($product_id > 0 && 'product' !== get_post_type($product_id)) {
+            $product_id = 0;
+        }
+
+        $cache[$cache_key] = $product_id;
+        return $product_id;
+    }
+}
+
+if (!function_exists('seo_product_reports_catalog_snapshot')) {
+    /**
+     * Crea un snapshot agregado del catalogo con solo tres consultas Google:
+     * Search Console por pagina, GA4 por pagePath y GA4 ecommerce por item.
+     * El resultado se guarda como metadatos derivados para poder ordenar el
+     * catalogo completo sin ejecutar una llamada API por producto.
+     */
+    function seo_product_reports_catalog_snapshot($days = 28, $force = false) {
+        global $wpdb;
+
+        $days = seo_product_reports_days($days);
+        $cache_key = 'seo_product_google_catalog_v2_' . get_current_blog_id() . '_' . $days;
+
+        if ($force) {
+            delete_transient($cache_key);
+        } else {
+            $cached = get_transient($cache_key);
+            if (is_array($cached)) {
+                return $cached;
+            }
+        }
+
+        $google = seo_product_reports_google_state();
+        $snapshot = [
+            'available'        => false,
+            'generated'        => current_time('timestamp'),
+            'days'             => $days,
+            'matched_products' => 0,
+            'scored_products'  => 0,
+            'errors'           => [],
+            'sources'          => [
+                'gsc'       => false,
+                'ga4'       => false,
+                'ecommerce' => false,
+            ],
+        ];
+
+        $summaries = [];
+        $blank = static function () {
+            return [
+                'impressions' => 0,
+                'clicks'      => 0,
+                'pageviews'   => 0,
+                'purchased'   => 0,
+                'revenue'     => 0.0,
+            ];
+        };
+        $ensure = static function ($product_id) use (&$summaries, $blank) {
+            $product_id = absint($product_id);
+            if ($product_id <= 0) {
+                return 0;
+            }
+            if (!isset($summaries[$product_id])) {
+                $summaries[$product_id] = $blank();
+            }
+            return $product_id;
+        };
+
+        $end_timestamp = current_time('timestamp');
+        $start_timestamp = strtotime('-' . max(0, $days - 1) . ' days', $end_timestamp);
+
+        if (!empty($google['search_console']) && function_exists('seo_google_search_console_query')) {
+            $gsc = seo_google_search_console_query([
+                'startDate'  => wp_date('Y-m-d', $start_timestamp),
+                'endDate'    => wp_date('Y-m-d', $end_timestamp),
+                'dimensions' => ['page'],
+                'rowLimit'   => 25000,
+                'dataState'  => 'all',
+            ]);
+
+            if (is_wp_error($gsc)) {
+                $snapshot['errors'][] = 'Search Console: ' . $gsc->get_error_message();
+            } else {
+                $snapshot['available'] = true;
+                $snapshot['sources']['gsc'] = true;
+                foreach ((array) ($gsc['rows'] ?? []) as $row) {
+                    $product_id = seo_product_reports_resolve_product_url((string) ($row['keys'][0] ?? ''));
+                    $product_id = $ensure($product_id);
+                    if ($product_id <= 0) {
+                        continue;
+                    }
+                    $summaries[$product_id]['impressions'] += max(0, (int) ($row['impressions'] ?? 0));
+                    $summaries[$product_id]['clicks'] += max(0, (int) ($row['clicks'] ?? 0));
+                }
+            }
+        }
+
+        if (!empty($google['analytics']) && function_exists('seo_google_analytics_run_report')) {
+            $ga = seo_google_analytics_run_report([
+                'dateRanges' => [[
+                    'startDate' => max(1, $days - 1) . 'daysAgo',
+                    'endDate'   => 'today',
+                ]],
+                'dimensions' => [
+                    ['name' => 'pagePath'],
+                ],
+                'metrics' => [
+                    ['name' => 'screenPageViews'],
+                ],
+                'limit' => 100000,
+            ]);
+
+            if (is_wp_error($ga)) {
+                $snapshot['errors'][] = 'Analytics: ' . $ga->get_error_message();
+            } else {
+                $snapshot['available'] = true;
+                $snapshot['sources']['ga4'] = true;
+                foreach ((array) ($ga['rows'] ?? []) as $row) {
+                    $product_id = seo_product_reports_resolve_product_url((string) ($row['dimensionValues'][0]['value'] ?? ''));
+                    $product_id = $ensure($product_id);
+                    if ($product_id <= 0) {
+                        continue;
+                    }
+                    $summaries[$product_id]['pageviews'] += max(0, (int) ($row['metricValues'][0]['value'] ?? 0));
+                }
+            }
+
+            $ecommerce = seo_google_analytics_run_report([
+                'dateRanges' => [[
+                    'startDate' => max(1, $days - 1) . 'daysAgo',
+                    'endDate'   => 'today',
+                ]],
+                'dimensions' => [
+                    ['name' => 'itemId'],
+                    ['name' => 'itemName'],
+                ],
+                'metrics' => [
+                    ['name' => 'itemsPurchased'],
+                    ['name' => 'itemRevenue'],
+                ],
+                'limit' => 100000,
+            ]);
+
+            if (is_wp_error($ecommerce)) {
+                $snapshot['errors'][] = 'Ecommerce GA4: ' . $ecommerce->get_error_message();
+            } else {
+                $snapshot['available'] = true;
+                $snapshot['sources']['ecommerce'] = true;
+                foreach ((array) ($ecommerce['rows'] ?? []) as $row) {
+                    $product_id = seo_product_reports_resolve_ecommerce_product(
+                        (string) ($row['dimensionValues'][0]['value'] ?? ''),
+                        (string) ($row['dimensionValues'][1]['value'] ?? '')
+                    );
+                    $product_id = $ensure($product_id);
+                    if ($product_id <= 0) {
+                        continue;
+                    }
+                    $summaries[$product_id]['purchased'] += max(0, (int) ($row['metricValues'][0]['value'] ?? 0));
+                    $summaries[$product_id]['revenue'] += max(0.0, (float) ($row['metricValues'][1]['value'] ?? 0));
+                }
+            }
+        }
+
+        $snapshot['matched_products'] = count($summaries);
+
+        if ($snapshot['available']) {
+            $maxima = [
+                'impressions' => 0,
+                'clicks'      => 0,
+                'pageviews'   => 0,
+                'purchased'   => 0,
+            ];
+            foreach ($summaries as $summary) {
+                foreach ($maxima as $metric => $unused) {
+                    $maxima[$metric] = max($maxima[$metric], (float) ($summary[$metric] ?? 0));
+                }
+            }
+
+            // Ponderacion de rendimiento. Solo entran en el denominador las
+            // metricas que realmente contienen datos en el snapshot actual.
+            $weights = [
+                'impressions' => 15,
+                'clicks'      => 25,
+                'pageviews'   => 25,
+                'purchased'   => 35,
+            ];
+            $active_weight = 0;
+            foreach ($weights as $metric => $weight) {
+                if ($maxima[$metric] > 0) {
+                    $active_weight += $weight;
+                }
+            }
+
+            $meta_fields = ['score', 'impressions', 'clicks', 'pageviews', 'purchased', 'revenue', 'updated'];
+            foreach ($meta_fields as $field) {
+                $meta_key = seo_product_reports_summary_meta_key($field, $days);
+                $wpdb->query(
+                    $wpdb->prepare(
+                        "DELETE pm FROM {$wpdb->postmeta} pm INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id WHERE p.post_type = 'product' AND pm.meta_key = %s",
+                        $meta_key
+                    )
+                );
+            }
+
+            foreach ($summaries as $product_id => $summary) {
+                $score = 0;
+                if ($active_weight > 0) {
+                    $points = 0.0;
+                    foreach ($weights as $metric => $weight) {
+                        $max_value = (float) $maxima[$metric];
+                        if ($max_value <= 0) {
+                            continue;
+                        }
+                        $value = max(0.0, (float) ($summary[$metric] ?? 0));
+                        $normalized = log(1 + $value) / log(1 + $max_value);
+                        $points += $weight * max(0.0, min(1.0, $normalized));
+                    }
+                    $score = (int) round(($points / $active_weight) * 100);
+                }
+
+                update_post_meta($product_id, seo_product_reports_summary_meta_key('score', $days), max(0, min(100, $score)));
+                update_post_meta($product_id, seo_product_reports_summary_meta_key('impressions', $days), (int) $summary['impressions']);
+                update_post_meta($product_id, seo_product_reports_summary_meta_key('clicks', $days), (int) $summary['clicks']);
+                update_post_meta($product_id, seo_product_reports_summary_meta_key('pageviews', $days), (int) $summary['pageviews']);
+                update_post_meta($product_id, seo_product_reports_summary_meta_key('purchased', $days), (int) $summary['purchased']);
+                update_post_meta($product_id, seo_product_reports_summary_meta_key('revenue', $days), (float) $summary['revenue']);
+                update_post_meta($product_id, seo_product_reports_summary_meta_key('updated', $days), (int) $snapshot['generated']);
+
+                if ($score > 0) {
+                    $snapshot['scored_products']++;
+                }
+            }
+        }
+
+        set_transient(
+            $cache_key,
+            $snapshot,
+            $snapshot['available'] ? HOUR_IN_SECONDS : 5 * MINUTE_IN_SECONDS
+        );
+
+        return $snapshot;
+    }
+}
+
+if (!function_exists('seo_product_reports_score_posts_clauses')) {
+    /** Ordena una WP_Query de productos por la puntuacion derivada, con LEFT JOIN. */
+    function seo_product_reports_score_posts_clauses($clauses, $query) {
+        global $wpdb;
+
+        $days = absint($query->get('seo_product_reports_score_days'));
+        if (!in_array($days, [7, 28, 90], true)) {
+            return $clauses;
+        }
+
+        $direction = 'asc' === strtolower((string) $query->get('seo_product_reports_score_order')) ? 'ASC' : 'DESC';
+        $meta_key = seo_product_reports_summary_meta_key('score', $days);
+
+        if (false === strpos($clauses['join'], 'seo_product_score_pm')) {
+            $clauses['join'] .= $wpdb->prepare(
+                " LEFT JOIN (SELECT post_id, MAX(CAST(meta_value AS DECIMAL(10,2))) AS score_value FROM {$wpdb->postmeta} WHERE meta_key = %s GROUP BY post_id) AS seo_product_score_pm ON seo_product_score_pm.post_id = {$wpdb->posts}.ID ",
+                $meta_key
+            );
+        }
+
+        $clauses['orderby'] = 'COALESCE(seo_product_score_pm.score_value, 0) ' . $direction . ', ' . $wpdb->posts . '.post_modified DESC';
+        return $clauses;
     }
 }
 
@@ -677,8 +1058,17 @@ if (!function_exists('seo_product_reports_render_selector')) {
         $search = isset($_GET['q']) ? sanitize_text_field(wp_unslash($_GET['q'])) : '';
         $category_id = isset($_GET['cat']) ? absint($_GET['cat']) : 0;
         $provider = isset($_GET['provider']) ? sanitize_text_field(wp_unslash($_GET['provider'])) : '';
+        $days = seo_product_reports_days($_GET['days'] ?? 28);
+        $score_order = isset($_GET['score_order']) && 'asc' === strtolower((string) $_GET['score_order']) ? 'asc' : 'desc';
         $paged = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
         $per_page = 40;
+
+        $force_snapshot = false;
+        if (isset($_GET['refresh_catalog']) && '1' === (string) $_GET['refresh_catalog']) {
+            $nonce = isset($_GET['_wpnonce']) ? sanitize_text_field(wp_unslash($_GET['_wpnonce'])) : '';
+            $force_snapshot = wp_verify_nonce($nonce, 'seo_product_reports_refresh_catalog_' . $days);
+        }
+        $snapshot = seo_product_reports_catalog_snapshot($days, $force_snapshot);
 
         $categories = get_terms([
             'taxonomy' => 'product_cat',
@@ -699,6 +1089,8 @@ if (!function_exists('seo_product_reports_render_selector')) {
             'paged' => $paged,
             'orderby' => 'modified',
             'order' => 'DESC',
+            'seo_product_reports_score_days' => $days,
+            'seo_product_reports_score_order' => $score_order,
         ];
 
         if ($category_id > 0) {
@@ -744,12 +1136,15 @@ if (!function_exists('seo_product_reports_render_selector')) {
             $args['post__in'] = !empty($forced_ids) ? $forced_ids : [0];
         }
 
+        add_filter('posts_clauses', 'seo_product_reports_score_posts_clauses', 20, 2);
         $query = new WP_Query($args);
+        remove_filter('posts_clauses', 'seo_product_reports_score_posts_clauses', 20);
+
         $google = seo_product_reports_google_state();
 
         echo '<div class="seo-product-report-intro">';
         echo '<h2 style="margin:0 0 6px;">Informes Google por producto</h2>';
-        echo '<p style="margin:0;">Selecciona un producto para ver impresiones, clics, consultas, visitas de GA4 y, cuando exista medicion ecommerce, carrito, compras e ingresos.</p>';
+        echo '<p style="margin:0;">Vista comparativa del catalogo. La puntuacion 0-100 combina las senales disponibles de impresiones, clics, visitas y compras, y permite ordenar todo el catalogo de mayor a menor rendimiento.</p>';
         seo_product_reports_render_status($google);
         echo '</div>';
 
@@ -759,9 +1154,35 @@ if (!function_exists('seo_product_reports_render_selector')) {
             echo '<div class="notice notice-warning inline"><p>La conexion Google aun no tiene Search Console o Analytics configurados con una cuenta de servicio. Configurala en Importar / Exportar &gt; Conexiones.</p></div>';
         }
 
+        if (!empty($snapshot['errors'])) {
+            echo '<div class="notice notice-warning inline"><p><strong>Snapshot parcial:</strong> ' . esc_html(implode(' | ', (array) $snapshot['errors'])) . '</p></div>';
+        }
+
+        $refresh_url = wp_nonce_url(
+            seo_product_reports_admin_url(0, $days, [
+                'q' => $search,
+                'cat' => $category_id,
+                'provider' => $provider,
+                'score_order' => $score_order,
+                'refresh_catalog' => 1,
+            ]),
+            'seo_product_reports_refresh_catalog_' . $days
+        );
+
+        echo '<div class="seo-product-report-catalog-status">';
+        if (!empty($snapshot['available'])) {
+            $generated = wp_date('Y-m-d H:i:s', absint($snapshot['generated'] ?? 0));
+            echo '<span><strong>Estadisticas:</strong> ' . esc_html($days . ' dias') . ' · ' . esc_html(number_format_i18n((int) ($snapshot['matched_products'] ?? 0))) . ' productos con senales · actualizado ' . esc_html($generated) . '</span>';
+        } else {
+            echo '<span>No hay un snapshot agregado disponible todavia.</span>';
+        }
+        echo '<a class="button" href="' . esc_url($refresh_url) . '">Actualizar estadisticas</a>';
+        echo '</div>';
+
         echo '<form method="get" class="seo-product-report-filter">';
         echo '<input type="hidden" name="page" value="product-page-admin">';
         echo '<input type="hidden" name="tab" value="informes">';
+        echo '<input type="hidden" name="score_order" value="' . esc_attr($score_order) . '">';
         echo '<div><label>Buscar</label><input type="text" name="q" value="' . esc_attr($search) . '" placeholder="Titulo, SKU o ID"></div>';
         echo '<div><label>Categoria</label><select name="cat"><option value="">Todas</option>';
         if (function_exists('seo_product_category_option_tree')) {
@@ -773,28 +1194,66 @@ if (!function_exists('seo_product_reports_render_selector')) {
             echo '<option value="' . esc_attr($provider_option) . '" ' . selected($provider, $provider_option, false) . '>' . esc_html($provider_option) . '</option>';
         }
         echo '</select></div>';
-        echo '<div class="seo-product-report-filter-actions"><button class="button button-primary" type="submit">Filtrar</button><a class="button" href="' . esc_url(seo_product_reports_admin_url()) . '">Limpiar</a></div>';
+        echo '<div><label>Periodo</label><select name="days">';
+        foreach ([7 => '7 dias', 28 => '28 dias', 90 => '90 dias'] as $value => $label) {
+            echo '<option value="' . absint($value) . '" ' . selected($days, $value, false) . '>' . esc_html($label) . '</option>';
+        }
+        echo '</select></div>';
+        echo '<div class="seo-product-report-filter-actions"><button class="button button-primary" type="submit">Filtrar</button><a class="button" href="' . esc_url(seo_product_reports_admin_url(0, $days)) . '">Limpiar</a></div>';
         echo '</form>';
 
-        echo '<table class="widefat striped"><thead><tr><th style="width:70px;">ID</th><th style="width:160px;">SKU</th><th>Producto</th><th style="width:180px;">Proveedor</th><th style="width:115px;">Estado</th><th style="width:120px;">Accion</th></tr></thead><tbody>';
+        $toggle_score_order = 'desc' === $score_order ? 'asc' : 'desc';
+        $score_sort_url = seo_product_reports_admin_url(0, $days, [
+            'q' => $search,
+            'cat' => $category_id,
+            'provider' => $provider,
+            'score_order' => $toggle_score_order,
+            'paged' => 1,
+        ]);
+        $score_arrow = 'desc' === $score_order ? '↓' : '↑';
+
+        echo '<div class="seo-product-report-table-wrap"><table class="widefat striped seo-product-report-table"><thead><tr>';
+        echo '<th style="width:70px;">ID</th>';
+        echo '<th style="width:130px;">SKU</th>';
+        echo '<th>Producto</th>';
+        echo '<th style="width:130px;"><a href="' . esc_url($score_sort_url) . '" title="Cambiar orden por puntuacion">Puntuacion ' . esc_html($score_arrow) . '</a><br><small>' . esc_html($days . ' dias') . '</small></th>';
+        echo '<th style="width:105px;">Impresiones</th>';
+        echo '<th style="width:85px;">Clics</th>';
+        echo '<th style="width:85px;">Visitas</th>';
+        echo '<th style="width:85px;">Compras</th>';
+        echo '<th style="width:150px;">Proveedor</th>';
+        echo '<th style="width:115px;">Estado</th>';
+        echo '<th style="width:120px;">Accion</th>';
+        echo '</tr></thead><tbody>';
+
         if (!$query->have_posts()) {
-            echo '<tr><td colspan="6">No se han encontrado productos con estos filtros.</td></tr>';
+            echo '<tr><td colspan="11">No se han encontrado productos con estos filtros.</td></tr>';
         } else {
             foreach ($query->posts as $post) {
                 $wc_product = wc_get_product($post->ID);
                 $sku = $wc_product ? (string) $wc_product->get_sku('edit') : '';
                 $row_provider = (string) get_post_meta($post->ID, '_seo_proveedor', true);
+                $summary = seo_product_reports_get_summary($post->ID, $days);
+                $score = max(0, min(100, absint($summary['score'] ?? 0)));
+                $score_class = $score >= 70 ? 'is-high' : ($score >= 40 ? 'is-medium' : 'is-low');
+                $score_text = !empty($snapshot['available']) ? $score . '/100' : '—';
+
                 echo '<tr>';
                 echo '<td>' . absint($post->ID) . '</td>';
                 echo '<td><code>' . esc_html($sku ?: '—') . '</code></td>';
                 echo '<td><strong>' . esc_html($post->post_title) . '</strong></td>';
+                echo '<td><span class="seo-product-report-score ' . esc_attr($score_class) . '">' . esc_html($score_text) . '</span></td>';
+                echo '<td>' . esc_html(number_format_i18n((int) ($summary['impressions'] ?? 0))) . '</td>';
+                echo '<td>' . esc_html(number_format_i18n((int) ($summary['clicks'] ?? 0))) . '</td>';
+                echo '<td>' . esc_html(number_format_i18n((int) ($summary['pageviews'] ?? 0))) . '</td>';
+                echo '<td>' . esc_html(number_format_i18n((int) ($summary['purchased'] ?? 0))) . '</td>';
                 echo '<td>' . esc_html($row_provider ?: '—') . '</td>';
                 echo '<td>' . esc_html($post->post_status) . '</td>';
-                echo '<td><a class="button button-small" href="' . esc_url(seo_product_reports_admin_url($post->ID, 28)) . '">Ver informe</a></td>';
+                echo '<td><a class="button button-small" href="' . esc_url(seo_product_reports_admin_url($post->ID, $days)) . '">Ver informe</a></td>';
                 echo '</tr>';
             }
         }
-        echo '</tbody></table>';
+        echo '</tbody></table></div>';
 
         if ($query->max_num_pages > 1) {
             $base_args = [
@@ -803,6 +1262,8 @@ if (!function_exists('seo_product_reports_render_selector')) {
                 'q' => $search,
                 'cat' => $category_id,
                 'provider' => $provider,
+                'days' => $days,
+                'score_order' => $score_order,
                 'paged' => '%#%',
             ];
             echo '<div style="margin-top:18px;">';
@@ -851,7 +1312,11 @@ if (!function_exists('seo_product_reports_page')) {
         .seo-product-report-bar-col{height:100%;min-width:18px;flex:1;display:flex;align-items:flex-end;position:relative}
         .seo-product-report-bar{width:100%;min-height:2px;background:#2271b1;border-radius:2px 2px 0 0}
         .seo-product-report-bar-col span{position:absolute;bottom:-19px;left:50%;transform:translateX(-50%);font-size:9px;color:#646970;white-space:nowrap}
-        .seo-product-report-filter{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:16px;margin:18px 0;display:grid;grid-template-columns:2fr 1.2fr 1.2fr auto;gap:12px;align-items:end}
+        .seo-product-report-filter{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:16px;margin:18px 0;display:grid;grid-template-columns:2fr 1.2fr 1.2fr 0.8fr auto;gap:12px;align-items:end}
+        .seo-product-report-catalog-status{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:12px 14px;margin:0 0 18px}
+        .seo-product-report-table-wrap{overflow:auto}.seo-product-report-table{min-width:1180px}.seo-product-report-table th small{font-weight:400;color:#646970}
+        .seo-product-report-score{display:inline-block;min-width:58px;text-align:center;padding:5px 8px;border-radius:999px;font-weight:700;background:#f0f0f1;color:#50575e}
+        .seo-product-report-score.is-medium{background:#fff8e5;color:#996800}.seo-product-report-score.is-high{background:#edfaef;color:#008a20}
         .seo-product-report-filter label{display:block;font-weight:600;margin-bottom:5px}.seo-product-report-filter input,.seo-product-report-filter select{width:100%}
         .seo-product-report-filter-actions{display:flex;gap:6px}
         @media(max-width:900px){.seo-product-report-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.seo-product-report-filter{grid-template-columns:1fr 1fr}}
