@@ -18,7 +18,7 @@ if (is_readable($seo_post_reports_file)) {
 
 if (!function_exists('seo_post_editor_allowed_statuses')) {
     function seo_post_editor_allowed_statuses() {
-        return array('publish', 'draft', 'pending', 'private');
+        return array('publish', 'future', 'draft', 'pending', 'private');
     }
 }
 
@@ -461,6 +461,12 @@ if (!function_exists('seo_post_editor_handle_save')) {
             $status = 'draft';
         }
 
+        // Un post ya programado puede seguir en estado future conservando su fecha.
+        // Para nuevas entradas no ofrecemos programacion sin un campo de fecha/hora.
+        if ($post_id <= 0 && $status === 'future') {
+            $status = 'draft';
+        }
+
         $product_cat_ids = isset($_POST['product_cat_ids'])
             ? (array) wp_unslash($_POST['product_cat_ids'])
             : array();
@@ -704,6 +710,9 @@ if (!function_exists('seo_page_edit_posts')) {
                                     <label for="seo-post-status" style="display:block;font-weight:600;margin-bottom:5px;">Estado</label>
                                     <select id="seo-post-status" name="post_status" style="width:100%;">
                                         <option value="publish" <?php selected($status, 'publish'); ?>>Publicado</option>
+                                        <?php if (!$creating || $status === 'future'): ?>
+                                            <option value="future" <?php selected($status, 'future'); ?>>Programado</option>
+                                        <?php endif; ?>
                                         <option value="draft" <?php selected($status, 'draft'); ?>>Borrador</option>
                                         <option value="pending" <?php selected($status, 'pending'); ?>>Pendiente</option>
                                         <option value="private" <?php selected($status, 'private'); ?>>Privado</option>

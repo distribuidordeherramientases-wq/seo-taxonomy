@@ -1685,7 +1685,14 @@ function seo_render_anomalies_report() {
         foreach ($posts_without_product_category as $post_row) {
             $post_id  = (int) $post_row->post_id;
             $title    = $post_row->post_title ?: '(Sin título)';
-            $edit_url = get_edit_post_link($post_id, 'raw');
+            // Abrir el editor SEO del plugin, no el editor clasico de WordPress.
+            $edit_url = add_query_arg(
+                array(
+                    'page'    => 'seo-post-editor',
+                    'post_id' => $post_id,
+                ),
+                admin_url('edit.php')
+            );
             $view_url = get_permalink($post_id);
 
             echo '<div style="margin:0 0 10px;padding:10px 12px;background:#fff;border-left:4px solid #d63638;">';
