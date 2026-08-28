@@ -38,3 +38,4 @@ jobs:
             **/node_modules/**
             **/*.bak
             **/*.md
+            **/*.pot
