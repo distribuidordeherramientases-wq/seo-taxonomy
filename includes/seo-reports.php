@@ -346,6 +346,49 @@ function seo_render_executive_summary_card(
 
 
 /**
+ * Precarga la semantica canonica de categorias desde Vocabulary.
+ *
+ * @param int[] $category_ids IDs de product_cat.
+ * @return array<int,array<string,array<int,string>>>
+ */
+function seo_reports_category_vocabulary_map($category_ids = array()) {
+    global $wpdb;
+
+    $category_ids = array_values(array_unique(array_filter(array_map('absint', (array) $category_ids))));
+    $where_ids = '';
+    if (!empty($category_ids)) {
+        $where_ids = ' AND ov.object_id IN (' . implode(',', $category_ids) . ')';
+    }
+
+    $rows = $wpdb->get_results(
+        "SELECT ov.object_id, v.semantic_group, v.label\n"
+        . "FROM {$wpdb->prefix}seo_object_vocabulary ov\n"
+        . "JOIN {$wpdb->prefix}seo_vocabulary v ON v.id = ov.vocabulary_id\n"
+        . "WHERE ov.object_type = 'product_cat'\n"
+        . "  AND ov.status = 1\n"
+        . "  AND v.active = 1\n"
+        . "  AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')\n"
+        . $where_ids . "\n"
+        . "ORDER BY ov.object_id, FIELD(v.semantic_group,'rol','tipo','aplicacion','plataforma','subtipo'), v.label"
+    );
+
+    $map = array();
+    foreach ((array) $rows as $row) {
+        $object_id = absint($row->object_id ?? 0);
+        $group = sanitize_key((string) ($row->semantic_group ?? ''));
+        $label = trim((string) ($row->label ?? ''));
+        if ($object_id < 1 || $label === '' || !in_array($group, array('rol','tipo','aplicacion','plataforma','subtipo'), true)) {
+            continue;
+        }
+        if (!isset($map[$object_id])) $map[$object_id] = array();
+        if (!isset($map[$object_id][$group])) $map[$object_id][$group] = array();
+        if (!in_array($label, $map[$object_id][$group], true)) $map[$object_id][$group][] = $label;
+    }
+
+    return $map;
+}
+
+/**
  * PESTAÑA: Categorías (Antigua Estructura Total)
  */
 function seo_render_total_structure_report() {
@@ -363,6 +406,10 @@ function seo_render_total_structure_report() {
     ]);
     
         if (!empty($categories) && !is_wp_error($categories)) {
+
+            $category_vocabulary = seo_reports_category_vocabulary_map(
+                array_map(static function ($term) { return absint($term->term_id); }, $categories)
+            );
         
             echo '<div style="margin-top: 20px;">';
         
@@ -450,57 +497,38 @@ function seo_render_total_structure_report() {
             
             /*
             |--------------------------------------------------------------------------
-            | ETIQUETAS SEO
+            | VOCABULARY CANONICO
             |--------------------------------------------------------------------------
             */
-            
             echo "<div style='margin-top:15px;padding:12px;background:#fff7ed;border-left:3px solid #ff9800;'>";
-            
-            echo "<strong>🏷 Etiquetas SEO:</strong><br>";
-            
-            
-            $seo_keywords = $wpdb->get_var($wpdb->prepare("
-                SELECT keywords
-                FROM {$wpdb->prefix}seo_nodes
-                WHERE object_type = %s
-                AND object_id = %d
-                AND seo_role = %s
-                LIMIT 1
-            ",
-                'category',
-                $cat->term_id,
-                'category'
-            ));
-            
-            
-            if (!empty($seo_keywords)) {
-            
-            
-                $keywords_array = array_filter(
-                    array_map('trim', explode(',', $seo_keywords))
-                );
-            
-            
-                foreach ($keywords_array as $keyword) {
-            
+            echo "<strong>🏷 Vocabulary:</strong><br>";
+
+            $semantic_groups = $category_vocabulary[$cat->term_id] ?? array();
+            $group_labels = array(
+                'rol'        => 'ROL',
+                'tipo'       => 'TIPO',
+                'aplicacion' => 'APLICACIÓN',
+                'plataforma' => 'PLATAFORMA',
+                'subtipo'    => 'SUBTIPO',
+            );
+
+            $has_semantics = false;
+            foreach ($group_labels as $group_key => $group_label) {
+                foreach ((array) ($semantic_groups[$group_key] ?? array()) as $label) {
+                    $has_semantics = true;
                     echo "<span style='display:inline-block;background:#eee;padding:3px 8px;margin:3px;border-radius:3px;'>"
-                    . esc_html($keyword) .
-                    "</span>";
-            
+                        . '<strong>' . esc_html($group_label) . ':</strong> ' . esc_html($label)
+                        . "</span>";
                 }
-            
-            
-            } else {
-            
-                echo "<em>Sin etiquetas SEO.</em>";
-            
             }
-            
-            
+
+            if (!$has_semantics) {
+                echo "<em>Sin Vocabulary canónico.</em>";
+            }
+
             echo "</div>";
-            
-            
-            
+
+
                 /*
                 |--------------------------------------------------------------------------
                 | EXCERPT / DESCRIPCIÓN
@@ -602,6 +630,142 @@ function seo_get_faq_table_name() {
     return $faq_exists === $faq_table ? $faq_table : false;
 }
 
+
+/**
+ * Borra por ID filas ya inventariadas usando exclusivamente SEO Data Layer.
+ *
+ * @param string $table_key Clave logica registrada.
+ * @param int[]  $ids       Claves primarias id.
+ * @param string $type      Tipo de operacion.
+ * @param string $label     Etiqueta auditada.
+ * @param array  $metadata  Contexto adicional.
+ * @return int Filas eliminadas.
+ */
+function seo_reports_data_layer_delete_ids($table_key, $ids, $type, $label, $metadata = array()) {
+    $ids = array_values(array_unique(array_filter(array_map('absint', (array) $ids))));
+    if (empty($ids)) return 0;
+
+    if (!class_exists('SEO_Data_Layer') || !class_exists('SEO_Data_Operation')) {
+        throw new RuntimeException('SEO Data Layer no está disponible. No se ha eliminado ninguna fila SEO.');
+    }
+
+    SEO_Data_Layer::table($table_key);
+    $operation = SEO_Data_Layer::operation(array(
+        'type'          => sanitize_key($type),
+        'label'         => sanitize_text_field($label),
+        'source_module' => 'seo_reports',
+        'rollbackable'  => true,
+        'risk_level'    => 'medium',
+        'audit_level'   => 'full',
+        'metadata'      => array_merge((array) $metadata, array('table_key' => $table_key, 'rows' => count($ids))),
+    ));
+    $operation->mark_validated(array('validated_rows' => count($ids)));
+    $operation->mark_previewed(count($ids));
+
+    return (int) $operation->execute(
+        static function (SEO_Data_Operation $op) use ($table_key, $ids, $metadata) {
+            $deleted = 0;
+            foreach ($ids as $id) {
+                $op->delete($table_key, array('id' => $id), (array) $metadata);
+                $deleted++;
+            }
+            return $deleted;
+        }
+    );
+}
+
+/**
+ * Limpia datos SEO propios de una product_cat ya eliminada.
+ * WordPress gestiona term/term_taxonomy; nuestras tablas se limpian por Data Layer.
+ */
+function seo_reports_cleanup_deleted_category_data($term_id, $faq_table = false) {
+    global $wpdb;
+
+    $term_id = absint($term_id);
+    $empty = array('relations' => 0, 'nodes' => 0, 'vocabulary' => 0, 'faqs' => 0);
+    if ($term_id < 1) return $empty;
+
+    if (!class_exists('SEO_Data_Layer') || !class_exists('SEO_Data_Operation')) {
+        throw new RuntimeException('SEO Data Layer no está disponible.');
+    }
+
+    $ids = array(
+        'relations' => $wpdb->get_col($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}seo_relations\n"
+            . "WHERE (source_type='product_cat' AND source_id=%d)\n"
+            . "   OR (target_type='product_cat' AND target_id=%d)",
+            $term_id,
+            $term_id
+        )),
+        'nodes' => $wpdb->get_col($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}seo_nodes WHERE object_type='category' AND object_id=%d",
+            $term_id
+        )),
+        'object_vocabulary' => $wpdb->get_col($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}seo_object_vocabulary WHERE object_type='product_cat' AND object_id=%d",
+            $term_id
+        )),
+        'faqs' => array(),
+    );
+
+    if ($faq_table) {
+        $ids['faqs'] = $wpdb->get_col($wpdb->prepare(
+            "SELECT id FROM {$faq_table} WHERE object_type=2 AND object_id=%d",
+            $term_id
+        ));
+    }
+
+    foreach ($ids as $table_key => $row_ids) {
+        $ids[$table_key] = array_values(array_unique(array_filter(array_map('absint', (array) $row_ids))));
+        if (!empty($ids[$table_key])) SEO_Data_Layer::table($table_key);
+    }
+
+    $expected = array_sum(array_map('count', $ids));
+    if ($expected < 1) return $empty;
+
+    $operation = SEO_Data_Layer::operation(array(
+        'type'          => 'delete_category_seo_data',
+        'label'         => 'Limpiar datos SEO de categoría eliminada #' . $term_id,
+        'source_module' => 'seo_reports',
+        'rollbackable'  => true,
+        'risk_level'    => 'medium',
+        'audit_level'   => 'full',
+        'metadata'      => array(
+            'related_object_type' => 'product_cat',
+            'related_object_id'   => $term_id,
+            'relations'           => count($ids['relations']),
+            'nodes'               => count($ids['nodes']),
+            'vocabulary'          => count($ids['object_vocabulary']),
+            'faqs'                => count($ids['faqs']),
+        ),
+    ));
+    $operation->mark_validated(array('validated_rows' => $expected));
+    $operation->mark_previewed($expected);
+
+    return (array) $operation->execute(
+        static function (SEO_Data_Operation $op) use ($ids, $term_id) {
+            $counts = array('relations' => 0, 'nodes' => 0, 'vocabulary' => 0, 'faqs' => 0);
+            foreach ($ids['relations'] as $id) {
+                $op->delete('relations', array('id' => $id), array('related_object_type' => 'product_cat', 'related_object_id' => $term_id));
+                $counts['relations']++;
+            }
+            foreach ($ids['nodes'] as $id) {
+                $op->delete('nodes', array('id' => $id), array('related_object_type' => 'product_cat', 'related_object_id' => $term_id));
+                $counts['nodes']++;
+            }
+            foreach ($ids['object_vocabulary'] as $id) {
+                $op->delete('object_vocabulary', array('id' => $id), array('related_object_type' => 'product_cat', 'related_object_id' => $term_id));
+                $counts['vocabulary']++;
+            }
+            foreach ($ids['faqs'] as $id) {
+                $op->delete('faqs', array('id' => $id), array('related_object_type' => 'product_cat', 'related_object_id' => $term_id));
+                $counts['faqs']++;
+            }
+            return $counts;
+        }
+    );
+}
+
 /**
  * Elimina únicamente FAQs de categorías product_cat que ya no existen.
  * La condición de orfandad se recalcula en el momento del borrado.
@@ -624,19 +788,27 @@ function seo_delete_orphan_category_faqs_handler() {
         wp_die('No se encuentra la tabla de FAQs.');
     }
 
-    // DELETE con JOIN: solo borra las filas que siguen huérfanas ahora mismo.
-    $deleted = $wpdb->query(
-        "DELETE f
+    $orphan_ids = $wpdb->get_col(
+        "SELECT f.id
          FROM {$faq_table} f
          LEFT JOIN {$wpdb->term_taxonomy} tt
             ON tt.term_id = f.object_id
            AND tt.taxonomy = 'product_cat'
          WHERE f.object_type = 2
-           AND tt.term_id IS NULL"
+           AND tt.term_id IS NULL
+         ORDER BY f.id ASC"
     );
 
-    if ($deleted === false) {
-        wp_die('No se pudieron eliminar las FAQs huérfanas de categorías.');
+    try {
+        $deleted = seo_reports_data_layer_delete_ids(
+            'faqs',
+            $orphan_ids,
+            'delete_orphan_category_faqs',
+            'Eliminar FAQs huérfanas de categorías',
+            array('object_type' => 2, 'reason' => 'orphan_category')
+        );
+    } catch (Throwable $e) {
+        wp_die('No se pudieron eliminar las FAQs huérfanas de categorías: ' . esc_html($e->getMessage()));
     }
 
     $redirect_url = add_query_arg(
@@ -675,18 +847,26 @@ function seo_delete_orphan_product_faqs_handler() {
         wp_die('No se encuentra la tabla de FAQs.');
     }
 
-    // Se considera desaparecido si el ID ya no existe o ya no corresponde a product.
-    $deleted = $wpdb->query(
-        "DELETE f
+    $orphan_ids = $wpdb->get_col(
+        "SELECT f.id
          FROM {$faq_table} f
          LEFT JOIN {$wpdb->posts} p
             ON p.ID = f.object_id
          WHERE f.object_type = 3
-           AND (p.ID IS NULL OR p.post_type <> 'product')"
+           AND (p.ID IS NULL OR p.post_type <> 'product')
+         ORDER BY f.id ASC"
     );
 
-    if ($deleted === false) {
-        wp_die('No se pudieron eliminar las FAQs huérfanas de productos.');
+    try {
+        $deleted = seo_reports_data_layer_delete_ids(
+            'faqs',
+            $orphan_ids,
+            'delete_orphan_product_faqs',
+            'Eliminar FAQs huérfanas de productos',
+            array('object_type' => 3, 'reason' => 'orphan_product')
+        );
+    } catch (Throwable $e) {
+        wp_die('No se pudieron eliminar las FAQs huérfanas de productos: ' . esc_html($e->getMessage()));
     }
 
     $redirect_url = add_query_arg(
@@ -1063,9 +1243,8 @@ function seo_delete_empty_product_categories_handler() {
     $relations_deleted = 0;
     $nodes_deleted = 0;
     $faqs_deleted = 0;
+    $vocabulary_deleted = 0;
 
-    $relations_table = $wpdb->prefix . 'seo_relations';
-    $nodes_table     = $wpdb->prefix . 'seo_nodes';
     $faq_table       = function_exists('seo_get_faq_table_name')
         ? seo_get_faq_table_name()
         : false;
@@ -1087,51 +1266,17 @@ function seo_delete_empty_product_categories_handler() {
             continue;
         }
 
-        // Limpia cualquier relación SEO en la que la categoría aparezca
-        // como origen o destino.
-        $deleted_relations = $wpdb->query(
-            $wpdb->prepare(
-                "DELETE FROM {$relations_table}
-                 WHERE (source_type = 'product_cat' AND source_id = %d)
-                    OR (target_type = 'product_cat' AND target_id = %d)",
-                $term_id,
-                $term_id
-            )
-        );
-
-        if ($deleted_relations !== false) {
-            $relations_deleted += (int) $deleted_relations;
-        }
-
-        // Elimina los datos SEO propios de la categoría ya desaparecida.
-        $deleted_nodes = $wpdb->query(
-            $wpdb->prepare(
-                "DELETE FROM {$nodes_table}
-                 WHERE object_type = 'category'
-                   AND object_id = %d",
-                $term_id
-            )
-        );
-
-        if ($deleted_nodes !== false) {
-            $nodes_deleted += (int) $deleted_nodes;
-        }
-
-        // Las FAQs de una categoría eliminada dejarían de tener sentido y
-        // aparecerían inmediatamente como huérfanas en este mismo informe.
-        if ($faq_table) {
-            $deleted_faqs = $wpdb->query(
-                $wpdb->prepare(
-                    "DELETE FROM {$faq_table}
-                     WHERE object_type = 2
-                       AND object_id = %d",
-                    $term_id
-                )
-            );
-
-            if ($deleted_faqs !== false) {
-                $faqs_deleted += (int) $deleted_faqs;
-            }
+        // Limpia nuestras tablas únicamente mediante SEO Data Layer.
+        try {
+            $cleanup = seo_reports_cleanup_deleted_category_data($term_id, $faq_table);
+            $relations_deleted += (int) ($cleanup['relations'] ?? 0);
+            $nodes_deleted += (int) ($cleanup['nodes'] ?? 0);
+            $vocabulary_deleted += (int) ($cleanup['vocabulary'] ?? 0);
+            $faqs_deleted += (int) ($cleanup['faqs'] ?? 0);
+        } catch (Throwable $e) {
+            // La categoría WordPress ya fue eliminada. Dejamos el residuo visible
+            // para que la auditoría pueda detectarlo en lugar de ejecutar SQL directo.
+            error_log('[SEO Reports] Limpieza Data Layer de categoría #' . $term_id . ': ' . $e->getMessage());
         }
 
         $deleted++;
@@ -1145,6 +1290,7 @@ function seo_delete_empty_product_categories_handler() {
             'empty_categories_skipped'     => $skipped,
             'empty_relations_deleted'      => $relations_deleted,
             'empty_nodes_deleted'          => $nodes_deleted,
+            'empty_vocabulary_deleted'     => $vocabulary_deleted,
             'empty_category_faqs_deleted'  => $faqs_deleted,
         ),
         admin_url('admin.php')

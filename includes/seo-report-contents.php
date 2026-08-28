@@ -7,7 +7,7 @@
  *
  * Fuentes utilizadas:
  * - Clusters / hubs: wp_posts (excerpt/description) + wp_seo_nodes (etiquetas).
- * - Categorias: wp_seo_nodes (category/excerpt/description) + termmeta seo_excerpt visible.
+ * - Categorias: Vocabulary canonico (ROL/TIPO/APLICACION/PLATAFORMA/SUBTIPO) + wp_seo_nodes (excerpt/description) + termmeta seo_excerpt visible.
  * - Productos: wp_posts (excerpt/description) + wp_seo_nodes (etiquetas) + wp_seo_attributes.
  */
 
@@ -173,7 +173,9 @@ function seo_report_contents_get_page_duplicate_count($role, $field) {
 }
 
 /**
- * Subconsulta pivot de contenido de categorias en seo_nodes.
+ * Subconsulta pivot del contenido editorial de categorias en seo_nodes.
+ *
+ * La semantica de categoria ya no vive aqui: solo excerpt y description.
  */
 function seo_report_contents_category_nodes_subquery() {
     global $wpdb;
@@ -183,14 +185,52 @@ function seo_report_contents_category_nodes_subquery() {
     return "
         SELECT
             object_id,
-            MAX(CASE WHEN seo_role = 'category' THEN NULLIF(TRIM(keywords), '') END) AS etiquetas,
             MAX(CASE WHEN seo_role = 'excerpt' THEN NULLIF(TRIM(keywords), '') END) AS excerpt_node,
             MAX(CASE WHEN seo_role = 'description' THEN NULLIF(TRIM(keywords), '') END) AS description_node
         FROM {$nodes_table}
         WHERE object_type = 'category'
           AND status = 1
-          AND seo_role IN ('category', 'excerpt', 'description')
+          AND seo_role IN ('excerpt', 'description')
         GROUP BY object_id
+    ";
+}
+
+/**
+ * Subconsulta de semantica canonica de categorias, una fila por product_cat.
+ */
+function seo_report_contents_category_tags_subquery() {
+    global $wpdb;
+
+    $vocabulary_table = $wpdb->prefix . 'seo_vocabulary';
+    $object_table = $wpdb->prefix . 'seo_object_vocabulary';
+
+    return "
+        SELECT
+            ov.object_id,
+            GROUP_CONCAT(
+                DISTINCT CONCAT(
+                    CASE v.semantic_group
+                        WHEN 'rol' THEN 'ROL'
+                        WHEN 'tipo' THEN 'TIPO'
+                        WHEN 'aplicacion' THEN 'APLICACION'
+                        WHEN 'plataforma' THEN 'PLATAFORMA'
+                        WHEN 'subtipo' THEN 'SUBTIPO'
+                        ELSE UPPER(v.semantic_group)
+                    END,
+                    ': ',
+                    v.label
+                )
+                ORDER BY FIELD(v.semantic_group, 'rol','tipo','aplicacion','plataforma','subtipo'), v.label
+                SEPARATOR ' | '
+            ) AS etiquetas
+        FROM {$object_table} ov
+        JOIN {$vocabulary_table} v
+          ON v.id = ov.vocabulary_id
+         AND v.active = 1
+         AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
+        WHERE ov.object_type = 'product_cat'
+          AND ov.status = 1
+        GROUP BY ov.object_id
     ";
 }
 
@@ -217,6 +257,7 @@ function seo_report_contents_get_category_summary() {
     global $wpdb;
 
     $node_subquery = seo_report_contents_category_nodes_subquery();
+    $tags_subquery = seo_report_contents_category_tags_subquery();
     $visible_subquery = seo_report_contents_category_visible_excerpt_subquery();
 
     $row = $wpdb->get_row("
@@ -224,7 +265,7 @@ function seo_report_contents_get_category_summary() {
             COUNT(*) AS total,
             SUM(CASE WHEN TRIM(COALESCE(n.excerpt_node, '')) = '' THEN 1 ELSE 0 END) AS missing_excerpt,
             SUM(CASE WHEN TRIM(COALESCE(n.description_node, '')) = '' THEN 1 ELSE 0 END) AS missing_description,
-            SUM(CASE WHEN TRIM(COALESCE(n.etiquetas, '')) = '' THEN 1 ELSE 0 END) AS missing_tags,
+            SUM(CASE WHEN TRIM(COALESCE(s.etiquetas, '')) = '' THEN 1 ELSE 0 END) AS missing_tags,
             SUM(CASE WHEN TRIM(COALESCE(v.visible_excerpt, '')) = '' THEN 1 ELSE 0 END) AS missing_visible_excerpt,
             SUM(CASE
                 WHEN TRIM(COALESCE(n.excerpt_node, '')) <> TRIM(COALESCE(v.visible_excerpt, ''))
@@ -233,7 +274,7 @@ function seo_report_contents_get_category_summary() {
             SUM(CASE
                 WHEN TRIM(COALESCE(n.excerpt_node, '')) <> ''
                  AND TRIM(COALESCE(n.description_node, '')) <> ''
-                 AND TRIM(COALESCE(n.etiquetas, '')) <> ''
+                 AND TRIM(COALESCE(s.etiquetas, '')) <> ''
                 THEN 1 ELSE 0 END
             ) AS complete
         FROM {$wpdb->term_taxonomy} tt
@@ -241,6 +282,8 @@ function seo_report_contents_get_category_summary() {
             ON t.term_id = tt.term_id
         LEFT JOIN ({$node_subquery}) n
             ON n.object_id = tt.term_id
+        LEFT JOIN ({$tags_subquery}) s
+            ON s.object_id = tt.term_id
         LEFT JOIN ({$visible_subquery}) v
             ON v.term_id = tt.term_id
         WHERE tt.taxonomy = 'product_cat'
@@ -787,6 +830,7 @@ function seo_report_contents_get_affected_rows($level, $issue, $limit, $offset) 
 
     if ($level === 'category') {
         $node_subquery = seo_report_contents_category_nodes_subquery();
+        $tags_subquery = seo_report_contents_category_tags_subquery();
         $visible_subquery = seo_report_contents_category_visible_excerpt_subquery();
 
         $where = '';
@@ -795,7 +839,7 @@ function seo_report_contents_get_affected_rows($level, $issue, $limit, $offset) 
         } elseif ($issue === 'missing_description') {
             $where = "TRIM(COALESCE(n.description_node, '')) = ''";
         } elseif ($issue === 'missing_tags') {
-            $where = "TRIM(COALESCE(n.etiquetas, '')) = ''";
+            $where = "TRIM(COALESCE(s.etiquetas, '')) = ''";
         } elseif ($issue === 'missing_visible_excerpt') {
             $where = "TRIM(COALESCE(v.visible_excerpt, '')) = ''";
         } elseif ($issue === 'excerpt_desync') {
@@ -838,6 +882,7 @@ function seo_report_contents_get_affected_rows($level, $issue, $limit, $offset) 
             FROM {$wpdb->term_taxonomy} tt
             INNER JOIN {$wpdb->terms} t ON t.term_id = tt.term_id
             LEFT JOIN ({$node_subquery}) n ON n.object_id = tt.term_id
+            LEFT JOIN ({$tags_subquery}) s ON s.object_id = tt.term_id
             LEFT JOIN ({$visible_subquery}) v ON v.term_id = tt.term_id
             WHERE tt.taxonomy = 'product_cat'
               AND {$where}
@@ -851,7 +896,7 @@ function seo_report_contents_get_affected_rows($level, $issue, $limit, $offset) 
                 'product_cat' AS status,
                 n.excerpt_node AS excerpt_value,
                 n.description_node AS description_value,
-                n.etiquetas AS tags_value,
+                s.etiquetas AS tags_value,
                 v.visible_excerpt AS visible_excerpt
             {$base_from}
             ORDER BY t.name ASC, tt.term_id ASC
@@ -1229,7 +1274,7 @@ function seo_report_contents_render_page() {
     echo '</div>';
 
     echo '<div style="background:#f0f6fc;border-left:4px solid #2271b1;padding:12px 14px;margin:14px 0 20px;line-height:1.6;">';
-    echo '<strong>Fuentes:</strong> clusters y hubs leen <code>wp_posts</code> para excerpt/description y <code>wp_seo_nodes.keywords</code> para etiquetas; categorias leen roles <code>category</code>, <code>excerpt</code> y <code>description</code> de <code>wp_seo_nodes</code>; productos leen contenido WordPress, etiquetas de <code>seo_nodes</code> y atributos de <code>wp_seo_attributes</code>.';
+    echo '<strong>Fuentes:</strong> clusters y hubs leen <code>wp_posts</code> para excerpt/description y <code>wp_seo_nodes.keywords</code> para sus etiquetas estructurales; categorías leen semántica desde <code>wp_seo_object_vocabulary → wp_seo_vocabulary</code> y mantienen excerpt/description en <code>wp_seo_nodes</code>; productos leen contenido WordPress, semántica desde Vocabulary y atributos de <code>wp_seo_attributes</code>.';
     echo '</div>';
 
     seo_report_contents_render_summary_table($summaries);
