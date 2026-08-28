@@ -429,7 +429,8 @@ if (!in_array($active_tab,
     'categorias',
     'reasignar_categorias',
     'category-anomaly',
-    'schema'
+    'schema',
+    'informes'
 ], true)) {
 
     $active_tab = 'categorias';
@@ -474,6 +475,15 @@ $url_schema = add_query_arg(
     admin_url('admin.php')
 );
 
+// URL PESTANA INFORMES GOOGLE
+$url_informes = add_query_arg(
+    [
+        'page' => $page_slug,
+        'tab'  => 'informes',
+    ],
+    admin_url('admin.php')
+);
+
 echo '<div class="wrap">';
 
 echo '<h1 style="margin-bottom:15px;">Categorías SEO</h1>';
@@ -490,9 +500,26 @@ echo '<h2 class="nav-tab-wrapper" style="margin-bottom:20px;">';
     
     echo '<a href="' . esc_url($url_schema) . '" class="nav-tab ' . ($active_tab === 'schema' ? 'nav-tab-active' : '') . '">Schema</a>';
 
+    echo '<a href="' . esc_url($url_informes) . '" class="nav-tab ' . ($active_tab === 'informes' ? 'nav-tab-active' : '') . '">Informes Google</a>';
+
 
 
 echo '</h2>';
+}
+
+// =========================
+// PESTANA INFORMES GOOGLE
+// =========================
+if ($active_tab === 'informes') {
+
+    if (function_exists('seo_category_reports_page')) {
+        seo_category_reports_page($page_slug);
+    } else {
+        echo '<div class="notice notice-error"><p>No esta disponible el modulo de informes Google por categoria.</p></div>';
+    }
+
+    echo '</div>';
+    return;
 }
 
 if ($active_tab === 'reasignar_categorias') {

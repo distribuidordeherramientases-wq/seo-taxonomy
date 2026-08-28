@@ -90,6 +90,7 @@ require_once SEO_SYSTEM_PATH . 'includes/product-page-admin.php';
 
 require_once SEO_SYSTEM_PATH . 'includes/category-classification.php';
 require_once SEO_SYSTEM_PATH . 'includes/category-anomaly.php';
+require_once SEO_SYSTEM_PATH . 'includes/seo-category-reports.php';
 require_once SEO_SYSTEM_PATH . 'includes/category-admin.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo_schema_search.php';
 
