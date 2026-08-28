@@ -15,6 +15,12 @@ Text Domain: seo-menu-manager
 
 if (!defined('ABSPATH')) exit;
 
+// Vista jerárquica de Taxonomía. Se mantiene separada de seo-reports.php.
+$seo_taxonomy_view_file = __DIR__ . '/seo-taxonomy.php';
+if (is_readable($seo_taxonomy_view_file)) {
+    require_once $seo_taxonomy_view_file;
+}
+
 
 
 /****************************
@@ -34,7 +40,7 @@ function seo_taxonomy_page() {
 
     $semantic_tab = isset($_GET['semantic_tab']) ? sanitize_key($_GET['semantic_tab']) : 'category_labels';
 
-    $allowed_tabs = ['manage_taxonomy', 'semantic'];
+    $allowed_tabs = ['manage_taxonomy', 'taxonomy', 'semantic'];
     if (!in_array($active_tab, $allowed_tabs, true)) {
         $active_tab = 'manage_taxonomy';
     }
@@ -51,6 +57,7 @@ function seo_taxonomy_page() {
 
     echo '<h2 class="nav-tab-wrapper">';
     echo '<a href="' . esc_url(admin_url('admin.php?page=seo-taxonomy&tab=manage_taxonomy')) . '" class="nav-tab ' . ($active_tab === 'manage_taxonomy' ? 'nav-tab-active' : '') . '">Gestión SEO</a>';
+    echo '<a href="' . esc_url(admin_url('admin.php?page=seo-taxonomy&tab=taxonomy')) . '" class="nav-tab ' . ($active_tab === 'taxonomy' ? 'nav-tab-active' : '') . '">Taxonomía</a>';
     echo '<a href="' . esc_url(admin_url('admin.php?page=seo-taxonomy&tab=semantic&semantic_tab=category_labels')) . '" class="nav-tab ' . ($active_tab === 'semantic' ? 'nav-tab-active' : '') . '">Semántica</a>';
     echo '</h2>';
 
@@ -62,6 +69,18 @@ function seo_taxonomy_page() {
             seo_render_taxonomy_ui($data);
         }
         echo '</form>';
+        echo '</div>';
+        echo '</div>';
+        return;
+    }
+
+    if ($active_tab === 'taxonomy') {
+        if (function_exists('seo_render_taxonomy_hierarchy')) {
+            seo_render_taxonomy_hierarchy(false);
+        } else {
+            echo '<div class="notice notice-error inline"><p>No se ha podido cargar la vista jerárquica de Taxonomía desde <code>seo-taxonomy.php</code>.</p></div>';
+        }
+
         echo '</div>';
         echo '</div>';
         return;
