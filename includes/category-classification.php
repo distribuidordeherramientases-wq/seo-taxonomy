@@ -16,28 +16,781 @@ Text Domain: category-classification
 if (!defined('ABSPATH')) exit;
 
 /**
- * Lee un campo editorial de categoría desde wp_seo_nodes.
+ * Capa canónica de semántica para categorías.
  *
- * Contrato de datos:
- * - category    => etiquetas SEO
- * - excerpt     => extracto SEO
- * - description => descripción HTML SEO
+ * Las categorías comparten el mismo diccionario global de wp_seo_vocabulary.
+ * La pertenencia se materializa exclusivamente en wp_seo_object_vocabulary
+ * con object_type = product_cat. Las escrituras en tablas propias pasan por
+ * SEO_Data_Layer para mantener auditoría y rollback.
+ */
+if (!function_exists('seo_category_register_data_layer_tables')) {
+    function seo_category_register_data_layer_tables($tables) {
+        global $wpdb;
+
+        if (!isset($tables['object_vocabulary'])) {
+            $tables['object_vocabulary'] = [
+                'table'       => $wpdb->prefix . 'seo_object_vocabulary',
+                'primary_key' => ['id'],
+                'entity_type' => 'object_vocabulary',
+            ];
+        }
+
+        if (!isset($tables['redirects'])) {
+            $tables['redirects'] = [
+                'table'       => $wpdb->prefix . 'seo_redirects',
+                'primary_key' => ['id'],
+                'entity_type' => 'redirect',
+            ];
+        }
+
+        if (!isset($tables['dictionary'])) {
+            $tables['dictionary'] = [
+                'table'       => $wpdb->prefix . 'seo_dictionari',
+                'primary_key' => ['id'],
+                'entity_type' => 'dictionary_term',
+            ];
+        }
+
+        return $tables;
+    }
+}
+add_filter('seo_data_layer_tables', 'seo_category_register_data_layer_tables');
+
+if (!function_exists('seo_category_vocabulary_groups')) {
+    function seo_category_vocabulary_groups() {
+        return ['rol', 'tipo', 'aplicacion', 'plataforma', 'subtipo'];
+    }
+}
+
+if (!function_exists('seo_category_vocabulary_group_key')) {
+    function seo_category_vocabulary_group_key($group) {
+        $group = remove_accents(mb_strtolower(trim((string) $group), 'UTF-8'));
+        $group = sanitize_key($group);
+        return in_array($group, seo_category_vocabulary_groups(), true) ? $group : '';
+    }
+}
+
+if (!function_exists('seo_category_vocabulary_group_label')) {
+    function seo_category_vocabulary_group_label($group) {
+        $labels = [
+            'rol'        => 'ROL',
+            'tipo'       => 'TIPO',
+            'aplicacion' => 'APLICACIÓN',
+            'plataforma' => 'PLATAFORMA',
+            'subtipo'    => 'SUBTIPO',
+        ];
+        $group = seo_category_vocabulary_group_key($group);
+        return $labels[$group] ?? strtoupper($group);
+    }
+}
+
+if (!function_exists('seo_category_vocabulary_normalize_label')) {
+    function seo_category_vocabulary_normalize_label($value) {
+        $value = html_entity_decode(wp_strip_all_tags((string) $value), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $value = remove_accents(mb_strtolower(trim($value), 'UTF-8'));
+        return trim((string) preg_replace('/\s+/u', ' ', $value));
+    }
+}
+
+if (!function_exists('seo_category_vocabulary_normalize_slug')) {
+    function seo_category_vocabulary_normalize_slug($value) {
+        $value = remove_accents(mb_strtolower(trim((string) $value), 'UTF-8'));
+        $value = preg_replace('/[^a-z0-9]+/u', '_', $value);
+        return trim((string) $value, '_');
+    }
+}
+
+if (!function_exists('seo_category_vocabulary_active_index')) {
+    function seo_category_vocabulary_active_index() {
+        static $index = null;
+        global $wpdb;
+
+        if (is_array($index)) {
+            return $index;
+        }
+
+        $index = [
+            'by_id'    => [],
+            'by_label' => [],
+            'by_slug'  => [],
+        ];
+
+        $table = $wpdb->prefix . 'seo_vocabulary';
+        $rows = $wpdb->get_results(
+            "SELECT id, semantic_group, slug, label\n"
+            . "FROM {$table}\n"
+            . "WHERE active = 1\n"
+            . "  AND semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')\n"
+            . "ORDER BY id ASC",
+            ARRAY_A
+        );
+
+        foreach ((array) $rows as $row) {
+            $group = seo_category_vocabulary_group_key($row['semantic_group'] ?? '');
+            $id = absint($row['id'] ?? 0);
+            if ($group === '' || $id < 1) {
+                continue;
+            }
+
+            $clean = [
+                'id'             => $id,
+                'semantic_group' => $group,
+                'slug'           => (string) ($row['slug'] ?? ''),
+                'label'          => (string) ($row['label'] ?? ''),
+            ];
+            $index['by_id'][$id] = $clean;
+
+            $label_key = seo_category_vocabulary_normalize_label($clean['label']);
+            if ($label_key !== '') {
+                $index['by_label'][$group][$label_key][] = $clean;
+            }
+
+            $slug_key = seo_category_vocabulary_normalize_slug($clean['slug']);
+            if ($slug_key !== '') {
+                $index['by_slug'][$group][$slug_key][] = $clean;
+            }
+        }
+
+        return $index;
+    }
+}
+
+if (!function_exists('seo_category_vocabulary_find_active_term')) {
+    function seo_category_vocabulary_find_active_term($group, $value) {
+        $group = seo_category_vocabulary_group_key($group);
+        $value = trim((string) $value);
+        if ($group === '' || $value === '') {
+            return null;
+        }
+
+        $index = seo_category_vocabulary_active_index();
+        $label_key = seo_category_vocabulary_normalize_label($value);
+        $matches = $index['by_label'][$group][$label_key] ?? [];
+        if (count($matches) === 1) {
+            return $matches[0];
+        }
+        if (count($matches) > 1) {
+            return null;
+        }
+
+        $slug_key = seo_category_vocabulary_normalize_slug($value);
+        $matches = $index['by_slug'][$group][$slug_key] ?? [];
+        return count($matches) === 1 ? $matches[0] : null;
+    }
+}
+
+if (!function_exists('seo_category_vocabulary_rows_map')) {
+    function seo_category_vocabulary_rows_map($category_ids = []) {
+        global $wpdb;
+
+        $category_ids = array_values(array_unique(array_filter(array_map('absint', (array) $category_ids))));
+        $object_table = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocab_table = $wpdb->prefix . 'seo_vocabulary';
+
+        $where_ids = '';
+        if ($category_ids) {
+            $placeholders = implode(',', array_fill(0, count($category_ids), '%d'));
+            $where_ids = $wpdb->prepare(" AND ov.object_id IN ({$placeholders})", ...$category_ids);
+        }
+
+        $rows = $wpdb->get_results(
+            "SELECT ov.id AS assignment_id, ov.object_id, ov.vocabulary_id, ov.source, ov.confidence,\n"
+            . "       v.semantic_group, v.slug, v.label\n"
+            . "FROM {$object_table} ov\n"
+            . "JOIN {$vocab_table} v ON v.id = ov.vocabulary_id\n"
+            . "WHERE ov.object_type = 'product_cat'\n"
+            . "  AND ov.status = 1\n"
+            . "  AND v.active = 1\n"
+            . "  AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')\n"
+            . $where_ids
+            . " ORDER BY ov.object_id ASC, FIELD(v.semantic_group,'rol','tipo','aplicacion','plataforma','subtipo'), v.label ASC, v.id ASC",
+            ARRAY_A
+        );
+
+        $map = [];
+        foreach ((array) $rows as $row) {
+            $object_id = absint($row['object_id'] ?? 0);
+            if ($object_id < 1) {
+                continue;
+            }
+            $row['semantic_group'] = seo_category_vocabulary_group_key($row['semantic_group'] ?? '');
+            $row['vocabulary_id'] = absint($row['vocabulary_id'] ?? 0);
+            $map[$object_id][] = $row;
+        }
+
+        return $map;
+    }
+}
+
+if (!function_exists('seo_category_vocabulary_text_map')) {
+    function seo_category_vocabulary_text_map($category_ids = []) {
+        $rows_map = seo_category_vocabulary_rows_map($category_ids);
+        $result = [];
+
+        foreach ($rows_map as $category_id => $rows) {
+            $labels = [];
+            foreach ($rows as $row) {
+                $label = trim((string) ($row['label'] ?? ''));
+                if ($label !== '') {
+                    $labels[] = $label;
+                }
+            }
+            $result[$category_id] = implode(', ', array_values(array_unique($labels)));
+        }
+
+        return $result;
+    }
+}
+
+if (!function_exists('seo_category_vocabulary_editor_text_map')) {
+    function seo_category_vocabulary_editor_text_map($category_ids = []) {
+        $rows_map = seo_category_vocabulary_rows_map($category_ids);
+        $result = [];
+
+        foreach ($rows_map as $category_id => $rows) {
+            $lines = [];
+            foreach ($rows as $row) {
+                $group = seo_category_vocabulary_group_key($row['semantic_group'] ?? '');
+                $label = trim((string) ($row['label'] ?? ''));
+                if ($group === '' || $label === '') {
+                    continue;
+                }
+                $lines[] = seo_category_vocabulary_group_label($group) . ': ' . $label;
+            }
+            $result[$category_id] = implode("\n", array_values(array_unique($lines)));
+        }
+
+        return $result;
+    }
+}
+
+if (!function_exists('seo_category_vocabulary_text')) {
+    function seo_category_vocabulary_text($category_id) {
+        $category_id = absint($category_id);
+        if ($category_id < 1) {
+            return '';
+        }
+        $map = seo_category_vocabulary_text_map([$category_id]);
+        return (string) ($map[$category_id] ?? '');
+    }
+}
+
+if (!function_exists('seo_category_vocabulary_editor_text')) {
+    function seo_category_vocabulary_editor_text($category_id) {
+        $category_id = absint($category_id);
+        if ($category_id < 1) {
+            return '';
+        }
+        $map = seo_category_vocabulary_editor_text_map([$category_id]);
+        return (string) ($map[$category_id] ?? '');
+    }
+}
+
+if (!function_exists('seo_category_vocabulary_parse_editor_value')) {
+    function seo_category_vocabulary_parse_editor_value($value) {
+        $groups = [];
+        foreach (seo_category_vocabulary_groups() as $group) {
+            $groups[$group] = [];
+        }
+
+        $errors = [];
+        $rows = [];
+        $value = trim((string) $value);
+        if ($value === '') {
+            return ['groups' => $groups, 'errors' => [], 'rows' => []];
+        }
+
+        $lines = preg_split('/\R+/u', $value);
+        foreach ((array) $lines as $line_number => $line) {
+            $line = trim((string) $line);
+            $line = preg_replace('/^[\-\*•]+\s*/u', '', $line);
+            if ($line === '') {
+                continue;
+            }
+
+            if (!preg_match('/^([^:]+):\s*(.+)$/u', $line, $match)) {
+                $errors[] = sprintf(
+                    'Línea %d: usa el formato GRUPO: Etiqueta (por ejemplo, TIPO: Taladro).',
+                    $line_number + 1
+                );
+                continue;
+            }
+
+            $group = seo_category_vocabulary_group_key($match[1]);
+            if ($group === '') {
+                $errors[] = sprintf('Línea %d: grupo semántico no válido.', $line_number + 1);
+                continue;
+            }
+
+            $term = seo_category_vocabulary_find_active_term($group, $match[2]);
+            if (!$term) {
+                $errors[] = sprintf(
+                    'Línea %d: "%s" no existe de forma inequívoca como término activo de %s.',
+                    $line_number + 1,
+                    sanitize_text_field($match[2]),
+                    seo_category_vocabulary_group_label($group)
+                );
+                continue;
+            }
+
+            $term_id = absint($term['id'] ?? 0);
+            if ($term_id > 0 && !in_array($term_id, $groups[$group], true)) {
+                $groups[$group][] = $term_id;
+                $rows[] = $term;
+            }
+        }
+
+        foreach ($groups as $group => $ids) {
+            sort($groups[$group], SORT_NUMERIC);
+        }
+
+        return ['groups' => $groups, 'errors' => $errors, 'rows' => $rows];
+    }
+}
+
+if (!function_exists('seo_category_vocabulary_validate_groups')) {
+    function seo_category_vocabulary_validate_groups(array $groups) {
+        $normalized = [];
+        $index = seo_category_vocabulary_active_index();
+
+        foreach (seo_category_vocabulary_groups() as $group) {
+            $ids = array_values(array_unique(array_filter(array_map('absint', (array) ($groups[$group] ?? [])))));
+            sort($ids, SORT_NUMERIC);
+
+            foreach ($ids as $id) {
+                if (!isset($index['by_id'][$id]) || ($index['by_id'][$id]['semantic_group'] ?? '') !== $group) {
+                    return new WP_Error(
+                        'seo_category_vocabulary_invalid_term',
+                        sprintf('El término %d no es un término activo válido de %s.', $id, seo_category_vocabulary_group_label($group))
+                    );
+                }
+            }
+            $normalized[$group] = $ids;
+        }
+
+        return $normalized;
+    }
+}
+
+if (!function_exists('seo_category_vocabulary_assert_data_layer')) {
+    function seo_category_vocabulary_assert_data_layer($table_key = 'object_vocabulary') {
+        if (!class_exists('SEO_Data_Layer') || !class_exists('SEO_Data_Operation')) {
+            throw new RuntimeException('El Data Layer de SEO Taxonomy no está disponible.');
+        }
+        return SEO_Data_Layer::table($table_key);
+    }
+}
+
+if (!function_exists('seo_category_vocabulary_replace')) {
+    function seo_category_vocabulary_replace($category_id, array $groups, $source = 'category_editor') {
+        global $wpdb;
+
+        $category_id = absint($category_id);
+        $term = get_term($category_id, 'product_cat');
+        if ($category_id < 1 || !$term || is_wp_error($term)) {
+            return new WP_Error('seo_category_not_found', 'La categoría solicitada no existe.');
+        }
+
+        $groups = seo_category_vocabulary_validate_groups($groups);
+        if (is_wp_error($groups)) {
+            return $groups;
+        }
+
+        seo_category_vocabulary_assert_data_layer('object_vocabulary');
+
+        $source = substr(sanitize_key((string) $source), 0, 50);
+        if ($source === '') {
+            $source = 'category_editor';
+        }
+
+        $object_table = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocab_table = $wpdb->prefix . 'seo_vocabulary';
+
+        $current_rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT ov.id, ov.vocabulary_id, ov.status, v.semantic_group\n"
+                . "FROM {$object_table} ov\n"
+                . "JOIN {$vocab_table} v ON v.id = ov.vocabulary_id\n"
+                . "WHERE ov.object_type = 'product_cat'\n"
+                . "  AND ov.object_id = %d\n"
+                . "  AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')\n"
+                . "ORDER BY ov.id ASC",
+                $category_id
+            ),
+            ARRAY_A
+        );
+
+        $current_by_vocabulary = [];
+        foreach ((array) $current_rows as $row) {
+            $vocabulary_id = absint($row['vocabulary_id'] ?? 0);
+            if ($vocabulary_id > 0) {
+                $row['semantic_group'] = seo_category_vocabulary_group_key($row['semantic_group'] ?? '');
+                $current_by_vocabulary[$vocabulary_id] = $row;
+            }
+        }
+
+        $target_by_group = [];
+        $all_target_ids = [];
+        foreach (seo_category_vocabulary_groups() as $group) {
+            $target_by_group[$group] = array_values((array) ($groups[$group] ?? []));
+            foreach ($target_by_group[$group] as $id) {
+                $all_target_ids[$id] = true;
+            }
+        }
+
+        $to_deactivate = [];
+        $to_reactivate = [];
+        $to_insert = [];
+
+        foreach ($current_by_vocabulary as $vocabulary_id => $row) {
+            $group = $row['semantic_group'] ?? '';
+            $is_target = $group !== '' && in_array($vocabulary_id, $target_by_group[$group] ?? [], true);
+            if ((int) ($row['status'] ?? 0) === 1 && !$is_target) {
+                $to_deactivate[] = absint($row['id'] ?? 0);
+            } elseif ((int) ($row['status'] ?? 0) !== 1 && $is_target) {
+                $to_reactivate[] = absint($row['id'] ?? 0);
+            }
+        }
+
+        foreach (array_keys($all_target_ids) as $vocabulary_id) {
+            if (!isset($current_by_vocabulary[$vocabulary_id])) {
+                $to_insert[] = absint($vocabulary_id);
+            }
+        }
+
+        $expected_changes = count($to_deactivate) + count($to_reactivate) + count($to_insert);
+        if ($expected_changes === 0) {
+            return [
+                'changed'        => 0,
+                'deactivated'    => 0,
+                'reactivated'    => 0,
+                'inserted'       => 0,
+                'operation_id'   => 0,
+                'operation_uuid' => '',
+            ];
+        }
+
+        $operation = SEO_Data_Layer::operation([
+            'type'          => 'replace_category_vocabulary',
+            'label'         => 'Actualizar vocabulario canónico de categoría',
+            'source_module' => $source,
+            'rollbackable'  => true,
+            'risk_level'    => 'medium',
+            'audit_level'   => 'full',
+            'metadata'      => [
+                'object_type' => 'product_cat',
+                'object_id'   => $category_id,
+                'deactivate'  => count($to_deactivate),
+                'reactivate'  => count($to_reactivate),
+                'insert'      => count($to_insert),
+            ],
+        ]);
+        $operation->mark_validated(['validated_terms' => count($all_target_ids)]);
+        $operation->mark_previewed($expected_changes);
+
+        $result = $operation->execute(
+            static function (SEO_Data_Operation $op) use ($category_id, $source, $to_deactivate, $to_reactivate, $to_insert) {
+                $now = current_time('mysql');
+                foreach ($to_deactivate as $assignment_id) {
+                    $op->update('object_vocabulary', ['id' => $assignment_id], [
+                        'status'     => 0,
+                        'updated_at' => $now,
+                    ], [
+                        'related_object_type' => 'product_cat',
+                        'related_object_id'   => $category_id,
+                        'reason'              => 'category_vocabulary_removed',
+                    ]);
+                }
+
+                foreach ($to_reactivate as $assignment_id) {
+                    $op->update('object_vocabulary', ['id' => $assignment_id], [
+                        'source'     => $source,
+                        'confidence' => 1.0000,
+                        'status'     => 1,
+                        'updated_at' => $now,
+                    ], [
+                        'related_object_type' => 'product_cat',
+                        'related_object_id'   => $category_id,
+                        'reason'              => 'category_vocabulary_reactivated',
+                    ]);
+                }
+
+                foreach ($to_insert as $vocabulary_id) {
+                    $op->insert('object_vocabulary', [
+                        'object_type'  => 'product_cat',
+                        'object_id'    => $category_id,
+                        'vocabulary_id'=> $vocabulary_id,
+                        'source'       => $source,
+                        'confidence'   => 1.0000,
+                        'status'       => 1,
+                    ], [
+                        'related_object_type' => 'product_cat',
+                        'related_object_id'   => $category_id,
+                        'reason'              => 'category_vocabulary_added',
+                    ]);
+                }
+
+                return [
+                    'changed'     => count($to_deactivate) + count($to_reactivate) + count($to_insert),
+                    'deactivated' => count($to_deactivate),
+                    'reactivated' => count($to_reactivate),
+                    'inserted'    => count($to_insert),
+                ];
+            }
+        );
+
+        $result['operation_id'] = $operation->id();
+        $result['operation_uuid'] = $operation->uuid();
+        return $result;
+    }
+}
+
+if (!function_exists('seo_category_vocabulary_replace_from_editor')) {
+    function seo_category_vocabulary_replace_from_editor($category_id, $value, $source = 'category_editor') {
+        $parsed = seo_category_vocabulary_parse_editor_value($value);
+        if (!empty($parsed['errors'])) {
+            return new WP_Error('seo_category_vocabulary_invalid_editor_value', implode(' ', $parsed['errors']));
+        }
+        return seo_category_vocabulary_replace($category_id, $parsed['groups'], $source);
+    }
+}
+
+if (!function_exists('seo_category_vocabulary_clear')) {
+    function seo_category_vocabulary_clear($category_id, $source = 'category_editor') {
+        $groups = [];
+        foreach (seo_category_vocabulary_groups() as $group) {
+            $groups[$group] = [];
+        }
+        return seo_category_vocabulary_replace($category_id, $groups, $source);
+    }
+}
+
+if (!function_exists('seo_category_vocabulary_remove_term_from_categories')) {
+    function seo_category_vocabulary_remove_term_from_categories($editor_token, $source = 'category_classification') {
+        global $wpdb;
+
+        $parsed = seo_category_vocabulary_parse_editor_value(trim((string) $editor_token));
+        $ids = [];
+        foreach ((array) ($parsed['groups'] ?? []) as $group_ids) {
+            foreach ((array) $group_ids as $id) {
+                $ids[] = absint($id);
+            }
+        }
+        $ids = array_values(array_unique(array_filter($ids)));
+        if (!empty($parsed['errors']) || count($ids) !== 1) {
+            return new WP_Error(
+                'seo_category_vocabulary_remove_invalid',
+                'Indica exactamente un término con formato GRUPO: Etiqueta.'
+            );
+        }
+
+        seo_category_vocabulary_assert_data_layer('object_vocabulary');
+        $object_table = $wpdb->prefix . 'seo_object_vocabulary';
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id, object_id FROM {$object_table}\n"
+                . "WHERE object_type = 'product_cat' AND vocabulary_id = %d AND status = 1\n"
+                . "ORDER BY id ASC",
+                $ids[0]
+            ),
+            ARRAY_A
+        );
+
+        if (!$rows) {
+            return ['objects' => 0, 'operation_id' => 0, 'operation_uuid' => ''];
+        }
+
+        $source = substr(sanitize_key((string) $source), 0, 50);
+        if ($source === '') {
+            $source = 'category_classification';
+        }
+        $operation = SEO_Data_Layer::operation([
+            'type'          => 'remove_category_vocabulary_term',
+            'label'         => 'Retirar término de Vocabulary de categorías',
+            'source_module' => $source,
+            'rollbackable'  => true,
+            'risk_level'    => 'medium',
+            'audit_level'   => 'full',
+            'metadata'      => ['vocabulary_id' => $ids[0], 'rows' => count($rows)],
+        ]);
+        $operation->mark_validated(['validated_rows' => count($rows)]);
+        $operation->mark_previewed(count($rows));
+
+        $objects = $operation->execute(
+            static function (SEO_Data_Operation $op) use ($rows) {
+                $count = 0;
+                $now = current_time('mysql');
+                foreach ($rows as $row) {
+                    $assignment_id = absint($row['id'] ?? 0);
+                    $object_id = absint($row['object_id'] ?? 0);
+                    if ($assignment_id < 1) {
+                        continue;
+                    }
+                    $op->update('object_vocabulary', ['id' => $assignment_id], [
+                        'status'     => 0,
+                        'updated_at' => $now,
+                    ], [
+                        'related_object_type' => 'product_cat',
+                        'related_object_id'   => $object_id,
+                        'reason'              => 'category_global_term_removed',
+                    ]);
+                    $count++;
+                }
+                return $count;
+            }
+        );
+
+        return [
+            'objects'        => (int) $objects,
+            'operation_id'   => $operation->id(),
+            'operation_uuid' => $operation->uuid(),
+        ];
+    }
+}
+
+if (!function_exists('seo_category_node_upsert_with_data_layer')) {
+    function seo_category_node_upsert_with_data_layer($category_id, $role, $value, $source = 'category_admin') {
+        global $wpdb;
+
+        $category_id = absint($category_id);
+        $role = sanitize_key($role);
+        if ($category_id < 1 || !in_array($role, ['excerpt', 'description'], true)) {
+            return new WP_Error('seo_category_node_invalid', 'Campo editorial de categoría no válido.');
+        }
+
+        seo_category_vocabulary_assert_data_layer('nodes');
+        $nodes_table = $wpdb->prefix . 'seo_nodes';
+        $existing_id = absint($wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM {$nodes_table}\n"
+                . "WHERE object_type = 'category' AND object_id = %d AND seo_role = %s\n"
+                . "ORDER BY updated_at DESC, id DESC LIMIT 1",
+                $category_id,
+                $role
+            )
+        ));
+
+        $value = (string) $value;
+        if ($existing_id < 1 && trim($value) === '') {
+            return ['changed' => 0, 'operation_id' => 0, 'operation_uuid' => ''];
+        }
+
+        $source = substr(sanitize_key((string) $source), 0, 50);
+        if ($source === '') {
+            $source = 'category_admin';
+        }
+        $operation = SEO_Data_Layer::operation([
+            'type'          => 'upsert_category_' . $role,
+            'label'         => 'Guardar ' . $role . ' de categoría',
+            'source_module' => $source,
+            'rollbackable'  => true,
+            'risk_level'    => 'low',
+            'audit_level'   => 'full',
+            'metadata'      => ['object_type' => 'category', 'object_id' => $category_id, 'seo_role' => $role],
+        ]);
+        $operation->mark_validated(['object_id' => $category_id]);
+        $operation->mark_previewed(1);
+
+        $operation->execute(
+            static function (SEO_Data_Operation $op) use ($existing_id, $category_id, $role, $value) {
+                $now = current_time('mysql');
+                if ($existing_id > 0) {
+                    $op->update('nodes', ['id' => $existing_id], [
+                        'keywords'   => $value,
+                        'status'     => 1,
+                        'updated_at' => $now,
+                    ], [
+                        'related_object_type' => 'product_cat',
+                        'related_object_id'   => $category_id,
+                        'seo_role'            => $role,
+                    ]);
+                } else {
+                    $op->insert('nodes', [
+                        'object_type' => 'category',
+                        'object_id'   => $category_id,
+                        'seo_role'    => $role,
+                        'keywords'    => $value,
+                        'status'      => 1,
+                        'created_at'  => $now,
+                        'updated_at'  => $now,
+                    ], [
+                        'related_object_type' => 'product_cat',
+                        'related_object_id'   => $category_id,
+                        'seo_role'            => $role,
+                    ]);
+                }
+            }
+        );
+
+        return ['changed' => 1, 'operation_id' => $operation->id(), 'operation_uuid' => $operation->uuid()];
+    }
+}
+
+if (!function_exists('seo_category_insert_stopword_with_data_layer')) {
+    function seo_category_insert_stopword_with_data_layer($word, $source = 'category_classification') {
+        global $wpdb;
+
+        $word = sanitize_text_field(mb_strtolower(trim((string) $word), 'UTF-8'));
+        if ($word === '') {
+            return new WP_Error('seo_category_stopword_empty', 'La palabra bloqueante está vacía.');
+        }
+
+        seo_category_vocabulary_assert_data_layer('dictionary');
+        $table = $wpdb->prefix . 'seo_dictionari';
+        $existing = absint($wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE palabra = %s LIMIT 1", $word)));
+        if ($existing > 0) {
+            return ['inserted' => 0, 'operation_id' => 0, 'operation_uuid' => ''];
+        }
+
+        $source = substr(sanitize_key((string) $source), 0, 50);
+        if ($source === '') {
+            $source = 'category_classification';
+        }
+        $operation = SEO_Data_Layer::operation([
+            'type'          => 'insert_category_stopword',
+            'label'         => 'Añadir palabra bloqueante de categorías',
+            'source_module' => $source,
+            'rollbackable'  => true,
+            'risk_level'    => 'low',
+            'audit_level'   => 'full',
+            'metadata'      => ['word' => $word],
+        ]);
+        $operation->mark_validated(['word' => $word]);
+        $operation->mark_previewed(1);
+        $operation->execute(
+            static function (SEO_Data_Operation $op) use ($word) {
+                $op->insert('dictionary', ['palabra' => $word, 'puntuacion' => 0], ['reason' => 'category_stopword']);
+            }
+        );
+
+        return ['inserted' => 1, 'operation_id' => $operation->id(), 'operation_uuid' => $operation->uuid()];
+    }
+}
+
+
+/**
+ * Lee texto semántico/editorial de una categoría.
  *
- * @param int    $cat_id ID de product_cat.
- * @param string $role   category, excerpt o description.
- * @return string
+ * - category    => Vocabulary canónico (seo_object_vocabulary -> seo_vocabulary)
+ * - excerpt     => seo_nodes/category/excerpt
+ * - description => seo_nodes/category/description
+ *
+ * Las etiquetas legacy seo_nodes/category/category dejan de ser fuente de lectura.
  */
 if (!function_exists('seo_category_classification_node_text')) {
-
     function seo_category_classification_node_text($cat_id, $role) {
-
         global $wpdb;
 
         $cat_id = absint($cat_id);
         $role = sanitize_key($role);
-
         if ($cat_id <= 0 || !in_array($role, ['category', 'excerpt', 'description'], true)) {
             return '';
+        }
+
+        if ($role === 'category') {
+            return function_exists('seo_category_vocabulary_text')
+                ? seo_category_vocabulary_text($cat_id)
+                : '';
         }
 
         return (string) $wpdb->get_var(
@@ -164,6 +917,63 @@ if (!function_exists('seo_cc_add_candidate')) {
     }
 }
 
+if (!function_exists('seo_cc_resolve_selected_to_vocabulary')) {
+    function seo_cc_resolve_selected_to_vocabulary(array $selected) {
+        $resolved = [];
+        $unresolved = [];
+        $ambiguous = [];
+
+        foreach ($selected as $label) {
+            $label = sanitize_text_field((string) $label);
+            if ($label === '') {
+                continue;
+            }
+
+            $matches = [];
+            foreach (seo_category_vocabulary_groups() as $group) {
+                $term = seo_category_vocabulary_find_active_term($group, $label);
+                if ($term) {
+                    $matches[] = $term;
+                }
+            }
+
+            if (count($matches) === 1) {
+                $term = $matches[0];
+                $key = $term['semantic_group'] . ':' . $term['id'];
+                $resolved[$key] = $term;
+            } elseif (count($matches) > 1) {
+                $ambiguous[] = $label;
+            } else {
+                $unresolved[] = $label;
+            }
+        }
+
+        uasort($resolved, static function ($a, $b) {
+            $order = array_flip(seo_category_vocabulary_groups());
+            $ga = $order[$a['semantic_group']] ?? 99;
+            $gb = $order[$b['semantic_group']] ?? 99;
+            if ($ga !== $gb) {
+                return $ga <=> $gb;
+            }
+            return strcasecmp((string) $a['label'], (string) $b['label']);
+        });
+
+        $lines = [];
+        foreach ($resolved as $term) {
+            $lines[] = seo_category_vocabulary_group_label($term['semantic_group']) . ': ' . $term['label'];
+        }
+
+        return [
+            'terms'      => array_values($resolved),
+            'lines'      => $lines,
+            'value'      => implode("
+", $lines),
+            'unresolved' => array_values(array_unique($unresolved)),
+            'ambiguous'  => array_values(array_unique($ambiguous)),
+        ];
+    }
+}
+
 if (!function_exists('seo_cc_product_ids')) {
     function seo_cc_product_ids($cat_id) {
         static $cache=[]; $cat_id=absint($cat_id);
@@ -187,7 +997,10 @@ if (!function_exists('seo_cc_build_keyword_proposal')) {
         $description=seo_category_classification_node_text($cat_id,'description');
         $items=[]; $warnings=[];
         foreach(seo_cc_ngrams($term->name,1,3) as $key=>$phrase) seo_cc_add_candidate($items,$phrase,75+count(explode(' ',$key))*15,'nombre_categoria');
-        foreach(seo_cc_keyword_list($existing) as $label) seo_cc_add_candidate($items,$label,24,'etiqueta_actual');
+        $current_rows_map = seo_category_vocabulary_rows_map([$cat_id]);
+        foreach ((array) ($current_rows_map[$cat_id] ?? []) as $current_row) {
+            seo_cc_add_candidate($items, (string) ($current_row['label'] ?? ''), 32, 'etiqueta_actual');
+        }
 
         $knowledge_table=$wpdb->prefix.'seo_categoria_conocimiento';
         if($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s',$knowledge_table))===$knowledge_table) {
@@ -254,7 +1067,28 @@ if (!function_exists('seo_cc_build_keyword_proposal')) {
             }
             if($validated) $selected=$validated;
         }
-        return ['labels'=>array_values($selected),'warnings'=>$warnings,'stats'=>['products'=>$product_count,'candidates'=>count($items)],'candidates'=>$items,'ai_payload'=>$payload];
+
+        $resolved = seo_cc_resolve_selected_to_vocabulary(array_values($selected));
+        if (!empty($resolved['unresolved'])) {
+            $warnings[] = count($resolved['unresolved']) . ' propuesta(s) no existen en Vocabulary y se han omitido.';
+        }
+        if (!empty($resolved['ambiguous'])) {
+            $warnings[] = count($resolved['ambiguous']) . ' propuesta(s) son ambiguas entre grupos y se han omitido.';
+        }
+        if (empty($resolved['lines'])) {
+            $warnings[] = 'No se ha encontrado una propuesta canónica inequívoca; conserva o selecciona términos existentes manualmente.';
+        }
+
+        return [
+            'labels'       => $resolved['lines'],
+            'editor_value' => $resolved['value'],
+            'terms'        => $resolved['terms'],
+            'raw_labels'   => array_values($selected),
+            'warnings'     => $warnings,
+            'stats'        => ['products'=>$product_count,'candidates'=>count($items)],
+            'candidates'   => $items,
+            'ai_payload'   => $payload,
+        ];
     }
 }
 
@@ -289,21 +1123,20 @@ if (!function_exists('seo_cc_category_quality')) {
 if (!function_exists('seo_build_auto_keywords_for_categories')) {
     function seo_build_auto_keywords_for_categories($cat_id, $limit = 8) {
         $result = seo_cc_build_keyword_proposal($cat_id, $limit);
-        return implode(', ', $result['labels']);
+        return (string) ($result['editor_value'] ?? '');
     }
 }
 
 /**
- * Guarda etiquetas SEO de categorías
- * Tabla: wp_seo_nodes
+ * Guarda la semántica canónica de una categoría desde el formato del editor.
  */
 if (!function_exists('seo_save_category_keywords_value')) {
     function seo_save_category_keywords_value($cat_id, $keywords_value) {
         $cat_id = absint($cat_id);
-        if ($cat_id <= 0 || !function_exists('seo_semantic_labels_save_object')) return false;
+        if ($cat_id <= 0) return false;
         try {
-            seo_semantic_labels_save_object('category', $cat_id, 'category', $keywords_value, 'category_classification');
-            return true;
+            $result = seo_category_vocabulary_replace_from_editor($cat_id, $keywords_value, 'category_classification');
+            return !is_wp_error($result);
         } catch (Throwable $exception) {
             return false;
         }
@@ -324,17 +1157,6 @@ function seo_category_classification() {
 
 $relations_table = $wpdb->prefix . 'seo_relations';
 $attr_table      = $wpdb->prefix . 'seo_attributes';
-
-if (!function_exists('seo_semantic_labels_handle_dashboard_action') || !function_exists('seo_semantic_labels_render_dashboard')) {
-    echo '<div class="notice notice-error"><p>Falta la capa compartida de gestión semántica de etiquetas. Sustituye también product-classification.php por la versión entregada junto a este archivo.</p></div>';
-    return;
-}
-
-$dashboard_notice = seo_semantic_labels_handle_dashboard_action('category', 'category');
-if (is_array($dashboard_notice) && !empty($dashboard_notice['text'])) {
-    $notice_class = ($dashboard_notice['type'] ?? '') === 'error' ? 'notice-error' : ((($dashboard_notice['type'] ?? '') === 'warning') ? 'notice-warning' : 'notice-success');
-    echo '<div class="notice ' . esc_attr($notice_class) . '"><p>' . esc_html($dashboard_notice['text']) . '</p></div>';
-}
 
 $mutating_actions = ['add_stopword','remove_keyword','save_category_keywords','clear_category_keywords'];
 foreach ($mutating_actions as $mutating_action) {
@@ -367,49 +1189,17 @@ if (
 
     } else {
 
-        global $wpdb;
-
-        $table_dict = $wpdb->prefix . 'seo_dictionari';
-
-        $exists = $wpdb->get_var(
-            $wpdb->prepare(
-                "
-                SELECT COUNT(*)
-                FROM {$table_dict}
-                WHERE palabra = %s
-                ",
-                $word
-            )
-        );
-
-        if ((int)$exists === 0) {
-
-            $inserted = $wpdb->insert(
-                $table_dict,
-                [
-                    'palabra'   => $word,
-                    'puntuacion' => 0
-                ],
-                [
-                    '%s',
-                    '%d'
-                ]
-            );
-
-            if ($inserted) {
-
-                echo '<div class="notice notice-success"><p>Palabra bloqueante añadida correctamente: <strong>' . esc_html($word) . '</strong></p></div>';
-
+        try {
+            $stopword_result = seo_category_insert_stopword_with_data_layer($word, 'category_classification');
+            if (is_wp_error($stopword_result)) {
+                echo '<div class="notice notice-error"><p>' . esc_html($stopword_result->get_error_message()) . '</p></div>';
+            } elseif (!empty($stopword_result['inserted'])) {
+                echo '<div class="notice notice-success"><p>Palabra bloqueante añadida mediante Data Layer: <strong>' . esc_html($word) . '</strong>. Operación #' . intval($stopword_result['operation_id'] ?? 0) . '.</p></div>';
             } else {
-
-                echo '<div class="notice notice-error"><p>Error al insertar en la tabla seo_dictionari.</p></div>';
-
-                error_log('ERROR INSERT STOPWORD: ' . $wpdb->last_error);
+                echo '<div class="notice notice-warning"><p>La palabra ya existe en seo_dictionari.</p></div>';
             }
-
-        } else {
-
-            echo '<div class="notice notice-warning"><p>La palabra ya existe en seo_dictionari.</p></div>';
+        } catch (Throwable $exception) {
+            echo '<div class="notice notice-error"><p>No se ha podido añadir la palabra bloqueante: ' . esc_html($exception->getMessage()) . '</p></div>';
         }
     }
 }    
@@ -422,10 +1212,13 @@ if (
 if (isset($_POST['remove_keyword']) && $_POST['remove_keyword'] == '1' && !empty($_POST['delete_keyword'])) {
     $word = sanitize_text_field(trim(wp_unslash($_POST['delete_keyword'])));
     try {
-        $result = seo_semantic_labels_delete_global('category', 'category', $word, 'category_classification');
-        echo '<div class="notice notice-success"><p>Etiqueta eliminada de '
+        $result = seo_category_vocabulary_remove_term_from_categories($word, 'category_classification');
+        if (is_wp_error($result)) {
+            throw new RuntimeException($result->get_error_message());
+        }
+        echo '<div class="notice notice-success"><p>Asignación retirada de '
             . intval($result['objects'] ?? 0)
-            . ' categorías mediante Data Layer. Operación #'
+            . ' categorías mediante Data Layer. El término global de Vocabulary se conserva. Operación #'
             . intval($result['operation_id'] ?? 0)
             . '; rollback disponible.</p></div>';
     } catch (Throwable $exception) {
@@ -531,26 +1324,11 @@ if (isset($_POST['remove_keyword']) && $_POST['remove_keyword'] == '1' && !empty
         'hide_empty' => false
     ]);
     
-    // Cache de etiquetas SEO activas. Si existen duplicados, conserva la fila
-    // actualizada más recientemente para cada categoría.
-    $category_keywords_cache = [];
-
-    $seo_category_nodes = $wpdb->get_results("
-        SELECT object_id, keywords
-        FROM {$wpdb->prefix}seo_nodes
-        WHERE object_type = 'category'
-          AND seo_role = 'category'
-          AND status = 1
-        ORDER BY object_id ASC, updated_at DESC, id DESC
-    ");
-
-    foreach ($seo_category_nodes as $node) {
-        $node_object_id = absint($node->object_id);
-
-        if (!array_key_exists($node_object_id, $category_keywords_cache)) {
-            $category_keywords_cache[$node_object_id] = (string) $node->keywords;
-        }
-    }
+    // Cache canónica para el editor: una línea por asignación, GRUPO: Etiqueta.
+    $all_category_ids = array_values(array_filter(array_map(static function ($term) {
+        return absint($term->term_id ?? 0);
+    }, (array) $all_cats)));
+    $category_keywords_cache = seo_category_vocabulary_editor_text_map($all_category_ids);
     
 
 // =========================
@@ -573,8 +1351,11 @@ if (isset($_POST['save_category_keywords'])) {
             }
 
             try {
-                seo_semantic_labels_save_object('category', $cat_id, 'category', $keywords_value, 'category_classification');
-                $category_keywords_cache[$cat_id] = implode(', ', seo_semantic_labels_unique($keywords_value));
+                $save_result = seo_category_vocabulary_replace_from_editor($cat_id, $keywords_value, 'category_classification');
+                if (is_wp_error($save_result)) {
+                    throw new RuntimeException($save_result->get_error_message());
+                }
+                $category_keywords_cache[$cat_id] = seo_category_vocabulary_editor_text($cat_id);
                 $saved_keywords++;
             } catch (Throwable $exception) {
                 $save_errors[] = sprintf(
@@ -612,10 +1393,13 @@ if (isset($_POST['clear_category_keywords'])) {
     $cat_id = absint($_POST['clear_category_keywords']);
     if ($cat_id > 0) {
         try {
-            $result = seo_semantic_labels_clear_object('category', $cat_id, 'category', 'category_classification');
+            $result = seo_category_vocabulary_clear($cat_id, 'category_classification');
+            if (is_wp_error($result)) {
+                throw new RuntimeException($result->get_error_message());
+            }
             unset($category_keywords_cache[$cat_id]);
-            echo '<div class="notice notice-success"><p>Etiquetas SEO eliminadas mediante Data Layer. Filas: '
-                . intval($result['deleted'] ?? 0)
+            echo '<div class="notice notice-success"><p>Asignaciones canónicas de la categoría desactivadas mediante Data Layer. Cambios: '
+                . intval($result['changed'] ?? 0)
                 . '; operación #'
                 . intval($result['operation_id'] ?? 0)
                 . '. El excerpt, la descripción y el ámbito se han conservado.</p></div>';
@@ -635,7 +1419,7 @@ if (isset($_POST['clear_category_keywords'])) {
 <strong>Control de calidad:</strong> evalúa contenido editorial, etiquetas, volumen de productos y conexión con la jerarquía. Las propuestas se basan en señales compartidas por varios productos; una marca, modelo o ficha aislada no debe dominar toda la categoría.
 </div>
 
-<?php seo_semantic_labels_render_dashboard('category', 'category', 'Etiquetas de categorías'); ?>
+<p><strong>Fuente semántica:</strong> Vocabulary canónico (<code>product_cat</code>). No se leen ni escriben etiquetas desde <code>seo_nodes/category/category</code>.</p>
 
 
 
@@ -742,10 +1526,10 @@ if (isset($_POST['clear_category_keywords'])) {
 </button>
 
 <button type="submit" name="auto_keywords" value="1" class="button">
-    Proponer etiquetas automáticamente
+    Proponer Vocabulary automáticamente
 </button>
 <button type="submit" name="save_category_keywords" value="1" class="button button-primary">
-    Guardar etiquetas categorías
+    Guardar Vocabulary categorías
 </button>
 
 <br><br>
@@ -755,8 +1539,8 @@ if (isset($_POST['clear_category_keywords'])) {
     Agregar palabra bloqueante
 </button>
 
-<input type="text" name="delete_keyword" placeholder="Eliminar etiqueta" style="margin-left:10px;">
-<button type="submit" name="remove_keyword" value="1" class="button" onclick="return confirm('¿Eliminar esta etiqueta de todos los objetos donde esté asignada? La acción será reversible mediante Data Layer.');">
+<input type="text" name="delete_keyword" placeholder="Ej.: TIPO: Taladro" style="margin-left:10px;">
+<button type="submit" name="remove_keyword" value="1" class="button" onclick="return confirm('¿Retirar este término de todas las categorías? El término global de Vocabulary se conservará. La acción será reversible mediante Data Layer.');">
     Borrar etiqueta en uso
 </button>
 
@@ -964,7 +1748,7 @@ if ($run_inventory || $auto_keywords) {
         style="margin-left:10px;"
         onclick="return confirm(\'¿Eliminar etiquetas SEO de esta categoría?\');"
     >
-        Borrar etiquetas
+        Borrar Vocabulary
     </button>';
 
     if ($show_cat_id) {
@@ -999,22 +1783,23 @@ if ($run_inventory || $auto_keywords) {
         $category_proposal = null;
         if ($auto_keywords) {
             $category_proposal = seo_cc_build_keyword_proposal($cat_id, 8);
-            $cat_keywords = implode(', ', $category_proposal['labels']);
+            $cat_keywords = (string) ($category_proposal['editor_value'] ?? '');
         }
 
-        echo '<div><strong>Etiquetas SEO:</strong> '
+        echo '<div><strong>Vocabulary:</strong> '
             . esc_html($cat_keywords)
             . '</div>';
         if (is_array($category_proposal) && !empty($category_proposal['warnings'])) {
             echo '<div style="color:#996800;">' . esc_html(implode(' ', $category_proposal['warnings'])) . '</div>';
         }
 
-        echo '<input
-            type="text"
+        echo '<textarea
             name="category_keywords[' . intval($cat_id) . ']"
-            value="' . esc_attr($cat_keywords) . '"
-            style="width:100%;max-width:900px;"
-        >';
+            rows="5"
+            style="width:100%;max-width:900px;font-family:monospace;"
+            placeholder="TIPO: Taladro&#10;ROL: Herramienta&#10;APLICACIÓN: Perforación"
+        >' . esc_textarea($cat_keywords) . '</textarea>';
+        echo '<div style="color:#646970;font-size:12px;">Una asignación por línea. Solo se aceptan términos activos ya existentes en Vocabulary.</div>';
     }
 
     echo '</div>';
@@ -1072,7 +1857,7 @@ if ($run_inventory || $auto_keywords) {
                             $category_keywords = seo_category_classification_node_text($cat_id, 'category');
                         
                             echo '<div style="margin-top:8px;">';
-                            echo '<strong>Etiquetas SEO:</strong> ';
+                            echo '<strong>Vocabulary:</strong> ';
                             echo esc_html($category_keywords);
                             echo '</div>';
                             

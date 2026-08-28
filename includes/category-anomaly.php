@@ -79,33 +79,16 @@ if (!function_exists('seo_cat_similarity_percent')) {
 
 
 /**
- * Devuelve un campo editorial de categoría desde wp_seo_nodes.
- *
- * Contrato de datos:
- * - category    => etiquetas SEO
- * - excerpt     => extracto editorial
- * - description => descripción HTML
- *
- * @param int    $cat_id ID del término product_cat.
- * @param string $role   Rol editorial permitido.
- * @return string
+ * Devuelve contenido editorial de categoría desde wp_seo_nodes.
+ * Las etiquetas semánticas ya no se leen de seo_nodes/category/category.
  */
 if (!function_exists('seo_cat_node_text')) {
-
     function seo_cat_node_text($cat_id, $role) {
-
         global $wpdb;
 
         $cat_id = absint($cat_id);
-        $role   = sanitize_key($role);
-
-        $allowed_roles = [
-            'category',
-            'excerpt',
-            'description',
-        ];
-
-        if (!$cat_id || !in_array($role, $allowed_roles, true)) {
+        $role = sanitize_key($role);
+        if (!$cat_id || !in_array($role, ['excerpt', 'description'], true)) {
             return '';
         }
 
@@ -127,23 +110,88 @@ if (!function_exists('seo_cat_node_text')) {
 }
 
 if (!function_exists('seo_cat_keywords_text')) {
-
     function seo_cat_keywords_text($cat_id) {
-        return seo_cat_node_text($cat_id, 'category');
+        return function_exists('seo_category_vocabulary_text')
+            ? seo_category_vocabulary_text($cat_id)
+            : '';
     }
 }
 
 if (!function_exists('seo_cat_excerpt_text')) {
-
     function seo_cat_excerpt_text($cat_id) {
         return seo_cat_node_text($cat_id, 'excerpt');
     }
 }
 
 if (!function_exists('seo_cat_description_text')) {
-
     function seo_cat_description_text($cat_id) {
         return seo_cat_node_text($cat_id, 'description');
+    }
+}
+
+if (!function_exists('seo_category_anomaly_move_relation_with_data_layer')) {
+    function seo_category_anomaly_move_relation_with_data_layer($cat_id, $target_hs_id) {
+        global $wpdb;
+
+        $cat_id = absint($cat_id);
+        $target_hs_id = absint($target_hs_id);
+        if ($cat_id < 1 || $target_hs_id < 1) {
+            return new WP_Error('seo_category_move_invalid', 'Categoría o Hub Secundario no válido.');
+        }
+        if (!class_exists('SEO_Data_Layer') || !class_exists('SEO_Data_Operation')) {
+            return new WP_Error('seo_category_move_no_datalayer', 'El Data Layer no está disponible.');
+        }
+
+        $relations_table = $wpdb->prefix . 'seo_relations';
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id, source_id FROM {$relations_table}\n"
+                . "WHERE target_id = %d AND relation_type = 'hub_secondary_to_category'\n"
+                . "ORDER BY id ASC",
+                $cat_id
+            ),
+            ARRAY_A
+        );
+        if (!$rows) {
+            return new WP_Error('seo_category_move_relation_missing', 'No existe una relación hub_secondary_to_category para esta categoría.');
+        }
+
+        $changes = array_values(array_filter((array) $rows, static function ($row) use ($target_hs_id) {
+            return absint($row['source_id'] ?? 0) !== $target_hs_id;
+        }));
+        if (!$changes) {
+            return ['changed' => 0, 'operation_id' => 0, 'operation_uuid' => ''];
+        }
+
+        $operation = SEO_Data_Layer::operation([
+            'type'          => 'move_category_hub_secondary',
+            'label'         => 'Mover categoría a Hub Secundario',
+            'source_module' => 'category_anomaly',
+            'rollbackable'  => true,
+            'risk_level'    => 'medium',
+            'audit_level'   => 'full',
+            'metadata'      => ['category_id' => $cat_id, 'target_hub_secondary_id' => $target_hs_id, 'relations' => count($changes)],
+        ]);
+        $operation->mark_validated(['category_id' => $cat_id]);
+        $operation->mark_previewed(count($changes));
+
+        $operation->execute(
+            static function (SEO_Data_Operation $op) use ($changes, $cat_id, $target_hs_id) {
+                foreach ($changes as $row) {
+                    $relation_id = absint($row['id'] ?? 0);
+                    if ($relation_id < 1) {
+                        continue;
+                    }
+                    $op->update('relations', ['id' => $relation_id], ['source_id' => $target_hs_id], [
+                        'related_object_type' => 'product_cat',
+                        'related_object_id'   => $cat_id,
+                        'reason'              => 'category_anomaly_move',
+                    ]);
+                }
+            }
+        );
+
+        return ['changed' => count($changes), 'operation_id' => $operation->id(), 'operation_uuid' => $operation->uuid()];
     }
 }
 
@@ -197,7 +245,7 @@ function seo_cat_score(
         $category_slug = $term->slug ?? '';
     }
 
-    // Los tres campos editoriales se leen exclusivamente desde wp_seo_nodes.
+    // La semántica se lee de Vocabulary; excerpt y descripción siguen en wp_seo_nodes.
     $category_keywords   = seo_cat_keywords_text($cat_id);
     $category_excerpt    = seo_cat_excerpt_text($cat_id);
     $category_description = seo_cat_description_text($cat_id);
@@ -306,17 +354,13 @@ function search_category_anomaly() {
                 $target_hs_id = intval($_POST['target_hs_id']);
             
                 if ($cat_id > 0 && $target_hs_id > 0) {
-            
-                    $wpdb->query($wpdb->prepare("
-                        UPDATE {$relations_table}
-                        SET source_id = %d
-                        WHERE target_id = %d
-                        AND relation_type = 'hub_secondary_to_category'
-                    ", $target_hs_id, $cat_id));
-            
-                    // 🔥 MUY IMPORTANTE: recargar para ver el cambio
-                    wp_redirect($_SERVER['REQUEST_URI']);
-                    exit;
+                    $move_result = seo_category_anomaly_move_relation_with_data_layer($cat_id, $target_hs_id);
+                    if (is_wp_error($move_result)) {
+                        echo '<div class="notice notice-error"><p>' . esc_html($move_result->get_error_message()) . '</p></div>';
+                    } else {
+                        wp_safe_redirect(wp_unslash($_SERVER['REQUEST_URI']));
+                        exit;
+                    }
                 }
             }
     
