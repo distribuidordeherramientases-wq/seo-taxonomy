@@ -9,6 +9,13 @@
 
 defined('ABSPATH') || exit;
 
+// Carga opcional del modulo de informes si vive junto a este editor.
+// require_once evita dobles cargas si el bootstrap principal ya lo incluye.
+$seo_post_reports_file = __DIR__ . '/seo-post-reports.php';
+if (is_readable($seo_post_reports_file)) {
+    require_once $seo_post_reports_file;
+}
+
 if (!function_exists('seo_post_editor_allowed_statuses')) {
     function seo_post_editor_allowed_statuses() {
         return array('publish', 'draft', 'pending', 'private');
@@ -841,6 +848,14 @@ if (!function_exists('seo_page_edit_posts')) {
         $status = isset($_GET['status']) ? sanitize_key(wp_unslash($_GET['status'])) : '';
         $paged  = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
         $per_page = 40;
+        $score_days = 28;
+        $score_order = isset($_GET['score_order']) && 'asc' === strtolower((string) $_GET['score_order']) ? 'asc' : 'desc';
+        $reports_available = function_exists('seo_post_reports_get_summary') && function_exists('seo_post_reports_admin_url');
+
+        // Reutiliza el snapshot agregado de Google. No consulta entrada por entrada.
+        if (function_exists('seo_post_reports_catalog_snapshot')) {
+            seo_post_reports_catalog_snapshot($score_days, false);
+        }
 
         if ($status !== '' && !in_array($status, seo_post_editor_allowed_statuses(), true)) {
             $status = '';
@@ -867,6 +882,11 @@ if (!function_exists('seo_page_edit_posts')) {
             'order'          => 'DESC',
         );
 
+        if (function_exists('seo_post_reports_score_posts_clauses')) {
+            $args['seo_post_reports_score_days'] = $score_days;
+            $args['seo_post_reports_score_order'] = $score_order;
+        }
+
         if ($search !== '') {
             if (ctype_digit($search) && get_post_type(absint($search)) === 'post') {
                 $args['p'] = absint($search);
@@ -880,7 +900,13 @@ if (!function_exists('seo_page_edit_posts')) {
             $args['post__in'] = !empty($relation_ids) ? $relation_ids : array(0);
         }
 
+        if (function_exists('seo_post_reports_score_posts_clauses')) {
+            add_filter('posts_clauses', 'seo_post_reports_score_posts_clauses', 20, 2);
+        }
         $query = new WP_Query($args);
+        if (function_exists('seo_post_reports_score_posts_clauses')) {
+            remove_filter('posts_clauses', 'seo_post_reports_score_posts_clauses', 20);
+        }
         $post_ids = wp_list_pluck($query->posts, 'ID');
         $relation_map = seo_post_editor_get_relation_map($post_ids);
 
@@ -890,7 +916,12 @@ if (!function_exists('seo_page_edit_posts')) {
         echo '<h1 style="margin-bottom:8px;">Editar posts</h1>';
         echo '<p style="margin-top:0;color:#646970;">Selecciona una entrada para editarla. La categoria de producto se gestiona exclusivamente mediante SEO Relations.</p>';
         echo '</div>';
+        echo '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+        if (function_exists('seo_post_reports_admin_url')) {
+            echo '<a class="button" href="' . esc_url(seo_post_reports_admin_url(0, $score_days)) . '">Informes Google</a>';
+        }
         echo '<a class="button button-primary" href="' . esc_url(seo_post_editor_admin_url(array('new_post' => 1), $context)) . '">Nueva entrada</a>';
+        echo '</div>';
         echo '</div>';
 
         if ($message !== '' && isset($notice_messages[$message])) {
@@ -908,6 +939,7 @@ if (!function_exists('seo_page_edit_posts')) {
             <?php if (!empty($context['tab'])): ?>
                 <input type="hidden" name="tab" value="<?php echo esc_attr($context['tab']); ?>">
             <?php endif; ?>
+            <input type="hidden" name="score_order" value="<?php echo esc_attr($score_order); ?>">
 
             <div>
                 <label style="display:block;font-weight:600;margin-bottom:5px;">Buscar</label>
@@ -940,6 +972,18 @@ if (!function_exists('seo_page_edit_posts')) {
             </div>
         </form>
 
+        <?php
+        $toggle_score_order = 'desc' === $score_order ? 'asc' : 'desc';
+        $score_sort_url = seo_post_editor_admin_url(array(
+            'q'           => $search,
+            'product_cat' => $category_filter,
+            'status'      => $status,
+            'score_order' => $toggle_score_order,
+            'paged'       => 1,
+        ), $context);
+        $score_arrow = 'desc' === $score_order ? '↓' : '↑';
+        ?>
+
         <table class="widefat striped" style="margin-top:15px;">
             <thead>
                 <tr>
@@ -947,14 +991,15 @@ if (!function_exists('seo_page_edit_posts')) {
                     <th>Entrada</th>
                     <th style="width:290px;">Categorias de producto</th>
                     <th style="width:220px;">Etiquetas</th>
+                    <th style="width:145px;"><a href="<?php echo esc_url($score_sort_url); ?>" title="Cambiar orden por puntuación">Puntuación Google <?php echo esc_html($score_arrow); ?></a><br><small style="font-weight:400;color:#646970;">28 días</small></th>
                     <th style="width:110px;">Estado</th>
                     <th style="width:145px;">Modificada</th>
-                    <th style="width:90px;">Accion</th>
+                    <th style="width:150px;">Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (!$query->have_posts()): ?>
-                    <tr><td colspan="7">No se han encontrado entradas con estos filtros.</td></tr>
+                    <tr><td colspan="8">No se han encontrado entradas con estos filtros.</td></tr>
                 <?php else: ?>
                     <?php foreach ($query->posts as $post): ?>
                         <?php
@@ -966,6 +1011,14 @@ if (!function_exists('seo_page_edit_posts')) {
                             $row_tags = array();
                         }
                         $edit_url = seo_post_editor_admin_url(array('post_id' => $post_id), $context);
+                        $score_summary = $reports_available
+                            ? seo_post_reports_get_summary($post_id, $score_days)
+                            : array();
+                        $score = max(0, min(100, absint($score_summary['score'] ?? 0)));
+                        $score_bg = $score >= 70 ? '#edfaef' : ($score >= 40 ? '#fff8e5' : '#f0f0f1');
+                        $score_fg = $score >= 70 ? '#008a20' : ($score >= 40 ? '#996800' : '#50575e');
+                        $score_text = !empty($score_summary['has_snapshot']) ? $score . '/100' : '—';
+                        $report_url = $reports_available ? seo_post_reports_admin_url($post_id, $score_days) : '';
                         ?>
                         <tr>
                             <td><?php echo absint($post_id); ?></td>
@@ -983,9 +1036,15 @@ if (!function_exists('seo_page_edit_posts')) {
                                 <?php endif; ?>
                             </td>
                             <td><?php echo esc_html(!empty($row_tags) ? implode(', ', $row_tags) : '—'); ?></td>
+                            <td><span title="Índice comparativo de rendimiento Google de los últimos 28 días" style="display:inline-block;min-width:58px;text-align:center;padding:5px 8px;border-radius:999px;font-weight:700;background:<?php echo esc_attr($score_bg); ?>;color:<?php echo esc_attr($score_fg); ?>;"><?php echo esc_html($score_text); ?></span></td>
                             <td><?php echo esc_html($post->post_status); ?></td>
                             <td><?php echo esc_html(mysql2date('d/m/Y H:i', $post->post_modified)); ?></td>
-                            <td><a class="button button-small" href="<?php echo esc_url($edit_url); ?>">Editar</a></td>
+                            <td style="display:flex;gap:5px;flex-wrap:wrap;">
+                                <a class="button button-small" href="<?php echo esc_url($edit_url); ?>">Editar</a>
+                                <?php if ($report_url !== ''): ?>
+                                    <a class="button button-small" href="<?php echo esc_url($report_url); ?>">Informe</a>
+                                <?php endif; ?>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>
@@ -999,6 +1058,7 @@ if (!function_exists('seo_page_edit_posts')) {
                 'q'           => $search,
                 'product_cat' => $category_filter,
                 'status'      => $status,
+                'score_order' => $score_order,
                 'paged'       => '%#%',
             );
             if (!empty($context['tab'])) {
