@@ -37,6 +37,7 @@ function seo_ie_entity_registry() {
             'label'      => 'Categorias',
             'batch_size' => 0,
             'required'   => [ 'category_id' ],
+            'markers'    => [ 'category_id', 'parent_id', 'hub_secondary_id', 'imagen_destacada_id', 'imagen_destacada' ],
         ],
         'page' => [
             'label'      => 'Paginas',
