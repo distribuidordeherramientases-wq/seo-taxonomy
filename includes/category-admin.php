@@ -294,12 +294,234 @@ function seo_get_category_editor_url($term_id, $page_slug = 'category-seo-admin'
 }
 
 /**
+ * Catálogo activo del Vocabulary, agrupado para el editor visual de categorías.
+ */
+if (!function_exists('seo_category_editor_vocabulary_catalog')) {
+    function seo_category_editor_vocabulary_catalog() {
+        $catalog = [];
+        foreach (seo_category_vocabulary_groups() as $group) {
+            $catalog[$group] = [];
+        }
+
+        if (!function_exists('seo_category_vocabulary_active_index')) {
+            return $catalog;
+        }
+
+        $index = seo_category_vocabulary_active_index();
+        foreach ((array) ($index['by_id'] ?? []) as $row) {
+            $group = seo_category_vocabulary_group_key($row['semantic_group'] ?? '');
+            $id = absint($row['id'] ?? 0);
+            if ($group === '' || $id < 1 || !isset($catalog[$group])) {
+                continue;
+            }
+            $catalog[$group][$id] = [
+                'id'    => $id,
+                'label' => (string) ($row['label'] ?? $row['slug'] ?? ''),
+                'slug'  => (string) ($row['slug'] ?? ''),
+            ];
+        }
+
+        foreach ($catalog as &$rows) {
+            uasort($rows, static function ($a, $b) {
+                return strcasecmp((string) ($a['label'] ?? ''), (string) ($b['label'] ?? ''));
+            });
+        }
+        unset($rows);
+
+        return $catalog;
+    }
+}
+
+/**
+ * Convierte filas de seo_object_vocabulary en IDs seleccionados por grupo.
+ */
+if (!function_exists('seo_category_editor_selected_vocabulary')) {
+    function seo_category_editor_selected_vocabulary($rows) {
+        $selected = [];
+        foreach (seo_category_vocabulary_groups() as $group) {
+            $selected[$group] = [];
+        }
+        foreach ((array) $rows as $row) {
+            $group = seo_category_vocabulary_group_key($row['semantic_group'] ?? '');
+            $id = absint($row['vocabulary_id'] ?? 0);
+            if ($group !== '' && $id > 0 && isset($selected[$group])) {
+                $selected[$group][] = $id;
+            }
+        }
+        foreach ($selected as $group => $ids) {
+            $selected[$group] = array_values(array_unique(array_filter(array_map('absint', $ids))));
+        }
+        return $selected;
+    }
+}
+
+/**
+ * Vocabulary usado por los productos asociados directamente a cada categoría.
+ * Se usa únicamente como sugerencia visual; nunca se asigna automáticamente.
+ */
+if (!function_exists('seo_category_editor_product_vocabulary_suggestions')) {
+    function seo_category_editor_product_vocabulary_suggestions($category_ids) {
+        global $wpdb;
+
+        $category_ids = array_values(array_unique(array_filter(array_map('absint', (array) $category_ids))));
+        if (!$category_ids) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($category_ids), '%d'));
+        $object_table = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocab_table = $wpdb->prefix . 'seo_vocabulary';
+
+        $sql = "SELECT tt.term_id AS category_id, v.semantic_group, v.id AS vocabulary_id, v.label,\n"
+            . "       COUNT(DISTINCT p.ID) AS product_count\n"
+            . "FROM {$wpdb->term_relationships} tr\n"
+            . "JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id AND tt.taxonomy = 'product_cat'\n"
+            . "JOIN {$wpdb->posts} p ON p.ID = tr.object_id AND p.post_type = 'product'\n"
+            . "  AND p.post_status IN ('publish','draft','pending','private')\n"
+            . "JOIN {$object_table} ov ON ov.object_type = 'product' AND ov.object_id = p.ID AND ov.status = 1\n"
+            . "JOIN {$vocab_table} v ON v.id = ov.vocabulary_id AND v.active = 1\n"
+            . "WHERE tt.term_id IN ({$placeholders})\n"
+            . "  AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')\n"
+            . "GROUP BY tt.term_id, v.semantic_group, v.id, v.label\n"
+            . "ORDER BY tt.term_id ASC, v.semantic_group ASC, product_count DESC, v.label ASC";
+
+        $rows = $wpdb->get_results($wpdb->prepare($sql, ...$category_ids), ARRAY_A);
+        $map = [];
+        foreach ((array) $rows as $row) {
+            $category_id = absint($row['category_id'] ?? 0);
+            $group = seo_category_vocabulary_group_key($row['semantic_group'] ?? '');
+            $vocabulary_id = absint($row['vocabulary_id'] ?? 0);
+            if ($category_id < 1 || $group === '' || $vocabulary_id < 1) {
+                continue;
+            }
+            $map[$category_id][$group][$vocabulary_id] = [
+                'id'            => $vocabulary_id,
+                'label'         => (string) ($row['label'] ?? ''),
+                'product_count' => max(0, absint($row['product_count'] ?? 0)),
+            ];
+        }
+        return $map;
+    }
+}
+
+/**
+ * Selector visual de Vocabulary: checkboxes buscables y sugerencias de productos.
+ */
+if (!function_exists('seo_category_editor_render_vocabulary_picker')) {
+    function seo_category_editor_render_vocabulary_picker($field_prefix, array $selected = [], array $suggestions = [], $instance = '') {
+        $catalog = seo_category_editor_vocabulary_catalog();
+        $instance = sanitize_html_class((string) $instance);
+        if ($instance === '') {
+            $instance = 'new';
+        }
+
+        echo '<div class="seo-category-vocab-picker" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:7px;">';
+        foreach (seo_category_vocabulary_groups() as $group) {
+            $label = seo_category_vocabulary_group_label($group);
+            $group_selected = array_values(array_unique(array_filter(array_map('absint', (array) ($selected[$group] ?? [])))));
+            $group_suggestions = (array) ($suggestions[$group] ?? []);
+            $target_id = 'seo-cat-vocab-' . $instance . '-' . $group;
+
+            echo '<div style="border:1px solid #dcdcde;border-radius:7px;padding:10px;background:#fff;">';
+            echo '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;">';
+            echo '<strong>' . esc_html($label) . '</strong>';
+            if ($group_suggestions) {
+                echo '<span style="font-size:11px;color:#646970;">sugerencias de productos</span>';
+            }
+            echo '</div>';
+
+            if ($group_suggestions) {
+                echo '<div style="display:flex;gap:5px;flex-wrap:wrap;margin:0 0 8px;">';
+                $shown = 0;
+                foreach ($group_suggestions as $suggestion) {
+                    if ($shown >= 6) {
+                        break;
+                    }
+                    $sid = absint($suggestion['id'] ?? 0);
+                    if ($sid < 1) {
+                        continue;
+                    }
+                    echo '<button type="button" class="button button-small seo-category-vocab-suggestion" data-target="' . esc_attr($target_id) . '" data-vocabulary-id="' . esc_attr($sid) . '" title="Marcar esta etiqueta">'
+                        . esc_html((string) ($suggestion['label'] ?? ''))
+                        . ' <small>(' . esc_html((string) absint($suggestion['product_count'] ?? 0)) . ')</small></button>';
+                    $shown++;
+                }
+                echo '</div>';
+            }
+
+            echo '<input type="search" class="seo-category-vocab-filter" data-target="' . esc_attr($target_id) . '" placeholder="Buscar ' . esc_attr($label) . '…" style="width:100%;margin-bottom:6px;">';
+            echo '<div id="' . esc_attr($target_id) . '" style="max-height:170px;overflow:auto;border:1px solid #dcdcde;border-radius:5px;padding:5px;background:#f9f9f9;">';
+
+            if (empty($catalog[$group])) {
+                echo '<span style="display:block;padding:6px;color:#646970;">No hay términos activos.</span>';
+            } else {
+                foreach ($catalog[$group] as $term) {
+                    $term_id = absint($term['id'] ?? 0);
+                    $term_label = (string) ($term['label'] ?? $term['slug'] ?? '');
+                    $count = absint($group_suggestions[$term_id]['product_count'] ?? 0);
+                    echo '<label class="seo-category-vocab-option" data-search="' . esc_attr(remove_accents(mb_strtolower($term_label, 'UTF-8'))) . '" style="display:flex;align-items:center;gap:6px;padding:4px 5px;border-radius:4px;">';
+                    echo '<input type="checkbox" name="' . esc_attr($field_prefix . '[' . $group . '][]') . '" value="' . esc_attr($term_id) . '" ' . checked(in_array($term_id, $group_selected, true), true, false) . '>';
+                    echo '<span>' . esc_html($term_label) . '</span>';
+                    if ($count > 0) {
+                        echo '<small style="margin-left:auto;color:#2271b1;white-space:nowrap;">' . esc_html($count . ' prod.') . '</small>';
+                    }
+                    echo '</label>';
+                }
+            }
+            echo '</div>';
+            echo '</div>';
+        }
+        echo '</div>';
+        echo '<p style="margin:7px 0 0;color:#646970;font-size:12px;">Solo se muestran términos activos del Vocabulary canónico. Las sugerencias indican cuántos productos asociados usan cada etiqueta; tú decides cuáles asignar a la categoría.</p>';
+    }
+}
+
+/**
+ * AJAX: imágenes sugeridas para una product_cat usando el sistema SEO Images.
+ */
+if (!function_exists('seo_category_editor_image_suggestions_ajax')) {
+    function seo_category_editor_image_suggestions_ajax() {
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => 'No tienes permisos suficientes.'], 403);
+        }
+        check_ajax_referer('seo_category_image_suggestions', 'nonce');
+
+        $term_id = isset($_POST['term_id']) ? absint($_POST['term_id']) : 0;
+        $term = $term_id ? get_term($term_id, 'product_cat') : null;
+        if (!$term_id || !$term || is_wp_error($term)) {
+            wp_send_json_error(['message' => 'Categoría no válida.'], 400);
+        }
+        if (!function_exists('seo_images_assignment_find_candidates')) {
+            wp_send_json_error(['message' => 'El módulo de sugerencias de imágenes no está disponible.'], 500);
+        }
+
+        $items = [];
+        foreach ((array) seo_images_assignment_find_candidates('product_cat', $term_id, 12) as $candidate) {
+            $url = esc_url_raw((string) ($candidate['url'] ?? ''));
+            $key = sanitize_text_field((string) ($candidate['key'] ?? ''));
+            if ($url === '' || $key === '') {
+                continue;
+            }
+            $items[] = [
+                'key'           => $key,
+                'url'           => $url,
+                'source_label'  => sanitize_text_field((string) ($candidate['source_label'] ?? 'Producto asociado')),
+                'attachment_id' => absint($candidate['attachment_id'] ?? 0),
+            ];
+        }
+
+        wp_send_json_success(['candidates' => $items]);
+    }
+    add_action('wp_ajax_seo_category_image_suggestions', 'seo_category_editor_image_suggestions_ajax');
+}
+
+/**
  * Guarda los campos editables de una categoría.
  *
  * Puede llamarse desde otros procesos del plugin.
  *
  * @param int   $term_id ID de product_cat.
- * @param array $data    name, excerpt, description y keywords.
+ * @param array $data    name, excerpt, description, vocabulary_groups e imagen.
  * @return true|WP_Error
  */
 function seo_save_category_editor_data($term_id, array $data) {
@@ -351,18 +573,66 @@ function seo_save_category_editor_data($term_id, array $data) {
             }
         }
 
-        $vocabulary_key = array_key_exists('vocabulary', $data)
-            ? 'vocabulary'
-            : (array_key_exists('keywords', $data) ? 'keywords' : '');
-
-        if ($vocabulary_key !== '') {
-            $result = seo_category_vocabulary_replace_from_editor(
+        if (array_key_exists('vocabulary_groups', $data)) {
+            $result = seo_category_vocabulary_replace(
                 $term_id,
-                sanitize_textarea_field($data[$vocabulary_key]),
+                is_array($data['vocabulary_groups']) ? $data['vocabulary_groups'] : [],
                 'category_admin'
             );
             if (is_wp_error($result)) {
                 return $result;
+            }
+        } else {
+            // Compatibilidad con llamadas antiguas que todavía envíen texto GRUPO: Etiqueta.
+            $vocabulary_key = array_key_exists('vocabulary', $data)
+                ? 'vocabulary'
+                : (array_key_exists('keywords', $data) ? 'keywords' : '');
+
+            if ($vocabulary_key !== '') {
+                $result = seo_category_vocabulary_replace_from_editor(
+                    $term_id,
+                    sanitize_textarea_field($data[$vocabulary_key]),
+                    'category_admin'
+                );
+                if (is_wp_error($result)) {
+                    return $result;
+                }
+            }
+        }
+
+        $candidate_key = array_key_exists('image_candidate_key', $data)
+            ? sanitize_text_field((string) $data['image_candidate_key'])
+            : '';
+
+        if ($candidate_key !== '') {
+            if (!function_exists('seo_images_assignment_find_candidate_by_key') || !function_exists('seo_images_assignment_apply_candidate')) {
+                return new WP_Error('seo_category_image_module_missing', 'No está disponible el módulo de asignación de imágenes.');
+            }
+            $candidate = seo_images_assignment_find_candidate_by_key('product_cat', $term_id, $candidate_key);
+            if (!$candidate) {
+                return new WP_Error('seo_category_image_candidate_missing', 'La imagen sugerida ya no está disponible.');
+            }
+            $image_result = seo_images_assignment_apply_candidate('product_cat', $term_id, $candidate);
+            if (is_wp_error($image_result)) {
+                return $image_result;
+            }
+        } elseif (array_key_exists('image_id', $data)) {
+            $image_id = absint($data['image_id']);
+            $current_image_id = absint(get_term_meta($term_id, 'thumbnail_id', true));
+            if ($image_id > 0 && $image_id !== $current_image_id) {
+                if (function_exists('seo_images_assign_attachment_to_object')) {
+                    $image_result = seo_images_assign_attachment_to_object('product_cat', $term_id, $image_id);
+                    if (is_wp_error($image_result)) {
+                        return $image_result;
+                    }
+                } else {
+                    if (get_post_type($image_id) !== 'attachment') {
+                        return new WP_Error('seo_category_invalid_image', 'La imagen seleccionada no es un attachment válido.');
+                    }
+                    update_term_meta($term_id, 'thumbnail_id', $image_id);
+                }
+            } elseif ($image_id === 0 && $current_image_id > 0) {
+                delete_term_meta($term_id, 'thumbnail_id');
             }
         }
     } catch (Throwable $exception) {
@@ -390,6 +660,8 @@ if (!$requested_term_id && isset($_GET['edit_category_id'])) {
 }
 
 $single_category_mode = $requested_term_id > 0;
+
+wp_enqueue_media();
 
 if ($single_category_mode) {
     $requested_term = get_term($requested_term_id, 'product_cat');
@@ -572,17 +844,21 @@ if ($active_tab === 'category-anomaly') {
             return;
         }
 
-        $cat_names        = $_POST['cat_name'] ?? [];
-        $cat_excerpts     = $_POST['cat_excerpt'] ?? [];
-        $cat_descriptions = $_POST['cat_description'] ?? [];
-        $cat_vocabulary   = $_POST['cat_vocabulary'] ?? [];
-        $save_errors      = [];
-        $saved_count      = 0;
+        $cat_names              = $_POST['cat_name'] ?? [];
+        $cat_excerpts           = $_POST['cat_excerpt'] ?? [];
+        $cat_descriptions       = $_POST['cat_description'] ?? [];
+        $cat_vocabulary         = $_POST['cat_vocabulary'] ?? [];
+        $cat_vocabulary_present = $_POST['cat_vocabulary_present'] ?? [];
+        $cat_images             = $_POST['cat_image_id'] ?? [];
+        $cat_image_candidates   = $_POST['cat_image_candidate'] ?? [];
+        $save_only_term         = isset($_POST['save_category_id']) ? absint($_POST['save_category_id']) : 0;
+        $save_errors            = [];
+        $saved_count            = 0;
 
         foreach ($cat_names as $term_id => $name) {
             $term_id = absint($term_id);
 
-            if ($single_category_mode && $term_id !== $requested_term_id) {
+            if (($single_category_mode && $term_id !== $requested_term_id) || ($save_only_term > 0 && $term_id !== $save_only_term)) {
                 continue;
             }
 
@@ -593,8 +869,16 @@ if ($active_tab === 'category-anomaly') {
             if (array_key_exists($term_id, $cat_descriptions)) {
                 $payload['description'] = $cat_descriptions[$term_id];
             }
-            if (array_key_exists($term_id, $cat_vocabulary)) {
-                $payload['vocabulary'] = $cat_vocabulary[$term_id];
+            if (array_key_exists($term_id, $cat_vocabulary_present)) {
+                $payload['vocabulary_groups'] = isset($cat_vocabulary[$term_id]) && is_array($cat_vocabulary[$term_id])
+                    ? $cat_vocabulary[$term_id]
+                    : [];
+            }
+            if (array_key_exists($term_id, $cat_images)) {
+                $payload['image_id'] = absint($cat_images[$term_id]);
+            }
+            if (!empty($cat_image_candidates[$term_id])) {
+                $payload['image_candidate_key'] = sanitize_text_field(wp_unslash($cat_image_candidates[$term_id]));
             }
 
             $result = seo_save_category_editor_data($term_id, $payload);
@@ -682,7 +966,10 @@ if ($active_tab === 'category-anomaly') {
             return absint($category->term_id ?? 0);
         }, (array) $categories_list)));
     }
-    $category_vocab_editor_cache = seo_category_vocabulary_editor_text_map($category_ids_for_vocab);
+    $category_vocab_rows_cache = function_exists('seo_category_vocabulary_rows_map')
+        ? seo_category_vocabulary_rows_map($category_ids_for_vocab)
+        : [];
+    $category_vocab_product_suggestions = seo_category_editor_product_vocabulary_suggestions($category_ids_for_vocab);
     
 
 ?>
@@ -787,16 +1074,16 @@ Cinco o seis FAQs.
         ) {
             echo '<div class="notice notice-error"><p>La sesión ha caducado. Recarga la página antes de crear la categoría.</p></div>';
         } else {
-            $nombre       = sanitize_text_field($_POST['new_cat_name'] ?? '');
-            $excerpt      = wp_kses_post($_POST['new_cat_excerpt'] ?? '');
-            $descripcion  = wp_kses_post($_POST['new_cat_description'] ?? '');
-            $vocabulary   = sanitize_textarea_field($_POST['new_cat_vocabulary'] ?? '');
-            $parsed_vocab = seo_category_vocabulary_parse_editor_value($vocabulary);
+            $nombre          = sanitize_text_field($_POST['new_cat_name'] ?? '');
+            $excerpt         = wp_kses_post($_POST['new_cat_excerpt'] ?? '');
+            $descripcion     = wp_kses_post($_POST['new_cat_description'] ?? '');
+            $vocabulary      = isset($_POST['new_cat_vocabulary']) && is_array($_POST['new_cat_vocabulary'])
+                ? wp_unslash($_POST['new_cat_vocabulary'])
+                : [];
+            $new_cat_image_id = isset($_POST['new_cat_image_id']) ? absint($_POST['new_cat_image_id']) : 0;
 
             if (empty($nombre)) {
                 echo '<div class="notice notice-error"><p>El nombre es obligatorio.</p></div>';
-            } elseif (!empty($parsed_vocab['errors'])) {
-                echo '<div class="notice notice-error"><p>No se ha creado la categoría porque el Vocabulary no es válido: ' . esc_html(implode(' ', $parsed_vocab['errors'])) . '</p></div>';
             } else {
                 $parent_id = isset($_POST['new_cat_parent']) ? absint($_POST['new_cat_parent']) : 0;
                 $nueva_cat = wp_insert_term($nombre, 'product_cat', ['parent' => $parent_id]);
@@ -806,9 +1093,10 @@ Cinco o seis FAQs.
                 } else {
                     $term_id = absint($nueva_cat['term_id']);
                     $save_result = seo_save_category_editor_data($term_id, [
-                        'excerpt'     => $excerpt,
-                        'description' => $descripcion,
-                        'vocabulary'  => $vocabulary,
+                        'excerpt'           => $excerpt,
+                        'description'       => $descripcion,
+                        'vocabulary_groups' => $vocabulary,
+                        'image_id'          => $new_cat_image_id,
                     ]);
 
                     if (is_wp_error($save_result)) {
@@ -845,9 +1133,16 @@ Cinco o seis FAQs.
             </div>
 
             <div style="margin-bottom:15px;">
-                <strong>Vocabulary canónico:</strong>
-                <textarea name="new_cat_vocabulary" style="width:100%; min-height:110px; font-family:monospace;" placeholder="TIPO: Taladro&#10;ROL: Herramienta&#10;APLICACIÓN: Perforación"></textarea>
-                <p style="margin:5px 0 0;color:#646970;font-size:12px;">Una asignación por línea. Solo se aceptan términos activos existentes. Las categorías admiten 0..n ROL, TIPO, APLICACIÓN, PLATAFORMA y SUBTIPO.</p>
+                <strong>Vocabulary canónico / etiquetas semánticas:</strong>
+                <?php seo_category_editor_render_vocabulary_picker('new_cat_vocabulary', [], [], 'new-category'); ?>
+            </div>
+
+            <div style="margin-bottom:15px;border:1px solid #dcdcde;border-radius:7px;padding:12px;">
+                <strong>Imagen de categoría:</strong>
+                <input type="hidden" id="new_cat_image_id" name="new_cat_image_id" value="0">
+                <div id="new_cat_image_preview" style="margin:8px 0;color:#646970;">Sin imagen seleccionada.</div>
+                <button type="button" class="button seo-category-image-media" data-term="new">Elegir de Medios</button>
+                <button type="button" class="button seo-category-image-remove" data-term="new">Quitar</button>
             </div>
 
             <button type="submit" style="background:#2271b1; color:#fff; padding:10px 20px; border:none; border-radius:4px;">
@@ -992,7 +1287,10 @@ Cinco o seis FAQs.
                 $category = $item['category'];
                 $term_id = $item['term_id'];
                 // Semántica canónica de la categoría: Vocabulary compartido.
-                $seo_category_vocabulary = (string) ($category_vocab_editor_cache[$term_id] ?? '');
+                $seo_category_vocab_selected = seo_category_editor_selected_vocabulary($category_vocab_rows_cache[$term_id] ?? []);
+                $seo_category_vocab_suggestions = (array) ($category_vocab_product_suggestions[$term_id] ?? []);
+                $seo_category_image_id = absint(get_term_meta($term_id, 'thumbnail_id', true));
+                $seo_category_image_url = $seo_category_image_id ? wp_get_attachment_image_url($seo_category_image_id, 'medium') : '';
                 
                 $url_origen_completa = $item['url_origen_completa'];
                 $url_ver_productos = $item['url_ver_productos'];
@@ -1080,7 +1378,7 @@ Cinco o seis FAQs.
                             📦 <?php echo esc_html($category->name); ?>
                         </strong>
 
-                        <button type="submit" style="padding:6px 14px; background:#2271b1; color:#fff; border:none; border-radius:4px; font-weight:bold; font-size:12px; cursor:pointer;">
+                        <button type="submit" name="save_category_id" value="<?php echo absint($term_id); ?>" style="padding:6px 14px; background:#2271b1; color:#fff; border:none; border-radius:4px; font-weight:bold; font-size:12px; cursor:pointer;">
                             💾 Grabar esta categoría
                         </button>
                     </div>
@@ -1227,17 +1525,40 @@ Cinco o seis FAQs.
                     </div>
                     
                     <?php /* VOCABULARY CANÓNICO DE LA CATEGORÍA */ ?>
-                    <div style="margin-bottom:12px; font-size:12px;">
-                        <strong>Vocabulary canónico:</strong>
-                        <textarea
-                            name="cat_vocabulary[<?php echo $term_id; ?>]"
-                            style="width:100%; min-height:105px; font-size:12px; margin-top:4px; border:1px solid #c3c4c7; border-radius:4px; padding:6px; box-sizing:border-box; font-family:monospace; resize:vertical;"
-                            placeholder="TIPO: Taladro&#10;ROL: Herramienta&#10;APLICACIÓN: Perforación"
-                        ><?php echo esc_textarea($seo_category_vocabulary); ?></textarea>
-                        <div style="color:#646970;margin-top:4px;">Una asignación por línea. No se crean términos libres desde categorías.</div>
+                    <div style="margin-bottom:14px; font-size:12px;">
+                        <strong>Vocabulary canónico / etiquetas semánticas:</strong>
+                        <input type="hidden" name="cat_vocabulary_present[<?php echo absint($term_id); ?>]" value="1">
+                        <?php
+                        seo_category_editor_render_vocabulary_picker(
+                            'cat_vocabulary[' . absint($term_id) . ']',
+                            $seo_category_vocab_selected,
+                            $seo_category_vocab_suggestions,
+                            'category-' . absint($term_id)
+                        );
+                        ?>
                     </div>
 
-
+                    <?php /* IMAGEN DE CATEGORÍA + SUGERENCIAS DE PRODUCTOS */ ?>
+                    <div class="seo-category-image-editor" data-term="<?php echo absint($term_id); ?>" style="margin-bottom:14px;border:1px solid #dcdcde;border-radius:8px;padding:12px;background:#f9f9f9;">
+                        <strong>Imagen de categoría:</strong>
+                        <input type="hidden" id="cat_image_id_<?php echo absint($term_id); ?>" name="cat_image_id[<?php echo absint($term_id); ?>]" value="<?php echo absint($seo_category_image_id); ?>">
+                        <input type="hidden" id="cat_image_candidate_<?php echo absint($term_id); ?>" name="cat_image_candidate[<?php echo absint($term_id); ?>]" value="">
+                        <div id="cat_image_preview_<?php echo absint($term_id); ?>" style="margin:8px 0;min-height:60px;display:flex;align-items:center;gap:10px;">
+                            <?php if ($seo_category_image_url): ?>
+                                <img src="<?php echo esc_url($seo_category_image_url); ?>" alt="" style="width:90px;height:90px;object-fit:contain;background:#fff;border:1px solid #dcdcde;border-radius:6px;">
+                                <span style="color:#50575e;">Imagen actual de la categoría.</span>
+                            <?php else: ?>
+                                <span style="color:#b32d2e;">Sin imagen asignada.</span>
+                            <?php endif; ?>
+                        </div>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                            <button type="button" class="button button-small seo-category-image-media" data-term="<?php echo absint($term_id); ?>">Elegir de Medios</button>
+                            <button type="button" class="button button-small seo-category-image-load-suggestions" data-term="<?php echo absint($term_id); ?>">Sugerir desde productos</button>
+                            <button type="button" class="button button-small seo-category-image-remove" data-term="<?php echo absint($term_id); ?>">Quitar imagen</button>
+                        </div>
+                        <div id="cat_image_suggestions_<?php echo absint($term_id); ?>" style="display:none;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:8px;margin-top:10px;"></div>
+                        <p style="margin:7px 0 0;color:#646970;font-size:11px;">Las sugerencias proceden de productos asociados y del sistema SEO Images. No se asigna ninguna hasta que la seleccionas y guardas la categoría.</p>
+                    </div>
 
                     <div style="margin-bottom:12px; font-size:12px;">
                         <strong>Descripción (Contenido SEO):</strong>
@@ -1368,9 +1689,105 @@ var seoRelacionesCategorias = <?php echo json_encode($relaciones_categorias); ?>
 var seoUrlsPrecalculadas = <?php echo json_encode($urls_precalculadas); ?>;
 
 var seoUrlsDestinoPorFila = {};
+var seoCategoryImageSuggestionsNonce = <?php echo wp_json_encode(wp_create_nonce('seo_category_image_suggestions')); ?>;
 
+(function($) {
+    $(document).on('input', '.seo-category-vocab-filter', function() {
+        var target = $('#' + $(this).data('target'));
+        var needle = ($(this).val() || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        target.find('.seo-category-vocab-option').each(function() {
+            var haystack = ($(this).data('search') || '').toString().toLowerCase();
+            $(this).toggle(!needle || haystack.indexOf(needle) !== -1);
+        });
+    });
 
+    $(document).on('click', '.seo-category-vocab-suggestion', function() {
+        var target = $('#' + $(this).data('target'));
+        var id = String($(this).data('vocabulary-id'));
+        var checkbox = target.find('input[type="checkbox"][value="' + id.replace(/"/g, '\\"') + '"]');
+        if (checkbox.length) {
+            checkbox.prop('checked', true);
+            checkbox.closest('label').css('background', '#e7f1ff');
+        }
+    });
 
+    function setImagePreview(termId, url, text) {
+        var preview = termId === 'new' ? $('#new_cat_image_preview') : $('#cat_image_preview_' + termId);
+        preview.empty();
+        if (url) {
+            $('<img>', {src:url, alt:''}).css({width:'90px',height:'90px',objectFit:'contain',background:'#fff',border:'1px solid #dcdcde',borderRadius:'6px'}).appendTo(preview);
+        }
+        $('<span>').text(text || (url ? 'Imagen seleccionada.' : 'Sin imagen asignada.')).appendTo(preview);
+    }
+
+    $(document).on('click', '.seo-category-image-media', function() {
+        var termId = String($(this).data('term'));
+        var frame = wp.media({title:'Elegir imagen de categoría', button:{text:'Usar esta imagen'}, multiple:false, library:{type:'image'}});
+        frame.on('select', function() {
+            var attachment = frame.state().get('selection').first().toJSON();
+            if (termId === 'new') {
+                $('#new_cat_image_id').val(attachment.id || 0);
+            } else {
+                $('#cat_image_id_' + termId).val(attachment.id || 0);
+                $('#cat_image_candidate_' + termId).val('');
+            }
+            setImagePreview(termId, attachment.sizes && attachment.sizes.medium ? attachment.sizes.medium.url : attachment.url, 'Seleccionada desde Medios.');
+        });
+        frame.open();
+    });
+
+    $(document).on('click', '.seo-category-image-remove', function() {
+        var termId = String($(this).data('term'));
+        if (termId === 'new') {
+            $('#new_cat_image_id').val(0);
+        } else {
+            $('#cat_image_id_' + termId).val(0);
+            $('#cat_image_candidate_' + termId).val('');
+        }
+        setImagePreview(termId, '', 'Sin imagen asignada.');
+    });
+
+    $(document).on('click', '.seo-category-image-load-suggestions', function() {
+        var button = $(this);
+        var termId = parseInt(button.data('term'), 10) || 0;
+        var box = $('#cat_image_suggestions_' + termId);
+        if (!termId) return;
+        button.prop('disabled', true).text('Cargando…');
+        $.post(ajaxurl, {
+            action: 'seo_category_image_suggestions',
+            term_id: termId,
+            nonce: seoCategoryImageSuggestionsNonce
+        }).done(function(response) {
+            box.empty().css('display', 'grid');
+            if (!response || !response.success || !response.data || !response.data.candidates || !response.data.candidates.length) {
+                $('<div>').css({gridColumn:'1/-1',color:'#646970'}).text(response && response.data && response.data.message ? response.data.message : 'No hay imágenes sugeridas para esta categoría.').appendTo(box);
+                return;
+            }
+            response.data.candidates.forEach(function(item) {
+                var card = $('<button>', {type:'button', class:'seo-category-image-suggestion'}).attr({'data-term':termId,'data-key':item.key,'data-url':item.url}).css({padding:'6px',border:'1px solid #dcdcde',borderRadius:'6px',background:'#fff',cursor:'pointer',textAlign:'left'});
+                $('<img>', {src:item.url, alt:''}).css({width:'100%',height:'90px',objectFit:'contain',display:'block',marginBottom:'5px'}).appendTo(card);
+                $('<span>').css({display:'block',fontSize:'10px',lineHeight:'1.25',color:'#50575e'}).text(item.source_label || 'Producto asociado').appendTo(card);
+                card.appendTo(box);
+            });
+        }).fail(function() {
+            box.empty().css('display', 'grid');
+            $('<div>').css({gridColumn:'1/-1',color:'#b32d2e'}).text('No se pudieron cargar las sugerencias.').appendTo(box);
+        }).always(function() {
+            button.prop('disabled', false).text('Sugerir desde productos');
+        });
+    });
+
+    $(document).on('click', '.seo-category-image-suggestion', function() {
+        var termId = String($(this).data('term'));
+        var key = String($(this).data('key') || '');
+        var url = String($(this).data('url') || '');
+        $('#cat_image_candidate_' + termId).val(key);
+        $('#cat_image_id_' + termId).val(0);
+        $('.seo-category-image-suggestion[data-term="' + termId + '"]').css({outline:'none'});
+        $(this).css({outline:'3px solid #2271b1'});
+        setImagePreview(termId, url, 'Sugerencia seleccionada; se asignará al guardar.');
+    });
+})(jQuery);
 
 
 function seoFiltrarCascada(termId, nivelModificado) {
