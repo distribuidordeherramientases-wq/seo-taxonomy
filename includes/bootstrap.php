@@ -79,6 +79,7 @@ require_once SEO_SYSTEM_PATH . 'includes/product-service.php';
 require_once SEO_SYSTEM_PATH . 'includes/product-form.php';
 require_once SEO_SYSTEM_PATH . 'includes/product-create.php';
 require_once SEO_SYSTEM_PATH . 'includes/product-edit.php';
+require_once SEO_SYSTEM_PATH . 'includes/seo-product-reports.php';
 require_once SEO_SYSTEM_PATH . 'includes/product-page-admin.php';
 
 /*

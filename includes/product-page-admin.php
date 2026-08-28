@@ -15,7 +15,7 @@ if (!function_exists('seo_product_admin_callback')) {
         }
 
         $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'editar';
-        $allowed_tabs = ['nuevo', 'editar', 'inventario', 'recategorizar'];
+        $allowed_tabs = ['nuevo', 'editar', 'inventario', 'recategorizar', 'informes'];
         if (!in_array($active_tab, $allowed_tabs, true)) {
             $active_tab = 'editar';
         }
@@ -32,6 +32,7 @@ if (!function_exists('seo_product_admin_callback')) {
             'editar'        => 'Editar producto',
             'inventario'    => 'Inventario',
             'recategorizar' => 'Recategorizar',
+            'informes'      => 'Informes Google',
         ];
 
         echo '<nav class="nav-tab-wrapper" style="margin-bottom:20px;">';
@@ -70,6 +71,14 @@ if (!function_exists('seo_product_admin_callback')) {
                     product_recategorization();
                 } else {
                     echo '<div class="notice notice-error"><p>No está disponible el módulo de recategorización.</p></div>';
+                }
+                break;
+
+            case 'informes':
+                if (function_exists('seo_product_reports_page')) {
+                    seo_product_reports_page();
+                } else {
+                    echo '<div class="notice notice-error"><p>No esta disponible el modulo de informes Google por producto.</p></div>';
                 }
                 break;
 
