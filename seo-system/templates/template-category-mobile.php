@@ -355,6 +355,19 @@ echo wp_json_encode(
     <?php endif; ?>
 
 
+    <!-- =====================================================
+         AYUDA PARA ELEGIR / COMPARATIVA ESTÁTICA
+    ====================================================== -->
+
+    <?php
+    $category_comparison_template = __DIR__ . '/template-category-comparison.php';
+
+    if (is_readable($category_comparison_template)) {
+        include $category_comparison_template;
+    }
+    ?>
+
+
 
     <!-- =====================================================
          CATEGORÍAS RELACIONADAS
