@@ -455,7 +455,6 @@ function seo_reports_page() {
         'content',
         'estructura_total',
         'anomalias',
-        'reclasificacion',
         'growth_executive',
         'google_intelligence',
         'post_opportunities',
@@ -476,7 +475,6 @@ function seo_reports_page() {
     echo '<a class="nav-tab ' . ($active_tab === 'content' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=content') . '">Contenido</a>';
     echo '<a class="nav-tab ' . ($active_tab === 'estructura_total' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=estructura_total') . '">Categorías</a>';
     echo '<a class="nav-tab ' . ($active_tab === 'anomalias' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=anomalias') . '">Anomalías</a>';
-    echo '<a class="nav-tab ' . ($active_tab === 'reclasificacion' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=reclasificacion') . '">Reclasificación</a>';
     echo '<a class="nav-tab ' . ($active_tab === 'growth_executive' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=growth_executive') . '">Qué potenciar</a>';
     echo '<a class="nav-tab ' . ($active_tab === 'google_intelligence' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=google_intelligence') . '">Inteligencia de Google</a>';
     echo '<a class="nav-tab ' . ($active_tab === 'post_opportunities' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=post_opportunities') . '">Entradas · Oportunidades</a>';
@@ -501,8 +499,6 @@ function seo_reports_page() {
         seo_render_total_structure_report();
     } elseif ($active_tab === 'anomalias') {
         seo_render_anomalies_report();
-    } elseif ($active_tab === 'reclasificacion') {
-        seo_report_classification();
     } elseif ($active_tab === 'growth_executive') {
         if (function_exists('seo_render_growth_executive_report')) {
             seo_render_growth_executive_report();
