@@ -83,10 +83,9 @@ if (!function_exists('seo_pc_get_product_data')) {
                 (array) $semantic_rows
             ))));
         }
-        $attrs = $wpdb->get_results($wpdb->prepare(
-            "SELECT attribute_type, attribute_value FROM {$wpdb->prefix}seo_attributes WHERE product_id=%d ORDER BY attribute_type, id",
-            $product_id
-        ));
+        $attrs = function_exists('seo_attributes_get_product_rows')
+            ? seo_attributes_get_product_rows($product_id)
+            : [];
         $cats = wp_get_post_terms($product_id, 'product_cat', ['fields'=>'all']);
         if (is_wp_error($cats)) $cats = [];
         $wc_tags = wp_get_post_terms($product_id, 'product_tag', ['fields'=>'names']);

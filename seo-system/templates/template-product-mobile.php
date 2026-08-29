@@ -318,42 +318,46 @@ foreach ($product->get_attributes() as $attribute) {
     }
 }
 
-/* Atributos técnicos almacenados por SEO System. */
-$seo_attributes_table = $wpdb->prefix . 'seo_attributes';
-$seo_attributes_exists = $wpdb->get_var(
-    $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($seo_attributes_table))
-) === $seo_attributes_table;
+/* Atributos técnicos canónicos almacenados por SEO System. */
+$seo_attribute_rows = function_exists('seo_attributes_get_product_rows')
+    ? seo_attributes_get_product_rows($product_id)
+    : array();
 
-if ($seo_attributes_exists) {
-    $seo_attribute_rows = $wpdb->get_results(
-        $wpdb->prepare(
-            "SELECT attribute_type, attribute_value
-             FROM {$seo_attributes_table}
-             WHERE product_id = %d
-             ORDER BY attribute_type ASC, id ASC",
-            $product_id
-        )
-    );
-
-    foreach ((array) $seo_attribute_rows as $seo_attribute) {
-        $attribute_type = sanitize_key($seo_attribute->attribute_type ?? '');
-        $attribute_value = trim((string) ($seo_attribute->attribute_value ?? ''));
-
-        if ($attribute_type === '' || $attribute_value === '') {
-            continue;
-        }
-
-        if (in_array($attribute_type, array('ambito', 'scope', 'seo_role', 'product_id'), true)) {
-            continue;
-        }
-
-        $seo_label = wc_attribute_label($attribute_type, $product);
-        if ($seo_label === '' || $seo_label === $attribute_type) {
-            $seo_label = $format_specification_label($attribute_type);
-        }
-
-        $add_product_specification($seo_label, $attribute_value, 'seo_attribute');
+$seo_attribute_groups = array();
+foreach ((array) $seo_attribute_rows as $seo_attribute) {
+    if (isset($seo_attribute->attribute_visible) && !(int) $seo_attribute->attribute_visible) {
+        continue;
     }
+
+    $attribute_type = sanitize_key($seo_attribute->attribute_type ?? '');
+    $attribute_value = trim((string) ($seo_attribute->attribute_value ?? ''));
+    if ($attribute_type === '' || $attribute_value === '') {
+        continue;
+    }
+
+    if (!isset($seo_attribute_groups[$attribute_type])) {
+        $label = trim((string) ($seo_attribute->attribute_name ?? ''));
+        if ($label === '') {
+            $label = $format_specification_label($attribute_type);
+        }
+        $seo_attribute_groups[$attribute_type] = array(
+            'label'  => $label,
+            'values' => array(),
+        );
+    }
+    $seo_attribute_groups[$attribute_type]['values'][$attribute_value] = true;
+}
+
+foreach ($seo_attribute_groups as $attribute_type => $group) {
+    $values = array_keys((array) ($group['values'] ?? array()));
+    if (!$values) {
+        continue;
+    }
+    $add_product_specification(
+        (string) ($group['label'] ?? $attribute_type),
+        implode(', ', $values),
+        'seo_attribute'
+    );
 }
 
 /* Orden estable: datos comerciales relevantes primero y el resto después. */

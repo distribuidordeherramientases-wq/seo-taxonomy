@@ -332,7 +332,6 @@ function search_category_anomaly() {
     global $wpdb;
 
     $relations_table = $wpdb->prefix . 'seo_relations';
-    $attr_table = $wpdb->prefix . 'seo_attributes';
     
     
         // =========================

@@ -1018,7 +1018,7 @@ if (!function_exists('seo_cc_build_keyword_proposal')) {
                 $labels=implode(', ',array_values(array_filter(array_map(static function($row){return trim((string)($row['label']??''));},(array)$semantic_rows))));
             }
             foreach(seo_cc_keyword_list($labels) as $label) seo_cc_add_candidate($items,$label,0,'faceta_producto',$product_id);
-            $attrs=$wpdb->get_results($wpdb->prepare("SELECT attribute_type,attribute_value FROM {$wpdb->prefix}seo_attributes WHERE product_id=%d",$product_id));
+            $attrs=function_exists('seo_attributes_get_product_rows') ? seo_attributes_get_product_rows($product_id) : [];
             foreach((array)$attrs as $attr) {
                 $type=seo_cc_normalize_text($attr->attribute_type);
                 if(in_array($type,['tipo','uso','profesion','profesional','sector','target','producto','ambito','raw_description','raw_excerpt'],true)) continue;
@@ -1156,7 +1156,6 @@ function seo_category_classification() {
 
 
 $relations_table = $wpdb->prefix . 'seo_relations';
-$attr_table      = $wpdb->prefix . 'seo_attributes';
 
 $mutating_actions = ['add_stopword','remove_keyword','save_category_keywords','clear_category_keywords'];
 foreach ($mutating_actions as $mutating_action) {

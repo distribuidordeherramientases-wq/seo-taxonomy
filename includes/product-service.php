@@ -198,36 +198,21 @@ if (!function_exists('seo_product_get_vocabulary_assignments')) {
 
 if (!function_exists('seo_product_get_attributes_text')) {
     function seo_product_get_attributes_text($product_id) {
-        global $wpdb;
-
         $product_id = absint($product_id);
-        if ($product_id < 1) {
+        if ($product_id < 1 || !function_exists('seo_attributes_get_product_rows')) {
             return '';
         }
 
-        $table = $wpdb->prefix . 'seo_attributes';
-        if (!seo_product_table_exists($table)) {
-            return '';
-        }
-
-        $rows = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT ambito, attribute_type, attribute_value
-                 FROM {$table}
-                 WHERE product_id = %d
-                 ORDER BY ambito ASC, attribute_type ASC, id ASC",
-                $product_id
-            ),
-            ARRAY_A
-        );
-
+        $rows = seo_attributes_get_product_rows($product_id);
         $lines = [];
         foreach ((array) $rows as $row) {
-            $ambito = trim((string) ($row['ambito'] ?? '')) ?: 'global';
-            $type = trim((string) ($row['attribute_type'] ?? ''));
-            $value = trim((string) ($row['attribute_value'] ?? ''));
+            $type = trim((string) ($row->attribute_type ?? ''));
+            $value = trim((string) ($row->attribute_value ?? ''));
             if ($type !== '' && $value !== '') {
-                $lines[] = $ambito . '|' . $type . '|' . $value;
+                // El ámbito dejó de formar parte del atributo: la clasificación
+                // del producto vive en Vocabulary/ROL. Conservamos un formato
+                // humano y editable: slug|valor.
+                $lines[] = $type . '|' . $value;
             }
         }
 
@@ -249,15 +234,30 @@ if (!function_exists('seo_product_parse_attributes_text')) {
             }
 
             $parts = array_map('trim', explode('|', $line, 3));
-            if (count($parts) !== 3 || $parts[1] === '' || $parts[2] === '') {
+
+            // Formato canónico: tipo|valor.
+            if (count($parts) === 2) {
+                $type = $parts[0];
+                $value = $parts[1];
+            // Compatibilidad temporal con el editor antiguo: ámbito|tipo|valor.
+            } elseif (count($parts) === 3) {
+                $type = $parts[1];
+                $value = $parts[2];
+            } else {
+                $invalid[] = $line_number + 1;
+                continue;
+            }
+
+            $type = sanitize_key($type);
+            $value = sanitize_textarea_field($value);
+            if ($type === '' || $value === '') {
                 $invalid[] = $line_number + 1;
                 continue;
             }
 
             $attributes[] = [
-                'ambito'          => sanitize_text_field($parts[0] !== '' ? $parts[0] : 'global'),
-                'attribute_type'  => sanitize_text_field($parts[1]),
-                'attribute_value' => sanitize_textarea_field($parts[2]),
+                'attribute_type'  => $type,
+                'attribute_value' => $value,
             ];
         }
 
@@ -669,7 +669,7 @@ if (!function_exists('seo_product_save_single')) {
         if (!empty($parsed_attributes['invalid_lines'])) {
             return new WP_Error(
                 'seo_product_invalid_attributes',
-                'Hay atributos con formato incorrecto en las líneas: ' . implode(', ', $parsed_attributes['invalid_lines']) . '. Usa ámbito|tipo|valor.'
+                'Hay atributos con formato incorrecto en las líneas: ' . implode(', ', $parsed_attributes['invalid_lines']) . '. Usa tipo|valor.'
             );
         }
 

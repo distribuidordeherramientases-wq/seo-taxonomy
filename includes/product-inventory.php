@@ -130,7 +130,6 @@ function seo_product_inventory_page($requested_category_id = 0) {
     global $wpdb;
 
     $relations_table       = $wpdb->prefix . 'seo_relations';
-    $attr_table            = $wpdb->prefix . 'seo_attributes';
     $vocabulary_table      = $wpdb->prefix . 'seo_vocabulary';
     $object_vocabulary     = $wpdb->prefix . 'seo_object_vocabulary';
     $type_role_table       = $wpdb->prefix . 'seo_type_role_map';
@@ -686,34 +685,22 @@ function seo_product_inventory_page($requested_category_id = 0) {
                                     
                                     
                                     if ($show_p_attributes) {
-                        
-                                        // Leer atributos guardados del producto desde wp_seo_attributes.
-                                        $product_attributes = $wpdb->get_results($wpdb->prepare("
-                                            SELECT attribute_type, attribute_value
-                                            FROM {$attr_table}
-                                            WHERE product_id = %d
-                                            AND attribute_type IS NOT NULL
-                                            AND attribute_type <> ''
-                                            AND attribute_value IS NOT NULL
-                                            AND attribute_value <> ''
-                                            AND attribute_type NOT IN ('raw_description', 'raw_excerpt')
-                                            ORDER BY attribute_type ASC, attribute_value ASC
-                                        ", $p->ID));
-                        
+                                        $product_attributes = function_exists('seo_attributes_get_product_rows')
+                                            ? seo_attributes_get_product_rows($p->ID)
+                                            : [];
+
                                         if (!empty($product_attributes)) {
-                        
                                             $formatted_attributes = [];
-                        
                                             foreach ($product_attributes as $attr) {
-                        
-                                                // Formatear atributo como tipo:valor.
-                                                $formatted_attributes[] = trim($attr->attribute_type) . ':' . trim($attr->attribute_value);
+                                                $type = trim((string) ($attr->attribute_name ?? $attr->attribute_type ?? ''));
+                                                $value = trim((string) ($attr->attribute_value ?? ''));
+                                                if ($type !== '' && $value !== '') {
+                                                    $formatted_attributes[] = $type . ': ' . $value;
+                                                }
                                             }
-                        
+
                                             echo '<strong>Atributos:</strong> ' . esc_html(implode(', ', array_unique($formatted_attributes))) . '<br>';
-                        
                                         } else {
-                        
                                             echo '<strong>Atributos:</strong> Sin atributos guardados<br>';
                                         }
                                     }

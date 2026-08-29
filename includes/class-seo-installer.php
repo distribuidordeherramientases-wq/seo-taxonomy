@@ -104,7 +104,11 @@ final class SEO_System_Installer
         $templates          = $wpdb->prefix . 'seo_templates';
         $redirects          = $wpdb->prefix . 'seo_redirects';
         $dictionary         = $wpdb->prefix . 'seo_dictionari';
-        $attributes         = $wpdb->prefix . 'seo_attributes';
+        $attributes         = $wpdb->prefix . 'seo_attributes'; // legado, solo compatibilidad/migración
+        $sql_attributes     = $wpdb->prefix . 'sql_atributos';
+        $sql_terms          = $wpdb->prefix . 'sql_atributos_terminos';
+        $sql_aliases        = $wpdb->prefix . 'sql_atributos_aliases';
+        $sql_product_attrs  = $wpdb->prefix . 'sql_product_atributos';
         $vocabulary         = $wpdb->prefix . 'seo_vocabulary';
         $object_vocabulary  = $wpdb->prefix . 'seo_object_vocabulary';
         $type_role_map      = $wpdb->prefix . 'seo_type_role_map';
@@ -206,6 +210,67 @@ final class SEO_System_Installer
             KEY attribute_type (attribute_type),
             KEY attr_lookup (attribute_type, product_id)
         ) {$charset_collate};";
+
+        // Vocabulario canónico de atributos técnicos de producto.
+        $queries[] = "CREATE TABLE {$sql_attributes} (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            slug VARCHAR(100) NOT NULL,
+            nombre VARCHAR(150) NOT NULL,
+            grupo VARCHAR(100) NULL,
+            tipo ENUM('texto','numero','boolean','termino','rango') NOT NULL DEFAULT 'texto',
+            unidad_tipo VARCHAR(50) NULL,
+            unidad_base VARCHAR(30) NULL,
+            multiple TINYINT(1) NOT NULL DEFAULT 0,
+            filtrable TINYINT(1) NOT NULL DEFAULT 0,
+            visible TINYINT(1) NOT NULL DEFAULT 1,
+            seo TINYINT(1) NOT NULL DEFAULT 1,
+            orden INT NOT NULL DEFAULT 0,
+            activo TINYINT(1) NOT NULL DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            UNIQUE KEY uq_slug (slug)
+        ) ENGINE=InnoDB {$charset_collate};";
+
+        $queries[] = "CREATE TABLE {$sql_terms} (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            atributo_id BIGINT UNSIGNED NOT NULL,
+            slug VARCHAR(150) NOT NULL,
+            nombre VARCHAR(191) NOT NULL,
+            orden INT NOT NULL DEFAULT 0,
+            activo TINYINT(1) NOT NULL DEFAULT 1,
+            PRIMARY KEY  (id),
+            UNIQUE KEY uq_atributo_termino (atributo_id, slug),
+            KEY idx_atributo (atributo_id)
+        ) ENGINE=InnoDB {$charset_collate};";
+
+        $queries[] = "CREATE TABLE {$sql_product_attrs} (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            product_id BIGINT UNSIGNED NOT NULL,
+            atributo_id BIGINT UNSIGNED NOT NULL,
+            termino_id BIGINT UNSIGNED NULL,
+            valor_texto TEXT NULL,
+            valor_numero DECIMAL(20,6) NULL,
+            valor_numero_max DECIMAL(20,6) NULL,
+            unidad VARCHAR(30) NULL,
+            valor_original TEXT NULL,
+            orden INT NOT NULL DEFAULT 0,
+            PRIMARY KEY  (id),
+            KEY idx_product (product_id),
+            KEY idx_atributo (atributo_id),
+            KEY idx_termino (termino_id),
+            KEY idx_product_atributo (product_id, atributo_id)
+        ) ENGINE=InnoDB {$charset_collate};";
+
+        $queries[] = "CREATE TABLE {$sql_aliases} (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            atributo_id BIGINT UNSIGNED NOT NULL,
+            termino_id BIGINT UNSIGNED NULL,
+            alias VARCHAR(191) NOT NULL,
+            PRIMARY KEY  (id),
+            KEY idx_alias (alias),
+            KEY idx_atributo_alias (atributo_id)
+        ) ENGINE=InnoDB {$charset_collate};";
 
         /*
          * Canonical semantic vocabulary. This replaces the obsolete installer
@@ -657,6 +722,10 @@ final class SEO_System_Installer
             'seo_redirects',
             'seo_dictionari',
             'seo_attributes',
+            'sql_atributos',
+            'sql_atributos_terminos',
+            'sql_atributos_aliases',
+            'sql_product_atributos',
             'seo_vocabulary',
             'seo_object_vocabulary',
             'seo_type_role_map',

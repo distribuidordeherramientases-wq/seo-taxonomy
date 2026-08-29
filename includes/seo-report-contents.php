@@ -8,7 +8,7 @@
  * Fuentes utilizadas:
  * - Clusters / hubs: wp_posts (excerpt/description) + wp_seo_nodes (etiquetas).
  * - Categorias: Vocabulary canonico (ROL/TIPO/APLICACION/PLATAFORMA/SUBTIPO) + wp_seo_nodes (excerpt/description) + termmeta seo_excerpt visible.
- * - Productos: wp_posts (excerpt/description) + wp_seo_nodes (etiquetas) + wp_seo_attributes.
+ * - Productos: wp_posts + Vocabulary semántico + vocabulario canónico de atributos de producto.
  */
 
 if (!defined('ABSPATH')) {
@@ -73,7 +73,7 @@ function seo_report_contents_issue_label($issue) {
         'excerpt_desync'        => 'Excerpt desincronizado',
         'attr_empty_value'      => 'Atributos con valor vacio',
         'attr_duplicate'        => 'Atributos exactos duplicados',
-        'attr_invalid_scope'    => 'Atributos con ambito invalido',
+        'attr_unresolved_term'  => 'Atributos término sin resolver',
     );
 
     return isset($labels[$issue]) ? $labels[$issue] : $issue;
@@ -365,15 +365,19 @@ function seo_report_contents_product_tags_subquery() {
 function seo_report_contents_product_attributes_subquery() {
     global $wpdb;
 
-    $attributes_table = $wpdb->prefix . 'seo_attributes';
-
-    if (!seo_report_contents_table_exists($attributes_table)) {
+    if (!function_exists('seo_attributes_tables')) {
         return false;
+    }
+    $tables = seo_attributes_tables();
+    foreach ($tables as $table) {
+        if (!seo_report_contents_table_exists($table)) {
+            return false;
+        }
     }
 
     return "
         SELECT product_id, COUNT(*) AS attribute_count
-        FROM {$attributes_table}
+        FROM {$tables['values']}
         WHERE product_id > 0
         GROUP BY product_id
     ";
@@ -466,12 +470,10 @@ function seo_report_contents_get_product_duplicate_count($field) {
 }
 
 /**
- * Estado objetivo de wp_seo_attributes.
+ * Estado objetivo del vocabulario canónico de atributos de producto.
  */
 function seo_report_contents_get_attribute_summary() {
     global $wpdb;
-
-    $table = $wpdb->prefix . 'seo_attributes';
 
     $summary = array(
         'available'       => false,
@@ -480,53 +482,70 @@ function seo_report_contents_get_attribute_summary() {
         'products_with'   => 0,
         'empty_value'     => 0,
         'duplicates'      => 0,
-        'invalid_scope'   => 0,
+        'unresolved_term' => 0,
     );
 
-    if (!seo_report_contents_table_exists($table)) {
+    if (!function_exists('seo_attributes_tables')) {
         return $summary;
     }
+    $tables = seo_attributes_tables();
+    foreach ($tables as $table) {
+        if (!seo_report_contents_table_exists($table)) {
+            return $summary;
+        }
+    }
 
+    $values = $tables['values'];
+    $definitions = $tables['definitions'];
     $summary['available'] = true;
-    $summary['assignments'] = (int) $wpdb->get_var(
-        "SELECT COUNT(*) FROM {$table} WHERE product_id > 0"
-    );
-    $summary['master_rows'] = (int) $wpdb->get_var(
-        "SELECT COUNT(*) FROM {$table} WHERE product_id = 0"
-    );
+    $summary['assignments'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$values} WHERE product_id > 0");
+    $summary['master_rows'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$definitions} WHERE activo = 1");
     $summary['products_with'] = (int) $wpdb->get_var("
-        SELECT COUNT(DISTINCT a.product_id)
-        FROM {$table} a
+        SELECT COUNT(DISTINCT pa.product_id)
+        FROM {$values} pa
         INNER JOIN {$wpdb->posts} p
-            ON p.ID = a.product_id
+            ON p.ID = pa.product_id
            AND p.post_type = 'product'
            AND p.post_status = 'publish'
-        WHERE a.product_id > 0
+        WHERE pa.product_id > 0
     ");
     $summary['empty_value'] = (int) $wpdb->get_var("
         SELECT COUNT(*)
-        FROM {$table}
-        WHERE product_id > 0
+        FROM {$values} pa
+        INNER JOIN {$definitions} a ON a.id = pa.atributo_id
+        WHERE pa.product_id > 0
           AND (
-              TRIM(COALESCE(attribute_type, '')) = ''
-              OR TRIM(COALESCE(attribute_value, '')) = ''
+              (a.tipo = 'termino' AND pa.termino_id IS NULL)
+              OR (
+                  a.tipo <> 'termino'
+                  AND pa.termino_id IS NULL
+                  AND pa.valor_numero IS NULL
+                  AND TRIM(COALESCE(pa.valor_texto, pa.valor_original, '')) = ''
+              )
           )
+    ");
+    $summary['unresolved_term'] = (int) $wpdb->get_var("
+        SELECT COUNT(*)
+        FROM {$values} pa
+        INNER JOIN {$definitions} a ON a.id = pa.atributo_id
+        WHERE pa.product_id > 0
+          AND a.tipo = 'termino'
+          AND pa.termino_id IS NULL
     ");
     $summary['duplicates'] = (int) $wpdb->get_var("
         SELECT COALESCE(SUM(d.extra_rows), 0)
         FROM (
             SELECT COUNT(*) - 1 AS extra_rows
-            FROM {$table}
+            FROM {$values}
             WHERE product_id > 0
-            GROUP BY product_id, ambito, attribute_type, attribute_value
+            GROUP BY product_id, atributo_id,
+                     COALESCE(termino_id, 0),
+                     COALESCE(valor_texto, ''),
+                     COALESCE(valor_numero, -999999999999.999999),
+                     COALESCE(valor_numero_max, -999999999999.999999),
+                     COALESCE(unidad, '')
             HAVING COUNT(*) > 1
         ) d
-    ");
-    $summary['invalid_scope'] = (int) $wpdb->get_var("
-        SELECT COUNT(*)
-        FROM {$table}
-        WHERE product_id > 0
-          AND TRIM(COALESCE(ambito, '')) NOT IN ('accesorio', 'herramienta', 'repuesto', 'equipamiento', 'consumible', 'global')
     ");
 
     return $summary;
@@ -671,49 +690,45 @@ function seo_report_contents_render_category_integrity($summary) {
  * Panel de atributos de productos.
  */
 function seo_report_contents_render_attribute_panel($summary, $product_summary) {
-    echo '<h2 style="margin-top:30px;">Atributos SEO de producto</h2>';
+    echo '<h2 style="margin-top:30px;">Atributos técnicos de producto</h2>';
 
     if (empty($summary['available'])) {
-        echo '<div class="notice notice-warning inline"><p>No se encuentra la tabla <code>wp_seo_attributes</code>; el informe no puede evaluar atributos.</p></div>';
+        echo '<div class="notice notice-warning inline"><p>No se encuentran las tablas del vocabulario canónico de atributos; el informe no puede evaluarlos.</p></div>';
         return;
     }
 
     echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:14px 0 18px;">';
-
     $cards = array(
-        array('Asignaciones', $summary['assignments'], 'Filas con product_id > 0.'),
-        array('Maestro', $summary['master_rows'], 'Filas de vocabulario con product_id = 0.'),
-        array('Productos con atributos', $summary['products_with'], 'Productos publicados con al menos una asignacion.'),
-        array('Productos sin atributos', $product_summary['missing_attributes'], 'Productos publicados sin asignaciones SEO.'),
-        array('Valores vacios', $summary['empty_value'], 'Tipo o valor de atributo vacio.'),
-        array('Duplicados exactos', $summary['duplicates'], 'Filas sobrantes con misma asignacion exacta.'),
-        array('Ambitos invalidos', $summary['invalid_scope'], 'Ambito fuera de accesorio/herramienta/repuesto/equipamiento/consumible/global.'),
+        array('Asignaciones', $summary['assignments'], 'Filas en wp_sql_product_atributos.'),
+        array('Definiciones activas', $summary['master_rows'], 'Atributos activos en wp_sql_atributos.'),
+        array('Productos con atributos', $summary['products_with'], 'Productos publicados con al menos una asignación.'),
+        array('Productos sin atributos', $product_summary['missing_attributes'], 'Productos publicados sin asignaciones técnicas.'),
+        array('Valores vacíos', $summary['empty_value'], 'Asignaciones sin un valor canónico utilizable.'),
+        array('Duplicados exactos', $summary['duplicates'], 'Copias sobrantes de la misma asignación canónica.'),
+        array('Términos sin resolver', $summary['unresolved_term'], 'Atributos de tipo término sin termino_id.'),
     );
 
     foreach ($cards as $card) {
         $value = (int) $card[1];
-        $color = $value > 0 && in_array($card[0], array('Productos sin atributos', 'Valores vacios', 'Duplicados exactos', 'Ambitos invalidos'), true)
-            ? '#b32d2e'
-            : '#1d2327';
-
+        $color = $value > 0 && in_array($card[0], array('Productos sin atributos', 'Valores vacíos', 'Duplicados exactos', 'Términos sin resolver'), true)
+            ? '#b32d2e' : '#1d2327';
         echo '<div style="background:#fff;border:1px solid #dcdcde;border-radius:6px;padding:14px;">';
         echo '<div style="font-size:12px;color:#646970;">' . esc_html($card[0]) . '</div>';
         echo '<div style="font-size:24px;font-weight:700;color:' . esc_attr($color) . ';margin:4px 0;">' . esc_html(number_format_i18n($value)) . '</div>';
         echo '<div style="font-size:12px;color:#646970;">' . esc_html($card[2]) . '</div>';
         echo '</div>';
     }
-
     echo '</div>';
 
     echo '<p>';
     if ((int) $summary['empty_value'] > 0) {
-        echo '<a class="button button-secondary" href="' . esc_url(seo_report_contents_url(array('content_level' => 'product', 'content_issue' => 'attr_empty_value'))) . '">Ver valores vacios</a> ';
+        echo '<a class="button button-secondary" href="' . esc_url(seo_report_contents_url(array('content_level' => 'product', 'content_issue' => 'attr_empty_value'))) . '">Ver valores vacíos</a> ';
     }
     if ((int) $summary['duplicates'] > 0) {
-        echo '<a class="button button-secondary" href="' . esc_url(seo_report_contents_url(array('content_level' => 'product', 'content_issue' => 'attr_duplicate'))) . '">Ver duplicados de atributos</a> ';
+        echo '<a class="button button-secondary" href="' . esc_url(seo_report_contents_url(array('content_level' => 'product', 'content_issue' => 'attr_duplicate'))) . '">Ver duplicados</a> ';
     }
-    if ((int) $summary['invalid_scope'] > 0) {
-        echo '<a class="button button-secondary" href="' . esc_url(seo_report_contents_url(array('content_level' => 'product', 'content_issue' => 'attr_invalid_scope'))) . '">Ver ambitos invalidos</a>';
+    if ((int) $summary['unresolved_term'] > 0) {
+        echo '<a class="button button-secondary" href="' . esc_url(seo_report_contents_url(array('content_level' => 'product', 'content_issue' => 'attr_unresolved_term'))) . '">Ver términos sin resolver</a>';
     }
     echo '</p>';
 }
@@ -907,73 +922,81 @@ function seo_report_contents_get_affected_rows($level, $issue, $limit, $offset) 
     }
 
     if ($level === 'product') {
-        $attrs_table = $wpdb->prefix . 'seo_attributes';
         $tags_subquery = seo_report_contents_product_tags_subquery();
         $attrs_subquery = seo_report_contents_product_attributes_subquery();
 
-        if (in_array($issue, array('attr_empty_value', 'attr_duplicate', 'attr_invalid_scope'), true)) {
-            if (!seo_report_contents_table_exists($attrs_table)) {
+        if (in_array($issue, array('attr_empty_value', 'attr_duplicate', 'attr_unresolved_term'), true)) {
+            if (!function_exists('seo_attributes_tables')) {
                 return $result;
             }
+            $attribute_tables = seo_attributes_tables();
+            foreach ($attribute_tables as $attribute_table) {
+                if (!seo_report_contents_table_exists($attribute_table)) {
+                    return $result;
+                }
+            }
+
+            $values_table = $attribute_tables['values'];
+            $definitions_table = $attribute_tables['definitions'];
+            $terms_table = $attribute_tables['terms'];
+            $display_value = "COALESCE(t.nombre, NULLIF(pa.valor_texto, ''), NULLIF(pa.valor_original, ''), CONCAT(CAST(pa.valor_numero AS CHAR), IF(pa.valor_numero_max IS NULL, '', CONCAT(' - ', CAST(pa.valor_numero_max AS CHAR))), IF(TRIM(COALESCE(pa.unidad,''))='', '', CONCAT(' ', pa.unidad))))";
 
             if ($issue === 'attr_empty_value') {
-                $attr_where = "a.product_id > 0 AND (TRIM(COALESCE(a.attribute_type, '')) = '' OR TRIM(COALESCE(a.attribute_value, '')) = '')";
-                $group_having = '';
-            } elseif ($issue === 'attr_invalid_scope') {
-                $attr_where = "a.product_id > 0 AND TRIM(COALESCE(a.ambito, '')) NOT IN ('accesorio', 'herramienta', 'repuesto', 'equipamiento', 'consumible', 'global')";
-                $group_having = '';
+                $where = "pa.product_id > 0 AND ((a.tipo='termino' AND pa.termino_id IS NULL) OR (a.tipo<>'termino' AND pa.termino_id IS NULL AND pa.valor_numero IS NULL AND TRIM(COALESCE(pa.valor_texto,pa.valor_original,''))=''))";
+            } elseif ($issue === 'attr_unresolved_term') {
+                $where = "pa.product_id > 0 AND a.tipo='termino' AND pa.termino_id IS NULL";
             } else {
-                $attr_where = 'a.product_id > 0';
-                $group_having = 'HAVING COUNT(*) > 1';
+                $where = 'pa.product_id > 0';
             }
 
             if ($issue === 'attr_duplicate') {
                 $result['total'] = (int) $wpdb->get_var("
                     SELECT COUNT(*) FROM (
-                        SELECT a.product_id, a.ambito, a.attribute_type, a.attribute_value
-                        FROM {$attrs_table} a
-                        WHERE {$attr_where}
-                        GROUP BY a.product_id, a.ambito, a.attribute_type, a.attribute_value
-                        {$group_having}
+                        SELECT pa.product_id, pa.atributo_id, COALESCE(pa.termino_id,0) AS termino_key,
+                               COALESCE(pa.valor_texto,'') AS texto_key,
+                               COALESCE(pa.valor_numero,-999999999999.999999) AS numero_key,
+                               COALESCE(pa.valor_numero_max,-999999999999.999999) AS numero_max_key,
+                               COALESCE(pa.unidad,'') AS unidad_key
+                        FROM {$values_table} pa
+                        WHERE pa.product_id > 0
+                        GROUP BY pa.product_id, pa.atributo_id, termino_key, texto_key, numero_key, numero_max_key, unidad_key
+                        HAVING COUNT(*) > 1
                     ) d
                 ");
 
                 $result['rows'] = $wpdb->get_results($wpdb->prepare("
-                    SELECT
-                        a.product_id AS object_id,
-                        p.post_title AS title,
-                        p.post_status AS status,
-                        a.ambito,
-                        a.attribute_type,
-                        a.attribute_value,
-                        COUNT(*) AS duplicate_count
-                    FROM {$attrs_table} a
-                    LEFT JOIN {$wpdb->posts} p ON p.ID = a.product_id
-                    WHERE {$attr_where}
-                    GROUP BY a.product_id, p.post_title, p.post_status, a.ambito, a.attribute_type, a.attribute_value
+                    SELECT pa.product_id AS object_id, p.post_title AS title, p.post_status AS status,
+                           'global' AS ambito, a.slug AS attribute_type, {$display_value} AS attribute_value,
+                           COUNT(*) AS duplicate_count
+                    FROM {$values_table} pa
+                    INNER JOIN {$definitions_table} a ON a.id = pa.atributo_id
+                    LEFT JOIN {$terms_table} t ON t.id = pa.termino_id
+                    LEFT JOIN {$wpdb->posts} p ON p.ID = pa.product_id
+                    WHERE pa.product_id > 0
+                    GROUP BY pa.product_id, p.post_title, p.post_status, a.slug, pa.atributo_id,
+                             COALESCE(pa.termino_id,0), COALESCE(pa.valor_texto,''),
+                             COALESCE(pa.valor_numero,-999999999999.999999),
+                             COALESCE(pa.valor_numero_max,-999999999999.999999), COALESCE(pa.unidad,''), {$display_value}
                     HAVING COUNT(*) > 1
-                    ORDER BY duplicate_count DESC, a.product_id ASC
+                    ORDER BY duplicate_count DESC, pa.product_id ASC
                     LIMIT %d OFFSET %d
                 ", $limit, $offset), ARRAY_A);
             } else {
                 $result['total'] = (int) $wpdb->get_var("
                     SELECT COUNT(*)
-                    FROM {$attrs_table} a
-                    WHERE {$attr_where}
+                    FROM {$values_table} pa
+                    INNER JOIN {$definitions_table} a ON a.id = pa.atributo_id
+                    WHERE {$where}
                 ");
-
                 $result['rows'] = $wpdb->get_results($wpdb->prepare("
-                    SELECT
-                        a.product_id AS object_id,
-                        p.post_title AS title,
-                        p.post_status AS status,
-                        a.ambito,
-                        a.attribute_type,
-                        a.attribute_value
-                    FROM {$attrs_table} a
-                    LEFT JOIN {$wpdb->posts} p ON p.ID = a.product_id
-                    WHERE {$attr_where}
-                    ORDER BY a.product_id ASC, a.id ASC
+                    SELECT pa.product_id AS object_id, p.post_title AS title, p.post_status AS status,
+                           'global' AS ambito, a.slug AS attribute_type, {$display_value} AS attribute_value
+                    FROM {$values_table} pa
+                    INNER JOIN {$definitions_table} a ON a.id = pa.atributo_id
+                    LEFT JOIN {$terms_table} t ON t.id = pa.termino_id
+                    LEFT JOIN {$wpdb->posts} p ON p.ID = pa.product_id
+                    WHERE {$where}
+                    ORDER BY pa.product_id ASC, pa.id ASC
                     LIMIT %d OFFSET %d
                 ", $limit, $offset), ARRAY_A);
             }
@@ -1068,7 +1091,7 @@ function seo_report_contents_render_affected_detail($level, $issue) {
         'excerpt_desync',
         'attr_empty_value',
         'attr_duplicate',
-        'attr_invalid_scope',
+        'attr_unresolved_term',
     );
 
     if (!in_array($level, $allowed_levels, true) || !in_array($issue, $allowed_issues, true)) {
@@ -1096,8 +1119,8 @@ function seo_report_contents_render_affected_detail($level, $issue) {
     echo '<div style="overflow-x:auto;">';
     echo '<table class="widefat striped" style="min-width:920px;">';
 
-    if (in_array($issue, array('attr_empty_value', 'attr_duplicate', 'attr_invalid_scope'), true)) {
-        echo '<thead><tr><th>ID producto</th><th>Producto</th><th>Estado</th><th>Ambito</th><th>Tipo</th><th>Valor</th>';
+    if (in_array($issue, array('attr_empty_value', 'attr_duplicate', 'attr_unresolved_term'), true)) {
+        echo '<thead><tr><th>ID producto</th><th>Producto</th><th>Estado</th><th>Ámbito</th><th>Atributo</th><th>Valor</th>';
         if ($issue === 'attr_duplicate') {
             echo '<th>Repeticiones</th>';
         }
@@ -1274,7 +1297,7 @@ function seo_report_contents_render_page() {
     echo '</div>';
 
     echo '<div style="background:#f0f6fc;border-left:4px solid #2271b1;padding:12px 14px;margin:14px 0 20px;line-height:1.6;">';
-    echo '<strong>Fuentes:</strong> clusters y hubs leen <code>wp_posts</code> para excerpt/description y <code>wp_seo_nodes.keywords</code> para sus etiquetas estructurales; categorías leen semántica desde <code>wp_seo_object_vocabulary → wp_seo_vocabulary</code> y mantienen excerpt/description en <code>wp_seo_nodes</code>; productos leen contenido WordPress, semántica desde Vocabulary y atributos de <code>wp_seo_attributes</code>.';
+    echo '<strong>Fuentes:</strong> clusters y hubs leen <code>wp_posts</code> para excerpt/description y <code>wp_seo_nodes.keywords</code> para sus etiquetas estructurales; categorías leen semántica desde <code>wp_seo_object_vocabulary → wp_seo_vocabulary</code> y mantienen excerpt/description en <code>wp_seo_nodes</code>; productos leen contenido WordPress, semántica desde Vocabulary y atributos desde <code>wp_sql_atributos</code> / <code>wp_sql_product_atributos</code>.';
     echo '</div>';
 
     seo_report_contents_render_summary_table($summaries);
@@ -1285,7 +1308,7 @@ function seo_report_contents_render_page() {
     echo '<div style="background:#fff;border:1px solid #dcdcde;border-radius:6px;padding:14px 16px;max-width:1050px;line-height:1.6;">';
     echo '<p style="margin-top:0;"><strong>Integridad:</strong> un campo vacio se considera incidencia. La cobertura no intenta decidir si un texto es comercialmente bueno; mide si existe.</p>';
     echo '<p><strong>Duplicidad:</strong> se marca solo cuando excerpt o description son exactamente iguales despues de eliminar espacios exteriores. No se usa similitud aproximada en esta primera version.</p>';
-    echo '<p><strong>Atributos:</strong> no aplican a clusters, hubs ni categorias. En producto se revisa presencia, valores vacios, duplicados exactos y ambitos fuera del vocabulario operativo actual.</p>';
+    echo '<p><strong>Atributos:</strong> no aplican a clusters, hubs ni categorias. En producto se revisa presencia, valores vacíos, duplicados exactos y términos controlados sin resolver.</p>';
     echo '<p style="margin-bottom:0;"><strong>Lectura:</strong> los contadores enlazados sirven como lista de trabajo; este informe no modifica contenido ni ejecuta limpiezas.</p>';
     echo '</div>';
 

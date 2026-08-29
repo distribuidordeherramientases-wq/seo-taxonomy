@@ -135,6 +135,9 @@ if (!function_exists('seo_render_product_form')) {
         $attributes_text = $is_edit && function_exists('seo_product_get_attributes_text')
             ? seo_product_get_attributes_text($product_id)
             : '';
+        $attribute_catalog = function_exists('seo_attributes_get_catalog')
+            ? seo_attributes_get_catalog(true)
+            : [];
 
         $form_id = 'seo-product-form-' . ($is_edit ? $product_id : 'new');
         $role_label = $selected_role > 0 ? ($role_labels[$selected_role] ?? '') : '';
@@ -321,12 +324,40 @@ if (!function_exists('seo_render_product_form')) {
             </div>
 
             <div class="seo-product-card">
-                <h2>Atributos técnicos SEO</h2>
+                <h2>Atributos técnicos del producto</h2>
                 <div class="seo-product-field">
-                    <label>Un atributo por línea: <code>ámbito|tipo|valor</code></label>
+                    <label>Un atributo por línea: <code>tipo|valor</code></label>
                     <textarea name="seo_product[attributes_text]" spellcheck="false" style="font-family:monospace;min-height:170px;"><?php echo esc_textarea($attributes_text); ?></textarea>
-                    <small>Ejemplo: <code>herramienta|interfaz|OBD2</code>. Se guarda en <code>seo_attributes</code>, no como etiqueta libre de WooCommerce.</small>
+                    <small>Ejemplo: <code>interfaz|OBD2</code>. El tipo debe existir en <code>wp_sql_atributos</code>; si es de tipo término, el valor debe existir como término o alias. El ámbito ya no se guarda aquí: la clasificación del producto se gestiona mediante TIPO/ROL.</small>
                 </div>
+
+                <?php if (!empty($attribute_catalog)): ?>
+                    <details style="margin-top:14px;">
+                        <summary style="cursor:pointer;font-weight:600;">Ver vocabulario de atributos disponible</summary>
+                        <div style="overflow:auto;max-height:360px;margin-top:10px;">
+                            <table class="widefat striped" style="min-width:760px;">
+                                <thead><tr><th>Slug</th><th>Nombre</th><th>Tipo</th><th>Unidad base</th><th>Valores controlados</th></tr></thead>
+                                <tbody>
+                                <?php foreach ($attribute_catalog as $attribute_definition): ?>
+                                    <?php
+                                    $terms = array_values(array_filter(array_map(static function ($term) {
+                                        return trim((string) ($term['nombre'] ?? ''));
+                                    }, (array) ($attribute_definition['terms'] ?? []))));
+                                    ?>
+                                    <tr>
+                                        <td><code><?php echo esc_html((string) ($attribute_definition['slug'] ?? '')); ?></code></td>
+                                        <td><?php echo esc_html((string) ($attribute_definition['nombre'] ?? '')); ?></td>
+                                        <td><?php echo esc_html((string) ($attribute_definition['tipo'] ?? '')); ?></td>
+                                        <td><?php echo esc_html((string) ($attribute_definition['unidad_base'] ?? '')); ?></td>
+                                        <td><?php echo $terms ? esc_html(implode(', ', $terms)) : '<span style="color:#646970;">valor libre/numérico</span>'; ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <small>La edición completa de definiciones, términos y aliases se realiza en la pantalla de atributos.</small>
+                    </details>
+                <?php endif; ?>
             </div>
 
             <div class="seo-product-card">

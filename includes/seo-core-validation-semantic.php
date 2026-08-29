@@ -716,18 +716,24 @@ function seo_core_system_test_semantic_snapshot() {
         $wc_product_tags[(int) $row['product_id']][] = (string) $row['name'];
     }
 
-    $attributes_table = $wpdb->prefix . 'seo_attributes';
     $attributes_by_product = array();
-    $attribute_table_available = seo_core_system_test_semantic_table_exists($attributes_table);
+    $attribute_table_available = function_exists('seo_attributes_get_rows_for_products')
+        && function_exists('seo_attributes_tables');
+
     if ($attribute_table_available) {
-        $attribute_rows = $wpdb->get_results(
-            "SELECT id, product_id, ambito, attribute_type, attribute_value
-             FROM {$attributes_table}
-             ORDER BY product_id ASC, id ASC",
-            ARRAY_A
-        );
+        foreach ((array) seo_attributes_tables() as $attributes_table) {
+            if (!seo_core_system_test_semantic_table_exists($attributes_table)) {
+                $attribute_table_available = false;
+                break;
+            }
+        }
+    }
+
+    if ($attribute_table_available) {
+        $attribute_rows = seo_attributes_get_rows_for_products(null);
         foreach ((array) $attribute_rows as $row) {
-            $attributes_by_product[(int) $row['product_id']][] = $row;
+            $row = (array) $row;
+            $attributes_by_product[(int) ($row['product_id'] ?? 0)][] = $row;
         }
     }
 

@@ -745,7 +745,7 @@ function seo_ie_read_csv_row( $handle ) {
  *
  * @since 2.0.0
  *
- * @param array  $rows           Filas de wp_seo_attributes.
+ * @param array  $rows           Filas canónicas de atributos de producto.
  * @param string $product_scope  Ámbito del producto como valor de respaldo.
  * @return string
  */
@@ -755,10 +755,12 @@ function seo_ie_serialize_attributes( $rows, $product_scope ) {
 
     foreach ( (array) $rows as $row ) {
 
-        $ambito = trim( (string) $row->ambito );
-
+        // El ámbito ya no pertenece al atributo técnico. Se conserva
+        // en el formato CSV únicamente por compatibilidad y se toma del ROL
+        // canónico del producto.
+        $ambito = trim( (string) $product_scope );
         if ( '' === $ambito ) {
-            $ambito = $product_scope;
+            $ambito = 'global';
         }
 
         $attribute_type  = trim( (string) $row->attribute_type );
@@ -2081,10 +2083,11 @@ function seo_ie_product_v2_seo_attributes_json( $rows, $product_scope ) {
     $payload = [];
 
     foreach ( (array) $rows as $row ) {
-        $ambito = seo_ie_normalize_ambito( $row->ambito ?? '' );
-
+        // Campo conservado en JSON por compatibilidad con versiones
+        // anteriores; la clasificación procede del producto, no del atributo.
+        $ambito = seo_ie_normalize_ambito( $product_scope );
         if ( '' === $ambito ) {
-            $ambito = $product_scope;
+            $ambito = 'global';
         }
 
         $type  = sanitize_key( $row->attribute_type ?? '' );
@@ -2454,8 +2457,8 @@ function seo_ie_product_v2_set_meta( $product_id, $meta_key, $value, $empty_clea
  *    ID, título, slug, estado, categorías, excerpt, descripción e imagen.
  * 2. Catálogo SEO canónico:
  *    ámbito/rol vigente del producto.
- * 3. wp_seo_attributes:
- *    ámbito, tipo y valor de cada atributo.
+ * 3. Vocabulario canónico de atributos:
+ *    wp_sql_atributos + wp_sql_atributos_terminos + wp_sql_product_atributos.
  *
  * Los atributos se serializan así:
  * herramienta:potencia=1500 W | herramienta:peso=8 kg
@@ -2624,14 +2627,9 @@ function seo_export_products_csv() {
         );
     }
 
-    $attribute_rows = $wpdb->get_results(
-        "
-        SELECT product_id, ambito, attribute_type, attribute_value
-        FROM {$wpdb->prefix}seo_attributes
-        WHERE product_id > 0
-        ORDER BY product_id ASC, attribute_type ASC, id ASC
-        "
-    );
+    $attribute_rows = function_exists('seo_attributes_get_rows_for_products')
+        ? seo_attributes_get_rows_for_products(null)
+        : [];
     $attributes_by_product = [];
 
     foreach ( $attribute_rows as $attribute_row ) {
@@ -4081,7 +4079,7 @@ function seo_ie_product_import_background_worker( $user_id, $token ) {
  * - WordPress: título, slug, estado, excerpt y descripción.
  * - WooCommerce: categorías e imagen destacada.
  * - wp_seo_nodes: ámbito legacy cuando procede.
- * - wp_seo_attributes: ámbito, tipo y valor de los atributos.
+ * - Vocabulario canónico: definiciones/términos/asignaciones de atributos de producto.
  *
  * @since 2.0.0
  *
@@ -5264,26 +5262,14 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
                 $has_seo_attributes = '' !== trim( (string) ( $row['atributos_seo_json'] ?? $row['atributos_seo'] ?? '' ) );
 
                 if ( $has_seo_attributes || $empty_clears ) {
-                    global $wpdb;
-                    $attributes_table = $wpdb->prefix . 'seo_attributes';
-                    $wpdb->delete( $attributes_table, [ 'product_id' => $product_id ], [ '%d' ] );
-
-                    foreach ( $seo_attributes['rows'] as $attribute ) {
-                        $inserted = $wpdb->insert(
-                            $attributes_table,
-                            [
-                                'product_id'      => $product_id,
-                                'ambito'          => $attribute['ambito'],
-                                'attribute_type'  => $attribute['attribute_type'],
-                                'attribute_value' => $attribute['attribute_value'],
-                            ],
-                            [ '%d', '%s', '%s', '%s' ]
-                        );
-
-                        if ( false === $inserted ) {
-                            throw new RuntimeException( 'No se pudo guardar un atributo SEO: ' . $wpdb->last_error );
-                        }
+                    if ( ! function_exists( 'seo_attributes_replace_product' ) ) {
+                        throw new RuntimeException( 'El servicio canónico de atributos no está disponible.' );
                     }
+                    seo_attributes_replace_product(
+                        $product_id,
+                        (array) $seo_attributes['rows'],
+                        'legacy_import_export_product_v2'
+                    );
                 }
             }
 

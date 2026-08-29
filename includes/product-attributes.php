@@ -264,58 +264,151 @@ if (!function_exists('seo_attributes_product_row_exists')) {
 }
 
 /**
+ * Convierte una fila canónica en el valor legible que consumen las pantallas.
+ */
+if (!function_exists('seo_attributes_display_value')) {
+    function seo_attributes_display_value($row) {
+        $get = static function ($key) use ($row) {
+            if (is_array($row)) {
+                return $row[$key] ?? null;
+            }
+            return is_object($row) ? ($row->{$key} ?? null) : null;
+        };
+
+        $term_name = trim((string) $get('term_name'));
+        if ($term_name !== '') {
+            return $term_name;
+        }
+
+        $number = $get('valor_numero');
+        if ($number !== null && $number !== '') {
+            $value = rtrim(rtrim((string) $number, '0'), '.');
+            if ($value === '' || $value === '-') { $value = '0'; }
+            $max = $get('valor_numero_max');
+            if ($max !== null && $max !== '') {
+                $max_value = rtrim(rtrim((string) $max, '0'), '.');
+                if ($max_value === '' || $max_value === '-') { $max_value = '0'; }
+                $value .= ' - ' . $max_value;
+            }
+            $unit = trim((string) $get('unidad'));
+            if ($unit !== '') {
+                $value .= ' ' . $unit;
+            }
+            return trim($value);
+        }
+
+        $text = trim((string) $get('valor_texto'));
+        if ($text !== '') {
+            return $text;
+        }
+
+        return trim((string) $get('valor_original'));
+    }
+}
+
+/**
+ * Lectura masiva del almacenamiento canónico. Devuelve el shape legacy
+ * mínimo (ambito, attribute_type, attribute_value) más los metadatos nuevos.
+ *
+ * @param array|null $product_ids null = todos los productos con asignaciones.
+ * @return array<int,object>
+ */
+if (!function_exists('seo_attributes_get_rows_for_products')) {
+    function seo_attributes_get_rows_for_products($product_ids = null) {
+        global $wpdb;
+        $tables = seo_attributes_tables();
+
+        $where = 'p.product_id > 0';
+        $args = [];
+        if (is_array($product_ids)) {
+            $product_ids = array_values(array_unique(array_filter(array_map('absint', $product_ids))));
+            if (!$product_ids) {
+                return [];
+            }
+            $placeholders = implode(',', array_fill(0, count($product_ids), '%d'));
+            $where .= " AND p.product_id IN ({$placeholders})";
+            $args = $product_ids;
+        }
+
+        $sql = "SELECT
+                    p.*,
+                    a.slug AS attribute_type,
+                    a.nombre AS attribute_name,
+                    a.tipo AS attribute_data_type,
+                    a.grupo AS attribute_group,
+                    a.unidad_base AS canonical_unit,
+                    a.multiple AS attribute_multiple,
+                    a.filtrable AS attribute_filterable,
+                    a.visible AS attribute_visible,
+                    a.seo AS attribute_seo,
+                    'global' AS ambito,
+                    t.nombre AS term_name,
+                    t.slug AS term_slug
+                FROM `{$tables['values']}` p
+                INNER JOIN `{$tables['definitions']}` a ON a.id = p.atributo_id
+                LEFT JOIN `{$tables['terms']}` t ON t.id = p.termino_id
+                WHERE {$where}
+                ORDER BY p.product_id ASC, a.orden ASC, a.nombre ASC, p.orden ASC, p.id ASC";
+
+        if ($args) {
+            $sql = $wpdb->prepare($sql, $args);
+        }
+        $rows = $wpdb->get_results($sql);
+        if (!is_array($rows)) {
+            return [];
+        }
+
+        foreach ($rows as $row) {
+            $row->attribute_value = seo_attributes_display_value($row);
+        }
+        return $rows;
+    }
+}
+
+/**
+ * Catálogo activo para interfaces de edición: definición + términos permitidos.
+ */
+if (!function_exists('seo_attributes_get_catalog')) {
+    function seo_attributes_get_catalog($active_only = true) {
+        global $wpdb;
+        $tables = seo_attributes_tables();
+        $where = $active_only ? 'WHERE a.activo = 1' : '';
+        $definitions = $wpdb->get_results(
+            "SELECT a.* FROM `{$tables['definitions']}` a {$where} ORDER BY a.orden ASC, a.nombre ASC",
+            ARRAY_A
+        );
+        if (!is_array($definitions)) {
+            return [];
+        }
+
+        $term_rows = $wpdb->get_results(
+            "SELECT t.* FROM `{$tables['terms']}` t " . ($active_only ? 'WHERE t.activo = 1 ' : '') .
+            "ORDER BY t.atributo_id ASC, t.orden ASC, t.nombre ASC",
+            ARRAY_A
+        );
+        $terms_by_attribute = [];
+        foreach ((array) $term_rows as $term) {
+            $terms_by_attribute[(int) ($term['atributo_id'] ?? 0)][] = $term;
+        }
+        foreach ($definitions as &$definition) {
+            $definition['terms'] = $terms_by_attribute[(int) $definition['id']] ?? [];
+        }
+        unset($definition);
+        return $definitions;
+    }
+}
+
+/**
  * Lectura canónica de atributos de producto con el mismo shape básico que
  * consumía la interfaz antigua: attribute_type + attribute_value.
  */
 if (!function_exists('seo_attributes_get_product_rows')) {
     function seo_attributes_get_product_rows($product_id) {
-        global $wpdb;
-        $tables = seo_attributes_tables();
-        $product_id = (int) $product_id;
+        $product_id = absint($product_id);
         if ($product_id < 1) {
             return [];
         }
-
-        $rows = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT
-                    p.*,
-                    a.slug AS attribute_type,
-                    a.nombre AS attribute_name,
-                    a.tipo AS attribute_data_type,
-                    a.unidad_base AS canonical_unit,
-                    'global' AS ambito,
-                    t.nombre AS term_name,
-                    t.slug AS term_slug
-                 FROM `{$tables['values']}` p
-                 INNER JOIN `{$tables['definitions']}` a ON a.id = p.atributo_id
-                 LEFT JOIN `{$tables['terms']}` t ON t.id = p.termino_id
-                 WHERE p.product_id = %d
-                 ORDER BY a.orden ASC, a.nombre ASC, p.orden ASC, p.id ASC",
-                $product_id
-            )
-        );
-
-        foreach ((array) $rows as $row) {
-            if (!empty($row->term_name)) {
-                $row->attribute_value = (string) $row->term_name;
-                continue;
-            }
-            if ($row->valor_numero !== null && $row->valor_numero !== '') {
-                $value = (string) $row->valor_numero;
-                if ($row->valor_numero_max !== null && $row->valor_numero_max !== '') {
-                    $value .= ' - ' . (string) $row->valor_numero_max;
-                }
-                if (!empty($row->unidad)) {
-                    $value .= ' ' . (string) $row->unidad;
-                }
-                $row->attribute_value = $value;
-                continue;
-            }
-            $row->attribute_value = (string) ($row->valor_texto ?? $row->valor_original ?? '');
-        }
-
-        return is_array($rows) ? $rows : [];
+        return seo_attributes_get_rows_for_products([$product_id]);
     }
 }
 
