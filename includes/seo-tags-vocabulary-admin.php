@@ -2262,44 +2262,387 @@ if (!function_exists('seo_tags_vocab_render_dictionary')) {
     }
 }
 
+
+/**
+ * Resumen del vocabulario técnico de atributos de producto.
+ */
+if (!function_exists('seo_semantic_attributes_get_summary')) {
+    function seo_semantic_attributes_get_summary() {
+        global $wpdb;
+        if (!function_exists('seo_attributes_tables')) {
+            return [];
+        }
+        $tables = seo_attributes_tables();
+        $total_products = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM `{$wpdb->posts}` WHERE post_type='product' AND post_status NOT IN ('trash','auto-draft')"
+        );
+        $products = (int) $wpdb->get_var(
+            "SELECT COUNT(DISTINCT pa.product_id) FROM `{$tables['values']}` pa
+             INNER JOIN `{$wpdb->posts}` p ON p.ID=pa.product_id
+             WHERE p.post_type='product' AND p.post_status NOT IN ('trash','auto-draft')"
+        );
+        return [
+            'products_total' => $total_products,
+            'products'       => $products,
+            'definitions'    => (int) $wpdb->get_var("SELECT COUNT(*) FROM `{$tables['definitions']}` WHERE activo=1"),
+            'terms'          => (int) $wpdb->get_var("SELECT COUNT(*) FROM `{$tables['terms']}` WHERE activo=1"),
+            'aliases'        => (int) $wpdb->get_var("SELECT COUNT(*) FROM `{$tables['aliases']}`"),
+            'assignments'    => (int) $wpdb->get_var("SELECT COUNT(*) FROM `{$tables['values']}`"),
+        ];
+    }
+}
+
+if (!function_exists('seo_semantic_attributes_render_summary_cards')) {
+    function seo_semantic_attributes_render_summary_cards(array $summary) {
+        $total = (int) ($summary['products_total'] ?? 0);
+        $with = (int) ($summary['products'] ?? 0);
+        $coverage = $total > 0 ? round(($with / $total) * 100, 1) : 0;
+        $cards = [
+            ['Productos con atributos', $with, $coverage . '% de ' . number_format_i18n($total)],
+            ['Atributos', (int) ($summary['definitions'] ?? 0), 'definiciones activas'],
+            ['Términos', (int) ($summary['terms'] ?? 0), 'valores controlados'],
+            ['Aliases', (int) ($summary['aliases'] ?? 0), 'sinónimos de entrada'],
+            ['Asignaciones', (int) ($summary['assignments'] ?? 0), 'relaciones producto · atributo'],
+        ];
+        echo '<div class="seo-tags-cards">';
+        foreach ($cards as $card) {
+            echo '<div class="seo-tags-card"><div class="label">' . esc_html($card[0]) . '</div>';
+            echo '<div class="value">' . esc_html(number_format_i18n((float) $card[1], is_float($card[1]) ? 1 : 0)) . '</div>';
+            echo '<div class="meta">' . esc_html($card[2]) . '</div></div>';
+        }
+        echo '</div>';
+    }
+}
+
+/** Procesa las escrituras de la sección Atributos. */
+if (!function_exists('seo_semantic_attributes_handle_action')) {
+    function seo_semantic_attributes_handle_action() {
+        if (empty($_POST['seo_semantic_attribute_action'])) {
+            return null;
+        }
+        $action = sanitize_key(wp_unslash($_POST['seo_semantic_attribute_action']));
+        check_admin_referer('seo_semantic_attributes_admin', 'seo_semantic_attributes_nonce');
+
+        try {
+            switch ($action) {
+                case 'save_definition':
+                    $result = seo_attributes_save_definition([
+                        'id'          => absint($_POST['definition_id'] ?? 0),
+                        'slug'        => sanitize_text_field(wp_unslash($_POST['definition_slug'] ?? '')),
+                        'nombre'      => sanitize_text_field(wp_unslash($_POST['definition_name'] ?? '')),
+                        'grupo'       => sanitize_text_field(wp_unslash($_POST['definition_group'] ?? '')),
+                        'tipo'        => sanitize_key(wp_unslash($_POST['definition_type'] ?? 'texto')),
+                        'unidad_tipo' => sanitize_text_field(wp_unslash($_POST['definition_unit_type'] ?? '')),
+                        'unidad_base' => sanitize_text_field(wp_unslash($_POST['definition_unit_base'] ?? '')),
+                        'multiple'    => !empty($_POST['definition_multiple']),
+                        'filtrable'   => !empty($_POST['definition_filterable']),
+                        'visible'     => !empty($_POST['definition_visible']),
+                        'seo'         => !empty($_POST['definition_seo']),
+                        'orden'       => (int) ($_POST['definition_order'] ?? 0),
+                        'activo'      => !empty($_POST['definition_active']),
+                    ]);
+                    return ['success', 'Definición guardada. Operación #' . (int) ($result['operation_id'] ?? 0) . '.'];
+
+                case 'delete_definition':
+                    $slug = sanitize_key(wp_unslash($_POST['definition_slug'] ?? ''));
+                    $result = seo_attributes_delete_master_type($slug, 'semantic_attributes_admin');
+                    return ['success', 'Definición eliminada: ' . (int) ($result['deleted'] ?? 0) . ' filas.'];
+
+                case 'save_term':
+                    $result = seo_attributes_save_term([
+                        'id'          => absint($_POST['term_id'] ?? 0),
+                        'atributo_id' => absint($_POST['attribute_id'] ?? 0),
+                        'slug'        => sanitize_text_field(wp_unslash($_POST['term_slug'] ?? '')),
+                        'nombre'      => sanitize_text_field(wp_unslash($_POST['term_name'] ?? '')),
+                        'orden'       => (int) ($_POST['term_order'] ?? 0),
+                        'activo'      => !empty($_POST['term_active']),
+                    ]);
+                    return ['success', 'Término guardado. Operación #' . (int) ($result['operation_id'] ?? 0) . '.'];
+
+                case 'delete_term':
+                    $result = seo_attributes_delete_term(absint($_POST['term_id'] ?? 0), 'semantic_attributes_admin');
+                    return ['success', 'Término eliminado: ' . (int) ($result['deleted'] ?? 0) . ' filas.'];
+
+                case 'add_alias':
+                    $result = seo_attributes_add_alias(
+                        absint($_POST['attribute_id'] ?? 0),
+                        absint($_POST['term_id'] ?? 0),
+                        sanitize_text_field(wp_unslash($_POST['alias_value'] ?? '')),
+                        'semantic_attributes_admin'
+                    );
+                    return ['success', 'Alias añadido. Operación #' . (int) ($result['operation_id'] ?? 0) . '.'];
+
+                case 'delete_alias':
+                    $result = seo_attributes_delete_alias(absint($_POST['alias_id'] ?? 0), 'semantic_attributes_admin');
+                    return ['success', 'Alias eliminado.'];
+            }
+            throw new InvalidArgumentException('Acción de atributos no reconocida.');
+        } catch (Throwable $e) {
+            return ['error', $e->getMessage()];
+        }
+    }
+}
+
+if (!function_exists('seo_semantic_attributes_notice')) {
+    function seo_semantic_attributes_notice($notice) {
+        if (!is_array($notice) || count($notice) < 2) return;
+        $class = $notice[0] === 'success' ? 'notice-success' : 'notice-error';
+        echo '<div class="notice ' . esc_attr($class) . ' inline"><p>' . esc_html((string) $notice[1]) . '</p></div>';
+    }
+}
+
+/** Gestión de definiciones de wp_sql_atributos. */
+if (!function_exists('seo_semantic_attributes_render_definitions')) {
+    function seo_semantic_attributes_render_definitions() {
+        global $wpdb;
+        $tables = seo_attributes_tables();
+        $edit_id = absint($_GET['edit_attribute'] ?? 0);
+        $editing = $edit_id > 0
+            ? $wpdb->get_row($wpdb->prepare("SELECT * FROM `{$tables['definitions']}` WHERE id=%d LIMIT 1", $edit_id), ARRAY_A)
+            : null;
+        $editing = is_array($editing) ? $editing : [];
+        $defs = $wpdb->get_results(
+            "SELECT a.*,
+                    (SELECT COUNT(DISTINCT pa.product_id) FROM `{$tables['values']}` pa WHERE pa.atributo_id=a.id) AS products,
+                    (SELECT COUNT(*) FROM `{$tables['values']}` pa WHERE pa.atributo_id=a.id) AS assignments,
+                    (SELECT COUNT(*) FROM `{$tables['terms']}` t WHERE t.atributo_id=a.id) AS terms
+             FROM `{$tables['definitions']}` a
+             ORDER BY a.activo DESC,a.orden ASC,a.nombre ASC",
+            ARRAY_A
+        );
+        $base = admin_url('admin.php?page=seo-tags-vocabulary&domain=attributes&attribute_section=definitions');
+
+        echo '<div class="seo-tags-panel"><h2>' . ($editing ? 'Editar atributo' : 'Alta de atributo') . '</h2>';
+        echo '<p class="seo-tags-help">La definición controla el tipo de dato, filtros, visibilidad, SEO, multiplicidad y unidad base. El slug no cambia al editar.</p>';
+        echo '<form method="post" class="seo-tags-manager-form" style="grid-template-columns:1fr 1.4fr 1fr 1fr 1fr auto">';
+        wp_nonce_field('seo_semantic_attributes_admin', 'seo_semantic_attributes_nonce');
+        echo '<input type="hidden" name="seo_semantic_attribute_action" value="save_definition">';
+        echo '<input type="hidden" name="definition_id" value="' . esc_attr((int) ($editing['id'] ?? 0)) . '">';
+        echo '<label>Slug<input name="definition_slug" type="text" value="' . esc_attr((string) ($editing['slug'] ?? '')) . '" ' . ($editing ? 'readonly' : '') . ' placeholder="ej. material"></label>';
+        echo '<label>Nombre visible<input name="definition_name" type="text" required value="' . esc_attr((string) ($editing['nombre'] ?? '')) . '" placeholder="Ej. Material"></label>';
+        echo '<label>Grupo<input name="definition_group" type="text" value="' . esc_attr((string) ($editing['grupo'] ?? 'general')) . '" placeholder="general"></label>';
+        echo '<label>Tipo<select name="definition_type">';
+        foreach (['texto'=>'Texto','numero'=>'Número','boolean'=>'Booleano','termino'=>'Término','rango'=>'Rango'] as $key=>$label) {
+            echo '<option value="' . esc_attr($key) . '" ' . selected((string) ($editing['tipo'] ?? 'texto'), $key, false) . '>' . esc_html($label) . '</option>';
+        }
+        echo '</select></label>';
+        echo '<label>Unidad base<input name="definition_unit_base" type="text" value="' . esc_attr((string) ($editing['unidad_base'] ?? '')) . '" placeholder="mm, W, kg..."></label>';
+        echo '<label>Orden<input name="definition_order" type="number" value="' . esc_attr((int) ($editing['orden'] ?? 0)) . '" style="width:90px"></label>';
+        echo '<div style="grid-column:1/-1;display:flex;gap:18px;flex-wrap:wrap;align-items:center">';
+        echo '<label><input type="checkbox" name="definition_multiple" value="1" ' . checked(!empty($editing['multiple']), true, false) . '> Múltiple</label>';
+        echo '<label><input type="checkbox" name="definition_filterable" value="1" ' . checked(!empty($editing['filtrable']), true, false) . '> Filtrable</label>';
+        echo '<label><input type="checkbox" name="definition_visible" value="1" ' . checked(array_key_exists('visible',$editing) ? !empty($editing['visible']) : true, true, false) . '> Visible</label>';
+        echo '<label><input type="checkbox" name="definition_seo" value="1" ' . checked(!empty($editing['seo']), true, false) . '> SEO</label>';
+        echo '<label><input type="checkbox" name="definition_active" value="1" ' . checked(array_key_exists('activo',$editing) ? !empty($editing['activo']) : true, true, false) . '> Activo</label>';
+        echo '<label>Tipo unidad <input name="definition_unit_type" type="text" value="' . esc_attr((string) ($editing['unidad_tipo'] ?? '')) . '" placeholder="longitud, potencia..."></label>';
+        echo '<button class="button button-primary" type="submit">' . ($editing ? 'Guardar cambios' : 'Crear atributo') . '</button>';
+        if ($editing) echo '<a class="button" href="' . esc_url($base) . '">Cancelar</a>';
+        echo '</div></form></div>';
+
+        echo '<div class="seo-tags-panel"><h2>Definiciones de atributos</h2>';
+        echo '<table class="widefat striped seo-tags-table"><thead><tr><th>Atributo</th><th>Grupo</th><th>Tipo</th><th>Unidad</th><th>Productos</th><th>Asignaciones</th><th>Términos</th><th>Estado</th><th>Acción</th></tr></thead><tbody>';
+        foreach ((array) $defs as $row) {
+            echo '<tr><td><strong>' . esc_html((string) $row['nombre']) . '</strong><br><code>' . esc_html((string) $row['slug']) . '</code></td>';
+            echo '<td>' . esc_html((string) ($row['grupo'] ?? '')) . '</td><td>' . esc_html((string) $row['tipo']) . '</td><td>' . esc_html((string) ($row['unidad_base'] ?? '')) . '</td>';
+            echo '<td>' . esc_html(number_format_i18n((int) $row['products'])) . '</td><td>' . esc_html(number_format_i18n((int) $row['assignments'])) . '</td><td>' . esc_html(number_format_i18n((int) $row['terms'])) . '</td>';
+            echo '<td><span class="seo-tags-state ' . (!empty($row['activo']) ? 'active' : 'inactive') . '">' . (!empty($row['activo']) ? 'Activo' : 'Inactivo') . '</span></td>';
+            echo '<td><a class="button button-small" href="' . esc_url(add_query_arg('edit_attribute', (int) $row['id'], $base)) . '">Editar</a> ';
+            if ((int) $row['assignments'] === 0) {
+                echo '<form method="post" style="display:inline" onsubmit="return confirm(\'Se eliminará la definición y sus términos/aliases. ¿Continuar?\');">';
+                wp_nonce_field('seo_semantic_attributes_admin', 'seo_semantic_attributes_nonce');
+                echo '<input type="hidden" name="seo_semantic_attribute_action" value="delete_definition"><input type="hidden" name="definition_slug" value="' . esc_attr((string) $row['slug']) . '"><button class="button button-small seo-tags-danger">Eliminar</button></form>';
+            }
+            echo '</td></tr>';
+        }
+        if (!$defs) echo '<tr><td colspan="9">No hay definiciones.</td></tr>';
+        echo '</tbody></table></div>';
+    }
+}
+
+/** Gestión de términos y aliases de atributos controlados. */
+if (!function_exists('seo_semantic_attributes_render_terms')) {
+    function seo_semantic_attributes_render_terms() {
+        global $wpdb;
+        $tables = seo_attributes_tables();
+        $definitions = $wpdb->get_results(
+            "SELECT * FROM `{$tables['definitions']}` WHERE tipo='termino' ORDER BY activo DESC,orden ASC,nombre ASC",
+            ARRAY_A
+        );
+        $attribute_id = absint($_GET['attribute_id'] ?? 0);
+        if ($attribute_id < 1 && !empty($definitions)) $attribute_id = (int) $definitions[0]['id'];
+        $valid_ids = array_map(static fn($r) => (int) $r['id'], (array) $definitions);
+        if ($attribute_id > 0 && !in_array($attribute_id, $valid_ids, true)) $attribute_id = $valid_ids ? $valid_ids[0] : 0;
+        $edit_term_id = absint($_GET['edit_term'] ?? 0);
+        $editing = $edit_term_id > 0
+            ? $wpdb->get_row($wpdb->prepare("SELECT * FROM `{$tables['terms']}` WHERE id=%d AND atributo_id=%d LIMIT 1", $edit_term_id, $attribute_id), ARRAY_A)
+            : null;
+        $editing = is_array($editing) ? $editing : [];
+        $base = admin_url('admin.php?page=seo-tags-vocabulary&domain=attributes&attribute_section=terms');
+
+        echo '<div class="seo-tags-panel"><form method="get" class="seo-tags-filter"><input type="hidden" name="page" value="seo-tags-vocabulary"><input type="hidden" name="domain" value="attributes"><input type="hidden" name="attribute_section" value="terms">';
+        echo '<label>Atributo<select name="attribute_id" onchange="this.form.submit()">';
+        foreach ((array) $definitions as $def) {
+            echo '<option value="' . esc_attr((int) $def['id']) . '" ' . selected($attribute_id, (int) $def['id'], false) . '>' . esc_html((string) $def['nombre']) . ' (' . esc_html((string) $def['slug']) . ')</option>';
+        }
+        echo '</select></label></form></div>';
+        if ($attribute_id < 1) {
+            echo '<div class="notice notice-info inline"><p>No hay atributos de tipo término. Créalo primero en la pestaña Atributos.</p></div>';
+            return;
+        }
+
+        $definition = $wpdb->get_row($wpdb->prepare("SELECT * FROM `{$tables['definitions']}` WHERE id=%d", $attribute_id), ARRAY_A);
+        $terms = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT t.*,
+                        (SELECT COUNT(DISTINCT pa.product_id) FROM `{$tables['values']}` pa WHERE pa.termino_id=t.id) AS products,
+                        (SELECT COUNT(*) FROM `{$tables['values']}` pa WHERE pa.termino_id=t.id) AS assignments
+                 FROM `{$tables['terms']}` t
+                 WHERE t.atributo_id=%d ORDER BY t.activo DESC,t.orden ASC,t.nombre ASC",
+                $attribute_id
+            ), ARRAY_A
+        );
+        $aliases = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT al.*,t.nombre AS term_name FROM `{$tables['aliases']}` al
+                 LEFT JOIN `{$tables['terms']}` t ON t.id=al.termino_id
+                 WHERE al.atributo_id=%d ORDER BY t.nombre ASC,al.alias ASC",
+                $attribute_id
+            ), ARRAY_A
+        );
+        $aliases_by_term = [];
+        foreach ((array) $aliases as $alias) $aliases_by_term[(int) $alias['termino_id']][] = $alias;
+
+        echo '<div class="seo-tags-panel"><h2>' . ($editing ? 'Editar término' : 'Alta de término') . ': ' . esc_html((string) ($definition['nombre'] ?? '')) . '</h2>';
+        echo '<form method="post" class="seo-tags-manager-form">';
+        wp_nonce_field('seo_semantic_attributes_admin', 'seo_semantic_attributes_nonce');
+        echo '<input type="hidden" name="seo_semantic_attribute_action" value="save_term"><input type="hidden" name="attribute_id" value="' . esc_attr($attribute_id) . '"><input type="hidden" name="term_id" value="' . esc_attr((int) ($editing['id'] ?? 0)) . '">';
+        echo '<label>Nombre<input type="text" name="term_name" required value="' . esc_attr((string) ($editing['nombre'] ?? '')) . '" placeholder="Ej. Acero inoxidable"></label>';
+        echo '<label>Slug<input type="text" name="term_slug" value="' . esc_attr((string) ($editing['slug'] ?? '')) . '" placeholder="se genera si queda vacío"></label>';
+        echo '<label>Orden<input type="number" name="term_order" value="' . esc_attr((int) ($editing['orden'] ?? 0)) . '"></label>';
+        echo '<label><input type="checkbox" name="term_active" value="1" ' . checked(array_key_exists('activo',$editing) ? !empty($editing['activo']) : true, true, false) . '> Activo</label>';
+        echo '<button class="button button-primary">' . ($editing ? 'Guardar término' : 'Añadir término') . '</button>';
+        if ($editing) echo '<a class="button" href="' . esc_url(add_query_arg('attribute_id', $attribute_id, $base)) . '">Cancelar</a>';
+        echo '</form></div>';
+
+        echo '<div class="seo-tags-panel"><h2>Términos y aliases</h2>';
+        echo '<table class="widefat striped seo-tags-table"><thead><tr><th>Término</th><th>Productos</th><th>Estado</th><th>Aliases</th><th>Acciones</th></tr></thead><tbody>';
+        foreach ((array) $terms as $term) {
+            $tid = (int) $term['id'];
+            echo '<tr><td><strong>' . esc_html((string) $term['nombre']) . '</strong><br><code>' . esc_html((string) $term['slug']) . '</code></td>';
+            echo '<td>' . esc_html(number_format_i18n((int) $term['products'])) . ' <small>(' . esc_html(number_format_i18n((int) $term['assignments'])) . ' asign.)</small></td>';
+            echo '<td><span class="seo-tags-state ' . (!empty($term['activo']) ? 'active' : 'inactive') . '">' . (!empty($term['activo']) ? 'Activo' : 'Inactivo') . '</span></td><td>';
+            if (!empty($aliases_by_term[$tid])) {
+                echo '<div class="seo-tags-pills">';
+                foreach ($aliases_by_term[$tid] as $alias) {
+                    echo '<span class="seo-tags-pill">' . esc_html((string) $alias['alias']) . ' ';
+                    echo '<form method="post" style="display:inline">';
+                    wp_nonce_field('seo_semantic_attributes_admin', 'seo_semantic_attributes_nonce');
+                    echo '<input type="hidden" name="seo_semantic_attribute_action" value="delete_alias"><input type="hidden" name="alias_id" value="' . esc_attr((int) $alias['id']) . '"><button type="submit" title="Eliminar alias" style="border:0;background:transparent;color:#b32d2e;cursor:pointer;padding:0">×</button></form></span>';
+                }
+                echo '</div>';
+            } else echo '<span class="seo-tags-muted">Sin aliases</span>';
+            echo '<form method="post" style="display:flex;gap:5px;margin-top:7px">';
+            wp_nonce_field('seo_semantic_attributes_admin', 'seo_semantic_attributes_nonce');
+            echo '<input type="hidden" name="seo_semantic_attribute_action" value="add_alias"><input type="hidden" name="attribute_id" value="' . esc_attr($attribute_id) . '"><input type="hidden" name="term_id" value="' . esc_attr($tid) . '"><input type="text" name="alias_value" placeholder="nuevo alias" style="min-width:140px"><button class="button button-small">Añadir</button></form>';
+            echo '</td><td><a class="button button-small" href="' . esc_url(add_query_arg(['attribute_id'=>$attribute_id,'edit_term'=>$tid], $base)) . '">Editar</a> ';
+            if ((int) $term['assignments'] === 0) {
+                echo '<form method="post" style="display:inline" onsubmit="return confirm(\'Se eliminará este término y sus aliases. ¿Continuar?\');">';
+                wp_nonce_field('seo_semantic_attributes_admin', 'seo_semantic_attributes_nonce');
+                echo '<input type="hidden" name="seo_semantic_attribute_action" value="delete_term"><input type="hidden" name="term_id" value="' . esc_attr($tid) . '"><button class="button button-small seo-tags-danger">Eliminar</button></form>';
+            }
+            echo '</td></tr>';
+        }
+        if (!$terms) echo '<tr><td colspan="5">Este atributo todavía no tiene términos.</td></tr>';
+        echo '</tbody></table></div>';
+    }
+}
+
 if (!function_exists('seo_tags_vocabulary_admin_page')) {
     function seo_tags_vocabulary_admin_page() {
         if (!current_user_can('manage_options')) {
             wp_die(esc_html__('No tienes permisos para acceder a esta herramienta.', 'seo-taxonomy'));
         }
 
+        $domain = sanitize_key($_GET['domain'] ?? 'labels');
+        if (!in_array($domain, ['labels', 'attributes'], true)) {
+            $domain = 'labels';
+        }
+
         $section = sanitize_key($_GET['section'] ?? 'vocabulary');
         if (!in_array($section, ['products', 'vocabulary', 'dictionary', 'control'], true)) {
             $section = 'vocabulary';
         }
+        $attribute_section = sanitize_key($_GET['attribute_section'] ?? 'definitions');
+        if (!in_array($attribute_section, ['products', 'definitions', 'terms', 'control'], true)) {
+            $attribute_section = 'definitions';
+        }
 
-        $summary = seo_tags_vocab_get_summary();
+        $notice = $domain === 'attributes' ? seo_semantic_attributes_handle_action() : null;
         $base = admin_url('admin.php?page=seo-tags-vocabulary');
 
         echo '<div class="wrap seo-tags-wrap">';
-        echo '<h1>Etiquetas <span class="seo-tags-mode">Vocabulario canónico activo</span></h1>';
-        echo '<p class="seo-tags-intro">TIPO y Ámbito/ROL forman la identidad canónica del producto; APLICACIÓN, PLATAFORMA y SUBTIPO se gestionan en el vocabulary. La alineación con categoría se calcula exclusivamente con el modelo canónico.</p>';
-
+        echo '<h1>Semántica <span class="seo-tags-mode">Vocabularios canónicos</span></h1>';
+        echo '<p class="seo-tags-intro">Unifica los diccionarios que describen el catálogo: etiquetas semánticas de clasificación y atributos técnicos de producto. Cada familia conserva su propio modelo y controles de integridad.</p>';
         seo_tags_vocab_render_styles();
-        seo_tags_vocab_render_summary_cards($summary);
+        echo '<style>.seo-semantic-domain-tabs{margin:18px 0 10px;border-bottom:1px solid #c3c4c7}.seo-semantic-domain-tabs .nav-tab{font-size:15px;padding:8px 18px}.seo-semantic-subtabs{margin:8px 0 20px}.seo-semantic-domain-title{display:flex;align-items:center;gap:10px;margin:16px 0 4px}</style>';
 
-        echo '<nav class="nav-tab-wrapper" style="margin:18px 0 20px">';
-        echo '<a class="nav-tab ' . ($section === 'products' ? 'nav-tab-active' : '') . '" href="' . esc_url($base . '&section=products') . '">Productos</a>';
-        echo '<a class="nav-tab ' . ($section === 'vocabulary' ? 'nav-tab-active' : '') . '" href="' . esc_url($base . '&section=vocabulary') . '">Gestionar etiquetas</a>';
-        echo '<a class="nav-tab ' . ($section === 'dictionary' ? 'nav-tab-active' : '') . '" href="' . esc_url($base . '&section=dictionary') . '">Diccionario</a>';
-        echo '<a class="nav-tab ' . ($section === 'control' ? 'nav-tab-active' : '') . '" href="' . esc_url($base . '&section=control') . '">Control</a>';
+        echo '<nav class="nav-tab-wrapper seo-semantic-domain-tabs">';
+        echo '<a class="nav-tab ' . ($domain === 'labels' ? 'nav-tab-active' : '') . '" href="' . esc_url($base . '&domain=labels&section=vocabulary') . '">Etiquetas</a>';
+        echo '<a class="nav-tab ' . ($domain === 'attributes' ? 'nav-tab-active' : '') . '" href="' . esc_url($base . '&domain=attributes&attribute_section=definitions') . '">Atributos</a>';
         echo '</nav>';
 
-        if ($section === 'vocabulary') {
-            seo_tags_vocab_render_vocabulary();
-        } elseif ($section === 'dictionary') {
-            seo_tags_vocab_render_dictionary();
-        } elseif ($section === 'control') {
-            seo_tags_vocab_render_control($summary);
+        if ($domain === 'labels') {
+            $summary = seo_tags_vocab_get_summary();
+            echo '<div class="seo-semantic-domain-title"><h2 style="margin:0">Etiquetas semánticas</h2><span class="seo-tags-mode">Clasificación</span></div>';
+            echo '<p class="seo-tags-intro">TIPO y Ámbito/ROL forman la identidad canónica del producto; APLICACIÓN, PLATAFORMA y SUBTIPO completan su clasificación semántica.</p>';
+            seo_tags_vocab_render_summary_cards($summary);
+            $labels_base = $base . '&domain=labels';
+            echo '<nav class="nav-tab-wrapper seo-semantic-subtabs">';
+            echo '<a class="nav-tab ' . ($section === 'products' ? 'nav-tab-active' : '') . '" href="' . esc_url($labels_base . '&section=products') . '">Productos</a>';
+            echo '<a class="nav-tab ' . ($section === 'vocabulary' ? 'nav-tab-active' : '') . '" href="' . esc_url($labels_base . '&section=vocabulary') . '">Gestionar etiquetas</a>';
+            echo '<a class="nav-tab ' . ($section === 'dictionary' ? 'nav-tab-active' : '') . '" href="' . esc_url($labels_base . '&section=dictionary') . '">Diccionario</a>';
+            echo '<a class="nav-tab ' . ($section === 'control' ? 'nav-tab-active' : '') . '" href="' . esc_url($labels_base . '&section=control') . '">Control</a>';
+            echo '</nav>';
+
+            if ($section === 'vocabulary') seo_tags_vocab_render_vocabulary();
+            elseif ($section === 'dictionary') seo_tags_vocab_render_dictionary();
+            elseif ($section === 'control') seo_tags_vocab_render_control($summary);
+            else seo_tags_vocab_render_products();
         } else {
-            seo_tags_vocab_render_products();
+            echo '<div class="seo-semantic-domain-title"><h2 style="margin:0">Atributos técnicos</h2><span class="seo-tags-mode">Productos</span></div>';
+            echo '<p class="seo-tags-intro">Gestiona definiciones, términos controlados, aliases y asignaciones del nuevo modelo <code>wp_sql_*</code>. No se escribe en <code>wp_seo_attributes</code>.</p>';
+            seo_semantic_attributes_notice($notice);
+            seo_semantic_attributes_render_summary_cards(seo_semantic_attributes_get_summary());
+
+            $attr_base = $base . '&domain=attributes';
+            echo '<nav class="nav-tab-wrapper seo-semantic-subtabs">';
+            echo '<a class="nav-tab ' . ($attribute_section === 'products' ? 'nav-tab-active' : '') . '" href="' . esc_url($attr_base . '&attribute_section=products') . '">Productos</a>';
+            echo '<a class="nav-tab ' . ($attribute_section === 'definitions' ? 'nav-tab-active' : '') . '" href="' . esc_url($attr_base . '&attribute_section=definitions') . '">Atributos</a>';
+            echo '<a class="nav-tab ' . ($attribute_section === 'terms' ? 'nav-tab-active' : '') . '" href="' . esc_url($attr_base . '&attribute_section=terms') . '">Términos y aliases</a>';
+            echo '<a class="nav-tab ' . ($attribute_section === 'control' ? 'nav-tab-active' : '') . '" href="' . esc_url($attr_base . '&attribute_section=control') . '">Control</a>';
+            echo '</nav>';
+
+            if (!function_exists('seo_attributes_tables')) {
+                echo '<div class="notice notice-error inline"><p>El módulo de atributos canónicos no está cargado.</p></div>';
+            } elseif ($attribute_section === 'definitions') {
+                seo_semantic_attributes_render_definitions();
+            } elseif ($attribute_section === 'terms') {
+                seo_semantic_attributes_render_terms();
+            } elseif ($attribute_section === 'control') {
+                search_product_attributes([
+                    'render_dashboard' => true,
+                    'render_definition_controls' => false,
+                    'render_explorer' => false,
+                ]);
+            } else {
+                search_product_attributes([
+                    'render_dashboard' => false,
+                    'render_definition_controls' => false,
+                ]);
+            }
         }
 
         echo '</div>';
     }
 }
+

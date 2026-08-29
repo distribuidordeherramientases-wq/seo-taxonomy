@@ -630,6 +630,335 @@ if (!function_exists('seo_attributes_add_master_type')) {
     }
 }
 
+
+/**
+ * Crea o actualiza una definición canónica completa desde el panel Semántica.
+ * El slug queda bloqueado al editar para mantener estables las integraciones.
+ */
+if (!function_exists('seo_attributes_save_definition')) {
+    function seo_attributes_save_definition(array $data, $source_module = 'semantic_attributes_admin') {
+        global $wpdb;
+        $tables = seo_attributes_require_schema();
+
+        $id = absint($data['id'] ?? 0);
+        $existing = null;
+        if ($id > 0) {
+            $existing = $wpdb->get_row(
+                $wpdb->prepare("SELECT * FROM `{$tables['definitions']}` WHERE id = %d LIMIT 1", $id),
+                ARRAY_A
+            );
+            if (!is_array($existing)) {
+                throw new RuntimeException('La definición de atributo ya no existe.');
+            }
+        }
+
+        $slug_input = (string) ($data['slug'] ?? '');
+        $slug = $existing
+            ? (string) $existing['slug']
+            : str_replace('-', '_', sanitize_title(remove_accents($slug_input)));
+        $slug = sanitize_key($slug);
+        if ($slug === '') {
+            throw new InvalidArgumentException('El slug del atributo es obligatorio.');
+        }
+
+        $nombre = sanitize_text_field(trim((string) ($data['nombre'] ?? '')));
+        if ($nombre === '') {
+            throw new InvalidArgumentException('El nombre visible del atributo es obligatorio.');
+        }
+
+        $allowed_types = ['texto', 'numero', 'boolean', 'termino', 'rango'];
+        $tipo = sanitize_key((string) ($data['tipo'] ?? 'texto'));
+        if (!in_array($tipo, $allowed_types, true)) {
+            throw new InvalidArgumentException('El tipo de dato del atributo no es válido.');
+        }
+
+        if ($existing && (string) $existing['tipo'] !== $tipo) {
+            $usage = (int) $wpdb->get_var(
+                $wpdb->prepare("SELECT COUNT(*) FROM `{$tables['values']}` WHERE atributo_id = %d", $id)
+            );
+            if ($usage > 0) {
+                throw new RuntimeException('No se puede cambiar el tipo de un atributo que ya tiene asignaciones.');
+            }
+        }
+
+        if (!$existing) {
+            $duplicate = (int) $wpdb->get_var(
+                $wpdb->prepare("SELECT id FROM `{$tables['definitions']}` WHERE slug = %s LIMIT 1", $slug)
+            );
+            if ($duplicate > 0) {
+                throw new RuntimeException('Ya existe una definición con el slug «' . $slug . '».');
+            }
+        }
+
+        $row = [
+            'slug'        => $slug,
+            'nombre'      => $nombre,
+            'grupo'       => sanitize_text_field(trim((string) ($data['grupo'] ?? 'general'))) ?: 'general',
+            'tipo'        => $tipo,
+            'unidad_tipo' => (($v = sanitize_text_field(trim((string) ($data['unidad_tipo'] ?? '')))) !== '') ? $v : null,
+            'unidad_base' => (($v = sanitize_text_field(trim((string) ($data['unidad_base'] ?? '')))) !== '') ? $v : null,
+            'multiple'    => !empty($data['multiple']) ? 1 : 0,
+            'filtrable'   => !empty($data['filtrable']) ? 1 : 0,
+            'visible'     => !empty($data['visible']) ? 1 : 0,
+            'seo'         => !empty($data['seo']) ? 1 : 0,
+            'orden'       => (int) ($data['orden'] ?? 0),
+            'activo'      => !empty($data['activo']) ? 1 : 0,
+        ];
+
+        $source_module = sanitize_key((string) $source_module) ?: 'semantic_attributes_admin';
+        $operation = SEO_Data_Layer::operation([
+            'type'          => $existing ? 'update_attribute_definition_v2' : 'create_attribute_definition_v2',
+            'label'         => ($existing ? 'Editar' : 'Crear') . ' atributo canónico: ' . $slug,
+            'source_module' => $source_module,
+            'rollbackable'  => true,
+            'risk_level'    => $existing ? 'medium' : 'low',
+            'audit_level'   => 'full',
+            'metadata'      => ['attribute_id' => $id, 'attribute_slug' => $slug],
+        ]);
+        $operation->mark_validated(['validated_rows' => 1]);
+        $operation->mark_previewed(1, [$existing ? 'preview_update_rows' : 'preview_insert_rows' => 1]);
+
+        $saved = $operation->execute(static function (SEO_Data_Operation $op) use ($existing, $id, $row) {
+            if ($existing) {
+                return $op->update('attribute_definitions', ['id' => $id], $row, [
+                    'related_object_type' => 'attribute_dictionary',
+                    'related_object_id'   => 0,
+                    'reason'              => 'semantic_attributes_admin_save_definition',
+                ]);
+            }
+            return $op->insert('attribute_definitions', $row, [
+                'related_object_type' => 'attribute_dictionary',
+                'related_object_id'   => 0,
+                'reason'              => 'semantic_attributes_admin_save_definition',
+            ]);
+        });
+
+        return [
+            'operation_id'   => $operation->id(),
+            'operation_uuid' => $operation->uuid(),
+            'row'            => $saved,
+        ];
+    }
+}
+
+/** Crea o actualiza un término permitido de un atributo tipo termino. */
+if (!function_exists('seo_attributes_save_term')) {
+    function seo_attributes_save_term(array $data, $source_module = 'semantic_attributes_admin') {
+        global $wpdb;
+        $tables = seo_attributes_require_schema();
+        $id = absint($data['id'] ?? 0);
+        $attribute_id = absint($data['atributo_id'] ?? 0);
+        if ($attribute_id < 1) {
+            throw new InvalidArgumentException('Debes seleccionar un atributo.');
+        }
+
+        $definition = $wpdb->get_row(
+            $wpdb->prepare("SELECT * FROM `{$tables['definitions']}` WHERE id = %d LIMIT 1", $attribute_id),
+            ARRAY_A
+        );
+        if (!is_array($definition) || (string) ($definition['tipo'] ?? '') !== 'termino') {
+            throw new RuntimeException('Los términos solo pueden añadirse a atributos de tipo «termino».');
+        }
+
+        $nombre = sanitize_text_field(trim((string) ($data['nombre'] ?? '')));
+        if ($nombre === '') {
+            throw new InvalidArgumentException('El nombre del término es obligatorio.');
+        }
+        $slug_input = trim((string) ($data['slug'] ?? ''));
+        $slug = sanitize_title($slug_input !== '' ? $slug_input : $nombre);
+        if ($slug === '') {
+            throw new InvalidArgumentException('No se ha podido generar un slug válido para el término.');
+        }
+
+        $existing = null;
+        if ($id > 0) {
+            $existing = $wpdb->get_row(
+                $wpdb->prepare("SELECT * FROM `{$tables['terms']}` WHERE id = %d LIMIT 1", $id),
+                ARRAY_A
+            );
+            if (!is_array($existing) || (int) $existing['atributo_id'] !== $attribute_id) {
+                throw new RuntimeException('El término ya no existe o pertenece a otro atributo.');
+            }
+        }
+
+        $duplicate = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM `{$tables['terms']}` WHERE atributo_id = %d AND slug = %s AND id <> %d LIMIT 1",
+                $attribute_id,
+                $slug,
+                $id
+            )
+        );
+        if ($duplicate > 0) {
+            throw new RuntimeException('Ese término ya existe en el atributo seleccionado.');
+        }
+
+        $row = [
+            'atributo_id' => $attribute_id,
+            'slug'        => $slug,
+            'nombre'      => $nombre,
+            'orden'       => (int) ($data['orden'] ?? 0),
+            'activo'      => !empty($data['activo']) ? 1 : 0,
+        ];
+
+        $operation = SEO_Data_Layer::operation([
+            'type'          => $existing ? 'update_attribute_term_v2' : 'create_attribute_term_v2',
+            'label'         => ($existing ? 'Editar' : 'Crear') . ' término de atributo: ' . $nombre,
+            'source_module' => sanitize_key((string) $source_module) ?: 'semantic_attributes_admin',
+            'rollbackable'  => true,
+            'risk_level'    => 'low',
+            'audit_level'   => 'full',
+            'metadata'      => ['attribute_id' => $attribute_id, 'term_id' => $id],
+        ]);
+        $operation->mark_validated(['validated_rows' => 1]);
+        $operation->mark_previewed(1, [$existing ? 'preview_update_rows' : 'preview_insert_rows' => 1]);
+        $saved = $operation->execute(static function (SEO_Data_Operation $op) use ($existing, $id, $row) {
+            if ($existing) {
+                return $op->update('attribute_terms', ['id' => $id], $row, [
+                    'related_object_type' => 'attribute_term',
+                    'related_object_id'   => $id,
+                    'reason'              => 'semantic_attributes_admin_save_term',
+                ]);
+            }
+            return $op->insert('attribute_terms', $row, [
+                'related_object_type' => 'attribute_term',
+                'related_object_id'   => 0,
+                'reason'              => 'semantic_attributes_admin_save_term',
+            ]);
+        });
+
+        return ['operation_id' => $operation->id(), 'operation_uuid' => $operation->uuid(), 'row' => $saved];
+    }
+}
+
+/** Elimina un término si no está asignado a ningún producto; borra también sus aliases. */
+if (!function_exists('seo_attributes_delete_term')) {
+    function seo_attributes_delete_term($term_id, $source_module = 'semantic_attributes_admin') {
+        global $wpdb;
+        $tables = seo_attributes_require_schema();
+        $term_id = absint($term_id);
+        $term = $wpdb->get_row(
+            $wpdb->prepare("SELECT * FROM `{$tables['terms']}` WHERE id = %d LIMIT 1", $term_id),
+            ARRAY_A
+        );
+        if (!is_array($term)) {
+            return ['operation_id' => 0, 'operation_uuid' => '', 'deleted' => 0];
+        }
+        $usage = (int) $wpdb->get_var(
+            $wpdb->prepare("SELECT COUNT(*) FROM `{$tables['values']}` WHERE termino_id = %d", $term_id)
+        );
+        if ($usage > 0) {
+            throw new RuntimeException('El término tiene ' . $usage . ' asignaciones. Desactívalo en lugar de eliminarlo.');
+        }
+        $aliases = $wpdb->get_results(
+            $wpdb->prepare("SELECT id FROM `{$tables['aliases']}` WHERE termino_id = %d ORDER BY id", $term_id),
+            ARRAY_A
+        );
+        $operation = SEO_Data_Layer::operation([
+            'type'          => 'delete_attribute_term_v2',
+            'label'         => 'Eliminar término de atributo: ' . (string) $term['nombre'],
+            'source_module' => sanitize_key((string) $source_module) ?: 'semantic_attributes_admin',
+            'rollbackable'  => true,
+            'risk_level'    => 'medium',
+            'audit_level'   => 'full',
+            'metadata'      => ['term_id' => $term_id, 'attribute_id' => (int) $term['atributo_id']],
+        ]);
+        $operation->mark_validated(['validated_rows' => 1 + count((array) $aliases)]);
+        $operation->mark_previewed(1 + count((array) $aliases), []);
+        $deleted = $operation->execute(static function (SEO_Data_Operation $op) use ($aliases, $term_id) {
+            $count = 0;
+            foreach ((array) $aliases as $alias) {
+                $op->delete('attribute_aliases', ['id' => (int) $alias['id']], ['reason' => 'delete_attribute_term_v2']);
+                $count++;
+            }
+            $op->delete('attribute_terms', ['id' => $term_id], ['reason' => 'delete_attribute_term_v2']);
+            return $count + 1;
+        });
+        return ['operation_id' => $operation->id(), 'operation_uuid' => $operation->uuid(), 'deleted' => (int) $deleted];
+    }
+}
+
+/** Añade un alias de importación/detección a un término canónico. */
+if (!function_exists('seo_attributes_add_alias')) {
+    function seo_attributes_add_alias($attribute_id, $term_id, $alias, $source_module = 'semantic_attributes_admin') {
+        global $wpdb;
+        $tables = seo_attributes_require_schema();
+        $attribute_id = absint($attribute_id);
+        $term_id = absint($term_id);
+        $alias = sanitize_text_field(trim((string) $alias));
+        if ($attribute_id < 1 || $term_id < 1 || $alias === '') {
+            throw new InvalidArgumentException('Atributo, término y alias son obligatorios.');
+        }
+        $valid_term = (int) $wpdb->get_var(
+            $wpdb->prepare("SELECT id FROM `{$tables['terms']}` WHERE id = %d AND atributo_id = %d LIMIT 1", $term_id, $attribute_id)
+        );
+        if ($valid_term < 1) {
+            throw new RuntimeException('El término no pertenece al atributo seleccionado.');
+        }
+        $duplicate = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM `{$tables['aliases']}` WHERE atributo_id = %d AND LOWER(alias) = LOWER(%s) LIMIT 1",
+                $attribute_id,
+                $alias
+            )
+        );
+        if ($duplicate > 0) {
+            throw new RuntimeException('Ese alias ya existe para el atributo seleccionado.');
+        }
+        $operation = SEO_Data_Layer::operation([
+            'type'          => 'create_attribute_alias_v2',
+            'label'         => 'Añadir alias de atributo: ' . $alias,
+            'source_module' => sanitize_key((string) $source_module) ?: 'semantic_attributes_admin',
+            'rollbackable'  => true,
+            'risk_level'    => 'low',
+            'audit_level'   => 'full',
+            'metadata'      => ['attribute_id' => $attribute_id, 'term_id' => $term_id],
+        ]);
+        $operation->mark_validated(['validated_rows' => 1]);
+        $operation->mark_previewed(1, ['preview_insert_rows' => 1]);
+        $row = $operation->execute(static function (SEO_Data_Operation $op) use ($attribute_id, $term_id, $alias) {
+            return $op->insert('attribute_aliases', [
+                'atributo_id' => $attribute_id,
+                'termino_id'  => $term_id,
+                'alias'       => $alias,
+            ], ['reason' => 'semantic_attributes_admin_add_alias']);
+        });
+        return ['operation_id' => $operation->id(), 'operation_uuid' => $operation->uuid(), 'row' => $row];
+    }
+}
+
+/** Elimina un alias; no modifica el término ni asignaciones de producto. */
+if (!function_exists('seo_attributes_delete_alias')) {
+    function seo_attributes_delete_alias($alias_id, $source_module = 'semantic_attributes_admin') {
+        global $wpdb;
+        $tables = seo_attributes_require_schema();
+        $alias_id = absint($alias_id);
+        $row = $wpdb->get_row(
+            $wpdb->prepare("SELECT * FROM `{$tables['aliases']}` WHERE id = %d LIMIT 1", $alias_id),
+            ARRAY_A
+        );
+        if (!is_array($row)) {
+            return ['operation_id' => 0, 'operation_uuid' => '', 'deleted' => 0];
+        }
+        $operation = SEO_Data_Layer::operation([
+            'type'          => 'delete_attribute_alias_v2',
+            'label'         => 'Eliminar alias de atributo: ' . (string) $row['alias'],
+            'source_module' => sanitize_key((string) $source_module) ?: 'semantic_attributes_admin',
+            'rollbackable'  => true,
+            'risk_level'    => 'low',
+            'audit_level'   => 'full',
+            'metadata'      => ['alias_id' => $alias_id, 'attribute_id' => (int) $row['atributo_id'], 'term_id' => (int) $row['termino_id']],
+        ]);
+        $operation->mark_validated(['validated_rows' => 1]);
+        $operation->mark_previewed(1, ['preview_delete_rows' => 1]);
+        $deleted = $operation->execute(static function (SEO_Data_Operation $op) use ($alias_id) {
+            $op->delete('attribute_aliases', ['id' => $alias_id], ['reason' => 'semantic_attributes_admin_delete_alias']);
+            return 1;
+        });
+        return ['operation_id' => $operation->id(), 'operation_uuid' => $operation->uuid(), 'deleted' => (int) $deleted];
+    }
+}
+
 /** Elimina una definición solo si no está asignada a productos. */
 if (!function_exists('seo_attributes_delete_master_type')) {
     function seo_attributes_delete_master_type($attribute_type, $source_module = 'product_attributes') {
@@ -1184,11 +1513,16 @@ if (!function_exists('seo_attributes_render_dashboard')) {
  * PRODUCT ATTRIBUTES PAGE
  * ==========================
  */
-function search_product_attributes() {
+function search_product_attributes($options = []) {
 
     if (!current_user_can('manage_options')) return;
 
     global $wpdb;
+
+    $options = is_array($options) ? $options : [];
+    $render_dashboard = array_key_exists('render_dashboard', $options) ? (bool) $options['render_dashboard'] : true;
+    $render_definition_controls = array_key_exists('render_definition_controls', $options) ? (bool) $options['render_definition_controls'] : true;
+    $render_explorer = array_key_exists('render_explorer', $options) ? (bool) $options['render_explorer'] : true;
 
     $relations_table = $wpdb->prefix . 'seo_relations';
     $attr_table      = $wpdb->prefix . 'sql_product_atributos';
@@ -1553,8 +1887,13 @@ if (!empty($new_master_attribute)) {
     }
 
 
-    // El panel semantico se muestra siempre, antes del explorador historico.
-    seo_attributes_render_dashboard($attr_table);
+    // El panel semántico puede ocultarse cuando se integra en la pantalla unificada.
+    if ($render_dashboard) {
+        seo_attributes_render_dashboard($attr_table);
+    }
+    if (!$render_explorer) {
+        return;
+    }
 
     /**
      * =========================
@@ -1572,6 +1911,12 @@ if (!empty($new_master_attribute)) {
         <input type="hidden" name="tab" value="<?php echo esc_attr(sanitize_key($_GET['tab'] ?? 'semantic')); ?>">
         <?php if (!empty($_GET['semantic_tab'])) : ?>
             <input type="hidden" name="semantic_tab" value="<?php echo esc_attr(sanitize_key($_GET['semantic_tab'])); ?>">
+        <?php endif; ?>
+        <?php if (!empty($_GET['domain'])) : ?>
+            <input type="hidden" name="domain" value="<?php echo esc_attr(sanitize_key($_GET['domain'])); ?>">
+        <?php endif; ?>
+        <?php if (!empty($_GET['attribute_section'])) : ?>
+            <input type="hidden" name="attribute_section" value="<?php echo esc_attr(sanitize_key($_GET['attribute_section'])); ?>">
         <?php endif; ?>
 
         <select name="cluster" onchange="this.form.submit()">
@@ -1630,6 +1975,7 @@ if (!empty($new_master_attribute)) {
                 Proponer atributos
             </button>
             
+            <?php if ($render_definition_controls): ?>
             <br><br>
             <?php wp_nonce_field('seo_manage_attribute_definition', 'seo_manage_attribute_definition_nonce'); ?>
             
@@ -1675,6 +2021,7 @@ if (!empty($new_master_attribute)) {
             <p style="margin:6px 0 0;color:#646970;max-width:720px;">
                 Esta acción elimina la definición canónica, sus términos/aliases y todas las asignaciones del atributo. El sistema antiguo wp_seo_attributes no se modifica.
             </p>
+            <?php endif; ?>
     </form>
 
     <?php

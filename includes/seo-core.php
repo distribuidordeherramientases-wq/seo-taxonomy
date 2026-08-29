@@ -38,17 +38,18 @@ function seo_taxonomy_page() {
 
     $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'manage_taxonomy';
 
-    $semantic_tab = isset($_GET['semantic_tab']) ? sanitize_key($_GET['semantic_tab']) : 'category_labels';
+    // La gestión semántica vive ahora en su página única del menú principal.
+    // Conservamos las URLs antiguas como redirección para no romper favoritos.
+    if ($active_tab === 'semantic') {
+        wp_safe_redirect(admin_url('admin.php?page=seo-tags-vocabulary'));
+        exit;
+    }
 
-    $allowed_tabs = ['manage_taxonomy', 'taxonomy', 'semantic'];
+    $allowed_tabs = ['manage_taxonomy', 'taxonomy'];
     if (!in_array($active_tab, $allowed_tabs, true)) {
         $active_tab = 'manage_taxonomy';
     }
 
-    $allowed_semantic_tabs = ['category_labels', 'attributes'];
-    if (!in_array($semantic_tab, $allowed_semantic_tabs, true)) {
-        $semantic_tab = 'category_labels';
-    }
 
     $data = function_exists('seo_get_taxonomy_data') ? seo_get_taxonomy_data() : [];
 
@@ -58,7 +59,7 @@ function seo_taxonomy_page() {
     echo '<h2 class="nav-tab-wrapper">';
     echo '<a href="' . esc_url(admin_url('admin.php?page=seo-taxonomy&tab=manage_taxonomy')) . '" class="nav-tab ' . ($active_tab === 'manage_taxonomy' ? 'nav-tab-active' : '') . '">Gestión SEO</a>';
     echo '<a href="' . esc_url(admin_url('admin.php?page=seo-taxonomy&tab=taxonomy')) . '" class="nav-tab ' . ($active_tab === 'taxonomy' ? 'nav-tab-active' : '') . '">Taxonomía</a>';
-    echo '<a href="' . esc_url(admin_url('admin.php?page=seo-taxonomy&tab=semantic&semantic_tab=category_labels')) . '" class="nav-tab ' . ($active_tab === 'semantic' ? 'nav-tab-active' : '') . '">Semántica</a>';
+    echo '<a href="' . esc_url(admin_url('admin.php?page=seo-tags-vocabulary')) . '" class="nav-tab">Semántica</a>';
     echo '</h2>';
 
     echo '<div class="tab-content" style="padding-top:20px;">';
@@ -84,49 +85,6 @@ function seo_taxonomy_page() {
         echo '</div>';
         echo '</div>';
         return;
-    }
-
-    // Gestión semántica unificada. Se reutilizan los módulos existentes;
-    // solo cambia su punto de entrada dentro del administrador.
-    echo '<h2 class="nav-tab-wrapper" style="margin-top:0;margin-bottom:20px;">';
-
-    $semantic_tabs = [
-        'category_labels' => 'Etiquetas de categorías',
-        'attributes' => 'Atributos',
-    ];
-
-    foreach ($semantic_tabs as $semantic_key => $semantic_label) {
-        $semantic_url = add_query_arg(
-            [
-                'page' => 'seo-taxonomy',
-                'tab' => 'semantic',
-                'semantic_tab' => $semantic_key,
-            ],
-            admin_url('admin.php')
-        );
-
-        echo '<a href="' . esc_url($semantic_url) . '" class="nav-tab ' . ($semantic_tab === $semantic_key ? 'nav-tab-active' : '') . '">' . esc_html($semantic_label) . '</a>';
-    }
-
-    echo '</h2>';
-
-    switch ($semantic_tab) {
-        case 'category_labels':
-            if (function_exists('seo_category_classification')) {
-                seo_category_classification();
-            } else {
-                echo '<div class="notice notice-warning"><p>El módulo de etiquetas de categorías no está cargado.</p></div>';
-            }
-            break;
-
-        case 'attributes':
-            if (function_exists('search_product_attributes')) {
-                search_product_attributes();
-            } else {
-                echo '<div class="notice notice-warning"><p>El módulo de atributos no está cargado.</p></div>';
-            }
-            break;
-
     }
 
     echo '</div>';

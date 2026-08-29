@@ -128,11 +128,11 @@ add_submenu_page(
         'seo_category_admin_callback'
     );
 
-    // Etiquetas / vocabulario semántico de producto
+    // Semántica: etiquetas de clasificación + atributos técnicos de producto
     add_submenu_page(
         'seo-system',
-        'Etiquetas y vocabulario',
-        'Etiquetas',
+        'Vocabulario semántico',
+        'Semántica',
         'manage_options',
         'seo-tags-vocabulary',
         'seo_tags_vocabulary_admin_page'
