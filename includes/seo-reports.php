@@ -42,6 +42,97 @@ add_action('admin_post_seo_delete_empty_product_categories', 'seo_delete_empty_p
 // Acción segura para recalcular los contadores de categorías de producto.
 add_action('admin_post_seo_recount_product_categories', 'seo_recount_product_categories_handler');
 
+/**
+ * Resumen reutilizado de Search Console para la portada Informes > Informes.
+ *
+ * No sustituye ni modifica Google Intelligence. Consume las mismas funciones
+ * y los mismos datos que la vista original, pero muestra solo el bloque
+ * ejecutivo solicitado: fechas, indicadores y tres gráficos de tendencia.
+ */
+function seo_reports_render_google_search_summary() {
+    $required_functions = array(
+        'seo_google_get_settings',
+        'seo_google_connection_status',
+        'seo_google_get_summary_metrics',
+        'seo_google_get_summary_trend_data',
+        'seo_google_render_summary_charts',
+    );
+
+    foreach ($required_functions as $required_function) {
+        if (!function_exists($required_function)) {
+            echo '<div class="notice notice-warning inline"><p><strong>Resumen de Google no disponible.</strong> Falta cargar el módulo <code>seo-google-info.php</code>.</p></div>';
+            return;
+        }
+    }
+
+    $settings = seo_google_get_settings();
+    $status   = seo_google_connection_status();
+
+    echo '<section class="seo-reports-google-summary" style="margin-top:18px;">';
+    echo '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:12px;">';
+    echo '<div>';
+    echo '<h2 style="margin:0 0 5px;">Google · Visibilidad orgánica</h2>';
+    echo '<p style="margin:0;color:#646970;">Resumen de Search Console reutilizado desde Inteligencia de Google.</p>';
+    echo '</div>';
+
+    if (function_exists('seo_google_admin_url')) {
+        echo '<a class="button" href="' . esc_url(seo_google_admin_url('summary')) . '">Ver informe completo</a>';
+    }
+
+    echo '</div>';
+
+    if ('connected' !== $status) {
+        echo '<div class="notice notice-info inline"><p><strong>Google Search Console todavía no está conectado completamente.</strong></p></div>';
+        if (function_exists('seo_google_admin_url')) {
+            echo '<p><a class="button button-primary" href="' . esc_url(seo_google_admin_url('settings')) . '">Configurar conexión</a></p>';
+        }
+        echo '</section>';
+        return;
+    }
+
+    $property_id = isset($settings['property_id']) ? (string) $settings['property_id'] : '';
+    $metrics     = seo_google_get_summary_metrics($property_id, 28);
+
+    if (!$metrics) {
+        echo '<div class="notice notice-info inline"><p><strong>La conexión está preparada, pero aún no hay datos almacenados.</strong></p></div>';
+        if (function_exists('seo_google_admin_url')) {
+            echo '<p><a class="button button-primary" href="' . esc_url(seo_google_admin_url('sync')) . '">Ejecutar sincronización</a></p>';
+        }
+        echo '</section>';
+        return;
+    }
+
+    $cards = array(
+        'Clics'       => number_format_i18n((float) $metrics['clicks'], 0),
+        'Impresiones' => number_format_i18n((float) $metrics['impressions'], 0),
+        'CTR'         => number_format_i18n(((float) $metrics['ctr']) * 100, 2) . '%',
+        'Posición'    => number_format_i18n((float) $metrics['position'], 1),
+        'Consultas'   => number_format_i18n(absint($metrics['queries'])),
+        'Páginas'     => number_format_i18n(absint($metrics['pages'])),
+    );
+
+    echo '<div style="background:#fff;border:1px solid #dcdcde;padding:20px;border-radius:6px;">';
+    echo '<h3 style="margin-top:0;">Últimos 28 días disponibles</h3>';
+    echo '<p><code>' . esc_html($metrics['date_from']) . '</code> → <code>' . esc_html($metrics['date_to']) . '</code></p>';
+    echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;">';
+
+    foreach ($cards as $label => $value) {
+        echo '<div style="border:1px solid #dcdcde;border-radius:6px;padding:14px;">';
+        echo '<div style="color:#646970;font-size:12px;text-transform:uppercase;font-weight:700;">' . esc_html($label) . '</div>';
+        echo '<div style="font-size:26px;font-weight:700;margin-top:6px;">' . esc_html($value) . '</div>';
+        echo '</div>';
+    }
+
+    echo '</div>';
+    echo '<p class="description" style="margin-top:14px;">La posición se pondera por impresiones. Search Console puede devolver las filas principales y no garantiza un conjunto exhaustivo de consultas.</p>';
+    echo '</div>';
+
+    $trend_rows = seo_google_get_summary_trend_data($property_id, 365);
+    seo_google_render_summary_charts($trend_rows);
+
+    echo '</section>';
+}
+
 /*******************************************************************************
  * SISTEMA DE INFORMES SEO
  ******************************************************************************/
@@ -88,6 +179,8 @@ function seo_reports_page() {
     // Ejecución de acciones según la pestaña escogida.
     if ($active_tab === 'informes') {
         echo '<h2>Informes generales</h2>';
+        echo '<p style="color:#646970;margin-top:-6px;">Vista unificada con los indicadores que quieras consultar sin recorrer los informes técnicos de origen.</p>';
+        seo_reports_render_google_search_summary();
     } elseif ($active_tab === 'dashboard') {
         seo_dashboard_page();
     } elseif ($active_tab === 'content') {
