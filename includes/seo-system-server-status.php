@@ -45,7 +45,7 @@ function seo_server_status() {
             $snapshot['persisted'] = true;
         }
     }
-    if (!empty($snapshot) && (int) ($snapshot['schema_version'] ?? 0) < 3) {
+    if (!empty($snapshot) && (int) ($snapshot['schema_version'] ?? 0) < 4) {
         $snapshot = array();
     }
     if (empty($snapshot['checks'])) {
@@ -1712,14 +1712,6 @@ function seo_server_status_collect_security_checks($deep = false) {
         $checks[] = seo_server_status_make_check('SEC-WP-CONFIG-PERMS', 'Seguridad', 'Permisos wp-config.php', $config_perms['mode'], $perm_status, 'Nunca debe ser escribible por cualquier usuario del sistema.');
     }
 
-    $private_log = seo_server_status_get_private_log_path();
-    if ($private_log === '') {
-        $checks[] = seo_server_status_make_check('SEC-LOG-PRIVATE', 'Seguridad', 'Log privado SEO System', 'No localizado', 'info', 'No hay una ruta privada disponible para verificar.');
-    } else {
-        $is_private = seo_server_status_log_path_is_private($private_log);
-        $checks[] = seo_server_status_make_check('SEC-LOG-PRIVATE', 'Seguridad', 'Log SEO System fuera del directorio publico', seo_server_status_yes_no($is_private), $is_private ? 'ok' : 'error', 'El log propio no debe poder descargarse por HTTP.');
-    }
-
     $php_error_log = trim((string) ini_get('error_log'));
     $doc_root = !empty($_SERVER['DOCUMENT_ROOT']) ? wp_normalize_path((string) $_SERVER['DOCUMENT_ROOT']) : '';
     $php_log_public = false;
@@ -2025,15 +2017,6 @@ function seo_server_status_collect_snapshot($deep = false) {
         $checks[] = seo_server_status_make_check('SRV-DISK-USAGE', 'Almacenamiento', 'Uso de disco', 'No disponible', 'info', 'El hosting no permite leer el espacio global.');
     }
 
-    $private_log = seo_server_status_get_private_log_path();
-    if ($private_log && is_file($private_log) && is_readable($private_log)) {
-        $log_size = (float) filesize($private_log);
-        $log_status = $log_size > 104857600 ? 'important' : ($log_size > 10485760 ? 'warning' : 'ok');
-        $checks[] = seo_server_status_make_check('SRV-LOG-SEO-SYSTEM-SIZE', 'Logs', 'Tamaño log privado SEO System', seo_server_status_format_bytes($log_size), $log_status, 'El informe nunca transmite el contenido completo del log.');
-    } else {
-        $checks[] = seo_server_status_make_check('SRV-LOG-SEO-SYSTEM-SIZE', 'Logs', 'Log privado SEO System', 'No disponible o vacío', 'info', 'No se ha encontrado un archivo privado legible.');
-    }
-
     if ($deep) {
         $db_size = $wpdb->get_var($wpdb->prepare('SELECT SUM(DATA_LENGTH + INDEX_LENGTH) FROM information_schema.TABLES WHERE TABLE_SCHEMA = %s', DB_NAME));
         $checks[] = seo_server_status_make_check('SRV-DB-SIZE', 'Base de datos', 'Tamaño base de datos', seo_server_status_format_bytes((float) $db_size), 'info', 'Dato agregado; no contiene filas ni contenido de tablas.');
@@ -2046,7 +2029,7 @@ function seo_server_status_collect_snapshot($deep = false) {
     }
 
     return array(
-        'schema_version' => 3,
+        'schema_version' => 4,
         'generated_at'   => time(),
         'deep'           => (bool) $deep,
         'checks'         => $checks,
@@ -2178,7 +2161,7 @@ function seo_server_status_render_category_overview($snapshot) {
 
 function seo_server_status_get_reporting_snapshot($refresh = false) {
     $snapshot = $refresh ? array() : seo_server_status_load_snapshot();
-    if (!empty($snapshot) && (int) ($snapshot['schema_version'] ?? 0) < 3) {
+    if (!empty($snapshot) && (int) ($snapshot['schema_version'] ?? 0) < 4) {
         $snapshot = array();
     }
     if (empty($snapshot['checks'])) {
@@ -2863,7 +2846,6 @@ function seo_server_status_render_directory_sizes_section() {
 function seo_server_status_render_large_files_section() {
     $upload_dir = wp_get_upload_dir();
     $paths = array(
-        seo_server_status_get_private_log_path(),
         defined('WP_CONTENT_DIR') ? WP_CONTENT_DIR : '',
         isset($upload_dir['basedir']) ? $upload_dir['basedir'] : '',
     );
@@ -3065,159 +3047,15 @@ function seo_server_status_render_performance_tab() {
 }
 
 /**
- * Renderiza la pestaña Logs con dos capas separadas:
- * - Log privado propio de SEO System: gestionado por el plugin.
- * - PHP error_log del servidor: solo lectura cuando PHP permite acceder a el.
+ * Renderiza la pestaña Logs con el error_log de PHP/sistema en modo solo lectura.
  */
 function seo_server_status_render_logs_tab() {
 
     echo '<h2>Logs</h2>';
-    echo '<p>SEO System mantiene su propio log privado y, cuando el hosting lo permite, puede mostrar tambien el <code>error_log</code> de PHP. El log de PHP no necesita ser publico por HTTP para poder leerse desde WordPress.</p>';
+    echo '<p>Cuando el hosting lo permite, SEO System puede mostrar el <code>error_log</code> de PHP. El archivo no necesita ser publico por HTTP para poder leerse desde WordPress.</p>';
 
-    $private_log_path = seo_server_status_get_private_log_path();
     $php_log = seo_server_status_get_php_error_log_info();
     $show_php_log = isset($_GET['seo_show_php_log']) && sanitize_key(wp_unslash($_GET['seo_show_php_log'])) === '1';
-
-    /*
-     * Procesar el vaciado del log propio antes de mostrar tamano y contenido.
-     * El log PHP del hosting se mantiene expresamente en solo lectura.
-     */
-    if (
-        isset($_POST['seo_clear_private_log']) &&
-        check_admin_referer('seo_clear_private_log_action')
-    ) {
-
-        if (!$private_log_path) {
-
-            echo '<div class="notice notice-error"><p>No se puede vaciar el log privado porque no se ha podido detectar su ruta.</p></div>';
-
-        } elseif (!file_exists($private_log_path)) {
-
-            echo '<div class="notice notice-error"><p>No se puede vaciar el log privado porque el archivo no existe.</p></div>';
-
-        } elseif (!is_writable($private_log_path)) {
-
-            echo '<div class="notice notice-error"><p>No se puede vaciar el log privado porque PHP no tiene permisos de escritura.</p></div>';
-
-        } else {
-
-            $clear_result = file_put_contents($private_log_path, '', LOCK_EX);
-
-            if ($clear_result === false) {
-                echo '<div class="notice notice-error"><p>No se ha podido vaciar el log privado.</p></div>';
-            } else {
-                echo '<div class="notice notice-success"><p>Log privado de SEO System vaciado correctamente.</p></div>';
-            }
-        }
-    }
-
-    echo '<div class="seo-status-card">';
-    echo '<h2>Log propio de SEO System</h2>';
-    echo '<p class="seo-muted">Este archivo pertenece al plugin. SEO System puede escribirlo, leerlo y vaciarlo cuando PHP tiene permisos. Debe permanecer fuera del directorio publico.</p>';
-
-    seo_server_status_open_table();
-
-    seo_server_status_row(
-        'Ruta log privado',
-        $private_log_path ? esc_html($private_log_path) : 'No detectada',
-        $private_log_path ? 'info' : 'warning',
-        'Ruta del log propio de SEO System guardado fuera del directorio publico.'
-    );
-
-    $is_private = $private_log_path ? seo_server_status_log_path_is_private($private_log_path) : false;
-
-    seo_server_status_row(
-        'Fuera del directorio publico',
-        seo_server_status_yes_no($is_private),
-        $is_private ? 'ok' : 'warning',
-        'Debe ser Si para que el archivo no pueda descargarse directamente por HTTP.'
-    );
-
-    if ($private_log_path && file_exists($private_log_path)) {
-
-        $private_log_size = filesize($private_log_path);
-
-        seo_server_status_row(
-            'Tamano log SEO System',
-            seo_server_status_format_bytes($private_log_size),
-            $private_log_size > 10485760 ? 'warning' : 'ok',
-            'El log propio no depende de WP_DEBUG ni del error_log de PHP.'
-        );
-
-        seo_server_status_row(
-            'Log legible',
-            seo_server_status_yes_no(is_readable($private_log_path)),
-            is_readable($private_log_path) ? 'ok' : 'warning',
-            'PHP debe poder leer el archivo para mostrarlo en este panel.'
-        );
-
-        seo_server_status_row(
-            'Log editable',
-            seo_server_status_yes_no(is_writable($private_log_path)),
-            is_writable($private_log_path) ? 'ok' : 'warning',
-            'Solo afecta al log propio del plugin.'
-        );
-
-    } else {
-
-        seo_server_status_row(
-            'Log SEO System',
-            'No existe',
-            'warning',
-            'No se ha encontrado el archivo privado. Comprueba que functions.php ha podido crearlo.'
-        );
-    }
-
-    seo_server_status_close_table();
-
-    if ($private_log_path && file_exists($private_log_path)) {
-
-        echo '<form method="post" style="margin:15px 0;">';
-
-        wp_nonce_field('seo_clear_private_log_action');
-
-        submit_button(
-            'Vaciar log SEO System',
-            'secondary',
-            'seo_clear_private_log',
-            false,
-            array(
-                'onclick' => "return confirm('Vaciar completamente el log privado de SEO System?');"
-            )
-        );
-
-        echo '</form>';
-
-    } else {
-
-        echo '<div class="notice notice-warning"><p>El log privado no existe o no puede localizarse. No se muestra el boton de vaciado.</p></div>';
-    }
-
-    echo '<h3>Ultimas 120 lineas del log de SEO System</h3>';
-
-    if (
-        $private_log_path &&
-        file_exists($private_log_path) &&
-        is_readable($private_log_path)
-    ) {
-
-        echo '<div class="seo-log-box">' .
-            esc_html(
-                seo_server_status_redact_log_text(
-                    seo_server_status_tail_file(
-                        $private_log_path,
-                        120
-                    )
-                )
-            ) .
-            '</div>';
-
-    } else {
-
-        echo '<p>No se puede leer el log privado de SEO System o no existe.</p>';
-    }
-
-    echo '</div>';
 
     echo '<div class="seo-status-card">';
     echo '<h2>Log PHP / sistema</h2>';
@@ -3318,29 +3156,6 @@ function seo_server_status_render_logs_tab() {
 }
 
 /**
- * Localiza el log privado de SEO System.
- * Primero usa la funcion compartida del functions.php y, como fallback,
- * la ruta absoluta guardada en wp_options.
- */
-function seo_server_status_get_private_log_path() {
-
-    if (function_exists('seo_system_get_private_log_path')) {
-        $path = seo_system_get_private_log_path();
-        if (is_string($path) && $path !== '') {
-            return wp_normalize_path($path);
-        }
-    }
-
-    $saved_path = get_option('seo_system_private_log_path', '');
-
-    if (is_string($saved_path) && $saved_path !== '') {
-        return wp_normalize_path($saved_path);
-    }
-
-    return '';
-}
-
-/**
  * Resume la configuracion efectiva del error_log de PHP sin modificarla.
  */
 function seo_server_status_get_php_error_log_info() {
@@ -3432,27 +3247,6 @@ function seo_server_status_redact_log_text($text) {
     );
 
     return preg_replace(array_keys($patterns), array_values($patterns), $text);
-}
-
-/**
- * Comprueba desde el panel que la ruta del log esta fuera del document root.
- */
-function seo_server_status_log_path_is_private($path) {
-
-    if (!$path || empty($_SERVER['DOCUMENT_ROOT'])) {
-        return false;
-    }
-
-    $document_root = realpath((string) $_SERVER['DOCUMENT_ROOT']);
-
-    if ($document_root === false) {
-        return false;
-    }
-
-    $normalized_path = wp_normalize_path($path);
-    $normalized_root = trailingslashit(untrailingslashit(wp_normalize_path($document_root)));
-
-    return strpos($normalized_path, $normalized_root) !== 0;
 }
 
 /**
