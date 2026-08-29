@@ -133,9 +133,315 @@ function seo_reports_render_google_search_summary() {
     echo '</section>';
 }
 
+
+/**
+ * Resumen reutilizado del rendimiento de posts para Informes > Informes.
+ *
+ * Mantiene intacta la vista original Entradas > Oportunidades y reutiliza
+ * exactamente sus fuentes de datos (GA4 + Search Console). En esta portada
+ * solo se muestran los indicadores globales y el grafico agregado solicitado.
+ */
+function seo_reports_render_post_performance_summary() {
+    $required_functions = array(
+        'seo_post_opportunities_get_posts',
+        'seo_post_opportunities_performance',
+    );
+
+    foreach ($required_functions as $required_function) {
+        if (!function_exists($required_function)) {
+            echo '<div class="notice notice-warning inline"><p><strong>Rendimiento de posts no disponible.</strong> Falta cargar el modulo <code>seo-post-opportunities.php</code>.</p></div>';
+            return;
+        }
+    }
+
+    // La vista original Entradas · Oportunidades usa 60 dias por defecto.
+    $days = 60;
+    $posts = seo_post_opportunities_get_posts();
+    $performance = seo_post_opportunities_performance($posts, $days);
+    $ga4 = (array) ($performance['ga4'] ?? array());
+    $gsc = (array) ($performance['gsc'] ?? array());
+
+    $daily = array();
+    foreach ((array) ($ga4['daily'] ?? array()) as $row) {
+        $date = (string) ($row['date'] ?? '');
+        if ($date === '') continue;
+        $daily[$date] = array(
+            'date'        => $date,
+            'pageviews'   => (float) ($row['pageviews'] ?? 0),
+            'sessions'    => (float) ($row['sessions'] ?? 0),
+            'clicks'      => 0.0,
+            'impressions' => 0.0,
+            'position'    => 0.0,
+        );
+    }
+    foreach ((array) ($gsc['daily'] ?? array()) as $row) {
+        $date = (string) ($row['date'] ?? '');
+        if ($date === '') continue;
+        if (!isset($daily[$date])) {
+            $daily[$date] = array(
+                'date'        => $date,
+                'pageviews'   => 0.0,
+                'sessions'    => 0.0,
+                'clicks'      => 0.0,
+                'impressions' => 0.0,
+                'position'    => 0.0,
+            );
+        }
+        $daily[$date]['clicks']      = (float) ($row['clicks'] ?? 0);
+        $daily[$date]['impressions'] = (float) ($row['impressions'] ?? 0);
+        $daily[$date]['position']    = (float) ($row['position'] ?? 0);
+    }
+    ksort($daily);
+
+    $chart_id = 'seo-reports-post-performance-' . wp_rand(1000, 999999);
+    $full_url = add_query_arg(
+        array(
+            'page'      => 'seo-reports',
+            'tab'       => 'post_opportunities',
+            'post_days' => $days,
+        ),
+        admin_url('admin.php')
+    );
+
+    echo '<section id="' . esc_attr($chart_id) . '" style="background:#fff;border:1px solid #dcdcde;padding:20px;border-radius:8px;margin:22px 0;">';
+    echo '<div style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap;">';
+    echo '<div><h2 style="margin:0 0 6px;">Rendimiento de Posts</h2>';
+    echo '<p style="margin:0;color:#646970;">Éxito global de las entradas durante los últimos ' . esc_html($days) . ' días. Analytics mide sesiones y vistas; Search Console mide clics, impresiones y posición orgánica.</p></div>';
+    echo '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">';
+    echo '<span style="padding:4px 8px;border-radius:12px;background:' . (!empty($ga4['available']) ? '#edfaef' : '#fcf0f1') . ';">GA4 ' . (!empty($ga4['available']) ? 'activo' : 'no disponible') . '</span>';
+    echo '<span style="padding:4px 8px;border-radius:12px;background:' . (!empty($gsc['available']) ? '#edfaef' : '#fcf0f1') . ';">Search Console ' . (!empty($gsc['available']) ? 'activo' : 'no disponible') . '</span>';
+    echo '<a class="button" href="' . esc_url($full_url) . '">Ver informe completo</a>';
+    echo '</div></div>';
+
+    $cards = array(
+        'Vistas de posts'   => !empty($ga4['available']) ? (int) round((float) ($ga4['summary']['pageviews'] ?? 0)) : '—',
+        'Sesiones en posts' => !empty($ga4['available']) ? (int) round((float) ($ga4['summary']['sessions'] ?? 0)) : '—',
+        'Clics orgánicos'   => !empty($gsc['available']) ? (int) round((float) ($gsc['summary']['clicks'] ?? 0)) : '—',
+        'Impresiones'       => !empty($gsc['available']) ? (int) round((float) ($gsc['summary']['impressions'] ?? 0)) : '—',
+        'CTR orgánico'      => !empty($gsc['available']) ? number_format_i18n(((float) ($gsc['summary']['ctr'] ?? 0)) * 100, 1) . '%' : '—',
+        'Posición media'    => !empty($gsc['available']) && (float) ($gsc['summary']['position'] ?? 0) > 0
+            ? number_format_i18n((float) $gsc['summary']['position'], 1)
+            : '—',
+    );
+
+    echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;margin-top:16px;">';
+    foreach ($cards as $label => $value) {
+        $display = is_numeric($value) ? number_format_i18n($value) : $value;
+        echo '<div style="border:1px solid #dcdcde;border-radius:7px;padding:12px;">';
+        echo '<div style="font-size:22px;font-weight:700;">' . esc_html($display) . '</div>';
+        echo '<div style="color:#646970;">' . esc_html($label) . '</div>';
+        echo '</div>';
+    }
+    echo '</div>';
+
+    if (empty($ga4['available']) && !empty($ga4['error'])) {
+        echo '<div class="notice notice-warning inline"><p><strong>Analytics:</strong> ' . esc_html($ga4['error']) . ' El panel seguirá mostrando Search Console.</p></div>';
+    }
+    if (empty($gsc['available']) && !empty($gsc['error'])) {
+        echo '<div class="notice notice-warning inline"><p><strong>Search Console:</strong> ' . esc_html($gsc['error']) . '</p></div>';
+    }
+
+    if (!empty($daily)) {
+        echo '<div style="margin-top:18px;border:1px solid #dcdcde;border-radius:7px;padding:14px;">';
+        echo '<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;">';
+        echo '<div><h3 style="margin:0;">Tráfico global de posts</h3><p class="description" style="margin:4px 0 0;">Evolución diaria del conjunto de artículos. Solo URLs de posts. En posición, menor es mejor.</p></div>';
+        echo '<div style="display:flex;gap:6px;flex-wrap:wrap;">';
+        if (!empty($ga4['available'])) {
+            echo '<button type="button" class="button button-primary" data-report-post-metric="pageviews">Vistas</button>';
+            echo '<button type="button" class="button" data-report-post-metric="sessions">Sesiones</button>';
+        }
+        echo '<button type="button" class="button ' . (empty($ga4['available']) ? 'button-primary' : '') . '" data-report-post-metric="clicks">Clics Google</button>';
+        echo '<button type="button" class="button" data-report-post-metric="impressions">Impresiones</button>';
+        echo '<button type="button" class="button" data-report-post-metric="position">Posición</button>';
+        echo '</div></div>';
+        echo '<div data-report-post-chart style="min-height:260px;margin-top:10px;"></div>';
+        echo '</div>';
+    } else {
+        echo '<p class="description" style="margin-top:18px;">Todavía no hay una serie diaria de posts disponible para este periodo.</p>';
+    }
+
+    echo '<script>';
+    echo '(function(){';
+    echo 'const root=document.getElementById(' . wp_json_encode($chart_id) . ');';
+    echo 'const rows=' . wp_json_encode(array_values($daily)) . ';';
+    echo <<<'JS'
+if(!root)return;
+const svgNS='http://www.w3.org/2000/svg';
+function fmt(v,m){v=Number(v||0);if(m==='position')return v.toLocaleString('es-ES',{minimumFractionDigits:1,maximumFractionDigits:1});return Math.round(v).toLocaleString('es-ES');}
+function dateLabel(d){const p=String(d||'').split('-');return p.length===3?p[2]+'/'+p[1]:d;}
+function draw(container,data,metric){
+  container.innerHTML='';
+  if(!data||!data.length){container.textContent='Sin datos.';return;}
+  const W=900,H=250,M={t:18,r:18,b:34,l:58},PW=W-M.l-M.r,PH=H-M.t-M.b;
+  const values=data.map(r=>Number(r[metric]||0));
+  let min=Math.min(...values),max=Math.max(...values);
+  if(metric!=='position')min=0;else{const span=Math.max(1,max-min);min=Math.max(0,min-span*.08);max+=span*.08;}
+  if(max===min)max=min+1;
+  const x=i=>M.l+(data.length===1?PW/2:(i/(data.length-1))*PW);
+  const y=v=>{const ratio=(Number(v)-min)/(max-min);return metric==='position'?M.t+ratio*PH:M.t+(1-ratio)*PH;};
+  const svg=document.createElementNS(svgNS,'svg');
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.setAttribute('width','100%');svg.setAttribute('height','250');
+  for(let i=0;i<=4;i++){
+    const gy=M.t+(i/4)*PH;
+    const ln=document.createElementNS(svgNS,'line');ln.setAttribute('x1',M.l);ln.setAttribute('x2',W-M.r);ln.setAttribute('y1',gy);ln.setAttribute('y2',gy);ln.setAttribute('stroke','#e2e4e7');svg.appendChild(ln);
+    const val=metric==='position'?min+(i/4)*(max-min):max-(i/4)*(max-min);
+    const tx=document.createElementNS(svgNS,'text');tx.setAttribute('x',M.l-8);tx.setAttribute('y',gy+4);tx.setAttribute('text-anchor','end');tx.setAttribute('font-size','10');tx.setAttribute('fill','#646970');tx.textContent=fmt(val,metric);svg.appendChild(tx);
+  }
+  const line=document.createElementNS(svgNS,'polyline');line.setAttribute('points',values.map((v,i)=>x(i).toFixed(2)+','+y(v).toFixed(2)).join(' '));line.setAttribute('fill','none');line.setAttribute('stroke','#2271b1');line.setAttribute('stroke-width','3');line.setAttribute('stroke-linecap','round');line.setAttribute('stroke-linejoin','round');svg.appendChild(line);
+  const tickCount=Math.min(6,data.length);
+  for(let i=0;i<tickCount;i++){
+    const idx=Math.round((i/Math.max(1,tickCount-1))*(data.length-1));
+    const tx=document.createElementNS(svgNS,'text');tx.setAttribute('x',x(idx));tx.setAttribute('y',H-10);tx.setAttribute('text-anchor','middle');tx.setAttribute('font-size','10');tx.setAttribute('fill','#646970');tx.textContent=dateLabel(data[idx].date);svg.appendChild(tx);
+  }
+  data.forEach((r,i)=>{
+    const c=document.createElementNS(svgNS,'circle');c.setAttribute('cx',x(i));c.setAttribute('cy',y(r[metric]));c.setAttribute('r',data.length<=31?'3':'2');c.setAttribute('fill','#2271b1');
+    const t=document.createElementNS(svgNS,'title');t.textContent=dateLabel(r.date)+': '+fmt(r[metric],metric);c.appendChild(t);svg.appendChild(c);
+  });
+  container.appendChild(svg);
+}
+const box=root.querySelector('[data-report-post-chart]');
+let metric=root.querySelector('[data-report-post-metric].button-primary')?.dataset.reportPostMetric||'clicks';
+if(box&&rows.length)draw(box,rows,metric);
+root.querySelectorAll('[data-report-post-metric]').forEach(btn=>btn.addEventListener('click',()=>{
+  metric=btn.dataset.reportPostMetric;
+  root.querySelectorAll('[data-report-post-metric]').forEach(x=>x.classList.toggle('button-primary',x===btn));
+  if(box)draw(box,rows,metric);
+}));
+})();
+JS;
+    echo '</script>';
+    echo '</section>';
+}
+
 /*******************************************************************************
  * SISTEMA DE INFORMES SEO
  ******************************************************************************/
+
+/**
+ * Resumen de Landing Pages para Informes > Informes.
+ *
+ * Reutiliza los mismos datos del gestor SEO Marketing > Landing Pages sin
+ * modificar ni retirar la vista original. Muestra inventario, estado,
+ * visitas del contador propio, tendencia de 30 dias y estado de las senales
+ * externas disponibles para descubrir nuevas oportunidades.
+ */
+function seo_reports_render_landing_pages_summary() {
+    $required_functions = array(
+        'seo_landing_get_kpis',
+        'seo_landing_get_views_series',
+        'seo_landing_get_external_signals',
+    );
+
+    foreach ($required_functions as $required_function) {
+        if (!function_exists($required_function)) {
+            echo '<div class="notice notice-warning inline"><p><strong>Resumen de Landing Pages no disponible.</strong> Falta cargar el modulo <code>seo-landing-pages.php</code>.</p></div>';
+            return;
+        }
+    }
+
+    if (function_exists('seo_landing_maybe_install')) {
+        seo_landing_maybe_install();
+    }
+
+    $kpis     = (array) seo_landing_get_kpis();
+    $series   = (array) seo_landing_get_views_series(30);
+    $external = (array) seo_landing_get_external_signals();
+
+    $cards = array(
+        'Landings inventariadas' => (int) ($kpis['existing'] ?? 0),
+        'Publicadas'              => (int) ($kpis['published'] ?? 0),
+        'Candidatas pendientes'   => (int) ($kpis['candidates'] ?? 0),
+        'Aprobadas por crear'     => (int) ($kpis['approved'] ?? 0),
+        'Visitas ultimos 30 dias' => (int) ($kpis['views_30d'] ?? 0),
+        'Visitas registradas'     => (int) ($kpis['views_total'] ?? 0),
+    );
+
+    $full_url = add_query_arg(
+        array(
+            'page' => 'seo-menu-marketing',
+            'tab'  => 'landings',
+        ),
+        admin_url('admin.php')
+    );
+
+    $section_id = 'seo-reports-landings-' . wp_rand(1000, 999999);
+
+    echo '<section id="' . esc_attr($section_id) . '" style="margin:22px 0;">';
+    echo '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:12px;">';
+    echo '<div><h2 style="margin:0 0 6px;">Rendimiento de Landing Pages</h2>';
+    echo '<p style="margin:0;color:#646970;">Resumen reutilizado desde SEO Marketing → Landing Pages. El contador propio excluye administradores conectados.</p></div>';
+    echo '<a class="button" href="' . esc_url($full_url) . '">Ver Landing Pages</a>';
+    echo '</div>';
+
+    echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:18px;">';
+    foreach ($cards as $label => $value) {
+        echo '<div style="background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px;">';
+        echo '<strong style="display:block;font-size:28px;line-height:1.1;">' . esc_html(number_format_i18n($value)) . '</strong>';
+        echo '<span style="display:block;margin-top:6px;color:#646970;">' . esc_html($label) . '</span>';
+        echo '</div>';
+    }
+    echo '</div>';
+
+    echo '<div style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(320px,.6fr);gap:18px;align-items:stretch;" class="seo-reports-landings-grid">';
+
+    echo '<div style="background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:20px;">';
+    echo '<h3 style="margin:0 0 6px;">Rendimiento de landings</h3>';
+    echo '<p style="margin:0 0 12px;color:#646970;">Visitas registradas durante los ultimos 30 dias.</p>';
+
+    $max_views = 1;
+    foreach ($series as $item) {
+        $max_views = max($max_views, (int) ($item['views'] ?? 0));
+    }
+
+    echo '<div style="height:190px;display:flex;align-items:flex-end;gap:4px;padding:16px;background:#fff;border:1px solid #dcdcde;border-radius:8px;overflow:hidden;" aria-label="Visitas de landings durante los ultimos 30 dias">';
+    foreach ($series as $item) {
+        $views  = (int) ($item['views'] ?? 0);
+        $date   = (string) ($item['date'] ?? '');
+        $height = max(2, (int) round(($views / $max_views) * 100));
+        echo '<span style="flex:1;min-width:3px;height:' . esc_attr((string) $height) . '%;background:#4f6fb2;border-radius:3px 3px 0 0;" title="' . esc_attr($date . ': ' . $views . ' visitas') . '"></span>';
+    }
+    echo '</div>';
+    echo '</div>';
+
+    echo '<div style="background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:20px;">';
+    echo '<h3 style="margin:0 0 14px;">Senales externas</h3>';
+
+    if (function_exists('seo_landing_google_source_status')) {
+        $source_status = (array) seo_landing_google_source_status();
+        echo '<ul style="margin:0 0 14px 18px;line-height:1.8;">';
+        foreach (array(
+            'search_console' => 'Search Console',
+            'analytics'      => 'Analytics',
+            'trends'         => 'Google Trends',
+        ) as $source_key => $source_label) {
+            $src = isset($source_status[$source_key]) && is_array($source_status[$source_key])
+                ? $source_status[$source_key]
+                : array('connected' => false, 'detail' => 'No disponible');
+
+            $connected = !empty($src['connected']);
+            echo '<li><strong>' . esc_html($source_label) . ':</strong> ';
+            echo $connected
+                ? '<span style="color:#1d6b43;">conectado</span>'
+                : '<span style="color:#996800;">pendiente</span>';
+            if (!empty($src['detail'])) {
+                echo ' <small>' . esc_html((string) $src['detail']) . '</small>';
+            }
+            echo '</li>';
+        }
+        echo '</ul>';
+    } else {
+        echo '<p class="description">El estado detallado de las fuentes Google no esta disponible.</p>';
+    }
+
+    echo '<p style="margin:14px 0 6px;"><strong>' . esc_html(number_format_i18n(count($external))) . ' oportunidades externas disponibles.</strong></p>';
+    echo '<p class="description" style="margin-bottom:14px;">Las senales sirven para revision; no crean una nueva landing automaticamente.</p>';
+    echo '<a class="button button-primary" href="' . esc_url($full_url) . '">Revisar y sincronizar</a>';
+    echo '</div>';
+
+    echo '</div>';
+    echo '<style>@media(max-width:1050px){#' . esc_attr($section_id) . ' .seo-reports-landings-grid{grid-template-columns:1fr !important;}}</style>';
+    echo '</section>';
+}
 
 function seo_reports_page() {
     
@@ -181,6 +487,8 @@ function seo_reports_page() {
         echo '<h2>Informes generales</h2>';
         echo '<p style="color:#646970;margin-top:-6px;">Vista unificada con los indicadores que quieras consultar sin recorrer los informes técnicos de origen.</p>';
         seo_reports_render_google_search_summary();
+        seo_reports_render_post_performance_summary();
+        seo_reports_render_landing_pages_summary();
     } elseif ($active_tab === 'dashboard') {
         seo_dashboard_page();
     } elseif ($active_tab === 'content') {
