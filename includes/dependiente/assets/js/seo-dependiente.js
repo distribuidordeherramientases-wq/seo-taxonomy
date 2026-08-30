@@ -10,6 +10,7 @@
         const elements = {
             form: root.querySelector('[data-dependiente-search-form]'),
             query: root.querySelector('[data-dependiente-query]'),
+            submit: root.querySelector('[data-dependiente-search-form] button[type="submit"]'),
             examples: root.querySelector('[data-dependiente-examples]'),
             discovery: root.querySelector('[data-dependiente-discovery]'),
             actions: root.querySelector('[data-dependiente-actions]'),
@@ -146,6 +147,32 @@
             });
 
             elements.results.addEventListener('click', function (event) {
+                const reset = event.target.closest('[data-dependiente-zero-reset]');
+                if (reset) {
+                    event.preventDefault();
+                    state.filters = emptyFilters();
+                    state.contextLabel = '';
+                    state.page = 1;
+                    search(false);
+                    return;
+                }
+
+                const alternative = event.target.closest('[data-dependiente-zero-filter]');
+                if (alternative) {
+                    event.preventDefault();
+                    let filter = {};
+                    try { filter = JSON.parse(alternative.dataset.dependienteZeroFilter || '{}'); } catch (error) { filter = {}; }
+                    state.filters = emptyFilters();
+                    applyCardFilter(filter);
+                    state.q = '';
+                    state.contextLabel = alternative.dataset.dependienteZeroLabel || '';
+                    elements.query.value = '';
+                    state.page = 1;
+                    setMode(alternative.dataset.dependienteZeroMode || 'need');
+                    search(true);
+                    return;
+                }
+
                 const button = event.target.closest('[data-compare-id]');
                 if (!button) return;
                 event.preventDefault();
@@ -251,13 +278,13 @@
             elements.paths.forEach(function (button) {
                 button.classList.toggle('is-active', button.dataset.dependienteMode === mode);
             });
-            const placeholders = {
-                need: 'Ej.: quiero montar una puerta corredera de 70 kg con freno',
-                product: 'Nombre, referencia, marca, medida o característica',
-                tool: 'Ej.: compatible con Placard 74, plataforma 18 V o amoladora',
-                compare: 'Busca una familia y marca hasta cuatro productos'
-            };
-            elements.query.placeholder = placeholders[mode] || placeholders.need;
+
+            const placeholders = config.modePlaceholders || {};
+            const buttons = config.modeButtons || {};
+            elements.query.placeholder = placeholders[mode] || placeholders.need || 'Cuéntame qué necesitas';
+            if (elements.submit) {
+                elements.submit.textContent = buttons[mode] || buttons.need || 'Buscar';
+            }
         }
 
         async function search(resetScroll) {
@@ -293,10 +320,10 @@
                 renderSummary(data);
                 renderFilters(data.facets || {});
                 renderActiveFilters();
-                renderResults(data.results || []);
-                renderRelated(data.related || []);
+                renderResults(data.results || [], data);
+                renderRelated(data.related || [], Number(data.total || 0));
                 renderPagination(data.page || 1, data.pages || 0);
-                elements.status.textContent = data.truncated ? 'Búsqueda amplia: he analizado las coincidencias más relevantes del catálogo.' : '';
+                elements.status.textContent = data.truncated ? 'He encontrado muchas coincidencias. Añade una medida, marca, compatibilidad o uso para afinar mejor.' : '';
                 updateUrl();
             } catch (error) {
                 elements.summary.innerHTML = '<strong>No he podido terminar la búsqueda.</strong>';
@@ -469,12 +496,51 @@
             state.filters[kind] = (state.filters[kind] || []).filter(function (item) { return item !== value; });
         }
 
-        function renderResults(results) {
+        function renderResults(results, data) {
             if (!results.length) {
-                elements.results.innerHTML = '<div class="seo-dependiente__empty"><strong>No hay una coincidencia clara</strong><span>' + escapeHtml((config.labels && config.labels.noResults) || 'Prueba con otros términos o elimina un filtro.') + '</span></div>';
+                const actions = [];
+                if (activeFilterCount(state.filters) > 0) {
+                    actions.push('<button type="button" class="seo-dependiente__empty-action is-primary" data-dependiente-zero-reset>Quitar filtros y repetir</button>');
+                }
+
+                const alternatives = zeroResultAlternatives(data || {});
+                alternatives.forEach(function (item) {
+                    actions.push('<button type="button" class="seo-dependiente__empty-action" data-dependiente-zero-filter="' + escapeAttr(JSON.stringify(item.filter || {})) + '" data-dependiente-zero-label="' + escapeAttr(item.label || '') + '" data-dependiente-zero-mode="' + escapeAttr(item.mode || 'need') + '">' + escapeHtml(item.text || item.label || 'Explorar') + '</button>');
+                });
+
+                const actionsHtml = actions.length ? '<div class="seo-dependiente__empty-actions"><span>También puedes probar:</span><div>' + actions.join('') + '</div></div>' : '';
+                elements.results.innerHTML = '<div class="seo-dependiente__empty"><strong>No hay una coincidencia clara</strong><span>' + escapeHtml((config.labels && config.labels.noResults) || 'Prueba con otros términos o elimina un filtro.') + '</span>' + actionsHtml + '</div>';
                 return;
             }
             elements.results.innerHTML = results.map(renderProductCard).join('');
+        }
+
+        function zeroResultAlternatives(data) {
+            const items = [];
+            const categories = data && data.facets && Array.isArray(data.facets.categories) ? data.facets.categories : [];
+            categories.slice(0, 3).forEach(function (category) {
+                if (!category || !category.slug) return;
+                items.push({
+                    text: 'Explorar ' + String(category.label || category.slug),
+                    label: String(category.label || category.slug),
+                    mode: 'need',
+                    filter: { type: 'categories', slug: category.slug }
+                });
+            });
+
+            if (!items.length && state.bootstrap && Array.isArray(state.bootstrap.actions)) {
+                state.bootstrap.actions.slice(0, 3).forEach(function (action) {
+                    if (!action || !action.filter) return;
+                    items.push({
+                        text: 'Explorar ' + String(action.label || 'otra tarea'),
+                        label: String(action.label || ''),
+                        mode: 'need',
+                        filter: action.filter
+                    });
+                });
+            }
+
+            return items;
         }
 
         function renderProductCard(product) {
@@ -504,7 +570,7 @@
                 '</div></article>';
         }
 
-        function renderRelated(items) {
+        function renderRelated(items, totalResults) {
             if (!elements.related) return;
             if (!items || !items.length) {
                 elements.related.hidden = true;
@@ -512,12 +578,15 @@
                 return;
             }
 
-            const first = items.slice(0, 4);
-            const rest = items.slice(4);
+            const first = items.slice(0, 3);
+            const rest = items.slice(3);
             const cards = first.map(renderRelatedCard).join('');
             const more = rest.length ? '<details class="seo-dependiente__related-more"><summary>Ver más información (' + rest.length + ')</summary><div class="seo-dependiente__related-more-list">' + rest.map(renderRelatedCard).join('') + '</div></details>' : '';
+            const helpText = totalResults > 0
+                ? 'Contenido relacionado con las categorías de los productos que mejor encajan.'
+                : 'Aunque no haya un producto exacto, estas guías pueden ayudarte a orientar la búsqueda.';
             elements.related.innerHTML = '<div class="seo-dependiente__related-inner">' +
-                '<div class="seo-dependiente__related-head"><span>También te puede ayudar</span><h2>Guías y soluciones</h2><p>Contenido relacionado con las categorías de los productos que mejor encajan.</p></div>' +
+                '<div class="seo-dependiente__related-head"><span>También te puede ayudar</span><h2>Guías y soluciones</h2><p>' + escapeHtml(helpText) + '</p></div>' +
                 '<div class="seo-dependiente__related-list">' + cards + '</div>' + more + '</div>';
             elements.related.hidden = false;
         }
@@ -639,6 +708,26 @@
             else url.searchParams.delete('dep_q');
             window.history.replaceState({}, '', url.toString());
         }
+    }
+
+    function activeFilterCount(filters) {
+        filters = filters || emptyFilters();
+        let count = 0;
+        ['categories', 'tags', 'brands', 'stock'].forEach(function (key) {
+            count += Array.isArray(filters[key]) ? filters[key].length : 0;
+        });
+        Object.keys(filters.vocabulary || {}).forEach(function (key) {
+            count += Array.isArray(filters.vocabulary[key]) ? filters.vocabulary[key].length : 0;
+        });
+        Object.keys(filters.attributes || {}).forEach(function (key) {
+            count += Array.isArray(filters.attributes[key]) ? filters.attributes[key].length : 0;
+        });
+        Object.keys(filters.ranges || {}).forEach(function (key) {
+            const range = filters.ranges[key] || {};
+            if (range.min !== undefined && range.min !== null && range.min !== '') count += 1;
+            if (range.max !== undefined && range.max !== null && range.max !== '') count += 1;
+        });
+        return count;
     }
 
     function emptyFilters() {
