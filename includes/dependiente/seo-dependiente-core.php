@@ -26,6 +26,9 @@ final class SEO_Dependiente_Plugin {
         add_action('admin_init', array($this, 'ensure_public_page'), 20);
         add_action('rest_api_init', array('SEO_Dependiente_API', 'register_routes'));
 
+        add_filter('template_include', array($this, 'template_include'), 99);
+        add_action('wp_enqueue_scripts', array($this, 'enqueue_page_assets'), 20);
+
         add_action('woocommerce_new_product', array('SEO_Dependiente_Index', 'index_product'), 99);
         add_action('woocommerce_update_product', array('SEO_Dependiente_Index', 'index_product'), 99);
         add_action('save_post_product', array($this, 'late_index_product'), 999, 3);
@@ -88,6 +91,35 @@ final class SEO_Dependiente_Plugin {
     public function register_shortcode() {
         add_shortcode('dependiente_productos', array($this, 'render_shortcode'));
         add_shortcode('dependiente', array($this, 'render_shortcode'));
+    }
+
+    public function template_include($template) {
+        if (is_admin() || !is_singular('page')) {
+            return $template;
+        }
+
+        $page_id = get_queried_object_id();
+        $configured_page_id = absint(get_option('seo_dependiente_page_id', 0));
+        $is_dependiente = ($configured_page_id && $page_id === $configured_page_id) || is_page('dependiente');
+
+        if (!$is_dependiente) {
+            return $template;
+        }
+
+        $dependiente_template = SEO_DEPENDIENTE_PATH . 'template-dependiente.php';
+        return is_readable($dependiente_template) ? $dependiente_template : $template;
+    }
+
+    public function enqueue_page_assets() {
+        if (is_admin() || !is_singular('page')) {
+            return;
+        }
+
+        $page_id = get_queried_object_id();
+        $configured_page_id = absint(get_option('seo_dependiente_page_id', 0));
+        if (($configured_page_id && $page_id === $configured_page_id) || is_page('dependiente')) {
+            $this->enqueue_assets();
+        }
     }
 
     public function render_shortcode($atts = array()) {

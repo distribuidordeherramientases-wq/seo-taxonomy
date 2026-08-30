@@ -14,6 +14,13 @@ final class SEO_Dependiente_Admin {
         if (false === strpos((string) $hook, 'seo-dependiente')) {
             return;
         }
+        wp_enqueue_style(
+            'seo-dependiente',
+            SEO_DEPENDIENTE_URL . 'assets/css/seo-dependiente.css',
+            array(),
+            SEO_DEPENDIENTE_VERSION
+        );
+
         wp_enqueue_script(
             'seo-dependiente-admin',
             SEO_DEPENDIENTE_URL . 'assets/js/seo-dependiente-admin.js',
@@ -53,13 +60,13 @@ final class SEO_Dependiente_Admin {
             <?php if (isset($_GET['updated'])) : ?>
                 <div class="notice notice-success is-dismissible"><p>Configuración guardada.</p></div>
             <?php endif; ?>
-            <div class="seo-dependiente-admin__grid" style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(300px,.8fr);gap:20px;max-width:1200px;margin-top:20px;">
+            <div class="seo-dependiente-admin__grid">
                 <div>
-                    <div class="postbox" style="padding:20px;">
-                        <h2 style="margin-top:0;">Estado del catálogo</h2>
+                    <div class="postbox seo-dependiente-admin__box">
+                        <h2 class="seo-dependiente-admin__box-title">Estado del catálogo</h2>
                         <p><strong data-dependiente-indexed><?php echo esc_html(number_format_i18n($status['indexed'])); ?></strong> de <strong data-dependiente-total><?php echo esc_html(number_format_i18n($status['published'])); ?></strong> productos publicados están indexados.</p>
-                        <div style="height:12px;border-radius:999px;background:#e5e7eb;overflow:hidden;margin:14px 0;">
-                            <div data-dependiente-progress-bar style="height:100%;width:<?php echo esc_attr($indexed_percentage); ?>%;background:#111827;transition:width .2s ease;"></div>
+                        <div class="seo-dependiente-admin__progress">
+                            <div class="seo-dependiente-admin__progress-bar" data-dependiente-progress-bar data-initial-percent="<?php echo esc_attr($indexed_percentage); ?>"></div>
                         </div>
                         <p data-dependiente-progress-text><?php echo esc_html($indexed_percentage); ?>% completado<?php echo $status['last_full'] ? ' · Último índice completo: ' . esc_html($status['last_full']) : ''; ?></p>
                         <p>
@@ -69,10 +76,10 @@ final class SEO_Dependiente_Admin {
                         <p class="description">El índice se actualiza también al guardar cada producto. La reindexación completa recoge cambios masivos en términos, vocabulario o atributos.</p>
                     </div>
 
-                    <form class="postbox" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="padding:20px;">
+                    <form class="postbox seo-dependiente-admin__box" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
                         <input type="hidden" name="action" value="seo_dependiente_save">
                         <?php wp_nonce_field('seo_dependiente_save'); ?>
-                        <h2 style="margin-top:0;">Configuración del piloto</h2>
+                        <h2 class="seo-dependiente-admin__box-title">Configuración del piloto</h2>
                         <table class="form-table" role="presentation">
                             <tr>
                                 <th scope="row"><label for="dht-results-per-page">Resultados por página</label></th>
@@ -95,8 +102,8 @@ final class SEO_Dependiente_Admin {
                 </div>
 
                 <div>
-                    <div class="postbox" style="padding:20px;">
-                        <h2 style="margin-top:0;">Página pública</h2>
+                    <div class="postbox seo-dependiente-admin__box">
+                        <h2 class="seo-dependiente-admin__box-title">Página pública</h2>
                         <?php if ($page_id && $page_url) : ?>
                             <p><strong>Dependiente</strong><br><code>[dependiente_productos]</code></p>
                             <p><a class="button button-primary" href="<?php echo esc_url($page_url); ?>" target="_blank" rel="noopener">Abrir piloto</a> <a class="button" href="<?php echo esc_url(get_edit_post_link($page_id)); ?>">Editar página</a></p>
@@ -106,25 +113,25 @@ final class SEO_Dependiente_Admin {
                         <?php endif; ?>
                     </div>
 
-                    <div class="postbox" style="padding:20px;">
-                        <h2 style="margin-top:0;">Imágenes de navegación</h2>
+                    <div class="postbox seo-dependiente-admin__box">
+                        <h2 class="seo-dependiente-admin__box-title">Imágenes de navegación</h2>
                         <p><strong>Las imágenes se resuelven automáticamente desde el catálogo.</strong> No es necesario asociar imágenes a etiquetas, aplicaciones o atributos ni subir archivos con nombres especiales.</p>
                         <p class="description">Dependiente localiza los productos relacionados con cada concepto, reutiliza primero la imagen de una categoría representativa y, si no existe, la de un producto relacionado. El logo de la empresa se utiliza únicamente como último recurso.</p>
                     </div>
 
-                    <div class="postbox" style="padding:20px;">
-                        <h2 style="margin-top:0;">Fuentes de datos detectadas</h2>
+                    <div class="postbox seo-dependiente-admin__box">
+                        <h2 class="seo-dependiente-admin__box-title">Fuentes de datos detectadas</h2>
                         <ul>
                             <?php foreach ($integrations as $label => $active) : ?>
-                                <li style="display:flex;gap:8px;align-items:center;margin:10px 0;"><span aria-hidden="true" style="display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:<?php echo $active ? '#dcfce7' : '#f3f4f6'; ?>;color:<?php echo $active ? '#166534' : '#6b7280'; ?>;"><?php echo $active ? '✓' : '–'; ?></span><?php echo esc_html($label); ?></li>
+                                <li class="seo-dependiente-admin__integration <?php echo $active ? 'is-active' : 'is-inactive'; ?>"><span class="seo-dependiente-admin__integration-icon" aria-hidden="true"><?php echo $active ? '✓' : '–'; ?></span><?php echo esc_html($label); ?></li>
                             <?php endforeach; ?>
                         </ul>
                         <p class="description">El buscador funciona con WooCommerce. Las fuentes SEO añaden contexto de aplicación, plataforma, subtipo, atributos técnicos y criterios de comparación.</p>
                     </div>
 
-                    <div class="postbox" style="padding:20px;">
-                        <h2 style="margin-top:0;">Lógica del dependiente</h2>
-                        <ol style="padding-left:20px;">
+                    <div class="postbox seo-dependiente-admin__box">
+                        <h2 class="seo-dependiente-admin__box-title">Lógica del dependiente</h2>
+                        <ol class="seo-dependiente-admin__steps">
                             <li>Interpreta la necesidad escrita por el cliente.</li>
                             <li>Busca en todos los campos comerciales útiles.</li>
                             <li>Explica por qué encaja cada producto.</li>
