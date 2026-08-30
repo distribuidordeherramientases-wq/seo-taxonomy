@@ -1084,6 +1084,58 @@ button.seo-dependiente__chip::after {
     font-size: 24px;
 }
 
+.seo-dependiente__empty > span {
+    display: block;
+    max-width: 680px;
+    margin: 0 auto;
+    color: var(--dht-muted);
+    line-height: 1.55;
+}
+
+.seo-dependiente__empty-actions {
+    display: grid;
+    gap: 10px;
+    justify-items: center;
+    margin-top: 22px;
+}
+
+.seo-dependiente__empty-actions > span {
+    color: var(--dht-muted);
+    font-size: 12px;
+    font-weight: 750;
+    letter-spacing: .02em;
+}
+
+.seo-dependiente__empty-actions > div {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+}
+
+.seo-dependiente__empty-action {
+    min-height: 42px;
+    padding: 9px 14px;
+    border: 1px solid #b8c5bc;
+    border-radius: 999px;
+    background: #fff;
+    color: var(--dht-ink);
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.seo-dependiente__empty-action:hover {
+    border-color: var(--dht-ink);
+    transform: translateY(-1px);
+}
+
+.seo-dependiente__empty-action.is-primary {
+    border-color: var(--dht-accent);
+    background: var(--dht-accent);
+    color: #172015;
+}
+
 .seo-dependiente__skeleton {
     min-height: 470px;
     border-radius: 20px;
