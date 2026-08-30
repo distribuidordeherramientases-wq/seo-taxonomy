@@ -14,6 +14,8 @@ final class SEO_Dependiente_Admin {
         if (false === strpos((string) $hook, 'seo-dependiente')) {
             return;
         }
+        wp_enqueue_media();
+
         wp_enqueue_style(
             'seo-dependiente',
             SEO_DEPENDIENTE_URL . 'assets/css/seo-dependiente.css',
@@ -90,6 +92,18 @@ final class SEO_Dependiente_Admin {
                                 <td><input id="dht-menu-cards" type="number" min="4" max="12" name="menu_cards" value="<?php echo esc_attr(absint($options['menu_cards'] ?? 8)); ?>" class="small-text"></td>
                             </tr>
                             <tr>
+                                <th scope="row">Imágenes de las cuatro acciones</th>
+                                <td>
+                                    <div class="seo-dependiente-admin__media-grid">
+                                        <?php self::render_media_field('action_image_need', 'Arreglar o hacer algo', $options, 'dependiente-arreglar-algo.webp'); ?>
+                                        <?php self::render_media_field('action_image_product', 'Buscar un producto', $options, 'dependiente-buscar-herramienta.webp'); ?>
+                                        <?php self::render_media_field('action_image_tool', 'Elegir una herramienta', $options, 'dependiente-necesito-herramienta.webp'); ?>
+                                        <?php self::render_media_field('action_image_compare', 'Comparar opciones', $options, 'dependiente-comparar-herramientas.webp'); ?>
+                                    </div>
+                                    <p class="description">Puedes usar las imágenes incluidas en el módulo o subir las tuyas a Medios y seleccionarlas aquí. El texto siempre se muestra separado de la imagen para mantener la legibilidad.</p>
+                                </td>
+                            </tr>
+                            <tr>
                                 <th scope="row"><label for="dht-custom-meta">Metadatos comerciales adicionales</label></th>
                                 <td>
                                     <textarea id="dht-custom-meta" name="custom_meta_keys" rows="4" class="large-text code"><?php echo esc_textarea((string) ($options['custom_meta_keys'] ?? '')); ?></textarea>
@@ -115,8 +129,8 @@ final class SEO_Dependiente_Admin {
 
                     <div class="postbox seo-dependiente-admin__box">
                         <h2 class="seo-dependiente-admin__box-title">Imágenes de navegación</h2>
-                        <p><strong>Las imágenes se resuelven automáticamente desde el catálogo.</strong> No es necesario asociar imágenes a etiquetas, aplicaciones o atributos ni subir archivos con nombres especiales.</p>
-                        <p class="description">Dependiente localiza los productos relacionados con cada concepto, reutiliza primero la imagen de una categoría representativa y, si no existe, la de un producto relacionado. El logo de la empresa se utiliza únicamente como último recurso.</p>
+                        <p><strong>Las cuatro entradas principales usan imágenes fijas y reconocibles.</strong> Se configuran arriba desde la Biblioteca de Medios.</p>
+                        <p class="description">Las tarjetas dinámicas de exploración siguen resolviendo sus imágenes automáticamente desde categorías y productos relacionados. No necesitas asociar imágenes manualmente a etiquetas o atributos.</p>
                     </div>
 
                     <div class="postbox seo-dependiente-admin__box">
@@ -155,6 +169,10 @@ final class SEO_Dependiente_Admin {
             'results_per_page' => min(48, max(6, absint($_POST['results_per_page'] ?? 18))),
             'menu_cards'       => min(12, max(4, absint($_POST['menu_cards'] ?? 8))),
             'custom_meta_keys' => self::sanitize_meta_keys($_POST['custom_meta_keys'] ?? ''),
+            'action_image_need'    => absint($_POST['action_image_need'] ?? 0),
+            'action_image_product' => absint($_POST['action_image_product'] ?? 0),
+            'action_image_tool'    => absint($_POST['action_image_tool'] ?? 0),
+            'action_image_compare' => absint($_POST['action_image_compare'] ?? 0),
         );
         update_option('seo_dependiente_options', $options, false);
         wp_safe_redirect(add_query_arg(array('page' => 'seo-dependiente', 'updated' => 1), admin_url('admin.php')));
@@ -189,6 +207,28 @@ final class SEO_Dependiente_Admin {
         check_ajax_referer('seo_dependiente_admin', 'nonce');
         SEO_Dependiente_Index::clear();
         wp_send_json_success(array('indexed' => 0));
+    }
+
+    private static function render_media_field($key, $label, $options, $fallback_filename) {
+        $attachment_id = absint($options[$key] ?? 0);
+        $fallback = SEO_DEPENDIENTE_URL . 'assets/images/' . ltrim((string) $fallback_filename, '/');
+        $preview = $attachment_id ? wp_get_attachment_image_url($attachment_id, 'medium') : '';
+        if (!$preview) {
+            $preview = $fallback;
+        }
+        ?>
+        <div class="seo-dependiente-admin__media-field" data-dependiente-media-field>
+            <strong><?php echo esc_html($label); ?></strong>
+            <div class="seo-dependiente-admin__media-preview">
+                <img src="<?php echo esc_url($preview); ?>" alt="" data-fallback-src="<?php echo esc_url($fallback); ?>" data-dependiente-media-preview>
+            </div>
+            <input type="hidden" name="<?php echo esc_attr($key); ?>" value="<?php echo esc_attr($attachment_id); ?>" data-dependiente-media-id>
+            <div class="seo-dependiente-admin__media-actions">
+                <button type="button" class="button" data-dependiente-media-select>Elegir en Medios</button>
+                <button type="button" class="button-link-delete" data-dependiente-media-clear>Usar imagen incluida</button>
+            </div>
+        </div>
+        <?php
     }
 
     private static function sanitize_meta_keys($value) {

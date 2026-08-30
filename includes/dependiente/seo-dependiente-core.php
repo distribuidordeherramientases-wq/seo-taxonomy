@@ -50,6 +50,10 @@ final class SEO_Dependiente_Plugin {
             'results_per_page' => 18,
             'menu_cards'       => 8,
             'custom_meta_keys' => '_seo_proveedor,_seo_proveedor_mpn,_seo_categoria_proveedor,_seo_fabricante,_seo_marca_proveedor',
+            'action_image_need'    => 0,
+            'action_image_product' => 0,
+            'action_image_tool'    => 0,
+            'action_image_compare' => 0,
         );
         $saved = get_option('seo_dependiente_options', array());
         update_option('seo_dependiente_options', wp_parse_args(is_array($saved) ? $saved : array(), $defaults), false);
@@ -131,8 +135,8 @@ final class SEO_Dependiente_Plugin {
 
         $atts = shortcode_atts(
             array(
-                'title'    => 'Cuéntame qué necesitas hacer',
-                'subtitle' => 'Buscaré por nombre, descripción, etiquetas, aplicación, herramienta, marca, precio, medidas, peso y atributos.',
+                'title'    => '¿Qué necesitas?',
+                'subtitle' => 'Busca una herramienta, describe un trabajo o compara opciones.',
             ),
             $atts,
             'dependiente_productos'
@@ -141,6 +145,12 @@ final class SEO_Dependiente_Plugin {
         $this->enqueue_assets();
 
         $query_input_id = wp_unique_id('seo-dependiente-query-');
+        $action_images = array(
+            'need'    => $this->action_image_url('need', 'dependiente-arreglar-algo.webp'),
+            'product' => $this->action_image_url('product', 'dependiente-buscar-herramienta.webp'),
+            'tool'    => $this->action_image_url('tool', 'dependiente-necesito-herramienta.webp'),
+            'compare' => $this->action_image_url('compare', 'dependiente-comparar-herramientas.webp'),
+        );
 
         ob_start();
         ?>
@@ -160,7 +170,7 @@ final class SEO_Dependiente_Plugin {
                             id="<?php echo esc_attr($query_input_id); ?>"
                             type="search"
                             data-dependiente-query
-                            placeholder="Ej.: quiero montar una puerta corredera de 70 kg con freno"
+                            placeholder="Ej.: se me ha roto un grifo · necesito un taladro · comparar infladores"
                             autocomplete="off"
                             maxlength="180"
                         >
@@ -169,36 +179,37 @@ final class SEO_Dependiente_Plugin {
                     <div class="seo-dependiente__examples" data-dependiente-examples aria-label="Ejemplos de búsqueda"></div>
                 </form>
 
+                <div class="seo-dependiente__path-intro">O elige una forma de empezar</div>
                 <div class="seo-dependiente__paths" aria-label="Formas de buscar">
                     <button type="button" class="seo-dependiente__path is-active" data-dependiente-mode="need">
-                        <span class="seo-dependiente__path-icon" aria-hidden="true">◎</span>
-                        <span><strong>Resolver una necesidad</strong><small>Describe el trabajo y te propondré opciones.</small></span>
+                        <span class="seo-dependiente__path-image"><img src="<?php echo esc_url($action_images['need']); ?>" alt="" loading="eager" decoding="async"></span>
+                        <span class="seo-dependiente__path-copy"><strong>Tengo que arreglar o hacer algo</strong><small>Cuéntame el trabajo y buscaré qué herramientas o productos necesitas.</small></span>
                     </button>
                     <button type="button" class="seo-dependiente__path" data-dependiente-mode="product">
-                        <span class="seo-dependiente__path-icon" aria-hidden="true">▣</span>
-                        <span><strong>Buscar un producto</strong><small>Nombre, referencia, marca o característica.</small></span>
+                        <span class="seo-dependiente__path-image"><img src="<?php echo esc_url($action_images['product']); ?>" alt="" loading="eager" decoding="async"></span>
+                        <span class="seo-dependiente__path-copy"><strong>Estoy buscando un producto</strong><small>Escribe su nombre, marca, referencia, medida o característica.</small></span>
                     </button>
                     <button type="button" class="seo-dependiente__path" data-dependiente-mode="tool">
-                        <span class="seo-dependiente__path-icon" aria-hidden="true">⌁</span>
-                        <span><strong>Elegir por herramienta</strong><small>Máquina, plataforma, sistema o compatibilidad.</small></span>
+                        <span class="seo-dependiente__path-image"><img src="<?php echo esc_url($action_images['tool']); ?>" alt="" loading="lazy" decoding="async"></span>
+                        <span class="seo-dependiente__path-copy"><strong>Necesito una herramienta</strong><small>Dime qué trabajo, máquina, plataforma o compatibilidad necesitas.</small></span>
                     </button>
                     <button type="button" class="seo-dependiente__path" data-dependiente-mode="compare">
-                        <span class="seo-dependiente__path-icon" aria-hidden="true">⇄</span>
-                        <span><strong>Comparar productos</strong><small>Marca hasta cuatro y revisa las diferencias.</small></span>
+                        <span class="seo-dependiente__path-image"><img src="<?php echo esc_url($action_images['compare']); ?>" alt="" loading="lazy" decoding="async"></span>
+                        <span class="seo-dependiente__path-copy"><strong>Quiero comparar herramientas</strong><small>Selecciona hasta cuatro opciones y revisa sus diferencias.</small></span>
                     </button>
                 </div>
             </div>
 
             <section class="seo-dependiente__discovery" data-dependiente-discovery>
                 <div class="seo-dependiente__section-heading">
-                    <div><span>Empieza por la tarea</span><h2>¿Qué quieres hacer?</h2></div>
-                    <p>Las opciones se construyen con APLICACIÓN y, cuando falta, con etiquetas y categorías del catálogo.</p>
+                    <div><span>Explorar ideas</span><h2>¿No sabes qué escribir?</h2></div>
+                    <p>Prueba una tarea habitual y deja que Dependiente te enseñe opciones relacionadas.</p>
                 </div>
                 <div class="seo-dependiente__visual-menu" data-dependiente-actions></div>
 
                 <div class="seo-dependiente__section-heading seo-dependiente__section-heading--spaced">
-                    <div><span>Compatibilidad</span><h2>¿Con qué herramienta o sistema?</h2></div>
-                    <p>Filtra por PLATAFORMA, sistema, familia o atributo técnico.</p>
+                    <div><span>Compatibilidad</span><h2>Explora por herramienta o sistema</h2></div>
+                    <p>Útil cuando ya tienes una máquina, plataforma o sistema y buscas algo compatible.</p>
                 </div>
                 <div class="seo-dependiente__visual-menu" data-dependiente-tools></div>
             </section>
@@ -220,6 +231,7 @@ final class SEO_Dependiente_Plugin {
 
                 <div class="seo-dependiente__layout">
                     <aside class="seo-dependiente__filters" data-dependiente-filters aria-label="Filtros de productos"></aside>
+                    <aside class="seo-dependiente__related" data-dependiente-related aria-label="Guías y soluciones relacionadas" hidden></aside>
                     <div class="seo-dependiente__results-column">
                         <div class="seo-dependiente__active-filters" data-dependiente-active-filters></div>
                         <div class="seo-dependiente__status" data-dependiente-status aria-live="polite"></div>
@@ -250,6 +262,18 @@ final class SEO_Dependiente_Plugin {
         </section>
         <?php
         return ob_get_clean();
+    }
+
+    private function action_image_url($key, $filename) {
+        $attachment_id = absint(self::option('action_image_' . sanitize_key($key), 0));
+        if ($attachment_id) {
+            $url = wp_get_attachment_image_url($attachment_id, 'large');
+            if ($url) {
+                return (string) $url;
+            }
+        }
+
+        return SEO_DEPENDIENTE_URL . 'assets/images/' . ltrim((string) $filename, '/');
     }
 
     private function enqueue_assets() {

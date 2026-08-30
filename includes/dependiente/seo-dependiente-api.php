@@ -133,6 +133,7 @@ final class SEO_Dependiente_API {
         }
 
         self::sort_documents($matched, $orderby);
+        $related = self::related_content($matched, $query, 8);
 
         $total = count($matched);
         $pages = $total ? (int) ceil($total / $per_page) : 0;
@@ -159,6 +160,7 @@ final class SEO_Dependiente_API {
             'candidate_total' => count($documents),
             'truncated'       => count($candidate_rows) >= self::CANDIDATE_LIMIT,
             'results'         => $results,
+            'related'         => $related,
             'facets'          => $facets,
             'filters'         => $filters,
         ));
@@ -1441,6 +1443,141 @@ final class SEO_Dependiente_API {
             }
         }
         return false;
+    }
+
+    private static function related_content($documents, $query, $limit = 8) {
+        global $wpdb;
+
+        $relations = $wpdb->prefix . 'seo_relations';
+        if (!$documents || !SEO_Dependiente_Index::table_exists($relations)) {
+            return array();
+        }
+
+        $category_weights = array();
+        foreach (array_slice((array) $documents, 0, 80) as $rank => $document) {
+            $rank_weight = max(1, 80 - (int) $rank);
+            foreach ((array) ($document['categories'] ?? array()) as $category) {
+                $category_id = absint($category['id'] ?? 0);
+                if (!$category_id) {
+                    continue;
+                }
+                if (!isset($category_weights[$category_id])) {
+                    $category_weights[$category_id] = 0;
+                }
+                $category_weights[$category_id] += $rank_weight;
+            }
+        }
+        if (!$category_weights) {
+            return array();
+        }
+
+        arsort($category_weights, SORT_NUMERIC);
+        $category_ids = array_slice(array_keys($category_weights), 0, 12);
+        $placeholders = implode(',', array_fill(0, count($category_ids), '%d'));
+        $sql = $wpdb->prepare(
+            "SELECT r.source_type, r.source_id, r.target_id,
+                    p.post_type, p.post_title, p.post_excerpt, p.post_content, p.post_modified
+             FROM {$relations} r
+             INNER JOIN {$wpdb->posts} p ON p.ID = r.source_id
+             WHERE r.target_type = 'product_cat'
+               AND r.target_id IN ({$placeholders})
+               AND p.post_status = 'publish'
+               AND (
+                    (r.source_type = 'post' AND r.relation_type = 'post_to_category' AND p.post_type = 'post')
+                    OR
+                    (r.source_type = 'landing' AND r.relation_type = 'landing_to_category' AND p.post_type = 'page')
+               )
+             ORDER BY p.post_modified DESC
+             LIMIT 400",
+            $category_ids
+        );
+        $rows = $wpdb->get_results($sql, ARRAY_A);
+        if (!$rows) {
+            return array();
+        }
+
+        $grouped = array();
+        foreach ($rows as $row) {
+            $source_id = absint($row['source_id'] ?? 0);
+            $source_type = sanitize_key((string) ($row['source_type'] ?? ''));
+            if (!$source_id || !in_array($source_type, array('post', 'landing'), true)) {
+                continue;
+            }
+            $key = $source_type . ':' . $source_id;
+            if (!isset($grouped[$key])) {
+                $grouped[$key] = array(
+                    'id'          => $source_id,
+                    'source_type' => $source_type,
+                    'title'       => (string) ($row['post_title'] ?? ''),
+                    'excerpt'     => (string) ($row['post_excerpt'] ?? ''),
+                    'content'     => (string) ($row['post_content'] ?? ''),
+                    'modified'    => (string) ($row['post_modified'] ?? ''),
+                    'categories'  => array(),
+                );
+            }
+            $target_id = absint($row['target_id'] ?? 0);
+            if ($target_id) {
+                $grouped[$key]['categories'][$target_id] = true;
+            }
+        }
+
+        $normalized_query = SEO_Dependiente_Index::normalize((string) $query);
+        $query_tokens = array_values(array_filter(preg_split('/\s+/u', $normalized_query), static function ($token) {
+            return function_exists('mb_strlen') ? mb_strlen($token, 'UTF-8') >= 3 : strlen($token) >= 3;
+        }));
+
+        $items = array();
+        foreach ($grouped as $item) {
+            $score = 0;
+            foreach (array_keys($item['categories']) as $category_id) {
+                $score += (int) ($category_weights[$category_id] ?? 0);
+            }
+
+            $plain_text = trim((string) $item['excerpt']);
+            if ($plain_text === '') {
+                $plain_text = wp_strip_all_tags(strip_shortcodes((string) $item['content']));
+            }
+            $haystack = SEO_Dependiente_Index::normalize($item['title'] . ' ' . $plain_text);
+            if ($normalized_query && false !== strpos($haystack, $normalized_query)) {
+                $score += 220;
+            }
+            foreach ($query_tokens as $token) {
+                if (false !== strpos($haystack, $token)) {
+                    $score += 28;
+                }
+            }
+
+            $url = get_permalink((int) $item['id']);
+            if (!$url) {
+                continue;
+            }
+            $image = get_the_post_thumbnail_url((int) $item['id'], 'medium_large');
+            $items[] = array(
+                'id'         => (int) $item['id'],
+                'type'       => $item['source_type'],
+                'type_label' => 'landing' === $item['source_type'] ? 'Solución' : 'Guía',
+                'title'      => wp_strip_all_tags((string) $item['title']),
+                'excerpt'    => wp_trim_words($plain_text, 24, '…'),
+                'url'        => esc_url_raw($url),
+                'image'      => $image ? esc_url_raw($image) : '',
+                '_score'     => $score,
+                '_modified'  => strtotime((string) $item['modified']) ?: 0,
+            );
+        }
+
+        usort($items, static function ($a, $b) {
+            if ($a['_score'] !== $b['_score']) {
+                return $b['_score'] <=> $a['_score'];
+            }
+            return $b['_modified'] <=> $a['_modified'];
+        });
+
+        $items = array_slice($items, 0, max(1, absint($limit)));
+        foreach ($items as &$item) {
+            unset($item['_score'], $item['_modified']);
+        }
+        unset($item);
+        return $items;
     }
 
     private static function lower_first($text) {
