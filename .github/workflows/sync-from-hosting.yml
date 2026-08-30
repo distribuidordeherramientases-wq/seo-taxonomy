@@ -1,4 +1,4 @@
-name: Sincronizar plugin desde Webempresa
+name: Importar plugin de produccion a github
 
 on:
   workflow_dispatch:
