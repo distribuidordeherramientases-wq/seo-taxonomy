@@ -618,11 +618,11 @@ if (!function_exists('seo_category_inventory_export_batch')) {
                     WHERE (
                         target_type = 'product_cat'
                         AND target_id IN ({$placeholders})
-                        AND (source_type LIKE '%faq%' OR relation_type LIKE '%faq%')
+                        AND (source_type LIKE '%%faq%%' OR relation_type LIKE '%%faq%%')
                     ) OR (
                         source_type = 'product_cat'
                         AND source_id IN ({$placeholders})
-                        AND (target_type LIKE '%faq%' OR relation_type LIKE '%faq%')
+                        AND (target_type LIKE '%%faq%%' OR relation_type LIKE '%%faq%%')
                     )";
             $relation_rows = $wpdb->get_results(
                 $wpdb->prepare($sql, ...array_merge($category_ids, $category_ids)),
@@ -919,24 +919,109 @@ if (!function_exists('seo_category_inventory_render')) {
         $current_page = isset($_GET['inventory_page']) ? max(1, absint($_GET['inventory_page'])) : 1;
         $offset = ($current_page - 1) * $per_page;
 
+        $inventory_sort = isset($_GET['inventory_sort'])
+            ? sanitize_key(wp_unslash($_GET['inventory_sort']))
+            : 'name_asc';
+
+        $allowed_inventory_sorts = [
+            'name_asc',
+            'pressure_desc',
+            'pressure_asc',
+        ];
+
+        if (!in_array($inventory_sort, $allowed_inventory_sorts, true)) {
+            $inventory_sort = 'name_asc';
+        }
+
         $total_categories = wp_count_terms([
             'taxonomy'   => 'product_cat',
             'hide_empty' => false,
         ]);
         $total_categories = is_wp_error($total_categories) ? 0 : absint($total_categories);
 
-        $categories = get_terms([
-            'taxonomy'   => 'product_cat',
-            'hide_empty' => false,
-            'orderby'    => 'name',
-            'order'      => 'ASC',
-            'number'     => $per_page,
-            'offset'     => $offset,
-        ]);
+        /*
+         * El orden por presión se calcula globalmente antes de paginar.
+         * Solo se trae un COUNT agregado por categoría, nunca las filas completas
+         * de posts/landings de todo el catálogo.
+         */
+        if ($inventory_sort === 'pressure_desc' || $inventory_sort === 'pressure_asc') {
+            $relations_sort_table = $wpdb->prefix . 'seo_relations';
+            $url_load_by_category = [];
 
-        if (is_wp_error($categories)) {
-            echo '<div class="notice notice-error"><p>' . esc_html($categories->get_error_message()) . '</p></div>';
-            return;
+            if (seo_category_inventory_table_exists($relations_sort_table)) {
+                $load_rows = $wpdb->get_results(
+                    "SELECT r.target_id AS category_id,
+                            COUNT(DISTINCT r.relation_type, r.source_id) AS url_load
+                     FROM {$relations_sort_table} r
+                     INNER JOIN {$wpdb->posts} p ON p.ID = r.source_id
+                     WHERE r.target_type = 'product_cat'
+                       AND r.relation_type IN ('post_to_category','landing_to_category')
+                       AND p.post_status = 'publish'
+                     GROUP BY r.target_id",
+                    ARRAY_A
+                );
+
+                foreach ((array) $load_rows as $load_row) {
+                    $url_load_by_category[absint($load_row['category_id'] ?? 0)] =
+                        absint($load_row['url_load'] ?? 0);
+                }
+            }
+
+            $all_categories_for_sort = get_terms([
+                'taxonomy'   => 'product_cat',
+                'hide_empty' => false,
+                'orderby'    => 'name',
+                'order'      => 'ASC',
+            ]);
+
+            if (is_wp_error($all_categories_for_sort)) {
+                echo '<div class="notice notice-error"><p>' . esc_html($all_categories_for_sort->get_error_message()) . '</p></div>';
+                return;
+            }
+
+            usort($all_categories_for_sort, static function($a, $b) use ($url_load_by_category, $inventory_sort) {
+                $a_id = absint($a->term_id ?? 0);
+                $b_id = absint($b->term_id ?? 0);
+                $a_load = absint($url_load_by_category[$a_id] ?? 0);
+                $b_load = absint($url_load_by_category[$b_id] ?? 0);
+
+                $a_pressure = $a_load >= 6 ? 3 : ($a_load >= 3 ? 2 : 1);
+                $b_pressure = $b_load >= 6 ? 3 : ($b_load >= 3 ? 2 : 1);
+
+                if ($a_pressure !== $b_pressure) {
+                    if ($inventory_sort === 'pressure_desc') {
+                        return $b_pressure <=> $a_pressure;
+                    }
+                    return $a_pressure <=> $b_pressure;
+                }
+
+                // Dentro del mismo nivel, ordenar también por carga real.
+                if ($a_load !== $b_load) {
+                    if ($inventory_sort === 'pressure_desc') {
+                        return $b_load <=> $a_load;
+                    }
+                    return $a_load <=> $b_load;
+                }
+
+                return strnatcasecmp((string) ($a->name ?? ''), (string) ($b->name ?? ''));
+            });
+
+            $categories = array_slice($all_categories_for_sort, $offset, $per_page);
+            unset($all_categories_for_sort, $load_rows, $url_load_by_category);
+        } else {
+            $categories = get_terms([
+                'taxonomy'   => 'product_cat',
+                'hide_empty' => false,
+                'orderby'    => 'name',
+                'order'      => 'ASC',
+                'number'     => $per_page,
+                'offset'     => $offset,
+            ]);
+
+            if (is_wp_error($categories)) {
+                echo '<div class="notice notice-error"><p>' . esc_html($categories->get_error_message()) . '</p></div>';
+                return;
+            }
         }
 
         echo '<div style="max-width:100%;">';
@@ -946,10 +1031,23 @@ if (!function_exists('seo_category_inventory_render')) {
             admin_url('admin-post.php?action=seo_category_inventory_export_json'),
             'seo_category_inventory_export_json'
         );
-        echo '<p style="margin:12px 0 18px;">';
+        echo '<p style="margin:12px 0 12px;">';
         echo '<a class="button button-primary" href="' . esc_url($export_url) . '">Descargar JSON completo</a>';
         echo ' <span style="color:#646970;font-size:12px;">Exporta todas las categorías por lotes, no solo esta página.</span>';
         echo '</p>';
+
+        echo '<form method="get" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 18px;padding:10px 12px;background:#fff;border:1px solid #dcdcde;">';
+        echo '<input type="hidden" name="page" value="' . esc_attr($page_slug) . '">';
+        echo '<input type="hidden" name="tab" value="inventario">';
+        echo '<label for="seo_inventory_sort"><strong>Ordenar inventario:</strong></label>';
+        echo '<select id="seo_inventory_sort" name="inventory_sort">';
+        echo '<option value="name_asc" ' . selected($inventory_sort, 'name_asc', false) . '>Nombre A–Z</option>';
+        echo '<option value="pressure_desc" ' . selected($inventory_sort, 'pressure_desc', false) . '>Presión URL: alta → media → baja</option>';
+        echo '<option value="pressure_asc" ' . selected($inventory_sort, 'pressure_asc', false) . '>Presión URL: baja → media → alta</option>';
+        echo '</select>';
+        echo '<button type="submit" class="button button-secondary">Ordenar</button>';
+        echo '<span style="color:#646970;font-size:12px;">Alta = 6+, media = 3–5, baja = 0–2 URLs editoriales.</span>';
+        echo '</form>';
 
         if (empty($categories)) {
             echo '<p>No hay categorías que mostrar.</p></div>';
@@ -1100,11 +1198,11 @@ if (!function_exists('seo_category_inventory_render')) {
                     WHERE (
                         target_type = 'product_cat'
                         AND target_id IN ({$placeholders})
-                        AND (source_type LIKE '%faq%' OR relation_type LIKE '%faq%')
+                        AND (source_type LIKE '%%faq%%' OR relation_type LIKE '%%faq%%')
                     ) OR (
                         source_type = 'product_cat'
                         AND source_id IN ({$placeholders})
-                        AND (target_type LIKE '%faq%' OR relation_type LIKE '%faq%')
+                        AND (target_type LIKE '%%faq%%' OR relation_type LIKE '%%faq%%')
                     )";
 
             $faq_relation_rows = $wpdb->get_results(
@@ -1314,6 +1412,7 @@ if (!function_exists('seo_category_inventory_render')) {
             $base_url = add_query_arg([
                 'page' => sanitize_key($page_slug),
                 'tab'  => 'inventario',
+                'inventory_sort' => $inventory_sort,
                 'inventory_page' => '%#%',
             ], admin_url('admin.php'));
 
