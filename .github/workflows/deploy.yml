@@ -23,7 +23,7 @@ jobs:
           local-dir: ./
           server-dir: ./
 
-          dry-run: true
+          dry-run: false
           security: strict
 
           exclude: |
