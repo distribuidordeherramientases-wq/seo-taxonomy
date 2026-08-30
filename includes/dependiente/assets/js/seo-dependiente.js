@@ -192,8 +192,9 @@
                 return;
             }
             container.innerHTML = cards.map(function (card) {
-                return '<button type="button" class="seo-dependiente__visual-card" data-card-filter="' + escapeAttr(JSON.stringify(card.filter || {})) + '">' +
-                    '<img src="' + escapeAttr(card.image || config.placeholderImage || '') + '" alt="" loading="lazy">' +
+                const navigationClass = card.image_kind === 'navigation' ? ' seo-dependiente__visual-card--navigation' : '';
+                return '<button type="button" class="seo-dependiente__visual-card' + navigationClass + '" data-card-filter="' + escapeAttr(JSON.stringify(card.filter || {})) + '">' +
+                    '<img src="' + escapeAttr(card.image || config.placeholderImage || '') + '" alt="" loading="lazy" decoding="async">' +
                     '<span class="seo-dependiente__visual-card-arrow" aria-hidden="true">→</span>' +
                     '<span class="seo-dependiente__visual-card-content"><strong>' + escapeHtml(card.label) + '</strong><small>' + numberFormat(card.count) + ' opciones</small></span>' +
                     '</button>';
