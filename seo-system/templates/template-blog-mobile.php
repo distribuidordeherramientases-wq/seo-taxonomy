@@ -16,8 +16,8 @@ global $wpdb;
  * Todo es fallback visual: no se escribe ningún _thumbnail_id.
  * ======================================================= */
 
-if (!function_exists('dht_blog_v2_logo_url')) {
-    function dht_blog_v2_logo_url($size = 'medium_large') {
+if (!function_exists('dht_blog_v2_logo_url_mobile')) {
+    function dht_blog_v2_logo_url_mobile($size = 'medium_large') {
         static $cache = array();
         $key = (string) $size;
         if (isset($cache[$key])) {
@@ -43,8 +43,8 @@ if (!function_exists('dht_blog_v2_logo_url')) {
     }
 }
 
-if (!function_exists('dht_blog_v2_local_image')) {
-    function dht_blog_v2_local_image($attachment_id, $size = 'medium_large', $reject_logo = true) {
+if (!function_exists('dht_blog_v2_local_image_mobile')) {
+    function dht_blog_v2_local_image_mobile($attachment_id, $size = 'medium_large', $reject_logo = true) {
         $attachment_id = absint($attachment_id);
         if ($attachment_id < 1 || 'attachment' !== get_post_type($attachment_id)) {
             return null;
@@ -69,8 +69,8 @@ if (!function_exists('dht_blog_v2_local_image')) {
     }
 }
 
-if (!function_exists('dht_blog_v2_product_image')) {
-    function dht_blog_v2_product_image($product_id, $size = 'medium_large', $allow_logo = false) {
+if (!function_exists('dht_blog_v2_product_image_mobile')) {
+    function dht_blog_v2_product_image_mobile($product_id, $size = 'medium_large', $allow_logo = false) {
         global $wpdb;
 
         static $cache = array();
@@ -86,11 +86,11 @@ if (!function_exists('dht_blog_v2_product_image')) {
 
         if ($product_id < 1) {
             return $allow_logo
-                ? array('url' => dht_blog_v2_logo_url($size), 'attachment_id' => 0, 'source' => 'logo')
+                ? array('url' => dht_blog_v2_logo_url_mobile($size), 'attachment_id' => 0, 'source' => 'logo')
                 : null;
         }
 
-        $source = dht_blog_v2_local_image(get_post_thumbnail_id($product_id), $size, true);
+        $source = dht_blog_v2_local_image_mobile(get_post_thumbnail_id($product_id), $size, true);
         if ($source) {
             return $cache[$cache_key] = $source;
         }
@@ -128,7 +128,7 @@ if (!function_exists('dht_blog_v2_product_image')) {
             );
 
             foreach ((array) $attachment_ids as $attachment_id) {
-                $source = dht_blog_v2_local_image($attachment_id, $size, true);
+                $source = dht_blog_v2_local_image_mobile($attachment_id, $size, true);
                 if ($source) {
                     return $cache[$cache_key] = $source;
                 }
@@ -179,13 +179,13 @@ if (!function_exists('dht_blog_v2_product_image')) {
         }
 
         return $cache[$cache_key] = $allow_logo
-            ? array('url' => dht_blog_v2_logo_url($size), 'attachment_id' => 0, 'source' => 'logo')
+            ? array('url' => dht_blog_v2_logo_url_mobile($size), 'attachment_id' => 0, 'source' => 'logo')
             : null;
     }
 }
 
-if (!function_exists('dht_blog_v2_term_image')) {
-    function dht_blog_v2_term_image($term_id, $size = 'medium_large', $allow_logo = false) {
+if (!function_exists('dht_blog_v2_term_image_mobile')) {
+    function dht_blog_v2_term_image_mobile($term_id, $size = 'medium_large', $allow_logo = false) {
         static $cache = array();
 
         $term_id   = absint($term_id);
@@ -194,7 +194,7 @@ if (!function_exists('dht_blog_v2_term_image')) {
             return $cache[$cache_key];
         }
 
-        $source = dht_blog_v2_local_image(get_term_meta($term_id, 'thumbnail_id', true), $size, true);
+        $source = dht_blog_v2_local_image_mobile(get_term_meta($term_id, 'thumbnail_id', true), $size, true);
         if ($source) {
             return $cache[$cache_key] = $source;
         }
@@ -221,20 +221,20 @@ if (!function_exists('dht_blog_v2_term_image')) {
         ));
 
         foreach ((array) $product_ids as $product_id) {
-            $source = dht_blog_v2_product_image($product_id, $size, false);
+            $source = dht_blog_v2_product_image_mobile($product_id, $size, false);
             if (!empty($source['url'])) {
                 return $cache[$cache_key] = $source;
             }
         }
 
         return $cache[$cache_key] = $allow_logo
-            ? array('url' => dht_blog_v2_logo_url($size), 'attachment_id' => 0, 'source' => 'logo')
+            ? array('url' => dht_blog_v2_logo_url_mobile($size), 'attachment_id' => 0, 'source' => 'logo')
             : null;
     }
 }
 
-if (!function_exists('dht_blog_v2_post_image')) {
-    function dht_blog_v2_post_image($post_id, $size = 'medium_large') {
+if (!function_exists('dht_blog_v2_post_image_mobile')) {
+    function dht_blog_v2_post_image_mobile($post_id, $size = 'medium_large') {
         global $wpdb;
 
         static $cache = array();
@@ -244,14 +244,14 @@ if (!function_exists('dht_blog_v2_post_image')) {
             return $cache[$cache_key];
         }
 
-        $source = dht_blog_v2_local_image(get_post_thumbnail_id($post_id), $size, true);
+        $source = dht_blog_v2_local_image_mobile(get_post_thumbnail_id($post_id), $size, true);
         if ($source) {
             return $cache[$cache_key] = $source;
         }
 
         $content = (string) get_post_field('post_content', $post_id);
         if ($content !== '' && preg_match('/wp-image-([0-9]+)/i', $content, $match)) {
-            $source = dht_blog_v2_local_image(absint($match[1]), $size, true);
+            $source = dht_blog_v2_local_image_mobile(absint($match[1]), $size, true);
             if ($source) {
                 return $cache[$cache_key] = $source;
             }
@@ -271,22 +271,22 @@ if (!function_exists('dht_blog_v2_post_image')) {
         );
 
         foreach ((array) $related_term_ids as $term_id) {
-            $source = dht_blog_v2_term_image($term_id, $size, false);
+            $source = dht_blog_v2_term_image_mobile($term_id, $size, false);
             if (!empty($source['url'])) {
                 return $cache[$cache_key] = $source;
             }
         }
 
         return $cache[$cache_key] = array(
-            'url'           => dht_blog_v2_logo_url($size),
+            'url'           => dht_blog_v2_logo_url_mobile($size),
             'attachment_id' => 0,
             'source'        => 'logo',
         );
     }
 }
 
-if (!function_exists('dht_blog_v2_img')) {
-    function dht_blog_v2_img($source, $alt, $class = '', $loading = 'lazy', $fetchpriority = '') {
+if (!function_exists('dht_blog_v2_img_mobile')) {
+    function dht_blog_v2_img_mobile($source, $alt, $class = '', $loading = 'lazy', $fetchpriority = '') {
         if (empty($source['url'])) {
             return '';
         }
@@ -570,7 +570,7 @@ $grid_posts = ($paged === 1) ? array_slice($posts, 5) : $posts;
             $featured_id         = (int) $featured->ID;
             $featured_categories = get_the_category($featured_id);
             $featured_category   = !empty($featured_categories) ? $featured_categories[0] : null;
-            $featured_image      = dht_blog_v2_post_image($featured_id, 'large');
+            $featured_image      = dht_blog_v2_post_image_mobile($featured_id, 'large');
         ?>
             <section class="dht-news-section" aria-labelledby="dht-blog-portada-title">
                 <div class="hub-container">
@@ -581,7 +581,7 @@ $grid_posts = ($paged === 1) ? array_slice($posts, 5) : $posts;
                     <div class="dht-front-grid">
                         <article class="dht-lead-card">
                             <a class="dht-lead-media" href="<?php echo esc_url(get_permalink($featured_id)); ?>" aria-label="<?php echo esc_attr(get_the_title($featured_id)); ?>">
-                                <?php echo dht_blog_v2_img($featured_image, get_the_title($featured_id), '', 'eager', 'high'); ?>
+                                <?php echo dht_blog_v2_img_mobile($featured_image, get_the_title($featured_id), '', 'eager', 'high'); ?>
                             </a>
                             <div class="dht-lead-body">
                                 <div class="dht-card-meta">
@@ -600,10 +600,10 @@ $grid_posts = ($paged === 1) ? array_slice($posts, 5) : $posts;
                                     $rail_id         = (int) $rail_post->ID;
                                     $rail_categories = get_the_category($rail_id);
                                     $rail_category   = !empty($rail_categories) ? $rail_categories[0] : null;
-                                    $rail_image      = dht_blog_v2_post_image($rail_id, 'medium_large');
+                                    $rail_image      = dht_blog_v2_post_image_mobile($rail_id, 'medium_large');
                                 ?>
                                     <article class="dht-rail-card">
-                                        <a class="dht-rail-media" href="<?php echo esc_url(get_permalink($rail_id)); ?>" tabindex="-1" aria-hidden="true"><?php echo dht_blog_v2_img($rail_image, get_the_title($rail_id)); ?></a>
+                                        <a class="dht-rail-media" href="<?php echo esc_url(get_permalink($rail_id)); ?>" tabindex="-1" aria-hidden="true"><?php echo dht_blog_v2_img_mobile($rail_image, get_the_title($rail_id)); ?></a>
                                         <div class="dht-rail-body">
                                             <div class="dht-card-meta"><?php if ($rail_category) : ?><a href="<?php echo esc_url(get_category_link($rail_category)); ?>"><?php echo esc_html($rail_category->name); ?></a><span>•</span><?php endif; ?><span><?php echo esc_html($dht_blog_read_time($rail_id) . ' min'); ?></span></div>
                                             <h3><a href="<?php echo esc_url(get_permalink($rail_id)); ?>"><?php echo esc_html(get_the_title($rail_id)); ?></a></h3>
@@ -629,10 +629,10 @@ $grid_posts = ($paged === 1) ? array_slice($posts, 5) : $posts;
                             $post_id         = (int) $blog_post->ID;
                             $post_categories = get_the_category($post_id);
                             $post_category   = !empty($post_categories) ? $post_categories[0] : null;
-                            $post_image      = dht_blog_v2_post_image($post_id, 'medium_large');
+                            $post_image      = dht_blog_v2_post_image_mobile($post_id, 'medium_large');
                         ?>
                             <article class="dht-news-card">
-                                <a class="dht-news-card-media" href="<?php echo esc_url(get_permalink($post_id)); ?>" tabindex="-1" aria-hidden="true"><?php echo dht_blog_v2_img($post_image, get_the_title($post_id)); ?></a>
+                                <a class="dht-news-card-media" href="<?php echo esc_url(get_permalink($post_id)); ?>" tabindex="-1" aria-hidden="true"><?php echo dht_blog_v2_img_mobile($post_image, get_the_title($post_id)); ?></a>
                                 <div class="dht-news-card-body">
                                     <div class="dht-card-meta"><?php if ($post_category) : ?><a href="<?php echo esc_url(get_category_link($post_category)); ?>"><?php echo esc_html($post_category->name); ?></a><span>•</span><?php endif; ?><span><?php echo esc_html(get_the_date('', $post_id)); ?></span><span>•</span><span><?php echo esc_html($dht_blog_read_time($post_id) . ' min'); ?></span></div>
                                     <h3><a href="<?php echo esc_url(get_permalink($post_id)); ?>"><?php echo esc_html(get_the_title($post_id)); ?></a></h3>

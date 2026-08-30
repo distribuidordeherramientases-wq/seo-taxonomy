@@ -18,8 +18,8 @@ require_once __DIR__ . '/template-helpers.php';
  * DHT POST V1.3: helpers embebidos para que esta variante funcione
  * aunque WordPress la cargue directamente sin pasar por template-post.php.
  */
-if (!function_exists('dht_post_v12_logo_url')) {
-    function dht_post_v12_logo_url($size = 'medium_large') {
+if (!function_exists('dht_post_v12_logo_url_mobile')) {
+    function dht_post_v12_logo_url_mobile($size = 'medium_large') {
         static $cache = array();
         $key = (string) $size;
 
@@ -47,8 +47,8 @@ if (!function_exists('dht_post_v12_logo_url')) {
     }
 }
 
-if (!function_exists('dht_post_v12_local_image')) {
-    function dht_post_v12_local_image($attachment_id, $size = 'medium_large', $reject_logo = true) {
+if (!function_exists('dht_post_v12_local_image_mobile')) {
+    function dht_post_v12_local_image_mobile($attachment_id, $size = 'medium_large', $reject_logo = true) {
         $attachment_id = absint($attachment_id);
 
         if ($attachment_id < 1 || 'attachment' !== get_post_type($attachment_id)) {
@@ -76,8 +76,8 @@ if (!function_exists('dht_post_v12_local_image')) {
     }
 }
 
-if (!function_exists('dht_post_v12_product_image')) {
-    function dht_post_v12_product_image($product_id, $size = 'woocommerce_thumbnail', $allow_logo = true) {
+if (!function_exists('dht_post_v12_product_image_mobile')) {
+    function dht_post_v12_product_image_mobile($product_id, $size = 'woocommerce_thumbnail', $allow_logo = true) {
         global $wpdb;
 
         static $cache = array();
@@ -93,12 +93,12 @@ if (!function_exists('dht_post_v12_product_image')) {
 
         if ($product_id < 1) {
             return $allow_logo
-                ? array('url' => dht_post_v12_logo_url($size), 'attachment_id' => 0, 'source' => 'logo')
+                ? array('url' => dht_post_v12_logo_url_mobile($size), 'attachment_id' => 0, 'source' => 'logo')
                 : null;
         }
 
         // 1) Featured image real en Media.
-        $source = dht_post_v12_local_image(get_post_thumbnail_id($product_id), $size, true);
+        $source = dht_post_v12_local_image_mobile(get_post_thumbnail_id($product_id), $size, true);
         if ($source) {
             return $cache[$cache_key] = $source;
         }
@@ -137,7 +137,7 @@ if (!function_exists('dht_post_v12_product_image')) {
             );
 
             foreach ((array) $attachment_ids as $attachment_id) {
-                $source = dht_post_v12_local_image($attachment_id, $size, true);
+                $source = dht_post_v12_local_image_mobile($attachment_id, $size, true);
                 if ($source) {
                     return $cache[$cache_key] = $source;
                 }
@@ -191,7 +191,7 @@ if (!function_exists('dht_post_v12_product_image')) {
 
         if ($allow_logo) {
             return $cache[$cache_key] = array(
-                'url'           => dht_post_v12_logo_url($size),
+                'url'           => dht_post_v12_logo_url_mobile($size),
                 'attachment_id' => 0,
                 'source'        => 'logo',
             );
@@ -201,18 +201,18 @@ if (!function_exists('dht_post_v12_product_image')) {
     }
 }
 
-if (!function_exists('dht_post_v12_term_image')) {
-    function dht_post_v12_term_image($term_id, $size = 'woocommerce_thumbnail', $allow_logo = true) {
+if (!function_exists('dht_post_v12_term_image_mobile')) {
+    function dht_post_v12_term_image_mobile($term_id, $size = 'woocommerce_thumbnail', $allow_logo = true) {
         $term_id = absint($term_id);
 
         if ($term_id < 1) {
             return $allow_logo
-                ? array('url' => dht_post_v12_logo_url($size), 'attachment_id' => 0, 'source' => 'logo')
+                ? array('url' => dht_post_v12_logo_url_mobile($size), 'attachment_id' => 0, 'source' => 'logo')
                 : null;
         }
 
         // 1) Imagen propia de product_cat en Media.
-        $source = dht_post_v12_local_image(get_term_meta($term_id, 'thumbnail_id', true), $size, true);
+        $source = dht_post_v12_local_image_mobile(get_term_meta($term_id, 'thumbnail_id', true), $size, true);
         if ($source) {
             return $source;
         }
@@ -240,40 +240,40 @@ if (!function_exists('dht_post_v12_term_image')) {
         ));
 
         foreach ((array) $product_ids as $product_id) {
-            $source = dht_post_v12_product_image($product_id, $size, false);
+            $source = dht_post_v12_product_image_mobile($product_id, $size, false);
             if (!empty($source['url'])) {
                 return $source;
             }
         }
 
         return $allow_logo
-            ? array('url' => dht_post_v12_logo_url($size), 'attachment_id' => 0, 'source' => 'logo')
+            ? array('url' => dht_post_v12_logo_url_mobile($size), 'attachment_id' => 0, 'source' => 'logo')
             : null;
     }
 }
 
-if (!function_exists('dht_post_v12_main_image')) {
-    function dht_post_v12_main_image($post_id, $term_ids, $size = 'large') {
+if (!function_exists('dht_post_v12_main_image_mobile')) {
+    function dht_post_v12_main_image_mobile($post_id, $term_ids, $size = 'large') {
         // Featured image del propio post, siempre que no sea el logo.
-        $source = dht_post_v12_local_image(get_post_thumbnail_id($post_id), $size, true);
+        $source = dht_post_v12_local_image_mobile(get_post_thumbnail_id($post_id), $size, true);
         if ($source) {
             return $source;
         }
 
         // Después usa la relación comercial del post para encontrar una imagen real.
         foreach ((array) $term_ids as $term_id) {
-            $source = dht_post_v12_term_image($term_id, $size, false);
+            $source = dht_post_v12_term_image_mobile($term_id, $size, false);
             if (!empty($source['url'])) {
                 return $source;
             }
         }
 
-        return array('url' => dht_post_v12_logo_url($size), 'attachment_id' => 0, 'source' => 'logo');
+        return array('url' => dht_post_v12_logo_url_mobile($size), 'attachment_id' => 0, 'source' => 'logo');
     }
 }
 
-if (!function_exists('dht_post_v12_img')) {
-    function dht_post_v12_img($source, $alt, $class = '', $loading = 'lazy', $fetchpriority = '') {
+if (!function_exists('dht_post_v12_img_mobile')) {
+    function dht_post_v12_img_mobile($source, $alt, $class = '', $loading = 'lazy', $fetchpriority = '') {
         if (empty($source['url'])) {
             return '';
         }
@@ -292,14 +292,14 @@ if (!function_exists('dht_post_v12_img')) {
     }
 }
 
-if (!function_exists('dht_post_v12_wc_product_image')) {
-    function dht_post_v12_wc_product_image($html, $product, $size = 'woocommerce_thumbnail', $attr = array(), $placeholder = true, $image = '') {
+if (!function_exists('dht_post_v12_wc_product_image_mobile')) {
+    function dht_post_v12_wc_product_image_mobile($html, $product, $size = 'woocommerce_thumbnail', $attr = array(), $placeholder = true, $image = '') {
         if (!is_object($product) || !method_exists($product, 'get_id')) {
             return $html;
         }
 
         $product_id = absint($product->get_id());
-        $source = dht_post_v12_product_image($product_id, is_string($size) ? $size : 'woocommerce_thumbnail', true);
+        $source = dht_post_v12_product_image_mobile($product_id, is_string($size) ? $size : 'woocommerce_thumbnail', true);
 
         if (empty($source['url'])) {
             return $html;
@@ -463,7 +463,7 @@ while (have_posts()) :
         : 'Ver herramientas';
 
     /* Imagen principal visual: Media -> categoría/producto -> proveedor -> logo. */
-    $post_hero_image = dht_post_v12_main_image($post_id, $related_category_ids, 'large');
+    $post_hero_image = dht_post_v12_main_image_mobile($post_id, $related_category_ids, 'large');
     ?>
 
     <!-- DHT POST V1.3 SELF-CONTAINED + SUPPLIER IMAGES - 2026-08-26 -->
@@ -607,7 +607,7 @@ while (have_posts()) :
 
                 <?php if (!empty($post_hero_image['url'])) : ?>
                     <figure class="dht-post-hero-media" data-image-source="<?php echo esc_attr($post_hero_image['source']); ?>">
-                        <?php echo dht_post_v12_img($post_hero_image, get_the_title(), 'dht-post-hero-image', 'eager', 'high'); ?>
+                        <?php echo dht_post_v12_img_mobile($post_hero_image, get_the_title(), 'dht-post-hero-image', 'eager', 'high'); ?>
                     </figure>
                 <?php endif; ?>
             </div>
@@ -670,7 +670,7 @@ while (have_posts()) :
 
                     <?php
                     /* Durante este loop WooCommerce, sustituye placeholder/logo por Media -> proveedor -> logo. */
-                    add_filter('woocommerce_product_get_image', 'dht_post_v12_wc_product_image', 20, 6);
+                    add_filter('woocommerce_product_get_image', 'dht_post_v12_wc_product_image_mobile', 20, 6);
 
                     echo do_shortcode(
                         '[products category="' .
@@ -678,7 +678,7 @@ while (have_posts()) :
                         '" limit="8" columns="4" orderby="popularity" order="DESC" visibility="visible"]'
                     );
 
-                    remove_filter('woocommerce_product_get_image', 'dht_post_v12_wc_product_image', 20);
+                    remove_filter('woocommerce_product_get_image', 'dht_post_v12_wc_product_image_mobile', 20);
                     ?>
                 </div>
             </section>
@@ -704,14 +704,14 @@ while (have_posts()) :
                         <?php foreach ($related_product_cats as $product_cat) : ?>
                             <?php
                             $category_link = dht_template_safe_term_link($product_cat);
-                            $category_image_source = dht_post_v12_term_image(
+                            $category_image_source = dht_post_v12_term_image_mobile(
                                 (int) $product_cat->term_id,
                                 'woocommerce_thumbnail',
                                 true
                             );
                             $category_image = !empty($category_image_source['url'])
                                 ? (string) $category_image_source['url']
-                                : dht_post_v12_logo_url('woocommerce_thumbnail');
+                                : dht_post_v12_logo_url_mobile('woocommerce_thumbnail');
 
                             $category_description = isset($category_descriptions[(int) $product_cat->term_id])
                                 ? $category_descriptions[(int) $product_cat->term_id]
@@ -773,10 +773,10 @@ while (have_posts()) :
                             <article class="dht-post-news-card">
                                 <a class="dht-post-news-media" href="<?php the_permalink(); ?>" tabindex="-1" aria-hidden="true">
                                     <?php
-                                    $related_post_image = dht_post_v12_local_image(get_post_thumbnail_id(get_the_ID()), 'medium_large', true);
+                                    $related_post_image = dht_post_v12_local_image_mobile(get_post_thumbnail_id(get_the_ID()), 'medium_large', true);
                                     if (!$related_post_image) {
                                         foreach ((array) $related_category_ids as $related_term_id) {
-                                            $related_post_image = dht_post_v12_term_image($related_term_id, 'medium_large', false);
+                                            $related_post_image = dht_post_v12_term_image_mobile($related_term_id, 'medium_large', false);
                                             if (!empty($related_post_image['url'])) {
                                                 break;
                                             }
@@ -784,12 +784,12 @@ while (have_posts()) :
                                     }
                                     if (!$related_post_image) {
                                         $related_post_image = array(
-                                            'url' => dht_post_v12_logo_url('medium_large'),
+                                            'url' => dht_post_v12_logo_url_mobile('medium_large'),
                                             'attachment_id' => 0,
                                             'source' => 'logo',
                                         );
                                     }
-                                    echo dht_post_v12_img($related_post_image, get_the_title(), '', 'lazy');
+                                    echo dht_post_v12_img_mobile($related_post_image, get_the_title(), '', 'lazy');
                                     ?>
                                 </a>
 

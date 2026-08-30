@@ -16,8 +16,8 @@ global $wpdb;
  *          -> imagen del contenido -> adjunto -> logo.
  * ======================================================= */
 
-if (!function_exists('dht_solutions_v2_logo_url')) {
-    function dht_solutions_v2_logo_url($size = 'medium_large') {
+if (!function_exists('dht_solutions_v2_logo_url_mobile')) {
+    function dht_solutions_v2_logo_url_mobile($size = 'medium_large') {
         static $cache = array();
         $key = (string) $size;
         if (isset($cache[$key])) {
@@ -43,8 +43,8 @@ if (!function_exists('dht_solutions_v2_logo_url')) {
     }
 }
 
-if (!function_exists('dht_solutions_v2_local_image')) {
-    function dht_solutions_v2_local_image($attachment_id, $size = 'medium_large', $reject_logo = true) {
+if (!function_exists('dht_solutions_v2_local_image_mobile')) {
+    function dht_solutions_v2_local_image_mobile($attachment_id, $size = 'medium_large', $reject_logo = true) {
         $attachment_id = absint($attachment_id);
         if ($attachment_id < 1 || 'attachment' !== get_post_type($attachment_id)) {
             return null;
@@ -63,8 +63,8 @@ if (!function_exists('dht_solutions_v2_local_image')) {
     }
 }
 
-if (!function_exists('dht_solutions_v2_product_image')) {
-    function dht_solutions_v2_product_image($product_id, $size = 'medium_large', $allow_logo = false) {
+if (!function_exists('dht_solutions_v2_product_image_mobile')) {
+    function dht_solutions_v2_product_image_mobile($product_id, $size = 'medium_large', $allow_logo = false) {
         global $wpdb;
 
         static $cache = array();
@@ -77,7 +77,7 @@ if (!function_exists('dht_solutions_v2_product_image')) {
             return $cache[$cache_key];
         }
 
-        $source = dht_solutions_v2_local_image(get_post_thumbnail_id($product_id), $size, true);
+        $source = dht_solutions_v2_local_image_mobile(get_post_thumbnail_id($product_id), $size, true);
         if ($source) {
             return $cache[$cache_key] = $source;
         }
@@ -114,7 +114,7 @@ if (!function_exists('dht_solutions_v2_product_image')) {
                 )
             );
             foreach ((array) $attachment_ids as $attachment_id) {
-                $source = dht_solutions_v2_local_image($attachment_id, $size, true);
+                $source = dht_solutions_v2_local_image_mobile($attachment_id, $size, true);
                 if ($source) {
                     return $cache[$cache_key] = $source;
                 }
@@ -156,13 +156,13 @@ if (!function_exists('dht_solutions_v2_product_image')) {
         }
 
         return $cache[$cache_key] = $allow_logo
-            ? array('url' => dht_solutions_v2_logo_url($size), 'attachment_id' => 0, 'source' => 'logo')
+            ? array('url' => dht_solutions_v2_logo_url_mobile($size), 'attachment_id' => 0, 'source' => 'logo')
             : null;
     }
 }
 
-if (!function_exists('dht_solutions_v2_related_terms')) {
-    function dht_solutions_v2_related_terms($landing_id) {
+if (!function_exists('dht_solutions_v2_related_terms_mobile')) {
+    function dht_solutions_v2_related_terms_mobile($landing_id) {
         global $wpdb;
         static $cache = array();
 
@@ -199,8 +199,8 @@ if (!function_exists('dht_solutions_v2_related_terms')) {
     }
 }
 
-if (!function_exists('dht_solutions_v2_term_image')) {
-    function dht_solutions_v2_term_image($term_id, $size = 'medium_large', $allow_logo = false) {
+if (!function_exists('dht_solutions_v2_term_image_mobile')) {
+    function dht_solutions_v2_term_image_mobile($term_id, $size = 'medium_large', $allow_logo = false) {
         static $cache = array();
 
         $term_id   = absint($term_id);
@@ -209,7 +209,7 @@ if (!function_exists('dht_solutions_v2_term_image')) {
             return $cache[$cache_key];
         }
 
-        $source = dht_solutions_v2_local_image(get_term_meta($term_id, 'thumbnail_id', true), $size, true);
+        $source = dht_solutions_v2_local_image_mobile(get_term_meta($term_id, 'thumbnail_id', true), $size, true);
         if ($source) {
             return $cache[$cache_key] = $source;
         }
@@ -236,23 +236,23 @@ if (!function_exists('dht_solutions_v2_term_image')) {
         ));
 
         foreach ((array) $product_ids as $product_id) {
-            $source = dht_solutions_v2_product_image($product_id, $size, false);
+            $source = dht_solutions_v2_product_image_mobile($product_id, $size, false);
             if (!empty($source['url'])) {
                 return $cache[$cache_key] = $source;
             }
         }
 
         return $cache[$cache_key] = $allow_logo
-            ? array('url' => dht_solutions_v2_logo_url($size), 'attachment_id' => 0, 'source' => 'logo')
+            ? array('url' => dht_solutions_v2_logo_url_mobile($size), 'attachment_id' => 0, 'source' => 'logo')
             : null;
     }
 }
 
-if (!function_exists('dht_solutions_v2_content_image')) {
-    function dht_solutions_v2_content_image($post_id, $size = 'medium_large') {
+if (!function_exists('dht_solutions_v2_content_image_mobile')) {
+    function dht_solutions_v2_content_image_mobile($post_id, $size = 'medium_large') {
         $content = (string) get_post_field('post_content', $post_id);
         if ($content !== '' && preg_match('/wp-image-([0-9]+)/i', $content, $match)) {
-            $source = dht_solutions_v2_local_image(absint($match[1]), $size, true);
+            $source = dht_solutions_v2_local_image_mobile(absint($match[1]), $size, true);
             if ($source) {
                 return $source;
             }
@@ -267,8 +267,8 @@ if (!function_exists('dht_solutions_v2_content_image')) {
     }
 }
 
-if (!function_exists('dht_solutions_v2_page_image')) {
-    function dht_solutions_v2_page_image($post_id, $size = 'medium_large', $use_relations = true) {
+if (!function_exists('dht_solutions_v2_page_image_mobile')) {
+    function dht_solutions_v2_page_image_mobile($post_id, $size = 'medium_large', $use_relations = true) {
         static $cache = array();
         $post_id   = absint($post_id);
         $cache_key = $post_id . '|' . $size . '|' . ($use_relations ? '1' : '0');
@@ -276,21 +276,21 @@ if (!function_exists('dht_solutions_v2_page_image')) {
             return $cache[$cache_key];
         }
 
-        $source = dht_solutions_v2_local_image(get_post_thumbnail_id($post_id), $size, true);
+        $source = dht_solutions_v2_local_image_mobile(get_post_thumbnail_id($post_id), $size, true);
         if ($source) {
             return $cache[$cache_key] = $source;
         }
 
         if ($use_relations) {
-            foreach (dht_solutions_v2_related_terms($post_id) as $term) {
-                $source = dht_solutions_v2_term_image($term->term_id, $size, false);
+            foreach (dht_solutions_v2_related_terms_mobile($post_id) as $term) {
+                $source = dht_solutions_v2_term_image_mobile($term->term_id, $size, false);
                 if (!empty($source['url'])) {
                     return $cache[$cache_key] = $source;
                 }
             }
         }
 
-        $source = dht_solutions_v2_content_image($post_id, $size);
+        $source = dht_solutions_v2_content_image_mobile($post_id, $size);
         if ($source) {
             return $cache[$cache_key] = $source;
         }
@@ -305,18 +305,18 @@ if (!function_exists('dht_solutions_v2_page_image')) {
             'order'          => 'ASC',
         ));
         foreach ((array) $attachments as $attachment) {
-            $source = dht_solutions_v2_local_image($attachment->ID, $size, true);
+            $source = dht_solutions_v2_local_image_mobile($attachment->ID, $size, true);
             if ($source) {
                 return $cache[$cache_key] = $source;
             }
         }
 
-        return $cache[$cache_key] = array('url' => dht_solutions_v2_logo_url($size), 'attachment_id' => 0, 'source' => 'logo');
+        return $cache[$cache_key] = array('url' => dht_solutions_v2_logo_url_mobile($size), 'attachment_id' => 0, 'source' => 'logo');
     }
 }
 
-if (!function_exists('dht_solutions_v2_img')) {
-    function dht_solutions_v2_img($source, $alt, $loading = 'lazy', $fetchpriority = '') {
+if (!function_exists('dht_solutions_v2_img_mobile')) {
+    function dht_solutions_v2_img_mobile($source, $alt, $loading = 'lazy', $fetchpriority = '') {
         if (empty($source['url'])) {
             return '';
         }
@@ -330,8 +330,8 @@ if (!function_exists('dht_solutions_v2_img')) {
     }
 }
 
-if (!function_exists('dht_solutions_v2_excerpt')) {
-    function dht_solutions_v2_excerpt($post_id, $words = 28) {
+if (!function_exists('dht_solutions_v2_excerpt_mobile')) {
+    function dht_solutions_v2_excerpt_mobile($post_id, $words = 28) {
         $excerpt = trim((string) get_the_excerpt($post_id));
         if ($excerpt === '') {
             $excerpt = wp_trim_words(
@@ -571,8 +571,8 @@ $grid_posts    = ($paged === 1) ? array_slice($landing_posts, 5) : $landing_post
     <?php if ($landing_query->have_posts()) : ?>
         <?php if ($featured) :
             $featured_id    = (int) $featured->ID;
-            $featured_image = dht_solutions_v2_page_image($featured_id, 'large', true);
-            $featured_terms = dht_solutions_v2_related_terms($featured_id);
+            $featured_image = dht_solutions_v2_page_image_mobile($featured_id, 'large', true);
+            $featured_terms = dht_solutions_v2_related_terms_mobile($featured_id);
         ?>
             <section class="dht-news-section" aria-labelledby="dht-solutions-portada-title">
                 <div class="hub-container">
@@ -582,11 +582,11 @@ $grid_posts    = ($paged === 1) ? array_slice($landing_posts, 5) : $landing_post
                     </div>
                     <div class="dht-front-grid">
                         <article class="dht-lead-card">
-                            <a class="dht-lead-media" href="<?php echo esc_url(get_permalink($featured_id)); ?>" aria-label="<?php echo esc_attr(get_the_title($featured_id)); ?>"><?php echo dht_solutions_v2_img($featured_image, get_the_title($featured_id), 'eager', 'high'); ?></a>
+                            <a class="dht-lead-media" href="<?php echo esc_url(get_permalink($featured_id)); ?>" aria-label="<?php echo esc_attr(get_the_title($featured_id)); ?>"><?php echo dht_solutions_v2_img_mobile($featured_image, get_the_title($featured_id), 'eager', 'high'); ?></a>
                             <div class="dht-lead-body">
                                 <?php if ($featured_terms) : ?><div class="dht-solution-pills"><?php foreach (array_slice($featured_terms, 0, 3) as $term) : ?><span class="dht-solution-pill"><?php echo esc_html($term->name); ?></span><?php endforeach; ?></div><?php endif; ?>
                                 <h2><a href="<?php echo esc_url(get_permalink($featured_id)); ?>"><?php echo esc_html(get_the_title($featured_id)); ?></a></h2>
-                                <p><?php echo esc_html(dht_solutions_v2_excerpt($featured_id, 42)); ?></p>
+                                <p><?php echo esc_html(dht_solutions_v2_excerpt_mobile($featured_id, 42)); ?></p>
                                 <a class="dht-read-link" href="<?php echo esc_url(get_permalink($featured_id)); ?>">Ver solución →</a>
                             </div>
                         </article>
@@ -595,11 +595,11 @@ $grid_posts    = ($paged === 1) ? array_slice($landing_posts, 5) : $landing_post
                             <div class="dht-front-rail">
                                 <?php foreach ($rail_posts as $rail_post) :
                                     $rail_id    = (int) $rail_post->ID;
-                                    $rail_image = dht_solutions_v2_page_image($rail_id, 'medium_large', true);
-                                    $rail_terms = dht_solutions_v2_related_terms($rail_id);
+                                    $rail_image = dht_solutions_v2_page_image_mobile($rail_id, 'medium_large', true);
+                                    $rail_terms = dht_solutions_v2_related_terms_mobile($rail_id);
                                 ?>
                                     <article class="dht-rail-card">
-                                        <a class="dht-rail-media" href="<?php echo esc_url(get_permalink($rail_id)); ?>" tabindex="-1" aria-hidden="true"><?php echo dht_solutions_v2_img($rail_image, get_the_title($rail_id)); ?></a>
+                                        <a class="dht-rail-media" href="<?php echo esc_url(get_permalink($rail_id)); ?>" tabindex="-1" aria-hidden="true"><?php echo dht_solutions_v2_img_mobile($rail_image, get_the_title($rail_id)); ?></a>
                                         <div class="dht-rail-body">
                                             <?php if ($rail_terms) : ?><div class="dht-solution-pills"><span class="dht-solution-pill"><?php echo esc_html($rail_terms[0]->name); ?></span></div><?php endif; ?>
                                             <h3><a href="<?php echo esc_url(get_permalink($rail_id)); ?>"><?php echo esc_html(get_the_title($rail_id)); ?></a></h3>
@@ -623,15 +623,15 @@ $grid_posts    = ($paged === 1) ? array_slice($landing_posts, 5) : $landing_post
                     <div class="dht-solutions-grid">
                         <?php foreach ($grid_posts as $landing_post) :
                             $landing_id    = (int) $landing_post->ID;
-                            $landing_image = dht_solutions_v2_page_image($landing_id, 'medium_large', true);
-                            $landing_terms = dht_solutions_v2_related_terms($landing_id);
+                            $landing_image = dht_solutions_v2_page_image_mobile($landing_id, 'medium_large', true);
+                            $landing_terms = dht_solutions_v2_related_terms_mobile($landing_id);
                         ?>
                             <article class="dht-solution-card">
-                                <a class="dht-solution-media" href="<?php echo esc_url(get_permalink($landing_id)); ?>" tabindex="-1" aria-hidden="true"><?php echo dht_solutions_v2_img($landing_image, get_the_title($landing_id)); ?></a>
+                                <a class="dht-solution-media" href="<?php echo esc_url(get_permalink($landing_id)); ?>" tabindex="-1" aria-hidden="true"><?php echo dht_solutions_v2_img_mobile($landing_image, get_the_title($landing_id)); ?></a>
                                 <div class="dht-solution-body">
                                     <?php if ($landing_terms) : ?><div class="dht-solution-pills"><?php foreach (array_slice($landing_terms, 0, 2) as $term) : ?><span class="dht-solution-pill"><?php echo esc_html($term->name); ?></span><?php endforeach; ?></div><?php endif; ?>
                                     <h3><a href="<?php echo esc_url(get_permalink($landing_id)); ?>"><?php echo esc_html(get_the_title($landing_id)); ?></a></h3>
-                                    <p><?php echo esc_html(dht_solutions_v2_excerpt($landing_id, 22)); ?></p>
+                                    <p><?php echo esc_html(dht_solutions_v2_excerpt_mobile($landing_id, 22)); ?></p>
                                     <a class="dht-read-link" href="<?php echo esc_url(get_permalink($landing_id)); ?>">Ver solución →</a>
                                 </div>
                             </article>
@@ -662,11 +662,11 @@ $grid_posts    = ($paged === 1) ? array_slice($landing_posts, 5) : $landing_post
                 <div class="dht-cluster-grid">
                     <?php while ($cluster_query->have_posts()) : $cluster_query->the_post();
                         $cluster_id    = get_the_ID();
-                        $cluster_image = dht_solutions_v2_page_image($cluster_id, 'medium_large', false);
-                        $cluster_text  = dht_solutions_v2_excerpt($cluster_id, 20);
+                        $cluster_image = dht_solutions_v2_page_image_mobile($cluster_id, 'medium_large', false);
+                        $cluster_text  = dht_solutions_v2_excerpt_mobile($cluster_id, 20);
                     ?>
                         <article class="dht-cluster-card">
-                            <a class="dht-cluster-media" href="<?php echo esc_url(get_permalink($cluster_id)); ?>" tabindex="-1" aria-hidden="true"><?php echo dht_solutions_v2_img($cluster_image, get_the_title($cluster_id)); ?></a>
+                            <a class="dht-cluster-media" href="<?php echo esc_url(get_permalink($cluster_id)); ?>" tabindex="-1" aria-hidden="true"><?php echo dht_solutions_v2_img_mobile($cluster_image, get_the_title($cluster_id)); ?></a>
                             <div class="dht-cluster-body"><h3><a href="<?php echo esc_url(get_permalink($cluster_id)); ?>"><?php echo esc_html(get_the_title($cluster_id)); ?></a></h3><p><?php echo esc_html($cluster_text); ?></p><a class="dht-read-link" href="<?php echo esc_url(get_permalink($cluster_id)); ?>">Explorar →</a></div>
                         </article>
                     <?php endwhile; ?>

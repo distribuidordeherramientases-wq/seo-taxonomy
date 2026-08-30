@@ -22,8 +22,8 @@ dht_template_render_header();
  * Solo afecta a la presentacion; no escribe _thumbnail_id.
  * ========================================================== */
 
-if (!function_exists('dht_page_logo_url')) {
-    function dht_page_logo_url($size = 'medium_large') {
+if (!function_exists('dht_page_logo_url_mobile')) {
+    function dht_page_logo_url_mobile($size = 'medium_large') {
         static $cache = array();
 
         $key = (string) $size;
@@ -61,8 +61,8 @@ if (!function_exists('dht_page_logo_url')) {
     }
 }
 
-if (!function_exists('dht_page_local_attachment_source')) {
-    function dht_page_local_attachment_source($attachment_id, $size = 'medium_large') {
+if (!function_exists('dht_page_local_attachment_source_mobile')) {
+    function dht_page_local_attachment_source_mobile($attachment_id, $size = 'medium_large') {
         $attachment_id = absint($attachment_id);
 
         if ($attachment_id < 1 || 'attachment' !== get_post_type($attachment_id)) {
@@ -86,12 +86,12 @@ if (!function_exists('dht_page_local_attachment_source')) {
     }
 }
 
-if (!function_exists('dht_page_product_image_source')) {
+if (!function_exists('dht_page_product_image_source_mobile')) {
     /**
      * Imagen de producto para tarjetas de landing.
      * Prioridad estricta: Media -> indice Media -> proveedor -> logo.
      */
-    function dht_page_product_image_source($product_id, $size = 'woocommerce_thumbnail', $allow_logo = true) {
+    function dht_page_product_image_source_mobile($product_id, $size = 'woocommerce_thumbnail', $allow_logo = true) {
         global $wpdb;
 
         static $cache = array();
@@ -103,7 +103,7 @@ if (!function_exists('dht_page_product_image_source')) {
 
         if ($product_id < 1) {
             return $allow_logo
-                ? array('url' => dht_page_logo_url($size), 'attachment_id' => 0, 'source' => 'logo')
+                ? array('url' => dht_page_logo_url_mobile($size), 'attachment_id' => 0, 'source' => 'logo')
                 : null;
         }
 
@@ -112,7 +112,7 @@ if (!function_exists('dht_page_product_image_source')) {
         }
 
         /* 1) Imagen destacada local de WooCommerce. */
-        $local = dht_page_local_attachment_source(get_post_thumbnail_id($product_id), $size);
+        $local = dht_page_local_attachment_source_mobile(get_post_thumbnail_id($product_id), $size);
         if ($local) {
             return $cache[$cache_key] = $local;
         }
@@ -158,7 +158,7 @@ if (!function_exists('dht_page_product_image_source')) {
             );
 
             foreach ((array) $attachment_ids as $attachment_id) {
-                $local = dht_page_local_attachment_source($attachment_id, $size);
+                $local = dht_page_local_attachment_source_mobile($attachment_id, $size);
                 if ($local) {
                     return $cache[$cache_key] = $local;
                 }
@@ -212,7 +212,7 @@ if (!function_exists('dht_page_product_image_source')) {
         }
 
         if ($allow_logo) {
-            $logo = dht_page_logo_url($size);
+            $logo = dht_page_logo_url_mobile($size);
             if ($logo) {
                 return $cache[$cache_key] = array(
                     'url'           => $logo,
@@ -226,17 +226,17 @@ if (!function_exists('dht_page_product_image_source')) {
     }
 }
 
-if (!function_exists('dht_page_term_image_source')) {
+if (!function_exists('dht_page_term_image_source_mobile')) {
     /** Categoria: thumbnail de Media -> producto representativo -> proveedor -> logo. */
-    function dht_page_term_image_source($term_id, $size = 'medium_large', $allow_logo = true) {
+    function dht_page_term_image_source_mobile($term_id, $size = 'medium_large', $allow_logo = true) {
         $term_id = absint($term_id);
         if ($term_id < 1) {
             return $allow_logo
-                ? array('url' => dht_page_logo_url($size), 'attachment_id' => 0, 'source' => 'logo')
+                ? array('url' => dht_page_logo_url_mobile($size), 'attachment_id' => 0, 'source' => 'logo')
                 : null;
         }
 
-        $local = dht_page_local_attachment_source(get_term_meta($term_id, 'thumbnail_id', true), $size);
+        $local = dht_page_local_attachment_source_mobile(get_term_meta($term_id, 'thumbnail_id', true), $size);
         if ($local) {
             return $local;
         }
@@ -261,14 +261,14 @@ if (!function_exists('dht_page_term_image_source')) {
         ));
 
         foreach ((array) $product_ids as $product_id) {
-            $source = dht_page_product_image_source($product_id, $size, false);
+            $source = dht_page_product_image_source_mobile($product_id, $size, false);
             if (!empty($source['url'])) {
                 return $source;
             }
         }
 
         if ($allow_logo) {
-            $logo = dht_page_logo_url($size);
+            $logo = dht_page_logo_url_mobile($size);
             if ($logo) {
                 return array('url' => $logo, 'attachment_id' => 0, 'source' => 'logo');
             }
@@ -278,35 +278,35 @@ if (!function_exists('dht_page_term_image_source')) {
     }
 }
 
-if (!function_exists('dht_page_main_image_source')) {
-    function dht_page_main_image_source($page_id, $related_term_ids, $size = 'large') {
-        $local = dht_page_local_attachment_source(get_post_thumbnail_id($page_id), $size);
+if (!function_exists('dht_page_main_image_source_mobile')) {
+    function dht_page_main_image_source_mobile($page_id, $related_term_ids, $size = 'large') {
+        $local = dht_page_local_attachment_source_mobile(get_post_thumbnail_id($page_id), $size);
         if ($local) {
             return $local;
         }
 
         foreach (array_map('absint', (array) $related_term_ids) as $term_id) {
-            $source = dht_page_term_image_source($term_id, $size, false);
+            $source = dht_page_term_image_source_mobile($term_id, $size, false);
             if (!empty($source['url'])) {
                 return $source;
             }
         }
 
-        $logo = dht_page_logo_url($size);
+        $logo = dht_page_logo_url_mobile($size);
         return $logo
             ? array('url' => $logo, 'attachment_id' => 0, 'source' => 'logo')
             : null;
     }
 }
 
-if (!function_exists('dht_page_image_tag')) {
-    function dht_page_image_tag($source, $alt, $class = '', $loading = 'lazy', $fetchpriority = '') {
+if (!function_exists('dht_page_image_tag_mobile')) {
+    function dht_page_image_tag_mobile($source, $alt, $class = '', $loading = 'lazy', $fetchpriority = '') {
         if (empty($source['url'])) {
             return '';
         }
 
         $url = (string) $source['url'];
-        $logo_url = dht_page_logo_url('medium_large');
+        $logo_url = dht_page_logo_url_mobile('medium_large');
         $onerror = '';
 
         if ($logo_url && $url !== $logo_url) {
@@ -330,13 +330,13 @@ if (!function_exists('dht_page_image_tag')) {
     }
 }
 
-if (!function_exists('dht_page_related_products_by_category')) {
+if (!function_exists('dht_page_related_products_by_category_mobile')) {
     /**
      * Devuelve productos publicados de las categorias DIRECTAMENTE asociadas.
      * Se consulta cada product_cat por separado y sin incluir hijas, para evitar
      * que una categoria amplia arrastre productos de ramas no pertinentes.
      */
-    function dht_page_related_products_by_category($terms, $per_category = 4, $global_limit = 12) {
+    function dht_page_related_products_by_category_mobile($terms, $per_category = 4, $global_limit = 12) {
         $per_category = max(1, absint($per_category));
         $global_limit = max(1, absint($global_limit));
 
@@ -513,15 +513,15 @@ while (have_posts()) :
     }
 
     $related_products_by_cat = $is_landing
-        ? dht_page_related_products_by_category($related_product_cats, 4, 8)
+        ? dht_page_related_products_by_category_mobile($related_product_cats, 4, 8)
         : array();
 
     $main_image = null;
-    $local_main = dht_page_local_attachment_source(get_post_thumbnail_id($page_id), 'large');
+    $local_main = dht_page_local_attachment_source_mobile(get_post_thumbnail_id($page_id), 'large');
     if ($local_main) {
         $main_image = $local_main;
     } elseif ($is_landing) {
-        $main_image = dht_page_main_image_source($page_id, $related_term_ids, 'large');
+        $main_image = dht_page_main_image_source_mobile($page_id, $related_term_ids, 'large');
     }
 
     $eyebrow = 'Pagina';
@@ -567,7 +567,7 @@ while (have_posts()) :
             <section class="dht-page-featured-section" aria-label="Imagen destacada de la pagina">
                 <div class="dht-container">
                     <figure class="dht-page-featured-card">
-                        <?php echo dht_page_image_tag($main_image, get_the_title(), 'dht-page-main-image', 'eager', 'high'); ?>
+                        <?php echo dht_page_image_tag_mobile($main_image, get_the_title(), 'dht-page-main-image', 'eager', 'high'); ?>
                     </figure>
                 </div>
             </section>
@@ -603,11 +603,11 @@ while (have_posts()) :
                                     <?php foreach ($related_products_by_cat[$term_id]['products'] as $product) :
                                         $product_id = (int) $product->get_id();
                                         $product_url = get_permalink($product_id);
-                                        $image_source = dht_page_product_image_source($product_id, 'woocommerce_thumbnail', true);
+                                        $image_source = dht_page_product_image_source_mobile($product_id, 'woocommerce_thumbnail', true);
                                         ?>
                                         <article class="dht-page-product-card">
                                             <a class="dht-page-product-media" href="<?php echo esc_url($product_url); ?>" aria-label="<?php echo esc_attr($product->get_name()); ?>">
-                                                <?php echo dht_page_image_tag($image_source, $product->get_name(), 'dht-page-product-image'); ?>
+                                                <?php echo dht_page_image_tag_mobile($image_source, $product->get_name(), 'dht-page-product-image'); ?>
                                             </a>
                                             <div class="dht-page-product-body">
                                                 <h3><a href="<?php echo esc_url($product_url); ?>"><?php echo esc_html($product->get_name()); ?></a></h3>
@@ -643,11 +643,11 @@ while (have_posts()) :
                             if (is_wp_error($term_link)) {
                                 continue;
                             }
-                            $cat_image = dht_page_term_image_source($product_cat->term_id, 'medium_large', true);
+                            $cat_image = dht_page_term_image_source_mobile($product_cat->term_id, 'medium_large', true);
                             ?>
                             <a class="dht-page-related-cat-card" href="<?php echo esc_url($term_link); ?>">
                                 <span class="dht-page-related-cat-media">
-                                    <?php echo dht_page_image_tag($cat_image, $product_cat->name, 'dht-page-category-image'); ?>
+                                    <?php echo dht_page_image_tag_mobile($cat_image, $product_cat->name, 'dht-page-category-image'); ?>
                                 </span>
                                 <span class="dht-page-related-cat-body">
                                     <span class="dht-page-related-cat-count"><?php echo esc_html(number_format_i18n((int) $product_cat->count)); ?> productos</span>
