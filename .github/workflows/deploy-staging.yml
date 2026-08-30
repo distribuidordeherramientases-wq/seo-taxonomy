@@ -1,4 +1,4 @@
-name: Deploy STAGING
+name: Despliegue inmediado a STAGING
 
 on:
   push:
