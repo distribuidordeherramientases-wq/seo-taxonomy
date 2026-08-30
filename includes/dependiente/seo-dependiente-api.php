@@ -880,16 +880,178 @@ final class SEO_Dependiente_API {
     private static function make_cards($items, $type, $group, $documents) {
         $cards = array();
         foreach ((array) $items as $item) {
-            $image = !empty($item['image']) ? $item['image'] : self::representative_image($documents, $type, $group, $item['slug']);
+            $slug = (string) ($item['slug'] ?? '');
+            $label = (string) ($item['label'] ?? '');
+
+            // Prioridad visual:
+            // 1) imagen de navegación subida a Media con nombre seo-dependiente-{slug}.webp
+            // 2) imagen propia de la faceta/categoría
+            // 3) imagen representativa de un producto que cumpla la faceta
+            $navigation_image = self::navigation_media_image($slug, $label);
+            if ($navigation_image) {
+                $image = $navigation_image;
+                $image_kind = 'navigation';
+            } else {
+                $image = !empty($item['image'])
+                    ? (string) $item['image']
+                    : self::representative_image($documents, $type, $group, $slug);
+                $image_kind = 'catalog';
+            }
+
             $cards[] = array(
-                'label' => (string) $item['label'],
-                'slug'  => (string) $item['slug'],
-                'count' => absint($item['count']),
-                'image' => (string) $image,
-                'filter'=> array('type' => $type, 'group' => $group, 'slug' => (string) $item['slug']),
+                'label'      => $label,
+                'slug'       => $slug,
+                'count'      => absint($item['count'] ?? 0),
+                'image'      => (string) $image,
+                'image_kind' => $image_kind,
+                'filter'     => array('type' => $type, 'group' => $group, 'slug' => $slug),
             );
         }
         return $cards;
+    }
+
+    /**
+     * Localiza una imagen ligera de navegación en la Biblioteca de Medios.
+     *
+     * Convención de nombre:
+     *   seo-dependiente-{slug}.webp
+     *
+     * Ejemplos:
+     *   seo-dependiente-cortar.webp
+     *   seo-dependiente-taladro.webp
+     *   seo-dependiente-porcelanico.webp
+     *
+     * La resolución es automática: no se guardan IDs de adjuntos en opciones.
+     * Esto permite añadir nuevas imágenes simplemente subiéndolas a Media.
+     */
+    private static function navigation_media_image($slug, $label = '') {
+        $map = self::navigation_media_map();
+        if (!$map) {
+            return '';
+        }
+
+        $candidates = array_values(array_unique(array_filter(array(
+            sanitize_title((string) $slug),
+            sanitize_title((string) $label),
+        ))));
+
+        foreach ($candidates as $candidate) {
+            if (isset($map[$candidate])) {
+                return $map[$candidate];
+            }
+        }
+
+        $alias_key = self::navigation_alias_key(implode(' ', $candidates));
+        if ($alias_key && isset($map[$alias_key])) {
+            return $map[$alias_key];
+        }
+
+        return '';
+    }
+
+    /**
+     * Carga una sola vez por petición todas las imágenes seo-dependiente-*
+     * existentes en Media y crea un mapa slug => URL.
+     */
+    private static function navigation_media_map() {
+        static $map = null;
+
+        if (is_array($map)) {
+            return $map;
+        }
+
+        $map = array();
+        global $wpdb;
+
+        $prefix = 'seo-dependiente-';
+        $like = '%' . $wpdb->esc_like($prefix) . '%';
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT p.ID, pm.meta_value AS attached_file
+                 FROM {$wpdb->posts} p
+                 INNER JOIN {$wpdb->postmeta} pm
+                    ON pm.post_id = p.ID
+                   AND pm.meta_key = '_wp_attached_file'
+                 WHERE p.post_type = 'attachment'
+                   AND p.post_status = 'inherit'
+                   AND pm.meta_value LIKE %s
+                 ORDER BY p.ID DESC",
+                $like
+            )
+        );
+
+        foreach ((array) $rows as $row) {
+            $basename = pathinfo(wp_basename((string) $row->attached_file), PATHINFO_FILENAME);
+            if (0 !== strpos($basename, $prefix)) {
+                continue;
+            }
+
+            $key = sanitize_title(substr($basename, strlen($prefix)));
+            // Si WordPress renombra un duplicado como -1, -2, etc., el último
+            // archivo subido sigue sustituyendo visualmente al original.
+            $key = preg_replace('/-\d+$/', '', $key);
+            if (!$key || isset($map[$key])) {
+                continue;
+            }
+
+            $url = wp_get_attachment_url((int) $row->ID);
+            if ($url) {
+                $map[$key] = esc_url_raw($url);
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * Alias semánticos para que vocabularios como "corte" o "perforación"
+     * reutilicen la imagen de acción correspondiente sin exigir nombres idénticos.
+     */
+    private static function navigation_alias_key($value) {
+        $value = sanitize_title((string) $value);
+        if (!$value) {
+            return '';
+        }
+
+        $rules = array(
+            'cortar'       => array('cortar', 'corte', 'cortes', 'tronzar', 'seccionar'),
+            'perforar'     => array('perforar', 'perforacion', 'taladrar', 'taladro'),
+            'fijar'        => array('fijar', 'fijacion', 'anclaje', 'anclar', 'atornillar', 'tornillo'),
+            'medir'        => array('medir', 'medicion', 'medida', 'nivelar', 'nivelacion'),
+            'instalar'     => array('instalar', 'instalacion', 'montar', 'montaje', 'colocar'),
+            'reparar'      => array('reparar', 'reparacion', 'mantenimiento', 'ajustar'),
+            'proteger'     => array('proteger', 'proteccion', 'seguridad', 'epi', 'epis'),
+            'transportar'  => array('transportar', 'transporte', 'mover', 'movimiento', 'manipulacion'),
+            'amoladora'    => array('amoladora', 'radial'),
+            'sierra-calar' => array('sierra-calar', 'caladora'),
+            'sierra'       => array('sierra', 'sierra-circular'),
+            'ingletadora'  => array('ingletadora'),
+            'taladro'      => array('taladro', 'atornillador'),
+            'porcelanico'  => array('porcelanico', 'gres-porcelanico'),
+            'madera'       => array('madera'),
+            'metal'        => array('metal', 'acero', 'aluminio'),
+            'ladrillo'     => array('ladrillo', 'mamposteria'),
+            'hormigon'     => array('hormigon', 'concreto'),
+            'discos'       => array('disco', 'discos'),
+            'brocas'       => array('broca', 'brocas'),
+            'tornillos'    => array('tornillo', 'tornillos'),
+            'adhesivos'    => array('adhesivo', 'adhesivos', 'pegamento', 'sellador'),
+            'epis'         => array('epi', 'epis', 'proteccion-personal'),
+            'herramientas' => array('herramienta', 'herramientas'),
+            'materiales'   => array('material', 'materiales'),
+            'sistemas'     => array('sistema', 'sistemas', 'plataforma'),
+            'marcas'       => array('marca', 'marcas', 'fabricante'),
+        );
+
+        foreach ($rules as $target => $needles) {
+            foreach ($needles as $needle) {
+                if ($value === $needle || false !== strpos('-' . $value . '-', '-' . $needle . '-')) {
+                    return $target;
+                }
+            }
+        }
+
+        return '';
     }
 
     private static function representative_image($documents, $type, $group, $slug) {

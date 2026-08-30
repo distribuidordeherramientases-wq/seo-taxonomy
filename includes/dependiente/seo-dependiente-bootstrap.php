@@ -4,7 +4,7 @@
  */
 defined('ABSPATH') || exit;
 
-define('SEO_DEPENDIENTE_VERSION', '0.1.0');
+define('SEO_DEPENDIENTE_VERSION', '0.2.0');
 define('SEO_DEPENDIENTE_DB_VERSION', '0.1.0');
 define('SEO_DEPENDIENTE_PATH', __DIR__ . '/');
 define('SEO_DEPENDIENTE_URL', SEO_SYSTEM_URL . 'includes/dependiente/');
