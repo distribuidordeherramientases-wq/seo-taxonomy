@@ -9,6 +9,11 @@
     const indexed = document.querySelector('[data-dependiente-indexed]');
     const total = document.querySelector('[data-dependiente-total]');
 
+    if (bar) {
+        const initialPercent = Math.max(0, Math.min(100, Number(bar.dataset.initialPercent || 0)));
+        bar.style.width = initialPercent + '%';
+    }
+
     async function post(action, data) {
         const body = new URLSearchParams(Object.assign({ action, nonce: config.nonce }, data || {}));
         const response = await fetch(config.ajaxUrl, {

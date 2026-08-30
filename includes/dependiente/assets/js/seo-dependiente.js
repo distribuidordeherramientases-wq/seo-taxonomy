@@ -359,7 +359,7 @@
                 '<div class="seo-dependiente__ranges">' +
                 '<label>Mínimo<input type="number" step="any" data-range-field="' + escapeAttr(field) + '" data-range-bound="min" value="' + escapeAttr(selected.min !== undefined && selected.min !== null ? selected.min : '') + '" placeholder="' + escapeAttr(range.min) + '"></label>' +
                 '<label>Máximo<input type="number" step="any" data-range-field="' + escapeAttr(field) + '" data-range-bound="max" value="' + escapeAttr(selected.max !== undefined && selected.max !== null ? selected.max : '') + '" placeholder="' + escapeAttr(range.max) + '"></label>' +
-                '</div><small style="display:block;margin-top:7px;color:#7b887f;">Rango disponible: ' + escapeHtml(String(range.min)) + '–' + escapeHtml(String(range.max)) + ' ' + escapeHtml(unit) + '</small></details>';
+                '</div><small class="seo-dependiente__range-meta">Rango disponible: ' + escapeHtml(String(range.min)) + '–' + escapeHtml(String(range.max)) + ' ' + escapeHtml(unit) + '</small></details>';
         }
 
         function selectedValues(kind, group) {
