@@ -31,12 +31,13 @@ function seo_ie_entity_registry() {
             'label'      => 'Productos',
             'batch_size' => 5,
             'required_any' => [ 'product_id', 'sku', 'proveedor_id_externo' ],
-            'markers'    => [ 'product_id', 'sku', 'tipo_producto', 'visibilidad_catalogo', 'categorias_ids', 'precio_normal', 'precio_actual', 'estado_stock', 'proveedor_id_externo', 'atributos_wc_json', 'atributos_seo_json', 'galeria_urls', 'tipo_semantico', 'rol', 'ambito', 'aplicacion', 'plataforma', 'subtipo' ],
+            'markers'    => [ 'product_id', 'sku', 'tipo_producto', 'visibilidad_catalogo', 'categorias_ids', 'precio_normal', 'precio_actual', 'estado_stock', 'proveedor_id_externo', 'peso', 'longitud', 'anchura', 'altura', 'atributos_wc_json', 'atributos_seo_json', 'galeria_urls', 'tipo_semantico', 'rol', 'ambito', 'aplicacion', 'plataforma', 'subtipo' ],
         ],
         'category' => [
             'label'      => 'Categorias',
             'batch_size' => 0,
             'required'   => [ 'category_id' ],
+            'markers'    => [ 'category_id', 'parent_id', 'hub_secondary_id', 'imagen_destacada_id', 'imagen_destacada' ],
         ],
         'page' => [
             'label'      => 'Paginas',
