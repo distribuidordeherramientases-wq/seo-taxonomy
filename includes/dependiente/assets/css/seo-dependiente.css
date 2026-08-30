@@ -541,15 +541,22 @@ body.seo-dependiente-app-body * {
     height: 100%;
     object-fit: cover;
     transition: transform .45s ease;
-    z-index: -2;
+    z-index: 0;
 }
 
 .seo-dependiente__visual-card::after {
     content: "";
     position: absolute;
     inset: 0;
-    z-index: -1;
-    background: linear-gradient(to top, rgba(10,24,15,.94), rgba(10,24,15,.18) 72%, rgba(10,24,15,.03));
+    z-index: 1;
+    background: linear-gradient(
+        to top,
+        rgba(8, 19, 12, .92) 0%,
+        rgba(8, 19, 12, .70) 36%,
+        rgba(8, 19, 12, .28) 64%,
+        rgba(8, 19, 12, .04) 100%
+    );
+    pointer-events: none;
 }
 
 .seo-dependiente__visual-card:hover img {
@@ -557,8 +564,16 @@ body.seo-dependiente-app-body * {
 }
 
 .seo-dependiente__visual-card-content {
+    position: relative;
+    z-index: 2;
     width: 100%;
-    padding: 22px;
+    padding: 58px 22px 22px;
+    background: linear-gradient(
+        to top,
+        rgba(8, 19, 12, .96) 0%,
+        rgba(8, 19, 12, .82) 58%,
+        rgba(8, 19, 12, 0) 100%
+    );
 }
 
 .seo-dependiente__visual-card strong {
@@ -566,15 +581,19 @@ body.seo-dependiente-app-body * {
     max-width: 90%;
     color: #fff;
     font-size: clamp(18px, 1.8vw, 24px);
-    line-height: 1.1;
+    font-weight: 800;
+    line-height: 1.14;
     letter-spacing: -.02em;
+    text-shadow: 0 2px 10px rgba(0,0,0,.55);
 }
 
 .seo-dependiente__visual-card small {
     display: block;
     margin-top: 8px;
-    color: rgba(255,255,255,.72);
+    color: rgba(255,255,255,.90);
     font-size: 13px;
+    font-weight: 600;
+    text-shadow: 0 1px 6px rgba(0,0,0,.55);
 }
 
 .seo-dependiente__visual-card-arrow {
@@ -589,6 +608,7 @@ body.seo-dependiente-app-body * {
     background: var(--dht-accent);
     color: var(--dht-accent-ink);
     font-weight: 900;
+    z-index: 3;
 }
 
 .seo-dependiente__workspace {
@@ -1519,7 +1539,7 @@ button.seo-dependiente__chip::after {
 }
 
 /* =========================================================
- * DEPENDIENTE 0.1.4 - PORTADA VISUAL + CONTENIDO RELACIONADO
+ * DEPENDIENTE 0.1.5 - PORTADA VISUAL + CONTENIDO RELACIONADO
  * Buscador protagonista, cuatro accesos visuales 2x2 y guias
  * visibles junto a los resultados.
  * ======================================================= */
@@ -1969,5 +1989,5 @@ button.seo-dependiente__chip::after {
 }
 
 
-/* 0.1.4: la portada prioriza buscador + cuatro acciones visuales. */
+/* 0.1.5: portada visual y contraste reforzado en tarjetas de descubrimiento. */
 .seo-dependiente__hero .seo-dependiente__examples { display: none; }
