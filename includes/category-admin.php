@@ -427,6 +427,7 @@ if ($single_category_mode) {
 if (!in_array($active_tab,
 [
     'categorias',
+    'estructura',
     'reasignar_categorias',
     'category-anomaly',
     'schema',
@@ -443,6 +444,15 @@ $url_categorias = add_query_arg(
     [
         'page' => $page_slug,
         'tab'  => 'categorias',
+    ],
+    admin_url('admin.php')
+);
+
+// URL PESTAÑA INFORME / ESTRUCTURA DE CATEGORÍAS
+$url_estructura = add_query_arg(
+    [
+        'page' => $page_slug,
+        'tab'  => 'estructura',
     ],
     admin_url('admin.php')
 );
@@ -494,6 +504,8 @@ echo '<h2 class="nav-tab-wrapper" style="margin-bottom:20px;">';
 
     echo '<a href="' . esc_url($url_categorias) . '" class="nav-tab ' . ($active_tab === 'categorias' ? 'nav-tab-active' : '') . '">Categorías</a>';
 
+    echo '<a href="' . esc_url($url_estructura) . '" class="nav-tab ' . ($active_tab === 'estructura' ? 'nav-tab-active' : '') . '">Informe categorías</a>';
+
     echo '<a href="' . esc_url($url_reasignar_categorias) . '" class="nav-tab ' . ($active_tab === 'reasignar_categorias' ? 'nav-tab-active' : '') . '">Reasignación de Categorías</a>';
     
     echo '<a href="' . esc_url($url_category_anomaly) . '" class="nav-tab ' . ($active_tab === 'category-anomaly' ? 'nav-tab-active' : '') . '">Anomalías</a>';
@@ -505,6 +517,21 @@ echo '<h2 class="nav-tab-wrapper" style="margin-bottom:20px;">';
 
 
 echo '</h2>';
+}
+
+// =========================
+// PESTAÑA INFORME / ESTRUCTURA DE CATEGORÍAS
+// =========================
+if ($active_tab === 'estructura') {
+
+    if (function_exists('seo_render_total_structure_report')) {
+        seo_render_total_structure_report();
+    } else {
+        echo '<div class="notice notice-error"><p>No esta disponible el informe de estructura de categorias.</p></div>';
+    }
+
+    echo '</div>';
+    return;
 }
 
 // =========================

@@ -453,7 +453,6 @@ function seo_reports_page() {
         'informes',
         'dashboard',
         'content',
-        'estructura_total',
         'anomalias',
         'growth_executive',
         'google_intelligence',
@@ -472,7 +471,6 @@ function seo_reports_page() {
     echo '<a class="nav-tab ' . ($active_tab === 'informes' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=informes') . '">Informes</a>';
     echo '<a class="nav-tab ' . ($active_tab === 'dashboard' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=dashboard') . '">Panel</a>';
     echo '<a class="nav-tab ' . ($active_tab === 'content' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=content') . '">Contenido</a>';
-    echo '<a class="nav-tab ' . ($active_tab === 'estructura_total' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=estructura_total') . '">Categorías</a>';
     echo '<a class="nav-tab ' . ($active_tab === 'anomalias' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=anomalias') . '">Anomalías</a>';
     echo '<a class="nav-tab ' . ($active_tab === 'growth_executive' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=growth_executive') . '">Qué potenciar</a>';
     echo '<a class="nav-tab ' . ($active_tab === 'google_intelligence' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=google_intelligence') . '">Inteligencia de Google</a>';
@@ -493,8 +491,6 @@ function seo_reports_page() {
         } else {
             echo '<div class="notice notice-error inline"><p>Falta el archivo <code>seo-report-contents.php</code>.</p></div>';
         }
-    } elseif ($active_tab === 'estructura_total') {
-        seo_render_total_structure_report();
     } elseif ($active_tab === 'anomalias') {
         seo_render_anomalies_report();
     } elseif ($active_tab === 'growth_executive') {
@@ -778,7 +774,10 @@ function seo_reports_category_vocabulary_map($category_ids = array()) {
 }
 
 /**
- * PESTAÑA: Categorías (Antigua Estructura Total)
+ * Informe de estructura completa de categorías.
+ *
+ * La interfaz se muestra desde SEO Taxonomy > Categorías > Informe categorías.
+ * Se mantiene en este módulo para reutilizar los helpers de informes existentes.
  */
 function seo_render_total_structure_report() {
     global $wpdb;
