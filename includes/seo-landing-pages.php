@@ -603,6 +603,142 @@ function seo_landing_handle_save_candidate()
 add_action('admin_post_seo_landing_save_candidate', 'seo_landing_handle_save_candidate');
 
 /**
+ * Devuelve un valor de meta SEO conocido cuando existe un plugin SEO activo.
+ * Se mantiene como lectura tolerante: si no hay plugin, devuelve cadena vacia.
+ *
+ * @param int    $post_id ID de la pagina.
+ * @param string $field   title o description.
+ * @return string
+ */
+function seo_landing_export_get_seo_meta($post_id, $field)
+{
+    $post_id = absint($post_id);
+    $field = sanitize_key($field);
+
+    if ($post_id <= 0 || !in_array($field, array('title', 'description'), true)) {
+        return '';
+    }
+
+    $keys = 'title' === $field
+        ? array('_yoast_wpseo_title', 'rank_math_title', '_seopress_titles_title', '_aioseo_title')
+        : array('_yoast_wpseo_metadesc', 'rank_math_description', '_seopress_titles_desc', '_aioseo_description');
+
+    foreach ($keys as $key) {
+        $value = trim((string) get_post_meta($post_id, $key, true));
+        if ('' !== $value) {
+            return $value;
+        }
+    }
+
+    return '';
+}
+
+/**
+ * Genera y descarga un CSV con el inventario SEO de Landing Pages.
+ */
+function seo_landing_export_seo_csv()
+{
+    if (!current_user_can('manage_options')) {
+        wp_die(esc_html__('No tienes permisos para exportar el informe SEO.', 'seo-system'));
+    }
+
+    check_admin_referer('seo_landing_export_seo_csv');
+    seo_landing_maybe_install();
+
+    $landings = seo_landing_get_existing();
+    $filename = 'informe-seo-landings-' . wp_date('Y-m-d') . '.csv';
+
+    nocache_headers();
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('X-Content-Type-Options: nosniff');
+
+    $output = fopen('php://output', 'w');
+    if (false === $output) {
+        wp_die(esc_html__('No se pudo generar el archivo CSV.', 'seo-system'));
+    }
+
+    // BOM UTF-8 para que Excel abra correctamente tildes y eñes.
+    fwrite($output, "\xEF\xBB\xBF");
+
+    fputcsv($output, array(
+        'ID',
+        'Landing',
+        'URL',
+        'Estado',
+        'SEO title',
+        'Meta description',
+        'Palabras',
+        'Contador 30d',
+        'Contador total',
+        'GA4 sesiones 30d',
+        'GSC clics 28d',
+        'GSC impresiones 28d',
+        'GSC CTR 28d',
+        'GSC posicion 28d',
+        'Publicada',
+        'Actualizada',
+    ), ';');
+
+    foreach ($landings as $landing) {
+        $post_id = absint($landing->ID);
+        $external_metrics = function_exists('seo_landing_google_metrics_for_page')
+            ? (array) seo_landing_google_metrics_for_page($post_id)
+            : array('ga4' => array(), 'gsc' => array());
+
+        $ga4 = isset($external_metrics['ga4']) && is_array($external_metrics['ga4']) ? $external_metrics['ga4'] : array();
+        $gsc = isset($external_metrics['gsc']) && is_array($external_metrics['gsc']) ? $external_metrics['gsc'] : array();
+
+        $seo_title = seo_landing_export_get_seo_meta($post_id, 'title');
+        if ('' === $seo_title) {
+            $seo_title = get_the_title($post_id);
+        }
+
+        $meta_description = seo_landing_export_get_seo_meta($post_id, 'description');
+        if ('' === $meta_description) {
+            $meta_description = trim((string) get_post_field('post_excerpt', $post_id));
+        }
+        if ('' === $meta_description) {
+            $meta_description = wp_trim_words(
+                wp_strip_all_tags(strip_shortcodes((string) get_post_field('post_content', $post_id))),
+                30,
+                ''
+            );
+        }
+
+        $plain_content = trim(wp_strip_all_tags(strip_shortcodes((string) get_post_field('post_content', $post_id))));
+        $word_count = '' === $plain_content ? 0 : str_word_count($plain_content);
+
+        $clicks = (int) ($gsc['clicks'] ?? 0);
+        $impressions = (int) ($gsc['impressions'] ?? 0);
+        $ctr = isset($gsc['ctr']) ? (float) $gsc['ctr'] : ($impressions > 0 ? ($clicks / $impressions) * 100 : 0);
+
+        fputcsv($output, array(
+            $post_id,
+            get_the_title($post_id),
+            get_permalink($post_id),
+            (string) $landing->post_status,
+            $seo_title,
+            $meta_description,
+            $word_count,
+            (int) $landing->views_30d,
+            (int) $landing->views_total,
+            (int) ($ga4['sessions'] ?? 0),
+            $clicks,
+            $impressions,
+            number_format($ctr, 2, '.', ''),
+            number_format((float) ($gsc['position'] ?? 0), 2, '.', ''),
+            mysql2date('Y-m-d H:i:s', (string) $landing->post_date),
+            mysql2date('Y-m-d H:i:s', (string) $landing->post_modified),
+        ), ';');
+    }
+
+    fclose($output);
+    exit;
+}
+add_action('admin_post_seo_landing_export_seo_csv', 'seo_landing_export_seo_csv');
+
+/**
  * Registra una visita de una landing publicada. Solo contabiliza front-end y
  * excluye administradores conectados para reducir ruido operativo.
  */
@@ -804,6 +940,14 @@ function seo_landing_render_admin_tab()
     $gaps = seo_landing_get_coverage_gaps(40);
     $external = seo_landing_get_external_signals();
 
+    $export_url = wp_nonce_url(
+        add_query_arg(
+            array('action' => 'seo_landing_export_seo_csv'),
+            admin_url('admin-post.php')
+        ),
+        'seo_landing_export_seo_csv'
+    );
+
     echo '<style>
         .seo-landing-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin:0 0 20px}.seo-landing-kpi{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px}.seo-landing-kpi strong{display:block;font-size:28px;line-height:1.1}.seo-landing-kpi span{display:block;margin-top:6px;color:#646970}.seo-landing-chart{height:170px;display:flex;align-items:flex-end;gap:4px;padding:16px;background:#fff;border:1px solid #dcdcde;border-radius:8px}.seo-landing-bar{flex:1;min-width:3px;background:#2271b1;border-radius:3px 3px 0 0}.seo-landing-table{width:100%;border-collapse:collapse}.seo-landing-table th,.seo-landing-table td{padding:10px 9px;border-bottom:1px solid #e2e4e7;text-align:left;vertical-align:top}.seo-landing-table th{font-size:12px;text-transform:uppercase;color:#50575e}.seo-landing-badge{display:inline-block;padding:3px 7px;border-radius:999px;background:#f0f0f1;font-size:11px;font-weight:700}.seo-landing-score{font-size:20px;font-weight:800}.seo-landing-score.good{color:#1d6b43}.seo-landing-score.mid{color:#996800}.seo-landing-score.low{color:#b32d2e}.seo-landing-form{margin-top:16px}.seo-landing-form label{display:block;margin-bottom:12px}.seo-landing-form input[type=text],.seo-landing-form input[type=number],.seo-landing-form select,.seo-landing-form textarea{width:100%;margin-top:5px}.seo-landing-form-grid,.seo-landing-score-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.seo-landing-checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px;margin:10px 0}.seo-landing-help{max-width:1050px;line-height:1.65}.seo-landing-grid-2{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(320px,.6fr);gap:18px}@media(max-width:1050px){.seo-landing-grid-2{grid-template-columns:1fr}}
     </style>';
@@ -925,6 +1069,10 @@ echo '<p>La prioridad se calcula utilizando potencial comercial, oportunidad org
 
 echo '</div>';
 echo '</details>';
+    echo '<div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin:-4px 0 16px;flex-wrap:wrap;">';
+    echo '<span class="description">Exporta inventario, URL, metadatos y metricas SEO de todas las landings.</span>';
+    echo '<a class="button button-primary" href="' . esc_url($export_url) . '">Descargar informe SEO (CSV)</a>';
+    echo '</div>';
     seo_landing_render_kpis($kpis);
 
     echo '<div class="seo-landing-grid-2">';
