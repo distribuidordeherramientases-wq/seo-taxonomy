@@ -196,8 +196,8 @@ function seo_reports_render_post_performance_summary() {
     $chart_id = 'seo-reports-post-performance-' . wp_rand(1000, 999999);
     $full_url = add_query_arg(
         array(
-            'page'      => 'seo-reports',
-            'tab'       => 'post_opportunities',
+            'page'      => 'seo-post-editor',
+            'tab'       => 'opportunities',
             'post_days' => $days,
         ),
         admin_url('admin.php')
@@ -457,7 +457,6 @@ function seo_reports_page() {
         'anomalias',
         'growth_executive',
         'google_intelligence',
-        'post_opportunities',
     ];
 
     if (!in_array($active_tab, $allowed_tabs, true)) {
@@ -477,7 +476,6 @@ function seo_reports_page() {
     echo '<a class="nav-tab ' . ($active_tab === 'anomalias' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=anomalias') . '">Anomalías</a>';
     echo '<a class="nav-tab ' . ($active_tab === 'growth_executive' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=growth_executive') . '">Qué potenciar</a>';
     echo '<a class="nav-tab ' . ($active_tab === 'google_intelligence' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=google_intelligence') . '">Inteligencia de Google</a>';
-    echo '<a class="nav-tab ' . ($active_tab === 'post_opportunities' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=post_opportunities') . '">Entradas · Oportunidades</a>';
     echo '</h2>';
 
     // Ejecución de acciones según la pestaña escogida.
@@ -507,12 +505,6 @@ function seo_reports_page() {
         }
     } elseif ($active_tab === 'google_intelligence') {
         seo_google_intelligence_page();
-    } elseif ($active_tab === 'post_opportunities') {
-        if (function_exists('seo_post_opportunities_render_page')) {
-            seo_post_opportunities_render_page();
-        } else {
-            echo '<div class="notice notice-error inline"><p>Falta el archivo <code>seo-post-opportunities.php</code>.</p></div>';
-        }
     }
     echo '</div>';
 }

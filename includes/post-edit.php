@@ -16,6 +16,13 @@ if (is_readable($seo_post_reports_file)) {
     require_once $seo_post_reports_file;
 }
 
+// El informe editorial de oportunidades vive ahora dentro de la seccion Entradas.
+// La carga es defensiva porque seo-reports.php tambien puede incluir este modulo.
+$seo_post_opportunities_file = __DIR__ . '/seo-post-opportunities.php';
+if (is_readable($seo_post_opportunities_file)) {
+    require_once $seo_post_opportunities_file;
+}
+
 if (!function_exists('seo_post_editor_allowed_statuses')) {
     function seo_post_editor_allowed_statuses() {
         return array('publish', 'future', 'draft', 'pending', 'private');
@@ -599,6 +606,51 @@ if (!function_exists('seo_post_editor_register_admin_page')) {
 }
 add_action('admin_menu', 'seo_post_editor_register_admin_page');
 
+if (!function_exists('seo_post_editor_current_section')) {
+    function seo_post_editor_current_section() {
+        $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : '';
+
+        // Acepta temporalmente el slug antiguo para no romper enlaces guardados.
+        if (in_array($tab, array('opportunities', 'post_opportunities'), true)) {
+            return 'opportunities';
+        }
+
+        return 'edit';
+    }
+}
+
+if (!function_exists('seo_post_editor_section_url')) {
+    function seo_post_editor_section_url($section, $context = null) {
+        if (!is_array($context)) {
+            $context = seo_post_editor_route_context();
+        }
+
+        $args = array('page' => $context['page']);
+        if ('opportunities' === $section) {
+            $args['tab'] = 'opportunities';
+        }
+
+        $base = !empty($context['base']) && 'edit.php' === $context['base'] ? 'edit.php' : 'admin.php';
+        return add_query_arg($args, admin_url($base));
+    }
+}
+
+if (!function_exists('seo_post_editor_render_tabs')) {
+    function seo_post_editor_render_tabs($active_section, $context = null) {
+        if (!is_array($context)) {
+            $context = seo_post_editor_route_context();
+        }
+
+        $edit_url = seo_post_editor_section_url('edit', $context);
+        $opportunities_url = seo_post_editor_section_url('opportunities', $context);
+
+        echo '<h2 class="nav-tab-wrapper" style="margin-top:14px;">';
+        echo '<a class="nav-tab ' . ('edit' === $active_section ? 'nav-tab-active' : '') . '" href="' . esc_url($edit_url) . '">Editar posts</a>';
+        echo '<a class="nav-tab ' . ('opportunities' === $active_section ? 'nav-tab-active' : '') . '" href="' . esc_url($opportunities_url) . '">Oportunidades posts</a>';
+        echo '</h2>';
+    }
+}
+
 if (!function_exists('seo_page_edit_posts')) {
     function seo_page_edit_posts() {
         global $wpdb;
@@ -608,9 +660,28 @@ if (!function_exists('seo_page_edit_posts')) {
         }
 
         $context = seo_post_editor_route_context();
+        $active_section = seo_post_editor_current_section();
         $post_id = isset($_GET['post_id']) ? absint($_GET['post_id']) : 0;
         $new_post = !empty($_GET['new_post']);
         $message = isset($_GET['seo_post_msg']) ? sanitize_key(wp_unslash($_GET['seo_post_msg'])) : '';
+
+        // Oportunidades deja de formar parte de Informes y se integra como
+        // segunda pestana de Entradas, junto al editor/listado de posts.
+        if ('opportunities' === $active_section) {
+            echo '<div style="padding:10px 0 30px;max-width:1280px;">';
+            echo '<h1 style="margin-bottom:8px;">Entradas</h1>';
+            echo '<p style="margin-top:0;color:#646970;">Gestiona las entradas existentes y usa las oportunidades editoriales para decidir que posts crear, actualizar o consolidar.</p>';
+            seo_post_editor_render_tabs('opportunities', $context);
+
+            if (function_exists('seo_post_opportunities_render_page')) {
+                seo_post_opportunities_render_page();
+            } else {
+                echo '<div class="notice notice-error inline"><p>No esta disponible el modulo <code>seo-post-opportunities.php</code>.</p></div>';
+            }
+
+            echo '</div>';
+            return;
+        }
 
         $notice_messages = array(
             'created'              => array('success', 'Entrada creada y relaciones SEO guardadas.'),
@@ -932,6 +1003,7 @@ if (!function_exists('seo_page_edit_posts')) {
         echo '<a class="button button-primary" href="' . esc_url(seo_post_editor_admin_url(array('new_post' => 1), $context)) . '">Nueva entrada</a>';
         echo '</div>';
         echo '</div>';
+        seo_post_editor_render_tabs('edit', $context);
 
         if ($message !== '' && isset($notice_messages[$message])) {
             $notice = $notice_messages[$message];
