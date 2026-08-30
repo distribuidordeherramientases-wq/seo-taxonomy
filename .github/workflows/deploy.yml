@@ -26,9 +26,11 @@ jobs:
           dry-run: false
           security: strict
 
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            **/*.bak
-            **/*.md
+    exclude: |
+      **/.git*
+      **/.git*/**
+      **/.github/**
+      **/node_modules/**
+      **/*.bak
+      **/*.md
+      **/*.pot
