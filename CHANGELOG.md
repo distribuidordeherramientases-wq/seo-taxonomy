@@ -1,3 +1,29 @@
+## 2.3.1 - 2026-08-30
+
+### Añadido
+- Nuevo entorno de staging y despliegue mediante GitHub Actions.
+- Gestión unificada de etiquetas y atributos.
+- Nuevo sistema de edición y gestión de páginas y posts.
+- Etiquetado y mejoras para imágenes procedentes de proveedores.
+- Nuevas estadísticas de navegación y wallboard.
+- Nuevo módulo Dependiente para búsqueda guiada, filtrado y comparación de productos.
+- Nuevas opciones de menú para Soluciones, Blog y Dependiente.
+
+### Cambiado
+- Migración progresiva de etiquetas y clasificación desde `seo_nodes` hacia el sistema de vocabulary.
+- Generación de menús SEO más dinámica.
+- Mejoras en importación y exportación de páginas, posts y categorías.
+- Mejoras en informes, reclasificación y registro de errores.
+- Mejoras en integración y sincronización con proveedores.
+- Ajustes en cálculo de márgenes, portes y costes asociados.
+
+### Corregido
+- Asociación de categorías en páginas y posts.
+- Exportación de imágenes de categorías.
+- Referencias a estilos antiguos.
+- Gestión de productos y portes de proveedores como Satkit.
+- Diferentes inconsistencias en clasificación, informes y procesos SEO.
+
 ## 2.3.0 - Consolidación funcional, seguridad y nueva base de desarrollo
 
 ### Funcionalidad
