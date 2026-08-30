@@ -6,7 +6,6 @@ final class SEO_Dependiente_Admin {
     public static function init() {
         add_action('admin_enqueue_scripts', array(__CLASS__, 'enqueue'));
         add_action('admin_post_seo_dependiente_save', array(__CLASS__, 'save_options'));
-        add_action('admin_post_seo_dependiente_add_menu', array(__CLASS__, 'add_to_menu'));
         add_action('wp_ajax_seo_dependiente_reindex', array(__CLASS__, 'ajax_reindex'));
         add_action('wp_ajax_seo_dependiente_clear', array(__CLASS__, 'ajax_clear'));
     }
@@ -54,12 +53,6 @@ final class SEO_Dependiente_Admin {
             <?php if (isset($_GET['updated'])) : ?>
                 <div class="notice notice-success is-dismissible"><p>Configuración guardada.</p></div>
             <?php endif; ?>
-            <?php if (isset($_GET['menu_added']) && '1' === (string) $_GET['menu_added']) : ?>
-                <div class="notice notice-success is-dismissible"><p>La página Dependiente se ha añadido al menú principal disponible.</p></div>
-            <?php elseif (isset($_GET['menu_added']) && '0' === (string) $_GET['menu_added']) : ?>
-                <div class="notice notice-warning is-dismissible"><p>No se encontró un menú clásico disponible. Añade “Dependiente” desde Apariencia &gt; Editor o Apariencia &gt; Menús.</p></div>
-            <?php endif; ?>
-
             <div class="seo-dependiente-admin__grid" style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(300px,.8fr);gap:20px;max-width:1200px;margin-top:20px;">
                 <div>
                     <div class="postbox" style="padding:20px;">
@@ -96,10 +89,6 @@ final class SEO_Dependiente_Admin {
                                     <p class="description">Claves separadas por comas. Solo se usan para búsqueda; no se muestran directamente al cliente.</p>
                                 </td>
                             </tr>
-                            <tr>
-                                <th scope="row">Menú principal</th>
-                                <td><label><input type="checkbox" name="auto_add_menu" value="1" <?php checked(!empty($options['auto_add_menu'])); ?>> Intentar añadir “Dependiente” automáticamente al menú principal al activar el plugin.</label></td>
-                            </tr>
                         </table>
                         <?php submit_button('Guardar configuración'); ?>
                     </form>
@@ -111,14 +100,17 @@ final class SEO_Dependiente_Admin {
                         <?php if ($page_id && $page_url) : ?>
                             <p><strong>Dependiente</strong><br><code>[dependiente_productos]</code></p>
                             <p><a class="button button-primary" href="<?php echo esc_url($page_url); ?>" target="_blank" rel="noopener">Abrir piloto</a> <a class="button" href="<?php echo esc_url(get_edit_post_link($page_id)); ?>">Editar página</a></p>
-                            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                                <input type="hidden" name="action" value="seo_dependiente_add_menu">
-                                <?php wp_nonce_field('seo_dependiente_add_menu'); ?>
-                                <button type="submit" class="button">Añadir al menú principal</button>
-                            </form>
+                            <p class="description">La presencia de Dependiente en el menú principal se controla desde el generador SEO Menu Structure, mediante la casilla “Incluir Dependiente”.</p>
                         <?php else : ?>
                             <p>No se ha podido crear la página automáticamente. Crea una página y añade el shortcode <code>[dependiente_productos]</code>.</p>
                         <?php endif; ?>
+                    </div>
+
+                    <div class="postbox" style="padding:20px;">
+                        <h2 style="margin-top:0;">Imágenes de navegación</h2>
+                        <p>Dependiente puede usar imágenes ligeras de la Biblioteca de Medios para que las tarjetas se reconozcan de un vistazo.</p>
+                        <p><strong>Solo tienes que subir los WebP sin cambiarles el nombre.</strong> El sistema detecta automáticamente archivos con el patrón <code>seo-dependiente-{slug}.webp</code>.</p>
+                        <p class="description">Ejemplos: <code>seo-dependiente-cortar.webp</code>, <code>seo-dependiente-taladro.webp</code> o <code>seo-dependiente-porcelanico.webp</code>. Si no existe una imagen específica, se conserva la imagen de categoría o de producto que ya utilizaba el buscador.</p>
                     </div>
 
                     <div class="postbox" style="padding:20px;">
@@ -157,21 +149,9 @@ final class SEO_Dependiente_Admin {
             'results_per_page' => min(48, max(6, absint($_POST['results_per_page'] ?? 18))),
             'menu_cards'       => min(12, max(4, absint($_POST['menu_cards'] ?? 8))),
             'custom_meta_keys' => self::sanitize_meta_keys($_POST['custom_meta_keys'] ?? ''),
-            'auto_add_menu'    => !empty($_POST['auto_add_menu']) ? 1 : 0,
         );
         update_option('seo_dependiente_options', $options, false);
         wp_safe_redirect(add_query_arg(array('page' => 'seo-dependiente', 'updated' => 1), admin_url('admin.php')));
-        exit;
-    }
-
-    public static function add_to_menu() {
-        if (!current_user_can(self::capability())) {
-            wp_die('Permisos insuficientes.');
-        }
-        check_admin_referer('seo_dependiente_add_menu');
-        $page_id = SEO_Dependiente_Plugin::ensure_page();
-        $menu_item_id = SEO_Dependiente_Plugin::maybe_add_page_to_primary_menu($page_id);
-        wp_safe_redirect(add_query_arg(array('page' => 'seo-dependiente', 'menu_added' => $menu_item_id ? 1 : 0), admin_url('admin.php')));
         exit;
     }
 
