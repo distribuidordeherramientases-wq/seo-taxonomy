@@ -1,3 +1,210 @@
+/* =========================================================
+ * DEPENDIENTE APP SHELL
+ * Un entorno propio, ligero y centrado en la busqueda.
+ * Esta misma hoja contiene TODO el CSS del modulo, frontal y admin.
+ * ======================================================= */
+
+body.seo-dependiente-app-body {
+    margin: 0;
+    background: #f3f6f4;
+    color: #142119;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+body.seo-dependiente-app-body * {
+    box-sizing: border-box;
+}
+
+.seo-dependiente-app {
+    min-height: 100vh;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    background:
+        radial-gradient(circle at 12% -8%, rgba(216, 255, 70, .12), transparent 26rem),
+        #f3f6f4;
+}
+
+.seo-dependiente-app__header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid #dfe6e1;
+    background: rgba(255, 255, 255, .94);
+    backdrop-filter: blur(16px);
+}
+
+.admin-bar .seo-dependiente-app__header {
+    top: 32px;
+}
+
+.seo-dependiente-app__bar {
+    width: min(1480px, calc(100% - 28px));
+    min-height: 64px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.seo-dependiente-app__brand {
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    color: #142119;
+    text-decoration: none;
+}
+
+.seo-dependiente-app__brand-logo {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+}
+
+.seo-dependiente-app__brand-logo img {
+    display: block;
+    width: auto;
+    max-width: min(210px, 42vw);
+    height: 34px;
+    object-fit: contain;
+}
+
+.seo-dependiente-app__brand-name {
+    max-width: 230px;
+    overflow: hidden;
+    color: #142119;
+    font-size: 14px;
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.seo-dependiente-app__product-name {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding-left: 12px;
+    border-left: 1px solid #dfe6e1;
+    color: #526057;
+    font-size: 13px;
+    font-weight: 750;
+    letter-spacing: .01em;
+}
+
+.seo-dependiente-app__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.seo-dependiente-app__action {
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 0 13px;
+    border: 1px solid #dfe6e1;
+    border-radius: 12px;
+    background: #fff;
+    color: #142119;
+    font-size: 13px;
+    font-weight: 800;
+    text-decoration: none;
+    transition: transform .16s ease, border-color .16s ease, background .16s ease;
+}
+
+.seo-dependiente-app__action:hover,
+.seo-dependiente-app__action:focus-visible {
+    border-color: #aebbb2;
+    background: #f7faf8;
+    color: #142119;
+    transform: translateY(-1px);
+}
+
+.seo-dependiente-app__action--primary {
+    border-color: #142119;
+    background: #142119;
+    color: #fff;
+}
+
+.seo-dependiente-app__action--primary:hover,
+.seo-dependiente-app__action--primary:focus-visible {
+    border-color: #142119;
+    background: #23362a;
+    color: #fff;
+}
+
+.seo-dependiente-app__cart-count {
+    display: inline-grid;
+    min-width: 19px;
+    height: 19px;
+    place-items: center;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: #d8ff46;
+    color: #162000;
+    font-size: 10px;
+    font-weight: 900;
+}
+
+.seo-dependiente-app__main {
+    width: 100%;
+    min-width: 0;
+}
+
+.seo-dependiente-app__footer {
+    border-top: 1px solid #dfe6e1;
+    background: #fff;
+}
+
+.seo-dependiente-app__footer-inner {
+    width: min(1480px, calc(100% - 28px));
+    min-height: 92px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 18px 0;
+    color: #68756c;
+    font-size: 12px;
+}
+
+.seo-dependiente-app__footer-copy strong {
+    display: block;
+    margin-bottom: 3px;
+    color: #26352b;
+    font-size: 13px;
+}
+
+.seo-dependiente-app__footer-copy p {
+    margin: 0;
+}
+
+.seo-dependiente-app__footer-nav {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 12px 18px;
+}
+
+.seo-dependiente-app__footer-nav a {
+    color: #526057;
+    text-decoration: none;
+}
+
+.seo-dependiente-app__footer-nav a:hover,
+.seo-dependiente-app__footer-nav a:focus-visible {
+    color: #142119;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
 .seo-dependiente {
     --dht-ink: #142119;
     --dht-muted: #607065;
@@ -166,6 +373,12 @@
 .seo-dependiente__ask-row > button,
 .seo-dependiente__compare-actions button,
 .seo-dependiente__card-button,
+.seo-dependiente__range-meta {
+    display: block;
+    margin-top: 7px;
+    color: #7b887f;
+}
+
 .seo-dependiente__filter-apply {
     min-height: 56px;
     padding: 0 24px;
@@ -1187,4 +1400,120 @@ button.seo-dependiente__chip::after {
         padding-left: 16px;
         padding-right: 16px;
     }
-}\n\n/* =========================================================\n * Fallback corporativo\n * Solo se aplica cuando no existe ninguna imagen relacionada\n * en categorias ni productos del catalogo.\n * ======================================================= */\n.seo-dependiente__visual-card--logo {\n    background: #fff;\n    color: var(--dht-ink);\n    border: 1px solid #e2e7e3;\n}\n\n.seo-dependiente__visual-card--logo::after {\n    background: linear-gradient(to top, rgba(10,24,15,.88), rgba(255,255,255,.05) 70%);\n}\n\n.seo-dependiente__visual-card--logo img {\n    inset: 18px 18px 72px;\n    width: calc(100% - 36px);\n    height: calc(100% - 90px);\n    object-fit: contain;\n    background: #fff;\n}\n
+}
+
+/* =========================================================
+ * Fallback corporativo
+ * Solo se aplica cuando no existe ninguna imagen relacionada
+ * en categorias ni productos del catalogo.
+ * ======================================================= */
+.seo-dependiente__visual-card--logo {
+    background: #fff;
+    color: var(--dht-ink);
+    border: 1px solid #e2e7e3;
+}
+
+.seo-dependiente__visual-card--logo::after {
+    background: linear-gradient(to top, rgba(10,24,15,.88), rgba(255,255,255,.05) 70%);
+}
+
+.seo-dependiente__visual-card--logo img {
+    inset: 18px 18px 72px;
+    width: calc(100% - 36px);
+    height: calc(100% - 90px);
+    object-fit: contain;
+    background: #fff;
+}
+
+/* =========================================================
+ * DEPENDIENTE ADMIN
+ * Misma hoja, sin estilos inline en la pantalla del modulo.
+ * ======================================================= */
+
+.seo-dependiente-admin__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(300px, .8fr);
+    gap: 20px;
+    max-width: 1200px;
+    margin-top: 20px;
+}
+
+.seo-dependiente-admin__box {
+    padding: 20px;
+}
+
+.seo-dependiente-admin__box-title {
+    margin-top: 0;
+}
+
+.seo-dependiente-admin__progress {
+    height: 12px;
+    margin: 14px 0;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #e5e7eb;
+}
+
+.seo-dependiente-admin__progress-bar {
+    width: 0;
+    height: 100%;
+    background: #111827;
+    transition: width .2s ease;
+}
+
+.seo-dependiente-admin__integration {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 0;
+}
+
+.seo-dependiente-admin__integration-icon {
+    display: inline-grid;
+    width: 22px;
+    height: 22px;
+    place-items: center;
+    border-radius: 50%;
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.seo-dependiente-admin__integration.is-active .seo-dependiente-admin__integration-icon {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.seo-dependiente-admin__steps {
+    padding-left: 20px;
+}
+
+@media (max-width: 782px) {
+    .admin-bar .seo-dependiente-app__header {
+        top: 46px;
+    }
+
+    .seo-dependiente-admin__grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 700px) {
+    .seo-dependiente-app__bar {
+        min-height: 58px;
+    }
+
+    .seo-dependiente-app__product-name,
+    .seo-dependiente-app__action--secondary {
+        display: none;
+    }
+
+    .seo-dependiente-app__footer-inner {
+        display: block;
+        padding: 20px 0;
+    }
+
+    .seo-dependiente-app__footer-nav {
+        justify-content: flex-start;
+        margin-top: 12px;
+    }
+}
