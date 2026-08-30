@@ -22,8 +22,8 @@
  * @author David Perez Martorell
  * @license GPL-2.0-or-later
  * @since 2.0.0
- * @version 2026-08-26
- * Build: 033
+ * @version 2026-08-30
+ * Build: 034
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -238,13 +238,19 @@ function seo_ie_normalize_csv_header( $header, $entity ) {
     ];
 
     $category_aliases = [
-        'id'               => 'category_id',
-        'object_id'        => 'category_id',
-        'term_id'          => 'category_id',
-        'parent'           => 'parent_id',
-        'hub_secondary'    => 'hub_secondary_id',
-        'secondary_id'     => 'hub_secondary_id',
-        'hub_secundario_id'=> 'hub_secondary_id',
+        'id'                 => 'category_id',
+        'object_id'          => 'category_id',
+        'term_id'            => 'category_id',
+        'parent'             => 'parent_id',
+        'hub_secondary'      => 'hub_secondary_id',
+        'secondary_id'       => 'hub_secondary_id',
+        'hub_secundario_id'  => 'hub_secondary_id',
+        'thumbnail_id'       => 'imagen_destacada_id',
+        'thumbnail'          => 'imagen_destacada',
+        'thumbnail_url'      => 'imagen_destacada',
+        'category_image_id'  => 'imagen_destacada_id',
+        'category_image'     => 'imagen_destacada',
+        'category_image_url' => 'imagen_destacada',
     ];
 
     $product_aliases = [
@@ -878,10 +884,144 @@ function seo_ie_parse_attributes( $attributes_text, $product_scope ) {
 }
 
 /**
+ * Importa o elimina la imagen asociada a una categoría WooCommerce.
+ *
+ * WooCommerce guarda la imagen de product_cat en el term meta thumbnail_id.
+ * Se acepta un attachment ID existente o una URL. Si el CSV contiene columnas
+ * de imagen pero no aporta ID ni URL, se elimina la imagen actual.
+ *
+ * @param int   $category_id ID de categoría.
+ * @param array $row         Fila CSV normalizada.
+ * @param int   $line        Línea del CSV.
+ * @param array $log         Log por referencia.
+ * @return void
+ */
+function seo_ie_import_category_thumbnail( $category_id, $row, $line, &$log ) {
+    $has_id_column  = array_key_exists( 'imagen_destacada_id', $row );
+    $has_url_column = array_key_exists( 'imagen_destacada', $row );
+
+    if ( ! $has_id_column && ! $has_url_column ) {
+        return;
+    }
+
+    $category_id   = absint( $category_id );
+    $attachment_id = absint( $row['imagen_destacada_id'] ?? 0 );
+    $image_url     = esc_url_raw( trim( (string) ( $row['imagen_destacada'] ?? '' ) ) );
+
+    if ( 0 === $attachment_id && '' === $image_url ) {
+        delete_term_meta( $category_id, 'thumbnail_id' );
+        return;
+    }
+
+    $attachment_is_valid = 0 < $attachment_id && 'attachment' === get_post_type( $attachment_id );
+
+    /*
+     * Si el CSV trae URL, esa URL es la identidad portable de la imagen.
+     * El ID solo es fiable dentro de la misma biblioteca de medios: en otra
+     * instalación el mismo número puede apuntar a un adjunto distinto.
+     */
+    if ( '' !== $image_url ) {
+        $resolved_id = attachment_url_to_postid( $image_url );
+
+        if ( 0 < $resolved_id && 'attachment' === get_post_type( $resolved_id ) ) {
+            update_term_meta( $category_id, 'thumbnail_id', $resolved_id );
+            return;
+        }
+
+        if ( $attachment_is_valid ) {
+            $attachment_url  = (string) wp_get_attachment_url( $attachment_id );
+            $csv_url_parts   = wp_parse_url( $image_url );
+            $media_url_parts = wp_parse_url( $attachment_url );
+            $csv_path        = isset( $csv_url_parts['path'] ) ? rawurldecode( (string) $csv_url_parts['path'] ) : '';
+            $media_path      = isset( $media_url_parts['path'] ) ? rawurldecode( (string) $media_url_parts['path'] ) : '';
+
+            // Ignora dominio/protocolo para tolerar CDN o cambio de dominio,
+            // pero exige que el archivo/ruta del adjunto coincida.
+            if ( '' !== $csv_path && '' !== $media_path && $csv_path === $media_path ) {
+                update_term_meta( $category_id, 'thumbnail_id', $attachment_id );
+                return;
+            }
+
+            seo_ie_add_log_warning(
+                $log,
+                sprintf(
+                    'Fila %d, categoría %d: el adjunto %d existe, pero no coincide con la URL del CSV; se prioriza la URL para evitar asignar una imagen incorrecta.',
+                    $line,
+                    $category_id,
+                    $attachment_id
+                )
+            );
+        } elseif ( 0 < $attachment_id ) {
+            seo_ie_add_log_warning(
+                $log,
+                sprintf(
+                    'Fila %d, categoría %d: el adjunto %d no existe en esta instalación; se resolverá la URL.',
+                    $line,
+                    $category_id,
+                    $attachment_id
+                )
+            );
+        }
+
+        if ( ! wp_http_validate_url( $image_url ) ) {
+            seo_ie_add_log_warning(
+                $log,
+                sprintf(
+                    'Fila %d, categoría %d: la URL de imagen no es válida; no se cambia la imagen actual.',
+                    $line,
+                    $category_id
+                )
+            );
+            return;
+        }
+
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+        require_once ABSPATH . 'wp-admin/includes/media.php';
+        require_once ABSPATH . 'wp-admin/includes/image.php';
+
+        $sideloaded_id = media_sideload_image( $image_url, 0, null, 'id' );
+
+        if ( is_wp_error( $sideloaded_id ) ) {
+            seo_ie_add_log_warning(
+                $log,
+                sprintf(
+                    'Fila %d, categoría %d: no se pudo importar la imagen desde la URL: %s',
+                    $line,
+                    $category_id,
+                    $sideloaded_id->get_error_message()
+                )
+            );
+            return;
+        }
+
+        update_term_meta( $category_id, 'thumbnail_id', absint( $sideloaded_id ) );
+        return;
+    }
+
+    // Sin URL solo se puede confiar en un ID de adjunto local existente.
+    if ( $attachment_is_valid ) {
+        update_term_meta( $category_id, 'thumbnail_id', $attachment_id );
+        return;
+    }
+
+    if ( 0 < $attachment_id ) {
+        seo_ie_add_log_warning(
+            $log,
+            sprintf(
+                'Fila %d, categoría %d: el adjunto %d no existe y el CSV no contiene URL; no se cambia la imagen actual.',
+                $line,
+                $category_id,
+                $attachment_id
+            )
+        );
+    }
+}
+
+/**
  * Exporta todas las categorías WooCommerce a CSV.
  *
  * Orígenes:
- * - WordPress: ID, nombre, slug y padre.
+ * - WordPress/WooCommerce: ID, nombre, slug, padre e imagen de categoría.
  * - wp_seo_nodes: ámbito, excerpt y description.
  * - wp_seo_relations: hub secundario estructural de la categoría cuando es único.
  *
@@ -999,7 +1139,7 @@ function seo_export_categories_csv() {
             'correctos'  => count( $categories ),
             'errores'    => 0,
             'detalles'   => [
-                'WordPress aporta ID, nombre, slug y padre. seo_nodes aporta ámbito, excerpt y description. seo_relations aporta hub_secondary_id cuando la asignación es única.',
+                'WordPress/WooCommerce aporta ID, nombre, slug, padre e imagen (attachment ID + URL). seo_nodes aporta ámbito, excerpt y description. seo_relations aporta hub_secondary_id cuando la asignación es única.',
             ],
         ]
     );
@@ -1014,6 +1154,8 @@ function seo_export_categories_csv() {
             'hub_secondary_id',
             'titulo',
             'slug',
+            'imagen_destacada_id',
+            'imagen_destacada',
             'description',
             'excerpt',
             'ambito',
@@ -1022,8 +1164,10 @@ function seo_export_categories_csv() {
 
     foreach ( $categories as $category ) {
 
-        $category_id = absint( $category->term_id );
-        $node_data   = $nodes_by_category[ $category_id ] ?? [
+        $category_id   = absint( $category->term_id );
+        $thumbnail_id  = absint( get_term_meta( $category_id, 'thumbnail_id', true ) );
+        $thumbnail_url = 0 < $thumbnail_id ? ( wp_get_attachment_url( $thumbnail_id ) ?: '' ) : '';
+        $node_data     = $nodes_by_category[ $category_id ] ?? [
             'ambito'      => '',
             'excerpt'     => '',
             'description' => '',
@@ -1039,6 +1183,8 @@ function seo_export_categories_csv() {
                     : '',
                 $category->name,
                 $category->slug,
+                $thumbnail_id ?: '',
+                $thumbnail_url,
                 $node_data['description'],
                 $node_data['excerpt'],
                 $node_data['ambito'],
@@ -1053,7 +1199,7 @@ function seo_export_categories_csv() {
 /**
  * Importa categorías desde el CSV generado por SEO System.
  *
- * Actualiza o crea categorías, manteniendo ID/nombre/slug/padre en WordPress
+ * Actualiza o crea categorías, manteniendo ID/nombre/slug/padre e imagen en WordPress
  * y ámbito/excerpt/description en wp_seo_nodes.
  * Si hub_secondary_id está informado, sincroniza la relación estructural única
  * hub_secondary_to_category. Si category_id está vacío, reutiliza primero una
@@ -1321,6 +1467,8 @@ if ( ! empty( $term_data ) ) {
                 continue;
             }
         }
+
+        seo_ie_import_category_thumbnail( $category_id, $row, $line, $log );
 
         if ( array_key_exists( 'excerpt', $row ) ) {
             $saved_excerpt = seo_ie_upsert_node_value(
@@ -10696,7 +10844,7 @@ function seo_import_export_page() {
                     </form>
                 </div>
 
-                <div class="card" style="max-width:none;padding:20px;"><h2>Importar categorías</h2><p>Crea o actualiza categorías. Si category_id está vacío, reutiliza por slug/nombre o crea la categoría. hub_secondary_id permite asignarla a la jerarquía SEO.</p><form method="post" enctype="multipart/form-data"><?php wp_nonce_field( 'seo_import_categories_csv', 'seo_import_categories_nonce' ); ?><input type="file" name="categories_csv" accept=".csv,text/csv" required><p><button type="submit" name="seo_import_categories" value="1" class="button button-primary">Importar categorías</button></p></form></div>
+                <div class="card" style="max-width:none;padding:20px;"><h2>Importar categorías</h2><p>Crea o actualiza categorías. Si category_id está vacío, reutiliza por slug/nombre o crea la categoría. Admite imagen_destacada_id e imagen_destacada (URL); la URL puede descargar la imagen a Medios y se usa para evitar asociar un ID incorrecto. hub_secondary_id permite asignarla a la jerarquía SEO.</p><form method="post" enctype="multipart/form-data"><?php wp_nonce_field( 'seo_import_categories_csv', 'seo_import_categories_nonce' ); ?><input type="file" name="categories_csv" accept=".csv,text/csv" required><p><button type="submit" name="seo_import_categories" value="1" class="button button-primary">Importar categorías</button></p></form></div>
                     
 
                 <div class="card" style="max-width:none;padding:20px;">
