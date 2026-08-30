@@ -2198,42 +2198,6 @@ function seo_ie_product_v2_parse_seo_attributes_json( $encoded, $product_scope )
 }
 
 /**
- * Normaliza un SKU procedente de CSV.
- *
- * El valor literal "0" se considera un marcador de dato ausente. Algunos
- * inventarios/exportaciones convierten SKU vacios en cero; WooCommerce, en
- * cambio, interpreta "0" como un SKU real y unico. Tratarlo como vacio evita
- * conflictos falsos y, durante una actualizacion por product_id, permite
- * conservar el SKU actual del producto.
- *
- * @param mixed $value Valor de SKU procedente del CSV.
- * @return string SKU normalizado o cadena vacia.
- */
-function seo_ie_product_v2_normalize_sku( $value ) {
-    $sku = function_exists( 'wc_clean' )
-        ? wc_clean( (string) $value )
-        : sanitize_text_field( (string) $value );
-
-    $sku = trim( (string) $sku );
-
-    return '0' === $sku ? '' : $sku;
-}
-
-/**
- * Indica si el CSV usa el cero literal como marcador de SKU ausente.
- *
- * Se distingue de una celda realmente vacia porque la opcion global
- * "Las celdas vacias eliminan el dato" puede borrar voluntariamente un SKU,
- * mientras que un cero de exportacion nunca debe borrar el SKU existente.
- *
- * @param mixed $value Valor bruto del CSV.
- * @return bool
- */
-function seo_ie_product_v2_sku_is_zero_placeholder( $value ) {
-    return '0' === trim( (string) $value );
-}
-
-/**
  * Localiza un producto por ID, SKU o slug y detecta identidades en conflicto.
  *
  * @param array $row Fila CSV.
@@ -2250,7 +2214,16 @@ function seo_ie_product_v2_locate( $row ) {
 
     $source_id = absint( $row['product_id'] ?? 0 );
 
-    $sku = seo_ie_product_v2_normalize_sku( $row['sku'] ?? '' );
+    $sku = function_exists( 'wc_clean' )
+        ? wc_clean( (string) ( $row['sku'] ?? '' ) )
+        : sanitize_text_field( (string) ( $row['sku'] ?? '' ) );
+
+    $sku = trim( (string) $sku );
+
+    // SKU "0" no se considera un identificador válido.
+    if ( '0' === $sku ) {
+        $sku = '';
+    }
 
     $slug = sanitize_title( $row['slug'] ?? '' );
 
@@ -4967,7 +4940,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
 
             if ( ! empty( $options['commerce'] ) ) {
                 if ( array_key_exists( 'sku', $row ) ) {
-                    $sku = seo_ie_product_v2_normalize_sku( $row['sku'] );
+                    $sku = function_exists( 'wc_clean' ) ? wc_clean( $row['sku'] ) : sanitize_text_field( $row['sku'] );
 
                     if ( '' !== $sku ) {
                         $sku_owner = absint( wc_get_product_id_by_sku( $sku ) );
@@ -5087,13 +5060,8 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
             }
 
             if ( ! empty( $options['commerce'] ) ) {
-                if ( array_key_exists( 'sku', $row ) ) {
-                    $sku                  = seo_ie_product_v2_normalize_sku( $row['sku'] );
-                    $sku_zero_placeholder = seo_ie_product_v2_sku_is_zero_placeholder( $row['sku'] );
-
-                    if ( ! $sku_zero_placeholder && ( '' !== $sku || $empty_clears ) ) {
-                        $product->set_sku( $sku );
-                    }
+                if ( array_key_exists( 'sku', $row ) && ( '' !== trim( (string) $row['sku'] ) || $empty_clears ) ) {
+                    $product->set_sku( function_exists( 'wc_clean' ) ? wc_clean( $row['sku'] ) : sanitize_text_field( $row['sku'] ) );
                 }
 
                 if ( array_key_exists( 'precio_normal', $row ) && ( '' !== trim( (string) $row['precio_normal'] ) || $empty_clears ) ) {
@@ -10909,7 +10877,6 @@ function seo_import_export_page() {
                                 <li>Orden de identificación: product_id, SKU y slug; si señalan productos distintos, la fila se bloquea.</li>
                                 <li>Las columnas ausentes se ignoran.</li>
                                 <li>Por defecto, una celda vacía conserva el valor actual.</li>
-                                <li>En SKU, el valor literal <code>0</code> se interpreta como dato ausente: no identifica otro producto y no borra el SKU existente.</li>
                                 <li>No se crean categorías ausentes. Sí pueden crearse etiquetas, marcas y términos de atributos globales.</li>
                                 <li>Las variaciones se listan como inventario, pero esta pantalla no crea ni elimina variaciones.</li>
                                 <li>La importación se ejecuta en la cola del servidor y continúa aunque cierres esta pestaña.</li>

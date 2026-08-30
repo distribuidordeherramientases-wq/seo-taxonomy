@@ -16,7 +16,7 @@
  * @package SEOSystem
  * @subpackage ImportExport
  * @since 2.3.2
- * Build: 032
+ * Build: 031
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -58,7 +58,7 @@ foreach ( $seo_ie_required_files as $seo_ie_required_file ) {
     }
 }
 
-define( 'SEO_IE_BUILD', 32 );
+define( 'SEO_IE_BUILD', 31 );
 define( 'SEO_IE_DIR', __DIR__ );
 define( 'SEO_IE_MIGRATIONS_DIR', __DIR__ . '/migrations' );
 
