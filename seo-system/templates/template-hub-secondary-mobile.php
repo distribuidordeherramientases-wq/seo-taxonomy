@@ -192,7 +192,16 @@ dht_template_render_header();
             <?php endif; ?>
         </div>
     </header>
-<?php if (!empty($category_ids)) : ?>
+
+    <?php if (trim((string) get_the_content()) !== '') : ?>
+        <section class="hub-content">
+            <div class="dht-content dht-prose">
+                <?php the_content(); ?>
+            </div>
+        </section>
+    <?php endif; ?>
+
+    <?php if (!empty($category_ids)) : ?>
         <section class="hub-links">
             <div class="hub-container">
                 <div class="dht-section-header dht-section-header--left">
@@ -219,7 +228,7 @@ dht_template_render_header();
                             $image = dht_template_placeholder_image_url('woocommerce_thumbnail');
                         }
 
-                        $description = wp_trim_words(wp_strip_all_tags(term_description($category_id, 'product_cat')), 10);
+                        $description = wp_trim_words(wp_strip_all_tags(term_description($category_id, 'product_cat')), 22);
                         ?>
                         <a class="hub-card hub-category-card" href="<?php echo esc_url($link); ?>">
                             <?php if ($image) : ?>
@@ -247,16 +256,6 @@ dht_template_render_header();
                     <h2>Catálogo en preparación</h2>
                     <p>Esta guía todavía no tiene categorías públicas asociadas.</p>
                 </div>
-            </div>
-        </section>
-    <?php endif; ?>
-
-
-
-<?php if (trim((string) get_the_content()) !== '') : ?>
-        <section class="hub-content">
-            <div class="dht-content dht-prose">
-                <?php the_content(); ?>
             </div>
         </section>
     <?php endif; ?>

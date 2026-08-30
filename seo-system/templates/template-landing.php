@@ -2,6 +2,8 @@
 /**
  * Template Name: Landing SEO PRO
  * DHT Landing selector V6 - mobile / desktop.
+ *
+ * Landing: resuelve una solucion transversal y deriva a categorias explicitas con una muestra breve de productos.
  */
 
 defined('ABSPATH') || exit;

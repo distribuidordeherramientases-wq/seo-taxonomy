@@ -2,6 +2,8 @@
 /**
  * Template Name: Cluster SEO
  * Gestor de variante cluster: móvil / escritorio.
+ *
+ * Cluster: distribuye hacia hubs primarios; las categorias directas son excepciones editoriales explicitas.
  */
 
 defined('ABSPATH') || exit;

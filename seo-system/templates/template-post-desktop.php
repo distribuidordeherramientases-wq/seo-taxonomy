@@ -387,7 +387,6 @@ while (have_posts()) :
 
     $primary_product_cat = !empty($related_product_cats) ? $related_product_cats[0] : null;
     $primary_cat_link    = $primary_product_cat ? dht_template_safe_term_link($primary_product_cat) : '';
-    $product_cat_slugs   = wp_list_pluck($related_product_cats, 'slug');
 
     /* =========================================================
        DESCRIPCIÓN DE CATEGORÍA
@@ -625,7 +624,7 @@ while (have_posts()) :
                             <span class="dht-post-aside-eyebrow">Relacionado con esta guía</span>
                             <strong><?php echo esc_html($primary_product_cat->name); ?></strong>
                             <p>Consulta productos de la categoría relacionada directamente con este artículo.</p>
-                            <a href="#dht-related-products">Ver productos ↓</a>
+                            <a href="<?php echo esc_url($primary_cat_link); ?>">Ver categoría →</a>
                         </div>
                     <?php endif; ?>
 
@@ -640,62 +639,19 @@ while (have_posts()) :
             </div>
         </div>
 
-        <!-- =====================================================
-             PRODUCTOS: PRIMER BLOQUE COMERCIAL TRAS EL CONTENIDO
-        ====================================================== -->
-        <?php if (!empty($product_cat_slugs) && function_exists('WC')) : ?>
-            <section id="dht-related-products" class="dht-post-section dht-reco dht-category-products">
-                <div class="dht-container">
-                    <div class="dht-post-section-heading">
-                        <div>
-                            <span class="dht-post-eyebrow">Productos relacionados</span>
-                            <h2 class="dht-post-section-title">
-                                <?php
-                                echo $primary_product_cat
-                                    ? esc_html('Productos de ' . $primary_product_cat->name)
-                                    : 'Productos relacionados';
-                                ?>
-                            </h2>
-                            <p class="dht-post-section-subtitle">
-                                Selección de productos de la categoría relacionada con esta guía.
-                            </p>
-                        </div>
-
-                        <?php if ($primary_cat_link !== '') : ?>
-                            <a class="dht-post-section-link" href="<?php echo esc_url($primary_cat_link); ?>">
-                                Ver toda la categoría →
-                            </a>
-                        <?php endif; ?>
-                    </div>
-
-                    <?php
-                    /* Durante este loop WooCommerce, sustituye placeholder/logo por Media -> proveedor -> logo. */
-                    add_filter('woocommerce_product_get_image', 'dht_post_v12_wc_product_image', 20, 6);
-
-                    echo do_shortcode(
-                        '[products category="' .
-                        esc_attr(implode(',', $product_cat_slugs)) .
-                        '" limit="8" columns="4" orderby="popularity" order="DESC" visibility="visible"]'
-                    );
-
-                    remove_filter('woocommerce_product_get_image', 'dht_post_v12_wc_product_image', 20);
-                    ?>
-                </div>
-            </section>
-        <?php endif; ?>
 
         <!-- =====================================================
-             CATEGORÍA: DEBAJO DE LOS PRODUCTOS
+             CATEGORÍA COMERCIAL RELACIONADA
         ====================================================== -->
         <?php if (!empty($related_product_cats)) : ?>
             <section id="dht-related-categories" class="dht-post-section dht-post-discovery">
                 <div class="dht-container">
                     <div class="dht-post-section-heading">
                         <div>
-                            <span class="dht-post-eyebrow">Categoría relacionada</span>
-                            <h2 class="dht-post-section-title">Sigue explorando el catálogo</h2>
+                            <span class="dht-post-eyebrow">Dónde encontrarlo</span>
+                            <h2 class="dht-post-section-title">Categorías recomendadas para esta guía</h2>
                             <p class="dht-post-section-subtitle">
-                                Esta relación procede de SEO Relations y es la referencia comercial explícita del artículo.
+                                Compara las opciones de producto que corresponden al trabajo explicado en este artículo.
                             </p>
                         </div>
                     </div>
@@ -760,10 +716,10 @@ while (have_posts()) :
                 <div class="dht-container">
                     <div class="dht-post-section-heading">
                         <div>
-                            <span class="dht-post-eyebrow">Más contenido relacionado</span>
-                            <h2 class="dht-post-section-title">Sigue aprendiendo</h2>
+                            <span class="dht-post-eyebrow">Guías relacionadas</span>
+                            <h2 class="dht-post-section-title">Sigue resolviendo dudas</h2>
                             <p class="dht-post-section-subtitle">
-                                Artículos vinculados a la misma categoría comercial mediante SEO Relations.
+                                Otros artículos prácticos sobre la misma familia de productos.
                             </p>
                         </div>
                     </div>

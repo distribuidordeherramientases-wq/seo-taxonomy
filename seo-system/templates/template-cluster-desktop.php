@@ -26,6 +26,9 @@ $hub_ids = $wpdb->get_col(
 );
 $hub_ids = dht_template_public_post_ids($hub_ids);
 
+/* Categorias directas: solo las relacionadas de forma explicita con el cluster.
+ * No heredamos automaticamente las categorias de los hubs primarios: asi se
+ * conserva la jerarquia Cluster -> Hub primario -> Hub secundario/categoria. */
 $direct_category_ids = $wpdb->get_col(
     $wpdb->prepare(
         "SELECT target_id
@@ -39,24 +42,7 @@ $direct_category_ids = $wpdb->get_col(
     )
 );
 
-$hub_category_ids = array();
-if (!empty($hub_ids)) {
-    $placeholders = implode(', ', array_fill(0, count($hub_ids), '%d'));
-    $sql = "SELECT DISTINCT target_id
-            FROM {$table}
-            WHERE source_type = 'hub_primary'
-              AND target_type = 'product_cat'
-              AND relation_type = 'hub_primary_to_category'
-              AND source_id IN ({$placeholders})
-            ORDER BY target_id ASC";
-    $prepared = $wpdb->prepare($sql, $hub_ids);
-    $hub_category_ids = $wpdb->get_col($prepared);
-}
-
-$category_ids = dht_template_public_term_ids(
-    array_merge((array) $direct_category_ids, (array) $hub_category_ids),
-    'product_cat'
-);
+$category_ids = dht_template_public_term_ids($direct_category_ids, 'product_cat');
 
 $hero_image = dht_template_structural_image_url(
     $current_id,

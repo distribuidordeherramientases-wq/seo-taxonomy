@@ -249,6 +249,40 @@ echo wp_json_encode(
 
 
     <!-- =====================================================
+         DESCRIPCIÓN DE LA CATEGORÍA
+    ====================================================== -->
+
+    <?php if(!empty($category_description)): ?>
+
+        <section class="dht-section dht-category-description-section">
+
+            <div class="dht-container">
+
+                <div class="dht-category-description">
+                    <?php echo wp_kses_post($category_description); ?>
+                </div>
+
+            </div>
+
+        </section>
+
+    <?php endif; ?>
+
+
+    <!-- =====================================================
+         AYUDA PARA ELEGIR / COMPARATIVA ESTÁTICA
+    ====================================================== -->
+
+    <?php
+    $category_comparison_template = __DIR__ . '/template-category-comparison.php';
+
+    if (is_readable($category_comparison_template)) {
+        include $category_comparison_template;
+    }
+    ?>
+
+
+    <!-- =====================================================
          PRODUCTOS DE LA CATEGORÍA
     ====================================================== -->
 
@@ -256,7 +290,7 @@ echo wp_json_encode(
     $category_products = new WP_Query([
         'post_type'      => 'product',
         'post_status'    => 'publish',
-        'posts_per_page' => 6,
+        'posts_per_page' => 12,
         'orderby'        => [
             'menu_order' => 'ASC',
             'date'       => 'DESC',
@@ -335,41 +369,6 @@ echo wp_json_encode(
 
 
     <!-- =====================================================
-         DESCRIPCIÓN DE LA CATEGORÍA
-    ====================================================== -->
-
-    <?php if(!empty($category_description)): ?>
-
-        <section class="dht-section dht-category-description-section">
-
-            <div class="dht-container">
-
-                <div class="dht-category-description">
-                    <?php echo wp_kses_post($category_description); ?>
-                </div>
-
-            </div>
-
-        </section>
-
-    <?php endif; ?>
-
-
-    <!-- =====================================================
-         AYUDA PARA ELEGIR / COMPARATIVA ESTÁTICA
-    ====================================================== -->
-
-    <?php
-    $category_comparison_template = __DIR__ . '/template-category-comparison.php';
-
-    if (is_readable($category_comparison_template)) {
-        include $category_comparison_template;
-    }
-    ?>
-
-
-
-    <!-- =====================================================
          CATEGORÍAS RELACIONADAS
     ====================================================== -->
 
@@ -378,7 +377,7 @@ echo wp_json_encode(
         'taxonomy'   => 'product_cat',
         'parent'     => $term->term_id,
         'hide_empty' => true,
-        'number'     => 6,
+        'number'     => 12,
         'orderby'    => 'name',
         'order'      => 'ASC',
     ]);

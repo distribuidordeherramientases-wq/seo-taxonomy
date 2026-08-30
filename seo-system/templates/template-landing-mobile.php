@@ -385,7 +385,7 @@ if (!$terms) {
 $product_groups = array();
 $product_ids_for_schema = array();
 $seen_products = array();
-$global_product_limit = 12;
+$global_product_limit = 9;
 
 if (function_exists('wc_get_product')) {
     foreach ($terms as $term) {
@@ -394,7 +394,7 @@ if (function_exists('wc_get_product')) {
         }
 
         $remaining = $global_product_limit - count($product_ids_for_schema);
-        $limit = min(4, $remaining);
+        $limit = min(3, $remaining);
 
         $query = new WP_Query(array(
             'post_type' => 'product',
@@ -445,31 +445,6 @@ if (function_exists('wc_get_product')) {
     }
 }
 
-/* Related secondary hubs that own one of the landing product categories. */
-$related_hub_ids = array();
-if ($related_cat_ids) {
-    $placeholders = implode(',', array_fill(0, count($related_cat_ids), '%d'));
-    $sql = "SELECT DISTINCT r.source_id
-            FROM {$relations_table} r
-            INNER JOIN {$nodes_table} n
-               ON n.object_type = 'page'
-              AND n.object_id = r.source_id
-              AND n.seo_role = 'hub_secondary'
-              AND n.status = 1
-            INNER JOIN {$wpdb->posts} p
-               ON p.ID = r.source_id
-              AND p.post_type = 'page'
-              AND p.post_status = 'publish'
-            WHERE r.source_type = 'hub_secondary'
-              AND r.target_type = 'product_cat'
-              AND r.relation_type = 'hub_secondary_to_category'
-              AND r.target_id IN ({$placeholders})
-            ORDER BY p.post_title ASC";
-
-    $related_hub_ids = $wpdb->get_col($wpdb->prepare($sql, $related_cat_ids));
-    $related_hub_ids = array_values(array_unique(array_filter(array_map('absint', (array) $related_hub_ids))));
-}
-
 /* JSON-LD uses the same real product selection shown on screen. */
 $item_list = array();
 foreach ($product_ids_for_schema as $product_id) {
@@ -502,7 +477,7 @@ $json = array(
         array(
             '@type' => 'ItemList',
             '@id' => get_permalink($post_id) . '#products',
-            'name' => 'Productos relacionados',
+            'name' => 'Productos destacados para esta solucion',
             'numberOfItems' => count($item_list),
             'itemListElement' => $item_list,
         ),
@@ -536,6 +511,9 @@ $main_image = dht_landing_v6_main_image_mobile($post_id, $related_cat_ids, 'larg
 .dht-landing-v6 .dht-v6-group{margin:0 0 30px}
 .dht-landing-v6 .dht-v6-group:last-child{margin-bottom:0}
 .dht-landing-v6 .dht-v6-group-title{font-size:20px;margin:0 0 14px}
+.dht-landing-v6 .dht-v6-group-heading{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.dht-landing-v6 .dht-v6-group-heading .dht-v6-group-title{margin:0}
+.dht-landing-v6 .dht-v6-group-title a{color:inherit;text-decoration:none}
 .dht-landing-v6 .dht-v6-product-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
 .dht-landing-v6 .dht-v6-product{overflow:hidden;border:1px solid #dcdcde;border-radius:14px;background:#fff;box-shadow:0 5px 18px rgba(0,0,0,.04)}
 .dht-landing-v6 .dht-v6-product-media{display:block;aspect-ratio:1/1;background:#f6f7f7;overflow:hidden}
@@ -619,11 +597,45 @@ $main_image = dht_landing_v6_main_image_mobile($post_id, $related_cat_ids, 'larg
     </div>
 </section>
 
+<?php if ($terms) : ?>
+<section id="categorias-solucion" class="dht-v6-section dht-v6-hubs dht-v6-categories">
+    <div class="hub-container">
+        <h2>Categorías para esta solución</h2>
+        <p class="dht-v6-section-intro">Empieza por la familia de producto que mejor corresponde a tu necesidad y compara allí todas las opciones disponibles.</p>
+
+        <div class="dht-v6-hub-grid dht-v6-category-grid">
+            <?php foreach ($terms as $term) :
+                $term_url = dht_template_safe_term_link($term);
+                if (!$term_url) {
+                    continue;
+                }
+                $term_image = dht_landing_v6_term_image_mobile((int) $term->term_id, 'medium_large', true);
+                $term_description = wp_trim_words(wp_strip_all_tags(term_description((int) $term->term_id, 'product_cat')), 22);
+            ?>
+                <a class="dht-v6-hub dht-v6-category" href="<?php echo esc_url($term_url); ?>">
+                    <span class="dht-v6-hub-media">
+                        <?php echo dht_landing_v6_img_mobile($term_image, $term->name, 'dht-v6-category-image'); ?>
+                    </span>
+                    <span class="dht-v6-hub-body">
+                        <strong><?php echo esc_html($term->name); ?></strong>
+                        <?php if ($term_description) : ?>
+                            <span><?php echo esc_html($term_description); ?></span>
+                        <?php else : ?>
+                            <span>Consulta todos los productos, características y opciones de esta categoría.</span>
+                        <?php endif; ?>
+                    </span>
+                </a>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
+
 <?php if ($product_groups) : ?>
 <section id="productos" class="dht-v6-section dht-v6-products">
     <div class="hub-container">
-        <h2>Productos relacionados</h2>
-        <p class="dht-v6-section-intro">Productos publicados pertenecientes a las categorias asociadas directamente a esta landing.</p>
+        <h2>Productos destacados para esta solución</h2>
+        <p class="dht-v6-section-intro">Una muestra breve de productos de las categorías anteriores. Para comparar toda la oferta, entra en la categoría correspondiente.</p>
 
         <?php foreach ($terms as $term) :
             $term_id = (int) $term->term_id;
@@ -631,8 +643,18 @@ $main_image = dht_landing_v6_main_image_mobile($post_id, $related_cat_ids, 'larg
                 continue;
             }
         ?>
+            <?php $term_url = dht_template_safe_term_link($term); ?>
             <div class="dht-v6-group">
-                <h3 class="dht-v6-group-title"><?php echo esc_html($term->name); ?></h3>
+                <div class="dht-v6-group-heading">
+                    <h3 class="dht-v6-group-title">
+                        <?php if ($term_url) : ?><a href="<?php echo esc_url($term_url); ?>"><?php endif; ?>
+                        <?php echo esc_html($term->name); ?>
+                        <?php if ($term_url) : ?></a><?php endif; ?>
+                    </h3>
+                    <?php if ($term_url) : ?>
+                        <a class="dht-v6-link" href="<?php echo esc_url($term_url); ?>">Ver toda la categoría &rarr;</a>
+                    <?php endif; ?>
+                </div>
                 <div class="dht-v6-product-grid">
                     <?php foreach ($product_groups[$term_id]['products'] as $product) :
                         $product_id = (int) $product->get_id();
@@ -659,46 +681,12 @@ $main_image = dht_landing_v6_main_image_mobile($post_id, $related_cat_ids, 'larg
 </section>
 <?php endif; ?>
 
-<?php if ($related_hub_ids) : ?>
-<section id="hubs-relacionados" class="dht-v6-section dht-v6-hubs">
-    <div class="hub-container">
-        <h2>Hubs relacionados con el tema</h2>
-        <p class="dht-v6-section-intro">Guias de la misma rama SEO que agrupan las categorias relacionadas con esta solucion.</p>
-
-        <div class="dht-v6-hub-grid">
-            <?php foreach ($related_hub_ids as $hub_id) :
-                $hub_url = get_permalink($hub_id);
-                if (!$hub_url) {
-                    continue;
-                }
-                $hub_image = dht_landing_v6_hub_image_mobile($hub_id, 'medium_large');
-                $hub_excerpt = get_the_excerpt($hub_id);
-            ?>
-                <a class="dht-v6-hub" href="<?php echo esc_url($hub_url); ?>">
-                    <span class="dht-v6-hub-media">
-                        <?php echo dht_landing_v6_img_mobile($hub_image, get_the_title($hub_id), 'dht-v6-hub-image'); ?>
-                    </span>
-                    <span class="dht-v6-hub-body">
-                        <strong><?php echo esc_html(get_the_title($hub_id)); ?></strong>
-                        <?php if ($hub_excerpt) : ?>
-                            <span><?php echo esc_html(wp_trim_words($hub_excerpt, 22)); ?></span>
-                        <?php else : ?>
-                            <span>Explora las categorias y soluciones de esta rama.</span>
-                        <?php endif; ?>
-                    </span>
-                </a>
-            <?php endforeach; ?>
-        </div>
-    </div>
-</section>
-<?php endif; ?>
-
 <section class="landing-cta">
     <div class="landing-container">
         <h2><?php the_title(); ?></h2>
-        <p>Compare las soluciones relacionadas y encuentre la opcion que mejor se adapta a sus necesidades.</p>
+        <p>Empieza por la categoría adecuada y utiliza esta selección como punto de partida para comparar alternativas.</p>
         <?php if ($product_groups) : ?>
-            <a class="landing-btn" href="#productos">Ver productos relacionados</a>
+            <a class="landing-btn" href="#productos">Ver productos destacados</a>
         <?php endif; ?>
     </div>
 </section>

@@ -26,6 +26,9 @@ $hub_ids = $wpdb->get_col(
 );
 $hub_ids = dht_template_public_post_ids($hub_ids);
 
+/* Categorias directas: solo las relacionadas de forma explicita con el cluster.
+ * No heredamos automaticamente las categorias de los hubs primarios: asi se
+ * conserva la jerarquia Cluster -> Hub primario -> Hub secundario/categoria. */
 $direct_category_ids = $wpdb->get_col(
     $wpdb->prepare(
         "SELECT target_id
@@ -39,24 +42,7 @@ $direct_category_ids = $wpdb->get_col(
     )
 );
 
-$hub_category_ids = array();
-if (!empty($hub_ids)) {
-    $placeholders = implode(', ', array_fill(0, count($hub_ids), '%d'));
-    $sql = "SELECT DISTINCT target_id
-            FROM {$table}
-            WHERE source_type = 'hub_primary'
-              AND target_type = 'product_cat'
-              AND relation_type = 'hub_primary_to_category'
-              AND source_id IN ({$placeholders})
-            ORDER BY target_id ASC";
-    $prepared = $wpdb->prepare($sql, $hub_ids);
-    $hub_category_ids = $wpdb->get_col($prepared);
-}
-
-$category_ids = dht_template_public_term_ids(
-    array_merge((array) $direct_category_ids, (array) $hub_category_ids),
-    'product_cat'
-);
+$category_ids = dht_template_public_term_ids($direct_category_ids, 'product_cat');
 
 $hero_image = dht_template_structural_image_url(
     $current_id,
@@ -178,7 +164,16 @@ dht_template_render_header();
             <?php endif; ?>
         </div>
     </header>
-<?php if (!empty($hub_ids)) : ?>
+
+    <?php if (trim((string) get_the_content()) !== '') : ?>
+        <section class="hub-content">
+            <div class="dht-content dht-prose">
+                <?php the_content(); ?>
+            </div>
+        </section>
+    <?php endif; ?>
+
+    <?php if (!empty($hub_ids)) : ?>
         <section id="hubs-cluster" class="hub-section hub-secondary-section">
             <div class="hub-container">
                 <div class="dht-section-header dht-section-header--left">
@@ -193,7 +188,7 @@ dht_template_render_header();
                         $title   = get_the_title($hub_id);
                         $link    = get_permalink($hub_id);
                         $image   = dht_template_node_image_url('hub_primary', $hub_id, 'medium_large');
-                        $summary = dht_template_post_summary($hub_id, 12);
+                        $summary = dht_template_post_summary($hub_id, 30);
 
                         if (!$image) {
                             $image = dht_template_placeholder_image_url('woocommerce_thumbnail');
@@ -246,7 +241,7 @@ dht_template_render_header();
                             $image = dht_template_placeholder_image_url('woocommerce_thumbnail');
                         }
 
-                        $description = wp_trim_words(wp_strip_all_tags(term_description($category_id, 'product_cat')), 10);
+                        $description = wp_trim_words(wp_strip_all_tags(term_description($category_id, 'product_cat')), 20);
                         ?>
                         <a class="hub-card hub-category-card" href="<?php echo esc_url($link); ?>">
                             <?php if ($image) : ?>
@@ -265,16 +260,6 @@ dht_template_render_header();
                         </a>
                     <?php endforeach; ?>
                 </div>
-            </div>
-        </section>
-    <?php endif; ?>
-
-
-
-<?php if (trim((string) get_the_content()) !== '') : ?>
-        <section class="hub-content">
-            <div class="dht-content dht-prose">
-                <?php the_content(); ?>
             </div>
         </section>
     <?php endif; ?>

@@ -2,6 +2,8 @@
 /**
  * Template Name: Hub secundario SEO
  * Gestor de variante hub-secondary: móvil / escritorio.
+ *
+ * Hub secundario: explica una familia y distribuye hacia sus categorias directas.
  */
 
 defined('ABSPATH') || exit;

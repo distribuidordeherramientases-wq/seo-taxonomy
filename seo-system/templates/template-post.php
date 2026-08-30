@@ -5,6 +5,8 @@
  *
  * DHT POST V1.3 SELF-CONTAINED
  * Política visual: Media -> índice Media -> proveedor -> logo.
+ *
+ * Post: resuelve una necesidad informativa y deriva a la categoria comercial explicita; no replica el catalogo.
  */
 
 defined('ABSPATH') || exit;

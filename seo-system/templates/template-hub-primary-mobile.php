@@ -180,7 +180,16 @@ dht_template_render_header();
             <?php endif; ?>
         </div>
     </header>
-<?php if (!empty($secondary_hub_ids)) : ?>
+
+    <?php if (trim((string) get_the_content()) !== '') : ?>
+        <section class="hub-content">
+            <div class="dht-content dht-prose">
+                <?php the_content(); ?>
+            </div>
+        </section>
+    <?php endif; ?>
+
+    <?php if (!empty($secondary_hub_ids)) : ?>
         <section class="hub-section hub-secondary-section">
             <div class="hub-container">
                 <div class="dht-section-header dht-section-header--left">
@@ -195,7 +204,7 @@ dht_template_render_header();
                         $title   = get_the_title($secondary_hub_id);
                         $link    = get_permalink($secondary_hub_id);
                         $image   = dht_template_node_image_url('hub_secondary', $secondary_hub_id, 'medium_large');
-                        $summary = dht_template_post_summary($secondary_hub_id, 12);
+                        $summary = dht_template_post_summary($secondary_hub_id, 30);
 
                         if (!$image) {
                             $image = dht_template_placeholder_image_url('woocommerce_thumbnail');
@@ -248,7 +257,7 @@ dht_template_render_header();
                             $image = dht_template_placeholder_image_url('woocommerce_thumbnail');
                         }
 
-                        $description = wp_trim_words(wp_strip_all_tags(term_description($category_id, 'product_cat')), 10);
+                        $description = wp_trim_words(wp_strip_all_tags(term_description($category_id, 'product_cat')), 20);
                         ?>
                         <a class="hub-card hub-category-card" href="<?php echo esc_url($link); ?>">
                             <?php if ($image) : ?>
@@ -267,16 +276,6 @@ dht_template_render_header();
                         </a>
                     <?php endforeach; ?>
                 </div>
-            </div>
-        </section>
-    <?php endif; ?>
-
-
-
-<?php if (trim((string) get_the_content()) !== '') : ?>
-        <section class="hub-content">
-            <div class="dht-content dht-prose">
-                <?php the_content(); ?>
             </div>
         </section>
     <?php endif; ?>
