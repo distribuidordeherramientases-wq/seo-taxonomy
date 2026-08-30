@@ -27,6 +27,7 @@ final class SEO_Dependiente_Plugin {
         add_action('rest_api_init', array('SEO_Dependiente_API', 'register_routes'));
 
         add_filter('template_include', array($this, 'template_include'), 99);
+        add_filter('wp_robots', array($this, 'filter_query_state_robots'), 99);
         add_action('wp_enqueue_scripts', array($this, 'enqueue_page_assets'), 20);
 
         add_action('woocommerce_new_product', array('SEO_Dependiente_Index', 'index_product'), 99);
@@ -126,6 +127,37 @@ final class SEO_Dependiente_Plugin {
         }
     }
 
+    /**
+     * La portada de Dependiente puede indexarse segun la politica SEO general
+     * del sitio. Los estados internos compartidos con ?dep_q= son busquedas de
+     * la aplicacion, no nuevas landings SEO, por lo que se marcan noindex.
+     * En staging se respeta cualquier nofollow/noindex global ya existente.
+     */
+    public function filter_query_state_robots($robots) {
+        if (!is_array($robots) || is_admin() || !is_singular('page')) {
+            return $robots;
+        }
+
+        $page_id = get_queried_object_id();
+        $configured_page_id = absint(get_option('seo_dependiente_page_id', 0));
+        $is_dependiente = ($configured_page_id && $page_id === $configured_page_id) || is_page('dependiente');
+        if (!$is_dependiente) {
+            return $robots;
+        }
+
+        $query = isset($_GET['dep_q']) ? sanitize_text_field(wp_unslash($_GET['dep_q'])) : '';
+        if ('' === trim($query)) {
+            return $robots;
+        }
+
+        $robots['noindex'] = true;
+        if (!isset($robots['nofollow'])) {
+            $robots['follow'] = true;
+        }
+
+        return $robots;
+    }
+
     public function render_shortcode($atts = array()) {
         if (!class_exists('WooCommerce')) {
             return current_user_can('activate_plugins')
@@ -187,15 +219,15 @@ final class SEO_Dependiente_Plugin {
                     </button>
                     <button type="button" class="seo-dependiente__path" data-dependiente-mode="product">
                         <span class="seo-dependiente__path-image"><img src="<?php echo esc_url($action_images['product']); ?>" alt="" loading="eager" decoding="async"></span>
-                        <span class="seo-dependiente__path-copy"><strong>Estoy buscando un producto</strong><small>Escribe su nombre, marca, referencia, medida o característica.</small></span>
+                        <span class="seo-dependiente__path-copy"><strong>Busco un producto concreto</strong><small>Busca por nombre, marca, referencia, medida o característica.</small></span>
                     </button>
                     <button type="button" class="seo-dependiente__path" data-dependiente-mode="tool">
                         <span class="seo-dependiente__path-image"><img src="<?php echo esc_url($action_images['tool']); ?>" alt="" loading="lazy" decoding="async"></span>
-                        <span class="seo-dependiente__path-copy"><strong>Necesito una herramienta</strong><small>Dime qué trabajo, máquina, plataforma o compatibilidad necesitas.</small></span>
+                        <span class="seo-dependiente__path-copy"><strong>Busco algo compatible</strong><small>Dime qué máquina, batería, plataforma o sistema ya tienes.</small></span>
                     </button>
                     <button type="button" class="seo-dependiente__path" data-dependiente-mode="compare">
                         <span class="seo-dependiente__path-image"><img src="<?php echo esc_url($action_images['compare']); ?>" alt="" loading="lazy" decoding="async"></span>
-                        <span class="seo-dependiente__path-copy"><strong>Quiero comparar herramientas</strong><small>Selecciona hasta cuatro opciones y revisa sus diferencias.</small></span>
+                        <span class="seo-dependiente__path-copy"><strong>Quiero comparar</strong><small>Busca varias opciones y compara hasta cuatro lado a lado.</small></span>
                     </button>
                 </div>
             </div>
@@ -319,9 +351,21 @@ final class SEO_Dependiente_Plugin {
             'labels'           => array(
                 'error'       => 'No he podido completar la búsqueda. Inténtalo de nuevo.',
                 'loading'     => 'Estoy revisando el catálogo…',
-                'noResults'   => 'No he encontrado una coincidencia clara. Prueba a quitar un filtro o describe la necesidad con otras palabras.',
+                'noResults'   => 'No he encontrado una coincidencia clara. Puedes quitar filtros, simplificar la búsqueda o explorar una alternativa.',
                 'viewProduct' => 'Ver producto',
                 'compare'     => 'Comparar',
+            ),
+            'modePlaceholders' => array(
+                'need'    => 'Ej.: se me ha roto un grifo y quiero cambiarlo',
+                'product' => 'Ej.: taladro Bosch 18 V, referencia, medida o característica',
+                'tool'    => 'Ej.: batería compatible con Makita LXT 18 V',
+                'compare' => 'Ej.: infladores de ruedas 12 V para comparar',
+            ),
+            'modeButtons'      => array(
+                'need'    => 'Buscar solución',
+                'product' => 'Buscar producto',
+                'tool'    => 'Buscar compatibles',
+                'compare' => 'Buscar para comparar',
             ),
         ));
     }

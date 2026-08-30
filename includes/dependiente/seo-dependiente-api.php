@@ -133,7 +133,8 @@ final class SEO_Dependiente_API {
         }
 
         self::sort_documents($matched, $orderby);
-        $related = self::related_content($matched, $query, 8);
+        $related_source = $matched ? $matched : $documents;
+        $related = self::related_content($related_source, $query, 6);
 
         $total = count($matched);
         $pages = $total ? (int) ceil($total / $per_page) : 0;
@@ -1528,9 +1529,9 @@ final class SEO_Dependiente_API {
 
         $items = array();
         foreach ($grouped as $item) {
-            $score = 0;
+            $category_score = 0;
             foreach (array_keys($item['categories']) as $category_id) {
-                $score += (int) ($category_weights[$category_id] ?? 0);
+                $category_score += (int) ($category_weights[$category_id] ?? 0);
             }
 
             $plain_text = trim((string) $item['excerpt']);
@@ -1538,13 +1539,25 @@ final class SEO_Dependiente_API {
                 $plain_text = wp_strip_all_tags(strip_shortcodes((string) $item['content']));
             }
             $haystack = SEO_Dependiente_Index::normalize($item['title'] . ' ' . $plain_text);
+            $score = $category_score;
+            $phrase_match = false;
+            $query_hits = 0;
             if ($normalized_query && false !== strpos($haystack, $normalized_query)) {
                 $score += 220;
+                $phrase_match = true;
             }
             foreach ($query_tokens as $token) {
                 if (false !== strpos($haystack, $token)) {
                     $score += 28;
+                    $query_hits++;
                 }
+            }
+
+            // No rellenar el lateral con contenido remotamente relacionado.
+            // Si el texto no comparte la consulta, exigimos que la relacion de
+            // categoria proceda de productos situados suficientemente arriba.
+            if (!$phrase_match && 0 === $query_hits && $category_score < 40) {
+                continue;
             }
 
             $url = get_permalink((int) $item['id']);
