@@ -1,7 +1,7 @@
 <?php
 /**
  * Puente de compatibilidad entre el almacenamiento legacy de Ámbito
- * (wp_seo_nodes / wp_seo_attributes) y el vocabulario semántico nuevo.
+ * (wp_seo_nodes y otros datos históricos) y el vocabulario semántico nuevo.
  *
  * Fuente canónica para productos:
  *   TIPO activo -> wp_seo_type_role_map -> ROL

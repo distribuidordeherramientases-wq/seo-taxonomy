@@ -104,7 +104,6 @@ final class SEO_System_Installer
         $templates          = $wpdb->prefix . 'seo_templates';
         $redirects          = $wpdb->prefix . 'seo_redirects';
         $dictionary         = $wpdb->prefix . 'seo_dictionari';
-        $attributes         = $wpdb->prefix . 'seo_attributes'; // legado, solo compatibilidad/migración
         $sql_attributes     = $wpdb->prefix . 'sql_atributos';
         $sql_terms          = $wpdb->prefix . 'sql_atributos_terminos';
         $sql_aliases        = $wpdb->prefix . 'sql_atributos_aliases';
@@ -196,19 +195,6 @@ final class SEO_System_Installer
             PRIMARY KEY  (id),
             UNIQUE KEY palabra (palabra),
             KEY puntuacion (puntuacion)
-        ) {$charset_collate};";
-
-        $queries[] = "CREATE TABLE {$attributes} (
-            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-            product_id BIGINT UNSIGNED NOT NULL,
-            ambito VARCHAR(120) NOT NULL DEFAULT 'global',
-            attribute_type VARCHAR(191) NOT NULL,
-            attribute_value LONGTEXT NOT NULL,
-            PRIMARY KEY  (id),
-            KEY product_id (product_id),
-            KEY ambito (ambito),
-            KEY attribute_type (attribute_type),
-            KEY attr_lookup (attribute_type, product_id)
         ) {$charset_collate};";
 
         // Vocabulario canónico de atributos técnicos de producto.
@@ -500,7 +486,6 @@ final class SEO_System_Installer
                 $templates,
                 $redirects,
                 $dictionary,
-                $attributes,
                 $vocabulary,
                 $object_vocabulary,
                 $type_role_map,
@@ -721,7 +706,6 @@ final class SEO_System_Installer
             'seo_templates',
             'seo_redirects',
             'seo_dictionari',
-            'seo_attributes',
             'sql_atributos',
             'sql_atributos_terminos',
             'sql_atributos_aliases',

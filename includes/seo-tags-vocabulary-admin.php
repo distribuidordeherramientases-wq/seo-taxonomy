@@ -2610,7 +2610,7 @@ if (!function_exists('seo_tags_vocabulary_admin_page')) {
             else seo_tags_vocab_render_products();
         } else {
             echo '<div class="seo-semantic-domain-title"><h2 style="margin:0">Atributos técnicos</h2><span class="seo-tags-mode">Productos</span></div>';
-            echo '<p class="seo-tags-intro">Gestiona definiciones, términos controlados, aliases y asignaciones del nuevo modelo <code>wp_sql_*</code>. No se escribe en <code>wp_seo_attributes</code>.</p>';
+            echo '<p class="seo-tags-intro">Gestiona definiciones, términos controlados, aliases y asignaciones del modelo canónico <code>wp_sql_*</code>.</p>';
             seo_semantic_attributes_notice($notice);
             seo_semantic_attributes_render_summary_cards(seo_semantic_attributes_get_summary());
 

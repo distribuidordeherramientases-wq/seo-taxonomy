@@ -238,7 +238,7 @@ final class SEO_Dependiente_Index {
             'stock_status'      => (string) $product->get_stock_status(),
             'featured'          => $product->is_featured() ? 1 : 0,
             'product_type'      => (string) $product->get_type(),
-            'image_url'         => self::product_image_url($product),
+            'image_url'         => self::get_product_image_url($product),
             'permalink'         => (string) get_permalink($product_id),
             'post_modified_gmt' => $post->post_modified_gmt ?: null,
             'updated_at'        => current_time('mysql'),
@@ -662,276 +662,39 @@ final class SEO_Dependiente_Index {
         return $data;
     }
 
-    /**
-     * Resuelve la imagen de un producto usando todas las fuentes reales del
-     * catalogo. No obliga a que la imagen exista en Media: las URLs remotas de
-     * proveedor son validas y se sirven directamente desde su hosting.
-     *
-     * Prioridad:
-     * 1) Imagen destacada local de WooCommerce.
-     * 2) Capa unificada seo_supplier_images, si esta disponible.
-     * 3) Helper legacy de Supplier Sync V2.
-     * 4) Tabla seo_supplier_images consultada directamente.
-     * 5) Campo imagenes de seo_proveedores_productos enlazado por object_id,
-     *    catalog_row_id o proveedor/SKU.
-     *
-     * Devuelve cadena vacia si no existe ninguna imagen real. El front-end de
-     * Dependiente se encarga del fallback corporativo (logo).
-     */
-    public static function product_image_url($product_or_id) {
-        static $cache = array();
-
-        $product = $product_or_id instanceof WC_Product
-            ? $product_or_id
-            : (function_exists('wc_get_product') ? wc_get_product(absint($product_or_id)) : false);
-
-        if (!$product instanceof WC_Product) {
-            return '';
-        }
-
-        $product_id = absint($product->get_id());
-        if (!$product_id) {
-            return '';
-        }
-
-        if (array_key_exists($product_id, $cache)) {
-            return $cache[$product_id];
-        }
-
-        $cache[$product_id] = '';
-
-        // 1) WooCommerce / Media local.
+    private static function get_product_image_url($product) {
         $image_id = absint($product->get_image_id());
         if ($image_id) {
             $url = wp_get_attachment_image_url($image_id, 'woocommerce_thumbnail');
             if ($url) {
-                return $cache[$product_id] = esc_url_raw((string) $url);
+                return esc_url_raw($url);
             }
         }
 
-        // 2) Capa unificada del propio plugin: puede devolver URL remota.
-        if (function_exists('seo_images_get_external_primary_url')) {
-            $url = esc_url_raw((string) seo_images_get_external_primary_url($product_id));
-            if (self::is_remote_image_url($url)) {
-                return $cache[$product_id] = $url;
-            }
-        }
-
-        // 3) Compatibilidad con instalaciones anteriores.
         if (function_exists('seo_supplier_v2_external_primary_url')) {
-            $url = esc_url_raw((string) seo_supplier_v2_external_primary_url($product_id));
-            if (self::is_remote_image_url($url)) {
-                return $cache[$product_id] = $url;
+            $url = esc_url_raw((string) seo_supplier_v2_external_primary_url($product->get_id()));
+            if ($url) {
+                return $url;
             }
         }
 
         global $wpdb;
-
-        // 4) Tabla normalizada de imagenes externas.
         $supplier_images = $wpdb->prefix . 'seo_supplier_images';
         if (self::table_exists($supplier_images)) {
-            $columns = self::table_columns($supplier_images);
-            $link_parts = array();
-            $params = array();
-
-            foreach (array('product_id', 'object_id') as $column) {
-                if (in_array($column, $columns, true)) {
-                    $link_parts[] = "{$column} = %d";
-                    $params[] = $product_id;
-                }
-            }
-
-            if ($link_parts && in_array('image_url', $columns, true)) {
-                $status_sql = in_array('status', $columns, true) ? " AND status = 'active'" : '';
-                $order = array();
-                if (in_array('is_primary', $columns, true)) {
-                    $order[] = 'is_primary DESC';
-                }
-                if (in_array('position', $columns, true)) {
-                    $order[] = 'position ASC';
-                }
-                $order[] = 'id ASC';
-
-                $sql = "SELECT image_url FROM {$supplier_images}
-                        WHERE (" . implode(' OR ', $link_parts) . ")
-                          {$status_sql}
-                          AND image_url IS NOT NULL
-                          AND TRIM(image_url) <> ''
-                        ORDER BY " . implode(', ', $order) . " LIMIT 1";
-
-                $url = esc_url_raw((string) $wpdb->get_var($wpdb->prepare($sql, $params)));
-                if (self::is_remote_image_url($url)) {
-                    return $cache[$product_id] = $url;
-                }
-            }
-        }
-
-        // 5) Fallback directo al catalogo de proveedor. Esto cubre staging
-        // aunque seo_supplier_images todavia no haya sido materializada.
-        $provider_url = self::provider_catalog_image_url($product);
-        if ($provider_url) {
-            return $cache[$product_id] = $provider_url;
-        }
-
-        return '';
-    }
-
-    /**
-     * Busca la fotografia directamente en wp_seo_proveedores_productos.
-     * El campo imagenes puede ser una URL, varias URLs o JSON.
-     */
-    private static function provider_catalog_image_url($product) {
-        global $wpdb;
-
-        if (!$product instanceof WC_Product) {
-            return '';
-        }
-
-        $product_id = absint($product->get_id());
-        $table = $wpdb->prefix . 'seo_proveedores_productos';
-
-        if (!$product_id || !self::table_exists($table)) {
-            return '';
-        }
-
-        $columns = self::table_columns($table);
-        if (!in_array('imagenes', $columns, true)) {
-            return '';
-        }
-
-        $rows = array();
-
-        // Enlace principal de staging: producto WooCommerce -> object_id.
-        if (in_array('object_id', $columns, true)) {
-            $rows = (array) $wpdb->get_col(
+            $url = $wpdb->get_var(
                 $wpdb->prepare(
-                    "SELECT imagenes FROM {$table}
-                     WHERE object_id = %d
-                       AND imagenes IS NOT NULL
-                       AND TRIM(imagenes) <> ''
-                     ORDER BY actualizado DESC, id DESC
-                     LIMIT 10",
-                    $product_id
+                    "SELECT image_url FROM {$supplier_images}
+                     WHERE product_id = %d AND status = 'active'
+                     ORDER BY is_primary DESC, position ASC, id ASC LIMIT 1",
+                    $product->get_id()
                 )
             );
-        }
-
-        // El importador guarda tambien el ID exacto de la fila de catalogo.
-        if (!$rows && in_array('id', $columns, true)) {
-            $catalog_row_id = absint(get_post_meta($product_id, '_seo_proveedor_catalogo_id', true));
-            if ($catalog_row_id) {
-                $value = $wpdb->get_var(
-                    $wpdb->prepare(
-                        "SELECT imagenes FROM {$table}
-                         WHERE id = %d
-                           AND imagenes IS NOT NULL
-                           AND TRIM(imagenes) <> ''
-                         LIMIT 1",
-                        $catalog_row_id
-                    )
-                );
-                if ($value) {
-                    $rows[] = $value;
-                }
+            if ($url) {
+                return esc_url_raw((string) $url);
             }
         }
 
-        // Ultimo enlace relacional: proveedor + SKU del producto.
-        if (!$rows && in_array('proveedor', $columns, true) && in_array('sku', $columns, true)) {
-            $supplier = sanitize_text_field((string) get_post_meta($product_id, '_seo_proveedor', true));
-            $sku = trim((string) $product->get_sku());
-
-            if ($supplier !== '' && $sku !== '') {
-                $rows = (array) $wpdb->get_col(
-                    $wpdb->prepare(
-                        "SELECT imagenes FROM {$table}
-                         WHERE proveedor = %s
-                           AND sku = %s
-                           AND imagenes IS NOT NULL
-                           AND TRIM(imagenes) <> ''
-                         ORDER BY actualizado DESC, id DESC
-                         LIMIT 10",
-                        $supplier,
-                        $sku
-                    )
-                );
-            }
-        }
-
-        foreach ($rows as $value) {
-            foreach (self::extract_provider_image_urls($value) as $url) {
-                if (self::is_remote_image_url($url)) {
-                    return $url;
-                }
-            }
-        }
-
-        return '';
-    }
-
-    private static function extract_provider_image_urls($value) {
-        if (function_exists('seo_proveedores_extraer_urls_imagenes')) {
-            return array_values(array_filter(array_map('esc_url_raw', (array) seo_proveedores_extraer_urls_imagenes($value))));
-        }
-
-        $value = trim((string) $value);
-        if ($value === '') {
-            return array();
-        }
-
-        $urls = array();
-        $decoded = json_decode($value, true);
-
-        if (JSON_ERROR_NONE === json_last_error() && is_array($decoded)) {
-            $stack = array($decoded);
-            while ($stack) {
-                $item = array_pop($stack);
-                if (is_array($item)) {
-                    foreach ($item as $nested) {
-                        $stack[] = $nested;
-                    }
-                } elseif (is_scalar($item)) {
-                    $candidate = trim((string) $item);
-                    if (preg_match('#^https?://#i', $candidate)) {
-                        $urls[] = $candidate;
-                    }
-                }
-            }
-        }
-
-        if (!$urls) {
-            preg_match_all('#https?://[^\\s<>"\\\']+#iu', $value, $matches);
-            $urls = (array) ($matches[0] ?? array());
-        }
-
-        $clean = array();
-        foreach ($urls as $url) {
-            $url = rtrim(trim(html_entity_decode((string) $url, ENT_QUOTES | ENT_HTML5, 'UTF-8')), ',;|');
-            $url = esc_url_raw($url);
-            if (self::is_remote_image_url($url)) {
-                $clean[$url] = $url;
-            }
-        }
-
-        return array_values($clean);
-    }
-
-    private static function is_remote_image_url($url) {
-        return is_string($url) && (bool) preg_match('#^https?://#i', trim($url));
-    }
-
-    private static function table_columns($table) {
-        global $wpdb;
-        static $cache = array();
-
-        $table = (string) $table;
-        if ($table === '' || !self::table_exists($table)) {
-            return array();
-        }
-        if (!array_key_exists($table, $cache)) {
-            $cache[$table] = array_values(array_filter(array_map('strval', (array) $wpdb->get_col("SHOW COLUMNS FROM {$table}", 0))));
-        }
-        return $cache[$table];
+        return function_exists('wc_placeholder_img_src') ? esc_url_raw(wc_placeholder_img_src('woocommerce_thumbnail')) : '';
     }
 
     private static function get_term_image_url($term_id) {

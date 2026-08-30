@@ -28,26 +28,12 @@ if (!function_exists('seo_attributes_table_is_innodb')) {
 }
 
 /**
- * Registra las cuatro tablas nuevas en el Data Layer.
- * La clave histórica `attributes` sigue apuntando a wp_seo_attributes si
- * existe; el modelo nuevo usa claves propias para no romper otros módulos.
+ * Registra las cuatro tablas canónicas de atributos en el Data Layer.
  */
 if (!function_exists('seo_attributes_register_data_layer_table')) {
     function seo_attributes_register_data_layer_table($tables) {
         $tables = is_array($tables) ? $tables : [];
         $physical = seo_attributes_tables();
-
-        // Mantener la clave histórica `attributes` si la tabla antigua sigue
-        // presente, para no romper otros módulos durante la transición.
-        global $wpdb;
-        $legacy = $wpdb->prefix . 'seo_attributes';
-        if (seo_attributes_table_is_innodb($legacy)) {
-            $tables['attributes'] = [
-                'table'       => $legacy,
-                'primary_key' => ['id'],
-                'entity_type' => 'attribute',
-            ];
-        }
 
         $map = [
             'attribute_definitions' => [$physical['definitions'], 'attribute_definition'],
@@ -1418,7 +1404,7 @@ if (!function_exists('seo_attributes_render_dashboard')) {
         </style>
         <div class="seo-attr-dashboard">
             <h2>Vocabulario canónico de atributos de producto</h2>
-            <p class="description">La gestión ya usa <code>wp_sql_atributos</code>, términos, aliases y <code>wp_sql_product_atributos</code>. <code>wp_seo_attributes</code> queda como origen histórico y no se escribe desde esta pantalla.</p>
+            <p class="description">La gestión usa exclusivamente <code>wp_sql_atributos</code>, términos, aliases y <code>wp_sql_product_atributos</code>.</p>
             <div class="seo-attr-cards">
                 <div class="seo-attr-card"><div class="label">Cobertura</div><div class="value"><?php echo esc_html(number_format_i18n($coverage,1)); ?>%</div><div class="note"><?php echo esc_html(number_format_i18n($products_with_attributes)); ?> de <?php echo esc_html(number_format_i18n($total_products)); ?> productos.</div></div>
                 <div class="seo-attr-card"><div class="label">Sin atributos</div><div class="value"><?php echo esc_html(number_format_i18n($products_without_attributes)); ?></div><div class="note">Productos activos sin asignaciones.</div></div>
@@ -2019,7 +2005,7 @@ if (!empty($new_master_attribute)) {
             > Borrar atributo global
             </button>
             <p style="margin:6px 0 0;color:#646970;max-width:720px;">
-                Esta acción elimina la definición canónica, sus términos/aliases y todas las asignaciones del atributo. El sistema antiguo wp_seo_attributes no se modifica.
+                Esta acción elimina la definición canónica, sus términos/aliases y todas las asignaciones del atributo. La operación afecta únicamente al modelo canónico de atributos.
             </p>
             <?php endif; ?>
     </form>
