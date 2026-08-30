@@ -20,7 +20,9 @@ function seo_menu_manager_page() {
     $created_menu_id = (int) get_option('seo_menu_created_id');
     $created_date    = get_option('seo_menu_created_date');
     $show_preview    = false;
-    $preview_include_solutions = (int) get_option('seo_menu_include_solutions', 0);
+    $preview_include_solutions  = (int) get_option('seo_menu_include_solutions', 0);
+    $preview_include_blog       = (int) get_option('seo_menu_include_blog', 0);
+    $preview_include_dependiente = (int) get_option('seo_menu_include_dependiente', 0);
 
     echo '<p><strong>Estado menú:</strong> ';
 
@@ -46,14 +48,18 @@ function seo_menu_manager_page() {
         );
 
         $action = sanitize_key(wp_unslash($_POST['seo_action']));
-        $posted_include_solutions = isset($_POST['seo_include_solutions']) ? 1 : 0;
+        $posted_include_solutions  = isset($_POST['seo_include_solutions']) ? 1 : 0;
+        $posted_include_blog       = isset($_POST['seo_include_blog']) ? 1 : 0;
+        $posted_include_dependiente = isset($_POST['seo_include_dependiente']) ? 1 : 0;
 
         /*
          * PREVISUALIZAR
          * No crea, no sincroniza y no activa ningún menú.
          */
         if ($action === 'preview_menu') {
-            $preview_include_solutions = $posted_include_solutions;
+            $preview_include_solutions  = $posted_include_solutions;
+            $preview_include_blog       = $posted_include_blog;
+            $preview_include_dependiente = $posted_include_dependiente;
             $show_preview = true;
 
             echo '<div class="notice notice-info"><p>';
@@ -67,9 +73,17 @@ function seo_menu_manager_page() {
          */
         if ($action === 'publish_menu') {
 
-            $include_solutions = $posted_include_solutions;
-            $preview_include_solutions = $include_solutions;
+            $include_solutions  = $posted_include_solutions;
+            $include_blog       = $posted_include_blog;
+            $include_dependiente = $posted_include_dependiente;
+
+            $preview_include_solutions  = $include_solutions;
+            $preview_include_blog       = $include_blog;
+            $preview_include_dependiente = $include_dependiente;
+
             update_option('seo_menu_include_solutions', $include_solutions, false);
+            update_option('seo_menu_include_blog', $include_blog, false);
+            update_option('seo_menu_include_dependiente', $include_dependiente, false);
 
             $menu_id = seo_menu_get_or_create_menu();
 
@@ -83,7 +97,9 @@ function seo_menu_manager_page() {
                 $sync_result = seo_tree_to_wp_menu(
                     $tree,
                     $menu_id,
-                    $include_solutions
+                    $include_solutions,
+                    $include_blog,
+                    $include_dependiente
                 );
 
                 if (is_wp_error($sync_result)) {
@@ -116,9 +132,17 @@ function seo_menu_manager_page() {
          */
         if ($action === 'sync_menu') {
 
-            $include_solutions = $posted_include_solutions;
-            $preview_include_solutions = $include_solutions;
+            $include_solutions  = $posted_include_solutions;
+            $include_blog       = $posted_include_blog;
+            $include_dependiente = $posted_include_dependiente;
+
+            $preview_include_solutions  = $include_solutions;
+            $preview_include_blog       = $include_blog;
+            $preview_include_dependiente = $include_dependiente;
+
             update_option('seo_menu_include_solutions', $include_solutions, false);
+            update_option('seo_menu_include_blog', $include_blog, false);
+            update_option('seo_menu_include_dependiente', $include_dependiente, false);
 
             $menu_id = seo_menu_get_or_create_menu();
 
@@ -132,7 +156,9 @@ function seo_menu_manager_page() {
                 $result = seo_tree_to_wp_menu(
                     $tree,
                     $menu_id,
-                    $include_solutions
+                    $include_solutions,
+                    $include_blog,
+                    $include_dependiente
                 );
 
                 if (is_wp_error($result)) {
@@ -191,17 +217,29 @@ function seo_menu_manager_page() {
     /*************************************************
      * FORMULARIO DE PREVISUALIZACIÓN
      *************************************************/
-    echo '<form method="post" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:20px;">';
+    echo '<form method="post" style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin-bottom:20px;">';
 
     wp_nonce_field(
         'seo_menu_manager_action',
         'seo_menu_manager_nonce'
     );
 
-    echo '<label style="display:inline-flex;align-items:center;gap:6px;margin-right:8px;">';
-    echo '<input type="checkbox" name="seo_include_solutions" value="1" ' .
+    echo '<label style="display:flex;align-items:flex-start;gap:6px;max-width:290px;">';
+    echo '<input type="checkbox" name="seo_include_solutions" value="1" style="margin-top:2px;" ' .
         checked($preview_include_solutions, 1, false) . '>';
-    echo '<strong>Incluir Soluciones</strong>';
+    echo '<span><strong>Incluir Soluciones</strong><br><span style="color:#646970;font-size:12px;">Añade la página “Soluciones”, que recopila las páginas con rol <code>landing</code>.</span></span>';
+    echo '</label>';
+
+    echo '<label style="display:flex;align-items:flex-start;gap:6px;max-width:250px;">';
+    echo '<input type="checkbox" name="seo_include_blog" value="1" style="margin-top:2px;" ' .
+        checked($preview_include_blog, 1, false) . '>';
+    echo '<span><strong>Incluir Blog</strong><br><span style="color:#646970;font-size:12px;">Añade el índice de noticias/entradas configurado en WordPress.</span></span>';
+    echo '</label>';
+
+    echo '<label style="display:flex;align-items:flex-start;gap:6px;max-width:270px;">';
+    echo '<input type="checkbox" name="seo_include_dependiente" value="1" style="margin-top:2px;" ' .
+        checked($preview_include_dependiente, 1, false) . '>';
+    echo '<span><strong>Incluir Dependiente</strong><br><span style="color:#646970;font-size:12px;">Añade la página pública del buscador guiado Dependiente.</span></span>';
     echo '</label>';
 
     echo '<button class="button button-primary" name="seo_action" value="preview_menu">';
@@ -285,7 +323,7 @@ function seo_menu_manager_page() {
             echo '<div style="margin:15px 0;padding:12px;border-left:4px solid #46b450;">';
             echo '<h3 style="margin:0 0 6px;"><a href="' . esc_url($solutions_url) . '" target="_blank" rel="noopener noreferrer">Soluciones</a></h3>';
             echo '<p style="margin:0;color:#646970;">';
-            echo 'Se añadirá un único enlace principal a Soluciones';
+            echo 'Se añadirá un único enlace principal a la página Soluciones, que recopila las páginas con rol landing';
             if (!empty($solutions)) {
                 echo ' (' . intval(count($solutions)) . ' landings activas y publicadas en la parrilla)';
             }
@@ -293,10 +331,44 @@ function seo_menu_manager_page() {
             echo '</div>';
         }
 
+        if ($preview_include_blog === 1) {
+            $blog_target = seo_menu_get_blog_target();
+
+            echo '<div style="margin:15px 0;padding:12px;border-left:4px solid #dba617;">';
+            if (is_wp_error($blog_target)) {
+                echo '<h3 style="margin:0 0 6px;">Blog <span style="color:#b32d2e;">(sin URL)</span></h3>';
+                echo '<p style="margin:0;color:#b32d2e;">' . esc_html($blog_target->get_error_message()) . '</p>';
+            } else {
+                echo '<h3 style="margin:0 0 6px;"><a href="' . esc_url($blog_target['url']) . '" target="_blank" rel="noopener noreferrer">Blog</a></h3>';
+                echo '<p style="margin:0;color:#646970;">Se añadirá como enlace principal al índice de noticias/entradas de WordPress.</p>';
+            }
+            echo '</div>';
+        }
+
+        if ($preview_include_dependiente === 1) {
+            $dependiente_target = seo_menu_get_dependiente_target(false);
+
+            echo '<div style="margin:15px 0;padding:12px;border-left:4px solid #8b5cf6;">';
+            if (is_wp_error($dependiente_target)) {
+                echo '<h3 style="margin:0 0 6px;">Dependiente <span style="color:#b32d2e;">(sin URL)</span></h3>';
+                echo '<p style="margin:0;color:#b32d2e;">' . esc_html($dependiente_target->get_error_message()) . '</p>';
+            } else {
+                echo '<h3 style="margin:0 0 6px;"><a href="' . esc_url($dependiente_target['url']) . '" target="_blank" rel="noopener noreferrer">Dependiente</a></h3>';
+                echo '<p style="margin:0;color:#646970;">Se añadirá como enlace principal a la página pública del buscador guiado.</p>';
+            }
+            echo '</div>';
+        }
+
         echo '<form method="post" style="margin-top:20px;padding-top:16px;border-top:1px solid #dcdcde;">';
         wp_nonce_field('seo_menu_manager_action', 'seo_menu_manager_nonce');
         if ($preview_include_solutions === 1) {
             echo '<input type="hidden" name="seo_include_solutions" value="1">';
+        }
+        if ($preview_include_blog === 1) {
+            echo '<input type="hidden" name="seo_include_blog" value="1">';
+        }
+        if ($preview_include_dependiente === 1) {
+            echo '<input type="hidden" name="seo_include_dependiente" value="1">';
         }
         echo '<button class="button button-primary button-hero" name="seo_action" value="publish_menu" onclick="return confirm(\'¿Publicar y activar este menú? Sustituirá el menú principal actual, conservando una copia para poder restaurarlo.\');">';
         echo 'Publicar y activar este menú';
@@ -748,16 +820,216 @@ add_shortcode(
 
 
 /*************************************************
+ * BLOG / ÍNDICE DE ENTRADAS
+ *************************************************/
+function seo_menu_get_blog_target() {
+
+    $posts_page_id = (int) get_option('page_for_posts', 0);
+
+    if (
+        $posts_page_id > 0 &&
+        get_post_type($posts_page_id) === 'page' &&
+        get_post_status($posts_page_id) === 'publish'
+    ) {
+        $url = get_permalink($posts_page_id);
+
+        if ($url) {
+            return [
+                'id'    => $posts_page_id,
+                'title' => 'Blog',
+                'url'   => $url,
+            ];
+        }
+    }
+
+    $blog_page = get_page_by_path(
+        'blog',
+        OBJECT,
+        'page'
+    );
+
+    if (
+        $blog_page instanceof WP_Post &&
+        $blog_page->post_status === 'publish'
+    ) {
+        $url = get_permalink($blog_page->ID);
+
+        if ($url) {
+            return [
+                'id'    => (int) $blog_page->ID,
+                'title' => 'Blog',
+                'url'   => $url,
+            ];
+        }
+    }
+
+    if (get_option('show_on_front') === 'posts') {
+        return [
+            'id'    => 0,
+            'title' => 'Blog',
+            'url'   => home_url('/'),
+        ];
+    }
+
+    return new WP_Error(
+        'blog_page_not_found',
+        'No se ha encontrado una página de entradas publicada. Configúrala en Ajustes > Lectura o publica una página con slug “blog”.'
+    );
+}
+
+
+/*************************************************
+ * DEPENDIENTE / PÁGINA PÚBLICA
+ *************************************************/
+function seo_menu_get_dependiente_target($create_if_missing = false) {
+
+    $page_id = (int) get_option(
+        'seo_dependiente_page_id',
+        0
+    );
+
+    if (
+        $page_id > 0 &&
+        get_post_type($page_id) === 'page' &&
+        get_post_status($page_id) === 'publish'
+    ) {
+        $url = get_permalink($page_id);
+
+        if ($url) {
+            return [
+                'id'    => $page_id,
+                'title' => 'Dependiente',
+                'url'   => $url,
+            ];
+        }
+    }
+
+    $page = get_page_by_path(
+        'dependiente',
+        OBJECT,
+        'page'
+    );
+
+    if (
+        $page instanceof WP_Post &&
+        $page->post_status === 'publish'
+    ) {
+        $url = get_permalink($page->ID);
+
+        if ($url) {
+            return [
+                'id'    => (int) $page->ID,
+                'title' => 'Dependiente',
+                'url'   => $url,
+            ];
+        }
+    }
+
+    if (
+        $create_if_missing &&
+        class_exists('SEO_Dependiente_Plugin') &&
+        is_callable(['SEO_Dependiente_Plugin', 'ensure_page'])
+    ) {
+        $page_id = (int) SEO_Dependiente_Plugin::ensure_page();
+
+        if (
+            $page_id > 0 &&
+            get_post_status($page_id) === 'publish'
+        ) {
+            $url = get_permalink($page_id);
+
+            if ($url) {
+                return [
+                    'id'    => $page_id,
+                    'title' => 'Dependiente',
+                    'url'   => $url,
+                ];
+            }
+        }
+    }
+
+    return new WP_Error(
+        'dependiente_page_not_found',
+        'No se ha encontrado la página pública Dependiente. Abre primero SEO Taxonomy > Dependiente para que el módulo la cree.'
+    );
+}
+
+
+/*************************************************
+ * AÑADIR ENLACE OPCIONAL DE PRIMER NIVEL
+ *************************************************/
+function seo_menu_add_optional_top_level_link(
+    $menu_id,
+    $title,
+    $url,
+    &$position,
+    $error_prefix
+) {
+
+    $menu_id = (int) $menu_id;
+    $title = sanitize_text_field((string) $title);
+    $url = esc_url_raw((string) $url);
+    $error_prefix = sanitize_key((string) $error_prefix);
+
+    if ($menu_id <= 0 || $title === '' || $url === '') {
+        return new WP_Error(
+            $error_prefix . '_invalid_link',
+            'No se puede añadir “' . $title . '” porque su enlace no es válido.'
+        );
+    }
+
+    $menu_item_id = wp_update_nav_menu_item(
+        $menu_id,
+        0,
+        [
+            'menu-item-title'     => $title,
+            'menu-item-url'       => $url,
+            'menu-item-type'      => 'custom',
+            'menu-item-status'    => 'publish',
+            'menu-item-parent-id' => 0,
+            'menu-item-position'  => $position++,
+        ]
+    );
+
+    if (is_wp_error($menu_item_id)) {
+        return $menu_item_id;
+    }
+
+    if ((int) $menu_item_id <= 0) {
+        return new WP_Error(
+            $error_prefix . '_menu_insert_failed',
+            'WordPress no ha podido insertar “' . $title . '” en el menú.'
+        );
+    }
+
+    foreach ((array) wp_get_nav_menu_items($menu_id) as $menu_item) {
+        if ((int) $menu_item->ID === (int) $menu_item_id) {
+            return (int) $menu_item_id;
+        }
+    }
+
+    return new WP_Error(
+        $error_prefix . '_menu_verification_failed',
+        '“' . $title . '” se intentó crear, pero no aparece dentro del menú de WordPress.'
+    );
+}
+
+
+/*************************************************
  * TREE → WORDPRESS MENU
  *************************************************/
 function seo_tree_to_wp_menu(
     $tree,
     $menu_id,
-    $include_solutions = 0
+    $include_solutions = 0,
+    $include_blog = 0,
+    $include_dependiente = 0
 ) {
 
     $menu_id = (int) $menu_id;
-    $include_solutions = (int) $include_solutions;
+    $include_solutions  = (int) $include_solutions;
+    $include_blog       = (int) $include_blog;
+    $include_dependiente = (int) $include_dependiente;
 
     if (
         $menu_id <= 0 ||
@@ -925,14 +1197,7 @@ function seo_tree_to_wp_menu(
     }
 
     /*************************************************
-     * SOLUCIONES
-     *
-     * OPCIONAL.
-     *
-     * Se añade al MISMO NIVEL que los clusters.
-     *
-     * Las páginas landing NO se añaden como
-     * elementos ni como submenús.
+     * ELEMENTOS OPCIONALES DE PRIMER NIVEL
      *************************************************/
     if ($include_solutions === 1) {
 
@@ -943,80 +1208,69 @@ function seo_tree_to_wp_menu(
         }
 
         $solutions_page_id = (int) $solutions_page_id;
+        $solutions_url = $solutions_page_id > 0
+            ? get_permalink($solutions_page_id)
+            : '';
 
-        if ($solutions_page_id <= 0) {
+        if (!$solutions_url) {
             return new WP_Error(
                 'invalid_solutions_page',
                 'No se ha podido localizar o crear la página Soluciones.'
             );
         }
 
-        if (get_post_status($solutions_page_id) !== 'publish') {
-
-            $published = wp_update_post(
-                [
-                    'ID'          => $solutions_page_id,
-                    'post_status' => 'publish',
-                ],
-                true
-            );
-
-            if (is_wp_error($published)) {
-                return $published;
-            }
-        }
-
-        /*
-         * Soluciones se crea como ENLACE PERSONALIZADO
-         * a la página /soluciones/.
-         *
-         * Así el generador del menú no depende de
-         * ninguna plantilla de página.
-         */
-        $solutions_menu_id = wp_update_nav_menu_item(
+        $result = seo_menu_add_optional_top_level_link(
             $menu_id,
-            0,
-            [
-                'menu-item-title'     => 'Soluciones',
-                'menu-item-url'       => get_permalink($solutions_page_id),
-                'menu-item-type'      => 'custom',
-                'menu-item-status'    => 'publish',
-                'menu-item-parent-id' => 0,
-                'menu-item-position'  => $position++,
-            ]
+            'Soluciones',
+            $solutions_url,
+            $position,
+            'solutions'
         );
 
-        if (is_wp_error($solutions_menu_id)) {
-            return $solutions_menu_id;
+        if (is_wp_error($result)) {
+            return $result;
+        }
+    }
+
+    if ($include_blog === 1) {
+
+        $blog_target = seo_menu_get_blog_target();
+
+        if (is_wp_error($blog_target)) {
+            return $blog_target;
         }
 
-        if ((int) $solutions_menu_id <= 0) {
-            return new WP_Error(
-                'solutions_menu_insert_failed',
-                'WordPress no ha podido insertar Soluciones en el menú.'
-            );
+        $result = seo_menu_add_optional_top_level_link(
+            $menu_id,
+            'Blog',
+            $blog_target['url'],
+            $position,
+            'blog'
+        );
+
+        if (is_wp_error($result)) {
+            return $result;
+        }
+    }
+
+    if ($include_dependiente === 1) {
+
+        $dependiente_target = seo_menu_get_dependiente_target(true);
+
+        if (is_wp_error($dependiente_target)) {
+            return $dependiente_target;
         }
 
-        /*
-         * Verificación real.
-         */
-        $menu_items = wp_get_nav_menu_items($menu_id);
+        $result = seo_menu_add_optional_top_level_link(
+            $menu_id,
+            'Dependiente',
+            $dependiente_target['url'],
+            $position,
+            'dependiente'
+        );
 
-        $solutions_found = false;
-
-        foreach ((array) $menu_items as $menu_item) {
-
-            if ((int) $menu_item->ID === (int) $solutions_menu_id) {
-                $solutions_found = true;
-                break;
-            }
-        }
-
-        if (!$solutions_found) {
-            return new WP_Error(
-                'solutions_menu_verification_failed',
-                'Soluciones se intentó crear, pero no aparece dentro del menú de WordPress.'
-            );
+        if (is_wp_error($result)) {
+            return $result;
         }
     }
 
