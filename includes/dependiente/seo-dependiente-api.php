@@ -185,7 +185,7 @@ final class SEO_Dependiente_API {
                 'id'          => $product->get_id(),
                 'title'       => $product->get_name(),
                 'url'         => get_permalink($product->get_id()),
-                'image'       => (string) $document['image_url'],
+                'image'       => self::product_image_or_logo(absint($document['product_id'] ?? 0)),
                 'price'       => wp_strip_all_tags($product->get_price_html()),
                 'brand'       => (string) $document['brand_name'],
                 'sku'         => (string) $product->get_sku(),
@@ -693,7 +693,7 @@ final class SEO_Dependiente_API {
             'id'            => $product->get_id(),
             'title'         => $product->get_name(),
             'url'           => get_permalink($product->get_id()),
-            'image'         => (string) $document['image_url'],
+            'image'         => self::product_image_or_logo($product->get_id()),
             'price_html'    => wp_kses_post($product->get_price_html()),
             'price'         => '' !== (string) $document['price'] ? (float) $document['price'] : null,
             'brand'         => (string) $document['brand_name'],
@@ -1099,8 +1099,8 @@ final class SEO_Dependiente_API {
         $candidates = array();
 
         foreach ((array) $documents as $document) {
-            $image = esc_url_raw((string) ($document['image_url'] ?? ''));
-            if (!$image) {
+            $product_id = absint($document['product_id'] ?? 0);
+            if (!$product_id) {
                 continue;
             }
 
@@ -1115,9 +1115,12 @@ final class SEO_Dependiente_API {
                 $score += 5;
             }
 
+            if (!empty($document['featured'])) {
+                $score += 10;
+            }
+
             $candidates[] = array(
-                'id'    => absint($document['product_id'] ?? 0),
-                'url'   => $image,
+                'id'    => $product_id,
                 'score' => $score,
             );
         }
@@ -1134,12 +1137,41 @@ final class SEO_Dependiente_API {
             return absint($a['id'] ?? 0) <=> absint($b['id'] ?? 0);
         });
 
-        $winner = reset($candidates);
-        return array(
-            'url'    => (string) ($winner['url'] ?? ''),
-            'kind'   => 'product',
-            'source' => !empty($winner['id']) ? 'product:' . absint($winner['id']) : 'product',
-        );
+        // No hacemos una consulta de imagen para todos los productos de una
+        // accion. Probamos los mejores candidatos en orden hasta encontrar la
+        // primera imagen real (Media o proveedor).
+        foreach (array_slice($candidates, 0, 40) as $candidate) {
+            $product_id = absint($candidate['id'] ?? 0);
+            $image = $product_id ? SEO_Dependiente_Index::product_image_url($product_id) : '';
+            if (!$image) {
+                continue;
+            }
+
+            return array(
+                'url'    => esc_url_raw((string) $image),
+                'kind'   => 'product',
+                'source' => 'product:' . $product_id,
+            );
+        }
+
+        return array();
+    }
+
+    /**
+     * Imagen real de producto para resultados y comparador. Se resuelve en
+     * tiempo real para que staging pueda utilizar inmediatamente una URL de
+     * wp_seo_proveedores_productos aunque el indice aun conserve una imagen
+     * antigua. Solo si no existe imagen relacional se usa el logo.
+     */
+    private static function product_image_or_logo($product_id) {
+        $product_id = absint($product_id);
+        if ($product_id) {
+            $url = SEO_Dependiente_Index::product_image_url($product_id);
+            if ($url) {
+                return esc_url_raw((string) $url);
+            }
+        }
+        return self::company_logo_url();
     }
 
     /**

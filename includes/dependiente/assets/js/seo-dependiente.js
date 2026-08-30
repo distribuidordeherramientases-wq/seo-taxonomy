@@ -60,6 +60,23 @@
         }
 
         function bindEvents() {
+            // Las imagenes de proveedor pueden vivir fuera de WordPress. Si el
+            // hosting remoto rechaza una URL concreta, evitamos el icono roto y
+            // mostramos el logo corporativo configurado como fallback.
+            root.addEventListener('error', function (event) {
+                const image = event.target;
+                if (!image || image.tagName !== 'IMG') {
+                    return;
+                }
+                const fallback = String(config.placeholderImage || '');
+                if (fallback && image.dataset.seoFallbackApplied !== '1') {
+                    image.dataset.seoFallbackApplied = '1';
+                    image.src = fallback;
+                    return;
+                }
+                image.style.visibility = 'hidden';
+            }, true);
+
             elements.form.addEventListener('submit', function (event) {
                 event.preventDefault();
                 state.q = elements.query.value.trim();

@@ -47,7 +47,6 @@ final class SEO_Dependiente_Plugin {
             'results_per_page' => 18,
             'menu_cards'       => 8,
             'custom_meta_keys' => '_seo_proveedor,_seo_proveedor_mpn,_seo_categoria_proveedor,_seo_fabricante,_seo_marca_proveedor',
-            'auto_add_menu'    => 1,
         );
         $saved = get_option('seo_dependiente_options', array());
         update_option('seo_dependiente_options', wp_parse_args(is_array($saved) ? $saved : array(), $defaults), false);
@@ -78,10 +77,7 @@ final class SEO_Dependiente_Plugin {
             return;
         }
 
-        $page_id = self::ensure_page();
-        if ($page_id && self::option('auto_add_menu', 1)) {
-            self::maybe_add_page_to_primary_menu($page_id);
-        }
+        self::ensure_page();
     }
 
     public static function option($key, $default = null) {
@@ -244,6 +240,18 @@ final class SEO_Dependiente_Plugin {
             true
         );
 
+        $fallback_image = '';
+        $custom_logo_id = absint(get_theme_mod('custom_logo'));
+        if ($custom_logo_id) {
+            $fallback_image = (string) wp_get_attachment_image_url($custom_logo_id, 'full');
+        }
+        if (!$fallback_image) {
+            $fallback_image = (string) get_site_icon_url(512);
+        }
+        if (!$fallback_image && function_exists('wc_placeholder_img_src')) {
+            $fallback_image = (string) wc_placeholder_img_src('woocommerce_thumbnail');
+        }
+
         wp_localize_script('seo-dependiente', 'SEODependienteConfig', array(
             'root'             => esc_url_raw(rest_url('seo-taxonomy/v1/')),
             'currencySymbol'   => function_exists('get_woocommerce_currency_symbol') ? get_woocommerce_currency_symbol() : '€',
@@ -251,7 +259,7 @@ final class SEO_Dependiente_Plugin {
             'dimensionUnit'    => get_option('woocommerce_dimension_unit', 'cm'),
             'resultsPerPage'   => absint(self::option('results_per_page', 18)),
             'compareMax'       => 4,
-            'placeholderImage' => function_exists('wc_placeholder_img_src') ? esc_url_raw(wc_placeholder_img_src('woocommerce_thumbnail')) : '',
+            'placeholderImage' => esc_url_raw($fallback_image),
             'labels'           => array(
                 'error'       => 'No he podido completar la búsqueda. Inténtalo de nuevo.',
                 'loading'     => 'Estoy revisando el catálogo…',
