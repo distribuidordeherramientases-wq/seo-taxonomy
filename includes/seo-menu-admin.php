@@ -2,7 +2,7 @@
 /*
 Plugin Name: SEO Menu Manager
 Description: Genera y sincroniza menús SEO desde base de datos.
-Version: 1.0.1
+Version: 1.1.0
 */
 
 if (!defined('ABSPATH')) exit;
@@ -24,19 +24,6 @@ function seo_menu_manager_page() {
     $preview_include_blog       = (int) get_option('seo_menu_include_blog', 0);
     $preview_include_dependiente = (int) get_option('seo_menu_include_dependiente', 0);
 
-    echo '<p><strong>Estado menú:</strong> ';
-
-    if ($created_menu_id && wp_get_nav_menu_object($created_menu_id)) {
-        echo 'Creado (ID: ' . intval($created_menu_id) . ')';
-        if ($created_date) {
-            echo ' · ' . esc_html($created_date);
-        }
-    } else {
-        echo 'No creado';
-    }
-
-    echo '</p>';
-
     /**********************
      * ACTIONS
      **********************/
@@ -51,6 +38,134 @@ function seo_menu_manager_page() {
         $posted_include_solutions  = isset($_POST['seo_include_solutions']) ? 1 : 0;
         $posted_include_blog       = isset($_POST['seo_include_blog']) ? 1 : 0;
         $posted_include_dependiente = isset($_POST['seo_include_dependiente']) ? 1 : 0;
+
+        /*
+         * AÑADIR OBJETOS NATIVOS DE WORDPRESS
+         * Páginas, entradas y categorías se guardan como nav_menu_item nativos.
+         * No forman parte de la jerarquía automática y sobreviven a una sincronización.
+         */
+        if ($action === 'add_wp_objects') {
+
+            $menu_id = seo_menu_get_or_create_menu();
+
+            if (is_wp_error($menu_id)) {
+                echo '<div class="notice notice-error"><p>' .
+                    esc_html($menu_id->get_error_message()) .
+                    '</p></div>';
+            } else {
+                seo_menu_maybe_initialize_generated_markers($menu_id);
+
+                $object_type = isset($_POST['seo_object_type'])
+                    ? sanitize_key(wp_unslash($_POST['seo_object_type']))
+                    : '';
+
+                $object_ids = isset($_POST['seo_object_ids'])
+                    ? array_map('absint', (array) wp_unslash($_POST['seo_object_ids']))
+                    : [];
+
+                $result = seo_menu_add_native_objects(
+                    $menu_id,
+                    $object_type,
+                    $object_ids
+                );
+
+                if (is_wp_error($result)) {
+                    echo '<div class="notice notice-error"><p>' .
+                        esc_html($result->get_error_message()) .
+                        '</p></div>';
+                } else {
+                    echo '<div class="notice notice-success"><p>';
+                    echo esc_html(
+                        sprintf(
+                            _n(
+                                '%d elemento añadido al menú SEO.',
+                                '%d elementos añadidos al menú SEO.',
+                                (int) $result
+                            ),
+                            (int) $result
+                        )
+                    );
+                    echo ' Se conservarán cuando sincronices la jerarquía automática.';
+                    echo '</p></div>';
+                }
+
+                $created_menu_id = (int) $menu_id;
+                $show_preview = true;
+            }
+        }
+
+        /*
+         * AÑADIR ENLACE PERSONALIZADO
+         */
+        if ($action === 'add_custom_link') {
+
+            $menu_id = seo_menu_get_or_create_menu();
+
+            if (is_wp_error($menu_id)) {
+                echo '<div class="notice notice-error"><p>' .
+                    esc_html($menu_id->get_error_message()) .
+                    '</p></div>';
+            } else {
+                seo_menu_maybe_initialize_generated_markers($menu_id);
+
+                $custom_title = isset($_POST['seo_custom_title'])
+                    ? sanitize_text_field(wp_unslash($_POST['seo_custom_title']))
+                    : '';
+
+                $custom_url = isset($_POST['seo_custom_url'])
+                    ? esc_url_raw(wp_unslash($_POST['seo_custom_url']))
+                    : '';
+
+                $result = seo_menu_add_custom_link(
+                    $menu_id,
+                    $custom_title,
+                    $custom_url
+                );
+
+                if (is_wp_error($result)) {
+                    echo '<div class="notice notice-error"><p>' .
+                        esc_html($result->get_error_message()) .
+                        '</p></div>';
+                } else {
+                    echo '<div class="notice notice-success"><p>';
+                    echo 'Enlace personalizado añadido al menú SEO. Se conservará al sincronizar.';
+                    echo '</p></div>';
+                }
+
+                $created_menu_id = (int) $menu_id;
+                $show_preview = true;
+            }
+        }
+
+        /*
+         * ELIMINAR ELEMENTO MANUAL
+         */
+        if ($action === 'remove_manual_item') {
+
+            $menu_id = (int) get_option('seo_menu_created_id');
+            $menu_item_id = isset($_POST['seo_menu_item_id'])
+                ? absint($_POST['seo_menu_item_id'])
+                : 0;
+
+            seo_menu_maybe_initialize_generated_markers($menu_id);
+
+            $result = seo_menu_remove_manual_item(
+                $menu_id,
+                $menu_item_id
+            );
+
+            if (is_wp_error($result)) {
+                echo '<div class="notice notice-error"><p>' .
+                    esc_html($result->get_error_message()) .
+                    '</p></div>';
+            } else {
+                echo '<div class="notice notice-success"><p>';
+                echo 'Elemento adicional eliminado del menú SEO.';
+                echo '</p></div>';
+            }
+
+            $show_preview = true;
+        }
 
         /*
          * PREVISUALIZAR
@@ -214,6 +329,22 @@ function seo_menu_manager_page() {
         }
     }
 
+    $created_menu_id = (int) get_option('seo_menu_created_id');
+    $created_date = get_option('seo_menu_created_date');
+
+    echo '<p><strong>Estado menú:</strong> ';
+
+    if ($created_menu_id && wp_get_nav_menu_object($created_menu_id)) {
+        echo 'Creado (ID: ' . intval($created_menu_id) . ')';
+        if ($created_date) {
+            echo ' · ' . esc_html($created_date);
+        }
+    } else {
+        echo 'No creado';
+    }
+
+    echo '</p>';
+
     /*************************************************
      * FORMULARIO DE PREVISUALIZACIÓN
      *************************************************/
@@ -261,6 +392,12 @@ function seo_menu_manager_page() {
     echo '</button>';
 
     echo '</form>';
+
+    if ($created_menu_id && wp_get_nav_menu_object($created_menu_id)) {
+        seo_menu_maybe_initialize_generated_markers($created_menu_id);
+    }
+
+    seo_menu_render_wordpress_menu_editor($created_menu_id);
 
     /*************************************************
      * PREVISUALIZACIÓN DE LA ESTRUCTURA
@@ -359,6 +496,37 @@ function seo_menu_manager_page() {
             echo '</div>';
         }
 
+        if ($created_menu_id && wp_get_nav_menu_object($created_menu_id)) {
+            $manual_preview_items = seo_menu_get_manual_items($created_menu_id);
+
+            if (!empty($manual_preview_items)) {
+                echo '<div style="margin:15px 0;padding:12px;border-left:4px solid #646970;">';
+                echo '<h3 style="margin:0 0 8px;">Elementos adicionales de WordPress</h3>';
+                echo '<p style="margin:0 0 8px;color:#646970;">Se conservarán después de reconstruir la jerarquía automática.</p>';
+                echo '<ul style="margin:0 0 0 18px;">';
+
+                foreach ($manual_preview_items as $manual_item) {
+                    echo '<li>';
+
+                    if (!empty($manual_item->url)) {
+                        echo '<a href="' . esc_url($manual_item->url) . '" target="_blank" rel="noopener noreferrer">' .
+                            esc_html($manual_item->title) .
+                            '</a>';
+                    } else {
+                        echo esc_html($manual_item->title);
+                    }
+
+                    echo ' <span style="color:#646970;">(' .
+                        esc_html(seo_menu_get_item_type_label($manual_item)) .
+                        ')</span>';
+                    echo '</li>';
+                }
+
+                echo '</ul>';
+                echo '</div>';
+            }
+        }
+
         echo '<form method="post" style="margin-top:20px;padding-top:16px;border-top:1px solid #dcdcde;">';
         wp_nonce_field('seo_menu_manager_action', 'seo_menu_manager_nonce');
         if ($preview_include_solutions === 1) {
@@ -382,6 +550,1223 @@ function seo_menu_manager_page() {
     }
 
     echo '</div>';
+}
+
+
+/*************************************************
+ * ELEMENTOS MANUALES / UI TIPO WORDPRESS
+ *************************************************/
+function seo_menu_get_all_menu_items($menu_id) {
+
+    $menu_id = (int) $menu_id;
+
+    if ($menu_id <= 0 || !wp_get_nav_menu_object($menu_id)) {
+        return [];
+    }
+
+    $items = wp_get_nav_menu_items(
+        $menu_id,
+        [
+            'post_status' => 'publish,draft',
+        ]
+    );
+
+    return is_array($items) ? $items : [];
+}
+
+
+function seo_menu_mark_generated_item($menu_item_id, $kind = '') {
+
+    $menu_item_id = (int) $menu_item_id;
+
+    if ($menu_item_id <= 0) {
+        return;
+    }
+
+    update_post_meta(
+        $menu_item_id,
+        '_seo_menu_generated',
+        '1'
+    );
+
+    if ($kind !== '') {
+        update_post_meta(
+            $menu_item_id,
+            '_seo_menu_generated_kind',
+            sanitize_key((string) $kind)
+        );
+    }
+}
+
+
+function seo_menu_is_generated_item($menu_item_id) {
+
+    return get_post_meta(
+        (int) $menu_item_id,
+        '_seo_menu_generated',
+        true
+    ) === '1';
+}
+
+
+/**
+ * Migración desde la versión anterior.
+ *
+ * Hasta ahora la estructura generada por este plugin se guardaba como enlaces
+ * personalizados. En el primer acceso marcamos esos enlaces legacy como parte
+ * automática. Los elementos nativos que alguien hubiera añadido ya desde
+ * WordPress (páginas, entradas o categorías) se respetan como manuales.
+ */
+function seo_menu_maybe_initialize_generated_markers($menu_id) {
+
+    $menu_id = (int) $menu_id;
+
+    if ($menu_id <= 0 || !wp_get_nav_menu_object($menu_id)) {
+        return;
+    }
+
+    $initialized_menu_id = (int) get_option(
+        'seo_menu_generated_marker_menu_id',
+        0
+    );
+
+    if ($initialized_menu_id === $menu_id) {
+        return;
+    }
+
+    foreach (seo_menu_get_all_menu_items($menu_id) as $item) {
+
+        if ($item->type !== 'custom') {
+            continue;
+        }
+
+        seo_menu_mark_generated_item(
+            (int) $item->ID,
+            'legacy'
+        );
+    }
+
+    update_option(
+        'seo_menu_generated_marker_menu_id',
+        $menu_id,
+        false
+    );
+}
+
+
+function seo_menu_get_manual_items($menu_id) {
+
+    $manual_items = [];
+
+    foreach (seo_menu_get_all_menu_items($menu_id) as $item) {
+        if (!seo_menu_is_generated_item((int) $item->ID)) {
+            $manual_items[] = $item;
+        }
+    }
+
+    return $manual_items;
+}
+
+
+function seo_menu_add_native_objects(
+    $menu_id,
+    $object_type,
+    $object_ids
+) {
+
+    $menu_id = (int) $menu_id;
+    $object_type = sanitize_key((string) $object_type);
+    $object_ids = array_values(
+        array_unique(
+            array_filter(
+                array_map('absint', (array) $object_ids)
+            )
+        )
+    );
+
+    if ($menu_id <= 0 || !wp_get_nav_menu_object($menu_id)) {
+        return new WP_Error(
+            'invalid_manual_menu',
+            'No se puede añadir el elemento porque el menú SEO no existe.'
+        );
+    }
+
+    if (empty($object_ids)) {
+        return new WP_Error(
+            'empty_manual_selection',
+            'Selecciona al menos un elemento antes de añadirlo al menú.'
+        );
+    }
+
+    if (!in_array($object_type, ['page', 'post', 'category'], true)) {
+        return new WP_Error(
+            'invalid_manual_object_type',
+            'El tipo de elemento seleccionado no está permitido.'
+        );
+    }
+
+    $added = 0;
+
+    foreach ($object_ids as $object_id) {
+
+        if ($object_type === 'category') {
+
+            $term = get_term($object_id, 'category');
+
+            if (!$term || is_wp_error($term)) {
+                continue;
+            }
+
+            $menu_item_id = wp_update_nav_menu_item(
+                $menu_id,
+                0,
+                [
+                    'menu-item-object-id' => (int) $term->term_id,
+                    'menu-item-object'    => 'category',
+                    'menu-item-type'      => 'taxonomy',
+                    'menu-item-title'     => $term->name,
+                    'menu-item-status'    => 'publish',
+                    'menu-item-parent-id' => 0,
+                    'menu-item-position'  => 0,
+                ]
+            );
+
+        } else {
+
+            $post = get_post($object_id);
+
+            if (
+                !$post instanceof WP_Post ||
+                $post->post_type !== $object_type ||
+                $post->post_status !== 'publish'
+            ) {
+                continue;
+            }
+
+            $menu_item_id = wp_update_nav_menu_item(
+                $menu_id,
+                0,
+                [
+                    'menu-item-object-id' => (int) $post->ID,
+                    'menu-item-object'    => $object_type,
+                    'menu-item-type'      => 'post_type',
+                    'menu-item-title'     => get_the_title($post->ID),
+                    'menu-item-status'    => 'publish',
+                    'menu-item-parent-id' => 0,
+                    'menu-item-position'  => 0,
+                ]
+            );
+        }
+
+        if (is_wp_error($menu_item_id)) {
+            return $menu_item_id;
+        }
+
+        if ((int) $menu_item_id > 0) {
+            $added++;
+        }
+    }
+
+    if ($added <= 0) {
+        return new WP_Error(
+            'manual_items_not_added',
+            'No se ha podido añadir ninguno de los elementos seleccionados.'
+        );
+    }
+
+    return $added;
+}
+
+
+function seo_menu_add_custom_link(
+    $menu_id,
+    $title,
+    $url
+) {
+
+    $menu_id = (int) $menu_id;
+    $title = sanitize_text_field((string) $title);
+    $url = esc_url_raw((string) $url);
+
+    if ($menu_id <= 0 || !wp_get_nav_menu_object($menu_id)) {
+        return new WP_Error(
+            'invalid_custom_menu',
+            'No se puede añadir el enlace porque el menú SEO no existe.'
+        );
+    }
+
+    if ($title === '') {
+        return new WP_Error(
+            'empty_custom_title',
+            'Escribe el texto del enlace.'
+        );
+    }
+
+    if ($url === '') {
+        return new WP_Error(
+            'empty_custom_url',
+            'Escribe una URL válida para el enlace personalizado.'
+        );
+    }
+
+    $menu_item_id = wp_update_nav_menu_item(
+        $menu_id,
+        0,
+        [
+            'menu-item-title'     => $title,
+            'menu-item-url'       => $url,
+            'menu-item-type'      => 'custom',
+            'menu-item-status'    => 'publish',
+            'menu-item-parent-id' => 0,
+            'menu-item-position'  => 0,
+        ]
+    );
+
+    if (is_wp_error($menu_item_id)) {
+        return $menu_item_id;
+    }
+
+    if ((int) $menu_item_id <= 0) {
+        return new WP_Error(
+            'custom_link_not_added',
+            'WordPress no ha podido añadir el enlace personalizado.'
+        );
+    }
+
+    return (int) $menu_item_id;
+}
+
+
+function seo_menu_remove_manual_item(
+    $menu_id,
+    $menu_item_id
+) {
+
+    $menu_id = (int) $menu_id;
+    $menu_item_id = (int) $menu_item_id;
+
+    if (
+        $menu_id <= 0 ||
+        $menu_item_id <= 0 ||
+        !wp_get_nav_menu_object($menu_id)
+    ) {
+        return new WP_Error(
+            'invalid_manual_item',
+            'El elemento que intentas eliminar no es válido.'
+        );
+    }
+
+    $found = false;
+
+    foreach (seo_menu_get_all_menu_items($menu_id) as $item) {
+        if ((int) $item->ID === $menu_item_id) {
+            $found = true;
+            break;
+        }
+    }
+
+    if (!$found) {
+        return new WP_Error(
+            'manual_item_not_in_menu',
+            'Ese elemento ya no pertenece al menú SEO.'
+        );
+    }
+
+    if (seo_menu_is_generated_item($menu_item_id)) {
+        return new WP_Error(
+            'generated_item_locked',
+            'Ese elemento pertenece a la estructura SEO automática. Modifica la jerarquía y sincroniza el menú.'
+        );
+    }
+
+    $deleted = wp_delete_post(
+        $menu_item_id,
+        true
+    );
+
+    if (!$deleted) {
+        return new WP_Error(
+            'manual_item_delete_failed',
+            'WordPress no ha podido eliminar el elemento del menú.'
+        );
+    }
+
+    return true;
+}
+
+
+function seo_menu_remove_generated_items($menu_id) {
+
+    $removed_ids = [];
+
+    foreach (seo_menu_get_all_menu_items($menu_id) as $item) {
+
+        $item_id = (int) $item->ID;
+
+        if (!seo_menu_is_generated_item($item_id)) {
+            continue;
+        }
+
+        $removed_ids[] = $item_id;
+
+        wp_delete_post(
+            $item_id,
+            true
+        );
+    }
+
+    return $removed_ids;
+}
+
+
+function seo_menu_resequence_manual_items(
+    $menu_id,
+    $removed_generated_ids,
+    &$position
+) {
+
+    $removed_generated_ids = array_map(
+        'absint',
+        (array) $removed_generated_ids
+    );
+
+    foreach (seo_menu_get_manual_items($menu_id) as $item) {
+
+        $item_id = (int) $item->ID;
+        $parent_id = (int) $item->menu_item_parent;
+
+        if (
+            $parent_id > 0 &&
+            in_array($parent_id, $removed_generated_ids, true)
+        ) {
+            update_post_meta(
+                $item_id,
+                '_menu_item_menu_item_parent',
+                0
+            );
+        }
+
+        wp_update_post(
+            [
+                'ID'         => $item_id,
+                'menu_order' => (int) $position++,
+            ]
+        );
+    }
+}
+
+
+function seo_menu_get_item_type_label($item) {
+
+    if (!is_object($item)) {
+        return 'Elemento';
+    }
+
+    if ($item->type === 'post_type') {
+        if ($item->object === 'page') {
+            return 'Página';
+        }
+
+        if ($item->object === 'post') {
+            return 'Entrada';
+        }
+
+        return 'Contenido';
+    }
+
+    if (
+        $item->type === 'taxonomy' &&
+        $item->object === 'category'
+    ) {
+        return 'Categoría';
+    }
+
+    if ($item->type === 'custom') {
+        return 'Enlace personalizado';
+    }
+
+    return 'Elemento';
+}
+
+
+function seo_menu_get_generated_kind_label($menu_item_id) {
+
+    $kind = get_post_meta(
+        (int) $menu_item_id,
+        '_seo_menu_generated_kind',
+        true
+    );
+
+    $labels = [
+        'cluster'       => 'Cluster',
+        'hub_primary'   => 'Hub primario',
+        'hub_secondary' => 'Hub secundario',
+        'solutions'     => 'Soluciones',
+        'blog'          => 'Blog',
+        'dependiente'   => 'Dependiente',
+        'legacy'        => 'Estructura automática anterior',
+    ];
+
+    return isset($labels[$kind])
+        ? $labels[$kind]
+        : 'Estructura SEO automática';
+}
+
+
+function seo_menu_get_menu_item_depth($item, $item_map) {
+
+    if (!is_object($item)) {
+        return 0;
+    }
+
+    $depth = 0;
+    $parent_id = (int) $item->menu_item_parent;
+    $visited = [];
+
+    while (
+        $parent_id > 0 &&
+        isset($item_map[$parent_id]) &&
+        !isset($visited[$parent_id]) &&
+        $depth < 6
+    ) {
+        $visited[$parent_id] = true;
+        $depth++;
+        $parent_id = (int) $item_map[$parent_id]->menu_item_parent;
+    }
+
+    return $depth;
+}
+
+
+function seo_menu_render_wordpress_menu_editor($menu_id) {
+
+    $menu_id = (int) $menu_id;
+    $menu_exists = $menu_id > 0 && wp_get_nav_menu_object($menu_id);
+    $all_menu_items = $menu_exists
+        ? seo_menu_get_all_menu_items($menu_id)
+        : [];
+
+    $item_map = [];
+    $generated_count = 0;
+    $manual_count = 0;
+
+    foreach ($all_menu_items as $item) {
+        $item_map[(int) $item->ID] = $item;
+
+        if (seo_menu_is_generated_item((int) $item->ID)) {
+            $generated_count++;
+        } else {
+            $manual_count++;
+        }
+    }
+
+    ?>
+
+    <style>
+        .seo-menu-editor {
+            display:grid;
+            grid-template-columns:minmax(260px, 330px) minmax(420px, 720px);
+            gap:18px;
+            align-items:start;
+            max-width:1080px;
+            margin:22px 0 26px;
+        }
+
+        .seo-menu-editor h2 {
+            margin-top:0;
+        }
+
+        .seo-menu-editor__intro {
+            grid-column:1 / -1;
+            margin:0;
+            color:#50575e;
+        }
+
+        .seo-menu-metabox {
+            margin:0 0 10px;
+            border:1px solid #c3c4c7;
+            background:#fff;
+            box-shadow:0 1px 1px rgba(0,0,0,.04);
+        }
+
+        .seo-menu-metabox__title {
+            display:flex;
+            width:100%;
+            align-items:center;
+            justify-content:space-between;
+            gap:10px;
+            padding:11px 12px;
+            border:0;
+            background:#fff;
+            color:#1d2327;
+            font-size:13px;
+            font-weight:600;
+            text-align:left;
+            cursor:pointer;
+        }
+
+        .seo-menu-metabox__title:hover {
+            background:#f6f7f7;
+        }
+
+        .seo-menu-metabox__title .dashicons {
+            transition:transform .15s ease;
+        }
+
+        .seo-menu-metabox.is-open .seo-menu-metabox__title .dashicons {
+            transform:rotate(180deg);
+        }
+
+        .seo-menu-metabox__content {
+            display:none;
+            padding:10px 12px 12px;
+            border-top:1px solid #dcdcde;
+        }
+
+        .seo-menu-metabox.is-open .seo-menu-metabox__content {
+            display:block;
+        }
+
+        .seo-menu-tabs {
+            display:flex;
+            gap:12px;
+            margin:0 0 8px;
+            padding:0;
+            border-bottom:1px solid #dcdcde;
+        }
+
+        .seo-menu-tabs button {
+            margin:0 0 -1px;
+            padding:6px 2px 7px;
+            border:0;
+            border-bottom:2px solid transparent;
+            background:transparent;
+            color:#2271b1;
+            cursor:pointer;
+            font-size:12px;
+        }
+
+        .seo-menu-tabs button.is-active {
+            border-bottom-color:#2271b1;
+            color:#1d2327;
+            font-weight:600;
+        }
+
+        .seo-menu-tab-panel {
+            display:none;
+        }
+
+        .seo-menu-tab-panel.is-active {
+            display:block;
+        }
+
+        .seo-menu-checklist {
+            max-height:210px;
+            overflow:auto;
+            margin:0;
+            padding:7px 8px;
+            border:1px solid #dcdcde;
+            background:#fff;
+        }
+
+        .seo-menu-checklist li {
+            margin:0 0 7px;
+        }
+
+        .seo-menu-checklist li:last-child {
+            margin-bottom:0;
+        }
+
+        .seo-menu-live-search {
+            width:100%;
+            margin:0 0 8px;
+        }
+
+        .seo-menu-metabox__actions {
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:10px;
+            margin-top:10px;
+        }
+
+        .seo-menu-custom-field {
+            margin:0 0 12px;
+        }
+
+        .seo-menu-custom-field label {
+            display:block;
+            margin:0 0 4px;
+        }
+
+        .seo-menu-custom-field input {
+            width:100%;
+        }
+
+        .seo-menu-structure {
+            padding:12px;
+            border:1px solid #c3c4c7;
+            background:#fff;
+        }
+
+        .seo-menu-generated-summary {
+            margin:0 0 12px;
+            padding:12px;
+            border-left:4px solid #2271b1;
+            background:#f6f7f7;
+        }
+
+        .seo-menu-generated-summary p {
+            margin:5px 0 0;
+            color:#50575e;
+        }
+
+        .seo-menu-manual-list {
+            margin:0;
+        }
+
+        .seo-menu-manual-item {
+            margin:0 0 10px;
+        }
+
+        .seo-menu-manual-item__bar {
+            display:flex;
+            width:100%;
+            align-items:center;
+            justify-content:space-between;
+            gap:12px;
+            padding:10px 12px;
+            border:1px solid #c3c4c7;
+            background:#f6f7f7;
+            text-align:left;
+            cursor:pointer;
+        }
+
+        .seo-menu-manual-item__title {
+            font-weight:600;
+            color:#1d2327;
+        }
+
+        .seo-menu-manual-item__type {
+            margin-left:auto;
+            color:#646970;
+            font-size:12px;
+            white-space:nowrap;
+        }
+
+        .seo-menu-manual-item__settings {
+            display:none;
+            padding:12px;
+            border:1px solid #c3c4c7;
+            border-top:0;
+            background:#fff;
+        }
+
+        .seo-menu-manual-item.is-open .seo-menu-manual-item__settings {
+            display:block;
+        }
+
+        .seo-menu-manual-item__settings p {
+            margin:0 0 9px;
+        }
+
+        .seo-menu-native-link {
+            margin:12px 0 0;
+        }
+
+        @media (max-width: 900px) {
+            .seo-menu-editor {
+                grid-template-columns:1fr;
+            }
+        }
+    </style>
+
+    <div class="seo-menu-editor">
+
+        <p class="seo-menu-editor__intro">
+            <strong>Elementos adicionales de WordPress.</strong>
+            La jerarquía SEO sigue siendo la base automática. Aquí puedes añadir
+            páginas, entradas, categorías y enlaces personalizados como elementos
+            nativos del menú. Estos elementos no se borran al sincronizar.
+            Por ahora se añaden al final del menú y, si el menú SEO ya está activo,
+            el cambio se aplica al enviar el formulario.
+        </p>
+
+        <div class="seo-menu-editor__add">
+            <h2>Añadir elementos al menú</h2>
+
+            <?php seo_menu_render_post_type_metabox('Páginas', 'page', true); ?>
+            <?php seo_menu_render_post_type_metabox('Entradas', 'post', false); ?>
+            <?php seo_menu_render_custom_link_metabox(); ?>
+            <?php seo_menu_render_categories_metabox(); ?>
+        </div>
+
+        <div class="seo-menu-editor__structure">
+            <h2>Estructura del menú</h2>
+
+            <div class="seo-menu-structure">
+                <div class="seo-menu-generated-summary">
+                    <strong>Estructura SEO automática + elementos de WordPress</strong>
+                    <p>
+                        <?php echo esc_html((string) $generated_count); ?> automáticos ·
+                        <?php echo esc_html((string) $manual_count); ?> manuales.
+                        Los automáticos se reconstruyen desde la jerarquía; los manuales se conservan.
+                    </p>
+                </div>
+
+                <?php if (empty($all_menu_items)) : ?>
+                    <p style="color:#646970;">
+                        El menú todavía no tiene elementos guardados. Puedes añadir elementos
+                        de WordPress desde la izquierda o publicar la estructura SEO automática.
+                    </p>
+                <?php else : ?>
+
+                    <ul class="seo-menu-manual-list">
+                        <?php foreach ($all_menu_items as $item) : ?>
+                            <?php
+                            $item_id = (int) $item->ID;
+                            $is_generated = seo_menu_is_generated_item($item_id);
+                            $type_label = seo_menu_get_item_type_label($item);
+                            $depth = seo_menu_get_menu_item_depth($item, $item_map);
+                            $header_label = $is_generated
+                                ? 'Automático · ' . $type_label
+                                : $type_label;
+                            ?>
+                            <li
+                                class="seo-menu-manual-item <?php echo $is_generated ? 'is-generated' : 'is-manual'; ?>"
+                                style="margin-left:<?php echo esc_attr((string) min($depth * 28, 112)); ?>px;"
+                            >
+                                <button
+                                    type="button"
+                                    class="seo-menu-manual-item__bar"
+                                    aria-expanded="false"
+                                >
+                                    <span class="seo-menu-manual-item__title">
+                                        <?php echo esc_html($item->title); ?>
+                                    </span>
+                                    <span class="seo-menu-manual-item__type">
+                                        <?php echo esc_html($header_label); ?>
+                                    </span>
+                                    <span class="dashicons dashicons-arrow-down-alt2"></span>
+                                </button>
+
+                                <div class="seo-menu-manual-item__settings">
+                                    <p>
+                                        <strong>Tipo:</strong>
+                                        <?php echo esc_html($type_label); ?>
+                                    </p>
+
+                                    <?php if ($is_generated) : ?>
+                                        <p>
+                                            <strong>Origen:</strong>
+                                            <?php echo esc_html(seo_menu_get_generated_kind_label($item_id)); ?>
+                                        </p>
+                                        <p style="color:#646970;">
+                                            Este elemento pertenece a la estructura SEO automática y
+                                            se volverá a crear cuando sincronices.
+                                        </p>
+                                    <?php else : ?>
+                                        <p>
+                                            <strong>Origen:</strong>
+                                            Añadido manualmente desde WordPress
+                                        </p>
+                                    <?php endif; ?>
+
+                                    <?php if (!empty($item->url)) : ?>
+                                        <p>
+                                            <strong>URL:</strong>
+                                            <a
+                                                href="<?php echo esc_url($item->url); ?>"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                <?php echo esc_html($item->url); ?>
+                                            </a>
+                                        </p>
+                                    <?php endif; ?>
+
+                                    <?php if (!$is_generated) : ?>
+                                        <form method="post">
+                                            <?php wp_nonce_field('seo_menu_manager_action', 'seo_menu_manager_nonce'); ?>
+                                            <input
+                                                type="hidden"
+                                                name="seo_menu_item_id"
+                                                value="<?php echo esc_attr((string) $item_id); ?>"
+                                            >
+                                            <button
+                                                type="submit"
+                                                class="button-link-delete"
+                                                name="seo_action"
+                                                value="remove_manual_item"
+                                                onclick="return confirm('¿Eliminar este elemento adicional del menú?');"
+                                            >
+                                                Eliminar
+                                            </button>
+                                        </form>
+                                    <?php endif; ?>
+                                </div>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+
+                <?php endif; ?>
+
+                <?php if ($menu_exists) : ?>
+                    <p class="seo-menu-native-link">
+                        <a
+                            class="button"
+                            href="<?php echo esc_url(admin_url('nav-menus.php?action=edit&menu=' . $menu_id)); ?>"
+                        >
+                            Abrir en el editor nativo de WordPress
+                        </a>
+                    </p>
+                    <p style="margin-bottom:0;color:#646970;font-size:12px;">
+                        Puedes editar los elementos manuales también desde Apariencia → Menús.
+                        La parte marcada como automática se volverá a crear en la siguiente sincronización.
+                    </p>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.seo-menu-metabox__title').forEach(function (button) {
+            button.addEventListener('click', function () {
+                var box = button.closest('.seo-menu-metabox');
+                var open = box.classList.toggle('is-open');
+                button.setAttribute('aria-expanded', open ? 'true' : 'false');
+            });
+        });
+
+        document.querySelectorAll('.seo-menu-metabox').forEach(function (box) {
+            box.querySelectorAll('.seo-menu-tabs button').forEach(function (tabButton) {
+                tabButton.addEventListener('click', function () {
+                    var tab = tabButton.getAttribute('data-tab');
+
+                    box.querySelectorAll('.seo-menu-tabs button').forEach(function (button) {
+                        button.classList.toggle('is-active', button === tabButton);
+                    });
+
+                    box.querySelectorAll('.seo-menu-tab-panel').forEach(function (panel) {
+                        panel.classList.toggle(
+                            'is-active',
+                            panel.getAttribute('data-panel') === tab
+                        );
+                    });
+                });
+            });
+
+            var search = box.querySelector('.seo-menu-live-search');
+
+            if (search) {
+                search.addEventListener('input', function () {
+                    var query = search.value.toLowerCase().trim();
+
+                    box.querySelectorAll('.seo-menu-search-list li').forEach(function (row) {
+                        var label = (row.getAttribute('data-label') || '').toLowerCase();
+                        row.style.display = label.indexOf(query) !== -1 ? '' : 'none';
+                    });
+                });
+            }
+
+            var selectAll = box.querySelector('.seo-menu-select-all');
+
+            if (selectAll) {
+                selectAll.addEventListener('change', function () {
+                    var activePanel = box.querySelector('.seo-menu-tab-panel.is-active');
+
+                    if (!activePanel) {
+                        return;
+                    }
+
+                    activePanel.querySelectorAll('input[type="checkbox"][name="seo_object_ids[]"]').forEach(function (checkbox) {
+                        if (checkbox.closest('li').style.display !== 'none') {
+                            checkbox.checked = selectAll.checked;
+                        }
+                    });
+                });
+            }
+        });
+
+        document.querySelectorAll('.seo-menu-manual-item__bar').forEach(function (button) {
+            button.addEventListener('click', function () {
+                var item = button.closest('.seo-menu-manual-item');
+                var open = item.classList.toggle('is-open');
+                button.setAttribute('aria-expanded', open ? 'true' : 'false');
+            });
+        });
+    });
+    </script>
+
+    <?php
+}
+
+
+function seo_menu_render_post_type_metabox(
+    $label,
+    $post_type,
+    $open = false
+) {
+
+    $recent_items = get_posts(
+        [
+            'post_type'      => $post_type,
+            'post_status'    => 'publish',
+            'posts_per_page' => 10,
+            'orderby'        => 'date',
+            'order'          => 'DESC',
+        ]
+    );
+
+    $all_items = get_posts(
+        [
+            'post_type'      => $post_type,
+            'post_status'    => 'publish',
+            'posts_per_page' => 100,
+            'orderby'        => 'title',
+            'order'          => 'ASC',
+        ]
+    );
+
+    $box_key = 'seo-box-' . sanitize_html_class($post_type);
+    ?>
+
+    <div class="seo-menu-metabox <?php echo $open ? 'is-open' : ''; ?>" id="<?php echo esc_attr($box_key); ?>">
+        <button
+            type="button"
+            class="seo-menu-metabox__title"
+            aria-expanded="<?php echo $open ? 'true' : 'false'; ?>"
+        >
+            <span><?php echo esc_html($label); ?></span>
+            <span class="dashicons dashicons-arrow-down-alt2"></span>
+        </button>
+
+        <div class="seo-menu-metabox__content">
+            <form method="post">
+                <?php wp_nonce_field('seo_menu_manager_action', 'seo_menu_manager_nonce'); ?>
+                <input type="hidden" name="seo_object_type" value="<?php echo esc_attr($post_type); ?>">
+
+                <div class="seo-menu-tabs">
+                    <button type="button" class="is-active" data-tab="recent">Más reciente</button>
+                    <button type="button" data-tab="all">Ver todo</button>
+                    <button type="button" data-tab="search">Buscar</button>
+                </div>
+
+                <div class="seo-menu-tab-panel is-active" data-panel="recent">
+                    <?php seo_menu_render_object_checklist($recent_items, false); ?>
+                </div>
+
+                <div class="seo-menu-tab-panel" data-panel="all">
+                    <?php seo_menu_render_object_checklist($all_items, false); ?>
+                </div>
+
+                <div class="seo-menu-tab-panel" data-panel="search">
+                    <input
+                        type="search"
+                        class="seo-menu-live-search"
+                        placeholder="Buscar <?php echo esc_attr(strtolower($label)); ?>"
+                    >
+                    <?php seo_menu_render_object_checklist($all_items, true); ?>
+                </div>
+
+                <div class="seo-menu-metabox__actions">
+                    <label>
+                        <input type="checkbox" class="seo-menu-select-all">
+                        Seleccionar todo
+                    </label>
+                    <button
+                        type="submit"
+                        class="button"
+                        name="seo_action"
+                        value="add_wp_objects"
+                    >
+                        Añadir al menú
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <?php
+}
+
+
+function seo_menu_render_categories_metabox() {
+
+    $popular = get_terms(
+        [
+            'taxonomy'   => 'category',
+            'hide_empty' => false,
+            'number'     => 10,
+            'orderby'    => 'count',
+            'order'      => 'DESC',
+        ]
+    );
+
+    $all_categories = get_terms(
+        [
+            'taxonomy'   => 'category',
+            'hide_empty' => false,
+            'number'     => 100,
+            'orderby'    => 'name',
+            'order'      => 'ASC',
+        ]
+    );
+
+    $popular = is_wp_error($popular) ? [] : $popular;
+    $all_categories = is_wp_error($all_categories) ? [] : $all_categories;
+    ?>
+
+    <div class="seo-menu-metabox" id="seo-box-category">
+        <button type="button" class="seo-menu-metabox__title" aria-expanded="false">
+            <span>Categorías</span>
+            <span class="dashicons dashicons-arrow-down-alt2"></span>
+        </button>
+
+        <div class="seo-menu-metabox__content">
+            <form method="post">
+                <?php wp_nonce_field('seo_menu_manager_action', 'seo_menu_manager_nonce'); ?>
+                <input type="hidden" name="seo_object_type" value="category">
+
+                <div class="seo-menu-tabs">
+                    <button type="button" class="is-active" data-tab="recent">Más utilizadas</button>
+                    <button type="button" data-tab="all">Ver todo</button>
+                    <button type="button" data-tab="search">Buscar</button>
+                </div>
+
+                <div class="seo-menu-tab-panel is-active" data-panel="recent">
+                    <?php seo_menu_render_object_checklist($popular, false); ?>
+                </div>
+
+                <div class="seo-menu-tab-panel" data-panel="all">
+                    <?php seo_menu_render_object_checklist($all_categories, false); ?>
+                </div>
+
+                <div class="seo-menu-tab-panel" data-panel="search">
+                    <input
+                        type="search"
+                        class="seo-menu-live-search"
+                        placeholder="Buscar categorías"
+                    >
+                    <?php seo_menu_render_object_checklist($all_categories, true); ?>
+                </div>
+
+                <div class="seo-menu-metabox__actions">
+                    <label>
+                        <input type="checkbox" class="seo-menu-select-all">
+                        Seleccionar todo
+                    </label>
+                    <button
+                        type="submit"
+                        class="button"
+                        name="seo_action"
+                        value="add_wp_objects"
+                    >
+                        Añadir al menú
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <?php
+}
+
+
+function seo_menu_render_custom_link_metabox() {
+    ?>
+
+    <div class="seo-menu-metabox" id="seo-box-custom-link">
+        <button type="button" class="seo-menu-metabox__title" aria-expanded="false">
+            <span>Enlaces personalizados</span>
+            <span class="dashicons dashicons-arrow-down-alt2"></span>
+        </button>
+
+        <div class="seo-menu-metabox__content">
+            <form method="post">
+                <?php wp_nonce_field('seo_menu_manager_action', 'seo_menu_manager_nonce'); ?>
+
+                <p class="seo-menu-custom-field">
+                    <label for="seo-custom-url">URL</label>
+                    <input
+                        type="text"
+                        id="seo-custom-url"
+                        name="seo_custom_url"
+                        placeholder="https://"
+                        required
+                    >
+                </p>
+
+                <p class="seo-menu-custom-field">
+                    <label for="seo-custom-title">Texto del enlace</label>
+                    <input
+                        type="text"
+                        id="seo-custom-title"
+                        name="seo_custom_title"
+                        required
+                    >
+                </p>
+
+                <p style="margin:0;text-align:right;">
+                    <button
+                        type="submit"
+                        class="button"
+                        name="seo_action"
+                        value="add_custom_link"
+                    >
+                        Añadir al menú
+                    </button>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <?php
+}
+
+
+function seo_menu_render_object_checklist(
+    $items,
+    $search_list = false
+) {
+
+    $items = is_array($items) ? $items : [];
+    $list_class = 'seo-menu-checklist';
+
+    if ($search_list) {
+        $list_class .= ' seo-menu-search-list';
+    }
+
+    echo '<ul class="' . esc_attr($list_class) . '">';
+
+    if (empty($items)) {
+        echo '<li style="color:#646970;">No hay elementos disponibles.</li>';
+        echo '</ul>';
+        return;
+    }
+
+    foreach ($items as $item) {
+
+        if ($item instanceof WP_Post) {
+            $object_id = (int) $item->ID;
+            $title = get_the_title($object_id);
+        } elseif ($item instanceof WP_Term) {
+            $object_id = (int) $item->term_id;
+            $title = $item->name;
+        } else {
+            continue;
+        }
+
+        echo '<li data-label="' . esc_attr($title) . '">';
+        echo '<label>';
+        echo '<input type="checkbox" name="seo_object_ids[]" value="' . esc_attr((string) $object_id) . '"> ';
+        echo esc_html($title);
+        echo '</label>';
+        echo '</li>';
+    }
+
+    echo '</ul>';
 }
 
 
@@ -1002,6 +2387,11 @@ function seo_menu_add_optional_top_level_link(
         );
     }
 
+    seo_menu_mark_generated_item(
+        (int) $menu_item_id,
+        $error_prefix
+    );
+
     foreach ((array) wp_get_nav_menu_items($menu_id) as $menu_item) {
         if ((int) $menu_item->ID === (int) $menu_item_id) {
             return (int) $menu_item_id;
@@ -1049,19 +2439,12 @@ function seo_tree_to_wp_menu(
     }
 
     /*
-     * Eliminar todos los elementos del menú SEO actual
-     * y reconstruirlo desde la base de datos.
+     * Desde esta versión solo se reconstruyen los elementos automáticos.
+     * Páginas, entradas, categorías y enlaces añadidos manualmente se conservan.
      */
-    $items = wp_get_nav_menu_items($menu_id);
+    seo_menu_maybe_initialize_generated_markers($menu_id);
 
-    if (is_array($items)) {
-        foreach ($items as $item) {
-            wp_delete_post(
-                (int) $item->ID,
-                true
-            );
-        }
-    }
+    $removed_generated_ids = seo_menu_remove_generated_items($menu_id);
 
     $position = 1;
 
@@ -1095,17 +2478,23 @@ function seo_tree_to_wp_menu(
             $menu_id,
             0,
             [
-                'menu-item-title'    => get_the_title($cluster_id),
-                'menu-item-url'      => $cluster_url,
-                'menu-item-type'     => 'custom',
-                'menu-item-status'   => 'publish',
-                'menu-item-position' => $position++,
+                'menu-item-object-id' => $cluster_id,
+                'menu-item-object'    => 'page',
+                'menu-item-title'     => get_the_title($cluster_id),
+                'menu-item-type'      => 'post_type',
+                'menu-item-status'    => 'publish',
+                'menu-item-position'  => $position++,
             ]
         );
 
         if (is_wp_error($cluster_menu_id)) {
             return $cluster_menu_id;
         }
+
+        seo_menu_mark_generated_item(
+            (int) $cluster_menu_id,
+            'cluster'
+        );
 
         /*************************************************
          * HUBS PRIMARIOS
@@ -1137,9 +2526,10 @@ function seo_tree_to_wp_menu(
                 $menu_id,
                 0,
                 [
+                    'menu-item-object-id' => $primary_id,
+                    'menu-item-object'    => 'page',
                     'menu-item-title'     => get_the_title($primary_id),
-                    'menu-item-url'       => $primary_url,
-                    'menu-item-type'      => 'custom',
+                    'menu-item-type'      => 'post_type',
                     'menu-item-status'    => 'publish',
                     'menu-item-parent-id' => (int) $cluster_menu_id,
                     'menu-item-position'  => $position++,
@@ -1149,6 +2539,11 @@ function seo_tree_to_wp_menu(
             if (is_wp_error($primary_menu_id)) {
                 return $primary_menu_id;
             }
+
+            seo_menu_mark_generated_item(
+                (int) $primary_menu_id,
+                'hub_primary'
+            );
 
             /*************************************************
              * HUBS SECUNDARIOS
@@ -1180,9 +2575,10 @@ function seo_tree_to_wp_menu(
                     $menu_id,
                     0,
                     [
+                        'menu-item-object-id' => $secondary_id,
+                        'menu-item-object'    => 'page',
                         'menu-item-title'     => get_the_title($secondary_id),
-                        'menu-item-url'       => $secondary_url,
-                        'menu-item-type'      => 'custom',
+                        'menu-item-type'      => 'post_type',
                         'menu-item-status'    => 'publish',
                         'menu-item-parent-id' => (int) $primary_menu_id,
                         'menu-item-position'  => $position++,
@@ -1192,6 +2588,11 @@ function seo_tree_to_wp_menu(
                 if (is_wp_error($secondary_menu_id)) {
                     return $secondary_menu_id;
                 }
+
+                seo_menu_mark_generated_item(
+                    (int) $secondary_menu_id,
+                    'hub_secondary'
+                );
             }
         }
     }
@@ -1273,6 +2674,12 @@ function seo_tree_to_wp_menu(
             return $result;
         }
     }
+
+    seo_menu_resequence_manual_items(
+        $menu_id,
+        $removed_generated_ids,
+        $position
+    );
 
     update_option(
         'seo_menu_last_sync',
