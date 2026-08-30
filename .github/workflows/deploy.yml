@@ -1,5 +1,4 @@
-name: Probar despliegue a Webempresa
-
+name: Subir a producción versión de staging
 on:
   workflow_dispatch:
 
