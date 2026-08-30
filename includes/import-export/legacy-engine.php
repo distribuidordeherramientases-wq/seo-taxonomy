@@ -22,8 +22,8 @@
  * @author David Perez Martorell
  * @license GPL-2.0-or-later
  * @since 2.0.0
- * @version 2026-08-26
- * Build: 033
+ * @version 2026-08-30
+ * Build: 034
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -745,7 +745,7 @@ function seo_ie_read_csv_row( $handle ) {
  *
  * @since 2.0.0
  *
- * @param array  $rows           Filas de wp_seo_attributes.
+ * @param array  $rows           Filas canónicas de atributos de producto.
  * @param string $product_scope  Ámbito del producto como valor de respaldo.
  * @return string
  */
@@ -755,10 +755,12 @@ function seo_ie_serialize_attributes( $rows, $product_scope ) {
 
     foreach ( (array) $rows as $row ) {
 
-        $ambito = trim( (string) $row->ambito );
-
+        // El ámbito ya no pertenece al atributo técnico. Se conserva
+        // en el formato CSV únicamente por compatibilidad y se toma del ROL
+        // canónico del producto.
+        $ambito = trim( (string) $product_scope );
         if ( '' === $ambito ) {
-            $ambito = $product_scope;
+            $ambito = 'global';
         }
 
         $attribute_type  = trim( (string) $row->attribute_type );
@@ -882,14 +884,11 @@ function seo_ie_parse_attributes( $attributes_text, $product_scope ) {
 }
 
 /**
- * Importa, sustituye o elimina la imagen asociada a una categoría WooCommerce.
+ * Importa o elimina la imagen asociada a una categoría WooCommerce.
  *
  * WooCommerce guarda la imagen de product_cat en el term meta thumbnail_id.
- * Se acepta un attachment ID existente o una URL. Si el CSV contiene las
- * columnas de imagen pero ambas están vacías, se elimina la imagen actual.
- * Si las columnas no existen, la imagen actual se conserva.
- *
- * @since 2.4.0
+ * Se acepta un attachment ID existente o una URL. Si el CSV contiene columnas
+ * de imagen pero no aporta ID ni URL, se elimina la imagen actual.
  *
  * @param int   $category_id ID de categoría.
  * @param array $row         Fila CSV normalizada.
@@ -898,7 +897,6 @@ function seo_ie_parse_attributes( $attributes_text, $product_scope ) {
  * @return void
  */
 function seo_ie_import_category_thumbnail( $category_id, $row, $line, &$log ) {
-
     $has_id_column  = array_key_exists( 'imagen_destacada_id', $row );
     $has_url_column = array_key_exists( 'imagen_destacada', $row );
 
@@ -909,10 +907,6 @@ function seo_ie_import_category_thumbnail( $category_id, $row, $line, &$log ) {
     $category_id   = absint( $category_id );
     $attachment_id = absint( $row['imagen_destacada_id'] ?? 0 );
     $image_url     = esc_url_raw( trim( (string) ( $row['imagen_destacada'] ?? '' ) ) );
-
-    if ( 0 === $category_id ) {
-        return;
-    }
 
     if ( 0 === $attachment_id && '' === $image_url ) {
         delete_term_meta( $category_id, 'thumbnail_id' );
@@ -985,8 +979,7 @@ function seo_ie_import_category_thumbnail( $category_id, $row, $line, &$log ) {
  * Exporta todas las categorías WooCommerce a CSV.
  *
  * Orígenes:
- * - WordPress: ID, nombre, slug y padre.
- * - WooCommerce: imagen de product_cat mediante el term meta thumbnail_id.
+ * - WordPress/WooCommerce: ID, nombre, slug, padre e imagen de categoría.
  * - wp_seo_nodes: ámbito, excerpt y description.
  * - wp_seo_relations: hub secundario estructural de la categoría cuando es único.
  *
@@ -1104,7 +1097,7 @@ function seo_export_categories_csv() {
             'correctos'  => count( $categories ),
             'errores'    => 0,
             'detalles'   => [
-                'WordPress aporta ID, nombre, slug y padre. WooCommerce aporta la imagen de product_cat mediante thumbnail_id. seo_nodes aporta ámbito, excerpt y description. seo_relations aporta hub_secondary_id cuando la asignación es única.',
+                'WordPress/WooCommerce aporta ID, nombre, slug, padre e imagen (attachment ID + URL). seo_nodes aporta ámbito, excerpt y description. seo_relations aporta hub_secondary_id cuando la asignación es única.',
             ],
         ]
     );
@@ -1164,9 +1157,8 @@ function seo_export_categories_csv() {
 /**
  * Importa categorías desde el CSV generado por SEO System.
  *
- * Actualiza o crea categorías, manteniendo ID/nombre/slug/padre en WordPress,
- * imagen en el term meta WooCommerce thumbnail_id y ámbito/excerpt/description
- * en wp_seo_nodes.
+ * Actualiza o crea categorías, manteniendo ID/nombre/slug/padre e imagen en WordPress
+ * y ámbito/excerpt/description en wp_seo_nodes.
  * Si hub_secondary_id está informado, sincroniza la relación estructural única
  * hub_secondary_to_category. Si category_id está vacío, reutiliza primero una
  * categoría existente por slug/nombre y solo crea una nueva si no existe.
@@ -1434,8 +1426,6 @@ if ( ! empty( $term_data ) ) {
             }
         }
 
-        // Imagen WooCommerce de product_cat. El mismo importador es reutilizado
-        // por la cola automática, por lo que esta lógica cubre ambos flujos.
         seo_ie_import_category_thumbnail( $category_id, $row, $line, $log );
 
         if ( array_key_exists( 'excerpt', $row ) ) {
@@ -2093,10 +2083,11 @@ function seo_ie_product_v2_seo_attributes_json( $rows, $product_scope ) {
     $payload = [];
 
     foreach ( (array) $rows as $row ) {
-        $ambito = seo_ie_normalize_ambito( $row->ambito ?? '' );
-
+        // Campo conservado en JSON por compatibilidad con versiones
+        // anteriores; la clasificación procede del producto, no del atributo.
+        $ambito = seo_ie_normalize_ambito( $product_scope );
         if ( '' === $ambito ) {
-            $ambito = $product_scope;
+            $ambito = 'global';
         }
 
         $type  = sanitize_key( $row->attribute_type ?? '' );
@@ -2466,8 +2457,8 @@ function seo_ie_product_v2_set_meta( $product_id, $meta_key, $value, $empty_clea
  *    ID, título, slug, estado, categorías, excerpt, descripción e imagen.
  * 2. Catálogo SEO canónico:
  *    ámbito/rol vigente del producto.
- * 3. wp_seo_attributes:
- *    ámbito, tipo y valor de cada atributo.
+ * 3. Vocabulario canónico de atributos:
+ *    wp_sql_atributos + wp_sql_atributos_terminos + wp_sql_product_atributos.
  *
  * Los atributos se serializan así:
  * herramienta:potencia=1500 W | herramienta:peso=8 kg
@@ -2636,14 +2627,9 @@ function seo_export_products_csv() {
         );
     }
 
-    $attribute_rows = $wpdb->get_results(
-        "
-        SELECT product_id, ambito, attribute_type, attribute_value
-        FROM {$wpdb->prefix}seo_attributes
-        WHERE product_id > 0
-        ORDER BY product_id ASC, attribute_type ASC, id ASC
-        "
-    );
+    $attribute_rows = function_exists('seo_attributes_get_rows_for_products')
+        ? seo_attributes_get_rows_for_products(null)
+        : [];
     $attributes_by_product = [];
 
     foreach ( $attribute_rows as $attribute_row ) {
@@ -4093,7 +4079,7 @@ function seo_ie_product_import_background_worker( $user_id, $token ) {
  * - WordPress: título, slug, estado, excerpt y descripción.
  * - WooCommerce: categorías e imagen destacada.
  * - wp_seo_nodes: ámbito legacy cuando procede.
- * - wp_seo_attributes: ámbito, tipo y valor de los atributos.
+ * - Vocabulario canónico: definiciones/términos/asignaciones de atributos de producto.
  *
  * @since 2.0.0
  *
@@ -5276,26 +5262,18 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
                 $has_seo_attributes = '' !== trim( (string) ( $row['atributos_seo_json'] ?? $row['atributos_seo'] ?? '' ) );
 
                 if ( $has_seo_attributes || $empty_clears ) {
-                    global $wpdb;
-                    $attributes_table = $wpdb->prefix . 'seo_attributes';
-                    $wpdb->delete( $attributes_table, [ 'product_id' => $product_id ], [ '%d' ] );
-
-                    foreach ( $seo_attributes['rows'] as $attribute ) {
-                        $inserted = $wpdb->insert(
-                            $attributes_table,
-                            [
-                                'product_id'      => $product_id,
-                                'ambito'          => $attribute['ambito'],
-                                'attribute_type'  => $attribute['attribute_type'],
-                                'attribute_value' => $attribute['attribute_value'],
-                            ],
-                            [ '%d', '%s', '%s', '%s' ]
-                        );
-
-                        if ( false === $inserted ) {
-                            throw new RuntimeException( 'No se pudo guardar un atributo SEO: ' . $wpdb->last_error );
-                        }
+                    if ( ! function_exists( 'seo_attributes_replace_product' ) ) {
+                        throw new RuntimeException( 'El servicio canónico de atributos no está disponible.' );
                     }
+
+                    // El parser conserva `ambito` por compatibilidad con CSV antiguos,
+                    // pero el nuevo modelo de atributos es exclusivamente técnico.
+                    // La clasificación del producto se resuelve mediante TIPO/ROL.
+                    seo_attributes_replace_product(
+                        $product_id,
+                        (array) $seo_attributes['rows'],
+                        'import_export_product_v2'
+                    );
                 }
             }
 
@@ -10817,14 +10795,14 @@ function seo_import_export_page() {
 
                 <div class="card" style="max-width:none;padding:20px;">
                     <h2>Exportar categorías</h2>
-                    <p>Exporta la estructura WooCommerce, la imagen asociada (ID y URL) y sus datos SEO.</p>
+                    <p>Exporta la estructura WooCommerce y sus datos SEO.</p>
                     <form method="post">
                         <?php wp_nonce_field( 'seo_export_categories_csv', 'seo_export_categories_nonce' ); ?>
                         <button type="submit" name="seo_export_categories" value="1" class="button button-primary">Exportar categorías</button>
                     </form>
                 </div>
 
-                <div class="card" style="max-width:none;padding:20px;"><h2>Importar categorías</h2><p>Crea o actualiza categorías. Si category_id está vacío, reutiliza por slug/nombre o crea la categoría. Admite imagen_destacada_id o imagen_destacada (URL), y hub_secondary_id permite asignarla a la jerarquía SEO.</p><form method="post" enctype="multipart/form-data"><?php wp_nonce_field( 'seo_import_categories_csv', 'seo_import_categories_nonce' ); ?><input type="file" name="categories_csv" accept=".csv,text/csv" required><p><button type="submit" name="seo_import_categories" value="1" class="button button-primary">Importar categorías</button></p></form></div>
+                <div class="card" style="max-width:none;padding:20px;"><h2>Importar categorías</h2><p>Crea o actualiza categorías. Si category_id está vacío, reutiliza por slug/nombre o crea la categoría. hub_secondary_id permite asignarla a la jerarquía SEO.</p><form method="post" enctype="multipart/form-data"><?php wp_nonce_field( 'seo_import_categories_csv', 'seo_import_categories_nonce' ); ?><input type="file" name="categories_csv" accept=".csv,text/csv" required><p><button type="submit" name="seo_import_categories" value="1" class="button button-primary">Importar categorías</button></p></form></div>
                     
 
                 <div class="card" style="max-width:none;padding:20px;">
