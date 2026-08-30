@@ -1,140 +1,6 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
-// Inventario central por categoria: jerarquia, etiquetas, FAQs, posts, landings y productos.
-$seo_category_info_related_file = __DIR__ . '/category-info-related.php';
-if (file_exists($seo_category_info_related_file)) {
-    require_once $seo_category_info_related_file;
-}
-
-/**
- * Operaciones de persistencia propias del editor de categorías.
- * Las tablas SEO modificadas se escriben siempre mediante SEO_Data_Layer.
- */
-if (!function_exists('seo_category_redirect_insert_and_unlink_with_data_layer')) {
-    function seo_category_redirect_insert_and_unlink_with_data_layer($term_id, $origin_url, $target_url, $source_module) {
-        global $wpdb;
-
-        $term_id = absint($term_id);
-        if ($term_id < 1) {
-            throw new InvalidArgumentException('Categoría no válida.');
-        }
-        seo_category_vocabulary_assert_data_layer('redirects');
-        seo_category_vocabulary_assert_data_layer('relations');
-
-        $relations_table = $wpdb->prefix . 'seo_relations';
-        $relation_rows = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT id FROM {$relations_table} WHERE target_id = %d AND target_type = 'product_cat' ORDER BY id ASC",
-                $term_id
-            ),
-            ARRAY_A
-        );
-
-        $operation = SEO_Data_Layer::operation([
-            'type'          => 'category_redirect_and_unlink',
-            'label'         => 'Crear redirección y desvincular categoría',
-            'source_module' => substr(sanitize_key((string) $source_module), 0, 50),
-            'rollbackable'  => true,
-            'risk_level'    => 'high',
-            'audit_level'   => 'full',
-            'metadata'      => [
-                'category_id'   => $term_id,
-                'origin_url'    => $origin_url,
-                'target_url'    => $target_url,
-                'relations'     => count((array) $relation_rows),
-            ],
-        ]);
-        $operation->mark_validated(['category_id' => $term_id]);
-        $operation->mark_previewed(1 + count((array) $relation_rows));
-
-        $operation->execute(
-            static function (SEO_Data_Operation $op) use ($term_id, $origin_url, $target_url, $relation_rows) {
-                $op->insert('redirects', [
-                    'origin_url'  => $origin_url,
-                    'target_url'  => $target_url,
-                    'status_code' => 301,
-                    'hits'        => 0,
-                    'last_hit'    => null,
-                ], [
-                    'related_object_type' => 'product_cat',
-                    'related_object_id'   => $term_id,
-                    'reason'              => 'category_redirect',
-                ]);
-
-                foreach ((array) $relation_rows as $row) {
-                    $relation_id = absint($row['id'] ?? 0);
-                    if ($relation_id < 1) {
-                        continue;
-                    }
-                    $op->delete('relations', ['id' => $relation_id], [
-                        'related_object_type' => 'product_cat',
-                        'related_object_id'   => $term_id,
-                        'reason'              => 'category_unlinked',
-                    ]);
-                }
-            }
-        );
-
-        return ['operation_id' => $operation->id(), 'operation_uuid' => $operation->uuid()];
-    }
-}
-
-if (!function_exists('seo_category_redirect_upsert_with_data_layer')) {
-    function seo_category_redirect_upsert_with_data_layer($origin_url, $target_url, $term_id, $source_module) {
-        global $wpdb;
-
-        seo_category_vocabulary_assert_data_layer('redirects');
-        $redirects_table = $wpdb->prefix . 'seo_redirects';
-        $existing_id = absint($wpdb->get_var(
-            $wpdb->prepare("SELECT id FROM {$redirects_table} WHERE origin_url = %s LIMIT 1", $origin_url)
-        ));
-
-        $operation = SEO_Data_Layer::operation([
-            'type'          => 'category_redirect_upsert',
-            'label'         => 'Guardar redirección de categoría',
-            'source_module' => substr(sanitize_key((string) $source_module), 0, 50),
-            'rollbackable'  => true,
-            'risk_level'    => 'medium',
-            'audit_level'   => 'full',
-            'metadata'      => ['category_id' => absint($term_id), 'origin_url' => $origin_url, 'target_url' => $target_url],
-        ]);
-        $operation->mark_validated(['category_id' => absint($term_id)]);
-        $operation->mark_previewed(1);
-
-        $operation->execute(
-            static function (SEO_Data_Operation $op) use ($existing_id, $origin_url, $target_url, $term_id) {
-                if ($existing_id > 0) {
-                    $op->update('redirects', ['id' => $existing_id], [
-                        'target_url'  => $target_url,
-                        'status_code' => 301,
-                        'updated_at'  => current_time('mysql'),
-                    ], [
-                        'related_object_type' => 'product_cat',
-                        'related_object_id'   => absint($term_id),
-                        'reason'              => 'category_slug_redirect_updated',
-                    ]);
-                } else {
-                    $op->insert('redirects', [
-                        'origin_url'  => $origin_url,
-                        'target_url'  => $target_url,
-                        'status_code' => 301,
-                        'hits'        => 0,
-                        'last_hit'    => null,
-                    ], [
-                        'related_object_type' => 'product_cat',
-                        'related_object_id'   => absint($term_id),
-                        'reason'              => 'category_slug_redirect_created',
-                    ]);
-                }
-            }
-        );
-
-        return ['operation_id' => $operation->id(), 'operation_uuid' => $operation->uuid()];
-    }
-}
-
-
 
 
 // =========================================================================
@@ -185,21 +51,31 @@ function seo_solo_desvincular_relacion_callback() {
         ]);
     }
 
-    try {
-        $operation = seo_category_redirect_insert_and_unlink_with_data_layer(
-            $term_id,
-            $ruta_origen,
-            $ruta_destino,
-            'category_admin_unlink'
-        );
-    } catch (Throwable $exception) {
-        wp_send_json_error(['message' => 'No se pudo completar la operación mediante Data Layer: ' . $exception->getMessage()]);
+    // Insertar en tu estructura de tabla exacta de redirecciones si todo está limpio
+    $insert_redirect = $wpdb->insert(
+        $tabla_redirects,
+        array(
+            'origin_url'  => $ruta_origen,
+            'target_url'  => $ruta_destino,
+            'status_code' => 301,
+            'hits'        => 0,
+            'last_hit'    => null
+        ),
+        array('%s', '%s', '%d', '%d', '%s')
+    );
+
+    if ($insert_redirect === false) {
+        wp_send_json_error(['message' => 'Error al insertar registro en redirecciones: ' . $wpdb->last_error]);
     }
 
-    wp_send_json_success([
-        'message' => 'Desvinculado con éxito del mapa relacional.',
-        'operation_id' => intval($operation['operation_id'] ?? 0),
-    ]);
+    // Eliminar únicamente la relación del mapa SEO
+    $wpdb->delete(
+        $tabla_relations,
+        array('target_id' => $term_id, 'target_type' => 'product_cat'),
+        array('%d', '%s')
+    );
+
+    wp_send_json_success(['message' => 'Desvinculado con éxito del mapa relacional.']);
 }
 
 // =========================================================================
@@ -249,18 +125,29 @@ function seo_borrar_y_redirigir_categoria_callback() {
         ]);
     }
 
-    try {
-        $operation = seo_category_redirect_insert_and_unlink_with_data_layer(
-            $term_id,
-            $ruta_origen,
-            $ruta_destino,
-            'category_admin_delete'
-        );
-    } catch (Throwable $exception) {
-        wp_send_json_error(['message' => 'No se pudo crear la redirección/desvinculación mediante Data Layer: ' . $exception->getMessage()]);
+    $insert_redirect = $wpdb->insert(
+        $tabla_redirects,
+        array(
+            'origin_url'  => $ruta_origen,
+            'target_url'  => $ruta_destino,
+            'status_code' => 301,
+            'hits'        => 0,
+            'last_hit'    => null
+        ),
+        array('%s', '%s', '%d', '%d', '%s')
+    );
+
+    if ($insert_redirect === false) {
+        wp_send_json_error(['message' => 'Error al insertar registro en redirecciones.']);
     }
 
-    // Borrado físico total del término se delega a la API de WordPress/WooCommerce.
+    $wpdb->delete(
+        $tabla_relations,
+        array('target_id' => $term_id, 'target_type' => 'product_cat'),
+        array('%d', '%s')
+    );
+
+    // Borrado físico total del término en WordPress/WooCommerce
     $borrado_wc = wp_delete_term($term_id, 'product_cat');
 
     if (is_wp_error($borrado_wc)) {
@@ -300,234 +187,12 @@ function seo_get_category_editor_url($term_id, $page_slug = 'category-seo-admin'
 }
 
 /**
- * Catálogo activo del Vocabulary, agrupado para el editor visual de categorías.
- */
-if (!function_exists('seo_category_editor_vocabulary_catalog')) {
-    function seo_category_editor_vocabulary_catalog() {
-        $catalog = [];
-        foreach (seo_category_vocabulary_groups() as $group) {
-            $catalog[$group] = [];
-        }
-
-        if (!function_exists('seo_category_vocabulary_active_index')) {
-            return $catalog;
-        }
-
-        $index = seo_category_vocabulary_active_index();
-        foreach ((array) ($index['by_id'] ?? []) as $row) {
-            $group = seo_category_vocabulary_group_key($row['semantic_group'] ?? '');
-            $id = absint($row['id'] ?? 0);
-            if ($group === '' || $id < 1 || !isset($catalog[$group])) {
-                continue;
-            }
-            $catalog[$group][$id] = [
-                'id'    => $id,
-                'label' => (string) ($row['label'] ?? $row['slug'] ?? ''),
-                'slug'  => (string) ($row['slug'] ?? ''),
-            ];
-        }
-
-        foreach ($catalog as &$rows) {
-            uasort($rows, static function ($a, $b) {
-                return strcasecmp((string) ($a['label'] ?? ''), (string) ($b['label'] ?? ''));
-            });
-        }
-        unset($rows);
-
-        return $catalog;
-    }
-}
-
-/**
- * Convierte filas de seo_object_vocabulary en IDs seleccionados por grupo.
- */
-if (!function_exists('seo_category_editor_selected_vocabulary')) {
-    function seo_category_editor_selected_vocabulary($rows) {
-        $selected = [];
-        foreach (seo_category_vocabulary_groups() as $group) {
-            $selected[$group] = [];
-        }
-        foreach ((array) $rows as $row) {
-            $group = seo_category_vocabulary_group_key($row['semantic_group'] ?? '');
-            $id = absint($row['vocabulary_id'] ?? 0);
-            if ($group !== '' && $id > 0 && isset($selected[$group])) {
-                $selected[$group][] = $id;
-            }
-        }
-        foreach ($selected as $group => $ids) {
-            $selected[$group] = array_values(array_unique(array_filter(array_map('absint', $ids))));
-        }
-        return $selected;
-    }
-}
-
-/**
- * Vocabulary usado por los productos asociados directamente a cada categoría.
- * Se usa únicamente como sugerencia visual; nunca se asigna automáticamente.
- */
-if (!function_exists('seo_category_editor_product_vocabulary_suggestions')) {
-    function seo_category_editor_product_vocabulary_suggestions($category_ids) {
-        global $wpdb;
-
-        $category_ids = array_values(array_unique(array_filter(array_map('absint', (array) $category_ids))));
-        if (!$category_ids) {
-            return [];
-        }
-
-        $placeholders = implode(',', array_fill(0, count($category_ids), '%d'));
-        $object_table = $wpdb->prefix . 'seo_object_vocabulary';
-        $vocab_table = $wpdb->prefix . 'seo_vocabulary';
-
-        $sql = "SELECT tt.term_id AS category_id, v.semantic_group, v.id AS vocabulary_id, v.label,\n"
-            . "       COUNT(DISTINCT p.ID) AS product_count\n"
-            . "FROM {$wpdb->term_relationships} tr\n"
-            . "JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id AND tt.taxonomy = 'product_cat'\n"
-            . "JOIN {$wpdb->posts} p ON p.ID = tr.object_id AND p.post_type = 'product'\n"
-            . "  AND p.post_status IN ('publish','draft','pending','private')\n"
-            . "JOIN {$object_table} ov ON ov.object_type = 'product' AND ov.object_id = p.ID AND ov.status = 1\n"
-            . "JOIN {$vocab_table} v ON v.id = ov.vocabulary_id AND v.active = 1\n"
-            . "WHERE tt.term_id IN ({$placeholders})\n"
-            . "  AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')\n"
-            . "GROUP BY tt.term_id, v.semantic_group, v.id, v.label\n"
-            . "ORDER BY tt.term_id ASC, v.semantic_group ASC, product_count DESC, v.label ASC";
-
-        $rows = $wpdb->get_results($wpdb->prepare($sql, ...$category_ids), ARRAY_A);
-        $map = [];
-        foreach ((array) $rows as $row) {
-            $category_id = absint($row['category_id'] ?? 0);
-            $group = seo_category_vocabulary_group_key($row['semantic_group'] ?? '');
-            $vocabulary_id = absint($row['vocabulary_id'] ?? 0);
-            if ($category_id < 1 || $group === '' || $vocabulary_id < 1) {
-                continue;
-            }
-            $map[$category_id][$group][$vocabulary_id] = [
-                'id'            => $vocabulary_id,
-                'label'         => (string) ($row['label'] ?? ''),
-                'product_count' => max(0, absint($row['product_count'] ?? 0)),
-            ];
-        }
-        return $map;
-    }
-}
-
-/**
- * Selector visual de Vocabulary: checkboxes buscables y sugerencias de productos.
- */
-if (!function_exists('seo_category_editor_render_vocabulary_picker')) {
-    function seo_category_editor_render_vocabulary_picker($field_prefix, array $selected = [], array $suggestions = [], $instance = '') {
-        $catalog = seo_category_editor_vocabulary_catalog();
-        $instance = sanitize_html_class((string) $instance);
-        if ($instance === '') {
-            $instance = 'new';
-        }
-
-        echo '<div class="seo-category-vocab-picker" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:7px;">';
-        foreach (seo_category_vocabulary_groups() as $group) {
-            $label = seo_category_vocabulary_group_label($group);
-            $group_selected = array_values(array_unique(array_filter(array_map('absint', (array) ($selected[$group] ?? [])))));
-            $group_suggestions = (array) ($suggestions[$group] ?? []);
-            $target_id = 'seo-cat-vocab-' . $instance . '-' . $group;
-
-            echo '<div style="border:1px solid #dcdcde;border-radius:7px;padding:10px;background:#fff;">';
-            echo '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;">';
-            echo '<strong>' . esc_html($label) . '</strong>';
-            if ($group_suggestions) {
-                echo '<span style="font-size:11px;color:#646970;">sugerencias de productos</span>';
-            }
-            echo '</div>';
-
-            if ($group_suggestions) {
-                echo '<div style="display:flex;gap:5px;flex-wrap:wrap;margin:0 0 8px;">';
-                $shown = 0;
-                foreach ($group_suggestions as $suggestion) {
-                    if ($shown >= 6) {
-                        break;
-                    }
-                    $sid = absint($suggestion['id'] ?? 0);
-                    if ($sid < 1) {
-                        continue;
-                    }
-                    echo '<button type="button" class="button button-small seo-category-vocab-suggestion" data-target="' . esc_attr($target_id) . '" data-vocabulary-id="' . esc_attr($sid) . '" title="Marcar esta etiqueta">'
-                        . esc_html((string) ($suggestion['label'] ?? ''))
-                        . ' <small>(' . esc_html((string) absint($suggestion['product_count'] ?? 0)) . ')</small></button>';
-                    $shown++;
-                }
-                echo '</div>';
-            }
-
-            echo '<input type="search" class="seo-category-vocab-filter" data-target="' . esc_attr($target_id) . '" placeholder="Buscar ' . esc_attr($label) . '…" style="width:100%;margin-bottom:6px;">';
-            echo '<div id="' . esc_attr($target_id) . '" style="max-height:170px;overflow:auto;border:1px solid #dcdcde;border-radius:5px;padding:5px;background:#f9f9f9;">';
-
-            if (empty($catalog[$group])) {
-                echo '<span style="display:block;padding:6px;color:#646970;">No hay términos activos.</span>';
-            } else {
-                foreach ($catalog[$group] as $term) {
-                    $term_id = absint($term['id'] ?? 0);
-                    $term_label = (string) ($term['label'] ?? $term['slug'] ?? '');
-                    $count = absint($group_suggestions[$term_id]['product_count'] ?? 0);
-                    echo '<label class="seo-category-vocab-option" data-search="' . esc_attr(remove_accents(mb_strtolower($term_label, 'UTF-8'))) . '" style="display:flex;align-items:center;gap:6px;padding:4px 5px;border-radius:4px;">';
-                    echo '<input type="checkbox" name="' . esc_attr($field_prefix . '[' . $group . '][]') . '" value="' . esc_attr($term_id) . '" ' . checked(in_array($term_id, $group_selected, true), true, false) . '>';
-                    echo '<span>' . esc_html($term_label) . '</span>';
-                    if ($count > 0) {
-                        echo '<small style="margin-left:auto;color:#2271b1;white-space:nowrap;">' . esc_html($count . ' prod.') . '</small>';
-                    }
-                    echo '</label>';
-                }
-            }
-            echo '</div>';
-            echo '</div>';
-        }
-        echo '</div>';
-        echo '<p style="margin:7px 0 0;color:#646970;font-size:12px;">Solo se muestran términos activos del Vocabulary canónico. Las sugerencias indican cuántos productos asociados usan cada etiqueta; tú decides cuáles asignar a la categoría.</p>';
-    }
-}
-
-/**
- * AJAX: imágenes sugeridas para una product_cat usando el sistema SEO Images.
- */
-if (!function_exists('seo_category_editor_image_suggestions_ajax')) {
-    function seo_category_editor_image_suggestions_ajax() {
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => 'No tienes permisos suficientes.'], 403);
-        }
-        check_ajax_referer('seo_category_image_suggestions', 'nonce');
-
-        $term_id = isset($_POST['term_id']) ? absint($_POST['term_id']) : 0;
-        $term = $term_id ? get_term($term_id, 'product_cat') : null;
-        if (!$term_id || !$term || is_wp_error($term)) {
-            wp_send_json_error(['message' => 'Categoría no válida.'], 400);
-        }
-        if (!function_exists('seo_images_assignment_find_candidates')) {
-            wp_send_json_error(['message' => 'El módulo de sugerencias de imágenes no está disponible.'], 500);
-        }
-
-        $items = [];
-        foreach ((array) seo_images_assignment_find_candidates('product_cat', $term_id, 12) as $candidate) {
-            $url = esc_url_raw((string) ($candidate['url'] ?? ''));
-            $key = sanitize_text_field((string) ($candidate['key'] ?? ''));
-            if ($url === '' || $key === '') {
-                continue;
-            }
-            $items[] = [
-                'key'           => $key,
-                'url'           => $url,
-                'source_label'  => sanitize_text_field((string) ($candidate['source_label'] ?? 'Producto asociado')),
-                'attachment_id' => absint($candidate['attachment_id'] ?? 0),
-            ];
-        }
-
-        wp_send_json_success(['candidates' => $items]);
-    }
-    add_action('wp_ajax_seo_category_image_suggestions', 'seo_category_editor_image_suggestions_ajax');
-}
-
-/**
  * Guarda los campos editables de una categoría.
  *
  * Puede llamarse desde otros procesos del plugin.
  *
  * @param int   $term_id ID de product_cat.
- * @param array $data    name, excerpt, description, vocabulary_groups e imagen.
+ * @param array $data    name, excerpt, description y keywords.
  * @return true|WP_Error
  */
 function seo_save_category_editor_data($term_id, array $data) {
@@ -538,114 +203,1138 @@ function seo_save_category_editor_data($term_id, array $data) {
 
     $term_id = absint($term_id);
     $term = get_term($term_id, 'product_cat');
+
     if (!$term_id || !$term || is_wp_error($term)) {
         return new WP_Error('seo_category_not_found', 'La categoría solicitada no existe.');
     }
 
+    global $wpdb;
+
+    $nodes_table = $wpdb->prefix . 'seo_nodes';
+
     $update_data = [];
+
     if (isset($data['name']) && trim((string) $data['name']) !== '') {
         $update_data['name'] = sanitize_text_field($data['name']);
     }
 
+    // Solo actualizar nombre en WordPress
     if ($update_data) {
-        $updated = wp_update_term($term_id, 'product_cat', $update_data);
+        $updated = wp_update_term(
+            $term_id,
+            'product_cat',
+            $update_data
+        );
+
         if (is_wp_error($updated)) {
             return $updated;
         }
     }
 
-    try {
+
+    // Excerpt en wp_seo_nodes
         if (array_key_exists('excerpt', $data)) {
-            $result = seo_category_node_upsert_with_data_layer(
-                $term_id,
-                'excerpt',
-                wp_kses_post($data['excerpt']),
-                'category_admin'
+        
+            $excerpt = wp_kses_post($data['excerpt']);
+        
+            $excerpt_node_id = $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT id
+                     FROM {$nodes_table}
+                     WHERE object_type = 'category'
+                     AND object_id = %d
+                     AND seo_role = 'excerpt'
+                     LIMIT 1",
+                    $term_id
+                )
             );
-            if (is_wp_error($result)) {
-                return $result;
-            }
-        }
-
-        if (array_key_exists('description', $data)) {
-            $result = seo_category_node_upsert_with_data_layer(
-                $term_id,
-                'description',
-                wp_kses_post($data['description']),
-                'category_admin'
-            );
-            if (is_wp_error($result)) {
-                return $result;
-            }
-        }
-
-        if (array_key_exists('vocabulary_groups', $data)) {
-            $result = seo_category_vocabulary_replace(
-                $term_id,
-                is_array($data['vocabulary_groups']) ? $data['vocabulary_groups'] : [],
-                'category_admin'
-            );
-            if (is_wp_error($result)) {
-                return $result;
-            }
-        } else {
-            // Compatibilidad con llamadas antiguas que todavía envíen texto GRUPO: Etiqueta.
-            $vocabulary_key = array_key_exists('vocabulary', $data)
-                ? 'vocabulary'
-                : (array_key_exists('keywords', $data) ? 'keywords' : '');
-
-            if ($vocabulary_key !== '') {
-                $result = seo_category_vocabulary_replace_from_editor(
-                    $term_id,
-                    sanitize_textarea_field($data[$vocabulary_key]),
-                    'category_admin'
+        
+            if ($excerpt_node_id) {
+        
+                $result = $wpdb->update(
+                    $nodes_table,
+                    [
+                        'keywords' => $excerpt
+                    ],
+                    [
+                        'id' => absint($excerpt_node_id)
+                    ],
+                    ['%s'],
+                    ['%d']
                 );
-                if (is_wp_error($result)) {
-                    return $result;
-                }
+        
+            } else {
+        
+                $result = $wpdb->insert(
+                    $nodes_table,
+                    [
+                        'object_type' => 'category',
+                        'object_id'   => $term_id,
+                        'seo_role'    => 'excerpt',
+                        'keywords'    => $excerpt,
+                        'status'      => 1
+                    ],
+                    ['%s','%d','%s','%s','%d']
+                );
+        
+            }
+        
+            if ($result === false) {
+                return new WP_Error(
+                    'seo_category_excerpt_error',
+                    $wpdb->last_error
+                );
             }
         }
 
-        $candidate_key = array_key_exists('image_candidate_key', $data)
-            ? sanitize_text_field((string) $data['image_candidate_key'])
-            : '';
+    // Description HTML en seo_nodes
+    if (array_key_exists('description', $data)) {
 
-        if ($candidate_key !== '') {
-            if (!function_exists('seo_images_assignment_find_candidate_by_key') || !function_exists('seo_images_assignment_apply_candidate')) {
-                return new WP_Error('seo_category_image_module_missing', 'No está disponible el módulo de asignación de imágenes.');
-            }
-            $candidate = seo_images_assignment_find_candidate_by_key('product_cat', $term_id, $candidate_key);
-            if (!$candidate) {
-                return new WP_Error('seo_category_image_candidate_missing', 'La imagen sugerida ya no está disponible.');
-            }
-            $image_result = seo_images_assignment_apply_candidate('product_cat', $term_id, $candidate);
-            if (is_wp_error($image_result)) {
-                return $image_result;
-            }
-        } elseif (array_key_exists('image_id', $data)) {
-            $image_id = absint($data['image_id']);
-            $current_image_id = absint(get_term_meta($term_id, 'thumbnail_id', true));
-            if ($image_id > 0 && $image_id !== $current_image_id) {
-                if (function_exists('seo_images_assign_attachment_to_object')) {
-                    $image_result = seo_images_assign_attachment_to_object('product_cat', $term_id, $image_id);
-                    if (is_wp_error($image_result)) {
-                        return $image_result;
-                    }
-                } else {
-                    if (get_post_type($image_id) !== 'attachment') {
-                        return new WP_Error('seo_category_invalid_image', 'La imagen seleccionada no es un attachment válido.');
-                    }
-                    update_term_meta($term_id, 'thumbnail_id', $image_id);
-                }
-            } elseif ($image_id === 0 && $current_image_id > 0) {
-                delete_term_meta($term_id, 'thumbnail_id');
-            }
+        $description = wp_kses_post($data['description']);
+
+        $description_node_id = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id
+                 FROM {$nodes_table}
+                 WHERE object_type = 'category'
+                   AND object_id = %d
+                   AND seo_role = 'description'
+                 LIMIT 1",
+                $term_id
+            )
+        );
+
+        if ($description_node_id) {
+
+            $result = $wpdb->update(
+                $nodes_table,
+                [
+                    'keywords' => $description
+                ],
+                [
+                    'id' => absint($description_node_id)
+                ],
+                ['%s'],
+                ['%d']
+            );
+
+        } else {
+
+            $result = $wpdb->insert(
+                $nodes_table,
+                [
+                    'object_type' => 'category',
+                    'object_id'   => $term_id,
+                    'seo_role'    => 'description',
+                    'keywords'    => $description,
+                    'status'      => 1
+                ],
+                ['%s', '%d', '%s', '%s', '%d']
+            );
         }
-    } catch (Throwable $exception) {
-        return new WP_Error('seo_category_database_error', $exception->getMessage());
+
+        if ($result === false) {
+            return new WP_Error(
+                'seo_category_description_error',
+                $wpdb->last_error
+            );
+        }
+    }
+
+    // Keywords SEO
+    if (array_key_exists('keywords', $data)) {
+
+        $keywords = sanitize_textarea_field($data['keywords']);
+
+        $node_id = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id
+                 FROM {$nodes_table}
+                 WHERE object_type = 'category'
+                   AND object_id = %d
+                   AND seo_role = 'category'
+                 LIMIT 1",
+                $term_id
+            )
+        );
+
+        if ($node_id) {
+
+            $result = $wpdb->update(
+                $nodes_table,
+                ['keywords' => $keywords],
+                ['id' => absint($node_id)],
+                ['%s'],
+                ['%d']
+            );
+
+        } else {
+
+            $result = $wpdb->insert(
+                $nodes_table,
+                [
+                    'object_type' => 'category',
+                    'object_id'   => $term_id,
+                    'seo_role'    => 'category',
+                    'keywords'    => $keywords,
+                    'status'      => 1
+                ],
+                ['%s', '%d', '%s', '%s', '%d']
+            );
+        }
+
+        if ($result === false) {
+            return new WP_Error(
+                'seo_category_database_error',
+                $wpdb->last_error
+            );
+        }
     }
 
     return true;
+}
+
+
+// =========================================================================
+// INVENTARIO EDITORIAL POR CATEGORÍA
+// =========================================================================
+
+if (!function_exists('seo_category_inventory_table_exists')) {
+    function seo_category_inventory_table_exists($table_name) {
+        global $wpdb;
+        static $cache = [];
+
+        $table_name = (string) $table_name;
+        if ($table_name === '') {
+            return false;
+        }
+
+        if (array_key_exists($table_name, $cache)) {
+            return $cache[$table_name];
+        }
+
+        $found = $wpdb->get_var(
+            $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table_name))
+        );
+
+        $cache[$table_name] = ((string) $found === $table_name);
+        return $cache[$table_name];
+    }
+}
+
+if (!function_exists('seo_category_inventory_post_link')) {
+    function seo_category_inventory_post_link($post_id, $title, $status = '') {
+        $post_id = absint($post_id);
+        $title   = trim((string) $title);
+        $status  = sanitize_key((string) $status);
+
+        if ($title === '') {
+            $title = '#' . $post_id;
+        }
+
+        $edit_url = $post_id > 0
+            ? add_query_arg(['post' => $post_id, 'action' => 'edit'], admin_url('post.php'))
+            : '';
+
+        $status_label = $status !== '' ? ' <small style="color:#646970;">(' . esc_html($status) . ')</small>' : '';
+
+        if ($edit_url) {
+            return '<a href="' . esc_url($edit_url) . '">' . esc_html($title) . '</a>' . $status_label;
+        }
+
+        return esc_html($title) . $status_label;
+    }
+}
+
+if (!function_exists('seo_category_inventory_export_batch')) {
+    /**
+     * Recoge un lote de categorías para el JSON sin cargar el catálogo completo
+     * en memoria. Las fuentes son las mismas que en la pestaña Inventario.
+     *
+     * @param array $categories WP_Term[] de product_cat.
+     * @return array<int,array>
+     */
+    function seo_category_inventory_export_batch($categories) {
+        global $wpdb;
+
+        $categories = array_values((array) $categories);
+        $category_ids = array_values(array_filter(array_map(static function($term) {
+            return absint($term->term_id ?? 0);
+        }, $categories)));
+
+        if (!$category_ids) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($category_ids), '%d'));
+        $relations_table = $wpdb->prefix . 'seo_relations';
+        $posts_table = $wpdb->posts;
+        $vocab_table = $wpdb->prefix . 'seo_vocabulary';
+        $object_vocab_table = $wpdb->prefix . 'seo_object_vocabulary';
+        $faq_table = $wpdb->prefix . 'seo_faq';
+
+        $hierarchy = $vocabulary = $posts = $landings = $faqs = [];
+        foreach ($category_ids as $category_id) {
+            $hierarchy[$category_id] = [];
+            $vocabulary[$category_id] = [];
+            $posts[$category_id] = [];
+            $landings[$category_id] = [];
+            $faqs[$category_id] = [];
+        }
+
+        // Jerarquía explícita: cluster -> hub_primary -> hub_secondary -> product_cat.
+        if (seo_category_inventory_table_exists($relations_table)) {
+            $sql = "SELECT
+                        rc.target_id AS category_id,
+                        rc.source_id AS hub_secondary_id,
+                        hs.post_title AS hub_secondary_title,
+                        hs.post_status AS hub_secondary_status,
+                        rp.source_id AS hub_primary_id,
+                        hp.post_title AS hub_primary_title,
+                        hp.post_status AS hub_primary_status,
+                        rcl.source_id AS cluster_id,
+                        cl.post_title AS cluster_title,
+                        cl.post_status AS cluster_status
+                    FROM {$relations_table} rc
+                    LEFT JOIN {$relations_table} rp
+                      ON rp.target_id = rc.source_id
+                     AND rp.relation_type = 'hub_primary_to_hub_secondary'
+                    LEFT JOIN {$relations_table} rcl
+                      ON rcl.target_id = rp.source_id
+                     AND rcl.relation_type = 'cluster_to_primary'
+                    LEFT JOIN {$posts_table} hs ON hs.ID = rc.source_id
+                    LEFT JOIN {$posts_table} hp ON hp.ID = rp.source_id
+                    LEFT JOIN {$posts_table} cl ON cl.ID = rcl.source_id
+                    WHERE rc.relation_type = 'hub_secondary_to_category'
+                      AND rc.target_type = 'product_cat'
+                      AND rc.target_id IN ({$placeholders})
+                    ORDER BY rc.target_id ASC, cl.post_title ASC, hp.post_title ASC, hs.post_title ASC";
+
+            $rows = $wpdb->get_results($wpdb->prepare($sql, ...$category_ids), ARRAY_A);
+            foreach ((array) $rows as $row) {
+                $category_id = absint($row['category_id'] ?? 0);
+                if (!isset($hierarchy[$category_id])) {
+                    continue;
+                }
+                $key = absint($row['cluster_id'] ?? 0) . ':'
+                     . absint($row['hub_primary_id'] ?? 0) . ':'
+                     . absint($row['hub_secondary_id'] ?? 0);
+                $hierarchy[$category_id][$key] = [
+                    'cluster' => [
+                        'id' => absint($row['cluster_id'] ?? 0),
+                        'title' => (string) ($row['cluster_title'] ?? ''),
+                        'status' => (string) ($row['cluster_status'] ?? ''),
+                    ],
+                    'hub_primary' => [
+                        'id' => absint($row['hub_primary_id'] ?? 0),
+                        'title' => (string) ($row['hub_primary_title'] ?? ''),
+                        'status' => (string) ($row['hub_primary_status'] ?? ''),
+                    ],
+                    'hub_secondary' => [
+                        'id' => absint($row['hub_secondary_id'] ?? 0),
+                        'title' => (string) ($row['hub_secondary_title'] ?? ''),
+                        'status' => (string) ($row['hub_secondary_status'] ?? ''),
+                    ],
+                ];
+            }
+        }
+
+        // Vocabulary canónico asignado a product_cat.
+        if (
+            seo_category_inventory_table_exists($vocab_table)
+            && seo_category_inventory_table_exists($object_vocab_table)
+        ) {
+            $sql = "SELECT ov.object_id AS category_id, v.id AS vocabulary_id,
+                           v.semantic_group, v.label, v.slug
+                    FROM {$object_vocab_table} ov
+                    INNER JOIN {$vocab_table} v ON v.id = ov.vocabulary_id
+                    WHERE ov.object_type = 'product_cat'
+                      AND ov.status = 1
+                      AND v.active = 1
+                      AND ov.object_id IN ({$placeholders})
+                    ORDER BY ov.object_id ASC, v.semantic_group ASC, v.label ASC";
+            $rows = $wpdb->get_results($wpdb->prepare($sql, ...$category_ids), ARRAY_A);
+            foreach ((array) $rows as $row) {
+                $category_id = absint($row['category_id'] ?? 0);
+                if (!isset($vocabulary[$category_id])) {
+                    continue;
+                }
+                $group = sanitize_key((string) ($row['semantic_group'] ?? ''));
+                if ($group === '') {
+                    $group = 'sin_grupo';
+                }
+                if (!isset($vocabulary[$category_id][$group])) {
+                    $vocabulary[$category_id][$group] = [];
+                }
+                $vocabulary[$category_id][$group][] = [
+                    'id' => absint($row['vocabulary_id'] ?? 0),
+                    'slug' => (string) ($row['slug'] ?? ''),
+                    'label' => (string) ($row['label'] ?? ''),
+                ];
+            }
+        }
+
+        // Posts y landings: solo relaciones explícitas con la categoría.
+        if (seo_category_inventory_table_exists($relations_table)) {
+            $sql = "SELECT r.id AS relation_id, r.target_id AS category_id, r.source_id,
+                           r.source_type, r.relation_type, p.post_title, p.post_status, p.post_type
+                    FROM {$relations_table} r
+                    LEFT JOIN {$posts_table} p ON p.ID = r.source_id
+                    WHERE r.target_type = 'product_cat'
+                      AND r.target_id IN ({$placeholders})
+                      AND r.relation_type IN ('post_to_category','landing_to_category')
+                    ORDER BY r.target_id ASC, r.relation_type ASC, p.post_title ASC";
+            $rows = $wpdb->get_results($wpdb->prepare($sql, ...$category_ids), ARRAY_A);
+            foreach ((array) $rows as $row) {
+                $category_id = absint($row['category_id'] ?? 0);
+                $source_id = absint($row['source_id'] ?? 0);
+                if (!$source_id || !isset($posts[$category_id])) {
+                    continue;
+                }
+                $item = [
+                    'relation_id' => absint($row['relation_id'] ?? 0),
+                    'id' => $source_id,
+                    'source_type' => (string) ($row['source_type'] ?? ''),
+                    'relation_type' => (string) ($row['relation_type'] ?? ''),
+                    'post_type' => (string) ($row['post_type'] ?? ''),
+                    'status' => (string) ($row['post_status'] ?? ''),
+                    'title' => (string) ($row['post_title'] ?? ''),
+                ];
+                if (($row['relation_type'] ?? '') === 'post_to_category') {
+                    $posts[$category_id][$source_id] = $item;
+                } elseif (($row['relation_type'] ?? '') === 'landing_to_category') {
+                    $landings[$category_id][$source_id] = $item;
+                }
+            }
+        }
+
+        // FAQs: relación real de seo_relations + datos de seo_faq.
+        if (
+            seo_category_inventory_table_exists($relations_table)
+            && seo_category_inventory_table_exists($faq_table)
+        ) {
+            $sql = "SELECT id AS relation_id, source_type, source_id, target_type, target_id, relation_type
+                    FROM {$relations_table}
+                    WHERE (
+                        target_type = 'product_cat'
+                        AND target_id IN ({$placeholders})
+                        AND (source_type LIKE '%faq%' OR relation_type LIKE '%faq%')
+                    ) OR (
+                        source_type = 'product_cat'
+                        AND source_id IN ({$placeholders})
+                        AND (target_type LIKE '%faq%' OR relation_type LIKE '%faq%')
+                    )";
+            $relation_rows = $wpdb->get_results(
+                $wpdb->prepare($sql, ...array_merge($category_ids, $category_ids)),
+                ARRAY_A
+            );
+
+            $faq_ids_by_category = [];
+            $faq_relations_by_category = [];
+            $all_faq_ids = [];
+
+            foreach ((array) $relation_rows as $row) {
+                $category_id = 0;
+                $faq_id = 0;
+                if (($row['target_type'] ?? '') === 'product_cat') {
+                    $category_id = absint($row['target_id'] ?? 0);
+                    $faq_id = absint($row['source_id'] ?? 0);
+                } elseif (($row['source_type'] ?? '') === 'product_cat') {
+                    $category_id = absint($row['source_id'] ?? 0);
+                    $faq_id = absint($row['target_id'] ?? 0);
+                }
+                if (!$category_id || !$faq_id || !isset($faqs[$category_id])) {
+                    continue;
+                }
+                $faq_ids_by_category[$category_id][$faq_id] = true;
+                $faq_relations_by_category[$category_id][$faq_id] = [
+                    'relation_id' => absint($row['relation_id'] ?? 0),
+                    'relation_type' => (string) ($row['relation_type'] ?? ''),
+                    'source_type' => (string) ($row['source_type'] ?? ''),
+                    'target_type' => (string) ($row['target_type'] ?? ''),
+                ];
+                $all_faq_ids[$faq_id] = true;
+            }
+
+            if ($all_faq_ids) {
+                $faq_ids = array_keys($all_faq_ids);
+                $faq_placeholders = implode(',', array_fill(0, count($faq_ids), '%d'));
+                $faq_rows = $wpdb->get_results(
+                    $wpdb->prepare(
+                        "SELECT id, object_type, object_id, question, active, sort_order
+                         FROM {$faq_table}
+                         WHERE id IN ({$faq_placeholders})
+                         ORDER BY active DESC, sort_order ASC, id ASC",
+                        ...$faq_ids
+                    ),
+                    ARRAY_A
+                );
+                $faq_by_id = [];
+                foreach ((array) $faq_rows as $faq_row) {
+                    $faq_by_id[absint($faq_row['id'] ?? 0)] = $faq_row;
+                }
+                foreach ($faq_ids_by_category as $category_id => $ids) {
+                    foreach (array_keys($ids) as $faq_id) {
+                        if (!isset($faq_by_id[$faq_id])) {
+                            continue;
+                        }
+                        $faq_row = $faq_by_id[$faq_id];
+                        $relation = $faq_relations_by_category[$category_id][$faq_id] ?? [];
+                        $faqs[$category_id][$faq_id] = [
+                            'id' => $faq_id,
+                            'object_type' => absint($faq_row['object_type'] ?? 0),
+                            'object_id' => absint($faq_row['object_id'] ?? 0),
+                            'question' => (string) ($faq_row['question'] ?? ''),
+                            'active' => absint($faq_row['active'] ?? 0) === 1,
+                            'sort_order' => absint($faq_row['sort_order'] ?? 0),
+                            'relation' => $relation,
+                        ];
+                    }
+                }
+            }
+        }
+
+        $export = [];
+        foreach ($categories as $category) {
+            $category_id = absint($category->term_id ?? 0);
+            if (!$category_id) {
+                continue;
+            }
+
+            $paths = array_values($hierarchy[$category_id] ?? []);
+            $post_items = array_values($posts[$category_id] ?? []);
+            $landing_items = array_values($landings[$category_id] ?? []);
+            $faq_items = array_values($faqs[$category_id] ?? []);
+
+            $published_posts = count(array_filter($post_items, static function($row) {
+                return ($row['status'] ?? '') === 'publish';
+            }));
+            $published_landings = count(array_filter($landing_items, static function($row) {
+                return ($row['status'] ?? '') === 'publish';
+            }));
+            $active_faqs = count(array_filter($faq_items, static function($row) {
+                return !empty($row['active']);
+            }));
+            $url_load = $published_posts + $published_landings;
+            $url_level = $url_load >= 6 ? 'alta' : ($url_load >= 3 ? 'media' : 'baja');
+
+            $term_url = get_term_link($category);
+            if (is_wp_error($term_url)) {
+                $term_url = '';
+            }
+
+            $vocab_groups = $vocabulary[$category_id] ?? [];
+            $vocab_count = 0;
+            foreach ($vocab_groups as $group_items) {
+                $vocab_count += count((array) $group_items);
+            }
+
+            $export[] = [
+                'category' => [
+                    'id' => $category_id,
+                    'name' => (string) ($category->name ?? ''),
+                    'slug' => (string) ($category->slug ?? ''),
+                    'parent_id' => absint($category->parent ?? 0),
+                    'url' => (string) $term_url,
+                ],
+                'hierarchy' => [
+                    'path_count' => count($paths),
+                    'paths' => $paths,
+                ],
+                'vocabulary' => [
+                    'count' => $vocab_count,
+                    'groups' => $vocab_groups,
+                ],
+                'faqs' => [
+                    'active_count' => $active_faqs,
+                    'total_count' => count($faq_items),
+                    'items' => $faq_items,
+                ],
+                'posts' => [
+                    'published_count' => $published_posts,
+                    'total_count' => count($post_items),
+                    'items' => $post_items,
+                ],
+                'landings' => [
+                    'published_count' => $published_landings,
+                    'total_count' => count($landing_items),
+                    'items' => $landing_items,
+                ],
+                'products' => [
+                    'count' => absint($category->count ?? 0),
+                    'source' => 'wordpress_product_cat_count',
+                ],
+                'url_load' => [
+                    'count' => $url_load,
+                    'level' => $url_level,
+                    'definition' => 'posts_publicados + landings_publicadas',
+                ],
+                'signals' => [
+                    'sin_jerarquia' => count($paths) === 0,
+                    'multiples_rutas' => count($paths) > 1,
+                    'sin_vocabulary' => $vocab_count === 0,
+                    'sin_faq_activas' => $active_faqs === 0,
+                    'sin_posts_publicados' => $published_posts === 0,
+                    'sin_landings_publicadas' => $published_landings === 0,
+                    'sin_productos' => absint($category->count ?? 0) === 0,
+                    'carga_url_alta' => $url_load >= 6,
+                ],
+            ];
+        }
+
+        return $export;
+    }
+}
+
+if (!function_exists('seo_category_inventory_export_json')) {
+    /**
+     * Descarga todo el inventario como JSON mediante streaming por lotes.
+     */
+    function seo_category_inventory_export_json() {
+        if (!current_user_can('manage_options')) {
+            wp_die('No tienes permisos para exportar este inventario.');
+        }
+
+        check_admin_referer('seo_category_inventory_export_json');
+
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(0);
+        }
+
+        while (ob_get_level() > 0) {
+            @ob_end_clean();
+        }
+
+        $charset = get_option('blog_charset') ?: 'UTF-8';
+        $filename = 'inventario-categorias-seo-' . wp_date('Ymd-His') . '.json';
+
+        nocache_headers();
+        header('Content-Type: application/json; charset=' . $charset);
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('X-Content-Type-Options: nosniff');
+
+        $total_categories = wp_count_terms([
+            'taxonomy' => 'product_cat',
+            'hide_empty' => false,
+        ]);
+        $total_categories = is_wp_error($total_categories) ? 0 : absint($total_categories);
+
+        $relations_table = $GLOBALS['wpdb']->prefix . 'seo_relations';
+        $vocab_table = $GLOBALS['wpdb']->prefix . 'seo_vocabulary';
+        $object_vocab_table = $GLOBALS['wpdb']->prefix . 'seo_object_vocabulary';
+        $faq_table = $GLOBALS['wpdb']->prefix . 'seo_faq';
+
+        $header = [
+            'schema_version' => '1.0',
+            'generated_at' => wp_date('c'),
+            'site_url' => home_url('/'),
+            'taxonomy' => 'product_cat',
+            'total_categories' => $total_categories,
+            'sources' => [
+                'hierarchy' => 'seo_relations: cluster_to_primary > hub_primary_to_hub_secondary > hub_secondary_to_category',
+                'vocabulary' => 'seo_object_vocabulary + seo_vocabulary',
+                'faqs' => 'seo_relations + seo_faq',
+                'posts' => 'seo_relations: post_to_category',
+                'landings' => 'seo_relations: landing_to_category',
+                'products' => 'WordPress/WooCommerce product_cat count',
+            ],
+            'tables_available' => [
+                'seo_relations' => seo_category_inventory_table_exists($relations_table),
+                'seo_vocabulary' => seo_category_inventory_table_exists($vocab_table),
+                'seo_object_vocabulary' => seo_category_inventory_table_exists($object_vocab_table),
+                'seo_faq' => seo_category_inventory_table_exists($faq_table),
+            ],
+            'url_load_rule' => [
+                'formula' => 'published_posts + published_landings',
+                'low' => '0-2',
+                'medium' => '3-5',
+                'high' => '6+',
+                'note' => 'Indicador interno de auditoría; no demuestra canibalización por sí solo.',
+            ],
+        ];
+
+        $header_json = wp_json_encode($header, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if ($header_json === false) {
+            $header_json = '{}';
+        }
+        // Convertimos el objeto cabecera en el inicio del documento y abrimos categories.
+        echo substr($header_json, 0, -1) . ',"categories":[';
+
+        $batch_size = 50;
+        $offset = 0;
+        $first = true;
+
+        while ($offset < $total_categories) {
+            $categories = get_terms([
+                'taxonomy' => 'product_cat',
+                'hide_empty' => false,
+                'orderby' => 'name',
+                'order' => 'ASC',
+                'number' => $batch_size,
+                'offset' => $offset,
+            ]);
+
+            if (is_wp_error($categories) || empty($categories)) {
+                break;
+            }
+
+            $items = seo_category_inventory_export_batch($categories);
+            foreach ($items as $item) {
+                $json = wp_json_encode($item, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                if ($json === false) {
+                    continue;
+                }
+                if (!$first) {
+                    echo ',';
+                }
+                echo $json;
+                $first = false;
+            }
+
+            $offset += count($categories);
+            if (function_exists('flush')) {
+                @flush();
+            }
+            if (count($categories) < $batch_size) {
+                break;
+            }
+        }
+
+        echo ']}';
+        exit;
+    }
+}
+add_action('admin_post_seo_category_inventory_export_json', 'seo_category_inventory_export_json');
+
+if (!function_exists('seo_category_inventory_render')) {
+    function seo_category_inventory_render($page_slug = 'category-seo-admin') {
+        if (!current_user_can('manage_options')) {
+            echo '<div class="notice notice-error"><p>No tienes permisos para ver este inventario.</p></div>';
+            return;
+        }
+
+        global $wpdb;
+
+        $per_page = 50;
+        $current_page = isset($_GET['inventory_page']) ? max(1, absint($_GET['inventory_page'])) : 1;
+        $offset = ($current_page - 1) * $per_page;
+
+        $total_categories = wp_count_terms([
+            'taxonomy'   => 'product_cat',
+            'hide_empty' => false,
+        ]);
+        $total_categories = is_wp_error($total_categories) ? 0 : absint($total_categories);
+
+        $categories = get_terms([
+            'taxonomy'   => 'product_cat',
+            'hide_empty' => false,
+            'orderby'    => 'name',
+            'order'      => 'ASC',
+            'number'     => $per_page,
+            'offset'     => $offset,
+        ]);
+
+        if (is_wp_error($categories)) {
+            echo '<div class="notice notice-error"><p>' . esc_html($categories->get_error_message()) . '</p></div>';
+            return;
+        }
+
+        echo '<div style="max-width:100%;">';
+        echo '<h2 style="margin-top:0;">Inventario de contenidos por categoría</h2>';
+        echo '<p style="max-width:1100px;">Vista de control centrada en cada categoría de producto. La jerarquía, posts, landings y FAQs se obtienen de <code>seo_relations</code>; las etiquetas del Vocabulary; y el número de productos del contador nativo de WordPress/WooCommerce. La carga URL cuenta solo posts y landings publicados.</p>';
+        $export_url = wp_nonce_url(
+            admin_url('admin-post.php?action=seo_category_inventory_export_json'),
+            'seo_category_inventory_export_json'
+        );
+        echo '<p style="margin:12px 0 18px;">';
+        echo '<a class="button button-primary" href="' . esc_url($export_url) . '">Descargar JSON completo</a>';
+        echo ' <span style="color:#646970;font-size:12px;">Exporta todas las categorías por lotes, no solo esta página.</span>';
+        echo '</p>';
+
+        if (empty($categories)) {
+            echo '<p>No hay categorías que mostrar.</p></div>';
+            return;
+        }
+
+        $category_ids = array_values(array_filter(array_map(static function($term) {
+            return absint($term->term_id ?? 0);
+        }, $categories)));
+
+        if (empty($category_ids)) {
+            echo '<p>No hay IDs de categoría válidos.</p></div>';
+            return;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($category_ids), '%d'));
+        $relations_table = $wpdb->prefix . 'seo_relations';
+        $posts_table = $wpdb->posts;
+        $vocab_table = $wpdb->prefix . 'seo_vocabulary';
+        $object_vocab_table = $wpdb->prefix . 'seo_object_vocabulary';
+        $faq_table = $wpdb->prefix . 'seo_faq';
+
+        $hierarchy = [];
+        $vocabulary = [];
+        $posts = [];
+        $landings = [];
+        $faqs = [];
+
+        foreach ($category_ids as $category_id) {
+            $hierarchy[$category_id] = [];
+            $vocabulary[$category_id] = [];
+            $posts[$category_id] = [];
+            $landings[$category_id] = [];
+            $faqs[$category_id] = [];
+        }
+
+        // 1) Jerarquía superior: Cluster -> Hub primario -> Hub secundario -> Categoría.
+        if (seo_category_inventory_table_exists($relations_table)) {
+            $sql = "SELECT
+                        rc.target_id AS category_id,
+                        rc.source_id AS hub_secondary_id,
+                        hs.post_title AS hub_secondary_title,
+                        rp.source_id AS hub_primary_id,
+                        hp.post_title AS hub_primary_title,
+                        rcl.source_id AS cluster_id,
+                        cl.post_title AS cluster_title
+                    FROM {$relations_table} rc
+                    LEFT JOIN {$relations_table} rp
+                      ON rp.target_id = rc.source_id
+                     AND rp.relation_type = 'hub_primary_to_hub_secondary'
+                    LEFT JOIN {$relations_table} rcl
+                      ON rcl.target_id = rp.source_id
+                     AND rcl.relation_type = 'cluster_to_primary'
+                    LEFT JOIN {$posts_table} hs ON hs.ID = rc.source_id
+                    LEFT JOIN {$posts_table} hp ON hp.ID = rp.source_id
+                    LEFT JOIN {$posts_table} cl ON cl.ID = rcl.source_id
+                    WHERE rc.relation_type = 'hub_secondary_to_category'
+                      AND rc.target_type = 'product_cat'
+                      AND rc.target_id IN ({$placeholders})
+                    ORDER BY rc.target_id ASC, cl.post_title ASC, hp.post_title ASC, hs.post_title ASC";
+
+            $rows = $wpdb->get_results($wpdb->prepare($sql, ...$category_ids), ARRAY_A);
+
+            foreach ((array) $rows as $row) {
+                $category_id = absint($row['category_id'] ?? 0);
+                if (!isset($hierarchy[$category_id])) {
+                    continue;
+                }
+
+                $key = absint($row['cluster_id'] ?? 0) . ':'
+                     . absint($row['hub_primary_id'] ?? 0) . ':'
+                     . absint($row['hub_secondary_id'] ?? 0);
+
+                $hierarchy[$category_id][$key] = $row;
+            }
+        }
+
+        // 2) Etiquetas de Vocabulary asignadas a la categoría.
+        if (
+            seo_category_inventory_table_exists($vocab_table)
+            && seo_category_inventory_table_exists($object_vocab_table)
+        ) {
+            $sql = "SELECT ov.object_id AS category_id, v.semantic_group, v.label, v.slug
+                    FROM {$object_vocab_table} ov
+                    INNER JOIN {$vocab_table} v ON v.id = ov.vocabulary_id
+                    WHERE ov.object_type = 'product_cat'
+                      AND ov.status = 1
+                      AND v.active = 1
+                      AND ov.object_id IN ({$placeholders})
+                    ORDER BY ov.object_id ASC, v.semantic_group ASC, v.label ASC";
+
+            $rows = $wpdb->get_results($wpdb->prepare($sql, ...$category_ids), ARRAY_A);
+
+            foreach ((array) $rows as $row) {
+                $category_id = absint($row['category_id'] ?? 0);
+                if (!isset($vocabulary[$category_id])) {
+                    continue;
+                }
+                $group = sanitize_key((string) ($row['semantic_group'] ?? ''));
+                $label = trim((string) ($row['label'] ?? $row['slug'] ?? ''));
+                if ($label === '') {
+                    continue;
+                }
+                if (!isset($vocabulary[$category_id][$group])) {
+                    $vocabulary[$category_id][$group] = [];
+                }
+                $vocabulary[$category_id][$group][] = $label;
+            }
+        }
+
+        // 3 y 4) Posts y landings: únicamente relaciones explícitas en seo_relations.
+        if (seo_category_inventory_table_exists($relations_table)) {
+            $sql = "SELECT r.target_id AS category_id, r.source_id, r.source_type,
+                           r.relation_type, p.post_title, p.post_status, p.post_type
+                    FROM {$relations_table} r
+                    LEFT JOIN {$posts_table} p ON p.ID = r.source_id
+                    WHERE r.target_type = 'product_cat'
+                      AND r.target_id IN ({$placeholders})
+                      AND r.relation_type IN ('post_to_category','landing_to_category')
+                    ORDER BY r.target_id ASC, r.relation_type ASC, p.post_title ASC";
+
+            $rows = $wpdb->get_results($wpdb->prepare($sql, ...$category_ids), ARRAY_A);
+
+            foreach ((array) $rows as $row) {
+                $category_id = absint($row['category_id'] ?? 0);
+                $source_id = absint($row['source_id'] ?? 0);
+                if (!$source_id || !isset($posts[$category_id])) {
+                    continue;
+                }
+
+                if (($row['relation_type'] ?? '') === 'post_to_category') {
+                    $posts[$category_id][$source_id] = $row;
+                } elseif (($row['relation_type'] ?? '') === 'landing_to_category') {
+                    $landings[$category_id][$source_id] = $row;
+                }
+            }
+        }
+
+        // 5) FAQs: la relación con la categoría sale de seo_relations.
+        // No se presupone un relation_type concreto: se acepta cualquier relación real
+        // en la que uno de los extremos sea product_cat y el otro extremo sea FAQ.
+        if (
+            seo_category_inventory_table_exists($relations_table)
+            && seo_category_inventory_table_exists($faq_table)
+        ) {
+            $sql = "SELECT source_type, source_id, target_type, target_id, relation_type
+                    FROM {$relations_table}
+                    WHERE (
+                        target_type = 'product_cat'
+                        AND target_id IN ({$placeholders})
+                        AND (source_type LIKE '%faq%' OR relation_type LIKE '%faq%')
+                    ) OR (
+                        source_type = 'product_cat'
+                        AND source_id IN ({$placeholders})
+                        AND (target_type LIKE '%faq%' OR relation_type LIKE '%faq%')
+                    )";
+
+            $faq_relation_rows = $wpdb->get_results(
+                $wpdb->prepare($sql, ...array_merge($category_ids, $category_ids)),
+                ARRAY_A
+            );
+
+            $faq_ids_by_category = [];
+            $all_faq_ids = [];
+
+            foreach ((array) $faq_relation_rows as $row) {
+                $category_id = 0;
+                $faq_id = 0;
+
+                if (($row['target_type'] ?? '') === 'product_cat') {
+                    $category_id = absint($row['target_id'] ?? 0);
+                    $faq_id = absint($row['source_id'] ?? 0);
+                } elseif (($row['source_type'] ?? '') === 'product_cat') {
+                    $category_id = absint($row['source_id'] ?? 0);
+                    $faq_id = absint($row['target_id'] ?? 0);
+                }
+
+                if (!$category_id || !$faq_id || !isset($faqs[$category_id])) {
+                    continue;
+                }
+
+                $faq_ids_by_category[$category_id][$faq_id] = true;
+                $all_faq_ids[$faq_id] = true;
+            }
+
+            if (!empty($all_faq_ids)) {
+                $faq_ids = array_keys($all_faq_ids);
+                $faq_placeholders = implode(',', array_fill(0, count($faq_ids), '%d'));
+                $faq_rows = $wpdb->get_results(
+                    $wpdb->prepare(
+                        "SELECT id, question, active, sort_order
+                         FROM {$faq_table}
+                         WHERE id IN ({$faq_placeholders})
+                         ORDER BY active DESC, sort_order ASC, id ASC",
+                        ...$faq_ids
+                    ),
+                    ARRAY_A
+                );
+
+                $faq_by_id = [];
+                foreach ((array) $faq_rows as $faq_row) {
+                    $faq_by_id[absint($faq_row['id'] ?? 0)] = $faq_row;
+                }
+
+                foreach ($faq_ids_by_category as $category_id => $ids) {
+                    foreach (array_keys($ids) as $faq_id) {
+                        if (isset($faq_by_id[$faq_id])) {
+                            $faqs[$category_id][$faq_id] = $faq_by_id[$faq_id];
+                        }
+                    }
+                }
+            }
+        }
+
+        $from = $total_categories > 0 ? ($offset + 1) : 0;
+        $to = min($offset + count($categories), $total_categories);
+
+        echo '<div style="display:flex;gap:12px;flex-wrap:wrap;margin:16px 0;">';
+        echo '<span style="background:#fff;border:1px solid #dcdcde;padding:7px 10px;border-radius:5px;"><strong>Categorías:</strong> ' . number_format_i18n($total_categories) . '</span>';
+        echo '<span style="background:#fff;border:1px solid #dcdcde;padding:7px 10px;border-radius:5px;"><strong>Mostrando:</strong> ' . number_format_i18n($from) . '–' . number_format_i18n($to) . '</span>';
+        echo '<span style="background:#fff;border:1px solid #dcdcde;padding:7px 10px;border-radius:5px;"><strong>Por página:</strong> ' . number_format_i18n($per_page) . '</span>';
+        echo '</div>';
+
+        echo '<div style="overflow-x:auto;background:#fff;border:1px solid #dcdcde;">';
+        echo '<table class="widefat striped" style="min-width:1500px;">';
+        echo '<thead><tr>';
+        echo '<th style="width:220px;">Categoría</th>';
+        echo '<th style="width:300px;">Jerarquía superior</th>';
+        echo '<th style="width:280px;">Vocabulary / etiquetas</th>';
+        echo '<th style="width:280px;">FAQs</th>';
+        echo '<th style="width:280px;">Posts</th>';
+        echo '<th style="width:280px;">Landings</th>';
+        echo '<th style="width:90px;text-align:center;">Productos</th>';
+        echo '<th style="width:110px;text-align:center;">Carga URL</th>';
+        echo '</tr></thead><tbody>';
+
+        foreach ($categories as $category) {
+            $category_id = absint($category->term_id);
+            $term_link = get_term_link($category);
+            $term_link = is_wp_error($term_link) ? '' : $term_link;
+            $edit_link = seo_get_category_editor_url($category_id, $page_slug);
+
+            $published_posts = 0;
+            foreach ($posts[$category_id] as $row) {
+                if (($row['post_status'] ?? '') === 'publish') {
+                    $published_posts++;
+                }
+            }
+            $published_landings = 0;
+            foreach ($landings[$category_id] as $row) {
+                if (($row['post_status'] ?? '') === 'publish') {
+                    $published_landings++;
+                }
+            }
+            $url_load = $published_posts + $published_landings;
+
+            if ($url_load >= 6) {
+                $load_label = 'Alta';
+                $load_style = 'background:#fce8e6;color:#8a1f11;border:1px solid #f3b8b2;';
+            } elseif ($url_load >= 3) {
+                $load_label = 'Media';
+                $load_style = 'background:#fff4ce;color:#6b4f00;border:1px solid #ead58a;';
+            } else {
+                $load_label = 'Baja';
+                $load_style = 'background:#edfaef;color:#006505;border:1px solid #b7dfbd;';
+            }
+
+            echo '<tr>';
+
+            echo '<td>';
+            echo '<strong>' . esc_html($category->name) . '</strong><br>';
+            echo '<code>ID ' . esc_html($category_id) . '</code><br>';
+            echo '<a href="' . esc_url($edit_link) . '">Editar</a>';
+            if ($term_link) {
+                echo ' · <a href="' . esc_url($term_link) . '" target="_blank" rel="noopener">Ver</a>';
+            }
+            echo '</td>';
+
+            echo '<td>';
+            if (empty($hierarchy[$category_id])) {
+                echo '<span style="color:#b32d2e;">Sin ruta SEO relacionada</span>';
+            } else {
+                foreach ($hierarchy[$category_id] as $path) {
+                    echo '<div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #eee;">';
+                    $cluster_id = absint($path['cluster_id'] ?? 0);
+                    $primary_id = absint($path['hub_primary_id'] ?? 0);
+                    $secondary_id = absint($path['hub_secondary_id'] ?? 0);
+                    echo '<strong>Cluster:</strong> ' . seo_category_inventory_post_link($cluster_id, $path['cluster_title'] ?? 'Sin cluster') . '<br>';
+                    echo '<strong>Hub P.:</strong> ' . seo_category_inventory_post_link($primary_id, $path['hub_primary_title'] ?? 'Sin hub primario') . '<br>';
+                    echo '<strong>Hub S.:</strong> ' . seo_category_inventory_post_link($secondary_id, $path['hub_secondary_title'] ?? 'Sin hub secundario');
+                    echo '</div>';
+                }
+            }
+            echo '</td>';
+
+            echo '<td>';
+            if (empty($vocabulary[$category_id])) {
+                echo '<span style="color:#646970;">Sin Vocabulary asignado</span>';
+            } else {
+                foreach ($vocabulary[$category_id] as $group => $labels) {
+                    $labels = array_values(array_unique(array_filter(array_map('trim', (array) $labels))));
+                    echo '<div style="margin-bottom:6px;"><strong>' . esc_html($group ?: 'grupo') . ':</strong> ' . esc_html(implode(', ', $labels)) . '</div>';
+                }
+            }
+            echo '</td>';
+
+            echo '<td>';
+            $faq_count = count($faqs[$category_id]);
+            $faq_active = 0;
+            foreach ($faqs[$category_id] as $faq_row) {
+                if (absint($faq_row['active'] ?? 0) === 1) {
+                    $faq_active++;
+                }
+            }
+            echo '<strong>' . number_format_i18n($faq_active) . ' activas</strong> / ' . number_format_i18n($faq_count) . ' relacionadas';
+            if ($faq_count) {
+                echo '<details style="margin-top:6px;"><summary>Ver preguntas</summary><ul style="margin:6px 0 0 18px;">';
+                foreach ($faqs[$category_id] as $faq_row) {
+                    $question = trim((string) ($faq_row['question'] ?? ''));
+                    $active = absint($faq_row['active'] ?? 0) === 1;
+                    echo '<li>' . esc_html($question !== '' ? $question : ('FAQ #' . absint($faq_row['id'] ?? 0))) . ($active ? '' : ' <small>(inactiva)</small>') . '</li>';
+                }
+                echo '</ul></details>';
+            }
+            echo '</td>';
+
+            echo '<td>';
+            echo '<strong>' . number_format_i18n($published_posts) . ' publicados</strong> / ' . number_format_i18n(count($posts[$category_id])) . ' relacionados';
+            if (!empty($posts[$category_id])) {
+                echo '<ul style="margin:6px 0 0 18px;">';
+                foreach ($posts[$category_id] as $row) {
+                    echo '<li>' . seo_category_inventory_post_link($row['source_id'] ?? 0, $row['post_title'] ?? '', $row['post_status'] ?? '') . '</li>';
+                }
+                echo '</ul>';
+            }
+            echo '</td>';
+
+            echo '<td>';
+            echo '<strong>' . number_format_i18n($published_landings) . ' publicadas</strong> / ' . number_format_i18n(count($landings[$category_id])) . ' relacionadas';
+            if (!empty($landings[$category_id])) {
+                echo '<ul style="margin:6px 0 0 18px;">';
+                foreach ($landings[$category_id] as $row) {
+                    echo '<li>' . seo_category_inventory_post_link($row['source_id'] ?? 0, $row['post_title'] ?? '', $row['post_status'] ?? '') . '</li>';
+                }
+                echo '</ul>';
+            }
+            echo '</td>';
+
+            echo '<td style="text-align:center;font-size:16px;"><strong>' . number_format_i18n(absint($category->count)) . '</strong></td>';
+            echo '<td style="text-align:center;">';
+            echo '<span style="display:inline-block;padding:5px 8px;border-radius:12px;' . esc_attr($load_style) . '"><strong>' . esc_html($url_load) . '</strong> · ' . esc_html($load_label) . '</span>';
+            echo '<div style="font-size:10px;color:#646970;margin-top:4px;">posts + landings publicados</div>';
+            echo '</td>';
+
+            echo '</tr>';
+        }
+
+        echo '</tbody></table></div>';
+
+        $total_pages = $per_page > 0 ? (int) ceil($total_categories / $per_page) : 1;
+        if ($total_pages > 1) {
+            $base_url = add_query_arg([
+                'page' => sanitize_key($page_slug),
+                'tab'  => 'inventario',
+                'inventory_page' => '%#%',
+            ], admin_url('admin.php'));
+
+            $pagination = paginate_links([
+                'base'      => $base_url,
+                'format'    => '',
+                'current'   => $current_page,
+                'total'     => $total_pages,
+                'type'      => 'list',
+                'prev_text' => '« Anterior',
+                'next_text' => 'Siguiente »',
+            ]);
+
+            if ($pagination) {
+                echo '<div class="tablenav"><div class="tablenav-pages" style="float:none;margin:18px 0;">' . $pagination . '</div></div>';
+            }
+        }
+
+        echo '<p style="color:#646970;font-size:12px;margin-top:14px;">Carga URL: 0–2 baja, 3–5 media, 6 o más alta. Las FAQs se contabilizan aparte porque no crean una URL indexable independiente.</p>';
+        echo '</div>';
+    }
 }
 
 
@@ -667,8 +1356,6 @@ if (!$requested_term_id && isset($_GET['edit_category_id'])) {
 
 $single_category_mode = $requested_term_id > 0;
 
-wp_enqueue_media();
-
 if ($single_category_mode) {
     $requested_term = get_term($requested_term_id, 'product_cat');
 
@@ -683,11 +1370,12 @@ if ($single_category_mode) {
 if (!in_array($active_tab,
 [
     'categorias',
-    'inventario',
+    'estructura',
     'reasignar_categorias',
     'category-anomaly',
     'schema',
-    'informes'
+    'informes',
+    'inventario'
 ], true)) {
 
     $active_tab = 'categorias';
@@ -704,11 +1392,11 @@ $url_categorias = add_query_arg(
     admin_url('admin.php')
 );
 
-// URL PESTAÑA INVENTARIO POR CATEGORÍA
-$url_inventario = add_query_arg(
+// URL PESTAÑA INFORME / ESTRUCTURA DE CATEGORÍAS
+$url_estructura = add_query_arg(
     [
         'page' => $page_slug,
-        'tab'  => 'inventario',
+        'tab'  => 'estructura',
     ],
     admin_url('admin.php')
 );
@@ -750,6 +1438,15 @@ $url_informes = add_query_arg(
     admin_url('admin.php')
 );
 
+// URL PESTAÑA INVENTARIO EDITORIAL POR CATEGORÍA
+$url_inventario = add_query_arg(
+    [
+        'page' => $page_slug,
+        'tab'  => 'inventario',
+    ],
+    admin_url('admin.php')
+);
+
 echo '<div class="wrap">';
 
 echo '<h1 style="margin-bottom:15px;">Categorías SEO</h1>';
@@ -760,7 +1457,7 @@ echo '<h2 class="nav-tab-wrapper" style="margin-bottom:20px;">';
 
     echo '<a href="' . esc_url($url_categorias) . '" class="nav-tab ' . ($active_tab === 'categorias' ? 'nav-tab-active' : '') . '">Categorías</a>';
 
-    echo '<a href="' . esc_url($url_inventario) . '" class="nav-tab ' . ($active_tab === 'inventario' ? 'nav-tab-active' : '') . '">Inventario</a>';
+    echo '<a href="' . esc_url($url_estructura) . '" class="nav-tab ' . ($active_tab === 'estructura' ? 'nav-tab-active' : '') . '">Informe categorías</a>';
 
     echo '<a href="' . esc_url($url_reasignar_categorias) . '" class="nav-tab ' . ($active_tab === 'reasignar_categorias' ? 'nav-tab-active' : '') . '">Reasignación de Categorías</a>';
     
@@ -770,20 +1467,32 @@ echo '<h2 class="nav-tab-wrapper" style="margin-bottom:20px;">';
 
     echo '<a href="' . esc_url($url_informes) . '" class="nav-tab ' . ($active_tab === 'informes' ? 'nav-tab-active' : '') . '">Informes Google</a>';
 
+    echo '<a href="' . esc_url($url_inventario) . '" class="nav-tab ' . ($active_tab === 'inventario' ? 'nav-tab-active' : '') . '">Inventario</a>';
+
 
 
 echo '</h2>';
 }
 
 // =========================
-// PESTAÑA INVENTARIO POR CATEGORÍA
+// PESTAÑA INVENTARIO EDITORIAL POR CATEGORÍA
+// Se resuelve aquí y hace return antes del editor pesado.
 // =========================
 if ($active_tab === 'inventario') {
+    seo_category_inventory_render($page_slug);
+    echo '</div>';
+    return;
+}
 
-    if (function_exists('seo_render_category_info_related')) {
-        seo_render_category_info_related($page_slug);
+// =========================
+// PESTAÑA INFORME / ESTRUCTURA DE CATEGORÍAS
+// =========================
+if ($active_tab === 'estructura') {
+
+    if (function_exists('seo_render_total_structure_report')) {
+        seo_render_total_structure_report();
     } else {
-        echo '<div class="notice notice-error"><p>No esta disponible el modulo <code>category-info-related.php</code>.</p></div>';
+        echo '<div class="notice notice-error"><p>No esta disponible el informe de estructura de categorias.</p></div>';
     }
 
     echo '</div>';
@@ -877,44 +1586,26 @@ if ($active_tab === 'category-anomaly') {
             return;
         }
 
-        $cat_names              = $_POST['cat_name'] ?? [];
-        $cat_excerpts           = $_POST['cat_excerpt'] ?? [];
-        $cat_descriptions       = $_POST['cat_description'] ?? [];
-        $cat_vocabulary         = $_POST['cat_vocabulary'] ?? [];
-        $cat_vocabulary_present = $_POST['cat_vocabulary_present'] ?? [];
-        $cat_images             = $_POST['cat_image_id'] ?? [];
-        $cat_image_candidates   = $_POST['cat_image_candidate'] ?? [];
-        $save_only_term         = isset($_POST['save_category_id']) ? absint($_POST['save_category_id']) : 0;
-        $save_errors            = [];
-        $saved_count            = 0;
+        $cat_names        = $_POST['cat_name'] ?? [];
+        $cat_excerpts     = $_POST['cat_excerpt'] ?? [];
+        $cat_descriptions = $_POST['cat_description'] ?? [];
+        $cat_tags         = $_POST['cat_tags'] ?? [];
+        $save_errors      = [];
+        $saved_count      = 0;
 
         foreach ($cat_names as $term_id => $name) {
             $term_id = absint($term_id);
 
-            if (($single_category_mode && $term_id !== $requested_term_id) || ($save_only_term > 0 && $term_id !== $save_only_term)) {
+            if ($single_category_mode && $term_id !== $requested_term_id) {
                 continue;
             }
 
-            $payload = ['name' => $name];
-            if (array_key_exists($term_id, $cat_excerpts)) {
-                $payload['excerpt'] = $cat_excerpts[$term_id];
-            }
-            if (array_key_exists($term_id, $cat_descriptions)) {
-                $payload['description'] = $cat_descriptions[$term_id];
-            }
-            if (array_key_exists($term_id, $cat_vocabulary_present)) {
-                $payload['vocabulary_groups'] = isset($cat_vocabulary[$term_id]) && is_array($cat_vocabulary[$term_id])
-                    ? $cat_vocabulary[$term_id]
-                    : [];
-            }
-            if (array_key_exists($term_id, $cat_images)) {
-                $payload['image_id'] = absint($cat_images[$term_id]);
-            }
-            if (!empty($cat_image_candidates[$term_id])) {
-                $payload['image_candidate_key'] = sanitize_text_field(wp_unslash($cat_image_candidates[$term_id]));
-            }
-
-            $result = seo_save_category_editor_data($term_id, $payload);
+            $result = seo_save_category_editor_data($term_id, [
+                'name'        => $name,
+                'excerpt'     => $cat_excerpts[$term_id] ?? '',
+                'description' => $cat_descriptions[$term_id] ?? '',
+                'keywords'    => $cat_tags[$term_id] ?? '',
+            ]);
 
             if (is_wp_error($result)) {
                 $save_errors[] = $result->get_error_message();
@@ -993,16 +1684,6 @@ if ($active_tab === 'category-anomaly') {
     }
 
     $categories_list = get_terms($categories_args);
-    $category_ids_for_vocab = [];
-    if (!is_wp_error($categories_list)) {
-        $category_ids_for_vocab = array_values(array_filter(array_map(static function ($category) {
-            return absint($category->term_id ?? 0);
-        }, (array) $categories_list)));
-    }
-    $category_vocab_rows_cache = function_exists('seo_category_vocabulary_rows_map')
-        ? seo_category_vocabulary_rows_map($category_ids_for_vocab)
-        : [];
-    $category_vocab_product_suggestions = seo_category_editor_product_vocabulary_suggestions($category_ids_for_vocab);
     
 
 ?>
@@ -1098,89 +1779,182 @@ Cinco o seis FAQs.
     // CREAR NUEVA CATEGORÍA SEO
     // ============================================
     if (isset($_POST['action']) && $_POST['action'] === 'create_seo_category') {
-        if (
-            empty($_POST['seo_create_category_nonce']) ||
-            !wp_verify_nonce(
-                sanitize_text_field(wp_unslash($_POST['seo_create_category_nonce'])),
-                'seo_create_category'
-            )
-        ) {
-            echo '<div class="notice notice-error"><p>La sesión ha caducado. Recarga la página antes de crear la categoría.</p></div>';
-        } else {
-            $nombre          = sanitize_text_field($_POST['new_cat_name'] ?? '');
-            $excerpt         = wp_kses_post($_POST['new_cat_excerpt'] ?? '');
-            $descripcion     = wp_kses_post($_POST['new_cat_description'] ?? '');
-            $vocabulary      = isset($_POST['new_cat_vocabulary']) && is_array($_POST['new_cat_vocabulary'])
-                ? wp_unslash($_POST['new_cat_vocabulary'])
-                : [];
-            $new_cat_image_id = isset($_POST['new_cat_image_id']) ? absint($_POST['new_cat_image_id']) : 0;
+    
+        $nombre       = sanitize_text_field($_POST['new_cat_name'] ?? '');
+        $excerpt      = wp_kses_post($_POST['new_cat_excerpt'] ?? '');
+        $descripcion  = wp_kses_post($_POST['new_cat_description'] ?? '');
+        $tags         = sanitize_textarea_field($_POST['new_cat_tags'] ?? '');
+        $ambito       = sanitize_text_field($_POST['new_cat_ambito'] ?? '');
 
-            if (empty($nombre)) {
-                echo '<div class="notice notice-error"><p>El nombre es obligatorio.</p></div>';
-            } else {
-                $parent_id = isset($_POST['new_cat_parent']) ? absint($_POST['new_cat_parent']) : 0;
-                $nueva_cat = wp_insert_term($nombre, 'product_cat', ['parent' => $parent_id]);
-
-                if (is_wp_error($nueva_cat)) {
-                    echo '<div class="notice notice-error"><p>Error: ' . esc_html($nueva_cat->get_error_message()) . '</p></div>';
-                } else {
-                    $term_id = absint($nueva_cat['term_id']);
-                    $save_result = seo_save_category_editor_data($term_id, [
-                        'excerpt'           => $excerpt,
-                        'description'       => $descripcion,
-                        'vocabulary_groups' => $vocabulary,
-                        'image_id'          => $new_cat_image_id,
-                    ]);
-
-                    if (is_wp_error($save_result)) {
-                        echo '<div class="notice notice-error"><p>La categoría se creó, pero sus datos SEO no se pudieron guardar mediante Data Layer: ' . esc_html($save_result->get_error_message()) . '</p></div>';
-                    } else {
-                        echo '<div class="notice notice-success"><p>Categoría creada correctamente con semántica canónica.</p></div>';
+        if (!empty($nombre)) {
+    
+            $parent_id = isset($_POST['new_cat_parent'])
+                ? absint($_POST['new_cat_parent'])
+                : 0;
+            
+            $nueva_cat = wp_insert_term(
+                $nombre,
+                'product_cat',
+                [
+                    'parent' => $parent_id
+                ]
+            );
+    
+            if (!is_wp_error($nueva_cat)) {
+    
+                $term_id = $nueva_cat['term_id'];
+    
+                // Guardar excerpt
+                    if (!empty($excerpt)) {
+                    
+                        $wpdb->insert(
+                            "{$wpdb->prefix}seo_nodes",
+                            [
+                                'object_type' => 'category',
+                                'object_id'   => $term_id,
+                                'seo_role'    => 'excerpt',
+                                'keywords'    => $excerpt,
+                                'status'      => 1,
+                                'created_at'  => current_time('mysql'),
+                                'updated_at'  => current_time('mysql')
+                            ],
+                            ['%s','%d','%s','%s','%d','%s','%s']
+                        );
+                    
                     }
+    
+                // Guardar etiquetas SEO en tabla personalizada
+                global $wpdb;
+    
+                // Guardar description SEO en wp_seo_nodes
+                if (!empty($descripcion)) {
+                
+                    $wpdb->insert(
+                        "{$wpdb->prefix}seo_nodes",
+                        [
+                            'object_type' => 'category',
+                            'object_id'   => $term_id,
+                            'seo_role'    => 'description',
+                            'keywords'    => $descripcion,
+                            'status'      => 1,
+                            'created_at'  => current_time('mysql'),
+                            'updated_at'  => current_time('mysql')
+                        ],
+                        ['%s', '%d', '%s', '%s', '%d', '%s', '%s']
+                    );
+                
                 }
+                
+                // Guardar ámbito
+                if (!empty($ambito)) {
+                
+                    $wpdb->insert(
+                        "{$wpdb->prefix}seo_nodes",
+                        [
+                            'object_type' => 'category',
+                            'object_id'   => $term_id,
+                            'seo_role'    => 'ambito',
+                            'keywords'    => $ambito,
+                            'status'      => 1,
+                            'created_at'  => current_time('mysql'),
+                            'updated_at'  => current_time('mysql')
+                        ],
+                        ['%s', '%d', '%s', '%s', '%d', '%s', '%s']
+                    );
+                
+                }
+                
+                
+                // Guardar etiquetas SEO en wp_seo_nodes
+                if (!empty($tags)) {
+                
+                    $wpdb->insert(
+                        "{$wpdb->prefix}seo_nodes",
+                        [
+                            'object_type' => 'category',
+                            'object_id'   => $term_id,
+                            'seo_role'    => 'category',
+                            'keywords'    => $tags,
+                            'status'      => 1,
+                            'created_at'  => current_time('mysql'),
+                            'updated_at'  => current_time('mysql')
+                        ],
+                        ['%s', '%d', '%s', '%s', '%d', '%s', '%s']
+                    );
+                
+                }
+    
+                echo '<div class="notice notice-success"><p>Categoría creada correctamente</p></div>';
+    
+            } else {
+                echo '<div class="notice notice-error"><p>Error: ' . $nueva_cat->get_error_message() . '</p></div>';
             }
+    
+        } else {
+            echo '<div class="notice notice-error"><p>El nombre es obligatorio</p></div>';
         }
     }
     ?>
+    
+    
+    <?php
+    //Toma valor del ambito disponible de tabla wp_eo_nodes
+    $ambitos_disponibles = $wpdb->get_col("
+        SELECT DISTINCT keywords
+        FROM {$wpdb->prefix}seo_nodes
+        WHERE seo_role = 'ambito'
+        ORDER BY keywords ASC
+    ");
+    ?>
 
     <div style="background:#fff; border:1px solid #ccd0d4; padding:20px; border-radius:8px; margin-bottom:30px;">
+        
         <h2 style="margin-top:0;">➕ Crear nueva categoría</h2>
-
+    
         <form method="post">
             <input type="hidden" name="action" value="create_seo_category">
-            <?php wp_nonce_field('seo_create_category', 'seo_create_category_nonce'); ?>
-
+    
             <div style="margin-bottom:10px;">
                 <strong>Nombre:</strong>
                 <input type="text" name="new_cat_name" style="width:100%; padding:6px;">
             </div>
-
+    
             <div style="margin-bottom:10px;">
                 <strong>Excerpt SEO:</strong>
                 <textarea name="new_cat_excerpt" style="width:100%; min-height:60px;"></textarea>
             </div>
-
+    
             <div style="margin-bottom:10px;">
                 <strong>Descripción:</strong>
                 <textarea name="new_cat_description" style="width:100%; min-height:100px;"></textarea>
             </div>
-
-            <div style="margin-bottom:15px;">
-                <strong>Vocabulary canónico / etiquetas semánticas:</strong>
-                <?php seo_category_editor_render_vocabulary_picker('new_cat_vocabulary', [], [], 'new-category'); ?>
+    
+            <div style="margin-bottom:10px;">
+                <strong>Etiquetas SEO:</strong>
+                <textarea name="new_cat_tags" style="width:100%; min-height:60px;"></textarea>
             </div>
-
-            <div style="margin-bottom:15px;border:1px solid #dcdcde;border-radius:7px;padding:12px;">
-                <strong>Imagen de categoría:</strong>
-                <input type="hidden" id="new_cat_image_id" name="new_cat_image_id" value="0">
-                <div id="new_cat_image_preview" style="margin:8px 0;color:#646970;">Sin imagen seleccionada.</div>
-                <button type="button" class="button seo-category-image-media" data-term="new">Elegir de Medios</button>
-                <button type="button" class="button seo-category-image-remove" data-term="new">Quitar</button>
+    
+            <div style="margin-bottom:15px;">
+                <strong>Ámbito:</strong>
+            
+                <select name="new_cat_ambito" style="width:100%; padding:6px;">
+                    <option value="">-- Seleccionar ámbito --</option>
+            
+                    <?php foreach ($ambitos_disponibles as $ambito): ?>
+            
+                        <option value="<?php echo esc_attr($ambito); ?>">
+                            <?php echo esc_html($ambito); ?>
+                        </option>
+            
+                    <?php endforeach; ?>
+            
+                </select>
             </div>
 
             <button type="submit" style="background:#2271b1; color:#fff; padding:10px 20px; border:none; border-radius:4px;">
                 Crear categoría
             </button>
+    
         </form>
     </div>
 <?php endif; ?>
@@ -1319,11 +2093,17 @@ Cinco o seis FAQs.
 
                 $category = $item['category'];
                 $term_id = $item['term_id'];
-                // Semántica canónica de la categoría: Vocabulary compartido.
-                $seo_category_vocab_selected = seo_category_editor_selected_vocabulary($category_vocab_rows_cache[$term_id] ?? []);
-                $seo_category_vocab_suggestions = (array) ($category_vocab_product_suggestions[$term_id] ?? []);
-                $seo_category_image_id = absint(get_term_meta($term_id, 'thumbnail_id', true));
-                $seo_category_image_url = $seo_category_image_id ? wp_get_attachment_image_url($seo_category_image_id, 'medium') : '';
+                //Info de la descripction de la ctegoria que no esta en Wrdpress, esta enmi tabla
+                $seo_node_keywords = $wpdb->get_var($wpdb->prepare("
+                    SELECT keywords
+                    FROM {$wpdb->prefix}seo_nodes
+                    WHERE object_type = 'category'
+                      AND object_id = %d
+                      AND seo_role = 'category'
+                      AND status = 1
+                    ORDER BY updated_at DESC, id DESC
+                    LIMIT 1
+                ", $term_id));
                 
                 $url_origen_completa = $item['url_origen_completa'];
                 $url_ver_productos = $item['url_ver_productos'];
@@ -1411,7 +2191,7 @@ Cinco o seis FAQs.
                             📦 <?php echo esc_html($category->name); ?>
                         </strong>
 
-                        <button type="submit" name="save_category_id" value="<?php echo absint($term_id); ?>" style="padding:6px 14px; background:#2271b1; color:#fff; border:none; border-radius:4px; font-weight:bold; font-size:12px; cursor:pointer;">
+                        <button type="submit" style="padding:6px 14px; background:#2271b1; color:#fff; border:none; border-radius:4px; font-weight:bold; font-size:12px; cursor:pointer;">
                             💾 Grabar esta categoría
                         </button>
                     </div>
@@ -1557,41 +2337,18 @@ Cinco o seis FAQs.
                         ><?php echo esc_textarea($seo_excerpt); ?></textarea>
                     </div>
                     
-                    <?php /* VOCABULARY CANÓNICO DE LA CATEGORÍA */ ?>
-                    <div style="margin-bottom:14px; font-size:12px;">
-                        <strong>Vocabulary canónico / etiquetas semánticas:</strong>
-                        <input type="hidden" name="cat_vocabulary_present[<?php echo absint($term_id); ?>]" value="1">
-                        <?php
-                        seo_category_editor_render_vocabulary_picker(
-                            'cat_vocabulary[' . absint($term_id) . ']',
-                            $seo_category_vocab_selected,
-                            $seo_category_vocab_suggestions,
-                            'category-' . absint($term_id)
-                        );
-                        ?>
+                    <?php /* ETIQUETAS SEO DE LA CATEGORÍA - Se leen desde wp_seo_nodes.keywords */ ?>
+                    
+                    <div style="margin-bottom:12px; font-size:12px;">
+                        <strong>Etiquetas SEO:</strong>
+                    
+                        <textarea
+                            name="cat_tags[<?php echo $term_id; ?>]"
+                            style="width:100%; min-height:60px; font-size:12px; margin-top:4px; border:1px solid #c3c4c7; border-radius:4px; padding:6px; box-sizing:border-box; font-family:sans-serif; resize:vertical;"
+                        ><?php echo esc_textarea($seo_node_keywords); ?></textarea>
                     </div>
 
-                    <?php /* IMAGEN DE CATEGORÍA + SUGERENCIAS DE PRODUCTOS */ ?>
-                    <div class="seo-category-image-editor" data-term="<?php echo absint($term_id); ?>" style="margin-bottom:14px;border:1px solid #dcdcde;border-radius:8px;padding:12px;background:#f9f9f9;">
-                        <strong>Imagen de categoría:</strong>
-                        <input type="hidden" id="cat_image_id_<?php echo absint($term_id); ?>" name="cat_image_id[<?php echo absint($term_id); ?>]" value="<?php echo absint($seo_category_image_id); ?>">
-                        <input type="hidden" id="cat_image_candidate_<?php echo absint($term_id); ?>" name="cat_image_candidate[<?php echo absint($term_id); ?>]" value="">
-                        <div id="cat_image_preview_<?php echo absint($term_id); ?>" style="margin:8px 0;min-height:60px;display:flex;align-items:center;gap:10px;">
-                            <?php if ($seo_category_image_url): ?>
-                                <img src="<?php echo esc_url($seo_category_image_url); ?>" alt="" style="width:90px;height:90px;object-fit:contain;background:#fff;border:1px solid #dcdcde;border-radius:6px;">
-                                <span style="color:#50575e;">Imagen actual de la categoría.</span>
-                            <?php else: ?>
-                                <span style="color:#b32d2e;">Sin imagen asignada.</span>
-                            <?php endif; ?>
-                        </div>
-                        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                            <button type="button" class="button button-small seo-category-image-media" data-term="<?php echo absint($term_id); ?>">Elegir de Medios</button>
-                            <button type="button" class="button button-small seo-category-image-load-suggestions" data-term="<?php echo absint($term_id); ?>">Sugerir desde productos</button>
-                            <button type="button" class="button button-small seo-category-image-remove" data-term="<?php echo absint($term_id); ?>">Quitar imagen</button>
-                        </div>
-                        <div id="cat_image_suggestions_<?php echo absint($term_id); ?>" style="display:none;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:8px;margin-top:10px;"></div>
-                        <p style="margin:7px 0 0;color:#646970;font-size:11px;">Las sugerencias proceden de productos asociados y del sistema SEO Images. No se asigna ninguna hasta que la seleccionas y guardas la categoría.</p>
-                    </div>
+
 
                     <div style="margin-bottom:12px; font-size:12px;">
                         <strong>Descripción (Contenido SEO):</strong>
@@ -1722,105 +2479,9 @@ var seoRelacionesCategorias = <?php echo json_encode($relaciones_categorias); ?>
 var seoUrlsPrecalculadas = <?php echo json_encode($urls_precalculadas); ?>;
 
 var seoUrlsDestinoPorFila = {};
-var seoCategoryImageSuggestionsNonce = <?php echo wp_json_encode(wp_create_nonce('seo_category_image_suggestions')); ?>;
 
-(function($) {
-    $(document).on('input', '.seo-category-vocab-filter', function() {
-        var target = $('#' + $(this).data('target'));
-        var needle = ($(this).val() || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        target.find('.seo-category-vocab-option').each(function() {
-            var haystack = ($(this).data('search') || '').toString().toLowerCase();
-            $(this).toggle(!needle || haystack.indexOf(needle) !== -1);
-        });
-    });
 
-    $(document).on('click', '.seo-category-vocab-suggestion', function() {
-        var target = $('#' + $(this).data('target'));
-        var id = String($(this).data('vocabulary-id'));
-        var checkbox = target.find('input[type="checkbox"][value="' + id.replace(/"/g, '\\"') + '"]');
-        if (checkbox.length) {
-            checkbox.prop('checked', true);
-            checkbox.closest('label').css('background', '#e7f1ff');
-        }
-    });
 
-    function setImagePreview(termId, url, text) {
-        var preview = termId === 'new' ? $('#new_cat_image_preview') : $('#cat_image_preview_' + termId);
-        preview.empty();
-        if (url) {
-            $('<img>', {src:url, alt:''}).css({width:'90px',height:'90px',objectFit:'contain',background:'#fff',border:'1px solid #dcdcde',borderRadius:'6px'}).appendTo(preview);
-        }
-        $('<span>').text(text || (url ? 'Imagen seleccionada.' : 'Sin imagen asignada.')).appendTo(preview);
-    }
-
-    $(document).on('click', '.seo-category-image-media', function() {
-        var termId = String($(this).data('term'));
-        var frame = wp.media({title:'Elegir imagen de categoría', button:{text:'Usar esta imagen'}, multiple:false, library:{type:'image'}});
-        frame.on('select', function() {
-            var attachment = frame.state().get('selection').first().toJSON();
-            if (termId === 'new') {
-                $('#new_cat_image_id').val(attachment.id || 0);
-            } else {
-                $('#cat_image_id_' + termId).val(attachment.id || 0);
-                $('#cat_image_candidate_' + termId).val('');
-            }
-            setImagePreview(termId, attachment.sizes && attachment.sizes.medium ? attachment.sizes.medium.url : attachment.url, 'Seleccionada desde Medios.');
-        });
-        frame.open();
-    });
-
-    $(document).on('click', '.seo-category-image-remove', function() {
-        var termId = String($(this).data('term'));
-        if (termId === 'new') {
-            $('#new_cat_image_id').val(0);
-        } else {
-            $('#cat_image_id_' + termId).val(0);
-            $('#cat_image_candidate_' + termId).val('');
-        }
-        setImagePreview(termId, '', 'Sin imagen asignada.');
-    });
-
-    $(document).on('click', '.seo-category-image-load-suggestions', function() {
-        var button = $(this);
-        var termId = parseInt(button.data('term'), 10) || 0;
-        var box = $('#cat_image_suggestions_' + termId);
-        if (!termId) return;
-        button.prop('disabled', true).text('Cargando…');
-        $.post(ajaxurl, {
-            action: 'seo_category_image_suggestions',
-            term_id: termId,
-            nonce: seoCategoryImageSuggestionsNonce
-        }).done(function(response) {
-            box.empty().css('display', 'grid');
-            if (!response || !response.success || !response.data || !response.data.candidates || !response.data.candidates.length) {
-                $('<div>').css({gridColumn:'1/-1',color:'#646970'}).text(response && response.data && response.data.message ? response.data.message : 'No hay imágenes sugeridas para esta categoría.').appendTo(box);
-                return;
-            }
-            response.data.candidates.forEach(function(item) {
-                var card = $('<button>', {type:'button', class:'seo-category-image-suggestion'}).attr({'data-term':termId,'data-key':item.key,'data-url':item.url}).css({padding:'6px',border:'1px solid #dcdcde',borderRadius:'6px',background:'#fff',cursor:'pointer',textAlign:'left'});
-                $('<img>', {src:item.url, alt:''}).css({width:'100%',height:'90px',objectFit:'contain',display:'block',marginBottom:'5px'}).appendTo(card);
-                $('<span>').css({display:'block',fontSize:'10px',lineHeight:'1.25',color:'#50575e'}).text(item.source_label || 'Producto asociado').appendTo(card);
-                card.appendTo(box);
-            });
-        }).fail(function() {
-            box.empty().css('display', 'grid');
-            $('<div>').css({gridColumn:'1/-1',color:'#b32d2e'}).text('No se pudieron cargar las sugerencias.').appendTo(box);
-        }).always(function() {
-            button.prop('disabled', false).text('Sugerir desde productos');
-        });
-    });
-
-    $(document).on('click', '.seo-category-image-suggestion', function() {
-        var termId = String($(this).data('term'));
-        var key = String($(this).data('key') || '');
-        var url = String($(this).data('url') || '');
-        $('#cat_image_candidate_' + termId).val(key);
-        $('#cat_image_id_' + termId).val(0);
-        $('.seo-category-image-suggestion[data-term="' + termId + '"]').css({outline:'none'});
-        $(this).css({outline:'3px solid #2271b1'});
-        setImagePreview(termId, url, 'Sugerencia seleccionada; se asignará al guardar.');
-    });
-})(jQuery);
 
 
 function seoFiltrarCascada(termId, nivelModificado) {
@@ -2199,19 +2860,85 @@ function seoProcesarAccionV2(termId, urlOrigen) {
             );
         }
     
-        try {
-            seo_category_redirect_upsert_with_data_layer(
-                $origin_url,
-                $target_url,
-                $term_id,
-                'category_admin_slug'
+        $table_redirects = $wpdb->prefix . 'seo_redirects';
+    
+        /*
+         * Buscar una redirección anterior con el mismo origen.
+         * origin_url tiene un índice único.
+         */
+        $existing_redirect_id = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id
+                 FROM {$table_redirects}
+                 WHERE origin_url = %s
+                 LIMIT 1",
+                $origin_url
+            )
+        );
+    
+        if ($existing_redirect_id) {
+            /*
+             * Si el origen ya existe, actualizar el destino.
+             */
+            $redirect_result = $wpdb->update(
+                $table_redirects,
+                [
+                    'target_url'  => $target_url,
+                    'status_code' => 301,
+                ],
+                [
+                    'id' => absint($existing_redirect_id),
+                ],
+                [
+                    '%s',
+                    '%d',
+                ],
+                [
+                    '%d',
+                ]
             );
-        } catch (Throwable $exception) {
+        } else {
+            /*
+             * Crear una nueva redirección.
+             */
+            $redirect_result = $wpdb->insert(
+                $table_redirects,
+                [
+                    'origin_url'  => $origin_url,
+                    'target_url'  => $target_url,
+                    'status_code' => 301,
+                    'hits'        => 0,
+                    'last_hit'    => null,
+                ],
+                [
+                    '%s',
+                    '%s',
+                    '%d',
+                    '%d',
+                    '%s',
+                ]
+            );
+        }
+    
+        if ($redirect_result === false) {
             wp_die(
-                'El slug se modificó correctamente, pero no se pudo guardar la redirección mediante Data Layer.<br><br>' .
-                '<strong>Origen:</strong> ' . esc_html($origin_url) . '<br>' .
-                '<strong>Destino:</strong> ' . esc_html($target_url) . '<br><br>' .
-                '<strong>Error:</strong> ' . esc_html($exception->getMessage())
+                'El slug se modificó correctamente, pero no se pudo guardar ' .
+                'la redirección.<br><br>' .
+    
+                '<strong>Tabla:</strong> ' .
+                esc_html($table_redirects) .
+                '<br>' .
+    
+                '<strong>Origen:</strong> ' .
+                esc_html($origin_url) .
+                '<br>' .
+    
+                '<strong>Destino:</strong> ' .
+                esc_html($target_url) .
+                '<br>' .
+    
+                '<strong>Error SQL:</strong> ' .
+                esc_html($wpdb->last_error)
             );
         }
     
