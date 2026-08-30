@@ -11,7 +11,7 @@ jobs:
       - name: Descargar repositorio
         uses: actions/checkout@v6
 
-      - name: Comprobar despliegue por FTPS
+      - name: Subir SEO Taxonomy a producción por FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: ${{ secrets.FTP_SERVER }}
@@ -27,11 +27,11 @@ jobs:
           dry-run: false
           security: strict
 
-    exclude: |
-      **/.git*
-      **/.git*/**
-      **/.github/**
-      **/node_modules/**
-      **/*.bak
-      **/*.md
-      **/*.pot
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.github/**
+            **/node_modules/**
+            **/*.bak
+            **/*.md
+            **/*.pot
