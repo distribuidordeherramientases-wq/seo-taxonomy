@@ -300,6 +300,36 @@ function seo_ie_batch_detect_entity( $path ) {
     $sets = seo_ie_batch_normalized_headers( $raw );
     $has  = static fn( $entity, $column ) => in_array( $column, $sets[ $entity ], true );
 
+    // Conserva tambien las claves originales normalizadas. Un encabezado generico
+    // como `id` se convierte en category_id, product_id, page_id y post_id segun
+    // el esquema evaluado, por lo que no puede considerarse una identidad exclusiva.
+    $raw_keys = array_map(
+        static function ( $column ) {
+            return sanitize_key( trim( (string) seo_ie_csv_to_utf8( $column ) ) );
+        },
+        (array) $raw
+    );
+
+    $filename = strtolower( basename( $path ) );
+    $filename_hint = '';
+    $filename_prefixes = [
+        'category' => [ 'seo_categories_', 'categories_', 'categorias_', 'category_' ],
+        'product'  => [ 'seo_products_', 'products_', 'productos_', 'product_' ],
+        'page'     => [ 'seo_pages_', 'pages_', 'paginas_', 'page_' ],
+        'post'     => [ 'seo_posts_', 'posts_', 'entradas_', 'post_' ],
+        'faq'      => [ 'seo_faqs_', 'faqs_', 'faq_' ],
+        'redirect' => [ 'seo_redirects_', 'redirects_', 'redirect_' ],
+    ];
+
+    foreach ( $filename_prefixes as $hint_entity => $prefixes ) {
+        foreach ( $prefixes as $prefix ) {
+            if ( 0 === strpos( $filename, $prefix ) ) {
+                $filename_hint = $hint_entity;
+                break 2;
+            }
+        }
+    }
+
     $redirect_required = [ 'origin_url', 'target_url' ];
     if ( empty( array_diff( $redirect_required, $sets['redirect'] ) ) ) {
         return [ 'entity' => 'redirect', 'header' => $sets['redirect'], 'raw_header' => $raw, 'confidence' => 100 ];
@@ -310,8 +340,28 @@ function seo_ie_batch_detect_entity( $path ) {
         return [ 'entity' => 'faq', 'header' => $sets['faq'], 'raw_header' => $raw, 'confidence' => 100 ];
     }
 
-    if ( $has( 'category', 'category_id' ) ) {
-        return [ 'entity' => 'category', 'header' => $sets['category'], 'raw_header' => $raw, 'confidence' => 100 ];
+    $category_has_explicit_identity = ! empty( array_intersect( [ 'category_id', 'term_id' ], $raw_keys ) );
+    $category_specific_markers = [
+        'hub_secondary_id', 'hub_secundario_id', 'secondary_id',
+        'thumbnail_id', 'thumbnail', 'thumbnail_url',
+        'category_image_id', 'category_image', 'category_image_url',
+    ];
+    $category_specific_score = count( array_intersect( $category_specific_markers, $raw_keys ) );
+
+    if (
+        $has( 'category', 'category_id' )
+        && (
+            $category_has_explicit_identity
+            || 0 < $category_specific_score
+            || 'category' === $filename_hint
+        )
+    ) {
+        return [
+            'entity'     => 'category',
+            'header'     => $sets['category'],
+            'raw_header' => $raw,
+            'confidence' => $category_has_explicit_identity ? 100 : 92,
+        ];
     }
 
     // Las entradas comparten muchas columnas con paginas y productos. Se detectan
@@ -339,15 +389,17 @@ function seo_ie_batch_detect_entity( $path ) {
     ];
     $post_relation_score = count( array_intersect( $product_cat_relation_markers, $sets['post'] ) );
 
+    $post_has_explicit_identity = in_array( 'post_id', $raw_keys, true ) || 'post' === $filename_hint;
+
     if (
         (
             1 <= $post_score
             && (
-                $has( 'post', 'post_id' )
+                $post_has_explicit_identity
                 || 2 <= $post_score
             )
         )
-        || ( 1 <= $post_relation_score && $has( 'post', 'post_id' ) )
+        || ( 1 <= $post_relation_score && $post_has_explicit_identity )
     ) {
         return [
             'entity'     => 'post',
@@ -360,21 +412,23 @@ function seo_ie_batch_detect_entity( $path ) {
     $product_markers = [
         'product_id', 'sku', 'tipo_producto', 'visibilidad_catalogo', 'categorias_ids',
         'precio_normal', 'precio_actual', 'estado_stock', 'proveedor_id_externo',
-        'peso', 'longitud', 'anchura', 'altura',
         'atributos_wc_json', 'atributos_seo_json', 'galeria_urls',
         'tipo_semantico', 'rol', 'ambito', 'aplicacion', 'plataforma', 'subtipo',
     ];
     $product_score = count( array_intersect( $product_markers, $sets['product'] ) );
 
     if (
-        2 <= $product_score
-        && (
-            $has( 'product', 'product_id' )
-            || $has( 'product', 'sku' )
-            || $has( 'product', 'proveedor_id_externo' )
+        (
+            2 <= $product_score
+            && (
+                $has( 'product', 'product_id' )
+                || $has( 'product', 'sku' )
+                || $has( 'product', 'proveedor_id_externo' )
+            )
         )
+        || ( 'product' === $filename_hint && $has( 'product', 'product_id' ) )
     ) {
-        return [ 'entity' => 'product', 'header' => $sets['product'], 'raw_header' => $raw, 'confidence' => min( 100, 70 + ( 3 * $product_score ) ) ];
+        return [ 'entity' => 'product', 'header' => $sets['product'], 'raw_header' => $raw, 'confidence' => min( 100, 70 + ( 3 * max( 1, $product_score ) ) ) ];
     }
 
     $page_markers = [
@@ -383,7 +437,9 @@ function seo_ie_batch_detect_entity( $path ) {
     ];
     $page_score = count( array_intersect( $page_markers, $sets['page'] ) );
 
-    if ( 1 <= $page_score && ( $has( 'page', 'page_id' ) || $has( 'page', 'ruta' ) || 2 <= $page_score ) ) {
+    $page_has_explicit_identity = ! empty( array_intersect( [ 'page_id', 'post_id' ], $raw_keys ) ) || 'page' === $filename_hint;
+
+    if ( 1 <= $page_score && ( $page_has_explicit_identity || $has( 'page', 'ruta' ) || 2 <= $page_score ) ) {
         return [ 'entity' => 'page', 'header' => $sets['page'], 'raw_header' => $raw, 'confidence' => min( 100, 70 + ( 4 * $page_score ) ) ];
     }
 
@@ -2067,6 +2123,7 @@ function seo_ie_batch_render_page() {
                 <li>Orden natural por nombre y un solo archivo en ejecucion.</li>
                 <li><code>pending</code> -&gt; <code>processing</code> -&gt; <code>imported</code> o <code>failed</code>.</li>
                 <li>Productos, categorias, paginas, entradas (posts), FAQs y redirects usan sus importadores de WordPress; no es la importacion del catalogo de proveedores.</li>
+                <li>Las categorias reutilizan exactamente el importador individual: aceptan <code>imagen_destacada_id</code> e <code>imagen_destacada</code> (URL). Si hay URL, se usa como identidad portable de la imagen y puede descargarse a la biblioteca de Medios.</li>
                 <li>Paginas/landings y entradas importan tambien su relacion comercial con <code>product_cat</code> mediante <code>seo_relations</code> cuando el CSV incluye las columnas <code>product_cat_relacion_*</code>.</li>
                 <li>Los productos reutilizan el motor adaptativo, Action Scheduler, WP-Cron y continuacion asistida desde esta pestana tras un inicio explicito.</li>
                 <li>Un error detiene la cola para impedir que archivos dependientes se importen sobre datos incompletos.</li>
