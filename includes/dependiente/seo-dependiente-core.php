@@ -202,8 +202,8 @@ final class SEO_Dependiente_Plugin {
 
             <section class="seo-dependiente__discovery" data-dependiente-discovery>
                 <div class="seo-dependiente__section-heading">
-                    <div><span>Explorar ideas</span><h2>¿No sabes qué escribir?</h2></div>
-                    <p>Prueba una tarea habitual y deja que Dependiente te enseñe opciones relacionadas.</p>
+                    <div><span>Explora</span><h2>Explora por tipo de tarea</h2></div>
+                    <p>Elige una tarea habitual y descubre opciones relacionadas.</p>
                 </div>
                 <div class="seo-dependiente__visual-menu" data-dependiente-actions></div>
 
