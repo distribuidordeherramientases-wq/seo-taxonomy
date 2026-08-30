@@ -879,200 +879,303 @@ final class SEO_Dependiente_API {
 
     private static function make_cards($items, $type, $group, $documents) {
         $cards = array();
-        foreach ((array) $items as $item) {
-            $slug = (string) ($item['slug'] ?? '');
-            $label = (string) ($item['label'] ?? '');
 
-            // Prioridad visual:
-            // 1) imagen de navegación subida a Media con nombre seo-dependiente-{slug}.webp
-            // 2) imagen propia de la faceta/categoría
-            // 3) imagen representativa de un producto que cumpla la faceta
-            $navigation_image = self::navigation_media_image($slug, $label);
-            if ($navigation_image) {
-                $image = $navigation_image;
-                $image_kind = 'navigation';
-            } else {
-                $image = !empty($item['image'])
-                    ? (string) $item['image']
-                    : self::representative_image($documents, $type, $group, $slug);
-                $image_kind = 'catalog';
+        foreach ((array) $items as $item) {
+            $slug = sanitize_title((string) ($item['slug'] ?? ''));
+            $label = trim(wp_strip_all_tags((string) ($item['label'] ?? '')));
+
+            if (!$slug || !$label) {
+                continue;
             }
 
+            $visual = self::resolve_card_image($item, $type, $group, $documents);
+
             $cards[] = array(
-                'label'      => $label,
-                'slug'       => $slug,
-                'count'      => absint($item['count'] ?? 0),
-                'image'      => (string) $image,
-                'image_kind' => $image_kind,
-                'filter'     => array('type' => $type, 'group' => $group, 'slug' => $slug),
+                'label'        => $label,
+                'slug'         => $slug,
+                'count'        => absint($item['count'] ?? 0),
+                'image'        => (string) ($visual['url'] ?? ''),
+                'image_kind'   => (string) ($visual['kind'] ?? 'product'),
+                'image_source' => (string) ($visual['source'] ?? ''),
+                'filter'       => array('type' => $type, 'group' => $group, 'slug' => $slug),
             );
         }
+
         return $cards;
     }
 
     /**
-     * Localiza una imagen ligera de navegación en la Biblioteca de Medios.
+     * Resuelve la imagen de una tarjeta a partir de las relaciones reales
+     * del catalogo. No busca adjuntos por nombre ni asocia imagenes a
+     * etiquetas, aplicaciones o atributos.
      *
-     * Convención de nombre:
-     *   seo-dependiente-{slug}.webp
-     *
-     * Ejemplos:
-     *   seo-dependiente-cortar.webp
-     *   seo-dependiente-taladro.webp
-     *   seo-dependiente-porcelanico.webp
-     *
-     * La resolución es automática: no se guardan IDs de adjuntos en opciones.
-     * Esto permite añadir nuevas imágenes simplemente subiéndolas a Media.
+     * Prioridad:
+     * 1) Si la tarjeta ES una categoria, usa la imagen de esa categoria.
+     * 2) Para etiquetas/vocabulario/atributos, localiza los productos que
+     *    cumplen el concepto y busca una categoria relacionada con imagen.
+     * 3) Si no hay categoria visual, usa un producto representativo.
+     * 4) Si no existe ninguna imagen relacionada, usa el logo de la empresa.
      */
-    private static function navigation_media_image($slug, $label = '') {
-        $map = self::navigation_media_map();
-        if (!$map) {
-            return '';
+    private static function resolve_card_image($item, $type, $group, $documents) {
+        $slug = sanitize_title((string) ($item['slug'] ?? ''));
+
+        if ('categories' === $type && !empty($item['image'])) {
+            return array(
+                'url'    => esc_url_raw((string) $item['image']),
+                'kind'   => 'category',
+                'source' => $slug,
+            );
         }
 
-        $candidates = array_values(array_unique(array_filter(array(
-            sanitize_title((string) $slug),
-            sanitize_title((string) $label),
-        ))));
+        $matches = self::matching_documents($documents, $type, $group, $slug);
 
-        foreach ($candidates as $candidate) {
-            if (isset($map[$candidate])) {
-                return $map[$candidate];
+        // Para conceptos que no son categorias, la mejor representacion
+        // visual suele ser una categoria real compartida por sus productos.
+        if ('categories' !== $type) {
+            $category = self::related_category_image($matches);
+            if (!empty($category['url'])) {
+                return $category;
             }
         }
 
-        $alias_key = self::navigation_alias_key(implode(' ', $candidates));
-        if ($alias_key && isset($map[$alias_key])) {
-            return $map[$alias_key];
+        $product = self::representative_product_image($matches);
+        if (!empty($product['url'])) {
+            return $product;
         }
 
-        return '';
+        return array(
+            'url'    => self::company_logo_url(),
+            'kind'   => 'logo',
+            'source' => 'company-logo',
+        );
     }
 
     /**
-     * Carga una sola vez por petición todas las imágenes seo-dependiente-*
-     * existentes en Media y crea un mapa slug => URL.
+     * Devuelve exclusivamente los documentos/productos relacionados con
+     * la opcion visual actual. Esta funcion es la base de la relacion
+     * etiqueta/aplicacion/atributo -> productos -> categorias.
      */
-    private static function navigation_media_map() {
-        static $map = null;
-
-        if (is_array($map)) {
-            return $map;
+    private static function matching_documents($documents, $type, $group, $slug) {
+        $slug = sanitize_title((string) $slug);
+        if (!$slug) {
+            return array();
         }
 
-        $map = array();
-        global $wpdb;
+        $matches = array();
 
-        $prefix = 'seo-dependiente-';
-        $like = '%' . $wpdb->esc_like($prefix) . '%';
-        $rows = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT p.ID, pm.meta_value AS attached_file
-                 FROM {$wpdb->posts} p
-                 INNER JOIN {$wpdb->postmeta} pm
-                    ON pm.post_id = p.ID
-                   AND pm.meta_key = '_wp_attached_file'
-                 WHERE p.post_type = 'attachment'
-                   AND p.post_status = 'inherit'
-                   AND pm.meta_value LIKE %s
-                 ORDER BY p.ID DESC",
-                $like
-            )
-        );
-
-        foreach ((array) $rows as $row) {
-            $basename = pathinfo(wp_basename((string) $row->attached_file), PATHINFO_FILENAME);
-            if (0 !== strpos($basename, $prefix)) {
-                continue;
-            }
-
-            $key = sanitize_title(substr($basename, strlen($prefix)));
-            // Si WordPress renombra un duplicado como -1, -2, etc., el último
-            // archivo subido sigue sustituyendo visualmente al original.
-            $key = preg_replace('/-\d+$/', '', $key);
-            if (!$key || isset($map[$key])) {
-                continue;
-            }
-
-            $url = wp_get_attachment_url((int) $row->ID);
-            if ($url) {
-                $map[$key] = esc_url_raw($url);
-            }
-        }
-
-        return $map;
-    }
-
-    /**
-     * Alias semánticos para que vocabularios como "corte" o "perforación"
-     * reutilicen la imagen de acción correspondiente sin exigir nombres idénticos.
-     */
-    private static function navigation_alias_key($value) {
-        $value = sanitize_title((string) $value);
-        if (!$value) {
-            return '';
-        }
-
-        $rules = array(
-            'cortar'       => array('cortar', 'corte', 'cortes', 'tronzar', 'seccionar'),
-            'perforar'     => array('perforar', 'perforacion', 'taladrar', 'taladro'),
-            'fijar'        => array('fijar', 'fijacion', 'anclaje', 'anclar', 'atornillar', 'tornillo'),
-            'medir'        => array('medir', 'medicion', 'medida', 'nivelar', 'nivelacion'),
-            'instalar'     => array('instalar', 'instalacion', 'montar', 'montaje', 'colocar'),
-            'reparar'      => array('reparar', 'reparacion', 'mantenimiento', 'ajustar'),
-            'proteger'     => array('proteger', 'proteccion', 'seguridad', 'epi', 'epis'),
-            'transportar'  => array('transportar', 'transporte', 'mover', 'movimiento', 'manipulacion'),
-            'amoladora'    => array('amoladora', 'radial'),
-            'sierra-calar' => array('sierra-calar', 'caladora'),
-            'sierra'       => array('sierra', 'sierra-circular'),
-            'ingletadora'  => array('ingletadora'),
-            'taladro'      => array('taladro', 'atornillador'),
-            'porcelanico'  => array('porcelanico', 'gres-porcelanico'),
-            'madera'       => array('madera'),
-            'metal'        => array('metal', 'acero', 'aluminio'),
-            'ladrillo'     => array('ladrillo', 'mamposteria'),
-            'hormigon'     => array('hormigon', 'concreto'),
-            'discos'       => array('disco', 'discos'),
-            'brocas'       => array('broca', 'brocas'),
-            'tornillos'    => array('tornillo', 'tornillos'),
-            'adhesivos'    => array('adhesivo', 'adhesivos', 'pegamento', 'sellador'),
-            'epis'         => array('epi', 'epis', 'proteccion-personal'),
-            'herramientas' => array('herramienta', 'herramientas'),
-            'materiales'   => array('material', 'materiales'),
-            'sistemas'     => array('sistema', 'sistemas', 'plataforma'),
-            'marcas'       => array('marca', 'marcas', 'fabricante'),
-        );
-
-        foreach ($rules as $target => $needles) {
-            foreach ($needles as $needle) {
-                if ($value === $needle || false !== strpos('-' . $value . '-', '-' . $needle . '-')) {
-                    return $target;
-                }
-            }
-        }
-
-        return '';
-    }
-
-    private static function representative_image($documents, $type, $group, $slug) {
         foreach ((array) $documents as $document) {
-            $match = false;
-            if ('categories' === $type) {
-                $match = self::document_has_term_slugs($document['categories'], array($slug));
-            } elseif ('tags' === $type) {
-                $match = self::document_has_term_slugs($document['tags'], array($slug));
-            } elseif ('vocabulary' === $type) {
-                $slugs = array_map('sanitize_title', wp_list_pluck((array) ($document['vocabulary'][$group] ?? array()), 'slug'));
-                $match = in_array($slug, $slugs, true);
-            } elseif ('attributes' === $type) {
-                $map = self::attributes_slug_map($document['attributes']);
-                $match = !empty($map[$group]) && in_array($slug, $map[$group], true);
-            }
-            if ($match && !empty($document['image_url'])) {
-                return (string) $document['image_url'];
+            if (self::document_matches_card($document, $type, $group, $slug)) {
+                $matches[] = $document;
             }
         }
-        return function_exists('wc_placeholder_img_src') ? (string) wc_placeholder_img_src('woocommerce_thumbnail') : '';
+
+        return $matches;
+    }
+
+    private static function document_matches_card($document, $type, $group, $slug) {
+        if ('categories' === $type) {
+            return self::document_has_term_slugs((array) ($document['categories'] ?? array()), array($slug));
+        }
+
+        if ('tags' === $type) {
+            return self::document_has_term_slugs((array) ($document['tags'] ?? array()), array($slug));
+        }
+
+        if ('vocabulary' === $type) {
+            $slugs = array_map(
+                'sanitize_title',
+                wp_list_pluck((array) ($document['vocabulary'][$group] ?? array()), 'slug')
+            );
+            return in_array($slug, $slugs, true);
+        }
+
+        if ('attributes' === $type) {
+            $map = self::attributes_slug_map((array) ($document['attributes'] ?? array()));
+            $group = sanitize_title((string) $group);
+            return !empty($map[$group]) && in_array($slug, $map[$group], true);
+        }
+
+        return false;
+    }
+
+    /**
+     * Entre los productos relacionados, calcula que categoria con imagen
+     * representa mejor el concepto. Se favorecen categorias especificas
+     * (mas profundas) siempre que tengan una presencia significativa.
+     */
+    private static function related_category_image($documents) {
+        $categories = array();
+
+        foreach ((array) $documents as $document) {
+            foreach ((array) ($document['categories'] ?? array()) as $term) {
+                $term_id = absint($term['id'] ?? 0);
+                $slug = sanitize_title((string) ($term['slug'] ?? ''));
+                $image = esc_url_raw((string) ($term['image'] ?? ''));
+
+                if (!$image || (!$term_id && !$slug)) {
+                    continue;
+                }
+
+                $key = $term_id ? 'id:' . $term_id : 'slug:' . $slug;
+                if (!isset($categories[$key])) {
+                    $categories[$key] = array(
+                        'id'    => $term_id,
+                        'slug'  => $slug,
+                        'url'   => $image,
+                        'count' => 0,
+                        'depth' => self::product_category_depth($term_id),
+                    );
+                }
+
+                $categories[$key]['count']++;
+            }
+        }
+
+        if (!$categories) {
+            return array();
+        }
+
+        $max_count = max(array_map(static function ($item) {
+            return absint($item['count'] ?? 0);
+        }, $categories));
+
+        // Una categoria muy especifica solo se considera representativa si
+        // aparece al menos en el 35% del soporte de la categoria dominante.
+        $minimum_support = max(1, (int) ceil($max_count * 0.35));
+        $candidates = array_values(array_filter($categories, static function ($item) use ($minimum_support) {
+            return absint($item['count'] ?? 0) >= $minimum_support;
+        }));
+
+        usort($candidates, static function ($a, $b) {
+            $depth_compare = absint($b['depth'] ?? 0) <=> absint($a['depth'] ?? 0);
+            if (0 !== $depth_compare) {
+                return $depth_compare;
+            }
+
+            $count_compare = absint($b['count'] ?? 0) <=> absint($a['count'] ?? 0);
+            if (0 !== $count_compare) {
+                return $count_compare;
+            }
+
+            return strnatcasecmp((string) ($a['slug'] ?? ''), (string) ($b['slug'] ?? ''));
+        });
+
+        $winner = reset($candidates);
+        if (!$winner || empty($winner['url'])) {
+            return array();
+        }
+
+        return array(
+            'url'    => (string) $winner['url'],
+            'kind'   => 'category',
+            'source' => (string) ($winner['slug'] ?? ''),
+        );
+    }
+
+    private static function product_category_depth($term_id) {
+        static $cache = array();
+
+        $term_id = absint($term_id);
+        if (!$term_id) {
+            return 0;
+        }
+
+        if (isset($cache[$term_id])) {
+            return $cache[$term_id];
+        }
+
+        $ancestors = get_ancestors($term_id, 'product_cat', 'taxonomy');
+        $cache[$term_id] = is_array($ancestors) ? count($ancestors) : 0;
+
+        return $cache[$term_id];
+    }
+
+    /**
+     * Seleccion estable de un producto representativo. Se priorizan los
+     * productos en stock y, a igualdad, se usa el ID para que la imagen no
+     * cambie de forma aleatoria entre peticiones.
+     */
+    private static function representative_product_image($documents) {
+        $candidates = array();
+
+        foreach ((array) $documents as $document) {
+            $image = esc_url_raw((string) ($document['image_url'] ?? ''));
+            if (!$image) {
+                continue;
+            }
+
+            $score = 0;
+            if ('instock' === (string) ($document['stock_status'] ?? '')) {
+                $score += 100;
+            } elseif ('onbackorder' === (string) ($document['stock_status'] ?? '')) {
+                $score += 40;
+            }
+
+            if (isset($document['price']) && '' !== (string) $document['price']) {
+                $score += 5;
+            }
+
+            $candidates[] = array(
+                'id'    => absint($document['product_id'] ?? 0),
+                'url'   => $image,
+                'score' => $score,
+            );
+        }
+
+        if (!$candidates) {
+            return array();
+        }
+
+        usort($candidates, static function ($a, $b) {
+            $score_compare = (int) ($b['score'] ?? 0) <=> (int) ($a['score'] ?? 0);
+            if (0 !== $score_compare) {
+                return $score_compare;
+            }
+            return absint($a['id'] ?? 0) <=> absint($b['id'] ?? 0);
+        });
+
+        $winner = reset($candidates);
+        return array(
+            'url'    => (string) ($winner['url'] ?? ''),
+            'kind'   => 'product',
+            'source' => !empty($winner['id']) ? 'product:' . absint($winner['id']) : 'product',
+        );
+    }
+
+    /**
+     * Ultimo fallback visual: logo configurado por el tema. Se deja un
+     * filtro para poder fijar el logo corporativo sin tocar este modulo.
+     */
+    private static function company_logo_url() {
+        static $logo = null;
+
+        if (null !== $logo) {
+            return $logo;
+        }
+
+        $logo = '';
+        $custom_logo_id = absint(get_theme_mod('custom_logo'));
+
+        if ($custom_logo_id) {
+            $custom_logo = wp_get_attachment_image_url($custom_logo_id, 'full');
+            if ($custom_logo) {
+                $logo = esc_url_raw($custom_logo);
+            }
+        }
+
+        if (!$logo) {
+            $site_icon = get_site_icon_url(512);
+            if ($site_icon) {
+                $logo = esc_url_raw($site_icon);
+            }
+        }
+
+        if (!$logo && function_exists('wc_placeholder_img_src')) {
+            $logo = esc_url_raw((string) wc_placeholder_img_src('woocommerce_thumbnail'));
+        }
+
+        $logo = esc_url_raw((string) apply_filters('seo_dependiente_company_logo_url', $logo));
+        return $logo;
     }
 
     private static function tool_attribute_items($attributes) {

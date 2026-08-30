@@ -108,9 +108,8 @@ final class SEO_Dependiente_Admin {
 
                     <div class="postbox" style="padding:20px;">
                         <h2 style="margin-top:0;">Imágenes de navegación</h2>
-                        <p>Dependiente puede usar imágenes ligeras de la Biblioteca de Medios para que las tarjetas se reconozcan de un vistazo.</p>
-                        <p><strong>Solo tienes que subir los WebP sin cambiarles el nombre.</strong> El sistema detecta automáticamente archivos con el patrón <code>seo-dependiente-{slug}.webp</code>.</p>
-                        <p class="description">Ejemplos: <code>seo-dependiente-cortar.webp</code>, <code>seo-dependiente-taladro.webp</code> o <code>seo-dependiente-porcelanico.webp</code>. Si no existe una imagen específica, se conserva la imagen de categoría o de producto que ya utilizaba el buscador.</p>
+                        <p><strong>Las imágenes se resuelven automáticamente desde el catálogo.</strong> No es necesario asociar imágenes a etiquetas, aplicaciones o atributos ni subir archivos con nombres especiales.</p>
+                        <p class="description">Dependiente localiza los productos relacionados con cada concepto, reutiliza primero la imagen de una categoría representativa y, si no existe, la de un producto relacionado. El logo de la empresa se utiliza únicamente como último recurso.</p>
                     </div>
 
                     <div class="postbox" style="padding:20px;">
