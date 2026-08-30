@@ -17,6 +17,7 @@
             paths: root.querySelectorAll('[data-dependiente-mode]'),
             workspace: root.querySelector('[data-dependiente-workspace]'),
             filters: root.querySelector('[data-dependiente-filters]'),
+            related: root.querySelector('[data-dependiente-related]'),
             filterToggle: root.querySelector('[data-dependiente-filter-toggle]'),
             summary: root.querySelector('[data-dependiente-summary]'),
             sort: root.querySelector('[data-dependiente-sort]'),
@@ -88,6 +89,9 @@
             elements.paths.forEach(function (button) {
                 button.addEventListener('click', function () {
                     setMode(button.dataset.dependienteMode || 'need');
+                    if (elements.query) {
+                        elements.query.focus({ preventScroll: true });
+                    }
                 });
             });
 
@@ -260,6 +264,10 @@
             if (state.loading) return;
             state.loading = true;
             elements.workspace.hidden = false;
+            if (elements.related) {
+                elements.related.hidden = true;
+                elements.related.innerHTML = '';
+            }
             elements.status.textContent = config.labels && config.labels.loading ? config.labels.loading : 'Revisando el catálogo…';
             elements.results.innerHTML = Array.from({ length: 6 }).map(function () {
                 return '<div class="seo-dependiente__skeleton" aria-hidden="true"></div>';
@@ -286,6 +294,7 @@
                 renderFilters(data.facets || {});
                 renderActiveFilters();
                 renderResults(data.results || []);
+                renderRelated(data.related || []);
                 renderPagination(data.page || 1, data.pages || 0);
                 elements.status.textContent = data.truncated ? 'Búsqueda amplia: he analizado las coincidencias más relevantes del catálogo.' : '';
                 updateUrl();
@@ -293,6 +302,10 @@
                 elements.summary.innerHTML = '<strong>No he podido terminar la búsqueda.</strong>';
                 elements.status.textContent = error.message || (config.labels && config.labels.error) || 'Ha ocurrido un error.';
                 elements.results.innerHTML = '<div class="seo-dependiente__empty"><strong>Prueba de nuevo</strong><span>Comprueba la conexión o simplifica la consulta.</span></div>';
+                if (elements.related) {
+                    elements.related.hidden = true;
+                    elements.related.innerHTML = '';
+                }
             } finally {
                 state.loading = false;
                 syncCompareButtons();
@@ -489,6 +502,33 @@
                 (specs ? '<div class="seo-dependiente__specs">' + specs + '</div>' : '') +
                 '<div class="seo-dependiente__product-foot"><div class="seo-dependiente__price">' + (product.price_html || '') + '</div><a class="seo-dependiente__card-button" href="' + escapeAttr(product.url) + '">' + escapeHtml((config.labels && config.labels.viewProduct) || 'Ver producto') + '</a></div>' +
                 '</div></article>';
+        }
+
+        function renderRelated(items) {
+            if (!elements.related) return;
+            if (!items || !items.length) {
+                elements.related.hidden = true;
+                elements.related.innerHTML = '';
+                return;
+            }
+
+            const first = items.slice(0, 4);
+            const rest = items.slice(4);
+            const cards = first.map(renderRelatedCard).join('');
+            const more = rest.length ? '<details class="seo-dependiente__related-more"><summary>Ver más información (' + rest.length + ')</summary><div class="seo-dependiente__related-more-list">' + rest.map(renderRelatedCard).join('') + '</div></details>' : '';
+            elements.related.innerHTML = '<div class="seo-dependiente__related-inner">' +
+                '<div class="seo-dependiente__related-head"><span>También te puede ayudar</span><h2>Guías y soluciones</h2><p>Contenido relacionado con las categorías de los productos que mejor encajan.</p></div>' +
+                '<div class="seo-dependiente__related-list">' + cards + '</div>' + more + '</div>';
+            elements.related.hidden = false;
+        }
+
+        function renderRelatedCard(item) {
+            const image = item.image ? '<span class="seo-dependiente__related-image"><img src="' + escapeAttr(item.image) + '" alt="" loading="lazy" decoding="async"></span>' : '';
+            return '<article class="seo-dependiente__related-card">' + image +
+                '<div class="seo-dependiente__related-body"><span class="seo-dependiente__related-type">' + escapeHtml(item.type_label || 'Guía') + '</span>' +
+                '<h3><a href="' + escapeAttr(item.url || '#') + '">' + escapeHtml(item.title || '') + '</a></h3>' +
+                (item.excerpt ? '<p>' + escapeHtml(item.excerpt) + '</p>' : '') +
+                '<a class="seo-dependiente__related-link" href="' + escapeAttr(item.url || '#') + '">Leer →</a></div></article>';
         }
 
         function renderPagination(page, pages) {

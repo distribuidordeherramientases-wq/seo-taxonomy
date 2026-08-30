@@ -75,6 +75,35 @@
         }
     }
 
+    document.querySelectorAll('[data-dependiente-media-field]').forEach(function (field) {
+        const select = field.querySelector('[data-dependiente-media-select]');
+        const clear = field.querySelector('[data-dependiente-media-clear]');
+        const input = field.querySelector('[data-dependiente-media-id]');
+        const preview = field.querySelector('[data-dependiente-media-preview]');
+        const fallback = preview ? (preview.dataset.fallbackSrc || preview.getAttribute('src') || '') : '';
+
+        select && select.addEventListener('click', function () {
+            if (!window.wp || !wp.media) return;
+            const frame = wp.media({
+                title: 'Elegir imagen para Dependiente',
+                library: { type: 'image' },
+                button: { text: 'Usar esta imagen' },
+                multiple: false
+            });
+            frame.on('select', function () {
+                const attachment = frame.state().get('selection').first().toJSON();
+                if (input) input.value = attachment.id || 0;
+                if (preview) preview.src = (attachment.sizes && attachment.sizes.medium ? attachment.sizes.medium.url : attachment.url) || fallback;
+            });
+            frame.open();
+        });
+
+        clear && clear.addEventListener('click', function () {
+            if (input) input.value = '0';
+            if (preview) preview.src = fallback;
+        });
+    });
+
     reindexButton && reindexButton.addEventListener('click', reindex);
     clearButton && clearButton.addEventListener('click', clearIndex);
 }());
