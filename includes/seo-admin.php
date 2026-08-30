@@ -67,7 +67,7 @@ if (!function_exists('seo_post_admin_callback')) {
 
         $seo_post_editor_file = __DIR__ . '/post-edit.php';
         echo '<div class="wrap">';
-        echo '<h1>Posts</h1>';
+        echo '<h1>Entradas</h1>';
         echo '<div class="notice notice-error"><p><strong>No se ha podido cargar el editor de posts.</strong></p>';
         echo '<p>Archivo esperado: <code>' . esc_html($seo_post_editor_file) . '</code></p>';
         echo '<p>Existe/legible: <strong>' . (is_readable($seo_post_editor_file) ? 'SI' : 'NO') . '</strong></p>';
@@ -99,85 +99,95 @@ add_menu_page(
 );
 
 
-// Home
+// Inicio
 add_submenu_page(
     'seo-system',
-    'Home',
-    'Home',
+    'Inicio',
+    'Inicio',
     'manage_options',
     'seo-home',
     'seo_home_page'
 );
-    // Products
+    // Productos
     add_submenu_page(
         'seo-system',
-        'Product Admin',
-        'Products',
+        'Administración de productos',
+        'Productos',
         'manage_options',
         'product-page-admin',
         'seo_product_admin_callback'
     );
 
-    // Categories
+    // Categorías
     add_submenu_page(
         'seo-system',
-        'Category Admin',
-        'Categories',
+        'Administración de categorías',
+        'Categorías',
         'manage_options',
         'category-seo-admin',
         'seo_category_admin_callback'
     );
 
-    // Semántica: etiquetas de clasificación + atributos técnicos de producto
+    // Etiquetas / vocabulario semántico de producto
     add_submenu_page(
         'seo-system',
-        'Vocabulario semántico',
-        'Semántica',
+        'Etiquetas y vocabulario',
+        'Etiquetas',
         'manage_options',
         'seo-tags-vocabulary',
         'seo_tags_vocabulary_admin_page'
     );
 
-    // Pages
+    // Páginas
     add_submenu_page(
         'seo-system',
-        'Page Admin',
-        'Pages',
+        'Administración de páginas',
+        'Páginas',
         'manage_options',
         'seo-page-admin',
         'seo_page_admin_callback'
     );
 
-    // Posts
+    // Entradas
     // Se registra siempre. Si el modulo no esta disponible, el callback muestra
     // el motivo exacto en vez de ocultar silenciosamente la opcion del menu.
     add_submenu_page(
         'seo-system',
-        'Post Admin',
-        'Posts',
+        'Administración de entradas',
+        'Entradas',
         'manage_options',
         'seo-post-editor',
         'seo_post_admin_callback'
     );
 
-    // Pictures
+    // Imágenes
     add_submenu_page(
         'seo-system',
-        'Pictures',
-        'Pictures',
+        'Imágenes',
+        'Imágenes',
         'manage_options',
         'seo-pictures-admin',
         'seo_pictures_admin_page'
     );
 
-    // Reports
+    // Informes
     add_submenu_page(
         'seo-system',
-        'Reports',
-        'Reports',
+        'Informes',
+        'Informes',
         'manage_options',
         'seo-reports',
         'seo_reports_page'
+    );
+
+    // Dependiente: buscador guiado y comparador para el frontal de la tienda.
+    add_submenu_page(
+        'seo-system',
+        'Dependiente',
+        'Dependiente',
+        class_exists('WooCommerce') ? 'manage_woocommerce' : 'manage_options',
+        'seo-dependiente',
+        array('SEO_Dependiente_Admin', 'render_page')
     );
 
     // Tools
@@ -659,42 +669,42 @@ function seo_home_page() {
         $home_cards = [
 
             [
-                'title' => 'Products',
+                'title' => 'Productos',
                 'icon'  => 'dashicons-products',
                 'page'  => 'product-page-admin',
                 'desc'  => 'Gestiona el SEO de todos los productos WooCommerce. Edita títulos, descripciones, IA, imágenes y datos SEO desde una única pantalla.'
             ],
 
             [
-                'title' => 'Categories',
+                'title' => 'Categorías',
                 'icon'  => 'dashicons-category',
                 'page'  => 'category-seo-admin',
                 'desc'  => 'Optimiza categorías, taxonomías y estructuras SEO para mejorar la organización y el posicionamiento.'
             ],
 
             [
-                'title' => 'Pages',
+                'title' => 'Páginas',
                 'icon'  => 'dashicons-admin-page',
                 'page'  => 'seo-page-admin',
                 'desc'  => 'Administra las páginas de WordPress y su información dentro de la arquitectura SEO.'
             ],
 
             [
-                'title' => 'Posts',
+                'title' => 'Entradas',
                 'icon'  => 'dashicons-admin-post',
                 'page'  => 'seo-post-editor',
                 'desc'  => 'Crea y edita posts de WordPress y relaciona cada entrada con categorías de producto mediante SEO Relations.'
             ],
 
             [
-                'title' => 'Pictures',
+                'title' => 'Imágenes',
                 'icon'  => 'dashicons-format-image',
                 'page'  => 'seo-pictures-admin',
                 'desc'  => 'Gestiona títulos, atributos ALT, descripciones y metadatos de todas las imágenes del sitio.'
             ],
 
             [
-                'title' => 'Reports',
+                'title' => 'Informes',
                 'icon'  => 'dashicons-chart-area',
                 'page'  => 'seo-reports',
                 'desc'  => 'Consulta informes y estadísticas para conocer el estado SEO de tu proyecto y detectar mejoras.'
@@ -704,7 +714,7 @@ function seo_home_page() {
                 'title' => 'Herramientas',
                 'icon'  => 'dashicons-admin-tools',
                 'page'  => 'seo-tools',
-                'desc'  => 'Accede a las herramientas avanzadas: Taxonomy, Templates, Search Settings, Redirects, Marketing, Data Table, Clean DB, Import / Export, Semantic Learning y Menu Manager.'
+                'desc'  => 'Accede a las herramientas avanzadas: Taxonomía, Plantillas, Búsqueda, Redirecciones, Marketing, Tabla de datos, Limpiar BD, Importar / Exportar, Aprendizaje semántico y Gestor de menús.'
             ]
         ];
 
@@ -750,9 +760,9 @@ function seo_home_page() {
         <p>
 
             La mayoría de usuarios utilizarán diariamente las opciones
-            <strong>Products</strong>, <strong>Categories</strong>,
-            <strong>Pages</strong>, <strong>Posts</strong>, <strong>Pictures</strong> y
-            <strong>Reports</strong>, mientras que <strong>Tools</strong>
+            <strong>Productos</strong>, <strong>Categorías</strong>,
+            <strong>Páginas</strong>, <strong>Entradas</strong>, <strong>Imágenes</strong> e
+            <strong>Informes</strong>, mientras que <strong>Herramientas</strong>
             concentra las funciones de configuración y mantenimiento.
 
         </p>

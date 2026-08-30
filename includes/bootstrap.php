@@ -128,6 +128,14 @@ require_once SEO_SYSTEM_PATH . 'includes/seo-faq.php';
 
 /*
 |--------------------------------------------------------------------------
+| DEPENDIENTE: BUSQUEDA GUIADA Y COMPARADOR
+|--------------------------------------------------------------------------
+*/
+
+require_once SEO_SYSTEM_PATH . 'includes/dependiente/seo-dependiente-bootstrap.php';
+
+/*
+|--------------------------------------------------------------------------
 | INFORMES Y DASHBOARD
 |--------------------------------------------------------------------------
 */
