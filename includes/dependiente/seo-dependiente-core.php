@@ -306,7 +306,40 @@ final class SEO_Dependiente_Plugin {
             }
         }
 
-        return SEO_DEPENDIENTE_URL . 'assets/images/' . ltrim((string) $filename, '/');
+        return self::bundled_action_image_url($filename);
+    }
+
+    /**
+     * Resuelve las imagenes incluidas del selector inicial.
+     *
+     * La ubicacion canonica es assets/images, pero instalaciones anteriores
+     * guardaron estos ficheros directamente en includes/dependiente/images.
+     * Admitimos ambas para no romper produccion ni obligar a migrar Medios.
+     */
+    public static function bundled_action_image_url($filename) {
+        $filename = basename((string) $filename);
+        if ('' === $filename) {
+            return '';
+        }
+
+        $locations = array(
+            array(
+                'path' => SEO_DEPENDIENTE_PATH . 'assets/images/' . $filename,
+                'url'  => SEO_DEPENDIENTE_URL . 'assets/images/' . $filename,
+            ),
+            array(
+                'path' => SEO_DEPENDIENTE_PATH . 'images/' . $filename,
+                'url'  => SEO_DEPENDIENTE_URL . 'images/' . $filename,
+            ),
+        );
+
+        foreach ($locations as $location) {
+            if (is_readable($location['path'])) {
+                return (string) $location['url'];
+            }
+        }
+
+        return '';
     }
 
     private function enqueue_assets() {

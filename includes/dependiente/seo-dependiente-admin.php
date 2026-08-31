@@ -212,7 +212,9 @@ final class SEO_Dependiente_Admin {
 
     private static function render_media_field($key, $label, $options, $fallback_filename) {
         $attachment_id = absint($options[$key] ?? 0);
-        $fallback = SEO_DEPENDIENTE_URL . 'assets/images/' . ltrim((string) $fallback_filename, '/');
+        $fallback = method_exists('SEO_Dependiente_Plugin', 'bundled_action_image_url')
+            ? SEO_Dependiente_Plugin::bundled_action_image_url($fallback_filename)
+            : '';
         $preview = $attachment_id ? wp_get_attachment_image_url($attachment_id, 'medium') : '';
         if (!$preview) {
             $preview = $fallback;
