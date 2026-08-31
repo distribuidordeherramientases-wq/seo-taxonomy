@@ -223,6 +223,21 @@ function seo_template_loader($template) {
     }
 
     /* =====================================================
+       2B. CARRITO WOOCOMMERCE
+
+       WooCommerce usa una pagina de WordPress para el carrito.
+       Esta condicion debe resolverse antes de is_singular('page')
+       para que el router consuma la template_key `cart`.
+    ===================================================== */
+    if (function_exists('is_cart') && is_cart()) {
+
+        $tpl = seo_template_get_registered_template('cart');
+
+        $file = seo_template_resolve_registered_file($tpl, $base_path);
+        return $file !== '' ? $file : $template;
+    }
+
+    /* =====================================================
        3. CATEGORIAS PRODUCTO
     ===================================================== */
     if (is_tax('product_cat')) {
