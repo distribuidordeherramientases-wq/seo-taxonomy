@@ -2,6 +2,13 @@
 
 defined('ABSPATH') || exit;
 
+// Carga autosuficiente del registro de busquedas.
+// Permite instalar solo este API + seo-dependiente-search-log.php.
+$seo_dependiente_search_log_file = __DIR__ . '/seo-dependiente-search-log.php';
+if (!class_exists('SEO_Dependiente_Search_Log') && is_readable($seo_dependiente_search_log_file)) {
+    require_once $seo_dependiente_search_log_file;
+}
+
 final class SEO_Dependiente_API {
     const CANDIDATE_LIMIT = 1600;
 
@@ -15,6 +22,12 @@ final class SEO_Dependiente_API {
         register_rest_route('seo-taxonomy/v1', '/search', array(
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => array(__CLASS__, 'search'),
+            'permission_callback' => '__return_true',
+        ));
+
+        register_rest_route('seo-taxonomy/v1', '/search-feedback', array(
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => array(__CLASS__, 'search_feedback'),
             'permission_callback' => '__return_true',
         ));
 
@@ -91,6 +104,7 @@ final class SEO_Dependiente_API {
     }
 
     public static function search(WP_REST_Request $request) {
+        $started_at = microtime(true);
         $ready = self::woocommerce_ready();
         if (is_wp_error($ready)) {
             return $ready;
@@ -115,11 +129,44 @@ final class SEO_Dependiente_API {
         if (!in_array($orderby, array('relevance', 'price_asc', 'price_desc', 'newest', 'title'), true)) {
             $orderby = 'relevance';
         }
+        $session_id = isset($params['session_id']) ? sanitize_text_field((string) $params['session_id']) : '';
+
+        // Si el frontend no envia session_id, intentamos mantener una sesion anonima
+        // para detectar reformulaciones consecutivas sin guardar IP ni datos personales.
+        if ('' === $session_id) {
+            $cookie_name = 'seo_dependiente_sid';
+            if (!empty($_COOKIE[$cookie_name])) {
+                $session_id = sanitize_text_field(wp_unslash((string) $_COOKIE[$cookie_name]));
+            } elseif (function_exists('WC') && WC() && isset(WC()->session) && WC()->session) {
+                $wc_customer_id = (string) WC()->session->get_customer_id();
+                if ('' !== $wc_customer_id) {
+                    $session_id = 'wc:' . $wc_customer_id;
+                }
+            }
+
+            if ('' === $session_id) {
+                $session_id = wp_generate_uuid4();
+                if (!headers_sent()) {
+                    $secure = is_ssl();
+                    $path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH : '/';
+                    setcookie($cookie_name, $session_id, time() + DAY_IN_SECONDS, $path, '', $secure, true);
+                    $_COOKIE[$cookie_name] = $session_id;
+                }
+            }
+        }
+
+        if (function_exists('mb_substr')) {
+            $session_id = mb_substr($session_id, 0, 100, 'UTF-8');
+        } else {
+            $session_id = substr($session_id, 0, 100);
+        }
+        $request_kind = $page > 1 ? 'paginate' : ((self::has_active_filters($filters) || 'relevance' !== $orderby) ? 'refine' : 'search');
 
         $semantic = class_exists('SEO_Dependiente_Semantics')
             ? SEO_Dependiente_Semantics::analyze($query)
             : array();
-        $candidate_rows = self::candidate_rows($query, $semantic);
+        $search_diagnostic = array();
+        $candidate_rows = self::candidate_rows($query, $semantic, $search_diagnostic);
         $documents = array_map(array('SEO_Dependiente_Index', 'decode_row'), $candidate_rows);
         $facets = self::build_facets($documents);
 
@@ -159,6 +206,27 @@ final class SEO_Dependiente_API {
             }
         }
 
+        $public_semantic = class_exists('SEO_Dependiente_Semantics')
+            ? SEO_Dependiente_Semantics::public_analysis($semantic)
+            : array();
+        $execution_ms = (microtime(true) - $started_at) * 1000;
+        $search_id = '';
+        if (class_exists('SEO_Dependiente_Search_Log') && '' !== trim($query)) {
+            $search_id = SEO_Dependiente_Search_Log::record_search(array(
+                'query'           => $query,
+                'session_id'      => $session_id,
+                'request_kind'    => $request_kind,
+                'mode'            => $mode,
+                'semantic'        => $semantic,
+                'search_strategy' => (string) ($search_diagnostic['strategy'] ?? 'strict'),
+                'strategy_detail' => $search_diagnostic,
+                'candidate_count' => count($documents),
+                'result_count'    => $total,
+                'results'         => $results,
+                'execution_ms'    => $execution_ms,
+            ));
+        }
+
         return rest_ensure_response(array(
             'query'           => $query,
             'mode'            => $mode,
@@ -172,10 +240,33 @@ final class SEO_Dependiente_API {
             'related'         => $related,
             'facets'          => $facets,
             'filters'         => $filters,
-            'semantic'        => class_exists('SEO_Dependiente_Semantics')
-                ? SEO_Dependiente_Semantics::public_analysis($semantic)
-                : array(),
+            'semantic'        => $public_semantic,
+            'search_id'       => $search_id,
+            'search_strategy' => (string) ($search_diagnostic['strategy'] ?? 'strict'),
         ));
+    }
+
+    public static function search_feedback(WP_REST_Request $request) {
+        $params = self::request_params($request);
+        $search_id = isset($params['search_id']) ? sanitize_text_field((string) $params['search_id']) : '';
+        $event = isset($params['event']) ? sanitize_key((string) $params['event']) : '';
+        if (!$search_id || !in_array($event, array('click', 'helpful'), true)) {
+            return new WP_Error('seo_dependiente_feedback_invalid', 'Datos de feedback incompletos.', array('status' => 400));
+        }
+        if (!class_exists('SEO_Dependiente_Search_Log')) {
+            return new WP_Error('seo_dependiente_feedback_unavailable', 'El registro de busquedas no esta disponible.', array('status' => 503));
+        }
+
+        $ok = SEO_Dependiente_Search_Log::record_feedback($search_id, $event, array(
+            'product_id' => absint($params['product_id'] ?? 0),
+            'position'   => absint($params['position'] ?? 0),
+            'value'      => (int) ($params['value'] ?? 0),
+            'reason'     => sanitize_text_field((string) ($params['reason'] ?? '')),
+        ));
+        if (!$ok) {
+            return new WP_Error('seo_dependiente_feedback_failed', 'No se pudo registrar el feedback.', array('status' => 404));
+        }
+        return rest_ensure_response(array('ok' => true));
     }
 
     public static function compare(WP_REST_Request $request) {
@@ -246,20 +337,31 @@ final class SEO_Dependiente_API {
         return is_array($json) ? $json : $request->get_params();
     }
 
-    private static function candidate_rows($query, $semantic = array()) {
+    private static function candidate_rows($query, $semantic = array(), &$diagnostic = array()) {
         global $wpdb;
 
+        $diagnostic = array(
+            'strategy'             => 'strict',
+            'strict_count'         => 0,
+            'semantic_product_ids' => 0,
+            'semantic_route_rows'  => 0,
+            'object_anchor_rows'   => 0,
+            'broad_fallback_rows'  => 0,
+        );
         if (!SEO_Dependiente_Index::table_exists()) {
+            $diagnostic['strategy'] = 'index_unavailable';
             return array();
         }
         $groups = !empty($semantic['groups']) && class_exists('SEO_Dependiente_Semantics')
             ? SEO_Dependiente_Semantics::group_variants($semantic)
             : self::query_token_groups($query);
         if (!$groups) {
+            $diagnostic['strategy'] = 'catalog_fallback';
             return SEO_Dependiente_Index::get_rows(self::CANDIDATE_LIMIT);
         }
 
         $strict = self::query_index($groups, true, self::CANDIDATE_LIMIT);
+        $diagnostic['strict_count'] = count($strict);
         $has_semantic_routes = !empty($semantic['routes']);
         if ((count($strict) >= 12 || count($groups) <= 1) && !$has_semantic_routes) {
             return $strict;
@@ -279,7 +381,9 @@ final class SEO_Dependiente_API {
          */
         if (class_exists('SEO_Dependiente_Semantics') && $semantic) {
             $semantic_ids = SEO_Dependiente_Semantics::vocabulary_candidate_product_ids($semantic, 700);
+            $diagnostic['semantic_product_ids'] = count($semantic_ids);
             if ($semantic_ids) {
+                $diagnostic['strategy'] = 'semantic_routes';
                 foreach (SEO_Dependiente_Index::get_rows_by_ids($semantic_ids, 700) as $row) {
                     $merged[absint($row['product_id'])] = $row;
                     if (count($merged) >= self::CANDIDATE_LIMIT) {
@@ -291,6 +395,10 @@ final class SEO_Dependiente_API {
             $route_groups = SEO_Dependiente_Semantics::route_search_groups($semantic);
             if ($route_groups && count($merged) < self::CANDIDATE_LIMIT) {
                 $route_rows = self::query_index($route_groups, false, self::CANDIDATE_LIMIT);
+                $diagnostic['semantic_route_rows'] = count($route_rows);
+                if ($route_rows) {
+                    $diagnostic['strategy'] = 'semantic_routes';
+                }
                 foreach ($route_rows as $row) {
                     $merged[absint($row['product_id'])] = $row;
                     if (count($merged) >= self::CANDIDATE_LIMIT) {
@@ -306,6 +414,10 @@ final class SEO_Dependiente_API {
             $object_groups = SEO_Dependiente_Semantics::group_variants($semantic, array('object'));
             if ($object_groups && count($merged) < self::CANDIDATE_LIMIT) {
                 $anchor_rows = self::query_index($object_groups, true, self::CANDIDATE_LIMIT);
+                $diagnostic['object_anchor_rows'] = count($anchor_rows);
+                if ($anchor_rows && 'semantic_routes' !== $diagnostic['strategy']) {
+                    $diagnostic['strategy'] = 'object_anchor';
+                }
                 foreach ($anchor_rows as $row) {
                     $merged[absint($row['product_id'])] = $row;
                     if (count($merged) >= self::CANDIDATE_LIMIT) {
@@ -324,6 +436,10 @@ final class SEO_Dependiente_API {
             : false;
         if (!$has_object_anchor && count($merged) < 12) {
             $broad = self::query_index($groups, false, self::CANDIDATE_LIMIT);
+            $diagnostic['broad_fallback_rows'] = count($broad);
+            if ($broad) {
+                $diagnostic['strategy'] = 'broad_fallback';
+            }
             foreach ($broad as $row) {
                 $merged[absint($row['product_id'])] = $row;
                 if (count($merged) >= self::CANDIDATE_LIMIT) {
@@ -507,6 +623,15 @@ final class SEO_Dependiente_API {
             }
         }
         return $clean;
+    }
+
+    private static function has_active_filters($filters) {
+        foreach (array('categories', 'tags', 'brands', 'stock') as $key) {
+            if (!empty($filters[$key])) {
+                return true;
+            }
+        }
+        return !empty($filters['vocabulary']) || !empty($filters['attributes']) || !empty($filters['ranges']);
     }
 
     private static function sanitize_slug_list($values) {
