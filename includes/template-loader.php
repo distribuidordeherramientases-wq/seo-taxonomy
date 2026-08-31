@@ -223,7 +223,37 @@ function seo_template_loader($template) {
     }
 
     /* =====================================================
-       2B. CARRITO WOOCOMMERCE
+       2B. PEDIDO RECIBIDO / GRACIAS WOOCOMMERCE
+
+       El endpoint order-received tambien forma parte del checkout.
+       Se resuelve antes de is_checkout() para que pueda usar su
+       propia template_key `thankyou`.
+    ===================================================== */
+    if (function_exists('is_order_received_page') && is_order_received_page()) {
+
+        $tpl = seo_template_get_registered_template('thankyou');
+
+        $file = seo_template_resolve_registered_file($tpl, $base_path);
+        return $file !== '' ? $file : $template;
+    }
+
+    /* =====================================================
+       2C. FINALIZAR COMPRA WOOCOMMERCE
+
+       WooCommerce usa una pagina de WordPress para el checkout.
+       Debe resolverse antes de is_singular('page') para evitar que
+       una plantilla generica/corporativa intercepte la compra.
+    ===================================================== */
+    if (function_exists('is_checkout') && is_checkout()) {
+
+        $tpl = seo_template_get_registered_template('checkout');
+
+        $file = seo_template_resolve_registered_file($tpl, $base_path);
+        return $file !== '' ? $file : $template;
+    }
+
+    /* =====================================================
+       2D. CARRITO WOOCOMMERCE
 
        WooCommerce usa una pagina de WordPress para el carrito.
        Esta condicion debe resolverse antes de is_singular('page')

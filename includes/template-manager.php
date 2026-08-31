@@ -40,6 +40,16 @@ function seo_tm_cart_style_admin_url() {
     ) . '#seo-style-cart';
 }
 
+function seo_tm_checkout_style_admin_url() {
+    return add_query_arg(
+        [
+            'page' => 'seo-menu-marketing',
+            'tab'  => 'style',
+        ],
+        admin_url('admin.php')
+    ) . '#seo-style-checkout';
+}
+
 function seo_tm_redirect($tab, $message, $type = 'success') {
     $url = seo_tm_admin_url($tab, [
         'seo_tm_notice'      => $message,
@@ -1906,6 +1916,14 @@ function seo_tm_render_files_tab() {
             echo '<strong>Estilo del carrito</strong>';
             echo '<p class="description">Colores, dimensiones y previsualización se gestionan desde Marketing → Estilo visual.</p>';
             echo '<a class="button button-secondary" href="' . esc_url(seo_tm_cart_style_admin_url()) . '">Configurar estilo y previsualizar carrito</a>';
+            echo '</div>';
+        }
+
+        if ((string) $template->template_key === 'checkout') {
+            echo '<div class="seo-tm-cart-style-link">';
+            echo '<strong>Estilo de finalizar compra</strong>';
+            echo '<p class="description">El checkout conserva la lógica nativa de WooCommerce; aquí solo se personaliza su presentación.</p>';
+            echo '<a class="button button-secondary" href="' . esc_url(seo_tm_checkout_style_admin_url()) . '">Configurar estilo y previsualizar checkout</a>';
             echo '</div>';
         }
 

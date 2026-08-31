@@ -217,6 +217,31 @@ function seo_marketing_style_defaults()
         'cart_action_hover'         => '#005b96',
         'cart_action_text'          => '#ffffff',
 
+        // Finalizar compra / Checkout WooCommerce.
+        'checkout_background'           => '#f5f7f9',
+        'checkout_hero_background'      => '#27344f',
+        'checkout_hero_title'           => '#ffffff',
+        'checkout_hero_text'            => '#d7dde4',
+        'checkout_card_background'      => '#ffffff',
+        'checkout_summary_background'   => '#ffffff',
+        'checkout_text'                 => '#17212b',
+        'checkout_muted'                => '#68747e',
+        'checkout_border'               => '#e1e7eb',
+        'checkout_input_background'     => '#ffffff',
+        'checkout_container_width'      => 1280,
+        'checkout_summary_width'        => 390,
+        'checkout_card_radius'          => 14,
+        'checkout_control_radius'       => 8,
+        'checkout_card_padding'         => 28,
+        'checkout_layout_gap'           => 28,
+        'checkout_input_height'         => 48,
+        'checkout_hero_padding'         => 52,
+        'checkout_shadow_preset'        => 'soft',
+        'checkout_custom_action_colors' => 0,
+        'checkout_action_background'    => '#007acc',
+        'checkout_action_hover'         => '#005b96',
+        'checkout_action_text'          => '#ffffff',
+
         // Navegación principal.
         'menu_style'                => 'soft',
         'menu_background'           => '#ffffff',
@@ -400,6 +425,10 @@ function seo_marketing_style_sanitize_settings($input)
         'cart_text', 'cart_muted', 'cart_border', 'cart_remove_color',
         'cart_remove_background', 'cart_action_background', 'cart_action_hover',
         'cart_action_text',
+        'checkout_background', 'checkout_hero_background', 'checkout_hero_title',
+        'checkout_hero_text', 'checkout_card_background', 'checkout_summary_background',
+        'checkout_text', 'checkout_muted', 'checkout_border', 'checkout_input_background',
+        'checkout_action_background', 'checkout_action_hover', 'checkout_action_text',
     );
 
     foreach ($color_keys as $key) {
@@ -501,6 +530,19 @@ function seo_marketing_style_sanitize_settings($input)
 
     $cart_shadow = isset($input['cart_shadow_preset']) ? sanitize_key($input['cart_shadow_preset']) : $defaults['cart_shadow_preset'];
     $settings['cart_shadow_preset'] = isset($shadow_choices[$cart_shadow]) ? $cart_shadow : $defaults['cart_shadow_preset'];
+
+    $settings['checkout_container_width']      = seo_marketing_style_clamp(isset($input['checkout_container_width']) ? $input['checkout_container_width'] : null, 760, 1700, $defaults['checkout_container_width']);
+    $settings['checkout_summary_width']        = seo_marketing_style_clamp(isset($input['checkout_summary_width']) ? $input['checkout_summary_width'] : null, 280, 560, $defaults['checkout_summary_width']);
+    $settings['checkout_card_radius']          = seo_marketing_style_clamp(isset($input['checkout_card_radius']) ? $input['checkout_card_radius'] : null, 0, 40, $defaults['checkout_card_radius']);
+    $settings['checkout_control_radius']       = seo_marketing_style_clamp(isset($input['checkout_control_radius']) ? $input['checkout_control_radius'] : null, 0, 30, $defaults['checkout_control_radius']);
+    $settings['checkout_card_padding']         = seo_marketing_style_clamp(isset($input['checkout_card_padding']) ? $input['checkout_card_padding'] : null, 12, 60, $defaults['checkout_card_padding']);
+    $settings['checkout_layout_gap']           = seo_marketing_style_clamp(isset($input['checkout_layout_gap']) ? $input['checkout_layout_gap'] : null, 8, 70, $defaults['checkout_layout_gap']);
+    $settings['checkout_input_height']         = seo_marketing_style_clamp(isset($input['checkout_input_height']) ? $input['checkout_input_height'] : null, 38, 70, $defaults['checkout_input_height']);
+    $settings['checkout_hero_padding']         = seo_marketing_style_clamp(isset($input['checkout_hero_padding']) ? $input['checkout_hero_padding'] : null, 24, 120, $defaults['checkout_hero_padding']);
+    $settings['checkout_custom_action_colors'] = !empty($input['checkout_custom_action_colors']) ? 1 : 0;
+
+    $checkout_shadow = isset($input['checkout_shadow_preset']) ? sanitize_key($input['checkout_shadow_preset']) : $defaults['checkout_shadow_preset'];
+    $settings['checkout_shadow_preset'] = isset($shadow_choices[$checkout_shadow]) ? $checkout_shadow : $defaults['checkout_shadow_preset'];
 
     $settings['footer_padding_top']    = seo_marketing_style_clamp(isset($input['footer_padding_top']) ? $input['footer_padding_top'] : null, 16, 120, $defaults['footer_padding_top']);
     $settings['footer_padding_bottom'] = seo_marketing_style_clamp(isset($input['footer_padding_bottom']) ? $input['footer_padding_bottom'] : null, 12, 100, $defaults['footer_padding_bottom']);
@@ -885,6 +927,7 @@ function seo_marketing_style_build_css($settings)
     $shadow = $shadows[$settings['shadow_preset']];
     $menu_shadow = $shadows[$settings['menu_shadow_preset']];
     $cart_shadow = $shadows[$settings['cart_shadow_preset']];
+    $checkout_shadow = $shadows[$settings['checkout_shadow_preset']];
 
     $body_font = seo_marketing_style_font_stack($settings['font_body']);
     $heading_font = seo_marketing_style_font_stack($settings['font_headings']);
@@ -944,6 +987,34 @@ function seo_marketing_style_build_css($settings)
         $css[] = '  --dht-cart-action-bg: var(--dht-primary);';
         $css[] = '  --dht-cart-action-hover: var(--dht-primary-dark);';
         $css[] = '  --dht-cart-action-text: var(--dht-white);';
+    }
+    $css[] = '  --dht-checkout-bg: ' . $settings['checkout_background'] . ';';
+    $css[] = '  --dht-checkout-hero-bg: ' . $settings['checkout_hero_background'] . ';';
+    $css[] = '  --dht-checkout-hero-title: ' . $settings['checkout_hero_title'] . ';';
+    $css[] = '  --dht-checkout-hero-text: ' . $settings['checkout_hero_text'] . ';';
+    $css[] = '  --dht-checkout-card-bg: ' . $settings['checkout_card_background'] . ';';
+    $css[] = '  --dht-checkout-summary-bg: ' . $settings['checkout_summary_background'] . ';';
+    $css[] = '  --dht-checkout-text: ' . $settings['checkout_text'] . ';';
+    $css[] = '  --dht-checkout-muted: ' . $settings['checkout_muted'] . ';';
+    $css[] = '  --dht-checkout-border: ' . $settings['checkout_border'] . ';';
+    $css[] = '  --dht-checkout-input-bg: ' . $settings['checkout_input_background'] . ';';
+    $css[] = '  --dht-checkout-container: ' . (int) $settings['checkout_container_width'] . 'px;';
+    $css[] = '  --dht-checkout-summary-width: ' . (int) $settings['checkout_summary_width'] . 'px;';
+    $css[] = '  --dht-checkout-card-radius: ' . (int) $settings['checkout_card_radius'] . 'px;';
+    $css[] = '  --dht-checkout-control-radius: ' . (int) $settings['checkout_control_radius'] . 'px;';
+    $css[] = '  --dht-checkout-card-padding: ' . (int) $settings['checkout_card_padding'] . 'px;';
+    $css[] = '  --dht-checkout-layout-gap: ' . (int) $settings['checkout_layout_gap'] . 'px;';
+    $css[] = '  --dht-checkout-input-height: ' . (int) $settings['checkout_input_height'] . 'px;';
+    $css[] = '  --dht-checkout-hero-padding: ' . (int) $settings['checkout_hero_padding'] . 'px;';
+    $css[] = '  --dht-checkout-shadow: ' . $checkout_shadow['small'] . ';';
+    if (!empty($settings['checkout_custom_action_colors'])) {
+        $css[] = '  --dht-checkout-action-bg: ' . $settings['checkout_action_background'] . ';';
+        $css[] = '  --dht-checkout-action-hover: ' . $settings['checkout_action_hover'] . ';';
+        $css[] = '  --dht-checkout-action-text: ' . $settings['checkout_action_text'] . ';';
+    } else {
+        $css[] = '  --dht-checkout-action-bg: var(--dht-primary);';
+        $css[] = '  --dht-checkout-action-hover: var(--dht-primary-dark);';
+        $css[] = '  --dht-checkout-action-text: var(--dht-white);';
     }
     $css[] = '  --dht-menu-bg: ' . $settings['menu_background'] . ';';
     $css[] = '  --dht-menu-text: ' . $settings['menu_text'] . ';';
@@ -1680,7 +1751,7 @@ function seo_marketing_render_admin_styles()
         .seo-style-color code{font-size:12px;}
         .seo-style-actions{position:sticky;bottom:0;z-index:4;background:#f0f0f1;border-top:1px solid #dcdcde;padding:14px 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
         .seo-style-preview-wrap{position:sticky;top:48px;}
-        .seo-style-preview{--preview-primary:#007acc;--preview-primary-dark:#005b96;--preview-secondary:#f0b400;--preview-dark:#101820;--preview-dark-soft:#1c2d3d;--preview-bg:#f7f8fa;--preview-bg-light:#fafbfc;--preview-text:#222;--preview-text-soft:#5b6570;--preview-border:#e7ebef;--preview-radius-small:8px;--preview-radius:14px;--preview-radius-large:20px;--preview-card:#fff;--preview-faq:#fff;--preview-faq-section:#fafbfc;--preview-cart-bg:#f5f7f9;--preview-cart-hero-bg:#17212b;--preview-cart-hero-title:#fff;--preview-cart-hero-text:#d3dce3;--preview-cart-card-bg:#fff;--preview-cart-summary-bg:#fff;--preview-cart-text:#17212b;--preview-cart-muted:#68747e;--preview-cart-border:#e1e7eb;--preview-cart-danger:#b42318;--preview-cart-danger-bg:#fff8f7;--preview-cart-card-radius:14px;--preview-cart-control-radius:8px;--preview-cart-image-size:120px;--preview-cart-image-mobile:82px;--preview-cart-items-gap:12px;--preview-cart-layout-gap:24px;--preview-cart-summary-width:350px;--preview-cart-action-bg:#007acc;--preview-cart-action-hover:#005b96;--preview-cart-action-text:#fff;--preview-cart-shadow:0 5px 16px rgba(0,0,0,.04);overflow:hidden;background:#fff;border:1px solid #ccd0d4;border-radius:8px;box-shadow:0 12px 30px rgba(0,0,0,.08);font-size:16px;line-height:1.75;}
+        .seo-style-preview{--preview-primary:#007acc;--preview-primary-dark:#005b96;--preview-secondary:#f0b400;--preview-dark:#101820;--preview-dark-soft:#1c2d3d;--preview-bg:#f7f8fa;--preview-bg-light:#fafbfc;--preview-text:#222;--preview-text-soft:#5b6570;--preview-border:#e7ebef;--preview-radius-small:8px;--preview-radius:14px;--preview-radius-large:20px;--preview-card:#fff;--preview-faq:#fff;--preview-faq-section:#fafbfc;--preview-cart-bg:#f5f7f9;--preview-cart-hero-bg:#17212b;--preview-cart-hero-title:#fff;--preview-cart-hero-text:#d3dce3;--preview-cart-card-bg:#fff;--preview-cart-summary-bg:#fff;--preview-cart-text:#17212b;--preview-cart-muted:#68747e;--preview-cart-border:#e1e7eb;--preview-cart-danger:#b42318;--preview-cart-danger-bg:#fff8f7;--preview-cart-card-radius:14px;--preview-cart-control-radius:8px;--preview-cart-image-size:120px;--preview-cart-image-mobile:82px;--preview-cart-items-gap:12px;--preview-cart-layout-gap:24px;--preview-cart-summary-width:350px;--preview-cart-action-bg:#007acc;--preview-cart-action-hover:#005b96;--preview-cart-action-text:#fff;--preview-cart-shadow:0 5px 16px rgba(0,0,0,.04);--preview-checkout-bg:#f5f7f9;--preview-checkout-hero-bg:#27344f;--preview-checkout-hero-title:#fff;--preview-checkout-hero-text:#d7dde4;--preview-checkout-card-bg:#fff;--preview-checkout-summary-bg:#fff;--preview-checkout-input-bg:#fff;--preview-checkout-text:#17212b;--preview-checkout-muted:#68747e;--preview-checkout-border:#e1e7eb;--preview-checkout-card-radius:14px;--preview-checkout-control-radius:8px;--preview-checkout-card-padding:28px;--preview-checkout-layout-gap:28px;--preview-checkout-summary-width:390px;--preview-checkout-input-height:48px;--preview-checkout-hero-padding:52px;--preview-checkout-action-bg:#007acc;--preview-checkout-action-hover:#005b96;--preview-checkout-action-text:#fff;--preview-checkout-shadow:0 5px 16px rgba(0,0,0,.04);overflow:hidden;background:#fff;border:1px solid #ccd0d4;border-radius:8px;box-shadow:0 12px 30px rgba(0,0,0,.08);font-size:16px;line-height:1.75;}
         .seo-style-preview *{box-sizing:border-box;}
         .seo-style-preview-hero{padding:28px;background:linear-gradient(135deg,var(--preview-dark),var(--preview-dark-soft));}
         .seo-style-preview-hero h1{margin:0 0 10px;color:#fff;line-height:1.15;}
@@ -1768,6 +1839,33 @@ function seo_marketing_render_admin_styles()
         .seo-style-preview-cart[data-device="mobile"] .seo-style-preview-cart-actions{display:grid;grid-template-columns:1fr;}
         .seo-style-preview-cart[data-device="mobile"] .seo-style-preview-cart-actions span{min-height:28px;}
         .seo-style-preview-cart[data-device="mobile"] .seo-style-preview-cart-toolbar{font-size:10px;}
+        .seo-style-preview-checkout-block{margin-top:20px;padding-top:18px;border-top:2px solid var(--preview-border);}
+        .seo-style-preview-checkout-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;}
+        .seo-style-preview-checkout-switch{display:flex;gap:5px;}
+        .seo-style-preview-checkout-switch .button.is-active{background:#2271b1;border-color:#2271b1;color:#fff;}
+        .seo-style-preview-checkout{overflow:hidden;border:1px solid var(--preview-checkout-border);border-radius:var(--preview-checkout-card-radius);background:var(--preview-checkout-bg);color:var(--preview-checkout-text);}
+        .seo-style-preview-checkout-hero{padding:max(14px,calc(var(--preview-checkout-hero-padding) * .36));background:var(--preview-checkout-hero-bg);}
+        .seo-style-preview-checkout-hero h2{margin:0 0 5px!important;color:var(--preview-checkout-hero-title)!important;font-size:25px!important;text-align:left!important;text-transform:none!important;}
+        .seo-style-preview-checkout-hero p{margin:0;color:var(--preview-checkout-hero-text);font-size:10px;line-height:1.4;}
+        .seo-style-preview-checkout-main{padding:13px;}
+        .seo-style-preview-checkout-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(110px,calc(var(--preview-checkout-summary-width) * .34));gap:var(--preview-checkout-layout-gap);align-items:start;}
+        .seo-style-preview-checkout-card,.seo-style-preview-checkout-summary{padding:max(10px,calc(var(--preview-checkout-card-padding) * .45));border:1px solid var(--preview-checkout-border);border-radius:var(--preview-checkout-card-radius);box-shadow:var(--preview-checkout-shadow);}
+        .seo-style-preview-checkout-card{background:var(--preview-checkout-card-bg);}
+        .seo-style-preview-checkout-summary{background:var(--preview-checkout-summary-bg);}
+        .seo-style-preview-checkout-card h3,.seo-style-preview-checkout-summary h3{margin:0 0 9px!important;color:var(--preview-checkout-text)!important;font-size:13px!important;text-align:left!important;text-transform:none!important;}
+        .seo-style-preview-checkout-fields{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+        .seo-style-preview-checkout-field{display:grid;gap:3px;}
+        .seo-style-preview-checkout-field.is-wide{grid-column:1/-1;}
+        .seo-style-preview-checkout-field small{color:var(--preview-checkout-muted);font-size:8px;}
+        .seo-style-preview-checkout-input{display:flex;min-height:max(25px,calc(var(--preview-checkout-input-height) * .55));align-items:center;padding:4px 7px;border:1px solid var(--preview-checkout-border);border-radius:var(--preview-checkout-control-radius);background:var(--preview-checkout-input-bg);color:var(--preview-checkout-text);font-size:9px;}
+        .seo-style-preview-checkout-summary>div{display:flex;justify-content:space-between;gap:6px;padding:7px 0;border-top:1px solid var(--preview-checkout-border);color:var(--preview-checkout-muted);font-size:9px;}
+        .seo-style-preview-checkout-summary>div strong{color:var(--preview-checkout-text);font-size:9px;}
+        .seo-style-preview-checkout-summary button{width:100%;margin-top:8px;padding:9px 6px;border:0;border-radius:var(--preview-checkout-control-radius);background:var(--preview-checkout-action-bg);color:var(--preview-checkout-action-text);font-size:10px;font-weight:800;}
+        .seo-style-preview-checkout-summary button:hover{background:var(--preview-checkout-action-hover);}
+        .seo-style-preview-checkout[data-device="mobile"]{max-width:310px;margin-inline:auto;}
+        .seo-style-preview-checkout[data-device="mobile"] .seo-style-preview-checkout-layout{grid-template-columns:1fr;gap:10px;}
+        .seo-style-preview-checkout[data-device="mobile"] .seo-style-preview-checkout-fields{grid-template-columns:1fr;}
+        .seo-style-preview-checkout[data-device="mobile"] .seo-style-preview-checkout-field.is-wide{grid-column:auto;}
         .seo-style-json textarea{width:100%;min-height:180px;font-family:monospace;}
         .seo-marketing-relation-form{margin:0 0 14px;}
         .seo-marketing-relation-details{border:1px solid #dcdcde;border-radius:6px;background:#fff;overflow:hidden;}
@@ -2925,7 +3023,7 @@ function seo_marketing_render_style_tab()
 
     echo '<div class="seo-marketing-card">';
     echo '<h2>Estilo visual de las plantillas públicas</h2>';
-    echo '<p>Personaliza navegación, clusters, hubs, categorías, productos, carrito, tarjetas, FAQs y pie de página sin editar CSS. El sistema solo publica propiedades validadas y conserva <code>styles_template.css</code> como base.</p>';
+    echo '<p>Personaliza navegación, clusters, hubs, categorías, productos, carrito, checkout, tarjetas, FAQs y pie de página sin editar CSS. El sistema solo publica propiedades validadas y conserva <code>styles_template.css</code> como base.</p>';
     echo '<p><strong>Estado:</strong> ' . ($record['exists'] ? 'configuración personalizada publicada' : 'se utilizan los valores originales de la hoja CSS') . '.</p>';
     echo '<p>Cada guardado queda registrado en el Centro de Operaciones y puede revertirse si no existen cambios posteriores.</p>';
     echo '</div>';
@@ -2942,6 +3040,7 @@ function seo_marketing_render_style_tab()
     seo_marketing_render_style_components($settings);
     seo_marketing_render_style_products($settings);
     seo_marketing_render_style_cart($settings);
+    seo_marketing_render_style_checkout($settings);
     seo_marketing_render_style_solutions($settings);
     seo_marketing_render_style_faq($settings);
     seo_marketing_render_style_menu($settings);
@@ -3278,9 +3377,60 @@ function seo_marketing_render_style_cart($settings)
 /**
  * @param array $settings
  */
+function seo_marketing_render_style_checkout($settings)
+{
+    $shadow_options = array();
+    foreach (seo_marketing_style_shadow_choices() as $key => $choice) {
+        $shadow_options[$key] = $choice['label'];
+    }
+
+    echo '<section class="seo-style-section" id="seo-style-checkout"><h2>6. Finalizar compra WooCommerce</h2>';
+    echo '<p>Personaliza el checkout sin alterar la lógica de WooCommerce. Los campos, portes, impuestos, métodos de pago, validaciones y el botón de realizar pedido siguen siendo nativos.</p>';
+
+    echo '<h3 style="margin:0 0 12px;">Colores</h3>';
+    echo '<div class="seo-style-fields">';
+    seo_marketing_style_color_field('checkout_background', 'Fondo de la página', $settings['checkout_background']);
+    seo_marketing_style_color_field('checkout_hero_background', 'Fondo del encabezado', $settings['checkout_hero_background']);
+    seo_marketing_style_color_field('checkout_hero_title', 'Título del encabezado', $settings['checkout_hero_title']);
+    seo_marketing_style_color_field('checkout_hero_text', 'Texto del encabezado', $settings['checkout_hero_text']);
+    seo_marketing_style_color_field('checkout_card_background', 'Fondo de facturación', $settings['checkout_card_background']);
+    seo_marketing_style_color_field('checkout_summary_background', 'Fondo del resumen', $settings['checkout_summary_background']);
+    seo_marketing_style_color_field('checkout_input_background', 'Fondo de campos', $settings['checkout_input_background']);
+    seo_marketing_style_color_field('checkout_text', 'Texto principal', $settings['checkout_text']);
+    seo_marketing_style_color_field('checkout_muted', 'Texto secundario', $settings['checkout_muted']);
+    seo_marketing_style_color_field('checkout_border', 'Bordes', $settings['checkout_border']);
+    echo '</div>';
+
+    echo '<h3 style="margin:24px 0 12px;">Dimensiones</h3>';
+    echo '<div class="seo-style-fields">';
+    seo_marketing_style_number_field('checkout_container_width', 'Ancho máximo escritorio (px)', $settings['checkout_container_width'], 760, 1700);
+    seo_marketing_style_number_field('checkout_summary_width', 'Ancho del resumen (px)', $settings['checkout_summary_width'], 280, 560);
+    seo_marketing_style_number_field('checkout_card_radius', 'Radio de tarjetas (px)', $settings['checkout_card_radius'], 0, 40);
+    seo_marketing_style_number_field('checkout_control_radius', 'Radio de campos / botones (px)', $settings['checkout_control_radius'], 0, 30);
+    seo_marketing_style_number_field('checkout_card_padding', 'Relleno de tarjetas (px)', $settings['checkout_card_padding'], 12, 60);
+    seo_marketing_style_number_field('checkout_layout_gap', 'Separación formulario / resumen (px)', $settings['checkout_layout_gap'], 8, 70);
+    seo_marketing_style_number_field('checkout_input_height', 'Altura de campos (px)', $settings['checkout_input_height'], 38, 70);
+    seo_marketing_style_number_field('checkout_hero_padding', 'Altura interior del encabezado (px)', $settings['checkout_hero_padding'], 24, 120);
+    seo_marketing_style_select_field('checkout_shadow_preset', 'Sombra de tarjetas', $settings['checkout_shadow_preset'], $shadow_options);
+    echo '</div>';
+
+    echo '<h3 style="margin:24px 0 12px;">Botón de realizar pedido</h3>';
+    echo '<p style="margin:0 0 14px;"><label><input type="checkbox" name="settings[checkout_custom_action_colors]" value="1" ' . checked($settings['checkout_custom_action_colors'], 1, false) . ' data-preview-key="checkout_custom_action_colors"> Usar colores propios en el checkout</label></p>';
+    echo '<p style="margin-top:0;color:#646970;">Desactivado: hereda el color principal del sistema. Activado: usa los tres colores siguientes.</p>';
+    echo '<div class="seo-style-fields">';
+    seo_marketing_style_color_field('checkout_action_background', 'Fondo de acción', $settings['checkout_action_background']);
+    seo_marketing_style_color_field('checkout_action_hover', 'Hover de acción', $settings['checkout_action_hover']);
+    seo_marketing_style_color_field('checkout_action_text', 'Texto de acción', $settings['checkout_action_text']);
+    echo '</div>';
+    echo '</section>';
+}
+
+/**
+ * @param array $settings
+ */
 function seo_marketing_render_style_solutions($settings)
 {
-    echo '<section class="seo-style-section"><h2>6. Índice de Soluciones</h2>';
+    echo '<section class="seo-style-section"><h2>7. Índice de Soluciones</h2>';
     echo '<p>Controla la parrilla que presenta las páginas con rol <code>landing</code> en <code>template-soluciones.php</code>. La plantilla decide el contenido; aquí solo se define su presentación.</p>';
     echo '<div class="seo-style-fields">';
     seo_marketing_style_number_field('solutions_columns_desktop', 'Columnas escritorio', $settings['solutions_columns_desktop'], 1, 5);
@@ -3297,7 +3447,7 @@ function seo_marketing_render_style_solutions($settings)
  */
 function seo_marketing_render_style_faq($settings)
 {
-    echo '<section class="seo-style-section"><h2>7. FAQs</h2><div class="seo-style-fields">';
+    echo '<section class="seo-style-section"><h2>8. FAQs</h2><div class="seo-style-fields">';
     seo_marketing_style_color_field('faq_section_bg', 'Fondo de la sección FAQ', $settings['faq_section_bg']);
     seo_marketing_style_color_field('faq_item_bg', 'Fondo de cada FAQ', $settings['faq_item_bg']);
     seo_marketing_style_color_field('faq_question_color', 'Color de pregunta', $settings['faq_question_color']);
@@ -3318,7 +3468,7 @@ function seo_marketing_render_style_menu($settings)
         $shadow_options[$key] = $choice['label'];
     }
 
-    echo '<section class="seo-style-section"><h2>8. Navegación principal</h2>';
+    echo '<section class="seo-style-section"><h2>9. Navegación principal</h2>';
     echo '<p>Configura el aspecto del menú y de sus desplegables. La estructura, el comportamiento responsive y la accesibilidad permanecen controlados por la hoja base.</p>';
     echo '<div class="seo-style-fields">';
     seo_marketing_style_select_field('menu_style', 'Tipo visual', $settings['menu_style'], array(
@@ -3356,7 +3506,7 @@ function seo_marketing_render_style_menu($settings)
  */
 function seo_marketing_render_style_footer($settings)
 {
-    echo '<section class="seo-style-section"><h2>9. Pie de pagina</h2>';
+    echo '<section class="seo-style-section"><h2>10. Pie de pagina</h2>';
     echo '<p>Controla el aspecto del <code>footer.php</code> compartido: fondo, textos, enlaces, separadores, espaciado y logotipo. La estructura y los enlaces permanecen en la plantilla.</p>';
     echo '<div class="seo-style-fields">';
     seo_marketing_style_color_field('footer_background', 'Fondo del pie', $settings['footer_background']);
@@ -3425,6 +3575,27 @@ function seo_marketing_render_style_preview($settings)
         '--preview-cart-action-bg:' . (!empty($settings['cart_custom_action_colors']) ? $settings['cart_action_background'] : $settings['primary']),
         '--preview-cart-action-hover:' . (!empty($settings['cart_custom_action_colors']) ? $settings['cart_action_hover'] : $settings['primary_dark']),
         '--preview-cart-action-text:' . (!empty($settings['cart_custom_action_colors']) ? $settings['cart_action_text'] : $settings['white']),
+        '--preview-checkout-bg:' . $settings['checkout_background'],
+        '--preview-checkout-hero-bg:' . $settings['checkout_hero_background'],
+        '--preview-checkout-hero-title:' . $settings['checkout_hero_title'],
+        '--preview-checkout-hero-text:' . $settings['checkout_hero_text'],
+        '--preview-checkout-card-bg:' . $settings['checkout_card_background'],
+        '--preview-checkout-summary-bg:' . $settings['checkout_summary_background'],
+        '--preview-checkout-input-bg:' . $settings['checkout_input_background'],
+        '--preview-checkout-text:' . $settings['checkout_text'],
+        '--preview-checkout-muted:' . $settings['checkout_muted'],
+        '--preview-checkout-border:' . $settings['checkout_border'],
+        '--preview-checkout-card-radius:' . (int) $settings['checkout_card_radius'] . 'px',
+        '--preview-checkout-control-radius:' . (int) $settings['checkout_control_radius'] . 'px',
+        '--preview-checkout-card-padding:' . (int) $settings['checkout_card_padding'] . 'px',
+        '--preview-checkout-layout-gap:' . (int) $settings['checkout_layout_gap'] . 'px',
+        '--preview-checkout-summary-width:' . (int) $settings['checkout_summary_width'] . 'px',
+        '--preview-checkout-input-height:' . (int) $settings['checkout_input_height'] . 'px',
+        '--preview-checkout-hero-padding:' . (int) $settings['checkout_hero_padding'] . 'px',
+        '--preview-checkout-action-bg:' . (!empty($settings['checkout_custom_action_colors']) ? $settings['checkout_action_background'] : $settings['primary']),
+        '--preview-checkout-action-hover:' . (!empty($settings['checkout_custom_action_colors']) ? $settings['checkout_action_hover'] : $settings['primary_dark']),
+        '--preview-checkout-action-text:' . (!empty($settings['checkout_custom_action_colors']) ? $settings['checkout_action_text'] : $settings['white']),
+        '--preview-checkout-shadow:' . seo_marketing_style_shadow_choices()[$settings['checkout_shadow_preset']]['small'],
         '--preview-menu-bg:' . $settings['menu_background'],
         '--preview-menu-text:' . $settings['menu_text'],
         '--preview-menu-hover:' . $settings['menu_hover'],
@@ -3495,6 +3666,14 @@ function seo_marketing_render_style_preview($settings)
     echo '</div><div class="seo-style-preview-cart-actions"><span>Código de cupón</span><button type="button">Actualizar carrito</button></div></div>';
     echo '<div class="seo-style-preview-cart-summary"><h3>Totales del carrito</h3><div><span>Subtotal</span><strong>382,17 €</strong></div><div><span>Envío</span><strong>Gratis</strong></div><div class="is-total"><span>Total</span><strong>382,17 €</strong></div><button type="button">Finalizar compra</button></div>';
     echo '</div></div></div></div>';
+    echo '<div class="seo-style-preview-checkout-block">';
+    echo '<div class="seo-style-preview-checkout-head"><strong>Previsualización de finalizar compra</strong><div class="seo-style-preview-checkout-switch"><button type="button" class="button button-small is-active" data-checkout-preview-device="desktop">Ordenador</button><button type="button" class="button button-small" data-checkout-preview-device="mobile">Teléfono</button></div></div>';
+    echo '<div class="seo-style-preview-checkout" id="seo-preview-checkout" data-device="desktop">';
+    echo '<div class="seo-style-preview-checkout-hero"><h2>Finalizar compra</h2><p>Completa tus datos, revisa el pedido y finaliza la compra de forma segura.</p></div>';
+    echo '<div class="seo-style-preview-checkout-main"><div class="seo-style-preview-checkout-layout">';
+    echo '<div class="seo-style-preview-checkout-card"><h3>Detalles de facturación</h3><div class="seo-style-preview-checkout-fields"><div class="seo-style-preview-checkout-field"><small>Nombre</small><span class="seo-style-preview-checkout-input">David</span></div><div class="seo-style-preview-checkout-field"><small>Apellidos</small><span class="seo-style-preview-checkout-input">Pérez</span></div><div class="seo-style-preview-checkout-field is-wide"><small>Correo electrónico</small><span class="seo-style-preview-checkout-input">cliente@ejemplo.es</span></div><div class="seo-style-preview-checkout-field is-wide"><small>Dirección</small><span class="seo-style-preview-checkout-input">Calle ejemplo 25</span></div></div></div>';
+    echo '<div class="seo-style-preview-checkout-summary"><h3>Resumen</h3><div><span>Subtotal</span><strong>382,17 €</strong></div><div><span>Envío</span><strong>Gratis</strong></div><div><span>Total</span><strong>382,17 €</strong></div><button type="button">Realizar el pedido</button></div>';
+    echo '</div></div></div></div>';
     echo '<div class="seo-style-preview-solutions" id="seo-preview-solutions">';
     echo '<div class="seo-style-preview-solution"><div class="seo-style-preview-solution-image">⚡</div><div class="seo-style-preview-solution-body"><strong>Herramientas para electricistas</strong><small>Solución profesional</small></div></div>';
     echo '<div class="seo-style-preview-solution"><div class="seo-style-preview-solution-image">🔧</div><div class="seo-style-preview-solution-body"><strong>Equipar un taller mecánico</strong><small>Solución profesional</small></div></div>';
@@ -3528,9 +3707,11 @@ function seo_marketing_render_style_preview_script()
 
     $menu_shadows = array();
     $cart_shadows = array();
+    $checkout_shadows = array();
     foreach (seo_marketing_style_shadow_choices() as $key => $choice) {
         $menu_shadows[$key] = $choice['normal'];
         $cart_shadows[$key] = $choice['small'];
+        $checkout_shadows[$key] = $choice['small'];
     }
 
     echo '<script>
@@ -3542,6 +3723,7 @@ function seo_marketing_render_style_preview_script()
         const fontStacks = ' . wp_json_encode($font_stacks) . ';
         const menuShadows = ' . wp_json_encode($menu_shadows) . ';
         const cartShadows = ' . wp_json_encode($cart_shadows) . ';
+        const checkoutShadows = ' . wp_json_encode($checkout_shadows) . ';
         const get = key => form.querySelector("[name=\"settings[" + key + "]\"]");
         const value = key => {
             const el = get(key);
@@ -3591,6 +3773,23 @@ function seo_marketing_render_style_preview_script()
                 "--preview-cart-items-gap": px("cart_items_gap"),
                 "--preview-cart-layout-gap": px("cart_layout_gap"),
                 "--preview-cart-summary-width": px("cart_summary_width"),
+                "--preview-checkout-bg": value("checkout_background"),
+                "--preview-checkout-hero-bg": value("checkout_hero_background"),
+                "--preview-checkout-hero-title": value("checkout_hero_title"),
+                "--preview-checkout-hero-text": value("checkout_hero_text"),
+                "--preview-checkout-card-bg": value("checkout_card_background"),
+                "--preview-checkout-summary-bg": value("checkout_summary_background"),
+                "--preview-checkout-input-bg": value("checkout_input_background"),
+                "--preview-checkout-text": value("checkout_text"),
+                "--preview-checkout-muted": value("checkout_muted"),
+                "--preview-checkout-border": value("checkout_border"),
+                "--preview-checkout-card-radius": px("checkout_card_radius"),
+                "--preview-checkout-control-radius": px("checkout_control_radius"),
+                "--preview-checkout-card-padding": px("checkout_card_padding"),
+                "--preview-checkout-layout-gap": px("checkout_layout_gap"),
+                "--preview-checkout-summary-width": px("checkout_summary_width"),
+                "--preview-checkout-input-height": px("checkout_input_height"),
+                "--preview-checkout-hero-padding": px("checkout_hero_padding"),
                 "--preview-footer-bg": value("footer_background"),
                 "--preview-footer-heading": value("footer_heading_color"),
                 "--preview-footer-text": value("footer_text_color"),
@@ -3665,6 +3864,15 @@ function seo_marketing_render_style_preview_script()
                 cartPreview.style.setProperty("--preview-cart-shadow", cartShadows[value("cart_shadow_preset")] || "none");
             }
 
+            const checkoutPreview = document.getElementById("seo-preview-checkout");
+            if (checkoutPreview) {
+                const customCheckoutActions = !!value("checkout_custom_action_colors");
+                checkoutPreview.style.setProperty("--preview-checkout-action-bg", customCheckoutActions ? value("checkout_action_background") : value("primary"));
+                checkoutPreview.style.setProperty("--preview-checkout-action-hover", customCheckoutActions ? value("checkout_action_hover") : value("primary_dark"));
+                checkoutPreview.style.setProperty("--preview-checkout-action-text", customCheckoutActions ? value("checkout_action_text") : value("white"));
+                checkoutPreview.style.setProperty("--preview-checkout-shadow", checkoutShadows[value("checkout_shadow_preset")] || "none");
+            }
+
             const menu = document.getElementById("seo-preview-menu");
             const dropdown = document.getElementById("seo-preview-dropdown");
             menu.dataset.menuStyle = value("menu_style") || "soft";
@@ -3706,6 +3914,15 @@ function seo_marketing_render_style_preview_script()
                 if (!cartPreview) return;
                 cartPreview.dataset.device = button.dataset.cartPreviewDevice === "mobile" ? "mobile" : "desktop";
                 document.querySelectorAll("[data-cart-preview-device]").forEach(item => item.classList.toggle("is-active", item === button));
+            });
+        });
+
+        document.querySelectorAll("[data-checkout-preview-device]").forEach(button => {
+            button.addEventListener("click", function(){
+                const checkoutPreview = document.getElementById("seo-preview-checkout");
+                if (!checkoutPreview) return;
+                checkoutPreview.dataset.device = button.dataset.checkoutPreviewDevice === "mobile" ? "mobile" : "desktop";
+                document.querySelectorAll("[data-checkout-preview-device]").forEach(item => item.classList.toggle("is-active", item === button));
             });
         });
 
