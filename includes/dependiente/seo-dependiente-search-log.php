@@ -201,7 +201,8 @@ final class SEO_Dependiente_Search_Log {
      * - click: clic en un producto;
      * - helpful: valoracion positiva/negativa;
      * - clarification_shown: se mostro una pregunta de desambiguacion;
-     * - clarify: el cliente confirmo una opcion o escribio "otro".
+     * - clarify: el cliente confirmo una opcion o escribio "otro";
+     * - help_request: el cliente pidio que una persona revise la ruta.
      */
     public static function record_feedback($search_uuid, $event_type, $data = array()) {
         global $wpdb;
@@ -282,6 +283,14 @@ final class SEO_Dependiente_Search_Log {
             $updates['clarification_source'] = $clarification['source'];
             $updates['clarified_at'] = current_time('mysql');
             $event = array_merge($event, $clarification);
+        } elseif ('help_request' === $event_type) {
+            $request_uuid = sanitize_text_field((string) ($data['request_uuid'] ?? ''));
+            if (!$request_uuid) {
+                return false;
+            }
+            $event['request_uuid'] = self::substr($request_uuid, 36);
+            $event['has_note'] = !empty($data['has_note']) ? 1 : 0;
+            $event['mail_sent'] = !empty($data['mail_sent']) ? 1 : 0;
         } else {
             return false;
         }
@@ -371,6 +380,87 @@ final class SEO_Dependiente_Search_Log {
         return $wpdb->get_row(
             $wpdb->prepare('SELECT * FROM ' . self::table() . ' WHERE search_uuid = %s LIMIT 1', sanitize_text_field((string) $id_or_uuid)),
             ARRAY_A
+        );
+    }
+
+    /**
+     * Reconstruye la ruta anonima que llevo a una busqueda concreta. Devuelve
+     * como maximo las ultimas $limit interacciones de la misma sesion dentro de
+     * una ventana de dos horas, en orden cronologico.
+     */
+    public static function route_context($search_uuid, $limit = 8) {
+        global $wpdb;
+
+        $current = self::get_search($search_uuid);
+        if (!$current) {
+            return array('steps' => array());
+        }
+
+        $limit = min(12, max(1, absint($limit)));
+        if (!empty($current['session_hash'])) {
+            $rows = (array) $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT * FROM " . self::table() . "
+                     WHERE session_hash = %s
+                       AND id <= %d
+                       AND created_at >= DATE_SUB(%s, INTERVAL 2 HOUR)
+                     ORDER BY id DESC
+                     LIMIT %d",
+                    (string) $current['session_hash'],
+                    absint($current['id']),
+                    (string) $current['created_at'],
+                    $limit
+                ),
+                ARRAY_A
+            );
+            $rows = array_reverse($rows);
+        } else {
+            $rows = array($current);
+        }
+
+        $steps = array();
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $steps[] = array(
+                'search_uuid'        => (string) ($row['search_uuid'] ?? ''),
+                'created_at'         => (string) ($row['created_at'] ?? ''),
+                'request_kind'       => (string) ($row['request_kind'] ?? ''),
+                'mode'               => (string) ($row['mode'] ?? ''),
+                'query_original'     => (string) ($row['query_original'] ?? ''),
+                'query_normalized'   => (string) ($row['query_normalized'] ?? ''),
+                'semantic_signature' => (string) ($row['semantic_signature'] ?? ''),
+                'intent'             => (string) ($row['detected_intent'] ?? ''),
+                'object'             => (string) ($row['detected_object'] ?? ''),
+                'context'            => (string) ($row['detected_context'] ?? ''),
+                'state'              => (string) ($row['detected_state'] ?? ''),
+                'unresolved_terms'   => self::decode_json($row['unresolved_terms'] ?? ''),
+                'ignored_terms'      => self::decode_json($row['ignored_terms'] ?? ''),
+                'operators'          => self::decode_json($row['operators'] ?? ''),
+                'semantic'           => self::decode_json($row['semantic_analysis'] ?? ''),
+                'search_strategy'    => (string) ($row['search_strategy'] ?? ''),
+                'strategy_detail'    => self::decode_json($row['strategy_detail'] ?? ''),
+                'candidate_count'    => absint($row['candidate_count'] ?? 0),
+                'result_count'       => absint($row['result_count'] ?? 0),
+                'top_results'        => self::decode_json($row['top_results'] ?? ''),
+                'interaction_events' => self::decode_json($row['interaction_events'] ?? ''),
+                'clarification'      => array(
+                    'question'       => (string) ($row['clarification_question'] ?? ''),
+                    'options'        => self::decode_json($row['clarification_options'] ?? ''),
+                    'shown_at'       => (string) ($row['clarification_shown_at'] ?? ''),
+                    'selected_role'  => (string) ($row['clarified_role'] ?? ''),
+                    'selected_value' => (string) ($row['clarified_value'] ?? ''),
+                    'selected_label' => (string) ($row['clarified_label'] ?? ''),
+                    'source'         => (string) ($row['clarification_source'] ?? ''),
+                    'clarified_at'   => (string) ($row['clarified_at'] ?? ''),
+                ),
+            );
+        }
+
+        return array(
+            'current_search_uuid' => (string) ($current['search_uuid'] ?? ''),
+            'steps'               => $steps,
         );
     }
 

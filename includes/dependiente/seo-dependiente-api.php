@@ -44,6 +44,12 @@ final class SEO_Dependiente_API {
             'permission_callback' => '__return_true',
         ));
 
+        register_rest_route('seo-taxonomy/v1', '/help-request', array(
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => array(__CLASS__, 'help_request'),
+            'permission_callback' => '__return_true',
+        ));
+
         register_rest_route('seo-taxonomy/v1', '/compare', array(
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => array(__CLASS__, 'compare'),
@@ -261,6 +267,15 @@ final class SEO_Dependiente_API {
         $execution_ms = (microtime(true) - $started_at) * 1000;
         $search_id = '';
         if (class_exists('SEO_Dependiente_Search_Log') && '' !== trim($query)) {
+            // El diagnostico guardado incorpora el estado de la peticion para poder
+            // reconstruir despues la ruta real: filtros, orden, pagina y aclaracion.
+            $log_diagnostic = $search_diagnostic;
+            $log_diagnostic['request_context'] = array(
+                'page'          => $page,
+                'orderby'       => $orderby,
+                'filters'       => $filters,
+                'semantic_hint' => $semantic_hint,
+            );
             $search_id = SEO_Dependiente_Search_Log::record_search(array(
                 'query'           => $query,
                 'session_id'      => $session_id,
@@ -269,7 +284,7 @@ final class SEO_Dependiente_API {
                 'semantic'        => $semantic,
                 'search_strategy' => (string) ($search_diagnostic['strategy'] ?? 'strict'),
             'semantic_rules_active' => (int) $semantic_rules_active,
-                'strategy_detail' => $search_diagnostic,
+                'strategy_detail' => $log_diagnostic,
                 'candidate_count' => count($documents),
                 'result_count'    => $total,
                 'results'         => $results,
@@ -329,6 +344,30 @@ final class SEO_Dependiente_API {
             return new WP_Error('seo_dependiente_feedback_failed', 'No se pudo registrar el feedback.', array('status' => 404));
         }
         return rest_ensure_response(array('ok' => true));
+    }
+
+    public static function help_request(WP_REST_Request $request) {
+        if (!class_exists('SEO_Dependiente_Help')) {
+            return new WP_Error('seo_dependiente_help_unavailable', 'La asistencia no esta disponible.', array('status' => 503));
+        }
+
+        $params = self::request_params($request);
+        $result = SEO_Dependiente_Help::submit(array(
+            'search_id'     => sanitize_text_field((string) ($params['search_id'] ?? '')),
+            'email'         => sanitize_email((string) ($params['email'] ?? '')),
+            'note'          => sanitize_textarea_field((string) ($params['note'] ?? '')),
+            'query'         => sanitize_text_field((string) ($params['query'] ?? '')),
+            'mode'          => sanitize_key((string) ($params['mode'] ?? 'need')),
+            'context_label' => sanitize_text_field((string) ($params['context_label'] ?? '')),
+            'page_url'      => esc_url_raw((string) ($params['page_url'] ?? '')),
+            'filters'       => isset($params['filters']) && is_array($params['filters']) ? $params['filters'] : array(),
+            'semantic_hint' => isset($params['semantic_hint']) && is_array($params['semantic_hint']) ? $params['semantic_hint'] : array(),
+            'orderby'       => sanitize_key((string) ($params['orderby'] ?? 'relevance')),
+            'compare_ids'   => isset($params['compare_ids']) && is_array($params['compare_ids']) ? $params['compare_ids'] : array(),
+            'website'       => sanitize_text_field((string) ($params['website'] ?? '')),
+        ));
+
+        return is_wp_error($result) ? $result : rest_ensure_response($result);
     }
 
     public static function compare(WP_REST_Request $request) {

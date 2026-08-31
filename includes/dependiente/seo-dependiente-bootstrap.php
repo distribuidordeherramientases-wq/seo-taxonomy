@@ -5,14 +5,14 @@
 defined('ABSPATH') || exit;
 
 define('SEO_DEPENDIENTE_VERSION', '0.1.10');
-define('SEO_DEPENDIENTE_DB_VERSION', '0.1.2');
+define('SEO_DEPENDIENTE_DB_VERSION', '0.1.3');
 define('SEO_DEPENDIENTE_PATH', __DIR__ . '/');
 define('SEO_DEPENDIENTE_URL', SEO_SYSTEM_URL . 'includes/dependiente/');
 
 require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-index.php';
 require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-semantics.php';
+require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-help.php';
 require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-api.php';
-require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-insights.php';
 require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-admin.php';
 require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-core.php';
 

@@ -46,12 +46,16 @@ final class SEO_Dependiente_Plugin {
     public static function install_module() {
         SEO_Dependiente_Index::install();
         SEO_Dependiente_Semantics::install();
+        if (class_exists('SEO_Dependiente_Help')) {
+            SEO_Dependiente_Help::install();
+        }
         update_option('seo_dependiente_db_version', SEO_DEPENDIENTE_DB_VERSION, false);
 
         $defaults = array(
             'results_per_page' => 18,
             'menu_cards'       => 8,
             'custom_meta_keys' => '_seo_proveedor,_seo_proveedor_mpn,_seo_categoria_proveedor,_seo_fabricante,_seo_marca_proveedor',
+            'help_email'       => sanitize_email((string) get_option('admin_email', '')),
             'action_image_need'    => 0,
             'action_image_product' => 0,
             'action_image_tool'    => 0,
@@ -178,6 +182,8 @@ final class SEO_Dependiente_Plugin {
         $this->enqueue_assets();
 
         $query_input_id = wp_unique_id('seo-dependiente-query-');
+        $help_email_id = wp_unique_id('seo-dependiente-help-email-');
+        $help_note_id = wp_unique_id('seo-dependiente-help-note-');
         $action_images = array(
             'need'    => $this->action_image_url('need', 'dependiente-arreglar-algo.webp'),
             'product' => $this->action_image_url('product', 'dependiente-buscar-herramienta.webp'),
@@ -211,6 +217,36 @@ final class SEO_Dependiente_Plugin {
                     </div>
                     <div class="seo-dependiente__examples" data-dependiente-examples aria-label="Ejemplos de búsqueda"></div>
                 </form>
+
+                <aside class="seo-dependiente__help" data-dependiente-help aria-label="Asistencia personal">
+                    <div class="seo-dependiente__help-row">
+                        <div class="seo-dependiente__help-copy">
+                            <strong data-dependiente-help-title>¿No encuentras lo que buscas?</strong>
+                            <span data-dependiente-help-text>Podemos revisar tu búsqueda con todo el contexto y responderte por correo.</span>
+                        </div>
+                        <button type="button" class="seo-dependiente__help-toggle" data-dependiente-help-toggle aria-expanded="false">Pedir ayuda</button>
+                    </div>
+                    <div class="seo-dependiente__help-panel" data-dependiente-help-panel hidden>
+                        <form class="seo-dependiente__help-form" data-dependiente-help-form>
+                            <div class="seo-dependiente__help-fields">
+                                <label for="<?php echo esc_attr($help_email_id); ?>">
+                                    <span>Tu correo</span>
+                                    <input id="<?php echo esc_attr($help_email_id); ?>" type="email" name="help_email" autocomplete="email" maxlength="254" required placeholder="tu@correo.es">
+                                </label>
+                                <label for="<?php echo esc_attr($help_note_id); ?>">
+                                    <span>Un detalle adicional <small>(opcional)</small></span>
+                                    <textarea id="<?php echo esc_attr($help_note_id); ?>" name="help_note" rows="3" maxlength="1500" placeholder="Si quieres, añade aquí cualquier detalle que no haya quedado claro."></textarea>
+                                </label>
+                            </div>
+                            <label class="seo-dependiente__help-honeypot" aria-hidden="true">Web<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+                            <div class="seo-dependiente__help-actions">
+                                <p>Usaremos tu correo únicamente para responder a esta solicitud. Enviaremos también la ruta de búsqueda de Dependiente para que no tengas que explicarlo todo de nuevo.</p>
+                                <button type="submit" data-dependiente-help-submit>Enviar consulta</button>
+                            </div>
+                            <div class="seo-dependiente__help-status" data-dependiente-help-status aria-live="polite"></div>
+                        </form>
+                    </div>
+                </aside>
 
                 <div class="seo-dependiente__path-intro">O elige una forma de empezar</div>
                 <div class="seo-dependiente__paths" aria-label="Formas de buscar">
