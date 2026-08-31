@@ -5594,6 +5594,20 @@ html {
     display: none !important;
 }
 
+/* WooCommerce y algunos temas aplican float + width propio al resumen.
+   Al usar CSS Grid debemos neutralizar esas reglas o el panel se comprime
+   dentro de su propia columna. */
+.dht-checkout-page #order_review_heading,
+.dht-checkout-page #order_review {
+    float: none !important;
+    clear: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0;
+    box-sizing: border-box;
+    justify-self: stretch;
+}
+
 .dht-checkout-page #customer_details {
     grid-column: 1;
     grid-row: 1 / span 2;
@@ -5812,7 +5826,7 @@ html {
     line-height: 1.55;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1023px) {
     .dht-checkout-page .dht-checkout-container {
         width: min(100% - 28px, 760px);
     }
