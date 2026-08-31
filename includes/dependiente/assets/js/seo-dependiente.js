@@ -32,7 +32,14 @@
             compareOpen: root.querySelector('[data-dependiente-compare-open]'),
             dialog: root.querySelector('[data-dependiente-dialog]'),
             dialogClose: root.querySelector('[data-dependiente-dialog-close]'),
-            compareContent: root.querySelector('[data-dependiente-compare-content]')
+            compareContent: root.querySelector('[data-dependiente-compare-content]'),
+            help: root.querySelector('[data-dependiente-help]'),
+            helpToggle: root.querySelector('[data-dependiente-help-toggle]'),
+            helpPanel: root.querySelector('[data-dependiente-help-panel]'),
+            helpForm: root.querySelector('[data-dependiente-help-form]'),
+            helpStatus: root.querySelector('[data-dependiente-help-status]'),
+            helpTitle: root.querySelector('[data-dependiente-help-title]'),
+            helpText: root.querySelector('[data-dependiente-help-text]')
         };
 
         const state = {
@@ -52,6 +59,7 @@
             clarification: null,
             clarificationTimer: null,
             hasResultInteraction: false,
+            helpSubmitting: false,
             compare: loadCompareIds()
         };
 
@@ -167,6 +175,13 @@
             });
 
             elements.results.addEventListener('click', function (event) {
+                const helpOpen = event.target.closest('[data-dependiente-help-open]');
+                if (helpOpen) {
+                    event.preventDefault();
+                    openHelp(true);
+                    return;
+                }
+
                 const reset = event.target.closest('[data-dependiente-zero-reset]');
                 if (reset) {
                     event.preventDefault();
@@ -237,6 +252,18 @@
                 }
                 handleClarificationOther(form, value);
             });
+
+            if (elements.helpToggle) {
+                elements.helpToggle.addEventListener('click', function () {
+                    if (!elements.helpPanel) return;
+                    if (elements.helpPanel.hidden) openHelp(true);
+                    else closeHelp();
+                });
+            }
+
+            if (elements.helpForm) {
+                elements.helpForm.addEventListener('submit', submitHelpRequest);
+            }
 
             elements.compareClear.addEventListener('click', function () {
                 state.compare.clear();
@@ -384,6 +411,7 @@
                 });
                 state.facets = data.facets || null;
                 state.searchId = String(data.search_id || '');
+                updateHelpPrompt(data);
                 renderSummary(data);
                 renderFilters(data.facets || {});
                 renderActiveFilters();
@@ -395,9 +423,10 @@
                 elements.status.textContent = data.truncated ? 'He encontrado muchas coincidencias. Añade una medida, marca, compatibilidad o uso para afinar mejor.' : '';
                 updateUrl();
             } catch (error) {
+                updateHelpPrompt({ error: true, total: 0, search_strategy: 'index_unavailable' });
                 elements.summary.innerHTML = '<strong>No he podido terminar la búsqueda.</strong>';
                 elements.status.textContent = error.message || (config.labels && config.labels.error) || 'Ha ocurrido un error.';
-                elements.results.innerHTML = '<div class="seo-dependiente__empty"><strong>Prueba de nuevo</strong><span>Comprueba la conexión o simplifica la consulta.</span></div>';
+                elements.results.innerHTML = '<div class="seo-dependiente__empty"><strong>Prueba de nuevo</strong><span>Comprueba la conexión o simplifica la consulta.</span><div class="seo-dependiente__empty-help"><button type="button" class="seo-dependiente__empty-action" data-dependiente-help-open>Pedir ayuda con esta búsqueda</button><small>Podemos revisar el recorrido que has hecho y responderte por correo.</small></div></div>';
                 if (elements.related) {
                     elements.related.hidden = true;
                     elements.related.innerHTML = '';
@@ -405,6 +434,110 @@
             } finally {
                 state.loading = false;
                 syncCompareButtons();
+            }
+        }
+
+        function updateHelpPrompt(data) {
+            if (!elements.help) return;
+            const strategy = String((data && data.search_strategy) || '');
+            const weakStrategies = ['broad_fallback', 'catalog_fallback', 'index_unavailable'];
+            const total = Number(data && data.total !== undefined ? data.total : -1);
+            const prominent = Boolean(data && data.error) || total === 0 || weakStrategies.indexOf(strategy) !== -1;
+
+            elements.help.classList.toggle('is-prominent', prominent);
+            if (elements.helpTitle) {
+                elements.helpTitle.textContent = prominent
+                    ? '¿No hemos encontrado lo que necesitas?'
+                    : '¿No encuentras lo que buscas?';
+            }
+            if (elements.helpText) {
+                elements.helpText.textContent = prominent
+                    ? 'Pídenos ayuda. Revisaremos esta búsqueda con su recorrido completo y te responderemos por correo.'
+                    : 'Podemos revisar tu búsqueda con todo el contexto y responderte por correo.';
+            }
+        }
+
+        function openHelp(focusEmail) {
+            if (!elements.helpPanel || !elements.helpToggle) return;
+            elements.helpPanel.hidden = false;
+            elements.helpToggle.setAttribute('aria-expanded', 'true');
+            elements.helpToggle.textContent = 'Cerrar';
+            if (elements.help) elements.help.classList.add('is-open');
+            if (focusEmail && elements.helpForm) {
+                const email = elements.helpForm.querySelector('input[name="help_email"]');
+                window.setTimeout(function () {
+                    if (email) email.focus({ preventScroll: true });
+                    if (elements.help && typeof elements.help.scrollIntoView === 'function') {
+                        elements.help.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                }, 40);
+            }
+        }
+
+        function closeHelp() {
+            if (!elements.helpPanel || !elements.helpToggle) return;
+            elements.helpPanel.hidden = true;
+            elements.helpToggle.setAttribute('aria-expanded', 'false');
+            elements.helpToggle.textContent = 'Pedir ayuda';
+            if (elements.help) elements.help.classList.remove('is-open');
+        }
+
+        async function submitHelpRequest(event) {
+            event.preventDefault();
+            if (!elements.helpForm || state.helpSubmitting) return;
+
+            const emailInput = elements.helpForm.querySelector('input[name="help_email"]');
+            const noteInput = elements.helpForm.querySelector('textarea[name="help_note"]');
+            const websiteInput = elements.helpForm.querySelector('input[name="website"]');
+            const submitButton = elements.helpForm.querySelector('[data-dependiente-help-submit]');
+
+            if (!emailInput || !emailInput.value.trim()) {
+                if (emailInput && typeof emailInput.reportValidity === 'function') emailInput.reportValidity();
+                return;
+            }
+            if (typeof elements.helpForm.reportValidity === 'function' && !elements.helpForm.reportValidity()) return;
+
+            state.helpSubmitting = true;
+            if (submitButton) submitButton.disabled = true;
+            if (elements.helpStatus) {
+                elements.helpStatus.classList.remove('is-success', 'is-error');
+                elements.helpStatus.textContent = 'Enviando la consulta con el contexto de esta búsqueda…';
+            }
+
+            try {
+                const data = await api('help-request', {
+                    method: 'POST',
+                    body: {
+                        search_id: state.searchId || '',
+                        email: emailInput.value.trim(),
+                        note: noteInput ? noteInput.value.trim() : '',
+                        query: state.q || (elements.query ? elements.query.value.trim() : ''),
+                        mode: state.mode,
+                        context_label: state.contextLabel || '',
+                        page_url: window.location.href,
+                        filters: state.filters || emptyFilters(),
+                        semantic_hint: state.semanticHint || null,
+                        orderby: state.orderby || 'relevance',
+                        compare_ids: Array.from(state.compare || []),
+                        website: websiteInput ? websiteInput.value : ''
+                    }
+                });
+                if (elements.helpStatus) {
+                    elements.helpStatus.classList.add('is-success');
+                    elements.helpStatus.textContent = data && data.message
+                        ? data.message
+                        : 'Solicitud enviada. Te responderemos por correo.';
+                }
+                if (elements.help) elements.help.classList.add('is-sent');
+                if (noteInput) noteInput.value = '';
+            } catch (error) {
+                if (elements.helpStatus) {
+                    elements.helpStatus.classList.add('is-error');
+                    elements.helpStatus.textContent = error.message || 'No he podido enviar la solicitud. Inténtalo de nuevo.';
+                }
+            } finally {
+                state.helpSubmitting = false;
+                if (submitButton) submitButton.disabled = false;
             }
         }
 
@@ -742,7 +875,8 @@
                 });
 
                 const actionsHtml = actions.length ? '<div class="seo-dependiente__empty-actions"><span>También puedes probar:</span><div>' + actions.join('') + '</div></div>' : '';
-                elements.results.innerHTML = '<div class="seo-dependiente__empty"><strong>No hay una coincidencia clara</strong><span>' + escapeHtml((config.labels && config.labels.noResults) || 'Prueba con otros términos o elimina un filtro.') + '</span>' + actionsHtml + '</div>';
+                const helpHtml = elements.help ? '<div class="seo-dependiente__empty-help"><button type="button" class="seo-dependiente__empty-action" data-dependiente-help-open>Pedir ayuda con esta búsqueda</button><small>Enviaremos el recorrido de Dependiente para que no tengas que empezar de cero.</small></div>' : '';
+                elements.results.innerHTML = '<div class="seo-dependiente__empty"><strong>No hay una coincidencia clara</strong><span>' + escapeHtml((config.labels && config.labels.noResults) || 'Prueba con otros términos o elimina un filtro.') + '</span>' + actionsHtml + helpHtml + '</div>';
                 return;
             }
             elements.results.innerHTML = results.map(function (product, index) {
