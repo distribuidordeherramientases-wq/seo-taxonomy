@@ -14,72 +14,13 @@ defined('ABSPATH') || exit;
  */
 final class SEO_Dependiente_Semantics {
     const SEED_VERSION = '2026-08-31.1';
-    const SCHEMA_VERSION = '2026-08-31.2';
 
     private static $rules = null;
-    private static $ready_checked = false;
     private static $vocabulary_cache = array();
 
     public static function table() {
         global $wpdb;
         return $wpdb->prefix . 'seo_dependiente_semantics';
-    }
-
-    /**
-     * Autorrepara la capa semantica cuando se usan archivos delta sobre una
-     * instalacion anterior: completa columnas, siembra reglas y resuelve IDs.
-     */
-    public static function ensure_ready() {
-        global $wpdb;
-
-        if (self::$ready_checked) {
-            return self::active_rule_count();
-        }
-        self::$ready_checked = true;
-
-        if (!self::table_exists() || !self::schema_is_current()) {
-            self::install();
-        } else {
-            $active = self::active_rule_count();
-            $seed_version = (string) get_option('seo_dependiente_semantic_seed_version', '');
-            if (0 === $active || self::SEED_VERSION !== $seed_version) {
-                self::seed_defaults();
-                self::resolve_vocabulary_ids();
-            }
-        }
-
-        // Si el CSV falta o fallo una importacion anterior, garantizar al
-        // menos el nucleo minimo para que Dependiente no vuelva al OR ciego.
-        if (0 === self::active_rule_count()) {
-            self::seed_critical_defaults();
-            self::resolve_vocabulary_ids();
-        }
-
-        self::$rules = null;
-        update_option('seo_dependiente_semantic_schema_version', self::SCHEMA_VERSION, false);
-        return self::active_rule_count();
-    }
-
-    public static function active_rule_count() {
-        global $wpdb;
-        if (!self::table_exists()) {
-            return 0;
-        }
-        return (int) $wpdb->get_var('SELECT COUNT(*) FROM `' . esc_sql(self::table()) . '` WHERE active = 1');
-    }
-
-    private static function schema_is_current() {
-        global $wpdb;
-        if (!self::table_exists()) {
-            return false;
-        }
-        $columns = (array) $wpdb->get_col('SHOW COLUMNS FROM `' . esc_sql(self::table()) . '`', 0);
-        $required = array(
-            'rule_key','rule_type','expression','normalized_expression','canonical_expression',
-            'match_type','semantic_role','source_group','source_slug','context_group','context_slug',
-            'target_group','target_slug','relation_type','result_role','weight','priority','language','active'
-        );
-        return !array_diff($required, $columns);
     }
 
     public static function install() {
@@ -131,7 +72,6 @@ final class SEO_Dependiente_Semantics {
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         dbDelta($sql);
-        update_option('seo_dependiente_semantic_schema_version', self::SCHEMA_VERSION, false);
 
         self::seed_defaults();
         self::resolve_vocabulary_ids();
@@ -142,29 +82,74 @@ final class SEO_Dependiente_Semantics {
         return SEO_Dependiente_Index::table_exists(self::table());
     }
 
-    public static function seed_defaults() {
+    /**
+     * Garantiza que la tabla y el seed base esten disponibles antes de analizar.
+     * Devuelve el numero de reglas activas en espanol.
+     */
+    public static function ensure_ready() {
         global $wpdb;
 
+        if (!self::table_exists()) {
+            self::install();
+        }
         if (!self::table_exists()) {
             return 0;
         }
 
+        $table = self::table();
+        $seed_version = (string) get_option('seo_dependiente_semantic_seed_version', '');
+        $seed_count = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM `" . esc_sql($table) . "` WHERE source = 'seed'"
+        );
+
+        if (self::SEED_VERSION !== $seed_version || 0 === $seed_count) {
+            self::seed_defaults();
+            self::resolve_vocabulary_ids();
+            self::$rules = null;
+        }
+
+        return (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM `" . esc_sql($table) . "` WHERE active = 1 AND language = 'es'"
+        );
+    }
+
+    public static function seed_defaults() {
+        $rows = self::seed_rows_from_csv();
+        if (!$rows) {
+            // Compatibilidad con el seed RAW ya existente en las instalaciones
+            // actuales: COL 1..COL 20 y la primera fila usada como cabecera.
+            $rows = self::seed_rows_from_legacy_table();
+        }
+        if (!$rows) {
+            return 0;
+        }
+
+        $inserted = 0;
+        foreach ($rows as $row) {
+            $inserted += self::upsert_seed_row($row);
+        }
+
+        update_option('seo_dependiente_semantic_seed_version', self::SEED_VERSION, false);
+        self::$rules = null;
+        return $inserted;
+    }
+
+    private static function seed_rows_from_csv() {
         $seed_file = SEO_DEPENDIENTE_PATH . 'data/semantic-seed-es.csv';
         if (!is_readable($seed_file)) {
-            return 0;
+            return array();
         }
 
         $handle = fopen($seed_file, 'rb');
         if (!$handle) {
-            return 0;
+            return array();
         }
 
         $headers = fgetcsv($handle, 0, ',', '"', '');
         if (!$headers) {
             fclose($handle);
-            return 0;
+            return array();
         }
-        // El CSV se distribuye como UTF-8 con o sin BOM.
         $headers[0] = preg_replace('/^\xEF\xBB\xBF/', '', (string) $headers[0]);
         $headers = array_map('trim', $headers);
 
@@ -175,68 +160,104 @@ final class SEO_Dependiente_Semantics {
         );
         if (array_diff($allowed, $headers)) {
             fclose($handle);
-            return 0;
+            return array();
         }
 
-        $inserted = 0;
-        $table = self::table();
+        $rows = array();
         while (($values = fgetcsv($handle, 0, ',', '"', '')) !== false) {
             if (count($values) !== count($headers)) {
                 continue;
             }
-            $row = array_combine($headers, $values);
-            $rule_key = sanitize_key((string) ($row['rule_key'] ?? ''));
-            if (!$rule_key) {
-                continue;
-            }
-
-            $existing_source = $wpdb->get_var(
-                $wpdb->prepare("SELECT source FROM {$table} WHERE rule_key = %s LIMIT 1", $rule_key)
-            );
-
-            $data = array(
-                'rule_key'             => $rule_key,
-                'rule_type'            => sanitize_key((string) ($row['rule_type'] ?? 'alias')),
-                'expression'           => trim((string) ($row['expression'] ?? '')) ?: null,
-                'normalized_expression'=> self::normalize((string) ($row['expression'] ?? '')) ?: null,
-                'canonical_expression' => self::normalize((string) ($row['canonical_expression'] ?? '')) ?: null,
-                'match_type'           => sanitize_key((string) ($row['match_type'] ?? 'token')),
-                'semantic_role'        => sanitize_key((string) ($row['semantic_role'] ?? '')) ?: null,
-                'source_group'         => sanitize_key((string) ($row['source_group'] ?? '')) ?: null,
-                'source_slug'          => self::normalize((string) ($row['source_slug'] ?? '')) ?: null,
-                'context_group'        => sanitize_key((string) ($row['context_group'] ?? '')) ?: null,
-                'context_slug'         => self::normalize((string) ($row['context_slug'] ?? '')) ?: null,
-                'target_group'         => sanitize_key((string) ($row['target_group'] ?? '')) ?: null,
-                'target_slug'          => self::normalize((string) ($row['target_slug'] ?? '')) ?: null,
-                'relation_type'        => sanitize_key((string) ($row['relation_type'] ?? '')) ?: null,
-                'result_role'          => sanitize_key((string) ($row['result_role'] ?? '')) ?: null,
-                'weight'               => min(1000, max(0, absint($row['weight'] ?? 100))),
-                'priority'             => min(100, max(0, absint($row['priority'] ?? 5))),
-                'confidence'           => '' === trim((string) ($row['confidence'] ?? '')) ? null : min(1, max(0, (float) $row['confidence'])),
-                'language'             => sanitize_key((string) ($row['language'] ?? 'es')) ?: 'es',
-                'source'               => sanitize_key((string) ($row['source'] ?? 'seed')) ?: 'seed',
-                'active'               => empty($row['active']) ? 0 : 1,
-                'updated_at'           => current_time('mysql'),
-            );
-
-            if (null === $existing_source) {
-                $data['created_at'] = current_time('mysql');
-                if (false !== $wpdb->insert($table, $data)) {
-                    $inserted++;
-                }
-                continue;
-            }
-
-            // Las reglas que un administrador convierta a origen manual no se pisan.
-            if ('seed' === (string) $existing_source) {
-                $wpdb->update($table, $data, array('rule_key' => $rule_key));
-            }
+            $rows[] = array_combine($headers, $values);
         }
         fclose($handle);
+        return $rows;
+    }
 
-        update_option('seo_dependiente_semantic_seed_version', self::SEED_VERSION, false);
-        self::$rules = null;
-        return $inserted;
+    private static function seed_rows_from_legacy_table() {
+        global $wpdb;
+
+        $legacy_table = 'seo_dependiente_semantics_seed_es';
+        $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($legacy_table)));
+        if ($legacy_table !== $exists) {
+            return array();
+        }
+
+        $sql = "SELECT
+            `COL 1` AS rule_key,
+            `COL 2` AS rule_type,
+            `COL 3` AS expression,
+            `COL 4` AS canonical_expression,
+            `COL 5` AS match_type,
+            `COL 6` AS semantic_role,
+            `COL 7` AS source_group,
+            `COL 8` AS source_slug,
+            `COL 9` AS context_group,
+            `COL 10` AS context_slug,
+            `COL 11` AS target_group,
+            `COL 12` AS target_slug,
+            `COL 13` AS relation_type,
+            `COL 14` AS result_role,
+            `COL 15` AS weight,
+            `COL 16` AS priority,
+            `COL 17` AS confidence,
+            `COL 18` AS language,
+            `COL 19` AS source,
+            `COL 20` AS active
+        FROM `{$legacy_table}`
+        WHERE `COL 1` <> 'rule_key'";
+
+        return (array) $wpdb->get_results($sql, ARRAY_A);
+    }
+
+    private static function upsert_seed_row($row) {
+        global $wpdb;
+
+        $rule_key = sanitize_key((string) ($row['rule_key'] ?? ''));
+        if (!$rule_key) {
+            return 0;
+        }
+
+        $table = self::table();
+        $existing_source = $wpdb->get_var(
+            $wpdb->prepare("SELECT source FROM {$table} WHERE rule_key = %s LIMIT 1", $rule_key)
+        );
+
+        $data = array(
+            'rule_key'              => $rule_key,
+            'rule_type'             => sanitize_key((string) ($row['rule_type'] ?? 'alias')),
+            'expression'            => trim((string) ($row['expression'] ?? '')) ?: null,
+            'normalized_expression' => self::normalize((string) ($row['expression'] ?? '')) ?: null,
+            'canonical_expression'  => self::normalize((string) ($row['canonical_expression'] ?? '')) ?: null,
+            'match_type'            => sanitize_key((string) ($row['match_type'] ?? 'token')),
+            'semantic_role'         => sanitize_key((string) ($row['semantic_role'] ?? '')) ?: null,
+            'source_group'          => sanitize_key((string) ($row['source_group'] ?? '')) ?: null,
+            'source_slug'           => self::normalize((string) ($row['source_slug'] ?? '')) ?: null,
+            'context_group'         => sanitize_key((string) ($row['context_group'] ?? '')) ?: null,
+            'context_slug'          => self::normalize((string) ($row['context_slug'] ?? '')) ?: null,
+            'target_group'          => sanitize_key((string) ($row['target_group'] ?? '')) ?: null,
+            'target_slug'           => self::normalize((string) ($row['target_slug'] ?? '')) ?: null,
+            'relation_type'         => sanitize_key((string) ($row['relation_type'] ?? '')) ?: null,
+            'result_role'           => sanitize_key((string) ($row['result_role'] ?? '')) ?: null,
+            'weight'                => min(1000, max(0, absint($row['weight'] ?? 100))),
+            'priority'              => min(100, max(0, absint($row['priority'] ?? 5))),
+            'confidence'            => '' === trim((string) ($row['confidence'] ?? '')) ? null : min(1, max(0, (float) $row['confidence'])),
+            'language'              => sanitize_key((string) ($row['language'] ?? 'es')) ?: 'es',
+            'source'                => sanitize_key((string) ($row['source'] ?? 'seed')) ?: 'seed',
+            'active'                => empty($row['active']) ? 0 : 1,
+            'updated_at'            => current_time('mysql'),
+        );
+
+        if (null === $existing_source) {
+            $data['created_at'] = current_time('mysql');
+            return false !== $wpdb->insert($table, $data) ? 1 : 0;
+        }
+
+        // Las reglas convertidas a origen manual/aprendido no se pisan con el seed.
+        if ('seed' === (string) $existing_source) {
+            $wpdb->update($table, $data, array('rule_key' => $rule_key));
+        }
+        return 0;
     }
 
     /**
@@ -278,54 +299,6 @@ final class SEO_Dependiente_Semantics {
             }
         }
         self::$rules = null;
-    }
-
-
-    private static function seed_critical_defaults() {
-        global $wpdb;
-        if (!self::table_exists()) {
-            return 0;
-        }
-        $rows = array(
-            array('ignore_quiero','ignore','quiero','', 'token','noise','','','','','','','','',0,10),
-            array('ignore_un','ignore','un','', 'token','noise','','','','','','','','',0,10),
-            array('ignore_una','ignore','una','', 'token','noise','','','','','','','','',0,10),
-            array('ignore_el','ignore','el','', 'token','noise','','','','','','','','',0,10),
-            array('ignore_la','ignore','la','', 'token','noise','','','','','','','','',0,10),
-            array('intent_reparar','alias','reparar','reparar','token','intent','','','','','','','canonical','',100,9),
-            array('intent_arreglar','alias','arreglar','reparar','token','intent','','','','','','','synonym','',95,9),
-            array('intent_roto','implication','roto','reparar','token','intent','','','','','','','implies','',95,9),
-            array('intent_averiado','implication','averiado','reparar','token','intent','','','','','','','implies','',95,9),
-            array('intent_sustituir','alias','sustituir','sustituir','token','intent','','','','','','','canonical','',100,9),
-            array('intent_cambiar','alias','cambiar','sustituir','token','intent','','','','','','','synonym','',95,9),
-            array('intent_instalar','alias','instalar','instalar','token','intent','','','','','','','canonical','',100,9),
-            array('intent_comprar','alias','comprar','comprar','token','intent','','','','','','','canonical','',100,9),
-            array('object_grifo','alias','grifo','grifo','token','object','','','','','','','canonical','',100,9),
-            array('object_grifos','alias','grifos','grifo','token','object','','','','','','','variant','',95,9),
-            array('object_griferia','alias','griferia','grifo','token','object','','','','','','','related','',90,8),
-        );
-        $inserted = 0;
-        foreach ($rows as $r) {
-            list($key,$type,$expr,$canonical,$match,$role,$sg,$ss,$cg,$cs,$tg,$ts,$relation,$result,$weight,$priority) = $r;
-            $data = array(
-                'rule_key'=>sanitize_key($key),'rule_type'=>sanitize_key($type),'expression'=>$expr ?: null,
-                'normalized_expression'=>self::normalize($expr) ?: null,'canonical_expression'=>self::normalize($canonical) ?: null,
-                'match_type'=>sanitize_key($match),'semantic_role'=>sanitize_key($role) ?: null,
-                'source_group'=>$sg ?: null,'source_slug'=>$ss ?: null,'context_group'=>$cg ?: null,'context_slug'=>$cs ?: null,
-                'target_group'=>$tg ?: null,'target_slug'=>$ts ?: null,'relation_type'=>$relation ?: null,'result_role'=>$result ?: null,
-                'weight'=>(int)$weight,'priority'=>(int)$priority,'confidence'=>1.0,'language'=>'es','source'=>'critical','active'=>1,
-                'updated_at'=>current_time('mysql')
-            );
-            $exists = $wpdb->get_var($wpdb->prepare('SELECT id FROM `' . esc_sql(self::table()) . '` WHERE rule_key = %s LIMIT 1', $data['rule_key']));
-            if ($exists) {
-                $wpdb->update(self::table(), $data, array('id'=>(int)$exists));
-            } else {
-                $data['created_at'] = current_time('mysql');
-                if (false !== $wpdb->insert(self::table(), $data)) { $inserted++; }
-            }
-        }
-        self::$rules = null;
-        return $inserted;
     }
 
     public static function analyze($query) {
@@ -406,9 +379,27 @@ final class SEO_Dependiente_Semantics {
             if (isset($consumed[$word])) {
                 continue;
             }
-            if (isset($token_rules[$word])) {
+
+            // Encliticos espanoles: solo se separan si el verbo resultante ya
+            // existe como regla controlada. Asi "cambiarlo" puede reutilizar
+            // la regla "cambiar -> sustituir" sin inventar stemming general.
+            $lookup_word = $word;
+            if (!isset($token_rules[$lookup_word])) {
+                foreach (array('melos','melas','selos','selas','melo','mela','selo','sela','nos','les','los','las','lo','la','le','me','te','se') as $suffix) {
+                    if (strlen($lookup_word) <= strlen($suffix) + 2 || substr($lookup_word, -strlen($suffix)) !== $suffix) {
+                        continue;
+                    }
+                    $base = substr($lookup_word, 0, -strlen($suffix));
+                    if (isset($token_rules[$base])) {
+                        $lookup_word = $base;
+                        break;
+                    }
+                }
+            }
+
+            if (isset($token_rules[$lookup_word])) {
                 $handled = false;
-                foreach ($token_rules[$word] as $rule) {
+                foreach ($token_rules[$lookup_word] as $rule) {
                     self::apply_rule($result, $rule, $aliases);
                     $handled = true;
                     // Una palabra puede tener varias reglas, pero ignore/operator dominan.
@@ -424,6 +415,31 @@ final class SEO_Dependiente_Semantics {
                 continue;
             }
             self::add_group($result, self::basic_variants($word), $word, 'term', 70, $word);
+        }
+
+        // Una accion expresada explicitamente domina una intencion inferida por
+        // estado. Ej.: "se ha roto ... quiero cambiarlo" => sustituir, no reparar.
+        $explicit_intents = array();
+        foreach ((array) $result['matches'] as $match) {
+            if ('intent' !== ($match['role'] ?? '')) {
+                continue;
+            }
+            if (in_array(($match['rule_type'] ?? ''), array('alias','variant'), true)) {
+                $canonical = self::normalize((string) ($match['canonical'] ?? ''));
+                if ($canonical) {
+                    $explicit_intents[] = $canonical;
+                }
+            }
+        }
+        $explicit_intents = array_values(array_unique($explicit_intents));
+        if ($explicit_intents) {
+            $result['concepts']['intent'] = $explicit_intents;
+            foreach ($result['groups'] as $key => $group) {
+                if ('intent' === ($group['role'] ?? '')
+                    && !in_array(self::normalize((string) ($group['canonical'] ?? '')), $explicit_intents, true)) {
+                    unset($result['groups'][$key]);
+                }
+            }
         }
 
         // Activa rutas usando los conceptos ya interpretados.
