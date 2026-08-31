@@ -342,6 +342,7 @@ final class SEO_Dependiente_Learning {
         $metadata = self::decode_json($row['metadata'] ?? '');
         $metadata['reviewed_by'] = absint($reviewer_id);
         $metadata['reviewed_at'] = current_time('mysql');
+        $metadata['review_decision'] = 'approved';
 
         $ok = $wpdb->update(
             $table,
@@ -356,6 +357,47 @@ final class SEO_Dependiente_Learning {
 
         return false === $ok
             ? new WP_Error('seo_dependiente_candidate_approve_failed', 'No se pudo activar el candidato.')
+            : true;
+    }
+
+    /**
+     * Rechaza un candidato conservando su evidencia para auditoria.
+     */
+    public static function reject_candidate($semantic_id, $reviewer_id = 0) {
+        global $wpdb;
+
+        $semantic_id = absint($semantic_id);
+        if (!$semantic_id || !self::ready()) {
+            return new WP_Error('seo_dependiente_candidate_invalid', 'Candidato semantico no valido.');
+        }
+
+        $table = SEO_Dependiente_Semantics::table();
+        $row = $wpdb->get_row(
+            $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d LIMIT 1", $semantic_id),
+            ARRAY_A
+        );
+        if (!$row || 'learned_candidate' !== (string) ($row['source'] ?? '')) {
+            return new WP_Error('seo_dependiente_candidate_not_found', 'No se ha encontrado un candidato pendiente.');
+        }
+
+        $metadata = self::decode_json($row['metadata'] ?? '');
+        $metadata['reviewed_by'] = absint($reviewer_id);
+        $metadata['reviewed_at'] = current_time('mysql');
+        $metadata['review_decision'] = 'rejected';
+
+        $ok = $wpdb->update(
+            $table,
+            array(
+                'source'     => 'learned_rejected',
+                'active'     => 0,
+                'metadata'   => self::json($metadata),
+                'updated_at' => current_time('mysql'),
+            ),
+            array('id' => $semantic_id)
+        );
+
+        return false === $ok
+            ? new WP_Error('seo_dependiente_candidate_reject_failed', 'No se pudo rechazar el candidato.')
             : true;
     }
 
