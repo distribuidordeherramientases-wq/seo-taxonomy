@@ -45,6 +45,7 @@ final class SEO_Dependiente_Plugin {
 
     public static function install_module() {
         SEO_Dependiente_Index::install();
+        SEO_Dependiente_Semantics::install();
         update_option('seo_dependiente_db_version', SEO_DEPENDIENTE_DB_VERSION, false);
 
         $defaults = array(

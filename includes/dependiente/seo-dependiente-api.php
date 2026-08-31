@@ -116,17 +116,25 @@ final class SEO_Dependiente_API {
             $orderby = 'relevance';
         }
 
-        $candidate_rows = self::candidate_rows($query);
+        $semantic = class_exists('SEO_Dependiente_Semantics')
+            ? SEO_Dependiente_Semantics::analyze($query)
+            : array();
+        $candidate_rows = self::candidate_rows($query, $semantic);
         $documents = array_map(array('SEO_Dependiente_Index', 'decode_row'), $candidate_rows);
         $facets = self::build_facets($documents);
 
         $matched = array();
-        $tokens = self::query_token_groups($query);
+        $tokens = !empty($semantic['groups']) && class_exists('SEO_Dependiente_Semantics')
+            ? SEO_Dependiente_Semantics::group_variants($semantic)
+            : self::query_token_groups($query);
         foreach ($documents as $document) {
             if (!self::matches_filters($document, $filters)) {
                 continue;
             }
-            $score = self::score_document($document, $query, $tokens, $filters, $mode);
+            $score = self::score_document($document, $query, $tokens, $filters, $mode, $semantic);
+            if (isset($score['eligible']) && !$score['eligible']) {
+                continue;
+            }
             $document['_score'] = $score['score'];
             $document['_reasons'] = $score['reasons'];
             $matched[] = $document;
@@ -164,6 +172,9 @@ final class SEO_Dependiente_API {
             'related'         => $related,
             'facets'          => $facets,
             'filters'         => $filters,
+            'semantic'        => class_exists('SEO_Dependiente_Semantics')
+                ? SEO_Dependiente_Semantics::public_analysis($semantic)
+                : array(),
         ));
     }
 
@@ -235,28 +246,89 @@ final class SEO_Dependiente_API {
         return is_array($json) ? $json : $request->get_params();
     }
 
-    private static function candidate_rows($query) {
+    private static function candidate_rows($query, $semantic = array()) {
         global $wpdb;
 
         if (!SEO_Dependiente_Index::table_exists()) {
             return array();
         }
-        $groups = self::query_token_groups($query);
+        $groups = !empty($semantic['groups']) && class_exists('SEO_Dependiente_Semantics')
+            ? SEO_Dependiente_Semantics::group_variants($semantic)
+            : self::query_token_groups($query);
         if (!$groups) {
             return SEO_Dependiente_Index::get_rows(self::CANDIDATE_LIMIT);
         }
 
         $strict = self::query_index($groups, true, self::CANDIDATE_LIMIT);
-        if (count($strict) >= 12 || count($groups) <= 1) {
+        $has_semantic_routes = !empty($semantic['routes']);
+        if ((count($strict) >= 12 || count($groups) <= 1) && !$has_semantic_routes) {
             return $strict;
         }
 
-        $broad = self::query_index($groups, false, self::CANDIDATE_LIMIT);
         $merged = array();
-        foreach (array_merge($strict, $broad) as $row) {
+        foreach ($strict as $row) {
             $merged[absint($row['product_id'])] = $row;
             if (count($merged) >= self::CANDIDATE_LIMIT) {
                 break;
+            }
+        }
+
+        /*
+         * Capa semantica: antes de abrir la consulta con OR se buscan productos
+         * ligados a las rutas intencion+objeto y terminos sugeridos por esas rutas.
+         */
+        if (class_exists('SEO_Dependiente_Semantics') && $semantic) {
+            $semantic_ids = SEO_Dependiente_Semantics::vocabulary_candidate_product_ids($semantic, 700);
+            if ($semantic_ids) {
+                foreach (SEO_Dependiente_Index::get_rows_by_ids($semantic_ids, 700) as $row) {
+                    $merged[absint($row['product_id'])] = $row;
+                    if (count($merged) >= self::CANDIDATE_LIMIT) {
+                        break;
+                    }
+                }
+            }
+
+            $route_groups = SEO_Dependiente_Semantics::route_search_groups($semantic);
+            if ($route_groups && count($merged) < self::CANDIDATE_LIMIT) {
+                $route_rows = self::query_index($route_groups, false, self::CANDIDATE_LIMIT);
+                foreach ($route_rows as $row) {
+                    $merged[absint($row['product_id'])] = $row;
+                    if (count($merged) >= self::CANDIDATE_LIMIT) {
+                        break;
+                    }
+                }
+            }
+
+            /*
+             * Si hay objeto reconocido, el fallback queda anclado al objeto.
+             * Evita el comportamiento legacy: "cambiar OR grifo".
+             */
+            $object_groups = SEO_Dependiente_Semantics::group_variants($semantic, array('object'));
+            if ($object_groups && count($merged) < self::CANDIDATE_LIMIT) {
+                $anchor_rows = self::query_index($object_groups, true, self::CANDIDATE_LIMIT);
+                foreach ($anchor_rows as $row) {
+                    $merged[absint($row['product_id'])] = $row;
+                    if (count($merged) >= self::CANDIDATE_LIMIT) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        /*
+         * Solo se conserva el OR general como ultimo recurso cuando no se ha
+         * reconocido ningun objeto que pueda actuar de ancla semantica.
+         */
+        $has_object_anchor = class_exists('SEO_Dependiente_Semantics') && $semantic
+            ? (bool) SEO_Dependiente_Semantics::group_variants($semantic, array('object'))
+            : false;
+        if (!$has_object_anchor && count($merged) < 12) {
+            $broad = self::query_index($groups, false, self::CANDIDATE_LIMIT);
+            foreach ($broad as $row) {
+                $merged[absint($row['product_id'])] = $row;
+                if (count($merged) >= self::CANDIDATE_LIMIT) {
+                    break;
+                }
             }
         }
         unset($wpdb);
@@ -295,6 +367,14 @@ final class SEO_Dependiente_API {
     }
 
     private static function query_token_groups($query) {
+        if (class_exists('SEO_Dependiente_Semantics') && SEO_Dependiente_Semantics::table_exists()) {
+            $analysis = SEO_Dependiente_Semantics::analyze($query);
+            $semantic_groups = SEO_Dependiente_Semantics::group_variants($analysis);
+            if ($semantic_groups) {
+                return $semantic_groups;
+            }
+        }
+
         $normalized = SEO_Dependiente_Index::normalize($query);
         if (!$normalized) {
             return array();
@@ -372,11 +452,15 @@ final class SEO_Dependiente_API {
             }
         }
 
-        if (strlen($token) > 4) {
+        if (strlen($token) > 4 && !preg_match('/(?:ar|er|ir)$/', $token)) {
             if ('s' === substr($token, -1)) {
                 $variants[] = substr($token, 0, -1);
-            } else {
+            } elseif ('z' === substr($token, -1)) {
+                $variants[] = substr($token, 0, -1) . 'ces';
+            } elseif (preg_match('/[aeiou]$/', $token)) {
                 $variants[] = $token . 's';
+            } else {
+                $variants[] = $token . 'es';
             }
         }
 
@@ -495,7 +579,7 @@ final class SEO_Dependiente_API {
         return (bool) array_intersect($selected, $available);
     }
 
-    private static function score_document($document, $query, $token_groups, $filters, $mode = 'need') {
+    private static function score_document($document, $query, $token_groups, $filters, $mode = 'need', $semantic = array()) {
         $score = !empty($document['featured']) ? 8.0 : 0.0;
         if ('instock' === $document['stock_status']) {
             $score += 5.0;
@@ -539,38 +623,48 @@ final class SEO_Dependiente_API {
         $field_hits = array('title' => 0, 'application' => 0, 'platform' => 0, 'brand' => 0, 'category' => 0, 'tag' => 0, 'attribute' => 0, 'excerpt' => 0);
         foreach ($token_groups as $variants) {
             $token_found = false;
+            $group_hits = array_fill_keys(array_keys($field_hits), false);
+            $vocabulary_hit = false;
             foreach ($variants as $variant) {
                 if (!$token_found && false !== strpos($search_text, $variant)) {
                     $token_found = true;
                     $coverage++;
                 }
                 if (false !== strpos($title, $variant)) {
-                    $field_hits['title']++;
+                    $group_hits['title'] = true;
                 }
                 if (false !== strpos($applications, $variant)) {
-                    $field_hits['application']++;
+                    $group_hits['application'] = true;
                 }
                 if (false !== strpos($platforms, $variant)) {
-                    $field_hits['platform']++;
+                    $group_hits['platform'] = true;
                 }
                 if (false !== strpos($brand, $variant)) {
-                    $field_hits['brand']++;
+                    $group_hits['brand'] = true;
                 }
                 if (false !== strpos($categories, $variant)) {
-                    $field_hits['category']++;
+                    $group_hits['category'] = true;
                 }
                 if (false !== strpos($tags, $variant)) {
-                    $field_hits['tag']++;
+                    $group_hits['tag'] = true;
                 }
                 if (false !== strpos($attributes, $variant)) {
-                    $field_hits['attribute']++;
+                    $group_hits['attribute'] = true;
                 }
                 if (false !== strpos($excerpt, $variant)) {
-                    $field_hits['excerpt']++;
+                    $group_hits['excerpt'] = true;
                 }
                 if (false !== strpos($vocabulary, $variant)) {
-                    $score += 8;
+                    $vocabulary_hit = true;
                 }
+            }
+            foreach ($group_hits as $field => $hit) {
+                if ($hit) {
+                    $field_hits[$field]++;
+                }
+            }
+            if ($vocabulary_hit) {
+                $score += 8;
             }
         }
 
@@ -640,9 +734,36 @@ final class SEO_Dependiente_API {
             $reasons[] = 'Disponibilidad solicitada';
         }
 
+        $semantic_score = array('bonus' => 0, 'reasons' => array(), 'route_hits' => 0, 'object_hits' => 0);
+        if ($semantic && class_exists('SEO_Dependiente_Semantics')) {
+            $semantic_score = SEO_Dependiente_Semantics::score_document($document, $semantic);
+            $score += (float) ($semantic_score['bonus'] ?? 0);
+            $reasons = array_merge($reasons, (array) ($semantic_score['reasons'] ?? array()));
+        }
+
+        $eligible = true;
+        if (SEO_Dependiente_Index::normalize($query) && $token_groups && $semantic) {
+            $route_hits = absint($semantic_score['route_hits'] ?? 0);
+            $object_hits = absint($semantic_score['object_hits'] ?? 0);
+            $has_object = !empty($semantic['concepts']['object']);
+
+            if ($has_object) {
+                // Con objeto reconocido, no mostrar candidatos que solo casen con el verbo.
+                $eligible = $route_hits > 0
+                    || $object_hits > 0
+                    || $coverage >= count($token_groups);
+            } else {
+                // Para consultas no clasificadas se mantiene una relajacion prudente.
+                $eligible = $route_hits > 0
+                    || count($token_groups) <= 1
+                    || ($coverage / max(1, count($token_groups))) >= 0.5;
+            }
+        }
+
         return array(
             'score'   => round($score, 4),
             'reasons' => array_slice(array_values(array_unique(array_filter($reasons))), 0, 4),
+            'eligible'=> (bool) $eligible,
         );
     }
 

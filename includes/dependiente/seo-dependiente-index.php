@@ -304,13 +304,14 @@ final class SEO_Dependiente_Index {
         );
     }
 
-    public static function get_rows_by_ids($ids) {
+    public static function get_rows_by_ids($ids, $limit = 20) {
         global $wpdb;
         $ids = array_values(array_unique(array_filter(array_map('absint', (array) $ids))));
         if (!$ids || !self::table_exists()) {
             return array();
         }
-        $ids = array_slice($ids, 0, 20);
+        $limit = min(1000, max(1, absint($limit)));
+        $ids = array_slice($ids, 0, $limit);
         $placeholders = implode(',', array_fill(0, count($ids), '%d'));
         $sql = $wpdb->prepare(
             'SELECT * FROM `' . esc_sql(self::table()) . "` WHERE product_id IN ({$placeholders})",

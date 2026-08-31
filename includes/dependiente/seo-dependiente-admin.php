@@ -50,6 +50,7 @@ final class SEO_Dependiente_Admin {
         $integrations = array(
             'WooCommerce'                     => class_exists('WooCommerce'),
             'Vocabulario semántico SEO'       => SEO_Dependiente_Index::table_exists($wpdb->prefix . 'seo_vocabulary') && SEO_Dependiente_Index::table_exists($wpdb->prefix . 'seo_object_vocabulary'),
+            'Semántica de consultas Dependiente'=> class_exists('SEO_Dependiente_Semantics') && SEO_Dependiente_Semantics::table_exists(),
             'Atributos SEO'                   => SEO_Dependiente_Index::table_exists($wpdb->prefix . 'seo_attributes'),
             'Comparativas por categoría'      => SEO_Dependiente_Index::table_exists($wpdb->prefix . 'seo_category_comparisons'),
             'Catálogo intermedio de proveedor'=> SEO_Dependiente_Index::table_exists($wpdb->prefix . 'seo_proveedores_productos'),
