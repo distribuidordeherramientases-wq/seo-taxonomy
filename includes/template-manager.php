@@ -30,6 +30,16 @@ function seo_tm_admin_url($tab = 'asignar', array $args = []) {
     return $url;
 }
 
+function seo_tm_cart_style_admin_url() {
+    return add_query_arg(
+        [
+            'page' => 'seo-menu-marketing',
+            'tab'  => 'style',
+        ],
+        admin_url('admin.php')
+    ) . '#seo-style-cart';
+}
+
 function seo_tm_redirect($tab, $message, $type = 'success') {
     $url = seo_tm_admin_url($tab, [
         'seo_tm_notice'      => $message,
@@ -1891,6 +1901,14 @@ function seo_tm_render_files_tab() {
 
         seo_tm_render_device_files_panel($template);
 
+        if ((string) $template->template_key === 'cart') {
+            echo '<div class="seo-tm-cart-style-link">';
+            echo '<strong>Estilo del carrito</strong>';
+            echo '<p class="description">Colores, dimensiones y previsualización se gestionan desde Marketing → Estilo visual.</p>';
+            echo '<a class="button button-secondary" href="' . esc_url(seo_tm_cart_style_admin_url()) . '">Configurar estilo y previsualizar carrito</a>';
+            echo '</div>';
+        }
+
         echo '</section>';
     }
 
@@ -2126,6 +2144,8 @@ function seo_tm_render_styles() {
         .seo-tm-variant-card { border:1px solid #c3c4c7; padding:14px; background:#fff; }
         .seo-tm-variant-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
         .seo-tm-variant-upload { margin-top:12px; }
+        .seo-tm-cart-style-link { margin-top:18px; padding:14px; border:1px solid #72aee6; background:#f0f6fc; }
+        .seo-tm-cart-style-link p { margin:6px 0 10px; }
         @media (max-width:782px) {
             .seo-tm-columns { grid-template-columns:1fr; }
             .seo-tm-device-effective-grid, .seo-tm-variant-grid { grid-template-columns:1fr; }

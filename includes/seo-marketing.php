@@ -39,7 +39,7 @@ if (!defined('SEO_MARKETING_STYLE_OPTION')) {
 }
 
 if (!defined('SEO_MARKETING_STYLE_SCHEMA_VERSION')) {
-    define('SEO_MARKETING_STYLE_SCHEMA_VERSION', 5);
+    define('SEO_MARKETING_STYLE_SCHEMA_VERSION', 6);
 }
 
 if (!defined('SEO_MARKETING_AUTO_CATEGORY_LIMIT')) {
@@ -190,6 +190,32 @@ function seo_marketing_style_defaults()
         'product_button_bg'        => '#007acc',
         'product_button_hover'     => '#005b96',
         'product_button_text'      => '#ffffff',
+
+        // Carrito WooCommerce.
+        'cart_background'           => '#f5f7f9',
+        'cart_hero_background'      => '#17212b',
+        'cart_hero_title'           => '#ffffff',
+        'cart_hero_text'            => '#d3dce3',
+        'cart_card_background'      => '#ffffff',
+        'cart_summary_background'   => '#ffffff',
+        'cart_text'                 => '#17212b',
+        'cart_muted'                => '#68747e',
+        'cart_border'               => '#e1e7eb',
+        'cart_remove_color'         => '#b42318',
+        'cart_remove_background'    => '#fff8f7',
+        'cart_container_width'      => 1180,
+        'cart_summary_width'        => 350,
+        'cart_card_radius'          => 14,
+        'cart_control_radius'       => 8,
+        'cart_product_image_size'   => 120,
+        'cart_product_image_mobile' => 82,
+        'cart_items_gap'            => 12,
+        'cart_layout_gap'           => 24,
+        'cart_shadow_preset'        => 'soft',
+        'cart_custom_action_colors' => 0,
+        'cart_action_background'    => '#007acc',
+        'cart_action_hover'         => '#005b96',
+        'cart_action_text'          => '#ffffff',
 
         // Navegación principal.
         'menu_style'                => 'soft',
@@ -369,6 +395,11 @@ function seo_marketing_style_sanitize_settings($input)
         'footer_background', 'footer_heading_color', 'footer_text_color',
         'footer_link_color', 'footer_link_hover', 'footer_meta_color',
         'footer_border_color',
+        'cart_background', 'cart_hero_background', 'cart_hero_title',
+        'cart_hero_text', 'cart_card_background', 'cart_summary_background',
+        'cart_text', 'cart_muted', 'cart_border', 'cart_remove_color',
+        'cart_remove_background', 'cart_action_background', 'cart_action_hover',
+        'cart_action_text',
     );
 
     foreach ($color_keys as $key) {
@@ -457,6 +488,19 @@ function seo_marketing_style_sanitize_settings($input)
     if ($settings['product_page_title_max'] < $settings['product_page_title_min']) {
         $settings['product_page_title_max'] = $settings['product_page_title_min'];
     }
+
+    $settings['cart_container_width']      = seo_marketing_style_clamp(isset($input['cart_container_width']) ? $input['cart_container_width'] : null, 760, 1600, $defaults['cart_container_width']);
+    $settings['cart_summary_width']        = seo_marketing_style_clamp(isset($input['cart_summary_width']) ? $input['cart_summary_width'] : null, 260, 520, $defaults['cart_summary_width']);
+    $settings['cart_card_radius']          = seo_marketing_style_clamp(isset($input['cart_card_radius']) ? $input['cart_card_radius'] : null, 0, 40, $defaults['cart_card_radius']);
+    $settings['cart_control_radius']       = seo_marketing_style_clamp(isset($input['cart_control_radius']) ? $input['cart_control_radius'] : null, 0, 30, $defaults['cart_control_radius']);
+    $settings['cart_product_image_size']   = seo_marketing_style_clamp(isset($input['cart_product_image_size']) ? $input['cart_product_image_size'] : null, 70, 200, $defaults['cart_product_image_size']);
+    $settings['cart_product_image_mobile'] = seo_marketing_style_clamp(isset($input['cart_product_image_mobile']) ? $input['cart_product_image_mobile'] : null, 54, 130, $defaults['cart_product_image_mobile']);
+    $settings['cart_items_gap']            = seo_marketing_style_clamp(isset($input['cart_items_gap']) ? $input['cart_items_gap'] : null, 4, 40, $defaults['cart_items_gap']);
+    $settings['cart_layout_gap']           = seo_marketing_style_clamp(isset($input['cart_layout_gap']) ? $input['cart_layout_gap'] : null, 8, 60, $defaults['cart_layout_gap']);
+    $settings['cart_custom_action_colors'] = !empty($input['cart_custom_action_colors']) ? 1 : 0;
+
+    $cart_shadow = isset($input['cart_shadow_preset']) ? sanitize_key($input['cart_shadow_preset']) : $defaults['cart_shadow_preset'];
+    $settings['cart_shadow_preset'] = isset($shadow_choices[$cart_shadow]) ? $cart_shadow : $defaults['cart_shadow_preset'];
 
     $settings['footer_padding_top']    = seo_marketing_style_clamp(isset($input['footer_padding_top']) ? $input['footer_padding_top'] : null, 16, 120, $defaults['footer_padding_top']);
     $settings['footer_padding_bottom'] = seo_marketing_style_clamp(isset($input['footer_padding_bottom']) ? $input['footer_padding_bottom'] : null, 12, 100, $defaults['footer_padding_bottom']);
@@ -840,6 +884,7 @@ function seo_marketing_style_build_css($settings)
     $shadows = seo_marketing_style_shadow_choices();
     $shadow = $shadows[$settings['shadow_preset']];
     $menu_shadow = $shadows[$settings['menu_shadow_preset']];
+    $cart_shadow = $shadows[$settings['cart_shadow_preset']];
 
     $body_font = seo_marketing_style_font_stack($settings['font_body']);
     $heading_font = seo_marketing_style_font_stack($settings['font_headings']);
@@ -871,6 +916,35 @@ function seo_marketing_style_build_css($settings)
     $css[] = '  --dht-product-page-title-max: ' . (int) $settings['product_page_title_max'] . 'px;';
     $css[] = '  --dht-product-page-title-weight: ' . (int) $settings['product_page_title_weight'] . ';';
     $css[] = '  --dht-product-page-title-line-height: ' . (float) $settings['product_page_title_line_height'] . ';';
+    $css[] = '  --dht-cart-bg: ' . $settings['cart_background'] . ';';
+    $css[] = '  --dht-cart-hero-bg: ' . $settings['cart_hero_background'] . ';';
+    $css[] = '  --dht-cart-hero-title: ' . $settings['cart_hero_title'] . ';';
+    $css[] = '  --dht-cart-hero-text: ' . $settings['cart_hero_text'] . ';';
+    $css[] = '  --dht-cart-card-bg: ' . $settings['cart_card_background'] . ';';
+    $css[] = '  --dht-cart-summary-bg: ' . $settings['cart_summary_background'] . ';';
+    $css[] = '  --dht-cart-text: ' . $settings['cart_text'] . ';';
+    $css[] = '  --dht-cart-muted: ' . $settings['cart_muted'] . ';';
+    $css[] = '  --dht-cart-border: ' . $settings['cart_border'] . ';';
+    $css[] = '  --dht-cart-danger: ' . $settings['cart_remove_color'] . ';';
+    $css[] = '  --dht-cart-danger-bg: ' . $settings['cart_remove_background'] . ';';
+    $css[] = '  --dht-cart-container: ' . (int) $settings['cart_container_width'] . 'px;';
+    $css[] = '  --dht-cart-summary-width: ' . (int) $settings['cart_summary_width'] . 'px;';
+    $css[] = '  --dht-cart-card-radius: ' . (int) $settings['cart_card_radius'] . 'px;';
+    $css[] = '  --dht-cart-control-radius: ' . (int) $settings['cart_control_radius'] . 'px;';
+    $css[] = '  --dht-cart-product-image-size: ' . (int) $settings['cart_product_image_size'] . 'px;';
+    $css[] = '  --dht-cart-product-image-mobile: ' . (int) $settings['cart_product_image_mobile'] . 'px;';
+    $css[] = '  --dht-cart-items-gap: ' . (int) $settings['cart_items_gap'] . 'px;';
+    $css[] = '  --dht-cart-layout-gap: ' . (int) $settings['cart_layout_gap'] . 'px;';
+    $css[] = '  --dht-cart-shadow: ' . $cart_shadow['small'] . ';';
+    if (!empty($settings['cart_custom_action_colors'])) {
+        $css[] = '  --dht-cart-action-bg: ' . $settings['cart_action_background'] . ';';
+        $css[] = '  --dht-cart-action-hover: ' . $settings['cart_action_hover'] . ';';
+        $css[] = '  --dht-cart-action-text: ' . $settings['cart_action_text'] . ';';
+    } else {
+        $css[] = '  --dht-cart-action-bg: var(--dht-primary);';
+        $css[] = '  --dht-cart-action-hover: var(--dht-primary-dark);';
+        $css[] = '  --dht-cart-action-text: var(--dht-white);';
+    }
     $css[] = '  --dht-menu-bg: ' . $settings['menu_background'] . ';';
     $css[] = '  --dht-menu-text: ' . $settings['menu_text'] . ';';
     $css[] = '  --dht-menu-hover: ' . $settings['menu_hover'] . ';';
@@ -1606,7 +1680,7 @@ function seo_marketing_render_admin_styles()
         .seo-style-color code{font-size:12px;}
         .seo-style-actions{position:sticky;bottom:0;z-index:4;background:#f0f0f1;border-top:1px solid #dcdcde;padding:14px 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
         .seo-style-preview-wrap{position:sticky;top:48px;}
-        .seo-style-preview{--preview-primary:#007acc;--preview-primary-dark:#005b96;--preview-secondary:#f0b400;--preview-dark:#101820;--preview-dark-soft:#1c2d3d;--preview-bg:#f7f8fa;--preview-bg-light:#fafbfc;--preview-text:#222;--preview-text-soft:#5b6570;--preview-border:#e7ebef;--preview-radius-small:8px;--preview-radius:14px;--preview-radius-large:20px;--preview-card:#fff;--preview-faq:#fff;--preview-faq-section:#fafbfc;overflow:hidden;background:#fff;border:1px solid #ccd0d4;border-radius:8px;box-shadow:0 12px 30px rgba(0,0,0,.08);font-size:16px;line-height:1.75;}
+        .seo-style-preview{--preview-primary:#007acc;--preview-primary-dark:#005b96;--preview-secondary:#f0b400;--preview-dark:#101820;--preview-dark-soft:#1c2d3d;--preview-bg:#f7f8fa;--preview-bg-light:#fafbfc;--preview-text:#222;--preview-text-soft:#5b6570;--preview-border:#e7ebef;--preview-radius-small:8px;--preview-radius:14px;--preview-radius-large:20px;--preview-card:#fff;--preview-faq:#fff;--preview-faq-section:#fafbfc;--preview-cart-bg:#f5f7f9;--preview-cart-hero-bg:#17212b;--preview-cart-hero-title:#fff;--preview-cart-hero-text:#d3dce3;--preview-cart-card-bg:#fff;--preview-cart-summary-bg:#fff;--preview-cart-text:#17212b;--preview-cart-muted:#68747e;--preview-cart-border:#e1e7eb;--preview-cart-danger:#b42318;--preview-cart-danger-bg:#fff8f7;--preview-cart-card-radius:14px;--preview-cart-control-radius:8px;--preview-cart-image-size:120px;--preview-cart-image-mobile:82px;--preview-cart-items-gap:12px;--preview-cart-layout-gap:24px;--preview-cart-summary-width:350px;--preview-cart-action-bg:#007acc;--preview-cart-action-hover:#005b96;--preview-cart-action-text:#fff;--preview-cart-shadow:0 5px 16px rgba(0,0,0,.04);overflow:hidden;background:#fff;border:1px solid #ccd0d4;border-radius:8px;box-shadow:0 12px 30px rgba(0,0,0,.08);font-size:16px;line-height:1.75;}
         .seo-style-preview *{box-sizing:border-box;}
         .seo-style-preview-hero{padding:28px;background:linear-gradient(135deg,var(--preview-dark),var(--preview-dark-soft));}
         .seo-style-preview-hero h1{margin:0 0 10px;color:#fff;line-height:1.15;}
@@ -1650,6 +1724,50 @@ function seo_marketing_render_admin_styles()
         .seo-style-preview-menu[data-menu-style="underline"] .seo-style-preview-menu-item{border-radius:0;background:transparent;box-shadow:inset 0 -3px 0 transparent;}
         .seo-style-preview-menu[data-menu-style="underline"] .seo-style-preview-menu-item.is-active{box-shadow:inset 0 -3px 0 var(--preview-menu-hover,#007acc);}
         .seo-style-preview-menu[data-menu-style="minimal"] .seo-style-preview-menu-item{border-radius:0;background:transparent;}
+        .seo-style-preview-cart-block{margin-top:20px;padding-top:18px;border-top:2px solid var(--preview-border);}
+        .seo-style-preview-cart-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;}
+        .seo-style-preview-cart-switch{display:flex;gap:5px;}
+        .seo-style-preview-cart-switch .button.is-active{background:#2271b1;border-color:#2271b1;color:#fff;}
+        .seo-style-preview-cart{overflow:hidden;border:1px solid var(--preview-cart-border);border-radius:var(--preview-cart-card-radius);background:var(--preview-cart-bg);color:var(--preview-cart-text);}
+        .seo-style-preview-cart-hero{padding:18px;background:var(--preview-cart-hero-bg);}
+        .seo-style-preview-cart-hero small{display:block;margin-bottom:5px;color:var(--preview-cart-hero-text);font-size:10px;font-weight:800;letter-spacing:.06em;}
+        .seo-style-preview-cart-hero h2{margin:0 0 6px!important;color:var(--preview-cart-hero-title)!important;font-size:26px!important;text-align:left!important;text-transform:none!important;}
+        .seo-style-preview-cart-hero p{margin:0;color:var(--preview-cart-hero-text);font-size:12px;line-height:1.45;}
+        .seo-style-preview-cart-main{padding:14px;}
+        .seo-style-preview-cart-toolbar{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px;font-size:12px;}
+        .seo-style-preview-cart-toolbar span{color:var(--preview-primary);font-weight:700;}
+        .seo-style-preview-cart-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(105px,calc(var(--preview-cart-summary-width) * .34));gap:var(--preview-cart-layout-gap);align-items:start;}
+        .seo-style-preview-cart-items{display:grid;gap:var(--preview-cart-items-gap);}
+        .seo-style-preview-cart-item{display:grid;grid-template-columns:minmax(54px,calc(var(--preview-cart-image-size) * .55)) minmax(0,1fr);gap:10px;padding:10px;border:1px solid var(--preview-cart-border);border-radius:var(--preview-cart-card-radius);background:var(--preview-cart-card-bg);box-shadow:var(--preview-cart-shadow);}
+        .seo-style-preview-cart-image{display:grid;width:100%;aspect-ratio:1;place-items:center;border:1px solid var(--preview-cart-border);border-radius:var(--preview-cart-control-radius);background:#fff;font-size:24px;}
+        .seo-style-preview-cart-title{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;padding-bottom:7px;border-bottom:1px solid var(--preview-cart-border);font-size:11px;line-height:1.3;}
+        .seo-style-preview-cart-remove{flex:0 0 auto;padding:4px 6px;border:1px solid var(--preview-cart-border);border-radius:var(--preview-cart-control-radius);background:var(--preview-cart-danger-bg);color:var(--preview-cart-danger);font-size:9px;font-weight:800;}
+        .seo-style-preview-cart-values{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;padding-top:7px;}
+        .seo-style-preview-cart-values span{display:grid;gap:2px;}
+        .seo-style-preview-cart-values small{color:var(--preview-cart-muted);font-size:8px;font-style:normal;}
+        .seo-style-preview-cart-values b{color:var(--preview-cart-text);font-size:10px;}
+        .seo-style-preview-cart-values i{display:grid;width:32px;height:25px;place-items:center;border:1px solid var(--preview-cart-border);border-radius:var(--preview-cart-control-radius);background:#fff;color:var(--preview-cart-text);font-size:10px;font-style:normal;}
+        .seo-style-preview-cart-actions{display:flex;justify-content:space-between;gap:8px;margin-top:8px;padding:8px;border:1px solid var(--preview-cart-border);border-radius:var(--preview-cart-card-radius);background:var(--preview-cart-card-bg);font-size:9px;}
+        .seo-style-preview-cart-actions span{display:flex;flex:1;align-items:center;padding:0 7px;border:1px solid var(--preview-cart-border);border-radius:var(--preview-cart-control-radius);color:var(--preview-cart-muted);}
+        .seo-style-preview-cart-actions button,.seo-style-preview-cart-summary button{border:0;border-radius:var(--preview-cart-control-radius);background:var(--preview-cart-action-bg);color:var(--preview-cart-action-text);font-size:9px;font-weight:800;}
+        .seo-style-preview-cart-actions button{padding:7px 9px;}
+        .seo-style-preview-cart-actions button:hover,.seo-style-preview-cart-summary button:hover{background:var(--preview-cart-action-hover);}
+        .seo-style-preview-cart-summary{padding:10px;border:1px solid var(--preview-cart-border);border-radius:var(--preview-cart-card-radius);background:var(--preview-cart-summary-bg);box-shadow:var(--preview-cart-shadow);}
+        .seo-style-preview-cart-summary h3{margin:0 0 8px!important;color:var(--preview-cart-text)!important;font-size:13px!important;text-align:left!important;text-transform:none!important;}
+        .seo-style-preview-cart-summary>div{display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-top:1px solid var(--preview-cart-border);color:var(--preview-cart-muted);font-size:9px;}
+        .seo-style-preview-cart-summary>div strong{color:var(--preview-cart-text);font-size:9px;}
+        .seo-style-preview-cart-summary .is-total{color:var(--preview-cart-text);font-weight:800;}
+        .seo-style-preview-cart-summary button{width:100%;margin-top:7px;padding:9px 6px;font-size:10px;}
+        .seo-style-preview-cart[data-device="mobile"]{max-width:310px;margin-inline:auto;}
+        .seo-style-preview-cart[data-device="mobile"] .seo-style-preview-cart-layout{grid-template-columns:1fr;gap:10px;}
+        .seo-style-preview-cart[data-device="mobile"] .seo-style-preview-cart-item{grid-template-columns:minmax(54px,calc(var(--preview-cart-image-mobile) * .78)) minmax(0,1fr);}
+        .seo-style-preview-cart[data-device="mobile"] .seo-style-preview-cart-item-secondary{display:none;}
+        .seo-style-preview-cart[data-device="mobile"] .seo-style-preview-cart-title{display:grid;}
+        .seo-style-preview-cart[data-device="mobile"] .seo-style-preview-cart-remove{width:max-content;}
+        .seo-style-preview-cart[data-device="mobile"] .seo-style-preview-cart-values{grid-template-columns:repeat(3,minmax(0,1fr));}
+        .seo-style-preview-cart[data-device="mobile"] .seo-style-preview-cart-actions{display:grid;grid-template-columns:1fr;}
+        .seo-style-preview-cart[data-device="mobile"] .seo-style-preview-cart-actions span{min-height:28px;}
+        .seo-style-preview-cart[data-device="mobile"] .seo-style-preview-cart-toolbar{font-size:10px;}
         .seo-style-json textarea{width:100%;min-height:180px;font-family:monospace;}
         .seo-marketing-relation-form{margin:0 0 14px;}
         .seo-marketing-relation-details{border:1px solid #dcdcde;border-radius:6px;background:#fff;overflow:hidden;}
@@ -2807,7 +2925,7 @@ function seo_marketing_render_style_tab()
 
     echo '<div class="seo-marketing-card">';
     echo '<h2>Estilo visual de las plantillas públicas</h2>';
-    echo '<p>Personaliza navegación, clusters, hubs, categorías, productos, tarjetas, FAQs y pie de página sin editar CSS. El sistema solo publica propiedades validadas y conserva <code>styles_template.css</code> como base.</p>';
+    echo '<p>Personaliza navegación, clusters, hubs, categorías, productos, carrito, tarjetas, FAQs y pie de página sin editar CSS. El sistema solo publica propiedades validadas y conserva <code>styles_template.css</code> como base.</p>';
     echo '<p><strong>Estado:</strong> ' . ($record['exists'] ? 'configuración personalizada publicada' : 'se utilizan los valores originales de la hoja CSS') . '.</p>';
     echo '<p>Cada guardado queda registrado en el Centro de Operaciones y puede revertirse si no existen cambios posteriores.</p>';
     echo '</div>';
@@ -2823,6 +2941,7 @@ function seo_marketing_render_style_tab()
     seo_marketing_render_style_typography($settings);
     seo_marketing_render_style_components($settings);
     seo_marketing_render_style_products($settings);
+    seo_marketing_render_style_cart($settings);
     seo_marketing_render_style_solutions($settings);
     seo_marketing_render_style_faq($settings);
     seo_marketing_render_style_menu($settings);
@@ -2845,7 +2964,7 @@ function seo_marketing_render_style_tab()
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
     echo '<input type="hidden" name="action" value="seo_marketing_style_import">';
     wp_nonce_field('seo_marketing_style_import');
-    echo '<textarea name="style_json" placeholder="{ &quot;schema_version&quot;: 5, &quot;values&quot;: { ... } }"></textarea>';
+    echo '<textarea name="style_json" placeholder="{ &quot;schema_version&quot;: 6, &quot;values&quot;: { ... } }"></textarea>';
     echo '<p><button type="submit" class="button">Importar y publicar</button></p>';
     echo '</form>';
     echo '</div>';
@@ -3107,9 +3226,61 @@ function seo_marketing_render_style_products($settings)
 /**
  * @param array $settings
  */
+function seo_marketing_render_style_cart($settings)
+{
+    $shadow_options = array();
+    foreach (seo_marketing_style_shadow_choices() as $key => $choice) {
+        $shadow_options[$key] = $choice['label'];
+    }
+
+    echo '<section class="seo-style-section" id="seo-style-cart"><h2>5. Carrito WooCommerce</h2>';
+    echo '<p>Configura el aspecto de <code>template-cart.php</code> y sus variantes de ordenador/teléfono. La lógica de eliminar, cantidades, cupones, portes y checkout no se modifica.</p>';
+
+    echo '<h3 style="margin:0 0 12px;">Colores</h3>';
+    echo '<div class="seo-style-fields">';
+    seo_marketing_style_color_field('cart_background', 'Fondo de la página', $settings['cart_background']);
+    seo_marketing_style_color_field('cart_hero_background', 'Fondo del encabezado', $settings['cart_hero_background']);
+    seo_marketing_style_color_field('cart_hero_title', 'Título del encabezado', $settings['cart_hero_title']);
+    seo_marketing_style_color_field('cart_hero_text', 'Texto del encabezado', $settings['cart_hero_text']);
+    seo_marketing_style_color_field('cart_card_background', 'Fondo de productos', $settings['cart_card_background']);
+    seo_marketing_style_color_field('cart_summary_background', 'Fondo de totales', $settings['cart_summary_background']);
+    seo_marketing_style_color_field('cart_text', 'Texto principal', $settings['cart_text']);
+    seo_marketing_style_color_field('cart_muted', 'Etiquetas / texto secundario', $settings['cart_muted']);
+    seo_marketing_style_color_field('cart_border', 'Bordes', $settings['cart_border']);
+    seo_marketing_style_color_field('cart_remove_color', 'Texto de eliminar', $settings['cart_remove_color']);
+    seo_marketing_style_color_field('cart_remove_background', 'Fondo de eliminar', $settings['cart_remove_background']);
+    echo '</div>';
+
+    echo '<h3 style="margin:24px 0 12px;">Dimensiones</h3>';
+    echo '<div class="seo-style-fields">';
+    seo_marketing_style_number_field('cart_container_width', 'Ancho máximo escritorio (px)', $settings['cart_container_width'], 760, 1600);
+    seo_marketing_style_number_field('cart_summary_width', 'Ancho del resumen (px)', $settings['cart_summary_width'], 260, 520);
+    seo_marketing_style_number_field('cart_card_radius', 'Radio de tarjetas (px)', $settings['cart_card_radius'], 0, 40);
+    seo_marketing_style_number_field('cart_control_radius', 'Radio de controles (px)', $settings['cart_control_radius'], 0, 30);
+    seo_marketing_style_number_field('cart_product_image_size', 'Imagen de producto escritorio (px)', $settings['cart_product_image_size'], 70, 200);
+    seo_marketing_style_number_field('cart_product_image_mobile', 'Imagen de producto móvil (px)', $settings['cart_product_image_mobile'], 54, 130);
+    seo_marketing_style_number_field('cart_items_gap', 'Separación entre productos (px)', $settings['cart_items_gap'], 4, 40);
+    seo_marketing_style_number_field('cart_layout_gap', 'Separación productos / resumen (px)', $settings['cart_layout_gap'], 8, 60);
+    seo_marketing_style_select_field('cart_shadow_preset', 'Sombra de tarjetas', $settings['cart_shadow_preset'], $shadow_options);
+    echo '</div>';
+
+    echo '<h3 style="margin:24px 0 12px;">Botones de acción</h3>';
+    echo '<p style="margin:0 0 14px;"><label><input type="checkbox" name="settings[cart_custom_action_colors]" value="1" ' . checked($settings['cart_custom_action_colors'], 1, false) . ' data-preview-key="cart_custom_action_colors"> Usar colores propios para actualizar y finalizar compra</label></p>';
+    echo '<p style="margin-top:0;color:#646970;">Desactivado: el carrito hereda el color principal del sistema. Activado: usa los tres colores siguientes.</p>';
+    echo '<div class="seo-style-fields">';
+    seo_marketing_style_color_field('cart_action_background', 'Fondo de acción', $settings['cart_action_background']);
+    seo_marketing_style_color_field('cart_action_hover', 'Hover de acción', $settings['cart_action_hover']);
+    seo_marketing_style_color_field('cart_action_text', 'Texto de acción', $settings['cart_action_text']);
+    echo '</div>';
+    echo '</section>';
+}
+
+/**
+ * @param array $settings
+ */
 function seo_marketing_render_style_solutions($settings)
 {
-    echo '<section class="seo-style-section"><h2>5. Índice de Soluciones</h2>';
+    echo '<section class="seo-style-section"><h2>6. Índice de Soluciones</h2>';
     echo '<p>Controla la parrilla que presenta las páginas con rol <code>landing</code> en <code>template-soluciones.php</code>. La plantilla decide el contenido; aquí solo se define su presentación.</p>';
     echo '<div class="seo-style-fields">';
     seo_marketing_style_number_field('solutions_columns_desktop', 'Columnas escritorio', $settings['solutions_columns_desktop'], 1, 5);
@@ -3126,7 +3297,7 @@ function seo_marketing_render_style_solutions($settings)
  */
 function seo_marketing_render_style_faq($settings)
 {
-    echo '<section class="seo-style-section"><h2>6. FAQs</h2><div class="seo-style-fields">';
+    echo '<section class="seo-style-section"><h2>7. FAQs</h2><div class="seo-style-fields">';
     seo_marketing_style_color_field('faq_section_bg', 'Fondo de la sección FAQ', $settings['faq_section_bg']);
     seo_marketing_style_color_field('faq_item_bg', 'Fondo de cada FAQ', $settings['faq_item_bg']);
     seo_marketing_style_color_field('faq_question_color', 'Color de pregunta', $settings['faq_question_color']);
@@ -3147,7 +3318,7 @@ function seo_marketing_render_style_menu($settings)
         $shadow_options[$key] = $choice['label'];
     }
 
-    echo '<section class="seo-style-section"><h2>7. Navegación principal</h2>';
+    echo '<section class="seo-style-section"><h2>8. Navegación principal</h2>';
     echo '<p>Configura el aspecto del menú y de sus desplegables. La estructura, el comportamiento responsive y la accesibilidad permanecen controlados por la hoja base.</p>';
     echo '<div class="seo-style-fields">';
     seo_marketing_style_select_field('menu_style', 'Tipo visual', $settings['menu_style'], array(
@@ -3185,7 +3356,7 @@ function seo_marketing_render_style_menu($settings)
  */
 function seo_marketing_render_style_footer($settings)
 {
-    echo '<section class="seo-style-section"><h2>8. Pie de pagina</h2>';
+    echo '<section class="seo-style-section"><h2>9. Pie de pagina</h2>';
     echo '<p>Controla el aspecto del <code>footer.php</code> compartido: fondo, textos, enlaces, separadores, espaciado y logotipo. La estructura y los enlaces permanecen en la plantilla.</p>';
     echo '<div class="seo-style-fields">';
     seo_marketing_style_color_field('footer_background', 'Fondo del pie', $settings['footer_background']);
@@ -3233,6 +3404,27 @@ function seo_marketing_render_style_preview($settings)
         '--preview-product-title-max:' . (int) $settings['product_page_title_max'] . 'px',
         '--preview-product-title-weight:' . (int) $settings['product_page_title_weight'],
         '--preview-product-title-line-height:' . (float) $settings['product_page_title_line_height'],
+        '--preview-cart-bg:' . $settings['cart_background'],
+        '--preview-cart-hero-bg:' . $settings['cart_hero_background'],
+        '--preview-cart-hero-title:' . $settings['cart_hero_title'],
+        '--preview-cart-hero-text:' . $settings['cart_hero_text'],
+        '--preview-cart-card-bg:' . $settings['cart_card_background'],
+        '--preview-cart-summary-bg:' . $settings['cart_summary_background'],
+        '--preview-cart-text:' . $settings['cart_text'],
+        '--preview-cart-muted:' . $settings['cart_muted'],
+        '--preview-cart-border:' . $settings['cart_border'],
+        '--preview-cart-danger:' . $settings['cart_remove_color'],
+        '--preview-cart-danger-bg:' . $settings['cart_remove_background'],
+        '--preview-cart-card-radius:' . (int) $settings['cart_card_radius'] . 'px',
+        '--preview-cart-control-radius:' . (int) $settings['cart_control_radius'] . 'px',
+        '--preview-cart-image-size:' . (int) $settings['cart_product_image_size'] . 'px',
+        '--preview-cart-image-mobile:' . (int) $settings['cart_product_image_mobile'] . 'px',
+        '--preview-cart-items-gap:' . (int) $settings['cart_items_gap'] . 'px',
+        '--preview-cart-layout-gap:' . (int) $settings['cart_layout_gap'] . 'px',
+        '--preview-cart-summary-width:' . (int) $settings['cart_summary_width'] . 'px',
+        '--preview-cart-action-bg:' . (!empty($settings['cart_custom_action_colors']) ? $settings['cart_action_background'] : $settings['primary']),
+        '--preview-cart-action-hover:' . (!empty($settings['cart_custom_action_colors']) ? $settings['cart_action_hover'] : $settings['primary_dark']),
+        '--preview-cart-action-text:' . (!empty($settings['cart_custom_action_colors']) ? $settings['cart_action_text'] : $settings['white']),
         '--preview-menu-bg:' . $settings['menu_background'],
         '--preview-menu-text:' . $settings['menu_text'],
         '--preview-menu-hover:' . $settings['menu_hover'],
@@ -3292,6 +3484,17 @@ function seo_marketing_render_style_preview($settings)
     echo '<p>Descripción breve del producto o categoría.</p>';
     echo '<div class="seo-style-preview-price" id="seo-preview-price">166,90 €</div>';
     echo '</div></div>';
+    echo '<div class="seo-style-preview-cart-block">';
+    echo '<div class="seo-style-preview-cart-head"><strong>Previsualización del carrito</strong><div class="seo-style-preview-cart-switch"><button type="button" class="button button-small is-active" data-cart-preview-device="desktop">Ordenador</button><button type="button" class="button button-small" data-cart-preview-device="mobile">Teléfono</button></div></div>';
+    echo '<div class="seo-style-preview-cart" id="seo-preview-cart" data-device="desktop">';
+    echo '<div class="seo-style-preview-cart-hero"><small>TU PEDIDO</small><h2>Carrito</h2><p>Revisa los productos, modifica las cantidades o elimina lo que no necesites.</p></div>';
+    echo '<div class="seo-style-preview-cart-main"><div class="seo-style-preview-cart-toolbar"><strong>Resumen de tu compra</strong><span>← Seguir comprando</span></div><div class="seo-style-preview-cart-layout">';
+    echo '<div class="seo-style-preview-cart-products"><div class="seo-style-preview-cart-items">';
+    echo '<div class="seo-style-preview-cart-item"><div class="seo-style-preview-cart-image">🧰</div><div class="seo-style-preview-cart-info"><div class="seo-style-preview-cart-title"><strong>Carro de herramientas - 5 compartimentos</strong><span class="seo-style-preview-cart-remove">× Eliminar</span></div><div class="seo-style-preview-cart-values"><span><small>Precio</small><b>152,89 €</b></span><span><small>Cantidad</small><i>2</i></span><span><small>Total</small><b>305,78 €</b></span></div></div></div>';
+    echo '<div class="seo-style-preview-cart-item seo-style-preview-cart-item-secondary"><div class="seo-style-preview-cart-image">🔧</div><div class="seo-style-preview-cart-info"><div class="seo-style-preview-cart-title"><strong>Enrollador de manguera 20 m</strong><span class="seo-style-preview-cart-remove">× Eliminar</span></div><div class="seo-style-preview-cart-values"><span><small>Precio</small><b>76,39 €</b></span><span><small>Cantidad</small><i>1</i></span><span><small>Total</small><b>76,39 €</b></span></div></div></div>';
+    echo '</div><div class="seo-style-preview-cart-actions"><span>Código de cupón</span><button type="button">Actualizar carrito</button></div></div>';
+    echo '<div class="seo-style-preview-cart-summary"><h3>Totales del carrito</h3><div><span>Subtotal</span><strong>382,17 €</strong></div><div><span>Envío</span><strong>Gratis</strong></div><div class="is-total"><span>Total</span><strong>382,17 €</strong></div><button type="button">Finalizar compra</button></div>';
+    echo '</div></div></div></div>';
     echo '<div class="seo-style-preview-solutions" id="seo-preview-solutions">';
     echo '<div class="seo-style-preview-solution"><div class="seo-style-preview-solution-image">⚡</div><div class="seo-style-preview-solution-body"><strong>Herramientas para electricistas</strong><small>Solución profesional</small></div></div>';
     echo '<div class="seo-style-preview-solution"><div class="seo-style-preview-solution-image">🔧</div><div class="seo-style-preview-solution-body"><strong>Equipar un taller mecánico</strong><small>Solución profesional</small></div></div>';
@@ -3324,8 +3527,10 @@ function seo_marketing_render_style_preview_script()
     }
 
     $menu_shadows = array();
+    $cart_shadows = array();
     foreach (seo_marketing_style_shadow_choices() as $key => $choice) {
         $menu_shadows[$key] = $choice['normal'];
+        $cart_shadows[$key] = $choice['small'];
     }
 
     echo '<script>
@@ -3336,6 +3541,7 @@ function seo_marketing_render_style_preview_script()
 
         const fontStacks = ' . wp_json_encode($font_stacks) . ';
         const menuShadows = ' . wp_json_encode($menu_shadows) . ';
+        const cartShadows = ' . wp_json_encode($cart_shadows) . ';
         const get = key => form.querySelector("[name=\"settings[" + key + "]\"]");
         const value = key => {
             const el = get(key);
@@ -3367,6 +3573,24 @@ function seo_marketing_render_style_preview_script()
                 "--preview-product-title-max": px("product_page_title_max"),
                 "--preview-product-title-weight": value("product_page_title_weight"),
                 "--preview-product-title-line-height": value("product_page_title_line_height"),
+                "--preview-cart-bg": value("cart_background"),
+                "--preview-cart-hero-bg": value("cart_hero_background"),
+                "--preview-cart-hero-title": value("cart_hero_title"),
+                "--preview-cart-hero-text": value("cart_hero_text"),
+                "--preview-cart-card-bg": value("cart_card_background"),
+                "--preview-cart-summary-bg": value("cart_summary_background"),
+                "--preview-cart-text": value("cart_text"),
+                "--preview-cart-muted": value("cart_muted"),
+                "--preview-cart-border": value("cart_border"),
+                "--preview-cart-danger": value("cart_remove_color"),
+                "--preview-cart-danger-bg": value("cart_remove_background"),
+                "--preview-cart-card-radius": px("cart_card_radius"),
+                "--preview-cart-control-radius": px("cart_control_radius"),
+                "--preview-cart-image-size": px("cart_product_image_size"),
+                "--preview-cart-image-mobile": px("cart_product_image_mobile"),
+                "--preview-cart-items-gap": px("cart_items_gap"),
+                "--preview-cart-layout-gap": px("cart_layout_gap"),
+                "--preview-cart-summary-width": px("cart_summary_width"),
                 "--preview-footer-bg": value("footer_background"),
                 "--preview-footer-heading": value("footer_heading_color"),
                 "--preview-footer-text": value("footer_text_color"),
@@ -3432,6 +3656,15 @@ function seo_marketing_render_style_preview_script()
             document.getElementById("seo-preview-faq-item").style.borderColor = value("faq_border_color");
             document.getElementById("seo-preview-faq-item").style.borderRadius = px("faq_radius");
 
+            const cartPreview = document.getElementById("seo-preview-cart");
+            if (cartPreview) {
+                const customCartActions = !!value("cart_custom_action_colors");
+                cartPreview.style.setProperty("--preview-cart-action-bg", customCartActions ? value("cart_action_background") : value("primary"));
+                cartPreview.style.setProperty("--preview-cart-action-hover", customCartActions ? value("cart_action_hover") : value("primary_dark"));
+                cartPreview.style.setProperty("--preview-cart-action-text", customCartActions ? value("cart_action_text") : value("white"));
+                cartPreview.style.setProperty("--preview-cart-shadow", cartShadows[value("cart_shadow_preset")] || "none");
+            }
+
             const menu = document.getElementById("seo-preview-menu");
             const dropdown = document.getElementById("seo-preview-dropdown");
             menu.dataset.menuStyle = value("menu_style") || "soft";
@@ -3466,6 +3699,15 @@ function seo_marketing_render_style_preview_script()
                 if (label) label.textContent = el.value;
             });
         }
+
+        document.querySelectorAll("[data-cart-preview-device]").forEach(button => {
+            button.addEventListener("click", function(){
+                const cartPreview = document.getElementById("seo-preview-cart");
+                if (!cartPreview) return;
+                cartPreview.dataset.device = button.dataset.cartPreviewDevice === "mobile" ? "mobile" : "desktop";
+                document.querySelectorAll("[data-cart-preview-device]").forEach(item => item.classList.toggle("is-active", item === button));
+            });
+        });
 
         form.addEventListener("input", update);
         form.addEventListener("change", update);
