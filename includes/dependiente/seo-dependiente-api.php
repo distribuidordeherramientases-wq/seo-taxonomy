@@ -2,6 +2,12 @@
 
 defined('ABSPATH') || exit;
 
+// Carga autosuficiente de la capa semantica.
+$seo_dependiente_semantics_file = __DIR__ . '/seo-dependiente-semantics.php';
+if (!class_exists('SEO_Dependiente_Semantics') && is_readable($seo_dependiente_semantics_file)) {
+    require_once $seo_dependiente_semantics_file;
+}
+
 // Carga autosuficiente del registro de busquedas.
 // Permite instalar solo este API + seo-dependiente-search-log.php.
 $seo_dependiente_search_log_file = __DIR__ . '/seo-dependiente-search-log.php';
@@ -162,11 +168,18 @@ final class SEO_Dependiente_API {
         }
         $request_kind = $page > 1 ? 'paginate' : ((self::has_active_filters($filters) || 'relevance' !== $orderby) ? 'refine' : 'search');
 
-        $semantic = class_exists('SEO_Dependiente_Semantics')
-            ? SEO_Dependiente_Semantics::analyze($query)
-            : array();
+        $semantic_rules_active = 0;
+        if (class_exists('SEO_Dependiente_Semantics')) {
+            if (method_exists('SEO_Dependiente_Semantics', 'ensure_ready')) {
+                $semantic_rules_active = SEO_Dependiente_Semantics::ensure_ready();
+            }
+            $semantic = SEO_Dependiente_Semantics::analyze($query);
+        } else {
+            $semantic = array();
+        }
         $search_diagnostic = array();
         $candidate_rows = self::candidate_rows($query, $semantic, $search_diagnostic);
+        $search_diagnostic['semantic_rules_active'] = (int) $semantic_rules_active;
         $documents = array_map(array('SEO_Dependiente_Index', 'decode_row'), $candidate_rows);
         $facets = self::build_facets($documents);
 
@@ -219,6 +232,7 @@ final class SEO_Dependiente_API {
                 'mode'            => $mode,
                 'semantic'        => $semantic,
                 'search_strategy' => (string) ($search_diagnostic['strategy'] ?? 'strict'),
+            'semantic_rules_active' => (int) $semantic_rules_active,
                 'strategy_detail' => $search_diagnostic,
                 'candidate_count' => count($documents),
                 'result_count'    => $total,
@@ -243,6 +257,7 @@ final class SEO_Dependiente_API {
             'semantic'        => $public_semantic,
             'search_id'       => $search_id,
             'search_strategy' => (string) ($search_diagnostic['strategy'] ?? 'strict'),
+            'semantic_rules_active' => (int) $semantic_rules_active,
         ));
     }
 

@@ -14,13 +14,72 @@ defined('ABSPATH') || exit;
  */
 final class SEO_Dependiente_Semantics {
     const SEED_VERSION = '2026-08-31.1';
+    const SCHEMA_VERSION = '2026-08-31.2';
 
     private static $rules = null;
+    private static $ready_checked = false;
     private static $vocabulary_cache = array();
 
     public static function table() {
         global $wpdb;
         return $wpdb->prefix . 'seo_dependiente_semantics';
+    }
+
+    /**
+     * Autorrepara la capa semantica cuando se usan archivos delta sobre una
+     * instalacion anterior: completa columnas, siembra reglas y resuelve IDs.
+     */
+    public static function ensure_ready() {
+        global $wpdb;
+
+        if (self::$ready_checked) {
+            return self::active_rule_count();
+        }
+        self::$ready_checked = true;
+
+        if (!self::table_exists() || !self::schema_is_current()) {
+            self::install();
+        } else {
+            $active = self::active_rule_count();
+            $seed_version = (string) get_option('seo_dependiente_semantic_seed_version', '');
+            if (0 === $active || self::SEED_VERSION !== $seed_version) {
+                self::seed_defaults();
+                self::resolve_vocabulary_ids();
+            }
+        }
+
+        // Si el CSV falta o fallo una importacion anterior, garantizar al
+        // menos el nucleo minimo para que Dependiente no vuelva al OR ciego.
+        if (0 === self::active_rule_count()) {
+            self::seed_critical_defaults();
+            self::resolve_vocabulary_ids();
+        }
+
+        self::$rules = null;
+        update_option('seo_dependiente_semantic_schema_version', self::SCHEMA_VERSION, false);
+        return self::active_rule_count();
+    }
+
+    public static function active_rule_count() {
+        global $wpdb;
+        if (!self::table_exists()) {
+            return 0;
+        }
+        return (int) $wpdb->get_var('SELECT COUNT(*) FROM `' . esc_sql(self::table()) . '` WHERE active = 1');
+    }
+
+    private static function schema_is_current() {
+        global $wpdb;
+        if (!self::table_exists()) {
+            return false;
+        }
+        $columns = (array) $wpdb->get_col('SHOW COLUMNS FROM `' . esc_sql(self::table()) . '`', 0);
+        $required = array(
+            'rule_key','rule_type','expression','normalized_expression','canonical_expression',
+            'match_type','semantic_role','source_group','source_slug','context_group','context_slug',
+            'target_group','target_slug','relation_type','result_role','weight','priority','language','active'
+        );
+        return !array_diff($required, $columns);
     }
 
     public static function install() {
@@ -72,6 +131,7 @@ final class SEO_Dependiente_Semantics {
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         dbDelta($sql);
+        update_option('seo_dependiente_semantic_schema_version', self::SCHEMA_VERSION, false);
 
         self::seed_defaults();
         self::resolve_vocabulary_ids();
@@ -218,6 +278,54 @@ final class SEO_Dependiente_Semantics {
             }
         }
         self::$rules = null;
+    }
+
+
+    private static function seed_critical_defaults() {
+        global $wpdb;
+        if (!self::table_exists()) {
+            return 0;
+        }
+        $rows = array(
+            array('ignore_quiero','ignore','quiero','', 'token','noise','','','','','','','','',0,10),
+            array('ignore_un','ignore','un','', 'token','noise','','','','','','','','',0,10),
+            array('ignore_una','ignore','una','', 'token','noise','','','','','','','','',0,10),
+            array('ignore_el','ignore','el','', 'token','noise','','','','','','','','',0,10),
+            array('ignore_la','ignore','la','', 'token','noise','','','','','','','','',0,10),
+            array('intent_reparar','alias','reparar','reparar','token','intent','','','','','','','canonical','',100,9),
+            array('intent_arreglar','alias','arreglar','reparar','token','intent','','','','','','','synonym','',95,9),
+            array('intent_roto','implication','roto','reparar','token','intent','','','','','','','implies','',95,9),
+            array('intent_averiado','implication','averiado','reparar','token','intent','','','','','','','implies','',95,9),
+            array('intent_sustituir','alias','sustituir','sustituir','token','intent','','','','','','','canonical','',100,9),
+            array('intent_cambiar','alias','cambiar','sustituir','token','intent','','','','','','','synonym','',95,9),
+            array('intent_instalar','alias','instalar','instalar','token','intent','','','','','','','canonical','',100,9),
+            array('intent_comprar','alias','comprar','comprar','token','intent','','','','','','','canonical','',100,9),
+            array('object_grifo','alias','grifo','grifo','token','object','','','','','','','canonical','',100,9),
+            array('object_grifos','alias','grifos','grifo','token','object','','','','','','','variant','',95,9),
+            array('object_griferia','alias','griferia','grifo','token','object','','','','','','','related','',90,8),
+        );
+        $inserted = 0;
+        foreach ($rows as $r) {
+            list($key,$type,$expr,$canonical,$match,$role,$sg,$ss,$cg,$cs,$tg,$ts,$relation,$result,$weight,$priority) = $r;
+            $data = array(
+                'rule_key'=>sanitize_key($key),'rule_type'=>sanitize_key($type),'expression'=>$expr ?: null,
+                'normalized_expression'=>self::normalize($expr) ?: null,'canonical_expression'=>self::normalize($canonical) ?: null,
+                'match_type'=>sanitize_key($match),'semantic_role'=>sanitize_key($role) ?: null,
+                'source_group'=>$sg ?: null,'source_slug'=>$ss ?: null,'context_group'=>$cg ?: null,'context_slug'=>$cs ?: null,
+                'target_group'=>$tg ?: null,'target_slug'=>$ts ?: null,'relation_type'=>$relation ?: null,'result_role'=>$result ?: null,
+                'weight'=>(int)$weight,'priority'=>(int)$priority,'confidence'=>1.0,'language'=>'es','source'=>'critical','active'=>1,
+                'updated_at'=>current_time('mysql')
+            );
+            $exists = $wpdb->get_var($wpdb->prepare('SELECT id FROM `' . esc_sql(self::table()) . '` WHERE rule_key = %s LIMIT 1', $data['rule_key']));
+            if ($exists) {
+                $wpdb->update(self::table(), $data, array('id'=>(int)$exists));
+            } else {
+                $data['created_at'] = current_time('mysql');
+                if (false !== $wpdb->insert(self::table(), $data)) { $inserted++; }
+            }
+        }
+        self::$rules = null;
+        return $inserted;
     }
 
     public static function analyze($query) {
