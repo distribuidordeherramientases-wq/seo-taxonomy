@@ -45,6 +45,31 @@
     --dht-product-page-title-weight: 700;
     --dht-product-page-title-line-height: 1.18;
 
+    /* Carrito WooCommerce. Se publica desde Marketing > Estilo visual > Carrito WooCommerce. */
+    --dht-cart-bg: #f5f7f9;
+    --dht-cart-hero-bg: #17212b;
+    --dht-cart-hero-title: #ffffff;
+    --dht-cart-hero-text: #d3dce3;
+    --dht-cart-card-bg: #ffffff;
+    --dht-cart-summary-bg: #ffffff;
+    --dht-cart-text: #17212b;
+    --dht-cart-muted: #68747e;
+    --dht-cart-border: #e1e7eb;
+    --dht-cart-danger: #b42318;
+    --dht-cart-danger-bg: #fff8f7;
+    --dht-cart-container: 1180px;
+    --dht-cart-summary-width: 350px;
+    --dht-cart-card-radius: 14px;
+    --dht-cart-control-radius: 8px;
+    --dht-cart-product-image-size: 120px;
+    --dht-cart-product-image-mobile: 82px;
+    --dht-cart-items-gap: 12px;
+    --dht-cart-layout-gap: 24px;
+    --dht-cart-shadow: 0 5px 16px rgba(0, 0, 0, .04);
+    --dht-cart-action-bg: var(--dht-primary);
+    --dht-cart-action-hover: var(--dht-primary-dark);
+    --dht-cart-action-text: var(--dht-white);
+
     /* Pie compartido. */
     --dht-footer-bg: #101820;
     --dht-footer-heading: #ffffff;

@@ -23,27 +23,39 @@ $cart_count = dht_seo_cart_v3_count();
 <main class="dht-page dht-commerce-page dht-cart-page dht-cart-desktop">
     <style>
         .dht-cart-desktop {
-            --cart-bg: #f5f7f9;
-            --cart-card: #fff;
-            --cart-text: #17212b;
-            --cart-muted: #68747e;
-            --cart-border: #e1e7eb;
-            --cart-danger: #b42318;
+            --cart-bg: var(--dht-cart-bg, #f5f7f9);
+            --cart-card: var(--dht-cart-card-bg, #fff);
+            --cart-summary: var(--dht-cart-summary-bg, #fff);
+            --cart-text: var(--dht-cart-text, #17212b);
+            --cart-muted: var(--dht-cart-muted, #68747e);
+            --cart-border: var(--dht-cart-border, #e1e7eb);
+            --cart-danger: var(--dht-cart-danger, #b42318);
+            --cart-danger-bg: var(--dht-cart-danger-bg, #fff8f7);
+            --cart-card-radius: var(--dht-cart-card-radius, 14px);
+            --cart-control-radius: var(--dht-cart-control-radius, 8px);
+            --cart-image-size: var(--dht-cart-product-image-size, 120px);
+            --cart-summary-width: var(--dht-cart-summary-width, 350px);
+            --cart-items-gap: var(--dht-cart-items-gap, 12px);
+            --cart-layout-gap: var(--dht-cart-layout-gap, 24px);
+            --cart-shadow: var(--dht-cart-shadow, 0 5px 16px rgba(0, 0, 0, .04));
+            --cart-action-bg: var(--dht-cart-action-bg, var(--dht-primary, #007acc));
+            --cart-action-hover: var(--dht-cart-action-hover, var(--dht-primary-dark, #005b96));
+            --cart-action-text: var(--dht-cart-action-text, #fff);
             min-height: 70vh;
             background: var(--cart-bg);
             color: var(--cart-text);
         }
 
         .dht-cart-desktop .dht-container {
-            width: min(1180px, calc(100% - 48px));
+            width: min(var(--dht-cart-container, 1180px), calc(100% - 48px));
             margin-left: auto;
             margin-right: auto;
         }
 
         .dht-cart-desktop .dht-cart-hero {
             padding: 42px 0 38px;
-            background: #17212b;
-            color: #fff;
+            background: var(--dht-cart-hero-bg, #17212b);
+            color: var(--dht-cart-hero-title, #fff);
         }
 
         .dht-cart-desktop .dht-cart-hero-inner {
@@ -56,7 +68,7 @@ $cart_count = dht_seo_cart_v3_count();
         .dht-cart-desktop .dht-cart-kicker {
             display: block;
             margin-bottom: 8px;
-            color: #b9c6d0;
+            color: var(--dht-cart-hero-text, #b9c6d0);
             font-size: 13px;
             font-weight: 800;
             letter-spacing: .06em;
@@ -65,7 +77,7 @@ $cart_count = dht_seo_cart_v3_count();
 
         .dht-cart-desktop .dht-cart-hero h1 {
             margin: 0 0 10px;
-            color: #fff;
+            color: var(--dht-cart-hero-title, #fff);
             font-size: clamp(34px, 4vw, 50px);
             line-height: 1.05;
         }
@@ -73,7 +85,7 @@ $cart_count = dht_seo_cart_v3_count();
         .dht-cart-desktop .dht-cart-hero p {
             max-width: 660px;
             margin: 0;
-            color: #d3dce3;
+            color: var(--dht-cart-hero-text, #d3dce3);
             font-size: 16px;
             line-height: 1.6;
         }
@@ -103,7 +115,7 @@ $cart_count = dht_seo_cart_v3_count();
             padding: 8px 13px;
             border: 1px solid var(--cart-border);
             border-radius: 9px;
-            background: #fff;
+            background: var(--cart-card);
             color: var(--cart-text);
             font-size: 14px;
             font-weight: 750;
@@ -124,13 +136,13 @@ $cart_count = dht_seo_cart_v3_count();
         .dht-cart-desktop .woocommerce-info {
             margin: 0 0 18px;
             border-radius: 10px;
-            background: #fff;
+            background: var(--cart-card);
         }
 
         .dht-cart-desktop .dht-cart-layout {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) 350px;
-            gap: 24px;
+            grid-template-columns: minmax(0, 1fr) var(--cart-summary-width);
+            gap: var(--cart-layout-gap);
             align-items: start;
         }
 
@@ -145,18 +157,18 @@ $cart_count = dht_seo_cart_v3_count();
 
         .dht-cart-desktop .dht-cart-items {
             display: grid;
-            gap: 12px;
+            gap: var(--cart-items-gap);
         }
 
         .dht-cart-desktop .dht-cart-item {
             display: grid;
-            grid-template-columns: 130px minmax(0, 1fr);
+            grid-template-columns: calc(var(--cart-image-size) + 10px) minmax(0, 1fr);
             gap: 20px;
             padding: 18px;
             border: 1px solid var(--cart-border);
-            border-radius: 14px;
+            border-radius: var(--cart-card-radius);
             background: var(--cart-card);
-            box-shadow: 0 7px 20px rgba(20, 32, 43, .035);
+            box-shadow: var(--cart-shadow);
         }
 
         .dht-cart-desktop .dht-cart-item-media {
@@ -167,13 +179,13 @@ $cart_count = dht_seo_cart_v3_count();
 
         .dht-cart-desktop .dht-cart-item-media img {
             display: block;
-            width: 120px;
-            height: 120px;
+            width: var(--cart-image-size);
+            height: var(--cart-image-size);
             margin: 0;
             padding: 6px;
-            border: 1px solid #edf0f2;
-            border-radius: 11px;
-            background: #fff;
+            border: 1px solid var(--cart-border);
+            border-radius: var(--cart-control-radius);
+            background: var(--cart-card);
             object-fit: contain;
         }
 
@@ -187,7 +199,7 @@ $cart_count = dht_seo_cart_v3_count();
             justify-content: space-between;
             gap: 18px;
             padding-bottom: 16px;
-            border-bottom: 1px solid #edf0f2;
+            border-bottom: 1px solid var(--cart-border);
         }
 
         .dht-cart-desktop .dht-cart-item-title-wrap {
@@ -226,9 +238,9 @@ $cart_count = dht_seo_cart_v3_count();
             gap: 7px;
             min-height: 36px;
             padding: 6px 10px;
-            border: 1px solid #ecd4d1;
-            border-radius: 8px;
-            background: #fff8f7;
+            border: 1px solid color-mix(in srgb, var(--cart-danger) 25%, var(--cart-border));
+            border-radius: var(--cart-control-radius);
+            background: var(--cart-danger-bg);
             color: var(--cart-danger) !important;
             font-size: 13px;
             font-weight: 750;
@@ -238,7 +250,7 @@ $cart_count = dht_seo_cart_v3_count();
 
         .dht-cart-desktop .dht-cart-remove:hover {
             border-color: var(--cart-danger);
-            background: #fff0ee;
+            background: color-mix(in srgb, var(--cart-danger) 8%, #fff);
         }
 
         .dht-cart-desktop .dht-cart-remove-icon {
@@ -275,9 +287,9 @@ $cart_count = dht_seo_cart_v3_count();
             min-height: 40px;
             margin: 0;
             padding: 7px 8px;
-            border: 1px solid #cbd4da;
-            border-radius: 8px;
-            background: #fff;
+            border: 1px solid var(--cart-border);
+            border-radius: var(--cart-control-radius);
+            background: var(--cart-card);
             color: var(--cart-text);
             text-align: center;
         }
@@ -291,7 +303,7 @@ $cart_count = dht_seo_cart_v3_count();
             padding: 14px;
             border: 1px solid var(--cart-border);
             border-radius: 12px;
-            background: #fff;
+            background: var(--cart-card);
         }
 
         .dht-cart-desktop .dht-cart-coupon {
@@ -305,8 +317,8 @@ $cart_count = dht_seo_cart_v3_count();
             min-height: 41px;
             margin: 0 !important;
             padding: 8px 10px;
-            border: 1px solid #cbd4da;
-            border-radius: 8px;
+            border: 1px solid var(--cart-border);
+            border-radius: var(--cart-control-radius);
         }
 
         .dht-cart-desktop .dht-cart-actions .button {
@@ -314,7 +326,7 @@ $cart_count = dht_seo_cart_v3_count();
             margin: 0;
             padding: 9px 13px;
             border: 0;
-            border-radius: 8px;
+            border-radius: var(--cart-control-radius);
             background: #e8edf1;
             color: var(--cart-text);
             font-weight: 800;
@@ -322,8 +334,8 @@ $cart_count = dht_seo_cart_v3_count();
 
         .dht-cart-desktop .dht-cart-update {
             margin-left: auto !important;
-            background: var(--dht-primary, #007acc) !important;
-            color: #fff !important;
+            background: var(--cart-action-bg) !important;
+            color: var(--cart-action-text) !important;
         }
 
         .dht-cart-desktop .dht-cart-actions button:disabled,
@@ -337,9 +349,9 @@ $cart_count = dht_seo_cart_v3_count();
             margin: 0;
             padding: 22px;
             border: 1px solid var(--cart-border);
-            border-radius: 14px;
-            background: #fff;
-            box-shadow: 0 10px 26px rgba(20, 32, 43, .05);
+            border-radius: var(--cart-card-radius);
+            background: var(--cart-summary);
+            box-shadow: var(--cart-shadow);
             position: sticky;
             top: 18px;
         }
@@ -347,7 +359,7 @@ $cart_count = dht_seo_cart_v3_count();
         .dht-cart-desktop .dht-cart-summary .cart_totals h2 {
             margin: 0 0 14px;
             padding-bottom: 13px;
-            border-bottom: 1px solid #edf0f2;
+            border-bottom: 1px solid var(--cart-border);
             color: var(--cart-text);
             font-size: 21px;
         }
@@ -364,7 +376,7 @@ $cart_count = dht_seo_cart_v3_count();
         .dht-cart-desktop .dht-cart-summary table.shop_table td {
             padding: 11px 0;
             border: 0;
-            border-bottom: 1px solid #edf0f2;
+            border-bottom: 1px solid var(--cart-border);
             background: transparent;
         }
 
@@ -395,11 +407,17 @@ $cart_count = dht_seo_cart_v3_count();
             margin: 0;
             padding: 12px 15px;
             border-radius: 9px;
-            background: var(--dht-primary, #007acc);
-            color: #fff;
+            background: var(--cart-action-bg);
+            color: var(--cart-action-text);
             font-size: 15px;
             font-weight: 850;
             text-align: center;
+        }
+
+        .dht-cart-desktop .dht-cart-update:hover,
+        .dht-cart-desktop .dht-cart-summary .checkout-button:hover {
+            background: var(--cart-action-hover) !important;
+            color: var(--cart-action-text) !important;
         }
 
         .dht-cart-desktop .cross-sells {
@@ -409,8 +427,8 @@ $cart_count = dht_seo_cart_v3_count();
         .dht-cart-desktop .dht-cart-empty {
             padding: 36px;
             border: 1px solid var(--cart-border);
-            border-radius: 14px;
-            background: #fff;
+            border-radius: var(--cart-card-radius);
+            background: var(--cart-card);
             text-align: center;
         }
 
@@ -425,7 +443,7 @@ $cart_count = dht_seo_cart_v3_count();
 
         @media (max-width: 1050px) {
             .dht-cart-desktop .dht-cart-layout {
-                grid-template-columns: minmax(0, 1fr) 310px;
+                grid-template-columns: minmax(0, 1fr) min(var(--cart-summary-width), 310px);
             }
         }
     </style>

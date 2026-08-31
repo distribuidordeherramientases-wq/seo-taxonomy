@@ -23,12 +23,22 @@ $cart_count = dht_seo_cart_v3_count();
 <main class="dht-page dht-commerce-page dht-cart-page dht-cart-mobile">
     <style>
         .dht-cart-mobile {
-            --cart-bg: #f5f7f9;
-            --cart-card: #fff;
-            --cart-text: #17212b;
-            --cart-muted: #68747e;
-            --cart-border: #e1e7eb;
-            --cart-danger: #b42318;
+            --cart-bg: var(--dht-cart-bg, #f5f7f9);
+            --cart-card: var(--dht-cart-card-bg, #fff);
+            --cart-summary: var(--dht-cart-summary-bg, #fff);
+            --cart-text: var(--dht-cart-text, #17212b);
+            --cart-muted: var(--dht-cart-muted, #68747e);
+            --cart-border: var(--dht-cart-border, #e1e7eb);
+            --cart-danger: var(--dht-cart-danger, #b42318);
+            --cart-danger-bg: var(--dht-cart-danger-bg, #fff8f7);
+            --cart-card-radius: var(--dht-cart-card-radius, 14px);
+            --cart-control-radius: var(--dht-cart-control-radius, 8px);
+            --cart-image-size: var(--dht-cart-product-image-mobile, 82px);
+            --cart-items-gap: var(--dht-cart-items-gap, 12px);
+            --cart-shadow: var(--dht-cart-shadow, 0 5px 16px rgba(0, 0, 0, .04));
+            --cart-action-bg: var(--dht-cart-action-bg, var(--dht-primary, #007acc));
+            --cart-action-hover: var(--dht-cart-action-hover, var(--dht-primary-dark, #005b96));
+            --cart-action-text: var(--dht-cart-action-text, #fff);
             min-height: 70vh;
             background: var(--cart-bg);
             color: var(--cart-text);
@@ -42,8 +52,8 @@ $cart_count = dht_seo_cart_v3_count();
 
         .dht-cart-mobile .dht-cart-mobile-head {
             padding: 23px 0 20px;
-            background: #17212b;
-            color: #fff;
+            background: var(--dht-cart-hero-bg, #17212b);
+            color: var(--dht-cart-hero-title, #fff);
         }
 
         .dht-cart-mobile .dht-cart-mobile-head-row {
@@ -56,7 +66,7 @@ $cart_count = dht_seo_cart_v3_count();
         .dht-cart-mobile .dht-cart-mobile-kicker {
             display: block;
             margin-bottom: 5px;
-            color: #aebdc8;
+            color: var(--dht-cart-hero-text, #aebdc8);
             font-size: 11px;
             font-weight: 800;
             letter-spacing: .07em;
@@ -65,7 +75,7 @@ $cart_count = dht_seo_cart_v3_count();
 
         .dht-cart-mobile .dht-cart-mobile-head h1 {
             margin: 0;
-            color: #fff;
+            color: var(--dht-cart-hero-title, #fff);
             font-size: 31px;
             line-height: 1.08;
         }
@@ -115,7 +125,7 @@ $cart_count = dht_seo_cart_v3_count();
             margin: 0 0 13px;
             padding: 14px 13px 14px 40px;
             border-radius: 10px;
-            background: #fff;
+            background: var(--cart-card);
             font-size: 13px;
         }
 
@@ -127,28 +137,29 @@ $cart_count = dht_seo_cart_v3_count();
 
         .dht-cart-mobile .dht-cart-items {
             display: grid;
-            gap: 10px;
+            gap: var(--cart-items-gap);
         }
 
         .dht-cart-mobile .dht-cart-item {
             display: grid;
-            grid-template-columns: 82px minmax(0, 1fr);
+            grid-template-columns: var(--cart-image-size) minmax(0, 1fr);
             gap: 12px;
             padding: 13px;
             border: 1px solid var(--cart-border);
-            border-radius: 13px;
-            background: #fff;
+            border-radius: var(--cart-card-radius);
+            background: var(--cart-card);
+            box-shadow: var(--cart-shadow);
         }
 
         .dht-cart-mobile .dht-cart-item-media img {
             display: block;
-            width: 82px;
-            height: 82px;
+            width: var(--cart-image-size);
+            height: var(--cart-image-size);
             margin: 0;
             padding: 4px;
-            border: 1px solid #edf0f2;
-            border-radius: 9px;
-            background: #fff;
+            border: 1px solid var(--cart-border);
+            border-radius: var(--cart-control-radius);
+            background: var(--cart-card);
             object-fit: contain;
         }
 
@@ -189,9 +200,9 @@ $cart_count = dht_seo_cart_v3_count();
             gap: 5px;
             min-height: 31px;
             padding: 5px 8px;
-            border: 1px solid #ecd4d1;
-            border-radius: 7px;
-            background: #fff8f7;
+            border: 1px solid color-mix(in srgb, var(--cart-danger) 25%, var(--cart-border));
+            border-radius: var(--cart-control-radius);
+            background: var(--cart-danger-bg);
             color: var(--cart-danger) !important;
             font-size: 12px;
             font-weight: 800;
@@ -211,7 +222,7 @@ $cart_count = dht_seo_cart_v3_count();
             gap: 7px;
             margin-top: 11px;
             padding-top: 11px;
-            border-top: 1px solid #edf0f2;
+            border-top: 1px solid var(--cart-border);
         }
 
         .dht-cart-mobile .dht-cart-value {
@@ -238,9 +249,9 @@ $cart_count = dht_seo_cart_v3_count();
             min-height: 37px;
             margin: 0;
             padding: 5px 7px;
-            border: 1px solid #cbd4da;
-            border-radius: 7px;
-            background: #fff;
+            border: 1px solid var(--cart-border);
+            border-radius: var(--cart-control-radius);
+            background: var(--cart-card);
             color: var(--cart-text);
             text-align: center;
         }
@@ -251,8 +262,8 @@ $cart_count = dht_seo_cart_v3_count();
             margin-top: 10px;
             padding: 12px;
             border: 1px solid var(--cart-border);
-            border-radius: 12px;
-            background: #fff;
+            border-radius: var(--cart-card-radius);
+            background: var(--cart-card);
         }
 
         .dht-cart-mobile .dht-cart-coupon {
@@ -267,8 +278,8 @@ $cart_count = dht_seo_cart_v3_count();
             min-height: 40px;
             margin: 0 !important;
             padding: 8px 9px;
-            border: 1px solid #cbd4da;
-            border-radius: 7px;
+            border: 1px solid var(--cart-border);
+            border-radius: var(--cart-control-radius);
         }
 
         .dht-cart-mobile .dht-cart-actions .button {
@@ -276,7 +287,7 @@ $cart_count = dht_seo_cart_v3_count();
             margin: 0;
             padding: 8px 10px;
             border: 0;
-            border-radius: 7px;
+            border-radius: var(--cart-control-radius);
             background: #e8edf1;
             color: var(--cart-text);
             font-size: 12px;
@@ -285,8 +296,8 @@ $cart_count = dht_seo_cart_v3_count();
 
         .dht-cart-mobile .dht-cart-update {
             width: 100%;
-            background: var(--dht-primary, #007acc) !important;
-            color: #fff !important;
+            background: var(--cart-action-bg) !important;
+            color: var(--cart-action-text) !important;
         }
 
         .dht-cart-mobile .dht-cart-actions button:disabled,
@@ -300,14 +311,15 @@ $cart_count = dht_seo_cart_v3_count();
             margin: 0;
             padding: 16px;
             border: 1px solid var(--cart-border);
-            border-radius: 13px;
-            background: #fff;
+            border-radius: var(--cart-card-radius);
+            background: var(--cart-summary);
+            box-shadow: var(--cart-shadow);
         }
 
         .dht-cart-mobile .dht-cart-summary .cart_totals h2 {
             margin: 0 0 11px;
             padding-bottom: 11px;
-            border-bottom: 1px solid #edf0f2;
+            border-bottom: 1px solid var(--cart-border);
             color: var(--cart-text);
             font-size: 19px;
         }
@@ -326,7 +338,7 @@ $cart_count = dht_seo_cart_v3_count();
             justify-content: space-between;
             gap: 12px;
             padding: 9px 0;
-            border-bottom: 1px solid #edf0f2;
+            border-bottom: 1px solid var(--cart-border);
         }
 
         .dht-cart-mobile .dht-cart-summary table.shop_table th,
@@ -369,11 +381,17 @@ $cart_count = dht_seo_cart_v3_count();
             margin: 0;
             padding: 11px 13px;
             border-radius: 8px;
-            background: var(--dht-primary, #007acc);
-            color: #fff;
+            background: var(--cart-action-bg);
+            color: var(--cart-action-text);
             font-size: 14px;
             font-weight: 850;
             text-align: center;
+        }
+
+        .dht-cart-mobile .dht-cart-update:hover,
+        .dht-cart-mobile .dht-cart-summary .checkout-button:hover {
+            background: var(--cart-action-hover) !important;
+            color: var(--cart-action-text) !important;
         }
 
         .dht-cart-mobile .cross-sells {
@@ -383,8 +401,8 @@ $cart_count = dht_seo_cart_v3_count();
         .dht-cart-mobile .dht-cart-empty {
             padding: 25px 17px;
             border: 1px solid var(--cart-border);
-            border-radius: 13px;
-            background: #fff;
+            border-radius: var(--cart-card-radius);
+            background: var(--cart-card);
             text-align: center;
         }
 
@@ -401,14 +419,14 @@ $cart_count = dht_seo_cart_v3_count();
 
         @media (max-width: 370px) {
             .dht-cart-mobile .dht-cart-item {
-                grid-template-columns: 72px minmax(0, 1fr);
-                gap: 10px;
+                grid-template-columns: min(var(--cart-image-size), 72px) minmax(0, 1fr);
+                gap: var(--cart-items-gap);
                 padding: 11px;
             }
 
             .dht-cart-mobile .dht-cart-item-media img {
-                width: 72px;
-                height: 72px;
+                width: min(var(--cart-image-size), 72px);
+                height: min(var(--cart-image-size), 72px);
             }
 
             .dht-cart-mobile .dht-cart-item-values {
