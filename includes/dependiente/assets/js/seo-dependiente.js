@@ -820,19 +820,30 @@
             const helpText = totalResults > 0
                 ? 'Contenido relacionado con las categorías de los productos que mejor encajan.'
                 : 'Aunque no haya un producto exacto, estas guías pueden ayudarte a orientar la búsqueda.';
-            elements.related.innerHTML = '<div class="seo-dependiente__related-inner">' +
-                '<div class="seo-dependiente__related-head"><span>También te puede ayudar</span><h2>Guías y soluciones</h2><p>' + escapeHtml(helpText) + '</p></div>' +
-                '<div class="seo-dependiente__related-list">' + cards + '</div>' + more + '</div>';
+            const open = totalResults > 0 ? '' : ' open';
+            const total = items.length;
+
+            elements.related.innerHTML = '<details class="seo-dependiente__related-inner"' + open + '>' +
+                '<summary class="seo-dependiente__related-summary">' +
+                    '<span class="seo-dependiente__related-summary-copy"><small>También te puede ayudar</small><strong>Guías y soluciones <em>(' + total + ')</em></strong></span>' +
+                    '<span class="seo-dependiente__related-summary-action">Ver guías</span>' +
+                '</summary>' +
+                '<div class="seo-dependiente__related-panel">' +
+                    '<p class="seo-dependiente__related-help">' + escapeHtml(helpText) + '</p>' +
+                    '<div class="seo-dependiente__related-list">' + cards + '</div>' + more +
+                '</div>' +
+            '</details>';
             elements.related.hidden = false;
         }
 
         function renderRelatedCard(item) {
-            const image = item.image ? '<span class="seo-dependiente__related-image"><img src="' + escapeAttr(item.image) + '" alt="" loading="lazy" decoding="async"></span>' : '';
-            return '<article class="seo-dependiente__related-card">' + image +
-                '<div class="seo-dependiente__related-body"><span class="seo-dependiente__related-type">' + escapeHtml(item.type_label || 'Guía') + '</span>' +
-                '<h3><a href="' + escapeAttr(item.url || '#') + '">' + escapeHtml(item.title || '') + '</a></h3>' +
-                (item.excerpt ? '<p>' + escapeHtml(item.excerpt) + '</p>' : '') +
-                '<a class="seo-dependiente__related-link" href="' + escapeAttr(item.url || '#') + '">Leer →</a></div></article>';
+            const image = item.image ? '<span class="seo-dependiente__related-image"><img src="' + escapeAttr(item.image) + '" alt="" loading="lazy" decoding="async"></span>' : '<span class="seo-dependiente__related-image seo-dependiente__related-image--empty" aria-hidden="true"></span>';
+            const url = escapeAttr(item.url || '#');
+            return '<a class="seo-dependiente__related-card" href="' + url + '">' + image +
+                '<span class="seo-dependiente__related-body"><span class="seo-dependiente__related-type">' + escapeHtml(item.type_label || 'Guía') + '</span>' +
+                '<strong class="seo-dependiente__related-title">' + escapeHtml(item.title || '') + '</strong>' +
+                (item.excerpt ? '<span class="seo-dependiente__related-excerpt">' + escapeHtml(item.excerpt) + '</span>' : '') +
+                '<span class="seo-dependiente__related-link">Leer →</span></span></a>';
         }
 
         function renderPagination(page, pages) {
