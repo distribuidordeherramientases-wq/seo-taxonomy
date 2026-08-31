@@ -264,10 +264,10 @@ final class SEO_Dependiente_Plugin {
 
                 <div class="seo-dependiente__layout">
                     <aside class="seo-dependiente__filters" data-dependiente-filters aria-label="Filtros de productos"></aside>
-                    <aside class="seo-dependiente__related" data-dependiente-related aria-label="Guías y soluciones relacionadas" hidden></aside>
                     <div class="seo-dependiente__results-column">
                         <div class="seo-dependiente__active-filters" data-dependiente-active-filters></div>
                         <div class="seo-dependiente__status" data-dependiente-status aria-live="polite"></div>
+                        <aside class="seo-dependiente__related" data-dependiente-related aria-label="Guías y soluciones relacionadas" hidden></aside>
                         <div class="seo-dependiente__results" data-dependiente-results></div>
                         <nav class="seo-dependiente__pagination" data-dependiente-pagination aria-label="Paginación"></nav>
                     </div>
