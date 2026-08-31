@@ -13,7 +13,7 @@ defined('ABSPATH') || exit;
  * consulta -> interpretacion -> resultados -> interaccion -> candidato -> revision -> regla semantica.
  */
 final class SEO_Dependiente_Search_Log {
-    const LOG_VERSION = '2026-08-31.1';
+    const LOG_VERSION = '2026-08-31.3';
 
     public static function table() {
         global $wpdb;
@@ -55,6 +55,16 @@ final class SEO_Dependiente_Search_Log {
             clicked_product_id BIGINT UNSIGNED NULL,
             clicked_position SMALLINT UNSIGNED NULL,
             clicked_at DATETIME NULL,
+            interaction_events LONGTEXT NULL,
+            clarification_question VARCHAR(255) NULL,
+            clarification_options LONGTEXT NULL,
+            clarification_shown_at DATETIME NULL,
+            clarified_role VARCHAR(40) NULL,
+            clarified_value VARCHAR(191) NULL,
+            clarified_label VARCHAR(255) NULL,
+            clarification_source VARCHAR(40) NULL,
+            clarified_at DATETIME NULL,
+            last_learning_at DATETIME NULL,
             learning_status VARCHAR(20) NOT NULL DEFAULT 'new',
             learning_candidate LONGTEXT NULL,
             reviewed_by BIGINT UNSIGNED NULL,
@@ -69,6 +79,8 @@ final class SEO_Dependiente_Search_Log {
             KEY idx_semantic_signature (semantic_signature(160)),
             KEY idx_intent_object (detected_intent(80), detected_object(80)),
             KEY idx_feedback_created (feedback, created_at),
+            KEY idx_clarified_role_value (clarified_role, clarified_value(80)),
+            KEY idx_clarified_at (clarified_at),
             KEY idx_learning_created (learning_status, created_at),
             KEY idx_created_at (created_at)
         ) {$charset_collate};";
@@ -87,6 +99,15 @@ final class SEO_Dependiente_Search_Log {
         return $table === $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table));
     }
 
+
+    public static function ensure_ready() {
+        $version = (string) get_option('seo_dependiente_search_log_version', '');
+        if (!self::table_exists() || self::LOG_VERSION !== $version) {
+            self::install();
+        }
+        return self::table_exists();
+    }
+
     /**
      * Registra una respuesta completa de Dependiente.
      * Devuelve el UUID publico del log o cadena vacia si no se pudo guardar.
@@ -94,10 +115,7 @@ final class SEO_Dependiente_Search_Log {
     public static function record_search($data) {
         global $wpdb;
 
-        if (!self::table_exists()) {
-            self::install();
-        }
-        if (!self::table_exists()) {
+        if (!self::ensure_ready()) {
             return '';
         }
 
@@ -116,6 +134,9 @@ final class SEO_Dependiente_Search_Log {
             : $semantic;
         // El log conserva tambien la regla exacta que produjo cada concepto.
         $public_semantic['matches'] = array_values(array_slice((array) ($semantic['matches'] ?? array()), 0, 50));
+        if (!empty($semantic['confirmed_hint']) && is_array($semantic['confirmed_hint'])) {
+            $public_semantic['confirmed_hint'] = $semantic['confirmed_hint'];
+        }
 
         $concepts = is_array($semantic['concepts'] ?? null) ? $semantic['concepts'] : array();
         $intent = self::first_concept($concepts, 'intent');
@@ -166,41 +187,118 @@ final class SEO_Dependiente_Search_Log {
         }
 
         $log_id = absint($wpdb->insert_id);
-        if ('search' === $request_kind && $session_hash) {
-            self::infer_from_reformulation($log_id);
+        if ('search' === $request_kind && class_exists('SEO_Dependiente_Learning')) {
+            SEO_Dependiente_Learning::observe_search($log_id);
         }
 
         return $uuid;
     }
 
     /**
-     * Registra click o valoracion asociada a una busqueda ya guardada.
-     * feedback: 1 util, -1 no util, 0 sin valoracion.
+     * Registra interacciones asociadas a una busqueda ya guardada.
+     *
+     * Eventos soportados:
+     * - click: clic en un producto;
+     * - helpful: valoracion positiva/negativa;
+     * - clarification_shown: se mostro una pregunta de desambiguacion;
+     * - clarify: el cliente confirmo una opcion o escribio "otro".
      */
     public static function record_feedback($search_uuid, $event_type, $data = array()) {
         global $wpdb;
 
         $search_uuid = sanitize_text_field((string) $search_uuid);
         $event_type = sanitize_key((string) $event_type);
-        if (!$search_uuid || !self::table_exists()) {
+        if (!$search_uuid || !self::ensure_ready()) {
             return false;
         }
 
+        $row = self::get_search($search_uuid);
+        if (!$row) {
+            return false;
+        }
+
+        $events = self::decode_json($row['interaction_events'] ?? '');
+        $events = is_array($events) ? array_values($events) : array();
         $updates = array('updated_at' => current_time('mysql'));
+        $event = array('type' => $event_type, 'at' => current_time('mysql'));
+        $product_id = 0;
+        $position = 0;
+        $clarification = array();
+
         if ('click' === $event_type) {
-            $updates['clicked_product_id'] = absint($data['product_id'] ?? 0) ?: null;
-            $updates['clicked_position'] = absint($data['position'] ?? 0) ?: null;
+            $product_id = absint($data['product_id'] ?? 0);
+            $position = absint($data['position'] ?? 0);
+            if (!$product_id) {
+                return false;
+            }
+            $updates['clicked_product_id'] = $product_id;
+            $updates['clicked_position'] = $position ?: null;
             $updates['clicked_at'] = current_time('mysql');
+            $event['product_id'] = $product_id;
+            $event['position'] = $position;
         } elseif ('helpful' === $event_type) {
             $value = (int) ($data['value'] ?? 0);
             $updates['feedback'] = $value > 0 ? 1 : ($value < 0 ? -1 : 0);
             $reason = sanitize_text_field((string) ($data['reason'] ?? ''));
             $updates['feedback_reason'] = $reason ? self::substr($reason, 255) : null;
+            $event['value'] = (int) $updates['feedback'];
+            if ($reason) {
+                $event['reason'] = self::substr($reason, 255);
+            }
+        } elseif ('clarification_shown' === $event_type) {
+            $question = sanitize_text_field((string) ($data['question'] ?? ''));
+            $options = self::sanitize_clarification_options($data['options'] ?? array());
+            if (!$question || !$options) {
+                return false;
+            }
+            $updates['clarification_question'] = self::substr($question, 255);
+            $updates['clarification_options'] = self::json($options);
+            $updates['clarification_shown_at'] = current_time('mysql');
+            $event['question'] = self::substr($question, 255);
+            $event['options'] = $options;
+        } elseif ('clarify' === $event_type) {
+            $role = sanitize_key((string) ($data['role'] ?? ''));
+            $value = class_exists('SEO_Dependiente_Semantics')
+                ? SEO_Dependiente_Semantics::normalize((string) ($data['value'] ?? ''))
+                : sanitize_title((string) ($data['value'] ?? ''));
+            $label = sanitize_text_field((string) ($data['label'] ?? $value));
+            $source = sanitize_key((string) ($data['source'] ?? 'closed_option')) ?: 'closed_option';
+            $allowed_roles = array('intent','object','context','state','term');
+            if (!$value || !in_array($role, $allowed_roles, true)) {
+                return false;
+            }
+            $clarification = array(
+                'role'         => $role,
+                'value'        => self::substr($value, 191),
+                'label'        => self::substr($label ?: $value, 255),
+                'source'       => $source,
+                'source_group' => sanitize_key((string) ($data['source_group'] ?? '')),
+                'source_slug'  => sanitize_title((string) ($data['source_slug'] ?? '')),
+                'is_other'     => !empty($data['is_other']) ? 1 : 0,
+            );
+            $updates['clarified_role'] = $clarification['role'];
+            $updates['clarified_value'] = $clarification['value'];
+            $updates['clarified_label'] = $clarification['label'];
+            $updates['clarification_source'] = $clarification['source'];
+            $updates['clarified_at'] = current_time('mysql');
+            $event = array_merge($event, $clarification);
         } else {
             return false;
         }
 
-        return false !== $wpdb->update(self::table(), $updates, array('search_uuid' => $search_uuid));
+        $events[] = $event;
+        $updates['interaction_events'] = self::json(array_slice($events, -60));
+
+        $ok = false !== $wpdb->update(self::table(), $updates, array('search_uuid' => $search_uuid));
+        if (!$ok || !class_exists('SEO_Dependiente_Learning')) {
+            return $ok;
+        }
+        if ('click' === $event_type) {
+            SEO_Dependiente_Learning::observe_click($search_uuid, $product_id, $position);
+        } elseif ('clarify' === $event_type) {
+            SEO_Dependiente_Learning::observe_clarification($search_uuid, $clarification);
+        }
+        return $ok;
     }
 
     /**
@@ -304,6 +402,50 @@ final class SEO_Dependiente_Search_Log {
             array('id' => absint($log_id))
         );
         return false === $ok ? new WP_Error('seo_dependiente_candidate_save_failed', 'No se pudo guardar el candidato.') : $candidate;
+    }
+
+    /**
+     * Fusiona referencias de candidatos generados por el motor de aprendizaje
+     * dentro del log que aporto la evidencia.
+     */
+    public static function merge_learning_candidates($log_id, $candidates) {
+        global $wpdb;
+
+        $log_id = absint($log_id);
+        if (!$log_id || !self::ensure_ready()) {
+            return false;
+        }
+        $row = self::get_search($log_id);
+        if (!$row) {
+            return false;
+        }
+
+        $current = self::as_candidate_list(self::decode_json($row['learning_candidate'] ?? ''));
+        $merged = array();
+        foreach (array_merge($current, (array) $candidates) as $candidate) {
+            if (!is_array($candidate)) {
+                continue;
+            }
+            $key = self::candidate_key($candidate);
+            if (!$key && !empty($candidate['semantic_candidate_id'])) {
+                $key = 'id|' . absint($candidate['semantic_candidate_id']);
+            }
+            if (!$key) {
+                continue;
+            }
+            $merged[$key] = $candidate;
+        }
+
+        return false !== $wpdb->update(
+            self::table(),
+            array(
+                'learning_status'    => $merged ? 'candidate' : (string) ($row['learning_status'] ?? 'new'),
+                'learning_candidate' => self::json(array_values(array_slice($merged, -30, null, true))),
+                'last_learning_at'   => current_time('mysql'),
+                'updated_at'         => current_time('mysql'),
+            ),
+            array('id' => $log_id)
+        );
     }
 
     /**
@@ -450,6 +592,21 @@ final class SEO_Dependiente_Search_Log {
         $candidate = $candidates[absint($candidate_index)] ?? null;
         if (!$candidate) {
             return new WP_Error('seo_dependiente_candidate_not_found', 'Este registro no contiene un candidato promocionable.');
+        }
+
+        if (!empty($candidate['semantic_candidate_id']) && class_exists('SEO_Dependiente_Learning')) {
+            $approved = SEO_Dependiente_Learning::approve_candidate(absint($candidate['semantic_candidate_id']), $reviewer_id);
+            if (!is_wp_error($approved) && $approved) {
+                $semantic_row = $wpdb->get_row(
+                    $wpdb->prepare('SELECT rule_key FROM ' . SEO_Dependiente_Semantics::table() . ' WHERE id = %d LIMIT 1', absint($candidate['semantic_candidate_id'])),
+                    ARRAY_A
+                );
+                $rule_key = (string) ($semantic_row['rule_key'] ?? '');
+                if ($rule_key) {
+                    self::mark_promoted($log_id, $rule_key, $reviewer_id);
+                }
+                return array('rule_id' => absint($candidate['semantic_candidate_id']), 'rule_key' => $rule_key, 'existing' => true);
+            }
         }
 
         $expression = SEO_Dependiente_Semantics::normalize((string) ($candidate['expression'] ?? ''));
@@ -742,6 +899,31 @@ final class SEO_Dependiente_Search_Log {
             return array($value);
         }
         return array_values(array_filter($value, 'is_array'));
+    }
+
+    private static function sanitize_clarification_options($options) {
+        $clean = array();
+        foreach (array_slice((array) $options, 0, 8) as $option) {
+            if (!is_array($option)) {
+                continue;
+            }
+            $value = class_exists('SEO_Dependiente_Semantics')
+                ? SEO_Dependiente_Semantics::normalize((string) ($option['value'] ?? ''))
+                : sanitize_title((string) ($option['value'] ?? ''));
+            $label = sanitize_text_field((string) ($option['label'] ?? $value));
+            if (!$value || !$label) {
+                continue;
+            }
+            $clean[] = array(
+                'role'         => sanitize_key((string) ($option['role'] ?? 'term')),
+                'value'        => self::substr($value, 191),
+                'label'        => self::substr($label, 255),
+                'source'       => sanitize_key((string) ($option['source'] ?? 'closed_option')),
+                'source_group' => sanitize_key((string) ($option['source_group'] ?? '')),
+                'source_slug'  => sanitize_title((string) ($option['source_slug'] ?? '')),
+            );
+        }
+        return $clean;
     }
 
     private static function decode_json($value) {
