@@ -2965,6 +2965,7 @@ if (!function_exists('seo_assignment_sections')) {
             'product_labels'     => 'Etiquetas de productos',
             'product_attributes' => 'Atributos de productos',
             'category_labels'    => 'Etiquetas de categorías',
+            'format_examples'    => 'Formato / ejemplos',
         ];
     }
 }
@@ -3717,6 +3718,166 @@ if (!function_exists('seo_assignment_render_category_labels')) {
     }
 }
 
+
+if (!function_exists('seo_assignment_example_vocab_label')) {
+    /** Devuelve el primer valor activo de un grupo, priorizando etiquetas conocidas. */
+    function seo_assignment_example_vocab_label($group, array $preferred = []) {
+        $index = seo_assignment_vocab_index();
+        $rows = (array) ($index[$group] ?? []);
+        foreach ($preferred as $wanted) {
+            $wanted_norm = seo_assignment_normalize($wanted);
+            foreach ($rows as $row) {
+                if (seo_assignment_normalize((string) ($row['label'] ?? '')) === $wanted_norm) {
+                    return (string) $row['label'];
+                }
+            }
+        }
+        if ($preferred) return '';
+        return !empty($rows[0]['label']) ? (string) $rows[0]['label'] : '';
+    }
+}
+
+if (!function_exists('seo_assignment_example_attribute_payload')) {
+    /**
+     * Construye un ejemplo con atributos que existen realmente en el maestro.
+     * Solo se utiliza como documentación visual; no escribe datos.
+     */
+    function seo_assignment_example_attribute_payload() {
+        global $wpdb;
+        $out = [];
+        if (!function_exists('seo_attributes_tables')) return $out;
+        $tables = seo_attributes_tables();
+        if (empty($tables['definitions']) || !seo_tags_vocab_table_exists($tables['definitions'])) return $out;
+
+        $preferred = ['diametro', 'materiales_compatibles', 'material', 'longitud', 'numero_piezas'];
+        $defs = $wpdb->get_results(
+            "SELECT id,slug,nombre,tipo,unidad_base FROM `{$tables['definitions']}` WHERE activo=1 ORDER BY orden,nombre LIMIT 100",
+            ARRAY_A
+        );
+        $by_slug = [];
+        foreach ((array) $defs as $def) $by_slug[(string) ($def['slug'] ?? '')] = $def;
+        $ordered = [];
+        foreach ($preferred as $slug) if (isset($by_slug[$slug])) $ordered[] = $by_slug[$slug];
+        foreach ((array) $defs as $def) {
+            if (count($ordered) >= 3) break;
+            $slug = (string) ($def['slug'] ?? '');
+            if ($slug !== '' && !in_array($slug, array_column($ordered, 'slug'), true)) $ordered[] = $def;
+        }
+
+        foreach (array_slice($ordered, 0, 3) as $def) {
+            $slug = (string) ($def['slug'] ?? '');
+            if ($slug === '') continue;
+            $value = '';
+            if ((string) ($def['tipo'] ?? '') === 'termino' && !empty($tables['terms']) && seo_tags_vocab_table_exists($tables['terms'])) {
+                $value = (string) $wpdb->get_var($wpdb->prepare(
+                    "SELECT nombre FROM `{$tables['terms']}` WHERE atributo_id=%d AND activo=1 ORDER BY orden,nombre LIMIT 1",
+                    (int) $def['id']
+                ));
+            } elseif ((string) ($def['tipo'] ?? '') === 'numero' || (string) ($def['tipo'] ?? '') === 'rango') {
+                $unit = trim((string) ($def['unidad_base'] ?? ''));
+                $value = '8' . ($unit !== '' ? ' ' . $unit : '');
+            } elseif ((string) ($def['tipo'] ?? '') === 'boolean') {
+                $value = '1';
+            } else {
+                $value = 'valor de ejemplo';
+            }
+            if ($value !== '') $out[$slug] = [$value];
+        }
+        return $out;
+    }
+}
+
+if (!function_exists('seo_assignment_render_json_sample')) {
+    function seo_assignment_render_json_sample($title, $description, array $payload) {
+        echo '<div class="seo-tags-panel" style="margin:0">';
+        echo '<h3 style="margin-top:0">' . esc_html($title) . '</h3>';
+        echo '<p class="seo-tags-help">' . wp_kses_post($description) . '</p>';
+        echo '<pre style="margin:12px 0 0;max-height:360px;overflow:auto;padding:14px;background:#1d2327;color:#f6f7f7;border-radius:6px;white-space:pre-wrap">' . esc_html(wp_json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) . '</pre>';
+        echo '</div>';
+    }
+}
+
+if (!function_exists('seo_assignment_render_format_examples')) {
+    /** Referencia viva del formato admitido por la mesa de Asignación. */
+    function seo_assignment_render_format_examples() {
+        $obd_type = seo_assignment_example_vocab_label('tipo', ['HUD/medidor OBD para vehículo', 'Escáner OBD y diagnosis']);
+        $obd_app = seo_assignment_example_vocab_label('aplicacion', ['Diagnóstico y electrónica de vehículos', 'Accesorios y funcionalidad del vehículo']);
+        $door_type = seo_assignment_example_vocab_label('tipo', ['Herrajes para puertas correderas', 'Puertas y herrajes de acceso', 'Ruedas y sistemas de rodadura']);
+        $door_app = seo_assignment_example_vocab_label('aplicacion', ['Cerrajería, herrajes y control de acceso', 'Carpintería']);
+
+        $product_payload = [];
+        if ($obd_type !== '') $product_payload['tipo'] = [$obd_type];
+        if ($obd_app !== '') $product_payload['aplicacion'] = [$obd_app];
+
+        $door_payload = [];
+        if ($door_type !== '') $door_payload['tipo'] = [$door_type];
+        if ($door_app !== '') $door_payload['aplicacion'] = [$door_app];
+
+        $attribute_payload = seo_assignment_example_attribute_payload();
+        if (!$attribute_payload) $attribute_payload = ['atributo_slug' => ['valor existente o normalizable']];
+
+        // Para categorías mostramos el esquema completo. TIPO y ROL deben ser coherentes.
+        $category_payload = [
+            'rol' => [],
+            'tipo' => [],
+            'aplicacion' => [],
+            'plataforma' => [],
+            'subtipo' => [],
+        ];
+        $index = seo_assignment_vocab_index();
+        foreach ((array) ($index['tipo'] ?? []) as $type_row) {
+            $role = seo_assignment_role_from_type((int) ($type_row['id'] ?? 0));
+            if ($role && !empty($type_row['label']) && !empty($role['label'])) {
+                $category_payload['tipo'] = [(string) $type_row['label']];
+                $category_payload['rol'] = [(string) $role['label']];
+                break;
+            }
+        }
+        $cat_app = seo_assignment_example_vocab_label('aplicacion', ['Cerrajería, herrajes y control de acceso', 'Corte, perforación y demolición']);
+        if ($cat_app !== '') $category_payload['aplicacion'] = [$cat_app];
+
+        echo '<div class="seo-tags-panel">';
+        echo '<h2 style="margin-top:0">Formato ideal de asignación</h2>';
+        echo '<p>Esta pestaña es una <strong>referencia</strong>: no modifica productos ni categorías. Los ejemplos se construyen con el vocabulario que está activo en este momento, de modo que sirven para entender exactamente qué debe contener el JSON de cada fila.</p>';
+        echo '<div class="notice notice-info inline"><p><strong>Regla principal:</strong> utiliza nombres visibles del vocabulario, no IDs ni slugs. Si un valor no existe, la confirmación debe rechazarlo; primero habrá que resolverlo en el maestro correspondiente.</p></div>';
+        echo '</div>';
+
+        echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(390px,1fr));gap:14px;margin:14px 0">';
+        seo_assignment_render_json_sample(
+            'Etiquetas de producto · ejemplo OBD',
+            'Formato admitido para productos. <strong>TIPO debe tener exactamente un valor</strong>. El ROL del producto se deriva del TIPO, por eso no es necesario introducirlo aquí. Las dimensiones que no correspondan se omiten.',
+            $product_payload
+        );
+        seo_assignment_render_json_sample(
+            'Etiquetas de producto · ejemplo herraje',
+            'Ejemplo orientativo para un carro/rueda de puerta corredera. Solo se muestran valores que estén disponibles actualmente en el vocabulario.',
+            $door_payload
+        );
+        seo_assignment_render_json_sample(
+            'Atributos de producto',
+            'Las claves son <strong>slugs de atributos existentes</strong>. Cada valor puede ser una cadena o una lista. Para atributos de tipo término, el valor debe existir como término o alias; números y unidades se normalizan mediante el servicio canónico.',
+            $attribute_payload
+        );
+        seo_assignment_render_json_sample(
+            'Etiquetas de categoría',
+            'La clasificación de categorías trabaja como una sustitución completa. Por seguridad, incluye los cinco grupos y conserva explícitamente los valores que quieras mantener. Un grupo no aplicable puede quedar como lista vacía.',
+            $category_payload
+        );
+        echo '</div>';
+
+        echo '<div class="seo-tags-panel"><h3 style="margin-top:0">Reglas rápidas</h3>';
+        echo '<table class="widefat striped seo-tags-table"><thead><tr><th>Sección</th><th>Claves</th><th>Regla de escritura</th><th>Qué ocurre con un valor desconocido</th></tr></thead><tbody>';
+        echo '<tr><td><strong>Etiquetas de productos</strong></td><td><code>tipo</code>, <code>aplicacion</code>, <code>plataforma</code>, <code>subtipo</code></td><td>Solo actualiza los grupos presentes. TIPO = 1 valor. ROL se obtiene desde TIPO.</td><td>Se rechaza; no crea vocabulario.</td></tr>';
+        echo '<tr><td><strong>Atributos de productos</strong></td><td>Slug del atributo, por ejemplo <code>diametro</code></td><td>Añade/reutiliza valores y no borra los existentes desde esta mesa.</td><td>El servicio canónico lo rechaza si no existe la definición/término requerido.</td></tr>';
+        echo '<tr><td><strong>Etiquetas de categorías</strong></td><td><code>rol</code>, <code>tipo</code>, <code>aplicacion</code>, <code>plataforma</code>, <code>subtipo</code></td><td>Reemplaza la clasificación completa de la categoría.</td><td>Se rechaza; no crea vocabulario.</td></tr>';
+        echo '</tbody></table>';
+        $labels_url = admin_url('admin.php?page=seo-tags-vocabulary&domain=labels&section=dictionary');
+        $attributes_url = admin_url('admin.php?page=seo-tags-vocabulary&domain=attributes&attribute_section=definitions');
+        echo '<p style="margin-bottom:0"><a class="button" href="' . esc_url($labels_url) . '">Abrir diccionario de etiquetas</a> <a class="button" href="' . esc_url($attributes_url) . '">Abrir maestro de atributos</a></p>';
+        echo '</div>';
+    }
+}
+
 if (!function_exists('seo_assignment_render_pagination')) {
     function seo_assignment_render_pagination($section,array $filters,$total) {
         $pages=max(1,(int)ceil($total/max(1,$filters['per_page']))); if($pages<=1)return; $page=min($pages,max(1,$filters['page']));
@@ -3735,6 +3896,10 @@ if (!function_exists('seo_assignment_render')) {
         seo_assignment_notice(); seo_assignment_render_summary();
         $base=admin_url('admin.php?page=seo-tags-vocabulary&domain=assignment'); echo '<nav class="nav-tab-wrapper seo-semantic-subtabs">';
         foreach(seo_assignment_sections() as $key=>$label)echo '<a class="nav-tab '.($section===$key?'nav-tab-active':'').'" href="'.esc_url($base.'&assignment_section='.$key).'">'.esc_html($label).'</a>'; echo '</nav>';
+        if ($section === 'format_examples') {
+            seo_assignment_render_format_examples();
+            return;
+        }
         $filters=seo_assignment_current_filters($section); seo_assignment_render_filters($section,$filters); seo_assignment_render_mass_actions($section,$filters);
         if($section==='product_attributes')seo_assignment_render_product_attributes($filters); elseif($section==='category_labels')seo_assignment_render_category_labels($filters); else seo_assignment_render_product_labels($filters);
     }
