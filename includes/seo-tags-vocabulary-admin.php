@@ -2955,8 +2955,8 @@ if (!function_exists('seo_semantic_attributes_render_products_inventory')) {
  * ============================================================================
  * ASIGNACIÓN ASISTIDA
  * Mesa operativa separada de los maestros de Etiquetas y Atributos.
- * Las propuestas reutilizan exclusivamente vocabulario canónico activo. El motor
- * contextual v2 no consume detectores heredados ni crea vocabulario de forma implícita.
+ * Las propuestas reutilizan exclusivamente vocabulario canónico activo. La inteligencia
+ * reside en includes/clasificador; esta pantalla solo inventaría, revisa y confirma.
  * ============================================================================
  */
 if (!function_exists('seo_assignment_sections')) {
@@ -3001,65 +3001,30 @@ if (!function_exists('seo_assignment_tokens')) {
 }
 
 if (!function_exists('seo_assignment_vocab_index')) {
+    /** Compatibilidad de UI: el vocabulario lo suministra Clasificador. */
     function seo_assignment_vocab_index() {
-        static $cache = null;
-        if (is_array($cache)) return $cache;
-        global $wpdb;
-        $table = $wpdb->prefix . 'seo_vocabulary';
-        $cache = array_fill_keys(seo_assignment_allowed_groups(), []);
-        if (!seo_tags_vocab_table_exists($table)) return $cache;
-        $rows = $wpdb->get_results(
-            "SELECT id,semantic_group,slug,label FROM {$table}
-             WHERE active=1 AND semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
-             ORDER BY semantic_group,label,slug",
-            ARRAY_A
-        );
-        foreach ((array) $rows as $row) {
-            $group = sanitize_key((string) ($row['semantic_group'] ?? ''));
-            if (!isset($cache[$group])) continue;
-            $row['id'] = (int) ($row['id'] ?? 0);
-            $row['norm'] = seo_assignment_normalize((string) ($row['label'] ?? ''));
-            $row['tokens'] = seo_assignment_tokens((string) ($row['label'] ?? ''));
-            $cache[$group][] = $row;
-        }
-        return $cache;
+        return function_exists('seo_classifier_vocabulary_index') ? seo_classifier_vocabulary_index() : [];
     }
 }
 
 if (!function_exists('seo_assignment_semantic_current')) {
+    /** Compatibilidad de UI: lectura canónica delegada al Clasificador. */
     function seo_assignment_semantic_current($object_type, $object_id) {
-        global $wpdb;
-        $object_type = $object_type === 'product_cat' ? 'product_cat' : 'product';
-        $object_id = absint($object_id);
-        $out = array_fill_keys(seo_assignment_allowed_groups(), []);
-        if ($object_id < 1) return $out;
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
-        if (!seo_tags_vocab_table_exists($vocabulary) || !seo_tags_vocab_table_exists($objects)) return $out;
-        $rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT v.id,v.semantic_group,v.slug,v.label,ov.source,ov.confidence
-             FROM {$objects} ov JOIN {$vocabulary} v ON v.id=ov.vocabulary_id AND v.active=1
-             WHERE ov.object_type=%s AND ov.object_id=%d AND ov.status=1
-               AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
-             ORDER BY v.semantic_group,v.label",
-            $object_type,
-            $object_id
-        ), ARRAY_A);
-        foreach ((array) $rows as $row) {
-            $group = sanitize_key((string) ($row['semantic_group'] ?? ''));
-            if (isset($out[$group])) $out[$group][] = $row;
+        if (!function_exists('seo_classifier_current_object_labels')) {
+            return array_fill_keys(seo_assignment_allowed_groups(), []);
         }
-        return $out;
+        return seo_classifier_current_object_labels($object_type, $object_id);
     }
 }
 
 if (!function_exists('seo_assignment_semantic_label_map')) {
     function seo_assignment_semantic_label_map(array $rows) {
+        if (function_exists('seo_classifier_label_map')) return seo_classifier_label_map($rows);
         $out = [];
         foreach (seo_assignment_allowed_groups() as $group) {
             $labels = [];
             foreach ((array) ($rows[$group] ?? []) as $row) {
-                $label = trim((string) ($row['label'] ?? ''));
+                $label = is_array($row) ? trim((string) ($row['label'] ?? '')) : trim((string) $row);
                 if ($label !== '') $labels[] = $label;
             }
             if ($labels) $out[$group] = array_values(array_unique($labels));
@@ -3069,308 +3034,55 @@ if (!function_exists('seo_assignment_semantic_label_map')) {
 }
 
 if (!function_exists('seo_assignment_product_text')) {
+    /** Adapter histórico para consumidores de la pantalla. */
     function seo_assignment_product_text($product_id) {
-        $post = get_post(absint($product_id));
-        if (!$post || $post->post_type !== 'product') return ['title' => '', 'full' => ''];
-        $categories = wp_get_post_terms($post->ID, 'product_cat', ['fields' => 'names']);
-        $tags = taxonomy_exists('product_tag') ? wp_get_post_terms($post->ID, 'product_tag', ['fields' => 'names']) : [];
-        if (is_wp_error($categories)) $categories = [];
-        if (is_wp_error($tags)) $tags = [];
-        $title = (string) $post->post_title;
-        $full = implode(' ', [
-            $title,
-            (string) $post->post_excerpt,
-            (string) $post->post_content,
-            implode(' ', (array) $categories),
-            implode(' ', (array) $tags),
-        ]);
+        if (!function_exists('seo_classifier_build_product_context')) return ['title'=>'','full'=>'','categories'=>'','tags'=>''];
+        $context = seo_classifier_build_product_context($product_id);
         return [
-            'title'      => seo_assignment_normalize($title),
-            'full'       => seo_assignment_normalize($full),
-            'categories' => seo_assignment_normalize(implode(' ', (array) $categories)),
-            'tags'       => seo_assignment_normalize(implode(' ', (array) $tags)),
+            'title'=>(string)($context['title'] ?? ''),
+            'full'=>(string)($context['full'] ?? ''),
+            'categories'=>(string)($context['categories'] ?? ''),
+            'tags'=>(string)($context['tags'] ?? ''),
+            'identity'=>(string)($context['identity'] ?? ''),
+            'raw_title'=>(string)($context['raw_title'] ?? ''),
         ];
     }
 }
 
-/**
- * Motor contextual de propuestas v2.
- *
- * No usa clasificaciones heredadas ni datos precalculados. Compara el contenido
- * actual del objeto contra el vocabulario activo y pondera coincidencias por
- * rareza, contexto, orden de palabras y equivalencias léxicas conservadoras.
- */
-if (!function_exists('seo_assignment_concept_aliases')) {
-    function seo_assignment_concept_aliases() {
-        return [
-            'coche'=>'vehiculo','coches'=>'vehiculo','vehiculo'=>'vehiculo','vehiculos'=>'vehiculo',
-            'automovil'=>'vehiculo','automoviles'=>'vehiculo','auto'=>'vehiculo',
-            'pantalla'=>'pantalla','pantallas'=>'pantalla','display'=>'pantalla','displays'=>'pantalla',
-            'monitor'=>'pantalla','monitores'=>'pantalla','hud'=>'pantalla',
-            'diagnostico'=>'diagnostico','diagnosticos'=>'diagnostico','diagnostica'=>'diagnostico','diagnosis'=>'diagnostico',
-            'obd'=>'obd','obd2'=>'obd','obdii'=>'obd',
-            'puerta'=>'puerta','puertas'=>'puerta','corredera'=>'corredera','correderas'=>'corredera',
-            'rueda'=>'rueda','ruedas'=>'rueda','herraje'=>'herraje','herrajes'=>'herraje',
-        ];
-    }
-}
-
-if (!function_exists('seo_assignment_concept_token')) {
-    function seo_assignment_concept_token($token) {
-        $token = seo_assignment_normalize((string) $token);
-        if ($token === '' || strpos($token, ' ') !== false) return '';
-        $aliases = seo_assignment_concept_aliases();
-        if (isset($aliases[$token])) return $aliases[$token];
-        if (preg_match('/^obd(?:2|ii)$/', $token)) return 'obd';
-        if (mb_strlen($token, 'UTF-8') > 5 && substr($token, -2) === 'es') {
-            $candidate = substr($token, 0, -2);
-            if (mb_strlen($candidate, 'UTF-8') >= 3) $token = $candidate;
-        } elseif (mb_strlen($token, 'UTF-8') > 4 && substr($token, -1) === 's') {
-            $candidate = substr($token, 0, -1);
-            if (mb_strlen($candidate, 'UTF-8') >= 3) $token = $candidate;
-        }
-        return $aliases[$token] ?? $token;
-    }
-}
-
-if (!function_exists('seo_assignment_concept_sequence')) {
-    function seo_assignment_concept_sequence($text) {
-        $stop = ['de','del','la','las','el','los','para','por','con','sin','y','o','en','un','una','unos','unas','a','al','se','su','sus','e'];
-        $raw = preg_split('/\\s+/u', seo_assignment_normalize($text), -1, PREG_SPLIT_NO_EMPTY);
-        $out = [];
-        foreach ((array) $raw as $token) {
-            if (mb_strlen($token, 'UTF-8') < 3 || in_array($token, $stop, true)) continue;
-            $concept = seo_assignment_concept_token($token);
-            if ($concept !== '') $out[] = $concept;
-        }
-        return $out;
-    }
-}
-
-if (!function_exists('seo_assignment_longest_concept_run')) {
-    function seo_assignment_longest_concept_run(array $term, array $haystack) {
-        $best = 0;
-        $term_count = count($term);
-        $hay_count = count($haystack);
-        for ($i=0; $i<$term_count; $i++) {
-            for ($j=0; $j<$hay_count; $j++) {
-                $k = 0;
-                while (($i+$k)<$term_count && ($j+$k)<$hay_count && $term[$i+$k] === $haystack[$j+$k]) $k++;
-                if ($k > $best) $best = $k;
-            }
-        }
-        return $best;
-    }
-}
-
-if (!function_exists('seo_assignment_vocab_stats')) {
-    function seo_assignment_vocab_stats($group) {
-        static $cache = [];
-        $group = sanitize_key((string) $group);
-        if (isset($cache[$group])) return $cache[$group];
-        $index = seo_assignment_vocab_index();
-        $rows = (array) ($index[$group] ?? []);
-        $df = [];
-        foreach ($rows as $row) {
-            $seen = [];
-            foreach (array_unique(seo_assignment_concept_sequence((string) ($row['label'] ?? ''))) as $token) {
-                $seen[$token] = true;
-            }
-            foreach (array_keys($seen) as $token) $df[$token] = (int) ($df[$token] ?? 0) + 1;
-        }
-        $n = max(1, count($rows));
-        $idf = [];
-        foreach ($df as $token => $count) $idf[$token] = log(($n + 1) / ($count + 1)) + 1.0;
-        return $cache[$group] = ['n'=>$n,'idf'=>$idf];
-    }
-}
-
-if (!function_exists('seo_assignment_context_term_score')) {
-    function seo_assignment_context_term_score(array $term, array $context, $group) {
-        $term_seq = seo_assignment_concept_sequence((string) ($term['label'] ?? ''));
-        if (!$term_seq) return ['score'=>0.0,'matched'=>0,'title_matched'=>0,'run'=>0,'reasons'=>[]];
-        $title_seq = seo_assignment_concept_sequence((string) ($context['title'] ?? ''));
-        $full_seq = seo_assignment_concept_sequence((string) ($context['full'] ?? ''));
-        $category_seq = seo_assignment_concept_sequence((string) ($context['categories'] ?? ''));
-        $title = array_fill_keys($title_seq, true);
-        $full = array_fill_keys($full_seq, true);
-        $categories = array_fill_keys($category_seq, true);
-        $stats = seo_assignment_vocab_stats($group);
-        $idf = (array) ($stats['idf'] ?? []);
-        $denom = 0.0; $title_weight = 0.0; $full_weight = 0.0; $category_weight = 0.0;
-        $matched = 0; $title_matched = 0; $matched_labels = [];
-        foreach (array_values(array_unique($term_seq)) as $token) {
-            $weight = (float) ($idf[$token] ?? 1.0);
-            $denom += $weight;
-            if (isset($title[$token])) {
-                $title_weight += $weight; $matched++; $title_matched++; $matched_labels[] = $token;
-            } elseif (isset($full[$token])) {
-                $full_weight += $weight; $matched++; $matched_labels[] = $token;
-            }
-            if (isset($categories[$token])) $category_weight += $weight;
-        }
-        if ($matched < 1 || $denom <= 0) return ['score'=>0.0,'matched'=>0,'title_matched'=>0,'run'=>0,'reasons'=>[]];
-        $coverage = ($title_weight + (0.45 * $full_weight)) / $denom;
-        $title_coverage = $title_weight / $denom;
-        $category_coverage = $category_weight / $denom;
-        $run = seo_assignment_longest_concept_run($term_seq, $title_seq);
-        $bonus = 0.0;
-        $term_norm = seo_assignment_normalize((string) ($term['label'] ?? ''));
-        $title_norm = seo_assignment_normalize((string) ($context['title'] ?? ''));
-        $full_norm = seo_assignment_normalize((string) ($context['full'] ?? ''));
-        $reasons = [];
-        if ($term_norm !== '' && strpos(' '.$title_norm.' ', ' '.$term_norm.' ') !== false) { $bonus += 0.16; $reasons[] = 'frase exacta en título'; }
-        elseif ($term_norm !== '' && strpos(' '.$full_norm.' ', ' '.$term_norm.' ') !== false) { $bonus += 0.10; $reasons[] = 'frase exacta en contenido'; }
-        if ($run >= 3) { $bonus += 0.14; $reasons[] = 'secuencia de '.$run.' conceptos'; }
-        elseif ($run === 2) { $bonus += 0.10; $reasons[] = 'secuencia de 2 conceptos'; }
-        elseif ($run === 1) $bonus += 0.01;
-        if ($title_matched >= 3) $bonus += 0.08;
-        elseif ($title_matched === 2) $bonus += 0.04;
-        if ($category_coverage >= 0.50) $reasons[] = 'apoyo de categoría';
-        if ($matched_labels) $reasons[] = 'coincide: '.implode(', ', array_slice(array_unique($matched_labels), 0, 4));
-        $score = 0.08 + (0.64 * $coverage) + (0.16 * $title_coverage) + (0.15 * $category_coverage) + $bonus;
-        $score = max(0.0, min(1.0, $score));
-        return [
-            'score'=>round($score, 4), 'matched'=>$matched, 'title_matched'=>$title_matched,
-            'run'=>$run, 'reasons'=>$reasons,
-        ];
-    }
-}
-
-if (!function_exists('seo_assignment_rank_group')) {
-    function seo_assignment_rank_group($group, array $context, $limit = 5) {
-        $index = seo_assignment_vocab_index();
-        $ranked = [];
-        foreach ((array) ($index[$group] ?? []) as $term) {
-            $metric = seo_assignment_context_term_score($term, $context, $group);
-            if ((float) ($metric['score'] ?? 0) <= 0) continue;
-            $ranked[] = ['term'=>$term] + $metric;
-        }
-        usort($ranked, static function($a,$b){
-            $as=(float)($a['score']??0); $bs=(float)($b['score']??0);
-            if ($as !== $bs) return $as > $bs ? -1 : 1;
-            $am=(int)($a['matched']??0); $bm=(int)($b['matched']??0);
-            if ($am !== $bm) return $am > $bm ? -1 : 1;
-            return strcmp((string)($a['term']['label']??''),(string)($b['term']['label']??''));
-        });
-        return array_slice($ranked, 0, max(1, (int) $limit));
-    }
-}
-
-if (!function_exists('seo_assignment_candidate_state')) {
-    function seo_assignment_candidate_state($group, array $ranked) {
-        if (!$ranked) return ['state'=>'none','candidate'=>null,'margin'=>0.0];
-        $top = $ranked[0];
-        $score = (float) ($top['score'] ?? 0);
-        $matched = (int) ($top['matched'] ?? 0);
-        $second = (float) ($ranked[1]['score'] ?? 0);
-        $margin = max(0.0, $score - $second);
-        $safe = false; $review = false;
-        switch ($group) {
-            case 'tipo':
-                $safe = $matched >= 2 && $score >= 0.73 && ($margin >= 0.06 || $score >= 0.88);
-                $review = $matched >= 2 && $score >= 0.62;
-                break;
-            case 'aplicacion':
-                $safe = $matched >= 2 && $score >= 0.66 && ($margin >= 0.10 || $score >= 0.86);
-                $review = $matched >= 2 && $score >= 0.58;
-                break;
-            case 'plataforma':
-                $safe = $matched >= 2 && $score >= 0.86 && $margin >= 0.08;
-                $review = $matched >= 2 && $score >= 0.70;
-                break;
-            case 'subtipo':
-                $safe = $matched >= 2 && $score >= 0.80 && $margin >= 0.10;
-                $review = $matched >= 2 && $score >= 0.60;
-                break;
-        }
-        return ['state'=>$safe?'safe':($review?'review':'none'),'candidate'=>$top,'margin'=>round($margin,4)];
-    }
-}
-
-/** Wrapper de compatibilidad para el clasificador de categorías. */
 if (!function_exists('seo_assignment_term_score')) {
+    /** Wrapper usado todavía por la propuesta de categorías. */
     function seo_assignment_term_score(array $term, $title, $full) {
-        $metric = seo_assignment_context_term_score($term, [
-            'title'=>(string)$title,'full'=>(string)$full,'categories'=>'','tags'=>''
-        ], (string) ($term['semantic_group'] ?? 'tipo'));
+        if (!function_exists('seo_classifier_label_metric')) return 0.0;
+        $group = sanitize_key((string) ($term['semantic_group'] ?? 'tipo')) ?: 'tipo';
+        if (empty($term['concepts']) && function_exists('seo_classifier_concept_sequence')) {
+            $term['concepts'] = seo_classifier_concept_sequence((string) ($term['label'] ?? ''));
+        }
+        $metric = seo_classifier_label_metric($term, [
+            'title'=>(string)$title,
+            'identity'=>(string)$title,
+            'full'=>(string)$full,
+            'categories'=>'',
+            'tags'=>'',
+        ], $group);
         return (float) ($metric['score'] ?? 0.0);
     }
 }
 
 if (!function_exists('seo_assignment_role_from_type')) {
     function seo_assignment_role_from_type($type_id) {
-        $type_id = absint($type_id);
-        if ($type_id < 1) return null;
-        if (function_exists('seo_catalog_get_role_for_type_vocabulary')) {
-            $row = seo_catalog_get_role_for_type_vocabulary($type_id);
-            if (is_array($row) && !empty($row['id'])) {
-                return ['id' => (int) $row['id'], 'label' => (string) ($row['label'] ?? ''), 'slug' => (string) ($row['slug'] ?? '')];
-            }
-        }
-        return null;
+        return function_exists('seo_classifier_role_from_type') ? seo_classifier_role_from_type($type_id) : null;
     }
 }
 
 if (!function_exists('seo_assignment_propose_product_labels')) {
+    /**
+     * La pantalla ya no contiene inteligencia propia: consume Clasificador.
+     */
     function seo_assignment_propose_product_labels($product_id, array $current = []) {
-        $context = seo_assignment_product_text($product_id);
-        $proposal = [];
-        $review = [];
-        $confidence = [];
-        $proposed_ids = [];
-        $evidence = [];
-        foreach (['tipo','aplicacion','plataforma','subtipo'] as $group) {
-            $ranked = seo_assignment_rank_group($group, $context, 4);
-            $decision = seo_assignment_candidate_state($group, $ranked);
-            $top = $decision['candidate'];
-            $evidence[$group] = [
-                'state'=>!empty($current[$group]) ? 'current' : $decision['state'],
-                'margin'=>$decision['margin'],
-                'top'=>array_map(static function($row){
-                    return [
-                        'label'=>(string)($row['term']['label']??''),
-                        'score'=>round((float)($row['score']??0),2),
-                        'matched'=>(int)($row['matched']??0),
-                        'reasons'=>(array)($row['reasons']??[]),
-                    ];
-                }, $ranked),
-            ];
-            // Si el grupo ya está asignado, calculamos el ranking solo como diagnóstico;
-            // nunca lo sustituimos desde la propuesta automática.
-            if (!empty($current[$group])) continue;
-            if (!$top || $decision['state'] === 'none') continue;
-            $label = trim((string) ($top['term']['label'] ?? ''));
-            if ($label === '') continue;
-            if ($decision['state'] === 'safe') {
-                $proposal[$group] = [$label];
-                $confidence[$group] = round((float) ($top['score'] ?? 0), 2);
-                $proposed_ids[$group] = [(int) ($top['term']['id'] ?? 0)];
-            } else {
-                $review[$group] = [$label];
-            }
+        if (!function_exists('seo_classifier_product_label_proposal')) {
+            return ['values'=>[],'review'=>[],'confidence'=>[],'evidence'=>[],'engine'=>'unavailable','viable'=>false];
         }
-        if (empty($current['rol'])) {
-            $type_id = 0;
-            if (!empty($current['tipo'][0]['id'])) $type_id = (int) $current['tipo'][0]['id'];
-            elseif (!empty($proposed_ids['tipo'][0])) $type_id = (int) $proposed_ids['tipo'][0];
-            $role = seo_assignment_role_from_type($type_id);
-            if ($role && trim((string) ($role['label'] ?? '')) !== '') {
-                $proposal['rol'] = [(string) $role['label']];
-                $confidence['rol'] = 1.0;
-                $evidence['rol'] = ['state'=>'safe','margin'=>1.0,'top'=>[[
-                    'label'=>(string)$role['label'],'score'=>1.0,'matched'=>1,'reasons'=>['derivado del TIPO']
-                ]]];
-            }
-        }
-        return [
-            'values'=>$proposal,
-            'review'=>$review,
-            'confidence'=>$confidence,
-            'evidence'=>$evidence,
-            'engine'=>'contextual_v2',
-            'viable'=>!empty($proposal),
-        ];
+        return seo_classifier_product_label_proposal($product_id, $current);
     }
 }
 
@@ -3466,70 +3178,13 @@ if (!function_exists('seo_assignment_attribute_current')) {
     }
 }
 
-if (!function_exists('seo_assignment_attribute_alias_rows')) {
-    function seo_assignment_attribute_alias_rows() {
-        static $cache = null;
-        if (is_array($cache)) return $cache;
-        $cache = [];
-        if (!function_exists('seo_attributes_tables')) return $cache;
-        global $wpdb;
-        $tables = seo_attributes_tables();
-        if (empty($tables['aliases']) || !seo_tags_vocab_table_exists($tables['aliases'])) return $cache;
-        $rows = $wpdb->get_results("SELECT atributo_id,termino_id,alias FROM `{$tables['aliases']}` ORDER BY atributo_id,termino_id,id", ARRAY_A);
-        foreach ((array)$rows as $row) {
-            $aid=(int)($row['atributo_id']??0); $tid=(int)($row['termino_id']??0);
-            $alias=trim((string)($row['alias']??''));
-            if ($aid>0 && $tid>0 && $alias!=='') $cache[$aid][$tid][]=$alias;
-        }
-        return $cache;
-    }
-}
-
 if (!function_exists('seo_assignment_attribute_proposal')) {
+    /** La propuesta de atributos se resuelve exclusivamente en Clasificador. */
     function seo_assignment_attribute_proposal($product_id, array $current = []) {
-        $proposal = [];
-        $evidence = [];
-        $context = seo_assignment_product_text($product_id);
-        $title = ' '.seo_assignment_normalize((string)($context['title']??'')).' ';
-        $full = ' '.seo_assignment_normalize((string)($context['full']??'')).' ';
-        $aliases = seo_assignment_attribute_alias_rows();
-        $catalog = function_exists('seo_attributes_get_catalog') ? (array) seo_attributes_get_catalog(true) : [];
-        foreach ($catalog as $definition) {
-            $slug = sanitize_key((string)($definition['slug']??''));
-            $attribute_id = (int)($definition['id']??0);
-            if ($slug==='' || $attribute_id<1 || !empty($current[$slug])) continue;
-            // En esta fase solo resolvemos términos controlados ya existentes.
-            // Números, rangos y texto requieren un extractor específico por unidad/contexto.
-            if ((string)($definition['tipo']??'') !== 'termino') continue;
-            $best = null;
-            foreach ((array)($definition['terms']??[]) as $term) {
-                $term_id=(int)($term['id']??0); $term_name=trim((string)($term['nombre']??''));
-                if ($term_id<1 || $term_name==='') continue;
-                $candidates = array_merge([$term_name], (array)($aliases[$attribute_id][$term_id]??[]));
-                foreach ($candidates as $candidate) {
-                    $norm=seo_assignment_normalize((string)$candidate);
-                    if ($norm==='') continue;
-                    $score=0.0; $reason='';
-                    if (strpos($title, ' '.$norm.' ') !== false) { $score=1.0; $reason='término/alias exacto en título'; }
-                    elseif (strpos($full, ' '.$norm.' ') !== false) { $score=0.94; $reason='término/alias exacto en contenido'; }
-                    if ($score>0 && ($best===null || $score>(float)$best['score'])) {
-                        $best=['score'=>$score,'value'=>$term_name,'reason'=>$reason,'matched'=>$candidate];
-                    }
-                }
-            }
-            if ($best && (float)$best['score'] >= 0.94) {
-                $proposal[$slug]=[(string)$best['value']];
-                $evidence[$slug]=$best;
-            }
+        if (!function_exists('seo_classifier_product_attribute_proposal')) {
+            return ['values'=>[],'review'=>[],'confidence'=>0.0,'evidence'=>[],'engine'=>'unavailable','viable'=>false];
         }
-        return [
-            'values'=>$proposal,
-            'confidence'=>($proposal ? 0.94 : 0.0),
-            'evidence'=>$evidence,
-            'engine'=>'canonical_terms_v2',
-            'legacy_detector'=>false,
-            'viable'=>!empty($proposal),
-        ];
+        return seo_classifier_product_attribute_proposal($product_id, $current);
     }
 }
 
@@ -3638,6 +3293,15 @@ if (!function_exists('seo_assignment_query_products')) {
         $category_id = absint($filters['category_id'] ?? 0);
         $coverage = sanitize_key((string) ($filters['coverage'] ?? 'all'));
         $priority = sanitize_key((string) ($filters['priority'] ?? 'all'));
+        $dimension_filters = [
+            'tipo' => sanitize_key((string) ($filters['filter_tipo'] ?? 'all')),
+            'aplicacion' => sanitize_key((string) ($filters['filter_aplicacion'] ?? 'all')),
+            'plataforma' => sanitize_key((string) ($filters['filter_plataforma'] ?? 'all')),
+            'subtipo' => sanitize_key((string) ($filters['filter_subtipo'] ?? 'all')),
+        ];
+        foreach ($dimension_filters as $group => $state) {
+            if (!in_array($state, ['all','missing','present'], true)) $dimension_filters[$group] = 'all';
+        }
         $where = ["p.post_type='product'", "p.post_status='publish'"];
         $args = [];
         if ($search !== '') {
@@ -3671,6 +3335,14 @@ if (!function_exists('seo_assignment_query_products')) {
                 $where[] = $all_complete;
             } elseif (isset($group_map[$coverage])) {
                 $where[] = 'NOT (' . $exists[$group_map[$coverage]] . ')';
+            }
+
+            // Filtros independientes de las cuatro columnas editables.
+            // Se combinan entre sí (AND) y con Cobertura/Prioridad para poder localizar
+            // exactamente qué dimensión falta o ya está asignada en cada producto.
+            foreach ($dimension_filters as $group => $state) {
+                if ($state === 'missing') $where[] = 'NOT (' . $exists[$group] . ')';
+                elseif ($state === 'present') $where[] = $exists[$group];
             }
 
             // Cola de prioridad disjunta: cada producto aparece en el primer hueco relevante.
@@ -3798,6 +3470,10 @@ if (!function_exists('seo_assignment_current_filters')) {
             'category_id' => absint($_GET['assignment_category_id'] ?? 0),
             'coverage' => sanitize_key($_GET['assignment_coverage'] ?? ($section === 'product_attributes' ? 'without' : 'missing_any')),
             'priority' => sanitize_key($_GET['assignment_priority'] ?? 'all'),
+            'filter_tipo' => sanitize_key($_GET['assignment_filter_tipo'] ?? 'all'),
+            'filter_aplicacion' => sanitize_key($_GET['assignment_filter_aplicacion'] ?? 'all'),
+            'filter_plataforma' => sanitize_key($_GET['assignment_filter_plataforma'] ?? 'all'),
+            'filter_subtipo' => sanitize_key($_GET['assignment_filter_subtipo'] ?? 'all'),
             'per_page' => in_array(absint($_GET['assignment_per_page'] ?? 25), [25,50,100], true) ? absint($_GET['assignment_per_page'] ?? 25) : 25,
             'page' => max(1,absint($_GET['assignment_paged'] ?? 1)),
         ];
@@ -3838,6 +3514,10 @@ if (!function_exists('seo_assignment_mass_apply')) {
             'category_id' => absint($_POST['assignment_category_id'] ?? 0),
             'coverage' => sanitize_key($_POST['assignment_coverage'] ?? ($section === 'product_attributes' ? 'without' : 'missing_any')),
             'priority' => sanitize_key($_POST['assignment_priority'] ?? 'all'),
+            'filter_tipo' => sanitize_key($_POST['assignment_filter_tipo'] ?? 'all'),
+            'filter_aplicacion' => sanitize_key($_POST['assignment_filter_aplicacion'] ?? 'all'),
+            'filter_plataforma' => sanitize_key($_POST['assignment_filter_plataforma'] ?? 'all'),
+            'filter_subtipo' => sanitize_key($_POST['assignment_filter_subtipo'] ?? 'all'),
         ];
         $max = 500;
         $saved = 0; $errors = 0; $total = 0;
@@ -4058,6 +3738,22 @@ if (!function_exists('seo_assignment_render_filters')) {
             echo '<label>Prioridad<select name="assignment_priority">';
             foreach($priority_options as $v=>$l)echo '<option value="'.esc_attr($v).'" '.selected((string)($filters['priority']??'all'),$v,false).'>'.esc_html($l).'</option>';
             echo '</select></label>';
+
+            $dimension_options=['all'=>'Todos','missing'=>'Sin asignar','present'=>'Asignado'];
+            $dimension_labels=[
+                'tipo'=>'TIPO · JSON 1',
+                'aplicacion'=>'APLICACIÓN · JSON 2',
+                'plataforma'=>'PLATAFORMA · JSON 3',
+                'subtipo'=>'SUBTIPO · JSON 4',
+            ];
+            echo '<div style="flex-basis:100%;height:0"></div>';
+            echo '<span style="align-self:flex-end;padding:0 4px 8px 0;font-weight:600">Filtros por columna:</span>';
+            foreach($dimension_labels as $group=>$label){
+                $key='filter_'.$group;
+                echo '<label>'.esc_html($label).'<select name="assignment_filter_'.esc_attr($group).'">';
+                foreach($dimension_options as $v=>$l)echo '<option value="'.esc_attr($v).'" '.selected((string)($filters[$key]??'all'),$v,false).'>'.esc_html($l).'</option>';
+                echo '</select></label>';
+            }
         }
         echo '<label>Filas<select name="assignment_per_page">'; foreach([25,50,100] as $n)echo '<option value="'.$n.'" '.selected((int)$filters['per_page'],$n,false).'>'.$n.'</option>'; echo '</select></label>';
         echo '<div><button class="button button-primary">Filtrar</button> <a class="button" href="'.esc_url($base).'">Limpiar</a></div></form></div>';
@@ -4072,6 +3768,7 @@ if (!function_exists('seo_assignment_render_mass_actions')) {
         wp_nonce_field('seo_assignment_admin','seo_assignment_nonce');
         echo '<input type="hidden" name="seo_assignment_action" value="mass_accept"><input type="hidden" name="assignment_section" value="'.esc_attr($section).'">';
         echo '<input type="hidden" name="assignment_s" value="'.esc_attr($filters['search']).'"><input type="hidden" name="assignment_category_id" value="'.esc_attr((int)$filters['category_id']).'"><input type="hidden" name="assignment_coverage" value="'.esc_attr($filters['coverage']).'"><input type="hidden" name="assignment_priority" value="'.esc_attr((string)($filters['priority']??'all')).'">';
+        foreach(['tipo','aplicacion','plataforma','subtipo'] as $group){$key='filter_'.$group;echo '<input type="hidden" name="assignment_filter_'.esc_attr($group).'" value="'.esc_attr((string)($filters[$key]??'all')).'">';}
         echo '<button class="button button-primary">Aceptar todas las propuestas viables</button></form>';
         echo '<a class="button" href="'.esc_url($export).'">Descargar JSON general</a>';
         echo '<span class="seo-tags-help">El botón masivo nunca crea vocabulario nuevo. Máximo 500 registros por ejecución.</span></div>';
@@ -4099,7 +3796,7 @@ if (!function_exists('seo_assignment_render_proposal_diagnostics')) {
     function seo_assignment_render_proposal_diagnostics(array $proposal) {
         $evidence = (array)($proposal['evidence'] ?? []);
         if (!$evidence) return;
-        echo '<details style="margin-top:7px"><summary style="cursor:pointer"><small>Diagnóstico del motor nuevo</small></summary>';
+        echo '<details style="margin-top:7px"><summary style="cursor:pointer"><small>Diagnóstico del Clasificador</small></summary>';
         echo '<div style="font-size:11px;line-height:1.45;margin-top:5px;max-width:330px">';
         foreach ($evidence as $group=>$info) {
             $top=(array)($info['top']??[]);
@@ -4121,7 +3818,7 @@ if (!function_exists('seo_assignment_render_product_labels')) {
     function seo_assignment_render_product_labels(array $filters) {
         $total=0;$offset=($filters['page']-1)*$filters['per_page'];$rows=seo_assignment_query_products('product_labels',$filters,$filters['per_page'],$offset,$total);
         echo '<div class="seo-tags-count">'.esc_html(number_format_i18n($total)).' productos coinciden con el filtro.</div>';
-        echo '<div class="notice notice-info inline" style="margin:8px 0 12px"><p><strong>Matriz de etiquetas:</strong> cada columna contiene su propio JSON de lista. Puedes corregir una propuesta antes de confirmar la fila. ROL es informativo porque se deriva automáticamente del TIPO.</p></div>';
+        echo '<div class="notice notice-info inline" style="margin:8px 0 12px"><p><strong>Matriz de etiquetas:</strong> cada columna contiene su propio JSON de lista. Los cuatro filtros por columna se combinan entre sí y con Cobertura/Prioridad. Puedes corregir una propuesta antes de confirmar la fila. ROL es informativo porque se deriva automáticamente del TIPO.</p></div>';
         echo '<div style="overflow:auto"><table class="widefat striped seo-tags-table" style="min-width:1420px"><thead><tr><th style="min-width:260px">Producto</th><th style="min-width:160px">Cobertura / prioridad</th><th>TIPO</th><th>ROL</th><th>APLICACIÓN</th><th>PLATAFORMA</th><th>SUBTIPO</th><th style="min-width:125px">Confirmar</th></tr></thead><tbody>';
         foreach($rows as $row){
             $id=(int)$row['ID'];
@@ -4159,7 +3856,7 @@ if (!function_exists('seo_assignment_render_product_attributes')) {
         $total=0;$offset=($filters['page']-1)*$filters['per_page'];$rows=seo_assignment_query_products('product_attributes',$filters,$filters['per_page'],$offset,$total);
         echo '<div class="seo-tags-count">'.esc_html(number_format_i18n($total)).' productos coinciden con el filtro.</div><div style="overflow:auto"><table class="widefat striped seo-tags-table"><thead><tr><th>Producto</th><th>Atributos actuales</th><th>Propuesta</th><th>Estado</th><th>JSON / confirmar</th></tr></thead><tbody>';
         foreach($rows as $row){$id=(int)$row['ID'];$current=seo_assignment_attribute_current($id);$p=seo_assignment_attribute_proposal($id,$current);$target=seo_assignment_merge_attributes($current,$p['values']);
-            echo '<tr><td class="seo-tags-product"><strong>#'.$id.' · '.esc_html($row['post_title']).'</strong>'.(!empty($row['sku'])?'<br><small>SKU: '.esc_html($row['sku']).'</small>':'').'</td><td>';seo_assignment_render_semantic_compact($current);echo '</td><td>';if($p['viable'])seo_assignment_render_semantic_compact($p['values']);else echo '<span class="seo-tags-muted">Sin propuesta canónica segura</span>';echo '</td><td>'.($current?'<span class="seo-tags-state active">'.count($current).' tipos</span>':'<span class="seo-tags-state inactive">Sin atributos</span>').($p['viable']?'<br><small>Resolver canónico v2</small>':'<br><small>Detector heredado desactivado · revisar/crear vocabulario</small>').'</td><td>';seo_assignment_render_json_editor('product_attributes',$id,$target,$p['viable']);echo '</td></tr>';}
+            echo '<tr><td class="seo-tags-product"><strong>#'.$id.' · '.esc_html($row['post_title']).'</strong>'.(!empty($row['sku'])?'<br><small>SKU: '.esc_html($row['sku']).'</small>':'').'</td><td>';seo_assignment_render_semantic_compact($current);echo '</td><td>';if($p['viable'])seo_assignment_render_semantic_compact($p['values']);else echo '<span class="seo-tags-muted">Sin propuesta canónica segura</span>';echo '</td><td>'.($current?'<span class="seo-tags-state active">'.count($current).' tipos</span>':'<span class="seo-tags-state inactive">Sin atributos</span>').($p['viable']?'<br><small>Clasificador · propuesta segura</small>':'<br><small>Clasificador · sin propuesta segura</small>').'</td><td>';seo_assignment_render_json_editor('product_attributes',$id,$target,$p['viable']);echo '</td></tr>';}
         if(!$rows)echo '<tr><td colspan="5">No hay productos que coincidan con los filtros.</td></tr>'; echo '</tbody></table></div>'; seo_assignment_render_pagination('product_attributes',$filters,$total);
     }
 }
@@ -4337,7 +4034,7 @@ if (!function_exists('seo_assignment_render_format_examples')) {
 if (!function_exists('seo_assignment_render_pagination')) {
     function seo_assignment_render_pagination($section,array $filters,$total) {
         $pages=max(1,(int)ceil($total/max(1,$filters['per_page']))); if($pages<=1)return; $page=min($pages,max(1,$filters['page']));
-        $base=['page'=>'seo-tags-vocabulary','domain'=>'assignment','assignment_section'=>$section,'assignment_s'=>$filters['search'],'assignment_category_id'=>$filters['category_id'],'assignment_coverage'=>$filters['coverage'],'assignment_priority'=>(string)($filters['priority']??'all'),'assignment_per_page'=>$filters['per_page']];
+        $base=['page'=>'seo-tags-vocabulary','domain'=>'assignment','assignment_section'=>$section,'assignment_s'=>$filters['search'],'assignment_category_id'=>$filters['category_id'],'assignment_coverage'=>$filters['coverage'],'assignment_priority'=>(string)($filters['priority']??'all'),'assignment_filter_tipo'=>(string)($filters['filter_tipo']??'all'),'assignment_filter_aplicacion'=>(string)($filters['filter_aplicacion']??'all'),'assignment_filter_plataforma'=>(string)($filters['filter_plataforma']??'all'),'assignment_filter_subtipo'=>(string)($filters['filter_subtipo']??'all'),'assignment_per_page'=>$filters['per_page']];
         echo '<div class="seo-tags-pagination">'; if($page>1)echo '<a href="'.esc_url(add_query_arg(array_merge($base,['assignment_paged'=>$page-1]),admin_url('admin.php'))).'">‹</a>';
         for($i=max(1,$page-2);$i<=min($pages,$page+2);$i++){if($i===$page)echo '<span class="current">'.$i.'</span>';else echo '<a href="'.esc_url(add_query_arg(array_merge($base,['assignment_paged'=>$i]),admin_url('admin.php'))).'">'.$i.'</a>';}
         if($page<$pages)echo '<a href="'.esc_url(add_query_arg(array_merge($base,['assignment_paged'=>$page+1]),admin_url('admin.php'))).'">›</a>'; echo '<span>Página '.$page.' / '.$pages.'</span></div>';
