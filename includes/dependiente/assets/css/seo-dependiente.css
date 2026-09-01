@@ -1958,3 +1958,240 @@ button.seo-dependiente__chip::after {
         margin-top: 12px;
     }
 }
+
+
+/* Admin: observabilidad y aprendizaje */
+.seo-dependiente-admin__tabs {
+    max-width: 1200px;
+    margin-top: 18px;
+}
+
+.seo-dependiente-admin__toolbar-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    max-width: 1200px;
+    margin: 20px 0;
+}
+
+.seo-dependiente-admin__periods {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.seo-dependiente-admin__metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    max-width: 1200px;
+    margin: 0 0 20px;
+}
+
+.seo-dependiente-admin__metrics--small {
+    grid-template-columns: repeat(3, minmax(160px, 240px));
+    margin-top: 20px;
+}
+
+.seo-dependiente-admin__metric {
+    box-sizing: border-box;
+    min-height: 92px;
+    padding: 16px;
+    border: 1px solid #dcdcde;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.seo-dependiente-admin__metric strong {
+    display: block;
+    margin-bottom: 5px;
+    color: #1d2327;
+    font-size: 26px;
+    line-height: 1;
+}
+
+.seo-dependiente-admin__metric span {
+    color: #50575e;
+}
+
+.seo-dependiente-admin__metric.is-warning {
+    border-color: #dba617;
+    background: #fffaf0;
+}
+
+.seo-dependiente-admin__diagnostic-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    max-width: 1200px;
+    margin-bottom: 20px;
+}
+
+.seo-dependiente-admin__wide-box {
+    box-sizing: border-box;
+    max-width: 1200px;
+    margin: 0 0 20px;
+}
+
+.seo-dependiente-admin__ranking {
+    margin: 0;
+}
+
+.seo-dependiente-admin__ranking li {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f1;
+}
+
+.seo-dependiente-admin__ranking li:last-child {
+    border-bottom: 0;
+}
+
+.seo-dependiente-admin__table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.seo-dependiente-admin__search-table {
+    min-width: 980px;
+}
+
+.seo-dependiente-admin__search-table td,
+.seo-dependiente-admin__search-table th {
+    vertical-align: top;
+}
+
+.seo-dependiente-admin__learning-list {
+    display: grid;
+    gap: 12px;
+}
+
+.seo-dependiente-admin__learning-card {
+    padding: 16px;
+    border: 1px solid #dcdcde;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.seo-dependiente-admin__learning-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    align-items: flex-start;
+}
+
+.seo-dependiente-admin__learning-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.seo-dependiente-admin__badges {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.seo-dependiente-admin__badges span {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: #f0f0f1;
+    color: #50575e;
+    font-size: 12px;
+}
+
+.seo-dependiente-admin__evidence {
+    margin: 12px 0 0;
+    color: #50575e;
+}
+
+.seo-dependiente-admin__media-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.seo-dependiente-admin__media-field {
+    padding: 12px;
+    border: 1px solid #dcdcde;
+    border-radius: 8px;
+}
+
+.seo-dependiente-admin__media-preview {
+    display: flex;
+    align-items: center;
+    min-height: 90px;
+    margin: 10px 0;
+    background: #f6f7f7;
+}
+
+.seo-dependiente-admin__media-preview img {
+    display: block;
+    width: 100%;
+    max-height: 140px;
+    object-fit: contain;
+}
+
+.seo-dependiente-admin__media-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 960px) {
+    .seo-dependiente-admin__diagnostic-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .seo-dependiente-admin__metrics--small {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+}
+
+@media (max-width: 782px) {
+    .seo-dependiente-admin__learning-head {
+        display: block;
+    }
+
+    .seo-dependiente-admin__learning-actions {
+        margin-top: 12px;
+    }
+
+    .seo-dependiente-admin__media-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+/* Informe de búsquedas: productos concretos ofrecidos */
+.seo-dependiente-admin__offered-list {
+    min-width: 280px;
+    margin: 0;
+    padding-left: 20px;
+}
+
+.seo-dependiente-admin__offered-list li {
+    margin: 0 0 5px;
+}
+
+.seo-dependiente-admin__offered-list li.is-clicked {
+    font-weight: 600;
+    color: #166534;
+}
+
+.seo-dependiente-admin__offered-list small {
+    margin-left: 6px;
+    color: #646970;
+    white-space: nowrap;
+}
+
+.seo-dependiente-admin__diagnostic-grid {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
