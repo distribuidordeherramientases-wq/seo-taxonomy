@@ -72,6 +72,9 @@ require_once SEO_SYSTEM_PATH . 'includes/seo-images.php';
 require_once SEO_SYSTEM_PATH . 'includes/product-classification.php';
 require_once SEO_SYSTEM_PATH . 'includes/product-inventory.php';
 require_once SEO_SYSTEM_PATH . 'includes/product-attributes.php';
+
+// Motor de propuestas de clasificación (solo lectura; no persiste datos).
+require_once SEO_SYSTEM_PATH . 'includes/clasificador/bootstrap.php';
 require_once SEO_SYSTEM_PATH . 'includes/product-recategorization.php';
 
 // Alta/edición unitaria: ambos caminos usan el mismo servicio canónico.
