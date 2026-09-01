@@ -2398,6 +2398,15 @@ button.seo-dependiente__chip::after {
     background: #f7f8f9;
 }
 
+.seo-dependiente__amazon-search-image--fallback {
+    width: 72%;
+    height: 72%;
+    padding: 18px;
+    border-radius: 14px;
+    object-fit: contain;
+    background: #fff;
+}
+
 .seo-dependiente__amazon-source-badge {
     position: absolute;
     top: 10px;

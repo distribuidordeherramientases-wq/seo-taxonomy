@@ -1109,17 +1109,39 @@
                 '</div>' +
                 '<div class="seo-dependiente__amazon-grid">' + cards + '</div>' +
                 '<p class="seo-dependiente__amazon-disclosure">Como Afiliado de Amazon, podemos obtener ingresos por compras adscritas realizadas desde estos enlaces. En el modo sin API no mostramos precios ni disponibilidad: se consultan directamente en Amazon.</p>';
+            bindAmazonImageFallbacks(elements.amazon);
             elements.amazon.hidden = false;
+        }
+
+        function bindAmazonImageFallbacks(root) {
+            if (!root) return;
+            const fallbackImage = String(config.placeholderImage || '');
+            if (!fallbackImage) return;
+
+            root.querySelectorAll('.seo-dependiente__amazon-search-image, .seo-dependiente__amazon-image img').forEach(function (image) {
+                image.addEventListener('error', function () {
+                    if (image.dataset.fallbackApplied === '1') return;
+                    image.dataset.fallbackApplied = '1';
+                    image.src = fallbackImage;
+                    image.classList.add('seo-dependiente__amazon-search-image--fallback');
+                    const visual = image.closest('.seo-dependiente__amazon-search-visual, .seo-dependiente__amazon-image');
+                    const note = visual ? visual.querySelector('.seo-dependiente__amazon-media-note') : null;
+                    if (note) note.textContent = 'Imagen de referencia';
+                }, { once: true });
+            });
         }
 
         function renderAmazonSearchCard(item, index, contextImages) {
             const query = item.query || item.title || '';
             const images = Array.isArray(contextImages) ? contextImages : [];
-            const image = item.image || (images.length ? images[index % images.length] : '');
+            const contextualImage = item.image || (images.length ? images[index % images.length] : '');
+            const fallbackImage = String(config.placeholderImage || '');
+            const image = contextualImage || fallbackImage;
+            const mediaNote = contextualImage ? 'Imagen orientativa relacionada' : (fallbackImage ? 'Imagen de referencia' : '');
             const visual = image
-                ? '<img class="seo-dependiente__amazon-search-image" src="' + escapeAttr(image) + '" alt="" loading="lazy" decoding="async">' +
+                ? '<img class="seo-dependiente__amazon-search-image' + (!contextualImage && fallbackImage ? ' seo-dependiente__amazon-search-image--fallback' : '') + '" src="' + escapeAttr(image) + '" alt="" loading="lazy" decoding="async">' +
                     '<span class="seo-dependiente__amazon-source-badge">Amazon</span>' +
-                    '<span class="seo-dependiente__amazon-media-note">Imagen orientativa relacionada</span>'
+                    (mediaNote ? '<span class="seo-dependiente__amazon-media-note">' + escapeHtml(mediaNote) + '</span>' : '')
                 : '<span class="seo-dependiente__amazon-search-placeholder"><span class="seo-dependiente__amazon-search-mark">amazon</span><span class="seo-dependiente__amazon-search-query">' + escapeHtml(query) + '</span></span>' +
                     '<span class="seo-dependiente__amazon-source-badge">Amazon</span>';
 
