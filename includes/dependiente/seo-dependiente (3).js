@@ -26,29 +26,19 @@
             status: root.querySelector('[data-dependiente-status]'),
             results: root.querySelector('[data-dependiente-results]'),
             pagination: root.querySelector('[data-dependiente-pagination]'),
-            amazon: root.querySelector('[data-dependiente-amazon]'),
-            feedback: root.querySelector('[data-dependiente-feedback]'),
             compareTray: root.querySelector('[data-dependiente-compare-tray]'),
             compareCount: root.querySelector('[data-dependiente-compare-count]'),
             compareClear: root.querySelector('[data-dependiente-compare-clear]'),
             compareOpen: root.querySelector('[data-dependiente-compare-open]'),
             dialog: root.querySelector('[data-dependiente-dialog]'),
             dialogClose: root.querySelector('[data-dependiente-dialog-close]'),
-            compareContent: root.querySelector('[data-dependiente-compare-content]'),
-            help: root.querySelector('[data-dependiente-help]'),
-            helpToggle: root.querySelector('[data-dependiente-help-toggle]'),
-            helpPanel: root.querySelector('[data-dependiente-help-panel]'),
-            helpForm: root.querySelector('[data-dependiente-help-form]'),
-            helpStatus: root.querySelector('[data-dependiente-help-status]'),
-            helpTitle: root.querySelector('[data-dependiente-help-title]'),
-            helpText: root.querySelector('[data-dependiente-help-text]')
+            compareContent: root.querySelector('[data-dependiente-compare-content]')
         };
 
         const state = {
             q: '',
             contextLabel: '',
             mode: 'need',
-            modeSource: 'default',
             page: 1,
             perPage: Number(config.resultsPerPage || 18),
             orderby: 'relevance',
@@ -60,10 +50,7 @@
             semanticHint: null,
             clarification: null,
             clarificationTimer: null,
-            feedbackTimer: null,
             hasResultInteraction: false,
-            helpSubmitting: false,
-            amazonRequestId: 0,
             compare: loadCompareIds()
         };
 
@@ -99,19 +86,7 @@
 
             elements.form.addEventListener('submit', function (event) {
                 event.preventDefault();
-                const nextQuery = elements.query.value.trim();
-
-                // Una busqueda escrita despues de entrar por una tarjeta visual
-                // inicia una necesidad nueva. Evita arrastrar, por ejemplo, el
-                // filtro/plataforma Milwaukee y mode=tool a "se me ha roto un grifo".
-                if (nextQuery && state.modeSource === 'menu') {
-                    state.filters = emptyFilters();
-                    state.orderby = 'relevance';
-                    if (elements.sort) elements.sort.value = 'relevance';
-                    setMode('need', 'default');
-                }
-
-                state.q = nextQuery;
+                state.q = elements.query.value.trim();
                 state.contextLabel = '';
                 state.semanticHint = null;
                 state.page = 1;
@@ -120,7 +95,7 @@
 
             elements.paths.forEach(function (button) {
                 button.addEventListener('click', function () {
-                    setMode(button.dataset.dependienteMode || 'need', 'path');
+                    setMode(button.dataset.dependienteMode || 'need');
                     if (elements.query) {
                         elements.query.focus({ preventScroll: true });
                     }
@@ -143,7 +118,6 @@
                 if (!form) return;
                 event.preventDefault();
                 readFiltersFromForm(form);
-                state.modeSource = 'filter';
                 state.page = 1;
                 search(false);
                 if (window.innerWidth <= 860) {
@@ -179,13 +153,6 @@
             });
 
             elements.results.addEventListener('click', function (event) {
-                const helpOpen = event.target.closest('[data-dependiente-help-open]');
-                if (helpOpen) {
-                    event.preventDefault();
-                    openHelp(true);
-                    return;
-                }
-
                 const reset = event.target.closest('[data-dependiente-zero-reset]');
                 if (reset) {
                     event.preventDefault();
@@ -207,7 +174,7 @@
                     state.contextLabel = alternative.dataset.dependienteZeroLabel || '';
                     elements.query.value = '';
                     state.page = 1;
-                    setMode(alternative.dataset.dependienteZeroMode || 'need', 'menu');
+                    setMode(alternative.dataset.dependienteZeroMode || 'need');
                     search(true);
                     return;
                 }
@@ -256,27 +223,6 @@
                 }
                 handleClarificationOther(form, value);
             });
-
-            if (elements.helpToggle) {
-                elements.helpToggle.addEventListener('click', function () {
-                    if (!elements.helpPanel) return;
-                    if (elements.helpPanel.hidden) openHelp(true);
-                    else closeHelp();
-                });
-            }
-
-            if (elements.helpForm) {
-                elements.helpForm.addEventListener('submit', submitHelpRequest);
-            }
-
-            if (elements.feedback) {
-                elements.feedback.addEventListener('click', function (event) {
-                    const button = event.target.closest('[data-dependiente-feedback-value]');
-                    if (!button) return;
-                    event.preventDefault();
-                    submitHelpfulFeedback(Number(button.dataset.dependienteFeedbackValue || 0));
-                });
-            }
 
             elements.compareClear.addEventListener('click', function () {
                 state.compare.clear();
@@ -359,7 +305,7 @@
                     state.semanticHint = null;
                     elements.query.value = '';
                     state.page = 1;
-                    setMode(mode, 'menu');
+                    setMode(mode);
                     search(true);
                 });
             });
@@ -374,9 +320,8 @@
             if (filter.type === 'attributes' && filter.group) state.filters.attributes[filter.group] = [slug];
         }
 
-        function setMode(mode, source) {
+        function setMode(mode) {
             state.mode = mode;
-            if (source) state.modeSource = source;
             elements.paths.forEach(function (button) {
                 button.classList.toggle('is-active', button.dataset.dependienteMode === mode);
             });
@@ -393,8 +338,6 @@
             if (state.loading) return;
             clearClarificationTimer();
             removeClarification();
-            clearFeedbackTimer();
-            clearFeedbackPrompt();
             state.hasResultInteraction = false;
             state.loading = true;
             elements.workspace.hidden = false;
@@ -402,8 +345,6 @@
                 elements.related.hidden = true;
                 elements.related.innerHTML = '';
             }
-            state.amazonRequestId += 1;
-            clearAmazon();
             elements.status.textContent = config.labels && config.labels.loading ? config.labels.loading : 'Revisando el catálogo…';
             elements.results.innerHTML = Array.from({ length: 6 }).map(function () {
                 return '<div class="seo-dependiente__skeleton" aria-hidden="true"></div>';
@@ -428,191 +369,27 @@
                 });
                 state.facets = data.facets || null;
                 state.searchId = String(data.search_id || '');
-                updateHelpPrompt(data);
                 renderSummary(data);
                 renderFilters(data.facets || {});
                 renderActiveFilters();
                 renderResults(data.results || [], data);
                 renderRelated(data.related || [], Number(data.total || 0));
                 renderPagination(data.page || 1, data.pages || 0);
-                loadAmazonFallback(data.external_fallback || null);
                 state.clarification = data.clarification || null;
                 scheduleClarification(state.clarification);
-                scheduleFeedbackPrompt(data, state.clarification);
                 elements.status.textContent = data.truncated ? 'He encontrado muchas coincidencias. Añade una medida, marca, compatibilidad o uso para afinar mejor.' : '';
                 updateUrl();
             } catch (error) {
-                updateHelpPrompt({ error: true, total: 0, search_strategy: 'index_unavailable' });
                 elements.summary.innerHTML = '<strong>No he podido terminar la búsqueda.</strong>';
                 elements.status.textContent = error.message || (config.labels && config.labels.error) || 'Ha ocurrido un error.';
-                elements.results.innerHTML = '<div class="seo-dependiente__empty"><strong>Prueba de nuevo</strong><span>Comprueba la conexión o simplifica la consulta.</span><div class="seo-dependiente__empty-help"><button type="button" class="seo-dependiente__empty-action" data-dependiente-help-open>Pedir ayuda con esta búsqueda</button><small>Podemos revisar el recorrido que has hecho y responderte por correo.</small></div></div>';
+                elements.results.innerHTML = '<div class="seo-dependiente__empty"><strong>Prueba de nuevo</strong><span>Comprueba la conexión o simplifica la consulta.</span></div>';
                 if (elements.related) {
                     elements.related.hidden = true;
                     elements.related.innerHTML = '';
                 }
-                clearAmazon();
-                clearFeedbackPrompt();
             } finally {
                 state.loading = false;
                 syncCompareButtons();
-            }
-        }
-
-        function clearFeedbackTimer() {
-            if (state.feedbackTimer) {
-                window.clearTimeout(state.feedbackTimer);
-                state.feedbackTimer = null;
-            }
-        }
-
-        function clearFeedbackPrompt() {
-            if (!elements.feedback) return;
-            elements.feedback.hidden = true;
-            elements.feedback.innerHTML = '';
-        }
-
-        function scheduleFeedbackPrompt(data, clarification) {
-            clearFeedbackTimer();
-            clearFeedbackPrompt();
-            if (!elements.feedback || !state.searchId) return;
-
-            // Si antes necesitamos desambiguar, esa pregunta tiene prioridad.
-            // Tras responderla se hace una nueva busqueda y entonces pedimos valoracion.
-            if (clarification && clarification.should_ask && Array.isArray(clarification.options) && clarification.options.length >= 2) {
-                return;
-            }
-
-            const searchId = state.searchId;
-            state.feedbackTimer = window.setTimeout(function () {
-                state.feedbackTimer = null;
-                if (!state.searchId || state.searchId !== searchId || state.loading) return;
-                renderFeedbackPrompt();
-            }, 4500);
-        }
-
-        function renderFeedbackPrompt() {
-            if (!elements.feedback || !state.searchId) return;
-            elements.feedback.hidden = false;
-            elements.feedback.innerHTML = '<div class="seo-dependiente__feedback-copy"><strong>¿Te ha servido esta respuesta?</strong><span>Tu valoración nos ayuda a mejorar qué entiende el Dependiente y cuándo debe buscar alternativas.</span></div>' +
-                '<div class="seo-dependiente__feedback-actions">' +
-                '<button type="button" data-dependiente-feedback-value="1">Sí</button>' +
-                '<button type="button" data-dependiente-feedback-value="-1">No</button>' +
-                '</div>';
-        }
-
-        function submitHelpfulFeedback(value) {
-            if (!elements.feedback || !state.searchId || !value) return;
-            clearFeedbackTimer();
-            sendFeedbackEvent({
-                search_id: state.searchId,
-                event: 'helpful',
-                value: value > 0 ? 1 : -1
-            });
-            elements.feedback.hidden = false;
-            elements.feedback.innerHTML = '<div class="seo-dependiente__feedback-thanks"><strong>Gracias.</strong><span>He guardado tu valoración para mejorar las próximas búsquedas.</span></div>';
-        }
-
-        function updateHelpPrompt(data) {
-            if (!elements.help) return;
-            const strategy = String((data && data.search_strategy) || '');
-            const weakStrategies = ['broad_fallback', 'catalog_fallback', 'index_unavailable'];
-            const total = Number(data && data.total !== undefined ? data.total : -1);
-            const prominent = Boolean(data && data.error) || total === 0 || weakStrategies.indexOf(strategy) !== -1;
-
-            elements.help.classList.toggle('is-prominent', prominent);
-            if (elements.helpTitle) {
-                elements.helpTitle.textContent = prominent
-                    ? '¿No hemos encontrado lo que necesitas?'
-                    : '¿No encuentras lo que buscas?';
-            }
-            if (elements.helpText) {
-                elements.helpText.textContent = prominent
-                    ? 'Pídenos ayuda. Revisaremos esta búsqueda con su recorrido completo y te responderemos por correo.'
-                    : 'Podemos revisar tu búsqueda con todo el contexto y responderte por correo.';
-            }
-        }
-
-        function openHelp(focusEmail) {
-            if (!elements.helpPanel || !elements.helpToggle) return;
-            elements.helpPanel.hidden = false;
-            elements.helpToggle.setAttribute('aria-expanded', 'true');
-            elements.helpToggle.textContent = 'Cerrar';
-            if (elements.help) elements.help.classList.add('is-open');
-            if (focusEmail && elements.helpForm) {
-                const email = elements.helpForm.querySelector('input[name="help_email"]');
-                window.setTimeout(function () {
-                    if (email) email.focus({ preventScroll: true });
-                    if (elements.help && typeof elements.help.scrollIntoView === 'function') {
-                        elements.help.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                    }
-                }, 40);
-            }
-        }
-
-        function closeHelp() {
-            if (!elements.helpPanel || !elements.helpToggle) return;
-            elements.helpPanel.hidden = true;
-            elements.helpToggle.setAttribute('aria-expanded', 'false');
-            elements.helpToggle.textContent = 'Pedir ayuda';
-            if (elements.help) elements.help.classList.remove('is-open');
-        }
-
-        async function submitHelpRequest(event) {
-            event.preventDefault();
-            if (!elements.helpForm || state.helpSubmitting) return;
-
-            const emailInput = elements.helpForm.querySelector('input[name="help_email"]');
-            const noteInput = elements.helpForm.querySelector('textarea[name="help_note"]');
-            const websiteInput = elements.helpForm.querySelector('input[name="website"]');
-            const submitButton = elements.helpForm.querySelector('[data-dependiente-help-submit]');
-
-            if (!emailInput || !emailInput.value.trim()) {
-                if (emailInput && typeof emailInput.reportValidity === 'function') emailInput.reportValidity();
-                return;
-            }
-            if (typeof elements.helpForm.reportValidity === 'function' && !elements.helpForm.reportValidity()) return;
-
-            state.helpSubmitting = true;
-            if (submitButton) submitButton.disabled = true;
-            if (elements.helpStatus) {
-                elements.helpStatus.classList.remove('is-success', 'is-error');
-                elements.helpStatus.textContent = 'Enviando la consulta con el contexto de esta búsqueda…';
-            }
-
-            try {
-                const data = await api('help-request', {
-                    method: 'POST',
-                    body: {
-                        search_id: state.searchId || '',
-                        email: emailInput.value.trim(),
-                        note: noteInput ? noteInput.value.trim() : '',
-                        query: state.q || (elements.query ? elements.query.value.trim() : ''),
-                        mode: state.mode,
-                        context_label: state.contextLabel || '',
-                        page_url: window.location.href,
-                        filters: state.filters || emptyFilters(),
-                        semantic_hint: state.semanticHint || null,
-                        orderby: state.orderby || 'relevance',
-                        compare_ids: Array.from(state.compare || []),
-                        website: websiteInput ? websiteInput.value : ''
-                    }
-                });
-                if (elements.helpStatus) {
-                    elements.helpStatus.classList.add('is-success');
-                    elements.helpStatus.textContent = data && data.message
-                        ? data.message
-                        : 'Solicitud enviada. Te responderemos por correo.';
-                }
-                if (elements.help) elements.help.classList.add('is-sent');
-                if (noteInput) noteInput.value = '';
-            } catch (error) {
-                if (elements.helpStatus) {
-                    elements.helpStatus.classList.add('is-error');
-                    elements.helpStatus.textContent = error.message || 'No he podido enviar la solicitud. Inténtalo de nuevo.';
-                }
-            } finally {
-                state.helpSubmitting = false;
-                if (submitButton) submitButton.disabled = false;
             }
         }
 
@@ -950,8 +727,7 @@
                 });
 
                 const actionsHtml = actions.length ? '<div class="seo-dependiente__empty-actions"><span>También puedes probar:</span><div>' + actions.join('') + '</div></div>' : '';
-                const helpHtml = elements.help ? '<div class="seo-dependiente__empty-help"><button type="button" class="seo-dependiente__empty-action" data-dependiente-help-open>Pedir ayuda con esta búsqueda</button><small>Enviaremos el recorrido de Dependiente para que no tengas que empezar de cero.</small></div>' : '';
-                elements.results.innerHTML = '<div class="seo-dependiente__empty"><strong>No hay una coincidencia clara</strong><span>' + escapeHtml((config.labels && config.labels.noResults) || 'Prueba con otros términos o elimina un filtro.') + '</span>' + actionsHtml + helpHtml + '</div>';
+                elements.results.innerHTML = '<div class="seo-dependiente__empty"><strong>No hay una coincidencia clara</strong><span>' + escapeHtml((config.labels && config.labels.noResults) || 'Prueba con otros términos o elimina un filtro.') + '</span>' + actionsHtml + '</div>';
                 return;
             }
             elements.results.innerHTML = results.map(function (product, index) {
@@ -990,9 +766,7 @@
         function renderProductCard(product, position) {
             const selected = state.compare.has(Number(product.id));
             const categories = (product.categories || []).join(' · ');
-            const tier = product.search_tier === 'extended' ? 'Relacionado' : 'Coincidencia directa';
             const kicker = [
-                '<span class="seo-dependiente__search-tier ' + (product.search_tier === 'extended' ? 'is-extended' : 'is-direct') + '">' + tier + '</span>',
                 product.brand ? escapeHtml(product.brand) : '',
                 categories ? escapeHtml(categories) : '',
                 '<span class="seo-dependiente__stock ' + (product.stock_status === 'outofstock' ? 'is-out' : '') + '">' + escapeHtml(product.stock_label || '') + '</span>'
@@ -1016,229 +790,6 @@
                 '</div></article>';
         }
 
-        function clearAmazon() {
-            if (!elements.amazon) return;
-            elements.amazon.hidden = true;
-            elements.amazon.innerHTML = '';
-        }
-
-        async function loadAmazonFallback(fallback) {
-            if (!elements.amazon) return;
-            const requestId = ++state.amazonRequestId;
-            clearAmazon();
-            if (!fallback) return;
-
-            if (!fallback.should_load) {
-                const status = String(fallback.status || '');
-                if (status === 'partner_tag_missing') {
-                    renderAmazonStatus(
-                        'Amazon Afiliados está pendiente de configurar.',
-                        'Falta el Partner Tag de amazon.es. No hace falta Creators API: guarda únicamente el Partner Tag en Conexiones → Amazon Afiliados.'
-                    );
-                } else if (status && status !== 'empty_query' && status !== 'query_unusable' && status !== 'inactive') {
-                    renderAmazonStatus(
-                        'No he podido preparar Amazon para esta búsqueda.',
-                        'El catálogo y las guías siguen disponibles. Estado: ' + status + '.'
-                    );
-                }
-                return;
-            }
-
-            if (!fallback.query || !fallback.token || !fallback.bucket) {
-                renderAmazonStatus(
-                    'No he podido preparar Amazon para esta búsqueda.',
-                    'La configuración afiliada existe, pero faltan datos internos de la solicitud.'
-                );
-                return;
-            }
-
-            elements.amazon.hidden = false;
-            elements.amazon.innerHTML = '<div class="seo-dependiente__amazon-loading"><strong>Preparando opciones de Amazon…</strong><span>Las añadimos después de nuestro catálogo y nuestras guías.</span></div>';
-
-            try {
-                const data = await api('amazon-search', {
-                    method: 'POST',
-                    body: {
-                        q: String(fallback.query || ''),
-                        token: String(fallback.token || ''),
-                        bucket: Number(fallback.bucket || 0)
-                    }
-                });
-                if (requestId !== state.amazonRequestId) return;
-                renderAmazon(data || {}, fallback);
-            } catch (error) {
-                // No rompemos la busqueda principal, pero tampoco ocultamos que el
-                // proveedor externo fue consultado y no pudo responder.
-                if (requestId === state.amazonRequestId) {
-                    renderAmazonStatus('No he podido preparar los enlaces de Amazon.', 'Nuestro catálogo y nuestras guías siguen disponibles.');
-                }
-            }
-        }
-
-        function renderAmazonStatus(title, text) {
-            if (!elements.amazon) return;
-            elements.amazon.hidden = false;
-            elements.amazon.innerHTML = '<div class="seo-dependiente__amazon-loading"><strong>' + escapeHtml(title || '') + '</strong><span>' + escapeHtml(text || '') + '</span></div>';
-        }
-
-        function renderAmazon(response, fallback) {
-            if (!elements.amazon) return;
-            const items = response && Array.isArray(response.items) ? response.items : [];
-            const mode = response && response.mode ? String(response.mode) : 'affiliate';
-            if (!items.length) {
-                renderAmazonStatus('No hay opciones de Amazon para esta búsqueda.', 'Nuestro catálogo y nuestras guías siguen disponibles.');
-                return;
-            }
-
-            const affiliateMode = mode === 'affiliate' || items.some(function (item) { return item && item.type === 'search'; });
-            const reasonText = affiliateMode
-                ? 'Estas son búsquedas afiliadas relacionadas. Al abrirlas verás en Amazon los productos, precios y disponibilidad actualizados.'
-                : 'Como complemento a los productos y contenidos de nuestra web, también hemos consultado Amazon.';
-            const contextImages = fallback && Array.isArray(fallback.context_images)
-                ? fallback.context_images.filter(Boolean)
-                : [];
-            const cards = affiliateMode
-                ? items.map(function (item, index) { return renderAmazonSearchCard(item, index, contextImages); }).join('')
-                : items.map(renderAmazonCard).join('');
-            const title = affiliateMode ? 'Más opciones en Amazon' : 'Productos relacionados en Amazon';
-            const eyebrow = affiliateMode ? 'Búsquedas afiliadas' : 'Catálogo externo';
-
-            elements.amazon.innerHTML = '<div class="seo-dependiente__amazon-head">' +
-                '<div><span class="seo-dependiente__amazon-eyebrow">' + escapeHtml(eyebrow) + '</span><h2>' + escapeHtml(title) + '</h2><p>' + escapeHtml(reasonText) + '</p></div>' +
-                '<span class="seo-dependiente__amazon-badge">Amazon</span>' +
-                '</div>' +
-                '<div class="seo-dependiente__amazon-grid">' + cards + '</div>' +
-                '<p class="seo-dependiente__amazon-disclosure">Como Afiliado de Amazon, podemos obtener ingresos por compras adscritas realizadas desde estos enlaces. En el modo sin API no mostramos precios ni disponibilidad: se consultan directamente en Amazon.</p>';
-            bindAmazonImageFallbacks(elements.amazon, contextImages);
-            elements.amazon.hidden = false;
-        }
-
-        function bindAmazonImageFallbacks(root, contextImages) {
-            if (!root) return;
-
-            const fallbackImage = String(config.placeholderImage || '');
-            const cleanContextImages = Array.isArray(contextImages)
-                ? contextImages.map(function (url) { return String(url || '').trim(); }).filter(Boolean)
-                : [];
-
-            /*
-             * Las tarjetas sin API se pintan primero con un placeholder limpio.
-             * Solo insertamos una imagen despues de comprobar que el navegador puede
-             * cargarla. Asi evitamos el icono de imagen rota y podemos saltar a la
-             * siguiente foto de proveedor si una URL remota ha caducado.
-             */
-            root.querySelectorAll('.seo-dependiente__amazon-search-image').forEach(function (image) {
-                const startIndex = Math.max(0, Number(image.dataset.amazonImageIndex || 0));
-                const candidates = [];
-
-                if (cleanContextImages.length) {
-                    const offset = startIndex % cleanContextImages.length;
-                    cleanContextImages.slice(offset).concat(cleanContextImages.slice(0, offset)).forEach(function (url) {
-                        if (url && candidates.indexOf(url) === -1) candidates.push(url);
-                    });
-                }
-
-                if (fallbackImage && candidates.indexOf(fallbackImage) === -1) {
-                    candidates.push(fallbackImage);
-                }
-
-                const visual = image.closest('.seo-dependiente__amazon-search-visual');
-                const placeholder = visual ? visual.querySelector('.seo-dependiente__amazon-search-placeholder') : null;
-                const note = visual ? visual.querySelector('.seo-dependiente__amazon-media-note') : null;
-
-                const tryCandidate = function (candidateIndex) {
-                    if (candidateIndex >= candidates.length) {
-                        image.hidden = true;
-                        image.removeAttribute('src');
-                        if (placeholder) placeholder.hidden = false;
-                        if (note) note.hidden = true;
-                        return;
-                    }
-
-                    const candidate = candidates[candidateIndex];
-                    const probe = new Image();
-
-                    probe.onload = function () {
-                        image.src = candidate;
-                        image.hidden = false;
-                        if (placeholder) placeholder.hidden = true;
-
-                        const isFallback = fallbackImage && candidate === fallbackImage;
-                        image.classList.toggle('seo-dependiente__amazon-search-image--fallback', Boolean(isFallback));
-                        if (note) {
-                            note.textContent = isFallback ? 'Imagen de referencia' : 'Imagen orientativa relacionada';
-                            note.hidden = false;
-                        }
-                    };
-
-                    probe.onerror = function () {
-                        tryCandidate(candidateIndex + 1);
-                    };
-
-                    probe.src = candidate;
-                };
-
-                tryCandidate(0);
-            });
-
-            /*
-             * Fichas enriquecidas de Creators: si alguna imagen real fallase,
-             * intentamos el fallback corporativo y, si tambien falla, la ocultamos.
-             */
-            root.querySelectorAll('.seo-dependiente__amazon-image img').forEach(function (image) {
-                image.addEventListener('error', function () {
-                    if (fallbackImage && image.dataset.fallbackApplied !== '1') {
-                        image.dataset.fallbackApplied = '1';
-                        image.src = fallbackImage;
-                        return;
-                    }
-                    image.style.visibility = 'hidden';
-                });
-            });
-        }
-
-        function renderAmazonSearchCard(item, index, contextImages) {
-            const query = item.query || item.title || '';
-            const placeholder = '<span class="seo-dependiente__amazon-search-placeholder">' +
-                '<span class="seo-dependiente__amazon-search-mark">amazon</span>' +
-                '<span class="seo-dependiente__amazon-search-query">' + escapeHtml(query) + '</span>' +
-                '</span>';
-            const visual = placeholder +
-                '<img class="seo-dependiente__amazon-search-image" data-amazon-image-index="' + Number(index || 0) + '" alt="" loading="lazy" decoding="async" hidden>' +
-                '<span class="seo-dependiente__amazon-source-badge">Amazon</span>' +
-                '<span class="seo-dependiente__amazon-media-note" hidden></span>';
-
-            return '<article class="seo-dependiente__amazon-card seo-dependiente__amazon-card--search">' +
-                '<a class="seo-dependiente__amazon-search-visual" href="' + escapeAttr(item.url || '#') + '" target="_blank" rel="sponsored nofollow noopener" aria-label="' + escapeAttr('Buscar ' + query + ' en Amazon') + '">' +
-                    visual +
-                '</a>' +
-                '<div class="seo-dependiente__amazon-body">' +
-                    '<div class="seo-dependiente__amazon-kicker">Enlace de afiliado · Búsqueda en Amazon</div>' +
-                    '<h3><a href="' + escapeAttr(item.url || '#') + '" target="_blank" rel="sponsored nofollow noopener">' + escapeHtml(item.title || query) + '</a></h3>' +
-                    (item.description ? '<p class="seo-dependiente__amazon-search-description">' + escapeHtml(item.description) + '</p>' : '') +
-                    '<div class="seo-dependiente__amazon-foot"><span></span><a href="' + escapeAttr(item.url || '#') + '" target="_blank" rel="sponsored nofollow noopener">Ver opciones en Amazon ↗</a></div>' +
-                '</div>' +
-            '</article>';
-        }
-
-        function renderAmazonCard(product) {
-            const image = product.image || config.placeholderImage || '';
-            const features = (product.features || []).slice(0, 2).map(function (feature) {
-                return '<li>' + escapeHtml(feature) + '</li>';
-            }).join('');
-            const kicker = ['Enlace pagado', product.brand ? escapeHtml(product.brand) : '', product.asin ? 'ASIN ' + escapeHtml(product.asin) : ''].filter(Boolean).join(' · ');
-
-            return '<article class="seo-dependiente__amazon-card">' +
-                '<a class="seo-dependiente__amazon-image" href="' + escapeAttr(product.url || '#') + '" target="_blank" rel="sponsored nofollow noopener"><img src="' + escapeAttr(image) + '" alt="' + escapeAttr(product.title || '') + '" loading="lazy" decoding="async"></a>' +
-                '<div class="seo-dependiente__amazon-body">' +
-                    (kicker ? '<div class="seo-dependiente__amazon-kicker">' + kicker + '</div>' : '') +
-                    '<h3><a href="' + escapeAttr(product.url || '#') + '" target="_blank" rel="sponsored nofollow noopener">' + escapeHtml(product.title || '') + '</a></h3>' +
-                    (features ? '<ul class="seo-dependiente__amazon-features">' + features + '</ul>' : '') +
-                    '<div class="seo-dependiente__amazon-foot"><strong>' + escapeHtml(product.price || 'Consultar en Amazon') + '</strong><a href="' + escapeAttr(product.url || '#') + '" target="_blank" rel="sponsored nofollow noopener">Ver en Amazon ↗</a></div>' +
-                '</div>' +
-            '</article>';
-        }
-
         function renderRelated(items, totalResults) {
             if (!elements.related) return;
             if (!items || !items.length) {
@@ -1251,29 +802,22 @@
             const rest = items.slice(3);
             const cards = first.map(renderRelatedCard).join('');
             const more = rest.length ? '<details class="seo-dependiente__related-more"><summary>Ver más información (' + rest.length + ')</summary><div class="seo-dependiente__related-more-list">' + rest.map(renderRelatedCard).join('') + '</div></details>' : '';
-            const helpText = 'Contenido de nuestras guías y soluciones relacionado directamente con tu búsqueda o con los productos encontrados.';
-            const total = items.length;
-
+            const helpText = totalResults > 0
+                ? 'Contenido relacionado con las categorías de los productos que mejor encajan.'
+                : 'Aunque no haya un producto exacto, estas guías pueden ayudarte a orientar la búsqueda.';
             elements.related.innerHTML = '<div class="seo-dependiente__related-inner">' +
-                '<div class="seo-dependiente__related-summary">' +
-                    '<span class="seo-dependiente__related-summary-copy"><small>Información de nuestra web</small><strong>Guías y soluciones <em>(' + total + ')</em></strong></span>' +
-                '</div>' +
-                '<div class="seo-dependiente__related-panel">' +
-                    '<p class="seo-dependiente__related-help">' + escapeHtml(helpText) + '</p>' +
-                    '<div class="seo-dependiente__related-list">' + cards + '</div>' + more +
-                '</div>' +
-            '</div>';
+                '<div class="seo-dependiente__related-head"><span>También te puede ayudar</span><h2>Guías y soluciones</h2><p>' + escapeHtml(helpText) + '</p></div>' +
+                '<div class="seo-dependiente__related-list">' + cards + '</div>' + more + '</div>';
             elements.related.hidden = false;
         }
 
         function renderRelatedCard(item) {
-            const image = item.image ? '<span class="seo-dependiente__related-image"><img src="' + escapeAttr(item.image) + '" alt="" loading="lazy" decoding="async"></span>' : '<span class="seo-dependiente__related-image seo-dependiente__related-image--empty" aria-hidden="true"></span>';
-            const url = escapeAttr(item.url || '#');
-            return '<a class="seo-dependiente__related-card" href="' + url + '">' + image +
-                '<span class="seo-dependiente__related-body"><span class="seo-dependiente__related-type">' + escapeHtml(item.type_label || 'Guía') + '</span>' +
-                '<strong class="seo-dependiente__related-title">' + escapeHtml(item.title || '') + '</strong>' +
-                (item.excerpt ? '<span class="seo-dependiente__related-excerpt">' + escapeHtml(item.excerpt) + '</span>' : '') +
-                '<span class="seo-dependiente__related-link">Leer →</span></span></a>';
+            const image = item.image ? '<span class="seo-dependiente__related-image"><img src="' + escapeAttr(item.image) + '" alt="" loading="lazy" decoding="async"></span>' : '';
+            return '<article class="seo-dependiente__related-card">' + image +
+                '<div class="seo-dependiente__related-body"><span class="seo-dependiente__related-type">' + escapeHtml(item.type_label || 'Guía') + '</span>' +
+                '<h3><a href="' + escapeAttr(item.url || '#') + '">' + escapeHtml(item.title || '') + '</a></h3>' +
+                (item.excerpt ? '<p>' + escapeHtml(item.excerpt) + '</p>' : '') +
+                '<a class="seo-dependiente__related-link" href="' + escapeAttr(item.url || '#') + '">Leer →</a></div></article>';
         }
 
         function renderPagination(page, pages) {
