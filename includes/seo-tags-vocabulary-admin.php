@@ -100,7 +100,10 @@ if (!function_exists('seo_tags_vocab_render_styles')) {
             .seo-tags-manager-form label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#50575e}
             .seo-tags-manager-form input,.seo-tags-manager-form select{width:100%}
             .seo-tags-state{display:inline-block;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:700}
-            .seo-tags-state.active{background:#edfaef;color:#176b2c}.seo-tags-state.inactive{background:#f0f0f1;color:#646970}.seo-tags-state.new{background:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe}.seo-tags-new-box{margin-top:6px;padding:7px;border:1px solid #d8b4fe;background:#faf5ff;border-radius:4px}.seo-tags-new-box input[type=text]{width:100%;font-size:11px}.seo-tags-new-button{border-color:#7e22ce!important;color:#6b21a8!important}.seo-tags-new-button:hover{border-color:#6b21a8!important;color:#581c87!important}
+            .seo-tags-state.active{background:#edfaef;color:#176b2c}.seo-tags-state.inactive{background:#f0f0f1;color:#646970}
+            .seo-tags-state.current{background:#edfaef;color:#176b2c;border:1px solid #b8dfc1}.seo-tags-state.safe{background:#e8f2ff;color:#135e96;border:1px solid #b7d7f5}.seo-tags-state.review{background:#fff7d6;color:#7a4f01;border:1px solid #e9d48a}.seo-tags-state.new{background:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe}.seo-tags-state.pending{background:#f6f7f7;color:#50575e;border:1px dashed #a7aaad}.seo-tags-state.unresolved,.seo-tags-state.empty{background:#f0f0f1;color:#646970;border:1px solid #dcdcde}
+            .seo-tags-new-box{margin-top:6px;padding:7px;border:1px solid #d8b4fe;background:#faf5ff;border-radius:4px}.seo-tags-new-box input[type=text]{width:100%;font-size:11px}.seo-tags-new-button{border-color:#7e22ce!important;color:#6b21a8!important}.seo-tags-new-button:hover{border-color:#6b21a8!important;color:#581c87!important}
+            .seo-classifier-job{border:1px solid #c3c4c7;border-left:4px solid #2271b1;background:#fff;padding:12px 14px;margin:12px 0}.seo-classifier-job-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:10px}.seo-classifier-job-kpi{background:#f6f7f7;border-radius:5px;padding:8px 10px}.seo-classifier-job-kpi strong{display:block;font-size:18px}.seo-classifier-progress{height:12px;background:#e2e4e7;border-radius:999px;overflow:hidden;margin:10px 0 4px}.seo-classifier-progress>span{display:block;height:100%;background:#2271b1;width:0;transition:width .3s ease}.seo-classifier-job-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
             .seo-tags-row-form{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.seo-tags-row-form input[type=text]{min-width:240px}
             .seo-tags-danger{color:#b32d2e}.seo-tags-help{font-size:12px;color:#646970;margin-top:6px}
             @media(max-width:900px){.seo-tags-control-grid{grid-template-columns:1fr}.seo-tags-control-grid .head{display:none}.seo-tags-filter .search-wide{min-width:220px}.seo-tags-manager-form{grid-template-columns:1fr}}
@@ -3076,13 +3079,18 @@ if (!function_exists('seo_assignment_role_from_type')) {
 
 if (!function_exists('seo_assignment_propose_product_labels')) {
     /**
-     * La pantalla ya no contiene inteligencia propia: consume Clasificador.
+     * Build 045: Asignación nunca ejecuta el Clasificador durante el render.
+     * Solo consume propuestas persistidas por los jobs en segundo plano.
      */
-    function seo_assignment_propose_product_labels($product_id, array $current = []) {
-        if (!function_exists('seo_classifier_product_label_proposal')) {
-            return ['values'=>[],'review'=>[],'confidence'=>[],'evidence'=>[],'engine'=>'unavailable','viable'=>false];
+    function seo_assignment_propose_product_labels($product_id, array $current = [], array $prefetched = []) {
+        if (function_exists('seo_classifier_cached_product_label_proposal')) {
+            return seo_classifier_cached_product_label_proposal($product_id, $current, $prefetched);
         }
-        return seo_classifier_product_label_proposal($product_id, $current);
+        return [
+            'values'=>[], 'review'=>[], 'new_terms'=>[], 'confidence'=>[], 'evidence'=>[],
+            'pending_groups'=>['tipo','rol','aplicacion','plataforma','subtipo'],
+            'unresolved_groups'=>[], 'engine'=>'jobs_unavailable', 'viable'=>false,
+        ];
     }
 }
 
@@ -3492,6 +3500,8 @@ if (!function_exists('seo_assignment_query_categories')) {
 
 if (!function_exists('seo_assignment_summary')) {
     function seo_assignment_summary() {
+        $cached = get_transient('seo_assignment_summary_v045');
+        if (is_array($cached)) return $cached;
         global $wpdb;
         $labels = seo_tags_vocab_get_summary();
         $attrs = function_exists('seo_semantic_attributes_get_summary') ? seo_semantic_attributes_get_summary() : [];
@@ -3519,7 +3529,7 @@ if (!function_exists('seo_assignment_summary')) {
             );
         }
         $core_ok = min((int) ($labels['groups']['tipo']['products'] ?? 0), (int) ($labels['groups']['rol']['products'] ?? 0));
-        return [
+        $summary = [
             'products_total' => $products_total,
             'products_labels_ok' => $core_ok,
             'products_labels_missing' => max(0, $products_total - $core_ok),
@@ -3531,6 +3541,14 @@ if (!function_exists('seo_assignment_summary')) {
             'categories_with' => $cats_with,
             'categories_without' => max(0, $total_cats - $cats_with),
         ];
+        set_transient('seo_assignment_summary_v045', $summary, 2 * MINUTE_IN_SECONDS);
+        return $summary;
+    }
+}
+
+if (!function_exists('seo_assignment_invalidate_summary')) {
+    function seo_assignment_invalidate_summary() {
+        delete_transient('seo_assignment_summary_v045');
     }
 }
 
@@ -3553,13 +3571,22 @@ if (!function_exists('seo_assignment_render_summary')) {
 
 if (!function_exists('seo_assignment_current_filters')) {
     function seo_assignment_current_filters($section) {
+        $coverage = sanitize_key($_GET['assignment_coverage'] ?? ($section === 'product_attributes' ? 'without' : 'missing_any'));
+        $priority = sanitize_key($_GET['assignment_priority'] ?? 'all');
+        if ($section === 'product_labels') {
+            $allowed_coverage = ['missing_any','without_any','without_type','without_role','without_application','without_subtype','without_platform'];
+            if (!in_array($coverage,$allowed_coverage,true)) $coverage='missing_any';
+            if (!in_array($priority,['all','p1','p2','p3','p4','p5'],true)) $priority='all';
+        }
         return [
             'search' => sanitize_text_field(wp_unslash($_GET['assignment_s'] ?? '')),
             'category_id' => absint($_GET['assignment_category_id'] ?? 0),
-            'coverage' => sanitize_key($_GET['assignment_coverage'] ?? ($section === 'product_attributes' ? 'without' : 'missing_any')),
-            'priority' => sanitize_key($_GET['assignment_priority'] ?? 'all'),
+            'coverage' => $coverage,
+            'priority' => $priority,
             'per_page' => in_array(absint($_GET['assignment_per_page'] ?? 25), [25,50,100], true) ? absint($_GET['assignment_per_page'] ?? 25) : 25,
             'page' => max(1,absint($_GET['assignment_paged'] ?? 1)),
+            // No se consulta ningún inventario hasta que el usuario pulsa Filtrar.
+            'submitted' => !empty($_GET['assignment_filter']),
         ];
     }
 }
@@ -3575,6 +3602,40 @@ if (!function_exists('seo_assignment_redirect')) {
     }
 }
 
+if (!function_exists('seo_assignment_filters_from_request')) {
+    function seo_assignment_filters_from_request($source = null) {
+        $source = is_array($source) ? $source : $_POST;
+        return [
+            'search'=>sanitize_text_field(wp_unslash($source['assignment_s'] ?? '')),
+            'category_id'=>absint($source['assignment_category_id'] ?? 0),
+            'coverage'=>sanitize_key(wp_unslash($source['assignment_coverage'] ?? 'missing_any')),
+            'priority'=>sanitize_key(wp_unslash($source['assignment_priority'] ?? 'all')),
+            'per_page'=>in_array(absint($source['assignment_per_page'] ?? 25), [25,50,100], true) ? absint($source['assignment_per_page'] ?? 25) : 25,
+            'page'=>1,
+            'submitted'=>true,
+        ];
+    }
+}
+
+if (!function_exists('seo_assignment_job_redirect')) {
+    function seo_assignment_job_redirect($section, array $filters, $job_id, $notice = 'job_started', $detail = '') {
+        $args = [
+            'page'=>'seo-tags-vocabulary','domain'=>'assignment','assignment_section'=>$section,
+            'assignment_filter'=>1,
+            'assignment_s'=>(string)($filters['search'] ?? ''),
+            'assignment_category_id'=>absint($filters['category_id'] ?? 0),
+            'assignment_coverage'=>(string)($filters['coverage'] ?? 'missing_any'),
+            'assignment_priority'=>(string)($filters['priority'] ?? 'all'),
+            'assignment_per_page'=>absint($filters['per_page'] ?? 25),
+            'classifier_job'=>absint($job_id),
+            'assignment_notice'=>sanitize_key($notice),
+            'assignment_detail'=>rawurlencode((string)$detail),
+        ];
+        wp_safe_redirect(add_query_arg($args, admin_url('admin.php')));
+        exit;
+    }
+}
+
 if (!function_exists('seo_assignment_notice')) {
     function seo_assignment_notice() {
         $code = sanitize_key($_GET['assignment_notice'] ?? '');
@@ -3585,6 +3646,8 @@ if (!function_exists('seo_assignment_notice')) {
             'new_label_created'=>['success','Nueva etiqueta creada en el inventario y asignada al producto.'],
             'new_label_reused'=>['success','La etiqueta ya existía en el inventario y se ha reutilizado para el producto.'],
             'mass_saved'=>['success','Propuestas viables aplicadas.'],
+            'job_started'=>['success','Trabajo del Clasificador enviado a la cola.'],
+            'apply_job_started'=>['success','Aplicación de propuestas enviada a la cola.'],
             'nothing'=>['warning','No había propuestas viables para aplicar.'],
             'error'=>['error','No se pudo completar la asignación.'],
         ];
@@ -3619,7 +3682,7 @@ if (!function_exists('seo_assignment_mass_apply')) {
                         $current=seo_assignment_attribute_current($id); $p=seo_assignment_attribute_proposal($id,$current); if (empty($p['viable'])) continue;
                         seo_assignment_apply_attributes_json($id,seo_assignment_json(seo_assignment_merge_attributes($current,$p['values'])));
                     } else {
-                        $current=seo_assignment_semantic_current('product',$id); $p=seo_assignment_propose_product_labels($id,$current); if (empty($p['viable'])) continue;
+                        $current=seo_assignment_semantic_current('product',$id); $p=seo_assignment_propose_product_labels($id,$current,(array)($proposal_map[$id]??[])); if (empty($p['viable'])) continue;
                         seo_assignment_apply_product_labels_json($id,seo_assignment_json(seo_assignment_merge_semantic($current,$p['values'])));
                     }
                     $saved++;
@@ -3712,10 +3775,12 @@ if (!function_exists('seo_assignment_group_cell_state')) {
         $safe = array_values((array) (($proposal['values'][$group] ?? [])));
         $review = array_values((array) (($proposal['review'][$group] ?? [])));
         $new_rows = array_values((array) (($proposal['new_terms'][$group] ?? [])));
-        if ($current) return ['state'=>'current','values'=>$current,'label'=>'Actual','new'=>[]];
-        if ($safe) return ['state'=>'safe','values'=>$safe,'label'=>'Propuesta segura','new'=>[]];
-        if ($review) return ['state'=>'review','values'=>$review,'label'=>'Revisar propuesta','new'=>$new_rows];
-        if ($new_rows) return ['state'=>'new','values'=>[],'label'=>'Nueva etiqueta','new'=>$new_rows];
+        if ($current) return ['state'=>'current','values'=>$current,'label'=>'Actual · ya asignado','new'=>[]];
+        if ($safe) return ['state'=>'safe','values'=>$safe,'label'=>'Propuesta segura · pendiente','new'=>[]];
+        if ($review) return ['state'=>'review','values'=>$review,'label'=>'Revisar · pendiente','new'=>$new_rows];
+        if ($new_rows) return ['state'=>'new','values'=>[],'label'=>'Nueva etiqueta · pendiente','new'=>$new_rows];
+        if (in_array($group, (array)($proposal['unresolved_groups'] ?? []), true)) return ['state'=>'unresolved','values'=>[],'label'=>'Sin propuesta','new'=>[]];
+        if (in_array($group, (array)($proposal['pending_groups'] ?? []), true)) return ['state'=>'pending','values'=>[],'label'=>'Sin analizar','new'=>[]];
         return ['state'=>'empty','values'=>[],'label'=>'Vacío','new'=>[]];
     }
 }
@@ -3756,7 +3821,7 @@ if (!function_exists('seo_assignment_render_product_group_cell')) {
         $cell = seo_assignment_group_cell_state($group, $current_labels, $proposal);
         $state = (string) $cell['state'];
         $values = (array) $cell['values'];
-        $class = $state === 'new' ? 'new' : (($state === 'current' || $state === 'safe') ? 'active' : 'inactive');
+        $class = in_array($state, ['current','safe','review','new','pending','unresolved','empty'], true) ? $state : 'empty';
         echo '<div style="min-width:150px;max-width:220px">';
         echo '<span class="seo-tags-state '.esc_attr($class).'">'.esc_html($cell['label']).'</span>';
         if ($group === 'rol') {
@@ -3792,6 +3857,31 @@ if (!function_exists('seo_assignment_handle_request')) {
         $section=sanitize_key(wp_unslash($_POST['assignment_section'] ?? 'product_labels'));
         if (!array_key_exists($section,seo_assignment_sections())) $section='product_labels';
         try {
+            if ($action==='start_classifier_job') {
+                if ($section !== 'product_labels') throw new InvalidArgumentException('Los jobs adaptativos están disponibles en Etiquetas de productos.');
+                if (!function_exists('seo_classifier_job_create')) throw new RuntimeException('No está disponible la cola del Clasificador.');
+                $filters = seo_assignment_filters_from_request($_POST);
+                $mode = sanitize_key(wp_unslash($_POST['classifier_mode'] ?? 'fast'));
+                $job_id = seo_classifier_job_create([
+                    'job_type'=>'classify',
+                    'mode'=>$mode === 'deep' ? 'deep' : 'fast',
+                    'filters'=>$filters,
+                    'force_refresh'=>!empty($_POST['force_refresh']),
+                    'created_by'=>get_current_user_id(),
+                ]);
+                if (is_wp_error($job_id)) throw new RuntimeException($job_id->get_error_message());
+                seo_assignment_job_redirect($section,$filters,$job_id,'job_started','Job #'.absint($job_id).'.');
+            }
+            if ($action==='start_apply_job') {
+                if ($section !== 'product_labels') throw new InvalidArgumentException('La aplicación en cola está disponible en Etiquetas de productos.');
+                if (!function_exists('seo_classifier_job_create')) throw new RuntimeException('No está disponible la cola del Clasificador.');
+                $filters = seo_assignment_filters_from_request($_POST);
+                $job_id = seo_classifier_job_create([
+                    'job_type'=>'apply','mode'=>'fast','filters'=>$filters,'created_by'=>get_current_user_id(),
+                ]);
+                if (is_wp_error($job_id)) throw new RuntimeException($job_id->get_error_message());
+                seo_assignment_job_redirect($section,$filters,$job_id,'apply_job_started','Job #'.absint($job_id).'.');
+            }
             if ($action==='accept_new_label') {
                 if ($section !== 'product_labels') throw new InvalidArgumentException('Las nuevas etiquetas de Clasificador solo se aceptan desde Etiquetas de productos.');
                 $object_id=absint($_POST['object_id'] ?? 0);
@@ -3800,6 +3890,8 @@ if (!function_exists('seo_assignment_handle_request')) {
                 $role_id=absint($_POST['new_role_id'] ?? 0);
                 $result=seo_assignment_create_and_assign_new_product_label($object_id,$group,$label,$role_id);
                 if (function_exists('seo_classifier_bump_profiles_generation')) seo_classifier_bump_profiles_generation();
+                if (function_exists('seo_classifier_proposal_invalidate_product')) seo_classifier_proposal_invalidate_product($object_id, [$group]);
+                if (function_exists('seo_assignment_invalidate_summary')) seo_assignment_invalidate_summary();
                 seo_assignment_redirect($section,!empty($result['created'])?'new_label_created':'new_label_reused',strtoupper($group).': '.$label);
             }
             if ($action==='confirm') {
@@ -3813,12 +3905,23 @@ if (!function_exists('seo_assignment_handle_request')) {
                     else seo_assignment_apply_category_labels_json($object_id,$raw);
                 }
                 if (function_exists('seo_classifier_bump_profiles_generation')) seo_classifier_bump_profiles_generation();
+                if ($section === 'product_labels' && function_exists('seo_classifier_proposal_invalidate_product')) seo_classifier_proposal_invalidate_product($object_id);
+                if (function_exists('seo_assignment_invalidate_summary')) seo_assignment_invalidate_summary();
                 seo_assignment_redirect($section,'saved');
             }
             if ($action==='mass_accept') {
+                // Compatibilidad con formularios antiguos: en productos nunca hacemos ya
+                // una escritura masiva síncrona; la convertimos en job adaptativo.
+                if ($section === 'product_labels' && function_exists('seo_classifier_job_create')) {
+                    $filters = seo_assignment_filters_from_request($_POST);
+                    $job_id = seo_classifier_job_create(['job_type'=>'apply','mode'=>'fast','filters'=>$filters,'created_by'=>get_current_user_id()]);
+                    if (is_wp_error($job_id)) throw new RuntimeException($job_id->get_error_message());
+                    seo_assignment_job_redirect($section,$filters,$job_id,'apply_job_started','Job #'.absint($job_id).'.');
+                }
                 $result=seo_assignment_mass_apply($section);
                 if ((int)$result['saved']<1) seo_assignment_redirect($section,'nothing',$result['errors']?'Errores: '.$result['errors'].'.':'');
                 if (function_exists('seo_classifier_bump_profiles_generation')) seo_classifier_bump_profiles_generation();
+                if (function_exists('seo_assignment_invalidate_summary')) seo_assignment_invalidate_summary();
                 $detail='Aplicadas: '.$result['saved'].'.'; if($result['errors'])$detail.=' Errores: '.$result['errors'].'.'; if($result['limited'])$detail.=' Se procesaron como máximo '.$result['max'].' registros; repite la acción para continuar.';
                 seo_assignment_redirect($section,'mass_saved',$detail);
             }
@@ -3831,7 +3934,7 @@ if (!function_exists('seo_assignment_render_filters')) {
     function seo_assignment_render_filters($section,array $filters) {
         $base=admin_url('admin.php?page=seo-tags-vocabulary&domain=assignment&assignment_section='.$section);
         echo '<div class="seo-tags-panel"><form method="get" class="seo-tags-filter">';
-        echo '<input type="hidden" name="page" value="seo-tags-vocabulary"><input type="hidden" name="domain" value="assignment"><input type="hidden" name="assignment_section" value="'.esc_attr($section).'">';
+        echo '<input type="hidden" name="page" value="seo-tags-vocabulary"><input type="hidden" name="domain" value="assignment"><input type="hidden" name="assignment_section" value="'.esc_attr($section).'"><input type="hidden" name="assignment_filter" value="1">';
         echo '<label>Buscar<input class="search-wide" type="text" name="assignment_s" value="'.esc_attr($filters['search']).'" placeholder="Producto, SKU, ID o categoría"></label>';
         if ($section!=='category_labels') {
             $cats=get_terms(['taxonomy'=>'product_cat','hide_empty'=>true,'orderby'=>'name','order'=>'ASC']); if(is_wp_error($cats))$cats=[];
@@ -3851,8 +3954,6 @@ if (!function_exists('seo_assignment_render_filters')) {
                 'without_application'=>'Sin APLICACIÓN',
                 'without_subtype'=>'Sin SUBTIPO',
                 'without_platform'=>'Sin PLATAFORMA',
-                'complete'=>'Cobertura completa 5/5',
-                'all'=>'Todos',
             ];
         } else {
             $options=['missing_any'=>'Falta TIPO o ROL','without_any'=>'Sin etiquetas','without_type'=>'Sin TIPO','without_role'=>'Sin ROL','without_application'=>'Sin APLICACIÓN','without_platform'=>'Sin PLATAFORMA','without_subtype'=>'Sin SUBTIPO','all'=>'Todos'];
@@ -3861,13 +3962,12 @@ if (!function_exists('seo_assignment_render_filters')) {
         echo '</select></label>';
         if ($section === 'product_labels') {
             $priority_options=[
-                'all'=>'Todas las prioridades',
+                'all'=>'Todas las anomalías',
                 'p1'=>'P1 · falta TIPO',
                 'p2'=>'P2 · falta ROL',
                 'p3'=>'P3 · falta APLICACIÓN',
                 'p4'=>'P4 · falta SUBTIPO',
                 'p5'=>'P5 · falta PLATAFORMA',
-                'complete'=>'Completa 5/5',
             ];
             echo '<label>Prioridad<select name="assignment_priority">';
             foreach($priority_options as $v=>$l)echo '<option value="'.esc_attr($v).'" '.selected((string)($filters['priority']??'all'),$v,false).'>'.esc_html($l).'</option>';
@@ -3879,17 +3979,50 @@ if (!function_exists('seo_assignment_render_filters')) {
     }
 }
 
+if (!function_exists('seo_assignment_render_job_hidden_filters')) {
+    function seo_assignment_render_job_hidden_filters($section, array $filters) {
+        echo '<input type="hidden" name="assignment_section" value="'.esc_attr($section).'">';
+        echo '<input type="hidden" name="assignment_s" value="'.esc_attr((string)($filters['search']??'')).'">';
+        echo '<input type="hidden" name="assignment_category_id" value="'.esc_attr((int)($filters['category_id']??0)).'">';
+        echo '<input type="hidden" name="assignment_coverage" value="'.esc_attr((string)($filters['coverage']??'missing_any')).'">';
+        echo '<input type="hidden" name="assignment_priority" value="'.esc_attr((string)($filters['priority']??'all')).'">';
+        echo '<input type="hidden" name="assignment_per_page" value="'.esc_attr((int)($filters['per_page']??25)).'">';
+    }
+}
+
 if (!function_exists('seo_assignment_render_mass_actions')) {
     function seo_assignment_render_mass_actions($section,array $filters) {
-        $export=wp_nonce_url(admin_url('admin.php?page=seo-tags-vocabulary&domain=assignment&seo_assignment_export=1'),'seo_assignment_export');
         echo '<div class="seo-tags-panel" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">';
-        echo '<form method="post" onsubmit="return confirm(\'Se aplicarán únicamente propuestas que reutilizan vocabulario existente. ¿Continuar?\');">';
-        wp_nonce_field('seo_assignment_admin','seo_assignment_nonce');
-        echo '<input type="hidden" name="seo_assignment_action" value="mass_accept"><input type="hidden" name="assignment_section" value="'.esc_attr($section).'">';
-        echo '<input type="hidden" name="assignment_s" value="'.esc_attr($filters['search']).'"><input type="hidden" name="assignment_category_id" value="'.esc_attr((int)$filters['category_id']).'"><input type="hidden" name="assignment_coverage" value="'.esc_attr($filters['coverage']).'"><input type="hidden" name="assignment_priority" value="'.esc_attr((string)($filters['priority']??'all')).'">';
-        echo '<button class="button button-primary">Aceptar todas las propuestas viables</button></form>';
-        echo '<a class="button" href="'.esc_url($export).'">Descargar JSON general</a>';
-        echo '<span class="seo-tags-help">El botón masivo nunca crea vocabulario nuevo. Máximo 500 registros por ejecución.</span></div>';
+        if ($section === 'product_labels') {
+            echo '<form method="post">';
+            wp_nonce_field('seo_assignment_admin','seo_assignment_nonce');
+            echo '<input type="hidden" name="seo_assignment_action" value="start_classifier_job">';
+            seo_assignment_render_job_hidden_filters($section,$filters);
+            echo '<input type="hidden" name="classifier_mode" value="fast">';
+            echo '<button class="button button-primary">Analizar este filtro en segundo plano</button></form>';
+
+            echo '<form method="post">';
+            wp_nonce_field('seo_assignment_admin','seo_assignment_nonce');
+            echo '<input type="hidden" name="seo_assignment_action" value="start_classifier_job">';
+            seo_assignment_render_job_hidden_filters($section,$filters);
+            echo '<input type="hidden" name="classifier_mode" value="deep">';
+            echo '<button class="button">Análisis profundo</button></form>';
+
+            echo '<form method="post" onsubmit="return confirm(\'Se aplicarán en segundo plano únicamente propuestas seguras de vocabulario existente. ¿Continuar?\');">';
+            wp_nonce_field('seo_assignment_admin','seo_assignment_nonce');
+            echo '<input type="hidden" name="seo_assignment_action" value="start_apply_job">';
+            seo_assignment_render_job_hidden_filters($section,$filters);
+            echo '<button class="button">Aplicar propuestas seguras en cola</button></form>';
+            echo '<span class="seo-tags-help">Los jobs trabajan por lotes adaptativos. Puedes cerrar esta pantalla: el servidor continúa y regula el ritmo según CPU estimada, tiempo, memoria y coste SQL.</span>';
+        } else {
+            echo '<form method="post" onsubmit="return confirm(\'Se aplicarán únicamente propuestas que reutilizan vocabulario existente. ¿Continuar?\');">';
+            wp_nonce_field('seo_assignment_admin','seo_assignment_nonce');
+            echo '<input type="hidden" name="seo_assignment_action" value="mass_accept"><input type="hidden" name="assignment_section" value="'.esc_attr($section).'">';
+            echo '<input type="hidden" name="assignment_s" value="'.esc_attr($filters['search']).'"><input type="hidden" name="assignment_category_id" value="'.esc_attr((int)$filters['category_id']).'"><input type="hidden" name="assignment_coverage" value="'.esc_attr($filters['coverage']).'"><input type="hidden" name="assignment_priority" value="'.esc_attr((string)($filters['priority']??'all')).'">';
+            echo '<button class="button button-primary">Aceptar todas las propuestas viables</button></form>';
+            echo '<span class="seo-tags-help">Esta pantalla es correctiva; el inventario completo se obtiene desde Importar / Exportar.</span>';
+        }
+        echo '</div>';
     }
 }
 
@@ -3951,11 +4084,59 @@ if (!function_exists('seo_assignment_render_proposal_diagnostics')) {
     }
 }
 
+if (!function_exists('seo_assignment_render_classifier_job')) {
+    function seo_assignment_render_classifier_job() {
+        if (!function_exists('seo_classifier_job_status_payload')) return;
+        $job_id = absint($_GET['classifier_job'] ?? 0);
+        $job = $job_id > 0 && function_exists('seo_classifier_job_get') ? seo_classifier_job_get($job_id) : null;
+        if (!$job && function_exists('seo_classifier_job_latest')) {
+            $latest = seo_classifier_job_latest(get_current_user_id());
+            if ($latest && in_array((string)($latest['status'] ?? ''), ['pending','running','paused'], true)) {
+                $job = $latest;
+                $job_id = (int)$latest['id'];
+            }
+        }
+        if (!$job || $job_id < 1) return;
+        $st = seo_classifier_job_status_payload($job_id);
+        if (!$st) return;
+        $percent = max(0,min(100,(float)($st['progress']??0)));
+        echo '<div class="seo-classifier-job" data-seo-classifier-job="'.esc_attr($job_id).'">';
+        echo '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div><strong>Clasificador · Job #'.esc_html($job_id).'</strong><br><span class="seo-tags-muted" data-job-status-label>'.esc_html(strtoupper((string)$st['status'])).' · '.esc_html((string)$st['job_type']).' / '.esc_html((string)$st['mode']).'</span></div><strong data-job-percent>'.esc_html(number_format_i18n($percent,1)).'%</strong></div>';
+        echo '<div class="seo-classifier-progress"><span data-job-progress style="width:'.esc_attr($percent).'%"></span></div>';
+        echo '<div class="seo-classifier-job-grid">';
+        $kpis=[
+            'processed'=>['Procesados',$st['processed'].' / '.$st['total']],
+            'safe'=>['Seguras',$st['safe']],
+            'review'=>['Revisar',$st['review']],
+            'new'=>['Nuevas',$st['new']],
+            'unresolved'=>['Sin propuesta',$st['unresolved']],
+            'cache_hits'=>['Caché',$st['cache_hits']],
+            'errors'=>['Errores',$st['errors']],
+            'cpu'=>['CPU est.',isset($st['cpu_percent']) && $st['cpu_percent'] !== null ? number_format_i18n((float)$st['cpu_percent'],1).' %' : 'n/d'],
+            'batch'=>['Último lote',$st['last_batch_rows'].' · '.number_format_i18n((float)$st['last_batch_duration'],1).' s'],
+            'next'=>['Siguiente',$st['next_batch_rows'].' · pausa '.$st['next_delay'].' s'],
+            'pressure'=>['Presión',strtoupper((string)$st['pressure'])],
+        ];
+        foreach($kpis as $key=>$row) echo '<div class="seo-classifier-job-kpi"><small>'.esc_html($row[0]).'</small><strong data-job-kpi="'.esc_attr($key).'">'.esc_html((string)$row[1]).'</strong></div>';
+        echo '</div>';
+        echo '<div class="seo-classifier-job-actions">';
+        if (in_array((string)$st['status'],['pending','running'],true)) echo '<button type="button" class="button" data-job-action="pause">Pausar</button>';
+        if ((string)$st['status']==='paused') echo '<button type="button" class="button button-primary" data-job-action="resume">Reanudar</button>';
+        if (in_array((string)$st['status'],['pending','running','paused'],true)) echo '<button type="button" class="button" data-job-action="cancel">Cancelar</button>';
+        echo '<span class="seo-tags-help">La pantalla solo consulta el estado; el trabajo continúa en segundo plano.</span></div>';
+        echo '</div>';
+        $ajax = admin_url('admin-ajax.php');
+        $nonce = wp_create_nonce('seo_classifier_jobs');
+        echo '<script>(function(){const root=document.querySelector("[data-seo-classifier-job=\"'.esc_js((string)$job_id).'\"]");if(!root||root.dataset.bound)return;root.dataset.bound="1";const jobId='.json_encode($job_id).',ajax='.json_encode($ajax).',nonce='.json_encode($nonce).';let timer=null;function setText(sel,v){const el=root.querySelector(sel);if(el)el.textContent=v;}function render(d){setText("[data-job-status-label]",String(d.status||"").toUpperCase()+" · "+d.job_type+" / "+d.mode);setText("[data-job-percent]",Number(d.progress||0).toLocaleString(undefined,{maximumFractionDigits:1})+"%");const bar=root.querySelector("[data-job-progress]");if(bar)bar.style.width=Math.max(0,Math.min(100,Number(d.progress||0)))+"%";const values={processed:d.processed+" / "+d.total,safe:d.safe,review:d.review,new:d.new,unresolved:d.unresolved,cache_hits:d.cache_hits,errors:d.errors,cpu:(d.cpu_percent===null||typeof d.cpu_percent==="undefined")?"n/d":Number(d.cpu_percent).toLocaleString(undefined,{maximumFractionDigits:1})+" %",batch:d.last_batch_rows+" · "+Number(d.last_batch_duration||0).toLocaleString(undefined,{maximumFractionDigits:1})+" s",next:d.next_batch_rows+" · pausa "+d.next_delay+" s",pressure:String(d.pressure||"").toUpperCase()};Object.keys(values).forEach(k=>setText("[data-job-kpi=\""+k+"\"]",values[k]));if(["completed","cancelled","failed"].includes(d.status)){if(timer)clearInterval(timer);if(d.status==="completed")setTimeout(()=>window.location.reload(),900);}}async function post(action,extra){const body=new URLSearchParams(Object.assign({action,nonce,job_id:jobId},extra||{}));const r=await fetch(ajax,{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8"},body:body.toString()});return r.json();}async function poll(){try{const p=await post("seo_classifier_job_status");if(p&&p.success)render(p.data);}catch(e){}}root.addEventListener("click",async function(e){const b=e.target.closest("[data-job-action]");if(!b)return;b.disabled=true;try{const p=await post("seo_classifier_job_control",{job_action:b.dataset.jobAction});if(p&&p.success){render(p.data);window.location.reload();}}finally{b.disabled=false;}});if('.json_encode(in_array((string)$st['status'],['pending','running'],true)).'){timer=setInterval(poll,5000);}})();</script>';
+    }
+}
+
 if (!function_exists('seo_assignment_render_product_labels')) {
     function seo_assignment_render_product_labels(array $filters) {
         $total=0;$offset=($filters['page']-1)*$filters['per_page'];$rows=seo_assignment_query_products('product_labels',$filters,$filters['per_page'],$offset,$total);
-        echo '<div class="seo-tags-count">'.esc_html(number_format_i18n($total)).' productos coinciden con el filtro.</div>';
-        echo '<div class="notice notice-info inline" style="margin:8px 0 12px"><p><strong>Matriz de etiquetas:</strong> cada columna contiene su propio JSON de lista. Cobertura y Prioridad localizan rápidamente los huecos. Las propuestas moradas son conceptos nuevos detectados por el Clasificador y requieren un botón separado para incorporarlos al vocabulario. ROL es informativo porque se deriva automáticamente del TIPO.</p></div>';
+        $proposal_map = function_exists('seo_classifier_proposals_for_products') ? seo_classifier_proposals_for_products(array_map(static function($r){return (int)$r['ID'];}, (array)$rows), true) : [];
+        echo '<div class="seo-tags-count">'.esc_html(number_format_i18n($total)).' anomalías coinciden con el filtro.</div>';
+        echo '<div class="notice notice-info inline" style="margin:8px 0 12px"><p><strong>Matriz correctiva:</strong> aquí solo se muestran anomalías filtradas. <strong>Actual</strong> ya estaba guardado; <strong>Propuesta segura/Revisar</strong> procede de un job y aún está pendiente; <strong>Nueva etiqueta</strong> es vocabulario nuevo. <strong>Sin analizar</strong> significa que todavía no existe resultado persistido del Clasificador.</p></div>';
         echo '<div style="overflow:auto"><table class="widefat striped seo-tags-table" style="min-width:1420px"><thead><tr><th style="min-width:260px">Producto</th><th style="min-width:160px">Cobertura / prioridad</th><th>TIPO</th><th>ROL</th><th>APLICACIÓN</th><th>PLATAFORMA</th><th>SUBTIPO</th><th style="min-width:125px">Confirmar</th></tr></thead><tbody>';
         foreach($rows as $row){
             $id=(int)$row['ID'];
@@ -4171,7 +4352,7 @@ if (!function_exists('seo_assignment_render_format_examples')) {
 if (!function_exists('seo_assignment_render_pagination')) {
     function seo_assignment_render_pagination($section,array $filters,$total) {
         $pages=max(1,(int)ceil($total/max(1,$filters['per_page']))); if($pages<=1)return; $page=min($pages,max(1,$filters['page']));
-        $base=['page'=>'seo-tags-vocabulary','domain'=>'assignment','assignment_section'=>$section,'assignment_s'=>$filters['search'],'assignment_category_id'=>$filters['category_id'],'assignment_coverage'=>$filters['coverage'],'assignment_priority'=>(string)($filters['priority']??'all'),'assignment_per_page'=>$filters['per_page']];
+        $base=['page'=>'seo-tags-vocabulary','domain'=>'assignment','assignment_section'=>$section,'assignment_filter'=>1,'assignment_s'=>$filters['search'],'assignment_category_id'=>$filters['category_id'],'assignment_coverage'=>$filters['coverage'],'assignment_priority'=>(string)($filters['priority']??'all'),'assignment_per_page'=>$filters['per_page']];
         echo '<div class="seo-tags-pagination">'; if($page>1)echo '<a href="'.esc_url(add_query_arg(array_merge($base,['assignment_paged'=>$page-1]),admin_url('admin.php'))).'">‹</a>';
         for($i=max(1,$page-2);$i<=min($pages,$page+2);$i++){if($i===$page)echo '<span class="current">'.$i.'</span>';else echo '<a href="'.esc_url(add_query_arg(array_merge($base,['assignment_paged'=>$i]),admin_url('admin.php'))).'">'.$i.'</a>';}
         if($page<$pages)echo '<a href="'.esc_url(add_query_arg(array_merge($base,['assignment_paged'=>$page+1]),admin_url('admin.php'))).'">›</a>'; echo '<span>Página '.$page.' / '.$pages.'</span></div>';
@@ -4190,7 +4371,14 @@ if (!function_exists('seo_assignment_render')) {
             seo_assignment_render_format_examples();
             return;
         }
-        $filters=seo_assignment_current_filters($section); seo_assignment_render_filters($section,$filters); seo_assignment_render_mass_actions($section,$filters);
+        $filters=seo_assignment_current_filters($section);
+        seo_assignment_render_filters($section,$filters);
+        if ($section === 'product_labels') seo_assignment_render_classifier_job();
+        if (empty($filters['submitted'])) {
+            echo '<div class="seo-tags-panel"><strong>Sin precarga de productos.</strong><p style="margin-bottom:0">Esta pantalla es correctiva. Elige una anomalía en Cobertura/Prioridad y pulsa <strong>Filtrar</strong>. Los productos completos no se listan aquí; el inventario completo sigue disponible desde Importar / Exportar.</p></div>';
+            return;
+        }
+        seo_assignment_render_mass_actions($section,$filters);
         if($section==='product_attributes')seo_assignment_render_product_attributes($filters); elseif($section==='category_labels')seo_assignment_render_category_labels($filters); else seo_assignment_render_product_labels($filters);
     }
 }
