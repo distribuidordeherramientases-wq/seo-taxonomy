@@ -1,4 +1,4 @@
-name: Importar plugin de STAGING a github
+name: Importar STAGING limpio a rama staging
 
 on:
   workflow_dispatch:
@@ -6,15 +6,20 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: sync-staging-hosting-to-github
+  cancel-in-progress: false
+
 jobs:
   sync:
+    name: STAGING hosting -> GitHub staging
     runs-on: ubuntu-latest
 
     steps:
-      - name: Abrir rama limpia de staging
+      - name: Abrir rama staging
         uses: actions/checkout@v4
         with:
-          ref: staging-clean-build045
+          ref: staging
           fetch-depth: 0
 
       - name: Instalar lftp
@@ -22,7 +27,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y lftp
 
-      - name: Descargar plugin desde STAGING
+      - name: Descargar plugin limpio desde STAGING
         env:
           FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
           FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
@@ -37,42 +42,57 @@ jobs:
           set ftp:ssl-protect-data true
           set ssl:verify-certificate yes
 
-          mirror --verbose --parallel=4 --exclude-glob .ftpquota ./wp-content/plugins/seo-taxonomy/ /tmp/seo-taxonomy
+          mirror --verbose --parallel=4 \
+            --exclude-glob .ftpquota \
+            --exclude-glob .ftp-deploy-sync-state.json \
+            ./wp-content/plugins/seo-taxonomy/ \
+            /tmp/seo-taxonomy
 
           bye
           EOF
 
-      - name: Comprobar descarga
+      - name: Validar que la descarga es el Build correcto
         run: |
           test -f /tmp/seo-taxonomy/seo-taxonomy.php || {
-            echo "ERROR: No aparece seo-taxonomy.php"
-            exit 1
-          }
-
-          test -d /tmp/seo-taxonomy/includes || {
-            echo "ERROR: No aparece includes/"
+            echo "ERROR: falta seo-taxonomy.php"
             exit 1
           }
 
           test -d /tmp/seo-taxonomy/admin || {
-            echo "ERROR: No aparece admin/"
+            echo "ERROR: falta admin/"
+            exit 1
+          }
+
+          test -d /tmp/seo-taxonomy/includes || {
+            echo "ERROR: falta includes/"
+            exit 1
+          }
+
+          test -f /tmp/seo-taxonomy/includes/dependiente/seo-dependiente-bootstrap.php || {
+            echo "ERROR: falta el bootstrap de Dependiente"
             exit 1
           }
 
           test -f /tmp/seo-taxonomy/includes/dependiente/entrenador/seo-dependiente-entrenador.php || {
-            echo "ERROR: No aparece el Entrenador"
+            echo "ERROR: falta el Entrenador"
+            exit 1
+          }
+
+          test -f /tmp/seo-taxonomy/includes/clasificador/bootstrap.php || {
+            echo "ERROR: falta el bootstrap del Clasificador"
             exit 1
           }
 
           test -f /tmp/seo-taxonomy/includes/clasificador/jobs.php || {
-            echo "ERROR: No aparece Clasificador Jobs"
+            echo "ERROR: falta Clasificador Jobs"
             exit 1
           }
 
-          echo "Descarga correcta desde STAGING"
+          echo "Plugin de STAGING validado."
+          echo "Archivos descargados:"
           find /tmp/seo-taxonomy -type f | wc -l
 
-      - name: Sincronizar rama limpia con STAGING
+      - name: Sustituir rama staging por la copia limpia
         run: |
           rsync -a --delete \
             --exclude='/.git/' \
@@ -82,11 +102,14 @@ jobs:
             --exclude='/README.md' \
             --exclude='/CONTRIBUTING.md' \
             --exclude='/LICENSE' \
+            --exclude='/.ftpquota' \
+            --exclude='/.ftp-deploy-sync-state.json' \
             /tmp/seo-taxonomy/ ./
 
+          echo "Cambios que se guardaran:"
           git status --short
 
-      - name: Guardar cambios
+      - name: Guardar staging limpio en GitHub
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -94,9 +117,9 @@ jobs:
           git add -A
 
           if git diff --cached --quiet; then
-            echo "No hay cambios que guardar"
+            echo "La rama staging ya coincide con el hosting."
             exit 0
           fi
 
-          git commit -m "Sincronizar Build045 limpio desde STAGING"
-          git push origin HEAD:staging-clean-build045
+          git commit -m "Sincronizar staging limpio desde hosting Build045"
+          git push origin HEAD:staging
