@@ -122,7 +122,7 @@ final class SEO_Dependiente_Amazon {
                 continue;
             }
             $context_images[] = $context_image;
-            if (count($context_images) >= 6) {
+            if (count($context_images) >= 12) {
                 break;
             }
         }

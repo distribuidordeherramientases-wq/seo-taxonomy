@@ -419,79 +419,157 @@ final class SEO_Dependiente_API {
      */
     private static function amazon_context_images($results, $related, $matched = array()) {
         $images = array();
-        $append = static function($candidate) use (&$images) {
+        $seen = array();
+
+        $append = static function($candidate) use (&$images, &$seen) {
             $candidate = esc_url_raw((string) $candidate);
-            if ('' === $candidate || in_array($candidate, $images, true)) {
+            if ('' === $candidate || isset($seen[$candidate])) {
                 return false;
             }
+            $seen[$candidate] = true;
             $images[] = $candidate;
-            return count($images) >= 6;
+            return count($images) >= 12;
         };
 
-        // Carga el helper usado por template-product.php solo si todavía no está
-        // disponible en esta petición REST. El archivo únicamente declara helpers.
+        /*
+         * La plantilla compartida ya conoce todas las fuentes visuales reales:
+         * Media de WooCommerce, wp_seo_supplier_images y Supplier Sync. La cargamos
+         * para no limitar Amazon a _thumbnail_id, que era la causa de que algunas
+         * tarjetas quedasen sin imagen aunque el producto tuviese fotos de proveedor.
+         */
+        if (!function_exists('dht_shared_product_image_candidates')) {
+            $helpers = dirname(__DIR__, 2) . '/seo-system/templates/template-helpers.php';
+            if (is_readable($helpers)) {
+                require_once $helpers;
+            }
+        }
+
         if (!function_exists('dht_amazon_context_image')) {
-            $template = dirname(__DIR__, 2) . '/seo-system/templates/template-amazon-product.php';
-            if (is_readable($template)) {
-                require_once $template;
+            $category_template = dirname(__DIR__, 2) . '/seo-system/templates/template-amazon-category.php';
+            if (is_readable($category_template)) {
+                require_once $category_template;
+            }
+        }
+        if (!function_exists('dht_amazon_product_deepest_category')) {
+            $product_template = dirname(__DIR__, 2) . '/seo-system/templates/template-amazon-product.php';
+            if (is_readable($product_template)) {
+                require_once $product_template;
             }
         }
 
-        $intent_types = array('direct', 'complementary', 'context', 'subfamily');
+        $add_product_images = static function($product_id) use ($append) {
+            $product_id = absint($product_id);
+            if (!$product_id) {
+                return false;
+            }
 
-        // 1) Exactamente el mismo resolvedor usado por la plantilla de producto.
-        if (function_exists('dht_amazon_context_image')) {
-            foreach ((array) $results as $index => $item) {
-                $product_id = absint($item['id'] ?? 0);
-                if (!$product_id) {
-                    continue;
+            /*
+             * Primero usamos el resolvedor del propio indice, que tambien contempla
+             * catalogos de proveedor aun no materializados en seo_supplier_images.
+             */
+            if (class_exists('SEO_Dependiente_Index')) {
+                $primary = SEO_Dependiente_Index::product_image_url($product_id);
+                if ($append($primary)) {
+                    return true;
                 }
-                $image = dht_amazon_context_image('product', $product_id, array(
-                    'type' => $intent_types[$index % count($intent_types)],
-                ));
+            }
+
+            /*
+             * Despues recogemos varias candidatas. Esto es importante porque una URL
+             * remota concreta puede haber caducado aunque la siguiente siga activa.
+             * El logo no se mezcla aqui: se reserva para el ultimo fallback visual.
+             */
+            if (function_exists('dht_shared_product_image_candidates')) {
+                foreach ((array) dht_shared_product_image_candidates($product_id, 'woocommerce_thumbnail', 5, false) as $candidate) {
+                    if ($append($candidate['url'] ?? '')) {
+                        return true;
+                    }
+                }
+            }
+
+            if (function_exists('dht_amazon_context_image')) {
+                $image = dht_amazon_context_image('product', $product_id, array('type' => 'direct'));
                 if ($append($image)) {
-                    return $images;
+                    return true;
                 }
             }
 
-            // 2) Categorías de los documentos encontrados. El helper de categoría
-            // puede seleccionar productos diferentes mediante offsets por intención.
-            $category_ids = array();
-            foreach ((array) $matched as $document) {
-                foreach ((array) ($document['categories'] ?? array()) as $category) {
-                    $term_id = absint($category['id'] ?? $category['term_id'] ?? 0);
-                    if ($term_id) {
-                        $category_ids[$term_id] = true;
-                    }
-                }
-                if (count($category_ids) >= 8) {
-                    break;
+            return false;
+        };
+
+        /*
+         * 1) Resultados visibles, en el mismo orden que ve el usuario.
+         */
+        foreach ((array) $results as $item) {
+            if ($add_product_images($item['id'] ?? $item['product_id'] ?? 0)) {
+                return array_slice($images, 0, 12);
+            }
+        }
+
+        /*
+         * 2) Candidatos internos adicionales. Aportan variedad cuando los primeros
+         * resultados comparten una misma imagen o alguno tiene una URL remota rota.
+         */
+        foreach (array_slice((array) $matched, 0, 20) as $document) {
+            if ($add_product_images($document['product_id'] ?? $document['id'] ?? 0)) {
+                return array_slice($images, 0, 12);
+            }
+        }
+
+        /*
+         * 3) Productos de las categorias encontradas. No exigimos _thumbnail_id:
+         * un producto puede tener solamente imagen externa de proveedor.
+         */
+        $category_ids = array();
+        foreach ((array) $matched as $document) {
+            foreach ((array) ($document['categories'] ?? array()) as $category) {
+                $term_id = is_array($category)
+                    ? absint($category['id'] ?? $category['term_id'] ?? 0)
+                    : 0;
+                if ($term_id) {
+                    $category_ids[$term_id] = true;
                 }
             }
-            $category_index = 0;
-            foreach (array_keys($category_ids) as $term_id) {
-                foreach ($intent_types as $intent_type) {
-                    $image = dht_amazon_context_image('category', $term_id, array('type' => $intent_type));
-                    if ($append($image)) {
-                        return $images;
-                    }
-                    $category_index++;
-                    if ($category_index >= 12) {
-                        break 2;
-                    }
+            if (count($category_ids) >= 8) {
+                break;
+            }
+        }
+
+        foreach (array_keys($category_ids) as $term_id) {
+            $ids = get_posts(array(
+                'post_type'           => 'product',
+                'post_status'         => 'publish',
+                'posts_per_page'      => 6,
+                'fields'              => 'ids',
+                'orderby'             => 'menu_order date',
+                'order'               => 'DESC',
+                'no_found_rows'       => true,
+                'ignore_sticky_posts' => true,
+                'tax_query'           => array(array(
+                    'taxonomy'         => 'product_cat',
+                    'field'            => 'term_id',
+                    'terms'            => array((int) $term_id),
+                    'include_children' => true,
+                )),
+            ));
+
+            foreach ((array) $ids as $product_id) {
+                if ($add_product_images($product_id)) {
+                    return array_slice($images, 0, 12);
                 }
             }
         }
 
-        // 3) Fallback a las imágenes ya resueltas por el Dependiente (incluye
-        // proveedor externo, miniatura de post/landing o placeholder corporativo).
+        /*
+         * 4) Ultimo apoyo: imagenes ya serializadas por productos, posts o landings.
+         */
         foreach (array_merge((array) $results, (array) $related) as $item) {
             if ($append($item['image'] ?? '')) {
                 break;
             }
         }
 
-        return array_slice($images, 0, 6);
+        return array_slice($images, 0, 12);
     }
 
     private static function amazon_fallback($query, $semantic, $context = array()) {

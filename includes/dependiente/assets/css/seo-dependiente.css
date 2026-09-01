@@ -2398,6 +2398,12 @@ button.seo-dependiente__chip::after {
     background: #f7f8f9;
 }
 
+.seo-dependiente__amazon-search-image[hidden],
+.seo-dependiente__amazon-search-placeholder[hidden],
+.seo-dependiente__amazon-media-note[hidden] {
+    display: none !important;
+}
+
 .seo-dependiente__amazon-search-image--fallback {
     width: 72%;
     height: 72%;

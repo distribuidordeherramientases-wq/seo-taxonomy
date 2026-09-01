@@ -1109,41 +1109,104 @@
                 '</div>' +
                 '<div class="seo-dependiente__amazon-grid">' + cards + '</div>' +
                 '<p class="seo-dependiente__amazon-disclosure">Como Afiliado de Amazon, podemos obtener ingresos por compras adscritas realizadas desde estos enlaces. En el modo sin API no mostramos precios ni disponibilidad: se consultan directamente en Amazon.</p>';
-            bindAmazonImageFallbacks(elements.amazon);
+            bindAmazonImageFallbacks(elements.amazon, contextImages);
             elements.amazon.hidden = false;
         }
 
-        function bindAmazonImageFallbacks(root) {
+        function bindAmazonImageFallbacks(root, contextImages) {
             if (!root) return;
-            const fallbackImage = String(config.placeholderImage || '');
-            if (!fallbackImage) return;
 
-            root.querySelectorAll('.seo-dependiente__amazon-search-image, .seo-dependiente__amazon-image img').forEach(function (image) {
+            const fallbackImage = String(config.placeholderImage || '');
+            const cleanContextImages = Array.isArray(contextImages)
+                ? contextImages.map(function (url) { return String(url || '').trim(); }).filter(Boolean)
+                : [];
+
+            /*
+             * Las tarjetas sin API se pintan primero con un placeholder limpio.
+             * Solo insertamos una imagen despues de comprobar que el navegador puede
+             * cargarla. Asi evitamos el icono de imagen rota y podemos saltar a la
+             * siguiente foto de proveedor si una URL remota ha caducado.
+             */
+            root.querySelectorAll('.seo-dependiente__amazon-search-image').forEach(function (image) {
+                const startIndex = Math.max(0, Number(image.dataset.amazonImageIndex || 0));
+                const candidates = [];
+
+                if (cleanContextImages.length) {
+                    const offset = startIndex % cleanContextImages.length;
+                    cleanContextImages.slice(offset).concat(cleanContextImages.slice(0, offset)).forEach(function (url) {
+                        if (url && candidates.indexOf(url) === -1) candidates.push(url);
+                    });
+                }
+
+                if (fallbackImage && candidates.indexOf(fallbackImage) === -1) {
+                    candidates.push(fallbackImage);
+                }
+
+                const visual = image.closest('.seo-dependiente__amazon-search-visual');
+                const placeholder = visual ? visual.querySelector('.seo-dependiente__amazon-search-placeholder') : null;
+                const note = visual ? visual.querySelector('.seo-dependiente__amazon-media-note') : null;
+
+                const tryCandidate = function (candidateIndex) {
+                    if (candidateIndex >= candidates.length) {
+                        image.hidden = true;
+                        image.removeAttribute('src');
+                        if (placeholder) placeholder.hidden = false;
+                        if (note) note.hidden = true;
+                        return;
+                    }
+
+                    const candidate = candidates[candidateIndex];
+                    const probe = new Image();
+
+                    probe.onload = function () {
+                        image.src = candidate;
+                        image.hidden = false;
+                        if (placeholder) placeholder.hidden = true;
+
+                        const isFallback = fallbackImage && candidate === fallbackImage;
+                        image.classList.toggle('seo-dependiente__amazon-search-image--fallback', Boolean(isFallback));
+                        if (note) {
+                            note.textContent = isFallback ? 'Imagen de referencia' : 'Imagen orientativa relacionada';
+                            note.hidden = false;
+                        }
+                    };
+
+                    probe.onerror = function () {
+                        tryCandidate(candidateIndex + 1);
+                    };
+
+                    probe.src = candidate;
+                };
+
+                tryCandidate(0);
+            });
+
+            /*
+             * Fichas enriquecidas de Creators: si alguna imagen real fallase,
+             * intentamos el fallback corporativo y, si tambien falla, la ocultamos.
+             */
+            root.querySelectorAll('.seo-dependiente__amazon-image img').forEach(function (image) {
                 image.addEventListener('error', function () {
-                    if (image.dataset.fallbackApplied === '1') return;
-                    image.dataset.fallbackApplied = '1';
-                    image.src = fallbackImage;
-                    image.classList.add('seo-dependiente__amazon-search-image--fallback');
-                    const visual = image.closest('.seo-dependiente__amazon-search-visual, .seo-dependiente__amazon-image');
-                    const note = visual ? visual.querySelector('.seo-dependiente__amazon-media-note') : null;
-                    if (note) note.textContent = 'Imagen de referencia';
-                }, { once: true });
+                    if (fallbackImage && image.dataset.fallbackApplied !== '1') {
+                        image.dataset.fallbackApplied = '1';
+                        image.src = fallbackImage;
+                        return;
+                    }
+                    image.style.visibility = 'hidden';
+                });
             });
         }
 
         function renderAmazonSearchCard(item, index, contextImages) {
             const query = item.query || item.title || '';
-            const images = Array.isArray(contextImages) ? contextImages : [];
-            const contextualImage = item.image || (images.length ? images[index % images.length] : '');
-            const fallbackImage = String(config.placeholderImage || '');
-            const image = contextualImage || fallbackImage;
-            const mediaNote = contextualImage ? 'Imagen orientativa relacionada' : (fallbackImage ? 'Imagen de referencia' : '');
-            const visual = image
-                ? '<img class="seo-dependiente__amazon-search-image' + (!contextualImage && fallbackImage ? ' seo-dependiente__amazon-search-image--fallback' : '') + '" src="' + escapeAttr(image) + '" alt="" loading="lazy" decoding="async">' +
-                    '<span class="seo-dependiente__amazon-source-badge">Amazon</span>' +
-                    (mediaNote ? '<span class="seo-dependiente__amazon-media-note">' + escapeHtml(mediaNote) + '</span>' : '')
-                : '<span class="seo-dependiente__amazon-search-placeholder"><span class="seo-dependiente__amazon-search-mark">amazon</span><span class="seo-dependiente__amazon-search-query">' + escapeHtml(query) + '</span></span>' +
-                    '<span class="seo-dependiente__amazon-source-badge">Amazon</span>';
+            const placeholder = '<span class="seo-dependiente__amazon-search-placeholder">' +
+                '<span class="seo-dependiente__amazon-search-mark">amazon</span>' +
+                '<span class="seo-dependiente__amazon-search-query">' + escapeHtml(query) + '</span>' +
+                '</span>';
+            const visual = placeholder +
+                '<img class="seo-dependiente__amazon-search-image" data-amazon-image-index="' + Number(index || 0) + '" alt="" loading="lazy" decoding="async" hidden>' +
+                '<span class="seo-dependiente__amazon-source-badge">Amazon</span>' +
+                '<span class="seo-dependiente__amazon-media-note" hidden></span>';
 
             return '<article class="seo-dependiente__amazon-card seo-dependiente__amazon-card--search">' +
                 '<a class="seo-dependiente__amazon-search-visual" href="' + escapeAttr(item.url || '#') + '" target="_blank" rel="sponsored nofollow noopener" aria-label="' + escapeAttr('Buscar ' + query + ' en Amazon') + '">' +
