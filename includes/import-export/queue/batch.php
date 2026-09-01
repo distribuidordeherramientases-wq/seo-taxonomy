@@ -17,8 +17,8 @@
  * @package SEOSystem
  * @subpackage ImportExport
  * @since 2.2.0
- * @version 2026-08-27
- * Build: 033
+ * @version 2026-09-01
+ * Build: 034
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -570,16 +570,25 @@ function seo_ie_batch_product_options( $header = [] ) {
             'virtual', 'descargable', 'clase_envio_id', 'clase_envio',
         ] ),
         'categories'     => $has_any( [ 'categorias_ids', 'categorias' ] ),
-        'wc_tags'        => $has_any( [ 'etiquetas_wc_ids', 'etiquetas_wc' ] ),
+
+        /*
+         * El importador automatico por cabeceras solo mantiene el producto base.
+         * El enriquecimiento semantico se procesa en un flujo independiente para
+         * poder resolver el vocabulario canonico antes de escribir. Por tanto,
+         * aunque estas columnas existan en el CSV, aqui se ignoran expresamente.
+         */
+        'wc_tags'        => false,
+        'scope'          => false,
+        'labels'         => false,
+        'vocabulary'     => false,
+        'seo_attributes' => false,
+        'wc_attributes'  => false,
+
         'brand_provider' => $has_any( [
             'marca', 'marca_ids', 'marca_taxonomia', 'fabricante',
             'proveedor', 'proveedor_id_externo', 'proveedor_catalogo_id',
             'categoria_proveedor', 'precio_proveedor',
         ] ),
-        'labels'         => false,
-        'vocabulary'     => $has_any( [ 'tipo_semantico', 'rol', 'ambito', 'aplicacion', 'plataforma', 'subtipo' ] ),
-        'seo_attributes' => $has_any( [ 'atributos_seo_json', 'atributos_seo' ] ),
-        'wc_attributes'  => in_array( 'atributos_wc_json', $header, true ),
         'images'         => false,
         'create'         => false,
         'force_draft'    => false,
@@ -751,7 +760,9 @@ function seo_ie_batch_start_product( $user_id, $processing_path, $detected ) {
             'errores'      => 0,
             'advertencias' => 0,
             'simulacion'   => 0,
-            'detalles'     => [],
+            'detalles'     => [
+                'Modo producto base: se ignoran etiquetas WooCommerce, semantica/ambito y atributos SEO/WooCommerce aunque esas columnas existan en el CSV.',
+            ],
         ],
     ];
 
@@ -1920,7 +1931,7 @@ function seo_ie_batch_render_page() {
     }
     ?>
     <div style="max-width:1300px;">
-        <h2>Importacion por lotes <small style="font-size:13px;font-weight:400;color:#646970;">Build 033</small></h2>
+        <h2>Importacion por lotes <small style="font-size:13px;font-weight:400;color:#646970;">Build 034</small></h2>
         <p>
             Cola secuencial para CSV de WordPress y SEO System. El destino se detecta por la cabecera:
             productos, categorias, paginas, entradas (posts), FAQs o redirects. El catalogo bruto de proveedores se importa desde su pestana independiente.
@@ -2126,6 +2137,7 @@ function seo_ie_batch_render_page() {
                 <li>Las categorias reutilizan exactamente el importador individual: aceptan <code>imagen_destacada_id</code> e <code>imagen_destacada</code> (URL). Si hay URL, se usa como identidad portable de la imagen y puede descargarse a la biblioteca de Medios.</li>
                 <li>Paginas/landings y entradas importan tambien su relacion comercial con <code>product_cat</code> mediante <code>seo_relations</code> cuando el CSV incluye las columnas <code>product_cat_relacion_*</code>.</li>
                 <li>Los productos reutilizan el motor adaptativo, Action Scheduler, WP-Cron y continuacion asistida desde esta pestana tras un inicio explicito.</li>
+                <li>En productos, esta cola importa solo el producto base. Las columnas de etiquetas WooCommerce, semantica/ambito y atributos SEO/WooCommerce se ignoran aunque existan en el CSV; su enriquecimiento se realizara en un flujo independiente.</li>
                 <li>Un error detiene la cola para impedir que archivos dependientes se importen sobre datos incompletos.</li>
                 <li>Borrar un archivo de <code>imported</code> solo elimina el CSV y su log; no deshace los cambios ya escritos en WordPress.</li>
             </ul>
