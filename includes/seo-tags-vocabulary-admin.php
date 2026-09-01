@@ -3637,6 +3637,7 @@ if (!function_exists('seo_assignment_query_products')) {
         $search = trim((string) ($filters['search'] ?? ''));
         $category_id = absint($filters['category_id'] ?? 0);
         $coverage = sanitize_key((string) ($filters['coverage'] ?? 'all'));
+        $priority = sanitize_key((string) ($filters['priority'] ?? 'all'));
         $where = ["p.post_type='product'", "p.post_status='publish'"];
         $args = [];
         if ($search !== '') {
@@ -3656,13 +3657,35 @@ if (!function_exists('seo_assignment_query_products')) {
             $v = $wpdb->prefix . 'seo_vocabulary';
             $o = $wpdb->prefix . 'seo_object_vocabulary';
             $group_map = ['without_type'=>'tipo','without_role'=>'rol','without_application'=>'aplicacion','without_platform'=>'plataforma','without_subtype'=>'subtipo'];
+            $exists = [];
+            foreach (['tipo','rol','aplicacion','plataforma','subtipo'] as $group) {
+                $exists[$group] = "EXISTS (SELECT 1 FROM {$o} ov_cov JOIN {$v} vv_cov ON vv_cov.id=ov_cov.vocabulary_id AND vv_cov.active=1 WHERE ov_cov.object_type='product' AND ov_cov.object_id=p.ID AND ov_cov.status=1 AND vv_cov.semantic_group='" . $group . "')";
+            }
+            $all_complete = '(' . implode(' AND ', array_values($exists)) . ')';
+            $any_present = '(' . implode(' OR ', array_values($exists)) . ')';
             if ($coverage === 'without_any') {
-                $where[] = "NOT EXISTS (SELECT 1 FROM {$o} ov JOIN {$v} vv ON vv.id=ov.vocabulary_id AND vv.active=1 WHERE ov.object_type='product' AND ov.object_id=p.ID AND ov.status=1 AND vv.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo'))";
+                $where[] = 'NOT ' . $any_present;
             } elseif ($coverage === 'missing_any') {
-                $where[] = "(NOT EXISTS (SELECT 1 FROM {$o} ov JOIN {$v} vv ON vv.id=ov.vocabulary_id AND vv.active=1 WHERE ov.object_type='product' AND ov.object_id=p.ID AND ov.status=1 AND vv.semantic_group='tipo') OR NOT EXISTS (SELECT 1 FROM {$o} ov2 JOIN {$v} vv2 ON vv2.id=ov2.vocabulary_id AND vv2.active=1 WHERE ov2.object_type='product' AND ov2.object_id=p.ID AND ov2.status=1 AND vv2.semantic_group='rol'))";
+                $where[] = 'NOT ' . $all_complete;
+            } elseif ($coverage === 'complete') {
+                $where[] = $all_complete;
             } elseif (isset($group_map[$coverage])) {
-                $where[] = "NOT EXISTS (SELECT 1 FROM {$o} ov JOIN {$v} vv ON vv.id=ov.vocabulary_id AND vv.active=1 WHERE ov.object_type='product' AND ov.object_id=p.ID AND ov.status=1 AND vv.semantic_group=%s)";
-                $args[] = $group_map[$coverage];
+                $where[] = 'NOT (' . $exists[$group_map[$coverage]] . ')';
+            }
+
+            // Cola de prioridad disjunta: cada producto aparece en el primer hueco relevante.
+            if ($priority === 'p1') {
+                $where[] = 'NOT (' . $exists['tipo'] . ')';
+            } elseif ($priority === 'p2') {
+                $where[] = $exists['tipo'] . ' AND NOT (' . $exists['rol'] . ')';
+            } elseif ($priority === 'p3') {
+                $where[] = $exists['tipo'] . ' AND ' . $exists['rol'] . ' AND NOT (' . $exists['aplicacion'] . ')';
+            } elseif ($priority === 'p4') {
+                $where[] = $exists['tipo'] . ' AND ' . $exists['rol'] . ' AND ' . $exists['aplicacion'] . ' AND NOT (' . $exists['subtipo'] . ')';
+            } elseif ($priority === 'p5') {
+                $where[] = $exists['tipo'] . ' AND ' . $exists['rol'] . ' AND ' . $exists['aplicacion'] . ' AND ' . $exists['subtipo'] . ' AND NOT (' . $exists['plataforma'] . ')';
+            } elseif ($priority === 'complete') {
+                $where[] = $all_complete;
             }
         }
         $where_sql = implode(' AND ', $where);
@@ -3719,10 +3742,29 @@ if (!function_exists('seo_assignment_summary')) {
              JOIN {$wpdb->term_taxonomy} tt ON tt.term_id=ov.object_id AND tt.taxonomy='product_cat'
              WHERE ov.object_type='product_cat' AND ov.status=1 AND vv.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')"
         ) : 0;
+        $products_total = (int) ($labels['products'] ?? 0);
+        $products_complete = 0;
+        if (seo_tags_vocab_table_exists($v) && seo_tags_vocab_table_exists($o)) {
+            $products_complete = (int) $wpdb->get_var(
+                "SELECT COUNT(*) FROM (
+                    SELECT ov.object_id
+                    FROM {$o} ov
+                    JOIN {$v} vv ON vv.id=ov.vocabulary_id AND vv.active=1
+                    JOIN {$wpdb->posts} p ON p.ID=ov.object_id AND p.post_type='product' AND p.post_status='publish'
+                    WHERE ov.object_type='product' AND ov.status=1
+                      AND vv.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
+                    GROUP BY ov.object_id
+                    HAVING COUNT(DISTINCT vv.semantic_group)=5
+                ) seo_complete_products"
+            );
+        }
+        $core_ok = min((int) ($labels['groups']['tipo']['products'] ?? 0), (int) ($labels['groups']['rol']['products'] ?? 0));
         return [
-            'products_total' => (int) ($labels['products'] ?? 0),
-            'products_labels_ok' => min((int) ($labels['groups']['tipo']['products'] ?? 0), (int) ($labels['groups']['rol']['products'] ?? 0)),
-            'products_labels_missing' => max(0, (int) ($labels['products'] ?? 0) - min((int) ($labels['groups']['tipo']['products'] ?? 0), (int) ($labels['groups']['rol']['products'] ?? 0))),
+            'products_total' => $products_total,
+            'products_labels_ok' => $core_ok,
+            'products_labels_missing' => max(0, $products_total - $core_ok),
+            'products_labels_complete' => $products_complete,
+            'products_labels_incomplete' => max(0, $products_total - $products_complete),
             'products_attributes_with' => (int) ($attrs['products'] ?? 0),
             'products_attributes_without' => max(0, (int) ($attrs['products_total'] ?? 0) - (int) ($attrs['products'] ?? 0)),
             'categories_total' => $total_cats,
@@ -3737,8 +3779,8 @@ if (!function_exists('seo_assignment_render_summary')) {
         $s = seo_assignment_summary();
         $cards = [
             ['Productos', $s['products_total'], 'publicados'],
-            ['Etiquetas producto OK', $s['products_labels_ok'], 'TIPO + ROL presentes'],
-            ['Etiquetas producto a revisar', $s['products_labels_missing'], 'falta TIPO o ROL'],
+            ['Cobertura etiquetas 5/5', $s['products_labels_complete'], 'TIPO + ROL + APLICACIÓN + PLATAFORMA + SUBTIPO'],
+            ['Cobertura incompleta', $s['products_labels_incomplete'], 'falta al menos una dimensión'],
             ['Productos sin atributos', $s['products_attributes_without'], 'sin asignaciones canónicas'],
             ['Categorías etiquetadas', $s['categories_with'], $s['categories_total'] . ' categorías totales'],
             ['Categorías sin etiquetas', $s['categories_without'], 'pendientes de clasificación'],
@@ -3755,6 +3797,7 @@ if (!function_exists('seo_assignment_current_filters')) {
             'search' => sanitize_text_field(wp_unslash($_GET['assignment_s'] ?? '')),
             'category_id' => absint($_GET['assignment_category_id'] ?? 0),
             'coverage' => sanitize_key($_GET['assignment_coverage'] ?? ($section === 'product_attributes' ? 'without' : 'missing_any')),
+            'priority' => sanitize_key($_GET['assignment_priority'] ?? 'all'),
             'per_page' => in_array(absint($_GET['assignment_per_page'] ?? 25), [25,50,100], true) ? absint($_GET['assignment_per_page'] ?? 25) : 25,
             'page' => max(1,absint($_GET['assignment_paged'] ?? 1)),
         ];
@@ -3794,6 +3837,7 @@ if (!function_exists('seo_assignment_mass_apply')) {
             'search' => sanitize_text_field(wp_unslash($_POST['assignment_s'] ?? '')),
             'category_id' => absint($_POST['assignment_category_id'] ?? 0),
             'coverage' => sanitize_key($_POST['assignment_coverage'] ?? ($section === 'product_attributes' ? 'without' : 'missing_any')),
+            'priority' => sanitize_key($_POST['assignment_priority'] ?? 'all'),
         ];
         $max = 500;
         $saved = 0; $errors = 0; $total = 0;
@@ -3835,7 +3879,7 @@ if (!function_exists('seo_assignment_export_payload')) {
             'product_labels'=>[], 'product_attributes'=>[], 'category_labels'=>[], 'limits'=>['per_section'=>1000],
         ];
         $limit=1000; $total=0;
-        $rows=seo_assignment_query_products('product_labels',['coverage'=>'missing_any','search'=>'','category_id'=>0],$limit,0,$total);
+        $rows=seo_assignment_query_products('product_labels',['coverage'=>'missing_any','priority'=>'all','search'=>'','category_id'=>0],$limit,0,$total);
         foreach($rows as $row){$id=(int)$row['ID'];$c=seo_assignment_semantic_current('product',$id);$p=seo_assignment_propose_product_labels($id,$c);$payload['product_labels'][]=['id'=>$id,'title'=>$row['post_title'],'current'=>seo_assignment_semantic_label_map($c),'proposal'=>$p['values'],'target'=>seo_assignment_merge_semantic($c,$p['values']),'viable'=>$p['viable']];}
         $payload['product_labels_total']=$total;$payload['product_labels_truncated']=$total>$limit;
         $rows=seo_assignment_query_products('product_attributes',['coverage'=>'without','search'=>'','category_id'=>0],$limit,0,$total);
@@ -3845,6 +3889,88 @@ if (!function_exists('seo_assignment_export_payload')) {
         foreach($rows as $row){$id=(int)$row['term_id'];$c=seo_assignment_semantic_current('product_cat',$id);$p=seo_assignment_category_proposal($id,$c);$payload['category_labels'][]=['id'=>$id,'name'=>$row['name'],'current'=>seo_assignment_semantic_label_map($c),'proposal'=>$p['values'],'target'=>seo_assignment_merge_semantic($c,$p['values']),'viable'=>$p['viable']];}
         $payload['category_labels_total']=$total;$payload['category_labels_truncated']=$total>$limit;
         return $payload;
+    }
+}
+
+
+if (!function_exists('seo_assignment_parse_group_json')) {
+    /** Cada celda semántica usa un JSON independiente con una lista de valores. */
+    function seo_assignment_parse_group_json($raw, $group) {
+        $raw = trim((string) $raw);
+        if ($raw === '') return [];
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded) || ($decoded && array_keys($decoded) !== range(0, count($decoded) - 1))) {
+            throw new InvalidArgumentException(strtoupper((string) $group) . ': introduce un JSON de lista, por ejemplo ["Valor"].');
+        }
+        $values = [];
+        foreach ($decoded as $value) {
+            if (is_array($value) || is_object($value)) {
+                throw new InvalidArgumentException(strtoupper((string) $group) . ': cada elemento debe ser texto.');
+            }
+            $value = trim((string) $value);
+            if ($value !== '') $values[] = $value;
+        }
+        return array_values(array_unique($values));
+    }
+}
+
+if (!function_exists('seo_assignment_apply_product_label_matrix')) {
+    function seo_assignment_apply_product_label_matrix($product_id) {
+        $payload = [];
+        foreach (['tipo','aplicacion','plataforma','subtipo'] as $group) {
+            $field = 'assignment_group_' . $group;
+            if (!array_key_exists($field, $_POST)) continue;
+            $payload[$group] = seo_assignment_parse_group_json(wp_unslash($_POST[$field]), $group);
+        }
+        if (!$payload) throw new InvalidArgumentException('No hay celdas de etiquetas para confirmar.');
+        return seo_assignment_apply_product_labels_json(absint($product_id), seo_assignment_json($payload));
+    }
+}
+
+if (!function_exists('seo_assignment_product_label_priority')) {
+    function seo_assignment_product_label_priority(array $current) {
+        if (empty($current['tipo'])) return ['code'=>'p1','label'=>'P1 · falta TIPO'];
+        if (empty($current['rol'])) return ['code'=>'p2','label'=>'P2 · falta ROL'];
+        if (empty($current['aplicacion'])) return ['code'=>'p3','label'=>'P3 · falta APLICACIÓN'];
+        if (empty($current['subtipo'])) return ['code'=>'p4','label'=>'P4 · falta SUBTIPO'];
+        if (empty($current['plataforma'])) return ['code'=>'p5','label'=>'P5 · falta PLATAFORMA'];
+        return ['code'=>'complete','label'=>'Completa 5/5'];
+    }
+}
+
+if (!function_exists('seo_assignment_json_inline')) {
+    function seo_assignment_json_inline(array $values) {
+        return (string) wp_json_encode(array_values($values), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+}
+
+if (!function_exists('seo_assignment_group_cell_state')) {
+    function seo_assignment_group_cell_state($group, array $current_labels, array $proposal) {
+        $current = array_values((array) ($current_labels[$group] ?? []));
+        $safe = array_values((array) (($proposal['values'][$group] ?? [])));
+        $review = array_values((array) (($proposal['review'][$group] ?? [])));
+        if ($current) return ['state'=>'current','values'=>$current,'label'=>'Actual'];
+        if ($safe) return ['state'=>'safe','values'=>$safe,'label'=>'Propuesta segura'];
+        if ($review) return ['state'=>'review','values'=>$review,'label'=>'Revisar propuesta'];
+        return ['state'=>'empty','values'=>[],'label'=>'Vacío'];
+    }
+}
+
+if (!function_exists('seo_assignment_render_product_group_cell')) {
+    function seo_assignment_render_product_group_cell($form_id, $group, array $current_labels, array $proposal) {
+        $cell = seo_assignment_group_cell_state($group, $current_labels, $proposal);
+        $state = (string) $cell['state'];
+        $values = (array) $cell['values'];
+        $class = $state === 'current' ? 'active' : ($state === 'safe' ? 'active' : 'inactive');
+        echo '<div style="min-width:150px;max-width:220px">';
+        echo '<span class="seo-tags-state '.esc_attr($class).'">'.esc_html($cell['label']).'</span>';
+        if ($group === 'rol') {
+            echo '<textarea rows="2" readonly style="width:100%;margin-top:5px;font-family:monospace;font-size:11px;resize:vertical;background:#f6f7f7">'.esc_textarea(seo_assignment_json_inline($values)).'</textarea>';
+            echo '<small class="seo-tags-muted">ROL se sincroniza desde TIPO.</small>';
+        } else {
+            echo '<textarea form="'.esc_attr($form_id).'" name="assignment_group_'.esc_attr($group).'" rows="2" style="width:100%;margin-top:5px;font-family:monospace;font-size:11px;resize:vertical">'.esc_textarea(seo_assignment_json_inline($values)).'</textarea>';
+        }
+        echo '</div>';
     }
 }
 
@@ -3865,10 +3991,15 @@ if (!function_exists('seo_assignment_handle_request')) {
         if (!array_key_exists($section,seo_assignment_sections())) $section='product_labels';
         try {
             if ($action==='confirm') {
-                $object_id=absint($_POST['object_id'] ?? 0); $raw=wp_unslash($_POST['assignment_json'] ?? '');
-                if ($section==='product_labels') seo_assignment_apply_product_labels_json($object_id,$raw);
-                elseif ($section==='product_attributes') seo_assignment_apply_attributes_json($object_id,$raw);
-                else seo_assignment_apply_category_labels_json($object_id,$raw);
+                $object_id=absint($_POST['object_id'] ?? 0);
+                if ($section==='product_labels' && !empty($_POST['assignment_group_matrix'])) {
+                    seo_assignment_apply_product_label_matrix($object_id);
+                } else {
+                    $raw=wp_unslash($_POST['assignment_json'] ?? '');
+                    if ($section==='product_labels') seo_assignment_apply_product_labels_json($object_id,$raw);
+                    elseif ($section==='product_attributes') seo_assignment_apply_attributes_json($object_id,$raw);
+                    else seo_assignment_apply_category_labels_json($object_id,$raw);
+                }
                 seo_assignment_redirect($section,'saved');
             }
             if ($action==='mass_accept') {
@@ -3895,10 +4026,40 @@ if (!function_exists('seo_assignment_render_filters')) {
             echo '</select></label>';
         }
         echo '<label>Cobertura<select name="assignment_coverage">';
-        if($section==='product_attributes')$options=['without'=>'Sin atributos','with'=>'Con atributos','all'=>'Todos'];
-        else $options=['missing_any'=>'Falta TIPO o ROL','without_any'=>'Sin etiquetas','without_type'=>'Sin TIPO','without_role'=>'Sin ROL','without_application'=>'Sin APLICACIÓN','without_platform'=>'Sin PLATAFORMA','without_subtype'=>'Sin SUBTIPO','all'=>'Todos'];
+        if($section==='product_attributes') {
+            $options=['without'=>'Sin atributos','with'=>'Con atributos','all'=>'Todos'];
+        } elseif ($section==='product_labels') {
+            $options=[
+                'missing_any'=>'Cobertura incompleta (falta alguna)',
+                'without_any'=>'Sin ninguna etiqueta',
+                'without_type'=>'Sin TIPO',
+                'without_role'=>'Sin ROL',
+                'without_application'=>'Sin APLICACIÓN',
+                'without_subtype'=>'Sin SUBTIPO',
+                'without_platform'=>'Sin PLATAFORMA',
+                'complete'=>'Cobertura completa 5/5',
+                'all'=>'Todos',
+            ];
+        } else {
+            $options=['missing_any'=>'Falta TIPO o ROL','without_any'=>'Sin etiquetas','without_type'=>'Sin TIPO','without_role'=>'Sin ROL','without_application'=>'Sin APLICACIÓN','without_platform'=>'Sin PLATAFORMA','without_subtype'=>'Sin SUBTIPO','all'=>'Todos'];
+        }
         foreach($options as $v=>$l)echo '<option value="'.esc_attr($v).'" '.selected($filters['coverage'],$v,false).'>'.esc_html($l).'</option>';
-        echo '</select></label><label>Filas<select name="assignment_per_page">'; foreach([25,50,100] as $n)echo '<option value="'.$n.'" '.selected((int)$filters['per_page'],$n,false).'>'.$n.'</option>'; echo '</select></label>';
+        echo '</select></label>';
+        if ($section === 'product_labels') {
+            $priority_options=[
+                'all'=>'Todas las prioridades',
+                'p1'=>'P1 · falta TIPO',
+                'p2'=>'P2 · falta ROL',
+                'p3'=>'P3 · falta APLICACIÓN',
+                'p4'=>'P4 · falta SUBTIPO',
+                'p5'=>'P5 · falta PLATAFORMA',
+                'complete'=>'Completa 5/5',
+            ];
+            echo '<label>Prioridad<select name="assignment_priority">';
+            foreach($priority_options as $v=>$l)echo '<option value="'.esc_attr($v).'" '.selected((string)($filters['priority']??'all'),$v,false).'>'.esc_html($l).'</option>';
+            echo '</select></label>';
+        }
+        echo '<label>Filas<select name="assignment_per_page">'; foreach([25,50,100] as $n)echo '<option value="'.$n.'" '.selected((int)$filters['per_page'],$n,false).'>'.$n.'</option>'; echo '</select></label>';
         echo '<div><button class="button button-primary">Filtrar</button> <a class="button" href="'.esc_url($base).'">Limpiar</a></div></form></div>';
     }
 }
@@ -3910,7 +4071,7 @@ if (!function_exists('seo_assignment_render_mass_actions')) {
         echo '<form method="post" onsubmit="return confirm(\'Se aplicarán únicamente propuestas que reutilizan vocabulario existente. ¿Continuar?\');">';
         wp_nonce_field('seo_assignment_admin','seo_assignment_nonce');
         echo '<input type="hidden" name="seo_assignment_action" value="mass_accept"><input type="hidden" name="assignment_section" value="'.esc_attr($section).'">';
-        echo '<input type="hidden" name="assignment_s" value="'.esc_attr($filters['search']).'"><input type="hidden" name="assignment_category_id" value="'.esc_attr((int)$filters['category_id']).'"><input type="hidden" name="assignment_coverage" value="'.esc_attr($filters['coverage']).'">';
+        echo '<input type="hidden" name="assignment_s" value="'.esc_attr($filters['search']).'"><input type="hidden" name="assignment_category_id" value="'.esc_attr((int)$filters['category_id']).'"><input type="hidden" name="assignment_coverage" value="'.esc_attr($filters['coverage']).'"><input type="hidden" name="assignment_priority" value="'.esc_attr((string)($filters['priority']??'all')).'">';
         echo '<button class="button button-primary">Aceptar todas las propuestas viables</button></form>';
         echo '<a class="button" href="'.esc_url($export).'">Descargar JSON general</a>';
         echo '<span class="seo-tags-help">El botón masivo nunca crea vocabulario nuevo. Máximo 500 registros por ejecución.</span></div>';
@@ -3959,14 +4120,37 @@ if (!function_exists('seo_assignment_render_proposal_diagnostics')) {
 if (!function_exists('seo_assignment_render_product_labels')) {
     function seo_assignment_render_product_labels(array $filters) {
         $total=0;$offset=($filters['page']-1)*$filters['per_page'];$rows=seo_assignment_query_products('product_labels',$filters,$filters['per_page'],$offset,$total);
-        echo '<div class="seo-tags-count">'.esc_html(number_format_i18n($total)).' productos coinciden con el filtro.</div><div style="overflow:auto"><table class="widefat striped seo-tags-table"><thead><tr><th>Producto</th><th>Actual</th><th>Propuesta</th><th>Estado</th><th>JSON / confirmar</th></tr></thead><tbody>';
-        foreach($rows as $row){$id=(int)$row['ID'];$current=seo_assignment_semantic_current('product',$id);$current_labels=seo_assignment_semantic_label_map($current);$p=seo_assignment_propose_product_labels($id,$current);$target=seo_assignment_merge_semantic($current,$p['values']);$missing=[];foreach(['tipo'=>'TIPO','rol'=>'ROL','aplicacion'=>'APLICACIÓN','plataforma'=>'PLATAFORMA','subtipo'=>'SUBTIPO'] as $g=>$l)if(empty($current[$g]))$missing[]=$l;
-            echo '<tr><td class="seo-tags-product"><strong>#'.$id.' · '.esc_html($row['post_title']).'</strong>'.(!empty($row['sku'])?'<br><small>SKU: '.esc_html($row['sku']).'</small>':'').'</td><td>';seo_assignment_render_semantic_compact($current_labels);echo '</td><td>';
-            if($p['viable'])seo_assignment_render_semantic_compact($p['values']);else echo '<span class="seo-tags-muted">Sin propuesta segura</span>';
-            if(!empty($p['review'])){echo '<div style="margin-top:6px"><small><strong>Revisión sugerida:</strong></small>';seo_assignment_render_semantic_compact($p['review']);echo '</div>';}
+        echo '<div class="seo-tags-count">'.esc_html(number_format_i18n($total)).' productos coinciden con el filtro.</div>';
+        echo '<div class="notice notice-info inline" style="margin:8px 0 12px"><p><strong>Matriz de etiquetas:</strong> cada columna contiene su propio JSON de lista. Puedes corregir una propuesta antes de confirmar la fila. ROL es informativo porque se deriva automáticamente del TIPO.</p></div>';
+        echo '<div style="overflow:auto"><table class="widefat striped seo-tags-table" style="min-width:1420px"><thead><tr><th style="min-width:260px">Producto</th><th style="min-width:160px">Cobertura / prioridad</th><th>TIPO</th><th>ROL</th><th>APLICACIÓN</th><th>PLATAFORMA</th><th>SUBTIPO</th><th style="min-width:125px">Confirmar</th></tr></thead><tbody>';
+        foreach($rows as $row){
+            $id=(int)$row['ID'];
+            $current=seo_assignment_semantic_current('product',$id);
+            $current_labels=seo_assignment_semantic_label_map($current);
+            $p=seo_assignment_propose_product_labels($id,$current);
+            $priority=seo_assignment_product_label_priority($current);
+            $current_count=0; foreach(seo_assignment_allowed_groups() as $g) if(!empty($current[$g])) $current_count++;
+            $safe_target=seo_assignment_merge_semantic($current,$p['values']);
+            $safe_count=0; foreach(seo_assignment_allowed_groups() as $g) if(!empty($safe_target[$g])) $safe_count++;
+            $form_id='seo-assignment-product-labels-'.$id;
+            echo '<tr>';
+            echo '<td class="seo-tags-product"><strong>#'.$id.' · '.esc_html($row['post_title']).'</strong>'.(!empty($row['sku'])?'<br><small>SKU: '.esc_html($row['sku']).'</small>':'');
             seo_assignment_render_proposal_diagnostics($p);
-            echo '</td><td>'.($missing?'<span class="seo-tags-state inactive">Falta '.esc_html(implode(', ',$missing)).'</span>':'<span class="seo-tags-state active">Cobertura completa</span>').($p['viable']?'<br><small>Motor contextual v2 · propuesta segura</small>':(!empty($p['review'])?'<br><small>Motor contextual v2 · requiere revisión</small>':'<br><small>Sin coincidencia canónica suficiente</small>')).'</td><td>';seo_assignment_render_json_editor('product_labels',$id,$target,$p['viable']);echo '</td></tr>';}
-        if(!$rows)echo '<tr><td colspan="5">No hay productos que coincidan con los filtros.</td></tr>'; echo '</tbody></table></div>'; seo_assignment_render_pagination('product_labels',$filters,$total);
+            echo '</td>';
+            echo '<td><strong>'.esc_html($current_count).'/5</strong>' . ($safe_count>$current_count?' <span class="seo-tags-good">→ '.$safe_count.'/5 segura</span>':'') . '<br><span class="seo-tags-state '.($priority['code']==='complete'?'active':'inactive').'">'.esc_html($priority['label']).'</span></td>';
+            foreach(['tipo','rol','aplicacion','plataforma','subtipo'] as $group){
+                echo '<td>'; seo_assignment_render_product_group_cell($form_id,$group,$current_labels,$p); echo '</td>';
+            }
+            echo '<td><form id="'.esc_attr($form_id).'" method="post">';
+            wp_nonce_field('seo_assignment_admin','seo_assignment_nonce');
+            echo '<input type="hidden" name="seo_assignment_action" value="confirm"><input type="hidden" name="assignment_section" value="product_labels"><input type="hidden" name="assignment_group_matrix" value="1"><input type="hidden" name="object_id" value="'.esc_attr($id).'">';
+            echo '<button class="button button-primary button-small">Confirmar fila</button>';
+            echo '<p class="seo-tags-help" style="margin:6px 0 0">Solo admite valores existentes. No crea vocabulario.</p></form></td>';
+            echo '</tr>';
+        }
+        if(!$rows)echo '<tr><td colspan="8">No hay productos que coincidan con los filtros.</td></tr>';
+        echo '</tbody></table></div>';
+        seo_assignment_render_pagination('product_labels',$filters,$total);
     }
 }
 
@@ -4110,14 +4294,14 @@ if (!function_exists('seo_assignment_render_format_examples')) {
 
         echo '<div class="seo-tags-panel">';
         echo '<h2 style="margin-top:0">Formato ideal de asignación</h2>';
-        echo '<p>Esta pestaña es una <strong>referencia</strong>: no modifica productos ni categorías. Los ejemplos se construyen con el vocabulario que está activo en este momento, de modo que sirven para entender exactamente qué debe contener el JSON de cada fila.</p>';
+        echo '<p>Esta pestaña es una <strong>referencia</strong>: no modifica productos ni categorías. En Etiquetas de productos la mesa usa ahora <strong>un JSON independiente por dimensión</strong>; cada celda contiene una lista como <code>[&quot;Valor&quot;]</code>.</p>';
         echo '<div class="notice notice-info inline"><p><strong>Regla principal:</strong> utiliza nombres visibles del vocabulario, no IDs ni slugs. Si un valor no existe, la confirmación debe rechazarlo; primero habrá que resolverlo en el maestro correspondiente.</p></div>';
         echo '</div>';
 
         echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(390px,1fr));gap:14px;margin:14px 0">';
         seo_assignment_render_json_sample(
             'Etiquetas de producto · ejemplo OBD',
-            'Formato admitido para productos. <strong>TIPO debe tener exactamente un valor</strong>. El ROL del producto se deriva del TIPO, por eso no es necesario introducirlo aquí. Las dimensiones que no correspondan se omiten.',
+            'Referencia de valores para la matriz. En la pantalla real cada clave se muestra en su propia columna y el contenido editable de la celda es solo su lista, por ejemplo <code>[&quot;HUD/medidor OBD para vehículo&quot;]</code>. ROL se deriva del TIPO.',
             $product_payload
         );
         seo_assignment_render_json_sample(
@@ -4139,7 +4323,7 @@ if (!function_exists('seo_assignment_render_format_examples')) {
 
         echo '<div class="seo-tags-panel"><h3 style="margin-top:0">Reglas rápidas</h3>';
         echo '<table class="widefat striped seo-tags-table"><thead><tr><th>Sección</th><th>Claves</th><th>Regla de escritura</th><th>Qué ocurre con un valor desconocido</th></tr></thead><tbody>';
-        echo '<tr><td><strong>Etiquetas de productos</strong></td><td><code>tipo</code>, <code>aplicacion</code>, <code>plataforma</code>, <code>subtipo</code></td><td>Solo actualiza los grupos presentes. TIPO = 1 valor. ROL se obtiene desde TIPO.</td><td>Se rechaza; no crea vocabulario.</td></tr>';
+        echo '<tr><td><strong>Etiquetas de productos</strong></td><td>Una columna por <code>TIPO</code>, <code>ROL</code>, <code>APLICACIÓN</code>, <code>PLATAFORMA</code> y <code>SUBTIPO</code></td><td>Cada celda editable contiene una lista JSON. TIPO = 1 valor. ROL es de solo lectura y se obtiene desde TIPO.</td><td>Se rechaza; no crea vocabulario.</td></tr>';
         echo '<tr><td><strong>Atributos de productos</strong></td><td>Slug del atributo, por ejemplo <code>diametro</code></td><td>Añade/reutiliza valores y no borra los existentes desde esta mesa.</td><td>El servicio canónico lo rechaza si no existe la definición/término requerido.</td></tr>';
         echo '<tr><td><strong>Etiquetas de categorías</strong></td><td><code>rol</code>, <code>tipo</code>, <code>aplicacion</code>, <code>plataforma</code>, <code>subtipo</code></td><td>Reemplaza la clasificación completa de la categoría.</td><td>Se rechaza; no crea vocabulario.</td></tr>';
         echo '</tbody></table>';
@@ -4153,7 +4337,7 @@ if (!function_exists('seo_assignment_render_format_examples')) {
 if (!function_exists('seo_assignment_render_pagination')) {
     function seo_assignment_render_pagination($section,array $filters,$total) {
         $pages=max(1,(int)ceil($total/max(1,$filters['per_page']))); if($pages<=1)return; $page=min($pages,max(1,$filters['page']));
-        $base=['page'=>'seo-tags-vocabulary','domain'=>'assignment','assignment_section'=>$section,'assignment_s'=>$filters['search'],'assignment_category_id'=>$filters['category_id'],'assignment_coverage'=>$filters['coverage'],'assignment_per_page'=>$filters['per_page']];
+        $base=['page'=>'seo-tags-vocabulary','domain'=>'assignment','assignment_section'=>$section,'assignment_s'=>$filters['search'],'assignment_category_id'=>$filters['category_id'],'assignment_coverage'=>$filters['coverage'],'assignment_priority'=>(string)($filters['priority']??'all'),'assignment_per_page'=>$filters['per_page']];
         echo '<div class="seo-tags-pagination">'; if($page>1)echo '<a href="'.esc_url(add_query_arg(array_merge($base,['assignment_paged'=>$page-1]),admin_url('admin.php'))).'">‹</a>';
         for($i=max(1,$page-2);$i<=min($pages,$page+2);$i++){if($i===$page)echo '<span class="current">'.$i.'</span>';else echo '<a href="'.esc_url(add_query_arg(array_merge($base,['assignment_paged'=>$i]),admin_url('admin.php'))).'">'.$i.'</a>';}
         if($page<$pages)echo '<a href="'.esc_url(add_query_arg(array_merge($base,['assignment_paged'=>$page+1]),admin_url('admin.php'))).'">›</a>'; echo '<span>Página '.$page.' / '.$pages.'</span></div>';
