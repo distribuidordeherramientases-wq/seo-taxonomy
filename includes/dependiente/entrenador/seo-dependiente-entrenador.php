@@ -20,6 +20,7 @@ final class SEO_Dependiente_Entrenador {
         add_action('wp_ajax_seo_dependiente_entrenador_add_questions', array(__CLASS__, 'ajax_add_questions'));
         add_action('wp_ajax_seo_dependiente_entrenador_delete_questions', array(__CLASS__, 'ajax_delete_questions'));
         add_action('wp_ajax_seo_dependiente_entrenador_run_batch', array(__CLASS__, 'ajax_run_batch'));
+        add_action('wp_ajax_seo_dependiente_entrenador_export_json', array(__CLASS__, 'ajax_export_json'));
         add_action('wp_ajax_seo_dependiente_entrenador_clear_runs', array(__CLASS__, 'ajax_clear_runs'));
     }
 
@@ -137,7 +138,7 @@ final class SEO_Dependiente_Entrenador {
         $runs = $last_batch ? self::batch_runs($last_batch, self::RECENT_RUN_LIMIT) : array();
         $history = self::batch_history(8);
         ?>
-        <div class="seo-dependiente-trainer" data-trainer-root>
+        <div class="seo-dependiente-trainer" data-trainer-root data-trainer-current-batch="<?php echo esc_attr($last_batch); ?>">
             <div class="seo-dependiente-trainer__intro">
                 <div>
                     <h2>Entrenador del Dependiente</h2>
@@ -235,9 +236,12 @@ final class SEO_Dependiente_Entrenador {
                         <h2>Resultados de la última ejecución</h2>
                         <p class="description" data-trainer-batch-label><?php echo $last_batch ? 'Lote ' . esc_html(substr($last_batch, 0, 8)) : 'Todavía no se ha ejecutado ningún lote.'; ?></p>
                     </div>
-                    <?php if ($last_batch) : ?>
-                        <button type="button" class="button-link-delete" data-trainer-clear-runs>Borrar historial del entrenador</button>
-                    <?php endif; ?>
+                    <div class="seo-dependiente-trainer__actions">
+                        <button type="button" class="button" data-trainer-export-json <?php disabled(!$last_batch); ?>>Descargar JSON</button>
+                        <?php if ($last_batch) : ?>
+                            <button type="button" class="button-link-delete" data-trainer-clear-runs>Borrar historial del entrenador</button>
+                        <?php endif; ?>
+                    </div>
                 </div>
 
                 <?php self::render_kpis($summary); ?>
@@ -347,6 +351,72 @@ final class SEO_Dependiente_Entrenador {
         global $wpdb;
         $wpdb->query('DELETE FROM ' . self::runs_table());
         wp_send_json_success(array('message' => 'Historial del Entrenador borrado.'));
+    }
+
+    public static function ajax_export_json() {
+        self::guard_ajax();
+        if (!self::ensure_ready()) {
+            wp_send_json_error(array('message' => 'Entrenador no disponible.'), 500);
+        }
+
+        $batch_uuid = self::sanitize_uuid($_POST['batch_uuid'] ?? '');
+        if (!$batch_uuid) {
+            $batch_uuid = self::last_batch_uuid();
+        }
+        if (!$batch_uuid) {
+            wp_send_json_error(array('message' => 'Todavía no hay ninguna ejecución para exportar.'), 404);
+        }
+
+        $raw_runs = self::batch_runs_for_export($batch_uuid);
+        if (!$raw_runs) {
+            wp_send_json_error(array('message' => 'No se ha encontrado el lote solicitado.'), 404);
+        }
+
+        $runs = array();
+        foreach ($raw_runs as $raw_run) {
+            $run = self::present_run($raw_run);
+            $run['question_type_label'] = self::type_label((string) $run['question_type']);
+            $run['status_label'] = 'error' === $run['status']
+                ? 'Error'
+                : (0 === absint($run['returned_count']) ? 'Contestada · sin resultados' : 'Contestada');
+            $runs[] = $run;
+        }
+
+        $breakdown = array();
+        foreach (self::batch_breakdown($batch_uuid) as $item) {
+            $item = (array) $item;
+            $item['question_type_label'] = self::type_label((string) ($item['question_type'] ?? 'other'));
+            foreach (array('launched', 'answered', 'with_results', 'without_results', 'returned_results') as $key) {
+                $item[$key] = absint($item[$key] ?? 0);
+            }
+            $breakdown[] = $item;
+        }
+
+        $document = array(
+            'schema'             => 'seo-dependiente-entrenador-export',
+            'schema_version'     => 1,
+            'generated_at'       => current_time('mysql'),
+            'dependiente_version'=> defined('SEO_DEPENDIENTE_VERSION') ? SEO_DEPENDIENTE_VERSION : '',
+            'batch_uuid'         => $batch_uuid,
+            'summary'            => self::batch_summary($batch_uuid),
+            'breakdown'          => $breakdown,
+            'notes'              => array(
+                'answered_definition'          => 'El motor respondió sin error, aunque no devolviera productos.',
+                'with_results_definition'       => 'La respuesta devolvió al menos un producto.',
+                'returned_results_definition'   => 'Suma de productos incluidos realmente en las respuestas del API.',
+                'result_count_definition'        => 'Coincidencias totales informadas por el buscador para cada pregunta.',
+                'top_results_stored_per_question'=> 8,
+                'learning_isolated'              => true,
+                'customer_search_log_written'    => false,
+                'external_provider_calls_executed'=> false,
+            ),
+            'runs'               => $runs,
+        );
+
+        wp_send_json_success(array(
+            'filename' => 'dependiente-entrenador-' . current_time('Ymd-His') . '-' . substr($batch_uuid, 0, 8) . '.json',
+            'document' => $document,
+        ));
     }
 
     public static function ajax_run_batch() {
@@ -703,6 +773,17 @@ final class SEO_Dependiente_Entrenador {
         ), ARRAY_A);
     }
 
+    private static function batch_runs_for_export($batch_uuid) {
+        global $wpdb;
+        if (!$batch_uuid) {
+            return array();
+        }
+        return (array) $wpdb->get_results($wpdb->prepare(
+            'SELECT * FROM ' . self::runs_table() . ' WHERE batch_uuid = %s ORDER BY id ASC',
+            $batch_uuid
+        ), ARRAY_A);
+    }
+
     private static function batch_summary($batch_uuid) {
         global $wpdb;
         if (!$batch_uuid) {
@@ -773,7 +854,9 @@ final class SEO_Dependiente_Entrenador {
             'status'          => sanitize_key((string) ($row['status'] ?? 'answered')),
             'result_count'    => absint($row['result_count'] ?? 0),
             'returned_count'  => absint($row['returned_count'] ?? 0),
+            'search_uuid'     => self::sanitize_uuid($row['search_uuid'] ?? ''),
             'search_strategy' => sanitize_key((string) ($row['search_strategy'] ?? '')),
+            'execution_ms'    => isset($row['execution_ms']) ? round((float) $row['execution_ms'], 3) : null,
             'top_results'     => self::decode_json($row['top_results'] ?? ''),
             'response_meta'   => self::decode_json($row['response_meta'] ?? ''),
             'error_message'   => (string) ($row['error_message'] ?? ''),

@@ -1026,31 +1026,7 @@
             if (!elements.amazon) return;
             const requestId = ++state.amazonRequestId;
             clearAmazon();
-            if (!fallback) return;
-
-            if (!fallback.should_load) {
-                const status = String(fallback.status || '');
-                if (status === 'partner_tag_missing') {
-                    renderAmazonStatus(
-                        'Amazon Afiliados está pendiente de configurar.',
-                        'Falta el Partner Tag de amazon.es. No hace falta Creators API: guarda únicamente el Partner Tag en Conexiones → Amazon Afiliados.'
-                    );
-                } else if (status && status !== 'empty_query' && status !== 'query_unusable' && status !== 'inactive') {
-                    renderAmazonStatus(
-                        'No he podido preparar Amazon para esta búsqueda.',
-                        'El catálogo y las guías siguen disponibles. Estado: ' + status + '.'
-                    );
-                }
-                return;
-            }
-
-            if (!fallback.query || !fallback.token || !fallback.bucket) {
-                renderAmazonStatus(
-                    'No he podido preparar Amazon para esta búsqueda.',
-                    'La configuración afiliada existe, pero faltan datos internos de la solicitud.'
-                );
-                return;
-            }
+            if (!fallback || !fallback.should_load || !fallback.query || !fallback.token || !fallback.bucket) return;
 
             elements.amazon.hidden = false;
             elements.amazon.innerHTML = '<div class="seo-dependiente__amazon-loading"><strong>Preparando opciones de Amazon…</strong><span>Las añadimos después de nuestro catálogo y nuestras guías.</span></div>';

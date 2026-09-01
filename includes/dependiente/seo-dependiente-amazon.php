@@ -9,7 +9,7 @@
  *   enriquece el bloque con productos concretos. Si falla, se vuelve
  *   automaticamente al modo afiliado sin romper la busqueda principal.
  *
- * @version 0.1.20
+ * @version 0.1.19
  */
 defined('ABSPATH') || exit;
 
