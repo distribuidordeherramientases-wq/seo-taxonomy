@@ -10,7 +10,7 @@ defined('ABSPATH') || exit;
  * No exporta session_hash, IP, usuario, correo ni otros identificadores.
  */
 final class SEO_Dependiente_Insights {
-    const JSON_SCHEMA_VERSION = 1;
+    const JSON_SCHEMA_VERSION = 2;
 
     public static function allowed_periods() {
         return array(1, 7, 30, 90);
@@ -47,11 +47,15 @@ final class SEO_Dependiente_Insights {
             ),
             'summary' => $summary,
             'top' => array(
-                'intents'    => self::top_column('detected_intent', $days, 12),
-                'objects'    => self::top_column('detected_object', $days, 12),
-                'contexts'   => self::top_column('detected_context', $days, 12),
-                'strategies' => self::top_column('search_strategy', $days, 12),
+                'queries'          => self::top_queries($days, 12),
+                'intents'          => self::top_column('detected_intent', $days, 12),
+                'objects'          => self::top_column('detected_object', $days, 12),
+                'contexts'         => self::top_column('detected_context', $days, 12),
+                'strategies'       => self::top_column('search_strategy', $days, 12),
+                'offered_products' => self::top_offered_products($days, 30),
+                'clicked_products' => self::top_clicked_products($days, 20),
             ),
+            'semantics'        => self::semantics_overview(),
             'unresolved_terms' => self::unresolved_terms($days, 30),
             'coverage_watch'   => self::coverage_watch($recent, 20),
             'learning' => array(
@@ -92,6 +96,8 @@ final class SEO_Dependiente_Insights {
             'learned_candidates' => 0,
             'learned_active' => 0,
             'learned_rejected' => 0,
+            'click_rate' => 0,
+            'clarification_answer_rate' => 0,
         );
 
         if (!class_exists('SEO_Dependiente_Search_Log') || !SEO_Dependiente_Search_Log::table_exists()) {
@@ -134,6 +140,8 @@ final class SEO_Dependiente_Insights {
             }
             $empty['strict'] = absint($row['strict_count'] ?? 0);
             $empty['average_execution_ms'] = round((float) ($row['average_execution_ms'] ?? 0), 2);
+            $empty['click_rate'] = $empty['primary_searches'] > 0 ? round($empty['product_clicks'] / $empty['primary_searches'], 4) : 0;
+            $empty['clarification_answer_rate'] = $empty['clarifications_shown'] > 0 ? round($empty['clarifications_answered'] / $empty['clarifications_shown'], 4) : 0;
         }
 
         if (class_exists('SEO_Dependiente_Semantics') && SEO_Dependiente_Semantics::table_exists()) {
@@ -200,6 +208,208 @@ final class SEO_Dependiente_Insights {
         }, $rows));
     }
 
+    public static function top_queries($days = 7, $limit = 10) {
+        global $wpdb;
+        if (!class_exists('SEO_Dependiente_Search_Log') || !SEO_Dependiente_Search_Log::table_exists()) {
+            return array();
+        }
+        $days = self::normalize_days($days);
+        $limit = min(50, max(1, absint($limit)));
+        $table = SEO_Dependiente_Search_Log::table();
+        $rows = (array) $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT query_normalized AS value, MIN(query_original) AS example, COUNT(*) AS qty
+                 FROM {$table}
+                 WHERE request_kind = 'search'
+                   AND created_at >= DATE_SUB(%s, INTERVAL %d DAY)
+                   AND query_normalized <> ''
+                 GROUP BY query_normalized
+                 ORDER BY qty DESC, value ASC
+                 LIMIT %d",
+                current_time('mysql'),
+                $days,
+                $limit
+            ),
+            ARRAY_A
+        );
+        return array_values(array_map(static function ($row) {
+            return array(
+                'value'   => (string) (!empty($row['example']) ? $row['example'] : ($row['value'] ?? '')),
+                'normalized' => (string) ($row['value'] ?? ''),
+                'count'   => absint($row['qty'] ?? 0),
+            );
+        }, $rows));
+    }
+
+    public static function top_offered_products($days = 7, $limit = 30, $scan_limit = 2500) {
+        global $wpdb;
+        if (!class_exists('SEO_Dependiente_Search_Log') || !SEO_Dependiente_Search_Log::table_exists()) {
+            return array();
+        }
+        $days = self::normalize_days($days);
+        $limit = min(100, max(1, absint($limit)));
+        $scan_limit = min(5000, max(200, absint($scan_limit)));
+        $table = SEO_Dependiente_Search_Log::table();
+        $rows = (array) $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT top_results, clicked_product_id
+                 FROM {$table}
+                 WHERE request_kind = 'search'
+                   AND created_at >= DATE_SUB(%s, INTERVAL %d DAY)
+                   AND top_results IS NOT NULL
+                   AND top_results NOT IN ('', '[]', 'null')
+                 ORDER BY id DESC
+                 LIMIT %d",
+                current_time('mysql'),
+                $days,
+                $scan_limit
+            ),
+            ARRAY_A
+        );
+        $products = array();
+        foreach ($rows as $row) {
+            $clicked = absint($row['clicked_product_id'] ?? 0);
+            foreach ((array) self::decode_json($row['top_results'] ?? '') as $product) {
+                if (!is_array($product)) {
+                    continue;
+                }
+                $id = absint($product['id'] ?? 0);
+                if (!$id) {
+                    continue;
+                }
+                if (!isset($products[$id])) {
+                    $products[$id] = array(
+                        'id' => $id,
+                        'title' => (string) ($product['title'] ?? ''),
+                        'appearances' => 0,
+                        'position_sum' => 0,
+                        'top3' => 0,
+                        'top10' => 0,
+                        'clicks' => 0,
+                    );
+                }
+                $position = max(1, absint($product['position'] ?? 0));
+                $products[$id]['appearances']++;
+                $products[$id]['position_sum'] += $position;
+                if ($position <= 3) {
+                    $products[$id]['top3']++;
+                }
+                if ($position <= 10) {
+                    $products[$id]['top10']++;
+                }
+                if ($clicked && $clicked === $id) {
+                    $products[$id]['clicks']++;
+                }
+                if (!$products[$id]['title'] && !empty($product['title'])) {
+                    $products[$id]['title'] = (string) $product['title'];
+                }
+            }
+        }
+        foreach ($products as &$product) {
+            $product['average_position'] = $product['appearances'] > 0
+                ? round($product['position_sum'] / $product['appearances'], 2)
+                : 0;
+            unset($product['position_sum']);
+        }
+        unset($product);
+        usort($products, static function ($a, $b) {
+            $cmp = (int) $b['appearances'] <=> (int) $a['appearances'];
+            if (0 !== $cmp) {
+                return $cmp;
+            }
+            return (int) $b['clicks'] <=> (int) $a['clicks'];
+        });
+        return array_slice(array_values($products), 0, $limit);
+    }
+
+    public static function top_clicked_products($days = 7, $limit = 20) {
+        global $wpdb;
+        if (!class_exists('SEO_Dependiente_Search_Log') || !SEO_Dependiente_Search_Log::table_exists()) {
+            return array();
+        }
+        $days = self::normalize_days($days);
+        $limit = min(100, max(1, absint($limit)));
+        $table = SEO_Dependiente_Search_Log::table();
+        $rows = (array) $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT clicked_product_id AS id, COUNT(*) AS qty, AVG(clicked_position) AS avg_position
+                 FROM {$table}
+                 WHERE request_kind = 'search'
+                   AND created_at >= DATE_SUB(%s, INTERVAL %d DAY)
+                   AND clicked_product_id IS NOT NULL
+                 GROUP BY clicked_product_id
+                 ORDER BY qty DESC, id ASC
+                 LIMIT %d",
+                current_time('mysql'),
+                $days,
+                $limit
+            ),
+            ARRAY_A
+        );
+        $out = array();
+        foreach ($rows as $row) {
+            $id = absint($row['id'] ?? 0);
+            if (!$id) {
+                continue;
+            }
+            $out[] = array(
+                'id' => $id,
+                'title' => (string) get_the_title($id),
+                'clicks' => absint($row['qty'] ?? 0),
+                'average_clicked_position' => round((float) ($row['avg_position'] ?? 0), 2),
+            );
+        }
+        return $out;
+    }
+
+    public static function semantics_overview() {
+        global $wpdb;
+        $out = array(
+            'total' => 0,
+            'active' => 0,
+            'inactive' => 0,
+            'candidate' => 0,
+            'by_source' => array(),
+            'by_rule_type' => array(),
+            'by_role' => array(),
+        );
+        if (!class_exists('SEO_Dependiente_Semantics') || !SEO_Dependiente_Semantics::table_exists()) {
+            return $out;
+        }
+        $table = SEO_Dependiente_Semantics::table();
+        $rows = (array) $wpdb->get_results(
+            "SELECT source, active, rule_type, semantic_role, COUNT(*) AS qty
+             FROM {$table}
+             GROUP BY source, active, rule_type, semantic_role",
+            ARRAY_A
+        );
+        foreach ($rows as $row) {
+            $qty = absint($row['qty'] ?? 0);
+            $source = (string) ($row['source'] ?? 'unknown');
+            $rule_type = (string) ($row['rule_type'] ?? 'unknown');
+            $role = (string) ($row['semantic_role'] ?? 'unknown');
+            $active = !empty($row['active']);
+            $out['total'] += $qty;
+            $out[$active ? 'active' : 'inactive'] += $qty;
+            if ('learned_candidate' === $source) {
+                $out['candidate'] += $qty;
+            }
+            if (!isset($out['by_source'][$source])) {
+                $out['by_source'][$source] = array('active' => 0, 'inactive' => 0, 'total' => 0);
+            }
+            $out['by_source'][$source][$active ? 'active' : 'inactive'] += $qty;
+            $out['by_source'][$source]['total'] += $qty;
+            $out['by_rule_type'][$rule_type] = absint($out['by_rule_type'][$rule_type] ?? 0) + $qty;
+            $out['by_role'][$role] = absint($out['by_role'][$role] ?? 0) + $qty;
+        }
+        arsort($out['by_rule_type']);
+        arsort($out['by_role']);
+        uasort($out['by_source'], static function ($a, $b) {
+            return (int) $b['total'] <=> (int) $a['total'];
+        });
+        return $out;
+    }
+
     public static function unresolved_terms($days = 7, $limit = 30) {
         if (!class_exists('SEO_Dependiente_Search_Log')) {
             return array();
@@ -231,12 +441,18 @@ final class SEO_Dependiente_Insights {
 
         $rows = SEO_Dependiente_Search_Log::get_searches(array(
             'days'   => $days,
-            'limit'  => $limit,
+            'limit'  => 500,
             'offset' => 0,
         ));
 
         $out = array();
         foreach ($rows as $row) {
+            if ('search' !== (string) ($row['request_kind'] ?? '')) {
+                continue;
+            }
+            if (count($out) >= $limit) {
+                break;
+            }
             $strategy = self::decode_json($row['strategy_detail'] ?? '');
             $events = self::decode_json($row['interaction_events'] ?? '');
             $event_types = array();
@@ -260,11 +476,26 @@ final class SEO_Dependiente_Insights {
                 'unresolved_terms'     => array_values((array) self::decode_json($row['unresolved_terms'] ?? '')),
                 'strategy'             => (string) ($row['search_strategy'] ?? ''),
                 'strategy_detail'      => self::compact_strategy($strategy),
+                'candidate_count'      => absint($row['candidate_count'] ?? 0),
                 'result_count'         => absint($row['result_count'] ?? 0),
+                'top_results'          => array_values(array_slice((array) self::decode_json($row['top_results'] ?? ''), 0, 12)),
+                'semantic_analysis'    => self::decode_json($row['semantic_analysis'] ?? ''),
+                'execution_ms'         => round((float) ($row['execution_ms'] ?? 0), 3),
                 'feedback'             => (int) ($row['feedback'] ?? 0),
+                'feedback_reason'      => self::nullable_string($row['feedback_reason'] ?? null),
                 'clicked_product_id'   => absint($row['clicked_product_id'] ?? 0) ?: null,
                 'clicked_position'     => absint($row['clicked_position'] ?? 0) ?: null,
                 'clarification_shown'  => !empty($row['clarification_shown_at']),
+                'clarification'        => array(
+                    'question'       => self::nullable_string($row['clarification_question'] ?? null),
+                    'options'        => self::decode_json($row['clarification_options'] ?? ''),
+                    'selected_role'  => self::nullable_string($row['clarified_role'] ?? null),
+                    'selected_value' => self::nullable_string($row['clarified_value'] ?? null),
+                    'selected_label' => self::nullable_string($row['clarified_label'] ?? null),
+                    'source'         => self::nullable_string($row['clarification_source'] ?? null),
+                    'shown_at'       => self::nullable_string($row['clarification_shown_at'] ?? null),
+                    'clarified_at'   => self::nullable_string($row['clarified_at'] ?? null),
+                ),
                 'clarified_role'       => self::nullable_string($row['clarified_role'] ?? null),
                 'clarified_value'      => self::nullable_string($row['clarified_value'] ?? null),
                 'learning_status'      => (string) ($row['learning_status'] ?? 'new'),
@@ -313,7 +544,7 @@ final class SEO_Dependiente_Insights {
 
     public static function json_filename($days = 7) {
         $days = self::normalize_days($days);
-        return 'dependiente-diagnostic-' . gmdate('Y-m-d-His') . '-' . $days . 'd.json';
+        return 'dependiente-informe-' . gmdate('Y-m-d-His') . '-' . $days . 'd.json';
     }
 
     private static function coverage_watch($recent, $limit = 20) {
