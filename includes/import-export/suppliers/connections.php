@@ -576,7 +576,10 @@ if ( ! function_exists( 'seo_proveedores_render_conexiones' ) ) {
             echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:18px;">';
             echo '<input type="hidden" name="action" value="seo_amazon_recipe_save">';
             wp_nonce_field( 'seo_amazon_recipe_save', 'seo_amazon_recipe_nonce' );
-            echo '<label><strong>Partner Tag amazon.es</strong><br><input type="text" name="partner_tag" value="' . esc_attr( $s['partner_tag'] ?? '' ) . '" class="regular-text" style="width:100%;"><br><span class="description">Es el unico dato obligatorio para que el Dependiente y las plantillas creen busquedas afiliadas.</span></label>';
+            echo '<label><strong>Partner Tag amazon.es</strong><br><input type="text" name="partner_tag" value="' . esc_attr( $s['partner_tag'] ?? '' ) . '" class="regular-text" style="width:100%;"><br><span class="description">Es el único dato obligatorio para que el Dependiente y las plantillas creen búsquedas afiliadas. Si ya existe uno guardado, un envío vacío no lo borra.</span></label>';
+            if ( ! empty( $s['partner_tag'] ) ) {
+                echo '<label style="grid-column:1/-1;"><input type="checkbox" name="clear_partner_tag" value="1"> Eliminar expresamente el Partner Tag guardado.</label>';
+            }
             echo '<label><strong>Credential ID Creators (opcional)</strong><br><input type="text" name="client_id" value="' . esc_attr( $s['client_id'] ?? '' ) . '" class="regular-text" autocomplete="off" style="width:100%;"></label>';
             echo '<label><strong>Credential Secret Creators (opcional)</strong><br><input type="password" name="client_secret" value="" placeholder="' . esc_attr( ! empty( $s['client_secret'] ) ? 'Guardado; deja vacio para conservarlo' : 'Solo si tu cuenta tiene Creators API' ) . '" class="regular-text" autocomplete="new-password" style="width:100%;"></label>';
             echo '<input type="hidden" name="credential_version" value="3.2">';

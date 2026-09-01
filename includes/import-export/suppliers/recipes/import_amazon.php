@@ -424,14 +424,18 @@ function seo_supplier_recipe_amazon_save_settings() {
 
     check_admin_referer( 'seo_amazon_recipe_save', 'seo_amazon_recipe_nonce' );
 
-    $current    = get_option( seo_supplier_recipe_amazon_option_key(), [] );
-    $new_secret = isset( $_POST['client_secret'] ) ? trim( (string) wp_unslash( $_POST['client_secret'] ) ) : '';
+    $current       = get_option( seo_supplier_recipe_amazon_option_key(), [] );
+    $new_secret    = isset( $_POST['client_secret'] ) ? trim( (string) wp_unslash( $_POST['client_secret'] ) ) : '';
+    $posted_tag    = isset( $_POST['partner_tag'] ) ? sanitize_text_field( wp_unslash( $_POST['partner_tag'] ) ) : '';
+    $current_tag   = sanitize_text_field( (string) ( $current['partner_tag'] ?? '' ) );
+    $clear_tag     = ! empty( $_POST['clear_partner_tag'] );
+    $effective_tag = $clear_tag ? '' : ( '' !== trim( $posted_tag ) ? $posted_tag : $current_tag );
 
     $settings = [
         'client_id'          => sanitize_text_field( wp_unslash( $_POST['client_id'] ?? '' ) ),
         'client_secret'      => $new_secret !== '' ? $new_secret : (string) ( $current['client_secret'] ?? '' ),
         'credential_version' => '3.2',
-        'partner_tag'        => sanitize_text_field( wp_unslash( $_POST['partner_tag'] ?? '' ) ),
+        'partner_tag'        => $effective_tag,
         'marketplace'        => 'www.amazon.es',
         'language'           => 'es_ES',
         'search_index'       => sanitize_text_field( wp_unslash( $_POST['search_index'] ?? 'All' ) ),
@@ -455,7 +459,10 @@ function seo_supplier_recipe_amazon_render_settings() {
     echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;">';
     echo '<input type="hidden" name="action" value="seo_amazon_recipe_save">';
     wp_nonce_field( 'seo_amazon_recipe_save', 'seo_amazon_recipe_nonce' );
-    echo '<label><strong>Partner Tag amazon.es (obligatorio)</strong><br><input type="text" name="partner_tag" value="' . esc_attr( $s['partner_tag'] ) . '" class="regular-text" style="width:100%;"><br><span class="description">Suficiente para enlaces y busquedas afiliadas sin API.</span></label>';
+    echo '<label><strong>Partner Tag amazon.es (obligatorio)</strong><br><input type="text" name="partner_tag" value="' . esc_attr( $s['partner_tag'] ) . '" class="regular-text" style="width:100%;"><br><span class="description">Suficiente para enlaces y búsquedas afiliadas sin API. Si ya existe uno guardado, dejar este campo vacío lo conserva.</span></label>';
+    if ( ! empty( $s['partner_tag'] ) ) {
+        echo '<label style="grid-column:1/-1;"><input type="checkbox" name="clear_partner_tag" value="1"> Eliminar expresamente el Partner Tag guardado.</label>';
+    }
     echo '<label><strong>Credential / Client ID (opcional)</strong><br><input type="text" name="client_id" value="' . esc_attr( $s['client_id'] ) . '" class="regular-text" style="width:100%;"></label>';
     echo '<label><strong>Secret Creators (opcional)</strong><br><input type="password" name="client_secret" value="" placeholder="' . ( ! empty( $s['client_secret'] ) ? 'Guardado; dejar vacio para conservar' : 'Solo si Creators API esta disponible' ) . '" class="regular-text" style="width:100%;"></label>';
     echo '<label><strong>Version credencial</strong><br><select name="credential_version" style="width:100%;"><option value="3.2" ' . selected( $s['credential_version'], '3.2', false ) . '>3.2</option><option value="2.2" ' . selected( $s['credential_version'], '2.2', false ) . '>2.2</option></select></label>';
