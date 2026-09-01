@@ -119,6 +119,10 @@ if (!function_exists('seo_tags_vocab_get_summary')) {
             'products' => (int) $wpdb->get_var(
                 "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'product' AND post_status = 'publish'"
             ),
+            'classified_products' => 0,
+            'unclassified_products' => 0,
+            'wc_tagged_products' => 0,
+            'wc_untagged_products' => 0,
             'groups' => [],
         ];
 
@@ -163,7 +167,36 @@ if (!function_exists('seo_tags_vocab_get_summary')) {
                     'products' => (int) ($row['product_count'] ?? 0),
                 ];
             }
+
+            $summary['classified_products'] = (int) $wpdb->get_var(
+                "SELECT COUNT(DISTINCT ov.object_id)
+                 FROM {$objects} ov
+                 INNER JOIN {$vocabulary} v
+                   ON v.id = ov.vocabulary_id
+                  AND v.active = 1
+                  AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
+                 INNER JOIN {$wpdb->posts} p
+                   ON p.ID = ov.object_id
+                  AND p.post_type = 'product'
+                  AND p.post_status = 'publish'
+                 WHERE ov.object_type = 'product'
+                   AND ov.status = 1"
+            );
+            $summary['unclassified_products'] = max(0, (int) $summary['products'] - (int) $summary['classified_products']);
         }
+
+        $summary['wc_tagged_products'] = (int) $wpdb->get_var(
+            "SELECT COUNT(DISTINCT tr.object_id)
+             FROM {$wpdb->term_relationships} tr
+             INNER JOIN {$wpdb->term_taxonomy} tt
+               ON tt.term_taxonomy_id = tr.term_taxonomy_id
+              AND tt.taxonomy = 'product_tag'
+             INNER JOIN {$wpdb->posts} p
+               ON p.ID = tr.object_id
+              AND p.post_type = 'product'
+              AND p.post_status = 'publish'"
+        );
+        $summary['wc_untagged_products'] = max(0, (int) $summary['products'] - (int) $summary['wc_tagged_products']);
 
         return $summary;
     }
@@ -173,6 +206,8 @@ if (!function_exists('seo_tags_vocab_render_summary_cards')) {
     function seo_tags_vocab_render_summary_cards(array $summary) {
         $cards = [
             ['Productos', $summary['products'], 'Catálogo publicado'],
+            ['Sin etiquetas semánticas', (int) ($summary['unclassified_products'] ?? 0), 'sin TIPO/ROL/APLICACIÓN/PLATAFORMA/SUBTIPO'],
+            ['Sin etiquetas WooCommerce', (int) ($summary['wc_untagged_products'] ?? 0), 'sin términos product_tag'],
             ['TIPO', $summary['groups']['tipo']['products'], number_format_i18n($summary['groups']['tipo']['terms']) . ' términos'],
             ['Ámbito / ROL', $summary['groups']['rol']['products'], number_format_i18n($summary['groups']['rol']['terms']) . ' términos'],
             ['APLICACIÓN', $summary['groups']['aplicacion']['products'], number_format_i18n($summary['groups']['aplicacion']['terms']) . ' términos · ' . number_format_i18n($summary['groups']['aplicacion']['assignments']) . ' asignaciones'],
@@ -561,7 +596,13 @@ if (!function_exists('seo_tags_vocab_render_products')) {
         $term_id = absint($_GET['term_id'] ?? 0);
         $category_id = absint($_GET['category_id'] ?? 0);
         $coverage = sanitize_key($_GET['coverage'] ?? 'all');
-        $allowed_coverage = ['all', 'with_application', 'without_application', 'with_platform', 'without_platform', 'with_subtype', 'without_subtype'];
+        $allowed_coverage = [
+            'all', 'with_any', 'without_any', 'with_wc_tags', 'without_wc_tags',
+            'with_role', 'without_role', 'with_type', 'without_type',
+            'with_application', 'without_application',
+            'with_platform', 'without_platform',
+            'with_subtype', 'without_subtype',
+        ];
         if (!in_array($coverage, $allowed_coverage, true)) {
             $coverage = 'all';
         }
@@ -664,7 +705,19 @@ if (!function_exists('seo_tags_vocab_render_products')) {
 
         $coverage_group = '';
         $coverage_positive = true;
-        if ($coverage === 'with_application' || $coverage === 'without_application') {
+        $coverage_any = null;
+        $coverage_wc_tags = null;
+        if ($coverage === 'with_wc_tags' || $coverage === 'without_wc_tags') {
+            $coverage_wc_tags = $coverage === 'with_wc_tags';
+        } elseif ($coverage === 'with_any' || $coverage === 'without_any') {
+            $coverage_any = $coverage === 'with_any';
+        } elseif ($coverage === 'with_role' || $coverage === 'without_role') {
+            $coverage_group = 'rol';
+            $coverage_positive = $coverage === 'with_role';
+        } elseif ($coverage === 'with_type' || $coverage === 'without_type') {
+            $coverage_group = 'tipo';
+            $coverage_positive = $coverage === 'with_type';
+        } elseif ($coverage === 'with_application' || $coverage === 'without_application') {
             $coverage_group = 'aplicacion';
             $coverage_positive = $coverage === 'with_application';
         } elseif ($coverage === 'with_platform' || $coverage === 'without_platform') {
@@ -675,7 +728,25 @@ if (!function_exists('seo_tags_vocab_render_products')) {
             $coverage_positive = $coverage === 'with_subtype';
         }
 
-        if ($coverage_group !== '') {
+        if ($coverage_wc_tags !== null) {
+            $where[] = ($coverage_wc_tags ? '' : 'NOT ') . "EXISTS (
+                SELECT 1 FROM {$wpdb->term_relationships} tr_tag
+                JOIN {$wpdb->term_taxonomy} tt_tag
+                  ON tt_tag.term_taxonomy_id = tr_tag.term_taxonomy_id
+                 AND tt_tag.taxonomy = 'product_tag'
+                WHERE tr_tag.object_id = p.ID
+            )";
+        } elseif ($coverage_any !== null) {
+            $where[] = ($coverage_any ? '' : 'NOT ') . "EXISTS (
+                SELECT 1 FROM {$objects} ovc
+                JOIN {$vocabulary} vc ON vc.id = ovc.vocabulary_id
+                WHERE ovc.object_type = 'product'
+                  AND ovc.object_id = p.ID
+                  AND ovc.status = 1
+                  AND vc.active = 1
+                  AND vc.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
+            )";
+        } elseif ($coverage_group !== '') {
             $where[] = ($coverage_positive ? '' : 'NOT ') . "EXISTS (
                 SELECT 1 FROM {$objects} ovc
                 JOIN {$vocabulary} vc ON vc.id = ovc.vocabulary_id
@@ -727,6 +798,7 @@ if (!function_exists('seo_tags_vocab_render_products')) {
         $product_ids = array_map('intval', array_column($products, 'ID'));
 
         $sku_map = [];
+        $wc_tags_map = [];
         $assignments = [];
         foreach ($product_ids as $product_id) {
             $assignments[$product_id] = [
@@ -754,6 +826,24 @@ if (!function_exists('seo_tags_vocab_render_products')) {
             );
             foreach ((array) $sku_rows as $row) {
                 $sku_map[(int) $row['post_id']] = (string) ($row['sku'] ?? '');
+            }
+
+            $tag_rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT tr.object_id AS product_id,t.name
+                     FROM {$wpdb->term_relationships} tr
+                     JOIN {$wpdb->term_taxonomy} tt
+                       ON tt.term_taxonomy_id = tr.term_taxonomy_id
+                      AND tt.taxonomy = 'product_tag'
+                     JOIN {$wpdb->terms} t ON t.term_id = tt.term_id
+                     WHERE tr.object_id IN ({$ph})
+                     ORDER BY tr.object_id ASC,t.name ASC",
+                    ...$product_ids
+                ),
+                ARRAY_A
+            );
+            foreach ((array) $tag_rows as $row) {
+                $wc_tags_map[(int) $row['product_id']][] = (string) ($row['name'] ?? '');
             }
 
             $vocab_rows = $wpdb->get_results(
@@ -915,12 +1005,13 @@ if (!function_exists('seo_tags_vocab_render_products')) {
         if (is_wp_error($category_options)) {
             $category_options = [];
         }
-        $base_url = admin_url('admin.php?page=seo-tags-vocabulary&section=products');
+        $base_url = admin_url('admin.php?page=seo-tags-vocabulary&domain=labels&section=products');
 
         echo '<div class="seo-tags-panel">';
         echo '<p class="seo-tags-help" style="margin-top:0"><strong>Alineación con categoría:</strong> se calcula para cada producto usando sus categorías reales y el vocabulary canónico de sus compañeros. Si seleccionas una categoría, los productos se ordenan de más atípicos a más alineados. No usa etiquetas legacy, no cuenta palabras y no mueve productos automáticamente.</p>';
         echo '<form method="get" class="seo-tags-filter">';
         echo '<input type="hidden" name="page" value="seo-tags-vocabulary">';
+        echo '<input type="hidden" name="domain" value="labels">';
         echo '<input type="hidden" name="section" value="products">';
         if ($term_id > 0) {
             echo '<input type="hidden" name="term_id" value="' . esc_attr($term_id) . '">';
@@ -939,12 +1030,20 @@ if (!function_exists('seo_tags_vocab_render_products')) {
         echo '<label>Cobertura<select name="coverage">';
         $coverage_options = [
             'all' => 'Todos',
-            'with_application' => 'Con aplicación',
+            'without_any' => 'Sin ninguna etiqueta semántica',
+            'with_any' => 'Con alguna etiqueta semántica',
+            'without_wc_tags' => 'Sin etiquetas WooCommerce',
+            'with_wc_tags' => 'Con etiquetas WooCommerce',
+            'without_type' => 'Sin TIPO',
+            'with_type' => 'Con TIPO',
+            'without_role' => 'Sin Ámbito / ROL',
+            'with_role' => 'Con Ámbito / ROL',
             'without_application' => 'Sin aplicación',
-            'with_platform' => 'Con plataforma',
+            'with_application' => 'Con aplicación',
             'without_platform' => 'Sin plataforma',
-            'with_subtype' => 'Con subtipo',
+            'with_platform' => 'Con plataforma',
             'without_subtype' => 'Sin subtipo',
+            'with_subtype' => 'Con subtipo',
         ];
         foreach ($coverage_options as $value => $label) {
             echo '<option value="' . esc_attr($value) . '" ' . selected($coverage, $value, false) . '>' . esc_html($label) . '</option>';
@@ -976,10 +1075,10 @@ if (!function_exists('seo_tags_vocab_render_products')) {
         echo '<div class="seo-tags-count">Mostrando ' . number_format_i18n(count($products)) . ' de ' . number_format_i18n($total) . ' productos.</div>';
         echo '<div style="overflow:auto">';
         echo '<table class="widefat striped seo-tags-table">';
-        echo '<thead><tr><th>Producto</th><th>Ámbito / ROL</th><th>TIPO</th><th>APLICACIÓN</th><th>PLATAFORMA</th><th>SUBTIPO</th><th>Alineación</th><th>Acción</th></tr></thead><tbody>';
+        echo '<thead><tr><th>Producto</th><th>Etiquetas WooCommerce</th><th>Ámbito / ROL</th><th>TIPO</th><th>APLICACIÓN</th><th>PLATAFORMA</th><th>SUBTIPO</th><th>Alineación</th><th>Acción</th></tr></thead><tbody>';
 
         if (!$products) {
-            echo '<tr><td colspan="8">No hay productos que coincidan con los filtros.</td></tr>';
+            echo '<tr><td colspan="9">No hay productos que coincidan con los filtros.</td></tr>';
         }
 
         foreach ($products as $product) {
@@ -992,6 +1091,19 @@ if (!function_exists('seo_tags_vocab_render_products')) {
                 echo '<br><span class="seo-tags-vocab-source">SKU: ' . esc_html($sku) . '</span>';
             }
             echo '</td>';
+
+            echo '<td><div class="seo-tags-pills">';
+            if (!empty($wc_tags_map[$product_id])) {
+                foreach (array_slice(array_values(array_unique(array_filter($wc_tags_map[$product_id]))), 0, 8) as $wc_tag) {
+                    echo '<span class="seo-tags-pill">' . esc_html($wc_tag) . '</span>';
+                }
+                if (count(array_unique(array_filter($wc_tags_map[$product_id]))) > 8) {
+                    echo '<span class="seo-tags-muted">+' . esc_html(count(array_unique(array_filter($wc_tags_map[$product_id]))) - 8) . ' más</span>';
+                }
+            } else {
+                echo '<span class="seo-tags-muted">Sin etiquetas</span>';
+            }
+            echo '</div></td>';
 
             $groups = [
                 'rol' => 'role',
@@ -2274,12 +2386,12 @@ if (!function_exists('seo_semantic_attributes_get_summary')) {
         }
         $tables = seo_attributes_tables();
         $total_products = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM `{$wpdb->posts}` WHERE post_type='product' AND post_status NOT IN ('trash','auto-draft')"
+            "SELECT COUNT(*) FROM `{$wpdb->posts}` WHERE post_type='product' AND post_status='publish'"
         );
         $products = (int) $wpdb->get_var(
             "SELECT COUNT(DISTINCT pa.product_id) FROM `{$tables['values']}` pa
              INNER JOIN `{$wpdb->posts}` p ON p.ID=pa.product_id
-             WHERE p.post_type='product' AND p.post_status NOT IN ('trash','auto-draft')"
+             WHERE p.post_type='product' AND p.post_status='publish'"
         );
         return [
             'products_total' => $total_products,
@@ -2299,6 +2411,7 @@ if (!function_exists('seo_semantic_attributes_render_summary_cards')) {
         $coverage = $total > 0 ? round(($with / $total) * 100, 1) : 0;
         $cards = [
             ['Productos con atributos', $with, $coverage . '% de ' . number_format_i18n($total)],
+            ['Sin atributos', max(0, $total - $with), 'productos sin asignaciones canónicas'],
             ['Atributos', (int) ($summary['definitions'] ?? 0), 'definiciones activas'],
             ['Términos', (int) ($summary['terms'] ?? 0), 'valores controlados'],
             ['Aliases', (int) ($summary['aliases'] ?? 0), 'sinónimos de entrada'],
@@ -2557,6 +2670,286 @@ if (!function_exists('seo_semantic_attributes_render_terms')) {
     }
 }
 
+
+/**
+ * Inventario filtrable de cobertura de atributos canónicos por producto.
+ * No propone ni modifica valores: solo permite localizar huecos antes de la
+ * futura fase de clasificación asistida.
+ */
+if (!function_exists('seo_semantic_attributes_render_products_inventory')) {
+    function seo_semantic_attributes_render_products_inventory() {
+        global $wpdb;
+
+        if (!function_exists('seo_attributes_tables')) {
+            echo '<div class="notice notice-error inline"><p>El módulo de atributos canónicos no está cargado.</p></div>';
+            return;
+        }
+
+        $tables = seo_attributes_tables();
+        foreach (['definitions', 'terms', 'values'] as $required_key) {
+            if (empty($tables[$required_key]) || !seo_tags_vocab_table_exists($tables[$required_key])) {
+                echo '<div class="notice notice-error inline"><p>No está disponible la tabla canónica de atributos requerida: <code>' . esc_html((string) ($tables[$required_key] ?? $required_key)) . '</code>.</p></div>';
+                return;
+            }
+        }
+
+        $search = sanitize_text_field(wp_unslash($_GET['attr_s'] ?? ''));
+        $category_id = absint($_GET['attr_category_id'] ?? 0);
+        $coverage = sanitize_key($_GET['attr_coverage'] ?? 'without');
+        if (!in_array($coverage, ['all', 'with', 'without'], true)) {
+            $coverage = 'without';
+        }
+        $per_page = absint($_GET['attr_per_page'] ?? 50);
+        if (!in_array($per_page, [25, 50, 100, 200], true)) {
+            $per_page = 50;
+        }
+        $page_number = max(1, absint($_GET['attr_paged'] ?? 1));
+
+        $published_total = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$wpdb->posts} p WHERE p.post_type='product' AND p.post_status='publish'"
+        );
+        $with_attributes = (int) $wpdb->get_var(
+            "SELECT COUNT(*)
+             FROM {$wpdb->posts} p
+             WHERE p.post_type='product' AND p.post_status='publish'
+               AND EXISTS (SELECT 1 FROM `{$tables['values']}` pa WHERE pa.product_id=p.ID)"
+        );
+        $without_attributes = max(0, $published_total - $with_attributes);
+
+        echo '<div class="seo-tags-panel">';
+        echo '<h2 style="margin-top:0">Inventario de cobertura de atributos</h2>';
+        echo '<p class="seo-tags-help">Esta vista no crea ni modifica atributos. Sirve para localizar productos que todavía no tienen datos técnicos canónicos y preparar su revisión posterior.</p>';
+        echo '<div class="seo-tags-cards" style="margin-bottom:14px">';
+        $inventory_cards = [
+            ['Publicados', $published_total, 'productos activos'],
+            ['Con atributos', $with_attributes, $published_total > 0 ? round(($with_attributes / $published_total) * 100, 1) . '% de cobertura' : '0% de cobertura'],
+            ['Sin atributos', $without_attributes, 'pendientes de enriquecer'],
+        ];
+        foreach ($inventory_cards as $card) {
+            echo '<div class="seo-tags-card"><div class="label">' . esc_html($card[0]) . '</div><div class="value">' . esc_html(number_format_i18n((int) $card[1])) . '</div><div class="meta">' . esc_html((string) $card[2]) . '</div></div>';
+        }
+        echo '</div>';
+
+        $category_options = get_terms([
+            'taxonomy' => 'product_cat',
+            'hide_empty' => true,
+            'orderby' => 'name',
+            'order' => 'ASC',
+        ]);
+        if (is_wp_error($category_options)) {
+            $category_options = [];
+        }
+
+        echo '<form method="get" class="seo-tags-filter">';
+        echo '<input type="hidden" name="page" value="seo-tags-vocabulary">';
+        echo '<input type="hidden" name="domain" value="attributes">';
+        echo '<input type="hidden" name="attribute_section" value="products">';
+        echo '<label>Producto / SKU / ID<input class="search-wide" type="text" name="attr_s" value="' . esc_attr($search) . '" placeholder="Buscar producto, SKU o ID"></label>';
+        echo '<label>Categoría<select name="attr_category_id"><option value="0">Todas</option>';
+        foreach ((array) $category_options as $category_option) {
+            echo '<option value="' . esc_attr((int) $category_option->term_id) . '" ' . selected($category_id, (int) $category_option->term_id, false) . '>' . esc_html($category_option->name) . '</option>';
+        }
+        echo '</select></label>';
+        echo '<label>Cobertura<select name="attr_coverage">';
+        foreach (['without' => 'Sin atributos', 'with' => 'Con atributos', 'all' => 'Todos'] as $value => $label) {
+            echo '<option value="' . esc_attr($value) . '" ' . selected($coverage, $value, false) . '>' . esc_html($label) . '</option>';
+        }
+        echo '</select></label>';
+        echo '<label>Filas<select name="attr_per_page">';
+        foreach ([25, 50, 100, 200] as $n) {
+            echo '<option value="' . esc_attr($n) . '" ' . selected($per_page, $n, false) . '>' . esc_html($n) . '</option>';
+        }
+        echo '</select></label>';
+        $clear_url = admin_url('admin.php?page=seo-tags-vocabulary&domain=attributes&attribute_section=products');
+        echo '<div><button class="button button-primary" type="submit">Filtrar</button> <a class="button" href="' . esc_url($clear_url) . '">Limpiar</a></div>';
+        echo '</form></div>';
+
+        $where = ["p.post_type='product'", "p.post_status='publish'"];
+        $args = [];
+        if ($search !== '') {
+            $like = '%' . $wpdb->esc_like($search) . '%';
+            $parts = ['p.post_title LIKE %s'];
+            $local_args = [$like];
+            if (ctype_digit($search)) {
+                $parts[] = 'p.ID=%d';
+                $local_args[] = (int) $search;
+            }
+            $parts[] = "EXISTS (
+                SELECT 1 FROM {$wpdb->postmeta} pm
+                WHERE pm.post_id=p.ID AND pm.meta_key='_sku' AND pm.meta_value LIKE %s
+            )";
+            $local_args[] = $like;
+            $where[] = '(' . implode(' OR ', $parts) . ')';
+            $args = array_merge($args, $local_args);
+        }
+        if ($category_id > 0) {
+            $where[] = "EXISTS (
+                SELECT 1 FROM {$wpdb->term_relationships} tr
+                JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id=tr.term_taxonomy_id AND tt.taxonomy='product_cat'
+                WHERE tr.object_id=p.ID AND tt.term_id=%d
+            )";
+            $args[] = $category_id;
+        }
+        if ($coverage === 'with') {
+            $where[] = "EXISTS (SELECT 1 FROM `{$tables['values']}` pa_cov WHERE pa_cov.product_id=p.ID)";
+        } elseif ($coverage === 'without') {
+            $where[] = "NOT EXISTS (SELECT 1 FROM `{$tables['values']}` pa_cov WHERE pa_cov.product_id=p.ID)";
+        }
+
+        $where_sql = implode(' AND ', $where);
+        $count_sql = seo_tags_vocab_prepare_sql("SELECT COUNT(*) FROM {$wpdb->posts} p WHERE {$where_sql}", $args);
+        $total = (int) $wpdb->get_var($count_sql);
+        $total_pages = max(1, (int) ceil($total / $per_page));
+        if ($page_number > $total_pages) {
+            $page_number = $total_pages;
+        }
+        $offset = ($page_number - 1) * $per_page;
+        $query_args = $args;
+        $query_args[] = $per_page;
+        $query_args[] = $offset;
+        $products_sql = seo_tags_vocab_prepare_sql(
+            "SELECT p.ID,p.post_title,p.post_modified,
+                    (SELECT MAX(pm.meta_value) FROM {$wpdb->postmeta} pm WHERE pm.post_id=p.ID AND pm.meta_key='_sku') AS sku,
+                    (SELECT COUNT(*) FROM `{$tables['values']}` pa_count WHERE pa_count.product_id=p.ID) AS attribute_count
+             FROM {$wpdb->posts} p
+             WHERE {$where_sql}
+             ORDER BY p.post_modified DESC,p.ID DESC
+             LIMIT %d OFFSET %d",
+            $query_args
+        );
+        $products = (array) $wpdb->get_results($products_sql, ARRAY_A);
+        $product_ids = array_map('intval', array_column($products, 'ID'));
+
+        $category_map = [];
+        $attribute_map = [];
+        if ($product_ids) {
+            $ph = seo_tags_vocab_placeholders($product_ids, '%d');
+            $category_rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT tr.object_id AS product_id,t.name
+                     FROM {$wpdb->term_relationships} tr
+                     JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id=tr.term_taxonomy_id AND tt.taxonomy='product_cat'
+                     JOIN {$wpdb->terms} t ON t.term_id=tt.term_id
+                     WHERE tr.object_id IN ({$ph}) ORDER BY tr.object_id,t.name",
+                    ...$product_ids
+                ),
+                ARRAY_A
+            );
+            foreach ((array) $category_rows as $row) {
+                $category_map[(int) $row['product_id']][] = (string) $row['name'];
+            }
+
+            $attribute_rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT pa.product_id,a.nombre AS attribute_name,a.slug AS attribute_slug,
+                            t.nombre AS term_name,pa.valor_texto,pa.valor_numero,pa.valor_numero_max,pa.unidad,pa.valor_original
+                     FROM `{$tables['values']}` pa
+                     JOIN `{$tables['definitions']}` a ON a.id=pa.atributo_id
+                     LEFT JOIN `{$tables['terms']}` t ON t.id=pa.termino_id
+                     WHERE pa.product_id IN ({$ph})
+                     ORDER BY pa.product_id,a.orden,a.nombre,pa.orden,pa.id",
+                    ...$product_ids
+                ),
+                ARRAY_A
+            );
+            foreach ((array) $attribute_rows as $row) {
+                $pid = (int) $row['product_id'];
+                if (count($attribute_map[$pid] ?? []) >= 8) {
+                    continue;
+                }
+                $value = trim((string) ($row['term_name'] ?? ''));
+                if ($value === '' && $row['valor_numero'] !== null && $row['valor_numero'] !== '') {
+                    $value = (string) $row['valor_numero'];
+                    if ($row['valor_numero_max'] !== null && $row['valor_numero_max'] !== '') {
+                        $value .= '–' . (string) $row['valor_numero_max'];
+                    }
+                    if (!empty($row['unidad'])) {
+                        $value .= ' ' . (string) $row['unidad'];
+                    }
+                }
+                if ($value === '') {
+                    $value = trim((string) ($row['valor_texto'] ?? $row['valor_original'] ?? ''));
+                }
+                $attribute_map[$pid][] = trim((string) ($row['attribute_name'] ?? $row['attribute_slug'])) . ($value !== '' ? ': ' . $value : '');
+            }
+        }
+
+        echo '<div class="seo-tags-count">Mostrando ' . esc_html(number_format_i18n(count($products))) . ' de ' . esc_html(number_format_i18n($total)) . ' productos.</div>';
+        echo '<div style="overflow:auto"><table class="widefat striped seo-tags-table">';
+        echo '<thead><tr><th>Producto</th><th>Categorías</th><th>Atributos canónicos</th><th>Cobertura</th><th>Modificado</th><th>Acción</th></tr></thead><tbody>';
+        if (!$products) {
+            echo '<tr><td colspan="6">No hay productos que coincidan con los filtros.</td></tr>';
+        }
+        foreach ($products as $product) {
+            $pid = (int) $product['ID'];
+            $count = (int) ($product['attribute_count'] ?? 0);
+            echo '<tr><td class="seo-tags-product"><strong>#' . esc_html($pid) . ' · ' . esc_html((string) $product['post_title']) . '</strong>';
+            if (!empty($product['sku'])) {
+                echo '<br><span class="seo-tags-vocab-source">SKU: ' . esc_html((string) $product['sku']) . '</span>';
+            }
+            echo '</td><td>';
+            if (!empty($category_map[$pid])) {
+                echo esc_html(implode(' · ', array_unique($category_map[$pid])));
+            } else {
+                echo '<span class="seo-tags-muted">Sin categoría</span>';
+            }
+            echo '</td><td><div class="seo-tags-pills">';
+            if (!empty($attribute_map[$pid])) {
+                foreach ($attribute_map[$pid] as $attribute_label) {
+                    echo '<span class="seo-tags-pill">' . esc_html($attribute_label) . '</span>';
+                }
+                if ($count > count($attribute_map[$pid])) {
+                    echo '<span class="seo-tags-muted">+' . esc_html($count - count($attribute_map[$pid])) . ' más</span>';
+                }
+            } else {
+                echo '<span class="seo-tags-muted">Sin atributos guardados</span>';
+            }
+            echo '</div></td><td>';
+            if ($count > 0) {
+                echo '<span class="seo-tags-state active">' . esc_html(number_format_i18n($count)) . ' asignaciones</span>';
+            } else {
+                echo '<span class="seo-tags-state inactive" style="color:#b32d2e">Sin atributos</span>';
+            }
+            echo '</td><td>' . esc_html(mysql2date('d/m/Y H:i', (string) $product['post_modified'])) . '</td><td>';
+            $edit_url = get_edit_post_link($pid, '');
+            if ($edit_url) {
+                echo '<a class="button button-small" href="' . esc_url($edit_url) . '">Editar producto</a>';
+            }
+            echo '</td></tr>';
+        }
+        echo '</tbody></table></div>';
+
+        if ($total_pages > 1) {
+            $base_args = [
+                'page' => 'seo-tags-vocabulary',
+                'domain' => 'attributes',
+                'attribute_section' => 'products',
+                'attr_s' => $search,
+                'attr_category_id' => $category_id,
+                'attr_coverage' => $coverage,
+                'attr_per_page' => $per_page,
+            ];
+            echo '<div class="seo-tags-pagination">';
+            $window_start = max(1, $page_number - 3);
+            $window_end = min($total_pages, $page_number + 3);
+            if ($page_number > 1) {
+                echo '<a href="' . esc_url(add_query_arg(array_merge($base_args, ['attr_paged' => $page_number - 1]), admin_url('admin.php'))) . '">‹</a>';
+            }
+            for ($i = $window_start; $i <= $window_end; $i++) {
+                if ($i === $page_number) {
+                    echo '<span class="current">' . esc_html($i) . '</span>';
+                } else {
+                    echo '<a href="' . esc_url(add_query_arg(array_merge($base_args, ['attr_paged' => $i]), admin_url('admin.php'))) . '">' . esc_html($i) . '</a>';
+                }
+            }
+            if ($page_number < $total_pages) {
+                echo '<a href="' . esc_url(add_query_arg(array_merge($base_args, ['attr_paged' => $page_number + 1]), admin_url('admin.php'))) . '">›</a>';
+            }
+            echo '<span>Página ' . esc_html($page_number) . ' / ' . esc_html($total_pages) . '</span></div>';
+        }
+    }
+}
+
 if (!function_exists('seo_tags_vocabulary_admin_page')) {
     function seo_tags_vocabulary_admin_page() {
         if (!current_user_can('manage_options')) {
@@ -2635,10 +3028,15 @@ if (!function_exists('seo_tags_vocabulary_admin_page')) {
                     'render_explorer' => false,
                 ]);
             } else {
+                seo_semantic_attributes_render_products_inventory();
+                echo '<details class="seo-tags-panel" style="margin-top:18px" ' . ((isset($_GET['search_attributes']) || isset($_GET['propose_attributes']) || isset($_POST['save_attributes'])) ? 'open' : '') . '>';
+                echo '<summary style="cursor:pointer;font-weight:700">Explorador manual de atributos existente</summary>';
+                echo '<p class="seo-tags-help">Se conserva la herramienta anterior de exploración/propuesta para no perder funcionalidad. El inventario superior es la nueva vista de cobertura.</p>';
                 search_product_attributes([
                     'render_dashboard' => false,
                     'render_definition_controls' => false,
                 ]);
+                echo '</details>';
             }
         }
 
