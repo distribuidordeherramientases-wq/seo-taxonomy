@@ -1,0 +1,102 @@
+name: Importar plugin de STAGING a github
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Abrir rama limpia de staging
+        uses: actions/checkout@v4
+        with:
+          ref: staging-clean-build045
+          fetch-depth: 0
+
+      - name: Instalar lftp
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lftp
+
+      - name: Descargar plugin desde STAGING
+        env:
+          FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+        run: |
+          rm -rf /tmp/seo-taxonomy
+          mkdir -p /tmp/seo-taxonomy
+
+          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" -p 21 "$FTP_SERVER" <<'EOF'
+          set cmd:fail-exit yes
+          set ftp:ssl-force true
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate yes
+
+          mirror --verbose --parallel=4 --exclude-glob .ftpquota ./wp-content/plugins/seo-taxonomy/ /tmp/seo-taxonomy
+
+          bye
+          EOF
+
+      - name: Comprobar descarga
+        run: |
+          test -f /tmp/seo-taxonomy/seo-taxonomy.php || {
+            echo "ERROR: No aparece seo-taxonomy.php"
+            exit 1
+          }
+
+          test -d /tmp/seo-taxonomy/includes || {
+            echo "ERROR: No aparece includes/"
+            exit 1
+          }
+
+          test -d /tmp/seo-taxonomy/admin || {
+            echo "ERROR: No aparece admin/"
+            exit 1
+          }
+
+          test -f /tmp/seo-taxonomy/includes/dependiente/entrenador/seo-dependiente-entrenador.php || {
+            echo "ERROR: No aparece el Entrenador"
+            exit 1
+          }
+
+          test -f /tmp/seo-taxonomy/includes/clasificador/jobs.php || {
+            echo "ERROR: No aparece Clasificador Jobs"
+            exit 1
+          }
+
+          echo "Descarga correcta desde STAGING"
+          find /tmp/seo-taxonomy -type f | wc -l
+
+      - name: Sincronizar rama limpia con STAGING
+        run: |
+          rsync -a --delete \
+            --exclude='/.git/' \
+            --exclude='/.github/' \
+            --exclude='/.gitignore' \
+            --exclude='/.gitattributes' \
+            --exclude='/README.md' \
+            --exclude='/CONTRIBUTING.md' \
+            --exclude='/LICENSE' \
+            /tmp/seo-taxonomy/ ./
+
+          git status --short
+
+      - name: Guardar cambios
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No hay cambios que guardar"
+            exit 0
+          fi
+
+          git commit -m "Sincronizar Build045 limpio desde STAGING"
+          git push origin HEAD:staging-clean-build045
