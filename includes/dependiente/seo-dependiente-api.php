@@ -303,8 +303,12 @@ final class SEO_Dependiente_API {
         ));
 
         $execution_ms = (microtime(true) - $started_at) * 1000;
+        // Permite a herramientas internas ejecutar exactamente el mismo motor sin
+        // contaminar el log de clientes ni activar el aprendizaje supervisado.
+        // Este valor no procede de parametros REST: solo puede cambiarlo codigo PHP.
+        $should_log_search = (bool) apply_filters('seo_dependiente_should_log_search', true, $request, $params, $request_kind);
         $search_id = '';
-        if (class_exists('SEO_Dependiente_Search_Log') && ('' !== trim($query) || self::has_active_filters($filters) || $entry_selection)) {
+        if ($should_log_search && class_exists('SEO_Dependiente_Search_Log') && ('' !== trim($query) || self::has_active_filters($filters) || $entry_selection)) {
             // El diagnostico guardado incorpora el estado de la peticion para poder
             // reconstruir despues la ruta real: filtros, orden, pagina y aclaracion.
             $log_diagnostic = $search_diagnostic;

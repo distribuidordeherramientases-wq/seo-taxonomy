@@ -49,6 +49,9 @@ final class SEO_Dependiente_Plugin {
         if (class_exists('SEO_Dependiente_Help')) {
             SEO_Dependiente_Help::install();
         }
+        if (class_exists('SEO_Dependiente_Entrenador')) {
+            SEO_Dependiente_Entrenador::install();
+        }
         update_option('seo_dependiente_db_version', SEO_DEPENDIENTE_DB_VERSION, false);
 
         $defaults = array(

@@ -44,7 +44,7 @@ final class SEO_Dependiente_Admin {
         }
 
         $tab = sanitize_key((string) ($_GET['tab'] ?? 'settings'));
-        if (!in_array($tab, array('settings', 'diagnostic', 'learning'), true)) {
+        if (!in_array($tab, array('settings', 'diagnostic', 'learning', 'trainer'), true)) {
             $tab = 'settings';
         }
         ?>
@@ -56,6 +56,7 @@ final class SEO_Dependiente_Admin {
                 <?php self::render_tab_link('settings', 'Configuración', $tab); ?>
                 <?php self::render_tab_link('diagnostic', 'Informe', $tab); ?>
                 <?php self::render_tab_link('learning', 'Aprendizaje', $tab); ?>
+                <?php self::render_tab_link('trainer', 'Entrenador', $tab); ?>
             </nav>
 
             <?php
@@ -63,6 +64,12 @@ final class SEO_Dependiente_Admin {
                 self::render_diagnostic_tab();
             } elseif ('learning' === $tab) {
                 self::render_learning_tab();
+            } elseif ('trainer' === $tab) {
+                if (class_exists('SEO_Dependiente_Entrenador')) {
+                    SEO_Dependiente_Entrenador::render_tab();
+                } else {
+                    echo '<div class="notice notice-error"><p>No está disponible el módulo Entrenador.</p></div>';
+                }
             } else {
                 self::render_settings_tab();
             }
