@@ -282,7 +282,6 @@ body.seo-dependiente-app-body * {
 
 .seo-dependiente__hero-copy,
 .seo-dependiente__ask,
-.seo-dependiente__scope-picker,
 .seo-dependiente__paths {
     position: relative;
     z-index: 1;
@@ -421,53 +420,11 @@ body.seo-dependiente-app-body * {
     color: #fff;
 }
 
-.seo-dependiente__scope-picker {
-    position: relative;
-    z-index: 2;
-    max-width: 1220px;
-    margin-top: clamp(30px, 4vw, 48px);
-}
-
-.seo-dependiente__scope-heading {
-    display: flex;
-    align-items: end;
-    justify-content: space-between;
-    gap: 28px;
-    margin-bottom: 18px;
-}
-
-.seo-dependiente__scope-heading span {
-    display: inline-block;
-    margin-bottom: 6px;
-    color: var(--dht-accent);
-    font-size: 11px;
-    font-weight: 850;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-}
-
-.seo-dependiente__scope-heading h2 {
-    margin: 0;
-    color: #fff;
-    font-size: clamp(25px, 3.4vw, 42px);
-    line-height: 1.02;
-    letter-spacing: -.035em;
-}
-
-.seo-dependiente__scope-heading p {
-    max-width: 520px;
-    margin: 0;
-    color: rgba(255,255,255,.66);
-    font-size: 13px;
-    line-height: 1.5;
-    text-align: right;
-}
-
 .seo-dependiente__help {
     position: relative;
     z-index: 2;
     max-width: 1050px;
-    margin-top: 22px;
+    margin-top: 14px;
     border: 1px solid rgba(255,255,255,.16);
     border-radius: 16px;
     background: rgba(255,255,255,.055);
@@ -823,66 +780,6 @@ body.seo-dependiente-app-body * {
     border-radius: 50%;
     background: var(--dht-accent);
     color: var(--dht-accent-ink);
-    font-weight: 900;
-}
-
-
-.seo-dependiente__visual-menu--roles {
-    gap: 14px;
-}
-
-.seo-dependiente__visual-card--scope {
-    min-height: 278px;
-    border: 1px solid rgba(255,255,255,.12);
-    box-shadow: 0 16px 34px rgba(0,0,0,.22);
-    cursor: pointer;
-    transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
-}
-
-.seo-dependiente__visual-card--scope::after {
-    background: linear-gradient(to top, rgba(3,8,5,.97) 0%, rgba(3,8,5,.82) 28%, rgba(3,8,5,.35) 62%, rgba(3,8,5,.04) 88%);
-}
-
-.seo-dependiente__visual-card--scope:hover,
-.seo-dependiente__visual-card--scope:focus-visible {
-    transform: translateY(-4px);
-    border-color: rgba(216,255,70,.62);
-    box-shadow: 0 20px 42px rgba(0,0,0,.28);
-}
-
-.seo-dependiente__visual-card--scope.is-selected {
-    border-color: var(--dht-accent);
-    box-shadow: 0 0 0 2px rgba(216,255,70,.34), 0 20px 42px rgba(0,0,0,.3);
-}
-
-.seo-dependiente__visual-card--scope.is-selected .seo-dependiente__visual-card-arrow {
-    background: #fff;
-    color: var(--dht-ink);
-}
-
-.seo-dependiente__visual-card--scope .seo-dependiente__visual-card-content {
-    padding: 26px 22px 22px;
-}
-
-.seo-dependiente__visual-card--scope strong {
-    max-width: calc(100% - 30px);
-    font-size: clamp(21px, 2vw, 28px);
-}
-
-.seo-dependiente__visual-card--scope small {
-    max-width: 92%;
-    color: rgba(255,255,255,.82);
-    font-size: 13px;
-    line-height: 1.35;
-}
-
-.seo-dependiente__chip--scope {
-    border-color: #809c24;
-    background: #f1f8d2;
-    color: #2c3b17;
-}
-
-.seo-dependiente__chip--scope strong {
     font-weight: 900;
 }
 
@@ -1807,17 +1704,6 @@ button.seo-dependiente__chip::after {
         width: 100%;
     }
 
-    .seo-dependiente__scope-heading {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .seo-dependiente__scope-heading p {
-        max-width: 680px;
-        text-align: left;
-    }
-
     .seo-dependiente__section-heading {
         display: block;
     }
@@ -1928,10 +1814,6 @@ button.seo-dependiente__chip::after {
 
     .seo-dependiente__visual-card {
         min-height: 220px;
-    }
-
-    .seo-dependiente__visual-card--scope {
-        min-height: 230px;
     }
 
     .seo-dependiente__toolbar,
@@ -2486,4 +2368,56 @@ button.seo-dependiente__chip::after {
     .seo-dependiente__amazon-grid {
         grid-template-columns: 1fr;
     }
+}
+
+/* Amazon Afiliados sin Creators API: tarjetas de busqueda, no fichas inventadas. */
+.seo-dependiente__amazon-search-visual {
+    display: flex;
+    min-height: 160px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 20px;
+    background: linear-gradient(145deg, #f7f8f9, #eef1f3);
+    color: var(--dht-ink);
+    text-decoration: none;
+    text-align: center;
+}
+
+.seo-dependiente__amazon-search-mark {
+    font-size: 22px;
+    font-weight: 850;
+    letter-spacing: -.04em;
+}
+
+.seo-dependiente__amazon-search-query {
+    max-width: 24ch;
+    color: var(--dht-muted);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.seo-dependiente__amazon-search-description {
+    margin: 9px 0 0;
+    color: var(--dht-muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.seo-dependiente__search-tier {
+    display: inline-flex;
+    padding: 2px 6px;
+    border: 1px solid var(--dht-line);
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.seo-dependiente__search-tier.is-extended {
+    color: var(--dht-muted);
+    background: #f6f7f6;
 }

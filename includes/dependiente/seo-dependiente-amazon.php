@@ -1,16 +1,15 @@
 <?php
 /**
- * Integracion Amazon exclusiva del modulo Dependiente.
+ * Amazon para el modulo Dependiente.
  *
- * IMPORTANTE:
- * - Reutiliza la conexion/credenciales Amazon Creators API ya existentes.
- * - No modifica la receta Amazon compartida por categorias, importador u otros modulos.
- * - Toda la politica especifica del Dependiente (fallback, limites, pagina, orden,
- *   Search Index, cache y normalizacion visible) vive aqui.
+ * Dos capacidades independientes:
+ * - Amazon Afiliados (Partner Tag): siempre que este configurado permite crear
+ *   busquedas afiliadas sin API.
+ * - Creators API (opcional): si la cuenta es elegible y hay credenciales,
+ *   enriquece el bloque con productos concretos. Si falla, se vuelve
+ *   automaticamente al modo afiliado sin romper la busqueda principal.
  *
- * De este modo, si mas adelante el Dependiente necesita limitar resultados,
- * cambiar Search Index o aplicar reglas distintas de las categorias, basta con
- * modificar este archivo o usar el filtro `seo_dependiente_amazon_parameters`.
+ * @version 0.1.19
  */
 defined('ABSPATH') || exit;
 
@@ -26,9 +25,6 @@ final class SEO_Dependiente_Amazon {
 
     private static $initialized = false;
 
-    /**
-     * Registra solo los puntos de entrada que pertenecen a Amazon/Dependiente.
-     */
     public static function init() {
         if (self::$initialized) {
             return;
@@ -37,10 +33,6 @@ final class SEO_Dependiente_Amazon {
         add_action('rest_api_init', array(__CLASS__, 'register_routes'));
     }
 
-    /**
-     * El API REST de Amazon queda fuera de seo-dependiente-api.php para evitar
-     * mezclar la busqueda del catalogo propio con proveedores externos.
-     */
     public static function register_routes() {
         register_rest_route('seo-taxonomy/v1', '/amazon-search', array(
             'methods'             => WP_REST_Server::CREATABLE,
@@ -49,11 +41,6 @@ final class SEO_Dependiente_Amazon {
         ));
     }
 
-    /**
-     * Callback REST. Los limites se deciden en servidor mediante parameters();
-     * no se aceptan directamente desde el navegador para que el cliente no pueda
-     * ampliar arbitrariamente el numero de productos consultados/devueltos.
-     */
     public static function rest_search(WP_REST_Request $request) {
         $params = self::request_params($request);
         $query = self::limit_text(sanitize_text_field((string) ($params['q'] ?? '')), 160);
@@ -67,21 +54,9 @@ final class SEO_Dependiente_Amazon {
         return is_wp_error($result) ? $result : rest_ensure_response($result);
     }
 
-    /**
-     * Parametros propios de Amazon para Dependiente.
-     *
-     * Estos valores NO cambian la configuracion Amazon usada por categorias,
-     * exploradores ni otros consumidores de la receta compartida.
-     *
-     * @param array $overrides Ajustes internos puntuales del Dependiente.
-     * @param array $context   Contexto para reglas/filtros futuros.
-     * @return array
-     */
     public static function parameters($overrides = array(), $context = array()) {
         $defaults = array(
-            // Cuantos items pide el Dependiente a SearchItems.
             'item_count'    => self::DEFAULT_ITEM_COUNT,
-            // Cuantos items como maximo devuelve el Dependiente al navegador.
             'result_limit'  => self::DEFAULT_RESULT_LIMIT,
             'feature_limit' => self::DEFAULT_FEATURE_LIMIT,
             'search_index'  => self::DEFAULT_SEARCH_INDEX,
@@ -91,24 +66,11 @@ final class SEO_Dependiente_Amazon {
         );
 
         $parameters = wp_parse_args(is_array($overrides) ? $overrides : array(), $defaults);
-
-        /**
-         * Permite configurar Amazon exclusivamente para Dependiente sin tocar
-         * seo_supplier_recipe_amazon_settings(), que tambien usan otros modulos.
-         *
-         * Ejemplo futuro:
-         * add_filter('seo_dependiente_amazon_parameters', function ($p, $context) {
-         *     $p['result_limit'] = 4;
-         *     $p['item_count'] = 8;
-         *     return $p;
-         * }, 10, 2);
-         */
         $parameters = apply_filters(
             'seo_dependiente_amazon_parameters',
             $parameters,
             is_array($context) ? $context : array()
         );
-
         if (!is_array($parameters)) {
             $parameters = $defaults;
         }
@@ -135,15 +97,15 @@ final class SEO_Dependiente_Amazon {
     }
 
     /**
-     * Prepara Amazon como tercera fuente complementaria.
-     * Se intenta en toda busqueda, independientemente del resultado del catalogo.
-     * Nunca condiciona ni bloquea productos o contenido propio.
+     * Amazon es la fuente 1C y se prepara siempre en la primera pagina cuando
+     * exista Partner Tag. No depende de cuantos resultados propios haya.
      */
     public static function fallback_descriptor($query, $semantic, $context = array()) {
         $empty = array(
             'provider'    => 'amazon',
             'should_load' => false,
             'available'   => false,
+            'mode'        => 'affiliate',
             'reason'      => '',
             'status'      => 'inactive',
             'query'       => '',
@@ -156,21 +118,29 @@ final class SEO_Dependiente_Amazon {
             $empty['status'] = 'empty_query';
             return $empty;
         }
+
         $amazon_query = self::build_search_query($query, $semantic);
         if ('' === $amazon_query) {
             $empty['status'] = 'query_unusable';
             return $empty;
         }
 
+        if (!self::ensure_recipe() || !self::affiliate_ready()) {
+            $empty['query'] = $amazon_query;
+            $empty['status'] = 'partner_tag_missing';
+            return $empty;
+        }
+
         $bucket = (int) floor(time() / HOUR_IN_SECONDS);
-        $available = self::ensure_recipe() && self::credentials_ready();
+        $creators = self::creators_ready();
 
         return array(
             'provider'    => 'amazon',
             'should_load' => true,
-            'available'   => $available,
+            'available'   => true,
+            'mode'        => $creators ? 'creators_or_affiliate' : 'affiliate',
             'reason'      => 'complementary_search',
-            'status'      => $available ? 'ready' : 'provider_unavailable',
+            'status'      => $creators ? 'creators_optional' : 'affiliate_ready',
             'query'       => $amazon_query,
             'token'       => self::make_token($amazon_query, $bucket),
             'bucket'      => $bucket,
@@ -178,14 +148,8 @@ final class SEO_Dependiente_Amazon {
     }
 
     /**
-     * Ejecuta SearchItems con una politica aislada para Dependiente.
-     *
-     * @param string $query
-     * @param string $token
-     * @param int    $bucket
-     * @param array  $overrides Parametros internos opcionales.
-     * @param array  $context   Contexto para filtros/reglas futuras.
-     * @return array|WP_Error
+     * Devuelve fichas Creators cuando sea posible y búsquedas afiliadas cuando
+     * Creators no esté configurada, no sea elegible o responda con error.
      */
     public static function search($query, $token, $bucket, $overrides = array(), $context = array()) {
         $query = self::limit_text(sanitize_text_field((string) $query), 160);
@@ -194,8 +158,8 @@ final class SEO_Dependiente_Amazon {
         if ('' === $query || !self::valid_token($query, (string) $token, $bucket)) {
             return new WP_Error('seo_dependiente_amazon_invalid_request', 'Solicitud externa no valida.', array('status' => 403));
         }
-        if (!self::ensure_recipe() || !self::credentials_ready()) {
-            return new WP_Error('seo_dependiente_amazon_unavailable', 'Amazon no esta disponible.', array('status' => 503));
+        if (!self::ensure_recipe() || !self::affiliate_ready()) {
+            return new WP_Error('seo_dependiente_amazon_partner_tag_missing', 'Falta configurar el Partner Tag de Amazon Afiliados.', array('status' => 503));
         }
 
         $context = wp_parse_args(is_array($context) ? $context : array(), array(
@@ -205,10 +169,11 @@ final class SEO_Dependiente_Amazon {
         $parameters = self::parameters($overrides, $context);
         $settings = seo_supplier_recipe_amazon_settings();
 
-        $cache_key = 'seo_dep_amz_' . md5(
+        $cache_key = 'seo_dep_amz_019_' . md5(
             self::normalize($query) . '|' .
             (string) ($settings['marketplace'] ?? '') . '|' .
             (string) ($settings['partner_tag'] ?? '') . '|' .
+            (self::creators_ready() ? 'creators' : 'affiliate') . '|' .
             wp_json_encode(array(
                 'search_index' => $parameters['search_index'],
                 'item_count'   => $parameters['item_count'],
@@ -223,21 +188,68 @@ final class SEO_Dependiente_Amazon {
             return $cached;
         }
 
-        // Se pasan explicitamente los parametros del Dependiente. Asi un cambio
-        // del item_count/search_index del explorador Amazon no altera este flujo.
-        $response = seo_supplier_recipe_amazon_search_items($query, array(
-            'search_index' => $parameters['search_index'],
-            'item_count'   => $parameters['item_count'],
-            'item_page'    => $parameters['item_page'],
-            'sort_by'      => $parameters['sort_by'],
-        ));
-        if (is_wp_error($response)) {
-            return new WP_Error('seo_dependiente_amazon_search_failed', 'No se han podido cargar alternativas de Amazon.', array('status' => 502));
+        $creators_error = '';
+        if (self::creators_ready()
+            && function_exists('seo_supplier_recipe_amazon_search_items')
+            && function_exists('seo_supplier_recipe_amazon_normalize_preview')) {
+            $response = seo_supplier_recipe_amazon_search_items($query, array(
+                'search_index' => $parameters['search_index'],
+                'item_count'   => $parameters['item_count'],
+                'item_page'    => $parameters['item_page'],
+                'sort_by'      => $parameters['sort_by'],
+            ));
+
+            if (!is_wp_error($response)) {
+                $normalized = seo_supplier_recipe_amazon_normalize_preview($response);
+                $items = self::normalize_creator_items(
+                    (array) ($normalized['products'] ?? array()),
+                    $parameters['result_limit'],
+                    $parameters['feature_limit']
+                );
+                if ($items) {
+                    $result = array(
+                        'provider' => 'amazon',
+                        'mode'     => 'creators',
+                        'query'    => $query,
+                        'items'    => $items,
+                        'total'    => count($items),
+                        'limits'   => array(
+                            'requested' => $parameters['item_count'],
+                            'returned'  => $parameters['result_limit'],
+                            'page'      => $parameters['item_page'],
+                        ),
+                    );
+                    set_transient($cache_key, $result, $parameters['cache_ttl']);
+                    return $result;
+                }
+                $creators_error = 'empty_result';
+            } else {
+                $creators_error = sanitize_key((string) $response->get_error_code());
+            }
         }
 
-        $normalized = seo_supplier_recipe_amazon_normalize_preview($response);
+        // Ruta estable sin API: la misma idea que ya usan las plantillas DHT.
+        $items = self::affiliate_items($query, $parameters['result_limit']);
+        $result = array(
+            'provider'       => 'amazon',
+            'mode'           => 'affiliate',
+            'query'          => $query,
+            'items'          => $items,
+            'total'          => count($items),
+            'creators_error' => $creators_error,
+            'limits'         => array(
+                'requested' => count($items),
+                'returned'  => count($items),
+                'page'      => 1,
+            ),
+        );
+        set_transient($cache_key, $result, $parameters['cache_ttl']);
+        return $result;
+    }
+
+    private static function normalize_creator_items($products, $result_limit, $feature_limit) {
         $items = array();
-        foreach (array_slice((array) ($normalized['products'] ?? array()), 0, $parameters['result_limit']) as $product) {
+        foreach (array_slice((array) $products, 0, absint($result_limit)) as $product) {
             $url = esc_url_raw((string) ($product['url'] ?? ''));
             $title = sanitize_text_field((string) ($product['title'] ?? ''));
             if (!$url || !$title) {
@@ -245,7 +257,7 @@ final class SEO_Dependiente_Amazon {
             }
 
             $features = array();
-            foreach (array_slice((array) ($product['features'] ?? array()), 0, $parameters['feature_limit']) as $feature) {
+            foreach (array_slice((array) ($product['features'] ?? array()), 0, absint($feature_limit)) as $feature) {
                 $feature = self::limit_text(sanitize_text_field((string) $feature), 180);
                 if ('' !== $feature) {
                     $features[] = $feature;
@@ -253,6 +265,7 @@ final class SEO_Dependiente_Amazon {
             }
 
             $items[] = array(
+                'type'     => 'product',
                 'asin'     => sanitize_text_field((string) ($product['asin'] ?? '')),
                 'title'    => $title,
                 'brand'    => sanitize_text_field((string) ($product['brand'] ?? '')),
@@ -262,22 +275,108 @@ final class SEO_Dependiente_Amazon {
                 'features' => $features,
             );
         }
+        return $items;
+    }
 
-        $result = array(
-            'provider' => 'amazon',
-            'query'    => $query,
-            'items'    => $items,
-            'total'    => count($items),
-            // Util para diagnostico y para futuros controles del Dependiente.
-            'limits'   => array(
-                'requested' => $parameters['item_count'],
-                'returned'  => $parameters['result_limit'],
-                'page'      => $parameters['item_page'],
+    /**
+     * Tarjetas de intencion sin API. No inventan fichas, precios ni imagenes de
+     * Amazon: cada tarjeta abre una busqueda real de amazon.es con Partner Tag.
+     */
+    private static function affiliate_items($query, $limit) {
+        $query = trim(self::normalize($query));
+        if ('' === $query) {
+            return array();
+        }
+
+        $intents = array(
+            array(
+                'kind'        => 'direct',
+                'label'       => self::label_from_query($query),
+                'query'       => $query,
+                'description' => 'Explora en Amazon opciones que responden directamente a esta búsqueda.',
+            ),
+            array(
+                'kind'        => 'professional',
+                'label'       => 'Opciones profesionales',
+                'query'       => $query . ' profesional',
+                'description' => 'Alternativas orientadas a uso frecuente, taller o trabajo profesional.',
+            ),
+            array(
+                'kind'        => 'variants',
+                'label'       => 'Variantes y medidas',
+                'query'       => $query . ' medidas capacidades',
+                'description' => 'Compara formatos, medidas, capacidades y configuraciones relacionadas.',
+            ),
+            array(
+                'kind'        => 'kit',
+                'label'       => 'Kits y conjuntos',
+                'query'       => 'kit ' . $query,
+                'description' => 'Conjuntos que agrupan piezas, medidas o accesorios de la misma familia.',
+            ),
+            array(
+                'kind'        => 'accessories',
+                'label'       => 'Accesorios y complementos',
+                'query'       => 'accesorios ' . $query,
+                'description' => 'Complementos relacionados que pueden ampliar las opciones de uso.',
             ),
         );
-        set_transient($cache_key, $result, $parameters['cache_ttl']);
 
-        return $result;
+        $seen = array();
+        $items = array();
+        foreach ($intents as $intent) {
+            $intent_query = trim((string) $intent['query']);
+            $key = sanitize_title(remove_accents($intent_query));
+            if ('' === $key || isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $url = self::affiliate_search_url($intent_query);
+            if ('' === $url) {
+                continue;
+            }
+            $items[] = array(
+                'type'        => 'search',
+                'kind'        => sanitize_key((string) $intent['kind']),
+                'title'       => sanitize_text_field((string) $intent['label']),
+                'query'       => sanitize_text_field($intent_query),
+                'description' => sanitize_text_field((string) $intent['description']),
+                'url'         => esc_url_raw($url),
+                'brand'       => 'Amazon',
+                'image'       => '',
+                'price'       => '',
+                'features'    => array(),
+            );
+            if (count($items) >= max(1, absint($limit))) {
+                break;
+            }
+        }
+        return $items;
+    }
+
+    private static function label_from_query($query) {
+        $query = trim((string) $query);
+        if ('' === $query) {
+            return 'Ver opciones en Amazon';
+        }
+        if (function_exists('mb_convert_case')) {
+            return mb_convert_case($query, MB_CASE_TITLE, 'UTF-8');
+        }
+        return ucwords($query);
+    }
+
+    private static function affiliate_search_url($query) {
+        if (function_exists('seo_supplier_recipe_amazon_affiliate_search_url')) {
+            return (string) seo_supplier_recipe_amazon_affiliate_search_url($query);
+        }
+        if (!function_exists('seo_supplier_recipe_amazon_settings')) {
+            return '';
+        }
+        $settings = seo_supplier_recipe_amazon_settings();
+        $tag = sanitize_text_field((string) ($settings['partner_tag'] ?? ''));
+        if ('' === trim($query) || '' === $tag) {
+            return '';
+        }
+        return add_query_arg(array('k' => $query, 'tag' => $tag), 'https://www.amazon.es/s');
     }
 
     private static function build_search_query($query, $semantic) {
@@ -294,18 +393,12 @@ final class SEO_Dependiente_Amazon {
             }
         }
 
-        // Si la capa semantica no ha podido extraer un objeto o terminos utiles,
-        // Amazon recibe la frase original en lugar de perder contexto.
         $search = $parts ? implode(' ', array_slice($parts, 0, 10)) : self::normalize($query);
         return self::limit_text(trim($search), 160);
     }
 
-    /**
-     * Carga la receta Amazon compartida solo como transporte/normalizador.
-     * No se cambian sus settings desde el Dependiente.
-     */
     private static function ensure_recipe() {
-        if (function_exists('seo_supplier_recipe_amazon_search_items') && function_exists('seo_supplier_recipe_amazon_normalize_preview')) {
+        if (function_exists('seo_supplier_recipe_amazon_settings')) {
             return true;
         }
 
@@ -317,11 +410,24 @@ final class SEO_Dependiente_Amazon {
             require_once $path;
         }
 
-        return function_exists('seo_supplier_recipe_amazon_search_items')
-            && function_exists('seo_supplier_recipe_amazon_normalize_preview');
+        return function_exists('seo_supplier_recipe_amazon_settings');
     }
 
-    private static function credentials_ready() {
+    private static function affiliate_ready() {
+        if (function_exists('seo_supplier_recipe_amazon_affiliate_ready')) {
+            return (bool) seo_supplier_recipe_amazon_affiliate_ready();
+        }
+        if (!function_exists('seo_supplier_recipe_amazon_settings')) {
+            return false;
+        }
+        $settings = seo_supplier_recipe_amazon_settings();
+        return !empty($settings['partner_tag']);
+    }
+
+    private static function creators_ready() {
+        if (function_exists('seo_supplier_recipe_amazon_creators_ready')) {
+            return (bool) seo_supplier_recipe_amazon_creators_ready();
+        }
         if (!function_exists('seo_supplier_recipe_amazon_settings')) {
             return false;
         }

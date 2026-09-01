@@ -13,7 +13,6 @@
             submit: root.querySelector('[data-dependiente-search-form] button[type="submit"]'),
             examples: root.querySelector('[data-dependiente-examples]'),
             discovery: root.querySelector('[data-dependiente-discovery]'),
-            roles: root.querySelector('[data-dependiente-roles]'),
             actions: root.querySelector('[data-dependiente-actions]'),
             tools: root.querySelector('[data-dependiente-tools]'),
             paths: root.querySelectorAll('[data-dependiente-mode]'),
@@ -59,7 +58,6 @@
             loading: false,
             searchId: '',
             semanticHint: null,
-            entrySelection: null,
             clarification: null,
             clarificationTimer: null,
             feedbackTimer: null,
@@ -108,15 +106,13 @@
                 // filtro/plataforma Milwaukee y mode=tool a "se me ha roto un grifo".
                 if (nextQuery && state.modeSource === 'menu') {
                     state.filters = emptyFilters();
-                    state.entrySelection = null;
-                    syncScopeCards();
                     state.orderby = 'relevance';
                     if (elements.sort) elements.sort.value = 'relevance';
                     setMode('need', 'default');
                 }
 
                 state.q = nextQuery;
-                if (!state.entrySelection) state.contextLabel = '';
+                state.contextLabel = '';
                 state.semanticHint = null;
                 state.page = 1;
                 search(true);
@@ -161,9 +157,7 @@
                 if (!reset) return;
                 event.preventDefault();
                 state.filters = emptyFilters();
-                state.entrySelection = null;
                 state.contextLabel = '';
-                syncScopeCards();
                 state.page = 1;
                 search(false);
             });
@@ -196,9 +190,7 @@
                 if (reset) {
                     event.preventDefault();
                     state.filters = emptyFilters();
-                    state.entrySelection = null;
                     state.contextLabel = '';
-                    syncScopeCards();
                     state.page = 1;
                     search(false);
                     return;
@@ -210,8 +202,6 @@
                     let filter = {};
                     try { filter = JSON.parse(alternative.dataset.dependienteZeroFilter || '{}'); } catch (error) { filter = {}; }
                     state.filters = emptyFilters();
-                    state.entrySelection = null;
-                    syncScopeCards();
                     applyCardFilter(filter);
                     state.q = '';
                     state.contextLabel = alternative.dataset.dependienteZeroLabel || '';
@@ -307,22 +297,24 @@
                 const data = await api('bootstrap', { method: 'GET' });
                 state.bootstrap = data;
                 renderExamples(data.examples || []);
-                renderRoleMenu(elements.roles, data.roles || []);
+                renderVisualMenu(elements.actions, data.actions || [], 'need');
+                renderVisualMenu(elements.tools, data.tools || [], 'tool');
             } catch (error) {
-                renderMenuError(elements.roles);
+                renderMenuError(elements.actions);
+                renderMenuError(elements.tools);
             }
         }
 
         function renderLoadingMenus() {
-            if (!elements.roles) return;
-            elements.roles.innerHTML = Array.from({ length: 4 }).map(function () {
-                return '<div class="seo-dependiente__visual-card seo-dependiente__visual-card--scope seo-dependiente__skeleton" aria-hidden="true"></div>';
-            }).join('');
+            [elements.actions, elements.tools].forEach(function (container) {
+                container.innerHTML = Array.from({ length: 4 }).map(function () {
+                    return '<div class="seo-dependiente__visual-card seo-dependiente__skeleton" aria-hidden="true"></div>';
+                }).join('');
+            });
         }
 
         function renderMenuError(container) {
-            if (!container) return;
-            container.innerHTML = '<div class="seo-dependiente__empty"><strong>Ámbitos en preparación</strong><span>La búsqueda escrita sigue disponible.</span></div>';
+            container.innerHTML = '<div class="seo-dependiente__empty"><strong>Menú en preparación</strong><span>La búsqueda escrita sigue disponible.</span></div>';
         }
 
         function renderExamples(examples) {
@@ -334,7 +326,7 @@
                     const value = button.dataset.example || '';
                     elements.query.value = value;
                     state.q = value;
-                    if (!state.entrySelection) state.contextLabel = '';
+                    state.contextLabel = '';
                     state.semanticHint = null;
                     state.page = 1;
                     search(true);
@@ -342,79 +334,44 @@
             });
         }
 
-        function renderRoleMenu(container, cards) {
-            if (!container || !cards.length) {
+        function renderVisualMenu(container, cards, mode) {
+            if (!cards.length) {
                 renderMenuError(container);
                 return;
             }
-
             container.innerHTML = cards.map(function (card) {
                 const imageClass = card.image_kind === 'logo' ? ' seo-dependiente__visual-card--logo' : '';
-                const filter = card.filter || {};
-                return '<button type="button" class="seo-dependiente__visual-card seo-dependiente__visual-card--scope' + imageClass + '"' +
-                    ' data-dependiente-role-card data-card-filter="' + escapeAttr(JSON.stringify(filter)) + '"' +
-                    ' aria-pressed="false">' +
+                return '<button type="button" class="seo-dependiente__visual-card' + imageClass + '" data-card-filter="' + escapeAttr(JSON.stringify(card.filter || {})) + '">' +
                     '<img src="' + escapeAttr(card.image || config.placeholderImage || '') + '" alt="" loading="lazy" decoding="async">' +
                     '<span class="seo-dependiente__visual-card-arrow" aria-hidden="true">→</span>' +
-                    '<span class="seo-dependiente__visual-card-content"><strong>' + escapeHtml(card.label) + '</strong>' +
-                    '<small>' + escapeHtml(card.subtitle || '') + '</small></span>' +
+                    '<span class="seo-dependiente__visual-card-content"><strong>' + escapeHtml(card.label) + '</strong><small>' + numberFormat(card.count) + ' opciones</small></span>' +
                     '</button>';
             }).join('');
 
-            container.querySelectorAll('[data-dependiente-role-card]').forEach(function (button, index) {
+            container.querySelectorAll('[data-card-filter]').forEach(function (button, index) {
                 button.addEventListener('click', function () {
                     let filter = {};
                     try { filter = JSON.parse(button.dataset.cardFilter || '{}'); } catch (error) { filter = {}; }
-                    const card = cards[index] || {};
-                    const slugs = normalizedFilterSlugs(filter);
-                    if (!slugs.length) return;
-
-                    state.filters.vocabulary = state.filters.vocabulary || {};
-                    state.filters.vocabulary.rol = slugs;
-                    state.entrySelection = {
-                        source: 'visual_scope',
-                        group: 'rol',
-                        label: String(card.label || ''),
-                        slugs: slugs
-                    };
-                    state.contextLabel = String(card.label || '');
-                    state.modeSource = 'scope';
+                    state.filters = emptyFilters();
+                    applyCardFilter(filter);
+                    state.contextLabel = cards[index] ? cards[index].label : '';
+                    state.q = '';
+                    state.semanticHint = null;
+                    elements.query.value = '';
                     state.page = 1;
-                    syncScopeCards();
+                    setMode(mode, 'menu');
                     search(true);
                 });
-            });
-
-            syncScopeCards();
-        }
-
-        function normalizedFilterSlugs(filter) {
-            const values = Array.isArray(filter && filter.slugs)
-                ? filter.slugs
-                : (filter && filter.slug ? [filter.slug] : []);
-            return values.map(function (value) { return String(value || '').trim(); }).filter(Boolean);
-        }
-
-        function syncScopeCards() {
-            if (!elements.roles) return;
-            const selected = ((state.filters.vocabulary || {}).rol || []).slice().sort().join('|');
-            elements.roles.querySelectorAll('[data-dependiente-role-card]').forEach(function (button) {
-                let filter = {};
-                try { filter = JSON.parse(button.dataset.cardFilter || '{}'); } catch (error) { filter = {}; }
-                const own = normalizedFilterSlugs(filter).slice().sort().join('|');
-                const active = Boolean(selected && own && selected === own);
-                button.classList.toggle('is-selected', active);
-                button.setAttribute('aria-pressed', active ? 'true' : 'false');
             });
         }
 
         function applyCardFilter(filter) {
-            const slugs = normalizedFilterSlugs(filter);
-            if (!slugs.length) return;
-            if (filter.type === 'categories') state.filters.categories = slugs;
-            if (filter.type === 'tags') state.filters.tags = slugs;
-            if (filter.type === 'vocabulary' && filter.group) state.filters.vocabulary[filter.group] = slugs;
-            if (filter.type === 'attributes' && filter.group) state.filters.attributes[filter.group] = slugs;
+            const slug = filter.slug || '';
+            if (!slug) return;
+            if (filter.type === 'categories') state.filters.categories = [slug];
+            if (filter.type === 'tags') state.filters.tags = [slug];
+            if (filter.type === 'vocabulary' && filter.group) state.filters.vocabulary[filter.group] = [slug];
+            if (filter.type === 'attributes' && filter.group) state.filters.attributes[filter.group] = [slug];
         }
 
         function setMode(mode, source) {
@@ -466,8 +423,7 @@
                         per_page: state.perPage,
                         orderby: state.orderby,
                         filters: state.filters,
-                        semantic_hint: state.semanticHint || null,
-                        entry_selection: state.entrySelection || null
+                        semantic_hint: state.semanticHint || null
                     }
                 });
                 state.facets = data.facets || null;
@@ -636,7 +592,6 @@
                         page_url: window.location.href,
                         filters: state.filters || emptyFilters(),
                         semantic_hint: state.semanticHint || null,
-                        entry_selection: state.entrySelection || null,
                         orderby: state.orderby || 'relevance',
                         compare_ids: Array.from(state.compare || []),
                         website: websiteInput ? websiteInput.value : ''
@@ -900,8 +855,6 @@
 
         function readFiltersFromForm(form) {
             const next = emptyFilters();
-            const activeRole = ((state.filters.vocabulary || {}).rol || []).slice();
-            if (activeRole.length) next.vocabulary.rol = activeRole;
             form.querySelectorAll('[data-filter-kind]:checked').forEach(function (input) {
                 const kind = input.dataset.filterKind;
                 const group = input.dataset.filterGroup || '';
@@ -935,17 +888,12 @@
                 return;
             }
             const chips = [];
-            const activeRole = ((state.filters.vocabulary || {}).rol || []).slice();
-            if (state.entrySelection && activeRole.length) {
-                chips.push('<button type="button" class="seo-dependiente__chip seo-dependiente__chip--scope" data-filter-remove="scope">Buscando en: <strong>' + escapeHtml(state.entrySelection.label || 'ámbito') + '</strong></button>');
-            }
             addFacetChips(chips, 'categories', '', state.filters.categories, state.facets.categories || []);
             addFacetChips(chips, 'tags', '', state.filters.tags, state.facets.tags || []);
             addFacetChips(chips, 'brands', '', state.filters.brands, state.facets.brands || []);
             addFacetChips(chips, 'stock', '', state.filters.stock, state.facets.stock || []);
 
             Object.keys(state.filters.vocabulary || {}).forEach(function (group) {
-                if ('rol' === group && state.entrySelection) return;
                 const items = state.facets.vocabulary && state.facets.vocabulary[group] ? state.facets.vocabulary[group] : [];
                 addFacetChips(chips, 'vocabulary', group, state.filters.vocabulary[group], items);
             });
@@ -977,14 +925,6 @@
         }
 
         function removeFilter(kind, group, value) {
-            if (kind === 'scope') {
-                if (state.filters.vocabulary) delete state.filters.vocabulary.rol;
-                state.entrySelection = null;
-                state.contextLabel = '';
-                state.modeSource = 'filter';
-                syncScopeCards();
-                return;
-            }
             if (kind === 'ranges') {
                 delete state.filters.ranges[group];
                 return;
@@ -992,11 +932,6 @@
             if (kind === 'vocabulary' || kind === 'attributes') {
                 state.filters[kind][group] = (state.filters[kind][group] || []).filter(function (item) { return item !== value; });
                 if (!state.filters[kind][group].length) delete state.filters[kind][group];
-                if ('vocabulary' === kind && 'rol' === group && !(state.filters.vocabulary.rol || []).length) {
-                    state.entrySelection = null;
-                    state.contextLabel = '';
-                    syncScopeCards();
-                }
                 return;
             }
             state.filters[kind] = (state.filters[kind] || []).filter(function (item) { return item !== value; });
@@ -1055,7 +990,9 @@
         function renderProductCard(product, position) {
             const selected = state.compare.has(Number(product.id));
             const categories = (product.categories || []).join(' · ');
+            const tier = product.search_tier === 'extended' ? 'Relacionado' : 'Coincidencia directa';
             const kicker = [
+                '<span class="seo-dependiente__search-tier ' + (product.search_tier === 'extended' ? 'is-extended' : 'is-direct') + '">' + tier + '</span>',
                 product.brand ? escapeHtml(product.brand) : '',
                 categories ? escapeHtml(categories) : '',
                 '<span class="seo-dependiente__stock ' + (product.stock_status === 'outofstock' ? 'is-out' : '') + '">' + escapeHtml(product.stock_label || '') + '</span>'
@@ -1092,7 +1029,7 @@
             if (!fallback || !fallback.should_load || !fallback.query || !fallback.token || !fallback.bucket) return;
 
             elements.amazon.hidden = false;
-            elements.amazon.innerHTML = '<div class="seo-dependiente__amazon-loading"><strong>Buscando también en Amazon…</strong><span>Añadimos opciones externas relacionadas después de nuestro catálogo y nuestras guías.</span></div>';
+            elements.amazon.innerHTML = '<div class="seo-dependiente__amazon-loading"><strong>Preparando opciones de Amazon…</strong><span>Las añadimos después de nuestro catálogo y nuestras guías.</span></div>';
 
             try {
                 const data = await api('amazon-search', {
@@ -1104,12 +1041,12 @@
                     }
                 });
                 if (requestId !== state.amazonRequestId) return;
-                renderAmazon(data && Array.isArray(data.items) ? data.items : [], fallback);
+                renderAmazon(data || {}, fallback);
             } catch (error) {
                 // No rompemos la busqueda principal, pero tampoco ocultamos que el
                 // proveedor externo fue consultado y no pudo responder.
                 if (requestId === state.amazonRequestId) {
-                    renderAmazonStatus('No he podido consultar Amazon en este momento.', 'Los resultados de nuestro catálogo siguen disponibles. Puedes volver a intentarlo más tarde.');
+                    renderAmazonStatus('No he podido preparar los enlaces de Amazon.', 'Nuestro catálogo y nuestras guías siguen disponibles.');
                 }
             }
         }
@@ -1120,25 +1057,48 @@
             elements.amazon.innerHTML = '<div class="seo-dependiente__amazon-loading"><strong>' + escapeHtml(title || '') + '</strong><span>' + escapeHtml(text || '') + '</span></div>';
         }
 
-        function renderAmazon(items, fallback) {
+        function renderAmazon(response, fallback) {
             if (!elements.amazon) return;
-            if (!items || !items.length) {
-                renderAmazonStatus('Amazon no ha devuelto coincidencias para esta búsqueda.', 'He consultado Amazon como fuente complementaria, pero no he recibido productos utilizables para esta búsqueda.');
+            const items = response && Array.isArray(response.items) ? response.items : [];
+            const mode = response && response.mode ? String(response.mode) : 'affiliate';
+            if (!items.length) {
+                renderAmazonStatus('No hay opciones de Amazon para esta búsqueda.', 'Nuestro catálogo y nuestras guías siguen disponibles.');
                 return;
             }
 
-            const reasonText = fallback && fallback.reason === 'complementary_search'
-                ? 'Como complemento a los productos y contenidos de nuestra web, también hemos consultado Amazon.'
-                : 'También hemos consultado una fuente externa relacionada con tu búsqueda.';
-            const cards = items.map(renderAmazonCard).join('');
+            const affiliateMode = mode === 'affiliate' || items.some(function (item) { return item && item.type === 'search'; });
+            const reasonText = affiliateMode
+                ? 'Estas son búsquedas afiliadas relacionadas. Al abrirlas verás en Amazon los productos, precios y disponibilidad actualizados.'
+                : 'Como complemento a los productos y contenidos de nuestra web, también hemos consultado Amazon.';
+            const cards = affiliateMode
+                ? items.map(renderAmazonSearchCard).join('')
+                : items.map(renderAmazonCard).join('');
+            const title = affiliateMode ? 'Más opciones en Amazon' : 'Productos relacionados en Amazon';
+            const eyebrow = affiliateMode ? 'Búsquedas afiliadas' : 'Catálogo externo';
 
             elements.amazon.innerHTML = '<div class="seo-dependiente__amazon-head">' +
-                '<div><span class="seo-dependiente__amazon-eyebrow">Catálogo externo</span><h2>Productos relacionados en Amazon</h2><p>' + escapeHtml(reasonText) + '</p></div>' +
+                '<div><span class="seo-dependiente__amazon-eyebrow">' + escapeHtml(eyebrow) + '</span><h2>' + escapeHtml(title) + '</h2><p>' + escapeHtml(reasonText) + '</p></div>' +
                 '<span class="seo-dependiente__amazon-badge">Amazon</span>' +
                 '</div>' +
                 '<div class="seo-dependiente__amazon-grid">' + cards + '</div>' +
-                '<p class="seo-dependiente__amazon-disclosure">En calidad de Afiliado de Amazon, obtengo ingresos por las compras adscritas que cumplen los requisitos aplicables. El precio y la disponibilidad pueden cambiar y deben comprobarse en la ficha de Amazon.</p>';
+                '<p class="seo-dependiente__amazon-disclosure">Como Afiliado de Amazon, podemos obtener ingresos por compras adscritas realizadas desde estos enlaces. En el modo sin API no mostramos precios ni disponibilidad: se consultan directamente en Amazon.</p>';
             elements.amazon.hidden = false;
+        }
+
+        function renderAmazonSearchCard(item) {
+            const query = item.query || item.title || '';
+            return '<article class="seo-dependiente__amazon-card seo-dependiente__amazon-card--search">' +
+                '<a class="seo-dependiente__amazon-search-visual" href="' + escapeAttr(item.url || '#') + '" target="_blank" rel="sponsored nofollow noopener" aria-label="' + escapeAttr('Buscar ' + query + ' en Amazon') + '">' +
+                    '<span class="seo-dependiente__amazon-search-mark">amazon</span>' +
+                    '<span class="seo-dependiente__amazon-search-query">' + escapeHtml(query) + '</span>' +
+                '</a>' +
+                '<div class="seo-dependiente__amazon-body">' +
+                    '<div class="seo-dependiente__amazon-kicker">Enlace de afiliado · Búsqueda en Amazon</div>' +
+                    '<h3><a href="' + escapeAttr(item.url || '#') + '" target="_blank" rel="sponsored nofollow noopener">' + escapeHtml(item.title || query) + '</a></h3>' +
+                    (item.description ? '<p class="seo-dependiente__amazon-search-description">' + escapeHtml(item.description) + '</p>' : '') +
+                    '<div class="seo-dependiente__amazon-foot"><span></span><a href="' + escapeAttr(item.url || '#') + '" target="_blank" rel="sponsored nofollow noopener">Ver opciones en Amazon ↗</a></div>' +
+                '</div>' +
+            '</article>';
         }
 
         function renderAmazonCard(product) {
@@ -1154,7 +1114,7 @@
                     (kicker ? '<div class="seo-dependiente__amazon-kicker">' + kicker + '</div>' : '') +
                     '<h3><a href="' + escapeAttr(product.url || '#') + '" target="_blank" rel="sponsored nofollow noopener">' + escapeHtml(product.title || '') + '</a></h3>' +
                     (features ? '<ul class="seo-dependiente__amazon-features">' + features + '</ul>' : '') +
-                    '<div class="seo-dependiente__amazon-foot"><strong>' + escapeHtml(product.price || 'Consultar precio') + '</strong><a href="' + escapeAttr(product.url || '#') + '" target="_blank" rel="sponsored nofollow noopener">Ver en Amazon ↗</a></div>' +
+                    '<div class="seo-dependiente__amazon-foot"><strong>' + escapeHtml(product.price || 'Consultar en Amazon') + '</strong><a href="' + escapeAttr(product.url || '#') + '" target="_blank" rel="sponsored nofollow noopener">Ver en Amazon ↗</a></div>' +
                 '</div>' +
             '</article>';
         }

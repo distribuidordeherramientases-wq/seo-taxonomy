@@ -49,9 +49,6 @@ final class SEO_Dependiente_Plugin {
         if (class_exists('SEO_Dependiente_Help')) {
             SEO_Dependiente_Help::install();
         }
-        if (class_exists('SEO_Dependiente_Entrenador')) {
-            SEO_Dependiente_Entrenador::install();
-        }
         update_option('seo_dependiente_db_version', SEO_DEPENDIENTE_DB_VERSION, false);
 
         $defaults = array(
@@ -187,6 +184,12 @@ final class SEO_Dependiente_Plugin {
         $query_input_id = wp_unique_id('seo-dependiente-query-');
         $help_email_id = wp_unique_id('seo-dependiente-help-email-');
         $help_note_id = wp_unique_id('seo-dependiente-help-note-');
+        $action_images = array(
+            'need'    => $this->action_image_url('need', 'dependiente-arreglar-algo.webp'),
+            'product' => $this->action_image_url('product', 'dependiente-buscar-herramienta.webp'),
+            'tool'    => $this->action_image_url('tool', 'dependiente-necesito-herramienta.webp'),
+            'compare' => $this->action_image_url('compare', 'dependiente-comparar-herramientas.webp'),
+        );
 
         ob_start();
         ?>
@@ -214,17 +217,6 @@ final class SEO_Dependiente_Plugin {
                     </div>
                     <div class="seo-dependiente__examples" data-dependiente-examples aria-label="Ejemplos de búsqueda"></div>
                 </form>
-
-                <section class="seo-dependiente__scope-picker" data-dependiente-scope aria-labelledby="seo-dependiente-scope-title">
-                    <div class="seo-dependiente__scope-heading">
-                        <div>
-                            <span>Elige un ámbito</span>
-                            <h2 id="seo-dependiente-scope-title">¿Qué estás buscando?</h2>
-                        </div>
-                        <p>Tu elección se aplicará como filtro. Después puedes escribir, responder a Dependiente o seguir afinando sin perderla.</p>
-                    </div>
-                    <div class="seo-dependiente__visual-menu seo-dependiente__visual-menu--roles" data-dependiente-roles></div>
-                </section>
 
                 <aside class="seo-dependiente__help" data-dependiente-help aria-label="Asistencia personal">
                     <div class="seo-dependiente__help-row">
@@ -256,7 +248,40 @@ final class SEO_Dependiente_Plugin {
                     </div>
                 </aside>
 
+                <div class="seo-dependiente__path-intro">O elige una forma de empezar</div>
+                <div class="seo-dependiente__paths" aria-label="Formas de buscar">
+                    <button type="button" class="seo-dependiente__path is-active" data-dependiente-mode="need">
+                        <span class="seo-dependiente__path-image"><img src="<?php echo esc_url($action_images['need']); ?>" alt="" loading="eager" decoding="async"></span>
+                        <span class="seo-dependiente__path-copy"><strong>Tengo que arreglar o hacer algo</strong><small>Cuéntame el trabajo y buscaré qué herramientas o productos necesitas.</small></span>
+                    </button>
+                    <button type="button" class="seo-dependiente__path" data-dependiente-mode="product">
+                        <span class="seo-dependiente__path-image"><img src="<?php echo esc_url($action_images['product']); ?>" alt="" loading="eager" decoding="async"></span>
+                        <span class="seo-dependiente__path-copy"><strong>Busco un producto concreto</strong><small>Busca por nombre, marca, referencia, medida o característica.</small></span>
+                    </button>
+                    <button type="button" class="seo-dependiente__path" data-dependiente-mode="tool">
+                        <span class="seo-dependiente__path-image"><img src="<?php echo esc_url($action_images['tool']); ?>" alt="" loading="lazy" decoding="async"></span>
+                        <span class="seo-dependiente__path-copy"><strong>Busco algo compatible</strong><small>Dime qué máquina, batería, plataforma o sistema ya tienes.</small></span>
+                    </button>
+                    <button type="button" class="seo-dependiente__path" data-dependiente-mode="compare">
+                        <span class="seo-dependiente__path-image"><img src="<?php echo esc_url($action_images['compare']); ?>" alt="" loading="lazy" decoding="async"></span>
+                        <span class="seo-dependiente__path-copy"><strong>Quiero comparar</strong><small>Busca varias opciones y compara hasta cuatro lado a lado.</small></span>
+                    </button>
+                </div>
             </div>
+
+            <section class="seo-dependiente__discovery" data-dependiente-discovery>
+                <div class="seo-dependiente__section-heading">
+                    <div><span>Explora</span><h2>Explora por tipo de tarea</h2></div>
+                    <p>Elige una tarea habitual y descubre opciones relacionadas.</p>
+                </div>
+                <div class="seo-dependiente__visual-menu" data-dependiente-actions></div>
+
+                <div class="seo-dependiente__section-heading seo-dependiente__section-heading--spaced">
+                    <div><span>Compatibilidad</span><h2>Explora por herramienta o sistema</h2></div>
+                    <p>Útil cuando ya tienes una máquina, plataforma o sistema y buscas algo compatible.</p>
+                </div>
+                <div class="seo-dependiente__visual-menu" data-dependiente-tools></div>
+            </section>
 
             <section class="seo-dependiente__workspace" data-dependiente-workspace hidden>
                 <div class="seo-dependiente__toolbar">
@@ -281,7 +306,7 @@ final class SEO_Dependiente_Plugin {
                         <div class="seo-dependiente__results" data-dependiente-results></div>
                         <nav class="seo-dependiente__pagination" data-dependiente-pagination aria-label="Paginación"></nav>
                         <aside class="seo-dependiente__related" data-dependiente-related aria-label="Guías y soluciones relacionadas" hidden></aside>
-                        <section class="seo-dependiente__amazon" data-dependiente-amazon aria-label="Productos relacionados en Amazon" aria-live="polite" hidden></section>
+                        <section class="seo-dependiente__amazon" data-dependiente-amazon aria-label="Opciones relacionadas en Amazon" aria-live="polite" hidden></section>
                     </div>
                 </div>
             </section>
