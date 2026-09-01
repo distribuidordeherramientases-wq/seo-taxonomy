@@ -27,6 +27,7 @@
             results: root.querySelector('[data-dependiente-results]'),
             pagination: root.querySelector('[data-dependiente-pagination]'),
             amazon: root.querySelector('[data-dependiente-amazon]'),
+            feedback: root.querySelector('[data-dependiente-feedback]'),
             compareTray: root.querySelector('[data-dependiente-compare-tray]'),
             compareCount: root.querySelector('[data-dependiente-compare-count]'),
             compareClear: root.querySelector('[data-dependiente-compare-clear]'),
@@ -59,6 +60,7 @@
             semanticHint: null,
             clarification: null,
             clarificationTimer: null,
+            feedbackTimer: null,
             hasResultInteraction: false,
             helpSubmitting: false,
             amazonRequestId: 0,
@@ -267,6 +269,15 @@
                 elements.helpForm.addEventListener('submit', submitHelpRequest);
             }
 
+            if (elements.feedback) {
+                elements.feedback.addEventListener('click', function (event) {
+                    const button = event.target.closest('[data-dependiente-feedback-value]');
+                    if (!button) return;
+                    event.preventDefault();
+                    submitHelpfulFeedback(Number(button.dataset.dependienteFeedbackValue || 0));
+                });
+            }
+
             elements.compareClear.addEventListener('click', function () {
                 state.compare.clear();
                 persistCompareIds(state.compare);
@@ -382,6 +393,8 @@
             if (state.loading) return;
             clearClarificationTimer();
             removeClarification();
+            clearFeedbackTimer();
+            clearFeedbackPrompt();
             state.hasResultInteraction = false;
             state.loading = true;
             elements.workspace.hidden = false;
@@ -425,6 +438,7 @@
                 loadAmazonFallback(data.external_fallback || null);
                 state.clarification = data.clarification || null;
                 scheduleClarification(state.clarification);
+                scheduleFeedbackPrompt(data, state.clarification);
                 elements.status.textContent = data.truncated ? 'He encontrado muchas coincidencias. Añade una medida, marca, compatibilidad o uso para afinar mejor.' : '';
                 updateUrl();
             } catch (error) {
@@ -437,10 +451,65 @@
                     elements.related.innerHTML = '';
                 }
                 clearAmazon();
+                clearFeedbackPrompt();
             } finally {
                 state.loading = false;
                 syncCompareButtons();
             }
+        }
+
+        function clearFeedbackTimer() {
+            if (state.feedbackTimer) {
+                window.clearTimeout(state.feedbackTimer);
+                state.feedbackTimer = null;
+            }
+        }
+
+        function clearFeedbackPrompt() {
+            if (!elements.feedback) return;
+            elements.feedback.hidden = true;
+            elements.feedback.innerHTML = '';
+        }
+
+        function scheduleFeedbackPrompt(data, clarification) {
+            clearFeedbackTimer();
+            clearFeedbackPrompt();
+            if (!elements.feedback || !state.searchId) return;
+
+            // Si antes necesitamos desambiguar, esa pregunta tiene prioridad.
+            // Tras responderla se hace una nueva busqueda y entonces pedimos valoracion.
+            if (clarification && clarification.should_ask && Array.isArray(clarification.options) && clarification.options.length >= 2) {
+                return;
+            }
+
+            const searchId = state.searchId;
+            state.feedbackTimer = window.setTimeout(function () {
+                state.feedbackTimer = null;
+                if (!state.searchId || state.searchId !== searchId || state.loading) return;
+                renderFeedbackPrompt();
+            }, 4500);
+        }
+
+        function renderFeedbackPrompt() {
+            if (!elements.feedback || !state.searchId) return;
+            elements.feedback.hidden = false;
+            elements.feedback.innerHTML = '<div class="seo-dependiente__feedback-copy"><strong>¿Te ha servido esta respuesta?</strong><span>Tu valoración nos ayuda a mejorar qué entiende el Dependiente y cuándo debe buscar alternativas.</span></div>' +
+                '<div class="seo-dependiente__feedback-actions">' +
+                '<button type="button" data-dependiente-feedback-value="1">Sí</button>' +
+                '<button type="button" data-dependiente-feedback-value="-1">No</button>' +
+                '</div>';
+        }
+
+        function submitHelpfulFeedback(value) {
+            if (!elements.feedback || !state.searchId || !value) return;
+            clearFeedbackTimer();
+            sendFeedbackEvent({
+                search_id: state.searchId,
+                event: 'helpful',
+                value: value > 0 ? 1 : -1
+            });
+            elements.feedback.hidden = false;
+            elements.feedback.innerHTML = '<div class="seo-dependiente__feedback-thanks"><strong>Gracias.</strong><span>He guardado tu valoración para mejorar las próximas búsquedas.</span></div>';
         }
 
         function updateHelpPrompt(data) {
@@ -972,16 +1041,24 @@
                 if (requestId !== state.amazonRequestId) return;
                 renderAmazon(data && Array.isArray(data.items) ? data.items : [], fallback);
             } catch (error) {
-                // Amazon es un fallback: un fallo externo nunca debe degradar la
-                // búsqueda principal ni sustituirse por un mensaje de error global.
-                if (requestId === state.amazonRequestId) clearAmazon();
+                // No rompemos la busqueda principal, pero tampoco ocultamos que el
+                // proveedor externo fue consultado y no pudo responder.
+                if (requestId === state.amazonRequestId) {
+                    renderAmazonStatus('No he podido consultar Amazon en este momento.', 'Los resultados de nuestro catálogo siguen disponibles. Puedes volver a intentarlo más tarde.');
+                }
             }
+        }
+
+        function renderAmazonStatus(title, text) {
+            if (!elements.amazon) return;
+            elements.amazon.hidden = false;
+            elements.amazon.innerHTML = '<div class="seo-dependiente__amazon-loading"><strong>' + escapeHtml(title || '') + '</strong><span>' + escapeHtml(text || '') + '</span></div>';
         }
 
         function renderAmazon(items, fallback) {
             if (!elements.amazon) return;
             if (!items || !items.length) {
-                clearAmazon();
+                renderAmazonStatus('Amazon no ha devuelto coincidencias para esta búsqueda.', 'He intentado ampliar la búsqueda fuera de nuestro catálogo, pero no he recibido productos utilizables.');
                 return;
             }
 
