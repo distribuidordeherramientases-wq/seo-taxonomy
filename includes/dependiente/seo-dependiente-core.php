@@ -308,6 +308,8 @@ final class SEO_Dependiente_Plugin {
                         <nav class="seo-dependiente__pagination" data-dependiente-pagination aria-label="Paginación"></nav>
                     </div>
                 </div>
+
+                <section class="seo-dependiente__amazon" data-dependiente-amazon aria-label="Productos relacionados en Amazon" aria-live="polite" hidden></section>
             </section>
 
             <div class="seo-dependiente__compare-tray" data-dependiente-compare-tray hidden>
