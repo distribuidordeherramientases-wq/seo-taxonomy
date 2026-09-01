@@ -681,7 +681,7 @@ final class SEO_Dependiente_API {
                 'stock'       => self::stock_label($product->get_stock_status()),
                 'weight'      => self::number_with_unit($document['weight'], get_option('woocommerce_weight_unit', 'kg')),
                 'dimensions'  => self::dimensions_text($document),
-                'categories'  => self::join_labels($document['categories'], 'name'),
+                'categories'  => implode(', ', self::category_labels($document['categories'])),
                 'application' => self::vocabulary_labels($document, 'aplicacion'),
                 'platform'    => self::vocabulary_labels($document, 'plataforma'),
                 'subtype'     => self::vocabulary_labels($document, 'subtipo'),
@@ -1657,7 +1657,7 @@ final class SEO_Dependiente_API {
             'key_specs'     => self::key_specs($document, $query, $filters),
             'applications'  => self::vocabulary_item_labels($document, 'aplicacion'),
             'platforms'     => self::vocabulary_item_labels($document, 'plataforma'),
-            'categories'    => array_slice(array_values(array_filter(wp_list_pluck($document['categories'], 'name'))), 0, 2),
+            'categories'    => array_slice(self::category_labels($document['categories']), 0, 2),
             'compare_label' => 'Añadir a comparación',
         );
     }
@@ -1728,7 +1728,7 @@ final class SEO_Dependiente_API {
 
         foreach ((array) $documents as $document) {
             foreach ((array) $document['categories'] as $term) {
-                self::facet_increment($categories, $term['slug'] ?? '', $term['name'] ?? '', $term['image'] ?? '');
+                self::facet_increment($categories, $term['slug'] ?? '', self::category_display_label($term['name'] ?? ''), $term['image'] ?? '');
             }
             foreach ((array) $document['tags'] as $term) {
                 self::facet_increment($tags, $term['slug'] ?? '', $term['name'] ?? '', '');
@@ -2214,6 +2214,36 @@ final class SEO_Dependiente_API {
 
     private static function join_labels($items, $field) {
         return implode(', ', array_values(array_filter(wp_list_pluck((array) $items, $field))));
+    }
+
+    /**
+     * Nombre de categoria para la interfaz de Dependiente.
+     *
+     * Algunas categorias SEO pueden llevar el prefijo editorial "Como comparar".
+     * Dependiente conserva el termino y su slug reales para filtrar/buscar, pero
+     * oculta ese prefijo al cliente porque no forma parte del nombre util del producto.
+     */
+    private static function category_display_label($label) {
+        $label = trim(wp_strip_all_tags((string) $label));
+        if ('' === $label) {
+            return '';
+        }
+
+        $clean = preg_replace('/^\s*c[oó]mo\s+comparar(?:\s*[:\-–—]\s*|\s+)/iu', '', $label);
+        $clean = trim((string) $clean);
+
+        return '' !== $clean ? $clean : $label;
+    }
+
+    private static function category_labels($items) {
+        $labels = array();
+        foreach ((array) $items as $item) {
+            $label = self::category_display_label(is_array($item) ? ($item['name'] ?? '') : '');
+            if ('' !== $label) {
+                $labels[] = $label;
+            }
+        }
+        return array_values(array_unique($labels));
     }
 
     private static function stock_label($stock_status) {
