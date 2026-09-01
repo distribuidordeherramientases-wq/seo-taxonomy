@@ -61,7 +61,7 @@ final class SEO_Dependiente_Amazon {
         $bucket = absint($params['bucket'] ?? 0);
 
         $result = self::search($query, $token, $bucket, array(), array(
-            'source' => 'fallback',
+            'source' => 'complementary',
         ));
 
         return is_wp_error($result) ? $result : rest_ensure_response($result);
@@ -135,59 +135,42 @@ final class SEO_Dependiente_Amazon {
     }
 
     /**
-     * Decide si el Dependiente debe ofrecer Amazon como fallback.
+     * Prepara Amazon como tercera fuente complementaria.
+     * Se intenta en toda busqueda, independientemente del resultado del catalogo.
+     * Nunca condiciona ni bloquea productos o contenido propio.
      */
     public static function fallback_descriptor($query, $semantic, $context = array()) {
         $empty = array(
             'provider'    => 'amazon',
             'should_load' => false,
+            'available'   => false,
             'reason'      => '',
+            'status'      => 'inactive',
             'query'       => '',
             'token'       => '',
             'bucket'      => 0,
         );
 
         $query = self::limit_text(sanitize_text_field((string) $query), 180);
-        if ('' === trim($query) || 1 !== max(1, absint($context['page'] ?? 1))) {
+        if ('' === trim($query)) {
+            $empty['status'] = 'empty_query';
             return $empty;
         }
-
-        $total = absint($context['total'] ?? 0);
-        $strategy = sanitize_key((string) ($context['strategy'] ?? 'strict'));
-        $top_object_hits = absint($context['top_object_hits'] ?? 0);
-        $has_object = !empty($semantic['concepts']['object']);
-        $weak_strategies = array('broad_fallback', 'catalog_fallback', 'index_unavailable');
-
-        $reason = '';
-        if (0 === $total) {
-            $reason = 'no_catalog_results';
-        } elseif (in_array($strategy, $weak_strategies, true)) {
-            $reason = 'weak_catalog_match';
-        } elseif ($has_object && 0 === $top_object_hits) {
-            // Hay productos relacionados con la accion o contexto, pero ninguno
-            // coincide directamente con el objeto que el cliente ha pedido.
-            $reason = 'requested_object_not_found';
-        }
-
-        if ('' === $reason) {
-            return $empty;
-        }
-
-        if (!self::ensure_recipe() || !self::credentials_ready()) {
-            return $empty;
-        }
-
         $amazon_query = self::build_search_query($query, $semantic);
         if ('' === $amazon_query) {
+            $empty['status'] = 'query_unusable';
             return $empty;
         }
 
         $bucket = (int) floor(time() / HOUR_IN_SECONDS);
+        $available = self::ensure_recipe() && self::credentials_ready();
 
         return array(
             'provider'    => 'amazon',
             'should_load' => true,
-            'reason'      => $reason,
+            'available'   => $available,
+            'reason'      => 'complementary_search',
+            'status'      => $available ? 'ready' : 'provider_unavailable',
             'query'       => $amazon_query,
             'token'       => self::make_token($amazon_query, $bucket),
             'bucket'      => $bucket,
@@ -216,7 +199,7 @@ final class SEO_Dependiente_Amazon {
         }
 
         $context = wp_parse_args(is_array($context) ? $context : array(), array(
-            'source' => 'fallback',
+            'source' => 'complementary',
             'query'  => $query,
         ));
         $parameters = self::parameters($overrides, $context);
