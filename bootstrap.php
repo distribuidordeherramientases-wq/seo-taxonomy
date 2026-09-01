@@ -38,6 +38,7 @@ require_once SEO_SYSTEM_PATH . 'includes/seo-core.php';
 
 require_once SEO_SYSTEM_PATH . 'functions.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-text-utils.php';
+require_once SEO_SYSTEM_PATH . 'includes/seo-vocabulary-bridge.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -66,13 +67,22 @@ require_once SEO_SYSTEM_PATH . 'includes/seo-images.php';
 |--------------------------------------------------------------------------
 */
 
-require_once SEO_SYSTEM_PATH . 'includes/product-edit.php';
-require_once SEO_SYSTEM_PATH . 'includes/product-duplicated.php';
-require_once SEO_SYSTEM_PATH . 'includes/product-recategorization.php';
+// Helpers compartidos de categorías + compatibilidad del informe de reclasificación.
+// La clasificación legacy de etiquetas de producto ya está retirada.
 require_once SEO_SYSTEM_PATH . 'includes/product-classification.php';
 require_once SEO_SYSTEM_PATH . 'includes/product-inventory.php';
-require_once SEO_SYSTEM_PATH . 'includes/product-anomaly.php';
 require_once SEO_SYSTEM_PATH . 'includes/product-attributes.php';
+
+// Motor de propuestas de clasificación (solo lectura; no persiste datos).
+require_once SEO_SYSTEM_PATH . 'includes/clasificador/bootstrap.php';
+require_once SEO_SYSTEM_PATH . 'includes/product-recategorization.php';
+
+// Alta/edición unitaria: ambos caminos usan el mismo servicio canónico.
+require_once SEO_SYSTEM_PATH . 'includes/product-service.php';
+require_once SEO_SYSTEM_PATH . 'includes/product-form.php';
+require_once SEO_SYSTEM_PATH . 'includes/product-create.php';
+require_once SEO_SYSTEM_PATH . 'includes/product-edit.php';
+require_once SEO_SYSTEM_PATH . 'includes/seo-product-reports.php';
 require_once SEO_SYSTEM_PATH . 'includes/product-page-admin.php';
 
 /*
@@ -83,8 +93,8 @@ require_once SEO_SYSTEM_PATH . 'includes/product-page-admin.php';
 
 require_once SEO_SYSTEM_PATH . 'includes/category-classification.php';
 require_once SEO_SYSTEM_PATH . 'includes/category-anomaly.php';
+require_once SEO_SYSTEM_PATH . 'includes/seo-category-reports.php';
 require_once SEO_SYSTEM_PATH . 'includes/category-admin.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-tag-classification.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo_schema_search.php';
 
 /*
@@ -121,6 +131,14 @@ require_once SEO_SYSTEM_PATH . 'includes/seo-faq.php';
 
 /*
 |--------------------------------------------------------------------------
+| DEPENDIENTE: BUSQUEDA GUIADA Y COMPARADOR
+|--------------------------------------------------------------------------
+*/
+
+require_once SEO_SYSTEM_PATH . 'includes/dependiente/seo-dependiente-bootstrap.php';
+
+/*
+|--------------------------------------------------------------------------
 | INFORMES Y DASHBOARD
 |--------------------------------------------------------------------------
 */
@@ -137,6 +155,8 @@ require_once SEO_SYSTEM_PATH . 'includes/seo-google-info.php';
 */
 
 require_once SEO_SYSTEM_PATH . 'includes/seo-menu-admin.php';
+require_once SEO_SYSTEM_PATH . 'includes/seo-tags-vocabulary-admin.php';
+require_once SEO_SYSTEM_PATH . 'includes/seo-product-vocabulary-editor.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-admin.php';
 
 /*
@@ -145,7 +165,6 @@ require_once SEO_SYSTEM_PATH . 'includes/seo-admin.php';
 |--------------------------------------------------------------------------
 */
 
-// Estado del servidor (callback de admin.php?page=seo_server_status).
-require_once SEO_SYSTEM_PATH . 'includes/seo-system-server-status.php';
+//require_once SEO_SYSTEM_PATH . 'includes/seo-server-status.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-core-validation.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-system-diagnostics-reporting.php';
