@@ -107,6 +107,7 @@ final class SEO_Dependiente_API {
 
         $actions = self::make_cards(array_slice($actions, 0, $max_cards), $action_type, $action_group, $documents);
         $tools = self::make_cards(array_slice($tools, 0, $max_cards), $tool_type, $tool_group, $documents);
+        $roles = self::role_scope_cards($documents);
 
         $examples = array();
         if (!empty($actions[0]['label'])) {
@@ -122,6 +123,7 @@ final class SEO_Dependiente_API {
         $examples = array_values(array_unique(array_slice($examples, 0, 4)));
 
         return rest_ensure_response(array(
+            'roles'      => $roles,
             'actions'    => $actions,
             'tools'      => $tools,
             'categories' => array_slice($facets['categories'], 0, $max_cards),
@@ -158,6 +160,7 @@ final class SEO_Dependiente_API {
         }
         $session_id = isset($params['session_id']) ? sanitize_text_field((string) $params['session_id']) : '';
         $semantic_hint = self::sanitize_semantic_hint($params['semantic_hint'] ?? array());
+        $entry_selection = self::sanitize_entry_selection($params['entry_selection'] ?? array());
 
         // Si el frontend no envia session_id, intentamos mantener una sesion anonima
         // para detectar reformulaciones consecutivas sin guardar IP ni datos personales.
@@ -188,9 +191,20 @@ final class SEO_Dependiente_API {
         } else {
             $session_id = substr($session_id, 0, 100);
         }
-        $request_kind = $page > 1
-            ? 'paginate'
-            : (($semantic_hint || self::has_active_filters($filters) || 'relevance' !== $orderby) ? 'refine' : 'search');
+        $has_non_scope_filters = self::has_non_scope_filters($filters, $entry_selection);
+        if ($page > 1) {
+            $request_kind = 'paginate';
+        } elseif ($semantic_hint || $has_non_scope_filters || 'relevance' !== $orderby) {
+            $request_kind = 'refine';
+        } elseif ('' !== trim($query)) {
+            // Elegir uno de los cuatro ambitos no impide que una consulta escrita
+            // siga siendo una busqueda completa y pueda recibir aclaraciones.
+            $request_kind = 'search';
+        } else {
+            // Un clic visual sin texto se registra como paso de navegacion/refinado,
+            // pero no se envia al aprendizaje como si fuera una consulta textual.
+            $request_kind = 'refine';
+        }
 
         $semantic_rules_active = 0;
         if (class_exists('SEO_Dependiente_Semantics')) {
@@ -240,6 +254,10 @@ final class SEO_Dependiente_API {
         }
 
         self::sort_documents($matched, $orderby);
+
+        // Capa de conocimiento independiente del catálogo: primero busca la consulta
+        // directamente en posts/landings y después completa con contenido relacionado
+        // por las categorías de los productos encontrados.
         $related_source = $matched ? $matched : $documents;
         $related = self::related_content($related_source, $query, 6);
 
@@ -274,9 +292,9 @@ final class SEO_Dependiente_API {
             $semantic_hint,
             $request_kind
         );
-        // Punto de enlace explicito Dependiente -> Amazon.
-        // El buscador principal decide primero con el catalogo propio y SOLO aqui,
-        // una vez conocido el resultado, delega al modulo Amazon la politica de fallback.
+        // Amazon es una tercera fuente complementaria, no un fallback condicionado.
+        // Se prepara en toda busqueda que tenga consulta. El frontend la carga aparte
+        // para no bloquear productos ni guias si Amazon tarda o falla.
         $amazon_fallback = self::amazon_fallback($query, $semantic, array(
             'page'            => $page,
             'total'           => $total,
@@ -286,7 +304,7 @@ final class SEO_Dependiente_API {
 
         $execution_ms = (microtime(true) - $started_at) * 1000;
         $search_id = '';
-        if (class_exists('SEO_Dependiente_Search_Log') && '' !== trim($query)) {
+        if (class_exists('SEO_Dependiente_Search_Log') && ('' !== trim($query) || self::has_active_filters($filters) || $entry_selection)) {
             // El diagnostico guardado incorpora el estado de la peticion para poder
             // reconstruir despues la ruta real: filtros, orden, pagina y aclaracion.
             $log_diagnostic = $search_diagnostic;
@@ -294,7 +312,15 @@ final class SEO_Dependiente_API {
                 'page'          => $page,
                 'orderby'       => $orderby,
                 'filters'       => $filters,
-                'semantic_hint' => $semantic_hint,
+                'semantic_hint'   => $semantic_hint,
+                'entry_selection' => $entry_selection,
+            );
+            $log_diagnostic['knowledge_results'] = count($related);
+            $log_diagnostic['external_search'] = array(
+                'provider'    => (string) ($amazon_fallback['provider'] ?? 'amazon'),
+                'should_load' => !empty($amazon_fallback['should_load']),
+                'reason'      => (string) ($amazon_fallback['reason'] ?? ''),
+                'status'      => (string) ($amazon_fallback['status'] ?? ''),
             );
             $search_id = SEO_Dependiente_Search_Log::record_search(array(
                 'query'           => $query,
@@ -325,6 +351,7 @@ final class SEO_Dependiente_API {
             'related'         => $related,
             'facets'          => $facets,
             'filters'         => $filters,
+            'entry_selection' => $entry_selection,
             'semantic'        => $public_semantic,
             'search_id'       => $search_id,
             'search_strategy' => (string) ($search_diagnostic['strategy'] ?? 'strict'),
@@ -338,10 +365,9 @@ final class SEO_Dependiente_API {
     /**
      * Caller del modulo Amazon desde el flujo principal del Dependiente.
      *
-     * Esta funcion es intencionadamente pequena: seo-dependiente-api.php decide
-     * CUANDO consultar un proveedor externo y seo-dependiente-amazon.php decide
-     * COMO construir/limitar esa consulta. Si Amazon no esta disponible, devuelve
-     * un descriptor inactivo y la busqueda interna continua sin degradarse.
+     * Esta funcion es intencionadamente pequena: Amazon es una fuente
+     * complementaria. El modulo externo decide COMO construir/limitar la consulta
+     * y si la conexion esta disponible. La busqueda interna nunca depende de ella.
      */
     private static function amazon_fallback($query, $semantic, $context = array()) {
         $empty = array(
@@ -491,6 +517,35 @@ final class SEO_Dependiente_API {
             'source'       => sanitize_key((string) ($hint['source'] ?? 'clarification')) ?: 'clarification',
             'source_group' => sanitize_key((string) ($hint['source_group'] ?? '')),
             'source_slug'  => sanitize_title((string) ($hint['source_slug'] ?? '')),
+        );
+    }
+
+
+    private static function sanitize_entry_selection($selection) {
+        if (!is_array($selection)) {
+            return array();
+        }
+
+        $source = sanitize_key((string) ($selection['source'] ?? 'visual_scope')) ?: 'visual_scope';
+        $group = sanitize_key((string) ($selection['group'] ?? ''));
+        $label = sanitize_text_field((string) ($selection['label'] ?? ''));
+        $slugs = self::sanitize_slug_list($selection['slugs'] ?? array());
+
+        if ('rol' !== $group || !$slugs) {
+            return array();
+        }
+
+        $allowed = array('herramienta', 'equipamiento', 'accesorio', 'repuesto', 'consumible');
+        $slugs = array_values(array_intersect($slugs, $allowed));
+        if (!$slugs) {
+            return array();
+        }
+
+        return array(
+            'source' => $source,
+            'group'  => 'rol',
+            'label'  => $label,
+            'slugs'  => $slugs,
         );
     }
 
@@ -959,6 +1014,27 @@ final class SEO_Dependiente_API {
             }
         }
         return !empty($filters['vocabulary']) || !empty($filters['attributes']) || !empty($filters['ranges']);
+    }
+
+
+    private static function has_non_scope_filters($filters, $entry_selection) {
+        if (!is_array($filters)) {
+            return false;
+        }
+        $copy = $filters;
+        if (is_array($entry_selection)
+            && 'rol' === ($entry_selection['group'] ?? '')
+            && !empty($entry_selection['slugs'])
+            && !empty($copy['vocabulary']['rol'])) {
+            $selected = self::sanitize_slug_list($entry_selection['slugs']);
+            $active = self::sanitize_slug_list($copy['vocabulary']['rol']);
+            sort($selected);
+            sort($active);
+            if ($selected === $active) {
+                unset($copy['vocabulary']['rol']);
+            }
+        }
+        return self::has_active_filters($copy);
     }
 
     private static function sanitize_slug_list($values) {
@@ -1453,6 +1529,92 @@ final class SEO_Dependiente_API {
             return $b['count'] <=> $a['count'];
         });
         return array_slice($items, 0, $limit);
+    }
+
+    /**
+     * Cuatro entradas visuales estables basadas en el ROL canonico.
+     * Accesorio y repuesto se agrupan solo en la interfaz; siguen siendo
+     * valores independientes en el vocabulario y el filtro aplica ambos con OR.
+     */
+    private static function role_scope_cards($documents) {
+        $definitions = array(
+            array(
+                'key'      => 'herramientas',
+                'label'    => 'Herramientas',
+                'subtitle' => 'Para realizar el trabajo',
+                'slugs'    => array('herramienta'),
+            ),
+            array(
+                'key'      => 'equipamiento',
+                'label'    => 'Equipamiento',
+                'subtitle' => 'Máquinas y equipos profesionales',
+                'slugs'    => array('equipamiento'),
+            ),
+            array(
+                'key'      => 'accesorios-repuestos',
+                'label'    => 'Accesorios y repuestos',
+                'subtitle' => 'Complementos y piezas de sustitución',
+                'slugs'    => array('accesorio', 'repuesto'),
+            ),
+            array(
+                'key'      => 'consumibles',
+                'label'    => 'Consumibles',
+                'subtitle' => 'Material para usar y reemplazar',
+                'slugs'    => array('consumible'),
+            ),
+        );
+
+        $cards = array();
+        foreach ($definitions as $definition) {
+            $matches = self::matching_documents_by_role_slugs($documents, $definition['slugs']);
+            $visual = self::related_category_image($matches);
+            if (empty($visual['url'])) {
+                $visual = self::representative_product_image($matches);
+            }
+            if (empty($visual['url'])) {
+                $visual = array(
+                    'url'    => self::company_logo_url(),
+                    'kind'   => 'logo',
+                    'source' => 'company-logo',
+                );
+            }
+
+            $cards[] = array(
+                'key'          => $definition['key'],
+                'label'        => $definition['label'],
+                'subtitle'     => $definition['subtitle'],
+                'count'        => count($matches),
+                'image'        => (string) ($visual['url'] ?? ''),
+                'image_kind'   => (string) ($visual['kind'] ?? 'product'),
+                'image_source' => (string) ($visual['source'] ?? ''),
+                'filter'       => array(
+                    'type'  => 'vocabulary',
+                    'group' => 'rol',
+                    'slugs' => array_values($definition['slugs']),
+                ),
+            );
+        }
+
+        return $cards;
+    }
+
+    private static function matching_documents_by_role_slugs($documents, $slugs) {
+        $slugs = self::sanitize_slug_list($slugs);
+        if (!$slugs) {
+            return array();
+        }
+
+        $matches = array();
+        foreach ((array) $documents as $document) {
+            $available = array_map(
+                'sanitize_title',
+                wp_list_pluck((array) ($document['vocabulary']['rol'] ?? array()), 'slug')
+            );
+            if (array_intersect($slugs, $available)) {
+                $matches[] = $document;
+            }
+        }
+        return $matches;
     }
 
     private static function make_cards($items, $type, $group, $documents) {
@@ -2021,7 +2183,174 @@ final class SEO_Dependiente_API {
         return false;
     }
 
+    /**
+     * Capa de conocimiento del Dependiente.
+     *
+     * 1. Busca la consulta original directamente en posts y paginas/landings.
+     * 2. Completa con guias vinculadas a las categorias de los productos encontrados.
+     *
+     * De este modo el contenido puede responder aunque el catalogo no tenga un
+     * producto que aporte previamente una categoria util.
+     */
     private static function related_content($documents, $query, $limit = 8) {
+        $limit = max(1, absint($limit));
+        $items = array();
+        $seen = array();
+
+        $direct = self::direct_content_search($query, max(12, $limit * 3));
+        foreach ($direct as $item) {
+            $key = sanitize_key((string) ($item['type'] ?? 'post')) . ':' . absint($item['id'] ?? 0);
+            if (!$item || isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $items[] = $item;
+            if (count($items) >= $limit) {
+                return $items;
+            }
+        }
+
+        $category = self::category_related_content($documents, $query, max(12, $limit * 3));
+        foreach ($category as $item) {
+            $key = sanitize_key((string) ($item['type'] ?? 'post')) . ':' . absint($item['id'] ?? 0);
+            if (!$item || isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $items[] = $item;
+            if (count($items) >= $limit) {
+                break;
+            }
+        }
+
+        return $items;
+    }
+
+    /**
+     * Busca directamente la frase del cliente en contenido editorial publicado.
+     * WordPress limita primero los candidatos con su buscador nativo y aqui se
+     * vuelve a puntuar para priorizar frase completa, titulo y coincidencias utiles.
+     */
+    private static function direct_content_search($query, $limit = 18) {
+        $query = trim(sanitize_text_field((string) $query));
+        if ('' === $query) {
+            return array();
+        }
+
+        $candidate_limit = min(60, max(12, absint($limit) * 3));
+        $search = new WP_Query(array(
+            'post_type'           => array('post', 'page'),
+            'post_status'         => 'publish',
+            's'                   => $query,
+            'posts_per_page'      => $candidate_limit,
+            'orderby'             => 'relevance',
+            'order'               => 'DESC',
+            'ignore_sticky_posts' => true,
+            'no_found_rows'       => true,
+        ));
+
+        if (!$search->have_posts()) {
+            return array();
+        }
+
+        $normalized_query = SEO_Dependiente_Index::normalize($query);
+        $query_tokens = array_values(array_unique(array_filter(
+            preg_split('/\\s+/u', $normalized_query),
+            static function ($token) {
+                $length = function_exists('mb_strlen') ? mb_strlen($token, 'UTF-8') : strlen($token);
+                return $length >= 3;
+            }
+        )));
+
+        $structural_ids = array();
+        if (function_exists('wc_get_page_id')) {
+            foreach (array('shop', 'cart', 'checkout', 'myaccount') as $page_key) {
+                $page_id = absint(wc_get_page_id($page_key));
+                if ($page_id) {
+                    $structural_ids[$page_id] = true;
+                }
+            }
+        }
+
+        $items = array();
+        foreach ((array) $search->posts as $post) {
+            if (!$post instanceof WP_Post || isset($structural_ids[(int) $post->ID])) {
+                continue;
+            }
+            if ('page' === $post->post_type && (
+                has_shortcode((string) $post->post_content, 'dependiente') ||
+                has_shortcode((string) $post->post_content, 'dependiente_productos')
+            )) {
+                continue;
+            }
+
+            $title = wp_strip_all_tags((string) $post->post_title);
+            $excerpt = trim(wp_strip_all_tags((string) $post->post_excerpt));
+            $plain_content = trim(wp_strip_all_tags(strip_shortcodes((string) $post->post_content)));
+            $summary_text = $excerpt !== '' ? $excerpt : $plain_content;
+
+            $title_norm = SEO_Dependiente_Index::normalize($title);
+            $excerpt_norm = SEO_Dependiente_Index::normalize($excerpt);
+            $content_norm = SEO_Dependiente_Index::normalize($plain_content);
+            $all_norm = trim($title_norm . ' ' . $excerpt_norm . ' ' . $content_norm);
+
+            $score = 0;
+            $hits = 0;
+            if ($normalized_query && false !== strpos($title_norm, $normalized_query)) {
+                $score += 360;
+            } elseif ($normalized_query && false !== strpos($all_norm, $normalized_query)) {
+                $score += 240;
+            }
+            foreach ($query_tokens as $token) {
+                if (false !== strpos($title_norm, $token)) {
+                    $score += 72;
+                    $hits++;
+                } elseif (false !== strpos($excerpt_norm, $token)) {
+                    $score += 42;
+                    $hits++;
+                } elseif (false !== strpos($content_norm, $token)) {
+                    $score += 18;
+                    $hits++;
+                }
+            }
+            if (!$score || (!$hits && (!$normalized_query || false === strpos($all_norm, $normalized_query)))) {
+                continue;
+            }
+
+            $url = get_permalink((int) $post->ID);
+            if (!$url) {
+                continue;
+            }
+            $image = get_the_post_thumbnail_url((int) $post->ID, 'medium_large');
+            $items[] = array(
+                'id'         => (int) $post->ID,
+                'type'       => 'page' === $post->post_type ? 'landing' : 'post',
+                'type_label' => 'page' === $post->post_type ? 'Solución' : 'Guía',
+                'title'      => $title,
+                'excerpt'    => wp_trim_words($summary_text, 24, '…'),
+                'url'        => esc_url_raw($url),
+                'image'      => $image ? esc_url_raw($image) : '',
+                '_score'     => $score,
+                '_modified'  => strtotime((string) $post->post_modified) ?: 0,
+            );
+        }
+
+        usort($items, static function ($a, $b) {
+            if ($a['_score'] !== $b['_score']) {
+                return $b['_score'] <=> $a['_score'];
+            }
+            return $b['_modified'] <=> $a['_modified'];
+        });
+
+        $items = array_slice($items, 0, max(1, absint($limit)));
+        foreach ($items as &$item) {
+            unset($item['_score'], $item['_modified']);
+        }
+        unset($item);
+        return $items;
+    }
+
+    private static function category_related_content($documents, $query, $limit = 8) {
         global $wpdb;
 
         $relations = $wpdb->prefix . 'seo_relations';

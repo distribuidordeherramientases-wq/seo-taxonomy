@@ -166,8 +166,9 @@ final class SEO_Dependiente_Help {
             'mode'          => $mode,
             'context_label' => $context_label,
             'filters'       => self::sanitize_context_value($data['filters'] ?? array(), 0),
-            'semantic_hint' => self::sanitize_context_value($data['semantic_hint'] ?? array(), 0),
-            'orderby'       => sanitize_key((string) ($data['orderby'] ?? 'relevance')),
+            'semantic_hint'   => self::sanitize_context_value($data['semantic_hint'] ?? array(), 0),
+            'entry_selection' => self::sanitize_context_value($data['entry_selection'] ?? array(), 0),
+            'orderby'         => sanitize_key((string) ($data['orderby'] ?? 'relevance')),
             'compare_ids'   => array_values(array_slice(array_unique(array_filter(array_map('absint', (array) ($data['compare_ids'] ?? array())))), 0, 4)),
         );
 
@@ -315,6 +316,13 @@ final class SEO_Dependiente_Help {
         if ($filters) {
             $lines[] = '- Filtros activos: ' . self::compact_json($filters);
         }
+        $selection = $frontend['entry_selection'] ?? array();
+        if ($selection) {
+            $label = sanitize_text_field((string) ($selection['label'] ?? ''));
+            $slugs = array_values(array_filter(array_map('sanitize_title', (array) ($selection['slugs'] ?? array()))));
+            $lines[] = '- Eleccion visual del cliente: ' . ($label ?: 'ambito')
+                . ($slugs ? ' [' . implode(', ', $slugs) . ']' : '');
+        }
         $hint = $frontend['semantic_hint'] ?? array();
         if ($hint) {
             $lines[] = '- Aclaracion activa: ' . self::compact_json($hint);
@@ -366,6 +374,13 @@ final class SEO_Dependiente_Help {
                     . ' | orden=' . ((string) ($request_context['orderby'] ?? '') ?: 'relevance');
                 if (!empty($request_context['filters'])) {
                     $lines[] = 'Filtros en este paso: ' . self::compact_json($request_context['filters']);
+                }
+                if (!empty($request_context['entry_selection'])) {
+                    $selection = (array) $request_context['entry_selection'];
+                    $label = sanitize_text_field((string) ($selection['label'] ?? ''));
+                    $slugs = array_values(array_filter(array_map('sanitize_title', (array) ($selection['slugs'] ?? array()))));
+                    $lines[] = 'Eleccion visual confirmada: ' . ($label ?: 'ambito')
+                        . ($slugs ? ' [' . implode(', ', $slugs) . ']' : '');
                 }
                 if (!empty($request_context['semantic_hint'])) {
                     $lines[] = 'Pista semantica en este paso: ' . self::compact_json($request_context['semantic_hint']);
