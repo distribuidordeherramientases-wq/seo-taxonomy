@@ -26,6 +26,7 @@
             status: root.querySelector('[data-dependiente-status]'),
             results: root.querySelector('[data-dependiente-results]'),
             pagination: root.querySelector('[data-dependiente-pagination]'),
+            amazon: root.querySelector('[data-dependiente-amazon]'),
             compareTray: root.querySelector('[data-dependiente-compare-tray]'),
             compareCount: root.querySelector('[data-dependiente-compare-count]'),
             compareClear: root.querySelector('[data-dependiente-compare-clear]'),
@@ -60,6 +61,7 @@
             clarificationTimer: null,
             hasResultInteraction: false,
             helpSubmitting: false,
+            amazonRequestId: 0,
             compare: loadCompareIds()
         };
 
@@ -387,6 +389,8 @@
                 elements.related.hidden = true;
                 elements.related.innerHTML = '';
             }
+            state.amazonRequestId += 1;
+            clearAmazon();
             elements.status.textContent = config.labels && config.labels.loading ? config.labels.loading : 'Revisando el catálogo…';
             elements.results.innerHTML = Array.from({ length: 6 }).map(function () {
                 return '<div class="seo-dependiente__skeleton" aria-hidden="true"></div>';
@@ -418,6 +422,7 @@
                 renderResults(data.results || [], data);
                 renderRelated(data.related || [], Number(data.total || 0));
                 renderPagination(data.page || 1, data.pages || 0);
+                loadAmazonFallback(data.external_fallback || null);
                 state.clarification = data.clarification || null;
                 scheduleClarification(state.clarification);
                 elements.status.textContent = data.truncated ? 'He encontrado muchas coincidencias. Añade una medida, marca, compatibilidad o uso para afinar mejor.' : '';
@@ -431,6 +436,7 @@
                     elements.related.hidden = true;
                     elements.related.innerHTML = '';
                 }
+                clearAmazon();
             } finally {
                 state.loading = false;
                 syncCompareButtons();
@@ -937,6 +943,78 @@
                 (specs ? '<div class="seo-dependiente__specs">' + specs + '</div>' : '') +
                 '<div class="seo-dependiente__product-foot"><div class="seo-dependiente__price">' + (product.price_html || '') + '</div><a class="seo-dependiente__card-button" data-dependiente-product-link data-product-id="' + Number(product.id) + '" data-position="' + Number(position || 0) + '" href="' + escapeAttr(product.url) + '">' + escapeHtml((config.labels && config.labels.viewProduct) || 'Ver producto') + '</a></div>' +
                 '</div></article>';
+        }
+
+        function clearAmazon() {
+            if (!elements.amazon) return;
+            elements.amazon.hidden = true;
+            elements.amazon.innerHTML = '';
+        }
+
+        async function loadAmazonFallback(fallback) {
+            if (!elements.amazon) return;
+            const requestId = ++state.amazonRequestId;
+            clearAmazon();
+            if (!fallback || !fallback.should_load || !fallback.query || !fallback.token || !fallback.bucket) return;
+
+            elements.amazon.hidden = false;
+            elements.amazon.innerHTML = '<div class="seo-dependiente__amazon-loading"><strong>Buscando una alternativa fuera de nuestro catálogo…</strong><span>Estamos consultando Amazon porque no hemos encontrado una coincidencia suficientemente directa aquí.</span></div>';
+
+            try {
+                const data = await api('amazon-search', {
+                    method: 'POST',
+                    body: {
+                        q: String(fallback.query || ''),
+                        token: String(fallback.token || ''),
+                        bucket: Number(fallback.bucket || 0)
+                    }
+                });
+                if (requestId !== state.amazonRequestId) return;
+                renderAmazon(data && Array.isArray(data.items) ? data.items : [], fallback);
+            } catch (error) {
+                // Amazon es un fallback: un fallo externo nunca debe degradar la
+                // búsqueda principal ni sustituirse por un mensaje de error global.
+                if (requestId === state.amazonRequestId) clearAmazon();
+            }
+        }
+
+        function renderAmazon(items, fallback) {
+            if (!elements.amazon) return;
+            if (!items || !items.length) {
+                clearAmazon();
+                return;
+            }
+
+            const reasonText = fallback && fallback.reason === 'requested_object_not_found'
+                ? 'Tenemos productos relacionados, pero no el artículo concreto que has pedido.'
+                : 'No hemos encontrado una coincidencia suficientemente clara en nuestro catálogo.';
+            const cards = items.map(renderAmazonCard).join('');
+
+            elements.amazon.innerHTML = '<div class="seo-dependiente__amazon-head">' +
+                '<div><span class="seo-dependiente__amazon-eyebrow">Alternativas externas</span><h2>Productos relacionados en Amazon</h2><p>' + escapeHtml(reasonText) + ' Por eso te mostramos estas opciones por separado.</p></div>' +
+                '<span class="seo-dependiente__amazon-badge">Amazon</span>' +
+                '</div>' +
+                '<div class="seo-dependiente__amazon-grid">' + cards + '</div>' +
+                '<p class="seo-dependiente__amazon-disclosure">En calidad de Afiliado de Amazon, obtengo ingresos por las compras adscritas que cumplen los requisitos aplicables. El precio y la disponibilidad pueden cambiar y deben comprobarse en la ficha de Amazon.</p>';
+            elements.amazon.hidden = false;
+        }
+
+        function renderAmazonCard(product) {
+            const image = product.image || config.placeholderImage || '';
+            const features = (product.features || []).slice(0, 2).map(function (feature) {
+                return '<li>' + escapeHtml(feature) + '</li>';
+            }).join('');
+            const kicker = ['Enlace pagado', product.brand ? escapeHtml(product.brand) : '', product.asin ? 'ASIN ' + escapeHtml(product.asin) : ''].filter(Boolean).join(' · ');
+
+            return '<article class="seo-dependiente__amazon-card">' +
+                '<a class="seo-dependiente__amazon-image" href="' + escapeAttr(product.url || '#') + '" target="_blank" rel="sponsored nofollow noopener"><img src="' + escapeAttr(image) + '" alt="' + escapeAttr(product.title || '') + '" loading="lazy" decoding="async"></a>' +
+                '<div class="seo-dependiente__amazon-body">' +
+                    (kicker ? '<div class="seo-dependiente__amazon-kicker">' + kicker + '</div>' : '') +
+                    '<h3><a href="' + escapeAttr(product.url || '#') + '" target="_blank" rel="sponsored nofollow noopener">' + escapeHtml(product.title || '') + '</a></h3>' +
+                    (features ? '<ul class="seo-dependiente__amazon-features">' + features + '</ul>' : '') +
+                    '<div class="seo-dependiente__amazon-foot"><strong>' + escapeHtml(product.price || 'Consultar precio') + '</strong><a href="' + escapeAttr(product.url || '#') + '" target="_blank" rel="sponsored nofollow noopener">Ver en Amazon ↗</a></div>' +
+                '</div>' +
+            '</article>';
         }
 
         function renderRelated(items, totalResults) {
