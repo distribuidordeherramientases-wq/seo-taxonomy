@@ -2370,19 +2370,71 @@ button.seo-dependiente__chip::after {
     }
 }
 
-/* Amazon Afiliados sin Creators API: tarjetas de busqueda, no fichas inventadas. */
+/* Amazon Afiliados sin Creators API: búsquedas afiliadas con apoyo visual
+   contextual. Las imágenes proceden del catálogo/contenido propio y se marcan
+   expresamente como orientativas; no se presentan como fichas de Amazon. */
 .seo-dependiente__amazon-search-visual {
+    position: relative;
     display: flex;
+    aspect-ratio: 4 / 3;
     min-height: 160px;
+    overflow: hidden;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 0;
+    background: linear-gradient(145deg, #f7f8f9, #eef1f3);
+    color: var(--dht-ink);
+    text-decoration: none;
+    text-align: center;
+}
+
+.seo-dependiente__amazon-search-image {
+    width: 100%;
+    height: 100%;
+    padding: 12px;
+    object-fit: contain;
+    background: #f7f8f9;
+}
+
+.seo-dependiente__amazon-source-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    padding: 5px 9px;
+    border: 1px solid var(--dht-line);
+    border-radius: 999px;
+    background: rgba(255,255,255,.96);
+    color: #4b4df3;
+    box-shadow: 0 2px 8px rgba(20,28,38,.08);
+    font-size: 10px;
+    font-weight: 850;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+}
+
+.seo-dependiente__amazon-media-note {
+    position: absolute;
+    right: 9px;
+    bottom: 9px;
+    padding: 4px 7px;
+    border-radius: 6px;
+    background: rgba(255,255,255,.94);
+    color: #68717b;
+    font-size: 9px;
+    font-weight: 750;
+}
+
+.seo-dependiente__amazon-search-placeholder {
+    display: flex;
+    width: 100%;
+    height: 100%;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 10px;
     padding: 20px;
-    background: linear-gradient(145deg, #f7f8f9, #eef1f3);
-    color: var(--dht-ink);
-    text-decoration: none;
-    text-align: center;
 }
 
 .seo-dependiente__amazon-search-mark {

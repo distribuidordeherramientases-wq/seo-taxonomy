@@ -334,11 +334,19 @@ final class SEO_Dependiente_API {
         // Amazon es una tercera fuente complementaria, no un fallback condicionado.
         // Se prepara en toda busqueda que tenga consulta. El frontend la carga aparte
         // para no bloquear productos ni guias si Amazon tarda o falla.
+        // Contexto visual para Amazon sin API. Se resuelve con el mismo helper
+        // que usa la plantilla de producto/categoría en producción; de este modo
+        // no dependemos de que el JSON de resultados traiga ya una URL de imagen.
+        // Las imágenes siguen siendo orientativas del catálogo propio, no fichas
+        // ni fotografías atribuidas a un producto concreto de Amazon.
+        $amazon_context_images = self::amazon_context_images($results, $related, $matched);
+
         $amazon_fallback = self::amazon_fallback($query, $semantic, array(
             'page'            => $page,
             'total'           => $total,
             'strategy'        => (string) ($search_diagnostic['strategy'] ?? 'strict'),
             'top_object_hits' => !empty($matched) ? absint($matched[0]['_object_hits'] ?? 0) : 0,
+            'context_images'  => $amazon_context_images,
         ));
 
         $execution_ms = (microtime(true) - $started_at) * 1000;
@@ -403,6 +411,89 @@ final class SEO_Dependiente_API {
      * Caller de Amazon (fuente 1C) desde el flujo principal del Dependiente.
      * La busqueda interna nunca depende de Amazon ni de Creators API.
      */
+    /**
+     * Resuelve imágenes de apoyo para las búsquedas afiliadas Amazon reutilizando
+     * el mismo criterio visual de las plantillas DHT. Prioriza thumbnails locales
+     * de productos/categorías y después acepta las imágenes ya serializadas por el
+     * Dependiente. Nunca obtiene ni scrapea imágenes de Amazon en el modo sin API.
+     */
+    private static function amazon_context_images($results, $related, $matched = array()) {
+        $images = array();
+        $append = static function($candidate) use (&$images) {
+            $candidate = esc_url_raw((string) $candidate);
+            if ('' === $candidate || in_array($candidate, $images, true)) {
+                return false;
+            }
+            $images[] = $candidate;
+            return count($images) >= 6;
+        };
+
+        // Carga el helper usado por template-product.php solo si todavía no está
+        // disponible en esta petición REST. El archivo únicamente declara helpers.
+        if (!function_exists('dht_amazon_context_image')) {
+            $template = dirname(__DIR__, 2) . '/seo-system/templates/template-amazon-product.php';
+            if (is_readable($template)) {
+                require_once $template;
+            }
+        }
+
+        $intent_types = array('direct', 'complementary', 'context', 'subfamily');
+
+        // 1) Exactamente el mismo resolvedor usado por la plantilla de producto.
+        if (function_exists('dht_amazon_context_image')) {
+            foreach ((array) $results as $index => $item) {
+                $product_id = absint($item['id'] ?? 0);
+                if (!$product_id) {
+                    continue;
+                }
+                $image = dht_amazon_context_image('product', $product_id, array(
+                    'type' => $intent_types[$index % count($intent_types)],
+                ));
+                if ($append($image)) {
+                    return $images;
+                }
+            }
+
+            // 2) Categorías de los documentos encontrados. El helper de categoría
+            // puede seleccionar productos diferentes mediante offsets por intención.
+            $category_ids = array();
+            foreach ((array) $matched as $document) {
+                foreach ((array) ($document['categories'] ?? array()) as $category) {
+                    $term_id = absint($category['id'] ?? $category['term_id'] ?? 0);
+                    if ($term_id) {
+                        $category_ids[$term_id] = true;
+                    }
+                }
+                if (count($category_ids) >= 8) {
+                    break;
+                }
+            }
+            $category_index = 0;
+            foreach (array_keys($category_ids) as $term_id) {
+                foreach ($intent_types as $intent_type) {
+                    $image = dht_amazon_context_image('category', $term_id, array('type' => $intent_type));
+                    if ($append($image)) {
+                        return $images;
+                    }
+                    $category_index++;
+                    if ($category_index >= 12) {
+                        break 2;
+                    }
+                }
+            }
+        }
+
+        // 3) Fallback a las imágenes ya resueltas por el Dependiente (incluye
+        // proveedor externo, miniatura de post/landing o placeholder corporativo).
+        foreach (array_merge((array) $results, (array) $related) as $item) {
+            if ($append($item['image'] ?? '')) {
+                break;
+            }
+        }
+
+        return array_slice($images, 0, 6);
+    }
+
     private static function amazon_fallback($query, $semantic, $context = array()) {
         $empty = array(
             'provider'    => 'amazon',
@@ -512,7 +603,7 @@ final class SEO_Dependiente_API {
                 'stock'       => self::stock_label($product->get_stock_status()),
                 'weight'      => self::number_with_unit($document['weight'], get_option('woocommerce_weight_unit', 'kg')),
                 'dimensions'  => self::dimensions_text($document),
-                'categories'  => self::join_category_labels($document['categories']),
+                'categories'  => self::join_labels($document['categories'], 'name'),
                 'application' => self::vocabulary_labels($document, 'aplicacion'),
                 'platform'    => self::vocabulary_labels($document, 'plataforma'),
                 'subtype'     => self::vocabulary_labels($document, 'subtipo'),
@@ -1488,7 +1579,7 @@ final class SEO_Dependiente_API {
             'key_specs'     => self::key_specs($document, $query, $filters),
             'applications'  => self::vocabulary_item_labels($document, 'aplicacion'),
             'platforms'     => self::vocabulary_item_labels($document, 'plataforma'),
-            'categories'    => array_slice(self::category_labels($document['categories']), 0, 2),
+            'categories'    => array_slice(array_values(array_filter(wp_list_pluck($document['categories'], 'name'))), 0, 2),
             'compare_label' => 'Añadir a comparación',
         );
     }
@@ -1559,7 +1650,7 @@ final class SEO_Dependiente_API {
 
         foreach ((array) $documents as $document) {
             foreach ((array) $document['categories'] as $term) {
-                self::facet_increment($categories, $term['slug'] ?? '', self::clean_category_label($term['name'] ?? ''), $term['image'] ?? '');
+                self::facet_increment($categories, $term['slug'] ?? '', $term['name'] ?? '', $term['image'] ?? '');
             }
             foreach ((array) $document['tags'] as $term) {
                 self::facet_increment($tags, $term['slug'] ?? '', $term['name'] ?? '', '');
@@ -2041,39 +2132,6 @@ final class SEO_Dependiente_API {
 
     private static function vocabulary_item_labels($document, $group) {
         return array_values(array_filter(wp_list_pluck((array) ($document['vocabulary'][$group] ?? array()), 'label')));
-    }
-
-    /**
-     * El Dependiente debe mostrar el nombre real de la categoria. Algunos
-     * filtros SEO externos pueden decorar el nombre con un prefijo editorial
-     * como "Como comparar ...". Ese prefijo no forma parte de la categoria
-     * y no debe aparecer en facetas, tarjetas ni comparaciones.
-     */
-    private static function clean_category_label($label) {
-        $label = trim(wp_strip_all_tags((string) $label));
-        if (!$label) {
-            return '';
-        }
-
-        $clean = preg_replace('/^c[oó]mo\s+comparar(?:\s*[:\-–—]\s*|\s+)/iu', '', $label);
-        $clean = trim((string) $clean);
-
-        return $clean ?: $label;
-    }
-
-    private static function category_labels($items) {
-        $labels = array();
-        foreach ((array) $items as $item) {
-            $label = self::clean_category_label($item['name'] ?? '');
-            if ($label) {
-                $labels[] = $label;
-            }
-        }
-        return array_values(array_unique($labels));
-    }
-
-    private static function join_category_labels($items) {
-        return implode(', ', self::category_labels($items));
     }
 
     private static function join_labels($items, $field) {

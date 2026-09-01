@@ -1094,8 +1094,11 @@
             const reasonText = affiliateMode
                 ? 'Estas son búsquedas afiliadas relacionadas. Al abrirlas verás en Amazon los productos, precios y disponibilidad actualizados.'
                 : 'Como complemento a los productos y contenidos de nuestra web, también hemos consultado Amazon.';
+            const contextImages = fallback && Array.isArray(fallback.context_images)
+                ? fallback.context_images.filter(Boolean)
+                : [];
             const cards = affiliateMode
-                ? items.map(renderAmazonSearchCard).join('')
+                ? items.map(function (item, index) { return renderAmazonSearchCard(item, index, contextImages); }).join('')
                 : items.map(renderAmazonCard).join('');
             const title = affiliateMode ? 'Más opciones en Amazon' : 'Productos relacionados en Amazon';
             const eyebrow = affiliateMode ? 'Búsquedas afiliadas' : 'Catálogo externo';
@@ -1109,12 +1112,20 @@
             elements.amazon.hidden = false;
         }
 
-        function renderAmazonSearchCard(item) {
+        function renderAmazonSearchCard(item, index, contextImages) {
             const query = item.query || item.title || '';
+            const images = Array.isArray(contextImages) ? contextImages : [];
+            const image = item.image || (images.length ? images[index % images.length] : '');
+            const visual = image
+                ? '<img class="seo-dependiente__amazon-search-image" src="' + escapeAttr(image) + '" alt="" loading="lazy" decoding="async">' +
+                    '<span class="seo-dependiente__amazon-source-badge">Amazon</span>' +
+                    '<span class="seo-dependiente__amazon-media-note">Imagen orientativa relacionada</span>'
+                : '<span class="seo-dependiente__amazon-search-placeholder"><span class="seo-dependiente__amazon-search-mark">amazon</span><span class="seo-dependiente__amazon-search-query">' + escapeHtml(query) + '</span></span>' +
+                    '<span class="seo-dependiente__amazon-source-badge">Amazon</span>';
+
             return '<article class="seo-dependiente__amazon-card seo-dependiente__amazon-card--search">' +
                 '<a class="seo-dependiente__amazon-search-visual" href="' + escapeAttr(item.url || '#') + '" target="_blank" rel="sponsored nofollow noopener" aria-label="' + escapeAttr('Buscar ' + query + ' en Amazon') + '">' +
-                    '<span class="seo-dependiente__amazon-search-mark">amazon</span>' +
-                    '<span class="seo-dependiente__amazon-search-query">' + escapeHtml(query) + '</span>' +
+                    visual +
                 '</a>' +
                 '<div class="seo-dependiente__amazon-body">' +
                     '<div class="seo-dependiente__amazon-kicker">Enlace de afiliado · Búsqueda en Amazon</div>' +

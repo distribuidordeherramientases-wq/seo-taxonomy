@@ -9,7 +9,7 @@
  *   enriquece el bloque con productos concretos. Si falla, se vuelve
  *   automaticamente al modo afiliado sin romper la busqueda principal.
  *
- * @version 0.1.20
+ * @version 0.1.22
  */
 defined('ABSPATH') || exit;
 
@@ -111,9 +111,23 @@ final class SEO_Dependiente_Amazon {
             'query'       => '',
             'token'       => '',
             'bucket'      => 0,
+            'context_images' => array(),
         );
 
         $query = self::limit_text(sanitize_text_field((string) $query), 180);
+        $context_images = array();
+        foreach ((array) ($context['context_images'] ?? array()) as $context_image) {
+            $context_image = esc_url_raw((string) $context_image);
+            if ('' === $context_image || in_array($context_image, $context_images, true)) {
+                continue;
+            }
+            $context_images[] = $context_image;
+            if (count($context_images) >= 6) {
+                break;
+            }
+        }
+        $empty['context_images'] = $context_images;
+
         if ('' === trim($query)) {
             $empty['status'] = 'empty_query';
             return $empty;
@@ -144,6 +158,7 @@ final class SEO_Dependiente_Amazon {
             'query'       => $amazon_query,
             'token'       => self::make_token($amazon_query, $bucket),
             'bucket'      => $bucket,
+            'context_images' => $context_images,
         );
     }
 
