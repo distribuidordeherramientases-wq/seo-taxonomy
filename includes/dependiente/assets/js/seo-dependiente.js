@@ -13,6 +13,7 @@
             submit: root.querySelector('[data-dependiente-search-form] button[type="submit"]'),
             examples: root.querySelector('[data-dependiente-examples]'),
             discovery: root.querySelector('[data-dependiente-discovery]'),
+            roles: root.querySelector('[data-dependiente-roles]'),
             actions: root.querySelector('[data-dependiente-actions]'),
             tools: root.querySelector('[data-dependiente-tools]'),
             paths: root.querySelectorAll('[data-dependiente-mode]'),
@@ -58,6 +59,7 @@
             loading: false,
             searchId: '',
             semanticHint: null,
+            entrySelection: null,
             clarification: null,
             clarificationTimer: null,
             feedbackTimer: null,
@@ -106,13 +108,15 @@
                 // filtro/plataforma Milwaukee y mode=tool a "se me ha roto un grifo".
                 if (nextQuery && state.modeSource === 'menu') {
                     state.filters = emptyFilters();
+                    state.entrySelection = null;
+                    syncScopeCards();
                     state.orderby = 'relevance';
                     if (elements.sort) elements.sort.value = 'relevance';
                     setMode('need', 'default');
                 }
 
                 state.q = nextQuery;
-                state.contextLabel = '';
+                if (!state.entrySelection) state.contextLabel = '';
                 state.semanticHint = null;
                 state.page = 1;
                 search(true);
@@ -157,7 +161,9 @@
                 if (!reset) return;
                 event.preventDefault();
                 state.filters = emptyFilters();
+                state.entrySelection = null;
                 state.contextLabel = '';
+                syncScopeCards();
                 state.page = 1;
                 search(false);
             });
@@ -190,7 +196,9 @@
                 if (reset) {
                     event.preventDefault();
                     state.filters = emptyFilters();
+                    state.entrySelection = null;
                     state.contextLabel = '';
+                    syncScopeCards();
                     state.page = 1;
                     search(false);
                     return;
@@ -202,6 +210,8 @@
                     let filter = {};
                     try { filter = JSON.parse(alternative.dataset.dependienteZeroFilter || '{}'); } catch (error) { filter = {}; }
                     state.filters = emptyFilters();
+                    state.entrySelection = null;
+                    syncScopeCards();
                     applyCardFilter(filter);
                     state.q = '';
                     state.contextLabel = alternative.dataset.dependienteZeroLabel || '';
@@ -297,24 +307,22 @@
                 const data = await api('bootstrap', { method: 'GET' });
                 state.bootstrap = data;
                 renderExamples(data.examples || []);
-                renderVisualMenu(elements.actions, data.actions || [], 'need');
-                renderVisualMenu(elements.tools, data.tools || [], 'tool');
+                renderRoleMenu(elements.roles, data.roles || []);
             } catch (error) {
-                renderMenuError(elements.actions);
-                renderMenuError(elements.tools);
+                renderMenuError(elements.roles);
             }
         }
 
         function renderLoadingMenus() {
-            [elements.actions, elements.tools].forEach(function (container) {
-                container.innerHTML = Array.from({ length: 4 }).map(function () {
-                    return '<div class="seo-dependiente__visual-card seo-dependiente__skeleton" aria-hidden="true"></div>';
-                }).join('');
-            });
+            if (!elements.roles) return;
+            elements.roles.innerHTML = Array.from({ length: 4 }).map(function () {
+                return '<div class="seo-dependiente__visual-card seo-dependiente__visual-card--scope seo-dependiente__skeleton" aria-hidden="true"></div>';
+            }).join('');
         }
 
         function renderMenuError(container) {
-            container.innerHTML = '<div class="seo-dependiente__empty"><strong>Menú en preparación</strong><span>La búsqueda escrita sigue disponible.</span></div>';
+            if (!container) return;
+            container.innerHTML = '<div class="seo-dependiente__empty"><strong>Ámbitos en preparación</strong><span>La búsqueda escrita sigue disponible.</span></div>';
         }
 
         function renderExamples(examples) {
@@ -326,7 +334,7 @@
                     const value = button.dataset.example || '';
                     elements.query.value = value;
                     state.q = value;
-                    state.contextLabel = '';
+                    if (!state.entrySelection) state.contextLabel = '';
                     state.semanticHint = null;
                     state.page = 1;
                     search(true);
@@ -334,44 +342,79 @@
             });
         }
 
-        function renderVisualMenu(container, cards, mode) {
-            if (!cards.length) {
+        function renderRoleMenu(container, cards) {
+            if (!container || !cards.length) {
                 renderMenuError(container);
                 return;
             }
+
             container.innerHTML = cards.map(function (card) {
                 const imageClass = card.image_kind === 'logo' ? ' seo-dependiente__visual-card--logo' : '';
-                return '<button type="button" class="seo-dependiente__visual-card' + imageClass + '" data-card-filter="' + escapeAttr(JSON.stringify(card.filter || {})) + '">' +
+                const filter = card.filter || {};
+                return '<button type="button" class="seo-dependiente__visual-card seo-dependiente__visual-card--scope' + imageClass + '"' +
+                    ' data-dependiente-role-card data-card-filter="' + escapeAttr(JSON.stringify(filter)) + '"' +
+                    ' aria-pressed="false">' +
                     '<img src="' + escapeAttr(card.image || config.placeholderImage || '') + '" alt="" loading="lazy" decoding="async">' +
                     '<span class="seo-dependiente__visual-card-arrow" aria-hidden="true">→</span>' +
-                    '<span class="seo-dependiente__visual-card-content"><strong>' + escapeHtml(card.label) + '</strong><small>' + numberFormat(card.count) + ' opciones</small></span>' +
+                    '<span class="seo-dependiente__visual-card-content"><strong>' + escapeHtml(card.label) + '</strong>' +
+                    '<small>' + escapeHtml(card.subtitle || '') + '</small></span>' +
                     '</button>';
             }).join('');
 
-            container.querySelectorAll('[data-card-filter]').forEach(function (button, index) {
+            container.querySelectorAll('[data-dependiente-role-card]').forEach(function (button, index) {
                 button.addEventListener('click', function () {
                     let filter = {};
                     try { filter = JSON.parse(button.dataset.cardFilter || '{}'); } catch (error) { filter = {}; }
-                    state.filters = emptyFilters();
-                    applyCardFilter(filter);
-                    state.contextLabel = cards[index] ? cards[index].label : '';
-                    state.q = '';
-                    state.semanticHint = null;
-                    elements.query.value = '';
+                    const card = cards[index] || {};
+                    const slugs = normalizedFilterSlugs(filter);
+                    if (!slugs.length) return;
+
+                    state.filters.vocabulary = state.filters.vocabulary || {};
+                    state.filters.vocabulary.rol = slugs;
+                    state.entrySelection = {
+                        source: 'visual_scope',
+                        group: 'rol',
+                        label: String(card.label || ''),
+                        slugs: slugs
+                    };
+                    state.contextLabel = String(card.label || '');
+                    state.modeSource = 'scope';
                     state.page = 1;
-                    setMode(mode, 'menu');
+                    syncScopeCards();
                     search(true);
                 });
+            });
+
+            syncScopeCards();
+        }
+
+        function normalizedFilterSlugs(filter) {
+            const values = Array.isArray(filter && filter.slugs)
+                ? filter.slugs
+                : (filter && filter.slug ? [filter.slug] : []);
+            return values.map(function (value) { return String(value || '').trim(); }).filter(Boolean);
+        }
+
+        function syncScopeCards() {
+            if (!elements.roles) return;
+            const selected = ((state.filters.vocabulary || {}).rol || []).slice().sort().join('|');
+            elements.roles.querySelectorAll('[data-dependiente-role-card]').forEach(function (button) {
+                let filter = {};
+                try { filter = JSON.parse(button.dataset.cardFilter || '{}'); } catch (error) { filter = {}; }
+                const own = normalizedFilterSlugs(filter).slice().sort().join('|');
+                const active = Boolean(selected && own && selected === own);
+                button.classList.toggle('is-selected', active);
+                button.setAttribute('aria-pressed', active ? 'true' : 'false');
             });
         }
 
         function applyCardFilter(filter) {
-            const slug = filter.slug || '';
-            if (!slug) return;
-            if (filter.type === 'categories') state.filters.categories = [slug];
-            if (filter.type === 'tags') state.filters.tags = [slug];
-            if (filter.type === 'vocabulary' && filter.group) state.filters.vocabulary[filter.group] = [slug];
-            if (filter.type === 'attributes' && filter.group) state.filters.attributes[filter.group] = [slug];
+            const slugs = normalizedFilterSlugs(filter);
+            if (!slugs.length) return;
+            if (filter.type === 'categories') state.filters.categories = slugs;
+            if (filter.type === 'tags') state.filters.tags = slugs;
+            if (filter.type === 'vocabulary' && filter.group) state.filters.vocabulary[filter.group] = slugs;
+            if (filter.type === 'attributes' && filter.group) state.filters.attributes[filter.group] = slugs;
         }
 
         function setMode(mode, source) {
@@ -423,7 +466,8 @@
                         per_page: state.perPage,
                         orderby: state.orderby,
                         filters: state.filters,
-                        semantic_hint: state.semanticHint || null
+                        semantic_hint: state.semanticHint || null,
+                        entry_selection: state.entrySelection || null
                     }
                 });
                 state.facets = data.facets || null;
@@ -592,6 +636,7 @@
                         page_url: window.location.href,
                         filters: state.filters || emptyFilters(),
                         semantic_hint: state.semanticHint || null,
+                        entry_selection: state.entrySelection || null,
                         orderby: state.orderby || 'relevance',
                         compare_ids: Array.from(state.compare || []),
                         website: websiteInput ? websiteInput.value : ''
@@ -855,6 +900,8 @@
 
         function readFiltersFromForm(form) {
             const next = emptyFilters();
+            const activeRole = ((state.filters.vocabulary || {}).rol || []).slice();
+            if (activeRole.length) next.vocabulary.rol = activeRole;
             form.querySelectorAll('[data-filter-kind]:checked').forEach(function (input) {
                 const kind = input.dataset.filterKind;
                 const group = input.dataset.filterGroup || '';
@@ -888,12 +935,17 @@
                 return;
             }
             const chips = [];
+            const activeRole = ((state.filters.vocabulary || {}).rol || []).slice();
+            if (state.entrySelection && activeRole.length) {
+                chips.push('<button type="button" class="seo-dependiente__chip seo-dependiente__chip--scope" data-filter-remove="scope">Buscando en: <strong>' + escapeHtml(state.entrySelection.label || 'ámbito') + '</strong></button>');
+            }
             addFacetChips(chips, 'categories', '', state.filters.categories, state.facets.categories || []);
             addFacetChips(chips, 'tags', '', state.filters.tags, state.facets.tags || []);
             addFacetChips(chips, 'brands', '', state.filters.brands, state.facets.brands || []);
             addFacetChips(chips, 'stock', '', state.filters.stock, state.facets.stock || []);
 
             Object.keys(state.filters.vocabulary || {}).forEach(function (group) {
+                if ('rol' === group && state.entrySelection) return;
                 const items = state.facets.vocabulary && state.facets.vocabulary[group] ? state.facets.vocabulary[group] : [];
                 addFacetChips(chips, 'vocabulary', group, state.filters.vocabulary[group], items);
             });
@@ -925,6 +977,14 @@
         }
 
         function removeFilter(kind, group, value) {
+            if (kind === 'scope') {
+                if (state.filters.vocabulary) delete state.filters.vocabulary.rol;
+                state.entrySelection = null;
+                state.contextLabel = '';
+                state.modeSource = 'filter';
+                syncScopeCards();
+                return;
+            }
             if (kind === 'ranges') {
                 delete state.filters.ranges[group];
                 return;
@@ -932,6 +992,11 @@
             if (kind === 'vocabulary' || kind === 'attributes') {
                 state.filters[kind][group] = (state.filters[kind][group] || []).filter(function (item) { return item !== value; });
                 if (!state.filters[kind][group].length) delete state.filters[kind][group];
+                if ('vocabulary' === kind && 'rol' === group && !(state.filters.vocabulary.rol || []).length) {
+                    state.entrySelection = null;
+                    state.contextLabel = '';
+                    syncScopeCards();
+                }
                 return;
             }
             state.filters[kind] = (state.filters[kind] || []).filter(function (item) { return item !== value; });
@@ -1027,7 +1092,7 @@
             if (!fallback || !fallback.should_load || !fallback.query || !fallback.token || !fallback.bucket) return;
 
             elements.amazon.hidden = false;
-            elements.amazon.innerHTML = '<div class="seo-dependiente__amazon-loading"><strong>Buscando una alternativa fuera de nuestro catálogo…</strong><span>Estamos consultando Amazon porque no hemos encontrado una coincidencia suficientemente directa aquí.</span></div>';
+            elements.amazon.innerHTML = '<div class="seo-dependiente__amazon-loading"><strong>Buscando también en Amazon…</strong><span>Añadimos opciones externas relacionadas después de nuestro catálogo y nuestras guías.</span></div>';
 
             try {
                 const data = await api('amazon-search', {
@@ -1058,17 +1123,17 @@
         function renderAmazon(items, fallback) {
             if (!elements.amazon) return;
             if (!items || !items.length) {
-                renderAmazonStatus('Amazon no ha devuelto coincidencias para esta búsqueda.', 'He intentado ampliar la búsqueda fuera de nuestro catálogo, pero no he recibido productos utilizables.');
+                renderAmazonStatus('Amazon no ha devuelto coincidencias para esta búsqueda.', 'He consultado Amazon como fuente complementaria, pero no he recibido productos utilizables para esta búsqueda.');
                 return;
             }
 
-            const reasonText = fallback && fallback.reason === 'requested_object_not_found'
-                ? 'Tenemos productos relacionados, pero no el artículo concreto que has pedido.'
-                : 'No hemos encontrado una coincidencia suficientemente clara en nuestro catálogo.';
+            const reasonText = fallback && fallback.reason === 'complementary_search'
+                ? 'Como complemento a los productos y contenidos de nuestra web, también hemos consultado Amazon.'
+                : 'También hemos consultado una fuente externa relacionada con tu búsqueda.';
             const cards = items.map(renderAmazonCard).join('');
 
             elements.amazon.innerHTML = '<div class="seo-dependiente__amazon-head">' +
-                '<div><span class="seo-dependiente__amazon-eyebrow">Alternativas externas</span><h2>Productos relacionados en Amazon</h2><p>' + escapeHtml(reasonText) + ' Por eso te mostramos estas opciones por separado.</p></div>' +
+                '<div><span class="seo-dependiente__amazon-eyebrow">Catálogo externo</span><h2>Productos relacionados en Amazon</h2><p>' + escapeHtml(reasonText) + '</p></div>' +
                 '<span class="seo-dependiente__amazon-badge">Amazon</span>' +
                 '</div>' +
                 '<div class="seo-dependiente__amazon-grid">' + cards + '</div>' +
@@ -1106,22 +1171,18 @@
             const rest = items.slice(3);
             const cards = first.map(renderRelatedCard).join('');
             const more = rest.length ? '<details class="seo-dependiente__related-more"><summary>Ver más información (' + rest.length + ')</summary><div class="seo-dependiente__related-more-list">' + rest.map(renderRelatedCard).join('') + '</div></details>' : '';
-            const helpText = totalResults > 0
-                ? 'Contenido relacionado con las categorías de los productos que mejor encajan.'
-                : 'Aunque no haya un producto exacto, estas guías pueden ayudarte a orientar la búsqueda.';
-            const open = totalResults > 0 ? '' : ' open';
+            const helpText = 'Contenido de nuestras guías y soluciones relacionado directamente con tu búsqueda o con los productos encontrados.';
             const total = items.length;
 
-            elements.related.innerHTML = '<details class="seo-dependiente__related-inner"' + open + '>' +
-                '<summary class="seo-dependiente__related-summary">' +
-                    '<span class="seo-dependiente__related-summary-copy"><small>También te puede ayudar</small><strong>Guías y soluciones <em>(' + total + ')</em></strong></span>' +
-                    '<span class="seo-dependiente__related-summary-action">Ver guías</span>' +
-                '</summary>' +
+            elements.related.innerHTML = '<div class="seo-dependiente__related-inner">' +
+                '<div class="seo-dependiente__related-summary">' +
+                    '<span class="seo-dependiente__related-summary-copy"><small>Información de nuestra web</small><strong>Guías y soluciones <em>(' + total + ')</em></strong></span>' +
+                '</div>' +
                 '<div class="seo-dependiente__related-panel">' +
                     '<p class="seo-dependiente__related-help">' + escapeHtml(helpText) + '</p>' +
                     '<div class="seo-dependiente__related-list">' + cards + '</div>' + more +
                 '</div>' +
-            '</details>';
+            '</div>';
             elements.related.hidden = false;
         }
 
