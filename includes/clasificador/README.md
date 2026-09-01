@@ -12,35 +12,114 @@ API principal:
 $result = seo_classifier_classify_product($product_id);
 ```
 
-También existen APIs parciales:
+APIs parciales:
 
 ```php
 $labels = seo_classifier_classify_product_labels($product_id);
 $attributes = seo_classifier_classify_product_attributes($product_id);
 ```
 
+## Arquitectura v2
+
+El motor combina cinco familias de señales:
+
+1. **Ficha local**: título, identidad inicial, slug, extracto, descripción, categorías, `product_tag`, marca y SKU.
+2. **Catálogo del proveedor**: nombre, descripción, categoría del proveedor, MPN, SKU y `raw_json` de `seo_proveedores_productos`.
+3. **Perfiles aprendidos**: relaciones observadas en asignaciones canónicas ya confirmadas, especialmente `TIPO -> APLICACIÓN/SUBTIPO/PLATAFORMA` y perfiles de categoría.
+4. **Fuentes externas conocidas**: URLs de fabricante/proveedor ya almacenadas en el producto. Se leen en segundo plano, con caché; nunca se realiza una búsqueda general ni se siguen enlaces arbitrarios.
+5. **Reglas técnicas**: identidad principal, familias como OBD/HUD, broca/cincel, plataformas de batería, unidades y expresiones técnicas.
+
+La pantalla de Asignación consume estas APIs. La interfaz no debe volver a contener lógica de clasificación propia.
+
 ## Estados
 
 - `current`: ya existe en el inventario canónico.
 - `derived`: derivado de una relación canónica, por ejemplo ROL desde TIPO.
-- `safe`: propuesta con evidencia suficiente para preselección.
+- `safe`: propuesta con evidencia suficiente para preselección/aceptación masiva.
 - `review`: candidato útil, pero requiere revisión humana.
-- `unresolved`: no existe evidencia suficiente o requiere vocabulario/extractor adicional.
+- `unresolved`: no existe evidencia suficiente.
+- `new_attribute` / `gap`: se ha detectado un concepto técnico para el que falta una definición canónica; solo se informa.
 
-## Fuentes de contexto
+## Clasificación semántica
 
-Título, identidad inicial del título, slug, extracto, descripción, categorías, `product_tag` y SKU.
+El orden es deliberado:
 
-## Etiquetas
+1. TIPO
+2. APLICACIÓN
+3. SUBTIPO
+4. PLATAFORMA
+5. ROL derivado de TIPO
 
-Compara exclusivamente con `wp_seo_vocabulary` activo. TIPO da más peso a la identidad inicial del título que a listas de funciones. ROL se deriva del mapa canónico TIPO → ROL.
+TIPO se apoya principalmente en la identidad del producto. APLICACIÓN y SUBTIPO pueden aprovechar tanto el texto como el consenso de productos ya clasificados del mismo TIPO o categoría.
+
+Los perfiles estadísticos exigen soporte, cobertura, dominancia y margen frente al segundo candidato. Un único ejemplo no genera una propuesta segura.
 
 ## Atributos
 
-Compara exclusivamente con las definiciones activas de `wp_sql_atributos`.
+Solo se consultan definiciones activas de `wp_sql_atributos`.
 
-- `termino`: reutiliza términos/aliases existentes.
-- `numero`/`rango`: solo propone cuando hay evidencia numérica explícita y una regla segura.
-- `texto`/`boolean`: quedan sin resolver hasta disponer de extractores específicos.
+- `termino`: reutiliza términos y aliases existentes.
+- `numero`/`rango`: exige una medida explícita y una unidad compatible.
+- `texto`/`boolean`: permanecen sin resolver salvo que exista un extractor específico.
 
-Los extractores se amplían en `rules.php` / `attributes.php`; la pantalla de Asignación no debe contener lógica de clasificación.
+El resultado puede incluir `gaps` cuando se reconoce un concepto como SDS o HSS pero falta el atributo canónico correspondiente. El Clasificador nunca da de alta ese atributo.
+
+## Fuentes externas
+
+La clasificación normal no bloquea el administrador esperando una web externa. Cuando encuentra una URL conocida:
+
+1. utiliza la caché si existe;
+2. si falta, encola el producto;
+3. WP-Cron descarga una o dos fichas por ejecución;
+4. se extraen JSON-LD Product, metadatos y texto visible;
+5. la siguiente clasificación aprovecha esa información.
+
+Filtros principales:
+
+```php
+seo_classifier_external_sources_enabled
+seo_classifier_external_source_urls
+seo_classifier_external_fetch_allowed
+seo_classifier_external_cache_ttl
+seo_classifier_external_queue_batch_size
+seo_classifier_profile_ttl
+seo_classifier_group_thresholds
+```
+
+No se realiza descubrimiento de URLs mediante Google/Bing. Para añadir otra fuente, se debe guardar su URL en el producto o aportarla mediante `seo_classifier_external_source_urls`.
+
+## Evaluación
+
+El Clasificador puede medir su calidad ocultando una etiqueta ya conocida y tratando de reconstruirla:
+
+```php
+$report = seo_classifier_evaluate_product_group('aplicacion', [
+    'limit' => 50,
+    'offset' => 0,
+]);
+```
+
+WP-CLI:
+
+```bash
+wp seo-classifier evaluate --group=aplicacion --limit=50
+wp seo-classifier classify 137212
+wp seo-classifier classify 137212 --refresh-source
+wp seo-classifier refresh-source 137212
+```
+
+La evaluación no escribe datos ni realiza lecturas externas síncronas.
+
+## Descubrimiento de vocabulario nuevo (Build 044)
+
+Cuando una dimensión está vacía y no existe una alternativa canónica suficientemente sólida, el Clasificador puede devolver `new_terms`. Son propuestas de descubrimiento, no asignaciones automáticas.
+
+El flujo es deliberadamente separado:
+
+1. Se intenta reutilizar vocabulario existente (`safe` / `review`).
+2. Si el concepto explícito del producto no tiene equivalente canónico próximo, se devuelve una propuesta `new_terms` con confianza, fuentes y término existente más cercano.
+3. La pantalla de Asignación la muestra en morado.
+4. Solo el botón **Crear y asignar** puede incorporarla a `seo_vocabulary` y asignarla al producto.
+5. A partir de ese momento el término forma parte del inventario y el Clasificador puede reutilizarlo en otros productos.
+
+Las propuestas nuevas nunca participan en la aceptación masiva. Para TIPO, la creación exige seleccionar el ROL canónico para mantener la relación TIPO -> ROL.
