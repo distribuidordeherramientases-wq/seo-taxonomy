@@ -7,7 +7,7 @@
  *
  * @package SEOSystem
  * @subpackage ImportExport
- * @version 0.5.0
+ * @version 0.6.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -52,7 +52,7 @@ if ( ! function_exists( 'seo_proveedores_api_connections' ) ) {
         if ( function_exists( 'seo_supplier_recipe_amazon_settings' ) ) {
             $connections['amazon'] = [
                 'id'       => 'amazon',
-                'label'    => 'Amazon Creators API',
+                'label'    => 'Amazon Afiliados',
                 'provider' => 'Amazon',
                 'market'   => 'amazon.es',
             ];
@@ -215,7 +215,7 @@ if ( ! function_exists( 'seo_proveedores_render_conexiones' ) ) {
         echo '<div class="card" style="max-width:none;padding:20px;margin-top:20px;">';
         echo '<h2 style="margin-top:0;">Conexiones e integraciones</h2>';
         echo '<p>Configura aqui APIs de proveedores, ejecutores externos y servicios de infraestructura. Cada credencial se define una sola vez y los modulos autorizados reutilizan la conexion.</p>';
-        echo '<p><code>Modulo conexiones v0.5.0</code></p>';
+        echo '<p><code>Modulo conexiones v0.6.0</code></p>';
 
         if ( ! function_exists( 'seo_github_python_runner_settings' ) ) {
             $gh_loader = isset( $GLOBALS['seo_github_python_runner_loader'] ) && is_array( $GLOBALS['seo_github_python_runner_loader'] )
@@ -560,32 +560,38 @@ if ( ! function_exists( 'seo_proveedores_render_conexiones' ) ) {
             }
 
             $s = seo_supplier_recipe_amazon_settings();
-            $configured = ! empty( $s['client_id'] ) && ! empty( $s['client_secret'] ) && ! empty( $s['partner_tag'] );
+            $affiliate_configured = function_exists( 'seo_supplier_recipe_amazon_affiliate_ready' )
+                ? seo_supplier_recipe_amazon_affiliate_ready()
+                : ! empty( $s['partner_tag'] );
+            $creators_configured = function_exists( 'seo_supplier_recipe_amazon_creators_ready' )
+                ? seo_supplier_recipe_amazon_creators_ready()
+                : ( ! empty( $s['client_id'] ) && ! empty( $s['client_secret'] ) && ! empty( $s['partner_tag'] ) );
 
             echo '<div style="border:1px solid #dcdcde;border-radius:6px;padding:18px;margin-top:18px;background:#fff;">';
             echo '<div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;">';
-            echo '<div><h3 style="margin:0 0 6px;">Amazon Creators API</h3><p style="margin:0;">Marketplace: <strong>amazon.es</strong> · Credencial europea: <strong>3.2</strong></p></div>';
-            echo '<span style="display:inline-block;padding:5px 9px;border-radius:12px;background:' . ( $configured ? '#edfaef' : '#fff8e5' ) . ';">' . ( $configured ? 'Configurada' : 'Pendiente de configurar' ) . '</span>';
+            echo '<div><h3 style="margin:0 0 6px;">Amazon Afiliados</h3><p style="margin:0;">Marketplace: <strong>amazon.es</strong> · Enlaces afiliados sin API. Creators API queda como enriquecimiento opcional.</p></div>';
+            echo '<span style="display:inline-block;padding:5px 9px;border-radius:12px;background:' . ( $affiliate_configured ? '#edfaef' : '#fff8e5' ) . ';">' . ( $affiliate_configured ? 'Afiliados configurado' : 'Falta Partner Tag' ) . '</span>';
             echo '</div>';
 
             echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:18px;">';
             echo '<input type="hidden" name="action" value="seo_amazon_recipe_save">';
             wp_nonce_field( 'seo_amazon_recipe_save', 'seo_amazon_recipe_nonce' );
-            echo '<label><strong>Credential ID</strong><br><input type="text" name="client_id" value="' . esc_attr( $s['client_id'] ?? '' ) . '" class="regular-text" autocomplete="off" style="width:100%;"></label>';
-            echo '<label><strong>Credential Secret</strong><br><input type="password" name="client_secret" value="" placeholder="' . esc_attr( ! empty( $s['client_secret'] ) ? 'Guardado; deja vacio para conservarlo' : 'Introduce el secret' ) . '" class="regular-text" autocomplete="new-password" style="width:100%;"></label>';
-            echo '<label><strong>Partner Tag amazon.es</strong><br><input type="text" name="partner_tag" value="' . esc_attr( $s['partner_tag'] ?? '' ) . '" class="regular-text" style="width:100%;"></label>';
+            echo '<label><strong>Partner Tag amazon.es</strong><br><input type="text" name="partner_tag" value="' . esc_attr( $s['partner_tag'] ?? '' ) . '" class="regular-text" style="width:100%;"><br><span class="description">Es el unico dato obligatorio para que el Dependiente y las plantillas creen busquedas afiliadas.</span></label>';
+            echo '<label><strong>Credential ID Creators (opcional)</strong><br><input type="text" name="client_id" value="' . esc_attr( $s['client_id'] ?? '' ) . '" class="regular-text" autocomplete="off" style="width:100%;"></label>';
+            echo '<label><strong>Credential Secret Creators (opcional)</strong><br><input type="password" name="client_secret" value="" placeholder="' . esc_attr( ! empty( $s['client_secret'] ) ? 'Guardado; deja vacio para conservarlo' : 'Solo si tu cuenta tiene Creators API' ) . '" class="regular-text" autocomplete="new-password" style="width:100%;"></label>';
             echo '<input type="hidden" name="credential_version" value="3.2">';
             echo '<input type="hidden" name="search_index" value="' . esc_attr( $s['search_index'] ?? 'All' ) . '">';
             echo '<input type="hidden" name="item_count" value="' . absint( $s['item_count'] ?? 10 ) . '">';
-            echo '<div style="grid-column:1/-1;"><button class="button button-primary" type="submit">Guardar conexion Amazon</button></div>';
+            echo '<div style="grid-column:1/-1;"><button class="button button-primary" type="submit">Guardar Amazon</button></div>';
             echo '</form>';
 
-            echo '<form method="post" style="margin-top:12px;">';
+            echo '<div style="margin-top:14px;padding-top:14px;border-top:1px solid #e2e4e7;"><strong>Creators API (opcional):</strong> ' . ( $creators_configured ? '<span style="color:#18752c;">credenciales guardadas</span>' : '<span style="color:#646970;">no configurada; los enlaces afiliados siguen funcionando</span>' ) . '</div>';
+            echo '<form method="post" style="margin-top:10px;">';
             wp_nonce_field( 'seo_amazon_connection_test', 'seo_amazon_connection_nonce' );
-            echo '<button class="button" type="submit" name="seo_amazon_test_connection" value="1">Probar conexion OAuth</button>';
+            echo '<button class="button" type="submit" name="seo_amazon_test_connection" value="1" ' . disabled( ! $creators_configured, true, false ) . '>Probar Creators API</button>';
             echo '</form>';
 
-            echo '<p class="description" style="margin-top:12px;">Esta pantalla solo guarda credenciales y comprueba autenticacion. No descarga ni importa productos.</p>';
+            echo '<p class="description" style="margin-top:12px;">El Partner Tag permite enlaces y busquedas afiliadas sin API. Creators API, si esta disponible, solo mejora el bloque con fichas de producto, imagen y precio proporcionados por Amazon.</p>';
             echo '</div>';
         }
 

@@ -10,13 +10,13 @@
  *
  * @package SEOSystem
  * @subpackage SupplierImports
- * @version 0.3.0
+ * @version 0.4.0
  */
 
 defined( 'ABSPATH' ) || exit;
 
 if ( ! defined( 'SEO_AMAZON_RECIPE_VERSION' ) ) {
-    define( 'SEO_AMAZON_RECIPE_VERSION', '0.3.0' );
+    define( 'SEO_AMAZON_RECIPE_VERSION', '0.4.0' );
 }
 
 if ( ! function_exists( 'seo_supplier_recipe_amazon_definition' ) ) {
@@ -88,6 +88,56 @@ function seo_supplier_recipe_amazon_settings() {
     return $settings;
 }
 
+/**
+ * Estado basico de Amazon Afiliados.
+ *
+ * Para crear enlaces de busqueda afiliados NO hace falta Creators API: basta
+ * con el Partner Tag. Esta es la capacidad que reutilizan las plantillas DHT y
+ * el Dependiente cuando la cuenta aun no cumple los requisitos de Creators.
+ */
+function seo_supplier_recipe_amazon_affiliate_ready() {
+    $s = seo_supplier_recipe_amazon_settings();
+    return '' !== trim( (string) ( $s['partner_tag'] ?? '' ) );
+}
+
+/**
+ * Creators API es una mejora opcional sobre la conexion de Afiliados.
+ */
+function seo_supplier_recipe_amazon_creators_ready() {
+    $s = seo_supplier_recipe_amazon_settings();
+    return '' !== trim( (string) ( $s['partner_tag'] ?? '' ) )
+        && '' !== trim( (string) ( $s['client_id'] ?? '' ) )
+        && '' !== trim( (string) ( $s['client_secret'] ?? '' ) );
+}
+
+/**
+ * Genera una busqueda amazon.es con el Partner Tag, sin consultar ninguna API.
+ */
+function seo_supplier_recipe_amazon_affiliate_search_url( $query ) {
+    $s = seo_supplier_recipe_amazon_settings();
+    $query = trim( wp_strip_all_tags( (string) $query ) );
+    $tag = sanitize_text_field( (string) ( $s['partner_tag'] ?? '' ) );
+
+    if ( '' === $query || '' === $tag ) {
+        return '';
+    }
+
+    $marketplace = trim( (string) ( $s['marketplace'] ?? 'www.amazon.es' ) );
+    $marketplace = preg_replace( '#^https?://#i', '', $marketplace );
+    $marketplace = trim( (string) $marketplace, "/ \t\n\r\0\x0B" );
+    if ( '' === $marketplace ) {
+        $marketplace = 'www.amazon.es';
+    }
+
+    return add_query_arg(
+        [
+            'k'   => $query,
+            'tag' => $tag,
+        ],
+        'https://' . $marketplace . '/s'
+    );
+}
+
 function seo_supplier_recipe_amazon_token_endpoint( $version ) {
     // Amazon Creators API credential version 3.2 uses the EU Login with Amazon endpoint.
     return 'https://api.amazon.co.uk/auth/o2/token';
@@ -104,8 +154,8 @@ function seo_supplier_recipe_amazon_token_cache_key( $settings ) {
 function seo_supplier_recipe_amazon_get_access_token( $force = false ) {
     $s = seo_supplier_recipe_amazon_settings();
 
-    if ( empty( $s['client_id'] ) || empty( $s['client_secret'] ) ) {
-        return new WP_Error( 'amazon_credentials_missing', 'Faltan Credential ID y Credential Secret de Creators API.' );
+    if ( ! seo_supplier_recipe_amazon_creators_ready() ) {
+        return new WP_Error( 'amazon_credentials_missing', 'Creators API no esta configurada o no esta disponible. El modo de enlaces afiliados puede seguir funcionando solo con Partner Tag.' );
     }
 
     $cache_key = seo_supplier_recipe_amazon_token_cache_key( $s );
@@ -400,15 +450,15 @@ function seo_supplier_recipe_amazon_render_settings() {
     $s = seo_supplier_recipe_amazon_settings();
 
     echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;margin:18px 0;border-radius:6px;">';
-    echo '<h2 style="margin-top:0;">Conexion Amazon Creators API</h2>';
-    echo '<p>Para Espana se usa <code>www.amazon.es</code>. Esta fase solo prueba conexion y preview.</p>';
+    echo '<h2 style="margin-top:0;">Amazon Afiliados + Creators API opcional</h2>';
+    echo '<p>El <strong>Partner Tag</strong> activa enlaces afiliados en amazon.es sin API. Credential ID y Secret solo son necesarios para enriquecer resultados mediante Creators API cuando la cuenta sea elegible.</p>';
     echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;">';
     echo '<input type="hidden" name="action" value="seo_amazon_recipe_save">';
     wp_nonce_field( 'seo_amazon_recipe_save', 'seo_amazon_recipe_nonce' );
-    echo '<label><strong>Credential / Client ID</strong><br><input type="text" name="client_id" value="' . esc_attr( $s['client_id'] ) . '" class="regular-text" style="width:100%;"></label>';
-    echo '<label><strong>Secret</strong><br><input type="password" name="client_secret" value="" placeholder="' . ( ! empty( $s['client_secret'] ) ? 'Guardado; dejar vacio para conservar' : '' ) . '" class="regular-text" style="width:100%;"></label>';
+    echo '<label><strong>Partner Tag amazon.es (obligatorio)</strong><br><input type="text" name="partner_tag" value="' . esc_attr( $s['partner_tag'] ) . '" class="regular-text" style="width:100%;"><br><span class="description">Suficiente para enlaces y busquedas afiliadas sin API.</span></label>';
+    echo '<label><strong>Credential / Client ID (opcional)</strong><br><input type="text" name="client_id" value="' . esc_attr( $s['client_id'] ) . '" class="regular-text" style="width:100%;"></label>';
+    echo '<label><strong>Secret Creators (opcional)</strong><br><input type="password" name="client_secret" value="" placeholder="' . ( ! empty( $s['client_secret'] ) ? 'Guardado; dejar vacio para conservar' : 'Solo si Creators API esta disponible' ) . '" class="regular-text" style="width:100%;"></label>';
     echo '<label><strong>Version credencial</strong><br><select name="credential_version" style="width:100%;"><option value="3.2" ' . selected( $s['credential_version'], '3.2', false ) . '>3.2</option><option value="2.2" ' . selected( $s['credential_version'], '2.2', false ) . '>2.2</option></select></label>';
-    echo '<label><strong>Partner Tag amazon.es</strong><br><input type="text" name="partner_tag" value="' . esc_attr( $s['partner_tag'] ) . '" class="regular-text" style="width:100%;"></label>';
     echo '<label><strong>Search Index</strong><br><input type="text" name="search_index" value="' . esc_attr( $s['search_index'] ) . '" class="regular-text" style="width:100%;"></label>';
     echo '<label><strong>Productos por llamada</strong><br><input type="number" min="1" max="10" name="item_count" value="' . (int) $s['item_count'] . '" style="width:100%;"></label>';
     echo '<div style="grid-column:1/-1;"><button class="button button-primary" type="submit">Guardar configuracion</button></div>';
