@@ -22,6 +22,14 @@ if (!class_exists('SEO_Dependiente_Learning') && is_readable($seo_dependiente_le
     require_once $seo_dependiente_learning_file;
 }
 
+// Integracion externa Amazon del Dependiente. El API principal es el caller:
+// carga el modulo y, al terminar la busqueda del catalogo, le pide que decida
+// si debe activarse el fallback. Asi seo-dependiente-amazon.php no queda aislado.
+$seo_dependiente_amazon_file = __DIR__ . '/seo-dependiente-amazon.php';
+if (!class_exists('SEO_Dependiente_Amazon') && is_readable($seo_dependiente_amazon_file)) {
+    require_once $seo_dependiente_amazon_file;
+}
+
 final class SEO_Dependiente_API {
     const CANDIDATE_LIMIT = 1600;
 
@@ -226,6 +234,8 @@ final class SEO_Dependiente_API {
             }
             $document['_score'] = $score['score'];
             $document['_reasons'] = $score['reasons'];
+            $document['_object_hits'] = absint($score['object_hits'] ?? 0);
+            $document['_route_hits'] = absint($score['route_hits'] ?? 0);
             $matched[] = $document;
         }
 
@@ -264,6 +274,16 @@ final class SEO_Dependiente_API {
             $semantic_hint,
             $request_kind
         );
+        // Punto de enlace explicito Dependiente -> Amazon.
+        // El buscador principal decide primero con el catalogo propio y SOLO aqui,
+        // una vez conocido el resultado, delega al modulo Amazon la politica de fallback.
+        $amazon_fallback = self::amazon_fallback($query, $semantic, array(
+            'page'            => $page,
+            'total'           => $total,
+            'strategy'        => (string) ($search_diagnostic['strategy'] ?? 'strict'),
+            'top_object_hits' => !empty($matched) ? absint($matched[0]['_object_hits'] ?? 0) : 0,
+        ));
+
         $execution_ms = (microtime(true) - $started_at) * 1000;
         $search_id = '';
         if (class_exists('SEO_Dependiente_Search_Log') && '' !== trim($query)) {
@@ -310,8 +330,42 @@ final class SEO_Dependiente_API {
             'search_strategy' => (string) ($search_diagnostic['strategy'] ?? 'strict'),
             'semantic_rules_active' => (int) $semantic_rules_active,
             'clarification'    => $clarification,
+            'external_fallback' => $amazon_fallback,
         ));
     }
+
+
+    /**
+     * Caller del modulo Amazon desde el flujo principal del Dependiente.
+     *
+     * Esta funcion es intencionadamente pequena: seo-dependiente-api.php decide
+     * CUANDO consultar un proveedor externo y seo-dependiente-amazon.php decide
+     * COMO construir/limitar esa consulta. Si Amazon no esta disponible, devuelve
+     * un descriptor inactivo y la busqueda interna continua sin degradarse.
+     */
+    private static function amazon_fallback($query, $semantic, $context = array()) {
+        $empty = array(
+            'provider'    => 'amazon',
+            'should_load' => false,
+            'reason'      => '',
+            'query'       => '',
+            'token'       => '',
+            'bucket'      => 0,
+        );
+
+        if (!class_exists('SEO_Dependiente_Amazon')) {
+            return $empty;
+        }
+
+        $fallback = SEO_Dependiente_Amazon::fallback_descriptor(
+            (string) $query,
+            is_array($semantic) ? $semantic : array(),
+            is_array($context) ? $context : array()
+        );
+
+        return is_array($fallback) ? wp_parse_args($fallback, $empty) : $empty;
+    }
+
 
     public static function search_feedback(WP_REST_Request $request) {
         $params = self::request_params($request);
@@ -1162,6 +1216,8 @@ final class SEO_Dependiente_API {
             'score'   => round($score, 4),
             'reasons' => array_slice(array_values(array_unique(array_filter($reasons))), 0, 4),
             'eligible'=> (bool) $eligible,
+            'object_hits' => absint($semantic_score['object_hits'] ?? 0),
+            'route_hits'  => absint($semantic_score['route_hits'] ?? 0),
         );
     }
 
