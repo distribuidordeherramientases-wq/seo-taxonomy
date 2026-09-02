@@ -17,8 +17,17 @@
     const progressBar = root.querySelector('[data-trainer-progress-bar]');
     const runStatus = root.querySelector('[data-trainer-run-status]');
     const runBody = root.querySelector('[data-trainer-run-body]');
+    const autoButton = root.querySelector('[data-trainer-mode-auto]');
+    const manualButton = root.querySelector('[data-trainer-mode-manual]');
+    const autoStatus = root.querySelector('[data-trainer-auto-status]');
+    const autoBadge = root.querySelector('[data-trainer-auto-badge]');
 
     let busy = false;
+    let autoRunning = root.dataset.autoRunning === '1';
+    const baseDisabled = new WeakMap();
+    [prepareButton, runModuleButton, autoButton].forEach(function (button) {
+        if (button) baseDisabled.set(button, !!button.disabled);
+    });
 
     async function post(action, data) {
         const body = new URLSearchParams(Object.assign({ action, nonce: config.nonce || '' }, data || {}));
@@ -84,9 +93,11 @@
 
     function setBusy(value) {
         busy = !!value;
-        [prepareButton, runModuleButton, exportButton].forEach(function (button) {
-            if (button) button.disabled = busy;
-        });
+        if (prepareButton) prepareButton.disabled = busy || autoRunning || !!baseDisabled.get(prepareButton);
+        if (runModuleButton) runModuleButton.disabled = busy || autoRunning || !!baseDisabled.get(runModuleButton);
+        if (exportButton) exportButton.disabled = busy;
+        if (autoButton) autoButton.disabled = busy || autoRunning || !!baseDisabled.get(autoButton);
+        if (manualButton) manualButton.disabled = busy || !autoRunning;
         root.classList.toggle('is-busy', busy);
     }
 
@@ -286,6 +297,69 @@
         }
     }
 
+    function describeAutomation(data) {
+        const state = data && data.state ? data.state : {};
+        const current = data && data.current ? data.current : null;
+        if (state.last_error) {
+            return 'Automático detenido: ' + state.last_error;
+        }
+        if (state.last_message) {
+            return state.last_message;
+        }
+        if (data && data.running && current) {
+            return 'Automático activo · Lección ' + Number(current.lesson_order || 0) + ' · ' + String(current.title || '') +
+                (Number(current.next_module || 0) > 0 ? ' · módulo ' + Number(current.next_module || 0) : '') + '.';
+        }
+        return 'Modo manual: tú decides cuándo preparar y ejecutar cada módulo.';
+    }
+
+    function applyAutomationState(data) {
+        const wasRunning = autoRunning;
+        autoRunning = !!(data && data.running);
+        root.dataset.autoRunning = autoRunning ? '1' : '0';
+        if (autoBadge) {
+            autoBadge.textContent = autoRunning ? 'Automático activo' : ((data && data.state && data.state.status === 'completed') ? 'Completado' : 'Manual');
+            autoBadge.classList.toggle('is-running', autoRunning);
+        }
+        if (autoStatus) autoStatus.textContent = describeAutomation(data);
+        setBusy(false);
+
+        if (wasRunning && !autoRunning && data && data.state && ['completed', 'error'].includes(String(data.state.status || ''))) {
+            window.setTimeout(function () { window.location.reload(); }, 1200);
+        }
+    }
+
+    async function setTrainingMode(mode) {
+        if (busy) return;
+        setBusy(true);
+        if (autoStatus) {
+            autoStatus.textContent = mode === 'auto'
+                ? 'Activando formación automática…'
+                : 'Pausando después del lote que esté en curso…';
+        }
+        try {
+            const data = await post('seo_dependiente_entrenador_set_mode', { mode: mode });
+            applyAutomationState(data);
+            window.setTimeout(function () { window.location.reload(); }, 500);
+        } catch (error) {
+            if (autoStatus) autoStatus.textContent = error.message;
+            setBusy(false);
+        }
+    }
+
+    async function pollAutomation() {
+        if (!autoRunning) return;
+        try {
+            const data = await post('seo_dependiente_entrenador_auto_status', {});
+            applyAutomationState(data);
+        } catch (error) {
+            if (autoStatus) autoStatus.textContent = 'No se pudo actualizar el estado automático: ' + error.message;
+        }
+        if (autoRunning) {
+            window.setTimeout(pollAutomation, Math.max(2000, Number(config.autoPollMs || 5000)));
+        }
+    }
+
     async function exportLesson() {
         if (busy || !lessonKey) return;
         setBusy(true);
@@ -312,4 +386,9 @@
     prepareButton && prepareButton.addEventListener('click', prepareLesson);
     runModuleButton && runModuleButton.addEventListener('click', runModule);
     exportButton && exportButton.addEventListener('click', exportLesson);
+    autoButton && autoButton.addEventListener('click', function () { setTrainingMode('auto'); });
+    manualButton && manualButton.addEventListener('click', function () { setTrainingMode('manual'); });
+
+    setBusy(false);
+    if (autoRunning) window.setTimeout(pollAutomation, 1500);
 }());
