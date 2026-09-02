@@ -18,7 +18,7 @@
  * @subpackage ImportExport
  * @since 2.2.0
  * @version 2026-09-02
- * Build: 036
+ * Build: 037
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -75,6 +75,9 @@ if ( ! function_exists( 'seo_ie_product_import_schedule_wp_fallback' ) ) {
 }
 
 add_action( 'admin_init', 'seo_ie_batch_admin_action', 5 );
+add_action( 'admin_init', 'seo_ie_batch_maybe_cleanup_old_files', 20 );
+add_action( 'init', 'seo_ie_batch_sync_cleanup_schedule', 20 );
+add_action( 'seo_ie_batch_cleanup_old_files_daily', 'seo_ie_batch_cleanup_cron' );
 add_action( 'seo_ie_process_import_batch_queue', 'seo_ie_batch_queue_worker', 10, 1 );
 add_action( 'wp_ajax_seo_ie_batch_tick', 'seo_ie_batch_ajax_tick' );
 
@@ -1782,6 +1785,208 @@ function seo_ie_batch_delete_managed_file( $bucket, $filename ) {
 }
 
 /**
+ * Indica si esta activada la limpieza automatica de archivos antiguos.
+ *
+ * La opcion nace activada para instalaciones que aun no la han guardado.
+ * El administrador puede desactivarla desde Importacion por lotes.
+ *
+ * @return bool
+ */
+function seo_ie_batch_cleanup_enabled() {
+    return '0' !== (string) get_option( 'seo_ie_batch_cleanup_old_files', '1' );
+}
+
+/**
+ * Dias de retencion para los archivos finalizados de la cola.
+ *
+ * @return int
+ */
+function seo_ie_batch_cleanup_retention_days() {
+    return 7;
+}
+
+/**
+ * Ultimo resultado persistido de la limpieza automatica.
+ *
+ * @return array
+ */
+function seo_ie_batch_cleanup_last_result() {
+    $result = get_option( 'seo_ie_batch_cleanup_last_result', [] );
+    return is_array( $result ) ? $result : [];
+}
+
+/**
+ * Elimina CSV antiguos de colas terminales y sus logs laterales.
+ *
+ * Nunca limpia pending ni processing para no borrar trabajos pendientes o en
+ * ejecucion. Tampoco toca index.php, .htaccess ni archivos temporales .part.
+ *
+ * @param bool $force Ejecuta aunque la opcion este desactivada.
+ * @return array|WP_Error
+ */
+function seo_ie_batch_cleanup_old_files( $force = false ) {
+    if ( ! $force && ! seo_ie_batch_cleanup_enabled() ) {
+        return [
+            'skipped'   => true,
+            'timestamp' => time(),
+            'csv'       => 0,
+            'logs'      => 0,
+            'bytes'     => 0,
+            'failed'    => 0,
+        ];
+    }
+
+    $errors = seo_ie_batch_prepare_directories();
+    if ( ! empty( $errors ) ) {
+        return new WP_Error( 'seo_batch_cleanup_directories', implode( ' ', $errors ) );
+    }
+
+    $lock = seo_ie_batch_acquire_lock();
+    if ( '' === $lock ) {
+        return new WP_Error( 'seo_batch_cleanup_busy', 'La cola esta ocupada; la limpieza se intentara de nuevo mas adelante.' );
+    }
+
+    $paths     = seo_ie_batch_paths();
+    $days      = seo_ie_batch_cleanup_retention_days();
+    $threshold = time() - ( $days * DAY_IN_SECONDS );
+    $result    = [
+        'skipped'   => false,
+        'timestamp' => time(),
+        'csv'       => 0,
+        'logs'      => 0,
+        'bytes'     => 0,
+        'failed'    => 0,
+    ];
+
+    try {
+        foreach ( [ 'imported', 'failed', 'rejected' ] as $bucket ) {
+            $directory = $paths[ $bucket ] ?? '';
+            if ( '' === $directory || ! is_dir( $directory ) ) {
+                continue;
+            }
+
+            foreach ( (array) scandir( $directory ) as $name ) {
+                if ( '.' === $name || '..' === $name ) {
+                    continue;
+                }
+
+                $path = trailingslashit( $directory ) . $name;
+                if ( is_link( $path ) || ! is_file( $path ) ) {
+                    continue;
+                }
+
+                $mtime = @filemtime( $path );
+                if ( false === $mtime || $threshold <= $mtime ) {
+                    continue;
+                }
+
+                $lower_name    = strtolower( $name );
+                $is_csv        = 'csv' === strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
+                $is_orphan_log = '.csv.log.json' === substr( $lower_name, -13 );
+
+                if ( $is_csv ) {
+                    $size = @filesize( $path );
+                    if ( @unlink( $path ) ) {
+                        $result['csv']++;
+                        $result['bytes'] += false === $size ? 0 : max( 0, (int) $size );
+
+                        $log_path = $path . '.log.json';
+                        if ( ! is_link( $log_path ) && is_file( $log_path ) ) {
+                            $log_size = @filesize( $log_path );
+                            if ( @unlink( $log_path ) ) {
+                                $result['logs']++;
+                                $result['bytes'] += false === $log_size ? 0 : max( 0, (int) $log_size );
+                            } else {
+                                $result['failed']++;
+                            }
+                        }
+                    } else {
+                        $result['failed']++;
+                    }
+                    continue;
+                }
+
+                if ( $is_orphan_log ) {
+                    $csv_path = substr( $path, 0, -strlen( '.log.json' ) );
+                    if ( ! is_file( $csv_path ) ) {
+                        $size = @filesize( $path );
+                        if ( @unlink( $path ) ) {
+                            $result['logs']++;
+                            $result['bytes'] += false === $size ? 0 : max( 0, (int) $size );
+                        } else {
+                            $result['failed']++;
+                        }
+                    }
+                }
+            }
+        }
+    } finally {
+        seo_ie_batch_release_lock( $lock );
+    }
+
+    update_option( 'seo_ie_batch_cleanup_last_result', $result, false );
+    return $result;
+}
+
+/**
+ * Mantiene programada una limpieza diaria cuando la opcion esta activa.
+ *
+ * @return void
+ */
+function seo_ie_batch_sync_cleanup_schedule() {
+    $hook = 'seo_ie_batch_cleanup_old_files_daily';
+
+    if ( ! seo_ie_batch_cleanup_enabled() ) {
+        wp_clear_scheduled_hook( $hook );
+        return;
+    }
+
+    if ( false === wp_next_scheduled( $hook ) ) {
+        wp_schedule_event( time() + ( 5 * MINUTE_IN_SECONDS ), 'daily', $hook );
+    }
+}
+
+/**
+ * Callback del mantenimiento diario.
+ *
+ * @return void
+ */
+function seo_ie_batch_cleanup_cron() {
+    $result = seo_ie_batch_cleanup_old_files();
+    if ( is_wp_error( $result ) ) {
+        error_log( '[SEO System Import/Export] Limpieza de colas: ' . $result->get_error_message() );
+    }
+}
+
+/**
+ * Respaldo oportunista: al abrir la pestana de lotes ejecuta limpieza si no se
+ * ha realizado en las ultimas seis horas. Es util cuando WP-Cron esta parado.
+ *
+ * @return void
+ */
+function seo_ie_batch_maybe_cleanup_old_files() {
+    if ( ! is_admin() || ! current_user_can( 'manage_options' ) || ! seo_ie_batch_cleanup_enabled() ) {
+        return;
+    }
+
+    $page = sanitize_key( $_GET['page'] ?? '' );
+    $tab  = sanitize_key( $_GET['seo_ie_tab'] ?? '' );
+    if ( 'seo-import-export' !== $page || 'import-batch' !== $tab ) {
+        return;
+    }
+
+    $last = seo_ie_batch_cleanup_last_result();
+    if ( ! empty( $last['timestamp'] ) && ( time() - absint( $last['timestamp'] ) ) < ( 6 * HOUR_IN_SECONDS ) ) {
+        return;
+    }
+
+    $result = seo_ie_batch_cleanup_old_files();
+    if ( is_wp_error( $result ) && 'seo_batch_cleanup_busy' !== $result->get_error_code() ) {
+        error_log( '[SEO System Import/Export] Limpieza de colas: ' . $result->get_error_message() );
+    }
+}
+
+/**
  * Acciones de la pestaña: subir, iniciar, pausar y reintentar fallidos.
  *
  * @return void
@@ -1826,6 +2031,27 @@ function seo_ie_batch_admin_action() {
 
     if ( ! empty( $errors ) ) {
         $notice['seo_ie_batch_error'] = implode( ' ', $errors );
+    } elseif ( 'save_cleanup' === $action ) {
+        $enabled = ! empty( $_POST['seo_ie_batch_cleanup_old_files'] );
+        update_option( 'seo_ie_batch_cleanup_old_files', $enabled ? '1' : '0', false );
+        seo_ie_batch_sync_cleanup_schedule();
+
+        if ( $enabled ) {
+            $cleanup = seo_ie_batch_cleanup_old_files( true );
+            if ( is_wp_error( $cleanup ) ) {
+                $notice['seo_ie_batch_message'] = 'Limpieza automática activada.';
+                $notice['seo_ie_batch_error'] = $cleanup->get_error_message();
+            } else {
+                $notice['seo_ie_batch_message'] = sprintf(
+                    'Limpieza automática activada. Se eliminaron %d CSV y %d logs con más de %d días.',
+                    absint( $cleanup['csv'] ?? 0 ),
+                    absint( $cleanup['logs'] ?? 0 ),
+                    seo_ie_batch_cleanup_retention_days()
+                );
+            }
+        } else {
+            $notice['seo_ie_batch_message'] = 'Limpieza automática desactivada. No se borrarán archivos por antigüedad.';
+        }
     } elseif ( 'upload' === $action || 'upload_start' === $action ) {
         $files    = $_FILES['seo_ie_batch_files'] ?? [];
         $names    = (array) ( $files['name'] ?? [] );
@@ -2104,10 +2330,12 @@ function seo_ie_batch_ajax_tick() {
  * @return void
  */
 function seo_ie_batch_render_page() {
-    $snapshot = seo_ie_batch_snapshot();
-    $status   = (array) ( $snapshot['status'] ?? [] );
-    $files    = (array) ( $snapshot['files'] ?? [] );
-    $running  = seo_ie_batch_is_running() || ! empty( $status['enabled'] );
+    $snapshot        = seo_ie_batch_snapshot();
+    $status          = (array) ( $snapshot['status'] ?? [] );
+    $files           = (array) ( $snapshot['files'] ?? [] );
+    $running         = seo_ie_batch_is_running() || ! empty( $status['enabled'] );
+    $cleanup_enabled = seo_ie_batch_cleanup_enabled();
+    $cleanup_last    = seo_ie_batch_cleanup_last_result();
 
     $preview_bucket = sanitize_key( $_GET['seo_ie_batch_preview_bucket'] ?? '' );
     $preview_file   = sanitize_file_name( wp_unslash( $_GET['seo_ie_batch_preview_file'] ?? '' ) );
@@ -2120,7 +2348,7 @@ function seo_ie_batch_render_page() {
     }
     ?>
     <div style="max-width:1300px;">
-        <h2>Importacion por lotes <small style="font-size:13px;font-weight:400;color:#646970;">Build 034</small></h2>
+        <h2>Importacion por lotes <small style="font-size:13px;font-weight:400;color:#646970;">Build 037</small></h2>
         <p>
             Cola secuencial para CSV de WordPress y SEO System. El destino se detecta por la cabecera:
             productos, categorias, paginas, entradas (posts), FAQs o redirects. El catalogo bruto de proveedores se importa desde su pestana independiente.
@@ -2195,6 +2423,27 @@ function seo_ie_batch_render_page() {
                     <?php endif; ?>
                 </form>
                 <p class="description">Sin simulacion. Respeta el estado del CSV. Los errores técnicos detienen la cola y envían el archivo a <code>failed</code>; los productos con etiquetas o atributos no válidos se omiten y continúan en el CSV de rechazados.</p>
+
+                <hr style="margin:18px 0;">
+                <form method="post">
+                    <?php wp_nonce_field( 'seo_ie_batch_admin', 'seo_ie_batch_nonce' ); ?>
+                    <label style="display:block;font-weight:600;">
+                        <input type="checkbox" name="seo_ie_batch_cleanup_old_files" value="1" <?php checked( $cleanup_enabled ); ?>>
+                        Borrar automáticamente archivos con más de <?php echo esc_html( seo_ie_batch_cleanup_retention_days() ); ?> días
+                    </label>
+                    <p class="description" style="margin:6px 0 10px;">
+                        Solo limpia <code>imported</code>, <code>failed</code> y <code>rejected</code>, junto con sus logs.
+                        Nunca borra archivos de <code>pending</code> ni <code>processing</code>. Si desmarcas la casilla, no se borrará ningún archivo por antigüedad.
+                    </p>
+                    <button type="submit" name="seo_ie_batch_action" value="save_cleanup" class="button">Guardar limpieza</button>
+                    <?php if ( ! empty( $cleanup_last['timestamp'] ) ) : ?>
+                        <span class="description" style="margin-left:8px;">
+                            Última limpieza: <?php echo esc_html( wp_date( 'Y-m-d H:i:s', absint( $cleanup_last['timestamp'] ) ) ); ?>
+                            · <?php echo esc_html( absint( $cleanup_last['csv'] ?? 0 ) ); ?> CSV
+                            · <?php echo esc_html( absint( $cleanup_last['logs'] ?? 0 ) ); ?> logs
+                        </span>
+                    <?php endif; ?>
+                </form>
             </div>
         </div>
 
@@ -2331,6 +2580,7 @@ function seo_ie_batch_render_page() {
                 <li>Las columnas semánticas canónicas <code>tipo_semantico/tipo</code>, <code>aplicacion</code>, <code>plataforma</code> y <code>subtipo</code> también se admiten cuando apuntan a términos activos existentes. <code>ROL</code> es de solo validación y se deriva de TIPO.</li>
                 <li>Los atributos nativos de WooCommerce (<code>atributos_wc_json</code>) siguen desactivados en la cola automática para impedir altas implícitas de taxonomías o términos.</li>
                 <li>Un error detiene la cola para impedir que archivos dependientes se importen sobre datos incompletos.</li>
+                <li>La limpieza automática, cuando está activada, elimina CSV y logs de <code>imported</code>, <code>failed</code> y <code>rejected</code> al superar los 7 días; nunca afecta a <code>pending</code> ni <code>processing</code>.</li>
                 <li>Borrar un archivo de <code>imported</code> solo elimina el CSV y su log; no deshace los cambios ya escritos en WordPress.</li>
             </ul>
         </div>
