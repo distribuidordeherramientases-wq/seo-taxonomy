@@ -2725,3 +2725,94 @@ button.seo-dependiente__chip::after {
         grid-template-columns: 38px minmax(0, 1fr);
     }
 }
+
+/* =========================================================
+ * DEPENDIENTE ADMIN · ZONA PELIGROSA
+ * ======================================================= */
+.seo-dependiente-admin__danger-zone {
+    max-width: 1200px;
+    margin-top: 20px;
+    border-left: 4px solid #d63638;
+}
+
+.seo-dependiente-admin__reset-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin: 16px 0;
+}
+
+.seo-dependiente-admin__reset-grid > div {
+    padding: 12px;
+    border: 1px solid #dcdcde;
+    border-radius: 6px;
+    background: #fff;
+}
+
+.seo-dependiente-admin__reset-grid strong,
+.seo-dependiente-admin__reset-grid span {
+    display: block;
+}
+
+.seo-dependiente-admin__reset-grid strong {
+    margin-bottom: 3px;
+    font-size: 20px;
+}
+
+.seo-dependiente-admin__reset-grid span {
+    color: #50575e;
+}
+
+.seo-dependiente-admin__danger-button {
+    border-color: #b32d2e !important;
+    color: #b32d2e !important;
+}
+
+.seo-dependiente-admin__danger-button:hover,
+.seo-dependiente-admin__danger-button:focus {
+    border-color: #8a2424 !important;
+    color: #8a2424 !important;
+}
+
+.seo-dependiente-admin__danger-button.is-confirm {
+    background: #b32d2e !important;
+    border-color: #b32d2e !important;
+    color: #fff !important;
+}
+
+.seo-dependiente-admin__reset-confirm {
+    margin-top: 14px;
+    padding: 16px;
+    border: 1px solid #d63638;
+    border-radius: 6px;
+    background: #fcf0f1;
+}
+
+.seo-dependiente-admin__reset-confirm h3 {
+    margin-top: 0;
+}
+
+.seo-dependiente-admin__reset-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.seo-dependiente-admin__reset-status {
+    margin-bottom: 0;
+    font-weight: 600;
+}
+
+.seo-dependiente-admin__reset-status.is-error {
+    color: #b32d2e;
+}
+
+.seo-dependiente-admin__reset-status.is-success {
+    color: #008a20;
+}
+
+@media (max-width: 782px) {
+    .seo-dependiente-admin__reset-grid {
+        grid-template-columns: 1fr;
+    }
+}
