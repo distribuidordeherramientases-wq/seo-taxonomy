@@ -703,7 +703,7 @@ final class SEO_Dependiente_API {
                 'title'       => $product->get_name(),
                 'url'         => get_permalink($product->get_id()),
                 'image'       => self::product_image_or_logo(absint($document['product_id'] ?? 0)),
-                'price'       => wp_strip_all_tags($product->get_price_html()),
+                'price'       => self::comparison_price_text($product),
                 'brand'       => (string) $document['brand_name'],
                 'sku'         => (string) $product->get_sku(),
                 'stock'       => self::stock_label($product->get_stock_status()),
@@ -2287,6 +2287,47 @@ final class SEO_Dependiente_API {
             }
         }
         return $map;
+    }
+
+    /**
+     * Convierte el HTML de precio de WooCommerce a texto limpio para el
+     * comparador. get_price_html() incluye textos auxiliares para lectores de
+     * pantalla; si se eliminan las etiquetas sin retirarlos antes, esos textos
+     * se duplican y las entidades como &euro; quedan visibles literalmente.
+     */
+    private static function comparison_price_text($product) {
+        if (!$product || !is_a($product, 'WC_Product')) {
+            return '';
+        }
+
+        $html = (string) $product->get_price_html();
+        if ('' === trim($html)) {
+            return '';
+        }
+
+        // WooCommerce añade descripciones duplicadas solo para accesibilidad.
+        $html = preg_replace(
+            '#<span[^>]*class=(["\'])[^"\']*\bscreen-reader-text\b[^"\']*\1[^>]*>.*?</span>#is',
+            '',
+            $html
+        );
+
+        // Al pasar a texto plano, separa claramente precio anterior y actual.
+        $html = preg_replace('#</del>\s*<ins\b#i', '</del> → <ins', $html);
+
+        $text = wp_strip_all_tags((string) $html, true);
+        $charset = (string) get_bloginfo('charset');
+        $text = html_entity_decode(
+            $text,
+            ENT_QUOTES | ENT_HTML5,
+            $charset ?: 'UTF-8'
+        );
+
+        // Evita espacios no separables y saltos raros dentro de la celda.
+        $text = str_replace("\xC2\xA0", ' ', $text);
+        $text = preg_replace('/[\s\x{00A0}]+/u', ' ', $text);
+
+        return trim((string) $text);
     }
 
     private static function comparison_criteria($documents) {
