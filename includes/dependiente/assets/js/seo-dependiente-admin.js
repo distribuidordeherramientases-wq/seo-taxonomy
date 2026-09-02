@@ -115,8 +115,8 @@
                 resetStatus.classList.add('is-success');
             }
             if (resetRoot) {
-                resetRoot.querySelectorAll('.seo-dependiente-admin__reset-grid strong').forEach(function (node, index) {
-                    if (index < 5) node.textContent = '0';
+                resetRoot.querySelectorAll('[data-reset-zero]').forEach(function (node) {
+                    node.textContent = '0';
                 });
             }
             if (resetConfirmPanel) resetConfirmPanel.hidden = true;
