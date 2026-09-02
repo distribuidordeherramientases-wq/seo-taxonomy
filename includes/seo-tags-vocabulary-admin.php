@@ -3999,21 +3999,22 @@ if (!function_exists('seo_assignment_render_mass_actions')) {
             echo '<input type="hidden" name="seo_assignment_action" value="start_classifier_job">';
             seo_assignment_render_job_hidden_filters($section,$filters);
             echo '<input type="hidden" name="classifier_mode" value="fast">';
-            echo '<button class="button button-primary">Analizar este filtro en segundo plano</button></form>';
+            echo '<button class="button button-primary">1. Analizar filtro · rápido</button></form>';
 
             echo '<form method="post">';
             wp_nonce_field('seo_assignment_admin','seo_assignment_nonce');
             echo '<input type="hidden" name="seo_assignment_action" value="start_classifier_job">';
             seo_assignment_render_job_hidden_filters($section,$filters);
             echo '<input type="hidden" name="classifier_mode" value="deep">';
-            echo '<button class="button">Análisis profundo</button></form>';
+            echo '<input type="hidden" name="force_refresh" value="1">';
+            echo '<button class="button">1. Analizar filtro · profundo</button></form>';
 
             echo '<form method="post" onsubmit="return confirm(\'Se aplicarán en segundo plano únicamente propuestas seguras de vocabulario existente. ¿Continuar?\');">';
             wp_nonce_field('seo_assignment_admin','seo_assignment_nonce');
             echo '<input type="hidden" name="seo_assignment_action" value="start_apply_job">';
             seo_assignment_render_job_hidden_filters($section,$filters);
-            echo '<button class="button">Aplicar propuestas seguras en cola</button></form>';
-            echo '<span class="seo-tags-help">Los jobs trabajan por lotes adaptativos. Puedes cerrar esta pantalla: el servidor continúa y regula el ritmo según CPU estimada, tiempo, memoria y coste SQL.</span>';
+            echo '<button class="button">2. Aplicar propuestas seguras</button></form>';
+            echo '<span class="seo-tags-help">Rápido puede reutilizar caché válida. Profundo siempre recalcula y refresca contexto externo conocido. Action Scheduler y WP-Cron trabajan en paralelo; con esta pantalla abierta, un watchdog recupera automáticamente un worker dormido.</span>';
         } else {
             echo '<form method="post" onsubmit="return confirm(\'Se aplicarán únicamente propuestas que reutilizan vocabulario existente. ¿Continuar?\');">';
             wp_nonce_field('seo_assignment_admin','seo_assignment_nonce');
@@ -4099,9 +4100,36 @@ if (!function_exists('seo_assignment_render_classifier_job')) {
         if (!$job || $job_id < 1) return;
         $st = seo_classifier_job_status_payload($job_id);
         if (!$st) return;
+
         $percent = max(0,min(100,(float)($st['progress']??0)));
+        $job_type_label = (string)($st['job_type'] ?? '') === 'apply' ? 'APLICACIÓN' : 'ANÁLISIS';
+        $mode_label = (string)($st['mode'] ?? '') === 'deep' ? 'PROFUNDO · RECÁLCULO' : 'RÁPIDO';
+        $worker_labels = [
+            'esperando_arranque'=>'ESPERANDO ARRANQUE',
+            'activo'=>'ACTIVO',
+            'espera_programada'=>'ESPERA PROGRAMADA',
+            'heartbeat_obsoleto'=>'RECUPERANDO',
+            'paused'=>'PAUSADO',
+            'completed'=>'COMPLETADO',
+            'cancelled'=>'CANCELADO',
+            'failed'=>'FALLIDO',
+        ];
+        $worker_state = (string)($st['worker_state'] ?? '');
+        $worker_label = $worker_labels[$worker_state] ?? strtoupper($worker_state ?: 'n/d');
+        if (!empty($st['worker_source'])) $worker_label .= ' · ' . strtoupper((string)$st['worker_source']);
+        $worker_age = isset($st['worker_age_seconds']) && $st['worker_age_seconds'] !== null
+            ? absint($st['worker_age_seconds']).' s'
+            : 'sin heartbeat';
+        $scheduler = (array)($st['scheduler'] ?? []);
+        $scheduler_parts = [];
+        if (!empty($scheduler['action_scheduler_available'])) $scheduler_parts[] = !empty($scheduler['action_scheduler_pending']) ? 'AS preparado' : 'AS disponible';
+        else $scheduler_parts[] = 'AS no disponible';
+        if (!empty($scheduler['wp_cron_disabled'])) $scheduler_parts[] = 'WP-Cron desactivado';
+        else $scheduler_parts[] = !empty($scheduler['wp_cron_next']) ? 'WP-Cron preparado' : 'WP-Cron sin evento';
+        $scheduler_label = implode(' · ', $scheduler_parts);
+
         echo '<div class="seo-classifier-job" data-seo-classifier-job="'.esc_attr($job_id).'">';
-        echo '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div><strong>Clasificador · Job #'.esc_html($job_id).'</strong><br><span class="seo-tags-muted" data-job-status-label>'.esc_html(strtoupper((string)$st['status'])).' · '.esc_html((string)$st['job_type']).' / '.esc_html((string)$st['mode']).'</span></div><strong data-job-percent>'.esc_html(number_format_i18n($percent,1)).'%</strong></div>';
+        echo '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div><strong>Clasificador · Job #'.esc_html($job_id).'</strong><br><span class="seo-tags-muted" data-job-status-label>'.esc_html(strtoupper((string)$st['status']).' · '.$job_type_label.' / '.$mode_label).'</span></div><strong data-job-percent>'.esc_html(number_format_i18n($percent,1)).'%</strong></div>';
         echo '<div class="seo-classifier-progress"><span data-job-progress style="width:'.esc_attr($percent).'%"></span></div>';
         echo '<div class="seo-classifier-job-grid">';
         $kpis=[
@@ -4110,8 +4138,12 @@ if (!function_exists('seo_assignment_render_classifier_job')) {
             'review'=>['Revisar',$st['review']],
             'new'=>['Nuevas',$st['new']],
             'unresolved'=>['Sin propuesta',$st['unresolved']],
+            'applied'=>['Aplicadas',$st['applied']],
             'cache_hits'=>['Caché',$st['cache_hits']],
             'errors'=>['Errores',$st['errors']],
+            'worker'=>['Worker',$worker_label],
+            'heartbeat'=>['Última actividad',$worker_age],
+            'scheduler'=>['Planificador',$scheduler_label],
             'cpu'=>['CPU est.',isset($st['cpu_percent']) && $st['cpu_percent'] !== null ? number_format_i18n((float)$st['cpu_percent'],1).' %' : 'n/d'],
             'batch'=>['Último lote',$st['last_batch_rows'].' · '.number_format_i18n((float)$st['last_batch_duration'],1).' s'],
             'next'=>['Siguiente',$st['next_batch_rows'].' · pausa '.$st['next_delay'].' s'],
@@ -4119,15 +4151,46 @@ if (!function_exists('seo_assignment_render_classifier_job')) {
         ];
         foreach($kpis as $key=>$row) echo '<div class="seo-classifier-job-kpi"><small>'.esc_html($row[0]).'</small><strong data-job-kpi="'.esc_attr($key).'">'.esc_html((string)$row[1]).'</strong></div>';
         echo '</div>';
+        if (!empty($st['last_error'])) {
+            echo '<div class="notice notice-error inline" style="margin:10px 0 0"><p><strong>Último error:</strong> '.esc_html((string)$st['last_error']).'</p></div>';
+        }
+        if ((string)($st['mode'] ?? '') === 'deep') {
+            echo '<div class="notice notice-info inline" style="margin:10px 0 0"><p><strong>Profundo:</strong> recálculo forzado; no reutiliza propuestas rápidas y refresca las fuentes externas conocidas antes de clasificar. El contador <strong>Caché</strong> debe permanecer en 0.</p></div>';
+        }
         echo '<div class="seo-classifier-job-actions">';
         if (in_array((string)$st['status'],['pending','running'],true)) echo '<button type="button" class="button" data-job-action="pause">Pausar</button>';
         if ((string)$st['status']==='paused') echo '<button type="button" class="button button-primary" data-job-action="resume">Reanudar</button>';
         if (in_array((string)$st['status'],['pending','running','paused'],true)) echo '<button type="button" class="button" data-job-action="cancel">Cancelar</button>';
-        echo '<span class="seo-tags-help">La pantalla solo consulta el estado; el trabajo continúa en segundo plano.</span></div>';
+        echo '<span class="seo-tags-help">El servidor continúa en segundo plano. Si Action Scheduler o WP-Cron se duermen, esta pantalla actúa como watchdog y ejecuta un lote de recuperación sin duplicar trabajo.</span></div>';
         echo '</div>';
+
         $ajax = admin_url('admin-ajax.php');
         $nonce = wp_create_nonce('seo_classifier_jobs');
-        echo '<script>(function(){const root=document.querySelector("[data-seo-classifier-job=\"'.esc_js((string)$job_id).'\"]");if(!root||root.dataset.bound)return;root.dataset.bound="1";const jobId='.json_encode($job_id).',ajax='.json_encode($ajax).',nonce='.json_encode($nonce).';let timer=null;function setText(sel,v){const el=root.querySelector(sel);if(el)el.textContent=v;}function render(d){setText("[data-job-status-label]",String(d.status||"").toUpperCase()+" · "+d.job_type+" / "+d.mode);setText("[data-job-percent]",Number(d.progress||0).toLocaleString(undefined,{maximumFractionDigits:1})+"%");const bar=root.querySelector("[data-job-progress]");if(bar)bar.style.width=Math.max(0,Math.min(100,Number(d.progress||0)))+"%";const values={processed:d.processed+" / "+d.total,safe:d.safe,review:d.review,new:d.new,unresolved:d.unresolved,cache_hits:d.cache_hits,errors:d.errors,cpu:(d.cpu_percent===null||typeof d.cpu_percent==="undefined")?"n/d":Number(d.cpu_percent).toLocaleString(undefined,{maximumFractionDigits:1})+" %",batch:d.last_batch_rows+" · "+Number(d.last_batch_duration||0).toLocaleString(undefined,{maximumFractionDigits:1})+" s",next:d.next_batch_rows+" · pausa "+d.next_delay+" s",pressure:String(d.pressure||"").toUpperCase()};Object.keys(values).forEach(k=>setText("[data-job-kpi=\""+k+"\"]",values[k]));if(["completed","cancelled","failed"].includes(d.status)){if(timer)clearInterval(timer);if(d.status==="completed")setTimeout(()=>window.location.reload(),900);}}async function post(action,extra){const body=new URLSearchParams(Object.assign({action,nonce,job_id:jobId},extra||{}));const r=await fetch(ajax,{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8"},body:body.toString()});return r.json();}async function poll(){try{const p=await post("seo_classifier_job_status");if(p&&p.success)render(p.data);}catch(e){}}root.addEventListener("click",async function(e){const b=e.target.closest("[data-job-action]");if(!b)return;b.disabled=true;try{const p=await post("seo_classifier_job_control",{job_action:b.dataset.jobAction});if(p&&p.success){render(p.data);window.location.reload();}}finally{b.disabled=false;}});if('.json_encode(in_array((string)$st['status'],['pending','running'],true)).'){timer=setInterval(poll,5000);}})();</script>';
+        echo '<script>(function(){
+            const root=document.querySelector("[data-seo-classifier-job=\"'.esc_js((string)$job_id).'\"]");
+            if(!root||root.dataset.bound)return;
+            root.dataset.bound="1";
+            const jobId='.wp_json_encode($job_id).',ajax='.wp_json_encode($ajax).',nonce='.wp_json_encode($nonce).';
+            let timer=null,stopped=false;
+            const jobTypeLabel=v=>v==="apply"?"APLICACIÓN":"ANÁLISIS";
+            const modeLabel=v=>v==="deep"?"PROFUNDO · RECÁLCULO":"RÁPIDO";
+            const workerLabels={esperando_arranque:"ESPERANDO ARRANQUE",activo:"ACTIVO",espera_programada:"ESPERA PROGRAMADA",heartbeat_obsoleto:"RECUPERANDO",paused:"PAUSADO",completed:"COMPLETADO",cancelled:"CANCELADO",failed:"FALLIDO"};
+            function setText(sel,v){const el=root.querySelector(sel);if(el)el.textContent=v;}
+            function schedulerText(s){s=s||{};const a=[];a.push(s.action_scheduler_available?(s.action_scheduler_pending?"AS preparado":"AS disponible"):"AS no disponible");a.push(s.wp_cron_disabled?"WP-Cron desactivado":(s.wp_cron_next?"WP-Cron preparado":"WP-Cron sin evento"));return a.join(" · ");}
+            function render(d){
+                setText("[data-job-status-label]",String(d.status||"").toUpperCase()+" · "+jobTypeLabel(d.job_type)+" / "+modeLabel(d.mode));
+                setText("[data-job-percent]",Number(d.progress||0).toLocaleString(undefined,{maximumFractionDigits:1})+"%");
+                const bar=root.querySelector("[data-job-progress]");if(bar)bar.style.width=Math.max(0,Math.min(100,Number(d.progress||0)))+"%";
+                const age=(d.worker_age_seconds===null||typeof d.worker_age_seconds==="undefined")?"sin heartbeat":String(d.worker_age_seconds)+" s";
+                const values={processed:d.processed+" / "+d.total,safe:d.safe,review:d.review,new:d.new,unresolved:d.unresolved,applied:d.applied,cache_hits:d.cache_hits,errors:d.errors,worker:(workerLabels[d.worker_state]||String(d.worker_state||"n/d").toUpperCase())+(d.worker_source?" · "+String(d.worker_source).toUpperCase():""),heartbeat:age,scheduler:schedulerText(d.scheduler),cpu:(d.cpu_percent===null||typeof d.cpu_percent==="undefined")?"n/d":Number(d.cpu_percent).toLocaleString(undefined,{maximumFractionDigits:1})+" %",batch:d.last_batch_rows+" · "+Number(d.last_batch_duration||0).toLocaleString(undefined,{maximumFractionDigits:1})+" s",next:d.next_batch_rows+" · pausa "+d.next_delay+" s",pressure:String(d.pressure||"").toUpperCase()};
+                Object.keys(values).forEach(k=>setText("[data-job-kpi=\""+k+"\"]",values[k]));
+                if(["completed","cancelled","failed"].includes(d.status)){stopped=true;if(timer)clearTimeout(timer);if(d.status==="completed")setTimeout(()=>window.location.reload(),900);}
+            }
+            async function post(action,extra){const body=new URLSearchParams(Object.assign({action,nonce,job_id:jobId},extra||{}));const r=await fetch(ajax,{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8"},body:body.toString()});return r.json();}
+            async function poll(){if(stopped)return;try{const p=await post("seo_classifier_job_status");if(p&&p.success)render(p.data);}catch(e){}finally{if(!stopped)timer=setTimeout(poll,5000);}}
+            root.addEventListener("click",async function(e){const b=e.target.closest("[data-job-action]");if(!b)return;b.disabled=true;try{const p=await post("seo_classifier_job_control",{job_action:b.dataset.jobAction});if(p&&p.success){render(p.data);window.location.reload();}}finally{b.disabled=false;}});
+            if('.wp_json_encode(in_array((string)$st['status'],['pending','running'],true)).')timer=setTimeout(poll,1200);
+        })();</script>';
     }
 }
 
