@@ -393,6 +393,13 @@ function seo_landing_sync_external_signals()
     check_admin_referer('seo_landing_sync_signals');
 
     seo_landing_maybe_install();
+
+    // La misma acción que sincroniza candidatas refresca primero Google Trends.
+    // Se reutiliza la caché de 12 h para no provocar ráfagas ni HTTP 429.
+    if (function_exists('seo_google_trends_sync')) {
+        seo_google_trends_sync(false, 5);
+    }
+
     global $wpdb;
     $table = seo_landing_candidates_table();
     $signals = seo_landing_get_external_signals();
