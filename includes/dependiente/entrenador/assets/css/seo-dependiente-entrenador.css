@@ -414,3 +414,42 @@
         grid-template-columns: 1fr;
     }
 }
+
+.seo-dependiente-trainer__automation {
+    padding: 18px;
+    margin-bottom: 18px;
+    border-left: 4px solid #8c8f94;
+}
+
+.seo-dependiente-trainer__automation.is-running {
+    border-left-color: #2271b1;
+    background: #f7fbff;
+}
+
+.seo-dependiente-trainer__automation h2 {
+    margin-top: 0;
+}
+
+.seo-dependiente-trainer__automation-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 14px 0 8px;
+}
+
+.seo-dependiente-trainer__automation-badge {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: #f0f0f1;
+    color: #3c434a;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.seo-dependiente-trainer__automation-badge.is-running {
+    background: #f0f6fc;
+    color: #135e96;
+}
