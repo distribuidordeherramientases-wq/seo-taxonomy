@@ -88,6 +88,9 @@ if (!function_exists('seo_tags_vocab_render_styles')) {
             .seo-tags-alignment-state.bad{background:#fce8e6;color:#a12622}
             .seo-tags-alignment-state.muted{background:#f0f0f1;color:#646970}
             .seo-tags-count{color:#646970;font-size:12px;margin:10px 0}
+            .seo-tags-anomaly-count{display:inline-flex;align-items:center;min-height:30px;padding:6px 10px;border-radius:4px;font-size:12px;font-weight:700;margin:10px 0}
+            .seo-tags-anomaly-count.is-clean{color:#176b2c;background:#edfaef;border:1px solid #b8dfc1}
+            .seo-tags-anomaly-count.has-errors{color:#a12622;background:#fce8e6;border:1px solid #e6b8b4}
             .seo-tags-pagination{display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-top:14px}
             .seo-tags-pagination a,.seo-tags-pagination span{display:inline-block;padding:4px 8px;border:1px solid #c3c4c7;background:#fff;text-decoration:none;border-radius:3px}
             .seo-tags-pagination .current{background:#2271b1;color:#fff;border-color:#2271b1}
@@ -4198,7 +4201,8 @@ if (!function_exists('seo_assignment_render_product_labels')) {
     function seo_assignment_render_product_labels(array $filters) {
         $total=0;$offset=($filters['page']-1)*$filters['per_page'];$rows=seo_assignment_query_products('product_labels',$filters,$filters['per_page'],$offset,$total);
         $proposal_map = function_exists('seo_classifier_proposals_for_products') ? seo_classifier_proposals_for_products(array_map(static function($r){return (int)$r['ID'];}, (array)$rows), true) : [];
-        echo '<div class="seo-tags-count">'.esc_html(number_format_i18n($total)).' anomalías coinciden con el filtro.</div>';
+        $anomaly_count_class = ((int) $total === 0) ? 'is-clean' : 'has-errors';
+        echo '<div class="seo-tags-anomaly-count '.esc_attr($anomaly_count_class).'" role="status">'.esc_html(number_format_i18n($total)).' anomalías coinciden con el filtro.</div>';
         echo '<div class="notice notice-info inline" style="margin:8px 0 12px"><p><strong>Matriz correctiva:</strong> aquí solo se muestran anomalías filtradas. <strong>Actual</strong> ya estaba guardado; <strong>Propuesta segura/Revisar</strong> procede de un job y aún está pendiente; <strong>Nueva etiqueta</strong> es vocabulario nuevo. <strong>Sin analizar</strong> significa que todavía no existe resultado persistido del Clasificador.</p></div>';
         echo '<div style="overflow:auto"><table class="widefat striped seo-tags-table" style="min-width:1420px"><thead><tr><th style="min-width:260px">Producto</th><th style="min-width:160px">Cobertura / prioridad</th><th>TIPO</th><th>ROL</th><th>APLICACIÓN</th><th>PLATAFORMA</th><th>SUBTIPO</th><th style="min-width:125px">Confirmar</th></tr></thead><tbody>';
         foreach($rows as $row){
