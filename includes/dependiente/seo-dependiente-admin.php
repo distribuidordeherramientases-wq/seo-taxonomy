@@ -57,7 +57,7 @@ final class SEO_Dependiente_Admin {
                 <?php self::render_tab_link('settings', 'Configuración', $tab); ?>
                 <?php self::render_tab_link('diagnostic', 'Informe', $tab); ?>
                 <?php self::render_tab_link('learning', 'Aprendizaje', $tab); ?>
-                <?php self::render_tab_link('trainer', 'Entrenador', $tab); ?>
+                <?php self::render_tab_link('trainer', 'Academia', $tab); ?>
             </nav>
 
             <?php
@@ -69,7 +69,7 @@ final class SEO_Dependiente_Admin {
                 if (class_exists('SEO_Dependiente_Entrenador')) {
                     SEO_Dependiente_Entrenador::render_tab();
                 } else {
-                    echo '<div class="notice notice-error"><p>No está disponible el módulo Entrenador.</p></div>';
+                    echo '<div class="notice notice-error"><p>No está disponible el módulo Academia.</p></div>';
                 }
             } else {
                 self::render_settings_tab();
@@ -461,11 +461,12 @@ final class SEO_Dependiente_Admin {
             <h2 class="seo-dependiente-admin__box-title">Zona peligrosa · Reiniciar conocimiento</h2>
             <p><strong>Devuelve Dependiente a un estado limpio de entrenamiento.</strong> Está pensado para staging y para repetir ciclos de aprendizaje desde cero.</p>
             <div class="seo-dependiente-admin__reset-grid">
-                <div><strong><?php echo esc_html(number_format_i18n(absint($counts['semantic_reset'] ?? 0))); ?></strong><span>reglas no seed que se borrarán</span></div>
-                <div><strong><?php echo esc_html(number_format_i18n(absint($counts['search_log'] ?? 0))); ?></strong><span>búsquedas/evidencias que se borrarán</span></div>
-                <div><strong><?php echo esc_html(number_format_i18n(absint($counts['trainer_questions'] ?? 0))); ?></strong><span>preguntas del Entrenador que se borrarán</span></div>
-                <div><strong><?php echo esc_html(number_format_i18n(absint($counts['trainer_runs'] ?? 0))); ?></strong><span>ejecuciones del Entrenador que se borrarán</span></div>
-                <div><strong><?php echo esc_html(number_format_i18n(absint($counts['index'] ?? 0))); ?></strong><span>productos del índice derivado que se borrarán</span></div>
+                <div><strong data-reset-zero><?php echo esc_html(number_format_i18n(absint($counts['semantic_reset'] ?? 0))); ?></strong><span>reglas no seed que se borrarán</span></div>
+                <div><strong data-reset-zero><?php echo esc_html(number_format_i18n(absint($counts['search_log'] ?? 0))); ?></strong><span>búsquedas/evidencias que se borrarán</span></div>
+                <div><strong data-reset-zero><?php echo esc_html(number_format_i18n(absint($counts['trainer_questions'] ?? 0))); ?></strong><span>ejercicios de Academia que se borrarán</span></div>
+                <div><strong data-reset-zero><?php echo esc_html(number_format_i18n(absint($counts['trainer_runs'] ?? 0))); ?></strong><span>ejecuciones de Academia que se borrarán</span></div>
+                <div><strong data-reset-zero><?php echo esc_html(number_format_i18n(absint($counts['trainer_lessons'] ?? 0))); ?></strong><span>estados de lecciones que se borrarán</span></div>
+                <div><strong data-reset-zero><?php echo esc_html(number_format_i18n(absint($counts['index'] ?? 0))); ?></strong><span>productos del índice derivado que se borrarán</span></div>
                 <div><strong><?php echo esc_html(number_format_i18n(absint($counts['semantic_seed'] ?? 0))); ?></strong><span>reglas base seed que se conservarán</span></div>
             </div>
             <p class="description"><strong>Se conservan:</strong> productos WooCommerce, categorías, etiquetas, vocabulario/atributos SEO, configuración del módulo, página pública y solicitudes de ayuda. El índice derivado se vacía y deberá reindexarse antes de volver a entrenar.</p>
@@ -473,7 +474,7 @@ final class SEO_Dependiente_Admin {
 
             <div class="seo-dependiente-admin__reset-confirm" data-dependiente-reset-confirm hidden>
                 <h3>Confirmación necesaria</h3>
-                <p>Esta acción eliminará el aprendizaje, el historial usado como evidencia, el banco y las ejecuciones del Entrenador y el índice de productos de Dependiente. No se puede deshacer desde esta pantalla.</p>
+                <p>Esta acción eliminará el aprendizaje, el historial usado como evidencia, las lecciones, ejercicios y ejecuciones de la Academia y el índice de productos de Dependiente. No se puede deshacer desde esta pantalla.</p>
                 <p><strong>Las reglas base <code>seed</code> se mantienen como baseline limpio.</strong></p>
                 <div class="seo-dependiente-admin__reset-actions">
                     <button type="button" class="button seo-dependiente-admin__danger-button is-confirm" data-dependiente-reset-confirm-button>Sí, borrar todo el conocimiento de pruebas</button>

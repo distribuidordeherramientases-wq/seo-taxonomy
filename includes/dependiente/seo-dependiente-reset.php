@@ -27,6 +27,7 @@ final class SEO_Dependiente_Reset {
             'search_log'        => self::count_rows($tables['search_log']),
             'trainer_questions' => self::count_rows($tables['trainer_questions']),
             'trainer_runs'      => self::count_rows($tables['trainer_runs']),
+            'trainer_lessons'   => self::count_rows($tables['trainer_lessons']),
             'semantic_seed'     => 0,
             'semantic_reset'    => 0,
         );
@@ -61,6 +62,7 @@ final class SEO_Dependiente_Reset {
             wp_clear_scheduled_hook('seo_dependiente_background_index');
             delete_option('seo_dependiente_background_page');
             delete_option('seo_dependiente_last_full_index');
+            delete_option('seo_dependiente_knowledge_snapshot');
 
             if (false === $wpdb->query('START TRANSACTION')) {
                 throw new RuntimeException('No se pudo iniciar la transaccion de reinicio.');
@@ -69,6 +71,7 @@ final class SEO_Dependiente_Reset {
 
             self::delete_all($tables['trainer_runs']);
             self::delete_all($tables['trainer_questions']);
+            self::delete_all($tables['trainer_lessons']);
             self::delete_all($tables['search_log']);
 
             // Las reglas seed son el baseline versionado del motor. Todo lo
@@ -99,7 +102,7 @@ final class SEO_Dependiente_Reset {
             return array(
                 'before' => $before,
                 'after'  => $after,
-                'message'=> 'Conocimiento reiniciado. Se han conservado las reglas base (seed) y las fuentes maestras del catalogo. El indice queda vacio hasta reindexar.',
+                'message'=> 'Conocimiento reiniciado. Se han conservado las reglas base (seed) y las fuentes maestras del catalogo. La Academia vuelve a la Leccion 1 tras reindexar.',
             );
         } catch (Throwable $error) {
             if ($transaction_started) {
@@ -120,6 +123,7 @@ final class SEO_Dependiente_Reset {
             'search_log'        => class_exists('SEO_Dependiente_Search_Log') ? SEO_Dependiente_Search_Log::table() : $wpdb->prefix . 'seo_dependiente_search_log',
             'trainer_questions' => class_exists('SEO_Dependiente_Entrenador') ? SEO_Dependiente_Entrenador::questions_table() : $wpdb->prefix . 'seo_dependiente_trainer_questions',
             'trainer_runs'      => class_exists('SEO_Dependiente_Entrenador') ? SEO_Dependiente_Entrenador::runs_table() : $wpdb->prefix . 'seo_dependiente_trainer_runs',
+            'trainer_lessons'   => class_exists('SEO_Dependiente_Entrenador') ? SEO_Dependiente_Entrenador::lessons_table() : $wpdb->prefix . 'seo_dependiente_trainer_lessons',
         );
     }
 
