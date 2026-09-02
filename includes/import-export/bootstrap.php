@@ -28,6 +28,7 @@ if ( defined( 'SEO_IE_BUILD' ) ) {
 $seo_ie_required_files = [
     __DIR__ . '/core/registry.php',
     __DIR__ . '/legacy-engine.php',
+    __DIR__ . '/catalogs/importer.php',
 ];
 
 foreach ( $seo_ie_required_files as $seo_ie_required_file ) {
@@ -64,3 +65,4 @@ define( 'SEO_IE_MIGRATIONS_DIR', __DIR__ . '/migrations' );
 
 require_once __DIR__ . '/core/registry.php';
 require_once __DIR__ . '/legacy-engine.php';
+require_once __DIR__ . '/catalogs/importer.php';

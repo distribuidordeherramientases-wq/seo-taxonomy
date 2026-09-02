@@ -746,6 +746,7 @@ function seo_ie_write_csv_row( $output, $fields ) {
  * - sql_atributos: definiciones activas de atributos tecnicos.
  * - sql_atributos_terminos: terminos activos permitidos.
  * - sql_atributos_aliases: aliases utilizables para atributos activos.
+ * - product_tag: etiquetas WooCommerce existentes que el importador de productos puede asignar.
  *
  * @since 2.0.0
  *
@@ -1063,6 +1064,38 @@ function seo_export_required_catalogs_csv() {
         );
     }
 
+    // 6) Etiquetas WooCommerce existentes. El importador de productos en modo
+    // seguro nunca crea product_tag implícitamente; por eso forman parte del
+    // catálogo permitido y, si faltan, se dan de alta previamente con el
+    // importador explícito de vocabulario.
+    if ( taxonomy_exists( 'product_tag' ) ) {
+        $product_tags = get_terms(
+            [
+                'taxonomy'   => 'product_tag',
+                'hide_empty' => false,
+                'orderby'    => 'name',
+                'order'      => 'ASC',
+            ]
+        );
+
+        if ( ! is_wp_error( $product_tags ) ) {
+            foreach ( (array) $product_tags as $term ) {
+                $write_record(
+                    [
+                        'tabla'         => 'woocommerce_product_tag',
+                        'tabla_fisica'  => $wpdb->terms . ' + ' . $wpdb->term_taxonomy,
+                        'tipo_registro' => 'product_tag',
+                        'uso'           => 'Etiqueta WooCommerce permitida',
+                        'id'            => (int) $term->term_id,
+                        'slug'          => (string) $term->slug,
+                        'label'         => (string) $term->name,
+                        'active'        => 1,
+                    ]
+                );
+            }
+        }
+    }
+
     seo_ie_store_log(
         [
             'operacion'  => 'Exportacion de catalogos obligatorios',
@@ -1071,7 +1104,7 @@ function seo_export_required_catalogs_csv() {
             'correctos'  => $exported,
             'errores'    => 0,
             'detalles'   => [
-                'CSV unico con valores activos de seo_vocabulary, seo_type_role_map, sql_atributos, sql_atributos_terminos y sql_atributos_aliases.',
+                'CSV unico con valores activos de seo_vocabulary, seo_type_role_map, sql_atributos, sql_atributos_terminos, sql_atributos_aliases y product_tag.',
                 'seo_object_vocabulary y sql_product_atributos no se exportan porque contienen asignaciones, no catalogos de valores permitidos.',
             ],
         ]
@@ -11594,7 +11627,7 @@ function seo_import_export_page() {
                         <p style="margin:6px 0 12px;">
                             Las etiquetas semánticas y los atributos enviados por un sistema externo deben usar valores ya existentes y activos.
                             Este CSV único reúne <code>seo_vocabulary</code>, <code>seo_type_role_map</code>, <code>sql_atributos</code>,
-                            <code>sql_atributos_terminos</code> y <code>sql_atributos_aliases</code>. Si un valor no existe, debe darse de alta previamente en su maestro; no debe inventarse durante el alta del producto.
+                            <code>sql_atributos_terminos</code>, <code>sql_atributos_aliases</code> y las <code>product_tag</code> de WooCommerce. Si un valor no existe, debe darse de alta previamente; no debe inventarse durante el alta del producto.
                         </p>
                         <button
                             type="submit"
@@ -11623,6 +11656,7 @@ function seo_import_export_page() {
             
             </div>
 
+                <?php if ( function_exists( 'seo_ie_render_required_catalogs_import_card' ) ) { seo_ie_render_required_catalogs_import_card(); } ?>
 
                 <div class="card" style="max-width:none;padding:20px;">
                     <h2>Exportar categorías</h2>
