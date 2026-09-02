@@ -25,6 +25,10 @@ final class SEO_Dependiente_Entrenador {
     const AUTO_MAX_NO_PROGRESS = 6;
     const AUTO_BROWSER_WATCHDOG_SECONDS = 8;
     const AUTO_CRON_FALLBACK_SECONDS = 6;
+    const LAB_PREFIX = 'lab_';
+    const LAB_MODULE_SIZE = 25;
+    const LAB_IMPORT_LIMIT = 5000;
+    const LAB_UPLOAD_MAX_BYTES = 2097152;
 
     public static function init() {
         add_action('admin_enqueue_scripts', array(__CLASS__, 'enqueue'), 20);
@@ -33,6 +37,9 @@ final class SEO_Dependiente_Entrenador {
         add_action('wp_ajax_seo_dependiente_entrenador_export_lesson', array(__CLASS__, 'ajax_export_lesson'));
         add_action('wp_ajax_seo_dependiente_entrenador_set_mode', array(__CLASS__, 'ajax_set_mode'));
         add_action('wp_ajax_seo_dependiente_entrenador_auto_status', array(__CLASS__, 'ajax_auto_status'));
+        add_action('wp_ajax_seo_dependiente_entrenador_lab_import', array(__CLASS__, 'ajax_lab_import'));
+        add_action('wp_ajax_seo_dependiente_entrenador_lab_run', array(__CLASS__, 'ajax_lab_run'));
+        add_action('wp_ajax_seo_dependiente_entrenador_lab_export', array(__CLASS__, 'ajax_lab_export'));
         add_action(self::AUTO_WORKER_HOOK, array(__CLASS__, 'auto_worker'));
     }
 
@@ -229,6 +236,8 @@ final class SEO_Dependiente_Entrenador {
         $snapshot = absint(get_option(self::KNOWLEDGE_SNAPSHOT_OPTION, 0));
         $auto_state = self::auto_state();
         $auto_running = self::is_auto_running($auto_state);
+        $basic_complete = self::basic_curriculum_completed($lessons);
+        $lab_batch = $basic_complete ? self::latest_lab_batch() : null;
         ?>
         <div class="seo-dependiente-trainer" data-trainer-root data-current-lesson="<?php echo esc_attr($current_key); ?>" data-current-module="<?php echo esc_attr($next_module); ?>" data-auto-running="<?php echo $auto_running ? '1' : '0'; ?>">
             <div class="seo-dependiente-trainer__intro">
@@ -290,10 +299,7 @@ final class SEO_Dependiente_Entrenador {
                 </section>
             <?php endif; ?>
 
-            <section class="postbox seo-dependiente-admin__box seo-dependiente-trainer__manual-locked">
-                <h2 class="seo-dependiente-admin__box-title">Entrenamiento libre bloqueado</h2>
-                <p>El antiguo banco para pegar y lanzar preguntas arbitrarias está desactivado. Se recuperará más adelante como laboratorio avanzado, cuando el Dependiente haya terminado la formación básica y tengamos reglas de regresión suficientes.</p>
-            </section>
+            <?php self::render_question_lab($basic_complete, $lab_batch, $auto_running); ?>
         </div>
         <?php
     }
@@ -1121,6 +1127,227 @@ final class SEO_Dependiente_Entrenador {
         wp_clear_scheduled_hook(self::AUTO_WORKER_HOOK, array());
     }
 
+    public static function ajax_lab_import() {
+        self::guard_ajax();
+        if (!self::ensure_ready()) {
+            wp_send_json_error(array('message' => 'Academia no disponible.'), 500);
+        }
+        if (!self::basic_curriculum_completed()) {
+            wp_send_json_error(array('message' => 'Completa primero las cuatro lecciones básicas de la Academia.'), 409);
+        }
+        if (self::is_auto_running()) {
+            wp_send_json_error(array('message' => 'La formación automática todavía está activa. Espera a que termine antes de usar el Laboratorio.'), 409);
+        }
+        if (class_exists('SEO_Dependiente_Reset') && SEO_Dependiente_Reset::is_locked()) {
+            wp_send_json_error(array('message' => 'El conocimiento se está reiniciando. Espera a que termine.'), 423);
+        }
+
+        $default_mode = self::sanitize_mode($_POST['mode'] ?? 'need');
+        $source = 'text';
+        $filename = '';
+        $items = array();
+
+        try {
+            if (!empty($_FILES['lab_file']) && is_array($_FILES['lab_file']) && UPLOAD_ERR_NO_FILE !== absint($_FILES['lab_file']['error'] ?? UPLOAD_ERR_NO_FILE)) {
+                $file = $_FILES['lab_file'];
+                $error = absint($file['error'] ?? UPLOAD_ERR_NO_FILE);
+                if (UPLOAD_ERR_OK !== $error) {
+                    throw new RuntimeException('No se pudo recibir el archivo de preguntas (código ' . $error . ').');
+                }
+                $size = absint($file['size'] ?? 0);
+                if ($size < 1 || $size > self::LAB_UPLOAD_MAX_BYTES) {
+                    throw new RuntimeException('El archivo debe ocupar entre 1 byte y 2 MB.');
+                }
+                $filename = sanitize_file_name((string) ($file['name'] ?? 'preguntas'));
+                $tmp = (string) ($file['tmp_name'] ?? '');
+                if (!$tmp || !is_file($tmp) || !is_readable($tmp)) {
+                    throw new RuntimeException('El archivo temporal no se puede leer.');
+                }
+                $ext = strtolower((string) pathinfo($filename, PATHINFO_EXTENSION));
+                if (!in_array($ext, array('txt', 'csv', 'json'), true)) {
+                    throw new RuntimeException('Formato no admitido. Usa TXT, CSV o JSON.');
+                }
+                $source = 'upload_' . $ext;
+                $items = self::parse_lab_file($tmp, $ext, $default_mode);
+            } else {
+                $text = trim((string) wp_unslash($_POST['questions_text'] ?? ''));
+                if ('' === $text) {
+                    throw new RuntimeException('Pega al menos una pregunta o selecciona un archivo TXT, CSV o JSON.');
+                }
+                $items = self::parse_lab_text($text, $default_mode);
+            }
+
+            $items = self::normalize_lab_items($items, $default_mode);
+            if (!$items) {
+                throw new RuntimeException('No se ha encontrado ninguna pregunta válida.');
+            }
+            if (count($items) > self::LAB_IMPORT_LIMIT) {
+                throw new RuntimeException('El lote contiene ' . count($items) . ' preguntas. El máximo por lote es ' . self::LAB_IMPORT_LIMIT . '.');
+            }
+
+            $batch_key = self::new_lab_batch_key();
+            $snapshot = absint(get_option(self::KNOWLEDGE_SNAPSHOT_OPTION, 0));
+            $created = self::insert_lab_questions($batch_key, $items, array(
+                'source'      => $source,
+                'filename'    => $filename,
+                'snapshot'    => $snapshot,
+                'imported_at' => current_time('c'),
+            ));
+            if ($created < 1) {
+                throw new RuntimeException('No se pudo guardar ninguna pregunta del lote.');
+            }
+
+            wp_send_json_success(array(
+                'batch_key' => $batch_key,
+                'created'   => $created,
+                'snapshot'  => $snapshot,
+                'summary'   => self::lab_summary($batch_key),
+                'message'   => 'Lote preparado con ' . number_format_i18n($created) . ' preguntas. Todavía no se ha ejecutado ninguna.',
+            ));
+        } catch (Throwable $error) {
+            wp_send_json_error(array('message' => $error->getMessage()), 400);
+        }
+    }
+
+    public static function ajax_lab_run() {
+        self::guard_ajax();
+        if (!self::ensure_ready() || !class_exists('SEO_Dependiente_API')) {
+            wp_send_json_error(array('message' => 'El motor del Dependiente no está disponible.'), 500);
+        }
+        if (!self::basic_curriculum_completed()) {
+            wp_send_json_error(array('message' => 'El Laboratorio se desbloquea al completar la formación básica.'), 409);
+        }
+        if (self::is_auto_running()) {
+            wp_send_json_error(array('message' => 'La formación automática todavía está activa.'), 409);
+        }
+        if (class_exists('SEO_Dependiente_Reset') && SEO_Dependiente_Reset::is_locked()) {
+            wp_send_json_error(array('message' => 'El conocimiento se está reiniciando. Espera a que termine.'), 423);
+        }
+
+        $batch_key = self::sanitize_lab_batch_key($_POST['batch_key'] ?? '');
+        if (!$batch_key || !self::lab_batch_exists($batch_key)) {
+            wp_send_json_error(array('message' => 'Lote de Laboratorio no encontrado.'), 404);
+        }
+        $batch_size = self::sanitize_batch_size($_POST['batch_size'] ?? self::AJAX_BATCH_INITIAL);
+        $batch_uuid = self::sanitize_uuid($_POST['batch_uuid'] ?? '');
+        if (!$batch_uuid) {
+            $batch_uuid = wp_generate_uuid4();
+        }
+
+        if (!self::acquire_db_lock('lab_run')) {
+            wp_send_json_error(array('message' => 'Ya se está ejecutando otro lote del Laboratorio.'), 423);
+        }
+
+        try {
+            $questions = self::pending_lab_questions($batch_key, $batch_size);
+            $rows = array();
+            foreach ($questions as $question) {
+                $run_id = self::run_question($question, $batch_uuid);
+                if ($run_id) {
+                    $run = self::run_by_id($run_id);
+                    if ($run) {
+                        $rows[] = self::present_run($run);
+                    }
+                }
+            }
+            $summary = self::lab_summary($batch_key);
+            $done = absint($summary['total'] ?? 0) > 0 && absint($summary['answered'] ?? 0) >= absint($summary['total'] ?? 0);
+
+            wp_send_json_success(array(
+                'batch_key'  => $batch_key,
+                'batch_uuid' => $batch_uuid,
+                'processed'  => count($questions),
+                'done'       => $done,
+                'summary'    => $summary,
+                'rows'       => $rows,
+            ));
+        } catch (Throwable $error) {
+            wp_send_json_error(array('message' => $error->getMessage()), 500);
+        } finally {
+            self::release_db_lock('lab_run');
+        }
+    }
+
+    public static function ajax_lab_export() {
+        self::guard_ajax();
+        $batch_key = self::sanitize_lab_batch_key($_POST['batch_key'] ?? '');
+        if (!$batch_key || !self::lab_batch_exists($batch_key)) {
+            wp_send_json_error(array('message' => 'Lote de Laboratorio no encontrado.'), 404);
+        }
+
+        global $wpdb;
+        $questions = (array) $wpdb->get_results($wpdb->prepare(
+            "SELECT q.*, r.id AS run_id, r.batch_uuid, r.status AS run_status,
+                    r.result_count, r.returned_count, r.search_uuid, r.search_strategy,
+                    r.execution_ms, r.evaluation_status, r.evaluation_score,
+                    r.evaluation_json, r.top_results, r.response_meta, r.error_message,
+                    r.created_at AS run_created_at
+             FROM " . self::questions_table() . " q
+             LEFT JOIN " . self::runs_table() . " r ON r.question_id = q.id AND r.lesson_key = q.lesson_key
+             WHERE q.lesson_key = %s AND q.enabled = 1
+             ORDER BY q.sequence_no ASC, q.id ASC",
+            $batch_key
+        ), ARRAY_A);
+
+        $items = array();
+        $batch_meta = array();
+        foreach ($questions as $row) {
+            $meta = self::decode_json($row['expected_json'] ?? '');
+            if (!$batch_meta && is_array($meta)) {
+                $batch_meta = $meta;
+            }
+            $items[] = array(
+                'question_id' => absint($row['id'] ?? 0),
+                'sequence_no' => absint($row['sequence_no'] ?? 0),
+                'mode'        => (string) ($row['mode'] ?? ''),
+                'question'    => (string) ($row['question'] ?? ''),
+                'run'         => empty($row['run_id']) ? null : array(
+                    'status'            => (string) ($row['run_status'] ?? ''),
+                    'result_count'      => absint($row['result_count'] ?? 0),
+                    'returned_count'    => absint($row['returned_count'] ?? 0),
+                    'search_uuid'       => (string) ($row['search_uuid'] ?? ''),
+                    'search_strategy'   => (string) ($row['search_strategy'] ?? ''),
+                    'execution_ms'      => isset($row['execution_ms']) ? (float) $row['execution_ms'] : null,
+                    'evaluation_status' => (string) ($row['evaluation_status'] ?? ''),
+                    'top_results'       => self::decode_json($row['top_results'] ?? ''),
+                    'response_meta'     => self::decode_json($row['response_meta'] ?? ''),
+                    'error_message'     => (string) ($row['error_message'] ?? ''),
+                    'created_at'        => (string) ($row['run_created_at'] ?? ''),
+                ),
+            );
+        }
+
+        $document = array(
+            'schema' => array('name' => 'seo_dependiente_question_lab', 'version' => 1),
+            'generated_at' => current_time('c'),
+            'site' => array(
+                'home_url'            => home_url('/'),
+                'dependiente_version' => defined('SEO_DEPENDIENTE_VERSION') ? SEO_DEPENDIENTE_VERSION : '',
+                'trainer_db_version'  => self::DB_VERSION,
+            ),
+            'batch' => array(
+                'key'         => $batch_key,
+                'snapshot'    => absint($batch_meta['snapshot'] ?? 0),
+                'source'      => (string) ($batch_meta['source'] ?? ''),
+                'filename'    => (string) ($batch_meta['filename'] ?? ''),
+                'imported_at' => (string) ($batch_meta['imported_at'] ?? ''),
+            ),
+            'summary' => self::lab_summary($batch_key),
+            'notes' => array(
+                'diagnostic_only'             => true,
+                'customer_search_log_written' => false,
+                'observational_learning_used' => false,
+                'knowledge_modified'          => false,
+            ),
+            'items' => $items,
+        );
+
+        wp_send_json_success(array(
+            'filename' => 'dependiente-laboratorio-' . sanitize_file_name($batch_key) . '-' . current_time('Ymd-His') . '.json',
+            'document' => $document,
+        ));
+    }
+
     public static function ajax_export_lesson() {
         self::guard_ajax();
         $lesson_key = sanitize_key((string) wp_unslash($_POST['lesson_key'] ?? ''));
@@ -1381,6 +1608,128 @@ final class SEO_Dependiente_Entrenador {
             'last_full' => $last_full,
             'message'   => $message,
         );
+    }
+
+    private static function basic_curriculum_completed($lessons = null) {
+        if (null === $lessons) {
+            $lessons = self::lessons_by_key();
+        }
+        foreach (self::lesson_definitions() as $key => $definition) {
+            if ('completed' !== (string) ($lessons[$key]['status'] ?? '')) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static function render_question_lab($unlocked, $batch, $auto_running) {
+        if (!$unlocked) {
+            ?>
+            <section class="postbox seo-dependiente-admin__box seo-dependiente-trainer__manual-locked">
+                <h2 class="seo-dependiente-admin__box-title">Laboratorio de preguntas bloqueado</h2>
+                <p>Cuando termine la formación básica se desbloqueará un laboratorio para probar al Dependiente con preguntas libres. Podrás pegarlas en un campo de texto o cargar lotes desde TXT, CSV o JSON.</p>
+                <p class="description">El Laboratorio será diagnóstico: sus consultas estarán aisladas del tráfico de clientes y no modificarán el conocimiento por sí solas.</p>
+            </section>
+            <?php
+            return;
+        }
+
+        $batch_key = is_array($batch) ? (string) ($batch['batch_key'] ?? '') : '';
+        $summary = $batch_key ? self::lab_summary($batch_key) : self::empty_lab_summary();
+        $runs = $batch_key ? self::recent_runs($batch_key, self::RECENT_RUN_LIMIT) : array();
+        $done = absint($summary['total']) > 0 && absint($summary['answered']) >= absint($summary['total']);
+        ?>
+        <section class="postbox seo-dependiente-admin__box seo-dependiente-trainer__lab" data-trainer-lab data-lab-batch-key="<?php echo esc_attr($batch_key); ?>">
+            <div class="seo-dependiente-trainer__section-head">
+                <div>
+                    <h2 class="seo-dependiente-admin__box-title">Laboratorio de preguntas</h2>
+                    <p>Prueba el conocimiento ya formado sin contaminar el aprendizaje. Puedes lanzar una pregunta, pegar varias líneas o importar un archivo completo.</p>
+                </div>
+                <span class="seo-dependiente-trainer__isolation">Solo diagnóstico · no aprende</span>
+            </div>
+
+            <div class="seo-dependiente-trainer__lab-grid">
+                <div>
+                    <label for="seo-dependiente-lab-questions"><strong>Preguntas</strong></label>
+                    <textarea id="seo-dependiente-lab-questions" class="large-text" rows="7" data-trainer-lab-text placeholder="Una pregunta por línea. También puedes escribir una sola pregunta."></textarea>
+                    <p class="description">Las líneas vacías se ignoran. Las preguntas repetidas dentro del mismo lote se eliminan.</p>
+                </div>
+                <div class="seo-dependiente-trainer__lab-upload">
+                    <label for="seo-dependiente-lab-file"><strong>O cargar archivo</strong></label>
+                    <input id="seo-dependiente-lab-file" type="file" data-trainer-lab-file accept=".txt,.csv,.json,text/plain,text/csv,application/json">
+                    <p class="description"><strong>TXT:</strong> una pregunta por línea. <strong>CSV:</strong> columnas <code>question</code> y opcional <code>mode</code>. <strong>JSON:</strong> array de textos u objetos con <code>question</code> y <code>mode</code>. Máximo 5.000 preguntas / 2 MB.</p>
+                    <label for="seo-dependiente-lab-mode"><strong>Modo por defecto</strong></label>
+                    <select id="seo-dependiente-lab-mode" data-trainer-lab-mode>
+                        <option value="need">Necesidad</option>
+                        <option value="product">Producto</option>
+                        <option value="tool">Herramienta</option>
+                        <option value="compare">Comparar</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="seo-dependiente-trainer__lab-actions">
+                <button type="button" class="button" data-trainer-lab-import <?php disabled($auto_running); ?>>Preparar nuevo lote</button>
+                <?php if ($batch_key) : ?>
+                    <button type="button" class="button button-primary" data-trainer-lab-run <?php disabled($auto_running || $done); ?>><?php echo $done ? 'Lote completado' : 'Lanzar lote completo'; ?></button>
+                    <button type="button" class="button" data-trainer-lab-export>Descargar resultados JSON</button>
+                <?php endif; ?>
+            </div>
+            <p class="description" data-trainer-lab-status aria-live="polite"><?php echo $batch_key ? esc_html('Último lote: ' . number_format_i18n(absint($summary['answered'])) . ' de ' . number_format_i18n(absint($summary['total'])) . ' preguntas ejecutadas.') : 'Prepara un lote para empezar.'; ?></p>
+
+            <?php if ($batch_key) : ?>
+                <div class="seo-dependiente-trainer__lab-progress">
+                    <div class="seo-dependiente-trainer__progress"><div class="seo-dependiente-trainer__progress-bar" data-trainer-lab-progress-bar style="width:<?php echo esc_attr(absint($summary['total']) ? min(100, round((absint($summary['answered']) / absint($summary['total'])) * 100)) : 0); ?>%"></div></div>
+                    <div class="seo-dependiente-trainer__current-summary">
+                        <span><strong data-trainer-lab-summary="answered"><?php echo esc_html(number_format_i18n(absint($summary['answered']))); ?></strong> / <strong data-trainer-lab-summary="total"><?php echo esc_html(number_format_i18n(absint($summary['total']))); ?></strong> ejecutadas</span>
+                        <span><strong data-trainer-lab-summary="with_results"><?php echo esc_html(number_format_i18n(absint($summary['with_results']))); ?></strong> con resultados</span>
+                        <span><strong data-trainer-lab-summary="zero_results"><?php echo esc_html(number_format_i18n(absint($summary['zero_results']))); ?></strong> sin resultados</span>
+                        <span><strong data-trainer-lab-summary="errors"><?php echo esc_html(number_format_i18n(absint($summary['errors']))); ?></strong> errores técnicos</span>
+                    </div>
+                </div>
+                <div class="seo-dependiente-trainer__table-wrap seo-dependiente-trainer__lab-results">
+                    <?php self::render_lab_runs_table($runs); ?>
+                </div>
+            <?php endif; ?>
+        </section>
+        <?php
+    }
+
+    private static function render_lab_runs_table($runs) {
+        ?>
+        <table class="widefat striped seo-dependiente-trainer__runs">
+            <thead><tr><th>Pregunta</th><th>Estado</th><th>Respuesta</th></tr></thead>
+            <tbody data-trainer-lab-run-body>
+            <?php if (!$runs) : ?>
+                <tr data-trainer-lab-run-empty><td colspan="3">Este lote todavía no se ha ejecutado.</td></tr>
+            <?php else : ?>
+                <?php foreach ($runs as $row) : self::render_lab_run_row(self::present_run($row)); endforeach; ?>
+            <?php endif; ?>
+            </tbody>
+        </table>
+        <?php
+    }
+
+    private static function render_lab_run_row($row) {
+        $status = (string) ($row['status'] ?? '');
+        $results = (array) ($row['top_results'] ?? array());
+        ?>
+        <tr>
+            <td><strong><?php echo esc_html((string) ($row['question'] ?? '')); ?></strong><?php if (!empty($row['search_strategy'])) : ?><div class="description">Estrategia: <code><?php echo esc_html((string) $row['search_strategy']); ?></code></div><?php endif; ?></td>
+            <td><span class="seo-dependiente-trainer__status <?php echo 'error' === $status ? 'is-error' : 'is-neutral'; ?>"><?php echo 'error' === $status ? 'Error técnico' : 'Observada'; ?></span><?php if (!empty($row['error_message'])) : ?><div class="description"><?php echo esc_html((string) $row['error_message']); ?></div><?php endif; ?></td>
+            <td>
+                <?php if ($results) : ?>
+                    <ol class="seo-dependiente-trainer__answer-list">
+                    <?php foreach (array_slice($results, 0, 5) as $result) : ?>
+                        <li><strong><?php echo esc_html((string) ($result['title'] ?? '')); ?></strong><?php if (!empty($result['reasons'])) : ?><span><?php echo esc_html(implode(' · ', (array) $result['reasons'])); ?></span><?php endif; ?></li>
+                    <?php endforeach; ?>
+                    </ol>
+                <?php else : ?>
+                    <span class="description">Sin productos devueltos.</span>
+                <?php endif; ?>
+            </td>
+        </tr>
+        <?php
     }
 
     private static function render_training_mode($state, $preflight, $current_key) {
@@ -2435,6 +2784,14 @@ final class SEO_Dependiente_Entrenador {
             return array('status' => 'error', 'score' => 0, 'matched_product_id' => null, 'matched_position' => null);
         }
         $expected = self::decode_json($question['expected_json'] ?? '');
+        if ('lab' === sanitize_key((string) ($question['source_type'] ?? '')) || 'lab' === sanitize_key((string) ($expected['kind'] ?? ''))) {
+            return array(
+                'status' => 'observed',
+                'score' => null,
+                'result_count' => count((array) $result_ids),
+                'snapshot' => absint($expected['snapshot'] ?? 0),
+            );
+        }
         if (!$expected) {
             return array('status' => 'fail', 'score' => 0, 'reason' => 'No hay verdad esperada para evaluar.');
         }
@@ -2617,6 +2974,245 @@ final class SEO_Dependiente_Entrenador {
             return false;
         }
         return false;
+    }
+
+    private static function parse_lab_file($path, $ext, $default_mode) {
+        if ('json' === $ext) {
+            $raw = file_get_contents($path);
+            if (false === $raw) {
+                throw new RuntimeException('No se pudo leer el JSON.');
+            }
+            $decoded = json_decode(self::strip_utf8_bom((string) $raw), true);
+            if (!is_array($decoded)) {
+                throw new RuntimeException('El JSON no contiene una estructura válida.');
+            }
+            if (isset($decoded['questions']) && is_array($decoded['questions'])) {
+                $decoded = $decoded['questions'];
+            }
+            $items = array();
+            foreach ($decoded as $row) {
+                if (is_string($row) || is_numeric($row)) {
+                    $items[] = array('question' => (string) $row, 'mode' => $default_mode);
+                    continue;
+                }
+                if (!is_array($row)) {
+                    continue;
+                }
+                $question = (string) ($row['question'] ?? $row['pregunta'] ?? $row['q'] ?? '');
+                $mode = (string) ($row['mode'] ?? $row['modo'] ?? $default_mode);
+                $items[] = array('question' => $question, 'mode' => $mode);
+            }
+            return $items;
+        }
+
+        if ('csv' === $ext) {
+            $handle = fopen($path, 'rb');
+            if (!$handle) {
+                throw new RuntimeException('No se pudo abrir el CSV.');
+            }
+            try {
+                $first_line = fgets($handle);
+                if (false === $first_line) {
+                    return array();
+                }
+                $first_line = self::strip_utf8_bom((string) $first_line);
+                $delimiters = array(',' => substr_count($first_line, ','), ';' => substr_count($first_line, ';'), "\t" => substr_count($first_line, "\t"));
+                arsort($delimiters);
+                $delimiter = (string) key($delimiters);
+                if ('' === $delimiter || 0 === (int) current($delimiters)) {
+                    $delimiter = ',';
+                }
+                rewind($handle);
+                $rows = array();
+                while (($row = fgetcsv($handle, 0, $delimiter, '"', '\\')) !== false) {
+                    if (!$row) {
+                        continue;
+                    }
+                    $rows[] = array_map(function ($value) { return trim(self::strip_utf8_bom((string) $value)); }, $row);
+                    if (count($rows) > self::LAB_IMPORT_LIMIT + 1) {
+                        break;
+                    }
+                }
+            } finally {
+                fclose($handle);
+            }
+            if (!$rows) {
+                return array();
+            }
+            $header = array_map(function ($value) { return strtolower(remove_accents(trim((string) $value))); }, $rows[0]);
+            $q_index = null;
+            $mode_index = null;
+            foreach ($header as $index => $name) {
+                if (in_array($name, array('question', 'pregunta', 'q'), true)) {
+                    $q_index = $index;
+                }
+                if (in_array($name, array('mode', 'modo'), true)) {
+                    $mode_index = $index;
+                }
+            }
+            $has_header = null !== $q_index;
+            if (!$has_header) {
+                $q_index = 0;
+                $mode_index = isset($rows[0][1]) ? 1 : null;
+            }
+            $items = array();
+            foreach (array_slice($rows, $has_header ? 1 : 0) as $row) {
+                $items[] = array(
+                    'question' => (string) ($row[$q_index] ?? ''),
+                    'mode'     => null !== $mode_index ? (string) ($row[$mode_index] ?? $default_mode) : $default_mode,
+                );
+            }
+            return $items;
+        }
+
+        $raw = file_get_contents($path);
+        if (false === $raw) {
+            throw new RuntimeException('No se pudo leer el TXT.');
+        }
+        return self::parse_lab_text(self::strip_utf8_bom((string) $raw), $default_mode);
+    }
+
+    private static function parse_lab_text($text, $default_mode) {
+        $lines = preg_split('/\R/u', (string) $text);
+        $items = array();
+        foreach ((array) $lines as $line) {
+            $line = trim((string) $line);
+            if ('' !== $line) {
+                $items[] = array('question' => $line, 'mode' => $default_mode);
+            }
+        }
+        return $items;
+    }
+
+    private static function normalize_lab_items($items, $default_mode) {
+        $out = array();
+        $seen = array();
+        foreach ((array) $items as $item) {
+            if (is_string($item)) {
+                $item = array('question' => $item, 'mode' => $default_mode);
+            }
+            if (!is_array($item)) {
+                continue;
+            }
+            $question = sanitize_text_field((string) ($item['question'] ?? ''));
+            $question = self::shorten($question, 490);
+            if ('' === $question) {
+                continue;
+            }
+            $normalized = class_exists('SEO_Dependiente_Index') ? SEO_Dependiente_Index::normalize($question) : strtolower(remove_accents($question));
+            $key = hash('sha256', $normalized);
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $out[] = array(
+                'question' => $question,
+                'mode'     => self::sanitize_mode($item['mode'] ?? $default_mode),
+            );
+        }
+        return $out;
+    }
+
+    private static function insert_lab_questions($batch_key, $items, $meta) {
+        global $wpdb;
+        $sequence = 0;
+        $created = 0;
+        foreach ((array) $items as $item) {
+            $sequence++;
+            $question = (string) ($item['question'] ?? '');
+            $normalized = class_exists('SEO_Dependiente_Index') ? SEO_Dependiente_Index::normalize($question) : strtolower(remove_accents($question));
+            $hash = hash('sha256', $batch_key . '|' . $normalized);
+            $module_no = (int) ceil($sequence / self::LAB_MODULE_SIZE);
+            $expected = array_merge(array('kind' => 'lab'), (array) $meta);
+            $inserted = $wpdb->insert(self::questions_table(), array(
+                'question_hash' => $hash,
+                'lesson_key'    => $batch_key,
+                'lesson_order'  => 999,
+                'module_no'     => $module_no,
+                'sequence_no'   => $sequence,
+                'source_type'   => 'lab',
+                'source_id'     => null,
+                'source_key'    => 'lab:' . $sequence,
+                'question_type' => 'lab_free',
+                'mode'          => self::sanitize_mode($item['mode'] ?? 'need'),
+                'question'      => $question,
+                'expected_json' => self::json($expected),
+                'enabled'       => 1,
+                'created_at'    => current_time('mysql'),
+                'updated_at'    => current_time('mysql'),
+            ));
+            if (false !== $inserted) {
+                $created++;
+            }
+        }
+        return $created;
+    }
+
+    private static function new_lab_batch_key() {
+        return sanitize_key(self::LAB_PREFIX . current_time('Ymd_His') . '_' . substr(str_replace('-', '', wp_generate_uuid4()), 0, 8));
+    }
+
+    private static function sanitize_lab_batch_key($value) {
+        $value = sanitize_key((string) wp_unslash($value));
+        return 0 === strpos($value, self::LAB_PREFIX) ? $value : '';
+    }
+
+    private static function lab_batch_exists($batch_key) {
+        return self::question_count($batch_key) > 0;
+    }
+
+    private static function latest_lab_batch() {
+        global $wpdb;
+        $pattern = $wpdb->esc_like(self::LAB_PREFIX) . '%';
+        $row = $wpdb->get_row($wpdb->prepare(
+            'SELECT lesson_key AS batch_key, COUNT(*) AS total, MIN(created_at) AS created_at, MAX(id) AS max_id FROM ' . self::questions_table() . ' WHERE lesson_key LIKE %s AND enabled = 1 GROUP BY lesson_key ORDER BY max_id DESC LIMIT 1',
+            $pattern
+        ), ARRAY_A);
+        return is_array($row) ? $row : null;
+    }
+
+    private static function pending_lab_questions($batch_key, $limit) {
+        global $wpdb;
+        return (array) $wpdb->get_results($wpdb->prepare(
+            "SELECT q.*
+             FROM " . self::questions_table() . " q
+             LEFT JOIN " . self::runs_table() . " r
+               ON r.question_id = q.id
+              AND r.lesson_key = q.lesson_key
+              AND r.status = 'answered'
+             WHERE q.lesson_key = %s
+               AND q.enabled = 1
+               AND r.id IS NULL
+             ORDER BY q.sequence_no ASC, q.id ASC
+             LIMIT %d",
+            $batch_key,
+            max(1, absint($limit))
+        ), ARRAY_A);
+    }
+
+    private static function lab_summary($batch_key) {
+        global $wpdb;
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT COUNT(q.id) AS total,
+                    COALESCE(SUM(r.status = 'answered'), 0) AS answered,
+                    COALESCE(SUM(r.status = 'answered' AND r.returned_count > 0), 0) AS with_results,
+                    COALESCE(SUM(r.status = 'answered' AND r.returned_count = 0), 0) AS zero_results,
+                    COALESCE(SUM(r.status = 'error'), 0) AS errors
+             FROM " . self::questions_table() . " q
+             LEFT JOIN " . self::runs_table() . " r ON r.question_id = q.id AND r.lesson_key = q.lesson_key
+             WHERE q.lesson_key = %s AND q.enabled = 1",
+            $batch_key
+        ), ARRAY_A);
+        return wp_parse_args(is_array($row) ? array_map('absint', $row) : array(), self::empty_lab_summary());
+    }
+
+    private static function empty_lab_summary() {
+        return array('total' => 0, 'answered' => 0, 'with_results' => 0, 'zero_results' => 0, 'errors' => 0);
+    }
+
+    private static function strip_utf8_bom($value) {
+        $value = (string) $value;
+        return 0 === strncmp($value, "\xEF\xBB\xBF", 3) ? substr($value, 3) : $value;
     }
 
     private static function lesson_summary($lesson_key) {
