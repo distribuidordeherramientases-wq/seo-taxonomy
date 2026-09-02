@@ -301,11 +301,14 @@ add_action(
 );
 
 /* =========================================================
-   SEO SYSTEM: LOG PRIVADO
+   SEO SYSTEM: LOG PRIVADO CON ROTACION SEMANAL
    - No usa wp-content/debug.log.
    - Crea el log fuera del document root publico.
-   - Guarda la ruta absoluta en wp_options para que el plugin
-     y el panel de diagnostico usen exactamente el mismo archivo.
+   - Mantiene como maximo 7 slots, uno por dia de la semana.
+   - El log del dia actual queda abierto en .log.
+   - Al cambiar de dia, el log cerrado se comprime a .log.gz.
+   - Al volver al mismo dia una semana despues, su slot anterior
+     se elimina/sobrescribe: nunca se crea un octavo log.
 ========================================================= */
 add_action('init', 'seo_system_private_log_bootstrap', 1);
 
@@ -345,9 +348,45 @@ function seo_system_private_log_is_outside_public_root($path) {
 }
 
 /**
- * Devuelve la ruta prevista/guardada para el log privado de SEO System.
+ * Slugs fijos de los siete slots semanales.
  */
-function seo_system_get_private_log_path() {
+function seo_system_private_log_weekday_slugs() {
+
+    return array(
+        1 => 'lunes',
+        2 => 'martes',
+        3 => 'miercoles',
+        4 => 'jueves',
+        5 => 'viernes',
+        6 => 'sabado',
+        7 => 'domingo',
+    );
+}
+
+/**
+ * Devuelve la fecha y el slot correspondientes al dia actual de WordPress.
+ */
+function seo_system_private_log_current_day() {
+
+    $weekday = (int) current_time('N');
+    $slugs = seo_system_private_log_weekday_slugs();
+
+    if (!isset($slugs[$weekday])) {
+        $weekday = 1;
+    }
+
+    return array(
+        'date'    => (string) current_time('Y-m-d'),
+        'weekday' => $weekday,
+        'slug'    => $slugs[$weekday],
+    );
+}
+
+/**
+ * Devuelve el directorio privado. Si ya habia una ruta guardada fuera
+ * del document root, conserva su directorio para no cambiar de ubicacion.
+ */
+function seo_system_get_private_log_directory() {
 
     $saved_path = get_option('seo_system_private_log_path', '');
 
@@ -356,7 +395,11 @@ function seo_system_get_private_log_path() {
         $saved_path !== '' &&
         seo_system_private_log_is_outside_public_root($saved_path)
     ) {
-        return wp_normalize_path($saved_path);
+        $saved_dir = dirname(wp_normalize_path($saved_path));
+
+        if (seo_system_private_log_is_outside_public_root($saved_dir . '/seo-system-probe.tmp')) {
+            return wp_normalize_path($saved_dir);
+        }
     }
 
     $document_root = seo_system_private_log_document_root();
@@ -366,7 +409,27 @@ function seo_system_get_private_log_path() {
     }
 
     $private_dir = dirname($document_root) . '/seo-system-private';
-    $log_file = trailingslashit($private_dir) . 'seo-system.log';
+
+    if (!seo_system_private_log_is_outside_public_root($private_dir . '/seo-system-probe.tmp')) {
+        return '';
+    }
+
+    return wp_normalize_path($private_dir);
+}
+
+/**
+ * Devuelve la ruta del log activo del dia actual.
+ */
+function seo_system_get_private_log_path() {
+
+    $private_dir = seo_system_get_private_log_directory();
+
+    if ($private_dir === '') {
+        return '';
+    }
+
+    $day = seo_system_private_log_current_day();
+    $log_file = trailingslashit($private_dir) . 'seo-system-' . $day['slug'] . '.log';
 
     if (!seo_system_private_log_is_outside_public_root($log_file)) {
         return '';
@@ -376,19 +439,272 @@ function seo_system_get_private_log_path() {
 }
 
 /**
- * Crea, si hace falta, el directorio y archivo del log privado.
- * No hace fallback a wp-content: si no puede crearlo fuera del
+ * Rutas del slot de un dia: activo sin comprimir y archivo cerrado gzip.
+ */
+function seo_system_private_log_slot_paths($private_dir, $slug) {
+
+    $base = trailingslashit($private_dir) . 'seo-system-' . $slug . '.log';
+
+    return array(
+        'active'  => wp_normalize_path($base),
+        'archive' => wp_normalize_path($base . '.gz'),
+    );
+}
+
+/**
+ * Convierte el mtime de un archivo a fecha local de WordPress.
+ */
+function seo_system_private_log_file_date($path) {
+
+    $mtime = @filemtime($path);
+
+    if ($mtime === false) {
+        return '';
+    }
+
+    return wp_date('Y-m-d', $mtime, wp_timezone());
+}
+
+/**
+ * Convierte el mtime de un archivo a dia ISO de WordPress (1=lunes, 7=domingo).
+ */
+function seo_system_private_log_file_weekday($path) {
+
+    $mtime = @filemtime($path);
+
+    if ($mtime === false) {
+        return 0;
+    }
+
+    return (int) wp_date('N', $mtime, wp_timezone());
+}
+
+/**
+ * Copia un archivo a gzip y elimina el original solo cuando el gzip
+ * ha quedado creado correctamente.
+ */
+function seo_system_private_log_compress_file($source, $destination) {
+
+    if (
+        !function_exists('gzopen') ||
+        !function_exists('gzwrite') ||
+        !is_file($source) ||
+        !is_readable($source)
+    ) {
+        return false;
+    }
+
+    $input = @fopen($source, 'rb');
+
+    if ($input === false) {
+        return false;
+    }
+
+    if (!@flock($input, LOCK_EX)) {
+        @fclose($input);
+        return false;
+    }
+
+    $temporary = @tempnam(dirname($destination), '.seo-log-');
+
+    if ($temporary === false) {
+        @flock($input, LOCK_UN);
+        @fclose($input);
+        return false;
+    }
+
+    $output = @gzopen($temporary, 'wb9');
+
+    if ($output === false) {
+        @unlink($temporary);
+        @flock($input, LOCK_UN);
+        @fclose($input);
+        return false;
+    }
+
+    $ok = true;
+
+    while (!feof($input)) {
+        $chunk = fread($input, 1024 * 1024);
+
+        if ($chunk === false) {
+            $ok = false;
+            break;
+        }
+
+        if ($chunk === '') {
+            continue;
+        }
+
+        $length = strlen($chunk);
+        $offset = 0;
+
+        while ($offset < $length) {
+            $written = @gzwrite($output, substr($chunk, $offset));
+
+            if ($written === false || $written === 0) {
+                $ok = false;
+                break 2;
+            }
+
+            $offset += $written;
+        }
+    }
+
+    @gzclose($output);
+    @flock($input, LOCK_UN);
+    @fclose($input);
+
+    if (!$ok) {
+        @unlink($temporary);
+        return false;
+    }
+
+    @chmod($temporary, 0600);
+
+    if (is_file($destination) && !@unlink($destination)) {
+        @unlink($temporary);
+        return false;
+    }
+
+    if (!@rename($temporary, $destination)) {
+        @unlink($temporary);
+        return false;
+    }
+
+    @chmod($destination, 0600);
+
+    if (!@unlink($source)) {
+        // Conserva el original si no se puede completar la rotacion.
+        @unlink($destination);
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * Migra el antiguo seo-system.log a la politica semanal sin crear un
+ * archivo adicional permanente.
+ */
+function seo_system_private_log_migrate_legacy($private_dir, array $current_day) {
+
+    $legacy = trailingslashit($private_dir) . 'seo-system.log';
+
+    if (!is_file($legacy)) {
+        return true;
+    }
+
+    $current_paths = seo_system_private_log_slot_paths($private_dir, $current_day['slug']);
+    $legacy_date = seo_system_private_log_file_date($legacy);
+
+    // Si el log legacy se estaba usando hoy, pasa a ser el log activo de hoy.
+    if ($legacy_date === $current_day['date'] && !file_exists($current_paths['active'])) {
+        if (!@rename($legacy, $current_paths['active'])) {
+            return false;
+        }
+
+        @chmod($current_paths['active'], 0600);
+        return true;
+    }
+
+    $weekday = seo_system_private_log_file_weekday($legacy);
+    $slugs = seo_system_private_log_weekday_slugs();
+
+    if (!isset($slugs[$weekday])) {
+        return @unlink($legacy);
+    }
+
+    $legacy_slug = $slugs[$weekday];
+
+    // Si pertenece al mismo slot que hoy pero ya es antiguo, se descarta:
+    // hoy debe sobrescribir ese slot semanal.
+    if ($legacy_slug === $current_day['slug']) {
+        return @unlink($legacy);
+    }
+
+    $legacy_paths = seo_system_private_log_slot_paths($private_dir, $legacy_slug);
+
+    // No pisa un slot ya migrado/rotado. El legacy es solo compatibilidad.
+    if (is_file($legacy_paths['active']) || is_file($legacy_paths['archive'])) {
+        return @unlink($legacy);
+    }
+
+    return seo_system_private_log_compress_file($legacy, $legacy_paths['archive']);
+}
+
+/**
+ * Rota los siete slots. El slot actual queda en .log y los dias cerrados
+ * quedan en .log.gz. El archivo de la misma jornada de la semana anterior
+ * se elimina antes de crear el nuevo.
+ */
+function seo_system_private_log_rotate($private_dir, array $current_day) {
+
+    if (!seo_system_private_log_migrate_legacy($private_dir, $current_day)) {
+        return false;
+    }
+
+    $slugs = seo_system_private_log_weekday_slugs();
+
+    foreach ($slugs as $slug) {
+        $paths = seo_system_private_log_slot_paths($private_dir, $slug);
+
+        if ($slug === $current_day['slug']) {
+            // El gzip de este mismo dia corresponde, como minimo, a la semana
+            // anterior y debe dejar paso al slot actual.
+            if (is_file($paths['archive']) && !@unlink($paths['archive'])) {
+                return false;
+            }
+
+            if (is_file($paths['active'])) {
+                $active_date = seo_system_private_log_file_date($paths['active']);
+
+                // Mismo nombre de weekday, pero de otra semana: sobrescribir.
+                if ($active_date !== $current_day['date'] && !@unlink($paths['active'])) {
+                    return false;
+                }
+            }
+
+            continue;
+        }
+
+        // Cualquier .log de otro weekday es un dia ya cerrado.
+        if (is_file($paths['active'])) {
+            if (!seo_system_private_log_compress_file($paths['active'], $paths['archive'])) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+/**
+ * Crea, si hace falta, el directorio y el archivo activo del dia.
+ * No hace fallback a wp-content: si no puede mantener el log fuera del
  * directorio publico devuelve false.
  */
 function seo_system_private_log_bootstrap() {
 
-    $log_file = seo_system_get_private_log_path();
+    static $ready_date = '';
+    static $ready_path = '';
 
-    if ($log_file === '' || !seo_system_private_log_is_outside_public_root($log_file)) {
-        return false;
+    $current_day = seo_system_private_log_current_day();
+
+    if (
+        $ready_date === $current_day['date'] &&
+        $ready_path !== '' &&
+        is_file($ready_path) &&
+        is_writable($ready_path)
+    ) {
+        return $ready_path;
     }
 
-    $private_dir = dirname($log_file);
+    $private_dir = seo_system_get_private_log_directory();
+
+    if ($private_dir === '' || !seo_system_private_log_is_outside_public_root($private_dir . '/seo-system-probe.tmp')) {
+        return false;
+    }
 
     if (!is_dir($private_dir)) {
         if (!wp_mkdir_p($private_dir)) {
@@ -401,14 +717,35 @@ function seo_system_private_log_bootstrap() {
         return false;
     }
 
+    if (!seo_system_private_log_rotate($private_dir, $current_day)) {
+        return false;
+    }
+
+    $paths = seo_system_private_log_slot_paths($private_dir, $current_day['slug']);
+    $log_file = $paths['active'];
     $created = false;
 
     if (!file_exists($log_file)) {
-        if (@file_put_contents($log_file, '', LOCK_EX) === false) {
-            return false;
+        // 'x' evita que dos peticiones simultaneas trunquen el mismo log.
+        $handle = @fopen($log_file, 'x');
+
+        if ($handle !== false) {
+            $created = true;
+            @chmod($log_file, 0600);
+
+            $line = sprintf(
+                "[%s] [INFO] SEO System: log diario inicializado (%s).%s",
+                current_time('mysql'),
+                $current_day['date'],
+                PHP_EOL
+            );
+
+            @flock($handle, LOCK_EX);
+            @fwrite($handle, $line);
+            @fflush($handle);
+            @flock($handle, LOCK_UN);
+            @fclose($handle);
         }
-        @chmod($log_file, 0600);
-        $created = true;
     }
 
     if (!is_file($log_file) || !is_writable($log_file)) {
@@ -417,14 +754,14 @@ function seo_system_private_log_bootstrap() {
 
     update_option('seo_system_private_log_path', $log_file, false);
 
+    // Si otro proceso creo el archivo entre la comprobacion y fopen('x'),
+    // simplemente se reutiliza. La cabecera informativa no es obligatoria.
     if ($created) {
-        $line = sprintf(
-            "[%s] [INFO] SEO System: log privado inicializado.%s",
-            current_time('mysql'),
-            PHP_EOL
-        );
-        @file_put_contents($log_file, $line, FILE_APPEND | LOCK_EX);
+        clearstatcache(true, $log_file);
     }
+
+    $ready_date = $current_day['date'];
+    $ready_path = $log_file;
 
     return $log_file;
 }
