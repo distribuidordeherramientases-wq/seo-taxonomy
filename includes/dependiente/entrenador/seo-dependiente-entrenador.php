@@ -23,6 +23,8 @@ final class SEO_Dependiente_Entrenador {
     const AUTO_WORKER_HOOK = 'seo_dependiente_academy_auto_worker';
     const AUTO_ACTION_GROUP = 'seo-dependiente-academy';
     const AUTO_MAX_NO_PROGRESS = 6;
+    const AUTO_BROWSER_WATCHDOG_SECONDS = 8;
+    const AUTO_CRON_FALLBACK_SECONDS = 6;
 
     public static function init() {
         add_action('admin_enqueue_scripts', array(__CLASS__, 'enqueue'), 20);
@@ -574,10 +576,20 @@ final class SEO_Dependiente_Entrenador {
             'batch_size'          => self::AJAX_BATCH_INITIAL,
             'fast_streak'         => 0,
             'no_progress_cycles'  => 0,
+            'worker_heartbeat_at' => '',
+            'worker_heartbeat_ts' => 0,
+            'worker_runs'         => 0,
+            'worker_source'       => '',
             'last_error'          => '',
-            'last_message'        => 'Formación automática iniciada. La Academia continuará aunque cierres esta pantalla.',
+            'last_message'        => 'Formación automática iniciada. Arrancando el primer lote…',
         ));
+
+        // Deja dos vías de continuación preparadas antes de devolver el AJAX:
+        // Action Scheduler (si existe) y WP-Cron como respaldo. Además se
+        // ejecuta un primer paso en esta misma petición para que el botón no
+        // dependa de que el scheduler del hosting despierte la cola.
         self::schedule_auto_worker(0);
+        self::auto_worker('ajax_start');
         wp_send_json_success(self::automation_payload());
     }
 
@@ -586,10 +598,15 @@ final class SEO_Dependiente_Entrenador {
         if (!self::ensure_ready()) {
             wp_send_json_error(array('message' => 'Academia no disponible.'), 500);
         }
+
+        // El navegador funciona también como watchdog. Si Action Scheduler o
+        // WP-Cron están dormidos/bloqueados, una pestaña abierta puede seguir
+        // haciendo avanzar la Academia sin duplicar trabajo gracias al lock DB.
+        self::maybe_watchdog_auto_worker();
         wp_send_json_success(self::automation_payload());
     }
 
-    public static function auto_worker() {
+    public static function auto_worker($source = 'scheduler') {
         $state = self::auto_state();
         if (!self::is_auto_running($state)) {
             return;
@@ -608,6 +625,15 @@ final class SEO_Dependiente_Entrenador {
             self::schedule_auto_worker(5);
             return;
         }
+
+        $state = self::auto_state();
+        self::save_auto_state(array(
+            'worker_heartbeat_at' => current_time('mysql'),
+            'worker_heartbeat_ts' => time(),
+            'worker_runs'         => absint($state['worker_runs'] ?? 0) + 1,
+            'worker_source'       => sanitize_key((string) $source),
+            'updated_at'          => current_time('mysql'),
+        ));
 
         try {
             if (!self::ensure_ready() || !class_exists('SEO_Dependiente_API')) {
@@ -951,6 +977,10 @@ final class SEO_Dependiente_Entrenador {
             'fast_streak'        => 0,
             'no_progress_cycles' => 0,
             'last_duration'      => 0,
+            'worker_heartbeat_at'=> '',
+            'worker_heartbeat_ts'=> 0,
+            'worker_runs'        => 0,
+            'worker_source'      => '',
             'last_message'       => '',
             'last_error'         => '',
         );
@@ -986,6 +1016,7 @@ final class SEO_Dependiente_Entrenador {
         return array(
             'state' => $state,
             'running' => self::is_auto_running($state),
+            'scheduler' => self::automation_scheduler_status(),
             'current' => $current_key ? array(
                 'lesson_key'    => $current_key,
                 'lesson_order'  => absint($definition['order'] ?? 0),
@@ -1002,26 +1033,85 @@ final class SEO_Dependiente_Entrenador {
         if (!self::is_auto_running()) {
             return false;
         }
+
         $delay = max(0, absint($delay));
         $hook = self::AUTO_WORKER_HOOK;
         $args = array();
         $group = self::AUTO_ACTION_GROUP;
+        $scheduled = false;
 
-        if (function_exists('as_has_scheduled_action') && as_has_scheduled_action($hook, $args, $group)) {
-            return true;
-        }
-        if ($delay < 2 && function_exists('as_enqueue_async_action')) {
+        // Action Scheduler es la vía principal cuando WooCommerce u otro
+        // componente lo proporciona. No hacemos return temprano: un action
+        // pendiente puede quedarse atascado en algunos hostings, por lo que
+        // siempre dejamos también un evento WP-Cron de respaldo.
+        if (function_exists('as_has_scheduled_action')) {
+            $has_action = (bool) as_has_scheduled_action($hook, $args, $group);
+            if (!$has_action) {
+                if ($delay < 2 && function_exists('as_enqueue_async_action')) {
+                    as_enqueue_async_action($hook, $args, $group);
+                    $scheduled = true;
+                } elseif (function_exists('as_schedule_single_action')) {
+                    as_schedule_single_action(time() + max(1, $delay), $hook, $args, $group);
+                    $scheduled = true;
+                }
+            } else {
+                $scheduled = true;
+            }
+        } elseif (function_exists('as_enqueue_async_action') && $delay < 2) {
             as_enqueue_async_action($hook, $args, $group);
-            return true;
-        }
-        if (function_exists('as_schedule_single_action')) {
+            $scheduled = true;
+        } elseif (function_exists('as_schedule_single_action')) {
             as_schedule_single_action(time() + max(1, $delay), $hook, $args, $group);
-            return true;
+            $scheduled = true;
         }
-        if (!wp_next_scheduled($hook, $args)) {
-            wp_schedule_single_event(time() + max(1, $delay), $hook, $args);
+
+        $cron_delay = max(self::AUTO_CRON_FALLBACK_SECONDS, $delay + 3);
+        $cron_next = wp_next_scheduled($hook, $args);
+        if (!$cron_next) {
+            wp_schedule_single_event(time() + $cron_delay, $hook, $args);
+            $scheduled = true;
         }
-        return true;
+
+        // Durante peticiones web pedimos a WordPress que despierte cron cuanto
+        // antes. Es no bloqueante; si el hosting desactiva WP-Cron, el watchdog
+        // del navegador sigue siendo una tercera vía de ejecución.
+        if (function_exists('spawn_cron') && (!defined('DISABLE_WP_CRON') || !DISABLE_WP_CRON)) {
+            spawn_cron(time());
+        }
+
+        return $scheduled;
+    }
+
+    private static function maybe_watchdog_auto_worker() {
+        $state = self::auto_state();
+        if (!self::is_auto_running($state)) {
+            return;
+        }
+
+        self::schedule_auto_worker(0);
+
+        $heartbeat_ts = absint($state['worker_heartbeat_ts'] ?? 0);
+        $stale = !$heartbeat_ts || (time() - $heartbeat_ts) >= self::AUTO_BROWSER_WATCHDOG_SECONDS;
+        if ($stale) {
+            self::auto_worker('browser_watchdog');
+        }
+    }
+
+    private static function automation_scheduler_status() {
+        $hook = self::AUTO_WORKER_HOOK;
+        $args = array();
+        $group = self::AUTO_ACTION_GROUP;
+        $action_scheduler = false;
+        if (function_exists('as_has_scheduled_action')) {
+            $action_scheduler = (bool) as_has_scheduled_action($hook, $args, $group);
+        }
+        $cron_next = wp_next_scheduled($hook, $args);
+        return array(
+            'action_scheduler_available' => function_exists('as_schedule_single_action') || function_exists('as_enqueue_async_action'),
+            'action_scheduler_pending'   => $action_scheduler,
+            'wp_cron_next'               => $cron_next ? absint($cron_next) : 0,
+            'wp_cron_disabled'           => defined('DISABLE_WP_CRON') && DISABLE_WP_CRON,
+        );
     }
 
     private static function clear_auto_schedule() {
