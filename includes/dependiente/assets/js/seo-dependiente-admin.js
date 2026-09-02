@@ -8,6 +8,12 @@
     const text = document.querySelector('[data-dependiente-progress-text]');
     const indexed = document.querySelector('[data-dependiente-indexed]');
     const total = document.querySelector('[data-dependiente-total]');
+    const resetRoot = document.querySelector('[data-dependiente-reset-root]');
+    const resetPrepare = document.querySelector('[data-dependiente-reset-prepare]');
+    const resetConfirmPanel = document.querySelector('[data-dependiente-reset-confirm]');
+    const resetConfirmButton = document.querySelector('[data-dependiente-reset-confirm-button]');
+    const resetCancel = document.querySelector('[data-dependiente-reset-cancel]');
+    const resetStatus = document.querySelector('[data-dependiente-reset-status]');
 
     if (bar) {
         const initialPercent = Math.max(0, Math.min(100, Number(bar.dataset.initialPercent || 0)));
@@ -75,6 +81,57 @@
         }
     }
 
+    function showResetConfirmation() {
+        if (!resetConfirmPanel) return;
+        resetConfirmPanel.hidden = false;
+        resetConfirmPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        resetConfirmButton && resetConfirmButton.focus();
+    }
+
+    function hideResetConfirmation() {
+        if (resetConfirmPanel) resetConfirmPanel.hidden = true;
+        if (resetStatus) {
+            resetStatus.textContent = '';
+            resetStatus.classList.remove('is-error', 'is-success');
+        }
+    }
+
+    async function resetKnowledge() {
+        if (!resetConfirmButton) return;
+        resetConfirmButton.disabled = true;
+        resetCancel && (resetCancel.disabled = true);
+        resetPrepare && (resetPrepare.disabled = true);
+        if (resetStatus) {
+            resetStatus.textContent = 'Reiniciando conocimiento…';
+            resetStatus.classList.remove('is-error', 'is-success');
+        }
+        try {
+            const data = await post('seo_dependiente_reset_knowledge', { confirmation: 'BORRAR_CONOCIMIENTO' });
+            if (indexed) indexed.textContent = '0';
+            if (bar) bar.style.width = '0%';
+            if (text) text.textContent = 'Índice vacío. Reindexa el catálogo antes de iniciar la primera lección.';
+            if (resetStatus) {
+                resetStatus.textContent = data.message || 'Conocimiento reiniciado correctamente.';
+                resetStatus.classList.add('is-success');
+            }
+            if (resetRoot) {
+                resetRoot.querySelectorAll('.seo-dependiente-admin__reset-grid strong').forEach(function (node, index) {
+                    if (index < 5) node.textContent = '0';
+                });
+            }
+            if (resetConfirmPanel) resetConfirmPanel.hidden = true;
+        } catch (error) {
+            if (resetStatus) {
+                resetStatus.textContent = error.message;
+                resetStatus.classList.add('is-error');
+            }
+        } finally {
+            resetConfirmButton.disabled = false;
+            resetCancel && (resetCancel.disabled = false);
+            resetPrepare && (resetPrepare.disabled = false);
+        }
+    }
+
     document.querySelectorAll('[data-dependiente-media-field]').forEach(function (field) {
         const select = field.querySelector('[data-dependiente-media-select]');
         const clear = field.querySelector('[data-dependiente-media-clear]');
@@ -106,4 +163,7 @@
 
     reindexButton && reindexButton.addEventListener('click', reindex);
     clearButton && clearButton.addEventListener('click', clearIndex);
+    resetPrepare && resetPrepare.addEventListener('click', showResetConfirmation);
+    resetCancel && resetCancel.addEventListener('click', hideResetConfirmation);
+    resetConfirmButton && resetConfirmButton.addEventListener('click', resetKnowledge);
 }());
