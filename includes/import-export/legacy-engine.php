@@ -22,8 +22,8 @@
  * @author David Perez Martorell
  * @license GPL-2.0-or-later
  * @since 2.0.0
- * @version 2026-08-30
- * Build: 035
+ * @version 2026-09-02
+ * Build: 036
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -302,6 +302,11 @@ function seo_ie_normalize_csv_header( $header, $entity ) {
         'wc_attributes'            => 'atributos_wc_json',
         'woocommerce_attributes'   => 'atributos_wc_json',
         'seo_attributes_json'      => 'atributos_seo_json',
+        'semantic_type'            => 'tipo_semantico',
+        'semantic_role'            => 'rol',
+        'application'              => 'aplicacion',
+        'platform'                 => 'plataforma',
+        'subtype'                  => 'subtipo',
         'date_created'             => 'fecha_creacion',
         'date_modified'            => 'fecha_modificacion',
     ];
@@ -2114,6 +2119,7 @@ function seo_ie_product_v2_build_wc_attributes( $rows, $dry_run = false ) {
     return $attributes;
 }
 
+
 /**
  * Serializa los atributos SEO en JSON, manteniendo también la columna antigua.
  *
@@ -2194,6 +2200,323 @@ function seo_ie_product_v2_parse_seo_attributes_json( $encoded, $product_scope )
         ];
     }
 
+    return $result;
+}
+
+/**
+ * Valida atributos SEO contra el maestro canónico sin escribir datos.
+ *
+ * Los atributos de tipo término deben existir como término o alias. Para tipos
+ * numéricos/rango/boolean se aplican comprobaciones mínimas de forma para evitar
+ * que texto arbitrario termine en un campo estructurado.
+ *
+ * @param array $rows Filas normalizadas del parser de atributos.
+ * @return array<int,array<string,string>> Incidencias para el CSV de rechazados.
+ */
+function seo_ie_product_v2_validate_seo_attributes( $rows ) {
+    $issues = [];
+
+    if ( ! function_exists( 'seo_attributes_get_definition' ) ) {
+        throw new RuntimeException( 'El servicio canónico de atributos no está disponible.' );
+    }
+
+    $counts = [];
+
+    foreach ( (array) $rows as $row ) {
+        if ( ! is_array( $row ) ) {
+            continue;
+        }
+
+        $type  = sanitize_key( (string) ( $row['attribute_type'] ?? $row['slug'] ?? '' ) );
+        $value = sanitize_textarea_field( trim( (string) ( $row['attribute_value'] ?? $row['value'] ?? '' ) ) );
+
+        if ( '' === $type || '' === $value ) {
+            $issues[] = [
+                'domain' => 'attributes',
+                'field'  => $type ?: 'atributo',
+                'value'  => $value,
+                'reason' => 'El atributo está incompleto.',
+            ];
+            continue;
+        }
+
+        $definition = seo_attributes_get_definition( $type, true );
+        if ( ! is_array( $definition ) ) {
+            $issues[] = [
+                'domain' => 'attributes',
+                'field'  => $type,
+                'value'  => $value,
+                'reason' => sprintf( 'El atributo «%s» no existe o está inactivo en el vocabulario canónico.', $type ),
+            ];
+            continue;
+        }
+
+        $attribute_id = absint( $definition['id'] ?? 0 );
+        $counts[ $attribute_id ] = absint( $counts[ $attribute_id ] ?? 0 ) + 1;
+
+        $data_type = sanitize_key( (string) ( $definition['tipo'] ?? 'texto' ) );
+
+        if ( 'termino' === $data_type ) {
+            $term = function_exists( 'seo_attributes_resolve_term' )
+                ? seo_attributes_resolve_term( $attribute_id, $value )
+                : null;
+
+            if ( ! $term ) {
+                $issues[] = [
+                    'domain' => 'attributes',
+                    'field'  => $type,
+                    'value'  => $value,
+                    'reason' => sprintf( 'El valor «%s» no existe como término o alias activo de «%s».', $value, $type ),
+                ];
+            }
+            continue;
+        }
+
+        if ( in_array( $data_type, [ 'numero', 'rango' ], true ) ) {
+            if ( ! preg_match( '/[-+]?\d+(?:[\.,]\d+)?/u', $value ) ) {
+                $issues[] = [
+                    'domain' => 'attributes',
+                    'field'  => $type,
+                    'value'  => $value,
+                    'reason' => sprintf( '«%s» requiere un valor numérico o rango reconocible.', $type ),
+                ];
+            }
+            continue;
+        }
+
+        if ( 'boolean' === $data_type ) {
+            $normalized_bool = trim( $value );
+            $normalized_bool = function_exists( 'mb_strtolower' )
+                ? mb_strtolower( $normalized_bool, 'UTF-8' )
+                : strtolower( $normalized_bool );
+            $normalized_bool = remove_accents( $normalized_bool );
+            if ( ! in_array( $normalized_bool, [ '1', '0', 'si', 'no', 'true', 'false', 'yes' ], true ) ) {
+                $issues[] = [
+                    'domain' => 'attributes',
+                    'field'  => $type,
+                    'value'  => $value,
+                    'reason' => sprintf( '«%s» requiere un valor booleano reconocible.', $type ),
+                ];
+            }
+        }
+    }
+
+    /* Un atributo no múltiple no puede recibir varias filas en la misma carga. */
+    foreach ( $counts as $attribute_id => $count ) {
+        if ( $count < 2 ) {
+            continue;
+        }
+
+        $definition = null;
+        foreach ( (array) $rows as $row ) {
+            $candidate = sanitize_key( (string) ( $row['attribute_type'] ?? $row['slug'] ?? '' ) );
+            if ( '' === $candidate ) {
+                continue;
+            }
+            $candidate_def = seo_attributes_get_definition( $candidate, true );
+            if ( is_array( $candidate_def ) && absint( $candidate_def['id'] ?? 0 ) === absint( $attribute_id ) ) {
+                $definition = $candidate_def;
+                break;
+            }
+        }
+
+        if ( is_array( $definition ) && empty( $definition['multiple'] ) ) {
+            $issues[] = [
+                'domain' => 'attributes',
+                'field'  => sanitize_key( (string) ( $definition['slug'] ?? 'atributo' ) ),
+                'value'  => (string) $count,
+                'reason' => 'El atributo no admite múltiples valores en el maestro canónico.',
+            ];
+        }
+    }
+
+    return $issues;
+}
+
+/**
+ * Resuelve etiquetas semánticas de producto exclusivamente contra el vocabulario
+ * canónico activo. Nunca crea vocabulario.
+ *
+ * @param array $row Fila CSV normalizada.
+ * @return array{groups:array,issues:array,has_values:bool}
+ */
+function seo_ie_product_v2_resolve_semantic_labels( $row ) {
+    $result = [
+        'groups'     => [],
+        'issues'     => [],
+        'has_values' => false,
+    ];
+
+    if ( ! function_exists( 'seo_catalog_find_active_vocabulary_term' ) ) {
+        throw new RuntimeException( 'El vocabulario semántico canónico no está disponible.' );
+    }
+
+    $columns = [
+        'tipo'       => [ 'tipo_semantico', 'tipo' ],
+        'aplicacion' => [ 'aplicacion' ],
+        'plataforma' => [ 'plataforma' ],
+        'subtipo'    => [ 'subtipo' ],
+    ];
+
+    foreach ( $columns as $group => $candidates ) {
+        $raw = null;
+        foreach ( $candidates as $column ) {
+            if ( array_key_exists( $column, $row ) ) {
+                $raw = $row[ $column ];
+                break;
+            }
+        }
+
+        if ( null === $raw || '' === trim( (string) $raw ) ) {
+            continue;
+        }
+
+        $result['has_values'] = true;
+        $values = seo_ie_product_v2_name_list( $raw );
+
+        if ( 'tipo' === $group && 1 !== count( $values ) ) {
+            $result['issues'][] = [
+                'domain' => 'semantic_labels',
+                'field'  => $group,
+                'value'  => is_scalar( $raw ) ? (string) $raw : wp_json_encode( $raw ),
+                'reason' => 'TIPO debe contener exactamente un valor canónico.',
+            ];
+            continue;
+        }
+
+        $ids = [];
+        foreach ( $values as $value ) {
+            $term = seo_catalog_find_active_vocabulary_term( $group, $value );
+            if ( ! is_array( $term ) ) {
+                $result['issues'][] = [
+                    'domain' => 'semantic_labels',
+                    'field'  => $group,
+                    'value'  => $value,
+                    'reason' => sprintf( '«%s» no existe o está inactivo en el vocabulario %s.', $value, strtoupper( $group ) ),
+                ];
+                continue;
+            }
+            $ids[] = absint( $term['id'] ?? 0 );
+        }
+
+        if ( count( $ids ) === count( $values ) ) {
+            $result['groups'][ $group ] = array_values( array_unique( array_filter( $ids ) ) );
+        }
+    }
+
+    $derived_role_from_type = null;
+    if ( ! empty( $result['groups']['tipo'] ) ) {
+        if ( ! function_exists( 'seo_catalog_get_role_for_type_vocabulary' ) ) {
+            throw new RuntimeException( 'No está disponible el mapa canónico TIPO → ROL.' );
+        }
+
+        $derived_role_from_type = seo_catalog_get_role_for_type_vocabulary( (int) $result['groups']['tipo'][0] );
+        if ( ! is_array( $derived_role_from_type ) || absint( $derived_role_from_type['id'] ?? 0 ) < 1 ) {
+            $result['issues'][] = [
+                'domain' => 'semantic_labels',
+                'field'  => 'tipo',
+                'value'  => (string) ( $row['tipo_semantico'] ?? $row['tipo'] ?? '' ),
+                'reason' => 'El TIPO existe, pero no tiene un ROL activo asociado en el mapa canónico.',
+            ];
+            unset( $result['groups']['tipo'] );
+        }
+    }
+
+    /* ROL es de solo validación: siempre se materializa desde TIPO. */
+    if ( array_key_exists( 'rol', $row ) && '' !== trim( (string) $row['rol'] ) ) {
+        $result['has_values'] = true;
+        $role_values = seo_ie_product_v2_name_list( $row['rol'] );
+
+        if ( 1 !== count( $role_values ) ) {
+            $result['issues'][] = [
+                'domain' => 'semantic_labels',
+                'field'  => 'rol',
+                'value'  => (string) $row['rol'],
+                'reason' => 'ROL debe contener un único valor y no se importa directamente.',
+            ];
+        } else {
+            $role_term = seo_catalog_find_active_vocabulary_term( 'rol', $role_values[0] );
+            if ( ! is_array( $role_term ) ) {
+                $result['issues'][] = [
+                    'domain' => 'semantic_labels',
+                    'field'  => 'rol',
+                    'value'  => $role_values[0],
+                    'reason' => 'El ROL indicado no existe o está inactivo.',
+                ];
+            } elseif ( empty( $result['groups']['tipo'] ) ) {
+                $result['issues'][] = [
+                    'domain' => 'semantic_labels',
+                    'field'  => 'rol',
+                    'value'  => $role_values[0],
+                    'reason' => 'ROL no se importa directamente. Debe venir acompañado de un TIPO válido para poder derivarlo.',
+                ];
+            } elseif ( ! empty( $result['groups']['tipo'] ) && function_exists( 'seo_catalog_get_role_for_type_vocabulary' ) ) {
+                $derived = is_array( $derived_role_from_type )
+                    ? $derived_role_from_type
+                    : seo_catalog_get_role_for_type_vocabulary( (int) $result['groups']['tipo'][0] );
+                if ( ! is_array( $derived ) || absint( $derived['id'] ?? 0 ) !== absint( $role_term['id'] ?? 0 ) ) {
+                    $result['issues'][] = [
+                        'domain' => 'semantic_labels',
+                        'field'  => 'rol',
+                        'value'  => $role_values[0],
+                        'reason' => 'El ROL indicado no coincide con el ROL canónico derivado del TIPO.',
+                    ];
+                }
+            }
+        }
+    }
+
+    return $result;
+}
+
+/**
+ * Resuelve términos existentes de una taxonomía sin crear ninguno.
+ *
+ * @param string $taxonomy Taxonomía de WordPress.
+ * @param mixed  $ids_value IDs recibidos.
+ * @param mixed  $names_value Nombres recibidos.
+ * @return array{ids:array,issues:array,has_values:bool}
+ */
+function seo_ie_product_v2_resolve_existing_terms( $taxonomy, $ids_value, $names_value ) {
+    $result = [ 'ids' => [], 'issues' => [], 'has_values' => false ];
+
+    foreach ( seo_ie_product_v2_list( $ids_value ) as $raw_id ) {
+        $result['has_values'] = true;
+        $term_id = absint( $raw_id );
+        $term    = $term_id ? get_term( $term_id, $taxonomy ) : null;
+
+        if ( $term && ! is_wp_error( $term ) ) {
+            $result['ids'][] = $term_id;
+        } else {
+            $result['issues'][] = [
+                'domain' => 'wc_tags',
+                'field'  => $taxonomy,
+                'value'  => (string) $raw_id,
+                'reason' => sprintf( 'El término ID %d no existe en %s.', $term_id, $taxonomy ),
+            ];
+        }
+    }
+
+    foreach ( seo_ie_product_v2_name_list( $names_value ) as $name ) {
+        $result['has_values'] = true;
+        $term = get_term_by( 'name', $name, $taxonomy );
+        if ( ! $term ) {
+            $term = get_term_by( 'slug', sanitize_title( $name ), $taxonomy );
+        }
+
+        if ( $term && ! is_wp_error( $term ) ) {
+            $result['ids'][] = absint( $term->term_id );
+        } else {
+            $result['issues'][] = [
+                'domain' => 'wc_tags',
+                'field'  => $taxonomy,
+                'value'  => $name,
+                'reason' => sprintf( '«%s» no existe en %s. El importador seguro no crea términos nuevos.', $name, $taxonomy ),
+            ];
+        }
+    }
+
+    $result['ids'] = array_values( array_unique( array_filter( array_map( 'absint', $result['ids'] ) ) ) );
     return $result;
 }
 
@@ -4760,6 +5083,9 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
         $last_product_reference = absint( $row['product_id'] ?? 0 );
 
         try {
+            $rejection_issues = [];
+            $semantic_labels  = null;
+
             $located = seo_ie_product_v2_locate( $row );
 
             foreach ( $located['warnings'] as $warning ) {
@@ -4822,20 +5148,44 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
 
             $tag_resolution = null;
             if ( ! empty( $options['wc_tags'] ) && ( array_key_exists( 'etiquetas_wc_ids', $row ) || array_key_exists( 'etiquetas_wc', $row ) ) ) {
-                $tag_resolution = seo_ie_product_v2_resolve_terms(
-                    'product_tag',
-                    $row['etiquetas_wc_ids'] ?? '',
-                    $row['etiquetas_wc'] ?? '',
-                    true,
-                    true
-                );
+                if ( ! empty( $state['batch_queue_mode'] ) ) {
+                    $tag_resolution = seo_ie_product_v2_resolve_existing_terms(
+                        'product_tag',
+                        $row['etiquetas_wc_ids'] ?? '',
+                        $row['etiquetas_wc'] ?? ''
+                    );
 
-                if ( ! empty( $tag_resolution['errors'] ) ) {
-                    throw new RuntimeException( 'Etiquetas WooCommerce: ' . implode( ' | ', $tag_resolution['errors'] ) );
+                    if ( ! empty( $tag_resolution['issues'] ) ) {
+                        $rejection_issues = array_merge( $rejection_issues, (array) $tag_resolution['issues'] );
+                        $tag_resolution = null;
+                    }
+                } else {
+                    /* Compatibilidad con el importador histórico fuera de la cola automática. */
+                    $tag_resolution = seo_ie_product_v2_resolve_terms(
+                        'product_tag',
+                        $row['etiquetas_wc_ids'] ?? '',
+                        $row['etiquetas_wc'] ?? '',
+                        true,
+                        true
+                    );
+
+                    if ( ! empty( $tag_resolution['errors'] ) ) {
+                        throw new RuntimeException( 'Etiquetas WooCommerce: ' . implode( ' | ', $tag_resolution['errors'] ) );
+                    }
+
+                    foreach ( $tag_resolution['warnings'] as $warning ) {
+                        seo_ie_add_log_warning( $log, sprintf( 'Fila %d: %s', $line, $warning ) );
+                    }
                 }
+            }
 
-                foreach ( $tag_resolution['warnings'] as $warning ) {
-                    seo_ie_add_log_warning( $log, sprintf( 'Fila %d: %s', $line, $warning ) );
+            if ( ! empty( $options['labels'] ) || ! empty( $options['vocabulary'] ) ) {
+                $semantic_labels = seo_ie_product_v2_resolve_semantic_labels( $row );
+                if ( ! empty( $semantic_labels['issues'] ) ) {
+                    $rejection_issues = array_merge( $rejection_issues, (array) $semantic_labels['issues'] );
+                    // La clasificación semántica se trata como una unidad: si un
+                    // valor no es canónico, no se modifica ningún grupo de la fila.
+                    $semantic_labels['groups'] = [];
                 }
             }
 
@@ -4925,7 +5275,28 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
                 }
 
                 if ( is_array( $seo_attributes ) && ! empty( $seo_attributes['errors'] ) ) {
-                    throw new RuntimeException( 'Atributos SEO: ' . implode( ' | ', $seo_attributes['errors'] ) );
+                    if ( ! empty( $state['batch_queue_mode'] ) ) {
+                        foreach ( (array) $seo_attributes['errors'] as $attribute_error ) {
+                            $rejection_issues[] = [
+                                'domain' => 'attributes',
+                                'field'  => array_key_exists( 'atributos_seo_json', $row ) ? 'atributos_seo_json' : 'atributos_seo',
+                                'value'  => (string) ( $row['atributos_seo_json'] ?? $row['atributos_seo'] ?? '' ),
+                                'reason' => sanitize_text_field( (string) $attribute_error ),
+                            ];
+                        }
+                        $seo_attributes = null;
+                    } else {
+                        throw new RuntimeException( 'Atributos SEO: ' . implode( ' | ', $seo_attributes['errors'] ) );
+                    }
+                } elseif ( is_array( $seo_attributes ) && ! empty( $state['batch_queue_mode'] ) ) {
+                    $attribute_issues = seo_ie_product_v2_validate_seo_attributes( (array) ( $seo_attributes['rows'] ?? [] ) );
+                    if ( ! empty( $attribute_issues ) ) {
+                        $rejection_issues = array_merge( $rejection_issues, $attribute_issues );
+                        // replace_product() sustituye el conjunto completo. Si una
+                        // fila contiene un atributo inválido, rechazamos la fila
+                        // completa antes de realizar ninguna escritura.
+                        $seo_attributes = null;
+                    }
                 }
             }
 
@@ -4975,6 +5346,38 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
 
                 if ( '' !== $sale && '' !== $regular && (float) $sale > (float) $regular ) {
                     throw new RuntimeException( 'El precio rebajado no puede ser mayor que el precio normal.' );
+                }
+            }
+
+            if ( ! empty( $rejection_issues ) ) {
+                $written_rejections = function_exists( 'seo_ie_batch_product_record_rejections' )
+                    ? seo_ie_batch_product_record_rejections( $state, $line, $row, $rejection_issues, $product_id )
+                    : 0;
+
+                if ( $written_rejections > 0 ) {
+                    $log['advertencias'] = absint( $log['advertencias'] ?? 0 ) + 1;
+                    $log['omitidos']     = absint( $log['omitidos'] ?? 0 ) + 1;
+                    $log['rechazados_enriquecimiento'] = absint( $state['rejected_count'] ?? 0 );
+                    $log['incidencias_enriquecimiento'] = absint( $state['rejected_issue_count'] ?? 0 );
+
+                    /*
+                     * La fila completa se deja intacta. Así el CSV de rechazados
+                     * puede corregirse y reimportarse después de dar de alta el
+                     * vocabulario necesario, sin haber aplicado cambios parciales.
+                     */
+                    continue;
+                } elseif ( ! empty( $state['batch_queue_mode'] ) ) {
+                    throw new RuntimeException( 'Se detectó enriquecimiento no válido, pero no se pudo escribir el CSV de rechazados.' );
+                } else {
+                    $rejection_messages = array_values(
+                        array_filter(
+                            array_map(
+                                static fn( $issue ) => is_array( $issue ) ? sanitize_text_field( (string) ( $issue['reason'] ?? '' ) ) : '',
+                                $rejection_issues
+                            )
+                        )
+                    );
+                    throw new RuntimeException( 'Enriquecimiento no válido: ' . implode( ' | ', $rejection_messages ) );
                 }
             }
 
@@ -5171,7 +5574,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
                 }
             }
 
-            if ( is_array( $tag_resolution ) ) {
+            if ( is_array( $tag_resolution ) && empty( $state['batch_queue_mode'] ) ) {
                 $tag_resolution = seo_ie_product_v2_resolve_terms(
                     'product_tag',
                     $row['etiquetas_wc_ids'] ?? '',
@@ -5185,6 +5588,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
                 }
             }
 
+            /* En la cola automática tag_resolution ya contiene solo IDs existentes. */
             if ( is_array( $brand_resolution ) && '' !== $brand_taxonomy ) {
                 $brand_resolution = seo_ie_product_v2_resolve_terms(
                     $brand_taxonomy,
@@ -5234,6 +5638,28 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
                     if ( is_wp_error( $assigned ) ) {
                         throw new RuntimeException( $assigned->get_error_message() );
                     }
+                }
+            }
+
+            if (
+                is_array( $semantic_labels )
+                && ! empty( $semantic_labels['has_values'] )
+                && ! empty( $semantic_labels['groups'] )
+            ) {
+                if ( ! function_exists( 'seo_catalog_apply_product_vocabulary_changes' ) ) {
+                    throw new RuntimeException( 'El servicio de asignación del vocabulario semántico no está disponible.' );
+                }
+
+                $semantic_result = seo_catalog_apply_product_vocabulary_changes(
+                    $product_id,
+                    (array) $semantic_labels['groups'],
+                    'import_export_product_v2'
+                );
+
+                if ( empty( $semantic_result['ok'] ) ) {
+                    throw new RuntimeException(
+                        'Etiquetas semánticas: ' . (string) ( $semantic_result['message'] ?? 'No se pudieron aplicar.' )
+                    );
                 }
             }
 
