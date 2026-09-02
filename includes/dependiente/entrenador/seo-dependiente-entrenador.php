@@ -11,7 +11,11 @@ defined('ABSPATH') || exit;
  */
 final class SEO_Dependiente_Entrenador {
     const DB_VERSION = '2026-09-01.1';
-    const AJAX_BATCH_LIMIT = 6;
+    // Lotes deliberadamente pequenos. El navegador ajusta entre 1 y 4 segun
+    // el tiempo real de respuesta del servidor.
+    const AJAX_BATCH_MIN = 1;
+    const AJAX_BATCH_INITIAL = 1;
+    const AJAX_BATCH_LIMIT = 4;
     const QUESTION_LIST_LIMIT = 1000;
     const RECENT_RUN_LIMIT = 1000;
 
@@ -119,7 +123,13 @@ final class SEO_Dependiente_Entrenador {
         wp_localize_script('seo-dependiente-entrenador', 'SEODependienteEntrenador', array(
             'ajaxUrl'   => admin_url('admin-ajax.php'),
             'nonce'     => wp_create_nonce('seo_dependiente_entrenador'),
-            'batchSize' => self::AJAX_BATCH_LIMIT,
+            'batchSize'    => self::AJAX_BATCH_INITIAL,
+            'batchMin'     => self::AJAX_BATCH_MIN,
+            'batchMax'     => self::AJAX_BATCH_LIMIT,
+            'fastSeconds'  => 2.5,
+            'slowSeconds'  => 7.0,
+            'hardSeconds'  => 14.0,
+            'maxRetries'   => 6,
         ));
     }
 
@@ -438,14 +448,16 @@ final class SEO_Dependiente_Entrenador {
         }
         $type = self::sanitize_type($_POST['type'] ?? '');
         $offset = max(0, absint($_POST['offset'] ?? 0));
-        $ids = self::sanitize_ids($_POST['ids'] ?? array(), self::AJAX_BATCH_LIMIT);
+        $batch_limit = self::sanitize_batch_size($_POST['batch_size'] ?? self::AJAX_BATCH_INITIAL);
+        $ids = self::sanitize_ids($_POST['ids'] ?? array(), $batch_limit);
 
         $total_scope = self::scope_count($scope, $type, $ids);
-        $questions = self::scope_questions($scope, $type, $offset, $ids, self::AJAX_BATCH_LIMIT);
+        $questions = self::scope_questions($scope, $type, $offset, $ids, $batch_limit);
         if (!$questions) {
             wp_send_json_success(array(
                 'batch_uuid'  => $batch_uuid,
                 'processed'   => 0,
+                'batch_size'  => $batch_limit,
                 'next_offset' => $offset,
                 'total_scope' => $total_scope,
                 'done'        => true,
@@ -468,11 +480,12 @@ final class SEO_Dependiente_Entrenador {
 
         $processed = count($questions);
         $next_offset = $offset + $processed;
-        $done = 'ids' === $scope ? true : ($next_offset >= $total_scope || $processed < self::AJAX_BATCH_LIMIT);
+        $done = 'ids' === $scope ? true : ($next_offset >= $total_scope || $processed < $batch_limit);
 
         wp_send_json_success(array(
             'batch_uuid'  => $batch_uuid,
             'processed'   => $processed,
+            'batch_size'  => $batch_limit,
             'next_offset' => $next_offset,
             'total_scope' => $total_scope,
             'done'        => $done,
@@ -492,6 +505,21 @@ final class SEO_Dependiente_Entrenador {
 
     private static function run_question($question, $batch_uuid) {
         global $wpdb;
+
+        // Una peticion HTTP puede terminar en el servidor aunque el navegador no
+        // reciba la respuesta (Failed to fetch, 502, timeout...). Al reintentar el
+        // mismo lote no ejecutamos dos veces una pregunta ya guardada.
+        $question_id = absint($question['id'] ?? 0);
+        if ($question_id && $batch_uuid) {
+            $existing_run_id = absint($wpdb->get_var($wpdb->prepare(
+                'SELECT id FROM ' . self::runs_table() . ' WHERE batch_uuid = %s AND question_id = %d ORDER BY id ASC LIMIT 1',
+                $batch_uuid,
+                $question_id
+            )));
+            if ($existing_run_id) {
+                return $existing_run_id;
+            }
+        }
 
         $request = new WP_REST_Request('POST', '/seo-taxonomy/v1/search');
         $request->set_body_params(array(
@@ -979,6 +1007,14 @@ final class SEO_Dependiente_Entrenador {
 
     private static function is_known_mode($mode) {
         return in_array(sanitize_key((string) $mode), array('need', 'product', 'tool', 'compare'), true);
+    }
+
+    private static function sanitize_batch_size($value) {
+        $value = absint($value);
+        if ($value < self::AJAX_BATCH_MIN) {
+            $value = self::AJAX_BATCH_INITIAL;
+        }
+        return min(self::AJAX_BATCH_LIMIT, max(self::AJAX_BATCH_MIN, $value));
     }
 
     private static function sanitize_ids($raw, $limit) {
