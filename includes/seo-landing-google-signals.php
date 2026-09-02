@@ -352,38 +352,32 @@ function seo_landing_google_source_status() {
         ];
     }
 
-    if ( function_exists( 'seo_google_trends_get_signals' ) ) {
+    if ( function_exists( 'seo_google_trends_provider_status' ) ) {
+        $trends_status = (array) seo_google_trends_provider_status();
+        $radar = is_array( $trends_status['radar'] ?? null ) ? $trends_status['radar'] : [];
+        $market = is_array( $trends_status['market'] ?? null ) ? $trends_status['market'] : [];
+        $radar_ok = ! empty( $radar['connected'] );
+
+        $status['trends'] = [
+            // Indica si la descarga automática actual está operativa. Los CSV
+            // almacenados se detallan aparte y no ocultan un fallo de conexión.
+            'connected' => $radar_ok,
+            'detail'    => 'Radar automático: ' . (string) ( $radar['detail'] ?? 'sin diagnóstico' )
+                . ' Explore/mercado: ' . (string) ( $market['detail'] ?? 'sin diagnóstico' ),
+        ];
+    } elseif ( function_exists( 'seo_google_trends_get_signals' ) ) {
+        // Compatibilidad con instalaciones que todavía carguen el proveedor anterior.
         $rows = (array) seo_google_trends_get_signals( 5 );
-        if ( ! empty( $rows ) ) {
-            $status['trends'] = [
-                'connected' => true,
-                'detail'    => 'Datos de Trends disponibles; se usaran como senal adicional.',
-            ];
-        } else {
-            $last_error = '';
-            if ( function_exists( 'seo_google_trends_last_error' ) ) {
-                $last_error = (string) seo_google_trends_last_error();
-            }
-            if ( '' === $last_error ) {
-                foreach ( [ 'seo_google_trends_last_error', 'seo_google_trends_last_error_v1' ] as $transient_key ) {
-                    $candidate_error = get_transient( $transient_key );
-                    if ( is_string( $candidate_error ) && '' !== trim( $candidate_error ) ) {
-                        $last_error = trim( $candidate_error );
-                        break;
-                    }
-                }
-            }
-            $status['trends'] = [
-                'connected' => false,
-                'detail'    => $last_error
-                    ? 'Modulo cargado; 0 senales. Ultimo error: ' . $last_error
-                    : 'Modulo cargado; 0 senales importadas. Revisar importacion/proveedor; no bloquea el scoring.',
-            ];
-        }
+        $status['trends'] = [
+            'connected' => ! empty( $rows ),
+            'detail'    => ! empty( $rows )
+                ? 'Datos de Trends disponibles mediante el módulo anterior.'
+                : 'Módulo de Trends cargado, pero sin señales ni diagnóstico estructurado.',
+        ];
     } else {
         $status['trends'] = [
             'connected' => false,
-            'detail'    => 'Modulo seo-google-trends.php no cargado; el sistema continuara con GSC + catalogo.',
+            'detail'    => 'Módulo seo-google-trends.php no cargado; el sistema continuará con Search Console + catálogo.',
         ];
     }
 
@@ -510,12 +504,108 @@ function seo_landing_google_metrics_for_page( $page_id ) {
 }
 
 /**
+ * Convierte las decisiones de landing del motor V2 al inventario editorial.
+ * Una landing existente se registra como solapamiento: nunca autoriza otra URL.
+ */
+function seo_landing_google_candidate_signals_v2( $signals ) {
+    $signals = is_array( $signals ) ? $signals : [];
+    $payload = (array) seo_google_opportunity_build( 60, false );
+
+    foreach ( (array) ( $payload['rows'] ?? [] ) as $row ) {
+        $action = (string) ( $row['action'] ?? '' );
+        if ( ! in_array( $action, [ 'POTENCIAR_LANDING', 'ESTUDIAR_LANDING' ], true ) ) {
+            continue;
+        }
+
+        $title = sanitize_text_field( $row['topic'] ?? '' );
+        if ( '' === $title ) {
+            continue;
+        }
+
+        $target = is_array( $row['target'] ?? null ) ? $row['target'] : [];
+        $catalog = is_array( $row['catalog'] ?? null ) ? $row['catalog'] : [];
+        $metrics = is_array( $row['metrics'] ?? null ) ? $row['metrics'] : [];
+        $market = is_array( $row['market'] ?? null ) ? $row['market'] : [];
+        $sources = array_values( array_filter( array_map( 'sanitize_text_field', (array) ( $row['sources'] ?? [] ) ) ) );
+
+        $products = max( 0, (int) ( $catalog['products'] ?? 0 ) );
+        $priority = max( 0, min( 100, (float) ( $row['priority'] ?? 0 ) ) );
+        $search_score = max( 0, min( 100, (float) ( $metrics['search_score'] ?? 0 ) ) );
+        $market_score = max( 0, min( 100, (float) ( $market['score'] ?? $metrics['market_score'] ?? 0 ) ) );
+        $impressions = max( 0, (float) ( $metrics['impressions'] ?? 0 ) );
+        $position = max( 0, (float) ( $metrics['position'] ?? 0 ) );
+        $has_target = ! empty( $target['id'] ) || ! empty( $target['url'] ) || ! empty( $target['title'] );
+        $has_catalog_context = $products > 0 || ! empty( $catalog['category'] ) || ! empty( $catalog['term_id'] );
+        $has_search_evidence = $search_score >= 35 || $impressions >= 5 || in_array( 'Search Console', $sources, true );
+        $has_market_evidence = $market_score >= 55 || in_array( 'Google Trends', $sources, true );
+
+        $visibility_score = 0.0;
+        if ( $impressions > 0 ) {
+            $visibility_score = min( 7, log( 1 + $impressions ) * 1.15 );
+        }
+        if ( $position >= 11 ) {
+            $visibility_score = min( 10, $visibility_score + 3 );
+        }
+
+        $existing_text = '';
+        if ( $has_target ) {
+            $existing_text = trim(
+                ( ! empty( $target['id'] ) ? '#' . absint( $target['id'] ) . ' ' : '' )
+                . (string) ( $target['title'] ?? '' )
+                . ( ! empty( $target['similarity'] ) ? ' (similitud ' . round( (float) $target['similarity'] * 100 ) . '%)' : '' )
+            );
+        }
+
+        $evidence = array_values( array_filter( array_map( 'sanitize_text_field', (array) ( $row['evidence'] ?? [] ) ) ) );
+        $intent_text = trim( (string) ( $row['reason'] ?? '' ) );
+        if ( $evidence ) {
+            $intent_text .= ( '' !== $intent_text ? ' ' : '' ) . 'Evidencias: ' . implode( ', ', array_slice( $evidence, 0, 4 ) ) . '.';
+        }
+
+        $signals[] = [
+            'title'        => $title,
+            'intent'       => $intent_text,
+            'landing_type' => 'need',
+            'source'       => 'Motor de oportunidades V2' . ( $sources ? ' · ' . implode( ' + ', $sources ) : '' ),
+            // Mantiene el prefijo histórico para que la limpieza de señales
+            // obsoletas y la compatibilidad con candidatas anteriores funcionen.
+            'external_key' => 'google_landing_v2_' . md5( seo_landing_google_text_normalize( $title ) ),
+            'requirements' => [
+                'differentiated_intent' => ( 'POTENCIAR_LANDING' === $action || $has_target ) ? 0 : 1,
+                'unites_catalog'        => $has_catalog_context ? 1 : -1,
+                'enough_coverage'       => $products >= 8 ? 1 : -1,
+                'purchase_utility'      => ( $has_search_evidence || $has_market_evidence ) ? 1 : -1,
+                'stable_destination'    => ( $has_target || ( $has_catalog_context && $products >= 8 ) ) ? 1 : -1,
+            ],
+            'scores' => [
+                'commercial' => round( min( 30, $priority * 0.30 ), 1 ),
+                'organic'    => round( min( 25, $search_score > 0 ? $search_score * 0.25 : $priority * 0.18 ), 1 ),
+                'demand'     => round( min( 15, $market_score > 0 ? $market_score * 0.15 : log( 1 + $impressions ) * 1.7 ), 1 ),
+                'catalog'    => round( min( 15, $products > 0 ? log( 1 + $products ) * 4.1 : ( $has_catalog_context ? 4 : 0 ) ), 1 ),
+                'visibility' => round( $visibility_score, 1 ),
+                'editorial'  => 3,
+            ],
+            'existing_destination'   => $existing_text,
+            'differentiation_reason' => 'POTENCIAR_LANDING' === $action
+                ? 'Reforzar la URL existente; no crear otra landing para la misma intención.'
+                : 'Validar manualmente que la intención, el destino y la cobertura justifican una URL independiente.',
+        ];
+    }
+
+    return $signals;
+}
+
+/**
  * Convierte las oportunidades ya calculadas por Demanda x Catalogo en senales
  * para el gestor de landings. Se mantienen como detectadas hasta revision
  * manual; Google no puede demostrar por si solo los cinco requisitos editoriales.
  */
 function seo_landing_google_candidate_signals( $signals ) {
     $signals = is_array( $signals ) ? $signals : [];
+
+    if ( function_exists( 'seo_google_opportunity_build' ) ) {
+        return seo_landing_google_candidate_signals_v2( $signals );
+    }
 
     if (
         ! function_exists( 'seo_google_get_settings' )

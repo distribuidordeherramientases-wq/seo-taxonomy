@@ -22,7 +22,7 @@ const SEO_GOOGLE_SCOPE_SEARCH_CONSOLE = 'https://www.googleapis.com/auth/webmast
 const SEO_GOOGLE_OPTION_SETTINGS       = 'seo_google_intelligence_settings';
 const SEO_GOOGLE_OPTION_TOKENS         = 'seo_google_intelligence_tokens';
 const SEO_GOOGLE_OPTION_DB_VERSION     = 'seo_google_intelligence_db_version';
-const SEO_GOOGLE_MODULE_VERSION        = '1.9.0';
+const SEO_GOOGLE_MODULE_VERSION        = '2.0.0';
 const SEO_GOOGLE_DB_VERSION            = '1.3.0';
 const SEO_GOOGLE_INITIAL_SYNC_DAYS      = 90;
 const SEO_GOOGLE_FINAL_DATA_DELAY_DAYS = 3;
@@ -41,7 +41,13 @@ if (file_exists($seo_google_trends_file)) {
     require_once $seo_google_trends_file;
 }
 
-// Informe final que cruza mercado, Search Console y catalogo.
+// Motor central: demanda externa -> cobertura interna -> decisiones.
+$seo_google_opportunity_engine_file = __DIR__ . '/seo-google-opportunity-engine.php';
+if (file_exists($seo_google_opportunity_engine_file)) {
+    require_once $seo_google_opportunity_engine_file;
+}
+
+// Informe final legacy que cruza mercado, Search Console y catalogo.
 $seo_google_growth_guidance_file = __DIR__ . '/seo-google-growth-guidance.php';
 if (file_exists($seo_google_growth_guidance_file)) {
     require_once $seo_google_growth_guidance_file;
@@ -1537,66 +1543,73 @@ function seo_google_intelligence_page() {
 
     $view = isset($_GET['google_view'])
         ? sanitize_key(wp_unslash($_GET['google_view']))
-        : 'summary';
+        : 'actions';
 
-    // Conserva compatibilidad con enlaces de la versión anterior.
+    // Conserva compatibilidad con enlaces de versiones anteriores.
     if ('opportunities' === $view) {
         $view = 'signals';
     } elseif ('discrepancies' === $view) {
         $view = 'comparison';
+    } elseif ('growth_guidance' === $view) {
+        $view = 'actions';
     }
 
-    $allowed_views = array(
+    $executive_views = array(
+        'actions',
+        'market',
+        'landings_plan',
+        'content_plan',
+        'catalog_plan',
+        'results',
+        'sources',
+    );
+    $technical_views = array(
         'summary',
         'signals',
         'changes',
         'comparison',
         'demand_catalog',
         'trends_market',
-        'growth_guidance',
         'coverage',
         'laboratory',
         'sync',
         'settings',
     );
+    $allowed_views = array_merge($executive_views, $technical_views);
 
     if (!in_array($view, $allowed_views, true)) {
-        $view = 'summary';
+        $view = 'actions';
     }
 
-    $base_url = seo_google_admin_url('summary');
-
+    $base_url = seo_google_admin_url('actions');
     $tabs = array(
-        'summary'    => 'Resumen',
-        'signals'    => 'Señales',
-        'changes'    => 'Cambios',
-        'comparison'     => 'Google vs. catálogo',
-        'demand_catalog' => 'Demanda × catálogo',
-        'trends_market' => 'Mercado Google (Trends)',
-        'growth_guidance' => 'Qué potenciar',
-        'coverage'       => 'Cobertura',
-        'laboratory' => 'Laboratorio',
-        'sync'       => 'Sincronización',
-        'settings'   => 'Configuración',
+        'actions'       => 'Qué hacer',
+        'market'        => 'Mercado',
+        'landings_plan' => 'Landings',
+        'content_plan'  => 'Contenido',
+        'catalog_plan'  => 'Catálogo',
+        'results'       => 'Resultados',
+        'sources'       => 'Fuentes y diagnóstico',
     );
 
     echo '<div class="seo-google-intelligence">';
     echo '<h2>Google Intelligence</h2>';
-    echo '<p style="margin-top:-6px;color:#646970;">Módulo de sincronización <strong>V' . esc_html(SEO_GOOGLE_MODULE_VERSION) . '</strong></p>';
-    echo '<p>Compara las señales de Google con la estructura real de SEO System.</p>';
+    echo '<p style="margin-top:-6px;color:#646970;">Módulo de decisión <strong>V' . esc_html(SEO_GOOGLE_MODULE_VERSION) . '</strong></p>';
+    echo '<p>Google descubre y mide la demanda; WordPress y el catálogo comprueban cobertura; el sistema recomienda qué mejorar.</p>';
 
     echo '<nav class="nav-tab-wrapper" style="margin-bottom:20px;">';
     foreach ($tabs as $tab_key => $tab_label) {
         $tab_url = add_query_arg('google_view', $tab_key, $base_url);
-        $class   = 'nav-tab' . ($view === $tab_key ? ' nav-tab-active' : '');
-
-        echo '<a class="' . esc_attr($class) . '" href="' . esc_url($tab_url) . '">';
-        echo esc_html($tab_label);
-        echo '</a>';
+        $class = 'nav-tab' . ($view === $tab_key ? ' nav-tab-active' : '');
+        echo '<a class="' . esc_attr($class) . '" href="' . esc_url($tab_url) . '">' . esc_html($tab_label) . '</a>';
     }
     echo '</nav>';
 
     seo_google_render_notices();
+
+    if (in_array($view, $technical_views, true)) {
+        echo '<div class="notice notice-info inline"><p><strong>Vista técnica:</strong> esta pantalla se conserva como evidencia y diagnóstico. <a href="' . esc_url(seo_google_admin_url('market')) . '">Volver a Mercado</a>.</p></div>';
+    }
 
     if (is_wp_error($install_result) && in_array($view, array('summary', 'sync'), true)) {
         $table_status = seo_google_tables_status();
@@ -1614,7 +1627,15 @@ function seo_google_intelligence_page() {
         return;
     }
 
-    if ('settings' === $view) {
+    if (in_array($view, $executive_views, true)) {
+        if (function_exists('seo_google_opportunity_render')) {
+            $days = isset($_GET['opportunity_days']) ? absint($_GET['opportunity_days']) : 60;
+            $days = in_array($days, array(28, 60, 90), true) ? $days : 60;
+            seo_google_opportunity_render($view, $days);
+        } else {
+            echo '<div class="notice notice-error inline"><p>Falta el archivo <code>seo-google-opportunity-engine.php</code>.</p></div>';
+        }
+    } elseif ('settings' === $view) {
         seo_google_render_settings();
     } elseif ('sync' === $view) {
         seo_google_render_sync_status();
@@ -1637,12 +1658,6 @@ function seo_google_intelligence_page() {
             seo_google_render_trends_market();
         } else {
             echo '<div class="notice notice-error inline"><p>Falta el archivo <code>seo-google-trends.php</code>.</p></div>';
-        }
-    } elseif ('growth_guidance' === $view) {
-        if (function_exists('seo_google_render_growth_guidance')) {
-            seo_google_render_growth_guidance();
-        } else {
-            echo '<div class="notice notice-error inline"><p>Falta el archivo <code>seo-google-growth-guidance.php</code>.</p></div>';
         }
     } elseif ('coverage' === $view) {
         seo_google_render_coverage();

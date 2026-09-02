@@ -1,6 +1,6 @@
 <?php
 if (!defined('ABSPATH')) { exit; }
-if (!defined('SEO_GROWTH_EXECUTIVE_VERSION')) define('SEO_GROWTH_EXECUTIVE_VERSION', '1.1.0');
+if (!defined('SEO_GROWTH_EXECUTIVE_VERSION')) define('SEO_GROWTH_EXECUTIVE_VERSION', '2.0.0');
 
 /**
  * Informe ejecutivo independiente de la capa Google.
@@ -144,6 +144,89 @@ function seo_growth_exec_action_label($row, $trend_count = null) {
 }
 
 function seo_growth_exec_build_rows($days=60, $limit=60) {
+    /*
+     * Adaptador V2 para consumidores existentes, incluido el asistente de
+     * proveedores. Solo expone acciones que implican investigar o ampliar
+     * catálogo; una recomendación SEO nunca se convierte en compra de surtido.
+     */
+    if (function_exists('seo_google_opportunity_build')) {
+        $days = in_array((int) $days, array(28, 60, 90), true) ? (int) $days : 60;
+        $limit = max(10, min(100, absint($limit)));
+        $payload = (array) seo_google_opportunity_build($days, false);
+        $allowed_actions = array(
+            'AMPLIAR_PRODUCTOS',
+            'INVESTIGAR_PRODUCTO',
+            'ESTUDIAR_CATEGORIA',
+            'INVESTIGAR_CATALOGO',
+        );
+        $rows = array();
+
+        foreach ((array) ($payload['rows'] ?? array()) as $opportunity) {
+            $action_code = (string) ($opportunity['action'] ?? '');
+            if (!in_array($action_code, $allowed_actions, true)) {
+                continue;
+            }
+
+            $topic = sanitize_text_field((string) ($opportunity['topic'] ?? ''));
+            if ($topic === '') {
+                continue;
+            }
+
+            $catalog = is_array($opportunity['catalog'] ?? null) ? $opportunity['catalog'] : array();
+            $metrics = is_array($opportunity['metrics'] ?? null) ? $opportunity['metrics'] : array();
+            $market = is_array($opportunity['market'] ?? null) ? $opportunity['market'] : array();
+            $category = sanitize_text_field((string) ($catalog['category'] ?? ''));
+            $product_count = isset($catalog['products']) ? (int) $catalog['products'] : null;
+
+            $rows[] = array(
+                'item' => array(
+                    'label'            => $topic,
+                    'strategy'         => array('primary' => $action_code),
+                    'dimension_labels' => array_values(array_filter(array($category))),
+                    'products'         => $product_count,
+                    'impressions'      => (float) ($metrics['impressions'] ?? 0),
+                    'position'         => (float) ($metrics['position'] ?? 0),
+                ),
+                'decision' => array(
+                    'priority'     => (int) ($opportunity['priority'] ?? 0),
+                    'confidence'   => (string) ($opportunity['confidence'] ?? 'MEDIA'),
+                    'market_score' => (int) round((float) ($market['score'] ?? $metrics['market_score'] ?? 0)),
+                    'search_score' => (int) round((float) ($metrics['search_score'] ?? 0)),
+                    'catalog_gap'  => $product_count === null ? 50 : max(0, min(100, 100 - min(100, $product_count * 8))),
+                    'seo_need'     => 0,
+                ),
+                'exec_action' => array(
+                    'code'     => $action_code,
+                    'label'    => (string) ($opportunity['action_label'] ?? $action_code),
+                    'level'    => 'Catálogo',
+                    'supplier' => (string) ($opportunity['reason'] ?? 'Validar la oportunidad antes de ampliar surtido.'),
+                ),
+                'context' => array(
+                    'category_id' => absint($catalog['term_id'] ?? 0),
+                    'category'    => $category,
+                    'secondary_id'=> 0,
+                    'secondary'   => '',
+                    'primary_id'  => 0,
+                    'primary'     => '',
+                    'cluster_id'  => 0,
+                    'cluster'     => '',
+                ),
+                'trend' => $market,
+            );
+
+            if (count($rows) >= $limit) {
+                break;
+            }
+        }
+
+        return array(
+            'rows'           => $rows,
+            'hub_promotions' => array(),
+            'source_ready'   => true,
+            'engine'         => 'v2',
+        );
+    }
+
     $trend_count = function_exists('seo_google_trends_get_signals') ? count(seo_google_trends_get_signals(5000)) : 0;
     if (!function_exists('seo_google_growth_get_guidance')) {
         return array('rows'=>array(),'hub_promotions'=>array(),'source_ready'=>false);
@@ -200,6 +283,13 @@ function seo_growth_exec_summary_counts($rows) {
 }
 
 function seo_render_growth_executive_report() {
+    if (function_exists('seo_google_opportunity_render')) {
+        $days = isset($_GET['growth_exec_days']) ? absint($_GET['growth_exec_days']) : 60;
+        $days = in_array($days, array(28, 60, 90), true) ? $days : 60;
+        seo_google_opportunity_render('actions', $days);
+        return;
+    }
+
     $days=isset($_GET['growth_exec_days'])?absint($_GET['growth_exec_days']):60;
     $days=in_array($days,array(28,60,90),true)?$days:60;
     $payload=seo_growth_exec_build_rows($days,60);
