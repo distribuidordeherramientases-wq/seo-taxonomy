@@ -60,6 +60,9 @@ final class SEO_Dependiente_Reset {
             // Evita que un indice en segundo plano vuelva a poblar la tabla justo
             // despues del reset. La reindexacion se hara manualmente cuando toque.
             wp_clear_scheduled_hook('seo_dependiente_background_index');
+            if (class_exists('SEO_Dependiente_Entrenador')) {
+                SEO_Dependiente_Entrenador::reset_automation_state();
+            }
             delete_option('seo_dependiente_background_page');
             delete_option('seo_dependiente_last_full_index');
             delete_option('seo_dependiente_knowledge_snapshot');
