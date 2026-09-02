@@ -431,6 +431,9 @@ final class SEO_Dependiente_Entrenador {
 
     public static function ajax_run_batch() {
         self::guard_ajax();
+        if (class_exists('SEO_Dependiente_Reset') && SEO_Dependiente_Reset::is_locked()) {
+            wp_send_json_error(array('message' => 'El conocimiento de Dependiente se está reiniciando. Espera a que termine antes de lanzar preguntas.'), 423);
+        }
         if (!self::ensure_ready()) {
             wp_send_json_error(array('message' => 'Entrenador no disponible.'), 500);
         }
