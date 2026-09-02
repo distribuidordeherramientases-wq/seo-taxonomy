@@ -216,7 +216,7 @@ add_submenu_page(
     // Páginas ocultas (accesibles desde Tools)
 add_submenu_page(null, 'Taxonomy', 'Taxonomy', 'manage_options', 'seo-taxonomy', 'seo_taxonomy_page');
 add_submenu_page(null, 'Templates', 'Templates', 'manage_options', 'seo-templates', 'seo_templates_page');
-add_submenu_page('seo-system', 'Search Settings', 'Search', 'manage_options', 'seo-search-settings', 'seo_search_settings_page');
+// Search se registra como página oculta desde seo-search.php con slug canónico `seo-search`.
 add_submenu_page(null, 'Redirects', 'Redirects', 'manage_options', 'seo-menu-redirects', 'seo_menu_manager_redirects_page');
 add_submenu_page(null, 'Marketing', 'Marketing', 'manage_options', 'seo-menu-marketing', 'seo_menu_manager_marketing_page');
 add_submenu_page(null, 'SEO Data Table', 'Data Table', 'manage_options', 'seo-data-table', 'seo_data_table_page');
@@ -229,30 +229,30 @@ add_submenu_page(null,'Plugin Validation','Plugin Validation','manage_options','
 });
 
 // Limpieza tardía del menú administrativo.
-// Search es una herramienta interna: se registra bajo SEO Taxonomy para conservar
-// correctamente el contexto del menú, pero se oculta del submenú lateral porque
-// su acceso canónico es SEO Taxonomy > Herramientas > Search.
+// Search debe existir únicamente como tarjeta dentro de SEO Taxonomy > Herramientas.
+// seo-search.php registra la página oculta con el slug canónico `seo-search`.
 add_action('admin_menu', function () {
     // WordPress crea una entrada duplicada para la página principal.
     remove_submenu_page('seo-system', 'seo-system');
 
-    // Oculta Search como submenú directo de SEO Taxonomy: la tarjeta permanece
-    // disponible dentro de Herramientas.
-    remove_submenu_page('seo-system', 'seo-search-settings');
-
-    // Limpieza defensiva por si seo-search.php u otra versión antigua registró
-    // el mismo slug fuera de SEO Taxonomy.
-    remove_submenu_page('tools.php', 'seo-search-settings');
-    remove_submenu_page('options-general.php', 'seo-search-settings');
+    // Elimina cualquier registro visible heredado de Search. La página oculta
+    // registrada con parent=null permanece accesible mediante admin.php?page=seo-search.
+    remove_menu_page('seo-search');
     remove_menu_page('seo-search-settings');
+    remove_submenu_page('seo-system', 'seo-search');
+    remove_submenu_page('seo-system', 'seo-search-settings');
+    remove_submenu_page('tools.php', 'seo-search');
+    remove_submenu_page('tools.php', 'seo-search-settings');
+    remove_submenu_page('options-general.php', 'seo-search');
+    remove_submenu_page('options-general.php', 'seo-search-settings');
 }, 999);
 
-// Al abrir la herramienta Search desde su tarjeta, mantener SEO Taxonomy como
-// menú padre y Herramientas como opción activa en la navegación lateral.
+// Al abrir Search desde su tarjeta, mantener SEO Taxonomy como menú padre y
+// Herramientas como sección activa en la navegación lateral.
 add_filter('parent_file', function ($parent_file) {
     $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
 
-    if ($page === 'seo-search-settings') {
+    if ($page === 'seo-search') {
         return 'seo-system';
     }
 
@@ -262,7 +262,7 @@ add_filter('parent_file', function ($parent_file) {
 add_filter('submenu_file', function ($submenu_file) {
     $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
 
-    if ($page === 'seo-search-settings') {
+    if ($page === 'seo-search') {
         return 'seo-tools';
     }
 
@@ -301,7 +301,7 @@ function seo_tools_page() {
             [
                 'title' => 'Search',
                 'icon'  => 'dashicons-search',
-                'page'  => 'seo-search-settings',
+                'page'  => 'seo-search',
                 'desc'  => 'Configuración del buscador.'
             ],
 

@@ -4,7 +4,8 @@
  * Buscador avanzado de productos para WooCommerce.
  *
  * Este archivo puede cargarse como módulo desde otro plugin. Registra
- * su propia pantalla independiente "SEO Search" en el administrador de WordPress.
+ * su pantalla como herramienta interna oculta; el acceso visible se ofrece
+ * desde SEO Taxonomy > Herramientas.
  */
 
 if (!defined('ABSPATH')) {
@@ -1671,14 +1672,16 @@ function seo_search_render_pagination($total_pages, $current_page) {
 ========================================================= */
 
 add_action('admin_menu', function () {
-    add_menu_page(
+    // Herramienta interna: no debe crear una opción principal propia en WordPress.
+    // El slug canónico es `seo-search` porque la propia pantalla y sus pestañas
+    // ya generan enlaces con `admin.php?page=seo-search`.
+    add_submenu_page(
+        null,
         __('SEO Search', 'seo-search'),
         __('SEO Search', 'seo-search'),
         'manage_options',
         'seo-search',
-        'seo_search_settings_page',
-        'dashicons-search',
-        58
+        'seo_search_settings_page'
     );
 }, 99);
 
