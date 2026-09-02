@@ -369,7 +369,14 @@ final class SEO_Dependiente_API {
 
         $execution_ms = (microtime(true) - $started_at) * 1000;
         $search_id = '';
-        if (class_exists('SEO_Dependiente_Search_Log') && '' !== trim($query)) {
+        $should_log_search = (bool) apply_filters(
+            'seo_dependiente_should_log_search',
+            true,
+            $query,
+            $request_kind,
+            $request
+        );
+        if ($should_log_search && class_exists('SEO_Dependiente_Search_Log') && '' !== trim($query)) {
             // El diagnostico guardado incorpora el estado de la peticion para poder
             // reconstruir despues la ruta real: filtros, orden, pagina y aclaracion.
             $log_diagnostic = $search_diagnostic;

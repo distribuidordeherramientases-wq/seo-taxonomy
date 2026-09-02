@@ -10,6 +10,7 @@ final class SEO_Dependiente_Admin {
         add_action('admin_post_seo_dependiente_learning_review', array(__CLASS__, 'review_learning_candidate'));
         add_action('wp_ajax_seo_dependiente_reindex', array(__CLASS__, 'ajax_reindex'));
         add_action('wp_ajax_seo_dependiente_clear', array(__CLASS__, 'ajax_clear'));
+        add_action('wp_ajax_seo_dependiente_reset_knowledge', array(__CLASS__, 'ajax_reset_knowledge'));
     }
 
     public static function enqueue($hook) {
@@ -202,6 +203,8 @@ final class SEO_Dependiente_Admin {
                 </div>
             </div>
         </div>
+
+        <?php self::render_danger_zone(); ?>
         <?php
     }
 
@@ -425,6 +428,61 @@ final class SEO_Dependiente_Admin {
         check_ajax_referer('seo_dependiente_admin', 'nonce');
         SEO_Dependiente_Index::clear();
         wp_send_json_success(array('indexed' => 0));
+    }
+
+    public static function ajax_reset_knowledge() {
+        if (!current_user_can(self::capability())) {
+            wp_send_json_error(array('message' => 'Permisos insuficientes.'), 403);
+        }
+        check_ajax_referer('seo_dependiente_admin', 'nonce');
+
+        $confirmation = sanitize_text_field((string) wp_unslash($_POST['confirmation'] ?? ''));
+        if ('BORRAR_CONOCIMIENTO' !== $confirmation) {
+            wp_send_json_error(array('message' => 'Falta la confirmación explícita del reinicio.'), 400);
+        }
+        if (!class_exists('SEO_Dependiente_Reset')) {
+            wp_send_json_error(array('message' => 'El servicio de reinicio no está disponible.'), 500);
+        }
+
+        $result = SEO_Dependiente_Reset::reset();
+        if (is_wp_error($result)) {
+            wp_send_json_error(array('message' => $result->get_error_message()), 500);
+        }
+        wp_send_json_success($result);
+    }
+
+    private static function render_danger_zone() {
+        if (!class_exists('SEO_Dependiente_Reset')) {
+            return;
+        }
+        $counts = SEO_Dependiente_Reset::preview();
+        ?>
+        <section class="postbox seo-dependiente-admin__box seo-dependiente-admin__danger-zone" data-dependiente-reset-root>
+            <h2 class="seo-dependiente-admin__box-title">Zona peligrosa · Reiniciar conocimiento</h2>
+            <p><strong>Devuelve Dependiente a un estado limpio de entrenamiento.</strong> Está pensado para staging y para repetir ciclos de aprendizaje desde cero.</p>
+            <div class="seo-dependiente-admin__reset-grid">
+                <div><strong><?php echo esc_html(number_format_i18n(absint($counts['semantic_reset'] ?? 0))); ?></strong><span>reglas no seed que se borrarán</span></div>
+                <div><strong><?php echo esc_html(number_format_i18n(absint($counts['search_log'] ?? 0))); ?></strong><span>búsquedas/evidencias que se borrarán</span></div>
+                <div><strong><?php echo esc_html(number_format_i18n(absint($counts['trainer_questions'] ?? 0))); ?></strong><span>preguntas del Entrenador que se borrarán</span></div>
+                <div><strong><?php echo esc_html(number_format_i18n(absint($counts['trainer_runs'] ?? 0))); ?></strong><span>ejecuciones del Entrenador que se borrarán</span></div>
+                <div><strong><?php echo esc_html(number_format_i18n(absint($counts['index'] ?? 0))); ?></strong><span>productos del índice derivado que se borrarán</span></div>
+                <div><strong><?php echo esc_html(number_format_i18n(absint($counts['semantic_seed'] ?? 0))); ?></strong><span>reglas base seed que se conservarán</span></div>
+            </div>
+            <p class="description"><strong>Se conservan:</strong> productos WooCommerce, categorías, etiquetas, vocabulario/atributos SEO, configuración del módulo, página pública y solicitudes de ayuda. El índice derivado se vacía y deberá reindexarse antes de volver a entrenar.</p>
+            <p><button type="button" class="button seo-dependiente-admin__danger-button" data-dependiente-reset-prepare>Borrar conocimiento del Dependiente</button></p>
+
+            <div class="seo-dependiente-admin__reset-confirm" data-dependiente-reset-confirm hidden>
+                <h3>Confirmación necesaria</h3>
+                <p>Esta acción eliminará el aprendizaje, el historial usado como evidencia, el banco y las ejecuciones del Entrenador y el índice de productos de Dependiente. No se puede deshacer desde esta pantalla.</p>
+                <p><strong>Las reglas base <code>seed</code> se mantienen como baseline limpio.</strong></p>
+                <div class="seo-dependiente-admin__reset-actions">
+                    <button type="button" class="button seo-dependiente-admin__danger-button is-confirm" data-dependiente-reset-confirm-button>Sí, borrar todo el conocimiento de pruebas</button>
+                    <button type="button" class="button" data-dependiente-reset-cancel>Cancelar</button>
+                </div>
+            </div>
+            <p class="seo-dependiente-admin__reset-status" data-dependiente-reset-status aria-live="polite"></p>
+        </section>
+        <?php
     }
 
     private static function render_tab_link($slug, $label, $current) {
