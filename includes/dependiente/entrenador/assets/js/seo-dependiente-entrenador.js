@@ -21,11 +21,22 @@
     const manualButton = root.querySelector('[data-trainer-mode-manual]');
     const autoStatus = root.querySelector('[data-trainer-auto-status]');
     const autoBadge = root.querySelector('[data-trainer-auto-badge]');
+    const labRoot = root.querySelector('[data-trainer-lab]');
+    const labText = root.querySelector('[data-trainer-lab-text]');
+    const labFile = root.querySelector('[data-trainer-lab-file]');
+    const labMode = root.querySelector('[data-trainer-lab-mode]');
+    const labImportButton = root.querySelector('[data-trainer-lab-import]');
+    const labRunButton = root.querySelector('[data-trainer-lab-run]');
+    const labExportButton = root.querySelector('[data-trainer-lab-export]');
+    const labStatus = root.querySelector('[data-trainer-lab-status]');
+    const labProgressBar = root.querySelector('[data-trainer-lab-progress-bar]');
+    const labRunBody = root.querySelector('[data-trainer-lab-run-body]');
 
     let busy = false;
     let autoRunning = root.dataset.autoRunning === '1';
+    let labBatchKey = labRoot ? (labRoot.dataset.labBatchKey || '') : '';
     const baseDisabled = new WeakMap();
-    [prepareButton, runModuleButton, autoButton].forEach(function (button) {
+    [prepareButton, runModuleButton, autoButton, labImportButton, labRunButton].forEach(function (button) {
         if (button) baseDisabled.set(button, !!button.disabled);
     });
 
@@ -69,6 +80,45 @@
         return payload.data || {};
     }
 
+    async function postForm(action, formData) {
+        const body = formData || new FormData();
+        body.set('action', action);
+        body.set('nonce', config.nonce || '');
+        let response;
+        try {
+            response = await fetch(config.ajaxUrl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                body: body
+            });
+        } catch (cause) {
+            const error = new Error((cause && cause.message) || 'No se pudo conectar con el servidor.');
+            error.transient = true;
+            error.httpStatus = 0;
+            throw error;
+        }
+        const raw = await response.text();
+        let payload = null;
+        try {
+            payload = raw ? JSON.parse(raw) : null;
+        } catch (cause) {
+            const error = new Error('Respuesta HTTP no válida (' + response.status + ').');
+            error.transient = response.status >= 500 || response.status === 429 || response.status === 408 || response.status === 423;
+            error.httpStatus = response.status;
+            throw error;
+        }
+        if (!response.ok || !payload || !payload.success) {
+            const message = payload && payload.data && payload.data.message
+                ? payload.data.message
+                : ('HTTP ' + response.status + ': no se pudo completar la operación.');
+            const error = new Error(message);
+            error.transient = response.status >= 500 || response.status === 429 || response.status === 408 || response.status === 423;
+            error.httpStatus = response.status;
+            throw error;
+        }
+        return payload.data || {};
+    }
+
     function sleep(ms) {
         return new Promise(function (resolve) {
             window.setTimeout(resolve, Math.max(0, ms));
@@ -98,6 +148,12 @@
         if (exportButton) exportButton.disabled = busy;
         if (autoButton) autoButton.disabled = busy || autoRunning || !!baseDisabled.get(autoButton);
         if (manualButton) manualButton.disabled = busy || !autoRunning;
+        if (labImportButton) labImportButton.disabled = busy || autoRunning || !!baseDisabled.get(labImportButton);
+        if (labRunButton) labRunButton.disabled = busy || autoRunning || !!baseDisabled.get(labRunButton);
+        if (labExportButton) labExportButton.disabled = busy;
+        if (labFile) labFile.disabled = busy;
+        if (labText) labText.disabled = busy;
+        if (labMode) labMode.disabled = busy;
         root.classList.toggle('is-busy', busy);
     }
 
@@ -130,7 +186,8 @@
             pass_top3: 'Correcto · Top 3',
             pass_top8: 'Correcto · Top 8',
             fail: 'No superado',
-            error: 'Error técnico'
+            error: 'Error técnico',
+            observed: 'Observada · sin aprendizaje'
         };
         return labels[status] || status || 'Sin evaluar';
     }
@@ -360,6 +417,172 @@
         }
     }
 
+    function updateLabSummary(summary) {
+        Object.keys(summary || {}).forEach(function (key) {
+            root.querySelectorAll('[data-trainer-lab-summary="' + key + '"]').forEach(function (el) {
+                el.textContent = new Intl.NumberFormat().format(Number(summary[key] || 0));
+            });
+        });
+        setBar(labProgressBar, Number(summary && summary.answered || 0), Number(summary && summary.total || 0));
+    }
+
+    function renderLabRunRow(row) {
+        const results = Array.isArray(row.top_results) ? row.top_results : [];
+        const resultsHtml = results.length
+            ? '<ol class="seo-dependiente-trainer__answer-list">' + results.slice(0, 5).map(function (result) {
+                const reasons = Array.isArray(result.reasons) && result.reasons.length
+                    ? '<span>' + escapeHtml(result.reasons.join(' · ')) + '</span>'
+                    : '';
+                return '<li><strong>' + escapeHtml(result.title || '') + '</strong>' + reasons + '</li>';
+            }).join('') + '</ol>'
+            : '<span class="description">Sin productos devueltos.</span>';
+        const isError = String(row.status || '') === 'error';
+        return '<tr>' +
+            '<td><strong>' + escapeHtml(row.question || '') + '</strong>' +
+                (row.search_strategy ? '<div class="description">Estrategia: <code>' + escapeHtml(row.search_strategy) + '</code></div>' : '') + '</td>' +
+            '<td><span class="seo-dependiente-trainer__status ' + (isError ? 'is-error' : 'is-neutral') + '">' + (isError ? 'Error técnico' : 'Observada') + '</span>' +
+                (row.error_message ? '<div class="description">' + escapeHtml(row.error_message) + '</div>' : '') + '</td>' +
+            '<td>' + resultsHtml + '</td>' +
+            '</tr>';
+    }
+
+    function prependLabRows(rows) {
+        if (!labRunBody || !rows || !rows.length) return;
+        const empty = labRunBody.querySelector('[data-trainer-lab-run-empty]');
+        if (empty) empty.remove();
+        labRunBody.insertAdjacentHTML('afterbegin', rows.slice().reverse().map(renderLabRunRow).join(''));
+    }
+
+    async function importLabBatch() {
+        if (busy || !labRoot) return;
+        const text = labText ? labText.value.trim() : '';
+        const file = labFile && labFile.files && labFile.files[0] ? labFile.files[0] : null;
+        if (!text && !file) {
+            if (labStatus) labStatus.textContent = 'Escribe al menos una pregunta o selecciona un archivo.';
+            return;
+        }
+        setBusy(true);
+        if (labStatus) labStatus.textContent = 'Preparando el lote de preguntas…';
+        try {
+            const form = new FormData();
+            form.set('questions_text', text);
+            form.set('mode', labMode ? labMode.value : 'need');
+            if (file) form.set('lab_file', file, file.name);
+            const data = await postForm('seo_dependiente_entrenador_lab_import', form);
+            labBatchKey = data.batch_key || '';
+            if (labStatus) labStatus.textContent = data.message || 'Lote preparado.';
+            window.setTimeout(function () { window.location.reload(); }, 500);
+        } catch (error) {
+            if (labStatus) labStatus.textContent = 'No se pudo preparar el lote: ' + error.message;
+            setBusy(false);
+        }
+    }
+
+    async function runLabBatch() {
+        if (busy || !labBatchKey) return;
+        setBusy(true);
+        const batchMin = Math.max(1, Number(config.batchMin || 1));
+        const batchMax = Math.max(batchMin, Number(config.batchMax || 4));
+        const fastSeconds = Math.max(0.5, Number(config.fastSeconds || 2.5));
+        const slowSeconds = Math.max(fastSeconds + 0.5, Number(config.slowSeconds || 7));
+        const hardSeconds = Math.max(slowSeconds + 1, Number(config.hardSeconds || 14));
+        const maxRetries = Math.max(1, Number(config.maxRetries || 6));
+        let batchSize = Math.max(batchMin, Math.min(batchMax, Number(config.batchSize || 1)));
+        let batchUuid = createUuid();
+        let retries = 0;
+        let fastStreak = 0;
+        let noProgress = 0;
+        let lastAnswered = -1;
+        if (labStatus) labStatus.textContent = 'Ejecutando el lote de forma adaptativa…';
+
+        try {
+            while (true) {
+                const startedAt = performance.now();
+                let data;
+                try {
+                    data = await post('seo_dependiente_entrenador_lab_run', {
+                        batch_key: labBatchKey,
+                        batch_uuid: batchUuid,
+                        batch_size: batchSize
+                    });
+                    retries = 0;
+                } catch (error) {
+                    if (!error.transient || retries >= maxRetries) throw error;
+                    retries += 1;
+                    batchSize = batchMin;
+                    fastStreak = 0;
+                    const wait = retryDelay(retries);
+                    if (labStatus) labStatus.textContent = 'Problema temporal. Reintento ' + retries + '/' + maxRetries + ' en ' + Math.round(wait / 1000) + ' s.';
+                    await sleep(wait);
+                    continue;
+                }
+
+                const duration = Math.max(0, (performance.now() - startedAt) / 1000);
+                batchUuid = data.batch_uuid || batchUuid;
+                const summary = data.summary || {};
+                const answered = Number(summary.answered || 0);
+                const total = Number(summary.total || 0);
+                updateLabSummary(summary);
+                prependLabRows(data.rows || []);
+
+                if (answered <= lastAnswered) noProgress += 1; else noProgress = 0;
+                lastAnswered = answered;
+                if (noProgress >= 3) throw new Error('El lote no avanza después de varios intentos. Se conserva todo lo ya ejecutado.');
+
+                if (duration >= hardSeconds) {
+                    batchSize = batchMin;
+                    fastStreak = 0;
+                } else if (duration >= slowSeconds) {
+                    batchSize = Math.max(batchMin, Math.floor(batchSize / 2));
+                    fastStreak = 0;
+                } else if (duration <= fastSeconds) {
+                    fastStreak += 1;
+                    if (fastStreak >= 2 && batchSize < batchMax) {
+                        batchSize += 1;
+                        fastStreak = 0;
+                    }
+                } else {
+                    fastStreak = 0;
+                }
+
+                if (labStatus) labStatus.textContent = 'Lote: ' + answered + ' de ' + total + ' preguntas · ' + duration.toFixed(1) + ' s último lote · siguiente lote: ' + batchSize + '.';
+                if (data.done) {
+                    if (labStatus) labStatus.textContent = 'Lote completado. Estas preguntas han sido solo de diagnóstico y no han modificado el conocimiento.';
+                    window.setTimeout(function () { window.location.reload(); }, 700);
+                    return;
+                }
+                if (Number(data.processed || 0) < 1) throw new Error('No quedan preguntas procesables, pero el lote no se ha podido cerrar.');
+                await sleep(duration >= hardSeconds ? 5000 : (duration >= slowSeconds ? 1800 : 350));
+            }
+        } catch (error) {
+            if (labStatus) labStatus.textContent = 'Ejecución detenida: ' + error.message;
+            setBusy(false);
+        }
+    }
+
+    async function exportLabBatch() {
+        if (busy || !labBatchKey) return;
+        setBusy(true);
+        if (labStatus) labStatus.textContent = 'Preparando JSON del Laboratorio…';
+        try {
+            const data = await post('seo_dependiente_entrenador_lab_export', { batch_key: labBatchKey });
+            const blob = new Blob([JSON.stringify(data.document || {}, null, 2)], { type: 'application/json;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = data.filename || ('dependiente-laboratorio-' + labBatchKey + '.json');
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+            if (labStatus) labStatus.textContent = 'JSON descargado.';
+        } catch (error) {
+            if (labStatus) labStatus.textContent = 'No se pudo descargar el JSON: ' + error.message;
+        } finally {
+            setBusy(false);
+        }
+    }
+
     async function exportLesson() {
         if (busy || !lessonKey) return;
         setBusy(true);
@@ -388,6 +611,9 @@
     exportButton && exportButton.addEventListener('click', exportLesson);
     autoButton && autoButton.addEventListener('click', function () { setTrainingMode('auto'); });
     manualButton && manualButton.addEventListener('click', function () { setTrainingMode('manual'); });
+    labImportButton && labImportButton.addEventListener('click', importLabBatch);
+    labRunButton && labRunButton.addEventListener('click', runLabBatch);
+    labExportButton && labExportButton.addEventListener('click', exportLabBatch);
 
     setBusy(false);
     if (autoRunning) window.setTimeout(pollAutomation, 1500);
