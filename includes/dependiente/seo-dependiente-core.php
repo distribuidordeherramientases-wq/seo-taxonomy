@@ -198,7 +198,7 @@ final class SEO_Dependiente_Plugin {
                 <form class="seo-dependiente__ask" data-dependiente-search-form>
                     <label class="screen-reader-text" for="<?php echo esc_attr($query_input_id); ?>">Describe el producto o trabajo que necesitas</label>
                     <div class="seo-dependiente__ask-row">
-                        <span class="seo-dependiente__ask-icon" aria-hidden="true">⌕</span>
+                        <span class="seo-dependiente__assistant-avatar seo-dependiente__assistant-avatar--search" aria-hidden="true"><span>👤</span></span>
                         <input
                             id="<?php echo esc_attr($query_input_id); ?>"
                             type="search"
@@ -225,6 +225,7 @@ final class SEO_Dependiente_Plugin {
 
                 <aside class="seo-dependiente__help" data-dependiente-help aria-label="Asistencia personal">
                     <div class="seo-dependiente__help-row">
+                        <span class="seo-dependiente__assistant-avatar seo-dependiente__assistant-avatar--help" aria-hidden="true"><span>👤</span></span>
                         <div class="seo-dependiente__help-copy">
                             <strong data-dependiente-help-title>¿No encuentras lo que buscas?</strong>
                             <span data-dependiente-help-text>Podemos revisar tu búsqueda con todo el contexto y responderte por correo.</span>
@@ -290,6 +291,7 @@ final class SEO_Dependiente_Plugin {
                         <div class="seo-dependiente__active-filters" data-dependiente-active-filters></div>
                         <div class="seo-dependiente__status" data-dependiente-status aria-live="polite"></div>
                         <div class="seo-dependiente__results" data-dependiente-results></div>
+                        <aside class="seo-dependiente__feedback" data-dependiente-feedback aria-label="Valoración del Dependiente" hidden></aside>
                         <nav class="seo-dependiente__pagination" data-dependiente-pagination aria-label="Paginación"></nav>
                         <aside class="seo-dependiente__related" data-dependiente-related aria-label="Guías y soluciones relacionadas" hidden></aside>
                         <section class="seo-dependiente__amazon" data-dependiente-amazon aria-label="Opciones relacionadas en Amazon" aria-live="polite" hidden></section>
