@@ -281,8 +281,7 @@ body.seo-dependiente-app-body * {
 }
 
 .seo-dependiente__hero-copy,
-.seo-dependiente__ask,
-.seo-dependiente__paths {
+.seo-dependiente__ask {
     position: relative;
     z-index: 1;
 }
@@ -335,7 +334,7 @@ body.seo-dependiente-app-body * {
 
 .seo-dependiente__ask-row {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) minmax(210px, 250px) auto;
     align-items: center;
     gap: 12px;
     padding: 10px;
@@ -369,6 +368,65 @@ body.seo-dependiente-app-body * {
 
 .seo-dependiente__ask input::placeholder {
     color: #829087;
+}
+
+.seo-dependiente__role-select {
+    position: relative;
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+    padding: 7px 38px 7px 14px;
+    border-left: 1px solid #dce5de;
+    color: #647269;
+}
+
+.seo-dependiente__role-select > span {
+    font-size: 10px;
+    font-weight: 850;
+    letter-spacing: .07em;
+    line-height: 1.1;
+    text-transform: uppercase;
+}
+
+.seo-dependiente__role-select::after {
+    content: "⌄";
+    position: absolute;
+    top: 50%;
+    right: 13px;
+    color: #25342a;
+    font-size: 22px;
+    font-weight: 900;
+    line-height: 1;
+    pointer-events: none;
+    transform: translateY(-38%);
+}
+
+.seo-dependiente__role-select select {
+    width: 100%;
+    min-width: 0;
+    height: 34px;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    appearance: none;
+    background: transparent;
+    color: var(--dht-ink);
+    font-size: 15px;
+    font-weight: 850;
+    cursor: pointer;
+}
+
+.seo-dependiente__role-select:focus-within {
+    border-radius: 12px;
+    background: #f2f6f3;
+    box-shadow: 0 0 0 2px rgba(20, 33, 25, .12);
+}
+
+.seo-dependiente__ask-help {
+    max-width: 930px;
+    margin: 10px 6px 0;
+    color: rgba(255,255,255,.68);
+    font-size: 13px;
 }
 
 .seo-dependiente__ask-row > button,
@@ -1697,6 +1755,15 @@ button.seo-dependiente__chip::after {
 
     .seo-dependiente__ask-row {
         grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .seo-dependiente__role-select {
+        grid-column: 1 / -1;
+        padding: 10px 42px 10px 14px;
+        border-top: 1px solid #e2e8e3;
+        border-left: 0;
+        border-radius: 12px;
+        background: #f7faf8;
     }
 
     .seo-dependiente__ask-row > button {
