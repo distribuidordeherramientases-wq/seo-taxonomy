@@ -23,7 +23,7 @@
  * @license GPL-2.0-or-later
  * @since 2.0.0
  * @version 2026-09-02
- * Build: 036
+ * Build: 037
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -95,8 +95,11 @@ unset( $seo_import_batch_file );
 
 // Procesa las operaciones antes de que WordPress imprima HTML.
 add_action( 'admin_init', 'seo_export_categories_csv' );
-add_action( 'admin_init', 'seo_import_categories_csv' );
 add_action( 'admin_init', 'seo_export_products_csv' );
+add_action( 'admin_init', 'seo_export_required_catalogs_csv' );
+// La importacion individual de categorias ya no se registra en admin_init.
+// El motor seo_import_categories_csv() se conserva exclusivamente como backend
+// de la cola automatica, que valida/audita el archivo antes de ejecutarlo.
 // La importacion manual de productos esta deshabilitada. El motor de productos
 // se conserva exclusivamente como backend de la cola automatica por cabeceras.
 add_action( 'seo_ie_process_product_import_batch', 'seo_ie_product_import_background_worker', 10, 2 );
@@ -730,6 +733,355 @@ function seo_ie_write_csv_row( $output, $fields ) {
 }
 
 /**
+ * Exporta en un unico CSV los catalogos maestros que deben respetarse al
+ * crear o actualizar productos/categorias desde sistemas externos.
+ *
+ * El archivo NO exporta asignaciones actuales de objetos/productos. Por tanto,
+ * seo_object_vocabulary y sql_product_atributos quedan fuera deliberadamente:
+ * son tablas destino de asignacion, no diccionarios de valores permitidos.
+ *
+ * Catalogos incluidos:
+ * - seo_vocabulary: etiquetas semanticas activas.
+ * - seo_type_role_map: relacion canonica TIPO -> ROL activa.
+ * - sql_atributos: definiciones activas de atributos tecnicos.
+ * - sql_atributos_terminos: terminos activos permitidos.
+ * - sql_atributos_aliases: aliases utilizables para atributos activos.
+ *
+ * @since 2.0.0
+ *
+ * @return void
+ */
+function seo_export_required_catalogs_csv() {
+
+    if ( ! isset( $_POST['seo_export_required_catalogs'] ) ) {
+        return;
+    }
+
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_die( esc_html__( 'No tienes permisos para exportar los catalogos obligatorios.', 'seo-system' ) );
+    }
+
+    check_admin_referer(
+        'seo_export_required_catalogs_csv',
+        'seo_export_required_catalogs_nonce'
+    );
+
+    global $wpdb;
+
+    $tables = [
+        'seo_vocabulary'         => $wpdb->prefix . 'seo_vocabulary',
+        'seo_type_role_map'      => $wpdb->prefix . 'seo_type_role_map',
+        'sql_atributos'          => $wpdb->prefix . 'sql_atributos',
+        'sql_atributos_terminos' => $wpdb->prefix . 'sql_atributos_terminos',
+        'sql_atributos_aliases'  => $wpdb->prefix . 'sql_atributos_aliases',
+    ];
+
+    $missing = [];
+
+    foreach ( $tables as $logical_name => $physical_name ) {
+        $found = $wpdb->get_var(
+            $wpdb->prepare(
+                'SHOW TABLES LIKE %s',
+                $wpdb->esc_like( $physical_name )
+            )
+        );
+
+        if ( $physical_name !== $found ) {
+            $missing[] = $logical_name;
+        }
+    }
+
+    if ( $missing ) {
+        wp_die(
+            esc_html(
+                sprintf(
+                    'No se puede generar el CSV maestro porque faltan estas tablas: %s.',
+                    implode( ', ', $missing )
+                )
+            ),
+            esc_html__( 'Catalogos SEO incompletos', 'seo-system' )
+        );
+    }
+
+    $filename = 'seo_catalogos_obligatorios_' . wp_date( 'Ymd_His' ) . '.csv';
+    $output   = seo_ie_open_csv_download( $filename );
+
+    $headers = [
+        'tabla',
+        'tabla_fisica',
+        'tipo_registro',
+        'uso',
+        'id',
+        'semantic_group',
+        'slug',
+        'label',
+        'parent_id',
+        'source',
+        'active',
+        'type_vocabulary_id',
+        'type_slug',
+        'type_label',
+        'role_vocabulary_id',
+        'role_slug',
+        'role_label',
+        'confidence',
+        'attribute_id',
+        'attribute_slug',
+        'attribute_name',
+        'attribute_group',
+        'attribute_type',
+        'unit_type',
+        'base_unit',
+        'multiple',
+        'filterable',
+        'visible',
+        'seo',
+        'sort_order',
+        'term_id',
+        'term_slug',
+        'term_name',
+        'alias',
+    ];
+
+    seo_ie_write_csv_row( $output, $headers );
+
+    $exported = 0;
+
+    $write_record = static function ( $data ) use ( $output, $headers, &$exported ) {
+        $row = [];
+
+        foreach ( $headers as $header ) {
+            $row[] = array_key_exists( $header, $data ) ? $data[ $header ] : '';
+        }
+
+        seo_ie_write_csv_row( $output, $row );
+        $exported++;
+    };
+
+    // 1) Vocabulario semantico activo: ROL, TIPO, APLICACION, PLATAFORMA,
+    // SUBTIPO y cualquier otro grupo canonico habilitado en la instalacion.
+    $vocabulary_rows = $wpdb->get_results(
+        "SELECT id, semantic_group, slug, label, parent_id, source, active
+         FROM {$tables['seo_vocabulary']}
+         WHERE active = 1
+         ORDER BY semantic_group ASC, label ASC, id ASC",
+        ARRAY_A
+    );
+
+    foreach ( (array) $vocabulary_rows as $row ) {
+        $write_record(
+            [
+                'tabla'          => 'seo_vocabulary',
+                'tabla_fisica'   => $tables['seo_vocabulary'],
+                'tipo_registro'  => 'vocabulary',
+                'uso'            => 'Etiqueta semantica permitida',
+                'id'             => $row['id'],
+                'semantic_group' => $row['semantic_group'],
+                'slug'           => $row['slug'],
+                'label'          => $row['label'],
+                'parent_id'      => $row['parent_id'],
+                'source'         => $row['source'],
+                'active'         => $row['active'],
+            ]
+        );
+    }
+
+    // 2) Mapeo TIPO -> ROL: solo relaciones activas cuyos dos extremos estan
+    // tambien activos y pertenecen a los grupos semanticos correctos.
+    $type_role_rows = $wpdb->get_results(
+        "SELECT
+            m.id,
+            m.type_vocabulary_id,
+            tv.slug AS type_slug,
+            tv.label AS type_label,
+            m.role_vocabulary_id,
+            rv.slug AS role_slug,
+            rv.label AS role_label,
+            m.confidence,
+            m.source,
+            m.active
+         FROM {$tables['seo_type_role_map']} m
+         INNER JOIN {$tables['seo_vocabulary']} tv
+            ON tv.id = m.type_vocabulary_id
+           AND tv.active = 1
+           AND tv.semantic_group = 'tipo'
+         INNER JOIN {$tables['seo_vocabulary']} rv
+            ON rv.id = m.role_vocabulary_id
+           AND rv.active = 1
+           AND rv.semantic_group = 'rol'
+         WHERE m.active = 1
+         ORDER BY tv.label ASC, rv.label ASC, m.id ASC",
+        ARRAY_A
+    );
+
+    foreach ( (array) $type_role_rows as $row ) {
+        $write_record(
+            [
+                'tabla'              => 'seo_type_role_map',
+                'tabla_fisica'       => $tables['seo_type_role_map'],
+                'tipo_registro'      => 'type_role_map',
+                'uso'                => 'Relacion obligatoria TIPO -> ROL',
+                'id'                 => $row['id'],
+                'source'             => $row['source'],
+                'active'             => $row['active'],
+                'type_vocabulary_id' => $row['type_vocabulary_id'],
+                'type_slug'          => $row['type_slug'],
+                'type_label'         => $row['type_label'],
+                'role_vocabulary_id' => $row['role_vocabulary_id'],
+                'role_slug'          => $row['role_slug'],
+                'role_label'         => $row['role_label'],
+                'confidence'         => $row['confidence'],
+            ]
+        );
+    }
+
+    // 3) Definiciones activas de atributos tecnicos.
+    $attribute_rows = $wpdb->get_results(
+        "SELECT
+            id, slug, nombre, grupo, tipo, unidad_tipo, unidad_base,
+            multiple, filtrable, visible, seo, orden, activo
+         FROM {$tables['sql_atributos']}
+         WHERE activo = 1
+         ORDER BY orden ASC, nombre ASC, id ASC",
+        ARRAY_A
+    );
+
+    foreach ( (array) $attribute_rows as $row ) {
+        $write_record(
+            [
+                'tabla'           => 'sql_atributos',
+                'tabla_fisica'    => $tables['sql_atributos'],
+                'tipo_registro'   => 'attribute',
+                'uso'             => 'Definicion de atributo permitida',
+                'id'              => $row['id'],
+                'active'          => $row['activo'],
+                'attribute_id'    => $row['id'],
+                'attribute_slug'  => $row['slug'],
+                'attribute_name'  => $row['nombre'],
+                'attribute_group' => $row['grupo'],
+                'attribute_type'  => $row['tipo'],
+                'unit_type'       => $row['unidad_tipo'],
+                'base_unit'       => $row['unidad_base'],
+                'multiple'        => $row['multiple'],
+                'filterable'      => $row['filtrable'],
+                'visible'         => $row['visible'],
+                'seo'             => $row['seo'],
+                'sort_order'      => $row['orden'],
+            ]
+        );
+    }
+
+    // 4) Terminos controlados activos de atributos activos.
+    $term_rows = $wpdb->get_results(
+        "SELECT
+            t.id AS term_id,
+            t.atributo_id AS attribute_id,
+            a.slug AS attribute_slug,
+            a.nombre AS attribute_name,
+            a.grupo AS attribute_group,
+            a.tipo AS attribute_type,
+            t.slug AS term_slug,
+            t.nombre AS term_name,
+            t.orden AS sort_order,
+            t.activo AS active
+         FROM {$tables['sql_atributos_terminos']} t
+         INNER JOIN {$tables['sql_atributos']} a
+            ON a.id = t.atributo_id
+           AND a.activo = 1
+         WHERE t.activo = 1
+         ORDER BY a.orden ASC, a.nombre ASC, t.orden ASC, t.nombre ASC, t.id ASC",
+        ARRAY_A
+    );
+
+    foreach ( (array) $term_rows as $row ) {
+        $write_record(
+            [
+                'tabla'           => 'sql_atributos_terminos',
+                'tabla_fisica'    => $tables['sql_atributos_terminos'],
+                'tipo_registro'   => 'attribute_term',
+                'uso'             => 'Valor controlado permitido para atributo tipo termino',
+                'id'              => $row['term_id'],
+                'active'          => $row['active'],
+                'attribute_id'    => $row['attribute_id'],
+                'attribute_slug'  => $row['attribute_slug'],
+                'attribute_name'  => $row['attribute_name'],
+                'attribute_group' => $row['attribute_group'],
+                'attribute_type'  => $row['attribute_type'],
+                'sort_order'      => $row['sort_order'],
+                'term_id'         => $row['term_id'],
+                'term_slug'       => $row['term_slug'],
+                'term_name'       => $row['term_name'],
+            ]
+        );
+    }
+
+    // 5) Aliases reconocidos. Si el alias apunta a un termino, solo se incluye
+    // cuando dicho termino esta activo; los aliases sin termino siguen siendo
+    // validos para atributos activos que los utilicen como normalizacion libre.
+    $alias_rows = $wpdb->get_results(
+        "SELECT
+            al.id,
+            al.atributo_id AS attribute_id,
+            a.slug AS attribute_slug,
+            a.nombre AS attribute_name,
+            a.grupo AS attribute_group,
+            a.tipo AS attribute_type,
+            al.termino_id AS term_id,
+            t.slug AS term_slug,
+            t.nombre AS term_name,
+            al.alias
+         FROM {$tables['sql_atributos_aliases']} al
+         INNER JOIN {$tables['sql_atributos']} a
+            ON a.id = al.atributo_id
+           AND a.activo = 1
+         LEFT JOIN {$tables['sql_atributos_terminos']} t
+            ON t.id = al.termino_id
+           AND t.activo = 1
+         WHERE al.termino_id IS NULL OR t.id IS NOT NULL
+         ORDER BY a.orden ASC, a.nombre ASC, al.alias ASC, al.id ASC",
+        ARRAY_A
+    );
+
+    foreach ( (array) $alias_rows as $row ) {
+        $write_record(
+            [
+                'tabla'           => 'sql_atributos_aliases',
+                'tabla_fisica'    => $tables['sql_atributos_aliases'],
+                'tipo_registro'   => 'attribute_alias',
+                'uso'             => 'Alias aceptado para normalizar un valor existente',
+                'id'              => $row['id'],
+                'attribute_id'    => $row['attribute_id'],
+                'attribute_slug'  => $row['attribute_slug'],
+                'attribute_name'  => $row['attribute_name'],
+                'attribute_group' => $row['attribute_group'],
+                'attribute_type'  => $row['attribute_type'],
+                'term_id'         => $row['term_id'],
+                'term_slug'       => $row['term_slug'],
+                'term_name'       => $row['term_name'],
+                'alias'           => $row['alias'],
+            ]
+        );
+    }
+
+    seo_ie_store_log(
+        [
+            'operacion'  => 'Exportacion de catalogos obligatorios',
+            'archivo'    => $filename,
+            'procesados' => $exported,
+            'correctos'  => $exported,
+            'errores'    => 0,
+            'detalles'   => [
+                'CSV unico con valores activos de seo_vocabulary, seo_type_role_map, sql_atributos, sql_atributos_terminos y sql_atributos_aliases.',
+                'seo_object_vocabulary y sql_product_atributos no se exportan porque contienen asignaciones, no catalogos de valores permitidos.',
+            ],
+        ]
+    );
+
+    fclose( $output );
+    exit;
+}
+
+/**
  * Lee una fila CSV usando punto y coma como separador.
  *
  * @since 2.0.0
@@ -1202,7 +1554,10 @@ function seo_export_categories_csv() {
 }
 
 /**
- * Importa categorías desde el CSV generado por SEO System.
+ * Backend interno de importación de categorías para la cola automatizada.
+ *
+ * No se registra en admin_init ni dispone de formulario de importación manual.
+ * La cola auditada prepara el contexto interno y llama directamente a esta función.
  *
  * Actualiza o crea categorías, manteniendo ID/nombre/slug/padre e imagen en WordPress
  * y ámbito/excerpt/description en wp_seo_nodes.
@@ -1218,6 +1573,12 @@ function seo_export_categories_csv() {
 function seo_import_categories_csv() {
 
     global $wpdb;
+
+    // La importación de categorías queda reservada a la cola automática.
+    // Esto evita que un POST manual pueda saltarse la auditoría previa.
+    if ( function_exists( 'seo_ie_batch_is_internal' ) && ! seo_ie_batch_is_internal( 'category' ) ) {
+        return;
+    }
 
     if ( ! isset( $_POST['seo_import_categories'] ) ) {
         return;
@@ -11222,6 +11583,28 @@ function seo_import_export_page() {
                         'seo_export_products_csv',
                         'seo_export_products_nonce'
                     ); ?>
+
+                    <?php wp_nonce_field(
+                        'seo_export_required_catalogs_csv',
+                        'seo_export_required_catalogs_nonce'
+                    ); ?>
+
+                    <div style="margin:16px 0;padding:14px 16px;border:1px solid #c3a57a;border-radius:4px;background:#fffaf3;">
+                        <strong>Valores obligatorios para altas y actualizaciones</strong>
+                        <p style="margin:6px 0 12px;">
+                            Las etiquetas semánticas y los atributos enviados por un sistema externo deben usar valores ya existentes y activos.
+                            Este CSV único reúne <code>seo_vocabulary</code>, <code>seo_type_role_map</code>, <code>sql_atributos</code>,
+                            <code>sql_atributos_terminos</code> y <code>sql_atributos_aliases</code>. Si un valor no existe, debe darse de alta previamente en su maestro; no debe inventarse durante el alta del producto.
+                        </p>
+                        <button
+                            type="submit"
+                            name="seo_export_required_catalogs"
+                            value="1"
+                            class="button button-secondary"
+                        >
+                            Descargar catálogos obligatorios CSV
+                        </button>
+                    </div>
             
                     <?php seo_ie_render_product_export_filters(); ?>
 
@@ -11246,12 +11629,25 @@ function seo_import_export_page() {
                     <p>Exporta la estructura WooCommerce y sus datos SEO.</p>
                     <form method="post">
                         <?php wp_nonce_field( 'seo_export_categories_csv', 'seo_export_categories_nonce' ); ?>
-                        <button type="submit" name="seo_export_categories" value="1" class="button button-primary">Exportar categorías</button>
+                        <?php wp_nonce_field( 'seo_export_required_catalogs_csv', 'seo_export_required_catalogs_nonce' ); ?>
+
+                        <p>
+                            <button type="submit" name="seo_export_categories" value="1" class="button button-primary">Exportar categorías</button>
+                        </p>
+
+                        <div style="margin:16px 0 0;padding:14px 16px;border:1px solid #c3a57a;border-radius:4px;background:#fffaf3;">
+                            <strong>Valores obligatorios para altas y actualizaciones</strong>
+                            <p style="margin:6px 0 12px;">
+                                La clasificación debe utilizar vocabulario existente y activo. El mismo CSV maestro usado para productos contiene el vocabulario semántico, la relación <strong>TIPO → ROL</strong> y los catálogos SQL de atributos/valores permitidos.
+                                Si falta un valor, debe darse de alta en su maestro antes de asignarlo.
+                            </p>
+                            <button type="submit" name="seo_export_required_catalogs" value="1" class="button button-secondary">
+                                Descargar catálogos obligatorios CSV
+                            </button>
+                        </div>
                     </form>
                 </div>
 
-                <div class="card" style="max-width:none;padding:20px;"><h2>Importar categorías</h2><p>Crea o actualiza categorías. Si category_id está vacío, reutiliza por slug/nombre o crea la categoría. Admite imagen_destacada_id e imagen_destacada (URL); la URL puede descargar la imagen a Medios y se usa para evitar asociar un ID incorrecto. hub_secondary_id permite asignarla a la jerarquía SEO.</p><form method="post" enctype="multipart/form-data"><?php wp_nonce_field( 'seo_import_categories_csv', 'seo_import_categories_nonce' ); ?><input type="file" name="categories_csv" accept=".csv,text/csv" required><p><button type="submit" name="seo_import_categories" value="1" class="button button-primary">Importar categorías</button></p></form></div>
-                    
 
                 <div class="card" style="max-width:none;padding:20px;">
                     <h2>Exportar páginas</h2>
