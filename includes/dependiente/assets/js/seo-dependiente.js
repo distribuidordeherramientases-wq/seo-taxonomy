@@ -73,6 +73,11 @@
         loadBootstrap();
         renderCompareTray();
 
+        function assistantAvatarHtml(extraClass) {
+            const classes = 'seo-dependiente__assistant-avatar' + (extraClass ? ' ' + extraClass : '');
+            return '<span class="' + classes + '" aria-hidden="true"><span>👤</span></span>';
+        }
+
         const initialParams = new URLSearchParams(window.location.search);
         const initialQuery = initialParams.get('dep_q');
         const initialRole = initialParams.get('dep_role');
@@ -560,7 +565,8 @@
         function renderFeedbackPrompt() {
             if (!elements.feedback || !state.searchId) return;
             elements.feedback.hidden = false;
-            elements.feedback.innerHTML = '<div class="seo-dependiente__feedback-copy"><strong>¿Te ha servido esta respuesta?</strong><span>Tu valoración nos ayuda a mejorar qué entiende el Dependiente y cuándo debe buscar alternativas.</span></div>' +
+            elements.feedback.innerHTML = assistantAvatarHtml('seo-dependiente__assistant-avatar--message') +
+                '<div class="seo-dependiente__feedback-copy"><strong>¿Te ha servido esta respuesta?</strong><span>Tu valoración nos ayuda a mejorar qué entiende el Dependiente y cuándo debe buscar alternativas.</span></div>' +
                 '<div class="seo-dependiente__feedback-actions">' +
                 '<button type="button" data-dependiente-feedback-value="1">Sí</button>' +
                 '<button type="button" data-dependiente-feedback-value="-1">No</button>' +
@@ -576,7 +582,7 @@
                 value: value > 0 ? 1 : -1
             });
             elements.feedback.hidden = false;
-            elements.feedback.innerHTML = '<div class="seo-dependiente__feedback-thanks"><strong>Gracias.</strong><span>He guardado tu valoración para mejorar las próximas búsquedas.</span></div>';
+            elements.feedback.innerHTML = assistantAvatarHtml('seo-dependiente__assistant-avatar--message') + '<div class="seo-dependiente__feedback-thanks"><strong>Gracias.</strong><span>He guardado tu valoración para mejorar las próximas búsquedas.</span></div>';
         }
 
         function updateHelpPrompt(data) {
@@ -726,10 +732,12 @@
             }).join('');
 
             const html = '<section class="seo-dependiente__empty-actions seo-dependiente__clarification" data-dependiente-clarification>' +
+                assistantAvatarHtml('seo-dependiente__assistant-avatar--message') +
+                '<div class="seo-dependiente__assistant-message">' +
                 '<strong>' + escapeHtml(clarification.question || '¿Puedes concretar un poco más?') + '</strong>' +
                 '<div>' + options + '<button type="button" class="seo-dependiente__empty-action" data-dependiente-clarify-other>Otro</button></div>' +
                 '<div data-dependiente-clarify-other-slot></div>' +
-                '</section>';
+                '</div></section>';
             elements.results.insertAdjacentHTML('afterbegin', html);
             trackClarificationShown(clarification);
         }
@@ -1022,7 +1030,7 @@
                 });
 
                 const actionsHtml = actions.length ? '<div class="seo-dependiente__empty-actions"><span>También puedes probar:</span><div>' + actions.join('') + '</div></div>' : '';
-                const helpHtml = elements.help ? '<div class="seo-dependiente__empty-help"><button type="button" class="seo-dependiente__empty-action" data-dependiente-help-open>Pedir ayuda con esta búsqueda</button><small>Enviaremos el recorrido de Dependiente para que no tengas que empezar de cero.</small></div>' : '';
+                const helpHtml = elements.help ? '<div class="seo-dependiente__empty-help">' + assistantAvatarHtml('seo-dependiente__assistant-avatar--message') + '<button type="button" class="seo-dependiente__empty-action" data-dependiente-help-open>Pedir ayuda con esta búsqueda</button><small>Enviaremos el recorrido de Dependiente para que no tengas que empezar de cero.</small></div>' : '';
                 elements.results.innerHTML = '<div class="seo-dependiente__empty"><strong>No hay una coincidencia clara</strong><span>' + escapeHtml((config.labels && config.labels.noResults) || 'Prueba con otros términos o elimina un filtro.') + '</span>' + actionsHtml + helpHtml + '</div>';
                 return;
             }
