@@ -21,6 +21,19 @@
 
 defined('ABSPATH') || exit;
 
+
+/*
+ * Modulo Facturas y presupuestos.
+ * Toda la logica permanece en includes/facturas; este archivo solo lo carga
+ * para que pueda registrar su pagina y su tarjeta dentro de Herramientas.
+ */
+if (!defined('SEO_FACTURAS_VERSION')) {
+    $seo_facturas_bootstrap_file = __DIR__ . '/facturas/seo-facturas-bootstrap.php';
+    if (is_readable($seo_facturas_bootstrap_file)) {
+        require_once $seo_facturas_bootstrap_file;
+    }
+}
+
 /*
  * Carga defensiva del modulo Estado del servidor.
  * seo-admin.php registra el callback seo_server_status(), por lo que debe
@@ -321,6 +334,10 @@ function seo_tools_page() {
                 'desc'  => 'Gestión de menús.'
             ]
         ];
+
+        // Los modulos independientes pueden anadir sus tarjetas aqui.
+        // Facturas y presupuestos se registra desde includes/facturas/.
+        $tools = apply_filters('seo_tools_items', $tools);
 
         foreach ($tools as $tool) :
         ?>
@@ -714,7 +731,7 @@ function seo_home_page() {
                 'title' => 'Herramientas',
                 'icon'  => 'dashicons-admin-tools',
                 'page'  => 'seo-tools',
-                'desc'  => 'Accede a las herramientas avanzadas: Taxonomía, Plantillas, Búsqueda, Redirecciones, Marketing, Tabla de datos, Limpiar BD, Importar / Exportar, Aprendizaje semántico y Gestor de menús.'
+                'desc'  => 'Accede a las herramientas avanzadas: Taxonomía, Plantillas, Búsqueda, Redirecciones, Marketing, Facturas y presupuestos, Tabla de datos, Limpiar BD, Importar / Exportar, Aprendizaje semántico y Gestor de menús.'
             ]
         ];
 
