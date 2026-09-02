@@ -5,9 +5,12 @@
 
 .seo-dependiente-trainer__intro,
 .seo-dependiente-trainer__section-head,
-.seo-dependiente-trainer__runbar,
-.seo-dependiente-trainer__actions,
-.seo-dependiente-trainer__defaults {
+.seo-dependiente-trainer__lesson-meta,
+.seo-dependiente-trainer__lesson-snapshots,
+.seo-dependiente-trainer__current-summary,
+.seo-dependiente-trainer__preflight,
+.seo-dependiente-trainer__preflight-metrics,
+.seo-dependiente-trainer__intro-badges {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -15,7 +18,8 @@
 }
 
 .seo-dependiente-trainer__intro,
-.seo-dependiente-trainer__section-head {
+.seo-dependiente-trainer__section-head,
+.seo-dependiente-trainer__preflight {
     justify-content: space-between;
 }
 
@@ -24,64 +28,196 @@
 }
 
 .seo-dependiente-trainer__intro h2,
-.seo-dependiente-trainer__results h2 {
+.seo-dependiente-trainer__results h2,
+.seo-dependiente-trainer__current h2 {
     margin: 0 0 6px;
 }
 
-.seo-dependiente-trainer__intro p {
+.seo-dependiente-trainer__intro p,
+.seo-dependiente-trainer__current p {
     max-width: 900px;
     margin: 0;
     color: #50575e;
 }
 
-.seo-dependiente-trainer__isolation {
+.seo-dependiente-trainer__intro-badges {
+    justify-content: flex-end;
+}
+
+.seo-dependiente-trainer__isolation,
+.seo-dependiente-trainer__snapshot,
+.seo-dependiente-trainer__lesson-status,
+.seo-dependiente-trainer__eyebrow,
+.seo-dependiente-trainer__status {
     display: inline-flex;
     align-items: center;
-    padding: 6px 10px;
-    border: 1px solid #8c8f94;
+    width: fit-content;
+    padding: 5px 9px;
     border-radius: 999px;
-    background: #fff;
-    color: #3c434a;
+    font-size: 12px;
     font-weight: 600;
 }
 
-.seo-dependiente-trainer__composer,
-.seo-dependiente-trainer__bank,
-.seo-dependiente-trainer__history {
+.seo-dependiente-trainer__isolation {
+    border: 1px solid #8c8f94;
+    background: #fff;
+    color: #3c434a;
+}
+
+.seo-dependiente-trainer__snapshot {
+    background: #f0f6fc;
+    color: #135e96;
+}
+
+.seo-dependiente-trainer__preflight,
+.seo-dependiente-trainer__current,
+.seo-dependiente-trainer__manual-locked {
     padding: 18px;
     margin-bottom: 18px;
 }
 
-.seo-dependiente-trainer__defaults {
-    align-items: end;
-    margin: 14px 0 10px;
+.seo-dependiente-trainer__preflight.is-ready {
+    border-left: 4px solid #00a32a;
 }
 
-.seo-dependiente-trainer__defaults label,
-.seo-dependiente-trainer__filters label {
-    display: grid;
-    gap: 5px;
-    font-weight: 600;
+.seo-dependiente-trainer__preflight.is-blocked {
+    border-left: 4px solid #dba617;
 }
 
-.seo-dependiente-trainer__textarea {
-    width: 100%;
-    margin: 0 0 10px;
+.seo-dependiente-trainer__preflight h2,
+.seo-dependiente-trainer__manual-locked h2 {
+    margin-top: 0;
 }
 
-.seo-dependiente-trainer__runbar {
-    margin: 14px 0 10px;
-}
-
-.seo-dependiente-trainer__runbar [data-trainer-run-status] {
+.seo-dependiente-trainer__preflight-metrics span {
+    min-width: 120px;
+    padding: 9px 12px;
+    border: 1px solid #dcdcde;
+    border-radius: 7px;
+    background: #fff;
     color: #50575e;
+}
+
+.seo-dependiente-trainer__preflight-metrics strong {
+    display: block;
+    color: #1d2327;
+    font-size: 20px;
+}
+
+.seo-dependiente-trainer__roadmap {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin: 0 0 18px;
+}
+
+.seo-dependiente-trainer__lesson {
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 14px;
+    min-height: 160px;
+    padding: 18px;
+    border: 1px solid #dcdcde;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.seo-dependiente-trainer__lesson.is-current {
+    border-width: 2px;
+    border-color: #2271b1;
+}
+
+.seo-dependiente-trainer__lesson.is-completed {
+    border-color: #8ed49e;
+    background: #f5fbf6;
+}
+
+.seo-dependiente-trainer__lesson.is-locked,
+.seo-dependiente-trainer__lesson.is-future {
+    background: #f6f7f7;
+    color: #646970;
+}
+
+.seo-dependiente-trainer__lesson-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: #f0f0f1;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.seo-dependiente-trainer__lesson.is-current .seo-dependiente-trainer__lesson-number {
+    background: #2271b1;
+    color: #fff;
+}
+
+.seo-dependiente-trainer__lesson.is-completed .seo-dependiente-trainer__lesson-number {
+    background: #00a32a;
+    color: #fff;
+}
+
+.seo-dependiente-trainer__lesson h3 {
+    margin: 0 0 7px;
+    font-size: 17px;
+}
+
+.seo-dependiente-trainer__lesson p {
+    margin: 0 0 10px;
+    color: #50575e;
+}
+
+.seo-dependiente-trainer__lesson-meta {
+    margin: 0 0 10px;
+    color: #646970;
+    font-size: 12px;
+}
+
+.seo-dependiente-trainer__lesson-meta span:not(:last-child)::after {
+    content: "·";
+    margin-left: 12px;
+}
+
+.seo-dependiente-trainer__lesson-status {
+    background: #f0f0f1;
+    color: #3c434a;
+}
+
+.is-completed .seo-dependiente-trainer__lesson-status {
+    background: #edfaef;
+    color: #008a20;
+}
+
+.is-current .seo-dependiente-trainer__lesson-status {
+    background: #f0f6fc;
+    color: #135e96;
+}
+
+.seo-dependiente-trainer__eyebrow {
+    margin-bottom: 6px;
+    background: #f0f6fc;
+    color: #135e96;
+}
+
+.seo-dependiente-trainer__lesson-snapshots,
+.seo-dependiente-trainer__current-summary {
+    margin: 16px 0 12px;
+}
+
+.seo-dependiente-trainer__lesson-snapshots span,
+.seo-dependiente-trainer__current-summary span {
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: #f6f7f7;
 }
 
 .seo-dependiente-trainer__progress {
     width: 100%;
-    height: 8px;
+    height: 9px;
     overflow: hidden;
-    margin: 0 0 12px;
     border-radius: 999px;
     background: #dcdcde;
 }
@@ -90,7 +226,87 @@
     width: 0;
     height: 100%;
     background: #2271b1;
-    transition: width .15s ease;
+    transition: width .18s ease;
+}
+
+.seo-dependiente-trainer__static-progress,
+.seo-dependiente-trainer__prepare-progress,
+.seo-dependiente-trainer__module-progress {
+    margin: 16px 0 4px;
+}
+
+.seo-dependiente-trainer__static-progress p,
+.seo-dependiente-trainer__prepare-progress p,
+.seo-dependiente-trainer__module-progress p {
+    margin: 7px 0 0;
+    color: #50575e;
+}
+
+.seo-dependiente-trainer__modules {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(130px, 1fr));
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.seo-dependiente-trainer__module {
+    display: grid;
+    gap: 5px;
+    min-height: 76px;
+    padding: 11px;
+    border: 1px solid #dcdcde;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.seo-dependiente-trainer__module span,
+.seo-dependiente-trainer__module small {
+    color: #646970;
+}
+
+.seo-dependiente-trainer__module.is-active {
+    border-color: #2271b1;
+    background: #f0f6fc;
+}
+
+.seo-dependiente-trainer__module.is-complete {
+    border-color: #8ed49e;
+    background: #f5fbf6;
+}
+
+.seo-dependiente-trainer__module.is-locked {
+    background: #f6f7f7;
+}
+
+.seo-dependiente-trainer__results {
+    margin: 22px 0;
+}
+
+.seo-dependiente-trainer__kpis {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(130px, 1fr));
+    gap: 10px;
+    margin: 14px 0 18px;
+}
+
+.seo-dependiente-trainer__kpi {
+    min-height: 82px;
+    padding: 13px;
+    border: 1px solid #dcdcde;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.seo-dependiente-trainer__kpi span {
+    display: block;
+    margin-bottom: 7px;
+    color: #646970;
+}
+
+.seo-dependiente-trainer__kpi strong {
+    display: block;
+    font-size: 26px;
+    line-height: 1;
 }
 
 .seo-dependiente-trainer__table-wrap {
@@ -98,26 +314,17 @@
     overflow: auto;
 }
 
-.seo-dependiente-trainer__questions,
 .seo-dependiente-trainer__runs {
-    min-width: 900px;
+    min-width: 920px;
 }
 
-.seo-dependiente-trainer__questions td,
-.seo-dependiente-trainer__questions th,
 .seo-dependiente-trainer__runs td,
 .seo-dependiente-trainer__runs th {
     vertical-align: top;
 }
 
-.seo-dependiente-trainer__type,
 .seo-dependiente-trainer__status {
-    display: inline-block;
-    padding: 3px 8px;
-    border-radius: 999px;
     background: #f0f0f1;
-    font-size: 12px;
-    font-weight: 600;
 }
 
 .seo-dependiente-trainer__status.is-ok {
@@ -133,41 +340,6 @@
 .seo-dependiente-trainer__status.is-error {
     background: #fcf0f1;
     color: #b32d2e;
-}
-
-.seo-dependiente-trainer__results {
-    margin: 22px 0;
-}
-
-.seo-dependiente-trainer__kpis {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(150px, 1fr));
-    gap: 12px;
-    margin: 14px 0 18px;
-}
-
-.seo-dependiente-trainer__kpi {
-    min-height: 84px;
-    padding: 14px;
-    border: 1px solid #dcdcde;
-    border-radius: 8px;
-    background: #fff;
-}
-
-.seo-dependiente-trainer__kpi span {
-    display: block;
-    margin-bottom: 7px;
-    color: #646970;
-}
-
-.seo-dependiente-trainer__kpi strong {
-    display: block;
-    font-size: 28px;
-    line-height: 1;
-}
-
-.seo-dependiente-trainer__breakdown {
-    margin: 0 0 18px;
 }
 
 .seo-dependiente-trainer__answer-list {
@@ -186,26 +358,58 @@
     font-size: 12px;
 }
 
-.seo-dependiente-trainer__clarification {
-    margin-top: 8px;
-    padding: 8px 10px;
-    border-left: 3px solid #72aee6;
-    background: #f0f6fc;
+.seo-dependiente-trainer__manual-locked {
+    border-left: 4px solid #8c8f94;
 }
 
-@media (max-width: 1100px) {
+.seo-dependiente-trainer.is-busy {
+    cursor: progress;
+}
+
+@media (max-width: 1250px) {
+    .seo-dependiente-trainer__modules {
+        grid-template-columns: repeat(3, minmax(130px, 1fr));
+    }
+
     .seo-dependiente-trainer__kpis {
-        grid-template-columns: repeat(2, minmax(150px, 1fr));
+        grid-template-columns: repeat(3, minmax(130px, 1fr));
+    }
+}
+
+@media (max-width: 900px) {
+    .seo-dependiente-trainer__roadmap {
+        grid-template-columns: 1fr;
+    }
+
+    .seo-dependiente-trainer__modules {
+        grid-template-columns: repeat(2, minmax(120px, 1fr));
     }
 }
 
 @media (max-width: 782px) {
     .seo-dependiente-trainer__intro,
-    .seo-dependiente-trainer__section-head {
+    .seo-dependiente-trainer__section-head,
+    .seo-dependiente-trainer__preflight {
         align-items: flex-start;
         flex-direction: column;
     }
 
+    .seo-dependiente-trainer__intro-badges {
+        justify-content: flex-start;
+    }
+
+    .seo-dependiente-trainer__lesson {
+        grid-template-columns: 42px minmax(0, 1fr);
+        padding: 14px;
+    }
+
+    .seo-dependiente-trainer__lesson-number {
+        width: 38px;
+        height: 38px;
+        font-size: 16px;
+    }
+
+    .seo-dependiente-trainer__modules,
     .seo-dependiente-trainer__kpis {
         grid-template-columns: 1fr;
     }
