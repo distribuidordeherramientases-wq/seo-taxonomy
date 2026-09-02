@@ -12,19 +12,26 @@ defined('ABSPATH') || exit;
  * aprendizaje observacional.
  */
 final class SEO_Dependiente_Entrenador {
-    const DB_VERSION = '2026-09-02.2';
+    const DB_VERSION = '2026-09-02.3';
     const PREPARE_BATCH_LIMIT = 100;
     const AJAX_BATCH_MIN = 1;
     const AJAX_BATCH_INITIAL = 1;
     const AJAX_BATCH_LIMIT = 4;
     const RECENT_RUN_LIMIT = 120;
     const KNOWLEDGE_SNAPSHOT_OPTION = 'seo_dependiente_knowledge_snapshot';
+    const AUTO_STATE_OPTION = 'seo_dependiente_academy_auto_state';
+    const AUTO_WORKER_HOOK = 'seo_dependiente_academy_auto_worker';
+    const AUTO_ACTION_GROUP = 'seo-dependiente-academy';
+    const AUTO_MAX_NO_PROGRESS = 6;
 
     public static function init() {
         add_action('admin_enqueue_scripts', array(__CLASS__, 'enqueue'), 20);
         add_action('wp_ajax_seo_dependiente_entrenador_prepare_lesson', array(__CLASS__, 'ajax_prepare_lesson'));
         add_action('wp_ajax_seo_dependiente_entrenador_run_module', array(__CLASS__, 'ajax_run_module'));
         add_action('wp_ajax_seo_dependiente_entrenador_export_lesson', array(__CLASS__, 'ajax_export_lesson'));
+        add_action('wp_ajax_seo_dependiente_entrenador_set_mode', array(__CLASS__, 'ajax_set_mode'));
+        add_action('wp_ajax_seo_dependiente_entrenador_auto_status', array(__CLASS__, 'ajax_auto_status'));
+        add_action(self::AUTO_WORKER_HOOK, array(__CLASS__, 'auto_worker'));
     }
 
     public static function lessons_table() {
@@ -198,6 +205,7 @@ final class SEO_Dependiente_Entrenador {
             'slowSeconds'  => 7.0,
             'hardSeconds'  => 14.0,
             'maxRetries'   => 6,
+            'autoPollMs'   => 5000,
         ));
     }
 
@@ -217,8 +225,10 @@ final class SEO_Dependiente_Entrenador {
         $next_module = $current ? self::next_pending_module($current_key) : 0;
         $runs = $current ? self::recent_runs($current_key, self::RECENT_RUN_LIMIT) : array();
         $snapshot = absint(get_option(self::KNOWLEDGE_SNAPSHOT_OPTION, 0));
+        $auto_state = self::auto_state();
+        $auto_running = self::is_auto_running($auto_state);
         ?>
-        <div class="seo-dependiente-trainer" data-trainer-root data-current-lesson="<?php echo esc_attr($current_key); ?>" data-current-module="<?php echo esc_attr($next_module); ?>">
+        <div class="seo-dependiente-trainer" data-trainer-root data-current-lesson="<?php echo esc_attr($current_key); ?>" data-current-module="<?php echo esc_attr($next_module); ?>" data-auto-running="<?php echo $auto_running ? '1' : '0'; ?>">
             <div class="seo-dependiente-trainer__intro">
                 <div>
                     <h2>Academia del Dependiente</h2>
@@ -241,6 +251,8 @@ final class SEO_Dependiente_Entrenador {
                 </div>
             </section>
 
+            <?php self::render_training_mode($auto_state, $preflight, $current_key); ?>
+
             <div class="seo-dependiente-trainer__roadmap">
                 <?php foreach ($definitions as $lesson_key => $definition) :
                     $row = isset($lessons[$lesson_key]) ? $lessons[$lesson_key] : array();
@@ -257,7 +269,7 @@ final class SEO_Dependiente_Entrenador {
             </div>
 
             <?php if ($current && isset($definitions[$current_key])) :
-                self::render_current_lesson($current_key, $definitions[$current_key], $current, $preflight, $modules, $next_module, $summary);
+                self::render_current_lesson($current_key, $definitions[$current_key], $current, $preflight, $modules, $next_module, $summary, $auto_running);
             endif; ?>
 
             <?php if ($current && absint($current['item_count'] ?? 0) > 0) : ?>
@@ -286,6 +298,9 @@ final class SEO_Dependiente_Entrenador {
 
     public static function ajax_prepare_lesson() {
         self::guard_ajax();
+        if (self::is_auto_running()) {
+            wp_send_json_error(array('message' => 'La formación automática está activa. Cámbiala a modo manual antes de lanzar acciones individuales.'), 409);
+        }
         if (class_exists('SEO_Dependiente_Reset') && SEO_Dependiente_Reset::is_locked()) {
             wp_send_json_error(array('message' => 'El conocimiento se está reiniciando. Espera a que termine.'), 423);
         }
@@ -405,6 +420,9 @@ final class SEO_Dependiente_Entrenador {
 
     public static function ajax_run_module() {
         self::guard_ajax();
+        if (self::is_auto_running()) {
+            wp_send_json_error(array('message' => 'La formación automática está activa. Cámbiala a modo manual antes de lanzar acciones individuales.'), 409);
+        }
         if (class_exists('SEO_Dependiente_Reset') && SEO_Dependiente_Reset::is_locked()) {
             wp_send_json_error(array('message' => 'El conocimiento se está reiniciando. Espera a que termine.'), 423);
         }
@@ -498,6 +516,519 @@ final class SEO_Dependiente_Entrenador {
         } finally {
             self::release_db_lock('run');
         }
+    }
+
+    public static function ajax_set_mode() {
+        self::guard_ajax();
+        if (!self::ensure_ready()) {
+            wp_send_json_error(array('message' => 'Academia no disponible.'), 500);
+        }
+
+        $mode = sanitize_key((string) wp_unslash($_POST['mode'] ?? 'manual'));
+        if ('manual' === $mode) {
+            self::save_auto_state(array(
+                'enabled'      => false,
+                'mode'         => 'manual',
+                'status'       => 'manual',
+                'last_message' => 'Modo manual activado. El progreso ya realizado se conserva.',
+                'last_error'   => '',
+                'updated_at'   => current_time('mysql'),
+            ));
+            self::clear_auto_schedule();
+            wp_send_json_success(self::automation_payload());
+        }
+
+        if ('auto' !== $mode) {
+            wp_send_json_error(array('message' => 'Modo de formación no reconocido.'), 400);
+        }
+        if (class_exists('SEO_Dependiente_Reset') && SEO_Dependiente_Reset::is_locked()) {
+            wp_send_json_error(array('message' => 'El conocimiento se está reiniciando. Espera a que termine.'), 423);
+        }
+        $preflight = self::catalog_preflight();
+        if (!$preflight['ready']) {
+            wp_send_json_error(array('message' => $preflight['message']), 409);
+        }
+
+        $lessons = self::lessons_by_key();
+        $current_key = self::current_lesson_key($lessons);
+        if (!$current_key) {
+            self::save_auto_state(array(
+                'enabled'      => false,
+                'mode'         => 'auto',
+                'status'       => 'completed',
+                'last_message' => 'Todas las lecciones disponibles ya están completadas.',
+                'last_error'   => '',
+                'updated_at'   => current_time('mysql'),
+            ));
+            wp_send_json_success(self::automation_payload());
+        }
+
+        self::save_auto_state(array(
+            'enabled'             => true,
+            'mode'                => 'auto',
+            'status'              => 'running',
+            'started_at'          => current_time('mysql'),
+            'updated_at'          => current_time('mysql'),
+            'current_lesson'      => $current_key,
+            'current_module'      => self::next_pending_module($current_key),
+            'batch_size'          => self::AJAX_BATCH_INITIAL,
+            'fast_streak'         => 0,
+            'no_progress_cycles'  => 0,
+            'last_error'          => '',
+            'last_message'        => 'Formación automática iniciada. La Academia continuará aunque cierres esta pantalla.',
+        ));
+        self::schedule_auto_worker(0);
+        wp_send_json_success(self::automation_payload());
+    }
+
+    public static function ajax_auto_status() {
+        self::guard_ajax();
+        if (!self::ensure_ready()) {
+            wp_send_json_error(array('message' => 'Academia no disponible.'), 500);
+        }
+        wp_send_json_success(self::automation_payload());
+    }
+
+    public static function auto_worker() {
+        $state = self::auto_state();
+        if (!self::is_auto_running($state)) {
+            return;
+        }
+
+        if (class_exists('SEO_Dependiente_Reset') && SEO_Dependiente_Reset::is_locked()) {
+            self::save_auto_state(array(
+                'last_message' => 'El reinicio de conocimiento está activo. La Academia esperará antes de continuar.',
+                'updated_at'   => current_time('mysql'),
+            ));
+            self::schedule_auto_worker(10);
+            return;
+        }
+
+        if (!self::acquire_db_lock('auto')) {
+            self::schedule_auto_worker(5);
+            return;
+        }
+
+        try {
+            if (!self::ensure_ready() || !class_exists('SEO_Dependiente_API')) {
+                throw new RuntimeException('El motor del Dependiente no está disponible.');
+            }
+            $preflight = self::catalog_preflight();
+            if (!$preflight['ready']) {
+                throw new RuntimeException($preflight['message']);
+            }
+
+            $lessons = self::lessons_by_key();
+            $lesson_key = self::current_lesson_key($lessons);
+            if (!$lesson_key) {
+                self::save_auto_state(array(
+                    'enabled'      => false,
+                    'mode'         => 'auto',
+                    'status'       => 'completed',
+                    'current_lesson' => '',
+                    'current_module' => 0,
+                    'last_message' => 'Formación automática completada. Todas las lecciones disponibles han terminado.',
+                    'last_error'   => '',
+                    'updated_at'   => current_time('mysql'),
+                ));
+                self::clear_auto_schedule();
+                return;
+            }
+
+            $lesson = self::lesson_row($lesson_key);
+            if (!$lesson) {
+                throw new RuntimeException('No se ha encontrado la lección activa.');
+            }
+            $definition = self::lesson_definition($lesson_key);
+            $lesson_label = $definition ? 'Lección ' . absint($definition['order']) . ' · ' . (string) $definition['title'] : $lesson_key;
+            $status = sanitize_key((string) ($lesson['status'] ?? 'ready'));
+
+            self::save_auto_state(array(
+                'current_lesson' => $lesson_key,
+                'current_module' => self::next_pending_module($lesson_key),
+                'updated_at'     => current_time('mysql'),
+            ));
+
+            if (in_array($status, array('ready', 'preparing'), true)) {
+                $result = self::auto_prepare_lesson_batch($lesson_key);
+                $message = !empty($result['done'])
+                    ? $lesson_label . ' preparada: ' . absint($result['item_count'] ?? 0) . ' ejercicios en ' . absint($result['module_count'] ?? 0) . ' módulos.'
+                    : 'Preparando ' . $lesson_label . ': ' . absint($result['prepare_offset'] ?? 0) . ' de ' . absint($result['prepare_total'] ?? 0) . ' fuentes.';
+                self::save_auto_state(array(
+                    'last_message'       => $message,
+                    'last_error'         => '',
+                    'no_progress_cycles' => 0,
+                    'updated_at'         => current_time('mysql'),
+                ));
+                self::schedule_auto_worker(1);
+                return;
+            }
+
+            if (in_array($status, array('prepared', 'in_progress'), true)) {
+                $module_no = self::next_pending_module($lesson_key);
+                if ($module_no < 1) {
+                    self::maybe_complete_lesson($lesson_key);
+                    self::save_auto_state(array(
+                        'current_module' => 0,
+                        'last_message'   => $lesson_label . ' completada. La Academia continuará con la siguiente lección.',
+                        'last_error'     => '',
+                        'updated_at'     => current_time('mysql'),
+                    ));
+                    self::schedule_auto_worker(1);
+                    return;
+                }
+
+                $state = self::auto_state();
+                $batch_size = self::sanitize_batch_size($state['batch_size'] ?? self::AJAX_BATCH_INITIAL);
+                $started = microtime(true);
+                $result = self::auto_run_module_batch($lesson_key, $module_no, $batch_size);
+                $duration = max(0, microtime(true) - $started);
+                $answered_rows = 0;
+                foreach ((array) ($result['rows'] ?? array()) as $row) {
+                    if ('answered' === (string) ($row['status'] ?? '')) {
+                        $answered_rows++;
+                    }
+                }
+
+                $no_progress = absint($state['no_progress_cycles'] ?? 0);
+                if (absint($result['processed'] ?? 0) > 0 && $answered_rows < 1) {
+                    $no_progress++;
+                } else {
+                    $no_progress = 0;
+                }
+                if ($no_progress >= self::AUTO_MAX_NO_PROGRESS) {
+                    throw new RuntimeException('Se han producido errores técnicos repetidos sin avanzar en el módulo ' . $module_no . '. Se ha pausado para evitar un bucle de reintentos.');
+                }
+
+                $fast_streak = absint($state['fast_streak'] ?? 0);
+                if ($duration >= 14.0) {
+                    $batch_size = self::AJAX_BATCH_MIN;
+                    $fast_streak = 0;
+                    $delay = 5;
+                } elseif ($duration >= 7.0) {
+                    $batch_size = max(self::AJAX_BATCH_MIN, (int) floor($batch_size / 2));
+                    $fast_streak = 0;
+                    $delay = 2;
+                } elseif ($duration <= 2.5) {
+                    $fast_streak++;
+                    if ($fast_streak >= 2 && $batch_size < self::AJAX_BATCH_LIMIT) {
+                        $batch_size++;
+                        $fast_streak = 0;
+                    }
+                    $delay = 1;
+                } else {
+                    $fast_streak = 0;
+                    $delay = 1;
+                }
+
+                if (!empty($result['lesson_done'])) {
+                    $message = $lesson_label . ' completada. Nuevo snapshot creado; la siguiente lección queda desbloqueada.';
+                } elseif (!empty($result['module_done'])) {
+                    $message = $lesson_label . ': módulo ' . $module_no . ' completado. Continuando con el siguiente módulo.';
+                } else {
+                    $message = $lesson_label . ': módulo ' . $module_no . ', ' . absint($result['module_answered'] ?? 0) . ' de ' . absint($result['module_total'] ?? 0) . ' evaluados. Siguiente lote: ' . $batch_size . '.';
+                }
+
+                if (absint($result['processed'] ?? 0) < 1 && empty($result['module_done']) && empty($result['lesson_done'])) {
+                    throw new RuntimeException('No quedan ejercicios procesables, pero el módulo no se ha podido cerrar.');
+                }
+
+                self::save_auto_state(array(
+                    'current_module'     => !empty($result['lesson_done']) ? 0 : $module_no,
+                    'batch_size'         => $batch_size,
+                    'fast_streak'        => $fast_streak,
+                    'no_progress_cycles' => $no_progress,
+                    'last_duration'      => round($duration, 3),
+                    'last_message'       => $message,
+                    'last_error'         => '',
+                    'updated_at'         => current_time('mysql'),
+                ));
+                self::schedule_auto_worker($delay);
+                return;
+            }
+
+            if ('completed' === $status) {
+                self::sync_lessons();
+                self::schedule_auto_worker(1);
+                return;
+            }
+
+            throw new RuntimeException('La lección activa está en un estado no ejecutable: ' . $status . '.');
+        } catch (Throwable $error) {
+            self::save_auto_state(array(
+                'enabled'      => false,
+                'mode'         => 'auto',
+                'status'       => 'error',
+                'last_error'   => sanitize_text_field($error->getMessage()),
+                'last_message' => 'La formación automática se ha pausado. El progreso ya guardado no se pierde.',
+                'updated_at'   => current_time('mysql'),
+            ));
+            self::clear_auto_schedule();
+        } finally {
+            self::release_db_lock('auto');
+        }
+    }
+
+    public static function reset_automation_state() {
+        self::clear_auto_schedule();
+        delete_option(self::AUTO_STATE_OPTION);
+    }
+
+    private static function auto_prepare_lesson_batch($lesson_key) {
+        $definition = self::lesson_definition($lesson_key);
+        if (!$definition) {
+            throw new RuntimeException('Lección no reconocida.');
+        }
+        $lessons = self::lessons_by_key();
+        if ($lesson_key !== self::current_lesson_key($lessons)) {
+            throw new RuntimeException('Solo se puede preparar la siguiente lección disponible.');
+        }
+        if (!self::acquire_db_lock('prepare')) {
+            throw new RuntimeException('La Academia ya está preparando contenido en otro proceso.');
+        }
+
+        try {
+            $lesson = self::lesson_row($lesson_key);
+            if (!$lesson) {
+                throw new RuntimeException('No se ha encontrado el estado de la lección.');
+            }
+            $status = sanitize_key((string) ($lesson['status'] ?? 'ready'));
+            if (in_array($status, array('prepared', 'in_progress', 'completed'), true)) {
+                return self::prepare_response($lesson_key, true);
+            }
+
+            if ('preparing' !== $status) {
+                self::clear_lesson_data($lesson_key);
+                self::clear_staged_academy_rules($lesson_key);
+                $total = self::lesson_source_total($lesson_key);
+                self::update_lesson($lesson_key, array(
+                    'status'           => 'preparing',
+                    'prepare_offset'   => 0,
+                    'prepare_total'    => $total,
+                    'item_count'       => 0,
+                    'module_count'     => 0,
+                    'completed_items'  => 0,
+                    'snapshot_before'  => absint(get_option(self::KNOWLEDGE_SNAPSHOT_OPTION, 0)),
+                    'snapshot_after'   => 0,
+                    'source_signature' => null,
+                    'started_at'       => null,
+                    'completed_at'     => null,
+                ));
+                $lesson = self::lesson_row($lesson_key);
+            }
+
+            $offset = absint($lesson['prepare_offset'] ?? 0);
+            $total = absint($lesson['prepare_total'] ?? 0);
+            $source_items = self::lesson_source_batch($lesson_key, $offset, self::PREPARE_BATCH_LIMIT);
+            $existing_count = self::question_count($lesson_key);
+            $inserted = 0;
+            foreach ($source_items as $item) {
+                $sequence = $existing_count + $inserted + 1;
+                if (self::insert_curriculum_question($lesson_key, $definition, $item, $sequence)) {
+                    $inserted++;
+                }
+                self::stage_item_rules($lesson_key, $item);
+            }
+
+            $new_offset = $offset + count($source_items);
+            $source_done = $new_offset >= $total || empty($source_items);
+            self::update_lesson($lesson_key, array('prepare_offset' => min($total, $new_offset)));
+
+            if ($source_done) {
+                $item_count = self::question_count($lesson_key);
+                $module_count = self::question_module_count($lesson_key);
+                if ($item_count < 1) {
+                    self::clear_staged_academy_rules($lesson_key);
+                    self::update_lesson($lesson_key, array(
+                        'status'           => 'ready',
+                        'prepare_offset'   => 0,
+                        'item_count'       => 0,
+                        'module_count'     => 0,
+                        'snapshot_after'   => 0,
+                        'source_signature' => self::lesson_source_signature($lesson_key),
+                        'metadata'         => array('prepare_error' => 'no_curriculum_items'),
+                    ));
+                    throw new RuntimeException('Esta lección no ha podido generar ejercicios con los datos actuales del catálogo. Revisa la clasificación/etiquetas y vuelve a indexar antes de continuar.');
+                }
+                self::update_lesson($lesson_key, array(
+                    'status'           => 'prepared',
+                    'item_count'       => $item_count,
+                    'module_count'     => $module_count,
+                    'snapshot_after'   => 0,
+                    'source_signature' => self::lesson_source_signature($lesson_key),
+                    'metadata'         => array('prepared_rules_source' => 'academy_stage'),
+                ));
+            }
+
+            return self::prepare_response($lesson_key, $source_done);
+        } finally {
+            self::release_db_lock('prepare');
+        }
+    }
+
+    private static function auto_run_module_batch($lesson_key, $module_no, $batch_size) {
+        $lesson = self::lesson_row($lesson_key);
+        if (!$lesson || !in_array((string) ($lesson['status'] ?? ''), array('prepared', 'in_progress'), true)) {
+            throw new RuntimeException('La lección todavía no está preparada para ejecutarse.');
+        }
+        $prepared_signature = trim((string) ($lesson['source_signature'] ?? ''));
+        $current_signature = self::lesson_source_signature($lesson_key);
+        if ($prepared_signature && $current_signature && !hash_equals($prepared_signature, $current_signature)) {
+            throw new RuntimeException('El catálogo ha cambiado desde que se preparó esta lección. Reinicia la formación o vuelve a preparar el temario para no mezclar snapshots.');
+        }
+        $lessons = self::lessons_by_key();
+        if ($lesson_key !== self::current_lesson_key($lessons)) {
+            throw new RuntimeException('Esta lección no es la lección activa.');
+        }
+
+        $next_module = self::next_pending_module($lesson_key);
+        $batch_uuid = wp_generate_uuid4();
+        if ($next_module < 1) {
+            $done = self::maybe_complete_lesson($lesson_key);
+            return array(
+                'batch_uuid'   => $batch_uuid,
+                'processed'    => 0,
+                'module_done'  => true,
+                'lesson_done'  => (bool) $done,
+                'summary'      => self::lesson_summary($lesson_key),
+                'rows'         => array(),
+            );
+        }
+        if (absint($module_no) !== absint($next_module)) {
+            throw new RuntimeException('Debes completar primero el módulo ' . $next_module . '.');
+        }
+        if (!self::acquire_db_lock('run')) {
+            throw new RuntimeException('Ya se está ejecutando un módulo de la Academia en otro proceso.');
+        }
+
+        try {
+            self::update_lesson($lesson_key, array(
+                'status'     => 'in_progress',
+                'started_at' => !empty($lesson['started_at']) ? $lesson['started_at'] : current_time('mysql'),
+            ));
+            $questions = self::pending_module_questions($lesson_key, $module_no, self::sanitize_batch_size($batch_size));
+            $rows = array();
+            foreach ($questions as $question) {
+                $run_id = self::run_question($question, $batch_uuid);
+                if ($run_id) {
+                    $run = self::run_by_id($run_id);
+                    if ($run) {
+                        $rows[] = self::present_run($run);
+                    }
+                }
+            }
+
+            $module = self::single_module_progress($lesson_key, $module_no);
+            $module_done = $module && absint($module['answered']) >= absint($module['total']);
+            $lesson_done = self::maybe_complete_lesson($lesson_key);
+            return array(
+                'batch_uuid'      => $batch_uuid,
+                'processed'       => count($questions),
+                'module_no'       => absint($module_no),
+                'module_total'    => absint($module['total'] ?? 0),
+                'module_answered' => absint($module['answered'] ?? 0),
+                'module_pending'  => max(0, absint($module['total'] ?? 0) - absint($module['answered'] ?? 0)),
+                'module_done'     => (bool) $module_done,
+                'lesson_done'     => (bool) $lesson_done,
+                'summary'         => self::lesson_summary($lesson_key),
+                'rows'            => $rows,
+            );
+        } finally {
+            self::release_db_lock('run');
+        }
+    }
+
+    private static function default_auto_state() {
+        return array(
+            'enabled'            => false,
+            'mode'               => 'manual',
+            'status'             => 'manual',
+            'started_at'         => '',
+            'updated_at'         => '',
+            'current_lesson'     => '',
+            'current_module'     => 0,
+            'batch_size'         => self::AJAX_BATCH_INITIAL,
+            'fast_streak'        => 0,
+            'no_progress_cycles' => 0,
+            'last_duration'      => 0,
+            'last_message'       => '',
+            'last_error'         => '',
+        );
+    }
+
+    private static function auto_state() {
+        $state = get_option(self::AUTO_STATE_OPTION, array());
+        return wp_parse_args(is_array($state) ? $state : array(), self::default_auto_state());
+    }
+
+    private static function is_auto_running($state = null) {
+        $state = is_array($state) ? $state : self::auto_state();
+        return !empty($state['enabled']) && 'auto' === (string) ($state['mode'] ?? '') && 'running' === (string) ($state['status'] ?? '');
+    }
+
+    private static function save_auto_state($changes) {
+        $state = self::auto_state();
+        foreach ((array) $changes as $key => $value) {
+            if (array_key_exists($key, $state)) {
+                $state[$key] = $value;
+            }
+        }
+        update_option(self::AUTO_STATE_OPTION, $state, false);
+        return $state;
+    }
+
+    private static function automation_payload() {
+        $state = self::auto_state();
+        $lessons = self::lessons_by_key();
+        $current_key = self::current_lesson_key($lessons);
+        $definition = $current_key ? self::lesson_definition($current_key) : null;
+        $lesson = $current_key ? self::lesson_row($current_key) : null;
+        return array(
+            'state' => $state,
+            'running' => self::is_auto_running($state),
+            'current' => $current_key ? array(
+                'lesson_key'    => $current_key,
+                'lesson_order'  => absint($definition['order'] ?? 0),
+                'title'         => (string) ($definition['title'] ?? ''),
+                'status'        => (string) ($lesson['status'] ?? ''),
+                'next_module'   => self::next_pending_module($current_key),
+                'module_count'  => absint($lesson['module_count'] ?? 0),
+                'summary'       => self::lesson_summary($current_key),
+            ) : null,
+        );
+    }
+
+    private static function schedule_auto_worker($delay = 0) {
+        if (!self::is_auto_running()) {
+            return false;
+        }
+        $delay = max(0, absint($delay));
+        $hook = self::AUTO_WORKER_HOOK;
+        $args = array();
+        $group = self::AUTO_ACTION_GROUP;
+
+        if (function_exists('as_has_scheduled_action') && as_has_scheduled_action($hook, $args, $group)) {
+            return true;
+        }
+        if ($delay < 2 && function_exists('as_enqueue_async_action')) {
+            as_enqueue_async_action($hook, $args, $group);
+            return true;
+        }
+        if (function_exists('as_schedule_single_action')) {
+            as_schedule_single_action(time() + max(1, $delay), $hook, $args, $group);
+            return true;
+        }
+        if (!wp_next_scheduled($hook, $args)) {
+            wp_schedule_single_event(time() + max(1, $delay), $hook, $args);
+        }
+        return true;
+    }
+
+    private static function clear_auto_schedule() {
+        if (function_exists('as_unschedule_all_actions')) {
+            as_unschedule_all_actions(self::AUTO_WORKER_HOOK, array(), self::AUTO_ACTION_GROUP);
+        }
+        wp_clear_scheduled_hook(self::AUTO_WORKER_HOOK, array());
     }
 
     public static function ajax_export_lesson() {
@@ -762,6 +1293,47 @@ final class SEO_Dependiente_Entrenador {
         );
     }
 
+    private static function render_training_mode($state, $preflight, $current_key) {
+        $state = wp_parse_args((array) $state, self::default_auto_state());
+        $running = self::is_auto_running($state);
+        $status = sanitize_key((string) ($state['status'] ?? 'manual'));
+        $last_message = trim((string) ($state['last_message'] ?? ''));
+        $last_error = trim((string) ($state['last_error'] ?? ''));
+        if ($last_error) {
+            $message = 'Automático detenido: ' . $last_error;
+        } elseif ($last_message) {
+            $message = $last_message;
+        } elseif ($running) {
+            $message = 'La Academia continuará lección por lección y módulo por módulo sin necesitar esta pantalla abierta.';
+        } else {
+            $message = 'Modo manual: tú decides cuándo preparar y ejecutar cada módulo.';
+        }
+        $badge_label = $running ? 'Automático activo' : ('error' === $status ? 'Automático pausado' : ('completed' === $status ? 'Completado' : 'Manual'));
+        ?>
+        <section class="postbox seo-dependiente-admin__box seo-dependiente-trainer__automation <?php echo $running ? 'is-running' : 'is-manual'; ?>" data-trainer-automation>
+            <div class="seo-dependiente-trainer__section-head">
+                <div>
+                    <h2 class="seo-dependiente-admin__box-title">Modo de formación</h2>
+                    <p>Elige si quieres supervisar cada paso o dejar que la Academia complete todas las lecciones disponibles de forma secuencial.</p>
+                </div>
+                <span class="seo-dependiente-trainer__automation-badge <?php echo $running ? 'is-running' : ''; ?>" data-trainer-auto-badge><?php echo esc_html($badge_label); ?></span>
+            </div>
+            <div class="seo-dependiente-trainer__automation-actions">
+                <button type="button" class="button button-primary" data-trainer-mode-auto <?php disabled($running || !$preflight['ready'] || !$current_key); ?>>
+                    Ejecutar todas las lecciones automáticamente
+                </button>
+                <button type="button" class="button" data-trainer-mode-manual <?php disabled(!$running); ?>>
+                    Pasar a modo manual
+                </button>
+            </div>
+            <p class="description" data-trainer-auto-status aria-live="polite"><?php echo esc_html($message); ?></p>
+            <?php if ('error' === $status && $last_error) : ?>
+                <div class="notice notice-error inline"><p>La ejecución automática se ha pausado para no saltarse ninguna lección. Corrige el problema y vuelve a pulsar «Ejecutar todas las lecciones automáticamente» para continuar desde el punto guardado.</p></div>
+            <?php endif; ?>
+        </section>
+        <?php
+    }
+
     private static function render_lesson_card($lesson_key, $definition, $row, $current_key) {
         $status = sanitize_key((string) ($row['status'] ?? 'locked'));
         $labels = array(
@@ -795,7 +1367,7 @@ final class SEO_Dependiente_Entrenador {
         <?php
     }
 
-    private static function render_current_lesson($lesson_key, $definition, $lesson, $preflight, $modules, $next_module, $summary) {
+    private static function render_current_lesson($lesson_key, $definition, $lesson, $preflight, $modules, $next_module, $summary, $auto_running = false) {
         $status = sanitize_key((string) ($lesson['status'] ?? 'ready'));
         $preparing = 'preparing' === $status;
         $prepared = in_array($status, array('prepared', 'in_progress'), true);
@@ -808,11 +1380,11 @@ final class SEO_Dependiente_Entrenador {
                     <p><?php echo esc_html((string) $definition['description']); ?></p>
                 </div>
                 <?php if (in_array($status, array('ready', 'preparing'), true)) : ?>
-                    <button type="button" class="button button-primary button-hero" data-trainer-prepare-lesson <?php disabled(!$preflight['ready']); ?>>
+                    <button type="button" class="button button-primary button-hero" data-trainer-prepare-lesson <?php disabled($auto_running || !$preflight['ready']); ?>>
                         <?php echo $preparing ? 'Continuar preparación' : 'Preparar lección'; ?>
                     </button>
                 <?php elseif ($prepared && $next_module > 0) : ?>
-                    <button type="button" class="button button-primary button-hero" data-trainer-run-module>
+                    <button type="button" class="button button-primary button-hero" data-trainer-run-module <?php disabled($auto_running); ?>>
                         <?php echo esc_html(self::module_has_answers($lesson_key, $next_module) ? 'Continuar módulo ' . $next_module : 'Comenzar módulo ' . $next_module); ?>
                     </button>
                 <?php endif; ?>
