@@ -14,7 +14,7 @@ defined('ABSPATH') || exit;
 
 if (!function_exists('seo_classifier_jobs_schema_version')) {
     function seo_classifier_jobs_schema_version() {
-        return '1.0.1';
+        return '1.1.0';
     }
 }
 
@@ -67,6 +67,10 @@ if (!function_exists('seo_classifier_jobs_install_schema')) {
             adaptive_next_batch_size INT UNSIGNED NOT NULL DEFAULT 5,
             adaptive_next_delay INT UNSIGNED NOT NULL DEFAULT 3,
             adaptive_pressure VARCHAR(24) NOT NULL DEFAULT 'baja',
+            worker_heartbeat_at DATETIME NULL,
+            worker_heartbeat_ts BIGINT UNSIGNED NOT NULL DEFAULT 0,
+            worker_runs BIGINT UNSIGNED NOT NULL DEFAULT 0,
+            worker_source VARCHAR(32) NOT NULL DEFAULT '',
             last_error TEXT NULL,
             created_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -293,7 +297,9 @@ if (!function_exists('seo_classifier_job_create')) {
             'mode' => $mode,
             'status' => 'pending',
             'filters_json' => wp_json_encode($filters),
-            'force_refresh' => !empty($args['force_refresh']) ? 1 : 0,
+            // El modo profundo nunca debe reutilizar una propuesta calculada en modo rápido.
+            // Forzamos el recálculo aunque el formulario no envíe explícitamente force_refresh.
+            'force_refresh' => ($mode === 'deep' || !empty($args['force_refresh'])) ? 1 : 0,
             'adaptive_next_batch_size' => $initial,
             'adaptive_next_delay' => 2,
             'created_by' => absint($args['created_by'] ?? get_current_user_id()),
@@ -374,7 +380,44 @@ if (!function_exists('seo_classifier_job_latest')) {
     }
 }
 
+if (!function_exists('seo_classifier_job_cron_fallback_seconds')) {
+    function seo_classifier_job_cron_fallback_seconds() {
+        return max(10, (int) apply_filters('seo_classifier_job_cron_fallback_seconds', 15));
+    }
+}
+
+if (!function_exists('seo_classifier_job_watchdog_seconds')) {
+    function seo_classifier_job_watchdog_seconds() {
+        return max(20, (int) apply_filters('seo_classifier_job_watchdog_seconds', 45));
+    }
+}
+
+if (!function_exists('seo_classifier_job_maybe_spawn_cron')) {
+    /**
+     * Pide a WordPress que despierte WP-Cron sin bloquear la petición.
+     * Se limita por job para que el polling de la pantalla no genere una llamada
+     * a spawn_cron() cada cinco segundos.
+     */
+    function seo_classifier_job_maybe_spawn_cron($job_id, $force = false) {
+        $job_id = absint($job_id);
+        if ($job_id < 1 || (defined('DISABLE_WP_CRON') && DISABLE_WP_CRON) || !function_exists('spawn_cron')) return false;
+        $key = 'seo_cl_cron_kick_' . $job_id;
+        if (!$force && get_transient($key)) return false;
+        set_transient($key, 1, 20);
+        spawn_cron(time());
+        return true;
+    }
+}
+
 if (!function_exists('seo_classifier_job_schedule')) {
+    /**
+     * Programa el worker por dos vías independientes.
+     *
+     * Action Scheduler es la vía principal, pero no hacemos return temprano si
+     * ya hay una acción pendiente: algunos hostings dejan acciones dormidas.
+     * Siempre dejamos también un WP-Cron de respaldo y, en peticiones web,
+     * intentamos despertarlo de forma no bloqueante.
+     */
     function seo_classifier_job_schedule($job_id, $delay = 0, $force = false) {
         $job_id = absint($job_id);
         if ($job_id < 1) return false;
@@ -382,17 +425,60 @@ if (!function_exists('seo_classifier_job_schedule')) {
         $hook = 'seo_classifier_process_job';
         $args = [$job_id];
         $group = 'seo-taxonomy-classifier';
-        if (!$force && function_exists('as_has_scheduled_action') && as_has_scheduled_action($hook, $args, $group)) return true;
-        if (function_exists('as_schedule_single_action')) {
-            // Dentro del worker usamos unique=false: la acción actual puede seguir figurando
-            // como en progreso y no debe impedir encadenar el siguiente lote.
-            $action_id = as_schedule_single_action(time() + $delay, $hook, $args, $group, !$force, 10);
-            if (absint($action_id) > 0) return true;
+        $scheduled = false;
+
+        $has_action = false;
+        if (function_exists('as_has_scheduled_action')) {
+            $has_action = (bool) as_has_scheduled_action($hook, $args, $group);
         }
-        if ($force || wp_next_scheduled($hook, $args) === false) {
-            return (bool) wp_schedule_single_event(time() + max(5, $delay), $hook, $args, true);
+
+        if (!$has_action || $force) {
+            $action_id = 0;
+            if ($delay < 2 && function_exists('as_enqueue_async_action')) {
+                $action_id = as_enqueue_async_action($hook, $args, $group, false, 10);
+            } elseif (function_exists('as_schedule_single_action')) {
+                // Dentro del worker force=true permite encadenar el siguiente lote
+                // aunque la acción actual siga figurando como "in progress".
+                $action_id = as_schedule_single_action(time() + max(1, $delay), $hook, $args, $group, false, 10);
+            }
+            if (absint($action_id) > 0) $scheduled = true;
+        } else {
+            $scheduled = true;
         }
-        return true;
+
+        // Respaldo independiente: no dependemos de que Action Scheduler despierte.
+        $cron_delay = max(seo_classifier_job_cron_fallback_seconds(), $delay + 5);
+        $cron_next = wp_next_scheduled($hook, $args);
+        if (!$cron_next) {
+            $cron = wp_schedule_single_event(time() + $cron_delay, $hook, $args, true);
+            if (!is_wp_error($cron) && $cron) $scheduled = true;
+        } else {
+            $scheduled = true;
+        }
+
+        seo_classifier_job_maybe_spawn_cron($job_id, false);
+        return $scheduled;
+    }
+}
+
+if (!function_exists('seo_classifier_job_scheduler_status')) {
+    function seo_classifier_job_scheduler_status($job_id) {
+        $job_id = absint($job_id);
+        $hook = 'seo_classifier_process_job';
+        $args = [$job_id];
+        $group = 'seo-taxonomy-classifier';
+        $as_available = function_exists('as_schedule_single_action') || function_exists('as_enqueue_async_action');
+        $as_pending = false;
+        if (function_exists('as_has_scheduled_action')) {
+            $as_pending = (bool) as_has_scheduled_action($hook, $args, $group);
+        }
+        $cron_next = wp_next_scheduled($hook, $args);
+        return [
+            'action_scheduler_available'=>$as_available,
+            'action_scheduler_pending'=>$as_pending,
+            'wp_cron_next'=>$cron_next ? absint($cron_next) : 0,
+            'wp_cron_disabled'=>defined('DISABLE_WP_CRON') && DISABLE_WP_CRON,
+        ];
     }
 }
 
@@ -545,19 +631,51 @@ if (!function_exists('seo_classifier_heavy_workload_active')) {
     }
 }
 
+if (!function_exists('seo_classifier_job_db_lock_name')) {
+    function seo_classifier_job_db_lock_name() {
+        global $wpdb;
+        $seed = (defined('DB_NAME') ? DB_NAME : '') . '|' . (string)$wpdb->prefix . '|classifier';
+        return 'seo_classifier_' . substr(hash('sha256', $seed), 0, 40);
+    }
+}
+
 if (!function_exists('seo_classifier_job_acquire_global_lock')) {
+    /**
+     * Lock global del worker. Preferimos GET_LOCK de MySQL/MariaDB porque es
+     * atómico y se libera automáticamente si muere la conexión PHP.
+     * Conservamos el transient como respaldo para instalaciones que no admitan
+     * advisory locks.
+     */
     function seo_classifier_job_acquire_global_lock($job_id) {
+        global $wpdb;
+        $name = seo_classifier_job_db_lock_name();
+        $got = $wpdb->get_var($wpdb->prepare('SELECT GET_LOCK(%s,0)', $name));
+        if ((string)$got === '1') return 'db:' . $name;
+        // 0 significa que otro worker posee el lock: no debemos saltarnos la
+        // exclusión mutua usando el mecanismo de respaldo.
+        if ((string)$got === '0') return '';
+
         $key = 'seo_classifier_worker_lock';
         if (get_transient($key)) return '';
         $token = absint($job_id) . ':' . wp_generate_password(18, false, false);
         set_transient($key, $token, 2 * MINUTE_IN_SECONDS);
-        return $token;
+        return 'transient:' . $token;
     }
 }
 
 if (!function_exists('seo_classifier_job_release_global_lock')) {
     function seo_classifier_job_release_global_lock($token) {
-        if ($token !== '' && get_transient('seo_classifier_worker_lock') === $token) delete_transient('seo_classifier_worker_lock');
+        global $wpdb;
+        $token = (string)$token;
+        if (strpos($token, 'db:') === 0) {
+            $name = substr($token, 3);
+            if ($name !== '') $wpdb->get_var($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $name));
+            return;
+        }
+        if (strpos($token, 'transient:') === 0) {
+            $value = substr($token, 10);
+            if ($value !== '' && get_transient('seo_classifier_worker_lock') === $value) delete_transient('seo_classifier_worker_lock');
+        }
     }
 }
 
@@ -802,7 +920,9 @@ if (!function_exists('seo_classifier_job_process_classify_item')) {
         $groups = seo_classifier_groups_from_mask($item['group_mask'] ?? 0);
         if ($product_id < 1 || !$groups) return ['status'=>'skipped','counts'=>['skipped_count'=>1],'hash'=>''];
         $signature = seo_classifier_product_signature($product_id);
-        if (empty($job['force_refresh']) && $signature !== '' && seo_classifier_proposal_cache_fresh($product_id, $groups, $signature)) {
+        $deep = (string)($job['mode'] ?? 'fast') === 'deep';
+        $force_refresh = $deep || !empty($job['force_refresh']);
+        if (!$force_refresh && $signature !== '' && seo_classifier_proposal_cache_fresh($product_id, $groups, $signature)) {
             return ['status'=>'done','counts'=>['cache_hits'=>1],'hash'=>$signature];
         }
         $current = function_exists('seo_classifier_current_object_labels') ? seo_classifier_current_object_labels('product', $product_id) : [];
@@ -814,11 +934,16 @@ if (!function_exists('seo_classifier_job_process_classify_item')) {
             seo_classifier_proposal_invalidate_product($product_id, $groups);
             return ['status'=>'skipped','counts'=>['skipped_count'=>1],'hash'=>$signature];
         }
-        if ((string)($job['mode'] ?? 'fast') === 'deep' && function_exists('seo_classifier_refresh_external_context')) {
+        if ($deep && function_exists('seo_classifier_refresh_external_context')) {
+            // Deep significa recálculo real: refresca las fuentes externas conocidas
+            // antes de construir el contexto, sin reutilizar el contexto estático.
             seo_classifier_refresh_external_context($product_id);
         }
         $context = function_exists('seo_classifier_build_product_context')
-            ? seo_classifier_build_product_context($product_id, ['queue_external'=>false])
+            ? seo_classifier_build_product_context($product_id, [
+                'queue_external'=>false,
+                'refresh_context'=>$deep,
+            ])
             : [];
         $result = seo_classifier_classify_product_labels($product_id, $current, [
             'groups'=>$missing_groups,
@@ -874,17 +999,28 @@ if (!function_exists('seo_classifier_job_process_apply_item')) {
 }
 
 if (!function_exists('seo_classifier_process_job')) {
-    function seo_classifier_process_job($job_id) {
+    function seo_classifier_process_job($job_id, $source = 'scheduler') {
         global $wpdb;
         $job_id = absint($job_id);
         $job = seo_classifier_job_get($job_id);
         if (!$job || in_array((string)$job['status'], ['paused','cancelled','completed','failed'], true)) return;
         $lock = seo_classifier_job_acquire_global_lock($job_id);
         if ($lock === '') {
-            seo_classifier_job_schedule($job_id, 20, true);
+            seo_classifier_job_schedule($job_id, 20, false);
             return;
         }
         $tables = seo_classifier_jobs_tables();
+        $source = sanitize_key((string)$source);
+        if ($source === '') $source = 'scheduler';
+        $now_mysql = current_time('mysql');
+        $wpdb->update($tables['jobs'], [
+            'worker_heartbeat_at'=>$now_mysql,
+            'worker_heartbeat_ts'=>time(),
+            'worker_runs'=>absint($job['worker_runs'] ?? 0) + 1,
+            'worker_source'=>$source,
+            'updated_at'=>$now_mysql,
+        ], ['id'=>$job_id]);
+        $job = seo_classifier_job_get($job_id) ?: $job;
         try {
             if (seo_classifier_heavy_workload_active()) {
                 $wpdb->update($tables['jobs'], [
@@ -919,7 +1055,14 @@ if (!function_exists('seo_classifier_process_job')) {
             if (!$items) {
                 $pending = (int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$tables['items']} WHERE job_id=%d AND status IN ('pending','processing')", $job_id));
                 if ($pending < 1) {
-                    $wpdb->update($tables['jobs'], ['status'=>'completed','completed_at'=>current_time('mysql'),'updated_at'=>current_time('mysql')], ['id'=>$job_id]);
+                    $wpdb->update($tables['jobs'], [
+                        'status'=>'completed',
+                        'completed_at'=>current_time('mysql'),
+                        'worker_heartbeat_at'=>current_time('mysql'),
+                        'worker_heartbeat_ts'=>time(),
+                        'updated_at'=>current_time('mysql'),
+                    ], ['id'=>$job_id]);
+                    seo_classifier_job_unschedule($job_id);
                 } else {
                     seo_classifier_job_schedule($job_id, 20, true);
                 }
@@ -999,6 +1142,8 @@ if (!function_exists('seo_classifier_process_job')) {
                 'adaptive_next_batch_size'=>(int)$next['batch_size'],
                 'adaptive_next_delay'=>(int)$next['delay'],
                 'adaptive_pressure'=>(string)$next['pressure'],
+                'worker_heartbeat_at'=>current_time('mysql'),
+                'worker_heartbeat_ts'=>time(),
                 'updated_at'=>current_time('mysql'),
             ];
             foreach ($increments as $key => $value) {
@@ -1007,12 +1152,26 @@ if (!function_exists('seo_classifier_process_job')) {
             $wpdb->update($tables['jobs'], $sets, ['id'=>$job_id]);
             $remaining = (int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$tables['items']} WHERE job_id=%d AND status IN ('pending','processing')", $job_id));
             if ($remaining < 1) {
-                $wpdb->update($tables['jobs'], ['status'=>'completed','completed_at'=>current_time('mysql'),'updated_at'=>current_time('mysql')], ['id'=>$job_id]);
+                $wpdb->update($tables['jobs'], [
+                    'status'=>'completed',
+                    'completed_at'=>current_time('mysql'),
+                    'worker_heartbeat_at'=>current_time('mysql'),
+                    'worker_heartbeat_ts'=>time(),
+                    'updated_at'=>current_time('mysql'),
+                ], ['id'=>$job_id]);
+                seo_classifier_job_unschedule($job_id);
             } else {
                 seo_classifier_job_schedule($job_id, (int)$next['delay'], true);
             }
         } catch (Throwable $e) {
-            $wpdb->update($tables['jobs'], ['status'=>'failed','last_error'=>$e->getMessage(),'updated_at'=>current_time('mysql')], ['id'=>$job_id]);
+            $wpdb->update($tables['jobs'], [
+                'status'=>'failed',
+                'last_error'=>$e->getMessage(),
+                'worker_heartbeat_at'=>current_time('mysql'),
+                'worker_heartbeat_ts'=>time(),
+                'updated_at'=>current_time('mysql'),
+            ], ['id'=>$job_id]);
+            seo_classifier_job_unschedule($job_id);
         } finally {
             seo_classifier_job_release_global_lock($lock);
         }
@@ -1031,8 +1190,14 @@ if (!function_exists('seo_classifier_job_control')) {
             $wpdb->update($tables['jobs'], ['status'=>'paused','updated_at'=>current_time('mysql')], ['id'=>absint($job_id)]);
             seo_classifier_job_unschedule($job_id);
         } elseif ($action === 'resume') {
-            $wpdb->update($tables['jobs'], ['status'=>'running','updated_at'=>current_time('mysql')], ['id'=>absint($job_id)]);
-            seo_classifier_job_schedule($job_id, 1);
+            $wpdb->update($tables['jobs'], [
+                'status'=>'running',
+                'worker_heartbeat_at'=>null,
+                'worker_heartbeat_ts'=>0,
+                'worker_source'=>'',
+                'updated_at'=>current_time('mysql'),
+            ], ['id'=>absint($job_id)]);
+            seo_classifier_job_schedule($job_id, 0, true);
         } elseif ($action === 'cancel') {
             $wpdb->update($tables['jobs'], ['status'=>'cancelled','completed_at'=>current_time('mysql'),'updated_at'=>current_time('mysql')], ['id'=>absint($job_id)]);
             $wpdb->update($tables['items'], ['status'=>'skipped','finished_at'=>current_time('mysql'),'updated_at'=>current_time('mysql')], ['job_id'=>absint($job_id),'status'=>'pending']);
@@ -1044,21 +1209,73 @@ if (!function_exists('seo_classifier_job_control')) {
     }
 }
 
+if (!function_exists('seo_classifier_job_maybe_watchdog')) {
+    /**
+     * Tercera vía de ejecución: mientras la pantalla del job esté abierta, el
+     * polling actúa como watchdog. Si los schedulers del hosting no han arrancado
+     * el job o el heartbeat se queda obsoleto, esta petición ejecuta un lote.
+     * El lock global evita duplicar trabajo si Action Scheduler despierta a la vez.
+     */
+    function seo_classifier_job_maybe_watchdog($job_id) {
+        $job_id = absint($job_id);
+        $job = seo_classifier_job_get($job_id);
+        if (!$job || !in_array((string)($job['status'] ?? ''), ['pending','running'], true)) return false;
+
+        // Mantener preparadas las dos vías de background aunque el watchdog no
+        // tenga que intervenir en esta petición.
+        seo_classifier_job_schedule($job_id, 0, false);
+
+        $runs = absint($job['worker_runs'] ?? 0);
+        $heartbeat = absint($job['worker_heartbeat_ts'] ?? 0);
+        $next_delay = absint($job['adaptive_next_delay'] ?? 0);
+        $allowed_gap = max(seo_classifier_job_watchdog_seconds(), $next_delay + 15);
+        $stale = $runs < 1 || $heartbeat < 1 || (time() - $heartbeat) >= $allowed_gap;
+        if (!$stale) return false;
+
+        $guard = 'seo_cl_watchdog_' . $job_id;
+        if (get_transient($guard)) return false;
+        set_transient($guard, 1, 12);
+        seo_classifier_process_job($job_id, 'browser_watchdog');
+        return true;
+    }
+}
+
 if (!function_exists('seo_classifier_job_status_payload')) {
     function seo_classifier_job_status_payload($job_id) {
         $job = seo_classifier_job_get($job_id);
         if (!$job) return [];
         $total = max(0, absint($job['total_items'] ?? 0));
         $processed = min($total ?: PHP_INT_MAX, absint($job['processed_items'] ?? 0));
+        $heartbeat = absint($job['worker_heartbeat_ts'] ?? 0);
+        $worker_age = $heartbeat > 0 ? max(0, time() - $heartbeat) : null;
+        $worker_runs = absint($job['worker_runs'] ?? 0);
+        $next_delay = absint($job['adaptive_next_delay'] ?? 0);
+        $watchdog_gap = max(seo_classifier_job_watchdog_seconds(), $next_delay + 15);
+        $status = (string)($job['status'] ?? '');
+        if (in_array($status, ['completed','cancelled','failed','paused'], true)) {
+            $worker_state = $status;
+        } elseif ($worker_runs < 1 || $heartbeat < 1) {
+            $worker_state = 'esperando_arranque';
+        } elseif ($worker_age !== null && $worker_age <= 20) {
+            $worker_state = 'activo';
+        } elseif ($worker_age !== null && $worker_age < $watchdog_gap) {
+            $worker_state = 'espera_programada';
+        } else {
+            $worker_state = 'heartbeat_obsoleto';
+        }
+        $scheduler = seo_classifier_job_scheduler_status(absint($job['id']));
         return [
-            'id'=>absint($job['id']),'uuid'=>(string)$job['job_uuid'],'job_type'=>(string)$job['job_type'],'mode'=>(string)$job['mode'],'status'=>(string)$job['status'],
+            'id'=>absint($job['id']),'uuid'=>(string)$job['job_uuid'],'job_type'=>(string)$job['job_type'],'mode'=>(string)$job['mode'],'status'=>$status,
+            'force_refresh'=>!empty($job['force_refresh']),'deep_recalculation'=>((string)$job['mode'] === 'deep'),
             'total'=>$total,'processed'=>$processed,'progress'=>$total > 0 ? round(($processed/$total)*100,2) : 100,
             'cache_hits'=>absint($job['cache_hits'] ?? 0),'safe'=>absint($job['safe_count'] ?? 0),'review'=>absint($job['review_count'] ?? 0),'new'=>absint($job['new_count'] ?? 0),'unresolved'=>absint($job['unresolved_count'] ?? 0),
             'applied'=>absint($job['applied_count'] ?? 0),'skipped'=>absint($job['skipped_count'] ?? 0),'errors'=>absint($job['error_count'] ?? 0),
             'batch_number'=>absint($job['batch_number'] ?? 0),'last_batch_rows'=>absint($job['last_batch_rows'] ?? 0),'last_batch_duration'=>(float)($job['last_batch_duration'] ?? 0),
             'seconds_per_row'=>(float)($job['last_batch_seconds_per_row'] ?? 0),'memory_ratio'=>(float)($job['last_batch_memory_ratio'] ?? 0),'queries'=>absint($job['last_batch_query_count'] ?? 0),
             'cpu_percent'=>isset($job['last_cpu_percent']) && $job['last_cpu_percent'] !== null ? (float)$job['last_cpu_percent'] : null,'cpu_cores'=>absint($job['last_cpu_cores'] ?? 0),
-            'next_batch_rows'=>absint($job['adaptive_next_batch_size'] ?? 0),'next_delay'=>absint($job['adaptive_next_delay'] ?? 0),'pressure'=>(string)($job['adaptive_pressure'] ?? ''),'last_error'=>(string)($job['last_error'] ?? ''),
+            'next_batch_rows'=>absint($job['adaptive_next_batch_size'] ?? 0),'next_delay'=>$next_delay,'pressure'=>(string)($job['adaptive_pressure'] ?? ''),'last_error'=>(string)($job['last_error'] ?? ''),
+            'worker_runs'=>$worker_runs,'worker_source'=>(string)($job['worker_source'] ?? ''),'worker_heartbeat_at'=>(string)($job['worker_heartbeat_at'] ?? ''),'worker_age_seconds'=>$worker_age,'worker_state'=>$worker_state,
+            'scheduler'=>$scheduler,
             'updated_at'=>(string)($job['updated_at'] ?? ''),'completed_at'=>(string)($job['completed_at'] ?? ''),
         ];
     }
@@ -1068,7 +1285,9 @@ if (!function_exists('seo_classifier_ajax_job_status')) {
     function seo_classifier_ajax_job_status() {
         if (!current_user_can('manage_options')) wp_send_json_error(['message'=>'Sin permisos.'], 403);
         check_ajax_referer('seo_classifier_jobs', 'nonce');
-        $payload = seo_classifier_job_status_payload(absint($_POST['job_id'] ?? 0));
+        $job_id = absint($_POST['job_id'] ?? 0);
+        seo_classifier_job_maybe_watchdog($job_id);
+        $payload = seo_classifier_job_status_payload($job_id);
         if (!$payload) wp_send_json_error(['message'=>'Trabajo no encontrado.'], 404);
         wp_send_json_success($payload);
     }

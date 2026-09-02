@@ -7,7 +7,7 @@ defined('ABSPATH') || exit;
 
 if (!function_exists('seo_classifier_version')) {
     function seo_classifier_version() {
-        return '2.2.0';
+        return '2.2.1';
     }
 }
 
