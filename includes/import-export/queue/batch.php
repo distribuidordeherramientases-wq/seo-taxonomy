@@ -17,8 +17,8 @@
  * @package SEOSystem
  * @subpackage ImportExport
  * @since 2.2.0
- * @version 2026-09-01
- * Build: 034
+ * @version 2026-09-02
+ * Build: 036
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -92,6 +92,7 @@ function seo_ie_batch_paths() {
         'processing' => trailingslashit( $base ) . 'processing',
         'imported'   => trailingslashit( $base ) . 'imported',
         'failed'     => trailingslashit( $base ) . 'failed',
+        'rejected'   => trailingslashit( $base ) . 'rejected',
     ];
 }
 
@@ -462,6 +463,10 @@ function seo_ie_batch_entity_label( $entity ) {
         return '—';
     }
 
+    if ( 'review' === $entity ) {
+        return 'Revisión';
+    }
+
     return function_exists( 'seo_ie_entity_label' )
         ? seo_ie_entity_label( $entity )
         : ucfirst( $entity );
@@ -547,6 +552,159 @@ function seo_ie_batch_write_sidecar_log( $csv_path, $log, $extra = [] ) {
 }
 
 /**
+ * Cabeceras del CSV de enriquecimientos rechazados durante un import de producto.
+ *
+ * Este CSV sustituye a los antiguos detalles masivos del log. Conserva una fila
+ * completa por producto rechazado y añade un JSON compacto con todas sus
+ * incidencias, para que pueda corregirse y reimportarse después.
+ *
+ * @return string[]
+ */
+function seo_ie_batch_product_rejection_columns( $state = [] ) {
+    $header = array_values(
+        array_filter(
+            array_map( 'sanitize_key', (array) ( $state['header'] ?? [] ) ),
+            static fn( $column ) => '' !== (string) $column
+        )
+    );
+
+    foreach ( [ 'rechazo_product_id', 'rechazo_archivo', 'rechazo_fila', 'rechazo_incidencias_json' ] as $diagnostic_column ) {
+        if ( ! in_array( $diagnostic_column, $header, true ) ) {
+            $header[] = $diagnostic_column;
+        }
+    }
+
+    return $header;
+}
+
+/**
+ * Añade incidencias al CSV incremental de rechazados del import actual.
+ *
+ * @param array $state Estado del import, por referencia.
+ * @param int   $line  Línea física del CSV original.
+ * @param array $row   Fila normalizada del producto.
+ * @param array $issues Incidencias. Cada elemento admite domain/field/value/reason.
+ * @param int   $resolved_product_id ID localizado aunque el CSV no lo trajera.
+ * @return int 1 si se escribió la fila rechazada; 0 en caso contrario.
+ */
+function seo_ie_batch_product_record_rejections( &$state, $line, $row, $issues, $resolved_product_id = 0 ) {
+    if ( empty( $state['batch_queue_mode'] ) || empty( $issues ) ) {
+        return 0;
+    }
+
+    $work_path = (string) ( $state['queue_rejected_work_path'] ?? '' );
+    if ( '' === $work_path ) {
+        return 0;
+    }
+
+    $directory = dirname( $work_path );
+    if ( ! is_dir( $directory ) && ! wp_mkdir_p( $directory ) ) {
+        return 0;
+    }
+
+    $new_file = ! is_file( $work_path ) || 0 === filesize( $work_path );
+    $handle   = fopen( $work_path, 'ab' );
+    if ( false === $handle ) {
+        return 0;
+    }
+
+    $columns = seo_ie_batch_product_rejection_columns( $state );
+    if ( $new_file ) {
+        fwrite( $handle, "\xEF\xBB\xBF" );
+        seo_ie_write_csv_row( $handle, $columns );
+    }
+
+    $normalized_issues = [];
+    foreach ( (array) $issues as $issue ) {
+        if ( ! is_array( $issue ) ) {
+            continue;
+        }
+
+        $normalized_issues[] = [
+            'dominio' => sanitize_key( (string) ( $issue['domain'] ?? 'enrichment' ) ),
+            'campo'   => sanitize_key( (string) ( $issue['field'] ?? '' ) ),
+            'valor'   => sanitize_textarea_field( (string) ( $issue['value'] ?? '' ) ),
+            'motivo'  => sanitize_textarea_field( (string) ( $issue['reason'] ?? 'Valor rechazado por el validador canónico.' ) ),
+        ];
+    }
+
+    if ( empty( $normalized_issues ) ) {
+        fclose( $handle );
+        return 0;
+    }
+
+    $diagnostics = [
+        'rechazo_product_id'      => absint( $resolved_product_id ?: ( $row['product_id'] ?? 0 ) ),
+        'rechazo_archivo'         => sanitize_file_name( (string) ( $state['queue_filename'] ?? $state['filename'] ?? '' ) ),
+        'rechazo_fila'            => absint( $line ),
+        'rechazo_incidencias_json'=> wp_json_encode( $normalized_issues, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+    ];
+
+    $csv_values = [];
+    foreach ( $columns as $column ) {
+        if ( array_key_exists( $column, $diagnostics ) ) {
+            $csv_values[] = (string) $diagnostics[ $column ];
+            continue;
+        }
+
+        $value = $row[ $column ] ?? '';
+        if ( is_array( $value ) || is_object( $value ) ) {
+            $value = wp_json_encode( $value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+        }
+        $csv_values[] = (string) $value;
+    }
+
+    seo_ie_write_csv_row( $handle, $csv_values );
+    fclose( $handle );
+
+    $state['rejected_count']       = absint( $state['rejected_count'] ?? 0 ) + 1;
+    $state['rejected_issue_count'] = absint( $state['rejected_issue_count'] ?? 0 ) + count( $normalized_issues );
+
+    return 1;
+}
+
+/**
+ * Publica el CSV incremental de rechazados al terminar el archivo de productos.
+ *
+ * @param array $state Estado del import, por referencia.
+ * @param array $log   Log, por referencia.
+ * @return string Ruta final o cadena vacía.
+ */
+function seo_ie_batch_finalize_product_rejections( &$state, &$log ) {
+    $work_path  = (string) ( $state['queue_rejected_work_path'] ?? '' );
+    $final_path = (string) ( $state['queue_rejected_path'] ?? '' );
+    $count      = absint( $state['rejected_count'] ?? 0 );
+
+    if ( '' === $work_path || ! is_file( $work_path ) || 0 === $count ) {
+        if ( '' !== $work_path && is_file( $work_path ) ) {
+            @unlink( $work_path );
+        }
+        return '';
+    }
+
+    if ( '' === $final_path ) {
+        $paths      = seo_ie_batch_paths();
+        $source     = sanitize_file_name( (string) ( $state['queue_filename'] ?? 'productos.csv' ) );
+        $base       = preg_replace( '/\.csv$/i', '', $source );
+        $final_path = seo_ie_batch_unique_path( $paths['rejected'], $base . '-rechazados.csv' );
+        $state['queue_rejected_path'] = $final_path;
+    }
+
+    if ( ! seo_ie_batch_move_file( $work_path, $final_path ) ) {
+        seo_ie_add_log_warning( $log, 'No se pudo publicar el CSV de enriquecimientos rechazados.' );
+        return '';
+    }
+
+    $log['rechazados_enriquecimiento'] = $count;
+    seo_ie_add_log_detail(
+        $log,
+        sprintf( 'Se generó %s con %d productos rechazados por enriquecimiento no válido.', basename( $final_path ), $count )
+    );
+
+    return $final_path;
+}
+
+/**
  * Opciones automaticas para productos.
  *
  * @return array
@@ -572,16 +730,22 @@ function seo_ie_batch_product_options( $header = [] ) {
         'categories'     => $has_any( [ 'categorias_ids', 'categorias' ] ),
 
         /*
-         * El importador automatico por cabeceras solo mantiene el producto base.
-         * El enriquecimiento semantico se procesa en un flujo independiente para
-         * poder resolver el vocabulario canonico antes de escribir. Por tanto,
-         * aunque estas columnas existan en el CSV, aqui se ignoran expresamente.
+         * Modo seguro de enriquecimiento. Se vuelven a admitir etiquetas y
+         * atributos, pero el motor V2 solo aplicará valores que ya existan en
+         * sus vocabularios canónicos. Los valores desconocidos no se crean y se
+         * envían al CSV de rechazados para revisión posterior.
          */
-        'wc_tags'        => false,
+        'wc_tags'        => $has_any( [ 'etiquetas_wc_ids', 'etiquetas_wc' ] ),
         'scope'          => false,
-        'labels'         => false,
-        'vocabulary'     => false,
-        'seo_attributes' => false,
+        'labels'         => $has_any( [ 'tipo_semantico', 'tipo', 'rol', 'aplicacion', 'plataforma', 'subtipo' ] ),
+        'vocabulary'     => $has_any( [ 'tipo_semantico', 'tipo', 'rol', 'aplicacion', 'plataforma', 'subtipo' ] ),
+        'seo_attributes' => $has_any( [ 'atributos_seo_json', 'atributos_seo' ] ),
+
+        /*
+         * Los atributos nativos de WooCommerce pueden contener atributos locales
+         * de texto libre o crear términos de taxonomía. Se mantienen desactivados
+         * en la cola automática hasta disponer de una política canónica propia.
+         */
         'wc_attributes'  => false,
 
         'brand_provider' => $has_any( [
@@ -727,6 +891,8 @@ function seo_ie_batch_start_product( $user_id, $processing_path, $detected ) {
 
     $paths    = seo_ie_batch_paths();
     $filename = sanitize_file_name( basename( $processing_path ) );
+    $rejected_filename = preg_replace( '/\.csv$/i', '', $filename ) . '-rechazados.csv';
+    $rejected_path     = seo_ie_batch_unique_path( $paths['rejected'], $rejected_filename );
     $state    = [
         'path'                 => $path,
         'filename'             => $filename,
@@ -747,6 +913,10 @@ function seo_ie_batch_start_product( $user_id, $processing_path, $detected ) {
         'queue_imported_path'  => seo_ie_batch_unique_path( $paths['imported'], $filename ),
         'queue_failed_path'    => seo_ie_batch_unique_path( $paths['failed'], $filename ),
         'queue_pending_path'   => seo_ie_batch_unique_path( $paths['pending'], $filename ),
+        'queue_rejected_path'  => $rejected_path,
+        'queue_rejected_work_path' => $rejected_path . '.part',
+        'rejected_count'       => 0,
+        'rejected_issue_count' => 0,
         'queue_filename'       => $filename,
         'queue_entity'         => 'product',
         'log'                  => [
@@ -759,9 +929,11 @@ function seo_ie_batch_start_product( $user_id, $processing_path, $detected ) {
             'omitidos'     => 0,
             'errores'      => 0,
             'advertencias' => 0,
+            'rechazados_enriquecimiento' => 0,
             'simulacion'   => 0,
             'detalles'     => [
-                'Modo producto base: se ignoran etiquetas WooCommerce, semantica/ambito y atributos SEO/WooCommerce aunque esas columnas existan en el CSV.',
+                'Modo seguro: etiquetas WooCommerce, vocabulario semántico y atributos SEO solo se aplican si ya existen en los vocabularios admitidos. Si algún enriquecimiento no es válido, se rechaza la fila completa antes de escribir y se exporta a CSV.',
+                'Los atributos nativos de WooCommerce siguen desactivados en la cola automática para impedir altas implícitas de taxonomías o valores libres.',
             ],
         ],
     ];
@@ -1251,7 +1423,16 @@ function seo_ie_batch_finalize_product_file( $user_id, &$state, &$log ) {
         return false;
     }
 
-    seo_ie_batch_write_sidecar_log( $target, $log, [ 'entity' => 'product', 'result' => 0 < $errors ? 'failed' : 'imported' ] );
+    $rejected_csv = seo_ie_batch_finalize_product_rejections( $state, $log );
+    seo_ie_batch_write_sidecar_log(
+        $target,
+        $log,
+        [
+            'entity'       => 'product',
+            'result'       => 0 < $errors ? 'failed' : 'imported',
+            'rejected_csv' => '' !== $rejected_csv ? basename( $rejected_csv ) : '',
+        ]
+    );
 
     if ( 0 < $errors ) {
         seo_ie_add_log_detail( $log, sprintf( 'El archivo se movio a failed porque termino con %d errores.', $errors ) );
@@ -1271,7 +1452,12 @@ function seo_ie_batch_finalize_product_file( $user_id, &$state, &$log ) {
     }
 
     seo_ie_add_log_detail( $log, sprintf( 'Archivo movido a imported: %s.', basename( $target ) ) );
-    $continue = ! empty( seo_ie_batch_status()['enabled'] );
+    $continue          = ! empty( seo_ie_batch_status()['enabled'] );
+    $rejected_products = absint( $log['rechazados_enriquecimiento'] ?? 0 );
+    $base_message      = 0 < $rejected_products
+        ? sprintf( 'Archivo de productos procesado con %d productos rechazados; el CSV de revisión está disponible.', $rejected_products )
+        : 'Productos importados sin rechazos de enriquecimiento.';
+
     seo_ie_batch_store_status(
         [
             'enabled'       => $continue,
@@ -1280,9 +1466,7 @@ function seo_ie_batch_finalize_product_file( $user_id, &$state, &$log ) {
             'current_file'  => '',
             'last_file'     => basename( $target ),
             'entity'        => 'product',
-            'message'       => $continue
-                ? 'Productos importados; se programa el siguiente archivo.'
-                : 'Productos importados; la cola permanece pausada.',
+            'message'       => $base_message . ( $continue ? ' Se programa el siguiente archivo.' : ' La cola permanece pausada.' ),
             'history_event' => true,
         ]
     );
@@ -1312,6 +1496,11 @@ function seo_ie_batch_handle_product_stopped( $user_id, &$state, &$log ) {
 
     if ( '' !== $source && '' !== $target && is_file( $source ) ) {
         seo_ie_batch_move_file( $source, $target );
+    }
+
+    $rejected_work = (string) ( $state['queue_rejected_work_path'] ?? '' );
+    if ( '' !== $rejected_work && is_file( $rejected_work ) ) {
+        @unlink( $rejected_work );
     }
 
     seo_ie_add_log_detail( $log, 'La cola se pauso y el CSV en curso volvio a pending.' );
@@ -1344,10 +1533,10 @@ function seo_ie_batch_snapshot() {
         'files'  => [],
     ];
 
-    foreach ( [ 'pending', 'processing', 'imported', 'failed' ] as $bucket ) {
+    foreach ( [ 'pending', 'processing', 'imported', 'failed', 'rejected' ] as $bucket ) {
         $data['files'][ $bucket ] = [];
         foreach ( seo_ie_batch_files( $paths[ $bucket ] ) as $path ) {
-            $detected = seo_ie_batch_detect_entity( $path );
+            $detected = 'rejected' === $bucket ? [ 'entity' => 'review' ] : seo_ie_batch_detect_entity( $path );
             $data['files'][ $bucket ][] = [
                 'path'     => $path,
                 'name'     => basename( $path ),
@@ -1376,7 +1565,7 @@ function seo_ie_batch_snapshot() {
 function seo_ie_batch_resolve_managed_file( $bucket, $filename, $allow_processing = false ) {
     $bucket   = sanitize_key( $bucket );
     $filename = sanitize_file_name( wp_unslash( (string) $filename ) );
-    $allowed  = [ 'pending', 'imported', 'failed' ];
+    $allowed  = [ 'pending', 'imported', 'failed', 'rejected' ];
 
     if ( $allow_processing ) {
         $allowed[] = 'processing';
@@ -1991,7 +2180,7 @@ function seo_ie_batch_render_page() {
                         <tr><th>Actualizacion</th><td><?php echo esc_html( $status['updated_at'] ?? '---' ); ?></td></tr>
                         <?php $active_product = (array) ( $snapshot['active_product'] ?? [] ); ?>
                         <?php if ( ! empty( $active_product ) ) : ?>
-                            <tr><th>Progreso productos</th><td><?php echo esc_html( absint( $active_product['progreso'] ?? 0 ) ); ?>% - <?php echo esc_html( absint( $active_product['log']['procesados'] ?? 0 ) ); ?> procesados - <?php echo esc_html( absint( $active_product['log']['errores'] ?? 0 ) ); ?> errores</td></tr>
+                            <tr><th>Progreso productos</th><td><?php echo esc_html( absint( $active_product['progreso'] ?? 0 ) ); ?>% - <?php echo esc_html( absint( $active_product['log']['procesados'] ?? 0 ) ); ?> procesados - <?php echo esc_html( absint( $active_product['log']['rechazados_enriquecimiento'] ?? 0 ) ); ?> rechazados - <?php echo esc_html( absint( $active_product['log']['errores'] ?? 0 ) ); ?> errores</td></tr>
                             <?php $product_diag = (array) ( $active_product['diagnostics'] ?? [] ); ?>
                             <tr><th>Ritmo adaptativo</th><td>Ultimo lote: <?php echo esc_html( absint( $product_diag['last_batch_rows'] ?? 0 ) ); ?> filas en <?php echo esc_html( (string) ( $product_diag['last_batch_duration'] ?? 0 ) ); ?> s. Siguiente objetivo: <strong><?php echo esc_html( absint( $product_diag['adaptive_next_batch_size'] ?? 10 ) ); ?></strong> filas<?php if ( ! empty( $product_diag['adaptive_next_delay'] ) ) : ?>, pausa <?php echo esc_html( absint( $product_diag['adaptive_next_delay'] ) ); ?> s<?php endif; ?>. Presion: <?php echo esc_html( $product_diag['adaptive_pressure'] ?? 'baja' ); ?>.</td></tr>
                         <?php endif; ?>
@@ -2005,7 +2194,7 @@ function seo_ie_batch_render_page() {
                         <button type="submit" name="seo_ie_batch_action" value="step_product" class="button">Procesar siguiente bloque adaptativo</button>
                     <?php endif; ?>
                 </form>
-                <p class="description">Sin simulacion. Respeta el estado del CSV. Los errores detienen la cola y envian el archivo a <code>failed</code>.</p>
+                <p class="description">Sin simulacion. Respeta el estado del CSV. Los errores técnicos detienen la cola y envían el archivo a <code>failed</code>; los productos con etiquetas o atributos no válidos se omiten y continúan en el CSV de rechazados.</p>
             </div>
         </div>
 
@@ -2031,6 +2220,7 @@ function seo_ie_batch_render_page() {
                         <p><strong>Ultimo resultado:</strong>
                             <?php echo esc_html( absint( $preview_log['procesados'] ?? 0 ) ); ?> procesados,
                             <?php echo esc_html( absint( $preview_log['correctos'] ?? 0 ) ); ?> correctos,
+                            <?php echo esc_html( absint( $preview_log['rechazados_enriquecimiento'] ?? 0 ) ); ?> rechazados,
                             <?php echo esc_html( absint( $preview_log['errores'] ?? 0 ) ); ?> errores.
                         </p>
                     <?php endif; ?>
@@ -2063,9 +2253,9 @@ function seo_ie_batch_render_page() {
         <div class="card" style="max-width:none;padding:20px;margin-top:20px;">
             <h3>3. Gestor de archivos</h3>
             <p>Los CSV pueden revisarse y administrarse desde WordPress. Los archivos de <code>processing</code> son de solo lectura.</p>
-            <?php foreach ( [ 'pending' => 'Pendientes', 'processing' => 'En proceso', 'imported' => 'Importados', 'failed' => 'Fallidos' ] as $bucket => $label ) : ?>
+            <?php foreach ( [ 'pending' => 'Pendientes', 'processing' => 'En proceso', 'imported' => 'Importados', 'failed' => 'Fallidos', 'rejected' => 'Rechazados de enriquecimiento' ] as $bucket => $label ) : ?>
                 <?php $bucket_files = (array) ( $files[ $bucket ] ?? [] ); ?>
-                <details style="margin:10px 0;" <?php echo in_array( $bucket, [ 'pending', 'processing', 'failed' ], true ) ? 'open' : ''; ?>>
+                <details style="margin:10px 0;" <?php echo in_array( $bucket, [ 'pending', 'processing', 'failed', 'rejected' ], true ) ? 'open' : ''; ?>>
                     <summary><strong><?php echo esc_html( $label ); ?> (<?php echo esc_html( count( $bucket_files ) ); ?>)</strong></summary>
                     <?php if ( empty( $bucket_files ) ) : ?>
                         <p class="description">No hay archivos.</p>
@@ -2137,7 +2327,9 @@ function seo_ie_batch_render_page() {
                 <li>Las categorias reutilizan exactamente el importador individual: aceptan <code>imagen_destacada_id</code> e <code>imagen_destacada</code> (URL). Si hay URL, se usa como identidad portable de la imagen y puede descargarse a la biblioteca de Medios.</li>
                 <li>Paginas/landings y entradas importan tambien su relacion comercial con <code>product_cat</code> mediante <code>seo_relations</code> cuando el CSV incluye las columnas <code>product_cat_relacion_*</code>.</li>
                 <li>Los productos reutilizan el motor adaptativo, Action Scheduler, WP-Cron y continuacion asistida desde esta pestana tras un inicio explicito.</li>
-                <li>En productos, esta cola importa solo el producto base. Las columnas de etiquetas WooCommerce, semantica/ambito y atributos SEO/WooCommerce se ignoran aunque existan en el CSV; su enriquecimiento se realizara en un flujo independiente.</li>
+                <li>En productos, las etiquetas WooCommerce y los atributos SEO vuelven a importarse en modo seguro: nunca se crean términos o atributos desconocidos. Si una fila intenta usarlos, el producto no se modifica y la fila aparece en <strong>Rechazados de enriquecimiento</strong> como CSV descargable.</li>
+                <li>Las columnas semánticas canónicas <code>tipo_semantico/tipo</code>, <code>aplicacion</code>, <code>plataforma</code> y <code>subtipo</code> también se admiten cuando apuntan a términos activos existentes. <code>ROL</code> es de solo validación y se deriva de TIPO.</li>
+                <li>Los atributos nativos de WooCommerce (<code>atributos_wc_json</code>) siguen desactivados en la cola automática para impedir altas implícitas de taxonomías o términos.</li>
                 <li>Un error detiene la cola para impedir que archivos dependientes se importen sobre datos incompletos.</li>
                 <li>Borrar un archivo de <code>imported</code> solo elimina el CSV y su log; no deshace los cambios ya escritos en WordPress.</li>
             </ul>
