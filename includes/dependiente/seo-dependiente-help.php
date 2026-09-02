@@ -100,6 +100,10 @@ final class SEO_Dependiente_Help {
         $query = sanitize_text_field((string) ($data['query'] ?? ''));
         $query = self::substr($query, 500);
         $mode = sanitize_key((string) ($data['mode'] ?? 'need')) ?: 'need';
+        $solution_role = sanitize_key((string) ($data['solution_role'] ?? ''));
+        if (!in_array($solution_role, array('herramienta', 'repuesto', 'accesorio', 'equipamiento'), true)) {
+            $solution_role = '';
+        }
         $context_label = sanitize_text_field((string) ($data['context_label'] ?? ''));
         $context_label = self::substr($context_label, 255);
         $page_url = esc_url_raw((string) ($data['page_url'] ?? ''));
@@ -164,6 +168,7 @@ final class SEO_Dependiente_Help {
 
         $frontend_context = array(
             'mode'          => $mode,
+            'solution_role' => $solution_role,
             'context_label' => $context_label,
             'filters'       => self::sanitize_context_value($data['filters'] ?? array(), 0),
             'semantic_hint'   => self::sanitize_context_value($data['semantic_hint'] ?? array(), 0),
@@ -310,6 +315,7 @@ final class SEO_Dependiente_Help {
         $lines[] = '';
         $lines[] = 'ESTADO DEL FRONTEND AL PEDIR AYUDA';
         $lines[] = '- Modo: ' . ((string) ($frontend['mode'] ?? '') ?: 'need');
+        $lines[] = '- Tipo de solución: ' . ((string) ($frontend['solution_role'] ?? '') ?: '(sin seleccionar)');
         $lines[] = '- Contexto visual: ' . ((string) ($frontend['context_label'] ?? '') ?: '(ninguno)');
         $lines[] = '- Orden: ' . ((string) ($frontend['orderby'] ?? '') ?: 'relevance');
         $filters = $frontend['filters'] ?? array();

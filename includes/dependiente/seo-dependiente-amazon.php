@@ -9,7 +9,7 @@
  *   enriquece el bloque con productos concretos. Si falla, se vuelve
  *   automaticamente al modo afiliado sin romper la busqueda principal.
  *
- * @version 0.1.22
+ * @version 0.1.27
  */
 defined('ABSPATH') || exit;
 
@@ -134,6 +134,10 @@ final class SEO_Dependiente_Amazon {
         }
 
         $amazon_query = self::build_search_query($query, $semantic);
+        $amazon_query = self::apply_solution_role(
+            $amazon_query,
+            sanitize_key((string) ($context['solution_role'] ?? ''))
+        );
         if ('' === $amazon_query) {
             $empty['status'] = 'query_unusable';
             return $empty;
@@ -410,6 +414,33 @@ final class SEO_Dependiente_Amazon {
 
         $search = $parts ? implode(' ', array_slice($parts, 0, 10)) : self::normalize($query);
         return self::limit_text(trim($search), 160);
+    }
+
+    private static function apply_solution_role($query, $role) {
+        $query = trim(self::normalize($query));
+        $role = sanitize_key((string) $role);
+        if ('' === $query || !in_array($role, array('herramienta', 'repuesto', 'accesorio', 'equipamiento'), true)) {
+            return $query;
+        }
+
+        $already_scoped = array(
+            'herramienta' => '/\bherramientas?\b/u',
+            'repuesto'    => '/\b(?:repuestos?|recambios?)\b/u',
+            'accesorio'   => '/\baccesorios?\b/u',
+            'equipamiento'=> '/\b(?:equipamiento|equipos?)\b/u',
+        );
+        if (preg_match($already_scoped[$role], $query)) {
+            return self::limit_text($query, 160);
+        }
+
+        $prefixes = array(
+            'herramienta' => 'herramientas para',
+            'repuesto'    => 'repuestos para',
+            'accesorio'   => 'accesorios para',
+            'equipamiento'=> 'equipamiento para',
+        );
+
+        return self::limit_text(trim($prefixes[$role] . ' ' . $query), 160);
     }
 
     private static function ensure_recipe() {

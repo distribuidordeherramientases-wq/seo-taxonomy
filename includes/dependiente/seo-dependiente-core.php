@@ -173,7 +173,7 @@ final class SEO_Dependiente_Plugin {
         $atts = shortcode_atts(
             array(
                 'title'    => '¿Qué necesitas?',
-                'subtitle' => 'Busca una herramienta, describe un trabajo o compara opciones.',
+                'subtitle' => 'Describe lo que necesitas y elige qué tipo de solución quieres encontrar.',
             ),
             $atts,
             'dependiente_productos'
@@ -182,15 +182,9 @@ final class SEO_Dependiente_Plugin {
         $this->enqueue_assets();
 
         $query_input_id = wp_unique_id('seo-dependiente-query-');
+        $solution_role_id = wp_unique_id('seo-dependiente-role-');
         $help_email_id = wp_unique_id('seo-dependiente-help-email-');
         $help_note_id = wp_unique_id('seo-dependiente-help-note-');
-        $action_images = array(
-            'need'    => $this->action_image_url('need', 'dependiente-arreglar-algo.webp'),
-            'product' => $this->action_image_url('product', 'dependiente-buscar-herramienta.webp'),
-            'tool'    => $this->action_image_url('tool', 'dependiente-necesito-herramienta.webp'),
-            'compare' => $this->action_image_url('compare', 'dependiente-comparar-herramientas.webp'),
-        );
-
         ob_start();
         ?>
         <section class="seo-dependiente" data-dependiente-root>
@@ -209,12 +203,23 @@ final class SEO_Dependiente_Plugin {
                             id="<?php echo esc_attr($query_input_id); ?>"
                             type="search"
                             data-dependiente-query
-                            placeholder="Ej.: se me ha roto un grifo · necesito un taladro · comparar infladores"
+                            placeholder="Ej.: se me ha roto un grifo · necesito trabajar en una tubería"
                             autocomplete="off"
                             maxlength="180"
                         >
-                        <button type="submit">Buscar solución</button>
+                        <label class="seo-dependiente__role-select" for="<?php echo esc_attr($solution_role_id); ?>">
+                            <span>Quiero encontrar</span>
+                            <select id="<?php echo esc_attr($solution_role_id); ?>" data-dependiente-role required>
+                                <option value="" selected disabled>Elige una opción</option>
+                                <option value="herramienta">Herramienta</option>
+                                <option value="repuesto">Repuesto / recambio</option>
+                                <option value="accesorio">Accesorio</option>
+                                <option value="equipamiento">Equipamiento</option>
+                            </select>
+                        </label>
+                        <button type="submit">Buscar</button>
                     </div>
+                    <p class="seo-dependiente__ask-help">Describe el problema, producto o trabajo y selecciona qué tipo de solución quieres. El Dependiente usará ambas cosas en la misma búsqueda.</p>
                     <div class="seo-dependiente__examples" data-dependiente-examples aria-label="Ejemplos de búsqueda"></div>
                 </form>
 
@@ -248,25 +253,6 @@ final class SEO_Dependiente_Plugin {
                     </div>
                 </aside>
 
-                <div class="seo-dependiente__path-intro">O elige una forma de empezar</div>
-                <div class="seo-dependiente__paths" aria-label="Formas de buscar">
-                    <button type="button" class="seo-dependiente__path is-active" data-dependiente-mode="need">
-                        <span class="seo-dependiente__path-image"><img src="<?php echo esc_url($action_images['need']); ?>" alt="" loading="eager" decoding="async"></span>
-                        <span class="seo-dependiente__path-copy"><strong>Tengo que arreglar o hacer algo</strong><small>Cuéntame el trabajo y buscaré qué herramientas o productos necesitas.</small></span>
-                    </button>
-                    <button type="button" class="seo-dependiente__path" data-dependiente-mode="product">
-                        <span class="seo-dependiente__path-image"><img src="<?php echo esc_url($action_images['product']); ?>" alt="" loading="eager" decoding="async"></span>
-                        <span class="seo-dependiente__path-copy"><strong>Busco un producto concreto</strong><small>Busca por nombre, marca, referencia, medida o característica.</small></span>
-                    </button>
-                    <button type="button" class="seo-dependiente__path" data-dependiente-mode="tool">
-                        <span class="seo-dependiente__path-image"><img src="<?php echo esc_url($action_images['tool']); ?>" alt="" loading="lazy" decoding="async"></span>
-                        <span class="seo-dependiente__path-copy"><strong>Busco algo compatible</strong><small>Dime qué máquina, batería, plataforma o sistema ya tienes.</small></span>
-                    </button>
-                    <button type="button" class="seo-dependiente__path" data-dependiente-mode="compare">
-                        <span class="seo-dependiente__path-image"><img src="<?php echo esc_url($action_images['compare']); ?>" alt="" loading="lazy" decoding="async"></span>
-                        <span class="seo-dependiente__path-copy"><strong>Quiero comparar</strong><small>Busca varias opciones y compara hasta cuatro lado a lado.</small></span>
-                    </button>
-                </div>
             </div>
 
             <section class="seo-dependiente__discovery" data-dependiente-discovery>

@@ -151,7 +151,16 @@ final class SEO_Dependiente_API {
         }
         $page = max(1, absint(isset($params['page']) ? $params['page'] : 1));
         $per_page = min(48, max(6, absint(isset($params['per_page']) ? $params['per_page'] : SEO_Dependiente_Plugin::option('results_per_page', 18))));
-        $filters = self::sanitize_filters(isset($params['filters']) && is_array($params['filters']) ? $params['filters'] : array());
+        $solution_role = self::sanitize_solution_role($params['solution_role'] ?? '');
+        $request_filters = self::sanitize_filters(isset($params['filters']) && is_array($params['filters']) ? $params['filters'] : array());
+        $filters = $request_filters;
+        if ($solution_role) {
+            // El selector principal es una decisión explícita del cliente. Se
+            // aplica como filtro fuerte del vocabulario ROL, separado de los
+            // filtros secundarios para que la primera petición siga siendo una
+            // búsqueda y pueda lanzar preguntas de aclaración si hacen falta.
+            $filters['vocabulary']['rol'] = array($solution_role);
+        }
         $orderby = isset($params['orderby']) ? sanitize_key((string) $params['orderby']) : 'relevance';
         if (!in_array($orderby, array('relevance', 'price_asc', 'price_desc', 'newest', 'title'), true)) {
             $orderby = 'relevance';
@@ -190,7 +199,7 @@ final class SEO_Dependiente_API {
         }
         $request_kind = $page > 1
             ? 'paginate'
-            : (($semantic_hint || self::has_active_filters($filters) || 'relevance' !== $orderby) ? 'refine' : 'search');
+            : (($semantic_hint || self::has_active_filters($request_filters) || 'relevance' !== $orderby) ? 'refine' : 'search');
 
         $semantic_rules_active = 0;
         if (class_exists('SEO_Dependiente_Semantics')) {
@@ -240,7 +249,15 @@ final class SEO_Dependiente_API {
         // local. Así las descripciones, rutas semánticas y aproximaciones no pisan
         // una respuesta directa ya suficientemente buena.
         $run_extended = !self::local_search_sufficient($primary_matched, $direct_related);
+        // Cuando el cliente ha elegido un ROL concreto, no dejamos que varias
+        // guías editoriales oculten la segunda pasada del catálogo si todavía
+        // hay pocos productos de ese rol. Es especialmente importante en frases
+        // de problema como "se me ha roto un grifo" + Herramienta.
+        if ($solution_role && count($primary_matched) < 3) {
+            $run_extended = true;
+        }
         $search_diagnostic = $primary_diagnostic;
+        $search_diagnostic['solution_role'] = $solution_role;
         $search_diagnostic['primary_product_count'] = count($primary_matched);
         $search_diagnostic['direct_knowledge_count'] = count($direct_related);
         $search_diagnostic['extended_search'] = $run_extended ? 'executed' : 'skipped';
@@ -343,6 +360,7 @@ final class SEO_Dependiente_API {
 
         $amazon_fallback = self::amazon_fallback($query, $semantic, array(
             'page'            => $page,
+            'solution_role'   => $solution_role,
             'total'           => $total,
             'strategy'        => (string) ($search_diagnostic['strategy'] ?? 'strict'),
             'top_object_hits' => !empty($matched) ? absint($matched[0]['_object_hits'] ?? 0) : 0,
@@ -359,6 +377,7 @@ final class SEO_Dependiente_API {
                 'page'          => $page,
                 'orderby'       => $orderby,
                 'filters'       => $filters,
+                'solution_role' => $solution_role,
                 'semantic_hint' => $semantic_hint,
             );
             $log_diagnostic['knowledge_results'] = count($related);
@@ -387,6 +406,7 @@ final class SEO_Dependiente_API {
         return rest_ensure_response(array(
             'query'           => $query,
             'mode'            => $mode,
+            'solution_role'   => $solution_role,
             'page'            => $page,
             'per_page'        => $per_page,
             'pages'           => $pages,
@@ -641,6 +661,7 @@ final class SEO_Dependiente_API {
             'note'          => sanitize_textarea_field((string) ($params['note'] ?? '')),
             'query'         => sanitize_text_field((string) ($params['query'] ?? '')),
             'mode'          => sanitize_key((string) ($params['mode'] ?? 'need')),
+            'solution_role' => self::sanitize_solution_role($params['solution_role'] ?? ''),
             'context_label' => sanitize_text_field((string) ($params['context_label'] ?? '')),
             'page_url'      => esc_url_raw((string) ($params['page_url'] ?? '')),
             'filters'       => isset($params['filters']) && is_array($params['filters']) ? $params['filters'] : array(),
@@ -681,7 +702,7 @@ final class SEO_Dependiente_API {
                 'stock'       => self::stock_label($product->get_stock_status()),
                 'weight'      => self::number_with_unit($document['weight'], get_option('woocommerce_weight_unit', 'kg')),
                 'dimensions'  => self::dimensions_text($document),
-                'categories'  => implode(', ', self::category_labels($document['categories'])),
+                'categories'  => self::join_labels($document['categories'], 'name'),
                 'application' => self::vocabulary_labels($document, 'aplicacion'),
                 'platform'    => self::vocabulary_labels($document, 'plataforma'),
                 'subtype'     => self::vocabulary_labels($document, 'subtipo'),
@@ -1275,6 +1296,13 @@ final class SEO_Dependiente_API {
         return array_values(array_unique(array_filter(array_map(array('SEO_Dependiente_Index', 'normalize'), $variants))));
     }
 
+    private static function sanitize_solution_role($role) {
+        $role = sanitize_key((string) $role);
+        return in_array($role, array('herramienta', 'repuesto', 'accesorio', 'equipamiento'), true)
+            ? $role
+            : '';
+    }
+
     private static function sanitize_filters($filters) {
         $clean = array(
             'categories' => self::sanitize_slug_list(isset($filters['categories']) ? $filters['categories'] : array()),
@@ -1657,7 +1685,7 @@ final class SEO_Dependiente_API {
             'key_specs'     => self::key_specs($document, $query, $filters),
             'applications'  => self::vocabulary_item_labels($document, 'aplicacion'),
             'platforms'     => self::vocabulary_item_labels($document, 'plataforma'),
-            'categories'    => array_slice(self::category_labels($document['categories']), 0, 2),
+            'categories'    => array_slice(array_values(array_filter(wp_list_pluck($document['categories'], 'name'))), 0, 2),
             'compare_label' => 'Añadir a comparación',
         );
     }
@@ -1728,7 +1756,7 @@ final class SEO_Dependiente_API {
 
         foreach ((array) $documents as $document) {
             foreach ((array) $document['categories'] as $term) {
-                self::facet_increment($categories, $term['slug'] ?? '', self::category_display_label($term['name'] ?? ''), $term['image'] ?? '');
+                self::facet_increment($categories, $term['slug'] ?? '', $term['name'] ?? '', $term['image'] ?? '');
             }
             foreach ((array) $document['tags'] as $term) {
                 self::facet_increment($tags, $term['slug'] ?? '', $term['name'] ?? '', '');
@@ -2214,36 +2242,6 @@ final class SEO_Dependiente_API {
 
     private static function join_labels($items, $field) {
         return implode(', ', array_values(array_filter(wp_list_pluck((array) $items, $field))));
-    }
-
-    /**
-     * Nombre de categoria para la interfaz de Dependiente.
-     *
-     * Algunas categorias SEO pueden llevar el prefijo editorial "Como comparar".
-     * Dependiente conserva el termino y su slug reales para filtrar/buscar, pero
-     * oculta ese prefijo al cliente porque no forma parte del nombre util del producto.
-     */
-    private static function category_display_label($label) {
-        $label = trim(wp_strip_all_tags((string) $label));
-        if ('' === $label) {
-            return '';
-        }
-
-        $clean = preg_replace('/^\s*c[oó]mo\s+comparar(?:\s*[:\-–—]\s*|\s+)/iu', '', $label);
-        $clean = trim((string) $clean);
-
-        return '' !== $clean ? $clean : $label;
-    }
-
-    private static function category_labels($items) {
-        $labels = array();
-        foreach ((array) $items as $item) {
-            $label = self::category_display_label(is_array($item) ? ($item['name'] ?? '') : '');
-            if ('' !== $label) {
-                $labels[] = $label;
-            }
-        }
-        return array_values(array_unique($labels));
     }
 
     private static function stock_label($stock_status) {
