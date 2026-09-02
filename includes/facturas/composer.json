@@ -1,0 +1,13 @@
+{
+  "name": "seo-taxonomy/facturas",
+  "description": "Motor PDF del modulo de facturas y proformas de SEO Taxonomy",
+  "type": "library",
+  "require": {
+    "php": ">=7.4",
+    "dompdf/dompdf": "^3.1"
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "sort-packages": true
+  }
+}

@@ -1,0 +1,39 @@
+.seo-facturas-wrap .nav-tab-wrapper {
+    margin-bottom: 20px;
+}
+
+.seo-facturas-status-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(180px, 1fr));
+    gap: 12px;
+    margin: 18px 0;
+    max-width: 980px;
+}
+
+.seo-facturas-status-card {
+    background: #fff;
+    border: 1px solid #dcdcde;
+    border-left: 4px solid #2271b1;
+    padding: 12px 14px;
+}
+
+.seo-facturas-settings-form {
+    max-width: 1050px;
+}
+
+.seo-facturas-table td,
+.seo-facturas-table th {
+    vertical-align: top;
+}
+
+.seo-facturas-order-document {
+    border-top: 1px solid #dcdcde;
+    padding-top: 8px;
+    margin-top: 8px;
+}
+
+@media (max-width: 782px) {
+    .seo-facturas-status-grid {
+        grid-template-columns: 1fr;
+    }
+}
