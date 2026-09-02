@@ -29,17 +29,62 @@
 
     async function post(action, data) {
         const body = new URLSearchParams(Object.assign({ action, nonce: config.nonce || '' }, data || {}));
-        const response = await fetch(config.ajaxUrl, {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-            body: body.toString()
-        });
-        const payload = await response.json();
-        if (!payload.success) {
-            throw new Error((payload.data && payload.data.message) || 'No se pudo completar la operación.');
+        let response;
+        try {
+            response = await fetch(config.ajaxUrl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                body: body.toString()
+            });
+        } catch (cause) {
+            const error = new Error((cause && cause.message) || 'Failed to fetch');
+            error.transient = true;
+            error.httpStatus = 0;
+            throw error;
+        }
+
+        const raw = await response.text();
+        let payload = null;
+        try {
+            payload = raw ? JSON.parse(raw) : null;
+        } catch (cause) {
+            const error = new Error('Respuesta HTTP no valida (' + response.status + ').');
+            error.transient = response.status >= 500 || response.status === 429 || response.status === 408;
+            error.httpStatus = response.status;
+            throw error;
+        }
+
+        if (!response.ok || !payload || !payload.success) {
+            const message = payload && payload.data && payload.data.message
+                ? payload.data.message
+                : ('HTTP ' + response.status + ': no se pudo completar la operacion.');
+            const error = new Error(message);
+            error.transient = response.status >= 500 || response.status === 429 || response.status === 408;
+            error.httpStatus = response.status;
+            throw error;
         }
         return payload.data || {};
+    }
+
+    function sleep(ms) {
+        return new Promise(function (resolve) { window.setTimeout(resolve, Math.max(0, ms)); });
+    }
+
+    function createBatchUuid() {
+        if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+            return window.crypto.randomUUID();
+        }
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (char) {
+            const value = Math.floor(Math.random() * 16);
+            const result = char === 'x' ? value : ((value & 0x3) | 0x8);
+            return result.toString(16);
+        });
+    }
+
+    function retryDelay(attempt) {
+        const delays = [3000, 8000, 20000, 45000, 90000, 120000];
+        return delays[Math.min(Math.max(1, attempt), delays.length) - 1];
     }
 
     function questionRows() {
@@ -231,44 +276,82 @@
     async function runScope(scope, ids) {
         if (running) return;
         setRunning(true);
-        let batchUuid = '';
+
+        const batchMin = Math.max(1, Number(config.batchMin || 1));
+        const batchMax = Math.max(batchMin, Number(config.batchMax || 4));
+        const fastSeconds = Math.max(0.5, Number(config.fastSeconds || 2.5));
+        const slowSeconds = Math.max(fastSeconds + 0.5, Number(config.slowSeconds || 7));
+        const hardSeconds = Math.max(slowSeconds + 1, Number(config.hardSeconds || 14));
+        const maxRetries = Math.max(1, Number(config.maxRetries || 6));
+
+        // Generamos el UUID antes de la primera peticion. Si el servidor termina
+        // un lote pero la respuesta se pierde, el reintento usa el mismo UUID y
+        // PHP reutiliza las preguntas ya guardadas.
+        let batchUuid = createBatchUuid();
+        let batchSize = Math.max(batchMin, Math.min(batchMax, Number(config.batchSize || 1)));
         let offset = 0;
+        let selectedOffset = 0;
         let completed = 0;
         let firstRows = true;
+        let fastStreak = 0;
+        let retries = 0;
         const selectedType = filterType ? filterType.value : '';
-        let selectedChunks = [];
-        if (scope === 'ids') {
-            const size = Math.max(1, Number(config.batchSize || 6));
-            for (let i = 0; i < ids.length; i += size) selectedChunks.push(ids.slice(i, i + size));
-            if (!selectedChunks.length) {
-                if (runStatus) runStatus.textContent = 'Selecciona al menos una pregunta.';
-                setRunning(false);
-                return;
-            }
+
+        if (scope === 'ids' && !ids.length) {
+            if (runStatus) runStatus.textContent = 'Selecciona al menos una pregunta.';
+            setRunning(false);
+            return;
         }
 
-        if (runStatus) runStatus.textContent = 'Ejecutando preguntas…';
-        setProgress(0, scope === 'ids' ? ids.length : 1);
+        const totalExpected = scope === 'ids' ? ids.length : 0;
+        if (runStatus) runStatus.textContent = 'Ejecutando de forma adaptativa...';
+        setProgress(0, totalExpected || 1);
 
         try {
-            let chunkIndex = 0;
             while (true) {
-                const chunk = scope === 'ids' ? selectedChunks[chunkIndex] : [];
-                const data = await post('seo_dependiente_entrenador_run_batch', {
-                    batch_uuid: batchUuid,
-                    scope: scope,
-                    type: scope === 'type' ? selectedType : '',
-                    offset: offset,
-                    ids: chunk.join(',')
-                });
+                const chunk = scope === 'ids' ? ids.slice(selectedOffset, selectedOffset + batchSize) : [];
+                const startedAt = performance.now();
+                let data;
+
+                try {
+                    data = await post('seo_dependiente_entrenador_run_batch', {
+                        batch_uuid: batchUuid,
+                        scope: scope,
+                        type: scope === 'type' ? selectedType : '',
+                        offset: offset,
+                        ids: chunk.join(','),
+                        batch_size: batchSize
+                    });
+                    retries = 0;
+                } catch (error) {
+                    const transient = !!error.transient || error.httpStatus === 0;
+                    if (!transient || retries >= maxRetries) {
+                        throw error;
+                    }
+                    retries += 1;
+                    batchSize = batchMin;
+                    fastStreak = 0;
+                    const wait = retryDelay(retries);
+                    if (runStatus) {
+                        runStatus.textContent = 'Problema temporal de conexion. Reintento ' + retries + '/' + maxRetries +
+                            ' en ' + Math.round(wait / 1000) + ' s. Lote reducido a ' + batchSize + '.';
+                    }
+                    await sleep(wait);
+                    continue;
+                }
+
+                const duration = Math.max(0, (performance.now() - startedAt) / 1000);
                 batchUuid = data.batch_uuid || batchUuid;
                 if (batchUuid) {
                     currentBatchUuid = batchUuid;
                     root.dataset.trainerCurrentBatch = batchUuid;
                 }
+
                 const processed = Number(data.processed || 0);
                 completed += processed;
                 offset = Number(data.next_offset || offset + processed);
+                if (scope === 'ids') selectedOffset += processed;
+
                 const total = scope === 'ids' ? ids.length : Number(data.total_scope || 0);
                 setProgress(completed, total || completed || 1);
                 updateKpis(data.summary || {});
@@ -276,18 +359,47 @@
                 appendRunRows(data.rows || [], firstRows);
                 firstRows = false;
                 if (batchLabel && batchUuid) batchLabel.textContent = 'Lote ' + batchUuid.slice(0, 8);
-                if (runStatus) runStatus.textContent = completed + ' de ' + total + ' preguntas procesadas.';
+
+                let delay = 500;
+                if (duration >= hardSeconds) {
+                    batchSize = batchMin;
+                    fastStreak = 0;
+                    delay = 5000;
+                } else if (duration >= slowSeconds) {
+                    batchSize = Math.max(batchMin, Math.floor(batchSize / 2));
+                    fastStreak = 0;
+                    delay = 2000;
+                } else if (duration <= fastSeconds) {
+                    fastStreak += 1;
+                    if (fastStreak >= 2 && batchSize < batchMax) {
+                        batchSize += 1;
+                        fastStreak = 0;
+                    }
+                    delay = 250;
+                } else {
+                    fastStreak = 0;
+                    delay = 750;
+                }
+
+                if (runStatus) {
+                    runStatus.textContent = completed + ' de ' + total + ' preguntas procesadas · ' +
+                        duration.toFixed(1) + ' s ultimo lote · siguiente lote: ' + batchSize + '.';
+                }
 
                 if (scope === 'ids') {
-                    chunkIndex += 1;
-                    if (chunkIndex >= selectedChunks.length) break;
+                    if (selectedOffset >= ids.length || processed === 0) break;
                 } else if (data.done) {
                     break;
                 }
+
+                await sleep(delay);
             }
-            if (runStatus) runStatus.textContent = 'Ejecución terminada: ' + completed + ' preguntas.';
+            if (runStatus) runStatus.textContent = 'Ejecucion terminada: ' + completed + ' preguntas.';
         } catch (error) {
-            if (runStatus) runStatus.textContent = 'Ejecución detenida: ' + error.message;
+            if (runStatus) {
+                runStatus.textContent = 'Ejecucion detenida tras reintentos: ' + error.message +
+                    '. Lo ya procesado queda guardado.';
+            }
         } finally {
             setRunning(false);
         }
