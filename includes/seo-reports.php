@@ -32,6 +32,12 @@ if (file_exists($seo_report_contents_file)) {
     require_once $seo_report_contents_file;
 }
 
+// Priorizacion de paginas a partir de Search Console + senales editoriales.
+$seo_ai_search_report_file = __DIR__ . '/seo-ai-search-report.php';
+if (file_exists($seo_ai_search_report_file)) {
+    require_once $seo_ai_search_report_file;
+}
+
 // Acciones seguras para limpiar FAQs huérfanas.
 add_action('admin_post_seo_delete_orphan_category_faqs', 'seo_delete_orphan_category_faqs_handler');
 add_action('admin_post_seo_delete_orphan_product_faqs', 'seo_delete_orphan_product_faqs_handler');
@@ -481,6 +487,9 @@ function seo_reports_page() {
         echo '<h2>Informes generales</h2>';
         echo '<p style="color:#646970;margin-top:-6px;">Vista unificada con los indicadores que quieras consultar sin recorrer los informes técnicos de origen.</p>';
         seo_reports_render_google_search_summary();
+        if (function_exists('seo_reports_render_ai_search_readiness')) {
+            seo_reports_render_ai_search_readiness();
+        }
         seo_reports_render_post_performance_summary();
         seo_reports_render_landing_pages_summary();
     } elseif ($active_tab === 'dashboard') {
