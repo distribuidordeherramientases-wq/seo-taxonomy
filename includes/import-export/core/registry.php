@@ -27,6 +27,12 @@ defined( 'ABSPATH' ) || exit;
  */
 function seo_ie_entity_registry() {
     $entities = [
+        'catalog' => [
+            'label'      => 'Vocabulario y atributos',
+            'batch_size' => 0,
+            'required'   => [ 'tipo_registro' ],
+            'markers'    => [ 'tipo_registro', 'tabla', 'tabla_fisica', 'semantic_group', 'attribute_slug', 'attribute_type', 'term_slug', 'type_slug', 'role_slug' ],
+        ],
         'product' => [
             'label'      => 'Productos',
             'batch_size' => 5,
