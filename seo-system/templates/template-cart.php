@@ -118,6 +118,8 @@ if (!function_exists('dht_seo_cart_v3_render_summary')) {
                     Finalizar compra
                 </a>
             </div>
+
+            <?php do_action('seo_facturas_cart_documents'); ?>
         </div>
         <?php
     }
