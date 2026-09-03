@@ -22,6 +22,10 @@
         return value.toLocaleString(undefined, {maximumFractionDigits: 2}) + ' ' + units[index];
     }
 
+    function formatCount(value) {
+        return Number(value || 0).toLocaleString();
+    }
+
     function ajaxPost(config, fields) {
         var body = new URLSearchParams();
         Object.keys(fields).forEach(function (key) {
@@ -60,6 +64,7 @@
         var stats = document.getElementById('seo-images-optimizer-stats');
         var errors = document.getElementById('seo-images-optimizer-errors');
         var busy = false;
+        var webpRemaining = webpButton ? Number(webpButton.getAttribute('data-convertible') || 0) : 0;
 
         if (!progress || !track || !status || !stats || !errors) {
             return;
@@ -71,7 +76,56 @@
                 optimizeButton.disabled = value;
             }
             if (webpButton) {
-                webpButton.disabled = value || (webpConfig && Number(webpConfig.supported) !== 1);
+                webpButton.disabled = value
+                    || (webpConfig && Number(webpConfig.supported) !== 1)
+                    || webpRemaining < 1;
+            }
+        }
+
+        function updateFormatCounts(counts) {
+            if (!counts || typeof counts !== 'object') {
+                return;
+            }
+
+            var ids = {
+                jpeg: 'seo-images-format-jpeg',
+                png: 'seo-images-format-png',
+                webp: 'seo-images-format-webp',
+                avif: 'seo-images-format-avif',
+                other: 'seo-images-format-other'
+            };
+
+            Object.keys(ids).forEach(function (key) {
+                var node = document.getElementById(ids[key]);
+                if (node) {
+                    node.textContent = formatCount(counts[key]);
+                }
+            });
+
+            webpRemaining = Number(
+                counts.convertible !== undefined
+                    ? counts.convertible
+                    : (Number(counts.jpeg || 0) + Number(counts.png || 0))
+            );
+
+            var badge = document.getElementById('seo-images-format-convertible');
+            if (badge) {
+                badge.textContent = formatCount(webpRemaining) + ' JPG/PNG en Media';
+            }
+
+            if (webpButton) {
+                webpButton.setAttribute('data-convertible', String(webpRemaining));
+                if (webpConfig && webpConfig.strings) {
+                    if (webpRemaining > 0) {
+                        var template = webpConfig.strings.button || 'Convertir %d JPG/PNG a WebP';
+                        webpButton.textContent = template.replace('%d', formatCount(webpRemaining));
+                    } else {
+                        webpButton.textContent = webpConfig.strings.none || 'No hay JPG/PNG pendientes';
+                    }
+                }
+                webpButton.disabled = busy
+                    || (webpConfig && Number(webpConfig.supported) !== 1)
+                    || webpRemaining < 1;
             }
         }
 
@@ -95,6 +149,7 @@
             webpButton.disabled = true;
             webpButton.title = webpConfig.strings.unsupported;
         }
+        setBusy(false);
 
         if (optimizeButton && optimizeConfig) {
             optimizeButton.addEventListener('click', function () {
@@ -231,6 +286,9 @@
                         totals.bytesSaved += Number(data.bytes_saved || 0);
                         if (Array.isArray(data.errors) && data.errors.length) {
                             totals.errors = totals.errors.concat(data.errors).slice(0, 10);
+                        }
+                        if (data.format_counts) {
+                            updateFormatCounts(data.format_counts);
                         }
                         render(Boolean(data.done));
 
