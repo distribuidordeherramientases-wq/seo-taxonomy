@@ -1500,14 +1500,21 @@ function seo_google_opportunity_render_rows(array $rows, $empty_message, $limit 
 }
 
 function seo_google_opportunity_render_header($title, $description, $days, $view) {
+    $current_page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
     $current_tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'google_intelligence';
     $in_growth_report = 'growth_executive' === $current_tab;
+    $in_provider_connections = 'seo-provider-connections' === $current_page && 'sources' === $view;
     $days_field = $in_growth_report ? 'growth_exec_days' : 'opportunity_days';
 
     echo '<div class="seo-opp-card seo-opp-header"><div><h2>' . esc_html($title) . '</h2><p>' . wp_kses_post($description) . '</p><div class="seo-opp-meta"><code>Motor V' . esc_html(SEO_GOOGLE_OPPORTUNITY_ENGINE_VERSION) . '</code> · Search Console: ' . absint($days) . ' días · generado ' . esc_html(current_time('mysql')) . '</div></div>';
-    echo '<form method="get"><input type="hidden" name="page" value="seo-reports"><input type="hidden" name="tab" value="' . esc_attr($in_growth_report ? 'growth_executive' : 'google_intelligence') . '">';
-    if (!$in_growth_report) {
-        echo '<input type="hidden" name="google_view" value="' . esc_attr($view) . '">';
+
+    if ($in_provider_connections) {
+        echo '<form method="get"><input type="hidden" name="page" value="seo-provider-connections">';
+    } else {
+        echo '<form method="get"><input type="hidden" name="page" value="seo-reports"><input type="hidden" name="tab" value="' . esc_attr($in_growth_report ? 'growth_executive' : 'google_intelligence') . '">';
+        if (!$in_growth_report) {
+            echo '<input type="hidden" name="google_view" value="' . esc_attr($view) . '">';
+        }
     }
     echo '<label><strong>Horizonte</strong> <select name="' . esc_attr($days_field) . '">';
     foreach (array(28, 60, 90) as $option) {
@@ -1674,7 +1681,7 @@ function seo_google_opportunity_render_results(array $payload, $days) {
 function seo_google_opportunity_render_sources(array $payload, $days) {
     seo_google_opportunity_render_header(
         'Fuentes y diagnóstico',
-        'Estado operativo de cada fuente y acceso a los informes técnicos. Las conexiones existentes de Search Console y Analytics se mantienen sin cambios.',
+        'Estado operativo de cada fuente y acceso a los informes técnicos. Las conexiones de Search Console, Analytics e integradores se administran desde esta herramienta.',
         $days,
         'sources'
     );
@@ -1690,7 +1697,7 @@ function seo_google_opportunity_render_sources(array $payload, $days) {
         'Cobertura'                  => 'coverage',
         'Laboratorio'                => 'laboratory',
         'Sincronización'             => 'sync',
-        'Configuración Search Console'=> 'settings',
+        'Conexión Search Console'     => 'settings',
     );
     echo '<div class="seo-opp-card"><h3>Informes técnicos conservados</h3><p>Estas pantallas siguen disponibles como evidencia y diagnóstico; ya no tienen que interpretarse una a una para saber qué hacer.</p><div style="display:flex;gap:8px;flex-wrap:wrap;">';
     foreach ($links as $label => $view) {

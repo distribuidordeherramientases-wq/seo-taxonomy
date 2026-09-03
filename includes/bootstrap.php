@@ -107,6 +107,16 @@ require_once SEO_SYSTEM_PATH . 'includes/seo_schema_search.php';
  */
 require_once SEO_SYSTEM_PATH . 'includes/data-layer/data-layer-bootstrap.php';
 
+/*
+|--------------------------------------------------------------------------
+| PROVEEDORES E INTEGRACIONES
+|--------------------------------------------------------------------------
+*/
+
+// Navegacion canonica de credenciales y servicios externos. Se carga antes de
+// Import/Export para que sus handlers puedan redirigir a la nueva herramienta.
+require_once SEO_SYSTEM_PATH . 'includes/proveedores/bootstrap.php';
+
 require_once SEO_SYSTEM_PATH . 'includes/seo-export.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-database-report.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-database-clean.php';

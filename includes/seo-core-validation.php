@@ -3,7 +3,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_CORE_SYSTEM_TEST_VERSION')) {
-    define('SEO_CORE_SYSTEM_TEST_VERSION', '8.9.0');
+    define('SEO_CORE_SYSTEM_TEST_VERSION', '8.8.2');
 }
 
 $seo_core_settings_module = __DIR__ . '/seo-core-validation-settings.php';
@@ -24,11 +24,6 @@ if (is_readable($seo_core_semantic_test_module)) {
 $seo_core_visual_test_module = __DIR__ . '/seo-core-validation-visual.php';
 if (is_readable($seo_core_visual_test_module)) {
     require_once $seo_core_visual_test_module;
-}
-
-$seo_core_billing_test_module = __DIR__ . '/seo-core-validation-billing.php';
-if (is_readable($seo_core_billing_test_module)) {
-    require_once $seo_core_billing_test_module;
 }
 
 /**
@@ -512,7 +507,7 @@ function seo_core_system_test_tab_description($tab_id) {
         'system'         => 'Rutas, dependencias y requisitos mínimos que necesita el plugin para cargarse.',
         'templates'      => 'Disponibilidad y renderizado de las plantillas propias del plugin.',
         'catalog'        => 'Productos, categorías, visibilidad, precio, stock y datos del catálogo.',
-        'checkout'       => 'Carrito, checkout, facturas, proformas y presupuestos sin crear pedidos de prueba ni ejecutar cobros.',
+        'checkout'       => 'Carrito, checkout y preparación comercial sin crear pedidos ni ejecutar cobros.',
         'emails'         => 'Plantillas y callbacks de correo relacionados con la operativa del plugin.',
         'seo_system'     => 'Tablas, registros y estructuras internas administradas por SEO Core.',
         'technical'      => 'Cron, caché, índices, configuración técnica y compatibilidad operativa.',
@@ -2362,6 +2357,7 @@ function seo_core_system_test_import_export_health($plugin_root) {
     $batch_ok = function_exists('seo_ie_batch_render_page');
     $amazon_ok = function_exists('seo_supplier_recipe_amazon_render_explorer');
     $connections_ok = function_exists('seo_proveedores_render_conexiones');
+    $connections_page_ok = function_exists('seo_provider_connections_page') && function_exists('seo_provider_connections_admin_url');
     $sync_ok = is_readable($sync_path) && function_exists('seo_supplier_sync_situations') && function_exists('seo_supplier_sync_apply_action');
 
     return array(
@@ -2438,6 +2434,15 @@ function seo_core_system_test_import_export_health($plugin_root) {
                 ? count($supplier_dependencies) . '/' . count($supplier_dependencies) . ' dependencias disponibles.'
                 : 'Faltan: ' . implode(', ', $missing_dependencies),
             empty($missing_dependencies) ? 'ok' : 'ko'
+        ),
+        seo_core_system_test_result(
+            'system',
+            '1.16 Herramienta Conexión con proveedores disponible',
+            $connections_page_ok,
+            $connections_page_ok
+                ? 'Página seo-provider-connections y URL canónica disponibles desde Herramientas.'
+                : 'Falta la página o el helper de includes/proveedores/.',
+            $connections_page_ok ? 'ok' : 'ko'
         ),
     );
 }
@@ -2540,10 +2545,6 @@ function seo_core_system_test_checkout() {
     $results[] = seo_core_system_test_result('checkout', '4.4 Métodos de pago activos', seo_core_system_test_payment_gateways_count() > 0, 'Métodos activos: ' . number_format_i18n(seo_core_system_test_payment_gateways_count()), seo_core_system_test_payment_gateways_count() > 0 ? 'ok' : 'warning');
     $results[] = seo_core_system_test_result('checkout', '4.5 Métodos de envío detectados', seo_core_system_test_shipping_methods_count() > 0, 'Métodos detectados: ' . number_format_i18n(seo_core_system_test_shipping_methods_count()), seo_core_system_test_shipping_methods_count() > 0 ? 'ok' : 'warning');
     $results[] = seo_core_system_test_result('checkout', '4.6 Prueba real de compra', false, 'No se crea un pedido real: la V7.0 mantiene el chequeo en modo solo lectura y valida el recorrido público hasta checkout.', 'info');
-
-    if (function_exists('seo_core_system_test_billing')) {
-        $results = array_merge($results, seo_core_system_test_billing());
-    }
 
     return $results;
 }
@@ -5988,7 +5989,6 @@ function seo_core_system_test_get_function_files() {
         array('includes/seo-core-validation-data-layer.php', true),
         array('includes/seo-core-validation-semantic.php', true),
         array('includes/seo-core-validation-visual.php', true),
-        array('includes/seo-core-validation-billing.php', true),
         array('includes/data-layer/data-layer-bootstrap.php', true),
         array('includes/data-layer/class-seo-data-layer.php', true),
         array('includes/data-layer/class-seo-data-operation.php', true),
@@ -6001,6 +6001,8 @@ function seo_core_system_test_get_function_files() {
         array('includes/seo-faq.php', true),
         array('includes/seo-export.php', true),
         array('includes/seo-import-suppliers.php', true),
+        array('includes/proveedores/bootstrap.php', true),
+        array('includes/proveedores/connections-admin.php', true),
         array('includes/import-export/bootstrap.php', true),
         array('includes/import-export/legacy-engine.php', true),
         array('includes/import-export/queue/batch.php', true),
@@ -7316,6 +7318,7 @@ function seo_core_system_test_render_business_report($results) {
                 '1.13 Conexiones con proveedores disponibles',
                 '1.14 Sincronizacion de proveedores integrada',
                 '1.15 Dependencias del motor de proveedores disponibles',
+                '1.16 Herramienta Conexión con proveedores disponible',
             ),
         ),
         'templates' => array(
@@ -7353,16 +7356,6 @@ function seo_core_system_test_render_business_report($results) {
                 '4.4 Métodos de pago activos',
                 '4.5 Métodos de envío detectados',
                 '4.6 Prueba real de compra',
-                '4.7 Modulo de facturacion cargado',
-                '4.8 Tabla documental preparada',
-                '4.9 Datos comunes de empresa',
-                '4.10 Series documentales coherentes',
-                '4.11 Motor PDF disponible',
-                '4.12 Hooks de factura y proforma',
-                '4.13 Emails documentales resolubles',
-                '4.14 Presupuestos de carrito preparados',
-                '4.15 Configuracion documental coherente',
-                '4.16 Integridad de documentos emitidos',
             ),
         ),
         'emails' => array(

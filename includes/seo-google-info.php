@@ -79,11 +79,19 @@ function seo_google_maybe_install_tables() {
  * URL base de Google Intelligence.
  */
 function seo_google_admin_url($view = 'settings', $args = array()) {
+    $view = sanitize_key($view);
+
+    // La configuración de Search Console ya no vive dentro de Informes.
+    // Se centraliza con el resto de proveedores e integradores en Herramientas.
+    if ('settings' === $view && function_exists('seo_provider_connections_admin_url')) {
+        return seo_provider_connections_admin_url($args, 'google-search-console');
+    }
+
     $url = add_query_arg(
         array(
             'page'        => 'seo-reports',
             'tab'         => 'google_intelligence',
-            'google_view' => sanitize_key($view),
+            'google_view' => $view,
         ),
         admin_url('admin.php')
     );
@@ -1562,7 +1570,6 @@ function seo_google_intelligence_page() {
         'content_plan',
         'catalog_plan',
         'results',
-        'sources',
     );
     $technical_views = array(
         'summary',
@@ -1574,7 +1581,6 @@ function seo_google_intelligence_page() {
         'coverage',
         'laboratory',
         'sync',
-        'settings',
     );
     $allowed_views = array_merge($executive_views, $technical_views);
 
@@ -1590,7 +1596,6 @@ function seo_google_intelligence_page() {
         'content_plan'  => 'Contenido',
         'catalog_plan'  => 'Catálogo',
         'results'       => 'Resultados',
-        'sources'       => 'Fuentes y diagnóstico',
     );
 
     echo '<div class="seo-google-intelligence">';
