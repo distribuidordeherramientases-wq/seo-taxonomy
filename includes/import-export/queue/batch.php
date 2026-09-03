@@ -18,7 +18,7 @@
  * @subpackage ImportExport
  * @since 2.2.0
  * @version 2026-09-02
- * Build: 037
+ * Build: 036
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -75,9 +75,6 @@ if ( ! function_exists( 'seo_ie_product_import_schedule_wp_fallback' ) ) {
 }
 
 add_action( 'admin_init', 'seo_ie_batch_admin_action', 5 );
-add_action( 'admin_init', 'seo_ie_batch_maybe_cleanup_old_files', 20 );
-add_action( 'init', 'seo_ie_batch_sync_cleanup_schedule', 20 );
-add_action( 'seo_ie_batch_cleanup_old_files_daily', 'seo_ie_batch_cleanup_cron' );
 add_action( 'seo_ie_process_import_batch_queue', 'seo_ie_batch_queue_worker', 10, 1 );
 add_action( 'wp_ajax_seo_ie_batch_tick', 'seo_ie_batch_ajax_tick' );
 
@@ -332,6 +329,28 @@ function seo_ie_batch_detect_entity( $path ) {
                 break 2;
             }
         }
+    }
+
+    // Los CSV de catalogos maestros contienen una columna generica `id` y
+    // tambien `term_id` para los terminos de atributos. Si se evalúan como una
+    // categoria WooCommerce, esos nombres pueden parecer una identidad de
+    // categoria y desviar el archivo al importador equivocado. Detectamos este
+    // esquema ANTES de cualquier entidad WordPress.
+    $catalog_has_type = in_array( 'tipo_registro', $raw_keys, true );
+    $catalog_has_table = in_array( 'tabla', $raw_keys, true ) || in_array( 'tabla_fisica', $raw_keys, true );
+    $catalog_markers = [
+        'semantic_group', 'attribute_slug', 'attribute_type', 'term_slug',
+        'type_slug', 'role_slug', 'attribute_group', 'unit_type',
+    ];
+    $catalog_score = count( array_intersect( $catalog_markers, $raw_keys ) );
+
+    if ( $catalog_has_type && ( $catalog_has_table || 2 <= $catalog_score ) ) {
+        return [
+            'entity'     => 'catalog',
+            'header'     => $raw_keys,
+            'raw_header' => $raw,
+            'confidence' => 100,
+        ];
     }
 
     $redirect_required = [ 'origin_url', 'target_url' ];
@@ -993,7 +1012,20 @@ function seo_ie_batch_prepare_internal_request( $entity, $path ) {
     $_FILES   = [];
     $_REQUEST = [];
 
-    if ( 'category' === $entity ) {
+    if ( 'catalog' === $entity ) {
+        $_POST['seo_import_required_catalogs']       = '1';
+        $_POST['seo_import_required_catalogs_nonce'] = wp_create_nonce( 'seo_import_required_catalogs_csv' );
+        // La cola ejecuta el fichero real. La simulacion sigue disponible en
+        // la tarjeta manual del importador de vocabulario y atributos.
+        unset( $_POST['required_catalogs_dry_run'] );
+        $_FILES['required_catalogs_csv'] = [
+            'name'     => basename( $path ),
+            'tmp_name' => $path,
+            'error'    => UPLOAD_ERR_OK,
+            'size'     => is_file( $path ) ? filesize( $path ) : 0,
+            'type'     => 'text/csv',
+        ];
+    } elseif ( 'category' === $entity ) {
         $_POST['seo_import_categories']       = '1';
         $_POST['seo_import_categories_nonce'] = wp_create_nonce( 'seo_import_categories_csv' );
         $_FILES['categories_csv'] = [
@@ -1056,7 +1088,7 @@ function seo_ie_batch_prepare_internal_request( $entity, $path ) {
 }
 
 /**
- * Ejecuta categorias, paginas, entradas, FAQs o redirects reutilizando sus motores actuales.
+ * Ejecuta catalogos, categorias, paginas, entradas, FAQs o redirects reutilizando sus motores actuales.
  *
  * @param int    $user_id Usuario.
  * @param string $entity Tipo.
@@ -1087,7 +1119,12 @@ function seo_ie_batch_run_nonproduct( $user_id, $entity, $processing_path ) {
     seo_ie_batch_prepare_internal_request( $entity, $processing_path );
 
     try {
-        if ( 'category' === $entity ) {
+        if ( 'catalog' === $entity ) {
+            if ( ! function_exists( 'seo_ie_import_required_catalogs_csv' ) ) {
+                return new WP_Error( 'seo_batch_catalog_importer_missing', 'No esta cargado el importador de vocabulario y atributos.' );
+            }
+            $returned = seo_ie_import_required_catalogs_csv();
+        } elseif ( 'category' === $entity ) {
             $returned = seo_import_categories_csv();
         } elseif ( 'page' === $entity ) {
             $returned = seo_import_pages_csv();
@@ -1404,10 +1441,16 @@ function seo_ie_batch_finalize_product_file( $user_id, &$state, &$log ) {
     $source = (string) ( $state['queue_source_path'] ?? '' );
     $file   = sanitize_file_name( $state['queue_filename'] ?? basename( $source ) );
     $errors = absint( $log['errores'] ?? 0 );
-    $target = (string) ( 0 < $errors ? ( $state['queue_failed_path'] ?? '' ) : ( $state['queue_imported_path'] ?? '' ) );
+
+    /*
+     * Los errores capturados a nivel de fila no son un fallo de infraestructura:
+     * ya se aislaron y el resto del CSV puede continuar. Solo los fallos del
+     * worker/planificador llevan el archivo a failed antes de llegar aqui.
+     */
+    $target = (string) ( $state['queue_imported_path'] ?? '' );
 
     if ( '' === $target ) {
-        $target = seo_ie_batch_unique_path( 0 < $errors ? $paths['failed'] : $paths['imported'], $file );
+        $target = seo_ie_batch_unique_path( $paths['imported'], $file );
     }
 
     if ( ! seo_ie_batch_move_file( $source, $target ) ) {
@@ -1432,34 +1475,35 @@ function seo_ie_batch_finalize_product_file( $user_id, &$state, &$log ) {
         $log,
         [
             'entity'       => 'product',
-            'result'       => 0 < $errors ? 'failed' : 'imported',
+            'result'       => 0 < $errors ? 'imported_with_row_errors' : 'imported',
             'rejected_csv' => '' !== $rejected_csv ? basename( $rejected_csv ) : '',
         ]
     );
 
     if ( 0 < $errors ) {
-        seo_ie_add_log_detail( $log, sprintf( 'El archivo se movio a failed porque termino con %d errores.', $errors ) );
-        seo_ie_batch_store_status(
-            [
-                'enabled'       => false,
-                'status'        => 'failed',
-                'user_id'       => absint( $user_id ),
-                'current_file'  => '',
-                'last_file'     => basename( $target ),
-                'entity'        => 'product',
-                'message'       => sprintf( 'Productos: %d errores. La cola se ha detenido.', $errors ),
-                'history_event' => true,
-            ]
+        seo_ie_add_log_detail(
+            $log,
+            sprintf(
+                'El archivo termino con %d errores aislados de fila. Se conserva en imported y la cola puede continuar.',
+                $errors
+            )
         );
-        return false;
+    } else {
+        seo_ie_add_log_detail( $log, sprintf( 'Archivo movido a imported: %s.', basename( $target ) ) );
     }
-
-    seo_ie_add_log_detail( $log, sprintf( 'Archivo movido a imported: %s.', basename( $target ) ) );
     $continue          = ! empty( seo_ie_batch_status()['enabled'] );
     $rejected_products = absint( $log['rechazados_enriquecimiento'] ?? 0 );
-    $base_message      = 0 < $rejected_products
-        ? sprintf( 'Archivo de productos procesado con %d productos rechazados; el CSV de revisión está disponible.', $rejected_products )
-        : 'Productos importados sin rechazos de enriquecimiento.';
+    if ( 0 < $errors ) {
+        $base_message = sprintf(
+            'Archivo procesado con %d errores aislados de fila%s. La cola continua.',
+            $errors,
+            0 < $rejected_products ? sprintf( ' y %d filas disponibles en el CSV de revision', $rejected_products ) : ''
+        );
+    } else {
+        $base_message = 0 < $rejected_products
+            ? sprintf( 'Archivo de productos procesado con %d productos rechazados; el CSV de revisión está disponible.', $rejected_products )
+            : 'Productos importados sin rechazos de enriquecimiento.';
+    }
 
     seo_ie_batch_store_status(
         [
@@ -1785,208 +1829,6 @@ function seo_ie_batch_delete_managed_file( $bucket, $filename ) {
 }
 
 /**
- * Indica si esta activada la limpieza automatica de archivos antiguos.
- *
- * La opcion nace activada para instalaciones que aun no la han guardado.
- * El administrador puede desactivarla desde Importacion por lotes.
- *
- * @return bool
- */
-function seo_ie_batch_cleanup_enabled() {
-    return '0' !== (string) get_option( 'seo_ie_batch_cleanup_old_files', '1' );
-}
-
-/**
- * Dias de retencion para los archivos finalizados de la cola.
- *
- * @return int
- */
-function seo_ie_batch_cleanup_retention_days() {
-    return 7;
-}
-
-/**
- * Ultimo resultado persistido de la limpieza automatica.
- *
- * @return array
- */
-function seo_ie_batch_cleanup_last_result() {
-    $result = get_option( 'seo_ie_batch_cleanup_last_result', [] );
-    return is_array( $result ) ? $result : [];
-}
-
-/**
- * Elimina CSV antiguos de colas terminales y sus logs laterales.
- *
- * Nunca limpia pending ni processing para no borrar trabajos pendientes o en
- * ejecucion. Tampoco toca index.php, .htaccess ni archivos temporales .part.
- *
- * @param bool $force Ejecuta aunque la opcion este desactivada.
- * @return array|WP_Error
- */
-function seo_ie_batch_cleanup_old_files( $force = false ) {
-    if ( ! $force && ! seo_ie_batch_cleanup_enabled() ) {
-        return [
-            'skipped'   => true,
-            'timestamp' => time(),
-            'csv'       => 0,
-            'logs'      => 0,
-            'bytes'     => 0,
-            'failed'    => 0,
-        ];
-    }
-
-    $errors = seo_ie_batch_prepare_directories();
-    if ( ! empty( $errors ) ) {
-        return new WP_Error( 'seo_batch_cleanup_directories', implode( ' ', $errors ) );
-    }
-
-    $lock = seo_ie_batch_acquire_lock();
-    if ( '' === $lock ) {
-        return new WP_Error( 'seo_batch_cleanup_busy', 'La cola esta ocupada; la limpieza se intentara de nuevo mas adelante.' );
-    }
-
-    $paths     = seo_ie_batch_paths();
-    $days      = seo_ie_batch_cleanup_retention_days();
-    $threshold = time() - ( $days * DAY_IN_SECONDS );
-    $result    = [
-        'skipped'   => false,
-        'timestamp' => time(),
-        'csv'       => 0,
-        'logs'      => 0,
-        'bytes'     => 0,
-        'failed'    => 0,
-    ];
-
-    try {
-        foreach ( [ 'imported', 'failed', 'rejected' ] as $bucket ) {
-            $directory = $paths[ $bucket ] ?? '';
-            if ( '' === $directory || ! is_dir( $directory ) ) {
-                continue;
-            }
-
-            foreach ( (array) scandir( $directory ) as $name ) {
-                if ( '.' === $name || '..' === $name ) {
-                    continue;
-                }
-
-                $path = trailingslashit( $directory ) . $name;
-                if ( is_link( $path ) || ! is_file( $path ) ) {
-                    continue;
-                }
-
-                $mtime = @filemtime( $path );
-                if ( false === $mtime || $threshold <= $mtime ) {
-                    continue;
-                }
-
-                $lower_name    = strtolower( $name );
-                $is_csv        = 'csv' === strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
-                $is_orphan_log = '.csv.log.json' === substr( $lower_name, -13 );
-
-                if ( $is_csv ) {
-                    $size = @filesize( $path );
-                    if ( @unlink( $path ) ) {
-                        $result['csv']++;
-                        $result['bytes'] += false === $size ? 0 : max( 0, (int) $size );
-
-                        $log_path = $path . '.log.json';
-                        if ( ! is_link( $log_path ) && is_file( $log_path ) ) {
-                            $log_size = @filesize( $log_path );
-                            if ( @unlink( $log_path ) ) {
-                                $result['logs']++;
-                                $result['bytes'] += false === $log_size ? 0 : max( 0, (int) $log_size );
-                            } else {
-                                $result['failed']++;
-                            }
-                        }
-                    } else {
-                        $result['failed']++;
-                    }
-                    continue;
-                }
-
-                if ( $is_orphan_log ) {
-                    $csv_path = substr( $path, 0, -strlen( '.log.json' ) );
-                    if ( ! is_file( $csv_path ) ) {
-                        $size = @filesize( $path );
-                        if ( @unlink( $path ) ) {
-                            $result['logs']++;
-                            $result['bytes'] += false === $size ? 0 : max( 0, (int) $size );
-                        } else {
-                            $result['failed']++;
-                        }
-                    }
-                }
-            }
-        }
-    } finally {
-        seo_ie_batch_release_lock( $lock );
-    }
-
-    update_option( 'seo_ie_batch_cleanup_last_result', $result, false );
-    return $result;
-}
-
-/**
- * Mantiene programada una limpieza diaria cuando la opcion esta activa.
- *
- * @return void
- */
-function seo_ie_batch_sync_cleanup_schedule() {
-    $hook = 'seo_ie_batch_cleanup_old_files_daily';
-
-    if ( ! seo_ie_batch_cleanup_enabled() ) {
-        wp_clear_scheduled_hook( $hook );
-        return;
-    }
-
-    if ( false === wp_next_scheduled( $hook ) ) {
-        wp_schedule_event( time() + ( 5 * MINUTE_IN_SECONDS ), 'daily', $hook );
-    }
-}
-
-/**
- * Callback del mantenimiento diario.
- *
- * @return void
- */
-function seo_ie_batch_cleanup_cron() {
-    $result = seo_ie_batch_cleanup_old_files();
-    if ( is_wp_error( $result ) ) {
-        error_log( '[SEO System Import/Export] Limpieza de colas: ' . $result->get_error_message() );
-    }
-}
-
-/**
- * Respaldo oportunista: al abrir la pestana de lotes ejecuta limpieza si no se
- * ha realizado en las ultimas seis horas. Es util cuando WP-Cron esta parado.
- *
- * @return void
- */
-function seo_ie_batch_maybe_cleanup_old_files() {
-    if ( ! is_admin() || ! current_user_can( 'manage_options' ) || ! seo_ie_batch_cleanup_enabled() ) {
-        return;
-    }
-
-    $page = sanitize_key( $_GET['page'] ?? '' );
-    $tab  = sanitize_key( $_GET['seo_ie_tab'] ?? '' );
-    if ( 'seo-import-export' !== $page || 'import-batch' !== $tab ) {
-        return;
-    }
-
-    $last = seo_ie_batch_cleanup_last_result();
-    if ( ! empty( $last['timestamp'] ) && ( time() - absint( $last['timestamp'] ) ) < ( 6 * HOUR_IN_SECONDS ) ) {
-        return;
-    }
-
-    $result = seo_ie_batch_cleanup_old_files();
-    if ( is_wp_error( $result ) && 'seo_batch_cleanup_busy' !== $result->get_error_code() ) {
-        error_log( '[SEO System Import/Export] Limpieza de colas: ' . $result->get_error_message() );
-    }
-}
-
-/**
  * Acciones de la pestaña: subir, iniciar, pausar y reintentar fallidos.
  *
  * @return void
@@ -2031,27 +1873,6 @@ function seo_ie_batch_admin_action() {
 
     if ( ! empty( $errors ) ) {
         $notice['seo_ie_batch_error'] = implode( ' ', $errors );
-    } elseif ( 'save_cleanup' === $action ) {
-        $enabled = ! empty( $_POST['seo_ie_batch_cleanup_old_files'] );
-        update_option( 'seo_ie_batch_cleanup_old_files', $enabled ? '1' : '0', false );
-        seo_ie_batch_sync_cleanup_schedule();
-
-        if ( $enabled ) {
-            $cleanup = seo_ie_batch_cleanup_old_files( true );
-            if ( is_wp_error( $cleanup ) ) {
-                $notice['seo_ie_batch_message'] = 'Limpieza automática activada.';
-                $notice['seo_ie_batch_error'] = $cleanup->get_error_message();
-            } else {
-                $notice['seo_ie_batch_message'] = sprintf(
-                    'Limpieza automática activada. Se eliminaron %d CSV y %d logs con más de %d días.',
-                    absint( $cleanup['csv'] ?? 0 ),
-                    absint( $cleanup['logs'] ?? 0 ),
-                    seo_ie_batch_cleanup_retention_days()
-                );
-            }
-        } else {
-            $notice['seo_ie_batch_message'] = 'Limpieza automática desactivada. No se borrarán archivos por antigüedad.';
-        }
     } elseif ( 'upload' === $action || 'upload_start' === $action ) {
         $files    = $_FILES['seo_ie_batch_files'] ?? [];
         $names    = (array) ( $files['name'] ?? [] );
@@ -2168,10 +1989,55 @@ function seo_ie_batch_admin_action() {
         $status = seo_ie_batch_status();
         $status['enabled'] = false;
         $status['status']  = 'paused';
-        $status['message'] = 'La cola esta pausada. El archivo de productos ya iniciado terminara su lote actual; no se iniciara otro archivo.';
+        $status['message'] = 'La cola esta pausada. El archivo de productos ya iniciado continuara hasta terminar; no se iniciara otro archivo.';
         seo_ie_batch_store_status( $status );
-        seo_ie_batch_unschedule( get_current_user_id() );
-        $notice['seo_ie_batch_message'] = 'Cola pausada.';
+        seo_ie_batch_unschedule( absint( $status['user_id'] ?? get_current_user_id() ) );
+        $notice['seo_ie_batch_message'] = 'Cola pausada despues del archivo actual.';
+    } elseif ( 'stop_current_product' === $action ) {
+        $status  = seo_ie_batch_status();
+        $user_id = absint( $status['user_id'] ?? get_current_user_id() );
+        $active  = seo_ie_product_import_get_active( $user_id );
+        $token   = sanitize_key( $active['token'] ?? '' );
+
+        if ( '' === $token ) {
+            $notice['seo_ie_batch_error'] = 'No existe una importacion de productos activa que se pueda detener.';
+        } else {
+            $state = get_transient( seo_ie_product_import_state_key( $user_id, $token ) );
+            set_transient( seo_ie_product_import_cancel_key( $user_id, $token ), 1, HOUR_IN_SECONDS );
+            seo_ie_product_import_unschedule( $user_id, $token );
+
+            if ( is_array( $state ) ) {
+                $state['status']     = 'stopping';
+                $state['updated_at'] = time();
+                $state['message']    = 'Detencion solicitada. Se terminara de forma segura la fila que ya este en ejecucion.';
+                seo_ie_product_import_add_transaction(
+                    $state,
+                    'manual_stop_requested',
+                    $state['message'],
+                    [ 'processed' => absint( $state['log']['procesados'] ?? 0 ) ]
+                );
+                seo_ie_product_import_store_state( $user_id, $token, $state );
+                seo_ie_product_import_set_active( $user_id, $token, $state );
+            }
+
+            seo_ie_batch_store_status(
+                [
+                    'enabled'      => false,
+                    'status'       => 'stopping',
+                    'user_id'      => $user_id,
+                    'current_file' => sanitize_file_name( $status['current_file'] ?? ( $active['archivo'] ?? '' ) ),
+                    'entity'       => 'product',
+                    'message'      => 'Detencion solicitada. El CSV volvera a pending al cerrar el lote actual.',
+                ]
+            );
+
+            if ( ! get_transient( seo_ie_product_import_lock_key( $user_id, $token ) ) && is_array( $state ) ) {
+                seo_ie_product_import_finalize_stopped( $user_id, $token, $state );
+                $notice['seo_ie_batch_message'] = 'Importacion detenida. El CSV ha vuelto a pending y los cambios ya aplicados se conservan.';
+            } else {
+                $notice['seo_ie_batch_message'] = 'Detencion solicitada. El worker terminara la fila actual y devolvera el CSV a pending.';
+            }
+        }
     } elseif ( 'retry_failed' === $action ) {
         $filename = sanitize_file_name( wp_unslash( $_POST['seo_ie_batch_failed_file'] ?? '' ) );
         $source   = seo_ie_batch_resolve_managed_file( 'failed', $filename, false );
@@ -2330,12 +2196,10 @@ function seo_ie_batch_ajax_tick() {
  * @return void
  */
 function seo_ie_batch_render_page() {
-    $snapshot        = seo_ie_batch_snapshot();
-    $status          = (array) ( $snapshot['status'] ?? [] );
-    $files           = (array) ( $snapshot['files'] ?? [] );
-    $running         = seo_ie_batch_is_running() || ! empty( $status['enabled'] );
-    $cleanup_enabled = seo_ie_batch_cleanup_enabled();
-    $cleanup_last    = seo_ie_batch_cleanup_last_result();
+    $snapshot = seo_ie_batch_snapshot();
+    $status   = (array) ( $snapshot['status'] ?? [] );
+    $files    = (array) ( $snapshot['files'] ?? [] );
+    $running  = seo_ie_batch_is_running() || ! empty( $status['enabled'] );
 
     $preview_bucket = sanitize_key( $_GET['seo_ie_batch_preview_bucket'] ?? '' );
     $preview_file   = sanitize_file_name( wp_unslash( $_GET['seo_ie_batch_preview_file'] ?? '' ) );
@@ -2348,7 +2212,7 @@ function seo_ie_batch_render_page() {
     }
     ?>
     <div style="max-width:1300px;">
-        <h2>Importacion por lotes <small style="font-size:13px;font-weight:400;color:#646970;">Build 037</small></h2>
+        <h2>Importacion por lotes <small style="font-size:13px;font-weight:400;color:#646970;">Build 035</small></h2>
         <p>
             Cola secuencial para CSV de WordPress y SEO System. El destino se detecta por la cabecera:
             productos, categorias, paginas, entradas (posts), FAQs o redirects. El catalogo bruto de proveedores se importa desde su pestana independiente.
@@ -2411,39 +2275,33 @@ function seo_ie_batch_render_page() {
                             <tr><th>Progreso productos</th><td><?php echo esc_html( absint( $active_product['progreso'] ?? 0 ) ); ?>% - <?php echo esc_html( absint( $active_product['log']['procesados'] ?? 0 ) ); ?> procesados - <?php echo esc_html( absint( $active_product['log']['rechazados_enriquecimiento'] ?? 0 ) ); ?> rechazados - <?php echo esc_html( absint( $active_product['log']['errores'] ?? 0 ) ); ?> errores</td></tr>
                             <?php $product_diag = (array) ( $active_product['diagnostics'] ?? [] ); ?>
                             <tr><th>Ritmo adaptativo</th><td>Ultimo lote: <?php echo esc_html( absint( $product_diag['last_batch_rows'] ?? 0 ) ); ?> filas en <?php echo esc_html( (string) ( $product_diag['last_batch_duration'] ?? 0 ) ); ?> s. Siguiente objetivo: <strong><?php echo esc_html( absint( $product_diag['adaptive_next_batch_size'] ?? 10 ) ); ?></strong> filas<?php if ( ! empty( $product_diag['adaptive_next_delay'] ) ) : ?>, pausa <?php echo esc_html( absint( $product_diag['adaptive_next_delay'] ) ); ?> s<?php endif; ?>. Presion: <?php echo esc_html( $product_diag['adaptive_pressure'] ?? 'baja' ); ?>.</td></tr>
+                            <?php if ( ! empty( $product_diag['last_error'] ) ) : ?>
+                                <tr>
+                                    <th style="color:#b32d2e;">Ultimo error</th>
+                                    <td style="color:#b32d2e;">
+                                        <?php echo esc_html( $product_diag['last_error'] ); ?>
+                                        <?php if ( ! empty( $product_diag['last_error_line'] ) ) : ?>
+                                            <br><small>Fila <?php echo esc_html( absint( $product_diag['last_error_line'] ) ); ?><?php if ( ! empty( $product_diag['last_error_product_id'] ) ) : ?> · producto #<?php echo esc_html( absint( $product_diag['last_error_product_id'] ) ); ?><?php endif; ?>.</small>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
+                            <?php if ( ! empty( $product_diag['retries'] ) ) : ?>
+                                <tr><th>Reintentos worker</th><td><?php echo esc_html( absint( $product_diag['retries'] ) ); ?>. El sistema reintenta automaticamente con espera creciente.</td></tr>
+                            <?php endif; ?>
                         <?php endif; ?>
                     </tbody>
                 </table>
                 <form method="post" style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
                     <?php wp_nonce_field( 'seo_ie_batch_admin', 'seo_ie_batch_nonce' ); ?>
                     <button type="submit" name="seo_ie_batch_action" value="start" class="button button-primary">Iniciar / continuar</button>
-                    <button type="submit" name="seo_ie_batch_action" value="pause" class="button">Pausar despues del archivo actual</button>
+                    <button type="submit" name="seo_ie_batch_action" value="pause" class="button">Pausar cola despues del archivo actual</button>
                     <?php if ( ! empty( $active_product ) ) : ?>
+                        <button type="submit" name="seo_ie_batch_action" value="stop_current_product" class="button" style="border-color:#b32d2e;color:#b32d2e;" onclick="return window.confirm('Se detendra el archivo actual de forma segura. Los cambios ya aplicados se conservan y el CSV volvera a pending. ¿Continuar?');">Detener importacion actual</button>
                         <button type="submit" name="seo_ie_batch_action" value="step_product" class="button">Procesar siguiente bloque adaptativo</button>
                     <?php endif; ?>
                 </form>
-                <p class="description">Sin simulacion. Respeta el estado del CSV. Los errores técnicos detienen la cola y envían el archivo a <code>failed</code>; los productos con etiquetas o atributos no válidos se omiten y continúan en el CSV de rechazados.</p>
-
-                <hr style="margin:18px 0;">
-                <form method="post">
-                    <?php wp_nonce_field( 'seo_ie_batch_admin', 'seo_ie_batch_nonce' ); ?>
-                    <label style="display:block;font-weight:600;">
-                        <input type="checkbox" name="seo_ie_batch_cleanup_old_files" value="1" <?php checked( $cleanup_enabled ); ?>>
-                        Borrar automáticamente archivos con más de <?php echo esc_html( seo_ie_batch_cleanup_retention_days() ); ?> días
-                    </label>
-                    <p class="description" style="margin:6px 0 10px;">
-                        Solo limpia <code>imported</code>, <code>failed</code> y <code>rejected</code>, junto con sus logs.
-                        Nunca borra archivos de <code>pending</code> ni <code>processing</code>. Si desmarcas la casilla, no se borrará ningún archivo por antigüedad.
-                    </p>
-                    <button type="submit" name="seo_ie_batch_action" value="save_cleanup" class="button">Guardar limpieza</button>
-                    <?php if ( ! empty( $cleanup_last['timestamp'] ) ) : ?>
-                        <span class="description" style="margin-left:8px;">
-                            Última limpieza: <?php echo esc_html( wp_date( 'Y-m-d H:i:s', absint( $cleanup_last['timestamp'] ) ) ); ?>
-                            · <?php echo esc_html( absint( $cleanup_last['csv'] ?? 0 ) ); ?> CSV
-                            · <?php echo esc_html( absint( $cleanup_last['logs'] ?? 0 ) ); ?> logs
-                        </span>
-                    <?php endif; ?>
-                </form>
+                <p class="description">Sin simulacion. Los errores aislados de una fila se registran y el CSV continua; solo un fallo repetido de infraestructura puede detener el worker. El log del archivo en <code>processing</code> se actualiza tras cada lote. "Detener importacion actual" termina de forma segura la fila en curso y devuelve el CSV a <code>pending</code>.</p>
             </div>
         </div>
 
@@ -2579,8 +2437,7 @@ function seo_ie_batch_render_page() {
                 <li>En productos, las etiquetas WooCommerce y los atributos SEO vuelven a importarse en modo seguro: nunca se crean términos o atributos desconocidos. Si una fila intenta usarlos, el producto no se modifica y la fila aparece en <strong>Rechazados de enriquecimiento</strong> como CSV descargable.</li>
                 <li>Las columnas semánticas canónicas <code>tipo_semantico/tipo</code>, <code>aplicacion</code>, <code>plataforma</code> y <code>subtipo</code> también se admiten cuando apuntan a términos activos existentes. <code>ROL</code> es de solo validación y se deriva de TIPO.</li>
                 <li>Los atributos nativos de WooCommerce (<code>atributos_wc_json</code>) siguen desactivados en la cola automática para impedir altas implícitas de taxonomías o términos.</li>
-                <li>Un error detiene la cola para impedir que archivos dependientes se importen sobre datos incompletos.</li>
-                <li>La limpieza automática, cuando está activada, elimina CSV y logs de <code>imported</code>, <code>failed</code> y <code>rejected</code> al superar los 7 días; nunca afecta a <code>pending</code> ni <code>processing</code>.</li>
+                <li>Los errores aislados de filas de producto no detienen la cola: se registran en el log/CSV de revision. Los fallos repetidos de infraestructura si detienen el worker para evitar escrituras inseguras.</li>
                 <li>Borrar un archivo de <code>imported</code> solo elimina el CSV y su log; no deshace los cambios ya escritos en WordPress.</li>
             </ul>
         </div>
