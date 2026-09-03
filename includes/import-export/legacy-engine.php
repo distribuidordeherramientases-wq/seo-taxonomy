@@ -1653,36 +1653,6 @@ function seo_import_categories_csv() {
         wp_die( esc_html__( 'El CSV de categorías está vacío.', 'seo-system' ) );
     }
 
-    // Cinturon de seguridad: el CSV de catalogos maestros incluye `term_id`,
-    // `slug` y `label`, por lo que nunca debe pasar por product_cat aunque el
-    // detector de cola fuese antiguo o una ruta manual lo enviase aqui.
-    $raw_category_keys = array_map(
-        static function ( $column ) {
-            $column = seo_ie_csv_to_utf8( (string) $column );
-            $column = preg_replace( '/^\xEF\xBB\xBF/', '', $column );
-            return sanitize_key( trim( $column ) );
-        },
-        (array) $header
-    );
-    $looks_like_catalog = in_array( 'tipo_registro', $raw_category_keys, true )
-        && ( in_array( 'tabla', $raw_category_keys, true ) || in_array( 'tabla_fisica', $raw_category_keys, true ) );
-
-    if ( $looks_like_catalog ) {
-        fclose( $handle );
-        $log = [
-            'operacion'  => 'Importación de categorías bloqueada',
-            'archivo'    => sanitize_file_name( $_FILES['categories_csv']['name'] ?? '' ),
-            'procesados' => 0,
-            'correctos'  => 0,
-            'errores'    => 1,
-            'detalles'   => [
-                'CSV de vocabulario/atributos detectado. Se ha bloqueado antes de escribir product_cat; debe procesarse con el importador de vocabulario y atributos.',
-            ],
-        ];
-        seo_ie_store_log( $log );
-        return $log;
-    }
-
     $header = seo_ie_normalize_csv_header( $header, 'category' );
 
     if ( ! in_array( 'category_id', $header, true ) ) {
@@ -4119,9 +4089,6 @@ function seo_ie_product_import_diagnostics( $user_id, $token, $state ) {
         'last_schedule_attempt_at'  => absint( $state['last_schedule_attempt_at'] ?? 0 ),
         'last_schedule_error'       => sanitize_text_field( $state['last_schedule_error'] ?? '' ),
         'last_error'                => sanitize_text_field( $state['last_error'] ?? '' ),
-        'last_error_line'           => absint( $state['last_error_line'] ?? 0 ),
-        'last_error_product_id'     => absint( $state['last_error_product_id'] ?? 0 ),
-        'retries'                   => absint( $state['retries'] ?? 0 ),
         'last_watchdog_at'          => absint( $state['last_watchdog_at'] ?? 0 ),
         'wp_cron_disabled'          => defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON,
         'php_pid'                   => absint( $state['last_worker_pid'] ?? 0 ),
@@ -4780,17 +4747,12 @@ function seo_ie_product_import_background_failure( $user_id, $token, $error ) {
 
     $state['log'] = $log;
 
-    $retry_delays = [ 1 => 20, 2 => 40, 3 => 60, 4 => 120, 5 => 180, 6 => 300 ];
-
-    if ( isset( $retry_delays[ $state['retries'] ] ) ) {
-        $delay = absint( $retry_delays[ $state['retries'] ] );
-        $state['status']  = 'retrying';
-        $state['message'] = sprintf( 'Error temporal. Reintento automatico %d/6 en %d s.', $state['retries'], $delay );
+    if ( 3 >= $state['retries'] ) {
+        $state['status'] = 'retrying';
         set_transient( seo_ie_product_import_state_key( $user_id, $token ), $state, DAY_IN_SECONDS );
         seo_ie_product_import_set_active( $user_id, $token, $state );
         seo_ie_store_log( $log );
-        seo_ie_product_import_schedule( $user_id, $token, $delay, true );
-        seo_ie_product_import_schedule_watchdog( $user_id, $token, max( 60, $delay + 30 ), true );
+        seo_ie_product_import_schedule( $user_id, $token, 30 * $state['retries'], true );
         return;
     }
 
@@ -6249,27 +6211,8 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
             $log['correctos']++;
         } catch ( Throwable $exception ) {
             $log['errores']++;
-            $last_row_error                = sanitize_text_field( $exception->getMessage() );
-            $state['last_error_line']      = absint( $line );
-            $state['last_error_product_id']= absint( $last_product_reference );
+            $last_row_error = sanitize_text_field( $exception->getMessage() );
             seo_ie_add_log_detail( $log, sprintf( 'Fila %d: %s', $line, $last_row_error ) );
-
-            if ( function_exists( 'seo_ie_batch_product_record_rejections' ) ) {
-                seo_ie_batch_product_record_rejections(
-                    $state,
-                    $line,
-                    $row,
-                    [
-                        [
-                            'domain' => 'row_error',
-                            'field'  => '',
-                            'value'  => '',
-                            'reason' => $last_row_error,
-                        ],
-                    ],
-                    $last_product_reference
-                );
-            }
         }
     }
 
@@ -6303,28 +6246,6 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
 
     if ( '' !== $last_row_error ) {
         $state['last_error'] = $last_row_error;
-    }
-
-    /* Publica un log parcial junto al CSV de processing para poder auditarlo
-     * y descargar errores sin esperar a que termine todo el inventario. */
-    if (
-        ! empty( $state['batch_queue_mode'] )
-        && function_exists( 'seo_ie_batch_write_sidecar_log' )
-        && ! empty( $state['queue_source_path'] )
-        && is_file( $state['queue_source_path'] )
-    ) {
-        seo_ie_batch_write_sidecar_log(
-            $state['queue_source_path'],
-            $log,
-            [
-                'entity'        => 'product',
-                'result'        => 'processing',
-                'progress'      => seo_ie_product_import_progress( $state ),
-                'line'          => absint( $line ),
-                'last_error'    => sanitize_text_field( $state['last_error'] ?? '' ),
-                'updated_at_ts' => time(),
-            ]
-        );
     }
 
     seo_ie_product_import_add_transaction(
@@ -11654,7 +11575,7 @@ function seo_import_export_page() {
         wp_die( esc_html__( 'No tienes permisos para acceder a esta página.', 'seo-system' ) );
     }
 
-    $allowed_tabs = [ 'wordpress', 'import-batch', 'importar-proveedor', 'importar-amazon', 'conexiones-proveedores', 'catalogo-proveedores', 'sincronizacion-proveedores' ];
+    $allowed_tabs = [ 'wordpress', 'import-batch', 'importar-proveedor', 'importar-amazon', 'catalogo-proveedores', 'sincronizacion-proveedores' ];
     $tab = sanitize_key( $_GET['seo_ie_tab'] ?? 'wordpress' );
     if ( ! in_array( $tab, $allowed_tabs, true ) ) {
         $tab = 'wordpress';
@@ -11669,7 +11590,6 @@ function seo_import_export_page() {
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'import-batch', $base ) ); ?>" class="nav-tab <?php echo 'import-batch' === $tab ? 'nav-tab-active' : ''; ?>">Importacion por lotes</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'importar-proveedor', $base ) ); ?>" class="nav-tab <?php echo 'importar-proveedor' === $tab ? 'nav-tab-active' : ''; ?>">Importar proveedor</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'importar-amazon', $base ) ); ?>" class="nav-tab <?php echo 'importar-amazon' === $tab ? 'nav-tab-active' : ''; ?>">Importar Amazon</a>
-            <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'conexiones-proveedores', $base ) ); ?>" class="nav-tab <?php echo 'conexiones-proveedores' === $tab ? 'nav-tab-active' : ''; ?>">Conexiones con proveedores</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'catalogo-proveedores', $base ) ); ?>" class="nav-tab <?php echo 'catalogo-proveedores' === $tab ? 'nav-tab-active' : ''; ?>">Catálogo de proveedores</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'sincronizacion-proveedores', $base ) ); ?>" class="nav-tab <?php echo 'sincronizacion-proveedores' === $tab ? 'nav-tab-active' : ''; ?>">Sincronización V2</a>
         </nav>
@@ -11886,8 +11806,6 @@ function seo_import_export_page() {
             <?php if ( ! empty( $last_log ) && 'Importación de catálogo de proveedor' === ( $last_log['operacion'] ?? '' ) ) { seo_ie_render_log( $last_log ); } ?>
         <?php elseif ( 'importar-amazon' === $tab ) : ?>
             <?php if ( function_exists( 'seo_supplier_recipe_amazon_render_explorer' ) ) { seo_supplier_recipe_amazon_render_explorer(); } else { echo '<div class="notice notice-error inline"><p>No se ha podido cargar el módulo de importación Amazon. Comprueba suppliers/recipes/import_amazon.php.</p></div>'; } ?>
-        <?php elseif ( 'conexiones-proveedores' === $tab ) : ?>
-            <?php if ( function_exists( 'seo_proveedores_render_conexiones' ) ) { seo_proveedores_render_conexiones(); } else { echo '<div class="notice notice-error inline"><p>No se ha podido cargar el módulo de conexiones con proveedores.</p></div>'; } ?>
         <?php elseif ( 'sincronizacion-proveedores' === $tab ) : ?>
             <?php if ( function_exists( 'seo_supplier_v2_render_admin' ) ) { seo_supplier_v2_render_admin(); } else { echo '<div class="notice notice-error inline"><p>No se ha podido cargar Supplier Sync V2.</p></div>'; } ?>
         <?php else : ?>
