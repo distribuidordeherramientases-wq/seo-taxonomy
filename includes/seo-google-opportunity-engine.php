@@ -14,7 +14,7 @@ if (!defined('ABSPATH')) {
  * - qué activos existentes muestran tracción.
  */
 if (!defined('SEO_GOOGLE_OPPORTUNITY_ENGINE_VERSION')) {
-    define('SEO_GOOGLE_OPPORTUNITY_ENGINE_VERSION', '2.0.0');
+    define('SEO_GOOGLE_OPPORTUNITY_ENGINE_VERSION', '2.1.0');
 }
 
 function seo_google_opportunity_normalize($text) {
@@ -138,6 +138,7 @@ function seo_google_opportunity_action_meta($code) {
         'ACTUALIZAR_POST'      => array('label' => 'Actualizar post', 'channel' => 'content', 'tone' => 'purple'),
         'CONSOLIDAR_CONTENIDO' => array('label' => 'Consolidar contenido', 'channel' => 'content', 'tone' => 'purple'),
         'LIMPIAR_DUPLICADO'    => array('label' => 'Limpiar duplicado', 'channel' => 'content', 'tone' => 'purple'),
+        'PUBLICAR_PRODUCTO'    => array('label' => 'Priorizar publicación de producto', 'channel' => 'catalog', 'tone' => 'orange'),
         'AMPLIAR_PRODUCTOS'    => array('label' => 'Ampliar productos/variantes', 'channel' => 'catalog', 'tone' => 'orange'),
         'INVESTIGAR_PRODUCTO'  => array('label' => 'Investigar producto/variante', 'channel' => 'catalog', 'tone' => 'orange'),
         'ESTUDIAR_CATEGORIA'   => array('label' => 'Estudiar categoría', 'channel' => 'catalog', 'tone' => 'orange'),
@@ -307,6 +308,93 @@ function seo_google_opportunity_product_index() {
 }
 
 /**
+ * Productos existentes que todavía no están publicados. Permite distinguir
+ * "nos falta el producto" de "ya lo tenemos pero falta publicarlo".
+ */
+function seo_google_opportunity_pending_product_index() {
+    static $cache = null;
+    if (null !== $cache) {
+        return $cache;
+    }
+
+    global $wpdb;
+    $cache = array();
+    $rows = $wpdb->get_results(
+        "SELECT ID, post_title, post_name, post_status
+         FROM {$wpdb->posts}
+         WHERE post_type = 'product'
+           AND post_status IN ('draft','pending','private','future')
+         ORDER BY ID DESC
+         LIMIT 6000",
+        ARRAY_A
+    );
+    foreach ((array) $rows as $row) {
+        $id = absint($row['ID'] ?? 0);
+        $search_text = trim(
+            (string) ($row['post_title'] ?? '')
+            . ' '
+            . str_replace('-', ' ', (string) ($row['post_name'] ?? ''))
+        );
+        if (!$id || $search_text === '') {
+            continue;
+        }
+        $cache[] = array(
+            'id'          => $id,
+            'title'       => (string) ($row['post_title'] ?? ''),
+            'url'         => (string) get_edit_post_link($id, 'raw'),
+            'status'      => (string) ($row['post_status'] ?? ''),
+            'search_text' => $search_text,
+            'tokens'      => seo_google_opportunity_tokens($search_text),
+        );
+    }
+    return $cache;
+}
+
+function seo_google_opportunity_pending_product_coverage($topic) {
+    $topic_tokens = seo_google_opportunity_tokens($topic);
+    $products = seo_google_opportunity_pending_product_index();
+    if (!$topic_tokens || !$products) {
+        return array('covered' => false, 'similarity' => 0.0, 'coverage' => 0.0, 'match' => array());
+    }
+
+    $candidate_scores = array();
+    foreach ($products as $index => $product) {
+        $shared = count(array_intersect($topic_tokens, (array) ($product['tokens'] ?? array())));
+        if ($shared > 0) {
+            $candidate_scores[$index] = $shared;
+        }
+    }
+    if (!$candidate_scores) {
+        return array('covered' => false, 'similarity' => 0.0, 'coverage' => 0.0, 'match' => array());
+    }
+    arsort($candidate_scores, SORT_NUMERIC);
+    $candidates = array();
+    foreach (array_slice(array_keys($candidate_scores), 0, 300) as $index) {
+        if (isset($products[$index])) {
+            $candidates[] = $products[$index];
+        }
+    }
+    $match = seo_google_opportunity_best_match($topic, $candidates, 0.45);
+    if (!$match) {
+        return array('covered' => false, 'similarity' => 0.0, 'coverage' => 0.0, 'match' => array());
+    }
+    $match_tokens = (array) ($match['tokens'] ?? seo_google_opportunity_tokens($match['search_text'] ?? ''));
+    $shared = count(array_intersect($topic_tokens, $match_tokens));
+    $coverage = $shared / max(1, count($topic_tokens));
+    $covered = (
+        (float) $match['similarity'] >= 0.76
+        && ($shared >= 2 || count($topic_tokens) === 1)
+        && $coverage >= 0.70
+    );
+    return array(
+        'covered'    => $covered,
+        'similarity' => (float) $match['similarity'],
+        'coverage'   => round($coverage, 4),
+        'match'      => $match,
+    );
+}
+
+/**
  * Reduce el conjunto de productos antes de calcular similitud. El índice
  * invertido evita comparar cada señal de mercado con miles de títulos.
  */
@@ -420,6 +508,9 @@ function seo_google_opportunity_market_match($label, array $market) {
     $best = array();
     $best_similarity = 0.0;
     foreach ($market as $row) {
+        if ('discovery' === (string) ($row['signal_kind'] ?? '')) {
+            continue;
+        }
         $similarity = seo_google_opportunity_similarity($label, $row['query'] ?? '');
         foreach ((array) ($row['seeds'] ?? array()) as $seed) {
             $similarity = max($similarity, seo_google_opportunity_similarity($label, $seed) * 0.94);
@@ -668,6 +759,7 @@ function seo_google_opportunity_add_market_rows(array &$rows, array $market, arr
         $context = seo_google_opportunity_catalog_context($topic, (array) ($signal['seeds'] ?? array()), 0);
         $products = (int) ($context['product_count'] ?? 0);
         $product_coverage = seo_google_opportunity_product_coverage($topic);
+        $pending_product_coverage = seo_google_opportunity_pending_product_coverage($topic);
         $landing_match = seo_google_opportunity_best_match($topic, $landings, 0.54);
         $post_match = seo_google_opportunity_best_match($topic, $posts, 0.62);
         $sources = array('Google Trends');
@@ -676,6 +768,9 @@ function seo_google_opportunity_add_market_rows(array &$rows, array $market, arr
         }
         if ($landing_match || $post_match) {
             $sources[] = 'WordPress';
+        }
+        if (!empty($pending_product_coverage['covered'])) {
+            $sources[] = 'Inventario de productos';
         }
         $market_data = array(
             'score'           => round($score, 1),
@@ -687,6 +782,9 @@ function seo_google_opportunity_add_market_rows(array &$rows, array $market, arr
             'observed_at'     => (string) ($signal['observed_at'] ?? ''),
             'providers'       => array_values((array) ($signal['providers'] ?? array())),
             'matched_seeds'   => array_values((array) ($signal['seeds'] ?? array())),
+            'interest_index'  => (float) ($signal['interest_index'] ?? 0),
+            'interest_change_pct' => (float) ($signal['interest_change_pct'] ?? 0),
+            'interest_average'=> (float) ($signal['interest_average'] ?? 0),
         );
         $catalog = array(
             'category'      => (string) ($context['category'] ?? ''),
@@ -694,6 +792,9 @@ function seo_google_opportunity_add_market_rows(array &$rows, array $market, arr
             'products'      => $products,
             'product_match' => (string) ($product_coverage['match']['title'] ?? ''),
             'product_covered' => !empty($product_coverage['covered']),
+            'pending_product_match' => (string) ($pending_product_coverage['match']['title'] ?? ''),
+            'pending_product_status' => (string) ($pending_product_coverage['match']['status'] ?? ''),
+            'pending_product_covered' => !empty($pending_product_coverage['covered']),
         );
         $base_priority = (int) round(35 + ($score * 0.55));
         $is_news = in_array($intent, array('actualidad_normativa', 'actualidad_producto'), true);
@@ -715,6 +816,23 @@ function seo_google_opportunity_add_market_rows(array &$rows, array $market, arr
                     ? 'El tema está creciendo o aparece en actualidad y ya existe un post relacionado. Revisar vigencia, enfoque y actualización.'
                     : 'El radar externo ha detectado un tema informativo o de actualidad relacionado con el negocio que todavía no tiene un post equivalente.',
             ));
+        }
+
+        if (empty($product_coverage['covered']) && !empty($pending_product_coverage['covered'])) {
+            $pending_match = (array) ($pending_product_coverage['match'] ?? array());
+            seo_google_opportunity_add($rows, array(
+                'topic'       => $topic,
+                'action'      => 'PUBLICAR_PRODUCTO',
+                'priority'    => min(97, $base_priority + 10),
+                'intent'      => $intent,
+                'sources'     => $sources,
+                'market'      => $market_data,
+                'catalog'     => $catalog,
+                'target'      => $pending_match,
+                'exploratory' => false,
+                'reason'      => 'Google Trends detecta demanda y ya existe un producto equivalente en WordPress, pero todavía no está publicado. Revisar ficha, stock y condiciones y priorizar su publicación antes de buscar un producto nuevo.',
+            ));
+            continue;
         }
 
         if ('actualidad_producto' === $intent && empty($product_coverage['covered'])) {
@@ -1036,6 +1154,247 @@ function seo_google_opportunity_build($days = 60, $include_results = false) {
     return $cache[$cache_key];
 }
 
+/**
+ * URL del JSON compartible de decisiones.
+ *
+ * El fichero exportado contiene resultados y evidencias útiles para decidir,
+ * nunca credenciales OAuth, secretos, tokens ni configuración técnica.
+ */
+function seo_google_opportunity_json_export_url($days = 60) {
+    $days = in_array((int) $days, array(28, 60, 90), true) ? (int) $days : 60;
+
+    return wp_nonce_url(
+        add_query_arg(
+            array(
+                'action' => 'seo_google_export_decisions_json',
+                'days'   => $days,
+            ),
+            admin_url('admin-post.php')
+        ),
+        'seo_google_export_decisions_json'
+    );
+}
+
+/**
+ * Determina si una decisión está respaldada por una señal de Google.
+ */
+function seo_google_opportunity_is_google_backed_row(array $row) {
+    foreach ((array) ($row['sources'] ?? array()) as $source) {
+        $normalized = seo_google_opportunity_normalize($source);
+        if (
+            false !== strpos($normalized, 'search console')
+            || false !== strpos($normalized, 'google trends')
+            || 'trends' === $normalized
+        ) {
+            return true;
+        }
+    }
+
+    $metrics = (array) ($row['metrics'] ?? array());
+    $market = (array) ($row['market'] ?? array());
+
+    return !empty($metrics['impressions'])
+        || !empty($metrics['position'])
+        || !empty($metrics['search_score'])
+        || !empty($market['score'])
+        || !empty($market['traffic'])
+        || !empty($market['growth'])
+        || !empty($market['breakout']);
+}
+
+/**
+ * Reduce una decisión al contrato JSON compartible.
+ *
+ * Se separa expresamente la evidencia Google de la cobertura interna usada
+ * para interpretar esa evidencia. No se exportan IDs internos ni ajustes.
+ */
+function seo_google_opportunity_export_action_row(array $row) {
+    $metrics = (array) ($row['metrics'] ?? array());
+    $market = (array) ($row['market'] ?? array());
+    $catalog = (array) ($row['catalog'] ?? array());
+    $target = (array) ($row['target'] ?? array());
+
+    $search_console = array_filter(
+        array(
+            'impressions'  => isset($metrics['impressions']) ? (float) $metrics['impressions'] : null,
+            'position'     => isset($metrics['position']) ? (float) $metrics['position'] : null,
+            'search_score' => isset($metrics['search_score']) ? (float) $metrics['search_score'] : null,
+        ),
+        static function ($value) {
+            return null !== $value;
+        }
+    );
+
+    $trends = array_filter(
+        array(
+            'score'         => isset($market['score']) ? (float) $market['score'] : null,
+            'signal_kind'   => (string) ($market['signal_kind'] ?? ''),
+            'traffic'       => isset($market['traffic']) ? (float) $market['traffic'] : null,
+            'traffic_label' => (string) ($market['traffic_label'] ?? ''),
+            'growth'        => isset($market['growth']) ? (float) $market['growth'] : null,
+            'breakout'      => !empty($market['breakout']),
+            'observed_at'   => (string) ($market['observed_at'] ?? ''),
+            'providers'     => array_values((array) ($market['providers'] ?? array())),
+            'matched_seeds' => array_values((array) ($market['matched_seeds'] ?? array())),
+        ),
+        static function ($value) {
+            return '' !== $value && null !== $value && array() !== $value;
+        }
+    );
+
+    $catalog_context = array_filter(
+        array(
+            'category'        => (string) ($catalog['category'] ?? ''),
+            'products'        => isset($catalog['products']) ? (int) $catalog['products'] : null,
+            'product_match'   => (string) ($catalog['product_match'] ?? ''),
+            'product_covered' => isset($catalog['product_covered']) ? (bool) $catalog['product_covered'] : null,
+        ),
+        static function ($value) {
+            return '' !== $value && null !== $value;
+        }
+    );
+
+    $target_context = array_filter(
+        array(
+            'title'      => (string) ($target['title'] ?? ''),
+            'url'        => (string) ($target['url'] ?? ''),
+            'similarity' => isset($target['similarity']) ? round((float) $target['similarity'], 4) : null,
+        ),
+        static function ($value) {
+            return '' !== $value && null !== $value;
+        }
+    );
+
+    return array(
+        'topic'       => (string) ($row['topic'] ?? ''),
+        'decision'    => array(
+            'code'       => (string) ($row['action'] ?? ''),
+            'label'      => (string) ($row['action_label'] ?? ''),
+            'channel'    => (string) ($row['channel'] ?? ''),
+            'priority'   => (int) ($row['priority'] ?? 0),
+            'confidence' => (string) ($row['confidence'] ?? ''),
+            'intent'     => (string) ($row['intent'] ?? ''),
+            'reason'     => (string) ($row['reason'] ?? ''),
+        ),
+        'google_evidence' => array_filter(
+            array(
+                'search_console' => $search_console,
+                'trends'         => $trends,
+                'queries'        => array_values((array) ($row['evidence'] ?? array())),
+            ),
+            static function ($value) {
+                return array() !== $value;
+            }
+        ),
+        'coverage_context' => array_filter(
+            array(
+                'catalog'        => $catalog_context,
+                'current_target' => $target_context,
+            ),
+            static function ($value) {
+                return array() !== $value;
+            }
+        ),
+    );
+}
+
+/**
+ * Reduce una señal de mercado a los campos necesarios para compartirla.
+ */
+function seo_google_opportunity_export_market_row(array $row) {
+    return array_filter(
+        array(
+            'query'           => (string) ($row['query'] ?? ''),
+            'signal_kind'     => (string) ($row['signal_kind'] ?? ''),
+            'score'           => isset($row['score']) ? (float) $row['score'] : null,
+            'growth'          => isset($row['max_growth']) ? (float) $row['max_growth'] : null,
+            'breakout'        => !empty($row['breakout']),
+            'traffic'         => isset($row['traffic']) ? (float) $row['traffic'] : null,
+            'traffic_label'   => (string) ($row['traffic_label'] ?? ''),
+            'relevance_score' => isset($row['relevance_score']) ? (float) $row['relevance_score'] : null,
+            'observed_at'     => (string) ($row['observed_at'] ?? ''),
+            'providers'       => array_values((array) ($row['providers'] ?? array())),
+            'related_to'      => array_values((array) ($row['seeds'] ?? array())),
+            'interest_index'  => isset($row['interest_index']) ? (float) $row['interest_index'] : null,
+            'interest_change_pct' => isset($row['interest_change_pct']) ? (float) $row['interest_change_pct'] : null,
+            'interest_average'=> isset($row['interest_average']) ? (float) $row['interest_average'] : null,
+            'source_note'     => (string) ($row['source_note'] ?? ''),
+        ),
+        static function ($value) {
+            return '' !== $value && null !== $value && array() !== $value;
+        }
+    );
+}
+
+/**
+ * Contrato JSON para compartir resultados de Google y decisiones derivadas.
+ *
+ * No incluye estado de conexiones, Client ID, secretos, tokens, service
+ * accounts ni el volcado técnico del sistema.
+ */
+function seo_google_opportunity_export_payload($days = 60) {
+    $days = in_array((int) $days, array(28, 60, 90), true) ? (int) $days : 60;
+    $payload = seo_google_opportunity_build($days, false);
+
+    $actions = array();
+    foreach ((array) ($payload['rows'] ?? array()) as $row) {
+        if (!is_array($row) || !seo_google_opportunity_is_google_backed_row($row)) {
+            continue;
+        }
+        $actions[] = seo_google_opportunity_export_action_row($row);
+    }
+
+    $market_signals = array();
+    foreach ((array) ($payload['market'] ?? array()) as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $market_signals[] = seo_google_opportunity_export_market_row($row);
+    }
+
+    $summary = array(
+        'actions_total'  => count($actions),
+        'priority_high'  => 0,
+        'market_signals' => count($market_signals),
+        'by_channel'     => array(),
+        'by_action'      => array(),
+    );
+    foreach ($actions as $row) {
+        $decision = (array) ($row['decision'] ?? array());
+        $channel = (string) ($decision['channel'] ?? '');
+        $action = (string) ($decision['code'] ?? '');
+        if ((int) ($decision['priority'] ?? 0) >= 75) {
+            $summary['priority_high']++;
+        }
+        if ($channel !== '') {
+            $summary['by_channel'][$channel] = (int) ($summary['by_channel'][$channel] ?? 0) + 1;
+        }
+        if ($action !== '') {
+            $summary['by_action'][$action] = (int) ($summary['by_action'][$action] ?? 0) + 1;
+        }
+    }
+    ksort($summary['by_channel']);
+    ksort($summary['by_action']);
+
+    return array(
+        'schema'         => 'seo_google_intelligence_decisions',
+        'schema_version' => '1.0',
+        'engine_version' => SEO_GOOGLE_OPPORTUNITY_ENGINE_VERSION,
+        'generated_at'   => current_time('mysql'),
+        'site'           => home_url('/'),
+        'period_days'    => $days,
+        'purpose'        => 'Resultados de Google y acciones recomendadas para priorizar SEO, contenido y catálogo.',
+        'privacy'        => array(
+            'credentials_included'            => false,
+            'tokens_included'                 => false,
+            'technical_configuration_included'=> false,
+        ),
+        'summary'        => $summary,
+        'actions'        => $actions,
+        'market_signals' => $market_signals,
+    );
+}
+
 function seo_google_opportunity_filter_rows(array $rows, array $channels) {
     return array_values(array_filter($rows, static function ($row) use ($channels) {
         return in_array((string) ($row['channel'] ?? ''), $channels, true);
@@ -1074,6 +1433,12 @@ function seo_google_opportunity_metric_text(array $row) {
     }
     if (!empty($market['score'])) {
         $parts[] = 'mercado ' . number_format_i18n((float) $market['score'], 0) . '/100';
+    }
+    if (!empty($market['interest_index'])) {
+        $parts[] = 'interés vs referencia ' . number_format_i18n((float) $market['interest_index'], 0);
+    }
+    if (isset($market['interest_change_pct']) && abs((float) $market['interest_change_pct']) >= 5) {
+        $parts[] = 'cambio reciente ' . number_format_i18n((float) $market['interest_change_pct'], 0) . '%';
     }
     if (!empty($market['traffic_label'])) {
         $parts[] = 'tendencia ' . sanitize_text_field($market['traffic_label']);
@@ -1193,6 +1558,7 @@ function seo_google_opportunity_render_actions(array $payload, $days) {
     echo '</div>';
 
     seo_google_opportunity_render_source_cards($payload['sources']);
+    echo '<div class="seo-opp-card"><h3>JSON para compartir</h3><p>Exporta únicamente los <strong>resultados de Google y las decisiones derivadas</strong>. No incluye credenciales, tokens ni configuración técnica.</p><p style="margin-bottom:0;"><a class="button button-primary" href="' . esc_url(seo_google_opportunity_json_export_url($days)) . '">Descargar JSON de decisiones</a></p></div>';
     echo '<div class="seo-opp-card"><h3>Decisiones recomendadas</h3><p class="seo-opp-meta">Una señal de Trends sin cobertura se marca como investigación o vigilancia; nunca crea automáticamente una landing, un post, una categoría ni un producto.</p>';
     seo_google_opportunity_render_rows($payload['rows'], 'Todavía no hay evidencia suficiente para generar decisiones.', 40);
     echo '</div>';

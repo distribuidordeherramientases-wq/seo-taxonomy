@@ -22,7 +22,7 @@ const SEO_GOOGLE_SCOPE_SEARCH_CONSOLE = 'https://www.googleapis.com/auth/webmast
 const SEO_GOOGLE_OPTION_SETTINGS       = 'seo_google_intelligence_settings';
 const SEO_GOOGLE_OPTION_TOKENS         = 'seo_google_intelligence_tokens';
 const SEO_GOOGLE_OPTION_DB_VERSION     = 'seo_google_intelligence_db_version';
-const SEO_GOOGLE_MODULE_VERSION        = '2.0.0';
+const SEO_GOOGLE_MODULE_VERSION        = '2.1.0';
 const SEO_GOOGLE_DB_VERSION            = '1.3.0';
 const SEO_GOOGLE_INITIAL_SYNC_DAYS      = 90;
 const SEO_GOOGLE_FINAL_DATA_DELAY_DAYS = 3;
@@ -60,6 +60,7 @@ add_action('admin_post_seo_google_test_connection', 'seo_google_test_connection_
 add_action('admin_post_seo_google_oauth_callback', 'seo_google_oauth_callback_handler');
 add_action('admin_post_seo_google_repair_tables', 'seo_google_repair_tables_handler');
 add_action('admin_post_seo_google_export_csv', 'seo_google_export_csv_handler');
+add_action('admin_post_seo_google_export_decisions_json', 'seo_google_export_decisions_json_handler');
 add_action('admin_init', 'seo_google_maybe_install_tables', 1);
 add_action('wp_ajax_seo_google_sync_start', 'seo_google_sync_start_handler');
 add_action('wp_ajax_seo_google_sync_day', 'seo_google_sync_day_handler');
@@ -3853,6 +3854,42 @@ function seo_google_export_csv_handler() {
         ), ';', '"', '');
     }
     fclose($output);
+    exit;
+}
+
+/**
+ * Exporta el JSON ejecutivo de resultados Google y decisiones.
+ */
+function seo_google_export_decisions_json_handler() {
+    if (!current_user_can('manage_options')) {
+        wp_die(esc_html__('No tienes permisos para exportar estos datos.', 'seo-system'));
+    }
+
+    check_admin_referer('seo_google_export_decisions_json');
+
+    $days = isset($_GET['days']) ? absint($_GET['days']) : 60;
+    $days = in_array($days, array(28, 60, 90), true) ? $days : 60;
+
+    if (!function_exists('seo_google_opportunity_export_payload')) {
+        wp_die(esc_html__('El motor de decisiones de Google Intelligence no está disponible.', 'seo-system'));
+    }
+
+    $payload = seo_google_opportunity_export_payload($days);
+    $date = wp_date('Ymd_His');
+
+    nocache_headers();
+    header('X-Content-Type-Options: nosniff');
+    header('Content-Type: application/json; charset=utf-8');
+    header('Content-Disposition: attachment; filename="google-intelligence-decisions-' . $date . '.json"');
+
+    echo wp_json_encode(
+        $payload,
+        JSON_PRETTY_PRINT
+        | JSON_UNESCAPED_UNICODE
+        | JSON_UNESCAPED_SLASHES
+        | JSON_INVALID_UTF8_SUBSTITUTE
+        | JSON_PARTIAL_OUTPUT_ON_ERROR
+    );
     exit;
 }
 
