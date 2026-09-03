@@ -68,6 +68,15 @@ if ( ! function_exists( 'seo_proveedores_api_connections' ) ) {
             ];
         }
 
+        if ( function_exists( 'seo_google_render_settings' ) && function_exists( 'seo_google_render_sync_status' ) ) {
+            $connections['google_intelligence'] = [
+                'id'       => 'google_intelligence',
+                'label'    => 'Google Intelligence / Search Console',
+                'provider' => 'Google',
+                'market'   => '',
+            ];
+        }
+
         if ( function_exists( 'seo_google_search_settings' ) ) {
             $connections['google_search'] = [
                 'id'       => 'google_search',
@@ -296,6 +305,25 @@ if ( ! function_exists( 'seo_proveedores_render_conexiones' ) ) {
             echo '<div class="notice notice-warning inline"><p>No hay proveedores API registrados. Para Amazon debe existir <code>suppliers/recipes/import_amazon.php</code>.</p></div>';
             echo '</div>';
             return;
+        }
+
+        if ( isset( $connections['google_intelligence'] ) && function_exists( 'seo_google_render_settings' ) && function_exists( 'seo_google_render_sync_status' ) ) {
+            echo '<section id="seo-google-intelligence-connection" style="margin-top:22px;scroll-margin-top:40px;">';
+            echo '<div style="border-top:1px solid #dcdcde;padding-top:20px;margin-bottom:16px;">';
+            echo '<h3 style="margin:0 0 6px;">Google Intelligence / Search Console</h3>';
+            echo '<p style="margin:0;max-width:900px;">Configuracion OAuth, propiedad de Search Console y sincronizacion de Google Intelligence. La logica no se ha movido: solo se centraliza aqui su visualizacion junto al resto de conexiones.</p>';
+            echo '</div>';
+
+            if ( function_exists( 'seo_google_render_notices' ) ) {
+                seo_google_render_notices();
+            }
+
+            seo_google_render_settings();
+
+            echo '<div id="seo-google-intelligence-sync" style="margin-top:18px;scroll-margin-top:40px;">';
+            seo_google_render_sync_status();
+            echo '</div>';
+            echo '</section>';
         }
 
         if ( isset( $connections['cloudflare'] ) && function_exists( 'seo_cloudflare_settings' ) ) {
