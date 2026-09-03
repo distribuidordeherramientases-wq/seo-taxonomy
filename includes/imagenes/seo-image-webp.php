@@ -8,7 +8,7 @@
  * final se eliminan los JPG/PNG sustituidos.
  *
  * Version: 2026-09-03
- * Build: 001
+ * Build: 002
  */
 
 defined('ABSPATH') || exit;
@@ -1330,6 +1330,12 @@ if (!function_exists('seo_images_webp_ajax_batch')) {
         $response['done'] = count($batch['ids']) < max(1, min(3, $limit));
         $response['errors'] = array_slice(array_values(array_unique($response['errors'])), 0, 10);
 
+        // Devuelve el inventario actual para que los contadores JPG/PNG/WebP
+        // cambien en pantalla sin esperar a una recarga del panel.
+        if (function_exists('seo_images_inventory_format_counts')) {
+            $response['format_counts'] = seo_images_inventory_format_counts();
+        }
+
         wp_send_json_success($response);
     }
 }
@@ -1359,6 +1365,8 @@ if (!function_exists('seo_images_webp_enqueue_settings')) {
                     'done'    => 'Conversion WebP completada.',
                     'error'   => 'La conversion WebP se detuvo por un error del servidor.',
                     'unsupported' => 'Este servidor no permite generar WebP con el editor de WordPress.',
+                    'button'      => 'Convertir %d JPG/PNG a WebP',
+                    'none'        => 'No hay JPG/PNG pendientes',
                 ),
             )
         );

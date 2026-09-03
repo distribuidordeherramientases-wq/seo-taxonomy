@@ -8,7 +8,7 @@
  * - Proveedor externo: seo_supplier_images.
  *
  * Version: 2026-09-02
- * Build: 006
+ * Build: 007
  */
 
 if (!defined('ABSPATH')) {
@@ -152,24 +152,80 @@ if (!function_exists('seo_images_admin_notice')) {
 /**
  * INVENTARIO
  */
+if (!function_exists('seo_images_inventory_format_counts')) {
+    /**
+     * Cuenta los formatos de imagen que WordPress tiene registrados en Media.
+     *
+     * Se usa post_mime_type a propósito: es el formato que WordPress considera
+     * activo para cada attachment y, por tanto, el que cambia al convertir un
+     * JPG/PNG a WebP manteniendo el mismo attachment ID.
+     */
+    function seo_images_inventory_format_counts() {
+        global $wpdb;
+
+        $counts = array(
+            'jpeg'        => 0,
+            'png'         => 0,
+            'webp'        => 0,
+            'avif'        => 0,
+            'other'       => 0,
+            'convertible' => 0,
+            'total'       => 0,
+        );
+
+        $rows = (array) $wpdb->get_results(
+            "SELECT LOWER(post_mime_type) AS mime_type, COUNT(*) AS total
+             FROM {$wpdb->posts}
+             WHERE post_type = 'attachment'
+               AND post_status = 'inherit'
+               AND post_mime_type LIKE 'image/%'
+             GROUP BY LOWER(post_mime_type)",
+            ARRAY_A
+        );
+
+        foreach ($rows as $row) {
+            $mime  = isset($row['mime_type']) ? (string) $row['mime_type'] : '';
+            $total = isset($row['total']) ? (int) $row['total'] : 0;
+            $counts['total'] += $total;
+
+            switch ($mime) {
+                case 'image/jpeg':
+                    $counts['jpeg'] += $total;
+                    break;
+                case 'image/png':
+                    $counts['png'] += $total;
+                    break;
+                case 'image/webp':
+                    $counts['webp'] += $total;
+                    break;
+                case 'image/avif':
+                    $counts['avif'] += $total;
+                    break;
+                default:
+                    $counts['other'] += $total;
+                    break;
+            }
+        }
+
+        $counts['convertible'] = (int) $counts['jpeg'] + (int) $counts['png'];
+
+        return $counts;
+    }
+}
+
 if (!function_exists('seo_images_inventory_summary')) {
     function seo_images_inventory_summary() {
         global $wpdb;
 
         $supplier_table = seo_images_table_supplier_images();
+        $formats = seo_images_inventory_format_counts();
         $summary = array(
-            'local_total'       => 0,
+            'local_total'       => (int) $formats['total'],
             'external_total'    => 0,
             'external_products' => 0,
             'suppliers'         => 0,
             'published_products'=> 0,
-        );
-
-        $summary['local_total'] = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->posts}
-             WHERE post_type = 'attachment'
-               AND post_mime_type LIKE 'image/%'
-               AND post_status = 'inherit'"
+            'formats'           => $formats,
         );
 
         $summary['published_products'] = (int) $wpdb->get_var(
@@ -823,7 +879,7 @@ add_action('admin_post_seo_images_delete_unused_local', 'seo_images_handle_delet
 if (!function_exists('seo_images_render_styles')) {
     function seo_images_render_styles() {
         echo '<style>
-            .seo-images-panel{margin-top:20px;max-width:1500px}.seo-images-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:16px 0}.seo-images-card{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px}.seo-images-kpi strong{display:block;font-size:27px;line-height:1.1;margin-bottom:5px}.seo-images-muted{color:#646970}.seo-images-table-thumb{width:70px;height:70px;object-fit:cover;border-radius:6px;background:#f0f0f1}.seo-images-candidates{display:flex;gap:10px;flex-wrap:wrap}.seo-images-candidate{width:118px;border:1px solid #dcdcde;border-radius:7px;padding:7px;background:#fff}.seo-images-candidate img{display:block;width:102px;height:82px;object-fit:cover;border-radius:4px;background:#f0f0f1}.seo-images-candidate small{display:block;margin:5px 0;line-height:1.25;height:32px;overflow:hidden}.seo-images-status{display:inline-block;padding:2px 7px;border-radius:999px;font-size:11px;font-weight:700}.seo-images-status.local{background:#e8f5e9;color:#1b5e20}.seo-images-status.external{background:#e3f2fd;color:#0d47a1}.seo-images-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:15px 0}.seo-images-table-actions{white-space:nowrap}.seo-images-danger{color:#b32d2e}.seo-images-ok{color:#16732d}.seo-images-manual-help{margin:14px 0;padding:12px 14px;background:#fff8e5;border-left:4px solid #dba617;max-width:1100px}.seo-images-candidate-actions{display:grid;gap:6px;margin-top:6px}.seo-images-candidate-actions .button{text-align:center}.seo-images-manual-form{border-top:1px solid #dcdcde;margin-top:7px;padding-top:7px}.seo-images-manual-form input[type=file]{display:block;width:100%;font-size:11px;margin:5px 0}.seo-images-open-link{font-size:12px;text-decoration:none}.seo-images-candidate{width:150px}.seo-images-candidate img{width:134px}@media(max-width:800px){.seo-images-candidate{width:125px}.seo-images-candidate img{width:109px;height:70px}}
+            .seo-images-panel{margin-top:20px;max-width:1500px}.seo-images-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:16px 0}.seo-images-card{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px}.seo-images-kpi strong{display:block;font-size:27px;line-height:1.1;margin-bottom:5px}.seo-images-format-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:20px 0 0}.seo-images-format-head h2{margin:0;font-size:15px}.seo-images-format-grid{margin-top:10px}.seo-images-format-kpi{padding:14px 18px}.seo-images-format-kpi strong{font-size:24px}.seo-images-format-note{margin:-5px 0 16px}.seo-images-muted{color:#646970}.seo-images-table-thumb{width:70px;height:70px;object-fit:cover;border-radius:6px;background:#f0f0f1}.seo-images-candidates{display:flex;gap:10px;flex-wrap:wrap}.seo-images-candidate{width:118px;border:1px solid #dcdcde;border-radius:7px;padding:7px;background:#fff}.seo-images-candidate img{display:block;width:102px;height:82px;object-fit:cover;border-radius:4px;background:#f0f0f1}.seo-images-candidate small{display:block;margin:5px 0;line-height:1.25;height:32px;overflow:hidden}.seo-images-status{display:inline-block;padding:2px 7px;border-radius:999px;font-size:11px;font-weight:700}.seo-images-status.local{background:#e8f5e9;color:#1b5e20}.seo-images-status.external{background:#e3f2fd;color:#0d47a1}.seo-images-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:15px 0}.seo-images-table-actions{white-space:nowrap}.seo-images-danger{color:#b32d2e}.seo-images-ok{color:#16732d}.seo-images-manual-help{margin:14px 0;padding:12px 14px;background:#fff8e5;border-left:4px solid #dba617;max-width:1100px}.seo-images-candidate-actions{display:grid;gap:6px;margin-top:6px}.seo-images-candidate-actions .button{text-align:center}.seo-images-manual-form{border-top:1px solid #dcdcde;margin-top:7px;padding-top:7px}.seo-images-manual-form input[type=file]{display:block;width:100%;font-size:11px;margin:5px 0}.seo-images-open-link{font-size:12px;text-decoration:none}.seo-images-candidate{width:150px}.seo-images-candidate img{width:134px}@media(max-width:800px){.seo-images-candidate{width:125px}.seo-images-candidate img{width:109px;height:70px}}
         </style>';
     }
 }
@@ -841,6 +897,28 @@ if (!function_exists('seo_images_render_inventory_tab')) {
             <div class="seo-images-card seo-images-kpi"><strong><?php echo esc_html(number_format_i18n($summary['external_products'])); ?></strong><span>Productos con imágenes externas</span></div>
             <div class="seo-images-card seo-images-kpi"><strong><?php echo esc_html(number_format_i18n($summary['suppliers'])); ?></strong><span>Proveedores con imágenes</span></div>
         </div>
+
+        <?php
+        $formats = isset($summary['formats']) && is_array($summary['formats'])
+            ? $summary['formats']
+            : seo_images_inventory_format_counts();
+        ?>
+        <div class="seo-images-format-head">
+            <h2>Formatos en Media local</h2>
+            <span class="seo-images-status local" id="seo-images-format-convertible">
+                <?php echo esc_html(number_format_i18n($formats['convertible'])); ?> JPG/PNG en Media
+            </span>
+        </div>
+        <div class="seo-images-grid seo-images-format-grid">
+            <div class="seo-images-card seo-images-kpi seo-images-format-kpi"><strong id="seo-images-format-jpeg"><?php echo esc_html(number_format_i18n($formats['jpeg'])); ?></strong><span>JPG / JPEG</span></div>
+            <div class="seo-images-card seo-images-kpi seo-images-format-kpi"><strong id="seo-images-format-png"><?php echo esc_html(number_format_i18n($formats['png'])); ?></strong><span>PNG</span></div>
+            <div class="seo-images-card seo-images-kpi seo-images-format-kpi"><strong id="seo-images-format-webp"><?php echo esc_html(number_format_i18n($formats['webp'])); ?></strong><span>WebP</span></div>
+            <div class="seo-images-card seo-images-kpi seo-images-format-kpi"><strong id="seo-images-format-avif"><?php echo esc_html(number_format_i18n($formats['avif'])); ?></strong><span>AVIF</span></div>
+            <div class="seo-images-card seo-images-kpi seo-images-format-kpi"><strong id="seo-images-format-other"><?php echo esc_html(number_format_i18n($formats['other'])); ?></strong><span>Otros formatos</span></div>
+        </div>
+        <p class="seo-images-muted seo-images-format-note">
+            Conteo por formato registrado en WordPress. Durante una conversión, JPG/PNG bajan y WebP sube en tiempo real.
+        </p>
 
         <section class="seo-images-card">
             <h2>Imágenes externas por proveedor</h2>

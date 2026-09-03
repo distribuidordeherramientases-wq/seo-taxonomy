@@ -7,7 +7,7 @@
  * valido y ocupa menos bytes. No convierte formatos.
  *
  * Version: 2026-09-02
- * Build: 001
+ * Build: 002
  */
 
 defined('ABSPATH') || exit;
@@ -601,6 +601,7 @@ add_action('admin_enqueue_scripts', 'seo_images_optimizer_enqueue_assets');
 if (!function_exists('seo_images_optimizer_render_controls')) {
     function seo_images_optimizer_render_controls($summary = array()) {
         $local_total = !empty($summary['local_total']) ? absint($summary['local_total']) : 0;
+        $convertible = !empty($summary['formats']['convertible']) ? absint($summary['formats']['convertible']) : 0;
         ?>
         <section class="seo-images-card seo-images-optimizer-card" style="margin-top:16px">
             <div class="seo-images-optimizer-head">
@@ -618,8 +619,10 @@ if (!function_exists('seo_images_optimizer_render_controls')) {
                 <button type="button" class="button button-primary" id="seo-images-optimize-local">
                     Reducir tamaño de todas las imágenes
                 </button>
-                <button type="button" class="button" id="seo-images-convert-webp">
-                    Convertir JPG/PNG a WebP
+                <button type="button" class="button" id="seo-images-convert-webp" data-convertible="<?php echo esc_attr((string) $convertible); ?>" <?php disabled($convertible < 1); ?>>
+                    <?php echo $convertible > 0
+                        ? esc_html(sprintf('Convertir %s JPG/PNG a WebP', number_format_i18n($convertible)))
+                        : esc_html('No hay JPG/PNG pendientes'); ?>
                 </button>
             </div>
 
