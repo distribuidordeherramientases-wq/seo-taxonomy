@@ -222,7 +222,7 @@ add_submenu_page(null, 'Marketing', 'Marketing', 'manage_options', 'seo-menu-mar
 add_submenu_page(null, 'SEO Data Table', 'Data Table', 'manage_options', 'seo-data-table', 'seo_data_table_page');
 add_submenu_page(null, 'Clean DB', 'Clean DB', 'manage_options', 'seo-clean-db', 'seo_clean_db_page');
 add_submenu_page(null, 'Import / Export', 'Import / Export', 'manage_options', 'seo-import-export', 'seo_import_export_page');
-add_submenu_page(null, 'Conexión con proveedores', 'Conexión con proveedores', 'manage_options', 'seo-provider-connections', 'seo_provider_connections_page');
+add_submenu_page(null, 'Conexiones con proveedores', 'Conexiones con proveedores', 'manage_options', 'seo-provider-connections', 'seo_provider_connections_page');
 add_submenu_page(null, 'Menu Manager', 'Menu Manager', 'manage_options', 'seo-menu-manager', 'seo_menu_manager_page');
 add_submenu_page( null, 'FAQs', 'FAQs', 'manage_options', 'seo-faq','seo_faq_page');
 add_submenu_page( null, 'Server status', 'Server status', 'manage_options', 'seo_server_status','seo_server_status');
@@ -269,6 +269,115 @@ add_filter('submenu_file', function ($submenu_file) {
 
     return $submenu_file;
 });
+
+/**
+ * Redirige las rutas antiguas de conexiones a la nueva herramienta sin romper
+ * los handlers existentes que aun devuelven a Importar / Exportar.
+ */
+add_action('admin_init', function () {
+    if (!is_admin() || !current_user_can('manage_options')) {
+        return;
+    }
+
+    $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+
+    if ('seo-import-export' === $page) {
+        $tab = isset($_GET['seo_ie_tab']) ? sanitize_key(wp_unslash($_GET['seo_ie_tab'])) : '';
+        if ('conexiones-proveedores' === $tab) {
+            $args = ['page' => 'seo-provider-connections'];
+            $forward = [
+                'cloudflare_saved', 'cloudflare_error', 'amazon_saved',
+                'google_search_saved', 'google_search_error',
+                'google_python_saved', 'google_python_error',
+                'github_python_saved', 'github_python_error',
+            ];
+            foreach ($forward as $key) {
+                if (isset($_GET[$key]) && is_scalar($_GET[$key])) {
+                    $args[$key] = sanitize_text_field(wp_unslash($_GET[$key]));
+                }
+            }
+            wp_safe_redirect(add_query_arg($args, admin_url('admin.php')));
+            exit;
+        }
+    }
+
+    if ('seo-reports' === $page) {
+        $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : '';
+        $view = isset($_GET['google_view']) ? sanitize_key(wp_unslash($_GET['google_view'])) : '';
+        if ('google_intelligence' === $tab && in_array($view, ['sources', 'settings', 'sync'], true)) {
+            $args = ['page' => 'seo-provider-connections'];
+            foreach (['google_notice', 'google_error', 'properties'] as $key) {
+                if (isset($_GET[$key]) && is_scalar($_GET[$key])) {
+                    $args[$key] = sanitize_text_field(wp_unslash($_GET[$key]));
+                }
+            }
+            $url = add_query_arg($args, admin_url('admin.php'));
+            if ('settings' === $view) {
+                $url .= '#google-intelligence-settings';
+            } elseif ('sync' === $view) {
+                $url .= '#google-intelligence-sync';
+            } else {
+                $url .= '#google-intelligence-sources';
+            }
+            wp_safe_redirect($url);
+            exit;
+        }
+    }
+});
+
+/**
+ * Herramienta central de conexiones compartidas.
+ *
+ * No mueve los importadores ni las recetas: solo presenta en una pantalla
+ * comun las credenciales/servicios que reutilizan varios modulos.
+ */
+function seo_provider_connections_page() {
+    if (!current_user_can('manage_options')) {
+        wp_die(esc_html__('No tienes permisos para gestionar conexiones.', 'seo-system'));
+    }
+
+    echo '<div class="wrap seo-provider-connections">';
+    echo '<h1>Conexiones con proveedores</h1>';
+    echo '<p>Configuración central de conexiones compartidas. Los importadores, catálogos, recetas y sincronizaciones de proveedores permanecen en Importar / Exportar.</p>';
+
+    if (function_exists('seo_proveedores_render_conexiones')) {
+        seo_proveedores_render_conexiones();
+    } else {
+        echo '<div class="notice notice-error inline"><p>No se ha podido cargar el módulo de conexiones compartidas.</p></div>';
+    }
+
+    echo '<div id="google-intelligence-sources" class="card" style="max-width:none;padding:20px;margin-top:20px;">';
+    echo '<h2 style="margin-top:0;">Google Intelligence · Fuentes y diagnóstico</h2>';
+    echo '<p>Estado de Search Console, Analytics y Google Trends, junto con la conexión OAuth y la sincronización de Google Intelligence.</p>';
+
+    if (function_exists('seo_google_render_notices')) {
+        seo_google_render_notices();
+    }
+
+    if (function_exists('seo_google_opportunity_render_styles')) {
+        seo_google_opportunity_render_styles();
+    }
+    if (function_exists('seo_google_opportunity_source_status') && function_exists('seo_google_opportunity_render_source_cards')) {
+        seo_google_opportunity_render_source_cards(seo_google_opportunity_source_status());
+    } else {
+        echo '<div class="notice notice-warning inline"><p>No está disponible el diagnóstico de fuentes de Google Intelligence.</p></div>';
+    }
+
+    echo '<div id="google-intelligence-settings" style="scroll-margin-top:40px;margin-top:24px;">';
+    if (function_exists('seo_google_render_settings')) {
+        seo_google_render_settings();
+    }
+    echo '</div>';
+
+    echo '<div id="google-intelligence-sync" style="scroll-margin-top:40px;margin-top:24px;">';
+    if (function_exists('seo_google_render_sync_status')) {
+        seo_google_render_sync_status();
+    }
+    echo '</div>';
+    echo '</div>';
+
+    echo '</div>';
+}
 
 
 function seo_tools_page() {
@@ -342,10 +451,10 @@ function seo_tools_page() {
             ],
 
             [
-                'title' => 'Conexión con proveedores',
+                'title' => 'Conexiones con proveedores',
                 'icon'  => 'dashicons-admin-links',
                 'page'  => 'seo-provider-connections',
-                'desc'  => 'Credenciales, APIs, integradores y conexiones externas.'
+                'desc'  => 'Google, Amazon, Cloudflare, GitHub y servicios compartidos.'
             ],
 
 

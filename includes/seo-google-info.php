@@ -76,41 +76,27 @@ function seo_google_maybe_install_tables() {
 }
 
 /**
- * URL de la pantalla central de conexiones de proveedores.
- *
- * La configuracion y la sincronizacion de Google Intelligence se muestran ahi;
- * la logica permanece en este modulo.
- */
-function seo_google_connections_admin_url($args = array(), $anchor = 'seo-google-intelligence-connection') {
-    $url = add_query_arg(
-        array(
-            'page'       => 'seo-import-export',
-            'seo_ie_tab' => 'conexiones-proveedores',
-        ),
-        admin_url('admin.php')
-    );
-
-    if (!empty($args)) {
-        $url = add_query_arg($args, $url);
-    }
-
-    return $anchor ? $url . '#' . rawurlencode($anchor) : $url;
-}
-
-/**
  * URL base de Google Intelligence.
  */
 function seo_google_admin_url($view = 'settings', $args = array()) {
     $view = sanitize_key($view);
 
-    // Configuracion y sincronizacion ya no se visualizan dentro de
-    // Google Intelligence: se centralizan con el resto de conexiones.
-    if (in_array($view, array('settings', 'sync'), true)) {
-        $anchor = 'sync' === $view
-            ? 'seo-google-intelligence-sync'
-            : 'seo-google-intelligence-connection';
+    if (in_array($view, array('settings', 'sync', 'sources'), true)) {
+        $url = add_query_arg(
+            array('page' => 'seo-provider-connections'),
+            admin_url('admin.php')
+        );
+        if (!empty($args)) {
+            $url = add_query_arg($args, $url);
+        }
 
-        return seo_google_connections_admin_url($args, $anchor);
+        if ('settings' === $view) {
+            return $url . '#google-intelligence-settings';
+        }
+        if ('sync' === $view) {
+            return $url . '#google-intelligence-sync';
+        }
+        return $url . '#google-intelligence-sources';
     }
 
     $url = add_query_arg(
@@ -1596,7 +1582,6 @@ function seo_google_intelligence_page() {
         'content_plan',
         'catalog_plan',
         'results',
-        'sources',
     );
     $technical_views = array(
         'summary',
@@ -1622,7 +1607,6 @@ function seo_google_intelligence_page() {
         'content_plan'  => 'Contenido',
         'catalog_plan'  => 'Catálogo',
         'results'       => 'Resultados',
-        'sources'       => 'Fuentes y diagnóstico',
     );
 
     echo '<div class="seo-google-intelligence">';
@@ -1644,7 +1628,7 @@ function seo_google_intelligence_page() {
         echo '<div class="notice notice-info inline"><p><strong>Vista técnica:</strong> esta pantalla se conserva como evidencia y diagnóstico. <a href="' . esc_url(seo_google_admin_url('market')) . '">Volver a Mercado</a>.</p></div>';
     }
 
-    if (is_wp_error($install_result) && in_array($view, array('summary', 'sync'), true)) {
+    if (is_wp_error($install_result) && 'summary' === $view) {
         $table_status = seo_google_tables_status();
         echo '<div class="notice notice-error inline"><p><strong>Error de base de datos:</strong> ' . esc_html($install_result->get_error_message()) . '</p></div>';
         echo '<p><strong>Versión cargada:</strong> ' . esc_html(SEO_GOOGLE_MODULE_VERSION) . '</p>';
@@ -1668,10 +1652,6 @@ function seo_google_intelligence_page() {
         } else {
             echo '<div class="notice notice-error inline"><p>Falta el archivo <code>seo-google-opportunity-engine.php</code>.</p></div>';
         }
-    } elseif ('settings' === $view) {
-        seo_google_render_settings();
-    } elseif ('sync' === $view) {
-        seo_google_render_sync_status();
     } elseif ('summary' === $view) {
         seo_google_render_summary();
     } elseif ('signals' === $view) {
