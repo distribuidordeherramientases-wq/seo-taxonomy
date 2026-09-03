@@ -367,6 +367,15 @@ echo wp_json_encode(
     }
     ?>
 
+    <?php
+    if (function_exists('dht_render_vevor_affiliate_category_block')) {
+        dht_render_vevor_affiliate_category_block($term, array(
+            'limit' => 8,
+            'title' => 'Descubre otros productos en VEVOR',
+        ));
+    }
+    ?>
+
 
     <!-- =====================================================
          CATEGORÍAS RELACIONADAS
