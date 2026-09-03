@@ -54,7 +54,7 @@ final class SEO_Facturas_PDF {
         if (!class_exists('Dompdf\\Dompdf')) {
             return new WP_Error(
                 'seo_facturas_pdf_engine_missing',
-                'Dompdf no esta disponible. Instala las dependencias de includes/facturas/composer.json.'
+                'Dompdf no esta disponible. Instala Composer en includes/facturas/vendor/ o sube el paquete manual a includes/facturas/dompdf/.'
             );
         }
 
@@ -122,7 +122,16 @@ final class SEO_Facturas_PDF {
         }
 
         $autoloaders = array(
+            // Instalacion mediante Composer dentro del modulo.
             SEO_FACTURAS_PATH . 'vendor/autoload.php',
+
+            // Instalacion manual con el ZIP empaquetado oficial de Dompdf.
+            // autoload.inc.php carga internamente dompdf/vendor/autoload.php.
+            SEO_FACTURAS_PATH . 'dompdf/autoload.inc.php',
+
+            // Fallback defensivo por si se ha subido el autoloader de la
+            // distribucion manual pero falta autoload.inc.php.
+            SEO_FACTURAS_PATH . 'dompdf/vendor/autoload.php',
         );
 
         if (defined('SEO_SYSTEM_PATH')) {
