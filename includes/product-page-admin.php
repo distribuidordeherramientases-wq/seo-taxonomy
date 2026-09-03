@@ -15,7 +15,7 @@ if (!function_exists('seo_product_admin_callback')) {
         }
 
         $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'editar';
-        $allowed_tabs = ['nuevo', 'editar', 'inventario', 'recategorizar', 'informes'];
+        $allowed_tabs = ['nuevo', 'editar', 'inventario', 'recategorizar', 'tamanos', 'informes'];
         if (!in_array($active_tab, $allowed_tabs, true)) {
             $active_tab = 'editar';
         }
@@ -32,6 +32,7 @@ if (!function_exists('seo_product_admin_callback')) {
             'editar'        => 'Editar producto',
             'inventario'    => 'Inventario',
             'recategorizar' => 'Recategorizar',
+            'tamanos'       => 'Tamaños',
             'informes'      => 'Informes Google',
         ];
 
@@ -71,6 +72,14 @@ if (!function_exists('seo_product_admin_callback')) {
                     product_recategorization();
                 } else {
                     echo '<div class="notice notice-error"><p>No está disponible el módulo de recategorización.</p></div>';
+                }
+                break;
+
+            case 'tamanos':
+                if (function_exists('seo_product_sizes_page')) {
+                    seo_product_sizes_page();
+                } else {
+                    echo '<div class="notice notice-error"><p>No está disponible el módulo de tamaños y pesos.</p></div>';
                 }
                 break;
 
