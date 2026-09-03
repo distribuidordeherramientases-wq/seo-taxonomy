@@ -349,17 +349,17 @@ if (!function_exists('seo_product_sizes_page')) {
                         <div class="seo-sizes-controls">
                             <div class="seo-sizes-field">
                                 <label for="seo-weight-light">Ligero hasta</label>
-                                <input id="seo-weight-light" name="weight_light_max" type="number" min="0.0001" step="0.01" value="<?php echo esc_attr(seo_product_sizes_format_input($settings['weight_light_max'])); ?>">
+                                <input id="seo-weight-light" name="weight_light_max" type="number" min="0.0001" step="any" inputmode="decimal" value="<?php echo esc_attr(seo_product_sizes_format_input($settings['weight_light_max'])); ?>">
                                 <small>Incluye valores menores o iguales.</small>
                             </div>
                             <div class="seo-sizes-field">
                                 <label for="seo-weight-medium">Mediano hasta</label>
-                                <input id="seo-weight-medium" name="weight_medium_max" type="number" min="0.0001" step="0.01" value="<?php echo esc_attr(seo_product_sizes_format_input($settings['weight_medium_max'])); ?>">
+                                <input id="seo-weight-medium" name="weight_medium_max" type="number" min="0.0001" step="any" inputmode="decimal" value="<?php echo esc_attr(seo_product_sizes_format_input($settings['weight_medium_max'])); ?>">
                                 <small>Debe ser mayor que Ligero.</small>
                             </div>
                             <div class="seo-sizes-field">
                                 <label for="seo-weight-heavy">Pesado desde</label>
-                                <input id="seo-weight-heavy" name="weight_heavy_from" type="number" min="0.0001" step="0.01" value="<?php echo esc_attr(seo_product_sizes_format_input($settings['weight_heavy_from'])); ?>">
+                                <input id="seo-weight-heavy" name="weight_heavy_from" type="number" min="0.0001" step="any" inputmode="decimal" value="<?php echo esc_attr(seo_product_sizes_format_input($settings['weight_heavy_from'])); ?>">
                                 <small>Se sincroniza con el limite superior de Mediano para no dejar huecos.</small>
                             </div>
                         </div>
@@ -372,17 +372,17 @@ if (!function_exists('seo_product_sizes_page')) {
                         <div class="seo-sizes-controls">
                             <div class="seo-sizes-field">
                                 <label for="seo-size-small">Pequeno hasta</label>
-                                <input id="seo-size-small" name="size_small_max" type="number" min="0.0001" step="0.01" value="<?php echo esc_attr(seo_product_sizes_format_input($settings['size_small_max'])); ?>">
+                                <input id="seo-size-small" name="size_small_max" type="number" min="0.0001" step="any" inputmode="decimal" value="<?php echo esc_attr(seo_product_sizes_format_input($settings['size_small_max'])); ?>">
                                 <small>Incluye valores menores o iguales.</small>
                             </div>
                             <div class="seo-sizes-field">
                                 <label for="seo-size-medium">Mediano hasta</label>
-                                <input id="seo-size-medium" name="size_medium_max" type="number" min="0.0001" step="0.01" value="<?php echo esc_attr(seo_product_sizes_format_input($settings['size_medium_max'])); ?>">
+                                <input id="seo-size-medium" name="size_medium_max" type="number" min="0.0001" step="any" inputmode="decimal" value="<?php echo esc_attr(seo_product_sizes_format_input($settings['size_medium_max'])); ?>">
                                 <small>Debe ser mayor que Pequeno.</small>
                             </div>
                             <div class="seo-sizes-field">
                                 <label for="seo-size-large">Grande desde</label>
-                                <input id="seo-size-large" name="size_large_from" type="number" min="0.0001" step="0.01" value="<?php echo esc_attr(seo_product_sizes_format_input($settings['size_large_from'])); ?>">
+                                <input id="seo-size-large" name="size_large_from" type="number" min="0.0001" step="any" inputmode="decimal" value="<?php echo esc_attr(seo_product_sizes_format_input($settings['size_large_from'])); ?>">
                                 <small>Se sincroniza con el limite superior de Mediano para no dejar huecos.</small>
                             </div>
                         </div>
