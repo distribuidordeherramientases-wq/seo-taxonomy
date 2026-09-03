@@ -1,9 +1,11 @@
 <?php
 /**
- * Presupuestos PDF efimeros generados desde el carrito WooCommerce.
+ * Documentos PDF efimeros generados desde el carrito WooCommerce.
  *
- * No crea pedidos, clientes ni registros de presupuesto. Usa el carrito vivo
- * de WooCommerce como fuente de verdad y genera el PDF bajo demanda.
+ * El presupuesto es un documento comercial. La "proforma borrador" del
+ * carrito es solo una previsualizacion no persistida: la proforma definitiva
+ * se vincula a un pedido WooCommerce existente y la factura solo se emite
+ * cuando WooCommerce confirma el pago.
  */
 
 defined('ABSPATH') || exit;
@@ -12,6 +14,7 @@ final class SEO_Facturas_Quotes {
 
     private static $initialized = false;
     private static $rendered = false;
+    private static $request_kind = 'quote';
 
     public static function init() {
         if (self::$initialized) {
@@ -21,6 +24,7 @@ final class SEO_Facturas_Quotes {
 
         add_action('wp_enqueue_scripts', array(__CLASS__, 'enqueue_assets'));
         add_action('woocommerce_proceed_to_checkout', array(__CLASS__, 'render_cart_form'), 30);
+        add_action('seo_facturas_cart_documents', array(__CLASS__, 'render_cart_form'), 10);
         add_filter('render_block_woocommerce/cart', array(__CLASS__, 'append_to_cart_block'), 20, 2);
         add_shortcode('seo_facturas_presupuesto', array(__CLASS__, 'shortcode'));
         add_action('template_redirect', array(__CLASS__, 'handle_download'), 20);
@@ -38,6 +42,7 @@ final class SEO_Facturas_Quotes {
             return;
         }
         self::$rendered = true;
+        self::enqueue_front_assets();
         echo self::form_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
     }
 
@@ -47,6 +52,7 @@ final class SEO_Facturas_Quotes {
         }
 
         self::$rendered = true;
+        self::enqueue_front_assets();
         return $block_content . self::form_html();
     }
 
@@ -76,10 +82,19 @@ final class SEO_Facturas_Quotes {
 
     private static function form_html() {
         if (!is_user_logged_in() && !SEO_Facturas_Settings::get('quote_guest_allowed', 1)) {
-            return '<div class="woocommerce-info seo-facturas-quote-info">Los presupuestos descargables estan disponibles para clientes identificados.</div>';
+            return '<div class="woocommerce-info seo-facturas-quote-info">Los documentos descargables del carrito estan disponibles para clientes identificados.</div>';
+        }
+
+        $quote_available = self::is_quote_available();
+        $draft_available = self::is_proforma_draft_available();
+        if (!$quote_available && !$draft_available) {
+            return '';
         }
 
         $error = self::pull_session_notice('seo_facturas_quote_error');
+        $session_kind = sanitize_key(self::pull_session_notice('seo_facturas_quote_kind'));
+        $initial_kind = in_array($session_kind, array('quote', 'proforma_draft'), true) ? $session_kind : ($quote_available ? 'quote' : 'proforma_draft');
+
         $s = SEO_Facturas_Settings::quote();
         $button_text = trim((string) $s['quote_button_text']);
         if ('' === $button_text) {
@@ -93,17 +108,52 @@ final class SEO_Facturas_Quotes {
                 <div class="woocommerce-error" role="alert"><?php echo esc_html($error); ?></div>
             <?php endif; ?>
 
-            <button type="button" class="button alt seo-facturas-quote-toggle" data-seo-quote-toggle aria-expanded="false">
-                <?php echo esc_html($button_text); ?>
-            </button>
+            <div class="seo-facturas-cart-document-actions">
+                <?php if ($quote_available) : ?>
+                    <button
+                        type="button"
+                        class="button alt seo-facturas-doc-button seo-facturas-doc-button--quote"
+                        data-seo-doc-open="quote"
+                        data-title="Preparar presupuesto"
+                        data-help="Generaremos un presupuesto PDF con los importes calculados actualmente por WooCommerce. No crea ningun pedido."
+                        data-submit="Descargar presupuesto PDF"
+                        aria-expanded="false"
+                    >
+                        <strong><?php echo esc_html(strtoupper($button_text)); ?> PDF</strong>
+                        <span>Documento comercial sin validez fiscal</span>
+                    </button>
+                <?php endif; ?>
 
-            <div class="seo-facturas-quote-panel" data-seo-quote-panel hidden>
-                <h3>Preparar presupuesto</h3>
-                <p class="seo-facturas-quote-help">Generaremos un PDF con los productos, descuentos, impuestos y transporte calculados actualmente por WooCommerce. No se crea ningun pedido.</p>
+                <?php if ($draft_available) : ?>
+                    <button
+                        type="button"
+                        class="button seo-facturas-doc-button seo-facturas-doc-button--proforma"
+                        data-seo-doc-open="proforma_draft"
+                        data-title="Preparar proforma borrador"
+                        data-help="Generaremos una proforma de borrador a partir del carrito. No crea pedido, no usa la serie PRO definitiva y no acredita ningun pago."
+                        data-submit="Descargar proforma borrador PDF"
+                        aria-expanded="false"
+                    >
+                        <strong>DESCARGAR PROFORMA BORRADOR PDF</strong>
+                        <span>La proforma definitiva se vincula al pedido</span>
+                    </button>
+                <?php endif; ?>
+            </div>
+
+            <p class="seo-facturas-invoice-cart-note">
+                <strong>FACTURA:</strong> se emite unicamente cuando WooCommerce confirma el pago. Antes del pago no se genera una factura fiscal de borrador.
+            </p>
+
+            <div class="seo-facturas-quote-panel" data-seo-quote-panel <?php echo $error ? '' : 'hidden'; ?>>
+                <h3 data-seo-doc-title><?php echo esc_html('proforma_draft' === $initial_kind ? 'Preparar proforma borrador' : 'Preparar presupuesto'); ?></h3>
+                <p class="seo-facturas-quote-help" data-seo-doc-help>
+                    <?php echo esc_html('proforma_draft' === $initial_kind ? 'Generaremos una proforma de borrador a partir del carrito. No crea pedido, no usa la serie PRO definitiva y no acredita ningun pago.' : 'Generaremos un presupuesto PDF con los importes calculados actualmente por WooCommerce. No crea ningun pedido.'); ?>
+                </p>
 
                 <form method="post" action="<?php echo esc_url(self::cart_url()); ?>" class="seo-facturas-quote-form">
                     <?php wp_nonce_field('seo_facturas_quote_download', 'seo_facturas_quote_nonce'); ?>
                     <input type="hidden" name="seo_facturas_quote_download" value="1">
+                    <input type="hidden" name="seo_facturas_cart_document_kind" value="<?php echo esc_attr($initial_kind); ?>" data-seo-doc-kind>
 
                     <?php if (!empty($s['quote_ask_company'])) : ?>
                         <p class="form-row form-row-wide">
@@ -134,8 +184,10 @@ final class SEO_Facturas_Quotes {
                     <?php endif; ?>
 
                     <div class="clear"></div>
-                    <p class="seo-facturas-quote-validity">Validez configurada: <strong><?php echo esc_html(absint($s['quote_validity_days'])); ?> dias</strong>. El presupuesto no reserva stock.</p>
-                    <button type="submit" class="button alt seo-facturas-quote-submit"><?php echo esc_html($button_text); ?> PDF</button>
+                    <p class="seo-facturas-quote-validity">Validez configurada: <strong><?php echo esc_html(absint($s['quote_validity_days'])); ?> dias</strong>. Ningun documento del carrito reserva stock.</p>
+                    <button type="submit" class="button alt seo-facturas-quote-submit" data-seo-doc-submit>
+                        <?php echo esc_html('proforma_draft' === $initial_kind ? 'Descargar proforma borrador PDF' : 'Descargar presupuesto PDF'); ?>
+                    </button>
                 </form>
             </div>
         </section>
@@ -151,17 +203,26 @@ final class SEO_Facturas_Quotes {
             return;
         }
 
-        if (!self::is_available()) {
+        $kind = sanitize_key(wp_unslash($_POST['seo_facturas_cart_document_kind'] ?? 'quote'));
+        if (!in_array($kind, array('quote', 'proforma_draft'), true)) {
+            $kind = 'quote';
+        }
+        self::$request_kind = $kind;
+
+        if ('quote' === $kind && !self::is_quote_available()) {
             self::fail('La descarga de presupuestos no esta disponible.');
+        }
+        if ('proforma_draft' === $kind && !self::is_proforma_draft_available()) {
+            self::fail('La descarga de proformas de borrador no esta disponible.');
         }
 
         $nonce = isset($_POST['seo_facturas_quote_nonce']) ? sanitize_text_field(wp_unslash($_POST['seo_facturas_quote_nonce'])) : '';
         if (!$nonce || !wp_verify_nonce($nonce, 'seo_facturas_quote_download')) {
-            self::fail('La solicitud de presupuesto ha caducado. Recarga el carrito y vuelve a intentarlo.');
+            self::fail('La solicitud ha caducado. Recarga el carrito y vuelve a intentarlo.');
         }
 
         if (!is_user_logged_in() && !SEO_Facturas_Settings::get('quote_guest_allowed', 1)) {
-            self::fail('Debes iniciar sesion para descargar un presupuesto.');
+            self::fail('Debes iniciar sesion para descargar este documento.');
         }
 
         if (function_exists('wc_load_cart') && (!function_exists('WC') || !WC() || !WC()->cart)) {
@@ -184,7 +245,7 @@ final class SEO_Facturas_Quotes {
 
         $engine = SEO_Facturas_PDF::engine_status();
         if (empty($engine['available'])) {
-            self::fail('No se puede generar el PDF porque Dompdf no esta instalado en includes/facturas/vendor/.');
+            self::fail('No se puede generar el PDF porque Dompdf no esta disponible.');
         }
 
         WC()->cart->calculate_totals();
@@ -196,15 +257,19 @@ final class SEO_Facturas_Quotes {
             && is_callable(array(WC()->customer, 'has_calculated_shipping'))
             && !WC()->customer->has_calculated_shipping()
         ) {
-            self::fail('Para generar un presupuesto completo, indica primero el destino de envio en el carrito para que WooCommerce calcule el transporte.');
+            self::fail('Para generar un documento completo, indica primero el destino de envio en el carrito para que WooCommerce calcule el transporte.');
         }
 
-        $numbering = SEO_Facturas_Documents::reserve_number(SEO_Facturas_Documents::TYPE_QUOTE);
+        if ('quote' === $kind) {
+            $numbering = SEO_Facturas_Documents::reserve_number(SEO_Facturas_Documents::TYPE_QUOTE);
+        } else {
+            $numbering = self::draft_numbering();
+        }
         if (is_wp_error($numbering)) {
             self::fail($numbering->get_error_message());
         }
 
-        $snapshot = self::snapshot_from_cart($buyer, $numbering);
+        $snapshot = self::snapshot_from_cart($buyer, $numbering, $kind);
         if (is_wp_error($snapshot)) {
             self::fail($snapshot->get_error_message());
         }
@@ -219,7 +284,7 @@ final class SEO_Facturas_Quotes {
             self::fail($binary->get_error_message());
         }
 
-        if (SEO_Facturas_Settings::get('quote_send_email_copy', 0) && !empty($buyer['email'])) {
+        if ('quote' === $kind && SEO_Facturas_Settings::get('quote_send_email_copy', 0) && !empty($buyer['email'])) {
             self::email_copy((string) $buyer['email'], (string) $numbering['number'], $binary);
         }
 
@@ -251,10 +316,26 @@ final class SEO_Facturas_Quotes {
         return $buyer;
     }
 
-    private static function snapshot_from_cart(array $buyer, array $numbering) {
+    private static function snapshot_from_cart(array $buyer, array $numbering, $kind = 'quote') {
         $cart = WC()->cart;
         $currency = get_woocommerce_currency();
         $profile = SEO_Facturas_Settings::document_profile(SEO_Facturas_Documents::TYPE_QUOTE);
+        $kind = ('proforma_draft' === sanitize_key((string) $kind)) ? 'proforma_draft' : 'quote';
+
+        if ('proforma_draft' === $kind) {
+            $proforma = SEO_Facturas_Settings::proforma();
+            $base_title = trim((string) ($proforma['proforma_title'] ?? 'FACTURA PROFORMA'));
+            $profile['title'] = ($base_title ?: 'FACTURA PROFORMA') . ' - BORRADOR';
+            $profile['show_sku'] = !empty($proforma['proforma_show_sku']);
+            $profile['warning_text'] = 'BORRADOR DE PROFORMA - SIN VALIDEZ FISCAL - NO ES FACTURA';
+            $profile['recipient_label'] = 'Proforma para:';
+            $profile['detail_heading'] = 'Detalle de la proforma borrador';
+            $profile['reference_label'] = 'Referencia de borrador:';
+            $profile['total_label'] = 'TOTAL PROFORMA (BORRADOR)';
+            $profile['terms_text'] = 'Borrador de factura proforma generado a partir del carrito. No acredita pago, no constituye factura fiscal, no reserva stock y puede variar hasta que se cree el pedido. La proforma definitiva se vinculara al pedido si este queda pendiente de pago.';
+            $profile['footer_text'] = (string) ($proforma['proforma_footer_text'] ?? '');
+        }
+
         $validity_days = max(1, absint($profile['validity_days'] ?? 15));
         if (function_exists('current_datetime')) {
             $valid_until = current_datetime()->modify('+' . $validity_days . ' days')->format('Y-m-d H:i:s');
@@ -329,6 +410,7 @@ final class SEO_Facturas_Quotes {
                     'number'      => (string) $numbering['number'],
                     'issued_at'   => (string) $numbering['issued_at'],
                     'valid_until' => $valid_until,
+                    'variant'     => $kind,
                 ),
                 $profile
             ),
@@ -352,7 +434,7 @@ final class SEO_Facturas_Quotes {
             ),
         );
 
-        return apply_filters('seo_facturas_quote_snapshot', $snapshot, $cart, $buyer);
+        return apply_filters('seo_facturas_quote_snapshot', $snapshot, $cart, $buyer, $kind);
     }
 
     private static function customer_address($customer, $kind) {
@@ -511,10 +593,37 @@ final class SEO_Facturas_Quotes {
     }
 
     private static function is_available() {
+        return self::is_quote_available() || self::is_proforma_draft_available();
+    }
+
+    private static function is_quote_available() {
         return (bool) (
             SEO_Facturas_Settings::get('enabled', 0)
             && SEO_Facturas_Settings::get('quote_enabled', 0)
             && class_exists('WooCommerce')
+        );
+    }
+
+    private static function is_proforma_draft_available() {
+        return (bool) (
+            SEO_Facturas_Settings::get('enabled', 0)
+            && SEO_Facturas_Settings::get('proforma_enabled', 1)
+            && class_exists('WooCommerce')
+        );
+    }
+
+    private static function draft_numbering() {
+        $issued_at = current_time('mysql');
+        $timestamp = strtotime((string) $issued_at);
+        $stamp = $timestamp ? wp_date('Ymd-His', $timestamp) : wp_date('Ymd-His');
+        $token = strtoupper(wp_generate_password(5, false, false));
+
+        return array(
+            'type'      => SEO_Facturas_Documents::TYPE_QUOTE,
+            'series'    => 'PRO-BORRADOR',
+            'sequence'  => 0,
+            'issued_at' => $issued_at,
+            'number'    => 'PRO-BORRADOR-' . $stamp . '-' . $token,
         );
     }
 
@@ -527,6 +636,7 @@ final class SEO_Facturas_Quotes {
 
     private static function fail($message) {
         self::set_session_notice('seo_facturas_quote_error', sanitize_text_field((string) $message));
+        self::set_session_notice('seo_facturas_quote_kind', self::$request_kind);
         if (!headers_sent()) {
             wp_safe_redirect(self::cart_url());
             exit;
