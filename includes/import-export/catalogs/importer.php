@@ -846,7 +846,13 @@ function seo_ie_import_required_catalogs_csv() {
 
     check_admin_referer( 'seo_import_required_catalogs_csv', 'seo_import_required_catalogs_nonce' );
 
-    if ( empty( $_FILES['required_catalogs_csv']['tmp_name'] ) || ! is_uploaded_file( $_FILES['required_catalogs_csv']['tmp_name'] ) ) {
+    $internal_batch = function_exists( 'seo_ie_batch_is_internal' ) && seo_ie_batch_is_internal( 'catalog' );
+
+    if (
+        empty( $_FILES['required_catalogs_csv']['tmp_name'] )
+        || ( ! $internal_batch && ! is_uploaded_file( $_FILES['required_catalogs_csv']['tmp_name'] ) )
+        || ( $internal_batch && ! is_file( $_FILES['required_catalogs_csv']['tmp_name'] ) )
+    ) {
         wp_die( esc_html__( 'No se ha recibido un CSV de catálogos válido.', 'seo-system' ) );
     }
 
@@ -1032,6 +1038,12 @@ function seo_ie_import_required_catalogs_csv() {
 
     unset( $log['_prospective_roles'], $log['_prospective_attributes'], $log['_prospective_terms'] );
     seo_ie_store_log( $log );
+
+    // En la cola general no redirigimos ni terminamos PHP: el controlador de
+    // batch necesita el log para mover el archivo a imported/failed y continuar.
+    if ( $internal_batch ) {
+        return $log;
+    }
 
     wp_safe_redirect(
         add_query_arg(
