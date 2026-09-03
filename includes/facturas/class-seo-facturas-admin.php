@@ -1,6 +1,6 @@
 <?php
 /**
- * Administracion del modulo de facturas.
+ * Administracion del modulo documental.
  */
 
 defined('ABSPATH') || exit;
@@ -19,6 +19,7 @@ final class SEO_Facturas_Admin {
         add_filter('seo_tools_items', array(__CLASS__, 'add_tools_card'));
         add_action('admin_enqueue_scripts', array(__CLASS__, 'enqueue_assets'));
         add_action('add_meta_boxes', array(__CLASS__, 'register_order_meta_box'));
+        add_action('admin_notices', array(__CLASS__, 'render_notice'));
 
         add_action('admin_post_seo_facturas_generate', array(__CLASS__, 'handle_generate'));
         add_action('admin_post_seo_facturas_download', array(__CLASS__, 'handle_download'));
@@ -48,7 +49,7 @@ final class SEO_Facturas_Admin {
             'title' => 'Facturas y presupuestos',
             'icon'  => 'dashicons-media-spreadsheet',
             'page'  => 'seo-facturas',
-            'desc'  => 'Proformas y facturas conectadas a los pedidos y pagos de WooCommerce.',
+            'desc'  => 'Facturas, proformas y presupuestos PDF conectados a WooCommerce.',
         );
 
         return $tools;
@@ -94,36 +95,77 @@ final class SEO_Facturas_Admin {
             wp_die(esc_html__('No tienes permisos para acceder a esta pagina.', 'seo-taxonomy'));
         }
 
-        $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'settings';
-        if (!in_array($tab, array('settings', 'documents'), true)) {
-            $tab = 'settings';
+        $tabs = array(
+            'company'   => 'Datos empresa',
+            'invoices'  => 'Facturas',
+            'proformas' => 'Proformas',
+            'quotes'    => 'Presupuestos',
+            'documents' => 'Documentos',
+        );
+
+        $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'company';
+        if (!isset($tabs[$tab])) {
+            $tab = 'company';
         }
-
-        self::render_notice();
-
-        $settings_url = admin_url('admin.php?page=seo-facturas&tab=settings');
-        $documents_url = admin_url('admin.php?page=seo-facturas&tab=documents');
         ?>
         <div class="wrap seo-facturas-wrap">
             <h1>Facturas y presupuestos</h1>
-            <p>WooCommerce conserva pedidos, clientes y pagos. Este modulo solo genera y conserva los documentos.</p>
+            <p>WooCommerce conserva productos, carrito, pedidos, clientes, impuestos y pagos. Este modulo utiliza esos datos para generar documentos.</p>
 
             <?php self::render_system_status(); ?>
 
-            <nav class="nav-tab-wrapper">
-                <a class="nav-tab <?php echo 'settings' === $tab ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url($settings_url); ?>">Configuracion</a>
-                <a class="nav-tab <?php echo 'documents' === $tab ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url($documents_url); ?>">Documentos</a>
+            <nav class="nav-tab-wrapper" aria-label="Configuracion de documentos">
+                <?php foreach ($tabs as $key => $label) : ?>
+                    <a class="nav-tab <?php echo $tab === $key ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(admin_url('admin.php?page=seo-facturas&tab=' . $key)); ?>"><?php echo esc_html($label); ?></a>
+                <?php endforeach; ?>
             </nav>
 
             <?php
-            if ('documents' === $tab) {
-                self::render_documents_tab();
-            } else {
-                self::render_settings_tab();
+            switch ($tab) {
+                case 'invoices':
+                    self::render_invoice_tab();
+                    break;
+                case 'proformas':
+                    self::render_proforma_tab();
+                    break;
+                case 'quotes':
+                    self::render_quote_tab();
+                    break;
+                case 'documents':
+                    self::render_documents_tab();
+                    break;
+                case 'company':
+                default:
+                    self::render_company_tab();
+                    break;
             }
             ?>
         </div>
         <?php
+    }
+
+
+    public static function render_notice() {
+        if (!current_user_can('manage_options') && !current_user_can('manage_woocommerce')) {
+            return;
+        }
+
+        if (!empty($_GET['sf_error'])) {
+            $message = sanitize_text_field(wp_unslash($_GET['sf_error']));
+            echo '<div class="notice notice-error is-dismissible"><p>' . esc_html($message) . '</p></div>';
+            return;
+        }
+
+        if (!empty($_GET['sf_notice'])) {
+            $notice = sanitize_key(wp_unslash($_GET['sf_notice']));
+            $messages = array(
+                'document_generated' => 'Documento generado correctamente.',
+                'document_emailed'   => 'Documento enviado por email correctamente.',
+            );
+            if (isset($messages[$notice])) {
+                echo '<div class="notice notice-success is-dismissible"><p>' . esc_html($messages[$notice]) . '</p></div>';
+            }
+        }
     }
 
     public static function render_order_meta_box($post_or_order) {
@@ -142,11 +184,16 @@ final class SEO_Facturas_Admin {
         $proforma = SEO_Facturas_Documents::get_for_order($order->get_id(), SEO_Facturas_Documents::TYPE_PROFORMA);
 
         echo '<p><strong>Pago WooCommerce:</strong> ' . esc_html($order->is_paid() ? 'Pagado' : 'Pendiente') . '</p>';
-        self::render_order_document_row($order, $proforma, SEO_Facturas_Documents::TYPE_PROFORMA);
-        self::render_order_document_row($order, $invoice, SEO_Facturas_Documents::TYPE_INVOICE);
+
+        if (SEO_Facturas_Settings::get('proforma_enabled', 1)) {
+            self::render_order_document_row($order, $proforma, SEO_Facturas_Documents::TYPE_PROFORMA);
+        }
+        if (SEO_Facturas_Settings::get('invoice_enabled', 1)) {
+            self::render_order_document_row($order, $invoice, SEO_Facturas_Documents::TYPE_INVOICE);
+        }
 
         if (!SEO_Facturas_Settings::get('enabled', 0)) {
-            echo '<p class="description">El modulo esta desactivado en Herramientas &gt; Facturas y presupuestos.</p>';
+            echo '<p class="description">El sistema documental esta desactivado en Datos empresa.</p>';
         }
     }
 
@@ -220,16 +267,12 @@ final class SEO_Facturas_Admin {
 
         $label = SEO_Facturas_Documents::TYPE_INVOICE === $document->document_type ? 'Factura' : 'Factura proforma';
         $subject = $label . ' ' . $document->document_number . ' - pedido ' . $order->get_order_number();
-        $message = '<p>Adjuntamos ' . esc_html(strtolower($label)) . ' <strong>' . esc_html($document->document_number) . '</strong> asociada a su pedido <strong>' . esc_html($order->get_order_number()) . '</strong>.</p>';
-        $message .= '<p>Gracias.</p>';
-
-        $subject = apply_filters('seo_facturas_manual_email_subject', $subject, $document, $order);
-        $message = apply_filters('seo_facturas_manual_email_message', $message, $document, $order);
+        $message = '<p>Adjuntamos ' . esc_html(strtolower($label)) . ' <strong>' . esc_html($document->document_number) . '</strong> asociada a su pedido <strong>' . esc_html($order->get_order_number()) . '</strong>.</p><p>Gracias.</p>';
 
         $sent = wp_mail(
             $to,
-            $subject,
-            $message,
+            apply_filters('seo_facturas_manual_email_subject', $subject, $document, $order),
+            apply_filters('seo_facturas_manual_email_message', $message, $document, $order),
             array('Content-Type: text/html; charset=UTF-8'),
             array($document->pdf_path)
         );
@@ -242,100 +285,148 @@ final class SEO_Facturas_Admin {
         self::redirect_back(array('sf_notice' => 'document_emailed'), $order->get_id());
     }
 
-    private static function render_settings_tab() {
-        $s = SEO_Facturas_Settings::all();
-        $option = SEO_Facturas_Settings::OPTION;
-        $engine = SEO_Facturas_PDF::engine_status();
+    private static function render_company_tab() {
+        $s = SEO_Facturas_Settings::company();
+        $option = SEO_Facturas_Settings::COMPANY_OPTION;
         ?>
         <form method="post" action="options.php" class="seo-facturas-settings-form">
-            <?php settings_fields('seo_facturas_settings_group'); ?>
-
-            <h2>Activacion</h2>
+            <?php settings_fields('seo_facturas_company_group'); ?>
+            <h2>Configuracion comun</h2>
+            <p>Estos datos se utilizan en facturas, proformas y presupuestos. Se configuran una sola vez.</p>
             <table class="form-table" role="presentation">
-                <tr>
-                    <th scope="row">Modulo activo</th>
-                    <td><label><input type="checkbox" name="<?php echo esc_attr($option); ?>[enabled]" value="1" <?php checked(1, $s['enabled']); ?>> Activar generacion documental</label></td>
-                </tr>
-            </table>
-
-            <h2>Datos fiscales del vendedor</h2>
-            <table class="form-table" role="presentation">
+                <?php self::checkbox_row($option, 'enabled', 'Sistema documental', $s['enabled'], 'Activar facturas, proformas y presupuestos configurados en sus respectivas pestañas.'); ?>
                 <?php self::text_row($option, 'company_name', 'Razon social', $s['company_name']); ?>
-                <?php self::text_row($option, 'company_tax_id', 'NIF/CIF', $s['company_tax_id']); ?>
+                <?php self::text_row($option, 'company_trade_name', 'Nombre comercial', $s['company_trade_name']); ?>
+                <?php self::text_row($option, 'company_tax_id', 'NIF / CIF', $s['company_tax_id']); ?>
                 <?php self::text_row($option, 'company_address', 'Direccion', $s['company_address']); ?>
                 <?php self::text_row($option, 'company_postcode', 'Codigo postal', $s['company_postcode']); ?>
-                <?php self::text_row($option, 'company_city', 'Ciudad', $s['company_city']); ?>
-                <?php self::text_row($option, 'company_region', 'Provincia/region', $s['company_region']); ?>
+                <?php self::text_row($option, 'company_city', 'Localidad', $s['company_city']); ?>
+                <?php self::text_row($option, 'company_region', 'Provincia / region', $s['company_region']); ?>
                 <?php self::country_row($option, $s['company_country']); ?>
                 <?php self::text_row($option, 'company_phone', 'Telefono', $s['company_phone']); ?>
                 <?php self::text_row($option, 'company_email', 'Email', $s['company_email'], 'email'); ?>
                 <?php self::text_row($option, 'company_website', 'Web', $s['company_website'], 'url'); ?>
                 <?php self::logo_row($option, absint($s['logo_id'])); ?>
-                <tr>
-                    <th scope="row">Texto de pie</th>
-                    <td><textarea class="large-text" rows="3" name="<?php echo esc_attr($option); ?>[footer_text]"><?php echo esc_textarea($s['footer_text']); ?></textarea></td>
-                </tr>
+                <?php self::textarea_row($option, 'footer_text', 'Pie comun', $s['footer_text'], 'Aparece al final de los documentos, salvo que la plantilla decida ocultarlo.'); ?>
+                <?php self::text_row($option, 'customer_tax_meta_keys', 'Metas posibles para NIF/CIF cliente', $s['customer_tax_meta_keys'], 'text', 'Claves separadas por comas. WooCommerce no define un NIF/CIF estandar.'); ?>
             </table>
-
-            <h2>Numeracion</h2>
-            <table class="form-table" role="presentation">
-                <?php self::text_row($option, 'invoice_series', 'Serie facturas', $s['invoice_series']); ?>
-                <?php self::text_row($option, 'proforma_series', 'Serie proformas', $s['proforma_series']); ?>
-                <tr>
-                    <th scope="row">Digitos de secuencia</th>
-                    <td><input type="number" min="3" max="10" name="<?php echo esc_attr($option); ?>[number_padding]" value="<?php echo esc_attr($s['number_padding']); ?>"></td>
-                </tr>
-            </table>
-
-            <h2>Automatizacion WooCommerce</h2>
-            <table class="form-table" role="presentation">
-                <tr>
-                    <th scope="row">Factura automatica</th>
-                    <td><label><input type="checkbox" name="<?php echo esc_attr($option); ?>[auto_invoice]" value="1" <?php checked(1, $s['auto_invoice']); ?>> Emitir cuando WooCommerce considere pagado el pedido</label></td>
-                </tr>
-                <tr>
-                    <th scope="row">Proforma automatica</th>
-                    <td><label><input type="checkbox" name="<?php echo esc_attr($option); ?>[auto_proforma]" value="1" <?php checked(1, $s['auto_proforma']); ?>> Emitir cuando el pedido pase a on-hold</label></td>
-                </tr>
-                <tr>
-                    <th scope="row">Adjuntar a emails Woo</th>
-                    <td><label><input type="checkbox" name="<?php echo esc_attr($option); ?>[attach_to_woo_emails]" value="1" <?php checked(1, $s['attach_to_woo_emails']); ?>> Usar los emails existentes de WooCommerce</label></td>
-                </tr>
-                <?php self::text_row($option, 'invoice_email_ids', 'Emails Woo para factura', $s['invoice_email_ids']); ?>
-                <?php self::text_row($option, 'proforma_email_ids', 'Emails Woo para proforma', $s['proforma_email_ids']); ?>
-                <?php self::text_row($option, 'customer_tax_meta_keys', 'Metas posibles para NIF cliente', $s['customer_tax_meta_keys']); ?>
-            </table>
-
-            <p class="description">Motor PDF: <strong><?php echo esc_html($engine['label']); ?></strong>. Si no esta disponible, el documento queda registrado pero en estado de error hasta instalar Dompdf y reintentar.</p>
-
-            <?php submit_button('Guardar configuracion'); ?>
+            <?php submit_button('Guardar datos de empresa'); ?>
         </form>
+        <?php self::logo_script(); ?>
+        <?php
+    }
 
-        <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            var button = document.getElementById('seo-facturas-select-logo');
-            var input = document.getElementById('seo-facturas-logo-id');
-            var preview = document.getElementById('seo-facturas-logo-preview');
-            if (!button || !input || typeof wp === 'undefined' || !wp.media) return;
-            button.addEventListener('click', function (event) {
-                event.preventDefault();
-                var frame = wp.media({title: 'Seleccionar logo', multiple: false, library: {type: 'image'}});
-                frame.on('select', function () {
-                    var item = frame.state().get('selection').first().toJSON();
-                    input.value = item.id || '';
-                    if (preview && item.url) preview.innerHTML = '<img src="' + item.url + '" alt="" style="max-width:180px;max-height:80px;">';
-                });
-                frame.open();
-            });
-        });
-        </script>
+    private static function render_invoice_tab() {
+        $s = SEO_Facturas_Settings::invoice();
+        $option = SEO_Facturas_Settings::INVOICE_OPTION;
+        ?>
+        <form method="post" action="options.php" class="seo-facturas-settings-form">
+            <?php settings_fields('seo_facturas_invoice_group'); ?>
+            <h2>Facturas</h2>
+            <p>La factura se emite a partir de un pedido que WooCommerce considera pagado.</p>
+            <table class="form-table" role="presentation">
+                <?php self::checkbox_row($option, 'invoice_enabled', 'Facturas activas', $s['invoice_enabled'], 'Permitir emision de facturas.'); ?>
+                <?php self::text_row($option, 'invoice_title', 'Titulo del PDF', $s['invoice_title']); ?>
+                <?php self::text_row($option, 'invoice_series', 'Serie', $s['invoice_series']); ?>
+                <?php self::number_row($option, 'invoice_padding', 'Digitos de secuencia', $s['invoice_padding'], 3, 10); ?>
+                <?php self::checkbox_row($option, 'auto_invoice', 'Generacion automatica', $s['auto_invoice'], 'Emitir cuando WooCommerce confirme el pago o el pedido entre en un estado pagado.'); ?>
+                <?php self::checkbox_row($option, 'invoice_attach_to_woo_emails', 'Adjuntar a emails WooCommerce', $s['invoice_attach_to_woo_emails'], 'Adjuntar el PDF a los emails configurados abajo.'); ?>
+                <?php self::text_row($option, 'invoice_email_ids', 'IDs de email WooCommerce', $s['invoice_email_ids'], 'text', 'Separados por comas. Ej.: customer_processing_order,customer_completed_order'); ?>
+                <?php self::checkbox_row($option, 'invoice_show_order_reference', 'Referencia del pedido', $s['invoice_show_order_reference'], 'Mostrar pedido WooCommerce y fecha del pedido.'); ?>
+                <?php self::checkbox_row($option, 'invoice_show_payment_method', 'Metodo de pago', $s['invoice_show_payment_method'], 'Mostrar el metodo de pago en el PDF.'); ?>
+                <?php self::checkbox_row($option, 'invoice_show_sku', 'SKU / referencia', $s['invoice_show_sku'], 'Mostrar SKU en las lineas de producto.'); ?>
+                <?php self::textarea_row($option, 'invoice_footer_text', 'Pie exclusivo de factura', $s['invoice_footer_text'], 'Se muestra ademas del pie comun.'); ?>
+            </table>
+            <?php submit_button('Guardar facturas'); ?>
+        </form>
+        <?php
+    }
+
+    private static function render_proforma_tab() {
+        $s = SEO_Facturas_Settings::proforma();
+        $option = SEO_Facturas_Settings::PROFORMA_OPTION;
+        ?>
+        <form method="post" action="options.php" class="seo-facturas-settings-form">
+            <?php settings_fields('seo_facturas_proforma_group'); ?>
+            <h2>Facturas proforma</h2>
+            <p>La proforma corresponde a un pedido existente todavia no pagado. No sustituye a la factura fiscal.</p>
+            <table class="form-table" role="presentation">
+                <?php self::checkbox_row($option, 'proforma_enabled', 'Proformas activas', $s['proforma_enabled'], 'Permitir generacion de facturas proforma.'); ?>
+                <?php self::text_row($option, 'proforma_title', 'Titulo del PDF', $s['proforma_title']); ?>
+                <?php self::text_row($option, 'proforma_series', 'Serie', $s['proforma_series']); ?>
+                <?php self::number_row($option, 'proforma_padding', 'Digitos de secuencia', $s['proforma_padding'], 3, 10); ?>
+                <?php self::checkbox_row($option, 'auto_proforma', 'Generacion automatica', $s['auto_proforma'], 'Emitir al entrar en cualquiera de los estados configurados.'); ?>
+                <?php self::text_row($option, 'proforma_order_statuses', 'Estados WooCommerce', $s['proforma_order_statuses'], 'text', 'Slugs separados por comas. Por defecto: on-hold'); ?>
+                <?php self::checkbox_row($option, 'proforma_attach_to_woo_emails', 'Adjuntar a emails WooCommerce', $s['proforma_attach_to_woo_emails'], 'Adjuntar el PDF a los emails configurados abajo.'); ?>
+                <?php self::text_row($option, 'proforma_email_ids', 'IDs de email WooCommerce', $s['proforma_email_ids'], 'text', 'Por defecto: customer_on_hold_order'); ?>
+                <?php self::checkbox_row($option, 'proforma_show_order_reference', 'Referencia del pedido', $s['proforma_show_order_reference'], 'Mostrar pedido WooCommerce y fecha del pedido.'); ?>
+                <?php self::checkbox_row($option, 'proforma_show_payment_method', 'Metodo de pago', $s['proforma_show_payment_method'], 'Mostrar el metodo de pago seleccionado.'); ?>
+                <?php self::checkbox_row($option, 'proforma_show_sku', 'SKU / referencia', $s['proforma_show_sku'], 'Mostrar SKU en las lineas de producto.'); ?>
+                <?php self::checkbox_row($option, 'proforma_show_payment_info', 'Instrucciones de pago', $s['proforma_show_payment_info'], 'Incluir datos para transferencia/Bizum en la proforma.'); ?>
+                <?php self::text_row($option, 'proforma_beneficiary', 'Beneficiario', $s['proforma_beneficiary']); ?>
+                <?php self::text_row($option, 'proforma_iban', 'IBAN', $s['proforma_iban']); ?>
+                <?php self::text_row($option, 'proforma_bizum', 'Bizum', $s['proforma_bizum']); ?>
+                <?php self::textarea_row($option, 'proforma_payment_instructions', 'Texto de pago', $s['proforma_payment_instructions'], 'Ej.: indique como concepto el numero de pedido.'); ?>
+                <?php self::textarea_row($option, 'proforma_footer_text', 'Pie exclusivo de proforma', $s['proforma_footer_text'], 'Se muestra ademas del pie comun.'); ?>
+            </table>
+            <?php submit_button('Guardar proformas'); ?>
+        </form>
+        <?php
+    }
+
+    private static function render_quote_tab() {
+        $s = SEO_Facturas_Settings::quote();
+        $option = SEO_Facturas_Settings::QUOTE_OPTION;
+        $engine = SEO_Facturas_PDF::engine_status();
+        ?>
+        <form method="post" action="options.php" class="seo-facturas-settings-form">
+            <?php settings_fields('seo_facturas_quote_group'); ?>
+            <h2>Presupuestos desde el carrito</h2>
+            <p>El cliente descarga un PDF a partir del carrito actual. No se crea pedido, cliente ni historial de presupuestos.</p>
+            <table class="form-table" role="presentation">
+                <?php self::checkbox_row($option, 'quote_enabled', 'Presupuestos activos', $s['quote_enabled'], 'Mostrar la opcion de presupuesto en el carrito.'); ?>
+                <?php self::text_row($option, 'quote_title', 'Titulo del PDF', $s['quote_title']); ?>
+                <?php self::text_row($option, 'quote_button_text', 'Texto del boton', $s['quote_button_text']); ?>
+                <?php self::text_row($option, 'quote_series', 'Serie', $s['quote_series']); ?>
+                <?php self::number_row($option, 'quote_padding', 'Digitos de secuencia', $s['quote_padding'], 3, 10); ?>
+                <?php self::number_row($option, 'quote_validity_days', 'Validez (dias)', $s['quote_validity_days'], 1, 365); ?>
+                <?php self::checkbox_row($option, 'quote_guest_allowed', 'Visitantes', $s['quote_guest_allowed'], 'Permitir presupuestos sin iniciar sesion.'); ?>
+            </table>
+
+            <h3>Datos que puede facilitar el comprador</h3>
+            <table class="form-table" role="presentation">
+                <?php self::checkbox_row($option, 'quote_ask_company', 'Empresa / nombre', $s['quote_ask_company'], 'Mostrar el campo.'); ?>
+                <?php self::checkbox_row($option, 'quote_ask_tax_id', 'NIF / CIF', $s['quote_ask_tax_id'], 'Mostrar el campo.'); ?>
+                <?php self::checkbox_row($option, 'quote_ask_contact', 'Persona de contacto', $s['quote_ask_contact'], 'Mostrar el campo.'); ?>
+                <?php self::checkbox_row($option, 'quote_ask_email', 'Email', $s['quote_ask_email'], 'Mostrar el campo email.'); ?>
+                <?php self::checkbox_row($option, 'quote_require_email', 'Email obligatorio', $s['quote_require_email'], 'No generar el presupuesto sin un email valido.'); ?>
+            </table>
+
+            <h3>Contenido del PDF</h3>
+            <table class="form-table" role="presentation">
+                <?php self::checkbox_row($option, 'quote_show_sku', 'SKU / referencia', $s['quote_show_sku'], 'Mostrar SKU.'); ?>
+                <?php self::checkbox_row($option, 'quote_show_tax', 'Impuestos', $s['quote_show_tax'], 'Desglosar base e impuestos.'); ?>
+                <?php self::checkbox_row($option, 'quote_show_shipping', 'Transporte', $s['quote_show_shipping'], 'Mostrar transporte y destino utilizado por WooCommerce.'); ?>
+                <?php self::checkbox_row($option, 'quote_show_discounts', 'Descuentos', $s['quote_show_discounts'], 'Mostrar descuentos aplicados al carrito.'); ?>
+                <?php self::checkbox_row($option, 'quote_show_images', 'Imagen de producto', $s['quote_show_images'], 'Incluir miniaturas locales en el PDF.'); ?>
+                <?php self::checkbox_row($option, 'quote_send_email_copy', 'Copia por email', $s['quote_send_email_copy'], 'Si el comprador facilita email, enviar tambien una copia. La descarga sigue siendo directa.'); ?>
+                <?php self::number_row($option, 'quote_hourly_limit', 'Limite por sesion / hora', $s['quote_hourly_limit'], 1, 200); ?>
+                <?php self::textarea_row($option, 'quote_terms_text', 'Condiciones del presupuesto', $s['quote_terms_text'], 'Texto de validez comercial, stock y ausencia de valor fiscal.'); ?>
+                <?php self::textarea_row($option, 'quote_footer_text', 'Pie exclusivo de presupuesto', $s['quote_footer_text'], 'Se muestra ademas del pie comun.'); ?>
+            </table>
+
+            <p class="description">Motor PDF: <strong><?php echo esc_html($engine['label']); ?></strong>. Los presupuestos necesitan el motor PDF operativo porque se generan y descargan en el momento.</p>
+            <p class="description">Compatibilidad: se inserta en el carrito clasico y tambien se anade al bloque WooCommerce Cart. Se incluye el shortcode <code>[seo_facturas_presupuesto]</code> como ubicacion manual de respaldo.</p>
+            <?php submit_button('Guardar presupuestos'); ?>
+        </form>
         <?php
     }
 
     private static function render_documents_tab() {
         $documents = SEO_Facturas_Documents::list_recent(150);
         ?>
-        <h2>Ultimos documentos</h2>
+        <h2>Documentos emitidos</h2>
+        <p>Este registro contiene facturas y proformas vinculadas a pedidos WooCommerce. Los presupuestos de carrito son efimeros y no se almacenan.</p>
         <table class="widefat striped seo-facturas-table">
             <thead>
                 <tr>
@@ -359,8 +450,8 @@ final class SEO_Facturas_Admin {
                         <td><?php echo esc_html(self::type_label($document->document_type)); ?></td>
                         <td><?php echo esc_html($document->issued_at); ?></td>
                         <td><?php echo esc_html($document->status); ?><?php if (!empty($document->last_error)) : ?><br><small><?php echo esc_html($document->last_error); ?></small><?php endif; ?></td>
-                        <td><?php echo $document->email_sent_at ? esc_html($document->email_sent_at) : '&mdash;'; ?></td>
-                        <td><?php self::render_document_actions($document); ?></td>
+                        <td><?php echo esc_html($document->email_sent_at ?: '-'); ?></td>
+                        <td><?php echo self::document_actions_html($document); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td>
                     </tr>
                 <?php endforeach; ?>
             <?php endif; ?>
@@ -371,130 +462,70 @@ final class SEO_Facturas_Admin {
 
     private static function render_system_status() {
         $engine = SEO_Facturas_PDF::engine_status();
-        $woo = class_exists('WooCommerce') && function_exists('wc_get_order');
+        $master = (bool) SEO_Facturas_Settings::get('enabled', 0);
+        $woo = class_exists('WooCommerce');
         ?>
         <div class="seo-facturas-status-grid">
+            <div class="seo-facturas-status-card"><strong>Sistema documental</strong><br><?php echo esc_html($master ? 'Activo' : 'Desactivado'); ?></div>
             <div class="seo-facturas-status-card"><strong>WooCommerce</strong><br><?php echo esc_html($woo ? 'Disponible' : 'No disponible'); ?></div>
             <div class="seo-facturas-status-card"><strong>Motor PDF</strong><br><?php echo esc_html($engine['label']); ?></div>
-            <div class="seo-facturas-status-card"><strong>Automatizacion</strong><br><?php echo esc_html(SEO_Facturas_Settings::get('enabled', 0) ? 'Activa' : 'Desactivada'); ?></div>
         </div>
         <?php
     }
 
     private static function render_order_document_row($order, $document, $type) {
         $label = self::type_label($type);
-        echo '<div class="seo-facturas-order-document">';
-        echo '<p><strong>' . esc_html($label) . ':</strong> ';
-
+        echo '<div class="seo-facturas-order-document"><strong>' . esc_html($label) . '</strong><br>';
         if ($document) {
-            echo esc_html($document->document_number) . '<br><small>Estado: ' . esc_html($document->status) . '</small></p>';
-            self::render_document_actions($document);
+            echo esc_html($document->document_number) . ' - ' . esc_html($document->status) . '<br>';
+            echo self::document_actions_html($document); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         } else {
-            echo 'No emitida</p>';
-            $can_generate = SEO_Facturas_Documents::TYPE_PROFORMA === $type ? !$order->is_paid() : $order->is_paid();
-            if ($can_generate) {
-                $url = wp_nonce_url(
-                    admin_url('admin-post.php?action=seo_facturas_generate&order_id=' . $order->get_id() . '&type=' . $type),
-                    'seo_facturas_generate'
-                );
-                echo '<p><a class="button" href="' . esc_url($url) . '">Generar ' . esc_html(strtolower($label)) . '</a></p>';
-            }
+            $url = wp_nonce_url(
+                admin_url('admin-post.php?action=seo_facturas_generate&order_id=' . absint($order->get_id()) . '&type=' . rawurlencode($type)),
+                'seo_facturas_generate'
+            );
+            echo '<a class="button button-small" href="' . esc_url($url) . '">Generar</a>';
         }
         echo '</div>';
     }
 
-    private static function render_document_actions($document) {
-        if (!$document) {
-            return;
+    private static function document_actions_html($document) {
+        if (!$document || empty($document->id)) {
+            return '';
         }
 
-        if ('issued' === $document->status && !empty($document->pdf_path) && is_readable($document->pdf_path)) {
+        $parts = array();
+        if (!empty($document->pdf_path) && is_readable($document->pdf_path)) {
             $download = wp_nonce_url(
                 admin_url('admin-post.php?action=seo_facturas_download&document_id=' . absint($document->id)),
                 'seo_facturas_download_' . absint($document->id)
             );
-            $email = wp_nonce_url(
-                admin_url('admin-post.php?action=seo_facturas_email&document_id=' . absint($document->id)),
-                'seo_facturas_email_' . absint($document->id)
+            $parts[] = '<a class="button button-small" href="' . esc_url($download) . '">PDF</a>';
+        } else {
+            $generate = wp_nonce_url(
+                admin_url('admin-post.php?action=seo_facturas_generate&order_id=' . absint($document->order_id) . '&type=' . rawurlencode($document->document_type)),
+                'seo_facturas_generate'
             );
-            echo '<a class="button button-small" href="' . esc_url($download) . '">PDF</a> ';
-            echo '<a class="button button-small" href="' . esc_url($email) . '">Reenviar</a>';
-            return;
+            $parts[] = '<a class="button button-small" href="' . esc_url($generate) . '">Reintentar PDF</a>';
         }
 
-        $generate = wp_nonce_url(
-            admin_url('admin-post.php?action=seo_facturas_generate&order_id=' . absint($document->order_id) . '&type=' . sanitize_key($document->document_type)),
-            'seo_facturas_generate'
+        $email = wp_nonce_url(
+            admin_url('admin-post.php?action=seo_facturas_email&document_id=' . absint($document->id)),
+            'seo_facturas_email_' . absint($document->id)
         );
-        echo '<a class="button button-small" href="' . esc_url($generate) . '">Reintentar PDF</a>';
-    }
+        $parts[] = '<a class="button button-small" href="' . esc_url($email) . '">Reenviar</a>';
 
-    private static function render_notice() {
-        if (!empty($_GET['sf_error'])) {
-            echo '<div class="notice notice-error"><p>' . esc_html(wp_unslash($_GET['sf_error'])) . '</p></div>';
-            return;
-        }
-
-        $notice = isset($_GET['sf_notice']) ? sanitize_key(wp_unslash($_GET['sf_notice'])) : '';
-        if ('document_generated' === $notice) {
-            echo '<div class="notice notice-success"><p>Documento generado correctamente.</p></div>';
-        } elseif ('document_emailed' === $notice) {
-            echo '<div class="notice notice-success"><p>Documento enviado al cliente.</p></div>';
-        }
-    }
-
-    private static function text_row($option, $key, $label, $value, $type = 'text') {
-        ?>
-        <tr>
-            <th scope="row"><label for="seo-facturas-<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></label></th>
-            <td><input class="regular-text" id="seo-facturas-<?php echo esc_attr($key); ?>" type="<?php echo esc_attr($type); ?>" name="<?php echo esc_attr($option); ?>[<?php echo esc_attr($key); ?>]" value="<?php echo esc_attr($value); ?>"></td>
-        </tr>
-        <?php
-    }
-
-    private static function country_row($option, $selected_country) {
-        $countries = array('ES' => 'Spain');
-        if (function_exists('WC') && WC() && isset(WC()->countries)) {
-            $wc_countries = WC()->countries->get_countries();
-            if (is_array($wc_countries) && $wc_countries) {
-                $countries = $wc_countries;
-            }
-        }
-        ?>
-        <tr>
-            <th scope="row">Pais</th>
-            <td><select name="<?php echo esc_attr($option); ?>[company_country]">
-                <?php foreach ($countries as $code => $name) : ?>
-                    <option value="<?php echo esc_attr($code); ?>" <?php selected($selected_country, $code); ?>><?php echo esc_html($name); ?></option>
-                <?php endforeach; ?>
-            </select></td>
-        </tr>
-        <?php
-    }
-
-    private static function logo_row($option, $logo_id) {
-        ?>
-        <tr>
-            <th scope="row">Logo</th>
-            <td>
-                <input id="seo-facturas-logo-id" type="hidden" name="<?php echo esc_attr($option); ?>[logo_id]" value="<?php echo esc_attr($logo_id); ?>">
-                <div id="seo-facturas-logo-preview" style="margin-bottom:8px;">
-                    <?php if ($logo_id) echo wp_kses_post(wp_get_attachment_image($logo_id, 'medium')); ?>
-                </div>
-                <button type="button" class="button" id="seo-facturas-select-logo">Seleccionar logo</button>
-            </td>
-        </tr>
-        <?php
+        return implode(' ', $parts);
     }
 
     private static function resolve_order_from_screen($post_or_order) {
         if (is_a($post_or_order, 'WC_Order')) {
             return $post_or_order;
         }
-        if (is_object($post_or_order) && !empty($post_or_order->ID) && function_exists('wc_get_order')) {
+        if (is_object($post_or_order) && isset($post_or_order->ID) && function_exists('wc_get_order')) {
             return wc_get_order(absint($post_or_order->ID));
         }
-        if (!empty($_GET['id']) && function_exists('wc_get_order')) {
+        if (isset($_GET['id']) && function_exists('wc_get_order')) {
             return wc_get_order(absint($_GET['id']));
         }
         return null;
@@ -506,31 +537,127 @@ final class SEO_Facturas_Admin {
 
     private static function require_order_capability() {
         if (!current_user_can('manage_woocommerce') && !current_user_can('manage_options')) {
-            wp_die('No tienes permisos para realizar esta accion.');
+            wp_die('No tienes permisos suficientes.');
         }
     }
 
-    private static function redirect_back($args = array(), $order_id = 0) {
-        $target = wp_get_referer();
-        if (!$target) {
-            $target = $order_id ? SEO_Facturas_Documents::order_admin_url($order_id) : admin_url('admin.php?page=seo-facturas&tab=documents');
+    private static function redirect_back($args, $order_id = 0) {
+        $args = is_array($args) ? $args : array();
+        if ($order_id) {
+            $url = SEO_Facturas_Documents::order_admin_url($order_id);
+        } else {
+            $url = admin_url('admin.php?page=seo-facturas&tab=documents');
         }
-        $target = add_query_arg($args, $target);
-        wp_safe_redirect($target);
+        wp_safe_redirect(add_query_arg($args, $url));
         exit;
     }
 
     private static function allowed_pdf_path($path) {
         $uploads = wp_upload_dir(null, false);
-        if (!empty($uploads['error'])) {
+        if (!empty($uploads['error']) || empty($uploads['basedir'])) {
             return false;
         }
-
         $base = realpath(trailingslashit($uploads['basedir']) . 'seo-facturas');
-        $real = realpath($path);
-        if (!$base || !$real) {
-            return false;
+        $real = realpath((string) $path);
+        return $base && $real && 0 === strpos($real, $base . DIRECTORY_SEPARATOR);
+    }
+
+    private static function checkbox_row($option, $key, $label, $value, $description = '') {
+        ?>
+        <tr>
+            <th scope="row"><?php echo esc_html($label); ?></th>
+            <td>
+                <label><input type="checkbox" name="<?php echo esc_attr($option); ?>[<?php echo esc_attr($key); ?>]" value="1" <?php checked(1, $value); ?>> <?php echo esc_html($description); ?></label>
+            </td>
+        </tr>
+        <?php
+    }
+
+    private static function text_row($option, $key, $label, $value, $type = 'text', $description = '') {
+        ?>
+        <tr>
+            <th scope="row"><label for="sf-<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></label></th>
+            <td>
+                <input class="regular-text" type="<?php echo esc_attr($type); ?>" id="sf-<?php echo esc_attr($key); ?>" name="<?php echo esc_attr($option); ?>[<?php echo esc_attr($key); ?>]" value="<?php echo esc_attr($value); ?>">
+                <?php if ($description) : ?><p class="description"><?php echo esc_html($description); ?></p><?php endif; ?>
+            </td>
+        </tr>
+        <?php
+    }
+
+    private static function number_row($option, $key, $label, $value, $min, $max) {
+        ?>
+        <tr>
+            <th scope="row"><label for="sf-<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></label></th>
+            <td><input type="number" id="sf-<?php echo esc_attr($key); ?>" min="<?php echo esc_attr($min); ?>" max="<?php echo esc_attr($max); ?>" name="<?php echo esc_attr($option); ?>[<?php echo esc_attr($key); ?>]" value="<?php echo esc_attr($value); ?>"></td>
+        </tr>
+        <?php
+    }
+
+    private static function textarea_row($option, $key, $label, $value, $description = '') {
+        ?>
+        <tr>
+            <th scope="row"><label for="sf-<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></label></th>
+            <td>
+                <textarea class="large-text" rows="4" id="sf-<?php echo esc_attr($key); ?>" name="<?php echo esc_attr($option); ?>[<?php echo esc_attr($key); ?>]"><?php echo esc_textarea($value); ?></textarea>
+                <?php if ($description) : ?><p class="description"><?php echo esc_html($description); ?></p><?php endif; ?>
+            </td>
+        </tr>
+        <?php
+    }
+
+    private static function country_row($option, $selected) {
+        $countries = array('ES' => 'España');
+        if (function_exists('WC') && WC() && isset(WC()->countries)) {
+            $wc_countries = WC()->countries->get_countries();
+            if (is_array($wc_countries) && $wc_countries) {
+                $countries = $wc_countries;
+            }
         }
-        return 0 === strpos($real, $base . DIRECTORY_SEPARATOR);
+        ?>
+        <tr>
+            <th scope="row"><label for="sf-company-country">Pais</label></th>
+            <td><select id="sf-company-country" name="<?php echo esc_attr($option); ?>[company_country]">
+                <?php foreach ($countries as $code => $name) : ?><option value="<?php echo esc_attr($code); ?>" <?php selected($selected, $code); ?>><?php echo esc_html($name); ?></option><?php endforeach; ?>
+            </select></td>
+        </tr>
+        <?php
+    }
+
+    private static function logo_row($option, $logo_id) {
+        $url = $logo_id ? wp_get_attachment_image_url($logo_id, 'medium') : '';
+        ?>
+        <tr>
+            <th scope="row">Logo</th>
+            <td>
+                <input type="hidden" id="seo-facturas-logo-id" name="<?php echo esc_attr($option); ?>[logo_id]" value="<?php echo esc_attr($logo_id); ?>">
+                <div id="seo-facturas-logo-preview"><?php if ($url) : ?><img src="<?php echo esc_url($url); ?>" alt="" style="max-width:180px;max-height:80px;"><?php endif; ?></div>
+                <p><button type="button" class="button" id="seo-facturas-select-logo">Seleccionar logo</button></p>
+            </td>
+        </tr>
+        <?php
+    }
+
+    private static function logo_script() {
+        ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var button = document.getElementById('seo-facturas-select-logo');
+            var input = document.getElementById('seo-facturas-logo-id');
+            var preview = document.getElementById('seo-facturas-logo-preview');
+            if (!button || !input || typeof wp === 'undefined' || !wp.media) return;
+            button.addEventListener('click', function (event) {
+                event.preventDefault();
+                var frame = wp.media({title: 'Seleccionar logo', multiple: false, library: {type: 'image'}});
+                frame.on('select', function () {
+                    var item = frame.state().get('selection').first().toJSON();
+                    input.value = item.id || '';
+                    if (preview && item.url) preview.innerHTML = '<img src="' + item.url + '" alt="" style="max-width:180px;max-height:80px;">';
+                });
+                frame.open();
+            });
+        });
+        </script>
+        <?php
     }
 }

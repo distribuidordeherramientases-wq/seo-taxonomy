@@ -1,6 +1,6 @@
 <?php
 /**
- * Render HTML/PDF para facturas y proformas.
+ * Render HTML/PDF para facturas, proformas y presupuestos.
  */
 
 defined('ABSPATH') || exit;
@@ -8,7 +8,11 @@ defined('ABSPATH') || exit;
 final class SEO_Facturas_PDF {
 
     public static function render_html(array $snapshot) {
-        $template = SEO_FACTURAS_PATH . 'templates/document.php';
+        $type = sanitize_key((string) ($snapshot['document']['type'] ?? ''));
+        $template = (SEO_Facturas_Documents::TYPE_QUOTE === $type)
+            ? SEO_FACTURAS_PATH . 'templates/quote.php'
+            : SEO_FACTURAS_PATH . 'templates/document.php';
+
         if (!is_readable($template)) {
             return new WP_Error('seo_facturas_template_missing', 'No se encuentra la plantilla del documento.');
         }
@@ -18,22 +22,32 @@ final class SEO_Facturas_PDF {
         return (string) ob_get_clean();
     }
 
-    public static function create_pdf($document_id, $document_number, $issued_at, $html) {
-        $document_id = absint($document_id);
-        $document_number = (string) $document_number;
-        $issued_at = (string) $issued_at;
+    /**
+     * Convierte HTML en binario PDF sin guardarlo. Se usa para presupuestos
+     * efimeros generados desde el carrito y tambien internamente por create_pdf().
+     */
+    public static function render_binary($html, $document_number = '', $context_id = 0) {
         $html = (string) $html;
+        $document_number = (string) $document_number;
+        $context_id = absint($context_id);
 
-        if (!$document_id || '' === $document_number || '' === $html) {
-            return new WP_Error('seo_facturas_pdf_invalid_input', 'Datos insuficientes para crear el PDF.');
+        if ('' === trim($html)) {
+            return new WP_Error('seo_facturas_pdf_invalid_html', 'El HTML del documento esta vacio.');
         }
 
-        $custom_binary = apply_filters('seo_facturas_pdf_binary', null, $html, $document_id, $document_number);
+        $custom_binary = apply_filters(
+            'seo_facturas_pdf_binary',
+            null,
+            $html,
+            $context_id,
+            $document_number
+        );
+
         if (is_wp_error($custom_binary)) {
             return $custom_binary;
         }
         if (is_string($custom_binary) && '' !== $custom_binary) {
-            return self::store_binary($document_id, $document_number, $issued_at, $custom_binary);
+            return $custom_binary;
         }
 
         self::load_dompdf();
@@ -63,10 +77,28 @@ final class SEO_Facturas_PDF {
                 return new WP_Error('seo_facturas_pdf_empty', 'El motor PDF no devolvio contenido.');
             }
 
-            return self::store_binary($document_id, $document_number, $issued_at, $binary);
+            return $binary;
         } catch (Throwable $e) {
             return new WP_Error('seo_facturas_pdf_exception', $e->getMessage());
         }
+    }
+
+    public static function create_pdf($document_id, $document_number, $issued_at, $html) {
+        $document_id = absint($document_id);
+        $document_number = (string) $document_number;
+        $issued_at = (string) $issued_at;
+        $html = (string) $html;
+
+        if (!$document_id || '' === $document_number || '' === $html) {
+            return new WP_Error('seo_facturas_pdf_invalid_input', 'Datos insuficientes para crear el PDF.');
+        }
+
+        $binary = self::render_binary($html, $document_number, $document_id);
+        if (is_wp_error($binary)) {
+            return $binary;
+        }
+
+        return self::store_binary($document_id, $document_number, $issued_at, $binary);
     }
 
     public static function engine_status() {

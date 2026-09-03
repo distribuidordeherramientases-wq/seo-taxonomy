@@ -83,12 +83,17 @@ final class SEO_Facturas_Snapshot {
         $paid_at = $order->get_date_paid();
         $created_at = $order->get_date_created();
 
+        $profile = SEO_Facturas_Settings::document_profile($document_type);
+
         $snapshot = array(
-            'schema_version' => 1,
-            'document'       => array(
-                'type'        => (string) $document_type,
-                'number'      => (string) $document_number,
-                'issued_at'   => (string) $issued_at,
+            'schema_version' => 2,
+            'document'       => array_merge(
+                array(
+                    'type'      => (string) $document_type,
+                    'number'    => (string) $document_number,
+                    'issued_at' => (string) $issued_at,
+                ),
+                $profile
             ),
             'seller'         => SEO_Facturas_Settings::company_snapshot(),
             'order'          => array(

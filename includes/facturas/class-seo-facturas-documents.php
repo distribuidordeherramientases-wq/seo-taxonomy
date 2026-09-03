@@ -9,6 +9,7 @@ final class SEO_Facturas_Documents {
 
     const TYPE_INVOICE = 'invoice';
     const TYPE_PROFORMA = 'proforma';
+    const TYPE_QUOTE = 'quote';
 
     public static function table_name() {
         return SEO_Facturas_Install::table_name();
@@ -25,7 +26,15 @@ final class SEO_Facturas_Documents {
         }
 
         if (!SEO_Facturas_Settings::get('enabled', 0)) {
-            return new WP_Error('seo_facturas_disabled', 'El modulo de facturas esta desactivado.');
+            return new WP_Error('seo_facturas_disabled', 'El sistema documental esta desactivado.');
+        }
+
+        if (self::TYPE_INVOICE === $type && !SEO_Facturas_Settings::get('invoice_enabled', 1)) {
+            return new WP_Error('seo_facturas_invoice_disabled', 'La emision de facturas esta desactivada.');
+        }
+
+        if (self::TYPE_PROFORMA === $type && !SEO_Facturas_Settings::get('proforma_enabled', 1)) {
+            return new WP_Error('seo_facturas_proforma_disabled', 'La emision de proformas esta desactivada.');
         }
 
         if (!function_exists('wc_get_order')) {
@@ -59,14 +68,15 @@ final class SEO_Facturas_Documents {
             }
         }
 
-        $sequence = self::next_sequence($type);
-        if (is_wp_error($sequence)) {
-            return $sequence;
+        $numbering = self::reserve_number($type);
+        if (is_wp_error($numbering)) {
+            return $numbering;
         }
 
-        $series = self::series_for_type($type);
-        $issued_at = current_time('mysql');
-        $number = self::format_number($series, $sequence, $issued_at);
+        $sequence = absint($numbering['sequence']);
+        $series = (string) $numbering['series'];
+        $issued_at = (string) $numbering['issued_at'];
+        $number = (string) $numbering['number'];
         $snapshot = SEO_Facturas_Snapshot::from_order($order, $type, $number, $issued_at);
         if (is_wp_error($snapshot)) {
             return $snapshot;
@@ -255,10 +265,46 @@ final class SEO_Facturas_Documents {
         return admin_url('post.php?post=' . $order_id . '&action=edit');
     }
 
+    public static function reserve_number($type) {
+        $type = sanitize_key((string) $type);
+        if (!in_array($type, array(self::TYPE_INVOICE, self::TYPE_PROFORMA, self::TYPE_QUOTE), true)) {
+            return new WP_Error('seo_facturas_number_type', 'Tipo de documento no valido para numeracion.');
+        }
+
+        $series = SEO_Facturas_Settings::series_for_type($type);
+        foreach (array(self::TYPE_INVOICE, self::TYPE_PROFORMA, self::TYPE_QUOTE) as $other_type) {
+            if ($other_type === $type) {
+                continue;
+            }
+            if ($series === SEO_Facturas_Settings::series_for_type($other_type)) {
+                return new WP_Error(
+                    'seo_facturas_series_conflict',
+                    'Las series de Facturas, Proformas y Presupuestos deben ser diferentes entre si.'
+                );
+            }
+        }
+
+        $sequence = self::next_sequence($type);
+        if (is_wp_error($sequence)) {
+            return $sequence;
+        }
+
+        $issued_at = current_time('mysql');
+        $number = self::format_number($type, $series, $sequence, $issued_at);
+
+        return array(
+            'type'      => $type,
+            'series'    => $series,
+            'sequence'  => absint($sequence),
+            'issued_at' => $issued_at,
+            'number'    => $number,
+        );
+    }
+
     private static function next_sequence($type) {
         global $wpdb;
 
-        $series = self::series_for_type($type);
+        $series = SEO_Facturas_Settings::series_for_type($type);
         $year = wp_date('Y');
         $option_name = 'seo_facturas_seq_' . md5($type . '|' . $series . '|' . $year);
 
@@ -282,15 +328,8 @@ final class SEO_Facturas_Documents {
         return $next;
     }
 
-    private static function series_for_type($type) {
-        if (self::TYPE_INVOICE === $type) {
-            return (string) SEO_Facturas_Settings::get('invoice_series', 'FAC');
-        }
-        return (string) SEO_Facturas_Settings::get('proforma_series', 'PRO');
-    }
-
-    private static function format_number($series, $sequence, $issued_at) {
-        $padding = max(3, min(10, absint(SEO_Facturas_Settings::get('number_padding', 6))));
+    private static function format_number($type, $series, $sequence, $issued_at) {
+        $padding = SEO_Facturas_Settings::padding_for_type($type);
         $timestamp = strtotime((string) $issued_at);
         $year = $timestamp ? wp_date('Y', $timestamp) : wp_date('Y');
         return $series . '-' . $year . '-' . str_pad((string) absint($sequence), $padding, '0', STR_PAD_LEFT);

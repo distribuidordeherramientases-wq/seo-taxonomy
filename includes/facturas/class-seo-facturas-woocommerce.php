@@ -1,6 +1,7 @@
 <?php
 /**
- * Adaptador WooCommerce. Woo sigue siendo la fuente de verdad del pedido y pago.
+ * Adaptador WooCommerce. WooCommerce sigue siendo la fuente de verdad del
+ * pedido y del pago; este modulo solo genera documentos.
  */
 
 defined('ABSPATH') || exit;
@@ -21,26 +22,34 @@ final class SEO_Facturas_WooCommerce {
     }
 
     public static function on_payment_complete($order_id) {
-        if (!self::enabled() || !SEO_Facturas_Settings::get('auto_invoice', 1)) {
+        if (!self::master_enabled() || !SEO_Facturas_Settings::get('invoice_enabled', 1) || !SEO_Facturas_Settings::get('auto_invoice', 1)) {
             return;
         }
         self::safe_issue(absint($order_id), SEO_Facturas_Documents::TYPE_INVOICE, 'payment_complete');
     }
 
     public static function on_status_changed($order_id, $from, $to, $order) {
-        if (!self::enabled()) {
+        if (!self::master_enabled()) {
             return;
         }
 
         $order_id = absint($order_id);
         $to = sanitize_key($to);
 
-        if (SEO_Facturas_Settings::get('auto_proforma', 1) && 'on-hold' === $to) {
-            self::safe_issue($order_id, SEO_Facturas_Documents::TYPE_PROFORMA, 'status_on_hold');
+        if (
+            SEO_Facturas_Settings::get('proforma_enabled', 1)
+            && SEO_Facturas_Settings::get('auto_proforma', 1)
+            && in_array($to, SEO_Facturas_Settings::proforma_order_statuses(), true)
+        ) {
+            self::safe_issue($order_id, SEO_Facturas_Documents::TYPE_PROFORMA, 'status_' . $to);
         }
 
         $paid_statuses = function_exists('wc_get_is_paid_statuses') ? wc_get_is_paid_statuses() : array('processing', 'completed');
-        if (SEO_Facturas_Settings::get('auto_invoice', 1) && in_array($to, $paid_statuses, true)) {
+        if (
+            SEO_Facturas_Settings::get('invoice_enabled', 1)
+            && SEO_Facturas_Settings::get('auto_invoice', 1)
+            && in_array($to, $paid_statuses, true)
+        ) {
             self::safe_issue($order_id, SEO_Facturas_Documents::TYPE_INVOICE, 'status_paid');
         }
     }
@@ -48,7 +57,7 @@ final class SEO_Facturas_WooCommerce {
     public static function email_attachments($attachments, $email_id, $object, $email = null) {
         $attachments = is_array($attachments) ? $attachments : array();
 
-        if (!self::enabled() || !SEO_Facturas_Settings::get('attach_to_woo_emails', 1)) {
+        if (!self::master_enabled()) {
             return $attachments;
         }
 
@@ -60,22 +69,25 @@ final class SEO_Facturas_WooCommerce {
         $email_id = sanitize_key((string) $email_id);
         $type = null;
 
-        if (in_array($email_id, SEO_Facturas_Settings::email_ids(SEO_Facturas_Documents::TYPE_PROFORMA), true)) {
+        if (
+            !$order->is_paid()
+            && SEO_Facturas_Settings::get('proforma_enabled', 1)
+            && SEO_Facturas_Settings::get('proforma_attach_to_woo_emails', 1)
+            && in_array($email_id, SEO_Facturas_Settings::email_ids(SEO_Facturas_Documents::TYPE_PROFORMA), true)
+        ) {
             $type = SEO_Facturas_Documents::TYPE_PROFORMA;
         }
 
-        if (in_array($email_id, SEO_Facturas_Settings::email_ids(SEO_Facturas_Documents::TYPE_INVOICE), true)) {
+        if (
+            $order->is_paid()
+            && SEO_Facturas_Settings::get('invoice_enabled', 1)
+            && SEO_Facturas_Settings::get('invoice_attach_to_woo_emails', 1)
+            && in_array($email_id, SEO_Facturas_Settings::email_ids(SEO_Facturas_Documents::TYPE_INVOICE), true)
+        ) {
             $type = SEO_Facturas_Documents::TYPE_INVOICE;
         }
 
         if (!$type) {
-            return $attachments;
-        }
-
-        if (SEO_Facturas_Documents::TYPE_INVOICE === $type && !$order->is_paid()) {
-            return $attachments;
-        }
-        if (SEO_Facturas_Documents::TYPE_PROFORMA === $type && $order->is_paid()) {
             return $attachments;
         }
 
@@ -110,7 +122,7 @@ final class SEO_Facturas_WooCommerce {
         return null;
     }
 
-    private static function enabled() {
+    private static function master_enabled() {
         return (bool) SEO_Facturas_Settings::get('enabled', 0);
     }
 
