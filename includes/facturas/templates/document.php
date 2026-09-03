@@ -11,8 +11,12 @@ $items = $snapshot['items'] ?? array();
 $tax_lines = $snapshot['tax_lines'] ?? array();
 $totals = $snapshot['totals'] ?? array();
 $currency = (string) ($order['currency'] ?? 'EUR');
-$is_invoice = 'invoice' === ($document['type'] ?? '');
-$title = $is_invoice ? 'FACTURA' : 'FACTURA PROFORMA';
+$type = sanitize_key((string) ($document['type'] ?? ''));
+$is_invoice = SEO_Facturas_Documents::TYPE_INVOICE === $type;
+$title = trim((string) ($document['title'] ?? ($is_invoice ? 'FACTURA' : 'FACTURA PROFORMA')));
+$show_order_reference = !array_key_exists('show_order_reference', $document) || !empty($document['show_order_reference']);
+$show_payment_method = !array_key_exists('show_payment_method', $document) || !empty($document['show_payment_method']);
+$show_sku = !array_key_exists('show_sku', $document) || !empty($document['show_sku']);
 
 $money = static function ($amount) use ($currency) {
     $amount = (float) $amount;
@@ -33,12 +37,13 @@ $person_name = static function ($address) {
 
 $address_lines = static function ($address) {
     $lines = array();
-    $line1 = trim((string) ($address['address_1'] ?? ''));
-    $line2 = trim((string) ($address['address_2'] ?? ''));
-    $city_line = trim((string) ($address['postcode'] ?? '') . ' ' . (string) ($address['city'] ?? ''));
-    $region = trim((string) ($address['state_name'] ?? $address['state'] ?? ''));
-    $country = trim((string) ($address['country_name'] ?? $address['country'] ?? ''));
-    foreach (array($line1, $line2, $city_line, $region, $country) as $line) {
+    foreach (array(
+        trim((string) ($address['address_1'] ?? '')),
+        trim((string) ($address['address_2'] ?? '')),
+        trim((string) ($address['postcode'] ?? '') . ' ' . (string) ($address['city'] ?? '')),
+        trim((string) ($address['state_name'] ?? $address['state'] ?? '')),
+        trim((string) ($address['country_name'] ?? $address['country'] ?? '')),
+    ) as $line) {
         if ('' !== $line) {
             $lines[] = $line;
         }
@@ -50,6 +55,7 @@ $issued_ts = strtotime((string) ($document['issued_at'] ?? ''));
 $issued_date = $issued_ts ? wp_date(get_option('date_format', 'd/m/Y'), $issued_ts) : (string) ($document['issued_at'] ?? '');
 $created_ts = strtotime((string) ($order['created_at'] ?? ''));
 $order_date = $created_ts ? wp_date(get_option('date_format', 'd/m/Y'), $created_ts) : (string) ($order['created_at'] ?? '');
+$document_footer = trim((string) ($document['footer_text'] ?? ''));
 ?>
 <!doctype html>
 <html lang="es">
@@ -81,6 +87,8 @@ $order_date = $created_ts ? wp_date(get_option('date_format', 'd/m/Y'), $created
     .totals td:last-child { text-align: right; white-space: nowrap; }
     .totals .grand td { font-weight: 700; font-size: 11px; }
     .warning { border: 2px solid #a33; color: #8c1d1d; padding: 8px; text-align: center; font-weight: 700; margin-bottom: 12px; }
+    .payment-box { margin-top: 18px; border: 1px solid #9aa7ad; background: #f7f9fa; padding: 9px 11px; }
+    .payment-box strong { color: #244f61; }
     .muted { color: #666; }
     .footer { margin-top: 26px; border-top: 1px solid #bbb; padding-top: 7px; text-align: center; font-size: 8.5px; color: #555; }
 </style>
@@ -95,7 +103,7 @@ $order_date = $created_ts ? wp_date(get_option('date_format', 'd/m/Y'), $created
             <?php endif; ?>
         </td>
         <td class="brand" style="width:50%;">
-            <?php echo esc_html($seller['website'] ?? ''); ?>
+            <?php echo esc_html($seller['trade_name'] ?: ($seller['website'] ?? '')); ?>
             <small><?php echo esc_html($seller['email'] ?? ''); ?></small>
         </td>
         <td class="contact" style="width:25%;"><?php echo esc_html($seller['phone'] ?? ''); ?></td>
@@ -115,9 +123,9 @@ $order_date = $created_ts ? wp_date(get_option('date_format', 'd/m/Y'), $created
             <strong><?php echo esc_html($seller['name'] ?? ''); ?></strong><br>
             <?php if (!empty($seller['tax_id'])) : ?><?php echo esc_html($seller['tax_id']); ?><br><?php endif; ?>
             <?php if (!empty($seller['address'])) : ?><?php echo esc_html($seller['address']); ?><br><?php endif; ?>
-            <?php echo esc_html(trim((string) ($seller['postcode'] ?? '') . ' ' . (string) ($seller['city'] ?? ''))); ?><br>
+            <?php if (trim((string) ($seller['postcode'] ?? '') . ' ' . (string) ($seller['city'] ?? ''))) : ?><?php echo esc_html(trim((string) ($seller['postcode'] ?? '') . ' ' . (string) ($seller['city'] ?? ''))); ?><br><?php endif; ?>
             <?php if (!empty($seller['region'])) : ?><?php echo esc_html($seller['region']); ?><br><?php endif; ?>
-            <?php if (!empty($seller['country'])) : ?><?php echo esc_html($seller['country']); ?><br><?php endif; ?>
+            <?php if (!empty($seller['country_name'] ?? $seller['country'])) : ?><?php echo esc_html($seller['country_name'] ?? $seller['country']); ?><br><?php endif; ?>
             <?php if (!empty($seller['phone'])) : ?>Tel.: <?php echo esc_html($seller['phone']); ?><br><?php endif; ?>
             <?php if (!empty($seller['email'])) : ?><?php echo esc_html($seller['email']); ?><?php endif; ?>
         </td>
@@ -136,9 +144,13 @@ $order_date = $created_ts ? wp_date(get_option('date_format', 'd/m/Y'), $created
 <table class="details">
     <tr><td>Fecha de expedicion:</td><td><?php echo esc_html($issued_date); ?></td></tr>
     <tr><td>Numero:</td><td><strong><?php echo esc_html($document['number'] ?? ''); ?></strong></td></tr>
-    <tr><td>Pedido WooCommerce:</td><td>#<?php echo esc_html($order['number'] ?? $order['id'] ?? ''); ?></td></tr>
-    <tr><td>Fecha del pedido:</td><td><?php echo esc_html($order_date); ?></td></tr>
-    <tr><td>Forma de pago:</td><td><?php echo esc_html($order['payment_method_title'] ?? $order['payment_method'] ?? ''); ?></td></tr>
+    <?php if ($show_order_reference) : ?>
+        <tr><td>Pedido WooCommerce:</td><td>#<?php echo esc_html($order['number'] ?? $order['id'] ?? ''); ?></td></tr>
+        <tr><td>Fecha del pedido:</td><td><?php echo esc_html($order_date); ?></td></tr>
+    <?php endif; ?>
+    <?php if ($show_payment_method) : ?>
+        <tr><td>Forma de pago:</td><td><?php echo esc_html($order['payment_method_title'] ?? $order['payment_method'] ?? ''); ?></td></tr>
+    <?php endif; ?>
     <tr><td>Base imponible total:</td><td><?php echo esc_html($money($totals['base_total'] ?? 0)); ?></td></tr>
     <tr><td>Impuestos:</td><td><?php echo esc_html($money($totals['total_tax'] ?? 0)); ?></td></tr>
     <tr><td>Total:</td><td><strong><?php echo esc_html($money($totals['total'] ?? 0)); ?></strong></td></tr>
@@ -156,7 +168,7 @@ $order_date = $created_ts ? wp_date(get_option('date_format', 'd/m/Y'), $created
 <table class="products">
     <thead>
         <tr>
-            <th class="ref">REFERENCIA</th>
+            <?php if ($show_sku) : ?><th class="ref">REFERENCIA</th><?php endif; ?>
             <th>CONCEPTO</th>
             <th class="qty">CANTIDAD</th>
             <th>PRECIO UNIDAD<br><span class="muted">sin impuestos</span></th>
@@ -166,7 +178,7 @@ $order_date = $created_ts ? wp_date(get_option('date_format', 'd/m/Y'), $created
     <tbody>
         <?php foreach ($items as $item) : ?>
         <tr>
-            <td class="ref"><?php echo esc_html($item['sku'] ?: ('ID ' . ($item['product_id'] ?? ''))); ?></td>
+            <?php if ($show_sku) : ?><td class="ref"><?php echo esc_html($item['sku'] ?: ('ID ' . ($item['product_id'] ?? ''))); ?></td><?php endif; ?>
             <td><?php echo esc_html($item['name'] ?? ''); ?></td>
             <td class="qty"><?php echo esc_html($item['quantity'] ?? 0); ?></td>
             <td class="num"><?php echo esc_html($money($item['unit_net'] ?? 0)); ?></td>
@@ -196,7 +208,18 @@ $order_date = $created_ts ? wp_date(get_option('date_format', 'd/m/Y'), $created
     <tr class="grand"><td><?php echo esc_html($is_invoice ? 'TOTAL FACTURA' : 'TOTAL PROFORMA'); ?></td><td><?php echo esc_html($money($totals['total'] ?? 0)); ?></td></tr>
 </table>
 
+<?php if (!$is_invoice && !empty($document['show_payment_info'])) : ?>
+    <div class="payment-box">
+        <strong>Informacion de pago</strong><br>
+        <?php if (!empty($document['beneficiary'])) : ?>Beneficiario: <?php echo esc_html($document['beneficiary']); ?><br><?php endif; ?>
+        <?php if (!empty($document['iban'])) : ?>IBAN: <?php echo esc_html($document['iban']); ?><br><?php endif; ?>
+        <?php if (!empty($document['bizum'])) : ?>Bizum: <?php echo esc_html($document['bizum']); ?><br><?php endif; ?>
+        <?php if (!empty($document['payment_instructions'])) : ?><br><?php echo nl2br(esc_html($document['payment_instructions'])); ?><?php endif; ?>
+    </div>
+<?php endif; ?>
+
 <div class="footer">
+    <?php if ('' !== $document_footer) : ?><?php echo nl2br(esc_html($document_footer)); ?><br><?php endif; ?>
     <?php if (!empty($seller['footer_text'])) : ?><?php echo nl2br(esc_html($seller['footer_text'])); ?><br><?php endif; ?>
     <?php echo esc_html($seller['website'] ?? ''); ?>
     <?php if (!empty($seller['phone'])) : ?> &nbsp;|&nbsp; <?php echo esc_html($seller['phone']); ?><?php endif; ?>
