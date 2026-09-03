@@ -428,7 +428,7 @@ if (!function_exists('seo_category_reports_catalog_snapshot')) {
         global $wpdb;
 
         $days = seo_category_reports_days($days);
-        $cache_key = 'seo_category_google_catalog_v1_' . get_current_blog_id() . '_' . $days;
+        $cache_key = 'seo_category_google_catalog_v2_' . get_current_blog_id() . '_' . $days;
 
         if ($force) {
             delete_transient($cache_key);
@@ -451,6 +451,7 @@ if (!function_exists('seo_category_reports_catalog_snapshot')) {
                 'gsc' => false,
                 'ga4' => false,
             ],
+            'daily'              => [],
         ];
 
         $summaries = [];
@@ -550,6 +551,70 @@ if (!function_exists('seo_category_reports_catalog_snapshot')) {
                     $summaries[$term_id]['pageviews'] += max(0, (int) ($row['metricValues'][1]['value'] ?? 0));
                 }
             }
+        }
+
+        // Serie diaria separada: mantiene intacta la consulta agregada anterior
+        // aunque el periodo tenga muchas combinaciones pagina x fecha.
+        if (!empty($snapshot['sources']['ga4']) && function_exists('seo_google_analytics_run_report')) {
+            $ga_daily = seo_google_analytics_run_report([
+                'dateRanges' => [[
+                    'startDate' => max(1, $days - 1) . 'daysAgo',
+                    'endDate'   => 'today',
+                ]],
+                'dimensions' => [
+                    ['name' => 'pagePath'],
+                    ['name' => 'date'],
+                ],
+                'metrics' => [
+                    ['name' => 'sessions'],
+                    ['name' => 'screenPageViews'],
+                ],
+                'limit' => 100000,
+            ]);
+
+            if (is_wp_error($ga_daily)) {
+                $snapshot['errors'][] = 'Analytics diario: ' . $ga_daily->get_error_message();
+            } else {
+                foreach ((array) ($ga_daily['rows'] ?? []) as $row) {
+                    $term_id = seo_category_reports_resolve_category_url((string) ($row['dimensionValues'][0]['value'] ?? ''));
+                    if ($term_id <= 0) {
+                        continue;
+                    }
+
+                    $raw_date = preg_replace('/\D+/', '', (string) ($row['dimensionValues'][1]['value'] ?? ''));
+                    if (8 !== strlen($raw_date)) {
+                        continue;
+                    }
+
+                    $date = substr($raw_date, 0, 4) . '-' . substr($raw_date, 4, 2) . '-' . substr($raw_date, 6, 2);
+                    if (!isset($snapshot['daily'][$date])) {
+                        $snapshot['daily'][$date] = [
+                            'date'      => $date,
+                            'sessions'  => 0,
+                            'pageviews' => 0,
+                        ];
+                    }
+                    $snapshot['daily'][$date]['sessions'] += max(0, (int) ($row['metricValues'][0]['value'] ?? 0));
+                    $snapshot['daily'][$date]['pageviews'] += max(0, (int) ($row['metricValues'][1]['value'] ?? 0));
+                }
+            }
+        }
+
+        if (!empty($snapshot['sources']['ga4'])) {
+            $daily = [];
+            for ($offset = 0; $offset < $days; $offset++) {
+                $date = wp_date('Y-m-d', strtotime('+' . $offset . ' days', $start_timestamp));
+                $daily[] = isset($snapshot['daily'][$date])
+                    ? $snapshot['daily'][$date]
+                    : [
+                        'date'      => $date,
+                        'sessions'  => 0,
+                        'pageviews' => 0,
+                    ];
+            }
+            $snapshot['daily'] = $daily;
+        } else {
+            $snapshot['daily'] = [];
         }
 
         $snapshot['matched_categories'] = count($summaries);
@@ -697,6 +762,281 @@ if (!function_exists('seo_category_reports_render_daily_chart')) {
             echo '</div>';
         }
         echo '</div>';
+    }
+}
+
+
+if (!function_exists('seo_category_reports_dashboard_data')) {
+    /**
+     * Resume el rendimiento de todas las categorias usando exclusivamente el
+     * snapshot agregado ya guardado en termmeta. No dispara llamadas extra a
+     * Google al pintar el dashboard.
+     */
+    function seo_category_reports_dashboard_data(array $terms, $days, array $snapshot) {
+        $days = seo_category_reports_days($days);
+        $data = [
+            'pageviews'             => 0,
+            'sessions'              => 0,
+            'clicks'                => 0,
+            'impressions'           => 0,
+            'ctr'                   => 0.0,
+            'average_score'         => 0,
+            'categories_total'      => count($terms),
+            'categories_signals'    => 0,
+            'categories_with_visits'=> 0,
+            'categories_high'       => 0,
+            'distribution'          => [
+                'high'    => 0,
+                'medium'  => 0,
+                'low'     => 0,
+                'no_data' => 0,
+            ],
+            'top'                   => [],
+            'daily'                 => !empty($snapshot['daily']) && is_array($snapshot['daily']) ? array_values($snapshot['daily']) : [],
+        ];
+
+        $score_sum = 0;
+        foreach ($terms as $term) {
+            if (!is_object($term) || empty($term->term_id)) {
+                continue;
+            }
+
+            $summary = seo_category_reports_get_summary($term->term_id, $days);
+            $score = max(0, min(100, absint($summary['score'] ?? 0)));
+            $impressions = max(0, (int) ($summary['impressions'] ?? 0));
+            $clicks = max(0, (int) ($summary['clicks'] ?? 0));
+            $pageviews = max(0, (int) ($summary['pageviews'] ?? 0));
+            $sessions = max(0, (int) ($summary['sessions'] ?? 0));
+
+            $data['impressions'] += $impressions;
+            $data['clicks'] += $clicks;
+            $data['pageviews'] += $pageviews;
+            $data['sessions'] += $sessions;
+
+            if ($pageviews > 0) {
+                $data['categories_with_visits']++;
+            }
+
+            if (!empty($summary['has_snapshot'])) {
+                $data['categories_signals']++;
+                $score_sum += $score;
+                if ($score >= 70) {
+                    $data['categories_high']++;
+                    $data['distribution']['high']++;
+                } elseif ($score >= 40) {
+                    $data['distribution']['medium']++;
+                } else {
+                    $data['distribution']['low']++;
+                }
+            } else {
+                $data['distribution']['no_data']++;
+            }
+
+            if ($pageviews > 0 || $clicks > 0 || $impressions > 0) {
+                $data['top'][] = [
+                    'term_id'     => absint($term->term_id),
+                    'name'        => (string) $term->name,
+                    'pageviews'   => $pageviews,
+                    'sessions'    => $sessions,
+                    'clicks'      => $clicks,
+                    'impressions' => $impressions,
+                    'score'       => $score,
+                    'has_snapshot'=> !empty($summary['has_snapshot']),
+                ];
+            }
+        }
+
+        $data['ctr'] = $data['impressions'] > 0 ? $data['clicks'] / $data['impressions'] : 0.0;
+        $data['average_score'] = $data['categories_signals'] > 0
+            ? (int) round($score_sum / $data['categories_signals'])
+            : 0;
+
+        usort($data['top'], static function ($left, $right) {
+            $pageviews_cmp = ((int) $right['pageviews']) <=> ((int) $left['pageviews']);
+            if (0 !== $pageviews_cmp) {
+                return $pageviews_cmp;
+            }
+            $score_cmp = ((int) $right['score']) <=> ((int) $left['score']);
+            if (0 !== $score_cmp) {
+                return $score_cmp;
+            }
+            return strcasecmp((string) $left['name'], (string) $right['name']);
+        });
+        $data['top'] = array_slice($data['top'], 0, 10);
+
+        return $data;
+    }
+}
+
+if (!function_exists('seo_category_reports_render_overview_line_chart')) {
+    function seo_category_reports_render_overview_line_chart(array $rows) {
+        if (empty($rows)) {
+            echo '<p class="description">Analytics no ha devuelto una serie diaria para las paginas de categoria.</p>';
+            return;
+        }
+
+        $values = [];
+        foreach ($rows as $row) {
+            $values[] = max(0, (int) ($row['pageviews'] ?? 0));
+        }
+        $max_value = max($values ?: [0]);
+        if ($max_value <= 0) {
+            echo '<div class="seo-category-overview-empty">No hay vistas de paginas de categoria registradas en GA4 durante este periodo.</div>';
+            return;
+        }
+
+        $width = 920;
+        $height = 245;
+        $left = 58;
+        $right = 18;
+        $top = 18;
+        $bottom = 38;
+        $plot_width = $width - $left - $right;
+        $plot_height = $height - $top - $bottom;
+        $count = count($rows);
+        $x_step = $count > 1 ? $plot_width / ($count - 1) : 0;
+        $points = [];
+
+        foreach ($rows as $index => $row) {
+            $value = max(0, (int) ($row['pageviews'] ?? 0));
+            $x = $left + ($index * $x_step);
+            $y = $top + $plot_height - (($value / $max_value) * $plot_height);
+            $points[] = round($x, 2) . ',' . round($y, 2);
+        }
+
+        echo '<div class="seo-category-overview-line-wrap">';
+        echo '<svg class="seo-category-overview-line" viewBox="0 0 ' . esc_attr((string) $width) . ' ' . esc_attr((string) $height) . '" role="img" aria-label="Evolucion diaria de las vistas de todas las categorias">';
+
+        for ($grid = 0; $grid <= 4; $grid++) {
+            $ratio = $grid / 4;
+            $y = $top + ($ratio * $plot_height);
+            $label = (int) round($max_value * (1 - $ratio));
+            echo '<line x1="' . esc_attr((string) $left) . '" y1="' . esc_attr((string) round($y, 2)) . '" x2="' . esc_attr((string) ($width - $right)) . '" y2="' . esc_attr((string) round($y, 2)) . '" class="seo-category-overview-grid"></line>';
+            echo '<text x="' . esc_attr((string) ($left - 9)) . '" y="' . esc_attr((string) round($y + 4, 2)) . '" text-anchor="end" class="seo-category-overview-axis">' . esc_html(number_format_i18n($label)) . '</text>';
+        }
+
+        echo '<polyline points="' . esc_attr(implode(' ', $points)) . '" class="seo-category-overview-polyline"></polyline>';
+
+        $tick_count = min(6, $count);
+        $tick_indexes = [];
+        for ($tick = 0; $tick < $tick_count; $tick++) {
+            $index = $tick_count > 1 ? (int) round(($tick / ($tick_count - 1)) * ($count - 1)) : 0;
+            $tick_indexes[$index] = true;
+        }
+
+        foreach ($rows as $index => $row) {
+            $value = max(0, (int) ($row['pageviews'] ?? 0));
+            $x = $left + ($index * $x_step);
+            $y = $top + $plot_height - (($value / $max_value) * $plot_height);
+            $date = sanitize_text_field((string) ($row['date'] ?? ''));
+            $date_label = $date;
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+                $timestamp = strtotime($date . ' 12:00:00');
+                if ($timestamp) {
+                    $date_label = wp_date('d/m', $timestamp);
+                }
+            }
+
+            echo '<circle cx="' . esc_attr((string) round($x, 2)) . '" cy="' . esc_attr((string) round($y, 2)) . '" r="' . esc_attr($count <= 31 ? '3' : '2') . '" class="seo-category-overview-dot"><title>' . esc_html($date_label . ': ' . number_format_i18n($value) . ' vistas') . '</title></circle>';
+            if (isset($tick_indexes[$index])) {
+                echo '<text x="' . esc_attr((string) round($x, 2)) . '" y="' . esc_attr((string) ($height - 12)) . '" text-anchor="middle" class="seo-category-overview-axis">' . esc_html($date_label) . '</text>';
+            }
+        }
+
+        echo '</svg>';
+        echo '</div>';
+    }
+}
+
+if (!function_exists('seo_category_reports_render_overview')) {
+    function seo_category_reports_render_overview(array $terms, $days, array $snapshot, $page_slug = 'category-seo-admin') {
+        $data = seo_category_reports_dashboard_data($terms, $days, $snapshot);
+        $has_ga4 = !empty($snapshot['sources']['ga4']);
+        $has_gsc = !empty($snapshot['sources']['gsc']);
+
+        echo '<section class="seo-category-overview">';
+        echo '<div class="seo-category-overview-heading"><div><h3>Rendimiento general de las categorias</h3><p>Resumen de todas las paginas de categoria durante los ultimos ' . esc_html((string) $days) . ' dias. Las vistas y sesiones proceden de GA4; clics, impresiones y CTR proceden de Search Console.</p></div>';
+        if (!empty($snapshot['available'])) {
+            echo '<span class="seo-category-overview-period">' . esc_html((string) $days) . ' dias</span>';
+        }
+        echo '</div>';
+
+        echo '<div class="seo-category-overview-kpis">';
+        seo_category_reports_render_metric('Vistas de categorias', $has_ga4 ? number_format_i18n((int) $data['pageviews']) : '-', 'Vistas de pagina en GA4');
+        seo_category_reports_render_metric('Sesiones', $has_ga4 ? number_format_i18n((int) $data['sessions']) : '-', 'Sesiones que tocaron paginas de categoria');
+        seo_category_reports_render_metric('Clics organicos', $has_gsc ? number_format_i18n((int) $data['clicks']) : '-', $has_gsc ? number_format_i18n((int) $data['impressions']) . ' impresiones' : 'Search Console pendiente');
+        seo_category_reports_render_metric('CTR organico', $has_gsc ? seo_category_reports_percent((float) $data['ctr']) : '-', 'Clics / impresiones');
+        seo_category_reports_render_metric('Exito medio', !empty($snapshot['available']) && $data['categories_signals'] > 0 ? number_format_i18n((int) $data['average_score']) . '/100' : '-', number_format_i18n((int) $data['categories_signals']) . ' categorias con senales');
+        seo_category_reports_render_metric('Categorias con visitas', $has_ga4 ? number_format_i18n((int) $data['categories_with_visits']) : '-', 'De ' . number_format_i18n((int) $data['categories_total']) . ' categorias totales');
+        echo '</div>';
+
+        echo '<div class="seo-category-overview-grid-layout">';
+        echo '<div class="seo-category-overview-panel seo-category-overview-panel-wide">';
+        echo '<div class="seo-category-overview-panel-head"><div><h4>Visitas generales por dia</h4><p>Suma diaria de las vistas GA4 de todas las URLs de categoria.</p></div><strong>' . ($has_ga4 ? esc_html(number_format_i18n((int) $data['pageviews'])) : '-') . '</strong></div>';
+        if ($has_ga4) {
+            seo_category_reports_render_overview_line_chart((array) $data['daily']);
+        } else {
+            echo '<div class="seo-category-overview-empty">Conecta Analytics Data API para ver la evolucion diaria de visitas.</div>';
+        }
+        echo '</div>';
+
+        echo '<div class="seo-category-overview-panel">';
+        echo '<div class="seo-category-overview-panel-head"><div><h4>Exito de las categorias</h4><p>Distribucion segun la puntuacion comparativa del periodo.</p></div></div>';
+        $dist_total = max(1, (int) $data['categories_total']);
+        $segments = [
+            ['key' => 'high', 'label' => 'Alto (70-100)', 'class' => 'is-high'],
+            ['key' => 'medium', 'label' => 'Medio (40-69)', 'class' => 'is-medium'],
+            ['key' => 'low', 'label' => 'Bajo (0-39)', 'class' => 'is-low'],
+            ['key' => 'no_data', 'label' => 'Sin senales', 'class' => 'is-none'],
+        ];
+        echo '<div class="seo-category-success-stack" aria-label="Distribucion del exito de las categorias">';
+        foreach ($segments as $segment) {
+            $count = (int) ($data['distribution'][$segment['key']] ?? 0);
+            if ($count <= 0) {
+                continue;
+            }
+            $width = max(0, min(100, ($count / $dist_total) * 100));
+            echo '<span class="' . esc_attr($segment['class']) . '" style="width:' . esc_attr(number_format($width, 3, '.', '')) . '%" title="' . esc_attr($segment['label'] . ': ' . number_format_i18n($count)) . '"></span>';
+        }
+        echo '</div>';
+        echo '<div class="seo-category-success-legend">';
+        foreach ($segments as $segment) {
+            $count = (int) ($data['distribution'][$segment['key']] ?? 0);
+            $percent = $data['categories_total'] > 0 ? ($count / $data['categories_total']) * 100 : 0;
+            echo '<div><span class="seo-category-success-dot ' . esc_attr($segment['class']) . '"></span><span>' . esc_html($segment['label']) . '</span><strong>' . esc_html(number_format_i18n($count)) . '</strong><small>' . esc_html(number_format_i18n($percent, 1)) . '%</small></div>';
+        }
+        echo '</div>';
+        echo '<p class="description">La puntuacion pondera clics, visitas e impresiones respecto al mejor resultado del mismo periodo. Es comparativa: 70+ identifica las categorias que destacan dentro de tu propio catalogo.</p>';
+        echo '</div>';
+        echo '</div>';
+
+        echo '<div class="seo-category-overview-panel seo-category-overview-top-panel">';
+        echo '<div class="seo-category-overview-panel-head"><div><h4>Top categorias por visitas</h4><p>Ranking de vistas GA4 con la puntuacion de exito como contexto.</p></div></div>';
+        if (!$has_ga4) {
+            echo '<div class="seo-category-overview-empty">Conecta Analytics Data API para generar este ranking.</div>';
+        } elseif (empty($data['top']) || (int) ($data['top'][0]['pageviews'] ?? 0) <= 0) {
+            echo '<div class="seo-category-overview-empty">No hay categorias con visitas GA4 en el periodo seleccionado.</div>';
+        } else {
+            $max_visits = max(1, (int) ($data['top'][0]['pageviews'] ?? 1));
+            echo '<div class="seo-category-top-list">';
+            foreach ($data['top'] as $row) {
+                if ((int) $row['pageviews'] <= 0) {
+                    continue;
+                }
+                $bar_width = max(2, min(100, ((int) $row['pageviews'] / $max_visits) * 100));
+                $score = max(0, min(100, (int) $row['score']));
+                $score_class = $score >= 70 ? 'is-high' : ($score >= 40 ? 'is-medium' : 'is-low');
+                $report_url = seo_category_reports_admin_url((int) $row['term_id'], $days, [], $page_slug);
+                echo '<div class="seo-category-top-row">';
+                echo '<div class="seo-category-top-title"><a href="' . esc_url($report_url) . '">' . esc_html((string) $row['name']) . '</a><span class="seo-category-report-score ' . esc_attr($score_class) . '">' . esc_html($score . '/100') . '</span></div>';
+                echo '<div class="seo-category-top-track"><span style="width:' . esc_attr(number_format($bar_width, 2, '.', '')) . '%"></span></div>';
+                echo '<strong>' . esc_html(number_format_i18n((int) $row['pageviews'])) . ' vistas</strong>';
+                echo '</div>';
+            }
+            echo '</div>';
+        }
+        echo '</div>';
+        echo '</section>';
     }
 }
 
@@ -848,6 +1188,7 @@ if (!function_exists('seo_category_reports_render_selector')) {
         if (is_wp_error($terms)) {
             $terms = [];
         }
+        $overview_terms = $terms;
 
         if ('' !== $search) {
             $needle = strtolower($search);
@@ -917,6 +1258,8 @@ if (!function_exists('seo_category_reports_render_selector')) {
         }
         echo '<a class="button" href="' . esc_url($refresh_url) . '">Actualizar estadisticas</a>';
         echo '</div>';
+
+        seo_category_reports_render_overview((array) $overview_terms, $days, (array) $snapshot, $page_slug);
 
         echo '<form method="get" class="seo-category-report-filter">';
         echo '<input type="hidden" name="page" value="' . esc_attr($page_slug) . '">';
@@ -1042,8 +1385,15 @@ if (!function_exists('seo_category_reports_page')) {
         .seo-category-report-table-wrap{overflow:auto}.seo-category-report-table th,.seo-category-report-table td{vertical-align:middle}
         .seo-category-report-score{display:inline-block;min-width:58px;text-align:center;padding:5px 8px;border-radius:999px;font-weight:700;background:#f0f0f1;color:#50575e}
         .seo-category-report-score.is-medium{background:#fff8e5;color:#996800}.seo-category-report-score.is-high{background:#edfaef;color:#008a20}
-        @media(max-width:1000px){.seo-category-report-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
-        @media(max-width:700px){.seo-category-report-filter,.seo-category-report-metrics{grid-template-columns:1fr}.seo-category-report-metric strong{font-size:20px}}
+        .seo-category-overview{margin:18px 0}.seo-category-overview-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin:0 0 12px}.seo-category-overview-heading h3{margin:0 0 5px;font-size:18px}.seo-category-overview-heading p{margin:0;color:#646970;max-width:900px}.seo-category-overview-period{display:inline-block;background:#f0f0f1;border-radius:999px;padding:6px 10px;font-weight:600;white-space:nowrap}
+        .seo-category-overview-kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin:0 0 12px}.seo-category-overview-kpis .seo-category-report-metric{background:#fff;margin:0}.seo-category-overview-kpis .seo-category-report-metric strong{font-size:21px}
+        .seo-category-overview-grid-layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(280px,1fr);gap:12px;margin-bottom:12px}.seo-category-overview-panel{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:16px;min-width:0}.seo-category-overview-panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}.seo-category-overview-panel-head h4{margin:0 0 4px;font-size:15px}.seo-category-overview-panel-head p{margin:0;color:#646970}.seo-category-overview-panel-head>strong{font-size:22px;white-space:nowrap}.seo-category-overview-empty{padding:28px 18px;text-align:center;background:#f6f7f7;border:1px dashed #c3c4c7;border-radius:7px;color:#646970}
+        .seo-category-overview-line-wrap{overflow-x:auto}.seo-category-overview-line{display:block;width:100%;min-width:620px;height:auto}.seo-category-overview-grid{stroke:#e2e4e7;stroke-width:1}.seo-category-overview-axis{fill:#646970;font-size:10px}.seo-category-overview-polyline{fill:none;stroke:#2271b1;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.seo-category-overview-dot{fill:#2271b1}
+        .seo-category-success-stack{display:flex;height:16px;overflow:hidden;border-radius:999px;background:#f0f0f1;margin:8px 0 16px}.seo-category-success-stack span{display:block;height:100%}.seo-category-success-stack .is-high,.seo-category-success-dot.is-high{background:#00a32a}.seo-category-success-stack .is-medium,.seo-category-success-dot.is-medium{background:#dba617}.seo-category-success-stack .is-low,.seo-category-success-dot.is-low{background:#d63638}.seo-category-success-stack .is-none,.seo-category-success-dot.is-none{background:#a7aaad}.seo-category-success-legend{display:grid;gap:8px}.seo-category-success-legend>div{display:grid;grid-template-columns:10px 1fr auto auto;align-items:center;gap:8px}.seo-category-success-legend strong{font-size:14px}.seo-category-success-legend small{color:#646970;min-width:45px;text-align:right}.seo-category-success-dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+        .seo-category-overview-top-panel{margin-bottom:0}.seo-category-top-list{display:grid;gap:10px}.seo-category-top-row{display:grid;grid-template-columns:minmax(210px,1.2fr) minmax(180px,2fr) auto;gap:12px;align-items:center}.seo-category-top-title{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}.seo-category-top-title a{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.seo-category-top-title .seo-category-report-score{font-size:11px;min-width:50px;padding:3px 6px;flex:0 0 auto}.seo-category-top-track{height:12px;background:#f0f0f1;border-radius:999px;overflow:hidden}.seo-category-top-track span{display:block;height:100%;background:#2271b1;border-radius:999px}.seo-category-top-row>strong{white-space:nowrap;font-size:12px}
+        @media(max-width:1200px){.seo-category-overview-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.seo-category-overview-grid-layout{grid-template-columns:1fr}}
+        @media(max-width:1000px){.seo-category-report-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.seo-category-top-row{grid-template-columns:minmax(180px,1.2fr) minmax(150px,2fr) auto}}
+        @media(max-width:700px){.seo-category-report-filter,.seo-category-report-metrics,.seo-category-overview-kpis{grid-template-columns:1fr}.seo-category-report-metric strong{font-size:20px}.seo-category-overview-heading{display:block}.seo-category-overview-period{margin-top:10px}.seo-category-top-row{grid-template-columns:1fr;gap:6px}.seo-category-top-title{align-items:flex-start}.seo-category-top-row>strong{justify-self:end}.seo-category-overview-panel{padding:13px}}
         </style>';
 
         if ($term_id > 0) {
