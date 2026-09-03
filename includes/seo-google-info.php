@@ -76,15 +76,41 @@ function seo_google_maybe_install_tables() {
 }
 
 /**
+ * URL de la pantalla central de conexiones de proveedores.
+ *
+ * La configuracion y la sincronizacion de Google Intelligence se muestran ahi;
+ * la logica permanece en este modulo.
+ */
+function seo_google_connections_admin_url($args = array(), $anchor = 'seo-google-intelligence-connection') {
+    $url = add_query_arg(
+        array(
+            'page'       => 'seo-import-export',
+            'seo_ie_tab' => 'conexiones-proveedores',
+        ),
+        admin_url('admin.php')
+    );
+
+    if (!empty($args)) {
+        $url = add_query_arg($args, $url);
+    }
+
+    return $anchor ? $url . '#' . rawurlencode($anchor) : $url;
+}
+
+/**
  * URL base de Google Intelligence.
  */
 function seo_google_admin_url($view = 'settings', $args = array()) {
     $view = sanitize_key($view);
 
-    // La configuración de Search Console ya no vive dentro de Informes.
-    // Se centraliza con el resto de proveedores e integradores en Herramientas.
-    if ('settings' === $view && function_exists('seo_provider_connections_admin_url')) {
-        return seo_provider_connections_admin_url($args, 'google-search-console');
+    // Configuracion y sincronizacion ya no se visualizan dentro de
+    // Google Intelligence: se centralizan con el resto de conexiones.
+    if (in_array($view, array('settings', 'sync'), true)) {
+        $anchor = 'sync' === $view
+            ? 'seo-google-intelligence-sync'
+            : 'seo-google-intelligence-connection';
+
+        return seo_google_connections_admin_url($args, $anchor);
     }
 
     $url = add_query_arg(
@@ -1570,6 +1596,7 @@ function seo_google_intelligence_page() {
         'content_plan',
         'catalog_plan',
         'results',
+        'sources',
     );
     $technical_views = array(
         'summary',
@@ -1580,7 +1607,6 @@ function seo_google_intelligence_page() {
         'trends_market',
         'coverage',
         'laboratory',
-        'sync',
     );
     $allowed_views = array_merge($executive_views, $technical_views);
 
@@ -1596,6 +1622,7 @@ function seo_google_intelligence_page() {
         'content_plan'  => 'Contenido',
         'catalog_plan'  => 'Catálogo',
         'results'       => 'Resultados',
+        'sources'       => 'Fuentes y diagnóstico',
     );
 
     echo '<div class="seo-google-intelligence">';
