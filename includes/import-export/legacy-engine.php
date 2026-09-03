@@ -40,16 +40,6 @@ if ( is_readable( $seo_import_suppliers_bridge ) ) {
 unset( $seo_import_suppliers_bridge );
 
 /*
- * Supplier Import / Sync V2. Se carga despues del importador compatible para
- * reutilizar sus recetas, CSV estandar, precios e imagenes sin perder datos.
- */
-$seo_supplier_v2_file = __DIR__ . '/suppliers-v2/bootstrap.php';
-if ( is_readable( $seo_supplier_v2_file ) ) {
-    require_once $seo_supplier_v2_file;
-}
-unset( $seo_supplier_v2_file );
-
-/*
  * Servicio Google dinamico para GA4, Search Console y Analytics.
  * La configuracion pertenece a cada instalacion y nunca se define en el codigo.
  */
@@ -11575,7 +11565,7 @@ function seo_import_export_page() {
         wp_die( esc_html__( 'No tienes permisos para acceder a esta página.', 'seo-system' ) );
     }
 
-    $allowed_tabs = [ 'wordpress', 'import-batch', 'importar-proveedor', 'importar-amazon', 'catalogo-proveedores', 'sincronizacion-proveedores' ];
+    $allowed_tabs = [ 'wordpress', 'import-batch', 'importar-proveedor', 'importar-amazon', 'catalogo-proveedores' ];
     $tab = sanitize_key( $_GET['seo_ie_tab'] ?? 'wordpress' );
     if ( ! in_array( $tab, $allowed_tabs, true ) ) {
         $tab = 'wordpress';
@@ -11591,7 +11581,6 @@ function seo_import_export_page() {
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'importar-proveedor', $base ) ); ?>" class="nav-tab <?php echo 'importar-proveedor' === $tab ? 'nav-tab-active' : ''; ?>">Importar proveedor</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'importar-amazon', $base ) ); ?>" class="nav-tab <?php echo 'importar-amazon' === $tab ? 'nav-tab-active' : ''; ?>">Importar Amazon</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'catalogo-proveedores', $base ) ); ?>" class="nav-tab <?php echo 'catalogo-proveedores' === $tab ? 'nav-tab-active' : ''; ?>">Catálogo de proveedores</a>
-            <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'sincronizacion-proveedores', $base ) ); ?>" class="nav-tab <?php echo 'sincronizacion-proveedores' === $tab ? 'nav-tab-active' : ''; ?>">Sincronización V2</a>
         </nav>
 
         <?php if ( 'wordpress' === $tab ) : ?>
@@ -11806,8 +11795,6 @@ function seo_import_export_page() {
             <?php if ( ! empty( $last_log ) && 'Importación de catálogo de proveedor' === ( $last_log['operacion'] ?? '' ) ) { seo_ie_render_log( $last_log ); } ?>
         <?php elseif ( 'importar-amazon' === $tab ) : ?>
             <?php if ( function_exists( 'seo_supplier_recipe_amazon_render_explorer' ) ) { seo_supplier_recipe_amazon_render_explorer(); } else { echo '<div class="notice notice-error inline"><p>No se ha podido cargar el módulo de importación Amazon. Comprueba suppliers/recipes/import_amazon.php.</p></div>'; } ?>
-        <?php elseif ( 'sincronizacion-proveedores' === $tab ) : ?>
-            <?php if ( function_exists( 'seo_supplier_v2_render_admin' ) ) { seo_supplier_v2_render_admin(); } else { echo '<div class="notice notice-error inline"><p>No se ha podido cargar Supplier Sync V2.</p></div>'; } ?>
         <?php else : ?>
             <?php if ( function_exists( 'seo_proveedores_render_catalogo' ) ) { seo_proveedores_render_catalogo(); } else { echo '<div class="notice notice-error inline"><p>No se ha podido cargar el motor de importación de proveedores.</p></div>'; } ?>
         <?php endif; ?>
