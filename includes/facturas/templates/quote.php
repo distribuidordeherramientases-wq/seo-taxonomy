@@ -16,6 +16,12 @@ $show_tax = !empty($document['show_tax']);
 $show_shipping = !empty($document['show_shipping']);
 $show_discounts = !empty($document['show_discounts']);
 $show_images = !empty($document['show_images']);
+$warning_text = trim((string) ($document['warning_text'] ?? 'PRESUPUESTO COMERCIAL - SIN VALIDEZ FISCAL - NO RESERVA STOCK'));
+$recipient_label = trim((string) ($document['recipient_label'] ?? 'Presupuesto para:'));
+$detail_heading = trim((string) ($document['detail_heading'] ?? 'Detalle del presupuesto'));
+$reference_label = trim((string) ($document['reference_label'] ?? 'Referencia:'));
+$validity_label = trim((string) ($document['validity_label'] ?? 'Valido hasta:'));
+$total_label = trim((string) ($document['total_label'] ?? 'TOTAL PRESUPUESTO'));
 
 $money = static function ($amount) use ($currency) {
     $amount = (float) $amount;
@@ -110,7 +116,7 @@ $valid_date = $valid_ts ? wp_date(get_option('date_format', 'd/m/Y'), $valid_ts)
 </table>
 
 <h1><?php echo esc_html($title); ?></h1>
-<div class="warning">PRESUPUESTO COMERCIAL - SIN VALIDEZ FISCAL - NO RESERVA STOCK</div>
+<div class="warning"><?php echo esc_html($warning_text); ?></div>
 
 <table class="parties">
 <tr>
@@ -126,7 +132,7 @@ $valid_date = $valid_ts ? wp_date(get_option('date_format', 'd/m/Y'), $valid_ts)
         <?php if (!empty($seller['email'])) : ?><?php echo esc_html($seller['email']); ?><?php endif; ?>
     </td>
     <td>
-        <div class="head">Presupuesto para:</div>
+        <div class="head"><?php echo esc_html($recipient_label); ?></div>
         <strong><?php echo esc_html($person_name($billing) ?: 'Cliente web'); ?></strong><br>
         <?php if (!empty($billing['contact']) && $billing['contact'] !== $person_name($billing)) : ?>Contacto: <?php echo esc_html($billing['contact']); ?><br><?php endif; ?>
         <?php if (!empty($billing['tax_id'])) : ?>NIF/CIF: <?php echo esc_html($billing['tax_id']); ?><br><?php endif; ?>
@@ -136,11 +142,11 @@ $valid_date = $valid_ts ? wp_date(get_option('date_format', 'd/m/Y'), $valid_ts)
 </tr>
 </table>
 
-<h2>Detalle del presupuesto</h2>
+<h2><?php echo esc_html($detail_heading); ?></h2>
 <table class="details">
-    <tr><td>Referencia:</td><td><strong><?php echo esc_html($document['number'] ?? ''); ?></strong></td></tr>
+    <tr><td><?php echo esc_html($reference_label); ?></td><td><strong><?php echo esc_html($document['number'] ?? ''); ?></strong></td></tr>
     <tr><td>Fecha:</td><td><?php echo esc_html($issued_date); ?></td></tr>
-    <tr><td>Valido hasta:</td><td><strong><?php echo esc_html($valid_date); ?></strong></td></tr>
+    <tr><td><?php echo esc_html($validity_label); ?></td><td><strong><?php echo esc_html($valid_date); ?></strong></td></tr>
     <?php if ($show_tax) : ?>
         <tr><td>Base imponible:</td><td><?php echo esc_html($money($totals['base_total'] ?? 0)); ?></td></tr>
         <tr><td>Impuestos:</td><td><?php echo esc_html($money($totals['total_tax'] ?? 0)); ?></td></tr>
@@ -194,7 +200,7 @@ $valid_date = $valid_ts ? wp_date(get_option('date_format', 'd/m/Y'), $valid_ts)
             <tr><td>IMPUESTOS</td><td><?php echo esc_html($money($totals['total_tax'] ?? 0)); ?></td></tr>
         <?php endif; ?>
     <?php endif; ?>
-    <tr class="grand"><td>TOTAL PRESUPUESTO</td><td><?php echo esc_html($money($totals['total'] ?? 0)); ?></td></tr>
+    <tr class="grand"><td><?php echo esc_html($total_label); ?></td><td><?php echo esc_html($money($totals['total'] ?? 0)); ?></td></tr>
 </table>
 
 <?php if (!empty($document['terms_text'])) : ?>
