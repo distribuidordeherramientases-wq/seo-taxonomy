@@ -1,5 +1,7 @@
 .seo-facturas-wrap .nav-tab-wrapper {
     margin-bottom: 20px;
+    overflow-x: auto;
+    white-space: nowrap;
 }
 
 .seo-facturas-status-grid {
@@ -18,7 +20,29 @@
 }
 
 .seo-facturas-settings-form {
-    max-width: 1050px;
+    max-width: 1080px;
+}
+
+.seo-facturas-settings-form > h2 {
+    margin-top: 26px;
+}
+
+.seo-facturas-settings-form > h3 {
+    margin-top: 28px;
+    padding-top: 18px;
+    border-top: 1px solid #dcdcde;
+}
+
+.seo-facturas-settings-form .form-table {
+    background: #fff;
+    border: 1px solid #dcdcde;
+    padding: 0 14px;
+}
+
+.seo-facturas-settings-form .form-table th,
+.seo-facturas-settings-form .form-table td {
+    padding-left: 16px;
+    padding-right: 16px;
 }
 
 .seo-facturas-table td,
@@ -32,8 +56,17 @@
     margin-top: 8px;
 }
 
+#seo-facturas-logo-preview {
+    min-height: 20px;
+    margin-bottom: 6px;
+}
+
 @media (max-width: 782px) {
     .seo-facturas-status-grid {
         grid-template-columns: 1fr;
+    }
+
+    .seo-facturas-settings-form .form-table {
+        padding: 0;
     }
 }
