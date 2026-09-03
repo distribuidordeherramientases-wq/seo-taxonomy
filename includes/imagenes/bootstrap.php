@@ -11,4 +11,5 @@ defined('ABSPATH') || exit;
 
 require_once dirname(__DIR__) . '/seo-images.php';
 require_once __DIR__ . '/seo-image-optimizer.php';
+require_once __DIR__ . '/seo-image-webp.php';
 require_once __DIR__ . '/seo-image-inventory.php';

@@ -618,8 +618,8 @@ if (!function_exists('seo_images_optimizer_render_controls')) {
                 <button type="button" class="button button-primary" id="seo-images-optimize-local">
                     Reducir tamaño de todas las imágenes
                 </button>
-                <button type="button" class="button" disabled aria-disabled="true" title="Pendiente de diseñar el inventario y sustitución segura de referencias">
-                    Convertir a WebP · próximamente
+                <button type="button" class="button" id="seo-images-convert-webp">
+                    Convertir JPG/PNG a WebP
                 </button>
             </div>
 
@@ -631,8 +631,8 @@ if (!function_exists('seo_images_optimizer_render_controls')) {
             </div>
 
             <p class="seo-images-optimizer-note">
-                Formatos recomprimibles: JPG/JPEG, PNG, WebP y AVIF cuando el servidor los soporte. GIF, SVG y animaciones se omiten.
-                Los attachments ya optimizados y sin cambios se saltan para evitar recomprimirlos repetidamente.
+                <strong>Reducir tamaño</strong> mantiene nombres y URLs. <strong>Convertir a WebP</strong> conserva el mismo attachment ID, actualiza los metadatos y referencias internas conocidas y elimina los JPG/PNG solo después de validar cada attachment.
+                GIF, SVG y animaciones se omiten. La conversión WebP solo se aplica cuando el conjunto resultante ocupa menos espacio.
             </p>
         </section>
         <style>
