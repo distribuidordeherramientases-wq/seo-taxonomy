@@ -3,14 +3,68 @@
     margin-top: 16px;
     padding: 14px;
     border: 1px solid #dcdcde;
-    border-radius: 6px;
+    border-radius: 10px;
     background: #fff;
 }
 
-.seo-facturas-quote-toggle,
-.seo-facturas-quote-submit {
-    width: 100%;
-    text-align: center;
+.seo-facturas-cart-document-actions {
+    display: grid;
+    gap: 10px;
+}
+
+.seo-facturas-doc-button,
+.seo-facturas-quote-submit,
+.seo-facturas-customer-download {
+    box-sizing: border-box;
+    width: 100% !important;
+    min-height: 58px;
+    padding: 14px 16px !important;
+    border-radius: 10px !important;
+    text-align: center !important;
+    white-space: normal !important;
+    line-height: 1.25 !important;
+}
+
+.seo-facturas-doc-button {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    cursor: pointer;
+}
+
+.seo-facturas-doc-button strong {
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.seo-facturas-doc-button span {
+    font-size: 11px;
+    font-weight: 600;
+    opacity: .82;
+}
+
+.seo-facturas-doc-button--proforma {
+    background: #fff !important;
+    color: #1f2937 !important;
+    border: 2px solid #526fca !important;
+}
+
+.seo-facturas-doc-button.is-active {
+    box-shadow: 0 0 0 3px rgba(82, 111, 202, .15);
+}
+
+.seo-facturas-invoice-cart-note,
+.seo-facturas-customer-note {
+    margin: 12px 0 0;
+    padding: 10px 12px;
+    border: 1px solid #e0e4e8;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #485465;
+    font-size: 12px;
+    line-height: 1.45;
 }
 
 .seo-facturas-quote-panel {
@@ -26,7 +80,7 @@
 .seo-facturas-quote-help,
 .seo-facturas-quote-validity {
     font-size: 0.92em;
-    opacity: 0.8;
+    opacity: 0.82;
 }
 
 .seo-facturas-quote-form .form-row {
@@ -35,12 +89,44 @@
 
 .seo-facturas-quote-form input[type="text"],
 .seo-facturas-quote-form input[type="email"] {
+    box-sizing: border-box;
     width: 100%;
+    min-height: 42px;
+}
+
+.seo-facturas-quote-submit,
+.seo-facturas-customer-download {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    text-decoration: none !important;
+}
+
+.seo-facturas-customer-docs {
+    box-sizing: border-box;
+    width: 100%;
+    margin: 22px 0;
+    padding: 18px;
+    border: 1px solid #d9e0e7;
+    border-radius: 12px;
+    background: #fff;
+    text-align: left;
+}
+
+.seo-facturas-customer-docs h2 {
+    margin: 0 0 8px;
+    font-size: 21px;
+}
+
+.seo-facturas-customer-docs > p {
+    margin: 0 0 14px;
 }
 
 @media (min-width: 769px) {
     .seo-facturas-quote-box {
-        max-width: 520px;
-        margin-left: auto;
+        max-width: 100%;
+        margin-left: 0;
     }
 }

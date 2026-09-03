@@ -2,23 +2,44 @@
     'use strict';
 
     function initBox(box) {
-        var toggle = box.querySelector('[data-seo-quote-toggle]');
         var panel = box.querySelector('[data-seo-quote-panel]');
-        if (!toggle || !panel) return;
+        var kindInput = box.querySelector('[data-seo-doc-kind]');
+        var title = box.querySelector('[data-seo-doc-title]');
+        var help = box.querySelector('[data-seo-doc-help]');
+        var submit = box.querySelector('[data-seo-doc-submit]');
+        var buttons = box.querySelectorAll('[data-seo-doc-open]');
 
-        toggle.addEventListener('click', function () {
-            var open = toggle.getAttribute('aria-expanded') === 'true';
-            toggle.setAttribute('aria-expanded', open ? 'false' : 'true');
-            panel.hidden = open;
-            if (!open) {
-                var first = panel.querySelector('input:not([type="hidden"])');
-                if (first) first.focus();
-            }
+        if (!panel || !kindInput || !buttons.length) return;
+
+        function activate(button) {
+            var kind = button.getAttribute('data-seo-doc-open') || 'quote';
+            kindInput.value = kind;
+
+            buttons.forEach(function (item) {
+                item.setAttribute('aria-expanded', item === button ? 'true' : 'false');
+                item.classList.toggle('is-active', item === button);
+            });
+
+            if (title) title.textContent = button.getAttribute('data-title') || 'Preparar documento';
+            if (help) help.textContent = button.getAttribute('data-help') || '';
+            if (submit) submit.textContent = button.getAttribute('data-submit') || 'Descargar PDF';
+
+            panel.hidden = false;
+            var first = panel.querySelector('input:not([type="hidden"])');
+            if (first) first.focus();
+        }
+
+        buttons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                activate(button);
+            });
         });
 
+        var current = kindInput.value || 'quote';
+        var initial = box.querySelector('[data-seo-doc-open="' + current + '"]') || buttons[0];
+
         if (box.querySelector('.woocommerce-error')) {
-            toggle.setAttribute('aria-expanded', 'true');
-            panel.hidden = false;
+            activate(initial);
         }
     }
 
