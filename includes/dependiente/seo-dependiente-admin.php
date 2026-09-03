@@ -45,7 +45,7 @@ final class SEO_Dependiente_Admin {
         }
 
         $tab = sanitize_key((string) ($_GET['tab'] ?? 'settings'));
-        if (!in_array($tab, array('settings', 'diagnostic', 'learning', 'trainer'), true)) {
+        if (!in_array($tab, array('settings', 'diagnostic', 'learning', 'trainer', 'knowledge'), true)) {
             $tab = 'settings';
         }
         ?>
@@ -58,6 +58,7 @@ final class SEO_Dependiente_Admin {
                 <?php self::render_tab_link('diagnostic', 'Informe', $tab); ?>
                 <?php self::render_tab_link('learning', 'Aprendizaje', $tab); ?>
                 <?php self::render_tab_link('trainer', 'Academia', $tab); ?>
+                <?php self::render_tab_link('knowledge', 'Conocimiento', $tab); ?>
             </nav>
 
             <?php
@@ -70,6 +71,12 @@ final class SEO_Dependiente_Admin {
                     SEO_Dependiente_Entrenador::render_tab();
                 } else {
                     echo '<div class="notice notice-error"><p>No está disponible el módulo Academia.</p></div>';
+                }
+            } elseif ('knowledge' === $tab) {
+                if (class_exists('SEO_Dependiente_Knowledge_Transfer')) {
+                    SEO_Dependiente_Knowledge_Transfer::render_tab();
+                } else {
+                    echo '<div class="notice notice-error"><p>No está disponible el módulo de portabilidad del conocimiento.</p></div>';
                 }
             } else {
                 self::render_settings_tab();
