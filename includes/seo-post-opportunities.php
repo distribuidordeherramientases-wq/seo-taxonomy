@@ -14,10 +14,10 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_POST_OPPORTUNITIES_VERSION')) {
-    define('SEO_POST_OPPORTUNITIES_VERSION', '1.2.0');
+    define('SEO_POST_OPPORTUNITIES_VERSION', '1.3.0');
 }
 if (!defined('SEO_POST_OPPORTUNITIES_SCHEMA_VERSION')) {
-    define('SEO_POST_OPPORTUNITIES_SCHEMA_VERSION', '1.1');
+    define('SEO_POST_OPPORTUNITIES_SCHEMA_VERSION', '1.2');
 }
 
 add_action('admin_post_seo_post_opportunities_export', 'seo_post_opportunities_export_handler');
@@ -1582,17 +1582,18 @@ function seo_post_opportunities_filter_rows(array $rows, $action)
     }
 
     $map = array(
-        'create'      => 'CREATE_POST',
-        'update'      => 'UPDATE_POST',
-        'delete'      => 'DELETE_UNPUBLISHED_DUPLICATE',
-        'consolidate' => 'REVIEW_CONSOLIDATION',
+        'create'      => array('CREATE_POST'),
+        'update'      => array('UPDATE_POST'),
+        'delete'      => array('DELETE_UNPUBLISHED_DUPLICATE'),
+        'consolidate' => array('REVIEW_CONSOLIDATION'),
+        'maintenance' => array('UPDATE_POST', 'DELETE_UNPUBLISHED_DUPLICATE', 'REVIEW_CONSOLIDATION'),
     );
     if (empty($map[$action])) {
         return $rows;
     }
 
     return array_values(array_filter($rows, function ($row) use ($map, $action) {
-        return ($row['decision_code'] ?? '') === $map[$action];
+        return in_array(($row['decision_code'] ?? ''), $map[$action], true);
     }));
 }
 
@@ -1804,7 +1805,7 @@ function seo_post_opportunities_render_page()
     }
     echo '</select></label>';
     echo '<label><strong>Decisión</strong><br><select name="post_action">';
-    $actions = array('all'=>'Todas','create'=>'Crear','update'=>'Actualizar','delete'=>'Eliminar duplicado no publicado','consolidate'=>'Consolidar');
+    $actions = array('all'=>'Todas','maintenance'=>'Mantenimiento (actualizar + consolidar)','create'=>'Crear','update'=>'Actualizar','delete'=>'Eliminar duplicado no publicado','consolidate'=>'Consolidar');
     foreach ($actions as $key => $label) {
         echo '<option value="' . esc_attr($key) . '" ' . selected($action, $key, false) . '>' . esc_html($label) . '</option>';
     }
@@ -1819,8 +1820,9 @@ function seo_post_opportunities_render_page()
 
     echo '<p style="margin-bottom:0;margin-top:16px;">';
     echo '<a class="button button-primary" href="' . esc_url(seo_post_opportunities_export_url('csv', $days, $action)) . '">Descargar CSV</a> ';
-    echo '<a class="button" href="' . esc_url(seo_post_opportunities_export_url('json', $days, $action)) . '">Descargar JSON</a>';
-    echo '</p></div>';
+    echo '<a class="button" href="' . esc_url(seo_post_opportunities_export_url('json', $days, $action)) . '">Descargar JSON para análisis</a>';
+    echo '</p>';
+    echo '<p style="margin:8px 0 0;color:#646970;"><small>El JSON incluye oportunidades, métricas GA4/GSC y el contenido de los posts implicados en actualizar o consolidar. No incluye credenciales, usuarios, clientes ni pedidos.</small></p></div>';
 
     echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0 0 18px;">';
     $cards = array(
@@ -1950,6 +1952,122 @@ function seo_post_opportunities_render_page()
     echo '<p><small>Regla de seguridad editorial: un post publicado nunca se marca para borrado automático. Si dos URLs publicadas se solapan, el informe usa <strong>Revisar consolidación</strong> para que primero se compare rendimiento y después se decida URL principal/301.</small></p>';
 }
 
+
+/**
+ * Enriquece el JSON de oportunidades para revisión editorial externa/IA.
+ *
+ * Incluye métricas agregadas y, solo para posts implicados en acciones de
+ * mantenimiento, el contenido necesario para comparar, consolidar o ampliar.
+ * No incluye credenciales, tokens, usuarios, pedidos ni datos de clientes.
+ */
+function seo_post_opportunities_build_analysis_export(array $report, $days, $action)
+{
+    $posts = seo_post_opportunities_get_posts();
+    $performance = seo_post_opportunities_performance($posts, $days);
+
+    $performance_index = array();
+    foreach ((array) ($performance['rows'] ?? array()) as $row) {
+        $performance_index[(int) ($row['post_id'] ?? 0)] = $row;
+    }
+
+    $post_index = array();
+    foreach ($posts as $post) {
+        $post_index[(int) $post['id']] = $post;
+    }
+
+    // Solo necesitamos contenido completo de URLs que intervienen en mantenimiento.
+    $maintenance_codes = array('UPDATE_POST', 'DELETE_UNPUBLISHED_DUPLICATE', 'REVIEW_CONSOLIDATION');
+    $referenced_ids = array();
+    foreach ((array) ($report['recommendations'] ?? array()) as $row) {
+        if (!in_array((string) ($row['decision_code'] ?? ''), $maintenance_codes, true)) {
+            continue;
+        }
+        foreach (array('existing_post', 'duplicate_post') as $key) {
+            $id = absint($row[$key]['id'] ?? 0);
+            if ($id) {
+                $referenced_ids[$id] = true;
+            }
+        }
+    }
+
+    $review_posts = array();
+    foreach (array_keys($referenced_ids) as $post_id) {
+        $base = (array) ($post_index[$post_id] ?? array());
+        if (!$base) {
+            continue;
+        }
+
+        $content = (string) get_post_field('post_content', $post_id, 'raw');
+        $excerpt = (string) get_post_field('post_excerpt', $post_id, 'raw');
+        $plain = trim(preg_replace('/\\s+/u', ' ', wp_strip_all_tags(strip_shortcodes($content))));
+        $words = '' === $plain ? 0 : count(preg_split('/\\s+/u', $plain, -1, PREG_SPLIT_NO_EMPTY));
+
+        $metrics = $performance_index[$post_id] ?? array(
+            'post_id' => $post_id,
+            'title' => (string) ($base['title'] ?? ''),
+            'url' => (string) ($base['url'] ?? ''),
+            'date' => (string) ($base['date'] ?? ''),
+            'sessions' => 0,
+            'users' => 0,
+            'pageviews' => 0,
+            'clicks' => 0,
+            'impressions' => 0,
+            'ctr' => 0,
+            'position' => 0,
+            'queries' => 0,
+        );
+
+        $review_posts[(string) $post_id] = array(
+            'id' => $post_id,
+            'title' => (string) ($base['title'] ?? ''),
+            'slug' => (string) ($base['slug'] ?? ''),
+            'status' => (string) ($base['status'] ?? ''),
+            'url' => (string) ($base['url'] ?? ''),
+            'date' => (string) ($base['date'] ?? ''),
+            'modified' => (string) ($base['modified'] ?? ''),
+            'categories' => array_values((array) ($base['categories'] ?? array())),
+            'tags' => array_values((array) ($base['tags'] ?? array())),
+            'focus_keyword' => (string) ($base['focus_keyword'] ?? ''),
+            'excerpt' => $excerpt,
+            'content_html' => $content,
+            'content_word_count' => $words,
+            'performance' => $metrics,
+            'top_queries' => 'publish' === (string) ($base['status'] ?? '')
+                ? seo_post_opportunities_top_queries_for_post($post_id, $days, 15)
+                : array(),
+        );
+    }
+
+    $report['export_profile'] = 'ai_editorial_review';
+    $report['export_purpose'] = 'Decidir qué posts actualizar, consolidar, redirigir o crear sin duplicar intención.';
+    $report['filters'] = array(
+        'period_days' => (int) $days,
+        'decision_filter' => sanitize_key($action),
+    );
+    $report['performance'] = array(
+        'sources' => array(
+            'analytics' => !empty($performance['ga4']['available']),
+            'search_console' => !empty($performance['gsc']['available']),
+        ),
+        'ga4_summary' => (array) ($performance['ga4']['summary'] ?? array()),
+        'gsc_summary' => (array) ($performance['gsc']['summary'] ?? array()),
+        'posts' => array_values((array) ($performance['rows'] ?? array())),
+    );
+    $report['maintenance_context'] = array(
+        'description' => 'Contenido y métricas de los posts citados por acciones de actualizar, consolidar o eliminar duplicado no publicado.',
+        'posts' => $review_posts,
+    );
+    $report['privacy'] = array(
+        'credentials_included' => false,
+        'tokens_included' => false,
+        'users_included' => false,
+        'customers_orders_included' => false,
+        'post_content_included' => true,
+    );
+
+    return $report;
+}
+
 function seo_post_opportunities_export_handler()
 {
     if (!current_user_can('manage_options')) {
@@ -1969,8 +2087,9 @@ function seo_post_opportunities_export_handler()
     nocache_headers();
 
     if ('json' === $format) {
+        $report = seo_post_opportunities_build_analysis_export($report, $days, $action);
         header('Content-Type: application/json; charset=utf-8');
-        header('Content-Disposition: attachment; filename="seo-post-opportunities-' . $date . '.json"');
+        header('Content-Disposition: attachment; filename="seo-post-opportunities-analysis-' . $date . '.json"');
         echo wp_json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;
     }
