@@ -326,7 +326,7 @@ JS;
 /**
  * Resumen de Landing Pages para Informes > Informes.
  *
- * Reutiliza los mismos datos del gestor SEO Marketing > Landing Pages sin
+ * Reutiliza los mismos datos de Páginas > Informe landings sin
  * modificar ni retirar la vista original. Muestra inventario, estado,
  * visitas del contador propio, tendencia de 30 dias y estado de las senales
  * externas disponibles para descubrir nuevas oportunidades.
@@ -364,8 +364,8 @@ function seo_reports_render_landing_pages_summary() {
 
     $full_url = add_query_arg(
         array(
-            'page' => 'seo-menu-marketing',
-            'tab'  => 'landings',
+            'page' => 'seo-page-admin',
+            'tab'  => 'landing-report',
         ),
         admin_url('admin.php')
     );
@@ -375,8 +375,8 @@ function seo_reports_render_landing_pages_summary() {
     echo '<section id="' . esc_attr($section_id) . '" style="margin:22px 0;">';
     echo '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:12px;">';
     echo '<div><h2 style="margin:0 0 6px;">Rendimiento de Landing Pages</h2>';
-    echo '<p style="margin:0;color:#646970;">Resumen reutilizado desde SEO Marketing → Landing Pages. El contador propio excluye administradores conectados.</p></div>';
-    echo '<a class="button" href="' . esc_url($full_url) . '">Ver Landing Pages</a>';
+    echo '<p style="margin:0;color:#646970;">Resumen reutilizado desde Páginas → Informe landings. El contador propio excluye administradores conectados.</p></div>';
+    echo '<a class="button" href="' . esc_url($full_url) . '">Abrir Informe landings</a>';
     echo '</div>';
 
     echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:18px;">';

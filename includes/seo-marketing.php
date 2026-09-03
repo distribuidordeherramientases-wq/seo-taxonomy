@@ -1648,8 +1648,14 @@ function seo_menu_manager_marketing_page()
         return;
     }
 
-    $allowed_tabs = array('marketing', 'identity', 'landings', 'social', 'sitemaps', 'scan', 'style');
-    $current_tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'marketing';
+    $requested_tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'marketing';
+    if ('landings' === $requested_tab) {
+        wp_safe_redirect(add_query_arg(array('page'=>'seo-page-admin','tab'=>'landing-report'), admin_url('admin.php')));
+        exit;
+    }
+
+    $allowed_tabs = array('marketing', 'identity', 'social', 'sitemaps', 'scan', 'style');
+    $current_tab = $requested_tab;
     if (!in_array($current_tab, $allowed_tabs, true)) {
         $current_tab = 'marketing';
     }
@@ -1675,12 +1681,6 @@ function seo_menu_manager_marketing_page()
         seo_marketing_render_scan_tab();
     } elseif ($current_tab === 'style') {
         seo_marketing_render_style_tab();
-    } elseif ($current_tab === 'landings') {
-        if (function_exists('seo_landing_render_admin_tab')) {
-            seo_landing_render_admin_tab();
-        } else {
-            echo '<div class="notice notice-error inline"><p>No se ha podido cargar el modulo <code>seo-landing-pages.php</code>.</p></div>';
-        }
     } elseif ($current_tab === 'social') {
         if (function_exists('seo_social_network_render_admin_tab')) {
             seo_social_network_render_admin_tab();
@@ -1703,7 +1703,6 @@ function seo_marketing_render_tabs($current_tab)
     $tabs = array(
         'marketing' => 'Marketing',
         'identity'  => 'Identidad / Cabecera',
-        'landings'  => 'Landing Pages',
         'social'    => 'Redes sociales',
         'sitemaps'  => 'Sitemaps',
         'scan'      => 'Escaneo',

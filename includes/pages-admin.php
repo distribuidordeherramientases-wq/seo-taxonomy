@@ -882,7 +882,7 @@ function seo_page_admin_callback() {
     seo_page_editor_process_create($notices);
 
     $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'estructura';
-    if (!in_array($tab, array('estructura', 'landings', 'corporativas'), true)) {
+    if (!in_array($tab, array('estructura', 'landings', 'landing-report', 'corporativas'), true)) {
         $tab = 'estructura';
     }
 
@@ -896,6 +896,10 @@ function seo_page_admin_callback() {
         $pages = seo_page_editor_get_pages_by_roles(array('landing'));
         $title = 'Landing pages';
         $description = 'Páginas comerciales/editoriales conectadas directamente con una o varias categorías WooCommerce mediante landing_to_category.';
+    } elseif ($tab === 'landing-report') {
+        $pages = array();
+        $title = 'Informe landings';
+        $description = 'Rendimiento, señales externas, candidatas y cobertura de las landing pages.';
     } elseif ($tab === 'corporativas') {
         $pages = seo_page_editor_get_pages_by_roles(array('corporate_page'));
         $title = 'Páginas corporativas';
@@ -914,10 +918,21 @@ function seo_page_admin_callback() {
         <nav class="nav-tab-wrapper" style="margin-bottom:18px;">
             <a class="nav-tab <?php echo $tab === 'estructura' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(add_query_arg('tab', 'estructura', $base_url)); ?>">Estructura SEO</a>
             <a class="nav-tab <?php echo $tab === 'landings' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(add_query_arg('tab', 'landings', $base_url)); ?>">Landings</a>
+            <a class="nav-tab <?php echo $tab === 'landing-report' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(add_query_arg('tab', 'landing-report', $base_url)); ?>">Informe landings</a>
             <a class="nav-tab <?php echo $tab === 'corporativas' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(add_query_arg('tab', 'corporativas', $base_url)); ?>">Corporativas</a>
         </nav>
 
         <?php foreach ($notices as $notice) { seo_page_editor_render_notice($notice); } ?>
+
+        <?php if ($tab === 'landing-report'): ?>
+            <?php if (function_exists('seo_landing_render_admin_tab')): ?>
+                <?php seo_landing_render_admin_tab(); ?>
+            <?php else: ?>
+                <div class="notice notice-error inline"><p>No se ha podido cargar el módulo <code>seo-landing-pages.php</code>.</p></div>
+            <?php endif; ?>
+        </div>
+        <?php return; ?>
+        <?php endif; ?>
 
         <div style="background:#fff;border-left:4px solid #2271b1;padding:10px 14px;margin:0 0 16px;">
             <strong><?php echo esc_html($title); ?></strong> · <?php echo esc_html(number_format_i18n(count($pages))); ?> páginas.

@@ -526,8 +526,8 @@ function seo_landing_sync_external_signals()
 
     $url = add_query_arg(
         array(
-            'page' => 'seo-menu-marketing',
-            'tab' => 'landings',
+            'page' => 'seo-page-admin',
+            'tab' => 'landing-report',
             'landing_msg' => 'synced',
             'created' => $created,
             'updated' => $updated,
@@ -557,7 +557,7 @@ function seo_landing_handle_save_candidate()
     $id = absint($_POST['candidate_id'] ?? 0);
     $title = sanitize_text_field(wp_unslash($_POST['title'] ?? ''));
     if ($title === '') {
-        wp_safe_redirect(add_query_arg(array('page'=>'seo-menu-marketing','tab'=>'landings','landing_msg'=>'missing_title'), admin_url('admin.php')));
+        wp_safe_redirect(add_query_arg(array('page'=>'seo-page-admin','tab'=>'landing-report','landing_msg'=>'missing_title'), admin_url('admin.php')));
         exit;
     }
 
@@ -604,7 +604,7 @@ function seo_landing_handle_save_candidate()
         $id = (int) $wpdb->insert_id;
     }
 
-    wp_safe_redirect(add_query_arg(array('page'=>'seo-menu-marketing','tab'=>'landings','landing_msg'=>'saved','candidate_id'=>$id), admin_url('admin.php')));
+    wp_safe_redirect(add_query_arg(array('page'=>'seo-page-admin','tab'=>'landing-report','landing_msg'=>'saved','candidate_id'=>$id), admin_url('admin.php')));
     exit;
 }
 add_action('admin_post_seo_landing_save_candidate', 'seo_landing_handle_save_candidate');
@@ -744,6 +744,232 @@ function seo_landing_export_seo_csv()
     exit;
 }
 add_action('admin_post_seo_landing_export_seo_csv', 'seo_landing_export_seo_csv');
+
+/**
+ * Categorias comerciales conectadas a una landing mediante landing_to_category.
+ * Se usa solo para enriquecer el JSON de analisis; no modifica relaciones.
+ */
+function seo_landing_export_related_categories($page_id)
+{
+    global $wpdb;
+
+    $page_id = absint($page_id);
+    if (!$page_id) {
+        return array();
+    }
+
+    $relations = $wpdb->prefix . 'seo_relations';
+    $ids = $wpdb->get_col($wpdb->prepare(
+        "SELECT DISTINCT target_id
+         FROM {$relations}
+         WHERE source_type = 'landing'
+           AND source_id = %d
+           AND target_type = 'product_cat'
+           AND relation_type = 'landing_to_category'
+         ORDER BY target_id ASC",
+        $page_id
+    ));
+
+    $out = array();
+    foreach (array_values(array_unique(array_filter(array_map('absint', (array) $ids)))) as $term_id) {
+        $term = get_term($term_id, 'product_cat');
+        if (!$term || is_wp_error($term)) {
+            continue;
+        }
+        $url = get_term_link($term);
+        $out[] = array(
+            'term_id' => (int) $term_id,
+            'name' => (string) $term->name,
+            'slug' => (string) $term->slug,
+            'product_count' => (int) $term->count,
+            'url' => is_wp_error($url) ? '' : (string) $url,
+        );
+    }
+
+    return $out;
+}
+
+/**
+ * Normaliza las candidatas guardadas para que el JSON sea facil de revisar.
+ */
+function seo_landing_export_candidates_for_analysis($limit = 200)
+{
+    $rows = seo_landing_get_candidates($limit);
+    $out = array();
+
+    foreach ((array) $rows as $candidate) {
+        $requirements = seo_landing_decode_json($candidate->requirements_json ?? '');
+        $scores = seo_landing_decode_json($candidate->scores_json ?? '');
+        $out[] = array(
+            'id' => (int) ($candidate->id ?? 0),
+            'title' => (string) ($candidate->title ?? ''),
+            'intent' => (string) ($candidate->intent ?? ''),
+            'landing_type' => (string) ($candidate->landing_type ?? ''),
+            'status' => (string) ($candidate->status ?? ''),
+            'source' => (string) ($candidate->source ?? ''),
+            'requirements' => $requirements,
+            'requirements_state' => seo_landing_requirements_state($requirements),
+            'scores' => $scores,
+            'total_score' => (float) ($candidate->total_score ?? 0),
+            'existing_destination' => (string) ($candidate->existing_destination ?? ''),
+            'differentiation_reason' => (string) ($candidate->differentiation_reason ?? ''),
+            'page_id' => (int) ($candidate->page_id ?? 0),
+            'external_key' => (string) ($candidate->external_key ?? ''),
+            'created_at' => (string) ($candidate->created_at ?? ''),
+            'updated_at' => (string) ($candidate->updated_at ?? ''),
+        );
+    }
+
+    return $out;
+}
+
+/**
+ * Construye un JSON descriptivo del informe actual de landings.
+ *
+ * No introduce nuevas recomendaciones ni cambia scoring. Su objetivo es poder
+ * enviar el estado real de las landings a una revision editorial externa/IA.
+ */
+function seo_landing_build_analysis_export()
+{
+    seo_landing_maybe_install();
+
+    $landings = seo_landing_get_existing();
+    $inventory = array();
+
+    foreach ($landings as $landing) {
+        $post_id = absint($landing->ID);
+        $external_metrics = function_exists('seo_landing_google_metrics_for_page')
+            ? (array) seo_landing_google_metrics_for_page($post_id)
+            : array('ga4' => array(), 'gsc' => array());
+
+        $ga4 = isset($external_metrics['ga4']) && is_array($external_metrics['ga4']) ? $external_metrics['ga4'] : array();
+        $gsc = isset($external_metrics['gsc']) && is_array($external_metrics['gsc']) ? $external_metrics['gsc'] : array();
+        $content = (string) get_post_field('post_content', $post_id, 'raw');
+        $excerpt = (string) get_post_field('post_excerpt', $post_id, 'raw');
+        $plain_content = trim(preg_replace('/\\s+/u', ' ', wp_strip_all_tags(strip_shortcodes($content))));
+        $words = '' === $plain_content ? 0 : count(preg_split('/\\s+/u', $plain_content, -1, PREG_SPLIT_NO_EMPTY));
+
+        $seo_title = seo_landing_export_get_seo_meta($post_id, 'title');
+        if ('' === $seo_title) {
+            $seo_title = (string) get_the_title($post_id);
+        }
+        $meta_description = seo_landing_export_get_seo_meta($post_id, 'description');
+        if ('' === $meta_description) {
+            $meta_description = trim(wp_strip_all_tags($excerpt));
+        }
+
+        $clicks = (int) ($gsc['clicks'] ?? 0);
+        $impressions = (int) ($gsc['impressions'] ?? 0);
+        $ctr = isset($gsc['ctr'])
+            ? (float) $gsc['ctr']
+            : ($impressions > 0 ? ($clicks / $impressions) * 100 : 0.0);
+
+        $inventory[] = array(
+            'id' => $post_id,
+            'title' => (string) get_the_title($post_id),
+            'slug' => (string) get_post_field('post_name', $post_id),
+            'url' => (string) get_permalink($post_id),
+            'status' => (string) $landing->post_status,
+            'published_at' => mysql2date('Y-m-d H:i:s', (string) $landing->post_date),
+            'modified_at' => mysql2date('Y-m-d H:i:s', (string) $landing->post_modified),
+            'seo' => array(
+                'title' => $seo_title,
+                'meta_description' => $meta_description,
+            ),
+            'content' => array(
+                'excerpt' => $excerpt,
+                'html' => $content,
+                'word_count' => $words,
+            ),
+            'internal_counter' => array(
+                'views_30d' => (int) $landing->views_30d,
+                'views_total' => (int) $landing->views_total,
+            ),
+            'ga4_30d' => array(
+                'sessions' => (int) ($ga4['sessions'] ?? 0),
+                'users' => (int) ($ga4['users'] ?? 0),
+                'pageviews' => (int) ($ga4['pageviews'] ?? 0),
+            ),
+            'gsc_28d' => array(
+                'clicks' => $clicks,
+                'impressions' => $impressions,
+                'ctr_percent' => round($ctr, 4),
+                'position' => round((float) ($gsc['position'] ?? 0), 4),
+                'queries' => (int) ($gsc['queries'] ?? 0),
+            ),
+            'related_product_categories' => seo_landing_export_related_categories($post_id),
+        );
+    }
+
+    $gaps = array();
+    foreach ((array) seo_landing_get_coverage_gaps(100) as $gap) {
+        $gaps[] = array(
+            'hub_secondary_id' => (int) ($gap->ID ?? 0),
+            'hub_secondary' => (string) ($gap->post_title ?? ''),
+            'category_count' => (int) ($gap->category_count ?? 0),
+            'product_count' => (int) ($gap->product_count ?? 0),
+            'landing_count' => (int) ($gap->landing_count ?? 0),
+            'interpretation' => 'coverage_gap_only_not_automatic_creation',
+        );
+    }
+
+    $source_status = function_exists('seo_landing_google_source_status')
+        ? (array) seo_landing_google_source_status()
+        : array();
+
+    $external_signals = seo_landing_get_external_signals();
+
+    return array(
+        'schema_version' => '1.0',
+        'module_version' => defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : '',
+        'generated_at' => current_time('mysql'),
+        'export_profile' => 'landing_editorial_review',
+        'export_purpose' => 'Revisar el inventario y rendimiento actual de landings antes de decidir mejoras, consolidaciones o nuevas URLs.',
+        'source_policy' => 'existing_plugin_connections_only',
+        'navigation' => array(
+            'location' => 'Paginas > Informe landings',
+            'reports_role' => 'summary_only',
+        ),
+        'summary' => seo_landing_get_kpis(),
+        'source_status' => $source_status,
+        'views_series_30d' => seo_landing_get_views_series(30),
+        'landings' => $inventory,
+        'candidates' => seo_landing_export_candidates_for_analysis(200),
+        'coverage_gaps' => $gaps,
+        'external_signals' => array_values((array) $external_signals),
+        'decision_policy' => array(
+            'new_decisions_added_by_this_export' => false,
+            'note' => 'Este JSON reproduce y enriquece el informe actual. La logica de decisiones se revisara despues con Search Console y Google Trends.',
+        ),
+        'privacy' => array(
+            'credentials_included' => false,
+            'tokens_included' => false,
+            'users_included' => false,
+            'customers_orders_included' => false,
+            'page_content_included' => true,
+        ),
+    );
+}
+
+/** Descarga el informe de landings en JSON para analisis editorial. */
+function seo_landing_export_analysis_json()
+{
+    if (!current_user_can('manage_options')) {
+        wp_die(esc_html__('No tienes permisos para exportar el informe SEO.', 'seo-system'));
+    }
+
+    check_admin_referer('seo_landing_export_analysis_json');
+    $report = seo_landing_build_analysis_export();
+    $filename = 'informe-seo-landings-analysis-' . wp_date('Y-m-d_His') . '.json';
+
+    nocache_headers();
+    header('Content-Type: application/json; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('X-Content-Type-Options: nosniff');
+    echo wp_json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+add_action('admin_post_seo_landing_export_analysis_json', 'seo_landing_export_analysis_json');
 
 /**
  * Registra una visita de una landing publicada. Solo contabiliza front-end y
@@ -934,7 +1160,7 @@ function seo_landing_render_candidate_form($prefill = array())
 }
 
 /**
- * Pantalla del gestor dentro de SEO Marketing.
+ * Pantalla del informe dentro de Paginas > Informe landings.
  */
 function seo_landing_render_admin_tab()
 {
@@ -954,9 +1180,16 @@ function seo_landing_render_admin_tab()
         ),
         'seo_landing_export_seo_csv'
     );
+    $json_export_url = wp_nonce_url(
+        add_query_arg(
+            array('action' => 'seo_landing_export_analysis_json'),
+            admin_url('admin-post.php')
+        ),
+        'seo_landing_export_analysis_json'
+    );
 
     echo '<style>
-        .seo-landing-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin:0 0 20px}.seo-landing-kpi{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px}.seo-landing-kpi strong{display:block;font-size:28px;line-height:1.1}.seo-landing-kpi span{display:block;margin-top:6px;color:#646970}.seo-landing-chart{height:170px;display:flex;align-items:flex-end;gap:4px;padding:16px;background:#fff;border:1px solid #dcdcde;border-radius:8px}.seo-landing-bar{flex:1;min-width:3px;background:#2271b1;border-radius:3px 3px 0 0}.seo-landing-table{width:100%;border-collapse:collapse}.seo-landing-table th,.seo-landing-table td{padding:10px 9px;border-bottom:1px solid #e2e4e7;text-align:left;vertical-align:top}.seo-landing-table th{font-size:12px;text-transform:uppercase;color:#50575e}.seo-landing-badge{display:inline-block;padding:3px 7px;border-radius:999px;background:#f0f0f1;font-size:11px;font-weight:700}.seo-landing-score{font-size:20px;font-weight:800}.seo-landing-score.good{color:#1d6b43}.seo-landing-score.mid{color:#996800}.seo-landing-score.low{color:#b32d2e}.seo-landing-form{margin-top:16px}.seo-landing-form label{display:block;margin-bottom:12px}.seo-landing-form input[type=text],.seo-landing-form input[type=number],.seo-landing-form select,.seo-landing-form textarea{width:100%;margin-top:5px}.seo-landing-form-grid,.seo-landing-score-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.seo-landing-checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px;margin:10px 0}.seo-landing-help{max-width:1050px;line-height:1.65}.seo-landing-grid-2{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(320px,.6fr);gap:18px}@media(max-width:1050px){.seo-landing-grid-2{grid-template-columns:1fr}}
+        .seo-marketing-card{background:#fff;border:1px solid #dcdcde;border-radius:7px;padding:20px;margin:0 0 20px}.seo-landing-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin:0 0 20px}.seo-landing-kpi{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px}.seo-landing-kpi strong{display:block;font-size:28px;line-height:1.1}.seo-landing-kpi span{display:block;margin-top:6px;color:#646970}.seo-landing-chart{height:170px;display:flex;align-items:flex-end;gap:4px;padding:16px;background:#fff;border:1px solid #dcdcde;border-radius:8px}.seo-landing-bar{flex:1;min-width:3px;background:#2271b1;border-radius:3px 3px 0 0}.seo-landing-table{width:100%;border-collapse:collapse}.seo-landing-table th,.seo-landing-table td{padding:10px 9px;border-bottom:1px solid #e2e4e7;text-align:left;vertical-align:top}.seo-landing-table th{font-size:12px;text-transform:uppercase;color:#50575e}.seo-landing-badge{display:inline-block;padding:3px 7px;border-radius:999px;background:#f0f0f1;font-size:11px;font-weight:700}.seo-landing-score{font-size:20px;font-weight:800}.seo-landing-score.good{color:#1d6b43}.seo-landing-score.mid{color:#996800}.seo-landing-score.low{color:#b32d2e}.seo-landing-form{margin-top:16px}.seo-landing-form label{display:block;margin-bottom:12px}.seo-landing-form input[type=text],.seo-landing-form input[type=number],.seo-landing-form select,.seo-landing-form textarea{width:100%;margin-top:5px}.seo-landing-form-grid,.seo-landing-score-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.seo-landing-checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px;margin:10px 0}.seo-landing-help{max-width:1050px;line-height:1.65}.seo-landing-grid-2{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(320px,.6fr);gap:18px}@media(max-width:1050px){.seo-landing-grid-2{grid-template-columns:1fr}}
     </style>';
 
 
@@ -1078,7 +1311,9 @@ echo '</div>';
 echo '</details>';
     echo '<div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin:-4px 0 16px;flex-wrap:wrap;">';
     echo '<span class="description">Exporta inventario, URL, metadatos y metricas SEO de todas las landings.</span>';
-    echo '<a class="button button-primary" href="' . esc_url($export_url) . '">Descargar informe SEO (CSV)</a>';
+    echo '<a class="button button-primary" href="' . esc_url($export_url) . '">Descargar informe SEO (CSV)</a> ';
+    echo '<a class="button" href="' . esc_url($json_export_url) . '">Descargar JSON para analisis</a>';
+    echo '<div style="width:100%;margin-top:6px;color:#646970;"><small>El JSON incluye contenido, SEO, GA4/GSC, categorias relacionadas, candidatas, huecos de cobertura y estado de Search Console/Analytics/Trends. No cambia las decisiones del informe.</small></div>';
     echo '</div>';
     seo_landing_render_kpis($kpis);
 
@@ -1159,7 +1394,7 @@ echo '</details>';
     } else {
         echo '<div style="overflow:auto"><table class="seo-landing-table"><thead><tr><th>Hub secundario</th><th>Categorias</th><th>Productos</th><th>Landings vinculadas</th><th>Accion</th></tr></thead><tbody>';
         foreach ($gaps as $gap) {
-            $prefill_url = add_query_arg(array('page'=>'seo-menu-marketing','tab'=>'landings','new_candidate'=>1,'gap_id'=>$gap->ID), admin_url('admin.php'));
+            $prefill_url = add_query_arg(array('page'=>'seo-page-admin','tab'=>'landing-report','new_candidate'=>1,'gap_id'=>$gap->ID), admin_url('admin.php'));
             echo '<tr><td><strong>' . esc_html($gap->post_title) . '</strong><br><code>#' . esc_html((string) $gap->ID) . '</code></td><td>' . esc_html(number_format_i18n((int) $gap->category_count)) . '</td><td>' . esc_html(number_format_i18n((int) $gap->product_count)) . '</td><td>' . esc_html(number_format_i18n((int) $gap->landing_count)) . '</td><td><a class="button button-small" href="' . esc_url($prefill_url) . '">Evaluar oportunidad</a></td></tr>';
         }
         echo '</tbody></table></div>';
