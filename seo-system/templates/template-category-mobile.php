@@ -344,7 +344,7 @@ echo wp_json_encode(
                             $grid_products[] = $grid_product;
                         }
                     }
-                    dht_shared_render_product_grid($grid_products, 'dht-category-product-grid', 3);
+                    dht_shared_render_product_grid($grid_products, 'dht-category-product-grid', 3, true);
                     ?>
 
                 </div>
