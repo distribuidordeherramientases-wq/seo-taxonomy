@@ -222,6 +222,7 @@ add_submenu_page(null, 'Marketing', 'Marketing', 'manage_options', 'seo-menu-mar
 add_submenu_page(null, 'SEO Data Table', 'Data Table', 'manage_options', 'seo-data-table', 'seo_data_table_page');
 add_submenu_page(null, 'Clean DB', 'Clean DB', 'manage_options', 'seo-clean-db', 'seo_clean_db_page');
 add_submenu_page(null, 'Import / Export', 'Import / Export', 'manage_options', 'seo-import-export', 'seo_import_export_page');
+add_submenu_page(null, 'Procesos', 'Procesos', 'manage_options', 'seo-processes', 'seo_processes_page');
 add_submenu_page(null, 'Conexiones con proveedores', 'Conexiones con proveedores', 'manage_options', 'seo-provider-connections', 'seo_provider_connections_page');
 add_submenu_page(null, 'Menu Manager', 'Menu Manager', 'manage_options', 'seo-menu-manager', 'seo_menu_manager_page');
 add_submenu_page( null, 'FAQs', 'FAQs', 'manage_options', 'seo-faq','seo_faq_page');
@@ -253,7 +254,7 @@ add_action('admin_menu', function () {
 add_filter('parent_file', function ($parent_file) {
     $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
 
-    if (in_array($page, ['seo-search', 'seo-provider-connections'], true)) {
+    if (in_array($page, ['seo-search', 'seo-provider-connections', 'seo-processes'], true)) {
         return 'seo-system';
     }
 
@@ -263,7 +264,7 @@ add_filter('parent_file', function ($parent_file) {
 add_filter('submenu_file', function ($submenu_file) {
     $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
 
-    if (in_array($page, ['seo-search', 'seo-provider-connections'], true)) {
+    if (in_array($page, ['seo-search', 'seo-provider-connections', 'seo-processes'], true)) {
         return 'seo-tools';
     }
 
@@ -448,6 +449,13 @@ function seo_tools_page() {
                 'icon'  => 'dashicons-migrate',
                 'page'  => 'seo-import-export',
                 'desc'  => 'Importar y exportar datos.'
+            ],
+
+            [
+                'title' => 'Procesos',
+                'icon'  => 'dashicons-performance',
+                'page'  => 'seo-processes',
+                'desc'  => 'Estado, velocidad y carga de los procesos automáticos.'
             ],
 
             [

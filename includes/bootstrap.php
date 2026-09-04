@@ -159,6 +159,7 @@ require_once SEO_SYSTEM_PATH . 'includes/seo-google-info.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-menu-admin.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-tags-vocabulary-admin.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-product-vocabulary-editor.php';
+require_once SEO_SYSTEM_PATH . 'includes/seo-processes.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-admin.php';
 
 /*

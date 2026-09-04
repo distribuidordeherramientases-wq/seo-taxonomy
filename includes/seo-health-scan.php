@@ -164,7 +164,11 @@ if (!function_exists('seo_health_scan_scope_config')) {
                 'admin' => array('page' => 'seo-pictures-admin', 'tab' => 'errors'),
             ),
         );
-        return isset($map[$scope]) ? $map[$scope] : null;
+        $config = isset($map[$scope]) ? $map[$scope] : null;
+        if (is_array($config)) {
+            $config = apply_filters('seo_health_scan_scope_config', $config, $scope);
+        }
+        return $config;
     }
 }
 
@@ -723,12 +727,16 @@ if (!function_exists('seo_health_scan_rest_batch')) {
             ),
             ARRAY_A
         );
+        $control = function_exists('seo_processes_health_runner_control')
+            ? seo_processes_health_runner_control($run['scope'])
+            : array();
         return rest_ensure_response(array(
             'scan_id' => $run['scan_uuid'],
             'scope' => $run['scope'],
             'mode' => $run['mode'],
             'count' => count((array) $items),
             'items' => (array) $items,
+            'control' => $control,
         ));
     }
 }
