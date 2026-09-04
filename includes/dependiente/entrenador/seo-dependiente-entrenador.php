@@ -1335,6 +1335,9 @@ final class SEO_Dependiente_Entrenador {
                     'last_dispatch_result'      => 'queued',
                     'last_dispatch_error'       => '',
                 ));
+                if (function_exists('seo_process_supervisor_nudge')) {
+                    seo_process_supervisor_nudge($delay, 'academy');
+                }
                 if (function_exists('seo_process_supervisor_schedule_backup')) {
                     seo_process_supervisor_schedule_backup();
                 }
@@ -1457,7 +1460,7 @@ final class SEO_Dependiente_Entrenador {
      */
     private static function run_direct_loop($backend, $max_runtime = 3600) {
         $backend = sanitize_key((string) $backend);
-        $manager_slice = in_array($backend, array('manager_cron', 'server_cron', 'wp_cron_manager', 'manual_manager'), true);
+        $manager_slice = in_array($backend, array('manager_cron', 'server_cron', 'wp_cron_manager', 'manual_manager', 'request_pulse'), true);
         $max_runtime = $manager_slice ? max(5, absint($max_runtime)) : max(120, absint($max_runtime));
         $pid = function_exists('getmypid') ? absint(getmypid()) : 0;
         $started = time();
@@ -1607,6 +1610,11 @@ final class SEO_Dependiente_Entrenador {
             'status'                => 'running',
             'last_error'            => '',
             'direct_worker_pending' => 0,
+            'direct_worker_dispatch_id' => '',
+            'direct_worker_not_before' => 0,
+            'last_dispatch_backend' => 'process_manager',
+            'last_dispatch_result'  => 'queued',
+            'last_dispatch_error'   => '',
             'controller_active'     => 0,
             'controller_heartbeat_ts' => 0,
             'last_message'          => 'Arranque manual solicitado desde Herramientas > Procesos.',
@@ -1615,6 +1623,9 @@ final class SEO_Dependiente_Entrenador {
 
         if (function_exists('seo_process_supervisor_schedule_backup')) {
             seo_process_supervisor_schedule_backup();
+        }
+        if (function_exists('seo_process_supervisor_nudge')) {
+            seo_process_supervisor_nudge(0, 'academy');
         }
         self::process_manager_slice(15, 'manual_manager');
 
