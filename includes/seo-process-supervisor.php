@@ -2,13 +2,10 @@
 /**
  * SEO Taxonomy - Supervisor propio de procesos.
  *
- * Mantiene un proceso independiente del scheduler que comprueba si los
- * controladores propios de Import/Export y Academia siguen vivos. Cuando hay
- * trabajo pendiente y falta el controlador, lo vuelve a arrancar.
- *
- * WP-Cron se utiliza unicamente como red de seguridad para resucitar el
- * supervisor si el hosting mata el proceso persistente. No marca el ritmo de
- * los procesos gestionados.
+ * Gestor periódico de procesos propios. Ejecuta ventanas limitadas de
+ * Import/Export y Academia directamente, sin Action Scheduler ni el worker de
+ * WooCommerce. Puede ser invocado por cron real del servidor; WP-Cron propio
+ * queda como respaldo.
  *
  * @package SEOSystem
  * @subpackage Processes
@@ -34,7 +31,8 @@ if (!function_exists('seo_process_supervisor_defaults')) {
     function seo_process_supervisor_defaults() {
         return array(
             'enabled'            => 1,
-            'interval_seconds'   => 10,
+            'interval_seconds'   => 60,
+            'runtime_seconds'    => 45,
             'restart_cooldown'   => 20,
             'import_export'      => 1,
             'academy'            => 1,
@@ -49,7 +47,8 @@ if (!function_exists('seo_process_supervisor_sanitize_settings')) {
         $raw = wp_parse_args(is_array($raw) ? $raw : array(), seo_process_supervisor_defaults());
         return array(
             'enabled'          => empty($raw['enabled']) ? 0 : 1,
-            'interval_seconds' => max(5, min(300, absint($raw['interval_seconds']))),
+            'interval_seconds' => max(60, min(900, absint($raw['interval_seconds']))),
+            'runtime_seconds'  => max(10, min(55, absint($raw['runtime_seconds'] ?? 45))),
             'restart_cooldown' => max(5, min(600, absint($raw['restart_cooldown']))),
             'import_export'    => empty($raw['import_export']) ? 0 : 1,
             'academy'          => empty($raw['academy']) ? 0 : 1,
@@ -199,15 +198,16 @@ if (!function_exists('seo_process_supervisor_stale_seconds')) {
 if (!function_exists('seo_process_supervisor_is_active')) {
     function seo_process_supervisor_is_active($state = null) {
         $state = is_array($state) ? $state : seo_process_supervisor_state();
-        if (empty($state['active'])) {
+        $settings = seo_process_supervisor_settings();
+        if (empty($settings['enabled'])) {
             return false;
         }
         $heartbeat = absint($state['heartbeat_at'] ?? 0);
-        if (!$heartbeat || (time() - $heartbeat) > seo_process_supervisor_stale_seconds()) {
+        if (!$heartbeat) {
             return false;
         }
-        $alive = seo_process_supervisor_pid_alive(absint($state['pid'] ?? 0));
-        return false !== $alive;
+        $grace = max(180, absint($settings['interval_seconds']) * 3);
+        return (time() - $heartbeat) <= $grace;
     }
 }
 
@@ -376,84 +376,39 @@ if (!function_exists('seo_process_supervisor_spawn_http')) {
 if (!function_exists('seo_process_supervisor_start')) {
     function seo_process_supervisor_start($force = false, $reason = 'automatic') {
         $settings = seo_process_supervisor_settings();
-        if (empty($settings['enabled']) && 'manual' !== $reason && 'restart' !== $reason) {
-            return new WP_Error('supervisor_disabled', 'El supervisor está desactivado.');
+        if (empty($settings['enabled']) && !in_array($reason, array('manual', 'restart', 'settings'), true)) {
+            return new WP_Error('supervisor_disabled', 'El gestor está desactivado.');
         }
-
-        $state = seo_process_supervisor_state();
-        if (!$force && seo_process_supervisor_is_active($state)) {
-            return array('started' => false, 'message' => 'El supervisor ya está activo.');
-        }
-
-        if (!empty($state['dispatch_pending']) && !$force) {
-            $age = time() - absint($state['dispatch_at'] ?? 0);
-            if ($age < seo_process_supervisor_stale_seconds()) {
-                return array('started' => false, 'message' => 'El supervisor ya tiene un arranque en curso.');
-            }
-        }
-
-        $dispatch_id = strtolower(wp_generate_password(24, false, false));
-        $dispatch_at = time();
-        $signature = seo_process_supervisor_signature($dispatch_id, $dispatch_at);
         seo_process_supervisor_save_state(array(
-            'status'            => 'starting',
-            'active'            => 0,
+            'active'            => 1,
+            'status'            => 'waiting',
+            'pid'               => 0,
+            'backend'           => 'periodic_manager',
             'stop_requested'    => 0,
             'restart_requested' => 0,
-            'dispatch_pending'  => 1,
-            'dispatch_id'       => $dispatch_id,
-            'dispatch_at'       => $dispatch_at,
-            'dispatch_backend'  => '',
-            'dispatch_pid'      => 0,
+            'dispatch_pending'  => 0,
             'dispatch_error'    => '',
             'last_error'        => '',
+            'next_cycle_at'     => time(),
         ));
-        seo_process_supervisor_log('info', 'supervisor_dispatch', 'Solicitado arranque del supervisor propio.', 'Supervisor', array('reason' => $reason));
-
-        $cli = seo_process_supervisor_spawn_cli($dispatch_id, $dispatch_at, $signature);
-        if (!is_wp_error($cli)) {
-            seo_process_supervisor_save_state(array(
-                'dispatch_backend' => $cli['backend'],
-                'dispatch_pid'     => absint($cli['pid']),
-            ));
-            seo_process_supervisor_log('success', 'supervisor_spawned', 'Supervisor enviado a PHP CLI.', 'Supervisor', array('pid' => absint($cli['pid'])));
-            return array('started' => true, 'message' => 'Supervisor arrancado por PHP CLI.');
-        }
-
-        $http = seo_process_supervisor_spawn_http($dispatch_id, $dispatch_at, $signature);
-        if (!is_wp_error($http)) {
-            seo_process_supervisor_save_state(array('dispatch_backend' => 'direct_http', 'dispatch_pid' => 0));
-            seo_process_supervisor_log('warning', 'supervisor_http_fallback', 'PHP CLI no estaba disponible; el loopback ha aceptado el arranque y queda pendiente de heartbeat.', 'Supervisor', array('cli_error' => $cli->get_error_message()));
-            return array('started' => true, 'message' => 'Arranque del supervisor aceptado por loopback; esperando heartbeat.');
-        }
-
-        $error = trim($cli->get_error_message() . ' ' . $http->get_error_message());
-        seo_process_supervisor_save_state(array(
-            'status'           => 'error',
-            'active'           => 0,
-            'dispatch_pending' => 0,
-            'dispatch_error'   => $error,
-            'last_error'       => $error,
-        ));
-        seo_process_supervisor_log('error', 'supervisor_spawn_failed', 'No se pudo arrancar el supervisor.', 'Supervisor', array('error' => $error));
-        return new WP_Error('supervisor_start_failed', $error);
+        seo_process_supervisor_schedule_backup(true);
+        seo_process_supervisor_log('info', 'manager_enabled', 'Gestor periódico habilitado.', 'Supervisor', array('reason' => $reason));
+        return array('started' => true, 'message' => 'Gestor periódico activado.');
     }
 }
 
 if (!function_exists('seo_process_supervisor_acquire_lock')) {
-    function seo_process_supervisor_acquire_lock($pid) {
+    function seo_process_supervisor_acquire_lock($pid = 0) {
         $existing = get_option(SEO_PROCESS_SUPERVISOR_LOCK_OPTION, array());
         if (is_array($existing) && !empty($existing)) {
             $at = absint($existing['at'] ?? 0);
-            $existing_pid = absint($existing['pid'] ?? 0);
-            $alive = seo_process_supervisor_pid_alive($existing_pid);
-            if (($at && (time() - $at) > seo_process_supervisor_stale_seconds()) || false === $alive) {
+            if (!$at || (time() - $at) > 180) {
                 delete_option(SEO_PROCESS_SUPERVISOR_LOCK_OPTION);
             }
         }
         return add_option(
             SEO_PROCESS_SUPERVISOR_LOCK_OPTION,
-            array('pid' => absint($pid), 'at' => time()),
+            array('pid' => absint($pid), 'at' => time(), 'token' => wp_generate_password(12, false, false)),
             '',
             false
         );
@@ -508,6 +463,193 @@ if (!function_exists('seo_process_supervisor_import_users')) {
             }
         }
         return array_values(array_unique(array_filter($ids)));
+    }
+}
+
+if (!function_exists('seo_process_supervisor_import_pending')) {
+    function seo_process_supervisor_import_pending($user_id) {
+        if (!function_exists('seo_ie_product_import_get_active')) {
+            return null;
+        }
+        $active = seo_ie_product_import_get_active(absint($user_id));
+        if (empty($active['token'])) {
+            return null;
+        }
+        $token = sanitize_key($active['token']);
+        $state = get_transient(seo_ie_product_import_state_key(absint($user_id), $token));
+        if (!is_array($state)) {
+            return null;
+        }
+        $status = sanitize_key($state['status'] ?? 'processing');
+        if (in_array($status, array('completed', 'stopping', 'stopped', 'failed'), true)) {
+            return null;
+        }
+        return array('user_id' => absint($user_id), 'token' => $token, 'state' => $state);
+    }
+}
+
+if (!function_exists('seo_process_supervisor_academy_pending')) {
+    function seo_process_supervisor_academy_pending() {
+        if (!class_exists('SEO_Dependiente_Entrenador') || !is_callable(array('SEO_Dependiente_Entrenador', 'process_monitor_payload'))) {
+            return false;
+        }
+        $payload = SEO_Dependiente_Entrenador::process_monitor_payload();
+        $state = isset($payload['state']) && is_array($payload['state']) ? $payload['state'] : array();
+        return !empty($payload['current'])
+            && !empty($state['enabled'])
+            && 'auto' === (string) ($state['mode'] ?? '')
+            && !in_array((string) ($state['status'] ?? ''), array('completed', 'failed', 'stopped'), true);
+    }
+}
+
+if (!function_exists('seo_process_supervisor_run_manager_window')) {
+    function seo_process_supervisor_run_manager_window($source = 'wp_cron_manager', $max_runtime = 45) {
+        $settings = seo_process_supervisor_settings();
+        if (empty($settings['enabled'])) {
+            return false;
+        }
+        $source = sanitize_key((string) $source);
+        $max_runtime = max(10, min(55, absint($max_runtime)));
+        $pid = function_exists('getmypid') ? absint(getmypid()) : 0;
+        if (!seo_process_supervisor_acquire_lock($pid)) {
+            seo_process_supervisor_log('debug', 'manager_overlap_skipped', 'Ya existe un ciclo del gestor en ejecución.', 'Supervisor');
+            return false;
+        }
+
+        $started = time();
+        seo_process_supervisor_save_state(array(
+            'active'        => 1,
+            'status'        => 'running',
+            'pid'           => $pid,
+            'backend'       => $source,
+            'started_at'    => $started,
+            'heartbeat_at'  => $started,
+            'last_cycle_at' => $started,
+            'last_error'    => '',
+        ));
+        seo_process_supervisor_log('info', 'manager_cycle_started', 'Ciclo del gestor iniciado.', 'Supervisor', array('source' => $source, 'runtime' => $max_runtime));
+
+        try {
+            $targets = array();
+            if (!empty($settings['import_export']) && function_exists('seo_ie_product_import_run_manager_slice')) {
+                foreach (seo_process_supervisor_import_users() as $user_id) {
+                    $pending = seo_process_supervisor_import_pending($user_id);
+                    if ($pending) {
+                        $due = absint($pending['state']['direct_worker_not_before'] ?? 0);
+                        if ($due && $due > time()) {
+                            seo_process_supervisor_managed_update('import-export-' . absint($user_id), array(
+                                'name' => 'Import / Export', 'pending' => 1, 'healthy' => 1, 'last_checked' => time(),
+                                'last_result' => 'waiting', 'last_error' => '',
+                                'detail' => 'En espera de la pausa adaptativa; el gestor lo retomará automáticamente.'
+                            ));
+                        } else {
+                            $targets[] = array('type' => 'import', 'data' => $pending);
+                        }
+                    }
+                }
+            }
+            if (!empty($settings['academy']) && seo_process_supervisor_academy_pending() && is_callable(array('SEO_Dependiente_Entrenador', 'process_manager_slice'))) {
+                $targets[] = array('type' => 'academy', 'data' => array());
+            }
+
+            $total = count($targets);
+            if (!$total) {
+                $current_state = seo_process_supervisor_state();
+                $current_managed = isset($current_state['managed']) && is_array($current_state['managed']) ? $current_state['managed'] : array();
+                foreach ($current_managed as $managed_key => $managed_row) {
+                    if (0 === strpos((string) $managed_key, 'import-export-')) {
+                        seo_process_supervisor_managed_update($managed_key, array(
+                            'pending' => 0, 'healthy' => 1, 'last_checked' => time(),
+                            'detail' => 'Sin importaciones pendientes.', 'last_result' => 'idle', 'last_error' => ''
+                        ));
+                    }
+                }
+                seo_process_supervisor_managed_update('import-export', array(
+                    'name' => 'Import / Export', 'pending' => 0, 'healthy' => 1, 'last_checked' => time(),
+                    'detail' => 'Sin importaciones pendientes.', 'last_result' => 'idle', 'last_error' => ''
+                ));
+                seo_process_supervisor_managed_update('academy', array(
+                    'name' => 'Academia', 'pending' => 0, 'healthy' => 1, 'last_checked' => time(),
+                    'detail' => 'Sin trabajo automático pendiente.', 'last_result' => 'idle', 'last_error' => ''
+                ));
+            }
+
+            foreach ($targets as $index => $target) {
+                $elapsed = time() - $started;
+                $remaining = max(0, $max_runtime - $elapsed);
+                if ($remaining < 5) {
+                    break;
+                }
+                $left = max(1, $total - $index);
+                $budget = max(5, min(55, (int) floor($remaining / $left)));
+
+                if ('import' === $target['type']) {
+                    $user_id = absint($target['data']['user_id']);
+                    $token = sanitize_key($target['data']['token']);
+                    $key = 'import-export-' . $user_id;
+                    seo_process_supervisor_managed_update($key, array(
+                        'name' => 'Import / Export', 'pending' => 1, 'healthy' => 1, 'last_checked' => time(),
+                        'last_attempt_at' => time(), 'last_result' => 'running', 'last_error' => '',
+                        'detail' => 'El gestor está ejecutando una ventana de importación.'
+                    ));
+                    seo_process_supervisor_log('info', 'process_window_started', 'Import / Export entra en una ventana del gestor.', 'Import / Export', array('user_id' => $user_id, 'seconds' => $budget));
+                    $ok = seo_ie_product_import_run_manager_slice($user_id, $token, $budget, $source);
+                    $fresh = seo_process_supervisor_import_pending($user_id);
+                    seo_process_supervisor_managed_update($key, array(
+                        'pending' => $fresh ? 1 : 0,
+                        'healthy' => 1,
+                        'last_checked' => time(),
+                        'last_result' => $ok ? 'processed' : 'waiting',
+                        'last_error' => '',
+                        'detail' => $fresh ? 'Ventana completada; continuará en el siguiente ciclo.' : 'Importación terminada o sin trabajo pendiente.'
+                    ));
+                    if ($ok) {
+                        $state = seo_process_supervisor_state();
+                        seo_process_supervisor_save_state(array('launch_count' => absint($state['launch_count'] ?? 0) + 1, 'last_launch_at' => time()));
+                    }
+                } elseif ('academy' === $target['type']) {
+                    seo_process_supervisor_managed_update('academy', array(
+                        'name' => 'Academia', 'pending' => 1, 'healthy' => 1, 'last_checked' => time(),
+                        'last_attempt_at' => time(), 'last_result' => 'running', 'last_error' => '',
+                        'detail' => 'El gestor está ejecutando una ventana de Academia.'
+                    ));
+                    seo_process_supervisor_log('info', 'process_window_started', 'Academia entra en una ventana del gestor.', 'Academia', array('seconds' => $budget));
+                    $ok = SEO_Dependiente_Entrenador::process_manager_slice($budget, $source);
+                    $still = seo_process_supervisor_academy_pending();
+                    seo_process_supervisor_managed_update('academy', array(
+                        'pending' => $still ? 1 : 0,
+                        'healthy' => 1,
+                        'last_checked' => time(),
+                        'last_result' => $ok ? 'processed' : 'waiting',
+                        'last_error' => '',
+                        'detail' => $still ? 'Ventana completada; continuará en el siguiente ciclo.' : 'Academia terminada o sin trabajo pendiente.'
+                    ));
+                    if ($ok) {
+                        $state = seo_process_supervisor_state();
+                        seo_process_supervisor_save_state(array('launch_count' => absint($state['launch_count'] ?? 0) + 1, 'last_launch_at' => time()));
+                    }
+                }
+                seo_process_supervisor_save_state(array('heartbeat_at' => time()));
+            }
+        } catch (Throwable $e) {
+            seo_process_supervisor_save_state(array('last_error' => sanitize_text_field($e->getMessage())));
+            seo_process_supervisor_log('error', 'manager_cycle_error', $e->getMessage(), 'Supervisor');
+        } finally {
+            $state = seo_process_supervisor_state();
+            seo_process_supervisor_save_state(array(
+                'active'        => 1,
+                'status'        => 'waiting',
+                'pid'           => 0,
+                'backend'       => $source,
+                'heartbeat_at'  => time(),
+                'last_cycle_at' => time(),
+                'next_cycle_at' => time() + max(60, absint($settings['interval_seconds'])),
+                'cycle_count'   => absint($state['cycle_count'] ?? 0) + 1,
+            ));
+            seo_process_supervisor_release_lock($pid);
+        }
+        seo_process_supervisor_log('success', 'manager_cycle_finished', 'Ciclo del gestor completado.', 'Supervisor', array('source' => $source, 'elapsed' => time() - $started));
+        return true;
     }
 }
 
@@ -674,24 +816,9 @@ if (!function_exists('seo_process_supervisor_check_academy')) {
 }
 
 if (!function_exists('seo_process_supervisor_cycle')) {
-    function seo_process_supervisor_cycle($source = 'supervisor') {
+    function seo_process_supervisor_cycle($source = 'manager') {
         $settings = seo_process_supervisor_settings();
-        if (empty($settings['enabled'])) {
-            return;
-        }
-        $state = seo_process_supervisor_state();
-        $now = time();
-        seo_process_supervisor_save_state(array(
-            'last_cycle_at' => $now,
-            'cycle_count'   => absint($state['cycle_count'] ?? 0) + 1,
-            'heartbeat_at'  => $now,
-            'last_error'    => '',
-        ));
-        seo_process_supervisor_check_import_export($settings);
-        seo_process_supervisor_check_academy($settings);
-        if (!empty($settings['log_cycles'])) {
-            seo_process_supervisor_log('debug', 'cycle', 'Ciclo de supervisión completado.', 'Supervisor', array('source' => $source));
-        }
+        return seo_process_supervisor_run_manager_window($source, absint($settings['runtime_seconds'] ?? 45));
     }
 }
 
@@ -829,39 +956,23 @@ if (!function_exists('seo_process_supervisor_direct_http')) {
         exit;
     }
 }
-add_action('admin_post_seo_process_supervisor_direct', 'seo_process_supervisor_direct_http');
-add_action('admin_post_nopriv_seo_process_supervisor_direct', 'seo_process_supervisor_direct_http');
+// El gestor periódico ya no utiliza loopback HTTP para mantenerse vivo.
 
 if (!function_exists('seo_process_supervisor_maybe_ensure')) {
     function seo_process_supervisor_maybe_ensure() {
-        $settings = seo_process_supervisor_settings();
-        if (empty($settings['enabled'])) {
-            return;
-        }
-        if (get_transient('seo_process_supervisor_ensure_throttle')) {
-            return;
-        }
-        set_transient('seo_process_supervisor_ensure_throttle', 1, 20);
-        $state = seo_process_supervisor_state();
-        if (seo_process_supervisor_is_active($state)) {
-            return;
-        }
-        if (!empty($state['dispatch_pending']) && (time() - absint($state['dispatch_at'] ?? 0)) < seo_process_supervisor_stale_seconds()) {
-            return;
-        }
-        $result = seo_process_supervisor_start(true, 'request_watchdog');
-        if (is_wp_error($result)) {
-            seo_process_supervisor_log('error', 'request_watchdog_failed', $result->get_error_message(), 'Supervisor');
-        }
+        seo_process_supervisor_schedule_backup();
     }
 }
 add_action('init', 'seo_process_supervisor_maybe_ensure', 99);
 
 if (!function_exists('seo_process_supervisor_cron_schedules')) {
     function seo_process_supervisor_cron_schedules($schedules) {
-        if (!isset($schedules['seo_process_supervisor_5min'])) {
-            $schedules['seo_process_supervisor_5min'] = array('interval' => 300, 'display' => 'Cada 5 minutos - respaldo supervisor SEO');
-        }
+        $settings = seo_process_supervisor_settings();
+        $interval = max(60, absint($settings['interval_seconds'] ?? 60));
+        $schedules['seo_process_manager_interval'] = array(
+            'interval' => $interval,
+            'display'  => sprintf('Gestor SEO Taxonomy cada %d segundos', $interval),
+        );
         return $schedules;
     }
 }
@@ -873,28 +984,27 @@ if (!function_exists('seo_process_supervisor_backup_watchdog')) {
         if (empty($settings['enabled']) || empty($settings['backup_watchdog'])) {
             return;
         }
-        if (!seo_process_supervisor_is_active()) {
-            seo_process_supervisor_log('warning', 'backup_watchdog', 'El watchdog de respaldo encontró el supervisor parado e intenta resucitarlo.', 'Supervisor');
-            $result = seo_process_supervisor_start(true, 'wp_cron_backup');
-            if (is_wp_error($result)) {
-                seo_process_supervisor_log('error', 'backup_watchdog_failed', $result->get_error_message(), 'Supervisor');
-            }
-        }
+        seo_process_supervisor_run_manager_window('wp_cron_manager', absint($settings['runtime_seconds'] ?? 45));
     }
 }
 add_action('seo_process_supervisor_backup_watchdog', 'seo_process_supervisor_backup_watchdog');
 
 if (!function_exists('seo_process_supervisor_schedule_backup')) {
-    function seo_process_supervisor_schedule_backup() {
+    function seo_process_supervisor_schedule_backup($force = false) {
         $settings = seo_process_supervisor_settings();
         $hook = 'seo_process_supervisor_backup_watchdog';
+        if ($force) {
+            wp_clear_scheduled_hook($hook);
+        }
         if (!empty($settings['enabled']) && !empty($settings['backup_watchdog'])) {
             if (false === wp_next_scheduled($hook)) {
-                wp_schedule_event(time() + 300, 'seo_process_supervisor_5min', $hook);
+                wp_schedule_event(time() + 5, 'seo_process_manager_interval', $hook);
             }
         } else {
             wp_clear_scheduled_hook($hook);
         }
+        // Limpia el antiguo watchdog de 5 minutos si quedara programado.
+        wp_clear_scheduled_hook('seo_process_supervisor_backup_watchdog_old');
     }
 }
 add_action('init', 'seo_process_supervisor_schedule_backup', 100);
@@ -905,24 +1015,15 @@ if (!function_exists('seo_process_supervisor_save_settings_action')) {
             wp_die(esc_html__('No autorizado.', 'seo-taxonomy'));
         }
         check_admin_referer('seo_process_supervisor_save_settings');
-        $old = seo_process_supervisor_settings();
         $raw = isset($_POST['supervisor']) && is_array($_POST['supervisor']) ? wp_unslash($_POST['supervisor']) : array();
-        // Checkboxes ausentes deben ser 0.
         foreach (array('enabled', 'import_export', 'academy', 'backup_watchdog', 'log_cycles') as $checkbox) {
             $raw[$checkbox] = empty($raw[$checkbox]) ? 0 : 1;
         }
         $settings = seo_process_supervisor_sanitize_settings($raw);
         update_option(SEO_PROCESS_SUPERVISOR_OPTION, $settings, false);
-        seo_process_supervisor_log('info', 'settings_saved', 'Configuración del supervisor actualizada.', 'Supervisor', array('interval' => $settings['interval_seconds']));
-        if (!empty($settings['enabled'])) {
-            seo_process_supervisor_save_state(array('stop_requested' => 0));
-            if (empty($old['enabled']) || !seo_process_supervisor_is_active()) {
-                seo_process_supervisor_start(true, 'settings');
-            }
-        } else {
-            seo_process_supervisor_save_state(array('stop_requested' => 1, 'status' => 'stopping'));
-        }
-        seo_process_supervisor_schedule_backup();
+        seo_process_supervisor_save_state(array('stop_requested' => empty($settings['enabled']) ? 1 : 0, 'last_error' => ''));
+        seo_process_supervisor_schedule_backup(true);
+        seo_process_supervisor_log('info', 'settings_saved', 'Configuración del gestor periódico actualizada.', 'Supervisor', array('interval' => $settings['interval_seconds'], 'runtime' => $settings['runtime_seconds']));
         wp_safe_redirect(add_query_arg(array('page' => 'seo-processes', 'tab' => 'workers', 'supervisor_saved' => 1), admin_url('admin.php')));
         exit;
     }
@@ -938,40 +1039,34 @@ if (!function_exists('seo_process_supervisor_control_action')) {
         $command = sanitize_key(wp_unslash($_POST['command'] ?? ''));
         $settings = seo_process_supervisor_settings();
         $message = '';
-        if ('start' === $command) {
+
+        if (in_array($command, array('start', 'restart'), true)) {
             $settings['enabled'] = 1;
             update_option(SEO_PROCESS_SUPERVISOR_OPTION, $settings, false);
-            seo_process_supervisor_save_state(array('stop_requested' => 0, 'restart_requested' => 0));
-            $result = seo_process_supervisor_start(true, 'manual');
-            $message = is_wp_error($result) ? $result->get_error_message() : ($result['message'] ?? 'Supervisor arrancado.');
+            seo_process_supervisor_save_state(array('stop_requested' => 0, 'last_error' => '', 'status' => 'waiting'));
+            seo_process_supervisor_schedule_backup(true);
+            seo_process_supervisor_run_manager_window('manual_manager', min(20, absint($settings['runtime_seconds'] ?? 45)));
+            $message = 'Gestor activado y ciclo de comprobación ejecutado.';
+        } elseif ('cycle' === $command) {
+            seo_process_supervisor_run_manager_window('manual_manager', min(20, absint($settings['runtime_seconds'] ?? 45)));
+            $message = 'Comprobación ejecutada.';
         } elseif ('stop' === $command) {
             $settings['enabled'] = 0;
             update_option(SEO_PROCESS_SUPERVISOR_OPTION, $settings, false);
-            seo_process_supervisor_save_state(array('stop_requested' => 1, 'restart_requested' => 0, 'status' => 'stopping'));
-            seo_process_supervisor_log('warning', 'manual_stop', 'El usuario ha detenido el supervisor automático.', 'Supervisor');
-            $message = 'Supervisor detenido. No volverá a arrancar procesos hasta que lo actives.';
-        } elseif ('restart' === $command) {
-            $settings['enabled'] = 1;
-            update_option(SEO_PROCESS_SUPERVISOR_OPTION, $settings, false);
-            if (seo_process_supervisor_is_active()) {
-                seo_process_supervisor_save_state(array('stop_requested' => 1, 'restart_requested' => 1, 'status' => 'stopping'));
-                seo_process_supervisor_log('info', 'manual_restart', 'El usuario ha solicitado reiniciar el supervisor.', 'Supervisor');
-                $message = 'Reinicio solicitado. El supervisor actual entregará el control a uno nuevo.';
-            } else {
-                seo_process_supervisor_save_state(array('stop_requested' => 0, 'restart_requested' => 0, 'active' => 0));
-                $result = seo_process_supervisor_start(true, 'restart');
-                $message = is_wp_error($result) ? $result->get_error_message() : ($result['message'] ?? 'Supervisor reiniciado.');
-            }
-        } elseif ('cycle' === $command) {
-            seo_process_supervisor_cycle('manual_cycle');
-            $message = 'Comprobación inmediata ejecutada.';
+            wp_clear_scheduled_hook('seo_process_supervisor_backup_watchdog');
+            seo_process_supervisor_save_state(array('active' => 0, 'status' => 'stopped', 'stop_requested' => 1, 'pid' => 0));
+            seo_process_supervisor_log('warning', 'manual_stop', 'El usuario ha detenido el gestor automático.', 'Supervisor');
+            $message = 'Gestor detenido.';
         } elseif ('clear_log' === $command) {
             delete_option(SEO_PROCESS_SUPERVISOR_LOG_OPTION);
-            seo_process_supervisor_log('info', 'log_cleared', 'Log del gestor de workers vaciado.', 'Supervisor');
             $message = 'Log vaciado.';
         }
-        seo_process_supervisor_schedule_backup();
-        wp_safe_redirect(add_query_arg(array('page' => 'seo-processes', 'tab' => 'workers', 'supervisor_message' => rawurlencode($message)), admin_url('admin.php')));
+
+        wp_safe_redirect(add_query_arg(array(
+            'page' => 'seo-processes',
+            'tab' => 'workers',
+            'supervisor_message' => rawurlencode($message),
+        ), admin_url('admin.php')));
         exit;
     }
 }
@@ -1002,6 +1097,10 @@ if (!function_exists('seo_process_supervisor_backend_label')) {
         $labels = array(
             'direct_cli'  => 'PHP CLI propio',
             'direct_http' => 'Loopback propio',
+            'periodic_manager' => 'Gestor periódico',
+            'server_cron' => 'Cron del servidor',
+            'wp_cron_manager' => 'WP-Cron propio',
+            'manual_manager' => 'Ejecución manual',
         );
         $backend = sanitize_key((string) $backend);
         return $labels[$backend] ?? ($backend ? $backend : 'Sin motor');
@@ -1018,11 +1117,11 @@ if (!function_exists('seo_process_supervisor_render_live')) {
         ob_start();
         ?>
         <div class="seo-worker-summary">
-            <div><strong class="<?php echo $active ? 'is-ok' : 'is-bad'; ?>"><?php echo $active ? 'ACTIVO' : (empty($settings['enabled']) ? 'DESACTIVADO' : 'SIN PROCESO'); ?></strong><span>Supervisor</span></div>
+            <div><strong class="<?php echo $active ? 'is-ok' : 'is-bad'; ?>"><?php echo $active ? 'ACTIVO' : (empty($settings['enabled']) ? 'DESACTIVADO' : 'SIN CICLO RECIENTE'); ?></strong><span>Supervisor</span></div>
             <div><strong><?php echo esc_html(seo_process_supervisor_backend_label($state['backend'] ?? $state['dispatch_backend'] ?? '')); ?></strong><span>Motor</span></div>
-            <div><strong><?php echo esc_html(absint($state['pid'] ?? 0) ? (string) absint($state['pid']) : '—'); ?></strong><span>PID</span></div>
+            <div><strong><?php echo esc_html(absint($state['pid'] ?? 0) ? (string) absint($state['pid']) : '—'); ?></strong><span>PID del ciclo</span></div>
             <div><strong><?php echo esc_html(seo_process_supervisor_format_age($state['heartbeat_at'] ?? 0)); ?></strong><span>Heartbeat</span></div>
-            <div><strong><?php echo esc_html(number_format_i18n(absint($state['launch_count'] ?? 0))); ?></strong><span>Procesos relanzados</span></div>
+            <div><strong><?php echo esc_html(number_format_i18n(absint($state['launch_count'] ?? 0))); ?></strong><span>Ventanas ejecutadas</span></div>
         </div>
 
         <?php if (!empty($state['last_error'])) : ?>
@@ -1053,7 +1152,7 @@ if (!function_exists('seo_process_supervisor_render_live')) {
                         <td><strong><?php echo esc_html($row['name'] ?? ($is_import ? 'Import / Export' : 'Academia')); ?></strong></td>
                         <td><?php echo $enabled ? '<span class="seo-worker-pill is-ok">Sí</span>' : '<span class="seo-worker-pill">No</span>'; ?></td>
                         <td><?php echo !empty($row['pending']) ? '<span class="seo-worker-pill is-warn">Sí</span>' : '<span class="seo-worker-pill">No</span>'; ?></td>
-                        <td><strong><?php echo !empty($row['healthy']) ? 'Proceso vivo' : 'Sin proceso'; ?></strong><br><small><?php echo esc_html($row['detail'] ?? ''); ?></small></td>
+                        <td><strong><?php echo !empty($row['healthy']) ? 'Gestionado' : 'Sin actividad'; ?></strong><br><small><?php echo esc_html($row['detail'] ?? ''); ?></small></td>
                         <td><?php echo esc_html(seo_process_supervisor_format_age($row['last_attempt_at'] ?? 0)); ?></td>
                         <td><?php echo esc_html($row['last_result'] ?? '—'); ?><?php if (!empty($row['last_error'])) : ?><br><small class="seo-worker-error"><?php echo esc_html($row['last_error']); ?></small><?php endif; ?></td>
                     </tr>
@@ -1111,8 +1210,8 @@ if (!function_exists('seo_process_supervisor_render_page')) {
             </h2>
             <div class="seo-worker-heading">
                 <div>
-                    <h2>Supervisor propio del plugin</h2>
-                    <p>Este proceso revisa de forma periódica si Import/Export o Academia tienen trabajo pendiente y han perdido su controlador. Si falta, lo vuelve a lanzar sin esperar a WP-Cron ni Action Scheduler. El gestor solo considera un proceso arrancado cuando recibe heartbeat real.</p>
+                    <h2>Gestor periódico del plugin</h2>
+                    <p>El gestor revisa Import/Export y Academia y ejecuta directamente ventanas de trabajo. No usa Action Scheduler ni el worker de WooCommerce. Puede funcionar con un cron real del servidor y mantiene WP-Cron propio como respaldo.</p>
                 </div>
                 <span>Lectura: <strong id="seo-worker-refreshed"><?php echo esc_html(current_time('H:i:s')); ?></strong></span>
             </div>
@@ -1120,16 +1219,28 @@ if (!function_exists('seo_process_supervisor_render_page')) {
             <?php if (!empty($_GET['supervisor_saved'])) : ?><div class="notice notice-success is-dismissible"><p>Configuración del supervisor guardada.</p></div><?php endif; ?>
             <?php if (!empty($_GET['supervisor_message'])) : ?><div class="notice notice-info is-dismissible"><p><?php echo esc_html(rawurldecode(sanitize_text_field(wp_unslash($_GET['supervisor_message'])))); ?></p></div><?php endif; ?>
 
+            <?php
+            $cron_php = '/opt/alt/php' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION . '/usr/bin/php';
+            $cron_file = SEO_SYSTEM_PATH . 'includes/process-manager-cron.php';
+            $cron_command = $cron_php . ' ' . $cron_file . ' >/dev/null 2>&1';
+            ?>
+            <div class="seo-worker-settings">
+                <strong>Cron real del servidor recomendado: cada minuto</strong>
+                <p><code style="display:block;white-space:normal;word-break:break-all;padding:8px;background:#f6f7f7"><?php echo esc_html($cron_command); ?></code></p>
+                <small>Si lo configuras en el panel del hosting, este será el motor principal. El WP-Cron propio puede quedar como respaldo.</small>
+            </div>
+
             <form class="seo-worker-settings" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
                 <input type="hidden" name="action" value="seo_process_supervisor_save_settings">
                 <?php wp_nonce_field('seo_process_supervisor_save_settings'); ?>
                 <div class="seo-worker-grid">
-                    <label><input type="checkbox" name="supervisor[enabled]" value="1" <?php checked(!empty($settings['enabled'])); ?>> <strong>Supervisor automático activo</strong><small>Si desaparece, el plugin intenta volver a levantarlo.</small></label>
-                    <label>Frecuencia de revisión<input type="number" name="supervisor[interval_seconds]" value="<?php echo esc_attr((string) $settings['interval_seconds']); ?>" min="5" max="300" step="1"><small>Segundos entre comprobaciones.</small></label>
+                    <label><input type="checkbox" name="supervisor[enabled]" value="1" <?php checked(!empty($settings['enabled'])); ?>> <strong>Gestor automático activo</strong><small>Ejecuta periódicamente tus procesos pendientes.</small></label>
+                    <label>Frecuencia de revisión<input type="number" name="supervisor[interval_seconds]" value="<?php echo esc_attr((string) $settings['interval_seconds']); ?>" min="60" max="900" step="1"><small>Segundos entre ciclos del gestor.</small></label>
+                    <label>Ventana de trabajo<input type="number" name="supervisor[runtime_seconds]" value="<?php echo esc_attr((string) ($settings['runtime_seconds'] ?? 45)); ?>" min="10" max="55" step="1"><small>Segundos máximos de trabajo por ciclo.</small></label>
                     <label>Espera antes de reintentar<input type="number" name="supervisor[restart_cooldown]" value="<?php echo esc_attr((string) $settings['restart_cooldown']); ?>" min="5" max="600" step="1"><small>Se amplía automáticamente tras fallos repetidos.</small></label>
                     <label><input type="checkbox" name="supervisor[import_export]" value="1" <?php checked(!empty($settings['import_export'])); ?>> Autoarrancar <strong>Import / Export</strong><small>Solo si existe una importación pendiente.</small></label>
                     <label><input type="checkbox" name="supervisor[academy]" value="1" <?php checked(!empty($settings['academy'])); ?>> Autoarrancar <strong>Academia</strong><small>Solo si la Academia está en modo automático y pendiente.</small></label>
-                    <label><input type="checkbox" name="supervisor[backup_watchdog]" value="1" <?php checked(!empty($settings['backup_watchdog'])); ?>> Watchdog WP-Cron de respaldo<small>Solo resucita el supervisor cada 5 min si el hosting lo mata; no regula los procesos.</small></label>
+                    <label><input type="checkbox" name="supervisor[backup_watchdog]" value="1" <?php checked(!empty($settings['backup_watchdog'])); ?>> WP-Cron propio de respaldo<small>Ejecuta este gestor si no has configurado un cron real del servidor.</small></label>
                     <label><input type="checkbox" name="supervisor[log_cycles]" value="1" <?php checked(!empty($settings['log_cycles'])); ?>> Registrar cada ciclo<small>Útil para diagnóstico; genera más entradas.</small></label>
                 </div>
                 <p><button type="submit" class="button button-primary">Guardar configuración</button></p>
@@ -1138,10 +1249,10 @@ if (!function_exists('seo_process_supervisor_render_page')) {
             <form class="seo-worker-actions" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
                 <input type="hidden" name="action" value="seo_process_supervisor_control">
                 <?php wp_nonce_field('seo_process_supervisor_control'); ?>
-                <button class="button button-primary" name="command" value="start">Arrancar supervisor</button>
-                <button class="button" name="command" value="restart">Reiniciar supervisor</button>
+                <button class="button button-primary" name="command" value="start">Activar gestor</button>
+                <button class="button" name="command" value="restart">Reiniciar gestor</button>
                 <button class="button" name="command" value="cycle">Comprobar procesos ahora</button>
-                <button class="button" name="command" value="stop" onclick="return confirm('¿Detener el supervisor automático? Los procesos que ya estén ejecutándose no se detendrán.');">Detener supervisor</button>
+                <button class="button" name="command" value="stop" onclick="return confirm('¿Detener el supervisor automático? Los procesos que ya estén ejecutándose no se detendrán.');">Detener gestor</button>
                 <button class="button" name="command" value="clear_log" onclick="return confirm('¿Vaciar el log del gestor de workers?');">Vaciar log</button>
             </form>
 
