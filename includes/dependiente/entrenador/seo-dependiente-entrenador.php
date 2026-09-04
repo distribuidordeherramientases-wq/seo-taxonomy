@@ -204,15 +204,19 @@ final class SEO_Dependiente_Entrenador {
             SEO_DEPENDIENTE_VERSION,
             true
         );
+        $speed = self::auto_speed_config();
         wp_localize_script('seo-dependiente-entrenador', 'SEODependienteEntrenador', array(
             'ajaxUrl'      => admin_url('admin-ajax.php'),
             'nonce'        => wp_create_nonce('seo_dependiente_entrenador'),
-            'batchSize'    => self::AJAX_BATCH_INITIAL,
-            'batchMin'     => self::AJAX_BATCH_MIN,
-            'batchMax'     => self::AJAX_BATCH_LIMIT,
-            'fastSeconds'  => 2.5,
-            'slowSeconds'  => 7.0,
-            'hardSeconds'  => 14.0,
+            'batchSize'    => $speed['initial_batch'],
+            'batchMin'     => $speed['min_batch'],
+            'batchMax'     => $speed['max_batch'],
+            'fastSeconds'  => $speed['fast_seconds'],
+            'slowSeconds'  => $speed['slow_seconds'],
+            'hardSeconds'  => $speed['very_slow_seconds'],
+            'growthFactor' => $speed['growth_factor'],
+            'slowdownFactor' => $speed['slowdown_factor'],
+            'fastStreakRequired' => $speed['fast_streak_required'],
             'maxRetries'   => 6,
             'autoPollMs'   => 5000,
         ));
@@ -440,7 +444,8 @@ final class SEO_Dependiente_Entrenador {
 
         $lesson_key = sanitize_key((string) wp_unslash($_POST['lesson_key'] ?? ''));
         $module_no = max(1, absint($_POST['module_no'] ?? 0));
-        $batch_size = self::sanitize_batch_size($_POST['batch_size'] ?? self::AJAX_BATCH_INITIAL);
+        $speed = self::auto_speed_config();
+        $batch_size = self::sanitize_batch_size($_POST['batch_size'] ?? $speed['initial_batch']);
         $batch_uuid = self::sanitize_uuid($_POST['batch_uuid'] ?? '');
         if (!$batch_uuid) {
             $batch_uuid = wp_generate_uuid4();
@@ -579,7 +584,9 @@ final class SEO_Dependiente_Entrenador {
             'updated_at'          => current_time('mysql'),
             'current_lesson'      => $current_key,
             'current_module'      => self::next_pending_module($current_key),
-            'batch_size'          => self::AJAX_BATCH_INITIAL,
+            'batch_size'          => self::auto_speed_config()['initial_batch'],
+            'last_processed'      => 0,
+            'next_delay'          => 0,
             'fast_streak'         => 0,
             'no_progress_cycles'  => 0,
             'worker_heartbeat_at' => '',
@@ -689,6 +696,8 @@ final class SEO_Dependiente_Entrenador {
                 self::save_auto_state(array(
                     'last_message'       => $message,
                     'last_error'         => '',
+                    'last_processed'     => 0,
+                    'next_delay'         => 1,
                     'no_progress_cycles' => 0,
                     'updated_at'         => current_time('mysql'),
                 ));
@@ -711,7 +720,8 @@ final class SEO_Dependiente_Entrenador {
                 }
 
                 $state = self::auto_state();
-                $batch_size = self::sanitize_batch_size($state['batch_size'] ?? self::AJAX_BATCH_INITIAL);
+                $speed = self::auto_speed_config();
+                $batch_size = self::sanitize_batch_size($state['batch_size'] ?? $speed['initial_batch']);
                 $started = microtime(true);
                 $result = self::auto_run_module_batch($lesson_key, $module_no, $batch_size);
                 $duration = max(0, microtime(true) - $started);
@@ -733,24 +743,25 @@ final class SEO_Dependiente_Entrenador {
                 }
 
                 $fast_streak = absint($state['fast_streak'] ?? 0);
-                if ($duration >= 14.0) {
-                    $batch_size = self::AJAX_BATCH_MIN;
+                if ($duration >= $speed['very_slow_seconds']) {
+                    $batch_size = $speed['min_batch'];
                     $fast_streak = 0;
-                    $delay = 5;
-                } elseif ($duration >= 7.0) {
-                    $batch_size = max(self::AJAX_BATCH_MIN, (int) floor($batch_size / 2));
+                    $delay = $speed['critical_delay_seconds'];
+                } elseif ($duration >= $speed['slow_seconds']) {
+                    $batch_size = max($speed['min_batch'], (int) floor($batch_size * $speed['slowdown_factor']));
                     $fast_streak = 0;
-                    $delay = 2;
-                } elseif ($duration <= 2.5) {
+                    $delay = $speed['slow_delay_seconds'];
+                } elseif ($duration <= $speed['fast_seconds']) {
                     $fast_streak++;
-                    if ($fast_streak >= 2 && $batch_size < self::AJAX_BATCH_LIMIT) {
-                        $batch_size++;
+                    if ($fast_streak >= $speed['fast_streak_required'] && $batch_size < $speed['max_batch']) {
+                        $grown = max($batch_size + 1, (int) ceil($batch_size * $speed['growth_factor']));
+                        $batch_size = min($speed['max_batch'], $grown);
                         $fast_streak = 0;
                     }
-                    $delay = 1;
+                    $delay = $speed['normal_delay_seconds'];
                 } else {
                     $fast_streak = 0;
-                    $delay = 1;
+                    $delay = $speed['normal_delay_seconds'];
                 }
 
                 if (!empty($result['lesson_done'])) {
@@ -771,6 +782,8 @@ final class SEO_Dependiente_Entrenador {
                     'fast_streak'        => $fast_streak,
                     'no_progress_cycles' => $no_progress,
                     'last_duration'      => round($duration, 3),
+                    'last_processed'     => absint($result['processed'] ?? 0),
+                    'next_delay'         => absint($delay),
                     'last_message'       => $message,
                     'last_error'         => '',
                     'updated_at'         => current_time('mysql'),
@@ -804,6 +817,37 @@ final class SEO_Dependiente_Entrenador {
     public static function reset_automation_state() {
         self::clear_auto_schedule();
         delete_option(self::AUTO_STATE_OPTION);
+    }
+
+    /**
+     * Instantanea de solo lectura para el monitor central de procesos.
+     *
+     * No ejecuta el watchdog ni programa workers: abrir Herramientas > Procesos
+     * nunca debe alterar el ritmo de la Academia.
+     *
+     * @return array
+     */
+    public static function process_monitor_payload() {
+        $state = self::auto_state();
+        $lessons = self::lessons_by_key(false);
+        $current_key = self::current_lesson_key($lessons);
+        $definition = $current_key ? self::lesson_definition($current_key) : null;
+        $lesson = $current_key ? self::lesson_row($current_key) : null;
+
+        return array(
+            'state' => $state,
+            'running' => self::is_auto_running($state),
+            'scheduler' => self::automation_scheduler_status(),
+            'current' => $current_key ? array(
+                'lesson_key'   => $current_key,
+                'lesson_order' => absint($definition['order'] ?? 0),
+                'title'        => (string) ($definition['title'] ?? ''),
+                'status'       => (string) ($lesson['status'] ?? ''),
+                'next_module'  => self::next_pending_module($current_key),
+                'module_count' => absint($lesson['module_count'] ?? 0),
+                'summary'      => self::lesson_summary($current_key),
+            ) : null,
+        );
     }
 
     private static function auto_prepare_lesson_batch($lesson_key) {
@@ -979,10 +1023,12 @@ final class SEO_Dependiente_Entrenador {
             'updated_at'         => '',
             'current_lesson'     => '',
             'current_module'     => 0,
-            'batch_size'         => self::AJAX_BATCH_INITIAL,
+            'batch_size'         => self::auto_speed_config()['initial_batch'],
             'fast_streak'        => 0,
             'no_progress_cycles' => 0,
             'last_duration'      => 0,
+            'last_processed'     => 0,
+            'next_delay'         => 0,
             'worker_heartbeat_at'=> '',
             'worker_heartbeat_ts'=> 0,
             'worker_runs'        => 0,
@@ -1228,7 +1274,8 @@ final class SEO_Dependiente_Entrenador {
         if (!$batch_key || !self::lab_batch_exists($batch_key)) {
             wp_send_json_error(array('message' => 'Lote de Laboratorio no encontrado.'), 404);
         }
-        $batch_size = self::sanitize_batch_size($_POST['batch_size'] ?? self::AJAX_BATCH_INITIAL);
+        $speed = self::auto_speed_config();
+        $batch_size = self::sanitize_batch_size($_POST['batch_size'] ?? $speed['initial_batch']);
         $batch_uuid = self::sanitize_uuid($_POST['batch_uuid'] ?? '');
         if (!$batch_uuid) {
             $batch_uuid = wp_generate_uuid4();
@@ -3432,12 +3479,40 @@ final class SEO_Dependiente_Entrenador {
         return implode(' > ', array_filter($names));
     }
 
-    private static function sanitize_batch_size($value) {
-        $value = absint($value);
-        if ($value < self::AJAX_BATCH_MIN) {
-            $value = self::AJAX_BATCH_INITIAL;
+    private static function auto_speed_config() {
+        $config = array(
+            'min_batch' => self::AJAX_BATCH_MIN,
+            'initial_batch' => self::AJAX_BATCH_INITIAL,
+            'max_batch' => self::AJAX_BATCH_LIMIT,
+            'fast_seconds' => 2.5,
+            'slow_seconds' => 7.0,
+            'very_slow_seconds' => 14.0,
+            'growth_factor' => 1.34,
+            'slowdown_factor' => 0.50,
+            'fast_streak_required' => 2,
+            'normal_delay_seconds' => 1,
+            'slow_delay_seconds' => 2,
+            'critical_delay_seconds' => 5,
+        );
+        if (function_exists('seo_processes_control_for')) {
+            $stored = seo_processes_control_for('academy');
+            if (is_array($stored) && $stored) {
+                $config = array_merge($config, $stored);
+            }
         }
-        return min(self::AJAX_BATCH_LIMIT, max(self::AJAX_BATCH_MIN, $value));
+        $config['min_batch'] = max(1, absint($config['min_batch']));
+        $config['initial_batch'] = max($config['min_batch'], absint($config['initial_batch']));
+        $config['max_batch'] = max($config['initial_batch'], absint($config['max_batch']));
+        return $config;
+    }
+
+    private static function sanitize_batch_size($value) {
+        $speed = self::auto_speed_config();
+        $value = absint($value);
+        if ($value < $speed['min_batch']) {
+            $value = $speed['initial_batch'];
+        }
+        return min($speed['max_batch'], max($speed['min_batch'], $value));
     }
 
     private static function sanitize_mode($mode) {
