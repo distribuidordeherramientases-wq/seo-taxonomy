@@ -77,6 +77,19 @@ El proyecto utiliza versionado **SemVer (MAJOR.MINOR.PATCH)**.
 
 ------------------------------------------------------------------------
 
+## 2.2.0 - Supplier Import / Sync V2
+- Separada la seleccion comercial del estado de sincronizacion.
+- Actualizacion automatica por proveedor + SKU conservando object_id.
+- Proteccion de titulo, descripcion, excerpt, categorias, atributos y etiquetas en actualizaciones.
+- Productos nuevos a la categoria Nuevos productos.
+- Modo de imagen persistente local/external; externo como opcion recomendada para nuevas importaciones.
+- Reconstruccion autoritativa de galerias externas por SKU.
+- Fallback visual: imagen local -> imagen externa -> logo de tienda.
+- Runs auditables y deteccion segura de bajas solo en catalogos completos sin errores.
+- Bajas reversibles y reactivacion del mismo object_id.
+- CSV del crawler limitado a registros vistos en el ciclo actual.
+
+
 # \[2.0.0\] - Próxima versión
 
 ## Arquitectura
@@ -184,14 +197,3 @@ Incluye la infraestructura inicial del proyecto y las primeras
 herramientas para gestionar relaciones SEO, páginas estructurales y
 organización semántica del catálogo.
 
-## 2.2.0 - Supplier Import / Sync V2
-- Separada la seleccion comercial del estado de sincronizacion.
-- Actualizacion automatica por proveedor + SKU conservando object_id.
-- Proteccion de titulo, descripcion, excerpt, categorias, atributos y etiquetas en actualizaciones.
-- Productos nuevos a la categoria Nuevos productos.
-- Modo de imagen persistente local/external; externo como opcion recomendada para nuevas importaciones.
-- Reconstruccion autoritativa de galerias externas por SKU.
-- Fallback visual: imagen local -> imagen externa -> logo de tienda.
-- Runs auditables y deteccion segura de bajas solo en catalogos completos sin errores.
-- Bajas reversibles y reactivacion del mismo object_id.
-- CSV del crawler limitado a registros vistos en el ciclo actual.
