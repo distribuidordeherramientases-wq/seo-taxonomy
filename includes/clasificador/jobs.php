@@ -409,6 +409,24 @@ if (!function_exists('seo_classifier_job_maybe_spawn_cron')) {
     }
 }
 
+if (!function_exists('seo_classifier_job_manager_due_key')) {
+    function seo_classifier_job_manager_due_key($job_id) {
+        return 'seo_classifier_manager_due_' . absint($job_id);
+    }
+}
+
+if (!function_exists('seo_classifier_job_use_process_manager')) {
+    /**
+     * El Clasificador solo entra en el gestor cuando existe un job que el
+     * administrador ha iniciado o reanudado. El gestor nunca crea jobs nuevos.
+     */
+    function seo_classifier_job_use_process_manager() {
+        if (!function_exists('seo_process_supervisor_settings')) return false;
+        $settings = (array) seo_process_supervisor_settings();
+        return !empty($settings['enabled']) && !empty($settings['classifier']);
+    }
+}
+
 if (!function_exists('seo_classifier_job_schedule')) {
     /**
      * Programa el worker por dos vías independientes.
@@ -426,6 +444,25 @@ if (!function_exists('seo_classifier_job_schedule')) {
         $args = [$job_id];
         $group = 'seo-taxonomy-classifier';
         $scheduled = false;
+
+        // Si el gestor propio está activo, el job ya fue iniciado manualmente y
+        // solo pedimos continuidad al gestor. No entregamos el ritmo a
+        // Action Scheduler ni a WP-Cron/WooCommerce.
+        if (seo_classifier_job_use_process_manager()) {
+            if (function_exists('as_unschedule_all_actions')) {
+                as_unschedule_all_actions($hook, $args, $group);
+            }
+            wp_clear_scheduled_hook($hook, $args);
+            $due = time() + $delay;
+            set_transient(seo_classifier_job_manager_due_key($job_id), $due, max(300, $delay + 300));
+            if (function_exists('seo_process_supervisor_nudge')) {
+                seo_process_supervisor_nudge($delay, 'classifier');
+            }
+            if (function_exists('seo_process_supervisor_schedule_backup')) {
+                seo_process_supervisor_schedule_backup();
+            }
+            return true;
+        }
 
         $has_action = false;
         if (function_exists('as_has_scheduled_action')) {
@@ -473,11 +510,14 @@ if (!function_exists('seo_classifier_job_scheduler_status')) {
             $as_pending = (bool) as_has_scheduled_action($hook, $args, $group);
         }
         $cron_next = wp_next_scheduled($hook, $args);
+        $manager_due = absint(get_transient(seo_classifier_job_manager_due_key($job_id)));
         return [
             'action_scheduler_available'=>$as_available,
             'action_scheduler_pending'=>$as_pending,
             'wp_cron_next'=>$cron_next ? absint($cron_next) : 0,
             'wp_cron_disabled'=>defined('DISABLE_WP_CRON') && DISABLE_WP_CRON,
+            'process_manager'=>seo_classifier_job_use_process_manager(),
+            'manager_due'=>$manager_due,
         ];
     }
 }
@@ -489,6 +529,7 @@ if (!function_exists('seo_classifier_job_unschedule')) {
         $args = [$job_id];
         if (function_exists('as_unschedule_all_actions')) as_unschedule_all_actions($hook, $args, 'seo-taxonomy-classifier');
         wp_clear_scheduled_hook($hook, $args);
+        delete_transient(seo_classifier_job_manager_due_key($job_id));
     }
 }
 
@@ -498,10 +539,12 @@ if (!function_exists('seo_classifier_job_adaptive_config')) {
         $config = $mode === 'deep' ? [
             'min_rows'=>1,'initial_rows'=>1,'max_rows'=>2,'target_seconds'=>5.0,'hard_seconds'=>10.0,
             'memory_soft_ratio'=>0.50,'memory_hard_ratio'=>0.65,'cpu_soft_percent'=>65.0,'cpu_hard_percent'=>80.0,
+            'growth_factor'=>1.45,'slowdown_factor'=>0.75,'critical_factor'=>0.45,
             'normal_delay'=>10,'heavy_delay'=>40,'critical_delay'=>120,
         ] : [
             'min_rows'=>2,'initial_rows'=>3,'max_rows'=>25,'target_seconds'=>5.0,'hard_seconds'=>10.0,
             'memory_soft_ratio'=>0.52,'memory_hard_ratio'=>0.68,'cpu_soft_percent'=>65.0,'cpu_hard_percent'=>80.0,
+            'growth_factor'=>1.45,'slowdown_factor'=>0.75,'critical_factor'=>0.45,
             'normal_delay'=>5,'heavy_delay'=>30,'critical_delay'=>90,
         ];
         return apply_filters('seo_classifier_job_adaptive_config', $config, $mode);
@@ -582,15 +625,15 @@ if (!function_exists('seo_classifier_job_adaptive_plan')) {
             $ideal = (int)floor($config['target_seconds'] / max(0.05, $seconds_per_row));
             $ideal = max((int)$config['min_rows'], min((int)$config['max_rows'], $ideal));
             if ($memory_cutoff || $memory >= $config['memory_hard_ratio'] || $duration >= $config['hard_seconds']) {
-                $next = max((int)$config['min_rows'], (int)floor(max(1, $previous) * 0.45));
+                $next = max((int)$config['min_rows'], (int)floor(max(1, $previous) * (float)$config['critical_factor']));
                 $pressure = 'critica';
                 $reason = 'corte por tiempo/memoria';
             } elseif ($time_cutoff || $memory >= $config['memory_soft_ratio'] || $duration > ($config['target_seconds'] * 1.35)) {
-                $next = max((int)$config['min_rows'], min($ideal, (int)floor(max(1, $previous) * 0.75)));
+                $next = max((int)$config['min_rows'], min($ideal, (int)floor(max(1, $previous) * (float)$config['slowdown_factor'])));
                 $pressure = 'alta';
                 $reason = 'lote pesado';
             } else {
-                $growth_cap = max($previous + 2, (int)ceil($previous * 1.45));
+                $growth_cap = max($previous + 2, (int)ceil($previous * (float)$config['growth_factor']));
                 $next = min($ideal, $growth_cap);
                 $pressure = $duration > $config['target_seconds'] ? 'media' : 'baja';
                 $reason = 'coste estable';
@@ -620,14 +663,11 @@ if (!function_exists('seo_classifier_job_adaptive_plan')) {
 
 if (!function_exists('seo_classifier_heavy_workload_active')) {
     function seo_classifier_heavy_workload_active() {
-        global $wpdb;
-        $active = false;
-        // La importación por lotes guarda un estado activo por usuario.
-        if (isset($wpdb->usermeta)) {
-            $count = (int)$wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->usermeta} WHERE meta_key='seo_ie_active_product_import' AND meta_value<>''");
-            if ($count > 0) $active = true;
-        }
-        return (bool)apply_filters('seo_classifier_heavy_workload_active', $active);
+        // Ningún proceso del plugin tiene prioridad implícita sobre otro. Si el
+        // Clasificador fue iniciado manualmente, su propio regulador decide la
+        // carga por tiempo, memoria y CPU. Un módulo externo aún puede forzar
+        // una pausa explícita mediante este filtro.
+        return (bool) apply_filters('seo_classifier_heavy_workload_active', false);
     }
 }
 
@@ -1179,6 +1219,52 @@ if (!function_exists('seo_classifier_process_job')) {
     add_action('seo_classifier_process_job', 'seo_classifier_process_job', 10, 1);
 }
 
+if (!function_exists('seo_classifier_job_manager_slice')) {
+    /**
+     * Ejecuta el Clasificador durante una ventana del gestor. Solo procesa jobs
+     * que ya estén en pending/running; nunca crea ni reactiva un job parado.
+     */
+    function seo_classifier_job_manager_slice($job_id, $seconds = 15, $source = 'manager_cron') {
+        $job_id = absint($job_id);
+        $seconds = max(5, min(55, absint($seconds)));
+        $source = sanitize_key((string)$source);
+        if ($source === '') $source = 'manager_cron';
+        $started = microtime(true);
+        $did_work = false;
+
+        while ((microtime(true) - $started) < $seconds) {
+            $job = seo_classifier_job_get($job_id);
+            if (!$job || !in_array((string)($job['status'] ?? ''), ['pending','running'], true)) break;
+
+            $due = absint(get_transient(seo_classifier_job_manager_due_key($job_id)));
+            $now = time();
+            if ($due > $now) {
+                $wait = min($due - $now, max(0, (int)floor($seconds - (microtime(true) - $started))));
+                if ($wait < 1) break;
+                sleep(min(5, $wait));
+                continue;
+            }
+
+            $runs_before = absint($job['worker_runs'] ?? 0);
+            seo_classifier_process_job($job_id, $source);
+            $after = seo_classifier_job_get($job_id);
+            if (!$after) break;
+            if (absint($after['worker_runs'] ?? 0) > $runs_before || absint($after['processed_items'] ?? 0) > absint($job['processed_items'] ?? 0)) {
+                $did_work = true;
+            }
+            if (!in_array((string)($after['status'] ?? ''), ['pending','running'], true)) break;
+
+            $delay = absint($after['adaptive_next_delay'] ?? 0);
+            if ($delay > 0) {
+                set_transient(seo_classifier_job_manager_due_key($job_id), time() + $delay, max(300, $delay + 300));
+                if ((microtime(true) - $started) + $delay >= $seconds) break;
+                sleep(min(5, $delay));
+            }
+        }
+        return $did_work;
+    }
+}
+
 if (!function_exists('seo_classifier_job_control')) {
     function seo_classifier_job_control($job_id, $action) {
         global $wpdb;
@@ -1221,9 +1307,12 @@ if (!function_exists('seo_classifier_job_maybe_watchdog')) {
         $job = seo_classifier_job_get($job_id);
         if (!$job || !in_array((string)($job['status'] ?? ''), ['pending','running'], true)) return false;
 
-        // Mantener preparadas las dos vías de background aunque el watchdog no
-        // tenga que intervenir en esta petición.
+        // Mantener preparado el motor correspondiente. Si el gestor propio está
+        // activo, la pantalla solo lo despierta: no ejecuta trabajo pesado aquí.
         seo_classifier_job_schedule($job_id, 0, false);
+        if (seo_classifier_job_use_process_manager()) {
+            return false;
+        }
 
         $runs = absint($job['worker_runs'] ?? 0);
         $heartbeat = absint($job['worker_heartbeat_ts'] ?? 0);

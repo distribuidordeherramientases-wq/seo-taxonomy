@@ -3,7 +3,7 @@
  * SEO Taxonomy - Supervisor propio de procesos.
  *
  * Gestor periódico de procesos propios. Ejecuta ventanas limitadas de
- * Import/Export y Academia directamente, sin Action Scheduler ni el worker de
+ * Import/Export, Academia y Clasificador directamente, sin Action Scheduler ni el worker de
  * WooCommerce. Puede ser invocado por cron real del servidor; WP-Cron propio
  * queda como respaldo.
  *
@@ -39,6 +39,7 @@ if (!function_exists('seo_process_supervisor_defaults')) {
             'restart_cooldown'   => 20,
             'import_export'      => 1,
             'academy'            => 1,
+            'classifier'         => 1,
             'backup_watchdog'    => 1,
             'log_cycles'         => 0,
         );
@@ -55,6 +56,7 @@ if (!function_exists('seo_process_supervisor_sanitize_settings')) {
             'restart_cooldown' => max(5, min(600, absint($raw['restart_cooldown']))),
             'import_export'    => empty($raw['import_export']) ? 0 : 1,
             'academy'          => empty($raw['academy']) ? 0 : 1,
+            'classifier'       => empty($raw['classifier']) ? 0 : 1,
             'backup_watchdog'  => empty($raw['backup_watchdog']) ? 0 : 1,
             'log_cycles'       => empty($raw['log_cycles']) ? 0 : 1,
         );
@@ -508,6 +510,29 @@ if (!function_exists('seo_process_supervisor_academy_pending')) {
 }
 
 
+if (!function_exists('seo_process_supervisor_classifier_jobs')) {
+    /**
+     * Devuelve exclusivamente jobs del Clasificador que ya fueron iniciados o
+     * reanudados por el administrador. Pausados/cancelados/completados no entran.
+     */
+    function seo_process_supervisor_classifier_jobs() {
+        if (!function_exists('seo_classifier_jobs_tables')) return array();
+        global $wpdb;
+        $tables = seo_classifier_jobs_tables();
+        $table = $tables['jobs'] ?? '';
+        if (!$table) return array();
+        $rows = $wpdb->get_results("SELECT id,status,mode,adaptive_next_delay,updated_at FROM {$table} WHERE status IN ('pending','running') ORDER BY id ASC LIMIT 20", ARRAY_A);
+        return is_array($rows) ? $rows : array();
+    }
+}
+
+if (!function_exists('seo_process_supervisor_classifier_pending')) {
+    function seo_process_supervisor_classifier_pending() {
+        $settings = seo_process_supervisor_settings();
+        return !empty($settings['classifier']) && !empty(seo_process_supervisor_classifier_jobs());
+    }
+}
+
 if (!function_exists('seo_process_supervisor_has_pending_work')) {
     /**
      * Indica si existe trabajo propio que deba seguir recibiendo pulsos.
@@ -532,6 +557,10 @@ if (!function_exists('seo_process_supervisor_has_pending_work')) {
         }
 
         if (!$pending && !empty($settings['academy']) && seo_process_supervisor_academy_pending()) {
+            $pending = true;
+        }
+
+        if (!$pending && !empty($settings['classifier']) && seo_process_supervisor_classifier_pending()) {
             $pending = true;
         }
 
@@ -750,6 +779,26 @@ if (!function_exists('seo_process_supervisor_run_manager_window')) {
                 }
             }
 
+            if (!empty($settings['classifier']) && function_exists('seo_classifier_job_manager_slice')) {
+                foreach (seo_process_supervisor_classifier_jobs() as $classifier_job) {
+                    $job_id = absint($classifier_job['id'] ?? 0);
+                    if (!$job_id) continue;
+                    $due = function_exists('seo_classifier_job_manager_due_key')
+                        ? absint(get_transient(seo_classifier_job_manager_due_key($job_id)))
+                        : 0;
+                    $key = 'classifier-' . $job_id;
+                    if ($due && $due > time()) {
+                        seo_process_supervisor_managed_update($key, array(
+                            'name' => 'Clasificador', 'pending' => 1, 'healthy' => 1, 'last_checked' => time(),
+                            'last_result' => 'waiting', 'last_error' => '',
+                            'detail' => 'Job #' . $job_id . ' en pausa adaptativa; el gestor lo retomará.'
+                        ));
+                    } else {
+                        $targets[] = array('type' => 'classifier', 'data' => array('job_id' => $job_id));
+                    }
+                }
+            }
+
             /**
              * Otros módulos pueden añadir ventanas al bus periódico. Cada target
              * debe usar una función/callback idempotente y respetar su propio lock.
@@ -782,7 +831,11 @@ if (!function_exists('seo_process_supervisor_run_manager_window')) {
                 ));
                 seo_process_supervisor_managed_update('academy', array(
                     'name' => 'Academia', 'pending' => 0, 'healthy' => 1, 'last_checked' => time(),
-                    'detail' => 'Sin trabajo automático pendiente.', 'last_result' => 'idle', 'last_error' => ''
+                    'detail' => 'Parada o sin ejecución iniciada.', 'last_result' => 'idle', 'last_error' => ''
+                ));
+                seo_process_supervisor_managed_update('classifier', array(
+                    'name' => 'Clasificador', 'pending' => 0, 'healthy' => 1, 'last_checked' => time(),
+                    'detail' => 'Parado o sin job iniciado.', 'last_result' => 'idle', 'last_error' => ''
                 ));
             }
 
@@ -835,6 +888,30 @@ if (!function_exists('seo_process_supervisor_run_manager_window')) {
                         'last_result' => $ok ? 'processed' : 'waiting',
                         'last_error' => '',
                         'detail' => $still ? 'Ventana completada; continuará en el siguiente ciclo.' : 'Academia terminada o sin trabajo pendiente.'
+                    ));
+                    if ($ok) {
+                        $state = seo_process_supervisor_state();
+                        seo_process_supervisor_save_state(array('launch_count' => absint($state['launch_count'] ?? 0) + 1, 'last_launch_at' => time()));
+                    }
+                } elseif ('classifier' === $target['type']) {
+                    $job_id = absint($target['data']['job_id'] ?? 0);
+                    $key = 'classifier-' . $job_id;
+                    seo_process_supervisor_managed_update($key, array(
+                        'name' => 'Clasificador', 'pending' => 1, 'healthy' => 1, 'last_checked' => time(),
+                        'last_attempt_at' => time(), 'last_result' => 'running', 'last_error' => '',
+                        'detail' => 'El gestor está ejecutando una ventana del Clasificador · Job #' . $job_id . '.'
+                    ));
+                    seo_process_supervisor_log('info', 'process_window_started', 'Clasificador entra en una ventana del gestor.', 'Clasificador', array('job_id' => $job_id, 'seconds' => $budget));
+                    $ok = $job_id > 0 ? seo_classifier_job_manager_slice($job_id, $budget, $source) : false;
+                    $job = $job_id > 0 && function_exists('seo_classifier_job_get') ? seo_classifier_job_get($job_id) : null;
+                    $still = is_array($job) && in_array((string)($job['status'] ?? ''), array('pending','running'), true);
+                    seo_process_supervisor_managed_update($key, array(
+                        'pending' => $still ? 1 : 0,
+                        'healthy' => 1,
+                        'last_checked' => time(),
+                        'last_result' => $ok ? 'processed' : 'waiting',
+                        'last_error' => '',
+                        'detail' => $still ? 'Ventana completada; continuará mientras el job siga iniciado.' : 'Job terminado, pausado o cancelado.'
                     ));
                     if ($ok) {
                         $state = seo_process_supervisor_state();
@@ -1357,7 +1434,7 @@ if (!function_exists('seo_process_supervisor_render_live')) {
         <h3>Procesos vigilados</h3>
         <div class="seo-worker-table-wrap">
             <table class="widefat striped seo-worker-table">
-                <thead><tr><th>Proceso</th><th>Autoarranque</th><th>Trabajo pendiente</th><th>Estado detectado</th><th>Último intento</th><th>Resultado</th></tr></thead>
+                <thead><tr><th>Proceso</th><th>Gestionado</th><th>Proceso iniciado</th><th>Estado detectado</th><th>Último intento</th><th>Resultado</th></tr></thead>
                 <tbody>
                     <?php
                     $visible = array();
@@ -1370,12 +1447,22 @@ if (!function_exists('seo_process_supervisor_render_live')) {
                         $visible['import-export'] = array('name' => 'Import / Export', 'pending' => 0, 'healthy' => 0, 'detail' => 'Todavía sin lectura.', 'last_checked' => 0);
                     }
                     $visible['academy'] = isset($managed['academy']) ? $managed['academy'] : array('name' => 'Academia', 'pending' => 0, 'healthy' => 0, 'detail' => 'Todavía sin lectura.', 'last_checked' => 0);
+                    $classifier_rows = array();
+                    foreach ($managed as $key => $row) {
+                        if (0 === strpos((string)$key, 'classifier-')) $classifier_rows[$key] = $row;
+                    }
+                    if ($classifier_rows) {
+                        foreach ($classifier_rows as $key => $row) $visible[$key] = $row;
+                    } else {
+                        $visible['classifier'] = isset($managed['classifier']) ? $managed['classifier'] : array('name' => 'Clasificador', 'pending' => 0, 'healthy' => 0, 'detail' => 'Todavía sin lectura.', 'last_checked' => 0);
+                    }
                     foreach ($visible as $key => $row) :
                         $is_import = 0 === strpos((string) $key, 'import-export');
-                        $enabled = $is_import ? !empty($settings['import_export']) : !empty($settings['academy']);
+                        $is_classifier = 0 === strpos((string) $key, 'classifier');
+                        $enabled = $is_import ? !empty($settings['import_export']) : ($is_classifier ? !empty($settings['classifier']) : !empty($settings['academy']));
                     ?>
                     <tr>
-                        <td><strong><?php echo esc_html($row['name'] ?? ($is_import ? 'Import / Export' : 'Academia')); ?></strong></td>
+                        <td><strong><?php echo esc_html($row['name'] ?? ($is_import ? 'Import / Export' : ($is_classifier ? 'Clasificador' : 'Academia'))); ?></strong></td>
                         <td><?php echo $enabled ? '<span class="seo-worker-pill is-ok">Sí</span>' : '<span class="seo-worker-pill">No</span>'; ?></td>
                         <td><?php echo !empty($row['pending']) ? '<span class="seo-worker-pill is-warn">Sí</span>' : '<span class="seo-worker-pill">No</span>'; ?></td>
                         <td><strong><?php echo !empty($row['healthy']) ? 'Gestionado' : 'Sin actividad'; ?></strong><br><small><?php echo esc_html($row['detail'] ?? ''); ?></small></td>
@@ -1437,7 +1524,7 @@ if (!function_exists('seo_process_supervisor_render_page')) {
             <div class="seo-worker-heading">
                 <div>
                     <h2>Gestor periódico del plugin</h2>
-                    <p>El gestor revisa Import/Export y Academia y ejecuta directamente ventanas de trabajo. No usa Action Scheduler ni el worker de WooCommerce. Puede funcionar con un cron real del servidor y mantiene WP-Cron propio como respaldo.</p>
+                    <p>El gestor mantiene vivos únicamente los procesos que tú hayas iniciado: Import/Export, Academia y Clasificador. Si están parados no los toca. No usa el worker de WooCommerce como motor.</p>
                 </div>
                 <span>Lectura: <strong id="seo-worker-refreshed"><?php echo esc_html(current_time('H:i:s')); ?></strong></span>
             </div>
@@ -1460,12 +1547,13 @@ if (!function_exists('seo_process_supervisor_render_page')) {
                 <input type="hidden" name="action" value="seo_process_supervisor_save_settings">
                 <?php wp_nonce_field('seo_process_supervisor_save_settings'); ?>
                 <div class="seo-worker-grid">
-                    <label><input type="checkbox" name="supervisor[enabled]" value="1" <?php checked(!empty($settings['enabled'])); ?>> <strong>Gestor automático activo</strong><small>Ejecuta periódicamente tus procesos pendientes.</small></label>
+                    <label><input type="checkbox" name="supervisor[enabled]" value="1" <?php checked(!empty($settings['enabled'])); ?>> <strong>Gestor activo</strong><small>Solo mantiene procesos que tú hayas iniciado; nunca crea trabajos nuevos.</small></label>
                     <label>Frecuencia de revisión<input type="number" name="supervisor[interval_seconds]" value="<?php echo esc_attr((string) $settings['interval_seconds']); ?>" min="60" max="900" step="1"><small>Segundos entre ciclos del gestor.</small></label>
                     <label>Ventana de trabajo<input type="number" name="supervisor[runtime_seconds]" value="<?php echo esc_attr((string) ($settings['runtime_seconds'] ?? 45)); ?>" min="10" max="55" step="1"><small>Segundos máximos de trabajo por ciclo.</small></label>
                     <label>Espera antes de reintentar<input type="number" name="supervisor[restart_cooldown]" value="<?php echo esc_attr((string) $settings['restart_cooldown']); ?>" min="5" max="600" step="1"><small>Se amplía automáticamente tras fallos repetidos.</small></label>
-                    <label><input type="checkbox" name="supervisor[import_export]" value="1" <?php checked(!empty($settings['import_export'])); ?>> Autoarrancar <strong>Import / Export</strong><small>Solo si existe una importación pendiente.</small></label>
-                    <label><input type="checkbox" name="supervisor[academy]" value="1" <?php checked(!empty($settings['academy'])); ?>> Autoarrancar <strong>Academia</strong><small>Solo si la Academia está en modo automático y pendiente.</small></label>
+                    <label><input type="checkbox" name="supervisor[import_export]" value="1" <?php checked(!empty($settings['import_export'])); ?>> Gestionar <strong>Import / Export</strong><small>Solo mientras una importación iniciada siga activa.</small></label>
+                    <label><input type="checkbox" name="supervisor[academy]" value="1" <?php checked(!empty($settings['academy'])); ?>> Gestionar <strong>Academia</strong><small>Solo después de que tú la hayas arrancado.</small></label>
+                    <label><input type="checkbox" name="supervisor[classifier]" value="1" <?php checked(!empty($settings['classifier'])); ?>> Gestionar <strong>Clasificador</strong><small>Solo jobs iniciados o reanudados manualmente.</small></label>
                     <label><input type="checkbox" name="supervisor[backup_watchdog]" value="1" <?php checked(!empty($settings['backup_watchdog'])); ?>> WP-Cron propio de respaldo<small>Ejecuta este gestor si no has configurado un cron real del servidor.</small></label>
                     <label><input type="checkbox" name="supervisor[log_cycles]" value="1" <?php checked(!empty($settings['log_cycles'])); ?>> Registrar cada ciclo<small>Útil para diagnóstico; genera más entradas.</small></label>
                 </div>

@@ -5,7 +5,8 @@
  * Reune en una sola pantalla el estado observable de los workers que pueden
  * ejercer carga sostenida sobre WordPress o sobre el servidor publico:
  * - Import / Export por lotes.
- * - Academia automatica del Dependiente.
+ * - Academia del Dependiente.
+ * - Clasificador semantico por jobs.
  * - Auditorias de salud de paginas, posts e imagenes.
  *
  * La pantalla centraliza monitorizacion, limites de velocidad y el arranque
@@ -52,6 +53,26 @@ if (!function_exists('seo_processes_control_defaults')) {
                 'normal_delay_seconds' => 1,
                 'slow_delay_seconds' => 2,
                 'critical_delay_seconds' => 5,
+            ),
+            'classifier' => array(
+                'fast_min_rows' => 2,
+                'fast_initial_rows' => 3,
+                'fast_max_rows' => 25,
+                'deep_min_rows' => 1,
+                'deep_initial_rows' => 1,
+                'deep_max_rows' => 2,
+                'target_seconds' => 5.0,
+                'hard_seconds' => 10.0,
+                'growth_factor' => 1.45,
+                'slowdown_factor' => 0.75,
+                'critical_factor' => 0.45,
+                'memory_soft_percent' => 52.0,
+                'memory_hard_percent' => 68.0,
+                'cpu_soft_percent' => 65.0,
+                'cpu_hard_percent' => 80.0,
+                'normal_delay_seconds' => 5,
+                'heavy_delay_seconds' => 30,
+                'critical_delay_seconds' => 90,
             ),
             'health-page' => array(
                 'batch' => 250,
@@ -133,6 +154,27 @@ if (!function_exists('seo_processes_sanitize_controls')) {
         $academy['critical_delay_seconds'] = max($academy['slow_delay_seconds'], min(300, absint($academy['critical_delay_seconds'])));
         $out['academy'] = $academy;
 
+        $classifier = wp_parse_args(isset($raw['classifier']) && is_array($raw['classifier']) ? $raw['classifier'] : array(), $defaults['classifier']);
+        $classifier['fast_min_rows'] = max(1, min(100, absint($classifier['fast_min_rows'])));
+        $classifier['fast_initial_rows'] = max($classifier['fast_min_rows'], min(250, absint($classifier['fast_initial_rows'])));
+        $classifier['fast_max_rows'] = max($classifier['fast_initial_rows'], min(1000, absint($classifier['fast_max_rows'])));
+        $classifier['deep_min_rows'] = max(1, min(20, absint($classifier['deep_min_rows'])));
+        $classifier['deep_initial_rows'] = max($classifier['deep_min_rows'], min(50, absint($classifier['deep_initial_rows'])));
+        $classifier['deep_max_rows'] = max($classifier['deep_initial_rows'], min(100, absint($classifier['deep_max_rows'])));
+        $classifier['target_seconds'] = seo_processes_clamp_float($classifier['target_seconds'], 1.0, 120.0);
+        $classifier['hard_seconds'] = max($classifier['target_seconds'] + 1.0, seo_processes_clamp_float($classifier['hard_seconds'], 2.0, 300.0));
+        $classifier['growth_factor'] = seo_processes_clamp_float($classifier['growth_factor'], 1.05, 2.50);
+        $classifier['slowdown_factor'] = seo_processes_clamp_float($classifier['slowdown_factor'], 0.20, 0.95);
+        $classifier['critical_factor'] = seo_processes_clamp_float($classifier['critical_factor'], 0.10, 0.80);
+        $classifier['memory_soft_percent'] = seo_processes_clamp_float($classifier['memory_soft_percent'], 20.0, 90.0);
+        $classifier['memory_hard_percent'] = max($classifier['memory_soft_percent'] + 5.0, seo_processes_clamp_float($classifier['memory_hard_percent'], 25.0, 98.0));
+        $classifier['cpu_soft_percent'] = seo_processes_clamp_float($classifier['cpu_soft_percent'], 20.0, 95.0);
+        $classifier['cpu_hard_percent'] = max($classifier['cpu_soft_percent'] + 5.0, seo_processes_clamp_float($classifier['cpu_hard_percent'], 25.0, 100.0));
+        $classifier['normal_delay_seconds'] = min(120, absint($classifier['normal_delay_seconds']));
+        $classifier['heavy_delay_seconds'] = max($classifier['normal_delay_seconds'], min(300, absint($classifier['heavy_delay_seconds'])));
+        $classifier['critical_delay_seconds'] = max($classifier['heavy_delay_seconds'], min(900, absint($classifier['critical_delay_seconds'])));
+        $out['classifier'] = $classifier;
+
         foreach (array('page', 'post', 'image') as $scope) {
             $key = 'health-' . $scope;
             $health = wp_parse_args(isset($raw[$key]) && is_array($raw[$key]) ? $raw[$key] : array(), $defaults[$key]);
@@ -189,6 +231,32 @@ if (!function_exists('seo_processes_filter_import_adaptive_config')) {
     }
 }
 add_filter('seo_ie_product_import_adaptive_config', 'seo_processes_filter_import_adaptive_config', 50);
+
+if (!function_exists('seo_processes_filter_classifier_adaptive_config')) {
+    function seo_processes_filter_classifier_adaptive_config($config, $mode) {
+        $control = seo_processes_control_for('classifier');
+        if (!$control || !is_array($config)) return $config;
+        $deep = 'deep' === sanitize_key((string)$mode);
+        return array_merge($config, array(
+            'min_rows' => absint($deep ? $control['deep_min_rows'] : $control['fast_min_rows']),
+            'initial_rows' => absint($deep ? $control['deep_initial_rows'] : $control['fast_initial_rows']),
+            'max_rows' => absint($deep ? $control['deep_max_rows'] : $control['fast_max_rows']),
+            'target_seconds' => (float)$control['target_seconds'],
+            'hard_seconds' => (float)$control['hard_seconds'],
+            'growth_factor' => (float)$control['growth_factor'],
+            'slowdown_factor' => (float)$control['slowdown_factor'],
+            'critical_factor' => (float)$control['critical_factor'],
+            'memory_soft_ratio' => ((float)$control['memory_soft_percent']) / 100,
+            'memory_hard_ratio' => ((float)$control['memory_hard_percent']) / 100,
+            'cpu_soft_percent' => (float)$control['cpu_soft_percent'],
+            'cpu_hard_percent' => (float)$control['cpu_hard_percent'],
+            'normal_delay' => absint($control['normal_delay_seconds']),
+            'heavy_delay' => absint($control['heavy_delay_seconds']),
+            'critical_delay' => absint($control['critical_delay_seconds']),
+        ));
+    }
+}
+add_filter('seo_classifier_job_adaptive_config', 'seo_processes_filter_classifier_adaptive_config', 50, 2);
 
 if (!function_exists('seo_processes_filter_health_scope_config')) {
     function seo_processes_filter_health_scope_config($config, $scope) {
@@ -711,6 +779,94 @@ if (!function_exists('seo_processes_collect_academy')) {
     }
 }
 
+if (!function_exists('seo_processes_classifier_current_job')) {
+    function seo_processes_classifier_current_job() {
+        if (!function_exists('seo_classifier_jobs_tables') || !function_exists('seo_classifier_job_get')) return null;
+        global $wpdb;
+        $tables = seo_classifier_jobs_tables();
+        $table = $tables['jobs'] ?? '';
+        if (!$table) return null;
+        $id = (int)$wpdb->get_var("SELECT id FROM {$table} WHERE status IN ('pending','running','paused') ORDER BY id DESC LIMIT 1");
+        if ($id < 1) $id = (int)$wpdb->get_var("SELECT id FROM {$table} ORDER BY id DESC LIMIT 1");
+        return $id > 0 ? seo_classifier_job_get($id) : null;
+    }
+}
+
+if (!function_exists('seo_processes_collect_classifier')) {
+    function seo_processes_collect_classifier() {
+        $job = seo_processes_classifier_current_job();
+        if (!$job) {
+            return array(
+                'id'=>'classifier','name'=>'Clasificador','kind'=>'Proceso manual · gestionado tras arrancar',
+                'state'=>seo_processes_state('stopped','Parado','stopped'),'speed'=>'0 productos/min','response'=>'Sin lote medido',
+                'load'=>'Sin job iniciado','activity'=>'Sin actividad registrada','activity_age'=>null,'progress'=>null,'progress_text'=>'—',
+                'detail'=>'El Clasificador solo se inicia desde Semántica > Asignación.','url'=>seo_processes_admin_url('seo-tags-vocabulary', array('domain'=>'assignment','assignment_section'=>'product_labels')),
+                'can_start'=>false,'start_label'=>'Reanudar'
+            );
+        }
+        $job_id = absint($job['id'] ?? 0);
+        $payload = function_exists('seo_classifier_job_status_payload') ? (array)seo_classifier_job_status_payload($job_id) : array();
+        $status = sanitize_key((string)($job['status'] ?? ''));
+        $heartbeat = absint($payload['worker_heartbeat_at'] ?? 0);
+        $heartbeat_ts = absint($job['worker_heartbeat_ts'] ?? 0);
+        $updated_ts = seo_processes_mysql_local_timestamp($job['updated_at'] ?? '');
+        $activity_ts = $heartbeat_ts ?: $updated_ts;
+        $age = seo_processes_age_seconds($activity_ts);
+        $next_delay = absint($payload['next_delay'] ?? $job['adaptive_next_delay'] ?? 0);
+        $due = function_exists('seo_classifier_job_manager_due_key') ? absint(get_transient(seo_classifier_job_manager_due_key($job_id))) : 0;
+        $due_in = $due > time() ? $due - time() : 0;
+        $watchdog_gap = max(90, $next_delay + 45);
+
+        if ('completed' === $status) $state = seo_processes_state('completed','Parado · completado','completed');
+        elseif ('paused' === $status) $state = seo_processes_state('stopped','Pausado','stopped');
+        elseif ('cancelled' === $status) $state = seo_processes_state('stopped','Parado · cancelado','stopped');
+        elseif ('failed' === $status) $state = seo_processes_state('error','Error','error');
+        elseif (in_array($status, array('pending','running'), true) && $due_in > 0) $state = seo_processes_state('waiting','En espera controlada','waiting');
+        elseif (in_array($status, array('pending','running'), true) && $heartbeat_ts && null !== $age && $age <= 30) $state = seo_processes_state('running','En ejecución','running');
+        elseif (in_array($status, array('pending','running'), true) && (!$heartbeat_ts || (null !== $age && $age <= $watchdog_gap))) $state = seo_processes_state('waiting','Iniciado · esperando gestor','waiting');
+        elseif (in_array($status, array('pending','running'), true)) $state = seo_processes_state('error','Sin avance · gestor debe recuperarlo','error');
+        else $state = seo_processes_state('stopped','Parado','stopped');
+
+        $rows = absint($payload['last_batch_rows'] ?? $job['last_batch_rows'] ?? 0);
+        $duration = max(0.0, (float)($payload['last_batch_duration'] ?? $job['last_batch_duration'] ?? 0));
+        $rate = ($rows > 0 && $duration > 0) ? (($rows / $duration) * 60.0) : 0.0;
+        $live = in_array($status, array('pending','running'), true) && in_array($state['code'], array('running','waiting'), true);
+        $speed = $live ? seo_processes_format_rate($rate, 'productos') : '0 productos/min';
+        $response = $duration > 0 ? number_format_i18n($duration, 2) . ' s el último lote' : 'Sin lote medido';
+        if ($duration > 0 && $rows > 0) $response .= ' · ' . number_format_i18n($duration / max(1,$rows), 3) . ' s/producto';
+        if (!$live && $rate > 0) $response .= ' · último ritmo ' . seo_processes_format_rate($rate, 'productos');
+
+        $control = seo_processes_control_for('classifier');
+        $mode = sanitize_key((string)($job['mode'] ?? 'fast'));
+        $max_rows = 'deep' === $mode ? absint($control['deep_max_rows'] ?? 0) : absint($control['fast_max_rows'] ?? 0);
+        $load = array('Job #' . $job_id, 'modo ' . ('deep' === $mode ? 'profundo' : 'rápido'));
+        $next_batch = absint($payload['next_batch_rows'] ?? $job['adaptive_next_batch_size'] ?? 0);
+        if ($next_batch) $load[] = 'siguiente lote ' . number_format_i18n($next_batch);
+        if ($max_rows) $load[] = 'máx. ' . number_format_i18n($max_rows);
+        if ($due_in) $load[] = 'pausa ' . number_format_i18n($due_in) . ' s';
+        elseif ($next_delay) $load[] = 'pausa objetivo ' . number_format_i18n($next_delay) . ' s';
+        $pressure = sanitize_key((string)($payload['pressure'] ?? $job['adaptive_pressure'] ?? ''));
+        if ($pressure) $load[] = 'presión ' . $pressure;
+        if (isset($payload['cpu_percent']) && null !== $payload['cpu_percent']) $load[] = 'CPU ' . number_format_i18n((float)$payload['cpu_percent'], 1) . '%';
+
+        $total = absint($payload['total'] ?? $job['total_items'] ?? 0);
+        $processed = absint($payload['processed'] ?? $job['processed_items'] ?? 0);
+        $progress = $total > 0 ? max(0,min(100,(int)round(($processed/$total)*100))) : null;
+        $detail = 'Job #' . $job_id . ' · ' . number_format_i18n($processed) . ' / ' . number_format_i18n($total) . ' productos.';
+        if (!empty($payload['last_error'])) $detail .= ' Error: ' . sanitize_text_field((string)$payload['last_error']);
+        elseif ('paused' === $status) $detail .= ' Pausado manualmente; el gestor no lo tocará.';
+        elseif (in_array($status,array('pending','running'),true)) $detail .= ' Iniciado manualmente; el gestor lo mantendrá mientras siga activo.';
+
+        return array(
+            'id'=>'classifier','name'=>'Clasificador','kind'=>'Proceso manual · gestionado tras arrancar','state'=>$state,
+            'speed'=>$speed,'response'=>$response,'load'=>implode(' · ',$load),'activity'=>seo_processes_format_age($age),'activity_age'=>$age,
+            'progress'=>$progress,'progress_text'=>null !== $progress ? number_format_i18n($progress) . '%' : '—','detail'=>$detail,
+            'url'=>seo_processes_admin_url('seo-tags-vocabulary', array('domain'=>'assignment','assignment_section'=>'product_labels')),
+            'can_start'=>'paused' === $status,'start_label'=>'Reanudar'
+        );
+    }
+}
+
 if (!function_exists('seo_processes_health_metrics')) {
     function seo_processes_health_metrics($run) {
         $metrics = array(
@@ -906,6 +1062,7 @@ if (!function_exists('seo_processes_collect')) {
         $items = array(
             seo_processes_collect_import_export(),
             seo_processes_collect_academy(),
+            seo_processes_collect_classifier(),
             seo_processes_collect_health('page'),
             seo_processes_collect_health('post'),
             seo_processes_collect_health('image'),
@@ -1005,6 +1162,7 @@ if (!function_exists('seo_processes_render_control_panel')) {
         $settings = seo_processes_control_settings();
         $import = $settings['import-export'];
         $academy = $settings['academy'];
+        $classifier = $settings['classifier'];
         ?>
         <form class="seo-process-controls" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
             <input type="hidden" name="action" value="seo_processes_save_controls">
@@ -1052,6 +1210,31 @@ if (!function_exists('seo_processes_render_control_panel')) {
                     <label>Pausa lenta<?php seo_processes_number_input('academy','slow_delay_seconds',$academy['slow_delay_seconds'],1,120); ?><small>Segundos.</small></label>
                     <label>Pausa crítica<?php seo_processes_number_input('academy','critical_delay_seconds',$academy['critical_delay_seconds'],1,300); ?><small>Segundos.</small></label>
                 </div>
+            </details>
+
+            <details class="seo-process-control-card" open>
+                <summary><strong>Clasificador</strong><span>Proceso manual · control adaptativo</span></summary>
+                <div class="seo-process-control-grid">
+                    <label>Rápido · lote mínimo<?php seo_processes_number_input('classifier','fast_min_rows',$classifier['fast_min_rows'],1,100); ?><small>Productos.</small></label>
+                    <label>Rápido · lote inicial<?php seo_processes_number_input('classifier','fast_initial_rows',$classifier['fast_initial_rows'],1,250); ?><small>Productos.</small></label>
+                    <label>Rápido · lote máximo<?php seo_processes_number_input('classifier','fast_max_rows',$classifier['fast_max_rows'],1,1000); ?><small>Techo en análisis rápido.</small></label>
+                    <label>Profundo · lote mínimo<?php seo_processes_number_input('classifier','deep_min_rows',$classifier['deep_min_rows'],1,20); ?><small>Productos.</small></label>
+                    <label>Profundo · lote inicial<?php seo_processes_number_input('classifier','deep_initial_rows',$classifier['deep_initial_rows'],1,50); ?><small>Productos.</small></label>
+                    <label>Profundo · lote máximo<?php seo_processes_number_input('classifier','deep_max_rows',$classifier['deep_max_rows'],1,100); ?><small>Techo en análisis profundo.</small></label>
+                    <label>Tiempo objetivo<?php seo_processes_number_input('classifier','target_seconds',$classifier['target_seconds'],1,120,'0.5'); ?><small>Segundos por lote.</small></label>
+                    <label>Tiempo crítico<?php seo_processes_number_input('classifier','hard_seconds',$classifier['hard_seconds'],2,300,'0.5'); ?><small>Recorte fuerte.</small></label>
+                    <label>Multiplicador subida<?php seo_processes_number_input('classifier','growth_factor',$classifier['growth_factor'],1.05,2.50,'0.01'); ?><small>Crecimiento máximo entre lotes.</small></label>
+                    <label>Multiplicador bajada<?php seo_processes_number_input('classifier','slowdown_factor',$classifier['slowdown_factor'],0.20,0.95,'0.01'); ?><small>Cuando el lote va pesado.</small></label>
+                    <label>Recorte crítico<?php seo_processes_number_input('classifier','critical_factor',$classifier['critical_factor'],0.10,0.80,'0.01'); ?><small>Factor tras presión crítica.</small></label>
+                    <label>Memoria preventiva<?php seo_processes_number_input('classifier','memory_soft_percent',$classifier['memory_soft_percent'],20,90,'0.5'); ?><small>% del memory_limit.</small></label>
+                    <label>Memoria crítica<?php seo_processes_number_input('classifier','memory_hard_percent',$classifier['memory_hard_percent'],25,98,'0.5'); ?><small>% del memory_limit.</small></label>
+                    <label>CPU preventiva<?php seo_processes_number_input('classifier','cpu_soft_percent',$classifier['cpu_soft_percent'],20,95,'0.5'); ?><small>% estimado del servidor.</small></label>
+                    <label>CPU crítica<?php seo_processes_number_input('classifier','cpu_hard_percent',$classifier['cpu_hard_percent'],25,100,'0.5'); ?><small>% estimado del servidor.</small></label>
+                    <label>Pausa normal<?php seo_processes_number_input('classifier','normal_delay_seconds',$classifier['normal_delay_seconds'],0,120); ?><small>Segundos.</small></label>
+                    <label>Pausa presión alta<?php seo_processes_number_input('classifier','heavy_delay_seconds',$classifier['heavy_delay_seconds'],0,300); ?><small>Segundos.</small></label>
+                    <label>Pausa crítica<?php seo_processes_number_input('classifier','critical_delay_seconds',$classifier['critical_delay_seconds'],0,900); ?><small>Segundos.</small></label>
+                </div>
+                <p class="description">El Clasificador solo se inicia o reanuda manualmente. El gestor únicamente lo mantiene vivo mientras el job esté activo.</p>
             </details>
 
             <?php foreach (array('page' => 'Chequeo de páginas', 'post' => 'Chequeo de posts', 'image' => 'Chequeo de imágenes') as $scope => $title) :
@@ -1125,6 +1308,17 @@ if (!function_exists('seo_processes_worker_control')) {
                 wp_send_json_error(array('message' => 'El motor propio de Academia no está disponible.'), 500);
             }
             $result = SEO_Dependiente_Entrenador::process_control_start();
+        } elseif ('classifier' === $process_id) {
+            $job = seo_processes_classifier_current_job();
+            if (!$job || 'paused' !== sanitize_key((string)($job['status'] ?? '')) || !function_exists('seo_classifier_job_control')) {
+                wp_send_json_error(array('message' => 'El Clasificador se inicia desde Semántica > Asignación. Desde aquí solo se puede reanudar un job pausado.'), 400);
+            }
+            $resumed = seo_classifier_job_control(absint($job['id']), 'resume');
+            if (is_wp_error($resumed)) {
+                $result = $resumed;
+            } else {
+                $result = array('started'=>true,'message'=>'Clasificador reanudado y entregado al gestor.');
+            }
         } else {
             wp_send_json_error(array('message' => 'Este proceso no se arranca desde este servidor porque su ejecución es externa.'), 400);
         }
@@ -1167,7 +1361,7 @@ if (!function_exists('seo_processes_page')) {
             <div class="seo-processes-heading">
                 <div>
                     <h1>Procesos</h1>
-                    <p>Monitor, velocidad y arranque de los procesos automáticos del plugin. Import/Export y Academia usan un controlador propio continuo y el Gestor de workers los vuelve a arrancar automáticamente si detecta trabajo pendiente sin proceso.</p>
+                    <p>Monitor y velocidad de los procesos del plugin. Todos se inician manualmente; mientras sigan activos, el Gestor de workers los mantiene vivos y respeta sus pausas y límites.</p>
                 </div>
                 <div class="seo-processes-refresh">
                     <button type="button" class="button" id="seo-processes-refresh">Actualizar ahora</button>
@@ -1214,7 +1408,7 @@ if (!function_exists('seo_processes_page')) {
             </div>
 
             <p class="description seo-processes-note">
-                “Velocidad” usa el trabajo realmente completado por minuto. Import/Export y Academia reciben pulsos del Gestor de workers: cron real/WP-Cron como respaldo y, si el hosting no ofrece PHP CLI o loopback, las peticiones reales mantienen la cola viva sin crear procesos hijo. Mientras hay trabajo pendiente el gestor vuelve a quedar elegible en pocos segundos y respeta la pausa de cada regulador. Los chequeos externos se ejecutan en GitHub.
+                “Velocidad” usa el trabajo realmente completado por minuto. Import/Export, Academia y Clasificador reciben pulsos del Gestor de workers solo después de haber sido iniciados manualmente: cron real/WP-Cron como respaldo y, si el hosting no ofrece PHP CLI o loopback, las peticiones reales mantienen la cola viva sin crear procesos hijo. Mientras hay trabajo pendiente el gestor vuelve a quedar elegible en pocos segundos y respeta la pausa de cada regulador. Los chequeos externos se ejecutan en GitHub.
             </p>
         </div>
 
