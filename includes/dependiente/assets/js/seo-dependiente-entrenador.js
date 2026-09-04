@@ -200,6 +200,9 @@
         const fastSeconds = Math.max(0.5, Number(config.fastSeconds || 2.5));
         const slowSeconds = Math.max(fastSeconds + 0.5, Number(config.slowSeconds || 7));
         const hardSeconds = Math.max(slowSeconds + 1, Number(config.hardSeconds || 14));
+        const growthFactor = Math.max(1.05, Math.min(2, Number(config.growthFactor || 1.34)));
+        const slowdownFactor = Math.max(0.20, Math.min(0.95, Number(config.slowdownFactor || 0.50)));
+        const fastStreakRequired = Math.max(1, Number(config.fastStreakRequired || 2));
         const maxRetries = Math.max(1, Number(config.maxRetries || 6));
 
         let batchSize = Math.max(batchMin, Math.min(batchMax, Number(config.batchSize || 1)));
@@ -248,12 +251,12 @@
                     batchSize = batchMin;
                     fastStreak = 0;
                 } else if (duration >= slowSeconds) {
-                    batchSize = Math.max(batchMin, Math.floor(batchSize / 2));
+                    batchSize = Math.max(batchMin, Math.floor(batchSize * slowdownFactor));
                     fastStreak = 0;
                 } else if (duration <= fastSeconds) {
                     fastStreak += 1;
-                    if (fastStreak >= 2 && batchSize < batchMax) {
-                        batchSize += 1;
+                    if (fastStreak >= fastStreakRequired && batchSize < batchMax) {
+                        batchSize = Math.min(batchMax, Math.max(batchSize + 1, Math.ceil(batchSize * growthFactor)));
                         fastStreak = 0;
                     }
                 } else {
