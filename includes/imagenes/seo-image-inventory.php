@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO Images - panel de inventario, anomalías, asignación y escaneo de carga.
+ * SEO Images - panel de inventario, anomalías, asignación y errores de disponibilidad.
  *
  * Reemplaza el panel monolítico anterior. No gestiona conexiones FTP/Drive.
  * Las fuentes de imagen se separan claramente:
@@ -1216,12 +1216,13 @@ if (!function_exists('seo_pictures_admin_page')) {
             'categorias_sin_imagen'  => 'assignment',
             'paginas_sin_imagen'     => 'assignment',
             'conexion'               => 'inventory',
-            'escaneo'                => 'scan',
+            'escaneo'                => 'errors',
+            'errores'                => 'errors',
         );
         if (isset($aliases[$tab])) {
             $tab = $aliases[$tab];
         }
-        if (!in_array($tab, array('inventory', 'anomalies', 'assignment', 'scan'), true)) {
+        if (!in_array($tab, array('inventory', 'anomalies', 'assignment', 'errors'), true)) {
             $tab = 'inventory';
         }
 
@@ -1229,15 +1230,11 @@ if (!function_exists('seo_pictures_admin_page')) {
         echo '<h1>SEO Imágenes</h1>';
         seo_images_render_styles();
         seo_images_admin_notice();
-        if (function_exists('seo_images_scan_admin_notice')) {
-            seo_images_scan_admin_notice();
-        }
-
         $tabs = array(
             'inventory'  => 'Inventario',
             'anomalies'  => 'Anomalías',
             'assignment' => 'Asignación',
-            'scan'       => 'Escaneo de carga',
+            'errors'     => 'Errores',
         );
 
         echo '<nav class="nav-tab-wrapper">';
@@ -1251,8 +1248,8 @@ if (!function_exists('seo_pictures_admin_page')) {
             seo_images_render_anomalies_tab();
         } elseif ($tab === 'assignment') {
             seo_images_render_assignment_tab();
-        } elseif ($tab === 'scan' && function_exists('seo_images_scan_render_tab')) {
-            seo_images_scan_render_tab();
+        } elseif ($tab === 'errors' && function_exists('seo_health_render_scope_tab')) {
+            seo_health_render_scope_tab('image');
         } else {
             seo_images_render_inventory_tab();
         }
