@@ -601,6 +601,12 @@ final class SEO_Dependiente_Entrenador {
             'worker_active'       => 0,
             'worker_pid'          => 0,
             'worker_finished_ts'  => 0,
+            'controller_active'       => 0,
+            'controller_pid'          => 0,
+            'controller_backend'      => '',
+            'controller_started_ts'   => 0,
+            'controller_heartbeat_ts' => 0,
+            'controller_next_ts'      => 0,
             'direct_worker_pending' => 0,
             'direct_worker_dispatch_id' => '',
             'direct_worker_not_before' => 0,
@@ -613,11 +619,18 @@ final class SEO_Dependiente_Entrenador {
             'last_message'        => 'Formación automática iniciada. Arrancando el primer lote…',
         ));
 
-        // El primer lote se ejecuta en esta petición. Al terminar, el propio
-        // motor encadena el siguiente worker directamente, sin depender de
-        // Action Scheduler ni WP-Cron. El scheduler queda solo como watchdog.
+        // El navegador solo da la orden de arranque. El trabajo se ejecuta en
+        // el controlador propio y no queda atado a esta petición ni al scheduler.
+        if (!self::schedule_auto_worker(0, true)) {
+            self::save_auto_state(array(
+                'enabled'      => false,
+                'status'       => 'error',
+                'last_error'   => 'El servidor no ha podido arrancar el controlador propio de la Academia.',
+                'last_message' => 'No se pudo iniciar la formación automática.',
+            ));
+            wp_send_json_error(array('message' => 'No se pudo arrancar el proceso propio de la Academia.'), 500);
+        }
         self::schedule_auto_watchdog(60);
-        self::auto_worker('ajax_start');
         wp_send_json_success(self::automation_payload());
     }
 
@@ -1061,6 +1074,12 @@ final class SEO_Dependiente_Entrenador {
             'worker_active'      => 0,
             'worker_pid'         => 0,
             'worker_finished_ts' => 0,
+            'controller_active'       => 0,
+            'controller_pid'          => 0,
+            'controller_backend'      => '',
+            'controller_started_ts'   => 0,
+            'controller_heartbeat_ts' => 0,
+            'controller_next_ts'      => 0,
             'direct_worker_pending' => 0,
             'direct_worker_dispatch_id' => '',
             'direct_worker_not_before' => 0,
@@ -1115,6 +1134,29 @@ final class SEO_Dependiente_Entrenador {
                 'summary'       => self::lesson_summary($current_key),
             ) : null,
         );
+    }
+
+    private static function direct_loop_context() {
+        return defined('SEO_ACADEMY_DIRECT_WORKER_LOOP') && SEO_ACADEMY_DIRECT_WORKER_LOOP;
+    }
+
+    private static function controller_is_active($state = null) {
+        $state = is_array($state) ? $state : self::auto_state();
+        if (empty($state['controller_active'])) {
+            return false;
+        }
+        $heartbeat = absint($state['controller_heartbeat_ts'] ?? 0);
+        if (!$heartbeat || (time() - $heartbeat) > 120) {
+            return false;
+        }
+        $pid = absint($state['controller_pid'] ?? 0);
+        if ($pid && function_exists('seo_ie_product_import_pid_is_alive')) {
+            $alive = seo_ie_product_import_pid_is_alive($pid);
+            if (false === $alive) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static function direct_signature($dispatch_id, $not_before) {
@@ -1259,7 +1301,18 @@ final class SEO_Dependiente_Entrenador {
             return false;
         }
 
-        $delay = max(1, absint($delay));
+        $delay = max(0, absint($delay));
+        if (self::direct_loop_context()) {
+            self::save_auto_state(array(
+                'next_delay'         => $delay,
+                'controller_next_ts' => time() + $delay,
+            ));
+            return true;
+        }
+        if (self::controller_is_active($state)) {
+            return true;
+        }
+
         $pending = !empty($state['direct_worker_pending']);
         $due = absint($state['direct_worker_not_before'] ?? 0);
         $stale = $pending && $due > 0 && (time() - $due) > self::AUTO_DIRECT_STALE_SECONDS;
@@ -1321,7 +1374,10 @@ final class SEO_Dependiente_Entrenador {
         if (!self::claim_direct_worker($dispatch_id, $not_before, $signature, 'direct_cli')) {
             return;
         }
-        self::auto_worker('direct_cli');
+        if (!defined('SEO_ACADEMY_DIRECT_WORKER_LOOP')) {
+            define('SEO_ACADEMY_DIRECT_WORKER_LOOP', true);
+        }
+        self::run_direct_loop('direct_cli', 3600);
     }
 
     public static function direct_http_worker() {
@@ -1354,8 +1410,132 @@ final class SEO_Dependiente_Entrenador {
         if (!self::claim_direct_worker($dispatch_id, $not_before, $signature, 'direct_http')) {
             exit;
         }
-        self::auto_worker('direct_http');
+        if (!defined('SEO_ACADEMY_DIRECT_WORKER_LOOP')) {
+            define('SEO_ACADEMY_DIRECT_WORKER_LOOP', true);
+        }
+        self::run_direct_loop('direct_http', 240);
         exit;
+    }
+
+    /**
+     * Mantiene la Academia avanzando dentro del mismo proceso PHP. El regulador
+     * conserva el control de la pausa entre lotes, pero no se agenda un PHP
+     * nuevo en cada ciclo.
+     */
+    private static function run_direct_loop($backend, $max_runtime = 3600) {
+        $backend = sanitize_key((string) $backend);
+        $max_runtime = max(120, absint($max_runtime));
+        $pid = function_exists('getmypid') ? absint(getmypid()) : 0;
+        $started = time();
+
+        self::save_auto_state(array(
+            'controller_active'       => 1,
+            'controller_pid'          => $pid,
+            'controller_backend'      => $backend,
+            'controller_started_ts'   => $started,
+            'controller_heartbeat_ts' => $started,
+            'controller_next_ts'      => 0,
+            'direct_worker_pending'   => 0,
+        ));
+
+        try {
+            while (self::is_auto_running()) {
+                self::save_auto_state(array(
+                    'controller_active'       => 1,
+                    'controller_pid'          => $pid,
+                    'controller_backend'      => $backend,
+                    'controller_heartbeat_ts' => time(),
+                    'controller_next_ts'      => 0,
+                ));
+
+                self::auto_worker($backend);
+                $state = self::auto_state();
+                if (!self::is_auto_running($state)) {
+                    break;
+                }
+
+                $delay = max(0, absint($state['next_delay'] ?? 0));
+                self::save_auto_state(array(
+                    'controller_heartbeat_ts' => time(),
+                    'controller_next_ts'      => time() + $delay,
+                ));
+
+                if ((time() - $started) >= $max_runtime) {
+                    self::save_auto_state(array(
+                        'controller_active'  => 0,
+                        'controller_next_ts' => 0,
+                    ));
+                    if (self::schedule_auto_worker($delay, true)) {
+                        return;
+                    }
+                    self::save_auto_state(array(
+                        'controller_active'       => 1,
+                        'controller_pid'          => $pid,
+                        'controller_backend'      => $backend,
+                        'controller_started_ts'   => $started,
+                        'controller_heartbeat_ts' => time(),
+                    ));
+                }
+
+                $remaining = $delay;
+                while ($remaining > 0) {
+                    $chunk = min(5, $remaining);
+                    sleep($chunk);
+                    $remaining -= $chunk;
+                    $state = self::auto_state();
+                    if (!self::is_auto_running($state)) {
+                        break 2;
+                    }
+                    self::save_auto_state(array('controller_heartbeat_ts' => time()));
+                }
+            }
+        } finally {
+            $state = self::auto_state();
+            if (absint($state['controller_pid'] ?? 0) === $pid) {
+                self::save_auto_state(array(
+                    'controller_active'       => 0,
+                    'controller_heartbeat_ts' => time(),
+                    'controller_next_ts'      => 0,
+                ));
+            }
+        }
+    }
+
+    /**
+     * Arranque explícito desde Herramientas > Procesos.
+     *
+     * @return array|WP_Error
+     */
+    public static function process_control_start() {
+        $state = self::auto_state();
+        // El clic en Herramientas > Procesos es una orden explícita del
+        // administrador: si estaba en manual, lo pasamos a automático aquí.
+        if ('completed' === (string) ($state['status'] ?? '')) {
+            return new WP_Error('academy_completed', 'La Academia ya ha completado el trabajo pendiente.');
+        }
+        if (self::controller_is_active($state) || !empty($state['worker_active'])) {
+            return array('started' => false, 'message' => 'La Academia ya tiene un proceso propio activo.');
+        }
+
+        self::save_auto_state(array(
+            'enabled'               => true,
+            'mode'                  => 'auto',
+            'status'                => 'running',
+            'last_error'            => '',
+            'direct_worker_pending' => 0,
+            'controller_active'     => 0,
+            'controller_heartbeat_ts' => 0,
+            'last_message'          => 'Arranque manual solicitado desde Herramientas > Procesos.',
+            'updated_at'            => current_time('mysql'),
+        ));
+
+        if (!self::schedule_auto_worker(0, true)) {
+            $state = self::auto_state();
+            $error = sanitize_text_field((string) ($state['last_dispatch_error'] ?? 'El servidor no ha podido arrancar el proceso propio.'));
+            return new WP_Error('academy_worker_start_failed', $error);
+        }
+
+        return array('started' => true, 'message' => 'Proceso de Academia arrancado con el motor propio.');
     }
 
     private static function schedule_auto_watchdog($delay = 60, $force = false) {
@@ -1393,7 +1573,7 @@ final class SEO_Dependiente_Entrenador {
         $now = time();
         $heartbeat = absint($state['worker_heartbeat_ts'] ?? 0);
         $heartbeat_stale = !$heartbeat || ($now - $heartbeat) > self::AUTO_DIRECT_STALE_SECONDS;
-        $active = !empty($state['worker_active']) && !$heartbeat_stale;
+        $active = (!empty($state['worker_active']) && !$heartbeat_stale) || self::controller_is_active($state);
         $pending = !empty($state['direct_worker_pending']);
         $due = absint($state['direct_worker_not_before'] ?? 0);
         $pending_stale = $pending && $due > 0 && ($now - $due) > self::AUTO_DIRECT_STALE_SECONDS;
@@ -1411,7 +1591,7 @@ final class SEO_Dependiente_Entrenador {
         $now = time();
         $heartbeat = absint($state['worker_heartbeat_ts'] ?? 0);
         $heartbeat_stale = !$heartbeat || ($now - $heartbeat) >= self::AUTO_BROWSER_WATCHDOG_SECONDS;
-        $active = !empty($state['worker_active']) && !$heartbeat_stale;
+        $active = (!empty($state['worker_active']) && !$heartbeat_stale) || self::controller_is_active($state);
         $pending = !empty($state['direct_worker_pending']);
         $due = absint($state['direct_worker_not_before'] ?? 0);
         $pending_stale = $pending && $due > 0 && ($now - $due) > self::AUTO_DIRECT_STALE_SECONDS;
@@ -1440,6 +1620,12 @@ final class SEO_Dependiente_Entrenador {
             'direct_error'               => sanitize_text_field((string) ($state['last_dispatch_error'] ?? '')),
             'worker_active'              => !empty($state['worker_active']),
             'worker_pid'                 => absint($state['worker_pid'] ?? 0),
+            'controller_active'          => self::controller_is_active($state),
+            'controller_stale'           => !empty($state['controller_active']) && !self::controller_is_active($state),
+            'controller_pid'             => absint($state['controller_pid'] ?? 0),
+            'controller_backend'         => sanitize_key((string) ($state['controller_backend'] ?? '')),
+            'controller_heartbeat_ts'    => absint($state['controller_heartbeat_ts'] ?? 0),
+            'controller_next_ts'         => absint($state['controller_next_ts'] ?? 0),
             'watchdog_action_scheduler'  => $watchdog_as,
             'watchdog_wp_cron_next'      => $watchdog_cron ? absint($watchdog_cron) : 0,
             // Compatibilidad con la UI anterior.
@@ -1461,6 +1647,10 @@ final class SEO_Dependiente_Entrenador {
             'direct_worker_dispatch_id' => '',
             'direct_worker_not_before'  => 0,
             'worker_active'             => 0,
+            'controller_active'         => 0,
+            'controller_pid'            => 0,
+            'controller_heartbeat_ts'   => 0,
+            'controller_next_ts'        => 0,
         ));
     }
 
