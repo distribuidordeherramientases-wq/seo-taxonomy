@@ -239,6 +239,16 @@ if (!function_exists('seo_process_supervisor_find_php_cli')) {
         if (defined('PHP_BINDIR') && PHP_BINDIR) {
             $candidates[] = trailingslashit(PHP_BINDIR) . 'php';
         }
+        $php_mm = defined('PHP_MAJOR_VERSION') && defined('PHP_MINOR_VERSION')
+            ? (string) PHP_MAJOR_VERSION . (string) PHP_MINOR_VERSION
+            : '';
+        if ('' !== $php_mm) {
+            $candidates[] = '/opt/alt/php' . $php_mm . '/usr/bin/php';
+            $candidates[] = '/opt/cpanel/ea-php' . $php_mm . '/root/usr/bin/php';
+            $candidates[] = '/usr/local/bin/ea-php' . $php_mm;
+        }
+        $candidates[] = '/usr/local/bin/php';
+        $candidates[] = '/usr/bin/php';
         $out = array();
         $code = 1;
         @exec('command -v php 2>/dev/null', $out, $code);
@@ -246,7 +256,7 @@ if (!function_exists('seo_process_supervisor_find_php_cli')) {
             $candidates[] = trim((string) $out[0]);
         }
         foreach (array_unique(array_filter($candidates)) as $candidate) {
-            if (!is_file($candidate) || !is_executable($candidate)) {
+            if (!@is_file($candidate) || !@is_executable($candidate)) {
                 continue;
             }
             $probe = array();
@@ -334,10 +344,14 @@ if (!function_exists('seo_process_supervisor_spawn_http')) {
     function seo_process_supervisor_spawn_http($dispatch_id, $dispatch_at, $signature) {
         $url = admin_url('admin-post.php');
         $response = wp_remote_post($url, array(
-            'timeout'   => 0.01,
-            'blocking'  => false,
-            'sslverify' => apply_filters('https_local_ssl_verify', false),
-            'body'      => array(
+            // Handshake real: no damos por arrancado el supervisor hasta que
+            // admin-post.php haya validado el despacho y devuelto 202.
+            'timeout'     => 6,
+            'redirection' => 0,
+            'blocking'    => true,
+            'sslverify'   => apply_filters('https_local_ssl_verify', false),
+            'headers'     => array('Connection' => 'close'),
+            'body'        => array(
                 'action'      => 'seo_process_supervisor_direct',
                 'dispatch_id' => sanitize_key((string) $dispatch_id),
                 'dispatch_at' => absint($dispatch_at),
@@ -346,6 +360,14 @@ if (!function_exists('seo_process_supervisor_spawn_http')) {
         ));
         if (is_wp_error($response)) {
             return $response;
+        }
+        $code = absint(wp_remote_retrieve_response_code($response));
+        $body = trim((string) wp_remote_retrieve_body($response));
+        if (202 !== $code || 'accepted' !== $body) {
+            return new WP_Error(
+                'supervisor_http_handshake',
+                sprintf('El loopback del supervisor no fue aceptado (HTTP %d%s).', $code, '' !== $body ? ': ' . sanitize_text_field(substr($body, 0, 160)) : '')
+            );
         }
         return array('backend' => 'direct_http', 'pid' => 0);
     }
@@ -401,8 +423,8 @@ if (!function_exists('seo_process_supervisor_start')) {
         $http = seo_process_supervisor_spawn_http($dispatch_id, $dispatch_at, $signature);
         if (!is_wp_error($http)) {
             seo_process_supervisor_save_state(array('dispatch_backend' => 'direct_http', 'dispatch_pid' => 0));
-            seo_process_supervisor_log('warning', 'supervisor_http_fallback', 'PHP CLI no estaba disponible; se ha usado el loopback directo.', 'Supervisor', array('cli_error' => $cli->get_error_message()));
-            return array('started' => true, 'message' => 'Supervisor arrancado mediante loopback propio.');
+            seo_process_supervisor_log('warning', 'supervisor_http_fallback', 'PHP CLI no estaba disponible; el loopback ha aceptado el arranque y queda pendiente de heartbeat.', 'Supervisor', array('cli_error' => $cli->get_error_message()));
+            return array('started' => true, 'message' => 'Arranque del supervisor aceptado por loopback; esperando heartbeat.');
         }
 
         $error = trim($cli->get_error_message() . ' ' . $http->get_error_message());
@@ -508,17 +530,32 @@ if (!function_exists('seo_process_supervisor_check_import_export')) {
             if ($lock_healthy && array_key_exists('worker_pid_alive', $diag) && false === $diag['worker_pid_alive']) {
                 $lock_healthy = false;
             }
-            $healthy = !empty($diag['controller_active']) || $lock_healthy || (!empty($diag['direct_worker_pending']) && empty($diag['direct_worker_stale']));
+            $running_confirmed = !empty($diag['controller_active']) || $lock_healthy;
+            $healthy = $running_confirmed || (!empty($diag['direct_worker_pending']) && empty($diag['direct_worker_stale']));
             $pending = !in_array($status, array('completed', 'stopped', 'stopping'), true) && (float) ($active['progreso'] ?? 0) < 100.0;
-            seo_process_supervisor_managed_update($key, array(
+            $managed_now = seo_process_supervisor_managed_update($key, array(
                 'name'          => 'Import / Export',
                 'pending'       => $pending ? 1 : 0,
                 'healthy'       => $healthy ? 1 : 0,
                 'last_checked'  => time(),
                 'detail'        => $healthy ? 'Controlador activo o arrancando.' : ($pending ? 'Trabajo pendiente sin controlador.' : 'Sin trabajo pendiente.'),
             ));
+            if ($running_confirmed && 'requested' === (string) ($managed_now['last_result'] ?? '')) {
+                seo_process_supervisor_managed_update($key, array(
+                    'failures'          => 0,
+                    'last_error'        => '',
+                    'last_result'       => 'running',
+                    'last_confirmed_at' => time(),
+                ));
+                seo_process_supervisor_log('success', 'process_running_confirmed', 'Import / Export confirmó heartbeat; el proceso está realmente ejecutándose.', 'Import / Export', array('user_id' => $user_id));
+            }
             if (!$pending || $healthy || !seo_process_supervisor_backoff_ready($key, $settings['restart_cooldown'])) {
                 continue;
+            }
+            if ('requested' === (string) ($managed_now['last_result'] ?? '')) {
+                $misses = absint($managed_now['failures'] ?? 0) + 1;
+                seo_process_supervisor_managed_update($key, array('failures' => $misses, 'last_result' => 'unconfirmed'));
+                seo_process_supervisor_log('error', 'process_start_unconfirmed', 'El arranque anterior de Import / Export no produjo heartbeat. Se reintentará.', 'Import / Export', array('user_id' => $user_id, 'failures' => $misses));
             }
 
             $current = seo_process_supervisor_managed_update($key, array('last_attempt_at' => time()));
@@ -539,12 +576,11 @@ if (!function_exists('seo_process_supervisor_check_import_export')) {
                     'last_launch_at' => time(),
                 ));
                 seo_process_supervisor_managed_update($key, array(
-                    'failures'       => 0,
-                    'last_error'     => '',
-                    'last_result'    => 'started',
-                    'last_started_at'=> time(),
+                    'last_error'      => '',
+                    'last_result'     => 'requested',
+                    'last_started_at' => time(),
                 ));
-                seo_process_supervisor_log('success', 'process_launched', sanitize_text_field((string) ($result['message'] ?? 'Import / Export arrancado.')), 'Import / Export', array('user_id' => $user_id));
+                seo_process_supervisor_log('info', 'process_launch_requested', sanitize_text_field((string) ($result['message'] ?? 'Arranque de Import / Export solicitado.')) . ' Se espera confirmación por heartbeat.', 'Import / Export', array('user_id' => $user_id));
             }
         }
         if (!$found) {
@@ -581,17 +617,32 @@ if (!function_exists('seo_process_supervisor_check_academy')) {
         $direct_pending = !empty($state['direct_worker_pending']);
         $direct_due = absint($state['direct_worker_not_before'] ?? 0);
         $direct_fresh = $direct_pending && (!$direct_due || (time() - $direct_due) <= 90);
-        $healthy = $controller || $worker || $direct_fresh;
+        $running_confirmed = $controller || $worker;
+        $healthy = $running_confirmed || $direct_fresh;
         $key = 'academy';
-        seo_process_supervisor_managed_update($key, array(
+        $managed_now = seo_process_supervisor_managed_update($key, array(
             'name'         => 'Academia',
             'pending'      => $pending ? 1 : 0,
             'healthy'      => $healthy ? 1 : 0,
             'last_checked' => time(),
             'detail'       => $healthy ? 'Controlador activo o arrancando.' : ($pending ? 'Formación pendiente sin controlador.' : 'Academia sin ejecución automática pendiente.'),
         ));
+        if ($running_confirmed && 'requested' === (string) ($managed_now['last_result'] ?? '')) {
+            seo_process_supervisor_managed_update($key, array(
+                'failures'          => 0,
+                'last_error'        => '',
+                'last_result'       => 'running',
+                'last_confirmed_at' => time(),
+            ));
+            seo_process_supervisor_log('success', 'process_running_confirmed', 'Academia confirmó heartbeat; el proceso está realmente ejecutándose.', 'Academia');
+        }
         if (!$pending || $healthy || !seo_process_supervisor_backoff_ready($key, $settings['restart_cooldown'])) {
             return;
+        }
+        if ('requested' === (string) ($managed_now['last_result'] ?? '')) {
+            $misses = absint($managed_now['failures'] ?? 0) + 1;
+            seo_process_supervisor_managed_update($key, array('failures' => $misses, 'last_result' => 'unconfirmed'));
+            seo_process_supervisor_log('error', 'process_start_unconfirmed', 'El arranque anterior de Academia no produjo heartbeat. Se reintentará.', 'Academia', array('failures' => $misses));
         }
         $current = seo_process_supervisor_managed_update($key, array('last_attempt_at' => time()));
         seo_process_supervisor_log('warning', 'process_missing', 'La Academia está activa pero no tiene controlador. Se intentará arrancar.', 'Academia');
@@ -613,12 +664,11 @@ if (!function_exists('seo_process_supervisor_check_academy')) {
                 'last_launch_at' => time(),
             ));
             seo_process_supervisor_managed_update($key, array(
-                'failures'        => 0,
                 'last_error'      => '',
-                'last_result'     => 'started',
+                'last_result'     => 'requested',
                 'last_started_at' => time(),
             ));
-            seo_process_supervisor_log('success', 'process_launched', sanitize_text_field((string) ($result['message'] ?? 'Academia arrancada.')), 'Academia');
+            seo_process_supervisor_log('info', 'process_launch_requested', sanitize_text_field((string) ($result['message'] ?? 'Arranque de Academia solicitado.')) . ' Se espera confirmación por heartbeat.', 'Academia');
         }
     }
 }
@@ -1062,7 +1112,7 @@ if (!function_exists('seo_process_supervisor_render_page')) {
             <div class="seo-worker-heading">
                 <div>
                     <h2>Supervisor propio del plugin</h2>
-                    <p>Este proceso revisa de forma periódica si Import/Export o Academia tienen trabajo pendiente y han perdido su controlador. Si falta, lo vuelve a lanzar sin esperar a WP-Cron ni Action Scheduler.</p>
+                    <p>Este proceso revisa de forma periódica si Import/Export o Academia tienen trabajo pendiente y han perdido su controlador. Si falta, lo vuelve a lanzar sin esperar a WP-Cron ni Action Scheduler. El gestor solo considera un proceso arrancado cuando recibe heartbeat real.</p>
                 </div>
                 <span>Lectura: <strong id="seo-worker-refreshed"><?php echo esc_html(current_time('H:i:s')); ?></strong></span>
             </div>
