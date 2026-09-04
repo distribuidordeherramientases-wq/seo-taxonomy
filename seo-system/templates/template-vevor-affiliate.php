@@ -507,7 +507,18 @@ if (!function_exists('dht_vevor_affiliate_top_category')) {
 }
 
 if (!function_exists('dht_vevor_affiliate_pick')) {
-    function dht_vevor_affiliate_pick($context, $limit = 4)
+    /**
+     * Selecciona productos VEVOR para el bloque de afiliados.
+     *
+     * Estrategia:
+     * 1) intenta primero la seleccion "ideal" (sin competir con el contexto);
+     * 2) si no llega al limite, rellena con cualquier producto VEVOR valido;
+     * 3) prioriza estado_seleccion=descartado y rota diariamente.
+     *
+     * Nunca inventa productos: para mostrarse una fila debe tener imagen,
+     * destino VEVOR valido y un enlace de afiliado resoluble.
+     */
+    function dht_vevor_affiliate_pick($context, $limit = 8)
     {
         $limit = max(1, min(12, absint($limit)));
         if (!is_array($context) || empty($context['text'])) {
@@ -516,59 +527,118 @@ if (!function_exists('dht_vevor_affiliate_pick')) {
 
         $context_tokens = dht_vevor_affiliate_tokens((string) $context['text']);
         $context_set = array_fill_keys($context_tokens, true);
-        $exclude_object_id = absint($context['type'] === 'product' ? ($context['object_id'] ?? 0) : 0);
+        $context_type = sanitize_key((string) ($context['type'] ?? 'page'));
+        $context_object_id = absint($context['object_id'] ?? 0);
+        $exclude_object_id = $context_type === 'product' ? $context_object_id : 0;
         $blocked_term_ids = array_fill_keys(array_map('absint', (array) ($context['blocked_term_ids'] ?? array())), true);
         $rotation_key = sanitize_key((string) ($context['rotation_key'] ?? 'vevor'));
+        $clickref = 'dht_' . $context_type . '_' . $context_object_id;
 
-        $eligible = array();
-        foreach (dht_vevor_affiliate_candidate_rows(700) as $row) {
+        $candidate_rows = dht_vevor_affiliate_candidate_rows(1000);
+        if (!$candidate_rows) {
+            return array();
+        }
+
+        // Prepara una fila para poder mostrarla. Devuelve array() si no es utilizable.
+        $prepare_row = static function ($row, $require_stock = true) use ($exclude_object_id, $clickref) {
             $row_id = absint($row['id'] ?? 0);
             $object_id = absint($row['object_id'] ?? 0);
+
             if (!$row_id || ($exclude_object_id && $object_id === $exclude_object_id)) {
-                continue;
+                return array();
             }
-            if (!dht_vevor_affiliate_stock_ok($row)) {
-                continue;
+
+            if ($require_stock && !dht_vevor_affiliate_stock_ok($row)) {
+                return array();
             }
 
             $images = dht_vevor_affiliate_parse_images($row['imagenes'] ?? '', 4);
             if (!$images) {
-                continue;
+                return array();
             }
 
             $destination = dht_vevor_affiliate_destination_url($row);
             if ($destination === '') {
-                continue;
+                return array();
             }
 
-            $candidate_text = implode(' | ', array_filter(array(
-                $row['nombre'] ?? '',
-                $row['categoria_proveedor'] ?? '',
-                wp_trim_words(wp_strip_all_tags((string) ($row['descripcion'] ?? '')), 25, ''),
-            )));
-            $candidate_tokens = dht_vevor_affiliate_tokens($candidate_text);
-
-            // Regla principal de no competencia: una coincidencia de termino fuerte basta.
-            $common = array();
-            foreach ($candidate_tokens as $token) {
-                if (isset($context_set[$token])) {
-                    $common[] = $token;
-                }
-            }
-            if ($common) {
-                continue;
+            $affiliate_url = dht_vevor_affiliate_url($destination, $row, $clickref);
+            if ($affiliate_url === '') {
+                return array();
             }
 
             $row['_images'] = $images;
             $row['_destination'] = $destination;
-            $row['_candidate_tokens'] = $candidate_tokens;
-            $eligible[] = $row;
+            $row['_affiliate_url'] = $affiliate_url;
+            $row['_top_category'] = dht_vevor_affiliate_top_category($row['categoria_proveedor'] ?? '');
+
+            return $row;
+        };
+
+        $score_row = static function ($row, $rotation_key, $bonus = 0) {
+            $price = (float) ($row['precio_con_iva'] ?? 0);
+            $score = (int) $bonus;
+
+            // Prioridad comercial: primero los productos descartados del catalogo propio.
+            if (sanitize_key((string) ($row['estado_seleccion'] ?? '')) === 'descartado') {
+                $score += 20;
+            }
+            if ($price > 0) {
+                $score += 2;
+            }
+            if ($price >= 20) {
+                $score += 2;
+            }
+            if ($price >= 60) {
+                $score += 1;
+            }
+            if ($price >= 150) {
+                $score += 1;
+            }
+            if (count((array) ($row['_images'] ?? array())) > 1) {
+                $score += 1;
+            }
+
+            // Rotacion diaria estable: no usa RAND() en SQL.
+            $hash = hexdec(substr(md5(gmdate('Y-m-d') . '|' . $rotation_key . '|' . ($row['id'] ?? '')), 0, 7));
+            $row['_score'] = ($score * 100000000) + $hash;
+            return $row;
+        };
+
+        // ---------- PASO 1: seleccion ideal, evitando competencia con el contexto ----------
+        $strict = array();
+        foreach ($candidate_rows as $row) {
+            $prepared = $prepare_row($row, true);
+            if (!$prepared) {
+                continue;
+            }
+
+            $candidate_text = implode(' | ', array_filter(array(
+                $prepared['nombre'] ?? '',
+                $prepared['categoria_proveedor'] ?? '',
+                wp_trim_words(wp_strip_all_tags((string) ($prepared['descripcion'] ?? '')), 25, ''),
+            )));
+            $candidate_tokens = dht_vevor_affiliate_tokens($candidate_text);
+
+            // En la primera pasada mantenemos la regla original de no competencia.
+            $has_common = false;
+            foreach ($candidate_tokens as $token) {
+                if (isset($context_set[$token])) {
+                    $has_common = true;
+                    break;
+                }
+            }
+            if ($has_common) {
+                continue;
+            }
+
+            $prepared['_candidate_tokens'] = $candidate_tokens;
+            $strict[] = $prepared;
         }
 
-        // Si el producto VEVOR ya existe en WooCommerce, no usar candidatos de la
-        // misma familia/categoria del contexto aunque el nombre no comparta palabras.
+        // Evita misma familia WooCommerce solo en la pasada estricta.
         $object_ids = array();
-        foreach ($eligible as $row) {
+        foreach ($strict as $row) {
             if (!empty($row['object_id'])) {
                 $object_ids[] = absint($row['object_id']);
             }
@@ -576,7 +646,7 @@ if (!function_exists('dht_vevor_affiliate_pick')) {
         $term_map = dht_vevor_affiliate_term_map($object_ids);
 
         $scored = array();
-        foreach ($eligible as $row) {
+        foreach ($strict as $row) {
             $object_id = absint($row['object_id'] ?? 0);
             if ($object_id && $blocked_term_ids && !empty($term_map[$object_id])) {
                 $same_family = false;
@@ -591,37 +661,7 @@ if (!function_exists('dht_vevor_affiliate_pick')) {
                 }
             }
 
-            $clickref = 'dht_' . sanitize_key((string) ($context['type'] ?? 'page')) . '_' . absint($context['object_id'] ?? 0);
-            $affiliate_url = dht_vevor_affiliate_url($row['_destination'], $row, $clickref);
-            if ($affiliate_url === '') {
-                continue;
-            }
-
-            $row['_affiliate_url'] = $affiliate_url;
-            $row['_top_category'] = dht_vevor_affiliate_top_category($row['categoria_proveedor'] ?? '');
-
-            $price = (float) ($row['precio_con_iva'] ?? 0);
-            $score = 0;
-            if (sanitize_key((string) ($row['estado_seleccion'] ?? '')) === 'descartado') {
-                $score += 3; // Preferencia suave: no compite con el catalogo propio.
-            }
-            if ($price >= 20) {
-                $score += 2;
-            }
-            if ($price >= 60) {
-                $score += 1;
-            }
-            if ($price >= 150) {
-                $score += 1;
-            }
-            if (count($row['_images']) > 1) {
-                $score += 1;
-            }
-
-            // Rotacion diaria estable por contexto: evita RAND() en SQL y reparte exposicion.
-            $hash = hexdec(substr(md5(gmdate('Y-m-d') . '|' . $rotation_key . '|' . ($row['id'] ?? '')), 0, 7));
-            $row['_score'] = ($score * 100000000) + $hash;
-            $scored[] = $row;
+            $scored[] = $score_row($row, $rotation_key, 10);
         }
 
         usort($scored, static function ($a, $b) {
@@ -629,44 +669,89 @@ if (!function_exists('dht_vevor_affiliate_pick')) {
         });
 
         $picked = array();
+        $picked_ids = array();
         $category_counts = array();
 
-        // Primera pasada: maxima diversidad, una tarjeta por gran familia VEVOR.
-        foreach ($scored as $row) {
-            $key = dht_vevor_affiliate_normalize((string) ($row['_top_category'] ?? 'otros'));
-            if (($category_counts[$key] ?? 0) >= 1) {
-                continue;
-            }
-            $picked[] = $row;
-            $category_counts[$key] = ($category_counts[$key] ?? 0) + 1;
-            if (count($picked) >= $limit) {
-                return $picked;
-            }
-        }
-
-        // Segunda pasada: completar hasta el limite permitiendo dos por familia.
-        $picked_ids = array_fill_keys(array_map(static function ($row) {
-            return absint($row['id'] ?? 0);
-        }, $picked), true);
-
+        // Diversidad en la seleccion ideal: primero una tarjeta por gran familia.
         foreach ($scored as $row) {
             $id = absint($row['id'] ?? 0);
             if (!$id || isset($picked_ids[$id])) {
                 continue;
             }
+
+            $key = dht_vevor_affiliate_normalize((string) ($row['_top_category'] ?? 'otros'));
+            if (($category_counts[$key] ?? 0) >= 1) {
+                continue;
+            }
+
+            $picked[] = $row;
+            $picked_ids[$id] = true;
+            $category_counts[$key] = ($category_counts[$key] ?? 0) + 1;
+
+            if (count($picked) >= $limit) {
+                return array_slice($picked, 0, $limit);
+            }
+        }
+
+        // Segunda vuelta de la pasada estricta: hasta dos por familia.
+        foreach ($scored as $row) {
+            $id = absint($row['id'] ?? 0);
+            if (!$id || isset($picked_ids[$id])) {
+                continue;
+            }
+
             $key = dht_vevor_affiliate_normalize((string) ($row['_top_category'] ?? 'otros'));
             if (($category_counts[$key] ?? 0) >= 2) {
                 continue;
             }
+
             $picked[] = $row;
             $picked_ids[$id] = true;
             $category_counts[$key] = ($category_counts[$key] ?? 0) + 1;
+
+            if (count($picked) >= $limit) {
+                return array_slice($picked, 0, $limit);
+            }
+        }
+
+        // ---------- PASO 2: fallback ----------
+        // Si los filtros semanticos dejaron pocos resultados, rellena con cualquier
+        // VEVOR valido. Se mantienen imagen, URL, tracking y stock; se relajan
+        // coincidencia de palabras, familia/categoria y diversidad.
+        $fallback = array();
+        foreach ($candidate_rows as $row) {
+            $id = absint($row['id'] ?? 0);
+            if (!$id || isset($picked_ids[$id])) {
+                continue;
+            }
+
+            $prepared = $prepare_row($row, true);
+            if (!$prepared) {
+                continue;
+            }
+
+            $fallback[] = $score_row($prepared, $rotation_key, 0);
+        }
+
+        usort($fallback, static function ($a, $b) {
+            return ((int) ($b['_score'] ?? 0)) <=> ((int) ($a['_score'] ?? 0));
+        });
+
+        foreach ($fallback as $row) {
+            $id = absint($row['id'] ?? 0);
+            if (!$id || isset($picked_ids[$id])) {
+                continue;
+            }
+
+            $picked[] = $row;
+            $picked_ids[$id] = true;
+
             if (count($picked) >= $limit) {
                 break;
             }
         }
 
-        return $picked;
+        return array_slice($picked, 0, $limit);
     }
 }
 
@@ -719,7 +804,7 @@ if (!function_exists('dht_render_vevor_affiliate_block')) {
     function dht_render_vevor_affiliate_block($context, $args = array())
     {
         $args = wp_parse_args($args, array(
-            'limit'    => 4,
+            'limit'    => 8,
             'title'    => 'Descubre otros productos en VEVOR',
             'subtitle' => 'Una selección de otras familias y productos para descubrir opciones diferentes a lo que estás consultando ahora.',
         ));
@@ -790,7 +875,7 @@ if (!function_exists('dht_render_vevor_affiliate_product_block')) {
     {
         $context = dht_vevor_affiliate_context_product($product);
         if ($context) {
-            dht_render_vevor_affiliate_block($context, wp_parse_args($args, array('limit' => 4)));
+            dht_render_vevor_affiliate_block($context, wp_parse_args($args, array('limit' => 8)));
         }
     }
 }
