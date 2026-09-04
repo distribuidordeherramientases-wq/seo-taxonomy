@@ -162,6 +162,8 @@ $json = [
     ],
 ];
 ?>
+<!-- DHT CATEGORY COMPARE + VEVOR PATCH 2026-09-04 -->
+
 
 <script type="application/ld+json">
 <?php
