@@ -94,6 +94,8 @@ add_action( 'admin_init', 'seo_export_required_catalogs_csv' );
 // se conserva exclusivamente como backend de la cola automatica por cabeceras.
 add_action( 'seo_ie_process_product_import_batch', 'seo_ie_product_import_background_worker', 10, 2 );
 add_action( 'seo_ie_product_import_watchdog', 'seo_ie_product_import_watchdog_worker', 10, 2 );
+add_action( 'admin_post_seo_ie_product_import_direct_worker', 'seo_ie_product_import_direct_http_worker' );
+add_action( 'admin_post_nopriv_seo_ie_product_import_direct_worker', 'seo_ie_product_import_direct_http_worker' );
 add_action( 'admin_init', 'seo_export_pages_csv' );
 add_action( 'admin_init', 'seo_import_pages_csv' );
 add_action( 'admin_init', 'seo_export_posts_csv' );
@@ -3676,6 +3678,16 @@ function seo_ie_product_import_unschedule( $user_id, $token ) {
 
         wp_clear_scheduled_hook( $hook, $args );
     }
+
+    // Invalida también cualquier proceso directo todavía dormido o pendiente.
+    // El launcher volverá a validar este ID antes de tocar una sola fila.
+    $state = get_transient( seo_ie_product_import_state_key( absint( $user_id ), sanitize_key( $token ) ) );
+    if ( is_array( $state ) ) {
+        $state['direct_worker_pending']     = 0;
+        $state['direct_worker_dispatch_id'] = '';
+        $state['direct_worker_not_before']  = 0;
+        seo_ie_product_import_store_state( absint( $user_id ), sanitize_key( $token ), $state );
+    }
 }
 
 /**
@@ -3986,17 +3998,15 @@ function seo_ie_product_import_diagnostics( $user_id, $token, $state ) {
     $path    = (string) ( $state['path'] ?? '' );
     $lock_at = absint( get_transient( seo_ie_product_import_lock_key( $user_id, $token ) ) );
     $now     = time();
-    $next    = false;
 
+    $legacy_next = false;
     if ( function_exists( 'as_next_scheduled_action' ) ) {
-        $next = as_next_scheduled_action( $hook, $args, $group );
+        $legacy_next = as_next_scheduled_action( $hook, $args, $group );
     }
-
     $wp_cron_next = wp_next_scheduled( $hook, $args );
-    $action_ids   = [];
-
+    $legacy_action_ids = [];
     if ( function_exists( 'as_get_scheduled_actions' ) ) {
-        $action_ids = as_get_scheduled_actions(
+        $legacy_action_ids = as_get_scheduled_actions(
             [
                 'hook'     => $hook,
                 'args'     => $args,
@@ -4007,25 +4017,42 @@ function seo_ie_product_import_diagnostics( $user_id, $token, $state ) {
             ],
             'ids'
         );
-        $action_ids = array_values( array_filter( array_map( 'absint', (array) $action_ids ) ) );
+        $legacy_action_ids = array_values( array_filter( array_map( 'absint', (array) $legacy_action_ids ) ) );
     }
+
+    $direct_pending = ! empty( $state['direct_worker_pending'] );
+    $direct_due     = absint( $state['direct_worker_not_before'] ?? 0 );
+    $direct_stale   = $direct_pending && 0 < $direct_due && ( $now - $direct_due ) > seo_ie_product_import_direct_stale_seconds();
+    $dispatch_pid   = absint( $state['last_dispatch_pid'] ?? 0 );
+    $pid_alive      = seo_ie_product_import_pid_is_alive( $dispatch_pid );
+    $worker_pid     = absint( $state['last_worker_pid'] ?? 0 );
+    $worker_pid_alive = seo_ie_product_import_pid_is_alive( $worker_pid );
+
+    if ( 0 < $lock_at ) {
+        $next_label = 'worker propio ejecutándose';
+    } elseif ( $direct_pending && ! $direct_stale ) {
+        $due_in = max( 0, $direct_due - $now );
+        $next_label = 0 < $due_in
+            ? sprintf( 'motor propio en %d s', $due_in )
+            : 'motor propio lanzado';
+    } elseif ( $direct_stale ) {
+        $next_label = 'despacho propio sin arrancar';
+    } else {
+        $next_label = 'ninguno';
+    }
+
+    $legacy_scheduled = true === $legacy_next
+        || ( is_numeric( $legacy_next ) && 0 < (int) $legacy_next )
+        || ( is_numeric( $wp_cron_next ) && 0 < (int) $wp_cron_next );
 
     $last_activity = max(
         absint( $state['updated_at'] ?? 0 ),
         absint( $state['last_batch_started_at'] ?? 0 ),
         absint( $state['last_batch_finished_at'] ?? 0 ),
+        absint( $state['last_worker_started_at'] ?? 0 ),
+        absint( $state['last_worker_finished_at'] ?? 0 ),
         absint( $state['started_at'] ?? 0 )
     );
-
-    if ( true === $next ) {
-        $next_label = 'asíncrona o en ejecución';
-    } elseif ( is_numeric( $next ) && 0 < (int) $next ) {
-        $next_label = wp_date( 'Y-m-d H:i:s', (int) $next );
-    } elseif ( is_numeric( $wp_cron_next ) && 0 < (int) $wp_cron_next ) {
-        $next_label = wp_date( 'Y-m-d H:i:s', (int) $wp_cron_next ) . ' (WP-Cron)';
-    } else {
-        $next_label = 'ninguna';
-    }
 
     return [
         'token'                     => $token,
@@ -4061,18 +4088,24 @@ function seo_ie_product_import_diagnostics( $user_id, $token, $state ) {
         'lock_age_seconds'          => 0 < $lock_at ? max( 0, $now - $lock_at ) : 0,
         'callback_count'            => (int) has_action( $hook, 'seo_ie_product_import_background_worker' ),
         'watchdog_callback_count'   => (int) has_action( 'seo_ie_product_import_watchdog', 'seo_ie_product_import_watchdog_worker' ),
-        'action_scheduler_ready'    => function_exists( 'as_enqueue_async_action' )
-            && (
-                did_action( 'action_scheduler_init' )
-                || (
-                    class_exists( 'Action_Scheduler' )
-                    && is_callable( [ 'Action_Scheduler', 'is_initialized' ] )
-                    && Action_Scheduler::is_initialized()
-                )
-            ),
+        'engine'                    => 'direct',
         'scheduled'                 => seo_ie_product_import_is_scheduled( $user_id, $token ),
         'next_scheduled'            => $next_label,
-        'known_action_ids'          => $action_ids,
+        'direct_worker_pending'     => $direct_pending,
+        'direct_worker_not_before'  => $direct_due,
+        'direct_worker_due_in'      => 0 < $direct_due ? max( 0, $direct_due - $now ) : 0,
+        'direct_worker_stale'       => $direct_stale,
+        'last_dispatch_backend'     => sanitize_key( $state['last_dispatch_backend'] ?? $state['last_schedule_backend'] ?? '' ),
+        'last_dispatch_result'      => sanitize_key( $state['last_dispatch_result'] ?? $state['last_schedule_result'] ?? '' ),
+        'last_dispatch_pid'         => $dispatch_pid,
+        'last_dispatch_pid_alive'   => $pid_alive,
+        'last_dispatch_at'          => absint( $state['last_dispatch_at'] ?? 0 ),
+        'last_dispatch_error'       => sanitize_text_field( $state['last_dispatch_error'] ?? $state['last_schedule_error'] ?? '' ),
+        'last_worker_backend'       => sanitize_key( $state['last_worker_backend'] ?? '' ),
+        'last_worker_started_at'    => absint( $state['last_worker_started_at'] ?? 0 ),
+        'last_worker_finished_at'   => absint( $state['last_worker_finished_at'] ?? 0 ),
+        'legacy_batch_scheduled'    => $legacy_scheduled,
+        'legacy_action_ids'         => $legacy_action_ids,
         'last_action_id'            => absint( $state['last_action_id'] ?? 0 ),
         'last_schedule_backend'     => sanitize_key( $state['last_schedule_backend'] ?? '' ),
         'last_schedule_result'      => (string) ( $state['last_schedule_result'] ?? '' ),
@@ -4080,8 +4113,11 @@ function seo_ie_product_import_diagnostics( $user_id, $token, $state ) {
         'last_schedule_error'       => sanitize_text_field( $state['last_schedule_error'] ?? '' ),
         'last_error'                => sanitize_text_field( $state['last_error'] ?? '' ),
         'last_watchdog_at'          => absint( $state['last_watchdog_at'] ?? 0 ),
+        'watchdog_scheduled'        => seo_ie_product_import_watchdog_is_scheduled( $user_id, $token ),
+        'action_scheduler_ready'    => function_exists( 'as_enqueue_async_action' ),
         'wp_cron_disabled'          => defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON,
-        'php_pid'                   => absint( $state['last_worker_pid'] ?? 0 ),
+        'php_pid'                   => $worker_pid,
+        'worker_pid_alive'          => $worker_pid_alive,
     ];
 }
 
@@ -4289,109 +4325,479 @@ function seo_ie_product_import_adaptive_delay( $state ) {
 }
 
 /**
- * Comprueba si ya existe un lote pendiente o en ejecución.
+ * Tiempo de gracia para considerar perdido un despacho directo que ya debía
+ * haber arrancado. Se puede ajustar sin volver a depender del scheduler.
+ *
+ * @return int
+ */
+function seo_ie_product_import_direct_stale_seconds() {
+    return max( 30, absint( apply_filters( 'seo_ie_product_import_direct_stale_seconds', 90 ) ) );
+}
+
+/**
+ * Indica si la importación tiene un worker propio pendiente o ejecutándose.
+ *
+ * Action Scheduler y WP-Cron no forman parte del camino crítico: únicamente
+ * pueden mantener el watchdog de recuperación. Esta comprobación mira el
+ * estado del motor directo y el lock real del lote.
  *
  * @param int    $user_id ID del usuario.
  * @param string $token   Token de importación.
  * @return bool
  */
 function seo_ie_product_import_is_scheduled( $user_id, $token ) {
+    $user_id = absint( $user_id );
+    $token   = sanitize_key( $token );
+    $state   = get_transient( seo_ie_product_import_state_key( $user_id, $token ) );
+
+    if ( get_transient( seo_ie_product_import_lock_key( $user_id, $token ) ) ) {
+        return true;
+    }
+
+    if ( ! is_array( $state ) || empty( $state['direct_worker_pending'] ) ) {
+        return false;
+    }
+
+    $not_before = absint( $state['direct_worker_not_before'] ?? 0 );
+    $queued_at  = absint( $state['last_dispatch_at'] ?? 0 );
+    $reference  = max( $not_before, $queued_at );
+
+    // Un despacho que supera la gracia configurada se considera perdido.
+    // El watchdog podrá lanzar uno nuevo sin esperar al scheduler.
+    return 0 === $reference || ( time() - $reference ) <= seo_ie_product_import_direct_stale_seconds();
+}
+
+/**
+ * Comprueba de forma no intrusiva si un PID del mismo host sigue existiendo.
+ * Devuelve null cuando el entorno no permite comprobarlo.
+ *
+ * @param int $pid PID.
+ * @return bool|null
+ */
+function seo_ie_product_import_pid_is_alive( $pid ) {
+    $pid = absint( $pid );
+    if ( 0 === $pid ) {
+        return null;
+    }
+
+    if ( function_exists( 'posix_kill' ) ) {
+        return @posix_kill( $pid, 0 );
+    }
+
+    if ( '/' === DIRECTORY_SEPARATOR && is_dir( '/proc/' . $pid ) ) {
+        return true;
+    }
+
+    return null;
+}
+
+/**
+ * Retira únicamente lotes heredados de Action Scheduler/WP-Cron.
+ * El watchdog se conserva como red de seguridad.
+ *
+ * @param int    $user_id ID del usuario.
+ * @param string $token   Token.
+ * @return void
+ */
+function seo_ie_product_import_clear_legacy_batch_actions( $user_id, $token ) {
     $hook  = 'seo_ie_process_product_import_batch';
     $args  = [ absint( $user_id ), sanitize_key( $token ) ];
     $group = 'seo-system-product-import';
 
-    if ( function_exists( 'as_has_scheduled_action' ) ) {
-        return (bool) as_has_scheduled_action( $hook, $args, $group );
+    if ( function_exists( 'as_unschedule_all_actions' ) ) {
+        as_unschedule_all_actions( $hook, $args, $group );
     }
 
-    if ( function_exists( 'as_next_scheduled_action' ) ) {
-        return false !== as_next_scheduled_action( $hook, $args, $group );
-    }
-
-    return false !== wp_next_scheduled( $hook, $args );
+    wp_clear_scheduled_hook( $hook, $args );
 }
 
-
+/**
+ * Firma un despacho del worker directo. El ID de despacho también se guarda
+ * en el estado, de modo que una petición antigua no pueda reactivarse.
+ *
+ * @param int    $user_id     ID del usuario.
+ * @param string $token       Token de importación.
+ * @param string $dispatch_id ID efímero.
+ * @param int    $not_before  Timestamp mínimo.
+ * @return string
+ */
+function seo_ie_product_import_direct_signature( $user_id, $token, $dispatch_id, $not_before ) {
+    $payload = absint( $user_id ) . '|' . sanitize_key( $token ) . '|' . sanitize_key( $dispatch_id ) . '|' . absint( $not_before );
+    return hash_hmac( 'sha256', $payload, wp_salt( 'auth' ) );
+}
 
 /**
- * Despierta WP-Cron sin bloquear la peticion actual.
+ * Valida que el despacho recibido sea exactamente el que sigue pendiente.
  *
+ * @param int    $user_id     ID del usuario.
+ * @param string $token       Token.
+ * @param string $dispatch_id ID de despacho.
+ * @param int    $not_before  Timestamp mínimo.
+ * @param string $signature   Firma HMAC.
  * @return bool
  */
-/**if ( ! function_exists( 'seo_ie_product_import_kick_cron' ) ) {
-    function seo_ie_product_import_kick_cron() {
-        if ( defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON ) {
-            return false;
-        }
+function seo_ie_product_import_direct_request_is_valid( $user_id, $token, $dispatch_id, $not_before, $signature ) {
+    $user_id     = absint( $user_id );
+    $token       = sanitize_key( $token );
+    $dispatch_id = sanitize_key( $dispatch_id );
+    $not_before  = absint( $not_before );
+    $signature   = strtolower( preg_replace( '/[^a-f0-9]/i', '', (string) $signature ) );
+    $state       = get_transient( seo_ie_product_import_state_key( $user_id, $token ) );
 
-        if ( function_exists( 'spawn_cron' ) ) {
-            return (bool) spawn_cron( time() );
-        }
-
+    if (
+        0 === $user_id
+        || '' === $token
+        || '' === $dispatch_id
+        || ! is_array( $state )
+        || empty( $state['direct_worker_pending'] )
+        || sanitize_key( $state['direct_worker_dispatch_id'] ?? '' ) !== $dispatch_id
+        || absint( $state['direct_worker_not_before'] ?? 0 ) !== $not_before
+    ) {
         return false;
     }
+
+    $expected = seo_ie_product_import_direct_signature( $user_id, $token, $dispatch_id, $not_before );
+    return hash_equals( $expected, $signature );
 }
-*/
-
-
-
 
 /**
- * Programa un evento WP-Cron de respaldo para una accion gestionada
- * principalmente por Action Scheduler.
+ * Reclama de forma lógica un despacho antes de ejecutar el lote.
  *
- * El bloqueo propio del importador impide que dos workers escriban la misma
- * fila simultaneamente si ambos motores llegan a activarse cerca en el tiempo.
- *
- * @param string $hook  Hook que debe ejecutarse.
- * @param array  $args  Argumentos del hook.
- * @param int    $delay Retraso minimo en segundos.
+ * @param int    $user_id     ID del usuario.
+ * @param string $token       Token.
+ * @param string $dispatch_id ID de despacho.
+ * @param int    $not_before  Timestamp mínimo.
+ * @param string $signature   Firma.
+ * @param string $backend     Backend directo.
  * @return bool
  */
-/**if ( ! function_exists( 'seo_ie_product_import_schedule_wp_fallback' ) ) {
-    function seo_ie_product_import_schedule_wp_fallback( $hook, $args, $delay = 60 ) {
-        $hook  = sanitize_key( $hook );
-        $args  = array_values( (array) $args );
-        $delay = max( 30, absint( $delay ) );
-
-        if ( '' === $hook ) {
-            return false;
-        }
-
-        if ( false !== wp_next_scheduled( $hook, $args ) ) {
-            return true;
-        }
-
-        $scheduled = wp_schedule_single_event(
-            time() + $delay,
-            $hook,
-            $args,
-            true
-        );
-
-        if ( is_wp_error( $scheduled ) || true !== $scheduled ) {
-            return false;
-        }
-
-        seo_ie_product_import_kick_cron();
-        return true;
+function seo_ie_product_import_claim_direct_dispatch( $user_id, $token, $dispatch_id, $not_before, $signature, $backend ) {
+    if ( ! seo_ie_product_import_direct_request_is_valid( $user_id, $token, $dispatch_id, $not_before, $signature ) ) {
+        return false;
     }
+
+    if ( time() < absint( $not_before ) ) {
+        return false;
+    }
+
+    $state = get_transient( seo_ie_product_import_state_key( $user_id, $token ) );
+    if ( ! is_array( $state ) ) {
+        return false;
+    }
+
+    $state['direct_worker_pending']     = 0;
+    $state['direct_worker_dispatch_id'] = '';
+    $state['direct_worker_claimed_at']  = time();
+    $state['last_worker_backend']       = sanitize_key( $backend );
+    seo_ie_product_import_add_transaction(
+        $state,
+        'direct_worker_claimed',
+        'El motor propio ha reclamado el siguiente lote.',
+        [ 'backend' => sanitize_key( $backend ) ]
+    );
+    seo_ie_product_import_store_state( $user_id, $token, $state );
+
+    return true;
 }
-*/
-
-
 
 /**
- * Programa el siguiente lote en el servidor.
+ * Devuelve true si exec() puede utilizarse en este hosting.
  *
- * Se usa Action Scheduler cuando está disponible en WooCommerce. Como
- * respaldo se utiliza WP-Cron, por lo que es recomendable mantener un cron
- * real del servidor que invoque wp-cron.php periódicamente.
+ * @return bool
+ */
+function seo_ie_product_import_exec_available() {
+    if ( ! function_exists( 'exec' ) ) {
+        return false;
+    }
+
+    $disabled = array_filter( array_map( 'trim', explode( ',', (string) ini_get( 'disable_functions' ) ) ) );
+    return ! in_array( 'exec', $disabled, true );
+}
+
+/**
+ * Localiza un PHP CLI real. Se valida PHP_SAPI para evitar lanzar php-fpm o CGI.
+ *
+ * @return string
+ */
+function seo_ie_product_import_find_php_cli() {
+    static $resolved = null;
+
+    if ( null !== $resolved ) {
+        return $resolved;
+    }
+
+    $resolved = '';
+    if ( ! seo_ie_product_import_exec_available() || '/' !== DIRECTORY_SEPARATOR ) {
+        return $resolved;
+    }
+
+    $candidates = [];
+    if ( defined( 'PHP_BINARY' ) && PHP_BINARY ) {
+        $candidates[] = PHP_BINARY;
+    }
+    if ( defined( 'PHP_BINDIR' ) && PHP_BINDIR ) {
+        $candidates[] = trailingslashit( PHP_BINDIR ) . 'php';
+    }
+
+    $output = [];
+    $status = 1;
+    @exec( 'command -v php 2>/dev/null', $output, $status );
+    if ( 0 === $status && ! empty( $output[0] ) ) {
+        $candidates[] = trim( (string) $output[0] );
+    }
+
+    foreach ( array_values( array_unique( array_filter( $candidates ) ) ) as $candidate ) {
+        if ( ! is_file( $candidate ) || ! is_executable( $candidate ) ) {
+            continue;
+        }
+
+        $probe  = [];
+        $status = 1;
+        @exec(
+            escapeshellarg( $candidate ) . ' -r ' . escapeshellarg( 'echo PHP_SAPI;' ) . ' 2>/dev/null',
+            $probe,
+            $status
+        );
+
+        if ( 0 === $status && 'cli' === trim( implode( '', $probe ) ) ) {
+            $resolved = $candidate;
+            break;
+        }
+    }
+
+    return $resolved;
+}
+
+/**
+ * Lanza un proceso PHP CLI desacoplado de la petición web y del scheduler.
+ *
+ * @param int    $user_id     Usuario.
+ * @param string $token       Token.
+ * @param string $dispatch_id ID de despacho.
+ * @param int    $not_before  Momento mínimo.
+ * @param string $signature   Firma.
+ * @return array|WP_Error
+ */
+function seo_ie_product_import_spawn_cli( $user_id, $token, $dispatch_id, $not_before, $signature ) {
+    $php    = seo_ie_product_import_find_php_cli();
+    $script = __DIR__ . '/product-import-worker.php';
+    $wp_load = trailingslashit( ABSPATH ) . 'wp-load.php';
+
+    if ( '' === $php ) {
+        return new WP_Error( 'seo_ie_direct_cli_missing', 'PHP CLI no está disponible para el usuario del servidor web.' );
+    }
+    if ( ! is_readable( $script ) || ! is_readable( $wp_load ) ) {
+        return new WP_Error( 'seo_ie_direct_cli_files', 'No se encuentra el launcher CLI o wp-load.php.' );
+    }
+
+    $delay = max( 0, absint( $not_before ) - time() );
+    $inner = '';
+    if ( 0 < $delay ) {
+        $inner .= 'sleep ' . absint( $delay ) . '; ';
+    }
+    $inner .= 'exec '
+        . escapeshellarg( $php ) . ' '
+        . escapeshellarg( $script ) . ' '
+        . escapeshellarg( $wp_load ) . ' '
+        . escapeshellarg( (string) absint( $user_id ) ) . ' '
+        . escapeshellarg( sanitize_key( $token ) ) . ' '
+        . escapeshellarg( sanitize_key( $dispatch_id ) ) . ' '
+        . escapeshellarg( (string) absint( $not_before ) ) . ' '
+        . escapeshellarg( (string) $signature );
+
+    $command = 'sh -c ' . escapeshellarg( $inner ) . ' > /dev/null 2>&1 & echo $!';
+    $output  = [];
+    $status  = 1;
+    @exec( $command, $output, $status );
+    $pid = ! empty( $output[0] ) ? absint( trim( (string) $output[0] ) ) : 0;
+
+    if ( 0 !== $status || 0 === $pid ) {
+        return new WP_Error( 'seo_ie_direct_cli_spawn', 'El servidor no pudo desacoplar el proceso PHP CLI.' );
+    }
+
+    return [
+        'backend' => 'direct_cli',
+        'pid'     => $pid,
+    ];
+}
+
+/**
+ * Lanza una petición loopback no bloqueante directamente al plugin.
+ * No utiliza WP-Cron ni Action Scheduler.
+ *
+ * @param int    $user_id     Usuario.
+ * @param string $token       Token.
+ * @param string $dispatch_id ID de despacho.
+ * @param int    $not_before  Momento mínimo.
+ * @param string $signature   Firma.
+ * @return array|WP_Error
+ */
+function seo_ie_product_import_spawn_http( $user_id, $token, $dispatch_id, $not_before, $signature ) {
+    $response = wp_remote_post(
+        admin_url( 'admin-post.php' ),
+        [
+            'timeout'     => 0.8,
+            'redirection' => 0,
+            'blocking'    => false,
+            'sslverify'   => apply_filters( 'https_local_ssl_verify', false ),
+            'headers'     => [ 'X-SEO-Direct-Worker' => '1' ],
+            'body'        => [
+                'action'      => 'seo_ie_product_import_direct_worker',
+                'user_id'     => absint( $user_id ),
+                'token'       => sanitize_key( $token ),
+                'dispatch_id' => sanitize_key( $dispatch_id ),
+                'not_before'  => absint( $not_before ),
+                'signature'   => (string) $signature,
+            ],
+        ]
+    );
+
+    if ( is_wp_error( $response ) ) {
+        return $response;
+    }
+
+    return [
+        'backend' => 'direct_http',
+        'pid'     => 0,
+    ];
+}
+
+/**
+ * Endpoint interno para el fallback loopback. La firma y el ID efímero hacen
+ * que no pueda convertirse en un endpoint público de ejecución arbitraria.
+ *
+ * @return void
+ */
+function seo_ie_product_import_direct_http_worker() {
+    $user_id     = absint( $_POST['user_id'] ?? 0 );
+    $token       = sanitize_key( wp_unslash( $_POST['token'] ?? '' ) );
+    $dispatch_id = sanitize_key( wp_unslash( $_POST['dispatch_id'] ?? '' ) );
+    $not_before  = absint( $_POST['not_before'] ?? 0 );
+    $signature   = sanitize_text_field( wp_unslash( $_POST['signature'] ?? '' ) );
+
+    if ( ! seo_ie_product_import_direct_request_is_valid( $user_id, $token, $dispatch_id, $not_before, $signature ) ) {
+        status_header( 403 );
+        echo 'forbidden';
+        exit;
+    }
+
+    ignore_user_abort( true );
+    if ( function_exists( 'set_time_limit' ) ) {
+        @set_time_limit( 0 );
+    }
+
+    status_header( 202 );
+    nocache_headers();
+    header( 'Content-Type: text/plain; charset=utf-8' );
+    echo 'accepted';
+
+    if ( function_exists( 'fastcgi_finish_request' ) ) {
+        @fastcgi_finish_request();
+    } else {
+        @ob_end_flush();
+        @flush();
+    }
+
+    $wait = max( 0, $not_before - time() );
+    if ( 0 < $wait ) {
+        sleep( min( 600, $wait ) );
+    }
+
+    if ( ! seo_ie_product_import_claim_direct_dispatch( $user_id, $token, $dispatch_id, $not_before, $signature, 'direct_http' ) ) {
+        exit;
+    }
+
+    seo_ie_product_import_background_worker( $user_id, $token, 'direct_http' );
+    exit;
+}
+
+/**
+ * Despierta WP-Cron sin bloquear la petición actual. Solo lo usa el watchdog
+ * de recuperación, nunca la cadena normal de lotes.
+ *
+ * @return bool
+ */
+function seo_ie_product_import_kick_cron() {
+    if ( defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON ) {
+        return false;
+    }
+
+    if ( function_exists( 'spawn_cron' ) ) {
+        return (bool) spawn_cron( time() );
+    }
+
+    return false;
+}
+
+/**
+ * Registra el resultado de un despacho sin sobrescribir el progreso que un
+ * worker recién arrancado pudiera haber guardado en paralelo.
+ *
+ * @param int    $user_id     Usuario.
+ * @param string $token       Token.
+ * @param bool   $result      Resultado.
+ * @param string $backend     Backend.
+ * @param int    $pid         PID lanzado si existe.
+ * @param string $error       Error.
+ * @param string $dispatch_id ID de despacho.
+ * @param int    $not_before  Momento previsto.
+ * @return bool
+ */
+function seo_ie_product_import_record_dispatch_result( $user_id, $token, $result, $backend, $pid, $error, $dispatch_id, $not_before ) {
+    $state = get_transient( seo_ie_product_import_state_key( $user_id, $token ) );
+
+    if ( is_array( $state ) ) {
+        $state['last_schedule_backend']    = sanitize_key( $backend );
+        $state['last_schedule_result']     = $result ? 'ok' : 'error';
+        $state['last_action_id']           = 0;
+        $state['last_schedule_error']      = sanitize_text_field( $error );
+        $state['last_dispatch_backend']    = sanitize_key( $backend );
+        $state['last_dispatch_result']     = $result ? 'ok' : 'error';
+        $state['last_dispatch_pid']        = absint( $pid );
+        $state['last_dispatch_not_before'] = absint( $not_before );
+        $state['last_dispatch_error']      = sanitize_text_field( $error );
+
+        if (
+            ! $result
+            && sanitize_key( $state['direct_worker_dispatch_id'] ?? '' ) === sanitize_key( $dispatch_id )
+        ) {
+            $state['direct_worker_pending']     = 0;
+            $state['direct_worker_dispatch_id'] = '';
+        }
+
+        seo_ie_product_import_add_transaction(
+            $state,
+            $result ? 'direct_dispatch_ok' : 'direct_dispatch_error',
+            $result
+                ? 'El siguiente lote fue entregado al motor propio.'
+                : 'El motor propio no pudo lanzar el siguiente lote.',
+            [
+                'backend' => sanitize_key( $backend ),
+                'pid'     => absint( $pid ),
+                'error'   => sanitize_text_field( $error ),
+            ]
+        );
+        seo_ie_product_import_store_state( $user_id, $token, $state );
+    }
+
+    return (bool) $result;
+}
+
+/**
+ * Programa el siguiente lote con un motor propio del plugin.
+ *
+ * Orden de preferencia:
+ * 1) proceso PHP CLI desacoplado del servidor web;
+ * 2) petición loopback HTTP directa y no bloqueante.
+ *
+ * Action Scheduler y WP-Cron quedan fuera del camino crítico. Solo el
+ * watchdog puede utilizarlos para detectar una cadena perdida y volver a
+ * invocar esta función.
  *
  * @param int    $user_id ID del usuario.
  * @param string $token   Token de importación.
- * @param int    $delay   Retraso en segundos.
- * @param bool   $force   Programa una nueva acción aunque la actual siga ejecutándose.
+ * @param int    $delay   Retraso decidido por el regulador.
+ * @param bool   $force   Fuerza un nuevo despacho si no hay worker ejecutando.
  * @return bool
  */
 function seo_ie_product_import_schedule( $user_id, $token, $delay = 0, $force = false ) {
@@ -4400,109 +4806,96 @@ function seo_ie_product_import_schedule( $user_id, $token, $delay = 0, $force = 
     $delay   = max( 0, absint( $delay ) );
     $state   = get_transient( seo_ie_product_import_state_key( $user_id, $token ) );
 
-    if ( is_array( $state ) ) {
-        $state['last_schedule_attempt_at'] = time();
-        $state['last_schedule_error']      = '';
-        seo_ie_product_import_add_transaction(
-            $state,
-            'schedule_attempt',
-            'Se intenta programar el siguiente lote.',
-            [ 'delay' => $delay, 'force' => $force ? 1 : 0 ]
-        );
-    }
-
-    $finish = static function ( $result, $backend, $action_id, $error = '' ) use ( $user_id, $token, &$state ) {
-        if ( is_array( $state ) ) {
-            $state['last_schedule_backend'] = sanitize_key( $backend );
-            $state['last_schedule_result']  = $result ? 'ok' : 'error';
-            $state['last_action_id']        = absint( $action_id );
-            $state['last_schedule_error']   = sanitize_text_field( $error );
-            seo_ie_product_import_add_transaction(
-                $state,
-                $result ? 'schedule_ok' : 'schedule_error',
-                $result ? 'El siguiente lote quedó programado.' : 'No se pudo programar el siguiente lote.',
-                [
-                    'backend'   => $backend,
-                    'action_id' => absint( $action_id ),
-                    'error'     => $error,
-                ]
-            );
-            seo_ie_product_import_store_state( $user_id, $token, $state );
-        }
-
-        return (bool) $result;
-    };
-
-    if ( 0 === $user_id || '' === $token ) {
-        return $finish( false, 'none', 0, 'Usuario o token no válidos.' );
-    }
-
-    if ( 0 === (int) has_action( 'seo_ie_process_product_import_batch', 'seo_ie_product_import_background_worker' ) ) {
-        return $finish( false, 'none', 0, 'El callback seo_ie_product_import_background_worker no está registrado.' );
+    if ( 0 === $user_id || '' === $token || ! is_array( $state ) ) {
+        return false;
     }
 
     if ( seo_ie_product_import_is_cancel_requested( $user_id, $token ) ) {
-        return $finish( false, 'none', 0, 'Existe una solicitud de cancelación.' );
+        return false;
     }
 
-    if (
-        is_array( $state )
-        && in_array( sanitize_key( $state['status'] ?? '' ), [ 'stopping', 'stopped' ], true )
-    ) {
-        return $finish( false, 'none', 0, 'La importación está detenida o deteniéndose.' );
+    if ( in_array( sanitize_key( $state['status'] ?? '' ), [ 'stopping', 'stopped', 'completed', 'failed' ], true ) ) {
+        return false;
+    }
+
+    if ( get_transient( seo_ie_product_import_lock_key( $user_id, $token ) ) ) {
+        // El worker actual puede llamar a schedule() al final de su lote una vez
+        // liberado el lock. Si otro contexto intenta forzar mientras sigue vivo,
+        // no se crea un segundo escritor.
+        if ( empty( $state['last_batch_finished_at'] ) || absint( $state['last_batch_finished_at'] ) < absint( $state['last_batch_started_at'] ?? 0 ) ) {
+            return true;
+        }
     }
 
     if ( ! $force && seo_ie_product_import_is_scheduled( $user_id, $token ) ) {
-        return $finish( true, 'existing', absint( $state['last_action_id'] ?? 0 ) );
+        return true;
     }
 
-    $hook  = 'seo_ie_process_product_import_batch';
-    $args  = [ $user_id, $token ];
-    $group = 'seo-system-product-import';
+    seo_ie_product_import_clear_legacy_batch_actions( $user_id, $token );
 
-    $action_scheduler_ready = function_exists( 'as_enqueue_async_action' )
-        && (
-            did_action( 'action_scheduler_init' )
-            || (
-                class_exists( 'Action_Scheduler' )
-                && is_callable( [ 'Action_Scheduler', 'is_initialized' ] )
-                && Action_Scheduler::is_initialized()
-            )
-        );
+    $dispatch_id = strtolower( wp_generate_password( 24, false, false ) );
+    $not_before  = time() + $delay;
+    $signature   = seo_ie_product_import_direct_signature( $user_id, $token, $dispatch_id, $not_before );
 
-    if ( $action_scheduler_ready ) {
-        $unique = ! $force;
-        $action_id = 0 < $delay && function_exists( 'as_schedule_single_action' )
-            ? as_schedule_single_action( time() + $delay, $hook, $args, $group, $unique, 10 )
-            : as_enqueue_async_action( $hook, $args, $group, $unique, 10 );
-
-        if ( 0 < absint( $action_id ) ) {
-            if ( function_exists( 'seo_ie_product_import_schedule_wp_fallback' ) ) {
-                seo_ie_product_import_schedule_wp_fallback( $hook, $args, $delay + 60 );
-            }
-            return $finish( true, 'action_scheduler', $action_id );
-        }
-
-        return $finish( false, 'action_scheduler', 0, 'Action Scheduler devolvió un ID de acción igual a cero.' );
+    $state = get_transient( seo_ie_product_import_state_key( $user_id, $token ) );
+    if ( ! is_array( $state ) ) {
+        return false;
     }
 
-    if ( ! $force && false !== wp_next_scheduled( $hook, $args ) ) {
-        return $finish( true, 'wp_cron_existing', 0 );
-    }
-
-    $scheduled = wp_schedule_single_event(
-        time() + max( 1, $delay ),
-        $hook,
-        $args,
-        true
+    $state['last_schedule_attempt_at']    = time();
+    $state['last_schedule_error']         = '';
+    $state['last_dispatch_at']            = time();
+    $state['direct_worker_pending']       = 1;
+    $state['direct_worker_dispatch_id']   = $dispatch_id;
+    $state['direct_worker_not_before']    = $not_before;
+    $state['direct_worker_requested_delay'] = $delay;
+    seo_ie_product_import_add_transaction(
+        $state,
+        'direct_dispatch_queued',
+        'El siguiente lote se entrega al motor propio, sin pasar por Action Scheduler ni WP-Cron.',
+        [ 'delay' => $delay, 'force' => $force ? 1 : 0 ]
     );
+    seo_ie_product_import_store_state( $user_id, $token, $state );
 
-    if ( is_wp_error( $scheduled ) ) {
-        return $finish( false, 'wp_cron', 0, $scheduled->get_error_message() );
+    $cli = seo_ie_product_import_spawn_cli( $user_id, $token, $dispatch_id, $not_before, $signature );
+    if ( ! is_wp_error( $cli ) ) {
+        return seo_ie_product_import_record_dispatch_result(
+            $user_id,
+            $token,
+            true,
+            $cli['backend'],
+            $cli['pid'],
+            '',
+            $dispatch_id,
+            $not_before
+        );
     }
 
-    seo_ie_product_import_kick_cron();
-    return $finish( true === $scheduled, 'wp_cron', 0, true === $scheduled ? '' : 'WP-Cron no confirmó la programación.' );
+    $http = seo_ie_product_import_spawn_http( $user_id, $token, $dispatch_id, $not_before, $signature );
+    if ( ! is_wp_error( $http ) ) {
+        return seo_ie_product_import_record_dispatch_result(
+            $user_id,
+            $token,
+            true,
+            $http['backend'],
+            0,
+            '',
+            $dispatch_id,
+            $not_before
+        );
+    }
+
+    $error = trim( $cli->get_error_message() . ' ' . $http->get_error_message() );
+    return seo_ie_product_import_record_dispatch_result(
+        $user_id,
+        $token,
+        false,
+        'direct_unavailable',
+        0,
+        $error,
+        $dispatch_id,
+        $not_before
+    );
 }
 
 /**
@@ -4648,15 +5041,15 @@ function seo_ie_product_import_watchdog_worker( $user_id, $token ) {
                 $state,
                 $requeued ? 'watchdog_requeued' : 'watchdog_requeue_failed',
                 $requeued
-                    ? 'El watchdog recuperó una cadena sin siguiente lote.'
-                    : 'El watchdog no pudo recuperar la cadena de lotes.'
+                    ? 'El watchdog volvió a lanzar el motor propio de la importación.'
+                    : 'El watchdog no pudo volver a lanzar el motor propio.'
             );
         } else {
             seo_ie_product_import_add_transaction(
                 $state,
                 'watchdog_ok',
                 $scheduled
-                    ? 'El watchdog confirmó que existe una acción pendiente o en ejecución.'
+                    ? 'El watchdog confirmó un worker propio pendiente o en ejecución.'
                     : 'El watchdog detectó un lote todavía bloqueado en ejecución.'
             );
         }
@@ -4776,9 +5169,11 @@ function seo_ie_product_import_background_failure( $user_id, $token, $error ) {
  * @param string $token   Token de importación.
  * @return void
  */
-function seo_ie_product_import_background_worker( $user_id, $token ) {
+function seo_ie_product_import_background_worker( $user_id, $token, $backend = 'legacy_scheduler' ) {
     $user_id      = absint( $user_id );
+    $backend      = sanitize_key( $backend );
     $previous_id  = get_current_user_id();
+    $worker_pid   = function_exists( 'getmypid' ) ? absint( getmypid() ) : 0;
 
     // Conserva el contexto del administrador que inició la tarea para logs,
     // auditoría y hooks de terceros ejecutados durante WC_Product::save().
@@ -4792,12 +5187,16 @@ function seo_ie_product_import_background_worker( $user_id, $token ) {
 
         if ( is_array( $state ) ) {
             $state['last_worker_started_at'] = time();
-            $state['last_worker_pid']        = function_exists( 'getmypid' ) ? absint( getmypid() ) : 0;
+            $state['last_worker_pid']        = $worker_pid;
+            $state['last_worker_backend']    = $backend;
+            $state['direct_worker_pending']  = 0;
             seo_ie_product_import_add_transaction(
                 $state,
                 'worker_started',
-                'Action Scheduler o WP-Cron ha iniciado un worker.',
-                [ 'pid' => $state['last_worker_pid'] ]
+                in_array( $backend, [ 'direct_cli', 'direct_http' ], true )
+                    ? 'El motor propio ha iniciado un worker.'
+                    : 'Un scheduler heredado ha iniciado un worker de compatibilidad.',
+                [ 'pid' => $state['last_worker_pid'], 'backend' => $backend ]
             );
             seo_ie_product_import_store_state( $user_id, $token, $state );
         }
@@ -4816,6 +5215,12 @@ function seo_ie_product_import_background_worker( $user_id, $token ) {
     } catch ( Throwable $error ) {
         seo_ie_product_import_background_failure( $user_id, $token, $error );
     } finally {
+        $fresh = get_transient( seo_ie_product_import_state_key( $user_id, $token ) );
+        if ( is_array( $fresh ) ) {
+            $fresh['last_worker_finished_at']  = time();
+            $fresh['last_worker_finished_pid'] = $worker_pid;
+            seo_ie_product_import_store_state( $user_id, $token, $fresh );
+        }
         wp_set_current_user( $previous_id );
     }
 }
@@ -5310,10 +5715,10 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
             @unlink( $path );
 
             if ( $is_ajax ) {
-                wp_send_json_error( [ 'message' => 'No se pudo iniciar la cola de importación del servidor.' ], 500 );
+                wp_send_json_error( [ 'message' => 'No se pudo iniciar el worker propio de importación del servidor.' ], 500 );
             }
 
-            wp_die( esc_html__( 'No se pudo iniciar la cola de importación del servidor.', 'seo-system' ) );
+            wp_die( esc_html__( 'No se pudo iniciar el worker propio de importación del servidor.', 'seo-system' ) );
         }
 
         seo_ie_product_import_schedule_watchdog( $user_id, $token, 60 );
@@ -6299,7 +6704,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
 
         $next_delay = absint( $state['adaptive_next_delay'] ?? 0 );
         if ( ! seo_ie_product_import_schedule( $user_id, $token, $next_delay, true ) ) {
-            throw new RuntimeException( 'No se pudo programar el siguiente lote de importación.' );
+            throw new RuntimeException( 'No se pudo lanzar el siguiente lote con el motor propio de importación.' );
         }
 
         seo_ie_product_import_schedule_watchdog( $user_id, $token, 60 );
@@ -6313,7 +6718,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
                 'processing',
                 $token,
                 $state,
-                [ 'message' => 'La importación continúa en la cola del servidor.' ]
+                [ 'message' => 'La importación continúa en el motor propio del servidor.' ]
             );
         }
 
