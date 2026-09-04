@@ -882,7 +882,7 @@ function seo_page_admin_callback() {
     seo_page_editor_process_create($notices);
 
     $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'estructura';
-    if (!in_array($tab, array('estructura', 'landings', 'landing-report', 'corporativas'), true)) {
+    if (!in_array($tab, array('estructura', 'landings', 'landing-report', 'corporativas', 'errores'), true)) {
         $tab = 'estructura';
     }
 
@@ -892,7 +892,11 @@ function seo_page_admin_callback() {
     $category_paths = seo_page_editor_get_category_paths($tree);
     $all_categories = seo_page_editor_get_all_product_categories();
 
-    if ($tab === 'landings') {
+    if ($tab === 'errores') {
+        $pages = array();
+        $title = 'Errores';
+        $description = 'Disponibilidad, señales SEO y test de carga externo solo para páginas WordPress publicadas.';
+    } elseif ($tab === 'landings') {
         $pages = seo_page_editor_get_pages_by_roles(array('landing'));
         $title = 'Landing pages';
         $description = 'Páginas comerciales/editoriales conectadas directamente con una o varias categorías WooCommerce mediante landing_to_category.';
@@ -920,9 +924,20 @@ function seo_page_admin_callback() {
             <a class="nav-tab <?php echo $tab === 'landings' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(add_query_arg('tab', 'landings', $base_url)); ?>">Landings</a>
             <a class="nav-tab <?php echo $tab === 'landing-report' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(add_query_arg('tab', 'landing-report', $base_url)); ?>">Informe landings</a>
             <a class="nav-tab <?php echo $tab === 'corporativas' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(add_query_arg('tab', 'corporativas', $base_url)); ?>">Corporativas</a>
+            <a class="nav-tab <?php echo $tab === 'errores' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(add_query_arg('tab', 'errores', $base_url)); ?>">Errores</a>
         </nav>
 
         <?php foreach ($notices as $notice) { seo_page_editor_render_notice($notice); } ?>
+
+        <?php if ($tab === 'errores'): ?>
+            <?php if (function_exists('seo_health_render_scope_tab')): ?>
+                <?php seo_health_render_scope_tab('page'); ?>
+            <?php else: ?>
+                <div class="notice notice-error inline"><p>No se ha podido cargar <code>seo-health-scan.php</code>.</p></div>
+            <?php endif; ?>
+        </div>
+        <?php return; ?>
+        <?php endif; ?>
 
         <?php if ($tab === 'landing-report'): ?>
             <?php if (function_exists('seo_landing_render_admin_tab')): ?>

@@ -39,6 +39,7 @@ require_once SEO_SYSTEM_PATH . 'includes/seo-core.php';
 require_once SEO_SYSTEM_PATH . 'functions.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-text-utils.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-vocabulary-bridge.php';
+require_once SEO_SYSTEM_PATH . 'includes/seo-health-scan.php';
 
 /*
 |--------------------------------------------------------------------------
