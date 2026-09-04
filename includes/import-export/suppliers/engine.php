@@ -20,7 +20,7 @@
  * @license GPL-2.0-or-later
  * @since 2.0.0
  * @version 2026-08-18
- * Build: 032
+ * Build: 033
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -72,6 +72,7 @@ add_action( 'admin_init', 'seo_proveedores_analizar_archivo' );
 add_action( 'admin_init', 'seo_proveedores_importar_catalogo' );
 add_action( 'admin_init', 'seo_proveedores_actualizar_estado_catalogo' );
 add_action( 'admin_init', 'seo_proveedores_actualizar_estado_masivo' );
+add_action( 'admin_init', 'seo_proveedores_exportar_productos_csv', 22 );
 add_action( 'admin_init', 'seo_proveedores_descartar_importacion_al_salir', 99 );
 
 /**
@@ -2297,6 +2298,630 @@ function seo_proveedores_columnas_virtuales_catalogo() {
         'cambios',
         'acciones_sync',
     ];
+}
+
+
+/**
+ * Columnas del export de productos de proveedores preparado para clasificación.
+ *
+ * Combina la fotografía del catálogo intermedio con la clasificación vigente
+ * del producto WooCommerce cuando la fila ya está enlazada mediante object_id.
+ * No modifica ni recalcula categorías: es una operación de solo lectura.
+ *
+ * @return string[]
+ */
+function seo_proveedores_exportar_productos_columnas() {
+    return [
+        'catalogo_proveedor_id',
+        'proveedor',
+        'proveedor_id_externo',
+        'sku',
+        'mpn',
+        'nombre',
+        'marca',
+        'categoria_proveedor',
+        'descripcion_proveedor',
+        'precio_sin_iva',
+        'precio_con_iva',
+        'iva_porcentaje',
+        'moneda',
+        'stock_estado',
+        'stock_cantidad',
+        'stock_texto',
+        'estado_seleccion',
+        'estado_sincronizacion',
+        'cambios_detectados',
+        'ultimo_error_sync',
+        'modo_imagenes',
+        'url_origen',
+        'url_canonica',
+        'imagenes',
+        'primera_importacion',
+        'ultima_importacion',
+        'ultima_sincronizacion',
+        'product_id',
+        'wp_estado',
+        'wp_titulo',
+        'wp_slug',
+        'wp_url',
+        'categorias_wc_ids',
+        'categorias_wc',
+        'etiquetas_wc_ids',
+        'etiquetas_wc',
+        'tipo',
+        'rol',
+        'aplicacion',
+        'plataforma',
+        'subtipo',
+        'atributos_seo_json',
+        'atributos_seo',
+        'clasificacion_estado',
+        'clasificacion_faltantes',
+    ];
+}
+
+/**
+ * Obtiene en bloque el contexto WooCommerce/SEO de productos ya enlazados.
+ *
+ * Se evita deliberadamente un SELECT por producto para que el export siga
+ * siendo utilizable con catálogos grandes de proveedores.
+ *
+ * @param int[] $product_ids IDs de producto.
+ * @return array<int,array<string,mixed>>
+ */
+function seo_proveedores_exportar_productos_contexto_wp( $product_ids ) {
+    global $wpdb;
+
+    $product_ids = array_values(
+        array_unique(
+            array_filter(
+                array_map( 'absint', (array) $product_ids )
+            )
+        )
+    );
+
+    if ( empty( $product_ids ) ) {
+        return [];
+    }
+
+    $context = [];
+    foreach ( $product_ids as $product_id ) {
+        $context[ $product_id ] = [
+            'wp_estado' => '',
+            'wp_titulo' => '',
+            'wp_slug' => '',
+            'wp_url' => '',
+            'categorias_wc_ids' => [],
+            'categorias_wc' => [],
+            'etiquetas_wc_ids' => [],
+            'etiquetas_wc' => [],
+            'semantics' => [
+                'tipo' => [],
+                'rol' => [],
+                'aplicacion' => [],
+                'plataforma' => [],
+                'subtipo' => [],
+            ],
+            'attributes' => [],
+        ];
+    }
+
+    $placeholders = implode( ',', array_fill( 0, count( $product_ids ), '%d' ) );
+
+    $post_sql = $wpdb->prepare(
+        "SELECT ID, post_title, post_name, post_status
+         FROM {$wpdb->posts}
+         WHERE post_type = 'product'
+           AND ID IN ({$placeholders})",
+        $product_ids
+    );
+    $post_rows = $wpdb->get_results( $post_sql, ARRAY_A );
+
+    foreach ( (array) $post_rows as $post_row ) {
+        $product_id = absint( $post_row['ID'] ?? 0 );
+        if ( ! isset( $context[ $product_id ] ) ) {
+            continue;
+        }
+
+        $context[ $product_id ]['wp_estado'] = (string) ( $post_row['post_status'] ?? '' );
+        $context[ $product_id ]['wp_titulo'] = (string) ( $post_row['post_title'] ?? '' );
+        $context[ $product_id ]['wp_slug']   = (string) ( $post_row['post_name'] ?? '' );
+        $context[ $product_id ]['wp_url']    = get_permalink( $product_id ) ?: '';
+    }
+
+    $term_sql = $wpdb->prepare(
+        "SELECT tr.object_id, tt.taxonomy, t.term_id, t.name
+         FROM {$wpdb->term_relationships} tr
+         INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
+         INNER JOIN {$wpdb->terms} t ON t.term_id = tt.term_id
+         WHERE tr.object_id IN ({$placeholders})
+           AND tt.taxonomy IN ('product_cat','product_tag')
+         ORDER BY tr.object_id ASC, tt.taxonomy ASC, t.name ASC",
+        $product_ids
+    );
+    $term_rows = $wpdb->get_results( $term_sql, ARRAY_A );
+
+    foreach ( (array) $term_rows as $term_row ) {
+        $product_id = absint( $term_row['object_id'] ?? 0 );
+        if ( ! isset( $context[ $product_id ] ) ) {
+            continue;
+        }
+
+        $taxonomy = (string) ( $term_row['taxonomy'] ?? '' );
+        if ( 'product_cat' === $taxonomy ) {
+            $context[ $product_id ]['categorias_wc_ids'][] = absint( $term_row['term_id'] ?? 0 );
+            $context[ $product_id ]['categorias_wc'][]     = (string) ( $term_row['name'] ?? '' );
+        } elseif ( 'product_tag' === $taxonomy ) {
+            $context[ $product_id ]['etiquetas_wc_ids'][] = absint( $term_row['term_id'] ?? 0 );
+            $context[ $product_id ]['etiquetas_wc'][]     = (string) ( $term_row['name'] ?? '' );
+        }
+    }
+
+    $objects    = $wpdb->prefix . 'seo_object_vocabulary';
+    $vocabulary = $wpdb->prefix . 'seo_vocabulary';
+    $objects_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $objects ) );
+    $vocab_exists   = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $vocabulary ) );
+
+    if ( $objects_exists === $objects && $vocab_exists === $vocabulary ) {
+        $semantic_sql = $wpdb->prepare(
+            "SELECT ov.object_id, v.semantic_group, v.label
+             FROM {$objects} ov
+             INNER JOIN {$vocabulary} v
+                ON v.id = ov.vocabulary_id
+               AND v.active = 1
+             WHERE ov.object_type = 'product'
+               AND ov.object_id IN ({$placeholders})
+               AND ov.status = 1
+               AND v.semantic_group IN ('tipo','rol','aplicacion','plataforma','subtipo')
+             ORDER BY ov.object_id ASC,
+                      FIELD(v.semantic_group,'tipo','rol','aplicacion','plataforma','subtipo'),
+                      v.label ASC",
+            $product_ids
+        );
+        $semantic_rows = $wpdb->get_results( $semantic_sql, ARRAY_A );
+
+        foreach ( (array) $semantic_rows as $semantic_row ) {
+            $product_id = absint( $semantic_row['object_id'] ?? 0 );
+            $group      = sanitize_key( $semantic_row['semantic_group'] ?? '' );
+            $label      = trim( (string) ( $semantic_row['label'] ?? '' ) );
+
+            if (
+                isset( $context[ $product_id ]['semantics'][ $group ] )
+                && '' !== $label
+            ) {
+                $context[ $product_id ]['semantics'][ $group ][] = $label;
+            }
+        }
+    }
+
+    /*
+     * ROL canónico: TIPO -> seo_type_role_map -> ROL. Se exporta la etiqueta
+     * humana del ROL, no el slug interno. Si el mapa no existe se conserva el
+     * ROL materializado leído arriba como fallback.
+     */
+    $type_role_map = $wpdb->prefix . 'seo_type_role_map';
+    $type_role_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $type_role_map ) );
+
+    if (
+        $objects_exists === $objects
+        && $vocab_exists === $vocabulary
+        && $type_role_exists === $type_role_map
+    ) {
+        $canonical_role_sql = $wpdb->prepare(
+            "SELECT ot.object_id, rv.label
+             FROM {$objects} ot
+             INNER JOIN {$vocabulary} tv
+                ON tv.id = ot.vocabulary_id
+               AND tv.semantic_group = 'tipo'
+               AND tv.active = 1
+             INNER JOIN {$type_role_map} trm
+                ON trm.type_vocabulary_id = tv.id
+               AND trm.active = 1
+             INNER JOIN {$vocabulary} rv
+                ON rv.id = trm.role_vocabulary_id
+               AND rv.semantic_group = 'rol'
+               AND rv.active = 1
+             WHERE ot.object_type = 'product'
+               AND ot.object_id IN ({$placeholders})
+               AND ot.status = 1
+             ORDER BY ot.object_id ASC, rv.label ASC",
+            $product_ids
+        );
+        $canonical_role_rows = $wpdb->get_results( $canonical_role_sql, ARRAY_A );
+        $canonical_roles = [];
+
+        foreach ( (array) $canonical_role_rows as $canonical_role_row ) {
+            $product_id = absint( $canonical_role_row['object_id'] ?? 0 );
+            $label      = trim( (string) ( $canonical_role_row['label'] ?? '' ) );
+            if ( $product_id > 0 && '' !== $label ) {
+                $canonical_roles[ $product_id ][] = $label;
+            }
+        }
+
+        foreach ( $canonical_roles as $product_id => $role_labels ) {
+            if ( isset( $context[ $product_id ] ) ) {
+                $context[ $product_id ]['semantics']['rol'] = array_values( array_unique( $role_labels ) );
+            }
+        }
+    }
+
+    if ( function_exists( 'seo_attributes_get_rows_for_products' ) ) {
+        $attribute_rows = seo_attributes_get_rows_for_products( $product_ids );
+        foreach ( (array) $attribute_rows as $attribute_row ) {
+            $product_id = absint( $attribute_row->product_id ?? 0 );
+            if ( isset( $context[ $product_id ] ) ) {
+                $context[ $product_id ]['attributes'][] = $attribute_row;
+            }
+        }
+    }
+
+    foreach ( $context as $product_id => &$item ) {
+        foreach ( [ 'categorias_wc_ids', 'categorias_wc', 'etiquetas_wc_ids', 'etiquetas_wc' ] as $key ) {
+            $item[ $key ] = array_values( array_unique( array_filter( (array) $item[ $key ], static function ( $value ) {
+                return '' !== trim( (string) $value ) && '0' !== (string) $value;
+            } ) ) );
+        }
+
+        foreach ( $item['semantics'] as $group => $labels ) {
+            $item['semantics'][ $group ] = array_values(
+                array_unique(
+                    array_filter(
+                        array_map( 'trim', (array) $labels )
+                    )
+                )
+            );
+        }
+    }
+    unset( $item );
+
+    return $context;
+}
+
+/**
+ * Exporta el catálogo intermedio de proveedores con columnas de clasificación.
+ *
+ * El proceso es estrictamente de lectura y pagina por ID para no cargar todo el
+ * catálogo en memoria. Las propuestas de categoría del catálogo no se
+ * recalculan aquí porque pueden ser costosas en catálogos con miles de rutas.
+ *
+ * @return void
+ */
+function seo_proveedores_exportar_productos_csv() {
+    if ( ! isset( $_POST['seo_export_supplier_products'] ) ) {
+        return;
+    }
+
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_die( esc_html__( 'No tienes permisos para exportar productos de proveedores.', 'seo-system' ) );
+    }
+
+    check_admin_referer( 'seo_export_supplier_products_csv', 'seo_export_supplier_products_nonce' );
+
+    global $wpdb;
+
+    $table = seo_proveedores_tabla_productos();
+    $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
+    if ( $exists !== $table ) {
+        wp_die( esc_html__( 'No existe el catálogo de productos de proveedores.', 'seo-system' ) );
+    }
+
+    if ( function_exists( 'seo_supplier_sync_ensure_schema' ) ) {
+        seo_supplier_sync_ensure_schema();
+    }
+
+    $provider  = sanitize_text_field( wp_unslash( $_POST['supplier_export_provider'] ?? '' ) );
+    $selection = sanitize_key( $_POST['supplier_export_selection'] ?? '' );
+    $situation = sanitize_key( $_POST['supplier_export_situation'] ?? '' );
+    $linkage   = sanitize_key( $_POST['supplier_export_linkage'] ?? 'all' );
+
+    $where  = [ '1=1' ];
+    $params = [];
+
+    if ( '' !== $provider ) {
+        $where[]  = 'proveedor = %s';
+        $params[] = $provider;
+    }
+
+    if ( '' !== $selection && isset( seo_proveedores_estados_catalogo()[ $selection ] ) ) {
+        $where[]  = 'estado_seleccion = %s';
+        $params[] = $selection;
+    }
+
+    if ( '' !== $situation && isset( seo_proveedores_situaciones_catalogo()[ $situation ] ) ) {
+        $where[]  = 'estado_sincronizacion = %s';
+        $params[] = $situation;
+    }
+
+    if ( 'linked' === $linkage ) {
+        $where[] = 'object_id > 0';
+    } elseif ( 'unlinked' === $linkage ) {
+        $where[] = '(object_id IS NULL OR object_id = 0)';
+    } else {
+        $linkage = 'all';
+    }
+
+    $where_sql = implode( ' AND ', $where );
+    $count_sql = "SELECT COUNT(*) FROM {$table} WHERE {$where_sql}";
+    if ( ! empty( $params ) ) {
+        $count_sql = $wpdb->prepare( $count_sql, $params );
+    }
+    $total = absint( $wpdb->get_var( $count_sql ) );
+
+    $filename_parts = [ 'seo_supplier_products_classified' ];
+    if ( '' !== $provider ) {
+        $filename_parts[] = sanitize_title( $provider );
+    }
+    $filename_parts[] = wp_date( 'Ymd_His' );
+    $filename = implode( '_', array_filter( $filename_parts ) ) . '.csv';
+
+    seo_ie_store_log(
+        [
+            'operacion'    => 'Exportación de productos de proveedores clasificados',
+            'archivo'      => $filename,
+            'procesados'   => $total,
+            'correctos'    => $total,
+            'errores'      => 0,
+            'advertencias' => 0,
+            'detalles'     => [
+                'Export de solo lectura del catálogo intermedio de proveedores.',
+                'Cuando object_id existe se añaden categoría WooCommerce, etiquetas, TIPO, ROL, APLICACIÓN, PLATAFORMA, SUBTIPO y atributos SEO actuales.',
+                'No se recalculan propuestas de categoría durante la descarga para evitar carga innecesaria en catálogos grandes.',
+            ],
+        ]
+    );
+
+    $output  = seo_ie_open_csv_download( $filename );
+    $columns = seo_proveedores_exportar_productos_columnas();
+    seo_ie_write_csv_row( $output, $columns );
+
+    $last_id    = 0;
+    $batch_size = 500;
+
+    do {
+        $batch_where  = $where;
+        $batch_params = $params;
+        $batch_where[]  = 'id > %d';
+        $batch_params[] = $last_id;
+
+        $sql = "SELECT
+                    id, proveedor, proveedor_id_externo, sku, mpn, nombre, marca,
+                    categoria_proveedor, descripcion, precio_sin_iva, precio_con_iva,
+                    iva_porcentaje, moneda, stock_estado, stock_cantidad, stock_texto,
+                    estado_seleccion, estado_sincronizacion, cambios_detectados,
+                    ultimo_error_sync, modo_imagenes, url_origen, url_canonica, imagenes,
+                    primera_importacion, ultima_importacion, ultima_sincronizacion, object_id
+                FROM {$table}
+                WHERE " . implode( ' AND ', $batch_where ) . "
+                ORDER BY id ASC
+                LIMIT {$batch_size}";
+        $sql = $wpdb->prepare( $sql, $batch_params );
+        $rows = $wpdb->get_results( $sql, ARRAY_A );
+
+        if ( empty( $rows ) ) {
+            break;
+        }
+
+        $product_ids = [];
+        foreach ( $rows as $source_row ) {
+            $product_id = absint( $source_row['object_id'] ?? 0 );
+            if ( $product_id > 0 ) {
+                $product_ids[] = $product_id;
+            }
+        }
+
+        $wp_context = seo_proveedores_exportar_productos_contexto_wp( $product_ids );
+
+        foreach ( $rows as $source_row ) {
+            $last_id    = max( $last_id, absint( $source_row['id'] ?? 0 ) );
+            $product_id = absint( $source_row['object_id'] ?? 0 );
+            $wp_data    = $wp_context[ $product_id ] ?? null;
+
+            $semantics = is_array( $wp_data['semantics'] ?? null )
+                ? $wp_data['semantics']
+                : [ 'tipo' => [], 'rol' => [], 'aplicacion' => [], 'plataforma' => [], 'subtipo' => [] ];
+
+            $semantic_text = [];
+            foreach ( [ 'tipo', 'rol', 'aplicacion', 'plataforma', 'subtipo' ] as $group ) {
+                $semantic_text[ $group ] = implode( ' | ', array_values( array_unique( (array) ( $semantics[ $group ] ?? [] ) ) ) );
+            }
+
+            if ( $product_id <= 0 ) {
+                $classification_status  = 'sin_producto_wp';
+                $classification_missing = 'tipo | rol | aplicacion';
+            } else {
+                $missing = [];
+                foreach ( [ 'tipo', 'rol', 'aplicacion' ] as $required_group ) {
+                    if ( '' === trim( (string) $semantic_text[ $required_group ] ) ) {
+                        $missing[] = $required_group;
+                    }
+                }
+
+                if ( empty( $missing ) ) {
+                    $classification_status = 'clasificado';
+                } elseif ( 3 === count( $missing ) && empty( $wp_data['attributes'] ) ) {
+                    $classification_status = 'sin_clasificar';
+                } else {
+                    $classification_status = 'parcial';
+                }
+
+                $classification_missing = implode( ' | ', $missing );
+            }
+
+            $role_scope = $semantic_text['rol'];
+            $attribute_rows = (array) ( $wp_data['attributes'] ?? [] );
+            $attributes_json = function_exists( 'seo_ie_product_v2_seo_attributes_json' )
+                ? seo_ie_product_v2_seo_attributes_json( $attribute_rows, $role_scope )
+                : wp_json_encode( [] );
+            $attributes_text = function_exists( 'seo_ie_serialize_attributes' )
+                ? seo_ie_serialize_attributes( $attribute_rows, $role_scope )
+                : '';
+
+            $row = [
+                'catalogo_proveedor_id'  => absint( $source_row['id'] ?? 0 ),
+                'proveedor'              => (string) ( $source_row['proveedor'] ?? '' ),
+                'proveedor_id_externo'   => (string) ( $source_row['proveedor_id_externo'] ?? '' ),
+                'sku'                    => (string) ( $source_row['sku'] ?? '' ),
+                'mpn'                    => (string) ( $source_row['mpn'] ?? '' ),
+                'nombre'                 => (string) ( $source_row['nombre'] ?? '' ),
+                'marca'                  => (string) ( $source_row['marca'] ?? '' ),
+                'categoria_proveedor'    => (string) ( $source_row['categoria_proveedor'] ?? '' ),
+                'descripcion_proveedor'  => (string) ( $source_row['descripcion'] ?? '' ),
+                'precio_sin_iva'         => (string) ( $source_row['precio_sin_iva'] ?? '' ),
+                'precio_con_iva'         => (string) ( $source_row['precio_con_iva'] ?? '' ),
+                'iva_porcentaje'         => (string) ( $source_row['iva_porcentaje'] ?? '' ),
+                'moneda'                 => (string) ( $source_row['moneda'] ?? '' ),
+                'stock_estado'           => (string) ( $source_row['stock_estado'] ?? '' ),
+                'stock_cantidad'         => (string) ( $source_row['stock_cantidad'] ?? '' ),
+                'stock_texto'            => (string) ( $source_row['stock_texto'] ?? '' ),
+                'estado_seleccion'       => (string) ( $source_row['estado_seleccion'] ?? '' ),
+                'estado_sincronizacion'  => (string) ( $source_row['estado_sincronizacion'] ?? '' ),
+                'cambios_detectados'     => (string) ( $source_row['cambios_detectados'] ?? '' ),
+                'ultimo_error_sync'      => (string) ( $source_row['ultimo_error_sync'] ?? '' ),
+                'modo_imagenes'          => (string) ( $source_row['modo_imagenes'] ?? '' ),
+                'url_origen'             => (string) ( $source_row['url_origen'] ?? '' ),
+                'url_canonica'           => (string) ( $source_row['url_canonica'] ?? '' ),
+                'imagenes'               => (string) ( $source_row['imagenes'] ?? '' ),
+                'primera_importacion'    => (string) ( $source_row['primera_importacion'] ?? '' ),
+                'ultima_importacion'     => (string) ( $source_row['ultima_importacion'] ?? '' ),
+                'ultima_sincronizacion'  => (string) ( $source_row['ultima_sincronizacion'] ?? '' ),
+                'product_id'             => $product_id ?: '',
+                'wp_estado'              => (string) ( $wp_data['wp_estado'] ?? '' ),
+                'wp_titulo'              => (string) ( $wp_data['wp_titulo'] ?? '' ),
+                'wp_slug'                => (string) ( $wp_data['wp_slug'] ?? '' ),
+                'wp_url'                 => (string) ( $wp_data['wp_url'] ?? '' ),
+                'categorias_wc_ids'      => implode( ',', (array) ( $wp_data['categorias_wc_ids'] ?? [] ) ),
+                'categorias_wc'          => implode( ' | ', (array) ( $wp_data['categorias_wc'] ?? [] ) ),
+                'etiquetas_wc_ids'       => implode( ',', (array) ( $wp_data['etiquetas_wc_ids'] ?? [] ) ),
+                'etiquetas_wc'           => implode( ' | ', (array) ( $wp_data['etiquetas_wc'] ?? [] ) ),
+                'tipo'                   => $semantic_text['tipo'],
+                'rol'                    => $semantic_text['rol'],
+                'aplicacion'             => $semantic_text['aplicacion'],
+                'plataforma'             => $semantic_text['plataforma'],
+                'subtipo'                => $semantic_text['subtipo'],
+                'atributos_seo_json'     => $attributes_json,
+                'atributos_seo'          => $attributes_text,
+                'clasificacion_estado'   => $classification_status,
+                'clasificacion_faltantes'=> $classification_missing,
+            ];
+
+            seo_ie_write_csv_row(
+                $output,
+                array_map(
+                    static function ( $column ) use ( $row ) {
+                        return $row[ $column ] ?? '';
+                    },
+                    $columns
+                )
+            );
+        }
+
+        if ( function_exists( 'wp_cache_flush_runtime' ) ) {
+            wp_cache_flush_runtime();
+        }
+    } while ( count( $rows ) === $batch_size );
+
+    fclose( $output );
+    exit;
+}
+
+/**
+ * Tarjeta del export de proveedores en la pestaña general Importar / Exportar.
+ *
+ * @return void
+ */
+function seo_proveedores_render_export_productos_card() {
+    if ( ! current_user_can( 'manage_options' ) ) {
+        return;
+    }
+
+    global $wpdb;
+    $table = seo_proveedores_tabla_productos();
+    $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
+    ?>
+    <div class="card" style="max-width:none;padding:20px;">
+        <h2>Exportar productos de proveedores</h2>
+        <p>
+            Exporta el catálogo intermedio de proveedores en un CSV preparado para revisar y clasificar.
+            Cuando una fila ya está enlazada a WooCommerce, añade su clasificación actual en columnas separadas:
+            <strong>TIPO, ROL, APLICACIÓN, PLATAFORMA, SUBTIPO, categorías, etiquetas y atributos SEO</strong>.
+        </p>
+
+        <?php if ( $exists !== $table ) : ?>
+            <div class="notice notice-warning inline"><p>No existe todavía el catálogo intermedio de proveedores.</p></div>
+        <?php else : ?>
+            <?php
+            $providers = $wpdb->get_results(
+                "SELECT proveedor, COUNT(*) AS total
+                 FROM {$table}
+                 GROUP BY proveedor
+                 ORDER BY proveedor ASC",
+                ARRAY_A
+            );
+            ?>
+            <form method="post">
+                <?php wp_nonce_field( 'seo_export_supplier_products_csv', 'seo_export_supplier_products_nonce' ); ?>
+
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:16px 0;">
+                    <label>
+                        <strong>Proveedor</strong><br>
+                        <select name="supplier_export_provider" style="width:100%;">
+                            <option value="">Todos los proveedores</option>
+                            <?php foreach ( (array) $providers as $provider_row ) : ?>
+                                <?php $provider_name = (string) ( $provider_row['proveedor'] ?? '' ); ?>
+                                <option value="<?php echo esc_attr( $provider_name ); ?>">
+                                    <?php echo esc_html( $provider_name . ' (' . number_format_i18n( absint( $provider_row['total'] ?? 0 ) ) . ')' ); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+
+                    <label>
+                        <strong>Selección comercial</strong><br>
+                        <select name="supplier_export_selection" style="width:100%;">
+                            <option value="">Todas</option>
+                            <?php foreach ( seo_proveedores_estados_catalogo() as $state_key => $state_label ) : ?>
+                                <option value="<?php echo esc_attr( $state_key ); ?>"><?php echo esc_html( $state_label ); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+
+                    <label>
+                        <strong>Situación de sincronización</strong><br>
+                        <select name="supplier_export_situation" style="width:100%;">
+                            <option value="">Todas</option>
+                            <?php foreach ( seo_proveedores_situaciones_catalogo() as $state_key => $state_label ) : ?>
+                                <option value="<?php echo esc_attr( $state_key ); ?>"><?php echo esc_html( $state_label ); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+
+                    <label>
+                        <strong>Relación con WooCommerce</strong><br>
+                        <select name="supplier_export_linkage" style="width:100%;">
+                            <option value="all">Todos</option>
+                            <option value="linked">Solo enlazados a producto</option>
+                            <option value="unlinked">Solo sin enlazar</option>
+                        </select>
+                    </label>
+                </div>
+
+                <details style="margin:12px 0 16px;">
+                    <summary style="cursor:pointer;"><strong>Qué columnas incluye</strong></summary>
+                    <p class="description" style="max-width:1000px;">
+                        Identificación del proveedor, SKU/MPN, nombre, marca, categoría y descripción de origen; precio, IVA y stock;
+                        estados de selección/sincronización; URLs e imágenes; producto WordPress enlazado; categorías y etiquetas WooCommerce;
+                        TIPO, ROL, APLICACIÓN, PLATAFORMA, SUBTIPO, atributos SEO; y dos columnas de control:
+                        <code>clasificacion_estado</code> y <code>clasificacion_faltantes</code>.
+                    </p>
+                </details>
+
+                <button type="submit" name="seo_export_supplier_products" value="1" class="button button-primary">
+                    Exportar productos de proveedores
+                </button>
+            </form>
+        <?php endif; ?>
+    </div>
+    <?php
 }
 
 /**
