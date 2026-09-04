@@ -436,6 +436,12 @@ if (!function_exists('seo_processes_collect_import_export')) {
             'legacy_scheduler' => 'scheduler heredado',
             'action_scheduler' => 'Action Scheduler heredado',
             'wp_cron'          => 'WP-Cron heredado',
+            'manager_cron'     => 'gestor periódico',
+            'server_cron'      => 'gestor periódico · cron servidor',
+            'wp_cron_manager'  => 'gestor periódico · WP-Cron',
+            'manual_manager'   => 'gestor periódico · arranque manual',
+            'request_pulse'    => 'gestor periódico · pulso web',
+            'process_manager'  => 'gestor periódico · pendiente',
         );
         $backend_label = isset($backend_labels[$backend]) ? $backend_labels[$backend] : ($backend ? $backend : 'motor propio pendiente de detectar');
         $controller_active = !empty($diag['controller_active']);
@@ -611,6 +617,12 @@ if (!function_exists('seo_processes_collect_academy')) {
             'direct_http'        => 'loopback propio',
             'direct_unavailable' => 'motor propio no disponible',
             'legacy_scheduler'   => 'scheduler heredado',
+            'manager_cron'       => 'gestor periódico',
+            'server_cron'        => 'gestor periódico · cron servidor',
+            'wp_cron_manager'    => 'gestor periódico · WP-Cron',
+            'manual_manager'     => 'gestor periódico · arranque manual',
+            'request_pulse'      => 'gestor periódico · pulso web',
+            'process_manager'    => 'gestor periódico · pendiente',
         );
         $backend_label = isset($backend_labels[$backend]) ? $backend_labels[$backend] : ($backend ? $backend : 'motor propio pendiente de detectar');
 
@@ -1202,7 +1214,7 @@ if (!function_exists('seo_processes_page')) {
             </div>
 
             <p class="description seo-processes-note">
-                “Velocidad” usa el trabajo realmente completado por minuto. Import/Export y Academia mantienen un controlador propio continuo: PHP CLI cuando el hosting lo permite y loopback directo como alternativa. No hay una frecuencia fija de scheduler entre lotes; la única espera es la pausa que decida tu regulador. Si el controlador desaparece, aparecerá “Arrancar / reanudar”. Los chequeos externos se ejecutan en GitHub.
+                “Velocidad” usa el trabajo realmente completado por minuto. Import/Export y Academia reciben pulsos del Gestor de workers: cron real/WP-Cron como respaldo y, si el hosting no ofrece PHP CLI o loopback, las peticiones reales mantienen la cola viva sin crear procesos hijo. Mientras hay trabajo pendiente el gestor vuelve a quedar elegible en pocos segundos y respeta la pausa de cada regulador. Los chequeos externos se ejecutan en GitHub.
             </p>
         </div>
 
