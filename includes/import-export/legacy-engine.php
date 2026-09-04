@@ -4618,6 +4618,20 @@ function seo_ie_product_import_find_php_cli() {
         $candidates[] = trailingslashit( PHP_BINDIR ) . 'php';
     }
 
+    // Hostings CloudLinux/alt-php y cPanel suelen dejar el CLI fuera del PATH
+    // del usuario web. El open_basedir de estos hostings sí suele permitir
+    // /opt/alt/phpXY, por lo que probamos explícitamente la versión activa.
+    $php_mm = defined( 'PHP_MAJOR_VERSION' ) && defined( 'PHP_MINOR_VERSION' )
+        ? (string) PHP_MAJOR_VERSION . (string) PHP_MINOR_VERSION
+        : '';
+    if ( '' !== $php_mm ) {
+        $candidates[] = '/opt/alt/php' . $php_mm . '/usr/bin/php';
+        $candidates[] = '/opt/cpanel/ea-php' . $php_mm . '/root/usr/bin/php';
+        $candidates[] = '/usr/local/bin/ea-php' . $php_mm;
+    }
+    $candidates[] = '/usr/local/bin/php';
+    $candidates[] = '/usr/bin/php';
+
     $output = [];
     $status = 1;
     @exec( 'command -v php 2>/dev/null', $output, $status );
@@ -4626,7 +4640,9 @@ function seo_ie_product_import_find_php_cli() {
     }
 
     foreach ( array_values( array_unique( array_filter( $candidates ) ) ) as $candidate ) {
-        if ( ! is_file( $candidate ) || ! is_executable( $candidate ) ) {
+        // @ evita warnings de open_basedir al probar rutas que el hosting no
+        // permite consultar. Las rutas válidas se verifican normalmente.
+        if ( ! @is_file( $candidate ) || ! @is_executable( $candidate ) ) {
             continue;
         }
 
@@ -4715,11 +4731,17 @@ function seo_ie_product_import_spawn_http( $user_id, $token, $dispatch_id, $not_
     $response = wp_remote_post(
         admin_url( 'admin-post.php' ),
         [
-            'timeout'     => 0.8,
+            // Este fallback necesita un handshake real. Con blocking=false el
+            // HTTP API puede devolver éxito aunque la petición nunca llegue al
+            // segundo PHP (era el falso "started" visto en el monitor).
+            'timeout'     => 6,
             'redirection' => 0,
-            'blocking'    => false,
+            'blocking'    => true,
             'sslverify'   => apply_filters( 'https_local_ssl_verify', false ),
-            'headers'     => [ 'X-SEO-Direct-Worker' => '1' ],
+            'headers'     => [
+                'X-SEO-Direct-Worker' => '1',
+                'Connection'          => 'close',
+            ],
             'body'        => [
                 'action'      => 'seo_ie_product_import_direct_worker',
                 'user_id'     => absint( $user_id ),
@@ -4733,6 +4755,15 @@ function seo_ie_product_import_spawn_http( $user_id, $token, $dispatch_id, $not_
 
     if ( is_wp_error( $response ) ) {
         return $response;
+    }
+
+    $code = absint( wp_remote_retrieve_response_code( $response ) );
+    $body = trim( (string) wp_remote_retrieve_body( $response ) );
+    if ( 202 !== $code || 'accepted' !== $body ) {
+        return new WP_Error(
+            'seo_ie_direct_http_handshake',
+            sprintf( 'El loopback del importador no fue aceptado (HTTP %d%s).', $code, '' !== $body ? ': ' . sanitize_text_field( substr( $body, 0, 160 ) ) : '' )
+        );
     }
 
     return [
