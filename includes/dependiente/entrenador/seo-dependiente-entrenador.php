@@ -21,7 +21,9 @@ final class SEO_Dependiente_Entrenador {
     const KNOWLEDGE_SNAPSHOT_OPTION = 'seo_dependiente_knowledge_snapshot';
     const AUTO_STATE_OPTION = 'seo_dependiente_academy_auto_state';
     const AUTO_WORKER_HOOK = 'seo_dependiente_academy_auto_worker';
+    const AUTO_WATCHDOG_HOOK = 'seo_dependiente_academy_watchdog';
     const AUTO_ACTION_GROUP = 'seo-dependiente-academy';
+    const AUTO_DIRECT_STALE_SECONDS = 90;
     const AUTO_MAX_NO_PROGRESS = 6;
     const AUTO_BROWSER_WATCHDOG_SECONDS = 8;
     const AUTO_CRON_FALLBACK_SECONDS = 6;
@@ -41,6 +43,9 @@ final class SEO_Dependiente_Entrenador {
         add_action('wp_ajax_seo_dependiente_entrenador_lab_run', array(__CLASS__, 'ajax_lab_run'));
         add_action('wp_ajax_seo_dependiente_entrenador_lab_export', array(__CLASS__, 'ajax_lab_export'));
         add_action(self::AUTO_WORKER_HOOK, array(__CLASS__, 'auto_worker'));
+        add_action(self::AUTO_WATCHDOG_HOOK, array(__CLASS__, 'auto_watchdog'));
+        add_action('admin_post_seo_dependiente_academy_direct_worker', array(__CLASS__, 'direct_http_worker'));
+        add_action('admin_post_nopriv_seo_dependiente_academy_direct_worker', array(__CLASS__, 'direct_http_worker'));
     }
 
     public static function lessons_table() {
@@ -593,15 +598,25 @@ final class SEO_Dependiente_Entrenador {
             'worker_heartbeat_ts' => 0,
             'worker_runs'         => 0,
             'worker_source'       => '',
+            'worker_active'       => 0,
+            'worker_pid'          => 0,
+            'worker_finished_ts'  => 0,
+            'direct_worker_pending' => 0,
+            'direct_worker_dispatch_id' => '',
+            'direct_worker_not_before' => 0,
+            'last_dispatch_at'    => 0,
+            'last_dispatch_backend' => '',
+            'last_dispatch_pid'   => 0,
+            'last_dispatch_result'=> '',
+            'last_dispatch_error' => '',
             'last_error'          => '',
             'last_message'        => 'Formación automática iniciada. Arrancando el primer lote…',
         ));
 
-        // Deja dos vías de continuación preparadas antes de devolver el AJAX:
-        // Action Scheduler (si existe) y WP-Cron como respaldo. Además se
-        // ejecuta un primer paso en esta misma petición para que el botón no
-        // dependa de que el scheduler del hosting despierte la cola.
-        self::schedule_auto_worker(0);
+        // El primer lote se ejecuta en esta petición. Al terminar, el propio
+        // motor encadena el siguiente worker directamente, sin depender de
+        // Action Scheduler ni WP-Cron. El scheduler queda solo como watchdog.
+        self::schedule_auto_watchdog(60);
         self::auto_worker('ajax_start');
         wp_send_json_success(self::automation_payload());
     }
@@ -612,15 +627,15 @@ final class SEO_Dependiente_Entrenador {
             wp_send_json_error(array('message' => 'Academia no disponible.'), 500);
         }
 
-        // El navegador funciona también como watchdog. Si Action Scheduler o
-        // WP-Cron están dormidos/bloqueados, una pestaña abierta puede seguir
-        // haciendo avanzar la Academia sin duplicar trabajo gracias al lock DB.
+        // El navegador solo actúa como watchdog adicional del motor propio.
+        // No ejecuta lotes en esta petición ni depende del scheduler para avanzar.
         self::maybe_watchdog_auto_worker();
         wp_send_json_success(self::automation_payload());
     }
 
-    public static function auto_worker($source = 'scheduler') {
+    public static function auto_worker($source = 'legacy_scheduler') {
         $state = self::auto_state();
+        $worker_pid = function_exists('getmypid') ? absint(getmypid()) : 0;
         if (!self::is_auto_running($state)) {
             return;
         }
@@ -645,6 +660,9 @@ final class SEO_Dependiente_Entrenador {
             'worker_heartbeat_ts' => time(),
             'worker_runs'         => absint($state['worker_runs'] ?? 0) + 1,
             'worker_source'       => sanitize_key((string) $source),
+            'worker_active'       => 1,
+            'worker_pid'          => $worker_pid,
+            'direct_worker_pending' => 0,
             'updated_at'          => current_time('mysql'),
         ));
 
@@ -811,6 +829,13 @@ final class SEO_Dependiente_Entrenador {
             self::clear_auto_schedule();
         } finally {
             self::release_db_lock('auto');
+            $fresh = self::auto_state();
+            if (absint($fresh['worker_pid'] ?? 0) === $worker_pid) {
+                self::save_auto_state(array(
+                    'worker_active'      => 0,
+                    'worker_finished_ts' => time(),
+                ));
+            }
         }
     }
 
@@ -1033,6 +1058,17 @@ final class SEO_Dependiente_Entrenador {
             'worker_heartbeat_ts'=> 0,
             'worker_runs'        => 0,
             'worker_source'      => '',
+            'worker_active'      => 0,
+            'worker_pid'         => 0,
+            'worker_finished_ts' => 0,
+            'direct_worker_pending' => 0,
+            'direct_worker_dispatch_id' => '',
+            'direct_worker_not_before' => 0,
+            'last_dispatch_at'   => 0,
+            'last_dispatch_backend' => '',
+            'last_dispatch_pid'  => 0,
+            'last_dispatch_result' => '',
+            'last_dispatch_error'=> '',
             'last_message'       => '',
             'last_error'         => '',
         );
@@ -1081,57 +1117,290 @@ final class SEO_Dependiente_Entrenador {
         );
     }
 
-    private static function schedule_auto_worker($delay = 0) {
-        if (!self::is_auto_running()) {
+    private static function direct_signature($dispatch_id, $not_before) {
+        $payload = sanitize_key((string) $dispatch_id) . '|' . absint($not_before) . '|academy';
+        return hash_hmac('sha256', $payload, wp_salt('auth'));
+    }
+
+    private static function direct_request_is_valid($dispatch_id, $not_before, $signature) {
+        $dispatch_id = sanitize_key((string) $dispatch_id);
+        $not_before = absint($not_before);
+        $signature = strtolower(preg_replace('/[^a-f0-9]/i', '', (string) $signature));
+        $state = self::auto_state();
+        if (
+            !self::is_auto_running($state)
+            || empty($state['direct_worker_pending'])
+            || sanitize_key((string) ($state['direct_worker_dispatch_id'] ?? '')) !== $dispatch_id
+            || absint($state['direct_worker_not_before'] ?? 0) !== $not_before
+        ) {
+            return false;
+        }
+        return hash_equals(self::direct_signature($dispatch_id, $not_before), $signature);
+    }
+
+    private static function claim_direct_worker($dispatch_id, $not_before, $signature, $backend) {
+        if (!self::direct_request_is_valid($dispatch_id, $not_before, $signature) || time() < absint($not_before)) {
+            return false;
+        }
+        self::save_auto_state(array(
+            'direct_worker_pending'     => 0,
+            'direct_worker_dispatch_id' => '',
+            'last_dispatch_backend'     => sanitize_key((string) $backend),
+            'last_dispatch_result'      => 'claimed',
+        ));
+        return true;
+    }
+
+    private static function direct_exec_available() {
+        if (!function_exists('exec')) {
+            return false;
+        }
+        $disabled = array_filter(array_map('trim', explode(',', (string) ini_get('disable_functions'))));
+        return !in_array('exec', $disabled, true) && '/' === DIRECTORY_SEPARATOR;
+    }
+
+    private static function direct_php_cli() {
+        if (function_exists('seo_ie_product_import_find_php_cli')) {
+            $shared = (string) seo_ie_product_import_find_php_cli();
+            if ('' !== $shared) {
+                return $shared;
+            }
+        }
+        if (!self::direct_exec_available()) {
+            return '';
+        }
+        $candidates = array();
+        if (defined('PHP_BINARY') && PHP_BINARY) {
+            $candidates[] = PHP_BINARY;
+        }
+        if (defined('PHP_BINDIR') && PHP_BINDIR) {
+            $candidates[] = trailingslashit(PHP_BINDIR) . 'php';
+        }
+        $output = array();
+        $status = 1;
+        @exec('command -v php 2>/dev/null', $output, $status);
+        if (0 === $status && !empty($output[0])) {
+            $candidates[] = trim((string) $output[0]);
+        }
+        foreach (array_values(array_unique(array_filter($candidates))) as $candidate) {
+            if (!is_file($candidate) || !is_executable($candidate)) {
+                continue;
+            }
+            $probe = array();
+            $status = 1;
+            @exec(escapeshellarg($candidate) . ' -r ' . escapeshellarg('echo PHP_SAPI;') . ' 2>/dev/null', $probe, $status);
+            if (0 === $status && 'cli' === trim(implode('', $probe))) {
+                return $candidate;
+            }
+        }
+        return '';
+    }
+
+    private static function spawn_direct_cli($dispatch_id, $not_before, $signature) {
+        $php = self::direct_php_cli();
+        $script = __DIR__ . '/academy-worker.php';
+        $wp_load = trailingslashit(ABSPATH) . 'wp-load.php';
+        if ('' === $php || !is_readable($script) || !is_readable($wp_load)) {
+            return new WP_Error('academy_direct_cli_missing', 'PHP CLI no está disponible para la Academia.');
+        }
+        $delay = max(0, absint($not_before) - time());
+        $inner = '';
+        if ($delay > 0) {
+            $inner .= 'sleep ' . absint($delay) . '; ';
+        }
+        $inner .= 'exec '
+            . escapeshellarg($php) . ' '
+            . escapeshellarg($script) . ' '
+            . escapeshellarg($wp_load) . ' '
+            . escapeshellarg(sanitize_key((string) $dispatch_id)) . ' '
+            . escapeshellarg((string) absint($not_before)) . ' '
+            . escapeshellarg((string) $signature);
+        $command = 'sh -c ' . escapeshellarg($inner) . ' > /dev/null 2>&1 & echo $!';
+        $output = array();
+        $status = 1;
+        @exec($command, $output, $status);
+        $pid = !empty($output[0]) ? absint(trim((string) $output[0])) : 0;
+        if (0 !== $status || 0 === $pid) {
+            return new WP_Error('academy_direct_cli_spawn', 'No se pudo desacoplar el worker PHP CLI de la Academia.');
+        }
+        return array('backend' => 'direct_cli', 'pid' => $pid);
+    }
+
+    private static function spawn_direct_http($dispatch_id, $not_before, $signature) {
+        $response = wp_remote_post(admin_url('admin-post.php'), array(
+            'timeout'     => 0.8,
+            'redirection' => 0,
+            'blocking'    => false,
+            'sslverify'   => apply_filters('https_local_ssl_verify', false),
+            'headers'     => array('X-SEO-Direct-Worker' => 'academy'),
+            'body'        => array(
+                'action'      => 'seo_dependiente_academy_direct_worker',
+                'dispatch_id' => sanitize_key((string) $dispatch_id),
+                'not_before'  => absint($not_before),
+                'signature'   => (string) $signature,
+            ),
+        ));
+        if (is_wp_error($response)) {
+            return $response;
+        }
+        return array('backend' => 'direct_http', 'pid' => 0);
+    }
+
+    private static function clear_legacy_auto_worker_schedule() {
+        if (function_exists('as_unschedule_all_actions')) {
+            as_unschedule_all_actions(self::AUTO_WORKER_HOOK, array(), self::AUTO_ACTION_GROUP);
+        }
+        wp_clear_scheduled_hook(self::AUTO_WORKER_HOOK, array());
+    }
+
+    private static function schedule_auto_worker($delay = 0, $force = false) {
+        $state = self::auto_state();
+        if (!self::is_auto_running($state)) {
             return false;
         }
 
-        $delay = max(0, absint($delay));
-        $hook = self::AUTO_WORKER_HOOK;
+        $delay = max(1, absint($delay));
+        $pending = !empty($state['direct_worker_pending']);
+        $due = absint($state['direct_worker_not_before'] ?? 0);
+        $stale = $pending && $due > 0 && (time() - $due) > self::AUTO_DIRECT_STALE_SECONDS;
+        if (!$force && $pending && !$stale) {
+            return true;
+        }
+
+        self::clear_legacy_auto_worker_schedule();
+
+        $dispatch_id = strtolower(wp_generate_password(24, false, false));
+        $not_before = time() + $delay;
+        $signature = self::direct_signature($dispatch_id, $not_before);
+        self::save_auto_state(array(
+            'direct_worker_pending'     => 1,
+            'direct_worker_dispatch_id' => $dispatch_id,
+            'direct_worker_not_before'  => $not_before,
+            'last_dispatch_at'          => time(),
+            'last_dispatch_backend'     => '',
+            'last_dispatch_pid'         => 0,
+            'last_dispatch_result'      => 'dispatching',
+            'last_dispatch_error'       => '',
+        ));
+
+        $spawn = self::spawn_direct_cli($dispatch_id, $not_before, $signature);
+        if (is_wp_error($spawn)) {
+            $cli_error = $spawn->get_error_message();
+            $spawn = self::spawn_direct_http($dispatch_id, $not_before, $signature);
+            if (is_wp_error($spawn)) {
+                self::save_auto_state(array(
+                    'direct_worker_pending'     => 0,
+                    'direct_worker_dispatch_id' => '',
+                    'last_dispatch_backend'     => 'direct_unavailable',
+                    'last_dispatch_result'      => 'error',
+                    'last_dispatch_error'       => sanitize_text_field($cli_error . ' ' . $spawn->get_error_message()),
+                ));
+                self::schedule_auto_watchdog(60);
+                return false;
+            }
+        }
+
+        self::save_auto_state(array(
+            'last_dispatch_backend' => sanitize_key((string) ($spawn['backend'] ?? '')),
+            'last_dispatch_pid'     => absint($spawn['pid'] ?? 0),
+            'last_dispatch_result'  => 'ok',
+            'last_dispatch_error'   => '',
+        ));
+        self::schedule_auto_watchdog(60);
+        return true;
+    }
+
+    public static function direct_cli_run($dispatch_id, $not_before, $signature) {
+        if (!self::direct_request_is_valid($dispatch_id, $not_before, $signature)) {
+            return;
+        }
+        $wait = max(0, absint($not_before) - time());
+        if ($wait > 0) {
+            sleep(min(600, $wait));
+        }
+        if (!self::claim_direct_worker($dispatch_id, $not_before, $signature, 'direct_cli')) {
+            return;
+        }
+        self::auto_worker('direct_cli');
+    }
+
+    public static function direct_http_worker() {
+        $dispatch_id = sanitize_key(wp_unslash($_POST['dispatch_id'] ?? ''));
+        $not_before = absint($_POST['not_before'] ?? 0);
+        $signature = sanitize_text_field(wp_unslash($_POST['signature'] ?? ''));
+        if (!self::direct_request_is_valid($dispatch_id, $not_before, $signature)) {
+            status_header(403);
+            echo 'forbidden';
+            exit;
+        }
+        ignore_user_abort(true);
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(0);
+        }
+        status_header(202);
+        nocache_headers();
+        header('Content-Type: text/plain; charset=utf-8');
+        echo 'accepted';
+        if (function_exists('fastcgi_finish_request')) {
+            @fastcgi_finish_request();
+        } else {
+            @ob_end_flush();
+            @flush();
+        }
+        $wait = max(0, $not_before - time());
+        if ($wait > 0) {
+            sleep(min(600, $wait));
+        }
+        if (!self::claim_direct_worker($dispatch_id, $not_before, $signature, 'direct_http')) {
+            exit;
+        }
+        self::auto_worker('direct_http');
+        exit;
+    }
+
+    private static function schedule_auto_watchdog($delay = 60, $force = false) {
+        if (!self::is_auto_running()) {
+            return false;
+        }
+        $delay = max(30, absint($delay));
+        $hook = self::AUTO_WATCHDOG_HOOK;
         $args = array();
         $group = self::AUTO_ACTION_GROUP;
-        $scheduled = false;
-
-        // Action Scheduler es la vía principal cuando WooCommerce u otro
-        // componente lo proporciona. No hacemos return temprano: un action
-        // pendiente puede quedarse atascado en algunos hostings, por lo que
-        // siempre dejamos también un evento WP-Cron de respaldo.
-        if (function_exists('as_has_scheduled_action')) {
-            $has_action = (bool) as_has_scheduled_action($hook, $args, $group);
-            if (!$has_action) {
-                if ($delay < 2 && function_exists('as_enqueue_async_action')) {
-                    as_enqueue_async_action($hook, $args, $group);
-                    $scheduled = true;
-                } elseif (function_exists('as_schedule_single_action')) {
-                    as_schedule_single_action(time() + max(1, $delay), $hook, $args, $group);
-                    $scheduled = true;
-                }
-            } else {
-                $scheduled = true;
+        if (!$force && function_exists('as_has_scheduled_action') && as_has_scheduled_action($hook, $args, $group)) {
+            return true;
+        }
+        if (function_exists('as_schedule_single_action')) {
+            $id = as_schedule_single_action(time() + $delay, $hook, $args, $group, !$force, 20);
+            if (absint($id) > 0) {
+                return true;
             }
-        } elseif (function_exists('as_enqueue_async_action') && $delay < 2) {
-            as_enqueue_async_action($hook, $args, $group);
-            $scheduled = true;
-        } elseif (function_exists('as_schedule_single_action')) {
-            as_schedule_single_action(time() + max(1, $delay), $hook, $args, $group);
-            $scheduled = true;
         }
-
-        $cron_delay = max(self::AUTO_CRON_FALLBACK_SECONDS, $delay + 3);
-        $cron_next = wp_next_scheduled($hook, $args);
-        if (!$cron_next) {
-            wp_schedule_single_event(time() + $cron_delay, $hook, $args);
-            $scheduled = true;
+        if ($force || false === wp_next_scheduled($hook, $args)) {
+            if ($force) {
+                wp_clear_scheduled_hook($hook, $args);
+            }
+            $scheduled = wp_schedule_single_event(time() + $delay, $hook, $args, true);
+            return !is_wp_error($scheduled) && true === $scheduled;
         }
+        return true;
+    }
 
-        // Durante peticiones web pedimos a WordPress que despierte cron cuanto
-        // antes. Es no bloqueante; si el hosting desactiva WP-Cron, el watchdog
-        // del navegador sigue siendo una tercera vía de ejecución.
-        if (function_exists('spawn_cron') && (!defined('DISABLE_WP_CRON') || !DISABLE_WP_CRON)) {
-            spawn_cron(time());
+    public static function auto_watchdog() {
+        $state = self::auto_state();
+        if (!self::is_auto_running($state)) {
+            return;
         }
-
-        return $scheduled;
+        $now = time();
+        $heartbeat = absint($state['worker_heartbeat_ts'] ?? 0);
+        $heartbeat_stale = !$heartbeat || ($now - $heartbeat) > self::AUTO_DIRECT_STALE_SECONDS;
+        $active = !empty($state['worker_active']) && !$heartbeat_stale;
+        $pending = !empty($state['direct_worker_pending']);
+        $due = absint($state['direct_worker_not_before'] ?? 0);
+        $pending_stale = $pending && $due > 0 && ($now - $due) > self::AUTO_DIRECT_STALE_SECONDS;
+        if (!$active && (!$pending || $pending_stale) && $heartbeat_stale) {
+            self::schedule_auto_worker(1, true);
+        }
+        self::schedule_auto_watchdog(60, true);
     }
 
     private static function maybe_watchdog_auto_worker() {
@@ -1139,38 +1408,60 @@ final class SEO_Dependiente_Entrenador {
         if (!self::is_auto_running($state)) {
             return;
         }
-
-        self::schedule_auto_worker(0);
-
-        $heartbeat_ts = absint($state['worker_heartbeat_ts'] ?? 0);
-        $stale = !$heartbeat_ts || (time() - $heartbeat_ts) >= self::AUTO_BROWSER_WATCHDOG_SECONDS;
-        if ($stale) {
-            self::auto_worker('browser_watchdog');
+        $now = time();
+        $heartbeat = absint($state['worker_heartbeat_ts'] ?? 0);
+        $heartbeat_stale = !$heartbeat || ($now - $heartbeat) >= self::AUTO_BROWSER_WATCHDOG_SECONDS;
+        $active = !empty($state['worker_active']) && !$heartbeat_stale;
+        $pending = !empty($state['direct_worker_pending']);
+        $due = absint($state['direct_worker_not_before'] ?? 0);
+        $pending_stale = $pending && $due > 0 && ($now - $due) > self::AUTO_DIRECT_STALE_SECONDS;
+        if (!$active && (!$pending || $pending_stale) && $heartbeat_stale) {
+            self::schedule_auto_worker(1, true);
         }
     }
 
     private static function automation_scheduler_status() {
-        $hook = self::AUTO_WORKER_HOOK;
-        $args = array();
-        $group = self::AUTO_ACTION_GROUP;
-        $action_scheduler = false;
+        $state = self::auto_state();
+        $watchdog_as = false;
         if (function_exists('as_has_scheduled_action')) {
-            $action_scheduler = (bool) as_has_scheduled_action($hook, $args, $group);
+            $watchdog_as = (bool) as_has_scheduled_action(self::AUTO_WATCHDOG_HOOK, array(), self::AUTO_ACTION_GROUP);
         }
-        $cron_next = wp_next_scheduled($hook, $args);
+        $watchdog_cron = wp_next_scheduled(self::AUTO_WATCHDOG_HOOK, array());
+        $due = absint($state['direct_worker_not_before'] ?? 0);
+        $pending = !empty($state['direct_worker_pending']);
         return array(
+            'engine'                     => 'direct',
+            'direct_pending'             => $pending,
+            'direct_not_before'          => $due,
+            'direct_due_in'              => $due > 0 ? max(0, $due - time()) : 0,
+            'direct_stale'               => $pending && $due > 0 && (time() - $due) > self::AUTO_DIRECT_STALE_SECONDS,
+            'direct_backend'             => sanitize_key((string) ($state['last_dispatch_backend'] ?? '')),
+            'direct_pid'                 => absint($state['last_dispatch_pid'] ?? 0),
+            'direct_error'               => sanitize_text_field((string) ($state['last_dispatch_error'] ?? '')),
+            'worker_active'              => !empty($state['worker_active']),
+            'worker_pid'                 => absint($state['worker_pid'] ?? 0),
+            'watchdog_action_scheduler'  => $watchdog_as,
+            'watchdog_wp_cron_next'      => $watchdog_cron ? absint($watchdog_cron) : 0,
+            // Compatibilidad con la UI anterior.
             'action_scheduler_available' => function_exists('as_schedule_single_action') || function_exists('as_enqueue_async_action'),
-            'action_scheduler_pending'   => $action_scheduler,
-            'wp_cron_next'               => $cron_next ? absint($cron_next) : 0,
+            'action_scheduler_pending'   => $watchdog_as,
+            'wp_cron_next'               => $watchdog_cron ? absint($watchdog_cron) : 0,
             'wp_cron_disabled'           => defined('DISABLE_WP_CRON') && DISABLE_WP_CRON,
         );
     }
 
     private static function clear_auto_schedule() {
+        self::clear_legacy_auto_worker_schedule();
         if (function_exists('as_unschedule_all_actions')) {
-            as_unschedule_all_actions(self::AUTO_WORKER_HOOK, array(), self::AUTO_ACTION_GROUP);
+            as_unschedule_all_actions(self::AUTO_WATCHDOG_HOOK, array(), self::AUTO_ACTION_GROUP);
         }
-        wp_clear_scheduled_hook(self::AUTO_WORKER_HOOK, array());
+        wp_clear_scheduled_hook(self::AUTO_WATCHDOG_HOOK, array());
+        self::save_auto_state(array(
+            'direct_worker_pending'     => 0,
+            'direct_worker_dispatch_id' => '',
+            'direct_worker_not_before'  => 0,
+            'worker_active'             => 0,
+        ));
     }
 
     public static function ajax_lab_import() {
