@@ -131,6 +131,17 @@ add_submenu_page(
         'seo_product_admin_callback'
     );
 
+    // Logistica
+    $seo_logistica_label = html_entity_decode('Log&iacute;stica', ENT_QUOTES, 'UTF-8');
+    add_submenu_page(
+        'seo-system',
+        $seo_logistica_label,
+        $seo_logistica_label,
+        class_exists('WooCommerce') ? 'manage_woocommerce' : 'manage_options',
+        'seo-logistica',
+        'seo_logistica_page'
+    );
+
     // Categorías
     add_submenu_page(
         'seo-system',
