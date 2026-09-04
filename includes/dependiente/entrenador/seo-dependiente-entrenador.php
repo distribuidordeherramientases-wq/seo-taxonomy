@@ -1225,7 +1225,7 @@ final class SEO_Dependiente_Entrenador {
             $candidates[] = trim((string) $output[0]);
         }
         foreach (array_values(array_unique(array_filter($candidates))) as $candidate) {
-            if (!is_file($candidate) || !is_executable($candidate)) {
+            if (!@is_file($candidate) || !@is_executable($candidate)) {
                 continue;
             }
             $probe = array();
@@ -1270,11 +1270,14 @@ final class SEO_Dependiente_Entrenador {
 
     private static function spawn_direct_http($dispatch_id, $not_before, $signature) {
         $response = wp_remote_post(admin_url('admin-post.php'), array(
-            'timeout'     => 0.8,
+            'timeout'     => 6,
             'redirection' => 0,
-            'blocking'    => false,
+            'blocking'    => true,
             'sslverify'   => apply_filters('https_local_ssl_verify', false),
-            'headers'     => array('X-SEO-Direct-Worker' => 'academy'),
+            'headers'     => array(
+                'X-SEO-Direct-Worker' => 'academy',
+                'Connection'          => 'close',
+            ),
             'body'        => array(
                 'action'      => 'seo_dependiente_academy_direct_worker',
                 'dispatch_id' => sanitize_key((string) $dispatch_id),
@@ -1284,6 +1287,14 @@ final class SEO_Dependiente_Entrenador {
         ));
         if (is_wp_error($response)) {
             return $response;
+        }
+        $code = absint(wp_remote_retrieve_response_code($response));
+        $body = trim((string) wp_remote_retrieve_body($response));
+        if (202 !== $code || 'accepted' !== $body) {
+            return new WP_Error(
+                'academy_direct_http_handshake',
+                sprintf('El loopback de Academia no fue aceptado (HTTP %d%s).', $code, '' !== $body ? ': ' . sanitize_text_field(substr($body, 0, 160)) : '')
+            );
         }
         return array('backend' => 'direct_http', 'pid' => 0);
     }
