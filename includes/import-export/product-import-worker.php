@@ -3,8 +3,9 @@
  * Launcher CLI del importador de productos.
  *
  * Este archivo no es un endpoint web. Arranca un proceso PHP independiente
- * del scheduler, carga WordPress y entrega exactamente un lote al motor del
- * plugin. El propio lote encadena el siguiente proceso según el regulador.
+ * del scheduler, carga WordPress y mantiene un controlador persistente. El mismo
+ * proceso encadena lotes y aplica las pausas del regulador sin volver a pasar
+ * por WP-Cron ni Action Scheduler.
  */
 
 if ( 'cli' !== PHP_SAPI ) {
@@ -37,13 +38,16 @@ if ( ! defined( 'WP_USE_THEMES' ) ) {
 if ( ! defined( 'SEO_IE_DIRECT_WORKER' ) ) {
     define( 'SEO_IE_DIRECT_WORKER', true );
 }
+if ( ! defined( 'SEO_IE_DIRECT_WORKER_LOOP' ) ) {
+    define( 'SEO_IE_DIRECT_WORKER_LOOP', true );
+}
 
 require_once $wp_load;
 
 if (
     ! function_exists( 'seo_ie_product_import_direct_request_is_valid' )
     || ! function_exists( 'seo_ie_product_import_claim_direct_dispatch' )
-    || ! function_exists( 'seo_ie_product_import_background_worker' )
+    || ! function_exists( 'seo_ie_product_import_run_direct_loop' )
 ) {
     fwrite( STDERR, "El plugin no ha cargado el motor directo.\n" );
     exit( 69 );
@@ -62,5 +66,5 @@ if ( ! seo_ie_product_import_claim_direct_dispatch( $user_id, $token, $dispatch_
     exit( 0 );
 }
 
-seo_ie_product_import_background_worker( $user_id, $token, 'direct_cli' );
+seo_ie_product_import_run_direct_loop( $user_id, $token, 'direct_cli', 3600 );
 exit( 0 );

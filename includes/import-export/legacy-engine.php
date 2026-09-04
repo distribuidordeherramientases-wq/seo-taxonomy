@@ -4027,9 +4027,15 @@ function seo_ie_product_import_diagnostics( $user_id, $token, $state ) {
     $pid_alive      = seo_ie_product_import_pid_is_alive( $dispatch_pid );
     $worker_pid     = absint( $state['last_worker_pid'] ?? 0 );
     $worker_pid_alive = seo_ie_product_import_pid_is_alive( $worker_pid );
+    $controller_pid   = absint( $state['controller_pid'] ?? 0 );
+    $controller_heartbeat = absint( $state['controller_heartbeat_at'] ?? 0 );
+    $controller_active = seo_ie_product_import_controller_is_active( $state );
+    $controller_stale  = ! empty( $state['controller_active'] ) && ! $controller_active;
 
     if ( 0 < $lock_at ) {
         $next_label = 'worker propio ejecutándose';
+    } elseif ( $controller_active ) {
+        $next_label = 'controlador propio continuo';
     } elseif ( $direct_pending && ! $direct_stale ) {
         $due_in = max( 0, $direct_due - $now );
         $next_label = 0 < $due_in
@@ -4051,6 +4057,7 @@ function seo_ie_product_import_diagnostics( $user_id, $token, $state ) {
         absint( $state['last_batch_finished_at'] ?? 0 ),
         absint( $state['last_worker_started_at'] ?? 0 ),
         absint( $state['last_worker_finished_at'] ?? 0 ),
+        $controller_heartbeat,
         absint( $state['started_at'] ?? 0 )
     );
 
@@ -4104,6 +4111,13 @@ function seo_ie_product_import_diagnostics( $user_id, $token, $state ) {
         'last_worker_backend'       => sanitize_key( $state['last_worker_backend'] ?? '' ),
         'last_worker_started_at'    => absint( $state['last_worker_started_at'] ?? 0 ),
         'last_worker_finished_at'   => absint( $state['last_worker_finished_at'] ?? 0 ),
+        'controller_active'         => $controller_active,
+        'controller_stale'          => $controller_stale,
+        'controller_pid'            => $controller_pid,
+        'controller_backend'        => sanitize_key( $state['controller_backend'] ?? '' ),
+        'controller_started_at'     => absint( $state['controller_started_at'] ?? 0 ),
+        'controller_heartbeat_at'   => $controller_heartbeat,
+        'controller_next_at'        => absint( $state['controller_next_at'] ?? 0 ),
         'legacy_batch_scheduled'    => $legacy_scheduled,
         'legacy_action_ids'         => $legacy_action_ids,
         'last_action_id'            => absint( $state['last_action_id'] ?? 0 ),
@@ -4334,6 +4348,50 @@ function seo_ie_product_import_direct_stale_seconds() {
     return max( 30, absint( apply_filters( 'seo_ie_product_import_direct_stale_seconds', 90 ) ) );
 }
 
+
+/**
+ * Indica si esta petición pertenece al controlador persistente del importador.
+ * En este contexto el lote NO debe crear otro proceso al terminar: el mismo
+ * controlador ejecuta el siguiente lote después de la pausa adaptativa.
+ *
+ * @return bool
+ */
+function seo_ie_product_import_direct_loop_context() {
+    return defined( 'SEO_IE_DIRECT_WORKER_LOOP' ) && SEO_IE_DIRECT_WORKER_LOOP;
+}
+
+/**
+ * Ventana de gracia del controlador persistente. El lock del lote sigue siendo
+ * la señal prioritaria mientras una fila se está guardando.
+ *
+ * @return int
+ */
+function seo_ie_product_import_controller_stale_seconds() {
+    return max( 60, absint( apply_filters( 'seo_ie_product_import_controller_stale_seconds', 120 ) ) );
+}
+
+/**
+ * Comprueba el latido del proceso persistente sin depender de WP-Cron ni de
+ * Action Scheduler.
+ *
+ * @param array $state Estado de la importación.
+ * @return bool
+ */
+function seo_ie_product_import_controller_is_active( $state ) {
+    if ( ! is_array( $state ) || empty( $state['controller_active'] ) ) {
+        return false;
+    }
+
+    $heartbeat = absint( $state['controller_heartbeat_at'] ?? 0 );
+    if ( 0 === $heartbeat || ( time() - $heartbeat ) > seo_ie_product_import_controller_stale_seconds() ) {
+        return false;
+    }
+
+    $pid = absint( $state['controller_pid'] ?? 0 );
+    $alive = seo_ie_product_import_pid_is_alive( $pid );
+    return false !== $alive;
+}
+
 /**
  * Indica si la importación tiene un worker propio pendiente o ejecutándose.
  *
@@ -4351,6 +4409,10 @@ function seo_ie_product_import_is_scheduled( $user_id, $token ) {
     $state   = get_transient( seo_ie_product_import_state_key( $user_id, $token ) );
 
     if ( get_transient( seo_ie_product_import_lock_key( $user_id, $token ) ) ) {
+        return true;
+    }
+
+    if ( seo_ie_product_import_controller_is_active( $state ) ) {
         return true;
     }
 
@@ -4707,7 +4769,10 @@ function seo_ie_product_import_direct_http_worker() {
         exit;
     }
 
-    seo_ie_product_import_background_worker( $user_id, $token, 'direct_http' );
+    if ( ! defined( 'SEO_IE_DIRECT_WORKER_LOOP' ) ) {
+        define( 'SEO_IE_DIRECT_WORKER_LOOP', true );
+    }
+    seo_ie_product_import_run_direct_loop( $user_id, $token, 'direct_http', 240 );
     exit;
 }
 
@@ -4783,6 +4848,238 @@ function seo_ie_product_import_record_dispatch_result( $user_id, $token, $result
     return (bool) $result;
 }
 
+
+/**
+ * Ejecuta lotes consecutivos dentro del mismo proceso PHP. Esto elimina la
+ * necesidad de volver a "programar" cada lote. El regulador sigue decidiendo
+ * el tamaño del lote y la pausa, pero el reloj lo controla este proceso.
+ *
+ * El proceso se recicla periódicamente para evitar crecimiento de memoria. El
+ * reemplazo se lanza con el mismo motor directo; si el reemplazo falla, el
+ * proceso actual continúa en lugar de dejar la importación abandonada.
+ *
+ * @param int    $user_id     Usuario que inició la importación.
+ * @param string $token       Token de importación.
+ * @param string $backend     direct_cli o direct_http.
+ * @param int    $max_runtime Segundos antes de reciclar el proceso.
+ * @return void
+ */
+function seo_ie_product_import_run_direct_loop( $user_id, $token, $backend = 'direct_cli', $max_runtime = 3600 ) {
+    $user_id     = absint( $user_id );
+    $token       = sanitize_key( $token );
+    $backend     = sanitize_key( $backend );
+    $max_runtime = max( 120, absint( $max_runtime ) );
+    $pid         = function_exists( 'getmypid' ) ? absint( getmypid() ) : 0;
+    $started     = time();
+
+    if ( ! defined( 'SEO_IE_DIRECT_WORKER_LOOP' ) ) {
+        define( 'SEO_IE_DIRECT_WORKER_LOOP', true );
+    }
+
+    $state = get_transient( seo_ie_product_import_state_key( $user_id, $token ) );
+    if ( ! is_array( $state ) ) {
+        return;
+    }
+
+    $state['controller_active']       = 1;
+    $state['controller_pid']          = $pid;
+    $state['controller_backend']      = $backend;
+    $state['controller_started_at']   = $started;
+    $state['controller_heartbeat_at'] = $started;
+    $state['controller_next_at']      = 0;
+    $state['direct_worker_pending']   = 0;
+    seo_ie_product_import_store_state( $user_id, $token, $state );
+
+    try {
+        while ( true ) {
+            $state = get_transient( seo_ie_product_import_state_key( $user_id, $token ) );
+            if ( ! is_array( $state ) ) {
+                break;
+            }
+
+            $status = sanitize_key( $state['status'] ?? 'processing' );
+            if (
+                seo_ie_product_import_is_cancel_requested( $user_id, $token )
+                || in_array( $status, [ 'stopping', 'stopped', 'completed', 'failed' ], true )
+            ) {
+                break;
+            }
+
+            $state['controller_active']       = 1;
+            $state['controller_pid']          = $pid;
+            $state['controller_backend']      = $backend;
+            $state['controller_heartbeat_at'] = time();
+            $state['controller_next_at']      = 0;
+            seo_ie_product_import_store_state( $user_id, $token, $state );
+
+            seo_ie_product_import_background_worker( $user_id, $token, $backend );
+
+            $state = get_transient( seo_ie_product_import_state_key( $user_id, $token ) );
+            if ( ! is_array( $state ) ) {
+                break;
+            }
+
+            $status = sanitize_key( $state['status'] ?? 'processing' );
+            if (
+                seo_ie_product_import_is_cancel_requested( $user_id, $token )
+                || in_array( $status, [ 'stopping', 'stopped', 'completed', 'failed' ], true )
+            ) {
+                break;
+            }
+
+            $delay = absint( $state['adaptive_next_delay'] ?? 0 );
+            $state['controller_active']       = 1;
+            $state['controller_pid']          = $pid;
+            $state['controller_backend']      = $backend;
+            $state['controller_heartbeat_at'] = time();
+            $state['controller_next_at']      = time() + $delay;
+            seo_ie_product_import_store_state( $user_id, $token, $state );
+
+            if ( ( time() - $started ) >= $max_runtime ) {
+                // Libera nuestra marca antes de solicitar el reemplazo para que
+                // schedule() no confunda este mismo proceso con otro controlador.
+                $state['controller_active'] = 0;
+                $state['controller_next_at'] = 0;
+                seo_ie_product_import_store_state( $user_id, $token, $state );
+
+                if ( seo_ie_product_import_schedule( $user_id, $token, $delay, true ) ) {
+                    return;
+                }
+
+                // El reemplazo no arrancó: seguimos nosotros y evitamos dejar
+                // trabajo pendiente sin proceso.
+                $state = get_transient( seo_ie_product_import_state_key( $user_id, $token ) );
+                if ( ! is_array( $state ) ) {
+                    break;
+                }
+                $state['controller_active']       = 1;
+                $state['controller_pid']          = $pid;
+                $state['controller_backend']      = $backend;
+                $state['controller_started_at']   = $started;
+                $state['controller_heartbeat_at'] = time();
+                seo_ie_product_import_store_state( $user_id, $token, $state );
+            }
+
+            $remaining = $delay;
+            while ( $remaining > 0 ) {
+                $chunk = min( 5, $remaining );
+                sleep( $chunk );
+                $remaining -= $chunk;
+
+                $state = get_transient( seo_ie_product_import_state_key( $user_id, $token ) );
+                if ( ! is_array( $state ) || seo_ie_product_import_is_cancel_requested( $user_id, $token ) ) {
+                    break 2;
+                }
+                if ( in_array( sanitize_key( $state['status'] ?? '' ), [ 'stopping', 'stopped', 'completed', 'failed' ], true ) ) {
+                    break 2;
+                }
+                $state['controller_heartbeat_at'] = time();
+                seo_ie_product_import_store_state( $user_id, $token, $state );
+            }
+        }
+    } finally {
+        $state = get_transient( seo_ie_product_import_state_key( $user_id, $token ) );
+        if ( is_array( $state ) && absint( $state['controller_pid'] ?? 0 ) === $pid ) {
+            $state['controller_active']       = 0;
+            $state['controller_heartbeat_at'] = time();
+            $state['controller_next_at']      = 0;
+            seo_ie_product_import_store_state( $user_id, $token, $state );
+        }
+    }
+}
+
+/**
+ * Arranca o reanuda explícitamente la importación activa del usuario mediante
+ * el motor propio. Diseñado para el botón de Herramientas > Procesos.
+ *
+ * @param int $user_id Usuario. 0 = usuario actual.
+ * @return array|WP_Error
+ */
+function seo_ie_product_import_control_start( $user_id = 0 ) {
+    $user_id = absint( $user_id ?: get_current_user_id() );
+    if ( 0 === $user_id || ! user_can( $user_id, 'manage_options' ) ) {
+        return new WP_Error( 'seo_ie_worker_permissions', 'No hay un usuario administrador válido para esta importación.' );
+    }
+
+    $active = seo_ie_product_import_get_active( $user_id );
+    if ( empty( $active['token'] ) ) {
+        return new WP_Error( 'seo_ie_worker_no_active', 'No hay una importación de productos pendiente para arrancar.' );
+    }
+
+    $token = sanitize_key( $active['token'] );
+    $state = get_transient( seo_ie_product_import_state_key( $user_id, $token ) );
+    if ( ! is_array( $state ) ) {
+        return new WP_Error( 'seo_ie_worker_state', 'No se encuentra el estado de la importación pendiente.' );
+    }
+
+    $lock_key = seo_ie_product_import_lock_key( $user_id, $token );
+    $lock_at  = absint( get_transient( $lock_key ) );
+
+    // Un PHP que murió a mitad de lote puede dejar el lock aunque ya no exista
+    // ningún proceso que lo sostenga. Antes de negar el arranque, limpiamos el
+    // lock si es antiguo o si conocemos el PID y ya no está vivo.
+    if ( $lock_at ) {
+        $lock_age = max( 0, time() - $lock_at );
+        $lock_pid = absint( $state['last_worker_pid'] ?? 0 );
+        $pid_alive = $lock_pid ? seo_ie_product_import_pid_is_alive( $lock_pid ) : null;
+        if ( $lock_age > ( 6 * MINUTE_IN_SECONDS ) || false === $pid_alive ) {
+            delete_transient( $lock_key );
+            $lock_at = 0;
+        }
+    }
+
+    if ( seo_ie_product_import_controller_is_active( $state ) ) {
+        return [ 'started' => false, 'message' => 'La importación ya tiene un controlador propio activo.' ];
+    }
+
+    if ( $lock_at ) {
+        return new WP_Error(
+            'seo_ie_worker_batch_busy',
+            sprintf(
+                'Hay un lote todavía marcado como activo desde hace %d s. No se lanza un segundo escritor para evitar duplicados; vuelve a intentarlo cuando termine.',
+                max( 1, time() - $lock_at )
+            )
+        );
+    }
+
+    delete_transient( seo_ie_product_import_cancel_key( $user_id, $token ) );
+
+    $state = get_transient( seo_ie_product_import_state_key( $user_id, $token ) ) ?: $state;
+    $state['status']                  = 'processing';
+    $state['retries']                 = 0;
+    $state['last_error']              = '';
+    $state['direct_worker_pending']   = 0;
+    $state['controller_active']       = 0;
+    $state['controller_heartbeat_at'] = 0;
+    seo_ie_product_import_add_transaction( $state, 'manual_worker_start', 'El usuario ha arrancado el proceso propio desde Herramientas > Procesos.' );
+    seo_ie_product_import_store_state( $user_id, $token, $state );
+
+    if ( ! empty( $state['batch_queue_mode'] ) && function_exists( 'seo_ie_batch_store_status' ) ) {
+        $queue_status = function_exists( 'seo_ie_batch_status' ) ? (array) seo_ie_batch_status() : [];
+        seo_ie_batch_store_status(
+            array_merge(
+                $queue_status,
+                [
+                    'enabled'      => true,
+                    'status'       => 'processing',
+                    'user_id'      => $user_id,
+                    'current_file' => sanitize_file_name( $state['queue_filename'] ?? $state['filename'] ?? '' ),
+                    'entity'       => 'product',
+                    'message'      => 'Proceso de productos reanudado desde Herramientas > Procesos.',
+                ]
+            )
+        );
+    }
+
+    if ( ! seo_ie_product_import_schedule( $user_id, $token, 0, true ) ) {
+        $state = get_transient( seo_ie_product_import_state_key( $user_id, $token ) ) ?: $state;
+        $error = sanitize_text_field( $state['last_dispatch_error'] ?? 'El servidor no ha podido arrancar PHP CLI ni el loopback directo.' );
+        return new WP_Error( 'seo_ie_worker_start_failed', $error );
+    }
+
+    return [ 'started' => true, 'message' => 'Proceso de Import / Export arrancado con el motor propio.' ];
+}
+
 /**
  * Programa el siguiente lote con un motor propio del plugin.
  *
@@ -4816,6 +5113,10 @@ function seo_ie_product_import_schedule( $user_id, $token, $delay = 0, $force = 
 
     if ( in_array( sanitize_key( $state['status'] ?? '' ), [ 'stopping', 'stopped', 'completed', 'failed' ], true ) ) {
         return false;
+    }
+
+    if ( seo_ie_product_import_controller_is_active( $state ) ) {
+        return true;
     }
 
     if ( get_transient( seo_ie_product_import_lock_key( $user_id, $token ) ) ) {
@@ -5131,11 +5432,18 @@ function seo_ie_product_import_background_failure( $user_id, $token, $error ) {
     $state['log'] = $log;
 
     if ( 3 >= $state['retries'] ) {
+        $retry_delay = 30 * $state['retries'];
         $state['status'] = 'retrying';
+        if ( seo_ie_product_import_direct_loop_context() ) {
+            $state['adaptive_next_delay'] = $retry_delay;
+            $state['controller_next_at']  = time() + $retry_delay;
+        }
         set_transient( seo_ie_product_import_state_key( $user_id, $token ), $state, DAY_IN_SECONDS );
         seo_ie_product_import_set_active( $user_id, $token, $state );
         seo_ie_store_log( $log );
-        seo_ie_product_import_schedule( $user_id, $token, 30 * $state['retries'], true );
+        if ( ! seo_ie_product_import_direct_loop_context() ) {
+            seo_ie_product_import_schedule( $user_id, $token, $retry_delay, true );
+        }
         return;
     }
 
@@ -6701,6 +7009,12 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
         );
         seo_ie_product_import_set_active( $user_id, $token, $state );
         seo_ie_store_log( $log );
+
+        // Un controlador persistente ya está vivo: no creamos otro PHP por
+        // cada lote. El mismo proceso aplicará la pausa y continuará.
+        if ( seo_ie_product_import_direct_loop_context() ) {
+            return;
+        }
 
         $next_delay = absint( $state['adaptive_next_delay'] ?? 0 );
         if ( ! seo_ie_product_import_schedule( $user_id, $token, $next_delay, true ) ) {
