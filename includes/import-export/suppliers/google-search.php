@@ -356,3 +356,15 @@ if ( ! function_exists( 'seo_google_frontend_tracking' ) ) {
     }
     add_action( 'wp_head', 'seo_google_frontend_tracking', 20 );
 }
+
+/*
+ * Ecommerce GA4 de WooCommerce.
+ * Se carga despues del tag base para reutilizar exactamente la misma
+ * Measurement ID y las mismas reglas de consentimiento/medicion.
+ */
+$seo_google_ecommerce_module = __DIR__ . '/google-ecommerce.php';
+if ( is_readable( $seo_google_ecommerce_module ) ) {
+    require_once $seo_google_ecommerce_module;
+}
+unset( $seo_google_ecommerce_module );
+

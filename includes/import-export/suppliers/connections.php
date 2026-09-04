@@ -413,6 +413,7 @@ if ( ! function_exists( 'seo_proveedores_render_conexiones' ) ) {
             echo '<button class="button" type="submit" name="seo_google_search_test_connection" value="1">Probar Search Console / Analytics</button>';
             echo '</form>';
             echo '<p class="description" style="margin-top:12px;">Los informes de landings podran reutilizar <code>seo_google_search_console_query()</code> y <code>seo_google_analytics_run_report()</code> sin conocer ni exponer las credenciales.</p>';
+            echo '<p class="description" style="margin-top:6px;"><strong>WooCommerce / GA4:</strong> con la medicion frontend activa, SEO System envia <code>view_item</code>, <code>add_to_cart</code>, <code>remove_from_cart</code>, <code>view_cart</code>, <code>begin_checkout</code>, <code>add_shipping_info</code>, <code>add_payment_info</code> y <code>purchase</code>. Los eventos automaticos <code>form_start</code>/<code>form_submit</code> no se consideran ventas.</p>';
             echo '</div>';
         }
 
