@@ -1140,6 +1140,12 @@ if (!function_exists('seo_processes_page')) {
             wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'seo-taxonomy'));
         }
 
+        $tab = sanitize_key(wp_unslash($_GET['tab'] ?? 'processes'));
+        if ('workers' === $tab && function_exists('seo_process_supervisor_render_page')) {
+            seo_process_supervisor_render_page();
+            return;
+        }
+
         $items = seo_processes_collect();
         $summary = seo_processes_summary($items);
         $nonce = wp_create_nonce('seo_processes_status');
@@ -1149,13 +1155,17 @@ if (!function_exists('seo_processes_page')) {
             <div class="seo-processes-heading">
                 <div>
                     <h1>Procesos</h1>
-                    <p>Monitor, velocidad y arranque de los procesos automáticos del plugin. Import/Export y Academia usan un controlador propio continuo: una vez arrancados, encadenan lotes sin esperar a WP-Cron ni Action Scheduler.</p>
+                    <p>Monitor, velocidad y arranque de los procesos automáticos del plugin. Import/Export y Academia usan un controlador propio continuo y el Gestor de workers los vuelve a arrancar automáticamente si detecta trabajo pendiente sin proceso.</p>
                 </div>
                 <div class="seo-processes-refresh">
                     <button type="button" class="button" id="seo-processes-refresh">Actualizar ahora</button>
                     <span>Última lectura: <strong id="seo-processes-refreshed"><?php echo esc_html(current_time('H:i:s')); ?></strong></span>
                 </div>
             </div>
+            <h2 class="nav-tab-wrapper" style="margin-bottom:18px">
+                <a class="nav-tab nav-tab-active" href="<?php echo esc_url(add_query_arg(array('page' => 'seo-processes'), admin_url('admin.php'))); ?>">Procesos</a>
+                <a class="nav-tab" href="<?php echo esc_url(add_query_arg(array('page' => 'seo-processes', 'tab' => 'workers'), admin_url('admin.php'))); ?>">Gestor de workers</a>
+            </h2>
 
             <?php if (isset($_GET['process_controls']) && in_array(sanitize_key(wp_unslash($_GET['process_controls'])), array('saved','restored'), true)) : ?>
                 <div class="notice notice-success is-dismissible"><p><?php echo 'restored' === sanitize_key(wp_unslash($_GET['process_controls'])) ? 'Se han restaurado los límites originales.' : 'Velocidades guardadas. Se aplicarán en el siguiente lote de cada proceso.'; ?></p></div>
