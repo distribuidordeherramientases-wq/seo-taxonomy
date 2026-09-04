@@ -8,9 +8,9 @@
  * - Academia automatica del Dependiente.
  * - Auditorias de salud de paginas, posts e imagenes.
  *
- * La pantalla centraliza monitorizacion y los limites de velocidad. No arranca,
- * detiene ni reanuda workers: solo modifica los parametros que cada regulador
- * consultara en el siguiente lote.
+ * La pantalla centraliza monitorizacion, limites de velocidad y el arranque
+ * explicito de los controladores propios. Import/Export y Academia pueden
+ * reanudarse desde aqui sin entregar el camino critico a WP-Cron/Action Scheduler.
  *
  * @package SEOSystem
  * @subpackage Admin
@@ -354,6 +354,9 @@ if (!function_exists('seo_processes_import_export_state')) {
         $idle = absint($diagnostics['idle_seconds'] ?? 0);
         $delay = absint($diagnostics['adaptive_next_delay'] ?? 0);
 
+        if (!empty($diagnostics['controller_active'])) {
+            return seo_processes_state('running', 'En ejecución · control propio', 'running');
+        }
         if (in_array($raw, array('failed', 'error'), true)) {
             return seo_processes_state('error', 'Error', 'error');
         }
@@ -366,16 +369,19 @@ if (!function_exists('seo_processes_import_export_state')) {
         if (!empty($diagnostics['lock_active'])) {
             return seo_processes_state('running', 'En ejecución', 'running');
         }
+        if (!empty($diagnostics['controller_stale'])) {
+            return seo_processes_state('error', 'Parado · controlador perdido', 'error');
+        }
         if (!empty($diagnostics['direct_worker_stale'])) {
-            return seo_processes_state('error', 'Sin avance · worker no arrancó', 'error');
+            return seo_processes_state('error', 'Sin avance · proceso no arrancó', 'error');
         }
         if (!empty($diagnostics['direct_worker_pending'])) {
-            return seo_processes_state('waiting', 'Worker propio preparado', 'waiting');
+            return seo_processes_state('waiting', 'Arranque propio preparado', 'waiting');
         }
         if (in_array($raw, array('processing', 'starting', 'retrying'), true)) {
             $stale_after = max(90, $delay + 60);
             if ($idle > $stale_after) {
-                return seo_processes_state('error', 'Parado · sin worker', 'error');
+                return seo_processes_state('error', 'Parado · sin proceso', 'error');
             }
             return seo_processes_state('waiting', 'Preparando siguiente lote', 'waiting');
         }
@@ -432,6 +438,9 @@ if (!function_exists('seo_processes_collect_import_export')) {
             'wp_cron'          => 'WP-Cron heredado',
         );
         $backend_label = isset($backend_labels[$backend]) ? $backend_labels[$backend] : ($backend ? $backend : 'motor propio pendiente de detectar');
+        $controller_active = !empty($diag['controller_active']);
+        $controller_stale = !empty($diag['controller_stale']);
+        $controller_pid = absint($diag['controller_pid'] ?? 0);
 
         $load_bits = array();
         $load_bits[] = 'Motor: ' . $backend_label;
@@ -444,23 +453,31 @@ if (!function_exists('seo_processes_collect_import_export')) {
         if ($pressure) {
             $load_bits[] = 'presión ' . $pressure;
         }
-        if (!empty($diag['lock_active'])) {
-            $worker_label = 'worker PHP activo';
+        if ($controller_active) {
+            $worker_label = 'controlador continuo activo';
+            if ($controller_pid) {
+                $worker_label .= ' · PID ' . $controller_pid;
+            }
+            $load_bits[] = $worker_label;
+        } elseif (!empty($diag['lock_active'])) {
+            $worker_label = 'lote PHP activo';
             if (!empty($diag['php_pid'])) {
                 $worker_label .= ' · PID ' . absint($diag['php_pid']);
             }
             $load_bits[] = $worker_label;
+        } elseif ($controller_stale) {
+            $load_bits[] = 'ALERTA: controlador propio desaparecido';
         } elseif (!empty($diag['direct_worker_stale'])) {
             $load_bits[] = 'ALERTA: despacho propio sin arrancar';
         } elseif (!empty($diag['direct_worker_pending'])) {
             $due_in = absint($diag['direct_worker_due_in'] ?? 0);
-            $worker_label = $due_in > 0 ? 'worker propio en ' . number_format_i18n($due_in) . ' s' : 'worker propio lanzado';
+            $worker_label = $due_in > 0 ? 'arranque propio en ' . number_format_i18n($due_in) . ' s' : 'arranque propio enviado';
             if (!empty($diag['last_dispatch_pid'])) {
                 $worker_label .= ' · PID ' . absint($diag['last_dispatch_pid']);
             }
             $load_bits[] = $worker_label;
         } elseif ('processing' === sanitize_key((string) ($diag['status'] ?? ''))) {
-            $load_bits[] = 'sin worker pendiente';
+            $load_bits[] = 'sin proceso activo';
         }
         if (empty($load_bits) && $entity) {
             $load_bits[] = 'Tipo: ' . $entity;
@@ -485,12 +502,22 @@ if (!function_exists('seo_processes_collect_import_export')) {
             $detail .= ($detail ? ' ' : '') . 'Existe una acción heredada del scheduler; el motor propio la elimina al encadenar el siguiente lote.';
         }
 
+        $live = $controller_active || !empty($diag['lock_active']) || (!empty($diag['direct_worker_pending']) && empty($diag['direct_worker_stale']));
+        $speed_text = seo_processes_format_rate($rate, 'filas');
+        if (!$live && in_array($state['code'], array('stopped', 'error'), true)) {
+            if ($rate > 0) {
+                $response .= ' · último ritmo ' . seo_processes_format_rate($rate, 'filas');
+            }
+            $speed_text = '0 filas/min';
+        }
+        $can_start = !empty($active['token']) && !$live && in_array($state['code'], array('stopped', 'error', 'waiting'), true);
+
         return array(
             'id'            => 'import-export',
             'name'          => 'Import / Export',
-            'kind'          => 'Worker propio · scheduler solo watchdog',
+            'kind'          => 'Controlador propio · scheduler solo respaldo',
             'state'         => $state,
-            'speed'         => seo_processes_format_rate($rate, 'filas'),
+            'speed'         => $speed_text,
             'response'      => $response,
             'load'          => !empty($load_bits) ? implode(' · ', $load_bits) : 'Regulador sin datos todavía',
             'activity'      => seo_processes_format_age($age),
@@ -499,6 +526,8 @@ if (!function_exists('seo_processes_collect_import_export')) {
             'progress_text' => null !== $progress ? number_format_i18n($progress) . '%' : '—',
             'detail'        => $detail ?: 'Cola de importación sin actividad registrada.',
             'url'           => seo_processes_admin_url('seo-import-export', array('seo_ie_tab' => 'import-batch')),
+            'can_start'     => $can_start,
+            'start_label'   => 'Arrancar / reanudar',
         );
     }
 }
@@ -519,10 +548,15 @@ if (!function_exists('seo_processes_collect_academy')) {
         );
         $raw = sanitize_key((string) ($state_data['status'] ?? 'manual'));
         $heartbeat = absint($state_data['worker_heartbeat_ts'] ?? 0);
-        $age = seo_processes_age_seconds($heartbeat);
+        $controller_heartbeat = absint($engine['controller_heartbeat_ts'] ?? $state_data['controller_heartbeat_ts'] ?? 0);
+        $activity_heartbeat = max($heartbeat, $controller_heartbeat);
+        $age = seo_processes_age_seconds($activity_heartbeat);
         $worker_flag = !empty($state_data['worker_active']) || !empty($engine['worker_active']);
-        $worker_active = $worker_flag && (null === $age || $age <= 90);
-        $worker_stale = $worker_flag && null !== $age && $age > 90;
+        $batch_worker_active = $worker_flag && (null === seo_processes_age_seconds($heartbeat) || seo_processes_age_seconds($heartbeat) <= 90);
+        $controller_active = !empty($engine['controller_active']);
+        $controller_stale = !empty($engine['controller_stale']);
+        $worker_active = $controller_active || $batch_worker_active;
+        $worker_stale = !$controller_active && $worker_flag && null !== seo_processes_age_seconds($heartbeat) && seo_processes_age_seconds($heartbeat) > 90;
         $direct_pending = !empty($engine['direct_pending']) || !empty($state_data['direct_worker_pending']);
         $direct_stale = !empty($engine['direct_stale']);
 
@@ -530,14 +564,16 @@ if (!function_exists('seo_processes_collect_academy')) {
             $state = seo_processes_state('error', 'Error / pausado', 'error');
         } elseif ($running && $worker_active) {
             $state = seo_processes_state('running', 'En ejecución', 'running');
+        } elseif ($running && $controller_stale) {
+            $state = seo_processes_state('error', 'Parado · controlador perdido', 'error');
         } elseif ($running && $worker_stale) {
             $state = seo_processes_state('error', 'Sin avance · heartbeat perdido', 'error');
         } elseif ($running && $direct_stale) {
-            $state = seo_processes_state('error', 'Sin avance · worker no arrancó', 'error');
+            $state = seo_processes_state('error', 'Sin avance · proceso no arrancó', 'error');
         } elseif ($running && $direct_pending) {
-            $state = seo_processes_state('waiting', 'Worker propio preparado', 'waiting');
+            $state = seo_processes_state('waiting', 'Arranque propio preparado', 'waiting');
         } elseif ($running && null !== $age && $age > 90) {
-            $state = seo_processes_state('error', 'Parado · sin worker', 'error');
+            $state = seo_processes_state('error', 'Parado · sin proceso', 'error');
         } elseif ($running) {
             $state = seo_processes_state('waiting', 'Preparando siguiente lote', 'waiting');
         } elseif ('completed' === $raw) {
@@ -569,7 +605,7 @@ if (!function_exists('seo_processes_collect_academy')) {
         }
         $module = absint($state_data['current_module'] ?? ($current['next_module'] ?? 0));
 
-        $backend = sanitize_key((string) ($engine['direct_backend'] ?? $state_data['last_dispatch_backend'] ?? ''));
+        $backend = sanitize_key((string) ($engine['controller_backend'] ?? $engine['direct_backend'] ?? $state_data['controller_backend'] ?? $state_data['last_dispatch_backend'] ?? ''));
         $backend_labels = array(
             'direct_cli'         => 'PHP CLI propio',
             'direct_http'        => 'loopback propio',
@@ -586,15 +622,22 @@ if (!function_exists('seo_processes_collect_academy')) {
             $load_bits[] = 'pausa propia ' . number_format_i18n($delay) . ' s';
         }
         $load_bits[] = 'presión ' . $pressure;
-        if ($worker_active) {
+        if ($controller_active) {
+            $pid = absint($engine['controller_pid'] ?? $state_data['controller_pid'] ?? 0);
+            $label = 'controlador continuo activo';
+            if ($pid) {
+                $label .= ' · PID ' . $pid;
+            }
+            $load_bits[] = $label;
+        } elseif ($worker_active) {
             $pid = absint($engine['worker_pid'] ?? $state_data['worker_pid'] ?? 0);
-            $load_bits[] = 'worker PHP activo' . ($pid ? ' · PID ' . $pid : '');
+            $load_bits[] = 'lote PHP activo' . ($pid ? ' · PID ' . $pid : '');
         } elseif ($direct_stale) {
             $load_bits[] = 'ALERTA: despacho propio sin arrancar';
         } elseif ($direct_pending) {
             $due_in = absint($engine['direct_due_in'] ?? 0);
             $pid = absint($engine['direct_pid'] ?? $state_data['last_dispatch_pid'] ?? 0);
-            $load_bits[] = ($due_in > 0 ? 'worker propio en ' . number_format_i18n($due_in) . ' s' : 'worker propio lanzado') . ($pid ? ' · PID ' . $pid : '');
+            $load_bits[] = ($due_in > 0 ? 'arranque propio en ' . number_format_i18n($due_in) . ' s' : 'arranque propio enviado') . ($pid ? ' · PID ' . $pid : '');
         }
 
         $response = $duration > 0.0
@@ -624,20 +667,34 @@ if (!function_exists('seo_processes_collect_academy')) {
             }
         }
 
+        $live = $worker_active || ($direct_pending && !$direct_stale);
+        $speed_text = seo_processes_format_rate($rate, 'tareas');
+        if (!$live && in_array($state['code'], array('stopped', 'error'), true)) {
+            if ($rate > 0) {
+                $response .= ' · último ritmo ' . seo_processes_format_rate($rate, 'tareas');
+            }
+            $speed_text = '0 tareas/min';
+        }
+        $can_start = 'completed' !== $raw
+            && !$live
+            && in_array($state['code'], array('stopped', 'error', 'waiting'), true);
+
         return array(
             'id'            => 'academy',
             'name'          => 'Academia',
-            'kind'          => 'Worker propio · scheduler solo watchdog',
+            'kind'          => 'Controlador propio · scheduler solo respaldo',
             'state'         => $state,
-            'speed'         => seo_processes_format_rate($rate, 'tareas'),
+            'speed'         => $speed_text,
             'response'      => $response,
             'load'          => implode(' · ', $load_bits),
             'activity'      => seo_processes_format_age($age),
             'activity_age'  => $age,
             'progress'      => $progress,
             'progress_text' => null !== $progress ? number_format_i18n($progress) . '%' : '—',
-            'detail'        => $detail ?: 'Academia en modo manual, sin worker automático activo.',
+            'detail'        => $detail ?: 'Academia detenida, sin controlador propio activo.',
             'url'           => seo_processes_admin_url('seo-dependiente', array('tab' => 'trainer')),
+            'can_start'     => $can_start,
+            'start_label'   => 'Arrancar / reanudar',
         );
     }
 }
@@ -911,6 +968,9 @@ if (!function_exists('seo_processes_render_rows')) {
                 <td class="seo-process-detail">
                     <span><?php echo esc_html($item['detail']); ?></span>
                     <a class="button button-small" href="<?php echo esc_url($item['url']); ?>">Abrir proceso</a>
+                    <?php if (!empty($item['can_start'])) : ?>
+                        <button type="button" class="button button-primary button-small seo-process-start" data-process="<?php echo esc_attr($item['id']); ?>"><?php echo esc_html($item['start_label'] ?? 'Arrancar'); ?></button>
+                    <?php endif; ?>
                 </td>
             </tr>
             <?php
@@ -1029,6 +1089,51 @@ if (!function_exists('seo_processes_ajax_status')) {
 }
 add_action('wp_ajax_seo_processes_status', 'seo_processes_ajax_status');
 
+if (!function_exists('seo_processes_worker_control')) {
+    function seo_processes_worker_control() {
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'No autorizado.'), 403);
+        }
+        check_ajax_referer('seo_processes_worker_control', 'nonce');
+        $process_id = sanitize_key(wp_unslash($_POST['process_id'] ?? ''));
+        $result = null;
+
+        if ('import-export' === $process_id) {
+            if (!function_exists('seo_ie_product_import_control_start')) {
+                wp_send_json_error(array('message' => 'El motor propio de Import / Export no está disponible.'), 500);
+            }
+            $queue = function_exists('seo_ie_batch_status') ? (array) seo_ie_batch_status() : array();
+            $user_id = absint($queue['user_id'] ?? get_current_user_id());
+            if (!$user_id) {
+                $user_id = get_current_user_id();
+            }
+            $result = seo_ie_product_import_control_start($user_id);
+        } elseif ('academy' === $process_id) {
+            if (!class_exists('SEO_Dependiente_Entrenador') || !is_callable(array('SEO_Dependiente_Entrenador', 'process_control_start'))) {
+                wp_send_json_error(array('message' => 'El motor propio de Academia no está disponible.'), 500);
+            }
+            $result = SEO_Dependiente_Entrenador::process_control_start();
+        } else {
+            wp_send_json_error(array('message' => 'Este proceso no se arranca desde este servidor porque su ejecución es externa.'), 400);
+        }
+
+        if (is_wp_error($result)) {
+            wp_send_json_error(array('message' => $result->get_error_message()), 500);
+        }
+
+        // Damos unas décimas al proceso desacoplado para reclamar el despacho.
+        usleep(250000);
+        $items = seo_processes_collect();
+        wp_send_json_success(array(
+            'message'   => sanitize_text_field((string) ($result['message'] ?? 'Proceso arrancado.')),
+            'rows'      => seo_processes_render_rows($items),
+            'summary'   => seo_processes_summary($items),
+            'refreshed' => current_time('H:i:s'),
+        ));
+    }
+}
+add_action('wp_ajax_seo_processes_worker_control', 'seo_processes_worker_control');
+
 if (!function_exists('seo_processes_page')) {
     function seo_processes_page() {
         if (!current_user_can('manage_options')) {
@@ -1038,12 +1143,13 @@ if (!function_exists('seo_processes_page')) {
         $items = seo_processes_collect();
         $summary = seo_processes_summary($items);
         $nonce = wp_create_nonce('seo_processes_status');
+        $worker_nonce = wp_create_nonce('seo_processes_worker_control');
         ?>
         <div class="wrap seo-processes-wrap">
             <div class="seo-processes-heading">
                 <div>
                     <h1>Procesos</h1>
-                    <p>Monitor y control de velocidad de los procesos automáticos del plugin. Import/Export y Academia encadenan sus lotes con workers propios; Action Scheduler/WP-Cron quedan solo como watchdog de recuperación.</p>
+                    <p>Monitor, velocidad y arranque de los procesos automáticos del plugin. Import/Export y Academia usan un controlador propio continuo: una vez arrancados, encadenan lotes sin esperar a WP-Cron ni Action Scheduler.</p>
                 </div>
                 <div class="seo-processes-refresh">
                     <button type="button" class="button" id="seo-processes-refresh">Actualizar ahora</button>
@@ -1054,6 +1160,8 @@ if (!function_exists('seo_processes_page')) {
             <?php if (isset($_GET['process_controls']) && in_array(sanitize_key(wp_unslash($_GET['process_controls'])), array('saved','restored'), true)) : ?>
                 <div class="notice notice-success is-dismissible"><p><?php echo 'restored' === sanitize_key(wp_unslash($_GET['process_controls'])) ? 'Se han restaurado los límites originales.' : 'Velocidades guardadas. Se aplicarán en el siguiente lote de cada proceso.'; ?></p></div>
             <?php endif; ?>
+
+            <div id="seo-processes-action-message" class="notice inline" style="display:none"><p></p></div>
 
             <?php seo_processes_render_control_panel(); ?>
 
@@ -1084,14 +1192,14 @@ if (!function_exists('seo_processes_page')) {
             </div>
 
             <p class="description seo-processes-note">
-                “Velocidad” usa el trabajo realmente completado por minuto. Import/Export y Academia encadenan sus lotes con PHP CLI propio cuando el hosting lo permite y, si no, con loopback directo. Ninguno depende de Action Scheduler/WP-Cron para avanzar; el scheduler queda únicamente como watchdog. Los chequeos externos se ejecutan en GitHub y reciben la configuración en el JSON del runner.
+                “Velocidad” usa el trabajo realmente completado por minuto. Import/Export y Academia mantienen un controlador propio continuo: PHP CLI cuando el hosting lo permite y loopback directo como alternativa. No hay una frecuencia fija de scheduler entre lotes; la única espera es la pausa que decida tu regulador. Si el controlador desaparece, aparecerá “Arrancar / reanudar”. Los chequeos externos se ejecutan en GitHub.
             </p>
         </div>
 
         <style id="seo-processes-styles">
 
             .seo-process-controls{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px;margin:0 0 24px}.seo-process-controls__head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:12px}.seo-process-controls__head h2{margin:0 0 4px}.seo-process-controls__head p{margin:0;color:#50575e;max-width:850px}.seo-process-controls__actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.seo-process-control-card{border-top:1px solid #e2e4e7;padding:0}.seo-process-control-card summary{cursor:pointer;padding:13px 0;display:flex;gap:10px;align-items:baseline}.seo-process-control-card summary span{font-size:12px;color:#646970;font-weight:400}.seo-process-control-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px 16px;padding:2px 0 16px}.seo-process-control-grid label{font-weight:600}.seo-process-control-grid input{display:block;width:100%;max-width:150px;margin-top:5px}.seo-process-control-grid small{display:block;color:#646970;font-weight:400;margin-top:3px}.seo-process-control-warning{background:#fff8e5;border-left:4px solid #dba617;padding:9px 11px;margin:0 0 16px}.seo-process-controls__actions--bottom{border-top:1px solid #e2e4e7;padding-top:14px}.seo-processes-monitor-title{margin-top:0}
-            .seo-processes-wrap{max-width:1500px}.seo-processes-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:18px}.seo-processes-heading h1{margin-bottom:4px}.seo-processes-heading p{max-width:880px;margin-top:0;color:#50575e}.seo-processes-refresh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:10px}.seo-processes-refresh span{color:#646970;font-size:12px}.seo-processes-summary{display:grid;grid-template-columns:repeat(5,minmax(120px,1fr));gap:10px;margin:0 0 16px}.seo-processes-summary>div{background:#fff;border:1px solid #dcdcde;border-radius:7px;padding:14px 16px}.seo-processes-summary strong{display:block;font-size:25px;line-height:1.15}.seo-processes-summary span{display:block;margin-top:3px;color:#646970}.seo-processes-table-wrap{background:#fff;border:1px solid #dcdcde;border-radius:8px;overflow:auto}.seo-processes-table{border:0;min-width:1120px}.seo-processes-table th{padding:12px 14px}.seo-processes-table td{padding:14px;vertical-align:top}.seo-processes-table td>span:not(.seo-process-status),.seo-processes-table td>strong+span{display:block;margin-top:5px;color:#646970;font-size:12px}.seo-process-name strong{display:block;font-size:14px}.seo-process-name span{display:block;margin-top:4px;color:#646970}.seo-process-status{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:4px 9px;font-size:12px;font-weight:700;background:#f0f0f1;color:#50575e}.seo-process-status i{display:block;width:8px;height:8px;border-radius:50%;background:currentColor}.seo-process-status.is-running{background:#edfaef;color:#116329}.seo-process-status.is-waiting{background:#f0f6fc;color:#135e96}.seo-process-status.is-error{background:#fcf0f1;color:#8a2424}.seo-process-status.is-completed{background:#f0f6fc;color:#0a4b78}.seo-process-status.is-stopped{background:#f0f0f1;color:#646970}.seo-process-activity{display:block;margin-top:7px;color:#646970;font-size:12px}.seo-process-primary-value{display:block;font-size:16px}.seo-process-progress{height:6px;margin-top:9px;background:#e5e5e5;border-radius:6px;overflow:hidden}.seo-process-progress span{display:block;height:100%;background:#2271b1}.seo-process-detail{min-width:300px}.seo-process-detail .button{margin-top:10px}.seo-processes-note{margin-top:12px;max-width:1200px}.seo-processes-wrap.is-refreshing #seo-processes-refresh{opacity:.65;pointer-events:none}.seo-processes-wrap.is-refreshing #seo-processes-refreshed:after{content:' · actualizando…';font-weight:400}@media(max-width:900px){.seo-process-controls__head{display:block}.seo-process-controls__actions{justify-content:flex-start;margin-top:10px}.seo-processes-heading{display:block}.seo-processes-refresh{justify-content:flex-start}.seo-processes-summary{grid-template-columns:repeat(2,minmax(120px,1fr))}}@media(max-width:520px){.seo-processes-summary{grid-template-columns:1fr}}
+            .seo-processes-wrap{max-width:1500px}.seo-processes-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:18px}.seo-processes-heading h1{margin-bottom:4px}.seo-processes-heading p{max-width:880px;margin-top:0;color:#50575e}.seo-processes-refresh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:10px}.seo-processes-refresh span{color:#646970;font-size:12px}.seo-processes-summary{display:grid;grid-template-columns:repeat(5,minmax(120px,1fr));gap:10px;margin:0 0 16px}.seo-processes-summary>div{background:#fff;border:1px solid #dcdcde;border-radius:7px;padding:14px 16px}.seo-processes-summary strong{display:block;font-size:25px;line-height:1.15}.seo-processes-summary span{display:block;margin-top:3px;color:#646970}.seo-processes-table-wrap{background:#fff;border:1px solid #dcdcde;border-radius:8px;overflow:auto}.seo-processes-table{border:0;min-width:1120px}.seo-processes-table th{padding:12px 14px}.seo-processes-table td{padding:14px;vertical-align:top}.seo-processes-table td>span:not(.seo-process-status),.seo-processes-table td>strong+span{display:block;margin-top:5px;color:#646970;font-size:12px}.seo-process-name strong{display:block;font-size:14px}.seo-process-name span{display:block;margin-top:4px;color:#646970}.seo-process-status{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:4px 9px;font-size:12px;font-weight:700;background:#f0f0f1;color:#50575e}.seo-process-status i{display:block;width:8px;height:8px;border-radius:50%;background:currentColor}.seo-process-status.is-running{background:#edfaef;color:#116329}.seo-process-status.is-waiting{background:#f0f6fc;color:#135e96}.seo-process-status.is-error{background:#fcf0f1;color:#8a2424}.seo-process-status.is-completed{background:#f0f6fc;color:#0a4b78}.seo-process-status.is-stopped{background:#f0f0f1;color:#646970}.seo-process-activity{display:block;margin-top:7px;color:#646970;font-size:12px}.seo-process-primary-value{display:block;font-size:16px}.seo-process-progress{height:6px;margin-top:9px;background:#e5e5e5;border-radius:6px;overflow:hidden}.seo-process-progress span{display:block;height:100%;background:#2271b1}.seo-process-detail{min-width:300px}.seo-process-detail .button{margin-top:10px;margin-right:6px}.seo-process-start.is-starting{opacity:.65;pointer-events:none}.seo-processes-note{margin-top:12px;max-width:1200px}.seo-processes-wrap.is-refreshing #seo-processes-refresh{opacity:.65;pointer-events:none}.seo-processes-wrap.is-refreshing #seo-processes-refreshed:after{content:' · actualizando…';font-weight:400}@media(max-width:900px){.seo-process-controls__head{display:block}.seo-process-controls__actions{justify-content:flex-start;margin-top:10px}.seo-processes-heading{display:block}.seo-processes-refresh{justify-content:flex-start}.seo-processes-summary{grid-template-columns:repeat(2,minmax(120px,1fr))}}@media(max-width:520px){.seo-processes-summary{grid-template-columns:1fr}}
         </style>
 
         <script>
@@ -1100,6 +1208,7 @@ if (!function_exists('seo_processes_page')) {
             var body=document.getElementById('seo-processes-body');
             var refreshButton=document.getElementById('seo-processes-refresh');
             var refreshed=document.getElementById('seo-processes-refreshed');
+            var actionMessage=document.getElementById('seo-processes-action-message');
             var timer=null;
             if(!root||!body||!refreshButton){return;}
 
@@ -1134,6 +1243,49 @@ if (!function_exists('seo_processes_page')) {
                     root.classList.remove('is-refreshing');
                 });
             }
+
+            function showActionMessage(text,isError){
+                if(!actionMessage){return;}
+                actionMessage.className='notice inline '+(isError?'notice-error':'notice-success');
+                var p=actionMessage.querySelector('p');
+                if(p){p.textContent=text||'';}
+                actionMessage.style.display='block';
+            }
+
+            body.addEventListener('click',function(event){
+                var button=event.target.closest('.seo-process-start');
+                if(!button){return;}
+                event.preventDefault();
+                var processId=button.getAttribute('data-process')||'';
+                if(!processId){return;}
+                button.classList.add('is-starting');
+                button.disabled=true;
+                button.textContent='Arrancando…';
+                var data=new URLSearchParams();
+                data.append('action','seo_processes_worker_control');
+                data.append('nonce',<?php echo wp_json_encode($worker_nonce); ?>);
+                data.append('process_id',processId);
+                fetch(<?php echo wp_json_encode(admin_url('admin-ajax.php')); ?>,{
+                    method:'POST',credentials:'same-origin',
+                    headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'},
+                    body:data.toString()
+                }).then(function(response){return response.json();}).then(function(payload){
+                    if(payload&&payload.success&&payload.data){
+                        if(typeof payload.data.rows==='string'){body.innerHTML=payload.data.rows;}
+                        updateSummary(payload.data.summary||{});
+                        if(refreshed&&payload.data.refreshed){refreshed.textContent=payload.data.refreshed;}
+                        showActionMessage(payload.data.message||'Proceso arrancado.',false);
+                        window.setTimeout(load,1200);
+                    }else{
+                        var msg=payload&&payload.data&&payload.data.message?payload.data.message:'No se pudo arrancar el proceso.';
+                        showActionMessage(msg,true);
+                        button.classList.remove('is-starting');button.disabled=false;button.textContent='Arrancar / reanudar';
+                    }
+                }).catch(function(){
+                    showActionMessage('Error de comunicación al arrancar el proceso.',true);
+                    button.classList.remove('is-starting');button.disabled=false;button.textContent='Arrancar / reanudar';
+                });
+            });
 
             refreshButton.addEventListener('click',load);
             timer=window.setInterval(load,5000);
