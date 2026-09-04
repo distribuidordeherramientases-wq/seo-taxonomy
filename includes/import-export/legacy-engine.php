@@ -4913,12 +4913,13 @@ function seo_ie_product_import_record_dispatch_result( $user_id, $token, $result
  * @return void
  */
 function seo_ie_product_import_run_direct_loop( $user_id, $token, $backend = 'direct_cli', $max_runtime = 3600 ) {
-    $user_id     = absint( $user_id );
-    $token       = sanitize_key( $token );
-    $backend     = sanitize_key( $backend );
-    $max_runtime = max( 120, absint( $max_runtime ) );
-    $pid         = function_exists( 'getmypid' ) ? absint( getmypid() ) : 0;
-    $started     = time();
+    $user_id       = absint( $user_id );
+    $token         = sanitize_key( $token );
+    $backend       = sanitize_key( $backend );
+    $manager_slice = in_array( $backend, [ 'manager_cron', 'server_cron', 'wp_cron_manager', 'manual_manager' ], true );
+    $max_runtime   = $manager_slice ? max( 5, absint( $max_runtime ) ) : max( 120, absint( $max_runtime ) );
+    $pid           = function_exists( 'getmypid' ) ? absint( getmypid() ) : 0;
+    $started       = time();
 
     if ( ! defined( 'SEO_IE_DIRECT_WORKER_LOOP' ) ) {
         define( 'SEO_IE_DIRECT_WORKER_LOOP', true );
@@ -4984,6 +4985,10 @@ function seo_ie_product_import_run_direct_loop( $user_id, $token, $backend = 'di
             seo_ie_product_import_store_state( $user_id, $token, $state );
 
             if ( ( time() - $started ) >= $max_runtime ) {
+                if ( $manager_slice ) {
+                    break;
+                }
+
                 // Libera nuestra marca antes de solicitar el reemplazo para que
                 // schedule() no confunda este mismo proceso con otro controlador.
                 $state['controller_active'] = 0;
@@ -5006,6 +5011,14 @@ function seo_ie_product_import_run_direct_loop( $user_id, $token, $backend = 'di
                 $state['controller_started_at']   = $started;
                 $state['controller_heartbeat_at'] = time();
                 seo_ie_product_import_store_state( $user_id, $token, $state );
+            }
+
+            if ( $manager_slice && $delay > 0 && ( ( time() - $started ) + $delay ) >= $max_runtime ) {
+                $state['direct_worker_pending']     = 1;
+                $state['direct_worker_dispatch_id'] = '';
+                $state['direct_worker_not_before']  = time() + $delay;
+                seo_ie_product_import_store_state( $user_id, $token, $state );
+                break;
             }
 
             $remaining = $delay;
@@ -5034,6 +5047,58 @@ function seo_ie_product_import_run_direct_loop( $user_id, $token, $backend = 'di
             seo_ie_product_import_store_state( $user_id, $token, $state );
         }
     }
+}
+
+/**
+ * Ejecuta una ventana limitada del importador dentro del gestor periódico.
+ * No intenta crear procesos hijos ni pasa por Action Scheduler/WP-Cron.
+ *
+ * @param int    $user_id Usuario propietario de la importación.
+ * @param string $token   Token activo.
+ * @param int    $seconds Presupuesto máximo aproximado de esta ventana.
+ * @param string $backend Identificador del gestor.
+ * @return bool
+ */
+function seo_ie_product_import_run_manager_slice( $user_id, $token, $seconds = 30, $backend = 'manager_cron' ) {
+    $user_id = absint( $user_id );
+    $token   = sanitize_key( $token );
+    $seconds = max( 5, min( 55, absint( $seconds ) ) );
+    $backend = sanitize_key( $backend );
+
+    if ( 0 === $user_id || '' === $token ) {
+        return false;
+    }
+
+    $state = get_transient( seo_ie_product_import_state_key( $user_id, $token ) );
+    if ( ! is_array( $state ) ) {
+        return false;
+    }
+
+    $status = sanitize_key( $state['status'] ?? 'processing' );
+    if ( seo_ie_product_import_is_cancel_requested( $user_id, $token ) || in_array( $status, [ 'stopping', 'stopped', 'completed', 'failed' ], true ) ) {
+        return false;
+    }
+
+    $lock_key = seo_ie_product_import_lock_key( $user_id, $token );
+    $lock_at  = absint( get_transient( $lock_key ) );
+    if ( $lock_at && ( time() - $lock_at ) > ( 6 * MINUTE_IN_SECONDS ) ) {
+        delete_transient( $lock_key );
+        $lock_at = 0;
+    }
+    if ( $lock_at ) {
+        return false;
+    }
+
+    // El gestor es el controlador de esta ventana; no se despachan hijos.
+    $state['direct_worker_pending']     = 0;
+    $state['direct_worker_dispatch_id'] = '';
+    $state['last_schedule_backend']     = $backend;
+    $state['last_dispatch_backend']     = $backend;
+    $state['last_dispatch_result']      = 'manager_slice';
+    seo_ie_product_import_store_state( $user_id, $token, $state );
+
+    seo_ie_product_import_run_direct_loop( $user_id, $token, $backend, $seconds );
+    return true;
 }
 
 /**
@@ -5119,13 +5184,12 @@ function seo_ie_product_import_control_start( $user_id = 0 ) {
         );
     }
 
-    if ( ! seo_ie_product_import_schedule( $user_id, $token, 0, true ) ) {
-        $state = get_transient( seo_ie_product_import_state_key( $user_id, $token ) ) ?: $state;
-        $error = sanitize_text_field( $state['last_dispatch_error'] ?? 'El servidor no ha podido arrancar PHP CLI ni el loopback directo.' );
-        return new WP_Error( 'seo_ie_worker_start_failed', $error );
+    if ( function_exists( 'seo_process_supervisor_schedule_backup' ) ) {
+        seo_process_supervisor_schedule_backup();
     }
+    seo_ie_product_import_run_manager_slice( $user_id, $token, 15, 'manual_manager' );
 
-    return [ 'started' => true, 'message' => 'Proceso de Import / Export arrancado con el motor propio.' ];
+    return [ 'started' => true, 'message' => 'Import / Export entregado al gestor periódico.' ];
 }
 
 /**
@@ -5161,6 +5225,33 @@ function seo_ie_product_import_schedule( $user_id, $token, $delay = 0, $force = 
 
     if ( in_array( sanitize_key( $state['status'] ?? '' ), [ 'stopping', 'stopped', 'completed', 'failed' ], true ) ) {
         return false;
+    }
+
+    // Si el gestor periódico está activo, no intentamos crear PHP hijos ni
+    // loopbacks. Dejamos el trabajo pendiente para que el siguiente ciclo del
+    // gestor lo ejecute directamente.
+    if ( function_exists( 'seo_process_supervisor_settings' ) ) {
+        $manager_settings = seo_process_supervisor_settings();
+        if ( ! empty( $manager_settings['enabled'] ) && ! empty( $manager_settings['import_export'] ) ) {
+            seo_ie_product_import_clear_legacy_batch_actions( $user_id, $token );
+            $state['last_schedule_attempt_at']      = time();
+            $state['last_schedule_backend']         = 'process_manager';
+            $state['last_schedule_result']          = 'queued';
+            $state['last_schedule_error']           = '';
+            $state['last_dispatch_at']              = time();
+            $state['last_dispatch_backend']         = 'process_manager';
+            $state['last_dispatch_result']          = 'queued';
+            $state['last_dispatch_error']           = '';
+            $state['direct_worker_pending']         = 1;
+            $state['direct_worker_dispatch_id']     = '';
+            $state['direct_worker_not_before']      = time() + $delay;
+            $state['direct_worker_requested_delay'] = $delay;
+            seo_ie_product_import_store_state( $user_id, $token, $state );
+            if ( function_exists( 'seo_process_supervisor_schedule_backup' ) ) {
+                seo_process_supervisor_schedule_backup();
+            }
+            return true;
+        }
     }
 
     if ( seo_ie_product_import_controller_is_active( $state ) ) {
@@ -5285,6 +5376,16 @@ function seo_ie_product_import_schedule_watchdog( $user_id, $token, $delay = 60,
 
     if ( 0 === $user_id || '' === $token ) {
         return false;
+    }
+
+    if ( function_exists( 'seo_process_supervisor_settings' ) ) {
+        $manager_settings = seo_process_supervisor_settings();
+        if ( ! empty( $manager_settings['enabled'] ) && ! empty( $manager_settings['import_export'] ) ) {
+            if ( function_exists( 'seo_process_supervisor_schedule_backup' ) ) {
+                seo_process_supervisor_schedule_backup();
+            }
+            return true;
+        }
     }
 
     if ( ! $force && seo_ie_product_import_watchdog_is_scheduled( $user_id, $token ) ) {
@@ -5549,7 +5650,7 @@ function seo_ie_product_import_background_worker( $user_id, $token, $backend = '
             seo_ie_product_import_add_transaction(
                 $state,
                 'worker_started',
-                in_array( $backend, [ 'direct_cli', 'direct_http' ], true )
+                in_array( $backend, [ 'direct_cli', 'direct_http', 'manager_cron', 'server_cron', 'wp_cron_manager', 'manual_manager' ], true )
                     ? 'El motor propio ha iniciado un worker.'
                     : 'Un scheduler heredado ha iniciado un worker de compatibilidad.',
                 [ 'pid' => $state['last_worker_pid'], 'backend' => $backend ]
