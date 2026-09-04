@@ -1320,6 +1320,28 @@ final class SEO_Dependiente_Entrenador {
             ));
             return true;
         }
+
+        if (function_exists('seo_process_supervisor_settings')) {
+            $manager_settings = seo_process_supervisor_settings();
+            if (!empty($manager_settings['enabled']) && !empty($manager_settings['academy'])) {
+                self::clear_legacy_auto_worker_schedule();
+                self::save_auto_state(array(
+                    'direct_worker_pending'     => 1,
+                    'direct_worker_dispatch_id' => '',
+                    'direct_worker_not_before'  => time() + $delay,
+                    'last_dispatch_at'          => time(),
+                    'last_dispatch_backend'     => 'process_manager',
+                    'last_dispatch_pid'         => 0,
+                    'last_dispatch_result'      => 'queued',
+                    'last_dispatch_error'       => '',
+                ));
+                if (function_exists('seo_process_supervisor_schedule_backup')) {
+                    seo_process_supervisor_schedule_backup();
+                }
+                return true;
+            }
+        }
+
         if (self::controller_is_active($state)) {
             return true;
         }
@@ -1435,9 +1457,14 @@ final class SEO_Dependiente_Entrenador {
      */
     private static function run_direct_loop($backend, $max_runtime = 3600) {
         $backend = sanitize_key((string) $backend);
-        $max_runtime = max(120, absint($max_runtime));
+        $manager_slice = in_array($backend, array('manager_cron', 'server_cron', 'wp_cron_manager', 'manual_manager'), true);
+        $max_runtime = $manager_slice ? max(5, absint($max_runtime)) : max(120, absint($max_runtime));
         $pid = function_exists('getmypid') ? absint(getmypid()) : 0;
         $started = time();
+
+        if ($manager_slice && !defined('SEO_ACADEMY_DIRECT_WORKER_LOOP')) {
+            define('SEO_ACADEMY_DIRECT_WORKER_LOOP', true);
+        }
 
         self::save_auto_state(array(
             'controller_active'       => 1,
@@ -1472,6 +1499,9 @@ final class SEO_Dependiente_Entrenador {
                 ));
 
                 if ((time() - $started) >= $max_runtime) {
+                    if ($manager_slice) {
+                        break;
+                    }
                     self::save_auto_state(array(
                         'controller_active'  => 0,
                         'controller_next_ts' => 0,
@@ -1486,6 +1516,15 @@ final class SEO_Dependiente_Entrenador {
                         'controller_started_ts'   => $started,
                         'controller_heartbeat_ts' => time(),
                     ));
+                }
+
+                if ($manager_slice && $delay > 0 && ((time() - $started) + $delay) >= $max_runtime) {
+                    self::save_auto_state(array(
+                        'direct_worker_pending'     => 1,
+                        'direct_worker_dispatch_id' => '',
+                        'direct_worker_not_before'  => time() + $delay,
+                    ));
+                    break;
                 }
 
                 $remaining = $delay;
@@ -1510,6 +1549,40 @@ final class SEO_Dependiente_Entrenador {
                 ));
             }
         }
+    }
+
+    /**
+     * Ejecuta una ventana limitada de Academia desde el gestor periódico.
+     * El trabajo ocurre en el mismo proceso del gestor y no crea procesos hijo.
+     *
+     * @param int    $seconds Presupuesto máximo aproximado.
+     * @param string $backend Identificador del gestor.
+     * @return bool
+     */
+    public static function process_manager_slice($seconds = 20, $backend = 'manager_cron') {
+        $state = self::auto_state();
+        if (!self::is_auto_running($state)) {
+            return false;
+        }
+        if (!empty($state['worker_active'])) {
+            $heartbeat = absint($state['worker_heartbeat_ts'] ?? 0);
+            if ($heartbeat && (time() - $heartbeat) <= 90) {
+                return false;
+            }
+        }
+        if (self::controller_is_active($state)) {
+            return false;
+        }
+
+        self::save_auto_state(array(
+            'direct_worker_pending'     => 0,
+            'direct_worker_dispatch_id' => '',
+            'last_dispatch_backend'     => sanitize_key((string) $backend),
+            'last_dispatch_result'      => 'manager_slice',
+            'last_dispatch_error'       => '',
+        ));
+        self::run_direct_loop(sanitize_key((string) $backend), max(5, min(55, absint($seconds))));
+        return true;
     }
 
     /**
@@ -1540,18 +1613,26 @@ final class SEO_Dependiente_Entrenador {
             'updated_at'            => current_time('mysql'),
         ));
 
-        if (!self::schedule_auto_worker(0, true)) {
-            $state = self::auto_state();
-            $error = sanitize_text_field((string) ($state['last_dispatch_error'] ?? 'El servidor no ha podido arrancar el proceso propio.'));
-            return new WP_Error('academy_worker_start_failed', $error);
+        if (function_exists('seo_process_supervisor_schedule_backup')) {
+            seo_process_supervisor_schedule_backup();
         }
+        self::process_manager_slice(15, 'manual_manager');
 
-        return array('started' => true, 'message' => 'Proceso de Academia arrancado con el motor propio.');
+        return array('started' => true, 'message' => 'Academia entregada al gestor periódico.');
     }
 
     private static function schedule_auto_watchdog($delay = 60, $force = false) {
         if (!self::is_auto_running()) {
             return false;
+        }
+        if (function_exists('seo_process_supervisor_settings')) {
+            $manager_settings = seo_process_supervisor_settings();
+            if (!empty($manager_settings['enabled']) && !empty($manager_settings['academy'])) {
+                if (function_exists('seo_process_supervisor_schedule_backup')) {
+                    seo_process_supervisor_schedule_backup();
+                }
+                return true;
+            }
         }
         $delay = max(30, absint($delay));
         $hook = self::AUTO_WATCHDOG_HOOK;
