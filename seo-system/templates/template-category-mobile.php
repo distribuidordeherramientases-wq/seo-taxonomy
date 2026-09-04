@@ -202,7 +202,7 @@ echo wp_json_encode(
                 <div class="dht-category-summary">
 
                     <span class="dht-kicker">
-                        Categoría de productos
+                        Categoría de productos..
                     </span>
 
                     <h1>
