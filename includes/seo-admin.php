@@ -222,7 +222,18 @@ add_submenu_page(null, 'Marketing', 'Marketing', 'manage_options', 'seo-menu-mar
 add_submenu_page(null, 'SEO Data Table', 'Data Table', 'manage_options', 'seo-data-table', 'seo_data_table_page');
 add_submenu_page(null, 'Clean DB', 'Clean DB', 'manage_options', 'seo-clean-db', 'seo_clean_db_page');
 add_submenu_page(null, 'Import / Export', 'Import / Export', 'manage_options', 'seo-import-export', 'seo_import_export_page');
-add_submenu_page('seo-system', 'Procesos', 'Procesos', 'manage_options', 'seo-processes', 'seo_processes_page');
+$seo_processes_hook = add_submenu_page(null, 'Procesos', 'Procesos', 'manage_options', 'seo-processes', 'seo_processes_page');
+// WordPress 7.1 puede dejar $title a null en paginas ocultas. Fijamos el
+// titulo al cargar esta pantalla sin convertirla en un submenu visible ni
+// alterar la comprobacion de permisos de admin.php.
+if ($seo_processes_hook) {
+    add_action('load-' . $seo_processes_hook, static function () {
+        global $title;
+        if (!is_string($title) || '' === trim($title)) {
+            $title = 'Procesos';
+        }
+    });
+}
 add_submenu_page(null, 'Conexiones con proveedores', 'Conexiones con proveedores', 'manage_options', 'seo-provider-connections', 'seo_provider_connections_page');
 add_submenu_page(null, 'Menu Manager', 'Menu Manager', 'manage_options', 'seo-menu-manager', 'seo_menu_manager_page');
 add_submenu_page( null, 'FAQs', 'FAQs', 'manage_options', 'seo-faq','seo_faq_page');
@@ -243,10 +254,6 @@ add_action('admin_menu', function () {
     remove_menu_page('seo-search-settings');
     remove_submenu_page('seo-system', 'seo-search');
     remove_submenu_page('seo-system', 'seo-search-settings');
-    // Procesos sigue accesible desde la tarjeta Herramientas, pero se registra
-    // con padre real para que WordPress 7.1 no entregue un título null a
-    // admin-header.php (strip_tags(null) deprecado).
-    remove_submenu_page('seo-system', 'seo-processes');
     remove_submenu_page('tools.php', 'seo-search');
     remove_submenu_page('tools.php', 'seo-search-settings');
     remove_submenu_page('options-general.php', 'seo-search');
