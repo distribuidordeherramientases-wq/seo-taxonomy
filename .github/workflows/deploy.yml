@@ -1,5 +1,4 @@
-name: Subir a producción versión de staging
-
+name: Despliegue MAIN (sgaging) a producción (hosting)
 on:
   workflow_dispatch:
 
@@ -8,8 +7,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Descargar repositorio
+      - name: Descargar versión de producción desde MAIN
         uses: actions/checkout@v6
+        with:
+          ref: main
 
       - name: Subir SEO Taxonomy a producción por FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
