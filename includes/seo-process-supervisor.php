@@ -165,11 +165,25 @@ if (!function_exists('seo_process_supervisor_pid_alive')) {
         if (function_exists('seo_ie_product_import_pid_is_alive')) {
             return seo_ie_product_import_pid_is_alive($pid);
         }
+
+        // No consultar /proc: en hostings con open_basedir esa ruta está
+        // prohibida. El supervisor usa el heartbeat como fuente principal de
+        // vida; POSIX es únicamente una comprobación adicional si existe.
         if (function_exists('posix_kill')) {
-            return @posix_kill($pid, 0);
-        }
-        if ('/' === DIRECTORY_SEPARATOR && is_dir('/proc/' . $pid)) {
-            return true;
+            $alive = @posix_kill($pid, 0);
+            if (true === $alive) {
+                return true;
+            }
+            if (function_exists('posix_get_last_error')) {
+                $error = absint(@posix_get_last_error());
+                if (3 === $error) {
+                    return false;
+                }
+                if (1 === $error) {
+                    return true;
+                }
+            }
+            return null;
         }
         return null;
     }
