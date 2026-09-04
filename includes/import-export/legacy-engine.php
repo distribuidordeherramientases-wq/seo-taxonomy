@@ -4442,12 +4442,29 @@ function seo_ie_product_import_pid_is_alive( $pid ) {
         return null;
     }
 
+    // No usamos /proc: muchos hostings compartidos lo bloquean mediante
+    // open_basedir y la simple consulta genera warnings. La vida del proceso
+    // se determina principalmente por heartbeat/lock; el PID es solo una
+    // comprobación adicional cuando POSIX está disponible.
     if ( function_exists( 'posix_kill' ) ) {
-        return @posix_kill( $pid, 0 );
-    }
+        $alive = @posix_kill( $pid, 0 );
+        if ( true === $alive ) {
+            return true;
+        }
 
-    if ( '/' === DIRECTORY_SEPARATOR && is_dir( '/proc/' . $pid ) ) {
-        return true;
+        // ESRCH (3): el proceso no existe. EPERM (1): existe pero PHP no tiene
+        // permiso para señalizarlo. Cualquier otro resultado es indeterminado.
+        if ( function_exists( 'posix_get_last_error' ) ) {
+            $error = absint( @posix_get_last_error() );
+            if ( 3 === $error ) {
+                return false;
+            }
+            if ( 1 === $error ) {
+                return true;
+            }
+        }
+
+        return null;
     }
 
     return null;
