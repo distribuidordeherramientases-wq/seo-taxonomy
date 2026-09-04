@@ -351,6 +351,8 @@ if (!function_exists('seo_processes_import_export_state')) {
     function seo_processes_import_export_state($queue_status, $diagnostics) {
         $raw = sanitize_key((string) ($queue_status['status'] ?? ($diagnostics['status'] ?? 'idle')));
         $enabled = !empty($queue_status['enabled']);
+        $idle = absint($diagnostics['idle_seconds'] ?? 0);
+        $delay = absint($diagnostics['adaptive_next_delay'] ?? 0);
 
         if (in_array($raw, array('failed', 'error'), true)) {
             return seo_processes_state('error', 'Error', 'error');
@@ -358,11 +360,27 @@ if (!function_exists('seo_processes_import_export_state')) {
         if (in_array($raw, array('paused', 'stopped', 'stopping', 'cancelled'), true)) {
             return seo_processes_state('stopped', 'Parado', 'stopped');
         }
-        if (in_array($raw, array('processing', 'starting'), true)) {
+        if (!empty($diagnostics['lock_active']) && array_key_exists('worker_pid_alive', $diagnostics) && false === $diagnostics['worker_pid_alive']) {
+            return seo_processes_state('error', 'Sin avance · PID desaparecido', 'error');
+        }
+        if (!empty($diagnostics['lock_active'])) {
             return seo_processes_state('running', 'En ejecución', 'running');
         }
+        if (!empty($diagnostics['direct_worker_stale'])) {
+            return seo_processes_state('error', 'Sin avance · worker no arrancó', 'error');
+        }
+        if (!empty($diagnostics['direct_worker_pending'])) {
+            return seo_processes_state('waiting', 'Worker propio preparado', 'waiting');
+        }
+        if (in_array($raw, array('processing', 'starting', 'retrying'), true)) {
+            $stale_after = max(90, $delay + 60);
+            if ($idle > $stale_after) {
+                return seo_processes_state('error', 'Parado · sin worker', 'error');
+            }
+            return seo_processes_state('waiting', 'Preparando siguiente lote', 'waiting');
+        }
         if ('waiting_next' === $raw || ($enabled && !empty($diagnostics))) {
-            return seo_processes_state('waiting', 'En espera programada', 'waiting');
+            return seo_processes_state('waiting', 'En espera controlada', 'waiting');
         }
         if ('completed' === $raw) {
             return seo_processes_state('completed', 'Parado · completado', 'completed');
@@ -404,12 +422,24 @@ if (!function_exists('seo_processes_collect_import_export')) {
         $file = sanitize_file_name((string) ($queue_status['current_file'] ?? $queue_status['last_file'] ?? $active['archivo'] ?? ''));
         $progress = isset($active['progreso']) ? max(0, min(100, absint($active['progreso']))) : null;
 
+        $backend = sanitize_key((string) ($diag['last_dispatch_backend'] ?? $diag['last_worker_backend'] ?? ''));
+        $backend_labels = array(
+            'direct_cli'       => 'PHP CLI propio',
+            'direct_http'      => 'loopback propio',
+            'direct_unavailable' => 'motor propio no disponible',
+            'legacy_scheduler' => 'scheduler heredado',
+            'action_scheduler' => 'Action Scheduler heredado',
+            'wp_cron'          => 'WP-Cron heredado',
+        );
+        $backend_label = isset($backend_labels[$backend]) ? $backend_labels[$backend] : ($backend ? $backend : 'motor propio pendiente de detectar');
+
         $load_bits = array();
+        $load_bits[] = 'Motor: ' . $backend_label;
         if ($next_batch > 0) {
-            $load_bits[] = 'Siguiente lote: ' . number_format_i18n($next_batch);
+            $load_bits[] = 'siguiente lote ' . number_format_i18n($next_batch);
         }
         if ($delay > 0) {
-            $load_bits[] = 'pausa ' . number_format_i18n($delay) . ' s';
+            $load_bits[] = 'pausa propia ' . number_format_i18n($delay) . ' s';
         }
         if ($pressure) {
             $load_bits[] = 'presión ' . $pressure;
@@ -420,8 +450,17 @@ if (!function_exists('seo_processes_collect_import_export')) {
                 $worker_label .= ' · PID ' . absint($diag['php_pid']);
             }
             $load_bits[] = $worker_label;
-        } elseif (!empty($diag['scheduled'])) {
-            $load_bits[] = 'worker programado';
+        } elseif (!empty($diag['direct_worker_stale'])) {
+            $load_bits[] = 'ALERTA: despacho propio sin arrancar';
+        } elseif (!empty($diag['direct_worker_pending'])) {
+            $due_in = absint($diag['direct_worker_due_in'] ?? 0);
+            $worker_label = $due_in > 0 ? 'worker propio en ' . number_format_i18n($due_in) . ' s' : 'worker propio lanzado';
+            if (!empty($diag['last_dispatch_pid'])) {
+                $worker_label .= ' · PID ' . absint($diag['last_dispatch_pid']);
+            }
+            $load_bits[] = $worker_label;
+        } elseif ('processing' === sanitize_key((string) ($diag['status'] ?? ''))) {
+            $load_bits[] = 'sin worker pendiente';
         }
         if (empty($load_bits) && $entity) {
             $load_bits[] = 'Tipo: ' . $entity;
@@ -439,11 +478,17 @@ if (!function_exists('seo_processes_collect_import_export')) {
         if ($file) {
             $detail = ($detail ? $detail . ' ' : '') . 'Archivo: ' . $file . '.';
         }
+        if (!empty($diag['last_dispatch_error'])) {
+            $detail .= ($detail ? ' ' : '') . 'Motor propio: ' . sanitize_text_field((string) $diag['last_dispatch_error']);
+        }
+        if (!empty($diag['legacy_batch_scheduled'])) {
+            $detail .= ($detail ? ' ' : '') . 'Existe una acción heredada del scheduler; el motor propio la elimina al encadenar el siguiente lote.';
+        }
 
         return array(
             'id'            => 'import-export',
             'name'          => 'Import / Export',
-            'kind'          => 'Cola interna',
+            'kind'          => 'Worker propio · scheduler solo watchdog',
             'state'         => $state,
             'speed'         => seo_processes_format_rate($rate, 'filas'),
             'response'      => $response,
@@ -466,17 +511,35 @@ if (!function_exists('seo_processes_collect_academy')) {
         }
 
         $state_data = isset($payload['state']) && is_array($payload['state']) ? $payload['state'] : (array) get_option('seo_dependiente_academy_auto_state', array());
+        $engine = isset($payload['scheduler']) && is_array($payload['scheduler']) ? $payload['scheduler'] : array();
         $running = !empty($payload['running']) || (
             !empty($state_data['enabled'])
             && 'auto' === (string) ($state_data['mode'] ?? '')
             && 'running' === (string) ($state_data['status'] ?? '')
         );
         $raw = sanitize_key((string) ($state_data['status'] ?? 'manual'));
+        $heartbeat = absint($state_data['worker_heartbeat_ts'] ?? 0);
+        $age = seo_processes_age_seconds($heartbeat);
+        $worker_flag = !empty($state_data['worker_active']) || !empty($engine['worker_active']);
+        $worker_active = $worker_flag && (null === $age || $age <= 90);
+        $worker_stale = $worker_flag && null !== $age && $age > 90;
+        $direct_pending = !empty($engine['direct_pending']) || !empty($state_data['direct_worker_pending']);
+        $direct_stale = !empty($engine['direct_stale']);
 
         if ('error' === $raw) {
             $state = seo_processes_state('error', 'Error / pausado', 'error');
-        } elseif ($running) {
+        } elseif ($running && $worker_active) {
             $state = seo_processes_state('running', 'En ejecución', 'running');
+        } elseif ($running && $worker_stale) {
+            $state = seo_processes_state('error', 'Sin avance · heartbeat perdido', 'error');
+        } elseif ($running && $direct_stale) {
+            $state = seo_processes_state('error', 'Sin avance · worker no arrancó', 'error');
+        } elseif ($running && $direct_pending) {
+            $state = seo_processes_state('waiting', 'Worker propio preparado', 'waiting');
+        } elseif ($running && null !== $age && $age > 90) {
+            $state = seo_processes_state('error', 'Parado · sin worker', 'error');
+        } elseif ($running) {
+            $state = seo_processes_state('waiting', 'Preparando siguiente lote', 'waiting');
         } elseif ('completed' === $raw) {
             $state = seo_processes_state('completed', 'Parado · completado', 'completed');
         } else {
@@ -489,8 +552,6 @@ if (!function_exists('seo_processes_collect_academy')) {
         $rate_rows = $processed > 0 ? $processed : ($duration > 0.0 ? $batch_size : 0);
         $rate = ($duration > 0.0 && $rate_rows > 0) ? (($rate_rows / $duration) * 60.0) : 0.0;
         $delay = absint($state_data['next_delay'] ?? 0);
-        $heartbeat = absint($state_data['worker_heartbeat_ts'] ?? 0);
-        $age = seo_processes_age_seconds($heartbeat);
         $speed_control = seo_processes_control_for('academy');
         $pressure = 'baja';
         if ($duration >= (float) ($speed_control['very_slow_seconds'] ?? 14.0)) {
@@ -508,14 +569,33 @@ if (!function_exists('seo_processes_collect_academy')) {
         }
         $module = absint($state_data['current_module'] ?? ($current['next_module'] ?? 0));
 
-        $load_bits = array('Lote objetivo: ' . number_format_i18n($batch_size));
+        $backend = sanitize_key((string) ($engine['direct_backend'] ?? $state_data['last_dispatch_backend'] ?? ''));
+        $backend_labels = array(
+            'direct_cli'         => 'PHP CLI propio',
+            'direct_http'        => 'loopback propio',
+            'direct_unavailable' => 'motor propio no disponible',
+            'legacy_scheduler'   => 'scheduler heredado',
+        );
+        $backend_label = isset($backend_labels[$backend]) ? $backend_labels[$backend] : ($backend ? $backend : 'motor propio pendiente de detectar');
+
+        $load_bits = array('Motor: ' . $backend_label, 'lote objetivo ' . number_format_i18n($batch_size));
         if (!empty($speed_control['max_batch'])) {
             $load_bits[] = 'máx. ' . number_format_i18n(absint($speed_control['max_batch']));
         }
         if ($delay > 0) {
-            $load_bits[] = 'pausa ' . number_format_i18n($delay) . ' s';
+            $load_bits[] = 'pausa propia ' . number_format_i18n($delay) . ' s';
         }
         $load_bits[] = 'presión ' . $pressure;
+        if ($worker_active) {
+            $pid = absint($engine['worker_pid'] ?? $state_data['worker_pid'] ?? 0);
+            $load_bits[] = 'worker PHP activo' . ($pid ? ' · PID ' . $pid : '');
+        } elseif ($direct_stale) {
+            $load_bits[] = 'ALERTA: despacho propio sin arrancar';
+        } elseif ($direct_pending) {
+            $due_in = absint($engine['direct_due_in'] ?? 0);
+            $pid = absint($engine['direct_pid'] ?? $state_data['last_dispatch_pid'] ?? 0);
+            $load_bits[] = ($due_in > 0 ? 'worker propio en ' . number_format_i18n($due_in) . ' s' : 'worker propio lanzado') . ($pid ? ' · PID ' . $pid : '');
+        }
 
         $response = $duration > 0.0
             ? number_format_i18n($duration, 2) . ' s el último lote'
@@ -527,6 +607,9 @@ if (!function_exists('seo_processes_collect_academy')) {
         $detail = sanitize_text_field((string) ($state_data['last_error'] ?? ''));
         if (!$detail) {
             $detail = sanitize_text_field((string) ($state_data['last_message'] ?? ''));
+        }
+        if (!empty($engine['direct_error'])) {
+            $detail .= ($detail ? ' ' : '') . 'Motor propio: ' . sanitize_text_field((string) $engine['direct_error']);
         }
         if ($lesson) {
             $detail = ($detail ? $detail . ' ' : '') . $lesson . ($module > 0 ? ', módulo ' . $module : '') . '.';
@@ -544,7 +627,7 @@ if (!function_exists('seo_processes_collect_academy')) {
         return array(
             'id'            => 'academy',
             'name'          => 'Academia',
-            'kind'          => 'Worker interno',
+            'kind'          => 'Worker propio · scheduler solo watchdog',
             'state'         => $state,
             'speed'         => seo_processes_format_rate($rate, 'tareas'),
             'response'      => $response,
@@ -960,7 +1043,7 @@ if (!function_exists('seo_processes_page')) {
             <div class="seo-processes-heading">
                 <div>
                     <h1>Procesos</h1>
-                    <p>Monitor y control de velocidad de los procesos automáticos del plugin. Cambiar límites no arranca, detiene ni reanuda ningún worker.</p>
+                    <p>Monitor y control de velocidad de los procesos automáticos del plugin. Import/Export y Academia encadenan sus lotes con workers propios; Action Scheduler/WP-Cron quedan solo como watchdog de recuperación.</p>
                 </div>
                 <div class="seo-processes-refresh">
                     <button type="button" class="button" id="seo-processes-refresh">Actualizar ahora</button>
@@ -1001,7 +1084,7 @@ if (!function_exists('seo_processes_page')) {
             </div>
 
             <p class="description seo-processes-note">
-                “Velocidad” usa el trabajo realmente completado por minuto. Import/Export y Academia consultan estos límites directamente en cada lote. En los chequeos externos WordPress controla el tamaño del lote y entrega al runner la configuración de workers, p95 e intervalos; un runner antiguo puede ignorar esos campos hasta ser actualizado.
+                “Velocidad” usa el trabajo realmente completado por minuto. Import/Export y Academia encadenan sus lotes con PHP CLI propio cuando el hosting lo permite y, si no, con loopback directo. Ninguno depende de Action Scheduler/WP-Cron para avanzar; el scheduler queda únicamente como watchdog. Los chequeos externos se ejecutan en GitHub y reciben la configuración en el JSON del runner.
             </p>
         </div>
 
