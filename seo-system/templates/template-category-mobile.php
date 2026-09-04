@@ -756,7 +756,7 @@ echo wp_json_encode(
     <?php elseif (current_user_can('manage_options')) : ?>
         <section class="dht-section"><div class="dht-container"><p><strong>VEVOR directo:</strong> la consulta devolvió 0 filas para proveedor=vevor y estado_seleccion=descartado.</p></div></section>
     <?php endif; ?>
-
+distribuidor asociado a vevor
     <!-- DHT VEVOR DIRECT BOTTOM PATCH 2026-09-05 -->
 
 </main>
