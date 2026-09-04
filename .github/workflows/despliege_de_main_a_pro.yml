@@ -1,4 +1,4 @@
-name: Despliegue MAIN (sgaging) a producción (hosting)
+name: Despliegue MAIN (staging) a producción (hosting)
 on:
   workflow_dispatch:
 
