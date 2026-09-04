@@ -2118,6 +2118,34 @@ function seo_ie_product_v2_wc_ready() {
 }
 
 /**
+ * Normaliza un SKU procedente de WooCommerce o de un CSV.
+ *
+ * Algunos productos legacy usan "0" como valor centinela para "sin SKU".
+ * WooCommerce, en cambio, trata el SKU como identificador unico. Para evitar
+ * falsos conflictos y reescrituras accidentales, "0" se considera vacio.
+ *
+ * @param mixed $value Valor original.
+ * @return string SKU limpio o cadena vacia.
+ */
+function seo_ie_product_v2_normalize_sku( $value ) {
+    if ( is_array( $value ) || is_object( $value ) ) {
+        return '';
+    }
+
+    $sku = function_exists( 'wc_clean' )
+        ? wc_clean( (string) $value )
+        : sanitize_text_field( (string) $value );
+
+    $sku = trim( (string) $sku );
+
+    if ( '' === $sku || '0' === $sku ) {
+        return '';
+    }
+
+    return $sku;
+}
+
+/**
  * Convierte un valor CSV en booleano. Devuelve null si no es reconocible.
  *
  * @param mixed $value Valor recibido.
@@ -2961,16 +2989,7 @@ function seo_ie_product_v2_locate( $row ) {
 
     $source_id = absint( $row['product_id'] ?? 0 );
 
-    $sku = function_exists( 'wc_clean' )
-        ? wc_clean( (string) ( $row['sku'] ?? '' ) )
-        : sanitize_text_field( (string) ( $row['sku'] ?? '' ) );
-
-    $sku = trim( (string) $sku );
-
-    // SKU "0" no se considera un identificador válido.
-    if ( '0' === $sku ) {
-        $sku = '';
-    }
+    $sku = seo_ie_product_v2_normalize_sku( $row['sku'] ?? '' );
 
     $slug = sanitize_title( $row['slug'] ?? '' );
 
@@ -3557,7 +3576,7 @@ function seo_export_products_csv() {
         $row = [
             'schema_version'             => '2.0',
             'product_id'                 => $product_id,
-            'sku'                        => $product->get_sku( 'edit' ),
+            'sku'                        => seo_ie_product_v2_normalize_sku( $product->get_sku( 'edit' ) ),
             'tipo_producto'              => $product->get_type(),
             'titulo'                     => $product->get_name( 'edit' ),
             'slug'                       => $post->post_name,
@@ -5532,6 +5551,17 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
             $last_product_reference = $product_id ?: $last_product_reference;
             $creating   = 0 === $product_id;
 
+            /*
+             * En la cola automatica los CSV completos se usan tambien para
+             * enriquecimiento/clasificacion. En actualizaciones de productos
+             * existentes el SKU es solo identidad informativa y se conserva.
+             * Solo se permite escribirlo al crear un producto, fuera de la cola
+             * automatica o si un flujo futuro activa update_sku de forma expresa.
+             */
+            $allow_sku_write = $creating
+                || empty( $state['batch_queue_mode'] )
+                || ! empty( $options['update_sku'] );
+
             if ( $creating && empty( $options['create'] ) ) {
                 $log['omitidos']++;
                 seo_ie_add_log_detail( $log, sprintf( 'Fila %d: omitida; no se encontró el producto y no está activada su creación.', $line ) );
@@ -5748,8 +5778,8 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
             }
 
             if ( ! empty( $options['commerce'] ) ) {
-                if ( array_key_exists( 'sku', $row ) ) {
-                    $sku = function_exists( 'wc_clean' ) ? wc_clean( $row['sku'] ) : sanitize_text_field( $row['sku'] );
+                if ( $allow_sku_write && array_key_exists( 'sku', $row ) ) {
+                    $sku = seo_ie_product_v2_normalize_sku( $row['sku'] );
 
                     if ( '' !== $sku ) {
                         $sku_owner = absint( wc_get_product_id_by_sku( $sku ) );
@@ -5901,8 +5931,15 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
             }
 
             if ( ! empty( $options['commerce'] ) ) {
-                if ( array_key_exists( 'sku', $row ) && ( '' !== trim( (string) $row['sku'] ) || $empty_clears ) ) {
-                    $product->set_sku( function_exists( 'wc_clean' ) ? wc_clean( $row['sku'] ) : sanitize_text_field( $row['sku'] ) );
+                if ( $allow_sku_write && array_key_exists( 'sku', $row ) ) {
+                    $sku = seo_ie_product_v2_normalize_sku( $row['sku'] );
+
+                    if ( '' !== $sku ) {
+                        $product->set_sku( $sku );
+                    } elseif ( $empty_clears && empty( $state['batch_queue_mode'] ) ) {
+                        // El vaciado explicito de SKU solo se permite fuera de la cola automatica.
+                        $product->set_sku( '' );
+                    }
                 }
 
                 if ( array_key_exists( 'precio_normal', $row ) && ( '' !== trim( (string) $row['precio_normal'] ) || $empty_clears ) ) {
