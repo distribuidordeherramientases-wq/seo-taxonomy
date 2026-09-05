@@ -24,7 +24,7 @@
  *
  * @package SEOSystem
  * @subpackage ImportExport
- * @version 2.1.3
+ * @version 2.1.4
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -192,8 +192,17 @@ if ( ! function_exists( 'seo_environment_compare_open' ) ) {
         $mysqli = seo_environment_db_open( $env );
         if ( $mysqli instanceof mysqli ) {
             // Solo afecta a esta conexion. Evita que GROUP_CONCAT trunque hashes
-            // de metadatos/taxonomias en objetos con muchas relaciones.
-            @mysqli_query( $mysqli, 'SET SESSION group_concat_max_len = 1048576' );
+            // de metadatos/taxonomias en objetos con muchas relaciones. Si no se
+            // puede aplicar, fallamos cerrado: comparar con GROUP_CONCAT truncado
+            // podria producir hashes falsos.
+            if ( false === @mysqli_query( $mysqli, 'SET SESSION group_concat_max_len = 1048576' ) ) {
+                $message = sanitize_text_field( mysqli_error( $mysqli ) );
+                @mysqli_close( $mysqli );
+                return new WP_Error(
+                    'seo_env_compare_group_concat',
+                    'No se pudo configurar group_concat_max_len en ' . strtoupper( (string) $env ) . ( $message ? ': ' . $message : '.' )
+                );
+            }
         }
         return $mysqli;
     }
@@ -316,7 +325,8 @@ if ( ! function_exists( 'seo_environment_compare_fetch_post_general_snapshots' )
                 FROM `{$prefix}term_relationships` tr JOIN `{$prefix}term_taxonomy` tt ON tt.term_taxonomy_id=tr.term_taxonomy_id
                 JOIN `{$prefix}terms` t ON t.term_id=tt.term_id
                 WHERE tr.object_id IN ({$id_sql}) AND tt.taxonomy='product_cat' GROUP BY tr.object_id");
-            if(!is_wp_error($tax))foreach($tax as $row){$id=absint($row['object_id']);if(isset($out[$id]))$out[$id]['components']['categories']=(string)$row['row_hash'];}
+            if(is_wp_error($tax))return $tax;
+            foreach($tax as $row){$id=absint($row['object_id']);if(isset($out[$id]))$out[$id]['components']['categories']=(string)$row['row_hash'];}
             $empty=seo_environment_compare_empty_hash();
             foreach($out as &$item){if(!isset($item['components']['categories']))$item['components']['categories']=$empty;}unset($item);
         }
@@ -332,7 +342,8 @@ if ( ! function_exists( 'seo_environment_compare_fetch_native_tag_snapshots' ) )
         $rows=seo_environment_compare_query_rows($mysqli,"SELECT tr.object_id,SHA2(GROUP_CONCAT(t.slug ORDER BY t.slug SEPARATOR '|'),256) AS row_hash
             FROM `{$prefix}term_relationships` tr JOIN `{$prefix}term_taxonomy` tt ON tt.term_taxonomy_id=tr.term_taxonomy_id
             JOIN `{$prefix}terms` t ON t.term_id=tt.term_id WHERE tr.object_id IN ({$id_sql}) AND tt.taxonomy='{$taxonomy}' GROUP BY tr.object_id");
-        if(!is_wp_error($rows))foreach($rows as $row){$id=absint($row['object_id']);if(isset($out[$id]))$out[$id]['components']['tags']=(string)$row['row_hash'];}
+        if(is_wp_error($rows))return $rows;
+        foreach($rows as $row){$id=absint($row['object_id']);if(isset($out[$id]))$out[$id]['components']['tags']=(string)$row['row_hash'];}
         $empty=seo_environment_compare_empty_hash();foreach($out as &$item){if(!isset($item['components']['tags']))$item['components']['tags']=$empty;$item['hash']=seo_environment_compare_hash($item['components']);}unset($item);
         return$out;
     }
@@ -353,7 +364,8 @@ if ( ! function_exists( 'seo_environment_compare_fetch_semantic_snapshots' ) ) {
             FROM `{$prefix}seo_object_vocabulary` ov JOIN `{$prefix}seo_vocabulary` v ON v.id=ov.vocabulary_id
             WHERE ov.object_type='{$obj}' AND ov.status=1 AND v.active=1 AND ov.object_id IN ({$id_sql})
             GROUP BY ov.object_id,v.semantic_group");
-        if(!is_wp_error($rows))foreach($rows as $row){
+        if(is_wp_error($rows))return $rows;
+        foreach($rows as $row){
             $id=absint($row['object_id']);$group=sanitize_key($row['semantic_group']??'');
             if(isset($out[$id])&&$group){$out[$id]['components']['semantic_'.$group]=(string)$row['row_hash'];}
         }
@@ -369,7 +381,8 @@ if ( ! function_exists( 'seo_environment_compare_fetch_product_attribute_snapsho
         $rows=seo_environment_compare_query_rows($mysqli,"SELECT pa.product_id,SHA2(GROUP_CONCAT(CONCAT(a.slug,':',COALESCE(t.slug,''),':',SHA2(CONCAT_WS('|',COALESCE(pa.valor_texto,''),COALESCE(pa.valor_numero,''),COALESCE(pa.valor_numero_max,''),COALESCE(pa.unidad,''),COALESCE(pa.valor_original,'')),256),':',pa.orden) ORDER BY a.slug,pa.orden,pa.id SEPARATOR '|'),256) AS row_hash
             FROM `{$prefix}sql_product_atributos` pa JOIN `{$prefix}sql_atributos` a ON a.id=pa.atributo_id LEFT JOIN `{$prefix}sql_atributos_terminos` t ON t.id=pa.termino_id
             WHERE pa.product_id IN ({$id_sql}) GROUP BY pa.product_id");
-        if(!is_wp_error($rows))foreach($rows as $row){$id=absint($row['product_id']);if(isset($out[$id]))$out[$id]['components']['attributes']=(string)$row['row_hash'];}
+        if(is_wp_error($rows))return $rows;
+        foreach($rows as $row){$id=absint($row['product_id']);if(isset($out[$id]))$out[$id]['components']['attributes']=(string)$row['row_hash'];}
         $empty=seo_environment_compare_empty_hash();foreach($out as &$item){if(!isset($item['components']['attributes']))$item['components']['attributes']=$empty;$item['hash']=seo_environment_compare_hash($item['components']);}unset($item);
         return$out;
     }
@@ -386,7 +399,8 @@ if ( ! function_exists( 'seo_environment_compare_fetch_category_general_snapshot
             SHA2(COALESCE(GROUP_CONCAT(CASE WHEN seo_role='excerpt' AND status=1 THEN SHA2(COALESCE(keywords,''),256) END ORDER BY id SEPARATOR '|'),''),256) AS excerpt_hash,
             SHA2(COALESCE(GROUP_CONCAT(CASE WHEN seo_role='description' AND status=1 THEN SHA2(COALESCE(keywords,''),256) END ORDER BY id SEPARATOR '|'),''),256) AS description_hash
             FROM `{$prefix}seo_nodes` WHERE object_type='category' AND object_id IN ({$id_sql}) AND seo_role IN ('excerpt','description') GROUP BY object_id");
-        if(!is_wp_error($nodes))foreach($nodes as $row){$id=absint($row['object_id']);if(isset($out[$id])){$out[$id]['components']['excerpt']=(string)$row['excerpt_hash'];$out[$id]['components']['description']=(string)$row['description_hash'];}}
+        if(is_wp_error($nodes))return $nodes;
+        foreach($nodes as $row){$id=absint($row['object_id']);if(isset($out[$id])){$out[$id]['components']['excerpt']=(string)$row['excerpt_hash'];$out[$id]['components']['description']=(string)$row['description_hash'];}}
         $empty=seo_environment_compare_empty_hash();foreach($out as &$item){foreach(['excerpt','description'] as $c)if(!isset($item['components'][$c]))$item['components'][$c]=$empty;ksort($item['components']);$item['hash']=seo_environment_compare_hash($item['components']);}unset($item);
         return$out;
     }
@@ -399,7 +413,8 @@ if ( ! function_exists( 'seo_environment_compare_fetch_category_tag_snapshots' )
         if(is_wp_error($rows))return$rows;
         $out=[];foreach($rows as $row){$id=absint($row['term_id']);$out[$id]=['id'=>$id,'name'=>(string)$row['name'],'components'=>[]];}if(!$out)return$out;
         $nodes=seo_environment_compare_query_rows($mysqli,"SELECT object_id,SHA2(COALESCE(GROUP_CONCAT(CASE WHEN status=1 THEN SHA2(COALESCE(keywords,''),256) END ORDER BY id SEPARATOR '|'),''),256) AS row_hash FROM `{$prefix}seo_nodes` WHERE object_type='category' AND seo_role='category' AND object_id IN ({$id_sql}) GROUP BY object_id");
-        if(!is_wp_error($nodes))foreach($nodes as $row){$id=absint($row['object_id']);if(isset($out[$id]))$out[$id]['components']['tags']=(string)$row['row_hash'];}
+        if(is_wp_error($nodes))return $nodes;
+        foreach($nodes as $row){$id=absint($row['object_id']);if(isset($out[$id]))$out[$id]['components']['tags']=(string)$row['row_hash'];}
         $empty=seo_environment_compare_empty_hash();foreach($out as &$item){if(!isset($item['components']['tags']))$item['components']['tags']=$empty;$item['hash']=seo_environment_compare_hash($item['components']);}unset($item);
         return$out;
     }
@@ -410,7 +425,8 @@ if ( ! function_exists( 'seo_environment_compare_fetch_post_custom_tag_snapshots
         $out=seo_environment_compare_fetch_native_tag_snapshots($mysqli,$prefix,$post_type,'post_tag',$ids);if(is_wp_error($out)||!$out)return$out;
         $id_sql=seo_environment_compare_sql_ids($ids);$type=mysqli_real_escape_string($mysqli,$post_type);
         $nodes=seo_environment_compare_query_rows($mysqli,"SELECT object_id,SHA2(GROUP_CONCAT(CONCAT(seo_role,':',SHA2(COALESCE(keywords,''),256)) ORDER BY seo_role,id SEPARATOR '|'),256) AS row_hash FROM `{$prefix}seo_nodes` WHERE object_type='{$type}' AND object_id IN ({$id_sql}) AND status=1 AND seo_role NOT IN ('excerpt','description','ambito') GROUP BY object_id");
-        if(!is_wp_error($nodes))foreach($nodes as $row){$id=absint($row['object_id']);if(isset($out[$id]))$out[$id]['components']['seo_tags']=(string)$row['row_hash'];}
+        if(is_wp_error($nodes))return $nodes;
+        foreach($nodes as $row){$id=absint($row['object_id']);if(isset($out[$id]))$out[$id]['components']['seo_tags']=(string)$row['row_hash'];}
         $empty=seo_environment_compare_empty_hash();foreach($out as &$item){if(!isset($item['components']['seo_tags']))$item['components']['seo_tags']=$empty;ksort($item['components']);$item['hash']=seo_environment_compare_hash($item['components']);}unset($item);
         return$out;
     }
@@ -1081,7 +1097,7 @@ if ( ! function_exists( 'seo_environment_compare_export_json_admin_post' ) ) {
 
         $export = [
             'schema'           => 'seo_environment_compare_report',
-            'version'          => '2.1.3',
+            'version'          => '2.1.4',
             'execution'        => 'process_manager_worker',
             'generated_at_utc' => current_time( 'mysql', true ),
             'dates_ignored'    => true,
@@ -1294,21 +1310,27 @@ if ( ! function_exists( 'seo_environment_sync_replace_selected_nodes_local' ) ) 
         if ( $roles ) {
             $quoted = implode( ',', array_fill( 0, count( $roles ), '%s' ) );
             $args   = array_merge( [ $object_type, $object_id ], array_map( 'sanitize_key', $roles ) );
-            $wpdb->query( $wpdb->prepare( "DELETE FROM {$table} WHERE object_type=%s AND object_id=%d AND seo_role IN ({$quoted})", $args ) );
+            $deleted = $wpdb->query( $wpdb->prepare( "DELETE FROM {$table} WHERE object_type=%s AND object_id=%d AND seo_role IN ({$quoted})", $args ) );
+            if ( false === $deleted ) {
+                return new WP_Error( 'seo_nodes_delete', $wpdb->last_error ?: 'No se pudieron reemplazar los nodos SEO del destino.' );
+            }
         } elseif ( $labels_only ) {
-            $wpdb->query(
+            $deleted = $wpdb->query(
                 $wpdb->prepare(
                     "DELETE FROM {$table} WHERE object_type=%s AND object_id=%d AND seo_role NOT IN ('excerpt','description','ambito')",
                     $object_type,
                     $object_id
                 )
             );
+            if ( false === $deleted ) {
+                return new WP_Error( 'seo_nodes_delete', $wpdb->last_error ?: 'No se pudieron reemplazar las etiquetas SEO del destino.' );
+            }
         }
 
         foreach ( $rows as $row ) {
             $role = sanitize_key( $row['seo_role'] ?? '' );
             if ( ! $role ) continue;
-            $wpdb->insert(
+            $inserted = $wpdb->insert(
                 $table,
                 [
                     'object_type' => $object_type,
@@ -1322,7 +1344,12 @@ if ( ! function_exists( 'seo_environment_sync_replace_selected_nodes_local' ) ) 
                 ],
                 [ '%s','%d','%s','%s','%s','%d','%s','%s' ]
             );
+            if ( false === $inserted ) {
+                return new WP_Error( 'seo_nodes_insert', $wpdb->last_error ?: 'No se pudieron guardar los nodos SEO del destino.' );
+            }
         }
+
+        return true;
     }
 }
 
@@ -1372,13 +1399,19 @@ if ( ! function_exists( 'seo_environment_sync_ensure_semantic_local' ) ) {
         foreach($rows as $row){
             $parent_id=0;if(!empty($row['parent_group'])&&!empty($row['parent_slug'])){$parent=['parent_group'=>$row['parent_group'],'parent_slug'=>$row['parent_slug'],'parent_label'=>$row['parent_label']??$row['parent_slug'],'parent_source'=>$row['parent_source']??'environment_sync','parent_created_at'=>$row['parent_created_at']??'','parent_updated_at'=>$row['parent_updated_at']??''];$parent_id=seo_environment_sync_upsert_vocabulary_term_local($parent,'parent');if(is_wp_error($parent_id))return$parent_id;}
             $id=seo_environment_sync_upsert_vocabulary_term_local($row);if(is_wp_error($id))return$id;
-            if($parent_id)$wpdb->update($wpdb->prefix.'seo_vocabulary',['parent_id'=>$parent_id],['id'=>$id],['%d'],['%d']);
+            if($parent_id){
+                $updated_parent=$wpdb->update($wpdb->prefix.'seo_vocabulary',['parent_id'=>$parent_id],['id'=>$id],['%d'],['%d']);
+                if(false===$updated_parent)return new WP_Error('vocabulary_parent_update',$wpdb->last_error?:'No se pudo asignar el vocabulario padre en el destino.');
+            }
             $group=sanitize_key($row['semantic_group']??'');if($group)$groups[$group][]=absint($id);
             if('tipo'===$group&&!empty($row['role_slug'])){
                 $role=['role_group'=>$row['role_group']?:'rol','role_slug'=>$row['role_slug'],'role_label'=>$row['role_label']??$row['role_slug'],'role_source'=>$row['role_source']??'environment_sync','role_created_at'=>$row['role_created_at']??'','role_updated_at'=>$row['role_updated_at']??''];
                 $role_id=seo_environment_sync_upsert_vocabulary_term_local($role,'role');if(is_wp_error($role_id))return$role_id;
                 $map=$wpdb->prefix.'seo_type_role_map';$existing=$wpdb->get_row($wpdb->prepare("SELECT id,role_vocabulary_id,active FROM {$map} WHERE type_vocabulary_id=%d LIMIT 1",$id),ARRAY_A);
-                if(!$existing){$wpdb->insert($map,['type_vocabulary_id'=>$id,'role_vocabulary_id'=>$role_id,'confidence'=>(float)($row['role_confidence']??1),'source'=>sanitize_key($row['role_map_source']??'environment_sync')?:'environment_sync','active'=>1],['%d','%d','%f','%s','%d']);}
+                if(!$existing){
+                    $inserted_map=$wpdb->insert($map,['type_vocabulary_id'=>$id,'role_vocabulary_id'=>$role_id,'confidence'=>(float)($row['role_confidence']??1),'source'=>sanitize_key($row['role_map_source']??'environment_sync')?:'environment_sync','active'=>1],['%d','%d','%f','%s','%d']);
+                    if(false===$inserted_map)return new WP_Error('role_map_insert',$wpdb->last_error?:'No se pudo crear el mapeo maestro TIPO → ROL en el destino.');
+                }
                 elseif(!(int)$existing['active']||absint($existing['role_vocabulary_id'])!==absint($role_id)){return new WP_Error('role_map_conflict','El mapeo maestro TIPO → ROL ya existe con otro estado o valor en el destino. Revísalo manualmente; no se decide por fecha.');}
             }
         }
@@ -1482,7 +1515,7 @@ if ( ! function_exists( 'seo_environment_sync_pull_general_post' ) ) {
 if ( ! function_exists( 'seo_environment_sync_pull_native_tags' ) ) {
     function seo_environment_sync_pull_native_tags( $mysqli, $source_env, $entity, $id ) {
         $prefix=seo_environment_compare_db_prefix($source_env);$map=['product_tags'=>['product','product_tag'],'page_tags'=>['page','post_tag'],'post_tags'=>['post','post_tag']];[$post_type,$taxonomy]=$map[$entity];$local=get_post($id);if(!$local||$local->post_type!==$post_type)return new WP_Error('missing_destination','El objeto no existe en el destino.');$terms=seo_environment_sync_fetch_terms($mysqli,$prefix,$id,[$taxonomy]);if(is_wp_error($terms))return$terms;$resolved=seo_environment_sync_resolve_or_create_terms_local($terms,[$taxonomy]);if($resolved['missing'])return new WP_Error('missing_terms','No se pudieron resolver términos: '.implode(', ',array_slice($resolved['missing'],0,8)));$r=wp_set_object_terms($id,$resolved['terms'][$taxonomy]??[],$taxonomy,false);if(is_wp_error($r))return$r;
-        if(in_array($entity,['page_tags','post_tags'],true)){$nodes=seo_environment_sync_fetch_selected_nodes($mysqli,$prefix,$post_type,$id,[],true);if(is_wp_error($nodes))return$nodes;seo_environment_sync_replace_selected_nodes_local($post_type,$id,$nodes,[],true);}clean_post_cache($id);return true;
+        if(in_array($entity,['page_tags','post_tags'],true)){$nodes=seo_environment_sync_fetch_selected_nodes($mysqli,$prefix,$post_type,$id,[],true);if(is_wp_error($nodes))return$nodes;$replaced=seo_environment_sync_replace_selected_nodes_local($post_type,$id,$nodes,[],true);if(is_wp_error($replaced))return$replaced;}clean_post_cache($id);return true;
     }
 }
 
@@ -1499,19 +1532,19 @@ if ( ! function_exists( 'seo_environment_sync_pull_semantic' ) ) {
 
 if ( ! function_exists( 'seo_environment_sync_pull_product_attributes' ) ) {
     function seo_environment_sync_pull_product_attributes( $mysqli, $source_env, $id ) {
-        $local=get_post($id);if(!$local||$local->post_type!=='product')return new WP_Error('missing_destination','El producto no existe en el destino.');$prefix=seo_environment_compare_db_prefix($source_env);$rows=seo_environment_sync_fetch_product_attributes($mysqli,$prefix,$id);if(is_wp_error($rows))return$rows;$masters=seo_environment_sync_ensure_attribute_masters_local($rows);if(is_wp_error($masters))return$masters;if(!function_exists('seo_attributes_replace_product'))return new WP_Error('attribute_writer_missing','No está disponible el escritor canónico de atributos.');seo_attributes_replace_product($id,seo_environment_sync_attribute_rows_local($rows),'environment_sync');if(function_exists('wc_delete_product_transients'))wc_delete_product_transients($id);return true;
+        $local=get_post($id);if(!$local||$local->post_type!=='product')return new WP_Error('missing_destination','El producto no existe en el destino.');$prefix=seo_environment_compare_db_prefix($source_env);$rows=seo_environment_sync_fetch_product_attributes($mysqli,$prefix,$id);if(is_wp_error($rows))return$rows;$masters=seo_environment_sync_ensure_attribute_masters_local($rows);if(is_wp_error($masters))return$masters;if(!function_exists('seo_attributes_replace_product'))return new WP_Error('attribute_writer_missing','No está disponible el escritor canónico de atributos.');$written=seo_attributes_replace_product($id,seo_environment_sync_attribute_rows_local($rows),'environment_sync');if(is_wp_error($written))return$written;if(false===$written)return new WP_Error('attribute_sync','El escritor canónico de atributos devolvió un fallo.');if(is_array($written)&&array_key_exists('ok',$written)&&empty($written['ok']))return new WP_Error('attribute_sync',(string)($written['message']??'No se pudieron sincronizar los atributos.'));if(function_exists('wc_delete_product_transients'))wc_delete_product_transients($id);return true;
     }
 }
 
 if ( ! function_exists( 'seo_environment_sync_pull_category_general' ) ) {
     function seo_environment_sync_pull_category_general( $mysqli, $source_env, $id ) {
-        $prefix=seo_environment_compare_db_prefix($source_env);$id=absint($id);$rows=seo_environment_compare_query_rows($mysqli,"SELECT t.term_id,t.name FROM `{$prefix}terms` t JOIN `{$prefix}term_taxonomy` tt ON tt.term_id=t.term_id WHERE tt.taxonomy='product_cat' AND t.term_id={$id} LIMIT 1");if(is_wp_error($rows))return$rows;$src=$rows[0]??null;if(!$src)return new WP_Error('missing_source','La categoría origen ya no existe.');$local=get_term($id,'product_cat');if(!$local||is_wp_error($local))return new WP_Error('missing_destination','La categoría no existe en el destino. No se crean categorías desde este comparador.');$nodes=seo_environment_sync_fetch_selected_nodes($mysqli,$prefix,'category',$id,['excerpt','description'],false);if(is_wp_error($nodes))return$nodes;$r=wp_update_term($id,'product_cat',['name'=>(string)$src['name']]);if(is_wp_error($r))return$r;seo_environment_sync_replace_selected_nodes_local('category',$id,$nodes,['excerpt','description'],false);$date_rows=seo_environment_compare_query_rows($mysqli,"SELECT meta_value FROM `{$prefix}termmeta` WHERE term_id={$id} AND meta_key='_seo_sync_modified_gmt' ORDER BY meta_id DESC LIMIT 1");$date=!is_wp_error($date_rows)&&!empty($date_rows[0]['meta_value'])?(string)$date_rows[0]['meta_value']:'';if(function_exists('seo_ie_sync_restore_category_modified')&&$date)seo_ie_sync_restore_category_modified($id,['fecha_modificada_gmt'=>$date]);clean_term_cache($id,'product_cat');return true;
+        $prefix=seo_environment_compare_db_prefix($source_env);$id=absint($id);$rows=seo_environment_compare_query_rows($mysqli,"SELECT t.term_id,t.name FROM `{$prefix}terms` t JOIN `{$prefix}term_taxonomy` tt ON tt.term_id=t.term_id WHERE tt.taxonomy='product_cat' AND t.term_id={$id} LIMIT 1");if(is_wp_error($rows))return$rows;$src=$rows[0]??null;if(!$src)return new WP_Error('missing_source','La categoría origen ya no existe.');$local=get_term($id,'product_cat');if(!$local||is_wp_error($local))return new WP_Error('missing_destination','La categoría no existe en el destino. No se crean categorías desde este comparador.');$nodes=seo_environment_sync_fetch_selected_nodes($mysqli,$prefix,'category',$id,['excerpt','description'],false);if(is_wp_error($nodes))return$nodes;$r=wp_update_term($id,'product_cat',['name'=>(string)$src['name']]);if(is_wp_error($r))return$r;$replaced=seo_environment_sync_replace_selected_nodes_local('category',$id,$nodes,['excerpt','description'],false);if(is_wp_error($replaced))return$replaced;$date_rows=seo_environment_compare_query_rows($mysqli,"SELECT meta_value FROM `{$prefix}termmeta` WHERE term_id={$id} AND meta_key='_seo_sync_modified_gmt' ORDER BY meta_id DESC LIMIT 1");$date=!is_wp_error($date_rows)&&!empty($date_rows[0]['meta_value'])?(string)$date_rows[0]['meta_value']:'';if(function_exists('seo_ie_sync_restore_category_modified')&&$date)seo_ie_sync_restore_category_modified($id,['fecha_modificada_gmt'=>$date]);clean_term_cache($id,'product_cat');return true;
     }
 }
 
 if ( ! function_exists( 'seo_environment_sync_pull_category_tags' ) ) {
     function seo_environment_sync_pull_category_tags( $mysqli, $source_env, $id ) {
-        $local=get_term($id,'product_cat');if(!$local||is_wp_error($local))return new WP_Error('missing_destination','La categoría no existe en el destino.');$prefix=seo_environment_compare_db_prefix($source_env);$nodes=seo_environment_sync_fetch_selected_nodes($mysqli,$prefix,'category',$id,['category'],false);if(is_wp_error($nodes))return$nodes;seo_environment_sync_replace_selected_nodes_local('category',$id,$nodes,['category'],false);return true;
+        $local=get_term($id,'product_cat');if(!$local||is_wp_error($local))return new WP_Error('missing_destination','La categoría no existe en el destino.');$prefix=seo_environment_compare_db_prefix($source_env);$nodes=seo_environment_sync_fetch_selected_nodes($mysqli,$prefix,'category',$id,['category'],false);if(is_wp_error($nodes))return$nodes;$replaced=seo_environment_sync_replace_selected_nodes_local('category',$id,$nodes,['category'],false);if(is_wp_error($replaced))return$replaced;return true;
     }
 }
 
