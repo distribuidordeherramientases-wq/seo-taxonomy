@@ -40,6 +40,7 @@ if (!function_exists('seo_process_supervisor_defaults')) {
             'import_export'      => 1,
             'academy'            => 1,
             'classifier'         => 1,
+            'environment_compare'=> 1,
             'backup_watchdog'    => 1,
             'log_cycles'         => 0,
         );
@@ -57,6 +58,7 @@ if (!function_exists('seo_process_supervisor_sanitize_settings')) {
             'import_export'    => empty($raw['import_export']) ? 0 : 1,
             'academy'          => empty($raw['academy']) ? 0 : 1,
             'classifier'       => empty($raw['classifier']) ? 0 : 1,
+            'environment_compare' => empty($raw['environment_compare']) ? 0 : 1,
             'backup_watchdog'  => empty($raw['backup_watchdog']) ? 0 : 1,
             'log_cycles'       => empty($raw['log_cycles']) ? 0 : 1,
         );
@@ -818,12 +820,21 @@ if (!function_exists('seo_process_supervisor_run_manager_window')) {
                 $current_state = seo_process_supervisor_state();
                 $current_managed = isset($current_state['managed']) && is_array($current_state['managed']) ? $current_state['managed'] : array();
                 foreach ($current_managed as $managed_key => $managed_row) {
+                    if ('import-export-environment-compare' === (string) $managed_key) {
+                        continue;
+                    }
                     if (0 === strpos((string) $managed_key, 'import-export-')) {
                         seo_process_supervisor_managed_update($managed_key, array(
                             'pending' => 0, 'healthy' => 1, 'last_checked' => time(),
                             'detail' => 'Sin importaciones pendientes.', 'last_result' => 'idle', 'last_error' => ''
                         ));
                     }
+                }
+                if (function_exists('seo_environment_compare_has_pending_scan')) {
+                    seo_process_supervisor_managed_update('import-export-environment-compare', array(
+                        'name' => 'Comparador PRO/STAGING', 'pending' => 0, 'healthy' => 1, 'last_checked' => time(),
+                        'detail' => 'Sin comparaciones pendientes.', 'last_result' => 'idle', 'last_error' => ''
+                    ));
                 }
                 seo_process_supervisor_managed_update('import-export', array(
                     'name' => 'Import / Export', 'pending' => 0, 'healthy' => 1, 'last_checked' => time(),
@@ -1318,7 +1329,7 @@ if (!function_exists('seo_process_supervisor_save_settings_action')) {
         }
         check_admin_referer('seo_process_supervisor_save_settings');
         $raw = isset($_POST['supervisor']) && is_array($_POST['supervisor']) ? wp_unslash($_POST['supervisor']) : array();
-        foreach (array('enabled', 'import_export', 'academy', 'backup_watchdog', 'log_cycles') as $checkbox) {
+        foreach (array('enabled', 'import_export', 'academy', 'classifier', 'environment_compare', 'backup_watchdog', 'log_cycles') as $checkbox) {
             $raw[$checkbox] = empty($raw[$checkbox]) ? 0 : 1;
         }
         $settings = seo_process_supervisor_sanitize_settings($raw);
@@ -1443,8 +1454,18 @@ if (!function_exists('seo_process_supervisor_render_live')) {
                             $visible[$key] = $row;
                         }
                     }
-                    if (!isset($visible['import-export']) && !$visible) {
+                    $has_import_visible = false;
+                    foreach (array_keys($visible) as $visible_key) {
+                        if ('import-export-environment-compare' !== (string) $visible_key && 0 === strpos((string) $visible_key, 'import-export')) {
+                            $has_import_visible = true;
+                            break;
+                        }
+                    }
+                    if (!$has_import_visible) {
                         $visible['import-export'] = array('name' => 'Import / Export', 'pending' => 0, 'healthy' => 0, 'detail' => 'Todavía sin lectura.', 'last_checked' => 0);
+                    }
+                    if (!isset($visible['import-export-environment-compare'])) {
+                        $visible['import-export-environment-compare'] = array('name' => 'Comparador PRO/STAGING', 'pending' => 0, 'healthy' => 0, 'detail' => 'Todavía sin lectura.', 'last_checked' => 0);
                     }
                     $visible['academy'] = isset($managed['academy']) ? $managed['academy'] : array('name' => 'Academia', 'pending' => 0, 'healthy' => 0, 'detail' => 'Todavía sin lectura.', 'last_checked' => 0);
                     $classifier_rows = array();
@@ -1457,12 +1478,15 @@ if (!function_exists('seo_process_supervisor_render_live')) {
                         $visible['classifier'] = isset($managed['classifier']) ? $managed['classifier'] : array('name' => 'Clasificador', 'pending' => 0, 'healthy' => 0, 'detail' => 'Todavía sin lectura.', 'last_checked' => 0);
                     }
                     foreach ($visible as $key => $row) :
-                        $is_import = 0 === strpos((string) $key, 'import-export');
+                        $is_environment = 'import-export-environment-compare' === (string) $key;
+                        $is_import = !$is_environment && 0 === strpos((string) $key, 'import-export');
                         $is_classifier = 0 === strpos((string) $key, 'classifier');
-                        $enabled = $is_import ? !empty($settings['import_export']) : ($is_classifier ? !empty($settings['classifier']) : !empty($settings['academy']));
+                        $enabled = $is_environment
+                            ? !empty($settings['environment_compare'])
+                            : ($is_import ? !empty($settings['import_export']) : ($is_classifier ? !empty($settings['classifier']) : !empty($settings['academy'])));
                     ?>
                     <tr>
-                        <td><strong><?php echo esc_html($row['name'] ?? ($is_import ? 'Import / Export' : ($is_classifier ? 'Clasificador' : 'Academia'))); ?></strong></td>
+                        <td><strong><?php echo esc_html($row['name'] ?? ($is_environment ? 'Comparador PRO/STAGING' : ($is_import ? 'Import / Export' : ($is_classifier ? 'Clasificador' : 'Academia')))); ?></strong></td>
                         <td><?php echo $enabled ? '<span class="seo-worker-pill is-ok">Sí</span>' : '<span class="seo-worker-pill">No</span>'; ?></td>
                         <td><?php echo !empty($row['pending']) ? '<span class="seo-worker-pill is-warn">Sí</span>' : '<span class="seo-worker-pill">No</span>'; ?></td>
                         <td><strong><?php echo !empty($row['healthy']) ? 'Gestionado' : 'Sin actividad'; ?></strong><br><small><?php echo esc_html($row['detail'] ?? ''); ?></small></td>
@@ -1521,7 +1545,7 @@ if (!function_exists('seo_process_supervisor_render_page')) {
             <div class="seo-worker-heading">
                 <div>
                     <h2>Gestor periódico del plugin</h2>
-                    <p>El gestor mantiene vivos únicamente los procesos que tú hayas iniciado: Import/Export, Academia y Clasificador. Si están parados no los toca. No usa el worker de WooCommerce como motor.</p>
+                    <p>El gestor mantiene vivos únicamente los procesos que tú hayas iniciado: Import/Export, Academia, Clasificador y Comparador PRO/STAGING. Si están parados no los toca. No usa el worker de WooCommerce como motor.</p>
                 </div>
                 <span>Lectura: <strong id="seo-worker-refreshed"><?php echo esc_html(current_time('H:i:s')); ?></strong></span>
             </div>
@@ -1551,6 +1575,7 @@ if (!function_exists('seo_process_supervisor_render_page')) {
                     <label><input type="checkbox" name="supervisor[import_export]" value="1" <?php checked(!empty($settings['import_export'])); ?>> Gestionar <strong>Import / Export</strong><small>Solo mientras una importación iniciada siga activa.</small></label>
                     <label><input type="checkbox" name="supervisor[academy]" value="1" <?php checked(!empty($settings['academy'])); ?>> Gestionar <strong>Academia</strong><small>Solo después de que tú la hayas arrancado.</small></label>
                     <label><input type="checkbox" name="supervisor[classifier]" value="1" <?php checked(!empty($settings['classifier'])); ?>> Gestionar <strong>Clasificador</strong><small>Solo jobs iniciados o reanudados manualmente.</small></label>
+                    <label><input type="checkbox" name="supervisor[environment_compare]" value="1" <?php checked(!empty($settings['environment_compare'])); ?>> Gestionar <strong>Comparador PRO/STAGING</strong><small>Solo capas que hayas puesto en cola desde el comparador.</small></label>
                     <label><input type="checkbox" name="supervisor[backup_watchdog]" value="1" <?php checked(!empty($settings['backup_watchdog'])); ?>> WP-Cron propio de respaldo<small>Ejecuta este gestor si no has configurado un cron real del servidor.</small></label>
                     <label><input type="checkbox" name="supervisor[log_cycles]" value="1" <?php checked(!empty($settings['log_cycles'])); ?>> Registrar cada ciclo<small>Útil para diagnóstico; genera más entradas.</small></label>
                 </div>

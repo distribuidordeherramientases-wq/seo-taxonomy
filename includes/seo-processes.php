@@ -40,6 +40,23 @@ if (!function_exists('seo_processes_control_defaults')) {
                 'heavy_delay_seconds' => 5,
                 'critical_delay_seconds' => 15,
             ),
+            'environment-compare' => array(
+                'min_rows' => 2,
+                'initial_rows' => 8,
+                'max_rows' => 60,
+                'target_seconds' => 4.0,
+                'hard_seconds' => 12.0,
+                'growth_factor' => 1.35,
+                'slowdown_factor' => 0.65,
+                'critical_factor' => 0.40,
+                'memory_soft_percent' => 55.0,
+                'memory_hard_percent' => 72.0,
+                'cpu_soft_percent' => 65.0,
+                'cpu_hard_percent' => 80.0,
+                'normal_delay_seconds' => 2,
+                'heavy_delay_seconds' => 10,
+                'critical_delay_seconds' => 30,
+            ),
             'academy' => array(
                 'min_batch' => 1,
                 'initial_batch' => 1,
@@ -139,6 +156,24 @@ if (!function_exists('seo_processes_sanitize_controls')) {
         $import['critical_delay_seconds'] = max($import['heavy_delay_seconds'], min(300, absint($import['critical_delay_seconds'])));
         $out['import-export'] = $import;
 
+        $environment = wp_parse_args(isset($raw['environment-compare']) && is_array($raw['environment-compare']) ? $raw['environment-compare'] : array(), $defaults['environment-compare']);
+        $environment['min_rows'] = max(1, min(100, absint($environment['min_rows'])));
+        $environment['initial_rows'] = max($environment['min_rows'], min(200, absint($environment['initial_rows'])));
+        $environment['max_rows'] = max($environment['initial_rows'], min(300, absint($environment['max_rows'])));
+        $environment['target_seconds'] = seo_processes_clamp_float($environment['target_seconds'], 1.0, 60.0);
+        $environment['hard_seconds'] = max($environment['target_seconds'] + 1.0, seo_processes_clamp_float($environment['hard_seconds'], 2.0, 120.0));
+        $environment['growth_factor'] = seo_processes_clamp_float($environment['growth_factor'], 1.05, 2.00);
+        $environment['slowdown_factor'] = seo_processes_clamp_float($environment['slowdown_factor'], 0.20, 0.95);
+        $environment['critical_factor'] = seo_processes_clamp_float($environment['critical_factor'], 0.10, 0.80);
+        $environment['memory_soft_percent'] = seo_processes_clamp_float($environment['memory_soft_percent'], 20.0, 90.0);
+        $environment['memory_hard_percent'] = max($environment['memory_soft_percent'] + 5.0, seo_processes_clamp_float($environment['memory_hard_percent'], 25.0, 98.0));
+        $environment['cpu_soft_percent'] = seo_processes_clamp_float($environment['cpu_soft_percent'], 20.0, 95.0);
+        $environment['cpu_hard_percent'] = max($environment['cpu_soft_percent'] + 5.0, seo_processes_clamp_float($environment['cpu_hard_percent'], 25.0, 100.0));
+        $environment['normal_delay_seconds'] = min(120, absint($environment['normal_delay_seconds']));
+        $environment['heavy_delay_seconds'] = max($environment['normal_delay_seconds'], min(300, absint($environment['heavy_delay_seconds'])));
+        $environment['critical_delay_seconds'] = max($environment['heavy_delay_seconds'], min(900, absint($environment['critical_delay_seconds'])));
+        $out['environment-compare'] = $environment;
+
         $academy = wp_parse_args(isset($raw['academy']) && is_array($raw['academy']) ? $raw['academy'] : array(), $defaults['academy']);
         $academy['min_batch'] = max(1, min(20, absint($academy['min_batch'])));
         $academy['initial_batch'] = max($academy['min_batch'], min(30, absint($academy['initial_batch'])));
@@ -231,6 +266,31 @@ if (!function_exists('seo_processes_filter_import_adaptive_config')) {
     }
 }
 add_filter('seo_ie_product_import_adaptive_config', 'seo_processes_filter_import_adaptive_config', 50);
+
+if (!function_exists('seo_processes_filter_environment_compare_adaptive_config')) {
+    function seo_processes_filter_environment_compare_adaptive_config($config) {
+        $control = seo_processes_control_for('environment-compare');
+        if (!$control || !is_array($config)) return $config;
+        return array_merge($config, array(
+            'min_rows' => absint($control['min_rows']),
+            'initial_rows' => absint($control['initial_rows']),
+            'max_rows' => absint($control['max_rows']),
+            'target_seconds' => (float)$control['target_seconds'],
+            'hard_seconds' => (float)$control['hard_seconds'],
+            'growth_factor' => (float)$control['growth_factor'],
+            'slowdown_factor' => (float)$control['slowdown_factor'],
+            'critical_factor' => (float)$control['critical_factor'],
+            'memory_soft_ratio' => ((float)$control['memory_soft_percent']) / 100,
+            'memory_hard_ratio' => ((float)$control['memory_hard_percent']) / 100,
+            'cpu_soft_percent' => (float)$control['cpu_soft_percent'],
+            'cpu_hard_percent' => (float)$control['cpu_hard_percent'],
+            'normal_delay' => absint($control['normal_delay_seconds']),
+            'heavy_delay' => absint($control['heavy_delay_seconds']),
+            'critical_delay' => absint($control['critical_delay_seconds']),
+        ));
+    }
+}
+add_filter('seo_environment_compare_adaptive_config', 'seo_processes_filter_environment_compare_adaptive_config', 50);
 
 if (!function_exists('seo_processes_filter_classifier_adaptive_config')) {
     function seo_processes_filter_classifier_adaptive_config($config, $mode) {
@@ -1161,6 +1221,7 @@ if (!function_exists('seo_processes_render_control_panel')) {
     function seo_processes_render_control_panel() {
         $settings = seo_processes_control_settings();
         $import = $settings['import-export'];
+        $environment = $settings['environment-compare'];
         $academy = $settings['academy'];
         $classifier = $settings['classifier'];
         ?>
@@ -1192,6 +1253,28 @@ if (!function_exists('seo_processes_render_control_panel')) {
                     <label>Pausa presión media<?php seo_processes_number_input('import-export','heavy_delay_seconds',$import['heavy_delay_seconds'],0,120); ?><small>Segundos.</small></label>
                     <label>Pausa presión alta<?php seo_processes_number_input('import-export','critical_delay_seconds',$import['critical_delay_seconds'],0,300); ?><small>Segundos.</small></label>
                 </div>
+            </details>
+
+            <details class="seo-process-control-card" open>
+                <summary><strong>Comparador PRO/STAGING</strong><span>SELECT remoto · Gestor de workers</span></summary>
+                <div class="seo-process-control-grid">
+                    <label>Lote mínimo<?php seo_processes_number_input('environment-compare','min_rows',$environment['min_rows'],1,100); ?><small>Objetos.</small></label>
+                    <label>Lote inicial<?php seo_processes_number_input('environment-compare','initial_rows',$environment['initial_rows'],1,200); ?><small>Objetos al arrancar.</small></label>
+                    <label>Lote máximo<?php seo_processes_number_input('environment-compare','max_rows',$environment['max_rows'],1,300); ?><small>Techo absoluto.</small></label>
+                    <label>Tiempo objetivo<?php seo_processes_number_input('environment-compare','target_seconds',$environment['target_seconds'],1,60,'0.5'); ?><small>Segundos por lote.</small></label>
+                    <label>Tiempo crítico<?php seo_processes_number_input('environment-compare','hard_seconds',$environment['hard_seconds'],2,120,'0.5'); ?><small>Recorte fuerte y límite de consulta.</small></label>
+                    <label>Multiplicador subida<?php seo_processes_number_input('environment-compare','growth_factor',$environment['growth_factor'],1.05,2.00,'0.01'); ?><small>Crecimiento máximo entre lotes.</small></label>
+                    <label>Multiplicador bajada<?php seo_processes_number_input('environment-compare','slowdown_factor',$environment['slowdown_factor'],0.20,0.95,'0.01'); ?><small>Cuando el lote va pesado.</small></label>
+                    <label>Recorte crítico<?php seo_processes_number_input('environment-compare','critical_factor',$environment['critical_factor'],0.10,0.80,'0.01'); ?><small>Factor tras presión crítica.</small></label>
+                    <label>Memoria preventiva<?php seo_processes_number_input('environment-compare','memory_soft_percent',$environment['memory_soft_percent'],20,90,'0.5'); ?><small>% del memory_limit.</small></label>
+                    <label>Memoria crítica<?php seo_processes_number_input('environment-compare','memory_hard_percent',$environment['memory_hard_percent'],25,98,'0.5'); ?><small>No abre BBDD remotas si ya se supera.</small></label>
+                    <label>CPU preventiva<?php seo_processes_number_input('environment-compare','cpu_soft_percent',$environment['cpu_soft_percent'],20,95,'0.5'); ?><small>% estimado del servidor.</small></label>
+                    <label>CPU crítica<?php seo_processes_number_input('environment-compare','cpu_hard_percent',$environment['cpu_hard_percent'],25,100,'0.5'); ?><small>Pausa antes de consultar PRO/STAGING.</small></label>
+                    <label>Pausa normal<?php seo_processes_number_input('environment-compare','normal_delay_seconds',$environment['normal_delay_seconds'],0,120); ?><small>Segundos.</small></label>
+                    <label>Pausa presión alta<?php seo_processes_number_input('environment-compare','heavy_delay_seconds',$environment['heavy_delay_seconds'],0,300); ?><small>Segundos.</small></label>
+                    <label>Pausa crítica<?php seo_processes_number_input('environment-compare','critical_delay_seconds',$environment['critical_delay_seconds'],0,900); ?><small>Segundos.</small></label>
+                </div>
+                <p class="description">El navegador solo encola y consulta estado. La comparación real entra en el round-robin del Gestor, respeta su ventana y se frena por tiempo, memoria o CPU.</p>
             </details>
 
             <details class="seo-process-control-card" open>
