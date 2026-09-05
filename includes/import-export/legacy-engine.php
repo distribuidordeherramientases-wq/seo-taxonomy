@@ -22,8 +22,8 @@
  * @author David Perez Martorell
  * @license GPL-2.0-or-later
  * @since 2.0.0
- * @version 2026-09-02
- * Build: 038
+ * @version 2026-09-05
+ * Build: 039
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -69,6 +69,17 @@ if ( is_readable( $seo_supplier_connections_file ) ) {
     require_once $seo_supplier_connections_file;
 }
 unset( $seo_supplier_connections_file );
+
+/*
+ * Versionado temporal compartido entre los importadores. Protege la
+ * sincronizacion PRO <-> STAGING para que una fila antigua no pise una
+ * version local mas reciente y conserva las fechas de origen al importar.
+ */
+$seo_sync_versioning_file = __DIR__ . '/sync-versioning.php';
+if ( is_readable( $seo_sync_versioning_file ) ) {
+    require_once $seo_sync_versioning_file;
+}
+unset( $seo_sync_versioning_file );
 
 /*
  * La cola multientidad vive en un modulo independiente para mantener
@@ -254,6 +265,10 @@ function seo_ie_normalize_csv_header( $header, $entity ) {
         'category_image_id'  => 'imagen_destacada_id',
         'category_image'     => 'imagen_destacada',
         'category_image_url' => 'imagen_destacada',
+        'modified'           => 'fecha_modificada',
+        'term_modified'      => 'fecha_modificada',
+        'modified_gmt'       => 'fecha_modificada_gmt',
+        'term_modified_gmt'  => 'fecha_modificada_gmt',
     ];
 
     $product_aliases = [
@@ -311,7 +326,9 @@ function seo_ie_normalize_csv_header( $header, $entity ) {
         'platform'                 => 'plataforma',
         'subtype'                  => 'subtipo',
         'date_created'             => 'fecha_creacion',
+        'date_created_gmt'         => 'fecha_creacion_gmt',
         'date_modified'            => 'fecha_modificacion',
+        'date_modified_gmt'        => 'fecha_modificacion_gmt',
     ];
 
     $page_aliases = [
@@ -1438,7 +1455,7 @@ function seo_export_categories_csv() {
 
     $nodes = $wpdb->get_results(
         "
-        SELECT object_id, seo_role, keywords
+        SELECT object_id, seo_role, keywords, updated_at
         FROM {$wpdb->prefix}seo_nodes
         WHERE object_type = 'category'
           AND seo_role IN ('ambito', 'excerpt', 'description')
@@ -1459,7 +1476,12 @@ function seo_export_categories_csv() {
                 'ambito'      => '',
                 'excerpt'     => '',
                 'description' => '',
+                '_latest_updated_at' => '',
             ];
+        }
+
+        if ( '' !== trim( (string) $node->updated_at ) && ( '' === $nodes_by_category[ $category_id ]['_latest_updated_at'] || strcmp( (string) $node->updated_at, $nodes_by_category[ $category_id ]['_latest_updated_at'] ) > 0 ) ) {
+            $nodes_by_category[ $category_id ]['_latest_updated_at'] = (string) $node->updated_at;
         }
 
         // La consulta está ordenada por la fila activa más reciente.
@@ -1549,6 +1571,8 @@ function seo_export_categories_csv() {
             'description',
             'excerpt',
             'ambito',
+            'fecha_modificada',
+            'fecha_modificada_gmt',
         ]
     );
 
@@ -1561,7 +1585,15 @@ function seo_export_categories_csv() {
             'ambito'      => '',
             'excerpt'     => '',
             'description' => '',
+            '_latest_updated_at' => '',
         ];
+
+        $category_modified_ts = function_exists( 'seo_ie_sync_category_modified_timestamp' )
+            ? seo_ie_sync_category_modified_timestamp( $category_id )
+            : 0;
+        if ( $category_modified_ts <= 0 && ! empty( $node_data['_latest_updated_at'] ) && function_exists( 'seo_ie_sync_datetime_to_timestamp' ) ) {
+            $category_modified_ts = seo_ie_sync_datetime_to_timestamp( $node_data['_latest_updated_at'], false );
+        }
 
         seo_ie_write_csv_row(
             $output,
@@ -1578,6 +1610,8 @@ function seo_export_categories_csv() {
                 $node_data['description'],
                 $node_data['excerpt'],
                 $node_data['ambito'],
+                $category_modified_ts > 0 && function_exists( 'seo_ie_sync_format_timestamp' ) ? seo_ie_sync_format_timestamp( $category_modified_ts, false ) : '',
+                $category_modified_ts > 0 && function_exists( 'seo_ie_sync_format_timestamp' ) ? seo_ie_sync_format_timestamp( $category_modified_ts, true ) : '',
             ]
         );
     }
@@ -1695,6 +1729,7 @@ function seo_import_categories_csv() {
         'archivo'    => sanitize_file_name( $_FILES['categories_csv']['name'] ),
         'procesados' => 0,
         'correctos'  => 0,
+        'omitidos'   => 0,
         'errores'    => 0,
         'detalles'   => [],
     ];
@@ -1716,6 +1751,7 @@ $batch_size      = PHP_INT_MAX;
         $row         = seo_ie_build_csv_row( $header, $csv_row );
  
  $category_id = absint( $row['category_id'] ?? 0 );
+ $category_preexisting = false;
 
 /*
  * Si category_id viene vacío se crea una categoría nueva.
@@ -1723,6 +1759,7 @@ $batch_size      = PHP_INT_MAX;
  */
 if ( $category_id > 0 ) {
 
+    $category_preexisting = true;
     $category = get_term( $category_id, 'product_cat' );
 
     if ( ! $category || is_wp_error( $category ) ) {
@@ -1760,6 +1797,7 @@ if ( $category_id > 0 ) {
     }
 
     if ( $existing && ! is_wp_error( $existing ) ) {
+        $category_preexisting = true;
         $category_id = absint( $existing->term_id );
         seo_ie_add_log_detail(
             $log,
@@ -1811,6 +1849,24 @@ if ( $category_id > 0 ) {
         );
     }
 }
+
+        if ( $category_preexisting && function_exists( 'seo_ie_sync_category_update_decision' ) ) {
+            $version_decision = seo_ie_sync_category_update_decision( $category_id, $row );
+            if ( ! empty( $version_decision['skip'] ) ) {
+                $log['omitidos']++;
+                seo_ie_add_log_detail(
+                    $log,
+                    sprintf(
+                        'Fila %d, categoría %d: omitida; la versión local (%s) es más reciente que el CSV (%s).',
+                        $line,
+                        $category_id,
+                        seo_ie_sync_format_timestamp( $version_decision['destination'], true ),
+                        seo_ie_sync_format_timestamp( $version_decision['source'], true )
+                    )
+                );
+                continue;
+            }
+        }
 
  
 
@@ -2081,6 +2137,10 @@ if ( ! empty( $term_data ) ) {
                     $hub_secondary_id
                 )
             );
+        }
+
+        if ( function_exists( 'seo_ie_sync_restore_category_modified' ) ) {
+            seo_ie_sync_restore_category_modified( $category_id, $row );
         }
 
         $log['correctos']++;
@@ -3472,7 +3532,7 @@ function seo_export_products_csv() {
         'pedidos_pendientes', 'vendido_individualmente', 'peso', 'longitud', 'anchura', 'altura',
         'virtual', 'descargable', 'clase_envio_id', 'clase_envio', 'imagen_destacada_id',
         'imagen_destacada', 'galeria_ids', 'galeria_urls', 'variaciones_total', 'variaciones_ids',
-        'fecha_creacion', 'fecha_modificacion',
+        'fecha_creacion', 'fecha_creacion_gmt', 'fecha_modificacion', 'fecha_modificacion_gmt',
     ];
 
     $filename = 'seo_products_v2_' . wp_date( 'Ymd_His' ) . '.csv';
@@ -3632,7 +3692,9 @@ function seo_export_products_csv() {
             'variaciones_total'          => count( $children ),
             'variaciones_ids'            => implode( ',', $children ),
             'fecha_creacion'             => $created ? $created->date( 'Y-m-d H:i:s' ) : '',
+            'fecha_creacion_gmt'         => $created ? gmdate( 'Y-m-d H:i:s', $created->getTimestamp() ) : '',
             'fecha_modificacion'         => $modified ? $modified->date( 'Y-m-d H:i:s' ) : '',
+            'fecha_modificacion_gmt'     => $modified ? gmdate( 'Y-m-d H:i:s', $modified->getTimestamp() ) : '',
         ];
 
         seo_ie_write_csv_row(
@@ -5551,6 +5613,29 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
             $last_product_reference = $product_id ?: $last_product_reference;
             $creating   = 0 === $product_id;
 
+            if ( ! $creating && function_exists( 'seo_ie_sync_post_update_decision' ) ) {
+                $version_decision = seo_ie_sync_post_update_decision(
+                    $product_id,
+                    $row,
+                    'fecha_modificacion',
+                    'fecha_modificacion_gmt'
+                );
+                if ( ! empty( $version_decision['skip'] ) ) {
+                    $log['omitidos']++;
+                    seo_ie_add_log_detail(
+                        $log,
+                        sprintf(
+                            'Fila %d, producto %d: omitido; la versión local (%s) es más reciente que el CSV (%s).',
+                            $line,
+                            $product_id,
+                            seo_ie_sync_format_timestamp( $version_decision['destination'], true ),
+                            seo_ie_sync_format_timestamp( $version_decision['source'], true )
+                        )
+                    );
+                    continue;
+                }
+            }
+
             /*
              * En la cola automatica los CSV completos se usan tambien para
              * enriquecimiento/clasificacion. En actualizaciones de productos
@@ -6272,6 +6357,13 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
                     $product->set_gallery_image_ids( $gallery_ids );
                     $product->save();
                 }
+            }
+
+            if ( function_exists( 'seo_ie_sync_restore_post_created' ) && $creating ) {
+                seo_ie_sync_restore_post_created( $product_id, $row, 'fecha_creacion', 'fecha_creacion_gmt' );
+            }
+            if ( function_exists( 'seo_ie_sync_restore_post_modified' ) ) {
+                seo_ie_sync_restore_post_modified( $product_id, $row, 'fecha_modificacion', 'fecha_modificacion_gmt' );
             }
 
             clean_post_cache( $product_id );
@@ -8609,6 +8701,36 @@ function seo_import_pages_csv() {
         $creating = ! $is_existing;
         $page_id  = $is_existing ? $existing_id : 0;
 
+        if ( $is_existing && function_exists( 'seo_ie_sync_post_update_decision' ) ) {
+            $version_decision = seo_ie_sync_post_update_decision(
+                $page_id,
+                $row,
+                'fecha_modificada',
+                'fecha_modificada_gmt'
+            );
+            if ( ! empty( $version_decision['skip'] ) ) {
+                $log['omitidos']++;
+                $row_to_target[ $index ] = $page_id;
+                if ( 0 < $item['source_id'] ) {
+                    $source_id_to_target[ $item['source_id'] ] = $page_id;
+                }
+                if ( '' !== $item['source_path'] ) {
+                    $path_to_target[ $item['source_path'] ] = $page_id;
+                }
+                seo_ie_add_log_detail(
+                    $log,
+                    sprintf(
+                        'Fila %d, página %d: omitida; la versión local (%s) es más reciente que el CSV (%s).',
+                        $item['line'],
+                        $page_id,
+                        seo_ie_sync_format_timestamp( $version_decision['destination'], true ),
+                        seo_ie_sync_format_timestamp( $version_decision['source'], true )
+                    )
+                );
+                continue;
+            }
+        }
+
         $title = sanitize_text_field( $row['titulo'] ?? '' );
 
         if ( $creating && '' === $title ) {
@@ -9168,6 +9290,10 @@ function seo_import_pages_csv() {
                 $item['line'],
                 $log
             );
+        }
+
+        if ( function_exists( 'seo_ie_sync_restore_post_modified' ) ) {
+            seo_ie_sync_restore_post_modified( $page_id, $row, 'fecha_modificada', 'fecha_modificada_gmt' );
         }
 
         clean_post_cache( $page_id );
@@ -10060,6 +10186,30 @@ function seo_import_posts_csv() {
 
         $creating = ! $is_existing;
         $post_id  = $is_existing ? $existing_id : 0;
+
+        if ( $is_existing && function_exists( 'seo_ie_sync_post_update_decision' ) ) {
+            $version_decision = seo_ie_sync_post_update_decision(
+                $post_id,
+                $row,
+                'fecha_modificada',
+                'fecha_modificada_gmt'
+            );
+            if ( ! empty( $version_decision['skip'] ) ) {
+                $log['omitidos']++;
+                seo_ie_add_log_detail(
+                    $log,
+                    sprintf(
+                        'Fila %d, entrada %d: omitida; la versión local (%s) es más reciente que el CSV (%s).',
+                        $item['line'],
+                        $post_id,
+                        seo_ie_sync_format_timestamp( $version_decision['destination'], true ),
+                        seo_ie_sync_format_timestamp( $version_decision['source'], true )
+                    )
+                );
+                continue;
+            }
+        }
+
         $title    = sanitize_text_field( $row['titulo'] ?? '' );
 
         if ( $creating && '' === $title ) {
@@ -10260,6 +10410,10 @@ function seo_import_posts_csv() {
         }
         if ( $import_image ) {
             seo_ie_import_post_thumbnail( $post_id, $row, $item['line'], $log );
+        }
+
+        if ( function_exists( 'seo_ie_sync_restore_post_modified' ) ) {
+            seo_ie_sync_restore_post_modified( $post_id, $row, 'fecha_modificada', 'fecha_modificada_gmt' );
         }
 
         clean_post_cache( $post_id );
@@ -10507,6 +10661,7 @@ function seo_import_faqs_csv() {
         'correctos'  => 0,
         'creados'    => 0,
         'actualizados' => 0,
+        'omitidos'   => 0,
         'errores'    => 0,
         'detalles'   => [],
     ];
@@ -10598,16 +10753,37 @@ function seo_import_faqs_csv() {
             $data['updated_at'] = trim( $row['updated_at'] );
         }
 
-        $exists = $faq_id
-            ? absint(
-                $wpdb->get_var(
-                    $wpdb->prepare(
-                        "SELECT id FROM {$table} WHERE id = %d LIMIT 1",
-                        $faq_id
-                    )
-                )
+        $existing_faq = $faq_id
+            ? $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT id, updated_at FROM {$table} WHERE id = %d LIMIT 1",
+                    $faq_id
+                ),
+                ARRAY_A
             )
-            : 0;
+            : null;
+        $exists = is_array( $existing_faq ) ? absint( $existing_faq['id'] ?? 0 ) : 0;
+
+        if ( $exists && function_exists( 'seo_ie_sync_faq_update_decision' ) && array_key_exists( 'updated_at', $row ) ) {
+            $version_decision = seo_ie_sync_faq_update_decision(
+                (string) ( $existing_faq['updated_at'] ?? '' ),
+                (string) $row['updated_at']
+            );
+            if ( ! empty( $version_decision['skip'] ) ) {
+                $log['omitidos']++;
+                seo_ie_add_log_detail(
+                    $log,
+                    sprintf(
+                        'Fila %d, FAQ %d: omitida; la versión local (%s) es más reciente que el CSV (%s).',
+                        $line,
+                        $faq_id,
+                        seo_ie_sync_format_timestamp( $version_decision['destination'], true ),
+                        seo_ie_sync_format_timestamp( $version_decision['source'], true )
+                    )
+                );
+                continue;
+            }
+        }
 
         if ( $exists ) {
 
