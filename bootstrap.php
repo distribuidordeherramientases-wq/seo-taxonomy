@@ -7,6 +7,8 @@
 
 defined('ABSPATH') || exit;
 
+//Bootstrap de includes
+require_once SEO_SYSTEM_PATH . 'includes/seo-includes-bootstrap.php';
 /*
 |--------------------------------------------------------------------------
 | VERSIONES Y MIGRACIONES
