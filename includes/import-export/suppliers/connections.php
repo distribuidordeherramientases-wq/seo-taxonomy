@@ -7,7 +7,7 @@
  *
  * @package SEOSystem
  * @subpackage ImportExport
- * @version 0.6.0
+ * @version 0.7.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -44,6 +44,15 @@ if ( is_readable( $seo_cloudflare_file ) ) {
     require_once $seo_cloudflare_file;
 }
 unset( $seo_cloudflare_file );
+
+// Conexiones de solo lectura entre los entornos PRO y STAGING. Se mantienen
+// dentro del mismo panel de conexiones para que el futuro comparador/sincronizador
+// pueda reutilizar una configuracion centralizada.
+$seo_environment_connections_file = __DIR__ . '/environment-connections.php';
+if ( is_readable( $seo_environment_connections_file ) ) {
+    require_once $seo_environment_connections_file;
+}
+unset( $seo_environment_connections_file );
 
 if ( ! function_exists( 'seo_proveedores_api_connections' ) ) {
     function seo_proveedores_api_connections() {
@@ -223,8 +232,8 @@ if ( ! function_exists( 'seo_proveedores_render_conexiones' ) ) {
 
         echo '<div class="card" style="max-width:none;padding:20px;margin-top:20px;">';
         echo '<h2 style="margin-top:0;">Conexiones e integraciones</h2>';
-        echo '<p>Configura aqui APIs de proveedores, ejecutores externos y servicios de infraestructura. Cada credencial se define una sola vez y los modulos autorizados reutilizan la conexion.</p>';
-        echo '<p><code>Modulo conexiones v0.6.0</code></p>';
+        echo '<p>Configura aqui conexiones de entornos, APIs de proveedores, ejecutores externos y servicios de infraestructura. Cada credencial se define una sola vez y los modulos autorizados reutilizan la conexion.</p>';
+        echo '<p><code>Modulo conexiones v0.7.0</code></p>';
 
         if ( ! function_exists( 'seo_github_python_runner_settings' ) ) {
             $gh_loader = isset( $GLOBALS['seo_github_python_runner_loader'] ) && is_array( $GLOBALS['seo_github_python_runner_loader'] )
@@ -299,6 +308,10 @@ if ( ! function_exists( 'seo_proveedores_render_conexiones' ) ) {
         }
         if ( $error ) {
             echo '<div class="notice notice-error inline"><p>' . esc_html( $error ) . '</p></div>';
+        }
+
+        if ( function_exists( 'seo_environment_db_render_connections' ) ) {
+            seo_environment_db_render_connections();
         }
 
         if ( empty( $connections ) ) {
