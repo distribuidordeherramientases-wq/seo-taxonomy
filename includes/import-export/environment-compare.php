@@ -11,14 +11,20 @@
  * - no crea ni elimina objetos. Si un ID existe solo en un entorno, se informa;
  * - la sincronizacion escribe UNICAMENTE en el WordPress local. Para escribir
  *   en el otro entorno se abre este mismo panel en ese entorno;
- * - una version mas antigua nunca pisa una mas reciente. Las diferencias con
- *   la misma fecha quedan como conflicto y requieren revision;
+ * - las fechas NO deciden igualdad ni direccion: el comparador trabaja por
+ *   contenido y hashes; una diferencia de timestamp por si sola se ignora;
  * - las imagenes se excluyen siempre de comparacion y sincronizacion: pueden
- *   vivir en hosts externos de proveedores y no son identidad de contenido.
+ *   vivir en hosts externos de proveedores y no son identidad de contenido;
+ * - contenido general, etiquetas, semantica y atributos se comparan como capas
+ *   independientes. La direccion de sincronizacion la elige expresamente el usuario;
+ * - antes de escribir se revalidan los hashes del ultimo escaneo en ambos entornos;
+ *   si cualquiera cambio desde el escaneo, la escritura se bloquea y exige reescanear;
+ * - si una asignacion semantica o atributo necesita vocabulario maestro que no
+ *   existe en el destino, se crea por clave canonica antes de asignar el objeto.
  *
  * @package SEOSystem
  * @subpackage ImportExport
- * @version 1.1.0
+ * @version 2.1.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -26,11 +32,21 @@ defined( 'ABSPATH' ) || exit;
 if ( ! function_exists( 'seo_environment_compare_entities' ) ) {
     function seo_environment_compare_entities() {
         return [
-            'products'   => [ 'label' => 'Productos',   'singular' => 'producto',  'post_type' => 'product' ],
-            'categories' => [ 'label' => 'Categorías',  'singular' => 'categoría' ],
-            'pages'      => [ 'label' => 'Páginas',     'singular' => 'página',    'post_type' => 'page' ],
-            'posts'      => [ 'label' => 'Posts',       'singular' => 'post',      'post_type' => 'post' ],
-            'faqs'       => [ 'label' => 'FAQs',        'singular' => 'FAQ' ],
+            // Capa 1: contenido/relaciones editoriales generales.
+            'products_general'   => [ 'label' => 'Productos · General',    'group' => 'general', 'source' => 'product' ],
+            'categories_general' => [ 'label' => 'Categorías · General',   'group' => 'general', 'source' => 'category' ],
+            'pages_general'      => [ 'label' => 'Páginas · General',      'group' => 'general', 'source' => 'page' ],
+            'posts_general'      => [ 'label' => 'Posts · General',        'group' => 'general', 'source' => 'post' ],
+            'faqs'               => [ 'label' => 'FAQs',                   'group' => 'general', 'source' => 'faq' ],
+
+            // Capa 2: clasificación. Cada bloque se sincroniza por separado.
+            'product_tags'       => [ 'label' => 'Productos · Etiquetas WC', 'group' => 'classification', 'source' => 'product' ],
+            'product_semantic'   => [ 'label' => 'Productos · Semántica',    'group' => 'classification', 'source' => 'product' ],
+            'product_attributes' => [ 'label' => 'Productos · Atributos',    'group' => 'classification', 'source' => 'product' ],
+            'category_tags'      => [ 'label' => 'Categorías · Etiquetas',   'group' => 'classification', 'source' => 'category' ],
+            'category_semantic'  => [ 'label' => 'Categorías · Semántica',   'group' => 'classification', 'source' => 'category' ],
+            'page_tags'          => [ 'label' => 'Páginas · Etiquetas',      'group' => 'classification', 'source' => 'page' ],
+            'post_tags'          => [ 'label' => 'Posts · Etiquetas',        'group' => 'classification', 'source' => 'post' ],
         ];
     }
 }
@@ -103,9 +119,6 @@ if ( ! function_exists( 'seo_environment_compare_get_state' ) ) {
                 'different'     => 0,
                 'only_pro'      => 0,
                 'only_staging'  => 0,
-                'newer_pro'     => 0,
-                'newer_staging' => 0,
-                'conflict'      => 0,
                 'started_at'    => 0,
                 'finished_at'   => 0,
                 'error'         => '',
@@ -212,277 +225,218 @@ if ( ! function_exists( 'seo_environment_compare_candidate_ids' ) ) {
         $cursor = absint( $cursor );
         $limit  = max( 20, min( 300, absint( $limit ) ) );
 
-        if ( in_array( $entity, [ 'products', 'pages', 'posts' ], true ) ) {
-            $post_type = [ 'products' => 'product', 'pages' => 'page', 'posts' => 'post' ][ $entity ];
-            $sql = "SELECT ID FROM `{$prefix}posts` WHERE post_type='" . mysqli_real_escape_string( $mysqli, $post_type ) . "' AND post_status<>'trash' AND ID>{$cursor} ORDER BY ID ASC LIMIT {$limit}";
-        } elseif ( 'categories' === $entity ) {
+        $post_map = [
+            'products_general'   => 'product',
+            'product_tags'       => 'product',
+            'product_semantic'   => 'product',
+            'product_attributes' => 'product',
+            'pages_general'      => 'page',
+            'page_tags'          => 'page',
+            'posts_general'      => 'post',
+            'post_tags'          => 'post',
+        ];
+
+        if ( isset( $post_map[ $entity ] ) ) {
+            $post_type = mysqli_real_escape_string( $mysqli, $post_map[ $entity ] );
+            $sql = "SELECT ID FROM `{$prefix}posts` WHERE post_type='{$post_type}' AND post_status<>'trash' AND ID>{$cursor} ORDER BY ID ASC LIMIT {$limit}";
+        } elseif ( in_array( $entity, [ 'categories_general', 'category_tags', 'category_semantic' ], true ) ) {
             $sql = "SELECT term_id AS ID FROM `{$prefix}term_taxonomy` WHERE taxonomy='product_cat' AND term_id>{$cursor} ORDER BY term_id ASC LIMIT {$limit}";
         } else {
             $sql = "SELECT id AS ID FROM `{$prefix}seo_faq` WHERE id>{$cursor} ORDER BY id ASC LIMIT {$limit}";
         }
 
         $rows = seo_environment_compare_query_rows( $mysqli, $sql );
-        if ( is_wp_error( $rows ) ) {
-            return $rows;
-        }
+        if ( is_wp_error( $rows ) ) return $rows;
         return array_values( array_filter( array_map( 'absint', wp_list_pluck( $rows, 'ID' ) ) ) );
     }
 }
 
-if ( ! function_exists( 'seo_environment_compare_merge_date' ) ) {
-    function seo_environment_compare_merge_date( $a, $b ) {
-        $a = trim( (string) $a );
-        $b = trim( (string) $b );
-        if ( '' === $a ) return $b;
-        if ( '' === $b ) return $a;
-        return strtotime( $b . ' UTC' ) > strtotime( $a . ' UTC' ) ? $b : $a;
+
+
+if ( ! function_exists( 'seo_environment_compare_empty_hash' ) ) {
+    function seo_environment_compare_empty_hash() {
+        static $hash = null;
+        if ( null === $hash ) $hash = hash( 'sha256', '' );
+        return $hash;
     }
 }
 
-if ( ! function_exists( 'seo_environment_compare_fetch_post_snapshots' ) ) {
-    function seo_environment_compare_fetch_post_snapshots( $mysqli, $prefix, $post_type, array $ids, $product = false ) {
+
+
+if ( ! function_exists( 'seo_environment_compare_fetch_post_base' ) ) {
+    function seo_environment_compare_fetch_post_base( $mysqli, $prefix, $post_type, array $ids ) {
         $id_sql = seo_environment_compare_sql_ids( $ids );
-        $post_type_sql = mysqli_real_escape_string( $mysqli, $post_type );
-
-        // Alcance editorial deliberadamente reducido: titulo, excerpt y description.
-        // Slug, estado, fechas editoriales, layout, metadatos comerciales e imagenes
-        // no forman parte de la identidad que compara este panel.
-        $sql = "SELECT ID,post_title,post_modified_gmt,
-                       SHA2(COALESCE(post_title,''),256) AS base_hash,
-                       SHA2(COALESCE(post_excerpt,''),256) AS excerpt_hash,
-                       SHA2(COALESCE(post_content,''),256) AS description_hash
-                FROM `{$prefix}posts`
-                WHERE post_type='{$post_type_sql}' AND post_status<>'trash' AND ID IN ({$id_sql})";
-        $rows = seo_environment_compare_query_rows( $mysqli, $sql );
+        $type = mysqli_real_escape_string( $mysqli, $post_type );
+        $rows = seo_environment_compare_query_rows( $mysqli, "SELECT ID,post_title FROM `{$prefix}posts` WHERE post_type='{$type}' AND post_status<>'trash' AND ID IN ({$id_sql})" );
         if ( is_wp_error( $rows ) ) return $rows;
-
         $out = [];
         foreach ( $rows as $row ) {
             $id = absint( $row['ID'] );
-            $out[ $id ] = [
-                'id'         => $id,
-                'name'       => (string) $row['post_title'],
-                'modified'   => (string) $row['post_modified_gmt'],
-                'components' => [
-                    'base'        => (string) $row['base_hash'],
-                    'excerpt'     => (string) $row['excerpt_hash'],
-                    'description' => (string) $row['description_hash'],
-                ],
-            ];
+            $out[$id] = [ 'id'=>$id, 'name'=>(string)$row['post_title'], 'components'=>[] ];
         }
-        if ( ! $out ) return $out;
-
-        // Productos: solo categoria asociada y etiquetas WooCommerce.
-        // Paginas/posts: solo etiquetas WordPress si la taxonomia existe.
-        $taxonomy_groups = $product
-            ? [ 'categories' => [ 'product_cat' ], 'tags' => [ 'product_tag' ] ]
-            : [ 'tags' => [ 'post_tag' ] ];
-
-        foreach ( $taxonomy_groups as $component => $taxonomies ) {
-            $quoted_tax = array_map(
-                static function ( $v ) use ( $mysqli ) {
-                    return "'" . mysqli_real_escape_string( $mysqli, $v ) . "'";
-                },
-                $taxonomies
-            );
-            $tax_sql = "SELECT tr.object_id,
-                               SHA2(GROUP_CONCAT(CONCAT(tt.taxonomy,':',t.slug) ORDER BY tt.taxonomy,t.slug SEPARATOR '|'),256) AS row_hash
-                        FROM `{$prefix}term_relationships` tr
-                        JOIN `{$prefix}term_taxonomy` tt ON tt.term_taxonomy_id=tr.term_taxonomy_id
-                        JOIN `{$prefix}terms` t ON t.term_id=tt.term_id
-                        WHERE tr.object_id IN ({$id_sql})
-                          AND tt.taxonomy IN (" . implode( ',', $quoted_tax ) . ")
-                        GROUP BY tr.object_id";
-            $tax_rows = seo_environment_compare_query_rows( $mysqli, $tax_sql );
-            if ( ! is_wp_error( $tax_rows ) ) {
-                foreach ( $tax_rows as $row ) {
-                    $id = absint( $row['object_id'] );
-                    if ( isset( $out[ $id ] ) ) $out[ $id ]['components'][ $component ] = (string) $row['row_hash'];
-                }
-            }
-        }
-
-        if ( ! $product ) {
-            // Etiquetas editoriales guardadas en seo_nodes. Excluimos explicitamente
-            // excerpt/description/ambito: el contenido ya se compara desde wp_posts
-            // y el ambito no forma parte del criterio solicitado.
-            $node_sql = "SELECT object_id,
-                                SHA2(GROUP_CONCAT(CONCAT(seo_role,':',SHA2(COALESCE(keywords,''),256)) ORDER BY seo_role,id SEPARATOR '|'),256) AS row_hash
-                         FROM `{$prefix}seo_nodes`
-                         WHERE object_type='{$post_type_sql}'
-                           AND object_id IN ({$id_sql})
-                           AND status=1
-                           AND seo_role NOT IN ('excerpt','description','ambito')
-                         GROUP BY object_id";
-            $node_rows = seo_environment_compare_query_rows( $mysqli, $node_sql );
-            if ( ! is_wp_error( $node_rows ) ) {
-                foreach ( $node_rows as $row ) {
-                    $id = absint( $row['object_id'] );
-                    if ( isset( $out[ $id ] ) ) $out[ $id ]['components']['seo_tags'] = (string) $row['row_hash'];
-                }
-            }
-        }
-
-        if ( $product ) {
-            // Clasificacion/etiquetas semanticas canonicas del producto.
-            $sem_sql = "SELECT ov.object_id,
-                               SHA2(GROUP_CONCAT(CONCAT(v.semantic_group,':',v.slug) ORDER BY v.semantic_group,v.slug SEPARATOR '|'),256) AS row_hash
-                        FROM `{$prefix}seo_object_vocabulary` ov
-                        JOIN `{$prefix}seo_vocabulary` v ON v.id=ov.vocabulary_id
-                        WHERE ov.object_type='product' AND ov.status=1 AND v.active=1 AND ov.object_id IN ({$id_sql})
-                        GROUP BY ov.object_id";
-            $sem_rows = seo_environment_compare_query_rows( $mysqli, $sem_sql );
-            if ( ! is_wp_error( $sem_rows ) ) {
-                foreach ( $sem_rows as $row ) {
-                    $id = absint( $row['object_id'] );
-                    if ( isset( $out[ $id ] ) ) $out[ $id ]['components']['semantic'] = (string) $row['row_hash'];
-                }
-            }
-
-            // Atributos canonicos. No se compara _product_attributes ni ningun
-            // metadato de imagen de WooCommerce.
-            $attr_sql = "SELECT pa.product_id,
-                                SHA2(GROUP_CONCAT(CONCAT(a.slug,':',COALESCE(t.slug,''),':',SHA2(CONCAT_WS('|',COALESCE(pa.valor_texto,''),COALESCE(pa.valor_numero,''),COALESCE(pa.valor_numero_max,''),COALESCE(pa.unidad,''),COALESCE(pa.valor_original,'')),256),':',pa.orden) ORDER BY a.slug,pa.orden,pa.id SEPARATOR '|'),256) AS row_hash
-                         FROM `{$prefix}sql_product_atributos` pa
-                         JOIN `{$prefix}sql_atributos` a ON a.id=pa.atributo_id
-                         LEFT JOIN `{$prefix}sql_atributos_terminos` t ON t.id=pa.termino_id
-                         WHERE pa.product_id IN ({$id_sql})
-                         GROUP BY pa.product_id";
-            $attr_rows = seo_environment_compare_query_rows( $mysqli, $attr_sql );
-            if ( ! is_wp_error( $attr_rows ) ) {
-                foreach ( $attr_rows as $row ) {
-                    $id = absint( $row['product_id'] );
-                    if ( isset( $out[ $id ] ) ) $out[ $id ]['components']['attributes'] = (string) $row['row_hash'];
-                }
-            }
-        }
-
-        foreach ( $out as &$item ) {
-            ksort( $item['components'] );
-            $item['hash'] = seo_environment_compare_hash( $item['components'] );
-        }
-        unset( $item );
         return $out;
     }
 }
 
-if ( ! function_exists( 'seo_environment_compare_fetch_category_snapshots' ) ) {
-    function seo_environment_compare_fetch_category_snapshots( $mysqli, $prefix, array $ids ) {
+if ( ! function_exists( 'seo_environment_compare_fetch_post_general_snapshots' ) ) {
+    function seo_environment_compare_fetch_post_general_snapshots( $mysqli, $prefix, $post_type, array $ids, $product = false ) {
         $id_sql = seo_environment_compare_sql_ids( $ids );
-
-        // En categorias el criterio es exclusivamente nombre + excerpt +
-        // description + etiquetas SEO. Slug, parent, termmeta, relaciones,
-        // semantica e imagen destacada quedan fuera del hash.
-        $sql = "SELECT t.term_id,t.name,
-                       SHA2(COALESCE(t.name,''),256) AS base_hash
-                FROM `{$prefix}terms` t
-                JOIN `{$prefix}term_taxonomy` tt ON tt.term_id=t.term_id
-                WHERE tt.taxonomy='product_cat' AND t.term_id IN ({$id_sql})";
-        $rows = seo_environment_compare_query_rows( $mysqli, $sql );
+        $type = mysqli_real_escape_string( $mysqli, $post_type );
+        $rows = seo_environment_compare_query_rows( $mysqli, "SELECT ID,post_title,
+            SHA2(COALESCE(post_title,''),256) AS base_hash,
+            SHA2(COALESCE(post_excerpt,''),256) AS excerpt_hash,
+            SHA2(COALESCE(post_content,''),256) AS description_hash
+            FROM `{$prefix}posts` WHERE post_type='{$type}' AND post_status<>'trash' AND ID IN ({$id_sql})" );
         if ( is_wp_error( $rows ) ) return $rows;
-
-        $out = [];
-        foreach ( $rows as $row ) {
-            $id = absint( $row['term_id'] );
-            $out[ $id ] = [
-                'id'         => $id,
-                'name'       => (string) $row['name'],
-                'modified'   => '',
-                'components' => [ 'base' => (string) $row['base_hash'] ],
+        $out=[];
+        foreach($rows as $row){
+            $id=absint($row['ID']);
+            $out[$id]=[
+                'id'=>$id,
+                'name'=>(string)$row['post_title'],
+                'components'=>[
+                    'base'=>(string)$row['base_hash'],
+                    'excerpt'=>(string)$row['excerpt_hash'],
+                    'description'=>(string)$row['description_hash'],
+                ],
             ];
         }
-        if ( ! $out ) return $out;
-
-        // La fecha de sincronizacion se usa solo para decidir direccion; nunca
-        // entra en el hash de contenido.
-        $date_sql = "SELECT term_id,MAX(meta_value) AS sync_date
-                     FROM `{$prefix}termmeta`
-                     WHERE term_id IN ({$id_sql}) AND meta_key='_seo_sync_modified_gmt'
-                     GROUP BY term_id";
-        $date_rows = seo_environment_compare_query_rows( $mysqli, $date_sql );
-        if ( ! is_wp_error( $date_rows ) ) {
-            foreach ( $date_rows as $row ) {
-                $id = absint( $row['term_id'] );
-                if ( isset( $out[ $id ] ) ) $out[ $id ]['modified'] = (string) $row['sync_date'];
-            }
+        if($product && $out){
+            $tax=seo_environment_compare_query_rows($mysqli,"SELECT tr.object_id,SHA2(GROUP_CONCAT(t.slug ORDER BY t.slug SEPARATOR '|'),256) AS row_hash
+                FROM `{$prefix}term_relationships` tr JOIN `{$prefix}term_taxonomy` tt ON tt.term_taxonomy_id=tr.term_taxonomy_id
+                JOIN `{$prefix}terms` t ON t.term_id=tt.term_id
+                WHERE tr.object_id IN ({$id_sql}) AND tt.taxonomy='product_cat' GROUP BY tr.object_id");
+            if(!is_wp_error($tax))foreach($tax as $row){$id=absint($row['object_id']);if(isset($out[$id]))$out[$id]['components']['categories']=(string)$row['row_hash'];}
+            $empty=seo_environment_compare_empty_hash();
+            foreach($out as &$item){if(!isset($item['components']['categories']))$item['components']['categories']=$empty;}unset($item);
         }
+        foreach($out as &$item){ksort($item['components']);$item['hash']=seo_environment_compare_hash($item['components']);}unset($item);
+        return$out;
+    }
+}
 
-        $nodes_sql = "SELECT object_id,
-                             SHA2(COALESCE(GROUP_CONCAT(CASE WHEN seo_role='excerpt' AND status=1 THEN SHA2(COALESCE(keywords,''),256) END ORDER BY id SEPARATOR '|'),''),256) AS excerpt_hash,
-                             SHA2(COALESCE(GROUP_CONCAT(CASE WHEN seo_role='description' AND status=1 THEN SHA2(COALESCE(keywords,''),256) END ORDER BY id SEPARATOR '|'),''),256) AS description_hash,
-                             SHA2(COALESCE(GROUP_CONCAT(CASE WHEN seo_role='category' AND status=1 THEN SHA2(COALESCE(keywords,''),256) END ORDER BY id SEPARATOR '|'),''),256) AS tags_hash,
-                             MAX(CASE WHEN status=1 AND seo_role IN ('category','excerpt','description') THEN updated_at ELSE NULL END) AS max_date
-                      FROM `{$prefix}seo_nodes`
-                      WHERE object_type='category'
-                        AND object_id IN ({$id_sql})
-                        AND seo_role IN ('category','excerpt','description')
-                      GROUP BY object_id";
-        $node_rows = seo_environment_compare_query_rows( $mysqli, $nodes_sql );
-        if ( ! is_wp_error( $node_rows ) ) {
-            foreach ( $node_rows as $row ) {
-                $id = absint( $row['object_id'] );
-                if ( ! isset( $out[ $id ] ) ) continue;
-                $out[ $id ]['components']['excerpt'] = (string) $row['excerpt_hash'];
-                $out[ $id ]['components']['description'] = (string) $row['description_hash'];
-                $out[ $id ]['components']['tags'] = (string) $row['tags_hash'];
-                if ( '' === $out[ $id ]['modified'] ) $out[ $id ]['modified'] = (string) $row['max_date'];
-            }
-        }
+if ( ! function_exists( 'seo_environment_compare_fetch_native_tag_snapshots' ) ) {
+    function seo_environment_compare_fetch_native_tag_snapshots( $mysqli, $prefix, $post_type, $taxonomy, array $ids ) {
+        $out=seo_environment_compare_fetch_post_base($mysqli,$prefix,$post_type,$ids);if(is_wp_error($out)||!$out)return$out;
+        $id_sql=seo_environment_compare_sql_ids($ids);$taxonomy=mysqli_real_escape_string($mysqli,$taxonomy);
+        $rows=seo_environment_compare_query_rows($mysqli,"SELECT tr.object_id,SHA2(GROUP_CONCAT(t.slug ORDER BY t.slug SEPARATOR '|'),256) AS row_hash
+            FROM `{$prefix}term_relationships` tr JOIN `{$prefix}term_taxonomy` tt ON tt.term_taxonomy_id=tr.term_taxonomy_id
+            JOIN `{$prefix}terms` t ON t.term_id=tt.term_id WHERE tr.object_id IN ({$id_sql}) AND tt.taxonomy='{$taxonomy}' GROUP BY tr.object_id");
+        if(!is_wp_error($rows))foreach($rows as $row){$id=absint($row['object_id']);if(isset($out[$id]))$out[$id]['components']['tags']=(string)$row['row_hash'];}
+        $empty=seo_environment_compare_empty_hash();foreach($out as &$item){if(!isset($item['components']['tags']))$item['components']['tags']=$empty;$item['hash']=seo_environment_compare_hash($item['components']);}unset($item);
+        return$out;
+    }
+}
 
-        // Las etiquetas semanticas canonicas de categoria tambien cuentan como
-        // etiquetas editoriales. Jerarquia, relaciones e imagenes quedan fuera.
-        $sem_sql = "SELECT ov.object_id,
-                           SHA2(GROUP_CONCAT(CONCAT(v.semantic_group,':',v.slug) ORDER BY v.semantic_group,v.slug SEPARATOR '|'),256) AS row_hash
-                    FROM `{$prefix}seo_object_vocabulary` ov
-                    JOIN `{$prefix}seo_vocabulary` v ON v.id=ov.vocabulary_id
-                    WHERE ov.object_type='product_cat'
-                      AND ov.status=1 AND v.active=1
-                      AND ov.object_id IN ({$id_sql})
-                    GROUP BY ov.object_id";
-        $sem_rows = seo_environment_compare_query_rows( $mysqli, $sem_sql );
-        if ( ! is_wp_error( $sem_rows ) ) {
-            foreach ( $sem_rows as $row ) {
-                $id = absint( $row['object_id'] );
-                if ( isset( $out[ $id ] ) ) $out[ $id ]['components']['semantic'] = (string) $row['row_hash'];
-            }
+if ( ! function_exists( 'seo_environment_compare_fetch_semantic_snapshots' ) ) {
+    function seo_environment_compare_fetch_semantic_snapshots( $mysqli, $prefix, $post_type, $object_type, array $ids ) {
+        $out = 'product_cat' === $object_type ? [] : seo_environment_compare_fetch_post_base($mysqli,$prefix,$post_type,$ids);
+        $id_sql=seo_environment_compare_sql_ids($ids);
+        if('product_cat'===$object_type){
+            $rows=seo_environment_compare_query_rows($mysqli,"SELECT t.term_id,t.name FROM `{$prefix}terms` t JOIN `{$prefix}term_taxonomy` tt ON tt.term_id=t.term_id WHERE tt.taxonomy='product_cat' AND t.term_id IN ({$id_sql})");
+            if(is_wp_error($rows))return$rows;
+            foreach($rows as $row){$id=absint($row['term_id']);$out[$id]=['id'=>$id,'name'=>(string)$row['name'],'components'=>[]];}
+        }elseif(is_wp_error($out)||!$out)return$out;
+        $obj=mysqli_real_escape_string($mysqli,$object_type);
+        $rows=seo_environment_compare_query_rows($mysqli,"SELECT ov.object_id,v.semantic_group,
+            SHA2(GROUP_CONCAT(v.slug ORDER BY v.slug SEPARATOR '|'),256) AS row_hash
+            FROM `{$prefix}seo_object_vocabulary` ov JOIN `{$prefix}seo_vocabulary` v ON v.id=ov.vocabulary_id
+            WHERE ov.object_type='{$obj}' AND ov.status=1 AND v.active=1 AND ov.object_id IN ({$id_sql})
+            GROUP BY ov.object_id,v.semantic_group");
+        if(!is_wp_error($rows))foreach($rows as $row){
+            $id=absint($row['object_id']);$group=sanitize_key($row['semantic_group']??'');
+            if(isset($out[$id])&&$group){$out[$id]['components']['semantic_'.$group]=(string)$row['row_hash'];}
         }
+        foreach($out as &$item){ksort($item['components']);$item['hash']=seo_environment_compare_hash($item['components']);}unset($item);
+        return$out;
+    }
+}
 
-        // Las categorias sin ningun nodo deben tener la misma firma vacia que
-        // una categoria cuyo entorno tampoco tiene esos campos.
-        $empty_hash = hash( 'sha256', '' );
-        foreach ( $out as &$item ) {
-            foreach ( [ 'excerpt', 'description', 'tags' ] as $component ) {
-                if ( ! isset( $item['components'][ $component ] ) ) $item['components'][ $component ] = $empty_hash;
-            }
-            ksort( $item['components'] );
-            $item['hash'] = seo_environment_compare_hash( $item['components'] );
-        }
-        unset( $item );
-        return $out;
+if ( ! function_exists( 'seo_environment_compare_fetch_product_attribute_snapshots' ) ) {
+    function seo_environment_compare_fetch_product_attribute_snapshots( $mysqli, $prefix, array $ids ) {
+        $out=seo_environment_compare_fetch_post_base($mysqli,$prefix,'product',$ids);if(is_wp_error($out)||!$out)return$out;
+        $id_sql=seo_environment_compare_sql_ids($ids);
+        $rows=seo_environment_compare_query_rows($mysqli,"SELECT pa.product_id,SHA2(GROUP_CONCAT(CONCAT(a.slug,':',COALESCE(t.slug,''),':',SHA2(CONCAT_WS('|',COALESCE(pa.valor_texto,''),COALESCE(pa.valor_numero,''),COALESCE(pa.valor_numero_max,''),COALESCE(pa.unidad,''),COALESCE(pa.valor_original,'')),256),':',pa.orden) ORDER BY a.slug,pa.orden,pa.id SEPARATOR '|'),256) AS row_hash
+            FROM `{$prefix}sql_product_atributos` pa JOIN `{$prefix}sql_atributos` a ON a.id=pa.atributo_id LEFT JOIN `{$prefix}sql_atributos_terminos` t ON t.id=pa.termino_id
+            WHERE pa.product_id IN ({$id_sql}) GROUP BY pa.product_id");
+        if(!is_wp_error($rows))foreach($rows as $row){$id=absint($row['product_id']);if(isset($out[$id]))$out[$id]['components']['attributes']=(string)$row['row_hash'];}
+        $empty=seo_environment_compare_empty_hash();foreach($out as &$item){if(!isset($item['components']['attributes']))$item['components']['attributes']=$empty;$item['hash']=seo_environment_compare_hash($item['components']);}unset($item);
+        return$out;
+    }
+}
+
+if ( ! function_exists( 'seo_environment_compare_fetch_category_general_snapshots' ) ) {
+    function seo_environment_compare_fetch_category_general_snapshots( $mysqli, $prefix, array $ids ) {
+        $id_sql=seo_environment_compare_sql_ids($ids);
+        $rows=seo_environment_compare_query_rows($mysqli,"SELECT t.term_id,t.name,SHA2(COALESCE(t.name,''),256) AS base_hash FROM `{$prefix}terms` t JOIN `{$prefix}term_taxonomy` tt ON tt.term_id=t.term_id WHERE tt.taxonomy='product_cat' AND t.term_id IN ({$id_sql})");
+        if(is_wp_error($rows))return$rows;
+        $out=[];foreach($rows as $row){$id=absint($row['term_id']);$out[$id]=['id'=>$id,'name'=>(string)$row['name'],'components'=>['base'=>(string)$row['base_hash']]];}
+        if(!$out)return$out;
+        $nodes=seo_environment_compare_query_rows($mysqli,"SELECT object_id,
+            SHA2(COALESCE(GROUP_CONCAT(CASE WHEN seo_role='excerpt' AND status=1 THEN SHA2(COALESCE(keywords,''),256) END ORDER BY id SEPARATOR '|'),''),256) AS excerpt_hash,
+            SHA2(COALESCE(GROUP_CONCAT(CASE WHEN seo_role='description' AND status=1 THEN SHA2(COALESCE(keywords,''),256) END ORDER BY id SEPARATOR '|'),''),256) AS description_hash
+            FROM `{$prefix}seo_nodes` WHERE object_type='category' AND object_id IN ({$id_sql}) AND seo_role IN ('excerpt','description') GROUP BY object_id");
+        if(!is_wp_error($nodes))foreach($nodes as $row){$id=absint($row['object_id']);if(isset($out[$id])){$out[$id]['components']['excerpt']=(string)$row['excerpt_hash'];$out[$id]['components']['description']=(string)$row['description_hash'];}}
+        $empty=seo_environment_compare_empty_hash();foreach($out as &$item){foreach(['excerpt','description'] as $c)if(!isset($item['components'][$c]))$item['components'][$c]=$empty;ksort($item['components']);$item['hash']=seo_environment_compare_hash($item['components']);}unset($item);
+        return$out;
+    }
+}
+
+if ( ! function_exists( 'seo_environment_compare_fetch_category_tag_snapshots' ) ) {
+    function seo_environment_compare_fetch_category_tag_snapshots( $mysqli, $prefix, array $ids ) {
+        $id_sql=seo_environment_compare_sql_ids($ids);
+        $rows=seo_environment_compare_query_rows($mysqli,"SELECT t.term_id,t.name FROM `{$prefix}terms` t JOIN `{$prefix}term_taxonomy` tt ON tt.term_id=t.term_id WHERE tt.taxonomy='product_cat' AND t.term_id IN ({$id_sql})");
+        if(is_wp_error($rows))return$rows;
+        $out=[];foreach($rows as $row){$id=absint($row['term_id']);$out[$id]=['id'=>$id,'name'=>(string)$row['name'],'components'=>[]];}if(!$out)return$out;
+        $nodes=seo_environment_compare_query_rows($mysqli,"SELECT object_id,SHA2(COALESCE(GROUP_CONCAT(CASE WHEN status=1 THEN SHA2(COALESCE(keywords,''),256) END ORDER BY id SEPARATOR '|'),''),256) AS row_hash FROM `{$prefix}seo_nodes` WHERE object_type='category' AND seo_role='category' AND object_id IN ({$id_sql}) GROUP BY object_id");
+        if(!is_wp_error($nodes))foreach($nodes as $row){$id=absint($row['object_id']);if(isset($out[$id]))$out[$id]['components']['tags']=(string)$row['row_hash'];}
+        $empty=seo_environment_compare_empty_hash();foreach($out as &$item){if(!isset($item['components']['tags']))$item['components']['tags']=$empty;$item['hash']=seo_environment_compare_hash($item['components']);}unset($item);
+        return$out;
+    }
+}
+
+if ( ! function_exists( 'seo_environment_compare_fetch_post_custom_tag_snapshots' ) ) {
+    function seo_environment_compare_fetch_post_custom_tag_snapshots( $mysqli, $prefix, $post_type, array $ids ) {
+        $out=seo_environment_compare_fetch_native_tag_snapshots($mysqli,$prefix,$post_type,'post_tag',$ids);if(is_wp_error($out)||!$out)return$out;
+        $id_sql=seo_environment_compare_sql_ids($ids);$type=mysqli_real_escape_string($mysqli,$post_type);
+        $nodes=seo_environment_compare_query_rows($mysqli,"SELECT object_id,SHA2(GROUP_CONCAT(CONCAT(seo_role,':',SHA2(COALESCE(keywords,''),256)) ORDER BY seo_role,id SEPARATOR '|'),256) AS row_hash FROM `{$prefix}seo_nodes` WHERE object_type='{$type}' AND object_id IN ({$id_sql}) AND status=1 AND seo_role NOT IN ('excerpt','description','ambito') GROUP BY object_id");
+        if(!is_wp_error($nodes))foreach($nodes as $row){$id=absint($row['object_id']);if(isset($out[$id]))$out[$id]['components']['seo_tags']=(string)$row['row_hash'];}
+        $empty=seo_environment_compare_empty_hash();foreach($out as &$item){if(!isset($item['components']['seo_tags']))$item['components']['seo_tags']=$empty;ksort($item['components']);$item['hash']=seo_environment_compare_hash($item['components']);}unset($item);
+        return$out;
     }
 }
 
 if ( ! function_exists( 'seo_environment_compare_fetch_faq_snapshots' ) ) {
     function seo_environment_compare_fetch_faq_snapshots( $mysqli, $prefix, array $ids ) {
         $id_sql=seo_environment_compare_sql_ids($ids);
-        $sql="SELECT id,object_type,object_id,updated_at,
+        $sql="SELECT id,object_type,object_id,
                      SHA2(CONCAT_WS(CHAR(31),SHA2(COALESCE(question,''),256),SHA2(COALESCE(answer,''),256)),256) AS content_hash,
                      SHA2(CONCAT_WS(CHAR(31),sort_order,active),256) AS settings_hash,
                      SHA2(CONCAT_WS(CHAR(31),object_type,object_id),256) AS target_hash
               FROM `{$prefix}seo_faq` WHERE id IN ({$id_sql})";
         $rows=seo_environment_compare_query_rows($mysqli,$sql); if(is_wp_error($rows))return $rows;
-        $out=[];foreach($rows as $row){$id=absint($row['id']);$components=['content'=>(string)$row['content_hash'],'settings'=>(string)$row['settings_hash'],'target'=>(string)$row['target_hash']];$out[$id]=['id'=>$id,'name'=>'FAQ #'.$id.' · objeto '.absint($row['object_type']).'/'.absint($row['object_id']),'modified'=>(string)$row['updated_at'],'components'=>$components,'hash'=>seo_environment_compare_hash($components)];}return $out;
+        $out=[];foreach($rows as $row){$id=absint($row['id']);$components=['content'=>(string)$row['content_hash'],'settings'=>(string)$row['settings_hash'],'target'=>(string)$row['target_hash']];$out[$id]=['id'=>$id,'name'=>'FAQ #'.$id.' · objeto '.absint($row['object_type']).'/'.absint($row['object_id']),'components'=>$components,'hash'=>seo_environment_compare_hash($components)];}
+        return $out;
     }
 }
 
 if ( ! function_exists( 'seo_environment_compare_fetch_snapshots' ) ) {
     function seo_environment_compare_fetch_snapshots( $mysqli, $env, $entity, array $ids ) {
         $prefix=seo_environment_compare_db_prefix($env);
-        if('products'===$entity)return seo_environment_compare_fetch_post_snapshots($mysqli,$prefix,'product',$ids,true);
-        if('pages'===$entity)return seo_environment_compare_fetch_post_snapshots($mysqli,$prefix,'page',$ids,false);
-        if('posts'===$entity)return seo_environment_compare_fetch_post_snapshots($mysqli,$prefix,'post',$ids,false);
-        if('categories'===$entity)return seo_environment_compare_fetch_category_snapshots($mysqli,$prefix,$ids);
-        return seo_environment_compare_fetch_faq_snapshots($mysqli,$prefix,$ids);
+        switch($entity){
+            case 'products_general': return seo_environment_compare_fetch_post_general_snapshots($mysqli,$prefix,'product',$ids,true);
+            case 'categories_general': return seo_environment_compare_fetch_category_general_snapshots($mysqli,$prefix,$ids);
+            case 'pages_general': return seo_environment_compare_fetch_post_general_snapshots($mysqli,$prefix,'page',$ids,false);
+            case 'posts_general': return seo_environment_compare_fetch_post_general_snapshots($mysqli,$prefix,'post',$ids,false);
+            case 'product_tags': return seo_environment_compare_fetch_native_tag_snapshots($mysqli,$prefix,'product','product_tag',$ids);
+            case 'product_semantic': return seo_environment_compare_fetch_semantic_snapshots($mysqli,$prefix,'product','product',$ids);
+            case 'product_attributes': return seo_environment_compare_fetch_product_attribute_snapshots($mysqli,$prefix,$ids);
+            case 'category_tags': return seo_environment_compare_fetch_category_tag_snapshots($mysqli,$prefix,$ids);
+            case 'category_semantic': return seo_environment_compare_fetch_semantic_snapshots($mysqli,$prefix,'','product_cat',$ids);
+            case 'page_tags': return seo_environment_compare_fetch_post_custom_tag_snapshots($mysqli,$prefix,'page',$ids);
+            case 'post_tags': return seo_environment_compare_fetch_post_custom_tag_snapshots($mysqli,$prefix,'post',$ids);
+            default: return seo_environment_compare_fetch_faq_snapshots($mysqli,$prefix,$ids);
+        }
     }
 }
 
@@ -507,31 +461,20 @@ if ( ! function_exists( 'seo_environment_compare_component_labels' ) ) {
 if ( ! function_exists( 'seo_environment_compare_diff_components' ) ) {
     function seo_environment_compare_diff_components( array $a, array $b ) {
         $labels=seo_environment_compare_component_labels();$keys=array_unique(array_merge(array_keys($a),array_keys($b)));$diff=[];
-        foreach($keys as $key){if((string)($a[$key]??'')!==(string)($b[$key]??''))$diff[]=$labels[$key]??$key;}
+        foreach($keys as $key){if((string)($a[$key]??'')!==(string)($b[$key]??'')){if(0===strpos($key,'semantic_'))$diff[]='semántica '.strtoupper(substr($key,9));else$diff[]=$labels[$key]??$key;}}
         return $diff;
     }
 }
 
-if ( ! function_exists( 'seo_environment_compare_newer' ) ) {
-    function seo_environment_compare_newer( $pro_date, $staging_date ) {
-        $p = trim( (string) $pro_date );
-        $s = trim( (string) $staging_date );
-        if ( $p !== '' && $s !== '' ) {
-            $cmp = strcmp( $p, $s );
-            if ( $cmp > 0 ) return 'pro';
-            if ( $cmp < 0 ) return 'staging';
-        }
-        return 'conflict';
-    }
-}
-
 if ( ! function_exists( 'seo_environment_compare_store_diff' ) ) {
-    function seo_environment_compare_store_diff( $entity, $id, $pro, $staging, $status, $newer, array $diffs ) {
+    function seo_environment_compare_store_diff( $entity, $id, $pro, $staging, $status, array $diffs ) {
         global $wpdb;$table=seo_environment_compare_table();
+        // newer_env/modified_* se conservan en la tabla por compatibilidad con
+        // instalaciones existentes, pero desde v2.1 no participan en la logica.
         $wpdb->replace($table,[
-            'entity'=>$entity,'object_id'=>absint($id),'status'=>$status,'newer_env'=>$newer,
+            'entity'=>$entity,'object_id'=>absint($id),'status'=>$status,'newer_env'=>'',
             'name_pro'=>(string)($pro['name']??''),'name_staging'=>(string)($staging['name']??''),
-            'modified_pro'=>!empty($pro['modified'])?$pro['modified']:null,'modified_staging'=>!empty($staging['modified'])?$staging['modified']:null,
+            'modified_pro'=>null,'modified_staging'=>null,
             'hash_pro'=>(string)($pro['hash']??''),'hash_staging'=>(string)($staging['hash']??''),
             'summary'=>implode(', ',$diffs),'details_json'=>wp_json_encode(['differences'=>$diffs]),'scanned_at'=>current_time('mysql',true),
         ],['%s','%d','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s']);
@@ -549,7 +492,7 @@ if ( ! function_exists( 'seo_environment_compare_scan_ajax' ) ) {
         $reset=!empty($_POST['reset']);$state=seo_environment_compare_get_state($entity);
         if($reset||!in_array($state['status'],['running','complete'],true)){
             global $wpdb;$wpdb->delete(seo_environment_compare_table(),['entity'=>$entity],['%s']);
-            $state=['status'=>'running','cursor'=>0,'processed'=>0,'pro'=>0,'staging'=>0,'same'=>0,'different'=>0,'only_pro'=>0,'only_staging'=>0,'newer_pro'=>0,'newer_staging'=>0,'conflict'=>0,'started_at'=>time(),'finished_at'=>0,'error'=>''];
+            $state=['status'=>'running','cursor'=>0,'processed'=>0,'pro'=>0,'staging'=>0,'same'=>0,'different'=>0,'only_pro'=>0,'only_staging'=>0,'started_at'=>time(),'finished_at'=>0,'error'=>''];
         } elseif('complete'===$state['status']&&!$reset){wp_send_json_success(['done'=>true,'state'=>$state]);}
 
         $pro=seo_environment_compare_open('pro');$stg=seo_environment_compare_open('staging');
@@ -568,10 +511,10 @@ if ( ! function_exists( 'seo_environment_compare_scan_ajax' ) ) {
         global $wpdb;$table=seo_environment_compare_table();
         foreach($ids as $id){$p=$pro_rows[$id]??null;$s=$stg_rows[$id]??null;$state['processed']++;
             if($p)$state['pro']++;if($s)$state['staging']++;
-            if(!$p||!$s){$status=$p?'only_pro':'only_staging';$state[$status]++;seo_environment_compare_store_diff($entity,$id,$p?:[],$s?:[],$status,'',[$p?'solo existe en PRO':'solo existe en STAGING']);continue;}
+            if(!$p||!$s){$status=$p?'only_pro':'only_staging';$state[$status]++;seo_environment_compare_store_diff($entity,$id,$p?:[],$s?:[],$status,[$p?'solo existe en PRO':'solo existe en STAGING']);continue;}
             if(hash_equals((string)$p['hash'],(string)$s['hash'])){$state['same']++;$wpdb->delete($table,['entity'=>$entity,'object_id'=>$id],['%s','%d']);continue;}
-            $state['different']++;$newer=seo_environment_compare_newer($p['modified'],$s['modified']);if('pro'===$newer)$state['newer_pro']++;elseif('staging'===$newer)$state['newer_staging']++;else$state['conflict']++;
-            $diffs=seo_environment_compare_diff_components($p['components'],$s['components']);seo_environment_compare_store_diff($entity,$id,$p,$s,'different',$newer,$diffs);
+            $state['different']++;
+            $diffs=seo_environment_compare_diff_components($p['components'],$s['components']);seo_environment_compare_store_diff($entity,$id,$p,$s,'different',$diffs);
         }
         $state['cursor']=max($ids);$state['status']='running';seo_environment_compare_set_state($entity,$state);
         wp_send_json_success(['done'=>false,'state'=>$state]);
@@ -752,14 +695,60 @@ if ( ! function_exists( 'seo_environment_sync_replace_selected_nodes_local' ) ) 
 
 if ( ! function_exists( 'seo_environment_sync_fetch_semantic' ) ) {
     function seo_environment_sync_fetch_semantic( $mysqli, $prefix, $object_type, $object_id ) {
-        $type=mysqli_real_escape_string($mysqli,$object_type);$id=absint($object_id);return seo_environment_compare_query_rows($mysqli,"SELECT v.semantic_group,v.slug,ov.updated_at FROM `{$prefix}seo_object_vocabulary` ov JOIN `{$prefix}seo_vocabulary` v ON v.id=ov.vocabulary_id WHERE ov.object_type='{$type}' AND ov.object_id={$id} AND ov.status=1 AND v.active=1 ORDER BY v.semantic_group,v.slug");
+        $type=mysqli_real_escape_string($mysqli,$object_type);$id=absint($object_id);
+        return seo_environment_compare_query_rows($mysqli,"SELECT
+            v.id AS source_vocabulary_id,v.semantic_group,v.slug,v.label,v.source AS vocabulary_source,v.active,v.created_at AS vocabulary_created_at,v.updated_at AS vocabulary_updated_at,
+            pv.semantic_group AS parent_group,pv.slug AS parent_slug,pv.label AS parent_label,pv.source AS parent_source,pv.created_at AS parent_created_at,pv.updated_at AS parent_updated_at,
+            ov.source AS assignment_source,ov.confidence,ov.created_at,ov.updated_at,
+            rv.semantic_group AS role_group,rv.slug AS role_slug,rv.label AS role_label,rv.source AS role_source,rv.created_at AS role_created_at,rv.updated_at AS role_updated_at,
+            m.confidence AS role_confidence,m.source AS role_map_source,m.updated_at AS role_map_updated_at
+            FROM `{$prefix}seo_object_vocabulary` ov
+            JOIN `{$prefix}seo_vocabulary` v ON v.id=ov.vocabulary_id
+            LEFT JOIN `{$prefix}seo_vocabulary` pv ON pv.id=v.parent_id
+            LEFT JOIN `{$prefix}seo_type_role_map` m ON m.type_vocabulary_id=v.id AND m.active=1 AND v.semantic_group='tipo'
+            LEFT JOIN `{$prefix}seo_vocabulary` rv ON rv.id=m.role_vocabulary_id
+            WHERE ov.object_type='{$type}' AND ov.object_id={$id} AND ov.status=1 AND v.active=1
+            ORDER BY v.semantic_group,v.slug");
     }
 }
 
-if ( ! function_exists( 'seo_environment_sync_semantic_groups_local' ) ) {
-    function seo_environment_sync_semantic_groups_local( array $rows ) {
-        global $wpdb;$table=$wpdb->prefix.'seo_vocabulary';$groups=[];$missing=[];
-        foreach($rows as $row){$group=sanitize_key($row['semantic_group']??'');$slug=sanitize_title($row['slug']??'');if(!$group||!$slug)continue;$id=$wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE semantic_group=%s AND slug=%s AND active=1 LIMIT 1",$group,$slug));if(!$id){$missing[]=$group.':'.$slug;continue;}$groups[$group][]=absint($id);}
+if ( ! function_exists( 'seo_environment_sync_upsert_vocabulary_term_local' ) ) {
+    function seo_environment_sync_upsert_vocabulary_term_local( array $row, $prefix_key = '' ) {
+        global $wpdb;$table=$wpdb->prefix.'seo_vocabulary';
+        $p=$prefix_key!==''?$prefix_key.'_':'';$group=sanitize_key($row[$p.'group']??$row[$p.'semantic_group']??'');$slug=sanitize_title($row[$p.'slug']??'');$label=sanitize_text_field($row[$p.'label']??$slug);if(!$group||!$slug)return new WP_Error('invalid_vocabulary','Vocabulario canónico incompleto.');
+        if ( '' === $prefix_key ) {
+            $src_updated=(string)($row['vocabulary_updated_at']??'');$src_created=(string)($row['vocabulary_created_at']??'');$src_source=sanitize_key($row['vocabulary_source']??'environment_sync')?:'environment_sync';
+        } else {
+            $src_updated=(string)($row[$p.'updated_at']??'');$src_created=(string)($row[$p.'created_at']??'');$src_source=sanitize_key($row[$p.'source']??'environment_sync')?:'environment_sync';
+        }
+        $existing=$wpdb->get_row($wpdb->prepare("SELECT id,label,active FROM {$table} WHERE semantic_group=%s AND slug=%s LIMIT 1",$group,$slug),ARRAY_A);
+        if($existing){
+            $id=absint($existing['id']);
+            if(!(int)$existing['active'])return new WP_Error('vocabulary_inactive_local','El vocabulario '.$group.':'.$slug.' ya existe pero está inactivo en el destino. Revísalo manualmente; las fechas no se usan para reactivarlo.');
+            return $id;
+        }
+        $data=['semantic_group'=>$group,'slug'=>$slug,'label'=>$label,'source'=>$src_source,'active'=>1];$formats=['%s','%s','%s','%s','%d'];
+        if($src_created){$data['created_at']=$src_created;$formats[]='%s';}if($src_updated){$data['updated_at']=$src_updated;$formats[]='%s';}
+        $ok=$wpdb->insert($table,$data,$formats);if(!$ok)return new WP_Error('vocabulary_insert',$wpdb->last_error?:'No se pudo crear vocabulario en el destino.');return absint($wpdb->insert_id);
+    }
+}
+
+if ( ! function_exists( 'seo_environment_sync_ensure_semantic_local' ) ) {
+    function seo_environment_sync_ensure_semantic_local( array $rows ) {
+        global $wpdb;$groups=[];$missing=[];
+        foreach($rows as $row){
+            $parent_id=0;if(!empty($row['parent_group'])&&!empty($row['parent_slug'])){$parent=['parent_group'=>$row['parent_group'],'parent_slug'=>$row['parent_slug'],'parent_label'=>$row['parent_label']??$row['parent_slug'],'parent_source'=>$row['parent_source']??'environment_sync','parent_created_at'=>$row['parent_created_at']??'','parent_updated_at'=>$row['parent_updated_at']??''];$parent_id=seo_environment_sync_upsert_vocabulary_term_local($parent,'parent');if(is_wp_error($parent_id))return$parent_id;}
+            $id=seo_environment_sync_upsert_vocabulary_term_local($row);if(is_wp_error($id))return$id;
+            if($parent_id)$wpdb->update($wpdb->prefix.'seo_vocabulary',['parent_id'=>$parent_id],['id'=>$id],['%d'],['%d']);
+            $group=sanitize_key($row['semantic_group']??'');if($group)$groups[$group][]=absint($id);
+            if('tipo'===$group&&!empty($row['role_slug'])){
+                $role=['role_group'=>$row['role_group']?:'rol','role_slug'=>$row['role_slug'],'role_label'=>$row['role_label']??$row['role_slug'],'role_source'=>$row['role_source']??'environment_sync','role_created_at'=>$row['role_created_at']??'','role_updated_at'=>$row['role_updated_at']??''];
+                $role_id=seo_environment_sync_upsert_vocabulary_term_local($role,'role');if(is_wp_error($role_id))return$role_id;
+                $map=$wpdb->prefix.'seo_type_role_map';$existing=$wpdb->get_row($wpdb->prepare("SELECT id,role_vocabulary_id,active FROM {$map} WHERE type_vocabulary_id=%d LIMIT 1",$id),ARRAY_A);
+                if(!$existing){$wpdb->insert($map,['type_vocabulary_id'=>$id,'role_vocabulary_id'=>$role_id,'confidence'=>(float)($row['role_confidence']??1),'source'=>sanitize_key($row['role_map_source']??'environment_sync')?:'environment_sync','active'=>1],['%d','%d','%f','%s','%d']);}
+                elseif(!(int)$existing['active']||absint($existing['role_vocabulary_id'])!==absint($role_id)){return new WP_Error('role_map_conflict','El mapeo maestro TIPO → ROL ya existe con otro estado o valor en el destino. Revísalo manualmente; no se decide por fecha.');}
+            }
+        }
         foreach($groups as &$ids)$ids=array_values(array_unique(array_map('absint',$ids)));unset($ids);return['groups'=>$groups,'missing'=>$missing];
     }
 }
@@ -795,7 +784,41 @@ if ( ! function_exists( 'seo_environment_sync_restore_semantic_dates_local' ) ) 
 
 if ( ! function_exists( 'seo_environment_sync_fetch_product_attributes' ) ) {
     function seo_environment_sync_fetch_product_attributes( $mysqli, $prefix, $product_id ) {
-        $id=absint($product_id);return seo_environment_compare_query_rows($mysqli,"SELECT a.slug AS attribute_type,a.tipo,t.nombre AS term_name,pa.valor_texto,pa.valor_numero,pa.valor_numero_max,pa.unidad,pa.valor_original FROM `{$prefix}sql_product_atributos` pa JOIN `{$prefix}sql_atributos` a ON a.id=pa.atributo_id LEFT JOIN `{$prefix}sql_atributos_terminos` t ON t.id=pa.termino_id WHERE pa.product_id={$id} ORDER BY a.slug,pa.orden,pa.id");
+        $id=absint($product_id);return seo_environment_compare_query_rows($mysqli,"SELECT
+            a.slug AS attribute_type,a.nombre AS attribute_name,a.grupo AS attribute_group,a.tipo AS attribute_data_type,a.unidad_tipo,a.unidad_base,a.multiple,a.filtrable,a.visible,a.seo,a.orden AS attribute_order,a.activo AS attribute_active,a.created_at AS attribute_created_at,a.updated_at AS attribute_updated_at,
+            t.slug AS term_slug,t.nombre AS term_name,t.orden AS term_order,t.activo AS term_active,
+            pa.valor_texto,pa.valor_numero,pa.valor_numero_max,pa.unidad,pa.valor_original,pa.orden
+            FROM `{$prefix}sql_product_atributos` pa JOIN `{$prefix}sql_atributos` a ON a.id=pa.atributo_id LEFT JOIN `{$prefix}sql_atributos_terminos` t ON t.id=pa.termino_id WHERE pa.product_id={$id} ORDER BY a.slug,pa.orden,pa.id");
+    }
+}
+
+if ( ! function_exists( 'seo_environment_sync_ensure_attribute_masters_local' ) ) {
+    function seo_environment_sync_ensure_attribute_masters_local( array $rows ) {
+        global $wpdb;$defs=$wpdb->prefix.'sql_atributos';$terms=$wpdb->prefix.'sql_atributos_terminos';$cache=[];
+        foreach($rows as $row){
+            $slug=sanitize_key($row['attribute_type']??'');if(!$slug)continue;
+            if(!isset($cache[$slug])){
+                $existing=$wpdb->get_row($wpdb->prepare("SELECT id,activo FROM {$defs} WHERE slug=%s LIMIT 1",$slug),ARRAY_A);
+                $src_updated=(string)($row['attribute_updated_at']??'');
+                $definition=['nombre'=>sanitize_text_field($row['attribute_name']??$slug),'grupo'=>sanitize_text_field($row['attribute_group']??''),'tipo'=>sanitize_key($row['attribute_data_type']??'texto')?:'texto','unidad_tipo'=>sanitize_text_field($row['unidad_tipo']??''),'unidad_base'=>sanitize_text_field($row['unidad_base']??''),'multiple'=>absint($row['multiple']??0),'filtrable'=>absint($row['filtrable']??0),'visible'=>absint($row['visible']??1),'seo'=>absint($row['seo']??1),'orden'=>(int)($row['attribute_order']??0),'activo'=>absint($row['attribute_active']??1)];
+                if(!$existing){
+                    $data=array_merge(['slug'=>$slug],$definition);$formats=['%s','%s','%s','%s','%s','%s','%d','%d','%d','%d','%d','%d'];
+                    if(!empty($row['attribute_created_at'])){$data['created_at']=(string)$row['attribute_created_at'];$formats[]='%s';}if($src_updated){$data['updated_at']=$src_updated;$formats[]='%s';}
+                    $ok=$wpdb->insert($defs,$data,$formats);if(!$ok)return new WP_Error('attribute_definition_insert',$wpdb->last_error?:'No se pudo crear la definición de atributo '.$slug.'.');$id=$wpdb->insert_id;
+                } else {
+                    $id=absint($existing['id']);
+                    if(!(int)$existing['activo'] && absint($row['attribute_active']??1))return new WP_Error('attribute_definition_inactive_local','El atributo maestro '.$slug.' ya existe pero está inactivo en el destino. Revísalo manualmente; las fechas no se usan para reactivarlo.');
+                    // Si el maestro ya existe y está activo se reutiliza. Esta capa
+                    // sincroniza valores de producto, no decide cambios globales del maestro.
+                }
+                $cache[$slug]=absint($id);
+            }
+            if(!empty($row['term_slug'])){
+                $term_slug=sanitize_title($row['term_slug']);$attribute_id=$cache[$slug];$existing_term=$wpdb->get_row($wpdb->prepare("SELECT id,activo FROM {$terms} WHERE atributo_id=%d AND slug=%s LIMIT 1",$attribute_id,$term_slug),ARRAY_A);
+                if(!$existing_term){$ok=$wpdb->insert($terms,['atributo_id'=>$attribute_id,'slug'=>$term_slug,'nombre'=>sanitize_text_field($row['term_name']??$term_slug),'orden'=>(int)($row['term_order']??0),'activo'=>absint($row['term_active']??1)],['%d','%s','%s','%d','%d']);if(!$ok)return new WP_Error('attribute_term_insert',$wpdb->last_error?:'No se pudo crear el término '.$slug.':'.$term_slug.'.');}
+                elseif(!(int)$existing_term['activo'] && absint($row['term_active']??1)){return new WP_Error('attribute_term_inactive','El término maestro '.$slug.':'.$term_slug.' está inactivo en el destino; no se reactiva automáticamente porque esa tabla no dispone de fecha de modificación fiable.');}
+            }
+        }return true;
     }
 }
 
@@ -805,145 +828,57 @@ if ( ! function_exists( 'seo_environment_sync_attribute_rows_local' ) ) {
     }
 }
 
-if ( ! function_exists( 'seo_environment_sync_pull_post_like' ) ) {
-    function seo_environment_sync_pull_post_like( $mysqli, $source_env, $entity, $id ) {
-        $prefix    = seo_environment_compare_db_prefix( $source_env );
-        $post_type = [ 'products'=>'product', 'pages'=>'page', 'posts'=>'post' ][ $entity ];
-        $src       = seo_environment_sync_fetch_post( $mysqli, $prefix, $post_type, $id );
-        if ( is_wp_error( $src ) || ! $src ) return is_wp_error( $src ) ? $src : new WP_Error( 'missing_source', 'El objeto origen ya no existe.' );
-
-        $local = get_post( $id );
-        if ( ! $local || $local->post_type !== $post_type ) return new WP_Error( 'missing_destination', 'El objeto no existe en el destino. No se crean objetos desde este comparador.' );
-
-        $allowed_taxonomies = 'products' === $entity ? [ 'product_cat', 'product_tag' ] : [ 'post_tag' ];
-        $terms = seo_environment_sync_fetch_terms( $mysqli, $prefix, $id, $allowed_taxonomies );
-        if ( is_wp_error( $terms ) ) return $terms;
-        $resolved = seo_environment_sync_resolve_terms_local( $terms );
-        if ( $resolved['missing'] ) return new WP_Error( 'missing_terms', 'Faltan términos en el destino: ' . implode( ', ', array_slice( $resolved['missing'], 0, 8 ) ) );
-
-        $label_nodes = [];
-        if ( 'products' !== $entity ) {
-            $label_nodes = seo_environment_sync_fetch_selected_nodes( $mysqli, $prefix, $post_type, $id, [], true );
-            if ( is_wp_error( $label_nodes ) ) return $label_nodes;
-        }
-
-        $semantic = [];
-        $attrs    = [];
-        if ( 'products' === $entity ) {
-            $semantic = seo_environment_sync_fetch_semantic( $mysqli, $prefix, 'product', $id );
-            if ( is_wp_error( $semantic ) ) return $semantic;
-            $sem_local = seo_environment_sync_semantic_groups_local( $semantic );
-            if ( $sem_local['missing'] ) return new WP_Error( 'missing_vocabulary', 'Falta vocabulario en el destino: ' . implode( ', ', array_slice( $sem_local['missing'], 0, 8 ) ) );
-            $attrs = seo_environment_sync_fetch_product_attributes( $mysqli, $prefix, $id );
-            if ( is_wp_error( $attrs ) ) return $attrs;
-        }
-
-        // Sincroniza solo los campos comparados. No toca slug, estado, precio,
-        // stock, layout, metadatos ni ningun campo de imagen.
-        $postarr = [
-            'ID'           => $id,
-            'post_title'   => (string) $src['post_title'],
-            'post_excerpt' => (string) $src['post_excerpt'],
-            'post_content' => (string) $src['post_content'],
-        ];
-        $updated = wp_update_post( wp_slash( $postarr ), true );
-        if ( is_wp_error( $updated ) ) return $updated;
-
-        foreach ( $allowed_taxonomies as $tax ) {
-            if ( ! taxonomy_exists( $tax ) ) continue;
-            $term_ids = $resolved['terms'][ $tax ] ?? [];
-            $r = wp_set_object_terms( $id, $term_ids, $tax, false );
-            if ( is_wp_error( $r ) ) return $r;
-        }
-
-        if ( 'products' === $entity ) {
-            if ( function_exists( 'seo_catalog_apply_product_vocabulary_changes' ) ) {
-                $groups = $sem_local['groups'];
-                if ( $groups ) {
-                    $r = seo_catalog_apply_product_vocabulary_changes( $id, $groups, 'environment_sync' );
-                    if ( empty( $r['ok'] ) ) return new WP_Error( 'semantic_sync', (string) ( $r['message'] ?? 'No se pudo sincronizar la semántica.' ) );
-                    seo_environment_sync_restore_semantic_dates_local( 'product', $id, $semantic );
-                }
-            }
-            if ( function_exists( 'seo_attributes_replace_product' ) ) {
-                seo_attributes_replace_product( $id, seo_environment_sync_attribute_rows_local( $attrs ), 'environment_sync' );
-            }
-            if ( function_exists( 'wc_delete_product_transients' ) ) wc_delete_product_transients( $id );
-        } else {
-            seo_environment_sync_replace_selected_nodes_local( $post_type, $id, $label_nodes, [], true );
-        }
-
-        if ( function_exists( 'seo_ie_sync_restore_post_modified' ) ) {
-            seo_ie_sync_restore_post_modified(
-                $id,
-                [ 'fecha_modificada'=>(string)$src['post_modified'], 'fecha_modificada_gmt'=>(string)$src['post_modified_gmt'] ],
-                'fecha_modificada',
-                'fecha_modificada_gmt'
-            );
-        }
-        clean_post_cache( $id );
-        return true;
+if ( ! function_exists( 'seo_environment_sync_resolve_or_create_terms_local' ) ) {
+    function seo_environment_sync_resolve_or_create_terms_local( array $rows, array $creatable_taxonomies = [] ) {
+        $resolved=seo_environment_sync_resolve_terms_local($rows);if(!$resolved['missing'])return$resolved;
+        $creatable_taxonomies=array_map('sanitize_key',$creatable_taxonomies);$missing=[];
+        foreach($rows as $row){$tax=sanitize_key($row['taxonomy']??'');$slug=sanitize_title($row['slug']??'');$name=sanitize_text_field($row['name']??$slug);if(!$tax||!$slug||!in_array($tax,$creatable_taxonomies,true))continue;$term=get_term_by('slug',$slug,$tax);if(!$term){$created=wp_insert_term($name,$tax,['slug'=>$slug]);if(is_wp_error($created))return['terms'=>$resolved['terms'],'missing'=>[$tax.':'.$slug.' ('.$created->get_error_message().')']];}}
+        return seo_environment_sync_resolve_terms_local($rows);
     }
 }
 
-if ( ! function_exists( 'seo_environment_sync_pull_category' ) ) {
-    function seo_environment_sync_pull_category( $mysqli, $source_env, $id ) {
-        $prefix = seo_environment_compare_db_prefix( $source_env );
-        $id     = absint( $id );
+if ( ! function_exists( 'seo_environment_sync_pull_general_post' ) ) {
+    function seo_environment_sync_pull_general_post( $mysqli, $source_env, $entity, $id ) {
+        $prefix=seo_environment_compare_db_prefix($source_env);$post_type=['products_general'=>'product','pages_general'=>'page','posts_general'=>'post'][$entity];$src=seo_environment_sync_fetch_post($mysqli,$prefix,$post_type,$id);if(is_wp_error($src)||!$src)return is_wp_error($src)?$src:new WP_Error('missing_source','El objeto origen ya no existe.');$local=get_post($id);if(!$local||$local->post_type!==$post_type)return new WP_Error('missing_destination','El objeto no existe en el destino. No se crean objetos desde este comparador.');
+        $postarr=['ID'=>$id,'post_title'=>(string)$src['post_title'],'post_excerpt'=>(string)$src['post_excerpt'],'post_content'=>(string)$src['post_content']];$updated=wp_update_post(wp_slash($postarr),true);if(is_wp_error($updated))return$updated;
+        if('products_general'===$entity){$terms=seo_environment_sync_fetch_terms($mysqli,$prefix,$id,['product_cat']);if(is_wp_error($terms))return$terms;$resolved=seo_environment_sync_resolve_terms_local($terms);if($resolved['missing'])return new WP_Error('missing_categories','Faltan categorías en el destino: '.implode(', ',array_slice($resolved['missing'],0,8)).'. Sincroniza primero las categorías.');$r=wp_set_object_terms($id,$resolved['terms']['product_cat']??[],'product_cat',false);if(is_wp_error($r))return$r;}
+        if(function_exists('seo_ie_sync_restore_post_modified'))seo_ie_sync_restore_post_modified($id,['fecha_modificada'=>(string)$src['post_modified'],'fecha_modificada_gmt'=>(string)$src['post_modified_gmt']],'fecha_modificada','fecha_modificada_gmt');clean_post_cache($id);return true;
+    }
+}
 
-        $rows = seo_environment_compare_query_rows(
-            $mysqli,
-            "SELECT t.term_id,t.name
-             FROM `{$prefix}terms` t
-             JOIN `{$prefix}term_taxonomy` tt ON tt.term_id=t.term_id
-             WHERE tt.taxonomy='product_cat' AND t.term_id={$id}
-             LIMIT 1"
-        );
-        if ( is_wp_error( $rows ) ) return $rows;
-        $src = $rows[0] ?? null;
-        if ( ! $src ) return new WP_Error( 'missing_source', 'La categoría origen ya no existe.' );
+if ( ! function_exists( 'seo_environment_sync_pull_native_tags' ) ) {
+    function seo_environment_sync_pull_native_tags( $mysqli, $source_env, $entity, $id ) {
+        $prefix=seo_environment_compare_db_prefix($source_env);$map=['product_tags'=>['product','product_tag'],'page_tags'=>['page','post_tag'],'post_tags'=>['post','post_tag']];[$post_type,$taxonomy]=$map[$entity];$local=get_post($id);if(!$local||$local->post_type!==$post_type)return new WP_Error('missing_destination','El objeto no existe en el destino.');$terms=seo_environment_sync_fetch_terms($mysqli,$prefix,$id,[$taxonomy]);if(is_wp_error($terms))return$terms;$resolved=seo_environment_sync_resolve_or_create_terms_local($terms,[$taxonomy]);if($resolved['missing'])return new WP_Error('missing_terms','No se pudieron resolver términos: '.implode(', ',array_slice($resolved['missing'],0,8)));$r=wp_set_object_terms($id,$resolved['terms'][$taxonomy]??[],$taxonomy,false);if(is_wp_error($r))return$r;
+        if(in_array($entity,['page_tags','post_tags'],true)){$nodes=seo_environment_sync_fetch_selected_nodes($mysqli,$prefix,$post_type,$id,[],true);if(is_wp_error($nodes))return$nodes;seo_environment_sync_replace_selected_nodes_local($post_type,$id,$nodes,[],true);}clean_post_cache($id);return true;
+    }
+}
 
-        $local = get_term( $id, 'product_cat' );
-        if ( ! $local || is_wp_error( $local ) ) return new WP_Error( 'missing_destination', 'La categoría no existe en el destino. No se crean categorías desde este comparador.' );
+if ( ! function_exists( 'seo_environment_sync_pull_semantic' ) ) {
+    function seo_environment_sync_pull_semantic( $mysqli, $source_env, $entity, $id ) {
+        $prefix=seo_environment_compare_db_prefix($source_env);$object_type='product_semantic'===$entity?'product':'product_cat';if('product'===$object_type){$local=get_post($id);if(!$local||$local->post_type!=='product')return new WP_Error('missing_destination','El producto no existe en el destino.');}else{$local=get_term($id,'product_cat');if(!$local||is_wp_error($local))return new WP_Error('missing_destination','La categoría no existe en el destino.');}
+        $rows=seo_environment_sync_fetch_semantic($mysqli,$prefix,$object_type,$id);if(is_wp_error($rows))return$rows;$sem=seo_environment_sync_ensure_semantic_local($rows);if(is_wp_error($sem))return$sem;
+        $all=['rol'=>[],'tipo'=>[],'aplicacion'=>[],'plataforma'=>[],'subtipo'=>[]];foreach($sem['groups'] as $g=>$ids)$all[$g]=$ids;
+        if('product'===$object_type){if(!function_exists('seo_catalog_apply_product_vocabulary_changes'))return new WP_Error('semantic_writer_missing','No está disponible el escritor canónico de producto.');$r=seo_catalog_apply_product_vocabulary_changes($id,$all,'environment_sync');if(empty($r['ok']))return new WP_Error('semantic_sync',(string)($r['message']??'No se pudo sincronizar la semántica.'));}
+        else{if(!function_exists('seo_category_vocabulary_replace'))return new WP_Error('semantic_writer_missing','No está disponible el escritor canónico de categorías.');$r=seo_category_vocabulary_replace($id,$all,'environment_sync');if(is_wp_error($r))return$r;}
+        seo_environment_sync_restore_semantic_dates_local($object_type,$id,$rows);return true;
+    }
+}
 
-        $roles = [ 'category', 'excerpt', 'description' ];
-        $nodes = seo_environment_sync_fetch_selected_nodes( $mysqli, $prefix, 'category', $id, $roles, false );
-        if ( is_wp_error( $nodes ) ) return $nodes;
+if ( ! function_exists( 'seo_environment_sync_pull_product_attributes' ) ) {
+    function seo_environment_sync_pull_product_attributes( $mysqli, $source_env, $id ) {
+        $local=get_post($id);if(!$local||$local->post_type!=='product')return new WP_Error('missing_destination','El producto no existe en el destino.');$prefix=seo_environment_compare_db_prefix($source_env);$rows=seo_environment_sync_fetch_product_attributes($mysqli,$prefix,$id);if(is_wp_error($rows))return$rows;$masters=seo_environment_sync_ensure_attribute_masters_local($rows);if(is_wp_error($masters))return$masters;if(!function_exists('seo_attributes_replace_product'))return new WP_Error('attribute_writer_missing','No está disponible el escritor canónico de atributos.');seo_attributes_replace_product($id,seo_environment_sync_attribute_rows_local($rows),'environment_sync');if(function_exists('wc_delete_product_transients'))wc_delete_product_transients($id);return true;
+    }
+}
 
-        $semantic = seo_environment_sync_fetch_semantic( $mysqli, $prefix, 'product_cat', $id );
-        if ( is_wp_error( $semantic ) ) return $semantic;
-        $sem_local = seo_environment_sync_semantic_groups_local( $semantic );
-        if ( $sem_local['missing'] ) return new WP_Error( 'missing_vocabulary', 'Falta vocabulario en el destino: ' . implode( ', ', array_slice( $sem_local['missing'], 0, 8 ) ) );
+if ( ! function_exists( 'seo_environment_sync_pull_category_general' ) ) {
+    function seo_environment_sync_pull_category_general( $mysqli, $source_env, $id ) {
+        $prefix=seo_environment_compare_db_prefix($source_env);$id=absint($id);$rows=seo_environment_compare_query_rows($mysqli,"SELECT t.term_id,t.name FROM `{$prefix}terms` t JOIN `{$prefix}term_taxonomy` tt ON tt.term_id=t.term_id WHERE tt.taxonomy='product_cat' AND t.term_id={$id} LIMIT 1");if(is_wp_error($rows))return$rows;$src=$rows[0]??null;if(!$src)return new WP_Error('missing_source','La categoría origen ya no existe.');$local=get_term($id,'product_cat');if(!$local||is_wp_error($local))return new WP_Error('missing_destination','La categoría no existe en el destino. No se crean categorías desde este comparador.');$nodes=seo_environment_sync_fetch_selected_nodes($mysqli,$prefix,'category',$id,['excerpt','description'],false);if(is_wp_error($nodes))return$nodes;$r=wp_update_term($id,'product_cat',['name'=>(string)$src['name']]);if(is_wp_error($r))return$r;seo_environment_sync_replace_selected_nodes_local('category',$id,$nodes,['excerpt','description'],false);$date_rows=seo_environment_compare_query_rows($mysqli,"SELECT meta_value FROM `{$prefix}termmeta` WHERE term_id={$id} AND meta_key='_seo_sync_modified_gmt' ORDER BY meta_id DESC LIMIT 1");$date=!is_wp_error($date_rows)&&!empty($date_rows[0]['meta_value'])?(string)$date_rows[0]['meta_value']:'';if(function_exists('seo_ie_sync_restore_category_modified')&&$date)seo_ie_sync_restore_category_modified($id,['fecha_modificada_gmt'=>$date]);clean_term_cache($id,'product_cat');return true;
+    }
+}
 
-        // Solo el nombre forma parte de WordPress core en este criterio. Slug,
-        // parent, descripcion nativa, termmeta e imagen destacada se preservan.
-        $r = wp_update_term( $id, 'product_cat', [ 'name' => (string) $src['name'] ] );
-        if ( is_wp_error( $r ) ) return $r;
-
-        seo_environment_sync_replace_selected_nodes_local( 'category', $id, $nodes, $roles, false );
-
-        if ( function_exists( 'seo_category_vocabulary_replace' ) ) {
-            $all_groups = [ 'rol'=>[], 'tipo'=>[], 'aplicacion'=>[], 'plataforma'=>[], 'subtipo'=>[] ];
-            foreach ( $sem_local['groups'] as $group => $ids ) $all_groups[ $group ] = $ids;
-            $vr = seo_category_vocabulary_replace( $id, $all_groups, 'environment_sync' );
-            if ( is_wp_error( $vr ) ) return $vr;
-            seo_environment_sync_restore_semantic_dates_local( 'product_cat', $id, $semantic );
-        }
-
-        $sync_date_rows = seo_environment_compare_query_rows(
-            $mysqli,
-            "SELECT meta_value FROM `{$prefix}termmeta`
-             WHERE term_id={$id} AND meta_key='_seo_sync_modified_gmt'
-             ORDER BY meta_id DESC LIMIT 1"
-        );
-        $sync_date = ! is_wp_error( $sync_date_rows ) && ! empty( $sync_date_rows[0]['meta_value'] )
-            ? (string) $sync_date_rows[0]['meta_value']
-            : '';
-        if ( function_exists( 'seo_ie_sync_restore_category_modified' ) && $sync_date ) {
-            seo_ie_sync_restore_category_modified( $id, [ 'fecha_modificada_gmt' => $sync_date ] );
-        }
-        clean_term_cache( $id, 'product_cat' );
-        return true;
+if ( ! function_exists( 'seo_environment_sync_pull_category_tags' ) ) {
+    function seo_environment_sync_pull_category_tags( $mysqli, $source_env, $id ) {
+        $local=get_term($id,'product_cat');if(!$local||is_wp_error($local))return new WP_Error('missing_destination','La categoría no existe en el destino.');$prefix=seo_environment_compare_db_prefix($source_env);$nodes=seo_environment_sync_fetch_selected_nodes($mysqli,$prefix,'category',$id,['category'],false);if(is_wp_error($nodes))return$nodes;seo_environment_sync_replace_selected_nodes_local('category',$id,$nodes,['category'],false);return true;
     }
 }
 
@@ -956,7 +891,15 @@ if ( ! function_exists( 'seo_environment_sync_pull_faq' ) ) {
 if ( ! function_exists( 'seo_environment_sync_pull_item' ) ) {
     function seo_environment_sync_pull_item( $source_env, $entity, $id, $mysqli=null ) {
         $own=false;if(!$mysqli){$mysqli=seo_environment_compare_open($source_env);$own=true;}if(is_wp_error($mysqli))return$mysqli;
-        if(in_array($entity,['products','pages','posts'],true))$result=seo_environment_sync_pull_post_like($mysqli,$source_env,$entity,$id);elseif('categories'===$entity)$result=seo_environment_sync_pull_category($mysqli,$source_env,$id);else$result=seo_environment_sync_pull_faq($mysqli,$source_env,$id);
+        switch($entity){
+            case 'products_general': case 'pages_general': case 'posts_general': $result=seo_environment_sync_pull_general_post($mysqli,$source_env,$entity,$id);break;
+            case 'categories_general': $result=seo_environment_sync_pull_category_general($mysqli,$source_env,$id);break;
+            case 'product_tags': case 'page_tags': case 'post_tags': $result=seo_environment_sync_pull_native_tags($mysqli,$source_env,$entity,$id);break;
+            case 'product_semantic': case 'category_semantic': $result=seo_environment_sync_pull_semantic($mysqli,$source_env,$entity,$id);break;
+            case 'product_attributes': $result=seo_environment_sync_pull_product_attributes($mysqli,$source_env,$id);break;
+            case 'category_tags': $result=seo_environment_sync_pull_category_tags($mysqli,$source_env,$id);break;
+            default: $result=seo_environment_sync_pull_faq($mysqli,$source_env,$id);
+        }
         if($own&&$mysqli instanceof mysqli)@mysqli_close($mysqli);return$result;
     }
 }
@@ -970,9 +913,18 @@ if ( ! function_exists( 'seo_environment_sync_validate_direction' ) ) {
 }
 
 if ( ! function_exists( 'seo_environment_sync_revalidate_item' ) ) {
-    function seo_environment_sync_revalidate_item( $entity, $id, $source ) {
+    function seo_environment_sync_revalidate_item( $entity, $id, $source = '' ) {
+        global $wpdb;$table=seo_environment_compare_table();
+        $scan=$wpdb->get_row($wpdb->prepare("SELECT status,hash_pro,hash_staging FROM {$table} WHERE entity=%s AND object_id=%d LIMIT 1",$entity,absint($id)),ARRAY_A);
+        if(!$scan||'different'!==($scan['status']??''))return new WP_Error('scan_required','La fila no pertenece a un escaneo vigente de diferencias. Vuelve a escanear.');
         $pro=seo_environment_compare_open('pro');$stg=seo_environment_compare_open('staging');if(is_wp_error($pro)||is_wp_error($stg)){if($pro instanceof mysqli)@mysqli_close($pro);if($stg instanceof mysqli)@mysqli_close($stg);return is_wp_error($pro)?$pro:$stg;}
-        $p=seo_environment_compare_fetch_snapshots($pro,'pro',$entity,[$id]);$s=seo_environment_compare_fetch_snapshots($stg,'staging',$entity,[$id]);@mysqli_close($pro);@mysqli_close($stg);if(is_wp_error($p)||is_wp_error($s))return is_wp_error($p)?$p:$s;if(empty($p[$id])||empty($s[$id]))return new WP_Error('missing_object','El objeto ya no existe en ambos entornos. Solo se informa; no se crea ni elimina.');if(hash_equals((string)$p[$id]['hash'],(string)$s[$id]['hash']))return new WP_Error('already_equal','El objeto ya está igual en ambos entornos.');$newer=seo_environment_compare_newer($p[$id]['modified'],$s[$id]['modified']);if($newer!==$source)return new WP_Error('not_newer','La versión de '.$source.' no es más reciente. Se bloquea para no pisar datos nuevos.');return true;
+        $p=seo_environment_compare_fetch_snapshots($pro,'pro',$entity,[$id]);$s=seo_environment_compare_fetch_snapshots($stg,'staging',$entity,[$id]);@mysqli_close($pro);@mysqli_close($stg);
+        if(is_wp_error($p)||is_wp_error($s))return is_wp_error($p)?$p:$s;
+        if(empty($p[$id])||empty($s[$id]))return new WP_Error('missing_object','El objeto ya no existe en ambos entornos. Solo se informa; no se crea ni elimina.');
+        $fresh_pro=(string)$p[$id]['hash'];$fresh_staging=(string)$s[$id]['hash'];
+        if(!hash_equals((string)$scan['hash_pro'],$fresh_pro)||!hash_equals((string)$scan['hash_staging'],$fresh_staging))return new WP_Error('stale_scan','PRO o STAGING cambió después del último escaneo. No se sobrescribe nada: vuelve a escanear antes de elegir dirección.');
+        if(hash_equals($fresh_pro,$fresh_staging))return new WP_Error('already_equal','El objeto ya está igual en ambos entornos.');
+        return true;
     }
 }
 
@@ -989,9 +941,9 @@ add_action('wp_ajax_seo_environment_sync_item','seo_environment_sync_item_ajax')
 if ( ! function_exists( 'seo_environment_sync_bulk_ajax' ) ) {
     function seo_environment_sync_bulk_ajax() {
         if(!current_user_can('manage_options'))wp_send_json_error(['message'=>'Sin permisos.'],403);check_ajax_referer('seo_environment_compare','nonce');$entity=sanitize_key($_POST['entity']??'');$source=sanitize_key($_POST['source']??'');$destination=sanitize_key($_POST['destination']??'');if(!isset(seo_environment_compare_entities()[$entity]))wp_send_json_error(['message'=>'Entidad no válida.'],400);$dir=seo_environment_sync_validate_direction($source,$destination);if(is_wp_error($dir))wp_send_json_error(['message'=>$dir->get_error_message()],400);
-        global$wpdb;$table=seo_environment_compare_table();$ids=$wpdb->get_col($wpdb->prepare("SELECT object_id FROM {$table} WHERE entity=%s AND status='different' AND newer_env=%s ORDER BY object_id ASC LIMIT 5",$entity,$source));if(!$ids)wp_send_json_success(['done'=>true,'updated'=>0,'errors'=>[]]);$mysqli=seo_environment_compare_open($source);if(is_wp_error($mysqli))wp_send_json_error(['message'=>$mysqli->get_error_message()],500);$updated=0;$errors=[];
-        foreach($ids as$id){$id=absint($id);$valid=seo_environment_sync_revalidate_item($entity,$id,$source);if(is_wp_error($valid)){$errors[]='#'.$id.': '.$valid->get_error_message();continue;}$r=seo_environment_sync_pull_item($source,$entity,$id,$mysqli);if(is_wp_error($r)){$errors[]='#'.$id.': '.$r->get_error_message();continue;}$wpdb->delete($table,['entity'=>$entity,'object_id'=>$id],['%s','%d']);$updated++;}
-        @mysqli_close($mysqli);$remaining=(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE entity=%s AND status='different' AND newer_env=%s",$entity,$source));wp_send_json_success(['done'=>0===$remaining,'updated'=>$updated,'remaining'=>$remaining,'errors'=>$errors]);
+        global$wpdb;$table=seo_environment_compare_table();$ids=$wpdb->get_col($wpdb->prepare("SELECT object_id FROM {$table} WHERE entity=%s AND status='different' ORDER BY object_id ASC LIMIT 5",$entity));if(!$ids)wp_send_json_success(['done'=>true,'updated'=>0,'errors'=>[]]);$mysqli=seo_environment_compare_open($source);if(is_wp_error($mysqli))wp_send_json_error(['message'=>$mysqli->get_error_message()],500);$updated=0;$errors=[];
+        foreach($ids as$id){$id=absint($id);$valid=seo_environment_sync_revalidate_item($entity,$id,$source);if(is_wp_error($valid)){$message=$valid->get_error_message();$errors[]='#'.$id.': '.$message;$wpdb->update($table,['status'=>'blocked','summary'=>'Bloqueado: '.$message],['entity'=>$entity,'object_id'=>$id],['%s','%s'],['%s','%d']);continue;}$r=seo_environment_sync_pull_item($source,$entity,$id,$mysqli);if(is_wp_error($r)){$message=$r->get_error_message();$errors[]='#'.$id.': '.$message;$wpdb->update($table,['status'=>'blocked','summary'=>'Bloqueado: '.$message],['entity'=>$entity,'object_id'=>$id],['%s','%s'],['%s','%d']);continue;}$wpdb->delete($table,['entity'=>$entity,'object_id'=>$id],['%s','%d']);$updated++;}
+        @mysqli_close($mysqli);$remaining=(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE entity=%s AND status='different'",$entity));$blocked=(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE entity=%s AND status='blocked'",$entity));wp_send_json_success(['done'=>0===$remaining,'updated'=>$updated,'remaining'=>$remaining,'blocked'=>$blocked,'errors'=>$errors]);
     }
 }
 add_action('wp_ajax_seo_environment_sync_bulk','seo_environment_sync_bulk_ajax');
@@ -1000,24 +952,24 @@ if ( ! function_exists( 'seo_environment_compare_render' ) ) {
     function seo_environment_compare_render() {
         if(!current_user_can('manage_options'))return;seo_environment_compare_install();global$wpdb;$table=seo_environment_compare_table();$entities=seo_environment_compare_entities();$current=seo_environment_compare_current_env();$nonce=wp_create_nonce('seo_environment_compare');
         echo '<div class="seo-env-compare">';
-        echo '<div class="card" style="max-width:none;padding:18px;margin-bottom:18px;"><h2 style="margin-top:0;">Comparar PRO ↔ STAGING</h2><p>El panel no consulta ninguna BBDD remota al cargar. Cada botón <strong>Escanear</strong> compara solo una entidad, por lotes pequeños, y guarda localmente únicamente hashes, fechas y un resumen de diferencias. No se muestra el contenido de descripciones, páginas o respuestas.</p><p><strong>Criterio de comparación:</strong> productos = título, excerpt, description, etiquetas, atributos y categoría asociada; categorías = nombre, excerpt, description y etiquetas; páginas y posts = título, excerpt, description y etiquetas. Las FAQs mantienen su criterio propio.</p><p><strong>Imágenes excluidas:</strong> cualquier imagen, ID de attachment, miniatura o galería se ignora tanto al comparar como al sincronizar desde este panel. El sistema puede usar imágenes alojadas externamente por proveedores y no se consideran identidad de contenido.</p><p><strong>Regla de sincronización:</strong> nunca crea ni elimina objetos y nunca pisa una versión más reciente. La sincronización de productos, categorías, páginas y posts se limita a los campos que compara este panel. Si un objeto existe solo en un entorno se informa. Si dos versiones difieren pero tienen la misma fecha, se marca como conflicto.</p><p>Entorno actual detectado: <strong>'.esc_html($current?strtoupper($current):'NO IDENTIFICADO').'</strong>.</p></div>';
-        echo '<style>.seo-env-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:16px 0 24px}.seo-env-kpi{background:#fff;border:1px solid #dcdcde;border-radius:7px;padding:14px}.seo-env-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}.seo-env-green{background:#00a32a}.seo-env-yellow{background:#dba617}.seo-env-red{background:#d63638}.seo-env-gray{background:#8c8f94}.seo-env-count{font-size:24px;font-weight:650}.seo-env-section{background:#fff;border:1px solid #dcdcde;border-radius:7px;padding:16px;margin:0 0 18px}.seo-env-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.seo-env-table{width:100%;border-collapse:collapse}.seo-env-table th,.seo-env-table td{padding:8px;border-bottom:1px solid #eee;text-align:left;vertical-align:top}.seo-env-muted{color:#646970;font-size:12px}.seo-env-progress{margin-left:8px}</style>';
+        echo '<div class="card" style="max-width:none;padding:18px;margin-bottom:18px;"><h2 style="margin-top:0;">Comparar PRO ↔ STAGING por capas</h2><p>El comparador separa los datos para que una edición nueva de clasificación nunca se pierda al actualizar contenido general.</p><p><strong>Información general:</strong> productos = título, excerpt, description y categorías asociadas; categorías = nombre, excerpt y description; páginas/posts = título, excerpt y description.</p><p><strong>Clasificación:</strong> etiquetas WordPress/WooCommerce, etiquetas SEO de categoría/página/post, vocabulario semántico canónico y atributos de producto se escanean y sincronizan en bloques independientes.</p><p><strong>Vocabulario dependiente:</strong> si una asignación semántica o atributo del origen necesita una definición que no existe en el destino, el comparador crea primero la definición necesaria por su clave canónica y después aplica la asignación. Nunca copia IDs maestros a ciegas.</p><p><strong>Imágenes excluidas:</strong> imágenes, attachment IDs, miniaturas y galerías no participan en ninguna capa.</p><p><strong>Fechas ignoradas:</strong> las fechas de modificación no participan en el resultado ni eligen dirección. Igual/Diferente depende exclusivamente del contenido relevante de la capa.</p><p><strong>Seguridad:</strong> la dirección la eliges tú. Antes de escribir se comparan de nuevo los hashes actuales con los del último escaneo; si cualquiera de los dos entornos cambió desde entonces, esa escritura se bloquea y exige reescanear.</p><p><strong>Altas nuevas:</strong> los productos/categorías/páginas/posts que existen solo en un entorno se informan, pero su creación completa se deja al importador canónico del plugin. El comparador no clona <code>postmeta</code> ni IDs internos a ciegas; una vez existe el objeto en ambos entornos, sí reconcilia sus capas y crea el vocabulario maestro necesario.</p><p>Entorno actual detectado: <strong>'.esc_html($current?strtoupper($current):'NO IDENTIFICADO').'</strong>.</p></div>';
+        echo '<style>.seo-env-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:16px 0 24px}.seo-env-kpi{background:#fff;border:1px solid #dcdcde;border-radius:7px;padding:14px}.seo-env-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}.seo-env-green{background:#00a32a}.seo-env-yellow{background:#dba617}.seo-env-red{background:#d63638}.seo-env-gray{background:#8c8f94}.seo-env-count{font-size:24px;font-weight:650}.seo-env-section{background:#fff;border:1px solid #dcdcde;border-radius:7px;padding:16px;margin:0 0 18px}.seo-env-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.seo-env-table{width:100%;border-collapse:collapse}.seo-env-table th,.seo-env-table td{padding:8px;border-bottom:1px solid #eee;text-align:left;vertical-align:top}.seo-env-muted{color:#646970;font-size:12px}.seo-env-progress{margin-left:8px}.seo-env-group-title{grid-column:1/-1;margin:16px 0 0}</style>';
         echo '<div class="seo-env-kpis">';
-        foreach($entities as$key=>$def){$s=seo_environment_compare_get_state($key);$color='gray';if('complete'===$s['status']){$color=($s['only_pro']||$s['only_staging']||$s['conflict'])?'red':($s['different']?'yellow':'green');}elseif('error'===$s['status'])$color='red';$diff=(int)$s['different']+(int)$s['only_pro']+(int)$s['only_staging'];echo '<div class="seo-env-kpi" data-kpi="'.esc_attr($key).'"><div><span class="seo-env-dot seo-env-'.esc_attr($color).'"></span><strong>'.esc_html($def['label']).'</strong></div><div class="seo-env-count">'.esc_html('complete'===$s['status']?number_format_i18n($diff):'—').'</div><div class="seo-env-muted">PRO '.number_format_i18n((int)$s['pro']).' · STAGING '.number_format_i18n((int)$s['staging']).'</div><p><button class="button seo-env-scan" data-entity="'.esc_attr($key).'">Escanear '.esc_html(strtolower($def['label'])).'</button><span class="seo-env-progress" data-progress="'.esc_attr($key).'"></span></p></div>';}
+        $last_group='';foreach($entities as$key=>$def){if(($def['group']??'')!==$last_group){$last_group=(string)($def['group']??'');echo '<h2 class="seo-env-group-title">'.esc_html('classification'===$last_group?'Clasificación / enriquecimiento':'Información general').'</h2>';}$s=seo_environment_compare_get_state($key);$color='gray';if('complete'===$s['status']){$color=($s['only_pro']||$s['only_staging'])?'red':($s['different']?'yellow':'green');}elseif('error'===$s['status'])$color='red';$diff=(int)$s['different']+(int)$s['only_pro']+(int)$s['only_staging'];echo '<div class="seo-env-kpi" data-kpi="'.esc_attr($key).'"><div><span class="seo-env-dot seo-env-'.esc_attr($color).'"></span><strong>'.esc_html($def['label']).'</strong></div><div class="seo-env-count">'.esc_html('complete'===$s['status']?number_format_i18n($diff):'—').'</div><div class="seo-env-muted">PRO '.number_format_i18n((int)$s['pro']).' · STAGING '.number_format_i18n((int)$s['staging']).'</div><p><button class="button seo-env-scan" data-entity="'.esc_attr($key).'">Escanear '.esc_html(strtolower($def['label'])).'</button><span class="seo-env-progress" data-progress="'.esc_attr($key).'"></span></p></div>';}
         echo '</div>';
         foreach($entities as$key=>$def){$s=seo_environment_compare_get_state($key);$rows=$wpdb->get_results($wpdb->prepare("SELECT * FROM {$table} WHERE entity=%s ORDER BY CASE status WHEN 'different' THEN 0 ELSE 1 END, object_id ASC LIMIT 100",$key),ARRAY_A);$total_diff=(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE entity=%s",$key));
             echo '<section class="seo-env-section"><h2 style="margin-top:0;">Diferencias de '.esc_html(strtolower($def['label'])).'</h2><div class="seo-env-actions"><button class="button button-primary seo-env-scan" data-entity="'.esc_attr($key).'">Escanear diferencias</button>';
-            foreach([['pro','staging'],['staging','pro']] as$direction){[$source,$dest]=$direction;$enabled=$current===$dest&&'complete'===$s['status']&&((int)$s['newer_'.$source]>0);$label='Traer más recientes '.strtoupper($source).' → '.strtoupper($dest);echo '<button class="button seo-env-bulk" data-entity="'.esc_attr($key).'" data-source="'.esc_attr($source).'" data-destination="'.esc_attr($dest).'" '.disabled(!$enabled,true,false).' title="'.esc_attr($current!==$dest?'Ejecuta esta dirección desde '.strtoupper($dest):'Solo se sincronizan filas donde el origen es más reciente').'">'.esc_html($label).'</button>';}
+            foreach([['pro','staging'],['staging','pro']] as$direction){[$source,$dest]=$direction;$enabled=$current===$dest&&'complete'===$s['status']&&((int)$s['different']>0);$label='Copiar diferencias '.strtoupper($source).' → '.strtoupper($dest);echo '<button class="button seo-env-bulk" data-entity="'.esc_attr($key).'" data-source="'.esc_attr($source).'" data-destination="'.esc_attr($dest).'" '.disabled(!$enabled,true,false).' title="'.esc_attr($current!==$dest?'Ejecuta esta dirección desde '.strtoupper($dest):'Copia todas las diferencias de esta capa en la dirección elegida; las fechas se ignoran').'">'.esc_html($label).'</button>';}
             echo '<span class="seo-env-progress" data-progress="'.esc_attr($key).'"></span></div>';
-            if('complete'===$s['status'])echo '<p class="seo-env-muted">Iguales: '.number_format_i18n((int)$s['same']).' · Diferentes: '.number_format_i18n((int)$s['different']).' · Solo PRO: '.number_format_i18n((int)$s['only_pro']).' · Solo STAGING: '.number_format_i18n((int)$s['only_staging']).' · PRO más reciente: '.number_format_i18n((int)$s['newer_pro']).' · STAGING más reciente: '.number_format_i18n((int)$s['newer_staging']).' · Conflictos de fecha: '.number_format_i18n((int)$s['conflict']).'</p>';
+            if('complete'===$s['status'])echo '<p class="seo-env-muted">Iguales: '.number_format_i18n((int)$s['same']).' · Diferentes: '.number_format_i18n((int)$s['different']).' · Solo PRO: '.number_format_i18n((int)$s['only_pro']).' · Solo STAGING: '.number_format_i18n((int)$s['only_staging']).' · <strong>Fechas ignoradas</strong></p>';
             elseif('never'===$s['status'])echo '<p class="seo-env-muted">Todavía no se ha escaneado esta entidad.</p>';elseif('error'===$s['status'])echo '<p style="color:#b32d2e;">'.esc_html($s['error']).'</p>';
-            if($rows){echo '<details><summary><strong>Ver diferencias detectadas ('.number_format_i18n($total_diff).')</strong></summary><div style="overflow:auto;margin-top:10px;"><table class="seo-env-table"><thead><tr><th>ID</th><th>Nombre</th><th>Resumen</th><th>Fechas</th><th>Acciones</th></tr></thead><tbody>';
-                foreach($rows as$row){$id=absint($row['object_id']);$name=$row['name_pro']?:$row['name_staging'];$missing='only_pro'===$row['status']||'only_staging'===$row['status'];echo '<tr><td><code>'.$id.'</code></td><td>'.esc_html($name).'</td><td>'.esc_html($row['summary']).($missing?'<br><span class="seo-env-muted">Solo se informa; no se crea ni elimina.</span>':'').'</td><td><small>PRO: '.esc_html($row['modified_pro']?:'sin fecha').'<br>STAGING: '.esc_html($row['modified_staging']?:'sin fecha').'<br><strong>'.esc_html('conflict'===$row['newer_env']?'misma fecha / sin fecha':($row['newer_env']?strtoupper($row['newer_env']).' más reciente':'')).'</strong></small></td><td>';
-                    foreach([['pro','staging'],['staging','pro']] as$direction){[$source,$dest]=$direction;$can=!$missing&&'different'===$row['status']&&$row['newer_env']===$source&&$current===$dest;echo '<button class="button button-small seo-env-sync-one" data-entity="'.esc_attr($key).'" data-id="'.$id.'" data-source="'.esc_attr($source).'" data-destination="'.esc_attr($dest).'" '.disabled(!$can,true,false).'>'.esc_html(strtoupper($source).' → '.strtoupper($dest)).'</button> ';}
+            if($rows){echo '<details><summary><strong>Ver diferencias detectadas ('.number_format_i18n($total_diff).')</strong></summary><div style="overflow:auto;margin-top:10px;"><table class="seo-env-table"><thead><tr><th>ID</th><th>Nombre</th><th>Resumen</th><th>Acciones</th></tr></thead><tbody>';
+                foreach($rows as$row){$id=absint($row['object_id']);$name=$row['name_pro']?:$row['name_staging'];$missing='only_pro'===$row['status']||'only_staging'===$row['status'];echo '<tr><td><code>'.$id.'</code></td><td>'.esc_html($name).'</td><td>'.esc_html($row['summary']).($missing?'<br><span class="seo-env-muted">Solo se informa; no se crea ni elimina.</span>':'').'</td><td>';
+                    foreach([['pro','staging'],['staging','pro']] as$direction){[$source,$dest]=$direction;$can=!$missing&&'different'===$row['status']&&$current===$dest;echo '<button class="button button-small seo-env-sync-one" data-entity="'.esc_attr($key).'" data-id="'.$id.'" data-source="'.esc_attr($source).'" data-destination="'.esc_attr($dest).'" '.disabled(!$can,true,false).'>'.esc_html(strtoupper($source).' → '.strtoupper($dest)).'</button> ';}
                     echo '</td></tr>';}
                 echo '</tbody></table></div>';if($total_diff>100)echo '<p class="seo-env-muted">Se muestran las primeras 100 diferencias para mantener ligera la pantalla. El escaneo conserva el inventario completo.</p>';echo '</details>';}
             echo '</section>';}
-        echo '<script>(function(){const ajax='.wp_json_encode(admin_url('admin-ajax.php')).',nonce='.wp_json_encode($nonce).';function post(data){data.nonce=nonce;return fetch(ajax,{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8"},body:new URLSearchParams(data)}).then(r=>r.json());}function progress(entity,text){document.querySelectorAll("[data-progress=\""+entity+"\"]").forEach(n=>n.textContent=text||"");}async function scan(entity,reset){document.querySelectorAll(".seo-env-scan[data-entity=\""+entity+"\"]").forEach(b=>b.disabled=true);let first=reset;try{while(true){const r=await post({action:"seo_environment_compare_scan",entity:entity,reset:first?1:0});first=false;if(!r.success)throw new Error((r.data&&r.data.message)||"Error de escaneo");const s=r.data.state||{};progress(entity,"Comparados "+(s.processed||0)+"…");if(r.data.done)break;await new Promise(x=>setTimeout(x,250));}progress(entity,"Escaneo terminado");setTimeout(()=>location.reload(),500);}catch(e){progress(entity,e.message);document.querySelectorAll(".seo-env-scan[data-entity=\""+entity+"\"]").forEach(b=>b.disabled=false);}}document.querySelectorAll(".seo-env-scan").forEach(b=>b.addEventListener("click",e=>{e.preventDefault();scan(b.dataset.entity,true);}));document.querySelectorAll(".seo-env-sync-one").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(b.disabled)return;b.disabled=true;progress(b.dataset.entity,"Actualizando #"+b.dataset.id+"…");const r=await post({action:"seo_environment_sync_item",entity:b.dataset.entity,object_id:b.dataset.id,source:b.dataset.source,destination:b.dataset.destination});if(!r.success){progress(b.dataset.entity,(r.data&&r.data.message)||"Error");b.disabled=false;return;}progress(b.dataset.entity,"Actualizado. Verificando…");scan(b.dataset.entity,true);}));document.querySelectorAll(".seo-env-bulk").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(b.disabled)return;b.disabled=true;let total=0;progress(b.dataset.entity,"Sincronizando por lotes…");while(true){const r=await post({action:"seo_environment_sync_bulk",entity:b.dataset.entity,source:b.dataset.source,destination:b.dataset.destination});if(!r.success){progress(b.dataset.entity,(r.data&&r.data.message)||"Error");b.disabled=false;return;}total+=Number(r.data.updated||0);progress(b.dataset.entity,"Actualizados "+total+" · pendientes "+Number(r.data.remaining||0));if(r.data.done)break;if(Number(r.data.updated||0)===0&&Number(r.data.remaining||0)>0){progress(b.dataset.entity,"Hay filas bloqueadas por fecha o validación. Reescanea para revisar.");b.disabled=false;return;}await new Promise(x=>setTimeout(x,400));}scan(b.dataset.entity,true);}));})();</script>';
+        echo '<script>(function(){const ajax='.wp_json_encode(admin_url('admin-ajax.php')).',nonce='.wp_json_encode($nonce).';function post(data){data.nonce=nonce;return fetch(ajax,{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8"},body:new URLSearchParams(data)}).then(r=>r.json());}function progress(entity,text){document.querySelectorAll("[data-progress=\""+entity+"\"]").forEach(n=>n.textContent=text||"");}async function scan(entity,reset){document.querySelectorAll(".seo-env-scan[data-entity=\""+entity+"\"]").forEach(b=>b.disabled=true);let first=reset;try{while(true){const r=await post({action:"seo_environment_compare_scan",entity:entity,reset:first?1:0});first=false;if(!r.success)throw new Error((r.data&&r.data.message)||"Error de escaneo");const s=r.data.state||{};progress(entity,"Comparados "+(s.processed||0)+"…");if(r.data.done)break;await new Promise(x=>setTimeout(x,250));}progress(entity,"Escaneo terminado");setTimeout(()=>location.reload(),500);}catch(e){progress(entity,e.message);document.querySelectorAll(".seo-env-scan[data-entity=\""+entity+"\"]").forEach(b=>b.disabled=false);}}document.querySelectorAll(".seo-env-scan").forEach(b=>b.addEventListener("click",e=>{e.preventDefault();scan(b.dataset.entity,true);}));document.querySelectorAll(".seo-env-sync-one").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(b.disabled)return;b.disabled=true;progress(b.dataset.entity,"Actualizando #"+b.dataset.id+"…");const r=await post({action:"seo_environment_sync_item",entity:b.dataset.entity,object_id:b.dataset.id,source:b.dataset.source,destination:b.dataset.destination});if(!r.success){progress(b.dataset.entity,(r.data&&r.data.message)||"Error");b.disabled=false;return;}progress(b.dataset.entity,"Actualizado. Verificando…");scan(b.dataset.entity,true);}));document.querySelectorAll(".seo-env-bulk").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(b.disabled)return;const msg="Vas a copiar TODAS las diferencias de esta capa "+b.dataset.source.toUpperCase()+" → "+b.dataset.destination.toUpperCase()+". Las fechas se ignoran y el contenido del origen sustituirá esta capa en el destino. ¿Continuar?";if(!window.confirm(msg))return;b.disabled=true;let total=0;progress(b.dataset.entity,"Sincronizando por lotes…");while(true){const r=await post({action:"seo_environment_sync_bulk",entity:b.dataset.entity,source:b.dataset.source,destination:b.dataset.destination});if(!r.success){progress(b.dataset.entity,(r.data&&r.data.message)||"Error");b.disabled=false;return;}total+=Number(r.data.updated||0);progress(b.dataset.entity,"Actualizados "+total+" · pendientes "+Number(r.data.remaining||0)+" · bloqueados "+Number(r.data.blocked||0));if(r.data.done)break;if(Number(r.data.updated||0)===0&&Number(r.data.remaining||0)>0){progress(b.dataset.entity,"Hay filas bloqueadas porque cambiaron después del escaneo o requieren revisión. Reescanea.");b.disabled=false;return;}await new Promise(x=>setTimeout(x,400));}scan(b.dataset.entity,true);}));})();</script>';
         echo '</div>';
     }
 }
