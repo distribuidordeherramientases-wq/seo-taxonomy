@@ -6,7 +6,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_FACTURAS_VERSION')) {
-    define('SEO_FACTURAS_VERSION', '0.3.0');
+    define('SEO_FACTURAS_VERSION', '0.4.0');
 }
 
 if (!defined('SEO_FACTURAS_DB_VERSION')) {
@@ -23,6 +23,7 @@ if (!defined('SEO_FACTURAS_URL')) {
 
 require_once SEO_FACTURAS_PATH . 'class-seo-facturas-install.php';
 require_once SEO_FACTURAS_PATH . 'class-seo-facturas-settings.php';
+require_once SEO_FACTURAS_PATH . 'class-seo-facturas-tax.php';
 require_once SEO_FACTURAS_PATH . 'class-seo-facturas-snapshot.php';
 require_once SEO_FACTURAS_PATH . 'class-seo-facturas-pdf.php';
 require_once SEO_FACTURAS_PATH . 'class-seo-facturas-documents.php';
@@ -38,6 +39,7 @@ if (!function_exists('seo_facturas_boot_module')) {
         SEO_Facturas_Admin::init();
 
         if (class_exists('WooCommerce') && function_exists('wc_get_order')) {
+            SEO_Facturas_Tax::init();
             SEO_Facturas_WooCommerce::init();
             SEO_Facturas_Quotes::init();
             SEO_Facturas_Customer_Documents::init();

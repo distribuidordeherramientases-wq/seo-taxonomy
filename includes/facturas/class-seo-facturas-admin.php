@@ -97,6 +97,7 @@ final class SEO_Facturas_Admin {
 
         $tabs = array(
             'company'   => 'Datos empresa',
+            'tax'       => 'Fiscalidad',
             'invoices'  => 'Facturas',
             'proformas' => 'Proformas',
             'quotes'    => 'Presupuestos',
@@ -122,6 +123,9 @@ final class SEO_Facturas_Admin {
 
             <?php
             switch ($tab) {
+                case 'tax':
+                    self::render_tax_tab();
+                    break;
                 case 'invoices':
                     self::render_invoice_tab();
                     break;
@@ -313,6 +317,48 @@ final class SEO_Facturas_Admin {
             <?php submit_button('Guardar datos de empresa'); ?>
         </form>
         <?php self::logo_script(); ?>
+        <?php
+    }
+
+    private static function render_tax_tab() {
+        $s = SEO_Facturas_Settings::taxation();
+        $option = SEO_Facturas_Settings::TAX_OPTION;
+        $woo_tax_enabled = 'yes' === get_option('woocommerce_calc_taxes', 'no');
+        ?>
+        <form method="post" action="options.php" class="seo-facturas-settings-form">
+            <?php settings_fields('seo_facturas_tax_group'); ?>
+            <h2>Fiscalidad de ventas en España</h2>
+            <p>Estas reglas se aplican al cálculo fiscal de WooCommerce. Presupuestos, proformas y facturas copian después los importes calculados en el carrito o pedido, por lo que no existe un segundo cálculo distinto en el PDF.</p>
+
+            <div class="notice notice-info inline"><p><strong>Importante:</strong> esta versión distingue Península, Baleares, Canarias, Ceuta y Melilla. No calcula IGIC ni IPSI; para esos destinos especiales se puede aplicar IVA 0 % y mostrar una advertencia documental.</p></div>
+
+            <table class="form-table" role="presentation">
+                <?php self::checkbox_row($option, 'tax_manager_enabled', 'Gestión fiscal desde Facturación', $s['tax_manager_enabled'], 'Activar estas reglas y utilizarlas en los cálculos de WooCommerce.'); ?>
+                <?php self::checkbox_row($option, 'tax_restrict_to_spain', 'Vender solo en España', $s['tax_restrict_to_spain'], 'Limitar los países de facturación y envío de WooCommerce a España mientras este gestor esté activo.'); ?>
+                <?php self::checkbox_row($option, 'tax_shipping', 'IVA sobre transporte', $s['tax_shipping'], 'Aplicar al transporte la misma tasa fiscal de la zona cuando WooCommerce calcule los portes.'); ?>
+            </table>
+
+            <h3>Tipos por localización</h3>
+            <table class="widefat striped" style="max-width:760px">
+                <thead><tr><th>Zona</th><th>Tipo IVA</th><th>Detección</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>Península</strong></td><td><?php self::decimal_input($option, 'tax_peninsula_rate', $s['tax_peninsula_rate']); ?> %</td><td>España, excepto las zonas especiales indicadas abajo.</td></tr>
+                    <tr><td><strong>Islas Baleares</strong></td><td><?php self::decimal_input($option, 'tax_baleares_rate', $s['tax_baleares_rate']); ?> %</td><td>Provincia PM o código postal 07.</td></tr>
+                    <tr><td><strong>Canarias</strong></td><td><?php self::decimal_input($option, 'tax_canarias_rate', $s['tax_canarias_rate']); ?> %</td><td>Las Palmas / Santa Cruz de Tenerife o códigos 35 / 38.</td></tr>
+                    <tr><td><strong>Ceuta</strong></td><td><?php self::decimal_input($option, 'tax_ceuta_rate', $s['tax_ceuta_rate']); ?> %</td><td>Provincia CE o código postal 51.</td></tr>
+                    <tr><td><strong>Melilla</strong></td><td><?php self::decimal_input($option, 'tax_melilla_rate', $s['tax_melilla_rate']); ?> %</td><td>Provincia ML o código postal 52.</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Nota para destinos especiales</h3>
+            <table class="form-table" role="presentation">
+                <?php self::textarea_row($option, 'tax_special_note', 'Canarias, Ceuta y Melilla', $s['tax_special_note'], 'Se añade a los documentos de estos destinos. Puedes modificar el texto cuando definamos la fiscalidad definitiva de IGIC/IPSI.'); ?>
+            </table>
+
+            <p class="description">Estado actual de impuestos WooCommerce: <strong><?php echo esc_html($woo_tax_enabled ? 'activados' : 'desactivados'); ?></strong>. Al guardar con la gestión fiscal activa, el módulo activa el cálculo de impuestos de WooCommerce y sincroniza tasas internas propias.</p>
+            <p class="description">No se modifican facturas o proformas ya emitidas. Sus snapshots permanecen inmutables.</p>
+            <?php submit_button('Guardar fiscalidad'); ?>
+        </form>
         <?php
     }
 
@@ -591,6 +637,12 @@ final class SEO_Facturas_Admin {
             <th scope="row"><label for="sf-<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></label></th>
             <td><input type="number" id="sf-<?php echo esc_attr($key); ?>" min="<?php echo esc_attr($min); ?>" max="<?php echo esc_attr($max); ?>" name="<?php echo esc_attr($option); ?>[<?php echo esc_attr($key); ?>]" value="<?php echo esc_attr($value); ?>"></td>
         </tr>
+        <?php
+    }
+
+    private static function decimal_input($option, $key, $value) {
+        ?>
+        <input type="number" step="0.01" min="0" max="100" style="width:110px" id="sf-<?php echo esc_attr($key); ?>" name="<?php echo esc_attr($option); ?>[<?php echo esc_attr($key); ?>]" value="<?php echo esc_attr($value); ?>">
         <?php
     }
 

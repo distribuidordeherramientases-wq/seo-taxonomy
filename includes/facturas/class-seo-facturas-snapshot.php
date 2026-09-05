@@ -17,6 +17,15 @@ final class SEO_Facturas_Snapshot {
         $shipping = self::address_snapshot($order->get_address('shipping'));
         $billing['tax_id'] = self::customer_tax_id($order);
 
+        $destination = !empty($shipping['country']) ? $shipping : $billing;
+        $fiscal = class_exists('SEO_Facturas_Tax')
+            ? SEO_Facturas_Tax::context_for_location(
+                (string) ($destination['country'] ?? ''),
+                (string) ($destination['state'] ?? ''),
+                (string) ($destination['postcode'] ?? '')
+            )
+            : array();
+
         $items = array();
         foreach ($order->get_items('line_item') as $item_id => $item) {
             $product = $item->get_product();
@@ -109,6 +118,7 @@ final class SEO_Facturas_Snapshot {
             ),
             'billing'         => $billing,
             'shipping'        => $shipping,
+            'fiscal'          => $fiscal,
             'items'           => $items,
             'shipping_lines'  => $shipping_lines,
             'fee_lines'       => $fee_lines,
