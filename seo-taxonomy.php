@@ -26,4 +26,4 @@ define('SEO_SYSTEM_BASENAME', plugin_basename(__FILE__));
 /**
  * BOOTSTRAP
  */
-require_once SEO_SYSTEM_PATH . 'includes/bootstrap.php';
+require_once SEO_SYSTEM_PATH . 'includes/seo-includes-bootstrap.php';
