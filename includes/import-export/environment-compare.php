@@ -1,4 +1,60 @@
 <?php
+
+error_reporting(E_ALL);
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+ini_set('error_log', __DIR__ . '/environment-compare.log');
+
+function debugLog(string $message, array $context = []): void
+{
+    $entry = [
+        'time'    => date('Y-m-d H:i:s'),
+        'pid'     => getmypid(),
+        'memory'  => memory_get_usage(true),
+        'peak'    => memory_get_peak_usage(true),
+        'message' => $message,
+        'context' => $context,
+    ];
+
+    error_log(json_encode($entry, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+}
+
+set_error_handler(function ($severity, $message, $file, $line) {
+    debugLog('PHP_ERROR', [
+        'severity' => $severity,
+        'message'  => $message,
+        'file'     => $file,
+        'line'     => $line,
+    ]);
+
+    return false;
+});
+
+set_exception_handler(function (Throwable $e) {
+    debugLog('UNCAUGHT_EXCEPTION', [
+        'type'    => get_class($e),
+        'message' => $e->getMessage(),
+        'file'    => $e->getFile(),
+        'line'    => $e->getLine(),
+        'trace'   => $e->getTraceAsString(),
+    ]);
+});
+
+register_shutdown_function(function () {
+    $error = error_get_last();
+
+    if ($error !== null) {
+        debugLog('FATAL_SHUTDOWN', $error);
+    } else {
+        debugLog('NORMAL_SHUTDOWN');
+    }
+});
+
+debugLog('SCRIPT_START');
+
+
+
+<?php
 /**
  * SEO System - Comparador y sincronizacion segura PRO <-> STAGING.
  *
