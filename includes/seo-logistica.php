@@ -264,7 +264,10 @@ if (!function_exists('seo_logistica_page')) {
 
         echo '<div class="wrap seo-logistica-wrap">';
         echo '<h1>Log&iacute;stica</h1>';
-        echo '<nav class="nav-tab-wrapper" aria-label="Logistica"><a class="nav-tab nav-tab-active" href="' . esc_url(admin_url('admin.php?page=seo-logistica')) . '">Log&iacute;stica</a></nav>';
+        echo '<nav class="nav-tab-wrapper" aria-label="Logistica">';
+        echo '<a class="nav-tab nav-tab-active" href="' . esc_url(admin_url('admin.php?page=seo-logistica')) . '">Gesti&oacute;n de pedidos</a>';
+        echo '<a class="nav-tab" href="' . esc_url(admin_url('admin.php?page=seo-transporte')) . '">Transporte</a>';
+        echo '</nav>';
         echo '<p>Pedidos activos de WooCommerce cruzados en tiempo real con <code>' . esc_html(seo_logistica_supplier_table()) . '</code>. Esta pantalla no crea tablas ni guarda estados propios.</p>';
 
         if (!class_exists('WooCommerce') || !function_exists('wc_get_orders')) {

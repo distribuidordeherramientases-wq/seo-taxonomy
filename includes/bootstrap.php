@@ -162,6 +162,7 @@ require_once SEO_SYSTEM_PATH . 'includes/seo-product-vocabulary-editor.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-process-supervisor.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-processes.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-logistica.php';
+require_once SEO_SYSTEM_PATH . 'includes/seo-transporte.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-admin.php';
 
 /*
