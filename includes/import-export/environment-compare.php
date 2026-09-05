@@ -24,7 +24,7 @@
  *
  * @package SEOSystem
  * @subpackage ImportExport
- * @version 2.1.0
+ * @version 2.1.1
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -523,6 +523,98 @@ if ( ! function_exists( 'seo_environment_compare_scan_ajax' ) ) {
 add_action('wp_ajax_seo_environment_compare_scan','seo_environment_compare_scan_ajax');
 
 /* -------------------------------------------------------------------------
+ * EXPORT JSON DEL INFORME.
+ * No altera la comparacion ni la sincronizacion: exporta el estado de cada
+ * capa y TODAS las filas persistidas del informe (no solo las 100 visibles).
+ * ---------------------------------------------------------------------- */
+
+if ( ! function_exists( 'seo_environment_compare_export_json_admin_post' ) ) {
+    function seo_environment_compare_export_json_admin_post() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( 'Sin permisos.', '', [ 'response' => 403 ] );
+        }
+        check_admin_referer( 'seo_environment_compare_export_json' );
+
+        global $wpdb;
+        $table    = seo_environment_compare_table();
+        $entities = seo_environment_compare_entities();
+
+        $export = [
+            'schema'           => 'seo_environment_compare_report',
+            'version'          => '2.1.1',
+            'generated_at_utc' => current_time( 'mysql', true ),
+            'dates_ignored'    => true,
+            'images_ignored'   => true,
+            'current_env'      => seo_environment_compare_current_env(),
+            'layers'           => [],
+        ];
+
+        foreach ( $entities as $entity => $definition ) {
+            $state = seo_environment_compare_get_state( $entity );
+            $rows  = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT object_id,status,name_pro,name_staging,hash_pro,hash_staging,summary,details_json
+                     FROM {$table}
+                     WHERE entity=%s
+                     ORDER BY object_id ASC",
+                    $entity
+                ),
+                ARRAY_A
+            );
+
+            $results = [];
+            foreach ( (array) $rows as $row ) {
+                $details = [];
+                if ( ! empty( $row['details_json'] ) ) {
+                    $decoded = json_decode( (string) $row['details_json'], true );
+                    if ( is_array( $decoded ) ) $details = $decoded;
+                }
+                $results[] = [
+                    'object_id'    => absint( $row['object_id'] ?? 0 ),
+                    'status'       => (string) ( $row['status'] ?? '' ),
+                    'name_pro'     => (string) ( $row['name_pro'] ?? '' ),
+                    'name_staging' => (string) ( $row['name_staging'] ?? '' ),
+                    'hash_pro'     => (string) ( $row['hash_pro'] ?? '' ),
+                    'hash_staging' => (string) ( $row['hash_staging'] ?? '' ),
+                    'summary'      => (string) ( $row['summary'] ?? '' ),
+                    'details'      => $details,
+                ];
+            }
+
+            $export['layers'][ $entity ] = [
+                'label' => (string) ( $definition['label'] ?? $entity ),
+                'state' => [
+                    'status'       => (string) ( $state['status'] ?? 'never' ),
+                    'processed'    => (int) ( $state['processed'] ?? 0 ),
+                    'pro'          => (int) ( $state['pro'] ?? 0 ),
+                    'staging'      => (int) ( $state['staging'] ?? 0 ),
+                    'same'         => (int) ( $state['same'] ?? 0 ),
+                    'different'    => (int) ( $state['different'] ?? 0 ),
+                    'only_pro'     => (int) ( $state['only_pro'] ?? 0 ),
+                    'only_staging' => (int) ( $state['only_staging'] ?? 0 ),
+                    'error'        => (string) ( $state['error'] ?? '' ),
+                ],
+                'results' => $results,
+            ];
+        }
+
+        $json = wp_json_encode( $export, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+        if ( false === $json ) {
+            wp_die( 'No se pudo generar el JSON.', '', [ 'response' => 500 ] );
+        }
+
+        $filename = 'seo-environment-compare-' . gmdate( 'Ymd-His' ) . '.json';
+        nocache_headers();
+        header( 'Content-Type: application/json; charset=utf-8' );
+        header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+        header( 'Content-Length: ' . strlen( $json ) );
+        echo $json;
+        exit;
+    }
+}
+add_action( 'admin_post_seo_environment_compare_export_json', 'seo_environment_compare_export_json_admin_post' );
+
+/* -------------------------------------------------------------------------
  * SINCRONIZACION: solo se escribe en el WordPress LOCAL.
  * ---------------------------------------------------------------------- */
 
@@ -952,6 +1044,8 @@ if ( ! function_exists( 'seo_environment_compare_render' ) ) {
     function seo_environment_compare_render() {
         if(!current_user_can('manage_options'))return;seo_environment_compare_install();global$wpdb;$table=seo_environment_compare_table();$entities=seo_environment_compare_entities();$current=seo_environment_compare_current_env();$nonce=wp_create_nonce('seo_environment_compare');
         echo '<div class="seo-env-compare">';
+        $json_url = wp_nonce_url( add_query_arg( [ 'action' => 'seo_environment_compare_export_json' ], admin_url( 'admin-post.php' ) ), 'seo_environment_compare_export_json' );
+        echo '<div style="margin:0 0 14px;"><a class="button button-primary" href="'.esc_url($json_url).'">Descargar JSON del informe</a></div>';
         echo '<div class="card" style="max-width:none;padding:18px;margin-bottom:18px;"><h2 style="margin-top:0;">Comparar PRO ↔ STAGING por capas</h2><p>El comparador separa los datos para que una edición nueva de clasificación nunca se pierda al actualizar contenido general.</p><p><strong>Información general:</strong> productos = título, excerpt, description y categorías asociadas; categorías = nombre, excerpt y description; páginas/posts = título, excerpt y description.</p><p><strong>Clasificación:</strong> etiquetas WordPress/WooCommerce, etiquetas SEO de categoría/página/post, vocabulario semántico canónico y atributos de producto se escanean y sincronizan en bloques independientes.</p><p><strong>Vocabulario dependiente:</strong> si una asignación semántica o atributo del origen necesita una definición que no existe en el destino, el comparador crea primero la definición necesaria por su clave canónica y después aplica la asignación. Nunca copia IDs maestros a ciegas.</p><p><strong>Imágenes excluidas:</strong> imágenes, attachment IDs, miniaturas y galerías no participan en ninguna capa.</p><p><strong>Fechas ignoradas:</strong> las fechas de modificación no participan en el resultado ni eligen dirección. Igual/Diferente depende exclusivamente del contenido relevante de la capa.</p><p><strong>Seguridad:</strong> la dirección la eliges tú. Antes de escribir se comparan de nuevo los hashes actuales con los del último escaneo; si cualquiera de los dos entornos cambió desde entonces, esa escritura se bloquea y exige reescanear.</p><p><strong>Altas nuevas:</strong> los productos/categorías/páginas/posts que existen solo en un entorno se informan, pero su creación completa se deja al importador canónico del plugin. El comparador no clona <code>postmeta</code> ni IDs internos a ciegas; una vez existe el objeto en ambos entornos, sí reconcilia sus capas y crea el vocabulario maestro necesario.</p><p>Entorno actual detectado: <strong>'.esc_html($current?strtoupper($current):'NO IDENTIFICADO').'</strong>.</p></div>';
         echo '<style>.seo-env-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:16px 0 24px}.seo-env-kpi{background:#fff;border:1px solid #dcdcde;border-radius:7px;padding:14px}.seo-env-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}.seo-env-green{background:#00a32a}.seo-env-yellow{background:#dba617}.seo-env-red{background:#d63638}.seo-env-gray{background:#8c8f94}.seo-env-count{font-size:24px;font-weight:650}.seo-env-section{background:#fff;border:1px solid #dcdcde;border-radius:7px;padding:16px;margin:0 0 18px}.seo-env-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.seo-env-table{width:100%;border-collapse:collapse}.seo-env-table th,.seo-env-table td{padding:8px;border-bottom:1px solid #eee;text-align:left;vertical-align:top}.seo-env-muted{color:#646970;font-size:12px}.seo-env-progress{margin-left:8px}.seo-env-group-title{grid-column:1/-1;margin:16px 0 0}</style>';
         echo '<div class="seo-env-kpis">';
