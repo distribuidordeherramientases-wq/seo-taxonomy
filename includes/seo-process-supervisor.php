@@ -1517,10 +1517,7 @@ if (!function_exists('seo_process_supervisor_render_page')) {
         ?>
         <div class="wrap seo-worker-manager">
             <h1>Procesos</h1>
-            <h2 class="nav-tab-wrapper">
-                <a class="nav-tab" href="<?php echo esc_url(add_query_arg(array('page' => 'seo-processes'), admin_url('admin.php'))); ?>">Procesos</a>
-                <a class="nav-tab nav-tab-active" href="<?php echo esc_url(add_query_arg(array('page' => 'seo-processes', 'tab' => 'workers'), admin_url('admin.php'))); ?>">Gestor de workers</a>
-            </h2>
+            <?php if (function_exists('seo_processes_render_tabs')) { seo_processes_render_tabs('workers'); } ?>
             <div class="seo-worker-heading">
                 <div>
                     <h2>Gestor periódico del plugin</h2>

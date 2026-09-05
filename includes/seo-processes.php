@@ -1351,6 +1351,9 @@ if (!function_exists('seo_processes_page')) {
             seo_process_supervisor_render_page();
             return;
         }
+        if ('processes' !== $tab && function_exists('seo_processes_render_registered_tab') && seo_processes_render_registered_tab($tab)) {
+            return;
+        }
 
         $items = seo_processes_collect();
         $summary = seo_processes_summary($items);
@@ -1368,10 +1371,7 @@ if (!function_exists('seo_processes_page')) {
                     <span>Última lectura: <strong id="seo-processes-refreshed"><?php echo esc_html(current_time('H:i:s')); ?></strong></span>
                 </div>
             </div>
-            <h2 class="nav-tab-wrapper" style="margin-bottom:18px">
-                <a class="nav-tab nav-tab-active" href="<?php echo esc_url(add_query_arg(array('page' => 'seo-processes'), admin_url('admin.php'))); ?>">Procesos</a>
-                <a class="nav-tab" href="<?php echo esc_url(add_query_arg(array('page' => 'seo-processes', 'tab' => 'workers'), admin_url('admin.php'))); ?>">Gestor de workers</a>
-            </h2>
+            <?php if (function_exists('seo_processes_render_tabs')) { seo_processes_render_tabs('processes'); } ?>
 
             <?php if (isset($_GET['process_controls']) && in_array(sanitize_key(wp_unslash($_GET['process_controls'])), array('saved','restored'), true)) : ?>
                 <div class="notice notice-success is-dismissible"><p><?php echo 'restored' === sanitize_key(wp_unslash($_GET['process_controls'])) ? 'Se han restaurado los límites originales.' : 'Velocidades guardadas. Se aplicarán en el siguiente lote de cada proceso.'; ?></p></div>
