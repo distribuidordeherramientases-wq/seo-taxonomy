@@ -82,6 +82,17 @@ if ( is_readable( $seo_sync_versioning_file ) ) {
 unset( $seo_sync_versioning_file );
 
 /*
+ * Comparador PRO <-> STAGING. Las BBDD remotas se leen solo bajo demanda y
+ * las escrituras de sincronizacion se realizan exclusivamente en el entorno
+ * local para no conceder privilegios de escritura a las conexiones remotas.
+ */
+$seo_environment_compare_file = __DIR__ . '/environment-compare.php';
+if ( is_readable( $seo_environment_compare_file ) ) {
+    require_once $seo_environment_compare_file;
+}
+unset( $seo_environment_compare_file );
+
+/*
  * La cola multientidad vive en un modulo independiente para mantener
  * seo-export.php centrado en los importadores y exportadores individuales.
  */
@@ -11867,7 +11878,7 @@ function seo_import_export_page() {
         wp_die( esc_html__( 'No tienes permisos para acceder a esta página.', 'seo-system' ) );
     }
 
-    $allowed_tabs = [ 'wordpress', 'import-batch', 'importar-proveedor', 'importar-amazon', 'conexiones-proveedores', 'catalogo-proveedores', 'sincronizacion-proveedores' ];
+    $allowed_tabs = [ 'wordpress', 'import-batch', 'comparar-entornos', 'importar-proveedor', 'importar-amazon', 'conexiones-proveedores', 'catalogo-proveedores', 'sincronizacion-proveedores' ];
     $tab = sanitize_key( $_GET['seo_ie_tab'] ?? 'wordpress' );
     if ( ! in_array( $tab, $allowed_tabs, true ) ) {
         $tab = 'wordpress';
@@ -11880,6 +11891,7 @@ function seo_import_export_page() {
         <nav class="nav-tab-wrapper" style="margin-bottom:20px;">
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'wordpress', $base ) ); ?>" class="nav-tab <?php echo 'wordpress' === $tab ? 'nav-tab-active' : ''; ?>">Importar / Exportar</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'import-batch', $base ) ); ?>" class="nav-tab <?php echo 'import-batch' === $tab ? 'nav-tab-active' : ''; ?>">Importacion por lotes</a>
+            <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'comparar-entornos', $base ) ); ?>" class="nav-tab <?php echo 'comparar-entornos' === $tab ? 'nav-tab-active' : ''; ?>">PRO ↔ STAGING</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'importar-proveedor', $base ) ); ?>" class="nav-tab <?php echo 'importar-proveedor' === $tab ? 'nav-tab-active' : ''; ?>">Importar proveedor</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'importar-amazon', $base ) ); ?>" class="nav-tab <?php echo 'importar-amazon' === $tab ? 'nav-tab-active' : ''; ?>">Importar Amazon</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'conexiones-proveedores', $base ) ); ?>" class="nav-tab <?php echo 'conexiones-proveedores' === $tab ? 'nav-tab-active' : ''; ?>">Conexiones con proveedores</a>
@@ -12094,6 +12106,9 @@ function seo_import_export_page() {
                 </div>
             </div>
             <?php seo_ie_render_log( $last_log ); ?>
+        <?php elseif ( 'comparar-entornos' === $tab ) : ?>
+            <?php if ( function_exists( 'seo_environment_compare_render' ) ) { seo_environment_compare_render(); } else { echo '<div class="notice notice-error inline"><p>No se ha podido cargar el comparador PRO/STAGING.</p></div>'; } ?>
+
         <?php elseif ( 'import-batch' === $tab ) : ?>
             <?php if ( function_exists( 'seo_ie_batch_render_page' ) ) { seo_ie_batch_render_page(); } else { echo '<div class="notice notice-error inline"><p>Falta el modulo seo-import-batch.php.</p></div>'; } ?>
         <?php elseif ( 'importar-proveedor' === $tab ) : ?>
