@@ -677,6 +677,7 @@ if ( ! function_exists( 'seo_environment_compare_process_worker_batch' ) ) {
             }
 
             $elapsed = max( 0.001, microtime( true ) - $started );
+            $state['last_batch_rows'] = count( $ids );
             $state['last_batch_seconds'] = round( $elapsed, 3 );
             // Regulador conservador: solo aumenta si los lotes son realmente
             // rápidos; reduce enseguida cuando el hosting empieza a sufrir.
@@ -759,6 +760,143 @@ if ( ! function_exists( 'seo_environment_compare_manager_pending_filter' ) ) {
     }
 }
 add_filter( 'seo_process_supervisor_has_pending_work', 'seo_environment_compare_manager_pending_filter', 20, 1 );
+
+/* -------------------------------------------------------------------------
+ * INTEGRACION CON EL MONITOR CENTRAL DE PROCESOS.
+ * El Gestor de workers ya ejecuta el comparador mediante los filtros del
+ * supervisor. Este collector hace visible ese mismo trabajo en SEO Taxonomy >
+ * Procesos, sin modificar el nucleo del monitor.
+ * ---------------------------------------------------------------------- */
+
+if ( ! function_exists( 'seo_environment_compare_process_monitor_item' ) ) {
+    function seo_environment_compare_process_monitor_item( $items ) {
+        $definitions = seo_environment_compare_entities();
+        $states = [];
+        $running = [];
+        $errors = [];
+        $completed = [];
+        $latest_entity = '';
+        $latest_activity = 0;
+        $processed_total = 0;
+
+        foreach ( $definitions as $entity => $definition ) {
+            $state = seo_environment_compare_get_state( $entity );
+            $states[ $entity ] = $state;
+            $status = sanitize_key( (string) ( $state['status'] ?? 'never' ) );
+            $processed_total += absint( $state['processed'] ?? 0 );
+
+            if ( 'running' === $status ) $running[] = $entity;
+            elseif ( 'error' === $status ) $errors[] = $entity;
+            elseif ( 'complete' === $status ) $completed[] = $entity;
+
+            $activity = max(
+                absint( $state['last_activity_at'] ?? 0 ),
+                absint( $state['finished_at'] ?? 0 ),
+                absint( $state['started_at'] ?? 0 )
+            );
+            if ( $activity >= $latest_activity ) {
+                $latest_activity = $activity;
+                $latest_entity = $entity;
+            }
+        }
+
+        $focus = '';
+        if ( $running ) {
+            // Prioriza la capa activa con actividad mas reciente.
+            foreach ( $running as $entity ) {
+                $activity = max(
+                    absint( $states[$entity]['last_activity_at'] ?? 0 ),
+                    absint( $states[$entity]['started_at'] ?? 0 )
+                );
+                if ( ! $focus || $activity >= max(
+                    absint( $states[$focus]['last_activity_at'] ?? 0 ),
+                    absint( $states[$focus]['started_at'] ?? 0 )
+                ) ) $focus = $entity;
+            }
+        } elseif ( $latest_entity ) {
+            $focus = $latest_entity;
+        }
+
+        $focus_state = $focus && isset( $states[$focus] ) ? $states[$focus] : [];
+        $now = time();
+        $due_in = $running && $focus_state ? max( 0, absint( $focus_state['next_run_at'] ?? 0 ) - $now ) : 0;
+
+        if ( $running ) {
+            if ( $due_in > 0 && function_exists( 'seo_processes_state' ) ) {
+                $process_state = seo_processes_state( 'waiting', 'En espera controlada', 'waiting' );
+            } elseif ( function_exists( 'seo_processes_state' ) ) {
+                $process_state = seo_processes_state( 'running', 'En ejecución', 'running' );
+            } else {
+                $process_state = [ 'code'=>'running', 'label'=>'En ejecución', 'tone'=>'running' ];
+            }
+        } elseif ( $errors ) {
+            $process_state = function_exists( 'seo_processes_state' )
+                ? seo_processes_state( 'error', 'Error', 'error' )
+                : [ 'code'=>'error', 'label'=>'Error', 'tone'=>'error' ];
+        } elseif ( $completed ) {
+            $process_state = function_exists( 'seo_processes_state' )
+                ? seo_processes_state( 'completed', 'Parado · último escaneo completado', 'completed' )
+                : [ 'code'=>'completed', 'label'=>'Parado · último escaneo completado', 'tone'=>'completed' ];
+        } else {
+            $process_state = function_exists( 'seo_processes_state' )
+                ? seo_processes_state( 'stopped', 'Parado', 'stopped' )
+                : [ 'code'=>'stopped', 'label'=>'Parado', 'tone'=>'stopped' ];
+        }
+
+        $seconds = (float) ( $focus_state['last_batch_seconds'] ?? 0 );
+        $rows = absint( $focus_state['last_batch_rows'] ?? 0 );
+        $rate = ( $seconds > 0 && $rows > 0 ) ? ( $rows / $seconds ) * 60.0 : 0.0;
+        $speed = function_exists( 'seo_processes_format_rate' )
+            ? seo_processes_format_rate( $rate, 'objetos' )
+            : ( $rate > 0 ? number_format_i18n( $rate, 1 ) . ' objetos/min' : 'Sin ritmo medible' );
+        $response = $seconds > 0
+            ? number_format_i18n( $seconds, 2 ) . ' s el último lote'
+            : 'Sin lote medido';
+
+        $batch = absint( $focus_state['batch_size'] ?? 30 );
+        $load = [ 'Gestor de workers', 'lote objetivo ' . number_format_i18n( $batch ) ];
+        if ( $due_in > 0 ) $load[] = 'pausa ' . number_format_i18n( $due_in ) . ' s';
+        if ( $running ) $load[] = count( $running ) . ' capa' . ( 1 === count( $running ) ? ' activa' : 's activas' );
+        if ( $errors ) $load[] = count( $errors ) . ' con error';
+
+        if ( $focus && isset( $definitions[$focus] ) ) {
+            $detail = $definitions[$focus]['label'] . ' · ' . number_format_i18n( absint( $focus_state['processed'] ?? 0 ) ) . ' procesados';
+            $cursor = absint( $focus_state['cursor'] ?? 0 );
+            if ( $cursor ) $detail .= ' · cursor ' . number_format_i18n( $cursor );
+            if ( count( $running ) > 1 ) $detail .= ' · ' . number_format_i18n( count( $running ) ) . ' capas en cola';
+            if ( ! empty( $focus_state['error'] ) ) $detail .= ' · ' . sanitize_text_field( (string) $focus_state['error'] );
+        } else {
+            $detail = 'Sin comparaciones iniciadas.';
+        }
+
+        $activity_age = $latest_activity ? max( 0, $now - $latest_activity ) : null;
+        $activity = function_exists( 'seo_processes_format_age' )
+            ? seo_processes_format_age( $activity_age )
+            : ( null === $activity_age ? 'Sin actividad registrada' : 'Hace ' . number_format_i18n( $activity_age ) . ' s' );
+
+        $items[] = [
+            'id'            => 'environment-compare',
+            'name'          => 'Comparador PRO/STAGING',
+            'kind'          => 'Worker PHP · Gestor de procesos',
+            'state'         => $process_state,
+            'speed'         => $speed,
+            'response'      => $response,
+            'load'          => implode( ' · ', $load ),
+            'activity'      => $activity,
+            'activity_age'  => $activity_age,
+            'progress'      => null,
+            'progress_text' => '—',
+            'detail'        => $detail,
+            'url'           => add_query_arg(
+                [ 'page'=>'seo-import-export', 'seo_ie_tab'=>'comparar-entornos' ],
+                admin_url( 'admin.php' )
+            ),
+        ];
+
+        return $items;
+    }
+}
+add_filter( 'seo_processes_monitor_items', 'seo_environment_compare_process_monitor_item', 20, 1 );
 
 if ( ! function_exists( 'seo_environment_compare_scan_ajax' ) ) {
     /**
@@ -1359,4 +1497,3 @@ if ( ! function_exists( 'seo_environment_compare_render' ) ) {
         echo '</div>';
     }
 }
-
