@@ -24,7 +24,7 @@
  *
  * @package SEOSystem
  * @subpackage ImportExport
- * @version 2.2.0
+ * @version 2.1.3
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -122,19 +122,16 @@ if ( ! function_exists( 'seo_environment_compare_get_state' ) ) {
                 'started_at'         => 0,
                 'finished_at'        => 0,
                 'error'              => '',
-                'batch_size'                    => 8,
-                'last_batch_target_rows'          => 0,
-                'last_batch_rows'                 => 0,
-                'last_batch_seconds'              => 0.0,
-                'last_batch_memory_ratio'         => 0.0,
-                'last_batch_time_budget_reached'  => 0,
-                'last_cpu_percent'                => null,
-                'adaptive_pressure'               => '',
-                'adaptive_reason'                 => '',
-                'worker_runs'                     => 0,
-                'worker_source'                   => '',
-                'next_run_at'                     => 0,
-                'last_activity_at'                => 0,
+                'batch_size'         => 30,
+                'last_batch_seconds' => 0.0,
+                'worker_runs'        => 0,
+                'worker_source'      => '',
+                'next_run_at'        => 0,
+                'last_activity_at'      => 0,
+                'worker_attempts'       => 0,
+                'worker_lock_misses'    => 0,
+                'last_worker_attempt_at'=> 0,
+                'last_worker_error'     => '',
             ]
         );
     }
@@ -197,16 +194,6 @@ if ( ! function_exists( 'seo_environment_compare_open' ) ) {
             // Solo afecta a esta conexion. Evita que GROUP_CONCAT trunque hashes
             // de metadatos/taxonomias en objetos con muchas relaciones.
             @mysqli_query( $mysqli, 'SET SESSION group_concat_max_len = 1048576' );
-
-            // Limite defensivo por sentencia remota. MySQL y MariaDB usan
-            // variables distintas; se prueban ambas de forma tolerante. Si el
-            // servidor no soporta una de ellas, la conexion sigue siendo valida.
-            $config = function_exists( 'seo_environment_compare_adaptive_config' )
-                ? seo_environment_compare_adaptive_config()
-                : [ 'hard_seconds' => 12.0 ];
-            $statement_seconds = max( 5.0, min( 60.0, (float) ( $config['hard_seconds'] ?? 12.0 ) * 1.5 ) );
-            @mysqli_query( $mysqli, 'SET SESSION MAX_EXECUTION_TIME = ' . (int) round( $statement_seconds * 1000 ) );
-            @mysqli_query( $mysqli, 'SET SESSION max_statement_time = ' . number_format( $statement_seconds, 3, '.', '' ) );
         }
         return $mysqli;
     }
@@ -504,242 +491,10 @@ if ( ! function_exists( 'seo_environment_compare_store_diff' ) ) {
     }
 }
 
-
-if ( ! function_exists( 'seo_environment_compare_adaptive_config' ) ) {
-    /**
-     * Configuracion adaptativa del comparador. El panel central de Procesos
-     * puede sobreescribir estos valores mediante el filtro homonimo.
-     */
-    function seo_environment_compare_adaptive_config() {
-        $config = [
-            'min_rows'               => 2,
-            'initial_rows'           => 8,
-            'max_rows'               => 60,
-            'target_seconds'         => 4.0,
-            'hard_seconds'           => 12.0,
-            'growth_factor'          => 1.35,
-            'slowdown_factor'        => 0.65,
-            'critical_factor'        => 0.40,
-            'memory_soft_ratio'      => 0.55,
-            'memory_hard_ratio'      => 0.72,
-            'cpu_soft_percent'       => 65.0,
-            'cpu_hard_percent'       => 80.0,
-            'normal_delay'           => 2,
-            'heavy_delay'            => 10,
-            'critical_delay'         => 30,
-        ];
-
-        $filtered = apply_filters( 'seo_environment_compare_adaptive_config', $config );
-        if ( is_array( $filtered ) ) $config = array_merge( $config, $filtered );
-
-        $config['min_rows']          = max( 1, min( 100, absint( $config['min_rows'] ) ) );
-        $config['initial_rows']      = max( $config['min_rows'], min( 200, absint( $config['initial_rows'] ) ) );
-        $config['max_rows']          = max( $config['initial_rows'], min( 300, absint( $config['max_rows'] ) ) );
-        $config['target_seconds']    = max( 1.0, min( 60.0, (float) $config['target_seconds'] ) );
-        $config['hard_seconds']      = max( $config['target_seconds'] + 1.0, min( 120.0, (float) $config['hard_seconds'] ) );
-        $config['growth_factor']     = max( 1.05, min( 2.0, (float) $config['growth_factor'] ) );
-        $config['slowdown_factor']   = max( 0.20, min( 0.95, (float) $config['slowdown_factor'] ) );
-        $config['critical_factor']   = max( 0.10, min( 0.80, (float) $config['critical_factor'] ) );
-        $config['memory_soft_ratio'] = max( 0.20, min( 0.90, (float) $config['memory_soft_ratio'] ) );
-        $config['memory_hard_ratio'] = max( $config['memory_soft_ratio'] + 0.05, min( 0.98, (float) $config['memory_hard_ratio'] ) );
-        $config['cpu_soft_percent']  = max( 20.0, min( 95.0, (float) $config['cpu_soft_percent'] ) );
-        $config['cpu_hard_percent']  = max( $config['cpu_soft_percent'] + 5.0, min( 100.0, (float) $config['cpu_hard_percent'] ) );
-        $config['normal_delay']      = max( 0, min( 120, absint( $config['normal_delay'] ) ) );
-        $config['heavy_delay']       = max( $config['normal_delay'], min( 300, absint( $config['heavy_delay'] ) ) );
-        $config['critical_delay']    = max( $config['heavy_delay'], min( 900, absint( $config['critical_delay'] ) ) );
-        return $config;
-    }
-}
-
-if ( ! function_exists( 'seo_environment_compare_memory_limit_bytes' ) ) {
-    function seo_environment_compare_memory_limit_bytes() {
-        $raw = trim( (string) ini_get( 'memory_limit' ) );
-        if ( '' === $raw || '-1' === $raw ) return 0;
-        if ( function_exists( 'wp_convert_hr_to_bytes' ) ) {
-            $bytes = (int) wp_convert_hr_to_bytes( $raw );
-            return $bytes > 0 ? $bytes : 0;
-        }
-        if ( is_numeric( $raw ) ) return max( 0, (int) $raw );
-        $unit = strtolower( substr( $raw, -1 ) );
-        $value = (float) $raw;
-        if ( 'g' === $unit ) { $value *= 1024; $unit = 'm'; }
-        if ( 'm' === $unit ) { $value *= 1024; $unit = 'k'; }
-        if ( 'k' === $unit ) $value *= 1024;
-        return max( 0, (int) $value );
-    }
-}
-
-if ( ! function_exists( 'seo_environment_compare_memory_ratio' ) ) {
-    function seo_environment_compare_memory_ratio() {
-        $limit = seo_environment_compare_memory_limit_bytes();
-        if ( $limit < 1 ) return 0.0;
-        return max( 0.0, min( 1.5, memory_get_usage( true ) / $limit ) );
-    }
-}
-
-if ( ! function_exists( 'seo_environment_compare_runtime_cpu_metrics' ) ) {
-    /**
-     * Usa la misma fuente de CPU del Clasificador/Estado del servidor cuando
-     * esta disponible. Si el hosting no expone una metrica fiable, no inventa
-     * un porcentaje y el regulador sigue por tiempo y memoria.
-     */
-    function seo_environment_compare_runtime_cpu_metrics() {
-        if ( function_exists( 'seo_classifier_job_runtime_cpu_metrics' ) ) {
-            $metrics = seo_classifier_job_runtime_cpu_metrics();
-            if ( is_array( $metrics ) ) return $metrics;
-        }
-        $result = [ 'available'=>false, 'percent'=>null, 'cores'=>0, 'load'=>[] ];
-        if ( function_exists( 'seo_server_status_runtime_resource_metrics' ) ) {
-            $metrics = (array) seo_server_status_runtime_resource_metrics();
-            $cpu = (array) ( $metrics['cpu'] ?? [] );
-            if ( ! empty( $cpu['available'] ) && isset( $cpu['percent'] ) && is_numeric( $cpu['percent'] ) ) {
-                $result['available'] = true;
-                $result['percent'] = max( 0.0, (float) $cpu['percent'] );
-                $result['cores'] = absint( $cpu['cores'] ?? 0 );
-                $result['load'] = array_values( (array) ( $cpu['load'] ?? [] ) );
-            }
-        } elseif ( function_exists( 'sys_getloadavg' ) && function_exists( 'seo_server_status_detect_cpu_cores' ) ) {
-            $load = @sys_getloadavg();
-            $cores = absint( seo_server_status_detect_cpu_cores() );
-            if ( is_array( $load ) && isset( $load[0] ) && $cores > 0 ) {
-                $result['available'] = true;
-                $result['percent'] = max( 0.0, ( (float) $load[0] / max( 1, $cores ) ) * 100.0 );
-                $result['cores'] = $cores;
-                $result['load'] = array_values( array_slice( $load, 0, 3 ) );
-            }
-        }
-        return apply_filters( 'seo_environment_compare_runtime_cpu_metrics', $result );
-    }
-}
-
-if ( ! function_exists( 'seo_environment_compare_adaptive_plan' ) ) {
-    /**
-     * Calcula el siguiente lote usando coste observado + presion global.
-     * Tambien respeta la ventana que el Gestor asigna a este target para que el
-     * comparador no monopolice el ciclo cuando hay otros procesos activos.
-     */
-    function seo_environment_compare_adaptive_plan( array $state, $window_seconds = 0 ) {
-        $config = seo_environment_compare_adaptive_config();
-        $previous_target = max( $config['min_rows'], absint( $state['last_batch_target_rows'] ?? 0 ) );
-        if ( empty( $state['last_batch_target_rows'] ) ) $previous_target = $config['initial_rows'];
-        $previous_rows = absint( $state['last_batch_rows'] ?? 0 );
-        $duration = max( 0.0, (float) ( $state['last_batch_seconds'] ?? 0 ) );
-        $previous_memory = max( 0.0, (float) ( $state['last_batch_memory_ratio'] ?? 0 ) );
-        $previous_cpu = isset( $state['last_cpu_percent'] ) && is_numeric( $state['last_cpu_percent'] )
-            ? max( 0.0, (float) $state['last_cpu_percent'] )
-            : null;
-        $budget_reached = ! empty( $state['last_batch_time_budget_reached'] );
-        $window_seconds = max( 0.0, (float) $window_seconds );
-        $window_budget = $window_seconds > 0 ? max( 2.0, $window_seconds - 1.0 ) : (float) $config['hard_seconds'];
-        $effective_target = min( (float) $config['target_seconds'], max( 1.0, $window_budget * 0.65 ) );
-        $effective_hard = min( (float) $config['hard_seconds'], $window_budget );
-        $next = $previous_target;
-        $pressure = 'baja';
-        $reason = 'arranque conservador';
-
-        if ( $previous_rows > 0 && $duration > 0 ) {
-            $seconds_per_row = $duration / max( 1, $previous_rows );
-            $ideal = (int) floor( $effective_target / max( 0.01, $seconds_per_row ) );
-            $ideal = max( $config['min_rows'], min( $config['max_rows'], $ideal ) );
-            if ( $previous_memory >= $config['memory_hard_ratio'] || $budget_reached || $duration >= $effective_hard ) {
-                $next = max( $config['min_rows'], min( $ideal, (int) floor( $previous_target * $config['critical_factor'] ) ) );
-                $pressure = 'critica';
-                $reason = 'corte por tiempo/memoria en el lote anterior';
-            } elseif ( $previous_memory >= $config['memory_soft_ratio'] || $duration > ( $effective_target * 1.35 ) ) {
-                $next = max( $config['min_rows'], min( $ideal, (int) floor( $previous_target * $config['slowdown_factor'] ) ) );
-                $pressure = 'alta';
-                $reason = 'lote anterior pesado';
-            } elseif ( $ideal > $previous_target ) {
-                $growth_cap = max( $previous_target + 1, (int) ceil( $previous_target * $config['growth_factor'] ) );
-                $next = min( $config['max_rows'], $ideal, $growth_cap );
-                $reason = 'coste estable: puede crecer';
-            } elseif ( $ideal < $previous_target ) {
-                $next = max( $config['min_rows'], $ideal );
-                $pressure = 'media';
-                $reason = 'ajuste al coste real';
-            } else {
-                $reason = 'ritmo estable';
-            }
-        } elseif ( $window_seconds > 0 && $window_budget < $config['hard_seconds'] ) {
-            // El primer lote aun no tiene telemetria. Se escala conservadoramente
-            // al presupuesto que el supervisor reparte entre los targets activos.
-            $ratio = max( 0.20, min( 1.0, $window_budget / max( 1.0, (float) $config['hard_seconds'] ) ) );
-            $next = max( $config['min_rows'], (int) floor( $config['initial_rows'] * $ratio ) );
-            $reason = 'primer lote limitado por ventana del gestor';
-        }
-
-        // La CPU observada en el lote anterior limita el siguiente lote, pero no
-        // lo bloquea indefinidamente: el aplazamiento duro solo depende de la
-        // presion ACTUAL medida justo antes de abrir las BBDD remotas.
-        if ( null !== $previous_cpu && $previous_cpu >= $config['cpu_hard_percent'] ) {
-            $next = $config['min_rows'];
-            $pressure = 'cpu_critica';
-            $reason = 'CPU crítica observada en el lote anterior';
-        } elseif ( null !== $previous_cpu && $previous_cpu >= $config['cpu_soft_percent'] ) {
-            $next = min( $next, max( $config['min_rows'], (int) floor( $previous_target * $config['slowdown_factor'] ) ) );
-            if ( 'baja' === $pressure ) $pressure = 'cpu_alta';
-            $reason = 'CPU elevada observada en el lote anterior';
-        }
-
-        $current_memory = seo_environment_compare_memory_ratio();
-        $cpu_metrics = seo_environment_compare_runtime_cpu_metrics();
-        $current_cpu = ! empty( $cpu_metrics['available'] ) && isset( $cpu_metrics['percent'] ) && is_numeric( $cpu_metrics['percent'] )
-            ? max( 0.0, (float) $cpu_metrics['percent'] )
-            : null;
-
-        $delay = (int) $config['normal_delay'];
-        if ( in_array( $pressure, [ 'alta', 'cpu_alta' ], true ) ) $delay = max( $delay, (int) $config['heavy_delay'] );
-        if ( in_array( $pressure, [ 'critica', 'cpu_critica' ], true ) ) $delay = max( $delay, (int) $config['critical_delay'] );
-
-        $defer = false;
-        if ( $current_memory >= $config['memory_hard_ratio'] ) {
-            $next = $config['min_rows'];
-            $delay = (int) $config['critical_delay'];
-            $pressure = 'memoria_critica';
-            $reason = 'memoria PHP actual por encima del umbral duro';
-            $defer = true;
-        } elseif ( null !== $current_cpu && $current_cpu >= $config['cpu_hard_percent'] ) {
-            $next = $config['min_rows'];
-            $delay = (int) $config['critical_delay'];
-            $pressure = 'cpu_critica';
-            $reason = 'CPU global actual por encima del umbral duro';
-            $defer = true;
-        } elseif ( $current_memory >= $config['memory_soft_ratio'] ) {
-            $next = min( $next, max( $config['min_rows'], (int) floor( $previous_target * $config['slowdown_factor'] ) ) );
-            $delay = max( $delay, (int) $config['heavy_delay'] );
-            $pressure = 'memoria_alta';
-            $reason = 'memoria PHP actual en zona preventiva';
-        } elseif ( null !== $current_cpu && $current_cpu >= $config['cpu_soft_percent'] ) {
-            $next = min( $next, max( $config['min_rows'], (int) floor( $previous_target * $config['slowdown_factor'] ) ) );
-            $delay = max( $delay, (int) $config['heavy_delay'] );
-            $pressure = 'cpu_alta';
-            $reason = 'CPU global actual elevada';
-        }
-
-        return [
-            'batch_size'      => max( $config['min_rows'], min( $config['max_rows'], absint( $next ) ) ),
-            'delay'           => max( 0, absint( $delay ) ),
-            'pressure'        => $pressure,
-            'reason'          => $reason,
-            'defer'           => $defer,
-            'current_memory'  => $current_memory,
-            'current_cpu'     => $current_cpu,
-            'hard_budget'     => $effective_hard,
-            'config'          => $config,
-        ];
-    }
-}
-
-if ( ! function_exists( 'seo_environment_compare_lock_name' ) ) {
-    function seo_environment_compare_lock_name( $entity ) {
-        return 'seo_env_compare_worker_' . sanitize_key( (string) $entity );
-    }
-}
-
 if ( ! function_exists( 'seo_environment_compare_manager_key' ) ) {
     function seo_environment_compare_manager_key() {
-        // Se conserva el prefijo histórico import-export para mantener
-        // compatibilidad con el estado/monitor ya persistido del Gestor.
+        // El prefijo import-export hace que el proceso aparezca en el monitor
+        // central sin modificar el supervisor ni pisar Academia/Clasificador.
         return 'import-export-environment-compare';
     }
 }
@@ -823,13 +578,56 @@ if ( ! function_exists( 'seo_environment_compare_finalize_worker_scan' ) ) {
     }
 }
 
+if ( ! function_exists( 'seo_environment_compare_kick_manager' ) ) {
+    /**
+     * Solicita un pulso real del Gestor incluso cuando el trabajo se encola
+     * despues de wp_loaded (por ejemplo desde admin-ajax.php). El supervisor
+     * conserva el lock global y decide el round-robin; el comparador no ejecuta
+     * aqui ningun lote directamente.
+     *
+     * @return bool True si se ha podido solicitar/asegurar continuidad.
+     */
+    function seo_environment_compare_kick_manager( $source = 'environment_compare' ) {
+        static $shutdown_registered = false;
+
+        if ( function_exists( 'seo_process_supervisor_schedule_backup' ) ) {
+            seo_process_supervisor_schedule_backup( false );
+        }
+        if ( function_exists( 'seo_process_supervisor_nudge' ) ) {
+            seo_process_supervisor_nudge( 0, $source );
+        }
+
+        if ( 'cli' === PHP_SAPI || ( defined( 'DOING_CRON' ) && DOING_CRON ) ) {
+            return true;
+        }
+
+        // El hook general del supervisor se evalua en wp_loaded. Si la cola se
+        // crea mas tarde en AJAX, registramos el mismo pulso de shutdown aqui.
+        if (
+            ! $shutdown_registered
+            && function_exists( 'seo_process_supervisor_request_pulse_claim' )
+            && function_exists( 'seo_process_supervisor_request_pulse_shutdown' )
+        ) {
+            if ( seo_process_supervisor_request_pulse_claim() ) {
+                $shutdown_registered = true;
+                add_action( 'shutdown', 'seo_process_supervisor_request_pulse_shutdown', 0 );
+            }
+            // Si no se obtiene el claim normalmente ya existe otro pulso en
+            // curso o reservado; el supervisor limpiara claims obsoletos.
+            return true;
+        }
+
+        return function_exists( 'seo_process_supervisor_nudge' );
+    }
+}
+
 if ( ! function_exists( 'seo_environment_compare_process_worker_batch' ) ) {
     /**
      * Ejecuta UN solo lote de comparación. Esta función solo la llama el Gestor
-     * de procesos; nunca el navegador. El tamaño se calcula con el regulador
-     * central y el lote respeta el presupuesto repartido por el supervisor.
+     * de procesos; nunca el navegador. Así la carga entra en el round-robin
+     * común con Import/Export, Academia y Clasificador.
      */
-    function seo_environment_compare_process_worker_batch( $entity, $source = 'process_manager', $time_budget = 0 ) {
+    function seo_environment_compare_process_worker_batch( $entity, $source = 'process_manager' ) {
         $entities = seo_environment_compare_entities();
         if ( ! isset( $entities[ $entity ] ) ) return new WP_Error( 'invalid_entity', 'Entidad de comparación no válida.' );
         $state = seo_environment_compare_get_state( $entity );
@@ -837,32 +635,25 @@ if ( ! function_exists( 'seo_environment_compare_process_worker_batch' ) ) {
         if ( absint( $state['next_run_at'] ?? 0 ) > time() ) return false;
 
         global $wpdb;
-        $lock_name = seo_environment_compare_lock_name( $entity );
+        $state['worker_attempts'] = absint( $state['worker_attempts'] ?? 0 ) + 1;
+        $state['last_worker_attempt_at'] = time();
+        $lock_name = 'seo_env_compare_worker_' . $entity;
         $locked = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s,0)', $lock_name ) );
-        if ( '1' !== (string) $locked ) return false;
+        if ( '1' !== (string) $locked ) {
+            $state['worker_lock_misses'] = absint( $state['worker_lock_misses'] ?? 0 ) + 1;
+            $state['last_worker_error'] = 'El worker no pudo adquirir el lock MySQL del comparador.';
+            $state['last_activity_at'] = time();
+            $state['next_run_at'] = time() + 2;
+            seo_environment_compare_set_state( $entity, $state );
+            seo_environment_compare_kick_manager( 'environment_compare_lock_wait' );
+            return false;
+        }
 
+        $state['last_worker_error'] = '';
         $started = microtime( true );
         try {
-            $plan = seo_environment_compare_adaptive_plan( $state, $time_budget );
-            $state['batch_size'] = absint( $plan['batch_size'] );
-            $state['adaptive_pressure'] = sanitize_key( (string) $plan['pressure'] );
-            $state['adaptive_reason'] = sanitize_text_field( (string) $plan['reason'] );
-            $state['worker_source'] = sanitize_key( (string) $source );
-
-            // Si el servidor ya llega presionado, ni siquiera abrimos las dos
-            // conexiones remotas. El Gestor conserva el trabajo y lo reintentará.
-            if ( ! empty( $plan['defer'] ) ) {
-                $state['last_cpu_percent'] = null === $plan['current_cpu'] ? null : round( (float) $plan['current_cpu'], 2 );
-                $state['last_batch_memory_ratio'] = round( (float) $plan['current_memory'], 4 );
-                $state['next_run_at'] = time() + absint( $plan['delay'] );
-                $state['last_activity_at'] = time();
-                seo_environment_compare_set_state( $entity, $state );
-                if ( function_exists( 'seo_process_supervisor_nudge' ) ) seo_process_supervisor_nudge( $plan['delay'], 'environment_compare' );
-                return false;
-            }
-
-            $batch_limit = max( 1, absint( $plan['batch_size'] ) );
-            $candidate_limit = min( 300, $batch_limit + max( 4, min( 20, (int) ceil( $batch_limit * 0.5 ) ) ) );
+            $batch_limit = max( 8, min( 60, absint( $state['batch_size'] ?? 30 ) ) );
+            $candidate_limit = $batch_limit + 12;
             $pro = seo_environment_compare_open( 'pro' );
             $stg = seo_environment_compare_open( 'staging' );
             if ( is_wp_error( $pro ) || is_wp_error( $stg ) ) {
@@ -871,6 +662,7 @@ if ( ! function_exists( 'seo_environment_compare_process_worker_batch' ) ) {
                 $err = is_wp_error( $pro ) ? $pro : $stg;
                 $state['status'] = 'error';
                 $state['error'] = $err->get_error_message();
+                $state['last_worker_error'] = $state['error'];
                 $state['last_activity_at'] = time();
                 seo_environment_compare_set_state( $entity, $state );
                 return $err;
@@ -882,7 +674,7 @@ if ( ! function_exists( 'seo_environment_compare_process_worker_batch' ) ) {
             if ( is_wp_error( $pro_ids ) || is_wp_error( $stg_ids ) ) {
                 $err = is_wp_error( $pro_ids ) ? $pro_ids : $stg_ids;
                 @mysqli_close( $pro ); @mysqli_close( $stg );
-                $state['status'] = 'error'; $state['error'] = $err->get_error_message(); $state['last_activity_at'] = time();
+                $state['status'] = 'error'; $state['error'] = $err->get_error_message(); $state['last_worker_error'] = $state['error']; $state['last_activity_at'] = time();
                 seo_environment_compare_set_state( $entity, $state );
                 return $err;
             }
@@ -899,7 +691,7 @@ if ( ! function_exists( 'seo_environment_compare_process_worker_batch' ) ) {
             if ( is_wp_error( $pro_rows ) || is_wp_error( $stg_rows ) ) {
                 $err = is_wp_error( $pro_rows ) ? $pro_rows : $stg_rows;
                 @mysqli_close( $pro ); @mysqli_close( $stg );
-                $state['status'] = 'error'; $state['error'] = $err->get_error_message(); $state['last_activity_at'] = time();
+                $state['status'] = 'error'; $state['error'] = $err->get_error_message(); $state['last_worker_error'] = $state['error']; $state['last_activity_at'] = time();
                 seo_environment_compare_set_state( $entity, $state );
                 return $err;
             }
@@ -930,7 +722,6 @@ if ( ! function_exists( 'seo_environment_compare_process_worker_batch' ) ) {
             $state['worker_runs'] = absint( $state['worker_runs'] ?? 0 ) + 1;
             $state['worker_source'] = sanitize_key( (string) $source );
             $state['last_activity_at'] = time();
-            $state['last_batch_target_rows'] = $batch_limit;
 
             // Detecta el final en este mismo lote: no necesita una petición AJAX
             // adicional del navegador para pasar a COMPLETE.
@@ -939,34 +730,38 @@ if ( ! function_exists( 'seo_environment_compare_process_worker_batch' ) ) {
             @mysqli_close( $pro ); @mysqli_close( $stg );
             if ( is_wp_error( $next_pro ) || is_wp_error( $next_stg ) ) {
                 $err = is_wp_error( $next_pro ) ? $next_pro : $next_stg;
-                $state['status'] = 'error'; $state['error'] = $err->get_error_message();
+                $state['status'] = 'error'; $state['error'] = $err->get_error_message(); $state['last_worker_error'] = $state['error'];
                 seo_environment_compare_set_state( $entity, $state );
                 return $err;
             }
 
             $elapsed = max( 0.001, microtime( true ) - $started );
-            $cpu_metrics = seo_environment_compare_runtime_cpu_metrics();
             $state['last_batch_rows'] = count( $ids );
             $state['last_batch_seconds'] = round( $elapsed, 3 );
-            $state['last_batch_memory_ratio'] = round( seo_environment_compare_memory_ratio(), 4 );
-            $state['last_cpu_percent'] = ! empty( $cpu_metrics['available'] ) && isset( $cpu_metrics['percent'] ) && is_numeric( $cpu_metrics['percent'] )
-                ? round( max( 0.0, (float) $cpu_metrics['percent'] ), 2 )
-                : null;
-            $effective_budget = max( 0.0, (float) $time_budget );
-            $state['last_batch_time_budget_reached'] = $effective_budget > 0 && $elapsed >= max( 1.0, $effective_budget * 0.90 ) ? 1 : 0;
+            // Regulador conservador: solo aumenta si los lotes son realmente
+            // rápidos; reduce enseguida cuando el hosting empieza a sufrir.
+            if ( $elapsed > 12.0 ) {
+                $state['batch_size'] = max( 8, (int) floor( $batch_limit * 0.50 ) );
+                $delay = 12;
+            } elseif ( $elapsed > 6.0 ) {
+                $state['batch_size'] = max( 8, (int) floor( $batch_limit * 0.75 ) );
+                $delay = 5;
+            } elseif ( $elapsed < 1.5 && $batch_limit < 60 ) {
+                $state['batch_size'] = min( 60, $batch_limit + 5 );
+                $delay = 1;
+            } else {
+                $state['batch_size'] = $batch_limit;
+                $delay = 2;
+            }
 
             if ( empty( $next_pro ) && empty( $next_stg ) ) {
                 return seo_environment_compare_finalize_worker_scan( $entity, $state );
             }
 
-            $next_plan = seo_environment_compare_adaptive_plan( $state, $time_budget );
-            $state['batch_size'] = absint( $next_plan['batch_size'] );
-            $state['adaptive_pressure'] = sanitize_key( (string) $next_plan['pressure'] );
-            $state['adaptive_reason'] = sanitize_text_field( (string) $next_plan['reason'] );
             $state['status'] = 'running';
-            $state['next_run_at'] = time() + absint( $next_plan['delay'] );
+            $state['next_run_at'] = time() + $delay;
             seo_environment_compare_set_state( $entity, $state );
-            if ( function_exists( 'seo_process_supervisor_nudge' ) ) seo_process_supervisor_nudge( $next_plan['delay'], 'environment_compare' );
+            if ( function_exists( 'seo_process_supervisor_nudge' ) ) seo_process_supervisor_nudge( $delay, 'environment_compare' );
             return $state;
         } finally {
             $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
@@ -988,25 +783,39 @@ if ( ! function_exists( 'seo_environment_compare_process_manager_slice' ) ) {
                 'detail'=>'Comparando '.$labels[$entity]['label'].' desde ID '.absint($state['cursor'] ?? 0).'.'
             ] );
         }
-        $result = seo_environment_compare_process_worker_batch( $entity, $source, $seconds );
+        try {
+            $result = seo_environment_compare_process_worker_batch( $entity, $source );
+        } catch ( Throwable $e ) {
+            $fresh = seo_environment_compare_get_state( $entity );
+            $fresh['status'] = 'error';
+            $fresh['error'] = 'Excepción del worker: ' . sanitize_text_field( $e->getMessage() );
+            $fresh['last_worker_error'] = $fresh['error'];
+            $fresh['last_activity_at'] = time();
+            $fresh['next_run_at'] = 0;
+            seo_environment_compare_set_state( $entity, $fresh );
+            $result = new WP_Error( 'environment_compare_worker_exception', $fresh['error'] );
+        }
+
         $fresh = seo_environment_compare_get_state( $entity );
         $still = seo_environment_compare_has_pending_scan();
+        $managed_result = is_wp_error( $result )
+            ? 'error'
+            : ( false === $result ? 'waiting' : ( ( 'complete' === ( $fresh['status'] ?? '' ) ) ? 'completed' : 'processed' ) );
         if ( function_exists( 'seo_process_supervisor_managed_update' ) ) {
             seo_process_supervisor_managed_update( $key, [
                 'name'=>'Comparador PRO/STAGING', 'pending'=>$still?1:0,
                 'healthy'=>is_wp_error($result)?0:1, 'last_checked'=>time(),
-                'last_result'=>is_wp_error($result)?'error':(false===$result?'waiting':(('complete'===($fresh['status']??''))?'completed':'processed')),
-                'last_error'=>is_wp_error($result)?$result->get_error_message():'',
-                'detail'=>'Capa '.$labels[$entity]['label'].' · procesados '.absint($fresh['processed']??0).' · lote '.absint($fresh['batch_size']??8).' · '.(float)($fresh['last_batch_seconds']??0).' s · presión '.sanitize_text_field((string)($fresh['adaptive_pressure']??'baja')).'.'
+                'last_result'=>$managed_result,
+                'last_error'=>is_wp_error($result)?$result->get_error_message():(string)($fresh['last_worker_error']??''),
+                'detail'=>'Capa '.$labels[$entity]['label'].' · procesados '.absint($fresh['processed']??0).' · intentos '.absint($fresh['worker_attempts']??0).' · lote '.absint($fresh['batch_size']??30).' · '.(float)($fresh['last_batch_seconds']??0).' s.'
             ] );
         }
-        return false !== $result && ! is_wp_error( $result );
+        return ! is_wp_error( $result );
     }
 }
 
 if ( ! function_exists( 'seo_environment_compare_manager_targets' ) ) {
     function seo_environment_compare_manager_targets( $targets, $settings, $source ) {
-        if ( isset( $settings['environment_compare'] ) && empty( $settings['environment_compare'] ) ) return $targets;
         if ( ! seo_environment_compare_has_pending_scan() ) return $targets;
         if ( ! seo_environment_compare_has_due_scan() ) return $targets;
         $targets[] = [
@@ -1021,10 +830,6 @@ add_filter( 'seo_process_supervisor_manager_targets', 'seo_environment_compare_m
 
 if ( ! function_exists( 'seo_environment_compare_manager_pending_filter' ) ) {
     function seo_environment_compare_manager_pending_filter( $pending ) {
-        if ( function_exists( 'seo_process_supervisor_settings' ) ) {
-            $settings = seo_process_supervisor_settings();
-            if ( isset( $settings['environment_compare'] ) && empty( $settings['environment_compare'] ) ) return (bool) $pending;
-        }
         return $pending || seo_environment_compare_has_pending_scan();
     }
 }
@@ -1122,13 +927,8 @@ if ( ! function_exists( 'seo_environment_compare_process_monitor_item' ) ) {
             ? number_format_i18n( $seconds, 2 ) . ' s el último lote'
             : 'Sin lote medido';
 
-        $batch = absint( $focus_state['batch_size'] ?? 8 );
+        $batch = absint( $focus_state['batch_size'] ?? 30 );
         $load = [ 'Gestor de workers', 'lote objetivo ' . number_format_i18n( $batch ) ];
-        $pressure = sanitize_key( (string) ( $focus_state['adaptive_pressure'] ?? '' ) );
-        if ( $pressure ) $load[] = 'presión ' . str_replace( '_', ' ', $pressure );
-        if ( isset( $focus_state['last_cpu_percent'] ) && is_numeric( $focus_state['last_cpu_percent'] ) ) $load[] = 'CPU ' . number_format_i18n( (float) $focus_state['last_cpu_percent'], 1 ) . '%';
-        $memory_percent = max( 0.0, (float) ( $focus_state['last_batch_memory_ratio'] ?? 0 ) * 100.0 );
-        if ( $memory_percent > 0 ) $load[] = 'mem ' . number_format_i18n( $memory_percent, 1 ) . '%';
         if ( $due_in > 0 ) $load[] = 'pausa ' . number_format_i18n( $due_in ) . ' s';
         if ( $running ) $load[] = count( $running ) . ' capa' . ( 1 === count( $running ) ? ' activa' : 's activas' );
         if ( $errors ) $load[] = count( $errors ) . ' con error';
@@ -1138,7 +938,6 @@ if ( ! function_exists( 'seo_environment_compare_process_monitor_item' ) ) {
             $cursor = absint( $focus_state['cursor'] ?? 0 );
             if ( $cursor ) $detail .= ' · cursor ' . number_format_i18n( $cursor );
             if ( count( $running ) > 1 ) $detail .= ' · ' . number_format_i18n( count( $running ) ) . ' capas en cola';
-            if ( ! empty( $focus_state['adaptive_reason'] ) ) $detail .= ' · ' . sanitize_text_field( (string) $focus_state['adaptive_reason'] );
             if ( ! empty( $focus_state['error'] ) ) $detail .= ' · ' . sanitize_text_field( (string) $focus_state['error'] );
         } else {
             $detail = 'Sin comparaciones iniciadas.';
@@ -1195,31 +994,16 @@ if ( ! function_exists( 'seo_environment_compare_scan_ajax' ) ) {
             if ( empty( $manager['enabled'] ) ) {
                 wp_send_json_error( [ 'message'=>'El Gestor de procesos está desactivado. Actívalo antes de lanzar la comparación.' ], 409 );
             }
-            if ( isset( $manager['environment_compare'] ) && empty( $manager['environment_compare'] ) ) {
-                wp_send_json_error( [ 'message'=>'La gestión del Comparador PRO/STAGING está desactivada en Procesos > Gestor de workers.' ], 409 );
-            }
             global $wpdb;
-            $lock_name = seo_environment_compare_lock_name( $entity );
-            $locked = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s,0)', $lock_name ) );
-            if ( '1' !== (string) $locked ) {
-                wp_send_json_error( [ 'message'=>'Hay un lote de esta capa ejecutándose. Espera a que termine antes de reiniciar el escaneo.' ], 409 );
-            }
-            $config = seo_environment_compare_adaptive_config();
+            $wpdb->delete( seo_environment_compare_table(), [ 'entity'=>$entity ], [ '%s' ] );
             $now = time();
-            try {
-                $wpdb->delete( seo_environment_compare_table(), [ 'entity'=>$entity ], [ '%s' ] );
-                $state = [
-                    'status'=>'running','cursor'=>0,'processed'=>0,'pro'=>0,'staging'=>0,'same'=>0,'different'=>0,
-                    'only_pro'=>0,'only_staging'=>0,'started_at'=>$now,'finished_at'=>0,'error'=>'',
-                    'batch_size'=>absint($config['initial_rows']),'last_batch_target_rows'=>0,'last_batch_rows'=>0,
-                    'last_batch_seconds'=>0.0,'last_batch_memory_ratio'=>seo_environment_compare_memory_ratio(),
-                    'last_batch_time_budget_reached'=>0,'last_cpu_percent'=>null,'adaptive_pressure'=>'','adaptive_reason'=>'',
-                    'worker_runs'=>0,'worker_source'=>'','next_run_at'=>$now,'last_activity_at'=>$now,
-                ];
-                seo_environment_compare_set_state( $entity, $state );
-            } finally {
-                $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
-            }
+            $state = [
+                'status'=>'running','cursor'=>0,'processed'=>0,'pro'=>0,'staging'=>0,'same'=>0,'different'=>0,
+                'only_pro'=>0,'only_staging'=>0,'started_at'=>$now,'finished_at'=>0,'error'=>'',
+                'batch_size'=>30,'last_batch_seconds'=>0.0,'worker_runs'=>0,'worker_source'=>'','next_run_at'=>$now,'last_activity_at'=>$now,
+                'worker_attempts'=>0,'worker_lock_misses'=>0,'last_worker_attempt_at'=>0,'last_worker_error'=>'',
+            ];
+            seo_environment_compare_set_state( $entity, $state );
             $key = seo_environment_compare_manager_key();
             if ( function_exists( 'seo_process_supervisor_managed_update' ) ) {
                 seo_process_supervisor_managed_update( $key, [
@@ -1227,16 +1011,52 @@ if ( ! function_exists( 'seo_environment_compare_scan_ajax' ) ) {
                     'last_result'=>'queued','last_error'=>'','detail'=>'En cola: '.$entities[$entity]['label'].'. El navegador no ejecuta los lotes.'
                 ] );
             }
-            if ( function_exists( 'seo_process_supervisor_start' ) ) seo_process_supervisor_start( false, 'environment_compare' );
-            if ( function_exists( 'seo_process_supervisor_nudge' ) ) seo_process_supervisor_nudge( 0, 'environment_compare' );
+            // No reiniciamos el estado global del supervisor: el gestor puede
+            // estar atendiendo Import/Export, Academia o Clasificador. Solo le
+            // notificamos que existe trabajo nuevo y aseguramos un primer pulso.
+            seo_environment_compare_kick_manager( 'environment_compare' );
             wp_send_json_success( [ 'done'=>false, 'queued'=>true, 'state'=>$state ] );
         }
 
         $state = seo_environment_compare_get_state( $entity );
+        if ( 'running' === (string) ( $state['status'] ?? '' ) ) {
+            $now = time();
+            $due = absint( $state['next_run_at'] ?? 0 ) <= $now;
+            $last_attempt = absint( $state['last_worker_attempt_at'] ?? 0 );
+
+            // El polling es tambien un watchdog de cola. No ejecuta el lote:
+            // simplemente vuelve a despertar el Gestor si el trabajo esta vencido.
+            if ( $due && ( ! $last_attempt || ( $now - $last_attempt ) >= 5 ) ) {
+                seo_environment_compare_kick_manager( 'environment_compare_poll' );
+            }
+
+            // Evita el estado "En cola" infinito: si durante tres minutos no
+            // hubo ni un intento de worker, la UI devuelve una causa accionable.
+            if (
+                0 === absint( $state['worker_attempts'] ?? 0 )
+                && absint( $state['started_at'] ?? 0 )
+                && ( $now - absint( $state['started_at'] ) ) >= 180
+            ) {
+                $state['status'] = 'error';
+                $state['error'] = 'El Gestor de procesos no ha ejecutado ningún lote en 180 s. Revisa el cron/pulsos del Gestor de workers.';
+                $state['last_worker_error'] = $state['error'];
+                $state['last_activity_at'] = $now;
+                $state['next_run_at'] = 0;
+                seo_environment_compare_set_state( $entity, $state );
+            }
+        }
+
+        $manager_state = function_exists( 'seo_process_supervisor_state' ) ? seo_process_supervisor_state() : [];
         wp_send_json_success( [
             'done' => in_array( (string)($state['status']??''), [ 'complete','error' ], true ),
             'queued' => 'running' === (string)($state['status']??''),
             'state' => $state,
+            'manager' => [
+                'status' => sanitize_key( (string) ( $manager_state['status'] ?? '' ) ),
+                'backend' => sanitize_key( (string) ( $manager_state['backend'] ?? '' ) ),
+                'next_cycle_at' => absint( $manager_state['next_cycle_at'] ?? 0 ),
+                'last_error' => sanitize_text_field( (string) ( $manager_state['last_error'] ?? '' ) ),
+            ],
         ] );
     }
 }
@@ -1261,7 +1081,7 @@ if ( ! function_exists( 'seo_environment_compare_export_json_admin_post' ) ) {
 
         $export = [
             'schema'           => 'seo_environment_compare_report',
-            'version'          => '2.2.0',
+            'version'          => '2.1.3',
             'execution'        => 'process_manager_worker',
             'generated_at_utc' => current_time( 'mysql', true ),
             'dates_ignored'    => true,
@@ -1784,7 +1604,7 @@ if ( ! function_exists( 'seo_environment_compare_render' ) ) {
                     echo '</td></tr>';}
                 echo '</tbody></table></div>';if($total_diff>100)echo '<p class="seo-env-muted">Se muestran las primeras 100 diferencias para mantener ligera la pantalla. El escaneo conserva el inventario completo.</p>';echo '</details>';}
             echo '</section>';}
-        echo '<script>(function(){const ajax='.wp_json_encode(admin_url('admin-ajax.php')).',nonce='.wp_json_encode($nonce).';function post(data){data.nonce=nonce;return fetch(ajax,{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8"},body:new URLSearchParams(data)}).then(r=>r.json());}function progress(entity,text){document.querySelectorAll("[data-progress=\""+entity+"\"]").forEach(n=>n.textContent=text||"");}async function scan(entity,reset){document.querySelectorAll(".seo-env-scan[data-entity=\""+entity+"\"]").forEach(b=>b.disabled=true);try{let r=await post({action:"seo_environment_compare_scan",entity:entity,reset:reset?1:0});if(!r.success)throw new Error((r.data&&r.data.message)||"Error al encolar el escaneo");progress(entity,"En cola del Gestor de procesos…");while(true){await new Promise(x=>setTimeout(x,3000));r=await post({action:"seo_environment_compare_scan",entity:entity,reset:0});if(!r.success)throw new Error((r.data&&r.data.message)||"Error consultando estado");const s=r.data.state||{};progress(entity,"Worker: "+(s.processed||0)+" procesados · lote "+(s.batch_size||8)+" · "+(s.last_batch_seconds||0)+" s");if(r.data.done){if(s.status==="error")throw new Error(s.error||"El worker terminó con error");break;}}progress(entity,"Escaneo completo");setTimeout(()=>location.reload(),700);}catch(e){progress(entity,e.message);document.querySelectorAll(".seo-env-scan[data-entity=\""+entity+"\"]").forEach(b=>b.disabled=false);}}document.querySelectorAll(".seo-env-scan").forEach(b=>b.addEventListener("click",e=>{e.preventDefault();scan(b.dataset.entity,true);}));document.querySelectorAll(".seo-env-sync-one").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(b.disabled)return;b.disabled=true;progress(b.dataset.entity,"Actualizando #"+b.dataset.id+"…");const r=await post({action:"seo_environment_sync_item",entity:b.dataset.entity,object_id:b.dataset.id,source:b.dataset.source,destination:b.dataset.destination});if(!r.success){progress(b.dataset.entity,(r.data&&r.data.message)||"Error");b.disabled=false;return;}progress(b.dataset.entity,"Actualizado. Verificando…");scan(b.dataset.entity,true);}));document.querySelectorAll(".seo-env-bulk").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(b.disabled)return;const msg="Vas a copiar TODAS las diferencias de esta capa "+b.dataset.source.toUpperCase()+" → "+b.dataset.destination.toUpperCase()+". Las fechas se ignoran y el contenido del origen sustituirá esta capa en el destino. ¿Continuar?";if(!window.confirm(msg))return;b.disabled=true;let total=0;progress(b.dataset.entity,"Sincronizando por lotes…");while(true){const r=await post({action:"seo_environment_sync_bulk",entity:b.dataset.entity,source:b.dataset.source,destination:b.dataset.destination});if(!r.success){progress(b.dataset.entity,(r.data&&r.data.message)||"Error");b.disabled=false;return;}total+=Number(r.data.updated||0);progress(b.dataset.entity,"Actualizados "+total+" · pendientes "+Number(r.data.remaining||0)+" · bloqueados "+Number(r.data.blocked||0));if(r.data.done)break;if(Number(r.data.updated||0)===0&&Number(r.data.remaining||0)>0){progress(b.dataset.entity,"Hay filas bloqueadas porque cambiaron después del escaneo o requieren revisión. Reescanea.");b.disabled=false;return;}await new Promise(x=>setTimeout(x,400));}scan(b.dataset.entity,true);}));})();</script>';
+        echo '<script>(function(){const ajax='.wp_json_encode(admin_url('admin-ajax.php')).',nonce='.wp_json_encode($nonce).';function post(data){data.nonce=nonce;return fetch(ajax,{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8"},body:new URLSearchParams(data)}).then(r=>r.json());}function progress(entity,text){document.querySelectorAll("[data-progress=\""+entity+"\"]").forEach(n=>n.textContent=text||"");}async function scan(entity,reset){document.querySelectorAll(".seo-env-scan[data-entity=\""+entity+"\"]").forEach(b=>b.disabled=true);try{let r=await post({action:"seo_environment_compare_scan",entity:entity,reset:reset?1:0});if(!r.success)throw new Error((r.data&&r.data.message)||"Error al encolar el escaneo");progress(entity,"En cola del Gestor de procesos…");while(true){await new Promise(x=>setTimeout(x,3000));r=await post({action:"seo_environment_compare_scan",entity:entity,reset:0});if(!r.success)throw new Error((r.data&&r.data.message)||"Error consultando estado");const s=r.data.state||{};const m=r.data.manager||{};progress(entity,"Worker: "+(s.processed||0)+" procesados · intentos "+(s.worker_attempts||0)+" · lote "+(s.batch_size||30)+" · "+(s.last_batch_seconds||0)+" s"+(m.status?" · gestor "+m.status:""));if(r.data.done){if(s.status==="error")throw new Error(s.error||"El worker terminó con error");break;}}progress(entity,"Escaneo completo");setTimeout(()=>location.reload(),700);}catch(e){progress(entity,e.message);document.querySelectorAll(".seo-env-scan[data-entity=\""+entity+"\"]").forEach(b=>b.disabled=false);}}document.querySelectorAll(".seo-env-scan").forEach(b=>b.addEventListener("click",e=>{e.preventDefault();scan(b.dataset.entity,true);}));document.querySelectorAll(".seo-env-sync-one").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(b.disabled)return;b.disabled=true;progress(b.dataset.entity,"Actualizando #"+b.dataset.id+"…");const r=await post({action:"seo_environment_sync_item",entity:b.dataset.entity,object_id:b.dataset.id,source:b.dataset.source,destination:b.dataset.destination});if(!r.success){progress(b.dataset.entity,(r.data&&r.data.message)||"Error");b.disabled=false;return;}progress(b.dataset.entity,"Actualizado. Verificando…");scan(b.dataset.entity,true);}));document.querySelectorAll(".seo-env-bulk").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(b.disabled)return;const msg="Vas a copiar TODAS las diferencias de esta capa "+b.dataset.source.toUpperCase()+" → "+b.dataset.destination.toUpperCase()+". Las fechas se ignoran y el contenido del origen sustituirá esta capa en el destino. ¿Continuar?";if(!window.confirm(msg))return;b.disabled=true;let total=0;progress(b.dataset.entity,"Sincronizando por lotes…");while(true){const r=await post({action:"seo_environment_sync_bulk",entity:b.dataset.entity,source:b.dataset.source,destination:b.dataset.destination});if(!r.success){progress(b.dataset.entity,(r.data&&r.data.message)||"Error");b.disabled=false;return;}total+=Number(r.data.updated||0);progress(b.dataset.entity,"Actualizados "+total+" · pendientes "+Number(r.data.remaining||0)+" · bloqueados "+Number(r.data.blocked||0));if(r.data.done)break;if(Number(r.data.updated||0)===0&&Number(r.data.remaining||0)>0){progress(b.dataset.entity,"Hay filas bloqueadas porque cambiaron después del escaneo o requieren revisión. Reescanea.");b.disabled=false;return;}await new Promise(x=>setTimeout(x,400));}scan(b.dataset.entity,true);}));})();</script>';
         echo '</div>';
     }
 }
