@@ -272,19 +272,6 @@ echo wp_json_encode(
 
 
     <!-- =====================================================
-         AYUDA PARA ELEGIR / COMPARATIVA ESTÁTICA
-    ====================================================== -->
-
-    <?php
-    $category_comparison_template = __DIR__ . '/template-category-comparison.php';
-
-    if (is_readable($category_comparison_template)) {
-        include $category_comparison_template;
-    }
-    ?>
-
-
-    <!-- =====================================================
          PRODUCTOS DE LA CATEGORÍA
     ====================================================== -->
 
@@ -358,25 +345,6 @@ echo wp_json_encode(
     <?php endif; ?>
 
     <?php wp_reset_postdata(); ?>
-
-    <?php
-    if (function_exists('dht_render_amazon_category_block')) {
-        dht_render_amazon_category_block($term, array(
-            'limit' => 8,
-            'title' => 'Productos que te pueden interesar',
-            'mode'  => 'dynamic',
-        ));
-    }
-    ?>
-
-    <?php
-    if (function_exists('dht_render_vevor_affiliate_category_block')) {
-        dht_render_vevor_affiliate_category_block($term, array(
-            'limit' => 8,
-            'title' => 'Descubre otros productos en VEVOR',
-        ));
-    }
-    ?>
 
 
     <!-- =====================================================
@@ -556,7 +524,32 @@ echo wp_json_encode(
     ?>
 
 
-</main>
+    <!-- =====================================================
+         PRODUCTOS EXTERNOS / AFILIADOS
+         Siempre después de todo el contenido propio de la categoría.
+         Orden obligatorio: Amazon -> VEVOR -> footer.
+    ====================================================== -->
 
+    <?php
+    if (function_exists('dht_render_amazon_category_block')) {
+        dht_render_amazon_category_block($term, array(
+            'limit' => 8,
+            'title' => 'Productos que te pueden interesar',
+            'mode'  => 'dynamic',
+        ));
+    }
+    ?>
+
+    <?php
+    if (function_exists('dht_render_vevor_affiliate_category_block')) {
+        dht_render_vevor_affiliate_category_block($term, array(
+            'limit' => 8,
+            'title' => 'Descubre otros productos en VEVOR',
+        ));
+    }
+    ?>
+
+
+</main>
 
 <?php dht_template_render_footer(); ?>
