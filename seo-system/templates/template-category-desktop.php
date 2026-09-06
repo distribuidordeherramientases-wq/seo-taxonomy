@@ -13,11 +13,6 @@ if (is_readable($amazon_category_template)) {
     require_once $amazon_category_template;
 }
 
-$vevor_affiliate_template = __DIR__ . '/template-vevor-affiliate.php';
-if (!function_exists('dht_render_vevor_affiliate_category_block') && is_readable($vevor_affiliate_template)) {
-    require_once $vevor_affiliate_template;
-}
-
 
 /* ==========================================================
    EVITAR DESCRIPCIÓN DUPLICADA DE WOOCOMMERCE
@@ -547,27 +542,7 @@ echo wp_json_encode(
     }
     ?>
 
-    <?php
-    // Carga defensiva: aunque el gestor principal no se haya sustituido,
-    // la variante intenta cargar directamente el módulo VEVOR.
-    if (!function_exists('dht_render_vevor_affiliate_category_block')) {
-        $vevor_affiliate_template = __DIR__ . '/template-vevor-affiliate.php';
-        if (is_readable($vevor_affiliate_template)) {
-            require_once $vevor_affiliate_template;
-        }
-    }
-
-    if (function_exists('dht_render_vevor_affiliate_category_block')) {
-        echo '<!-- DHT VEVOR CALL START -->';
-        dht_render_vevor_affiliate_category_block($term, array(
-            'limit' => 8,
-            'title' => 'Descubre otros productos en VEVOR',
-        ));
-        echo '<!-- DHT VEVOR CALL END -->';
-    } elseif (current_user_can('manage_options')) {
-        echo '<section class="dht-section"><div class="dht-container"><p><strong>Diagnóstico VEVOR:</strong> no se pudo cargar template-vevor-affiliate.php.</p></div></section>';
-    }
-    ?>
+    <?php include __DIR__ . '/template-vevor-affiliate.php'; ?>
 
 
 </main>
