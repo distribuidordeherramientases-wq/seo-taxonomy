@@ -1973,10 +1973,24 @@ function seo_server_status_collect_snapshot($deep = false) {
 
     $mysql_version = seo_server_status_get_mysql_version();
     $checks[] = seo_server_status_make_check('SRV-DB-CONNECTION', 'Base de datos', 'Conexión MySQL/MariaDB', $mysql_version ?: 'No disponible', $mysql_version ? 'ok' : 'error', 'Versión devuelta por SELECT VERSION().');
+
+    // Charset y collation válidos son información de configuración, no incidencias.
+    // Solo se eleva a error cuando MySQL/MariaDB devuelve un error real al consultar la variable.
     $charset = $wpdb->get_var("SELECT @@character_set_database");
+    $charset_error = (string) $wpdb->last_error;
+    $charset_status = $charset_error !== '' ? 'error' : ($charset === 'utf8mb4' ? 'ok' : 'info');
+    $charset_detail = $charset_error !== ''
+        ? 'Error MySQL al consultar character_set_database: ' . $charset_error
+        : 'Variable informativa. No se genera alerta por usar un juego de caracteres válido distinto de utf8mb4.';
+    $checks[] = seo_server_status_make_check('SRV-DB-CHARSET', 'Base de datos', 'Juego de caracteres', $charset !== null && $charset !== '' ? (string) $charset : 'No disponible', $charset_status, $charset_detail);
+
     $collation = $wpdb->get_var("SELECT @@collation_database");
-    $checks[] = seo_server_status_make_check('SRV-DB-CHARSET', 'Base de datos', 'Juego de caracteres', (string) $charset, $charset === 'utf8mb4' ? 'ok' : 'warning', 'utf8mb4 evita limitaciones con Unicode.');
-    $checks[] = seo_server_status_make_check('SRV-DB-COLLATION', 'Base de datos', 'Collation', (string) $collation, strpos((string) $collation, 'utf8mb4') !== false ? 'ok' : 'warning', 'Se recomienda una collation utf8mb4 coherente.');
+    $collation_error = (string) $wpdb->last_error;
+    $collation_status = $collation_error !== '' ? 'error' : (strpos((string) $collation, 'utf8mb4') !== false ? 'ok' : 'info');
+    $collation_detail = $collation_error !== ''
+        ? 'Error MySQL al consultar collation_database: ' . $collation_error
+        : 'Variable informativa. No se genera alerta por usar una collation válida distinta de utf8mb4.';
+    $checks[] = seo_server_status_make_check('SRV-DB-COLLATION', 'Base de datos', 'Collation', $collation !== null && $collation !== '' ? (string) $collation : 'No disponible', $collation_status, $collation_detail);
 
     $options = seo_server_status_get_options_stats();
     $autoload_status = $options['autoload_size'] > 20971520 ? 'important' : ($options['autoload_size'] > 10485760 ? 'warning' : 'ok');
@@ -2023,8 +2037,7 @@ function seo_server_status_collect_snapshot($deep = false) {
         $tables = seo_server_status_get_largest_tables(5);
         foreach ((array) $tables as $table) {
             $total = (float) $table->data_length + (float) $table->index_length;
-            $status = $total > 1073741824 ? 'warning' : 'info';
-            $checks[] = seo_server_status_make_check('SRV-DB-TABLE-' . strtoupper(substr(sha1($table->table_name), 0, 8)), 'Base de datos', 'Tabla grande', (string) $table->table_name . ' · ' . seo_server_status_format_bytes($total), $status, 'Solo se registra nombre técnico y tamaño agregado.');
+            $checks[] = seo_server_status_make_check('SRV-DB-TABLE-' . strtoupper(substr(sha1($table->table_name), 0, 8)), 'Base de datos', 'Tabla grande', (string) $table->table_name . ' · ' . seo_server_status_format_bytes($total), 'info', 'Dato informativo de capacidad; el tamaño de una tabla no es por sí solo un error de MySQL/MariaDB.');
         }
     }
 
@@ -2201,7 +2214,7 @@ function seo_server_status_render_summary_tab() {
 
     echo '<div class="seo-status-grid">';
     seo_server_status_summary_card('PHP', 'Versión ' . esc_html($php_version) . '<br>Memoria: ' . esc_html($memory_limit), version_compare($php_version, '8.0', '>=') && $memory_bytes >= 268435456 ? 'ok' : 'warning');
-    seo_server_status_summary_card('MySQL', $mysql_version ? 'Versión ' . esc_html($mysql_version) : 'No detectado', $mysql_version ? 'ok' : 'warning');
+    seo_server_status_summary_card('MySQL', $mysql_version ? 'Versión ' . esc_html($mysql_version) : 'No detectado', $mysql_version ? 'ok' : 'error');
     seo_server_status_summary_card('WordPress', 'Versión ' . esc_html(get_bloginfo('version')) . '<br>Cron atrasados: ' . esc_html(number_format_i18n($cron_stats['overdue'])), $cron_stats['overdue'] > 0 ? 'warning' : 'ok');
     seo_server_status_summary_card('WooCommerce', $wc_active ? 'Activo<br>Pendientes: ' . esc_html(number_format_i18n($pending_actions)) . '<br>Fallidas: ' . esc_html(number_format_i18n($failed_actions)) : 'No activo', $failed_actions > 0 || $pending_actions > 1000 ? 'warning' : ($wc_active ? 'ok' : 'warning'));
     seo_server_status_summary_card('Autoload', seo_server_status_format_bytes($options_stats['autoload_size']) . '<br>' . esc_html(number_format_i18n($options_stats['autoload_count'])) . ' opciones', $options_stats['autoload_size'] > 10485760 ? 'warning' : 'ok');
@@ -2567,22 +2580,28 @@ function seo_server_status_render_mysql_tab() {
     echo '<div class="seo-status-card">';
     echo '<h2>Configuracion MySQL / MariaDB</h2>';
     seo_server_status_open_table();
-    seo_server_status_row('Version', $mysql_version ? esc_html($mysql_version) : 'No disponible', $mysql_version ? 'ok' : 'warning', 'Version devuelta por SELECT VERSION().');
+    seo_server_status_row('Version', $mysql_version ? esc_html($mysql_version) : 'No disponible', $mysql_version ? 'ok' : 'error', 'Version devuelta por SELECT VERSION(). Si no puede consultarse, se considera un error real de conexion/consulta.');
 
     $variables = array('version_comment', 'character_set_database', 'collation_database', 'max_allowed_packet', 'innodb_buffer_pool_size', 'wait_timeout', 'interactive_timeout', 'sql_mode');
     foreach ($variables as $var) {
         $value = $wpdb->get_var($wpdb->prepare('SHOW VARIABLES LIKE %s', $var), 1);
-        $status = 'info';
-        if ($var === 'character_set_database') {
-            $status = $value === 'utf8mb4' ? 'ok' : 'warning';
+        $mysql_error = (string) $wpdb->last_error;
+        $status = $mysql_error !== '' ? 'error' : 'info';
+        $detail = $mysql_error !== ''
+            ? 'Error MySQL al consultar la variable: ' . $mysql_error
+            : 'Variable MySQL informativa; no genera alertas por recomendaciones de configuracion.';
+
+        // utf8mb4 se muestra como correcto, pero otros valores válidos no son una incidencia.
+        if ($mysql_error === '' && $var === 'character_set_database' && $value === 'utf8mb4') {
+            $status = 'ok';
         }
-        if ($var === 'collation_database') {
-            $status = strpos((string) $value, 'utf8mb4') !== false ? 'ok' : 'warning';
+        if ($mysql_error === '' && $var === 'collation_database' && strpos((string) $value, 'utf8mb4') !== false) {
+            $status = 'ok';
         }
         if (in_array($var, array('max_allowed_packet', 'innodb_buffer_pool_size'), true) && is_numeric($value)) {
             $value = seo_server_status_format_bytes((float) $value);
         }
-        seo_server_status_row($var, $value !== null && $value !== '' ? esc_html((string) $value) : 'No disponible', $status, 'Variable MySQL informativa.');
+        seo_server_status_row($var, $value !== null && $value !== '' ? esc_html((string) $value) : 'No disponible', $status, $detail);
     }
     seo_server_status_close_table();
     echo '</div>';
@@ -2627,9 +2646,9 @@ function seo_server_status_render_mysql_tab() {
     seo_server_status_row('Numero de tablas', esc_html(number_format_i18n($table_count)), 'info', 'Total de tablas de la base de datos actual.');
     seo_server_status_row('Filas aproximadas', esc_html(number_format_i18n($estimated_rows)), 'info', 'Estimacion de information_schema; en InnoDB puede no ser exacta.');
     seo_server_status_row('Tablas InnoDB', esc_html(number_format_i18n((int) $innodb_tables)), 'info', 'Motor habitual y recomendado en WordPress moderno.');
-    seo_server_status_row('Tablas MyISAM', esc_html(number_format_i18n((int) $myisam_tables)), ((int) $myisam_tables > 0) ? 'warning' : 'ok', 'En WordPress moderno suele ser preferible InnoDB.');
-    seo_server_status_row('Tamano tabla options', seo_server_status_format_bytes((float) $options_size), ((float) $options_size > 52428800) ? 'warning' : 'ok', 'Si wp_options crece demasiado puede afectar al rendimiento.');
-    seo_server_status_row('Tamano autoload', seo_server_status_format_bytes((float) $autoload_size), ((float) $autoload_size > 10485760) ? 'warning' : 'ok', 'Mas de 10 MB en autoload suele ser una senal a revisar.');
+    seo_server_status_row('Tablas MyISAM', esc_html(number_format_i18n((int) $myisam_tables)), 'info', 'Dato informativo. El uso de MyISAM no se considera por sí solo un error de MySQL/MariaDB.');
+    seo_server_status_row('Tamano tabla options', seo_server_status_format_bytes((float) $options_size), 'info', 'Dato informativo de capacidad; no genera alerta por umbral de tamaño.');
+    seo_server_status_row('Tamano autoload', seo_server_status_format_bytes((float) $autoload_size), 'info', 'Dato informativo de carga; no se presenta como error de MySQL/MariaDB.');
     seo_server_status_close_table();
     echo '</div>';
 
