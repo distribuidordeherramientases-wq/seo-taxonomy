@@ -724,7 +724,13 @@ if (!class_exists('SEO_Transporte_Costes')) {
                 }
 
                 $cost = self::calculate_rule_cost($rule, $metrics);
-                $label = trim((string) $settings['rate_label']);
+
+                // El nombre visible lo decide la regla que realmente ha coincidido.
+                // Si la regla no tiene nombre, usamos el nombre global como respaldo.
+                $label = trim((string) ($rule['name'] ?? ''));
+                if ('' === $label) {
+                    $label = trim((string) ($settings['rate_label'] ?? ''));
+                }
                 if ('' === $label) {
                     $label = 'Transporte';
                 }
