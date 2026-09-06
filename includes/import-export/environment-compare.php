@@ -52,7 +52,7 @@ register_shutdown_function(function () {
 
 debugLog('SCRIPT_START');
 
->
+?>
 
 <?php
 /**
