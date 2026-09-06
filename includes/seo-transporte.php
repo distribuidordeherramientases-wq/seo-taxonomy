@@ -101,11 +101,17 @@ if (!class_exists('SEO_Transporte_Costes')) {
                 $zone = 'peninsula';
             }
 
+            $mode = isset($rule['mode']) ? sanitize_key($rule['mode']) : 'base';
+            if (!in_array($mode, array('base', 'surcharge'), true)) {
+                $mode = 'base';
+            }
+
             return array(
                 'id'             => !empty($rule['id']) ? sanitize_key($rule['id']) : 'r' . ($index + 1) . '-' . wp_generate_password(5, false, false),
                 'enabled'        => !empty($rule['enabled']) ? 1 : 0,
                 'priority'       => isset($rule['priority']) ? max(1, absint($rule['priority'])) : (($index + 1) * 10),
                 'name'           => isset($rule['name']) ? sanitize_text_field($rule['name']) : '',
+                'mode'           => $mode,
                 'zone'           => $zone,
                 'min_subtotal'   => self::decimal($rule['min_subtotal'] ?? ''),
                 'max_subtotal'   => self::decimal($rule['max_subtotal'] ?? ''),
@@ -224,7 +230,7 @@ if (!class_exists('SEO_Transporte_Costes')) {
 
         private static function blank_rule() {
             return array(
-                'id' => '', 'enabled' => 0, 'priority' => 10, 'name' => '', 'zone' => 'peninsula',
+                'id' => '', 'enabled' => 0, 'priority' => 10, 'name' => '', 'mode' => 'base', 'zone' => 'peninsula',
                 'min_subtotal' => '', 'max_subtotal' => '', 'min_weight' => '', 'max_weight' => '',
                 'max_length' => '', 'max_width' => '', 'max_height' => '', 'max_volume' => '',
                 'fixed_cost' => 0, 'per_kg_cost' => 0, 'per_unit_cost' => 0, 'free_from' => '',
@@ -246,6 +252,10 @@ if (!class_exists('SEO_Transporte_Costes')) {
                 <div class="seo-transport-grid seo-transport-grid--identity">
                     <label><span>Prioridad</span><input type="number" min="1" step="1" name="<?php echo esc_attr($base . '[priority]'); ?>" value="<?php echo esc_attr((string) $rule['priority']); ?>" /></label>
                     <label><span>Nombre de la regla</span><input type="text" name="<?php echo esc_attr($base . '[name]'); ?>" value="<?php echo esc_attr((string) $rule['name']); ?>" placeholder="Ej.: Península estándar" /></label>
+                    <label><span>Tipo</span><select name="<?php echo esc_attr($base . '[mode]'); ?>">
+                        <option value="base" <?php selected($rule['mode'], 'base'); ?>>Tarifa base</option>
+                        <option value="surcharge" <?php selected($rule['mode'], 'surcharge'); ?>>Recargo acumulable</option>
+                    </select></label>
                     <label><span>Destino</span><select name="<?php echo esc_attr($base . '[zone]'); ?>">
                         <?php foreach ($zones as $key => $label) : ?>
                             <option value="<?php echo esc_attr($key); ?>" <?php selected($rule['zone'], $key); ?>><?php echo esc_html($label); ?></option>
@@ -255,8 +265,8 @@ if (!class_exists('SEO_Transporte_Costes')) {
 
                 <h3>Cuándo se aplica</h3>
                 <div class="seo-transport-grid">
-                    <label><span>Subtotal mínimo (€)</span><?php self::render_decimal_input($base . '[min_subtotal]', $rule['min_subtotal']); ?></label>
-                    <label><span>Subtotal máximo (€)</span><?php self::render_decimal_input($base . '[max_subtotal]', $rule['max_subtotal']); ?></label>
+                    <label><span>Aplicar desde subtotal (€)</span><?php self::render_decimal_input($base . '[min_subtotal]', $rule['min_subtotal']); ?></label>
+                    <label><span>Aplicar hasta subtotal (€)</span><?php self::render_decimal_input($base . '[max_subtotal]', $rule['max_subtotal']); ?></label>
                     <label><span>Peso mínimo (kg)</span><?php self::render_decimal_input($base . '[min_weight]', $rule['min_weight']); ?></label>
                     <label><span>Peso máximo (kg)</span><?php self::render_decimal_input($base . '[max_weight]', $rule['max_weight']); ?></label>
                     <label><span>Largo máx. (cm)</span><?php self::render_decimal_input($base . '[max_length]', $rule['max_length']); ?></label>
@@ -272,7 +282,7 @@ if (!class_exists('SEO_Transporte_Costes')) {
                     <label><span>+ coste por unidad (€)</span><?php self::render_decimal_input($base . '[per_unit_cost]', $rule['per_unit_cost'], '0'); ?></label>
                     <label><span>Gratis desde subtotal (€)</span><?php self::render_decimal_input($base . '[free_from]', $rule['free_from'], 'Opcional'); ?></label>
                 </div>
-                <p class="description">Coste = fijo + (kg × coste/kg) + (unidades × coste/unidad). Si se alcanza “Gratis desde”, el coste final es 0 €. La primera regla activa que coincida por prioridad es la que se utiliza.</p>
+                <p class="description">Coste = fijo + (kg × coste/kg) + (unidades × coste/unidad). Se usa la primera <strong>Tarifa base</strong> que coincida y se le suman todos los <strong>Recargos acumulables</strong> que también coincidan. “Gratis desde” pone a 0 € solo esa regla.</p>
             </section>
             <?php
         }
@@ -302,7 +312,7 @@ if (!class_exists('SEO_Transporte_Costes')) {
                     <div class="notice notice-warning"><p><strong>El gestor no se ha activado.</strong> Debe existir al menos una regla activa para evitar bloquear el checkout.</p></div>
                 <?php endif; ?>
 
-                <p class="seo-transport-intro">Una sola pantalla controla el coste que verá el cliente en carrito y checkout. Cuando el gestor está activo, las tarifas configuradas en WooCommerce se ignoran y este motor devuelve una única tarifa según destino, subtotal, peso y dimensiones.</p>
+                <p class="seo-transport-intro">Una sola pantalla controla el coste que verá el cliente en carrito y checkout. Cuando el gestor está activo, las tarifas configuradas en WooCommerce se ignoran y este motor devuelve una única tarifa según destino, subtotal, peso y dimensiones. Para pedidos inferiores a un importe, deja «Aplicar desde» vacío y usa «Aplicar hasta».</p>
 
                 <?php if (!class_exists('WooCommerce')) : ?>
                     <div class="notice notice-error inline"><p>WooCommerce debe estar activo para calcular el transporte.</p></div>
@@ -332,7 +342,7 @@ if (!class_exists('SEO_Transporte_Costes')) {
 
                     <div class="seo-transport-panel">
                         <div class="seo-transport-title-row">
-                            <div><h2>Reglas de coste</h2><p>Ordena mediante “Prioridad”: 10 se evalúa antes que 20. Puedes crear reglas simples o combinar importe, peso y dimensiones.</p></div>
+                            <div><h2>Reglas de coste</h2><p>Ordena mediante “Prioridad”: 10 se evalúa antes que 20. La primera Tarifa base coincidente define el transporte y los Recargos acumulables coincidentes se suman después.</p></div>
                             <button type="button" class="button button-secondary" id="seo-transport-add-rule">Añadir regla</button>
                         </div>
                         <div id="seo-transport-rules">
@@ -353,7 +363,7 @@ if (!class_exists('SEO_Transporte_Costes')) {
                 </form>
             </div>
             <style>
-                .seo-transporte-wrap .nav-tab-wrapper{margin-bottom:16px}.seo-transport-intro{max-width:1100px;font-size:14px}.seo-transport-panel{background:#fff;border:1px solid #dcdcde;border-radius:4px;padding:18px 20px;margin:18px 0;max-width:1180px}.seo-transport-panel h2{margin-top:0}.seo-transport-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(280px,1fr));gap:10px 18px}.seo-transport-toggle{display:flex;gap:9px;align-items:flex-start;padding:10px;border:1px solid #e2e4e7;border-radius:4px}.seo-transport-toggle input{margin-top:3px}.seo-transport-toggle small{display:block;color:#646970;margin-top:3px}.seo-transport-grid{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:12px 14px}.seo-transport-grid--identity{grid-template-columns:120px 2fr 1fr}.seo-transport-grid--general{grid-template-columns:1fr 1fr;margin-top:16px}.seo-transport-grid label>span{display:block;font-weight:600;margin-bottom:4px}.seo-transport-grid input,.seo-transport-grid select{width:100%}.seo-transport-rule{border:1px solid #c3c4c7;border-left:4px solid #4f73c9;border-radius:4px;padding:16px;margin:14px 0;background:#fcfcfc}.seo-transport-rule-head,.seo-transport-title-row{display:flex;justify-content:space-between;gap:16px;align-items:center}.seo-transport-rule h3{margin:18px 0 8px;font-size:14px}.seo-transport-title-row p{margin:4px 0 0}.seo-transport-help p{max-width:1050px}.seo-transport-remove{cursor:pointer}@media(max-width:900px){.seo-transport-settings-grid,.seo-transport-grid,.seo-transport-grid--identity,.seo-transport-grid--general{grid-template-columns:1fr 1fr}}@media(max-width:600px){.seo-transport-settings-grid,.seo-transport-grid,.seo-transport-grid--identity,.seo-transport-grid--general{grid-template-columns:1fr}}
+                .seo-transporte-wrap .nav-tab-wrapper{margin-bottom:16px}.seo-transport-intro{max-width:1100px;font-size:14px}.seo-transport-panel{background:#fff;border:1px solid #dcdcde;border-radius:4px;padding:18px 20px;margin:18px 0;max-width:1180px}.seo-transport-panel h2{margin-top:0}.seo-transport-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(280px,1fr));gap:10px 18px}.seo-transport-toggle{display:flex;gap:9px;align-items:flex-start;padding:10px;border:1px solid #e2e4e7;border-radius:4px}.seo-transport-toggle input{margin-top:3px}.seo-transport-toggle small{display:block;color:#646970;margin-top:3px}.seo-transport-grid{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:12px 14px}.seo-transport-grid--identity{grid-template-columns:120px 2fr 1fr 1fr}.seo-transport-grid--general{grid-template-columns:1fr 1fr;margin-top:16px}.seo-transport-grid label>span{display:block;font-weight:600;margin-bottom:4px}.seo-transport-grid input,.seo-transport-grid select{width:100%}.seo-transport-rule{border:1px solid #c3c4c7;border-left:4px solid #4f73c9;border-radius:4px;padding:16px;margin:14px 0;background:#fcfcfc}.seo-transport-rule-head,.seo-transport-title-row{display:flex;justify-content:space-between;gap:16px;align-items:center}.seo-transport-rule h3{margin:18px 0 8px;font-size:14px}.seo-transport-title-row p{margin:4px 0 0}.seo-transport-help p{max-width:1050px}.seo-transport-remove{cursor:pointer}@media(max-width:900px){.seo-transport-settings-grid,.seo-transport-grid,.seo-transport-grid--identity,.seo-transport-grid--general{grid-template-columns:1fr 1fr}}@media(max-width:600px){.seo-transport-settings-grid,.seo-transport-grid,.seo-transport-grid--identity,.seo-transport-grid--general{grid-template-columns:1fr}}
             </style>
             <script>
             (function(){
@@ -378,6 +388,80 @@ if (!class_exists('SEO_Transporte_Costes')) {
             }());
             </script>
             <?php
+        }
+
+        /**
+         * Resuelve el destino real del checkout. WooCommerce puede entregar el
+         * package de envio sin provincia/codigo postal cuando la tienda envia a
+         * la direccion de facturacion. En ese caso recuperamos primero los datos
+         * enviados por el checkout y despues los del cliente WC.
+         */
+        private static function resolve_destination($destination) {
+            $destination = is_array($destination) ? $destination : array();
+
+            $resolved = array(
+                'country'  => sanitize_text_field((string) ($destination['country'] ?? '')),
+                'state'    => sanitize_text_field((string) ($destination['state'] ?? '')),
+                'postcode' => sanitize_text_field((string) ($destination['postcode'] ?? '')),
+                'city'     => sanitize_text_field((string) ($destination['city'] ?? '')),
+                'address'  => sanitize_text_field((string) ($destination['address'] ?? '')),
+                'address_2'=> sanitize_text_field((string) ($destination['address_2'] ?? '')),
+            );
+
+            $posted = array();
+            if (isset($_POST['post_data']) && is_string($_POST['post_data'])) {
+                parse_str(wp_unslash($_POST['post_data']), $posted);
+            } elseif (!empty($_POST) && is_array($_POST)) {
+                $posted = wp_unslash($_POST);
+            }
+
+            $ship_different = !empty($posted['ship_to_different_address']);
+            foreach (array('country', 'state', 'postcode', 'city', 'address', 'address_2') as $field) {
+                if ('' !== trim((string) ($resolved[$field] ?? ''))) {
+                    continue;
+                }
+
+                $shipping_key = 'shipping_' . $field;
+                $billing_key  = 'billing_' . $field;
+                $value = '';
+
+                if ($ship_different && !empty($posted[$shipping_key])) {
+                    $value = $posted[$shipping_key];
+                } elseif (!empty($posted[$billing_key])) {
+                    $value = $posted[$billing_key];
+                } elseif (!empty($posted[$shipping_key])) {
+                    $value = $posted[$shipping_key];
+                }
+
+                if ('' !== trim((string) $value)) {
+                    $resolved[$field] = sanitize_text_field((string) $value);
+                }
+            }
+
+            if (function_exists('WC') && WC() && WC()->customer) {
+                $customer = WC()->customer;
+                foreach (array('country', 'state', 'postcode', 'city', 'address', 'address_2') as $field) {
+                    if ('' !== trim((string) ($resolved[$field] ?? ''))) {
+                        continue;
+                    }
+
+                    $shipping_getter = 'get_shipping_' . $field;
+                    $billing_getter  = 'get_billing_' . $field;
+                    $value = '';
+
+                    if (is_callable(array($customer, $shipping_getter))) {
+                        $value = (string) $customer->{$shipping_getter}();
+                    }
+                    if ('' === trim($value) && is_callable(array($customer, $billing_getter))) {
+                        $value = (string) $customer->{$billing_getter}();
+                    }
+                    if ('' !== trim($value)) {
+                        $resolved[$field] = sanitize_text_field($value);
+                    }
+                }
+            }
+
+            return $resolved;
         }
 
         private static function classify_destination($destination, $settings) {
@@ -546,6 +630,7 @@ if (!class_exists('SEO_Transporte_Costes')) {
             }
 
             $destination = isset($package['destination']) && is_array($package['destination']) ? $package['destination'] : array();
+            $destination = self::resolve_destination($destination);
             $region = self::classify_destination($destination, $settings);
 
             if (!empty($settings['only_spain']) && 'foreign' === $region) {
@@ -560,30 +645,63 @@ if (!class_exists('SEO_Transporte_Costes')) {
                 return ((int) ($a['priority'] ?? 9999)) <=> ((int) ($b['priority'] ?? 9999));
             });
 
+            $base_rule = null;
+            $surcharges = array();
+
             foreach ($rules as $rule) {
                 $rule = wp_parse_args($rule, self::blank_rule());
                 if (!self::rule_matches($rule, $region, $metrics, $settings)) {
                     continue;
                 }
 
-                $cost = self::calculate_rule_cost($rule, $metrics);
-                $label = trim((string) $settings['rate_label']);
-                if ('' === $label) {
-                    $label = 'Transporte';
+                if ('surcharge' === (string) $rule['mode']) {
+                    $surcharges[] = $rule;
+                    continue;
                 }
-                $taxes = self::rate_taxes($cost, $settings);
-                $rate_id = 'seo_transporte:' . sanitize_key((string) $rule['id']);
-                $rate = new WC_Shipping_Rate($rate_id, $label, $cost, $taxes, 'seo_transporte');
 
-                /**
-                 * Permite enriquecer o sustituir la tarifa final sin duplicar el motor.
-                 */
-                $rate = apply_filters('seo_transporte_shipping_rate', $rate, $rule, $metrics, $region, $package);
-                return $rate instanceof WC_Shipping_Rate ? array($rate_id => $rate) : array();
+                if (null === $base_rule) {
+                    $base_rule = $rule;
+                }
             }
 
-            // Sin coincidencia no inventamos un coste: WooCommerce bloqueara el envio hasta que exista una regla valida.
-            return array();
+            // Debe existir una tarifa base para el destino. Los recargos no crean envio por si solos.
+            if (null === $base_rule) {
+                return array();
+            }
+
+            $cost = self::calculate_rule_cost($base_rule, $metrics);
+            $applied_rules = array($base_rule);
+
+            foreach ($surcharges as $surcharge) {
+                $cost += self::calculate_rule_cost($surcharge, $metrics);
+                $applied_rules[] = $surcharge;
+            }
+
+            $cost = max(0, round($cost, function_exists('wc_get_price_decimals') ? wc_get_price_decimals() : 2));
+            $label = trim((string) $settings['rate_label']);
+            if ('' === $label) {
+                $label = 'Transporte';
+            }
+
+            $taxes = self::rate_taxes($cost, $settings);
+            $applied_ids = array_map(static function($r) {
+                return (string) ($r['id'] ?? '');
+            }, $applied_rules);
+            $rate_id = 'seo_transporte:' . substr(md5(implode('|', $applied_ids)), 0, 12);
+            $rate = new WC_Shipping_Rate($rate_id, $label, $cost, $taxes, 'seo_transporte');
+
+            if (method_exists($rate, 'add_meta_data')) {
+                $rate->add_meta_data('seo_transporte_region', $region, true);
+                $rate->add_meta_data('seo_transporte_reglas', implode(', ', array_filter(array_map(static function($r) {
+                    return (string) ($r['name'] ?? '');
+                }, $applied_rules))), true);
+            }
+
+            /**
+             * Permite enriquecer o sustituir la tarifa final sin duplicar el motor.
+             */
+            $rate = apply_filters('seo_transporte_shipping_rate', $rate, $base_rule, $metrics, $region, $package);
+            return $rate instanceof WC_Shipping_Rate ? array($rate_id => $rate) : array();
         }
     }
 
