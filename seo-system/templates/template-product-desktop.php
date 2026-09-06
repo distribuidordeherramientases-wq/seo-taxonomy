@@ -763,15 +763,6 @@ $technical_tags = array_values(array_filter(
   }
   ?>
 
-  <?php
-  if (function_exists('dht_render_vevor_affiliate_product_block')) {
-      dht_render_vevor_affiliate_product_block($product, array(
-          'limit' => 4,
-          'title' => 'Descubre otros productos en VEVOR',
-      ));
-  }
-  ?>
-
   <section class="dh-related-categories">
     <h2>Categorías relacionadas</h2>
 
@@ -801,6 +792,14 @@ $technical_tags = array_values(array_filter(
       </div>
     </section>
   <?php endif; ?>
+
+  <?php
+  // VEVOR afiliado: productos descartados + ignorados, renderizados al final de la ficha.
+  $vevor_template = __DIR__ . '/template-vevor-affiliate.php';
+  if (is_readable($vevor_template)) {
+      include $vevor_template;
+  }
+  ?>
 
 </div>
 
