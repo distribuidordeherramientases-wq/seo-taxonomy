@@ -16,6 +16,7 @@ if (!class_exists('SEO_Transporte_Costes')) {
         public static function init() {
             add_action('admin_menu', array(__CLASS__, 'register_page'), 30);
             add_action('admin_post_seo_transporte_save', array(__CLASS__, 'save_settings'));
+            add_filter('woocommerce_cart_shipping_packages', array(__CLASS__, 'filter_shipping_packages_destination'), 999, 1);
             add_filter('woocommerce_package_rates', array(__CLASS__, 'filter_package_rates'), 999, 2);
             add_filter('parent_file', array(__CLASS__, 'admin_parent_file'));
             add_filter('submenu_file', array(__CLASS__, 'admin_submenu_file'));
@@ -420,10 +421,18 @@ if (!class_exists('SEO_Transporte_Costes')) {
                 $ship_different = !empty($posted['ship_to_different_address']);
                 $prefix = $ship_different ? 'shipping_' : 'billing_';
 
+                /*
+                 * Los datos que el cliente acaba de escribir en checkout mandan sobre
+                 * cualquier destino antiguo conservado en la sesion/paquete. Esto es
+                 * imprescindible cuando se cambia, por ejemplo, de Peninsula a Canarias.
+                 */
                 foreach (array('country','state','postcode','city') as $field) {
                     $key = $prefix . $field;
-                    if ('' === trim((string) ($destination[$field] ?? '')) && isset($posted[$key])) {
-                        $destination[$field] = sanitize_text_field((string) $posted[$key]);
+                    if (isset($posted[$key])) {
+                        $value = sanitize_text_field((string) $posted[$key]);
+                        if ('' !== trim($value)) {
+                            $destination[$field] = $value;
+                        }
                     }
                 }
             }
@@ -457,6 +466,30 @@ if (!class_exists('SEO_Transporte_Costes')) {
             }
 
             return $destination;
+        }
+
+        /**
+         * Inyecta el destino resuelto en el paquete ANTES de que WooCommerce
+         * calcule el hash/cache de transporte.
+         *
+         * `woocommerce_package_rates` se ejecuta despues del cache. Si el paquete
+         * conserva un destino antiguo, WooCommerce puede reutilizar tarifas previas
+         * y nuestro filtro ni siquiera llega a ejecutarse. Al corregir aqui el
+         * destination, el cambio de CP/provincia forma parte del hash del paquete.
+         */
+        public static function filter_shipping_packages_destination($packages) {
+            if (!is_array($packages)) {
+                return $packages;
+            }
+
+            foreach ($packages as $key => $package) {
+                if (!is_array($package)) {
+                    continue;
+                }
+                $packages[$key]['destination'] = self::resolve_destination($package);
+            }
+
+            return $packages;
         }
 
         private static function classify_destination($destination, $settings) {
