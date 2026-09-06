@@ -24,7 +24,7 @@
  *
  * @package SEOSystem
  * @subpackage ImportExport
- * @version 2.1.5
+ * @version 2.1.6
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -96,19 +96,59 @@ if ( ! function_exists( 'seo_environment_compare_install' ) ) {
     }
 }
 
+if ( ! function_exists( 'seo_environment_compare_fresh_option' ) ) {
+    /**
+     * Lee una option saltándose la caché local de WordPress.
+     *
+     * El Gestor puede vivir horas en un proceso CLI/FPM persistente mientras el
+     * administrador encola trabajo desde otra petición PHP. Sin invalidar esta
+     * caché, el worker puede seguir viendo para siempre el estado anterior.
+     */
+    function seo_environment_compare_fresh_option( $name, $default = false ) {
+        if ( function_exists( 'wp_cache_delete' ) ) {
+            wp_cache_delete( (string) $name, 'options' );
+        }
+        return get_option( (string) $name, $default );
+    }
+}
+
+if ( ! function_exists( 'seo_environment_compare_entity_state_option' ) ) {
+    function seo_environment_compare_entity_state_option( $entity ) {
+        return 'seo_environment_compare_state_' . sanitize_key( (string) $entity );
+    }
+}
+
 if ( ! function_exists( 'seo_environment_compare_state_option' ) ) {
+    /**
+     * Estado agregado legado. Solo se conserva como fuente de migración.
+     * Las escrituras nuevas se realizan por entidad para evitar que dos workers
+     * de capas distintas se pisen al reescribir un único array completo.
+     */
     function seo_environment_compare_state_option() {
-        $state = get_option( 'seo_environment_compare_state', [] );
+        $state = seo_environment_compare_fresh_option( 'seo_environment_compare_state', [] );
         return is_array( $state ) ? $state : [];
     }
 }
 
 if ( ! function_exists( 'seo_environment_compare_get_state' ) ) {
     function seo_environment_compare_get_state( $entity ) {
-        $all = seo_environment_compare_state_option();
-        $state = isset( $all[ $entity ] ) && is_array( $all[ $entity ] ) ? $all[ $entity ] : [];
+        $entity = sanitize_key( (string) $entity );
+        $missing = '__seo_environment_compare_missing__';
+        $option = seo_environment_compare_entity_state_option( $entity );
+        $state = seo_environment_compare_fresh_option( $option, $missing );
+
+        // Migración transparente desde la option agregada de versiones previas.
+        if ( $missing === $state || ! is_array( $state ) ) {
+            $legacy = seo_environment_compare_state_option();
+            $state = isset( $legacy[ $entity ] ) && is_array( $legacy[ $entity ] ) ? $legacy[ $entity ] : [];
+            if ( $state ) {
+                if ( function_exists( 'wp_cache_delete' ) ) wp_cache_delete( $option, 'options' );
+                update_option( $option, $state, false );
+            }
+        }
+
         return wp_parse_args(
-            $state,
+            is_array( $state ) ? $state : [],
             [
                 'status'        => 'never',
                 'cursor'        => 0,
@@ -122,7 +162,7 @@ if ( ! function_exists( 'seo_environment_compare_get_state' ) ) {
                 'started_at'         => 0,
                 'finished_at'        => 0,
                 'error'              => '',
-                'batch_size'         => 20,
+                'batch_size'         => 1000,
                 'last_batch_seconds' => 0.0,
                 'worker_runs'        => 0,
                 'worker_source'      => '',
@@ -145,9 +185,13 @@ if ( ! function_exists( 'seo_environment_compare_get_state' ) ) {
 
 if ( ! function_exists( 'seo_environment_compare_set_state' ) ) {
     function seo_environment_compare_set_state( $entity, array $state ) {
-        $all = seo_environment_compare_state_option();
-        $all[ $entity ] = $state;
-        update_option( 'seo_environment_compare_state', $all, false );
+        $entity = sanitize_key( (string) $entity );
+        if ( '' === $entity ) return false;
+        $option = seo_environment_compare_entity_state_option( $entity );
+        // update_option() consulta también la caché; la invalidamos antes para
+        // no comparar contra una copia vieja retenida por un worker persistente.
+        if ( function_exists( 'wp_cache_delete' ) ) wp_cache_delete( $option, 'options' );
+        return update_option( $option, $state, false );
     }
 }
 
@@ -248,7 +292,7 @@ if ( ! function_exists( 'seo_environment_compare_hash' ) ) {
 if ( ! function_exists( 'seo_environment_compare_candidate_ids' ) ) {
     function seo_environment_compare_candidate_ids( $mysqli, $prefix, $entity, $cursor, $limit ) {
         $cursor = absint( $cursor );
-        $limit  = max( 1, min( 300, absint( $limit ) ) );
+        $limit  = max( 1, min( 2200, absint( $limit ) ) );
 
         $post_map = [
             'products_general'   => 'product',
@@ -604,14 +648,42 @@ if ( ! function_exists( 'seo_environment_compare_next_worker_entity' ) ) {
         $entities = array_keys( seo_environment_compare_entities() );
         $count = count( $entities );
         if ( ! $count ) return '';
-        $cursor = absint( get_option( 'seo_environment_compare_worker_cursor', 0 ) ) % $count;
         $now = time();
+
+        // Una capa recién encolada debe recibir al menos su primer intento antes
+        // de seguir consumiendo capas antiguas. Esto evita que un escaneo nuevo
+        // aparezca indefinidamente como "queued · intentos 0".
+        $first_attempt = [];
+        foreach ( $entities as $index => $entity ) {
+            $state = seo_environment_compare_get_state( $entity );
+            if ( 'running' !== (string) ( $state['status'] ?? '' ) ) continue;
+            if ( absint( $state['next_run_at'] ?? 0 ) > $now ) continue;
+            if ( 0 === absint( $state['worker_attempts'] ?? 0 ) ) {
+                $first_attempt[] = [
+                    'entity' => $entity,
+                    'index' => (int) $index,
+                    'started_at' => absint( $state['started_at'] ?? 0 ),
+                ];
+            }
+        }
+        if ( $first_attempt ) {
+            usort( $first_attempt, static function ( $a, $b ) {
+                return (int) $b['started_at'] <=> (int) $a['started_at'];
+            } );
+            $chosen = $first_attempt[0];
+            if ( function_exists( 'wp_cache_delete' ) ) wp_cache_delete( 'seo_environment_compare_worker_cursor', 'options' );
+            update_option( 'seo_environment_compare_worker_cursor', ( (int) $chosen['index'] + 1 ) % $count, false );
+            return (string) $chosen['entity'];
+        }
+
+        $cursor = absint( seo_environment_compare_fresh_option( 'seo_environment_compare_worker_cursor', 0 ) ) % $count;
         for ( $i = 0; $i < $count; $i++ ) {
             $index = ( $cursor + $i ) % $count;
             $entity = $entities[ $index ];
             $state = seo_environment_compare_get_state( $entity );
             if ( 'running' !== (string) ( $state['status'] ?? '' ) ) continue;
             if ( absint( $state['next_run_at'] ?? 0 ) > $now ) continue;
+            if ( function_exists( 'wp_cache_delete' ) ) wp_cache_delete( 'seo_environment_compare_worker_cursor', 'options' );
             update_option( 'seo_environment_compare_worker_cursor', ( $index + 1 ) % $count, false );
             return $entity;
         }
@@ -744,8 +816,10 @@ if ( ! function_exists( 'seo_environment_compare_process_worker_batch' ) ) {
         $pro = null;
         $stg = null;
         try {
-            $batch_limit = max( 5, min( 40, absint( $state['batch_size'] ?? 20 ) ) );
-            $candidate_limit = $batch_limit + 8;
+            $batch_limit = max( 1000, min( 2000, absint( $state['batch_size'] ?? 1000 ) ) );
+            // Pedimos un pequeño colchón en cada entorno para que la unión PRO/STAGING
+            // pueda llenar el lote sin disparar consultas gigantes.
+            $candidate_limit = min( 2200, $batch_limit + 200 );
 
             $state['last_worker_phase'] = 'connect';
             seo_environment_compare_set_state( $entity, $state );
@@ -906,20 +980,28 @@ if ( ! function_exists( 'seo_environment_compare_process_worker_batch' ) ) {
             $state['last_batch_rows'] = count( $ids );
             $state['last_batch_seconds'] = round( $elapsed, 3 );
 
-            // Regulador conservador. El Gestor decide cuándo vuelve a entrar;
-            // este módulo solo indica una pausa mínima y un lote objetivo.
+            // Regulador para comparaciones masivas. El lote nunca baja de 1.000
+            // ni supera 2.000 objetos. Con el rendimiento observado (~2.000 obj/s),
+            // un lote rápido escala 1.000 -> 1.500 -> 2.000; si la BBDD se frena,
+            // retrocede sin saltarse el presupuesto temporal del Gestor.
             if ( $elapsed > 12.0 ) {
-                $state['batch_size'] = max( 5, (int) floor( $batch_limit * 0.50 ) );
+                $state['batch_size'] = 1000;
                 $delay = 12;
             } elseif ( $elapsed > 6.0 ) {
-                $state['batch_size'] = max( 5, (int) floor( $batch_limit * 0.75 ) );
+                $state['batch_size'] = max( 1000, $batch_limit - 500 );
                 $delay = 6;
-            } elseif ( $elapsed < 1.5 && $batch_limit < 40 ) {
-                $state['batch_size'] = min( 40, $batch_limit + 4 );
-                $delay = 2;
+            } elseif ( $elapsed > 3.0 ) {
+                $state['batch_size'] = max( 1000, $batch_limit - 250 );
+                $delay = 3;
+            } elseif ( $elapsed < 0.75 ) {
+                $state['batch_size'] = min( 2000, $batch_limit + 500 );
+                $delay = 1;
+            } elseif ( $elapsed < 1.5 ) {
+                $state['batch_size'] = min( 2000, $batch_limit + 250 );
+                $delay = 1;
             } else {
                 $state['batch_size'] = $batch_limit;
-                $delay = 3;
+                $delay = 2;
             }
 
             if ( empty( $next_pro ) && empty( $next_stg ) ) {
@@ -959,7 +1041,7 @@ if ( ! function_exists( 'seo_environment_compare_process_manager_slice' ) ) {
         $did_work = false;
         $had_error = false;
         $batches = 0;
-        $max_batches = max( 1, min( 8, count( $labels ) ) );
+        $max_batches = max( 1, min( 4, count( $labels ) ) );
         $last_entity = '';
 
         while ( $batches < $max_batches && microtime( true ) < ( $deadline - 1.0 ) ) {
@@ -1158,7 +1240,7 @@ if ( ! function_exists( 'seo_environment_compare_process_monitor_item' ) ) {
             ? number_format_i18n( $seconds, 2 ) . ' s el último lote'
             : 'Sin lote medido';
 
-        $batch = absint( $focus_state['batch_size'] ?? 30 );
+        $batch = max( 1000, min( 2000, absint( $focus_state['batch_size'] ?? 1000 ) ) );
         $load = [ 'Gestor de workers', 'lote objetivo ' . number_format_i18n( $batch ) ];
         if ( $due_in > 0 ) $load[] = 'pausa ' . number_format_i18n( $due_in ) . ' s';
         if ( $running ) $load[] = count( $running ) . ' capa' . ( 1 === count( $running ) ? ' activa' : 's activas' );
@@ -1234,7 +1316,7 @@ if ( ! function_exists( 'seo_environment_compare_scan_ajax' ) ) {
             $state = [
                 'status'=>'running','cursor'=>0,'processed'=>0,'pro'=>0,'staging'=>0,'same'=>0,'different'=>0,
                 'only_pro'=>0,'only_staging'=>0,'started_at'=>$now,'finished_at'=>0,'error'=>'',
-                'batch_size'=>20,'last_batch_seconds'=>0.0,'worker_runs'=>0,'worker_source'=>'','next_run_at'=>$now,'last_activity_at'=>$now,
+                'batch_size'=>1000,'last_batch_seconds'=>0.0,'worker_runs'=>0,'worker_source'=>'','next_run_at'=>$now,'last_activity_at'=>$now,
                 'worker_attempts'=>0,'worker_lock_misses'=>0,'last_worker_attempt_at'=>0,'last_worker_error'=>'',
                 'last_worker_phase'=>'queued','last_candidate_pro'=>0,'last_candidate_staging'=>0,
                 'source_total_pro'=>null,'source_total_staging'=>null,'empty_verified'=>0,
@@ -1327,7 +1409,7 @@ if ( ! function_exists( 'seo_environment_compare_export_json_admin_post' ) ) {
 
         $export = [
             'schema'           => 'seo_environment_compare_report',
-            'version'          => '2.1.5',
+            'version'          => '2.1.6',
             'execution'        => 'process_manager_worker',
             'generated_at_utc' => current_time( 'mysql', true ),
             'dates_ignored'    => true,
@@ -1867,7 +1949,7 @@ if ( ! function_exists( 'seo_environment_compare_render' ) ) {
                     echo '</td></tr>';}
                 echo '</tbody></table></div>';if($total_diff>100)echo '<p class="seo-env-muted">Se muestran las primeras 100 diferencias para mantener ligera la pantalla. El escaneo conserva el inventario completo.</p>';echo '</details>';}
             echo '</section>';}
-        echo '<script>(function(){const ajax='.wp_json_encode(admin_url('admin-ajax.php')).',nonce='.wp_json_encode($nonce).';function post(data){data.nonce=nonce;return fetch(ajax,{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8"},body:new URLSearchParams(data)}).then(async r=>{const t=await r.text();if(!t.trim())throw new Error("Respuesta vacía del servidor (HTTP "+r.status+").");try{return JSON.parse(t);}catch(e){throw new Error("Respuesta no JSON (HTTP "+r.status+"): "+t.slice(0,180));}});}function progress(entity,text){document.querySelectorAll("[data-progress=\""+entity+"\"]").forEach(n=>n.textContent=text||"");}async function scan(entity,reset){document.querySelectorAll(".seo-env-scan[data-entity=\""+entity+"\"]").forEach(b=>b.disabled=true);try{let r=await post({action:"seo_environment_compare_scan",entity:entity,reset:reset?1:0});if(!r.success)throw new Error((r.data&&r.data.message)||"Error al encolar el escaneo");progress(entity,"En cola del Gestor de procesos…");while(true){await new Promise(x=>setTimeout(x,3000));r=await post({action:"seo_environment_compare_scan",entity:entity,reset:0});if(!r.success)throw new Error((r.data&&r.data.message)||"Error consultando estado");const s=r.data.state||{};const m=r.data.manager||{};progress(entity,"Worker: "+(s.processed||0)+" procesados · intentos "+(s.worker_attempts||0)+" · fase "+(s.last_worker_phase||"—")+" · candidatos PRO/STG "+(s.last_candidate_pro||0)+"/"+(s.last_candidate_staging||0)+" · lote "+(s.batch_size||20)+" · "+(s.last_batch_seconds||0)+" s"+(m.status?" · gestor "+m.status:""));if(r.data.done){if(s.status==="error")throw new Error(s.error||"El worker terminó con error");break;}}progress(entity,"Escaneo completo");setTimeout(()=>location.reload(),700);}catch(e){progress(entity,e.message);document.querySelectorAll(".seo-env-scan[data-entity=\""+entity+"\"]").forEach(b=>b.disabled=false);}}document.querySelectorAll(".seo-env-scan").forEach(b=>b.addEventListener("click",e=>{e.preventDefault();scan(b.dataset.entity,true);}));document.querySelectorAll(".seo-env-sync-one").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(b.disabled)return;b.disabled=true;progress(b.dataset.entity,"Actualizando #"+b.dataset.id+"…");const r=await post({action:"seo_environment_sync_item",entity:b.dataset.entity,object_id:b.dataset.id,source:b.dataset.source,destination:b.dataset.destination});if(!r.success){progress(b.dataset.entity,(r.data&&r.data.message)||"Error");b.disabled=false;return;}progress(b.dataset.entity,"Actualizado. Verificando…");scan(b.dataset.entity,true);}));document.querySelectorAll(".seo-env-bulk").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(b.disabled)return;const msg="Vas a copiar TODAS las diferencias de esta capa "+b.dataset.source.toUpperCase()+" → "+b.dataset.destination.toUpperCase()+". Las fechas se ignoran y el contenido del origen sustituirá esta capa en el destino. ¿Continuar?";if(!window.confirm(msg))return;b.disabled=true;let total=0;progress(b.dataset.entity,"Sincronizando por lotes…");while(true){const r=await post({action:"seo_environment_sync_bulk",entity:b.dataset.entity,source:b.dataset.source,destination:b.dataset.destination});if(!r.success){progress(b.dataset.entity,(r.data&&r.data.message)||"Error");b.disabled=false;return;}total+=Number(r.data.updated||0);progress(b.dataset.entity,"Actualizados "+total+" · pendientes "+Number(r.data.remaining||0)+" · bloqueados "+Number(r.data.blocked||0));if(r.data.done)break;if(Number(r.data.updated||0)===0&&Number(r.data.remaining||0)>0){progress(b.dataset.entity,"Hay filas bloqueadas porque cambiaron después del escaneo o requieren revisión. Reescanea.");b.disabled=false;return;}await new Promise(x=>setTimeout(x,400));}scan(b.dataset.entity,true);}));})();</script>';
+        echo '<script>(function(){const ajax='.wp_json_encode(admin_url('admin-ajax.php')).',nonce='.wp_json_encode($nonce).';function post(data){data.nonce=nonce;return fetch(ajax,{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8"},body:new URLSearchParams(data)}).then(async r=>{const t=await r.text();if(!t.trim())throw new Error("Respuesta vacía del servidor (HTTP "+r.status+").");try{return JSON.parse(t);}catch(e){throw new Error("Respuesta no JSON (HTTP "+r.status+"): "+t.slice(0,180));}});}function progress(entity,text){document.querySelectorAll("[data-progress=\""+entity+"\"]").forEach(n=>n.textContent=text||"");}async function scan(entity,reset){document.querySelectorAll(".seo-env-scan[data-entity=\""+entity+"\"]").forEach(b=>b.disabled=true);try{let r=await post({action:"seo_environment_compare_scan",entity:entity,reset:reset?1:0});if(!r.success)throw new Error((r.data&&r.data.message)||"Error al encolar el escaneo");progress(entity,"En cola del Gestor de procesos…");while(true){await new Promise(x=>setTimeout(x,3000));r=await post({action:"seo_environment_compare_scan",entity:entity,reset:0});if(!r.success)throw new Error((r.data&&r.data.message)||"Error consultando estado");const s=r.data.state||{};const m=r.data.manager||{};progress(entity,"Worker: "+(s.processed||0)+" procesados · intentos "+(s.worker_attempts||0)+" · fase "+(s.last_worker_phase||"—")+" · candidatos PRO/STG "+(s.last_candidate_pro||0)+"/"+(s.last_candidate_staging||0)+" · lote "+(s.batch_size||1000)+" · "+(s.last_batch_seconds||0)+" s"+(m.status?" · gestor "+m.status:""));if(r.data.done){if(s.status==="error")throw new Error(s.error||"El worker terminó con error");break;}}progress(entity,"Escaneo completo");setTimeout(()=>location.reload(),700);}catch(e){progress(entity,e.message);document.querySelectorAll(".seo-env-scan[data-entity=\""+entity+"\"]").forEach(b=>b.disabled=false);}}document.querySelectorAll(".seo-env-scan").forEach(b=>b.addEventListener("click",e=>{e.preventDefault();scan(b.dataset.entity,true);}));document.querySelectorAll(".seo-env-sync-one").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(b.disabled)return;b.disabled=true;progress(b.dataset.entity,"Actualizando #"+b.dataset.id+"…");const r=await post({action:"seo_environment_sync_item",entity:b.dataset.entity,object_id:b.dataset.id,source:b.dataset.source,destination:b.dataset.destination});if(!r.success){progress(b.dataset.entity,(r.data&&r.data.message)||"Error");b.disabled=false;return;}progress(b.dataset.entity,"Actualizado. Verificando…");scan(b.dataset.entity,true);}));document.querySelectorAll(".seo-env-bulk").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(b.disabled)return;const msg="Vas a copiar TODAS las diferencias de esta capa "+b.dataset.source.toUpperCase()+" → "+b.dataset.destination.toUpperCase()+". Las fechas se ignoran y el contenido del origen sustituirá esta capa en el destino. ¿Continuar?";if(!window.confirm(msg))return;b.disabled=true;let total=0;progress(b.dataset.entity,"Sincronizando por lotes…");while(true){const r=await post({action:"seo_environment_sync_bulk",entity:b.dataset.entity,source:b.dataset.source,destination:b.dataset.destination});if(!r.success){progress(b.dataset.entity,(r.data&&r.data.message)||"Error");b.disabled=false;return;}total+=Number(r.data.updated||0);progress(b.dataset.entity,"Actualizados "+total+" · pendientes "+Number(r.data.remaining||0)+" · bloqueados "+Number(r.data.blocked||0));if(r.data.done)break;if(Number(r.data.updated||0)===0&&Number(r.data.remaining||0)>0){progress(b.dataset.entity,"Hay filas bloqueadas porque cambiaron después del escaneo o requieren revisión. Reescanea.");b.disabled=false;return;}await new Promise(x=>setTimeout(x,400));}scan(b.dataset.entity,true);}));})();</script>';
         echo '</div>';
     }
 }
