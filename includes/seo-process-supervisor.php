@@ -566,6 +566,18 @@ if (!function_exists('seo_process_supervisor_has_pending_work')) {
             $pending = true;
         }
 
+        // El comparador PRO/STAGING es un proceso nativo del Gestor. No depende
+        // solo de un filtro registrado por el propio modulo para mantener vivo
+        // el ciclo: el supervisor reconoce directamente su cola pendiente.
+        if (
+            !$pending
+            && !empty($settings['environment_compare'])
+            && function_exists('seo_environment_compare_has_pending_scan')
+            && seo_environment_compare_has_pending_scan()
+        ) {
+            $pending = true;
+        }
+
         /**
          * Permite que otros módulos declaren trabajo pendiente sin acoplarse al
          * supervisor. Deben devolver true únicamente mientras necesiten pulsos.
@@ -801,6 +813,20 @@ if (!function_exists('seo_process_supervisor_run_manager_window')) {
                 }
             }
 
+            // Comparador PRO/STAGING: target nativo del Gestor. Se añade una
+            // sola vez aunque el modulo conserve su filtro de compatibilidad.
+            if (
+                !empty($settings['environment_compare'])
+                && function_exists('seo_environment_compare_has_pending_scan')
+                && function_exists('seo_environment_compare_process_manager_slice')
+                && seo_environment_compare_has_pending_scan()
+            ) {
+                $targets[] = array(
+                    'type' => 'environment_compare',
+                    'data' => array(),
+                );
+            }
+
             /**
              * Otros módulos pueden añadir ventanas al bus periódico. Cada target
              * debe usar una función/callback idempotente y respetar su propio lock.
@@ -927,6 +953,40 @@ if (!function_exists('seo_process_supervisor_run_manager_window')) {
                     if ($ok) {
                         $state = seo_process_supervisor_state();
                         seo_process_supervisor_save_state(array('launch_count' => absint($state['launch_count'] ?? 0) + 1, 'last_launch_at' => time()));
+                    }
+                } elseif ('environment_compare' === $target['type'] && function_exists('seo_environment_compare_process_manager_slice')) {
+                    $key = 'import-export-environment-compare';
+                    seo_process_supervisor_managed_update($key, array(
+                        'name' => 'Comparador PRO/STAGING', 'pending' => 1, 'healthy' => 1, 'last_checked' => time(),
+                        'last_attempt_at' => time(), 'last_result' => 'running', 'last_error' => '',
+                        'detail' => 'El Gestor está ejecutando una ventana del Comparador PRO/STAGING.'
+                    ));
+                    seo_process_supervisor_log('info', 'process_window_started', 'Comparador PRO/STAGING entra en una ventana del gestor.', 'Comparador PRO/STAGING', array('seconds' => $budget));
+                    try {
+                        $ok = (bool) seo_environment_compare_process_manager_slice($budget, $source, $target);
+                        $still = function_exists('seo_environment_compare_has_pending_scan') && seo_environment_compare_has_pending_scan();
+                        seo_process_supervisor_managed_update($key, array(
+                            'pending' => $still ? 1 : 0,
+                            'healthy' => 1,
+                            'last_checked' => time(),
+                            'last_result' => $ok ? 'processed' : ($still ? 'waiting' : 'completed'),
+                            'last_error' => '',
+                            'detail' => $still ? 'Ventana completada; el Gestor conserva la cola del comparador.' : 'Comparación terminada o sin capas pendientes.'
+                        ));
+                        if ($ok) {
+                            $state = seo_process_supervisor_state();
+                            seo_process_supervisor_save_state(array('launch_count' => absint($state['launch_count'] ?? 0) + 1, 'last_launch_at' => time()));
+                        }
+                    } catch (Throwable $e) {
+                        seo_process_supervisor_managed_update($key, array(
+                            'pending' => function_exists('seo_environment_compare_has_pending_scan') && seo_environment_compare_has_pending_scan() ? 1 : 0,
+                            'healthy' => 0,
+                            'last_checked' => time(),
+                            'last_result' => 'error',
+                            'last_error' => sanitize_text_field($e->getMessage()),
+                            'detail' => 'La ventana del comparador lanzó una excepción.'
+                        ));
+                        seo_process_supervisor_log('error', 'environment_compare_window_error', $e->getMessage(), 'Comparador PRO/STAGING');
                     }
                 } elseif (!empty($target['callback']) && is_callable($target['callback'])) {
                     call_user_func($target['callback'], $budget, $source, $target);
@@ -1206,6 +1266,16 @@ if (!function_exists('seo_process_supervisor_run_loop')) {
                         break 2;
                     }
                     seo_process_supervisor_save_state(array('heartbeat_at' => time()));
+
+                    // Un nudge puede adelantar next_cycle_at mientras el gestor
+                    // duerme. Si ya venció, no seguimos esperando el intervalo
+                    // calculado al comienzo del sueño: abrimos la siguiente
+                    // ventana inmediatamente.
+                    $nudged_state = seo_process_supervisor_state();
+                    $nudged_due = absint($nudged_state['next_cycle_at'] ?? 0);
+                    if ($nudged_due && $nudged_due <= time()) {
+                        break;
+                    }
                 }
             }
         } catch (Throwable $e) {

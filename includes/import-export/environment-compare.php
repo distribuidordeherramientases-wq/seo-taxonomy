@@ -948,13 +948,66 @@ if ( ! function_exists( 'seo_environment_compare_process_worker_batch' ) ) {
 if ( ! function_exists( 'seo_environment_compare_process_manager_slice' ) ) {
     function seo_environment_compare_process_manager_slice( $seconds = 20, $source = 'process_manager', $target = [] ) {
         if ( ! seo_environment_compare_manager_enabled() ) return false;
-        $entity = seo_environment_compare_next_worker_entity();
-        if ( ! $entity ) {
+
+        // El Gestor entrega un presupuesto temporal. Aprovechamos esa ventana
+        // para dar servicio a varias capas pendientes, pero cada llamada al
+        // worker sigue siendo un lote pequeño con su propio lock y regulador.
+        $budget = max( 5, min( 55, absint( $seconds ) ) );
+        $deadline = microtime( true ) + $budget;
+        $labels = seo_environment_compare_entities();
+        $key = seo_environment_compare_manager_key();
+        $did_work = false;
+        $had_error = false;
+        $batches = 0;
+        $max_batches = max( 1, min( 8, count( $labels ) ) );
+        $last_entity = '';
+
+        while ( $batches < $max_batches && microtime( true ) < ( $deadline - 1.0 ) ) {
+            $entity = seo_environment_compare_next_worker_entity();
+            if ( ! $entity ) break;
+            $last_entity = $entity;
+            $state = seo_environment_compare_get_state( $entity );
+
+            if ( function_exists( 'seo_process_supervisor_managed_update' ) ) {
+                seo_process_supervisor_managed_update( $key, [
+                    'name'=>'Comparador PRO/STAGING', 'pending'=>1, 'healthy'=>1, 'last_checked'=>time(),
+                    'last_attempt_at'=>time(), 'last_result'=>'running', 'last_error'=>'',
+                    'detail'=>'Comparando '.$labels[$entity]['label'].' desde ID '.absint($state['cursor'] ?? 0).' · ventana '.$budget.' s.'
+                ] );
+            }
+
+            try {
+                $result = seo_environment_compare_process_worker_batch( $entity, $source );
+            } catch ( Throwable $e ) {
+                $fresh = seo_environment_compare_get_state( $entity );
+                $fresh['status'] = 'error';
+                $fresh['error'] = 'Excepción del worker: ' . sanitize_text_field( $e->getMessage() );
+                $fresh['last_worker_error'] = $fresh['error'];
+                $fresh['last_activity_at'] = time();
+                $fresh['next_run_at'] = 0;
+                seo_environment_compare_set_state( $entity, $fresh );
+                $result = new WP_Error( 'environment_compare_worker_exception', $fresh['error'] );
+            }
+
+            $batches++;
+            if ( is_wp_error( $result ) ) {
+                $had_error = true;
+            } elseif ( false !== $result ) {
+                $did_work = true;
+            }
+
+            // No monopolizamos la ventana. Si el lote anterior consumió casi
+            // todo el presupuesto, devolvemos el control al supervisor.
+            if ( microtime( true ) >= ( $deadline - 2.0 ) ) break;
+        }
+
+        $still = seo_environment_compare_has_pending_scan();
+        if ( ! $last_entity ) {
             $due_at = seo_environment_compare_next_due_at();
             $wait = $due_at ? max( 0, $due_at - time() ) : 0;
             if ( function_exists( 'seo_process_supervisor_managed_update' ) ) {
-                seo_process_supervisor_managed_update( seo_environment_compare_manager_key(), [
-                    'name'=>'Comparador PRO/STAGING', 'pending'=>seo_environment_compare_has_pending_scan()?1:0,
+                seo_process_supervisor_managed_update( $key, [
+                    'name'=>'Comparador PRO/STAGING', 'pending'=>$still?1:0,
                     'healthy'=>1, 'last_checked'=>time(), 'last_result'=>'waiting', 'last_error'=>'',
                     'detail'=>$wait > 0 ? 'Pausa adaptativa · siguiente lote en '.$wait.' s.' : 'En cola del Gestor; esperando siguiente ventana.'
                 ] );
@@ -964,44 +1017,21 @@ if ( ! function_exists( 'seo_environment_compare_process_manager_slice' ) ) {
             }
             return false;
         }
-        $labels = seo_environment_compare_entities();
-        $state = seo_environment_compare_get_state( $entity );
-        $key = seo_environment_compare_manager_key();
-        if ( function_exists( 'seo_process_supervisor_managed_update' ) ) {
-            seo_process_supervisor_managed_update( $key, [
-                'name'=>'Comparador PRO/STAGING', 'pending'=>1, 'healthy'=>1, 'last_checked'=>time(),
-                'last_attempt_at'=>time(), 'last_result'=>'running', 'last_error'=>'',
-                'detail'=>'Comparando '.$labels[$entity]['label'].' desde ID '.absint($state['cursor'] ?? 0).'.'
-            ] );
-        }
-        try {
-            $result = seo_environment_compare_process_worker_batch( $entity, $source );
-        } catch ( Throwable $e ) {
-            $fresh = seo_environment_compare_get_state( $entity );
-            $fresh['status'] = 'error';
-            $fresh['error'] = 'Excepción del worker: ' . sanitize_text_field( $e->getMessage() );
-            $fresh['last_worker_error'] = $fresh['error'];
-            $fresh['last_activity_at'] = time();
-            $fresh['next_run_at'] = 0;
-            seo_environment_compare_set_state( $entity, $fresh );
-            $result = new WP_Error( 'environment_compare_worker_exception', $fresh['error'] );
-        }
 
-        $fresh = seo_environment_compare_get_state( $entity );
-        $still = seo_environment_compare_has_pending_scan();
-        $managed_result = is_wp_error( $result )
+        $fresh = seo_environment_compare_get_state( $last_entity );
+        $managed_result = $had_error && ! $did_work
             ? 'error'
-            : ( false === $result ? 'waiting' : ( ( 'complete' === ( $fresh['status'] ?? '' ) ) ? 'completed' : 'processed' ) );
+            : ( $did_work ? 'processed' : ( $still ? 'waiting' : 'completed' ) );
         if ( function_exists( 'seo_process_supervisor_managed_update' ) ) {
             seo_process_supervisor_managed_update( $key, [
                 'name'=>'Comparador PRO/STAGING', 'pending'=>$still?1:0,
-                'healthy'=>is_wp_error($result)?0:1, 'last_checked'=>time(),
+                'healthy'=>$had_error && ! $did_work ? 0 : 1, 'last_checked'=>time(),
                 'last_result'=>$managed_result,
-                'last_error'=>is_wp_error($result)?$result->get_error_message():(string)($fresh['last_worker_error']??''),
-                'detail'=>'Capa '.$labels[$entity]['label'].' · procesados '.absint($fresh['processed']??0).' · intentos '.absint($fresh['worker_attempts']??0).' · lote '.absint($fresh['batch_size']??30).' · '.(float)($fresh['last_batch_seconds']??0).' s.'
+                'last_error'=>$had_error && ! $did_work ? (string)($fresh['last_worker_error']??'') : '',
+                'detail'=>'Ventana del comparador: '.$batches.' lote(s) atendidos · última capa '.$labels[$last_entity]['label'].' · procesados '.absint($fresh['processed']??0).'.'
             ] );
         }
-        return ! is_wp_error( $result );
+        return $did_work;
     }
 }
 
@@ -1010,10 +1040,14 @@ if ( ! function_exists( 'seo_environment_compare_manager_targets' ) ) {
         if ( ! seo_environment_compare_manager_enabled( $settings ) ) return $targets;
         if ( ! seo_environment_compare_has_pending_scan() ) return $targets;
 
-        // Registramos el trabajo mientras siga pendiente, incluso durante una
-        // pausa adaptativa. El callback comprueba next_run_at y devuelve waiting
-        // sin ejecutar SQL si todavía no toca. Así el Gestor conserva la tarea
-        // y es siempre quien decide la siguiente ventana.
+        // El supervisor nuevo registra environment_compare como target nativo.
+        // Conservamos este filtro para compatibilidad con instalaciones cuyo
+        // supervisor aún no tenga esa integración, evitando duplicados.
+        foreach ( (array) $targets as $existing_target ) {
+            if ( 'environment_compare' === (string) ( $existing_target['type'] ?? '' ) ) {
+                return $targets;
+            }
+        }
         $targets[] = [
             'type' => 'environment_compare',
             'data' => [ 'due' => seo_environment_compare_has_due_scan() ? 1 : 0 ],
@@ -1206,6 +1240,16 @@ if ( ! function_exists( 'seo_environment_compare_scan_ajax' ) ) {
                 'source_total_pro'=>null,'source_total_staging'=>null,'empty_verified'=>0,
             ];
             seo_environment_compare_set_state( $entity, $state );
+
+            // La capa que el usuario acaba de lanzar obtiene la siguiente
+            // posición del round-robin. Las capas antiguas que sigan pendientes
+            // no pueden retrasar varios ciclos el primer intento de esta capa.
+            $entity_keys = array_keys( $entities );
+            $entity_index = array_search( $entity, $entity_keys, true );
+            if ( false !== $entity_index ) {
+                update_option( 'seo_environment_compare_worker_cursor', (int) $entity_index, false );
+            }
+
             $key = seo_environment_compare_manager_key();
             if ( function_exists( 'seo_process_supervisor_managed_update' ) ) {
                 seo_process_supervisor_managed_update( $key, [
