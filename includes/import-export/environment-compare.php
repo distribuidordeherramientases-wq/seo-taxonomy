@@ -16,10 +16,24 @@ function debugLog(string $message, array $context = []): void
         'context' => $context,
     ];
 
-    error_log(json_encode($entry, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    $json = json_encode(
+        $entry,
+        JSON_UNESCAPED_UNICODE
+        | JSON_UNESCAPED_SLASHES
+        | JSON_INVALID_UTF8_SUBSTITUTE
+    );
+
+    if ($json !== false) {
+        error_log($json);
+    }
 }
 
-set_error_handler(function ($severity, $message, $file, $line) {
+set_error_handler(function (
+    int $severity,
+    string $message,
+    string $file,
+    int $line
+): bool {
     debugLog('PHP_ERROR', [
         'severity' => $severity,
         'message'  => $message,
@@ -30,7 +44,7 @@ set_error_handler(function ($severity, $message, $file, $line) {
     return false;
 });
 
-set_exception_handler(function (Throwable $e) {
+set_exception_handler(function (Throwable $e): void {
     debugLog('UNCAUGHT_EXCEPTION', [
         'type'    => get_class($e),
         'message' => $e->getMessage(),
@@ -38,21 +52,53 @@ set_exception_handler(function (Throwable $e) {
         'line'    => $e->getLine(),
         'trace'   => $e->getTraceAsString(),
     ]);
+
+    if (!headers_sent()) {
+        http_response_code(500);
+        header('Content-Type: application/json; charset=utf-8');
+    }
+
+    echo json_encode([
+        'ok'    => false,
+        'error' => 'UNCAUGHT_EXCEPTION',
+        'message' => $e->getMessage(),
+    ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
 });
 
-register_shutdown_function(function () {
+register_shutdown_function(function (): void {
     $error = error_get_last();
 
-    if ($error !== null) {
+    $fatalTypes = [
+        E_ERROR,
+        E_PARSE,
+        E_CORE_ERROR,
+        E_COMPILE_ERROR,
+        E_USER_ERROR,
+    ];
+
+    if ($error !== null && in_array($error['type'], $fatalTypes, true)) {
         debugLog('FATAL_SHUTDOWN', $error);
-    } else {
-        debugLog('NORMAL_SHUTDOWN');
+
+        if (!headers_sent()) {
+            http_response_code(500);
+            header('Content-Type: application/json; charset=utf-8');
+        }
+
+        echo json_encode([
+            'ok'      => false,
+            'error'   => 'FATAL_ERROR',
+            'message' => $error['message'],
+            'file'    => $error['file'],
+            'line'    => $error['line'],
+        ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+
+        return;
     }
+
+    debugLog('NORMAL_SHUTDOWN');
 });
 
-debugLog('SCRIPT_START');
-
-?>
+debugLog('SCRIPT_START');    
 
 <?php
 /**
