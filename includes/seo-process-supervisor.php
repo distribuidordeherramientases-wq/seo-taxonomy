@@ -65,9 +65,24 @@ if (!function_exists('seo_process_supervisor_sanitize_settings')) {
     }
 }
 
+if (!function_exists('seo_process_supervisor_fresh_option')) {
+    /**
+     * Los workers direct_cli/direct_http pueden permanecer vivos durante horas.
+     * La caché de options de ese proceso no recibe las invalidaciones de otra
+     * petición PHP si no existe una object-cache compartida. Para coordinación
+     * entre procesos, los estados de control se leen siempre frescos.
+     */
+    function seo_process_supervisor_fresh_option($name, $default = false) {
+        if (function_exists('wp_cache_delete')) {
+            wp_cache_delete((string) $name, 'options');
+        }
+        return get_option((string) $name, $default);
+    }
+}
+
 if (!function_exists('seo_process_supervisor_settings')) {
     function seo_process_supervisor_settings() {
-        return seo_process_supervisor_sanitize_settings(get_option(SEO_PROCESS_SUPERVISOR_OPTION, array()));
+        return seo_process_supervisor_sanitize_settings(seo_process_supervisor_fresh_option(SEO_PROCESS_SUPERVISOR_OPTION, array()));
     }
 }
 
@@ -104,7 +119,7 @@ if (!function_exists('seo_process_supervisor_default_state')) {
 
 if (!function_exists('seo_process_supervisor_state')) {
     function seo_process_supervisor_state() {
-        $state = get_option(SEO_PROCESS_SUPERVISOR_STATE_OPTION, array());
+        $state = seo_process_supervisor_fresh_option(SEO_PROCESS_SUPERVISOR_STATE_OPTION, array());
         return wp_parse_args(is_array($state) ? $state : array(), seo_process_supervisor_default_state());
     }
 }
