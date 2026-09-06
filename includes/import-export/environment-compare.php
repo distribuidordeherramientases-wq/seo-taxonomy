@@ -1,106 +1,4 @@
 <?php
-
-error_reporting(E_ALL);
-ini_set('display_errors', '0');
-ini_set('log_errors', '1');
-ini_set('error_log', __DIR__ . '/environment-compare.log');
-
-function debugLog(string $message, array $context = []): void
-{
-    $entry = [
-        'time'    => date('Y-m-d H:i:s'),
-        'pid'     => getmypid(),
-        'memory'  => memory_get_usage(true),
-        'peak'    => memory_get_peak_usage(true),
-        'message' => $message,
-        'context' => $context,
-    ];
-
-    $json = json_encode(
-        $entry,
-        JSON_UNESCAPED_UNICODE
-        | JSON_UNESCAPED_SLASHES
-        | JSON_INVALID_UTF8_SUBSTITUTE
-    );
-
-    if ($json !== false) {
-        error_log($json);
-    }
-}
-
-set_error_handler(function (
-    int $severity,
-    string $message,
-    string $file,
-    int $line
-): bool {
-    debugLog('PHP_ERROR', [
-        'severity' => $severity,
-        'message'  => $message,
-        'file'     => $file,
-        'line'     => $line,
-    ]);
-
-    return false;
-});
-
-set_exception_handler(function (Throwable $e): void {
-    debugLog('UNCAUGHT_EXCEPTION', [
-        'type'    => get_class($e),
-        'message' => $e->getMessage(),
-        'file'    => $e->getFile(),
-        'line'    => $e->getLine(),
-        'trace'   => $e->getTraceAsString(),
-    ]);
-
-    if (!headers_sent()) {
-        http_response_code(500);
-        header('Content-Type: application/json; charset=utf-8');
-    }
-
-    echo json_encode([
-        'ok'    => false,
-        'error' => 'UNCAUGHT_EXCEPTION',
-        'message' => $e->getMessage(),
-    ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
-});
-
-register_shutdown_function(function (): void {
-    $error = error_get_last();
-
-    $fatalTypes = [
-        E_ERROR,
-        E_PARSE,
-        E_CORE_ERROR,
-        E_COMPILE_ERROR,
-        E_USER_ERROR,
-    ];
-
-    if ($error !== null && in_array($error['type'], $fatalTypes, true)) {
-        debugLog('FATAL_SHUTDOWN', $error);
-
-        if (!headers_sent()) {
-            http_response_code(500);
-            header('Content-Type: application/json; charset=utf-8');
-        }
-
-        echo json_encode([
-            'ok'      => false,
-            'error'   => 'FATAL_ERROR',
-            'message' => $error['message'],
-            'file'    => $error['file'],
-            'line'    => $error['line'],
-        ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
-
-        return;
-    }
-
-    debugLog('NORMAL_SHUTDOWN');
-});
-
-debugLog('SCRIPT_START');    
-
-<?php
 /**
  * SEO System - Comparador y sincronizacion segura PRO <-> STAGING.
  *
@@ -126,7 +24,7 @@ debugLog('SCRIPT_START');
  *
  * @package SEOSystem
  * @subpackage ImportExport
- * @version 2.1.4
+ * @version 2.1.5
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -224,7 +122,7 @@ if ( ! function_exists( 'seo_environment_compare_get_state' ) ) {
                 'started_at'         => 0,
                 'finished_at'        => 0,
                 'error'              => '',
-                'batch_size'         => 30,
+                'batch_size'         => 20,
                 'last_batch_seconds' => 0.0,
                 'worker_runs'        => 0,
                 'worker_source'      => '',
@@ -234,6 +132,12 @@ if ( ! function_exists( 'seo_environment_compare_get_state' ) ) {
                 'worker_lock_misses'    => 0,
                 'last_worker_attempt_at'=> 0,
                 'last_worker_error'     => '',
+                'last_worker_phase'     => '',
+                'last_candidate_pro'    => 0,
+                'last_candidate_staging'=> 0,
+                'source_total_pro'      => null,
+                'source_total_staging'  => null,
+                'empty_verified'        => 0,
             ]
         );
     }
@@ -344,7 +248,7 @@ if ( ! function_exists( 'seo_environment_compare_hash' ) ) {
 if ( ! function_exists( 'seo_environment_compare_candidate_ids' ) ) {
     function seo_environment_compare_candidate_ids( $mysqli, $prefix, $entity, $cursor, $limit ) {
         $cursor = absint( $cursor );
-        $limit  = max( 20, min( 300, absint( $limit ) ) );
+        $limit  = max( 1, min( 300, absint( $limit ) ) );
 
         $post_map = [
             'products_general'   => 'product',
@@ -372,6 +276,35 @@ if ( ! function_exists( 'seo_environment_compare_candidate_ids' ) ) {
     }
 }
 
+
+
+if ( ! function_exists( 'seo_environment_compare_entity_total' ) ) {
+    function seo_environment_compare_entity_total( $mysqli, $prefix, $entity ) {
+        $post_map = [
+            'products_general'   => 'product',
+            'product_tags'       => 'product',
+            'product_semantic'   => 'product',
+            'product_attributes' => 'product',
+            'pages_general'      => 'page',
+            'page_tags'          => 'page',
+            'posts_general'      => 'post',
+            'post_tags'          => 'post',
+        ];
+
+        if ( isset( $post_map[ $entity ] ) ) {
+            $post_type = mysqli_real_escape_string( $mysqli, $post_map[ $entity ] );
+            $sql = "SELECT COUNT(*) AS total FROM `{$prefix}posts` WHERE post_type='{$post_type}' AND post_status<>'trash'";
+        } elseif ( in_array( $entity, [ 'categories_general', 'category_tags', 'category_semantic' ], true ) ) {
+            $sql = "SELECT COUNT(*) AS total FROM `{$prefix}term_taxonomy` WHERE taxonomy='product_cat'";
+        } else {
+            $sql = "SELECT COUNT(*) AS total FROM `{$prefix}seo_faq`";
+        }
+
+        $rows = seo_environment_compare_query_rows( $mysqli, $sql );
+        if ( is_wp_error( $rows ) ) return $rows;
+        return isset( $rows[0]['total'] ) ? absint( $rows[0]['total'] ) : 0;
+    }
+}
 
 
 if ( ! function_exists( 'seo_environment_compare_empty_hash' ) ) {
@@ -617,8 +550,19 @@ if ( ! function_exists( 'seo_environment_compare_manager_key' ) ) {
     }
 }
 
+if ( ! function_exists( 'seo_environment_compare_manager_enabled' ) ) {
+    function seo_environment_compare_manager_enabled( $settings = null ) {
+        if ( null === $settings ) {
+            if ( ! function_exists( 'seo_process_supervisor_settings' ) ) return false;
+            $settings = seo_process_supervisor_settings();
+        }
+        return ! empty( $settings['enabled'] ) && ! empty( $settings['environment_compare'] );
+    }
+}
+
 if ( ! function_exists( 'seo_environment_compare_has_pending_scan' ) ) {
     function seo_environment_compare_has_pending_scan() {
+        if ( function_exists( 'seo_process_supervisor_settings' ) && ! seo_environment_compare_manager_enabled() ) return false;
         foreach ( array_keys( seo_environment_compare_entities() ) as $entity ) {
             $state = seo_environment_compare_get_state( $entity );
             if ( 'running' === (string) ( $state['status'] ?? '' ) ) return true;
@@ -630,6 +574,7 @@ if ( ! function_exists( 'seo_environment_compare_has_pending_scan' ) ) {
 
 if ( ! function_exists( 'seo_environment_compare_has_due_scan' ) ) {
     function seo_environment_compare_has_due_scan() {
+        if ( function_exists( 'seo_process_supervisor_settings' ) && ! seo_environment_compare_manager_enabled() ) return false;
         $now = time();
         foreach ( array_keys( seo_environment_compare_entities() ) as $entity ) {
             $state = seo_environment_compare_get_state( $entity );
@@ -637,6 +582,20 @@ if ( ! function_exists( 'seo_environment_compare_has_due_scan' ) ) {
             if ( absint( $state['next_run_at'] ?? 0 ) <= $now ) return true;
         }
         return false;
+    }
+}
+
+if ( ! function_exists( 'seo_environment_compare_next_due_at' ) ) {
+    function seo_environment_compare_next_due_at() {
+        $next = 0;
+        foreach ( array_keys( seo_environment_compare_entities() ) as $entity ) {
+            $state = seo_environment_compare_get_state( $entity );
+            if ( 'running' !== (string) ( $state['status'] ?? '' ) ) continue;
+            $due = absint( $state['next_run_at'] ?? 0 );
+            if ( ! $due ) return time();
+            if ( ! $next || $due < $next ) $next = $due;
+        }
+        return $next;
     }
 }
 
@@ -741,13 +700,19 @@ if ( ! function_exists( 'seo_environment_compare_kick_manager' ) ) {
 
 if ( ! function_exists( 'seo_environment_compare_process_worker_batch' ) ) {
     /**
-     * Ejecuta UN solo lote de comparación. Esta función solo la llama el Gestor
-     * de procesos; nunca el navegador. Así la carga entra en el round-robin
-     * común con Import/Export, Academia y Clasificador.
+     * Ejecuta UN lote pequeno de comparación. Solo puede ser invocado por el
+     * Gestor de procesos; el AJAX de administración se limita a encolar/leer
+     * estado. Cada intento persiste su fase antes de tocar las BBDD remotas.
      */
     function seo_environment_compare_process_worker_batch( $entity, $source = 'process_manager' ) {
         $entities = seo_environment_compare_entities();
-        if ( ! isset( $entities[ $entity ] ) ) return new WP_Error( 'invalid_entity', 'Entidad de comparación no válida.' );
+        if ( ! isset( $entities[ $entity ] ) ) {
+            return new WP_Error( 'invalid_entity', 'Entidad de comparación no válida.' );
+        }
+        if ( function_exists( 'seo_process_supervisor_settings' ) && ! seo_environment_compare_manager_enabled() ) {
+            return new WP_Error( 'environment_compare_manager_disabled', 'El Comparador PRO/STAGING está desactivado en el Gestor de workers.' );
+        }
+
         $state = seo_environment_compare_get_state( $entity );
         if ( 'running' !== (string) ( $state['status'] ?? '' ) ) return false;
         if ( absint( $state['next_run_at'] ?? 0 ) > time() ) return false;
@@ -755,61 +720,143 @@ if ( ! function_exists( 'seo_environment_compare_process_worker_batch' ) ) {
         global $wpdb;
         $state['worker_attempts'] = absint( $state['worker_attempts'] ?? 0 ) + 1;
         $state['last_worker_attempt_at'] = time();
+        $state['last_activity_at'] = time();
+        $state['last_worker_phase'] = 'lock';
+        $state['last_worker_error'] = '';
+        seo_environment_compare_set_state( $entity, $state );
+
         $lock_name = 'seo_env_compare_worker_' . $entity;
         $locked = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s,0)', $lock_name ) );
         if ( '1' !== (string) $locked ) {
             $state['worker_lock_misses'] = absint( $state['worker_lock_misses'] ?? 0 ) + 1;
             $state['last_worker_error'] = 'El worker no pudo adquirir el lock MySQL del comparador.';
+            $state['last_worker_phase'] = 'lock_wait';
             $state['last_activity_at'] = time();
             $state['next_run_at'] = time() + 2;
             seo_environment_compare_set_state( $entity, $state );
-            seo_environment_compare_kick_manager( 'environment_compare_lock_wait' );
+            if ( function_exists( 'seo_process_supervisor_nudge' ) ) {
+                seo_process_supervisor_nudge( 2, 'environment_compare_lock_wait' );
+            }
             return false;
         }
 
-        $state['last_worker_error'] = '';
         $started = microtime( true );
+        $pro = null;
+        $stg = null;
         try {
-            $batch_limit = max( 8, min( 60, absint( $state['batch_size'] ?? 30 ) ) );
-            $candidate_limit = $batch_limit + 12;
+            $batch_limit = max( 5, min( 40, absint( $state['batch_size'] ?? 20 ) ) );
+            $candidate_limit = $batch_limit + 8;
+
+            $state['last_worker_phase'] = 'connect';
+            seo_environment_compare_set_state( $entity, $state );
             $pro = seo_environment_compare_open( 'pro' );
             $stg = seo_environment_compare_open( 'staging' );
             if ( is_wp_error( $pro ) || is_wp_error( $stg ) ) {
-                if ( $pro instanceof mysqli ) @mysqli_close( $pro );
-                if ( $stg instanceof mysqli ) @mysqli_close( $stg );
                 $err = is_wp_error( $pro ) ? $pro : $stg;
                 $state['status'] = 'error';
-                $state['error'] = $err->get_error_message();
+                $state['error'] = 'Conexión remota: ' . $err->get_error_message();
                 $state['last_worker_error'] = $state['error'];
+                $state['last_worker_phase'] = 'connect_error';
                 $state['last_activity_at'] = time();
+                $state['next_run_at'] = 0;
                 seo_environment_compare_set_state( $entity, $state );
                 return $err;
             }
 
             $cursor = absint( $state['cursor'] ?? 0 );
-            $pro_ids = seo_environment_compare_candidate_ids( $pro, seo_environment_compare_db_prefix( 'pro' ), $entity, $cursor, $candidate_limit );
-            $stg_ids = seo_environment_compare_candidate_ids( $stg, seo_environment_compare_db_prefix( 'staging' ), $entity, $cursor, $candidate_limit );
+            $state['last_worker_phase'] = 'candidate_ids';
+            seo_environment_compare_set_state( $entity, $state );
+
+            $pro_ids = seo_environment_compare_candidate_ids(
+                $pro,
+                seo_environment_compare_db_prefix( 'pro' ),
+                $entity,
+                $cursor,
+                $candidate_limit
+            );
+            $stg_ids = seo_environment_compare_candidate_ids(
+                $stg,
+                seo_environment_compare_db_prefix( 'staging' ),
+                $entity,
+                $cursor,
+                $candidate_limit
+            );
             if ( is_wp_error( $pro_ids ) || is_wp_error( $stg_ids ) ) {
                 $err = is_wp_error( $pro_ids ) ? $pro_ids : $stg_ids;
-                @mysqli_close( $pro ); @mysqli_close( $stg );
-                $state['status'] = 'error'; $state['error'] = $err->get_error_message(); $state['last_worker_error'] = $state['error']; $state['last_activity_at'] = time();
+                $state['status'] = 'error';
+                $state['error'] = 'Selección de IDs: ' . $err->get_error_message();
+                $state['last_worker_error'] = $state['error'];
+                $state['last_worker_phase'] = 'candidate_error';
+                $state['last_activity_at'] = time();
+                $state['next_run_at'] = 0;
                 seo_environment_compare_set_state( $entity, $state );
                 return $err;
             }
+
+            $state['last_candidate_pro'] = count( $pro_ids );
+            $state['last_candidate_staging'] = count( $stg_ids );
+            $state['last_activity_at'] = time();
+            seo_environment_compare_set_state( $entity, $state );
+
             $ids = array_values( array_unique( array_merge( $pro_ids, $stg_ids ) ) );
             sort( $ids, SORT_NUMERIC );
             $ids = array_slice( $ids, 0, $batch_limit );
+
             if ( ! $ids ) {
-                @mysqli_close( $pro ); @mysqli_close( $stg );
+                // No declaramos un escaneo 0/0 como completado a ciegas. En la
+                // primera vuelta verificamos cuántos objetos ve realmente cada
+                // conexión; así un prefijo/BD equivocado queda visible.
+                if ( 0 === $cursor && 0 === absint( $state['processed'] ?? 0 ) ) {
+                    $state['last_worker_phase'] = 'verify_empty';
+                    seo_environment_compare_set_state( $entity, $state );
+                    $pro_total = seo_environment_compare_entity_total( $pro, seo_environment_compare_db_prefix( 'pro' ), $entity );
+                    $stg_total = seo_environment_compare_entity_total( $stg, seo_environment_compare_db_prefix( 'staging' ), $entity );
+                    if ( is_wp_error( $pro_total ) || is_wp_error( $stg_total ) ) {
+                        $err = is_wp_error( $pro_total ) ? $pro_total : $stg_total;
+                        $state['status'] = 'error';
+                        $state['error'] = 'Verificación inicial: ' . $err->get_error_message();
+                        $state['last_worker_error'] = $state['error'];
+                        $state['last_worker_phase'] = 'verify_empty_error';
+                        $state['next_run_at'] = 0;
+                        seo_environment_compare_set_state( $entity, $state );
+                        return $err;
+                    }
+                    $state['source_total_pro'] = absint( $pro_total );
+                    $state['source_total_staging'] = absint( $stg_total );
+                    $state['empty_verified'] = ( 0 === absint( $pro_total ) && 0 === absint( $stg_total ) ) ? 1 : 0;
+
+                    if ( ! $state['empty_verified'] ) {
+                        $state['status'] = 'error';
+                        $state['error'] = sprintf(
+                            'El Gestor no obtuvo IDs aunque las conexiones contienen objetos (PRO %d · STAGING %d). Revisa prefijos/consultas antes de continuar.',
+                            absint( $pro_total ),
+                            absint( $stg_total )
+                        );
+                        $state['last_worker_error'] = $state['error'];
+                        $state['last_worker_phase'] = 'candidate_inconsistent';
+                        $state['next_run_at'] = 0;
+                        seo_environment_compare_set_state( $entity, $state );
+                        return new WP_Error( 'environment_compare_candidate_inconsistent', $state['error'] );
+                    }
+                }
+
+                $state['last_worker_phase'] = 'finalize';
+                seo_environment_compare_set_state( $entity, $state );
                 return seo_environment_compare_finalize_worker_scan( $entity, $state );
             }
 
+            $state['last_worker_phase'] = 'snapshots';
+            seo_environment_compare_set_state( $entity, $state );
             $pro_rows = seo_environment_compare_fetch_snapshots( $pro, 'pro', $entity, $ids );
             $stg_rows = seo_environment_compare_fetch_snapshots( $stg, 'staging', $entity, $ids );
             if ( is_wp_error( $pro_rows ) || is_wp_error( $stg_rows ) ) {
                 $err = is_wp_error( $pro_rows ) ? $pro_rows : $stg_rows;
-                @mysqli_close( $pro ); @mysqli_close( $stg );
-                $state['status'] = 'error'; $state['error'] = $err->get_error_message(); $state['last_worker_error'] = $state['error']; $state['last_activity_at'] = time();
+                $state['status'] = 'error';
+                $state['error'] = 'Comparación del lote: ' . $err->get_error_message();
+                $state['last_worker_error'] = $state['error'];
+                $state['last_worker_phase'] = 'snapshot_error';
+                $state['last_activity_at'] = time();
+                $state['next_run_at'] = 0;
                 seo_environment_compare_set_state( $entity, $state );
                 return $err;
             }
@@ -840,15 +887,17 @@ if ( ! function_exists( 'seo_environment_compare_process_worker_batch' ) ) {
             $state['worker_runs'] = absint( $state['worker_runs'] ?? 0 ) + 1;
             $state['worker_source'] = sanitize_key( (string) $source );
             $state['last_activity_at'] = time();
+            $state['last_worker_phase'] = 'next_probe';
 
-            // Detecta el final en este mismo lote: no necesita una petición AJAX
-            // adicional del navegador para pasar a COMPLETE.
             $next_pro = seo_environment_compare_candidate_ids( $pro, seo_environment_compare_db_prefix( 'pro' ), $entity, $state['cursor'], 1 );
             $next_stg = seo_environment_compare_candidate_ids( $stg, seo_environment_compare_db_prefix( 'staging' ), $entity, $state['cursor'], 1 );
-            @mysqli_close( $pro ); @mysqli_close( $stg );
             if ( is_wp_error( $next_pro ) || is_wp_error( $next_stg ) ) {
                 $err = is_wp_error( $next_pro ) ? $next_pro : $next_stg;
-                $state['status'] = 'error'; $state['error'] = $err->get_error_message(); $state['last_worker_error'] = $state['error'];
+                $state['status'] = 'error';
+                $state['error'] = 'Comprobación de continuidad: ' . $err->get_error_message();
+                $state['last_worker_error'] = $state['error'];
+                $state['last_worker_phase'] = 'next_probe_error';
+                $state['next_run_at'] = 0;
                 seo_environment_compare_set_state( $entity, $state );
                 return $err;
             }
@@ -856,32 +905,41 @@ if ( ! function_exists( 'seo_environment_compare_process_worker_batch' ) ) {
             $elapsed = max( 0.001, microtime( true ) - $started );
             $state['last_batch_rows'] = count( $ids );
             $state['last_batch_seconds'] = round( $elapsed, 3 );
-            // Regulador conservador: solo aumenta si los lotes son realmente
-            // rápidos; reduce enseguida cuando el hosting empieza a sufrir.
+
+            // Regulador conservador. El Gestor decide cuándo vuelve a entrar;
+            // este módulo solo indica una pausa mínima y un lote objetivo.
             if ( $elapsed > 12.0 ) {
-                $state['batch_size'] = max( 8, (int) floor( $batch_limit * 0.50 ) );
+                $state['batch_size'] = max( 5, (int) floor( $batch_limit * 0.50 ) );
                 $delay = 12;
             } elseif ( $elapsed > 6.0 ) {
-                $state['batch_size'] = max( 8, (int) floor( $batch_limit * 0.75 ) );
-                $delay = 5;
-            } elseif ( $elapsed < 1.5 && $batch_limit < 60 ) {
-                $state['batch_size'] = min( 60, $batch_limit + 5 );
-                $delay = 1;
+                $state['batch_size'] = max( 5, (int) floor( $batch_limit * 0.75 ) );
+                $delay = 6;
+            } elseif ( $elapsed < 1.5 && $batch_limit < 40 ) {
+                $state['batch_size'] = min( 40, $batch_limit + 4 );
+                $delay = 2;
             } else {
                 $state['batch_size'] = $batch_limit;
-                $delay = 2;
+                $delay = 3;
             }
 
             if ( empty( $next_pro ) && empty( $next_stg ) ) {
+                $state['last_worker_phase'] = 'finalize';
                 return seo_environment_compare_finalize_worker_scan( $entity, $state );
             }
 
             $state['status'] = 'running';
+            $state['error'] = '';
+            $state['last_worker_error'] = '';
+            $state['last_worker_phase'] = 'waiting_manager';
             $state['next_run_at'] = time() + $delay;
             seo_environment_compare_set_state( $entity, $state );
-            if ( function_exists( 'seo_process_supervisor_nudge' ) ) seo_process_supervisor_nudge( $delay, 'environment_compare' );
+            if ( function_exists( 'seo_process_supervisor_nudge' ) ) {
+                seo_process_supervisor_nudge( $delay, 'environment_compare' );
+            }
             return $state;
         } finally {
+            if ( $pro instanceof mysqli ) @mysqli_close( $pro );
+            if ( $stg instanceof mysqli ) @mysqli_close( $stg );
             $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
         }
     }
@@ -889,8 +947,23 @@ if ( ! function_exists( 'seo_environment_compare_process_worker_batch' ) ) {
 
 if ( ! function_exists( 'seo_environment_compare_process_manager_slice' ) ) {
     function seo_environment_compare_process_manager_slice( $seconds = 20, $source = 'process_manager', $target = [] ) {
+        if ( ! seo_environment_compare_manager_enabled() ) return false;
         $entity = seo_environment_compare_next_worker_entity();
-        if ( ! $entity ) return false;
+        if ( ! $entity ) {
+            $due_at = seo_environment_compare_next_due_at();
+            $wait = $due_at ? max( 0, $due_at - time() ) : 0;
+            if ( function_exists( 'seo_process_supervisor_managed_update' ) ) {
+                seo_process_supervisor_managed_update( seo_environment_compare_manager_key(), [
+                    'name'=>'Comparador PRO/STAGING', 'pending'=>seo_environment_compare_has_pending_scan()?1:0,
+                    'healthy'=>1, 'last_checked'=>time(), 'last_result'=>'waiting', 'last_error'=>'',
+                    'detail'=>$wait > 0 ? 'Pausa adaptativa · siguiente lote en '.$wait.' s.' : 'En cola del Gestor; esperando siguiente ventana.'
+                ] );
+            }
+            if ( $wait > 0 && function_exists( 'seo_process_supervisor_nudge' ) ) {
+                seo_process_supervisor_nudge( $wait, 'environment_compare_wait' );
+            }
+            return false;
+        }
         $labels = seo_environment_compare_entities();
         $state = seo_environment_compare_get_state( $entity );
         $key = seo_environment_compare_manager_key();
@@ -934,11 +1007,16 @@ if ( ! function_exists( 'seo_environment_compare_process_manager_slice' ) ) {
 
 if ( ! function_exists( 'seo_environment_compare_manager_targets' ) ) {
     function seo_environment_compare_manager_targets( $targets, $settings, $source ) {
+        if ( ! seo_environment_compare_manager_enabled( $settings ) ) return $targets;
         if ( ! seo_environment_compare_has_pending_scan() ) return $targets;
-        if ( ! seo_environment_compare_has_due_scan() ) return $targets;
+
+        // Registramos el trabajo mientras siga pendiente, incluso durante una
+        // pausa adaptativa. El callback comprueba next_run_at y devuelve waiting
+        // sin ejecutar SQL si todavía no toca. Así el Gestor conserva la tarea
+        // y es siempre quien decide la siguiente ventana.
         $targets[] = [
             'type' => 'environment_compare',
-            'data' => [],
+            'data' => [ 'due' => seo_environment_compare_has_due_scan() ? 1 : 0 ],
             'callback' => 'seo_environment_compare_process_manager_slice',
         ];
         return $targets;
@@ -948,6 +1026,7 @@ add_filter( 'seo_process_supervisor_manager_targets', 'seo_environment_compare_m
 
 if ( ! function_exists( 'seo_environment_compare_manager_pending_filter' ) ) {
     function seo_environment_compare_manager_pending_filter( $pending ) {
+        if ( ! seo_environment_compare_manager_enabled() ) return $pending;
         return $pending || seo_environment_compare_has_pending_scan();
     }
 }
@@ -1112,14 +1191,19 @@ if ( ! function_exists( 'seo_environment_compare_scan_ajax' ) ) {
             if ( empty( $manager['enabled'] ) ) {
                 wp_send_json_error( [ 'message'=>'El Gestor de procesos está desactivado. Actívalo antes de lanzar la comparación.' ], 409 );
             }
+            if ( empty( $manager['environment_compare'] ) ) {
+                wp_send_json_error( [ 'message'=>'El Comparador PRO/STAGING está desactivado dentro del Gestor de workers.' ], 409 );
+            }
             global $wpdb;
             $wpdb->delete( seo_environment_compare_table(), [ 'entity'=>$entity ], [ '%s' ] );
             $now = time();
             $state = [
                 'status'=>'running','cursor'=>0,'processed'=>0,'pro'=>0,'staging'=>0,'same'=>0,'different'=>0,
                 'only_pro'=>0,'only_staging'=>0,'started_at'=>$now,'finished_at'=>0,'error'=>'',
-                'batch_size'=>30,'last_batch_seconds'=>0.0,'worker_runs'=>0,'worker_source'=>'','next_run_at'=>$now,'last_activity_at'=>$now,
+                'batch_size'=>20,'last_batch_seconds'=>0.0,'worker_runs'=>0,'worker_source'=>'','next_run_at'=>$now,'last_activity_at'=>$now,
                 'worker_attempts'=>0,'worker_lock_misses'=>0,'last_worker_attempt_at'=>0,'last_worker_error'=>'',
+                'last_worker_phase'=>'queued','last_candidate_pro'=>0,'last_candidate_staging'=>0,
+                'source_total_pro'=>null,'source_total_staging'=>null,'empty_verified'=>0,
             ];
             seo_environment_compare_set_state( $entity, $state );
             $key = seo_environment_compare_manager_key();
@@ -1199,7 +1283,7 @@ if ( ! function_exists( 'seo_environment_compare_export_json_admin_post' ) ) {
 
         $export = [
             'schema'           => 'seo_environment_compare_report',
-            'version'          => '2.1.4',
+            'version'          => '2.1.5',
             'execution'        => 'process_manager_worker',
             'generated_at_utc' => current_time( 'mysql', true ),
             'dates_ignored'    => true,
@@ -1739,7 +1823,7 @@ if ( ! function_exists( 'seo_environment_compare_render' ) ) {
                     echo '</td></tr>';}
                 echo '</tbody></table></div>';if($total_diff>100)echo '<p class="seo-env-muted">Se muestran las primeras 100 diferencias para mantener ligera la pantalla. El escaneo conserva el inventario completo.</p>';echo '</details>';}
             echo '</section>';}
-        echo '<script>(function(){const ajax='.wp_json_encode(admin_url('admin-ajax.php')).',nonce='.wp_json_encode($nonce).';function post(data){data.nonce=nonce;return fetch(ajax,{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8"},body:new URLSearchParams(data)}).then(r=>r.json());}function progress(entity,text){document.querySelectorAll("[data-progress=\""+entity+"\"]").forEach(n=>n.textContent=text||"");}async function scan(entity,reset){document.querySelectorAll(".seo-env-scan[data-entity=\""+entity+"\"]").forEach(b=>b.disabled=true);try{let r=await post({action:"seo_environment_compare_scan",entity:entity,reset:reset?1:0});if(!r.success)throw new Error((r.data&&r.data.message)||"Error al encolar el escaneo");progress(entity,"En cola del Gestor de procesos…");while(true){await new Promise(x=>setTimeout(x,3000));r=await post({action:"seo_environment_compare_scan",entity:entity,reset:0});if(!r.success)throw new Error((r.data&&r.data.message)||"Error consultando estado");const s=r.data.state||{};const m=r.data.manager||{};progress(entity,"Worker: "+(s.processed||0)+" procesados · intentos "+(s.worker_attempts||0)+" · lote "+(s.batch_size||30)+" · "+(s.last_batch_seconds||0)+" s"+(m.status?" · gestor "+m.status:""));if(r.data.done){if(s.status==="error")throw new Error(s.error||"El worker terminó con error");break;}}progress(entity,"Escaneo completo");setTimeout(()=>location.reload(),700);}catch(e){progress(entity,e.message);document.querySelectorAll(".seo-env-scan[data-entity=\""+entity+"\"]").forEach(b=>b.disabled=false);}}document.querySelectorAll(".seo-env-scan").forEach(b=>b.addEventListener("click",e=>{e.preventDefault();scan(b.dataset.entity,true);}));document.querySelectorAll(".seo-env-sync-one").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(b.disabled)return;b.disabled=true;progress(b.dataset.entity,"Actualizando #"+b.dataset.id+"…");const r=await post({action:"seo_environment_sync_item",entity:b.dataset.entity,object_id:b.dataset.id,source:b.dataset.source,destination:b.dataset.destination});if(!r.success){progress(b.dataset.entity,(r.data&&r.data.message)||"Error");b.disabled=false;return;}progress(b.dataset.entity,"Actualizado. Verificando…");scan(b.dataset.entity,true);}));document.querySelectorAll(".seo-env-bulk").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(b.disabled)return;const msg="Vas a copiar TODAS las diferencias de esta capa "+b.dataset.source.toUpperCase()+" → "+b.dataset.destination.toUpperCase()+". Las fechas se ignoran y el contenido del origen sustituirá esta capa en el destino. ¿Continuar?";if(!window.confirm(msg))return;b.disabled=true;let total=0;progress(b.dataset.entity,"Sincronizando por lotes…");while(true){const r=await post({action:"seo_environment_sync_bulk",entity:b.dataset.entity,source:b.dataset.source,destination:b.dataset.destination});if(!r.success){progress(b.dataset.entity,(r.data&&r.data.message)||"Error");b.disabled=false;return;}total+=Number(r.data.updated||0);progress(b.dataset.entity,"Actualizados "+total+" · pendientes "+Number(r.data.remaining||0)+" · bloqueados "+Number(r.data.blocked||0));if(r.data.done)break;if(Number(r.data.updated||0)===0&&Number(r.data.remaining||0)>0){progress(b.dataset.entity,"Hay filas bloqueadas porque cambiaron después del escaneo o requieren revisión. Reescanea.");b.disabled=false;return;}await new Promise(x=>setTimeout(x,400));}scan(b.dataset.entity,true);}));})();</script>';
+        echo '<script>(function(){const ajax='.wp_json_encode(admin_url('admin-ajax.php')).',nonce='.wp_json_encode($nonce).';function post(data){data.nonce=nonce;return fetch(ajax,{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8"},body:new URLSearchParams(data)}).then(async r=>{const t=await r.text();if(!t.trim())throw new Error("Respuesta vacía del servidor (HTTP "+r.status+").");try{return JSON.parse(t);}catch(e){throw new Error("Respuesta no JSON (HTTP "+r.status+"): "+t.slice(0,180));}});}function progress(entity,text){document.querySelectorAll("[data-progress=\""+entity+"\"]").forEach(n=>n.textContent=text||"");}async function scan(entity,reset){document.querySelectorAll(".seo-env-scan[data-entity=\""+entity+"\"]").forEach(b=>b.disabled=true);try{let r=await post({action:"seo_environment_compare_scan",entity:entity,reset:reset?1:0});if(!r.success)throw new Error((r.data&&r.data.message)||"Error al encolar el escaneo");progress(entity,"En cola del Gestor de procesos…");while(true){await new Promise(x=>setTimeout(x,3000));r=await post({action:"seo_environment_compare_scan",entity:entity,reset:0});if(!r.success)throw new Error((r.data&&r.data.message)||"Error consultando estado");const s=r.data.state||{};const m=r.data.manager||{};progress(entity,"Worker: "+(s.processed||0)+" procesados · intentos "+(s.worker_attempts||0)+" · fase "+(s.last_worker_phase||"—")+" · candidatos PRO/STG "+(s.last_candidate_pro||0)+"/"+(s.last_candidate_staging||0)+" · lote "+(s.batch_size||20)+" · "+(s.last_batch_seconds||0)+" s"+(m.status?" · gestor "+m.status:""));if(r.data.done){if(s.status==="error")throw new Error(s.error||"El worker terminó con error");break;}}progress(entity,"Escaneo completo");setTimeout(()=>location.reload(),700);}catch(e){progress(entity,e.message);document.querySelectorAll(".seo-env-scan[data-entity=\""+entity+"\"]").forEach(b=>b.disabled=false);}}document.querySelectorAll(".seo-env-scan").forEach(b=>b.addEventListener("click",e=>{e.preventDefault();scan(b.dataset.entity,true);}));document.querySelectorAll(".seo-env-sync-one").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(b.disabled)return;b.disabled=true;progress(b.dataset.entity,"Actualizando #"+b.dataset.id+"…");const r=await post({action:"seo_environment_sync_item",entity:b.dataset.entity,object_id:b.dataset.id,source:b.dataset.source,destination:b.dataset.destination});if(!r.success){progress(b.dataset.entity,(r.data&&r.data.message)||"Error");b.disabled=false;return;}progress(b.dataset.entity,"Actualizado. Verificando…");scan(b.dataset.entity,true);}));document.querySelectorAll(".seo-env-bulk").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(b.disabled)return;const msg="Vas a copiar TODAS las diferencias de esta capa "+b.dataset.source.toUpperCase()+" → "+b.dataset.destination.toUpperCase()+". Las fechas se ignoran y el contenido del origen sustituirá esta capa en el destino. ¿Continuar?";if(!window.confirm(msg))return;b.disabled=true;let total=0;progress(b.dataset.entity,"Sincronizando por lotes…");while(true){const r=await post({action:"seo_environment_sync_bulk",entity:b.dataset.entity,source:b.dataset.source,destination:b.dataset.destination});if(!r.success){progress(b.dataset.entity,(r.data&&r.data.message)||"Error");b.disabled=false;return;}total+=Number(r.data.updated||0);progress(b.dataset.entity,"Actualizados "+total+" · pendientes "+Number(r.data.remaining||0)+" · bloqueados "+Number(r.data.blocked||0));if(r.data.done)break;if(Number(r.data.updated||0)===0&&Number(r.data.remaining||0)>0){progress(b.dataset.entity,"Hay filas bloqueadas porque cambiaron después del escaneo o requieren revisión. Reescanea.");b.disabled=false;return;}await new Promise(x=>setTimeout(x,400));}scan(b.dataset.entity,true);}));})();</script>';
         echo '</div>';
     }
 }
