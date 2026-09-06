@@ -16,10 +16,55 @@ if (!class_exists('SEO_Transporte_Costes')) {
         public static function init() {
             add_action('admin_menu', array(__CLASS__, 'register_page'), 30);
             add_action('admin_post_seo_transporte_save', array(__CLASS__, 'save_settings'));
+
+            /*
+             * WooCommerce deja de calcular transporte si no detecta ningun metodo
+             * de envio habilitado. Este modulo quiere controlar las reglas sin que
+             * el usuario tenga que configurar zonas/metodos en WooCommerce, asi que
+             * registramos un metodo tecnico interno y mantenemos activo el motor de
+             * transporte mientras este gestor este habilitado.
+             */
+            add_filter('wc_shipping_enabled', array(__CLASS__, 'force_wc_shipping_enabled'), 999, 1);
+            add_filter('woocommerce_shipping_methods', array(__CLASS__, 'register_bridge_shipping_method'), 999, 1);
+
             add_filter('woocommerce_cart_shipping_packages', array(__CLASS__, 'filter_shipping_packages_destination'), 999, 1);
             add_filter('woocommerce_package_rates', array(__CLASS__, 'filter_package_rates'), 999, 2);
             add_filter('parent_file', array(__CLASS__, 'admin_parent_file'));
             add_filter('submenu_file', array(__CLASS__, 'admin_submenu_file'));
+        }
+
+        public static function force_wc_shipping_enabled($enabled) {
+            $settings = self::settings();
+            return !empty($settings['enabled']) ? true : $enabled;
+        }
+
+        public static function register_bridge_shipping_method($methods) {
+            if (!is_array($methods)) {
+                $methods = array();
+            }
+
+            if (!class_exists('WC_Shipping_Method')) {
+                return $methods;
+            }
+
+            $settings = self::settings();
+
+            $methods['seo_transporte_bridge'] = new class($settings) extends WC_Shipping_Method {
+                public function __construct($settings = array()) {
+                    $this->id                 = 'seo_transporte_bridge';
+                    $this->method_title       = 'SEO Transporte (interno)';
+                    $this->method_description = 'Metodo tecnico interno. Las tarifas se gestionan desde SEO Taxonomy > Logistica > Transporte.';
+                    $this->title              = 'Transporte';
+                    $this->supports           = array();
+                    $this->enabled            = !empty($settings['enabled']) ? 'yes' : 'no';
+                }
+
+                public function calculate_shipping($package = array()) {
+                    // Sin tarifa propia: SEO_Transporte_Costes la inyecta al final.
+                }
+            };
+
+            return $methods;
         }
 
         public static function defaults() {
