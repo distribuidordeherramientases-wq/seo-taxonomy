@@ -4,7 +4,8 @@
  *
  * Principios:
  * - no consulta las BBDD remotas al cargar la pantalla;
- * - cada entidad se escanea solo al pulsar su boton;
+ * - cada entidad puede escanearse individualmente o mediante un chequeo general
+ *   estrictamente secuencial, de arriba abajo;
  * - las consultas remotas son SELECT y trabajan por lotes pequenos;
  * - nunca muestra ni transporta contenidos completos durante la comparacion:
  *   descripciones/contenidos se comparan por SHA-256 calculado en MySQL;
@@ -27,7 +28,7 @@
  *
  * @package SEOSystem
  * @subpackage ImportExport
- * @version 2.2.5
+ * @version 2.2.6
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -1437,6 +1438,27 @@ if ( ! function_exists( 'seo_environment_compare_process_monitor_item' ) ) {
 }
 add_filter( 'seo_processes_monitor_items', 'seo_environment_compare_process_monitor_item', 20, 1 );
 
+if ( ! function_exists( 'seo_environment_compare_running_entity' ) ) {
+    /**
+     * Devuelve la primera capa que sigue en estado running.
+     * Se usa como cerrojo funcional para impedir que el usuario lance varios
+     * chequeos simultaneos desde distintas tarjetas o pestanas.
+     */
+    function seo_environment_compare_running_entity() {
+        foreach ( seo_environment_compare_entities() as $key => $definition ) {
+            $state = seo_environment_compare_get_state( $key );
+            if ( 'running' === (string) ( $state['status'] ?? '' ) ) {
+                return [
+                    'key'   => (string) $key,
+                    'label' => (string) ( $definition['label'] ?? $key ),
+                    'state' => $state,
+                ];
+            }
+        }
+        return null;
+    }
+}
+
 if ( ! function_exists( 'seo_environment_compare_scan_ajax' ) ) {
     /**
      * El AJAX ya NO compara. Solo crea/reinicia el trabajo y devuelve el estado.
@@ -1452,6 +1474,12 @@ if ( ! function_exists( 'seo_environment_compare_scan_ajax' ) ) {
 
         $reset = ! empty( $_POST['reset'] );
         if ( $reset ) {
+            $running = seo_environment_compare_running_entity();
+            if ( $running ) {
+                wp_send_json_error( [
+                    'message' => 'Ya hay un chequeo en curso: ' . $running['label'] . '. Espera a que termine antes de iniciar otra capa.'
+                ], 409 );
+            }
             if ( ! function_exists( 'seo_process_supervisor_settings' ) ) {
                 wp_send_json_error( [ 'message'=>'No está cargado el Gestor de procesos. No se inicia el escaneo para evitar ejecutarlo fuera del worker.' ], 503 );
             }
@@ -2158,13 +2186,19 @@ if ( ! function_exists( 'seo_environment_compare_render' ) ) {
             'general'        => 'Información general',
             'classification' => 'Clasificación / asignaciones',
         ];
+        $scan_order  = array_keys( $entities );
+        $scan_labels = [];
+        foreach ( $entities as $scan_key => $scan_definition ) {
+            $scan_labels[ $scan_key ] = (string) ( $scan_definition['label'] ?? $scan_key );
+        }
+        $running_scan = seo_environment_compare_running_entity();
 
         echo '<div class="seo-env-compare">';
-        echo '<div class="seo-env-toolbar"><a class="button button-primary" href="'.esc_url( $json_url ).'">Descargar JSON del informe</a><strong>Dirección operativa: PRO → STAGING</strong><span>STAGING → PRO queda solo como información; no hay acciones de escritura en esa dirección.</span></div>';
-        echo '<div class="card seo-env-intro"><h2>Comparar PRO ↔ STAGING por capas <small>v2.2.5</small></h2><p class="seo-env-route"><code>includes/import-export/comparador/comparador.php</code></p><p><strong>Un único bloque por capa:</strong> estado, recuentos, escaneo, diferencias y sincronización PRO → STAGING aparecen juntos. Ya no existe un segundo bloque de diferencias ni botones STAGING → PRO.</p><p><strong>Orden recomendado:</strong> 1) Maestros/diccionarios; 2) objetos generales; 3) clasificación/asignaciones. Las fechas e imágenes siguen excluidas de la decisión de igualdad.</p><p>Entorno actual detectado: <strong>'.esc_html( $current ? strtoupper( $current ) : 'NO IDENTIFICADO' ).'</strong>.</p></div>';
+        echo '<div class="seo-env-toolbar"><button class="button button-primary seo-env-scan-all" '.disabled( ! empty( $running_scan ), true, false ).'>Hacer todos los chequeos</button><a class="button" href="'.esc_url( $json_url ).'">Descargar JSON del informe</a><strong>Dirección operativa: PRO → STAGING</strong><span>STAGING → PRO queda solo como información; no hay acciones de escritura en esa dirección.</span><span class="seo-env-global-progress" data-global-progress>'.( $running_scan ? 'En curso: '.esc_html( $running_scan['label'] ).'. Espera a que termine antes de iniciar otro chequeo.' : 'El chequeo general recorre todas las capas una a una, de arriba abajo.' ).'</span></div>';
+        echo '<div class="card seo-env-intro"><h2>Comparar PRO ↔ STAGING por capas <small>v2.2.6</small></h2><p class="seo-env-route"><code>includes/import-export/comparador/comparador.php</code></p><p><strong>Chequeo general seguro:</strong> “Hacer todos los chequeos” ejecuta una sola capa cada vez, espera a que termine y solo entonces inicia la siguiente. Si una capa falla, el proceso general se detiene en ese punto.</p><p><strong>Botones individuales:</strong> se mantienen, pero mientras hay un chequeo activo quedan bloqueados los demás para impedir que se acumulen trabajos simultáneos.</p><p><strong>Orden estricto:</strong> 1) Maestros/diccionarios; 2) objetos generales; 3) clasificación/asignaciones. Las fechas e imágenes siguen excluidas de la decisión de igualdad.</p><p>Entorno actual detectado: <strong>'.esc_html( $current ? strtoupper( $current ) : 'NO IDENTIFICADO' ).'</strong>.</p></div>';
 
         echo '<style>
-            .seo-env-toolbar{margin:0 0 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.seo-env-toolbar strong{color:#2271b1}.seo-env-toolbar span{color:#646970}
+            .seo-env-toolbar{margin:0 0 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.seo-env-toolbar strong{color:#2271b1}.seo-env-toolbar span{color:#646970}.seo-env-global-progress{flex-basis:100%;padding:8px 10px;background:#f6f7f7;border-left:3px solid #2271b1;border-radius:4px;font-weight:600}
             .seo-env-intro{max-width:none;padding:18px;margin-bottom:18px}.seo-env-intro h2{margin-top:0}.seo-env-intro h2 small{font-weight:400;color:#646970}.seo-env-route{margin-top:-6px;color:#646970}
             .seo-env-group{margin:18px 0 26px}.seo-env-group>h2{margin:0 0 12px}.seo-env-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
             .seo-env-kpi{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:14px;min-width:0}.seo-env-kpi-head{display:flex;align-items:flex-start;gap:7px}.seo-env-kpi-head strong{line-height:1.3}.seo-env-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-top:4px;flex:0 0 auto}.seo-env-green{background:#00a32a}.seo-env-yellow{background:#dba617}.seo-env-red{background:#d63638}.seo-env-gray{background:#8c8f94}
@@ -2208,7 +2242,7 @@ if ( ! function_exists( 'seo_environment_compare_render' ) ) {
                 }
 
                 $scan_label = 'never' === $s['status'] ? 'Escanear' : 'Actualizar escaneo';
-                $bulk_enabled = 'staging' === $current && 'complete' === $s['status'] && $syncable_count > 0;
+                $bulk_enabled = empty( $running_scan ) && 'staging' === $current && 'complete' === $s['status'] && $syncable_count > 0;
                 $bulk_title = 'staging' !== $current
                     ? 'La escritura PRO → STAGING se ejecuta desde STAGING.'
                     : ( $syncable_count > 0 ? 'Sincroniza únicamente las diferencias de PRO hacia STAGING.' : 'No hay diferencias sincronizables desde PRO.' );
@@ -2237,7 +2271,7 @@ if ( ! function_exists( 'seo_environment_compare_render' ) ) {
                 }
 
                 echo '<div class="seo-env-actions">';
-                echo '<button class="button button-primary seo-env-scan" data-entity="'.esc_attr( $key ).'">'.esc_html( $scan_label ).'</button>';
+                echo '<button class="button button-primary seo-env-scan" data-entity="'.esc_attr( $key ).'" '.disabled( ! empty( $running_scan ), true, false ).'>'.esc_html( $scan_label ).'</button>';
                 echo '<button class="button seo-env-bulk" data-entity="'.esc_attr( $key ).'" data-source="pro" data-destination="staging" '.disabled( ! $bulk_enabled, true, false ).' title="'.esc_attr( $bulk_title ).'">PRO → STAGING'.( $syncable_count > 0 ? ' ('.number_format_i18n( $syncable_count ).')' : '' ).'</button>';
                 echo '</div>';
                 echo '<span class="seo-env-progress" data-progress="'.esc_attr( $key ).'"></span>';
@@ -2250,7 +2284,7 @@ if ( ! function_exists( 'seo_environment_compare_render' ) ) {
                         $name = $row['name_pro'] ?: $row['name_staging'];
                         $status = (string) $row['status'];
                         $syncable_statuses = seo_environment_compare_syncable_statuses( $key, 'pro' );
-                        $can_sync_from_pro = in_array( $status, $syncable_statuses, true ) && 'staging' === $current;
+                        $can_sync_from_pro = empty( $running_scan ) && in_array( $status, $syncable_statuses, true ) && 'staging' === $current;
 
                         $note = '';
                         if ( 'only_staging' === $status ) {
@@ -2289,7 +2323,7 @@ if ( ! function_exists( 'seo_environment_compare_render' ) ) {
             echo '</div></section>';
         }
 
-        echo '<script>(function(){const ajax='.wp_json_encode( admin_url( 'admin-ajax.php' ) ).',nonce='.wp_json_encode( $nonce ).';function post(data){data.nonce=nonce;return fetch(ajax,{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8"},body:new URLSearchParams(data)}).then(async r=>{const t=await r.text();if(!t.trim())throw new Error("Respuesta vacía del servidor (HTTP "+r.status+").");try{return JSON.parse(t);}catch(e){throw new Error("Respuesta no JSON (HTTP "+r.status+"): "+t.slice(0,180));}});}function progress(entity,text){document.querySelectorAll("[data-progress=\""+entity+"\"]").forEach(n=>n.textContent=text||"");}async function scan(entity,reset){document.querySelectorAll(".seo-env-scan[data-entity=\""+entity+"\"]").forEach(b=>b.disabled=true);try{let r=await post({action:"seo_environment_compare_scan",entity:entity,reset:reset?1:0});if(!r.success)throw new Error((r.data&&r.data.message)||"Error al encolar el escaneo");progress(entity,"En cola del Gestor de procesos…");while(true){await new Promise(x=>setTimeout(x,3000));r=await post({action:"seo_environment_compare_scan",entity:entity,reset:0});if(!r.success)throw new Error((r.data&&r.data.message)||"Error consultando estado");const s=r.data.state||{};const m=r.data.manager||{};progress(entity,"Worker: "+(s.processed||0)+" procesados · intentos "+(s.worker_attempts||0)+" · fase "+(s.last_worker_phase||"—")+" · candidatos PRO/STG "+(s.last_candidate_pro||0)+"/"+(s.last_candidate_staging||0)+" · lote "+(s.batch_size||1000)+" · "+(s.last_batch_seconds||0)+" s"+(m.status?" · gestor "+m.status:""));if(r.data.done){if(s.status==="error")throw new Error(s.error||"El worker terminó con error");break;}}progress(entity,"Escaneo completo");setTimeout(()=>location.reload(),700);}catch(e){progress(entity,e.message);document.querySelectorAll(".seo-env-scan[data-entity=\""+entity+"\"]").forEach(b=>b.disabled=false);}}document.querySelectorAll(".seo-env-scan").forEach(b=>b.addEventListener("click",e=>{e.preventDefault();scan(b.dataset.entity,true);}));document.querySelectorAll(".seo-env-sync-one").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(b.disabled)return;b.disabled=true;progress(b.dataset.entity,"Actualizando #"+b.dataset.id+"…");const r=await post({action:"seo_environment_sync_item",entity:b.dataset.entity,object_id:b.dataset.id,source:"pro",destination:"staging"});if(!r.success){progress(b.dataset.entity,(r.data&&r.data.message)||"Error");b.disabled=false;return;}progress(b.dataset.entity,"Actualizado. Verificando…");scan(b.dataset.entity,true);}));document.querySelectorAll(".seo-env-bulk").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(b.disabled)return;const msg="Vas a sincronizar esta capa PRO → STAGING. Se actualizarán diferencias y, en Maestros, se crearán los que existan solo en PRO. Los elementos exclusivos de STAGING no se copian a PRO ni se eliminan desde este botón. ¿Continuar?";if(!window.confirm(msg))return;b.disabled=true;let total=0;progress(b.dataset.entity,"Sincronizando PRO → STAGING por lotes…");while(true){const r=await post({action:"seo_environment_sync_bulk",entity:b.dataset.entity,source:"pro",destination:"staging"});if(!r.success){progress(b.dataset.entity,(r.data&&r.data.message)||"Error");b.disabled=false;return;}total+=Number(r.data.updated||0);progress(b.dataset.entity,"Actualizados "+total+" · pendientes "+Number(r.data.remaining||0)+" · bloqueados "+Number(r.data.blocked||0));if(r.data.done)break;if(Number(r.data.updated||0)===0&&Number(r.data.remaining||0)>0){progress(b.dataset.entity,"Hay filas bloqueadas porque cambiaron después del escaneo o requieren revisión. Reescanea.");b.disabled=false;return;}await new Promise(x=>setTimeout(x,400));}scan(b.dataset.entity,true);}));})();</script>';
+        echo '<script>(function(){const ajax='.wp_json_encode( admin_url( 'admin-ajax.php' ) ).',nonce='.wp_json_encode( $nonce ).',scanOrder='.wp_json_encode( $scan_order ).',scanLabels='.wp_json_encode( $scan_labels ).';let uiBusy=false;const sleep=ms=>new Promise(r=>setTimeout(r,ms));function post(data){data.nonce=nonce;return fetch(ajax,{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8"},body:new URLSearchParams(data)}).then(async r=>{const t=await r.text();if(!t.trim())throw new Error("Respuesta vacía del servidor (HTTP "+r.status+").");try{return JSON.parse(t);}catch(e){throw new Error("Respuesta no JSON (HTTP "+r.status+"): "+t.slice(0,180));}});}function progress(entity,text){document.querySelectorAll("[data-progress=\""+entity+"\"]").forEach(n=>n.textContent=text||"");}function globalProgress(text){document.querySelectorAll("[data-global-progress]").forEach(n=>n.textContent=text||"");}function setBusy(on){uiBusy=!!on;document.querySelectorAll(".seo-env-scan,.seo-env-scan-all,.seo-env-bulk,.seo-env-sync-one").forEach(b=>{if(on){if(!b.hasAttribute("data-prebusy-disabled"))b.dataset.prebusyDisabled=b.disabled?"1":"0";b.disabled=true;}else{b.disabled=b.dataset.prebusyDisabled==="1";b.removeAttribute("data-prebusy-disabled");}});}async function scanOne(entity,reset){let r=await post({action:"seo_environment_compare_scan",entity:entity,reset:reset?1:0});if(!r.success)throw new Error((r.data&&r.data.message)||"Error al encolar el escaneo");progress(entity,"En cola del Gestor de procesos…");while(true){await sleep(3000);r=await post({action:"seo_environment_compare_scan",entity:entity,reset:0});if(!r.success)throw new Error((r.data&&r.data.message)||"Error consultando estado");const s=r.data.state||{},m=r.data.manager||{};progress(entity,"Worker: "+(s.processed||0)+" procesados · intentos "+(s.worker_attempts||0)+" · fase "+(s.last_worker_phase||"—")+" · candidatos PRO/STG "+(s.last_candidate_pro||0)+"/"+(s.last_candidate_staging||0)+" · lote "+(s.batch_size||1000)+" · "+(s.last_batch_seconds||0)+" s"+(m.status?" · gestor "+m.status:""));if(r.data.done){if(s.status==="error")throw new Error(s.error||"El worker terminó con error");progress(entity,"Escaneo completo ✓");return s;}}}document.querySelectorAll(".seo-env-scan").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(uiBusy||b.disabled)return;setBusy(true);globalProgress("Chequeo individual: "+(scanLabels[b.dataset.entity]||b.dataset.entity)+". No se pueden iniciar otros chequeos hasta que termine.");try{await scanOne(b.dataset.entity,true);globalProgress("Chequeo completado. Actualizando pantalla…");setTimeout(()=>location.reload(),700);}catch(err){progress(b.dataset.entity,err.message);globalProgress("Chequeo detenido: "+err.message);setBusy(false);}}));const allButton=document.querySelector(".seo-env-scan-all");if(allButton)allButton.addEventListener("click",async e=>{e.preventDefault();if(uiBusy||allButton.disabled)return;if(!window.confirm("Se ejecutarán todos los chequeos de arriba abajo, uno cada vez. Si una capa falla, el proceso se detendrá en esa capa. ¿Continuar?"))return;setBusy(true);try{for(let i=0;i<scanOrder.length;i++){const entity=scanOrder[i],label=scanLabels[entity]||entity;globalProgress("Chequeo "+(i+1)+"/"+scanOrder.length+": "+label+". Esperando a que termine antes de pasar al siguiente…");await scanOne(entity,true);if(i<scanOrder.length-1)await sleep(800);}globalProgress("Todos los chequeos completados. Actualizando pantalla…");setTimeout(()=>location.reload(),900);}catch(err){globalProgress("Chequeo general detenido: "+err.message);setBusy(false);}});document.querySelectorAll(".seo-env-sync-one").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(uiBusy||b.disabled)return;b.disabled=true;progress(b.dataset.entity,"Actualizando #"+b.dataset.id+"…");const r=await post({action:"seo_environment_sync_item",entity:b.dataset.entity,object_id:b.dataset.id,source:"pro",destination:"staging"});if(!r.success){progress(b.dataset.entity,(r.data&&r.data.message)||"Error");b.disabled=false;return;}setBusy(true);progress(b.dataset.entity,"Actualizado. Verificando…");try{await scanOne(b.dataset.entity,true);setTimeout(()=>location.reload(),700);}catch(err){progress(b.dataset.entity,err.message);setBusy(false);}}));document.querySelectorAll(".seo-env-bulk").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(uiBusy||b.disabled)return;const msg="Vas a sincronizar esta capa PRO → STAGING. Se actualizarán diferencias y, en Maestros, se crearán los que existan solo en PRO. Los elementos exclusivos de STAGING no se copian a PRO ni se eliminan desde este botón. ¿Continuar?";if(!window.confirm(msg))return;setBusy(true);let total=0;progress(b.dataset.entity,"Sincronizando PRO → STAGING por lotes…");while(true){const r=await post({action:"seo_environment_sync_bulk",entity:b.dataset.entity,source:"pro",destination:"staging"});if(!r.success){progress(b.dataset.entity,(r.data&&r.data.message)||"Error");setBusy(false);return;}total+=Number(r.data.updated||0);progress(b.dataset.entity,"Actualizados "+total+" · pendientes "+Number(r.data.remaining||0)+" · bloqueados "+Number(r.data.blocked||0));if(r.data.done)break;if(Number(r.data.updated||0)===0&&Number(r.data.remaining||0)>0){progress(b.dataset.entity,"Hay filas bloqueadas porque cambiaron después del escaneo o requieren revisión. Reescanea.");setBusy(false);return;}await sleep(400);}progress(b.dataset.entity,"Sincronización terminada. Verificando…");try{await scanOne(b.dataset.entity,true);setTimeout(()=>location.reload(),700);}catch(err){progress(b.dataset.entity,err.message);setBusy(false);}}));})();</script>';
         echo '</div>';
     }
 }
