@@ -118,61 +118,126 @@ if (!$category_image) {
 
 
 /* ==========================================================
-   SUBCATEGORÍAS PARA JSON-LD
+   JSON-LD GOOGLE: COLLECTIONPAGE + ITEMLIST + BREADCRUMBLIST
 ========================================================== */
-
-$subcats_json = get_terms([
+$subcats_json = get_terms(array(
     'taxonomy'   => 'product_cat',
     'parent'     => $term->term_id,
     'hide_empty' => true,
-]);
+));
 
-$item_list = [];
-
-if(!is_wp_error($subcats_json)){
-    foreach($subcats_json as $cat){
+$item_list = array();
+if (!is_wp_error($subcats_json)) {
+    foreach ($subcats_json as $cat) {
         $term_link = get_term_link($cat);
-
-        if(is_wp_error($term_link)){
+        if (is_wp_error($term_link)) {
             continue;
         }
 
-        $item_list[] = [
+        $item_list[] = array(
             '@type'    => 'ListItem',
             'position' => count($item_list) + 1,
             'name'     => $cat->name,
-            'url'      => $term_link,
-        ];
+            'item'     => $term_link,
+        );
     }
 }
 
 $current_term_link = get_term_link($term);
+$category_url = is_wp_error($current_term_link) ? '' : esc_url_raw((string) $current_term_link);
+$collection_id = $category_url !== '' ? $category_url . '#collection' : '';
+$item_list_id = $category_url !== '' ? $category_url . '#subcategories' : '';
+$breadcrumb_id = $category_url !== '' ? $category_url . '#breadcrumb' : '';
 
-$json = [
-    '@context'    => 'https://schema.org',
-    '@type'       => 'CollectionPage',
-    'name'        => $term->name,
-    'url'         => is_wp_error($current_term_link) ? '' : $current_term_link,
-    'description' => wp_strip_all_tags($category_description),
-    'hasPart'     => [
-        [
-            '@type'           => 'ItemList',
-            'itemListElement' => $item_list,
-        ],
-    ],
-];
+$breadcrumb_items = array(
+    array(
+        '@type'    => 'ListItem',
+        'position' => 1,
+        'name'     => 'Inicio',
+        'item'     => trailingslashit(home_url('/')),
+    ),
+);
+
+$ancestor_ids = array_reverse(get_ancestors($term->term_id, 'product_cat', 'taxonomy'));
+foreach ($ancestor_ids as $ancestor_id) {
+    $ancestor = get_term(absint($ancestor_id), 'product_cat');
+    if (!$ancestor || is_wp_error($ancestor)) {
+        continue;
+    }
+
+    $ancestor_link = get_term_link($ancestor);
+    if (is_wp_error($ancestor_link)) {
+        continue;
+    }
+
+    $breadcrumb_items[] = array(
+        '@type'    => 'ListItem',
+        'position' => count($breadcrumb_items) + 1,
+        'name'     => $ancestor->name,
+        'item'     => $ancestor_link,
+    );
+}
+
+$breadcrumb_items[] = array(
+    '@type'    => 'ListItem',
+    'position' => count($breadcrumb_items) + 1,
+    'name'     => $term->name,
+    'item'     => $category_url,
+);
+
+$collection = array(
+    '@type' => 'CollectionPage',
+    'name'  => $term->name,
+    'url'   => $category_url,
+);
+if ($collection_id !== '') {
+    $collection['@id'] = $collection_id;
+}
+
+$schema_category_description = trim(wp_strip_all_tags((string) $category_description));
+if ($schema_category_description !== '') {
+    $collection['description'] = $schema_category_description;
+}
+if ($breadcrumb_id !== '') {
+    $collection['breadcrumb'] = array('@id' => $breadcrumb_id);
+}
+if (!empty($item_list) && $item_list_id !== '') {
+    $collection['mainEntity'] = array('@id' => $item_list_id);
+}
+
+$schema_graph = array($collection);
+
+if (!empty($item_list)) {
+    $subcategories = array(
+        '@type'           => 'ItemList',
+        'name'            => 'Subcategorías de ' . $term->name,
+        'numberOfItems'   => count($item_list),
+        'itemListElement' => $item_list,
+    );
+    if ($item_list_id !== '') {
+        $subcategories['@id'] = $item_list_id;
+    }
+    $schema_graph[] = $subcategories;
+}
+
+$breadcrumb = array(
+    '@type'           => 'BreadcrumbList',
+    'itemListElement' => $breadcrumb_items,
+);
+if ($breadcrumb_id !== '') {
+    $breadcrumb['@id'] = $breadcrumb_id;
+}
+$schema_graph[] = $breadcrumb;
+
+$json = array(
+    '@context' => 'https://schema.org',
+    '@graph'   => $schema_graph,
+);
 ?>
 <!-- DHT CATEGORY ORDER V2 2026-09-06 -->
 
-
-<script type="application/ld+json">
-<?php
-echo wp_json_encode(
-    $json,
-    JSON_UNESCAPED_UNICODE |
-    JSON_UNESCAPED_SLASHES
-);
-?>
+<script type="application/ld+json" id="dht-schema-category">
+<?php echo wp_json_encode($json, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
 </script>
 
 

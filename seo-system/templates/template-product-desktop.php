@@ -412,7 +412,230 @@ $technical_tags = array_values(array_filter(
         return !in_array(strtolower(remove_accents((string) $tag)), $product_tag_names, true);
     }
 ));
+
+
+/* ==========================================================
+   JSON-LD GOOGLE: PRODUCT + OFFER + BREADCRUMBLIST
+   Datos exclusivamente reales de WooCommerce / producto.
+========================================================== */
+$schema_product_url = esc_url_raw((string) get_permalink($product_id));
+$schema_product_id = $schema_product_url !== '' ? $schema_product_url . '#product' : '';
+$schema_breadcrumb_id = $schema_product_url !== '' ? $schema_product_url . '#breadcrumb' : '';
+
+$schema_images = array();
+foreach ($gallery_ids as $schema_image_id) {
+    $schema_image_url = wp_get_attachment_image_url(absint($schema_image_id), 'full');
+    if ($schema_image_url) {
+        $schema_images[] = esc_url_raw((string) $schema_image_url);
+    }
+}
+foreach ($external_images as $schema_external_image) {
+    $schema_image_url = esc_url_raw((string) ($schema_external_image['url'] ?? ''));
+    if ($schema_image_url !== '') {
+        $schema_images[] = $schema_image_url;
+    }
+}
+$schema_images = array_values(array_unique(array_filter($schema_images)));
+
+$schema_description = trim(wp_strip_all_tags((string) $short_description));
+if ($schema_description === '') {
+    $schema_description = trim(wp_strip_all_tags((string) $product->get_description()));
+}
+
+$schema_product = array(
+    '@type' => 'Product',
+    'name'  => $product->get_name(),
+    'url'   => $schema_product_url,
+);
+if ($schema_product_id !== '') {
+    $schema_product['@id'] = $schema_product_id;
+}
+if (!empty($schema_images)) {
+    $schema_product['image'] = array_slice($schema_images, 0, 10);
+}
+if ($schema_description !== '') {
+    $schema_product['description'] = $schema_description;
+}
+if ($sku !== '' && !preg_match('/\s/u', (string) $sku)) {
+    $schema_product['sku'] = (string) $sku;
+}
+
+/* GTIN nativo de WooCommerce cuando existe y es inequívocamente numérico. */
+if (method_exists($product, 'get_global_unique_id')) {
+    $schema_gtin = preg_replace('/[\s-]+/', '', trim((string) $product->get_global_unique_id()));
+    $schema_gtin_lengths = array(8 => 'gtin8', 12 => 'gtin12', 13 => 'gtin13', 14 => 'gtin14');
+    $schema_gtin_length = strlen($schema_gtin);
+    if ($schema_gtin !== '' && ctype_digit($schema_gtin) && isset($schema_gtin_lengths[$schema_gtin_length])) {
+        $schema_product[$schema_gtin_lengths[$schema_gtin_length]] = $schema_gtin;
+    }
+}
+
+/* Marca: usar solo un dato real ya expuesto en las especificaciones. */
+$schema_brand = '';
+foreach ($product_specifications as $schema_specification) {
+    if (in_array((string) ($schema_specification['key'] ?? ''), array('marca', 'fabricante'), true)) {
+        $schema_brand = trim((string) ($schema_specification['value'] ?? ''));
+        if ($schema_brand !== '') {
+            break;
+        }
+    }
+}
+if ($schema_brand !== '' && !preg_match('/[,;|]/', $schema_brand)) {
+    $schema_product['brand'] = array(
+        '@type' => 'Brand',
+        'name'  => $schema_brand,
+    );
+}
+
+/* Categoría principal: elegir la más profunda para reflejar la jerarquía. */
+$schema_product_terms = get_the_terms($product_id, 'product_cat');
+$schema_primary_term = null;
+$schema_primary_depth = -1;
+if (!is_wp_error($schema_product_terms) && is_array($schema_product_terms)) {
+    foreach ($schema_product_terms as $schema_term) {
+        $schema_depth = count(get_ancestors($schema_term->term_id, 'product_cat', 'taxonomy'));
+        if ($schema_depth > $schema_primary_depth) {
+            $schema_primary_depth = $schema_depth;
+            $schema_primary_term = $schema_term;
+        }
+    }
+}
+
+$schema_category_names = array();
+$breadcrumb_items = array(
+    array(
+        '@type'    => 'ListItem',
+        'position' => 1,
+        'name'     => 'Inicio',
+        'item'     => trailingslashit(home_url('/')),
+    ),
+);
+
+if ($schema_primary_term) {
+    $schema_ancestor_ids = array_reverse(get_ancestors($schema_primary_term->term_id, 'product_cat', 'taxonomy'));
+    foreach ($schema_ancestor_ids as $schema_ancestor_id) {
+        $schema_ancestor = get_term(absint($schema_ancestor_id), 'product_cat');
+        if (!$schema_ancestor || is_wp_error($schema_ancestor)) {
+            continue;
+        }
+        $schema_ancestor_link = get_term_link($schema_ancestor);
+        if (is_wp_error($schema_ancestor_link)) {
+            continue;
+        }
+        $schema_category_names[] = $schema_ancestor->name;
+        $breadcrumb_items[] = array(
+            '@type'    => 'ListItem',
+            'position' => count($breadcrumb_items) + 1,
+            'name'     => $schema_ancestor->name,
+            'item'     => $schema_ancestor_link,
+        );
+    }
+
+    $schema_primary_term_link = get_term_link($schema_primary_term);
+    if (!is_wp_error($schema_primary_term_link)) {
+        $schema_category_names[] = $schema_primary_term->name;
+        $breadcrumb_items[] = array(
+            '@type'    => 'ListItem',
+            'position' => count($breadcrumb_items) + 1,
+            'name'     => $schema_primary_term->name,
+            'item'     => $schema_primary_term_link,
+        );
+    }
+}
+
+if (!empty($schema_category_names)) {
+    $schema_product['category'] = implode(' > ', $schema_category_names);
+}
+
+$breadcrumb_items[] = array(
+    '@type'    => 'ListItem',
+    'position' => count($breadcrumb_items) + 1,
+    'name'     => $product->get_name(),
+    'item'     => $schema_product_url,
+);
+if ($schema_breadcrumb_id !== '') {
+    $schema_product['breadcrumb'] = array('@id' => $schema_breadcrumb_id);
+}
+
+/* Oferta actual: precio, moneda y disponibilidad deben coincidir con la ficha. */
+$schema_active_price = (float) $product->get_price();
+if ($schema_active_price > 0 && $product->is_purchasable()) {
+    $schema_currency = get_woocommerce_currency();
+    $schema_stock_map = array(
+        'instock'     => 'https://schema.org/InStock',
+        'outofstock'  => 'https://schema.org/OutOfStock',
+        'onbackorder' => 'https://schema.org/BackOrder',
+    );
+    $schema_stock_status = $supplier_out_of_stock
+        ? 'outofstock'
+        : (string) $product->get_stock_status();
+
+    $schema_offer = array(
+        '@type'         => 'Offer',
+        'url'           => $schema_product_url,
+        'price'         => wc_format_decimal($schema_active_price, wc_get_price_decimals()),
+        'priceCurrency' => $schema_currency,
+    );
+    if (isset($schema_stock_map[$schema_stock_status])) {
+        $schema_offer['availability'] = $schema_stock_map[$schema_stock_status];
+    }
+
+    $schema_regular_price = (float) $product->get_regular_price();
+    if ($product->is_on_sale() && $schema_regular_price > $schema_active_price) {
+        $schema_offer['priceSpecification'] = array(
+            '@type'         => 'UnitPriceSpecification',
+            'priceType'     => 'https://schema.org/StrikethroughPrice',
+            'price'         => wc_format_decimal($schema_regular_price, wc_get_price_decimals()),
+            'priceCurrency' => $schema_currency,
+        );
+    }
+
+    $schema_product['offers'] = $schema_offer;
+}
+
+/* Ratings solo si son visibles en la propia plantilla. */
+if ($rating_count >= 3 && (float) $average_rating > 0) {
+    $schema_rating = array(
+        '@type'       => 'AggregateRating',
+        'ratingValue' => (float) $average_rating,
+        'ratingCount' => (int) $rating_count,
+        'bestRating'  => 5,
+        'worstRating' => 1,
+    );
+    $schema_review_count = method_exists($product, 'get_review_count') ? (int) $product->get_review_count() : 0;
+    if ($schema_review_count > 0) {
+        $schema_rating['reviewCount'] = $schema_review_count;
+    }
+    $schema_product['aggregateRating'] = $schema_rating;
+}
+
+$schema_breadcrumb = array(
+    '@type'           => 'BreadcrumbList',
+    'itemListElement' => $breadcrumb_items,
+);
+if ($schema_breadcrumb_id !== '') {
+    $schema_breadcrumb['@id'] = $schema_breadcrumb_id;
+}
+
+/*
+ * Google Merchant Listing exige Product.name + Product.image + Product.offers.
+ * Si falta una imagen real o una oferta real, no publicamos un Product incompleto:
+ * mantenemos el BreadcrumbList y evitamos generar errores de datos estructurados.
+ */
+$schema_product_nodes = array();
+if (!empty($schema_product['image']) && !empty($schema_product['offers'])) {
+    $schema_product_nodes[] = $schema_product;
+}
+$schema_product_nodes[] = $schema_breadcrumb;
+
+$schema_product_graph = array(
+    '@context' => 'https://schema.org',
+    '@graph'   => $schema_product_nodes,
+);
 ?>
+<script type="application/ld+json" id="dht-schema-product">
+<?php echo wp_json_encode($schema_product_graph, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
+</script>
 
 <div class="dh-product-page dht-desktop-template">
 
