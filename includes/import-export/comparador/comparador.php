@@ -28,10 +28,17 @@
  *
  * @package SEOSystem
  * @subpackage ImportExport
- * @version 2.2.6
+ * @version 2.2.9
  */
 
 defined( 'ABSPATH' ) || exit;
+
+if ( ! defined( 'SEO_ENVIRONMENT_COMPARE_VERSION' ) ) {
+    define( 'SEO_ENVIRONMENT_COMPARE_VERSION', '2.2.9' );
+}
+if ( ! defined( 'SEO_ENVIRONMENT_COMPARE_SOURCE_FILE' ) ) {
+    define( 'SEO_ENVIRONMENT_COMPARE_SOURCE_FILE', 'includes/import-export/comparador/comparador.php' );
+}
 
 if ( ! function_exists( 'seo_environment_compare_entities' ) ) {
     function seo_environment_compare_entities() {
@@ -84,9 +91,16 @@ if ( ! function_exists( 'seo_environment_compare_syncable_statuses' ) ) {
     function seo_environment_compare_syncable_statuses( $entity, $source ) {
         $statuses = [ 'different' ];
         if ( seo_environment_compare_is_master_entity( $entity ) ) {
-            $statuses[] = seo_environment_compare_missing_status_for_source( $source );
+            if ( 'pro' === sanitize_key( (string) $source ) ) {
+                // PRO es la autoridad: crear lo que falte en STAGING y borrar
+                // del maestro local lo que exista solo en STAGING.
+                $statuses[] = 'only_pro';
+                $statuses[] = 'only_staging';
+            } else {
+                $statuses[] = seo_environment_compare_missing_status_for_source( $source );
+            }
         }
-        return $statuses;
+        return array_values( array_unique( $statuses ) );
     }
 }
 
@@ -732,7 +746,7 @@ if ( ! function_exists( 'seo_environment_compare_fetch_snapshots' ) ) {
             case 'product_attributes': return seo_environment_compare_fetch_product_attribute_snapshots($mysqli,$prefix,$ids);
             case 'category_tags': return seo_environment_compare_fetch_category_tag_snapshots($mysqli,$prefix,$ids);
             case 'category_semantic': return seo_environment_compare_fetch_semantic_snapshots($mysqli,$prefix,'','product_cat',$ids);
-            case 'page_tags': return seo_environment_compare_fetch_semantic_snapshots($mysqli,$prefix,'page','page',$ids);
+            case 'page_tags': return seo_environment_compare_fetch_post_custom_tag_snapshots($mysqli,$prefix,'page',$ids);
             case 'post_tags': return seo_environment_compare_fetch_post_custom_tag_snapshots($mysqli,$prefix,'post',$ids);
             default: return seo_environment_compare_fetch_faq_snapshots($mysqli,$prefix,$ids);
         }
@@ -1698,12 +1712,12 @@ add_action( 'wp_ajax_seo_environment_compare_scan', 'seo_environment_compare_sca
  * capa y TODAS las filas persistidas del informe (no solo las 100 visibles).
  * ---------------------------------------------------------------------- */
 
-if ( ! function_exists( 'seo_environment_compare_export_json_admin_post' ) ) {
-    function seo_environment_compare_export_json_admin_post() {
+if ( ! function_exists( 'seo_environment_compare_export_json_response' ) ) {
+    function seo_environment_compare_export_json_response( $nonce_action ) {
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( 'Sin permisos.', '', [ 'response' => 403 ] );
         }
-        check_admin_referer( 'seo_environment_compare_export_json' );
+        check_admin_referer( $nonce_action );
 
         global $wpdb;
         $table    = seo_environment_compare_table();
@@ -1711,8 +1725,11 @@ if ( ! function_exists( 'seo_environment_compare_export_json_admin_post' ) ) {
 
         $export = [
             'schema'           => 'seo_environment_compare_report',
-            'version'          => '2.2.1',
+            'version'          => SEO_ENVIRONMENT_COMPARE_VERSION,
             'execution'        => 'process_manager_worker',
+            'exporter_action'  => $nonce_action,
+            'source_file'      => SEO_ENVIRONMENT_COMPARE_SOURCE_FILE,
+            'policy'           => 'pro_authoritative',
             'generated_at_utc' => current_time( 'mysql', true ),
             'dates_ignored'    => true,
             'images_ignored'   => true,
@@ -1783,7 +1800,25 @@ if ( ! function_exists( 'seo_environment_compare_export_json_admin_post' ) ) {
         exit;
     }
 }
+
+/* Compatibilidad con enlaces antiguos. */
+if ( ! function_exists( 'seo_environment_compare_export_json_admin_post' ) ) {
+    function seo_environment_compare_export_json_admin_post() {
+        seo_environment_compare_export_json_response( 'seo_environment_compare_export_json' );
+    }
+}
 add_action( 'admin_post_seo_environment_compare_export_json', 'seo_environment_compare_export_json_admin_post' );
+
+/*
+ * Endpoint propio del comparador actual. La interfaz usa este action para que
+ * un exportador legado registrado por otro archivo no pueda interceptar el JSON.
+ */
+if ( ! function_exists( 'seo_environment_compare_export_json_current_admin_post' ) ) {
+    function seo_environment_compare_export_json_current_admin_post() {
+        seo_environment_compare_export_json_response( 'seo_environment_compare_export_json_current' );
+    }
+}
+add_action( 'admin_post_seo_environment_compare_export_json_current', 'seo_environment_compare_export_json_current_admin_post' );
 
 /* -------------------------------------------------------------------------
  * SINCRONIZACION: solo se escribe en el WordPress LOCAL.
@@ -2186,20 +2221,10 @@ if ( ! function_exists( 'seo_environment_sync_pull_native_tags' ) ) {
 
 if ( ! function_exists( 'seo_environment_sync_pull_semantic' ) ) {
     function seo_environment_sync_pull_semantic( $mysqli, $source_env, $entity, $id ) {
-        $prefix=seo_environment_compare_db_prefix($source_env);
-        if('product_semantic'===$entity){$object_type='product';}
-        elseif('category_semantic'===$entity){$object_type='product_cat';}
-        elseif('page_tags'===$entity){$object_type='page';}
-        else{return new WP_Error('semantic_entity','Entidad semántica no soportada.');}
-
-        if('product'===$object_type){$local=get_post($id);if(!$local||$local->post_type!=='product')return new WP_Error('missing_destination','El producto no existe en el destino.');}
-        elseif('page'===$object_type){$local=get_post($id);if(!$local||$local->post_type!=='page')return new WP_Error('missing_destination','La página no existe en el destino.');}
-        else{$local=get_term($id,'product_cat');if(!$local||is_wp_error($local))return new WP_Error('missing_destination','La categoría no existe en el destino.');}
-
+        $prefix=seo_environment_compare_db_prefix($source_env);$object_type='product_semantic'===$entity?'product':'product_cat';if('product'===$object_type){$local=get_post($id);if(!$local||$local->post_type!=='product')return new WP_Error('missing_destination','El producto no existe en el destino.');}else{$local=get_term($id,'product_cat');if(!$local||is_wp_error($local))return new WP_Error('missing_destination','La categoría no existe en el destino.');}
         $rows=seo_environment_sync_fetch_semantic($mysqli,$prefix,$object_type,$id);if(is_wp_error($rows))return$rows;$sem=seo_environment_sync_resolve_semantic_local_strict($rows);if(is_wp_error($sem))return$sem;
         $all=['rol'=>[],'tipo'=>[],'aplicacion'=>[],'plataforma'=>[],'subtipo'=>[]];foreach($sem['groups'] as $g=>$ids)$all[$g]=$ids;
         if('product'===$object_type){if(!function_exists('seo_catalog_apply_product_vocabulary_changes'))return new WP_Error('semantic_writer_missing','No está disponible el escritor canónico de producto.');$r=seo_catalog_apply_product_vocabulary_changes($id,$all,'environment_sync');if(empty($r['ok']))return new WP_Error('semantic_sync',(string)($r['message']??'No se pudo sincronizar la semántica.'));}
-        elseif('page'===$object_type){if(!function_exists('seo_page_vocab_replace_manual_group'))return new WP_Error('semantic_writer_missing','No está disponible el escritor canónico de páginas.');foreach($all as $group=>$ids){$r=seo_page_vocab_replace_manual_group($id,$group,$ids);if(is_wp_error($r))return$r;}}
         else{if(!function_exists('seo_category_vocabulary_replace'))return new WP_Error('semantic_writer_missing','No está disponible el escritor canónico de categorías.');$r=seo_category_vocabulary_replace($id,$all,'environment_sync');if(is_wp_error($r))return$r;}
         seo_environment_sync_restore_semantic_dates_local($object_type,$id,$rows);return true;
     }
@@ -2236,8 +2261,8 @@ if ( ! function_exists( 'seo_environment_sync_pull_item' ) ) {
             case 'vocabulary_master': case 'product_tag_master': case 'post_tag_master': case 'attribute_master': case 'attribute_term_master': case 'attribute_alias_master': $result=seo_environment_sync_pull_master($mysqli,$source_env,$entity,$id);break;
             case 'products_general': case 'pages_general': case 'posts_general': $result=seo_environment_sync_pull_general_post($mysqli,$source_env,$entity,$id);break;
             case 'categories_general': $result=seo_environment_sync_pull_category_general($mysqli,$source_env,$id);break;
-            case 'product_tags': case 'post_tags': $result=seo_environment_sync_pull_native_tags($mysqli,$source_env,$entity,$id);break;
-            case 'page_tags': case 'product_semantic': case 'category_semantic': $result=seo_environment_sync_pull_semantic($mysqli,$source_env,$entity,$id);break;
+            case 'product_tags': case 'page_tags': case 'post_tags': $result=seo_environment_sync_pull_native_tags($mysqli,$source_env,$entity,$id);break;
+            case 'product_semantic': case 'category_semantic': $result=seo_environment_sync_pull_semantic($mysqli,$source_env,$entity,$id);break;
             case 'product_attributes': $result=seo_environment_sync_pull_product_attributes($mysqli,$source_env,$id);break;
             case 'category_tags': $result=seo_environment_sync_pull_category_tags($mysqli,$source_env,$id);break;
             default: $result=seo_environment_sync_pull_faq($mysqli,$source_env,$id);
@@ -2262,6 +2287,121 @@ if ( ! function_exists( 'seo_environment_sync_validate_direction' ) ) {
     }
 }
 
+if ( ! function_exists( 'seo_environment_sync_delete_master_local' ) ) {
+    /**
+     * Elimina de STAGING un maestro que el ultimo escaneo confirma como
+     * inexistente en PRO. La clave recibida es el stable_id canonico, nunca un
+     * ID autoincremental compartido entre entornos.
+     */
+    function seo_environment_sync_delete_master_local( $entity, $stable_id ) {
+        global $wpdb;
+
+        $entity    = sanitize_key( (string) $entity );
+        $stable_id = absint( $stable_id );
+        if ( ! seo_environment_compare_is_master_entity( $entity ) || ! $stable_id ) {
+            return new WP_Error( 'invalid_master_delete', 'Maestro no valido para eliminar.' );
+        }
+        if ( 'staging' !== seo_environment_compare_current_env() ) {
+            return new WP_Error( 'delete_outside_staging', 'La limpieza de maestros exclusivos solo se permite desde STAGING.' );
+        }
+
+        $stg = seo_environment_compare_open( 'staging' );
+        if ( is_wp_error( $stg ) ) return $stg;
+        $row = seo_environment_sync_fetch_master_row(
+            $stg,
+            seo_environment_compare_db_prefix( 'staging' ),
+            $entity,
+            $stable_id
+        );
+        @mysqli_close( $stg );
+        if ( is_wp_error( $row ) ) return $row;
+        if ( ! $row ) return new WP_Error( 'stale_master_delete', 'El maestro ya no existe en STAGING. Reescanea.' );
+
+        if ( 'vocabulary_master' === $entity ) {
+            $id = absint( $row['id'] ?? 0 );
+            if ( ! $id ) return new WP_Error( 'invalid_vocabulary_delete', 'No se pudo resolver el vocabulario local.' );
+            $v  = $wpdb->prefix . 'seo_vocabulary';
+            $ov = $wpdb->prefix . 'seo_object_vocabulary';
+            $rm = $wpdb->prefix . 'seo_type_role_map';
+
+            if ( false === $wpdb->delete( $ov, [ 'vocabulary_id'=>$id ], [ '%d' ] ) ) return new WP_Error( 'vocabulary_delete_relations', $wpdb->last_error ?: 'No se pudieron eliminar las asignaciones del vocabulario.' );
+            if ( false === $wpdb->query( $wpdb->prepare( "DELETE FROM {$rm} WHERE type_vocabulary_id=%d OR role_vocabulary_id=%d", $id, $id ) ) ) return new WP_Error( 'vocabulary_delete_role_map', $wpdb->last_error ?: 'No se pudo limpiar el mapa TIPO/ROL.' );
+            if ( false === $wpdb->update( $v, [ 'parent_id'=>null ], [ 'parent_id'=>$id ], [ '%d' ], [ '%d' ] ) ) return new WP_Error( 'vocabulary_delete_children', $wpdb->last_error ?: 'No se pudieron desacoplar los hijos del vocabulario.' );
+            if ( false === $wpdb->delete( $v, [ 'id'=>$id ], [ '%d' ] ) ) return new WP_Error( 'vocabulary_delete', $wpdb->last_error ?: 'No se pudo eliminar el vocabulario exclusivo de STAGING.' );
+            return true;
+        }
+
+        if ( in_array( $entity, [ 'product_tag_master', 'post_tag_master' ], true ) ) {
+            $taxonomy = 'product_tag_master' === $entity ? 'product_tag' : 'post_tag';
+            $slug     = sanitize_title( $row['slug'] ?? '' );
+            $term     = $slug ? get_term_by( 'slug', $slug, $taxonomy ) : false;
+            if ( ! $term || is_wp_error( $term ) ) return new WP_Error( 'stale_tag_delete', 'La etiqueta ya no existe en STAGING. Reescanea.' );
+            $deleted = wp_delete_term( absint( $term->term_id ), $taxonomy );
+            if ( is_wp_error( $deleted ) ) return $deleted;
+            if ( false === $deleted ) return new WP_Error( 'tag_delete', 'WordPress no pudo eliminar la etiqueta exclusiva de STAGING.' );
+            return true;
+        }
+
+        if ( 'attribute_master' === $entity ) {
+            $id      = absint( $row['id'] ?? 0 );
+            $defs    = $wpdb->prefix . 'sql_atributos';
+            $terms   = $wpdb->prefix . 'sql_atributos_terminos';
+            $aliases = $wpdb->prefix . 'sql_atributos_aliases';
+            $product = $wpdb->prefix . 'sql_product_atributos';
+            if ( ! $id ) return new WP_Error( 'invalid_attribute_delete', 'No se pudo resolver el atributo local.' );
+            if ( false === $wpdb->delete( $product, [ 'atributo_id'=>$id ], [ '%d' ] ) ) return new WP_Error( 'attribute_delete_product', $wpdb->last_error ?: 'No se pudieron limpiar las asignaciones del atributo.' );
+            if ( false === $wpdb->delete( $aliases, [ 'atributo_id'=>$id ], [ '%d' ] ) ) return new WP_Error( 'attribute_delete_aliases', $wpdb->last_error ?: 'No se pudieron limpiar los alias del atributo.' );
+            if ( false === $wpdb->delete( $terms, [ 'atributo_id'=>$id ], [ '%d' ] ) ) return new WP_Error( 'attribute_delete_terms', $wpdb->last_error ?: 'No se pudieron limpiar los terminos del atributo.' );
+            if ( false === $wpdb->delete( $defs, [ 'id'=>$id ], [ '%d' ] ) ) return new WP_Error( 'attribute_delete', $wpdb->last_error ?: 'No se pudo eliminar el atributo exclusivo de STAGING.' );
+            return true;
+        }
+
+        if ( 'attribute_term_master' === $entity ) {
+            $id      = absint( $row['id'] ?? 0 );
+            $terms   = $wpdb->prefix . 'sql_atributos_terminos';
+            $aliases = $wpdb->prefix . 'sql_atributos_aliases';
+            $product = $wpdb->prefix . 'sql_product_atributos';
+            if ( ! $id ) return new WP_Error( 'invalid_attribute_term_delete', 'No se pudo resolver el termino de atributo local.' );
+            if ( false === $wpdb->delete( $product, [ 'termino_id'=>$id ], [ '%d' ] ) ) return new WP_Error( 'attribute_term_delete_product', $wpdb->last_error ?: 'No se pudieron limpiar las asignaciones del termino.' );
+            if ( false === $wpdb->delete( $aliases, [ 'termino_id'=>$id ], [ '%d' ] ) ) return new WP_Error( 'attribute_term_delete_aliases', $wpdb->last_error ?: 'No se pudieron limpiar los alias del termino.' );
+            if ( false === $wpdb->delete( $terms, [ 'id'=>$id ], [ '%d' ] ) ) return new WP_Error( 'attribute_term_delete', $wpdb->last_error ?: 'No se pudo eliminar el termino exclusivo de STAGING.' );
+            return true;
+        }
+
+        if ( 'attribute_alias_master' === $entity ) {
+            $defs      = $wpdb->prefix . 'sql_atributos';
+            $aliases   = $wpdb->prefix . 'sql_atributos_aliases';
+            $attr_slug = sanitize_key( $row['attribute_slug'] ?? '' );
+            $alias     = (string) ( $row['alias'] ?? '' );
+            $attr      = $wpdb->get_row( $wpdb->prepare( "SELECT id FROM {$defs} WHERE slug=%s LIMIT 1", $attr_slug ), ARRAY_A );
+            if ( ! $attr ) return new WP_Error( 'stale_alias_delete', 'El atributo del alias ya no existe en STAGING. Reescanea.' );
+            $deleted = $wpdb->query( $wpdb->prepare( "DELETE FROM {$aliases} WHERE atributo_id=%d AND alias=%s", absint( $attr['id'] ), $alias ) );
+            if ( false === $deleted ) return new WP_Error( 'attribute_alias_delete', $wpdb->last_error ?: 'No se pudo eliminar el alias exclusivo de STAGING.' );
+            return true;
+        }
+
+        return new WP_Error( 'unsupported_master_delete', 'Esta capa maestra no admite limpieza automatica.' );
+    }
+}
+
+if ( ! function_exists( 'seo_environment_sync_apply_authoritative_item' ) ) {
+    /** Aplica la politica PRO = verdad: upsert desde PRO o purge de only_staging. */
+    function seo_environment_sync_apply_authoritative_item( $source_env, $entity, $id, $mysqli = null ) {
+        global $wpdb;
+        $status = (string) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT status FROM " . seo_environment_compare_table() . " WHERE entity=%s AND object_id=%d LIMIT 1",
+                sanitize_key( $entity ),
+                absint( $id )
+            )
+        );
+        if ( 'pro' === sanitize_key( $source_env ) && 'only_staging' === $status && seo_environment_compare_is_master_entity( $entity ) ) {
+            return seo_environment_sync_delete_master_local( $entity, $id );
+        }
+        return seo_environment_sync_pull_item( $source_env, $entity, $id, $mysqli );
+    }
+}
+
 if ( ! function_exists( 'seo_environment_sync_revalidate_item' ) ) {
     function seo_environment_sync_revalidate_item( $entity, $id, $source = '' ) {
         global $wpdb;$table=seo_environment_compare_table();$source=sanitize_key($source);$allowed=seo_environment_compare_syncable_statuses($entity,$source);
@@ -2270,7 +2410,9 @@ if ( ! function_exists( 'seo_environment_sync_revalidate_item' ) ) {
         $pro=seo_environment_compare_open('pro');$stg=seo_environment_compare_open('staging');if(is_wp_error($pro)||is_wp_error($stg)){if($pro instanceof mysqli)@mysqli_close($pro);if($stg instanceof mysqli)@mysqli_close($stg);return is_wp_error($pro)?$pro:$stg;}
         $p=seo_environment_compare_fetch_snapshots($pro,'pro',$entity,[$id]);$s=seo_environment_compare_fetch_snapshots($stg,'staging',$entity,[$id]);@mysqli_close($pro);@mysqli_close($stg);if(is_wp_error($p)||is_wp_error($s))return is_wp_error($p)?$p:$s;$pr=$p[$id]??null;$sr=$s[$id]??null;
         if('different'===($scan['status']??'')){if(!$pr||!$sr)return new WP_Error('stale_scan','El objeto cambió de existencia después del escaneo. Reescanea.');$fresh_pro=(string)$pr['hash'];$fresh_staging=(string)$sr['hash'];if(!hash_equals((string)$scan['hash_pro'],$fresh_pro)||!hash_equals((string)$scan['hash_staging'],$fresh_staging))return new WP_Error('stale_scan','PRO o STAGING cambió después del último escaneo. Reescanea.');if(hash_equals($fresh_pro,$fresh_staging))return new WP_Error('already_equal','El maestro/objeto ya está igual en ambos entornos.');return true;}
-        if(!seo_environment_compare_is_master_entity($entity))return new WP_Error('missing_object','Las altas de productos/categorías/páginas/posts siguen bloqueadas en el comparador. Sincroniza primero Maestros y usa el alta/importador canónico.');
+        if(!seo_environment_compare_is_master_entity($entity))return new WP_Error('missing_object','Las altas/bajas de productos, categorías, páginas y posts siguen bloqueadas: esas capas todavía dependen de IDs locales. Los maestros sí se alinean de forma estricta por clave canónica.');
+        $status=(string)($scan['status']??'');
+        if('pro'===$source&&'only_staging'===$status){if($pr)return new WP_Error('stale_scan','El maestro ya apareció en PRO después del escaneo. Reescanea.');if(!$sr)return new WP_Error('stale_scan','El maestro ya desapareció de STAGING después del escaneo. Reescanea.');if(!hash_equals((string)$scan['hash_staging'],(string)$sr['hash']))return new WP_Error('stale_scan','El maestro exclusivo de STAGING cambió después del escaneo. Reescanea.');return true;}
         $source_row='pro'===$source?$pr:$sr;$dest_row='pro'===$source?$sr:$pr;if(!$source_row)return new WP_Error('missing_source_master','El maestro ya no existe en el origen. Reescanea.');if($dest_row)return new WP_Error('stale_scan','El maestro ya apareció en el destino después del escaneo. Reescanea.');$expected='pro'===$source?(string)$scan['hash_pro']:(string)$scan['hash_staging'];if(!hash_equals($expected,(string)$source_row['hash']))return new WP_Error('stale_scan','El maestro origen cambió después del escaneo. Reescanea.');return true;
     }
 }
@@ -2280,7 +2422,7 @@ if ( ! function_exists( 'seo_environment_sync_item_ajax' ) ) {
         if(!current_user_can('manage_options'))wp_send_json_error(['message'=>'Sin permisos.'],403);check_ajax_referer('seo_environment_compare','nonce');
         $entity=sanitize_key($_POST['entity']??'');$id=absint($_POST['object_id']??0);$source=sanitize_key($_POST['source']??'');$destination=sanitize_key($_POST['destination']??'');if(!isset(seo_environment_compare_entities()[$entity])||!$id)wp_send_json_error(['message'=>'Objeto no válido.'],400);
         $dir=seo_environment_sync_validate_direction($source,$destination);if(is_wp_error($dir))wp_send_json_error(['message'=>$dir->get_error_message()],400);$valid=seo_environment_sync_revalidate_item($entity,$id,$source);if(is_wp_error($valid))wp_send_json_error(['message'=>$valid->get_error_message()],409);
-        $result=seo_environment_sync_pull_item($source,$entity,$id);if(is_wp_error($result))wp_send_json_error(['message'=>$result->get_error_message()],500);global$wpdb;$wpdb->delete(seo_environment_compare_table(),['entity'=>$entity,'object_id'=>$id],['%s','%d']);wp_send_json_success(['message'=>'Actualizado #'.$id.'. Vuelve a escanear para confirmar.']);
+        $result=seo_environment_sync_apply_authoritative_item($source,$entity,$id);if(is_wp_error($result))wp_send_json_error(['message'=>$result->get_error_message()],500);global$wpdb;$wpdb->delete(seo_environment_compare_table(),['entity'=>$entity,'object_id'=>$id],['%s','%d']);wp_send_json_success(['message'=>'Alineado #'.$id.' con PRO. Vuelve a escanear para confirmar.']);
     }
 }
 add_action('wp_ajax_seo_environment_sync_item','seo_environment_sync_item_ajax');
@@ -2289,7 +2431,7 @@ if ( ! function_exists( 'seo_environment_sync_bulk_ajax' ) ) {
     function seo_environment_sync_bulk_ajax() {
         if(!current_user_can('manage_options'))wp_send_json_error(['message'=>'Sin permisos.'],403);check_ajax_referer('seo_environment_compare','nonce');$entity=sanitize_key($_POST['entity']??'');$source=sanitize_key($_POST['source']??'');$destination=sanitize_key($_POST['destination']??'');if(!isset(seo_environment_compare_entities()[$entity]))wp_send_json_error(['message'=>'Entidad no válida.'],400);$dir=seo_environment_sync_validate_direction($source,$destination);if(is_wp_error($dir))wp_send_json_error(['message'=>$dir->get_error_message()],400);
         global$wpdb;$table=seo_environment_compare_table();$statuses=seo_environment_compare_syncable_statuses($entity,$source);$placeholders=implode(',',array_fill(0,count($statuses),'%s'));$args=array_merge([$entity],$statuses);$sql=$wpdb->prepare("SELECT object_id FROM {$table} WHERE entity=%s AND status IN ({$placeholders}) ORDER BY object_id ASC LIMIT 5",$args);$ids=$wpdb->get_col($sql);if(!$ids)wp_send_json_success(['done'=>true,'updated'=>0,'errors'=>[]]);$mysqli=seo_environment_compare_open($source);if(is_wp_error($mysqli))wp_send_json_error(['message'=>$mysqli->get_error_message()],500);$updated=0;$errors=[];
-        foreach($ids as$id){$id=absint($id);$valid=seo_environment_sync_revalidate_item($entity,$id,$source);if(is_wp_error($valid)){$message=$valid->get_error_message();$errors[]='#'.$id.': '.$message;$wpdb->update($table,['status'=>'blocked','summary'=>'Bloqueado: '.$message],['entity'=>$entity,'object_id'=>$id],['%s','%s'],['%s','%d']);continue;}$r=seo_environment_sync_pull_item($source,$entity,$id,$mysqli);if(is_wp_error($r)){$message=$r->get_error_message();$errors[]='#'.$id.': '.$message;$wpdb->update($table,['status'=>'blocked','summary'=>'Bloqueado: '.$message],['entity'=>$entity,'object_id'=>$id],['%s','%s'],['%s','%d']);continue;}$wpdb->delete($table,['entity'=>$entity,'object_id'=>$id],['%s','%d']);$updated++;}
+        foreach($ids as$id){$id=absint($id);$valid=seo_environment_sync_revalidate_item($entity,$id,$source);if(is_wp_error($valid)){$message=$valid->get_error_message();$errors[]='#'.$id.': '.$message;$wpdb->update($table,['status'=>'blocked','summary'=>'Bloqueado: '.$message],['entity'=>$entity,'object_id'=>$id],['%s','%s'],['%s','%d']);continue;}$r=seo_environment_sync_apply_authoritative_item($source,$entity,$id,$mysqli);if(is_wp_error($r)){$message=$r->get_error_message();$errors[]='#'.$id.': '.$message;$wpdb->update($table,['status'=>'blocked','summary'=>'Bloqueado: '.$message],['entity'=>$entity,'object_id'=>$id],['%s','%s'],['%s','%d']);continue;}$wpdb->delete($table,['entity'=>$entity,'object_id'=>$id],['%s','%d']);$updated++;}
         @mysqli_close($mysqli);$args=array_merge([$entity],$statuses);$remaining=(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE entity=%s AND status IN ({$placeholders})",$args));$blocked=(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE entity=%s AND status='blocked'",$entity));wp_send_json_success(['done'=>0===$remaining,'updated'=>$updated,'remaining'=>$remaining,'blocked'=>$blocked,'errors'=>$errors]);
     }
 }
@@ -2309,8 +2451,8 @@ if ( ! function_exists( 'seo_environment_compare_render' ) ) {
         $current  = seo_environment_compare_current_env();
         $nonce    = wp_create_nonce( 'seo_environment_compare' );
         $json_url = wp_nonce_url(
-            add_query_arg( [ 'action' => 'seo_environment_compare_export_json' ], admin_url( 'admin-post.php' ) ),
-            'seo_environment_compare_export_json'
+            add_query_arg( [ 'action' => 'seo_environment_compare_export_json_current' ], admin_url( 'admin-post.php' ) ),
+            'seo_environment_compare_export_json_current'
         );
 
         $group_labels = [
@@ -2326,8 +2468,8 @@ if ( ! function_exists( 'seo_environment_compare_render' ) ) {
         $running_scan = seo_environment_compare_running_entity();
 
         echo '<div class="seo-env-compare">';
-        echo '<div class="seo-env-toolbar"><button class="button button-primary seo-env-scan-all" '.disabled( ! empty( $running_scan ), true, false ).'>Hacer todos los chequeos</button><button class="button seo-env-stop" '.disabled( empty( $running_scan ), true, false ).'>Parar proceso</button><span class="seo-env-process-status '.( $running_scan ? 'is-running' : 'is-stopped' ).'" data-process-status><strong>Estado:</strong> '.( $running_scan ? 'EN CURSO · '.esc_html( $running_scan['label'] ) : 'PARADO' ).'</span><a class="button" href="'.esc_url( $json_url ).'">Descargar JSON del informe</a><strong>Dirección operativa: PRO → STAGING</strong><span>STAGING → PRO queda solo como información; no hay acciones de escritura en esa dirección.</span><span class="seo-env-global-progress" data-global-progress>'.( $running_scan ? 'En curso: '.esc_html( $running_scan['label'] ).'. Puedes detenerlo con “Parar proceso”.' : 'El chequeo general recorre todas las capas una a una, de arriba abajo.' ).'</span></div>';
-        echo '<div class="card seo-env-intro"><h2>Comparar PRO ↔ STAGING por capas <small>v2.2.7</small></h2><p class="seo-env-route"><code>includes/import-export/comparador/comparador.php</code></p><p><strong>Control del proceso:</strong> el estado superior indica claramente EN CURSO o PARADO. “Parar proceso” detiene el Comparador sin apagar el Gestor de workers global. Si ya hay una consulta/lote ejecutándose, se deja llegar al siguiente punto seguro y no se inicia otro lote.</p><p><strong>Chequeo general seguro:</strong> “Hacer todos los chequeos” ejecuta una sola capa cada vez, espera a que termine y solo entonces inicia la siguiente. Si una capa falla o se para, el proceso general se detiene en ese punto.</p><p><strong>Botones individuales:</strong> se mantienen, pero mientras hay un chequeo activo quedan bloqueados los demás para impedir que se acumulen trabajos simultáneos.</p><p><strong>Orden estricto:</strong> 1) Maestros/diccionarios; 2) objetos generales; 3) clasificación/asignaciones. Las fechas e imágenes siguen excluidas de la decisión de igualdad.</p><p>Entorno actual detectado: <strong>'.esc_html( $current ? strtoupper( $current ) : 'NO IDENTIFICADO' ).'</strong>.</p></div>';
+        echo '<div class="seo-env-toolbar"><button class="button button-primary seo-env-scan-all" '.disabled( ! empty( $running_scan ), true, false ).'>Hacer todos los chequeos</button><button class="button seo-env-stop" '.disabled( empty( $running_scan ), true, false ).'>Parar proceso</button><span class="seo-env-process-status '.( $running_scan ? 'is-running' : 'is-stopped' ).'" data-process-status><strong>Estado:</strong> '.( $running_scan ? 'EN CURSO · '.esc_html( $running_scan['label'] ) : 'PARADO' ).'</span><a class="button" href="'.esc_url( $json_url ).'">Descargar JSON del informe</a><strong>PRO es la fuente de verdad</strong><span>En maestros: PRO → STAGING crea/actualiza y elimina de STAGING lo que no exista en PRO. Nunca se escribe de STAGING hacia PRO.</span><span class="seo-env-global-progress" data-global-progress>'.( $running_scan ? 'En curso: '.esc_html( $running_scan['label'] ).'. Puedes detenerlo con “Parar proceso”.' : 'El chequeo general recorre todas las capas una a una, de arriba abajo.' ).'</span></div>';
+        echo '<div class="card seo-env-intro"><h2>Comparar PRO ↔ STAGING por capas <small>v'.esc_html( SEO_ENVIRONMENT_COMPARE_VERSION ).'</small></h2><p class="seo-env-route"><code>'.esc_html( SEO_ENVIRONMENT_COMPARE_SOURCE_FILE ).'</code></p><p><strong>Control del proceso:</strong> el estado superior indica claramente EN CURSO o PARADO. “Parar proceso” detiene el Comparador sin apagar el Gestor de workers global. Si ya hay una consulta/lote ejecutándose, se deja llegar al siguiente punto seguro y no se inicia otro lote.</p><p><strong>Política de alineación:</strong> PRO es la referencia. En Maestros/diccionarios, alinear significa actualizar diferencias, crear en STAGING lo que exista solo en PRO y eliminar de STAGING lo que exista solo allí.</p><p><strong>Chequeo general seguro:</strong> “Hacer todos los chequeos” ejecuta una sola capa cada vez, espera a que termine y solo entonces inicia la siguiente. Si una capa falla o se para, el proceso general se detiene en ese punto.</p><p><strong>Botones individuales:</strong> se mantienen, pero mientras hay un chequeo activo quedan bloqueados los demás para impedir que se acumulen trabajos simultáneos.</p><p><strong>Orden estricto:</strong> 1) Maestros/diccionarios; 2) objetos generales; 3) clasificación/asignaciones. Las fechas e imágenes siguen excluidas de la decisión de igualdad.</p><p>Entorno actual detectado: <strong>'.esc_html( $current ? strtoupper( $current ) : 'NO IDENTIFICADO' ).'</strong>.</p></div>';
 
         echo '<style>
             .seo-env-toolbar{margin:0 0 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.seo-env-toolbar>strong{color:#2271b1}.seo-env-toolbar>span{color:#646970}.seo-env-stop{border-color:#d63638!important;color:#b32d2e!important}.seo-env-stop:disabled{border-color:#dcdcde!important;color:#a7aaad!important}.seo-env-process-status{display:inline-block;padding:5px 9px;border-radius:999px;font-weight:700}.seo-env-process-status strong{color:inherit}.seo-env-process-status.is-running{background:#fff8e5;color:#664d03}.seo-env-process-status.is-stopped{background:#f0f0f1;color:#50575e}.seo-env-global-progress{flex-basis:100%;padding:8px 10px;background:#f6f7f7;border-left:3px solid #2271b1;border-radius:4px;font-weight:600}
@@ -2364,7 +2506,7 @@ if ( ! function_exists( 'seo_environment_compare_render' ) ) {
                 $total_diff = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE entity=%s", $key ) );
                 $diff_total = (int) $s['different'] + (int) $s['only_pro'] + (int) $s['only_staging'];
                 $master = seo_environment_compare_is_master_entity( $key );
-                $syncable_count = (int) $s['different'] + ( $master ? (int) $s['only_pro'] : 0 );
+                $syncable_count = (int) $s['different'] + ( $master ? ( (int) $s['only_pro'] + (int) $s['only_staging'] ) : 0 );
 
                 $color = 'gray';
                 if ( 'complete' === $s['status'] ) {
@@ -2376,8 +2518,10 @@ if ( ! function_exists( 'seo_environment_compare_render' ) ) {
                 $scan_label = 'never' === $s['status'] ? 'Escanear' : 'Actualizar escaneo';
                 $bulk_enabled = empty( $running_scan ) && 'staging' === $current && 'complete' === $s['status'] && $syncable_count > 0;
                 $bulk_title = 'staging' !== $current
-                    ? 'La escritura PRO → STAGING se ejecuta desde STAGING.'
-                    : ( $syncable_count > 0 ? 'Sincroniza únicamente las diferencias de PRO hacia STAGING.' : 'No hay diferencias sincronizables desde PRO.' );
+                    ? 'La alineación con PRO se ejecuta desde STAGING.'
+                    : ( $syncable_count > 0
+                        ? ( $master ? 'Alinea este maestro con PRO: actualiza, crea faltantes y elimina exclusivos de STAGING.' : 'Sincroniza las diferencias de PRO hacia STAGING.' )
+                        : 'No hay diferencias sincronizables desde PRO.' );
 
                 echo '<article class="seo-env-kpi" data-kpi="'.esc_attr( $key ).'">';
                 echo '<div class="seo-env-kpi-head"><span class="seo-env-dot seo-env-'.esc_attr( $color ).'"></span><strong>'.esc_html( $def['label'] ).'</strong></div>';
@@ -2392,7 +2536,11 @@ if ( ! function_exists( 'seo_environment_compare_render' ) ) {
                     echo '<span>Solo STAGING <strong>'.number_format_i18n( (int) $s['only_staging'] ).'</strong></span>';
                     echo '</div>';
                     if ( (int) $s['only_staging'] > 0 ) {
-                        echo '<div class="seo-env-staging-info"><strong>STAGING exclusivo: '.number_format_i18n( (int) $s['only_staging'] ).'.</strong> Se muestra como información. No existe botón STAGING → PRO.</div>';
+                        if ( $master ) {
+                            echo '<div class="seo-env-staging-info"><strong>STAGING exclusivo: '.number_format_i18n( (int) $s['only_staging'] ).'.</strong> PRO es la referencia: estos maestros se eliminarán de STAGING al pulsar “Alinear con PRO”.</div>';
+                        } else {
+                            echo '<div class="seo-env-staging-info"><strong>STAGING exclusivo: '.number_format_i18n( (int) $s['only_staging'] ).'.</strong> Solo informativo en esta capa: no se borran objetos por ID local.</div>';
+                        }
                     }
                 } elseif ( 'never' === $s['status'] ) {
                     echo '<p class="seo-env-muted">Todavía no se ha escaneado esta capa.</p>';
@@ -2406,7 +2554,8 @@ if ( ! function_exists( 'seo_environment_compare_render' ) ) {
 
                 echo '<div class="seo-env-actions">';
                 echo '<button class="button button-primary seo-env-scan" data-entity="'.esc_attr( $key ).'" '.disabled( ! empty( $running_scan ), true, false ).'>'.esc_html( $scan_label ).'</button>';
-                echo '<button class="button seo-env-bulk" data-entity="'.esc_attr( $key ).'" data-source="pro" data-destination="staging" '.disabled( ! $bulk_enabled, true, false ).' title="'.esc_attr( $bulk_title ).'">PRO → STAGING'.( $syncable_count > 0 ? ' ('.number_format_i18n( $syncable_count ).')' : '' ).'</button>';
+                $bulk_label = $master ? 'Alinear con PRO' : 'PRO → STAGING';
+                echo '<button class="button seo-env-bulk" data-entity="'.esc_attr( $key ).'" data-master="'.( $master ? '1' : '0' ).'" data-source="pro" data-destination="staging" '.disabled( ! $bulk_enabled, true, false ).' title="'.esc_attr( $bulk_title ).'">'.esc_html( $bulk_label ).( $syncable_count > 0 ? ' ('.number_format_i18n( $syncable_count ).')' : '' ).'</button>';
                 echo '</div>';
                 echo '<span class="seo-env-progress" data-progress="'.esc_attr( $key ).'"></span>';
 
@@ -2421,8 +2570,10 @@ if ( ! function_exists( 'seo_environment_compare_render' ) ) {
                         $can_sync_from_pro = empty( $running_scan ) && in_array( $status, $syncable_statuses, true ) && 'staging' === $current;
 
                         $note = '';
-                        if ( 'only_staging' === $status ) {
-                            $note = 'Existe solo en STAGING. Se informa, pero no se copia hacia PRO.';
+                        if ( 'only_staging' === $status && $master ) {
+                            $note = 'Existe solo en STAGING. PRO es la referencia; puede eliminarse de STAGING.';
+                        } elseif ( 'only_staging' === $status ) {
+                            $note = 'Existe solo en STAGING. En objetos generales no se elimina por ID local.';
                         } elseif ( 'only_pro' === $status && $master ) {
                             $note = 'Existe solo en PRO y puede crearse en STAGING.';
                         } elseif ( 'only_pro' === $status || 'only_staging' === $status ) {
@@ -2432,7 +2583,8 @@ if ( ! function_exists( 'seo_environment_compare_render' ) ) {
                         echo '<tr><td><code>'.( $master ? '—' : $id ).'</code></td><td>'.esc_html( $name ).'</td><td><span class="seo-env-status-pill">'.esc_html( $status ).'</span></td><td>'.esc_html( $row['summary'] ).( $note ? '<br><span class="seo-env-muted">'.esc_html( $note ).'</span>' : '' ).'</td><td>';
 
                         if ( $can_sync_from_pro ) {
-                            echo '<button class="button button-small seo-env-sync-one" data-entity="'.esc_attr( $key ).'" data-id="'.$id.'" data-source="pro" data-destination="staging">PRO → STAGING</button>';
+                            $one_label = ( $master && 'only_staging' === $status ) ? 'Eliminar de STAGING' : 'PRO → STAGING';
+                            echo '<button class="button button-small seo-env-sync-one" data-entity="'.esc_attr( $key ).'" data-id="'.$id.'" data-source="pro" data-destination="staging">'.esc_html( $one_label ).'</button>';
                         } elseif ( 'only_staging' === $status ) {
                             echo '<span class="seo-env-readonly">Solo informativo</span>';
                         } elseif ( 'staging' !== $current && in_array( $status, $syncable_statuses, true ) ) {
@@ -2471,8 +2623,8 @@ async function scanOne(entity,reset){if(stopRequested)throw new Error("Proceso p
 document.querySelectorAll(".seo-env-scan").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(uiBusy||b.disabled)return;stopRequested=false;setBusy(true);setProcessState(true,scanLabels[b.dataset.entity]||b.dataset.entity);globalProgress("Chequeo individual: "+(scanLabels[b.dataset.entity]||b.dataset.entity)+". Puedes detenerlo con ‘Parar proceso’. ");try{await scanOne(b.dataset.entity,true);globalProgress("Chequeo completado. Actualizando pantalla…");setTimeout(()=>location.reload(),700);}catch(err){progress(b.dataset.entity,err.message);globalProgress(err.message);if(stopRequested){setProcessState(false,"");setTimeout(()=>location.reload(),500);}else{setProcessState(true,"estado por confirmar");setBusy(false);if(stopButton)stopButton.disabled=false;}}}));
 const allButton=document.querySelector(".seo-env-scan-all");if(allButton)allButton.addEventListener("click",async e=>{e.preventDefault();if(uiBusy||allButton.disabled)return;if(!window.confirm("Se ejecutarán todos los chequeos de arriba abajo, uno cada vez. Si una capa falla o se para, el proceso se detendrá en esa capa. ¿Continuar?"))return;stopRequested=false;setBusy(true);setProcessState(true,"chequeo general");try{for(let i=0;i<scanOrder.length;i++){if(stopRequested)throw new Error("Proceso parado por el usuario.");const entity=scanOrder[i],label=scanLabels[entity]||entity;globalProgress("Chequeo "+(i+1)+"/"+scanOrder.length+": "+label+". Esperando a que termine antes de pasar al siguiente…");await scanOne(entity,true);if(stopRequested)throw new Error("Proceso parado por el usuario.");if(i<scanOrder.length-1)await sleep(800);}setProcessState(false,"");globalProgress("Todos los chequeos completados. Actualizando pantalla…");setTimeout(()=>location.reload(),900);}catch(err){globalProgress("Chequeo general detenido: "+err.message);if(stopRequested){setProcessState(false,"");setTimeout(()=>location.reload(),500);}else{setProcessState(true,"estado por confirmar");setBusy(false);if(stopButton)stopButton.disabled=false;}}});
 if(stopButton)stopButton.addEventListener("click",async e=>{e.preventDefault();if(stopButton.disabled)return;stopRequested=true;stopButton.disabled=true;globalProgress("Solicitando parada segura del Comparador…");try{const r=await post({action:"seo_environment_compare_stop"});if(!r.success)throw new Error((r.data&&r.data.message)||"No se pudo parar el proceso");setProcessState(false,"");globalProgress((r.data&&r.data.message)||"Proceso parado.");setTimeout(()=>location.reload(),650);}catch(err){stopRequested=false;stopButton.disabled=false;globalProgress("No se pudo confirmar la parada: "+err.message);}});
-document.querySelectorAll(".seo-env-sync-one").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(uiBusy||b.disabled)return;b.disabled=true;progress(b.dataset.entity,"Actualizando #"+b.dataset.id+"…");const r=await post({action:"seo_environment_sync_item",entity:b.dataset.entity,object_id:b.dataset.id,source:"pro",destination:"staging"});if(!r.success){progress(b.dataset.entity,(r.data&&r.data.message)||"Error");b.disabled=false;return;}stopRequested=false;setBusy(true);setProcessState(true,scanLabels[b.dataset.entity]||b.dataset.entity);progress(b.dataset.entity,"Actualizado. Verificando…");try{await scanOne(b.dataset.entity,true);setTimeout(()=>location.reload(),700);}catch(err){progress(b.dataset.entity,err.message);if(stopRequested){setProcessState(false,"");setTimeout(()=>location.reload(),500);}else{setBusy(false);if(stopButton)stopButton.disabled=false;}}}));
-document.querySelectorAll(".seo-env-bulk").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(uiBusy||b.disabled)return;const msg="Vas a sincronizar esta capa PRO → STAGING. Se actualizarán diferencias y, en Maestros, se crearán los que existan solo en PRO. Los elementos exclusivos de STAGING no se copian a PRO ni se eliminan desde este botón. ¿Continuar?";if(!window.confirm(msg))return;stopRequested=false;setBusy(true);let total=0;progress(b.dataset.entity,"Sincronizando PRO → STAGING por lotes…");while(true){const r=await post({action:"seo_environment_sync_bulk",entity:b.dataset.entity,source:"pro",destination:"staging"});if(!r.success){progress(b.dataset.entity,(r.data&&r.data.message)||"Error");setBusy(false);return;}total+=Number(r.data.updated||0);progress(b.dataset.entity,"Actualizados "+total+" · pendientes "+Number(r.data.remaining||0)+" · bloqueados "+Number(r.data.blocked||0));if(r.data.done)break;if(Number(r.data.updated||0)===0&&Number(r.data.remaining||0)>0){progress(b.dataset.entity,"Hay filas bloqueadas porque cambiaron después del escaneo o requieren revisión. Reescanea.");setBusy(false);return;}await sleep(400);}setProcessState(true,scanLabels[b.dataset.entity]||b.dataset.entity);progress(b.dataset.entity,"Sincronización terminada. Verificando…");try{await scanOne(b.dataset.entity,true);setTimeout(()=>location.reload(),700);}catch(err){progress(b.dataset.entity,err.message);if(stopRequested){setProcessState(false,"");setTimeout(()=>location.reload(),500);}else{setBusy(false);if(stopButton)stopButton.disabled=false;}}}));
+document.querySelectorAll(".seo-env-sync-one").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(uiBusy||b.disabled)return;b.disabled=true;progress(b.dataset.entity,"Alineando #"+b.dataset.id+" con PRO…");const r=await post({action:"seo_environment_sync_item",entity:b.dataset.entity,object_id:b.dataset.id,source:"pro",destination:"staging"});if(!r.success){progress(b.dataset.entity,(r.data&&r.data.message)||"Error");b.disabled=false;return;}stopRequested=false;setBusy(true);setProcessState(true,scanLabels[b.dataset.entity]||b.dataset.entity);progress(b.dataset.entity,"Actualizado. Verificando…");try{await scanOne(b.dataset.entity,true);setTimeout(()=>location.reload(),700);}catch(err){progress(b.dataset.entity,err.message);if(stopRequested){setProcessState(false,"");setTimeout(()=>location.reload(),500);}else{setBusy(false);if(stopButton)stopButton.disabled=false;}}}));
+document.querySelectorAll(".seo-env-bulk").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(uiBusy||b.disabled)return;const isMaster=b.dataset.master==="1";const msg=isMaster?"Vas a ALINEAR este maestro con PRO. PRO es la fuente de verdad: se actualizarán las diferencias, se crearán en STAGING los maestros que existan solo en PRO y se ELIMINARÁN de STAGING los maestros que no existan en PRO, junto con sus asignaciones dependientes. ¿Continuar?":"Vas a sincronizar esta capa PRO → STAGING. Se actualizarán las diferencias desde PRO. Los objetos exclusivos de STAGING no se borran automáticamente porque estas capas todavía usan IDs locales. ¿Continuar?";if(!window.confirm(msg))return;stopRequested=false;setBusy(true);let total=0;progress(b.dataset.entity,(b.dataset.master==="1"?"Alineando maestro con PRO por lotes…":"Sincronizando PRO → STAGING por lotes…"));while(true){const r=await post({action:"seo_environment_sync_bulk",entity:b.dataset.entity,source:"pro",destination:"staging"});if(!r.success){progress(b.dataset.entity,(r.data&&r.data.message)||"Error");setBusy(false);return;}total+=Number(r.data.updated||0);progress(b.dataset.entity,"Alineados "+total+" · pendientes "+Number(r.data.remaining||0)+" · bloqueados "+Number(r.data.blocked||0));if(r.data.done)break;if(Number(r.data.updated||0)===0&&Number(r.data.remaining||0)>0){progress(b.dataset.entity,"Hay filas bloqueadas porque cambiaron después del escaneo o requieren revisión. Reescanea.");setBusy(false);return;}await sleep(400);}setProcessState(true,scanLabels[b.dataset.entity]||b.dataset.entity);progress(b.dataset.entity,"Sincronización terminada. Verificando…");try{await scanOne(b.dataset.entity,true);setTimeout(()=>location.reload(),700);}catch(err){progress(b.dataset.entity,err.message);if(stopRequested){setProcessState(false,"");setTimeout(()=>location.reload(),500);}else{setBusy(false);if(stopButton)stopButton.disabled=false;}}}));
 })();</script>';
         echo '</div>';
     }
