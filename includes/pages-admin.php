@@ -962,7 +962,7 @@ function seo_page_admin_callback() {
             <?php if (function_exists('seo_health_render_scope_tab')): ?>
                 <?php seo_health_render_scope_tab('page'); ?>
             <?php else: ?>
-                <div class="notice notice-error inline"><p>No se ha podido cargar <code>seo-health-scan.php</code>.</p></div>
+                <div class="notice notice-error inline"><p>No se ha podido cargar <code>system-check/seo-health-scan.php</code>.</p></div>
             <?php endif; ?>
         </div>
         <?php return; ?>

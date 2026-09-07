@@ -680,7 +680,7 @@ if (!function_exists('seo_page_edit_posts')) {
             if (function_exists('seo_health_render_scope_tab')) {
                 seo_health_render_scope_tab('post');
             } else {
-                echo '<div class="notice notice-error inline"><p>No se ha podido cargar <code>seo-health-scan.php</code>.</p></div>';
+                echo '<div class="notice notice-error inline"><p>No se ha podido cargar <code>system-check/seo-health-scan.php</code>.</p></div>';
             }
             echo '</div>';
             return;

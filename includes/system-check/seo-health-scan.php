@@ -189,7 +189,7 @@ if (!function_exists('seo_health_scan_runner_config')) {
             return array();
         }
         if (!function_exists('seo_github_python_runner_settings')) {
-            $runner_file = __DIR__ . '/import-export/suppliers/github-python-runner.php';
+            $runner_file = dirname(__DIR__) . '/import-export/suppliers/github-python-runner.php';
             if (is_readable($runner_file)) {
                 require_once $runner_file;
             }

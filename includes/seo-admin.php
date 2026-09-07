@@ -40,7 +40,7 @@ if (!defined('SEO_FACTURAS_VERSION')) {
  * estar declarado antes de que WordPress intente ejecutar esa pagina.
  */
 if (!function_exists('seo_server_status')) {
-    $seo_server_status_file = __DIR__ . '/seo-system-server-status.php';
+    $seo_server_status_file = __DIR__ . '/system-check/seo-system-server-status.php';
     if (is_readable($seo_server_status_file)) {
         require_once $seo_server_status_file;
     }

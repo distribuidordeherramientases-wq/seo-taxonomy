@@ -1431,7 +1431,7 @@ function seo_server_status_load_cloudflare_module() {
     if (function_exists('seo_cloudflare_connection_state') && function_exists('seo_cloudflare_security_audit')) {
         return true;
     }
-    $file = __DIR__ . '/import-export/suppliers/cloudflare.php';
+    $file = dirname(__DIR__) . '/import-export/suppliers/cloudflare.php';
     if (is_readable($file)) {
         require_once $file;
     }
