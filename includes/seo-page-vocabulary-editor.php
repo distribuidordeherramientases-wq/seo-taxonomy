@@ -1,17 +1,17 @@
 <?php
 /**
- * Vocabulary canónico para páginas SEO, con foco inicial en landing pages.
+ * Vocabulary canónico para todas las páginas SEO gestionadas.
  *
  * En esta fase:
  * - seo_nodes conserva exclusivamente el rol estructural de la página.
- * - las etiquetas semánticas de landing se leen/escriben en
+ * - las etiquetas semánticas de cualquier página SEO gestionada se leen/escriben en
  *   seo_object_vocabulary -> seo_vocabulary.
  * - no se heredan etiquetas automáticamente desde categorías.
  * - no se crean términos nuevos desde el editor de página: el diccionario se
  *   gobierna desde SEO Taxonomy > Etiquetas.
  *
  * Version: 2026-09-07
- * Build: 1
+ * Build: 2
  */
 
 defined('ABSPATH') || exit;
@@ -52,33 +52,53 @@ if (!function_exists('seo_page_vocab_tables_ready')) {
     }
 }
 
-if (!function_exists('seo_page_vocab_is_landing')) {
-    function seo_page_vocab_is_landing($page_id) {
+if (!function_exists('seo_page_vocab_allowed_roles')) {
+    function seo_page_vocab_allowed_roles() {
+        return array('cluster', 'hub_primary', 'hub_secondary', 'landing', 'corporate_page');
+    }
+}
+
+if (!function_exists('seo_page_vocab_get_structural_role')) {
+    function seo_page_vocab_get_structural_role($page_id) {
         global $wpdb;
         static $cache = array();
 
         $page_id = absint($page_id);
         if (!$page_id || get_post_type($page_id) !== 'page') {
-            return false;
+            return '';
         }
         if (array_key_exists($page_id, $cache)) {
             return $cache[$page_id];
         }
 
-        $cache[$page_id] = (bool) $wpdb->get_var(
+        $role = (string) $wpdb->get_var(
             $wpdb->prepare(
-                "SELECT 1
+                "SELECT seo_role
                  FROM {$wpdb->prefix}seo_nodes
                  WHERE object_type = 'page'
                    AND object_id = %d
-                   AND seo_role = 'landing'
+                   AND seo_role IN ('cluster','hub_primary','hub_secondary','landing','corporate_page')
                    AND status = 1
+                 ORDER BY updated_at DESC, id DESC
                  LIMIT 1",
                 $page_id
             )
         );
-
+        $role = sanitize_key($role);
+        $cache[$page_id] = in_array($role, seo_page_vocab_allowed_roles(), true) ? $role : '';
         return $cache[$page_id];
+    }
+}
+
+if (!function_exists('seo_page_vocab_is_managed_page')) {
+    function seo_page_vocab_is_managed_page($page_id) {
+        return seo_page_vocab_get_structural_role($page_id) !== '';
+    }
+}
+
+if (!function_exists('seo_page_vocab_is_landing')) {
+    function seo_page_vocab_is_landing($page_id) {
+        return seo_page_vocab_get_structural_role($page_id) === 'landing';
     }
 }
 
@@ -172,8 +192,8 @@ if (!function_exists('seo_page_vocab_replace_manual_group')) {
         if (get_post_type($page_id) !== 'page') {
             return new WP_Error('seo_page_vocab_not_page', 'El objeto indicado no es una página WordPress.');
         }
-        if (!seo_page_vocab_is_landing($page_id)) {
-            return new WP_Error('seo_page_vocab_not_landing', 'En esta fase el Vocabulary de páginas solo se gestiona para landing pages.');
+        if (!seo_page_vocab_is_managed_page($page_id)) {
+            return new WP_Error('seo_page_vocab_not_managed', 'La página no tiene un rol SEO estructural gestionado.');
         }
         if (!seo_page_vocab_tables_ready()) {
             return new WP_Error('seo_page_vocab_tables', 'No están disponibles las tablas del Vocabulary canónico.');
@@ -308,7 +328,9 @@ if (!function_exists('seo_page_vocab_render_fields')) {
         echo '<div class="seo-page-vocabulary" style="margin-top:16px;padding:14px;background:#f6f7f7;border:1px solid #c3c4c7;border-radius:6px;">';
         echo '<input type="hidden" name="' . esc_attr($field_name) . '_present" value="1">';
         echo '<div style="font-weight:700;margin-bottom:5px;">Etiquetas semánticas · Vocabulary canónico</div>';
-        echo '<p style="margin:0 0 12px;color:#50575e;font-size:12px;">Se guardan en <code>wp_seo_object_vocabulary</code> con <code>object_type=page</code>. El rol estructural <code>landing</code> permanece separado en <code>wp_seo_nodes</code>.</p>';
+        $role = $page_id > 0 ? seo_page_vocab_get_structural_role($page_id) : '';
+        $role_text = $role !== '' ? ' El rol estructural <code>' . esc_html($role) . '</code> permanece separado en <code>wp_seo_nodes</code>.' : ' El rol estructural se guarda por separado en <code>wp_seo_nodes</code>.';
+        echo '<p style="margin:0 0 12px;color:#50575e;font-size:12px;">Se guardan en <code>wp_seo_object_vocabulary</code> con <code>object_type=page</code>.' . $role_text . '</p>';
 
         $grid = $compact ? 'repeat(2,minmax(240px,1fr))' : 'repeat(2,minmax(280px,1fr))';
         echo '<div style="display:grid;grid-template-columns:' . esc_attr($grid) . ';gap:12px;">';
@@ -385,7 +407,12 @@ if (!function_exists('seo_page_vocab_render_summary')) {
         }
 
         if ($total === 0) {
-            echo '<span style="color:#b32d2e;font-size:12px;">Sin etiquetas semánticas asignadas.</span>';
+            $role = seo_page_vocab_get_structural_role($page_id);
+            if ($role === 'corporate_page') {
+                echo '<span style="color:#646970;font-size:12px;">Sin etiquetas semánticas asignadas (opcional para página corporativa).</span>';
+            } else {
+                echo '<span style="color:#b32d2e;font-size:12px;">Sin etiquetas semánticas asignadas.</span>';
+            }
         }
         echo '</div></div>';
     }
@@ -400,7 +427,7 @@ if (!function_exists('seo_page_vocab_export_group')) {
         $field   = $field === 'label' ? 'label' : 'slug';
         $source  = sanitize_key($source);
 
-        if (!$page_id || !isset(seo_page_vocab_groups()[$group]) || !seo_page_vocab_tables_ready() || !seo_page_vocab_is_landing($page_id)) {
+        if (!$page_id || !isset(seo_page_vocab_groups()[$group]) || !seo_page_vocab_tables_ready() || !seo_page_vocab_is_managed_page($page_id)) {
             return array();
         }
 
@@ -435,7 +462,7 @@ if (!function_exists('seo_page_vocab_import_row')) {
         global $wpdb;
 
         $page_id = absint($page_id);
-        if (!$page_id || get_post_type($page_id) !== 'page' || !seo_page_vocab_tables_ready() || !seo_page_vocab_is_landing($page_id)) {
+        if (!$page_id || get_post_type($page_id) !== 'page' || !seo_page_vocab_tables_ready() || !seo_page_vocab_is_managed_page($page_id)) {
             return;
         }
 

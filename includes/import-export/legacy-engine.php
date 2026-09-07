@@ -7768,8 +7768,8 @@ function seo_ie_replace_product_cat_relations( $source_type, $source_id, $term_i
     if ( 'post' === $source_type && function_exists('seo_content_vocab_sync_post_relations') ) {
         seo_content_vocab_sync_post_relations($source_id);
     }
-    // Las landings no heredan Vocabulary automáticamente desde product_cat.
-    // En esta fase las asignaciones de página son explícitas y auditables.
+    // Las páginas no heredan Vocabulary automáticamente desde product_cat.
+    // Las asignaciones semánticas de página son explícitas y auditables.
 
     return true;
 }
@@ -7878,7 +7878,7 @@ function seo_ie_apply_page_seo_role_for_import( $page_id, $seo_role ) {
             'object_type' => 'page',
             'object_id'   => $page_id,
             'seo_role'    => $seo_role,
-            'keywords'    => '',
+            'keywords'    => null,
             'status'      => 1,
             'created_at'  => current_time( 'mysql' ),
             'updated_at'  => current_time( 'mysql' ),
@@ -9329,11 +9329,9 @@ function seo_import_pages_csv() {
             }
         }
 
-        if ( $import_relations && $page_role_saved ) {
-            if ( 'landing' === $effective_page_role && function_exists('seo_page_vocab_import_row') ) {
+        if ( $import_relations && $page_role_saved && in_array( $effective_page_role, seo_ie_page_structural_roles(), true ) ) {
+            if ( function_exists('seo_page_vocab_import_row') ) {
                 seo_page_vocab_import_row($page_id, $row, $item['line'], $log);
-            } elseif ( 'landing' !== $effective_page_role && function_exists('seo_page_vocab_clear_manual_assignments') ) {
-                seo_page_vocab_clear_manual_assignments($page_id);
             }
         }
 

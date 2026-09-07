@@ -6,7 +6,7 @@
  * Cluster -> Hub Primary -> Hub Secondary -> Categorias -> Productos.
  *
  * Fuentes utilizadas:
- * - Clusters / hubs: wp_posts (excerpt/description) + wp_seo_nodes (etiquetas).
+ * - Clusters / hubs: wp_posts (excerpt/description) + Vocabulary canónico (etiquetas).
  * - Categorias: Vocabulary canonico (ROL/TIPO/APLICACION/PLATAFORMA/SUBTIPO) + wp_seo_nodes (excerpt/description) + termmeta seo_excerpt visible.
  * - Productos: wp_posts + Vocabulary semántico + vocabulario canónico de atributos de producto.
  */
@@ -86,17 +86,33 @@ function seo_report_contents_page_role_subquery($role) {
     global $wpdb;
 
     $nodes_table = $wpdb->prefix . 'seo_nodes';
+    $objects_table = $wpdb->prefix . 'seo_object_vocabulary';
+    $vocab_table = $wpdb->prefix . 'seo_vocabulary';
     $role = esc_sql($role);
 
     return "
         SELECT
-            object_id,
-            MAX(NULLIF(TRIM(keywords), '')) AS etiquetas
-        FROM {$nodes_table}
-        WHERE object_type = 'page'
-          AND seo_role = '{$role}'
-          AND status = 1
-        GROUP BY object_id
+            n.object_id,
+            GROUP_CONCAT(
+                DISTINCT CASE
+                    WHEN ov.status = 1 AND v.active = 1
+                         AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
+                    THEN v.label
+                    ELSE NULL
+                END
+                ORDER BY FIELD(v.semantic_group,'rol','tipo','aplicacion','plataforma','subtipo'), v.label
+                SEPARATOR ', '
+            ) AS etiquetas
+        FROM {$nodes_table} n
+        LEFT JOIN {$objects_table} ov
+            ON ov.object_type = 'page'
+           AND ov.object_id = n.object_id
+        LEFT JOIN {$vocab_table} v
+            ON v.id = ov.vocabulary_id
+        WHERE n.object_type = 'page'
+          AND n.seo_role = '{$role}'
+          AND n.status = 1
+        GROUP BY n.object_id
     ";
 }
 
@@ -1297,7 +1313,7 @@ function seo_report_contents_render_page() {
     echo '</div>';
 
     echo '<div style="background:#f0f6fc;border-left:4px solid #2271b1;padding:12px 14px;margin:14px 0 20px;line-height:1.6;">';
-    echo '<strong>Fuentes:</strong> clusters y hubs leen <code>wp_posts</code> para excerpt/description y <code>wp_seo_nodes.keywords</code> para sus etiquetas estructurales; categorías leen semántica desde <code>wp_seo_object_vocabulary → wp_seo_vocabulary</code> y mantienen excerpt/description en <code>wp_seo_nodes</code>; productos leen contenido WordPress, semántica desde Vocabulary y atributos desde <code>wp_sql_atributos</code> / <code>wp_sql_product_atributos</code>.';
+    echo '<strong>Fuentes:</strong> clusters y hubs leen <code>wp_posts</code> para excerpt/description y <code>wp_seo_object_vocabulary → wp_seo_vocabulary</code> para sus etiquetas semánticas; <code>wp_seo_nodes</code> conserva solo el rol estructural; categorías leen semántica desde <code>wp_seo_object_vocabulary → wp_seo_vocabulary</code> y mantienen excerpt/description en <code>wp_seo_nodes</code>; productos leen contenido WordPress, semántica desde Vocabulary y atributos desde <code>wp_sql_atributos</code> / <code>wp_sql_product_atributos</code>.';
     echo '</div>';
 
     seo_report_contents_render_summary_table($summaries);

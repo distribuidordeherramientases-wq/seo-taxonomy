@@ -981,7 +981,7 @@ $level = $match['level'] ?? 'hub_secondary';
 
 /*************************************************
  * TEXTO SEMÁNTICO COMPLETO DE UNA PÁGINA SEO
- * Usa título, slug, excerpt, contenido, etiquetas y keywords SEO.
+ * Usa título, slug, excerpt, contenido y Vocabulary canónico de página.
  *************************************************/
 if (!function_exists('seo_gpt_page_semantic_text')) {
 
@@ -1003,38 +1003,25 @@ function seo_gpt_page_semantic_text($page_id) {
     $text .= ' ' . $page->post_excerpt;
     $text .= ' ' . $page->post_content;
 
-    // Etiquetas WordPress
-    $tags = wp_get_post_tags(
-        $page_id,
-        ['fields' => 'names']
-    );
-
-    if (!is_wp_error($tags) && !empty($tags)) {
-    
-        $tags_text = implode(' ', $tags);
-    
-        // Las etiquetas WordPress también son señales semánticas fuertes.
-        $text .= ' ' . $tags_text;
-        $text .= ' ' . $tags_text;
-    }
-
-    // Keywords estructurales de esta pagina en seo_nodes.
-    // Nunca mezclar con nodos legacy de categorias que puedan compartir el mismo ID numerico.
-    $keywords = $wpdb->get_var(
+    // Etiquetas semanticas canonicas de la pagina.
+    // seo_nodes conserva solo el rol estructural; la semantica vive en Vocabulary.
+    $vocab_labels = $wpdb->get_col(
         $wpdb->prepare("
-            SELECT keywords
-            FROM {$wpdb->prefix}seo_nodes
-            WHERE object_type = 'page'
-              AND object_id = %d
-              AND seo_role IN ('cluster','hub_primary','hub_secondary')
-              AND status = 1
-            ORDER BY updated_at DESC, id DESC
-            LIMIT 1
+            SELECT DISTINCT v.label
+            FROM {$wpdb->prefix}seo_object_vocabulary ov
+            INNER JOIN {$wpdb->prefix}seo_vocabulary v
+                ON v.id = ov.vocabulary_id
+               AND v.active = 1
+            WHERE ov.object_type = 'page'
+              AND ov.object_id = %d
+              AND ov.status = 1
+              AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
+            ORDER BY FIELD(v.semantic_group,'rol','tipo','aplicacion','plataforma','subtipo'), v.label ASC
         ", $page_id)
     );
 
-    if (!empty($keywords)) {
-        $text .= ' ' . $keywords;
+    if (!empty($vocab_labels)) {
+        $text .= ' ' . implode(' ', array_map('strval', $vocab_labels));
     }
 
     return $text;
