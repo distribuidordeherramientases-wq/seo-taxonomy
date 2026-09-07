@@ -8,7 +8,10 @@
  * - las consultas remotas son SELECT y trabajan por lotes pequenos;
  * - nunca muestra ni transporta contenidos completos durante la comparacion:
  *   descripciones/contenidos se comparan por SHA-256 calculado en MySQL;
- * - no crea ni elimina objetos. Si un ID existe solo en un entorno, se informa;
+ * - los maestros canónicos (vocabulario, etiquetas nativas y atributos) sí pueden
+ *   crearse/actualizarse de forma explícita entre entornos por su clave canónica;
+ * - los objetos editoriales (productos, categorías, páginas y posts) no se crean
+ *   desde esta capa mientras no exista un alta canónica completa y validada;
  * - la sincronizacion escribe UNICAMENTE en el WordPress local. Para escribir
  *   en el otro entorno se abre este mismo panel en ese entorno;
  * - las fechas NO deciden igualdad ni direccion: el comparador trabaja por
@@ -19,12 +22,12 @@
  *   independientes. La direccion de sincronizacion la elige expresamente el usuario;
  * - antes de escribir se revalidan los hashes del ultimo escaneo en ambos entornos;
  *   si cualquiera cambio desde el escaneo, la escritura se bloquea y exige reescanear;
- * - si una asignacion semantica o atributo necesita vocabulario maestro que no
- *   existe en el destino, se crea por clave canonica antes de asignar el objeto.
+ * - las asignaciones nunca crean maestros implícitamente: si falta vocabulario,
+ *   etiqueta o atributo, se bloquean y se exige sincronizar primero Maestros.
  *
  * @package SEOSystem
  * @subpackage ImportExport
- * @version 2.1.6
+ * @version 2.2.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -32,6 +35,14 @@ defined( 'ABSPATH' ) || exit;
 if ( ! function_exists( 'seo_environment_compare_entities' ) ) {
     function seo_environment_compare_entities() {
         return [
+            // Capa 0: maestros/diccionarios. Se sincronizan antes de cualquier asignación.
+            'vocabulary_master'    => [ 'label' => 'Maestros · Vocabulario semántico', 'group' => 'masters', 'source' => 'master' ],
+            'product_tag_master'   => [ 'label' => 'Maestros · Etiquetas de producto', 'group' => 'masters', 'source' => 'master' ],
+            'post_tag_master'      => [ 'label' => 'Maestros · Etiquetas de posts/páginas', 'group' => 'masters', 'source' => 'master' ],
+            'attribute_master'     => [ 'label' => 'Maestros · Atributos', 'group' => 'masters', 'source' => 'master' ],
+            'attribute_term_master'=> [ 'label' => 'Maestros · Términos de atributos', 'group' => 'masters', 'source' => 'master' ],
+            'attribute_alias_master'=>[ 'label' => 'Maestros · Alias de atributos', 'group' => 'masters', 'source' => 'master' ],
+
             // Capa 1: contenido/relaciones editoriales generales.
             'products_general'   => [ 'label' => 'Productos · General',    'group' => 'general', 'source' => 'product' ],
             'categories_general' => [ 'label' => 'Categorías · General',   'group' => 'general', 'source' => 'category' ],
@@ -39,7 +50,7 @@ if ( ! function_exists( 'seo_environment_compare_entities' ) ) {
             'posts_general'      => [ 'label' => 'Posts · General',        'group' => 'general', 'source' => 'post' ],
             'faqs'               => [ 'label' => 'FAQs',                   'group' => 'general', 'source' => 'faq' ],
 
-            // Capa 2: clasificación. Cada bloque se sincroniza por separado.
+            // Capa 2: asignaciones. Nunca crean maestros implícitamente.
             'product_tags'       => [ 'label' => 'Productos · Etiquetas WC', 'group' => 'classification', 'source' => 'product' ],
             'product_semantic'   => [ 'label' => 'Productos · Semántica',    'group' => 'classification', 'source' => 'product' ],
             'product_attributes' => [ 'label' => 'Productos · Atributos',    'group' => 'classification', 'source' => 'product' ],
@@ -48,6 +59,44 @@ if ( ! function_exists( 'seo_environment_compare_entities' ) ) {
             'page_tags'          => [ 'label' => 'Páginas · Etiquetas',      'group' => 'classification', 'source' => 'page' ],
             'post_tags'          => [ 'label' => 'Posts · Etiquetas',        'group' => 'classification', 'source' => 'post' ],
         ];
+    }
+}
+
+
+if ( ! function_exists( 'seo_environment_compare_is_master_entity' ) ) {
+    function seo_environment_compare_is_master_entity( $entity ) {
+        return in_array(
+            sanitize_key( (string) $entity ),
+            [ 'vocabulary_master', 'product_tag_master', 'post_tag_master', 'attribute_master', 'attribute_term_master', 'attribute_alias_master' ],
+            true
+        );
+    }
+}
+
+if ( ! function_exists( 'seo_environment_compare_missing_status_for_source' ) ) {
+    function seo_environment_compare_missing_status_for_source( $source ) {
+        return 'pro' === sanitize_key( (string) $source ) ? 'only_pro' : 'only_staging';
+    }
+}
+
+if ( ! function_exists( 'seo_environment_compare_syncable_statuses' ) ) {
+    function seo_environment_compare_syncable_statuses( $entity, $source ) {
+        $statuses = [ 'different' ];
+        if ( seo_environment_compare_is_master_entity( $entity ) ) {
+            $statuses[] = seo_environment_compare_missing_status_for_source( $source );
+        }
+        return $statuses;
+    }
+}
+
+if ( ! function_exists( 'seo_environment_compare_stable_sql_id' ) ) {
+    /**
+     * Devuelve un BIGINT determinista a partir de una expresión SQL canónica.
+     * Se usan 60 bits del SHA-256: permite reutilizar el worker numérico actual
+     * sin depender de IDs autoincrementales distintos entre PRO y STAGING.
+     */
+    function seo_environment_compare_stable_sql_id( $canonical_expression ) {
+        return "CAST(CONV(SUBSTRING(SHA2({$canonical_expression},256),1,15),16,10) AS UNSIGNED)";
     }
 }
 
@@ -310,16 +359,32 @@ if ( ! function_exists( 'seo_environment_compare_candidate_ids' ) ) {
             $sql = "SELECT ID FROM `{$prefix}posts` WHERE post_type='{$post_type}' AND post_status<>'trash' AND ID>{$cursor} ORDER BY ID ASC LIMIT {$limit}";
         } elseif ( in_array( $entity, [ 'categories_general', 'category_tags', 'category_semantic' ], true ) ) {
             $sql = "SELECT term_id AS ID FROM `{$prefix}term_taxonomy` WHERE taxonomy='product_cat' AND term_id>{$cursor} ORDER BY term_id ASC LIMIT {$limit}";
+        } elseif ( 'vocabulary_master' === $entity ) {
+            $sid = seo_environment_compare_stable_sql_id( "CONCAT(SHA2(CONVERT(semantic_group USING utf8mb4),256),SHA2(CONVERT(slug USING utf8mb4),256))" );
+            $sql = "SELECT {$sid} AS ID FROM `{$prefix}seo_vocabulary` WHERE {$sid}>{$cursor} ORDER BY ID ASC LIMIT {$limit}";
+        } elseif ( in_array( $entity, [ 'product_tag_master', 'post_tag_master' ], true ) ) {
+            $taxonomy = 'product_tag_master' === $entity ? 'product_tag' : 'post_tag';
+            $tax = mysqli_real_escape_string( $mysqli, $taxonomy );
+            $sid = seo_environment_compare_stable_sql_id( "CONVERT(t.slug USING utf8mb4)" );
+            $sql = "SELECT {$sid} AS ID FROM `{$prefix}terms` t JOIN `{$prefix}term_taxonomy` tt ON tt.term_id=t.term_id WHERE tt.taxonomy='{$tax}' AND {$sid}>{$cursor} ORDER BY ID ASC LIMIT {$limit}";
+        } elseif ( 'attribute_master' === $entity ) {
+            $sid = seo_environment_compare_stable_sql_id( "CONVERT(slug USING utf8mb4)" );
+            $sql = "SELECT {$sid} AS ID FROM `{$prefix}sql_atributos` WHERE {$sid}>{$cursor} ORDER BY ID ASC LIMIT {$limit}";
+        } elseif ( 'attribute_term_master' === $entity ) {
+            $sid = seo_environment_compare_stable_sql_id( "CONCAT(SHA2(CONVERT(a.slug USING utf8mb4),256),SHA2(CONVERT(t.slug USING utf8mb4),256))" );
+            $sql = "SELECT {$sid} AS ID FROM `{$prefix}sql_atributos_terminos` t JOIN `{$prefix}sql_atributos` a ON a.id=t.atributo_id WHERE {$sid}>{$cursor} ORDER BY ID ASC LIMIT {$limit}";
+        } elseif ( 'attribute_alias_master' === $entity ) {
+            $sid = seo_environment_compare_stable_sql_id( "CONCAT(SHA2(CONVERT(a.slug USING utf8mb4),256),SHA2(CONVERT(aa.alias USING utf8mb4),256))" );
+            $sql = "SELECT DISTINCT {$sid} AS ID FROM `{$prefix}sql_atributos_aliases` aa JOIN `{$prefix}sql_atributos` a ON a.id=aa.atributo_id WHERE {$sid}>{$cursor} ORDER BY ID ASC LIMIT {$limit}";
         } else {
             $sql = "SELECT id AS ID FROM `{$prefix}seo_faq` WHERE id>{$cursor} ORDER BY id ASC LIMIT {$limit}";
         }
 
         $rows = seo_environment_compare_query_rows( $mysqli, $sql );
         if ( is_wp_error( $rows ) ) return $rows;
-        return array_values( array_filter( array_map( 'absint', wp_list_pluck( $rows, 'ID' ) ) ) );
+        return array_values( array_unique( array_filter( array_map( 'absint', wp_list_pluck( $rows, 'ID' ) ) ) ) );
     }
 }
-
 
 
 if ( ! function_exists( 'seo_environment_compare_entity_total' ) ) {
@@ -340,6 +405,18 @@ if ( ! function_exists( 'seo_environment_compare_entity_total' ) ) {
             $sql = "SELECT COUNT(*) AS total FROM `{$prefix}posts` WHERE post_type='{$post_type}' AND post_status<>'trash'";
         } elseif ( in_array( $entity, [ 'categories_general', 'category_tags', 'category_semantic' ], true ) ) {
             $sql = "SELECT COUNT(*) AS total FROM `{$prefix}term_taxonomy` WHERE taxonomy='product_cat'";
+        } elseif ( 'vocabulary_master' === $entity ) {
+            $sql = "SELECT COUNT(*) AS total FROM `{$prefix}seo_vocabulary`";
+        } elseif ( in_array( $entity, [ 'product_tag_master', 'post_tag_master' ], true ) ) {
+            $taxonomy = 'product_tag_master' === $entity ? 'product_tag' : 'post_tag';
+            $tax = mysqli_real_escape_string( $mysqli, $taxonomy );
+            $sql = "SELECT COUNT(*) AS total FROM `{$prefix}term_taxonomy` WHERE taxonomy='{$tax}'";
+        } elseif ( 'attribute_master' === $entity ) {
+            $sql = "SELECT COUNT(*) AS total FROM `{$prefix}sql_atributos`";
+        } elseif ( 'attribute_term_master' === $entity ) {
+            $sql = "SELECT COUNT(*) AS total FROM `{$prefix}sql_atributos_terminos`";
+        } elseif ( 'attribute_alias_master' === $entity ) {
+            $sql = "SELECT COUNT(DISTINCT CONCAT(SHA2(CONVERT(a.slug USING utf8mb4),256),SHA2(CONVERT(aa.alias USING utf8mb4),256))) AS total FROM `{$prefix}sql_atributos_aliases` aa JOIN `{$prefix}sql_atributos` a ON a.id=aa.atributo_id";
         } else {
             $sql = "SELECT COUNT(*) AS total FROM `{$prefix}seo_faq`";
         }
@@ -349,7 +426,6 @@ if ( ! function_exists( 'seo_environment_compare_entity_total' ) ) {
         return isset( $rows[0]['total'] ) ? absint( $rows[0]['total'] ) : 0;
     }
 }
-
 
 if ( ! function_exists( 'seo_environment_compare_empty_hash' ) ) {
     function seo_environment_compare_empty_hash() {
@@ -457,7 +533,17 @@ if ( ! function_exists( 'seo_environment_compare_fetch_product_attribute_snapsho
     function seo_environment_compare_fetch_product_attribute_snapshots( $mysqli, $prefix, array $ids ) {
         $out=seo_environment_compare_fetch_post_base($mysqli,$prefix,'product',$ids);if(is_wp_error($out)||!$out)return$out;
         $id_sql=seo_environment_compare_sql_ids($ids);
-        $rows=seo_environment_compare_query_rows($mysqli,"SELECT pa.product_id,SHA2(GROUP_CONCAT(CONCAT(a.slug,':',COALESCE(t.slug,''),':',SHA2(CONCAT_WS('|',COALESCE(pa.valor_texto,''),COALESCE(pa.valor_numero,''),COALESCE(pa.valor_numero_max,''),COALESCE(pa.unidad,''),COALESCE(pa.valor_original,'')),256),':',pa.orden) ORDER BY a.slug,pa.orden,pa.id SEPARATOR '|'),256) AS row_hash
+        $rows=seo_environment_compare_query_rows($mysqli,"SELECT pa.product_id,SHA2(GROUP_CONCAT(
+                SHA2(CONCAT(
+                    SHA2(CONVERT(a.slug USING utf8mb4),256),
+                    SHA2(COALESCE(CONVERT(t.slug USING utf8mb4),_utf8mb4''),256),
+                    SHA2(COALESCE(CONVERT(pa.valor_texto USING utf8mb4),_utf8mb4''),256),
+                    SHA2(COALESCE(CONVERT(CAST(pa.valor_numero AS CHAR) USING utf8mb4),_utf8mb4''),256),
+                    SHA2(COALESCE(CONVERT(CAST(pa.valor_numero_max AS CHAR) USING utf8mb4),_utf8mb4''),256),
+                    SHA2(COALESCE(CONVERT(pa.unidad USING utf8mb4),_utf8mb4''),256),
+                    SHA2(COALESCE(CONVERT(pa.valor_original USING utf8mb4),_utf8mb4''),256),
+                    SHA2(CONVERT(CAST(pa.orden AS CHAR) USING utf8mb4),256)
+                ),256) ORDER BY a.slug,pa.orden,pa.id SEPARATOR ''),256) AS row_hash
             FROM `{$prefix}sql_product_atributos` pa JOIN `{$prefix}sql_atributos` a ON a.id=pa.atributo_id LEFT JOIN `{$prefix}sql_atributos_terminos` t ON t.id=pa.termino_id
             WHERE pa.product_id IN ({$id_sql}) GROUP BY pa.product_id");
         if(is_wp_error($rows))return $rows;
@@ -503,7 +589,7 @@ if ( ! function_exists( 'seo_environment_compare_fetch_post_custom_tag_snapshots
     function seo_environment_compare_fetch_post_custom_tag_snapshots( $mysqli, $prefix, $post_type, array $ids ) {
         $out=seo_environment_compare_fetch_native_tag_snapshots($mysqli,$prefix,$post_type,'post_tag',$ids);if(is_wp_error($out)||!$out)return$out;
         $id_sql=seo_environment_compare_sql_ids($ids);$type=mysqli_real_escape_string($mysqli,$post_type);
-        $nodes=seo_environment_compare_query_rows($mysqli,"SELECT object_id,SHA2(GROUP_CONCAT(CONCAT(seo_role,':',SHA2(COALESCE(keywords,''),256)) ORDER BY seo_role,id SEPARATOR '|'),256) AS row_hash FROM `{$prefix}seo_nodes` WHERE object_type='{$type}' AND object_id IN ({$id_sql}) AND status=1 AND seo_role NOT IN ('excerpt','description','ambito') GROUP BY object_id");
+        $nodes=seo_environment_compare_query_rows($mysqli,"SELECT object_id,SHA2(GROUP_CONCAT(SHA2(CONCAT(SHA2(CONVERT(seo_role USING utf8mb4),256),SHA2(COALESCE(CONVERT(keywords USING utf8mb4),_utf8mb4''),256)),256) ORDER BY seo_role,id SEPARATOR ''),256) AS row_hash FROM `{$prefix}seo_nodes` WHERE object_type='{$type}' AND object_id IN ({$id_sql}) AND status=1 AND seo_role NOT IN ('excerpt','description','ambito') GROUP BY object_id");
         if(is_wp_error($nodes))return $nodes;
         foreach($nodes as $row){$id=absint($row['object_id']);if(isset($out[$id]))$out[$id]['components']['seo_tags']=(string)$row['row_hash'];}
         $empty=seo_environment_compare_empty_hash();foreach($out as &$item){if(!isset($item['components']['seo_tags']))$item['components']['seo_tags']=$empty;ksort($item['components']);$item['hash']=seo_environment_compare_hash($item['components']);}unset($item);
@@ -525,10 +611,76 @@ if ( ! function_exists( 'seo_environment_compare_fetch_faq_snapshots' ) ) {
     }
 }
 
+
+if ( ! function_exists( 'seo_environment_compare_fetch_vocabulary_master_snapshots' ) ) {
+    function seo_environment_compare_fetch_vocabulary_master_snapshots( $mysqli, $prefix, array $ids ) {
+        $id_sql = seo_environment_compare_sql_ids( $ids );
+        $sid = seo_environment_compare_stable_sql_id( "CONCAT(SHA2(CONVERT(v.semantic_group USING utf8mb4),256),SHA2(CONVERT(v.slug USING utf8mb4),256))" );
+        $rows = seo_environment_compare_query_rows( $mysqli, "SELECT {$sid} AS stable_id,v.id AS native_id,v.semantic_group,v.slug,v.label,v.source,v.active,pv.semantic_group AS parent_group,pv.slug AS parent_slug,rv.semantic_group AS role_group,rv.slug AS role_slug,m.active AS map_active,m.confidence AS map_confidence,m.source AS map_source FROM `{$prefix}seo_vocabulary` v LEFT JOIN `{$prefix}seo_vocabulary` pv ON pv.id=v.parent_id LEFT JOIN `{$prefix}seo_type_role_map` m ON m.type_vocabulary_id=v.id LEFT JOIN `{$prefix}seo_vocabulary` rv ON rv.id=m.role_vocabulary_id WHERE {$sid} IN ({$id_sql})" );
+        if ( is_wp_error( $rows ) ) return $rows;
+        $out = [];
+        foreach ( $rows as $row ) {
+            $id = absint( $row['stable_id'] );
+            $components = [
+                'label' => hash( 'sha256', (string) $row['label'] ),
+                'source' => hash( 'sha256', (string) $row['source'] ),
+                'active' => hash( 'sha256', (string) absint( $row['active'] ) ),
+                'parent' => hash( 'sha256', (string) ( $row['parent_group'] ?? '' ) . '|' . (string) ( $row['parent_slug'] ?? '' ) ),
+                'role_map' => hash( 'sha256', implode( '|', [ (string) ( $row['role_group'] ?? '' ), (string) ( $row['role_slug'] ?? '' ), (string) ( $row['map_active'] ?? '' ), (string) ( $row['map_confidence'] ?? '' ), (string) ( $row['map_source'] ?? '' ) ] ) ),
+            ];
+            $out[ $id ] = [ 'id'=>$id, 'native_id'=>absint($row['native_id']), 'name'=>(string)$row['semantic_group'].' · '.(string)$row['label'].' ['.(string)$row['slug'].']', 'components'=>$components, 'hash'=>seo_environment_compare_hash($components) ];
+        }
+        return $out;
+    }
+}
+
+if ( ! function_exists( 'seo_environment_compare_fetch_taxonomy_master_snapshots' ) ) {
+    function seo_environment_compare_fetch_taxonomy_master_snapshots( $mysqli, $prefix, $taxonomy, array $ids ) {
+        $id_sql = seo_environment_compare_sql_ids( $ids );
+        $tax = mysqli_real_escape_string( $mysqli, sanitize_key( $taxonomy ) );
+        $sid = seo_environment_compare_stable_sql_id( "CONVERT(t.slug USING utf8mb4)" );
+        $rows = seo_environment_compare_query_rows( $mysqli, "SELECT {$sid} AS stable_id,t.term_id AS native_id,t.name,t.slug,tt.description FROM `{$prefix}terms` t JOIN `{$prefix}term_taxonomy` tt ON tt.term_id=t.term_id WHERE tt.taxonomy='{$tax}' AND {$sid} IN ({$id_sql})" );
+        if ( is_wp_error( $rows ) ) return $rows;
+        $out=[];
+        foreach($rows as $row){$id=absint($row['stable_id']);$components=['name'=>hash('sha256',(string)$row['name']),'description'=>hash('sha256',(string)$row['description'])];$out[$id]=['id'=>$id,'native_id'=>absint($row['native_id']),'name'=>(string)$row['name'].' ['.(string)$row['slug'].']','components'=>$components,'hash'=>seo_environment_compare_hash($components)];}
+        return $out;
+    }
+}
+
+if ( ! function_exists( 'seo_environment_compare_fetch_attribute_master_snapshots' ) ) {
+    function seo_environment_compare_fetch_attribute_master_snapshots( $mysqli, $prefix, array $ids ) {
+        $id_sql=seo_environment_compare_sql_ids($ids);$sid=seo_environment_compare_stable_sql_id("CONVERT(a.slug USING utf8mb4)");
+        $rows=seo_environment_compare_query_rows($mysqli,"SELECT {$sid} AS stable_id,a.* FROM `{$prefix}sql_atributos` a WHERE {$sid} IN ({$id_sql})");if(is_wp_error($rows))return$rows;$out=[];
+        foreach($rows as $row){$id=absint($row['stable_id']);$parts=[];foreach(['nombre','grupo','tipo','unidad_tipo','unidad_base','multiple','filtrable','visible','seo','orden','activo'] as $k)$parts[$k]=hash('sha256',(string)($row[$k]??''));$out[$id]=['id'=>$id,'native_id'=>absint($row['id']??0),'name'=>(string)($row['nombre']??$row['slug']).' ['.(string)$row['slug'].']','components'=>$parts,'hash'=>seo_environment_compare_hash($parts)];}return$out;
+    }
+}
+
+if ( ! function_exists( 'seo_environment_compare_fetch_attribute_term_master_snapshots' ) ) {
+    function seo_environment_compare_fetch_attribute_term_master_snapshots( $mysqli, $prefix, array $ids ) {
+        $id_sql=seo_environment_compare_sql_ids($ids);$sid=seo_environment_compare_stable_sql_id("CONCAT(SHA2(CONVERT(a.slug USING utf8mb4),256),SHA2(CONVERT(t.slug USING utf8mb4),256))");
+        $rows=seo_environment_compare_query_rows($mysqli,"SELECT {$sid} AS stable_id,t.id AS native_id,a.slug AS attribute_slug,t.slug,t.nombre,t.orden,t.activo FROM `{$prefix}sql_atributos_terminos` t JOIN `{$prefix}sql_atributos` a ON a.id=t.atributo_id WHERE {$sid} IN ({$id_sql})");if(is_wp_error($rows))return$rows;$out=[];
+        foreach($rows as $row){$id=absint($row['stable_id']);$parts=['name'=>hash('sha256',(string)$row['nombre']),'order'=>hash('sha256',(string)$row['orden']),'active'=>hash('sha256',(string)$row['activo'])];$out[$id]=['id'=>$id,'native_id'=>absint($row['native_id']),'name'=>(string)$row['attribute_slug'].' → '.(string)$row['nombre'].' ['.(string)$row['slug'].']','components'=>$parts,'hash'=>seo_environment_compare_hash($parts)];}return$out;
+    }
+}
+
+if ( ! function_exists( 'seo_environment_compare_fetch_attribute_alias_master_snapshots' ) ) {
+    function seo_environment_compare_fetch_attribute_alias_master_snapshots( $mysqli, $prefix, array $ids ) {
+        $id_sql=seo_environment_compare_sql_ids($ids);$sid=seo_environment_compare_stable_sql_id("CONCAT(SHA2(CONVERT(a.slug USING utf8mb4),256),SHA2(CONVERT(aa.alias USING utf8mb4),256))");
+        $rows=seo_environment_compare_query_rows($mysqli,"SELECT {$sid} AS stable_id,MIN(aa.id) AS native_id,a.slug AS attribute_slug,aa.alias,GROUP_CONCAT(DISTINCT COALESCE(CONVERT(t.slug USING utf8mb4),_utf8mb4'') ORDER BY t.slug SEPARATOR '|') AS term_slugs FROM `{$prefix}sql_atributos_aliases` aa JOIN `{$prefix}sql_atributos` a ON a.id=aa.atributo_id LEFT JOIN `{$prefix}sql_atributos_terminos` t ON t.id=aa.termino_id WHERE {$sid} IN ({$id_sql}) GROUP BY stable_id,a.slug,aa.alias");if(is_wp_error($rows))return$rows;$out=[];
+        foreach($rows as $row){$id=absint($row['stable_id']);$parts=['mapping'=>hash('sha256',(string)$row['term_slugs'])];$out[$id]=['id'=>$id,'native_id'=>absint($row['native_id']),'name'=>(string)$row['attribute_slug'].' · alias «'.(string)$row['alias'].'»','components'=>$parts,'hash'=>seo_environment_compare_hash($parts)];}return$out;
+    }
+}
+
 if ( ! function_exists( 'seo_environment_compare_fetch_snapshots' ) ) {
     function seo_environment_compare_fetch_snapshots( $mysqli, $env, $entity, array $ids ) {
         $prefix=seo_environment_compare_db_prefix($env);
         switch($entity){
+            case 'vocabulary_master': return seo_environment_compare_fetch_vocabulary_master_snapshots($mysqli,$prefix,$ids);
+            case 'product_tag_master': return seo_environment_compare_fetch_taxonomy_master_snapshots($mysqli,$prefix,'product_tag',$ids);
+            case 'post_tag_master': return seo_environment_compare_fetch_taxonomy_master_snapshots($mysqli,$prefix,'post_tag',$ids);
+            case 'attribute_master': return seo_environment_compare_fetch_attribute_master_snapshots($mysqli,$prefix,$ids);
+            case 'attribute_term_master': return seo_environment_compare_fetch_attribute_term_master_snapshots($mysqli,$prefix,$ids);
+            case 'attribute_alias_master': return seo_environment_compare_fetch_attribute_alias_master_snapshots($mysqli,$prefix,$ids);
             case 'products_general': return seo_environment_compare_fetch_post_general_snapshots($mysqli,$prefix,'product',$ids,true);
             case 'categories_general': return seo_environment_compare_fetch_category_general_snapshots($mysqli,$prefix,$ids);
             case 'pages_general': return seo_environment_compare_fetch_post_general_snapshots($mysqli,$prefix,'page',$ids,false);
@@ -1409,7 +1561,7 @@ if ( ! function_exists( 'seo_environment_compare_export_json_admin_post' ) ) {
 
         $export = [
             'schema'           => 'seo_environment_compare_report',
-            'version'          => '2.1.6',
+            'version'          => '2.2.0',
             'execution'        => 'process_manager_worker',
             'generated_at_utc' => current_time( 'mysql', true ),
             'dates_ignored'    => true,
@@ -1815,6 +1967,57 @@ if ( ! function_exists( 'seo_environment_sync_resolve_or_create_terms_local' ) )
     }
 }
 
+
+if ( ! function_exists( 'seo_environment_sync_fetch_master_row' ) ) {
+    function seo_environment_sync_fetch_master_row( $mysqli, $prefix, $entity, $stable_id ) {
+        $stable_id=absint($stable_id);
+        if('vocabulary_master'===$entity){$sid=seo_environment_compare_stable_sql_id("CONCAT(SHA2(CONVERT(v.semantic_group USING utf8mb4),256),SHA2(CONVERT(v.slug USING utf8mb4),256))");$rows=seo_environment_compare_query_rows($mysqli,"SELECT {$sid} AS stable_id,v.*,pv.semantic_group AS parent_group,pv.slug AS parent_slug,pv.label AS parent_label,pv.source AS parent_source,pv.active AS parent_active,rv.semantic_group AS role_group,rv.slug AS role_slug,rv.label AS role_label,rv.source AS role_source,rv.active AS role_active,m.active AS map_active,m.confidence AS map_confidence,m.source AS map_source FROM `{$prefix}seo_vocabulary` v LEFT JOIN `{$prefix}seo_vocabulary` pv ON pv.id=v.parent_id LEFT JOIN `{$prefix}seo_type_role_map` m ON m.type_vocabulary_id=v.id LEFT JOIN `{$prefix}seo_vocabulary` rv ON rv.id=m.role_vocabulary_id WHERE {$sid}={$stable_id} LIMIT 1");}
+        elseif(in_array($entity,['product_tag_master','post_tag_master'],true)){$taxonomy='product_tag_master'===$entity?'product_tag':'post_tag';$tax=mysqli_real_escape_string($mysqli,$taxonomy);$sid=seo_environment_compare_stable_sql_id("CONVERT(t.slug USING utf8mb4)");$rows=seo_environment_compare_query_rows($mysqli,"SELECT {$sid} AS stable_id,t.term_id,t.name,t.slug,tt.description,tt.taxonomy FROM `{$prefix}terms` t JOIN `{$prefix}term_taxonomy` tt ON tt.term_id=t.term_id WHERE tt.taxonomy='{$tax}' AND {$sid}={$stable_id} LIMIT 1");}
+        elseif('attribute_master'===$entity){$sid=seo_environment_compare_stable_sql_id("CONVERT(a.slug USING utf8mb4)");$rows=seo_environment_compare_query_rows($mysqli,"SELECT {$sid} AS stable_id,a.* FROM `{$prefix}sql_atributos` a WHERE {$sid}={$stable_id} LIMIT 1");}
+        elseif('attribute_term_master'===$entity){$sid=seo_environment_compare_stable_sql_id("CONCAT(SHA2(CONVERT(a.slug USING utf8mb4),256),SHA2(CONVERT(t.slug USING utf8mb4),256))");$rows=seo_environment_compare_query_rows($mysqli,"SELECT {$sid} AS stable_id,t.*,a.slug AS attribute_slug FROM `{$prefix}sql_atributos_terminos` t JOIN `{$prefix}sql_atributos` a ON a.id=t.atributo_id WHERE {$sid}={$stable_id} LIMIT 1");}
+        elseif('attribute_alias_master'===$entity){$sid=seo_environment_compare_stable_sql_id("CONCAT(SHA2(CONVERT(a.slug USING utf8mb4),256),SHA2(CONVERT(aa.alias USING utf8mb4),256))");$rows=seo_environment_compare_query_rows($mysqli,"SELECT {$sid} AS stable_id,MIN(aa.id) AS id,a.slug AS attribute_slug,aa.alias,GROUP_CONCAT(DISTINCT COALESCE(CONVERT(t.slug USING utf8mb4),_utf8mb4'') ORDER BY t.slug SEPARATOR '|') AS term_slugs FROM `{$prefix}sql_atributos_aliases` aa JOIN `{$prefix}sql_atributos` a ON a.id=aa.atributo_id LEFT JOIN `{$prefix}sql_atributos_terminos` t ON t.id=aa.termino_id WHERE {$sid}={$stable_id} GROUP BY stable_id,a.slug,aa.alias LIMIT 1");}
+        else return new WP_Error('invalid_master','Capa maestra no válida.');
+        return is_wp_error($rows)?$rows:($rows[0]??null);
+    }
+}
+
+if ( ! function_exists( 'seo_environment_sync_upsert_vocab_master_local' ) ) {
+    function seo_environment_sync_upsert_vocab_master_local( array $row, $prefix_key='' ) {
+        global $wpdb;$table=$wpdb->prefix.'seo_vocabulary';$p=$prefix_key!==''?$prefix_key.'_':'';$group=sanitize_key($row[$p.'semantic_group']??$row[$p.'group']??'');$slug=sanitize_title($row[$p.'slug']??'');if(!$group||!$slug)return new WP_Error('invalid_vocabulary','Vocabulario maestro incompleto.');$label=sanitize_text_field($row[$p.'label']??$slug);$source=sanitize_key($row[$p.'source']??'environment_sync')?:'environment_sync';$active=absint($row[$p.'active']??1);$existing=$wpdb->get_row($wpdb->prepare("SELECT id FROM {$table} WHERE semantic_group=%s AND slug=%s LIMIT 1",$group,$slug),ARRAY_A);$data=['label'=>$label,'source'=>$source,'active'=>$active];
+        if($existing){$id=absint($existing['id']);$ok=$wpdb->update($table,$data,['id'=>$id],['%s','%s','%d'],['%d']);if(false===$ok)return new WP_Error('vocabulary_update',$wpdb->last_error?:'No se pudo actualizar vocabulario maestro.');return$id;}
+        $data=array_merge(['semantic_group'=>$group,'slug'=>$slug],$data);$ok=$wpdb->insert($table,$data,['%s','%s','%s','%s','%d']);if(false===$ok)return new WP_Error('vocabulary_insert',$wpdb->last_error?:'No se pudo crear vocabulario maestro.');return absint($wpdb->insert_id);
+    }
+}
+
+if ( ! function_exists( 'seo_environment_sync_pull_master' ) ) {
+    function seo_environment_sync_pull_master( $mysqli, $source_env, $entity, $id ) {
+        global $wpdb;$prefix=seo_environment_compare_db_prefix($source_env);$row=seo_environment_sync_fetch_master_row($mysqli,$prefix,$entity,$id);if(is_wp_error($row))return$row;if(!$row)return new WP_Error('missing_source_master','El maestro origen ya no existe. Reescanea.');
+        if('vocabulary_master'===$entity){$parent_id=0;if(!empty($row['parent_group'])&&!empty($row['parent_slug'])){$parent=['parent_semantic_group'=>$row['parent_group'],'parent_slug'=>$row['parent_slug'],'parent_label'=>$row['parent_label']??$row['parent_slug'],'parent_source'=>$row['parent_source']??'environment_sync','parent_active'=>$row['parent_active']??1];$parent_id=seo_environment_sync_upsert_vocab_master_local($parent,'parent');if(is_wp_error($parent_id))return$parent_id;}$local_id=seo_environment_sync_upsert_vocab_master_local($row);if(is_wp_error($local_id))return$local_id;if($parent_id){$ok=$wpdb->update($wpdb->prefix.'seo_vocabulary',['parent_id'=>$parent_id],['id'=>$local_id],['%d'],['%d']);if(false===$ok)return new WP_Error('vocabulary_parent',$wpdb->last_error?:'No se pudo actualizar el padre canónico.');}
+            if('tipo'===sanitize_key($row['semantic_group']??'')&&!empty($row['role_slug'])){$role=['role_semantic_group'=>$row['role_group']?:'rol','role_slug'=>$row['role_slug'],'role_label'=>$row['role_label']??$row['role_slug'],'role_source'=>$row['role_source']??'environment_sync','role_active'=>$row['role_active']??1];$role_id=seo_environment_sync_upsert_vocab_master_local($role,'role');if(is_wp_error($role_id))return$role_id;$map=$wpdb->prefix.'seo_type_role_map';$existing=$wpdb->get_row($wpdb->prepare("SELECT id FROM {$map} WHERE type_vocabulary_id=%d LIMIT 1",$local_id),ARRAY_A);$data=['role_vocabulary_id'=>$role_id,'confidence'=>(float)($row['map_confidence']??1),'source'=>sanitize_key($row['map_source']??'environment_sync')?:'environment_sync','active'=>absint($row['map_active']??1)];if($existing){$ok=$wpdb->update($map,$data,['id'=>absint($existing['id'])],['%d','%f','%s','%d'],['%d']);}else{$data=['type_vocabulary_id'=>$local_id]+$data;$ok=$wpdb->insert($map,$data,['%d','%d','%f','%s','%d']);}if(false===$ok)return new WP_Error('role_map_sync',$wpdb->last_error?:'No se pudo sincronizar TIPO → ROL.');}return true;}
+        if(in_array($entity,['product_tag_master','post_tag_master'],true)){$tax=sanitize_key($row['taxonomy']??'');$slug=sanitize_title($row['slug']??'');$term=get_term_by('slug',$slug,$tax);if(!$term||is_wp_error($term)){$created=wp_insert_term(sanitize_text_field($row['name']??$slug),$tax,['slug'=>$slug,'description'=>(string)($row['description']??'')]);if(is_wp_error($created))return$created;}else{$updated=wp_update_term(absint($term->term_id),$tax,['name'=>sanitize_text_field($row['name']??$slug),'description'=>(string)($row['description']??'')]);if(is_wp_error($updated))return$updated;}return true;}
+        if('attribute_master'===$entity){$table=$wpdb->prefix.'sql_atributos';$slug=sanitize_key($row['slug']??'');$existing=$wpdb->get_row($wpdb->prepare("SELECT id FROM {$table} WHERE slug=%s LIMIT 1",$slug),ARRAY_A);$data=['nombre'=>sanitize_text_field($row['nombre']??$slug),'grupo'=>sanitize_text_field($row['grupo']??''),'tipo'=>sanitize_key($row['tipo']??'texto')?:'texto','unidad_tipo'=>sanitize_text_field($row['unidad_tipo']??''),'unidad_base'=>sanitize_text_field($row['unidad_base']??''),'multiple'=>absint($row['multiple']??0),'filtrable'=>absint($row['filtrable']??0),'visible'=>absint($row['visible']??1),'seo'=>absint($row['seo']??1),'orden'=>(int)($row['orden']??0),'activo'=>absint($row['activo']??1)];if($existing){$ok=$wpdb->update($table,$data,['id'=>absint($existing['id'])]);}else{$ok=$wpdb->insert($table,['slug'=>$slug]+$data);}return false===$ok?new WP_Error('attribute_master_sync',$wpdb->last_error?:'No se pudo sincronizar el atributo maestro.'):true;}
+        if('attribute_term_master'===$entity){$defs=$wpdb->prefix.'sql_atributos';$terms=$wpdb->prefix.'sql_atributos_terminos';$attr=$wpdb->get_row($wpdb->prepare("SELECT id FROM {$defs} WHERE slug=%s LIMIT 1",sanitize_key($row['attribute_slug']??'')),ARRAY_A);if(!$attr)return new WP_Error('missing_attribute_master','Falta el atributo maestro '.sanitize_key($row['attribute_slug']??'').'. Sincroniza primero Maestros · Atributos.');$slug=sanitize_title($row['slug']??'');$existing=$wpdb->get_row($wpdb->prepare("SELECT id FROM {$terms} WHERE atributo_id=%d AND slug=%s LIMIT 1",absint($attr['id']),$slug),ARRAY_A);$data=['nombre'=>sanitize_text_field($row['nombre']??$slug),'orden'=>(int)($row['orden']??0),'activo'=>absint($row['activo']??1)];if($existing){$ok=$wpdb->update($terms,$data,['id'=>absint($existing['id'])]);}else{$ok=$wpdb->insert($terms,['atributo_id'=>absint($attr['id']),'slug'=>$slug]+$data);}return false===$ok?new WP_Error('attribute_term_sync',$wpdb->last_error?:'No se pudo sincronizar el término de atributo.'):true;}
+        if('attribute_alias_master'===$entity){$defs=$wpdb->prefix.'sql_atributos';$terms=$wpdb->prefix.'sql_atributos_terminos';$aliases=$wpdb->prefix.'sql_atributos_aliases';$attr=$wpdb->get_row($wpdb->prepare("SELECT id FROM {$defs} WHERE slug=%s LIMIT 1",sanitize_key($row['attribute_slug']??'')),ARRAY_A);if(!$attr)return new WP_Error('missing_attribute_master','Falta el atributo maestro. Sincroniza primero Maestros · Atributos.');$term_id=null;$slugs=array_values(array_filter(explode('|',(string)($row['term_slugs']??''))));if(count($slugs)>1)return new WP_Error('alias_ambiguous_source','El alias apunta a varios términos en origen; requiere revisión manual.');if($slugs){$term=$wpdb->get_row($wpdb->prepare("SELECT id FROM {$terms} WHERE atributo_id=%d AND slug=%s LIMIT 1",absint($attr['id']),sanitize_title($slugs[0])),ARRAY_A);if(!$term)return new WP_Error('missing_attribute_term','Falta el término maestro del alias. Sincroniza primero Maestros · Términos de atributos.');$term_id=absint($term['id']);}$alias=(string)($row['alias']??'');$existing=$wpdb->get_row($wpdb->prepare("SELECT id FROM {$aliases} WHERE atributo_id=%d AND alias=%s ORDER BY id ASC LIMIT 1",absint($attr['id']),$alias),ARRAY_A);$data=['termino_id'=>$term_id];if($existing){$ok=$wpdb->update($aliases,$data,['id'=>absint($existing['id'])]);}else{$ok=$wpdb->insert($aliases,['atributo_id'=>absint($attr['id']),'alias'=>$alias,'termino_id'=>$term_id]);}return false===$ok?new WP_Error('attribute_alias_sync',$wpdb->last_error?:'No se pudo sincronizar el alias.'):true;}
+        return new WP_Error('invalid_master','Capa maestra no soportada.');
+    }
+}
+
+if ( ! function_exists( 'seo_environment_sync_resolve_semantic_local_strict' ) ) {
+    function seo_environment_sync_resolve_semantic_local_strict( array $rows ) {
+        global $wpdb;$groups=[];$missing=[];$vtable=$wpdb->prefix.'seo_vocabulary';$map=$wpdb->prefix.'seo_type_role_map';
+        foreach($rows as $row){$group=sanitize_key($row['semantic_group']??'');$slug=sanitize_title($row['slug']??'');if(!$group||!$slug)continue;$local=$wpdb->get_row($wpdb->prepare("SELECT id,active FROM {$vtable} WHERE semantic_group=%s AND slug=%s LIMIT 1",$group,$slug),ARRAY_A);if(!$local||!(int)$local['active']){$missing[]=$group.':'.$slug;continue;}$id=absint($local['id']);$groups[$group][]=$id;if('tipo'===$group&&!empty($row['role_slug'])){$rg=sanitize_key($row['role_group']??'rol')?:'rol';$rs=sanitize_title($row['role_slug']);$role=$wpdb->get_row($wpdb->prepare("SELECT id,active FROM {$vtable} WHERE semantic_group=%s AND slug=%s LIMIT 1",$rg,$rs),ARRAY_A);if(!$role||!(int)$role['active']){$missing[]=$rg.':'.$rs.' (ROL de '.$slug.')';continue;}$m=$wpdb->get_row($wpdb->prepare("SELECT role_vocabulary_id,active FROM {$map} WHERE type_vocabulary_id=%d LIMIT 1",$id),ARRAY_A);if(!$m||!(int)$m['active']||absint($m['role_vocabulary_id'])!==absint($role['id']))$missing[]='mapeo TIPO→ROL '.$slug.'→'.$rs;}}
+        if($missing)return new WP_Error('missing_vocabulary_master','Falta vocabulario maestro en el destino: '.implode(', ',array_slice(array_values(array_unique($missing)),0,12)).'. Sincroniza primero Maestros · Vocabulario semántico.');foreach($groups as &$ids)$ids=array_values(array_unique(array_map('absint',$ids)));unset($ids);return['groups'=>$groups,'missing'=>[]];
+    }
+}
+
+if ( ! function_exists( 'seo_environment_sync_validate_attribute_masters_local' ) ) {
+    function seo_environment_sync_validate_attribute_masters_local( array $rows ) {
+        global $wpdb;$defs=$wpdb->prefix.'sql_atributos';$terms=$wpdb->prefix.'sql_atributos_terminos';$missing=[];$cache=[];
+        foreach($rows as $row){$slug=sanitize_key($row['attribute_type']??'');if(!$slug)continue;if(!array_key_exists($slug,$cache)){$a=$wpdb->get_row($wpdb->prepare("SELECT id,activo FROM {$defs} WHERE slug=%s LIMIT 1",$slug),ARRAY_A);$cache[$slug]=$a&&((int)$a['activo'])?absint($a['id']):0;}if(!$cache[$slug]){$missing[]='atributo '.$slug;continue;}if(!empty($row['term_slug'])){$ts=sanitize_title($row['term_slug']);$t=$wpdb->get_row($wpdb->prepare("SELECT id,activo FROM {$terms} WHERE atributo_id=%d AND slug=%s LIMIT 1",$cache[$slug],$ts),ARRAY_A);if(!$t||!(int)$t['activo'])$missing[]='término '.$slug.':'.$ts;}}
+        return $missing?new WP_Error('missing_attribute_master','Faltan maestros de atributos en el destino: '.implode(', ',array_slice(array_values(array_unique($missing)),0,12)).'. Sincroniza primero Maestros · Atributos y Maestros · Términos de atributos.'):true;
+    }
+}
+
 if ( ! function_exists( 'seo_environment_sync_pull_general_post' ) ) {
     function seo_environment_sync_pull_general_post( $mysqli, $source_env, $entity, $id ) {
         $prefix=seo_environment_compare_db_prefix($source_env);$post_type=['products_general'=>'product','pages_general'=>'page','posts_general'=>'post'][$entity];$src=seo_environment_sync_fetch_post($mysqli,$prefix,$post_type,$id);if(is_wp_error($src)||!$src)return is_wp_error($src)?$src:new WP_Error('missing_source','El objeto origen ya no existe.');$local=get_post($id);if(!$local||$local->post_type!==$post_type)return new WP_Error('missing_destination','El objeto no existe en el destino. No se crean objetos desde este comparador.');
@@ -1826,7 +2029,7 @@ if ( ! function_exists( 'seo_environment_sync_pull_general_post' ) ) {
 
 if ( ! function_exists( 'seo_environment_sync_pull_native_tags' ) ) {
     function seo_environment_sync_pull_native_tags( $mysqli, $source_env, $entity, $id ) {
-        $prefix=seo_environment_compare_db_prefix($source_env);$map=['product_tags'=>['product','product_tag'],'page_tags'=>['page','post_tag'],'post_tags'=>['post','post_tag']];[$post_type,$taxonomy]=$map[$entity];$local=get_post($id);if(!$local||$local->post_type!==$post_type)return new WP_Error('missing_destination','El objeto no existe en el destino.');$terms=seo_environment_sync_fetch_terms($mysqli,$prefix,$id,[$taxonomy]);if(is_wp_error($terms))return$terms;$resolved=seo_environment_sync_resolve_or_create_terms_local($terms,[$taxonomy]);if($resolved['missing'])return new WP_Error('missing_terms','No se pudieron resolver términos: '.implode(', ',array_slice($resolved['missing'],0,8)));$r=wp_set_object_terms($id,$resolved['terms'][$taxonomy]??[],$taxonomy,false);if(is_wp_error($r))return$r;
+        $prefix=seo_environment_compare_db_prefix($source_env);$map=['product_tags'=>['product','product_tag'],'page_tags'=>['page','post_tag'],'post_tags'=>['post','post_tag']];[$post_type,$taxonomy]=$map[$entity];$local=get_post($id);if(!$local||$local->post_type!==$post_type)return new WP_Error('missing_destination','El objeto no existe en el destino.');$terms=seo_environment_sync_fetch_terms($mysqli,$prefix,$id,[$taxonomy]);if(is_wp_error($terms))return$terms;$resolved=seo_environment_sync_resolve_terms_local($terms);if($resolved['missing'])return new WP_Error('missing_terms','Faltan etiquetas maestras en el destino: '.implode(', ',array_slice($resolved['missing'],0,8)).'. Sincroniza primero la capa Maestros correspondiente.');$r=wp_set_object_terms($id,$resolved['terms'][$taxonomy]??[],$taxonomy,false);if(is_wp_error($r))return$r;
         if(in_array($entity,['page_tags','post_tags'],true)){$nodes=seo_environment_sync_fetch_selected_nodes($mysqli,$prefix,$post_type,$id,[],true);if(is_wp_error($nodes))return$nodes;$replaced=seo_environment_sync_replace_selected_nodes_local($post_type,$id,$nodes,[],true);if(is_wp_error($replaced))return$replaced;}clean_post_cache($id);return true;
     }
 }
@@ -1834,7 +2037,7 @@ if ( ! function_exists( 'seo_environment_sync_pull_native_tags' ) ) {
 if ( ! function_exists( 'seo_environment_sync_pull_semantic' ) ) {
     function seo_environment_sync_pull_semantic( $mysqli, $source_env, $entity, $id ) {
         $prefix=seo_environment_compare_db_prefix($source_env);$object_type='product_semantic'===$entity?'product':'product_cat';if('product'===$object_type){$local=get_post($id);if(!$local||$local->post_type!=='product')return new WP_Error('missing_destination','El producto no existe en el destino.');}else{$local=get_term($id,'product_cat');if(!$local||is_wp_error($local))return new WP_Error('missing_destination','La categoría no existe en el destino.');}
-        $rows=seo_environment_sync_fetch_semantic($mysqli,$prefix,$object_type,$id);if(is_wp_error($rows))return$rows;$sem=seo_environment_sync_ensure_semantic_local($rows);if(is_wp_error($sem))return$sem;
+        $rows=seo_environment_sync_fetch_semantic($mysqli,$prefix,$object_type,$id);if(is_wp_error($rows))return$rows;$sem=seo_environment_sync_resolve_semantic_local_strict($rows);if(is_wp_error($sem))return$sem;
         $all=['rol'=>[],'tipo'=>[],'aplicacion'=>[],'plataforma'=>[],'subtipo'=>[]];foreach($sem['groups'] as $g=>$ids)$all[$g]=$ids;
         if('product'===$object_type){if(!function_exists('seo_catalog_apply_product_vocabulary_changes'))return new WP_Error('semantic_writer_missing','No está disponible el escritor canónico de producto.');$r=seo_catalog_apply_product_vocabulary_changes($id,$all,'environment_sync');if(empty($r['ok']))return new WP_Error('semantic_sync',(string)($r['message']??'No se pudo sincronizar la semántica.'));}
         else{if(!function_exists('seo_category_vocabulary_replace'))return new WP_Error('semantic_writer_missing','No está disponible el escritor canónico de categorías.');$r=seo_category_vocabulary_replace($id,$all,'environment_sync');if(is_wp_error($r))return$r;}
@@ -1844,7 +2047,7 @@ if ( ! function_exists( 'seo_environment_sync_pull_semantic' ) ) {
 
 if ( ! function_exists( 'seo_environment_sync_pull_product_attributes' ) ) {
     function seo_environment_sync_pull_product_attributes( $mysqli, $source_env, $id ) {
-        $local=get_post($id);if(!$local||$local->post_type!=='product')return new WP_Error('missing_destination','El producto no existe en el destino.');$prefix=seo_environment_compare_db_prefix($source_env);$rows=seo_environment_sync_fetch_product_attributes($mysqli,$prefix,$id);if(is_wp_error($rows))return$rows;$masters=seo_environment_sync_ensure_attribute_masters_local($rows);if(is_wp_error($masters))return$masters;if(!function_exists('seo_attributes_replace_product'))return new WP_Error('attribute_writer_missing','No está disponible el escritor canónico de atributos.');$written=seo_attributes_replace_product($id,seo_environment_sync_attribute_rows_local($rows),'environment_sync');if(is_wp_error($written))return$written;if(false===$written)return new WP_Error('attribute_sync','El escritor canónico de atributos devolvió un fallo.');if(is_array($written)&&array_key_exists('ok',$written)&&empty($written['ok']))return new WP_Error('attribute_sync',(string)($written['message']??'No se pudieron sincronizar los atributos.'));if(function_exists('wc_delete_product_transients'))wc_delete_product_transients($id);return true;
+        $local=get_post($id);if(!$local||$local->post_type!=='product')return new WP_Error('missing_destination','El producto no existe en el destino.');$prefix=seo_environment_compare_db_prefix($source_env);$rows=seo_environment_sync_fetch_product_attributes($mysqli,$prefix,$id);if(is_wp_error($rows))return$rows;$masters=seo_environment_sync_validate_attribute_masters_local($rows);if(is_wp_error($masters))return$masters;if(!function_exists('seo_attributes_replace_product'))return new WP_Error('attribute_writer_missing','No está disponible el escritor canónico de atributos.');$written=seo_attributes_replace_product($id,seo_environment_sync_attribute_rows_local($rows),'environment_sync');if(is_wp_error($written))return$written;if(false===$written)return new WP_Error('attribute_sync','El escritor canónico de atributos devolvió un fallo.');if(is_array($written)&&array_key_exists('ok',$written)&&empty($written['ok']))return new WP_Error('attribute_sync',(string)($written['message']??'No se pudieron sincronizar los atributos.'));if(function_exists('wc_delete_product_transients'))wc_delete_product_transients($id);return true;
     }
 }
 
@@ -1870,6 +2073,7 @@ if ( ! function_exists( 'seo_environment_sync_pull_item' ) ) {
     function seo_environment_sync_pull_item( $source_env, $entity, $id, $mysqli=null ) {
         $own=false;if(!$mysqli){$mysqli=seo_environment_compare_open($source_env);$own=true;}if(is_wp_error($mysqli))return$mysqli;
         switch($entity){
+            case 'vocabulary_master': case 'product_tag_master': case 'post_tag_master': case 'attribute_master': case 'attribute_term_master': case 'attribute_alias_master': $result=seo_environment_sync_pull_master($mysqli,$source_env,$entity,$id);break;
             case 'products_general': case 'pages_general': case 'posts_general': $result=seo_environment_sync_pull_general_post($mysqli,$source_env,$entity,$id);break;
             case 'categories_general': $result=seo_environment_sync_pull_category_general($mysqli,$source_env,$id);break;
             case 'product_tags': case 'page_tags': case 'post_tags': $result=seo_environment_sync_pull_native_tags($mysqli,$source_env,$entity,$id);break;
@@ -1892,17 +2096,14 @@ if ( ! function_exists( 'seo_environment_sync_validate_direction' ) ) {
 
 if ( ! function_exists( 'seo_environment_sync_revalidate_item' ) ) {
     function seo_environment_sync_revalidate_item( $entity, $id, $source = '' ) {
-        global $wpdb;$table=seo_environment_compare_table();
+        global $wpdb;$table=seo_environment_compare_table();$source=sanitize_key($source);$allowed=seo_environment_compare_syncable_statuses($entity,$source);
         $scan=$wpdb->get_row($wpdb->prepare("SELECT status,hash_pro,hash_staging FROM {$table} WHERE entity=%s AND object_id=%d LIMIT 1",$entity,absint($id)),ARRAY_A);
-        if(!$scan||'different'!==($scan['status']??''))return new WP_Error('scan_required','La fila no pertenece a un escaneo vigente de diferencias. Vuelve a escanear.');
+        if(!$scan||!in_array((string)($scan['status']??''),$allowed,true))return new WP_Error('scan_required','La fila no pertenece a un escaneo vigente sincronizable en esta dirección. Vuelve a escanear.');
         $pro=seo_environment_compare_open('pro');$stg=seo_environment_compare_open('staging');if(is_wp_error($pro)||is_wp_error($stg)){if($pro instanceof mysqli)@mysqli_close($pro);if($stg instanceof mysqli)@mysqli_close($stg);return is_wp_error($pro)?$pro:$stg;}
-        $p=seo_environment_compare_fetch_snapshots($pro,'pro',$entity,[$id]);$s=seo_environment_compare_fetch_snapshots($stg,'staging',$entity,[$id]);@mysqli_close($pro);@mysqli_close($stg);
-        if(is_wp_error($p)||is_wp_error($s))return is_wp_error($p)?$p:$s;
-        if(empty($p[$id])||empty($s[$id]))return new WP_Error('missing_object','El objeto ya no existe en ambos entornos. Solo se informa; no se crea ni elimina.');
-        $fresh_pro=(string)$p[$id]['hash'];$fresh_staging=(string)$s[$id]['hash'];
-        if(!hash_equals((string)$scan['hash_pro'],$fresh_pro)||!hash_equals((string)$scan['hash_staging'],$fresh_staging))return new WP_Error('stale_scan','PRO o STAGING cambió después del último escaneo. No se sobrescribe nada: vuelve a escanear antes de elegir dirección.');
-        if(hash_equals($fresh_pro,$fresh_staging))return new WP_Error('already_equal','El objeto ya está igual en ambos entornos.');
-        return true;
+        $p=seo_environment_compare_fetch_snapshots($pro,'pro',$entity,[$id]);$s=seo_environment_compare_fetch_snapshots($stg,'staging',$entity,[$id]);@mysqli_close($pro);@mysqli_close($stg);if(is_wp_error($p)||is_wp_error($s))return is_wp_error($p)?$p:$s;$pr=$p[$id]??null;$sr=$s[$id]??null;
+        if('different'===($scan['status']??'')){if(!$pr||!$sr)return new WP_Error('stale_scan','El objeto cambió de existencia después del escaneo. Reescanea.');$fresh_pro=(string)$pr['hash'];$fresh_staging=(string)$sr['hash'];if(!hash_equals((string)$scan['hash_pro'],$fresh_pro)||!hash_equals((string)$scan['hash_staging'],$fresh_staging))return new WP_Error('stale_scan','PRO o STAGING cambió después del último escaneo. Reescanea.');if(hash_equals($fresh_pro,$fresh_staging))return new WP_Error('already_equal','El maestro/objeto ya está igual en ambos entornos.');return true;}
+        if(!seo_environment_compare_is_master_entity($entity))return new WP_Error('missing_object','Las altas de productos/categorías/páginas/posts siguen bloqueadas en el comparador. Sincroniza primero Maestros y usa el alta/importador canónico.');
+        $source_row='pro'===$source?$pr:$sr;$dest_row='pro'===$source?$sr:$pr;if(!$source_row)return new WP_Error('missing_source_master','El maestro ya no existe en el origen. Reescanea.');if($dest_row)return new WP_Error('stale_scan','El maestro ya apareció en el destino después del escaneo. Reescanea.');$expected='pro'===$source?(string)$scan['hash_pro']:(string)$scan['hash_staging'];if(!hash_equals($expected,(string)$source_row['hash']))return new WP_Error('stale_scan','El maestro origen cambió después del escaneo. Reescanea.');return true;
     }
 }
 
@@ -1919,9 +2120,9 @@ add_action('wp_ajax_seo_environment_sync_item','seo_environment_sync_item_ajax')
 if ( ! function_exists( 'seo_environment_sync_bulk_ajax' ) ) {
     function seo_environment_sync_bulk_ajax() {
         if(!current_user_can('manage_options'))wp_send_json_error(['message'=>'Sin permisos.'],403);check_ajax_referer('seo_environment_compare','nonce');$entity=sanitize_key($_POST['entity']??'');$source=sanitize_key($_POST['source']??'');$destination=sanitize_key($_POST['destination']??'');if(!isset(seo_environment_compare_entities()[$entity]))wp_send_json_error(['message'=>'Entidad no válida.'],400);$dir=seo_environment_sync_validate_direction($source,$destination);if(is_wp_error($dir))wp_send_json_error(['message'=>$dir->get_error_message()],400);
-        global$wpdb;$table=seo_environment_compare_table();$ids=$wpdb->get_col($wpdb->prepare("SELECT object_id FROM {$table} WHERE entity=%s AND status='different' ORDER BY object_id ASC LIMIT 5",$entity));if(!$ids)wp_send_json_success(['done'=>true,'updated'=>0,'errors'=>[]]);$mysqli=seo_environment_compare_open($source);if(is_wp_error($mysqli))wp_send_json_error(['message'=>$mysqli->get_error_message()],500);$updated=0;$errors=[];
+        global$wpdb;$table=seo_environment_compare_table();$statuses=seo_environment_compare_syncable_statuses($entity,$source);$placeholders=implode(',',array_fill(0,count($statuses),'%s'));$args=array_merge([$entity],$statuses);$sql=$wpdb->prepare("SELECT object_id FROM {$table} WHERE entity=%s AND status IN ({$placeholders}) ORDER BY object_id ASC LIMIT 5",$args);$ids=$wpdb->get_col($sql);if(!$ids)wp_send_json_success(['done'=>true,'updated'=>0,'errors'=>[]]);$mysqli=seo_environment_compare_open($source);if(is_wp_error($mysqli))wp_send_json_error(['message'=>$mysqli->get_error_message()],500);$updated=0;$errors=[];
         foreach($ids as$id){$id=absint($id);$valid=seo_environment_sync_revalidate_item($entity,$id,$source);if(is_wp_error($valid)){$message=$valid->get_error_message();$errors[]='#'.$id.': '.$message;$wpdb->update($table,['status'=>'blocked','summary'=>'Bloqueado: '.$message],['entity'=>$entity,'object_id'=>$id],['%s','%s'],['%s','%d']);continue;}$r=seo_environment_sync_pull_item($source,$entity,$id,$mysqli);if(is_wp_error($r)){$message=$r->get_error_message();$errors[]='#'.$id.': '.$message;$wpdb->update($table,['status'=>'blocked','summary'=>'Bloqueado: '.$message],['entity'=>$entity,'object_id'=>$id],['%s','%s'],['%s','%d']);continue;}$wpdb->delete($table,['entity'=>$entity,'object_id'=>$id],['%s','%d']);$updated++;}
-        @mysqli_close($mysqli);$remaining=(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE entity=%s AND status='different'",$entity));$blocked=(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE entity=%s AND status='blocked'",$entity));wp_send_json_success(['done'=>0===$remaining,'updated'=>$updated,'remaining'=>$remaining,'blocked'=>$blocked,'errors'=>$errors]);
+        @mysqli_close($mysqli);$args=array_merge([$entity],$statuses);$remaining=(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE entity=%s AND status IN ({$placeholders})",$args));$blocked=(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE entity=%s AND status='blocked'",$entity));wp_send_json_success(['done'=>0===$remaining,'updated'=>$updated,'remaining'=>$remaining,'blocked'=>$blocked,'errors'=>$errors]);
     }
 }
 add_action('wp_ajax_seo_environment_sync_bulk','seo_environment_sync_bulk_ajax');
@@ -1932,24 +2133,24 @@ if ( ! function_exists( 'seo_environment_compare_render' ) ) {
         echo '<div class="seo-env-compare">';
         $json_url = wp_nonce_url( add_query_arg( [ 'action' => 'seo_environment_compare_export_json' ], admin_url( 'admin-post.php' ) ), 'seo_environment_compare_export_json' );
         echo '<div style="margin:0 0 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><a class="button button-primary" href="'.esc_url($json_url).'">Descargar JSON del informe</a><strong style="color:#2271b1;">Escaneo por Gestor de procesos / worker</strong></div>';
-        echo '<div class="card" style="max-width:none;padding:18px;margin-bottom:18px;"><h2 style="margin-top:0;">Comparar PRO ↔ STAGING por capas</h2><p>El comparador separa los datos para que una edición nueva de clasificación nunca se pierda al actualizar contenido general.</p><p><strong>Información general:</strong> productos = título, excerpt, description y categorías asociadas; categorías = nombre, excerpt y description; páginas/posts = título, excerpt y description.</p><p><strong>Clasificación:</strong> etiquetas WordPress/WooCommerce, etiquetas SEO de categoría/página/post, vocabulario semántico canónico y atributos de producto se escanean y sincronizan en bloques independientes.</p><p><strong>Vocabulario dependiente:</strong> si una asignación semántica o atributo del origen necesita una definición que no existe en el destino, el comparador crea primero la definición necesaria por su clave canónica y después aplica la asignación. Nunca copia IDs maestros a ciegas.</p><p><strong>Imágenes excluidas:</strong> imágenes, attachment IDs, miniaturas y galerías no participan en ninguna capa.</p><p><strong>Fechas ignoradas:</strong> las fechas de modificación no participan en el resultado ni eligen dirección. Igual/Diferente depende exclusivamente del contenido relevante de la capa.</p><p><strong>Seguridad:</strong> la dirección la eliges tú. Antes de escribir se comparan de nuevo los hashes actuales con los del último escaneo; si cualquiera de los dos entornos cambió desde entonces, esa escritura se bloquea y exige reescanear.</p><p><strong>Altas nuevas:</strong> los productos/categorías/páginas/posts que existen solo en un entorno se informan, pero su creación completa se deja al importador canónico del plugin. El comparador no clona <code>postmeta</code> ni IDs internos a ciegas; una vez existe el objeto en ambos entornos, sí reconcilia sus capas y crea el vocabulario maestro necesario.</p><p>Entorno actual detectado: <strong>'.esc_html($current?strtoupper($current):'NO IDENTIFICADO').'</strong>.</p></div>';
+        echo '<div class="card" style="max-width:none;padding:18px;margin-bottom:18px;"><h2 style="margin-top:0;">Comparar PRO ↔ STAGING por capas</h2><p><strong>Orden obligatorio:</strong> 1) iguala Maestros/diccionarios; 2) crea los objetos mediante el alta/importador canónico cuando proceda; 3) reconcilia sus asignaciones.</p><p><strong>Maestros:</strong> vocabulario semántico, etiquetas nativas y catálogo de atributos sí pueden crearse/actualizarse desde este comparador por clave canónica. Las capas maestras son aditivas: nunca borran un maestro que solo exista en el destino.</p><p><strong>Asignaciones:</strong> productos/categorías/páginas/posts no crean vocabulario, etiquetas ni atributos de forma implícita. Si falta un maestro, la escritura se bloquea y te indica qué capa debes sincronizar primero.</p><p><strong>Altas de objetos:</strong> siguen bloqueadas aquí hasta que el importador/alta canónica valide todas las dependencias. Esto evita productos o categorías parcialmente clasificados.</p><p><strong>Imágenes excluidas:</strong> imágenes, attachment IDs, miniaturas y galerías no participan en ninguna capa.</p><p><strong>Fechas ignoradas:</strong> las fechas no deciden igualdad ni dirección. Antes de escribir se revalidan los hashes del último escaneo.</p><p>Entorno actual detectado: <strong>'.esc_html($current?strtoupper($current):'NO IDENTIFICADO').'</strong>.</p></div>';
         echo '<style>.seo-env-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:16px 0 24px}.seo-env-kpi{background:#fff;border:1px solid #dcdcde;border-radius:7px;padding:14px}.seo-env-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}.seo-env-green{background:#00a32a}.seo-env-yellow{background:#dba617}.seo-env-red{background:#d63638}.seo-env-gray{background:#8c8f94}.seo-env-count{font-size:24px;font-weight:650}.seo-env-section{background:#fff;border:1px solid #dcdcde;border-radius:7px;padding:16px;margin:0 0 18px}.seo-env-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.seo-env-table{width:100%;border-collapse:collapse}.seo-env-table th,.seo-env-table td{padding:8px;border-bottom:1px solid #eee;text-align:left;vertical-align:top}.seo-env-muted{color:#646970;font-size:12px}.seo-env-progress{margin-left:8px}.seo-env-group-title{grid-column:1/-1;margin:16px 0 0}</style>';
         echo '<div class="seo-env-kpis">';
-        $last_group='';foreach($entities as$key=>$def){if(($def['group']??'')!==$last_group){$last_group=(string)($def['group']??'');echo '<h2 class="seo-env-group-title">'.esc_html('classification'===$last_group?'Clasificación / enriquecimiento':'Información general').'</h2>';}$s=seo_environment_compare_get_state($key);$color='gray';if('complete'===$s['status']){$color=($s['only_pro']||$s['only_staging'])?'red':($s['different']?'yellow':'green');}elseif('error'===$s['status'])$color='red';$diff=(int)$s['different']+(int)$s['only_pro']+(int)$s['only_staging'];echo '<div class="seo-env-kpi" data-kpi="'.esc_attr($key).'"><div><span class="seo-env-dot seo-env-'.esc_attr($color).'"></span><strong>'.esc_html($def['label']).'</strong></div><div class="seo-env-count">'.esc_html('complete'===$s['status']?number_format_i18n($diff):'—').'</div><div class="seo-env-muted">PRO '.number_format_i18n((int)$s['pro']).' · STAGING '.number_format_i18n((int)$s['staging']).'</div><p><button class="button seo-env-scan" data-entity="'.esc_attr($key).'">Escanear '.esc_html(strtolower($def['label'])).'</button><span class="seo-env-progress" data-progress="'.esc_attr($key).'"></span></p></div>';}
+        $last_group='';foreach($entities as$key=>$def){if(($def['group']??'')!==$last_group){$last_group=(string)($def['group']??'');echo '<h2 class="seo-env-group-title">'.esc_html('masters'===$last_group?'Maestros / diccionarios':('classification'===$last_group?'Clasificación / asignaciones':'Información general')).'</h2>';}$s=seo_environment_compare_get_state($key);$color='gray';if('complete'===$s['status']){$color=($s['only_pro']||$s['only_staging'])?'red':($s['different']?'yellow':'green');}elseif('error'===$s['status'])$color='red';$diff=(int)$s['different']+(int)$s['only_pro']+(int)$s['only_staging'];echo '<div class="seo-env-kpi" data-kpi="'.esc_attr($key).'"><div><span class="seo-env-dot seo-env-'.esc_attr($color).'"></span><strong>'.esc_html($def['label']).'</strong></div><div class="seo-env-count">'.esc_html('complete'===$s['status']?number_format_i18n($diff):'—').'</div><div class="seo-env-muted">PRO '.number_format_i18n((int)$s['pro']).' · STAGING '.number_format_i18n((int)$s['staging']).'</div><p><button class="button seo-env-scan" data-entity="'.esc_attr($key).'">Escanear '.esc_html(strtolower($def['label'])).'</button><span class="seo-env-progress" data-progress="'.esc_attr($key).'"></span></p></div>';}
         echo '</div>';
         foreach($entities as$key=>$def){$s=seo_environment_compare_get_state($key);$rows=$wpdb->get_results($wpdb->prepare("SELECT * FROM {$table} WHERE entity=%s ORDER BY CASE status WHEN 'different' THEN 0 ELSE 1 END, object_id ASC LIMIT 100",$key),ARRAY_A);$total_diff=(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE entity=%s",$key));
             echo '<section class="seo-env-section"><h2 style="margin-top:0;">Diferencias de '.esc_html(strtolower($def['label'])).'</h2><div class="seo-env-actions"><button class="button button-primary seo-env-scan" data-entity="'.esc_attr($key).'">Escanear diferencias</button>';
-            foreach([['pro','staging'],['staging','pro']] as$direction){[$source,$dest]=$direction;$enabled=$current===$dest&&'complete'===$s['status']&&((int)$s['different']>0);$label='Copiar diferencias '.strtoupper($source).' → '.strtoupper($dest);echo '<button class="button seo-env-bulk" data-entity="'.esc_attr($key).'" data-source="'.esc_attr($source).'" data-destination="'.esc_attr($dest).'" '.disabled(!$enabled,true,false).' title="'.esc_attr($current!==$dest?'Ejecuta esta dirección desde '.strtoupper($dest):'Copia todas las diferencias de esta capa en la dirección elegida; las fechas se ignoran').'">'.esc_html($label).'</button>';}
+            foreach([['pro','staging'],['staging','pro']] as$direction){[$source,$dest]=$direction;$syncable_count=(int)$s['different']+(seo_environment_compare_is_master_entity($key)?('pro'===$source?(int)$s['only_pro']:(int)$s['only_staging']):0);$enabled=$current===$dest&&'complete'===$s['status']&&$syncable_count>0;$label='Copiar diferencias '.strtoupper($source).' → '.strtoupper($dest);echo '<button class="button seo-env-bulk" data-entity="'.esc_attr($key).'" data-source="'.esc_attr($source).'" data-destination="'.esc_attr($dest).'" '.disabled(!$enabled,true,false).' title="'.esc_attr($current!==$dest?'Ejecuta esta dirección desde '.strtoupper($dest):'Copia todas las diferencias de esta capa en la dirección elegida; las fechas se ignoran').'">'.esc_html($label).'</button>';}
             echo '<span class="seo-env-progress" data-progress="'.esc_attr($key).'"></span></div>';
             if('complete'===$s['status'])echo '<p class="seo-env-muted">Iguales: '.number_format_i18n((int)$s['same']).' · Diferentes: '.number_format_i18n((int)$s['different']).' · Solo PRO: '.number_format_i18n((int)$s['only_pro']).' · Solo STAGING: '.number_format_i18n((int)$s['only_staging']).' · <strong>Fechas ignoradas</strong></p>';
             elseif('never'===$s['status'])echo '<p class="seo-env-muted">Todavía no se ha escaneado esta entidad.</p>';elseif('error'===$s['status'])echo '<p style="color:#b32d2e;">'.esc_html($s['error']).'</p>';
             if($rows){echo '<details><summary><strong>Ver diferencias detectadas ('.number_format_i18n($total_diff).')</strong></summary><div style="overflow:auto;margin-top:10px;"><table class="seo-env-table"><thead><tr><th>ID</th><th>Nombre</th><th>Resumen</th><th>Acciones</th></tr></thead><tbody>';
-                foreach($rows as$row){$id=absint($row['object_id']);$name=$row['name_pro']?:$row['name_staging'];$missing='only_pro'===$row['status']||'only_staging'===$row['status'];echo '<tr><td><code>'.$id.'</code></td><td>'.esc_html($name).'</td><td>'.esc_html($row['summary']).($missing?'<br><span class="seo-env-muted">Solo se informa; no se crea ni elimina.</span>':'').'</td><td>';
-                    foreach([['pro','staging'],['staging','pro']] as$direction){[$source,$dest]=$direction;$can=!$missing&&'different'===$row['status']&&$current===$dest;echo '<button class="button button-small seo-env-sync-one" data-entity="'.esc_attr($key).'" data-id="'.$id.'" data-source="'.esc_attr($source).'" data-destination="'.esc_attr($dest).'" '.disabled(!$can,true,false).'>'.esc_html(strtoupper($source).' → '.strtoupper($dest)).'</button> ';}
+                foreach($rows as$row){$id=absint($row['object_id']);$name=$row['name_pro']?:$row['name_staging'];$missing='only_pro'===$row['status']||'only_staging'===$row['status'];$master=seo_environment_compare_is_master_entity($key);$note=$missing?($master?'Este maestro se puede crear desde el entorno donde existe. No se borran maestros del destino.':'Alta de objeto bloqueada aquí: primero iguala Maestros y usa el alta/importador canónico.') : '';echo '<tr><td><code>'.($master?'—':$id).'</code></td><td>'.esc_html($name).'</td><td>'.esc_html($row['summary']).($note?'<br><span class="seo-env-muted">'.esc_html($note).'</span>':'').'</td><td>';
+                    foreach([['pro','staging'],['staging','pro']] as$direction){[$source,$dest]=$direction;$syncable_statuses=seo_environment_compare_syncable_statuses($key,$source);$can=in_array((string)$row['status'],$syncable_statuses,true)&&$current===$dest;echo '<button class="button button-small seo-env-sync-one" data-entity="'.esc_attr($key).'" data-id="'.$id.'" data-source="'.esc_attr($source).'" data-destination="'.esc_attr($dest).'" '.disabled(!$can,true,false).'>'.esc_html(strtoupper($source).' → '.strtoupper($dest)).'</button> ';}
                     echo '</td></tr>';}
                 echo '</tbody></table></div>';if($total_diff>100)echo '<p class="seo-env-muted">Se muestran las primeras 100 diferencias para mantener ligera la pantalla. El escaneo conserva el inventario completo.</p>';echo '</details>';}
             echo '</section>';}
-        echo '<script>(function(){const ajax='.wp_json_encode(admin_url('admin-ajax.php')).',nonce='.wp_json_encode($nonce).';function post(data){data.nonce=nonce;return fetch(ajax,{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8"},body:new URLSearchParams(data)}).then(async r=>{const t=await r.text();if(!t.trim())throw new Error("Respuesta vacía del servidor (HTTP "+r.status+").");try{return JSON.parse(t);}catch(e){throw new Error("Respuesta no JSON (HTTP "+r.status+"): "+t.slice(0,180));}});}function progress(entity,text){document.querySelectorAll("[data-progress=\""+entity+"\"]").forEach(n=>n.textContent=text||"");}async function scan(entity,reset){document.querySelectorAll(".seo-env-scan[data-entity=\""+entity+"\"]").forEach(b=>b.disabled=true);try{let r=await post({action:"seo_environment_compare_scan",entity:entity,reset:reset?1:0});if(!r.success)throw new Error((r.data&&r.data.message)||"Error al encolar el escaneo");progress(entity,"En cola del Gestor de procesos…");while(true){await new Promise(x=>setTimeout(x,3000));r=await post({action:"seo_environment_compare_scan",entity:entity,reset:0});if(!r.success)throw new Error((r.data&&r.data.message)||"Error consultando estado");const s=r.data.state||{};const m=r.data.manager||{};progress(entity,"Worker: "+(s.processed||0)+" procesados · intentos "+(s.worker_attempts||0)+" · fase "+(s.last_worker_phase||"—")+" · candidatos PRO/STG "+(s.last_candidate_pro||0)+"/"+(s.last_candidate_staging||0)+" · lote "+(s.batch_size||1000)+" · "+(s.last_batch_seconds||0)+" s"+(m.status?" · gestor "+m.status:""));if(r.data.done){if(s.status==="error")throw new Error(s.error||"El worker terminó con error");break;}}progress(entity,"Escaneo completo");setTimeout(()=>location.reload(),700);}catch(e){progress(entity,e.message);document.querySelectorAll(".seo-env-scan[data-entity=\""+entity+"\"]").forEach(b=>b.disabled=false);}}document.querySelectorAll(".seo-env-scan").forEach(b=>b.addEventListener("click",e=>{e.preventDefault();scan(b.dataset.entity,true);}));document.querySelectorAll(".seo-env-sync-one").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(b.disabled)return;b.disabled=true;progress(b.dataset.entity,"Actualizando #"+b.dataset.id+"…");const r=await post({action:"seo_environment_sync_item",entity:b.dataset.entity,object_id:b.dataset.id,source:b.dataset.source,destination:b.dataset.destination});if(!r.success){progress(b.dataset.entity,(r.data&&r.data.message)||"Error");b.disabled=false;return;}progress(b.dataset.entity,"Actualizado. Verificando…");scan(b.dataset.entity,true);}));document.querySelectorAll(".seo-env-bulk").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(b.disabled)return;const msg="Vas a copiar TODAS las diferencias de esta capa "+b.dataset.source.toUpperCase()+" → "+b.dataset.destination.toUpperCase()+". Las fechas se ignoran y el contenido del origen sustituirá esta capa en el destino. ¿Continuar?";if(!window.confirm(msg))return;b.disabled=true;let total=0;progress(b.dataset.entity,"Sincronizando por lotes…");while(true){const r=await post({action:"seo_environment_sync_bulk",entity:b.dataset.entity,source:b.dataset.source,destination:b.dataset.destination});if(!r.success){progress(b.dataset.entity,(r.data&&r.data.message)||"Error");b.disabled=false;return;}total+=Number(r.data.updated||0);progress(b.dataset.entity,"Actualizados "+total+" · pendientes "+Number(r.data.remaining||0)+" · bloqueados "+Number(r.data.blocked||0));if(r.data.done)break;if(Number(r.data.updated||0)===0&&Number(r.data.remaining||0)>0){progress(b.dataset.entity,"Hay filas bloqueadas porque cambiaron después del escaneo o requieren revisión. Reescanea.");b.disabled=false;return;}await new Promise(x=>setTimeout(x,400));}scan(b.dataset.entity,true);}));})();</script>';
+        echo '<script>(function(){const ajax='.wp_json_encode(admin_url('admin-ajax.php')).',nonce='.wp_json_encode($nonce).';function post(data){data.nonce=nonce;return fetch(ajax,{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8"},body:new URLSearchParams(data)}).then(async r=>{const t=await r.text();if(!t.trim())throw new Error("Respuesta vacía del servidor (HTTP "+r.status+").");try{return JSON.parse(t);}catch(e){throw new Error("Respuesta no JSON (HTTP "+r.status+"): "+t.slice(0,180));}});}function progress(entity,text){document.querySelectorAll("[data-progress=\""+entity+"\"]").forEach(n=>n.textContent=text||"");}async function scan(entity,reset){document.querySelectorAll(".seo-env-scan[data-entity=\""+entity+"\"]").forEach(b=>b.disabled=true);try{let r=await post({action:"seo_environment_compare_scan",entity:entity,reset:reset?1:0});if(!r.success)throw new Error((r.data&&r.data.message)||"Error al encolar el escaneo");progress(entity,"En cola del Gestor de procesos…");while(true){await new Promise(x=>setTimeout(x,3000));r=await post({action:"seo_environment_compare_scan",entity:entity,reset:0});if(!r.success)throw new Error((r.data&&r.data.message)||"Error consultando estado");const s=r.data.state||{};const m=r.data.manager||{};progress(entity,"Worker: "+(s.processed||0)+" procesados · intentos "+(s.worker_attempts||0)+" · fase "+(s.last_worker_phase||"—")+" · candidatos PRO/STG "+(s.last_candidate_pro||0)+"/"+(s.last_candidate_staging||0)+" · lote "+(s.batch_size||1000)+" · "+(s.last_batch_seconds||0)+" s"+(m.status?" · gestor "+m.status:""));if(r.data.done){if(s.status==="error")throw new Error(s.error||"El worker terminó con error");break;}}progress(entity,"Escaneo completo");setTimeout(()=>location.reload(),700);}catch(e){progress(entity,e.message);document.querySelectorAll(".seo-env-scan[data-entity=\""+entity+"\"]").forEach(b=>b.disabled=false);}}document.querySelectorAll(".seo-env-scan").forEach(b=>b.addEventListener("click",e=>{e.preventDefault();scan(b.dataset.entity,true);}));document.querySelectorAll(".seo-env-sync-one").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(b.disabled)return;b.disabled=true;progress(b.dataset.entity,"Actualizando #"+b.dataset.id+"…");const r=await post({action:"seo_environment_sync_item",entity:b.dataset.entity,object_id:b.dataset.id,source:b.dataset.source,destination:b.dataset.destination});if(!r.success){progress(b.dataset.entity,(r.data&&r.data.message)||"Error");b.disabled=false;return;}progress(b.dataset.entity,"Actualizado. Verificando…");scan(b.dataset.entity,true);}));document.querySelectorAll(".seo-env-bulk").forEach(b=>b.addEventListener("click",async e=>{e.preventDefault();if(b.disabled)return;const msg="Vas a sincronizar esta capa "+b.dataset.source.toUpperCase()+" → "+b.dataset.destination.toUpperCase()+". En Maestros se crearán los que falten y se actualizarán diferencias, pero no se eliminarán maestros exclusivos del destino. ¿Continuar?";if(!window.confirm(msg))return;b.disabled=true;let total=0;progress(b.dataset.entity,"Sincronizando por lotes…");while(true){const r=await post({action:"seo_environment_sync_bulk",entity:b.dataset.entity,source:b.dataset.source,destination:b.dataset.destination});if(!r.success){progress(b.dataset.entity,(r.data&&r.data.message)||"Error");b.disabled=false;return;}total+=Number(r.data.updated||0);progress(b.dataset.entity,"Actualizados "+total+" · pendientes "+Number(r.data.remaining||0)+" · bloqueados "+Number(r.data.blocked||0));if(r.data.done)break;if(Number(r.data.updated||0)===0&&Number(r.data.remaining||0)>0){progress(b.dataset.entity,"Hay filas bloqueadas porque cambiaron después del escaneo o requieren revisión. Reescanea.");b.disabled=false;return;}await new Promise(x=>setTimeout(x,400));}scan(b.dataset.entity,true);}));})();</script>';
         echo '</div>';
     }
 }
