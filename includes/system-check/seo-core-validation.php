@@ -3,7 +3,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_CORE_SYSTEM_TEST_VERSION')) {
-    define('SEO_CORE_SYSTEM_TEST_VERSION', '8.9.0');
+    define('SEO_CORE_SYSTEM_TEST_VERSION', '8.9.1');
 }
 
 $seo_core_settings_module = __DIR__ . '/seo-core-validation-settings.php';
@@ -876,7 +876,9 @@ function seo_core_system_test_code_integrity() {
             'code_integrity',
             '0.15 Archivos omitidos durante el análisis',
             $skipped_count === 0,
-            $skipped_count === 0 ? 'Ningún archivo PHP omitido' : 'Omitidos: ' . number_format_i18n($skipped_count),
+            $skipped_count === 0
+                ? 'Ningún archivo PHP omitido'
+                : 'Omitidos: ' . number_format_i18n($skipped_count) . '. ' . implode('; ', array_slice($inventory['skipped_files'], 0, 5)),
             $skipped_count === 0 ? 'ok' : 'warning'
         ),
         seo_core_system_test_result(
@@ -2551,7 +2553,7 @@ function seo_core_system_test_template_loading() {
         array('2.7 Plantilla carrito disponible', 'seo-system/templates/template-cart.php', true),
         array('2.8 Plantilla checkout disponible', 'seo-system/templates/template-checkout.php', true),
         array('2.9 Plantilla 404 disponible', 'seo-system/templates/template-404.php', true),
-        array('2.10 CSS de plantillas disponible', 'seo-system/templates/styles_template.css', true),
+        array('2.10 CSS de plantillas disponible', 'seo-system/templates/styles-template.css', true),
     );
 
     $results = array();
@@ -6122,24 +6124,28 @@ function seo_core_system_test_get_template_files() {
 }
 
 function seo_core_system_test_get_plugin_root() {
-    $dir = trailingslashit(dirname(__FILE__));
-    $base = basename(untrailingslashit($dir));
-
-    if ($base === 'includes') {
-        return trailingslashit(dirname(untrailingslashit($dir)));
+    if (defined('SEO_SYSTEM_PATH')) {
+        $defined_root = trailingslashit(wp_normalize_path((string) SEO_SYSTEM_PATH));
+        if (is_dir($defined_root)) {
+            return $defined_root;
+        }
     }
 
-    if (file_exists($dir . 'seo-taxonomy.php') || file_exists($dir . 'functions.php')) {
-        return $dir;
+    // Este archivo vive en includes/system-check/. La raiz del plugin esta dos niveles arriba.
+    $candidates = array(
+        dirname(__DIR__, 2),
+        dirname(__DIR__),
+        __DIR__,
+    );
+
+    foreach ($candidates as $candidate) {
+        $candidate = trailingslashit(wp_normalize_path($candidate));
+        if (file_exists($candidate . 'seo-taxonomy.php') || file_exists($candidate . 'functions.php')) {
+            return $candidate;
+        }
     }
 
-    $parent = trailingslashit(dirname(untrailingslashit($dir)));
-
-    if (file_exists($parent . 'seo-taxonomy.php') || file_exists($parent . 'functions.php')) {
-        return $parent;
-    }
-
-    return $dir;
+    return trailingslashit(wp_normalize_path(dirname(__DIR__, 2)));
 }
 
 function seo_core_system_test_count_available_files($plugin_root, $files) {
