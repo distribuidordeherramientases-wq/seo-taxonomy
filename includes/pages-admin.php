@@ -7,11 +7,13 @@
  * - Landings: landing + relación comercial landing_to_category.
  * - Corporativas: corporate_page.
  *
- * Las etiquetas SEO legacy se leen y guardan exclusivamente en
- * wp_seo_nodes.keywords. No se sincronizan con post_tag.
+ * Las landing pages guardan sus etiquetas semánticas exclusivamente en
+ * wp_seo_object_vocabulary -> wp_seo_vocabulary. wp_seo_nodes conserva
+ * el rol estructural de página. Los roles no landing mantienen su circuito
+ * legacy de keywords hasta una fase posterior.
  *
- * Version: 2026-08-26
- * Build: 2
+ * Version: 2026-09-07
+ * Build: 3
  */
 
 if (!defined('ABSPATH')) {
@@ -53,7 +55,7 @@ if (!function_exists('seo_page_editor_get_node')) {
 
         return $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT id, object_type, object_id, seo_role, keywords, status
+                "SELECT id, object_type, object_id, seo_role, status
                  FROM {$wpdb->prefix}seo_nodes
                  WHERE object_type = 'page'
                    AND object_id = %d
@@ -67,13 +69,12 @@ if (!function_exists('seo_page_editor_get_node')) {
     }
 }
 
-if (!function_exists('seo_page_editor_save_node_keywords')) {
-    function seo_page_editor_save_node_keywords($page_id, $role, $keywords) {
+if (!function_exists('seo_page_editor_save_node_role')) {
+    function seo_page_editor_save_node_role($page_id, $role) {
         global $wpdb;
 
-        $page_id  = absint($page_id);
-        $role     = sanitize_key($role);
-        $keywords = trim((string) $keywords);
+        $page_id = absint($page_id);
+        $role    = sanitize_key($role);
 
         if ($page_id < 1 || !in_array($role, seo_page_editor_allowed_roles(), true)) {
             return new WP_Error('seo_page_role_invalid', 'Rol SEO de página no válido.');
@@ -87,19 +88,18 @@ if (!function_exists('seo_page_editor_save_node_keywords')) {
             $updated = $wpdb->update(
                 $table,
                 array(
-                    'keywords'   => $keywords !== '' ? $keywords : null,
                     'status'     => 1,
                     'updated_at' => $now,
                 ),
                 array('id' => (int) $node->id),
-                array('%s', '%d', '%s'),
+                array('%d', '%s'),
                 array('%d')
             );
 
             if ($updated === false) {
                 return new WP_Error(
                     'seo_page_node_update',
-                    'No se pudieron guardar las etiquetas SEO en seo_nodes. ' . $wpdb->last_error
+                    'No se pudo actualizar el rol estructural de la página. ' . $wpdb->last_error
                 );
             }
 
@@ -112,7 +112,7 @@ if (!function_exists('seo_page_editor_save_node_keywords')) {
                 'object_type' => 'page',
                 'object_id'   => $page_id,
                 'seo_role'    => $role,
-                'keywords'    => $keywords !== '' ? $keywords : null,
+                'keywords'    => null,
                 'status'      => 1,
                 'created_at'  => $now,
                 'updated_at'  => $now,
@@ -123,8 +123,80 @@ if (!function_exists('seo_page_editor_save_node_keywords')) {
         if ($inserted === false) {
             return new WP_Error(
                 'seo_page_node_insert',
-                'No se pudo crear el nodo SEO de la página. ' . $wpdb->last_error
+                'No se pudo crear el nodo estructural de la página. ' . $wpdb->last_error
             );
+        }
+
+        return true;
+    }
+}
+
+if (!function_exists('seo_page_editor_get_legacy_keywords')) {
+    function seo_page_editor_get_legacy_keywords($page_id, $role) {
+        global $wpdb;
+
+        $page_id = absint($page_id);
+        $role    = sanitize_key($role);
+        if ($page_id < 1 || $role === 'landing' || !in_array($role, seo_page_editor_allowed_roles(), true)) {
+            return '';
+        }
+
+        return (string) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT keywords
+                 FROM {$wpdb->prefix}seo_nodes
+                 WHERE object_type = 'page'
+                   AND object_id = %d
+                   AND seo_role = %s
+                   AND status = 1
+                 ORDER BY updated_at DESC, id DESC
+                 LIMIT 1",
+                $page_id,
+                $role
+            )
+        );
+    }
+}
+
+if (!function_exists('seo_page_editor_save_node_keywords')) {
+    /**
+     * Compatibilidad temporal para páginas estructurales/corporativas.
+     * Las landings no pasan por esta función.
+     */
+    function seo_page_editor_save_node_keywords($page_id, $role, $keywords) {
+        global $wpdb;
+
+        $page_id  = absint($page_id);
+        $role     = sanitize_key($role);
+        $keywords = trim((string) $keywords);
+
+        if ($role === 'landing') {
+            return seo_page_editor_save_node_role($page_id, $role);
+        }
+
+        $role_result = seo_page_editor_save_node_role($page_id, $role);
+        if (is_wp_error($role_result)) {
+            return $role_result;
+        }
+
+        $node = seo_page_editor_get_node($page_id, $role);
+        if (!$node) {
+            return new WP_Error('seo_page_node_missing', 'No se encontró el nodo estructural tras guardarlo.');
+        }
+
+        $updated = $wpdb->update(
+            $wpdb->prefix . 'seo_nodes',
+            array(
+                'keywords'   => $keywords !== '' ? $keywords : null,
+                'updated_at' => current_time('mysql'),
+            ),
+            array('id' => (int) $node->id),
+            array('%s', '%s'),
+            array('%d')
+        );
+
+        if ($updated === false) {
+            return new WP_Error('seo_page_node_keywords', 'No se pudieron guardar las keywords legacy. ' . $wpdb->last_error);
         }
 
         return true;
@@ -158,8 +230,7 @@ if (!function_exists('seo_page_editor_get_pages_by_roles')) {
                     p.post_date,
                     p.post_modified,
                     n.id AS node_id,
-                    n.seo_role,
-                    n.keywords AS seo_keywords
+                    n.seo_role
                 FROM {$wpdb->posts} p
                 INNER JOIN {$wpdb->prefix}seo_nodes n
                     ON n.object_type = 'page'
@@ -530,6 +601,10 @@ function seo_borrar_y_redirigir_pagina_callback() {
         $page_id
     ));
 
+    if (function_exists('seo_page_vocab_delete_assignments')) {
+        seo_page_vocab_delete_assignments($page_id);
+    }
+
     $wpdb->delete($nodes, array('object_type' => 'page', 'object_id' => $page_id), array('%s', '%d'));
 
     if (!wp_delete_post($page_id, true)) {
@@ -573,7 +648,9 @@ if (!function_exists('seo_page_editor_process_save')) {
         $excerpt = isset($_POST['page_excerpt']) ? wp_kses_post(wp_unslash($_POST['page_excerpt'])) : $post->post_excerpt;
         $content = isset($_POST['page_content']) ? wp_kses_post(wp_unslash($_POST['page_content'])) : $post->post_content;
         $status  = isset($_POST['page_status']) ? sanitize_key(wp_unslash($_POST['page_status'])) : $post->post_status;
-        $keywords = isset($_POST['seo_keywords']) ? sanitize_textarea_field(wp_unslash($_POST['seo_keywords'])) : '';
+        $keywords = ($role !== 'landing' && isset($_POST['seo_keywords']))
+            ? sanitize_textarea_field(wp_unslash($_POST['seo_keywords']))
+            : '';
 
         if (!array_key_exists($status, seo_page_editor_allowed_statuses())) {
             $status = $post->post_status;
@@ -596,13 +673,26 @@ if (!function_exists('seo_page_editor_process_save')) {
             return;
         }
 
-        $node_result = seo_page_editor_save_node_keywords($page_id, $role, $keywords);
+        $node_result = $role === 'landing'
+            ? seo_page_editor_save_node_role($page_id, $role)
+            : seo_page_editor_save_node_keywords($page_id, $role, $keywords);
         if (is_wp_error($node_result)) {
             $notices[] = array('error', $node_result->get_error_message());
             return;
         }
 
         if ($role === 'landing') {
+            if (!function_exists('seo_page_vocab_save_from_request')) {
+                $notices[] = array('error', 'Contenido guardado, pero no está cargado el módulo de Vocabulary de páginas.');
+                return;
+            }
+
+            $vocab_result = seo_page_vocab_save_from_request($page_id, 'seo_page_vocab');
+            if (is_wp_error($vocab_result)) {
+                $notices[] = array('error', 'Contenido guardado, pero falló el Vocabulary: ' . $vocab_result->get_error_message());
+                return;
+            }
+
             $raw_ids = isset($_POST['landing_category_ids'])
                 ? sanitize_text_field(wp_unslash($_POST['landing_category_ids']))
                 : '';
@@ -656,11 +746,19 @@ if (!function_exists('seo_page_editor_process_create')) {
             return;
         }
 
-        $node_result = seo_page_editor_save_node_keywords($page_id, $role, '');
+        $node_result = seo_page_editor_save_node_role($page_id, $role);
         if (is_wp_error($node_result)) {
             wp_delete_post($page_id, true);
             $notices[] = array('error', 'No se pudo registrar el rol SEO: ' . $node_result->get_error_message());
             return;
+        }
+
+        if ($role === 'landing' && function_exists('seo_page_vocab_save_from_request')) {
+            $vocab_result = seo_page_vocab_save_from_request($page_id, 'new_page_vocab');
+            if (is_wp_error($vocab_result)) {
+                $notices[] = array('error', sprintf('Página %d creada, pero no se pudo guardar su Vocabulary: %s', $page_id, $vocab_result->get_error_message()));
+                return;
+            }
         }
 
         $notices[] = array('success', sprintf('Página %d creada como borrador con rol %s.', $page_id, $role));
@@ -725,6 +823,11 @@ if (!function_exists('seo_page_editor_render_create_box')) {
         }
         echo '</select></div>';
         echo '<button class="button button-primary" type="submit">Crear borrador</button>';
+        if ($tab === 'landings' && function_exists('seo_page_vocab_render_fields')) {
+            echo '<div style="flex-basis:100%;width:100%;">';
+            seo_page_vocab_render_fields(0, 'new_page_vocab', true);
+            echo '</div>';
+        }
         echo '</form></details>';
     }
 }
@@ -838,12 +941,21 @@ if (!function_exists('seo_page_editor_render_page_card')) {
         echo '<label for="seo-content-' . esc_attr($page_id) . '"><strong>Contenido</strong></label>';
         echo '<textarea id="seo-content-' . esc_attr($page_id) . '" name="page_content" rows="10" style="width:100%;font-family:monospace;">' . esc_textarea($page->post_content) . '</textarea>';
 
-        echo '<label for="seo-keywords-' . esc_attr($page_id) . '"><strong>Etiquetas SEO legacy</strong></label>';
-        echo '<div><textarea id="seo-keywords-' . esc_attr($page_id) . '" name="seo_keywords" rows="3" style="width:100%;" placeholder="Separadas por comas">' . esc_textarea((string) $page->seo_keywords) . '</textarea>';
-        echo '<div style="font-size:11px;color:#646970;margin-top:3px;">Fuente actual: <code>wp_seo_nodes.keywords</code>. No se sincroniza con <code>post_tag</code>. Se conserva como legacy hasta la futura migración al vocabulario canónico.</div></div>';
+        if ($role !== 'landing') {
+            $legacy_keywords = seo_page_editor_get_legacy_keywords($page_id, $role);
+            echo '<label for="seo-keywords-' . esc_attr($page_id) . '"><strong>Etiquetas SEO legacy</strong></label>';
+            echo '<div><textarea id="seo-keywords-' . esc_attr($page_id) . '" name="seo_keywords" rows="3" style="width:100%;" placeholder="Separadas por comas">' . esc_textarea($legacy_keywords) . '</textarea>';
+            echo '<div style="font-size:11px;color:#646970;margin-top:3px;">Compatibilidad temporal para páginas no landing. Esta fase no migra todavía clusters, hubs ni corporativas.</div></div>';
+        }
         echo '</div>';
 
         if ($role === 'landing') {
+            if ($focused && function_exists('seo_page_vocab_render_fields')) {
+                seo_page_vocab_render_fields($page_id, 'seo_page_vocab', false);
+            } elseif (function_exists('seo_page_vocab_render_summary')) {
+                $vocab_edit_url = admin_url('admin.php?page=seo-page-admin&tab=landings&edit_page=' . $page_id . '#seo-page-' . $page_id);
+                seo_page_vocab_render_summary($page_id, $vocab_edit_url);
+            }
             seo_page_editor_render_landing_relations($page_id, $tree, $category_paths, $all_categories);
         }
 
@@ -952,7 +1064,7 @@ function seo_page_admin_callback() {
         <div style="background:#fff;border-left:4px solid #2271b1;padding:10px 14px;margin:0 0 16px;">
             <strong><?php echo esc_html($title); ?></strong> · <?php echo esc_html(number_format_i18n(count($pages))); ?> páginas.
             <?php if ($tab === 'landings'): ?>
-                <br><span style="font-size:12px;color:#50575e;">La selección comercial se guarda solo en <code>wp_seo_relations</code>; las etiquetas SEO legacy se guardan solo en <code>wp_seo_nodes.keywords</code>.</span>
+                <br><span style="font-size:12px;color:#50575e;">La selección comercial se guarda en <code>wp_seo_relations</code>; las etiquetas semánticas se guardan en <code>wp_seo_object_vocabulary</code> y el rol estructural <code>landing</code> permanece en <code>wp_seo_nodes</code>.</span>
             <?php endif; ?>
         </div>
 

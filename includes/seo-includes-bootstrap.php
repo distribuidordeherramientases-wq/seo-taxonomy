@@ -51,6 +51,7 @@ require_once SEO_SYSTEM_PATH . 'includes/template-loader.php';
 require_once SEO_SYSTEM_PATH . 'includes/template-manager.php';
 require_once SEO_SYSTEM_PATH . 'includes/template-mail.php';
 require_once SEO_SYSTEM_PATH . 'includes/pages-schema.php';
+require_once SEO_SYSTEM_PATH . 'includes/seo-page-vocabulary-editor.php';
 require_once SEO_SYSTEM_PATH . 'includes/pages-admin.php';
 
 /*

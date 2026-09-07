@@ -7767,9 +7767,9 @@ function seo_ie_replace_product_cat_relations( $source_type, $source_id, $term_i
 
     if ( 'post' === $source_type && function_exists('seo_content_vocab_sync_post_relations') ) {
         seo_content_vocab_sync_post_relations($source_id);
-    } elseif ( 'landing' === $source_type && function_exists('seo_content_vocab_sync_page_relations') ) {
-        seo_content_vocab_sync_page_relations($source_id, 'landing');
     }
+    // Las landings no heredan Vocabulary automáticamente desde product_cat.
+    // En esta fase las asignaciones de página son explícitas y auditables.
 
     return true;
 }
@@ -8015,7 +8015,7 @@ function seo_export_pages_csv() {
             'errores'      => 0,
             'advertencias' => 0,
             'detalles'     => [
-                'Se exportaron contenido, jerarquía, rol SEO, relación comercial con product_cat, imagen y metadatos de página.',
+                'Se exportaron contenido, jerarquía, rol SEO, relación comercial con product_cat, Vocabulary manual, imagen y metadatos de página.',
                 'No se exportaron bloqueos de edición, datos de papelera ni contraseñas de acceso a páginas.',
             ],
         ]
@@ -8101,11 +8101,11 @@ function seo_export_pages_csv() {
                 seo_ie_encode_post_list( $product_cats['ids'] ),
                 seo_ie_encode_post_list( $product_cats['slugs'] ),
                 seo_ie_encode_post_list( $product_cats['names'] ),
-                seo_ie_encode_post_list( function_exists('seo_content_vocab_export_group') ? seo_content_vocab_export_group('page', $page_id, 'rol', 'slug', 'manual') : [] ),
-                seo_ie_encode_post_list( function_exists('seo_content_vocab_export_group') ? seo_content_vocab_export_group('page', $page_id, 'tipo', 'slug', 'manual') : [] ),
-                seo_ie_encode_post_list( function_exists('seo_content_vocab_export_group') ? seo_content_vocab_export_group('page', $page_id, 'aplicacion', 'slug', 'manual') : [] ),
-                seo_ie_encode_post_list( function_exists('seo_content_vocab_export_group') ? seo_content_vocab_export_group('page', $page_id, 'plataforma', 'slug', 'manual') : [] ),
-                seo_ie_encode_post_list( function_exists('seo_content_vocab_export_group') ? seo_content_vocab_export_group('page', $page_id, 'subtipo', 'slug', 'manual') : [] ),
+                seo_ie_encode_post_list( function_exists('seo_page_vocab_export_group') ? seo_page_vocab_export_group($page_id, 'rol', 'slug', 'manual') : [] ),
+                seo_ie_encode_post_list( function_exists('seo_page_vocab_export_group') ? seo_page_vocab_export_group($page_id, 'tipo', 'slug', 'manual') : [] ),
+                seo_ie_encode_post_list( function_exists('seo_page_vocab_export_group') ? seo_page_vocab_export_group($page_id, 'aplicacion', 'slug', 'manual') : [] ),
+                seo_ie_encode_post_list( function_exists('seo_page_vocab_export_group') ? seo_page_vocab_export_group($page_id, 'plataforma', 'slug', 'manual') : [] ),
+                seo_ie_encode_post_list( function_exists('seo_page_vocab_export_group') ? seo_page_vocab_export_group($page_id, 'subtipo', 'slug', 'manual') : [] ),
                 absint( $image_id ),
                 0 < $image_id ? wp_get_attachment_url( $image_id ) : '',
                 seo_ie_encode_page_meta_payload( $meta['seo'] ),
@@ -9329,10 +9329,11 @@ function seo_import_pages_csv() {
             }
         }
 
-        if ( $import_relations && function_exists('seo_content_vocab_import_row') ) {
-            seo_content_vocab_import_row('page', $page_id, $row, $item['line'], $log);
-            if (function_exists('seo_content_vocab_sync_page_relations')) {
-                seo_content_vocab_sync_page_relations($page_id, $effective_page_role);
+        if ( $import_relations && $page_role_saved ) {
+            if ( 'landing' === $effective_page_role && function_exists('seo_page_vocab_import_row') ) {
+                seo_page_vocab_import_row($page_id, $row, $item['line'], $log);
+            } elseif ( 'landing' !== $effective_page_role && function_exists('seo_page_vocab_clear_manual_assignments') ) {
+                seo_page_vocab_clear_manual_assignments($page_id);
             }
         }
 
