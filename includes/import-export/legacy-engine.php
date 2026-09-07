@@ -86,7 +86,7 @@ unset( $seo_sync_versioning_file );
  * las escrituras de sincronizacion se realizan exclusivamente en el entorno
  * local para no conceder privilegios de escritura a las conexiones remotas.
  */
-$seo_environment_compare_file = __DIR__ . '/environment-compare.php';
+$seo_environment_compare_file = __DIR__ . '/comparador/environment-compare.php';
 if ( is_readable( $seo_environment_compare_file ) ) {
     require_once $seo_environment_compare_file;
 }
@@ -531,16 +531,17 @@ function seo_ie_build_csv_row( $header, $csv_row ) {
 }
 
 /**
- * Inserta o actualiza un único valor de wp_seo_nodes.
+ * Inserta o actualiza contenido editorial temporal de categorías en wp_seo_nodes.
  *
- * Mantiene una sola fila por pareja objeto/rol y elimina duplicados
- * antiguos. Si el valor queda vacío, elimina únicamente ese rol.
+ * Desde 2.3.4 seo_nodes ya no admite semántica de producto/categoría (ambito).
+ * Solo se mantienen aquí excerpt y description hasta su futura migración editorial.
+ * Si el valor queda vacío, elimina únicamente ese rol.
  *
  * @since 2.0.0
  *
- * @param string $object_type category o product.
+ * @param string $object_type Solo category.
  * @param int    $object_id   ID real de WordPress.
- * @param string $seo_role    ambito, excerpt o description, según el objeto.
+ * @param string $seo_role    excerpt o description.
  * @param string $keywords    Valor que se almacenará.
  * @return bool
  */
@@ -555,8 +556,7 @@ function seo_ie_upsert_node_value( $object_type, $object_id, $seo_role, $keyword
     $table       = $wpdb->prefix . 'seo_nodes';
 
     $valid_roles = [
-        'category' => [ 'ambito', 'excerpt', 'description' ],
-        'product'  => [ 'ambito' ],
+        'category' => [ 'excerpt', 'description' ],
     ];
 
     if (
@@ -1440,7 +1440,8 @@ function seo_ie_import_category_thumbnail( $category_id, $row, $line, &$log ) {
  *
  * Orígenes:
  * - WordPress/WooCommerce: ID, nombre, slug, padre e imagen de categoría.
- * - wp_seo_nodes: ámbito, excerpt y description.
+ * - wp_seo_nodes: excerpt y description (almacenamiento editorial temporal).
+ * - Vocabulary canónico: ROL exportado bajo la cabecera legacy ambito.
  * - wp_seo_relations: hub secundario estructural de la categoría cuando es único.
  *
  * @since 2.0.0
@@ -1469,7 +1470,7 @@ function seo_export_categories_csv() {
         SELECT object_id, seo_role, keywords, updated_at
         FROM {$wpdb->prefix}seo_nodes
         WHERE object_type = 'category'
-          AND seo_role IN ('ambito', 'excerpt', 'description')
+          AND seo_role IN ('excerpt', 'description')
           AND status = 1
         ORDER BY object_id ASC, seo_role ASC, updated_at DESC, id DESC
         "
@@ -1484,7 +1485,6 @@ function seo_export_categories_csv() {
 
         if ( ! isset( $nodes_by_category[ $category_id ] ) ) {
             $nodes_by_category[ $category_id ] = [
-                'ambito'      => '',
                 'excerpt'     => '',
                 'description' => '',
                 '_latest_updated_at' => '',
@@ -1496,10 +1496,7 @@ function seo_export_categories_csv() {
         }
 
         // La consulta está ordenada por la fila activa más reciente.
-        if ( 'ambito' === $seo_role && '' === $nodes_by_category[ $category_id ]['ambito'] ) {
-            $nodes_by_category[ $category_id ]['ambito'] =
-                seo_ie_normalize_ambito( $node->keywords );
-        } elseif ( 'excerpt' === $seo_role && '' === $nodes_by_category[ $category_id ]['excerpt'] ) {
+        if ( 'excerpt' === $seo_role && '' === $nodes_by_category[ $category_id ]['excerpt'] ) {
             $nodes_by_category[ $category_id ]['excerpt'] = (string) $node->keywords;
         } elseif ( 'description' === $seo_role && '' === $nodes_by_category[ $category_id ]['description'] ) {
             $nodes_by_category[ $category_id ]['description'] = (string) $node->keywords;
@@ -1520,6 +1517,25 @@ function seo_export_categories_csv() {
             esc_html( $categories->get_error_message() ),
             esc_html__( 'Error exportando categorías', 'seo-system' )
         );
+    }
+
+    // La cabecera legacy `ambito` se conserva, pero desde 2.3.4 su fuente es
+    // exclusivamente el grupo ROL del Vocabulary canónico de product_cat.
+    $category_roles = [];
+    if ( function_exists( 'seo_category_vocabulary_rows_map' ) ) {
+        $vocabulary_rows = seo_category_vocabulary_rows_map( wp_list_pluck( $categories, 'term_id' ) );
+        foreach ( (array) $vocabulary_rows as $category_id => $rows ) {
+            foreach ( (array) $rows as $row ) {
+                if ( 'rol' !== sanitize_key( (string) ( $row['semantic_group'] ?? '' ) ) ) {
+                    continue;
+                }
+                $role = seo_ie_normalize_ambito( $row['slug'] ?? $row['label'] ?? '' );
+                if ( '' !== $role ) {
+                    $category_roles[ absint( $category_id ) ] = $role;
+                    break;
+                }
+            }
+        }
     }
 
     // La jerarquía SEO no depende del parent de WordPress. Se exporta aparte.
@@ -1562,7 +1578,7 @@ function seo_export_categories_csv() {
             'correctos'  => count( $categories ),
             'errores'    => 0,
             'detalles'   => [
-                'WordPress/WooCommerce aporta ID, nombre, slug, padre e imagen (attachment ID + URL). seo_nodes aporta ámbito, excerpt y description. seo_relations aporta hub_secondary_id cuando la asignación es única.',
+                'WordPress/WooCommerce aporta ID, nombre, slug, padre e imagen. Vocabulary aporta ROL (cabecera ambito). seo_nodes conserva temporalmente excerpt/description. seo_relations aporta hub_secondary_id cuando la asignación es única.',
             ],
         ]
     );
@@ -1593,7 +1609,6 @@ function seo_export_categories_csv() {
         $thumbnail_id  = absint( get_term_meta( $category_id, 'thumbnail_id', true ) );
         $thumbnail_url = 0 < $thumbnail_id ? ( wp_get_attachment_url( $thumbnail_id ) ?: '' ) : '';
         $node_data     = $nodes_by_category[ $category_id ] ?? [
-            'ambito'      => '',
             'excerpt'     => '',
             'description' => '',
             '_latest_updated_at' => '',
@@ -1620,7 +1635,7 @@ function seo_export_categories_csv() {
                 $thumbnail_url,
                 $node_data['description'],
                 $node_data['excerpt'],
-                $node_data['ambito'],
+                (string) ( $category_roles[ $category_id ] ?? '' ),
                 $category_modified_ts > 0 && function_exists( 'seo_ie_sync_format_timestamp' ) ? seo_ie_sync_format_timestamp( $category_modified_ts, false ) : '',
                 $category_modified_ts > 0 && function_exists( 'seo_ie_sync_format_timestamp' ) ? seo_ie_sync_format_timestamp( $category_modified_ts, true ) : '',
             ]
@@ -1638,7 +1653,8 @@ function seo_export_categories_csv() {
  * La cola auditada prepara el contexto interno y llama directamente a esta función.
  *
  * Actualiza o crea categorías, manteniendo ID/nombre/slug/padre e imagen en WordPress
- * y ámbito/excerpt/description en wp_seo_nodes.
+ * y excerpt/description en wp_seo_nodes. La cabecera legacy ambito se traduce
+ * al grupo ROL del Vocabulary canónico y nunca vuelve a crear category/ambito.
  * Si hub_secondary_id está informado, sincroniza la relación estructural única
  * hub_secondary_to_category. Si category_id está vacío, reutiliza primero una
  * categoría existente por slug/nombre y solo crea una nueva si no existe.
@@ -2020,7 +2036,7 @@ if ( ! empty( $term_data ) ) {
                 seo_ie_add_log_detail(
                     $log,
                     sprintf(
-                        'Fila %d, categoría %d: ámbito no válido «%s».',
+                        'Fila %d, categoría %d: ámbito/ROL no válido «%s».',
                         $line,
                         $category_id,
                         $raw_ambito
@@ -2029,12 +2045,57 @@ if ( ! empty( $term_data ) ) {
                 continue;
             }
 
-            seo_ie_upsert_node_value(
-                'category',
-                $category_id,
-                'ambito',
-                $ambito
-            );
+            if ( ! function_exists( 'seo_category_vocabulary_rows_map' )
+                || ! function_exists( 'seo_category_vocabulary_find_active_term' )
+                || ! function_exists( 'seo_category_vocabulary_replace' ) ) {
+                $log['errores']++;
+                seo_ie_add_log_detail(
+                    $log,
+                    sprintf( 'Fila %d, categoría %d: Vocabulary canónico no disponible para guardar ROL.', $line, $category_id )
+                );
+                continue;
+            }
+
+            $groups = [
+                'rol'        => [],
+                'tipo'       => [],
+                'aplicacion' => [],
+                'plataforma' => [],
+                'subtipo'    => [],
+            ];
+            $current_map = seo_category_vocabulary_rows_map( [ $category_id ] );
+            foreach ( (array) ( $current_map[ $category_id ] ?? [] ) as $assignment ) {
+                $group = sanitize_key( (string) ( $assignment['semantic_group'] ?? '' ) );
+                $term_id = absint( $assignment['vocabulary_id'] ?? 0 );
+                if ( isset( $groups[ $group ] ) && $term_id > 0 ) {
+                    $groups[ $group ][] = $term_id;
+                }
+            }
+
+            // Una celda vacía limpia únicamente ROL; el resto del Vocabulary se preserva.
+            $groups['rol'] = [];
+            if ( '' !== $ambito ) {
+                $role_term = seo_category_vocabulary_find_active_term( 'rol', $ambito );
+                if ( ! $role_term ) {
+                    $log['errores']++;
+                    seo_ie_add_log_detail(
+                        $log,
+                        sprintf( 'Fila %d, categoría %d: no existe un término ROL canónico inequívoco para «%s».', $line, $category_id, $ambito )
+                    );
+                    continue;
+                }
+                $groups['rol'] = [ absint( $role_term['id'] ?? 0 ) ];
+            }
+
+            $role_result = seo_category_vocabulary_replace( $category_id, $groups, 'legacy_category_csv' );
+            if ( is_wp_error( $role_result ) ) {
+                $log['errores']++;
+                seo_ie_add_log_detail(
+                    $log,
+                    sprintf( 'Fila %d, categoría %d: %s', $line, $category_id, $role_result->get_error_message() )
+                );
+                continue;
+            }
         }
 
         /*
@@ -3624,9 +3685,6 @@ function seo_export_products_csv() {
 
         $brand = seo_ie_product_v2_brand_data( $product_id );
         $scope = $canonical_roles_by_product[ $product_id ] ?? '';
-        if ( '' === $scope && function_exists( 'seo_catalog_get_product_legacy_ambito' ) ) {
-            $scope = seo_catalog_get_product_legacy_ambito( $product_id );
-        }
         $seo_attribute_rows = $attributes_by_product[ $product_id ] ?? [];
         $thumbnail_id = absint( get_post_thumbnail_id( $product_id ) );
         $gallery_ids  = array_values( array_unique( array_filter( array_map( 'absint', $product->get_gallery_image_ids() ) ) ) );
@@ -5783,12 +5841,11 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
             }
 
             /*
-             * Para productos existentes el ROL canónico prevalece sobre el
-             * campo legacy del CSV y sobre seo_nodes/ambito. De este modo una
-             * importación antigua no puede romper TIPO -> ROL.
+             * Para productos existentes el ROL canónico prevalece sobre la
+             * cabecera legacy del CSV. No existe fallback semántico a seo_nodes.
              */
             if ( 0 < $product_id && function_exists( 'seo_catalog_get_product_role' ) ) {
-                $canonical_scope = seo_catalog_get_product_role( $product_id, true );
+                $canonical_scope = seo_catalog_get_product_role( $product_id, false );
 
                 if ( '' !== $canonical_scope ) {
                     if (
@@ -5809,19 +5866,6 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
 
                     $scope = $canonical_scope;
                 }
-            }
-
-            if (
-                '' === $scope
-                && ! empty( $options['seo_attributes'] )
-                && (
-                    array_key_exists( 'atributos_seo_json', $row )
-                    || array_key_exists( 'atributos_seo', $row )
-                )
-                && 0 < $product_id
-                && function_exists( 'seo_catalog_get_product_legacy_ambito' )
-            ) {
-                $scope = seo_catalog_get_product_legacy_ambito( $product_id );
             }
 
             $seo_attributes = null;
@@ -6274,23 +6318,20 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
                         }
                     }
 
-                    if ( '' !== $effective_scope ) {
-                        seo_ie_upsert_node_value( 'product', $product_id, 'ambito', $effective_scope );
-
-                        if (
-                            function_exists( 'seo_catalog_get_product_role' )
-                            && '' === seo_catalog_get_product_role( $product_id, false )
-                            && function_exists( 'seo_catalog_assign_provisional_product_role' )
-                        ) {
-                            seo_catalog_assign_provisional_product_role(
-                                $product_id,
-                                $effective_scope,
-                                'legacy_import_bridge',
-                                0.6000
-                            );
-                        }
-                    } elseif ( $empty_clears ) {
-                        seo_ie_upsert_node_value( 'product', $product_id, 'ambito', '' );
+                    if (
+                        '' !== $effective_scope
+                        && function_exists( 'seo_catalog_get_product_role' )
+                        && '' === seo_catalog_get_product_role( $product_id, false )
+                        && function_exists( 'seo_catalog_assign_provisional_product_role' )
+                    ) {
+                        // Compatibilidad de CSV antiguo: `ambito` se materializa como ROL
+                        // canónico, nunca como seo_nodes/product/ambito.
+                        seo_catalog_assign_provisional_product_role(
+                            $product_id,
+                            $effective_scope,
+                            'legacy_import_bridge',
+                            0.6000
+                        );
                     }
 
                     $scope = $effective_scope;
@@ -7723,6 +7764,13 @@ function seo_ie_replace_product_cat_relations( $source_type, $source_id, $term_i
     }
 
     $wpdb->query( 'COMMIT' );
+
+    if ( 'post' === $source_type && function_exists('seo_content_vocab_sync_post_relations') ) {
+        seo_content_vocab_sync_post_relations($source_id);
+    } elseif ( 'landing' === $source_type && function_exists('seo_content_vocab_sync_page_relations') ) {
+        seo_content_vocab_sync_page_relations($source_id, 'landing');
+    }
+
     return true;
 }
 
@@ -8002,6 +8050,11 @@ function seo_export_pages_csv() {
             'product_cat_relacion_ids',
             'product_cat_relacion_slugs',
             'product_cat_relacion_nombres',
+            'vocab_rol',
+            'vocab_tipo',
+            'vocab_aplicacion',
+            'vocab_plataforma',
+            'vocab_subtipo',
             'imagen_destacada_id',
             'imagen_destacada',
             'meta_seo',
@@ -8048,6 +8101,11 @@ function seo_export_pages_csv() {
                 seo_ie_encode_post_list( $product_cats['ids'] ),
                 seo_ie_encode_post_list( $product_cats['slugs'] ),
                 seo_ie_encode_post_list( $product_cats['names'] ),
+                seo_ie_encode_post_list( function_exists('seo_content_vocab_export_group') ? seo_content_vocab_export_group('page', $page_id, 'rol', 'slug', 'manual') : [] ),
+                seo_ie_encode_post_list( function_exists('seo_content_vocab_export_group') ? seo_content_vocab_export_group('page', $page_id, 'tipo', 'slug', 'manual') : [] ),
+                seo_ie_encode_post_list( function_exists('seo_content_vocab_export_group') ? seo_content_vocab_export_group('page', $page_id, 'aplicacion', 'slug', 'manual') : [] ),
+                seo_ie_encode_post_list( function_exists('seo_content_vocab_export_group') ? seo_content_vocab_export_group('page', $page_id, 'plataforma', 'slug', 'manual') : [] ),
+                seo_ie_encode_post_list( function_exists('seo_content_vocab_export_group') ? seo_content_vocab_export_group('page', $page_id, 'subtipo', 'slug', 'manual') : [] ),
                 absint( $image_id ),
                 0 < $image_id ? wp_get_attachment_url( $image_id ) : '',
                 seo_ie_encode_page_meta_payload( $meta['seo'] ),
@@ -9271,6 +9329,13 @@ function seo_import_pages_csv() {
             }
         }
 
+        if ( $import_relations && function_exists('seo_content_vocab_import_row') ) {
+            seo_content_vocab_import_row('page', $page_id, $row, $item['line'], $log);
+            if (function_exists('seo_content_vocab_sync_page_relations')) {
+                seo_content_vocab_sync_page_relations($page_id, $effective_page_role);
+            }
+        }
+
         if ( $import_seo_meta && array_key_exists( 'meta_seo', $row ) ) {
             seo_ie_apply_page_meta_payload(
                 $page_id,
@@ -9840,6 +9905,7 @@ function seo_export_posts_csv() {
             'excerpt', 'description',
             'categorias_ids', 'categorias_slugs', 'categorias_nombres',
             'product_cat_relacion_ids', 'product_cat_relacion_slugs', 'product_cat_relacion_nombres',
+            'vocab_rol', 'vocab_tipo', 'vocab_aplicacion', 'vocab_plataforma', 'vocab_subtipo',
             'etiquetas_ids', 'etiquetas_slugs', 'etiquetas_nombres',
             'formato', 'sticky',
             'imagen_destacada_id', 'imagen_destacada',
@@ -9883,6 +9949,11 @@ function seo_export_posts_csv() {
                 seo_ie_encode_post_list( $product_cats['ids'] ),
                 seo_ie_encode_post_list( $product_cats['slugs'] ),
                 seo_ie_encode_post_list( $product_cats['names'] ),
+                seo_ie_encode_post_list( function_exists('seo_content_vocab_export_group') ? seo_content_vocab_export_group('post', $post_id, 'rol', 'slug', 'manual') : [] ),
+                seo_ie_encode_post_list( function_exists('seo_content_vocab_export_group') ? seo_content_vocab_export_group('post', $post_id, 'tipo', 'slug', 'manual') : [] ),
+                seo_ie_encode_post_list( function_exists('seo_content_vocab_export_group') ? seo_content_vocab_export_group('post', $post_id, 'aplicacion', 'slug', 'manual') : [] ),
+                seo_ie_encode_post_list( function_exists('seo_content_vocab_export_group') ? seo_content_vocab_export_group('post', $post_id, 'plataforma', 'slug', 'manual') : [] ),
+                seo_ie_encode_post_list( function_exists('seo_content_vocab_export_group') ? seo_content_vocab_export_group('post', $post_id, 'subtipo', 'slug', 'manual') : [] ),
                 seo_ie_encode_post_list( wp_list_pluck( $tags, 'term_id' ) ),
                 seo_ie_encode_post_list( wp_list_pluck( $tags, 'slug' ) ),
                 seo_ie_encode_post_list( wp_list_pluck( $tags, 'name' ) ),
@@ -10411,6 +10482,16 @@ function seo_import_posts_csv() {
                 $item['line'],
                 $log
             );
+        }
+
+        if ( $import_relations && function_exists('seo_content_vocab_import_row') ) {
+            seo_content_vocab_import_row('post', $post_id, $row, $item['line'], $log);
+            if (function_exists('seo_content_vocab_sync_post_relations')) {
+                seo_content_vocab_sync_post_relations($post_id);
+            }
+            if (function_exists('seo_content_vocab_sync_from_post_tags')) {
+                seo_content_vocab_sync_from_post_tags($post_id);
+            }
         }
 
         if ( $import_seo_meta && array_key_exists( 'meta_seo', $row ) ) {
@@ -12029,7 +12110,7 @@ function seo_import_export_page() {
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_page_seo_meta" value="1" checked> Metadatos SEO</label>
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_page_custom_meta" value="1" checked> Metadatos personalizados y de maquetadores</label>
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_page_image" value="1" checked> Imagen destacada</label>
-                        <label style="display:block;margin-bottom:10px;"><input type="checkbox" name="import_page_relations" value="1" checked> Rol SEO y relación comercial con product_cat (seo_nodes + seo_relations)</label>
+                        <label style="display:block;margin-bottom:10px;"><input type="checkbox" name="import_page_relations" value="1" checked> Rol SEO, relación product_cat y Vocabulary canónico</label>
                         <label style="display:block;margin:12px 0;padding:10px;border-left:4px solid #72aee6;background:#f0f6fc;"><input type="checkbox" name="page_import_dry_run" value="1" checked> <strong>Simular primero</strong>: validar y mostrar el resultado sin escribir datos.</label>
 
                         <button type="submit" name="seo_import_pages" value="1" class="button button-primary">Procesar páginas</button>
@@ -12075,7 +12156,7 @@ function seo_import_export_page() {
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_post_seo_meta" value="1" checked> Metadatos SEO</label>
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_post_custom_meta" value="1" checked> Metadatos personalizados y de maquetadores</label>
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_post_image" value="1" checked> Imagen destacada</label>
-                        <label style="display:block;margin-bottom:10px;"><input type="checkbox" name="import_post_relations" value="1" checked> Relación comercial con product_cat (seo_relations)</label>
+                        <label style="display:block;margin-bottom:10px;"><input type="checkbox" name="import_post_relations" value="1" checked> Relación product_cat + Vocabulary canónico</label>
                         <label style="display:block;margin:12px 0;padding:10px;border-left:4px solid #72aee6;background:#f0f6fc;"><input type="checkbox" name="post_import_dry_run" value="1" checked> <strong>Simular primero</strong>: validar y mostrar el resultado sin escribir datos.</label>
 
                         <button type="submit" name="seo_import_posts" value="1" class="button button-primary">Procesar entradas</button>
