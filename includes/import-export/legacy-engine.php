@@ -86,7 +86,7 @@ unset( $seo_sync_versioning_file );
  * las escrituras de sincronizacion se realizan exclusivamente en el entorno
  * local para no conceder privilegios de escritura a las conexiones remotas.
  */
-$seo_environment_compare_file = __DIR__ . '/comparador/environment-compare.php';
+$seo_environment_compare_file = __DIR__ . '/comparador/comparador.php';
 if ( is_readable( $seo_environment_compare_file ) ) {
     require_once $seo_environment_compare_file;
 }
