@@ -168,5 +168,5 @@ require_once SEO_SYSTEM_PATH . 'includes/seo-admin.php';
 */
 
 //require_once SEO_SYSTEM_PATH . 'includes/seo-server-status.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-core-validation.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-system-diagnostics-reporting.php';
+require_once SEO_SYSTEM_PATH . 'includes/system-check/seo-core-validation.php';
+require_once SEO_SYSTEM_PATH . 'includes/system-check/seo-system-diagnostics-reporting.php';
