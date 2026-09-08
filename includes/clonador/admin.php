@@ -117,7 +117,7 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
                     if(state==='idle'||!job.job_id){workerBox.style.display='none';workerBox.textContent='';}
                     else{
                         workerBox.style.display='block';
-                        const backend=job.backend?(' · worker '+job.backend):'';
+                        const backend=job.backend?(' · gestor '+job.backend):'';
                         const phase=job.phase?(' · fase '+job.phase):'';
                         const pid=job.pid?(' · PID '+job.pid):'';
                         workerBox.textContent='Job '+(job.job_id||'')+' · '+state+backend+phase+pid+(job.message?(' · '+job.message):'');
@@ -144,7 +144,7 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
             function startPolling(){
                 if(pollTimer)return;
                 refreshJob();
-                pollTimer=setInterval(refreshJob,2500);
+                pollTimer=setInterval(refreshJob,4000);
             }
 
             previewBtn&&previewBtn.addEventListener('click',async()=>{
@@ -153,11 +153,11 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
             });
             applyBtn&&applyBtn.addEventListener('click',async()=>{
                 if(!lastPlan||!lastPlan.can_apply)return;
-                if(!window.confirm('CLONAR PRO → STAGING\n\nSe eliminará el perímetro gestionado actual de STAGING y se reconstruirá desde PRO. PRO no se modifica.\n\nLa ejecución se entregará a un worker y seguirá aunque cambies de pantalla.\n\n¿Continuar?'))return;
-                busy(true);status.textContent='Entregando clonación al worker...';
+                if(!window.confirm('CLONAR PRO → STAGING\n\nSe eliminará el perímetro gestionado actual de STAGING y se reconstruirá desde PRO. PRO no se modifica.\n\nLa ejecución se entregará a un Gestor de procesos y seguirá por lotes aunque cambies de pantalla.\n\n¿Continuar?'))return;
+                busy(true);status.textContent='Entregando clonación al Gestor de procesos...';
                 try{
                     const data=await post('seo_clonador_apply',{confirm:'1'});
-                    status.textContent=data.message||'Clonación entregada al worker.';
+                    status.textContent=data.message||'Clonación entregada al Gestor de procesos.';
                     applyBtn.disabled=true;previewBtn.disabled=true;
                     startPolling();
                 }catch(e){status.textContent='No se pudo iniciar la clonación: '+e.message;previewBtn.disabled=false;applyBtn.disabled=!lastPlan||!lastPlan.can_apply;}

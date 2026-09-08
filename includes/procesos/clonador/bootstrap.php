@@ -1,10 +1,10 @@
 <?php
 /**
- * Integracion del Clonador para Academia con el subsistema de Procesos.
+ * Integracion del Clonador para Academia con el Gestor de procesos nativo.
  *
  * @package SEOSystem
  * @subpackage Processes_Clonador
- * @since 2.5.3
+ * @since 2.5.4
  */
 
 defined('ABSPATH') || exit;
