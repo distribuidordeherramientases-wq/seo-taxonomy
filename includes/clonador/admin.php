@@ -28,6 +28,7 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
             .seo-clonador-ok{border-left:5px solid #00a32a;background:#f0f8f1;padding:14px 16px;margin:18px 0}
             .seo-clonador-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:18px 0}
             .seo-clonador-status{font-weight:600}
+            .seo-clonador-worker{margin:12px 0;padding:10px 12px;background:#f6f7f7;border-left:4px solid #2271b1}
             .seo-clonador-plan{display:none;max-height:520px;overflow:auto;background:#1d2327;color:#f0f0f1;padding:14px;border-radius:5px;white-space:pre-wrap;font:12px/1.45 monospace}
             .seo-clonador-summary table{border-collapse:collapse;width:100%;max-width:900px}
             .seo-clonador-summary th,.seo-clonador-summary td{border-bottom:1px solid #dcdcde;padding:7px 8px;text-align:left}
@@ -40,6 +41,7 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
                 <p><strong>PRO es siempre el origen. STAGING es siempre el destino.</strong> No existe ninguna operación STAGING → PRO.</p>
                 <p>La clonación no intenta conservar el catálogo anterior de STAGING: elimina el perímetro gestionado y lo reconstruye desde PRO. Los IDs de PRO nunca se insertan como IDs de destino; solo se usan temporalmente para construir mapas hacia los nuevos IDs locales de STAGING.</p>
                 <p>Entorno desde el que has abierto la pantalla: <strong><?php echo esc_html( $current ? strtoupper( $current ) : 'NO IDENTIFICADO' ); ?></strong>. La dirección no cambia.</p>
+                <p><strong>APPLY se ejecuta en un worker de <code>includes/procesos</code>.</strong> Puedes cambiar de pantalla o cerrar el navegador sin detener la clonación; al volver se recupera el estado del job.</p>
             </div>
 
             <div class="seo-clonador-warning">
@@ -56,6 +58,7 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
                 <span class="seo-clonador-status" id="seo-clonador-status"><?php echo $ready ? 'Preparado para simular.' : 'Configura PRO/STAGING y autoriza clonación destructiva en STAGING.'; ?></span>
             </div>
 
+            <div class="seo-clonador-worker" id="seo-clonador-worker" style="display:none"></div>
             <div class="seo-clonador-summary" id="seo-clonador-summary"></div>
             <pre class="seo-clonador-plan" id="seo-clonador-plan"></pre>
         </div>
@@ -70,7 +73,9 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
             const status=document.getElementById('seo-clonador-status');
             const summary=document.getElementById('seo-clonador-summary');
             const plan=document.getElementById('seo-clonador-plan');
+            const workerBox=document.getElementById('seo-clonador-worker');
             let lastPlan=null;
+            let pollTimer=null;
 
             async function post(action, extra={}){
                 const fd=new FormData();
@@ -104,21 +109,65 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
                 applyBtn.disabled=!data.can_apply;
                 status.textContent=data.can_apply?'Simulación correcta. Revisa el plan y, si procede, ejecuta CLONAR PRO → STAGING.':'Simulación bloqueada por conflictos.';
             }
+            function renderJob(job){
+                job=job||{};
+                const state=String(job.status||'idle');
+                const active=['queued','dispatching','running'].includes(state);
+                if(workerBox){
+                    if(state==='idle'||!job.job_id){workerBox.style.display='none';workerBox.textContent='';}
+                    else{
+                        workerBox.style.display='block';
+                        const backend=job.backend?(' · worker '+job.backend):'';
+                        const phase=job.phase?(' · fase '+job.phase):'';
+                        const pid=job.pid?(' · PID '+job.pid):'';
+                        workerBox.textContent='Job '+(job.job_id||'')+' · '+state+backend+phase+pid+(job.message?(' · '+job.message):'');
+                    }
+                }
+                if(active){
+                    previewBtn.disabled=true;applyBtn.disabled=true;
+                    status.textContent=job.message||'Clonacion ejecutandose en segundo plano. Puedes salir de esta pantalla.';
+                }else if(state==='completed'){
+                    previewBtn.disabled=false;applyBtn.disabled=true;lastPlan=null;
+                    const secs=(job.result&&job.result.duration_seconds)||0;
+                    status.textContent='Clonacion terminada y verificada'+(secs?(' en '+secs+' s.') : '.');
+                    if(summary){summary.insertAdjacentHTML('afterbegin','<div class="notice notice-success inline"><p><strong>Clonacion completada.</strong> STAGING fue reconstruido desde PRO y la verificacion previa al COMMIT fue correcta.</p></div>');}
+                    if(pollTimer){clearInterval(pollTimer);pollTimer=null;}
+                }else if(state==='failed'){
+                    previewBtn.disabled=false;applyBtn.disabled=true;lastPlan=null;
+                    status.textContent='Clonacion fallida/revertida: '+(job.last_error||job.message||'Error desconocido');
+                    if(pollTimer){clearInterval(pollTimer);pollTimer=null;}
+                }
+            }
+            async function refreshJob(){
+                try{const data=await post('seo_clonador_status');renderJob(data.job||{});return data.job||{};}catch(e){return null;}
+            }
+            function startPolling(){
+                if(pollTimer)return;
+                refreshJob();
+                pollTimer=setInterval(refreshJob,2500);
+            }
+
             previewBtn&&previewBtn.addEventListener('click',async()=>{
                 busy(true);status.textContent='Simulando. Cero escrituras...';summary.innerHTML='';plan.style.display='none';lastPlan=null;downloadBtn.disabled=true;
                 try{const data=await post('seo_clonador_preview');render(data);}catch(e){status.textContent='Simulación fallida: '+e.message;}finally{previewBtn.disabled=false;if(lastPlan)applyBtn.disabled=!lastPlan.can_apply;}
             });
             applyBtn&&applyBtn.addEventListener('click',async()=>{
                 if(!lastPlan||!lastPlan.can_apply)return;
-                if(!window.confirm('CLONAR PRO → STAGING\n\nSe eliminará el perímetro gestionado actual de STAGING y se reconstruirá desde PRO. PRO no se modifica.\n\n¿Continuar?'))return;
-                busy(true);status.textContent='Clonando PRO → STAGING...';
-                try{const data=await post('seo_clonador_apply',{confirm:'1'});status.textContent=(data.message||'Clonación terminada.')+' '+(data.seconds||0)+' s.';applyBtn.disabled=true;lastPlan=null;}catch(e){status.textContent='Clonación fallida/revertida: '+e.message;applyBtn.disabled=false;}finally{previewBtn.disabled=false;}
+                if(!window.confirm('CLONAR PRO → STAGING\n\nSe eliminará el perímetro gestionado actual de STAGING y se reconstruirá desde PRO. PRO no se modifica.\n\nLa ejecución se entregará a un worker y seguirá aunque cambies de pantalla.\n\n¿Continuar?'))return;
+                busy(true);status.textContent='Entregando clonación al worker...';
+                try{
+                    const data=await post('seo_clonador_apply',{confirm:'1'});
+                    status.textContent=data.message||'Clonación entregada al worker.';
+                    applyBtn.disabled=true;previewBtn.disabled=true;
+                    startPolling();
+                }catch(e){status.textContent='No se pudo iniciar la clonación: '+e.message;previewBtn.disabled=false;applyBtn.disabled=!lastPlan||!lastPlan.can_apply;}
             });
             downloadBtn&&downloadBtn.addEventListener('click',()=>{
                 if(!lastPlan)return;
                 const blob=new Blob([JSON.stringify(lastPlan,null,2)],{type:'application/json'});
                 const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='seo-clonador-dry-run-'+new Date().toISOString().replace(/[:.]/g,'-')+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),500);
             });
+            refreshJob().then(job=>{if(job&&['queued','dispatching','running'].includes(String(job.status||'')))startPolling();});
         })();
         </script>
         <?php

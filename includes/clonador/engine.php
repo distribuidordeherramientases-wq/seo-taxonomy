@@ -24,10 +24,12 @@ final class SEO_Clonador_Engine {
 
     private static $post_types = array('product', 'product_variation', 'page', 'post');
     private static $taxonomies = array('product_cat', 'product_tag', 'post_tag');
+    private static $progress_callback = null;
 
     public static function init() {
         add_action('wp_ajax_seo_clonador_preview', array(__CLASS__, 'ajax_preview'));
         add_action('wp_ajax_seo_clonador_apply', array(__CLASS__, 'ajax_apply'));
+        add_action('wp_ajax_seo_clonador_status', array(__CLASS__, 'ajax_status'));
         add_action('admin_init', array(__CLASS__, 'consume_staging_generation'));
     }
 
@@ -269,7 +271,7 @@ final class SEO_Clonador_Engine {
         return array('_upsell_ids', '_crosssell_ids', '_children');
     }
 
-    private static function remap_postmeta_value($meta_key, $meta_value, $post_map) {
+    private static function remap_postmeta_value($meta_key, $meta_value, $post_map, &$stats) {
         $meta_key = (string) $meta_key;
         if (!in_array($meta_key, self::remapped_postmeta_keys(), true)) return $meta_value;
         if ('' === trim((string) $meta_value)) return $meta_value;
@@ -282,7 +284,22 @@ final class SEO_Clonador_Engine {
             $source_id = absint($source_id);
             if (!$source_id) continue;
             if (empty($post_map[$source_id])) {
-                return new WP_Error('clonador_postmeta_reference', 'No se pudo remapear ' . $meta_key . ': PRO #' . $source_id . ' no existe en el perimetro clonado.');
+                // Upsells/cross-sells/children pueden conservar referencias antiguas
+                // a productos eliminados o enviados a papelera en PRO. Ese objeto no
+                // existe en el perimetro clonado, por lo que la referencia se omite
+                // de forma explicita en vez de abortar toda la clonacion.
+                $stats['postmeta_unresolved_references_total'] = absint($stats['postmeta_unresolved_references_total'] ?? 0) + 1;
+                if (!isset($stats['postmeta_unresolved_references_by_key']) || !is_array($stats['postmeta_unresolved_references_by_key'])) {
+                    $stats['postmeta_unresolved_references_by_key'] = array();
+                }
+                $stats['postmeta_unresolved_references_by_key'][$meta_key] = absint($stats['postmeta_unresolved_references_by_key'][$meta_key] ?? 0) + 1;
+                if (!isset($stats['postmeta_unresolved_reference_samples']) || !is_array($stats['postmeta_unresolved_reference_samples'])) {
+                    $stats['postmeta_unresolved_reference_samples'] = array();
+                }
+                if (count($stats['postmeta_unresolved_reference_samples']) < 25) {
+                    $stats['postmeta_unresolved_reference_samples'][] = array('meta_key' => $meta_key, 'source_id' => $source_id);
+                }
+                continue;
             }
             $mapped[] = absint($post_map[$source_id]);
         }
@@ -596,6 +613,45 @@ final class SEO_Clonador_Engine {
             $known[$key]=absint($count);
         }
 
+        // Audita tambien las referencias conocidas (_upsell_ids,
+        // _crosssell_ids y _children). Si apuntan a objetos fuera del perimetro
+        // (por ejemplo productos eliminados o en papelera), el APPLY las omite
+        // de forma segura y las reporta como warning.
+        $valid_post_ids = self::ids(
+            $pro,
+            "SELECT ID FROM `{$pro_tables['posts']}` WHERE " . self::post_type_sql($pro) . " AND post_status<>'trash'",
+            'ID'
+        );
+        if (is_wp_error($valid_post_ids)) return $valid_post_ids;
+        $valid_post_set = array_fill_keys(array_map('absint', $valid_post_ids), true);
+        $known_keys_sql = "'" . implode("','", array_map(static function($v) use ($pro){ return mysqli_real_escape_string($pro,$v); }, self::remapped_postmeta_keys())) . "'";
+        $known_rows = self::rows(
+            $pro,
+            "SELECT pm.post_id,pm.meta_key,pm.meta_value FROM `{$pro_tables['postmeta']}` pm JOIN `{$pro_tables['posts']}` p ON p.ID=pm.post_id WHERE " . self::post_type_sql($pro,'p') . " AND p.post_status<>'trash' AND pm.meta_key IN ({$known_keys_sql}) ORDER BY pm.meta_id"
+        );
+        if (is_wp_error($known_rows)) return $known_rows;
+        $known_unresolved = 0;
+        $known_unresolved_by_key = array();
+        $known_unresolved_samples = array();
+        foreach ($known_rows as $known_row) {
+            $value = maybe_unserialize((string) ($known_row['meta_value'] ?? ''));
+            if (!is_array($value)) continue;
+            foreach ($value as $source_id) {
+                $source_id = absint($source_id);
+                if (!$source_id || isset($valid_post_set[$source_id])) continue;
+                $key = (string) ($known_row['meta_key'] ?? '');
+                $known_unresolved++;
+                $known_unresolved_by_key[$key] = absint($known_unresolved_by_key[$key] ?? 0) + 1;
+                if (count($known_unresolved_samples) < 25) {
+                    $known_unresolved_samples[] = array(
+                        'owner_post_id' => absint($known_row['post_id'] ?? 0),
+                        'meta_key' => $key,
+                        'missing_source_id' => $source_id,
+                    );
+                }
+            }
+        }
+
         $structured_where = "(LEFT(TRIM(pm.meta_value),1) IN ('{','[') OR pm.meta_value REGEXP '^(a|O|s|i|b|d):')";
         $suspicious_key = "LOWER(pm.meta_key) REGEXP '(id|ids|parent|related|relation|category|term|product|post)'";
         $audit_excluded_keys = array_merge(self::remapped_postmeta_keys(), array('_product_attributes'));
@@ -613,10 +669,16 @@ final class SEO_Clonador_Engine {
         if (absint($count)>0) {
             $warnings[]='Se detectaron '.absint($count).' postmeta estructurados/JSON con nombres que sugieren referencias a IDs y que no tienen remapeo especifico. Revisa las muestras del DRY RUN antes de APPLY.';
         }
+        if ($known_unresolved > 0) {
+            $warnings[]='Se omitiran '.absint($known_unresolved).' referencias de _upsell_ids/_crosssell_ids/_children que apuntan a objetos PRO fuera del perimetro clonado.';
+        }
         return array(
             'remapped' => $remapped,
             'excluded' => $excluded,
             'known_postmeta_reference_rows' => $known,
+            'known_postmeta_unresolved_references' => absint($known_unresolved),
+            'known_postmeta_unresolved_by_key' => $known_unresolved_by_key,
+            'known_postmeta_unresolved_samples' => $known_unresolved_samples,
             'opaque_reference_count' => absint($count),
             'opaque_reference_samples' => $samples,
             'warnings' => $warnings,
@@ -863,6 +925,8 @@ final class SEO_Clonador_Engine {
                 $parents[$sid] = absint($row['post_parent'] ?? 0);
                 $copied++;
             }
+            self::progress('posts_objects', 'Objetos clonados: ' . $copied . '.', $stats);
+            if (function_exists('usleep')) @usleep(15000);
             $cursor = absint(end($rows)['ID'] ?? $cursor);
             if (count($rows) < 250) break;
         }
@@ -900,7 +964,7 @@ final class SEO_Clonador_Engine {
                 $sid = absint($row['post_id']);
                 $target_id = absint($map[$sid] ?? 0);
                 if (!$target_id) continue;
-                $meta_value = self::remap_postmeta_value((string)$row['meta_key'], (string)$row['meta_value'], $map);
+                $meta_value = self::remap_postmeta_value((string)$row['meta_key'], (string)$row['meta_value'], $map, $stats);
                 if (is_wp_error($meta_value)) return $meta_value;
                 $insert[] = array('post_id'=>$target_id,'meta_key'=>(string)$row['meta_key'],'meta_value'=>(string)$meta_value);
             }
@@ -909,6 +973,8 @@ final class SEO_Clonador_Engine {
                 if (is_wp_error($r)) return $r;
             }
             $copied_meta += count($insert);
+            self::progress('postmeta', 'Metadatos portables clonados: ' . $copied_meta . '.', $stats);
+            if (function_exists('usleep')) @usleep(15000);
             $cursor = absint(end($rows)['meta_id'] ?? $cursor);
             if (count($rows) < 500) break;
         }
@@ -1247,16 +1313,33 @@ final class SEO_Clonador_Engine {
 
         $x=self::exec($stg,"DELETE FROM `{$stg_tables['sql_atributos_aliases']}`");if(is_wp_error($x))return$x;$rows=self::rows($pro,"SELECT atributo_id,termino_id,alias FROM `{$pro_tables['sql_atributos_aliases']}` ORDER BY id");if(is_wp_error($rows))return$rows;$ins=array();foreach($rows as $r){$a=absint($attr_map[absint($r['atributo_id'])]??0);$t=absint($r['termino_id']??0);$lt=$t?absint($term_map[$t]??0):0;if(!$a||($t&&!$lt))return new WP_Error('clone_alias_map','No se pudo remapear un alias de atributo.');$ins[]=array('atributo_id'=>$a,'termino_id'=>$lt?:null,'alias'=>$r['alias']);}foreach(array_chunk($ins,200) as $c){$x=self::insert_rows($stg,$stg_tables['sql_atributos_aliases'],array('atributo_id','termino_id','alias'),$c,false);if(is_wp_error($x))return$x;}
 
-        $x=self::exec($stg,"DELETE FROM `{$stg_tables['sql_product_atributos']}`");if(is_wp_error($x))return$x;$rows=self::rows($pro,"SELECT product_id,atributo_id,termino_id,valor_texto,valor_numero,valor_numero_max,unidad,valor_original,orden FROM `{$pro_tables['sql_product_atributos']}` ORDER BY id");if(is_wp_error($rows))return$rows;$ins=array();$product_attr_copied=0;$product_attr_skipped=0;foreach($rows as $r){$p=absint($post_map[absint($r['product_id'])]??0);if(!$p){$product_attr_skipped++;continue;}$a=absint($attr_map[absint($r['atributo_id'])]??0);$st=absint($r['termino_id']??0);$t=$st?absint($term_map[$st]??0):0;if(!$a||($st&&!$t))return new WP_Error('clone_product_attr_map','No se pudo remapear un atributo/termino maestro de producto.');$ins[]=array('product_id'=>$p,'atributo_id'=>$a,'termino_id'=>$t?:null,'valor_texto'=>$r['valor_texto'],'valor_numero'=>$r['valor_numero'],'valor_numero_max'=>$r['valor_numero_max'],'unidad'=>$r['unidad'],'valor_original'=>$r['valor_original'],'orden'=>$r['orden']);$product_attr_copied++;if(count($ins)>=200){$x=self::insert_rows($stg,$stg_tables['sql_product_atributos'],array('product_id','atributo_id','termino_id','valor_texto','valor_numero','valor_numero_max','unidad','valor_original','orden'),$ins,false);if(is_wp_error($x))return$x;$ins=array();}}if($ins){$x=self::insert_rows($stg,$stg_tables['sql_product_atributos'],array('product_id','atributo_id','termino_id','valor_texto','valor_numero','valor_numero_max','unidad','valor_original','orden'),$ins,false);if(is_wp_error($x))return$x;}$stats['sql_product_atributos']=$product_attr_copied;$stats['sql_product_atributos_omitidos_huerfanos']=$product_attr_skipped;
+        $x=self::exec($stg,"DELETE FROM `{$stg_tables['sql_product_atributos']}`");if(is_wp_error($x))return$x;$rows=self::rows($pro,"SELECT product_id,atributo_id,termino_id,valor_texto,valor_numero,valor_numero_max,unidad,valor_original,orden FROM `{$pro_tables['sql_product_atributos']}` ORDER BY id");if(is_wp_error($rows))return$rows;$ins=array();$product_attr_copied=0;$product_attr_skipped=0;foreach($rows as $r){$p=absint($post_map[absint($r['product_id'])]??0);if(!$p){$product_attr_skipped++;continue;}$a=absint($attr_map[absint($r['atributo_id'])]??0);$st=absint($r['termino_id']??0);$t=$st?absint($term_map[$st]??0):0;if(!$a||($st&&!$t))return new WP_Error('clone_product_attr_map','No se pudo remapear un atributo/termino maestro de producto.');$ins[]=array('product_id'=>$p,'atributo_id'=>$a,'termino_id'=>$t?:null,'valor_texto'=>$r['valor_texto'],'valor_numero'=>$r['valor_numero'],'valor_numero_max'=>$r['valor_numero_max'],'unidad'=>$r['unidad'],'valor_original'=>$r['valor_original'],'orden'=>$r['orden']);$product_attr_copied++;if(count($ins)>=200){$x=self::insert_rows($stg,$stg_tables['sql_product_atributos'],array('product_id','atributo_id','termino_id','valor_texto','valor_numero','valor_numero_max','unidad','valor_original','orden'),$ins,false);if(is_wp_error($x))return$x;$ins=array();}}if($ins){$x=self::insert_rows($stg,$stg_tables['sql_product_atributos'],array('product_id','atributo_id','termino_id','valor_texto','valor_numero','valor_numero_max','unidad','valor_original','orden'),$ins,false);if(is_wp_error($x))return$x;}$stats['sql_product_atributos']=$product_attr_copied;$stats['sql_product_atributos_omitidos_huerfanos']=$product_attr_skipped;self::progress('semantic_product_attributes','Atributos de producto clonados: '.$product_attr_copied.'; huerfanos omitidos: '.$product_attr_skipped.'.',$stats);
 
         $managed_types=array('product','product_cat','page','post');$quoted="'".implode("','",array_map(static function($v)use($stg){return mysqli_real_escape_string($stg,$v);},$managed_types))."'";$x=self::exec($stg,"DELETE FROM `{$stg_tables['seo_object_vocabulary']}` WHERE object_type IN ({$quoted})");if(is_wp_error($x))return$x;
-        $rows=self::rows($pro,"SELECT object_type,object_id,vocabulary_id,source,confidence,status,created_at,updated_at FROM `{$pro_tables['seo_object_vocabulary']}` WHERE object_type IN ('product','product_cat','page','post') ORDER BY id");if(is_wp_error($rows))return$rows;$object_vocab_count=count($rows);$ins=array();foreach($rows as $r){$ot=sanitize_key((string)$r['object_type']);$sid=absint($r['object_id']);$oid='product_cat'===$ot?absint($category_map[$sid]??0):absint($post_map[$sid]??0);$vid=absint($vmap[absint($r['vocabulary_id'])]??0);if(!$oid||!$vid)return new WP_Error('clone_object_vocab_map','No se pudo remapear una asignacion semantica '.$ot.' #'.$sid.'.');$ins[]=array('object_type'=>$ot,'object_id'=>$oid,'vocabulary_id'=>$vid,'source'=>$r['source'],'confidence'=>$r['confidence'],'status'=>$r['status'],'created_at'=>$r['created_at'],'updated_at'=>$r['updated_at']);if(count($ins)>=200){$x=self::insert_rows($stg,$stg_tables['seo_object_vocabulary'],array('object_type','object_id','vocabulary_id','source','confidence','status','created_at','updated_at'),$ins,false);if(is_wp_error($x))return$x;$ins=array();}}if($ins){$x=self::insert_rows($stg,$stg_tables['seo_object_vocabulary'],array('object_type','object_id','vocabulary_id','source','confidence','status','created_at','updated_at'),$ins,false);if(is_wp_error($x))return$x;}
+        $object_vocab_count=0;$cursor=0;
+        while(true){
+            $rows=self::rows($pro,"SELECT id,object_type,object_id,vocabulary_id,source,confidence,status,created_at,updated_at FROM `{$pro_tables['seo_object_vocabulary']}` WHERE object_type IN ('product','product_cat','page','post') AND id>{$cursor} ORDER BY id LIMIT 1000");
+            if(is_wp_error($rows))return$rows;if(!$rows)break;$ins=array();
+            foreach($rows as $r){
+                $ot=sanitize_key((string)$r['object_type']);$sid=absint($r['object_id']);
+                $oid='product_cat'===$ot?absint($category_map[$sid]??0):absint($post_map[$sid]??0);
+                $vid=absint($vmap[absint($r['vocabulary_id'])]??0);
+                if(!$oid||!$vid)return new WP_Error('clone_object_vocab_map','No se pudo remapear una asignacion semantica '.$ot.' #'.$sid.'.');
+                $ins[]=array('object_type'=>$ot,'object_id'=>$oid,'vocabulary_id'=>$vid,'source'=>$r['source'],'confidence'=>$r['confidence'],'status'=>$r['status'],'created_at'=>$r['created_at'],'updated_at'=>$r['updated_at']);
+            }
+            foreach(array_chunk($ins,200) as $c){$x=self::insert_rows($stg,$stg_tables['seo_object_vocabulary'],array('object_type','object_id','vocabulary_id','source','confidence','status','created_at','updated_at'),$c,false);if(is_wp_error($x))return$x;}
+            $object_vocab_count+=count($ins);$cursor=absint(end($rows)['id']??$cursor);
+            $stats['seo_object_vocabulary']=$object_vocab_count;
+            self::progress('semantic_object_vocabulary','Asignaciones semanticas clonadas: '.$object_vocab_count.'.',$stats);
+            if(function_exists('usleep'))@usleep(15000);
+            if(count($rows)<1000)break;
+        }
 
         // 4) Eliminar maestros extra una vez remapeadas todas sus dependencias.
         $dst_terms_now=self::rows($stg,"SELECT t.id,a.slug attribute_slug,t.slug FROM `{$stg_tables['sql_atributos_terminos']}` t JOIN `{$stg_tables['sql_atributos']}` a ON a.id=t.atributo_id");if(is_wp_error($dst_terms_now))return$dst_terms_now;foreach($dst_terms_now as $r){$k=self::attribute_term_key($r['attribute_slug'],$r['slug']);if(!isset($src_term_keys[$k])){$x=self::exec($stg,"DELETE FROM `{$stg_tables['sql_atributos_terminos']}` WHERE id=".absint($r['id']));if(is_wp_error($x))return$x;}}
         $dst_attr_now=self::rows($stg,"SELECT id,slug FROM `{$stg_tables['sql_atributos']}`");if(is_wp_error($dst_attr_now))return$dst_attr_now;foreach($dst_attr_now as $r){$k=sanitize_title((string)$r['slug']);if(!isset($src_attr_keys[$k])){$x=self::exec($stg,"DELETE FROM `{$stg_tables['sql_atributos']}` WHERE id=".absint($r['id']));if(is_wp_error($x))return$x;}}
         $dst_vocab_now=self::rows($stg,"SELECT id,semantic_group,slug FROM `{$stg_tables['seo_vocabulary']}`");if(is_wp_error($dst_vocab_now))return$dst_vocab_now;foreach($dst_vocab_now as $r){$k=self::semantic_key($r['semantic_group'],$r['slug']);if(!isset($src_keys[$k])){$x=self::exec($stg,"DELETE FROM `{$stg_tables['seo_vocabulary']}` WHERE id=".absint($r['id']));if(is_wp_error($x))return$x;}}
-        $stats['seo_vocabulary']=count($src_vocab);$stats['sql_atributos']=count($src_attr);$stats['sql_atributos_terminos']=count($src_terms);$stats['seo_object_vocabulary']=$object_vocab_count;
+        $stats['seo_vocabulary']=count($src_vocab);$stats['sql_atributos']=count($src_attr);$stats['sql_atributos_terminos']=count($src_terms);$stats['seo_object_vocabulary']=$object_vocab_count;self::progress('semantic_object_vocabulary','Asignaciones semanticas clonadas: '.$object_vocab_count.'.',$stats);
         return array('vocabulary_map'=>$vmap,'attribute_map'=>$attr_map,'attribute_term_map'=>$term_map);
     }
 
@@ -1291,7 +1374,25 @@ final class SEO_Clonador_Engine {
     private static function relation_endpoint_map($type,$id,$post_map,$category_map){$type=sanitize_key((string)$type);$id=absint($id);if(in_array($type,array('product_cat','category'),true))return absint($category_map[$id]??0);if(in_array($type,array('product','post','page','cluster','hub_primary','hub_secondary','hub_secundario','landing','landing_page'),true))return absint($post_map[$id]??0);return 0;}
     private static function clone_relations($pro,$stg,$pro_tables,$stg_tables,$post_map,$category_map,&$stats){$types=self::relation_managed_types();$quoted="'".implode("','",array_map(static function($v)use($stg){return mysqli_real_escape_string($stg,$v);},$types))."'";$x=self::exec($stg,"DELETE FROM `{$stg_tables['seo_relations']}` WHERE relation_type IN ({$quoted})");if(is_wp_error($x))return$x;$rows=self::rows($pro,"SELECT source_type,source_id,target_type,target_id,relation_type,created_at FROM `{$pro_tables['seo_relations']}` WHERE relation_type IN ("."'".implode("','",array_map(static function($v)use($pro){return mysqli_real_escape_string($pro,$v);},$types))."'".") ORDER BY id");if(is_wp_error($rows))return$rows;$ins=array();foreach($rows as $r){$s=self::relation_endpoint_map($r['source_type'],$r['source_id'],$post_map,$category_map);$t=self::relation_endpoint_map($r['target_type'],$r['target_id'],$post_map,$category_map);if(!$s||!$t)return new WP_Error('clone_relation_map','No se pudo remapear '.$r['relation_type'].' con IDs locales de STAGING.');$ins[]=array('source_type'=>$r['source_type'],'source_id'=>$s,'target_type'=>$r['target_type'],'target_id'=>$t,'relation_type'=>$r['relation_type'],'created_at'=>$r['created_at']);}foreach(array_chunk($ins,200) as $c){$x=self::insert_rows($stg,$stg_tables['seo_relations'],array('source_type','source_id','target_type','target_id','relation_type','created_at'),$c,false);if(is_wp_error($x))return$x;}$stats['seo_relations']=count($ins);return true;}
 
-    private static function clone_faqs($pro,$stg,$pro_tables,$stg_tables,$post_map,$category_map,&$stats){$x=self::exec($stg,"DELETE FROM `{$stg_tables['seo_faq']}` WHERE object_type IN (1,2,3)");if(is_wp_error($x))return$x;$rows=self::rows($pro,"SELECT object_type,object_id,question,answer,sort_order,active,load_count,open_count,created_at,updated_at FROM `{$pro_tables['seo_faq']}` WHERE object_type IN (1,2,3) ORDER BY id");if(is_wp_error($rows))return$rows;$ins=array();foreach($rows as $r){$ot=absint($r['object_type']);$sid=absint($r['object_id']);$oid=2===$ot?absint($category_map[$sid]??0):absint($post_map[$sid]??0);if(!$oid)return new WP_Error('clone_faq_map','No se pudo remapear FAQ object_type='.$ot.' object_id='.$sid.'.');$ins[]=array('object_type'=>$ot,'object_id'=>$oid,'question'=>$r['question'],'answer'=>$r['answer'],'sort_order'=>$r['sort_order'],'active'=>$r['active'],'load_count'=>$r['load_count'],'open_count'=>$r['open_count'],'created_at'=>$r['created_at'],'updated_at'=>$r['updated_at']);if(count($ins)>=150){$x=self::insert_rows($stg,$stg_tables['seo_faq'],array('object_type','object_id','question','answer','sort_order','active','load_count','open_count','created_at','updated_at'),$ins,false);if(is_wp_error($x))return$x;$ins=array();}}if($ins){$x=self::insert_rows($stg,$stg_tables['seo_faq'],array('object_type','object_id','question','answer','sort_order','active','load_count','open_count','created_at','updated_at'),$ins,false);if(is_wp_error($x))return$x;}$stats['seo_faq']=count($rows);return true;}
+    private static function clone_faqs($pro,$stg,$pro_tables,$stg_tables,$post_map,$category_map,&$stats){
+        $x=self::exec($stg,"DELETE FROM `{$stg_tables['seo_faq']}` WHERE object_type IN (1,2,3)");if(is_wp_error($x))return$x;
+        $cursor=0;$copied=0;
+        while(true){
+            $rows=self::rows($pro,"SELECT id,object_type,object_id,question,answer,sort_order,active,load_count,open_count,created_at,updated_at FROM `{$pro_tables['seo_faq']}` WHERE object_type IN (1,2,3) AND id>{$cursor} ORDER BY id LIMIT 1000");
+            if(is_wp_error($rows))return$rows;if(!$rows)break;$ins=array();
+            foreach($rows as $r){
+                $ot=absint($r['object_type']);$sid=absint($r['object_id']);$oid=2===$ot?absint($category_map[$sid]??0):absint($post_map[$sid]??0);
+                if(!$oid)return new WP_Error('clone_faq_map','No se pudo remapear FAQ object_type='.$ot.' object_id='.$sid.'.');
+                $ins[]=array('object_type'=>$ot,'object_id'=>$oid,'question'=>$r['question'],'answer'=>$r['answer'],'sort_order'=>$r['sort_order'],'active'=>$r['active'],'load_count'=>$r['load_count'],'open_count'=>$r['open_count'],'created_at'=>$r['created_at'],'updated_at'=>$r['updated_at']);
+            }
+            foreach(array_chunk($ins,150) as $c){$x=self::insert_rows($stg,$stg_tables['seo_faq'],array('object_type','object_id','question','answer','sort_order','active','load_count','open_count','created_at','updated_at'),$c,false);if(is_wp_error($x))return$x;}
+            $copied+=count($ins);$cursor=absint(end($rows)['id']??$cursor);$stats['seo_faq']=$copied;
+            self::progress('faqs','FAQs clonadas: '.$copied.'.',$stats);
+            if(function_exists('usleep'))@usleep(15000);
+            if(count($rows)<1000)break;
+        }
+        return true;
+    }
 
     private static function clone_wc_lookup_if_available($pro, $stg, $pro_prefix, $stg_prefix, $post_map, &$stats) {
         $source = $pro_prefix . 'wc_product_meta_lookup';
@@ -1630,9 +1731,20 @@ final class SEO_Clonador_Engine {
         return true;
     }
 
-    private static function apply_clone($pro, $stg, $pro_tables, $stg_tables, $identity) {
+    private static function progress($phase, $message, $stats = array()) {
+        if (is_callable(self::$progress_callback)) {
+            call_user_func(self::$progress_callback, sanitize_key((string) $phase), (string) $message, array('stats' => is_array($stats) ? $stats : array()));
+        }
+    }
+
+    private static function apply_clone($pro, $stg, $pro_tables, $stg_tables, $identity, $progress_callback = null) {
+        self::$progress_callback = is_callable($progress_callback) ? $progress_callback : null;
+        self::progress('lock', 'Reservando el Clonador y preparando la transaccion.');
         $lock = self::scalar($stg, "SELECT GET_LOCK('" . mysqli_real_escape_string($stg, self::LOCK_NAME) . "',0) AS l", 'l');
-        if ('1' !== (string) $lock) return new WP_Error('clonador_lock', 'Ya hay otra alineacion integral en curso.');
+        if ('1' !== (string) $lock) {
+            self::$progress_callback = null;
+            return new WP_Error('clonador_lock', 'Ya hay otra alineacion integral en curso.');
+        }
         $stats = array();
         $started = microtime(true);
         try {
@@ -1641,31 +1753,45 @@ final class SEO_Clonador_Engine {
             $r = self::exec($stg, 'START TRANSACTION');
             if (is_wp_error($r)) return $r;
 
+            self::progress('reset', 'Vaciando el perimetro gestionado de STAGING.', $stats);
             $r = self::reset_staging_scope($stg, $stg_tables, $stats);
             if (is_wp_error($r)) throw new RuntimeException($r->get_error_message());
 
+            self::progress('posts', 'Clonando productos, posts, paginas y metadatos portables.', $stats);
             $post_map = self::clone_posts($pro, $stg, $pro_tables, $stg_tables, $stats);
             if (is_wp_error($post_map)) throw new RuntimeException($post_map->get_error_message());
+
+            self::progress('taxonomies', 'Clonando categorias, etiquetas y taxonomias.', $stats);
             $tax_maps = self::clone_taxonomies($pro, $stg, $pro_tables, $stg_tables, $post_map, $stats);
             if (is_wp_error($tax_maps)) throw new RuntimeException($tax_maps->get_error_message());
             $category_map = (array) ($tax_maps['category_term_map'] ?? array());
             $term_map = (array) ($tax_maps['term_map'] ?? array());
             $tt_map = (array) ($tax_maps['tt_map'] ?? array());
+
+            self::progress('woo_taxonomies', 'Clonando marcas y taxonomias WooCommerce adicionales.', $stats);
             $extra_tax_maps = self::clone_extra_taxonomies($pro, $stg, $pro_tables, $stg_tables, $post_map, $term_map, $tt_map, $stats);
             if (is_wp_error($extra_tax_maps)) throw new RuntimeException($extra_tax_maps->get_error_message());
             $term_map = (array) ($extra_tax_maps['term_map'] ?? $term_map);
 
+            self::progress('semantic', 'Clonando vocabulario, atributos y asociaciones semanticas.', $stats);
             $semantic_maps = self::clone_semantic_tables($pro, $stg, $pro_tables, $stg_tables, $post_map, $category_map, $stats);
             if (is_wp_error($semantic_maps)) throw new RuntimeException($semantic_maps->get_error_message());
+
+            self::progress('nodes', 'Clonando nodos SEO.', $stats);
             $r = self::clone_nodes($pro, $stg, $pro_tables, $stg_tables, $post_map, $category_map, $stats);
             if (is_wp_error($r)) throw new RuntimeException($r->get_error_message());
+
+            self::progress('relations', 'Clonando relaciones SEO.', $stats);
             $r = self::clone_relations($pro, $stg, $pro_tables, $stg_tables, $post_map, $category_map, $stats);
             if (is_wp_error($r)) throw new RuntimeException($r->get_error_message());
+
+            self::progress('faqs', 'Clonando FAQs y remapeando su objeto propietario.', $stats);
             $r = self::clone_faqs($pro, $stg, $pro_tables, $stg_tables, $post_map, $category_map, $stats);
             if (is_wp_error($r)) throw new RuntimeException($r->get_error_message());
 
             $pro_prefix = substr($pro_tables['posts'], 0, -strlen('posts'));
             $stg_prefix = substr($stg_tables['posts'], 0, -strlen('posts'));
+            self::progress('woo_lookup', 'Reconstruyendo tablas lookup de WooCommerce.', $stats);
             $r = self::clone_wc_attribute_taxonomies_if_available($pro, $stg, $pro_prefix, $stg_prefix, $stats);
             if (is_wp_error($r)) throw new RuntimeException($r->get_error_message());
             $r = self::clone_wc_lookup_if_available($pro, $stg, $pro_prefix, $stg_prefix, $post_map, $stats);
@@ -1673,14 +1799,18 @@ final class SEO_Clonador_Engine {
             $r = self::clone_wc_product_attributes_lookup_if_available($pro, $stg, $pro_prefix, $stg_prefix, $post_map, $term_map, $stats);
             if (is_wp_error($r)) throw new RuntimeException($r->get_error_message());
 
+            self::progress('verify', 'Verificando el clon antes de confirmar la transaccion.', $stats);
             $verification = self::verify_clone_counts($pro, $stg, $pro_tables, $stg_tables);
             if (is_wp_error($verification)) throw new RuntimeException($verification->get_error_message());
             $stats['verification'] = $verification;
 
+            self::progress('commit', 'Verificacion correcta. Confirmando cambios en STAGING.', $stats);
             $r = self::exec($stg, 'COMMIT');
             if (is_wp_error($r)) throw new RuntimeException($r->get_error_message());
         } catch (Throwable $e) {
             @mysqli_query($stg, 'ROLLBACK');
+            self::progress('rollback', 'Se produjo un error; la transaccion de STAGING se ha revertido.', $stats);
+            self::$progress_callback = null;
             return new WP_Error('clonador_apply', 'Clonador cancelado y revertido: ' . $e->getMessage());
         } finally {
             @mysqli_query($stg, "SELECT RELEASE_LOCK('" . mysqli_real_escape_string($stg, self::LOCK_NAME) . "')");
@@ -1692,7 +1822,7 @@ final class SEO_Clonador_Engine {
             'completed_at' => time(),
             'source' => 'pro',
             'destination' => 'staging',
-            'engine' => 'portable_clone_engine',
+            'engine' => 'portable_clone_engine_worker',
             'stats' => $stats,
             'identity' => $identity,
             'duration_seconds' => round(microtime(true) - $started, 3),
@@ -1709,6 +1839,8 @@ final class SEO_Clonador_Engine {
             'generation' => $generation,
             'created_at' => time(),
         ));
+        self::progress('completed', 'Clonacion completada y verificada.', $stats);
+        self::$progress_callback = null;
         return $payload;
     }
 
@@ -1721,6 +1853,47 @@ final class SEO_Clonador_Engine {
             return $stg;
         }
         return array($pro, $stg);
+    }
+
+
+    /**
+     * Ejecuta un plan previamente simulado desde un worker desacoplado.
+     * Revalida PRO/STAGING antes de tocar datos y conserva la transaccion atomica.
+     */
+    public static function run_background_clone($saved, $progress_callback = null) {
+        $saved = is_array($saved) ? $saved : array();
+        if (empty($saved['source_marker']) || empty($saved['target_marker'])) {
+            return new WP_Error('clonador_background_preview', 'El worker no recibio una simulacion valida.');
+        }
+        @set_time_limit(0);
+        ignore_user_abort(true);
+        $pair = self::open_pair();
+        if (is_wp_error($pair)) return $pair;
+        list($pro, $stg) = $pair;
+        $pro_prefix = seo_clonador_db_prefix('pro');
+        $stg_prefix = seo_clonador_db_prefix('staging');
+        $pro_tables = self::all_required_tables($pro_prefix);
+        $stg_tables = self::all_required_tables($stg_prefix);
+        try {
+            if (is_callable($progress_callback)) {
+                call_user_func($progress_callback, 'preflight', 'Revalidando el plan antes de iniciar la transaccion.', array('stats'=>array()));
+            }
+            $analysis = self::analyze($pro, $stg, $pro_tables, $stg_tables);
+            if (is_wp_error($analysis)) return $analysis;
+            if (!empty($analysis['conflicts'])) {
+                return new WP_Error('clonador_background_conflicts', 'La prevalidacion contiene conflictos: ' . implode(' | ', array_slice((array)$analysis['conflicts'], 0, 10)));
+            }
+            if (!hash_equals((string) $saved['source_marker'], (string) $analysis['source_marker'])) {
+                return new WP_Error('clonador_background_source_changed', 'PRO ha cambiado desde la simulacion. No se ha escrito nada; simula de nuevo.');
+            }
+            if (!hash_equals((string) $saved['target_marker'], (string) $analysis['target_marker'])) {
+                return new WP_Error('clonador_background_target_changed', 'STAGING ha cambiado desde la simulacion. No se ha escrito nada; simula de nuevo.');
+            }
+            return self::apply_clone($pro, $stg, $pro_tables, $stg_tables, (array) $analysis['identity'], $progress_callback);
+        } finally {
+            @mysqli_close($pro);
+            @mysqli_close($stg);
+        }
     }
 
     public static function ajax_preview() {
@@ -1749,8 +1922,8 @@ final class SEO_Clonador_Engine {
                 'actions' => (array) ($analysis['actions'] ?? array()),
                 'identity_resolution' => (array) ($analysis['identity_resolution'] ?? array()),
                 'reference_audit' => (array) ($analysis['reference_audit'] ?? array()),
-                'plan_version' => defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.5.2',
-                'engine_revision' => 'academia-cloner-2.5.2',
+                'plan_version' => defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.5.3',
+                'engine_revision' => 'academia-cloner-worker-2.5.3',
                 'dry_run' => true,
                 'writes_performed' => 0,
                 'conflicts' => (array) $analysis['conflicts'],
@@ -1779,8 +1952,10 @@ final class SEO_Clonador_Engine {
         }
         $saved = get_transient(self::preview_key());
         if (!is_array($saved)) wp_send_json_error(array('message'=>'La simulacion ha caducado. Simula de nuevo antes de escribir.'), 409);
-        @set_time_limit(0);
-        ignore_user_abort(true);
+
+        // La peticion web solo revalida y entrega el trabajo. La clonacion real
+        // se ejecuta fuera del navegador mediante el worker del subsistema
+        // includes/procesos.
         $pair = self::open_pair();
         if (is_wp_error($pair)) wp_send_json_error(array('message'=>$pair->get_error_message()), 500);
         list($pro, $stg) = $pair;
@@ -1803,20 +1978,31 @@ final class SEO_Clonador_Engine {
                 delete_transient(self::preview_key());
                 wp_send_json_error(array('message'=>'STAGING ha cambiado desde la simulacion. No se ha escrito nada; vuelve a simular.'), 409);
             }
-            $result = self::apply_clone($pro, $stg, $pro_tables, $stg_tables, (array) $analysis['identity']);
-            if (is_wp_error($result)) wp_send_json_error(array('message'=>$result->get_error_message()), 500);
+            if (!class_exists('SEO_Clonador_Process') || !is_callable(array('SEO_Clonador_Process','queue'))) {
+                wp_send_json_error(array('message'=>'No esta cargado el worker del Clonador en includes/procesos/clonador.'), 500);
+            }
+            $saved['identity'] = (array) $analysis['identity'];
+            $queued = SEO_Clonador_Process::queue($saved);
+            if (is_wp_error($queued)) wp_send_json_error(array('message'=>$queued->get_error_message()), 500);
             delete_transient(self::preview_key());
             wp_send_json_success(array(
-                'message' => 'Clonacion PRO → STAGING terminada. El perimetro gestionado se ha reconstruido en STAGING.',
-                'stats' => (array) ($result['stats'] ?? array()),
-                'seconds' => (float) ($result['duration_seconds'] ?? 0),
-                'generation' => (string) ($result['generation'] ?? ''),
-                'reindex_pending' => true,
+                'message' => 'Clonacion entregada al worker. Puedes cambiar de pantalla o cerrar el navegador.',
+                'job' => $queued,
+                'background' => true,
             ));
         } finally {
             @mysqli_close($pro);
             @mysqli_close($stg);
         }
+    }
+
+    public static function ajax_status() {
+        $auth = self::authorize();
+        if (is_wp_error($auth)) wp_send_json_error(array('message'=>$auth->get_error_message()), 403);
+        if (!class_exists('SEO_Clonador_Process') || !is_callable(array('SEO_Clonador_Process','public_state'))) {
+            wp_send_json_error(array('message'=>'No esta disponible el estado del worker del Clonador.'), 500);
+        }
+        wp_send_json_success(array('job' => SEO_Clonador_Process::public_state()));
     }
 
     /**

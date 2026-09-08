@@ -113,4 +113,5 @@ if (!function_exists('seo_processes_render_registered_tab')) {
 
 require_once SEO_SYSTEM_PATH . 'includes/seo-process-supervisor.php';
 require_once SEO_SYSTEM_PATH . 'includes/procesos/woocommerce/bootstrap.php';
+require_once SEO_SYSTEM_PATH . 'includes/procesos/clonador/bootstrap.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-processes.php';
