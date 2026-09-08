@@ -35,7 +35,8 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
 
         <div class="seo-clonador">
             <div class="seo-clonador-card">
-                <h2 style="margin-top:0;">Clonador PRO → STAGING <small>v<?php echo esc_html( SEO_CLONADOR_VERSION ); ?></small></h2>
+                <h1 style="margin-top:0;font-size:30px;line-height:1.2;">Clonador para Academia</h1>
+                <p style="font-size:15px;margin-top:-8px;"><strong>PRO → STAGING</strong> · Datos base para Academia · v<?php echo esc_html( SEO_CLONADOR_VERSION ); ?></p>
                 <p><strong>PRO es siempre el origen. STAGING es siempre el destino.</strong> No existe ninguna operación STAGING → PRO.</p>
                 <p>La clonación no intenta conservar el catálogo anterior de STAGING: elimina el perímetro gestionado y lo reconstruye desde PRO. Los IDs de PRO nunca se insertan como IDs de destino; solo se usan temporalmente para construir mapas hacia los nuevos IDs locales de STAGING.</p>
                 <p>Entorno desde el que has abierto la pantalla: <strong><?php echo esc_html( $current ? strtoupper( $current ) : 'NO IDENTIFICADO' ); ?></strong>. La dirección no cambia.</p>
