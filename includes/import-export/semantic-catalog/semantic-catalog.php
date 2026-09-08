@@ -378,8 +378,8 @@ final class SEO_Semantic_Catalog_Transfer {
     }
 
     private static function current_environment() {
-        if (function_exists('seo_environment_compare_current_env')) {
-            $value = sanitize_key((string) seo_environment_compare_current_env());
+        if (function_exists('seo_clonador_current_env')) {
+            $value = sanitize_key((string) seo_clonador_current_env());
             if ($value) {
                 return $value;
             }
