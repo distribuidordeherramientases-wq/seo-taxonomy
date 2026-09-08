@@ -1,4 +1,61 @@
+## [2.3.3] - 2026-09-08
 
+Release correspondiente al **Milestone 2.3.3**, centrada en SEO técnico y datos estructurados, importación y sincronización de datos, logística y facturación, calidad del dato, plantillas y estabilidad general del plugin.
+
+### Añadido
+
+- Añadido JSON-LD para portada, categorías y productos, incluyendo la base para `Organization`, `WebSite`, `Product` y navegación estructurada. (#173)
+- Creado un sistema de clonación/sincronización para trasladar datos entre producción y staging. (#174)
+- Añadido soporte para importar desde PRO a STAGING páginas, categorías, entradas y productos. (#146)
+- Añadida asociación de las etiquetas de páginas con el vocabulario SEO. (#152)
+- Añadida asociación de las etiquetas de FAQs con el vocabulario SEO. (#165)
+- Añadido control propio de costes de envío para complementar o sustituir la lógica estándar de WooCommerce. (#150)
+- Añadido nombre descriptivo de los portes según la regla logística aplicada. (#157)
+- Añadido control sobre la intensidad/frecuencia de tareas programadas de WooCommerce. (#153)
+- Implementado tracking de compras WooCommerce en GA4. (#71)
+- Ampliado el sistema de facturas, presupuestos y proformas para contemplar portes e impuestos. (#151)
+- Mejorado el tratamiento de impuestos y costes asociados a envíos a Canarias, Ceuta y Melilla. (#131)
+
+### Mejorado
+
+- Mejorado el sistema de actualización de productos durante los procesos de importación. (#163)
+- Mejorado el comparador de tablas y datos de productos. (#154)
+- Revisadas las plantillas para mostrar la información con una jerarquía más consistente. (#141)
+- Mejorada la paridad entre STAGING y PRO para reducir diferencias en plantillas y comportamiento. (#155)
+- Revisada la separación entre STAGING y PRO para evitar canibalización e indexación no deseada. (#161)
+- Mejorados los informes y controles basados en información procedente de Google, Trends y otras fuentes. (#126)
+- Ampliada la revisión y disponibilidad de información asociada a imágenes. (#28)
+- Reforzados los controles de calidad del dato orientados a detectar contenido pobre, repetitivo o poco útil. (#147)
+- Revisados pesos y dimensiones de productos para detectar datos incorrectos. (#162)
+- Mejorada la sincronización de atributos y etiquetas entre STAGING y PRO. (#145)
+- Reorganizado el sistema de chequeos en una estructura de carpetas específica y más mantenible. (#172)
+
+### Corregido
+
+- Corregida la incidencia que indicaba erróneamente que el motor propio de Import / Export no estaba disponible. (#148)
+- Corregidos problemas del sistema de logística y transporte. (#156)
+- Corregidos modos/configuraciones de MySQL que podían provocar errores. (#158)
+- Reclasificados avisos de MySQL que no representan errores reales para que se muestren como información. (#159)
+- Ajustados parámetros de control de WooCommerce para reducir avisos y errores innecesarios. (#160)
+- Recuperado el comparador que había dejado de mostrarse o funcionar correctamente. (#139)
+- Recuperado el pie específico de VEVOR. (#138)
+- Corregido/eliminado el mensaje de afiliación de Amazon mostrado indebidamente en el pie de páginas. (#137)
+- Revisados y corregidos problemas detectados a partir del informe de Semrush. (#64)
+
+### Datos, SEO y compatibilidad
+
+- Se ha reforzado la integración entre Vocabulary, etiquetas, FAQs, categorías y páginas.
+- Se han mejorado las comprobaciones de integridad del contenido y del catálogo.
+- Se han revisado diferencias de codificación y estructura de base de datos entre entornos; el issue #167 quedó cerrado como duplicado.
+- Se mantienen las comprobaciones de compatibilidad con WordPress, WooCommerce y los subsistemas propios de importación, proveedores y plantillas.
+
+### Notas de despliegue
+
+- Versión del plugin: **2.3.3**.
+- Rama de integración: `staging`.
+- Rama de producción: `main`.
+- La versión fue promovida mediante Pull Request de `staging` a `main` y desplegada posteriormente a producción.
+- 
 ## 2.3.2 - Consolidación operativa, Dependiente y catálogo
 - Evoluciona Dependiente con entrenamiento, conocimiento persistente, importación/exportación de conocimiento y mejores respuestas ante búsquedas sin resultados.
 - Amplía la integración de producto con Amazon y otros proveedores, incorporando productos alternativos y mejorando la disponibilidad de resultados en consultas y comparativas.
