@@ -2,15 +2,18 @@
 /**
  * SEO System - Conexiones BBDD de entornos PRO / STAGING.
  *
- * Guarda dos conexiones MySQL de solo lectura para futuras comparaciones y
- * sincronizaciones entre entornos. No ejecuta escrituras remotas.
+ * Guarda las conexiones MySQL de PRO y STAGING usadas por el Comparador.
+ * PRO se trata siempre como origen y puede usar credenciales de solo lectura.
+ * STAGING puede requerir escritura cuando se ejecuta el MIRROR integral
+ * PRO -> STAGING desde cualquiera de los dos WordPress.
  *
- * Recomendacion operativa: usar usuarios MySQL exclusivos con permiso SELECT,
- * restriccion por IP/VPN y TLS cuando la conexion salga de una red privada.
+ * Recomendacion operativa: PRO con usuario exclusivo SELECT; STAGING con un
+ * usuario exclusivo limitado a su propia BBDD y permisos SELECT/INSERT/UPDATE/DELETE.
+ * Restringir ambos por IP/VPN y TLS cuando salgan de una red privada.
  *
  * @package SEOSystem
  * @subpackage ImportExport
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -209,7 +212,8 @@ if ( ! function_exists( 'seo_environment_db_is_configured' ) ) {
 if ( ! function_exists( 'seo_environment_db_open' ) ) {
     /**
      * Abre una conexion mysqli independiente. El llamador debe cerrarla.
-     * Solo se usa para consultas SELECT/SHOW en este modulo.
+     * El uso normal del Comparador es de lectura. La unica escritura remota
+     * admitida por diseño es el MIRROR integral sobre la conexion STAGING.
      *
      * @return mysqli|WP_Error
      */
@@ -507,12 +511,17 @@ if ( ! function_exists( 'seo_environment_db_render_connections' ) ) {
             echo '<input type="hidden" name="env" value="' . esc_attr( $env ) . '">';
             wp_nonce_field( 'seo_environment_db_save', 'seo_environment_db_nonce' );
             echo '<label style="grid-column:1/-1;"><input type="checkbox" name="enabled" value="1" ' . checked( $enabled, true, false ) . '> <strong>Activar esta conexión</strong></label>';
+            if ( 'staging' === $env ) {
+                echo '<p class="description" style="grid-column:1/-1;margin:0;"><strong>MIRROR integral:</strong> esta conexión es el único destino de escritura y necesita SELECT, INSERT, UPDATE y DELETE sobre la BBDD de STAGING. PRO nunca se escribe.</p>';
+            } else {
+                echo '<p class="description" style="grid-column:1/-1;margin:0;">Para PRO se recomienda mantener un usuario exclusivo de solo lectura (SELECT).</p>';
+            }
 
             $fields = [
                 'host'     => [ 'Host', 'db.example.com', 'text' ],
                 'port'     => [ 'Puerto', '3306', 'number' ],
                 'database' => [ 'Base de datos', 'wordpress', 'text' ],
-                'username' => [ 'Usuario solo lectura', 'seo_sync_reader', 'text' ],
+                'username' => [ 'Usuario BBDD', 'seo_sync_user', 'text' ],
                 'prefix'   => [ 'Prefijo tablas', 'wp_', 'text' ],
                 'ssl_ca'   => [ 'CA TLS (opcional)', '/ruta/ca.pem', 'text' ],
             ];
@@ -533,7 +542,7 @@ if ( ! function_exists( 'seo_environment_db_render_connections' ) ) {
             if ( 'constant' === $password_source ) {
                 echo '<div style="grid-column:1/-1;"><strong>Contraseña</strong><br><span style="display:inline-block;margin-top:5px;padding:4px 8px;border-radius:12px;background:#edfaef;">Definida en wp-config.php</span><br><span class="description"><code>' . esc_html( seo_environment_db_constant_name( $env, 'password' ) ) . '</code></span></div>';
             } else {
-                echo '<label style="grid-column:1/-1;"><strong>Contraseña</strong><br><input type="password" name="password" value="" placeholder="' . esc_attr( 'database' === $password_source ? 'Guardada; deja vacío para conservarla' : 'Contraseña del usuario de solo lectura' ) . '" autocomplete="new-password" style="width:100%;"></label>';
+                echo '<label style="grid-column:1/-1;"><strong>Contraseña</strong><br><input type="password" name="password" value="" placeholder="' . esc_attr( 'database' === $password_source ? 'Guardada; deja vacío para conservarla' : 'Contraseña del usuario BBDD' ) . '" autocomplete="new-password" style="width:100%;"></label>';
                 if ( 'database' === $password_source ) {
                     echo '<label style="grid-column:1/-1;"><input type="checkbox" name="clear_password" value="1"> Eliminar la contraseña guardada.</label>';
                 }
