@@ -1522,12 +1522,19 @@ final class SEO_Clonador_Engine {
     private static function verify_clone_counts($pro, $stg, $pro_tables, $stg_tables) {
         $checks = array();
         $errors = array();
-        $add = static function($label, $source, $target) use (&$checks, &$errors) {
+        $add = static function($key, $source, $target, $label = '') use (&$checks, &$errors) {
             if (is_wp_error($source)) return $source;
             if (is_wp_error($target)) return $target;
-            $source = absint($source); $target = absint($target);
-            $checks[$label] = array('pro'=>$source, 'staging'=>$target, 'ok'=>($source === $target));
-            if ($source !== $target) $errors[] = $label . ': PRO=' . $source . ', STAGING=' . $target;
+            $source = absint($source);
+            $target = absint($target);
+            $ok = ($source === $target);
+            $checks[$key] = array(
+                'label' => $label ? (string) $label : (string) $key,
+                'pro' => $source,
+                'staging' => $target,
+                'ok' => $ok,
+            );
+            if (!$ok) $errors[] = ($label ? $label : $key) . ': PRO=' . $source . ', STAGING=' . $target;
             return true;
         };
 
@@ -1537,7 +1544,8 @@ final class SEO_Clonador_Engine {
             $r = $add(
                 'post_type:' . $type,
                 self::count_table($pro, $pro_tables['posts'], "post_type='{$sp}' AND post_status<>'trash'"),
-                self::count_table($stg, $stg_tables['posts'], "post_type='{$st}' AND post_status<>'trash'")
+                self::count_table($stg, $stg_tables['posts'], "post_type='{$st}' AND post_status<>'trash'"),
+                'Objetos ' . $type
             );
             if (is_wp_error($r)) return $r;
         }
@@ -1552,21 +1560,21 @@ final class SEO_Clonador_Engine {
         $names=array_values(array_unique(array_merge(array_keys($src_tax),array_keys($dst_tax),self::$taxonomies)));
         sort($names,SORT_STRING);
         foreach ($names as $taxonomy) {
-            $r=$add('taxonomy:' . $taxonomy, absint($src_tax[$taxonomy]??0), absint($dst_tax[$taxonomy]??0));
+            $r=$add('taxonomy:' . $taxonomy, absint($src_tax[$taxonomy]??0), absint($dst_tax[$taxonomy]??0), 'Taxonomia ' . $taxonomy);
             if (is_wp_error($r)) return $r;
         }
 
         $src_meta = self::scalar($pro, "SELECT COUNT(*) c FROM `{$pro_tables['postmeta']}` pm JOIN `{$pro_tables['posts']}` p ON p.ID=pm.post_id WHERE " . self::post_type_sql($pro,'p') . " AND p.post_status<>'trash' AND " . self::meta_portable_sql('pm'), 'c');
         $dst_meta = self::scalar($stg, "SELECT COUNT(*) c FROM `{$stg_tables['postmeta']}` pm JOIN `{$stg_tables['posts']}` p ON p.ID=pm.post_id WHERE " . self::post_type_sql($stg,'p') . " AND p.post_status<>'trash' AND " . self::meta_portable_sql('pm'), 'c');
-        $r=$add('postmeta_portable',$src_meta,$dst_meta); if(is_wp_error($r))return$r;
+        $r=$add('postmeta_portable',$src_meta,$dst_meta,'Metadatos portables'); if(is_wp_error($r))return$r;
 
         $src_rel = self::scalar($pro, "SELECT COUNT(*) c FROM `{$pro_tables['term_relationships']}` tr JOIN `{$pro_tables['term_taxonomy']}` tt ON tt.term_taxonomy_id=tr.term_taxonomy_id JOIN `{$pro_tables['posts']}` p ON p.ID=tr.object_id WHERE " . self::all_managed_taxonomy_sql($pro,'tt') . " AND " . self::post_type_sql($pro,'p') . " AND p.post_status<>'trash'", 'c');
         $dst_rel = self::scalar($stg, "SELECT COUNT(*) c FROM `{$stg_tables['term_relationships']}` tr JOIN `{$stg_tables['term_taxonomy']}` tt ON tt.term_taxonomy_id=tr.term_taxonomy_id JOIN `{$stg_tables['posts']}` p ON p.ID=tr.object_id WHERE " . self::all_managed_taxonomy_sql($stg,'tt') . " AND " . self::post_type_sql($stg,'p') . " AND p.post_status<>'trash'", 'c');
-        $r=$add('term_relationships',$src_rel,$dst_rel); if(is_wp_error($r))return$r;
+        $r=$add('term_relationships',$src_rel,$dst_rel,'Relaciones taxonomicas'); if(is_wp_error($r))return$r;
 
         $src_termmeta = self::scalar($pro, "SELECT COUNT(DISTINCT tm.meta_id) c FROM `{$pro_tables['termmeta']}` tm JOIN `{$pro_tables['term_taxonomy']}` tt ON tt.term_id=tm.term_id WHERE " . self::all_managed_taxonomy_sql($pro,'tt') . " AND " . self::termmeta_portable_sql('tm'), 'c');
         $dst_termmeta = self::scalar($stg, "SELECT COUNT(DISTINCT tm.meta_id) c FROM `{$stg_tables['termmeta']}` tm JOIN `{$stg_tables['term_taxonomy']}` tt ON tt.term_id=tm.term_id WHERE " . self::all_managed_taxonomy_sql($stg,'tt') . " AND " . self::termmeta_portable_sql('tm'), 'c');
-        $r=$add('termmeta_portable',$src_termmeta,$dst_termmeta); if(is_wp_error($r))return$r;
+        $r=$add('termmeta_portable',$src_termmeta,$dst_termmeta,'Metadatos de terminos'); if(is_wp_error($r))return$r;
 
         foreach (self::custom_table_keys() as $key) {
             if ('sql_product_atributos' === $key) {
@@ -1594,7 +1602,7 @@ final class SEO_Clonador_Engine {
                 $source_count = self::count_table($pro,$pro_tables[$key],self::managed_custom_where($pro,$key));
                 $target_count = self::count_table($stg,$stg_tables[$key],self::managed_custom_where($stg,$key));
             }
-            $r=$add('table:' . $key,$source_count,$target_count);
+            $r=$add('table:' . $key,$source_count,$target_count,'Tabla ' . $key);
             if(is_wp_error($r))return$r;
         }
 
@@ -1606,7 +1614,7 @@ final class SEO_Clonador_Engine {
             $target_table=$stg_optional[$key];
             if (!self::table_exists($pro,$source_table) && !self::table_exists($stg,$target_table)) continue;
             if (!self::table_exists($pro,$source_table) || !self::table_exists($stg,$target_table)) {
-                $errors[]='woo:' . $key . ': la tabla no existe en ambos entornos';
+                $errors[]='Woo ' . $key . ': la tabla no existe en ambos entornos';
                 continue;
             }
             if ('woocommerce_attribute_taxonomies' === $key) {
@@ -1616,13 +1624,76 @@ final class SEO_Clonador_Engine {
                 $source=self::scalar($pro,"SELECT COUNT(*) c FROM `{$source_table}` l JOIN `{$pro_tables['posts']}` p ON p.ID=l.product_id WHERE " . self::post_type_sql($pro,'p') . " AND p.post_status<>'trash'",'c');
                 $target=self::scalar($stg,"SELECT COUNT(*) c FROM `{$target_table}` l JOIN `{$stg_tables['posts']}` p ON p.ID=l.product_id WHERE " . self::post_type_sql($stg,'p') . " AND p.post_status<>'trash'",'c');
             }
-            $r=$add('woo:' . $key,$source,$target); if(is_wp_error($r))return$r;
+            $r=$add('woo:' . $key,$source,$target,'Woo ' . $key); if(is_wp_error($r))return$r;
         }
 
+        // KPIs criticos: son precisamente los fallos mas costosos de detectar a mano.
+        $src_with_cat = self::scalar($pro,
+            "SELECT COUNT(DISTINCT p.ID) c FROM `{$pro_tables['posts']}` p
+             JOIN `{$pro_tables['term_relationships']}` tr ON tr.object_id=p.ID
+             JOIN `{$pro_tables['term_taxonomy']}` tt ON tt.term_taxonomy_id=tr.term_taxonomy_id AND tt.taxonomy='product_cat'
+             WHERE p.post_type='product' AND p.post_status<>'trash'", 'c');
+        $dst_with_cat = self::scalar($stg,
+            "SELECT COUNT(DISTINCT p.ID) c FROM `{$stg_tables['posts']}` p
+             JOIN `{$stg_tables['term_relationships']}` tr ON tr.object_id=p.ID
+             JOIN `{$stg_tables['term_taxonomy']}` tt ON tt.term_taxonomy_id=tr.term_taxonomy_id AND tt.taxonomy='product_cat'
+             WHERE p.post_type='product' AND p.post_status<>'trash'", 'c');
+        $r=$add('kpi:products_with_category',$src_with_cat,$dst_with_cat,'Productos con categoria');if(is_wp_error($r))return$r;
+
+        $src_products = absint($checks['post_type:product']['pro'] ?? 0);
+        $dst_products = absint($checks['post_type:product']['staging'] ?? 0);
+        $r=$add('kpi:products_without_category',max(0,$src_products-absint($src_with_cat)),max(0,$dst_products-absint($dst_with_cat)),'Productos sin categoria');if(is_wp_error($r))return$r;
+
+        $src_with_attr = self::scalar($pro,
+            "SELECT COUNT(DISTINCT p.ID) c FROM `{$pro_tables['posts']}` p
+             JOIN `{$pro_tables['sql_product_atributos']}` pa ON pa.product_id=p.ID
+             JOIN `{$pro_tables['sql_atributos']}` a ON a.id=pa.atributo_id
+             LEFT JOIN `{$pro_tables['sql_atributos_terminos']}` at ON at.id=pa.termino_id
+             WHERE p.post_type='product' AND p.post_status<>'trash' AND (COALESCE(pa.termino_id,0)=0 OR at.id IS NOT NULL)", 'c');
+        $dst_with_attr = self::scalar($stg,
+            "SELECT COUNT(DISTINCT p.ID) c FROM `{$stg_tables['posts']}` p
+             JOIN `{$stg_tables['sql_product_atributos']}` pa ON pa.product_id=p.ID
+             JOIN `{$stg_tables['sql_atributos']}` a ON a.id=pa.atributo_id
+             LEFT JOIN `{$stg_tables['sql_atributos_terminos']}` at ON at.id=pa.termino_id
+             WHERE p.post_type='product' AND p.post_status<>'trash' AND (COALESCE(pa.termino_id,0)=0 OR at.id IS NOT NULL)", 'c');
+        $r=$add('kpi:products_with_seo_attributes',$src_with_attr,$dst_with_attr,'Productos con atributos SEO');if(is_wp_error($r))return$r;
+        $r=$add('kpi:products_without_seo_attributes',max(0,$src_products-absint($src_with_attr)),max(0,$dst_products-absint($dst_with_attr)),'Productos sin atributos SEO');if(is_wp_error($r))return$r;
+
+        $failed = 0;
+        foreach ($checks as $check) if (empty($check['ok'])) $failed++;
+        $failed = max($failed, count($errors));
+        $summary = array(
+            'checks_total' => count($checks),
+            'passed' => max(0, count($checks) - $failed),
+            'failed' => $failed,
+        );
+        $critical_keys = array(
+            'post_type:product',
+            'taxonomy:product_cat',
+            'kpi:products_with_category',
+            'kpi:products_without_category',
+            'kpi:products_with_seo_attributes',
+            'kpi:products_without_seo_attributes',
+            'table:sql_product_atributos',
+            'term_relationships',
+            'table:seo_faq',
+            'table:seo_vocabulary',
+            'table:seo_object_vocabulary',
+        );
+        $critical = array();
+        foreach ($critical_keys as $key) if (isset($checks[$key])) $critical[$key] = $checks[$key];
+        $payload = array(
+            'passed' => !$errors,
+            'checks' => $checks,
+            'critical_kpis' => $critical,
+            'summary' => $summary,
+            'checked_at' => time(),
+        );
+
         if ($errors) {
-            return new WP_Error('clonador_verify', 'Verificacion previa a COMMIT fallida: ' . implode(' | ', array_slice($errors,0,20)));
+            return new WP_Error('clonador_verify', 'Verificacion final fallida: ' . implode(' | ', array_slice($errors,0,20)), $payload);
         }
-        return array('passed'=>true,'checks'=>$checks,'checked_at'=>time());
+        return $payload;
     }
 
     private static function set_staging_option($stg, $options_table, $name, $value) {
@@ -1914,6 +1985,7 @@ final class SEO_Clonador_Engine {
             'identity' => array(),
             'stats' => array(),
             'warnings' => array(),
+            'progress' => array(),
             'last_error' => '',
             'result' => array(),
         );
@@ -1925,8 +1997,9 @@ final class SEO_Clonador_Engine {
         return wp_parse_args(is_array($state) ? $state : array(), self::worker_state_defaults());
     }
 
-    private static function worker_state_set($stg, $options_table, $state) {
+    private static function worker_state_set($stg, $options_table, &$state) {
         $state = wp_parse_args(is_array($state) ? $state : array(), self::worker_state_defaults());
+        self::worker_refresh_progress($state);
         $state['updated_at'] = time();
         return self::set_staging_option($stg, $options_table, self::WORKER_JOB_OPTION, $state);
     }
@@ -1942,6 +2015,102 @@ final class SEO_Clonador_Engine {
         if ('' !== $message && !in_array($message, $state['warnings'], true) && count($state['warnings']) < 100) {
             $state['warnings'][] = $message;
         }
+    }
+
+
+    /**
+     * Catalogo visible de fases del worker. Se usa unicamente para informar
+     * al administrador: que tabla se esta tratando, que queda pendiente y
+     * cuanto ha avanzado el job. No decide la logica de copia.
+     */
+    private static function worker_phase_catalog() {
+        $prefix = function_exists('seo_clonador_db_prefix') ? (string) seo_clonador_db_prefix('staging') : 'wp_';
+        $t = static function($suffix) use ($prefix) { return $prefix . $suffix; };
+        return array(
+            'preflight' => array('label'=>'Prevalidando PRO y STAGING','kind'=>'check','tables'=>array()),
+            'reset_posts' => array('label'=>'Vaciando objetos gestionados de STAGING','kind'=>'delete','tables'=>array($t('posts'),$t('postmeta'),$t('term_relationships'))),
+            'reset_taxonomies' => array('label'=>'Vaciando taxonomias gestionadas de STAGING','kind'=>'delete','tables'=>array($t('terms'),$t('term_taxonomy'),$t('termmeta'),$t('term_relationships'))),
+            'reset_custom' => array('label'=>'Vaciando tablas propias del catalogo','kind'=>'delete','tables'=>array($t('seo_object_vocabulary'),$t('seo_nodes'),$t('seo_relations'),$t('seo_faq'),$t('seo_type_role_map'),$t('sql_product_atributos'),$t('sql_atributos_aliases'),$t('sql_atributos_terminos'),$t('sql_atributos'),$t('seo_vocabulary'))),
+            'posts' => array('label'=>'Copiando productos, posts y paginas','kind'=>'copy','tables'=>array($t('posts'))),
+            'post_parents' => array('label'=>'Reconstruyendo jerarquia de posts','kind'=>'copy','tables'=>array($t('posts'))),
+            'postmeta' => array('label'=>'Copiando metadatos portables','kind'=>'copy','tables'=>array($t('postmeta'))),
+            'tax_terms' => array('label'=>'Copiando categorias, etiquetas y taxonomias','kind'=>'copy','tables'=>array($t('terms'),$t('term_taxonomy'))),
+            'tax_parents' => array('label'=>'Reconstruyendo jerarquia de taxonomias','kind'=>'copy','tables'=>array($t('term_taxonomy'))),
+            'termmeta' => array('label'=>'Copiando metadatos de terminos','kind'=>'copy','tables'=>array($t('termmeta'))),
+            'tax_relationships' => array('label'=>'Copiando relaciones producto-contenido / taxonomia','kind'=>'copy','tables'=>array($t('term_relationships'))),
+            'tax_counts' => array('label'=>'Recalculando conteos de taxonomias','kind'=>'copy','tables'=>array($t('term_taxonomy'))),
+            'vocab' => array('label'=>'Copiando Vocabulary','kind'=>'copy','tables'=>array($t('seo_vocabulary'))),
+            'vocab_parents' => array('label'=>'Reconstruyendo jerarquia de Vocabulary','kind'=>'copy','tables'=>array($t('seo_vocabulary'))),
+            'attributes' => array('label'=>'Copiando atributos maestros','kind'=>'copy','tables'=>array($t('sql_atributos'))),
+            'attribute_terms' => array('label'=>'Copiando terminos de atributos','kind'=>'copy','tables'=>array($t('sql_atributos_terminos'))),
+            'type_role' => array('label'=>'Copiando mapa TIPO / ROL','kind'=>'copy','tables'=>array($t('seo_type_role_map'))),
+            'attribute_aliases' => array('label'=>'Copiando alias de atributos','kind'=>'copy','tables'=>array($t('sql_atributos_aliases'))),
+            'product_attributes' => array('label'=>'Copiando atributos SEO de productos','kind'=>'copy','tables'=>array($t('sql_product_atributos'))),
+            'object_vocabulary' => array('label'=>'Copiando asignaciones de Vocabulary','kind'=>'copy','tables'=>array($t('seo_object_vocabulary'))),
+            'nodes' => array('label'=>'Copiando nodos SEO','kind'=>'copy','tables'=>array($t('seo_nodes'))),
+            'relations' => array('label'=>'Copiando relaciones SEO','kind'=>'copy','tables'=>array($t('seo_relations'))),
+            'faqs' => array('label'=>'Copiando FAQs','kind'=>'copy','tables'=>array($t('seo_faq'))),
+            'woo_attribute_taxonomies' => array('label'=>'Copiando taxonomias de atributos WooCommerce','kind'=>'copy','tables'=>array($t('woocommerce_attribute_taxonomies'))),
+            'wc_meta_lookup' => array('label'=>'Copiando lookup principal de WooCommerce','kind'=>'copy','tables'=>array($t('wc_product_meta_lookup'))),
+            'wc_attr_lookup' => array('label'=>'Copiando lookup de atributos WooCommerce','kind'=>'copy','tables'=>array($t('wc_product_attributes_lookup'))),
+            'verify' => array('label'=>'VERIFICANDO la copia completa','kind'=>'verify','tables'=>array()),
+            'complete' => array('label'=>'Cerrando clonacion verificada','kind'=>'verify','tables'=>array()),
+            'completed' => array('label'=>'Clonacion completada y verificada','kind'=>'done','tables'=>array()),
+        );
+    }
+
+    private static function worker_copied_total($stats) {
+        $stats = is_array($stats) ? $stats : array();
+        $total = 0;
+        foreach ($stats as $key => $value) {
+            if (!is_numeric($value)) continue;
+            $key = (string) $key;
+            if (0 === strpos($key, 'reset_')) continue;
+            if (false !== strpos($key, 'omitid') || false !== strpos($key, 'omitted') || false !== strpos($key, 'huerfan')) continue;
+            if ('verification' === $key) continue;
+            $total += max(0, (int) $value);
+        }
+        return $total;
+    }
+
+    private static function worker_refresh_progress(&$state) {
+        $catalog = self::worker_phase_catalog();
+        $phases = array_keys($catalog);
+        $phase = sanitize_key((string) ($state['phase'] ?? 'preflight'));
+        $index = array_search($phase, $phases, true);
+        if (false === $index) $index = 0;
+        $entry = $catalog[$phase] ?? array('label'=>$phase,'kind'=>'copy','tables'=>array());
+
+        $future_tables = array();
+        for ($i = $index + 1; $i < count($phases); $i++) {
+            foreach ((array) ($catalog[$phases[$i]]['tables'] ?? array()) as $table) {
+                if (!in_array($table, $future_tables, true)) $future_tables[] = $table;
+            }
+        }
+        $current_tables = array_values(array_unique((array) ($entry['tables'] ?? array())));
+        $completed_tables = array();
+        for ($i = 0; $i < $index; $i++) {
+            foreach ((array) ($catalog[$phases[$i]]['tables'] ?? array()) as $table) {
+                if (in_array($table, $current_tables, true) || in_array($table, $future_tables, true)) continue;
+                if (!in_array($table, $completed_tables, true)) $completed_tables[] = $table;
+            }
+        }
+        $percent = count($phases) > 1 ? (int) floor(($index / (count($phases) - 1)) * 100) : 0;
+        if ('completed' === $phase || 'completed' === (string) ($state['status'] ?? '')) $percent = 100;
+
+        $state['progress'] = array(
+            'phase' => $phase,
+            'phase_label' => sanitize_text_field((string) ($entry['label'] ?? $phase)),
+            'kind' => sanitize_key((string) ($entry['kind'] ?? 'copy')),
+            'phase_number' => min(count($phases), $index + 1),
+            'phase_total' => count($phases),
+            'percent' => max(0, min(100, $percent)),
+            'current_tables' => $current_tables,
+            'pending_tables' => $future_tables,
+            'completed_tables' => $completed_tables,
+            'copied_total' => self::worker_copied_total((array) ($state['stats'] ?? array())),
+            'warnings_total' => count((array) ($state['warnings'] ?? array())),
+        );
     }
 
     public static function initialize_manager_job($job_id, $preview) {
@@ -2343,12 +2512,19 @@ final class SEO_Clonador_Engine {
 
     private static function worker_phase_verify($pro,$stg,$pro_tables,$stg_tables,&$state){
         $marker=self::environment_marker($pro,$pro_tables);if(is_wp_error($marker))return$marker;if(!hash_equals((string)$state['source_marker'],(string)$marker))return new WP_Error('clonador_source_changed','PRO cambio durante la clonacion. STAGING se marca incompleto; vuelve a simular y reinicia el clon.');
-        $verification=self::verify_clone_counts($pro,$stg,$pro_tables,$stg_tables);if(is_wp_error($verification))return$verification;$state['stats']['verification']=$verification;$state['phase']='complete';$state['message']='Verificacion correcta. Cerrando clonacion.';return true;
+        $verification=self::verify_clone_counts($pro,$stg,$pro_tables,$stg_tables);
+        if(is_wp_error($verification)){
+            $data=$verification->get_error_data();
+            $state['stats']['verification']=is_array($data)?$data:array('passed'=>false,'checks'=>array(),'summary'=>array('checks_total'=>0,'passed'=>0,'failed'=>1));
+            $state['message']='VERIFICACION FALLIDA. STAGING queda incompleto y no se marca como clon correcto.';
+            return $verification;
+        }
+        $state['stats']['verification']=$verification;$state['phase']='complete';$state['message']='Verificacion correcta. Cerrando clonacion.';return true;
     }
 
     private static function worker_phase_complete($stg,$stg_tables,&$state){
-        $generation=function_exists('wp_generate_uuid4')?wp_generate_uuid4():uniqid('clone-',true);$payload=array('generation'=>$generation,'completed_at'=>time(),'source'=>'pro','destination'=>'staging','engine'=>'portable_clone_process_manager_2.5.4','stats'=>(array)$state['stats'],'identity'=>(array)$state['identity'],'duration_seconds'=>max(0,time()-absint($state['started_at']??time())));
-        $r=self::set_staging_option($stg,$stg_tables['options'],'seo_clonador_generation',$payload);if(is_wp_error($r))return$r;$r=self::set_staging_option($stg,$stg_tables['options'],'seo_clonador_last',$payload);if(is_wp_error($r))return$r;self::set_staging_option($stg,$stg_tables['options'],'seo_semantic_catalog_reindex_pending',array('reason'=>'environment_clonador','generation'=>$generation,'created_at'=>time()));self::set_staging_option($stg,$stg_tables['options'],'seo_semantic_catalog_drift',array('reason'=>'environment_clonador','generation'=>$generation,'created_at'=>time()));$state['status']='completed';$state['phase']='completed';$state['completed_at']=time();$state['message']='Clonacion PRO → STAGING terminada y verificada.';$state['result']=array('generation'=>$generation,'duration_seconds'=>$payload['duration_seconds'],'completed_at'=>$state['completed_at']);return true;
+        $generation=function_exists('wp_generate_uuid4')?wp_generate_uuid4():uniqid('clone-',true);$payload=array('generation'=>$generation,'completed_at'=>time(),'source'=>'pro','destination'=>'staging','engine'=>'portable_clone_process_manager_2.5.5','stats'=>(array)$state['stats'],'identity'=>(array)$state['identity'],'duration_seconds'=>max(0,time()-absint($state['started_at']??time())));
+        $r=self::set_staging_option($stg,$stg_tables['options'],'seo_clonador_generation',$payload);if(is_wp_error($r))return$r;$r=self::set_staging_option($stg,$stg_tables['options'],'seo_clonador_last',$payload);if(is_wp_error($r))return$r;self::set_staging_option($stg,$stg_tables['options'],'seo_semantic_catalog_reindex_pending',array('reason'=>'environment_clonador','generation'=>$generation,'created_at'=>time()));self::set_staging_option($stg,$stg_tables['options'],'seo_semantic_catalog_drift',array('reason'=>'environment_clonador','generation'=>$generation,'created_at'=>time()));$state['status']='completed';$state['phase']='completed';$state['completed_at']=time();$state['message']='Clonacion PRO → STAGING terminada y verificada.';self::worker_refresh_progress($state);$verification=is_array($state['stats']['verification']??null)?$state['stats']['verification']:array();$state['result']=array('generation'=>$generation,'duration_seconds'=>$payload['duration_seconds'],'completed_at'=>$state['completed_at'],'copied_total'=>absint($state['progress']['copied_total']??0),'warnings_total'=>count((array)$state['warnings']),'verification'=>$verification);return true;
     }
 
     private static function worker_step($pro,$stg,$pro_tables,$stg_tables,&$state){
@@ -2406,7 +2582,7 @@ final class SEO_Clonador_Engine {
                     $state['status']='completed'===(string)$state['phase']?'completed':'running';$state['updated_at']=time();$state['worker_source']=sanitize_key((string)$source);
                     $r=self::worker_state_set($stg,$stg_tables['options'],$state);if(is_wp_error($r))throw new RuntimeException($r->get_error_message());
                     $r=self::exec($stg,'COMMIT');if(is_wp_error($r))throw new RuntimeException($r->get_error_message());
-                }catch(Throwable $e){@mysqli_query($stg,'ROLLBACK');$state['status']='failed';$state['last_error']=sanitize_text_field($e->getMessage());$state['message']='Clonacion detenida en fase '.sanitize_key((string)$state['phase']).'. Reiniciar vuelve a vaciar STAGING.';$state['completed_at']=time();self::worker_state_set($stg,$stg_tables['options'],$state);return new WP_Error('clonador_worker_slice',$e->getMessage());}
+                }catch(Throwable $e){@mysqli_query($stg,'ROLLBACK');$state['status']='failed';$state['last_error']=sanitize_text_field($e->getMessage());$state['message']='Clonacion detenida en fase '.sanitize_key((string)$state['phase']).'. STAGING esta incompleto; reiniciar vuelve a vaciarlo.';$state['completed_at']=time();self::worker_refresh_progress($state);self::worker_state_set($stg,$stg_tables['options'],$state);return new WP_Error('clonador_worker_slice',$e->getMessage(),array('state'=>$state));}
                 $steps++;
             }
             return $state;

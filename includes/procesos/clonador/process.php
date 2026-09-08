@@ -8,7 +8,7 @@
  *
  * @package SEOSystem
  * @subpackage Processes_Clonador
- * @since 2.5.4
+ * @since 2.5.5
  */
 
 defined('ABSPATH') || exit;
@@ -45,6 +45,7 @@ final class SEO_Clonador_Process {
             'preview' => array(),
             'stats' => array(),
             'warnings' => array(),
+            'progress' => array(),
             'result' => array(),
         ));
     }
@@ -95,6 +96,7 @@ final class SEO_Clonador_Process {
             'last_error' => sanitize_text_field((string) $state['last_error']),
             'stats' => is_array($state['stats']) ? $state['stats'] : array(),
             'warnings' => is_array($state['warnings']) ? $state['warnings'] : array(),
+            'progress' => is_array($state['progress']) ? $state['progress'] : array(),
             'result' => is_array($state['result']) ? $state['result'] : array(),
         );
     }
@@ -146,6 +148,7 @@ final class SEO_Clonador_Process {
             ),
             'stats' => array(),
             'warnings' => array(),
+            'progress' => isset($remote['progress']) && is_array($remote['progress']) ? $remote['progress'] : array(),
             'result' => array(),
         ));
 
@@ -191,13 +194,19 @@ final class SEO_Clonador_Process {
         $job_id = sanitize_key((string) (self::state()['job_id'] ?? ''));
         $result = SEO_Clonador_Engine::process_manager_slice($job_id, max(5, absint($budget)), sanitize_key((string) $source));
         if (is_wp_error($result)) {
+            $error_data = $result->get_error_data();
+            $remote_state = (is_array($error_data) && isset($error_data['state']) && is_array($error_data['state'])) ? $error_data['state'] : array();
             self::save(array(
                 'status' => 'failed',
-                'phase' => 'failed',
-                'message' => 'Clonacion detenida. STAGING queda marcado como incompleto y puede reiniciarse desde cero.',
+                'phase' => sanitize_key((string) ($remote_state['phase'] ?? 'failed')),
+                'message' => sanitize_text_field((string) ($remote_state['message'] ?? 'Clonacion detenida. STAGING queda marcado como incompleto y puede reiniciarse desde cero.')),
                 'heartbeat_at' => time(),
                 'completed_at' => time(),
                 'last_error' => $result->get_error_message(),
+                'stats' => isset($remote_state['stats']) && is_array($remote_state['stats']) ? $remote_state['stats'] : array(),
+                'warnings' => isset($remote_state['warnings']) && is_array($remote_state['warnings']) ? $remote_state['warnings'] : array(),
+                'progress' => isset($remote_state['progress']) && is_array($remote_state['progress']) ? $remote_state['progress'] : array(),
+                'result' => isset($remote_state['result']) && is_array($remote_state['result']) ? $remote_state['result'] : array(),
             ));
             if (function_exists('seo_process_supervisor_log')) {
                 seo_process_supervisor_log('error', 'clone_slice_failed', $result->get_error_message(), 'Clonador para Academia');
@@ -214,6 +223,7 @@ final class SEO_Clonador_Process {
             'last_error' => sanitize_text_field((string) ($result['last_error'] ?? '')),
             'stats' => isset($result['stats']) && is_array($result['stats']) ? $result['stats'] : array(),
             'warnings' => isset($result['warnings']) && is_array($result['warnings']) ? $result['warnings'] : array(),
+            'progress' => isset($result['progress']) && is_array($result['progress']) ? $result['progress'] : array(),
             'result' => isset($result['result']) && is_array($result['result']) ? $result['result'] : array(),
         );
         if ('completed' === $remote_status || 'failed' === $remote_status) $changes['completed_at'] = time();
