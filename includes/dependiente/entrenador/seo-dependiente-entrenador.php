@@ -12,7 +12,12 @@ defined('ABSPATH') || exit;
  * aprendizaje observacional.
  */
 final class SEO_Dependiente_Entrenador {
-    const DB_VERSION = '2026-09-02.3';
+    const DB_VERSION = '2026-09-08.2';
+    const CURRICULUM_VERSION = '2';
+    const MAX_INVENTORY_SOURCES = 3000;
+    const MAX_FAQ_SOURCES = 3000;
+    const MAX_CROSS_SOURCES = 1200;
+    const MAX_EXAM_SOURCES = 800;
     const PREPARE_BATCH_LIMIT = 100;
     const AJAX_BATCH_MIN = 1;
     const AJAX_BATCH_INITIAL = 1;
@@ -44,8 +49,6 @@ final class SEO_Dependiente_Entrenador {
         add_action('wp_ajax_seo_dependiente_entrenador_lab_export', array(__CLASS__, 'ajax_lab_export'));
         add_action(self::AUTO_WORKER_HOOK, array(__CLASS__, 'auto_worker'));
         add_action(self::AUTO_WATCHDOG_HOOK, array(__CLASS__, 'auto_watchdog'));
-        add_action('admin_post_seo_dependiente_academy_direct_worker', array(__CLASS__, 'direct_http_worker'));
-        add_action('admin_post_nopriv_seo_dependiente_academy_direct_worker', array(__CLASS__, 'direct_http_worker'));
     }
 
     public static function lessons_table() {
@@ -251,8 +254,8 @@ final class SEO_Dependiente_Entrenador {
         <div class="seo-dependiente-trainer" data-trainer-root data-current-lesson="<?php echo esc_attr($current_key); ?>" data-current-module="<?php echo esc_attr($next_module); ?>" data-auto-running="<?php echo $auto_running ? '1' : '0'; ?>">
             <div class="seo-dependiente-trainer__intro">
                 <div>
-                    <h2>Academia del Dependiente</h2>
-                    <p>Formación guiada y secuencial. La Academia toma el catálogo como fuente de verdad, prepara una lección, mide cómo responde el snapshot actual y, al completarla, incorpora el conocimiento canónico que usará la siguiente lección.</p>
+                    <h2>Academia del Dependiente v2</h2>
+                    <p>Formación guiada sobre el catálogo real de PRO. Productos, categorías, posts, páginas y FAQs comparten contexto mediante el Vocabulary canónico; cada lección conserva su verdad esperada y promociona reglas solo cuando la evaluación supera el control de calidad.</p>
                 </div>
                 <div class="seo-dependiente-trainer__intro-badges">
                     <span class="seo-dependiente-trainer__isolation">Consultas aisladas del aprendizaje de clientes</span>
@@ -278,14 +281,6 @@ final class SEO_Dependiente_Entrenador {
                     $row = isset($lessons[$lesson_key]) ? $lessons[$lesson_key] : array();
                     self::render_lesson_card($lesson_key, $definition, $row, $current_key);
                 endforeach; ?>
-                <article class="seo-dependiente-trainer__lesson is-future">
-                    <div class="seo-dependiente-trainer__lesson-number">5+</div>
-                    <div>
-                        <h3>Comprensión de descripciones y lenguaje avanzado</h3>
-                        <p>Se diseñará después de validar las cuatro lecciones básicas. Usará extractos y descripciones para crear preguntas por inferencia, no por copia literal.</p>
-                        <span class="seo-dependiente-trainer__lesson-status">Próximamente</span>
-                    </div>
-                </article>
             </div>
 
             <?php if ($current && isset($definitions[$current_key])) :
@@ -619,16 +614,16 @@ final class SEO_Dependiente_Entrenador {
             'last_message'        => 'Formación automática iniciada. Arrancando el primer lote…',
         ));
 
-        // El navegador solo da la orden de arranque. El trabajo se ejecuta en
-        // el controlador propio y no queda atado a esta petición ni al scheduler.
+        // El navegador solo da la orden de arranque. El trabajo se entrega al
+        // Gestor de procesos compartido y no queda atado a esta petición.
         if (!self::schedule_auto_worker(0, true)) {
             self::save_auto_state(array(
                 'enabled'      => false,
                 'status'       => 'error',
-                'last_error'   => 'El servidor no ha podido arrancar el controlador propio de la Academia.',
+                'last_error'   => 'No se pudo entregar la Academia al Gestor de procesos.',
                 'last_message' => 'No se pudo iniciar la formación automática.',
             ));
-            wp_send_json_error(array('message' => 'No se pudo arrancar el proceso propio de la Academia.'), 500);
+            wp_send_json_error(array('message' => 'No se pudo programar la Academia en el Gestor de procesos.'), 500);
         }
         self::schedule_auto_watchdog(60);
         wp_send_json_success(self::automation_payload());
@@ -640,8 +635,8 @@ final class SEO_Dependiente_Entrenador {
             wp_send_json_error(array('message' => 'Academia no disponible.'), 500);
         }
 
-        // El navegador solo actúa como watchdog adicional del motor propio.
-        // No ejecuta lotes en esta petición ni depende del scheduler para avanzar.
+        // El navegador solo actúa como watchdog adicional. Los lotes los ejecuta
+        // el Gestor de procesos (o el scheduler seguro de fallback).
         self::maybe_watchdog_auto_worker();
         wp_send_json_success(self::automation_payload());
     }
@@ -1159,146 +1154,6 @@ final class SEO_Dependiente_Entrenador {
         return true;
     }
 
-    private static function direct_signature($dispatch_id, $not_before) {
-        $payload = sanitize_key((string) $dispatch_id) . '|' . absint($not_before) . '|academy';
-        return hash_hmac('sha256', $payload, wp_salt('auth'));
-    }
-
-    private static function direct_request_is_valid($dispatch_id, $not_before, $signature) {
-        $dispatch_id = sanitize_key((string) $dispatch_id);
-        $not_before = absint($not_before);
-        $signature = strtolower(preg_replace('/[^a-f0-9]/i', '', (string) $signature));
-        $state = self::auto_state();
-        if (
-            !self::is_auto_running($state)
-            || empty($state['direct_worker_pending'])
-            || sanitize_key((string) ($state['direct_worker_dispatch_id'] ?? '')) !== $dispatch_id
-            || absint($state['direct_worker_not_before'] ?? 0) !== $not_before
-        ) {
-            return false;
-        }
-        return hash_equals(self::direct_signature($dispatch_id, $not_before), $signature);
-    }
-
-    private static function claim_direct_worker($dispatch_id, $not_before, $signature, $backend) {
-        if (!self::direct_request_is_valid($dispatch_id, $not_before, $signature) || time() < absint($not_before)) {
-            return false;
-        }
-        self::save_auto_state(array(
-            'direct_worker_pending'     => 0,
-            'direct_worker_dispatch_id' => '',
-            'last_dispatch_backend'     => sanitize_key((string) $backend),
-            'last_dispatch_result'      => 'claimed',
-        ));
-        return true;
-    }
-
-    private static function direct_exec_available() {
-        if (!function_exists('exec')) {
-            return false;
-        }
-        $disabled = array_filter(array_map('trim', explode(',', (string) ini_get('disable_functions'))));
-        return !in_array('exec', $disabled, true) && '/' === DIRECTORY_SEPARATOR;
-    }
-
-    private static function direct_php_cli() {
-        if (function_exists('seo_ie_product_import_find_php_cli')) {
-            $shared = (string) seo_ie_product_import_find_php_cli();
-            if ('' !== $shared) {
-                return $shared;
-            }
-        }
-        if (!self::direct_exec_available()) {
-            return '';
-        }
-        $candidates = array();
-        if (defined('PHP_BINARY') && PHP_BINARY) {
-            $candidates[] = PHP_BINARY;
-        }
-        if (defined('PHP_BINDIR') && PHP_BINDIR) {
-            $candidates[] = trailingslashit(PHP_BINDIR) . 'php';
-        }
-        $output = array();
-        $status = 1;
-        @exec('command -v php 2>/dev/null', $output, $status);
-        if (0 === $status && !empty($output[0])) {
-            $candidates[] = trim((string) $output[0]);
-        }
-        foreach (array_values(array_unique(array_filter($candidates))) as $candidate) {
-            if (!@is_file($candidate) || !@is_executable($candidate)) {
-                continue;
-            }
-            $probe = array();
-            $status = 1;
-            @exec(escapeshellarg($candidate) . ' -r ' . escapeshellarg('echo PHP_SAPI;') . ' 2>/dev/null', $probe, $status);
-            if (0 === $status && 'cli' === trim(implode('', $probe))) {
-                return $candidate;
-            }
-        }
-        return '';
-    }
-
-    private static function spawn_direct_cli($dispatch_id, $not_before, $signature) {
-        $php = self::direct_php_cli();
-        $script = __DIR__ . '/academy-worker.php';
-        $wp_load = trailingslashit(ABSPATH) . 'wp-load.php';
-        if ('' === $php || !is_readable($script) || !is_readable($wp_load)) {
-            return new WP_Error('academy_direct_cli_missing', 'PHP CLI no está disponible para la Academia.');
-        }
-        $delay = max(0, absint($not_before) - time());
-        $inner = '';
-        if ($delay > 0) {
-            $inner .= 'sleep ' . absint($delay) . '; ';
-        }
-        $inner .= 'exec '
-            . escapeshellarg($php) . ' '
-            . escapeshellarg($script) . ' '
-            . escapeshellarg($wp_load) . ' '
-            . escapeshellarg(sanitize_key((string) $dispatch_id)) . ' '
-            . escapeshellarg((string) absint($not_before)) . ' '
-            . escapeshellarg((string) $signature);
-        $command = 'sh -c ' . escapeshellarg($inner) . ' > /dev/null 2>&1 & echo $!';
-        $output = array();
-        $status = 1;
-        @exec($command, $output, $status);
-        $pid = !empty($output[0]) ? absint(trim((string) $output[0])) : 0;
-        if (0 !== $status || 0 === $pid) {
-            return new WP_Error('academy_direct_cli_spawn', 'No se pudo desacoplar el worker PHP CLI de la Academia.');
-        }
-        return array('backend' => 'direct_cli', 'pid' => $pid);
-    }
-
-    private static function spawn_direct_http($dispatch_id, $not_before, $signature) {
-        $response = wp_remote_post(admin_url('admin-post.php'), array(
-            'timeout'     => 6,
-            'redirection' => 0,
-            'blocking'    => true,
-            'sslverify'   => apply_filters('https_local_ssl_verify', false),
-            'headers'     => array(
-                'X-SEO-Direct-Worker' => 'academy',
-                'Connection'          => 'close',
-            ),
-            'body'        => array(
-                'action'      => 'seo_dependiente_academy_direct_worker',
-                'dispatch_id' => sanitize_key((string) $dispatch_id),
-                'not_before'  => absint($not_before),
-                'signature'   => (string) $signature,
-            ),
-        ));
-        if (is_wp_error($response)) {
-            return $response;
-        }
-        $code = absint(wp_remote_retrieve_response_code($response));
-        $body = trim((string) wp_remote_retrieve_body($response));
-        if (202 !== $code || 'accepted' !== $body) {
-            return new WP_Error(
-                'academy_direct_http_handshake',
-                sprintf('El loopback de Academia no fue aceptado (HTTP %d%s).', $code, '' !== $body ? ': ' . sanitize_text_field(substr($body, 0, 160)) : '')
-            );
-        }
-        return array('backend' => 'direct_http', 'pid' => 0);
-    }
-
     private static function clear_legacy_auto_worker_schedule() {
         if (function_exists('as_unschedule_all_actions')) {
             as_unschedule_all_actions(self::AUTO_WORKER_HOOK, array(), self::AUTO_ACTION_GROUP);
@@ -1311,146 +1166,54 @@ final class SEO_Dependiente_Entrenador {
         if (!self::is_auto_running($state)) {
             return false;
         }
-
         $delay = max(0, absint($delay));
         if (self::direct_loop_context()) {
-            self::save_auto_state(array(
-                'next_delay'         => $delay,
-                'controller_next_ts' => time() + $delay,
-            ));
+            self::save_auto_state(array('next_delay'=>$delay,'controller_next_ts'=>time()+$delay));
             return true;
         }
 
+        // Academia v2 usa el Gestor de procesos compartido como backend normal.
+        // No intenta crear PHP CLI ni loopbacks HTTP propios.
         if (function_exists('seo_process_supervisor_settings')) {
             $manager_settings = seo_process_supervisor_settings();
             if (!empty($manager_settings['enabled']) && !empty($manager_settings['academy'])) {
                 self::clear_legacy_auto_worker_schedule();
                 self::save_auto_state(array(
-                    'direct_worker_pending'     => 1,
-                    'direct_worker_dispatch_id' => '',
-                    'direct_worker_not_before'  => time() + $delay,
-                    'last_dispatch_at'          => time(),
-                    'last_dispatch_backend'     => 'process_manager',
-                    'last_dispatch_pid'         => 0,
-                    'last_dispatch_result'      => 'queued',
-                    'last_dispatch_error'       => '',
+                    'direct_worker_pending'=>1,'direct_worker_dispatch_id'=>'','direct_worker_not_before'=>time()+$delay,
+                    'last_dispatch_at'=>time(),'last_dispatch_backend'=>'process_manager','last_dispatch_pid'=>0,
+                    'last_dispatch_result'=>'queued','last_dispatch_error'=>'',
                 ));
-                if (function_exists('seo_process_supervisor_nudge')) {
-                    seo_process_supervisor_nudge($delay, 'academy');
-                }
-                if (function_exists('seo_process_supervisor_schedule_backup')) {
-                    seo_process_supervisor_schedule_backup();
-                }
+                if (function_exists('seo_process_supervisor_nudge')) seo_process_supervisor_nudge($delay,'academy');
+                if (function_exists('seo_process_supervisor_schedule_backup')) seo_process_supervisor_schedule_backup();
                 return true;
             }
         }
 
-        if (self::controller_is_active($state)) {
-            return true;
-        }
-
-        $pending = !empty($state['direct_worker_pending']);
-        $due = absint($state['direct_worker_not_before'] ?? 0);
-        $stale = $pending && $due > 0 && (time() - $due) > self::AUTO_DIRECT_STALE_SECONDS;
-        if (!$force && $pending && !$stale) {
-            return true;
-        }
-
+        // Fallback seguro: Action Scheduler / WP-Cron. Sigue siendo por lotes y
+        // nunca depende de exec(), PHP CLI ni peticiones loopback.
         self::clear_legacy_auto_worker_schedule();
-
-        $dispatch_id = strtolower(wp_generate_password(24, false, false));
-        $not_before = time() + $delay;
-        $signature = self::direct_signature($dispatch_id, $not_before);
-        self::save_auto_state(array(
-            'direct_worker_pending'     => 1,
-            'direct_worker_dispatch_id' => $dispatch_id,
-            'direct_worker_not_before'  => $not_before,
-            'last_dispatch_at'          => time(),
-            'last_dispatch_backend'     => '',
-            'last_dispatch_pid'         => 0,
-            'last_dispatch_result'      => 'dispatching',
-            'last_dispatch_error'       => '',
-        ));
-
-        $spawn = self::spawn_direct_cli($dispatch_id, $not_before, $signature);
-        if (is_wp_error($spawn)) {
-            $cli_error = $spawn->get_error_message();
-            $spawn = self::spawn_direct_http($dispatch_id, $not_before, $signature);
-            if (is_wp_error($spawn)) {
-                self::save_auto_state(array(
-                    'direct_worker_pending'     => 0,
-                    'direct_worker_dispatch_id' => '',
-                    'last_dispatch_backend'     => 'direct_unavailable',
-                    'last_dispatch_result'      => 'error',
-                    'last_dispatch_error'       => sanitize_text_field($cli_error . ' ' . $spawn->get_error_message()),
-                ));
-                self::schedule_auto_watchdog(60);
-                return false;
+        $when=time()+max(1,$delay);
+        $scheduled=false;
+        if(function_exists('as_schedule_single_action')){
+            $id=as_schedule_single_action($when,self::AUTO_WORKER_HOOK,array(),self::AUTO_ACTION_GROUP,true,20);
+            $scheduled=absint($id)>0;
+        }
+        if(!$scheduled){
+            if($force) wp_clear_scheduled_hook(self::AUTO_WORKER_HOOK,array());
+            if(false===wp_next_scheduled(self::AUTO_WORKER_HOOK,array())){
+                $scheduled=(bool)wp_schedule_single_event($when,self::AUTO_WORKER_HOOK,array(),true);
+            } else {
+                $scheduled=true;
             }
         }
-
         self::save_auto_state(array(
-            'last_dispatch_backend' => sanitize_key((string) ($spawn['backend'] ?? '')),
-            'last_dispatch_pid'     => absint($spawn['pid'] ?? 0),
-            'last_dispatch_result'  => 'ok',
-            'last_dispatch_error'   => '',
+            'direct_worker_pending'=>$scheduled?1:0,'direct_worker_dispatch_id'=>'','direct_worker_not_before'=>$when,
+            'last_dispatch_at'=>time(),'last_dispatch_backend'=>$scheduled?'scheduler_fallback':'unavailable',
+            'last_dispatch_pid'=>0,'last_dispatch_result'=>$scheduled?'queued':'error',
+            'last_dispatch_error'=>$scheduled?'':'No se pudo programar el siguiente lote de Academia.',
         ));
         self::schedule_auto_watchdog(60);
-        return true;
-    }
-
-    public static function direct_cli_run($dispatch_id, $not_before, $signature) {
-        if (!self::direct_request_is_valid($dispatch_id, $not_before, $signature)) {
-            return;
-        }
-        $wait = max(0, absint($not_before) - time());
-        if ($wait > 0) {
-            sleep(min(600, $wait));
-        }
-        if (!self::claim_direct_worker($dispatch_id, $not_before, $signature, 'direct_cli')) {
-            return;
-        }
-        if (!defined('SEO_ACADEMY_DIRECT_WORKER_LOOP')) {
-            define('SEO_ACADEMY_DIRECT_WORKER_LOOP', true);
-        }
-        self::run_direct_loop('direct_cli', 3600);
-    }
-
-    public static function direct_http_worker() {
-        $dispatch_id = sanitize_key(wp_unslash($_POST['dispatch_id'] ?? ''));
-        $not_before = absint($_POST['not_before'] ?? 0);
-        $signature = sanitize_text_field(wp_unslash($_POST['signature'] ?? ''));
-        if (!self::direct_request_is_valid($dispatch_id, $not_before, $signature)) {
-            status_header(403);
-            echo 'forbidden';
-            exit;
-        }
-        ignore_user_abort(true);
-        if (function_exists('set_time_limit')) {
-            @set_time_limit(0);
-        }
-        status_header(202);
-        nocache_headers();
-        header('Content-Type: text/plain; charset=utf-8');
-        echo 'accepted';
-        if (function_exists('fastcgi_finish_request')) {
-            @fastcgi_finish_request();
-        } else {
-            @ob_end_flush();
-            @flush();
-        }
-        $wait = max(0, $not_before - time());
-        if ($wait > 0) {
-            sleep(min(600, $wait));
-        }
-        if (!self::claim_direct_worker($dispatch_id, $not_before, $signature, 'direct_http')) {
-            exit;
-        }
-        if (!defined('SEO_ACADEMY_DIRECT_WORKER_LOOP')) {
-            define('SEO_ACADEMY_DIRECT_WORKER_LOOP', true);
-        }
-        self::run_direct_loop('direct_http', 240);
-        exit;
+        return $scheduled;
     }
 
     /**
@@ -2084,33 +1847,69 @@ final class SEO_Dependiente_Entrenador {
 
     private static function lesson_definitions() {
         return array(
-            'l1_categories' => array(
+            'v2_l1_categories' => array(
                 'order'       => 1,
-                'title'       => 'Conocer las categorías',
-                'description' => 'Aprende el mapa básico de la tienda: qué familias existen y cómo se llaman.',
+                'title'       => 'Mapa del catálogo',
+                'description' => 'Categorías, jerarquía y lenguaje básico con el que el cliente entiende las familias de producto.',
                 'module_size' => 25,
                 'source'      => 'Categorías WooCommerce con productos',
+                'min_pass_any'=> 0.50,
             ),
-            'l2_inventory' => array(
+            'v2_l2_inventory' => array(
                 'order'       => 2,
-                'title'       => 'Conocer el inventario',
-                'description' => 'Recorre los productos indexados para comprobar que cada referencia puede ser reconocida dentro del catálogo.',
-                'module_size' => 40,
-                'source'      => 'Productos del índice de Dependiente',
+                'title'       => 'Inventario representativo',
+                'description' => 'Comprueba reconocimiento del catálogo con una muestra diversa por categoría, TIPO/ROL y marca, evitando repetir miles de productos equivalentes.',
+                'module_size' => 35,
+                'source'      => 'Muestra semánticamente diversa del índice de productos',
+                'min_pass_any'=> 0.45,
             ),
-            'l3_type_role' => array(
+            'v2_l3_type_role' => array(
                 'order'       => 3,
-                'title'       => 'Entender TIPO y ROL',
-                'description' => 'Aprende la identidad semántica básica de los productos y las combinaciones TIPO → ROL de esta tienda.',
+                'title'       => 'TIPO y ROL',
+                'description' => 'Aprende las rutas canónicas TIPO → ROL y la identidad semántica principal del catálogo.',
                 'module_size' => 25,
-                'source'      => 'Vocabulario canónico TIPO / ROL',
+                'source'      => 'Vocabulary canónico y bridge TIPO → ROL',
+                'min_pass_any'=> 0.50,
             ),
-            'l4_features' => array(
+            'v2_l4_features' => array(
                 'order'       => 4,
-                'title'       => 'Etiquetas y atributos',
-                'description' => 'Busca por aplicaciones, plataformas, subtipos, etiquetas y atributos sin depender del nombre exacto del producto.',
+                'title'       => 'Características y necesidades',
+                'description' => 'Aplicaciones, plataformas, subtipos, atributos y etiquetas se combinan para resolver necesidades sin depender del nombre exacto.',
                 'module_size' => 30,
-                'source'      => 'Índice semántico, etiquetas y atributos',
+                'source'      => 'Índice semántico, atributos y etiquetas',
+                'min_pass_any'=> 0.45,
+            ),
+            'v2_l5_editorial' => array(
+                'order'       => 5,
+                'title'       => 'Posts y páginas con Vocabulary común',
+                'description' => 'Relaciona contenido editorial por su vocabulario canónico, tanto para posts como para páginas.',
+                'module_size' => 25,
+                'source'      => 'Posts/páginas publicados + seo_object_vocabulary',
+                'min_pass_any'=> 0.35,
+            ),
+            'v2_l6_faq' => array(
+                'order'       => 6,
+                'title'       => 'FAQs contextualizadas',
+                'description' => 'Cada FAQ se aprende junto a su propietario: página/hub, categoría o producto. El propietario aporta el contexto semántico.',
+                'module_size' => 30,
+                'source'      => 'seo_faq + propietario + Vocabulary del propietario',
+                'min_pass_any'=> 0.45,
+            ),
+            'v2_l7_cross' => array(
+                'order'       => 7,
+                'title'       => 'Relaciones cruzadas',
+                'description' => 'Comprueba que un mismo concepto del Vocabulary conecta productos con posts y páginas relacionados.',
+                'module_size' => 25,
+                'source'      => 'Conceptos usados simultáneamente por catálogo y contenido',
+                'min_pass_any'=> 0.30,
+            ),
+            'v2_l8_exam' => array(
+                'order'       => 8,
+                'title'       => 'Examen integrado y regresión',
+                'description' => 'Muestra equilibrada de las siete lecciones anteriores para detectar regresiones antes de dar por terminada la formación.',
+                'module_size' => 30,
+                'source'      => 'Muestra de preguntas ya preparadas en L1–L7',
+                'min_pass_any'=> 0.40,
             ),
         );
     }
@@ -2213,32 +2012,19 @@ final class SEO_Dependiente_Entrenador {
     }
 
     private static function catalog_preflight() {
-        $status = class_exists('SEO_Dependiente_Index') ? SEO_Dependiente_Index::status() : array();
-        $indexed = absint($status['indexed'] ?? 0);
-        $published = absint($status['published'] ?? 0);
-        $last_full = trim((string) ($status['last_full'] ?? ''));
-        $ready = class_exists('WooCommerce') && $indexed > 0 && '' !== $last_full;
-
-        if (!class_exists('WooCommerce')) {
-            $message = 'WooCommerce no está disponible. La Academia necesita un catálogo de productos.';
-        } elseif ($published < 1) {
-            $message = 'No hay productos publicados que puedan formar parte del temario.';
-            $ready = false;
-        } elseif ($indexed < 1 || '' === $last_full) {
-            $message = 'Reindexa el catálogo completo antes de comenzar. Las lecciones deben trabajar con un snapshot de inventario cerrado.';
-        } elseif ($indexed < $published) {
-            $message = 'Hay ' . number_format_i18n($indexed) . ' productos indexados de ' . number_format_i18n($published) . ' publicados. La reindexación terminó, pero conviene revisar si los restantes están ocultos o excluidos del catálogo.';
-        } else {
-            $message = 'Catálogo preparado. La Academia puede generar las lecciones desde el índice actual.';
-        }
-
-        return array(
-            'ready'     => $ready,
-            'indexed'   => $indexed,
-            'published' => $published,
-            'last_full' => $last_full,
-            'message'   => $message,
-        );
+        global $wpdb;
+        $status=class_exists('SEO_Dependiente_Index')?SEO_Dependiente_Index::status():array();
+        $indexed=absint($status['indexed']??0);$published=absint($status['published']??0);$last_full=trim((string)($status['last_full']??''));
+        $posts=absint($wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='post' AND post_status='publish'"));
+        $pages=absint($wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='page' AND post_status='publish'"));
+        $faq_table=$wpdb->prefix.'seo_faq';$faqs=self::table_exists($faq_table)?absint($wpdb->get_var("SELECT COUNT(*) FROM {$faq_table} WHERE active=1 AND object_type IN (1,2,3)")):0;
+        $ready=class_exists('WooCommerce')&&$indexed>0&&''!==$last_full;
+        if(!class_exists('WooCommerce')){$message='WooCommerce no está disponible. La Academia necesita el catálogo.';}
+        elseif($published<1){$message='No hay productos publicados que puedan formar parte del temario.';$ready=false;}
+        elseif($indexed<1||''===$last_full){$message='Reindexa el catálogo completo antes de comenzar. Academia v2 necesita un snapshot de productos cerrado.';}
+        elseif($indexed<$published){$message='Hay '.number_format_i18n($indexed).' productos indexados de '.number_format_i18n($published).' publicados. Revisa las exclusiones antes de formar.';}
+        else{$message='Base preparada: '.number_format_i18n($indexed).' productos, '.number_format_i18n($posts).' posts, '.number_format_i18n($pages).' páginas y '.number_format_i18n($faqs).' FAQs activas.';}
+        return array('ready'=>$ready,'indexed'=>$indexed,'published'=>$published,'last_full'=>$last_full,'posts'=>$posts,'pages'=>$pages,'faqs'=>$faqs,'fingerprint'=>self::catalog_fingerprint(),'message'=>$message);
     }
 
     private static function basic_curriculum_completed($lessons = null) {
@@ -2356,7 +2142,7 @@ final class SEO_Dependiente_Entrenador {
                     <?php endforeach; ?>
                     </ol>
                 <?php else : ?>
-                    <span class="description">Sin productos devueltos.</span>
+                    <span class="description">Sin resultados devueltos.</span>
                 <?php endif; ?>
             </td>
         </tr>
@@ -2593,7 +2379,7 @@ final class SEO_Dependiente_Entrenador {
                     <?php endforeach; ?>
                     </ol>
                 <?php else : ?>
-                    <span class="description">Sin productos devueltos.</span>
+                    <span class="description">Sin resultados devueltos.</span>
                 <?php endif; ?>
             </td>
         </tr>
@@ -2601,35 +2387,50 @@ final class SEO_Dependiente_Entrenador {
     }
 
     private static function lesson_source_total($lesson_key) {
-        global $wpdb;
-        if ('l1_categories' === $lesson_key) {
+        if ('v2_l1_categories' === $lesson_key) {
             $count = wp_count_terms(array('taxonomy' => 'product_cat', 'hide_empty' => true));
             return is_wp_error($count) ? 0 : absint($count);
         }
-        if (in_array($lesson_key, array('l2_inventory', 'l4_features'), true)) {
-            if (!class_exists('SEO_Dependiente_Index') || !SEO_Dependiente_Index::table_exists()) {
-                return 0;
-            }
-            return absint($wpdb->get_var('SELECT COUNT(*) FROM ' . SEO_Dependiente_Index::table()));
+        if ('v2_l2_inventory' === $lesson_key) {
+            return count(self::lesson2_sources());
         }
-        if ('l3_type_role' === $lesson_key) {
+        if ('v2_l3_type_role' === $lesson_key) {
             return count(self::lesson3_sources());
+        }
+        if ('v2_l4_features' === $lesson_key) {
+            return count(self::lesson4_sources());
+        }
+        if ('v2_l5_editorial' === $lesson_key) {
+            return count(self::lesson5_sources());
+        }
+        if ('v2_l6_faq' === $lesson_key) {
+            return count(self::lesson6_sources());
+        }
+        if ('v2_l7_cross' === $lesson_key) {
+            return count(self::lesson7_sources());
+        }
+        if ('v2_l8_exam' === $lesson_key) {
+            return count(self::lesson8_sources());
         }
         return 0;
     }
 
     private static function lesson_source_batch($lesson_key, $offset, $limit) {
-        if ('l1_categories' === $lesson_key) {
+        if ('v2_l1_categories' === $lesson_key) {
             return self::lesson1_batch($offset, $limit);
         }
-        if ('l2_inventory' === $lesson_key) {
-            return self::lesson2_batch($offset, $limit);
-        }
-        if ('l3_type_role' === $lesson_key) {
-            return array_slice(self::lesson3_sources(), $offset, $limit);
-        }
-        if ('l4_features' === $lesson_key) {
-            return self::lesson4_batch($offset, $limit);
+        $map = array(
+            'v2_l2_inventory' => 'lesson2_sources',
+            'v2_l3_type_role' => 'lesson3_sources',
+            'v2_l4_features'  => 'lesson4_sources',
+            'v2_l5_editorial' => 'lesson5_sources',
+            'v2_l6_faq'       => 'lesson6_sources',
+            'v2_l7_cross'     => 'lesson7_sources',
+            'v2_l8_exam'      => 'lesson8_sources',
+        );
+        if (isset($map[$lesson_key])) {
+            $items = call_user_func(array(__CLASS__, $map[$lesson_key]));
+            return array_slice((array) $items, max(0, absint($offset)), max(1, absint($limit)));
         }
         return array();
     }
@@ -2680,41 +2481,59 @@ final class SEO_Dependiente_Entrenador {
         return $items;
     }
 
-    private static function lesson2_batch($offset, $limit) {
-        global $wpdb;
-        if (!class_exists('SEO_Dependiente_Index') || !SEO_Dependiente_Index::table_exists()) {
-            return array();
+    private static function lesson2_sources() {
+        static $cache = null;
+        if (null !== $cache) {
+            return $cache;
         }
-        $rows = (array) $wpdb->get_results($wpdb->prepare(
-            'SELECT product_id, title, categories_json FROM ' . SEO_Dependiente_Index::table() . ' ORDER BY product_id ASC LIMIT %d OFFSET %d',
-            $limit,
-            $offset
-        ), ARRAY_A);
-
-        $items = array();
+        global $wpdb;
+        $cache = array();
+        if (!class_exists('SEO_Dependiente_Index') || !SEO_Dependiente_Index::table_exists()) {
+            return $cache;
+        }
+        $rows = (array) $wpdb->get_results(
+            'SELECT product_id,title,brand_slug,categories_json,vocabulary_json FROM ' . SEO_Dependiente_Index::table() . ' ORDER BY product_id ASC',
+            ARRAY_A
+        );
+        $seen = array();
         foreach ($rows as $row) {
             $product_id = absint($row['product_id'] ?? 0);
             $title = trim((string) ($row['title'] ?? ''));
             if (!$product_id || '' === $title) {
                 continue;
             }
-            $items[] = array(
-                'source_type' => 'product',
-                'source_id'   => $product_id,
-                'source_key'  => 'product:' . $product_id,
+            $categories = self::decode_json($row['categories_json'] ?? '');
+            $vocabulary = self::decode_json($row['vocabulary_json'] ?? '');
+            $category_id = absint($categories[0]['id'] ?? 0);
+            $tipo = sanitize_title((string) ($vocabulary['tipo'][0]['slug'] ?? ''));
+            $rol = sanitize_title((string) ($vocabulary['rol'][0]['slug'] ?? ''));
+            $brand = sanitize_title((string) ($row['brand_slug'] ?? ''));
+            $signature = implode('|', array($category_id, $tipo, $rol, $brand));
+            if ('0|||' === $signature) {
+                $signature = 'product:' . $product_id;
+            } elseif (isset($seen[$signature])) {
+                continue;
+            }
+            $seen[$signature] = true;
+            $cache[] = array(
+                'source_type'   => 'product',
+                'source_id'     => $product_id,
+                'source_key'    => 'product:' . $product_id,
                 'question_type' => 'product_identity',
-                'mode'        => 'product',
-                'question'    => '¿Qué producto es "' . self::shorten($title, 300) . '"?',
-                'expected'    => array(
-                    'kind'       => 'product',
-                    'product_id' => $product_id,
-                    'title'      => $title,
-                    'categories' => self::decode_json($row['categories_json'] ?? ''),
-                ),
-                'rules' => array(),
+                'mode'          => 'product',
+                'question'      => '¿Qué producto es "' . self::shorten($title, 300) . '"?',
+                'expected'      => array('kind'=>'product','product_id'=>$product_id,'title'=>$title,'categories'=>$categories),
+                'rules'         => array(),
             );
+            if (count($cache) >= self::MAX_INVENTORY_SOURCES) {
+                break;
+            }
         }
-        return $items;
+        return $cache;
+    }
+
+    private static function lesson2_batch($offset, $limit) {
+        return array_slice(self::lesson2_sources(), $offset, $limit);
     }
 
     private static function lesson3_sources() {
@@ -2918,109 +2737,245 @@ final class SEO_Dependiente_Entrenador {
         return $cache;
     }
 
-    private static function lesson4_batch($offset, $limit) {
-        global $wpdb;
-        if (!class_exists('SEO_Dependiente_Index') || !SEO_Dependiente_Index::table_exists()) {
-            return array();
+    private static function lesson4_sources() {
+        static $cache = null;
+        if (null !== $cache) {
+            return $cache;
         }
-        $rows = (array) $wpdb->get_results($wpdb->prepare(
-            'SELECT product_id, vocabulary_json, tags_json, attributes_json FROM ' . SEO_Dependiente_Index::table() . ' ORDER BY product_id ASC LIMIT %d OFFSET %d',
-            $limit,
-            $offset
-        ), ARRAY_A);
-
-        $items = array();
+        global $wpdb;
+        $cache = array();
+        if (!class_exists('SEO_Dependiente_Index') || !SEO_Dependiente_Index::table_exists()) {
+            return $cache;
+        }
+        $rows = (array) $wpdb->get_results(
+            'SELECT product_id,vocabulary_json,tags_json,attributes_json FROM ' . SEO_Dependiente_Index::table() . ' ORDER BY product_id ASC',
+            ARRAY_A
+        );
+        $seen = array();
         foreach ($rows as $row) {
-            $product_id = absint($row['product_id'] ?? 0);
-            $vocabulary = self::decode_json($row['vocabulary_json'] ?? '');
-            $tags = self::decode_json($row['tags_json'] ?? '');
-            $attributes = self::decode_json($row['attributes_json'] ?? '');
-            $features = array();
-            $rules = array();
-
-            foreach (array('aplicacion', 'plataforma', 'subtipo') as $group) {
-                foreach (array_slice((array) ($vocabulary[$group] ?? array()), 0, 1) as $term) {
-                    $label = trim((string) ($term['label'] ?? ''));
-                    $slug = sanitize_title((string) ($term['slug'] ?? ''));
-                    $id = absint($term['id'] ?? 0);
-                    if (!$label || !$slug) {
-                        continue;
-                    }
-                    $features[] = array('kind' => 'vocabulary', 'group' => $group, 'slug' => $slug, 'label' => $label);
-                    if ($id) {
-                        $rules[] = array('kind' => 'vocabulary_route', 'id' => $id, 'group' => $group, 'slug' => $slug, 'label' => $label);
-                    }
-                    if (count($features) >= 2) {
-                        break 2;
-                    }
-                }
-            }
-
-            if (count($features) < 3) {
-                foreach ((array) $attributes as $attribute) {
-                    $label = trim((string) ($attribute['label'] ?? $attribute['key'] ?? ''));
-                    $values = array_values(array_filter(array_map('strval', (array) ($attribute['values'] ?? array()))));
-                    $value = $values ? trim((string) $values[0]) : '';
-                    if (!$label || !$value) {
-                        continue;
-                    }
-                    $features[] = array(
-                        'kind'  => 'attribute',
-                        'key'   => sanitize_title((string) ($attribute['key'] ?? $label)),
-                        'label' => $label,
-                        'value' => $value,
-                    );
-                    if (count($features) >= 3) {
-                        break;
-                    }
-                }
-            }
-
-            if (count($features) < 3) {
-                foreach ((array) $tags as $tag) {
-                    $name = trim((string) ($tag['name'] ?? ''));
-                    $slug = sanitize_title((string) ($tag['slug'] ?? $name));
-                    if (!$name || !$slug) {
-                        continue;
-                    }
-                    $features[] = array('kind' => 'tag', 'slug' => $slug, 'label' => $name);
-                    break;
-                }
-            }
-
-            if (!$features) {
+            $item = self::feature_item_from_index_row($row);
+            if (!$item) {
                 continue;
             }
-
-            $signature = hash('sha256', wp_json_encode($features, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
-            $clauses = array();
-            foreach ($features as $feature) {
-                if ('vocabulary' === $feature['kind']) {
-                    $group_label = array('aplicacion' => 'aplicación', 'plataforma' => 'plataforma', 'subtipo' => 'subtipo');
-                    $clauses[] = ($group_label[$feature['group']] ?? 'etiqueta') . ' "' . $feature['label'] . '"';
-                } elseif ('attribute' === $feature['kind']) {
-                    $clauses[] = '"' . $feature['label'] . '" = "' . $feature['value'] . '"';
-                } elseif ('tag' === $feature['kind']) {
-                    $clauses[] = 'etiqueta "' . $feature['label'] . '"';
-                }
+            $key = (string) ($item['source_key'] ?? '');
+            if (!$key || isset($seen[$key])) {
+                continue;
             }
+            $seen[$key] = true;
+            $cache[] = $item;
+        }
+        return $cache;
+    }
 
-            $items[] = array(
-                'source_type' => 'features',
-                'source_id'   => $product_id,
-                'source_key'  => 'features:' . substr($signature, 0, 40),
-                'question_type' => 'features',
-                'mode'        => 'need',
-                'question'    => 'Busco productos con ' . implode(', ', $clauses) . '. ¿Qué opciones del catálogo encajan?',
-                'expected'    => array(
-                    'kind'       => 'features',
-                    'features'   => $features,
-                    'source_product_id' => $product_id,
-                ),
-                'rules' => $rules,
+    private static function lesson4_batch($offset, $limit) {
+        return array_slice(self::lesson4_sources(), $offset, $limit);
+    }
+
+    private static function feature_item_from_index_row($row) {
+        $product_id = absint($row['product_id'] ?? 0);
+        $vocabulary = self::decode_json($row['vocabulary_json'] ?? '');
+        $tags = self::decode_json($row['tags_json'] ?? '');
+        $attributes = self::decode_json($row['attributes_json'] ?? '');
+        $features = array();
+        $rules = array();
+        foreach (array('aplicacion', 'plataforma', 'subtipo') as $group) {
+            foreach (array_slice((array) ($vocabulary[$group] ?? array()), 0, 1) as $term) {
+                $label = trim((string) ($term['label'] ?? ''));
+                $slug = sanitize_title((string) ($term['slug'] ?? ''));
+                $id = absint($term['id'] ?? 0);
+                if (!$label || !$slug) continue;
+                $features[] = array('kind'=>'vocabulary','group'=>$group,'slug'=>$slug,'label'=>$label);
+                if ($id) $rules[] = array('kind'=>'vocabulary_route','id'=>$id,'group'=>$group,'slug'=>$slug,'label'=>$label);
+                if (count($features) >= 2) break 2;
+            }
+        }
+        if (count($features) < 3) {
+            foreach ((array) $attributes as $attribute) {
+                $label = trim((string) ($attribute['label'] ?? $attribute['key'] ?? ''));
+                $values = array_values(array_filter(array_map('strval', (array) ($attribute['values'] ?? array()))));
+                $value = $values ? trim((string) $values[0]) : '';
+                if (!$label || !$value) continue;
+                $features[] = array('kind'=>'attribute','key'=>sanitize_title((string)($attribute['key'] ?? $label)),'label'=>$label,'value'=>$value);
+                if (count($features) >= 3) break;
+            }
+        }
+        if (count($features) < 3) {
+            foreach ((array) $tags as $tag) {
+                $name = trim((string) ($tag['name'] ?? ''));
+                $slug = sanitize_title((string) ($tag['slug'] ?? $name));
+                if (!$name || !$slug) continue;
+                $features[] = array('kind'=>'tag','slug'=>$slug,'label'=>$name);
+                break;
+            }
+        }
+        if (!$features) return null;
+        $signature = hash('sha256', wp_json_encode($features, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        $clauses = array();
+        foreach ($features as $feature) {
+            if ('vocabulary' === $feature['kind']) {
+                $labels = array('aplicacion'=>'aplicación','plataforma'=>'plataforma','subtipo'=>'subtipo');
+                $clauses[] = ($labels[$feature['group']] ?? 'etiqueta') . ' "' . $feature['label'] . '"';
+            } elseif ('attribute' === $feature['kind']) {
+                $clauses[] = '"' . $feature['label'] . '" = "' . $feature['value'] . '"';
+            } else {
+                $clauses[] = 'etiqueta "' . $feature['label'] . '"';
+            }
+        }
+        return array(
+            'source_type'=>'features','source_id'=>$product_id,'source_key'=>'features:' . substr($signature,0,40),
+            'question_type'=>'features','mode'=>'need',
+            'question'=>'Busco productos con ' . implode(', ', $clauses) . '. ¿Qué opciones del catálogo encajan?',
+            'expected'=>array('kind'=>'features','features'=>$features,'source_product_id'=>$product_id),
+            'rules'=>$rules,
+        );
+    }
+
+    private static function lesson5_sources() {
+        static $cache = null;
+        if (null !== $cache) return $cache;
+        global $wpdb;
+        $cache = array();
+        $objects = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
+        if (!self::table_exists($objects) || !self::table_exists($vocabulary)) return $cache;
+        $rows = (array) $wpdb->get_results(
+            "SELECT p.ID,p.post_type,p.post_title,v.id vocabulary_id,v.semantic_group,v.slug,v.label
+             FROM {$wpdb->posts} p
+             INNER JOIN {$objects} ov ON ov.object_id=p.ID AND ov.object_type=p.post_type AND ov.status=1
+             INNER JOIN {$vocabulary} v ON v.id=ov.vocabulary_id AND v.active=1
+             WHERE p.post_status='publish' AND p.post_type IN ('post','page')
+               AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
+             ORDER BY p.ID, FIELD(v.semantic_group,'tipo','rol','aplicacion','plataforma','subtipo'),v.id",
+            ARRAY_A
+        );
+        $objects_by_id = array();
+        foreach ($rows as $row) {
+            $id = absint($row['ID'] ?? 0);
+            if (!$id) continue;
+            if (!isset($objects_by_id[$id])) {
+                $objects_by_id[$id] = array('id'=>$id,'post_type'=>(string)$row['post_type'],'title'=>(string)$row['post_title'],'terms'=>array());
+            }
+            $objects_by_id[$id]['terms'][] = array('id'=>absint($row['vocabulary_id']),'group'=>sanitize_key((string)$row['semantic_group']),'slug'=>sanitize_title((string)$row['slug']),'label'=>(string)$row['label']);
+        }
+        $groups = array();
+        foreach ($objects_by_id as $object) {
+            $terms = array_slice((array)$object['terms'],0,2);
+            if (!$terms) continue;
+            $sig_parts = array(); $labels=array(); $rules=array();
+            foreach ($terms as $term) {
+                if (!$term['slug']) continue;
+                $sig_parts[]=$term['group'].':'.$term['slug'];
+                $labels[]=$term['label'];
+                $rules[]=array('kind'=>'vocabulary_route','id'=>$term['id'],'group'=>$term['group'],'slug'=>$term['slug'],'label'=>$term['label']);
+            }
+            if (!$sig_parts) continue;
+            $sig=implode('|',$sig_parts);
+            if (!isset($groups[$sig])) $groups[$sig]=array('labels'=>$labels,'rules'=>$rules,'objects'=>array());
+            $groups[$sig]['objects'][]=array('type'=>'page'===$object['post_type']?'landing':'post','id'=>$object['id'],'title'=>$object['title']);
+        }
+        foreach ($groups as $sig=>$group) {
+            $labels=array_values(array_filter(array_unique($group['labels'])));
+            if (!$labels) continue;
+            $cache[]=array(
+                'source_type'=>'editorial','source_id'=>null,'source_key'=>'editorial:'.substr(hash('sha256',$sig),0,40),
+                'question_type'=>'editorial_semantic','mode'=>'need',
+                'question'=>'¿Qué contenido de la web tienes relacionado con "'.implode('" y "',$labels).'"?',
+                'expected'=>array('kind'=>'content','acceptable_related'=>$group['objects'],'labels'=>$labels),
+                'rules'=>$group['rules'],
             );
         }
-        return $items;
+        return $cache;
+    }
+
+    private static function lesson6_sources() {
+        static $cache = null;
+        if (null !== $cache) return $cache;
+        global $wpdb;
+        $cache=array();
+        $faq=$wpdb->prefix.'seo_faq';
+        if (!self::table_exists($faq)) return $cache;
+        $limit=self::MAX_FAQ_SOURCES;
+        $rows=(array)$wpdb->get_results(
+            "SELECT f.id,f.object_type,f.object_id,f.question,f.answer
+             FROM {$faq} f
+             INNER JOIN (SELECT object_type,object_id,MIN(id) id FROM {$faq} WHERE active=1 GROUP BY object_type,object_id) x ON x.id=f.id
+             WHERE f.active=1 AND f.object_type IN (1,2,3)
+             ORDER BY f.object_type,f.object_id,f.id LIMIT {$limit}", ARRAY_A
+        );
+        foreach($rows as $row){
+            $id=absint($row['id']??0); $oid=absint($row['object_id']??0); $ot=absint($row['object_type']??0);
+            $q=trim(wp_strip_all_tags((string)($row['question']??'')));
+            if(!$id||!$oid||!$q) continue;
+            $cache[]=array(
+                'source_type'=>'faq','source_id'=>$id,'source_key'=>'faq:'.$id,'question_type'=>'faq_context','mode'=>'need',
+                'question'=>self::shorten($q,490),
+                'expected'=>array('kind'=>'faq','faq_id'=>$id,'owner_type'=>$ot,'owner_id'=>$oid),
+                'rules'=>array(),
+            );
+        }
+        return $cache;
+    }
+
+    private static function lesson7_sources() {
+        static $cache=null;
+        if(null!==$cache) return $cache;
+        global $wpdb;
+        $cache=array(); $objects=$wpdb->prefix.'seo_object_vocabulary'; $vocabulary=$wpdb->prefix.'seo_vocabulary';
+        if(!self::table_exists($objects)||!self::table_exists($vocabulary)) return $cache;
+        $limit=self::MAX_CROSS_SOURCES;
+        $rows=(array)$wpdb->get_results(
+            "SELECT v.id,v.semantic_group,v.slug,v.label,
+                    SUM(ov.object_type='product') product_count,
+                    SUM(ov.object_type IN ('post','page')) editorial_count
+             FROM {$vocabulary} v INNER JOIN {$objects} ov ON ov.vocabulary_id=v.id AND ov.status=1
+             WHERE v.active=1 AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
+             GROUP BY v.id,v.semantic_group,v.slug,v.label
+             HAVING product_count>0 AND editorial_count>0
+             ORDER BY (product_count+editorial_count) DESC,v.id ASC LIMIT {$limit}", ARRAY_A
+        );
+        if(!$rows) return $cache;
+        $ids=array_values(array_filter(array_map('absint',wp_list_pluck($rows,'id'))));
+        $related=array();
+        if($ids){
+            $id_sql=implode(',',array_map('absint',$ids));
+            $assign=(array)$wpdb->get_results("SELECT vocabulary_id,object_type,object_id FROM {$objects} WHERE status=1 AND object_type IN ('post','page') AND vocabulary_id IN ({$id_sql}) ORDER BY vocabulary_id,object_id",ARRAY_A);
+            foreach($assign as $a){$vid=absint($a['vocabulary_id']??0);if(!$vid)continue;$related[$vid][]=array('type'=>'page'===(string)$a['object_type']?'landing':'post','id'=>absint($a['object_id']??0));}
+        }
+        foreach($rows as $row){
+            $id=absint($row['id']??0);$group=sanitize_key((string)$row['semantic_group']);$slug=sanitize_title((string)$row['slug']);$label=trim((string)$row['label']);
+            if(!$id||!$group||!$slug||!$label||empty($related[$id]))continue;
+            $cache[]=array(
+                'source_type'=>'cross','source_id'=>$id,'source_key'=>'cross:'.$id,'question_type'=>'cross_semantic','mode'=>'need',
+                'question'=>'Sobre "'.$label.'", ¿qué productos y contenidos relacionados tienes?',
+                'expected'=>array('kind'=>'cross','conditions'=>array($group=>array($slug)),'acceptable_related'=>array_slice($related[$id],0,80),'label'=>$label),
+                'rules'=>array(array('kind'=>'vocabulary_route','id'=>$id,'group'=>$group,'slug'=>$slug,'label'=>$label)),
+            );
+        }
+        return $cache;
+    }
+
+    private static function lesson8_sources() {
+        static $cache=null;
+        if(null!==$cache)return $cache;
+        global $wpdb;
+        $cache=array();
+        $previous=array('v2_l1_categories','v2_l2_inventory','v2_l3_type_role','v2_l4_features','v2_l5_editorial','v2_l6_faq','v2_l7_cross');
+        $per=max(20,(int)floor(self::MAX_EXAM_SOURCES/count($previous)));
+        foreach($previous as $lesson_key){
+            $rows=(array)$wpdb->get_results($wpdb->prepare(
+                'SELECT id,source_type,source_id,source_key,question_type,mode,question,expected_json FROM '.self::questions_table().' WHERE lesson_key=%s AND enabled=1 ORDER BY id ASC LIMIT %d',
+                $lesson_key,$per
+            ),ARRAY_A);
+            foreach($rows as $row){
+                $cache[]=array(
+                    'source_type'=>'regression','source_id'=>absint($row['id']??0),'source_key'=>'regression:'.absint($row['id']??0),
+                    'question_type'=>'regression_'.sanitize_key((string)($row['question_type']??'other')),'mode'=>self::sanitize_mode($row['mode']??'need'),
+                    'question'=>(string)$row['question'],'expected'=>self::decode_json($row['expected_json']??''),'rules'=>array(),
+                );
+                if(count($cache)>=self::MAX_EXAM_SOURCES) break 2;
+            }
+        }
+        return $cache;
     }
 
     private static function insert_curriculum_question($lesson_key, $definition, $item, $sequence) {
@@ -3370,7 +3325,18 @@ final class SEO_Dependiente_Entrenador {
             );
         }
 
-        $evaluation = self::evaluate_question($question, $result_ids, $status);
+        $related_results = array();
+        foreach (array_slice((array) ($data['related'] ?? array()), 0, 12) as $related) {
+            if (!is_array($related)) continue;
+            $related_results[] = array(
+                'id' => absint($related['id'] ?? 0),
+                'type' => sanitize_key((string) ($related['type'] ?? '')),
+                'title' => sanitize_text_field((string) ($related['title'] ?? '')),
+                'owner_type' => sanitize_key((string) ($related['owner_type'] ?? '')),
+                'owner_id' => absint($related['owner_id'] ?? 0),
+            );
+        }
+        $evaluation = self::evaluate_question($question, $result_ids, $status, $related_results);
         $semantic = is_array($data['semantic'] ?? null) ? $data['semantic'] : array();
         $meta = array(
             'clarification' => is_array($data['clarification'] ?? null) ? $data['clarification'] : null,
@@ -3380,6 +3346,7 @@ final class SEO_Dependiente_Entrenador {
                 'groups'     => array_values(array_slice((array) ($semantic['groups'] ?? array()), 0, 16)),
                 'routes'     => array_values(array_slice((array) ($semantic['routes'] ?? array()), 0, 16)),
             ),
+            'related_results' => $related_results,
         );
 
         $inserted = $wpdb->insert(self::runs_table(), array(
@@ -3401,7 +3368,7 @@ final class SEO_Dependiente_Entrenador {
             'evaluation_status' => (string) ($evaluation['status'] ?? 'error'),
             'evaluation_score'  => isset($evaluation['score']) ? round((float) $evaluation['score'], 4) : null,
             'evaluation_json'   => wp_json_encode($evaluation, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            'top_results'       => wp_json_encode($compact_results, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'top_results'       => wp_json_encode($compact_results ?: array_map(static function ($item) { return array('id'=>$item['id'],'title'=>$item['title'],'score'=>null,'position'=>null,'reasons'=>array('Contenido relacionado · '.$item['type'])); }, $related_results), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'response_meta'     => wp_json_encode($meta, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'error_message'     => $error_message ? sanitize_text_field($error_message) : null,
             'created_at'        => current_time('mysql'),
@@ -3410,66 +3377,52 @@ final class SEO_Dependiente_Entrenador {
         return false === $inserted ? 0 : absint($wpdb->insert_id);
     }
 
-    private static function evaluate_question($question, $result_ids, $run_status) {
+    private static function evaluate_question($question, $result_ids, $run_status, $related_results = array()) {
         if ('error' === $run_status) {
-            return array('status' => 'error', 'score' => 0, 'matched_product_id' => null, 'matched_position' => null);
+            return array('status'=>'error','score'=>0,'matched_product_id'=>null,'matched_position'=>null);
         }
         $expected = self::decode_json($question['expected_json'] ?? '');
         if ('lab' === sanitize_key((string) ($question['source_type'] ?? '')) || 'lab' === sanitize_key((string) ($expected['kind'] ?? ''))) {
-            return array(
-                'status' => 'observed',
-                'score' => null,
-                'result_count' => count((array) $result_ids),
-                'snapshot' => absint($expected['snapshot'] ?? 0),
-            );
+            return array('status'=>'observed','score'=>null,'result_count'=>count((array)$result_ids),'related_count'=>count((array)$related_results),'snapshot'=>absint($expected['snapshot']??0));
         }
-        if (!$expected) {
-            return array('status' => 'fail', 'score' => 0, 'reason' => 'No hay verdad esperada para evaluar.');
+        if (!$expected) return array('status'=>'fail','score'=>0,'reason'=>'No hay verdad esperada para evaluar.');
+        $kind=sanitize_key((string)($expected['kind']??''));
+        if(in_array($kind,array('content','faq'),true)){
+            $match=self::match_related_expected($related_results,$expected);
+            return $match ?: array('status'=>'fail','score'=>0,'expected'=>$expected);
         }
-        if (!$result_ids) {
-            return array('status' => 'fail', 'score' => 0, 'matched_product_id' => null, 'matched_position' => null, 'expected' => $expected);
-        }
-
-        $rows = class_exists('SEO_Dependiente_Index') ? SEO_Dependiente_Index::get_rows_by_ids($result_ids, 8) : array();
-        $by_id = array();
-        foreach ($rows as $row) {
-            $decoded = SEO_Dependiente_Index::decode_row($row);
-            $by_id[absint($decoded['product_id'] ?? 0)] = $decoded;
-        }
-
-        foreach ($result_ids as $index => $product_id) {
-            if (empty($by_id[$product_id])) {
-                continue;
+        if('cross'===$kind){
+            $product_match=false;$product_position=null;
+            if($result_ids){
+                $rows=class_exists('SEO_Dependiente_Index')?SEO_Dependiente_Index::get_rows_by_ids($result_ids,8):array();
+                $by_id=array();foreach($rows as $row){$decoded=SEO_Dependiente_Index::decode_row($row);$by_id[absint($decoded['product_id']??0)]=$decoded;}
+                foreach($result_ids as $index=>$pid){if(!empty($by_id[$pid])&&self::row_matches_vocabulary($by_id[$pid],(array)($expected['conditions']??array()))){$product_match=true;$product_position=$index+1;break;}}
             }
-            if (self::row_matches_expected($by_id[$product_id], $expected)) {
-                $position = $index + 1;
-                if (1 === $position) {
-                    $status = 'pass_top1';
-                    $score = 1.0;
-                } elseif ($position <= 3) {
-                    $status = 'pass_top3';
-                    $score = 0.85;
-                } else {
-                    $status = 'pass_top8';
-                    $score = 0.55;
-                }
-                return array(
-                    'status'             => $status,
-                    'score'              => $score,
-                    'matched_product_id' => $product_id,
-                    'matched_position'   => $position,
-                    'expected'           => $expected,
-                );
+            $related_match=self::match_related_expected($related_results,array('kind'=>'content','acceptable_related'=>$expected['acceptable_related']??array()));
+            if($product_match&&$related_match){$position=max(1,(int)$product_position);return array('status'=>1===$position?'pass_top1':($position<=3?'pass_top3':'pass_top8'),'score'=>$position===1?1.0:($position<=3?0.85:0.55),'matched_product_id'=>absint($result_ids[$position-1]??0),'matched_position'=>$position,'related_match'=>$related_match,'expected'=>$expected);}
+            return array('status'=>'fail','score'=>0,'product_match'=>$product_match,'related_match'=>(bool)$related_match,'expected'=>$expected);
+        }
+        if (!$result_ids) return array('status'=>'fail','score'=>0,'matched_product_id'=>null,'matched_position'=>null,'expected'=>$expected);
+        $rows=class_exists('SEO_Dependiente_Index')?SEO_Dependiente_Index::get_rows_by_ids($result_ids,8):array();
+        $by_id=array();foreach($rows as $row){$decoded=SEO_Dependiente_Index::decode_row($row);$by_id[absint($decoded['product_id']??0)]=$decoded;}
+        foreach($result_ids as $index=>$product_id){
+            if(empty($by_id[$product_id]))continue;
+            if(self::row_matches_expected($by_id[$product_id],$expected)){
+                $position=$index+1;$status=1===$position?'pass_top1':($position<=3?'pass_top3':'pass_top8');$score=1===$position?1.0:($position<=3?0.85:0.55);
+                return array('status'=>$status,'score'=>$score,'matched_product_id'=>$product_id,'matched_position'=>$position,'expected'=>$expected);
             }
         }
+        return array('status'=>'fail','score'=>0,'matched_product_id'=>null,'matched_position'=>null,'expected'=>$expected);
+    }
 
-        return array(
-            'status'             => 'fail',
-            'score'              => 0,
-            'matched_product_id' => null,
-            'matched_position'   => null,
-            'expected'           => $expected,
-        );
+    private static function match_related_expected($related_results, $expected) {
+        $kind=sanitize_key((string)($expected['kind']??''));
+        $acceptable=array();
+        if('faq'===$kind){$fid=absint($expected['faq_id']??0);if($fid)$acceptable['faq:'.$fid]=true;}
+        foreach((array)($expected['acceptable_related']??array()) as $item){$type=sanitize_key((string)($item['type']??''));$id=absint($item['id']??0);if($type&&$id)$acceptable[$type.':'.$id]=true;}
+        if(!$acceptable)return false;
+        foreach((array)$related_results as $index=>$item){$key=sanitize_key((string)($item['type']??'')).':'.absint($item['id']??0);if(isset($acceptable[$key])){$position=$index+1;return array('status'=>1===$position?'pass_top1':($position<=3?'pass_top3':'pass_top8'),'score'=>1===$position?1.0:($position<=3?0.85:0.55),'matched_related'=>$key,'matched_position'=>$position);}}
+        return false;
     }
 
     private static function row_matches_expected($row, $expected) {
@@ -3920,32 +3873,30 @@ final class SEO_Dependiente_Entrenador {
     private static function maybe_complete_lesson($lesson_key) {
         $summary = self::lesson_summary($lesson_key);
         if (absint($summary['total']) < 1 || absint($summary['answered']) < absint($summary['total'])) {
-            self::update_lesson($lesson_key, array('completed_items' => absint($summary['answered'])));
+            self::update_lesson($lesson_key, array('completed_items'=>absint($summary['answered'])));
             return false;
         }
-
-        $lesson = self::lesson_row($lesson_key);
-        if (!$lesson) {
-            return false;
+        $lesson=self::lesson_row($lesson_key);if(!$lesson)return false;
+        $definition=self::lesson_definition($lesson_key);
+        $total=max(1,absint($summary['total']));
+        $pass_ratio=absint($summary['pass_any'])/$total;
+        $min_pass=isset($definition['min_pass_any'])?(float)$definition['min_pass_any']:0.40;
+        $quality_ok=0===absint($summary['errors']) && $pass_ratio >= $min_pass;
+        $activated_rules=0;
+        if($quality_ok){
+            $activated_rules=self::activate_staged_academy_rules($lesson_key);
+        } else {
+            // La lección puede terminar para no bloquear todo el currículo, pero
+            // no convierte resultados pobres en conocimiento operativo.
+            self::clear_staged_academy_rules($lesson_key);
         }
-
-        // Promoción curricular atómica: la lección completa estudia siempre el
-        // mismo snapshot. Solo al terminar se activan las reglas derivadas de
-        // fuentes canónicas y se crea el snapshot que usará la siguiente.
-        $activated_rules = self::activate_staged_academy_rules($lesson_key);
-        $before = absint($lesson['snapshot_before'] ?? 0);
-        $after = max(absint(get_option(self::KNOWLEDGE_SNAPSHOT_OPTION, 0)), $before) + 1;
-        update_option(self::KNOWLEDGE_SNAPSHOT_OPTION, $after, false);
-
-        self::update_lesson($lesson_key, array(
-            'status'          => 'completed',
-            'completed_items' => absint($summary['answered']),
-            'snapshot_after'  => $after,
-            'metadata'        => array(
-                'activated_rules' => max(0, (int) $activated_rules),
-                'summary'         => $summary,
-            ),
-            'completed_at'    => current_time('mysql'),
+        $before=absint($lesson['snapshot_before']??0);
+        $after=max(absint(get_option(self::KNOWLEDGE_SNAPSHOT_OPTION,0)),$before)+1;
+        update_option(self::KNOWLEDGE_SNAPSHOT_OPTION,$after,false);
+        self::update_lesson($lesson_key,array(
+            'status'=>'completed','completed_items'=>absint($summary['answered']),'snapshot_after'=>$after,
+            'metadata'=>array('curriculum_version'=>self::CURRICULUM_VERSION,'activated_rules'=>max(0,(int)$activated_rules),'quality_gate'=>array('passed'=>$quality_ok,'pass_any_ratio'=>round($pass_ratio,4),'min_pass_any'=>$min_pass,'technical_errors'=>absint($summary['errors'])),'summary'=>$summary),
+            'completed_at'=>current_time('mysql'),
         ));
         self::sync_lessons();
         return true;
@@ -4040,15 +3991,23 @@ final class SEO_Dependiente_Entrenador {
     }
 
     private static function lesson_source_signature($lesson_key) {
-        $preflight = self::catalog_preflight();
-        $parts = array(
-            $lesson_key,
-            (string) ($preflight['indexed'] ?? 0),
-            (string) ($preflight['published'] ?? 0),
-            (string) ($preflight['last_full'] ?? ''),
-            (string) self::lesson_source_total($lesson_key),
-        );
-        return hash('sha256', implode('|', $parts));
+        $preflight=self::catalog_preflight();
+        $parts=array($lesson_key,self::CURRICULUM_VERSION,(string)($preflight['indexed']??0),(string)($preflight['published']??0),(string)($preflight['last_full']??''),(string)self::lesson_source_total($lesson_key),self::catalog_fingerprint());
+        return hash('sha256',implode('|',$parts));
+    }
+
+    private static function catalog_fingerprint() {
+        static $cache='';
+        if($cache)return $cache;
+        global $wpdb;
+        $parts=array();
+        $parts[]=(string)$wpdb->get_var("SELECT CONCAT(COUNT(*),'|',COALESCE(MAX(post_modified_gmt),''),'|',COALESCE(BIT_XOR(CRC32(CONCAT(ID,'|',post_modified_gmt,'|',post_status))),0)) FROM {$wpdb->posts} WHERE post_type IN ('product','post','page') AND post_status='publish'");
+        $v=$wpdb->prefix.'seo_vocabulary';$ov=$wpdb->prefix.'seo_object_vocabulary';$faq=$wpdb->prefix.'seo_faq';
+        if(self::table_exists($v))$parts[]=(string)$wpdb->get_var("SELECT CONCAT(COUNT(*),'|',COALESCE(MAX(updated_at),''),'|',COALESCE(BIT_XOR(CRC32(CONCAT(id,'|',semantic_group,'|',slug,'|',active))),0)) FROM {$v}");
+        if(self::table_exists($ov))$parts[]=(string)$wpdb->get_var("SELECT CONCAT(COUNT(*),'|',COALESCE(MAX(updated_at),''),'|',COALESCE(BIT_XOR(CRC32(CONCAT(object_type,'|',object_id,'|',vocabulary_id,'|',status))),0)) FROM {$ov} WHERE object_type IN ('product','product_cat','post','page')");
+        if(self::table_exists($faq))$parts[]=(string)$wpdb->get_var("SELECT CONCAT(COUNT(*),'|',COALESCE(MAX(updated_at),''),'|',COALESCE(BIT_XOR(CRC32(CONCAT(id,'|',object_type,'|',object_id,'|',active))),0)) FROM {$faq} WHERE object_type IN (1,2,3)");
+        $cache=hash('sha256',implode('||',$parts));
+        return $cache;
     }
 
     private static function category_path($term) {

@@ -2539,13 +2539,19 @@ final class SEO_Dependiente_API {
      * WordPress limita primero los candidatos con su buscador nativo y aqui se
      * vuelve a puntuar para priorizar frase completa, titulo y coincidencias utiles.
      */
+    /**
+     * Busca conocimiento editorial y FAQs. Posts y paginas comparten el mismo
+     * Vocabulary canonico; las FAQs heredan contexto semantico de su propietario
+     * (pagina/hub, product_cat o producto).
+     */
     private static function direct_content_search($query, $limit = 18) {
         $query = trim(sanitize_text_field((string) $query));
         if ('' === $query) {
             return array();
         }
 
-        $candidate_limit = min(60, max(12, absint($limit) * 3));
+        $limit = max(1, absint($limit));
+        $candidate_limit = min(120, max(18, $limit * 5));
         $search = new WP_Query(array(
             'post_type'           => array('post', 'page'),
             'post_status'         => 'publish',
@@ -2558,32 +2564,23 @@ final class SEO_Dependiente_API {
         ));
 
         $candidate_posts = $search->have_posts() ? (array) $search->posts : array();
-
-        // Complementa la busqueda textual con la clasificacion semantica canonica
-        // de los posts. post_tag de WordPress no participa en el Dependiente.
-        $semantic_post_ids = function_exists('seo_content_vocab_find_post_ids_for_query')
-            ? seo_content_vocab_find_post_ids_for_query($query, $candidate_limit)
-            : array();
+        $semantic_ids = self::semantic_content_ids_for_query($query, array('post', 'page'), $candidate_limit);
         $candidate_ids = array();
         foreach ($candidate_posts as $candidate_post) {
             if ($candidate_post instanceof WP_Post) {
                 $candidate_ids[(int) $candidate_post->ID] = true;
             }
         }
-        foreach ($semantic_post_ids as $semantic_post_id) {
-            $semantic_post_id = absint($semantic_post_id);
-            if (!$semantic_post_id || isset($candidate_ids[$semantic_post_id])) {
+        foreach ($semantic_ids as $semantic_id) {
+            $semantic_id = absint($semantic_id);
+            if (!$semantic_id || isset($candidate_ids[$semantic_id])) {
                 continue;
             }
-            $semantic_post = get_post($semantic_post_id);
-            if ($semantic_post instanceof WP_Post && 'post' === $semantic_post->post_type && 'publish' === $semantic_post->post_status) {
+            $semantic_post = get_post($semantic_id);
+            if ($semantic_post instanceof WP_Post && in_array($semantic_post->post_type, array('post', 'page'), true) && 'publish' === $semantic_post->post_status) {
                 $candidate_posts[] = $semantic_post;
-                $candidate_ids[$semantic_post_id] = true;
+                $candidate_ids[$semantic_id] = true;
             }
-        }
-
-        if (!$candidate_posts) {
-            return array();
         }
 
         $normalized_query = SEO_Dependiente_Index::normalize($query);
@@ -2625,9 +2622,9 @@ final class SEO_Dependiente_API {
             $title_norm = SEO_Dependiente_Index::normalize($title);
             $excerpt_norm = SEO_Dependiente_Index::normalize($excerpt);
             $content_norm = SEO_Dependiente_Index::normalize($plain_content);
-            $vocabulary_terms = ('post' === $post->post_type && function_exists('seo_content_vocab_get_flat_terms'))
-                ? seo_content_vocab_get_flat_terms('post', (int) $post->ID)
-                : array();
+            $vocabulary_terms = function_exists('seo_content_vocab_get_flat_terms')
+                ? seo_content_vocab_get_flat_terms($post->post_type, (int) $post->ID)
+                : self::object_vocabulary_terms($post->post_type, (int) $post->ID);
             $vocabulary_parts = array();
             foreach ($vocabulary_terms as $vocabulary_term) {
                 $vocabulary_parts[] = (string) ($vocabulary_term['label'] ?? '');
@@ -2674,7 +2671,7 @@ final class SEO_Dependiente_API {
             $items[] = array(
                 'id'         => (int) $post->ID,
                 'type'       => 'page' === $post->post_type ? 'landing' : 'post',
-                'type_label' => 'page' === $post->post_type ? 'Solución' : 'Guía',
+                'type_label' => 'page' === $post->post_type ? 'Pagina' : 'Guia',
                 'title'      => $title,
                 'excerpt'    => wp_trim_words($summary_text, 24, '…'),
                 'url'        => esc_url_raw($url),
@@ -2684,19 +2681,258 @@ final class SEO_Dependiente_API {
             );
         }
 
+        // Las FAQs son conocimiento de primer nivel, pero conservan su propietario.
+        foreach (self::faq_content_search($query, max(12, $limit * 3)) as $faq_item) {
+            $items[] = $faq_item;
+        }
+
         usort($items, static function ($a, $b) {
-            if ($a['_score'] !== $b['_score']) {
-                return $b['_score'] <=> $a['_score'];
+            if (($a['_score'] ?? 0) !== ($b['_score'] ?? 0)) {
+                return ($b['_score'] ?? 0) <=> ($a['_score'] ?? 0);
             }
-            return $b['_modified'] <=> $a['_modified'];
+            return ($b['_modified'] ?? 0) <=> ($a['_modified'] ?? 0);
         });
 
-        $items = array_slice($items, 0, max(1, absint($limit)));
+        $items = array_slice($items, 0, $limit);
         foreach ($items as &$item) {
             unset($item['_score'], $item['_modified']);
         }
         unset($item);
         return $items;
+    }
+
+    /**
+     * Devuelve IDs de posts/paginas cuya clasificacion canonica coincide con la
+     * consulta. Evita depender del helper historico que solo contemplaba posts.
+     */
+    private static function semantic_content_ids_for_query($query, $object_types, $limit = 80) {
+        global $wpdb;
+        $query = SEO_Dependiente_Index::normalize((string) $query);
+        $tokens = array_values(array_unique(array_filter(preg_split('/\\s+/u', $query), static function ($token) {
+            return strlen((string) $token) >= 3;
+        })));
+        $tokens = array_slice($tokens, 0, 8);
+        $object_types = array_values(array_intersect(array('post', 'page'), array_map('sanitize_key', (array) $object_types)));
+        if (!$tokens || !$object_types) {
+            return array();
+        }
+        $objects = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
+        if (!SEO_Dependiente_Index::table_exists($objects) || !SEO_Dependiente_Index::table_exists($vocabulary)) {
+            return array();
+        }
+        $conditions = array();
+        $params = array();
+        foreach ($tokens as $token) {
+            $like = '%' . $wpdb->esc_like($token) . '%';
+            $conditions[] = '(LOWER(v.label) LIKE %s OR LOWER(v.slug) LIKE %s)';
+            $params[] = $like;
+            $params[] = $like;
+        }
+        $type_sql = "'" . implode("','", array_map('esc_sql', $object_types)) . "'";
+        $limit = min(250, max(1, absint($limit)));
+        $sql = "SELECT ov.object_id, COUNT(DISTINCT v.id) semantic_hits
+                FROM {$objects} ov
+                INNER JOIN {$vocabulary} v ON v.id=ov.vocabulary_id AND v.active=1
+                INNER JOIN {$wpdb->posts} p ON p.ID=ov.object_id AND p.post_status='publish'
+                WHERE ov.object_type IN ({$type_sql})
+                  AND p.post_type=ov.object_type
+                  AND ov.status=1
+                  AND (" . implode(' OR ', $conditions) . ")
+                GROUP BY ov.object_id
+                ORDER BY semantic_hits DESC, ov.object_id DESC
+                LIMIT {$limit}";
+        return array_values(array_filter(array_map('absint', (array) $wpdb->get_col($wpdb->prepare($sql, $params)))));
+    }
+
+    private static function object_vocabulary_terms($object_type, $object_id) {
+        global $wpdb;
+        $object_type = sanitize_key((string) $object_type);
+        $object_id = absint($object_id);
+        if (!$object_id) {
+            return array();
+        }
+        $objects = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
+        if (!SEO_Dependiente_Index::table_exists($objects) || !SEO_Dependiente_Index::table_exists($vocabulary)) {
+            return array();
+        }
+        return (array) $wpdb->get_results($wpdb->prepare(
+            "SELECT v.id,v.semantic_group,v.slug,v.label
+             FROM {$objects} ov INNER JOIN {$vocabulary} v ON v.id=ov.vocabulary_id AND v.active=1
+             WHERE ov.object_type=%s AND ov.object_id=%d AND ov.status=1
+             ORDER BY v.semantic_group,v.label",
+            $object_type, $object_id
+        ), ARRAY_A);
+    }
+
+    private static function faq_content_search($query, $limit = 30) {
+        global $wpdb;
+        $faq_table = $wpdb->prefix . 'seo_faq';
+        if (!SEO_Dependiente_Index::table_exists($faq_table)) {
+            return array();
+        }
+        $normalized_query = SEO_Dependiente_Index::normalize((string) $query);
+        $tokens = array_values(array_unique(array_filter(preg_split('/\\s+/u', $normalized_query), static function ($token) {
+            return strlen((string) $token) >= 3;
+        })));
+        $tokens = array_slice($tokens, 0, 6);
+        if (!$tokens) {
+            return array();
+        }
+
+        $candidate_rows = array();
+        $conditions = array();
+        $params = array();
+        foreach ($tokens as $token) {
+            $like = '%' . $wpdb->esc_like($token) . '%';
+            $conditions[] = 'LOWER(question) LIKE %s';
+            $params[] = $like;
+        }
+        $text_limit = min(240, max(40, absint($limit) * 5));
+        $sql = "SELECT id,object_type,object_id,question,answer,updated_at
+                FROM {$faq_table}
+                WHERE active=1 AND (" . implode(' OR ', $conditions) . ")
+                ORDER BY updated_at DESC,id DESC LIMIT {$text_limit}";
+        foreach ((array) $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A) as $row) {
+            $candidate_rows[absint($row['id'] ?? 0)] = $row;
+        }
+
+        // Segunda vía: si la pregunta no contiene el término, el vocabulario del
+        // propietario puede hacerla relevante. La respuesta LONGTEXT se puntúa
+        // después, sobre candidatos acotados, para evitar un escaneo completo.
+        $objects = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
+        if (SEO_Dependiente_Index::table_exists($objects) && SEO_Dependiente_Index::table_exists($vocabulary)) {
+            $semantic_conditions = array();
+            $semantic_params = array();
+            foreach ($tokens as $token) {
+                $like = '%' . $wpdb->esc_like($token) . '%';
+                $semantic_conditions[] = '(LOWER(v.label) LIKE %s OR LOWER(v.slug) LIKE %s)';
+                $semantic_params[] = $like;
+                $semantic_params[] = $like;
+            }
+            $owner_sql = "SELECT ov.object_type,ov.object_id,COUNT(DISTINCT v.id) hits
+                          FROM {$objects} ov INNER JOIN {$vocabulary} v ON v.id=ov.vocabulary_id AND v.active=1
+                          WHERE ov.status=1 AND ov.object_type IN ('product','product_cat','page')
+                            AND (" . implode(' OR ', $semantic_conditions) . ")
+                          GROUP BY ov.object_type,ov.object_id
+                          ORDER BY hits DESC LIMIT 180";
+            $owners = (array) $wpdb->get_results($wpdb->prepare($owner_sql, $semantic_params), ARRAY_A);
+            $owner_clauses = array();
+            $owner_params = array();
+            $type_map = array('page' => 1, 'product_cat' => 2, 'product' => 3);
+            foreach ($owners as $owner) {
+                $otype = sanitize_key((string) ($owner['object_type'] ?? ''));
+                $oid = absint($owner['object_id'] ?? 0);
+                if (!$oid || !isset($type_map[$otype])) {
+                    continue;
+                }
+                $owner_clauses[] = '(object_type=%d AND object_id=%d)';
+                $owner_params[] = $type_map[$otype];
+                $owner_params[] = $oid;
+            }
+            if ($owner_clauses) {
+                $owner_limit = min(240, max(40, absint($limit) * 5));
+                $owner_faq_sql = "SELECT id,object_type,object_id,question,answer,updated_at
+                                  FROM {$faq_table} WHERE active=1 AND (" . implode(' OR ', $owner_clauses) . ")
+                                  ORDER BY updated_at DESC,id DESC LIMIT {$owner_limit}";
+                foreach ((array) $wpdb->get_results($wpdb->prepare($owner_faq_sql, $owner_params), ARRAY_A) as $row) {
+                    $candidate_rows[absint($row['id'] ?? 0)] = $row;
+                }
+            }
+        }
+
+        $items = array();
+        foreach ($candidate_rows as $row) {
+            $faq_id = absint($row['id'] ?? 0);
+            $object_type = absint($row['object_type'] ?? 0);
+            $object_id = absint($row['object_id'] ?? 0);
+            if (!$faq_id || !$object_id || !in_array($object_type, array(1,2,3), true)) {
+                continue;
+            }
+            $owner = self::faq_owner_context($object_type, $object_id);
+            if (!$owner) {
+                continue;
+            }
+            $question = wp_strip_all_tags((string) ($row['question'] ?? ''));
+            $answer = trim(wp_strip_all_tags((string) ($row['answer'] ?? '')));
+            $question_norm = SEO_Dependiente_Index::normalize($question);
+            $answer_norm = SEO_Dependiente_Index::normalize($answer);
+            $owner_norm = SEO_Dependiente_Index::normalize(($owner['title'] ?? '') . ' ' . implode(' ', (array) ($owner['vocabulary'] ?? array())));
+            $all_norm = trim($question_norm . ' ' . $answer_norm . ' ' . $owner_norm);
+            $score = 0;
+            $hits = 0;
+            if ($normalized_query && false !== strpos($question_norm, $normalized_query)) {
+                $score += 420;
+            } elseif ($normalized_query && false !== strpos($all_norm, $normalized_query)) {
+                $score += 220;
+            }
+            foreach ($tokens as $token) {
+                if (false !== strpos($question_norm, $token)) {
+                    $score += 74; $hits++;
+                } elseif (false !== strpos($owner_norm, $token)) {
+                    $score += 58; $hits++;
+                } elseif (false !== strpos($answer_norm, $token)) {
+                    $score += 20; $hits++;
+                }
+            }
+            if (!$score || (!$hits && (!$normalized_query || false === strpos($all_norm, $normalized_query)))) {
+                continue;
+            }
+            $items[] = array(
+                'id'          => $faq_id,
+                'type'        => 'faq',
+                'type_label'  => 'FAQ',
+                'title'       => $question,
+                'excerpt'     => wp_trim_words($answer, 28, '…'),
+                'url'         => esc_url_raw((string) ($owner['url'] ?? '')),
+                'image'       => '',
+                'owner_type'  => (string) ($owner['type'] ?? ''),
+                'owner_id'    => $object_id,
+                'owner_title' => (string) ($owner['title'] ?? ''),
+                '_score'      => $score,
+                '_modified'   => strtotime((string) ($row['updated_at'] ?? '')) ?: 0,
+            );
+        }
+        usort($items, static function ($a, $b) {
+            if (($a['_score'] ?? 0) !== ($b['_score'] ?? 0)) {
+                return ($b['_score'] ?? 0) <=> ($a['_score'] ?? 0);
+            }
+            return ($b['_modified'] ?? 0) <=> ($a['_modified'] ?? 0);
+        });
+        return array_slice($items, 0, max(1, absint($limit)));
+    }
+
+    private static function faq_owner_context($object_type, $object_id) {
+        $object_type = absint($object_type);
+        $object_id = absint($object_id);
+        if (1 === $object_type) {
+            $post = get_post($object_id);
+            if (!$post instanceof WP_Post || 'page' !== $post->post_type || 'publish' !== $post->post_status) {
+                return array();
+            }
+            $terms = function_exists('seo_content_vocab_get_flat_terms') ? seo_content_vocab_get_flat_terms('page', $object_id) : self::object_vocabulary_terms('page', $object_id);
+            return array('type'=>'page','title'=>get_the_title($object_id),'url'=>get_permalink($object_id),'vocabulary'=>wp_list_pluck($terms,'label'));
+        }
+        if (2 === $object_type) {
+            $term = get_term($object_id, 'product_cat');
+            if (!$term || is_wp_error($term)) {
+                return array();
+            }
+            $url = get_term_link($term, 'product_cat');
+            $terms = self::object_vocabulary_terms('product_cat', $object_id);
+            return array('type'=>'product_cat','title'=>(string)$term->name,'url'=>is_wp_error($url)?'':$url,'vocabulary'=>wp_list_pluck($terms,'label'));
+        }
+        if (3 === $object_type) {
+            $post = get_post($object_id);
+            if (!$post instanceof WP_Post || 'product' !== $post->post_type || 'publish' !== $post->post_status) {
+                return array();
+            }
+            $terms = self::object_vocabulary_terms('product', $object_id);
+            return array('type'=>'product','title'=>get_the_title($object_id),'url'=>get_permalink($object_id),'vocabulary'=>wp_list_pluck($terms,'label'));
+        }
+        return array();
     }
 
     private static function category_related_content($documents, $query, $limit = 8) {
@@ -2792,9 +3028,10 @@ final class SEO_Dependiente_API {
                 $plain_text = wp_strip_all_tags(strip_shortcodes((string) $item['content']));
             }
             $semantic_text = '';
-            if ('post' === $item['source_type'] && function_exists('seo_content_vocab_get_flat_terms')) {
+            if (in_array($item['source_type'], array('post','landing'), true) && function_exists('seo_content_vocab_get_flat_terms')) {
                 $semantic_parts = array();
-                foreach (seo_content_vocab_get_flat_terms('post', (int) $item['id']) as $semantic_term) {
+                $semantic_object_type = 'landing' === $item['source_type'] ? 'page' : 'post';
+                foreach (seo_content_vocab_get_flat_terms($semantic_object_type, (int) $item['id']) as $semantic_term) {
                     $semantic_parts[] = (string) ($semantic_term['label'] ?? '');
                     $semantic_parts[] = str_replace('_', ' ', (string) ($semantic_term['slug'] ?? ''));
                 }
