@@ -110,6 +110,9 @@ require_once SEO_SYSTEM_PATH . 'includes/seo_schema_search.php';
  */
 require_once SEO_SYSTEM_PATH . 'includes/data-layer/data-layer-bootstrap.php';
 
+// Clonador determinista PRO -> STAGING.
+require_once SEO_SYSTEM_PATH . 'includes/clonador/bootstrap.php';
+
 require_once SEO_SYSTEM_PATH . 'includes/seo-export.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-database-report.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-database-clean.php';
