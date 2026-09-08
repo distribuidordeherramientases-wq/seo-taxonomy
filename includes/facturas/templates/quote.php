@@ -8,6 +8,7 @@ $billing = $snapshot['billing'] ?? array();
 $shipping = $snapshot['shipping'] ?? array();
 $items = $snapshot['items'] ?? array();
 $tax_lines = $snapshot['tax_lines'] ?? array();
+$fiscal = $snapshot['fiscal'] ?? array();
 $totals = $snapshot['totals'] ?? array();
 $currency = (string) ($snapshot['cart']['currency'] ?? 'EUR');
 $title = trim((string) ($document['title'] ?? 'PRESUPUESTO'));
@@ -97,6 +98,7 @@ $valid_date = $valid_ts ? wp_date(get_option('date_format', 'd/m/Y'), $valid_ts)
     .totals td { border:1px solid #666; padding:5px 7px; }
     .totals td:last-child { text-align:right; white-space:nowrap; }
     .totals .grand td { font-weight:700; font-size:11px; }
+    .fiscal-note { margin-top: 14px; border: 1px solid #d6b45e; background: #fffaf0; padding: 8px 10px; }
     .terms { margin-top:20px; padding:9px 11px; border:1px solid #c8c8c8; background:#fafafa; }
     .muted { color:#666; }
     .footer { margin-top:26px; border-top:1px solid #bbb; padding-top:7px; text-align:center; font-size:8.5px; color:#555; }
@@ -188,20 +190,32 @@ $valid_date = $valid_ts ? wp_date(get_option('date_format', 'd/m/Y'), $valid_ts)
 <table class="totals">
     <tr><td>Subtotal productos</td><td><?php echo esc_html($money($totals['subtotal_items'] ?? 0)); ?></td></tr>
     <?php if ($show_discounts && !empty($totals['discount_total'])) : ?><tr><td>Descuentos</td><td>-<?php echo esc_html($money($totals['discount_total'])); ?></td></tr><?php endif; ?>
-    <?php if ($show_shipping && !empty($totals['shipping_total'])) : ?><tr><td>Transporte</td><td><?php echo esc_html($money($totals['shipping_total'])); ?></td></tr><?php endif; ?>
+    <?php if ($show_shipping) : ?><tr><td>Transporte</td><td><?php echo esc_html($money($totals['shipping_total'] ?? 0)); ?></td></tr><?php endif; ?>
     <?php if (!empty($totals['fee_total'])) : ?><tr><td>Otros cargos</td><td><?php echo esc_html($money($totals['fee_total'])); ?></td></tr><?php endif; ?>
     <?php if ($show_tax) : ?>
         <tr><td>BASE IMPONIBLE</td><td><?php echo esc_html($money($totals['base_total'] ?? 0)); ?></td></tr>
         <?php if ($tax_lines) : ?>
             <?php foreach ($tax_lines as $tax) : ?>
-                <tr><td><?php echo esc_html($tax['label'] ?? 'Impuesto'); ?></td><td><?php echo esc_html($money($tax['tax_total'] ?? 0)); ?></td></tr>
+                <?php
+                $tax_label = (string) ($tax['label'] ?? 'IVA');
+                $rate_percent = $tax['rate_percent'] ?? null;
+                if (null !== $rate_percent && false === strpos($tax_label, '%')) {
+                    $tax_label .= ' ' . rtrim(rtrim(number_format((float) $rate_percent, 3, '.', ''), '0'), '.') . '%';
+                }
+                ?>
+                <tr><td><?php echo esc_html($tax_label); ?></td><td><?php echo esc_html($money($tax['tax_total'] ?? 0)); ?></td></tr>
             <?php endforeach; ?>
         <?php else : ?>
-            <tr><td>IMPUESTOS</td><td><?php echo esc_html($money($totals['total_tax'] ?? 0)); ?></td></tr>
+            <?php $fallback_tax_label = !empty($fiscal['enabled']) && !empty($fiscal['label']) ? (string) $fiscal['label'] : 'IMPUESTOS'; ?>
+            <tr><td><?php echo esc_html($fallback_tax_label); ?></td><td><?php echo esc_html($money($totals['total_tax'] ?? 0)); ?></td></tr>
         <?php endif; ?>
     <?php endif; ?>
     <tr class="grand"><td><?php echo esc_html($total_label); ?></td><td><?php echo esc_html($money($totals['total'] ?? 0)); ?></td></tr>
 </table>
+
+<?php if (!empty($fiscal['enabled']) && !empty($fiscal['note'])) : ?>
+<div class="fiscal-note"><strong>Condiciones fiscales del destino:</strong><br><?php echo nl2br(esc_html($fiscal['note'])); ?></div>
+<?php endif; ?>
 
 <?php if (!empty($document['terms_text'])) : ?>
 <div class="terms"><?php echo nl2br(esc_html($document['terms_text'])); ?></div>

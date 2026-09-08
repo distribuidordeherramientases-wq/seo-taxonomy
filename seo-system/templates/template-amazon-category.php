@@ -490,8 +490,6 @@ if (!function_exists('dht_render_amazon_category_block')) {
                         <details class="dht-amazon-debug" style="margin-top:12px;"><summary><strong>Diagnóstico Amazon</strong></summary><div style="margin-top:7px;">Modo sin API. Las tarjetas anteriores son búsquedas afiliadas dinámicas. Consulta principal preparada: <code><?php echo esc_html($primary_query); ?></code>.</div></details>
                     <?php endif; ?>
                 <?php endif; ?>
-
-                <p class="dht-amazon-disclosure">Como Afiliado de Amazon, podemos obtener ingresos por compras adscritas realizadas desde estos enlaces.</p>
             </div>
         </section>
         <?php

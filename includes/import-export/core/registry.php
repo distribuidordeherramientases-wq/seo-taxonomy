@@ -55,7 +55,7 @@ function seo_ie_entity_registry() {
             'label'      => 'Entradas',
             'batch_size' => 0,
             'required_any' => [ 'post_id', 'slug', 'url' ],
-            'markers'    => [ 'post_id', 'categorias_slugs', 'categorias_nombres', 'etiquetas_ids', 'etiquetas_slugs', 'etiquetas_nombres', 'formato', 'sticky', 'autor_id', 'fecha_gmt', 'meta_seo', 'meta_personalizados' ],
+            'markers'    => [ 'post_id', 'categorias_slugs', 'categorias_nombres', 'vocab_rol', 'vocab_tipo', 'vocab_aplicacion', 'vocab_plataforma', 'vocab_subtipo', 'etiquetas_ids', 'etiquetas_slugs', 'etiquetas_nombres', 'formato', 'sticky', 'autor_id', 'fecha_gmt', 'meta_seo', 'meta_personalizados' ],
         ],
         'faq' => [
             'label'      => 'FAQs',

@@ -39,7 +39,7 @@ require_once SEO_SYSTEM_PATH . 'includes/seo-core.php';
 require_once SEO_SYSTEM_PATH . 'functions.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-text-utils.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-vocabulary-bridge.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-health-scan.php';
+require_once SEO_SYSTEM_PATH . 'includes/system-check/seo-health-scan.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -51,6 +51,8 @@ require_once SEO_SYSTEM_PATH . 'includes/template-loader.php';
 require_once SEO_SYSTEM_PATH . 'includes/template-manager.php';
 require_once SEO_SYSTEM_PATH . 'includes/template-mail.php';
 require_once SEO_SYSTEM_PATH . 'includes/pages-schema.php';
+require_once SEO_SYSTEM_PATH . 'includes/seo-page-vocabulary-editor.php';
+require_once SEO_SYSTEM_PATH . 'includes/seo-content-vocabulary.php';
 require_once SEO_SYSTEM_PATH . 'includes/pages-admin.php';
 
 /*
@@ -109,6 +111,9 @@ require_once SEO_SYSTEM_PATH . 'includes/seo_schema_search.php';
  */
 require_once SEO_SYSTEM_PATH . 'includes/data-layer/data-layer-bootstrap.php';
 
+// Clonador determinista PRO -> STAGING.
+require_once SEO_SYSTEM_PATH . 'includes/clonador/bootstrap.php';
+
 require_once SEO_SYSTEM_PATH . 'includes/seo-export.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-database-report.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-database-clean.php';
@@ -159,9 +164,9 @@ require_once SEO_SYSTEM_PATH . 'includes/seo-google-info.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-menu-admin.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-tags-vocabulary-admin.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-product-vocabulary-editor.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-process-supervisor.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-processes.php';
+require_once SEO_SYSTEM_PATH . 'includes/procesos/bootstrap.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-logistica.php';
+require_once SEO_SYSTEM_PATH . 'includes/seo-transporte.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-admin.php';
 
 /*
@@ -171,5 +176,5 @@ require_once SEO_SYSTEM_PATH . 'includes/seo-admin.php';
 */
 
 //require_once SEO_SYSTEM_PATH . 'includes/seo-server-status.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-core-validation.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-system-diagnostics-reporting.php';
+require_once SEO_SYSTEM_PATH . 'includes/system-check/seo-core-validation.php';
+require_once SEO_SYSTEM_PATH . 'includes/system-check/seo-system-diagnostics-reporting.php';

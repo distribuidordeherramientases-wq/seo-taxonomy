@@ -158,7 +158,6 @@ if (!function_exists('dht_render_amazon_product_block')) {
                 <?php endif; ?>
             <?php endif; ?>
 
-            <p class="dht-amazon-disclosure">Como Afiliado de Amazon, podemos obtener ingresos por compras adscritas realizadas desde estos enlaces.</p>
             </div>
         </section>
         <?php

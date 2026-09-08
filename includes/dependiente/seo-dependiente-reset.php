@@ -105,7 +105,7 @@ final class SEO_Dependiente_Reset {
             return array(
                 'before' => $before,
                 'after'  => $after,
-                'message'=> 'Conocimiento reiniciado. Se han conservado las reglas base (seed) y las fuentes maestras del catalogo. La Academia vuelve a la Leccion 1 tras reindexar.',
+                'message'=> 'Conocimiento reiniciado. Se han conservado las reglas base (seed) y las fuentes maestras del catalogo. La Academia v2 vuelve a la Lección 1 tras reindexar.',
             );
         } catch (Throwable $error) {
             if ($transaction_started) {

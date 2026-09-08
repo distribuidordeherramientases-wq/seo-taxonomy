@@ -12,6 +12,7 @@ final class SEO_Facturas_Settings {
 
     const LEGACY_OPTION   = 'seo_facturas_settings';
     const COMPANY_OPTION  = 'seo_facturas_company_settings';
+    const TAX_OPTION      = 'seo_facturas_tax_settings';
     const INVOICE_OPTION  = 'seo_facturas_invoice_settings';
     const PROFORMA_OPTION = 'seo_facturas_proforma_settings';
     const QUOTE_OPTION    = 'seo_facturas_quote_settings';
@@ -42,6 +43,20 @@ final class SEO_Facturas_Settings {
             'logo_id'                => 0,
             'footer_text'            => '',
             'customer_tax_meta_keys' => '_billing_nif,_billing_cif,_billing_vat,billing_nif,billing_cif,billing_vat',
+        );
+    }
+
+    public static function tax_defaults() {
+        return array(
+            'tax_manager_enabled' => 0,
+            'tax_restrict_to_spain' => 1,
+            'tax_shipping' => 1,
+            'tax_peninsula_rate' => 21.0,
+            'tax_baleares_rate' => 21.0,
+            'tax_canarias_rate' => 0.0,
+            'tax_ceuta_rate' => 0.0,
+            'tax_melilla_rate' => 0.0,
+            'tax_special_note' => 'Canarias, Ceuta y Melilla pueden estar sujetos a impuestos, despacho, transporte u otros gastos en destino que no estan incluidos en este documento. Consultar condiciones especificas antes de formalizar la operacion.',
         );
     }
 
@@ -115,6 +130,7 @@ final class SEO_Facturas_Settings {
     public static function defaults() {
         return array_merge(
             self::company_defaults(),
+            self::tax_defaults(),
             self::invoice_defaults(),
             self::proforma_defaults(),
             self::quote_defaults()
@@ -123,6 +139,10 @@ final class SEO_Facturas_Settings {
 
     public static function company() {
         return self::option_array(self::COMPANY_OPTION, self::company_defaults());
+    }
+
+    public static function taxation() {
+        return self::option_array(self::TAX_OPTION, self::tax_defaults());
     }
 
     public static function invoice() {
@@ -138,7 +158,7 @@ final class SEO_Facturas_Settings {
     }
 
     public static function all() {
-        return array_merge(self::company(), self::invoice(), self::proforma(), self::quote());
+        return array_merge(self::company(), self::taxation(), self::invoice(), self::proforma(), self::quote());
     }
 
     public static function get($key, $default = null) {
@@ -154,6 +174,16 @@ final class SEO_Facturas_Settings {
                 'type'              => 'array',
                 'sanitize_callback' => array(__CLASS__, 'sanitize_company'),
                 'default'           => self::company_defaults(),
+            )
+        );
+
+        register_setting(
+            'seo_facturas_tax_group',
+            self::TAX_OPTION,
+            array(
+                'type'              => 'array',
+                'sanitize_callback' => array(__CLASS__, 'sanitize_tax'),
+                'default'           => self::tax_defaults(),
             )
         );
 
@@ -209,6 +239,32 @@ final class SEO_Facturas_Settings {
             'footer_text'            => sanitize_textarea_field($input['footer_text'] ?? ''),
             'customer_tax_meta_keys' => self::sanitize_csv_meta_keys($input['customer_tax_meta_keys'] ?? $d['customer_tax_meta_keys']),
         );
+    }
+
+    public static function sanitize_tax($input) {
+        $input = is_array($input) ? $input : array();
+        $d = self::tax_defaults();
+
+        $clean = array(
+            'tax_manager_enabled'  => empty($input['tax_manager_enabled']) ? 0 : 1,
+            'tax_restrict_to_spain'=> empty($input['tax_restrict_to_spain']) ? 0 : 1,
+            'tax_shipping'         => empty($input['tax_shipping']) ? 0 : 1,
+            'tax_peninsula_rate'   => self::sanitize_tax_rate($input['tax_peninsula_rate'] ?? $d['tax_peninsula_rate']),
+            'tax_baleares_rate'    => self::sanitize_tax_rate($input['tax_baleares_rate'] ?? $d['tax_baleares_rate']),
+            'tax_canarias_rate'    => self::sanitize_tax_rate($input['tax_canarias_rate'] ?? $d['tax_canarias_rate']),
+            'tax_ceuta_rate'       => self::sanitize_tax_rate($input['tax_ceuta_rate'] ?? $d['tax_ceuta_rate']),
+            'tax_melilla_rate'     => self::sanitize_tax_rate($input['tax_melilla_rate'] ?? $d['tax_melilla_rate']),
+            'tax_special_note'     => sanitize_textarea_field($input['tax_special_note'] ?? $d['tax_special_note']),
+        );
+
+        if (!empty($clean['tax_manager_enabled']) && class_exists('SEO_Facturas_Tax')) {
+            $sync = SEO_Facturas_Tax::sync_managed_rates($clean);
+            if (is_wp_error($sync)) {
+                add_settings_error(self::TAX_OPTION, 'seo_facturas_tax_sync', $sync->get_error_message(), 'error');
+            }
+        }
+
+        return $clean;
     }
 
     public static function sanitize_invoice($input) {
@@ -461,6 +517,14 @@ final class SEO_Facturas_Settings {
         }
 
         update_option(self::MIGRATION_FLAG, '1', false);
+    }
+
+    private static function sanitize_tax_rate($value) {
+        if (is_string($value)) {
+            $value = str_replace(',', '.', trim($value));
+        }
+        $value = is_numeric($value) ? (float) $value : 0.0;
+        return round(max(0, min(100, $value)), 4);
     }
 
     private static function sanitize_padding($value) {

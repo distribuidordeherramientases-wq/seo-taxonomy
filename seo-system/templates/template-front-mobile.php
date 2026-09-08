@@ -13,6 +13,55 @@ dht_template_render_header();
 global $wpdb;
 
 /* ==========================================================
+   JSON-LD GOOGLE: ORGANIZATION + WEBSITE
+   Solo en portada. No se inventan datos corporativos ausentes.
+========================================================== */
+$schema_home_url = trailingslashit(home_url('/'));
+$schema_site_name = trim((string) get_bloginfo('name'));
+$schema_language = trim((string) get_bloginfo('language'));
+$schema_organization_id = $schema_home_url . '#organization';
+$schema_website_id = $schema_home_url . '#website';
+$schema_logo_candidate = function_exists('dht_shared_site_logo_candidate')
+    ? dht_shared_site_logo_candidate()
+    : null;
+
+$schema_organization = array(
+    '@type' => 'Organization',
+    '@id'   => $schema_organization_id,
+    'name'  => $schema_site_name,
+    'url'   => $schema_home_url,
+);
+
+if (!empty($schema_logo_candidate['url'])) {
+    $schema_organization['logo'] = array(
+        '@type' => 'ImageObject',
+        'url'   => esc_url_raw((string) $schema_logo_candidate['url']),
+    );
+}
+
+$schema_website = array(
+    '@type'     => 'WebSite',
+    '@id'       => $schema_website_id,
+    'name'      => $schema_site_name,
+    'url'       => $schema_home_url,
+    'publisher' => array('@id' => $schema_organization_id),
+);
+
+if ($schema_language !== '') {
+    $schema_website['inLanguage'] = $schema_language;
+}
+
+$schema_front = array(
+    '@context' => 'https://schema.org',
+    '@graph'   => array($schema_organization, $schema_website),
+);
+?>
+<script type="application/ld+json" id="dht-schema-front">
+<?php echo wp_json_encode($schema_front, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
+</script>
+<?php
+
+/* ==========================================================
    IMAGENES DE PRODUCTO
    Orden estricto y sin prechequeos HTTP desde PHP:
    1) Media / biblioteca local

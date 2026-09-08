@@ -22,8 +22,8 @@
  * @author David Perez Martorell
  * @license GPL-2.0-or-later
  * @since 2.0.0
- * @version 2026-09-02
- * Build: 038
+ * @version 2026-09-05
+ * Build: 039
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -69,6 +69,17 @@ if ( is_readable( $seo_supplier_connections_file ) ) {
     require_once $seo_supplier_connections_file;
 }
 unset( $seo_supplier_connections_file );
+
+/*
+ * Versionado temporal compartido entre los importadores. Protege la
+ * sincronizacion PRO <-> STAGING para que una fila antigua no pise una
+ * version local mas reciente y conserva las fechas de origen al importar.
+ */
+$seo_sync_versioning_file = __DIR__ . '/sync-versioning.php';
+if ( is_readable( $seo_sync_versioning_file ) ) {
+    require_once $seo_sync_versioning_file;
+}
+unset( $seo_sync_versioning_file );
 
 /*
  * La cola multientidad vive en un modulo independiente para mantener
@@ -254,6 +265,10 @@ function seo_ie_normalize_csv_header( $header, $entity ) {
         'category_image_id'  => 'imagen_destacada_id',
         'category_image'     => 'imagen_destacada',
         'category_image_url' => 'imagen_destacada',
+        'modified'           => 'fecha_modificada',
+        'term_modified'      => 'fecha_modificada',
+        'modified_gmt'       => 'fecha_modificada_gmt',
+        'term_modified_gmt'  => 'fecha_modificada_gmt',
     ];
 
     $product_aliases = [
@@ -311,7 +326,9 @@ function seo_ie_normalize_csv_header( $header, $entity ) {
         'platform'                 => 'plataforma',
         'subtype'                  => 'subtipo',
         'date_created'             => 'fecha_creacion',
+        'date_created_gmt'         => 'fecha_creacion_gmt',
         'date_modified'            => 'fecha_modificacion',
+        'date_modified_gmt'        => 'fecha_modificacion_gmt',
     ];
 
     $page_aliases = [
@@ -503,16 +520,17 @@ function seo_ie_build_csv_row( $header, $csv_row ) {
 }
 
 /**
- * Inserta o actualiza un único valor de wp_seo_nodes.
+ * Inserta o actualiza contenido editorial temporal de categorías en wp_seo_nodes.
  *
- * Mantiene una sola fila por pareja objeto/rol y elimina duplicados
- * antiguos. Si el valor queda vacío, elimina únicamente ese rol.
+ * Desde 2.3.4 seo_nodes ya no admite semántica de producto/categoría (ambito).
+ * Solo se mantienen aquí excerpt y description hasta su futura migración editorial.
+ * Si el valor queda vacío, elimina únicamente ese rol.
  *
  * @since 2.0.0
  *
- * @param string $object_type category o product.
+ * @param string $object_type Solo category.
  * @param int    $object_id   ID real de WordPress.
- * @param string $seo_role    ambito, excerpt o description, según el objeto.
+ * @param string $seo_role    excerpt o description.
  * @param string $keywords    Valor que se almacenará.
  * @return bool
  */
@@ -527,8 +545,7 @@ function seo_ie_upsert_node_value( $object_type, $object_id, $seo_role, $keyword
     $table       = $wpdb->prefix . 'seo_nodes';
 
     $valid_roles = [
-        'category' => [ 'ambito', 'excerpt', 'description' ],
-        'product'  => [ 'ambito' ],
+        'category' => [ 'excerpt', 'description' ],
     ];
 
     if (
@@ -1412,7 +1429,8 @@ function seo_ie_import_category_thumbnail( $category_id, $row, $line, &$log ) {
  *
  * Orígenes:
  * - WordPress/WooCommerce: ID, nombre, slug, padre e imagen de categoría.
- * - wp_seo_nodes: ámbito, excerpt y description.
+ * - wp_seo_nodes: excerpt y description (almacenamiento editorial temporal).
+ * - Vocabulary canónico: ROL exportado bajo la cabecera legacy ambito.
  * - wp_seo_relations: hub secundario estructural de la categoría cuando es único.
  *
  * @since 2.0.0
@@ -1438,10 +1456,10 @@ function seo_export_categories_csv() {
 
     $nodes = $wpdb->get_results(
         "
-        SELECT object_id, seo_role, keywords
+        SELECT object_id, seo_role, keywords, updated_at
         FROM {$wpdb->prefix}seo_nodes
         WHERE object_type = 'category'
-          AND seo_role IN ('ambito', 'excerpt', 'description')
+          AND seo_role IN ('excerpt', 'description')
           AND status = 1
         ORDER BY object_id ASC, seo_role ASC, updated_at DESC, id DESC
         "
@@ -1456,17 +1474,18 @@ function seo_export_categories_csv() {
 
         if ( ! isset( $nodes_by_category[ $category_id ] ) ) {
             $nodes_by_category[ $category_id ] = [
-                'ambito'      => '',
                 'excerpt'     => '',
                 'description' => '',
+                '_latest_updated_at' => '',
             ];
         }
 
+        if ( '' !== trim( (string) $node->updated_at ) && ( '' === $nodes_by_category[ $category_id ]['_latest_updated_at'] || strcmp( (string) $node->updated_at, $nodes_by_category[ $category_id ]['_latest_updated_at'] ) > 0 ) ) {
+            $nodes_by_category[ $category_id ]['_latest_updated_at'] = (string) $node->updated_at;
+        }
+
         // La consulta está ordenada por la fila activa más reciente.
-        if ( 'ambito' === $seo_role && '' === $nodes_by_category[ $category_id ]['ambito'] ) {
-            $nodes_by_category[ $category_id ]['ambito'] =
-                seo_ie_normalize_ambito( $node->keywords );
-        } elseif ( 'excerpt' === $seo_role && '' === $nodes_by_category[ $category_id ]['excerpt'] ) {
+        if ( 'excerpt' === $seo_role && '' === $nodes_by_category[ $category_id ]['excerpt'] ) {
             $nodes_by_category[ $category_id ]['excerpt'] = (string) $node->keywords;
         } elseif ( 'description' === $seo_role && '' === $nodes_by_category[ $category_id ]['description'] ) {
             $nodes_by_category[ $category_id ]['description'] = (string) $node->keywords;
@@ -1487,6 +1506,25 @@ function seo_export_categories_csv() {
             esc_html( $categories->get_error_message() ),
             esc_html__( 'Error exportando categorías', 'seo-system' )
         );
+    }
+
+    // La cabecera legacy `ambito` se conserva, pero desde 2.3.4 su fuente es
+    // exclusivamente el grupo ROL del Vocabulary canónico de product_cat.
+    $category_roles = [];
+    if ( function_exists( 'seo_category_vocabulary_rows_map' ) ) {
+        $vocabulary_rows = seo_category_vocabulary_rows_map( wp_list_pluck( $categories, 'term_id' ) );
+        foreach ( (array) $vocabulary_rows as $category_id => $rows ) {
+            foreach ( (array) $rows as $row ) {
+                if ( 'rol' !== sanitize_key( (string) ( $row['semantic_group'] ?? '' ) ) ) {
+                    continue;
+                }
+                $role = seo_ie_normalize_ambito( $row['slug'] ?? $row['label'] ?? '' );
+                if ( '' !== $role ) {
+                    $category_roles[ absint( $category_id ) ] = $role;
+                    break;
+                }
+            }
+        }
     }
 
     // La jerarquía SEO no depende del parent de WordPress. Se exporta aparte.
@@ -1529,7 +1567,7 @@ function seo_export_categories_csv() {
             'correctos'  => count( $categories ),
             'errores'    => 0,
             'detalles'   => [
-                'WordPress/WooCommerce aporta ID, nombre, slug, padre e imagen (attachment ID + URL). seo_nodes aporta ámbito, excerpt y description. seo_relations aporta hub_secondary_id cuando la asignación es única.',
+                'WordPress/WooCommerce aporta ID, nombre, slug, padre e imagen. Vocabulary aporta ROL (cabecera ambito). seo_nodes conserva temporalmente excerpt/description. seo_relations aporta hub_secondary_id cuando la asignación es única.',
             ],
         ]
     );
@@ -1549,6 +1587,8 @@ function seo_export_categories_csv() {
             'description',
             'excerpt',
             'ambito',
+            'fecha_modificada',
+            'fecha_modificada_gmt',
         ]
     );
 
@@ -1558,10 +1598,17 @@ function seo_export_categories_csv() {
         $thumbnail_id  = absint( get_term_meta( $category_id, 'thumbnail_id', true ) );
         $thumbnail_url = 0 < $thumbnail_id ? ( wp_get_attachment_url( $thumbnail_id ) ?: '' ) : '';
         $node_data     = $nodes_by_category[ $category_id ] ?? [
-            'ambito'      => '',
             'excerpt'     => '',
             'description' => '',
+            '_latest_updated_at' => '',
         ];
+
+        $category_modified_ts = function_exists( 'seo_ie_sync_category_modified_timestamp' )
+            ? seo_ie_sync_category_modified_timestamp( $category_id )
+            : 0;
+        if ( $category_modified_ts <= 0 && ! empty( $node_data['_latest_updated_at'] ) && function_exists( 'seo_ie_sync_datetime_to_timestamp' ) ) {
+            $category_modified_ts = seo_ie_sync_datetime_to_timestamp( $node_data['_latest_updated_at'], false );
+        }
 
         seo_ie_write_csv_row(
             $output,
@@ -1577,7 +1624,9 @@ function seo_export_categories_csv() {
                 $thumbnail_url,
                 $node_data['description'],
                 $node_data['excerpt'],
-                $node_data['ambito'],
+                (string) ( $category_roles[ $category_id ] ?? '' ),
+                $category_modified_ts > 0 && function_exists( 'seo_ie_sync_format_timestamp' ) ? seo_ie_sync_format_timestamp( $category_modified_ts, false ) : '',
+                $category_modified_ts > 0 && function_exists( 'seo_ie_sync_format_timestamp' ) ? seo_ie_sync_format_timestamp( $category_modified_ts, true ) : '',
             ]
         );
     }
@@ -1593,7 +1642,8 @@ function seo_export_categories_csv() {
  * La cola auditada prepara el contexto interno y llama directamente a esta función.
  *
  * Actualiza o crea categorías, manteniendo ID/nombre/slug/padre e imagen en WordPress
- * y ámbito/excerpt/description en wp_seo_nodes.
+ * y excerpt/description en wp_seo_nodes. La cabecera legacy ambito se traduce
+ * al grupo ROL del Vocabulary canónico y nunca vuelve a crear category/ambito.
  * Si hub_secondary_id está informado, sincroniza la relación estructural única
  * hub_secondary_to_category. Si category_id está vacío, reutiliza primero una
  * categoría existente por slug/nombre y solo crea una nueva si no existe.
@@ -1695,6 +1745,7 @@ function seo_import_categories_csv() {
         'archivo'    => sanitize_file_name( $_FILES['categories_csv']['name'] ),
         'procesados' => 0,
         'correctos'  => 0,
+        'omitidos'   => 0,
         'errores'    => 0,
         'detalles'   => [],
     ];
@@ -1716,6 +1767,7 @@ $batch_size      = PHP_INT_MAX;
         $row         = seo_ie_build_csv_row( $header, $csv_row );
  
  $category_id = absint( $row['category_id'] ?? 0 );
+ $category_preexisting = false;
 
 /*
  * Si category_id viene vacío se crea una categoría nueva.
@@ -1723,6 +1775,7 @@ $batch_size      = PHP_INT_MAX;
  */
 if ( $category_id > 0 ) {
 
+    $category_preexisting = true;
     $category = get_term( $category_id, 'product_cat' );
 
     if ( ! $category || is_wp_error( $category ) ) {
@@ -1760,6 +1813,7 @@ if ( $category_id > 0 ) {
     }
 
     if ( $existing && ! is_wp_error( $existing ) ) {
+        $category_preexisting = true;
         $category_id = absint( $existing->term_id );
         seo_ie_add_log_detail(
             $log,
@@ -1811,6 +1865,24 @@ if ( $category_id > 0 ) {
         );
     }
 }
+
+        if ( $category_preexisting && function_exists( 'seo_ie_sync_category_update_decision' ) ) {
+            $version_decision = seo_ie_sync_category_update_decision( $category_id, $row );
+            if ( ! empty( $version_decision['skip'] ) ) {
+                $log['omitidos']++;
+                seo_ie_add_log_detail(
+                    $log,
+                    sprintf(
+                        'Fila %d, categoría %d: omitida; la versión local (%s) es más reciente que el CSV (%s).',
+                        $line,
+                        $category_id,
+                        seo_ie_sync_format_timestamp( $version_decision['destination'], true ),
+                        seo_ie_sync_format_timestamp( $version_decision['source'], true )
+                    )
+                );
+                continue;
+            }
+        }
 
  
 
@@ -1953,7 +2025,7 @@ if ( ! empty( $term_data ) ) {
                 seo_ie_add_log_detail(
                     $log,
                     sprintf(
-                        'Fila %d, categoría %d: ámbito no válido «%s».',
+                        'Fila %d, categoría %d: ámbito/ROL no válido «%s».',
                         $line,
                         $category_id,
                         $raw_ambito
@@ -1962,12 +2034,57 @@ if ( ! empty( $term_data ) ) {
                 continue;
             }
 
-            seo_ie_upsert_node_value(
-                'category',
-                $category_id,
-                'ambito',
-                $ambito
-            );
+            if ( ! function_exists( 'seo_category_vocabulary_rows_map' )
+                || ! function_exists( 'seo_category_vocabulary_find_active_term' )
+                || ! function_exists( 'seo_category_vocabulary_replace' ) ) {
+                $log['errores']++;
+                seo_ie_add_log_detail(
+                    $log,
+                    sprintf( 'Fila %d, categoría %d: Vocabulary canónico no disponible para guardar ROL.', $line, $category_id )
+                );
+                continue;
+            }
+
+            $groups = [
+                'rol'        => [],
+                'tipo'       => [],
+                'aplicacion' => [],
+                'plataforma' => [],
+                'subtipo'    => [],
+            ];
+            $current_map = seo_category_vocabulary_rows_map( [ $category_id ] );
+            foreach ( (array) ( $current_map[ $category_id ] ?? [] ) as $assignment ) {
+                $group = sanitize_key( (string) ( $assignment['semantic_group'] ?? '' ) );
+                $term_id = absint( $assignment['vocabulary_id'] ?? 0 );
+                if ( isset( $groups[ $group ] ) && $term_id > 0 ) {
+                    $groups[ $group ][] = $term_id;
+                }
+            }
+
+            // Una celda vacía limpia únicamente ROL; el resto del Vocabulary se preserva.
+            $groups['rol'] = [];
+            if ( '' !== $ambito ) {
+                $role_term = seo_category_vocabulary_find_active_term( 'rol', $ambito );
+                if ( ! $role_term ) {
+                    $log['errores']++;
+                    seo_ie_add_log_detail(
+                        $log,
+                        sprintf( 'Fila %d, categoría %d: no existe un término ROL canónico inequívoco para «%s».', $line, $category_id, $ambito )
+                    );
+                    continue;
+                }
+                $groups['rol'] = [ absint( $role_term['id'] ?? 0 ) ];
+            }
+
+            $role_result = seo_category_vocabulary_replace( $category_id, $groups, 'legacy_category_csv' );
+            if ( is_wp_error( $role_result ) ) {
+                $log['errores']++;
+                seo_ie_add_log_detail(
+                    $log,
+                    sprintf( 'Fila %d, categoría %d: %s', $line, $category_id, $role_result->get_error_message() )
+                );
+                continue;
+            }
         }
 
         /*
@@ -2083,6 +2200,10 @@ if ( ! empty( $term_data ) ) {
             );
         }
 
+        if ( function_exists( 'seo_ie_sync_restore_category_modified' ) ) {
+            seo_ie_sync_restore_category_modified( $category_id, $row );
+        }
+
         $log['correctos']++;
     }
 
@@ -2115,6 +2236,34 @@ function seo_ie_product_v2_wc_ready() {
         && function_exists( 'wc_get_product_id_by_sku' )
         && class_exists( 'WC_Product' )
         && class_exists( 'WC_Product_Simple' );
+}
+
+/**
+ * Normaliza un SKU procedente de WooCommerce o de un CSV.
+ *
+ * Algunos productos legacy usan "0" como valor centinela para "sin SKU".
+ * WooCommerce, en cambio, trata el SKU como identificador unico. Para evitar
+ * falsos conflictos y reescrituras accidentales, "0" se considera vacio.
+ *
+ * @param mixed $value Valor original.
+ * @return string SKU limpio o cadena vacia.
+ */
+function seo_ie_product_v2_normalize_sku( $value ) {
+    if ( is_array( $value ) || is_object( $value ) ) {
+        return '';
+    }
+
+    $sku = function_exists( 'wc_clean' )
+        ? wc_clean( (string) $value )
+        : sanitize_text_field( (string) $value );
+
+    $sku = trim( (string) $sku );
+
+    if ( '' === $sku || '0' === $sku ) {
+        return '';
+    }
+
+    return $sku;
 }
 
 /**
@@ -2961,16 +3110,7 @@ function seo_ie_product_v2_locate( $row ) {
 
     $source_id = absint( $row['product_id'] ?? 0 );
 
-    $sku = function_exists( 'wc_clean' )
-        ? wc_clean( (string) ( $row['sku'] ?? '' ) )
-        : sanitize_text_field( (string) ( $row['sku'] ?? '' ) );
-
-    $sku = trim( (string) $sku );
-
-    // SKU "0" no se considera un identificador válido.
-    if ( '0' === $sku ) {
-        $sku = '';
-    }
+    $sku = seo_ie_product_v2_normalize_sku( $row['sku'] ?? '' );
 
     $slug = sanitize_title( $row['slug'] ?? '' );
 
@@ -3453,7 +3593,7 @@ function seo_export_products_csv() {
         'pedidos_pendientes', 'vendido_individualmente', 'peso', 'longitud', 'anchura', 'altura',
         'virtual', 'descargable', 'clase_envio_id', 'clase_envio', 'imagen_destacada_id',
         'imagen_destacada', 'galeria_ids', 'galeria_urls', 'variaciones_total', 'variaciones_ids',
-        'fecha_creacion', 'fecha_modificacion',
+        'fecha_creacion', 'fecha_creacion_gmt', 'fecha_modificacion', 'fecha_modificacion_gmt',
     ];
 
     $filename = 'seo_products_v2_' . wp_date( 'Ymd_His' ) . '.csv';
@@ -3534,9 +3674,6 @@ function seo_export_products_csv() {
 
         $brand = seo_ie_product_v2_brand_data( $product_id );
         $scope = $canonical_roles_by_product[ $product_id ] ?? '';
-        if ( '' === $scope && function_exists( 'seo_catalog_get_product_legacy_ambito' ) ) {
-            $scope = seo_catalog_get_product_legacy_ambito( $product_id );
-        }
         $seo_attribute_rows = $attributes_by_product[ $product_id ] ?? [];
         $thumbnail_id = absint( get_post_thumbnail_id( $product_id ) );
         $gallery_ids  = array_values( array_unique( array_filter( array_map( 'absint', $product->get_gallery_image_ids() ) ) ) );
@@ -3557,7 +3694,7 @@ function seo_export_products_csv() {
         $row = [
             'schema_version'             => '2.0',
             'product_id'                 => $product_id,
-            'sku'                        => $product->get_sku( 'edit' ),
+            'sku'                        => seo_ie_product_v2_normalize_sku( $product->get_sku( 'edit' ) ),
             'tipo_producto'              => $product->get_type(),
             'titulo'                     => $product->get_name( 'edit' ),
             'slug'                       => $post->post_name,
@@ -3613,7 +3750,9 @@ function seo_export_products_csv() {
             'variaciones_total'          => count( $children ),
             'variaciones_ids'            => implode( ',', $children ),
             'fecha_creacion'             => $created ? $created->date( 'Y-m-d H:i:s' ) : '',
+            'fecha_creacion_gmt'         => $created ? gmdate( 'Y-m-d H:i:s', $created->getTimestamp() ) : '',
             'fecha_modificacion'         => $modified ? $modified->date( 'Y-m-d H:i:s' ) : '',
+            'fecha_modificacion_gmt'     => $modified ? gmdate( 'Y-m-d H:i:s', $modified->getTimestamp() ) : '',
         ];
 
         seo_ie_write_csv_row(
@@ -5532,6 +5671,40 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
             $last_product_reference = $product_id ?: $last_product_reference;
             $creating   = 0 === $product_id;
 
+            if ( ! $creating && function_exists( 'seo_ie_sync_post_update_decision' ) ) {
+                $version_decision = seo_ie_sync_post_update_decision(
+                    $product_id,
+                    $row,
+                    'fecha_modificacion',
+                    'fecha_modificacion_gmt'
+                );
+                if ( ! empty( $version_decision['skip'] ) ) {
+                    $log['omitidos']++;
+                    seo_ie_add_log_detail(
+                        $log,
+                        sprintf(
+                            'Fila %d, producto %d: omitido; la versión local (%s) es más reciente que el CSV (%s).',
+                            $line,
+                            $product_id,
+                            seo_ie_sync_format_timestamp( $version_decision['destination'], true ),
+                            seo_ie_sync_format_timestamp( $version_decision['source'], true )
+                        )
+                    );
+                    continue;
+                }
+            }
+
+            /*
+             * En la cola automatica los CSV completos se usan tambien para
+             * enriquecimiento/clasificacion. En actualizaciones de productos
+             * existentes el SKU es solo identidad informativa y se conserva.
+             * Solo se permite escribirlo al crear un producto, fuera de la cola
+             * automatica o si un flujo futuro activa update_sku de forma expresa.
+             */
+            $allow_sku_write = $creating
+                || empty( $state['batch_queue_mode'] )
+                || ! empty( $options['update_sku'] );
+
             if ( $creating && empty( $options['create'] ) ) {
                 $log['omitidos']++;
                 seo_ie_add_log_detail( $log, sprintf( 'Fila %d: omitida; no se encontró el producto y no está activada su creación.', $line ) );
@@ -5657,12 +5830,11 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
             }
 
             /*
-             * Para productos existentes el ROL canónico prevalece sobre el
-             * campo legacy del CSV y sobre seo_nodes/ambito. De este modo una
-             * importación antigua no puede romper TIPO -> ROL.
+             * Para productos existentes el ROL canónico prevalece sobre la
+             * cabecera legacy del CSV. No existe fallback semántico a seo_nodes.
              */
             if ( 0 < $product_id && function_exists( 'seo_catalog_get_product_role' ) ) {
-                $canonical_scope = seo_catalog_get_product_role( $product_id, true );
+                $canonical_scope = seo_catalog_get_product_role( $product_id, false );
 
                 if ( '' !== $canonical_scope ) {
                     if (
@@ -5683,19 +5855,6 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
 
                     $scope = $canonical_scope;
                 }
-            }
-
-            if (
-                '' === $scope
-                && ! empty( $options['seo_attributes'] )
-                && (
-                    array_key_exists( 'atributos_seo_json', $row )
-                    || array_key_exists( 'atributos_seo', $row )
-                )
-                && 0 < $product_id
-                && function_exists( 'seo_catalog_get_product_legacy_ambito' )
-            ) {
-                $scope = seo_catalog_get_product_legacy_ambito( $product_id );
             }
 
             $seo_attributes = null;
@@ -5748,8 +5907,8 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
             }
 
             if ( ! empty( $options['commerce'] ) ) {
-                if ( array_key_exists( 'sku', $row ) ) {
-                    $sku = function_exists( 'wc_clean' ) ? wc_clean( $row['sku'] ) : sanitize_text_field( $row['sku'] );
+                if ( $allow_sku_write && array_key_exists( 'sku', $row ) ) {
+                    $sku = seo_ie_product_v2_normalize_sku( $row['sku'] );
 
                     if ( '' !== $sku ) {
                         $sku_owner = absint( wc_get_product_id_by_sku( $sku ) );
@@ -5901,8 +6060,15 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
             }
 
             if ( ! empty( $options['commerce'] ) ) {
-                if ( array_key_exists( 'sku', $row ) && ( '' !== trim( (string) $row['sku'] ) || $empty_clears ) ) {
-                    $product->set_sku( function_exists( 'wc_clean' ) ? wc_clean( $row['sku'] ) : sanitize_text_field( $row['sku'] ) );
+                if ( $allow_sku_write && array_key_exists( 'sku', $row ) ) {
+                    $sku = seo_ie_product_v2_normalize_sku( $row['sku'] );
+
+                    if ( '' !== $sku ) {
+                        $product->set_sku( $sku );
+                    } elseif ( $empty_clears && empty( $state['batch_queue_mode'] ) ) {
+                        // El vaciado explicito de SKU solo se permite fuera de la cola automatica.
+                        $product->set_sku( '' );
+                    }
                 }
 
                 if ( array_key_exists( 'precio_normal', $row ) && ( '' !== trim( (string) $row['precio_normal'] ) || $empty_clears ) ) {
@@ -6141,23 +6307,20 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
                         }
                     }
 
-                    if ( '' !== $effective_scope ) {
-                        seo_ie_upsert_node_value( 'product', $product_id, 'ambito', $effective_scope );
-
-                        if (
-                            function_exists( 'seo_catalog_get_product_role' )
-                            && '' === seo_catalog_get_product_role( $product_id, false )
-                            && function_exists( 'seo_catalog_assign_provisional_product_role' )
-                        ) {
-                            seo_catalog_assign_provisional_product_role(
-                                $product_id,
-                                $effective_scope,
-                                'legacy_import_bridge',
-                                0.6000
-                            );
-                        }
-                    } elseif ( $empty_clears ) {
-                        seo_ie_upsert_node_value( 'product', $product_id, 'ambito', '' );
+                    if (
+                        '' !== $effective_scope
+                        && function_exists( 'seo_catalog_get_product_role' )
+                        && '' === seo_catalog_get_product_role( $product_id, false )
+                        && function_exists( 'seo_catalog_assign_provisional_product_role' )
+                    ) {
+                        // Compatibilidad de CSV antiguo: `ambito` se materializa como ROL
+                        // canónico, nunca como seo_nodes/product/ambito.
+                        seo_catalog_assign_provisional_product_role(
+                            $product_id,
+                            $effective_scope,
+                            'legacy_import_bridge',
+                            0.6000
+                        );
                     }
 
                     $scope = $effective_scope;
@@ -6235,6 +6398,13 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
                     $product->set_gallery_image_ids( $gallery_ids );
                     $product->save();
                 }
+            }
+
+            if ( function_exists( 'seo_ie_sync_restore_post_created' ) && $creating ) {
+                seo_ie_sync_restore_post_created( $product_id, $row, 'fecha_creacion', 'fecha_creacion_gmt' );
+            }
+            if ( function_exists( 'seo_ie_sync_restore_post_modified' ) ) {
+                seo_ie_sync_restore_post_modified( $product_id, $row, 'fecha_modificacion', 'fecha_modificacion_gmt' );
             }
 
             clean_post_cache( $product_id );
@@ -7583,6 +7753,13 @@ function seo_ie_replace_product_cat_relations( $source_type, $source_id, $term_i
     }
 
     $wpdb->query( 'COMMIT' );
+
+    if ( 'post' === $source_type && function_exists('seo_content_vocab_sync_post_relations') ) {
+        seo_content_vocab_sync_post_relations($source_id);
+    }
+    // Las páginas no heredan Vocabulary automáticamente desde product_cat.
+    // Las asignaciones semánticas de página son explícitas y auditables.
+
     return true;
 }
 
@@ -7690,7 +7867,7 @@ function seo_ie_apply_page_seo_role_for_import( $page_id, $seo_role ) {
             'object_type' => 'page',
             'object_id'   => $page_id,
             'seo_role'    => $seo_role,
-            'keywords'    => '',
+            'keywords'    => null,
             'status'      => 1,
             'created_at'  => current_time( 'mysql' ),
             'updated_at'  => current_time( 'mysql' ),
@@ -7827,7 +8004,7 @@ function seo_export_pages_csv() {
             'errores'      => 0,
             'advertencias' => 0,
             'detalles'     => [
-                'Se exportaron contenido, jerarquía, rol SEO, relación comercial con product_cat, imagen y metadatos de página.',
+                'Se exportaron contenido, jerarquía, rol SEO, relación comercial con product_cat, Vocabulary manual, imagen y metadatos de página.',
                 'No se exportaron bloqueos de edición, datos de papelera ni contraseñas de acceso a páginas.',
             ],
         ]
@@ -7862,6 +8039,11 @@ function seo_export_pages_csv() {
             'product_cat_relacion_ids',
             'product_cat_relacion_slugs',
             'product_cat_relacion_nombres',
+            'vocab_rol',
+            'vocab_tipo',
+            'vocab_aplicacion',
+            'vocab_plataforma',
+            'vocab_subtipo',
             'imagen_destacada_id',
             'imagen_destacada',
             'meta_seo',
@@ -7908,6 +8090,11 @@ function seo_export_pages_csv() {
                 seo_ie_encode_post_list( $product_cats['ids'] ),
                 seo_ie_encode_post_list( $product_cats['slugs'] ),
                 seo_ie_encode_post_list( $product_cats['names'] ),
+                seo_ie_encode_post_list( function_exists('seo_page_vocab_export_group') ? seo_page_vocab_export_group($page_id, 'rol', 'slug', 'manual') : [] ),
+                seo_ie_encode_post_list( function_exists('seo_page_vocab_export_group') ? seo_page_vocab_export_group($page_id, 'tipo', 'slug', 'manual') : [] ),
+                seo_ie_encode_post_list( function_exists('seo_page_vocab_export_group') ? seo_page_vocab_export_group($page_id, 'aplicacion', 'slug', 'manual') : [] ),
+                seo_ie_encode_post_list( function_exists('seo_page_vocab_export_group') ? seo_page_vocab_export_group($page_id, 'plataforma', 'slug', 'manual') : [] ),
+                seo_ie_encode_post_list( function_exists('seo_page_vocab_export_group') ? seo_page_vocab_export_group($page_id, 'subtipo', 'slug', 'manual') : [] ),
                 absint( $image_id ),
                 0 < $image_id ? wp_get_attachment_url( $image_id ) : '',
                 seo_ie_encode_page_meta_payload( $meta['seo'] ),
@@ -8572,6 +8759,36 @@ function seo_import_pages_csv() {
         $creating = ! $is_existing;
         $page_id  = $is_existing ? $existing_id : 0;
 
+        if ( $is_existing && function_exists( 'seo_ie_sync_post_update_decision' ) ) {
+            $version_decision = seo_ie_sync_post_update_decision(
+                $page_id,
+                $row,
+                'fecha_modificada',
+                'fecha_modificada_gmt'
+            );
+            if ( ! empty( $version_decision['skip'] ) ) {
+                $log['omitidos']++;
+                $row_to_target[ $index ] = $page_id;
+                if ( 0 < $item['source_id'] ) {
+                    $source_id_to_target[ $item['source_id'] ] = $page_id;
+                }
+                if ( '' !== $item['source_path'] ) {
+                    $path_to_target[ $item['source_path'] ] = $page_id;
+                }
+                seo_ie_add_log_detail(
+                    $log,
+                    sprintf(
+                        'Fila %d, página %d: omitida; la versión local (%s) es más reciente que el CSV (%s).',
+                        $item['line'],
+                        $page_id,
+                        seo_ie_sync_format_timestamp( $version_decision['destination'], true ),
+                        seo_ie_sync_format_timestamp( $version_decision['source'], true )
+                    )
+                );
+                continue;
+            }
+        }
+
         $title = sanitize_text_field( $row['titulo'] ?? '' );
 
         if ( $creating && '' === $title ) {
@@ -9101,6 +9318,12 @@ function seo_import_pages_csv() {
             }
         }
 
+        if ( $import_relations && $page_role_saved && in_array( $effective_page_role, seo_ie_page_structural_roles(), true ) ) {
+            if ( function_exists('seo_page_vocab_import_row') ) {
+                seo_page_vocab_import_row($page_id, $row, $item['line'], $log);
+            }
+        }
+
         if ( $import_seo_meta && array_key_exists( 'meta_seo', $row ) ) {
             seo_ie_apply_page_meta_payload(
                 $page_id,
@@ -9131,6 +9354,10 @@ function seo_import_pages_csv() {
                 $item['line'],
                 $log
             );
+        }
+
+        if ( function_exists( 'seo_ie_sync_restore_post_modified' ) ) {
+            seo_ie_sync_restore_post_modified( $page_id, $row, 'fecha_modificada', 'fecha_modificada_gmt' );
         }
 
         clean_post_cache( $page_id );
@@ -9396,8 +9623,9 @@ function seo_ie_decode_post_list( $value ) {
 }
 
 /**
- * Resuelve las categorías o etiquetas descritas por una fila.
- * Devuelve null cuando el CSV no contiene columnas de esa taxonomía.
+ * Resuelve exclusivamente la categoria editorial de WordPress descrita por una fila.
+ * Las antiguas etiquetas post_tag se ignoran: la semantica vive en Vocabulary.
+ * Devuelve null cuando el CSV no contiene columnas de categoria.
  *
  * @param string $taxonomy Taxonomía.
  * @param array  $row      Fila.
@@ -9406,11 +9634,14 @@ function seo_ie_decode_post_list( $value ) {
  * @return int[]|null
  */
 function seo_ie_resolve_post_terms( $taxonomy, $row, $line, &$log ) {
-    $is_category = 'category' === $taxonomy;
-    $ids_key     = $is_category ? 'categorias_ids' : 'etiquetas_ids';
-    $slugs_key   = $is_category ? 'categorias_slugs' : 'etiquetas_slugs';
-    $names_key   = $is_category ? 'categorias_nombres' : 'etiquetas_nombres';
-    $label       = $is_category ? 'categoría' : 'etiqueta';
+    if ( 'category' !== $taxonomy ) {
+        return null;
+    }
+
+    $ids_key   = 'categorias_ids';
+    $slugs_key = 'categorias_slugs';
+    $names_key = 'categorias_nombres';
+    $label     = 'categoría';
 
     if (
         ! array_key_exists( $ids_key, $row )
@@ -9649,7 +9880,7 @@ function seo_export_posts_csv() {
             'errores'      => 0,
             'advertencias' => 0,
             'detalles'     => [
-                'Se exportaron contenido, categorías editoriales, relación comercial con product_cat, etiquetas, formato, autor, fechas, imagen y metadatos.',
+                'Se exportaron contenido, categorías editoriales, relación comercial con product_cat, Vocabulary canónico, formato, autor, fechas, imagen y metadatos.',
                 'No se exportaron revisiones, bloqueos de edición ni datos de papelera.',
             ],
         ]
@@ -9666,7 +9897,7 @@ function seo_export_posts_csv() {
             'excerpt', 'description',
             'categorias_ids', 'categorias_slugs', 'categorias_nombres',
             'product_cat_relacion_ids', 'product_cat_relacion_slugs', 'product_cat_relacion_nombres',
-            'etiquetas_ids', 'etiquetas_slugs', 'etiquetas_nombres',
+            'vocab_rol', 'vocab_tipo', 'vocab_aplicacion', 'vocab_plataforma', 'vocab_subtipo',
             'formato', 'sticky',
             'imagen_destacada_id', 'imagen_destacada',
             'meta_seo', 'meta_personalizados',
@@ -9679,9 +9910,7 @@ function seo_export_posts_csv() {
         $image_id   = get_post_thumbnail_id( $post_id );
         $meta       = seo_ie_get_page_meta_payload( $post_id );
         $categories = wp_get_post_terms( $post_id, 'category' );
-        $tags       = wp_get_post_terms( $post_id, 'post_tag' );
         $categories   = is_wp_error( $categories ) ? [] : $categories;
-        $tags         = is_wp_error( $tags ) ? [] : $tags;
         $product_cats = seo_ie_get_product_cat_relation_payload_for_export( 'post', $post_id );
         $format       = get_post_format( $post_id );
 
@@ -9709,9 +9938,11 @@ function seo_export_posts_csv() {
                 seo_ie_encode_post_list( $product_cats['ids'] ),
                 seo_ie_encode_post_list( $product_cats['slugs'] ),
                 seo_ie_encode_post_list( $product_cats['names'] ),
-                seo_ie_encode_post_list( wp_list_pluck( $tags, 'term_id' ) ),
-                seo_ie_encode_post_list( wp_list_pluck( $tags, 'slug' ) ),
-                seo_ie_encode_post_list( wp_list_pluck( $tags, 'name' ) ),
+                seo_ie_encode_post_list( function_exists('seo_content_vocab_export_group') ? seo_content_vocab_export_group('post', $post_id, 'rol', 'slug', 'manual') : [] ),
+                seo_ie_encode_post_list( function_exists('seo_content_vocab_export_group') ? seo_content_vocab_export_group('post', $post_id, 'tipo', 'slug', 'manual') : [] ),
+                seo_ie_encode_post_list( function_exists('seo_content_vocab_export_group') ? seo_content_vocab_export_group('post', $post_id, 'aplicacion', 'slug', 'manual') : [] ),
+                seo_ie_encode_post_list( function_exists('seo_content_vocab_export_group') ? seo_content_vocab_export_group('post', $post_id, 'plataforma', 'slug', 'manual') : [] ),
+                seo_ie_encode_post_list( function_exists('seo_content_vocab_export_group') ? seo_content_vocab_export_group('post', $post_id, 'subtipo', 'slug', 'manual') : [] ),
                 $format ? $format : 'standard',
                 is_sticky( $post_id ) ? 1 : 0,
                 absint( $image_id ),
@@ -10023,6 +10254,30 @@ function seo_import_posts_csv() {
 
         $creating = ! $is_existing;
         $post_id  = $is_existing ? $existing_id : 0;
+
+        if ( $is_existing && function_exists( 'seo_ie_sync_post_update_decision' ) ) {
+            $version_decision = seo_ie_sync_post_update_decision(
+                $post_id,
+                $row,
+                'fecha_modificada',
+                'fecha_modificada_gmt'
+            );
+            if ( ! empty( $version_decision['skip'] ) ) {
+                $log['omitidos']++;
+                seo_ie_add_log_detail(
+                    $log,
+                    sprintf(
+                        'Fila %d, entrada %d: omitida; la versión local (%s) es más reciente que el CSV (%s).',
+                        $item['line'],
+                        $post_id,
+                        seo_ie_sync_format_timestamp( $version_decision['destination'], true ),
+                        seo_ie_sync_format_timestamp( $version_decision['source'], true )
+                    )
+                );
+                continue;
+            }
+        }
+
         $title    = sanitize_text_field( $row['titulo'] ?? '' );
 
         if ( $creating && '' === $title ) {
@@ -10060,6 +10315,9 @@ function seo_import_posts_csv() {
                 $item['line'],
                 $log
             );
+            if ( function_exists('seo_content_vocab_validate_import_row') ) {
+                seo_content_vocab_validate_import_row($row, $item['line'], $log);
+            }
         }
 
         if ( $dry_run ) {
@@ -10173,15 +10431,6 @@ function seo_import_posts_csv() {
                 }
             }
 
-            $tag_ids = seo_ie_resolve_post_terms( 'post_tag', $row, $item['line'], $log );
-            if ( null !== $tag_ids ) {
-                $term_result = wp_set_post_terms( $post_id, $tag_ids, 'post_tag', false );
-                if ( is_wp_error( $term_result ) ) {
-                    $log['errores']++;
-                    seo_ie_add_log_detail( $log, sprintf( 'Fila %d, entrada %d: no se pudieron guardar las etiquetas: %s', $item['line'], $post_id, $term_result->get_error_message() ) );
-                }
-            }
-
             if ( array_key_exists( 'formato', $row ) ) {
                 $format = sanitize_key( $row['formato'] );
                 if ( '' === $format || 'standard' === $format ) {
@@ -10215,6 +10464,12 @@ function seo_import_posts_csv() {
             );
         }
 
+        if ( $import_relations && function_exists('seo_content_vocab_import_row') ) {
+            // La semantica del post se importa exclusivamente desde vocab_*.
+            // Las columnas legacy etiquetas_* se ignoran y nunca alimentan Vocabulary.
+            seo_content_vocab_import_row('post', $post_id, $row, $item['line'], $log);
+        }
+
         if ( $import_seo_meta && array_key_exists( 'meta_seo', $row ) ) {
             seo_ie_apply_page_meta_payload( $post_id, $item['seo_meta_payload'], $log, $item['line'], 'el metadato SEO' );
         }
@@ -10223,6 +10478,10 @@ function seo_import_posts_csv() {
         }
         if ( $import_image ) {
             seo_ie_import_post_thumbnail( $post_id, $row, $item['line'], $log );
+        }
+
+        if ( function_exists( 'seo_ie_sync_restore_post_modified' ) ) {
+            seo_ie_sync_restore_post_modified( $post_id, $row, 'fecha_modificada', 'fecha_modificada_gmt' );
         }
 
         clean_post_cache( $post_id );
@@ -10470,6 +10729,7 @@ function seo_import_faqs_csv() {
         'correctos'  => 0,
         'creados'    => 0,
         'actualizados' => 0,
+        'omitidos'   => 0,
         'errores'    => 0,
         'detalles'   => [],
     ];
@@ -10561,16 +10821,37 @@ function seo_import_faqs_csv() {
             $data['updated_at'] = trim( $row['updated_at'] );
         }
 
-        $exists = $faq_id
-            ? absint(
-                $wpdb->get_var(
-                    $wpdb->prepare(
-                        "SELECT id FROM {$table} WHERE id = %d LIMIT 1",
-                        $faq_id
-                    )
-                )
+        $existing_faq = $faq_id
+            ? $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT id, updated_at FROM {$table} WHERE id = %d LIMIT 1",
+                    $faq_id
+                ),
+                ARRAY_A
             )
-            : 0;
+            : null;
+        $exists = is_array( $existing_faq ) ? absint( $existing_faq['id'] ?? 0 ) : 0;
+
+        if ( $exists && function_exists( 'seo_ie_sync_faq_update_decision' ) && array_key_exists( 'updated_at', $row ) ) {
+            $version_decision = seo_ie_sync_faq_update_decision(
+                (string) ( $existing_faq['updated_at'] ?? '' ),
+                (string) $row['updated_at']
+            );
+            if ( ! empty( $version_decision['skip'] ) ) {
+                $log['omitidos']++;
+                seo_ie_add_log_detail(
+                    $log,
+                    sprintf(
+                        'Fila %d, FAQ %d: omitida; la versión local (%s) es más reciente que el CSV (%s).',
+                        $line,
+                        $faq_id,
+                        seo_ie_sync_format_timestamp( $version_decision['destination'], true ),
+                        seo_ie_sync_format_timestamp( $version_decision['source'], true )
+                    )
+                );
+                continue;
+            }
+        }
 
         if ( $exists ) {
 
@@ -11654,7 +11935,7 @@ function seo_import_export_page() {
         wp_die( esc_html__( 'No tienes permisos para acceder a esta página.', 'seo-system' ) );
     }
 
-    $allowed_tabs = [ 'wordpress', 'import-batch', 'importar-proveedor', 'importar-amazon', 'conexiones-proveedores', 'catalogo-proveedores', 'sincronizacion-proveedores' ];
+    $allowed_tabs = [ 'wordpress', 'import-batch', 'catalogo-semantico', 'clonador', 'importar-proveedor', 'importar-amazon', 'conexiones-proveedores', 'catalogo-proveedores', 'sincronizacion-proveedores' ];
     $tab = sanitize_key( $_GET['seo_ie_tab'] ?? 'wordpress' );
     if ( ! in_array( $tab, $allowed_tabs, true ) ) {
         $tab = 'wordpress';
@@ -11667,6 +11948,8 @@ function seo_import_export_page() {
         <nav class="nav-tab-wrapper" style="margin-bottom:20px;">
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'wordpress', $base ) ); ?>" class="nav-tab <?php echo 'wordpress' === $tab ? 'nav-tab-active' : ''; ?>">Importar / Exportar</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'import-batch', $base ) ); ?>" class="nav-tab <?php echo 'import-batch' === $tab ? 'nav-tab-active' : ''; ?>">Importacion por lotes</a>
+            <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'clonador', $base ) ); ?>" class="nav-tab <?php echo 'clonador' === $tab ? 'nav-tab-active' : ''; ?>">Clonador PRO → STAGING</a>
+            <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'catalogo-semantico', $base ) ); ?>" class="nav-tab <?php echo 'catalogo-semantico' === $tab ? 'nav-tab-active' : ''; ?>">Catalogo semantico</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'importar-proveedor', $base ) ); ?>" class="nav-tab <?php echo 'importar-proveedor' === $tab ? 'nav-tab-active' : ''; ?>">Importar proveedor</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'importar-amazon', $base ) ); ?>" class="nav-tab <?php echo 'importar-amazon' === $tab ? 'nav-tab-active' : ''; ?>">Importar Amazon</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'conexiones-proveedores', $base ) ); ?>" class="nav-tab <?php echo 'conexiones-proveedores' === $tab ? 'nav-tab-active' : ''; ?>">Conexiones con proveedores</a>
@@ -11804,7 +12087,7 @@ function seo_import_export_page() {
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_page_seo_meta" value="1" checked> Metadatos SEO</label>
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_page_custom_meta" value="1" checked> Metadatos personalizados y de maquetadores</label>
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_page_image" value="1" checked> Imagen destacada</label>
-                        <label style="display:block;margin-bottom:10px;"><input type="checkbox" name="import_page_relations" value="1" checked> Rol SEO y relación comercial con product_cat (seo_nodes + seo_relations)</label>
+                        <label style="display:block;margin-bottom:10px;"><input type="checkbox" name="import_page_relations" value="1" checked> Rol SEO, relación product_cat y Vocabulary canónico</label>
                         <label style="display:block;margin:12px 0;padding:10px;border-left:4px solid #72aee6;background:#f0f6fc;"><input type="checkbox" name="page_import_dry_run" value="1" checked> <strong>Simular primero</strong>: validar y mostrar el resultado sin escribir datos.</label>
 
                         <button type="submit" name="seo_import_pages" value="1" class="button button-primary">Procesar páginas</button>
@@ -11812,7 +12095,7 @@ function seo_import_export_page() {
                 </div>
                 <div class="card" style="max-width:none;padding:20px;">
                     <h2>Exportar entradas (posts)</h2>
-                    <p>Exporta contenido, autor, fechas, categorías, etiquetas, formato, sticky, imagen destacada y metadatos.</p>
+                    <p>Exporta contenido, autor, fechas, categorías editoriales, relación product_cat, Vocabulary canónico, formato, sticky, imagen destacada y metadatos. No exporta <code>post_tag</code>.</p>
                     <form method="post">
                         <?php wp_nonce_field( 'seo_export_posts_csv', 'seo_export_posts_nonce' ); ?>
                         <fieldset style="margin:12px 0;">
@@ -11829,7 +12112,7 @@ function seo_import_export_page() {
 
                 <div class="card" style="max-width:none;padding:20px;">
                     <h2>Importar entradas (posts)</h2>
-                    <p>Crea o actualiza el contenido en WordPress. Las categorías editoriales siguen siendo independientes de la relación comercial post → product_cat, que se guarda en SEO Relations. Una product_cat inexistente no detiene la importación: el post queda sin relación comercial y se registra ERROR RELACIÓN.</p>
+                    <p>Crea o actualiza el contenido en WordPress. Las categorías editoriales siguen siendo independientes de la relación comercial post → product_cat. La semántica se importa únicamente desde <code>vocab_*</code> hacia Vocabulary; las columnas legacy <code>etiquetas_*</code> se ignoran y nunca escriben <code>post_tag</code>. Una product_cat inexistente no detiene la importación: el post queda sin relación comercial y se registra ERROR RELACIÓN.</p>
                     <form method="post" enctype="multipart/form-data">
                         <?php wp_nonce_field( 'seo_import_posts_csv', 'seo_import_posts_nonce' ); ?>
                         <input type="file" name="posts_csv" accept=".csv,text/csv" required>
@@ -11845,12 +12128,12 @@ function seo_import_export_page() {
 
                         <h3>Datos que se importarán</h3>
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_post_core" value="1" checked> Título, slug, estado, excerpt y contenido</label>
-                        <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_post_taxonomies" value="1" checked> Categorías, etiquetas, formato, sticky, comentarios y pings</label>
+                        <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_post_taxonomies" value="1" checked> Categorías editoriales, formato, sticky, comentarios y pings</label>
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_post_author_date" value="1" checked> Autor y fecha de publicación</label>
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_post_seo_meta" value="1" checked> Metadatos SEO</label>
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_post_custom_meta" value="1" checked> Metadatos personalizados y de maquetadores</label>
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_post_image" value="1" checked> Imagen destacada</label>
-                        <label style="display:block;margin-bottom:10px;"><input type="checkbox" name="import_post_relations" value="1" checked> Relación comercial con product_cat (seo_relations)</label>
+                        <label style="display:block;margin-bottom:10px;"><input type="checkbox" name="import_post_relations" value="1" checked> Relación product_cat + Vocabulary canónico</label>
                         <label style="display:block;margin:12px 0;padding:10px;border-left:4px solid #72aee6;background:#f0f6fc;"><input type="checkbox" name="post_import_dry_run" value="1" checked> <strong>Simular primero</strong>: validar y mostrar el resultado sin escribir datos.</label>
 
                         <button type="submit" name="seo_import_posts" value="1" class="button button-primary">Procesar entradas</button>
@@ -11881,6 +12164,12 @@ function seo_import_export_page() {
                 </div>
             </div>
             <?php seo_ie_render_log( $last_log ); ?>
+        <?php elseif ( 'catalogo-semantico' === $tab ) : ?>
+            <?php if ( class_exists( 'SEO_Semantic_Catalog_Transfer' ) ) { SEO_Semantic_Catalog_Transfer::render_tab(); } else { echo '<div class="notice notice-error inline"><p>No se ha podido cargar el catalogo semantico portable.</p></div>'; } ?>
+
+        <?php elseif ( 'clonador' === $tab ) : ?>
+            <?php if ( function_exists( 'seo_clonador_render' ) ) { seo_clonador_render(); } else { echo '<div class="notice notice-error inline"><p>No se ha podido cargar el Clonador PRO → STAGING.</p></div>'; } ?>
+
         <?php elseif ( 'import-batch' === $tab ) : ?>
             <?php if ( function_exists( 'seo_ie_batch_render_page' ) ) { seo_ie_batch_render_page(); } else { echo '<div class="notice notice-error inline"><p>Falta el modulo seo-import-batch.php.</p></div>'; } ?>
         <?php elseif ( 'importar-proveedor' === $tab ) : ?>

@@ -317,8 +317,468 @@ if (!function_exists('dht_shared_product_card_image_html')) {
     }
 }
 
+if (!function_exists('dht_shared_product_compare_data')) {
+    function dht_shared_product_compare_data($compare_product, $supplier_limit = 3)
+    {
+        if (!is_a($compare_product, 'WC_Product')) {
+            return array();
+        }
+
+        $product_id = absint($compare_product->get_id());
+        if ($product_id < 1) {
+            return array();
+        }
+
+        $attributes = array();
+        foreach ((array) $compare_product->get_attributes() as $attribute) {
+            if (!is_a($attribute, 'WC_Product_Attribute')) {
+                continue;
+            }
+
+            if (method_exists($attribute, 'get_visible') && !$attribute->get_visible()) {
+                continue;
+            }
+
+            $attribute_name = (string) $attribute->get_name();
+            $attribute_label = function_exists('wc_attribute_label')
+                ? (string) wc_attribute_label($attribute_name, $compare_product)
+                : $attribute_name;
+
+            $values = array();
+            if ($attribute->is_taxonomy()) {
+                $values = function_exists('wc_get_product_terms')
+                    ? wc_get_product_terms($product_id, $attribute_name, array('fields' => 'names'))
+                    : array();
+            } else {
+                $values = (array) $attribute->get_options();
+            }
+
+            if (is_wp_error($values)) {
+                $values = array();
+            }
+
+            $values = array_values(array_unique(array_filter(array_map(static function ($value) {
+                $value = wp_strip_all_tags((string) $value);
+                return '' === trim($value) ? '' : trim($value);
+            }, (array) $values))));
+
+            if (!$values || '' === trim($attribute_label)) {
+                continue;
+            }
+
+            $attributes[$attribute_label] = implode(', ', $values);
+        }
+
+        $tags = wp_get_post_terms($product_id, 'product_tag', array('fields' => 'names'));
+        if (is_wp_error($tags)) {
+            $tags = array();
+        }
+        $tags = array_values(array_unique(array_filter(array_map(static function ($tag) {
+            $tag = wp_strip_all_tags((string) $tag);
+            return '' === trim($tag) ? '' : trim($tag);
+        }, (array) $tags))));
+
+        $image_url = '';
+        $image_candidates = dht_shared_product_image_candidates(
+            $product_id,
+            'woocommerce_thumbnail',
+            $supplier_limit,
+            true
+        );
+        if (!empty($image_candidates[0]['url'])) {
+            $image_url = esc_url_raw((string) $image_candidates[0]['url']);
+        }
+
+        return array(
+            'id'         => $product_id,
+            'name'       => wp_strip_all_tags((string) $compare_product->get_name()),
+            'url'        => esc_url_raw((string) get_permalink($product_id)),
+            'image'      => $image_url,
+            'price'      => wp_strip_all_tags((string) $compare_product->get_price_html()),
+            'tags'       => $tags,
+            'attributes' => $attributes,
+        );
+    }
+}
+
+if (!function_exists('dht_shared_render_category_compare_assets')) {
+    function dht_shared_render_category_compare_assets()
+    {
+        static $rendered = false;
+        if ($rendered) {
+            return;
+        }
+        $rendered = true;
+        ?>
+        <style id="dht-category-live-compare-styles">
+        .dht-category-product-grid .dh-product-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+        .dht-category-compare-toggle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 38px;
+            padding: 8px 12px;
+            border: 1px solid var(--dht-border-color, #d1d5db);
+            border-radius: 8px;
+            background: var(--dht-surface, #fff);
+            color: inherit;
+            font: inherit;
+            font-weight: 700;
+            line-height: 1.2;
+            cursor: pointer;
+        }
+        .dht-category-compare-toggle[aria-pressed="true"] {
+            border-color: currentColor;
+            box-shadow: inset 0 0 0 1px currentColor;
+        }
+        .dht-category-compare-toggle:disabled {
+            opacity: .45;
+            cursor: not-allowed;
+        }
+        .dht-category-live-compare {
+            margin-top: 20px;
+            padding: 16px;
+            border: 1px solid var(--dht-border-color, #e5e7eb);
+            border-radius: 12px;
+            background: var(--dht-surface, #fff);
+        }
+        .dht-category-live-compare[hidden],
+        .dht-category-live-compare-result[hidden] {
+            display: none !important;
+        }
+        .dht-category-live-compare-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        .dht-category-live-compare-count {
+            margin-right: auto;
+            font-weight: 700;
+        }
+        .dht-category-live-compare-toolbar button {
+            min-height: 38px;
+            padding: 8px 13px;
+            border: 1px solid var(--dht-border-color, #d1d5db);
+            border-radius: 8px;
+            background: var(--dht-surface, #fff);
+            color: inherit;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .dht-category-live-compare-toolbar button:disabled {
+            opacity: .45;
+            cursor: not-allowed;
+        }
+        .dht-category-live-compare-note {
+            flex-basis: 100%;
+            margin: 0;
+            font-size: .92em;
+            opacity: .75;
+        }
+        .dht-category-live-compare-result {
+            margin-top: 18px;
+        }
+        .dht-category-live-compare-result h3 {
+            margin: 0 0 12px;
+        }
+        .dht-category-live-compare-table-wrap {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .dht-category-live-compare-table {
+            width: 100%;
+            min-width: 760px;
+            border-collapse: collapse;
+        }
+        .dht-category-live-compare-table th,
+        .dht-category-live-compare-table td {
+            padding: 12px 13px;
+            border-bottom: 1px solid var(--dht-border-color, #e5e7eb);
+            text-align: left;
+            vertical-align: top;
+        }
+        .dht-category-live-compare-table thead th {
+            background: var(--dht-surface-soft, #f8fafc);
+            vertical-align: bottom;
+        }
+        .dht-category-live-compare-table tbody th {
+            width: 180px;
+            font-weight: 700;
+        }
+        .dht-category-live-compare-product {
+            display: grid;
+            gap: 8px;
+            min-width: 150px;
+        }
+        .dht-category-live-compare-product img {
+            width: 72px;
+            height: 72px;
+            object-fit: contain;
+            border-radius: 8px;
+            background: #fff;
+        }
+        .dht-category-live-compare-product a {
+            font-weight: 700;
+            text-decoration: none;
+        }
+        @media (max-width: 767px) {
+            .dht-category-live-compare {
+                padding: 12px;
+            }
+            .dht-category-live-compare-toolbar button {
+                flex: 1 1 auto;
+            }
+            .dht-category-live-compare-table th,
+            .dht-category-live-compare-table td {
+                padding: 10px 11px;
+            }
+        }
+        </style>
+        <script id="dht-category-live-compare-script">
+        (function () {
+            'use strict';
+
+            function text(value) {
+                return value === null || value === undefined || value === '' ? '—' : String(value);
+            }
+
+            function appendTextCell(row, value) {
+                var cell = document.createElement('td');
+                cell.textContent = text(value);
+                row.appendChild(cell);
+            }
+
+            function initCompare(root) {
+                if (!root || root.getAttribute('data-dht-compare-ready') === '1') {
+                    return;
+                }
+
+                var dataId = root.getAttribute('data-dht-compare-data-id');
+                var dataNode = dataId ? document.getElementById(dataId) : null;
+                if (!dataNode) {
+                    return;
+                }
+
+                var products;
+                try {
+                    products = JSON.parse(dataNode.textContent || '[]');
+                } catch (error) {
+                    return;
+                }
+
+                if (!Array.isArray(products) || products.length < 2) {
+                    return;
+                }
+
+                root.setAttribute('data-dht-compare-ready', '1');
+
+                var byId = {};
+                products.forEach(function (product) {
+                    byId[String(product.id)] = product;
+                });
+
+                var selected = [];
+                var toolbar = root.querySelector('[data-dht-compare-toolbar]');
+                var countNode = root.querySelector('[data-dht-compare-count]');
+                var showButton = root.querySelector('[data-dht-compare-show]');
+                var clearButton = root.querySelector('[data-dht-compare-clear]');
+                var result = root.querySelector('[data-dht-compare-result]');
+                var toggles = Array.prototype.slice.call(root.querySelectorAll('[data-dht-compare-product]'));
+
+                function sync() {
+                    toggles.forEach(function (button) {
+                        var id = String(button.getAttribute('data-dht-compare-product') || '');
+                        var active = selected.indexOf(id) !== -1;
+                        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+                        button.textContent = active ? 'Seleccionado' : 'Comparar';
+                        button.disabled = !active && selected.length >= 4;
+                    });
+
+                    if (toolbar) {
+                        toolbar.hidden = selected.length === 0;
+                    }
+                    if (countNode) {
+                        countNode.textContent = selected.length === 1
+                            ? '1 producto seleccionado'
+                            : selected.length + ' productos seleccionados';
+                    }
+                    if (showButton) {
+                        showButton.disabled = selected.length < 2;
+                    }
+                    if (result && selected.length < 2) {
+                        result.hidden = true;
+                        result.innerHTML = '';
+                    }
+                }
+
+                function renderComparison() {
+                    if (!result || selected.length < 2) {
+                        return;
+                    }
+
+                    var chosen = selected.map(function (id) {
+                        return byId[id];
+                    }).filter(Boolean);
+                    if (chosen.length < 2) {
+                        return;
+                    }
+
+                    var attributeLabels = [];
+                    chosen.forEach(function (product) {
+                        var attributes = product.attributes || {};
+                        Object.keys(attributes).forEach(function (label) {
+                            if (attributeLabels.indexOf(label) === -1) {
+                                attributeLabels.push(label);
+                            }
+                        });
+                    });
+                    attributeLabels.sort(function (a, b) {
+                        return a.localeCompare(b, 'es', {sensitivity: 'base'});
+                    });
+
+                    result.innerHTML = '';
+                    result.hidden = false;
+
+                    var title = document.createElement('h3');
+                    title.textContent = 'Comparación de productos';
+                    result.appendChild(title);
+
+                    var wrap = document.createElement('div');
+                    wrap.className = 'dht-category-live-compare-table-wrap';
+                    var table = document.createElement('table');
+                    table.className = 'dht-category-live-compare-table';
+
+                    var thead = document.createElement('thead');
+                    var headRow = document.createElement('tr');
+                    var featureHead = document.createElement('th');
+                    featureHead.scope = 'col';
+                    featureHead.textContent = 'Característica';
+                    headRow.appendChild(featureHead);
+
+                    chosen.forEach(function (product) {
+                        var th = document.createElement('th');
+                        th.scope = 'col';
+                        var productBox = document.createElement('div');
+                        productBox.className = 'dht-category-live-compare-product';
+
+                        if (product.image) {
+                            var img = document.createElement('img');
+                            img.src = product.image;
+                            img.alt = product.name || '';
+                            img.loading = 'lazy';
+                            productBox.appendChild(img);
+                        }
+
+                        var link = document.createElement('a');
+                        link.href = product.url || '#';
+                        link.textContent = product.name || 'Producto';
+                        productBox.appendChild(link);
+                        th.appendChild(productBox);
+                        headRow.appendChild(th);
+                    });
+                    thead.appendChild(headRow);
+                    table.appendChild(thead);
+
+                    var tbody = document.createElement('tbody');
+
+                    var priceRow = document.createElement('tr');
+                    var priceHead = document.createElement('th');
+                    priceHead.scope = 'row';
+                    priceHead.textContent = 'Precio';
+                    priceRow.appendChild(priceHead);
+                    chosen.forEach(function (product) {
+                        appendTextCell(priceRow, product.price);
+                    });
+                    tbody.appendChild(priceRow);
+
+                    var tagRow = document.createElement('tr');
+                    var tagHead = document.createElement('th');
+                    tagHead.scope = 'row';
+                    tagHead.textContent = 'Etiquetas';
+                    tagRow.appendChild(tagHead);
+                    chosen.forEach(function (product) {
+                        appendTextCell(tagRow, Array.isArray(product.tags) && product.tags.length ? product.tags.join(', ') : '—');
+                    });
+                    tbody.appendChild(tagRow);
+
+                    attributeLabels.forEach(function (label) {
+                        var row = document.createElement('tr');
+                        var rowHead = document.createElement('th');
+                        rowHead.scope = 'row';
+                        rowHead.textContent = label;
+                        row.appendChild(rowHead);
+                        chosen.forEach(function (product) {
+                            var attrs = product.attributes || {};
+                            appendTextCell(row, attrs[label] || '—');
+                        });
+                        tbody.appendChild(row);
+                    });
+
+                    table.appendChild(tbody);
+                    wrap.appendChild(table);
+                    result.appendChild(wrap);
+                }
+
+                root.addEventListener('click', function (event) {
+                    var toggle = event.target.closest('[data-dht-compare-product]');
+                    if (toggle && root.contains(toggle)) {
+                        var id = String(toggle.getAttribute('data-dht-compare-product') || '');
+                        if (!byId[id]) {
+                            return;
+                        }
+                        var index = selected.indexOf(id);
+                        if (index !== -1) {
+                            selected.splice(index, 1);
+                        } else if (selected.length < 4) {
+                            selected.push(id);
+                        }
+                        sync();
+                        return;
+                    }
+
+                    if (event.target.closest('[data-dht-compare-show]')) {
+                        renderComparison();
+                        return;
+                    }
+
+                    if (event.target.closest('[data-dht-compare-clear]')) {
+                        selected = [];
+                        if (result) {
+                            result.hidden = true;
+                            result.innerHTML = '';
+                        }
+                        sync();
+                    }
+                });
+
+                sync();
+            }
+
+            function initAll() {
+                document.querySelectorAll('[data-dht-category-compare]').forEach(initCompare);
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initAll);
+            } else {
+                initAll();
+            }
+        }());
+        </script>
+        <?php
+    }
+}
+
 if (!function_exists('dht_shared_render_product_card')) {
-    function dht_shared_render_product_card($card_product, $supplier_limit = 3)
+    function dht_shared_render_product_card($card_product, $supplier_limit = 3, $enable_compare = false)
     {
         if (!is_a($card_product, 'WC_Product') || 'publish' !== get_post_status($card_product->get_id())) {
             return;
@@ -351,6 +811,9 @@ if (!function_exists('dht_shared_render_product_card')) {
         if (function_exists('woocommerce_template_loop_add_to_cart')) {
             woocommerce_template_loop_add_to_cart();
         }
+        if ($enable_compare) {
+            echo '<button type="button" class="dht-category-compare-toggle" data-dht-compare-product="' . esc_attr((string) $card_product->get_id()) . '" aria-pressed="false">Comparar</button>';
+        }
         echo '</div>';
         echo '</li>';
 
@@ -361,7 +824,7 @@ if (!function_exists('dht_shared_render_product_card')) {
 }
 
 if (!function_exists('dht_shared_render_product_grid')) {
-    function dht_shared_render_product_grid($products, $extra_class = '', $supplier_limit = 3)
+    function dht_shared_render_product_grid($products, $extra_class = '', $supplier_limit = 3, $enable_compare = false)
     {
         $valid = array();
         foreach ((array) $products as $item) {
@@ -375,11 +838,46 @@ if (!function_exists('dht_shared_render_product_grid')) {
             return;
         }
 
+        $compare_data = array();
+        if ($enable_compare) {
+            foreach ($valid as $candidate) {
+                $item_data = dht_shared_product_compare_data($candidate, $supplier_limit);
+                if ($item_data) {
+                    $compare_data[] = $item_data;
+                }
+            }
+        }
+
+        if ($enable_compare && count($compare_data) >= 2) {
+            static $compare_instance = 0;
+            $compare_instance++;
+            $compare_id = 'dht-category-compare-' . $compare_instance;
+            $data_id = $compare_id . '-data';
+
+            echo '<div class="dht-category-compare-scope" data-dht-category-compare data-dht-compare-data-id="' . esc_attr($data_id) . '">';
+        }
+
         echo '<ul class="products ' . esc_attr($extra_class) . '">';
         foreach ($valid as $candidate) {
-            dht_shared_render_product_card($candidate, $supplier_limit);
+            dht_shared_render_product_card($candidate, $supplier_limit, $enable_compare && count($compare_data) >= 2);
         }
         echo '</ul>';
+
+        if ($enable_compare && count($compare_data) >= 2) {
+            echo '<div class="dht-category-live-compare" data-dht-compare-toolbar hidden>';
+            echo '<div class="dht-category-live-compare-toolbar">';
+            echo '<span class="dht-category-live-compare-count" data-dht-compare-count>0 productos seleccionados</span>';
+            echo '<button type="button" data-dht-compare-show disabled>Comparar seleccionados</button>';
+            echo '<button type="button" data-dht-compare-clear>Limpiar</button>';
+            echo '<p class="dht-category-live-compare-note">Selecciona entre 2 y 4 productos. La tabla usa sus atributos visibles y etiquetas de producto.</p>';
+            echo '</div>';
+            echo '<div class="dht-category-live-compare-result" data-dht-compare-result hidden></div>';
+            echo '</div>';
+            echo '<script type="application/json" id="' . esc_attr($data_id) . '">' . wp_json_encode($compare_data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . '</script>';
+            echo '</div>';
+
+            dht_shared_render_category_compare_assets();
+        }
     }
 }
 

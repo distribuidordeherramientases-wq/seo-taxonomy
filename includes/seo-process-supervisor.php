@@ -3,7 +3,7 @@
  * SEO Taxonomy - Supervisor propio de procesos.
  *
  * Gestor periódico de procesos propios. Ejecuta ventanas limitadas de
- * Import/Export, Academia y Clasificador directamente, sin Action Scheduler ni el worker de
+ * Import/Export, Academia, Clasificador y Clonador directamente, sin Action Scheduler ni el worker de
  * WooCommerce. Puede ser invocado por cron real del servidor; WP-Cron propio
  * queda como respaldo.
  *
@@ -40,6 +40,7 @@ if (!function_exists('seo_process_supervisor_defaults')) {
             'import_export'      => 1,
             'academy'            => 1,
             'classifier'         => 1,
+            'clonador'           => 1,
             'backup_watchdog'    => 1,
             'log_cycles'         => 0,
         );
@@ -57,15 +58,31 @@ if (!function_exists('seo_process_supervisor_sanitize_settings')) {
             'import_export'    => empty($raw['import_export']) ? 0 : 1,
             'academy'          => empty($raw['academy']) ? 0 : 1,
             'classifier'       => empty($raw['classifier']) ? 0 : 1,
+            'clonador'         => empty($raw['clonador']) ? 0 : 1,
             'backup_watchdog'  => empty($raw['backup_watchdog']) ? 0 : 1,
             'log_cycles'       => empty($raw['log_cycles']) ? 0 : 1,
         );
     }
 }
 
+if (!function_exists('seo_process_supervisor_fresh_option')) {
+    /**
+     * Los workers direct_cli/direct_http pueden permanecer vivos durante horas.
+     * La caché de options de ese proceso no recibe las invalidaciones de otra
+     * petición PHP si no existe una object-cache compartida. Para coordinación
+     * entre procesos, los estados de control se leen siempre frescos.
+     */
+    function seo_process_supervisor_fresh_option($name, $default = false) {
+        if (function_exists('wp_cache_delete')) {
+            wp_cache_delete((string) $name, 'options');
+        }
+        return get_option((string) $name, $default);
+    }
+}
+
 if (!function_exists('seo_process_supervisor_settings')) {
     function seo_process_supervisor_settings() {
-        return seo_process_supervisor_sanitize_settings(get_option(SEO_PROCESS_SUPERVISOR_OPTION, array()));
+        return seo_process_supervisor_sanitize_settings(seo_process_supervisor_fresh_option(SEO_PROCESS_SUPERVISOR_OPTION, array()));
     }
 }
 
@@ -102,7 +119,7 @@ if (!function_exists('seo_process_supervisor_default_state')) {
 
 if (!function_exists('seo_process_supervisor_state')) {
     function seo_process_supervisor_state() {
-        $state = get_option(SEO_PROCESS_SUPERVISOR_STATE_OPTION, array());
+        $state = seo_process_supervisor_fresh_option(SEO_PROCESS_SUPERVISOR_STATE_OPTION, array());
         return wp_parse_args(is_array($state) ? $state : array(), seo_process_supervisor_default_state());
     }
 }
@@ -1195,6 +1212,16 @@ if (!function_exists('seo_process_supervisor_run_loop')) {
                         break 2;
                     }
                     seo_process_supervisor_save_state(array('heartbeat_at' => time()));
+
+                    // Un nudge puede adelantar next_cycle_at mientras el gestor
+                    // duerme. Si ya venció, no seguimos esperando el intervalo
+                    // calculado al comienzo del sueño: abrimos la siguiente
+                    // ventana inmediatamente.
+                    $nudged_state = seo_process_supervisor_state();
+                    $nudged_due = absint($nudged_state['next_cycle_at'] ?? 0);
+                    if ($nudged_due && $nudged_due <= time()) {
+                        break;
+                    }
                 }
             }
         } catch (Throwable $e) {
@@ -1318,7 +1345,7 @@ if (!function_exists('seo_process_supervisor_save_settings_action')) {
         }
         check_admin_referer('seo_process_supervisor_save_settings');
         $raw = isset($_POST['supervisor']) && is_array($_POST['supervisor']) ? wp_unslash($_POST['supervisor']) : array();
-        foreach (array('enabled', 'import_export', 'academy', 'backup_watchdog', 'log_cycles') as $checkbox) {
+        foreach (array('enabled', 'import_export', 'academy', 'classifier', 'clonador', 'backup_watchdog', 'log_cycles') as $checkbox) {
             $raw[$checkbox] = empty($raw[$checkbox]) ? 0 : 1;
         }
         $settings = seo_process_supervisor_sanitize_settings($raw);
@@ -1443,7 +1470,7 @@ if (!function_exists('seo_process_supervisor_render_live')) {
                             $visible[$key] = $row;
                         }
                     }
-                    if (!isset($visible['import-export']) && !$visible) {
+                    if (empty($visible)) {
                         $visible['import-export'] = array('name' => 'Import / Export', 'pending' => 0, 'healthy' => 0, 'detail' => 'Todavía sin lectura.', 'last_checked' => 0);
                     }
                     $visible['academy'] = isset($managed['academy']) ? $managed['academy'] : array('name' => 'Academia', 'pending' => 0, 'healthy' => 0, 'detail' => 'Todavía sin lectura.', 'last_checked' => 0);
@@ -1456,16 +1483,31 @@ if (!function_exists('seo_process_supervisor_render_live')) {
                     } else {
                         $visible['classifier'] = isset($managed['classifier']) ? $managed['classifier'] : array('name' => 'Clasificador', 'pending' => 0, 'healthy' => 0, 'detail' => 'Todavía sin lectura.', 'last_checked' => 0);
                     }
+                    $visible['clonador-academia'] = isset($managed['clonador-academia'])
+                        ? $managed['clonador-academia']
+                        : array('name' => 'Clonador para Academia', 'pending' => 0, 'healthy' => 1, 'detail' => 'Parado. Solo se inicia manualmente desde Clonador para Academia.', 'last_checked' => 0, 'speed'=>3, 'speed_label'=>'Normal');
                     foreach ($visible as $key => $row) :
                         $is_import = 0 === strpos((string) $key, 'import-export');
                         $is_classifier = 0 === strpos((string) $key, 'classifier');
-                        $enabled = $is_import ? !empty($settings['import_export']) : ($is_classifier ? !empty($settings['classifier']) : !empty($settings['academy']));
+                        $is_clonador = 'clonador-academia' === (string) $key;
+                        $enabled = $is_import ? !empty($settings['import_export']) : ($is_classifier ? !empty($settings['classifier']) : ($is_clonador ? !empty($settings['clonador']) : !empty($settings['academy'])));
                     ?>
                     <tr>
-                        <td><strong><?php echo esc_html($row['name'] ?? ($is_import ? 'Import / Export' : ($is_classifier ? 'Clasificador' : 'Academia'))); ?></strong></td>
+                        <td><strong><?php echo esc_html($row['name'] ?? ($is_import ? 'Import / Export' : ($is_classifier ? 'Clasificador' : ($is_clonador ? 'Clonador para Academia' : 'Academia')))); ?></strong><?php if ($is_clonador && !empty($row['speed'])) : ?><br><small>Velocidad <?php echo esc_html((string) absint($row['speed'])); ?>/5 · <?php echo esc_html((string) ($row['speed_label'] ?? '')); ?></small><?php endif; ?></td>
                         <td><?php echo $enabled ? '<span class="seo-worker-pill is-ok">Sí</span>' : '<span class="seo-worker-pill">No</span>'; ?></td>
                         <td><?php echo !empty($row['pending']) ? '<span class="seo-worker-pill is-warn">Sí</span>' : '<span class="seo-worker-pill">No</span>'; ?></td>
-                        <td><strong><?php echo !empty($row['healthy']) ? 'Gestionado' : 'Sin actividad'; ?></strong><br><small><?php echo esc_html($row['detail'] ?? ''); ?></small></td>
+                        <td><strong><?php
+                            if ($is_clonador) {
+                                $clone_result = sanitize_key((string) ($row['last_result'] ?? 'idle'));
+                                if (!empty($row['pending'])) echo 'En ejecucion';
+                                elseif ('paused' === $clone_result) echo 'Parado por usuario';
+                                elseif ('completed' === $clone_result) echo 'Finalizado';
+                                elseif ('failed' === $clone_result) echo 'Fallido';
+                                else echo 'Sin actividad';
+                            } else {
+                                echo !empty($row['healthy']) ? 'Gestionado' : 'Sin actividad';
+                            }
+                        ?></strong><br><small><?php echo esc_html($row['detail'] ?? ''); ?></small></td>
                         <td><?php echo esc_html(seo_process_supervisor_format_age($row['last_attempt_at'] ?? 0)); ?></td>
                         <td><?php echo esc_html($row['last_result'] ?? '—'); ?><?php if (!empty($row['last_error'])) : ?><br><small class="seo-worker-error"><?php echo esc_html($row['last_error']); ?></small><?php endif; ?></td>
                     </tr>
@@ -1517,14 +1559,11 @@ if (!function_exists('seo_process_supervisor_render_page')) {
         ?>
         <div class="wrap seo-worker-manager">
             <h1>Procesos</h1>
-            <h2 class="nav-tab-wrapper">
-                <a class="nav-tab" href="<?php echo esc_url(add_query_arg(array('page' => 'seo-processes'), admin_url('admin.php'))); ?>">Procesos</a>
-                <a class="nav-tab nav-tab-active" href="<?php echo esc_url(add_query_arg(array('page' => 'seo-processes', 'tab' => 'workers'), admin_url('admin.php'))); ?>">Gestor de workers</a>
-            </h2>
+            <?php if (function_exists('seo_processes_render_tabs')) { seo_processes_render_tabs('workers'); } ?>
             <div class="seo-worker-heading">
                 <div>
                     <h2>Gestor periódico del plugin</h2>
-                    <p>El gestor mantiene vivos únicamente los procesos que tú hayas iniciado: Import/Export, Academia y Clasificador. Si están parados no los toca. No usa el worker de WooCommerce como motor.</p>
+                    <p>El gestor mantiene vivos únicamente los procesos que tú hayas iniciado: Import/Export, Academia, Clasificador y Clonador. El Clonador jamás se inicia aquí: solo se gestiona después de que pulses ARRANCAR en su pantalla. Si están parados no los toca. No usa el worker de WooCommerce como motor.</p>
                 </div>
                 <span>Lectura: <strong id="seo-worker-refreshed"><?php echo esc_html(current_time('H:i:s')); ?></strong></span>
             </div>
@@ -1554,6 +1593,7 @@ if (!function_exists('seo_process_supervisor_render_page')) {
                     <label><input type="checkbox" name="supervisor[import_export]" value="1" <?php checked(!empty($settings['import_export'])); ?>> Gestionar <strong>Import / Export</strong><small>Solo mientras una importación iniciada siga activa.</small></label>
                     <label><input type="checkbox" name="supervisor[academy]" value="1" <?php checked(!empty($settings['academy'])); ?>> Gestionar <strong>Academia</strong><small>Solo después de que tú la hayas arrancado.</small></label>
                     <label><input type="checkbox" name="supervisor[classifier]" value="1" <?php checked(!empty($settings['classifier'])); ?>> Gestionar <strong>Clasificador</strong><small>Solo jobs iniciados o reanudados manualmente.</small></label>
+                    <label><input type="checkbox" name="supervisor[clonador]" value="1" <?php checked(!empty($settings['clonador'])); ?>> Gestionar <strong>Clonador para Academia</strong><small>Nunca lo inicia. Solo ejecuta lotes cuando tú lo has arrancado manualmente.</small></label>
                     <label><input type="checkbox" name="supervisor[backup_watchdog]" value="1" <?php checked(!empty($settings['backup_watchdog'])); ?>> WP-Cron propio de respaldo<small>Ejecuta este gestor si no has configurado un cron real del servidor.</small></label>
                     <label><input type="checkbox" name="supervisor[log_cycles]" value="1" <?php checked(!empty($settings['log_cycles'])); ?>> Registrar cada ciclo<small>Útil para diagnóstico; genera más entradas.</small></label>
                 </div>

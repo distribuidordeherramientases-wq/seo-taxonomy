@@ -402,6 +402,24 @@ final class SEO_Facturas_Quotes {
         }
         $billing['tax_id'] = (string) $buyer['tax_id'];
 
+        $destination = !empty($shipping['country']) ? $shipping : $billing;
+        $fiscal = class_exists('SEO_Facturas_Tax')
+            ? SEO_Facturas_Tax::context_for_location(
+                (string) ($destination['country'] ?? ''),
+                (string) ($destination['state'] ?? ''),
+                (string) ($destination['postcode'] ?? '')
+            )
+            : array();
+
+        if ($tax_lines && !empty($fiscal['enabled']) && null !== ($fiscal['rate'] ?? null)) {
+            foreach ($tax_lines as &$tax_line) {
+                if (null === ($tax_line['rate_percent'] ?? null)) {
+                    $tax_line['rate_percent'] = (float) $fiscal['rate'];
+                }
+            }
+            unset($tax_line);
+        }
+
         $snapshot = array(
             'schema_version' => 2,
             'document'       => array_merge(
@@ -420,6 +438,7 @@ final class SEO_Facturas_Quotes {
             ),
             'billing'        => $billing,
             'shipping'       => $shipping,
+            'fiscal'         => $fiscal,
             'items'          => $items,
             'coupon_lines'   => $coupons,
             'tax_lines'      => $tax_lines,

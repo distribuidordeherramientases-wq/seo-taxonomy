@@ -1,7 +1,8 @@
 <?php
 /**
  * Editor unitario de entradas de WordPress con relaciones comerciales
- * post -> product_cat almacenadas en wp_seo_relations.
+ * post -> product_cat almacenadas en wp_seo_relations y clasificacion
+ * semantica canonica en wp_seo_object_vocabulary -> wp_seo_vocabulary.
  *
  * Puede usarse como pagina independiente (Entradas > Editor SEO posts) o
  * llamar directamente a seo_page_edit_posts() desde otro router/tabs del plugin.
@@ -448,12 +449,19 @@ if (!function_exists('seo_post_editor_handle_save')) {
             exit;
         }
 
+        if (!function_exists('seo_content_vocab_tables_ready') || !seo_content_vocab_tables_ready()) {
+            wp_safe_redirect(seo_post_editor_redirect_url_from_request(array(
+                'post_id' => $post_id,
+                'seo_post_msg' => 'vocabulary_missing',
+            )));
+            exit;
+        }
+
         $title   = isset($_POST['post_title']) ? sanitize_text_field(wp_unslash($_POST['post_title'])) : '';
         $slug    = isset($_POST['post_name']) ? sanitize_title(wp_unslash($_POST['post_name'])) : '';
         $status  = isset($_POST['post_status']) ? sanitize_key(wp_unslash($_POST['post_status'])) : 'draft';
         $excerpt = isset($_POST['post_excerpt']) ? seo_post_editor_sanitize_content($_POST['post_excerpt']) : '';
         $content = isset($_POST['post_content']) ? seo_post_editor_sanitize_content($_POST['post_content']) : '';
-        $tags    = isset($_POST['post_tags']) ? sanitize_text_field(wp_unslash($_POST['post_tags'])) : '';
 
         if ($title === '') {
             wp_safe_redirect(seo_post_editor_redirect_url_from_request(array(
@@ -518,11 +526,11 @@ if (!function_exists('seo_post_editor_handle_save')) {
 
         $post_id = absint($saved_id);
 
-        $tag_result = wp_set_post_tags($post_id, $tags, false);
-        if (is_wp_error($tag_result)) {
+        $vocab_result = seo_content_vocab_save_from_request('post', $post_id, 'seo_post_vocab');
+        if (is_wp_error($vocab_result)) {
             wp_safe_redirect(seo_post_editor_redirect_url_from_request(array(
                 'post_id' => $post_id,
-                'seo_post_msg' => 'tag_error',
+                'seo_post_msg' => 'vocab_error',
             )));
             exit;
         }
@@ -566,9 +574,12 @@ if (!function_exists('seo_post_editor_handle_trash')) {
         }
 
         $relations_deleted = seo_post_editor_delete_relations($post_id);
+        $vocabulary_deleted = function_exists('seo_content_vocab_delete_assignments')
+            ? seo_content_vocab_delete_assignments('post', $post_id)
+            : false;
 
         wp_safe_redirect(seo_post_editor_redirect_url_from_request(array(
-            'seo_post_msg' => $relations_deleted ? 'trashed' : 'trash_relation_error',
+            'seo_post_msg' => ($relations_deleted && $vocabulary_deleted) ? 'trashed' : 'trash_relation_error',
         )));
         exit;
     }
@@ -579,6 +590,9 @@ if (!function_exists('seo_post_editor_cleanup_relations_on_post_delete')) {
         $post_id = absint($post_id);
         if ($post_id > 0 && get_post_type($post_id) === 'post') {
             seo_post_editor_delete_relations($post_id);
+            if (function_exists('seo_content_vocab_delete_assignments')) {
+                seo_content_vocab_delete_assignments('post', $post_id);
+            }
         }
     }
 }
@@ -680,7 +694,7 @@ if (!function_exists('seo_page_edit_posts')) {
             if (function_exists('seo_health_render_scope_tab')) {
                 seo_health_render_scope_tab('post');
             } else {
-                echo '<div class="notice notice-error inline"><p>No se ha podido cargar <code>seo-health-scan.php</code>.</p></div>';
+                echo '<div class="notice notice-error inline"><p>No se ha podido cargar <code>system-check/seo-health-scan.php</code>.</p></div>';
             }
             echo '</div>';
             return;
@@ -705,17 +719,18 @@ if (!function_exists('seo_page_edit_posts')) {
         }
 
         $notice_messages = array(
-            'created'              => array('success', 'Entrada creada y relaciones SEO guardadas.'),
-            'saved'                => array('success', 'Entrada actualizada y relaciones SEO guardadas.'),
-            'trashed'              => array('success', 'Entrada enviada a la papelera y relaciones SEO eliminadas.'),
+            'created'              => array('success', 'Entrada creada con relaciones y Vocabulary canonico guardados.'),
+            'saved'                => array('success', 'Entrada actualizada con relaciones y Vocabulary canonico guardados.'),
+            'trashed'              => array('success', 'Entrada enviada a la papelera; relaciones y Vocabulary eliminados.'),
             'title_required'       => array('error', 'El titulo es obligatorio.'),
             'invalid_category'     => array('error', 'Alguna categoria de producto seleccionada ya no existe.'),
             'relations_missing'    => array('error', 'No existe la tabla seo_relations. No se ha guardado la entrada.'),
             'save_error'           => array('error', 'WordPress no pudo guardar la entrada.'),
-            'tag_error'            => array('error', 'La entrada se guardo, pero WordPress no pudo actualizar las etiquetas.'),
+            'vocabulary_missing'   => array('error', 'No estan disponibles las tablas del Vocabulary canonico. No se ha guardado la entrada.'),
+            'vocab_error'           => array('error', 'La entrada se guardo, pero no se pudo actualizar su Vocabulary canonico.'),
             'relation_error'       => array('error', 'La entrada se guardo, pero fallo la escritura en SEO Relations. Revisa la relacion antes de continuar.'),
             'trash_error'          => array('error', 'WordPress no pudo enviar la entrada a la papelera.'),
-            'trash_relation_error' => array('error', 'La entrada esta en la papelera, pero no se pudieron limpiar sus relaciones SEO.'),
+            'trash_relation_error' => array('error', 'La entrada esta en la papelera, pero no se pudieron limpiar todas sus relaciones o asignaciones de Vocabulary.'),
         );
 
         if ($post_id > 0 || $new_post) {
@@ -738,20 +753,11 @@ if (!function_exists('seo_page_edit_posts')) {
                 $categories = array();
             }
 
-            $tag_names = array();
-            if (!$creating) {
-                $tag_names = wp_get_post_terms($post_id, 'post_tag', array('fields' => 'names'));
-                if (is_wp_error($tag_names)) {
-                    $tag_names = array();
-                }
-            }
-
             $title   = $creating ? '' : (string) $post->post_title;
             $slug    = $creating ? '' : (string) $post->post_name;
             $status  = $creating ? 'draft' : (string) $post->post_status;
             $excerpt = $creating ? '' : (string) $post->post_excerpt;
             $content = $creating ? '' : (string) $post->post_content;
-            $tags    = implode(', ', array_map('strval', (array) $tag_names));
 
             echo '<div style="max-width:1180px;padding:10px 0 30px;">';
             echo '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px;flex-wrap:wrap;">';
@@ -771,6 +777,9 @@ if (!function_exists('seo_page_edit_posts')) {
 
             if (!seo_post_editor_relations_table_exists()) {
                 echo '<div class="notice notice-error inline"><p><strong>SEO Relations no esta disponible.</strong> El formulario queda visible, pero el guardado esta bloqueado para evitar una entrada sin relacion consistente.</p></div>';
+            }
+            if (!function_exists('seo_content_vocab_tables_ready') || !seo_content_vocab_tables_ready()) {
+                echo '<div class="notice notice-error inline"><p><strong>Vocabulary canonico no esta disponible.</strong> El guardado queda bloqueado para evitar volver a etiquetas WordPress.</p></div>';
             }
             ?>
 
@@ -855,14 +864,18 @@ if (!function_exists('seo_page_edit_posts')) {
                         </div>
 
                         <div style="background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px;">
-                            <h2 style="margin-top:0;">Etiquetas</h2>
-                            <label for="seo-post-tags" style="display:block;font-weight:600;margin-bottom:5px;">Etiquetas de WordPress</label>
-                            <input id="seo-post-tags" type="text" name="post_tags" value="<?php echo esc_attr($tags); ?>" placeholder="taladros, guias, mantenimiento" style="width:100%;">
-                            <p style="color:#646970;margin-bottom:0;">Separadas por comas.</p>
+                            <h2 style="margin-top:0;">Etiquetas semanticas</h2>
+                            <?php
+                            if (function_exists('seo_content_vocab_render_fields')) {
+                                seo_content_vocab_render_fields('post', $post_id, 'seo_post_vocab', true);
+                            } else {
+                                echo '<div class="notice notice-error inline"><p>No esta disponible el editor de Vocabulary para posts.</p></div>';
+                            }
+                            ?>
                         </div>
 
                         <div style="background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px;">
-                            <button type="submit" class="button button-primary button-large" style="width:100%;" <?php disabled(!seo_post_editor_relations_table_exists()); ?>><?php echo $creating ? 'Crear entrada' : 'Guardar cambios'; ?></button>
+                            <button type="submit" class="button button-primary button-large" style="width:100%;" <?php disabled(!seo_post_editor_relations_table_exists() || !function_exists('seo_content_vocab_tables_ready') || !seo_content_vocab_tables_ready()); ?>><?php echo $creating ? 'Crear entrada' : 'Guardar cambios'; ?></button>
                             <?php if (!$creating): ?>
                                 <p style="margin:12px 0 0;color:#646970;">ID: <code><?php echo absint($post_id); ?></code></p>
                                 <p style="margin:4px 0 0;color:#646970;">Modificada: <?php echo esc_html(get_post_modified_time('d/m/Y H:i', false, $post_id)); ?></p>
@@ -873,7 +886,7 @@ if (!function_exists('seo_page_edit_posts')) {
             </form>
 
             <?php if (!$creating): ?>
-                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="margin-top:18px;padding-top:18px;border-top:1px solid #dcdcde;" onsubmit="return confirm('La entrada se enviara a la papelera y se eliminaran sus relaciones con categorias de producto en SEO Relations. ¿Continuar?');">
+                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="margin-top:18px;padding-top:18px;border-top:1px solid #dcdcde;" onsubmit="return confirm('La entrada se enviara a la papelera y se eliminaran sus relaciones SEO y asignaciones de Vocabulary. ¿Continuar?');">
                     <input type="hidden" name="action" value="seo_post_editor_trash">
                     <input type="hidden" name="post_id" value="<?php echo absint($post_id); ?>">
                     <input type="hidden" name="return_page" value="<?php echo esc_attr($context['page']); ?>">
@@ -1092,7 +1105,7 @@ if (!function_exists('seo_page_edit_posts')) {
                     <th style="width:70px;">ID</th>
                     <th>Entrada</th>
                     <th style="width:290px;">Categorias de producto</th>
-                    <th style="width:220px;">Etiquetas</th>
+                    <th style="width:260px;">Vocabulary</th>
                     <th style="width:145px;"><a href="<?php echo esc_url($score_sort_url); ?>" title="Cambiar orden por puntuación">Puntuación Google <?php echo esc_html($score_arrow); ?></a><br><small style="font-weight:400;color:#646970;">28 días</small></th>
                     <th style="width:110px;">Estado</th>
                     <th style="width:145px;">Modificada</th>
@@ -1108,10 +1121,6 @@ if (!function_exists('seo_page_edit_posts')) {
                         $post_id = absint($post->ID);
                         $related = isset($relation_map[$post_id]) ? $relation_map[$post_id] : array();
                         $related_names = wp_list_pluck($related, 'name');
-                        $row_tags = wp_get_post_terms($post_id, 'post_tag', array('fields' => 'names'));
-                        if (is_wp_error($row_tags)) {
-                            $row_tags = array();
-                        }
                         $edit_url = seo_post_editor_admin_url(array('post_id' => $post_id), $context);
                         $score_summary = $reports_available
                             ? seo_post_reports_get_summary($post_id, $score_days)
@@ -1137,7 +1146,15 @@ if (!function_exists('seo_page_edit_posts')) {
                                     <?php echo esc_html(implode(' · ', $related_names)); ?>
                                 <?php endif; ?>
                             </td>
-                            <td><?php echo esc_html(!empty($row_tags) ? implode(', ', $row_tags) : '—'); ?></td>
+                            <td>
+                                <?php
+                                if (function_exists('seo_content_vocab_render_summary')) {
+                                    seo_content_vocab_render_summary('post', $post_id, 8);
+                                } else {
+                                    echo '—';
+                                }
+                                ?>
+                            </td>
                             <td><span title="Índice comparativo de rendimiento Google de los últimos 28 días" style="display:inline-block;min-width:58px;text-align:center;padding:5px 8px;border-radius:999px;font-weight:700;background:<?php echo esc_attr($score_bg); ?>;color:<?php echo esc_attr($score_fg); ?>;"><?php echo esc_html($score_text); ?></span></td>
                             <td><?php echo esc_html($post->post_status); ?></td>
                             <td><?php echo esc_html(mysql2date('d/m/Y H:i', $post->post_modified)); ?></td>
