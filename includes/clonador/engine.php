@@ -32,6 +32,9 @@ final class SEO_Clonador_Engine {
         add_action('wp_ajax_seo_clonador_preview', array(__CLASS__, 'ajax_preview'));
         add_action('wp_ajax_seo_clonador_apply', array(__CLASS__, 'ajax_apply'));
         add_action('wp_ajax_seo_clonador_status', array(__CLASS__, 'ajax_status'));
+        add_action('wp_ajax_seo_clonador_stop', array(__CLASS__, 'ajax_stop'));
+        add_action('wp_ajax_seo_clonador_resume', array(__CLASS__, 'ajax_resume'));
+        add_action('wp_ajax_seo_clonador_speed', array(__CLASS__, 'ajax_speed'));
         add_action('admin_init', array(__CLASS__, 'consume_staging_generation'));
     }
 
@@ -2523,7 +2526,7 @@ final class SEO_Clonador_Engine {
     }
 
     private static function worker_phase_complete($stg,$stg_tables,&$state){
-        $generation=function_exists('wp_generate_uuid4')?wp_generate_uuid4():uniqid('clone-',true);$payload=array('generation'=>$generation,'completed_at'=>time(),'source'=>'pro','destination'=>'staging','engine'=>'portable_clone_process_manager_2.5.5','stats'=>(array)$state['stats'],'identity'=>(array)$state['identity'],'duration_seconds'=>max(0,time()-absint($state['started_at']??time())));
+        $generation=function_exists('wp_generate_uuid4')?wp_generate_uuid4():uniqid('clone-',true);$payload=array('generation'=>$generation,'completed_at'=>time(),'source'=>'pro','destination'=>'staging','engine'=>'portable_clone_manual_worker_2.5.6','stats'=>(array)$state['stats'],'identity'=>(array)$state['identity'],'duration_seconds'=>max(0,time()-absint($state['started_at']??time())));
         $r=self::set_staging_option($stg,$stg_tables['options'],'seo_clonador_generation',$payload);if(is_wp_error($r))return$r;$r=self::set_staging_option($stg,$stg_tables['options'],'seo_clonador_last',$payload);if(is_wp_error($r))return$r;self::set_staging_option($stg,$stg_tables['options'],'seo_semantic_catalog_reindex_pending',array('reason'=>'environment_clonador','generation'=>$generation,'created_at'=>time()));self::set_staging_option($stg,$stg_tables['options'],'seo_semantic_catalog_drift',array('reason'=>'environment_clonador','generation'=>$generation,'created_at'=>time()));$state['status']='completed';$state['phase']='completed';$state['completed_at']=time();$state['message']='Clonacion PRO → STAGING terminada y verificada.';self::worker_refresh_progress($state);$verification=is_array($state['stats']['verification']??null)?$state['stats']['verification']:array();$state['result']=array('generation'=>$generation,'duration_seconds'=>$payload['duration_seconds'],'completed_at'=>$state['completed_at'],'copied_total'=>absint($state['progress']['copied_total']??0),'warnings_total'=>count((array)$state['warnings']),'verification'=>$verification);return true;
     }
 
@@ -2567,15 +2570,15 @@ final class SEO_Clonador_Engine {
      * Ejecuta ventanas cortas desde el Gestor de procesos existente.
      * Cada batch confirma en STAGING sus filas, mapas y cursor antes de ceder.
      */
-    public static function process_manager_slice($job_id, $budget = 20, $source = 'process_manager') {
-        $job_id=sanitize_key((string)$job_id);$budget=max(5,min(50,absint($budget)));$started=microtime(true);
+    public static function process_manager_slice($job_id, $budget = 20, $source = 'process_manager', $max_steps = 4) {
+        $job_id=sanitize_key((string)$job_id);$budget=max(5,min(50,absint($budget)));$max_steps=max(1,min(4,absint($max_steps)));$started=microtime(true);
         $pair=self::open_pair();if(is_wp_error($pair))return$pair;list($pro,$stg)=$pair;$pro_tables=self::all_required_tables(seo_clonador_db_prefix('pro'));$stg_tables=self::all_required_tables(seo_clonador_db_prefix('staging'));
         $lock_name=self::LOCK_NAME.'_manager';$lock=self::scalar($stg,"SELECT GET_LOCK('".mysqli_real_escape_string($stg,$lock_name)."',0) AS l",'l');if('1'!==(string)$lock){@mysqli_close($pro);@mysqli_close($stg);return new WP_Error('clonador_worker_lock','Otra ventana del Clonador ya esta trabajando.');}
         try{
             $state=self::worker_state_get($stg,$stg_tables['options']);if(is_wp_error($state))return$state;if(!$job_id||$job_id!==sanitize_key((string)$state['job_id']))return new WP_Error('clonador_worker_job','El job local no coincide con el job activo de STAGING.');if('completed'===(string)$state['status'])return$state;if('failed'===(string)$state['status'])return new WP_Error('clonador_worker_failed',(string)$state['last_error']);
             $state['status']='running';$state['message']=$state['message']?:'Clonando por lotes mediante el Gestor de procesos.';
             $steps=0;
-            while((microtime(true)-$started)<max(3,$budget-2)&&$steps<4&&'completed'!==(string)$state['status']){
+            while((microtime(true)-$started)<max(3,$budget-2)&&$steps<$max_steps&&'completed'!==(string)$state['status']){
                 $r=self::exec($stg,'START TRANSACTION');if(is_wp_error($r))return$r;
                 try{
                     $r=self::worker_step($pro,$stg,$pro_tables,$stg_tables,$state);if(is_wp_error($r))throw new RuntimeException($r->get_error_message());
@@ -2655,8 +2658,8 @@ final class SEO_Clonador_Engine {
                 'actions' => (array) ($analysis['actions'] ?? array()),
                 'identity_resolution' => (array) ($analysis['identity_resolution'] ?? array()),
                 'reference_audit' => (array) ($analysis['reference_audit'] ?? array()),
-                'plan_version' => defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.5.4',
-                'engine_revision' => 'academia-cloner-process-manager-2.5.4',
+                'plan_version' => defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.5.6',
+                'engine_revision' => 'academia-cloner-manual-worker-2.5.6',
                 'dry_run' => true,
                 'writes_performed' => 0,
                 'conflicts' => (array) $analysis['conflicts'],
@@ -2711,16 +2714,17 @@ final class SEO_Clonador_Engine {
                 delete_transient(self::preview_key());
                 wp_send_json_error(array('message'=>'STAGING ha cambiado desde la simulacion. No se ha escrito nada; vuelve a simular.'), 409);
             }
-            if (!class_exists('SEO_Clonador_Process') || !is_callable(array('SEO_Clonador_Process','queue'))) {
-                wp_send_json_error(array('message'=>'No esta cargado el worker del Clonador en includes/procesos/clonador.'), 500);
+            if (!class_exists('SEO_Clonador_Process') || !is_callable(array('SEO_Clonador_Process','start_new'))) {
+                wp_send_json_error(array('message'=>'No esta cargado el proceso manual del Clonador en includes/procesos/clonador.'), 500);
             }
             $saved['identity'] = (array) $analysis['identity'];
-            $queued = SEO_Clonador_Process::queue($saved);
-            if (is_wp_error($queued)) wp_send_json_error(array('message'=>$queued->get_error_message()), 500);
+            $speed = max(1, min(5, absint($_POST['speed'] ?? 3)));
+            $started = SEO_Clonador_Process::start_new($saved, $speed);
+            if (is_wp_error($started)) wp_send_json_error(array('message'=>$started->get_error_message()), 500);
             delete_transient(self::preview_key());
             wp_send_json_success(array(
-                'message' => 'Clonacion entregada al worker. Puedes cambiar de pantalla o cerrar el navegador.',
-                'job' => $queued,
+                'message' => 'Clonacion INICIADA por el usuario. El worker solo gestionara los lotes y fases.',
+                'job' => $started,
                 'background' => true,
             ));
         } finally {
@@ -2736,6 +2740,39 @@ final class SEO_Clonador_Engine {
             wp_send_json_error(array('message'=>'No esta disponible el estado del worker del Clonador.'), 500);
         }
         wp_send_json_success(array('job' => SEO_Clonador_Process::public_state()));
+    }
+
+    public static function ajax_stop() {
+        $auth = self::authorize();
+        if (is_wp_error($auth)) wp_send_json_error(array('message'=>$auth->get_error_message()), 403);
+        if (!class_exists('SEO_Clonador_Process') || !is_callable(array('SEO_Clonador_Process','stop'))) {
+            wp_send_json_error(array('message'=>'No esta disponible el control de parada del Clonador.'), 500);
+        }
+        wp_send_json_success(array(
+            'message' => 'Parada solicitada por el usuario. Si habia un lote en curso, terminara ese lote y no arrancara otro.',
+            'job' => SEO_Clonador_Process::stop(),
+        ));
+    }
+
+    public static function ajax_resume() {
+        $auth = self::authorize();
+        if (is_wp_error($auth)) wp_send_json_error(array('message'=>$auth->get_error_message()), 403);
+        if (!class_exists('SEO_Clonador_Process') || !is_callable(array('SEO_Clonador_Process','resume'))) {
+            wp_send_json_error(array('message'=>'No esta disponible la reanudacion del Clonador.'), 500);
+        }
+        $job = SEO_Clonador_Process::resume();
+        if (is_wp_error($job)) wp_send_json_error(array('message'=>$job->get_error_message()), 409);
+        wp_send_json_success(array('message'=>'Clonacion REANUDADA por el usuario.', 'job'=>$job));
+    }
+
+    public static function ajax_speed() {
+        $auth = self::authorize();
+        if (is_wp_error($auth)) wp_send_json_error(array('message'=>$auth->get_error_message()), 403);
+        if (!class_exists('SEO_Clonador_Process') || !is_callable(array('SEO_Clonador_Process','set_speed'))) {
+            wp_send_json_error(array('message'=>'No esta disponible el control de velocidad del Clonador.'), 500);
+        }
+        $speed = max(1, min(5, absint($_POST['speed'] ?? 3)));
+        wp_send_json_success(array('message'=>'Velocidad ajustada.', 'job'=>SEO_Clonador_Process::set_speed($speed)));
     }
 
     /**
