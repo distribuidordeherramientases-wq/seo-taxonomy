@@ -2557,7 +2557,32 @@ final class SEO_Dependiente_API {
             'no_found_rows'       => true,
         ));
 
-        if (!$search->have_posts()) {
+        $candidate_posts = $search->have_posts() ? (array) $search->posts : array();
+
+        // Complementa la busqueda textual con la clasificacion semantica canonica
+        // de los posts. post_tag de WordPress no participa en el Dependiente.
+        $semantic_post_ids = function_exists('seo_content_vocab_find_post_ids_for_query')
+            ? seo_content_vocab_find_post_ids_for_query($query, $candidate_limit)
+            : array();
+        $candidate_ids = array();
+        foreach ($candidate_posts as $candidate_post) {
+            if ($candidate_post instanceof WP_Post) {
+                $candidate_ids[(int) $candidate_post->ID] = true;
+            }
+        }
+        foreach ($semantic_post_ids as $semantic_post_id) {
+            $semantic_post_id = absint($semantic_post_id);
+            if (!$semantic_post_id || isset($candidate_ids[$semantic_post_id])) {
+                continue;
+            }
+            $semantic_post = get_post($semantic_post_id);
+            if ($semantic_post instanceof WP_Post && 'post' === $semantic_post->post_type && 'publish' === $semantic_post->post_status) {
+                $candidate_posts[] = $semantic_post;
+                $candidate_ids[$semantic_post_id] = true;
+            }
+        }
+
+        if (!$candidate_posts) {
             return array();
         }
 
@@ -2581,7 +2606,7 @@ final class SEO_Dependiente_API {
         }
 
         $items = array();
-        foreach ((array) $search->posts as $post) {
+        foreach ($candidate_posts as $post) {
             if (!$post instanceof WP_Post || isset($structural_ids[(int) $post->ID])) {
                 continue;
             }
@@ -2600,7 +2625,16 @@ final class SEO_Dependiente_API {
             $title_norm = SEO_Dependiente_Index::normalize($title);
             $excerpt_norm = SEO_Dependiente_Index::normalize($excerpt);
             $content_norm = SEO_Dependiente_Index::normalize($plain_content);
-            $all_norm = trim($title_norm . ' ' . $excerpt_norm . ' ' . $content_norm);
+            $vocabulary_terms = ('post' === $post->post_type && function_exists('seo_content_vocab_get_flat_terms'))
+                ? seo_content_vocab_get_flat_terms('post', (int) $post->ID)
+                : array();
+            $vocabulary_parts = array();
+            foreach ($vocabulary_terms as $vocabulary_term) {
+                $vocabulary_parts[] = (string) ($vocabulary_term['label'] ?? '');
+                $vocabulary_parts[] = str_replace('_', ' ', (string) ($vocabulary_term['slug'] ?? ''));
+            }
+            $vocabulary_norm = SEO_Dependiente_Index::normalize(implode(' ', array_filter($vocabulary_parts)));
+            $all_norm = trim($title_norm . ' ' . $excerpt_norm . ' ' . $content_norm . ' ' . $vocabulary_norm);
 
             $score = 0;
             $hits = 0;
@@ -2609,9 +2643,16 @@ final class SEO_Dependiente_API {
             } elseif ($normalized_query && false !== strpos($all_norm, $normalized_query)) {
                 $score += 240;
             }
+            if ($normalized_query && $vocabulary_norm && false !== strpos($vocabulary_norm, $normalized_query)) {
+                $score += 210;
+                $hits++;
+            }
             foreach ($query_tokens as $token) {
                 if (false !== strpos($title_norm, $token)) {
                     $score += 72;
+                    $hits++;
+                } elseif ($vocabulary_norm && false !== strpos($vocabulary_norm, $token)) {
+                    $score += 58;
                     $hits++;
                 } elseif (false !== strpos($excerpt_norm, $token)) {
                     $score += 42;
@@ -2750,7 +2791,16 @@ final class SEO_Dependiente_API {
             if ($plain_text === '') {
                 $plain_text = wp_strip_all_tags(strip_shortcodes((string) $item['content']));
             }
-            $haystack = SEO_Dependiente_Index::normalize($item['title'] . ' ' . $plain_text);
+            $semantic_text = '';
+            if ('post' === $item['source_type'] && function_exists('seo_content_vocab_get_flat_terms')) {
+                $semantic_parts = array();
+                foreach (seo_content_vocab_get_flat_terms('post', (int) $item['id']) as $semantic_term) {
+                    $semantic_parts[] = (string) ($semantic_term['label'] ?? '');
+                    $semantic_parts[] = str_replace('_', ' ', (string) ($semantic_term['slug'] ?? ''));
+                }
+                $semantic_text = implode(' ', array_filter($semantic_parts));
+            }
+            $haystack = SEO_Dependiente_Index::normalize($item['title'] . ' ' . $plain_text . ' ' . $semantic_text);
             $score = $category_score;
             $phrase_match = false;
             $query_hits = 0;

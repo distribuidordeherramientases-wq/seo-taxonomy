@@ -2831,7 +2831,8 @@ select:focus-visible {
     flex-wrap: wrap;
 }
 
-.dht-post-tags a {
+.dht-post-tags a,
+.dht-post-tags span {
     padding: 6px 9px;
     border: 1px solid var(--dht-border);
     border-radius: 999px;

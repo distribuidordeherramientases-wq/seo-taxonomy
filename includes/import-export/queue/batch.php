@@ -388,11 +388,14 @@ function seo_ie_batch_detect_entity( $path ) {
     }
 
     // Las entradas comparten muchas columnas con paginas y productos. Se detectan
-    // antes que ambos usando marcadores propios de post: taxonomias de WordPress,
-    // formato y sticky. Esto evita que post_id se normalice como product_id/page_id
+    // antes que ambos usando marcadores propios de post: categoria editorial,
+    // Vocabulary canonico, formato y sticky. Los marcadores etiquetas_* se conservan
+    // solo para reconocer CSV legacy; nunca se importan como semantica del post.
+    // Esto evita que post_id se normalice como product_id/page_id
     // y desvie un CSV de entradas al importador equivocado.
     $post_markers = [
         'categorias_slugs', 'categorias_nombres',
+        'vocab_rol', 'vocab_tipo', 'vocab_aplicacion', 'vocab_plataforma', 'vocab_subtipo',
         'etiquetas_ids', 'etiquetas_slugs', 'etiquetas_nombres',
         'formato', 'sticky',
     ];

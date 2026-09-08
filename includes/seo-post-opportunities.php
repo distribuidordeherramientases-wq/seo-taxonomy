@@ -202,9 +202,20 @@ function seo_post_opportunities_get_posts()
         }
 
         $categories = wp_get_post_terms($post->ID, 'category', array('fields' => 'names'));
-        $tags = wp_get_post_terms($post->ID, 'post_tag', array('fields' => 'names'));
         $categories = is_wp_error($categories) ? array() : $categories;
-        $tags = is_wp_error($tags) ? array() : $tags;
+        $vocabulary = function_exists('seo_content_vocab_get_grouped_label_map')
+            ? seo_content_vocab_get_grouped_label_map('post', $post->ID)
+            : array();
+        $tags = array();
+        foreach ((array) $vocabulary as $group_labels) {
+            foreach ((array) $group_labels as $label) {
+                $label = trim((string) $label);
+                if ('' !== $label) {
+                    $tags[] = $label;
+                }
+            }
+        }
+        $tags = array_values(array_unique($tags));
 
         $focus = seo_post_opportunities_clean_keyword(
             seo_post_opportunities_meta_text($post->ID, array(
@@ -234,7 +245,10 @@ function seo_post_opportunities_get_posts()
             'date'         => (string) $post->post_date,
             'modified'     => (string) $post->post_modified,
             'categories'   => array_values($categories),
+            // Compatibilidad interna: tags contiene ahora labels del Vocabulary canonico,
+            // nunca terminos de la taxonomia post_tag de WordPress.
             'tags'         => array_values($tags),
+            'vocabulary'   => $vocabulary,
             'focus_keyword'=> $focus,
             'search_text'  => $search_text,
             'content_hash' => strlen($content_key) >= 120 ? md5($content_key) : '',
@@ -2027,6 +2041,7 @@ function seo_post_opportunities_build_analysis_export(array $report, $days, $act
             'modified' => (string) ($base['modified'] ?? ''),
             'categories' => array_values((array) ($base['categories'] ?? array())),
             'tags' => array_values((array) ($base['tags'] ?? array())),
+            'vocabulary' => (array) ($base['vocabulary'] ?? array()),
             'focus_keyword' => (string) ($base['focus_keyword'] ?? ''),
             'excerpt' => $excerpt,
             'content_html' => $content,

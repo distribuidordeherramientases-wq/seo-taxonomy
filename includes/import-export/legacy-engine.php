@@ -9623,8 +9623,9 @@ function seo_ie_decode_post_list( $value ) {
 }
 
 /**
- * Resuelve las categorías o etiquetas descritas por una fila.
- * Devuelve null cuando el CSV no contiene columnas de esa taxonomía.
+ * Resuelve exclusivamente la categoria editorial de WordPress descrita por una fila.
+ * Las antiguas etiquetas post_tag se ignoran: la semantica vive en Vocabulary.
+ * Devuelve null cuando el CSV no contiene columnas de categoria.
  *
  * @param string $taxonomy Taxonomía.
  * @param array  $row      Fila.
@@ -9633,11 +9634,14 @@ function seo_ie_decode_post_list( $value ) {
  * @return int[]|null
  */
 function seo_ie_resolve_post_terms( $taxonomy, $row, $line, &$log ) {
-    $is_category = 'category' === $taxonomy;
-    $ids_key     = $is_category ? 'categorias_ids' : 'etiquetas_ids';
-    $slugs_key   = $is_category ? 'categorias_slugs' : 'etiquetas_slugs';
-    $names_key   = $is_category ? 'categorias_nombres' : 'etiquetas_nombres';
-    $label       = $is_category ? 'categoría' : 'etiqueta';
+    if ( 'category' !== $taxonomy ) {
+        return null;
+    }
+
+    $ids_key   = 'categorias_ids';
+    $slugs_key = 'categorias_slugs';
+    $names_key = 'categorias_nombres';
+    $label     = 'categoría';
 
     if (
         ! array_key_exists( $ids_key, $row )
@@ -9876,7 +9880,7 @@ function seo_export_posts_csv() {
             'errores'      => 0,
             'advertencias' => 0,
             'detalles'     => [
-                'Se exportaron contenido, categorías editoriales, relación comercial con product_cat, etiquetas, formato, autor, fechas, imagen y metadatos.',
+                'Se exportaron contenido, categorías editoriales, relación comercial con product_cat, Vocabulary canónico, formato, autor, fechas, imagen y metadatos.',
                 'No se exportaron revisiones, bloqueos de edición ni datos de papelera.',
             ],
         ]
@@ -9894,7 +9898,6 @@ function seo_export_posts_csv() {
             'categorias_ids', 'categorias_slugs', 'categorias_nombres',
             'product_cat_relacion_ids', 'product_cat_relacion_slugs', 'product_cat_relacion_nombres',
             'vocab_rol', 'vocab_tipo', 'vocab_aplicacion', 'vocab_plataforma', 'vocab_subtipo',
-            'etiquetas_ids', 'etiquetas_slugs', 'etiquetas_nombres',
             'formato', 'sticky',
             'imagen_destacada_id', 'imagen_destacada',
             'meta_seo', 'meta_personalizados',
@@ -9907,9 +9910,7 @@ function seo_export_posts_csv() {
         $image_id   = get_post_thumbnail_id( $post_id );
         $meta       = seo_ie_get_page_meta_payload( $post_id );
         $categories = wp_get_post_terms( $post_id, 'category' );
-        $tags       = wp_get_post_terms( $post_id, 'post_tag' );
         $categories   = is_wp_error( $categories ) ? [] : $categories;
-        $tags         = is_wp_error( $tags ) ? [] : $tags;
         $product_cats = seo_ie_get_product_cat_relation_payload_for_export( 'post', $post_id );
         $format       = get_post_format( $post_id );
 
@@ -9942,9 +9943,6 @@ function seo_export_posts_csv() {
                 seo_ie_encode_post_list( function_exists('seo_content_vocab_export_group') ? seo_content_vocab_export_group('post', $post_id, 'aplicacion', 'slug', 'manual') : [] ),
                 seo_ie_encode_post_list( function_exists('seo_content_vocab_export_group') ? seo_content_vocab_export_group('post', $post_id, 'plataforma', 'slug', 'manual') : [] ),
                 seo_ie_encode_post_list( function_exists('seo_content_vocab_export_group') ? seo_content_vocab_export_group('post', $post_id, 'subtipo', 'slug', 'manual') : [] ),
-                seo_ie_encode_post_list( wp_list_pluck( $tags, 'term_id' ) ),
-                seo_ie_encode_post_list( wp_list_pluck( $tags, 'slug' ) ),
-                seo_ie_encode_post_list( wp_list_pluck( $tags, 'name' ) ),
                 $format ? $format : 'standard',
                 is_sticky( $post_id ) ? 1 : 0,
                 absint( $image_id ),
@@ -10317,6 +10315,9 @@ function seo_import_posts_csv() {
                 $item['line'],
                 $log
             );
+            if ( function_exists('seo_content_vocab_validate_import_row') ) {
+                seo_content_vocab_validate_import_row($row, $item['line'], $log);
+            }
         }
 
         if ( $dry_run ) {
@@ -10430,15 +10431,6 @@ function seo_import_posts_csv() {
                 }
             }
 
-            $tag_ids = seo_ie_resolve_post_terms( 'post_tag', $row, $item['line'], $log );
-            if ( null !== $tag_ids ) {
-                $term_result = wp_set_post_terms( $post_id, $tag_ids, 'post_tag', false );
-                if ( is_wp_error( $term_result ) ) {
-                    $log['errores']++;
-                    seo_ie_add_log_detail( $log, sprintf( 'Fila %d, entrada %d: no se pudieron guardar las etiquetas: %s', $item['line'], $post_id, $term_result->get_error_message() ) );
-                }
-            }
-
             if ( array_key_exists( 'formato', $row ) ) {
                 $format = sanitize_key( $row['formato'] );
                 if ( '' === $format || 'standard' === $format ) {
@@ -10473,13 +10465,9 @@ function seo_import_posts_csv() {
         }
 
         if ( $import_relations && function_exists('seo_content_vocab_import_row') ) {
+            // La semantica del post se importa exclusivamente desde vocab_*.
+            // Las columnas legacy etiquetas_* se ignoran y nunca alimentan Vocabulary.
             seo_content_vocab_import_row('post', $post_id, $row, $item['line'], $log);
-            if (function_exists('seo_content_vocab_sync_post_relations')) {
-                seo_content_vocab_sync_post_relations($post_id);
-            }
-            if (function_exists('seo_content_vocab_sync_from_post_tags')) {
-                seo_content_vocab_sync_from_post_tags($post_id);
-            }
         }
 
         if ( $import_seo_meta && array_key_exists( 'meta_seo', $row ) ) {
@@ -12107,7 +12095,7 @@ function seo_import_export_page() {
                 </div>
                 <div class="card" style="max-width:none;padding:20px;">
                     <h2>Exportar entradas (posts)</h2>
-                    <p>Exporta contenido, autor, fechas, categorías, etiquetas, formato, sticky, imagen destacada y metadatos.</p>
+                    <p>Exporta contenido, autor, fechas, categorías editoriales, relación product_cat, Vocabulary canónico, formato, sticky, imagen destacada y metadatos. No exporta <code>post_tag</code>.</p>
                     <form method="post">
                         <?php wp_nonce_field( 'seo_export_posts_csv', 'seo_export_posts_nonce' ); ?>
                         <fieldset style="margin:12px 0;">
@@ -12124,7 +12112,7 @@ function seo_import_export_page() {
 
                 <div class="card" style="max-width:none;padding:20px;">
                     <h2>Importar entradas (posts)</h2>
-                    <p>Crea o actualiza el contenido en WordPress. Las categorías editoriales siguen siendo independientes de la relación comercial post → product_cat, que se guarda en SEO Relations. Una product_cat inexistente no detiene la importación: el post queda sin relación comercial y se registra ERROR RELACIÓN.</p>
+                    <p>Crea o actualiza el contenido en WordPress. Las categorías editoriales siguen siendo independientes de la relación comercial post → product_cat. La semántica se importa únicamente desde <code>vocab_*</code> hacia Vocabulary; las columnas legacy <code>etiquetas_*</code> se ignoran y nunca escriben <code>post_tag</code>. Una product_cat inexistente no detiene la importación: el post queda sin relación comercial y se registra ERROR RELACIÓN.</p>
                     <form method="post" enctype="multipart/form-data">
                         <?php wp_nonce_field( 'seo_import_posts_csv', 'seo_import_posts_nonce' ); ?>
                         <input type="file" name="posts_csv" accept=".csv,text/csv" required>
@@ -12140,7 +12128,7 @@ function seo_import_export_page() {
 
                         <h3>Datos que se importarán</h3>
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_post_core" value="1" checked> Título, slug, estado, excerpt y contenido</label>
-                        <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_post_taxonomies" value="1" checked> Categorías, etiquetas, formato, sticky, comentarios y pings</label>
+                        <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_post_taxonomies" value="1" checked> Categorías editoriales, formato, sticky, comentarios y pings</label>
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_post_author_date" value="1" checked> Autor y fecha de publicación</label>
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_post_seo_meta" value="1" checked> Metadatos SEO</label>
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_post_custom_meta" value="1" checked> Metadatos personalizados y de maquetadores</label>

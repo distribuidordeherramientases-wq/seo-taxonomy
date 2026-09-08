@@ -328,11 +328,12 @@ $nodes_table     = $wpdb->prefix . 'seo_nodes';
 while (have_posts()) :
     the_post();
 
-    $post_id         = (int) get_the_ID();
-    $post_categories = get_the_terms($post_id, 'category');
-    $post_tags       = get_the_terms($post_id, 'post_tag');
-    $post_categories = is_array($post_categories) ? $post_categories : array();
-    $post_tags       = is_array($post_tags) ? $post_tags : array();
+    $post_id          = (int) get_the_ID();
+    $post_categories  = get_the_terms($post_id, 'category');
+    $post_categories  = is_array($post_categories) ? $post_categories : array();
+    $post_vocab_terms = function_exists('seo_content_vocab_get_flat_terms')
+        ? seo_content_vocab_get_flat_terms('post', $post_id)
+        : array();
 
     $word_count = str_word_count(
         wp_strip_all_tags(
@@ -628,10 +629,12 @@ while (have_posts()) :
                         </div>
                     <?php endif; ?>
 
-                    <?php if ($post_tags) : ?>
-                        <div class="dht-post-tags">
-                            <?php foreach (array_slice($post_tags, 0, 6) as $tag) : ?>
-                                <a href="<?php echo esc_url(get_tag_link($tag)); ?>">#<?php echo esc_html($tag->name); ?></a>
+                    <?php if ($post_vocab_terms) : ?>
+                        <div class="dht-post-tags" aria-label="Etiquetas semanticas">
+                            <?php foreach (array_slice($post_vocab_terms, 0, 8) as $term) : ?>
+                                <span title="<?php echo esc_attr((string) ($term['group_label'] ?? strtoupper((string) ($term['semantic_group'] ?? '')))); ?>">
+                                    #<?php echo esc_html((string) ($term['label'] ?? $term['slug'] ?? '')); ?>
+                                </span>
                             <?php endforeach; ?>
                         </div>
                     <?php endif; ?>

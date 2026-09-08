@@ -954,7 +954,7 @@ function seo_system_diagnostics_collect_site_inventory() {
         $inventory['content'][$post_type] = $row;
     }
 
-    foreach (array('product_cat', 'product_tag', 'category', 'post_tag') as $taxonomy) {
+    foreach (array('product_cat', 'product_tag', 'category') as $taxonomy) {
         if (!taxonomy_exists($taxonomy)) {
             continue;
         }
