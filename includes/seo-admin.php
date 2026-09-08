@@ -222,7 +222,15 @@ add_submenu_page(null, 'Redirects', 'Redirects', 'manage_options', 'seo-menu-red
 add_submenu_page(null, 'Marketing', 'Marketing', 'manage_options', 'seo-menu-marketing', 'seo_menu_manager_marketing_page');
 add_submenu_page(null, 'SEO Data Table', 'Data Table', 'manage_options', 'seo-data-table', 'seo_data_table_page');
 add_submenu_page(null, 'Clean DB', 'Clean DB', 'manage_options', 'seo-clean-db', 'seo_clean_db_page');
-add_submenu_page(null, 'Import / Export', 'Import / Export', 'manage_options', 'seo-import-export', 'seo_import_export_page');
+$seo_import_export_hook = add_submenu_page(null, 'Import / Export', 'Import / Export', 'manage_options', 'seo-import-export', 'seo_import_export_page');
+if ($seo_import_export_hook) {
+    add_action('load-' . $seo_import_export_hook, static function () {
+        global $title;
+        if (!is_string($title) || '' === trim($title)) {
+            $title = 'Importar / Exportar SEO System';
+        }
+    });
+}
 $seo_logistica_tool_label = html_entity_decode('Log&iacute;stica', ENT_QUOTES, 'UTF-8');
 add_submenu_page(null, $seo_logistica_tool_label, $seo_logistica_tool_label, class_exists('WooCommerce') ? 'manage_woocommerce' : 'manage_options', 'seo-logistica', 'seo_logistica_page');
 $seo_processes_hook = add_submenu_page(null, 'Procesos', 'Procesos', 'manage_options', 'seo-processes', 'seo_processes_page');
