@@ -82,19 +82,6 @@ if ( is_readable( $seo_sync_versioning_file ) ) {
 unset( $seo_sync_versioning_file );
 
 /*
- * Comparador PRO <-> STAGING. Las BBDD se consultan solo bajo demanda. Las
- * sincronizaciones individuales siguen escribiendo en el WordPress local; el
- * MIRROR integral puede escribir directamente y solo en la conexion STAGING
- * tras simulacion/confirmacion, para poder lanzarse desde cualquiera de los
- * dos paneles. PRO permanece siempre de solo lectura.
- */
-$seo_environment_compare_file = __DIR__ . '/comparador/comparador.php';
-if ( is_readable( $seo_environment_compare_file ) ) {
-    require_once $seo_environment_compare_file;
-}
-unset( $seo_environment_compare_file );
-
-/*
  * La cola multientidad vive en un modulo independiente para mantener
  * seo-export.php centrado en los importadores y exportadores individuales.
  */
@@ -11960,7 +11947,7 @@ function seo_import_export_page() {
         wp_die( esc_html__( 'No tienes permisos para acceder a esta página.', 'seo-system' ) );
     }
 
-    $allowed_tabs = [ 'wordpress', 'import-batch', 'catalogo-semantico', 'comparar-entornos', 'importar-proveedor', 'importar-amazon', 'conexiones-proveedores', 'catalogo-proveedores', 'sincronizacion-proveedores' ];
+    $allowed_tabs = [ 'wordpress', 'import-batch', 'catalogo-semantico', 'clonador', 'importar-proveedor', 'importar-amazon', 'conexiones-proveedores', 'catalogo-proveedores', 'sincronizacion-proveedores' ];
     $tab = sanitize_key( $_GET['seo_ie_tab'] ?? 'wordpress' );
     if ( ! in_array( $tab, $allowed_tabs, true ) ) {
         $tab = 'wordpress';
@@ -11973,7 +11960,7 @@ function seo_import_export_page() {
         <nav class="nav-tab-wrapper" style="margin-bottom:20px;">
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'wordpress', $base ) ); ?>" class="nav-tab <?php echo 'wordpress' === $tab ? 'nav-tab-active' : ''; ?>">Importar / Exportar</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'import-batch', $base ) ); ?>" class="nav-tab <?php echo 'import-batch' === $tab ? 'nav-tab-active' : ''; ?>">Importacion por lotes</a>
-            <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'comparar-entornos', $base ) ); ?>" class="nav-tab <?php echo 'comparar-entornos' === $tab ? 'nav-tab-active' : ''; ?>">PRO ↔ STAGING</a>
+            <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'clonador', $base ) ); ?>" class="nav-tab <?php echo 'clonador' === $tab ? 'nav-tab-active' : ''; ?>">Clonador PRO → STAGING</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'catalogo-semantico', $base ) ); ?>" class="nav-tab <?php echo 'catalogo-semantico' === $tab ? 'nav-tab-active' : ''; ?>">Catalogo semantico</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'importar-proveedor', $base ) ); ?>" class="nav-tab <?php echo 'importar-proveedor' === $tab ? 'nav-tab-active' : ''; ?>">Importar proveedor</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'importar-amazon', $base ) ); ?>" class="nav-tab <?php echo 'importar-amazon' === $tab ? 'nav-tab-active' : ''; ?>">Importar Amazon</a>
@@ -12192,8 +12179,8 @@ function seo_import_export_page() {
         <?php elseif ( 'catalogo-semantico' === $tab ) : ?>
             <?php if ( class_exists( 'SEO_Semantic_Catalog_Transfer' ) ) { SEO_Semantic_Catalog_Transfer::render_tab(); } else { echo '<div class="notice notice-error inline"><p>No se ha podido cargar el catalogo semantico portable.</p></div>'; } ?>
 
-        <?php elseif ( 'comparar-entornos' === $tab ) : ?>
-            <?php if ( function_exists( 'seo_environment_compare_render' ) ) { seo_environment_compare_render(); } else { echo '<div class="notice notice-error inline"><p>No se ha podido cargar el comparador PRO/STAGING.</p></div>'; } ?>
+        <?php elseif ( 'clonador' === $tab ) : ?>
+            <?php if ( function_exists( 'seo_clonador_render' ) ) { seo_clonador_render(); } else { echo '<div class="notice notice-error inline"><p>No se ha podido cargar el Clonador PRO → STAGING.</p></div>'; } ?>
 
         <?php elseif ( 'import-batch' === $tab ) : ?>
             <?php if ( function_exists( 'seo_ie_batch_render_page' ) ) { seo_ie_batch_render_page(); } else { echo '<div class="notice notice-error inline"><p>Falta el modulo seo-import-batch.php.</p></div>'; } ?>

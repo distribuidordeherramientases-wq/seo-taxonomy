@@ -16,7 +16,7 @@
  * @package SEOSystem
  * @subpackage ImportExport
  * @since 2.3.2
- * Build: 033
+ * Build: 040
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -30,8 +30,6 @@ $seo_ie_required_files = [
     __DIR__ . '/legacy-engine.php',
     __DIR__ . '/catalogs/importer.php',
     __DIR__ . '/semantic-catalog/semantic-catalog.php',
-    __DIR__ . '/semantic-catalog/direct-sync.php',
-    __DIR__ . '/comparador/full-mirror.php',
 ];
 
 foreach ( $seo_ie_required_files as $seo_ie_required_file ) {
@@ -62,7 +60,7 @@ foreach ( $seo_ie_required_files as $seo_ie_required_file ) {
     }
 }
 
-define( 'SEO_IE_BUILD', 33 );
+define( 'SEO_IE_BUILD', 40 );
 define( 'SEO_IE_DIR', __DIR__ );
 define( 'SEO_IE_MIGRATIONS_DIR', __DIR__ . '/migrations' );
 
@@ -70,5 +68,3 @@ require_once __DIR__ . '/core/registry.php';
 require_once __DIR__ . '/legacy-engine.php';
 require_once __DIR__ . '/catalogs/importer.php';
 require_once __DIR__ . '/semantic-catalog/semantic-catalog.php';
-require_once __DIR__ . '/semantic-catalog/direct-sync.php';
-require_once __DIR__ . '/comparador/full-mirror.php';
