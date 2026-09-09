@@ -239,9 +239,10 @@ final class SEO_Dependiente_API {
         );
         self::sort_documents($primary_matched, $orderby);
 
-        // 1B. Conocimiento propio: posts y landings se consultan SIEMPRE de forma
-        // independiente del catálogo.
-        $direct_related = self::direct_content_search($query, 6);
+        // 1B. Conocimiento editorial directo. Las FAQs ya no hacen una
+        // búsqueda textual global en esta fase: se resolverán después, cuando
+        // conozcamos los productos/categorías candidatos y podamos seguir su owner.
+        $direct_related = self::direct_content_search($query, 6, true);
 
         // 2. La búsqueda extensiva solo se abre cuando 1A + 1B ofrecen poca señal
         // local. Así las descripciones, rutas semánticas y aproximaciones no pisan
@@ -308,9 +309,14 @@ final class SEO_Dependiente_API {
         self::sort_documents($matched, $orderby);
         $facets = self::build_facets($documents);
 
-        // Si la fase 2 se ejecutó, el contenido directo se completa con guías
+        // Las FAQs se resuelven owner-first: primero el catálogo identifica
+        // productos/categorías y solo después se abren las FAQs activas de esos
+        // propietarios. La búsqueda textual global queda como fallback controlado.
+        $faq_related = self::faq_content_search($query, 18, $matched ? $matched : $documents, true);
+        $direct_related = self::rank_related_items(array_merge($direct_related, $faq_related), 18, true);
+
+        // Si la fase 2 se ejecutó, el conocimiento directo se completa con guías
         // vinculadas a las categorías de los productos aproximados encontrados.
-        // Si no hizo falta, 1B permanece estrictamente como búsqueda editorial directa.
         $related = $run_extended
             ? self::merge_related_items($direct_related, self::category_related_content($matched ? $matched : $documents, $query, 18), 6)
             : array_slice($direct_related, 0, 6);
@@ -2492,6 +2498,42 @@ final class SEO_Dependiente_API {
         return $items;
     }
 
+    /**
+     * Ordena y deduplica conocimiento relacionado conservando la puntuación
+     * interna hasta el último momento. Se usa para que una FAQ owner-first pueda
+     * competir con posts/landings sin volver a recorrer toda la tabla de FAQs.
+     */
+    private static function rank_related_items($source_items, $limit = 8, $strip_internal = true) {
+        $limit = max(1, absint($limit));
+        $seen = array();
+        $items = array();
+        foreach ((array) $source_items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $key = sanitize_key((string) ($item['type'] ?? 'post')) . ':' . absint($item['id'] ?? 0);
+            if (!$key || isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $items[] = $item;
+        }
+        usort($items, static function ($a, $b) {
+            if (($a['_score'] ?? 0) !== ($b['_score'] ?? 0)) {
+                return ($b['_score'] ?? 0) <=> ($a['_score'] ?? 0);
+            }
+            return ($b['_modified'] ?? 0) <=> ($a['_modified'] ?? 0);
+        });
+        $items = array_slice($items, 0, $limit);
+        if ($strip_internal) {
+            foreach ($items as &$item) {
+                unset($item['_score'], $item['_modified']);
+            }
+            unset($item);
+        }
+        return $items;
+    }
+
     private static function related_content($documents, $query, $limit = 8) {
         $limit = max(1, absint($limit));
         $items = array();
@@ -2532,11 +2574,10 @@ final class SEO_Dependiente_API {
      * vuelve a puntuar para priorizar frase completa, titulo y coincidencias utiles.
      */
     /**
-     * Busca conocimiento editorial y FAQs. Posts y paginas comparten el mismo
-     * Vocabulary canonico; las FAQs heredan contexto semantico de su propietario
-     * (pagina/hub, product_cat o producto).
+     * Busca conocimiento editorial directo. Las FAQs se resuelven aparte mediante
+     * sus propietarios, una vez conocidos los candidatos del catálogo.
      */
-    private static function direct_content_search($query, $limit = 18) {
+    private static function direct_content_search($query, $limit = 18, $keep_internal = false) {
         $query = trim(sanitize_text_field((string) $query));
         if ('' === $query) {
             return array();
@@ -2673,24 +2714,7 @@ final class SEO_Dependiente_API {
             );
         }
 
-        // Las FAQs son conocimiento de primer nivel, pero conservan su propietario.
-        foreach (self::faq_content_search($query, max(12, $limit * 3)) as $faq_item) {
-            $items[] = $faq_item;
-        }
-
-        usort($items, static function ($a, $b) {
-            if (($a['_score'] ?? 0) !== ($b['_score'] ?? 0)) {
-                return ($b['_score'] ?? 0) <=> ($a['_score'] ?? 0);
-            }
-            return ($b['_modified'] ?? 0) <=> ($a['_modified'] ?? 0);
-        });
-
-        $items = array_slice($items, 0, $limit);
-        foreach ($items as &$item) {
-            unset($item['_score'], $item['_modified']);
-        }
-        unset($item);
-        return $items;
+        return self::rank_related_items($items, $limit, !$keep_internal);
     }
 
     /**
@@ -2758,120 +2782,206 @@ final class SEO_Dependiente_API {
         ), ARRAY_A);
     }
 
-    private static function faq_content_search($query, $limit = 30) {
+    /**
+     * Busca FAQs siguiendo primero el enlace estructural del propietario.
+     *
+     * Ruta principal:
+     *   consulta -> productos/categorías candidatos -> object_type/object_id -> FAQs
+     *
+     * Solo cuando no existe ningún candidato de owner se permite la búsqueda
+     * textual global en question/ambito. El LONGTEXT answer nunca se usa para
+     * descubrir candidatos globales; solo se puntúa una vez acotado el conjunto.
+     */
+    private static function faq_content_search($query, $limit = 30, $documents = array(), $keep_internal = false) {
         global $wpdb;
         $faq_table = $wpdb->prefix . 'seo_faq';
         if (!SEO_Dependiente_Index::table_exists($faq_table)) {
             return array();
         }
+
         $normalized_query = SEO_Dependiente_Index::normalize((string) $query);
-        $tokens = array_values(array_unique(array_filter(preg_split('/\\s+/u', $normalized_query), static function ($token) {
-            return strlen((string) $token) >= 3;
+        $tokens = array_values(array_unique(array_filter(preg_split('/\s+/u', $normalized_query), static function ($token) {
+            $length = function_exists('mb_strlen') ? mb_strlen((string) $token, 'UTF-8') : strlen((string) $token);
+            return $length >= 3;
         })));
         $tokens = array_slice($tokens, 0, 6);
         if (!$tokens) {
             return array();
         }
 
+        $limit = max(1, absint($limit));
         $candidate_rows = array();
-        $conditions = array();
-        $params = array();
-        foreach ($tokens as $token) {
-            $like = '%' . $wpdb->esc_like($token) . '%';
-            $conditions[] = 'LOWER(question) LIKE %s';
-            $params[] = $like;
-        }
-        $text_limit = min(240, max(40, absint($limit) * 5));
-        $sql = "SELECT id,object_type,object_id,question,answer,updated_at
-                FROM {$faq_table}
-                WHERE active=1 AND (" . implode(' OR ', $conditions) . ")
-                ORDER BY updated_at DESC,id DESC LIMIT {$text_limit}";
-        foreach ((array) $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A) as $row) {
-            $candidate_rows[absint($row['id'] ?? 0)] = $row;
-        }
+        $owner_scores = array();
+        $product_ids = array();
+        $category_scores = array();
 
-        // Segunda vía: si la pregunta no contiene el término, el vocabulario del
-        // propietario puede hacerla relevante. La respuesta LONGTEXT se puntúa
-        // después, sobre candidatos acotados, para evitar un escaneo completo.
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-        if (SEO_Dependiente_Index::table_exists($objects) && SEO_Dependiente_Index::table_exists($vocabulary)) {
-            $semantic_conditions = array();
-            $semantic_params = array();
-            foreach ($tokens as $token) {
-                $like = '%' . $wpdb->esc_like($token) . '%';
-                $semantic_conditions[] = '(LOWER(v.label) LIKE %s OR LOWER(v.slug) LIKE %s)';
-                $semantic_params[] = $like;
-                $semantic_params[] = $like;
+        // Los primeros productos ya vienen ordenados por relevancia del motor.
+        // De ellos obtenemos owner de producto y categorías; nunca recorremos aquí
+        // las 50k+ FAQs para descubrir a qué objeto pertenecen.
+        foreach (array_slice((array) $documents, 0, 24) as $rank => $document) {
+            if (!is_array($document)) {
+                continue;
             }
-            $owner_sql = "SELECT ov.object_type,ov.object_id,COUNT(DISTINCT v.id) hits
-                          FROM {$objects} ov INNER JOIN {$vocabulary} v ON v.id=ov.vocabulary_id AND v.active=1
-                          WHERE ov.status=1 AND ov.object_type IN ('product','product_cat','page')
-                            AND (" . implode(' OR ', $semantic_conditions) . ")
-                          GROUP BY ov.object_type,ov.object_id
-                          ORDER BY hits DESC LIMIT 180";
-            $owners = (array) $wpdb->get_results($wpdb->prepare($owner_sql, $semantic_params), ARRAY_A);
-            $owner_clauses = array();
-            $owner_params = array();
-            $type_map = array('page' => 1, 'product_cat' => 2, 'product' => 3);
-            foreach ($owners as $owner) {
-                $otype = sanitize_key((string) ($owner['object_type'] ?? ''));
-                $oid = absint($owner['object_id'] ?? 0);
-                if (!$oid || !isset($type_map[$otype])) {
+            $product_id = absint($document['product_id'] ?? $document['id'] ?? 0);
+            if ($product_id && !isset($product_ids[$product_id])) {
+                $product_ids[$product_id] = true;
+                $owner_scores['3:' . $product_id] = max(40, 190 - ((int) $rank * 6));
+            }
+            $rank_weight = max(4, 30 - (int) $rank);
+            foreach ((array) ($document['categories'] ?? array()) as $category) {
+                $category_id = absint($category['id'] ?? 0);
+                if (!$category_id) {
                     continue;
                 }
-                $owner_clauses[] = '(object_type=%d AND object_id=%d)';
-                $owner_params[] = $type_map[$otype];
-                $owner_params[] = $oid;
-            }
-            if ($owner_clauses) {
-                $owner_limit = min(240, max(40, absint($limit) * 5));
-                $owner_faq_sql = "SELECT id,object_type,object_id,question,answer,updated_at
-                                  FROM {$faq_table} WHERE active=1 AND (" . implode(' OR ', $owner_clauses) . ")
-                                  ORDER BY updated_at DESC,id DESC LIMIT {$owner_limit}";
-                foreach ((array) $wpdb->get_results($wpdb->prepare($owner_faq_sql, $owner_params), ARRAY_A) as $row) {
-                    $candidate_rows[absint($row['id'] ?? 0)] = $row;
+                if (!isset($category_scores[$category_id])) {
+                    $category_scores[$category_id] = 0;
                 }
+                $category_scores[$category_id] += $rank_weight;
             }
+        }
+
+        if ($category_scores) {
+            arsort($category_scores, SORT_NUMERIC);
+            $category_scores = array_slice($category_scores, 0, 12, true);
+            foreach ($category_scores as $category_id => $score) {
+                $owner_scores['2:' . absint($category_id)] = min(155, 55 + (int) $score);
+            }
+        }
+
+        $product_ids = array_slice(array_keys($product_ids), 0, 16);
+        $category_ids = array_map('absint', array_keys($category_scores));
+        $owner_conditions = array();
+        $owner_params = array();
+        if ($product_ids) {
+            $owner_conditions[] = '(object_type=3 AND object_id IN (' . implode(',', array_fill(0, count($product_ids), '%d')) . '))';
+            $owner_params = array_merge($owner_params, $product_ids);
+        }
+        if ($category_ids) {
+            $owner_conditions[] = '(object_type=2 AND object_id IN (' . implode(',', array_fill(0, count($category_ids), '%d')) . '))';
+            $owner_params = array_merge($owner_params, $category_ids);
+        }
+
+        if ($owner_conditions) {
+            $owner_limit = min(180, max(30, $limit * 8));
+            $owner_sql = "SELECT id,object_type,object_id,ambito,question,answer,updated_at
+                          FROM {$faq_table}
+                          WHERE active=1 AND (" . implode(' OR ', $owner_conditions) . ")
+                          ORDER BY sort_order ASC,id ASC
+                          LIMIT {$owner_limit}";
+            foreach ((array) $wpdb->get_results($wpdb->prepare($owner_sql, $owner_params), ARRAY_A) as $row) {
+                $faq_id = absint($row['id'] ?? 0);
+                if (!$faq_id) {
+                    continue;
+                }
+                $owner_key = absint($row['object_type'] ?? 0) . ':' . absint($row['object_id'] ?? 0);
+                $row['_faq_route'] = 'owner';
+                $row['_owner_score'] = (int) ($owner_scores[$owner_key] ?? 40);
+                $candidate_rows[$faq_id] = $row;
+            }
+        }
+
+        // Fallback: solo si el catálogo no pudo llevarnos a ningún owner. Academia
+        // L6 lo desactiva para que una coincidencia textual no cuente como aprendizaje.
+        $allow_text_fallback = (bool) apply_filters(
+            'seo_dependiente_faq_allow_text_fallback',
+            true,
+            $query,
+            $documents
+        );
+        if (!$candidate_rows && $allow_text_fallback) {
+            $conditions = array();
+            $params = array();
+            foreach ($tokens as $token) {
+                $like = '%' . $wpdb->esc_like($token) . '%';
+                $conditions[] = '(LOWER(question) LIKE %s OR LOWER(COALESCE(ambito,\'\')) LIKE %s)';
+                $params[] = $like;
+                $params[] = $like;
+            }
+            $text_limit = min(100, max(24, $limit * 4));
+            $sql = "SELECT id,object_type,object_id,ambito,question,answer,updated_at
+                    FROM {$faq_table}
+                    WHERE active=1 AND object_type IN (2,3) AND (" . implode(' OR ', $conditions) . ")
+                    ORDER BY updated_at DESC,id DESC LIMIT {$text_limit}";
+            foreach ((array) $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A) as $row) {
+                $faq_id = absint($row['id'] ?? 0);
+                if (!$faq_id) {
+                    continue;
+                }
+                $row['_faq_route'] = 'text_fallback';
+                $row['_owner_score'] = 0;
+                $candidate_rows[$faq_id] = $row;
+            }
+        }
+
+        if (!$candidate_rows) {
+            return array();
         }
 
         $items = array();
+        $owner_context_cache = array();
         foreach ($candidate_rows as $row) {
             $faq_id = absint($row['id'] ?? 0);
             $object_type = absint($row['object_type'] ?? 0);
             $object_id = absint($row['object_id'] ?? 0);
-            if (!$faq_id || !$object_id || !in_array($object_type, array(1,2,3), true)) {
+            if (!$faq_id || !$object_id || !in_array($object_type, array(2,3), true)) {
                 continue;
             }
-            $owner = self::faq_owner_context($object_type, $object_id);
+
+            $owner_cache_key = $object_type . ':' . $object_id;
+            if (!array_key_exists($owner_cache_key, $owner_context_cache)) {
+                $owner_context_cache[$owner_cache_key] = self::faq_owner_context($object_type, $object_id);
+            }
+            $owner = $owner_context_cache[$owner_cache_key];
             if (!$owner) {
                 continue;
             }
+
             $question = wp_strip_all_tags((string) ($row['question'] ?? ''));
             $answer = trim(wp_strip_all_tags((string) ($row['answer'] ?? '')));
+            $ambito = trim(wp_strip_all_tags((string) ($row['ambito'] ?? '')));
             $question_norm = SEO_Dependiente_Index::normalize($question);
             $answer_norm = SEO_Dependiente_Index::normalize($answer);
+            $ambito_norm = SEO_Dependiente_Index::normalize($ambito);
             $owner_norm = SEO_Dependiente_Index::normalize(($owner['title'] ?? '') . ' ' . implode(' ', (array) ($owner['vocabulary'] ?? array())));
-            $all_norm = trim($question_norm . ' ' . $answer_norm . ' ' . $owner_norm);
-            $score = 0;
+            $all_norm = trim($question_norm . ' ' . $ambito_norm . ' ' . $answer_norm . ' ' . $owner_norm);
+            $route = sanitize_key((string) ($row['_faq_route'] ?? 'owner'));
+            $score = max(0, (int) ($row['_owner_score'] ?? 0));
             $hits = 0;
+
+            if ('owner' === $route) {
+                // Premio fijo por haber llegado a la FAQ mediante su propietario.
+                $score += 145;
+            }
             if ($normalized_query && false !== strpos($question_norm, $normalized_query)) {
-                $score += 420;
+                $score += 320;
+                $hits++;
             } elseif ($normalized_query && false !== strpos($all_norm, $normalized_query)) {
-                $score += 220;
+                $score += 180;
+                $hits++;
             }
             foreach ($tokens as $token) {
                 if (false !== strpos($question_norm, $token)) {
-                    $score += 74; $hits++;
+                    $score += 74;
+                    $hits++;
+                } elseif ($ambito_norm && false !== strpos($ambito_norm, $token)) {
+                    $score += 52;
+                    $hits++;
                 } elseif (false !== strpos($owner_norm, $token)) {
-                    $score += 58; $hits++;
+                    $score += 46;
+                    $hits++;
                 } elseif (false !== strpos($answer_norm, $token)) {
-                    $score += 20; $hits++;
+                    $score += 18;
+                    $hits++;
                 }
             }
-            if (!$score || (!$hits && (!$normalized_query || false === strpos($all_norm, $normalized_query)))) {
+
+            // En owner-first el vínculo estructural ya es señal suficiente para
+            // mostrar la FAQ dentro del pequeño conjunto del propietario. En el
+            // fallback textual sí exigimos coincidencia real con la consulta.
+            if ('owner' !== $route && (!$score || 0 === $hits)) {
                 continue;
             }
+
             $items[] = array(
                 'id'          => $faq_id,
                 'type'        => 'faq',
@@ -2883,17 +2993,14 @@ final class SEO_Dependiente_API {
                 'owner_type'  => (string) ($owner['type'] ?? ''),
                 'owner_id'    => $object_id,
                 'owner_title' => (string) ($owner['title'] ?? ''),
+                'faq_route'   => $route,
+                'ambito'      => $ambito,
                 '_score'      => $score,
                 '_modified'   => strtotime((string) ($row['updated_at'] ?? '')) ?: 0,
             );
         }
-        usort($items, static function ($a, $b) {
-            if (($a['_score'] ?? 0) !== ($b['_score'] ?? 0)) {
-                return ($b['_score'] ?? 0) <=> ($a['_score'] ?? 0);
-            }
-            return ($b['_modified'] ?? 0) <=> ($a['_modified'] ?? 0);
-        });
-        return array_slice($items, 0, max(1, absint($limit)));
+
+        return self::rank_related_items($items, $limit, !$keep_internal);
     }
 
     private static function faq_owner_context($object_type, $object_id) {
