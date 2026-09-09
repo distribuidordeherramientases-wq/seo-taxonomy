@@ -244,22 +244,43 @@ final class SEO_Dependiente_API {
         // conozcamos los productos/categorías candidatos y podamos seguir su owner.
         $direct_related = self::direct_content_search($query, 6, true);
 
-        // 2. La búsqueda extensiva solo se abre cuando 1A + 1B ofrecen poca señal
-        // local. Así las descripciones, rutas semánticas y aproximaciones no pisan
-        // una respuesta directa ya suficientemente buena.
-        $run_extended = !self::local_search_sufficient($primary_matched, $direct_related);
+        // 2. La búsqueda extensiva se abre cuando la señal local de PRODUCTOS
+        // es insuficiente. El contenido editorial puede complementar una respuesta,
+        // pero nunca sustituir la recuperación del catálogo cuando no hay productos.
+        $primary_product_count = count($primary_matched);
+        $local_sufficient = self::local_search_sufficient($primary_matched, $direct_related);
+        $has_catalog_semantic_route = self::has_catalog_semantic_route($semantic);
+        $run_extended = !$local_sufficient;
+        $extended_reasons = array();
+        if (!$local_sufficient) {
+            $extended_reasons[] = 'local_product_signal_insufficient';
+        }
+        if (0 === $primary_product_count) {
+            $run_extended = true;
+            $extended_reasons[] = 'no_primary_products';
+        }
+        // Una ruta semántica TIPO/ROL/etc. es una señal explícita de catálogo.
+        // Si la primera pasada todavía no ofrece una respuesta amplia, abrimos la
+        // capa semántica aunque existan landings, posts o FAQs relacionados.
+        if ($has_catalog_semantic_route && $primary_product_count < 6) {
+            $run_extended = true;
+            $extended_reasons[] = 'catalog_semantic_route';
+        }
         // Cuando el cliente ha elegido un ROL concreto, no dejamos que varias
         // guías editoriales oculten la segunda pasada del catálogo si todavía
         // hay pocos productos de ese rol. Es especialmente importante en frases
         // de problema como "se me ha roto un grifo" + Herramienta.
-        if ($solution_role && count($primary_matched) < 3) {
+        if ($solution_role && $primary_product_count < 3) {
             $run_extended = true;
+            $extended_reasons[] = 'solution_role';
         }
         $search_diagnostic = $primary_diagnostic;
         $search_diagnostic['solution_role'] = $solution_role;
-        $search_diagnostic['primary_product_count'] = count($primary_matched);
+        $search_diagnostic['primary_product_count'] = $primary_product_count;
         $search_diagnostic['direct_knowledge_count'] = count($direct_related);
         $search_diagnostic['extended_search'] = $run_extended ? 'executed' : 'skipped';
+        $search_diagnostic['extended_reasons'] = array_values(array_unique($extended_reasons));
+        $search_diagnostic['semantic_catalog_route'] = $has_catalog_semantic_route ? 1 : 0;
         $search_diagnostic['semantic_rules_active'] = (int) $semantic_rules_active;
         if ($semantic_hint) {
             $search_diagnostic['semantic_hint'] = $semantic_hint;
@@ -414,7 +435,7 @@ final class SEO_Dependiente_API {
             ));
         }
 
-        return rest_ensure_response(array(
+        $response_payload = array(
             'query'           => $query,
             'mode'            => $mode,
             'solution_role'   => $solution_role,
@@ -434,7 +455,11 @@ final class SEO_Dependiente_API {
             'semantic_rules_active' => (int) $semantic_rules_active,
             'clarification'    => $clarification,
             'external_fallback' => $amazon_fallback,
-        ));
+        );
+        if ((bool) apply_filters('seo_dependiente_expose_search_diagnostic', false, $request, $semantic)) {
+            $response_payload['search_diagnostic'] = self::public_search_diagnostic($search_diagnostic);
+        }
+        return rest_ensure_response($response_payload);
     }
 
 
@@ -949,6 +974,7 @@ final class SEO_Dependiente_API {
 
     private static function primary_search_groups($query, $semantic = array()) {
         $groups = array();
+        $object_groups = array();
         if (!empty($semantic['groups'])) {
             foreach ((array) $semantic['groups'] as $group) {
                 $role = sanitize_key((string) ($group['role'] ?? 'term'));
@@ -959,10 +985,22 @@ final class SEO_Dependiente_API {
                     array('SEO_Dependiente_Index', 'normalize'),
                     (array) ($group['variants'] ?? array())
                 ))));
-                if ($variants) {
-                    $groups[] = array_slice($variants, 0, 8);
+                if (!$variants) {
+                    continue;
+                }
+                $variants = array_slice($variants, 0, 8);
+                $groups[] = $variants;
+                if ('object' === $role) {
+                    $object_groups[] = $variants;
                 }
             }
+        }
+        // Cuando el parser ya ha identificado el objeto, la primera pasada usa
+        // ese ancla en vez de exigir con AND palabras de estructura como
+        // "tipo", "tienes" o "catálogo". El resto de términos sigue
+        // participando después en el ranking y en la fase semántica.
+        if ($object_groups) {
+            return array_slice($object_groups, 0, 6);
         }
         if (!$groups) {
             $groups = self::query_token_groups($query);
@@ -1042,10 +1080,12 @@ final class SEO_Dependiente_API {
         $products = count((array) $primary_products);
         $knowledge = count((array) $direct_knowledge);
 
+        // El conocimiento editorial complementa productos; no puede declarar por
+        // sí solo que la búsqueda de catálogo es suficiente. Con cero o un producto
+        // siempre queda abierta la posibilidad de recuperar más catálogo.
         $sufficient = $products >= 6
             || ($products >= 3 && $knowledge >= 1)
-            || ($products >= 2 && $knowledge >= 2)
-            || $knowledge >= 4;
+            || ($products >= 2 && $knowledge >= 2);
 
         return (bool) apply_filters(
             'seo_dependiente_local_search_sufficient',
@@ -1053,6 +1093,47 @@ final class SEO_Dependiente_API {
             $products,
             $knowledge
         );
+    }
+
+    private static function has_catalog_semantic_route($semantic) {
+        foreach ((array) ($semantic['routes'] ?? array()) as $route) {
+            $group = sanitize_key((string) ($route['target_group'] ?? ''));
+            if (!in_array($group, array('rol', 'tipo', 'aplicacion', 'plataforma', 'subtipo'), true)) {
+                continue;
+            }
+            if (absint($route['target_vocabulary_id'] ?? 0) > 0
+                || '' !== trim((string) ($route['target_slug'] ?? ''))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static function public_search_diagnostic($diagnostic) {
+        $diagnostic = is_array($diagnostic) ? $diagnostic : array();
+        $out = array();
+        foreach (array(
+            'strategy', 'primary_strategy', 'extended_search', 'solution_role'
+        ) as $key) {
+            if (isset($diagnostic[$key])) {
+                $out[$key] = sanitize_key((string) $diagnostic[$key]);
+            }
+        }
+        foreach (array(
+            'primary_rows', 'primary_group_count', 'primary_product_count',
+            'direct_knowledge_count', 'strict_count', 'semantic_product_ids',
+            'semantic_route_rows', 'object_anchor_rows', 'broad_fallback_rows',
+            'semantic_catalog_route', 'semantic_rules_active'
+        ) as $key) {
+            if (isset($diagnostic[$key])) {
+                $out[$key] = absint($diagnostic[$key]);
+            }
+        }
+        $out['extended_reasons'] = array_values(array_slice(array_filter(array_map(
+            'sanitize_key',
+            (array) ($diagnostic['extended_reasons'] ?? array())
+        )), 0, 8));
+        return $out;
     }
 
     private static function candidate_rows($query, $semantic = array(), &$diagnostic = array()) {

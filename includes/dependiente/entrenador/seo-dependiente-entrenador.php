@@ -2037,6 +2037,15 @@ final class SEO_Dependiente_Entrenador {
     }
 
     /**
+     * Academia puede pedir al API un diagnóstico interno de recuperación. El
+     * filtro solo existe durante sus propias llamadas REST, por lo que esos datos
+     * no se exponen en las búsquedas normales de clientes.
+     */
+    public static function expose_search_diagnostic($expose = false) {
+        return true;
+    }
+
+    /**
      * El aula de L1-L7 puede usar las reglas preparadas de la lección actual.
      * Esta bandera solo se instala alrededor de la petición REST de Academia,
      * por lo que nunca altera las búsquedas normales de clientes.
@@ -2591,8 +2600,11 @@ final class SEO_Dependiente_Entrenador {
         $diagnostic_labels = array(
             'mastered'          => 'Conocimiento resuelto',
             'parser_gap'        => 'Fallo de interpretación',
-            'retrieval_gap'     => 'Fallo de recuperación',
-            'ranking_gap'       => 'Fallo de ranking/filtro',
+            'retrieval_gap'              => 'Fallo de recuperación',
+            'semantic_expansion_skipped' => 'Expansión semántica omitida',
+            'semantic_candidates_filtered'=> 'Candidatos semánticos filtrados',
+            'semantic_route_unresolved'   => 'Ruta semántica sin candidatos',
+            'ranking_gap'                => 'Fallo de ranking/filtro',
             'clarification_gap' => 'Aclaración innecesaria',
             'curriculum_invalid'=> 'Pregunta a revisar',
             'technical_error'   => 'Error técnico',
@@ -3861,6 +3873,7 @@ final class SEO_Dependiente_Entrenador {
         $use_classroom_stage = self::lesson_uses_classroom_stage($lesson_key);
         $faq_owner_only = 'v2_l6_faq' === $lesson_key;
         add_filter('seo_dependiente_should_log_search', array(__CLASS__, 'skip_customer_search_log'), 999, 4);
+        add_filter('seo_dependiente_expose_search_diagnostic', array(__CLASS__, 'expose_search_diagnostic'), 999, 3);
         if ($use_classroom_stage) {
             add_filter('seo_dependiente_include_academy_stage', array(__CLASS__, 'include_academy_stage_rules'), 999, 1);
         }
@@ -3873,6 +3886,7 @@ final class SEO_Dependiente_Entrenador {
             $response = new WP_Error('seo_dependiente_academy_exception', $error->getMessage());
         } finally {
             remove_filter('seo_dependiente_should_log_search', array(__CLASS__, 'skip_customer_search_log'), 999);
+            remove_filter('seo_dependiente_expose_search_diagnostic', array(__CLASS__, 'expose_search_diagnostic'), 999);
             if ($use_classroom_stage) {
                 remove_filter('seo_dependiente_include_academy_stage', array(__CLASS__, 'include_academy_stage_rules'), 999);
             }
@@ -3932,6 +3946,7 @@ final class SEO_Dependiente_Entrenador {
         $evaluation['diagnostic_type'] = self::diagnose_evaluation($question, $evaluation, $data, $result_ids, $related_results);
         $evaluation['classroom_stage_used'] = (bool) $use_classroom_stage;
         $semantic = is_array($data['semantic'] ?? null) ? $data['semantic'] : array();
+        $search_diagnostic = self::sanitize_search_diagnostic($data['search_diagnostic'] ?? array());
         $meta = array(
             'clarification' => is_array($data['clarification'] ?? null) ? $data['clarification'] : null,
             'semantic' => array(
@@ -3940,6 +3955,7 @@ final class SEO_Dependiente_Entrenador {
                 'groups'     => array_values(array_slice((array) ($semantic['groups'] ?? array()), 0, 16)),
                 'routes'     => array_values(array_slice((array) ($semantic['routes'] ?? array()), 0, 16)),
             ),
+            'search_diagnostic' => $search_diagnostic,
             'related_results' => $related_results,
         );
 
@@ -3969,6 +3985,33 @@ final class SEO_Dependiente_Entrenador {
         ));
 
         return false === $inserted ? 0 : absint($wpdb->insert_id);
+    }
+
+    private static function sanitize_search_diagnostic($diagnostic) {
+        if (!is_array($diagnostic)) {
+            return array();
+        }
+        $out = array();
+        foreach (array('strategy', 'primary_strategy', 'extended_search', 'solution_role') as $key) {
+            if (isset($diagnostic[$key])) {
+                $out[$key] = sanitize_key((string) $diagnostic[$key]);
+            }
+        }
+        foreach (array(
+            'primary_rows', 'primary_group_count', 'primary_product_count',
+            'direct_knowledge_count', 'strict_count', 'semantic_product_ids',
+            'semantic_route_rows', 'object_anchor_rows', 'broad_fallback_rows',
+            'semantic_catalog_route', 'semantic_rules_active'
+        ) as $key) {
+            if (isset($diagnostic[$key])) {
+                $out[$key] = absint($diagnostic[$key]);
+            }
+        }
+        $out['extended_reasons'] = array_values(array_slice(array_filter(array_map(
+            'sanitize_key',
+            (array) ($diagnostic['extended_reasons'] ?? array())
+        )), 0, 8));
+        return $out;
     }
 
     private static function evaluate_question($question, $result_ids, $run_status, $related_results = array()) {
@@ -4050,6 +4093,22 @@ final class SEO_Dependiente_Entrenador {
             return 'parser_gap';
         }
         if (!$result_ids) {
+            $diagnostic = is_array($response_data['search_diagnostic'] ?? null)
+                ? $response_data['search_diagnostic']
+                : array();
+            if ('skipped' === sanitize_key((string) ($diagnostic['extended_search'] ?? ''))
+                && !empty($semantic['routes'])) {
+                return 'semantic_expansion_skipped';
+            }
+            if (absint($diagnostic['semantic_product_ids'] ?? 0) > 0) {
+                return 'semantic_candidates_filtered';
+            }
+            if ('executed' === sanitize_key((string) ($diagnostic['extended_search'] ?? ''))
+                && !empty($semantic['routes'])
+                && 0 === absint($diagnostic['semantic_product_ids'] ?? 0)
+                && 0 === absint($diagnostic['semantic_route_rows'] ?? 0)) {
+                return 'semantic_route_unresolved';
+            }
             return 'retrieval_gap';
         }
         if ($related_results && in_array(sanitize_key((string) ($expected['kind'] ?? '')), array('content', 'faq', 'cross'), true)) {
