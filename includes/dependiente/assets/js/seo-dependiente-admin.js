@@ -14,6 +14,8 @@
     const resetConfirmButton = document.querySelector('[data-dependiente-reset-confirm-button]');
     const resetCancel = document.querySelector('[data-dependiente-reset-cancel]');
     const resetStatus = document.querySelector('[data-dependiente-reset-status]');
+    let statusTimer = null;
+    let lastKnownStatus = '';
 
     if (bar) {
         const initialPercent = Math.max(0, Math.min(100, Number(bar.dataset.initialPercent || 0)));
@@ -35,45 +37,115 @@
         return payload.data;
     }
 
+    function numberFormat(value) {
+        return new Intl.NumberFormat().format(Math.max(0, Number(value || 0)));
+    }
+
+    function setControls(status) {
+        const running = status === 'running';
+        if (reindexButton) reindexButton.disabled = running;
+        if (clearButton) clearButton.disabled = false;
+    }
+
     function updateProgress(data) {
+        data = data || {};
+        const status = String(data.status || 'idle');
         const totalValue = Number(data.total || (total ? total.textContent.replace(/\D/g, '') : 0));
         const indexedValue = Number(data.indexed || 0);
-        const percent = totalValue ? Math.min(100, Math.round((indexedValue / totalValue) * 100)) : 0;
+        let percent = Number.isFinite(Number(data.percent))
+            ? Number(data.percent)
+            : (totalValue ? Math.round((indexedValue / totalValue) * 100) : 0);
+        percent = Math.max(0, Math.min(100, percent));
+
+        lastKnownStatus = status;
         if (bar) bar.style.width = percent + '%';
-        if (text) text.textContent = percent + '% completado' + (data.done ? ' · Índice actualizado' : ' · Procesando lote ' + data.page + ' de ' + data.pages);
-        if (indexed) indexed.textContent = new Intl.NumberFormat().format(indexedValue);
-        if (total && totalValue) total.textContent = new Intl.NumberFormat().format(totalValue);
+        if (indexed) indexed.textContent = numberFormat(indexedValue);
+        if (total && totalValue) total.textContent = numberFormat(totalValue);
+        setControls(status);
+
+        if (!text) return;
+
+        if (status === 'running') {
+            const page = Math.max(1, Number(data.page || 1));
+            const pages = Math.max(1, Number(data.pages || 1));
+            text.textContent = percent + '% completado · Reindexando en segundo plano · lote ' + Math.min(page, pages) + ' de ' + pages + '. Puedes cerrar esta pantalla.';
+            return;
+        }
+        if (status === 'completed' && Number(data.verified || 0) === 1) {
+            text.textContent = '100% · ÍNDICE COMPLETO Y VERIFICADO';
+            return;
+        }
+        if (status === 'failed') {
+            const missing = Math.max(0, Number(data.missing || 0));
+            text.textContent = missing
+                ? 'ÍNDICE INCOMPLETO · faltan ' + numberFormat(missing) + ' productos. ' + String(data.last_error || '')
+                : 'REINDEXACIÓN FALLIDA · ' + String(data.last_error || 'Revisa el estado del proceso.');
+            return;
+        }
+        if (status === 'stopped' && indexedValue === 0) {
+            text.textContent = 'Índice vacío. Pulsa “Reindexar catálogo completo” cuando quieras iniciarlo.';
+            return;
+        }
+        text.textContent = percent + '% completado';
+    }
+
+    function cancelStatusPoll() {
+        if (statusTimer) {
+            window.clearTimeout(statusTimer);
+            statusTimer = null;
+        }
+    }
+
+    function scheduleStatusPoll(delay) {
+        cancelStatusPoll();
+        statusTimer = window.setTimeout(function () {
+            pollStatus();
+        }, Math.max(1000, Number(delay || 4000)));
+    }
+
+    async function pollStatus(initial) {
+        try {
+            const data = await post('seo_dependiente_reindex_status');
+            updateProgress(data);
+            if (String(data.status || '') === 'running') {
+                scheduleStatusPoll(4000);
+            } else {
+                cancelStatusPoll();
+            }
+        } catch (error) {
+            if (!initial && text && lastKnownStatus === 'running') {
+                text.textContent = 'No se ha podido consultar el estado. Esto no detiene la reindexación en segundo plano; volveré a comprobarla.';
+            }
+            if (lastKnownStatus === 'running') {
+                scheduleStatusPoll(6000);
+            }
+        }
     }
 
     async function reindex() {
         if (!reindexButton) return;
+        cancelStatusPoll();
         reindexButton.disabled = true;
-        clearButton && (clearButton.disabled = true);
-        let page = 1;
-        let reset = 1;
+        if (text) text.textContent = 'Iniciando reindexación…';
         try {
-            while (true) {
-                const data = await post('seo_dependiente_reindex', { page, reset });
-                updateProgress(data);
-                if (data.done) break;
-                page += 1;
-                reset = 0;
+            const data = await post('seo_dependiente_reindex');
+            updateProgress(data);
+            if (String(data.status || '') === 'running') {
+                scheduleStatusPoll(2500);
             }
         } catch (error) {
             if (text) text.textContent = error.message;
-        } finally {
             reindexButton.disabled = false;
-            clearButton && (clearButton.disabled = false);
         }
     }
 
     async function clearIndex() {
-        if (!clearButton || !window.confirm('¿Vaciar el índice de Dependiente? El buscador quedará sin resultados hasta reindexar.')) return;
+        if (!clearButton || !window.confirm('¿Vaciar el índice de Dependiente? Si hay una reindexación en curso, se detendrá. El buscador quedará sin resultados hasta reindexar.')) return;
+        cancelStatusPoll();
         clearButton.disabled = true;
         try {
             const data = await post('seo_dependiente_clear');
-            updateProgress({ indexed: data.indexed, total: total ? total.textContent.replace(/\D/g, '') : 0, done: false, page: 0, pages: 0 });
-            if (text) text.textContent = 'Índice vacío. Pulsa “Reindexar catálogo completo”; si alguien abre la página antes, se generará un primer lote automáticamente.';
+            updateProgress({ indexed: data.indexed, total: total ? total.textContent.replace(/\D/g, '') : 0, status: 'stopped', percent: 0 });
         } catch (error) {
             if (text) text.textContent = error.message;
         } finally {
@@ -98,6 +170,7 @@
 
     async function resetKnowledge() {
         if (!resetConfirmButton) return;
+        cancelStatusPoll();
         resetConfirmButton.disabled = true;
         resetCancel && (resetCancel.disabled = true);
         resetPrepare && (resetPrepare.disabled = true);
@@ -109,6 +182,8 @@
             const data = await post('seo_dependiente_reset_knowledge', { confirmation: 'BORRAR_CONOCIMIENTO' });
             if (indexed) indexed.textContent = '0';
             if (bar) bar.style.width = '0%';
+            lastKnownStatus = 'stopped';
+            setControls('stopped');
             if (text) text.textContent = 'Índice vacío. Reindexa el catálogo antes de iniciar la primera lección.';
             if (resetStatus) {
                 resetStatus.textContent = data.message || 'Conocimiento reiniciado correctamente.';
@@ -166,4 +241,10 @@
     resetPrepare && resetPrepare.addEventListener('click', showResetConfirmation);
     resetCancel && resetCancel.addEventListener('click', hideResetConfirmation);
     resetConfirmButton && resetConfirmButton.addEventListener('click', resetKnowledge);
+
+    // Consultar el estado al abrir la pantalla nunca inicia trabajo; solo permite
+    // reconectar el panel a una reindexación manual que ya esté en curso.
+    if (reindexButton || text) {
+        pollStatus(true);
+    }
 }());
