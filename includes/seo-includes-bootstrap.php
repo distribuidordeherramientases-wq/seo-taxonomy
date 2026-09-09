@@ -72,7 +72,7 @@ require_once SEO_SYSTEM_PATH . 'includes/seo-images.php';
 
 // Subsistema de productos centralizado.
 // Incluye clasificacion, atributos, alta/edicion, inventario, informes y administracion.
-require_once SEO_SYSTEM_PATH . 'includes/productos/productos-bootstrap.php';
+require_once SEO_SYSTEM_PATH . 'includes/productos/product-bootstrap.php';
 
 /*
 |--------------------------------------------------------------------------
