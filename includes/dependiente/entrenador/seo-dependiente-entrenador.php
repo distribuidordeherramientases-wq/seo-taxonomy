@@ -43,6 +43,7 @@ final class SEO_Dependiente_Entrenador {
         add_action('wp_ajax_seo_dependiente_entrenador_prepare_lesson', array(__CLASS__, 'ajax_prepare_lesson'));
         add_action('wp_ajax_seo_dependiente_entrenador_run_module', array(__CLASS__, 'ajax_run_module'));
         add_action('wp_ajax_seo_dependiente_entrenador_export_lesson', array(__CLASS__, 'ajax_export_lesson'));
+        add_action('wp_ajax_seo_dependiente_entrenador_export_course', array(__CLASS__, 'ajax_export_course'));
         add_action('wp_ajax_seo_dependiente_entrenador_set_mode', array(__CLASS__, 'ajax_set_mode'));
         add_action('wp_ajax_seo_dependiente_entrenador_auto_status', array(__CLASS__, 'ajax_auto_status'));
         add_action('wp_ajax_seo_dependiente_entrenador_lab_import', array(__CLASS__, 'ajax_lab_import'));
@@ -251,6 +252,13 @@ final class SEO_Dependiente_Entrenador {
         $auto_running = self::is_auto_running($auto_state);
         $basic_complete = self::basic_curriculum_completed($lessons);
         $lab_batch = $basic_complete ? self::latest_lab_batch() : null;
+        $has_exportable_lessons = false;
+        foreach ((array) $lessons as $lesson_row) {
+            if (absint($lesson_row['item_count'] ?? 0) > 0) {
+                $has_exportable_lessons = true;
+                break;
+            }
+        }
         ?>
         <div class="seo-dependiente-trainer" data-trainer-root data-current-lesson="<?php echo esc_attr($current_key); ?>" data-current-module="<?php echo esc_attr($next_module); ?>" data-auto-running="<?php echo $auto_running ? '1' : '0'; ?>">
             <div class="seo-dependiente-trainer__intro">
@@ -283,6 +291,16 @@ final class SEO_Dependiente_Entrenador {
                     self::render_lesson_card($lesson_key, $definition, $row, $current_key);
                 endforeach; ?>
             </div>
+
+            <section class="postbox seo-dependiente-admin__box seo-dependiente-trainer__reports">
+                <div class="seo-dependiente-trainer__section-head">
+                    <div>
+                        <h2>Informes de Academia</h2>
+                        <p class="description">Cada lección preparada conserva su propio informe aunque Academia haya avanzado. También puedes descargar un informe único del curso con todas las lecciones preparadas hasta este momento.</p>
+                    </div>
+                    <button type="button" class="button" data-trainer-export-course <?php disabled(!$has_exportable_lessons); ?>>Descargar curso completo (JSON)</button>
+                </div>
+            </section>
 
             <?php if ($current && isset($definitions[$current_key])) :
                 self::render_current_lesson($current_key, $definitions[$current_key], $current, $preflight, $modules, $next_module, $summary, $auto_running);
@@ -1744,10 +1762,108 @@ final class SEO_Dependiente_Entrenador {
     public static function ajax_export_lesson() {
         self::guard_ajax();
         $lesson_key = sanitize_key((string) wp_unslash($_POST['lesson_key'] ?? ''));
+        $document = self::build_lesson_export_document($lesson_key);
+        if (!$document) {
+            wp_send_json_error(array('message' => 'Lección no encontrada.'), 404);
+        }
+
+        wp_send_json_success(array(
+            'filename' => 'dependiente-academia-' . sanitize_file_name($lesson_key) . '-' . current_time('Ymd-His') . '.json',
+            'document' => $document,
+        ));
+    }
+
+    public static function ajax_export_course() {
+        self::guard_ajax();
+        if (!self::ensure_ready()) {
+            wp_send_json_error(array('message' => 'Academia no disponible.'), 500);
+        }
+
+        $definitions = self::lesson_definitions();
+        $lessons = self::lessons_by_key();
+        $exportable = array();
+        foreach ($definitions as $lesson_key => $definition) {
+            $row = isset($lessons[$lesson_key]) ? $lessons[$lesson_key] : null;
+            if ($row && absint($row['item_count'] ?? 0) > 0) {
+                $exportable[] = $lesson_key;
+            }
+        }
+        if (!$exportable) {
+            wp_send_json_error(array('message' => 'Todavía no hay lecciones preparadas para exportar.'), 404);
+        }
+
+        $filename = 'dependiente-academia-curso-completo-' . current_time('Ymd-His') . '.json';
+        @set_time_limit(0);
+        @ini_set('zlib.output_compression', '0');
+        while (ob_get_level()) {
+            @ob_end_clean();
+        }
+
+        nocache_headers();
+        status_header(200);
+        header('Content-Type: application/json; charset=' . get_option('blog_charset', 'UTF-8'));
+        header('Content-Disposition: attachment; filename="' . sanitize_file_name($filename) . '"');
+        header('X-Content-Type-Options: nosniff');
+
+        $course_summary = self::course_export_summary($lessons);
+        $lesson_index = self::course_export_lesson_index($definitions, $lessons);
+        $prefix = array(
+            'schema' => array(
+                'name'    => 'seo_dependiente_academy_course',
+                'version' => 1,
+            ),
+            'generated_at' => current_time('c'),
+            'site' => array(
+                'home_url'            => home_url('/'),
+                'dependiente_version' => defined('SEO_DEPENDIENTE_VERSION') ? SEO_DEPENDIENTE_VERSION : '',
+                'trainer_db_version'  => self::DB_VERSION,
+            ),
+            'course' => array(
+                'curriculum_version' => self::CURRICULUM_VERSION,
+                'knowledge_snapshot' => absint(get_option(self::KNOWLEDGE_SNAPSHOT_OPTION, 0)),
+                'lesson_count'       => count($definitions),
+                'exported_lessons'   => count($exportable),
+            ),
+            'summary'      => $course_summary,
+            'lesson_index' => $lesson_index,
+        );
+
+        echo '{';
+        $first = true;
+        foreach ($prefix as $key => $value) {
+            if (!$first) {
+                echo ',';
+            }
+            echo wp_json_encode((string) $key) . ':' . wp_json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $first = false;
+        }
+        echo ',"lessons":[';
+
+        $first_lesson = true;
+        foreach ($exportable as $lesson_key) {
+            $document = self::build_lesson_export_document($lesson_key);
+            if (!$document) {
+                continue;
+            }
+            if (!$first_lesson) {
+                echo ',';
+            }
+            echo wp_json_encode($document, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $first_lesson = false;
+            if (function_exists('flush')) {
+                @flush();
+            }
+        }
+        echo ']}';
+        exit;
+    }
+
+    private static function build_lesson_export_document($lesson_key) {
+        $lesson_key = sanitize_key((string) $lesson_key);
         $lesson = self::lesson_row($lesson_key);
         $definition = self::lesson_definition($lesson_key);
         if (!$lesson || !$definition) {
-            wp_send_json_error(array('message' => 'Lección no encontrada.'), 404);
+            return null;
         }
 
         global $wpdb;
@@ -1794,7 +1910,7 @@ final class SEO_Dependiente_Entrenador {
             );
         }
 
-        $document = array(
+        return array(
             'schema' => array(
                 'name'    => 'seo_dependiente_academy_lesson',
                 'version' => 1,
@@ -1806,15 +1922,15 @@ final class SEO_Dependiente_Entrenador {
                 'trainer_db_version'    => self::DB_VERSION,
             ),
             'lesson' => array(
-                'key'              => $lesson_key,
-                'order'            => absint($definition['order']),
-                'title'            => (string) $definition['title'],
-                'status'           => (string) ($lesson['status'] ?? ''),
-                'snapshot_before'  => absint($lesson['snapshot_before'] ?? 0),
-                'snapshot_after'   => absint($lesson['snapshot_after'] ?? 0),
-                'source_signature' => (string) ($lesson['source_signature'] ?? ''),
-                'module_count'     => absint($lesson['module_count'] ?? 0),
-                'item_count'       => absint($lesson['item_count'] ?? 0),
+                'key'               => $lesson_key,
+                'order'             => absint($definition['order']),
+                'title'             => (string) $definition['title'],
+                'status'            => (string) ($lesson['status'] ?? ''),
+                'snapshot_before'   => absint($lesson['snapshot_before'] ?? 0),
+                'snapshot_after'    => absint($lesson['snapshot_after'] ?? 0),
+                'source_signature'  => (string) ($lesson['source_signature'] ?? ''),
+                'module_count'      => absint($lesson['module_count'] ?? 0),
+                'item_count'        => absint($lesson['item_count'] ?? 0),
                 'curriculum_version'=> self::CURRICULUM_VERSION,
             ),
             'summary' => self::lesson_summary($lesson_key),
@@ -1831,15 +1947,50 @@ final class SEO_Dependiente_Entrenador {
                 'lesson_queries_use_snapshot_before' => !self::lesson_uses_classroom_stage($lesson_key),
                 'canonical_knowledge_promoted_on_completion' => true,
                 'l1_to_l7_are_training'       => true,
-                'l8_is_closed_exam'            => true,
+                'l8_is_closed_exam'           => true,
             ),
             'items' => $items,
         );
+    }
 
-        wp_send_json_success(array(
-            'filename' => 'dependiente-academia-' . sanitize_file_name($lesson_key) . '-' . current_time('Ymd-His') . '.json',
-            'document' => $document,
-        ));
+    private static function course_export_summary($lessons) {
+        $summary = self::empty_summary();
+        $summary['lessons_prepared'] = 0;
+        $summary['lessons_completed'] = 0;
+        foreach ((array) $lessons as $lesson_key => $lesson) {
+            if (absint($lesson['item_count'] ?? 0) < 1) {
+                continue;
+            }
+            $summary['lessons_prepared']++;
+            if ('completed' === sanitize_key((string) ($lesson['status'] ?? ''))) {
+                $summary['lessons_completed']++;
+            }
+            $lesson_summary = self::lesson_summary($lesson_key);
+            foreach (array('total', 'answered', 'pass_top1', 'pass_top3', 'pass_any', 'failed', 'errors') as $key) {
+                $summary[$key] = absint($summary[$key] ?? 0) + absint($lesson_summary[$key] ?? 0);
+            }
+        }
+        return $summary;
+    }
+
+    private static function course_export_lesson_index($definitions, $lessons) {
+        $index = array();
+        foreach ((array) $definitions as $lesson_key => $definition) {
+            $lesson = isset($lessons[$lesson_key]) ? $lessons[$lesson_key] : array();
+            $index[] = array(
+                'key'              => (string) $lesson_key,
+                'order'            => absint($definition['order'] ?? 0),
+                'title'            => (string) ($definition['title'] ?? ''),
+                'status'           => (string) ($lesson['status'] ?? 'locked'),
+                'snapshot_before'  => absint($lesson['snapshot_before'] ?? 0),
+                'snapshot_after'   => absint($lesson['snapshot_after'] ?? 0),
+                'source_signature' => (string) ($lesson['source_signature'] ?? ''),
+                'module_count'     => absint($lesson['module_count'] ?? 0),
+                'item_count'       => absint($lesson['item_count'] ?? 0),
+                'summary'          => self::lesson_summary($lesson_key),
+            );
+        }
+        return $index;
     }
 
     private static function lesson_curriculum_audit($items) {
@@ -2283,6 +2434,11 @@ final class SEO_Dependiente_Entrenador {
                     <?php endif; ?>
                 </div>
                 <span class="seo-dependiente-trainer__lesson-status"><?php echo esc_html($labels[$status] ?? ucfirst($status)); ?></span>
+                <?php if (absint($row['item_count'] ?? 0) > 0) : ?>
+                    <div class="seo-dependiente-trainer__lesson-report">
+                        <button type="button" class="button button-small" data-trainer-export-lesson-key="<?php echo esc_attr($lesson_key); ?>">Descargar informe de esta lección</button>
+                    </div>
+                <?php endif; ?>
             </div>
         </article>
         <?php
