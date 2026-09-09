@@ -466,7 +466,7 @@ final class SEO_Dependiente_Admin {
         ?>
         <section class="postbox seo-dependiente-admin__box seo-dependiente-admin__danger-zone" data-dependiente-reset-root>
             <h2 class="seo-dependiente-admin__box-title">Zona peligrosa · Reiniciar conocimiento</h2>
-            <p><strong>Devuelve Dependiente a un estado limpio de entrenamiento.</strong> Está pensado para staging y para repetir ciclos de aprendizaje desde cero.</p>
+            <p><strong>Devuelve Dependiente a un estado limpio de entrenamiento.</strong> Se puede ejecutar en PRO para comenzar una Academia nueva desde cero sin borrar el catálogo.</p>
             <div class="seo-dependiente-admin__reset-grid">
                 <div><strong data-reset-zero><?php echo esc_html(number_format_i18n(absint($counts['semantic_reset'] ?? 0))); ?></strong><span>reglas no seed que se borrarán</span></div>
                 <div><strong data-reset-zero><?php echo esc_html(number_format_i18n(absint($counts['search_log'] ?? 0))); ?></strong><span>búsquedas/evidencias que se borrarán</span></div>
@@ -481,10 +481,10 @@ final class SEO_Dependiente_Admin {
 
             <div class="seo-dependiente-admin__reset-confirm" data-dependiente-reset-confirm hidden>
                 <h3>Confirmación necesaria</h3>
-                <p>Esta acción eliminará el aprendizaje, el historial usado como evidencia, las lecciones, ejercicios y ejecuciones de la Academia y el índice de productos de Dependiente. No se puede deshacer desde esta pantalla.</p>
+                <p>Esta acción eliminará el aprendizaje, el historial usado como evidencia, las lecciones, ejercicios y ejecuciones de Academia y el índice derivado de Dependiente. Después verifica que todo haya quedado a cero. No borra productos, categorías, Vocabulary ni atributos SEO.</p>
                 <p><strong>Las reglas base <code>seed</code> se mantienen como baseline limpio.</strong></p>
                 <div class="seo-dependiente-admin__reset-actions">
-                    <button type="button" class="button seo-dependiente-admin__danger-button is-confirm" data-dependiente-reset-confirm-button>Sí, borrar todo el conocimiento de pruebas</button>
+                    <button type="button" class="button seo-dependiente-admin__danger-button is-confirm" data-dependiente-reset-confirm-button>Sí, borrar el conocimiento y empezar desde cero</button>
                     <button type="button" class="button" data-dependiente-reset-cancel>Cancelar</button>
                 </div>
             </div>
