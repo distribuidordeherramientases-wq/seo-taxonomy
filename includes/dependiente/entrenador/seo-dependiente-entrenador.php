@@ -457,13 +457,13 @@ final class SEO_Dependiente_Entrenador {
             wp_send_json_error(array('message' => 'La lección todavía no está preparada para ejecutarse.'), 409);
         }
 
-        $prepared_signature = trim((string) ($lesson['source_signature'] ?? ''));
-        $current_signature = self::lesson_source_signature($lesson_key);
-        if ($prepared_signature && $current_signature && !hash_equals($prepared_signature, $current_signature)) {
-            wp_send_json_error(array(
-                'message' => 'El catálogo ha cambiado desde que se preparó esta lección. Reinicia la formación o vuelve a preparar el temario para no mezclar snapshots.'
-            ), 409);
-        }
+        // La lección preparada es el snapshot docente. Sus preguntas y expected_json
+        // ya quedaron materializados en las tablas del Entrenador al terminar PREPARAR.
+        // source_signature se conserva únicamente como huella de auditoría del origen.
+        // No se vuelve a calcular contra el catálogo vivo durante la ejecución: hacerlo
+        // mezclaría el concepto de snapshot con cambios normales de PRO (productos,
+        // Vocabulary, FAQs o sus métricas) y además obligaría a recorrer de nuevo las
+        // fuentes en cada lote de Academia.
 
         $lessons = self::lessons_by_key();
         if ($lesson_key !== self::current_lesson_key($lessons)) {
@@ -981,11 +981,9 @@ final class SEO_Dependiente_Entrenador {
         if (!$lesson || !in_array((string) ($lesson['status'] ?? ''), array('prepared', 'in_progress'), true)) {
             throw new RuntimeException('La lección todavía no está preparada para ejecutarse.');
         }
-        $prepared_signature = trim((string) ($lesson['source_signature'] ?? ''));
-        $current_signature = self::lesson_source_signature($lesson_key);
-        if ($prepared_signature && $current_signature && !hash_equals($prepared_signature, $current_signature)) {
-            throw new RuntimeException('El catálogo ha cambiado desde que se preparó esta lección. Reinicia la formación o vuelve a preparar el temario para no mezclar snapshots.');
-        }
+        // Igual que en modo manual: una vez preparada, la lección se ejecuta sobre
+        // el snapshot docente ya persistido. La huella source_signature es informativa
+        // y no debe convertirse en un bloqueo por cambios posteriores del catálogo vivo.
         $lessons = self::lessons_by_key();
         if ($lesson_key !== self::current_lesson_key($lessons)) {
             throw new RuntimeException('Esta lección no es la lección activa.');
