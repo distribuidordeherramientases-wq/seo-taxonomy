@@ -70,7 +70,6 @@ final class SEO_Dependiente_API {
         if (is_wp_error($ready)) {
             return $ready;
         }
-        self::ensure_initial_index();
 
         $rows = SEO_Dependiente_Index::get_rows(1200);
         $documents = array_map(array('SEO_Dependiente_Index', 'decode_row'), $rows);
@@ -136,7 +135,6 @@ final class SEO_Dependiente_API {
         if (is_wp_error($ready)) {
             return $ready;
         }
-        self::ensure_initial_index();
 
         $params = self::request_params($request);
         $query = isset($params['q']) ? sanitize_text_field((string) $params['q']) : '';
@@ -897,12 +895,6 @@ final class SEO_Dependiente_API {
             }
         }
         return array_keys($out);
-    }
-
-    private static function ensure_initial_index() {
-        if (class_exists('WooCommerce') && 0 === SEO_Dependiente_Index::count_indexed()) {
-            SEO_Dependiente_Index::index_batch(1, 60);
-        }
     }
 
     private static function woocommerce_ready() {

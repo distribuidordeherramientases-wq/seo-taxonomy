@@ -19,6 +19,7 @@ final class SEO_Dependiente_Plugin {
         // cuando wp_insert_post() intenta generar el permalink de la pagina.
         add_action('init', array($this, 'register_shortcode'), 10);
         add_action('init', array($this, 'maybe_upgrade'), 20);
+        add_action('init', array($this, 'cleanup_legacy_background_index'), 30);
 
         // Recuperacion de instalaciones interrumpidas: la version de BD pudo
         // guardarse antes de que se crease la pagina Dependiente. admin_init es
@@ -36,7 +37,14 @@ final class SEO_Dependiente_Plugin {
         add_action('before_delete_post', array($this, 'delete_product_index'));
         add_action('transition_post_status', array($this, 'sync_product_status'), 99, 3);
 
+        // El hook de fondo solo continua una reindexacion iniciada manualmente.
+        // Nunca crea un proceso nuevo por si mismo.
         add_action('seo_dependiente_background_index', array($this, 'run_background_index'));
+
+        // Integracion con el Gestor de procesos de SEO Taxonomy. El supervisor
+        // solo recibe un target mientras exista una reindexacion ya iniciada.
+        add_filter('seo_process_supervisor_has_pending_work', array(__CLASS__, 'supervisor_has_pending_reindex'), 10, 1);
+        add_filter('seo_process_supervisor_manager_targets', array(__CLASS__, 'supervisor_add_reindex_target'), 10, 3);
 
         if (is_admin()) {
             SEO_Dependiente_Admin::init();
@@ -64,13 +72,10 @@ final class SEO_Dependiente_Plugin {
         $saved = get_option('seo_dependiente_options', array());
         update_option('seo_dependiente_options', wp_parse_args(is_array($saved) ? $saved : array(), $defaults), false);
 
-        if (class_exists('WooCommerce')) {
-            SEO_Dependiente_Index::index_batch(1, 60);
-        }
-
-        if (!wp_next_scheduled('seo_dependiente_background_index')) {
-            wp_schedule_single_event(time() + 30, 'seo_dependiente_background_index');
-        }
+        // La instalacion/upgrade no inicia una reindexacion. El indice completo
+        // solo se reconstruye cuando un administrador pulsa Reindexar.
+        wp_clear_scheduled_hook('seo_dependiente_background_index');
+        delete_option('seo_dependiente_background_page');
     }
 
     public function maybe_upgrade() {
@@ -455,22 +460,380 @@ final class SEO_Dependiente_Plugin {
         }
     }
 
-    public function run_background_index() {
-        if (!class_exists('WooCommerce')) {
-            return;
-        }
-
-        $page = max(1, absint(get_option('seo_dependiente_background_page', 1)));
-        $result = SEO_Dependiente_Index::index_batch($page, 50);
-
-        if (!empty($result['done'])) {
+    /**
+     * Elimina restos del mecanismo antiguo que podia arrancar trabajo sin una
+     * orden manual. Si hay una reindexacion nueva en curso, conserva su evento
+     * de respaldo.
+     */
+    public function cleanup_legacy_background_index() {
+        $state = self::reindex_state();
+        if ('running' !== (string) ($state['status'] ?? '')) {
+            wp_clear_scheduled_hook('seo_dependiente_background_index');
             delete_option('seo_dependiente_background_page');
-            update_option('seo_dependiente_last_full_index', current_time('mysql'), false);
-            return;
+        }
+    }
+
+    private static function fresh_option($name, $default = false) {
+        if (function_exists('wp_cache_delete')) {
+            wp_cache_delete((string) $name, 'options');
+        }
+        return get_option((string) $name, $default);
+    }
+
+    private static function reindex_state_defaults() {
+        return array(
+            'status'          => 'idle',
+            'run_id'          => '',
+            'page'            => 1,
+            'pages'           => 0,
+            'limit'           => 50,
+            'total'           => 0,
+            'indexed'         => 0,
+            'processed'       => 0,
+            'percent'         => 0,
+            'verified'        => 0,
+            'missing'         => 0,
+            'started_at'      => '',
+            'started_ts'      => 0,
+            'heartbeat_at'    => '',
+            'heartbeat_ts'    => 0,
+            'finished_at'     => '',
+            'finished_ts'     => 0,
+            'worker_source'   => '',
+            'last_error'      => '',
+            'last_batch_size' => 0,
+        );
+    }
+
+    public static function reindex_state() {
+        $raw = self::fresh_option('seo_dependiente_reindex_state', array());
+        $state = wp_parse_args(is_array($raw) ? $raw : array(), self::reindex_state_defaults());
+        $state['status'] = sanitize_key((string) $state['status']);
+        if (!in_array($state['status'], array('idle', 'running', 'completed', 'failed', 'stopped'), true)) {
+            $state['status'] = 'idle';
+        }
+        $state['page'] = max(1, absint($state['page']));
+        $state['limit'] = min(100, max(10, absint($state['limit'])));
+        $state['total'] = absint($state['total']);
+        $state['pages'] = absint($state['pages']);
+        $state['processed'] = absint($state['processed']);
+        $state['verified'] = empty($state['verified']) ? 0 : 1;
+        $state['missing'] = absint($state['missing']);
+
+        // El contador real de la tabla es la fuente de verdad para el panel.
+        $state['indexed'] = class_exists('SEO_Dependiente_Index') ? SEO_Dependiente_Index::count_indexed() : absint($state['indexed']);
+        if (!$state['total'] && class_exists('SEO_Dependiente_Index')) {
+            $state['total'] = SEO_Dependiente_Index::count_published();
+        }
+        if (!$state['pages'] && $state['total']) {
+            $state['pages'] = (int) ceil($state['total'] / $state['limit']);
+        }
+        $state['percent'] = $state['total']
+            ? min(100, (int) round(($state['indexed'] / $state['total']) * 100))
+            : ('completed' === $state['status'] ? 100 : 0);
+        if ('completed' === $state['status']) {
+            $state['percent'] = 100;
+        }
+        return $state;
+    }
+
+    private static function save_reindex_state($changes) {
+        $current = self::fresh_option('seo_dependiente_reindex_state', array());
+        $state = wp_parse_args(is_array($changes) ? $changes : array(), is_array($current) ? $current : self::reindex_state_defaults());
+        update_option('seo_dependiente_reindex_state', $state, false);
+        return self::reindex_state();
+    }
+
+    public static function start_reindex() {
+        if (!class_exists('WooCommerce')) {
+            return new WP_Error('seo_dependiente_woocommerce_required', 'Dependiente necesita WooCommerce activo para reindexar.');
         }
 
-        update_option('seo_dependiente_background_page', $page + 1, false);
-        wp_schedule_single_event(time() + 60, 'seo_dependiente_background_index');
+        $existing = self::reindex_state();
+        if ('running' === (string) ($existing['status'] ?? '')) {
+            // Un segundo clic nunca reinicia ni vacia un proceso que ya esta vivo.
+            return $existing;
+        }
+
+        wp_clear_scheduled_hook('seo_dependiente_background_index');
+        delete_option('seo_dependiente_background_page');
+        delete_option('seo_dependiente_last_full_index');
+        delete_option('seo_dependiente_reindex_lock');
+
+        if (!SEO_Dependiente_Index::clear()) {
+            return new WP_Error('seo_dependiente_index_clear_failed', 'No se pudo vaciar el indice antes de iniciar la reindexacion.');
+        }
+
+        $limit = 50;
+        $total = SEO_Dependiente_Index::count_published();
+        $pages = $total ? (int) ceil($total / $limit) : 0;
+        $now = time();
+        $state = array(
+            'status'          => $total ? 'running' : 'completed',
+            'run_id'          => function_exists('wp_generate_uuid4') ? wp_generate_uuid4() : uniqid('dep_', true),
+            'page'            => 1,
+            'pages'           => $pages,
+            'limit'           => $limit,
+            'total'           => $total,
+            'indexed'         => 0,
+            'processed'       => 0,
+            'percent'         => $total ? 0 : 100,
+            'verified'        => $total ? 0 : 1,
+            'missing'         => 0,
+            'started_at'      => current_time('mysql'),
+            'started_ts'      => $now,
+            'heartbeat_at'    => current_time('mysql'),
+            'heartbeat_ts'    => $now,
+            'finished_at'     => $total ? '' : current_time('mysql'),
+            'finished_ts'     => $total ? 0 : $now,
+            'worker_source'   => 'manual_admin',
+            'last_error'      => '',
+            'last_batch_size' => 0,
+        );
+        update_option('seo_dependiente_reindex_state', $state, false);
+
+        if (!$total) {
+            update_option('seo_dependiente_last_full_index', current_time('mysql'), false);
+            return self::reindex_state();
+        }
+
+        self::schedule_reindex_fallback(1);
+        if (function_exists('seo_process_supervisor_nudge')) {
+            seo_process_supervisor_nudge(0, 'dependiente_index');
+        }
+        return self::reindex_state();
+    }
+
+    public static function stop_reindex($clear_index = false, $reason = 'manual_stop') {
+        $state = self::reindex_state();
+        if ('running' === (string) ($state['status'] ?? '')) {
+            self::save_reindex_state(array(
+                'status'        => 'stopped',
+                'finished_at'   => current_time('mysql'),
+                'finished_ts'   => time(),
+                'worker_source' => sanitize_key((string) $reason),
+            ));
+        }
+        wp_clear_scheduled_hook('seo_dependiente_background_index');
+        delete_option('seo_dependiente_background_page');
+
+        // Si un lote estaba dentro de index_batch(), esperamos a que libere su
+        // lock antes de vaciar/resetear. Asi el lote no puede repoblar el indice
+        // despues de que el usuario haya pulsado Vaciar o Reset.
+        $deadline = microtime(true) + 45.0;
+        while (microtime(true) < $deadline) {
+            $lock_value = (string) self::fresh_option('seo_dependiente_reindex_lock', '');
+            if ('' === $lock_value) {
+                break;
+            }
+            $parts = explode('|', $lock_value, 2);
+            $locked_at = absint($parts[0] ?? 0);
+            if ($locked_at && (time() - $locked_at) > 120) {
+                delete_option('seo_dependiente_reindex_lock');
+                break;
+            }
+            usleep(150000);
+        }
+
+        if ('' !== (string) self::fresh_option('seo_dependiente_reindex_lock', '')) {
+            return new WP_Error(
+                'seo_dependiente_reindex_still_stopping',
+                'La reindexacion se ha detenido, pero un lote todavia esta terminando. Espera unos segundos y vuelve a intentarlo antes de vaciar el indice.'
+            );
+        }
+
+        if ($clear_index && !SEO_Dependiente_Index::clear()) {
+            return new WP_Error('seo_dependiente_index_clear_failed', 'La reindexacion se detuvo, pero no se pudo vaciar el indice.');
+        }
+        return self::reindex_state();
+    }
+
+    private static function acquire_reindex_lock() {
+        $key = 'seo_dependiente_reindex_lock';
+        $now = time();
+        $existing = (string) self::fresh_option($key, '');
+        if ($existing) {
+            $parts = explode('|', $existing, 2);
+            $locked_at = absint($parts[0] ?? 0);
+            if ($locked_at && ($now - $locked_at) > 120) {
+                delete_option($key);
+            } else {
+                return '';
+            }
+        }
+        $token = function_exists('wp_generate_uuid4') ? wp_generate_uuid4() : uniqid('lock_', true);
+        return add_option($key, $now . '|' . $token, '', 'no') ? $token : '';
+    }
+
+    private static function release_reindex_lock($token) {
+        $current = (string) self::fresh_option('seo_dependiente_reindex_lock', '');
+        if ($token && false !== strpos($current, '|' . $token)) {
+            delete_option('seo_dependiente_reindex_lock');
+        }
+    }
+
+    private static function schedule_reindex_fallback($delay = 5) {
+        $state = self::reindex_state();
+        if ('running' !== (string) ($state['status'] ?? '')) {
+            return false;
+        }
+        if (wp_next_scheduled('seo_dependiente_background_index')) {
+            return true;
+        }
+        return (bool) wp_schedule_single_event(time() + max(1, absint($delay)), 'seo_dependiente_background_index');
+    }
+
+    private static function finish_reindex_verification($source) {
+        $total = SEO_Dependiente_Index::count_published();
+        $indexed = SEO_Dependiente_Index::count_indexed();
+        $missing = max(0, $total - $indexed);
+        $verified = ($indexed === $total);
+        $now = time();
+
+        $changes = array(
+            'status'        => $verified ? 'completed' : 'failed',
+            'total'         => $total,
+            'indexed'       => $indexed,
+            'percent'       => $verified ? 100 : ($total ? min(100, (int) round(($indexed / $total) * 100)) : 0),
+            'verified'      => $verified ? 1 : 0,
+            'missing'       => $missing,
+            'finished_at'   => current_time('mysql'),
+            'finished_ts'   => $now,
+            'heartbeat_at'  => current_time('mysql'),
+            'heartbeat_ts'  => $now,
+            'worker_source' => sanitize_key((string) $source),
+            'last_error'    => $verified ? '' : 'La reindexacion recorrio todos los lotes, pero el indice no coincide con los productos publicados. Faltan ' . $missing . ' productos.',
+        );
+        $state = self::save_reindex_state($changes);
+        wp_clear_scheduled_hook('seo_dependiente_background_index');
+        if ($verified) {
+            update_option('seo_dependiente_last_full_index', current_time('mysql'), false);
+        }
+        return $state;
+    }
+
+    public static function process_reindex_slice($seconds = 20, $source = 'background') {
+        $state = self::reindex_state();
+        if ('running' !== (string) ($state['status'] ?? '')) {
+            return false;
+        }
+        if (!class_exists('WooCommerce')) {
+            self::save_reindex_state(array(
+                'status'      => 'failed',
+                'last_error'  => 'WooCommerce no esta disponible.',
+                'finished_at' => current_time('mysql'),
+                'finished_ts' => time(),
+            ));
+            return false;
+        }
+
+        $lock = self::acquire_reindex_lock();
+        if (!$lock) {
+            return false;
+        }
+
+        $started = microtime(true);
+        $seconds = max(5, min(50, absint($seconds)));
+        $worked = false;
+        try {
+            while ((microtime(true) - $started) < $seconds) {
+                $state = self::reindex_state();
+                if ('running' !== (string) ($state['status'] ?? '')) {
+                    break;
+                }
+
+                $page = max(1, absint($state['page'] ?? 1));
+                $limit = min(100, max(10, absint($state['limit'] ?? 50)));
+                $result = SEO_Dependiente_Index::index_batch($page, $limit);
+                $worked = true;
+                $indexed = SEO_Dependiente_Index::count_indexed();
+                $processed = absint($state['processed'] ?? 0) + absint($result['processed'] ?? 0);
+                $total = absint($result['total'] ?? $state['total'] ?? 0);
+                $pages = absint($result['pages'] ?? $state['pages'] ?? 0);
+
+                $updated = self::save_reindex_state(array(
+                    'page'            => !empty($result['done']) ? $page : $page + 1,
+                    'pages'           => $pages,
+                    'total'           => $total,
+                    'indexed'         => $indexed,
+                    'processed'       => $processed,
+                    'percent'         => $total ? min(100, (int) round(($indexed / $total) * 100)) : 0,
+                    'heartbeat_at'    => current_time('mysql'),
+                    'heartbeat_ts'    => time(),
+                    'worker_source'   => sanitize_key((string) $source),
+                    'last_batch_size' => absint($result['processed'] ?? 0),
+                    'last_error'      => '',
+                ));
+
+                // Un Vaciar/Reset concurrente puede haber cambiado el estado a
+                // stopped mientras este lote estaba procesando. No lo revivimos.
+                if ('running' !== (string) ($updated['status'] ?? '')) {
+                    break;
+                }
+                if (!empty($result['done'])) {
+                    self::finish_reindex_verification($source);
+                    break;
+                }
+            }
+        } catch (Throwable $error) {
+            $fresh_on_error = self::reindex_state();
+            if ('running' === (string) ($fresh_on_error['status'] ?? '')) {
+                self::save_reindex_state(array(
+                    'status'        => 'failed',
+                    'last_error'    => $error->getMessage(),
+                    'finished_at'   => current_time('mysql'),
+                    'finished_ts'   => time(),
+                    'worker_source' => sanitize_key((string) $source),
+                ));
+            }
+        } finally {
+            self::release_reindex_lock($lock);
+        }
+
+        $fresh = self::reindex_state();
+        if ('running' === (string) ($fresh['status'] ?? '')) {
+            self::schedule_reindex_fallback(5);
+            if (function_exists('seo_process_supervisor_nudge')) {
+                seo_process_supervisor_nudge(0, 'dependiente_index');
+            }
+        }
+        return $worked;
+    }
+
+    public function run_background_index() {
+        // Un evento antiguo o espurio no puede crear una reindexacion: la funcion
+        // sale inmediatamente si no existe estado manual en running.
+        self::process_reindex_slice(20, 'wp_cron');
+    }
+
+    public static function supervisor_has_pending_reindex($pending) {
+        $state = self::reindex_state();
+        return $pending || ('running' === (string) ($state['status'] ?? ''));
+    }
+
+    public static function supervisor_add_reindex_target($targets, $settings = array(), $source = '') {
+        unset($settings, $source);
+        $targets = is_array($targets) ? $targets : array();
+        $state = self::reindex_state();
+        if ('running' !== (string) ($state['status'] ?? '')) {
+            return $targets;
+        }
+        foreach ($targets as $target) {
+            if ('dependiente-index' === (string) ($target['type'] ?? '')) {
+                return $targets;
+            }
+        }
+        $targets[] = array(
+            'type'     => 'dependiente-index',
+            'data'     => array(),
+            'callback' => array(__CLASS__, 'process_reindex_manager_target'),
+        );
+        return $targets;
+    }
+
+    public static function process_reindex_manager_target($budget, $source = 'manager', $target = array()) {
+        unset($target);
+        return self::process_reindex_slice($budget, $source);
     }
 
     public static function ensure_page() {

@@ -9,6 +9,7 @@ final class SEO_Dependiente_Admin {
         add_action('admin_post_seo_dependiente_export_diagnostic', array(__CLASS__, 'export_diagnostic_json'));
         add_action('admin_post_seo_dependiente_learning_review', array(__CLASS__, 'review_learning_candidate'));
         add_action('wp_ajax_seo_dependiente_reindex', array(__CLASS__, 'ajax_reindex'));
+        add_action('wp_ajax_seo_dependiente_reindex_status', array(__CLASS__, 'ajax_reindex_status'));
         add_action('wp_ajax_seo_dependiente_clear', array(__CLASS__, 'ajax_clear'));
         add_action('wp_ajax_seo_dependiente_reset_knowledge', array(__CLASS__, 'ajax_reset_knowledge'));
     }
@@ -121,7 +122,7 @@ final class SEO_Dependiente_Admin {
                         <button type="button" class="button button-primary" data-dependiente-reindex>Reindexar catálogo completo</button>
                         <button type="button" class="button" data-dependiente-clear>Vaciar índice</button>
                     </p>
-                    <p class="description">El índice se actualiza también al guardar cada producto. La reindexación completa recoge cambios masivos en términos, vocabulario o atributos.</p>
+                    <p class="description">El índice se actualiza también al guardar cada producto. La reindexación completa se ejecuta por lotes en segundo plano: puedes cerrar esta pantalla y el Gestor de procesos continuará una reindexación que hayas iniciado manualmente.</p>
                 </div>
 
                 <form class="postbox seo-dependiente-admin__box" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
@@ -413,19 +414,19 @@ final class SEO_Dependiente_Admin {
         }
         check_ajax_referer('seo_dependiente_admin', 'nonce');
 
-        $page = max(1, absint($_POST['page'] ?? 1));
-        $reset = !empty($_POST['reset']);
-        if ($reset) {
-            SEO_Dependiente_Index::clear();
-            $page = 1;
+        $result = SEO_Dependiente_Plugin::start_reindex();
+        if (is_wp_error($result)) {
+            wp_send_json_error(array('message' => $result->get_error_message()), 500);
         }
-        $result = SEO_Dependiente_Index::index_batch($page, 50);
-        if (!empty($result['done'])) {
-            update_option('seo_dependiente_last_full_index', current_time('mysql'), false);
-            delete_option('seo_dependiente_background_page');
-        }
-        $result['indexed'] = SEO_Dependiente_Index::count_indexed();
         wp_send_json_success($result);
+    }
+
+    public static function ajax_reindex_status() {
+        if (!current_user_can(self::capability())) {
+            wp_send_json_error(array('message' => 'Permisos insuficientes.'), 403);
+        }
+        check_ajax_referer('seo_dependiente_admin', 'nonce');
+        wp_send_json_success(SEO_Dependiente_Plugin::reindex_state());
     }
 
     public static function ajax_clear() {
@@ -433,8 +434,15 @@ final class SEO_Dependiente_Admin {
             wp_send_json_error(array('message' => 'Permisos insuficientes.'), 403);
         }
         check_ajax_referer('seo_dependiente_admin', 'nonce');
-        SEO_Dependiente_Index::clear();
-        wp_send_json_success(array('indexed' => 0));
+        $result = SEO_Dependiente_Plugin::stop_reindex(true, 'manual_clear');
+        if (is_wp_error($result)) {
+            wp_send_json_error(array('message' => $result->get_error_message()), 409);
+        }
+        delete_option('seo_dependiente_last_full_index');
+        wp_send_json_success(array(
+            'indexed' => 0,
+            'status'  => 'stopped',
+        ));
     }
 
     public static function ajax_reset_knowledge() {
