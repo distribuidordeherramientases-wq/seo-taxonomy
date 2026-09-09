@@ -192,10 +192,26 @@
         return labels[status] || status || 'Sin evaluar';
     }
 
+    function diagnosticLabel(type) {
+        const labels = {
+            mastered: 'Conocimiento resuelto',
+            parser_gap: 'Fallo de interpretación',
+            retrieval_gap: 'Fallo de recuperación',
+            ranking_gap: 'Fallo de ranking/filtro',
+            clarification_gap: 'Aclaración innecesaria',
+            curriculum_invalid: 'Pregunta a revisar',
+            technical_error: 'Error técnico',
+            observed: 'Observación'
+        };
+        return labels[type] || type || '';
+    }
+
     function renderRunRow(row) {
         const status = String(row.evaluation_status || '');
         const statusClass = status.indexOf('pass_') === 0 ? 'is-ok' : (status === 'error' ? 'is-error' : 'is-empty');
         const results = Array.isArray(row.top_results) ? row.top_results : [];
+        const evaluation = row.evaluation && typeof row.evaluation === 'object' ? row.evaluation : {};
+        const diagnostic = diagnosticLabel(String(evaluation.diagnostic_type || ''));
         const resultsHtml = results.length
             ? '<ol class="seo-dependiente-trainer__answer-list">' + results.slice(0, 5).map(function (result) {
                 const reasons = Array.isArray(result.reasons) && result.reasons.length
@@ -210,6 +226,7 @@
             '<td><strong>' + escapeHtml(row.question || '') + '</strong>' +
                 (row.search_strategy ? '<div class="description">Estrategia: <code>' + escapeHtml(row.search_strategy) + '</code></div>' : '') + '</td>' +
             '<td><span class="seo-dependiente-trainer__status ' + statusClass + '">' + escapeHtml(evaluationLabel(status)) + '</span>' +
+                (diagnostic ? '<div class="description">' + escapeHtml(diagnostic) + '</div>' : '') +
                 (row.error_message ? '<div class="description">' + escapeHtml(row.error_message) + '</div>' : '') + '</td>' +
             '<td>' + resultsHtml + '</td>' +
             '</tr>';
@@ -428,6 +445,8 @@
 
     function renderLabRunRow(row) {
         const results = Array.isArray(row.top_results) ? row.top_results : [];
+        const evaluation = row.evaluation && typeof row.evaluation === 'object' ? row.evaluation : {};
+        const diagnostic = diagnosticLabel(String(evaluation.diagnostic_type || ''));
         const resultsHtml = results.length
             ? '<ol class="seo-dependiente-trainer__answer-list">' + results.slice(0, 5).map(function (result) {
                 const reasons = Array.isArray(result.reasons) && result.reasons.length
