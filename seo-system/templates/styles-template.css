@@ -1364,6 +1364,103 @@
 }
 
 
+/* Migas de pan globales bajo la navegacion principal. */
+.dht-header-breadcrumbs {
+    width: 100%;
+    border-bottom: 1px solid var(--dht-border);
+    background: var(--dht-bg-light);
+    color: var(--dht-text-soft);
+}
+
+.dht-header-breadcrumbs__inner {
+    width: min(var(--dht-container), 92%);
+    margin-inline: auto;
+    padding: 9px 0 10px;
+}
+
+.dht-header-breadcrumbs ol {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    flex-wrap: wrap;
+}
+
+.dht-header-breadcrumbs li {
+    display: inline-flex;
+    min-width: 0;
+    align-items: center;
+    margin: 0;
+    color: var(--dht-text-soft);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.45;
+}
+
+.dht-header-breadcrumbs li + li::before {
+    content: "/";
+    margin: 0 9px;
+    color: #9aa4ad;
+    font-weight: 500;
+}
+
+.dht-header-breadcrumbs a {
+    color: var(--dht-primary-dark);
+    text-decoration: none;
+    transition: color var(--dht-transition);
+}
+
+.dht-header-breadcrumbs a:hover,
+.dht-header-breadcrumbs a:focus-visible {
+    color: var(--dht-primary);
+}
+
+.dht-header-breadcrumbs [aria-current="page"] {
+    display: inline-block;
+    max-width: min(52vw, 620px);
+    overflow: hidden;
+    color: var(--dht-text-soft);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+    .dht-header-breadcrumbs__inner {
+        width: 100%;
+        padding: 8px 16px 9px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .dht-header-breadcrumbs__inner::-webkit-scrollbar {
+        display: none;
+    }
+
+    .dht-header-breadcrumbs ol {
+        width: max-content;
+        min-width: 100%;
+        flex-wrap: nowrap;
+    }
+
+    .dht-header-breadcrumbs li {
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    .dht-header-breadcrumbs li + li::before {
+        margin-inline: 7px;
+    }
+
+    .dht-header-breadcrumbs [aria-current="page"] {
+        max-width: 58vw;
+    }
+}
+
+
 
 
 
