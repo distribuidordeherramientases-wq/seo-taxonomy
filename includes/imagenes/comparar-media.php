@@ -41,7 +41,7 @@ if (!function_exists('seo_images_cleanup_install_tables')) {
     function seo_images_cleanup_install_tables() {
         global $wpdb;
 
-        $schema_version = '1.0.1';
+        $schema_version = '1.0.2';
         if (get_option('seo_images_cleanup_db_version', '') === $schema_version) {
             return;
         }
@@ -120,7 +120,23 @@ if (!function_exists('seo_images_cleanup_install_tables')) {
             KEY processed_at (processed_at)
         ) {$charset};");
 
-        update_option('seo_images_cleanup_db_version', $schema_version, false);
+        $required_tables = array($source, $cand, $log);
+        $missing_tables  = array();
+
+        foreach ($required_tables as $required_table) {
+            $found = $wpdb->get_var(
+                $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($required_table))
+            );
+            if ((string) $found !== (string) $required_table) {
+                $missing_tables[] = $required_table;
+            }
+        }
+
+        if (empty($missing_tables)) {
+            update_option('seo_images_cleanup_db_version', $schema_version, false);
+        } else {
+            delete_option('seo_images_cleanup_db_version');
+        }
     }
 }
 
@@ -276,6 +292,31 @@ if (!function_exists('seo_images_cleanup_set_state')) {
     }
 }
 
+if (!function_exists('seo_images_cleanup_require_table')) {
+    /**
+     * Verifica que una tabla auxiliar exista antes de iniciar operaciones.
+     *
+     * @param string $table Nombre completo.
+     * @return true|WP_Error
+     */
+    function seo_images_cleanup_require_table($table) {
+        global $wpdb;
+
+        $found = $wpdb->get_var(
+            $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like((string) $table))
+        );
+
+        if ((string) $found !== (string) $table) {
+            return new WP_Error(
+                'seo_images_cleanup_missing_table',
+                'No se ha podido crear la tabla auxiliar ' . (string) $table . '. ' . (string) $wpdb->last_error
+            );
+        }
+
+        return true;
+    }
+}
+
 if (!function_exists('seo_images_cleanup_start_audit')) {
     /**
      * Inicializa una auditoría desde cero.
@@ -298,8 +339,26 @@ if (!function_exists('seo_images_cleanup_start_audit')) {
         $source_table = seo_images_cleanup_table_source_index();
         $cand_table   = seo_images_cleanup_table_candidates();
 
-        $wpdb->query("TRUNCATE TABLE {$source_table}");
-        $wpdb->query("TRUNCATE TABLE {$cand_table}");
+        foreach (array($source_table, $cand_table, seo_images_cleanup_table_log()) as $required_table) {
+            $table_check = seo_images_cleanup_require_table($required_table);
+            if (is_wp_error($table_check)) {
+                return $table_check;
+            }
+        }
+
+        if (false === $wpdb->query("TRUNCATE TABLE {$source_table}")) {
+            return new WP_Error(
+                'seo_images_cleanup_source_truncate_failed',
+                'No se ha podido vaciar el índice auxiliar de fuentes: ' . (string) $wpdb->last_error
+            );
+        }
+
+        if (false === $wpdb->query("TRUNCATE TABLE {$cand_table}")) {
+            return new WP_Error(
+                'seo_images_cleanup_candidates_truncate_failed',
+                'No se ha podido vaciar la tabla de candidatos: ' . (string) $wpdb->last_error
+            );
+        }
 
         $source_total = 0;
         foreach ($sources as $source) {
@@ -397,12 +456,21 @@ if (!function_exists('seo_images_cleanup_insert_source_rows')) {
                 }
             }
 
-            $sql = "INSERT IGNORE INTO {$table} ({$columns}) VALUES " . implode(',', $placeholders);
-            $result = $wpdb->query($wpdb->prepare($sql, $params));
+            // El índice se trunca al iniciar la auditoría, por lo que no debería
+            // haber duplicados. INSERT normal es intencionado: INSERT IGNORE ocultaba
+            // errores de charset, tamaño o esquema y podía dejar Fuentes 0/N mientras
+            // el proceso continuaba como si hubiese terminado correctamente.
+            $sql = "INSERT INTO {$table} ({$columns}) VALUES " . implode(',', $placeholders);
+            $prepared = $wpdb->prepare($sql, $params);
+            $result   = $wpdb->query($prepared);
 
-            if ($result !== false) {
-                $inserted += (int) $result;
+            if ($result === false) {
+                throw new RuntimeException(
+                    'Error al indexar imágenes externas: ' . (string) $wpdb->last_error
+                );
             }
+
+            $inserted += (int) $result;
         }
 
         return $inserted;
@@ -431,6 +499,12 @@ if (!function_exists('seo_images_cleanup_audit_source_batch')) {
         $source = $sources[$source_key];
         $batch = seo_images_cleanup_source_rows($source, $state['source_cursor'] ?? 0, $limit);
         $inserted = seo_images_cleanup_insert_source_rows($source, $batch['rows']);
+
+        if (!empty($batch['rows']) && $inserted < 1) {
+            throw new RuntimeException(
+                'La fuente devolvió ' . count($batch['rows']) . ' filas, pero no se pudo indexar ninguna.'
+            );
+        }
 
         $state['source_indexed'] = absint($state['source_indexed']) + $inserted;
         $state['source_cursor']  = $batch['cursor'];

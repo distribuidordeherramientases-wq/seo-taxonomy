@@ -200,9 +200,14 @@ if (!function_exists('seo_images_cleanup_source_rows')) {
 
         $select = array(
             "{$id_col} AS source_row_key",
-            "{$url_col} AS image_url",
+            // Algunas instalaciones históricas guardan wp_seo_supplier_images en
+            // latin1. Convertimos al leer para que el índice auxiliar utf8mb4 reciba
+            // siempre texto en un charset coherente.
+            "CONVERT({$url_col} USING utf8mb4) AS image_url",
         );
-        $select[] = $prov_col !== '' ? "{$prov_col} AS provider" : "'' AS provider";
+        $select[] = $prov_col !== ''
+            ? "CONVERT({$prov_col} USING utf8mb4) AS provider"
+            : "'' AS provider";
         $select[] = $prod_col !== '' ? "{$prod_col} AS product_id" : 'NULL AS product_id';
 
         $where = "{$id_col} > %d AND {$url_col} IS NOT NULL AND TRIM({$url_col}) <> ''";
@@ -221,6 +226,13 @@ if (!function_exists('seo_images_cleanup_source_rows')) {
                 LIMIT %d";
 
         $rows = (array) $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
+
+        if ($wpdb->last_error !== '') {
+            throw new RuntimeException(
+                'Error al leer la fuente externa ' . (string) ($source['key'] ?? '') . ': ' . (string) $wpdb->last_error
+            );
+        }
+
         $next_cursor = $cursor;
 
         foreach ($rows as &$row) {
