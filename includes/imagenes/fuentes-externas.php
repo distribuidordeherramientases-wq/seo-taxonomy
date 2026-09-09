@@ -200,14 +200,15 @@ if (!function_exists('seo_images_cleanup_source_rows')) {
 
         $select = array(
             "{$id_col} AS source_row_key",
-            // Algunas instalaciones históricas guardan wp_seo_supplier_images en
-            // latin1. Convertimos al leer para que el índice auxiliar utf8mb4 reciba
-            // siempre texto en un charset coherente.
-            "CONVERT({$url_col} USING utf8mb4) AS image_url",
+            // La conexión global de WordPress puede ser latin1 aunque esta tabla
+            // histórica contenga datos que necesitamos normalizar como UTF-8.
+            // HEX evita que mysqli vuelva a transcodificar el resultado al charset
+            // de la conexión. En PHP reconstruimos exactamente los bytes utf8mb4.
+            "HEX(CONVERT({$url_col} USING utf8mb4)) AS image_url_hex",
         );
         $select[] = $prov_col !== ''
-            ? "CONVERT({$prov_col} USING utf8mb4) AS provider"
-            : "'' AS provider";
+            ? "HEX(CONVERT({$prov_col} USING utf8mb4)) AS provider_hex"
+            : "'' AS provider_hex";
         $select[] = $prod_col !== '' ? "{$prod_col} AS product_id" : 'NULL AS product_id';
 
         $where = "{$id_col} > %d AND {$url_col} IS NOT NULL AND TRIM({$url_col}) <> ''";
@@ -237,10 +238,19 @@ if (!function_exists('seo_images_cleanup_source_rows')) {
 
         foreach ($rows as &$row) {
             $next_cursor = max((int) $next_cursor, (int) ($row['source_row_key'] ?? 0));
+
+            $url_hex      = preg_replace('/[^0-9A-Fa-f]/', '', (string) ($row['image_url_hex'] ?? ''));
+            $provider_hex = preg_replace('/[^0-9A-Fa-f]/', '', (string) ($row['provider_hex'] ?? ''));
+
+            $decoded_url = ($url_hex !== '' && strlen($url_hex) % 2 === 0) ? hex2bin($url_hex) : '';
+            $decoded_provider = ($provider_hex !== '' && strlen($provider_hex) % 2 === 0) ? hex2bin($provider_hex) : '';
+
             $row['source_row_key'] = (string) ($row['source_row_key'] ?? '');
-            $row['provider']       = sanitize_text_field((string) ($row['provider'] ?? ''));
+            $row['provider']       = sanitize_text_field(is_string($decoded_provider) ? $decoded_provider : '');
             $row['product_id']     = absint($row['product_id'] ?? 0);
-            $row['image_url']      = (string) ($row['image_url'] ?? '');
+            $row['image_url']      = is_string($decoded_url) ? $decoded_url : '';
+
+            unset($row['image_url_hex'], $row['provider_hex']);
         }
         unset($row);
 

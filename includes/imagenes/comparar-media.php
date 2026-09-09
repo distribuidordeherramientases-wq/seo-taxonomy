@@ -41,14 +41,14 @@ if (!function_exists('seo_images_cleanup_install_tables')) {
     function seo_images_cleanup_install_tables() {
         global $wpdb;
 
-        $schema_version = '1.0.2';
+        $schema_version = '1.0.3';
         if (get_option('seo_images_cleanup_db_version', '') === $schema_version) {
             return;
         }
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-        $charset = $wpdb->get_charset_collate();
+        $charset = 'DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci';
         $source  = seo_images_cleanup_table_source_index();
         $cand    = seo_images_cleanup_table_candidates();
         $log     = seo_images_cleanup_table_log();
@@ -119,6 +119,16 @@ if (!function_exists('seo_images_cleanup_install_tables')) {
             KEY status (status),
             KEY processed_at (processed_at)
         ) {$charset};");
+
+        // El WordPress de esta instalación trabaja con una conexión latin1, pero
+        // las URLs de proveedores pueden contener UTF-8 real. Forzamos las tablas
+        // auxiliares del escáner a utf8mb4 para que wpdb no rechace la consulta
+        // antes de enviarla a MariaDB como "datos no válidos".
+        foreach (array($source, $cand, $log) as $utf8_table) {
+            $wpdb->query(
+                "ALTER TABLE {$utf8_table} CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+            );
+        }
 
         $required_tables = array($source, $cand, $log);
         $missing_tables  = array();
@@ -445,7 +455,7 @@ if (!function_exists('seo_images_cleanup_insert_source_rows')) {
                     image_url, canonical_url, canonical_path, basename, path_signature,
                     basename_key, path_key, origin_key";
 
-        foreach (array_chunk($normalized, 250) as $chunk) {
+        foreach (array_chunk($normalized, 100) as $chunk) {
             $placeholders = array();
             $params = array();
 
@@ -462,11 +472,22 @@ if (!function_exists('seo_images_cleanup_insert_source_rows')) {
             // el proceso continuaba como si hubiese terminado correctamente.
             $sql = "INSERT INTO {$table} ({$columns}) VALUES " . implode(',', $placeholders);
             $prepared = $wpdb->prepare($sql, $params);
-            $result   = $wpdb->query($prepared);
+
+            if (!is_string($prepared) || $prepared === '') {
+                throw new RuntimeException(
+                    'Error al preparar el lote de imágenes externas. Filas del lote: ' . count($chunk)
+                );
+            }
+
+            $result = $wpdb->query($prepared);
 
             if ($result === false) {
+                $db_error = trim((string) $wpdb->last_error);
+                if ($db_error === '') {
+                    $db_error = 'wpdb rechazó la consulta antes de enviarla a MariaDB.';
+                }
                 throw new RuntimeException(
-                    'Error al indexar imágenes externas: ' . (string) $wpdb->last_error
+                    'Error al indexar imágenes externas: ' . $db_error
                 );
             }
 
