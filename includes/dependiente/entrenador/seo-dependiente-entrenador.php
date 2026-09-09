@@ -1896,6 +1896,15 @@ final class SEO_Dependiente_Entrenador {
         return true;
     }
 
+    /**
+     * En L6 una FAQ solo cuenta como aprendida si Dependiente llega a ella
+     * siguiendo el producto/categoría propietario. La coincidencia textual global
+     * queda desactivada durante estas preguntas de Academia.
+     */
+    public static function disable_faq_text_fallback($allow = true) {
+        return false;
+    }
+
     private static function lesson_uses_classroom_stage($lesson_key) {
         $lesson_key = sanitize_key((string) $lesson_key);
         return '' !== $lesson_key
@@ -3256,21 +3265,60 @@ final class SEO_Dependiente_Entrenador {
         $faq=$wpdb->prefix.'seo_faq';
         if (!self::table_exists($faq)) return $cache;
         $limit=self::MAX_FAQ_SOURCES;
+
+        // Una FAQ por owner para que L6 mida la asociación estructural sin hacer
+        // un curso lineal de decenas de miles de filas. Solo productos/categorías:
+        // object_type 3 / 2. El texto sigue siendo la materia de la FAQ, pero la
+        // ruta de recuperación válida debe ser siempre owner-first.
         $rows=(array)$wpdb->get_results(
-            "SELECT f.id,f.object_type,f.object_id,f.question,f.answer
+            "SELECT f.id,f.object_type,f.object_id,f.ambito,f.question,f.answer,
+                    CASE WHEN f.object_type=3 THEN p.post_title ELSE t.name END owner_title
              FROM {$faq} f
-             INNER JOIN (SELECT object_type,object_id,MIN(id) id FROM {$faq} WHERE active=1 GROUP BY object_type,object_id) x ON x.id=f.id
-             WHERE f.active=1 AND f.object_type IN (1,2,3)
-             ORDER BY f.object_type,f.object_id,f.id LIMIT {$limit}", ARRAY_A
+             INNER JOIN (
+                 SELECT object_type,object_id,MIN(id) id
+                 FROM {$faq}
+                 WHERE active=1 AND object_type IN (2,3)
+                 GROUP BY object_type,object_id
+             ) x ON x.id=f.id
+             LEFT JOIN {$wpdb->posts} p
+                    ON f.object_type=3 AND p.ID=f.object_id
+                   AND p.post_type='product' AND p.post_status='publish'
+             LEFT JOIN {$wpdb->term_taxonomy} tt
+                    ON f.object_type=2 AND tt.term_id=f.object_id
+                   AND tt.taxonomy='product_cat'
+             LEFT JOIN {$wpdb->terms} t ON t.term_id=tt.term_id
+             WHERE f.active=1
+               AND f.object_type IN (2,3)
+               AND ((f.object_type=3 AND p.ID IS NOT NULL) OR (f.object_type=2 AND tt.term_id IS NOT NULL))
+             ORDER BY f.object_type,f.object_id,f.id
+             LIMIT {$limit}", ARRAY_A
         );
         foreach($rows as $row){
-            $id=absint($row['id']??0); $oid=absint($row['object_id']??0); $ot=absint($row['object_type']??0);
+            $id=absint($row['id']??0);
+            $oid=absint($row['object_id']??0);
+            $ot=absint($row['object_type']??0);
             $q=trim(wp_strip_all_tags((string)($row['question']??'')));
-            if(!$id||!$oid||!$q) continue;
+            $owner_title=trim(wp_strip_all_tags((string)($row['owner_title']??'')));
+            $ambito=trim(wp_strip_all_tags((string)($row['ambito']??'')));
+            if(!$id||!$oid||!$q||!$owner_title) continue;
+            $owner_label=2===$ot?'categoría':'producto';
+            $training_question='Sobre el '.$owner_label.' "'.$owner_title.'": '.$q;
             $cache[]=array(
-                'source_type'=>'faq','source_id'=>$id,'source_key'=>'faq:'.$id,'question_type'=>'faq_context','mode'=>'need',
-                'question'=>self::shorten($q,490),
-                'expected'=>array('kind'=>'faq','faq_id'=>$id,'owner_type'=>$ot,'owner_id'=>$oid),
+                'source_type'=>'faq',
+                'source_id'=>$id,
+                'source_key'=>'faq:'.$ot.':'.$oid.':'.$id,
+                'question_type'=>'faq_owner_context',
+                'mode'=>'need',
+                'question'=>self::shorten($training_question,490),
+                'expected'=>array(
+                    'kind'=>'faq',
+                    'faq_id'=>$id,
+                    'owner_type'=>$ot,
+                    'owner_id'=>$oid,
+                    'owner_title'=>$owner_title,
+                    'ambito'=>$ambito,
+                    'faq_route_required'=>'owner',
+                ),
                 'rules'=>array(),
             );
         }
@@ -3657,9 +3705,13 @@ final class SEO_Dependiente_Entrenador {
         $started_at = microtime(true);
         $lesson_key = sanitize_key((string) ($question['lesson_key'] ?? ''));
         $use_classroom_stage = self::lesson_uses_classroom_stage($lesson_key);
+        $faq_owner_only = 'v2_l6_faq' === $lesson_key;
         add_filter('seo_dependiente_should_log_search', array(__CLASS__, 'skip_customer_search_log'), 999, 4);
         if ($use_classroom_stage) {
             add_filter('seo_dependiente_include_academy_stage', array(__CLASS__, 'include_academy_stage_rules'), 999, 1);
+        }
+        if ($faq_owner_only) {
+            add_filter('seo_dependiente_faq_allow_text_fallback', array(__CLASS__, 'disable_faq_text_fallback'), 999, 1);
         }
         try {
             $response = SEO_Dependiente_API::search($request);
@@ -3669,6 +3721,9 @@ final class SEO_Dependiente_Entrenador {
             remove_filter('seo_dependiente_should_log_search', array(__CLASS__, 'skip_customer_search_log'), 999);
             if ($use_classroom_stage) {
                 remove_filter('seo_dependiente_include_academy_stage', array(__CLASS__, 'include_academy_stage_rules'), 999);
+            }
+            if ($faq_owner_only) {
+                remove_filter('seo_dependiente_faq_allow_text_fallback', array(__CLASS__, 'disable_faq_text_fallback'), 999);
             }
         }
 
@@ -3716,6 +3771,7 @@ final class SEO_Dependiente_Entrenador {
                 'title' => sanitize_text_field((string) ($related['title'] ?? '')),
                 'owner_type' => sanitize_key((string) ($related['owner_type'] ?? '')),
                 'owner_id' => absint($related['owner_id'] ?? 0),
+                'faq_route' => sanitize_key((string) ($related['faq_route'] ?? '')),
             );
         }
         $evaluation = self::evaluate_question($question, $result_ids, $status, $related_results);
@@ -3854,7 +3910,39 @@ final class SEO_Dependiente_Entrenador {
         if('faq'===$kind){$fid=absint($expected['faq_id']??0);if($fid)$acceptable['faq:'.$fid]=true;}
         foreach((array)($expected['acceptable_related']??array()) as $item){$type=sanitize_key((string)($item['type']??''));$id=absint($item['id']??0);if($type&&$id)$acceptable[$type.':'.$id]=true;}
         if(!$acceptable)return false;
-        foreach((array)$related_results as $index=>$item){$key=sanitize_key((string)($item['type']??'')).':'.absint($item['id']??0);if(isset($acceptable[$key])){$position=$index+1;return array('status'=>1===$position?'pass_top1':($position<=3?'pass_top3':'pass_top8'),'score'=>1===$position?1.0:($position<=3?0.85:0.55),'matched_related'=>$key,'matched_position'=>$position);}}
+        foreach((array)$related_results as $index=>$item){
+            $key=sanitize_key((string)($item['type']??'')).':'.absint($item['id']??0);
+            if(!isset($acceptable[$key]))continue;
+
+            if('faq'===$kind){
+                $expected_owner_id=absint($expected['owner_id']??0);
+                $expected_owner_type=absint($expected['owner_type']??0);
+                $owner_type_map=array(2=>'product_cat',3=>'product');
+                $actual_owner_type=sanitize_key((string)($item['owner_type']??''));
+                $actual_owner_id=absint($item['owner_id']??0);
+                $route=sanitize_key((string)($item['faq_route']??''));
+                $required_route=sanitize_key((string)($expected['faq_route_required']??''));
+                $owner_match=(!$expected_owner_id||$actual_owner_id===$expected_owner_id)
+                    &&(!$expected_owner_type||($owner_type_map[$expected_owner_type]??'')===$actual_owner_type);
+                $route_match=(''===$required_route||$required_route===$route);
+                if(!$owner_match||!$route_match){
+                    continue;
+                }
+                $position=$index+1;
+                return array(
+                    'status'=>1===$position?'pass_top1':($position<=3?'pass_top3':'pass_top8'),
+                    'score'=>1===$position?1.0:($position<=3?0.85:0.55),
+                    'matched_related'=>$key,
+                    'matched_position'=>$position,
+                    'owner_match'=>true,
+                    'faq_route'=>$route,
+                    'faq_fallback_used'=>'text_fallback'===$route,
+                );
+            }
+
+            $position=$index+1;
+            return array('status'=>1===$position?'pass_top1':($position<=3?'pass_top3':'pass_top8'),'score'=>1===$position?1.0:($position<=3?0.85:0.55),'matched_related'=>$key,'matched_position'=>$position);
+        }
         return false;
     }
 
