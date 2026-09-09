@@ -21,6 +21,80 @@ if (!function_exists('seo_page_edit_products')) {
             echo '<h1 style="margin:0;">Editar producto</h1>';
             echo '</div>';
 
+            ?>
+            <details open style="margin:0 0 18px;background:#fff;border:1px solid #c3c4c7;border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,.03);">
+                <summary style="cursor:pointer;padding:14px 16px;font-weight:700;font-size:14px;">
+                    Guía de contenido: título, excerpt y descripción
+                </summary>
+
+                <div style="padding:0 16px 16px;line-height:1.55;color:#2c3338;">
+                    <p style="margin-top:0;">
+                        <strong>Objetivo:</strong> explicar este producto con precisión y ayudar a elegirlo.
+                        La ficha ya muestra por separado especificaciones técnicas, etiquetas semánticas, FAQs, precio, stock y relacionados;
+                        <strong>no repitas esos bloques de forma mecánica en la descripción</strong>.
+                    </p>
+
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin:14px 0;">
+                        <div style="padding:12px;background:#f6f7f7;border-radius:6px;">
+                            <strong>1. Título</strong>
+                            <p style="margin:6px 0 0;">Identifica el producto: <strong>TIPO + marca/modelo + 1 o 2 datos decisivos</strong>. Evita convertir el título en una descripción larga de proveedor.</p>
+                        </div>
+                        <div style="padding:12px;background:#f6f7f7;border-radius:6px;">
+                            <strong>2. Excerpt</strong>
+                            <p style="margin:6px 0 0;">En 1-3 frases responde: <strong>qué es + para qué sirve + qué dato lo diferencia</strong>. Debe poder entenderse sin leer el resto de la ficha.</p>
+                        </div>
+                        <div style="padding:12px;background:#f6f7f7;border-radius:6px;">
+                            <strong>3. Descripción</strong>
+                            <p style="margin:6px 0 0;">Texto flexible y específico. Explica uso, criterio de elección, compatibilidad, contexto y limitaciones solo cuando los datos reales del producto lo permitan.</p>
+                        </div>
+                    </div>
+
+                    <h3 style="font-size:14px;margin:18px 0 8px;">La descripción cambia según el ROL</h3>
+                    <ul style="margin:0 0 12px 20px;">
+                        <li><strong>Herramienta:</strong> trabajo que realiza, material o pieza, prestaciones que cambian el uso, cuándo elegirla y frente a qué alternativa.</li>
+                        <li><strong>Equipamiento:</strong> función dentro del proceso o taller, capacidad, dimensionamiento, instalación/entorno y perfil de uso.</li>
+                        <li><strong>Accesorio:</strong> qué completa o adapta, compatibilidad exacta, medidas/interfaz y qué cambia al utilizarlo.</li>
+                        <li><strong>Consumible:</strong> operación, material, máquina compatible, medida/grado y contenido del paquete cuando conste.</li>
+                        <li><strong>Repuesto:</strong> pieza que sustituye, equipo/modelo compatible, referencia o medidas y comprobaciones antes de pedirlo.</li>
+                    </ul>
+
+                    <h3 style="font-size:14px;margin:18px 0 8px;">Usa TIPO, APLICACIÓN, PLATAFORMA, SUBTIPO y atributos como módulos</h3>
+                    <p style="margin:0 0 10px;">
+                        No hay que rellenar siempre los mismos apartados. Activa únicamente la información que tenga sentido para este producto:
+                        compatibilidad de plataforma si existe, contexto de aplicación si aporta valor, y atributos técnicos solo cuando ayudan a explicar o decidir.
+                    </p>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;">
+                        <div style="padding:12px;border-left:4px solid #00a32a;background:#f0f6fc;">
+                            <strong>Prioriza</strong>
+                            <ul style="margin:6px 0 0 18px;">
+                                <li>Datos reales del producto.</li>
+                                <li>Vocabulary canónico asignado.</li>
+                                <li>Atributos técnicos canónicos.</li>
+                                <li>Marca, modelo, medidas y compatibilidades verificadas.</li>
+                                <li>Criterios que ayuden a elegir o utilizar el producto.</li>
+                            </ul>
+                        </div>
+                        <div style="padding:12px;border-left:4px solid #d63638;background:#fcf0f1;">
+                            <strong>Evita</strong>
+                            <ul style="margin:6px 0 0 18px;">
+                                <li>Inventar prestaciones típicas de productos parecidos.</li>
+                                <li>Frases como «esta referencia pertenece a...» o «esta ficha corresponde a...».</li>
+                                <li>Obligar a usar siempre Características, Ventajas, Aplicaciones, Compatibilidad y Consejos.</li>
+                                <li>Repetir en párrafos la tabla de especificaciones que ya muestra la plantilla.</li>
+                                <li>Alargar el texto solo para alcanzar una longitud.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <p style="margin:14px 0 0;padding:10px 12px;background:#fff8e5;border-radius:6px;">
+                        <strong>Regla final:</strong> es mejor una descripción corta y específica que una larga y genérica.
+                        Cada afirmación debe describir, comparar, contextualizar o ayudar a elegir <strong>este producto</strong>.
+                    </p>
+                </div>
+            </details>
+            <?php
+
             if (function_exists('seo_render_product_form')) {
                 seo_render_product_form($product_id);
             } else {
