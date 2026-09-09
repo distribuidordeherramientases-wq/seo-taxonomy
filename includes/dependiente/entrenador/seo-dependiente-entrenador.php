@@ -14,6 +14,7 @@ defined('ABSPATH') || exit;
 final class SEO_Dependiente_Entrenador {
     const DB_VERSION = '2026-09-09.1';
     const CURRICULUM_VERSION = '2.1';
+    const PROGRESS_REPORT_VERSION = 1;
     const MAX_INVENTORY_SOURCES = 3000;
     const MAX_FEATURE_SOURCES = 12000;
     const MAX_FAQ_SOURCES = 3000;
@@ -43,6 +44,7 @@ final class SEO_Dependiente_Entrenador {
         add_action('wp_ajax_seo_dependiente_entrenador_prepare_lesson', array(__CLASS__, 'ajax_prepare_lesson'));
         add_action('wp_ajax_seo_dependiente_entrenador_run_module', array(__CLASS__, 'ajax_run_module'));
         add_action('wp_ajax_seo_dependiente_entrenador_export_lesson', array(__CLASS__, 'ajax_export_lesson'));
+        add_action('wp_ajax_seo_dependiente_entrenador_export_progress', array(__CLASS__, 'ajax_export_progress'));
         add_action('wp_ajax_seo_dependiente_entrenador_export_course', array(__CLASS__, 'ajax_export_course'));
         add_action('wp_ajax_seo_dependiente_entrenador_set_mode', array(__CLASS__, 'ajax_set_mode'));
         add_action('wp_ajax_seo_dependiente_entrenador_auto_status', array(__CLASS__, 'ajax_auto_status'));
@@ -296,7 +298,7 @@ final class SEO_Dependiente_Entrenador {
                 <div class="seo-dependiente-trainer__section-head">
                     <div>
                         <h2>Informes de Academia</h2>
-                        <p class="description">Cada lección preparada conserva su propio informe aunque Academia haya avanzado. También puedes descargar un informe único del curso con todas las lecciones preparadas hasta este momento.</p>
+                        <p class="description">Cada lección preparada conserva su informe completo y un informe ligero de progreso. El progreso se reconstruye desde el historial de ejecuciones, por lo que también incluye lo ya respondido antes de instalar esta versión.</p>
                     </div>
                     <button type="button" class="button" data-trainer-export-course <?php disabled(!$has_exportable_lessons); ?>>Descargar curso completo (JSON)</button>
                 </div>
@@ -313,7 +315,10 @@ final class SEO_Dependiente_Entrenador {
                             <h2>Resultados de la lección actual</h2>
                             <p class="description">El acierto se calcula contra la verdad esperada del catálogo. Estos resultados muestran cómo responde el Dependiente durante la formación. En L1–L7 el aula puede usar reglas academy_stage preparadas desde la verdad canónica; esas reglas no llegan a clientes hasta superar el control de calidad. L8 usa solo conocimiento activo.</p>
                         </div>
-                        <button type="button" class="button" data-trainer-export-lesson>Descargar JSON de la lección</button>
+                        <div>
+                            <button type="button" class="button" data-trainer-export-progress>Descargar progreso</button>
+                            <button type="button" class="button" data-trainer-export-lesson>Descargar informe completo</button>
+                        </div>
                     </div>
                     <?php self::render_kpis($summary); ?>
                     <div class="seo-dependiente-trainer__table-wrap" data-trainer-run-table>
@@ -1773,6 +1778,20 @@ final class SEO_Dependiente_Entrenador {
         ));
     }
 
+    public static function ajax_export_progress() {
+        self::guard_ajax();
+        $lesson_key = sanitize_key((string) wp_unslash($_POST['lesson_key'] ?? ''));
+        $document = self::build_progress_export_document($lesson_key);
+        if (!$document) {
+            wp_send_json_error(array('message' => 'Lección no encontrada.'), 404);
+        }
+
+        wp_send_json_success(array(
+            'filename' => 'dependiente-academia-progreso-' . sanitize_file_name($lesson_key) . '-' . current_time('Ymd-His') . '.json',
+            'document' => $document,
+        ));
+    }
+
     public static function ajax_export_course() {
         self::guard_ajax();
         if (!self::ensure_ready()) {
@@ -1858,6 +1877,407 @@ final class SEO_Dependiente_Entrenador {
         exit;
     }
 
+    private static function build_progress_export_document($lesson_key) {
+        $lesson_key = sanitize_key((string) $lesson_key);
+        $lesson = self::lesson_row($lesson_key);
+        $definition = self::lesson_definition($lesson_key);
+        if (!$lesson || !$definition) {
+            return null;
+        }
+
+        return array(
+            'schema' => array(
+                'name'    => 'seo_dependiente_academy_progress',
+                'version' => self::PROGRESS_REPORT_VERSION,
+            ),
+            'generated_at' => current_time('c'),
+            'site' => array(
+                'home_url'            => home_url('/'),
+                'dependiente_version' => defined('SEO_DEPENDIENTE_VERSION') ? SEO_DEPENDIENTE_VERSION : '',
+                'trainer_db_version'  => self::DB_VERSION,
+            ),
+            'lesson' => array(
+                'key'                => $lesson_key,
+                'order'              => absint($definition['order'] ?? 0),
+                'title'              => (string) ($definition['title'] ?? ''),
+                'status'             => (string) ($lesson['status'] ?? ''),
+                'snapshot_before'    => absint($lesson['snapshot_before'] ?? 0),
+                'snapshot_after'     => absint($lesson['snapshot_after'] ?? 0),
+                'source_signature'   => (string) ($lesson['source_signature'] ?? ''),
+                'module_count'       => absint($lesson['module_count'] ?? 0),
+                'item_count'         => absint($lesson['item_count'] ?? 0),
+                'curriculum_version' => self::CURRICULUM_VERSION,
+                'started_at'         => (string) ($lesson['started_at'] ?? ''),
+                'completed_at'       => (string) ($lesson['completed_at'] ?? ''),
+            ),
+            'summary' => self::lesson_summary($lesson_key),
+            'learning_progress' => self::lesson_learning_progress($lesson_key),
+            'notes' => array(
+                'source'                         => 'trainer_run_history',
+                'retroactive_from_existing_runs' => true,
+                'checkpoint_unit'                => 'module',
+                'accuracy_denominator'           => 'answered_questions',
+                'causal_learning_attribution'    => false,
+                'interpretation'                 => 'La curva muestra evolucion observada durante la leccion. Los cambios de dificultad o de tipo de pregunta tambien pueden mover la tasa de acierto.',
+                'customer_search_log_written'    => false,
+                'classroom_isolated_from_customers' => true,
+            ),
+        );
+    }
+
+    private static function lesson_learning_progress($lesson_key) {
+        global $wpdb;
+        $lesson_key = sanitize_key((string) $lesson_key);
+        if (!$lesson_key) {
+            return array();
+        }
+
+        $rows = (array) $wpdb->get_results($wpdb->prepare(
+            "SELECT q.module_no,
+                    q.question_type,
+                    COUNT(q.id) AS total,
+                    COALESCE(SUM(CASE WHEN r.status = 'answered' THEN 1 ELSE 0 END), 0) AS answered,
+                    COALESCE(SUM(CASE WHEN r.evaluation_status = 'pass_top1' THEN 1 ELSE 0 END), 0) AS pass_top1,
+                    COALESCE(SUM(CASE WHEN r.evaluation_status IN ('pass_top1','pass_top3') THEN 1 ELSE 0 END), 0) AS pass_top3,
+                    COALESCE(SUM(CASE WHEN r.evaluation_status IN ('pass_top1','pass_top3','pass_top8') THEN 1 ELSE 0 END), 0) AS pass_any,
+                    COALESCE(SUM(CASE WHEN r.evaluation_status = 'fail' THEN 1 ELSE 0 END), 0) AS failed,
+                    COALESCE(SUM(CASE WHEN r.status = 'error' THEN 1 ELSE 0 END), 0) AS errors,
+                    COALESCE(SUM(CASE WHEN r.status = 'answered' AND r.result_count > 0 THEN 1 ELSE 0 END), 0) AS with_results,
+                    COALESCE(SUM(CASE WHEN r.status = 'answered' AND r.result_count = 0 THEN 1 ELSE 0 END), 0) AS zero_results,
+                    COALESCE(SUM(CASE WHEN r.execution_ms IS NOT NULL THEN r.execution_ms ELSE 0 END), 0) AS execution_ms_total,
+                    COALESCE(SUM(CASE WHEN r.execution_ms IS NOT NULL THEN 1 ELSE 0 END), 0) AS execution_count,
+                    MIN(r.created_at) AS first_run_at,
+                    MAX(r.created_at) AS last_run_at
+             FROM " . self::questions_table() . " q
+             LEFT JOIN " . self::runs_table() . " r
+               ON r.question_id = q.id
+              AND r.lesson_key = q.lesson_key
+             WHERE q.lesson_key = %s
+               AND q.enabled = 1
+             GROUP BY q.module_no, q.question_type
+             ORDER BY q.module_no ASC, q.question_type ASC",
+            $lesson_key
+        ), ARRAY_A);
+
+        $modules = array();
+        $question_types = array();
+        $execution_ms_total = 0.0;
+        $execution_count = 0;
+        $first_run_at = '';
+        $last_run_at = '';
+
+        foreach ($rows as $row) {
+            $module_no = absint($row['module_no'] ?? 0);
+            $question_type = sanitize_key((string) ($row['question_type'] ?? 'other')) ?: 'other';
+            if (!isset($modules[$module_no])) {
+                $modules[$module_no] = array(
+                    'module_no'          => $module_no,
+                    'total'              => 0,
+                    'answered'           => 0,
+                    'pass_top1'          => 0,
+                    'pass_top3'          => 0,
+                    'pass_any'           => 0,
+                    'failed'             => 0,
+                    'errors'             => 0,
+                    'with_results'       => 0,
+                    'zero_results'       => 0,
+                    'execution_ms_total' => 0.0,
+                    'execution_count'    => 0,
+                    'first_run_at'       => '',
+                    'last_run_at'        => '',
+                    'question_types'     => array(),
+                );
+            }
+            if (!isset($question_types[$question_type])) {
+                $question_types[$question_type] = array(
+                    'question_type'       => $question_type,
+                    'total'               => 0,
+                    'answered'            => 0,
+                    'pass_top1'           => 0,
+                    'pass_top3'           => 0,
+                    'pass_any'            => 0,
+                    'failed'              => 0,
+                    'errors'              => 0,
+                    'with_results'        => 0,
+                    'zero_results'        => 0,
+                    'execution_ms_total'  => 0.0,
+                    'execution_count'     => 0,
+                    'modules'             => array(),
+                );
+            }
+
+            $metrics = array(
+                'total'              => absint($row['total'] ?? 0),
+                'answered'           => absint($row['answered'] ?? 0),
+                'pass_top1'          => absint($row['pass_top1'] ?? 0),
+                'pass_top3'          => absint($row['pass_top3'] ?? 0),
+                'pass_any'           => absint($row['pass_any'] ?? 0),
+                'failed'             => absint($row['failed'] ?? 0),
+                'errors'             => absint($row['errors'] ?? 0),
+                'with_results'       => absint($row['with_results'] ?? 0),
+                'zero_results'       => absint($row['zero_results'] ?? 0),
+                'execution_ms_total' => (float) ($row['execution_ms_total'] ?? 0),
+                'execution_count'    => absint($row['execution_count'] ?? 0),
+                'first_run_at'       => (string) ($row['first_run_at'] ?? ''),
+                'last_run_at'        => (string) ($row['last_run_at'] ?? ''),
+            );
+
+            foreach (array('total','answered','pass_top1','pass_top3','pass_any','failed','errors','with_results','zero_results','execution_count') as $key) {
+                $modules[$module_no][$key] += absint($metrics[$key]);
+                $question_types[$question_type][$key] += absint($metrics[$key]);
+            }
+            $modules[$module_no]['execution_ms_total'] += (float) $metrics['execution_ms_total'];
+            $question_types[$question_type]['execution_ms_total'] += (float) $metrics['execution_ms_total'];
+            $modules[$module_no]['first_run_at'] = self::progress_min_datetime($modules[$module_no]['first_run_at'], $metrics['first_run_at']);
+            $modules[$module_no]['last_run_at'] = self::progress_max_datetime($modules[$module_no]['last_run_at'], $metrics['last_run_at']);
+            $modules[$module_no]['question_types'][$question_type] = array(
+                'total'          => $metrics['total'],
+                'answered'       => $metrics['answered'],
+                'pass_any'       => $metrics['pass_any'],
+                'pass_any_ratio' => $metrics['answered'] > 0 ? round($metrics['pass_any'] / $metrics['answered'], 4) : null,
+            );
+            $question_types[$question_type]['modules'][$module_no] = array(
+                'module_no'      => $module_no,
+                'answered'       => $metrics['answered'],
+                'pass_any'       => $metrics['pass_any'],
+                'pass_top1'      => $metrics['pass_top1'],
+                'pass_top3'      => $metrics['pass_top3'],
+                'failed'         => $metrics['failed'],
+                'errors'         => $metrics['errors'],
+                'with_results'   => $metrics['with_results'],
+                'zero_results'   => $metrics['zero_results'],
+                'first_run_at'   => $metrics['first_run_at'],
+                'last_run_at'    => $metrics['last_run_at'],
+            );
+
+            $execution_ms_total += (float) $metrics['execution_ms_total'];
+            $execution_count += absint($metrics['execution_count']);
+            $first_run_at = self::progress_min_datetime($first_run_at, $metrics['first_run_at']);
+            $last_run_at = self::progress_max_datetime($last_run_at, $metrics['last_run_at']);
+        }
+
+        ksort($modules, SORT_NUMERIC);
+        $checkpoints = array();
+        $cumulative = array(
+            'answered' => 0,
+            'pass_top1' => 0,
+            'pass_top3' => 0,
+            'pass_any' => 0,
+            'failed' => 0,
+            'errors' => 0,
+            'with_results' => 0,
+            'zero_results' => 0,
+        );
+        foreach ($modules as $module) {
+            foreach ($cumulative as $key => $value) {
+                $cumulative[$key] += absint($module[$key] ?? 0);
+            }
+            $answered = absint($module['answered'] ?? 0);
+            $total = absint($module['total'] ?? 0);
+            $checkpoint = array(
+                'module_no'                 => absint($module['module_no'] ?? 0),
+                'total'                     => $total,
+                'answered'                  => $answered,
+                'completion_ratio'          => $total > 0 ? round($answered / $total, 4) : 0,
+                'pass_top1'                 => absint($module['pass_top1'] ?? 0),
+                'pass_top3'                 => absint($module['pass_top3'] ?? 0),
+                'pass_any'                  => absint($module['pass_any'] ?? 0),
+                'pass_any_ratio'            => $answered > 0 ? round(absint($module['pass_any'] ?? 0) / $answered, 4) : null,
+                'failed'                    => absint($module['failed'] ?? 0),
+                'errors'                    => absint($module['errors'] ?? 0),
+                'with_results'              => absint($module['with_results'] ?? 0),
+                'zero_results'              => absint($module['zero_results'] ?? 0),
+                'result_presence_ratio'     => $answered > 0 ? round(absint($module['with_results'] ?? 0) / $answered, 4) : null,
+                'avg_execution_ms'          => absint($module['execution_count'] ?? 0) > 0 ? round(((float) $module['execution_ms_total']) / absint($module['execution_count']), 3) : null,
+                'first_run_at'              => (string) ($module['first_run_at'] ?? ''),
+                'last_run_at'               => (string) ($module['last_run_at'] ?? ''),
+                'question_types'            => (array) ($module['question_types'] ?? array()),
+                'cumulative_answered'       => $cumulative['answered'],
+                'cumulative_pass_any'       => $cumulative['pass_any'],
+                'cumulative_pass_any_ratio' => $cumulative['answered'] > 0 ? round($cumulative['pass_any'] / $cumulative['answered'], 4) : null,
+                'cumulative_failed'         => $cumulative['failed'],
+                'cumulative_errors'         => $cumulative['errors'],
+            );
+            $checkpoints[] = $checkpoint;
+        }
+
+        $question_type_progress = array();
+        ksort($question_types);
+        foreach ($question_types as $question_type => $metrics) {
+            ksort($metrics['modules'], SORT_NUMERIC);
+            $series = array();
+            foreach ($metrics['modules'] as $module_metrics) {
+                $answered = absint($module_metrics['answered'] ?? 0);
+                $series[] = array(
+                    'module_no'      => absint($module_metrics['module_no'] ?? 0),
+                    'answered'       => $answered,
+                    'pass_any'       => absint($module_metrics['pass_any'] ?? 0),
+                    'pass_any_ratio' => $answered > 0 ? round(absint($module_metrics['pass_any'] ?? 0) / $answered, 4) : null,
+                    'failed'         => absint($module_metrics['failed'] ?? 0),
+                    'errors'         => absint($module_metrics['errors'] ?? 0),
+                    'with_results'   => absint($module_metrics['with_results'] ?? 0),
+                    'zero_results'   => absint($module_metrics['zero_results'] ?? 0),
+                    'first_run_at'   => (string) ($module_metrics['first_run_at'] ?? ''),
+                    'last_run_at'    => (string) ($module_metrics['last_run_at'] ?? ''),
+                );
+            }
+            $answered = absint($metrics['answered'] ?? 0);
+            $question_type_progress[$question_type] = array(
+                'total'              => absint($metrics['total'] ?? 0),
+                'answered'           => $answered,
+                'pass_top1'          => absint($metrics['pass_top1'] ?? 0),
+                'pass_top3'          => absint($metrics['pass_top3'] ?? 0),
+                'pass_any'           => absint($metrics['pass_any'] ?? 0),
+                'pass_any_ratio'     => $answered > 0 ? round(absint($metrics['pass_any'] ?? 0) / $answered, 4) : null,
+                'failed'             => absint($metrics['failed'] ?? 0),
+                'errors'             => absint($metrics['errors'] ?? 0),
+                'with_results'       => absint($metrics['with_results'] ?? 0),
+                'zero_results'       => absint($metrics['zero_results'] ?? 0),
+                'avg_execution_ms'   => absint($metrics['execution_count'] ?? 0) > 0 ? round(((float) $metrics['execution_ms_total']) / absint($metrics['execution_count']), 3) : null,
+                'trend'              => self::progress_trend_from_checkpoints($series),
+                'module_series'      => $series,
+            );
+        }
+
+        $summary = self::lesson_summary($lesson_key);
+        $answered_total = absint($summary['answered'] ?? 0);
+        $wall_seconds = self::progress_elapsed_seconds($first_run_at, $last_run_at);
+        $active_seconds = $execution_ms_total > 0 ? $execution_ms_total / 1000 : 0;
+
+        return array(
+            'version' => self::PROGRESS_REPORT_VERSION,
+            'measurement' => 'observational_run_history',
+            'retroactive' => true,
+            'checkpoint_unit' => 'module',
+            'summary' => array(
+                'modules_total'             => count($modules),
+                'modules_with_activity'     => count(array_filter($checkpoints, static function ($row) { return absint($row['answered'] ?? 0) > 0; })),
+                'answered'                  => $answered_total,
+                'current_pass_any_ratio'    => $answered_total > 0 ? round(absint($summary['pass_any'] ?? 0) / $answered_total, 4) : null,
+                'first_run_at'              => $first_run_at,
+                'last_run_at'               => $last_run_at,
+                'wall_elapsed_seconds'      => $wall_seconds,
+                'active_execution_seconds'  => round($active_seconds, 3),
+                'answered_per_wall_minute'   => $wall_seconds > 0 ? round($answered_total / ($wall_seconds / 60), 2) : null,
+                'questions_per_active_execution_minute' => $active_seconds > 0 ? round($answered_total / ($active_seconds / 60), 2) : null,
+                'avg_execution_ms'          => $execution_count > 0 ? round($execution_ms_total / $execution_count, 3) : null,
+                'trend'                     => self::progress_trend_from_checkpoints($checkpoints),
+            ),
+            'search_strategies' => self::progress_search_strategy_summary($lesson_key),
+            'question_types' => $question_type_progress,
+            'checkpoints' => $checkpoints,
+        );
+    }
+
+    private static function progress_search_strategy_summary($lesson_key) {
+        global $wpdb;
+        $rows = (array) $wpdb->get_results($wpdb->prepare(
+            "SELECT COALESCE(NULLIF(search_strategy, ''), 'unknown') AS strategy,
+                    COUNT(*) AS uses,
+                    COALESCE(SUM(CASE WHEN result_count > 0 THEN 1 ELSE 0 END), 0) AS with_results,
+                    COALESCE(SUM(CASE WHEN result_count = 0 THEN 1 ELSE 0 END), 0) AS zero_results,
+                    AVG(execution_ms) AS avg_execution_ms
+             FROM " . self::runs_table() . "
+             WHERE lesson_key = %s
+               AND status = 'answered'
+             GROUP BY COALESCE(NULLIF(search_strategy, ''), 'unknown')
+             ORDER BY uses DESC, strategy ASC",
+            $lesson_key
+        ), ARRAY_A);
+        $out = array();
+        foreach ($rows as $row) {
+            $strategy = sanitize_key((string) ($row['strategy'] ?? 'unknown')) ?: 'unknown';
+            $out[$strategy] = array(
+                'uses'             => absint($row['uses'] ?? 0),
+                'with_results'     => absint($row['with_results'] ?? 0),
+                'zero_results'     => absint($row['zero_results'] ?? 0),
+                'avg_execution_ms' => isset($row['avg_execution_ms']) ? round((float) $row['avg_execution_ms'], 3) : null,
+            );
+        }
+        return $out;
+    }
+
+    private static function progress_trend_from_checkpoints($checkpoints) {
+        $active = array_values(array_filter((array) $checkpoints, static function ($row) {
+            return absint($row['answered'] ?? 0) > 0;
+        }));
+        $count = count($active);
+        if ($count < 1) {
+            return array(
+                'signal' => 'insufficient_data',
+                'baseline_pass_any_ratio' => null,
+                'recent_pass_any_ratio' => null,
+                'delta_pass_any_pp' => null,
+                'baseline_modules' => array(),
+                'recent_modules' => array(),
+            );
+        }
+
+        $width = min(3, max(1, (int) floor($count / 3)));
+        $baseline_rows = array_slice($active, 0, $width);
+        $recent_rows = array_slice($active, -$width);
+        $baseline = self::progress_weighted_ratio($baseline_rows);
+        $recent = self::progress_weighted_ratio($recent_rows);
+        $delta_pp = (null !== $baseline && null !== $recent) ? round(($recent - $baseline) * 100, 2) : null;
+        $signal = 'insufficient_data';
+        if ($count >= 2 && null !== $delta_pp) {
+            if ($delta_pp >= 2.0) {
+                $signal = 'improving';
+            } elseif ($delta_pp <= -2.0) {
+                $signal = 'declining';
+            } else {
+                $signal = 'stable';
+            }
+        }
+
+        return array(
+            'signal'                  => $signal,
+            'baseline_pass_any_ratio' => null === $baseline ? null : round($baseline, 4),
+            'recent_pass_any_ratio'   => null === $recent ? null : round($recent, 4),
+            'delta_pass_any_pp'       => $delta_pp,
+            'baseline_modules'        => array_values(array_map(static function ($row) { return absint($row['module_no'] ?? 0); }, $baseline_rows)),
+            'recent_modules'          => array_values(array_map(static function ($row) { return absint($row['module_no'] ?? 0); }, $recent_rows)),
+            'window_size_modules'     => $width,
+            'active_module_count'     => $count,
+            'causal_attribution'      => false,
+        );
+    }
+
+    private static function progress_weighted_ratio($rows) {
+        $answered = 0;
+        $passed = 0;
+        foreach ((array) $rows as $row) {
+            $answered += absint($row['answered'] ?? 0);
+            $passed += absint($row['pass_any'] ?? 0);
+        }
+        return $answered > 0 ? $passed / $answered : null;
+    }
+
+    private static function progress_min_datetime($a, $b) {
+        $a = (string) $a;
+        $b = (string) $b;
+        if ('' === $a) return $b;
+        if ('' === $b) return $a;
+        return strcmp($a, $b) <= 0 ? $a : $b;
+    }
+
+    private static function progress_max_datetime($a, $b) {
+        $a = (string) $a;
+        $b = (string) $b;
+        if ('' === $a) return $b;
+        if ('' === $b) return $a;
+        return strcmp($a, $b) >= 0 ? $a : $b;
+    }
+
+    private static function progress_elapsed_seconds($first, $last) {
+        $first_ts = $first ? strtotime((string) $first) : false;
+        $last_ts = $last ? strtotime((string) $last) : false;
+        if (false === $first_ts || false === $last_ts || $last_ts < $first_ts) {
+            return 0;
+        }
+        return (int) ($last_ts - $first_ts);
+    }
+
     private static function build_lesson_export_document($lesson_key) {
         $lesson_key = sanitize_key((string) $lesson_key);
         $lesson = self::lesson_row($lesson_key);
@@ -1913,7 +2333,7 @@ final class SEO_Dependiente_Entrenador {
         return array(
             'schema' => array(
                 'name'    => 'seo_dependiente_academy_lesson',
-                'version' => 1,
+                'version' => 2,
             ),
             'generated_at' => current_time('c'),
             'site' => array(
@@ -1934,6 +2354,7 @@ final class SEO_Dependiente_Entrenador {
                 'curriculum_version'=> self::CURRICULUM_VERSION,
             ),
             'summary' => self::lesson_summary($lesson_key),
+            'learning_progress' => self::lesson_learning_progress($lesson_key),
             'curriculum_audit' => self::lesson_curriculum_audit($items),
             'modules' => self::module_progress($lesson_key),
             'notes' => array(
@@ -1948,6 +2369,8 @@ final class SEO_Dependiente_Entrenador {
                 'canonical_knowledge_promoted_on_completion' => true,
                 'l1_to_l7_are_training'       => true,
                 'l8_is_closed_exam'           => true,
+                'progress_reconstructed_from_runs' => true,
+                'progress_is_observational_not_causal' => true,
             ),
             'items' => $items,
         );
@@ -2445,7 +2868,8 @@ final class SEO_Dependiente_Entrenador {
                 <span class="seo-dependiente-trainer__lesson-status"><?php echo esc_html($labels[$status] ?? ucfirst($status)); ?></span>
                 <?php if (absint($row['item_count'] ?? 0) > 0) : ?>
                     <div class="seo-dependiente-trainer__lesson-report">
-                        <button type="button" class="button button-small" data-trainer-export-lesson-key="<?php echo esc_attr($lesson_key); ?>">Descargar informe de esta lección</button>
+                        <button type="button" class="button button-small" data-trainer-export-progress-key="<?php echo esc_attr($lesson_key); ?>">Progreso</button>
+                        <button type="button" class="button button-small" data-trainer-export-lesson-key="<?php echo esc_attr($lesson_key); ?>">Informe completo</button>
                     </div>
                 <?php endif; ?>
             </div>
