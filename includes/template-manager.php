@@ -1459,6 +1459,306 @@ function seo_tm_handle_upload_new_template() {
 }
 
 /* =========================================================
+   SINCRONIZACIÓN CONTROLADA PRO -> STAGING
+
+   Copia únicamente el contenido de wp_seo_templates.
+   PRO siempre es solo lectura. La escritura se bloquea salvo
+   que la base de datos activa sea exactamente la de STAGING.
+========================================================= */
+
+function seo_tm_pro_sync_source_database() {
+    return 'hosting160568eu_kAqx7hSq';
+}
+
+function seo_tm_pro_sync_target_database() {
+    return 'hosting160568eu_ZcwwyvP1';
+}
+
+function seo_tm_pro_sync_table_name() {
+    return 'wp_seo_templates';
+}
+
+function seo_tm_pro_sync_columns() {
+    return [
+        'id',
+        'template_key',
+        'template_name',
+        'template_file',
+        'template_content',
+        'is_active',
+        'template_type',
+        'is_public',
+        'is_assignable',
+        'assignment_mode',
+        'display_order',
+        'description',
+        'device_variants_enabled',
+        'created_at',
+        'updated_at',
+    ];
+}
+
+function seo_tm_pro_sync_quote_identifier($identifier) {
+    return '`' . str_replace('`', '``', (string) $identifier) . '`';
+}
+
+function seo_tm_pro_sync_qualified_table($database, $table) {
+    return seo_tm_pro_sync_quote_identifier($database) . '.' . seo_tm_pro_sync_quote_identifier($table);
+}
+
+function seo_tm_pro_sync_is_staging_database() {
+    $target_database = seo_tm_pro_sync_target_database();
+
+    return defined('DB_NAME') && (string) DB_NAME === $target_database;
+}
+
+function seo_tm_pro_sync_schema_check() {
+    global $wpdb;
+
+    $source = seo_tm_pro_sync_qualified_table(
+        seo_tm_pro_sync_source_database(),
+        seo_tm_pro_sync_table_name()
+    );
+    $target = seo_tm_pro_sync_qualified_table(
+        seo_tm_pro_sync_target_database(),
+        seo_tm_pro_sync_table_name()
+    );
+
+    $required = seo_tm_pro_sync_columns();
+
+    $source_columns = $wpdb->get_col("SHOW COLUMNS FROM {$source}", 0);
+    if (!is_array($source_columns) || empty($source_columns)) {
+        return new WP_Error(
+            'seo_tm_sync_source_unavailable',
+            'No se puede leer la tabla de plantillas de PRO. Comprueba los permisos SELECT entre bases de datos.'
+        );
+    }
+
+    $target_columns = $wpdb->get_col("SHOW COLUMNS FROM {$target}", 0);
+    if (!is_array($target_columns) || empty($target_columns)) {
+        return new WP_Error(
+            'seo_tm_sync_target_unavailable',
+            'No se puede leer la tabla de plantillas de STAGING.'
+        );
+    }
+
+    $missing_source = array_values(array_diff($required, $source_columns));
+    $missing_target = array_values(array_diff($required, $target_columns));
+
+    if (!empty($missing_source) || !empty($missing_target)) {
+        $parts = [];
+
+        if (!empty($missing_source)) {
+            $parts[] = 'faltan en PRO: ' . implode(', ', $missing_source);
+        }
+
+        if (!empty($missing_target)) {
+            $parts[] = 'faltan en STAGING: ' . implode(', ', $missing_target);
+        }
+
+        return new WP_Error(
+            'seo_tm_sync_schema_mismatch',
+            'La sincronización se ha bloqueado porque las columnas necesarias no coinciden (' . implode('; ', $parts) . ').'
+        );
+    }
+
+    return true;
+}
+
+function seo_tm_pro_sync_compare() {
+    global $wpdb;
+
+    $source = seo_tm_pro_sync_qualified_table(
+        seo_tm_pro_sync_source_database(),
+        seo_tm_pro_sync_table_name()
+    );
+    $target = seo_tm_pro_sync_qualified_table(
+        seo_tm_pro_sync_target_database(),
+        seo_tm_pro_sync_table_name()
+    );
+
+    $source_count = $wpdb->get_var("SELECT COUNT(*) FROM {$source}");
+    if ($source_count === null && $wpdb->last_error !== '') {
+        return new WP_Error('seo_tm_sync_source_count_failed', 'No se pudo contar la tabla de PRO: ' . $wpdb->last_error);
+    }
+
+    $target_count = $wpdb->get_var("SELECT COUNT(*) FROM {$target}");
+    if ($target_count === null && $wpdb->last_error !== '') {
+        return new WP_Error('seo_tm_sync_target_count_failed', 'No se pudo contar la tabla de STAGING: ' . $wpdb->last_error);
+    }
+
+    $comparisons = [];
+    foreach (seo_tm_pro_sync_columns() as $column) {
+        $quoted = seo_tm_pro_sync_quote_identifier($column);
+        $comparisons[] = "p.{$quoted} <=> s.{$quoted}";
+    }
+
+    $comparison_sql = implode("\n               AND ", $comparisons);
+
+    $different_rows = $wpdb->get_var(
+        "SELECT COUNT(*)
+         FROM {$source} p
+         LEFT JOIN {$target} s
+           ON p.`template_key` = s.`template_key`
+         WHERE s.`template_key` IS NULL
+            OR NOT (
+               {$comparison_sql}
+            )"
+    );
+
+    if ($different_rows === null && $wpdb->last_error !== '') {
+        return new WP_Error('seo_tm_sync_compare_failed', 'No se pudieron comparar PRO y STAGING: ' . $wpdb->last_error);
+    }
+
+    $extra_rows = $wpdb->get_var(
+        "SELECT COUNT(*)
+         FROM {$target} s
+         LEFT JOIN {$source} p
+           ON p.`template_key` = s.`template_key`
+         WHERE p.`template_key` IS NULL"
+    );
+
+    if ($extra_rows === null && $wpdb->last_error !== '') {
+        return new WP_Error('seo_tm_sync_extra_compare_failed', 'No se pudieron comprobar filas extra de STAGING: ' . $wpdb->last_error);
+    }
+
+    return [
+        'source_count'   => (int) $source_count,
+        'target_count'   => (int) $target_count,
+        'different_rows' => (int) $different_rows,
+        'extra_rows'     => (int) $extra_rows,
+        'equal'          => (
+            (int) $source_count === (int) $target_count &&
+            (int) $different_rows === 0 &&
+            (int) $extra_rows === 0
+        ),
+    ];
+}
+
+function seo_tm_handle_sync_from_pro() {
+    if (!isset($_POST['seo_tm_sync_from_pro'])) return;
+
+    if (!current_user_can('manage_options')) {
+        seo_tm_redirect('sincronizar', 'No tienes permisos para sincronizar plantillas.', 'error');
+    }
+
+    check_admin_referer('seo_tm_sync_from_pro', 'seo_tm_sync_from_pro_nonce');
+
+    if (!seo_tm_pro_sync_is_staging_database()) {
+        seo_tm_redirect(
+            'sincronizar',
+            'Operación bloqueada: la copia PRO → STAGING solo puede ejecutarse desde la base de datos de STAGING.',
+            'error'
+        );
+    }
+
+    if (empty($_POST['seo_tm_sync_confirm'])) {
+        seo_tm_redirect('sincronizar', 'Debes confirmar expresamente que quieres reemplazar la tabla de STAGING.', 'warning');
+    }
+
+    global $wpdb;
+
+    $schema_check = seo_tm_pro_sync_schema_check();
+    if (is_wp_error($schema_check)) {
+        seo_tm_redirect('sincronizar', $schema_check->get_error_message(), 'error');
+    }
+
+    $before = seo_tm_pro_sync_compare();
+    if (is_wp_error($before)) {
+        seo_tm_redirect('sincronizar', $before->get_error_message(), 'error');
+    }
+
+    if ((int) $before['source_count'] < 1) {
+        seo_tm_redirect('sincronizar', 'Operación bloqueada: la tabla de PRO está vacía.', 'error');
+    }
+
+    $source_database = seo_tm_pro_sync_source_database();
+    $target_database = seo_tm_pro_sync_target_database();
+    $table_name      = seo_tm_pro_sync_table_name();
+
+    $source = seo_tm_pro_sync_qualified_table($source_database, $table_name);
+    $target = seo_tm_pro_sync_qualified_table($target_database, $table_name);
+
+    $backup_table_name = $table_name . '_backup_pro_sync_' . gmdate('Ymd_His') . '_' . wp_rand(1000, 9999);
+    $backup = seo_tm_pro_sync_qualified_table($target_database, $backup_table_name);
+
+    if ($wpdb->query("CREATE TABLE {$backup} LIKE {$target}") === false) {
+        seo_tm_redirect('sincronizar', 'No se pudo crear el backup de STAGING: ' . $wpdb->last_error, 'error');
+    }
+
+    if ($wpdb->query("INSERT INTO {$backup} SELECT * FROM {$target}") === false) {
+        $backup_error = $wpdb->last_error;
+        $wpdb->query("DROP TABLE IF EXISTS {$backup}");
+        seo_tm_redirect('sincronizar', 'No se pudo completar el backup de STAGING: ' . $backup_error, 'error');
+    }
+
+    $columns = [];
+    foreach (seo_tm_pro_sync_columns() as $column) {
+        $columns[] = seo_tm_pro_sync_quote_identifier($column);
+    }
+    $column_sql = implode(', ', $columns);
+
+    if ($wpdb->query('START TRANSACTION') === false) {
+        seo_tm_redirect('sincronizar', 'No se pudo iniciar la transacción. El backup sí ha quedado creado: ' . $backup_table_name, 'error');
+    }
+
+    if ($wpdb->query("DELETE FROM {$target}") === false) {
+        $error = $wpdb->last_error;
+        $wpdb->query('ROLLBACK');
+        seo_tm_redirect('sincronizar', 'No se pudo vaciar STAGING. No se aplicaron cambios. Backup: ' . $backup_table_name . '. Error: ' . $error, 'error');
+    }
+
+    $inserted = $wpdb->query(
+        "INSERT INTO {$target} ({$column_sql})
+         SELECT {$column_sql}
+         FROM {$source}"
+    );
+
+    if ($inserted === false) {
+        $error = $wpdb->last_error;
+        $wpdb->query('ROLLBACK');
+        seo_tm_redirect('sincronizar', 'Falló la copia desde PRO. Se revirtió STAGING. Backup: ' . $backup_table_name . '. Error: ' . $error, 'error');
+    }
+
+    $after = seo_tm_pro_sync_compare();
+    if (is_wp_error($after)) {
+        $wpdb->query('ROLLBACK');
+        seo_tm_redirect('sincronizar', 'La copia se revirtió porque no pudo verificarse: ' . $after->get_error_message() . '. Backup: ' . $backup_table_name, 'error');
+    }
+
+    if (!$after['equal']) {
+        $wpdb->query('ROLLBACK');
+        seo_tm_redirect(
+            'sincronizar',
+            'La copia se revirtió porque PRO y STAGING no quedaron idénticos. Backup: ' . $backup_table_name,
+            'error'
+        );
+    }
+
+    if ($wpdb->query('COMMIT') === false) {
+        seo_tm_redirect('sincronizar', 'MySQL no confirmó la transacción. Revisa STAGING antes de continuar. Backup: ' . $backup_table_name, 'error');
+    }
+
+    update_option(
+        'seo_tm_last_pro_sync',
+        [
+            'completed_at' => current_time('mysql'),
+            'user_id'      => get_current_user_id(),
+            'source_count' => (int) $after['source_count'],
+            'target_count' => (int) $after['target_count'],
+            'backup_table' => $backup_table_name,
+        ],
+        false
+    );
+
+    seo_tm_redirect(
+        'sincronizar',
+        'Sincronización completada. PRO: ' . (int) $after['source_count'] . ' filas; STAGING: ' . (int) $after['target_count'] . ' filas. Backup: ' . $backup_table_name,
+        'success'
+    );
+}
+
+/* =========================================================
    PROCESAR DISPONIBILIDAD Y ACTIVACIÓN
 ========================================================= */
 
@@ -1630,9 +1930,10 @@ function seo_templates_page() {
     seo_tm_handle_register_existing_file();
     seo_tm_handle_upload_new_template();
     seo_tm_handle_registry();
+    seo_tm_handle_sync_from_pro();
 
     $active_tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'asignar';
-    $allowed_tabs = ['asignar', 'archivos', 'configuracion'];
+    $allowed_tabs = ['asignar', 'archivos', 'configuracion', 'sincronizar'];
 
     if (!in_array($active_tab, $allowed_tabs, true)) {
         $active_tab = 'asignar';
@@ -1647,6 +1948,9 @@ function seo_templates_page() {
     echo '<a href="' . esc_url(seo_tm_admin_url('asignar')) . '" class="nav-tab ' . ($active_tab === 'asignar' ? 'nav-tab-active' : '') . '">Asignación a páginas</a>';
     echo '<a href="' . esc_url(seo_tm_admin_url('archivos')) . '" class="nav-tab ' . ($active_tab === 'archivos' ? 'nav-tab-active' : '') . '">Archivos de plantilla</a>';
     echo '<a href="' . esc_url(seo_tm_admin_url('configuracion')) . '" class="nav-tab ' . ($active_tab === 'configuracion' ? 'nav-tab-active' : '') . '">Disponibilidad y activación</a>';
+    if (seo_tm_pro_sync_is_staging_database()) {
+        echo '<a href="' . esc_url(seo_tm_admin_url('sincronizar')) . '" class="nav-tab ' . ($active_tab === 'sincronizar' ? 'nav-tab-active' : '') . '">PRO → STAGING</a>';
+    }
     echo '</nav>';
 
     seo_tm_render_styles();
@@ -1655,8 +1959,10 @@ function seo_templates_page() {
         seo_tm_render_assignments_tab();
     } elseif ($active_tab === 'archivos') {
         seo_tm_render_files_tab();
-    } else {
+    } elseif ($active_tab === 'configuracion') {
         seo_tm_render_registry_tab();
+    } else {
+        seo_tm_render_sync_tab();
     }
 
     echo '</div>';
@@ -2111,6 +2417,77 @@ function seo_tm_render_registry_tab() {
     echo '<p class="description">Reglas: una plantilla no usable se desactiva y deja de ser asignable; el modo automático tampoco admite asignaciones manuales.</p>';
     echo '<p><button type="submit" name="seo_tm_save_registry" class="button button-primary button-large">Guardar disponibilidad y activación</button></p>';
     echo '</form>';
+}
+
+/* =========================================================
+   INTERFAZ: SINCRONIZACIÓN PRO -> STAGING
+========================================================= */
+
+function seo_tm_render_sync_tab() {
+    echo '<h2>Sincronizar plantillas PRO → STAGING</h2>';
+    echo '<p>Esta herramienta copia <strong>únicamente los registros</strong> de <code>wp_seo_templates</code> desde PRO hacia STAGING. No copia archivos PHP, páginas, asignaciones de <code>seo_nodes</code>, productos ni ninguna otra tabla.</p>';
+
+    echo '<section class="seo-tm-card">';
+    echo '<h3>Protección de entorno</h3>';
+    echo '<p><strong>Fuente, solo lectura:</strong> <code>' . esc_html(seo_tm_pro_sync_source_database() . '.' . seo_tm_pro_sync_table_name()) . '</code></p>';
+    echo '<p><strong>Destino:</strong> <code>' . esc_html(seo_tm_pro_sync_target_database() . '.' . seo_tm_pro_sync_table_name()) . '</code></p>';
+    echo '<p><strong>Base de datos activa:</strong> <code>' . esc_html(defined('DB_NAME') ? DB_NAME : 'no detectada') . '</code></p>';
+
+    if (!seo_tm_pro_sync_is_staging_database()) {
+        echo '<div class="notice notice-error inline"><p><strong>Operación bloqueada.</strong> Esta pestaña solo puede escribir cuando la base de datos activa es exactamente STAGING. PRO nunca se modifica.</p></div>';
+        echo '</section>';
+        return;
+    }
+
+    $schema_check = seo_tm_pro_sync_schema_check();
+    if (is_wp_error($schema_check)) {
+        echo '<div class="notice notice-error inline"><p>' . esc_html($schema_check->get_error_message()) . '</p></div>';
+        echo '</section>';
+        return;
+    }
+
+    $comparison = seo_tm_pro_sync_compare();
+    if (is_wp_error($comparison)) {
+        echo '<div class="notice notice-error inline"><p>' . esc_html($comparison->get_error_message()) . '</p></div>';
+        echo '</section>';
+        return;
+    }
+
+    $status_label = $comparison['equal'] ? 'Coinciden' : 'Hay diferencias';
+    $status_class = $comparison['equal'] ? 'is-ok' : 'is-error';
+
+    echo '<p><span class="seo-tm-badge ' . esc_attr($status_class) . '">' . esc_html($status_label) . '</span></p>';
+    echo '<table class="widefat striped" style="max-width:760px">';
+    echo '<tbody>';
+    echo '<tr><th>Filas en PRO</th><td>' . esc_html((string) $comparison['source_count']) . '</td></tr>';
+    echo '<tr><th>Filas en STAGING</th><td>' . esc_html((string) $comparison['target_count']) . '</td></tr>';
+    echo '<tr><th>Filas distintas o ausentes en STAGING</th><td>' . esc_html((string) $comparison['different_rows']) . '</td></tr>';
+    echo '<tr><th>Filas extra en STAGING</th><td>' . esc_html((string) $comparison['extra_rows']) . '</td></tr>';
+    echo '</tbody>';
+    echo '</table>';
+
+    $last_sync = get_option('seo_tm_last_pro_sync', []);
+    if (is_array($last_sync) && !empty($last_sync['completed_at'])) {
+        echo '<p class="description" style="margin-top:12px">Última copia completada: ' . esc_html((string) $last_sync['completed_at']);
+        if (!empty($last_sync['backup_table'])) {
+            echo ' · Backup: <code>' . esc_html((string) $last_sync['backup_table']) . '</code>';
+        }
+        echo '</p>';
+    }
+
+    echo '</section>';
+
+    echo '<section class="seo-tm-card">';
+    echo '<h3>Copiar ahora</h3>';
+    echo '<div class="notice notice-warning inline"><p><strong>Atención:</strong> se reemplazará todo el contenido actual de <code>STAGING.wp_seo_templates</code>. Antes de copiar se crea automáticamente una tabla de backup en STAGING. La copia se verifica fila por fila y se revierte si no queda idéntica a PRO.</p></div>';
+
+    echo '<form method="post">';
+    wp_nonce_field('seo_tm_sync_from_pro', 'seo_tm_sync_from_pro_nonce');
+    echo '<input type="hidden" name="seo_tm_sync_from_pro" value="1">';
+    echo '<p><label><input type="checkbox" name="seo_tm_sync_confirm" value="1" required> Confirmo que quiero reemplazar el registro de plantillas de STAGING con el contenido actual de PRO.</label></p>';
+    echo '<p><button type="submit" class="button button-primary button-large" style="background:#b32d2e;border-color:#b32d2e">Copiar PRO → STAGING</button></p>';
+    echo '</form>';
+    echo '</section>';
 }
 
 /* =========================================================
