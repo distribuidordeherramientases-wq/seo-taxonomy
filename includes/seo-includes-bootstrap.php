@@ -70,24 +70,9 @@ require_once SEO_SYSTEM_PATH . 'includes/seo-images.php';
 |--------------------------------------------------------------------------
 */
 
-// Helpers compartidos de categorías + compatibilidad del informe de reclasificación.
-// La clasificación legacy de etiquetas de producto ya está retirada.
-require_once SEO_SYSTEM_PATH . 'includes/product-classification.php';
-require_once SEO_SYSTEM_PATH . 'includes/product-inventory.php';
-require_once SEO_SYSTEM_PATH . 'includes/product-attributes.php';
-
-// Motor de propuestas de clasificación (solo lectura; no persiste datos).
-require_once SEO_SYSTEM_PATH . 'includes/clasificador/bootstrap.php';
-require_once SEO_SYSTEM_PATH . 'includes/product-recategorization.php';
-
-// Alta/edición unitaria: ambos caminos usan el mismo servicio canónico.
-require_once SEO_SYSTEM_PATH . 'includes/product-service.php';
-require_once SEO_SYSTEM_PATH . 'includes/product-form.php';
-require_once SEO_SYSTEM_PATH . 'includes/product-create.php';
-require_once SEO_SYSTEM_PATH . 'includes/product-edit.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-product-reports.php';
-require_once SEO_SYSTEM_PATH . 'includes/product-sizes.php';
-require_once SEO_SYSTEM_PATH . 'includes/product-page-admin.php';
+// Subsistema de productos centralizado.
+// Incluye clasificacion, atributos, alta/edicion, inventario, informes y administracion.
+require_once SEO_SYSTEM_PATH . 'includes/products/bootstrap.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -163,7 +148,6 @@ require_once SEO_SYSTEM_PATH . 'includes/seo-google-info.php';
 
 require_once SEO_SYSTEM_PATH . 'includes/seo-menu-admin.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-tags-vocabulary-admin.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-product-vocabulary-editor.php';
 require_once SEO_SYSTEM_PATH . 'includes/procesos/bootstrap.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-logistica.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-transporte.php';
