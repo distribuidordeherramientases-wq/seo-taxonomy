@@ -268,6 +268,22 @@ function seo_template_loader($template) {
     }
 
     /* =====================================================
+       2E. TIENDA WOOCOMMERCE
+
+       El archivo principal de tienda de WooCommerce no es una
+       pagina singular normal. Debe resolverse de forma explicita
+       mediante la template_key `shop` antes de continuar con el
+       resto de rutas.
+    ===================================================== */
+    if (function_exists('is_shop') && is_shop()) {
+
+        $tpl = seo_template_get_registered_template('shop');
+
+        $file = seo_template_resolve_registered_file($tpl, $base_path);
+        return $file !== '' ? $file : $template;
+    }
+
+    /* =====================================================
        3. CATEGORIAS PRODUCTO
     ===================================================== */
     if (is_tax('product_cat')) {
