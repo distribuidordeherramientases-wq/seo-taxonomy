@@ -462,6 +462,7 @@ function seo_reports_page() {
         'anomalias',
         'growth_executive',
         'google_intelligence',
+        'analista',
     ];
 
     if (!in_array($active_tab, $allowed_tabs, true)) {
@@ -480,6 +481,7 @@ function seo_reports_page() {
     echo '<a class="nav-tab ' . ($active_tab === 'anomalias' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=anomalias') . '">Anomalías</a>';
     echo '<a class="nav-tab ' . ($active_tab === 'growth_executive' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=growth_executive') . '">Qué hacer</a>';
     echo '<a class="nav-tab ' . ($active_tab === 'google_intelligence' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=google_intelligence') . '">Inteligencia de Google</a>';
+    echo '<a class="nav-tab ' . ($active_tab === 'analista' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=analista') . '">Analista</a>';
     echo '</h2>';
 
     // Ejecución de acciones según la pestaña escogida.
@@ -510,6 +512,12 @@ function seo_reports_page() {
         }
     } elseif ($active_tab === 'google_intelligence') {
         seo_google_intelligence_page();
+    } elseif ($active_tab === 'analista') {
+        if (function_exists('seo_analista_render_report')) {
+            seo_analista_render_report();
+        } else {
+            echo '<div class="notice notice-error inline"><p>Falta cargar <code>includes/anlista/analista-bootstrap.php</code>.</p></div>';
+        }
     }
     echo '</div>';
 }

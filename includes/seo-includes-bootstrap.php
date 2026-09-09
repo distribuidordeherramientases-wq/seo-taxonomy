@@ -139,6 +139,7 @@ require_once SEO_SYSTEM_PATH . 'includes/seo-reports.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-report-classification.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-dashboard.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-google-info.php';
+require_once SEO_SYSTEM_PATH . 'includes/anlista/analista-bootstrap.php';
 
 /*
 |--------------------------------------------------------------------------
