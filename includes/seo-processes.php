@@ -7,7 +7,7 @@
  * - Import / Export por lotes.
  * - Academia del Dependiente.
  * - Clasificador semantico por jobs.
- * - Auditorias de salud de paginas, posts e imagenes.
+ * - Auditorias de salud de paginas, posts, imagenes, productos y sitemap publico.
  *
  * La pantalla centraliza monitorizacion, limites de velocidad y el arranque
  * explicito de los controladores propios. Import/Export y Academia pueden
@@ -118,6 +118,18 @@ if (!function_exists('seo_processes_control_defaults')) {
                 'initial_interval_ms' => 300,
                 'max_interval_ms' => 3000,
             ),
+            'health-sitemap' => array(
+                'remote_batch' => 100,
+                'load_batch' => 60,
+                'initial_workers' => 2,
+                'max_workers' => 8,
+                'fast_p95_ms' => 800,
+                'slow_p95_ms' => 1500,
+                'very_slow_p95_ms' => 2500,
+                'min_interval_ms' => 120,
+                'initial_interval_ms' => 300,
+                'max_interval_ms' => 3000,
+            ),
         );
     }
 }
@@ -183,12 +195,15 @@ if (!function_exists('seo_processes_sanitize_controls')) {
         $classifier['critical_delay_seconds'] = max($classifier['heavy_delay_seconds'], min(900, absint($classifier['critical_delay_seconds'])));
         $out['classifier'] = $classifier;
 
-        foreach (array('page', 'post', 'image', 'product') as $scope) {
+        foreach (array('page', 'post', 'image', 'product', 'sitemap') as $scope) {
             $key = 'health-' . $scope;
             $health = wp_parse_args(isset($raw[$key]) && is_array($raw[$key]) ? $raw[$key] : array(), $defaults[$key]);
             // Compatibilidad: configuraciones antiguas podían guardar `batch`,
             // pero el escaneo normal ya no se limita desde WordPress.
             unset($health['batch']);
+            if ($scope === 'sitemap') {
+                $health['remote_batch'] = max(10, min(500, absint($health['remote_batch'])));
+            }
             $health['load_batch'] = max(5, min(2000, absint($health['load_batch'])));
             $health['max_workers'] = max(1, min(16, absint($health['max_workers'])));
             $health['initial_workers'] = max(1, min($health['max_workers'], absint($health['initial_workers'])));
@@ -1245,13 +1260,16 @@ if (!function_exists('seo_processes_render_control_panel')) {
                 <p class="description">El Clasificador solo se inicia o reanuda manualmente. El gestor únicamente lo mantiene vivo mientras el job esté activo.</p>
             </details>
 
-            <?php foreach (array('page' => 'Chequeo de páginas', 'post' => 'Chequeo de posts', 'image' => 'Chequeo de imágenes', 'product' => 'Chequeo de productos') as $scope => $title) :
+            <?php foreach (array('page' => 'Chequeo de páginas', 'post' => 'Chequeo de posts', 'image' => 'Chequeo de imágenes', 'product' => 'Chequeo de productos', 'sitemap' => 'Chequeo de sitemap público') as $scope => $title) :
                 $key = 'health-' . $scope;
                 $health = $settings[$key];
             ?>
             <details class="seo-process-control-card">
                 <summary><strong><?php echo esc_html($title); ?></strong><span>Runner GitHub</span></summary>
                 <div class="seo-process-control-grid">
+                    <?php if ($scope === 'sitemap') : ?>
+                    <label>Lote remoto<?php seo_processes_number_input($key,'remote_batch',$health['remote_batch'],10,500); ?><small>URLs que el worker solicita a WordPress en cada tramo. No limita el alcance total.</small></label>
+                    <?php endif; ?>
                     <label>Lote test carga<?php seo_processes_number_input($key,'load_batch',$health['load_batch'],5,2000); ?><small>URLs en modo test.</small></label>
                     <label>Workers iniciales<?php seo_processes_number_input($key,'initial_workers',$health['initial_workers'],1,16); ?><small>Se envía al runner.</small></label>
                     <label>Workers máximos<?php seo_processes_number_input($key,'max_workers',$health['max_workers'],1,16); ?><small>Se envía al runner.</small></label>
@@ -1262,7 +1280,11 @@ if (!function_exists('seo_processes_render_control_panel')) {
                     <label>Intervalo inicial<?php seo_processes_number_input($key,'initial_interval_ms',$health['initial_interval_ms'],10,10000); ?><small>ms entre peticiones.</small></label>
                     <label>Intervalo máximo<?php seo_processes_number_input($key,'max_interval_ms',$health['max_interval_ms'],10,30000); ?><small>ms entre peticiones.</small></label>
                 </div>
+                <?php if ($scope === 'sitemap') : ?>
+                <p class="seo-process-control-warning"><strong>Importante:</strong> WordPress conserva el inventario completo generado desde el <code>sitemap.xml</code> vigente. El worker pide lotes pequeños de forma sucesiva hasta terminar; <strong>Lote remoto</strong> regula cada petición, no la cobertura total.</p>
+                <?php else : ?>
                 <p class="seo-process-control-warning"><strong>Importante:</strong> el escaneo normal entrega el inventario completo al runner. WordPress no limita el número de páginas, posts, imágenes o productos. El worker recibe <code>control</code> y aplica workers/intervalos desde este gestor. Solo el test de carga conserva un límite de muestra.</p>
+                <?php endif; ?>
             </details>
             <?php endforeach; ?>
 

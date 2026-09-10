@@ -118,7 +118,7 @@ require_once SEO_SYSTEM_PATH . 'includes/admin-redirects.php';
 */
 
 require_once SEO_SYSTEM_PATH . 'includes/seo-search.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-marketing.php';
+require_once SEO_SYSTEM_PATH . 'includes/marketing/bootstrap.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-faq.php';
 
 /*
