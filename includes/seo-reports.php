@@ -516,7 +516,7 @@ function seo_reports_page() {
         if (function_exists('seo_analista_render_report')) {
             seo_analista_render_report();
         } else {
-            echo '<div class="notice notice-error inline"><p>Falta cargar <code>includes/anlista/analista-bootstrap.php</code>.</p></div>';
+            echo '<div class="notice notice-error inline"><p>Falta cargar <code>includes/analista/analista-bootstrap.php</code>.</p></div>';
         }
     }
     echo '</div>';
