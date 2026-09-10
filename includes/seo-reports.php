@@ -78,10 +78,12 @@ function seo_reports_render_google_search_summary() {
     echo '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:12px;">';
     echo '<div>';
     echo '<h2 style="margin:0 0 5px;">Google · Visibilidad orgánica</h2>';
-    echo '<p style="margin:0;color:#646970;">Resumen de Search Console reutilizado desde Inteligencia de Google.</p>';
+    echo '<p style="margin:0;color:#646970;">Resumen de Search Console reutilizado por Analista.</p>';
     echo '</div>';
 
-    if (function_exists('seo_google_admin_url')) {
+    if (function_exists('seo_analista_admin_url')) {
+        echo '<a class="button" href="' . esc_url(seo_analista_admin_url(array('analista_view' => 'donde_estamos', 'analista_days' => 28))) . '">Ver en Analista</a>';
+    } elseif (function_exists('seo_google_admin_url')) {
         echo '<a class="button" href="' . esc_url(seo_google_admin_url('summary')) . '">Ver informe completo</a>';
     }
 
@@ -479,8 +481,6 @@ function seo_reports_page() {
     echo '<a class="nav-tab ' . ($active_tab === 'dashboard' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=dashboard') . '">Panel</a>';
     echo '<a class="nav-tab ' . ($active_tab === 'content' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=content') . '">Contenido</a>';
     echo '<a class="nav-tab ' . ($active_tab === 'anomalias' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=anomalias') . '">Anomalías</a>';
-    echo '<a class="nav-tab ' . ($active_tab === 'growth_executive' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=growth_executive') . '">Qué hacer</a>';
-    echo '<a class="nav-tab ' . ($active_tab === 'google_intelligence' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=google_intelligence') . '">Inteligencia de Google</a>';
     echo '<a class="nav-tab ' . ($active_tab === 'analista' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=analista') . '">Analista</a>';
     echo '</h2>';
 
