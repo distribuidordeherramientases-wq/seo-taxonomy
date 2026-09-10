@@ -64,6 +64,10 @@ function seo_social_network_default_settings()
                 'post' => "{titulo}\n\n{extracto}",
                 'page' => "{titulo}\n\n{extracto}",
             ),
+            'pinterest' => array(
+                'post' => "{titulo}\n\n{extracto}",
+                'page' => "{titulo}\n\n{extracto}",
+            ),
         ),
         'providers' => array(
             'facebook' => array(
@@ -95,6 +99,26 @@ function seo_social_network_default_settings()
                 'organizations'            => array(),
                 'api_version'              => '202608',
                 'publish_mode'             => 'article',
+                'last_test_at'             => '',
+                'last_test_ok'             => 0,
+                'last_test_error'          => '',
+            ),
+            'pinterest' => array(
+                'enabled'                  => 0,
+                'app_id'                   => '',
+                'app_secret_enc'           => '',
+                'access_token_enc'         => '',
+                'refresh_token_enc'        => '',
+                'token_expires_at'         => 0,
+                'refresh_token_expires_at' => 0,
+                'scope'                    => 'boards:read pins:read pins:write',
+                'board_id'                 => '',
+                'board_name'               => '',
+                'boards'                   => array(),
+                'account_username'         => '',
+                'page_name'                => '',
+                'page_link'                => '',
+                'publish_mode'             => 'image',
                 'last_test_at'             => '',
                 'last_test_ok'             => 0,
                 'last_test_error'          => '',
@@ -1067,6 +1091,9 @@ function seo_social_network_render_notice()
         'linkedin_connected'         => array('success', 'LinkedIn autorizado. Revisa la pagina de empresa seleccionada y prueba la conexion.'),
         'linkedin_app_missing'       => array('warning', 'Guarda primero el Client ID y el Client Secret de LinkedIn.'),
         'linkedin_oauth_failed'      => array('error', 'No se pudo completar la autorizacion OAuth de LinkedIn.'),
+        'pinterest_connected'        => array('success', 'Pinterest autorizado. Selecciona el tablero de destino y prueba la conexion.'),
+        'pinterest_app_missing'      => array('warning', 'Guarda primero el App ID y el App Secret de Pinterest.'),
+        'pinterest_oauth_failed'     => array('error', 'No se pudo completar la autorizacion OAuth de Pinterest.'),
     );
 
     if (!isset($messages[$message])) {
@@ -1086,6 +1113,14 @@ function seo_social_network_render_notice()
         $detail = get_transient('seo_social_linkedin_oauth_error_' . get_current_user_id());
         if ($detail) {
             delete_transient('seo_social_linkedin_oauth_error_' . get_current_user_id());
+            $text .= ' ' . $detail;
+        }
+    }
+
+    if ('pinterest_oauth_failed' === $message) {
+        $detail = get_transient('seo_social_pinterest_oauth_error_' . get_current_user_id());
+        if ($detail) {
+            delete_transient('seo_social_pinterest_oauth_error_' . get_current_user_id());
             $text .= ' ' . $detail;
         }
     }
