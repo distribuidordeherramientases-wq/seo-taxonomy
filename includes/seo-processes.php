@@ -75,7 +75,6 @@ if (!function_exists('seo_processes_control_defaults')) {
                 'critical_delay_seconds' => 90,
             ),
             'health-page' => array(
-                'batch' => 250,
                 'load_batch' => 60,
                 'initial_workers' => 2,
                 'max_workers' => 8,
@@ -87,7 +86,6 @@ if (!function_exists('seo_processes_control_defaults')) {
                 'max_interval_ms' => 3000,
             ),
             'health-post' => array(
-                'batch' => 250,
                 'load_batch' => 60,
                 'initial_workers' => 2,
                 'max_workers' => 8,
@@ -99,7 +97,6 @@ if (!function_exists('seo_processes_control_defaults')) {
                 'max_interval_ms' => 3000,
             ),
             'health-image' => array(
-                'batch' => 500,
                 'load_batch' => 300,
                 'initial_workers' => 2,
                 'max_workers' => 8,
@@ -178,8 +175,10 @@ if (!function_exists('seo_processes_sanitize_controls')) {
         foreach (array('page', 'post', 'image') as $scope) {
             $key = 'health-' . $scope;
             $health = wp_parse_args(isset($raw[$key]) && is_array($raw[$key]) ? $raw[$key] : array(), $defaults[$key]);
-            $health['batch'] = max(10, min(2000, absint($health['batch'])));
-            $health['load_batch'] = max(5, min($health['batch'], absint($health['load_batch'])));
+            // Compatibilidad: configuraciones antiguas podían guardar `batch`,
+            // pero el escaneo normal ya no se limita desde WordPress.
+            unset($health['batch']);
+            $health['load_batch'] = max(5, min(2000, absint($health['load_batch'])));
             $health['max_workers'] = max(1, min(16, absint($health['max_workers'])));
             $health['initial_workers'] = max(1, min($health['max_workers'], absint($health['initial_workers'])));
             $health['fast_p95_ms'] = max(100, min(10000, absint($health['fast_p95_ms'])));
@@ -266,7 +265,6 @@ if (!function_exists('seo_processes_filter_health_scope_config')) {
         }
         $control = seo_processes_control_for('health-' . sanitize_key((string) $scope));
         if ($control) {
-            $config['batch'] = absint($control['batch']);
             $config['load_batch'] = absint($control['load_batch']);
         }
         return $config;
@@ -1005,9 +1003,6 @@ if (!function_exists('seo_processes_collect_health')) {
         }
 
         $load_bits = array();
-        if (is_array($config) && !empty($config['batch'])) {
-            $load_bits[] = 'Lote máx.: ' . number_format_i18n(absint($config['batch']));
-        }
         $runner_control = seo_processes_health_runner_control($scope);
         if (!empty($runner_control['max_workers'])) {
             $load_bits[] = 'objetivo remoto: ' . number_format_i18n(absint($runner_control['initial_workers'])) . '–' . number_format_i18n(absint($runner_control['max_workers'])) . ' workers';
@@ -1245,7 +1240,6 @@ if (!function_exists('seo_processes_render_control_panel')) {
             <details class="seo-process-control-card">
                 <summary><strong><?php echo esc_html($title); ?></strong><span>Runner GitHub</span></summary>
                 <div class="seo-process-control-grid">
-                    <label>Tamaño de lote<?php seo_processes_number_input($key,'batch',$health['batch'],10,2000); ?><small>Este límite sí lo aplica WordPress.</small></label>
                     <label>Lote test carga<?php seo_processes_number_input($key,'load_batch',$health['load_batch'],5,2000); ?><small>URLs en modo test.</small></label>
                     <label>Workers iniciales<?php seo_processes_number_input($key,'initial_workers',$health['initial_workers'],1,16); ?><small>Se envía al runner.</small></label>
                     <label>Workers máximos<?php seo_processes_number_input($key,'max_workers',$health['max_workers'],1,16); ?><small>Se envía al runner.</small></label>
@@ -1256,7 +1250,7 @@ if (!function_exists('seo_processes_render_control_panel')) {
                     <label>Intervalo inicial<?php seo_processes_number_input($key,'initial_interval_ms',$health['initial_interval_ms'],10,10000); ?><small>ms entre peticiones.</small></label>
                     <label>Intervalo máximo<?php seo_processes_number_input($key,'max_interval_ms',$health['max_interval_ms'],10,30000); ?><small>ms entre peticiones.</small></label>
                 </div>
-                <p class="seo-process-control-warning"><strong>Importante:</strong> WordPress aplica el tamaño del lote y devuelve los demás límites en <code>control</code> dentro del JSON del lote. El workflow remoto debe ser compatible con esa clave para que cambien sus workers/intervalos.</p>
+                <p class="seo-process-control-warning"><strong>Importante:</strong> el escaneo normal entrega el inventario completo al runner. WordPress no limita el número de páginas, posts o imágenes. El worker recibe <code>control</code> y aplica workers/intervalos desde este gestor. Solo el test de carga conserva un límite de muestra.</p>
             </details>
             <?php endforeach; ?>
 
