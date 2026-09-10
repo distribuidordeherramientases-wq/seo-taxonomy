@@ -107,6 +107,17 @@ if (!function_exists('seo_processes_control_defaults')) {
                 'initial_interval_ms' => 300,
                 'max_interval_ms' => 3000,
             ),
+            'health-product' => array(
+                'load_batch' => 60,
+                'initial_workers' => 2,
+                'max_workers' => 8,
+                'fast_p95_ms' => 800,
+                'slow_p95_ms' => 1500,
+                'very_slow_p95_ms' => 2500,
+                'min_interval_ms' => 120,
+                'initial_interval_ms' => 300,
+                'max_interval_ms' => 3000,
+            ),
         );
     }
 }
@@ -172,7 +183,7 @@ if (!function_exists('seo_processes_sanitize_controls')) {
         $classifier['critical_delay_seconds'] = max($classifier['heavy_delay_seconds'], min(900, absint($classifier['critical_delay_seconds'])));
         $out['classifier'] = $classifier;
 
-        foreach (array('page', 'post', 'image') as $scope) {
+        foreach (array('page', 'post', 'image', 'product') as $scope) {
             $key = 'health-' . $scope;
             $health = wp_parse_args(isset($raw[$key]) && is_array($raw[$key]) ? $raw[$key] : array(), $defaults[$key]);
             // Compatibilidad: configuraciones antiguas podían guardar `batch`,
@@ -1062,6 +1073,7 @@ if (!function_exists('seo_processes_collect')) {
             seo_processes_collect_health('page'),
             seo_processes_collect_health('post'),
             seo_processes_collect_health('image'),
+            seo_processes_collect_health('product'),
         );
 
         /**
@@ -1233,7 +1245,7 @@ if (!function_exists('seo_processes_render_control_panel')) {
                 <p class="description">El Clasificador solo se inicia o reanuda manualmente. El gestor únicamente lo mantiene vivo mientras el job esté activo.</p>
             </details>
 
-            <?php foreach (array('page' => 'Chequeo de páginas', 'post' => 'Chequeo de posts', 'image' => 'Chequeo de imágenes') as $scope => $title) :
+            <?php foreach (array('page' => 'Chequeo de páginas', 'post' => 'Chequeo de posts', 'image' => 'Chequeo de imágenes', 'product' => 'Chequeo de productos') as $scope => $title) :
                 $key = 'health-' . $scope;
                 $health = $settings[$key];
             ?>
@@ -1250,7 +1262,7 @@ if (!function_exists('seo_processes_render_control_panel')) {
                     <label>Intervalo inicial<?php seo_processes_number_input($key,'initial_interval_ms',$health['initial_interval_ms'],10,10000); ?><small>ms entre peticiones.</small></label>
                     <label>Intervalo máximo<?php seo_processes_number_input($key,'max_interval_ms',$health['max_interval_ms'],10,30000); ?><small>ms entre peticiones.</small></label>
                 </div>
-                <p class="seo-process-control-warning"><strong>Importante:</strong> el escaneo normal entrega el inventario completo al runner. WordPress no limita el número de páginas, posts o imágenes. El worker recibe <code>control</code> y aplica workers/intervalos desde este gestor. Solo el test de carga conserva un límite de muestra.</p>
+                <p class="seo-process-control-warning"><strong>Importante:</strong> el escaneo normal entrega el inventario completo al runner. WordPress no limita el número de páginas, posts, imágenes o productos. El worker recibe <code>control</code> y aplica workers/intervalos desde este gestor. Solo el test de carga conserva un límite de muestra.</p>
             </details>
             <?php endforeach; ?>
 

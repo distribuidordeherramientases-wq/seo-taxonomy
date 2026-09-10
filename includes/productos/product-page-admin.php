@@ -15,7 +15,7 @@ if (!function_exists('seo_product_admin_callback')) {
         }
 
         $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'editar';
-        $allowed_tabs = ['nuevo', 'editar', 'inventario', 'recategorizar', 'tamanos', 'informes'];
+        $allowed_tabs = ['nuevo', 'editar', 'inventario', 'recategorizar', 'tamanos', 'informes', 'errores'];
         if (!in_array($active_tab, $allowed_tabs, true)) {
             $active_tab = 'editar';
         }
@@ -34,6 +34,7 @@ if (!function_exists('seo_product_admin_callback')) {
             'recategorizar' => 'Recategorizar',
             'tamanos'       => 'Tamaños',
             'informes'      => 'Informes Google',
+            'errores'       => 'Errores',
         ];
 
         echo '<nav class="nav-tab-wrapper" style="margin-bottom:20px;">';
@@ -88,6 +89,14 @@ if (!function_exists('seo_product_admin_callback')) {
                     seo_product_reports_page();
                 } else {
                     echo '<div class="notice notice-error"><p>No esta disponible el modulo de informes Google por producto.</p></div>';
+                }
+                break;
+
+            case 'errores':
+                if (function_exists('seo_health_render_scope_tab')) {
+                    seo_health_render_scope_tab('product');
+                } else {
+                    echo '<div class="notice notice-error"><p>No se ha podido cargar <code>system-check/seo-health-scan.php</code>.</p></div>';
                 }
                 break;
 

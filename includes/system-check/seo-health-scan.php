@@ -2,12 +2,12 @@
 /**
  * SEO System - auditor externo por tipo de recurso.
  *
- * Separa tres inventarios: paginas WordPress, posts e imagenes activas.
+ * Separa cuatro inventarios: paginas WordPress, posts, productos e imagenes activas.
  * Cada pestaña dispone de su propio escaneo y de un test de carga seguro.
  * Los workers se ejecutan en GitHub Actions y devuelven resultados por REST.
  *
  * Version: 2026-09-10
- * Build: 002
+ * Build: 003
  */
 
 defined('ABSPATH') || exit;
@@ -150,6 +150,13 @@ if (!function_exists('seo_health_scan_scope_config')) {
                 'workflow' => 'image-health.yml',
                 'load_batch' => 300,
                 'admin' => array('page' => 'seo-pictures-admin', 'tab' => 'errors'),
+            ),
+            'product' => array(
+                'label' => 'Productos',
+                'singular' => 'producto',
+                'workflow' => 'product-health.yml',
+                'load_batch' => 60,
+                'admin' => array('page' => 'product-page-admin', 'tab' => 'errores'),
             ),
         );
         $config = isset($map[$scope]) ? $map[$scope] : null;
@@ -372,6 +379,8 @@ if (!function_exists('seo_health_scan_sync_inventory')) {
             $rows = seo_health_scan_collect_posts('page');
         } elseif ($scope === 'post') {
             $rows = seo_health_scan_collect_posts('post');
+        } elseif ($scope === 'product') {
+            $rows = seo_health_scan_collect_posts('product');
         } else {
             $rows = seo_health_scan_collect_images();
         }
@@ -1006,8 +1015,10 @@ if (!function_exists('seo_health_render_scope_tab')) {
         echo '<h2 style="margin-top:0">Errores y disponibilidad de ' . esc_html(strtolower($scope_config['label'])) . '</h2>';
         if ($scope === 'image') {
             echo '<p>Este escaneo comprueba directamente las URLs de imagen conocidas y activas. No vuelve a recorrer las 14.000+ URLs del sitemap para cada pasada, por lo que reduce mucho la carga y evita que el proceso se rompa por una cadena larga de páginas.</p>';
+        } elseif ($scope === 'product') {
+            echo '<p>El inventario se construye solo con <strong>productos WooCommerce publicados</strong>. El funcionamiento es el mismo que en páginas: WordPress entrega todo el inventario al runner y el worker regula la velocidad.</p>';
         } else {
-            echo '<p>El inventario se construye solo con <strong>' . esc_html(strtolower($scope_config['label'])) . ' publicadas</strong>. Productos, categorías, imágenes y otros tipos no entran en este escaneo.</p>';
+            echo '<p>El inventario se construye solo con <strong>' . esc_html(strtolower($scope_config['label'])) . ' publicadas</strong>. Otros tipos de contenido no entran en este escaneo.</p>';
         }
         echo '<div class="seo-health-actions">';
         foreach (array('sync'=>'Actualizar inventario','scan'=>'Escanear todo','load_test'=>'Test de carga seguro') as $task=>$label) {
