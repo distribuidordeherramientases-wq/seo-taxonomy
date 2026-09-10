@@ -1,0 +1,197 @@
+<?php
+/**
+ * JSON maestro de Analista.
+ *
+ * Es el unico export necesario para revisar la capa ejecutiva: donde estamos,
+ * comparacion y hacia donde vamos. No incluye credenciales ni configuracion
+ * tecnica sensible de las conexiones.
+ */
+
+defined('ABSPATH') || exit;
+
+if (!function_exists('seo_analista_json_clean_value')) {
+    function seo_analista_json_clean_value($value, $depth = 0) {
+        if ($depth > 8) return null;
+        if (is_null($value) || is_bool($value) || is_int($value) || is_float($value)) return $value;
+        if (is_string($value)) return sanitize_text_field($value);
+        if (is_array($value)) {
+            $out = array();
+            foreach ($value as $key => $item) {
+                $safe_key = is_int($key) ? $key : sanitize_key((string) $key);
+                $clean = seo_analista_json_clean_value($item, $depth + 1);
+                if (null !== $clean) $out[$safe_key] = $clean;
+            }
+            return $out;
+        }
+        if (is_object($value)) return seo_analista_json_clean_value((array) $value, $depth + 1);
+        return null;
+    }
+}
+
+if (!function_exists('seo_analista_json_query_row')) {
+    function seo_analista_json_query_row(array $row) {
+        return array(
+            'query' => seo_analista_clean_query($row['query_text'] ?? ''),
+            'clicks' => (float) ($row['clicks'] ?? 0),
+            'impressions' => (float) ($row['impressions'] ?? 0),
+            'pages' => (int) ($row['pages'] ?? 0),
+            'ctr' => (float) ($row['ctr'] ?? 0),
+            'position' => (float) ($row['position'] ?? 0),
+            'intent' => seo_analista_intent($row['query_text'] ?? ''),
+        );
+    }
+}
+
+if (!function_exists('seo_analista_json_page_row')) {
+    function seo_analista_json_page_row(array $row) {
+        return array(
+            'url' => esc_url_raw((string) ($row['page_url'] ?? '')),
+            'type' => seo_analista_page_type($row['page_url'] ?? ''),
+            'clicks' => (float) ($row['clicks'] ?? 0),
+            'impressions' => (float) ($row['impressions'] ?? 0),
+            'queries' => (int) ($row['queries'] ?? 0),
+            'ctr' => (float) ($row['ctr'] ?? 0),
+            'position' => (float) ($row['position'] ?? 0),
+        );
+    }
+}
+
+if (!function_exists('seo_analista_build_json_export')) {
+    function seo_analista_build_json_export($days = 28) {
+        $days = seo_analista_days($days);
+        $data = seo_analista_get_data($days);
+        $google = seo_analista_google_snapshot($days, false);
+        $evolution = seo_analista_evolution_snapshot($days);
+        $competition = seo_analista_competition_snapshot(100);
+        $plan = seo_analista_decision_plan($days, 40);
+        $plan_summary = seo_analista_plan_summary($plan);
+        $search = seo_analista_internal_search_snapshot($days, 50);
+        $suppliers = seo_analista_supplier_snapshot(50);
+        $market = seo_analista_market_signals(50);
+        $catalog_guidance = seo_analista_catalog_guidance($days, 30);
+        $source_health = seo_analista_google_source_health($days);
+        $catalog_structure = seo_analista_catalog_structure_snapshot((array) ($data['pages'] ?? array()));
+        $tracked_keywords = seo_analista_tracked_keyword_snapshot(
+            (array) ($data['queries'] ?? array()),
+            (array) ($data['previous_queries'] ?? array())
+        );
+
+        $queries = array();
+        foreach (array_slice((array) ($data['queries'] ?? array()), 0, 120) as $row) {
+            if (!seo_analista_query_is_actionable($row['query_text'] ?? '')) continue;
+            $queries[] = seo_analista_json_query_row((array) $row);
+        }
+
+        $pages = array();
+        foreach (array_slice((array) ($data['pages'] ?? array()), 0, 80) as $row) {
+            $pages[] = seo_analista_json_page_row((array) $row);
+        }
+
+        $payload = array(
+            'schema' => array(
+                'name' => 'seo-analista-unificado',
+                'version' => 2,
+            ),
+            'generated_at' => gmdate('c'),
+            'site' => array(
+                'home_url' => home_url('/'),
+                'plugin_version' => defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : '',
+                'analista_version' => defined('SEO_ANALISTA_VERSION') ? SEO_ANALISTA_VERSION : '',
+            ),
+            'period' => (array) ($data['period'] ?? array()),
+            'donde_estamos' => array(
+                'ready' => !empty($data['ready']),
+                'visibility_index' => (float) ($data['visibility_index'] ?? 0),
+                'previous_visibility_index' => (float) ($data['previous_visibility_index'] ?? 0),
+                'current' => (array) ($data['current'] ?? array()),
+                'previous' => (array) ($data['previous'] ?? array()),
+                'distribution' => (array) ($data['distribution'] ?? array()),
+                'previous_distribution' => (array) ($data['previous_distribution'] ?? array()),
+                'movement' => (array) ($evolution['movement'] ?? array()),
+                'intent_distribution' => (array) ($data['intent_distribution'] ?? array()),
+                'page_types' => (array) ($data['page_types'] ?? array()),
+                'catalog_structure' => $catalog_structure,
+                'ga4' => (array) ($google['ga4'] ?? array()),
+                'internal_search' => array(
+                    'available' => !empty($search['available']),
+                    'total' => (int) ($search['total'] ?? 0),
+                    'unique' => (int) ($search['unique'] ?? 0),
+                    'zero_results' => (int) ($search['zero_results'] ?? 0),
+                    'top' => array_slice((array) ($search['top'] ?? array()), 0, 30),
+                ),
+                'top_queries' => $queries,
+                'top_pages' => $pages,
+            ),
+            'comparacion' => array(
+                'tracked_keywords' => $tracked_keywords,
+                'competition' => $competition,
+                'google_trends' => array_slice((array) $market, 0, 40),
+                'catalog_guidance' => array_slice((array) ($catalog_guidance['items'] ?? array()), 0, 30),
+                'suppliers' => array(
+                    'available' => !empty($suppliers['available']),
+                    'total' => (int) ($suppliers['total'] ?? 0),
+                    'providers' => (int) ($suppliers['providers'] ?? 0),
+                    'published_links' => (int) ($suppliers['published_links'] ?? 0),
+                    'rows' => array_slice((array) ($suppliers['rows'] ?? array()), 0, 30),
+                    'issues' => array_slice((array) ($suppliers['issues'] ?? array()), 0, 15),
+                ),
+            ),
+            'hacia_donde_vamos' => array(
+                'summary' => $plan_summary,
+                'plan' => $plan,
+            ),
+            'sources' => $source_health,
+            'privacy' => array(
+                'credentials_included' => false,
+                'tokens_included' => false,
+                'property_ids_included' => false,
+                'users_customers_orders_included' => false,
+                'technical_configuration_included' => false,
+            ),
+        );
+
+        return seo_analista_json_clean_value($payload);
+    }
+}
+
+if (!function_exists('seo_analista_export_json_url')) {
+    function seo_analista_export_json_url($days = 28) {
+        return wp_nonce_url(
+            add_query_arg(
+                array(
+                    'action' => 'seo_analista_export_json',
+                    'analista_days' => seo_analista_days($days),
+                ),
+                admin_url('admin-post.php')
+            ),
+            'seo_analista_export_json',
+            'seo_analista_nonce'
+        );
+    }
+}
+
+if (!function_exists('seo_analista_export_json_handler')) {
+    function seo_analista_export_json_handler() {
+        if (!current_user_can('manage_options')) {
+            wp_die(esc_html__('No tienes permisos para exportar Analista.', 'seo-system'));
+        }
+        check_admin_referer('seo_analista_export_json', 'seo_analista_nonce');
+
+        $days = isset($_GET['analista_days']) ? seo_analista_days(wp_unslash($_GET['analista_days'])) : 28;
+        $payload = seo_analista_build_json_export($days);
+        $json = wp_json_encode(
+            $payload,
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR
+        );
+        if (false === $json) {
+            wp_die(esc_html__('No se ha podido generar el JSON de Analista.', 'seo-system'));
+        }
+
+        nocache_headers();
+        header('X-Content-Type-Options: nosniff');
+        header('Content-Type: application/json; charset=utf-8');
+        header('Content-Disposition: attachment; filename="seo-analista-unificado-' . gmdate('Ymd-His') . '.json"');
+        echo $json;
+        exit;
+    }
+}
