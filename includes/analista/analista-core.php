@@ -39,6 +39,83 @@ if (!function_exists('seo_analista_normalize_text')) {
     }
 }
 
+
+if (!function_exists('seo_analista_clean_query')) {
+    function seo_analista_clean_query($query) {
+        $query = sanitize_text_field((string) $query);
+        if ($query === '') return '';
+
+        // Algunos datos historicos incorporan metadatos internos despues de
+        // ",," (por ejemplo i|c,-,,,-...). Esa cola no forma parte de la
+        // consulta real y no debe contaminar rankings, intenciones ni clusters.
+        $query = preg_replace('/,{2,}.*$/u', '', $query);
+        $query = preg_replace('/\s+/u', ' ', (string) $query);
+        return trim((string) $query, " \t\n\r\0\x0B,;|-");
+    }
+}
+
+if (!function_exists('seo_analista_merge_clean_query_rows')) {
+    function seo_analista_merge_clean_query_rows(array $rows) {
+        $merged = array();
+        foreach ($rows as $row) {
+            if (!is_array($row)) continue;
+            $query = seo_analista_clean_query($row['query_text'] ?? '');
+            $key = seo_analista_normalize_text($query);
+            if ($query === '' || $key === '') continue;
+
+            $impressions = max(0.0, (float) ($row['impressions'] ?? 0));
+            $clicks = max(0.0, (float) ($row['clicks'] ?? 0));
+            $position = max(0.0, (float) ($row['position'] ?? 0));
+            $pages = max(0, (int) ($row['pages'] ?? 0));
+
+            if (!isset($merged[$key])) {
+                $merged[$key] = array(
+                    'query_hash' => hash('sha256', $key),
+                    'query_text' => $query,
+                    'clicks' => 0.0,
+                    'impressions' => 0.0,
+                    'pages' => 0,
+                    '_position_weight' => 0.0,
+                );
+            }
+            $merged[$key]['clicks'] += $clicks;
+            $merged[$key]['impressions'] += $impressions;
+            $merged[$key]['pages'] = max($merged[$key]['pages'], $pages);
+            if ($position > 0 && $impressions > 0) {
+                $merged[$key]['_position_weight'] += $position * $impressions;
+            }
+        }
+
+        foreach ($merged as &$row) {
+            $impressions = max(0.0, (float) $row['impressions']);
+            $row['ctr'] = $impressions > 0 ? ((float) $row['clicks'] / $impressions) : 0.0;
+            $row['position'] = $impressions > 0 ? ((float) $row['_position_weight'] / $impressions) : 0.0;
+            unset($row['_position_weight']);
+        }
+        unset($row);
+
+        $merged = array_values($merged);
+        usort($merged, static function($a, $b) {
+            if ((float) $a['impressions'] === (float) $b['impressions']) {
+                return (float) $b['clicks'] <=> (float) $a['clicks'];
+            }
+            return (float) $b['impressions'] <=> (float) $a['impressions'];
+        });
+        return $merged;
+    }
+}
+
+if (!function_exists('seo_analista_query_is_actionable')) {
+    function seo_analista_query_is_actionable($query) {
+        $query = seo_analista_clean_query($query);
+        $normalized = seo_analista_normalize_text($query);
+        if ($normalized === '') return false;
+        if (preg_match('/^site\s+/', $normalized)) return false;
+        if (strpos($normalized, 'site www distribuidordeherramientas es') === 0) return false;
+        return true;
+    }
+}
+
 if (!function_exists('seo_analista_get_settings')) {
     function seo_analista_get_settings() {
         $defaults = array(
@@ -98,7 +175,7 @@ if (!function_exists('seo_analista_save_settings_handler')) {
             false
         );
 
-        wp_safe_redirect(seo_analista_admin_url(array('analista_notice' => 'settings_saved')));
+        wp_safe_redirect(seo_analista_admin_url(array('analista_view' => 'comparacion', 'analista_notice' => 'settings_saved')));
         exit;
     }
 }
@@ -193,7 +270,7 @@ if (!function_exists('seo_analista_query_rows')) {
         $table = seo_google_table('search_data');
         $limit = max(100, min(10000, absint($limit)));
 
-        return (array) $wpdb->get_results(
+        $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT
                     query_hash,
@@ -217,6 +294,8 @@ if (!function_exists('seo_analista_query_rows')) {
             ),
             ARRAY_A
         );
+
+        return seo_analista_merge_clean_query_rows($rows);
     }
 }
 
@@ -438,6 +517,7 @@ if (!function_exists('seo_analista_top_opportunities')) {
         $rows = array();
 
         foreach ($current_rows as $row) {
+            if (!seo_analista_query_is_actionable($row['query_text'] ?? '')) continue;
             $impressions = (float) ($row['impressions'] ?? 0);
             $position = (float) ($row['position'] ?? 0);
             if ($impressions < 2 || $position <= 0 || $position > 100) continue;
@@ -519,13 +599,20 @@ if (!function_exists('seo_analista_get_data')) {
         $distribution = seo_analista_distribution($queries);
         $previous_distribution = seo_analista_distribution($previous_queries);
 
+        $current_metrics = seo_analista_period_metrics($property_id, $period['date_from'], $period['date_to']);
+        $previous_metrics = seo_analista_period_metrics($property_id, $period['previous_date_from'], $period['previous_date_to']);
+        // El contador visible usa consultas ya saneadas y fusionadas para que
+        // las colas de metadatos historicas no inflen artificialmente el KPI.
+        $current_metrics['queries'] = count($queries);
+        $previous_metrics['queries'] = count($previous_queries);
+
         return array(
             'ready' => true,
             'days' => $days,
             'settings' => seo_analista_get_settings(),
             'period' => $period,
-            'current' => seo_analista_period_metrics($property_id, $period['date_from'], $period['date_to']),
-            'previous' => seo_analista_period_metrics($property_id, $period['previous_date_from'], $period['previous_date_to']),
+            'current' => $current_metrics,
+            'previous' => $previous_metrics,
             'queries' => $queries,
             'previous_queries' => $previous_queries,
             'pages' => $pages,

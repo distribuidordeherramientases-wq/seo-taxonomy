@@ -2,23 +2,27 @@
 /**
  * Bootstrap del modulo Analista.
  *
- * El directorio definitivo es /includes/analista/. El modulo expone un informe de mercado basado en los
- * datos propios ya almacenados por Google Intelligence y deja preparado un
- * adaptador para incorporar posiciones externas de competidores sin acoplar el
- * informe a un proveedor concreto.
+ * Analista es la capa ejecutiva unica de inteligencia: reutiliza los motores
+ * existentes de Search Console, Analytics y Trends, cruza catalogo,
+ * proveedores y competencia, y devuelve una guia corta de trabajo.
  */
 
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_ANALISTA_VERSION')) {
-    define('SEO_ANALISTA_VERSION', '1.1.0');
+    define('SEO_ANALISTA_VERSION', '2.0.0');
 }
 
 $seo_analista_files = array(
     __DIR__ . '/analista-core.php',
     __DIR__ . '/analista-mercado.php',
     __DIR__ . '/analista-fuentes.php',
+    __DIR__ . '/analista-google.php',
+    __DIR__ . '/analista-evolucion.php',
+    __DIR__ . '/analista-catalogo.php',
+    __DIR__ . '/analista-competencia.php',
     __DIR__ . '/analista-decisiones.php',
+    __DIR__ . '/analista-json.php',
     __DIR__ . '/analista-informe.php',
 );
 
@@ -33,4 +37,7 @@ if (function_exists('seo_analista_save_settings_handler')) {
 }
 if (function_exists('seo_analista_semrush_import_handler')) {
     add_action('admin_post_seo_analista_semrush_import', 'seo_analista_semrush_import_handler');
+}
+if (function_exists('seo_analista_export_json_handler')) {
+    add_action('admin_post_seo_analista_export_json', 'seo_analista_export_json_handler');
 }
