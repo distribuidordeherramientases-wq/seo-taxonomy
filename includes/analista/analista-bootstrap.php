@@ -10,7 +10,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_ANALISTA_VERSION')) {
-    define('SEO_ANALISTA_VERSION', '2.0.1');
+    define('SEO_ANALISTA_VERSION', '2.1.0');
 }
 
 $seo_analista_files = array(
@@ -18,6 +18,7 @@ $seo_analista_files = array(
     __DIR__ . '/analista-mercado.php',
     __DIR__ . '/analista-fuentes.php',
     __DIR__ . '/analista-google.php',
+    __DIR__ . '/analista-bing.php',
     __DIR__ . '/analista-evolucion.php',
     __DIR__ . '/analista-catalogo.php',
     __DIR__ . '/analista-competencia.php',
@@ -35,8 +36,8 @@ foreach ($seo_analista_files as $seo_analista_file) {
 if (function_exists('seo_analista_save_settings_handler')) {
     add_action('admin_post_seo_analista_save_settings', 'seo_analista_save_settings_handler');
 }
-if (function_exists('seo_analista_competition_import_handler')) {
-    add_action('admin_post_seo_analista_competition_import', 'seo_analista_competition_import_handler');
+if (function_exists('seo_analista_bing_save_settings_handler')) {
+    add_action('admin_post_seo_analista_save_bing_settings', 'seo_analista_bing_save_settings_handler');
 }
 if (function_exists('seo_analista_export_json_handler')) {
     add_action('admin_post_seo_analista_export_json', 'seo_analista_export_json_handler');

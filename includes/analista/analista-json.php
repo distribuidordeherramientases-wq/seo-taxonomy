@@ -61,6 +61,7 @@ if (!function_exists('seo_analista_build_json_export')) {
         $days = seo_analista_days($days);
         $data = seo_analista_get_data($days);
         $google = seo_analista_google_snapshot($days, false);
+        $bing = function_exists('seo_analista_bing_snapshot') ? seo_analista_bing_snapshot($days, 80) : array();
         $evolution = seo_analista_evolution_snapshot($days);
         $competition = seo_analista_competition_snapshot(100);
         $plan = seo_analista_decision_plan($days, 40);
@@ -70,6 +71,9 @@ if (!function_exists('seo_analista_build_json_export')) {
         $market = seo_analista_market_signals(50);
         $catalog_guidance = seo_analista_catalog_guidance($days, 30);
         $source_health = seo_analista_google_source_health($days);
+        if (function_exists('seo_analista_bing_source_health')) {
+            $source_health['bing'] = seo_analista_bing_source_health($days);
+        }
         $catalog_structure = seo_analista_catalog_structure_snapshot((array) ($data['pages'] ?? array()));
         $tracked_keywords = seo_analista_tracked_keyword_snapshot(
             (array) ($data['queries'] ?? array()),
@@ -90,7 +94,7 @@ if (!function_exists('seo_analista_build_json_export')) {
         $payload = array(
             'schema' => array(
                 'name' => 'seo-analista-unificado',
-                'version' => 2,
+                'version' => 3,
             ),
             'generated_at' => gmdate('c'),
             'site' => array(
@@ -112,6 +116,7 @@ if (!function_exists('seo_analista_build_json_export')) {
                 'page_types' => (array) ($data['page_types'] ?? array()),
                 'catalog_structure' => $catalog_structure,
                 'ga4' => (array) ($google['ga4'] ?? array()),
+                'bing' => $bing,
                 'internal_search' => array(
                     'available' => !empty($search['available']),
                     'total' => (int) ($search['total'] ?? 0),
@@ -124,6 +129,9 @@ if (!function_exists('seo_analista_build_json_export')) {
             ),
             'comparacion' => array(
                 'tracked_keywords' => $tracked_keywords,
+                'bing_vs_google' => function_exists('seo_analista_bing_google_query_compare')
+                    ? seo_analista_bing_google_query_compare((array) ($data['queries'] ?? array()), (array) ($bing['top_queries'] ?? array()), 50)
+                    : array(),
                 'competition' => $competition,
                 'google_trends' => array_slice((array) $market, 0, 40),
                 'catalog_guidance' => array_slice((array) ($catalog_guidance['items'] ?? array()), 0, 30),

@@ -105,7 +105,11 @@ if (!function_exists('seo_analista_render_line_chart')) {
 if (!function_exists('seo_analista_render_distribution')) {
     function seo_analista_render_distribution(array $current, array $previous) {
         $labels = array('top3' => 'Top 3', 'top10' => '4–10', 'top20' => '11–20', 'top50' => '21–50', 'top100' => '51–100', 'outside' => '>100');
-        $max_value = max(1, max(array_merge(array_values($current), array_values($previous))));
+        $values = array_merge(array_values($current), array_values($previous));
+        if (!$values) {
+            return;
+        }
+        $max_value = max(1, max($values));
         echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>Cómo avanzan nuestras posiciones</h2><p>No importa solo el Top 10: aquí vemos si las consultas están subiendo desde las posiciones bajas hacia los primeros resultados.</p></div></div>';
         echo '<div class="seo-analista-legend"><span><i class="current"></i>Actual</span><span><i class="previous"></i>Periodo anterior</span></div><div class="seo-analista-bars">';
         foreach ($labels as $key => $label) {
@@ -144,8 +148,54 @@ if (!function_exists('seo_analista_render_page_types')) {
     }
 }
 
+if (!function_exists('seo_analista_render_bing_overview')) {
+    function seo_analista_render_bing_overview(array $bing) {
+        if (empty($bing['configured']) || empty($bing['enabled'])) return;
+        if (empty($bing['available'])) {
+            echo '<div class="notice notice-info inline"><p><strong>Bing Webmaster esta configurado, pero aun no hay datos utilizables.</strong> Revisa la fuente al final del informe si la conexion sigue pendiente.</p></div>';
+            return;
+        }
+        $traffic = (array) ($bing['traffic'] ?? array());
+        $crawl = (array) ($bing['crawl'] ?? array());
+        echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>Bing · senal complementaria</h2><p>No sustituye a Search Console. Sirve para contrastar visibilidad, rastreo e indexacion desde el segundo buscador.</p></div></div><div class="seo-analista-grid compact">';
+        seo_analista_render_metric_card('Impresiones Bing', number_format_i18n((float) ($traffic['impressions'] ?? 0), 0), '', 'Periodo seleccionado.');
+        seo_analista_render_metric_card('Clics Bing', number_format_i18n((float) ($traffic['clicks'] ?? 0), 0), '', 'Trafico registrado por Bing.');
+        seo_analista_render_metric_card('CTR Bing', number_format_i18n(((float) ($traffic['ctr'] ?? 0)) * 100, 2) . '%', '', 'Clics sobre impresiones Bing.');
+        seo_analista_render_metric_card('En indice Bing', number_format_i18n((int) ($crawl['in_index'] ?? 0)), '', 'Ultimo valor de Crawl Stats.');
+        seo_analista_render_metric_card('Rastreadas Bing', number_format_i18n((int) ($crawl['crawled_pages'] ?? 0)), '', 'Acumulado del periodo.');
+        seo_analista_render_metric_card('4xx Bing', number_format_i18n((int) ($crawl['code4xx'] ?? 0)), '', 'Respuestas 4xx vistas por Bing.');
+        seo_analista_render_metric_card('5xx Bing', number_format_i18n((int) ($crawl['code5xx'] ?? 0)), '', 'Respuestas 5xx vistas por Bing.');
+        echo '</div></section>';
+    }
+}
+
+if (!function_exists('seo_analista_render_bing_query_comparison')) {
+    function seo_analista_render_bing_query_comparison(array $data, array $bing) {
+        if (empty($bing['available']) || !function_exists('seo_analista_bing_google_query_compare')) return;
+        $rows = seo_analista_bing_google_query_compare(
+            (array) ($data['queries'] ?? array()),
+            (array) ($bing['top_queries'] ?? array()),
+            30
+        );
+        if (!$rows) return;
+        echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>Google frente a Bing</h2><p>Contraste de consultas del propio sitio. Las diferencias entre motores son la parte util; no se suman posiciones ni se mezclan rankings.</p></div></div>';
+        echo '<div class="seo-analista-table-wrap"><table class="widefat striped"><thead><tr><th>Consulta</th><th>Google imp.</th><th>Google pos.</th><th>Bing imp.</th><th>Bing pos.</th><th>Lectura</th></tr></thead><tbody>';
+        foreach ($rows as $row) {
+            $state = (string) ($row['state'] ?? '');
+            $label = $state === 'ambos' ? 'Visible en ambos' : ($state === 'solo_bing' ? 'Solo Bing' : 'Solo Google');
+            echo '<tr><td><strong>' . esc_html((string) ($row['query'] ?? '')) . '</strong></td>';
+            echo '<td>' . esc_html(number_format_i18n((float) ($row['google_impressions'] ?? 0), 0)) . '</td>';
+            echo '<td>' . esc_html(!empty($row['google_position']) ? number_format_i18n((float) $row['google_position'], 1) : '-') . '</td>';
+            echo '<td>' . esc_html(number_format_i18n((float) ($row['bing_impressions'] ?? 0), 0)) . '</td>';
+            echo '<td>' . esc_html(!empty($row['bing_position']) ? number_format_i18n((float) $row['bing_position'], 1) : '-') . '</td>';
+            echo '<td>' . esc_html($label) . '</td></tr>';
+        }
+        echo '</tbody></table></div></section>';
+    }
+}
+
 if (!function_exists('seo_analista_render_where_we_are')) {
-    function seo_analista_render_where_we_are(array $data, array $google, array $evolution, array $search, array $catalog_structure) {
+    function seo_analista_render_where_we_are(array $data, array $google, array $bing, array $evolution, array $search, array $catalog_structure) {
         $current = (array) ($data['current'] ?? array());
         $previous = (array) ($data['previous'] ?? array());
         $ga4 = (array) ($google['ga4'] ?? array());
@@ -160,6 +210,8 @@ if (!function_exists('seo_analista_render_where_we_are')) {
         seo_analista_render_metric_card('Sesiones GA4', !empty($ga4['available']) ? number_format_i18n((int) ($ga4['sessions'] ?? 0)) : '—', '', !empty($ga4['available']) ? 'Comportamiento medido por Analytics.' : 'GA4 no disponible.');
         seo_analista_render_metric_card('Búsquedas internas', !empty($search['available']) ? number_format_i18n((int) ($search['total'] ?? 0)) : '—', '', !empty($search['available']) ? number_format_i18n((int) ($search['zero_results'] ?? 0)) . ' sin resultado.' : 'Registro no disponible.');
         echo '</div>';
+
+        seo_analista_render_bing_overview($bing);
 
         $position_change = (float) ($previous['position'] ?? 0) - (float) ($current['position'] ?? 0);
         $impressions_change = seo_analista_percent_change($current['impressions'] ?? 0, $previous['impressions'] ?? 0);
@@ -251,8 +303,9 @@ if (!function_exists('seo_analista_render_tracked_keywords')) {
 }
 
 if (!function_exists('seo_analista_render_comparison')) {
-    function seo_analista_render_comparison(array $competition, array $market, array $data) {
+    function seo_analista_render_comparison(array $competition, array $market, array $data, array $bing) {
         seo_analista_render_tracked_keywords($data);
+        seo_analista_render_bing_query_comparison($data, $bing);
 
         if (empty($competition['available'])) {
             echo '<div class="notice notice-info inline"><p><strong>Faltan posiciones externas para comparar dominios.</strong> Search Console solo informa de nuestro sitio. Para medir a otros dominios, Analista necesita una fuente de rankings conectada o un CSV genérico de posiciones. Mientras tanto sí puede seguir nuestra evolución y las palabras clave vigiladas.</p></div>';
@@ -410,6 +463,7 @@ if (!function_exists('seo_analista_render_report')) {
 
         $data = seo_analista_get_data($days);
         $google = seo_analista_google_snapshot($days, false);
+        $bing = function_exists('seo_analista_bing_snapshot') ? seo_analista_bing_snapshot($days, 80) : array();
         $evolution = seo_analista_evolution_snapshot($days);
         $competition = seo_analista_competition_snapshot(100);
         $search = seo_analista_internal_search_snapshot($days, 40);
@@ -419,6 +473,9 @@ if (!function_exists('seo_analista_render_report')) {
         $plan = seo_analista_decision_plan($days, 40);
         $summary = seo_analista_plan_summary($plan);
         $health = seo_analista_google_source_health($days);
+        if (function_exists('seo_analista_bing_source_health')) {
+            $health['bing'] = seo_analista_bing_source_health($days);
+        }
 
         echo '<div class="seo-analista-wrap">';
         seo_analista_render_styles();
@@ -431,6 +488,7 @@ if (!function_exists('seo_analista_render_report')) {
         seo_analista_render_subnav($view, $days);
 
         $notice = isset($_GET['analista_notice']) ? sanitize_key(wp_unslash($_GET['analista_notice'])) : '';
+        if ('bing_saved' === $notice) echo '<div class="notice notice-success inline"><p>Conexion de Bing guardada.</p></div>';
         if ('competition_ok' === $notice) echo '<div class="notice notice-success inline"><p>Comparación competitiva importada correctamente.</p></div>';
         if ('competition_missing' === $notice) echo '<div class="notice notice-warning inline"><p>Selecciona un CSV antes de importar.</p></div>';
         if ('competition_error' === $notice) {
@@ -441,14 +499,15 @@ if (!function_exists('seo_analista_render_report')) {
         if (empty($data['ready'])) echo '<div class="notice notice-warning inline"><p><strong>Search Console no tiene datos utilizables.</strong> Analista seguirá mostrando Analytics, búsqueda interna, proveedores y competencia cuando estén disponibles.</p></div>';
 
         if ('donde_estamos' === $view) {
-            seo_analista_render_where_we_are($data, $google, $evolution, $search, $catalog_structure);
+            seo_analista_render_where_we_are($data, $google, $bing, $evolution, $search, $catalog_structure);
         } elseif ('comparacion' === $view) {
-            seo_analista_render_comparison($competition, $market, $data);
+            seo_analista_render_comparison($competition, $market, $data, $bing);
         } else {
             seo_analista_render_roadmap($plan, $summary, $suppliers, $search);
         }
 
         seo_analista_render_sources($health, $competition, $suppliers);
+        if (function_exists('seo_analista_render_bing_settings_form')) seo_analista_render_bing_settings_form();
         echo '</div>';
     }
 }
