@@ -3,7 +3,7 @@
  * Evolucion organica del Analista.
  *
  * Calcula movimiento real entre periodos con los datos locales de Search
- * Console. No intenta reproducir la metrica propietaria de SEMrush: muestra
+ * Console. La metrica es propia y transparente: muestra
  * cuantas consultas avanzan, retroceden o entran en cada tramo de SERP.
  */
 

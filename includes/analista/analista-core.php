@@ -126,11 +126,13 @@ if (!function_exists('seo_analista_get_settings')) {
                 'brikum.com',
                 'leroymerlin.es',
             ),
+            'tracked_keywords' => array(),
         );
 
         $settings = get_option(SEO_ANALISTA_OPTION_SETTINGS, array());
         $settings = wp_parse_args(is_array($settings) ? $settings : array(), $defaults);
         $settings['competitors'] = seo_analista_sanitize_domains((array) $settings['competitors']);
+        $settings['tracked_keywords'] = seo_analista_sanitize_keywords((array) $settings['tracked_keywords']);
         return $settings;
     }
 }
@@ -157,6 +159,22 @@ if (!function_exists('seo_analista_sanitize_domains')) {
     }
 }
 
+if (!function_exists('seo_analista_sanitize_keywords')) {
+    function seo_analista_sanitize_keywords(array $keywords) {
+        $clean = array();
+        $seen = array();
+        foreach ($keywords as $keyword) {
+            $keyword = seo_analista_clean_query($keyword);
+            $key = seo_analista_normalize_text($keyword);
+            if ($keyword === '' || $key === '' || isset($seen[$key])) continue;
+            $seen[$key] = true;
+            $clean[] = $keyword;
+            if (count($clean) >= 50) break;
+        }
+        return $clean;
+    }
+}
+
 if (!function_exists('seo_analista_save_settings_handler')) {
     function seo_analista_save_settings_handler() {
         if (!current_user_can('manage_options')) {
@@ -169,9 +187,16 @@ if (!function_exists('seo_analista_save_settings_handler')) {
         $domains = preg_split('/[\r\n,;]+/', $raw);
         $domains = seo_analista_sanitize_domains(is_array($domains) ? $domains : array());
 
+        $raw_keywords = isset($_POST['tracked_keywords']) ? (string) wp_unslash($_POST['tracked_keywords']) : '';
+        $keywords = preg_split('/[\r\n]+/', $raw_keywords);
+        $keywords = seo_analista_sanitize_keywords(is_array($keywords) ? $keywords : array());
+
         update_option(
             SEO_ANALISTA_OPTION_SETTINGS,
-            array('competitors' => $domains),
+            array(
+                'competitors' => $domains,
+                'tracked_keywords' => $keywords,
+            ),
             false
         );
 

@@ -1,16 +1,16 @@
 <?php
 /**
  * Fuentes complementarias del Analista: GA4, busqueda interna, proveedores y
- * datos competitivos importados desde SEMrush u otra herramienta equivalente.
+ * datos competitivos importados desde cualquier fuente de posiciones compatible.
  */
 
 defined('ABSPATH') || exit;
 
-if (!defined('SEO_ANALISTA_OPTION_SEMRUSH')) {
-    define('SEO_ANALISTA_OPTION_SEMRUSH', 'seo_analista_semrush_snapshot');
+if (!defined('SEO_ANALISTA_OPTION_COMPETITION')) {
+    define('SEO_ANALISTA_OPTION_COMPETITION', 'seo_analista_competition_source_snapshot');
 }
-if (!defined('SEO_ANALISTA_OPTION_SEMRUSH_HISTORY')) {
-    define('SEO_ANALISTA_OPTION_SEMRUSH_HISTORY', 'seo_analista_semrush_history');
+if (!defined('SEO_ANALISTA_OPTION_COMPETITION_HISTORY')) {
+    define('SEO_ANALISTA_OPTION_COMPETITION_HISTORY', 'seo_analista_competition_history');
 }
 
 if (!function_exists('seo_analista_table_exists')) {
@@ -135,16 +135,16 @@ if (!function_exists('seo_analista_supplier_snapshot')) {
     }
 }
 
-if (!function_exists('seo_analista_semrush_snapshot')) {
-    function seo_analista_semrush_snapshot() {
-        $data = get_option(SEO_ANALISTA_OPTION_SEMRUSH, array());
+if (!function_exists('seo_analista_competition_source_snapshot')) {
+    function seo_analista_competition_source_snapshot() {
+        $data = get_option(SEO_ANALISTA_OPTION_COMPETITION, array());
         return is_array($data) ? $data : array();
     }
 }
 
-if (!function_exists('seo_analista_semrush_history')) {
-    function seo_analista_semrush_history() {
-        $history = get_option(SEO_ANALISTA_OPTION_SEMRUSH_HISTORY, array());
+if (!function_exists('seo_analista_competition_history')) {
+    function seo_analista_competition_history() {
+        $history = get_option(SEO_ANALISTA_OPTION_COMPETITION_HISTORY, array());
         return is_array($history) ? $history : array();
     }
 }
@@ -161,7 +161,7 @@ if (!function_exists('seo_analista_store_competition_history')) {
             'own_domain' => (string) ($competition['own_domain'] ?? ''),
             'domains' => array_values((array) ($competition['domains'] ?? array())),
         );
-        $history = seo_analista_semrush_history();
+        $history = seo_analista_competition_history();
         $history[] = $entry;
 
         $unique = array();
@@ -171,7 +171,7 @@ if (!function_exists('seo_analista_store_competition_history')) {
             $unique[$key] = $item;
             if (count($unique) >= 24) break;
         }
-        update_option(SEO_ANALISTA_OPTION_SEMRUSH_HISTORY, array_reverse(array_values($unique)), false);
+        update_option(SEO_ANALISTA_OPTION_COMPETITION_HISTORY, array_reverse(array_values($unique)), false);
     }
 }
 
@@ -194,59 +194,59 @@ if (!function_exists('seo_analista_parse_number')) {
     }
 }
 
-if (!function_exists('seo_analista_import_semrush_csv')) {
-    function seo_analista_import_semrush_csv($path) {
+if (!function_exists('seo_analista_import_competition_csv')) {
+    function seo_analista_import_competition_csv($path) {
         $handle = @fopen($path, 'rb');
-        if (!$handle) return new WP_Error('seo_analista_semrush_open', 'No se pudo abrir el CSV.');
+        if (!$handle) return new WP_Error('seo_analista_competition_open', 'No se pudo abrir el CSV.');
         $first = fgets($handle);
-        if ($first === false) { fclose($handle); return new WP_Error('seo_analista_semrush_empty', 'El CSV está vacío.'); }
+        if ($first === false) { fclose($handle); return new WP_Error('seo_analista_competition_empty', 'El CSV está vacío.'); }
         $delimiter = seo_analista_csv_delimiter($first);
         rewind($handle);
         $headers = fgetcsv($handle, 0, $delimiter);
-        if (!$headers) { fclose($handle); return new WP_Error('seo_analista_semrush_headers', 'No se pudo leer la cabecera del CSV.'); }
+        if (!$headers) { fclose($handle); return new WP_Error('seo_analista_competition_headers', 'No se pudo leer la cabecera del CSV.'); }
         $headers = array_map(static function($h){ return trim(remove_accents(mb_strtolower((string)$h, 'UTF-8'))); }, $headers);
 
-        $keyword_idx = null; $volume_idx = null; $kd_idx = null; $url_idx = null; $domain_idx = null; $position_idx = null;
+        $keyword_idx = null; $volume_idx = null; $difficulty_idx = null; $url_idx = null; $domain_idx = null; $position_idx = null;
         $domain_columns = array();
         foreach ($headers as $i=>$h) {
             if ($keyword_idx === null && in_array($h, array('palabra clave','keyword','query','consulta'), true)) $keyword_idx = $i;
             if ($volume_idx === null && preg_match('/^(volumen|volume)$/', $h)) $volume_idx = $i;
-            if ($kd_idx === null && (strpos($h,'kd') === 0 || strpos($h,'dificultad') !== false)) $kd_idx = $i;
+            if ($difficulty_idx === null && (strpos($h,'dificultad') !== false || strpos($h,'difficulty') !== false || $h === 'kd' || strpos($h,'kd ') === 0)) $difficulty_idx = $i;
             if ($url_idx === null && in_array($h, array('url','pagina','page'), true)) $url_idx = $i;
             if ($domain_idx === null && in_array($h, array('dominio','domain'), true)) $domain_idx = $i;
-            if ($position_idx === null && (in_array($h,array('posicion','position','pos.'),true) || strpos($h,'posicion')===0)) $position_idx = $i;
+            if ($position_idx === null && (in_array($h,array('posicion','position','pos.'),true) || strpos($h,'posicion')===0 || strpos($h,'position')===0)) $position_idx = $i;
             $candidate = preg_replace('#^https?://#','',$h);
             $candidate = preg_replace('#/.*$#','',$candidate);
             if (preg_match('/^[a-z0-9.-]+\.[a-z]{2,}$/', $candidate)) $domain_columns[$i] = preg_replace('/^www\./','',$candidate);
         }
-        if ($keyword_idx === null) { fclose($handle); return new WP_Error('seo_analista_semrush_keyword', 'No encuentro la columna Palabra clave / Keyword.'); }
+        if ($keyword_idx === null) { fclose($handle); return new WP_Error('seo_analista_competition_keyword', 'No encuentro la columna Palabra clave / Keyword.'); }
 
         $own = preg_replace('/^www\./','',strtolower((string) wp_parse_url(home_url('/'), PHP_URL_HOST)));
         $rows = array(); $read = 0;
         while (($cols = fgetcsv($handle, 0, $delimiter)) !== false && $read < 3000) {
             $read++;
-            $keyword = sanitize_text_field((string)($cols[$keyword_idx] ?? ''));
+            $keyword = seo_analista_clean_query((string)($cols[$keyword_idx] ?? ''));
             if ($keyword === '') continue;
             $volume = $volume_idx !== null ? seo_analista_parse_number($cols[$volume_idx] ?? 0) : 0;
-            $kd = $kd_idx !== null ? seo_analista_parse_number($cols[$kd_idx] ?? 0) : 0;
+            $difficulty = $difficulty_idx !== null ? seo_analista_parse_number($cols[$difficulty_idx] ?? 0) : 0;
             if ($domain_columns) {
                 foreach ($domain_columns as $i=>$domain) {
                     $pos = seo_analista_parse_number($cols[$i] ?? 0);
                     if ($pos <= 0) continue;
-                    $rows[] = array('keyword'=>$keyword,'domain'=>$domain,'position'=>$pos,'volume'=>$volume,'difficulty'=>$kd,'url'=>'','source'=>'semrush_csv');
+                    $rows[] = array('keyword'=>$keyword,'domain'=>$domain,'position'=>$pos,'volume'=>$volume,'difficulty'=>$difficulty,'url'=>'','source'=>'competition_csv');
                 }
             } elseif ($position_idx !== null) {
                 $domain = $domain_idx !== null ? trim((string)($cols[$domain_idx] ?? '')) : $own;
                 if ($domain === '' && $url_idx !== null) $domain = (string) wp_parse_url((string)($cols[$url_idx] ?? ''), PHP_URL_HOST);
                 $domain = preg_replace('/^www\./','',strtolower($domain));
                 $pos = seo_analista_parse_number($cols[$position_idx] ?? 0);
-                if ($pos > 0) $rows[] = array('keyword'=>$keyword,'domain'=>$domain,'position'=>$pos,'volume'=>$volume,'difficulty'=>$kd,'url'=>$url_idx!==null?esc_url_raw((string)($cols[$url_idx] ?? '')):'','source'=>'semrush_csv');
+                if ($pos > 0) $rows[] = array('keyword'=>$keyword,'domain'=>$domain,'position'=>$pos,'volume'=>$volume,'difficulty'=>$difficulty,'url'=>$url_idx!==null?esc_url_raw((string)($cols[$url_idx] ?? '')):'','source'=>'competition_csv');
             }
             if (count($rows) >= 6000) break;
         }
         fclose($handle);
         $snapshot = array('imported_at'=>current_time('mysql'),'rows'=>$rows,'row_count'=>count($rows),'own_domain'=>$own);
-        update_option(SEO_ANALISTA_OPTION_SEMRUSH, $snapshot, false);
+        update_option(SEO_ANALISTA_OPTION_COMPETITION, $snapshot, false);
         if (function_exists('seo_analista_store_competition_history')) {
             seo_analista_store_competition_history();
         }
@@ -254,16 +254,16 @@ if (!function_exists('seo_analista_import_semrush_csv')) {
     }
 }
 
-if (!function_exists('seo_analista_semrush_import_handler')) {
-    function seo_analista_semrush_import_handler() {
+if (!function_exists('seo_analista_competition_import_handler')) {
+    function seo_analista_competition_import_handler() {
         if (!current_user_can('manage_options')) wp_die('Sin permisos.');
-        check_admin_referer('seo_analista_semrush_import','seo_analista_semrush_nonce');
-        if (empty($_FILES['semrush_csv']['tmp_name'])) {
-            wp_safe_redirect(seo_analista_admin_url(array('analista_view'=>'comparacion','analista_notice'=>'semrush_missing'))); exit;
+        check_admin_referer('seo_analista_competition_import','seo_analista_competition_nonce');
+        if (empty($_FILES['competition_csv']['tmp_name'])) {
+            wp_safe_redirect(seo_analista_admin_url(array('analista_view'=>'comparacion','analista_notice'=>'competition_missing'))); exit;
         }
-        $result = seo_analista_import_semrush_csv($_FILES['semrush_csv']['tmp_name']);
-        $notice = is_wp_error($result) ? 'semrush_error' : 'semrush_ok';
-        if (is_wp_error($result)) set_transient('seo_analista_semrush_error_' . get_current_user_id(), $result->get_error_message(), 60);
+        $result = seo_analista_import_competition_csv($_FILES['competition_csv']['tmp_name']);
+        $notice = is_wp_error($result) ? 'competition_error' : 'competition_ok';
+        if (is_wp_error($result)) set_transient('seo_analista_competition_error_' . get_current_user_id(), $result->get_error_message(), 60);
         wp_safe_redirect(seo_analista_admin_url(array('analista_view'=>'comparacion','analista_notice'=>$notice))); exit;
     }
 }

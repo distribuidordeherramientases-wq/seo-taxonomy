@@ -215,10 +215,47 @@ if (!function_exists('seo_analista_render_competition_history')) {
     }
 }
 
+if (!function_exists('seo_analista_render_tracked_keywords')) {
+    function seo_analista_render_tracked_keywords(array $data) {
+        $rows = seo_analista_tracked_keyword_snapshot(
+            (array) ($data['queries'] ?? array()),
+            (array) ($data['previous_queries'] ?? array())
+        );
+        if (!$rows) {
+            echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>Palabras clave vigiladas</h2><p>Añade las palabras que quieres seguir para ver nuestra posición, evolución y distancia respecto a los competidores.</p></div></div><p class="description">Todavía no has definido palabras clave de seguimiento.</p></section>';
+            return;
+        }
+
+        echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>Palabras clave vigiladas</h2><p>Seguimiento directo de las palabras que hemos decidido controlar. La proyección solo aparece cuando existe ritmo propio suficiente y no asume que el competidor permanezca inmóvil.</p></div></div>';
+        echo '<div class="seo-analista-table-wrap"><table class="widefat striped"><thead><tr><th>Palabra clave</th><th>Nosotros</th><th>Antes</th><th>Movimiento</th><th>Mejor competidor</th><th>Distancia</th><th>Lectura</th><th>Proyección</th></tr></thead><tbody>';
+        foreach ($rows as $row) {
+            $best = (array) ($row['best_competitor'] ?? array());
+            $own = (float) ($row['own_position'] ?? 0);
+            $previous = (float) ($row['previous_own_position'] ?? 0);
+            $change = $row['own_change'] ?? null;
+            $gap = $row['gap'] ?? null;
+            $projection = !empty($row['periods_to_overtake'])
+                ? '~' . absint($row['periods_to_overtake']) . ' periodos si mantenemos el ritmo'
+                : '—';
+            echo '<tr><td><strong>' . esc_html((string) ($row['keyword'] ?? '')) . '</strong></td>';
+            echo '<td>' . esc_html($own > 0 ? number_format_i18n($own, 1) : 'No visible') . '</td>';
+            echo '<td>' . esc_html($previous > 0 ? number_format_i18n($previous, 1) : '—') . '</td>';
+            echo '<td>' . esc_html(null === $change ? '—' : (($change >= 0 ? '↑ ' : '↓ ') . number_format_i18n(abs((float) $change), 1))) . '</td>';
+            echo '<td>' . esc_html($best ? ((string) ($best['domain'] ?? '') . ' · ' . number_format_i18n((float) ($best['position'] ?? 0), 1)) : 'Sin dato externo') . '</td>';
+            echo '<td>' . esc_html(null === $gap ? '—' : number_format_i18n((float) $gap, 1)) . '</td>';
+            echo '<td>' . esc_html((string) ($row['state'] ?? '')) . '</td>';
+            echo '<td>' . esc_html($projection) . '</td></tr>';
+        }
+        echo '</tbody></table></div></section>';
+    }
+}
+
 if (!function_exists('seo_analista_render_comparison')) {
     function seo_analista_render_comparison(array $competition, array $market, array $data) {
+        seo_analista_render_tracked_keywords($data);
+
         if (empty($competition['available'])) {
-            echo '<div class="notice notice-info inline"><p><strong>La comparación competitiva está preparada, pero aún no tiene posiciones externas.</strong> Importa un CSV de SEMrush (Posicionamiento orgánico o Keyword Gap) o conecta un proveedor al filtro <code>seo_analista_competitor_rankings</code>. Analista no raspa Google ni inventa rankings.</p></div>';
+            echo '<div class="notice notice-info inline"><p><strong>Faltan posiciones externas para comparar dominios.</strong> Search Console solo informa de nuestro sitio. Para medir a otros dominios, Analista necesita una fuente de rankings conectada o un CSV genérico de posiciones. Mientras tanto sí puede seguir nuestra evolución y las palabras clave vigiladas.</p></div>';
         } else {
             $own = (array) ($competition['own'] ?? array());
             $domains = (array) ($competition['domains'] ?? array());
@@ -229,15 +266,15 @@ if (!function_exists('seo_analista_render_comparison')) {
                 break;
             }
             echo '<div class="seo-analista-grid">';
-            seo_analista_render_metric_card('Visibilidad competitiva', number_format_i18n((float) ($own['visibility_index'] ?? 0), 1), isset($own['visibility_change']) && null !== $own['visibility_change'] ? (($own['visibility_change'] >= 0 ? '↑ ' : '↓ ') . number_format_i18n(abs((float) $own['visibility_change']), 1) . ' pts') : '', 'Índice relativo del conjunto importado.');
+            seo_analista_render_metric_card('Visibilidad competitiva', number_format_i18n((float) ($own['visibility_index'] ?? 0), 1), isset($own['visibility_change']) && null !== $own['visibility_change'] ? (($own['visibility_change'] >= 0 ? '↑ ' : '↓ ') . number_format_i18n(abs((float) $own['visibility_change']), 1) . ' pts') : '', 'Índice relativo del conjunto comparado.');
             seo_analista_render_metric_card('Keywords comparadas', number_format_i18n((int) ($own['keywords'] ?? 0)), '', 'Palabras clave propias dentro del conjunto competitivo.');
             seo_analista_render_metric_card('Top 10 propios', number_format_i18n((int) ($own['top10'] ?? 0)), '', 'Keywords propias en las diez primeras posiciones.');
-            seo_analista_render_metric_card('Brechas prioritarias', number_format_i18n(count((array) ($competition['keyword_gaps'] ?? array()))), '', 'Competidores por delante o keywords donde no aparecemos.');
+            seo_analista_render_metric_card('Brechas prioritarias', number_format_i18n(count((array) ($competition['keyword_gaps'] ?? array()))), '', 'Competidores por delante o palabras donde no aparecemos.');
             seo_analista_render_metric_card('Competidor líder', $best_competitor ? (string) ($best_competitor['domain'] ?? '—') : '—', '', $best_competitor ? ('Índice ' . number_format_i18n((float) ($best_competitor['visibility_index'] ?? 0), 1)) : 'Sin competidor comparable.');
-            seo_analista_render_metric_card('Última comparación', (string) ($competition['imported_at'] ?? '—'), '', 'Fecha del último conjunto competitivo importado.');
+            seo_analista_render_metric_card('Última comparación', (string) ($competition['imported_at'] ?? '—'), '', 'Fecha del último conjunto competitivo disponible.');
             echo '</div>';
 
-            echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>Nosotros frente a competidores</h2><p>Resumen tipo SEMrush: cuántas keywords controla cada dominio y en qué tramos.</p></div></div><div class="seo-analista-table-wrap"><table class="widefat striped"><thead><tr><th>Dominio</th><th>Visibilidad</th><th>Keywords</th><th>Top 3</th><th>Top 10</th><th>Top 20</th><th>Top 50</th><th>Evolución</th></tr></thead><tbody>';
+            echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>Nosotros frente a competidores</h2><p>Cuántas palabras controla cada dominio y en qué tramos de posicionamiento.</p></div></div><div class="seo-analista-table-wrap"><table class="widefat striped"><thead><tr><th>Dominio</th><th>Visibilidad</th><th>Keywords</th><th>Top 3</th><th>Top 10</th><th>Top 20</th><th>Top 50</th><th>Evolución</th></tr></thead><tbody>';
             foreach (array_slice($domains, 0, 10) as $row) {
                 $is_own = (string) ($row['domain'] ?? '') === (string) ($competition['own_domain'] ?? '');
                 $delta = $row['visibility_change'] ?? null;
@@ -245,7 +282,7 @@ if (!function_exists('seo_analista_render_comparison')) {
             }
             echo '</tbody></table></div></section>';
 
-            echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>Palabras clave que debemos disputar</h2><p>Brechas reducidas a las oportunidades con más valor. Si ya aparecemos, muestra cuánto nos separa del mejor competidor.</p></div></div><div class="seo-analista-table-wrap"><table class="widefat striped"><thead><tr><th>Prioridad</th><th>Keyword</th><th>Nosotros</th><th>Mejor competidor</th><th>Volumen</th><th>KD</th><th>Brecha</th></tr></thead><tbody>';
+            echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>Palabras clave que debemos disputar</h2><p>Brechas con más valor. Si ya aparecemos, muestra cuánto nos separa del mejor competidor.</p></div></div><div class="seo-analista-table-wrap"><table class="widefat striped"><thead><tr><th>Prioridad</th><th>Palabra clave</th><th>Nosotros</th><th>Mejor competidor</th><th>Volumen</th><th>Dificultad</th><th>Brecha</th></tr></thead><tbody>';
             foreach (array_slice((array) ($competition['keyword_gaps'] ?? array()), 0, 30) as $gap) {
                 $best = (array) ($gap['best_competitor'] ?? array());
                 echo '<tr><td>' . wp_kses_post(seo_analista_score_badge($gap['priority'] ?? 0)) . '</td><td><strong>' . esc_html((string) ($gap['keyword'] ?? '')) . '</strong></td><td>' . esc_html((float) ($gap['own_position'] ?? 0) > 0 ? number_format_i18n((float) $gap['own_position'], 0) : 'No visible') . '</td><td>' . esc_html((string) ($best['domain'] ?? '')) . ' · ' . esc_html(number_format_i18n((float) ($best['position'] ?? 0), 0)) . '</td><td>' . esc_html(number_format_i18n((float) ($gap['volume'] ?? 0), 0)) . '</td><td>' . esc_html(number_format_i18n((float) ($gap['difficulty'] ?? 0), 0)) . '</td><td>' . esc_html(number_format_i18n((float) ($gap['gap'] ?? 0), 0)) . '</td></tr>';
@@ -267,15 +304,20 @@ if (!function_exists('seo_analista_render_comparison')) {
         echo '</section>';
 
         $settings = (array) ($data['settings'] ?? seo_analista_get_settings());
-        echo '<section class="seo-analista-section seo-analista-forms"><div class="seo-analista-section-head"><div><h2>Actualizar comparación</h2><p>Los datos externos no se inventan: se importan o se conectan.</p></div></div>';
-        echo '<form method="post" enctype="multipart/form-data" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_analista_semrush_import">';
-        wp_nonce_field('seo_analista_semrush_import', 'seo_analista_semrush_nonce');
-        echo '<input type="file" name="semrush_csv" accept=".csv,text/csv"> <button class="button button-primary">Importar CSV SEMrush</button></form>';
-        echo '<details><summary><strong>Competidores vigilados</strong></summary><form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_analista_save_settings">';
+        echo '<section class="seo-analista-section seo-analista-forms"><div class="seo-analista-section-head"><div><h2>Configurar comparación</h2><p>Define a quién queremos superar y qué palabras queremos vigilar. Las posiciones externas se pueden alimentar mediante un conector o mediante un CSV genérico.</p></div></div>';
+        echo '<details open><summary><strong>Competidores y palabras vigiladas</strong></summary><form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_analista_save_settings">';
         wp_nonce_field('seo_analista_save_settings', 'seo_analista_nonce');
+        echo '<p><strong>Competidores</strong><br><span class="description">Un dominio por línea.</span></p>';
         echo '<textarea name="competitors" rows="6" class="large-text code">' . esc_textarea(implode("\n", (array) ($settings['competitors'] ?? array()))) . '</textarea>';
-        submit_button('Guardar competidores', 'secondary', 'submit', false);
-        echo '</form></details></section>';
+        echo '<p><strong>Palabras clave vigiladas</strong><br><span class="description">Una palabra o intención por línea. Analista seguirá nuestra posición y, cuando haya rankings externos, la distancia con los competidores.</span></p>';
+        echo '<textarea name="tracked_keywords" rows="8" class="large-text code">' . esc_textarea(implode("\n", (array) ($settings['tracked_keywords'] ?? array()))) . '</textarea>';
+        submit_button('Guardar comparación', 'secondary', 'submit', false);
+        echo '</form></details>';
+
+        echo '<details><summary><strong>Importar posiciones externas</strong></summary><p class="description">Formato flexible: palabra clave, dominio, posición y opcionalmente URL, volumen y dificultad. También admite una columna por dominio.</p>';
+        echo '<form method="post" enctype="multipart/form-data" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_analista_competition_import">';
+        wp_nonce_field('seo_analista_competition_import', 'seo_analista_competition_nonce');
+        echo '<input type="file" name="competition_csv" accept=".csv,text/csv"> <button class="button button-primary">Importar CSV de posiciones</button></form></details></section>';
     }
 }
 
@@ -389,10 +431,10 @@ if (!function_exists('seo_analista_render_report')) {
         seo_analista_render_subnav($view, $days);
 
         $notice = isset($_GET['analista_notice']) ? sanitize_key(wp_unslash($_GET['analista_notice'])) : '';
-        if ('semrush_ok' === $notice) echo '<div class="notice notice-success inline"><p>Comparación competitiva importada correctamente.</p></div>';
-        if ('semrush_missing' === $notice) echo '<div class="notice notice-warning inline"><p>Selecciona un CSV antes de importar.</p></div>';
-        if ('semrush_error' === $notice) {
-            $message = get_transient('seo_analista_semrush_error_' . get_current_user_id());
+        if ('competition_ok' === $notice) echo '<div class="notice notice-success inline"><p>Comparación competitiva importada correctamente.</p></div>';
+        if ('competition_missing' === $notice) echo '<div class="notice notice-warning inline"><p>Selecciona un CSV antes de importar.</p></div>';
+        if ('competition_error' === $notice) {
+            $message = get_transient('seo_analista_competition_error_' . get_current_user_id());
             echo '<div class="notice notice-error inline"><p>' . esc_html($message ?: 'No se pudo importar el CSV.') . '</p></div>';
         }
         if ('settings_saved' === $notice) echo '<div class="notice notice-success inline"><p>Competidores guardados.</p></div>';

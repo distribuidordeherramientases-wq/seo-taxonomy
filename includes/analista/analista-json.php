@@ -71,6 +71,10 @@ if (!function_exists('seo_analista_build_json_export')) {
         $catalog_guidance = seo_analista_catalog_guidance($days, 30);
         $source_health = seo_analista_google_source_health($days);
         $catalog_structure = seo_analista_catalog_structure_snapshot((array) ($data['pages'] ?? array()));
+        $tracked_keywords = seo_analista_tracked_keyword_snapshot(
+            (array) ($data['queries'] ?? array()),
+            (array) ($data['previous_queries'] ?? array())
+        );
 
         $queries = array();
         foreach (array_slice((array) ($data['queries'] ?? array()), 0, 120) as $row) {
@@ -119,6 +123,7 @@ if (!function_exists('seo_analista_build_json_export')) {
                 'top_pages' => $pages,
             ),
             'comparacion' => array(
+                'tracked_keywords' => $tracked_keywords,
                 'competition' => $competition,
                 'google_trends' => array_slice((array) $market, 0, 40),
                 'catalog_guidance' => array_slice((array) ($catalog_guidance['items'] ?? array()), 0, 30),

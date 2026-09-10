@@ -47,8 +47,8 @@ if (!function_exists('seo_analista_competitor_rankings')) {
         /**
          * Adaptador de proveedor externo.
          *
-         * Un conector futuro (SEMrush API, DataForSEO, SerpAPI, etc.) puede
-         * inyectar filas sin modificar el modulo Analista:
+         * Cualquier conector de rankings compatible puede inyectar filas sin
+         * modificar el modulo Analista:
          *
          * [
          *   'keyword' => 'herramientas de taller',

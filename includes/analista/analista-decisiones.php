@@ -182,8 +182,8 @@ if (!function_exists('seo_analista_google_plan')) {
     }
 }
 
-if (!function_exists('seo_analista_semrush_opportunities')) {
-    function seo_analista_semrush_opportunities($limit = 20) {
+if (!function_exists('seo_analista_competition_opportunities')) {
+    function seo_analista_competition_opportunities($limit = 20) {
         $competition = seo_analista_competition_snapshot(max(50, $limit));
         $out = array();
         foreach ((array) ($competition['keyword_gaps'] ?? array()) as $gap) {
@@ -211,8 +211,8 @@ if (!function_exists('seo_analista_semrush_opportunities')) {
                 'channel' => $meta['channel'],
                 'topic' => $keyword,
                 'reason' => $reason,
-                'sources' => array('SEMrush'),
-                'source' => 'SEMrush',
+                'sources' => array('Competencia'),
+                'source' => 'Competencia',
                 'detail' => ($own > 0 ? 'Posicion propia ' . number_format_i18n($own, 0) . ' · ' : '')
                     . 'Competidor ' . number_format_i18n($comp, 0)
                     . ' · volumen ' . number_format_i18n($volume, 0)
@@ -258,7 +258,7 @@ if (!function_exists('seo_analista_decision_plan')) {
         $days = seo_analista_days($days);
         $plan = seo_analista_google_plan($days);
 
-        foreach (seo_analista_semrush_opportunities(30) as $row) {
+        foreach (seo_analista_competition_opportunities(30) as $row) {
             if (!seo_analista_merge_external_signal($plan, $row, 0.58)) $plan[] = $row;
         }
 
@@ -338,7 +338,7 @@ if (!function_exists('seo_analista_plan_summary')) {
             $channel = (string) ($row['channel'] ?? 'seo');
             if (isset($out[$channel])) $out[$channel]++;
             else $out['seo']++;
-            if (stripos((string) ($row['source'] ?? ''), 'semrush') !== false || !empty($row['competition'])) {
+            if (stripos((string) ($row['source'] ?? ''), 'competencia') !== false || !empty($row['competition'])) {
                 $out['competencia']++;
             }
         }
