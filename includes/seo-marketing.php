@@ -28,7 +28,7 @@ if (is_readable($seo_landing_module)) {
 }
 unset($seo_landing_module);
 
-$seo_social_network_module = __DIR__ . '/seo-social-network.php';
+$seo_social_network_module = __DIR__ . '/social-network/social-bootstrap.php';
 if (is_readable($seo_social_network_module)) {
     require_once $seo_social_network_module;
 }
