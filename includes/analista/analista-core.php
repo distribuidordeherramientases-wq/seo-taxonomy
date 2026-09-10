@@ -103,12 +103,31 @@ if (!function_exists('seo_analista_save_settings_handler')) {
     }
 }
 
+if (!function_exists('seo_analista_resolve_property_id')) {
+    function seo_analista_resolve_property_id() {
+        if (function_exists('seo_google_get_settings')) {
+            $settings = (array) seo_google_get_settings();
+            if (!empty($settings['property_id'])) return (string) $settings['property_id'];
+        }
+        if (!function_exists('seo_google_table')) return '';
+        global $wpdb;
+        $table = seo_google_table('search_data');
+        if (function_exists('seo_analista_table_exists') && !seo_analista_table_exists($table)) return '';
+        return (string) $wpdb->get_var("SELECT property_id FROM {$table} WHERE property_id<>'' ORDER BY data_date DESC, id DESC LIMIT 1");
+    }
+}
+
 if (!function_exists('seo_analista_is_ready')) {
     function seo_analista_is_ready() {
-        return function_exists('seo_google_get_settings')
-            && function_exists('seo_google_connection_status')
-            && function_exists('seo_google_table')
-            && 'connected' === seo_google_connection_status();
+        if (!function_exists('seo_google_table')) return false;
+        $property_id = seo_analista_resolve_property_id();
+        if ($property_id === '') return false;
+        if (function_exists('seo_google_connection_status') && 'connected' === seo_google_connection_status()) return true;
+        // En staging puede analizar un clon de los datos ya sincronizados en PRO.
+        global $wpdb;
+        $table = seo_google_table('search_data');
+        $count = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE property_hash=%s", hash('sha256', $property_id)));
+        return $count > 0;
     }
 }
 
@@ -487,8 +506,8 @@ if (!function_exists('seo_analista_get_data')) {
 
         if (!seo_analista_is_ready()) return $empty;
 
-        $google_settings = seo_google_get_settings();
-        $property_id = (string) ($google_settings['property_id'] ?? '');
+        $google_settings = function_exists('seo_google_get_settings') ? (array) seo_google_get_settings() : array();
+        $property_id = seo_analista_resolve_property_id();
         $period = seo_analista_period($property_id, $days);
         if (!$period) return $empty;
 

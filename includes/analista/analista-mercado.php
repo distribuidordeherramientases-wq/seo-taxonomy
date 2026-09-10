@@ -33,8 +33,7 @@ if (!function_exists('seo_analista_market_signals')) {
 if (!function_exists('seo_analista_catalog_guidance')) {
     function seo_analista_catalog_guidance($days = 28, $limit = 12) {
         if (!seo_analista_is_ready() || !function_exists('seo_google_demand_get_catalog_guidance')) return array();
-        $settings = seo_google_get_settings();
-        $property_id = (string) ($settings['property_id'] ?? '');
+        $property_id = function_exists('seo_analista_resolve_property_id') ? seo_analista_resolve_property_id() : '';
         if ($property_id === '') return array();
         return (array) seo_google_demand_get_catalog_guidance($property_id, seo_analista_days($days), 2, max(5, min(30, absint($limit))));
     }
