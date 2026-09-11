@@ -80,11 +80,8 @@ require_once SEO_SYSTEM_PATH . 'includes/productos/product-bootstrap.php';
 |--------------------------------------------------------------------------
 */
 
-require_once SEO_SYSTEM_PATH . 'includes/category-classification.php';
-require_once SEO_SYSTEM_PATH . 'includes/category-anomaly.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-category-reports.php';
-require_once SEO_SYSTEM_PATH . 'includes/category-admin.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo_schema_search.php';
+// Subsistema de categorias centralizado.
+require_once SEO_SYSTEM_PATH . 'includes/categorias/category-bootstrap.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -118,7 +115,7 @@ require_once SEO_SYSTEM_PATH . 'includes/admin-redirects.php';
 */
 
 require_once SEO_SYSTEM_PATH . 'includes/seo-search.php';
-require_once SEO_SYSTEM_PATH . 'includes/marketing/bootstrap.php';
+require_once SEO_SYSTEM_PATH . 'includes/seo-marketing.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-faq.php';
 
 /*
