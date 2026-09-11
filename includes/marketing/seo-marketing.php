@@ -2984,11 +2984,14 @@ function seo_marketing_render_sitemaps_tab($notice)
     echo '</form>';
 
     echo '<details style="margin:16px 0;">';
-    echo '<summary style="cursor:pointer;font-weight:600;">Cómo funciona este sitemap</summary>';
+    echo '<summary style="cursor:pointer;font-weight:600;">Cómo funciona este sitemap y qué comprueba esta pantalla</summary>';
     echo '<div style="padding:14px 0;max-width:980px;line-height:1.65;">';
     echo '<p>El sistema separa productos, categorías, entradas del blog, páginas, clusters y hubs. Los productos se dividen en lotes para evitar archivos excesivamente grandes.</p>';
     echo '<p>Solo se incluyen contenidos publicados y sin contraseña. Las páginas de carrito, pago y cuenta se excluyen. Las páginas estructurales no se duplican dentro del sitemap general de páginas.</p>';
-    echo '<p>El chequeo público no utiliza una lista fija: en cada sincronización lee <code>sitemap.xml</code>, descubre sus hijos actuales y audita exactamente las URLs publicadas en ese momento.</p>';
+    echo '<p><strong>Estado del archivo XML.</strong> La columna <strong>XML</strong> indica si cada sitemap existe en el almacenamiento del plugin, puede leerse y tiene una estructura XML válida. Que aparezca como <strong>Válido</strong> confirma la validez del fichero, pero no significa por sí solo que todas las URLs incluidas en él funcionen correctamente.</p>';
+    echo '<p><strong>Auditoría de las URLs publicadas.</strong> Las columnas <strong>Auditadas, OK, Avisos, Errores y Cobertura</strong> corresponden al chequeo de las URLs contenidas dentro de cada sitemap. El sistema parte siempre del <code>sitemap.xml</code> vigente, descubre automáticamente todos sus archivos hijos y audita exactamente las URLs publicadas en ese momento; no utiliza una lista fija.</p>';
+    echo '<p>Durante esa auditoría se comprueban, entre otros aspectos, el código HTTP, redirecciones, errores de red o SSL, <code>noindex</code>, tipo de contenido y canonical cuando está presente.</p>';
+    echo '<p><strong>Importante:</strong> <strong>XML válido</strong> y <strong>URL correcta</strong> son estados distintos. Además, la validación de la columna XML no equivale a un chequeo HTTP externo del propio fichero sitemap: confirma que el archivo generado existe, puede leerse y es XML válido.</p>';
     echo '<p>Cada XML se valida antes de publicarse. Si una generación falla, se conserva la versión válida anterior. Para Search Console utiliza únicamente <code>' . esc_html($main_url) . '</code>.</p>';
     echo '</div></details>';
 
