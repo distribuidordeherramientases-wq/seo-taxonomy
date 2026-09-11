@@ -2,9 +2,8 @@
 /**
  * Loader de compatibilidad de Marketing.
  *
- * La implementación vive en includes/marketing/. Se conserva esta ruta porque
- * el bootstrap histórico del plugin y posibles integraciones externas todavía
- * pueden requerir includes/seo-marketing.php.
+ * La implementación canónica vive en includes/marketing/. Se conserva esta
+ * ruta para integraciones antiguas que todavía requieran includes/seo-marketing.php.
  */
 defined('ABSPATH') || exit;
 
