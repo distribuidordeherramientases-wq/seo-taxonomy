@@ -4,7 +4,7 @@
  */
 defined('ABSPATH') || exit;
 
-define('SEO_DEPENDIENTE_VERSION', '0.2.8');
+define('SEO_DEPENDIENTE_VERSION', '0.2.12');
 define('SEO_DEPENDIENTE_DB_VERSION', '0.2.0');
 define('SEO_DEPENDIENTE_PATH', __DIR__ . '/');
 define('SEO_DEPENDIENTE_URL', SEO_SYSTEM_URL . 'includes/dependiente/');
@@ -17,6 +17,7 @@ require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-help.php';
 require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-amazon.php';
 require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-api.php';
 require_once SEO_DEPENDIENTE_PATH . 'entrenador/seo-dependiente-entrenador.php';
+require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-training-quality.php';
 require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-insights.php';
 require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-reset.php';
 require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-knowledge-transfer.php';
