@@ -134,6 +134,29 @@ if (!function_exists('seo_analista_category_content_map')) {
     }
 }
 
+if (!function_exists('seo_analista_page_role_map')) {
+    function seo_analista_page_role_map() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'seo_nodes';
+        if (!function_exists('seo_analista_table_exists') || !seo_analista_table_exists($table)) return array();
+        $rows = (array) $wpdb->get_results(
+            "SELECT object_id, seo_role
+             FROM {$table}
+             WHERE status=1 AND object_type='page'
+               AND seo_role IN ('cluster','hub_primary','hub_secondary','landing','corporate_page')
+             ORDER BY object_id ASC, updated_at DESC, id DESC",
+            ARRAY_A
+        );
+        $out = array();
+        foreach ($rows as $row) {
+            $id = absint($row['object_id'] ?? 0);
+            $role = sanitize_key((string) ($row['seo_role'] ?? ''));
+            if ($id && $role && !isset($out[$id])) $out[$id] = $role;
+        }
+        return $out;
+    }
+}
+
 if (!function_exists('seo_analista_structural_role_map')) {
     function seo_analista_structural_role_map() {
         global $wpdb;
@@ -189,45 +212,106 @@ if (!function_exists('seo_analista_functional_page_ids')) {
         $posts = (int) get_option('page_for_posts');
         if ($front > 0) $ids[$front] = true;
         if ($posts > 0) $ids[$posts] = true;
+
+        // Inventario real 2026-09: estas páginas son de navegación, cuenta,
+        // legal o herramientas internas. No deben competir por tareas de
+        // literatura SEO ni convertirse en destino de consultas de catálogo.
+        foreach (array(
+            'carrito', 'finalizar-compra', 'mi-cuenta', 'terminos-y-condiciones',
+            'privacidad-de-datos', 'devoluciones-y-reembolsos', 'contacto',
+            'blog', 'tienda', 'dependiente'
+        ) as $slug) {
+            $page = get_page_by_path($slug, OBJECT, 'page');
+            if ($page && !empty($page->ID)) $ids[(int) $page->ID] = true;
+        }
         return $ids;
+    }
+}
+
+
+if (!function_exists('seo_analista_token_stem')) {
+    function seo_analista_token_stem($token) {
+        $token = (string) $token;
+        $len = strlen($token);
+        if ($len > 6 && substr($token, -2) === 'es') $token = substr($token, 0, -2);
+        elseif ($len > 4 && substr($token, -1) === 's') $token = substr($token, 0, -1);
+
+        // Canonicalizaciones pequeñas y seguras observadas en el inventario.
+        // No son un diccionario general: solo evitan que singular/plural o
+        // "tubo" frente a "tubería" rompan un match evidente.
+        $aliases = array(
+            'tubo' => 'tuberia',
+            'tuberia' => 'tuberia',
+        );
+        return $aliases[$token] ?? $token;
     }
 }
 
 if (!function_exists('seo_analista_meaningful_tokens')) {
     function seo_analista_meaningful_tokens($text) {
         $stop = array_flip(array(
-            'a','al','algo','como','con','de','del','el','en','es','esta','este','la','las','lo','los','mas','o','para','por','que','se','sin','su','sus','un','una','uno','unas','unos','y','e','tu','tus','mi','mis','ya','muy','mejor','mejores','guia','comprar','venta','precio','precios'
+            'a','al','algo','como','con','de','del','el','en','es','esta','este','la','las','lo','los','mas','o','para','por','que','se','sin','su','sus','un','una','uno','unas','unos','y','e','tu','tus','mi','mis','ya','muy','mejor','mejores','guia','comprar','venta','precio','precios',
+            // Términos demasiado genéricos para justificar por sí solos un target.
+            'pagina','inicio','blog','tienda','contacto','producto','productos','servicio','servicios',
+            'profesional','profesionales','industrial','industriales','equipo','equipos','herramienta','herramientas',
+            'maquina','maquinas','maquinaria','sistema','sistemas','accesorio','accesorios'
         ));
         $tokens = array();
         foreach (explode(' ', seo_analista_normalize_text($text)) as $token) {
             if ($token === '' || strlen($token) < 3 || isset($stop[$token])) continue;
+            $token = seo_analista_token_stem($token);
+            if ($token === '' || strlen($token) < 3) continue;
             $tokens[$token] = true;
         }
         return array_keys($tokens);
     }
 }
 
+
 if (!function_exists('seo_analista_text_similarity')) {
     function seo_analista_text_similarity($left, $right) {
         $a = seo_analista_meaningful_tokens($left);
         $b = seo_analista_meaningful_tokens($right);
         if (!$a || !$b) return 0.0;
-        $intersection = count(array_intersect($a, $b));
+
+        sort($a); sort($b);
+        if ($a === $b) return 1.0;
+
+        $shared = array_values(array_intersect($a, $b));
+        $intersection = count($shared);
         if ($intersection < 1) return 0.0;
+
+        // Coincidir solo en una palabra transversal (p.ej. "agua") no es
+        // suficiente para mapear "fugas" a "fuentes y estanques".
+        $generic = array_flip(array(
+            'agua','vehiculo','taller','material','componente','distribucion',
+            'suministro','mantenimiento','tecnico','tecnica','uso','trabajo'
+        ));
+        $specific_shared = array_filter($shared, static function($token) use ($generic) {
+            return !isset($generic[$token]);
+        });
+        if (!$specific_shared) return 0.12;
+
         $coverage = $intersection / max(1, min(count($a), count($b)));
         $jaccard = $intersection / max(1, count(array_unique(array_merge($a, $b))));
-        return min(1.0, ($coverage * 0.7) + ($jaccard * 0.3));
+        $score = ($coverage * 0.68) + ($jaccard * 0.32);
+
+        // Una coincidencia única recibe un techo salvo que el término corto
+        // sea prácticamente el mismo concepto (singular/plural ya normalizado).
+        if ($intersection === 1 && max(count($a), count($b)) >= 3) $score = min($score, 0.48);
+        return min(1.0, max(0.0, $score));
     }
 }
 
+
 if (!function_exists('seo_analista_related_queries')) {
-    function seo_analista_related_queries($subject, array $queries, $limit = 8) {
+    function seo_analista_related_queries($subject, array $queries, $limit = 8, $min_similarity = 0.30) {
         $ranked = array();
         foreach ($queries as $row) {
-            $query = seo_analista_clean_query($row['query_text'] ?? '');
+            $query = seo_analista_clean_query($row['query_text'] ?? $row['query'] ?? '');
             if ($query === '' || !seo_analista_query_is_actionable($query)) continue;
             $similarity = seo_analista_text_similarity($subject, $query);
-            if ($similarity < 0.18) continue;
+            if ($similarity < (float) $min_similarity) continue;
             $impressions = max(0.0, (float) ($row['impressions'] ?? 0));
             $score = ($similarity * 100) + min(30, log(1 + $impressions) * 5);
             $ranked[] = array('query' => $query, 'score' => $score, 'impressions' => $impressions);
@@ -248,11 +332,12 @@ if (!function_exists('seo_analista_related_queries')) {
     }
 }
 
+
 if (!function_exists('seo_analista_gsc_demand_score')) {
     function seo_analista_gsc_demand_score(array $current, array $previous = array()) {
         $impressions = max(0.0, (float) ($current['impressions'] ?? 0));
         $position = max(0.0, (float) ($current['position'] ?? 0));
-        $score = min(32, log(1 + $impressions) * 5.2);
+        $score = min(28, log(1 + $impressions) * 4.5);
         if ($position > 0 && $position <= 10) $score += 22;
         elseif ($position <= 20) $score += 18;
         elseif ($position <= 50) $score += 13;
@@ -260,17 +345,23 @@ if (!function_exists('seo_analista_gsc_demand_score')) {
         elseif ($position <= 100) $score += 3;
 
         $prev_impressions = max(0.0, (float) ($previous['impressions'] ?? 0));
-        if ($impressions > 0 && $prev_impressions <= 0) $score += 10;
-        elseif ($prev_impressions > 0) {
-            $growth = (($impressions - $prev_impressions) / $prev_impressions) * 100;
-            if ($growth >= 100) $score += 14;
-            elseif ($growth >= 40) $score += 10;
-            elseif ($growth >= 15) $score += 5;
+        $delta = $impressions - $prev_impressions;
+        if ($impressions > 0 && $prev_impressions <= 0) {
+            if ($impressions >= 50) $score += 10;
+            elseif ($impressions >= 20) $score += 7;
+            elseif ($impressions >= 8) $score += 4;
+            else $score += 2;
+        } elseif ($prev_impressions > 0) {
+            $growth = ($delta / $prev_impressions) * 100;
+            if ($growth >= 100 && $delta >= 20) $score += 12;
+            elseif ($growth >= 40 && $delta >= 8) $score += 8;
+            elseif ($growth >= 15 && $delta >= 5) $score += 4;
             elseif ($growth <= -40) $score -= 4;
         }
         return max(0, min(60, (int) round($score)));
     }
 }
+
 
 if (!function_exists('seo_analista_content_issue_profile')) {
     function seo_analista_content_issue_profile($type, array $source, array $seo_meta, $vocabulary_count, $internal_links, $taxonomy_count = 0) {
@@ -320,14 +411,14 @@ if (!function_exists('seo_analista_content_issue_profile')) {
         }
 
         if ($type !== 'category' && trim((string) ($seo_meta['title'] ?? '')) === '') {
-            $issues[] = 'SEO title no localizado.';
+            $issues[] = 'SEO title explícito no localizado.';
             $changes[] = 'Revisar el SEO title y alinearlo con la intención principal sin duplicar literalmente el H1.';
-            $issue_score += 5;
+            $issue_score += 2;
         }
         if ($type !== 'category' && trim((string) ($seo_meta['description'] ?? '')) === '') {
-            $issues[] = 'Meta description no localizada.';
+            $issues[] = 'Meta description explícita no localizada.';
             $changes[] = 'Redactar una meta description específica que explique utilidad, alcance y motivo para entrar.';
-            $issue_score += 5;
+            $issue_score += 2;
         }
 
         if (in_array($type, array('post','page','product','cluster','hub_primary','hub_secondary','category'), true) && $vocabulary_count < 1) {
@@ -414,12 +505,17 @@ if (!function_exists('seo_analista_build_entity_work_row')) {
         $impressions = (float) ($gsc['impressions'] ?? 0);
         $position = (float) ($gsc['position'] ?? 0);
         $previous_impressions = (float) ($previous_gsc['impressions'] ?? 0);
+        $delta_impressions = $impressions - $previous_impressions;
         $growth = null;
-        if ($previous_impressions > 0) $growth = (($impressions - $previous_impressions) / $previous_impressions) * 100;
-        elseif ($impressions > 0) $growth = 100.0;
+        if ($previous_impressions > 0) $growth = ($delta_impressions / $previous_impressions) * 100;
+        elseif ($impressions >= 8) $growth = 100.0;
+
+        $page_role = sanitize_key((string) ($source['page_role'] ?? ''));
+        $is_corporate = ($type === 'page' && $page_role === 'corporate_page');
+        if ($is_corporate) $demand_score = min(8, $demand_score);
 
         $ctr = (float) ($gsc['ctr'] ?? 0);
-        if ($impressions >= 20 && $position > 0 && $position <= 20 && $ctr < 0.01) {
+        if (!$is_corporate && $impressions >= 20 && $position > 0 && $position <= 20 && $ctr < 0.01) {
             $profile['issues'][] = 'CTR bajo para una URL ya visible en posiciones aprovechables.';
             $profile['recommended_changes'][] = 'Revisar SEO title y meta description para responder mejor a las consultas que ya generan impresiones.';
             $profile['issue_score'] = min(60, (int) $profile['issue_score'] + 8);
@@ -427,16 +523,17 @@ if (!function_exists('seo_analista_build_entity_work_row')) {
             $action = seo_analista_entity_action($type, true);
         }
 
-        $priority = 25 + (int) $profile['issue_score'] + $demand_score;
+        $priority = ($is_corporate ? 12 : 18) + (int) $profile['issue_score'] + $demand_score;
         if (!$has_issues && $impressions < 5) $priority -= 20;
-        if ($growth !== null && $growth >= 40) $priority += 7;
-        if ($position > 0 && $position <= 20) $priority += 5;
+        $accelerating = !$is_corporate && $growth !== null && $growth >= 40 && $impressions >= 10 && $delta_impressions >= 8;
+        if ($accelerating) $priority += 7;
+        if (!$is_corporate && $position > 0 && $position <= 20 && $impressions >= 5) $priority += 5;
         $priority = max(0, min(100, $priority));
 
         $reason_parts = array();
         if ($has_issues) $reason_parts[] = 'La entidad tiene problemas editoriales concretos que se pueden corregir.';
         if ($impressions > 0) $reason_parts[] = 'Google ya la muestra: ' . number_format_i18n($impressions, 0) . ' impresiones, posición ' . number_format_i18n($position, 1) . '.';
-        if ($growth !== null && $growth >= 40) $reason_parts[] = 'La demanda asociada está acelerando respecto al periodo anterior.';
+        if ($accelerating) $reason_parts[] = 'La demanda asociada está acelerando respecto al periodo anterior.';
         if (!$has_issues && $impressions > 0) $reason_parts[] = 'La base editorial es razonable: conviene impulsarla, no rehacerla.';
 
         $meta = function_exists('seo_analista_action_meta') ? seo_analista_action_meta($action) : array('label' => $action, 'channel' => 'contenido');
@@ -456,10 +553,11 @@ if (!function_exists('seo_analista_build_entity_work_row')) {
                 'title' => (string) $title,
                 'url' => (string) $url,
                 'edit_url' => (string) $edit_url,
+                'role' => $page_role,
             ),
             'target' => array('title' => (string) $title, 'url' => (string) $url),
-            'issues' => (array) $profile['issues'],
-            'recommended_changes' => (array) $profile['recommended_changes'],
+            'issues' => array_values(array_unique((array) $profile['issues'])),
+            'recommended_changes' => array_values(array_unique((array) $profile['recommended_changes'])),
             'content' => array(
                 'word_count' => (int) $profile['word_count'],
                 'excerpt_word_count' => (int) $profile['excerpt_word_count'],
@@ -476,6 +574,7 @@ if (!function_exists('seo_analista_build_entity_work_row')) {
                 'position' => $position,
                 'queries' => (int) ($gsc['queries'] ?? 0),
                 'impressions_growth_pct' => $growth,
+                'impressions_delta' => $delta_impressions,
                 'search_score' => $demand_score,
                 'market_score' => 0,
             ),
@@ -485,6 +584,7 @@ if (!function_exists('seo_analista_build_entity_work_row')) {
         );
     }
 }
+
 
 if (!function_exists('seo_analista_enrich_keyword_directive')) {
     function seo_analista_enrich_keyword_directive(array &$row) {
@@ -509,6 +609,12 @@ if (!function_exists('seo_analista_content_work')) {
         $vocab_map = seo_analista_vocabulary_count_map();
         $category_content_map = seo_analista_category_content_map();
         $role_map = seo_analista_structural_role_map();
+        $page_role_map = seo_analista_page_role_map();
+        $period = (array) ($data['period'] ?? array());
+        $property_id = function_exists('seo_analista_resolve_property_id') ? seo_analista_resolve_property_id() : '';
+        $page_query_map = ($property_id && !empty($period['date_from']) && !empty($period['date_to']) && function_exists('seo_analista_page_query_map'))
+            ? seo_analista_page_query_map($property_id, $period['date_from'], $period['date_to'], 40000)
+            : array();
         $child_map = seo_analista_structural_child_count_map();
         $functional_ids = seo_analista_functional_page_ids();
         $rows = array();
@@ -537,13 +643,14 @@ if (!function_exists('seo_analista_content_work')) {
                 'seo_meta' => seo_analista_seo_meta_snapshot($id),
                 'tag_count' => is_wp_error($tags) ? 0 : count((array) $tags),
                 'child_count' => isset($role_map[$id]) ? (int) ($child_map[$role_map[$id] . ':' . $id] ?? 0) : null,
+                'page_role' => (string) ($page_role_map[$id] ?? ''),
             );
             $row = seo_analista_build_entity_work_row(
                 $type, $id, $source['title'], $url, $source, $gsc, $previous,
                 (int) ($vocab_map[$vocab_key] ?? 0), 0, (string) get_edit_post_link($id, '')
             );
             $subject = $row['topic'];
-            $row['keywords'] = seo_analista_related_queries($subject, (array) ($data['queries'] ?? array()), 8);
+            $row['keywords'] = seo_analista_related_queries($subject, (array) ($page_query_map[$path] ?? array()), 8, $post_type === 'page' ? 0.38 : 0.34);
             $row['evidence'] = $row['keywords'];
             seo_analista_enrich_keyword_directive($row);
             $row['source'] = implode(' + ', $row['sources']);
@@ -585,7 +692,7 @@ if (!function_exists('seo_analista_content_work')) {
                         'product', $id, $source['title'], $url, $source, $gsc, $previous,
                         (int) ($vocab_map['product:' . $id] ?? 0), $cat_count, (string) get_edit_post_link($id, '')
                     );
-                    $row['keywords'] = seo_analista_related_queries($row['topic'], (array) ($data['queries'] ?? array()), 6);
+                    $row['keywords'] = seo_analista_related_queries($row['topic'], (array) ($page_query_map[$path] ?? array()), 6, 0.52);
                     $row['evidence'] = $row['keywords'];
                     seo_analista_enrich_keyword_directive($row);
                     $row['source'] = implode(' + ', $row['sources']);
@@ -627,7 +734,7 @@ if (!function_exists('seo_analista_content_work')) {
                         'products' => (int) ($term->count ?? 0),
                         'term_id' => $term_id,
                     );
-                    $row['keywords'] = seo_analista_related_queries($row['topic'], (array) ($data['queries'] ?? array()), 8);
+                    $row['keywords'] = seo_analista_related_queries($row['topic'], (array) ($page_query_map[$path] ?? array()), 8, 0.32);
                     $row['evidence'] = $row['keywords'];
                     seo_analista_enrich_keyword_directive($row);
                     $row['source'] = implode(' + ', $row['sources']);
@@ -669,22 +776,120 @@ if (!function_exists('seo_analista_structure_work')) {
     }
 }
 
-if (!function_exists('seo_analista_find_best_local_target')) {
-    function seo_analista_find_best_local_target($topic, $days = 28) {
+if (!function_exists('seo_analista_local_category_context')) {
+    function seo_analista_local_category_context($topic) {
+        static $terms_cache = null;
+        $topic = seo_analista_clean_query($topic);
+        if ($topic === '' || !taxonomy_exists('product_cat')) return array();
+        if (null === $terms_cache) {
+            $terms_cache = get_terms(array('taxonomy' => 'product_cat', 'hide_empty' => false));
+            if (is_wp_error($terms_cache)) $terms_cache = array();
+        }
+
         $best = array();
         $best_score = 0.0;
-        foreach (seo_analista_content_work($days, 220) as $row) {
+        $topic_norm = seo_analista_normalize_text($topic);
+        foreach ((array) $terms_cache as $term) {
+            $name = (string) ($term->name ?? '');
+            if ($name === '') continue;
+            $slug = str_replace('-', ' ', (string) ($term->slug ?? ''));
+            $score = max(
+                seo_analista_text_similarity($topic, $name),
+                seo_analista_text_similarity($topic, $slug)
+            );
+            $name_norm = seo_analista_normalize_text($name);
+            if ($topic_norm !== '' && $name_norm !== '') {
+                if ($topic_norm === $name_norm) $score = 1.0;
+                elseif (strpos($topic_norm, $name_norm) !== false || strpos($name_norm, $topic_norm) !== false) $score = max($score, 0.82);
+            }
+            if ($score > $best_score) {
+                $url = get_term_link($term, 'product_cat');
+                if (is_wp_error($url)) $url = '';
+                $best_score = $score;
+                $best = array(
+                    'category' => $name,
+                    'category_name' => $name,
+                    'term_id' => absint($term->term_id ?? 0),
+                    'category_id' => absint($term->term_id ?? 0),
+                    'category_url' => (string) $url,
+                    'products' => (int) ($term->count ?? 0),
+                    'product_count' => (int) ($term->count ?? 0),
+                    'match_score' => $score,
+                    'match_source' => 'Analista · categorías locales',
+                );
+            }
+        }
+        return $best_score >= 0.58 ? $best : array();
+    }
+}
+
+if (!function_exists('seo_analista_find_content_entity')) {
+    function seo_analista_find_content_entity($type, $id, $days = 28) {
+        $id = absint($id);
+        if (!$id) return array();
+        foreach (seo_analista_content_work($days, 250) as $row) {
             $entity = (array) ($row['entity'] ?? array());
+            if ((string) ($entity['type'] ?? '') === (string) $type && absint($entity['id'] ?? 0) === $id) return $row;
+        }
+        return array();
+    }
+}
+
+if (!function_exists('seo_analista_target_allowed_for_topic')) {
+    function seo_analista_target_allowed_for_topic(array $row, $topic) {
+        $entity = (array) ($row['entity'] ?? array());
+        $type = (string) ($entity['type'] ?? '');
+        $role = sanitize_key((string) ($entity['role'] ?? ''));
+        $title = (string) ($entity['title'] ?? $row['topic'] ?? '');
+        $score = seo_analista_text_similarity($topic, $title);
+
+        // Páginas corporativas no son destino de demanda de catálogo.
+        if ($type === 'page' && $role === 'corporate_page') return false;
+
+        // Productos requieren mucha más afinidad que categorías/hubs: evita
+        // que una marca compartida convierta otro SKU en el target elegido.
+        if ($type === 'product' && $score < 0.62) return false;
+        if (in_array($type, array('category','cluster','hub_primary','hub_secondary'), true) && $score < 0.40) return false;
+        if (in_array($type, array('post','page'), true) && $score < 0.46) return false;
+        return true;
+    }
+}
+
+if (!function_exists('seo_analista_find_best_local_target')) {
+    function seo_analista_find_best_local_target($topic, $days = 28) {
+        $topic = seo_analista_clean_query($topic);
+        if ($topic === '') return array();
+
+        // Una categoría local claramente equivalente tiene prioridad sobre
+        // cualquier parecido léxico con hubs, páginas o productos.
+        $local_category = seo_analista_local_category_context($topic);
+        if ($local_category) {
+            $category_row = seo_analista_find_content_entity('category', (int) ($local_category['term_id'] ?? 0), $days);
+            if ($category_row) return array('score' => (float) ($local_category['match_score'] ?? 0.8), 'row' => $category_row);
+        }
+
+        $best = array();
+        $best_score = 0.0;
+        foreach (seo_analista_content_work($days, 250) as $row) {
+            $entity = (array) ($row['entity'] ?? array());
+            if (!$entity || !seo_analista_target_allowed_for_topic($row, $topic)) continue;
+
             $score = seo_analista_text_similarity($topic, $entity['title'] ?? '');
             foreach ((array) ($row['keywords'] ?? array()) as $keyword) {
-                $score = max($score, seo_analista_text_similarity($topic, $keyword) * 0.92);
+                $score = max($score, seo_analista_text_similarity($topic, $keyword) * 0.94);
             }
+            $type = (string) ($entity['type'] ?? '');
+            if ($type === 'category') $score += 0.08;
+            elseif ($type === 'product') $score -= 0.05;
+            $score = min(1.0, max(0.0, $score));
+
             if ($score > $best_score) {
                 $best_score = $score;
                 $best = $row;
             }
         }
-        if ($best_score < 0.32) return array();
+        if ($best_score < 0.46) return array();
         return array('score' => $best_score, 'row' => $best);
     }
 }
+

@@ -107,15 +107,26 @@ if (!function_exists('seo_analista_merge_clean_query_rows')) {
 
 if (!function_exists('seo_analista_query_is_actionable')) {
     function seo_analista_query_is_actionable($query) {
-        $query = seo_analista_clean_query($query);
+        $raw = trim((string) $query);
+        $query = seo_analista_clean_query($raw);
         $normalized = seo_analista_normalize_text($query);
         if ($normalized === '') return false;
-        if (preg_match('/^(site|cache|related|info|inurl|intitle|allintitle|allinurl)\s+/', $normalized)) return false;
+
+        // Operadores de búsqueda y consultas de diagnóstico del propio dominio
+        // no son demanda que deba convertirse en contenido o catálogo.
+        if (preg_match('/^(site|cache|related|info|inurl|intitle|allintitle|allinurl)\s+/i', $normalized)) return false;
         if (strpos($normalized, 'site www distribuidordeherramientas es') === 0) return false;
-        if (preg_match('/\b(site|cache|related|info|inurl|intitle):/i', $query)) return false;
+        if (preg_match('/\b(site|cache|related|info|inurl|intitle|allintitle|allinurl):/i', $raw)) return false;
+
+        // Rechaza residuos técnicos que hayan sobrevivido al saneado.
+        if (preg_match('/(?:\|c|\|i|,{2,}|-{3,})/i', $raw)) {
+            $clean_again = seo_analista_clean_query($raw);
+            if ($clean_again === '' || $clean_again === $raw) return false;
+        }
         return true;
     }
 }
+
 
 if (!function_exists('seo_analista_get_settings')) {
     function seo_analista_get_settings() {
@@ -356,6 +367,59 @@ if (!function_exists('seo_analista_page_rows')) {
             ),
             ARRAY_A
         );
+    }
+}
+
+if (!function_exists('seo_analista_page_query_map')) {
+    /**
+     * Consultas reales que Search Console asoció a cada URL.
+     *
+     * Es deliberadamente un mapa por página: evita recomendar a un producto
+     * términos que solo comparten marca o a una página corporativa consultas
+     * de otra familia del catálogo.
+     */
+    function seo_analista_page_query_map($property_id, $date_from, $date_to, $limit = 40000) {
+        global $wpdb;
+        if (!$property_id || !function_exists('seo_google_table')) return array();
+        $table = seo_google_table('search_data');
+        $limit = max(1000, min(60000, absint($limit)));
+
+        $rows = (array) $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT
+                    page_hash,
+                    MAX(page_url) AS page_url,
+                    query_hash,
+                    MAX(query_text) AS query_text,
+                    SUM(clicks) AS clicks,
+                    SUM(impressions) AS impressions,
+                    CASE WHEN SUM(impressions) > 0 THEN SUM(clicks) / SUM(impressions) ELSE 0 END AS ctr,
+                    CASE WHEN SUM(impressions) > 0 THEN SUM(position * impressions) / SUM(impressions) ELSE 0 END AS position
+                 FROM {$table}
+                 WHERE property_hash = %s
+                   AND data_date BETWEEN %s AND %s
+                 GROUP BY page_hash, query_hash
+                 HAVING SUM(impressions) > 0
+                 ORDER BY impressions DESC, clicks DESC
+                 LIMIT %d",
+                hash('sha256', $property_id),
+                $date_from,
+                $date_to,
+                $limit
+            ),
+            ARRAY_A
+        );
+
+        $map = array();
+        foreach ($rows as $row) {
+            $query = seo_analista_clean_query($row['query_text'] ?? '');
+            if ($query === '' || !seo_analista_query_is_actionable($query)) continue;
+            $path = seo_analista_path_key($row['page_url'] ?? '');
+            if (!isset($map[$path])) $map[$path] = array();
+            $row['query_text'] = $query;
+            $map[$path][] = $row;
+        }
+        return $map;
     }
 }
 

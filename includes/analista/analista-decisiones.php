@@ -93,7 +93,7 @@ if (!function_exists('seo_analista_google_plan')) {
             // palabras genericas. Es preferible dejar el target vacio.
             if (!empty($target['title']) && function_exists('seo_analista_text_similarity')) {
                 $subject = trim($topic . ' ' . $category);
-                if (seo_analista_text_similarity($subject, (string) $target['title']) < 0.22) {
+                if (seo_analista_text_similarity($subject, (string) $target['title']) < 0.42) {
                     $target = array('title' => '', 'url' => '');
                 }
             }
@@ -329,7 +329,7 @@ if (!function_exists('seo_analista_decision_plan')) {
                 $impressions = (float) ($row['metrics']['impressions'] ?? 0);
                 if ((int) ($row['priority'] ?? 0) < 50) continue;
                 if ($impressions < 1 && (int) ($row['priority'] ?? 0) < 72) continue;
-                if (!seo_analista_merge_external_signal($plan, $row, 0.46)) $plan[] = $row;
+                if (!seo_analista_merge_external_signal($plan, $row, 0.62)) $plan[] = $row;
             }
         }
 
@@ -337,12 +337,12 @@ if (!function_exists('seo_analista_decision_plan')) {
         // Console. Una tendencia puede reforzar una directriz ya existente.
         if (function_exists('seo_analista_trend_work')) {
             foreach (seo_analista_trend_work($days, 50) as $row) {
-                if (!seo_analista_merge_external_signal($plan, $row, 0.54)) $plan[] = $row;
+                if (!seo_analista_merge_external_signal($plan, $row, 0.66)) $plan[] = $row;
             }
         }
 
         foreach (seo_analista_competition_opportunities(30) as $row) {
-            if (!seo_analista_merge_external_signal($plan, $row, 0.58)) $plan[] = $row;
+            if (!seo_analista_merge_external_signal($plan, $row, 0.65)) $plan[] = $row;
         }
 
         $search = seo_analista_internal_search_snapshot($days, 40);
@@ -394,23 +394,46 @@ if (!function_exists('seo_analista_decision_plan')) {
             return $diff ?: strcmp((string) ($a['topic'] ?? ''), (string) ($b['topic'] ?? ''));
         });
 
+        // Una entidad = una tarea. Si varias señales apuntan a la misma URL,
+        // se fusionan en lugar de mostrar MEJORAR/IMPULSAR duplicados.
         $dedup = array();
-        $seen = array();
+        $index_by_key = array();
         foreach ($plan as $row) {
-            $entity = (array) ($row['entity'] ?? array());
+            $entity = is_array($row['entity'] ?? null) ? (array) $row['entity'] : array();
             if (!empty($entity['id']) && !empty($entity['type'])) {
-                $key = sanitize_key((string) ($row['action'] ?? '')) . '|entity|' . sanitize_key((string) $entity['type']) . '|' . absint($entity['id']);
+                $key = 'entity|' . sanitize_key((string) $entity['type']) . '|' . absint($entity['id']);
             } elseif (!empty($row['target']['url'])) {
-                $key = sanitize_key((string) ($row['action'] ?? '')) . '|url|' . strtolower((string) $row['target']['url']);
+                $key = 'url|' . strtolower((string) $row['target']['url']);
             } else {
                 $key = seo_analista_normalize_text(($row['action'] ?? '') . ' ' . ($row['topic'] ?? ''));
             }
-            if ($key === '' || isset($seen[$key])) continue;
-            $seen[$key] = true;
-            $dedup[] = $row;
-            if (count($dedup) >= max(5, min(80, absint($limit)))) break;
+            if ($key === '') continue;
+
+            if (!isset($index_by_key[$key])) {
+                $index_by_key[$key] = count($dedup);
+                $dedup[] = $row;
+                continue;
+            }
+
+            $i = $index_by_key[$key];
+            $existing = &$dedup[$i];
+            $existing['priority'] = max((int) ($existing['priority'] ?? 0), (int) ($row['priority'] ?? 0));
+            if (strpos((string) ($row['action'] ?? ''), 'MEJORAR_') === 0 && strpos((string) ($existing['action'] ?? ''), 'IMPULSAR_') === 0) {
+                $existing['action'] = $row['action'];
+                $existing['action_label'] = $row['action_label'] ?? $existing['action_label'];
+                $existing['channel'] = $row['channel'] ?? $existing['channel'];
+            }
+            foreach (array('sources','evidence','keywords','issues','recommended_changes') as $field) {
+                $existing[$field] = array_values(array_unique(array_filter(array_merge((array) ($existing[$field] ?? array()), (array) ($row[$field] ?? array())))));
+            }
+            $existing['evidence'] = array_slice((array) $existing['evidence'], 0, 12);
+            $existing['keywords'] = array_slice((array) $existing['keywords'], 0, 12);
+            $existing['source'] = implode(' + ', (array) ($existing['sources'] ?? array()));
+            if (!empty($row['market'])) $existing['market'] = array_merge((array) ($existing['market'] ?? array()), (array) $row['market']);
+            unset($existing);
         }
-        return $dedup;
+        usort($dedup, static function($a,$b){ return (int) ($b['priority'] ?? 0) <=> (int) ($a['priority'] ?? 0); });
+        return array_slice($dedup, 0, max(5, min(80, absint($limit))));
     }
 }
 
