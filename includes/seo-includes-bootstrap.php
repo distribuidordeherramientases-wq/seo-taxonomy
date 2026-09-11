@@ -76,6 +76,15 @@ require_once SEO_SYSTEM_PATH . 'includes/productos/product-bootstrap.php';
 
 /*
 |--------------------------------------------------------------------------
+| COMENTARISTA
+|--------------------------------------------------------------------------
+*/
+
+// Evidencias y experiencias externas asociadas a productos.
+require_once SEO_SYSTEM_PATH . 'includes/comentarista/comentarista-bootstrap.php';
+
+/*
+|--------------------------------------------------------------------------
 | CATEGORÍAS Y CLASIFICACIÓN
 |--------------------------------------------------------------------------
 */

@@ -515,6 +515,7 @@ final class SEO_System_Installer
         self::run_installer('seo_images_scan_install_schema');
         self::run_installer('seo_search_maybe_install_log_table');
         self::run_installer('seo_social_network_maybe_install_tables');
+        self::run_installer('seo_comentarista_maybe_install_schema', [true]);
         self::run_installer('seo_google_install_tables', [true]);
         self::run_installer('seo_google_trends_maybe_install');
         self::run_installer('seo_landing_maybe_install');
@@ -532,6 +533,7 @@ final class SEO_System_Installer
             'includes/seo-image-scan.php',
             'includes/seo-search.php',
             'includes/seo-social-network.php',
+            'includes/comentarista/comentarista-db.php',
             'includes/seo-google-info.php',
             'includes/seo-google-trends.php',
             'includes/seo-landing-pages.php',
@@ -728,6 +730,7 @@ final class SEO_System_Installer
             'seo_image_scan_items',
             'seo_search_log',
             'seo_social_publications',
+            'seo_comentarista',
             'seo_google_sync_runs',
             'seo_google_search_data',
             'seo_google_trends',
