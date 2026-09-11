@@ -8,7 +8,7 @@
  *
  * @package SEOSystem
  * @subpackage Processes_Clonador
- * @since 2.5.6
+ * @since 2.5.7
  */
 
 defined('ABSPATH') || exit;
@@ -34,11 +34,11 @@ final class SEO_Clonador_Process {
 
     public static function speed_profiles() {
         return array(
-            1 => array('label' => 'Muy suave', 'budget' => 6,  'steps' => 1, 'delay' => 20),
-            2 => array('label' => 'Suave',      'budget' => 10, 'steps' => 1, 'delay' => 12),
-            3 => array('label' => 'Normal',     'budget' => 18, 'steps' => 2, 'delay' => 7),
-            4 => array('label' => 'Rapida',     'budget' => 30, 'steps' => 3, 'delay' => 5),
-            5 => array('label' => 'Maxima',     'budget' => 45, 'steps' => 4, 'delay' => 5),
+            1 => array('label' => 'Muy suave', 'budget' => 6,  'steps' => 6,   'delay' => 8),
+            2 => array('label' => 'Suave',      'budget' => 10, 'steps' => 20,  'delay' => 3),
+            3 => array('label' => 'Normal',     'budget' => 18, 'steps' => 60,  'delay' => 1),
+            4 => array('label' => 'Rapida',     'budget' => 30, 'steps' => 140, 'delay' => 0),
+            5 => array('label' => 'Maxima',     'budget' => 45, 'steps' => 250, 'delay' => 0),
         );
     }
 
