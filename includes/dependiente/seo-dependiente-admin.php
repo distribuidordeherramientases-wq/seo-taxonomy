@@ -46,7 +46,7 @@ final class SEO_Dependiente_Admin {
         }
 
         $tab = sanitize_key((string) ($_GET['tab'] ?? 'settings'));
-        if (!in_array($tab, array('settings', 'diagnostic', 'learning', 'trainer', 'knowledge'), true)) {
+        if (!in_array($tab, array('settings', 'diagnostic', 'learning', 'trainer', 'auditor', 'knowledge'), true)) {
             $tab = 'settings';
         }
         ?>
@@ -59,6 +59,7 @@ final class SEO_Dependiente_Admin {
                 <?php self::render_tab_link('diagnostic', 'Informe', $tab); ?>
                 <?php self::render_tab_link('learning', 'Aprendizaje', $tab); ?>
                 <?php self::render_tab_link('trainer', 'Academia', $tab); ?>
+                <?php self::render_tab_link('auditor', 'Auditor', $tab); ?>
                 <?php self::render_tab_link('knowledge', 'Conocimiento', $tab); ?>
             </nav>
 
@@ -72,6 +73,12 @@ final class SEO_Dependiente_Admin {
                     SEO_Dependiente_Entrenador::render_tab();
                 } else {
                     echo '<div class="notice notice-error"><p>No está disponible el módulo Academia.</p></div>';
+                }
+            } elseif ('auditor' === $tab) {
+                if (class_exists('SEO_Auditor')) {
+                    SEO_Auditor::render_tab();
+                } else {
+                    echo '<div class="notice notice-error"><p>No esta disponible el modulo Auditor en includes/auditor.</p></div>';
                 }
             } elseif ('knowledge' === $tab) {
                 if (class_exists('SEO_Dependiente_Knowledge_Transfer')) {
@@ -92,7 +99,9 @@ final class SEO_Dependiente_Admin {
         $options = get_option('seo_dependiente_options', array());
         $page_id = absint($status['page_id']);
         $page_url = $page_id ? get_permalink($page_id) : '';
-        $indexed_percentage = $status['published'] ? min(100, round(($status['indexed'] / $status['published']) * 100)) : 0;
+        $indexable_total = absint($status['indexable'] ?? $status['published'] ?? 0);
+        $excluded_hidden = absint($status['excluded_hidden'] ?? 0);
+        $indexed_percentage = $indexable_total ? min(100, round(($status['indexed'] / $indexable_total) * 100)) : 0;
         global $wpdb;
         $integrations = array(
             'WooCommerce'                       => class_exists('WooCommerce'),
@@ -113,7 +122,10 @@ final class SEO_Dependiente_Admin {
             <div>
                 <div class="postbox seo-dependiente-admin__box">
                     <h2 class="seo-dependiente-admin__box-title">Estado del catálogo</h2>
-                    <p><strong data-dependiente-indexed><?php echo esc_html(number_format_i18n($status['indexed'])); ?></strong> de <strong data-dependiente-total><?php echo esc_html(number_format_i18n($status['published'])); ?></strong> productos publicados están indexados.</p>
+                    <p><strong data-dependiente-indexed><?php echo esc_html(number_format_i18n($status['indexed'])); ?></strong> de <strong data-dependiente-total><?php echo esc_html(number_format_i18n($indexable_total)); ?></strong> productos indexables están indexados.</p>
+                    <?php if ($excluded_hidden > 0) : ?>
+                        <p class="description"><strong><?php echo esc_html(number_format_i18n($excluded_hidden)); ?></strong> producto(s) publicado(s) con visibilidad WooCommerce "Oculto" se excluyen correctamente del índice.</p>
+                    <?php endif; ?>
                     <div class="seo-dependiente-admin__progress">
                         <div class="seo-dependiente-admin__progress-bar" data-dependiente-progress-bar data-initial-percent="<?php echo esc_attr($indexed_percentage); ?>"></div>
                     </div>
@@ -301,6 +313,17 @@ final class SEO_Dependiente_Admin {
         }
 
         $learning = SEO_Dependiente_Insights::learning_rules();
+
+        // v0.2.11: observatorio de Academia dentro de Aprendizaje.
+        // Es solo lectura y no modifica conocimiento, preguntas ni fuentes.
+        if (class_exists('SEO_Dependiente_Training_Quality')) {
+            SEO_Dependiente_Training_Quality::render();
+            $quality_view = sanitize_key((string) ($_GET['learning_view'] ?? 'summary'));
+            if (in_array($quality_view, array('evolution', 'quality', 'failures'), true)) {
+                return;
+            }
+        }
+
         if (isset($_GET['reviewed'])) {
             $message = 'approved' === $_GET['reviewed'] ? 'Candidato aprobado y activado.' : ('rejected' === $_GET['reviewed'] ? 'Candidato rechazado.' : 'Revisión guardada.');
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html($message) . '</p></div>';
@@ -316,7 +339,7 @@ final class SEO_Dependiente_Admin {
         </div>
 
         <section class="postbox seo-dependiente-admin__box seo-dependiente-admin__wide-box">
-            <h2 class="seo-dependiente-admin__box-title">Candidatos pendientes</h2>
+            <h2 class="seo-dependiente-admin__box-title">Aprendizaje observacional · Candidatos pendientes</h2>
             <p class="description">Aprobar activa la regla. Rechazar conserva la evidencia para auditoría, pero la regla permanece inactiva.</p>
             <?php self::render_learning_cards($learning['candidates'] ?? array(), true); ?>
         </section>
