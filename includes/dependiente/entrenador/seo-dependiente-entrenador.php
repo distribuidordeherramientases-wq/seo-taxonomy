@@ -2749,7 +2749,7 @@ final class SEO_Dependiente_Entrenador {
         $indexed=absint($status['indexed']??0);$published=absint($status['published']??0);$last_full=trim((string)($status['last_full']??''));
         $posts=absint($wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='post' AND post_status='publish'"));
         $pages=absint($wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='page' AND post_status='publish'"));
-        $faq_table=$wpdb->prefix.'seo_faq';$faqs=self::table_exists($faq_table)?absint($wpdb->get_var("SELECT COUNT(*) FROM {$faq_table} WHERE active=1 AND object_type IN (1,2,3)")):0;
+        $faq_table=$wpdb->prefix.'seo_faq';$faqs=self::table_exists($faq_table)?absint($wpdb->get_var("SELECT COUNT(*) FROM {$faq_table} WHERE active=1 AND object_type IN (2,3)")):0;
         $ready=class_exists('WooCommerce')&&$indexed>0&&''!==$last_full;
         if(!class_exists('WooCommerce')){$message='WooCommerce no está disponible. La Academia necesita el catálogo.';}
         elseif($published<1){$message='No hay productos publicados que puedan formar parte del temario.';$ready=false;}
@@ -5411,7 +5411,7 @@ final class SEO_Dependiente_Entrenador {
         $v=$wpdb->prefix.'seo_vocabulary';$ov=$wpdb->prefix.'seo_object_vocabulary';$faq=$wpdb->prefix.'seo_faq';
         if(self::table_exists($v))$parts[]=(string)$wpdb->get_var("SELECT CONCAT(COUNT(*),'|',COALESCE(MAX(updated_at),''),'|',COALESCE(BIT_XOR(CRC32(CONCAT(id,'|',semantic_group,'|',slug,'|',active))),0)) FROM {$v}");
         if(self::table_exists($ov))$parts[]=(string)$wpdb->get_var("SELECT CONCAT(COUNT(*),'|',COALESCE(MAX(updated_at),''),'|',COALESCE(BIT_XOR(CRC32(CONCAT(object_type,'|',object_id,'|',vocabulary_id,'|',status))),0)) FROM {$ov} WHERE object_type IN ('product','product_cat','post','page')");
-        if(self::table_exists($faq))$parts[]=(string)$wpdb->get_var("SELECT CONCAT(COUNT(*),'|',COALESCE(MAX(updated_at),''),'|',COALESCE(BIT_XOR(CRC32(CONCAT(id,'|',object_type,'|',object_id,'|',active))),0)) FROM {$faq} WHERE object_type IN (1,2,3)");
+        if(self::table_exists($faq))$parts[]=(string)$wpdb->get_var("SELECT CONCAT(COUNT(*),'|',COALESCE(MAX(updated_at),''),'|',COALESCE(BIT_XOR(CRC32(CONCAT(id,'|',object_type,'|',object_id,'|',active))),0)) FROM {$faq} WHERE object_type IN (2,3)");
         $cache=hash('sha256',implode('||',$parts));
         return $cache;
     }
