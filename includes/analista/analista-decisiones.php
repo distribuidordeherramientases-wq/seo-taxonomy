@@ -12,15 +12,28 @@ defined('ABSPATH') || exit;
 if (!function_exists('seo_analista_action_meta')) {
     function seo_analista_action_meta($code) {
         $map = array(
-            'POTENCIAR_CATEGORIA' => array('label' => 'Potenciar categoria', 'channel' => 'seo'),
+            'MEJORAR_POST' => array('label' => 'Mejorar post', 'channel' => 'contenido'),
+            'IMPULSAR_POST' => array('label' => 'Impulsar post', 'channel' => 'contenido'),
+            'MEJORAR_PAGINA' => array('label' => 'Mejorar página', 'channel' => 'contenido'),
+            'IMPULSAR_PAGINA' => array('label' => 'Impulsar página', 'channel' => 'contenido'),
+            'MEJORAR_PRODUCTO' => array('label' => 'Mejorar producto', 'channel' => 'contenido'),
+            'IMPULSAR_PRODUCTO' => array('label' => 'Impulsar producto', 'channel' => 'contenido'),
+            'MEJORAR_CATEGORIA' => array('label' => 'Mejorar categoría', 'channel' => 'estructura'),
+            'IMPULSAR_CATEGORIA' => array('label' => 'Impulsar categoría', 'channel' => 'estructura'),
+            'MEJORAR_CLUSTER' => array('label' => 'Mejorar cluster', 'channel' => 'estructura'),
+            'IMPULSAR_CLUSTER' => array('label' => 'Impulsar cluster', 'channel' => 'estructura'),
+            'MEJORAR_HUB' => array('label' => 'Mejorar hub', 'channel' => 'estructura'),
+            'IMPULSAR_HUB' => array('label' => 'Impulsar hub', 'channel' => 'estructura'),
+            'POTENCIAR_CATEGORIA' => array('label' => 'Potenciar categoría', 'channel' => 'estructura'),
             'AMPLIAR_PRODUCTOS' => array('label' => 'Ampliar productos', 'channel' => 'catalogo'),
-            'POTENCIAR_LANDING' => array('label' => 'Potenciar landing', 'channel' => 'seo'),
+            'POTENCIAR_LANDING' => array('label' => 'Potenciar landing', 'channel' => 'contenido'),
             'ESTUDIAR_LANDING' => array('label' => 'Estudiar landing', 'channel' => 'contenido'),
             'ACTUALIZAR_POST' => array('label' => 'Actualizar contenido', 'channel' => 'contenido'),
             'CREAR_POST' => array('label' => 'Crear contenido', 'channel' => 'contenido'),
+            'CREAR_CONTENIDO' => array('label' => 'Crear contenido', 'channel' => 'contenido'),
             'REVISAR_COBERTURA' => array('label' => 'Revisar cobertura', 'channel' => 'seo'),
             'POTENCIAR_SEO' => array('label' => 'Superar competidor', 'channel' => 'competencia'),
-            'INVESTIGAR_CATALOGO' => array('label' => 'Investigar hueco de catalogo', 'channel' => 'catalogo'),
+            'INVESTIGAR_CATALOGO' => array('label' => 'Investigar hueco de catálogo', 'channel' => 'catalogo'),
             'INVESTIGAR_PRODUCTO' => array('label' => 'Cubrir demanda interna', 'channel' => 'catalogo'),
             'REVISAR_PROVEEDOR' => array('label' => 'Revisar proveedor', 'channel' => 'proveedores'),
             'VIGILAR' => array('label' => 'Vigilar', 'channel' => 'seguimiento'),
@@ -75,6 +88,15 @@ if (!function_exists('seo_analista_google_plan')) {
             $catalog = (array) ($row['catalog'] ?? array());
             $target = (array) ($row['target'] ?? array());
             $category = trim((string) ($catalog['category'] ?? ''));
+
+            // Nunca mostrar como destino un post/pagina que solo coincide por
+            // palabras genericas. Es preferible dejar el target vacio.
+            if (!empty($target['title']) && function_exists('seo_analista_text_similarity')) {
+                $subject = trim($topic . ' ' . $category);
+                if (seo_analista_text_similarity($subject, (string) $target['title']) < 0.22) {
+                    $target = array('title' => '', 'url' => '');
+                }
+            }
             $products = isset($catalog['products']) ? (int) $catalog['products'] : null;
             $action = (string) ($row['action'] ?? 'REVISAR_COBERTURA');
             $priority = (int) ($row['priority'] ?? 0);
@@ -230,8 +252,23 @@ if (!function_exists('seo_analista_merge_external_signal')) {
     function seo_analista_merge_external_signal(array &$plan, array $signal, $threshold = 0.62) {
         $best_index = null;
         $best_similarity = 0.0;
+        $signal_entity = (array) ($signal['entity'] ?? array());
+
         foreach ($plan as $index => $row) {
-            $similarity = seo_analista_topic_similarity($signal['topic'] ?? '', $row['topic'] ?? '');
+            $row_entity = (array) ($row['entity'] ?? array());
+            if (!empty($signal_entity['id']) && !empty($row_entity['id'])
+                && (string) ($signal_entity['type'] ?? '') === (string) ($row_entity['type'] ?? '')
+                && (int) $signal_entity['id'] === (int) $row_entity['id']) {
+                $best_index = $index;
+                $best_similarity = 1.0;
+                break;
+            }
+
+            $signal_topic = $signal['topic'] ?? ($signal_entity['title'] ?? '');
+            $row_topic = $row['topic'] ?? ($row_entity['title'] ?? '');
+            $similarity = function_exists('seo_analista_text_similarity')
+                ? seo_analista_text_similarity($signal_topic, $row_topic)
+                : seo_analista_topic_similarity($signal_topic, $row_topic);
             if ($similarity > $best_similarity) {
                 $best_similarity = $similarity;
                 $best_index = $index;
@@ -239,14 +276,41 @@ if (!function_exists('seo_analista_merge_external_signal')) {
         }
 
         if (null !== $best_index && $best_similarity >= $threshold) {
-            $plan[$best_index]['priority'] = min(100, max((int) $plan[$best_index]['priority'], (int) ($signal['priority'] ?? 0)) + 5);
-            $plan[$best_index]['sources'] = array_values(array_unique(array_merge(
-                (array) ($plan[$best_index]['sources'] ?? array()),
+            $existing = &$plan[$best_index];
+            $existing['priority'] = min(100, max((int) ($existing['priority'] ?? 0), (int) ($signal['priority'] ?? 0)) + 4);
+            $existing['sources'] = array_values(array_unique(array_filter(array_merge(
+                (array) ($existing['sources'] ?? array()),
                 (array) ($signal['sources'] ?? array((string) ($signal['source'] ?? '')))
-            )));
-            $plan[$best_index]['source'] = implode(' + ', array_filter($plan[$best_index]['sources']));
-            if (!empty($signal['competition'])) $plan[$best_index]['competition'] = $signal['competition'];
-            if (!empty($signal['internal_search'])) $plan[$best_index]['internal_search'] = $signal['internal_search'];
+            ))));
+            $existing['source'] = implode(' + ', $existing['sources']);
+
+            // Una directriz ligada a una entidad local es mas concreta que una
+            // recomendacion generica de Google Intelligence.
+            if ($signal_entity) {
+                $existing['entity'] = $signal_entity;
+                $existing['target'] = (array) ($signal['target'] ?? $existing['target'] ?? array());
+                $existing['issues'] = array_values(array_unique(array_merge((array) ($existing['issues'] ?? array()), (array) ($signal['issues'] ?? array()))));
+                $existing['recommended_changes'] = array_values(array_unique(array_merge((array) ($existing['recommended_changes'] ?? array()), (array) ($signal['recommended_changes'] ?? array()))));
+                $existing['keywords'] = array_values(array_unique(array_merge((array) ($existing['keywords'] ?? array()), (array) ($signal['keywords'] ?? array()))));
+                $existing['content'] = (array) ($signal['content'] ?? $existing['content'] ?? array());
+                if (!empty($signal['action']) && (strpos((string) $signal['action'], 'MEJORAR_') === 0 || strpos((string) $signal['action'], 'IMPULSAR_') === 0)) {
+                    $existing['action'] = (string) $signal['action'];
+                    $existing['action_label'] = (string) ($signal['action_label'] ?? seo_analista_action_meta($signal['action'])['label']);
+                    $existing['channel'] = (string) ($signal['channel'] ?? seo_analista_action_meta($signal['action'])['channel']);
+                    $existing['topic'] = (string) ($signal_entity['title'] ?? $signal['topic'] ?? $existing['topic']);
+                    $existing['reason'] = (string) ($signal['reason'] ?? $existing['reason']);
+                    if (!empty($signal['metrics'])) $existing['metrics'] = array_merge((array) ($existing['metrics'] ?? array()), (array) $signal['metrics']);
+                }
+            } else {
+                $existing['evidence'] = array_slice(array_values(array_unique(array_merge((array) ($existing['evidence'] ?? array()), (array) ($signal['evidence'] ?? array())))), 0, 12);
+                $existing['keywords'] = array_slice(array_values(array_unique(array_merge((array) ($existing['keywords'] ?? array()), (array) ($signal['keywords'] ?? array())))), 0, 12);
+                $existing['recommended_changes'] = array_values(array_unique(array_merge((array) ($existing['recommended_changes'] ?? array()), (array) ($signal['recommended_changes'] ?? array()))));
+            }
+
+            if (!empty($signal['market'])) $existing['market'] = array_merge((array) ($existing['market'] ?? array()), (array) $signal['market']);
+            if (!empty($signal['competition'])) $existing['competition'] = $signal['competition'];
+            if (!empty($signal['internal_search'])) $existing['internal_search'] = $signal['internal_search'];
+            unset($existing);
             return true;
         }
         return false;
@@ -257,6 +321,25 @@ if (!function_exists('seo_analista_decision_plan')) {
     function seo_analista_decision_plan($days = 28, $limit = 15) {
         $days = seo_analista_days($days);
         $plan = seo_analista_google_plan($days);
+
+        // Primero enriquecemos las recomendaciones de demanda con la realidad
+        // editorial: literatura, meta, Vocabulary, enlazado y arquitectura.
+        if (function_exists('seo_analista_content_work')) {
+            foreach (seo_analista_content_work($days, 180) as $row) {
+                $impressions = (float) ($row['metrics']['impressions'] ?? 0);
+                if ((int) ($row['priority'] ?? 0) < 50) continue;
+                if ($impressions < 1 && (int) ($row['priority'] ?? 0) < 72) continue;
+                if (!seo_analista_merge_external_signal($plan, $row, 0.46)) $plan[] = $row;
+            }
+        }
+
+        // Despues incorporamos mercado exterior y aceleraciones de Search
+        // Console. Una tendencia puede reforzar una directriz ya existente.
+        if (function_exists('seo_analista_trend_work')) {
+            foreach (seo_analista_trend_work($days, 50) as $row) {
+                if (!seo_analista_merge_external_signal($plan, $row, 0.54)) $plan[] = $row;
+            }
+        }
 
         foreach (seo_analista_competition_opportunities(30) as $row) {
             if (!seo_analista_merge_external_signal($plan, $row, 0.58)) $plan[] = $row;
@@ -276,12 +359,14 @@ if (!function_exists('seo_analista_decision_plan')) {
                 'action_label' => $meta['label'],
                 'channel' => $meta['channel'],
                 'topic' => $topic,
-                'reason' => 'Los visitantes lo buscan dentro de la tienda y encuentran pocos o ningun resultado.',
-                'sources' => array('Busqueda interna'),
-                'source' => 'Busqueda interna',
-                'detail' => number_format_i18n($count) . ' busquedas · ' . number_format_i18n((float) ($row['avg_results'] ?? 0), 1) . ' resultados medios',
+                'reason' => 'Los visitantes lo buscan dentro de la tienda y encuentran pocos o ningún resultado.',
+                'sources' => array('Búsqueda interna'),
+                'source' => 'Búsqueda interna',
+                'detail' => number_format_i18n($count) . ' búsquedas · ' . number_format_i18n((float) ($row['avg_results'] ?? 0), 1) . ' resultados medios',
+                'recommended_changes' => array('Revisar si existe surtido equivalente, sinónimos de búsqueda o una familia de catálogo que deba cubrir esta intención.'),
                 'internal_search' => $row,
                 'evidence' => array($topic),
+                'keywords' => array($topic),
             );
             if (!seo_analista_merge_external_signal($plan, $signal, 0.68)) $plan[] = $signal;
         }
@@ -298,7 +383,8 @@ if (!function_exists('seo_analista_decision_plan')) {
                 'reason' => implode('; ', (array) ($issue['problems'] ?? array())),
                 'sources' => array('Proveedores'),
                 'source' => 'Proveedores',
-                'detail' => 'La calidad y frescura del feed afecta al catalogo y a las decisiones del Analista.',
+                'detail' => 'La calidad y frescura del feed afecta al catálogo y a las decisiones del Analista.',
+                'recommended_changes' => array('Actualizar o revisar el feed antes de tomar decisiones de surtido basadas en este proveedor.'),
                 'evidence' => array(),
             );
         }
@@ -311,11 +397,18 @@ if (!function_exists('seo_analista_decision_plan')) {
         $dedup = array();
         $seen = array();
         foreach ($plan as $row) {
-            $key = seo_analista_normalize_text(($row['action'] ?? '') . ' ' . ($row['topic'] ?? ''));
+            $entity = (array) ($row['entity'] ?? array());
+            if (!empty($entity['id']) && !empty($entity['type'])) {
+                $key = sanitize_key((string) ($row['action'] ?? '')) . '|entity|' . sanitize_key((string) $entity['type']) . '|' . absint($entity['id']);
+            } elseif (!empty($row['target']['url'])) {
+                $key = sanitize_key((string) ($row['action'] ?? '')) . '|url|' . strtolower((string) $row['target']['url']);
+            } else {
+                $key = seo_analista_normalize_text(($row['action'] ?? '') . ' ' . ($row['topic'] ?? ''));
+            }
             if ($key === '' || isset($seen[$key])) continue;
             $seen[$key] = true;
             $dedup[] = $row;
-            if (count($dedup) >= max(5, min(60, absint($limit)))) break;
+            if (count($dedup) >= max(5, min(80, absint($limit)))) break;
         }
         return $dedup;
     }
@@ -329,6 +422,7 @@ if (!function_exists('seo_analista_plan_summary')) {
             'catalogo' => 0,
             'contenido' => 0,
             'seo' => 0,
+            'estructura' => 0,
             'proveedores' => 0,
             'competencia' => 0,
             'seguimiento' => 0,

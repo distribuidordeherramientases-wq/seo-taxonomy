@@ -110,8 +110,9 @@ if (!function_exists('seo_analista_query_is_actionable')) {
         $query = seo_analista_clean_query($query);
         $normalized = seo_analista_normalize_text($query);
         if ($normalized === '') return false;
-        if (preg_match('/^site\s+/', $normalized)) return false;
+        if (preg_match('/^(site|cache|related|info|inurl|intitle|allintitle|allinurl)\s+/', $normalized)) return false;
         if (strpos($normalized, 'site www distribuidordeherramientas es') === 0) return false;
+        if (preg_match('/\b(site|cache|related|info|inurl|intitle):/i', $query)) return false;
         return true;
     }
 }
@@ -429,7 +430,7 @@ if (!function_exists('seo_analista_intent')) {
         if (preg_match('/\b(mejor|mejores|profesional|profesionales|comparativa|comparar|opiniones|opinion|vs|recomendado|recomendada|para taller|industrial)\b/', $q)) {
             return 'comercial';
         }
-        if (preg_match('/^(que|como|cuando|donde|por que|cual|cuanto)\b|\b(guia|manual|tutorial|funciona|sirve|significa|noticias)\b/', $q)) {
+        if (preg_match('/^(que|como|cuando|donde|por que|cual|cuanto|quien)\b|\b(guia|manual|tutorial|funciona|sirve|significa|noticias|obligatorio|obligatoria|normativa|requisitos|diferencia|diferencias|problema|problemas|solucion|soluciones|mantenimiento|instalar|instalacion|usar|uso)\b|^(es obligatorio|es obligatoria|hay que|tengo que|debo|puedo|se puede|merece la pena|para que sirve)\b/', $q)) {
             return 'informativa';
         }
 

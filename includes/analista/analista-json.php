@@ -61,19 +61,19 @@ if (!function_exists('seo_analista_build_json_export')) {
         $days = seo_analista_days($days);
         $data = seo_analista_get_data($days);
         $google = seo_analista_google_snapshot($days, false);
-        $bing = function_exists('seo_analista_bing_snapshot') ? seo_analista_bing_snapshot($days, 80) : array();
         $evolution = seo_analista_evolution_snapshot($days);
         $competition = seo_analista_competition_snapshot(100);
         $plan = seo_analista_decision_plan($days, 40);
         $plan_summary = seo_analista_plan_summary($plan);
         $search = seo_analista_internal_search_snapshot($days, 50);
         $suppliers = seo_analista_supplier_snapshot(50);
-        $market = seo_analista_market_signals(50);
+        $market = seo_analista_market_signals(80);
+        $literature = function_exists('seo_analista_literature_work') ? seo_analista_literature_work($days, 100) : array();
+        $structure_work = function_exists('seo_analista_structure_work') ? seo_analista_structure_work($days, 120) : array();
+        $trend_work = function_exists('seo_analista_trend_work') ? seo_analista_trend_work($days, 100) : array();
+        $search_acceleration = function_exists('seo_analista_search_acceleration') ? seo_analista_search_acceleration($days, 80) : array();
         $catalog_guidance = seo_analista_catalog_guidance($days, 30);
         $source_health = seo_analista_google_source_health($days);
-        if (function_exists('seo_analista_bing_source_health')) {
-            $source_health['bing'] = seo_analista_bing_source_health($days);
-        }
         $catalog_structure = seo_analista_catalog_structure_snapshot((array) ($data['pages'] ?? array()));
         $tracked_keywords = seo_analista_tracked_keyword_snapshot(
             (array) ($data['queries'] ?? array()),
@@ -116,7 +116,6 @@ if (!function_exists('seo_analista_build_json_export')) {
                 'page_types' => (array) ($data['page_types'] ?? array()),
                 'catalog_structure' => $catalog_structure,
                 'ga4' => (array) ($google['ga4'] ?? array()),
-                'bing' => $bing,
                 'internal_search' => array(
                     'available' => !empty($search['available']),
                     'total' => (int) ($search['total'] ?? 0),
@@ -127,11 +126,20 @@ if (!function_exists('seo_analista_build_json_export')) {
                 'top_queries' => $queries,
                 'top_pages' => $pages,
             ),
+            'directrices' => array(
+                'summary' => array(
+                    'literatura' => count($literature),
+                    'estructura' => count($structure_work),
+                    'tendencias' => count($trend_work),
+                    'aceleraciones_search_console' => count($search_acceleration),
+                ),
+                'literatura' => array_slice($literature, 0, 100),
+                'estructura' => array_slice($structure_work, 0, 120),
+                'tendencias' => array_slice($trend_work, 0, 100),
+                'search_console_acceleration' => array_slice($search_acceleration, 0, 80),
+            ),
             'comparacion' => array(
                 'tracked_keywords' => $tracked_keywords,
-                'bing_vs_google' => function_exists('seo_analista_bing_google_query_compare')
-                    ? seo_analista_bing_google_query_compare((array) ($data['queries'] ?? array()), (array) ($bing['top_queries'] ?? array()), 50)
-                    : array(),
                 'competition' => $competition,
                 'google_trends' => array_slice((array) $market, 0, 40),
                 'catalog_guidance' => array_slice((array) ($catalog_guidance['items'] ?? array()), 0, 30),

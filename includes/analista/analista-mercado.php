@@ -1,6 +1,9 @@
 <?php
 /**
- * Mercado y adaptadores externos del Analista.
+ * Mercado, tendencias y adaptadores externos del Analista.
+ *
+ * En 3.0 las senales de discovery de Google Trends dejan de descartarse:
+ * se convierten en oportunidades y se cruzan con catalogo y contenido local.
  */
 
 defined('ABSPATH') || exit;
@@ -8,25 +11,250 @@ defined('ABSPATH') || exit;
 if (!function_exists('seo_analista_market_signals')) {
     function seo_analista_market_signals($limit = 20) {
         if (!function_exists('seo_google_trends_market_summary')) return array();
-        $rows = (array) seo_google_trends_market_summary(400);
+        $rows = (array) seo_google_trends_market_summary(500);
         $usable = array();
+        $seen = array();
 
         foreach ($rows as $row) {
-            $kind = (string) ($row['signal_kind'] ?? '');
-            if ('discovery' === $kind) continue;
-            if ((float) ($row['score'] ?? 0) <= 0) continue;
+            if (!is_array($row)) continue;
+            $query = seo_analista_clean_query($row['query'] ?? $row['label'] ?? '');
+            if ($query === '' || !seo_analista_query_is_actionable($query)) continue;
 
+            $kind = sanitize_key((string) ($row['signal_kind'] ?? 'market'));
+            $score = (float) ($row['score'] ?? 0);
+            $growth = (float) ($row['max_growth'] ?? $row['interest_change_pct'] ?? $row['growth'] ?? 0);
+            $breakout = !empty($row['breakout']) || stripos((string) ($row['growth_label'] ?? ''), 'breakout') !== false;
+
+            // Discovery es precisamente la fuente de nuevas consultas. Aunque
+            // algunas filas no tengan score historico, un crecimiento o
+            // breakout las hace utilizables.
+            if ($score <= 0 && !$breakout && $growth <= 0 && 'discovery' !== $kind) continue;
+
+            $key = seo_analista_normalize_text($query);
+            if ($key === '' || isset($seen[$key])) continue;
+            $seen[$key] = true;
+
+            $row['query'] = $query;
+            $row['signal_kind'] = $kind ?: 'market';
+            $row['score'] = $score > 0 ? $score : min(100, max(25, $growth > 0 ? 35 + min(55, log(1 + $growth) * 12) : 45));
+            $row['max_growth'] = $growth;
+            $row['breakout'] = $breakout;
             $row['catalog'] = function_exists('seo_google_opportunity_catalog_context')
-                ? (array) seo_google_opportunity_catalog_context($row['query'] ?? '', (array) ($row['seeds'] ?? array()))
+                ? (array) seo_google_opportunity_catalog_context($query, (array) ($row['seeds'] ?? array()))
                 : array();
             $usable[] = $row;
         }
 
         usort($usable, static function ($a, $b) {
-            return (float) ($b['score'] ?? 0) <=> (float) ($a['score'] ?? 0);
+            $ab = !empty($a['breakout']) ? 20 : 0;
+            $bb = !empty($b['breakout']) ? 20 : 0;
+            $as = (float) ($a['score'] ?? 0) + $ab + min(20, max(0, (float) ($a['max_growth'] ?? 0)) / 10);
+            $bs = (float) ($b['score'] ?? 0) + $bb + min(20, max(0, (float) ($b['max_growth'] ?? 0)) / 10);
+            return $bs <=> $as;
         });
 
-        return array_slice($usable, 0, max(5, min(50, absint($limit))));
+        return array_slice($usable, 0, max(5, min(100, absint($limit))));
+    }
+}
+
+if (!function_exists('seo_analista_search_acceleration')) {
+    function seo_analista_search_acceleration($days = 28, $limit = 30) {
+        $data = seo_analista_get_data($days);
+        $previous = seo_analista_rows_map((array) ($data['previous_queries'] ?? array()), 'query_hash');
+        $out = array();
+
+        foreach ((array) ($data['queries'] ?? array()) as $row) {
+            $query = seo_analista_clean_query($row['query_text'] ?? '');
+            if ($query === '' || !seo_analista_query_is_actionable($query)) continue;
+            $impressions = (float) ($row['impressions'] ?? 0);
+            $position = (float) ($row['position'] ?? 0);
+            if ($impressions < 5 || $position <= 0 || $position > 100) continue;
+
+            $prev = (array) ($previous[$row['query_hash'] ?? ''] ?? array());
+            $prev_imp = (float) ($prev['impressions'] ?? 0);
+            $delta = $impressions - $prev_imp;
+            $growth = $prev_imp > 0 ? ($delta / $prev_imp) * 100 : ($impressions >= 8 ? 100.0 : 0.0);
+            $prev_pos = (float) ($prev['position'] ?? 0);
+            $position_gain = ($prev_pos > 0 && $position > 0) ? $prev_pos - $position : 0.0;
+
+            if ($growth < 25 && $delta < 8 && $position_gain < 8) continue;
+
+            $score = 35;
+            $score += min(25, log(1 + $impressions) * 4.5);
+            $score += min(18, max(0, $growth) / 8);
+            $score += min(12, max(0, $position_gain));
+            if ($position <= 20) $score += 8;
+            $score = min(100, (int) round($score));
+
+            $out[] = array(
+                'query' => $query,
+                'score' => $score,
+                'impressions' => $impressions,
+                'previous_impressions' => $prev_imp,
+                'growth' => $growth,
+                'position' => $position,
+                'previous_position' => $prev_pos,
+                'position_gain' => $position_gain,
+                'intent' => seo_analista_intent($query),
+                'catalog' => function_exists('seo_google_opportunity_catalog_context')
+                    ? (array) seo_google_opportunity_catalog_context($query)
+                    : array(),
+            );
+        }
+
+        usort($out, static function ($a, $b) {
+            return (int) ($b['score'] ?? 0) <=> (int) ($a['score'] ?? 0);
+        });
+        return array_slice($out, 0, max(5, min(100, absint($limit))));
+    }
+}
+
+if (!function_exists('seo_analista_trend_action_from_target')) {
+    function seo_analista_trend_action_from_target(array $target_row) {
+        $type = (string) ($target_row['entity']['type'] ?? '');
+        $issues = !empty($target_row['issues']);
+        if ($type === '') return 'REVISAR_COBERTURA';
+        return seo_analista_entity_action($type, $issues);
+    }
+}
+
+if (!function_exists('seo_analista_trend_work_row')) {
+    function seo_analista_trend_work_row($query, $score, array $catalog, $days, $source, array $market = array(), array $extra_metrics = array()) {
+        $query = seo_analista_clean_query($query);
+        if ($query === '' || !seo_analista_query_is_actionable($query)) return array();
+
+        $category = trim((string) ($catalog['category'] ?? $catalog['category_name'] ?? ''));
+        $term_id = absint($catalog['term_id'] ?? $catalog['category_id'] ?? 0);
+        $products = isset($catalog['product_count']) ? (int) $catalog['product_count'] : (isset($catalog['products']) ? (int) $catalog['products'] : null);
+        $category_url = (string) ($catalog['category_url'] ?? '');
+        $target = array('title' => '', 'url' => '');
+        $entity = array();
+        $issues = array();
+        $changes = array();
+        $intent = seo_analista_intent($query);
+
+        if ($category !== '') {
+            $action = 'IMPULSAR_CATEGORIA';
+            $reason = $source . ' detecta movimiento en «' . $query . '» y ya existe una categoría relacionada. Conviene concentrar la demanda en esa familia.';
+            $target = array('title' => $category, 'url' => $category_url);
+            $entity = array('type' => 'category', 'type_label' => 'Categoría', 'id' => $term_id, 'title' => $category, 'url' => $category_url, 'edit_url' => $term_id ? (string) get_edit_term_link($term_id, 'product_cat') : '');
+            $changes = array(
+                'Incorporar la intención «' . $query . '» en la literatura de la categoría si encaja de forma natural.',
+                'Revisar H1, introducción, bloques de elección y preguntas para cubrir las variantes que están creciendo.',
+                'Reforzar enlaces internos desde posts, hubs y productos relacionados hacia esta categoría.',
+            );
+            if (null !== $products && $products <= 5) $changes[] = 'Revisar surtido: la categoría tiene poca profundidad y puede necesitar más productos o variantes.';
+        } else {
+            $local = function_exists('seo_analista_find_best_local_target') ? seo_analista_find_best_local_target($query, $days) : array();
+            if ($local && !empty($local['row'])) {
+                $target_row = (array) $local['row'];
+                $action = seo_analista_trend_action_from_target($target_row);
+                $entity = (array) ($target_row['entity'] ?? array());
+                $target = (array) ($target_row['target'] ?? array());
+                $issues = (array) ($target_row['issues'] ?? array());
+                $changes = (array) ($target_row['recommended_changes'] ?? array());
+                array_unshift($changes, 'Aprovechar el movimiento de «' . $query . '» ampliando su cobertura en esta URL existente.');
+                $reason = $source . ' detecta movimiento y Analista ha localizado una URL propia semánticamente relacionada. Es preferible reforzarla antes de crear otra.';
+            } else {
+                $action = in_array($intent, array('informativa','navegacion'), true) ? 'CREAR_CONTENIDO' : 'REVISAR_COBERTURA';
+                $reason = $source . ' detecta movimiento en «' . $query . '», pero no hay una URL propia con afinidad suficiente. Hay que resolver el destino antes de repartir autoridad.';
+                $changes = array(
+                    'Validar la intención y decidir si debe resolverse con post, página, categoría o ampliación de una familia existente.',
+                    'Comprobar productos y Vocabulary relacionados antes de crear una URL nueva.',
+                    'Si se crea contenido, enlazarlo desde la rama estructural y hacia la conversión adecuada.',
+                );
+            }
+        }
+
+        $meta = seo_analista_action_meta($action);
+        $growth = (float) ($market['max_growth'] ?? $market['growth'] ?? $extra_metrics['growth'] ?? 0);
+        $priority = min(100, max(45, (int) round($score)) + (!empty($market['breakout']) ? 8 : 0));
+        return array(
+            'priority' => $priority,
+            'action' => $action,
+            'action_label' => $meta['label'],
+            'channel' => $meta['channel'],
+            'topic' => $entity ? (string) ($entity['title'] ?? $query) : $query,
+            'reason' => $reason,
+            'sources' => array($source),
+            'source' => $source,
+            'evidence' => array($query),
+            'keywords' => array($query),
+            'issues' => $issues,
+            'recommended_changes' => array_values(array_unique(array_filter($changes))),
+            'entity' => $entity,
+            'target' => $target,
+            'intent' => $intent,
+            'metrics' => array_merge(array(
+                'impressions' => (float) ($extra_metrics['impressions'] ?? 0),
+                'position' => (float) ($extra_metrics['position'] ?? 0),
+                'search_score' => (float) ($extra_metrics['search_score'] ?? 0),
+                'market_score' => (float) ($market['score'] ?? $score),
+                'impressions_growth_pct' => (float) ($extra_metrics['growth'] ?? 0),
+            ), $extra_metrics),
+            'market' => array(
+                'score' => (float) ($market['score'] ?? 0),
+                'growth' => $growth,
+                'breakout' => !empty($market['breakout']),
+                'signal_kind' => (string) ($market['signal_kind'] ?? ''),
+                'seeds' => (array) ($market['seeds'] ?? array()),
+            ),
+            'catalog' => array('category' => $category, 'products' => $products, 'term_id' => $term_id),
+        );
+    }
+}
+
+if (!function_exists('seo_analista_trend_work')) {
+    function seo_analista_trend_work($days = 28, $limit = 60) {
+        $days = seo_analista_days($days);
+        $out = array();
+        $seen = array();
+
+        foreach (seo_analista_market_signals(80) as $row) {
+            $query = seo_analista_clean_query($row['query'] ?? '');
+            $key = seo_analista_normalize_text($query);
+            if ($key === '' || isset($seen[$key])) continue;
+            $candidate = seo_analista_trend_work_row($query, (float) ($row['score'] ?? 0), (array) ($row['catalog'] ?? array()), $days, 'Google Trends', $row);
+            if ($candidate) {
+                $seen[$key] = true;
+                $out[] = $candidate;
+            }
+        }
+
+        // Si Trends no ha descubierto suficiente mercado, no dejamos la
+        // pestaña muda: se muestran consultas que aceleran en Search Console,
+        // claramente identificadas como señal propia y no como Trends.
+        foreach (seo_analista_search_acceleration($days, 50) as $row) {
+            $query = seo_analista_clean_query($row['query'] ?? '');
+            $key = seo_analista_normalize_text($query);
+            if ($key === '' || isset($seen[$key])) continue;
+            $candidate = seo_analista_trend_work_row(
+                $query,
+                (float) ($row['score'] ?? 0),
+                (array) ($row['catalog'] ?? array()),
+                $days,
+                'Search Console · aceleración',
+                array(),
+                array(
+                    'impressions' => (float) ($row['impressions'] ?? 0),
+                    'position' => (float) ($row['position'] ?? 0),
+                    'growth' => (float) ($row['growth'] ?? 0),
+                    'search_score' => (float) ($row['score'] ?? 0),
+                    'previous_impressions' => (float) ($row['previous_impressions'] ?? 0),
+                    'previous_position' => (float) ($row['previous_position'] ?? 0),
+                    'position_gain' => (float) ($row['position_gain'] ?? 0),
+                )
+            );
+            if ($candidate) {
+                $seen[$key] = true;
+                $out[] = $candidate;
+            }
+        }
+
+        usort($out, static function ($a, $b) {
+            return (int) ($b['priority'] ?? 0) <=> (int) ($a['priority'] ?? 0);
+        });
+        return array_slice($out, 0, max(10, min(120, absint($limit))));
     }
 }
 

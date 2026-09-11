@@ -2,20 +2,17 @@
 /**
  * Comparacion competitiva del Analista.
  *
- * Consume posiciones externas genericas y las reduce a indicadores, dominios,
- * brechas y palabras clave vigiladas. La vista no depende de ninguna marca o
- * proveedor concreto de datos.
+ * Consume posiciones externas obtenidas por un adaptador automatico y las
+ * reduce a indicadores, dominios, brechas y palabras clave vigiladas. La vista
+ * no depende de ninguna marca ni de importaciones manuales.
  */
 
 defined('ABSPATH') || exit;
 
 if (!function_exists('seo_analista_competition_rows')) {
     function seo_analista_competition_rows() {
-        $snapshot = seo_analista_competition_source_snapshot();
-        $rows = (array) ($snapshot['rows'] ?? array());
-        if ($rows) return $rows;
-
-        // Permite que un conector de rankings sustituya al CSV sin tocar la vista.
+        // La comparación se alimenta únicamente desde una fuente automática
+        // conectada al adaptador de rankings. No hay importaciones manuales.
         $settings = seo_analista_get_settings();
         return seo_analista_competitor_rankings(
             (array) ($settings['tracked_keywords'] ?? array()),
@@ -141,12 +138,8 @@ if (!function_exists('seo_analista_tracked_keyword_snapshot')) {
 
 if (!function_exists('seo_analista_competition_snapshot')) {
     function seo_analista_competition_snapshot($limit = 50) {
-        $snapshot = seo_analista_competition_source_snapshot();
         $rows = seo_analista_competition_rows();
-        $own = (string) ($snapshot['own_domain'] ?? '');
-        if ($own === '') {
-            $own = preg_replace('/^www\./', '', strtolower((string) wp_parse_url(home_url('/'), PHP_URL_HOST)));
-        }
+        $own = preg_replace('/^www\./', '', strtolower((string) wp_parse_url(home_url('/'), PHP_URL_HOST)));
 
         $domains = array();
         $keywords = array();
@@ -304,8 +297,8 @@ if (!function_exists('seo_analista_competition_snapshot')) {
 
         return array(
             'available' => !empty($rows),
-            'source' => !empty($snapshot['rows']) ? 'competition_csv' : (!empty($rows) ? 'ranking_adapter' : ''),
-            'imported_at' => (string) ($snapshot['imported_at'] ?? ''),
+            'source' => !empty($rows) ? 'ranking_adapter' : '',
+            'imported_at' => '',
             'own_domain' => $own,
             'own' => $own_summary,
             'domains' => array_values($domains),

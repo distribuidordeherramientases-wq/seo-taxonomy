@@ -2,7 +2,7 @@
 /**
  * Vista ejecutiva de Informes SEO > Analista.
  *
- * Tres preguntas, tres vistas: donde estamos, comparacion y hacia donde vamos.
+ * Analista 3.0: resumen, literatura, estructura, tendencias, comparación y guion accionable.
  */
 
 defined('ABSPATH') || exit;
@@ -41,9 +41,12 @@ if (!function_exists('seo_analista_render_metric_card')) {
 if (!function_exists('seo_analista_render_subnav')) {
     function seo_analista_render_subnav($active, $days) {
         $views = array(
-            'donde_estamos' => 'Dónde estamos',
+            'donde_estamos' => 'Resumen',
+            'contenido' => 'Contenido',
+            'estructura' => 'Estructura',
+            'tendencias' => 'Tendencias',
             'comparacion' => 'Comparación',
-            'hacia_donde_vamos' => 'Hacia dónde vamos',
+            'hacia_donde_vamos' => 'Guion de trabajo',
         );
         echo '<nav class="seo-analista-subnav" aria-label="Secciones de Analista">';
         foreach ($views as $key => $label) {
@@ -105,11 +108,7 @@ if (!function_exists('seo_analista_render_line_chart')) {
 if (!function_exists('seo_analista_render_distribution')) {
     function seo_analista_render_distribution(array $current, array $previous) {
         $labels = array('top3' => 'Top 3', 'top10' => '4–10', 'top20' => '11–20', 'top50' => '21–50', 'top100' => '51–100', 'outside' => '>100');
-        $values = array_merge(array_values($current), array_values($previous));
-        if (!$values) {
-            return;
-        }
-        $max_value = max(1, max($values));
+        $max_value = max(1, max(array_merge(array_values($current), array_values($previous))));
         echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>Cómo avanzan nuestras posiciones</h2><p>No importa solo el Top 10: aquí vemos si las consultas están subiendo desde las posiciones bajas hacia los primeros resultados.</p></div></div>';
         echo '<div class="seo-analista-legend"><span><i class="current"></i>Actual</span><span><i class="previous"></i>Periodo anterior</span></div><div class="seo-analista-bars">';
         foreach ($labels as $key => $label) {
@@ -148,54 +147,8 @@ if (!function_exists('seo_analista_render_page_types')) {
     }
 }
 
-if (!function_exists('seo_analista_render_bing_overview')) {
-    function seo_analista_render_bing_overview(array $bing) {
-        if (empty($bing['configured']) || empty($bing['enabled'])) return;
-        if (empty($bing['available'])) {
-            echo '<div class="notice notice-info inline"><p><strong>Bing Webmaster esta configurado, pero aun no hay datos utilizables.</strong> Revisa la fuente al final del informe si la conexion sigue pendiente.</p></div>';
-            return;
-        }
-        $traffic = (array) ($bing['traffic'] ?? array());
-        $crawl = (array) ($bing['crawl'] ?? array());
-        echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>Bing · senal complementaria</h2><p>No sustituye a Search Console. Sirve para contrastar visibilidad, rastreo e indexacion desde el segundo buscador.</p></div></div><div class="seo-analista-grid compact">';
-        seo_analista_render_metric_card('Impresiones Bing', number_format_i18n((float) ($traffic['impressions'] ?? 0), 0), '', 'Periodo seleccionado.');
-        seo_analista_render_metric_card('Clics Bing', number_format_i18n((float) ($traffic['clicks'] ?? 0), 0), '', 'Trafico registrado por Bing.');
-        seo_analista_render_metric_card('CTR Bing', number_format_i18n(((float) ($traffic['ctr'] ?? 0)) * 100, 2) . '%', '', 'Clics sobre impresiones Bing.');
-        seo_analista_render_metric_card('En indice Bing', number_format_i18n((int) ($crawl['in_index'] ?? 0)), '', 'Ultimo valor de Crawl Stats.');
-        seo_analista_render_metric_card('Rastreadas Bing', number_format_i18n((int) ($crawl['crawled_pages'] ?? 0)), '', 'Acumulado del periodo.');
-        seo_analista_render_metric_card('4xx Bing', number_format_i18n((int) ($crawl['code4xx'] ?? 0)), '', 'Respuestas 4xx vistas por Bing.');
-        seo_analista_render_metric_card('5xx Bing', number_format_i18n((int) ($crawl['code5xx'] ?? 0)), '', 'Respuestas 5xx vistas por Bing.');
-        echo '</div></section>';
-    }
-}
-
-if (!function_exists('seo_analista_render_bing_query_comparison')) {
-    function seo_analista_render_bing_query_comparison(array $data, array $bing) {
-        if (empty($bing['available']) || !function_exists('seo_analista_bing_google_query_compare')) return;
-        $rows = seo_analista_bing_google_query_compare(
-            (array) ($data['queries'] ?? array()),
-            (array) ($bing['top_queries'] ?? array()),
-            30
-        );
-        if (!$rows) return;
-        echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>Google frente a Bing</h2><p>Contraste de consultas del propio sitio. Las diferencias entre motores son la parte util; no se suman posiciones ni se mezclan rankings.</p></div></div>';
-        echo '<div class="seo-analista-table-wrap"><table class="widefat striped"><thead><tr><th>Consulta</th><th>Google imp.</th><th>Google pos.</th><th>Bing imp.</th><th>Bing pos.</th><th>Lectura</th></tr></thead><tbody>';
-        foreach ($rows as $row) {
-            $state = (string) ($row['state'] ?? '');
-            $label = $state === 'ambos' ? 'Visible en ambos' : ($state === 'solo_bing' ? 'Solo Bing' : 'Solo Google');
-            echo '<tr><td><strong>' . esc_html((string) ($row['query'] ?? '')) . '</strong></td>';
-            echo '<td>' . esc_html(number_format_i18n((float) ($row['google_impressions'] ?? 0), 0)) . '</td>';
-            echo '<td>' . esc_html(!empty($row['google_position']) ? number_format_i18n((float) $row['google_position'], 1) : '-') . '</td>';
-            echo '<td>' . esc_html(number_format_i18n((float) ($row['bing_impressions'] ?? 0), 0)) . '</td>';
-            echo '<td>' . esc_html(!empty($row['bing_position']) ? number_format_i18n((float) $row['bing_position'], 1) : '-') . '</td>';
-            echo '<td>' . esc_html($label) . '</td></tr>';
-        }
-        echo '</tbody></table></div></section>';
-    }
-}
-
 if (!function_exists('seo_analista_render_where_we_are')) {
-    function seo_analista_render_where_we_are(array $data, array $google, array $bing, array $evolution, array $search, array $catalog_structure) {
+    function seo_analista_render_where_we_are(array $data, array $google, array $evolution, array $search, array $catalog_structure) {
         $current = (array) ($data['current'] ?? array());
         $previous = (array) ($data['previous'] ?? array());
         $ga4 = (array) ($google['ga4'] ?? array());
@@ -210,8 +163,6 @@ if (!function_exists('seo_analista_render_where_we_are')) {
         seo_analista_render_metric_card('Sesiones GA4', !empty($ga4['available']) ? number_format_i18n((int) ($ga4['sessions'] ?? 0)) : '—', '', !empty($ga4['available']) ? 'Comportamiento medido por Analytics.' : 'GA4 no disponible.');
         seo_analista_render_metric_card('Búsquedas internas', !empty($search['available']) ? number_format_i18n((int) ($search['total'] ?? 0)) : '—', '', !empty($search['available']) ? number_format_i18n((int) ($search['zero_results'] ?? 0)) . ' sin resultado.' : 'Registro no disponible.');
         echo '</div>';
-
-        seo_analista_render_bing_overview($bing);
 
         $position_change = (float) ($previous['position'] ?? 0) - (float) ($current['position'] ?? 0);
         $impressions_change = seo_analista_percent_change($current['impressions'] ?? 0, $previous['impressions'] ?? 0);
@@ -303,12 +254,11 @@ if (!function_exists('seo_analista_render_tracked_keywords')) {
 }
 
 if (!function_exists('seo_analista_render_comparison')) {
-    function seo_analista_render_comparison(array $competition, array $market, array $data, array $bing) {
+    function seo_analista_render_comparison(array $competition, array $market, array $data) {
         seo_analista_render_tracked_keywords($data);
-        seo_analista_render_bing_query_comparison($data, $bing);
 
         if (empty($competition['available'])) {
-            echo '<div class="notice notice-info inline"><p><strong>Faltan posiciones externas para comparar dominios.</strong> Search Console solo informa de nuestro sitio. Para medir a otros dominios, Analista necesita una fuente de rankings conectada o un CSV genérico de posiciones. Mientras tanto sí puede seguir nuestra evolución y las palabras clave vigiladas.</p></div>';
+            echo '<div class="notice notice-info inline"><p><strong>La comparación externa todavía no tiene posiciones disponibles.</strong> Search Console solo informa de nuestro sitio. Analista seguirá nuestra evolución y las palabras clave vigiladas; cuando el adaptador automático de rankings disponga de datos, completará la comparación con los competidores.</p></div>';
         } else {
             $own = (array) ($competition['own'] ?? array());
             $domains = (array) ($competition['domains'] ?? array());
@@ -357,35 +307,66 @@ if (!function_exists('seo_analista_render_comparison')) {
         echo '</section>';
 
         $settings = (array) ($data['settings'] ?? seo_analista_get_settings());
-        echo '<section class="seo-analista-section seo-analista-forms"><div class="seo-analista-section-head"><div><h2>Configurar comparación</h2><p>Define a quién queremos superar y qué palabras queremos vigilar. Las posiciones externas se pueden alimentar mediante un conector o mediante un CSV genérico.</p></div></div>';
+        echo '<section class="seo-analista-section seo-analista-forms"><div class="seo-analista-section-head"><div><h2>Configurar comparación</h2><p>Define a quién queremos superar y qué palabras queremos vigilar. Analista usará estos objetivos en cuanto la fuente automática de rankings disponga de posiciones externas.</p></div></div>';
         echo '<details open><summary><strong>Competidores y palabras vigiladas</strong></summary><form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_analista_save_settings">';
         wp_nonce_field('seo_analista_save_settings', 'seo_analista_nonce');
         echo '<p><strong>Competidores</strong><br><span class="description">Un dominio por línea.</span></p>';
         echo '<textarea name="competitors" rows="6" class="large-text code">' . esc_textarea(implode("\n", (array) ($settings['competitors'] ?? array()))) . '</textarea>';
-        echo '<p><strong>Palabras clave vigiladas</strong><br><span class="description">Una palabra o intención por línea. Analista seguirá nuestra posición y, cuando haya rankings externos, la distancia con los competidores.</span></p>';
+        echo '<p><strong>Palabras clave vigiladas</strong><br><span class="description">Una palabra o intención por línea. Analista seguirá nuestra posición y, cuando haya posiciones externas automáticas, la distancia con los competidores.</span></p>';
         echo '<textarea name="tracked_keywords" rows="8" class="large-text code">' . esc_textarea(implode("\n", (array) ($settings['tracked_keywords'] ?? array()))) . '</textarea>';
         submit_button('Guardar comparación', 'secondary', 'submit', false);
-        echo '</form></details>';
-
-        echo '<details><summary><strong>Importar posiciones externas</strong></summary><p class="description">Formato flexible: palabra clave, dominio, posición y opcionalmente URL, volumen y dificultad. También admite una columna por dominio.</p>';
-        echo '<form method="post" enctype="multipart/form-data" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_analista_competition_import">';
-        wp_nonce_field('seo_analista_competition_import', 'seo_analista_competition_nonce');
-        echo '<input type="file" name="competition_csv" accept=".csv,text/csv"> <button class="button button-primary">Importar CSV de posiciones</button></form></details></section>';
+        echo '</form></details></section>';
     }
 }
 
-if (!function_exists('seo_analista_render_plan')) {
-    function seo_analista_render_plan(array $plan, $limit = 20) {
-        echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>Guion de trabajo</h2><p>Ordenado por prioridad. Cada recomendación resume la evidencia que la sustenta y evita duplicar acciones sobre la misma intención.</p></div></div>';
-        if (!$plan) {
-            echo '<p class="description">Todavía no hay evidencia suficiente para proponer trabajos.</p></section>';
+if (!function_exists('seo_analista_render_directive_details')) {
+    function seo_analista_render_directive_details(array $row) {
+        $issues = array_values(array_filter((array) ($row['issues'] ?? array())));
+        $changes = array_values(array_filter((array) ($row['recommended_changes'] ?? array())));
+        $keywords = array_values(array_filter((array) ($row['keywords'] ?? $row['evidence'] ?? array())));
+        $entity = (array) ($row['entity'] ?? array());
+        $target = (array) ($row['target'] ?? array());
+
+        if ($issues) {
+            echo '<div class="seo-analista-directive-block"><strong>Qué revisar</strong><ul>';
+            foreach (array_slice($issues, 0, 8) as $issue) echo '<li>' . esc_html((string) $issue) . '</li>';
+            echo '</ul></div>';
+        }
+        if ($changes) {
+            echo '<div class="seo-analista-directive-block"><strong>Qué hacer</strong><ol>';
+            foreach (array_slice($changes, 0, 10) as $change) echo '<li>' . esc_html((string) $change) . '</li>';
+            echo '</ol></div>';
+        }
+        if ($keywords) {
+            echo '<div class="seo-analista-directive-block"><strong>Consultas / términos a cubrir</strong><p>' . esc_html(implode(' · ', array_slice($keywords, 0, 10))) . '</p></div>';
+        }
+
+        $edit_url = (string) ($entity['edit_url'] ?? '');
+        $public_url = (string) ($entity['url'] ?? $target['url'] ?? '');
+        if ($edit_url !== '' || $public_url !== '') {
+            echo '<div class="seo-analista-links">';
+            if ($edit_url !== '') echo '<a class="button button-small" href="' . esc_url($edit_url) . '">Editar ' . esc_html(strtolower((string) ($entity['type_label'] ?? 'entidad'))) . '</a> ';
+            if ($public_url !== '') echo '<a class="button button-small" target="_blank" rel="noopener" href="' . esc_url($public_url) . '">Ver URL</a>';
+            echo '</div>';
+        }
+    }
+}
+
+if (!function_exists('seo_analista_render_directive_rows')) {
+    function seo_analista_render_directive_rows(array $rows, $title, $description, $limit = 40) {
+        echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>' . esc_html($title) . '</h2><p>' . esc_html($description) . '</p></div></div>';
+        if (!$rows) {
+            echo '<p class="description">No hay directrices suficientes para este bloque con los datos actuales.</p></section>';
             return;
         }
         echo '<div class="seo-analista-plan">';
-        foreach (array_slice($plan, 0, max(1, absint($limit))) as $index => $row) {
+        foreach (array_slice($rows, 0, max(1, absint($limit))) as $index => $row) {
             $catalog = (array) ($row['catalog'] ?? array());
+            $entity = (array) ($row['entity'] ?? array());
             echo '<article class="seo-analista-plan-row"><div class="seo-analista-plan-priority"><small>#' . esc_html($index + 1) . '</small>' . wp_kses_post(seo_analista_score_badge($row['priority'] ?? 0)) . '</div><div class="seo-analista-plan-body">';
-            echo '<div class="seo-analista-plan-head"><strong>' . esc_html((string) ($row['topic'] ?? '')) . '</strong><span>' . esc_html((string) ($row['action_label'] ?? '')) . '</span></div>';
+            echo '<div class="seo-analista-plan-head"><strong>' . esc_html((string) ($row['topic'] ?? '')) . '</strong><span>' . esc_html((string) ($row['action_label'] ?? '')) . '</span>';
+            if (!empty($entity['type_label'])) echo '<em>' . esc_html((string) $entity['type_label']) . '</em>';
+            echo '</div>';
             echo '<p>' . esc_html((string) ($row['reason'] ?? '')) . '</p>';
             $meta = array();
             if (!empty($row['source'])) $meta[] = 'Fuentes: ' . (string) $row['source'];
@@ -393,11 +374,82 @@ if (!function_exists('seo_analista_render_plan')) {
             if (isset($catalog['products']) && null !== $catalog['products']) $meta[] = 'Productos: ' . number_format_i18n((int) $catalog['products']);
             if (!empty($row['metrics']['position'])) $meta[] = 'Posición: ' . number_format_i18n((float) $row['metrics']['position'], 1);
             if (!empty($row['metrics']['impressions'])) $meta[] = 'Impresiones: ' . number_format_i18n((float) $row['metrics']['impressions'], 0);
+            if (isset($row['metrics']['impressions_growth_pct']) && null !== $row['metrics']['impressions_growth_pct']) $meta[] = 'Variación: ' . sprintf('%+.0f%%', (float) $row['metrics']['impressions_growth_pct']);
+            if (!empty($row['market']['growth'])) $meta[] = 'Trends: ' . sprintf('%+.0f%%', (float) $row['market']['growth']);
+            if (!empty($row['market']['breakout'])) $meta[] = 'BREAKOUT';
             if ($meta) echo '<div class="seo-analista-plan-meta">' . esc_html(implode(' · ', $meta)) . '</div>';
-            if (!empty($row['evidence'])) echo '<details><summary>Ver evidencia</summary><p>' . esc_html(implode(' · ', array_slice((array) $row['evidence'], 0, 8))) . '</p></details>';
+            seo_analista_render_directive_details($row);
             echo '</div></article>';
         }
         echo '</div></section>';
+    }
+}
+
+if (!function_exists('seo_analista_render_content_view')) {
+    function seo_analista_render_content_view($days) {
+        $rows = function_exists('seo_analista_literature_work') ? seo_analista_literature_work($days, 120) : array();
+        $counts = array('post' => 0, 'page' => 0, 'product' => 0, 'improve' => 0, 'push' => 0);
+        foreach ($rows as $row) {
+            $type = (string) ($row['entity']['type'] ?? '');
+            if (isset($counts[$type])) $counts[$type]++;
+            if (strpos((string) ($row['action'] ?? ''), 'MEJORAR_') === 0) $counts['improve']++;
+            if (strpos((string) ($row['action'] ?? ''), 'IMPULSAR_') === 0) $counts['push']++;
+        }
+        echo '<div class="seo-analista-grid">';
+        seo_analista_render_metric_card('Posts a trabajar', number_format_i18n($counts['post']), '', 'Literatura, meta, etiquetas, Vocabulary, enlaces y demanda.');
+        seo_analista_render_metric_card('Páginas a trabajar', number_format_i18n($counts['page']), '', 'Landings editoriales fuera de páginas funcionales.');
+        seo_analista_render_metric_card('Productos a trabajar', number_format_i18n($counts['product']), '', 'Productos con visibilidad orgánica y margen editorial.');
+        seo_analista_render_metric_card('Mejorar', number_format_i18n($counts['improve']), '', 'Hay problemas concretos que corregir.');
+        seo_analista_render_metric_card('Impulsar', number_format_i18n($counts['push']), '', 'La base es válida y hay demanda que aprovechar.');
+        echo '</div>';
+        seo_analista_render_directive_rows($rows, 'Literatura y contenido que debemos trabajar', 'Directrices por URL: qué falla, qué búsquedas cubrir y qué cambios concretos aplicar.', 60);
+    }
+}
+
+if (!function_exists('seo_analista_render_structure_view')) {
+    function seo_analista_render_structure_view($days) {
+        $rows = function_exists('seo_analista_structure_work') ? seo_analista_structure_work($days, 140) : array();
+        $counts = array('category' => 0, 'cluster' => 0, 'hub_primary' => 0, 'hub_secondary' => 0);
+        foreach ($rows as $row) {
+            $type = (string) ($row['entity']['type'] ?? '');
+            if (isset($counts[$type])) $counts[$type]++;
+        }
+        echo '<div class="seo-analista-grid">';
+        seo_analista_render_metric_card('Categorías', number_format_i18n($counts['category']), '', 'Categorías con mejora o impulso justificable.');
+        seo_analista_render_metric_card('Clusters', number_format_i18n($counts['cluster']), '', 'Clusters con literatura, relaciones o demanda a revisar.');
+        seo_analista_render_metric_card('Hubs primarios', number_format_i18n($counts['hub_primary']), '', 'Hubs primarios que necesitan mejora o refuerzo.');
+        seo_analista_render_metric_card('Hubs secundarios', number_format_i18n($counts['hub_secondary']), '', 'Hubs secundarios conectados a familias de catálogo.');
+        echo '</div>';
+        seo_analista_render_directive_rows($rows, 'Categorías, hubs y clusters', 'Prioriza dónde reforzar arquitectura, literatura, Vocabulary y enlazado; diferencia entre mejorar una entidad débil e impulsar una que ya tiene demanda.', 70);
+    }
+}
+
+if (!function_exists('seo_analista_render_trends_view')) {
+    function seo_analista_render_trends_view($days) {
+        $market = function_exists('seo_analista_market_signals') ? seo_analista_market_signals(100) : array();
+        $accel = function_exists('seo_analista_search_acceleration') ? seo_analista_search_acceleration($days, 60) : array();
+        $work = function_exists('seo_analista_trend_work') ? seo_analista_trend_work($days, 100) : array();
+        $discoveries = 0;
+        foreach ($market as $row) if ((string) ($row['signal_kind'] ?? '') === 'discovery') $discoveries++;
+        echo '<div class="seo-analista-grid">';
+        seo_analista_render_metric_card('Señales Trends', number_format_i18n(count($market)), '', 'Incluye consultas descubiertas; ya no se descartan las discovery.');
+        seo_analista_render_metric_card('Descubrimientos', number_format_i18n($discoveries), '', 'Consultas/temas relacionados encontrados por Trends.');
+        seo_analista_render_metric_card('Aceleraciones GSC', number_format_i18n(count($accel)), '', 'Búsquedas propias que crecen en impresiones o posición.');
+        seo_analista_render_metric_card('Directrices', number_format_i18n(count($work)), '', 'Señal traducida a categoría, URL o decisión de cobertura.');
+        echo '</div>';
+        if (!$market) echo '<div class="notice notice-warning inline"><p><strong>Google Trends no está entregando señales almacenadas.</strong> Analista muestra aparte la aceleración de Search Console para no confundirla con demanda exterior.</p></div>';
+        seo_analista_render_directive_rows($work, 'Qué multiplicar o impulsar', 'Cada tendencia se cruza con catálogo y contenido local para decir si hay que impulsar una categoría/URL existente o resolver una cobertura nueva.', 60);
+    }
+}
+
+if (!function_exists('seo_analista_render_plan')) {
+    function seo_analista_render_plan(array $plan, $limit = 20) {
+        seo_analista_render_directive_rows(
+            $plan,
+            'Guion de trabajo',
+            'Ordenado por prioridad. No se limita a decir qué tema mirar: indica qué entidad trabajar, por qué y qué cambios concretos aplicar.',
+            $limit
+        );
     }
 }
 
@@ -405,9 +457,10 @@ if (!function_exists('seo_analista_render_roadmap')) {
     function seo_analista_render_roadmap(array $plan, array $summary, array $suppliers, array $search) {
         echo '<div class="seo-analista-grid">';
         seo_analista_render_metric_card('Prioridades altas', number_format_i18n((int) ($summary['high'] ?? 0)), '', 'Acciones con prioridad 75 o superior.');
-        seo_analista_render_metric_card('SEO', number_format_i18n((int) ($summary['seo'] ?? 0)), '', 'Categorías, landings y cobertura.');
+        seo_analista_render_metric_card('Estructura', number_format_i18n((int) ($summary['estructura'] ?? 0)), '', 'Categorías, hubs y clusters.');
+        seo_analista_render_metric_card('SEO / cobertura', number_format_i18n((int) ($summary['seo'] ?? 0)), '', 'Intenciones aún sin destino suficientemente claro.');
         seo_analista_render_metric_card('Catálogo', number_format_i18n((int) ($summary['catalogo'] ?? 0)), '', 'Surtido y huecos de producto.');
-        seo_analista_render_metric_card('Contenido', number_format_i18n((int) ($summary['contenido'] ?? 0)), '', 'Crear o actualizar contenido cuando aporta algo distinto.');
+        seo_analista_render_metric_card('Contenido', number_format_i18n((int) ($summary['contenido'] ?? 0)), '', 'Posts, páginas y productos: mejorar, impulsar o crear.');
         seo_analista_render_metric_card('Competencia', number_format_i18n((int) ($summary['competencia'] ?? 0)), '', 'Acciones reforzadas por datos competitivos.');
         seo_analista_render_metric_card('Proveedores con aviso', number_format_i18n(count((array) ($suppliers['issues'] ?? array()))), '', 'Problemas de feed que pueden afectar al catálogo.');
         echo '</div>';
@@ -430,7 +483,7 @@ if (!function_exists('seo_analista_render_sources')) {
             $state = (string) ($row['state'] ?? 'pending');
             echo '<div class="seo-analista-source ' . esc_attr($state) . '"><strong>' . esc_html((string) ($row['label'] ?? 'Fuente')) . '</strong><span>' . esc_html(strtoupper($state)) . '</span><p>' . esc_html((string) ($row['detail'] ?? '')) . '</p></div>';
         }
-        echo '<div class="seo-analista-source ' . (!empty($competition['available']) ? 'ok' : 'pending') . '"><strong>Competencia</strong><span>' . (!empty($competition['available']) ? 'OK' : 'PENDIENTE') . '</span><p>' . esc_html(!empty($competition['available']) ? number_format_i18n((int) ($competition['row_count'] ?? 0)) . ' posiciones externas disponibles.' : 'Sin posiciones externas importadas.') . '</p></div>';
+        echo '<div class="seo-analista-source ' . (!empty($competition['available']) ? 'ok' : 'pending') . '"><strong>Competencia</strong><span>' . (!empty($competition['available']) ? 'OK' : 'PENDIENTE') . '</span><p>' . esc_html(!empty($competition['available']) ? number_format_i18n((int) ($competition['row_count'] ?? 0)) . ' posiciones externas disponibles.' : 'Sin posiciones externas disponibles.') . '</p></div>';
         echo '<div class="seo-analista-source ' . (!empty($suppliers['available']) ? 'ok' : 'pending') . '"><strong>Proveedores</strong><span>' . (!empty($suppliers['available']) ? 'OK' : 'PENDIENTE') . '</span><p>' . esc_html(!empty($suppliers['available']) ? number_format_i18n((int) ($suppliers['providers'] ?? 0)) . ' proveedores en la base local.' : 'Fuente no disponible.') . '</p></div>';
         echo '</div></details>';
     }
@@ -445,7 +498,7 @@ if (!function_exists('seo_analista_render_styles')) {
         .seo-analista-charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}.seo-analista-chart{padding:13px}.seo-analista-chart-head{display:flex;justify-content:space-between;gap:10px}.seo-analista-chart-head strong,.seo-analista-chart-head small{display:block}.seo-analista-chart-head small{color:#646970;margin-top:3px}.seo-analista-chart-head span{font-size:22px;font-weight:700}.seo-analista-chart svg{width:100%;height:auto;margin-top:7px}.seo-analista-chart .line{fill:none;stroke:#2271b1;stroke-width:3;stroke-linejoin:round;stroke-linecap:round}.seo-analista-chart .axis{stroke:#dcdcde;stroke-width:1}
         .seo-analista-legend{display:flex;gap:14px;font-size:12px;color:#646970;margin-bottom:12px}.seo-analista-legend i{display:inline-block;width:18px;height:5px;border-radius:4px;margin-right:5px;vertical-align:middle}.seo-analista-legend i.current{background:#2271b1}.seo-analista-legend i.previous{background:#c3c4c7}.seo-analista-bars{display:flex;flex-direction:column;gap:11px}.seo-analista-bar-meta{display:flex;justify-content:space-between;gap:12px;font-size:12px}.seo-analista-bar-track{height:12px;background:#f0f0f1;border-radius:999px;position:relative;overflow:hidden;margin-top:4px}.seo-analista-bar-track span{position:absolute;left:0;top:0;height:100%;border-radius:999px}.seo-analista-bar-track .previous{background:#c3c4c7;height:100%}.seo-analista-bar-track .current{background:#2271b1;height:6px;top:3px}
         .seo-analista-table-wrap{overflow:auto}.seo-analista-table-wrap td{vertical-align:top}.seo-analista-own td{background:#f0f6fc!important}.seo-analista-score{display:inline-block;border-radius:999px;padding:4px 8px;font-weight:700;white-space:nowrap}.seo-analista-score.high{background:#edfaef;color:#1d6b43}.seo-analista-score.medium{background:#fff8e5;color:#8a6500}.seo-analista-score.low{background:#f0f0f1;color:#50575e}
-        .seo-analista-plan{display:flex;flex-direction:column;gap:10px}.seo-analista-plan-row{display:flex;gap:14px;border:1px solid #dcdcde;border-left:5px solid #2271b1;border-radius:7px;padding:14px;background:#fff}.seo-analista-plan-priority{min-width:82px}.seo-analista-plan-priority small{display:block;color:#646970;margin-bottom:6px}.seo-analista-plan-body{min-width:0;flex:1}.seo-analista-plan-head{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.seo-analista-plan-head strong{font-size:16px}.seo-analista-plan-head span{font-size:11px;font-weight:700;background:#f0f6fc;border-radius:999px;padding:4px 8px}.seo-analista-plan-body p{margin:8px 0}.seo-analista-plan-meta{font-size:12px;color:#646970}.seo-analista-plan details{margin-top:8px}.seo-analista-forms form{margin:12px 0}.seo-analista-forms details{margin-top:16px}.seo-analista-sources{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:14px;margin:18px 0}.seo-analista-source-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:12px}.seo-analista-source{border:1px solid #dcdcde;border-radius:7px;padding:12px}.seo-analista-source>span{float:right;font-size:10px;font-weight:700}.seo-analista-source p{color:#646970;margin:7px 0 0;font-size:12px}.seo-analista-source.ok{border-left:4px solid #1d6b43}.seo-analista-source.partial{border-left:4px solid #dba617}.seo-analista-source.pending{border-left:4px solid #b32d2e}
+        .seo-analista-plan{display:flex;flex-direction:column;gap:10px}.seo-analista-plan-row{display:flex;gap:14px;border:1px solid #dcdcde;border-left:5px solid #2271b1;border-radius:7px;padding:14px;background:#fff}.seo-analista-plan-priority{min-width:82px}.seo-analista-plan-priority small{display:block;color:#646970;margin-bottom:6px}.seo-analista-plan-body{min-width:0;flex:1}.seo-analista-plan-head{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.seo-analista-plan-head strong{font-size:16px}.seo-analista-plan-head span{font-size:11px;font-weight:700;background:#f0f6fc;border-radius:999px;padding:4px 8px}.seo-analista-plan-body p{margin:8px 0}.seo-analista-plan-meta{font-size:12px;color:#646970}.seo-analista-plan-head em{font-size:11px;color:#646970;font-style:normal;border:1px solid #dcdcde;border-radius:999px;padding:3px 7px}.seo-analista-directive-block{margin-top:10px;padding-top:9px;border-top:1px solid #f0f0f1}.seo-analista-directive-block strong{display:block;margin-bottom:5px}.seo-analista-directive-block ul,.seo-analista-directive-block ol{margin:5px 0 0 20px}.seo-analista-directive-block li{margin:3px 0}.seo-analista-links{margin-top:11px}.seo-analista-plan details{margin-top:8px}.seo-analista-forms form{margin:12px 0}.seo-analista-forms details{margin-top:16px}.seo-analista-sources{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:14px;margin:18px 0}.seo-analista-source-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:12px}.seo-analista-source{border:1px solid #dcdcde;border-radius:7px;padding:12px}.seo-analista-source>span{float:right;font-size:10px;font-weight:700}.seo-analista-source p{color:#646970;margin:7px 0 0;font-size:12px}.seo-analista-source.ok{border-left:4px solid #1d6b43}.seo-analista-source.partial{border-left:4px solid #dba617}.seo-analista-source.pending{border-left:4px solid #b32d2e}
         @media(max-width:782px){.seo-analista-toolbar{display:block}.seo-analista-toolbar form{margin-top:12px}.seo-analista-subnav{overflow-x:auto;flex-wrap:nowrap}.seo-analista-subnav a{white-space:nowrap}.seo-analista-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.seo-analista-number{font-size:24px}.seo-analista-plan-row{display:block}.seo-analista-plan-priority{margin-bottom:9px}.seo-analista-bar-meta{display:block}.seo-analista-bar-meta span{display:block;margin-top:2px}}
         </style>';
     }
@@ -457,13 +510,12 @@ if (!function_exists('seo_analista_render_report')) {
 
         $days = isset($_GET['analista_days']) ? seo_analista_days(wp_unslash($_GET['analista_days'])) : 28;
         $view = isset($_GET['analista_view']) ? sanitize_key(wp_unslash($_GET['analista_view'])) : 'donde_estamos';
-        $aliases = array('resumen' => 'donde_estamos', 'demanda' => 'donde_estamos', 'competencia' => 'comparacion', 'catalogo' => 'hacia_donde_vamos', 'hoja_ruta' => 'hacia_donde_vamos', 'fuentes' => 'donde_estamos');
+        $aliases = array('resumen' => 'donde_estamos', 'demanda' => 'tendencias', 'competencia' => 'comparacion', 'catalogo' => 'estructura', 'hoja_ruta' => 'hacia_donde_vamos', 'fuentes' => 'donde_estamos', 'literatura' => 'contenido');
         if (isset($aliases[$view])) $view = $aliases[$view];
-        if (!in_array($view, array('donde_estamos', 'comparacion', 'hacia_donde_vamos'), true)) $view = 'donde_estamos';
+        if (!in_array($view, array('donde_estamos', 'contenido', 'estructura', 'tendencias', 'comparacion', 'hacia_donde_vamos'), true)) $view = 'donde_estamos';
 
         $data = seo_analista_get_data($days);
         $google = seo_analista_google_snapshot($days, false);
-        $bing = function_exists('seo_analista_bing_snapshot') ? seo_analista_bing_snapshot($days, 80) : array();
         $evolution = seo_analista_evolution_snapshot($days);
         $competition = seo_analista_competition_snapshot(100);
         $search = seo_analista_internal_search_snapshot($days, 40);
@@ -473,13 +525,10 @@ if (!function_exists('seo_analista_render_report')) {
         $plan = seo_analista_decision_plan($days, 40);
         $summary = seo_analista_plan_summary($plan);
         $health = seo_analista_google_source_health($days);
-        if (function_exists('seo_analista_bing_source_health')) {
-            $health['bing'] = seo_analista_bing_source_health($days);
-        }
 
         echo '<div class="seo-analista-wrap">';
         seo_analista_render_styles();
-        echo '<div class="seo-analista-toolbar"><div><h2 style="margin:0 0 4px">Analista</h2><p style="margin:0;color:#646970">Una sola lectura para saber dónde estamos, cómo nos comparamos y qué debemos hacer.</p></div><form method="get"><input type="hidden" name="page" value="seo-reports"><input type="hidden" name="tab" value="analista"><input type="hidden" name="analista_view" value="' . esc_attr($view) . '"><label><strong>Periodo</strong></label><select name="analista_days">';
+        echo '<div class="seo-analista-toolbar"><div><h2 style="margin:0 0 4px">Analista</h2><p style="margin:0;color:#646970">Directrices claras: qué literatura mejorar, qué URL impulsar y qué categorías, hubs o clusters priorizar.</p></div><form method="get"><input type="hidden" name="page" value="seo-reports"><input type="hidden" name="tab" value="analista"><input type="hidden" name="analista_view" value="' . esc_attr($view) . '"><label><strong>Periodo</strong></label><select name="analista_days">';
         foreach (array(28, 60, 90) as $option) echo '<option value="' . absint($option) . '" ' . selected($days, $option, false) . '>' . absint($option) . ' días</option>';
         echo '</select><button class="button">Actualizar</button>';
         if (function_exists('seo_analista_export_json_url')) echo '<a class="button button-primary" href="' . esc_url(seo_analista_export_json_url($days)) . '">JSON Analista</a>';
@@ -488,26 +537,24 @@ if (!function_exists('seo_analista_render_report')) {
         seo_analista_render_subnav($view, $days);
 
         $notice = isset($_GET['analista_notice']) ? sanitize_key(wp_unslash($_GET['analista_notice'])) : '';
-        if ('bing_saved' === $notice) echo '<div class="notice notice-success inline"><p>Conexion de Bing guardada.</p></div>';
-        if ('competition_ok' === $notice) echo '<div class="notice notice-success inline"><p>Comparación competitiva importada correctamente.</p></div>';
-        if ('competition_missing' === $notice) echo '<div class="notice notice-warning inline"><p>Selecciona un CSV antes de importar.</p></div>';
-        if ('competition_error' === $notice) {
-            $message = get_transient('seo_analista_competition_error_' . get_current_user_id());
-            echo '<div class="notice notice-error inline"><p>' . esc_html($message ?: 'No se pudo importar el CSV.') . '</p></div>';
-        }
         if ('settings_saved' === $notice) echo '<div class="notice notice-success inline"><p>Competidores guardados.</p></div>';
         if (empty($data['ready'])) echo '<div class="notice notice-warning inline"><p><strong>Search Console no tiene datos utilizables.</strong> Analista seguirá mostrando Analytics, búsqueda interna, proveedores y competencia cuando estén disponibles.</p></div>';
 
         if ('donde_estamos' === $view) {
-            seo_analista_render_where_we_are($data, $google, $bing, $evolution, $search, $catalog_structure);
+            seo_analista_render_where_we_are($data, $google, $evolution, $search, $catalog_structure);
+        } elseif ('contenido' === $view) {
+            seo_analista_render_content_view($days);
+        } elseif ('estructura' === $view) {
+            seo_analista_render_structure_view($days);
+        } elseif ('tendencias' === $view) {
+            seo_analista_render_trends_view($days);
         } elseif ('comparacion' === $view) {
-            seo_analista_render_comparison($competition, $market, $data, $bing);
+            seo_analista_render_comparison($competition, $market, $data);
         } else {
             seo_analista_render_roadmap($plan, $summary, $suppliers, $search);
         }
 
         seo_analista_render_sources($health, $competition, $suppliers);
-        if (function_exists('seo_analista_render_bing_settings_form')) seo_analista_render_bing_settings_form();
         echo '</div>';
     }
 }
