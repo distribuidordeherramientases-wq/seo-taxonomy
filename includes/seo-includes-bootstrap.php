@@ -76,21 +76,15 @@ require_once SEO_SYSTEM_PATH . 'includes/productos/product-bootstrap.php';
 
 /*
 |--------------------------------------------------------------------------
-| COMENTARISTA
-|--------------------------------------------------------------------------
-*/
-
-// Evidencias y experiencias externas asociadas a productos.
-require_once SEO_SYSTEM_PATH . 'includes/comentarista/comentarista-bootstrap.php';
-
-/*
-|--------------------------------------------------------------------------
 | CATEGORÍAS Y CLASIFICACIÓN
 |--------------------------------------------------------------------------
 */
 
-// Subsistema de categorias centralizado.
-require_once SEO_SYSTEM_PATH . 'includes/categorias/category-bootstrap.php';
+require_once SEO_SYSTEM_PATH . 'includes/category-classification.php';
+require_once SEO_SYSTEM_PATH . 'includes/category-anomaly.php';
+require_once SEO_SYSTEM_PATH . 'includes/seo-category-reports.php';
+require_once SEO_SYSTEM_PATH . 'includes/category-admin.php';
+require_once SEO_SYSTEM_PATH . 'includes/seo_schema_search.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -126,6 +120,7 @@ require_once SEO_SYSTEM_PATH . 'includes/admin-redirects.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-search.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-marketing.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-faq.php';
+require_once SEO_SYSTEM_PATH . 'includes/comentarista/comentarista-bootstrap.php';
 
 /*
 |--------------------------------------------------------------------------
