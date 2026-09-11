@@ -2,7 +2,7 @@
 /**
  * Vista ejecutiva de Informes SEO > Analista.
  *
- * Analista 3.0: resumen, literatura, estructura, tendencias, comparación y guion accionable.
+ * Analista 3.1: resumen, literatura, estructura, tendencias, comparación y guion accionable.
  */
 
 defined('ABSPATH') || exit;
@@ -509,52 +509,28 @@ if (!function_exists('seo_analista_render_report')) {
         if (!current_user_can('manage_options')) return;
 
         $days = isset($_GET['analista_days']) ? seo_analista_days(wp_unslash($_GET['analista_days'])) : 28;
-        $view = isset($_GET['analista_view']) ? sanitize_key(wp_unslash($_GET['analista_view'])) : 'donde_estamos';
-        $aliases = array('resumen' => 'donde_estamos', 'demanda' => 'tendencias', 'competencia' => 'comparacion', 'catalogo' => 'estructura', 'hoja_ruta' => 'hacia_donde_vamos', 'fuentes' => 'donde_estamos', 'literatura' => 'contenido');
-        if (isset($aliases[$view])) $view = $aliases[$view];
-        if (!in_array($view, array('donde_estamos', 'contenido', 'estructura', 'tendencias', 'comparacion', 'hacia_donde_vamos'), true)) $view = 'donde_estamos';
-
-        $data = seo_analista_get_data($days);
-        $google = seo_analista_google_snapshot($days, false);
-        $evolution = seo_analista_evolution_snapshot($days);
-        $competition = seo_analista_competition_snapshot(100);
-        $search = seo_analista_internal_search_snapshot($days, 40);
-        $suppliers = seo_analista_supplier_snapshot(40);
-        $market = seo_analista_market_signals(30);
-        $catalog_structure = seo_analista_catalog_structure_snapshot((array) ($data['pages'] ?? array()));
-        $plan = seo_analista_decision_plan($days, 40);
-        $summary = seo_analista_plan_summary($plan);
-        $health = seo_analista_google_source_health($days);
 
         echo '<div class="seo-analista-wrap">';
         seo_analista_render_styles();
-        echo '<div class="seo-analista-toolbar"><div><h2 style="margin:0 0 4px">Analista</h2><p style="margin:0;color:#646970">Directrices claras: qué literatura mejorar, qué URL impulsar y qué categorías, hubs o clusters priorizar.</p></div><form method="get"><input type="hidden" name="page" value="seo-reports"><input type="hidden" name="tab" value="analista"><input type="hidden" name="analista_view" value="' . esc_attr($view) . '"><label><strong>Periodo</strong></label><select name="analista_days">';
+        echo '<style>
+        .seo-analista-lazy-intro{background:#fff;border:1px solid #dcdcde;border-left:4px solid #2271b1;border-radius:8px;padding:15px 18px;margin:0 0 16px}.seo-analista-lazy-intro p{margin:5px 0 0;color:#646970}
+        .seo-analista-lazy-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:10px;margin:0 0 16px}.seo-analista-lazy-controls .button{height:auto;min-height:78px;text-align:left;padding:12px 14px;white-space:normal;display:block;background:#fff}.seo-analista-lazy-controls .button strong{display:block;font-size:14px;margin-bottom:5px}.seo-analista-lazy-controls .button span{display:block;color:#646970;font-weight:400;line-height:1.35}.seo-analista-lazy-controls .button.is-running{border-color:#2271b1;box-shadow:0 0 0 1px #2271b1}
+        .seo-analista-lazy-status{min-height:30px;margin:8px 0 12px;color:#50575e}.seo-analista-lazy-status .spinner{float:none;margin:0 7px 0 0;vertical-align:middle}.seo-analista-lazy-result{min-height:120px}.seo-analista-lazy-empty{background:#f6f7f7;border:1px dashed #c3c4c7;border-radius:8px;padding:22px;text-align:center;color:#50575e}.seo-analista-lazy-empty p{margin:5px 0 0}.seo-analista-partial-head{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:15px 18px;margin-bottom:16px}.seo-analista-partial-head h2{margin:0 0 5px}.seo-analista-partial-head p{margin:0;color:#646970}
+        </style>';
+
+        echo '<div class="seo-analista-toolbar"><div><h2 style="margin:0 0 4px">Analista</h2><p style="margin:0;color:#646970">La página ya no calcula todos los informes al abrirse. Ejecuta únicamente el bloque que necesites.</p></div>';
+        echo '<form method="get"><input type="hidden" name="page" value="seo-reports"><input type="hidden" name="tab" value="analista"><label><strong>Periodo</strong></label><select name="analista_days">';
         foreach (array(28, 60, 90) as $option) echo '<option value="' . absint($option) . '" ' . selected($days, $option, false) . '>' . absint($option) . ' días</option>';
-        echo '</select><button class="button">Actualizar</button>';
-        if (function_exists('seo_analista_export_json_url')) echo '<a class="button button-primary" href="' . esc_url(seo_analista_export_json_url($days)) . '">JSON Analista</a>';
+        echo '</select><button class="button">Cambiar periodo</button>';
+        if (function_exists('seo_analista_export_json_url')) echo '<a class="button" href="' . esc_url(seo_analista_export_json_url($days)) . '">Generar JSON completo</a>';
         echo '</form></div>';
 
-        seo_analista_render_subnav($view, $days);
-
-        $notice = isset($_GET['analista_notice']) ? sanitize_key(wp_unslash($_GET['analista_notice'])) : '';
-        if ('settings_saved' === $notice) echo '<div class="notice notice-success inline"><p>Competidores guardados.</p></div>';
-        if (empty($data['ready'])) echo '<div class="notice notice-warning inline"><p><strong>Search Console no tiene datos utilizables.</strong> Analista seguirá mostrando Analytics, búsqueda interna, proveedores y competencia cuando estén disponibles.</p></div>';
-
-        if ('donde_estamos' === $view) {
-            seo_analista_render_where_we_are($data, $google, $evolution, $search, $catalog_structure);
-        } elseif ('contenido' === $view) {
-            seo_analista_render_content_view($days);
-        } elseif ('estructura' === $view) {
-            seo_analista_render_structure_view($days);
-        } elseif ('tendencias' === $view) {
-            seo_analista_render_trends_view($days);
-        } elseif ('comparacion' === $view) {
-            seo_analista_render_comparison($competition, $market, $data);
+        if (function_exists('seo_analista_lazy_render_shell')) {
+            seo_analista_lazy_render_shell($days);
         } else {
-            seo_analista_render_roadmap($plan, $summary, $suppliers, $search);
+            echo '<div class="notice notice-error inline"><p>No se ha cargado el motor de informes parciales de Analista.</p></div>';
         }
 
-        seo_analista_render_sources($health, $competition, $suppliers);
         echo '</div>';
     }
 }

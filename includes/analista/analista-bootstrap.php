@@ -10,7 +10,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_ANALISTA_VERSION')) {
-    define('SEO_ANALISTA_VERSION', '3.0.0');
+    define('SEO_ANALISTA_VERSION', '3.1.0');
 }
 
 $seo_analista_files = array(
@@ -25,6 +25,7 @@ $seo_analista_files = array(
     __DIR__ . '/analista-decisiones.php',
     __DIR__ . '/analista-json.php',
     __DIR__ . '/analista-informe.php',
+    __DIR__ . '/analista-lazy.php',
 );
 
 foreach ($seo_analista_files as $seo_analista_file) {
@@ -38,4 +39,7 @@ if (function_exists('seo_analista_save_settings_handler')) {
 }
 if (function_exists('seo_analista_export_json_handler')) {
     add_action('admin_post_seo_analista_export_json', 'seo_analista_export_json_handler');
+}
+if (function_exists('seo_analista_ajax_partial_report')) {
+    add_action('wp_ajax_seo_analista_partial_report', 'seo_analista_ajax_partial_report');
 }
