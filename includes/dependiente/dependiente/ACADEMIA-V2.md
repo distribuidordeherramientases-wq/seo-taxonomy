@@ -1,12 +1,24 @@
-# Dependiente 0.2.11 acumulativo · Academia v2.1
+# Dependiente 0.2.12 acumulativo · Academia v2.1
+
+
+## v0.2.12 · Separacion canonica de conocimiento editorial y FAQ
+
+- L5 evalua exclusivamente el carril editorial (posts/paginas) recuperado por Vocabulary y relaciones editoriales.
+- L6 evalua exclusivamente FAQs owner-first de producto/categoria; una FAQ no crea ni hereda relacion con posts o paginas.
+- El fallback textual global de FAQ queda desactivado por defecto: si no se identifica owner, no se fabrica una asociacion FAQ por similitud textual.
+- El API expone `related_editorial` y `related_faq` como ramas paralelas y conserva `related` solo como mezcla compatible para la interfaz.
+- La recuperacion editorial prioriza coincidencias exactas de las rutas Vocabulary ya interpretadas por el parser.
+- No requiere reset global: se conserva el snapshot valido anterior y basta repreparar la leccion bloqueada.
+
 
 ## Objetivo
 
-Academia v2.1 entrena al Dependiente sobre una fotografia fija del catalogo y del contenido canonico de PRO. Vocabulary es el diccionario comun que relaciona productos, categorias, posts, paginas y FAQs.
+Academia v2.1 entrena al Dependiente sobre una fotografia fija del catalogo y del contenido canonico de PRO. Vocabulary es el diccionario comun para productos, categorias, posts y paginas; las FAQs cuelgan exclusivamente de su owner producto/categoria mediante object_type/object_id.
 
 ## Contrato acumulativo de versión
 
 - Cada paquete completo de Dependiente incorpora las correcciones de las versiones anteriores; no requiere instalar 0.2.1, 0.2.2, etc. por separado.
+- 0.2.12 incluye todo lo acumulado hasta 0.2.11. Mantiene el observatorio de Aprendizaje y corrige la separación entre contenido editorial y FAQs owner-first para L5/L6 y para la respuesta real del Dependiente.
 - 0.2.11 incluye todo lo acumulado hasta 0.2.10. Mantiene la verificación exacta del universo indexable de 0.2.10 y añade el observatorio de Aprendizaje / Calidad de formación sin alterar el motor ni el conocimiento.
 - Una ruta semántica de catálogo debe llegar a Vocabulary/`seo_object_vocabulary` antes de considerar suficiente el contenido editorial. Landings, posts o FAQs son apoyo y no pueden bloquear productos cuando la consulta pide catálogo.
 - Los slugs de Vocabulary con guion bajo y las rutas semánticas normalizadas con espacios se resuelven al mismo ID canónico.

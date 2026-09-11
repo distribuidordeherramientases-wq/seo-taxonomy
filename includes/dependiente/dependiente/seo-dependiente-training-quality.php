@@ -788,11 +788,11 @@ final class SEO_Dependiente_Training_Quality {
     }
 
     private static function diagnostic_label($key) {
-        $map=array('mastered'=>'Conocimiento resuelto','parser_gap'=>'Fallo de interpretacion','retrieval_gap'=>'Fallo de recuperacion','semantic_expansion_skipped'=>'Expansion semantica omitida','semantic_candidates_filtered'=>'Candidatos semanticos filtrados','semantic_route_unresolved'=>'Ruta semantica sin candidatos','ranking_gap'=>'Fallo de ranking/filtro','clarification_gap'=>'Aclaracion innecesaria','curriculum_invalid'=>'Pregunta/evaluacion a revisar','technical_error'=>'Error tecnico','observed'=>'Observacion','unknown'=>'Sin diagnostico');return $map[sanitize_key((string)$key)]??(string)$key;
+        $map=array('mastered'=>'Conocimiento resuelto','parser_gap'=>'Fallo de interpretacion','retrieval_gap'=>'Fallo de recuperacion','editorial_retrieval_gap'=>'Fallo de recuperacion editorial','faq_owner_retrieval_gap'=>'Fallo FAQ por owner','cross_retrieval_gap'=>'Fallo de relacion cruzada','semantic_expansion_skipped'=>'Expansion semantica omitida','semantic_candidates_filtered'=>'Candidatos semanticos filtrados','semantic_route_unresolved'=>'Ruta semantica sin candidatos','ranking_gap'=>'Fallo de ranking/filtro','clarification_gap'=>'Aclaracion innecesaria','curriculum_invalid'=>'Pregunta/evaluacion a revisar','technical_error'=>'Error tecnico','observed'=>'Observacion','unknown'=>'Sin diagnostico');return $map[sanitize_key((string)$key)]??(string)$key;
     }
 
     private static function diagnostic_destination($key) {
-        $key=sanitize_key((string)$key);if(in_array($key,array('retrieval_gap','semantic_expansion_skipped','semantic_candidates_filtered','semantic_route_unresolved','ranking_gap','parser_gap'),true))return 'Motor';if(in_array($key,array('curriculum_invalid','clarification_gap'),true))return 'Evaluacion / Academia';if('technical_error'===$key)return 'Tecnico';return 'Aprendizaje / revisar evidencia';
+        $key=sanitize_key((string)$key);if(in_array($key,array('retrieval_gap','editorial_retrieval_gap','faq_owner_retrieval_gap','cross_retrieval_gap','semantic_expansion_skipped','semantic_candidates_filtered','semantic_route_unresolved','ranking_gap','parser_gap'),true))return 'Motor';if(in_array($key,array('curriculum_invalid','clarification_gap'),true))return 'Evaluacion / Academia';if('technical_error'===$key)return 'Tecnico';return 'Aprendizaje / revisar evidencia';
     }
 
     private static function type_label($type) {
