@@ -3,7 +3,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_CORE_SYSTEM_TEST_VERSION')) {
-    define('SEO_CORE_SYSTEM_TEST_VERSION', '8.8.2');
+    define('SEO_CORE_SYSTEM_TEST_VERSION', '8.9.1');
 }
 
 $seo_core_settings_module = __DIR__ . '/seo-core-validation-settings.php';
@@ -791,7 +791,7 @@ function seo_core_system_test_code_integrity() {
             'code_integrity',
             '0.4 Sintaxis PHP analizable',
             $syntax_error_count === 0,
-            $syntax_error_count === 0 ? 'No se han detectado errores de sintaxis' : 'Errores detectados: ' . number_format_i18n($syntax_error_count),
+            $syntax_error_count === 0 ? 'No se han detectado errores de sintaxis' : seo_core_system_test_syntax_error_summary($inventory['syntax_errors']),
             $syntax_error_count === 0 ? 'ok' : 'ko'
         ),
         seo_core_system_test_result(
@@ -876,7 +876,9 @@ function seo_core_system_test_code_integrity() {
             'code_integrity',
             '0.15 Archivos omitidos durante el análisis',
             $skipped_count === 0,
-            $skipped_count === 0 ? 'Ningún archivo PHP omitido' : 'Omitidos: ' . number_format_i18n($skipped_count),
+            $skipped_count === 0
+                ? 'Ningún archivo PHP omitido'
+                : 'Omitidos: ' . number_format_i18n($skipped_count) . '. ' . implode('; ', array_slice($inventory['skipped_files'], 0, 5)),
             $skipped_count === 0 ? 'ok' : 'warning'
         ),
         seo_core_system_test_result(
@@ -1055,6 +1057,15 @@ function seo_core_system_test_scan_codebase($plugin_root) {
     return $inventory;
 }
 
+function seo_core_system_test_is_backup_php_file($relative_file) {
+    $basename = strtolower(pathinfo((string) $relative_file, PATHINFO_FILENAME));
+    if ($basename === '') {
+        return false;
+    }
+
+    return (bool) preg_match('/(?:^|[ ._-])(copy|backup|bak)(?:[ ._-]|\d|$)/i', $basename);
+}
+
 function seo_core_system_test_collect_php_files($plugin_root) {
     $excluded_directories = array(
         '.git',
@@ -1113,6 +1124,11 @@ function seo_core_system_test_collect_php_files($plugin_root) {
 
             $files[] = $relative_file;
 
+            if (seo_core_system_test_is_backup_php_file($relative_file)) {
+                $skipped_files[] = $relative_file . ' (copia/backup; no se analiza como código activo)';
+                continue;
+            }
+
             if (!$file_info->isReadable()) {
                 $unreadable_files[] = $relative_file;
                 continue;
@@ -1164,6 +1180,35 @@ function seo_core_system_test_parse_error_line($message, $fallback_line = 0) {
     return max(0, (int) $fallback_line);
 }
 
+function seo_core_system_test_syntax_error_summary($errors) {
+    $errors = array_values((array) $errors);
+    if (empty($errors)) {
+        return 'No se han detectado errores de sintaxis';
+    }
+
+    $first = is_array($errors[0]) ? $errors[0] : array();
+    $file = isset($first['file']) ? trim((string) $first['file']) : '';
+    $line = isset($first['line']) ? (int) $first['line'] : 0;
+    $message = isset($first['message']) ? trim((string) $first['message']) : '';
+
+    $detail = 'Errores detectados: ' . number_format_i18n(count($errors));
+    if ($file !== '') {
+        $detail .= '. Primero: ' . $file;
+        if ($line > 0) {
+            $detail .= ':' . $line;
+        }
+    }
+    if ($message !== '') {
+        $message = preg_replace('/\s+/', ' ', $message);
+        if (strlen($message) > 180) {
+            $message = substr($message, 0, 177) . '...';
+        }
+        $detail .= '. ' . $message;
+    }
+
+    return $detail;
+}
+
 function seo_core_system_test_parse_php_tokens($tokens, $relative_file) {
     $parsed = array(
         'functions'           => array(),
@@ -1179,6 +1224,7 @@ function seo_core_system_test_parse_php_tokens($tokens, $relative_file) {
 
     $namespace = '';
     $brace_depth = 0;
+    $interpolation_brace_depth = 0;
     $type_stack = array();
     $pending_type = null;
     $callable_stack = array();
@@ -1189,6 +1235,23 @@ function seo_core_system_test_parse_php_tokens($tokens, $relative_file) {
         $token = $tokens[$index];
 
         if (is_string($token)) {
+            /*
+             * Las llaves de interpolacion dentro de strings ("{$valor}") no
+             * abren/cierran bloques PHP. token_get_all() entrega la apertura
+             * como T_CURLY_OPEN/T_DOLLAR_OPEN_CURLY_BRACES y el cierre como
+             * el caracter "}". Si ese cierre altera $brace_depth, el scanner
+             * puede creer que ha salido de una clase y contar sus metodos como
+             * funciones globales duplicadas.
+             */
+            if ($interpolation_brace_depth > 0) {
+                if ($token === '{') {
+                    $interpolation_brace_depth++;
+                } elseif ($token === '}') {
+                    $interpolation_brace_depth--;
+                }
+                continue;
+            }
+
             if ($token === '{') {
                 $brace_depth++;
 
@@ -1229,6 +1292,14 @@ function seo_core_system_test_parse_php_tokens($tokens, $relative_file) {
         $token_id = $token[0];
         $token_text = $token[1];
         $token_line = (int) $token[2];
+
+        if (
+            $token_id === T_CURLY_OPEN
+            || (defined('T_DOLLAR_OPEN_CURLY_BRACES') && $token_id === T_DOLLAR_OPEN_CURLY_BRACES)
+        ) {
+            $interpolation_brace_depth++;
+            continue;
+        }
 
         if ($token_id === T_NAMESPACE) {
             $namespace_data = seo_core_system_test_read_namespace($tokens, $index);
@@ -2357,6 +2428,7 @@ function seo_core_system_test_import_export_health($plugin_root) {
     $batch_ok = function_exists('seo_ie_batch_render_page');
     $amazon_ok = function_exists('seo_supplier_recipe_amazon_render_explorer');
     $connections_ok = function_exists('seo_proveedores_render_conexiones');
+    $connections_page_ok = function_exists('seo_provider_connections_page') && $connections_ok;
     $sync_ok = is_readable($sync_path) && function_exists('seo_supplier_sync_situations') && function_exists('seo_supplier_sync_apply_action');
 
     return array(
@@ -2434,6 +2506,15 @@ function seo_core_system_test_import_export_health($plugin_root) {
                 : 'Faltan: ' . implode(', ', $missing_dependencies),
             empty($missing_dependencies) ? 'ok' : 'ko'
         ),
+        seo_core_system_test_result(
+            'system',
+            '1.16 Herramienta Conexión con proveedores disponible',
+            $connections_page_ok,
+            $connections_page_ok
+                ? 'Página seo-provider-connections y renderizador de conexiones disponibles desde Herramientas.'
+                : 'Falta seo_provider_connections_page() o el renderizador de conexiones actual.',
+            $connections_page_ok ? 'ok' : 'ko'
+        ),
     );
 }
 
@@ -2472,7 +2553,7 @@ function seo_core_system_test_template_loading() {
         array('2.7 Plantilla carrito disponible', 'seo-system/templates/template-cart.php', true),
         array('2.8 Plantilla checkout disponible', 'seo-system/templates/template-checkout.php', true),
         array('2.9 Plantilla 404 disponible', 'seo-system/templates/template-404.php', true),
-        array('2.10 CSS de plantillas disponible', 'seo-system/templates/styles_template.css', true),
+        array('2.10 CSS de plantillas disponible', 'seo-system/templates/styles-template.css', true),
     );
 
     $results = array();
@@ -4474,82 +4555,6 @@ function seo_core_system_test_store_readiness_check($product, $urls, $enabled) {
     return seo_core_system_test_check_ok($detail . ' La configuración básica permite continuar hacia una compra.', $meta);
 }
 
-/**
- * Detecta si robots.txt bloquea globalmente el sitio para el grupo User-agent: *.
- *
- * Un "Disallow: /" de un crawler especifico (GPTBot, ClaudeBot, etc.) no debe
- * interpretarse como un bloqueo global. Tambien se respeta un "Allow: /" del
- * grupo comodin, habitual en bloques gestionados por Cloudflare.
- *
- * @param string $robots_body Contenido de robots.txt.
- * @return bool
- */
-function seo_core_system_test_robots_wildcard_blocks_all($robots_body) {
-    $robots_body = preg_replace('/^\xEF\xBB\xBF/', '', (string) $robots_body);
-    $lines = preg_split('/\r\n|\r|\n/', $robots_body);
-
-    $agents = array();
-    $group_has_directives = false;
-    $wildcard_disallow_root = false;
-    $wildcard_allow_root = false;
-
-    foreach ((array) $lines as $line) {
-        $line = trim((string) $line);
-        if ($line === '' || strpos($line, '#') === 0) {
-            continue;
-        }
-
-        // En robots.txt, # inicia comentario tambien al final de una directiva.
-        $hash_pos = strpos($line, '#');
-        if ($hash_pos !== false) {
-            $line = trim(substr($line, 0, $hash_pos));
-            if ($line === '') {
-                continue;
-            }
-        }
-
-        $colon_pos = strpos($line, ':');
-        if ($colon_pos === false) {
-            continue;
-        }
-
-        $directive = strtolower(trim(substr($line, 0, $colon_pos)));
-        $value = trim(substr($line, $colon_pos + 1));
-
-        if ($directive === 'user-agent') {
-            // Un User-agent despues de directivas abre un grupo nuevo. Los
-            // User-agent consecutivos antes de reglas pertenecen al mismo grupo.
-            if ($group_has_directives) {
-                $agents = array();
-                $group_has_directives = false;
-            }
-
-            if ($value !== '') {
-                $agents[] = strtolower($value);
-            }
-            continue;
-        }
-
-        if (empty($agents)) {
-            continue;
-        }
-
-        $group_has_directives = true;
-
-        if (!in_array('*', $agents, true)) {
-            continue;
-        }
-
-        if ($directive === 'disallow' && $value === '/') {
-            $wildcard_disallow_root = true;
-        } elseif ($directive === 'allow' && $value === '/') {
-            $wildcard_allow_root = true;
-        }
-    }
-
-    return $wildcard_disallow_root && !$wildcard_allow_root;
-}
-
 function seo_core_system_test_indexation_readiness_check($urls, $enabled) {
     $evidence = array('blog_public' => (string) get_option('blog_public', '1') === '1', 'robots_txt' => array(), 'public_pages' => array());
     $critical = array(); $warnings = array();
@@ -4561,7 +4566,7 @@ function seo_core_system_test_indexation_readiness_check($urls, $enabled) {
     $evidence['robots_txt'] = array('url' => $robots_url, 'code' => (int) ($robots_probe['code'] ?? 0), 'content_type' => (string) ($robots_probe['content_type'] ?? ''));
     if (!empty($robots_probe['transport_error']) || !empty($robots_probe['security_challenge'])) $warnings[] = 'robots.txt no verificable';
     elseif ((int) $robots_probe['code'] !== 200) $warnings[] = 'robots.txt responde HTTP ' . (int) $robots_probe['code'];
-    elseif (seo_core_system_test_robots_wildcard_blocks_all((string) ($robots_probe['body'] ?? ''))) $critical[] = 'robots.txt bloquea todo el sitio';
+    elseif (preg_match('/Disallow:\s*\/\s*$/mi', (string) ($robots_probe['body'] ?? ''))) $critical[] = 'robots.txt bloquea todo el sitio';
 
     foreach (array('portada', 'tienda', 'categoria', 'producto') as $name) {
         if (empty($urls[$name])) continue;
@@ -6047,20 +6052,22 @@ function seo_core_system_test_technical() {
 
 function seo_core_system_test_get_function_files() {
     return array(
-        array('includes/bootstrap.php', true),
+        array('includes/seo-includes-bootstrap.php', true),
         array('includes/seo-admin.php', true),
         array('includes/seo-core.php', true),
-        array('includes/seo-core-validation.php', true),
-        array('includes/seo-core-validation-settings.php', true),
-        array('includes/seo-core-validation-data-layer.php', true),
-        array('includes/seo-core-validation-semantic.php', true),
-        array('includes/seo-core-validation-visual.php', true),
+        array('includes/system-check/seo-core-validation.php', true),
+        array('includes/system-check/seo-core-validation-settings.php', true),
+        array('includes/system-check/seo-core-validation-data-layer.php', true),
+        array('includes/system-check/seo-core-validation-semantic.php', true),
+        array('includes/system-check/seo-core-validation-visual.php', true),
+        array('includes/system-check/seo-core-validation-billing.php', true),
+        array('includes/system-check/seo-health-scan.php', true),
         array('includes/data-layer/data-layer-bootstrap.php', true),
         array('includes/data-layer/class-seo-data-layer.php', true),
         array('includes/data-layer/class-seo-data-operation.php', true),
         array('includes/data-layer/class-seo-data-rollback.php', true),
-        array('includes/seo-system-server-status.php', true),
-        array('includes/seo-system-diagnostics-reporting.php', true),
+        array('includes/system-check/seo-system-server-status.php', true),
+        array('includes/system-check/seo-system-diagnostics-reporting.php', true),
         array('includes/seo-database-clean.php', true),
         array('includes/seo-search.php', true),
         array('includes/seo-reports.php', true),
@@ -6076,7 +6083,11 @@ function seo_core_system_test_get_function_files() {
         array('includes/import-export/suppliers/xls-reader.php', true),
         array('includes/import-export/suppliers/recipes/import_amazon.php', true),
         array('includes/seo-dashboard.php', true),
-        array('includes/category-admin.php', true),
+        array('includes/categorias/category-bootstrap.php', true),
+        array('includes/categorias/category-admin.php', true),
+        array('includes/categorias/category-classification.php', true),
+        array('includes/categorias/category-info-related.php', true),
+        array('includes/categorias/seo-category-reports.php', true),
         array('includes/product-page-admin.php', true),
         array('includes/pages-admin.php', true),
         array('includes/seo-images.php', true),
@@ -6092,7 +6103,7 @@ function seo_core_system_test_get_template_files() {
     return array(
         array('seo-system/templates/header.php', true),
         array('seo-system/templates/footer.php', true),
-        array('seo-system/templates/styles_template.css', true),
+        array('seo-system/templates/styles-template.css', true),
         array('seo-system/templates/template-front.php', true),
         array('seo-system/templates/template-cluster.php', true),
         array('seo-system/templates/template-hub-primary.php', true),
@@ -6117,24 +6128,28 @@ function seo_core_system_test_get_template_files() {
 }
 
 function seo_core_system_test_get_plugin_root() {
-    $dir = trailingslashit(dirname(__FILE__));
-    $base = basename(untrailingslashit($dir));
-
-    if ($base === 'includes') {
-        return trailingslashit(dirname(untrailingslashit($dir)));
+    if (defined('SEO_SYSTEM_PATH')) {
+        $defined_root = trailingslashit(wp_normalize_path((string) SEO_SYSTEM_PATH));
+        if (is_dir($defined_root)) {
+            return $defined_root;
+        }
     }
 
-    if (file_exists($dir . 'seo-taxonomy.php') || file_exists($dir . 'functions.php')) {
-        return $dir;
+    // Este archivo vive en includes/system-check/. La raiz del plugin esta dos niveles arriba.
+    $candidates = array(
+        dirname(__DIR__, 2),
+        dirname(__DIR__),
+        __DIR__,
+    );
+
+    foreach ($candidates as $candidate) {
+        $candidate = trailingslashit(wp_normalize_path($candidate));
+        if (file_exists($candidate . 'seo-taxonomy.php') || file_exists($candidate . 'functions.php')) {
+            return $candidate;
+        }
     }
 
-    $parent = trailingslashit(dirname(untrailingslashit($dir)));
-
-    if (file_exists($parent . 'seo-taxonomy.php') || file_exists($parent . 'functions.php')) {
-        return $parent;
-    }
-
-    return $dir;
+    return trailingslashit(wp_normalize_path(dirname(__DIR__, 2)));
 }
 
 function seo_core_system_test_count_available_files($plugin_root, $files) {
@@ -7382,6 +7397,7 @@ function seo_core_system_test_render_business_report($results) {
                 '1.13 Conexiones con proveedores disponibles',
                 '1.14 Sincronizacion de proveedores integrada',
                 '1.15 Dependencias del motor de proveedores disponibles',
+                '1.16 Herramienta Conexión con proveedores disponible',
             ),
         ),
         'templates' => array(
