@@ -7,7 +7,7 @@
  * Los workers se ejecutan en GitHub Actions y devuelven resultados por REST.
  *
  * Version: 2026-09-10
- * Build: 004
+ * Build: 005
  */
 
 defined('ABSPATH') || exit;
@@ -543,7 +543,13 @@ if (!function_exists('seo_health_scan_select_batch')) {
             $wpdb->prepare(
                 "SELECT id,object_id,url,label,source FROM {$table}
                  WHERE scope=%s AND active=1 AND queued_scan_id=0 AND status_bucket IN ('error','warning')
-                 ORDER BY CASE status_bucket WHEN 'error' THEN 0 ELSE 1 END,last_checked_at ASC,id ASC LIMIT %d",
+                 ORDER BY CASE
+                    WHEN error_type IN ('timeout','connection_error','rate_limited','http_5xx')
+                         OR final_status IN (408,425,429,500,502,503,504)
+                         OR http_status IN (408,425,429,500,502,503,504) THEN 0
+                    WHEN status_bucket='error' THEN 1
+                    ELSE 2
+                 END,last_checked_at ASC,id ASC LIMIT %d",
                 $scope,
                 $limit
             ),
@@ -1066,7 +1072,7 @@ if (!function_exists('seo_health_render_scope_tab')) {
             echo '<span class="description"><strong>En curso:</strong> ' . esc_html($active['mode'] === 'load_test' ? 'test de carga' : 'escaneo') . ' · ' . esc_html(number_format_i18n($active['processed_items'])) . '/' . esc_html(number_format_i18n($active['total_items'])) . '</span>';
         }
         echo '</div>';
-        echo '<p class="description"><strong>Escaneo por lotes:</strong> cada ejecución reserva un máximo de ' . esc_html(number_format_i18n(absint($scope_config['batch']))) . ' elementos para ser compatible con el worker GitHub actual. Los pendientes se cubren primero; el test de carga mantiene su propia muestra.</p>';
+        echo '<p class="description"><strong>Escaneo por lotes:</strong> cada ejecución reserva un máximo de ' . esc_html(number_format_i18n(absint($scope_config['batch']))) . ' elementos. Los fallos transitorios (<code>timeout</code>, conexión, 408/425/429 y 5xx) se vuelven a comprobar automáticamente tras 15 y 45 segundos antes de declararlos error. Si se recuperan quedan como aviso; si persisten, se priorizan en la siguiente ejecución. Los pendientes se cubren primero; el test de carga mantiene su propia muestra.</p>';
         if (!empty($missing)) {
             echo '<p style="color:#b32d2e"><strong>GitHub incompleto:</strong> ' . esc_html(implode(', ', $missing)) . '.</p>';
         } else {
