@@ -145,6 +145,27 @@ function seo_comentarista_admin_product_field($product_id)
     <?php
 }
 
+function seo_comentarista_admin_tabs($current = 'records')
+{
+    $tabs = array(
+        'records'  => array(
+            'label' => 'Registros',
+            'url'   => admin_url('admin.php?page=seo-comentarista'),
+        ),
+        'coverage' => array(
+            'label' => 'Cobertura',
+            'url'   => add_query_arg(array('page' => 'seo-comentarista', 'view' => 'coverage'), admin_url('admin.php')),
+        ),
+    );
+
+    echo '<nav class="nav-tab-wrapper" style="margin-bottom:16px;">';
+    foreach ($tabs as $key => $tab) {
+        $class = 'nav-tab' . ($current === $key ? ' nav-tab-active' : '');
+        echo '<a class="' . esc_attr($class) . '" href="' . esc_url($tab['url']) . '">' . esc_html($tab['label']) . '</a>';
+    }
+    echo '</nav>';
+}
+
 function seo_comentarista_admin_page()
 {
     if (!current_user_can('manage_options')) {
@@ -157,13 +178,19 @@ function seo_comentarista_admin_page()
         return;
     }
 
+    $view = sanitize_key(wp_unslash($_GET['view'] ?? 'records'));
+    if ($view === 'coverage' && function_exists('seo_comentarista_coverage_admin_page')) {
+        seo_comentarista_coverage_admin_page();
+        return;
+    }
+
     $notice = seo_comentarista_admin_handle_action();
     $edit_id = absint($_GET['edit'] ?? 0);
     $edit = $edit_id ? seo_comentarista_get($edit_id) : null;
 
     $defaults = array(
         'id'                  => 0,
-        'product_id'          => 0,
+        'product_id'          => absint($_GET['product_id'] ?? 0),
         'content_type'        => 'comment',
         'source_platform'     => 'web',
         'source_name'         => '',
@@ -198,6 +225,7 @@ function seo_comentarista_admin_page()
     ?>
     <div class="wrap">
         <h1>Comentarista</h1>
+        <?php seo_comentarista_admin_tabs('records'); ?>
         <p>Gestiona manualmente comentarios, vídeos, publicaciones sociales y enlaces externos asociados a productos. El módulo no realiza scraping.</p>
 
         <?php if ($notice) : ?>
