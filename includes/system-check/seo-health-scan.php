@@ -7,13 +7,25 @@
  * Los workers se ejecutan en GitHub Actions y devuelven resultados por REST.
  *
  * Version: 2026-09-10
- * Build: 003
+ * Build: 004
  */
 
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_HEALTH_SCAN_SCHEMA_VERSION')) {
     define('SEO_HEALTH_SCAN_SCHEMA_VERSION', '1');
+}
+if (!defined('SEO_HEALTH_PAGE_BATCH')) {
+    define('SEO_HEALTH_PAGE_BATCH', 250);
+}
+if (!defined('SEO_HEALTH_POST_BATCH')) {
+    define('SEO_HEALTH_POST_BATCH', 250);
+}
+if (!defined('SEO_HEALTH_IMAGE_BATCH')) {
+    define('SEO_HEALTH_IMAGE_BATCH', 500);
+}
+if (!defined('SEO_HEALTH_PRODUCT_BATCH')) {
+    define('SEO_HEALTH_PRODUCT_BATCH', 500);
 }
 
 if (!function_exists('seo_health_scan_tables')) {
@@ -134,6 +146,7 @@ if (!function_exists('seo_health_scan_scope_config')) {
                 'label' => 'Páginas',
                 'singular' => 'página',
                 'workflow' => 'page-health.yml',
+                'batch' => SEO_HEALTH_PAGE_BATCH,
                 'load_batch' => 60,
                 'admin' => array('page' => 'seo-page-admin', 'tab' => 'errores'),
             ),
@@ -141,6 +154,7 @@ if (!function_exists('seo_health_scan_scope_config')) {
                 'label' => 'Posts',
                 'singular' => 'post',
                 'workflow' => 'post-health.yml',
+                'batch' => SEO_HEALTH_POST_BATCH,
                 'load_batch' => 60,
                 'admin' => array('page' => 'seo-post-editor', 'tab' => 'errors'),
             ),
@@ -148,6 +162,7 @@ if (!function_exists('seo_health_scan_scope_config')) {
                 'label' => 'Imágenes',
                 'singular' => 'imagen',
                 'workflow' => 'image-health.yml',
+                'batch' => SEO_HEALTH_IMAGE_BATCH,
                 'load_batch' => 300,
                 'admin' => array('page' => 'seo-pictures-admin', 'tab' => 'errors'),
             ),
@@ -155,6 +170,7 @@ if (!function_exists('seo_health_scan_scope_config')) {
                 'label' => 'Productos',
                 'singular' => 'producto',
                 'workflow' => 'product-health.yml',
+                'batch' => SEO_HEALTH_PRODUCT_BATCH,
                 'load_batch' => 60,
                 'admin' => array('page' => 'product-page-admin', 'tab' => 'errores'),
             ),
@@ -480,21 +496,19 @@ if (!function_exists('seo_health_scan_latest_run')) {
 
 if (!function_exists('seo_health_scan_select_batch')) {
     /**
-     * Selecciona los elementos que recibirá el runner.
+     * Selecciona un lote compatible con los workers GitHub actuales.
      *
-     * En cobertura normal WordPress NO limita el lote: devuelve todo el
-     * inventario activo del ámbito. La concurrencia, pausas y velocidad se
-     * delegan al worker mediante el bloque `control`.
-     *
-     * El único límite local que se conserva es el del test de carga, porque
-     * ese modo está diseñado expresamente para trabajar con una muestra.
+     * Los workflows de page/post/image/product no consumen una cola remota de
+     * forma continua: descargan una vez el JSON del endpoint y procesan ese
+     * lote. Por seguridad, WordPress limita cada ejecución y una pasada nueva
+     * continúa con los elementos que todavía no se han comprobado.
      */
-    function seo_health_scan_select_batch($scope, $mode, $limit = 0) {
+    function seo_health_scan_select_batch($scope, $mode, $limit) {
         global $wpdb;
         $table = seo_health_scan_tables()['items'];
+        $limit = max(1, min(2000, absint($limit)));
 
         if ($mode === 'load_test') {
-            $limit = max(1, min(2000, absint($limit)));
             return $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT id,object_id,url,label,source FROM {$table}
@@ -507,15 +521,56 @@ if (!function_exists('seo_health_scan_select_batch')) {
             );
         }
 
-        return $wpdb->get_results(
+        // Primero cubrimos elementos que nunca se han comprobado.
+        $pending = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT id,object_id,url,label,source FROM {$table}
-                 WHERE scope=%s AND active=1 AND queued_scan_id=0
-                 ORDER BY id ASC",
-                $scope
+                 WHERE scope=%s AND active=1 AND queued_scan_id=0 AND last_checked_at IS NULL
+                 ORDER BY id ASC LIMIT %d",
+                $scope,
+                $limit
             ),
             ARRAY_A
         );
+        if (!empty($pending)) {
+            return $pending;
+        }
+
+        // Cuando ya existe cobertura, revisamos primero incidencias y después
+        // los OK más antiguos para mantener el inventario fresco.
+        $selected = array();
+        $issues = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id,object_id,url,label,source FROM {$table}
+                 WHERE scope=%s AND active=1 AND queued_scan_id=0 AND status_bucket IN ('error','warning')
+                 ORDER BY CASE status_bucket WHEN 'error' THEN 0 ELSE 1 END,last_checked_at ASC,id ASC LIMIT %d",
+                $scope,
+                $limit
+            ),
+            ARRAY_A
+        );
+        foreach ((array) $issues as $row) {
+            $selected[(int) $row['id']] = $row;
+        }
+
+        $remaining = $limit - count($selected);
+        if ($remaining > 0) {
+            $oldest = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT id,object_id,url,label,source FROM {$table}
+                     WHERE scope=%s AND active=1 AND queued_scan_id=0 AND status_bucket='ok'
+                     ORDER BY last_checked_at ASC,id ASC LIMIT %d",
+                    $scope,
+                    $remaining
+                ),
+                ARRAY_A
+            );
+            foreach ((array) $oldest as $row) {
+                $selected[(int) $row['id']] = $row;
+            }
+        }
+
+        return array_values($selected);
     }
 }
 
@@ -540,27 +595,14 @@ if (!function_exists('seo_health_scan_launch')) {
         }
 
         $mode = $mode === 'load_test' ? 'load_test' : 'coverage';
-        $tables = seo_health_scan_tables();
-        $batch = array();
-
-        if ($mode === 'load_test') {
-            $batch = seo_health_scan_select_batch($scope, $mode, $scope_config['load_batch']);
-            $total_items = count($batch);
-        } else {
-            // El escaneo normal siempre representa el inventario activo completo.
-            // No hay LIMIT de WordPress: el worker decide la velocidad real.
-            $total_items = (int) $wpdb->get_var(
-                $wpdb->prepare(
-                    "SELECT COUNT(*) FROM {$tables['items']}
-                     WHERE scope=%s AND active=1 AND queued_scan_id=0",
-                    $scope
-                )
-            );
-        }
-
-        if ($total_items < 1) {
+        $limit = $mode === 'load_test' ? $scope_config['load_batch'] : $scope_config['batch'];
+        $batch = seo_health_scan_select_batch($scope, $mode, $limit);
+        if (empty($batch)) {
             return new WP_Error('seo_health_empty', 'No hay elementos disponibles para escanear.');
         }
+
+        $tables = seo_health_scan_tables();
+        $total_items = count($batch);
 
         $scan_uuid = wp_generate_uuid4();
         $callback_token = bin2hex(random_bytes(32));
@@ -584,25 +626,11 @@ if (!function_exists('seo_health_scan_launch')) {
         }
         $run_id = (int) $wpdb->insert_id;
 
-        if ($mode === 'load_test') {
-            $ids = array_map('absint', wp_list_pluck($batch, 'id'));
-            $queued = 0;
-            if (!empty($ids)) {
-                $queued = $wpdb->query(
-                    "UPDATE {$tables['items']} SET queued_scan_id={$run_id},queued_at='" . esc_sql($now) . "' WHERE id IN (" . implode(',', $ids) . ')'
-                );
-            }
-        } else {
-            // Encola todo el ámbito de una sola vez sin construir un IN() gigante.
+        $ids = array_map('absint', wp_list_pluck($batch, 'id'));
+        $queued = 0;
+        if (!empty($ids)) {
             $queued = $wpdb->query(
-                $wpdb->prepare(
-                    "UPDATE {$tables['items']}
-                     SET queued_scan_id=%d, queued_at=%s
-                     WHERE scope=%s AND active=1 AND queued_scan_id=0",
-                    $run_id,
-                    $now,
-                    $scope
-                )
+                "UPDATE {$tables['items']} SET queued_scan_id={$run_id},queued_at='" . esc_sql($now) . "' WHERE id IN (" . implode(',', $ids) . ')'
             );
         }
 
@@ -618,7 +646,8 @@ if (!function_exists('seo_health_scan_launch')) {
             return new WP_Error('seo_health_queue', $message);
         }
 
-        // Usa el número realmente reservado como total definitivo del run.
+        // El total de la ejecución es exactamente el lote reservado, no todo el
+        // inventario del ámbito.
         $total_items = (int) $queued;
         $wpdb->update(
             $tables['runs'],
@@ -1016,12 +1045,12 @@ if (!function_exists('seo_health_render_scope_tab')) {
         if ($scope === 'image') {
             echo '<p>Este escaneo comprueba directamente las URLs de imagen conocidas y activas. No vuelve a recorrer las 14.000+ URLs del sitemap para cada pasada, por lo que reduce mucho la carga y evita que el proceso se rompa por una cadena larga de páginas.</p>';
         } elseif ($scope === 'product') {
-            echo '<p>El inventario se construye solo con <strong>productos WooCommerce publicados</strong>. El funcionamiento es el mismo que en páginas: WordPress entrega todo el inventario al runner y el worker regula la velocidad.</p>';
+            echo '<p>El inventario se construye solo con <strong>productos WooCommerce publicados</strong>. Se procesa por lotes seguros y los pendientes se cubren primero.</p>';
         } else {
             echo '<p>El inventario se construye solo con <strong>' . esc_html(strtolower($scope_config['label'])) . ' publicadas</strong>. Otros tipos de contenido no entran en este escaneo.</p>';
         }
         echo '<div class="seo-health-actions">';
-        foreach (array('sync'=>'Actualizar inventario','scan'=>'Escanear todo','load_test'=>'Test de carga seguro') as $task=>$label) {
+        foreach (array('sync'=>'Actualizar inventario','scan'=>'Escanear siguiente lote','load_test'=>'Test de carga seguro') as $task=>$label) {
             echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
             echo '<input type="hidden" name="action" value="seo_health_scan_action"><input type="hidden" name="scope" value="' . esc_attr($scope) . '"><input type="hidden" name="task" value="' . esc_attr($task) . '">';
             wp_nonce_field('seo_health_scan_action');
@@ -1037,7 +1066,7 @@ if (!function_exists('seo_health_render_scope_tab')) {
             echo '<span class="description"><strong>En curso:</strong> ' . esc_html($active['mode'] === 'load_test' ? 'test de carga' : 'escaneo') . ' · ' . esc_html(number_format_i18n($active['processed_items'])) . '/' . esc_html(number_format_i18n($active['total_items'])) . '</span>';
         }
         echo '</div>';
-        echo '<p class="description"><strong>Escaneo completo:</strong> WordPress entrega todos los elementos activos al runner. La concurrencia y los intervalos los regula el worker desde el Gestor de procesos. El test de carga mantiene su muestra limitada.</p>';
+        echo '<p class="description"><strong>Escaneo por lotes:</strong> cada ejecución reserva un máximo de ' . esc_html(number_format_i18n(absint($scope_config['batch']))) . ' elementos para ser compatible con el worker GitHub actual. Los pendientes se cubren primero; el test de carga mantiene su propia muestra.</p>';
         if (!empty($missing)) {
             echo '<p style="color:#b32d2e"><strong>GitHub incompleto:</strong> ' . esc_html(implode(', ', $missing)) . '.</p>';
         } else {
