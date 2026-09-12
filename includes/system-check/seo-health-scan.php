@@ -543,13 +543,7 @@ if (!function_exists('seo_health_scan_select_batch')) {
             $wpdb->prepare(
                 "SELECT id,object_id,url,label,source FROM {$table}
                  WHERE scope=%s AND active=1 AND queued_scan_id=0 AND status_bucket IN ('error','warning')
-                 ORDER BY CASE
-                    WHEN error_type IN ('timeout','connection_error','rate_limited','http_5xx')
-                         OR final_status IN (408,425,429,500,502,503,504)
-                         OR http_status IN (408,425,429,500,502,503,504) THEN 0
-                    WHEN status_bucket='error' THEN 1
-                    ELSE 2
-                 END,last_checked_at ASC,id ASC LIMIT %d",
+                 ORDER BY CASE status_bucket WHEN 'error' THEN 0 ELSE 1 END,last_checked_at ASC,id ASC LIMIT %d",
                 $scope,
                 $limit
             ),
@@ -812,6 +806,7 @@ if (!function_exists('seo_health_scan_clean_result')) {
             ? array_values(array_slice(array_map('sanitize_text_field', $raw['warnings']), 0, 20))
             : array();
         return array(
+            'item_id' => absint($raw['item_id'] ?? $raw['id'] ?? 0),
             'url' => $url,
             'url_hash' => md5($url),
             'http_status' => min(999, absint($raw['http_status'] ?? 0)),
@@ -832,49 +827,77 @@ if (!function_exists('seo_health_scan_clean_result')) {
 }
 
 if (!function_exists('seo_health_scan_store_results')) {
+    /**
+     * Guarda los resultados recibidos del worker.
+     *
+     * El id interno del inventario es la referencia principal. La URL queda como
+     * compatibilidad para workers antiguos. Un callback viejo nunca puede pisar
+     * el resultado de una ejecución posterior.
+     *
+     * @return array{stored:int,ignored:int}
+     */
     function seo_health_scan_store_results($run, array $results) {
         global $wpdb;
         $table = seo_health_scan_tables()['items'];
+        $run_id = absint($run['id'] ?? 0);
+        $stored = 0;
+        $ignored = 0;
+
         foreach ($results as $raw) {
             $row = seo_health_scan_clean_result($raw);
-            if (!$row) {
+            if (!$row || $run_id < 1) {
+                $ignored++;
                 continue;
             }
-            $item = $wpdb->get_row(
-                $wpdb->prepare(
-                    "SELECT id FROM {$table} WHERE scope=%s AND url_hash=%s AND queued_scan_id=%d LIMIT 1",
-                    $run['scope'],
-                    $row['url_hash'],
-                    absint($run['id'])
-                ),
-                ARRAY_A
-            );
+
+            $item = null;
+            if (!empty($row['item_id'])) {
+                $item = $wpdb->get_row(
+                    $wpdb->prepare(
+                        "SELECT id,queued_scan_id,last_scan_id FROM {$table} WHERE id=%d AND scope=%s AND active=1 LIMIT 1",
+                        absint($row['item_id']),
+                        $run['scope']
+                    ),
+                    ARRAY_A
+                );
+            }
+
+            // Compatibilidad con workers anteriores que todavía no devuelven item_id.
             if (!$item) {
+                $item = $wpdb->get_row(
+                    $wpdb->prepare(
+                        "SELECT id,queued_scan_id,last_scan_id FROM {$table} WHERE scope=%s AND url_hash=%s AND active=1 LIMIT 1",
+                        $run['scope'],
+                        $row['url_hash']
+                    ),
+                    ARRAY_A
+                );
+            }
+
+            if (!$item) {
+                $ignored++;
                 continue;
             }
+
+            $queued_scan_id = absint($item['queued_scan_id'] ?? 0);
+            $last_scan_id = absint($item['last_scan_id'] ?? 0);
+
+            // Acepta el resultado si pertenece al run reservado. También tolera
+            // una reserva ya liberada siempre que ningún run posterior haya escrito
+            // ni reservado el elemento. Así no se pierden callbacks válidos tardíos.
+            if ($queued_scan_id !== $run_id) {
+                if ($queued_scan_id !== 0 || $last_scan_id >= $run_id) {
+                    $ignored++;
+                    continue;
+                }
+            }
+
             $final = (int) ($row['final_status'] ?: $row['http_status']);
             $is_error = $row['error_type'] !== '' || $final < 200 || $final >= 400;
             $bucket = $is_error ? 'error' : (!empty($row['warnings']) ? 'warning' : 'ok');
-            $data = array(
-                'status_bucket' => $bucket,
-                'http_status' => $row['http_status'],
-                'final_status' => $row['final_status'],
-                'final_url' => $row['final_url'],
-                'response_ms' => $row['response_ms'],
-                'ttfb_ms' => $row['ttfb_ms'],
-                'content_type' => $row['content_type'],
-                'content_length' => $row['content_length'],
-                'error_type' => $row['error_type'],
-                'error_message' => $row['error_message'],
-                'warnings' => wp_json_encode($row['warnings'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-                'last_checked_at' => $row['checked_at'],
-                'consecutive_errors' => $bucket === 'error' ? 1 : 0,
-                'checks_total' => 1,
-                'queued_scan_id' => 0,
-                'queued_at' => null,
-                'last_scan_id' => absint($run['id']),
-            );
-            $wpdb->query(
+            $warnings_json = wp_json_encode($row['warnings'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+            $updated = $wpdb->query(
                 $wpdb->prepare(
                     "UPDATE {$table} SET
                         status_bucket=%s,http_status=%d,final_status=%d,final_url=%s,response_ms=%d,ttfb_ms=%d,
@@ -883,13 +906,22 @@ if (!function_exists('seo_health_scan_store_results')) {
                         last_error_at=IF(%s='error',%s,last_error_at),
                         consecutive_errors=IF(%s='error',consecutive_errors+1,0),
                         checks_total=checks_total+1,queued_scan_id=0,queued_at=NULL,last_scan_id=%d
-                     WHERE id=%d",
+                     WHERE id=%d
+                       AND (queued_scan_id=%d OR (queued_scan_id=0 AND last_scan_id<%d))",
                     $bucket,$row['http_status'],$row['final_status'],$row['final_url'],$row['response_ms'],$row['ttfb_ms'],
-                    $row['content_type'],$row['content_length'],$row['error_type'],$row['error_message'],$data['warnings'],$row['checked_at'],
-                    $bucket,$row['checked_at'],$bucket,$row['checked_at'],$bucket,absint($run['id']),absint($item['id'])
+                    $row['content_type'],$row['content_length'],$row['error_type'],$row['error_message'],$warnings_json,$row['checked_at'],
+                    $bucket,$row['checked_at'],$bucket,$row['checked_at'],$bucket,$run_id,absint($item['id']),$run_id,$run_id
                 )
             );
+
+            if ($updated === false || (int) $updated < 1) {
+                $ignored++;
+                continue;
+            }
+            $stored++;
         }
+
+        return array('stored'=>$stored,'ignored'=>$ignored);
     }
 }
 
@@ -950,32 +982,51 @@ if (!function_exists('seo_health_scan_rest_results')) {
         }
         if ($event === 'batch') {
             $results = isset($payload['results']) && is_array($payload['results']) ? array_values($payload['results']) : array();
-            seo_health_scan_store_results($run, $results);
+            $store = seo_health_scan_store_results($run, $results);
             seo_health_scan_refresh_run(absint($run['id']));
             $wpdb->update($tables['runs'], array('status'=>'running','updated_at'=>$now), array('id'=>absint($run['id'])), array('%s','%s'), array('%d'));
-            return rest_ensure_response(array('ok'=>true,'results'=>count($results)));
+            return rest_ensure_response(array(
+                'ok'=>true,
+                'results'=>count($results),
+                'stored'=>absint($store['stored'] ?? 0),
+                'ignored'=>absint($store['ignored'] ?? 0),
+            ));
         }
         if ($event === 'complete') {
             $summary = isset($payload['summary']) && is_array($payload['summary']) ? $payload['summary'] : array();
             seo_health_scan_refresh_run(absint($run['id']));
+
+            $fresh_run = $wpdb->get_row(
+                $wpdb->prepare("SELECT total_items,processed_items FROM {$tables['runs']} WHERE id=%d LIMIT 1", absint($run['id'])),
+                ARRAY_A
+            );
+            $expected = absint($fresh_run['total_items'] ?? $run['total_items'] ?? 0);
+            $processed = absint($fresh_run['processed_items'] ?? 0);
+            $complete_ok = $expected === 0 || $processed >= $expected;
+            $final_status = $complete_ok ? 'completed' : 'failed';
+            $final_error = $complete_ok
+                ? ''
+                : sprintf('Resultados incompletos del worker: %d/%d elementos actualizados. Revisa el callback y el workflow GitHub.', $processed, $expected);
+
             $wpdb->update(
                 $tables['runs'],
                 array(
-                    'status'=>'completed',
+                    'status'=>$final_status,
                     'duration_ms'=>absint($summary['duration_ms'] ?? 0),
                     'avg_response_ms'=>absint($summary['avg_response_ms'] ?? 0),
                     'p95_response_ms'=>absint($summary['p95_response_ms'] ?? 0),
                     'pressure_events'=>absint($summary['pressure_events'] ?? 0),
                     'callback_token_hash'=>'',
+                    'error_message'=>$final_error,
                     'completed_at'=>$now,
                     'updated_at'=>$now,
                 ),
                 array('id'=>absint($run['id'])),
-                array('%s','%d','%d','%d','%d','%s','%s','%s'),
+                array('%s','%d','%d','%d','%d','%s','%s','%s','%s'),
                 array('%d')
             );
             $wpdb->query("UPDATE {$tables['items']} SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=" . absint($run['id']));
-            return rest_ensure_response(array('ok'=>true));
+            return rest_ensure_response(array('ok'=>$complete_ok,'processed'=>$processed,'expected'=>$expected));
         }
         if ($event === 'failed') {
             $message = substr(sanitize_text_field((string) ($payload['error_message'] ?? 'Fallo del worker.')), 0, 4000);
@@ -1072,7 +1123,7 @@ if (!function_exists('seo_health_render_scope_tab')) {
             echo '<span class="description"><strong>En curso:</strong> ' . esc_html($active['mode'] === 'load_test' ? 'test de carga' : 'escaneo') . ' · ' . esc_html(number_format_i18n($active['processed_items'])) . '/' . esc_html(number_format_i18n($active['total_items'])) . '</span>';
         }
         echo '</div>';
-        echo '<p class="description"><strong>Escaneo por lotes:</strong> cada ejecución reserva un máximo de ' . esc_html(number_format_i18n(absint($scope_config['batch']))) . ' elementos. Los fallos transitorios (<code>timeout</code>, conexión, 408/425/429 y 5xx) se vuelven a comprobar automáticamente tras 15 y 45 segundos antes de declararlos error. Si se recuperan quedan como aviso; si persisten, se priorizan en la siguiente ejecución. Los pendientes se cubren primero; el test de carga mantiene su propia muestra.</p>';
+        echo '<p class="description"><strong>Escaneo por lotes:</strong> cada ejecución reserva un máximo de ' . esc_html(number_format_i18n(absint($scope_config['batch']))) . ' elementos para ser compatible con el worker GitHub actual. Los pendientes se cubren primero; el test de carga mantiene su propia muestra.</p>';
         if (!empty($missing)) {
             echo '<p style="color:#b32d2e"><strong>GitHub incompleto:</strong> ' . esc_html(implode(', ', $missing)) . '.</p>';
         } else {
@@ -1092,6 +1143,7 @@ if (!function_exists('seo_health_render_scope_tab')) {
         if ($latest) {
             echo '<div class="seo-health-card" style="margin-top:12px"><h3 style="margin-top:0">Última ejecución</h3>';
             echo '<p><strong>' . esc_html($latest['mode'] === 'load_test' ? 'Test de carga' : 'Escaneo') . '</strong> · estado ' . esc_html($latest['status']) . ' · ' . esc_html(number_format_i18n($latest['processed_items'])) . '/' . esc_html(number_format_i18n($latest['total_items'])) . ' · OK ' . esc_html(number_format_i18n($latest['ok_items'])) . ' · avisos ' . esc_html(number_format_i18n($latest['warning_items'])) . ' · errores ' . esc_html(number_format_i18n($latest['error_items'])) . '.</p>';
+            echo '<p class="description">Creada ' . esc_html($latest['created_at'] ?: '—') . ' · finalizada ' . esc_html($latest['completed_at'] ?: '—') . '.</p>';
             if (!empty($latest['duration_ms'])) {
                 echo '<p class="description">Duración ' . esc_html(number_format_i18n(round($latest['duration_ms']/1000,1),1)) . ' s · media ' . esc_html(number_format_i18n($latest['avg_response_ms'])) . ' ms · p95 ' . esc_html(number_format_i18n($latest['p95_response_ms'])) . ' ms · 429 ' . esc_html(number_format_i18n($latest['status_429'])) . ' · 5xx ' . esc_html(number_format_i18n($latest['status_5xx'])) . '.</p>';
             }
