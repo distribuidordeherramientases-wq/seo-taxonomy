@@ -137,7 +137,16 @@ final class SEO_Dependiente_API {
         }
 
         $params = self::request_params($request);
-        $query = isset($params['q']) ? sanitize_text_field((string) $params['q']) : '';
+        // Keep a wider copy only to resolve an explicitly mentioned canonical owner.
+        // The ordinary catalog search remains capped to the historical 180 chars.
+        $raw_query = isset($params['q']) ? sanitize_text_field((string) $params['q']) : '';
+        if (function_exists('mb_substr')) {
+            $raw_query = mb_substr($raw_query, 0, 1000, 'UTF-8');
+        } else {
+            $raw_query = substr($raw_query, 0, 1000);
+        }
+        $explicit_faq_owner = self::resolve_explicit_faq_owner($raw_query, $params);
+        $query = $raw_query;
         if (function_exists('mb_substr')) {
             $query = mb_substr($query, 0, 180, 'UTF-8');
         } else {
@@ -333,7 +342,7 @@ final class SEO_Dependiente_API {
         // v0.2.12: contenido editorial y FAQ son ramas paralelas. Una FAQ solo
         // hereda de su owner producto/categoria y nunca compite semanticamente con
         // posts o paginas. Se conservan dos carriles independientes en la respuesta.
-        $faq_related_internal = self::faq_content_search($query, 18, $matched ? $matched : $documents, true);
+        $faq_related_internal = self::faq_content_search($raw_query, 18, $matched ? $matched : $documents, true, $explicit_faq_owner);
         $faq_related = self::rank_related_items($faq_related_internal, 12, true);
 
         $editorial_direct = self::rank_related_items($direct_related, 18, true);
@@ -347,6 +356,11 @@ final class SEO_Dependiente_API {
         $related = self::merge_related_lanes($editorial_related, $faq_related, $query, 6);
         $search_diagnostic['editorial_related_count'] = count($editorial_related);
         $search_diagnostic['faq_related_count'] = count($faq_related);
+        if (!empty($explicit_faq_owner['object_id'])) {
+            $search_diagnostic['faq_owner_resolution'] = sanitize_key((string) ($explicit_faq_owner['source'] ?? 'explicit'));
+            $search_diagnostic['faq_owner_type'] = absint($explicit_faq_owner['object_type'] ?? 0);
+            $search_diagnostic['faq_owner_id'] = absint($explicit_faq_owner['object_id'] ?? 0);
+        }
 
         $total = count($matched);
         $pages = $total ? (int) ceil($total / $per_page) : 0;
@@ -377,7 +391,8 @@ final class SEO_Dependiente_API {
             $total,
             $search_diagnostic,
             $semantic_hint,
-            $request_kind
+            $request_kind,
+            $explicit_faq_owner
         );
         // Amazon es una tercera fuente complementaria, no un fallback condicionado.
         // Se prepara en toda busqueda que tenga consulta. El frontend la carga aparte
@@ -796,7 +811,7 @@ final class SEO_Dependiente_API {
      * catalogo. El frontend puede retrasar la pregunta y cancelarla si el
      * cliente hace clic antes en un producto.
      */
-    private static function build_clarification($query, $mode, $semantic, $facets, $total, $diagnostic, $semantic_hint, $request_kind = 'search') {
+    private static function build_clarification($query, $mode, $semantic, $facets, $total, $diagnostic, $semantic_hint, $request_kind = 'search', $resolved_owner = array()) {
         $empty = array(
             'should_ask' => false,
             'question'   => '',
@@ -806,6 +821,11 @@ final class SEO_Dependiente_API {
             'options'    => array(),
         );
         if ('' === trim((string) $query) || $semantic_hint || 'compare' === $mode || 'search' !== $request_kind) {
+            return $empty;
+        }
+        // If a product/category has already been resolved to its canonical ID,
+        // asking again which object the user means is a process error.
+        if (absint($resolved_owner['object_id'] ?? 0) && in_array(absint($resolved_owner['object_type'] ?? 0), array(2,3), true)) {
             return $empty;
         }
 
@@ -1123,7 +1143,7 @@ final class SEO_Dependiente_API {
         $diagnostic = is_array($diagnostic) ? $diagnostic : array();
         $out = array();
         foreach (array(
-            'strategy', 'primary_strategy', 'extended_search', 'solution_role'
+            'strategy', 'primary_strategy', 'extended_search', 'solution_role', 'faq_owner_resolution'
         ) as $key) {
             if (isset($diagnostic[$key])) {
                 $out[$key] = sanitize_key((string) $diagnostic[$key]);
@@ -1134,7 +1154,8 @@ final class SEO_Dependiente_API {
             'direct_knowledge_count', 'strict_count', 'semantic_product_ids',
             'semantic_route_rows', 'object_anchor_rows', 'broad_fallback_rows',
             'semantic_catalog_route', 'semantic_rules_active',
-            'editorial_related_count', 'faq_related_count'
+            'editorial_related_count', 'faq_related_count',
+            'faq_owner_type', 'faq_owner_id'
         ) as $key) {
             if (isset($diagnostic[$key])) {
                 $out[$key] = absint($diagnostic[$key]);
@@ -3010,6 +3031,146 @@ final class SEO_Dependiente_API {
         return array_values(array_filter(array_map('absint', (array) $wpdb->get_col($wpdb->prepare($sql, $params)))));
     }
 
+    /**
+     * Resolve a canonical FAQ owner before FAQ retrieval.
+     *
+     * Important: FAQ relations are NEVER resolved by title. Titles/labels are only
+     * a natural-language bridge used to identify the canonical object ID when the
+     * caller did not already provide one. From that point onward the authoritative
+     * key is object_type + object_id.
+     */
+    private static function resolve_explicit_faq_owner($query, $params = array()) {
+        global $wpdb;
+
+        $params = is_array($params) ? $params : array();
+        $context = isset($params['owner_context']) && is_array($params['owner_context'])
+            ? $params['owner_context']
+            : array();
+        $context_type = $context['object_type'] ?? ($params['context_object_type'] ?? ($params['owner_type'] ?? ''));
+        $context_id = absint($context['object_id'] ?? ($params['context_object_id'] ?? ($params['owner_id'] ?? 0)));
+        $validated = self::validate_faq_owner($context_type, $context_id);
+        if ($validated) {
+            $validated['source'] = 'request_context';
+            $validated['label'] = '';
+            return $validated;
+        }
+
+        $query = trim((string) $query);
+        if ('' === $query) {
+            return array();
+        }
+        $plain = function_exists('remove_accents') ? remove_accents($query) : $query;
+        $plain = strtolower((string) $plain);
+        $hint_type = 0;
+        if (preg_match('/\bproducto\b/u', $plain)) {
+            $hint_type = 3;
+        } elseif (preg_match('/\bcategoria\b/u', $plain)) {
+            $hint_type = 2;
+        }
+        if (!$hint_type) {
+            return array();
+        }
+
+        $label = '';
+        if (preg_match('/["\x{00AB}\x{201C}](.{2,700})["\x{00BB}\x{201D}]\s*:\s*/us', $query, $match)) {
+            $label = trim(wp_strip_all_tags((string) ($match[1] ?? '')));
+        }
+        if ('' === $label) {
+            return array();
+        }
+
+        if (3 === $hint_type) {
+            $normalized = SEO_Dependiente_Index::normalize($label);
+            if ($normalized && SEO_Dependiente_Index::table_exists()) {
+                $ids = array_values(array_unique(array_filter(array_map('absint', (array) $wpdb->get_col($wpdb->prepare(
+                    'SELECT product_id FROM `' . esc_sql(SEO_Dependiente_Index::table()) . '` WHERE normalized_title=%s LIMIT 2',
+                    $normalized
+                ))))));
+                if (1 === count($ids)) {
+                    $owner = self::validate_faq_owner(3, $ids[0]);
+                    if ($owner) {
+                        $owner['source'] = 'explicit_query';
+                        $owner['label'] = $label;
+                        return $owner;
+                    }
+                }
+            }
+
+            // Exact canonical WordPress title as a safe fallback if the Dependiente
+            // index is stale. It only resolves the product ID; FAQ lookup still uses ID.
+            $ids = array_values(array_unique(array_filter(array_map('absint', (array) $wpdb->get_col($wpdb->prepare(
+                "SELECT ID FROM {$wpdb->posts} WHERE post_type='product' AND post_status='publish' AND post_title=%s ORDER BY ID ASC LIMIT 2",
+                $label
+            ))))));
+            if (1 === count($ids)) {
+                $owner = self::validate_faq_owner(3, $ids[0]);
+                if ($owner) {
+                    $owner['source'] = 'explicit_query';
+                    $owner['label'] = $label;
+                    return $owner;
+                }
+            }
+            return array();
+        }
+
+        $term = get_term_by('slug', sanitize_title($label), 'product_cat');
+        if (!$term || is_wp_error($term)) {
+            $term = get_term_by('name', $label, 'product_cat');
+        }
+        if ($term && !is_wp_error($term)) {
+            $owner = self::validate_faq_owner(2, absint($term->term_id));
+            if ($owner) {
+                $owner['source'] = 'explicit_query';
+                $owner['label'] = $label;
+                return $owner;
+            }
+        }
+        return array();
+    }
+
+    private static function validate_faq_owner($object_type, $object_id) {
+        $object_id = absint($object_id);
+        if (!$object_id) {
+            return array();
+        }
+        if (is_string($object_type)) {
+            $type = sanitize_key($object_type);
+            if (in_array($type, array('product','producto'), true)) {
+                $object_type = 3;
+            } elseif (in_array($type, array('product_cat','category','categoria'), true)) {
+                $object_type = 2;
+            }
+        }
+        $object_type = absint($object_type);
+        if (3 === $object_type) {
+            $post = get_post($object_id);
+            if (!$post instanceof WP_Post || 'product' !== $post->post_type || 'publish' !== $post->post_status) {
+                return array();
+            }
+            return array('object_type'=>3, 'object_id'=>$object_id, 'type'=>'product');
+        }
+        if (2 === $object_type) {
+            $term = get_term($object_id, 'product_cat');
+            if (!$term || is_wp_error($term)) {
+                return array();
+            }
+            return array('object_type'=>2, 'object_id'=>$object_id, 'type'=>'product_cat');
+        }
+        return array();
+    }
+
+    /** Remove the explicit owner prefix so FAQ ranking uses the actual question. */
+    private static function faq_query_without_owner_context($query) {
+        $query = trim((string) $query);
+        if (preg_match('/["\x{00AB}\x{201C}].{2,700}["\x{00BB}\x{201D}]\s*:\s*(.+)$/us', $query, $match)) {
+            $tail = trim((string) ($match[1] ?? ''));
+            if ('' !== $tail) {
+                return $tail;
+            }
+        }
+        return $query;
+    }
+
     private static function object_vocabulary_terms($object_type, $object_id) {
         global $wpdb;
         $object_type = sanitize_key((string) $object_type);
@@ -3042,19 +3203,22 @@ final class SEO_Dependiente_API {
      * Un integrador puede reactivar el fallback de forma explicita mediante filtro,
      * pero Dependiente lo mantiene desactivado por defecto.
      */
-    private static function faq_content_search($query, $limit = 30, $documents = array(), $keep_internal = false) {
+    private static function faq_content_search($query, $limit = 30, $documents = array(), $keep_internal = false, $resolved_owner = array()) {
         global $wpdb;
         $faq_table = $wpdb->prefix . 'seo_faq';
         if (!SEO_Dependiente_Index::table_exists($faq_table)) {
             return array();
         }
 
-        $normalized_query = SEO_Dependiente_Index::normalize((string) $query);
+        $validated_owner = self::validate_faq_owner($resolved_owner['object_type'] ?? 0, $resolved_owner['object_id'] ?? 0);
+        $resolved_owner = $validated_owner ? array_merge($resolved_owner, $validated_owner) : array();
+        $faq_query = $resolved_owner ? self::faq_query_without_owner_context($query) : (string) $query;
+        $normalized_query = SEO_Dependiente_Index::normalize($faq_query);
         $tokens = array_values(array_unique(array_filter(preg_split('/\s+/u', $normalized_query), static function ($token) {
             $length = function_exists('mb_strlen') ? mb_strlen((string) $token, 'UTF-8') : strlen((string) $token);
             return $length >= 3;
         })));
-        $tokens = array_slice($tokens, 0, 6);
+        $tokens = array_slice($tokens, 0, $resolved_owner ? 10 : 6);
         if (!$tokens) {
             return array();
         }
@@ -3065,28 +3229,40 @@ final class SEO_Dependiente_API {
         $product_ids = array();
         $category_scores = array();
 
-        // Los primeros productos ya vienen ordenados por relevancia del motor.
-        // De ellos obtenemos owner de producto y categorías; nunca recorremos aquí
-        // las 50k+ FAQs para descubrir a qué objeto pertenecen.
-        foreach (array_slice((array) $documents, 0, 24) as $rank => $document) {
-            if (!is_array($document)) {
-                continue;
+        // If the question resolves to a canonical owner, lock FAQ retrieval to
+        // that object_type/object_id. No other product/category can enter this lane.
+        if ($resolved_owner) {
+            $resolved_type = absint($resolved_owner['object_type'] ?? 0);
+            $resolved_id = absint($resolved_owner['object_id'] ?? 0);
+            if (3 === $resolved_type && $resolved_id) {
+                $product_ids[$resolved_id] = true;
+                $owner_scores['3:' . $resolved_id] = 1000;
+            } elseif (2 === $resolved_type && $resolved_id) {
+                $category_scores[$resolved_id] = 1000;
+                $owner_scores['2:' . $resolved_id] = 1000;
             }
-            $product_id = absint($document['product_id'] ?? $document['id'] ?? 0);
-            if ($product_id && !isset($product_ids[$product_id])) {
-                $product_ids[$product_id] = true;
-                $owner_scores['3:' . $product_id] = max(40, 190 - ((int) $rank * 6));
-            }
-            $rank_weight = max(4, 30 - (int) $rank);
-            foreach ((array) ($document['categories'] ?? array()) as $category) {
-                $category_id = absint($category['id'] ?? 0);
-                if (!$category_id) {
+        } else {
+            // Without an explicit owner, derive owners from ranked catalog documents.
+            foreach (array_slice((array) $documents, 0, 24) as $rank => $document) {
+                if (!is_array($document)) {
                     continue;
                 }
-                if (!isset($category_scores[$category_id])) {
-                    $category_scores[$category_id] = 0;
+                $product_id = absint($document['product_id'] ?? $document['id'] ?? 0);
+                if ($product_id && !isset($product_ids[$product_id])) {
+                    $product_ids[$product_id] = true;
+                    $owner_scores['3:' . $product_id] = max(40, 190 - ((int) $rank * 6));
                 }
-                $category_scores[$category_id] += $rank_weight;
+                $rank_weight = max(4, 30 - (int) $rank);
+                foreach ((array) ($document['categories'] ?? array()) as $category) {
+                    $category_id = absint($category['id'] ?? 0);
+                    if (!$category_id) {
+                        continue;
+                    }
+                    if (!isset($category_scores[$category_id])) {
+                        $category_scores[$category_id] = 0;
+                    }
+                    $category_scores[$category_id] += $rank_weight;
+                }
             }
         }
 
@@ -3094,7 +3270,10 @@ final class SEO_Dependiente_API {
             arsort($category_scores, SORT_NUMERIC);
             $category_scores = array_slice($category_scores, 0, 12, true);
             foreach ($category_scores as $category_id => $score) {
-                $owner_scores['2:' . absint($category_id)] = min(155, 55 + (int) $score);
+                $key = '2:' . absint($category_id);
+                if (!isset($owner_scores[$key])) {
+                    $owner_scores[$key] = min(155, 55 + (int) $score);
+                }
             }
         }
 
@@ -3139,7 +3318,7 @@ final class SEO_Dependiente_API {
             $query,
             $documents
         );
-        if (!$candidate_rows && $allow_text_fallback) {
+        if (!$candidate_rows && !$resolved_owner && $allow_text_fallback) {
             $conditions = array();
             $params = array();
             foreach ($tokens as $token) {
