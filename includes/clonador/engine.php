@@ -36,6 +36,7 @@ final class SEO_Clonador_Engine {
         add_action('wp_ajax_seo_clonador_stop', array(__CLASS__, 'ajax_stop'));
         add_action('wp_ajax_seo_clonador_resume', array(__CLASS__, 'ajax_resume'));
         add_action('wp_ajax_seo_clonador_speed', array(__CLASS__, 'ajax_speed'));
+        add_action('wp_ajax_seo_clonador_reverify', array(__CLASS__, 'ajax_reverify'));
         add_action('admin_init', array(__CLASS__, 'consume_staging_generation'));
     }
 
@@ -383,13 +384,18 @@ final class SEO_Clonador_Engine {
         return (string) ($row['c'] ?? 0) . ':' . (string) ($row['x'] ?? 0) . ':' . (string) ($row['s'] ?? 0);
     }
 
-    private static function environment_marker($mysqli, $tables) {
+    private static function environment_marker($mysqli, $tables, $include_auto_draft = false) {
         $pieces = array();
-        $digest = self::table_digest($mysqli, $tables['posts'], self::post_type_sql($mysqli) . " AND post_status<>'trash'", array('ID','post_content','post_title','post_excerpt','post_status','post_name','post_parent','menu_order','post_type'));
+        // 2.5.9: auto-draft is transient WordPress editor state, never clone content.
+        // $include_auto_draft=true exists only to validate the fingerprint of a
+        // failed 2.5.7/2.5.8 job before allowing a one-click re-verification.
+        $status_sql = $include_auto_draft ? "post_status<>'trash'" : "post_status NOT IN ('trash','auto-draft')";
+        $p_status_sql = $include_auto_draft ? "p.post_status<>'trash'" : "p.post_status NOT IN ('trash','auto-draft')";
+        $digest = self::table_digest($mysqli, $tables['posts'], self::post_type_sql($mysqli) . ' AND ' . $status_sql, array('ID','post_content','post_title','post_excerpt','post_status','post_name','post_parent','menu_order','post_type'));
         if (is_wp_error($digest)) return $digest;
         $pieces['posts'] = $digest;
 
-        $sql = "SELECT COUNT(*) c,COALESCE(BIT_XOR(CRC32(CONCAT_WS(CHAR(31),pm.post_id,pm.meta_key,pm.meta_value))),0) x,COALESCE(SUM(CRC32(CONCAT_WS(CHAR(31),pm.post_id,pm.meta_key,pm.meta_value))),0) s FROM `{$tables['postmeta']}` pm JOIN `{$tables['posts']}` p ON p.ID=pm.post_id WHERE " . self::post_type_sql($mysqli, 'p') . " AND p.post_status<>'trash' AND " . self::meta_portable_sql('pm');
+        $sql = "SELECT COUNT(*) c,COALESCE(BIT_XOR(CRC32(CONCAT_WS(CHAR(31),pm.post_id,pm.meta_key,pm.meta_value))),0) x,COALESCE(SUM(CRC32(CONCAT_WS(CHAR(31),pm.post_id,pm.meta_key,pm.meta_value))),0) s FROM `{$tables['postmeta']}` pm JOIN `{$tables['posts']}` p ON p.ID=pm.post_id WHERE " . self::post_type_sql($mysqli, 'p') . ' AND ' . $p_status_sql . ' AND ' . self::meta_portable_sql('pm');
         $r = self::rows($mysqli, $sql);
         if (is_wp_error($r)) return $r;
         $pieces['postmeta'] = ($r[0]['c'] ?? 0) . ':' . ($r[0]['x'] ?? 0) . ':' . ($r[0]['s'] ?? 0);
@@ -399,7 +405,7 @@ final class SEO_Clonador_Engine {
         if (is_wp_error($r)) return $r;
         $pieces['terms'] = ($r[0]['c'] ?? 0) . ':' . ($r[0]['x'] ?? 0) . ':' . ($r[0]['s'] ?? 0);
 
-        $sql = "SELECT COUNT(*) c,COALESCE(BIT_XOR(CRC32(CONCAT_WS(CHAR(31),tr.object_id,tt.taxonomy,t.slug,tr.term_order))),0) x,COALESCE(SUM(CRC32(CONCAT_WS(CHAR(31),tr.object_id,tt.taxonomy,t.slug,tr.term_order))),0) s FROM `{$tables['term_relationships']}` tr JOIN `{$tables['term_taxonomy']}` tt ON tt.term_taxonomy_id=tr.term_taxonomy_id JOIN `{$tables['terms']}` t ON t.term_id=tt.term_id JOIN `{$tables['posts']}` p ON p.ID=tr.object_id WHERE " . self::all_managed_taxonomy_sql($mysqli, 'tt') . " AND " . self::post_type_sql($mysqli, 'p') . " AND p.post_status<>'trash'";
+        $sql = "SELECT COUNT(*) c,COALESCE(BIT_XOR(CRC32(CONCAT_WS(CHAR(31),tr.object_id,tt.taxonomy,t.slug,tr.term_order))),0) x,COALESCE(SUM(CRC32(CONCAT_WS(CHAR(31),tr.object_id,tt.taxonomy,t.slug,tr.term_order))),0) s FROM `{$tables['term_relationships']}` tr JOIN `{$tables['term_taxonomy']}` tt ON tt.term_taxonomy_id=tr.term_taxonomy_id JOIN `{$tables['terms']}` t ON t.term_id=tt.term_id JOIN `{$tables['posts']}` p ON p.ID=tr.object_id WHERE " . self::all_managed_taxonomy_sql($mysqli, 'tt') . " AND " . self::post_type_sql($mysqli, 'p') . ' AND ' . $p_status_sql;
         $r = self::rows($mysqli, $sql);
         if (is_wp_error($r)) return $r;
         $pieces['term_relationships'] = ($r[0]['c'] ?? 0) . ':' . ($r[0]['x'] ?? 0) . ':' . ($r[0]['s'] ?? 0);
@@ -445,7 +451,7 @@ final class SEO_Clonador_Engine {
         $orphan_product_attrs = self::scalar($pro,
             "SELECT COUNT(*) c
              FROM `{$tables['sql_product_atributos']}` pa
-             LEFT JOIN `{$tables['posts']}` p ON p.ID=pa.product_id AND p.post_type='product' AND p.post_status<>'trash'
+             LEFT JOIN `{$tables['posts']}` p ON p.ID=pa.product_id AND p.post_type='product' AND p.post_status NOT IN ('trash','auto-draft')
              WHERE p.ID IS NULL", 'c');
         if (is_wp_error($orphan_product_attrs)) return $orphan_product_attrs;
         $orphan_product_attrs = absint($orphan_product_attrs);
@@ -456,7 +462,7 @@ final class SEO_Clonador_Engine {
         $count = self::scalar($pro,
             "SELECT COUNT(*) c
              FROM `{$tables['sql_product_atributos']}` pa
-             JOIN `{$tables['posts']}` p ON p.ID=pa.product_id AND p.post_type='product' AND p.post_status<>'trash'
+             JOIN `{$tables['posts']}` p ON p.ID=pa.product_id AND p.post_type='product' AND p.post_status NOT IN ('trash','auto-draft')
              LEFT JOIN `{$tables['sql_atributos']}` a ON a.id=pa.atributo_id
              LEFT JOIN `{$tables['sql_atributos_terminos']}` t ON t.id=pa.termino_id
              WHERE a.id IS NULL OR (COALESCE(pa.termino_id,0)>0 AND t.id IS NULL)", 'c');
@@ -492,7 +498,7 @@ final class SEO_Clonador_Engine {
             "SELECT COUNT(*) c
              FROM `{$tables['seo_object_vocabulary']}` ov
              LEFT JOIN `{$tables['seo_vocabulary']}` v ON v.id=ov.vocabulary_id
-             LEFT JOIN `{$tables['posts']}` p ON p.ID=ov.object_id AND p.post_status<>'trash' AND (
+             LEFT JOIN `{$tables['posts']}` p ON p.ID=ov.object_id AND p.post_status NOT IN ('trash','auto-draft') AND (
                     (ov.object_type='product' AND p.post_type='product') OR
                     (ov.object_type='page' AND p.post_type='page') OR
                     (ov.object_type='post' AND p.post_type='post')
@@ -507,7 +513,7 @@ final class SEO_Clonador_Engine {
         $orphan_seo_nodes = self::scalar($pro,
             "SELECT COUNT(*) c
              FROM `{$tables['seo_nodes']}` n
-             LEFT JOIN `{$tables['posts']}` p ON p.ID=n.object_id AND p.post_status<>'trash' AND (
+             LEFT JOIN `{$tables['posts']}` p ON p.ID=n.object_id AND p.post_status NOT IN ('trash','auto-draft') AND (
                     (n.object_type='product' AND p.post_type='product') OR
                     (n.object_type='page' AND p.post_type='page') OR
                     (n.object_type='post' AND p.post_type='post')
@@ -524,7 +530,7 @@ final class SEO_Clonador_Engine {
         $count = self::scalar($pro,
             "SELECT COUNT(*) c
              FROM `{$tables['seo_faq']}` f
-             LEFT JOIN `{$tables['posts']}` p ON p.ID=f.object_id AND p.post_status<>'trash' AND (
+             LEFT JOIN `{$tables['posts']}` p ON p.ID=f.object_id AND p.post_status NOT IN ('trash','auto-draft') AND (
                     (f.object_type=1 AND p.post_type='page') OR
                     (f.object_type=3 AND p.post_type='product')
              )
@@ -539,9 +545,9 @@ final class SEO_Clonador_Engine {
             "SELECT id,source_type,source_id,target_type,target_id,relation_type
              FROM `{$tables['seo_relations']}` WHERE " . self::managed_custom_where($pro,'seo_relations') . ' ORDER BY id');
         if (is_wp_error($relations)) return $relations;
-        $page_list = self::ids($pro,"SELECT ID FROM `{$tables['posts']}` WHERE post_type='page' AND post_status<>'trash'",'ID');
-        $post_list = self::ids($pro,"SELECT ID FROM `{$tables['posts']}` WHERE post_type='post' AND post_status<>'trash'",'ID');
-        $product_list = self::ids($pro,"SELECT ID FROM `{$tables['posts']}` WHERE post_type='product' AND post_status<>'trash'",'ID');
+        $page_list = self::ids($pro,"SELECT ID FROM `{$tables['posts']}` WHERE post_type='page' AND post_status NOT IN ('trash','auto-draft')",'ID');
+        $post_list = self::ids($pro,"SELECT ID FROM `{$tables['posts']}` WHERE post_type='post' AND post_status NOT IN ('trash','auto-draft')",'ID');
+        $product_list = self::ids($pro,"SELECT ID FROM `{$tables['posts']}` WHERE post_type='product' AND post_status NOT IN ('trash','auto-draft')",'ID');
         $cat_list = self::ids($pro,"SELECT term_id FROM `{$tables['term_taxonomy']}` WHERE taxonomy='product_cat'",'term_id');
         foreach (array($page_list,$post_list,$product_list,$cat_list) as $list) if (is_wp_error($list)) return $list;
         $page_ids = array_fill_keys($page_list,true);
@@ -573,8 +579,8 @@ final class SEO_Clonador_Engine {
         if (self::table_exists($pro,$attrs_lookup)) {
             $count=self::scalar($pro,
                 "SELECT COUNT(*) c FROM `{$attrs_lookup}` l
-                 LEFT JOIN `{$tables['posts']}` p ON p.ID=l.product_id AND " . self::post_type_sql($pro,'p') . " AND p.post_status<>'trash'
-                 LEFT JOIN `{$tables['posts']}` pp ON pp.ID=l.product_or_parent_id AND " . self::post_type_sql($pro,'pp') . " AND pp.post_status<>'trash'
+                 LEFT JOIN `{$tables['posts']}` p ON p.ID=l.product_id AND " . self::post_type_sql($pro,'p') . " AND p.post_status NOT IN ('trash','auto-draft')
+                 LEFT JOIN `{$tables['posts']}` pp ON pp.ID=l.product_or_parent_id AND " . self::post_type_sql($pro,'pp') . " AND pp.post_status NOT IN ('trash','auto-draft')
                  LEFT JOIN `{$tables['term_taxonomy']}` tt ON tt.term_id=l.term_id AND LEFT(tt.taxonomy,3)='pa_'
                  WHERE p.ID IS NULL OR pp.ID IS NULL OR tt.term_taxonomy_id IS NULL", 'c');
             $r=$check_count('PRO contiene wc_product_attributes_lookup con referencias no resolubles',$count); if(is_wp_error($r))return$r;
@@ -612,7 +618,7 @@ final class SEO_Clonador_Engine {
         foreach (self::remapped_postmeta_keys() as $key) {
             $key_sql = mysqli_real_escape_string($pro, $key);
             $count = self::scalar($pro,
-                "SELECT COUNT(*) c FROM `{$pro_tables['postmeta']}` pm JOIN `{$pro_tables['posts']}` p ON p.ID=pm.post_id WHERE " . self::post_type_sql($pro,'p') . " AND p.post_status<>'trash' AND pm.meta_key='{$key_sql}'",
+                "SELECT COUNT(*) c FROM `{$pro_tables['postmeta']}` pm JOIN `{$pro_tables['posts']}` p ON p.ID=pm.post_id WHERE " . self::post_type_sql($pro,'p') . " AND p.post_status NOT IN ('trash','auto-draft') AND pm.meta_key='{$key_sql}'",
                 'c'
             );
             if (is_wp_error($count)) return $count;
@@ -625,7 +631,7 @@ final class SEO_Clonador_Engine {
         // de forma segura y las reporta como warning.
         $valid_post_ids = self::ids(
             $pro,
-            "SELECT ID FROM `{$pro_tables['posts']}` WHERE " . self::post_type_sql($pro) . " AND post_status<>'trash'",
+            "SELECT ID FROM `{$pro_tables['posts']}` WHERE " . self::post_type_sql($pro) . " AND post_status NOT IN ('trash','auto-draft')",
             'ID'
         );
         if (is_wp_error($valid_post_ids)) return $valid_post_ids;
@@ -633,7 +639,7 @@ final class SEO_Clonador_Engine {
         $known_keys_sql = "'" . implode("','", array_map(static function($v) use ($pro){ return mysqli_real_escape_string($pro,$v); }, self::remapped_postmeta_keys())) . "'";
         $known_rows = self::rows(
             $pro,
-            "SELECT pm.post_id,pm.meta_key,pm.meta_value FROM `{$pro_tables['postmeta']}` pm JOIN `{$pro_tables['posts']}` p ON p.ID=pm.post_id WHERE " . self::post_type_sql($pro,'p') . " AND p.post_status<>'trash' AND pm.meta_key IN ({$known_keys_sql}) ORDER BY pm.meta_id"
+            "SELECT pm.post_id,pm.meta_key,pm.meta_value FROM `{$pro_tables['postmeta']}` pm JOIN `{$pro_tables['posts']}` p ON p.ID=pm.post_id WHERE " . self::post_type_sql($pro,'p') . " AND p.post_status NOT IN ('trash','auto-draft') AND pm.meta_key IN ({$known_keys_sql}) ORDER BY pm.meta_id"
         );
         if (is_wp_error($known_rows)) return $known_rows;
         $known_unresolved = 0;
@@ -663,12 +669,12 @@ final class SEO_Clonador_Engine {
         $audit_excluded_keys = array_merge(self::remapped_postmeta_keys(), array('_product_attributes'));
         $known_sql = "'" . implode("','", array_map(static function($v) use ($pro){ return mysqli_real_escape_string($pro,$v); }, $audit_excluded_keys)) . "'";
         $count = self::scalar($pro,
-            "SELECT COUNT(*) c FROM `{$pro_tables['postmeta']}` pm JOIN `{$pro_tables['posts']}` p ON p.ID=pm.post_id WHERE " . self::post_type_sql($pro,'p') . " AND p.post_status<>'trash' AND " . self::meta_portable_sql('pm') . " AND {$structured_where} AND {$suspicious_key} AND pm.meta_key NOT IN ({$known_sql})",
+            "SELECT COUNT(*) c FROM `{$pro_tables['postmeta']}` pm JOIN `{$pro_tables['posts']}` p ON p.ID=pm.post_id WHERE " . self::post_type_sql($pro,'p') . " AND p.post_status NOT IN ('trash','auto-draft') AND " . self::meta_portable_sql('pm') . " AND {$structured_where} AND {$suspicious_key} AND pm.meta_key NOT IN ({$known_sql})",
             'c'
         );
         if (is_wp_error($count)) return $count;
         $samples = self::rows($pro,
-            "SELECT pm.post_id,pm.meta_key,LEFT(pm.meta_value,220) sample FROM `{$pro_tables['postmeta']}` pm JOIN `{$pro_tables['posts']}` p ON p.ID=pm.post_id WHERE " . self::post_type_sql($pro,'p') . " AND p.post_status<>'trash' AND " . self::meta_portable_sql('pm') . " AND {$structured_where} AND {$suspicious_key} AND pm.meta_key NOT IN ({$known_sql}) ORDER BY pm.meta_id LIMIT 100"
+            "SELECT pm.post_id,pm.meta_key,LEFT(pm.meta_value,220) sample FROM `{$pro_tables['postmeta']}` pm JOIN `{$pro_tables['posts']}` p ON p.ID=pm.post_id WHERE " . self::post_type_sql($pro,'p') . " AND p.post_status NOT IN ('trash','auto-draft') AND " . self::meta_portable_sql('pm') . " AND {$structured_where} AND {$suspicious_key} AND pm.meta_key NOT IN ({$known_sql}) ORDER BY pm.meta_id LIMIT 100"
         );
         if (is_wp_error($samples)) return $samples;
         $warnings=array();
@@ -747,8 +753,8 @@ final class SEO_Clonador_Engine {
         foreach (self::$post_types as $type) {
             $type_sql_pro = mysqli_real_escape_string($pro, $type);
             $type_sql_stg = mysqli_real_escape_string($stg, $type);
-            $src = self::count_table($pro, $pro_tables['posts'], "post_type='{$type_sql_pro}' AND post_status<>'trash'");
-            $dst = self::count_table($stg, $stg_tables['posts'], "post_type='{$type_sql_stg}' AND post_status<>'trash'");
+            $src = self::count_table($pro, $pro_tables['posts'], "post_type='{$type_sql_pro}' AND post_status NOT IN ('trash','auto-draft')");
+            $dst = self::count_table($stg, $stg_tables['posts'], "post_type='{$type_sql_stg}' AND post_status NOT IN ('trash','auto-draft')");
             if (is_wp_error($src)) return $src;
             if (is_wp_error($dst)) return $dst;
             $summary[$type . '_pro'] = $src;
@@ -795,11 +801,11 @@ final class SEO_Clonador_Engine {
                 $src = self::count_table($pro, $pro_table);
                 $dst = self::count_table($stg, $stg_table);
             } elseif ('wc_product_meta_lookup' === $key) {
-                $src = self::scalar($pro, "SELECT COUNT(*) c FROM `{$pro_table}` l JOIN `{$pro_tables['posts']}` p ON p.ID=l.product_id WHERE " . self::post_type_sql($pro, 'p') . " AND p.post_status<>'trash'", 'c');
-                $dst = self::scalar($stg, "SELECT COUNT(*) c FROM `{$stg_table}` l JOIN `{$stg_tables['posts']}` p ON p.ID=l.product_id WHERE " . self::post_type_sql($stg, 'p') . " AND p.post_status<>'trash'", 'c');
+                $src = self::scalar($pro, "SELECT COUNT(*) c FROM `{$pro_table}` l JOIN `{$pro_tables['posts']}` p ON p.ID=l.product_id WHERE " . self::post_type_sql($pro, 'p') . " AND p.post_status NOT IN ('trash','auto-draft')", 'c');
+                $dst = self::scalar($stg, "SELECT COUNT(*) c FROM `{$stg_table}` l JOIN `{$stg_tables['posts']}` p ON p.ID=l.product_id WHERE " . self::post_type_sql($stg, 'p') . " AND p.post_status NOT IN ('trash','auto-draft')", 'c');
             } else {
-                $src = self::scalar($pro, "SELECT COUNT(*) c FROM `{$pro_table}` l JOIN `{$pro_tables['posts']}` p ON p.ID=l.product_id WHERE " . self::post_type_sql($pro, 'p') . " AND p.post_status<>'trash'", 'c');
-                $dst = self::scalar($stg, "SELECT COUNT(*) c FROM `{$stg_table}` l JOIN `{$stg_tables['posts']}` p ON p.ID=l.product_id WHERE " . self::post_type_sql($stg, 'p') . " AND p.post_status<>'trash'", 'c');
+                $src = self::scalar($pro, "SELECT COUNT(*) c FROM `{$pro_table}` l JOIN `{$pro_tables['posts']}` p ON p.ID=l.product_id WHERE " . self::post_type_sql($pro, 'p') . " AND p.post_status NOT IN ('trash','auto-draft')", 'c');
+                $dst = self::scalar($stg, "SELECT COUNT(*) c FROM `{$stg_table}` l JOIN `{$stg_tables['posts']}` p ON p.ID=l.product_id WHERE " . self::post_type_sql($stg, 'p') . " AND p.post_status NOT IN ('trash','auto-draft')", 'c');
             }
             if (is_wp_error($src)) return $src;
             if (is_wp_error($dst)) return $dst;
@@ -955,7 +961,7 @@ final class SEO_Clonador_Engine {
             'post_modified_gmt','post_content_filtered','post_parent','menu_order','post_type','post_mime_type'
         );
         $columns_sql = implode(',', array_map(array(__CLASS__, 'ident'), $source_columns));
-        $where = self::post_type_sql($pro) . " AND post_status<>'trash'";
+        $where = self::post_type_sql($pro) . " AND post_status NOT IN ('trash','auto-draft')";
         $cursor = 0;
         $copied = 0;
         $parents = array();
@@ -1012,7 +1018,7 @@ final class SEO_Clonador_Engine {
             $rows = self::rows($pro,
                 "SELECT pm.meta_id,pm.post_id,pm.meta_key,pm.meta_value
                  FROM `{$pro_tables['postmeta']}` pm JOIN `{$pro_tables['posts']}` p ON p.ID=pm.post_id
-                 WHERE " . self::post_type_sql($pro, 'p') . " AND p.post_status<>'trash' AND " . self::meta_portable_sql('pm') . " AND pm.meta_id>{$cursor}
+                 WHERE " . self::post_type_sql($pro, 'p') . " AND p.post_status NOT IN ('trash','auto-draft') AND " . self::meta_portable_sql('pm') . " AND pm.meta_id>{$cursor}
                  ORDER BY pm.meta_id ASC LIMIT 500"
             );
             if (is_wp_error($rows)) return $rows;
@@ -1172,7 +1178,7 @@ final class SEO_Clonador_Engine {
              JOIN `{$pro_tables['posts']}` p ON p.ID=tr.object_id
              WHERE " . self::taxonomy_sql($pro, 'tt') . "
                AND " . self::post_type_sql($pro, 'p') . "
-               AND p.post_status<>'trash'
+               AND p.post_status NOT IN ('trash','auto-draft')
              ORDER BY tr.object_id,tr.term_taxonomy_id"
         );
         if (is_wp_error($rel_rows)) return $rel_rows;
@@ -1293,7 +1299,7 @@ final class SEO_Clonador_Engine {
              JOIN `{$pro_tables['posts']}` p ON p.ID=tr.object_id
              WHERE " . self::extra_taxonomy_sql($pro, 'tt') . "
                AND " . self::post_type_sql($pro, 'p') . "
-               AND p.post_status<>'trash'
+               AND p.post_status NOT IN ('trash','auto-draft')
              ORDER BY tr.object_id,tr.term_taxonomy_id"
         );
         if (is_wp_error($rel_rows)) return $rel_rows;
@@ -1534,7 +1540,7 @@ final class SEO_Clonador_Engine {
         if (is_wp_error($r)) return $r;
         $cols_sql = implode(',', array_map(array(__CLASS__, 'ident'), $columns));
         $pro_posts = $pro_prefix . 'posts';
-        $rows = self::rows($pro, "SELECT {$cols_sql} FROM `{$source}` WHERE product_id IN (SELECT ID FROM `{$pro_posts}` WHERE " . self::post_type_sql($pro) . " AND post_status<>'trash') ORDER BY product_or_parent_id,product_id,term_id");
+        $rows = self::rows($pro, "SELECT {$cols_sql} FROM `{$source}` WHERE product_id IN (SELECT ID FROM `{$pro_posts}` WHERE " . self::post_type_sql($pro) . " AND post_status NOT IN ('trash','auto-draft')) ORDER BY product_or_parent_id,product_id,term_id");
         if (is_wp_error($rows)) return $rows;
 
         $insert = array();
@@ -1599,8 +1605,8 @@ final class SEO_Clonador_Engine {
             $st = mysqli_real_escape_string($stg, $type);
             $r = $add(
                 'post_type:' . $type,
-                self::count_table($pro, $pro_tables['posts'], "post_type='{$sp}' AND post_status<>'trash'"),
-                self::count_table($stg, $stg_tables['posts'], "post_type='{$st}' AND post_status<>'trash'"),
+                self::count_table($pro, $pro_tables['posts'], "post_type='{$sp}' AND post_status NOT IN ('trash','auto-draft')"),
+                self::count_table($stg, $stg_tables['posts'], "post_type='{$st}' AND post_status NOT IN ('trash','auto-draft')"),
                 'Objetos ' . $type
             );
             if (is_wp_error($r)) return $r;
@@ -1620,12 +1626,12 @@ final class SEO_Clonador_Engine {
             if (is_wp_error($r)) return $r;
         }
 
-        $src_meta = self::scalar($pro, "SELECT COUNT(*) c FROM `{$pro_tables['postmeta']}` pm JOIN `{$pro_tables['posts']}` p ON p.ID=pm.post_id WHERE " . self::post_type_sql($pro,'p') . " AND p.post_status<>'trash' AND " . self::meta_portable_sql('pm'), 'c');
-        $dst_meta = self::scalar($stg, "SELECT COUNT(*) c FROM `{$stg_tables['postmeta']}` pm JOIN `{$stg_tables['posts']}` p ON p.ID=pm.post_id WHERE " . self::post_type_sql($stg,'p') . " AND p.post_status<>'trash' AND " . self::meta_portable_sql('pm'), 'c');
+        $src_meta = self::scalar($pro, "SELECT COUNT(*) c FROM `{$pro_tables['postmeta']}` pm JOIN `{$pro_tables['posts']}` p ON p.ID=pm.post_id WHERE " . self::post_type_sql($pro,'p') . " AND p.post_status NOT IN ('trash','auto-draft') AND " . self::meta_portable_sql('pm'), 'c');
+        $dst_meta = self::scalar($stg, "SELECT COUNT(*) c FROM `{$stg_tables['postmeta']}` pm JOIN `{$stg_tables['posts']}` p ON p.ID=pm.post_id WHERE " . self::post_type_sql($stg,'p') . " AND p.post_status NOT IN ('trash','auto-draft') AND " . self::meta_portable_sql('pm'), 'c');
         $r=$add('postmeta_portable',$src_meta,$dst_meta,'Metadatos portables'); if(is_wp_error($r))return$r;
 
-        $src_rel = self::scalar($pro, "SELECT COUNT(*) c FROM `{$pro_tables['term_relationships']}` tr JOIN `{$pro_tables['term_taxonomy']}` tt ON tt.term_taxonomy_id=tr.term_taxonomy_id JOIN `{$pro_tables['posts']}` p ON p.ID=tr.object_id WHERE " . self::all_managed_taxonomy_sql($pro,'tt') . " AND " . self::post_type_sql($pro,'p') . " AND p.post_status<>'trash'", 'c');
-        $dst_rel = self::scalar($stg, "SELECT COUNT(*) c FROM `{$stg_tables['term_relationships']}` tr JOIN `{$stg_tables['term_taxonomy']}` tt ON tt.term_taxonomy_id=tr.term_taxonomy_id JOIN `{$stg_tables['posts']}` p ON p.ID=tr.object_id WHERE " . self::all_managed_taxonomy_sql($stg,'tt') . " AND " . self::post_type_sql($stg,'p') . " AND p.post_status<>'trash'", 'c');
+        $src_rel = self::scalar($pro, "SELECT COUNT(*) c FROM `{$pro_tables['term_relationships']}` tr JOIN `{$pro_tables['term_taxonomy']}` tt ON tt.term_taxonomy_id=tr.term_taxonomy_id JOIN `{$pro_tables['posts']}` p ON p.ID=tr.object_id WHERE " . self::all_managed_taxonomy_sql($pro,'tt') . " AND " . self::post_type_sql($pro,'p') . " AND p.post_status NOT IN ('trash','auto-draft')", 'c');
+        $dst_rel = self::scalar($stg, "SELECT COUNT(*) c FROM `{$stg_tables['term_relationships']}` tr JOIN `{$stg_tables['term_taxonomy']}` tt ON tt.term_taxonomy_id=tr.term_taxonomy_id JOIN `{$stg_tables['posts']}` p ON p.ID=tr.object_id WHERE " . self::all_managed_taxonomy_sql($stg,'tt') . " AND " . self::post_type_sql($stg,'p') . " AND p.post_status NOT IN ('trash','auto-draft')", 'c');
         $r=$add('term_relationships',$src_rel,$dst_rel,'Relaciones taxonomicas'); if(is_wp_error($r))return$r;
 
         $src_termmeta = self::scalar($pro, "SELECT COUNT(DISTINCT tm.meta_id) c FROM `{$pro_tables['termmeta']}` tm JOIN `{$pro_tables['term_taxonomy']}` tt ON tt.term_id=tm.term_id WHERE " . self::all_managed_taxonomy_sql($pro,'tt') . " AND " . self::termmeta_portable_sql('tm'), 'c');
@@ -1636,7 +1642,7 @@ final class SEO_Clonador_Engine {
             if ('sql_product_atributos' === $key) {
                 $source_count = self::scalar($pro,
                     "SELECT COUNT(*) c FROM `{$pro_tables['sql_product_atributos']}` pa
-                     JOIN `{$pro_tables['posts']}` p ON p.ID=pa.product_id AND p.post_type='product' AND p.post_status<>'trash'
+                     JOIN `{$pro_tables['posts']}` p ON p.ID=pa.product_id AND p.post_type='product' AND p.post_status NOT IN ('trash','auto-draft')
                      JOIN `{$pro_tables['sql_atributos']}` a ON a.id=pa.atributo_id
                      LEFT JOIN `{$pro_tables['sql_atributos_terminos']}` t ON t.id=pa.termino_id
                      WHERE COALESCE(pa.termino_id,0)=0 OR t.id IS NOT NULL", 'c');
@@ -1645,7 +1651,7 @@ final class SEO_Clonador_Engine {
                 $source_count = self::scalar($pro,
                     "SELECT COUNT(*) c
                      FROM `{$pro_tables['seo_nodes']}` n
-                     LEFT JOIN `{$pro_tables['posts']}` p ON p.ID=n.object_id AND p.post_status<>'trash' AND (
+                     LEFT JOIN `{$pro_tables['posts']}` p ON p.ID=n.object_id AND p.post_status NOT IN ('trash','auto-draft') AND (
                             (n.object_type='product' AND p.post_type='product') OR
                             (n.object_type='page' AND p.post_type='page') OR
                             (n.object_type='post' AND p.post_type='post')
@@ -1677,8 +1683,8 @@ final class SEO_Clonador_Engine {
                 $source=self::count_table($pro,$source_table);
                 $target=self::count_table($stg,$target_table);
             } else {
-                $source=self::scalar($pro,"SELECT COUNT(*) c FROM `{$source_table}` l JOIN `{$pro_tables['posts']}` p ON p.ID=l.product_id WHERE " . self::post_type_sql($pro,'p') . " AND p.post_status<>'trash'",'c');
-                $target=self::scalar($stg,"SELECT COUNT(*) c FROM `{$target_table}` l JOIN `{$stg_tables['posts']}` p ON p.ID=l.product_id WHERE " . self::post_type_sql($stg,'p') . " AND p.post_status<>'trash'",'c');
+                $source=self::scalar($pro,"SELECT COUNT(*) c FROM `{$source_table}` l JOIN `{$pro_tables['posts']}` p ON p.ID=l.product_id WHERE " . self::post_type_sql($pro,'p') . " AND p.post_status NOT IN ('trash','auto-draft')",'c');
+                $target=self::scalar($stg,"SELECT COUNT(*) c FROM `{$target_table}` l JOIN `{$stg_tables['posts']}` p ON p.ID=l.product_id WHERE " . self::post_type_sql($stg,'p') . " AND p.post_status NOT IN ('trash','auto-draft')",'c');
             }
             $r=$add('woo:' . $key,$source,$target,'Woo ' . $key); if(is_wp_error($r))return$r;
         }
@@ -1688,12 +1694,12 @@ final class SEO_Clonador_Engine {
             "SELECT COUNT(DISTINCT p.ID) c FROM `{$pro_tables['posts']}` p
              JOIN `{$pro_tables['term_relationships']}` tr ON tr.object_id=p.ID
              JOIN `{$pro_tables['term_taxonomy']}` tt ON tt.term_taxonomy_id=tr.term_taxonomy_id AND tt.taxonomy='product_cat'
-             WHERE p.post_type='product' AND p.post_status<>'trash'", 'c');
+             WHERE p.post_type='product' AND p.post_status NOT IN ('trash','auto-draft')", 'c');
         $dst_with_cat = self::scalar($stg,
             "SELECT COUNT(DISTINCT p.ID) c FROM `{$stg_tables['posts']}` p
              JOIN `{$stg_tables['term_relationships']}` tr ON tr.object_id=p.ID
              JOIN `{$stg_tables['term_taxonomy']}` tt ON tt.term_taxonomy_id=tr.term_taxonomy_id AND tt.taxonomy='product_cat'
-             WHERE p.post_type='product' AND p.post_status<>'trash'", 'c');
+             WHERE p.post_type='product' AND p.post_status NOT IN ('trash','auto-draft')", 'c');
         $r=$add('kpi:products_with_category',$src_with_cat,$dst_with_cat,'Productos con categoria');if(is_wp_error($r))return$r;
 
         $src_products = absint($checks['post_type:product']['pro'] ?? 0);
@@ -1705,13 +1711,13 @@ final class SEO_Clonador_Engine {
              JOIN `{$pro_tables['sql_product_atributos']}` pa ON pa.product_id=p.ID
              JOIN `{$pro_tables['sql_atributos']}` a ON a.id=pa.atributo_id
              LEFT JOIN `{$pro_tables['sql_atributos_terminos']}` at ON at.id=pa.termino_id
-             WHERE p.post_type='product' AND p.post_status<>'trash' AND (COALESCE(pa.termino_id,0)=0 OR at.id IS NOT NULL)", 'c');
+             WHERE p.post_type='product' AND p.post_status NOT IN ('trash','auto-draft') AND (COALESCE(pa.termino_id,0)=0 OR at.id IS NOT NULL)", 'c');
         $dst_with_attr = self::scalar($stg,
             "SELECT COUNT(DISTINCT p.ID) c FROM `{$stg_tables['posts']}` p
              JOIN `{$stg_tables['sql_product_atributos']}` pa ON pa.product_id=p.ID
              JOIN `{$stg_tables['sql_atributos']}` a ON a.id=pa.atributo_id
              LEFT JOIN `{$stg_tables['sql_atributos_terminos']}` at ON at.id=pa.termino_id
-             WHERE p.post_type='product' AND p.post_status<>'trash' AND (COALESCE(pa.termino_id,0)=0 OR at.id IS NOT NULL)", 'c');
+             WHERE p.post_type='product' AND p.post_status NOT IN ('trash','auto-draft') AND (COALESCE(pa.termino_id,0)=0 OR at.id IS NOT NULL)", 'c');
         $r=$add('kpi:products_with_seo_attributes',$src_with_attr,$dst_with_attr,'Productos con atributos SEO');if(is_wp_error($r))return$r;
         $r=$add('kpi:products_without_seo_attributes',max(0,$src_products-absint($src_with_attr)),max(0,$dst_products-absint($dst_with_attr)),'Productos sin atributos SEO');if(is_wp_error($r))return$r;
 
@@ -2298,7 +2304,7 @@ final class SEO_Clonador_Engine {
             'post_modified_gmt','post_content_filtered','post_parent','menu_order','post_type','post_mime_type'
         );
         $columns_sql = implode(',', array_map(array(__CLASS__, 'ident'), $source_columns));
-        $where = self::post_type_sql($pro) . " AND post_status<>'trash'";
+        $where = self::post_type_sql($pro) . " AND post_status NOT IN ('trash','auto-draft')";
         $rows = self::rows($pro, "SELECT {$columns_sql} FROM `{$pro_tables['posts']}` WHERE {$where} AND ID>{$cursor} ORDER BY ID ASC LIMIT {$limit}");
         if (is_wp_error($rows)) return $rows;
         $map = self::worker_map_get($stg, $stg_tables['options'], 'post');
@@ -2357,7 +2363,7 @@ final class SEO_Clonador_Engine {
     private static function worker_batch_post_parents($pro, $stg, $pro_tables, $stg_tables, &$state) {
         $limit = 2400;
         $cursor = absint($state['cursor']['id'] ?? 0);
-        $rows = self::rows($pro, "SELECT ID,post_parent FROM `{$pro_tables['posts']}` WHERE " . self::post_type_sql($pro) . " AND post_status<>'trash' AND ID>{$cursor} ORDER BY ID LIMIT {$limit}");
+        $rows = self::rows($pro, "SELECT ID,post_parent FROM `{$pro_tables['posts']}` WHERE " . self::post_type_sql($pro) . " AND post_status NOT IN ('trash','auto-draft') AND ID>{$cursor} ORDER BY ID LIMIT {$limit}");
         if (is_wp_error($rows)) return $rows;
         $map = self::worker_map_get($stg, $stg_tables['options'], 'post');
         if (is_wp_error($map)) return $map;
@@ -2393,7 +2399,7 @@ final class SEO_Clonador_Engine {
         $rows = self::rows($pro,
             "SELECT pm.meta_id,pm.post_id,pm.meta_key,pm.meta_value
              FROM `{$pro_tables['postmeta']}` pm JOIN `{$pro_tables['posts']}` p ON p.ID=pm.post_id
-             WHERE " . self::post_type_sql($pro, 'p') . " AND p.post_status<>'trash' AND " . self::meta_portable_sql('pm') . " AND pm.meta_id>{$cursor}
+             WHERE " . self::post_type_sql($pro, 'p') . " AND p.post_status NOT IN ('trash','auto-draft') AND " . self::meta_portable_sql('pm') . " AND pm.meta_id>{$cursor}
              ORDER BY pm.meta_id ASC LIMIT {$limit}"
         );
         if (is_wp_error($rows)) return $rows;
@@ -2522,7 +2528,7 @@ final class SEO_Clonador_Engine {
 
     private static function worker_batch_tax_relationships($pro,$stg,$pro_tables,$stg_tables,&$state){
         $limit=3500;$object=absint($state['cursor']['object_id']??0);$ttc=absint($state['cursor']['tt']??0);
-        $rows=self::rows($pro,"SELECT tr.object_id,tr.term_taxonomy_id,tr.term_order FROM `{$pro_tables['term_relationships']}` tr JOIN `{$pro_tables['term_taxonomy']}` tt ON tt.term_taxonomy_id=tr.term_taxonomy_id JOIN `{$pro_tables['posts']}` p ON p.ID=tr.object_id WHERE ".self::all_managed_taxonomy_sql($pro,'tt')." AND ".self::post_type_sql($pro,'p')." AND p.post_status<>'trash' AND (tr.object_id>{$object} OR (tr.object_id={$object} AND tr.term_taxonomy_id>{$ttc})) ORDER BY tr.object_id,tr.term_taxonomy_id LIMIT {$limit}");
+        $rows=self::rows($pro,"SELECT tr.object_id,tr.term_taxonomy_id,tr.term_order FROM `{$pro_tables['term_relationships']}` tr JOIN `{$pro_tables['term_taxonomy']}` tt ON tt.term_taxonomy_id=tr.term_taxonomy_id JOIN `{$pro_tables['posts']}` p ON p.ID=tr.object_id WHERE ".self::all_managed_taxonomy_sql($pro,'tt')." AND ".self::post_type_sql($pro,'p')." AND p.post_status NOT IN ('trash','auto-draft') AND (tr.object_id>{$object} OR (tr.object_id={$object} AND tr.term_taxonomy_id>{$ttc})) ORDER BY tr.object_id,tr.term_taxonomy_id LIMIT {$limit}");
         if(is_wp_error($rows))return$rows;
         $post_map=self::worker_map_get($stg,$stg_tables['options'],'post');if(is_wp_error($post_map))return$post_map;
         $tt_map=self::worker_map_get($stg,$stg_tables['options'],'tt');if(is_wp_error($tt_map))return$tt_map;
@@ -2601,7 +2607,7 @@ final class SEO_Clonador_Engine {
     }
 
     private static function worker_batch_wc_attr_lookup($pro,$stg,$pro_tables,$stg_tables,&$state){
-        $pp=substr($pro_tables['posts'],0,-strlen('posts'));$sp=substr($stg_tables['posts'],0,-strlen('posts'));$source=$pp.'wc_product_attributes_lookup';$target=$sp.'wc_product_attributes_lookup';if(!self::table_exists($pro,$source)||!self::table_exists($stg,$target)){$state['phase']='verify';$state['cursor']=array();return true;}$cols=self::table_columns($pro,$source);$tcols=self::table_columns($stg,$target);if(is_wp_error($cols))return$cols;if(is_wp_error($tcols))return$tcols;if($cols!==$tcols)return new WP_Error('clonador_wc_attributes_lookup_schema','Esquema wc_product_attributes_lookup incompatible.');$offset=absint($state['cursor']['offset']??0);$sqlcols=implode(',',array_map(array(__CLASS__,'ident'),$cols));$rows=self::rows($pro,"SELECT {$sqlcols} FROM `{$source}` l JOIN `{$pro_tables['posts']}` p ON p.ID=l.product_id WHERE ".self::post_type_sql($pro,'p')." AND p.post_status<>'trash' ORDER BY l.product_or_parent_id,l.product_id,l.term_id LIMIT 2500 OFFSET {$offset}");if(is_wp_error($rows))return$rows;$pmap=self::worker_map_get($stg,$stg_tables['options'],'post');if(is_wp_error($pmap))return$pmap;$tmap=self::worker_map_get($stg,$stg_tables['options'],'term');if(is_wp_error($tmap))return$tmap;$ins=array();foreach($rows as $row){$tp=absint($pmap[absint($row['product_or_parent_id'])]??0);$tprod=absint($pmap[absint($row['product_id'])]??0);$tt=absint($tmap[absint($row['term_id'])]??0);if(!$tp||!$tprod||!$tt)continue;$row['product_or_parent_id']=$tp;$row['product_id']=$tprod;$row['term_id']=$tt;$ins[]=$row;}foreach(array_chunk($ins,150) as $c){$r=self::insert_rows($stg,$target,$cols,$c,false);if(is_wp_error($r))return$r;}self::worker_stat_add($state,'wc_product_attributes_lookup',count($ins));$offset+=count($rows);$state['cursor']=array('offset'=>$offset);$state['message']='Lookup de atributos WooCommerce procesado.';if(count($rows)<2500){$state['phase']='verify';$state['cursor']=array();}return true;
+        $pp=substr($pro_tables['posts'],0,-strlen('posts'));$sp=substr($stg_tables['posts'],0,-strlen('posts'));$source=$pp.'wc_product_attributes_lookup';$target=$sp.'wc_product_attributes_lookup';if(!self::table_exists($pro,$source)||!self::table_exists($stg,$target)){$state['phase']='verify';$state['cursor']=array();return true;}$cols=self::table_columns($pro,$source);$tcols=self::table_columns($stg,$target);if(is_wp_error($cols))return$cols;if(is_wp_error($tcols))return$tcols;if($cols!==$tcols)return new WP_Error('clonador_wc_attributes_lookup_schema','Esquema wc_product_attributes_lookup incompatible.');$offset=absint($state['cursor']['offset']??0);$sqlcols=implode(',',array_map(array(__CLASS__,'ident'),$cols));$rows=self::rows($pro,"SELECT {$sqlcols} FROM `{$source}` l JOIN `{$pro_tables['posts']}` p ON p.ID=l.product_id WHERE ".self::post_type_sql($pro,'p')." AND p.post_status NOT IN ('trash','auto-draft') ORDER BY l.product_or_parent_id,l.product_id,l.term_id LIMIT 2500 OFFSET {$offset}");if(is_wp_error($rows))return$rows;$pmap=self::worker_map_get($stg,$stg_tables['options'],'post');if(is_wp_error($pmap))return$pmap;$tmap=self::worker_map_get($stg,$stg_tables['options'],'term');if(is_wp_error($tmap))return$tmap;$ins=array();foreach($rows as $row){$tp=absint($pmap[absint($row['product_or_parent_id'])]??0);$tprod=absint($pmap[absint($row['product_id'])]??0);$tt=absint($tmap[absint($row['term_id'])]??0);if(!$tp||!$tprod||!$tt)continue;$row['product_or_parent_id']=$tp;$row['product_id']=$tprod;$row['term_id']=$tt;$ins[]=$row;}foreach(array_chunk($ins,150) as $c){$r=self::insert_rows($stg,$target,$cols,$c,false);if(is_wp_error($r))return$r;}self::worker_stat_add($state,'wc_product_attributes_lookup',count($ins));$offset+=count($rows);$state['cursor']=array('offset'=>$offset);$state['message']='Lookup de atributos WooCommerce procesado.';if(count($rows)<2500){$state['phase']='verify';$state['cursor']=array();}return true;
     }
 
     private static function worker_phase_verify($pro,$stg,$pro_tables,$stg_tables,&$state){
@@ -2617,7 +2623,7 @@ final class SEO_Clonador_Engine {
     }
 
     private static function worker_phase_complete($stg,$stg_tables,&$state){
-        $generation=function_exists('wp_generate_uuid4')?wp_generate_uuid4():uniqid('clone-',true);$payload=array('generation'=>$generation,'completed_at'=>time(),'source'=>'pro','destination'=>'staging','engine'=>'portable_clone_manual_worker_2.5.7','stats'=>(array)$state['stats'],'identity'=>(array)$state['identity'],'duration_seconds'=>max(0,time()-absint($state['started_at']??time())));
+        $generation=function_exists('wp_generate_uuid4')?wp_generate_uuid4():uniqid('clone-',true);$payload=array('generation'=>$generation,'completed_at'=>time(),'source'=>'pro','destination'=>'staging','engine'=>'portable_clone_manual_worker_2.5.9','stats'=>(array)$state['stats'],'identity'=>(array)$state['identity'],'duration_seconds'=>max(0,time()-absint($state['started_at']??time())));
         $r=self::set_staging_option($stg,$stg_tables['options'],'seo_clonador_generation',$payload);if(is_wp_error($r))return$r;$r=self::set_staging_option($stg,$stg_tables['options'],'seo_clonador_last',$payload);if(is_wp_error($r))return$r;self::set_staging_option($stg,$stg_tables['options'],'seo_semantic_catalog_reindex_pending',array('reason'=>'environment_clonador','generation'=>$generation,'created_at'=>time()));self::set_staging_option($stg,$stg_tables['options'],'seo_semantic_catalog_drift',array('reason'=>'environment_clonador','generation'=>$generation,'created_at'=>time()));$state['status']='completed';$state['phase']='completed';$state['completed_at']=time();$state['message']='Clonacion PRO → STAGING terminada y verificada.';self::worker_refresh_progress($state);$verification=is_array($state['stats']['verification']??null)?$state['stats']['verification']:array();$state['result']=array('generation'=>$generation,'duration_seconds'=>$payload['duration_seconds'],'completed_at'=>$state['completed_at'],'copied_total'=>absint($state['progress']['copied_total']??0),'warnings_total'=>count((array)$state['warnings']),'verification'=>$verification);return true;
     }
 
@@ -2655,6 +2661,84 @@ final class SEO_Clonador_Engine {
             case 'completed': return true;
         }
         return new WP_Error('clonador_worker_phase','Fase desconocida: '.sanitize_text_field((string)$state['phase']));
+    }
+
+    /**
+     * Reejecuta SOLO la verificacion final de un job que ya copio todos los
+     * lotes y fallo en phase=verify. Nunca reinicia ni vacia STAGING.
+     *
+     * Compatibilidad: los jobs 2.5.7/2.5.8 guardaron source_marker contando
+     * auto-draft. Se acepta esa huella legacy exclusivamente para demostrar
+     * que PRO no ha cambiado desde aquel job; la verificacion nueva ya excluye
+     * auto-draft y, si pasa, se cierra la misma clonacion como valida.
+     */
+    public static function reverify_manager_job($job_id) {
+        $job_id = sanitize_key((string) $job_id);
+        if (!$job_id) return new WP_Error('clonador_reverify_job', 'No hay un job valido para reverificar.');
+
+        $pair = self::open_pair();
+        if (is_wp_error($pair)) return $pair;
+        list($pro, $stg) = $pair;
+        $pro_tables = self::all_required_tables(seo_clonador_db_prefix('pro'));
+        $stg_tables = self::all_required_tables(seo_clonador_db_prefix('staging'));
+        $lock_name = self::LOCK_NAME . '_manager';
+        $lock = self::scalar($stg, "SELECT GET_LOCK('" . mysqli_real_escape_string($stg, $lock_name) . "',0) AS l", 'l');
+        if ('1' !== (string) $lock) {
+            @mysqli_close($pro); @mysqli_close($stg);
+            return new WP_Error('clonador_reverify_lock', 'El worker del Clonador esta ocupado. Intenta reverificar de nuevo en unos segundos.');
+        }
+
+        try {
+            $state = self::worker_state_get($stg, $stg_tables['options']);
+            if (is_wp_error($state)) return $state;
+            if ($job_id !== sanitize_key((string) ($state['job_id'] ?? ''))) {
+                return new WP_Error('clonador_reverify_job', 'El job visible no coincide con el job guardado en STAGING.');
+            }
+            if ('failed' !== (string) ($state['status'] ?? '') || 'verify' !== (string) ($state['phase'] ?? '')) {
+                return new WP_Error('clonador_reverify_state', 'Solo se puede reverificar una clonacion fallida en la fase final verify.');
+            }
+
+            $saved_marker = (string) ($state['source_marker'] ?? '');
+            $current_marker = self::environment_marker($pro, $pro_tables, false);
+            if (is_wp_error($current_marker)) return $current_marker;
+            $marker_ok = $saved_marker && hash_equals($saved_marker, (string) $current_marker);
+            if (!$marker_ok) {
+                $legacy_marker = self::environment_marker($pro, $pro_tables, true);
+                if (is_wp_error($legacy_marker)) return $legacy_marker;
+                $marker_ok = $saved_marker && hash_equals($saved_marker, (string) $legacy_marker);
+            }
+            if (!$marker_ok) {
+                return new WP_Error('clonador_reverify_source_changed', 'PRO ha cambiado desde esta clonacion. Por seguridad no se puede validar el job antiguo; simula una clonacion nueva.');
+            }
+
+            $verification = self::verify_clone_counts($pro, $stg, $pro_tables, $stg_tables);
+            if (is_wp_error($verification)) {
+                $data = $verification->get_error_data();
+                $state['stats']['verification'] = is_array($data) ? $data : array('passed'=>false,'checks'=>array(),'summary'=>array('checks_total'=>0,'passed'=>0,'failed'=>1));
+                $state['message'] = 'REVERIFICACION FALLIDA. No se ha copiado ni borrado nada; STAGING sigue sin marcarse como clon valido.';
+                $state['last_error'] = sanitize_text_field($verification->get_error_message());
+                $state['completed_at'] = time();
+                self::worker_state_set($stg, $stg_tables['options'], $state);
+                return new WP_Error('clonador_reverify_failed', $verification->get_error_message(), array('state'=>$state));
+            }
+
+            $state['source_marker'] = (string) $current_marker;
+            $state['stats']['verification'] = $verification;
+            $state['status'] = 'running';
+            $state['phase'] = 'complete';
+            $state['last_error'] = '';
+            $state['message'] = 'Reverificacion correcta. Cerrando la clonacion existente sin repetir la copia.';
+            $done = self::worker_phase_complete($stg, $stg_tables, $state);
+            if (is_wp_error($done)) return $done;
+            $state['message'] = 'Clonacion PRO → STAGING reverificada y marcada como correcta sin repetir la copia.';
+            $saved = self::worker_state_set($stg, $stg_tables['options'], $state);
+            if (is_wp_error($saved)) return $saved;
+            return $state;
+        } finally {
+            @mysqli_query($stg, "DO RELEASE_LOCK('" . mysqli_real_escape_string($stg, $lock_name) . "')");
+            @mysqli_close($pro);
+            @mysqli_close($stg);
+        }
     }
 
     /**
@@ -2749,8 +2833,8 @@ final class SEO_Clonador_Engine {
                 'actions' => (array) ($analysis['actions'] ?? array()),
                 'identity_resolution' => (array) ($analysis['identity_resolution'] ?? array()),
                 'reference_audit' => (array) ($analysis['reference_audit'] ?? array()),
-                'plan_version' => defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.5.7',
-                'engine_revision' => 'academia-cloner-manual-worker-2.5.7',
+                'plan_version' => defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.5.9',
+                'engine_revision' => 'academia-cloner-manual-worker-2.5.9',
                 'dry_run' => true,
                 'writes_performed' => 0,
                 'conflicts' => (array) $analysis['conflicts'],
@@ -2763,6 +2847,7 @@ final class SEO_Clonador_Engine {
                     'custom_tables' => self::custom_table_keys(),
                     'images' => 'excluded',
                     'academy' => 'not_touched',
+                    'excluded_post_statuses' => array('trash','auto-draft'),
                 ),
             ));
         } finally {
@@ -2854,6 +2939,20 @@ final class SEO_Clonador_Engine {
         $job = SEO_Clonador_Process::resume();
         if (is_wp_error($job)) wp_send_json_error(array('message'=>$job->get_error_message()), 409);
         wp_send_json_success(array('message'=>'Clonacion REANUDADA por el usuario.', 'job'=>$job));
+    }
+
+    public static function ajax_reverify() {
+        $auth = self::authorize();
+        if (is_wp_error($auth)) wp_send_json_error(array('message'=>$auth->get_error_message()), 403);
+        if (!class_exists('SEO_Clonador_Process') || !is_callable(array('SEO_Clonador_Process','reverify'))) {
+            wp_send_json_error(array('message'=>'No esta disponible la reverificacion del Clonador.'), 500);
+        }
+        $job = SEO_Clonador_Process::reverify();
+        if (is_wp_error($job)) wp_send_json_error(array('message'=>$job->get_error_message()), 409);
+        wp_send_json_success(array(
+            'message'=>'Reverificacion completada sin repetir la copia.',
+            'job'=>$job,
+        ));
     }
 
     public static function ajax_speed() {

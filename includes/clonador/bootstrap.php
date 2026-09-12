@@ -4,7 +4,7 @@
  *
  * @package SEOSystem
  * @subpackage Clonador
- * @since 2.5.7
+ * @since 2.5.9
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -13,7 +13,7 @@ if ( defined( 'SEO_CLONADOR_LOADED' ) ) {
     return;
 }
 define( 'SEO_CLONADOR_LOADED', true );
-define( 'SEO_CLONADOR_VERSION', '2.5.7' );
+define( 'SEO_CLONADOR_VERSION', '2.5.9' );
 
 define( 'SEO_CLONADOR_DIR', __DIR__ );
 

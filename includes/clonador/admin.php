@@ -4,7 +4,7 @@
  *
  * @package SEOSystem
  * @subpackage Clonador
- * @since 2.5.6
+ * @since 2.5.9
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -94,6 +94,7 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
                 <button type="button" class="button button-primary" id="seo-clonador-preview" <?php disabled( ! $ready ); ?>>1. Simular clonación</button>
                 <button type="button" class="button button-primary" id="seo-clonador-start" disabled>2. ARRANCAR CLONACIÓN</button>
                 <button type="button" class="button" id="seo-clonador-stop" disabled>PARAR</button>
+                <button type="button" class="button" id="seo-clonador-reverify" style="display:none" disabled>REVERIFICAR COPIA</button>
                 <div class="seo-clonador-speed" aria-label="Velocidad del Clonador">
                     <button type="button" class="button" id="seo-clonador-slower" title="Reducir velocidad">− FRENO</button>
                     <strong id="seo-clonador-speed-label">Velocidad 3/5 · Normal</strong>
@@ -117,6 +118,7 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
             const previewBtn=document.getElementById('seo-clonador-preview');
             const startBtn=document.getElementById('seo-clonador-start');
             const stopBtn=document.getElementById('seo-clonador-stop');
+            const reverifyBtn=document.getElementById('seo-clonador-reverify');
             const slowerBtn=document.getElementById('seo-clonador-slower');
             const fasterBtn=document.getElementById('seo-clonador-faster');
             const speedLabel=document.getElementById('seo-clonador-speed-label');
@@ -155,6 +157,8 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
                 const state=String(currentJob.status||'idle');
                 const running=state==='running' && currentJob.run_requested!==false;
                 const paused=state==='paused';
+                const canReverify=state==='failed' && String(currentJob.phase||'')==='verify';
+                if(reverifyBtn){reverifyBtn.style.display=canReverify?'inline-block':'none';reverifyBtn.disabled=requestBusy||!canReverify;}
                 previewBtn.disabled=requestBusy||!ready||running;
                 stopBtn.disabled=requestBusy||!running;
                 if(running){
@@ -311,7 +315,7 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
                         '<div class="seo-clonador-live-meta"><span>Última fase: <strong>'+esc(progress.phase_label||currentJob.phase||'desconocida')+'</strong></span><span>Copiado antes del fallo: <strong>'+n(progress.copied_total||0)+'</strong></span></div>'+ 
                         renderKpis(verification)+renderAllChecks(verification)+
                         '<div class="seo-clonador-error">'+esc(currentJob.last_error||currentJob.message||'Error desconocido')+'</div>';
-                    status.textContent='Clonación FALLIDA. STAGING está incompleto; SIMULA y arranca de nuevo desde cero.';
+                    status.textContent=String(currentJob.phase||'')==='verify'?'Falló solo la verificación final. Puedes pulsar REVERIFICAR COPIA; no volverá a copiar los datos.':'Clonación FALLIDA. STAGING está incompleto; SIMULA y arranca de nuevo desde cero.';
                     if(pollTimer){clearInterval(pollTimer);pollTimer=null;}
                     updateControls();
                     return;
@@ -351,6 +355,13 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
                     status.textContent=data.message||'Clonación iniciada por ti.';
                     startPolling();
                 }catch(e){status.textContent='No se pudo iniciar la clonación: '+e.message;}finally{setBusy(false);}
+            });
+
+            reverifyBtn&&reverifyBtn.addEventListener('click',async()=>{
+                if(String(currentJob.status||'')!=='failed'||String(currentJob.phase||'')!=='verify')return;
+                if(!window.confirm('REVERIFICAR COPIA\n\nSolo se repetirán los controles finales. NO se vaciará STAGING y NO se volverán a copiar las filas.\n\n¿Reverificar ahora?'))return;
+                setBusy(true);status.textContent='Reverificando la copia existente sin repetir la clonación...';
+                try{const data=await post('seo_clonador_reverify');renderJob(data.job||{});status.textContent=data.message||'Reverificación completada.';}catch(e){status.textContent='Reverificación fallida: '+e.message;await refreshJob();}finally{setBusy(false);}
             });
 
             stopBtn&&stopBtn.addEventListener('click',async()=>{

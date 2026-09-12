@@ -8,7 +8,7 @@
  *
  * @package SEOSystem
  * @subpackage Processes_Clonador
- * @since 2.5.7
+ * @since 2.5.9
  */
 
 defined('ABSPATH') || exit;
@@ -272,6 +272,59 @@ final class SEO_Clonador_Process {
         if (function_exists('seo_process_supervisor_schedule_backup')) seo_process_supervisor_schedule_backup();
         if (function_exists('seo_process_supervisor_log')) {
             seo_process_supervisor_log('success', 'clone_user_resumed', 'El administrador reanudo manualmente la clonacion.', 'Clonador para Academia');
+        }
+        return self::public_state();
+    }
+
+    /**
+     * Accion EXPLICITA del usuario. Solo reejecuta los controles finales de
+     * un job fallido en verify; no crea un job nuevo ni vuelve a copiar datos.
+     */
+    public static function reverify() {
+        $state = self::state();
+        if ('failed' !== (string) ($state['status'] ?? '') || 'verify' !== (string) ($state['phase'] ?? '') || empty($state['job_id'])) {
+            return new WP_Error('clonador_reverify_state', 'No existe una clonacion fallida en verificacion que pueda reverificarse.');
+        }
+        if (!class_exists('SEO_Clonador_Engine') || !is_callable(array('SEO_Clonador_Engine', 'reverify_manager_job'))) {
+            return new WP_Error('clonador_reverify_engine', 'No esta disponible el motor de reverificacion.');
+        }
+
+        $remote = SEO_Clonador_Engine::reverify_manager_job((string) $state['job_id']);
+        if (is_wp_error($remote)) {
+            $data = $remote->get_error_data();
+            $remote_state = (is_array($data) && isset($data['state']) && is_array($data['state'])) ? $data['state'] : array();
+            if ($remote_state) {
+                self::save(array(
+                    'status' => 'failed',
+                    'run_requested' => 0,
+                    'phase' => sanitize_key((string) ($remote_state['phase'] ?? 'verify')),
+                    'message' => sanitize_text_field((string) ($remote_state['message'] ?? 'Reverificacion fallida. No se ha repetido la copia.')),
+                    'completed_at' => time(),
+                    'last_error' => $remote->get_error_message(),
+                    'stats' => isset($remote_state['stats']) && is_array($remote_state['stats']) ? $remote_state['stats'] : array(),
+                    'warnings' => isset($remote_state['warnings']) && is_array($remote_state['warnings']) ? $remote_state['warnings'] : array(),
+                    'progress' => isset($remote_state['progress']) && is_array($remote_state['progress']) ? $remote_state['progress'] : array(),
+                    'result' => isset($remote_state['result']) && is_array($remote_state['result']) ? $remote_state['result'] : array(),
+                ));
+            }
+            return $remote;
+        }
+
+        self::save(array(
+            'status' => sanitize_key((string) ($remote['status'] ?? 'completed')),
+            'run_requested' => 0,
+            'phase' => sanitize_key((string) ($remote['phase'] ?? 'completed')),
+            'message' => sanitize_text_field((string) ($remote['message'] ?? 'Clonacion reverificada.')),
+            'heartbeat_at' => time(),
+            'completed_at' => absint($remote['completed_at'] ?? time()),
+            'last_error' => '',
+            'stats' => isset($remote['stats']) && is_array($remote['stats']) ? $remote['stats'] : array(),
+            'warnings' => isset($remote['warnings']) && is_array($remote['warnings']) ? $remote['warnings'] : array(),
+            'progress' => isset($remote['progress']) && is_array($remote['progress']) ? $remote['progress'] : array(),
+            'result' => isset($remote['result']) && is_array($remote['result']) ? $remote['result'] : array(),
+        ));
+        if (function_exists('seo_process_supervisor_log')) {
+            seo_process_supervisor_log('success', 'clone_user_reverified', 'El administrador reverifico la copia existente sin repetir la clonacion.', 'Clonador para Academia');
         }
         return self::public_state();
     }
