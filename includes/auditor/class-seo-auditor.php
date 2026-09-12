@@ -14,7 +14,7 @@ defined('ABSPATH') || exit;
 final class SEO_Auditor {
     const REPORT_OPTION = 'seo_auditor_last_report';
     const HISTORY_OPTION = 'seo_auditor_history';
-    const REPORT_VERSION = 1;
+    const REPORT_VERSION = 2;
     const MAX_FINDINGS = 1200;
     const MAX_CATEGORY_PROFILES = 250;
     const MAX_ENTITY_FINDINGS_PER_RULE = 180;
@@ -70,7 +70,7 @@ final class SEO_Auditor {
         $report = self::last_report();
         $history = (array) get_option(self::HISTORY_OPTION, array());
         $view = sanitize_key((string) ($_GET['audit_view'] ?? 'summary'));
-        if (!in_array($view, array('summary','findings','categories','architecture','academia'), true)) {
+        if (!in_array($view, array('summary','chain','findings','categories','architecture','academia'), true)) {
             $view = 'summary';
         }
 
@@ -103,7 +103,9 @@ final class SEO_Auditor {
         }
 
         self::render_subnav($view);
-        if ('findings' === $view) {
+        if ('chain' === $view) {
+            self::render_chain($report);
+        } elseif ('findings' === $view) {
             self::render_findings($report);
         } elseif ('categories' === $view) {
             self::render_categories($report);
@@ -128,20 +130,30 @@ final class SEO_Auditor {
         $started = microtime(true);
 
         $inventory = self::collect_inventory();
-        $products = $inventory['products'];
-        $categories = $inventory['categories'];
-        $category_products = $inventory['category_products'];
-        $object_vocabulary = self::load_object_vocabulary();
-
-        self::audit_index_state($inventory);
-        self::audit_products($products, $object_vocabulary, (array)($inventory['product_posts'] ?? array()));
-        self::audit_categories($categories, $category_products, $object_vocabulary, (array)($inventory['category_content'] ?? array()));
-        self::audit_editorial($inventory['editorial'], $object_vocabulary);
-        self::audit_faqs($inventory['faqs']);
-        $relation_data = self::audit_relations($inventory['relations'], $categories, $category_products);
-        $category_profiles = self::audit_category_homogeneity($products, $categories, $category_products);
-        $architecture_profiles = self::audit_architecture_sizing($relation_data, $category_products);
+        $data_state = self::audit_data_state($inventory);
         $academy = self::audit_academia();
+        $learning = self::audit_learning_state($academy);
+
+        $category_profiles = array();
+        $architecture_profiles = array('hub_secondary'=>array(),'hub_primary'=>array(),'cluster'=>array());
+
+        if (!empty($data_state['can_deep_audit'])) {
+            $products = $inventory['products'];
+            $categories = $inventory['categories'];
+            $category_products = $inventory['category_products'];
+            $object_vocabulary = self::load_object_vocabulary();
+
+            self::audit_index_state($inventory);
+            self::audit_products($products, $object_vocabulary, (array)($inventory['product_posts'] ?? array()));
+            self::audit_categories($categories, $category_products, $object_vocabulary, (array)($inventory['category_content'] ?? array()));
+            self::audit_editorial($inventory['editorial'], $object_vocabulary);
+            self::audit_faqs($inventory['faqs'], (array)($inventory['published_product_ids'] ?? array()), $categories);
+            $relation_data = self::audit_relations($inventory['relations'], $categories, $category_products);
+            $category_profiles = self::audit_category_homogeneity($products, $categories, $category_products);
+            $architecture_profiles = self::audit_architecture_sizing($relation_data, $category_products);
+        }
+
+        $learning_chain = self::build_learning_chain($data_state, $academy, $learning);
 
         usort(self::$findings, static function($a, $b) {
             $weights = array('critical'=>4,'high'=>3,'medium'=>2,'low'=>1,'info'=>0);
@@ -162,7 +174,7 @@ final class SEO_Auditor {
         $summary['entities_to_review'] = count($entities);
 
         $public_inventory = $inventory;
-        unset($public_inventory['products'], $public_inventory['product_posts'], $public_inventory['categories'], $public_inventory['category_products'], $public_inventory['category_content'], $public_inventory['editorial'], $public_inventory['faqs'], $public_inventory['relations']);
+        unset($public_inventory['products'], $public_inventory['product_posts'], $public_inventory['published_product_ids'], $public_inventory['categories'], $public_inventory['category_products'], $public_inventory['category_content'], $public_inventory['editorial'], $public_inventory['faqs'], $public_inventory['relations']);
 
         return array(
             'schema'=>array('name'=>'seo_academic_auditor','version'=>self::REPORT_VERSION),
@@ -172,13 +184,17 @@ final class SEO_Auditor {
             'generated_at_gmt'=>gmdate('Y-m-d H:i:s'),
             'execution_seconds'=>round(microtime(true)-$started, 3),
             'mode'=>'manual_read_only',
+            'audit_status'=>(string)($learning_chain['status'] ?? 'unknown'),
             'summary'=>$summary,
+            'data_state'=>$data_state,
             'inventory'=>$public_inventory,
             'rule_counts'=>self::$rule_counts,
             'findings'=>array_slice(self::$findings, 0, self::MAX_FINDINGS),
             'category_profiles'=>array_slice($category_profiles, 0, self::MAX_CATEGORY_PROFILES),
             'architecture_profiles'=>$architecture_profiles,
             'academy'=>$academy,
+            'student'=>$learning,
+            'learning_chain'=>$learning_chain,
             'notes'=>array(
                 'read_only'=>true,
                 'no_content_mutation'=>true,
@@ -187,6 +203,8 @@ final class SEO_Auditor {
                 'semantic_flags_are_review_signals'=>true,
                 'faq_owner_scope'=>array('product','product_cat'),
                 'faq_to_editorial_relation_inferred'=>false,
+                'legacy_academy_ignored'=>true,
+                'deep_findings_suppressed_when_snapshot_incomplete'=>true,
             ),
         );
     }
@@ -194,32 +212,47 @@ final class SEO_Auditor {
     private static function collect_inventory() {
         global $wpdb;
         $status = class_exists('SEO_Dependiente_Index') ? SEO_Dependiente_Index::status() : array();
-        $rows = class_exists('SEO_Dependiente_Index') ? SEO_Dependiente_Index::get_rows(5000) : array();
         $products = array();
         $category_products = array();
-        foreach ((array)$rows as $row) {
-            $d = SEO_Dependiente_Index::decode_row($row);
-            $pid = absint($d['product_id'] ?? 0);
-            if (!$pid) continue;
-            $products[$pid] = $d;
-            foreach ((array)($d['categories'] ?? array()) as $cat) {
-                $cid = absint($cat['id'] ?? 0);
-                if ($cid) $category_products[$cid][$pid] = true;
+        $product_posts = array();
+        $indexed_with_categories = 0;
+        $indexed_with_vocabulary = 0;
+        $index_table = class_exists('SEO_Dependiente_Index') ? SEO_Dependiente_Index::table() : '';
+        $index_exists = $index_table && self::table_exists($index_table);
+
+        if ($index_exists) {
+            $rows = (array)$wpdb->get_results(
+                "SELECT product_id,title,excerpt,brand_name,categories_json,tags_json,vocabulary_json,attributes_json,post_modified_gmt,updated_at FROM {$index_table} ORDER BY product_id ASC",
+                ARRAY_A
+            );
+            foreach ($rows as $row) {
+                $d = SEO_Dependiente_Index::decode_row($row);
+                $pid = absint($d['product_id'] ?? 0);
+                if (!$pid) continue;
+                $products[$pid] = $d;
+                if (!empty($d['categories'])) $indexed_with_categories++;
+                $has_vocab = false;
+                foreach ((array)($d['vocabulary'] ?? array()) as $items) {
+                    if (!empty($items)) { $has_vocab = true; break; }
+                }
+                if ($has_vocab) $indexed_with_vocabulary++;
+                foreach ((array)($d['categories'] ?? array()) as $cat) {
+                    $cid = absint($cat['id'] ?? 0);
+                    if ($cid) $category_products[$cid][$pid] = true;
+                }
             }
+
+            $post_rows = (array)$wpdb->get_results(
+                "SELECT p.ID,p.post_name,CHAR_LENGTH(TRIM(p.post_excerpt)) excerpt_length,CHAR_LENGTH(TRIM(p.post_content)) content_length,p.post_modified FROM {$wpdb->posts} p INNER JOIN {$index_table} i ON i.product_id=p.ID WHERE p.post_type='product' AND p.post_status='publish'",
+                ARRAY_A
+            );
+            foreach ($post_rows as $pr) $product_posts[absint($pr['ID'])] = $pr;
         }
 
         $terms = get_terms(array('taxonomy'=>'product_cat','hide_empty'=>false));
         $categories = array();
         if (!is_wp_error($terms)) {
             foreach ((array)$terms as $term) $categories[absint($term->term_id)] = $term;
-        }
-
-        $product_posts = array();
-        if ($products) {
-            $ids = implode(',', array_map('absint', array_keys($products)));
-            foreach ((array)$wpdb->get_results("SELECT ID,post_name,post_excerpt,post_content FROM {$wpdb->posts} WHERE ID IN ({$ids}) AND post_type='product'", ARRAY_A) as $pr) {
-                $product_posts[absint($pr['ID'])] = $pr;
-            }
         }
 
         $category_content = array();
@@ -237,8 +270,10 @@ final class SEO_Auditor {
 
         $faq_table = $wpdb->prefix . 'seo_faq';
         $faqs = array();
+        $faq_all_count = 0;
         if (self::table_exists($faq_table)) {
-            $faqs = (array)$wpdb->get_results("SELECT id,object_type,object_id,ambito,question,answer,active,updated_at FROM {$faq_table} WHERE active=1 ORDER BY id ASC", ARRAY_A);
+            $faq_all_count = absint($wpdb->get_var("SELECT COUNT(*) FROM {$faq_table} WHERE active=1"));
+            $faqs = (array)$wpdb->get_results("SELECT id,object_type,object_id,ambito,question,CHAR_LENGTH(TRIM(answer)) answer_length,active,updated_at FROM {$faq_table} WHERE active=1 ORDER BY id ASC", ARRAY_A);
         }
 
         $rel_table = $wpdb->prefix . 'seo_relations';
@@ -250,20 +285,32 @@ final class SEO_Auditor {
         $vocab_table = $wpdb->prefix . 'seo_vocabulary';
         $ov_table = $wpdb->prefix . 'seo_object_vocabulary';
         $vocab_count = self::table_exists($vocab_table) ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$vocab_table} WHERE active=1")) : 0;
-        $ov_count = self::table_exists($ov_table) ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$ov_table} WHERE status=1")) : 0;
+        $ov_count = self::table_exists($ov_table) ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$ov_table} WHERE status=1 AND object_type IN ('product','product_cat','post','page')")) : 0;
+        $published_ids = array_values(array_filter(array_map('absint',(array)$wpdb->get_col("SELECT ID FROM {$wpdb->posts} WHERE post_type='product' AND post_status='publish'"))));
+        $published_product_ids = array_fill_keys($published_ids,true);
+        $published_products = count($published_ids);
+        $indexed = count($products);
+        $overlap = count($product_posts);
 
         return array(
             'catalog_status'=>$status,
-            'indexed_products'=>absint($status['indexed'] ?? count($products)),
-            'products_loaded_for_comparison'=>count($products),
-            'published_products'=>absint($status['published'] ?? 0),
-            'indexable_products'=>absint($status['indexable'] ?? 0),
-            'hidden_products'=>absint($status['excluded_hidden'] ?? 0),
+            'index_table_present'=>$index_exists,
+            'indexed_products'=>$indexed,
+            'products_loaded_for_comparison'=>$indexed,
+            'published_products'=>$published_products,
+            'published_product_ids'=>$published_product_ids,
+            'indexable_products'=>null,
+            'hidden_products'=>null,
+            'index_current_product_overlap'=>$overlap,
+            'index_overlap_ratio'=>$indexed ? round($overlap/$indexed, 4) : 0,
+            'indexed_products_with_categories'=>$indexed_with_categories,
+            'indexed_products_with_vocabulary'=>$indexed_with_vocabulary,
             'categories_total'=>count($categories),
             'categories_with_indexed_products'=>count(array_filter($category_products)),
             'posts_published'=>count(array_filter($editorial, static function($r){return 'post'===($r['post_type']??'');})),
             'pages_published'=>count(array_filter($editorial, static function($r){return 'page'===($r['post_type']??'');})),
-            'faqs_active'=>count($faqs),
+            'faqs_active'=>self::table_exists($faq_table) ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$faq_table} WHERE active=1 AND object_type IN (2,3)")) : 0,
+            'faqs_active_all_owner_types'=>$faq_all_count,
             'vocabulary_active'=>$vocab_count,
             'object_vocabulary_relations'=>$ov_count,
             'semantic_relations'=>count($relations),
@@ -275,6 +322,52 @@ final class SEO_Auditor {
             'editorial'=>$editorial,
             'faqs'=>$faqs,
             'relations'=>$relations,
+        );
+    }
+
+    private static function audit_data_state($inventory) {
+        $issues = array();
+        $warnings = array();
+        $indexed = absint($inventory['indexed_products'] ?? 0);
+        $published = absint($inventory['published_products'] ?? 0);
+        $overlap = absint($inventory['index_current_product_overlap'] ?? 0);
+        $ratio = (float)($inventory['index_overlap_ratio'] ?? 0);
+        $categories = absint($inventory['categories_total'] ?? 0);
+        $indexed_categories = absint($inventory['indexed_products_with_categories'] ?? 0);
+        $indexed_vocab = absint($inventory['indexed_products_with_vocabulary'] ?? 0);
+        $vocab = absint($inventory['vocabulary_active'] ?? 0);
+        $ov = absint($inventory['object_vocabulary_relations'] ?? 0);
+
+        if (empty($inventory['index_table_present']) || $indexed < 1) {
+            $issues[] = 'indice_dependiente_no_disponible';
+            self::finding('data_index_missing','critical','system',0,'Snapshot de datos incompleto','No existe un indice util del Dependiente para cruzar el catalogo actual.',array('indexed'=>$indexed),'Terminar el clonado/reindexado antes de auditar contenido.');
+        }
+        if ($indexed > 0 && $ratio < 0.95) {
+            $issues[] = 'indice_y_posts_no_corresponden';
+            self::finding('data_index_post_mismatch','critical','system',0,'Indice y wp_posts no corresponden','Una parte importante de los IDs indexados no resuelve a productos publicados en este entorno.',array('indexed'=>$indexed,'matching_published_products'=>$overlap,'ratio'=>$ratio),'No corregir productos desde este informe. Completar/sincronizar el snapshot de datos y repetir la auditoria.');
+        }
+        if ($indexed_categories > 0 && $categories < 1) {
+            $issues[] = 'taxonomia_product_cat_incompleta';
+            self::finding('data_categories_missing','critical','system',0,'Taxonomia de categorias incompleta','El indice contiene productos con categoria, pero WordPress no expone categorias product_cat en este snapshot.',array('indexed_products_with_categories'=>$indexed_categories,'categories_total'=>$categories),'Completar el clonado de terms/term_taxonomy/term_relationships antes de auditar categorias.');
+        }
+        if ($indexed_vocab > 0 && ($vocab < 1 || $ov < 1)) {
+            $issues[] = 'vocabulary_canonico_incompleto';
+            self::finding('data_vocabulary_missing','critical','system',0,'Vocabulary canonico incompleto','El indice conserva Vocabulary, pero las tablas canonicas de Vocabulary/relaciones estan vacias o no disponibles.',array('indexed_products_with_vocabulary'=>$indexed_vocab,'vocabulary_active'=>$vocab,'object_vocabulary_relations'=>$ov),'Completar el clonado de seo_vocabulary y seo_object_vocabulary antes de auditar relaciones semanticas.');
+        }
+        if ($published > 0 && $indexed > 0 && $indexed > $published) {
+            $warnings[] = 'indice_mayor_que_publicados_actuales';
+        }
+
+        return array(
+            'status'=>$issues ? 'incomplete_snapshot' : 'ready',
+            'can_deep_audit'=>!$issues,
+            'blockers'=>$issues,
+            'warnings'=>$warnings,
+            'indexed_products'=>$indexed,
+            'published_products'=>$published,
+            'matching_product_ids'=>$overlap,
+            'id_overlap_ratio'=>$ratio,
+            'message'=>$issues ? 'El entorno no representa un snapshot coherente. Se suprimen hallazgos masivos de contenido para evitar falsos positivos.' : 'Fuentes canonicas suficientemente coherentes para ejecutar auditoria profunda.',
         );
     }
 
@@ -319,15 +412,15 @@ final class SEO_Auditor {
         foreach ($products as $pid=>$p) {
             $title = trim((string)($p['title'] ?? ''));
             $post_row = (array)($product_posts[$pid] ?? array());
-            $excerpt = trim(wp_strip_all_tags((string)($post_row['post_excerpt'] ?? $p['excerpt'] ?? '')));
-            $description = trim(wp_strip_all_tags(strip_shortcodes((string)($post_row['post_content'] ?? ''))));
+            $excerpt_missing = array_key_exists('excerpt_length',$post_row) ? absint($post_row['excerpt_length']) < 1 : trim((string)($p['excerpt'] ?? '')) === '';
+            $description_missing = array_key_exists('content_length',$post_row) ? absint($post_row['content_length']) < 1 : true;
             $slug = (string)($post_row['post_name'] ?? '');
             $norm_title = self::norm($title);
             if ($norm_title) $title_groups[$norm_title][$pid] = $title;
 
             if ($title === '') self::finding('product_missing_title','critical','product',$pid,'Producto sin titulo','El producto indexable no tiene titulo.',array(),'Completar el titulo antes de usarlo como fuente de aprendizaje.');
-            if ($excerpt === '') self::finding('product_missing_excerpt','medium','product',$pid,$title ?: "Producto #{$pid}",'Descripcion corta vacia','', 'Completar una descripcion corta comercial y diferenciadora.');
-            if ($description === '') self::finding('product_missing_description','medium','product',$pid,$title ?: "Producto #{$pid}",'Descripcion larga vacia','', 'Completar una descripcion tecnica/comercial coherente con el producto, su categoria y sus atributos.');
+            if ($excerpt_missing) self::finding('product_missing_excerpt','medium','product',$pid,$title ?: "Producto #{$pid}",'Descripcion corta vacia','', 'Completar una descripcion corta comercial y diferenciadora.');
+            if ($description_missing) self::finding('product_missing_description','medium','product',$pid,$title ?: "Producto #{$pid}",'Descripcion larga vacia','', 'Completar una descripcion tecnica/comercial coherente con el producto, su categoria y sus atributos.');
             if ($slug === '') self::finding('product_missing_slug','high','product',$pid,$title ?: "Producto #{$pid}",'Slug vacio','', 'Asignar un slug estable y descriptivo.');
             if (empty($p['categories'])) self::finding('product_without_category','high','product',$pid,$title ?: "Producto #{$pid}",'Producto sin categoria de catalogo','', 'Asignar una categoria canonica antes de entrenar relaciones.');
             if (empty($p['vocabulary']) && empty($object_vocabulary['product:'.$pid])) self::finding('product_without_vocabulary','medium','product',$pid,$title ?: "Producto #{$pid}",'Producto sin Vocabulary activo','', 'Revisar si necesita tipo, rol, aplicacion, plataforma o subtipo para integrarse semanticamente.');
@@ -415,14 +508,14 @@ final class SEO_Auditor {
         }
     }
 
-    private static function audit_faqs($faqs) {
+    private static function audit_faqs($faqs, $published_product_ids=array(), $categories=array()) {
         $seen = array();
         foreach ($faqs as $faq) {
             $id = absint($faq['id'] ?? 0);
             $ot = absint($faq['object_type'] ?? 0);
             $oid = absint($faq['object_id'] ?? 0);
             $q = trim(wp_strip_all_tags((string)($faq['question'] ?? '')));
-            $a = trim(wp_strip_all_tags((string)($faq['answer'] ?? '')));
+            $answer_length = isset($faq['answer_length']) ? absint($faq['answer_length']) : self::strlen(trim(wp_strip_all_tags((string)($faq['answer'] ?? ''))));
             if (!in_array($ot,array(2,3),true)) {
                 self::finding('faq_invalid_owner_type','critical','faq',$id,$q ?: "FAQ #{$id}",'FAQ fuera del modelo canonico de owner',array('object_type'=>$ot,'object_id'=>$oid),'Las FAQs deben pertenecer exclusivamente a producto o categoria. Revisar este registro.');
                 continue;
@@ -430,13 +523,15 @@ final class SEO_Auditor {
             $owner_ok = false;
             $owner_title = '';
             if (3 === $ot) {
-                $p = get_post($oid); $owner_ok = $p instanceof WP_Post && 'product' === $p->post_type; $owner_title = $owner_ok ? (string)$p->post_title : '';
+                $owner_ok = isset($published_product_ids[$oid]);
+                if ($owner_ok) $owner_title = get_the_title($oid);
             } else {
-                $t = get_term($oid,'product_cat'); $owner_ok = $t && !is_wp_error($t); $owner_title = $owner_ok ? (string)$t->name : '';
+                $owner_ok = isset($categories[$oid]);
+                if ($owner_ok) $owner_title = (string)$categories[$oid]->name;
             }
             if (!$owner_ok) self::finding('faq_orphan_owner','critical','faq',$id,$q ?: "FAQ #{$id}",'FAQ con owner inexistente o incompatible',array('object_type'=>$ot,'object_id'=>$oid),'Reasignar la FAQ a su producto/categoria real o retirarla.');
             if ($q === '') self::finding('faq_empty_question','high','faq',$id,"FAQ #{$id}",'FAQ sin pregunta','', 'Completar o retirar la FAQ.');
-            if (self::strlen($a) < 30) self::finding('faq_thin_answer','medium','faq',$id,$q ?: "FAQ #{$id}",'Respuesta FAQ vacia o demasiado corta',array('owner'=>$owner_title,'characters'=>self::strlen($a)),'Revisar si responde de forma suficiente, concreta y verificable.');
+            if ($answer_length < 30) self::finding('faq_thin_answer','medium','faq',$id,$q ?: "FAQ #{$id}",'Respuesta FAQ vacia o demasiado corta',array('owner'=>$owner_title,'characters'=>$answer_length),'Revisar si responde de forma suficiente, concreta y verificable.');
             $nq = self::norm($q);
             if ($nq) {
                 $key = $ot.':'.$oid.':'.$nq;
@@ -593,38 +688,79 @@ final class SEO_Auditor {
     }
 
     private static function audit_academia() {
-        if (!class_exists('SEO_Dependiente_Entrenador')) return array('available'=>false);
+        if (!class_exists('SEO_Dependiente_Entrenador')) return array('available'=>false,'current'=>false);
         global $wpdb;
         $lt = SEO_Dependiente_Entrenador::lessons_table();
         $qt = SEO_Dependiente_Entrenador::questions_table();
         $rt = SEO_Dependiente_Entrenador::runs_table();
-        if (!self::table_exists($lt) || !self::table_exists($qt) || !self::table_exists($rt)) return array('available'=>false);
+        if (!self::table_exists($lt) || !self::table_exists($qt) || !self::table_exists($rt)) return array('available'=>false,'current'=>false);
+
+        $legacy_count = absint($wpdb->get_var("SELECT COUNT(*) FROM {$lt} WHERE lesson_key<>'' AND lesson_key NOT LIKE 'v2\_%'"));
+        $lesson_rows = (array)$wpdb->get_results(
+            "SELECT lesson_key,lesson_order,title,status,module_count,item_count,completed_items,snapshot_before,snapshot_after,source_signature,metadata,started_at,completed_at FROM {$lt} WHERE lesson_key LIKE 'v2\_%' ORDER BY lesson_order ASC,id ASC",
+            ARRAY_A
+        );
+        if (!$lesson_rows) {
+            if ($legacy_count > 0) {
+                self::finding('academy_legacy_state','high','lesson','legacy','Academia local desactualizada','Solo se han encontrado lecciones legacy; el Auditor no las mezclara con Academia v2.',array('legacy_lessons'=>$legacy_count),'Sincronizar/importar el estado actual de Academia v2 desde la fuente de verdad antes de usar esta parte del informe.');
+            }
+            return array('available'=>true,'current'=>false,'legacy_lessons_ignored'=>$legacy_count,'lessons'=>array(),'systemic_signals'=>array(),'recurring_sources'=>array(),'final_exam'=>array());
+        }
+
+        $lessons = array();
+        foreach ($lesson_rows as $row) {
+            $key = sanitize_key((string)($row['lesson_key'] ?? ''));
+            if (!$key) continue;
+            $meta = self::decode_array($row['metadata'] ?? '');
+            $gate = is_array($meta['quality_gate'] ?? null) ? $meta['quality_gate'] : array();
+            $lessons[$key] = array(
+                'lesson_key'=>$key,
+                'order'=>absint($row['lesson_order'] ?? 0),
+                'title'=>(string)($row['title'] ?? $key),
+                'status'=>(string)($row['status'] ?? ''),
+                'module_count'=>absint($row['module_count'] ?? 0),
+                'item_count'=>absint($row['item_count'] ?? 0),
+                'snapshot_before'=>absint($row['snapshot_before'] ?? 0),
+                'snapshot_after'=>absint($row['snapshot_after'] ?? 0),
+                'source_signature'=>(string)($row['source_signature'] ?? ''),
+                'activated_rules_expected'=>absint($meta['activated_rules'] ?? 0),
+                'quality_gate'=>array(
+                    'passed'=>!empty($gate['passed']),
+                    'pass_any_ratio'=>isset($gate['pass_any_ratio'])?(float)$gate['pass_any_ratio']:null,
+                    'min_pass_any'=>isset($gate['min_pass_any'])?(float)$gate['min_pass_any']:null,
+                    'technical_errors'=>absint($gate['technical_errors'] ?? 0),
+                ),
+                'answered'=>0,'pass_any'=>0,'failed'=>0,'errors'=>0,'diag'=>array(),'question_types'=>array(),'expected_kinds'=>array(),
+                'started_at'=>(string)($row['started_at'] ?? ''),'completed_at'=>(string)($row['completed_at'] ?? ''),
+            );
+        }
 
         $rows = (array)$wpdb->get_results(
-            "SELECT q.lesson_key,q.lesson_order,q.source_type,q.source_id,q.source_key,
-                    l.title,l.status,
+            "SELECT q.lesson_key,q.lesson_order,q.source_type,q.source_id,q.source_key,q.question_type,q.expected_json,
                     r.status run_status,r.evaluation_status,r.evaluation_json
              FROM {$qt} q
              INNER JOIN (SELECT question_id,MAX(id) run_id FROM {$rt} WHERE question_id IS NOT NULL GROUP BY question_id) lr ON lr.question_id=q.id
              INNER JOIN {$rt} r ON r.id=lr.run_id
-             LEFT JOIN {$lt} l ON l.lesson_key=q.lesson_key
-             WHERE q.enabled=1 AND q.lesson_key<>'' AND q.lesson_key NOT LIKE 'lab\\_%'
+             WHERE q.enabled=1 AND q.lesson_key LIKE 'v2\_%'
              ORDER BY q.lesson_order,q.id",
             ARRAY_A
         );
-        if (!$rows) return array('available'=>true,'lessons'=>array(),'systemic_signals'=>array(),'recurring_sources'=>array());
 
-        $lessons=array();$sources=array();
+        $sources=array();
         foreach($rows as $r){
-            $key=sanitize_key((string)($r['lesson_key']??''));if(!$key)continue;
-            if(!isset($lessons[$key]))$lessons[$key]=array('lesson_key'=>$key,'order'=>absint($r['lesson_order']??0),'title'=>(string)($r['title']??$key),'status'=>(string)($r['status']??''),'answered'=>0,'pass_any'=>0,'failed'=>0,'errors'=>0,'diag'=>array());
+            $key=sanitize_key((string)($r['lesson_key']??''));if(!$key||!isset($lessons[$key]))continue;
             $lessons[$key]['answered']++;
+            $qt_key=sanitize_key((string)($r['question_type']??'other'))?:'other';
+            $lessons[$key]['question_types'][$qt_key]=absint($lessons[$key]['question_types'][$qt_key]??0)+1;
+            $expected=self::decode_array($r['expected_json']??'');
+            $kind=sanitize_key((string)($expected['kind']??'unknown'))?:'unknown';
+            $lessons[$key]['expected_kinds'][$kind]=absint($lessons[$key]['expected_kinds'][$kind]??0)+1;
             $eval=sanitize_key((string)($r['evaluation_status']??''));$run=sanitize_key((string)($r['run_status']??''));
             $is_pass=0===strpos($eval,'pass_');$is_error=('error'===$run||'error'===$eval||'technical_error'===$eval);$is_fail=(!$is_pass&&!$is_error&&('fail'===$eval||'failed'===$eval));
             if($is_pass)$lessons[$key]['pass_any']++;
             if($is_fail)$lessons[$key]['failed']++;
             if($is_error)$lessons[$key]['errors']++;
-            $ej=json_decode((string)($r['evaluation_json']??''),true);$diag=is_array($ej)?sanitize_key((string)($ej['diagnostic_type']??'')):'';
+            $ej=self::decode_array($r['evaluation_json']??'');$diag=sanitize_key((string)($ej['diagnostic_type']??''));
             if($diag)$lessons[$key]['diag'][$diag]=absint($lessons[$key]['diag'][$diag]??0)+1;
 
             $sid=absint($r['source_id']??0);$skey=sanitize_key((string)($r['source_type']??'')).':'.($sid?:trim((string)($r['source_key']??'')));
@@ -634,18 +770,77 @@ final class SEO_Auditor {
             }
         }
 
-        $out=array('available'=>true,'lessons'=>array(),'systemic_signals'=>array(),'recurring_sources'=>array());
+        $out=array('available'=>true,'current'=>true,'legacy_lessons_ignored'=>$legacy_count,'lessons'=>array(),'systemic_signals'=>array(),'recurring_sources'=>array(),'final_exam'=>array());
         foreach($lessons as $key=>$l){
-            $diagnostics=array();foreach($l['diag'] as $diag=>$count)$diagnostics[]=array('key'=>$diag,'label'=>self::diagnostic_label($diag),'count'=>$count,'destination'=>self::diagnostic_destination($diag));
+            $diagnostics=array();foreach($l['diag'] as $diag=>$count)$diagnostics[]=array('key'=>$diag,'label'=>self::diagnostic_label($diag),'count'=>$count,'observed_layer'=>self::diagnostic_destination($diag));
             usort($diagnostics,static function($a,$b){return $b['count']<=>$a['count'];});
-            unset($l['diag']);$l['diagnostics']=$diagnostics;$out['lessons'][]=$l;
-            $failed=absint($l['failed']);if($failed>=10){foreach($diagnostics as $d){$count=absint($d['count']);$ratio=$count/max(1,$failed);if($ratio>=0.60){$signal=array('lesson_key'=>$key,'title'=>(string)$l['title'],'diagnostic'=>(string)$d['key'],'label'=>(string)$d['label'],'count'=>$count,'failed'=>$failed,'ratio'=>round($ratio,3),'destination'=>(string)$d['destination']);$out['systemic_signals'][]=$signal;self::finding('academy_systemic_pattern','medium','lesson',$key,(string)$l['title'],'Academia muestra un patron sistemico',$signal,'Investigar primero la capa tecnica o curricular indicada antes de corregir masivamente las fuentes asociadas.');}}}
+            unset($l['diag']);$l['diagnostics']=$diagnostics;
+            $l['pass_any_ratio']=$l['answered']?round($l['pass_any']/max(1,$l['answered']),4):0;
+            $l['debt']=$l['failed']>0;
+            $l['promotion']='completed'===$l['status']?'promoted':('needs_training'===$l['status']?'blocked':'pending');
+            $out['lessons'][]=$l;
+            if('v2_l8_exam'===$key)$out['final_exam']=$l;
+            $failed=absint($l['failed']);if($failed>=10){foreach($diagnostics as $d){$count=absint($d['count']);$ratio=$count/max(1,$failed);if($ratio>=0.60){$signal=array('lesson_key'=>$key,'title'=>(string)$l['title'],'diagnostic'=>(string)$d['key'],'label'=>(string)$d['label'],'count'=>$count,'failed'=>$failed,'ratio'=>round($ratio,3),'observed_layer'=>(string)$d['observed_layer']);$out['systemic_signals'][]=$signal;self::finding('academy_systemic_pattern','medium','lesson',$key,(string)$l['title'],'Academia muestra un patron sistemico',$signal,'Investigar la capa observada antes de corregir masivamente las fuentes asociadas.');}}}
         }
         usort($out['lessons'],static function($a,$b){return $a['order']<=>$b['order'];});
         foreach($sources as $s){$lesson_count=count($s['lessons']);if($s['total']>=3&&$s['failed']>=2&&$lesson_count>=2){$s['lessons']=array_keys($s['lessons']);$s['failure_ratio']=round($s['failed']/max(1,$s['total']),3);$out['recurring_sources'][]=$s;}}
         usort($out['recurring_sources'],static function($a,$b){if($a['failed']!==$b['failed'])return $b['failed']<=>$a['failed'];return $b['total']<=>$a['total'];});
         $out['recurring_sources']=array_slice($out['recurring_sources'],0,100);
         return $out;
+    }
+
+    private static function audit_learning_state($academy) {
+        global $wpdb;
+        $snapshot=absint(get_option('seo_dependiente_knowledge_snapshot',0));
+        $out=array('available'=>false,'snapshot'=>$snapshot,'active_academy_rules'=>0,'active_learned_rules'=>0,'staged_rules'=>0,'rules_by_lesson'=>array(),'lessons'=>array());
+        if(!class_exists('SEO_Dependiente_Semantics')||!SEO_Dependiente_Semantics::table_exists())return $out;
+        $out['available']=true;
+        $table=SEO_Dependiente_Semantics::table();
+        $out['active_academy_rules']=absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE source='academy' AND active=1"));
+        $out['active_learned_rules']=absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE source='learned' AND active=1"));
+        $out['staged_rules']=absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE source='academy_stage'"));
+        $rules=(array)$wpdb->get_results("SELECT rule_key,source,active,metadata FROM {$table} WHERE source IN ('academy','academy_stage') ORDER BY id ASC",ARRAY_A);
+        foreach($rules as $r){
+            $meta=self::decode_array($r['metadata']??'');$lesson=sanitize_key((string)($meta['academy']['lesson']??''));
+            if(!$lesson&&preg_match('/^academy-(v2_l[0-9]+_[a-z0-9_]+)-/i',(string)($r['rule_key']??''),$m))$lesson=sanitize_key($m[1]);
+            if(!$lesson)continue;
+            if('academy'===(string)($r['source']??'')&&!empty($r['active']))$out['rules_by_lesson'][$lesson]['active']=absint($out['rules_by_lesson'][$lesson]['active']??0)+1;
+            if('academy_stage'===(string)($r['source']??''))$out['rules_by_lesson'][$lesson]['staged']=absint($out['rules_by_lesson'][$lesson]['staged']??0)+1;
+        }
+        $max_snapshot=0;
+        foreach((array)($academy['lessons']??array()) as $lesson){
+            $key=sanitize_key((string)($lesson['lesson_key']??''));if(!$key)continue;
+            $active=absint($out['rules_by_lesson'][$key]['active']??0);$staged=absint($out['rules_by_lesson'][$key]['staged']??0);$after=absint($lesson['snapshot_after']??0);$expected=absint($lesson['activated_rules_expected']??0);
+            if('completed'===(string)($lesson['status']??''))$max_snapshot=max($max_snapshot,$after);
+            $state=array('lesson_key'=>$key,'status'=>(string)($lesson['status']??''),'snapshot_after'=>$after,'promoted_rules'=>$active,'staged_rules'=>$staged,'activated_rules_expected'=>$expected);
+            if('completed'===$state['status']&&$after<1){$state['integrity']='review';self::finding('learning_snapshot_missing','high','lesson',$key,(string)($lesson['title']??$key),'Leccion completada sin snapshot promocionado',$state,'Revisar la promocion de conocimiento antes de continuar.');}
+            elseif('completed'===$state['status']&&$staged>0){$state['integrity']='review';self::finding('learning_stage_leftover','high','lesson',$key,(string)($lesson['title']??$key),'Quedan reglas academy_stage tras completar la leccion',$state,'Las reglas del aula no deben quedar pendientes despues de promocionar una leccion.');}
+            elseif($expected!==$active){$state['integrity']='observe';self::finding('learning_rule_count_drift','low','lesson',$key,(string)($lesson['title']??$key),'Cantidad de reglas promocionadas distinta de la registrada',$state,'Comprobar si hubo deduplicacion, importacion de conocimiento o cambios posteriores. No asumir perdida sin revisar evidencia.');}
+            else{$state['integrity']='ok';}
+            $out['lessons'][]=$state;
+        }
+        $out['max_completed_snapshot']=$max_snapshot;
+        if($max_snapshot>0&&$snapshot<$max_snapshot){self::finding('learning_snapshot_regressed','critical','system',0,'Snapshot de conocimiento regresado','El snapshot global es anterior al ultimo snapshot completado de Academia.',array('global_snapshot'=>$snapshot,'max_completed_snapshot'=>$max_snapshot),'No continuar la formacion hasta reconciliar el estado de conocimiento.');}
+        return $out;
+    }
+
+    private static function build_learning_chain($data_state,$academy,$learning) {
+        $lessons=(array)($academy['lessons']??array());$completed=0;$blocked=0;$questions=0;$passes=0;$fails=0;$errors=0;
+        foreach($lessons as $l){if('completed'===(string)($l['status']??''))$completed++;if('needs_training'===(string)($l['status']??''))$blocked++;$questions+=absint($l['answered']??0);$passes+=absint($l['pass_any']??0);$fails+=absint($l['failed']??0);$errors+=absint($l['errors']??0);}
+        $exam=(array)($academy['final_exam']??array());
+        if(empty($data_state['can_deep_audit']))$status='blocked_by_data_snapshot';
+        elseif(empty($academy['current']))$status='academy_v2_not_available';
+        elseif($blocked>0)$status='training_blocked';
+        elseif(!empty($exam)&&'completed'===(string)($exam['status']??''))$status='course_completed';
+        else$status='training_in_progress';
+        return array(
+            'status'=>$status,
+            'source'=>array('state'=>(string)($data_state['status']??'unknown'),'message'=>(string)($data_state['message']??'')),
+            'academy'=>array('current'=>!empty($academy['current']),'lessons'=>count($lessons),'completed'=>$completed,'blocked'=>$blocked,'legacy_ignored'=>absint($academy['legacy_lessons_ignored']??0)),
+            'trainer'=>array('evaluated_questions'=>$questions,'pass_any'=>$passes,'failed'=>$fails,'errors'=>$errors,'pass_any_ratio'=>$questions?round($passes/$questions,4):0),
+            'student'=>array('snapshot'=>absint($learning['snapshot']??0),'active_academy_rules'=>absint($learning['active_academy_rules']??0),'active_learned_rules'=>absint($learning['active_learned_rules']??0),'staged_rules'=>absint($learning['staged_rules']??0)),
+            'final'=>array('available'=>!empty($exam),'lesson_key'=>(string)($exam['lesson_key']??'v2_l8_exam'),'status'=>(string)($exam['status']??'pending'),'pass_any_ratio'=>isset($exam['pass_any_ratio'])?(float)$exam['pass_any_ratio']:null,'failed'=>absint($exam['failed']??0),'errors'=>absint($exam['errors']??0),'human_counter_test'=>'pending'),
+        );
     }
 
     private static function diagnostic_label($key) {
@@ -667,22 +862,30 @@ final class SEO_Auditor {
     private static function render_subnav($view) {
         $base=add_query_arg(array('page'=>'seo-dependiente','tab'=>'auditor'),admin_url('admin.php'));
         echo '<nav class="seo-auditor__subnav">';
-        foreach(array('summary'=>'Resumen','findings'=>'Hallazgos','categories'=>'Categorias y productos','architecture'=>'Hubs y relaciones','academia'=>'Senales de Academia') as $slug=>$label){
+        foreach(array('summary'=>'Resumen','chain'=>'Cadena de aprendizaje','findings'=>'Hallazgos','categories'=>'Categorias y productos','architecture'=>'Hubs y relaciones','academia'=>'Academia v2') as $slug=>$label){
             $url=add_query_arg('audit_view',$slug,$base);echo '<a class="'.($view===$slug?'is-active':'').'" href="'.esc_url($url).'">'.esc_html($label).'</a>';
         }
         echo '</nav>';
     }
 
     private static function render_summary($report,$history) {
-        $s=(array)($report['summary']??array());$i=(array)($report['inventory']??array());
+        $s=(array)($report['summary']??array());$i=(array)($report['inventory']??array());$d=(array)($report['data_state']??array());$chain=(array)($report['learning_chain']??array());
         echo '<div class="seo-auditor__metrics">';
         self::metric('Hallazgos',$s['findings']??0);self::metric('Criticos',$s['critical']??0,'critical');self::metric('Prioridad alta',$s['high']??0,'high');self::metric('Revisar',$s['medium']??0,'medium');self::metric('Observar',$s['low']??0,'low');self::metric('Entidades afectadas',$s['entities_to_review']??0);
         echo '</div>';
+        echo '<div class="notice '.(!empty($d['can_deep_audit'])?'notice-success':'notice-error').' inline"><p><strong>Estado del snapshot:</strong> '.esc_html((string)($d['status']??'desconocido')).' · '.esc_html((string)($d['message']??'')).'</p></div>';
         echo '<div class="seo-auditor__grid">';
         echo '<div class="postbox"><h3>Universo auditado</h3><table class="widefat striped"><tbody>';
-        foreach(array('indexed_products'=>'Productos indexados','indexable_products'=>'Productos indexables','hidden_products'=>'Productos ocultos excluidos','categories_total'=>'Categorias','posts_published'=>'Posts','pages_published'=>'Paginas','faqs_active'=>'FAQs activas','vocabulary_active'=>'Vocabulary activo','semantic_relations'=>'Relaciones semanticas') as $k=>$label){echo '<tr><th>'.esc_html($label).'</th><td>'.esc_html(number_format_i18n(absint($i[$k]??0))).'</td></tr>';}
+        foreach(array('indexed_products'=>'Productos indexados','published_products'=>'Productos publicados actuales','index_current_product_overlap'=>'IDs indice ↔ producto actual','categories_total'=>'Categorias','posts_published'=>'Posts','pages_published'=>'Paginas','faqs_active'=>'FAQs producto/categoria','vocabulary_active'=>'Vocabulary activo','object_vocabulary_relations'=>'Relaciones objeto/Vocabulary','semantic_relations'=>'Relaciones semanticas') as $k=>$label){echo '<tr><th>'.esc_html($label).'</th><td>'.esc_html(number_format_i18n(absint($i[$k]??0))).'</td></tr>';}
         echo '</tbody></table></div>';
-        echo '<div class="postbox"><h3>Criterio de lectura</h3><p><strong>Critico/Alta:</strong> inconsistencia objetiva o estructura que puede contaminar aprendizaje/recuperacion.</p><p><strong>Revisar:</strong> patron suficientemente fuerte para inspeccion humana.</p><p><strong>Observar:</strong> senal heuristica que puede ser legitima.</p><p>El Auditor nunca decide por si solo que un producto deba moverse, que una categoria deba dividirse o que un Vocabulary sea incorrecto.</p></div>';
+        echo '<div class="postbox"><h3>Cadena de formacion</h3><table class="widefat striped"><tbody>';
+        echo '<tr><th>Estado global</th><td><strong>'.esc_html((string)($chain['status']??'—')).'</strong></td></tr>';
+        echo '<tr><th>Lecciones v2 completadas</th><td>'.esc_html(absint($chain['academy']['completed']??0)).' / '.esc_html(absint($chain['academy']['lessons']??0)).'</td></tr>';
+        echo '<tr><th>Preguntas evaluadas</th><td>'.esc_html(number_format_i18n(absint($chain['trainer']['evaluated_questions']??0))).'</td></tr>';
+        echo '<tr><th>Snapshot estudiante</th><td>'.esc_html(absint($chain['student']['snapshot']??0)).'</td></tr>';
+        echo '<tr><th>Reglas Academia activas</th><td>'.esc_html(absint($chain['student']['active_academy_rules']??0)).'</td></tr>';
+        echo '<tr><th>Examen L8</th><td>'.esc_html((string)($chain['final']['status']??'pendiente')).'</td></tr>';
+        echo '</tbody></table><p><a href="'.esc_url(add_query_arg(array('page'=>'seo-dependiente','tab'=>'auditor','audit_view'=>'chain'),admin_url('admin.php'))).'">Abrir cadena completa</a></p></div>';
         echo '</div>';
         echo '<h3>Prioridad de revision</h3>';self::render_finding_table(array_slice((array)($report['findings']??array()),0,60));
         if($history){echo '<h3>Ultimas auditorias</h3><table class="widefat striped"><thead><tr><th>Fecha</th><th>Hallazgos</th><th>Criticos</th><th>Alta</th><th>Revisar</th><th>Dependiente</th></tr></thead><tbody>';foreach(array_slice(array_reverse($history),0,12) as $h){echo '<tr><td>'.esc_html((string)($h['generated_at']??'')).'</td><td>'.esc_html(absint($h['findings']??0)).'</td><td>'.esc_html(absint($h['critical']??0)).'</td><td>'.esc_html(absint($h['high']??0)).'</td><td>'.esc_html(absint($h['medium']??0)).'</td><td>'.esc_html((string)($h['dependiente_version']??'')).'</td></tr>';}echo '</tbody></table>';}
@@ -710,9 +913,31 @@ final class SEO_Auditor {
 
     private static function render_academia($report) {
         $a=(array)($report['academy']??array());if(empty($a['available'])){echo '<p>No hay datos de Academia disponibles.</p>';return;}
-        echo '<h3>Lecciones observadas</h3><table class="widefat striped"><thead><tr><th>Leccion</th><th>Estado</th><th>Evaluadas</th><th>Aciertos</th><th>Fallos</th></tr></thead><tbody>';foreach((array)($a['lessons']??array()) as $l){echo '<tr><td>L'.esc_html(absint($l['order'])).' · '.esc_html((string)$l['title']).'</td><td>'.esc_html((string)$l['status']).'</td><td>'.esc_html(absint($l['answered'])).'</td><td>'.esc_html(absint($l['pass_any'])).'</td><td>'.esc_html(absint($l['failed'])).'</td></tr>';}echo '</tbody></table>';
-        echo '<h3>Patrones sistemicos</h3>';if(empty($a['systemic_signals']))echo '<p>No se han detectado concentraciones sistemicas con el umbral actual.</p>';else{echo '<table class="widefat striped"><thead><tr><th>Leccion</th><th>Diagnostico</th><th>Concentracion</th><th>Capa observada</th></tr></thead><tbody>';foreach($a['systemic_signals'] as $s){echo '<tr><td>'.esc_html((string)$s['title']).'</td><td>'.esc_html((string)$s['label']).'</td><td>'.esc_html(number_format_i18n(100*(float)$s['ratio'],1)).'% ('.esc_html(absint($s['count'])).'/'.esc_html(absint($s['failed'])).')</td><td>'.esc_html((string)$s['destination']).'</td></tr>';}echo '</tbody></table>';}
-        echo '<h3>Fuentes que reaparecen en varias lecciones</h3>';if(empty($a['recurring_sources']))echo '<p>Aun no hay fuentes con recurrencia suficiente.</p>';else{echo '<table class="widefat striped"><thead><tr><th>Fuente</th><th>Evaluaciones</th><th>Fallos</th><th>Lecciones</th></tr></thead><tbody>';foreach($a['recurring_sources'] as $s){echo '<tr><td>'.esc_html((string)$s['label']).'<div class="description"><code>'.esc_html((string)$s['key']).'</code></div></td><td>'.esc_html(absint($s['total'])).'</td><td>'.esc_html(absint($s['failed'])).'</td><td>'.esc_html(implode(', ',(array)$s['lessons'])).'</td></tr>';}echo '</tbody></table>';}
+        if(empty($a['current'])){echo '<div class="notice notice-warning inline"><p><strong>No hay Academia v2 valida en este snapshot.</strong> Las lecciones legacy se ignoran para no mezclar cursos distintos.</p></div>';return;}
+        echo '<h3>Lecciones Academia v2</h3><table class="widefat striped"><thead><tr><th>Leccion</th><th>Estado</th><th>Snapshot</th><th>Evaluadas</th><th>Pass any</th><th>Fallos</th><th>Gate</th></tr></thead><tbody>';
+        foreach((array)($a['lessons']??array()) as $l){$gate=(array)($l['quality_gate']??array());echo '<tr><td>L'.esc_html(absint($l['order'])).' · '.esc_html((string)$l['title']).'<div class="description"><code>'.esc_html((string)$l['lesson_key']).'</code></div></td><td>'.esc_html((string)$l['status']).'</td><td>'.esc_html(absint($l['snapshot_before'])).' → '.esc_html(absint($l['snapshot_after'])).'</td><td>'.esc_html(absint($l['answered'])).'</td><td>'.esc_html(number_format_i18n(100*(float)($l['pass_any_ratio']??0),1)).'%</td><td>'.esc_html(absint($l['failed'])).'</td><td>'.(!empty($gate['passed'])?'OK':'—').'</td></tr>';}
+        echo '</tbody></table>';
+        echo '<h3>Patrones sistemicos</h3>';if(empty($a['systemic_signals']))echo '<p>No se han detectado concentraciones sistemicas con el umbral actual.</p>';else{echo '<table class="widefat striped"><thead><tr><th>Leccion</th><th>Diagnostico</th><th>Concentracion</th><th>Capa observada</th></tr></thead><tbody>';foreach($a['systemic_signals'] as $sig){echo '<tr><td>'.esc_html((string)$sig['title']).'</td><td>'.esc_html((string)$sig['label']).'</td><td>'.esc_html(number_format_i18n(100*(float)$sig['ratio'],1)).'% ('.esc_html(absint($sig['count'])).'/'.esc_html(absint($sig['failed'])).')</td><td>'.esc_html((string)$sig['observed_layer']).'</td></tr>';}echo '</tbody></table>';}
+        echo '<h3>Fuentes que reaparecen en varias lecciones</h3>';if(empty($a['recurring_sources']))echo '<p>Aun no hay fuentes con recurrencia suficiente.</p>';else{echo '<table class="widefat striped"><thead><tr><th>Fuente</th><th>Evaluaciones</th><th>Fallos</th><th>Lecciones</th></tr></thead><tbody>';foreach($a['recurring_sources'] as $src){echo '<tr><td>'.esc_html((string)$src['label']).'<div class="description"><code>'.esc_html((string)$src['key']).'</code></div></td><td>'.esc_html(absint($src['total'])).'</td><td>'.esc_html(absint($src['failed'])).'</td><td>'.esc_html(implode(', ',(array)$src['lessons'])).'</td></tr>';}echo '</tbody></table>';}
+    }
+
+    private static function render_chain($report) {
+        $c=(array)($report['learning_chain']??array());$student=(array)($report['student']??array());$academy=(array)($report['academy']??array());
+        echo '<h3>Cadena de conocimiento</h3><p class="description">Separa la calidad de la fuente, lo que Academia decide preguntar, lo que el Entrenador observa, lo que se promociona al estudiante y el examen final. No atribuye automaticamente un fallo a la fuente.</p>';
+        echo '<div class="seo-auditor__chain">';
+        self::render_chain_step('1','Fuente / datos',(string)($c['source']['state']??'unknown'),(string)($c['source']['message']??''));
+        self::render_chain_step('2','Academia',!empty($c['academy']['current'])?'v2 activa':'no disponible','Lecciones: '.absint($c['academy']['lessons']??0).' · completadas: '.absint($c['academy']['completed']??0).' · bloqueadas: '.absint($c['academy']['blocked']??0));
+        self::render_chain_step('3','Entrenador','observado','Evaluadas: '.number_format_i18n(absint($c['trainer']['evaluated_questions']??0)).' · pass_any: '.number_format_i18n(100*(float)($c['trainer']['pass_any_ratio']??0),1).'% · fallos: '.number_format_i18n(absint($c['trainer']['failed']??0)));
+        self::render_chain_step('4','Estudiante / conocimiento promocionado','snapshot '.absint($c['student']['snapshot']??0),'Reglas Academia activas: '.number_format_i18n(absint($c['student']['active_academy_rules']??0)).' · aprendidas supervisadas: '.number_format_i18n(absint($c['student']['active_learned_rules']??0)).' · academy_stage pendientes: '.number_format_i18n(absint($c['student']['staged_rules']??0)));
+        $final=(array)($c['final']??array());$final_text=!empty($final['available'])?'L8 '.(string)($final['status']??'pendiente'):'L8 pendiente';
+        self::render_chain_step('5','Resultado final',$final_text,isset($final['pass_any_ratio'])&&null!==$final['pass_any_ratio']?'Pass_any L8: '.number_format_i18n(100*(float)$final['pass_any_ratio'],1).'% · fallos: '.absint($final['failed']??0).' · despues: chequeo humano aleatorio':'Todavia no existe un examen cerrado L8 util; el chequeo humano queda pendiente.');
+        echo '</div>';
+        if(!empty($student['lessons'])){echo '<h3>Promocion por leccion</h3><table class="widefat striped"><thead><tr><th>Leccion</th><th>Estado</th><th>Snapshot</th><th>Reglas activas</th><th>academy_stage</th><th>Integridad</th></tr></thead><tbody>';foreach($student['lessons'] as $l){echo '<tr><td><code>'.esc_html((string)$l['lesson_key']).'</code></td><td>'.esc_html((string)$l['status']).'</td><td>'.esc_html(absint($l['snapshot_after'])).'</td><td>'.esc_html(absint($l['promoted_rules'])).'</td><td>'.esc_html(absint($l['staged_rules'])).'</td><td>'.esc_html((string)$l['integrity']).'</td></tr>';}echo '</tbody></table>';}
+        if(!empty($academy['legacy_lessons_ignored']))echo '<p class="description">Se han ignorado '.esc_html(absint($academy['legacy_lessons_ignored'])).' lecciones legacy para no mezclarlas con Academia v2.</p>';
+    }
+
+    private static function render_chain_step($n,$title,$state,$detail) {
+        echo '<div class="seo-auditor__chain-step"><span class="seo-auditor__chain-no">'.esc_html($n).'</span><div><strong>'.esc_html($title).'</strong><div class="seo-auditor__chain-state">'.esc_html($state).'</div><p>'.esc_html($detail).'</p></div></div>';
     }
 
     private static function render_finding_table($rows) {
@@ -734,6 +959,8 @@ final class SEO_Auditor {
     }
 
     private static function scope_for($code,$type) {
+        if(strpos($code,'data_')===0||'system'===$type)return 'data_state';
+        if(strpos($code,'learning_')===0)return 'learning';
         if(strpos($code,'academy_')===0||'lesson'===$type)return 'academia';
         if(strpos($code,'faq_')===0||'faq'===$type)return 'faq';
         if(strpos($code,'relation_')===0||in_array($type,array('relation','hub_secondary','hub_primary','cluster'),true))return 'architecture';
@@ -748,6 +975,12 @@ final class SEO_Auditor {
         if('post'===$type||'page'===$type)return get_edit_post_link($id,'');
         if('category'===$type){$u=get_edit_term_link($id,'product_cat','product');return is_wp_error($u)?'':(string)$u;}
         return '';
+    }
+
+    private static function decode_array($value) {
+        if (is_array($value)) return $value;
+        $decoded=json_decode((string)$value,true);
+        return is_array($decoded)?$decoded:array();
     }
 
     private static function relation_object_exists($type,$id) {
