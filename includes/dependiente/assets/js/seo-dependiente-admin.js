@@ -77,9 +77,15 @@
         }
         if (status === 'failed') {
             const missing = Math.max(0, Number(data.missing || 0));
-            text.textContent = missing
-                ? 'ÍNDICE INCOMPLETO · faltan ' + numberFormat(missing) + ' productos. ' + String(data.last_error || '')
-                : 'REINDEXACIÓN FALLIDA · ' + String(data.last_error || 'Revisa el estado del proceso.');
+            const extra = Math.max(0, Number(data.extra || 0));
+            if (missing || extra) {
+                const parts = [];
+                if (missing) parts.push('faltan ' + numberFormat(missing) + ' productos');
+                if (extra) parts.push('sobran ' + numberFormat(extra) + ' filas');
+                text.textContent = 'ÍNDICE INCOMPLETO · ' + parts.join(' · ') + '. ' + String(data.last_error || '');
+            } else {
+                text.textContent = 'REINDEXACIÓN FALLIDA · ' + String(data.last_error || 'Revisa el estado del proceso.');
+            }
             return;
         }
         if (status === 'stopped' && indexedValue === 0) {

@@ -493,6 +493,12 @@ final class SEO_Dependiente_Plugin {
             'percent'         => 0,
             'verified'        => 0,
             'missing'         => 0,
+            'extra'           => 0,
+            'missing_ids'     => array(),
+            'extra_ids'       => array(),
+            'published_total' => 0,
+            'excluded_hidden' => 0,
+            'scan_total'      => 0,
             'started_at'      => '',
             'started_ts'      => 0,
             'heartbeat_at'    => '',
@@ -519,14 +525,29 @@ final class SEO_Dependiente_Plugin {
         $state['processed'] = absint($state['processed']);
         $state['verified'] = empty($state['verified']) ? 0 : 1;
         $state['missing'] = absint($state['missing']);
+        $state['extra'] = absint($state['extra'] ?? 0);
+        $state['missing_ids'] = array_values(array_filter(array_map('absint', (array) ($state['missing_ids'] ?? array()))));
+        $state['extra_ids'] = array_values(array_filter(array_map('absint', (array) ($state['extra_ids'] ?? array()))));
+        $state['published_total'] = absint($state['published_total'] ?? 0);
+        $state['excluded_hidden'] = absint($state['excluded_hidden'] ?? 0);
+        $state['scan_total'] = absint($state['scan_total'] ?? 0);
 
         // El contador real de la tabla es la fuente de verdad para el panel.
         $state['indexed'] = class_exists('SEO_Dependiente_Index') ? SEO_Dependiente_Index::count_indexed() : absint($state['indexed']);
         if (!$state['total'] && class_exists('SEO_Dependiente_Index')) {
-            $state['total'] = SEO_Dependiente_Index::count_published();
+            $state['total'] = SEO_Dependiente_Index::count_indexable();
         }
-        if (!$state['pages'] && $state['total']) {
-            $state['pages'] = (int) ceil($state['total'] / $state['limit']);
+        if (!$state['published_total'] && class_exists('SEO_Dependiente_Index')) {
+            $state['published_total'] = SEO_Dependiente_Index::count_published();
+        }
+        if (!$state['excluded_hidden'] && $state['published_total'] >= $state['total']) {
+            $state['excluded_hidden'] = max(0, $state['published_total'] - $state['total']);
+        }
+        if (!$state['scan_total']) {
+            $state['scan_total'] = $state['published_total'];
+        }
+        if (!$state['pages'] && $state['scan_total']) {
+            $state['pages'] = (int) ceil($state['scan_total'] / $state['limit']);
         }
         $state['percent'] = $state['total']
             ? min(100, (int) round(($state['indexed'] / $state['total']) * 100))
@@ -565,8 +586,9 @@ final class SEO_Dependiente_Plugin {
         }
 
         $limit = 50;
-        $total = SEO_Dependiente_Index::count_published();
-        $pages = $total ? (int) ceil($total / $limit) : 0;
+        $published_total = SEO_Dependiente_Index::count_published();
+        $total = SEO_Dependiente_Index::count_indexable();
+        $pages = $published_total ? (int) ceil($published_total / $limit) : 0;
         $now = time();
         $state = array(
             'status'          => $total ? 'running' : 'completed',
@@ -580,6 +602,12 @@ final class SEO_Dependiente_Plugin {
             'percent'         => $total ? 0 : 100,
             'verified'        => $total ? 0 : 1,
             'missing'         => 0,
+            'extra'           => 0,
+            'missing_ids'     => array(),
+            'extra_ids'       => array(),
+            'published_total' => $published_total,
+            'excluded_hidden' => max(0, $published_total - $total),
+            'scan_total'      => $published_total,
             'started_at'      => current_time('mysql'),
             'started_ts'      => $now,
             'heartbeat_at'    => current_time('mysql'),
@@ -684,25 +712,48 @@ final class SEO_Dependiente_Plugin {
     }
 
     private static function finish_reindex_verification($source) {
-        $total = SEO_Dependiente_Index::count_published();
-        $indexed = SEO_Dependiente_Index::count_indexed();
-        $missing = max(0, $total - $indexed);
-        $verified = ($indexed === $total);
+        $report = SEO_Dependiente_Index::verification_report(20);
+        $total = absint($report['indexable'] ?? 0);
+        $published = absint($report['published'] ?? 0);
+        $indexed = absint($report['indexed'] ?? 0);
+        $missing = absint($report['missing'] ?? 0);
+        $extra = absint($report['extra'] ?? 0);
+        $verified = !empty($report['verified']);
+        $missing_ids = array_values(array_filter(array_map('absint', (array) ($report['missing_ids'] ?? array()))));
+        $extra_ids = array_values(array_filter(array_map('absint', (array) ($report['extra_ids'] ?? array()))));
         $now = time();
 
+        $error = '';
+        if (!$verified) {
+            $parts = array('La reindexacion recorrio todos los lotes, pero la cobertura exacta del indice no coincide con los productos indexables.');
+            if ($missing) {
+                $parts[] = 'Faltan ' . $missing . ' productos' . ($missing_ids ? ' (IDs: ' . implode(', ', $missing_ids) . ')' : '') . '.';
+            }
+            if ($extra) {
+                $parts[] = 'Sobran ' . $extra . ' filas' . ($extra_ids ? ' (IDs: ' . implode(', ', $extra_ids) . ')' : '') . '.';
+            }
+            $error = implode(' ', $parts);
+        }
+
         $changes = array(
-            'status'        => $verified ? 'completed' : 'failed',
-            'total'         => $total,
-            'indexed'       => $indexed,
-            'percent'       => $verified ? 100 : ($total ? min(100, (int) round(($indexed / $total) * 100)) : 0),
-            'verified'      => $verified ? 1 : 0,
-            'missing'       => $missing,
-            'finished_at'   => current_time('mysql'),
-            'finished_ts'   => $now,
-            'heartbeat_at'  => current_time('mysql'),
-            'heartbeat_ts'  => $now,
-            'worker_source' => sanitize_key((string) $source),
-            'last_error'    => $verified ? '' : 'La reindexacion recorrio todos los lotes, pero el indice no coincide con los productos publicados. Faltan ' . $missing . ' productos.',
+            'status'          => $verified ? 'completed' : 'failed',
+            'total'           => $total,
+            'published_total' => $published,
+            'excluded_hidden' => absint($report['excluded_hidden'] ?? 0),
+            'scan_total'      => $published,
+            'indexed'         => $indexed,
+            'percent'         => $verified ? 100 : ($total ? min(100, (int) round(($indexed / $total) * 100)) : 0),
+            'verified'        => $verified ? 1 : 0,
+            'missing'         => $missing,
+            'extra'           => $extra,
+            'missing_ids'     => $missing_ids,
+            'extra_ids'       => $extra_ids,
+            'finished_at'     => current_time('mysql'),
+            'finished_ts'     => $now,
+            'heartbeat_at'    => current_time('mysql'),
+            'heartbeat_ts'    => $now,
+            'worker_source'   => sanitize_key((string) $source),
+            'last_error'      => $error,
         );
         $state = self::save_reindex_state($changes);
         wp_clear_scheduled_hook('seo_dependiente_background_index');
@@ -748,13 +799,17 @@ final class SEO_Dependiente_Plugin {
                 $worked = true;
                 $indexed = SEO_Dependiente_Index::count_indexed();
                 $processed = absint($state['processed'] ?? 0) + absint($result['processed'] ?? 0);
-                $total = absint($result['total'] ?? $state['total'] ?? 0);
+                $total = absint($result['indexable_total'] ?? $state['total'] ?? 0);
+                $scan_total = absint($result['scan_total'] ?? $state['scan_total'] ?? 0);
                 $pages = absint($result['pages'] ?? $state['pages'] ?? 0);
 
                 $updated = self::save_reindex_state(array(
                     'page'            => !empty($result['done']) ? $page : $page + 1,
                     'pages'           => $pages,
                     'total'           => $total,
+                    'published_total' => $scan_total,
+                    'excluded_hidden' => max(0, $scan_total - $total),
+                    'scan_total'      => $scan_total,
                     'indexed'         => $indexed,
                     'processed'       => $processed,
                     'percent'         => $total ? min(100, (int) round(($indexed / $total) * 100)) : 0,

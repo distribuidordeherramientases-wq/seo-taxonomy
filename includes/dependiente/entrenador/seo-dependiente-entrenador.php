@@ -3126,6 +3126,7 @@ final class SEO_Dependiente_Entrenador {
             'retrieval_gap'              => 'Fallo de recuperación',
             'editorial_retrieval_gap'    => 'Fallo de recuperación editorial',
             'faq_owner_retrieval_gap'    => 'Fallo de recuperación FAQ por owner',
+            'faq_owner_ranking_gap'      => 'FAQ correcta fuera de Top8',
             'cross_retrieval_gap'        => 'Fallo de relación cruzada',
             'semantic_expansion_skipped' => 'Expansión semántica omitida',
             'semantic_candidates_filtered'=> 'Candidatos semánticos filtrados',
@@ -4482,7 +4483,8 @@ final class SEO_Dependiente_Entrenador {
         }
 
         $evaluation = self::evaluate_question($question, $result_ids, $status, $evaluation_related_results);
-        $evaluation['diagnostic_type'] = self::diagnose_evaluation($question, $evaluation, $data, $result_ids, $evaluation_related_results);
+        $diagnostic_related_results = 'faq' === $expected_kind ? $related_faq_results : $evaluation_related_results;
+        $evaluation['diagnostic_type'] = self::diagnose_evaluation($question, $evaluation, $data, $result_ids, $diagnostic_related_results);
         $evaluation['classroom_stage_used'] = (bool) $use_classroom_stage;
         $semantic = is_array($data['semantic'] ?? null) ? $data['semantic'] : array();
         $search_diagnostic = self::sanitize_search_diagnostic($data['search_diagnostic'] ?? array());
@@ -4572,7 +4574,7 @@ final class SEO_Dependiente_Entrenador {
             return array();
         }
         $out = array();
-        foreach (array('strategy', 'primary_strategy', 'extended_search', 'solution_role') as $key) {
+        foreach (array('strategy', 'primary_strategy', 'extended_search', 'solution_role', 'faq_owner_resolution') as $key) {
             if (isset($diagnostic[$key])) {
                 $out[$key] = sanitize_key((string) $diagnostic[$key]);
             }
@@ -4582,7 +4584,8 @@ final class SEO_Dependiente_Entrenador {
             'direct_knowledge_count', 'strict_count', 'semantic_product_ids',
             'semantic_route_rows', 'object_anchor_rows', 'broad_fallback_rows',
             'semantic_catalog_route', 'semantic_rules_active',
-            'editorial_related_count', 'faq_related_count'
+            'editorial_related_count', 'faq_related_count',
+            'faq_owner_type', 'faq_owner_id'
         ) as $key) {
             if (isset($diagnostic[$key])) {
                 $out[$key] = absint($diagnostic[$key]);
@@ -4678,6 +4681,23 @@ final class SEO_Dependiente_Entrenador {
             return 'editorial_retrieval_gap';
         }
         if ('faq' === $expected_kind) {
+            $expected_faq_id = absint($expected['faq_id'] ?? 0);
+            $expected_owner_id = absint($expected['owner_id'] ?? 0);
+            $expected_owner_type = absint($expected['owner_type'] ?? 0);
+            $owner_type_map = array(2=>'product_cat',3=>'product');
+            foreach (array_values((array) $related_results) as $index => $item) {
+                if (!is_array($item) || 'faq' !== sanitize_key((string) ($item['type'] ?? ''))) {
+                    continue;
+                }
+                if ($expected_faq_id && absint($item['id'] ?? 0) !== $expected_faq_id) {
+                    continue;
+                }
+                $owner_match = (!$expected_owner_id || absint($item['owner_id'] ?? 0) === $expected_owner_id)
+                    && (!$expected_owner_type || sanitize_key((string) ($item['owner_type'] ?? '')) === ($owner_type_map[$expected_owner_type] ?? ''));
+                if ($owner_match && ($index + 1) > 8) {
+                    return 'faq_owner_ranking_gap';
+                }
+            }
             return 'faq_owner_retrieval_gap';
         }
         if ('cross' === $expected_kind && empty($evaluation['related_match'])) {

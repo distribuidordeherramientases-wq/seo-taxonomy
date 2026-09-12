@@ -356,6 +356,18 @@
                         ' evaluados · ' + duration.toFixed(1) + ' s último lote · siguiente lote: ' + batchSize + '.';
                 }
 
+                if (String(data.lesson_status || '') === 'needs_training') {
+                    if (runStatus) {
+                        const gate = data.quality_gate || {};
+                        const achieved = Math.round(Number(gate.pass_any_ratio || 0) * 1000) / 10;
+                        const required = Math.round(Number(gate.min_pass_any || 0) * 1000) / 10;
+                        runStatus.textContent = 'Lección evaluada, pero no supera el quality gate (' + achieved + '% / mínimo ' + required + '%). ' +
+                            'No se ha creado snapshot ni promocionado conocimiento.';
+                    }
+                    window.setTimeout(function () { window.location.reload(); }, 900);
+                    return;
+                }
+
                 if (data.module_done || data.lesson_done) {
                     if (runStatus) {
                         runStatus.textContent = data.lesson_done
@@ -398,13 +410,16 @@
         autoRunning = !!(data && data.running);
         root.dataset.autoRunning = autoRunning ? '1' : '0';
         if (autoBadge) {
-            autoBadge.textContent = autoRunning ? 'Automático activo' : ((data && data.state && data.state.status === 'completed') ? 'Completado' : 'Manual');
+            const stateStatus = String(data && data.state ? data.state.status || '' : '');
+            autoBadge.textContent = autoRunning
+                ? 'Automático activo'
+                : (stateStatus === 'completed' ? 'Completado' : (stateStatus === 'needs_training' ? 'Necesita entrenamiento' : 'Manual'));
             autoBadge.classList.toggle('is-running', autoRunning);
         }
         if (autoStatus) autoStatus.textContent = describeAutomation(data);
         setBusy(false);
 
-        if (wasRunning && !autoRunning && data && data.state && ['completed', 'error'].includes(String(data.state.status || ''))) {
+        if (wasRunning && !autoRunning && data && data.state && ['completed', 'error', 'needs_training'].includes(String(data.state.status || ''))) {
             window.setTimeout(function () { window.location.reload(); }, 1200);
         }
     }

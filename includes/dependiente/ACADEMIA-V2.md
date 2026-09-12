@@ -1,4 +1,4 @@
-# Dependiente 0.2.13 acumulativo · Academia v2.1
+# Dependiente 0.2.12 acumulativo · Academia v2.1
 
 
 ## v0.2.12 · Separacion canonica de conocimiento editorial y FAQ
@@ -18,7 +18,6 @@ Academia v2.1 entrena al Dependiente sobre una fotografia fija del catalogo y de
 ## Contrato acumulativo de versión
 
 - Cada paquete completo de Dependiente incorpora las correcciones de las versiones anteriores; no requiere instalar 0.2.1, 0.2.2, etc. por separado.
-- 0.2.13 incluye todo lo acumulado hasta 0.2.12 y añade el Auditor academico de solo lectura en `includes/auditor/`.
 - 0.2.12 incluye todo lo acumulado hasta 0.2.11. Mantiene el observatorio de Aprendizaje y corrige la separación entre contenido editorial y FAQs owner-first para L5/L6 y para la respuesta real del Dependiente.
 - 0.2.11 incluye todo lo acumulado hasta 0.2.10. Mantiene la verificación exacta del universo indexable de 0.2.10 y añade el observatorio de Aprendizaje / Calidad de formación sin alterar el motor ni el conocimiento.
 - Una ruta semántica de catálogo debe llegar a Vocabulary/`seo_object_vocabulary` antes de considerar suficiente el contenido editorial. Landings, posts o FAQs son apoyo y no pueden bloquear productos cuando la consulta pide catálogo.
@@ -88,12 +87,13 @@ El JSON de una leccion puede descargarse una vez preparada, incluso antes de eje
 
 ## FAQs
 
-`wp_seo_faq.object_type` y `object_id` identifican al propietario canonico de la FAQ. En el modelo activo solo se admiten:
+`wp_seo_faq.object_type` y `object_id` identifican al propietario/contexto principal de la FAQ:
 
+- `1`: pagina / hub.
 - `2`: categoria de producto.
 - `3`: producto.
 
-Las FAQs no se relacionan con posts, paginas, hubs o clusters. Academia resuelve primero el owner producto/categoria y utiliza ese contexto para la pregunta/respuesta. Registros legacy con otro `object_type` quedan fuera de L6 y el Auditor los marca para revision.
+Academia resuelve primero el propietario y despues usa su Vocabulary como contexto para la pregunta/respuesta.
 
 ## Seguridad
 
@@ -101,18 +101,3 @@ Las FAQs no se relacionan con posts, paginas, hubs o clusters. Academia resuelve
 - El usuario inicia o reanuda la formacion; el Gestor de procesos solo continua un proceso ya iniciado.
 - El aprendizaje de Academia no se escribe en el log de clientes ni activa aprendizaje observacional.
 - Un quality gate fallido no promociona reglas staged a conocimiento operativo.
-
-
-## Auditor academico (v0.2.13)
-
-- Modulo aislado en `includes/auditor/`; se muestra como pestana **Auditor** dentro de Dependiente.
-- Ejecucion exclusivamente manual. Cargar la pagina no inicia auditorias, reindexados ni entrenamiento.
-- Es de solo lectura: no modifica PRO, no mueve productos, no cambia categorias, no edita Vocabulary, no corrige FAQs y no promociona conocimiento.
-- Audita productos, categorias, posts, paginas, Vocabulary, atributos, FAQs y relaciones de arquitectura.
-- Las FAQs se validan solo contra su owner canonico (`product` o `product_cat`). Nunca se infiere una relacion FAQ-post/pagina.
-- Compara productos de una misma categoria para detectar heterogeneidad, outliers, atributos comunes ausentes y posibles candidatos de division/reasignacion.
-- Compara tamanos relativos de hubs secundarios, hubs primarios y clusters para senalar ramas infradimensionadas o sobredimensionadas.
-- Revisa relaciones rotas, contenido sin Vocabulary, slugs/titulos poco coherentes y senales semanticas de contenido editorial.
-- Integra evidencia observacional de Academia para distinguir patrones sistemicos del proceso frente a fuentes que reaparecen con fallos en varias lecciones.
-- Las recomendaciones (`CRITICO`, `ALTA`, `REVISAR`, `OBSERVAR`) son prioridades de revision humana, no causalidad demostrada ni ordenes automaticas de cambio.
-- Guarda la ultima auditoria y un historial resumido de las 20 ultimas ejecuciones; permite exportar JSON.

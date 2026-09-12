@@ -22,9 +22,9 @@ if (!class_exists('SEO_Dependiente_Learning') && is_readable($seo_dependiente_le
     require_once $seo_dependiente_learning_file;
 }
 
-// Amazon del Dependiente. Se ejecuta como fuente 1C complementaria en toda
-// búsqueda de primera página; Creators API es opcional y el modo Afiliados
-// funciona únicamente con Partner Tag.
+// Integracion externa Amazon del Dependiente. El API principal es el caller:
+// carga el modulo y, al terminar la busqueda del catalogo, le pide que decida
+// si debe activarse el fallback. Asi seo-dependiente-amazon.php no queda aislado.
 $seo_dependiente_amazon_file = __DIR__ . '/seo-dependiente-amazon.php';
 if (!class_exists('SEO_Dependiente_Amazon') && is_readable($seo_dependiente_amazon_file)) {
     require_once $seo_dependiente_amazon_file;
@@ -70,6 +70,7 @@ final class SEO_Dependiente_API {
         if (is_wp_error($ready)) {
             return $ready;
         }
+        self::ensure_initial_index();
 
         $rows = SEO_Dependiente_Index::get_rows(1200);
         $documents = array_map(array('SEO_Dependiente_Index', 'decode_row'), $rows);
@@ -135,18 +136,10 @@ final class SEO_Dependiente_API {
         if (is_wp_error($ready)) {
             return $ready;
         }
+        self::ensure_initial_index();
 
         $params = self::request_params($request);
-        // Keep a wider copy only to resolve an explicitly mentioned canonical owner.
-        // The ordinary catalog search remains capped to the historical 180 chars.
-        $raw_query = isset($params['q']) ? sanitize_text_field((string) $params['q']) : '';
-        if (function_exists('mb_substr')) {
-            $raw_query = mb_substr($raw_query, 0, 1000, 'UTF-8');
-        } else {
-            $raw_query = substr($raw_query, 0, 1000);
-        }
-        $explicit_faq_owner = self::resolve_explicit_faq_owner($raw_query, $params);
-        $query = $raw_query;
+        $query = isset($params['q']) ? sanitize_text_field((string) $params['q']) : '';
         if (function_exists('mb_substr')) {
             $query = mb_substr($query, 0, 180, 'UTF-8');
         } else {
@@ -158,16 +151,7 @@ final class SEO_Dependiente_API {
         }
         $page = max(1, absint(isset($params['page']) ? $params['page'] : 1));
         $per_page = min(48, max(6, absint(isset($params['per_page']) ? $params['per_page'] : SEO_Dependiente_Plugin::option('results_per_page', 18))));
-        $solution_role = self::sanitize_solution_role($params['solution_role'] ?? '');
-        $request_filters = self::sanitize_filters(isset($params['filters']) && is_array($params['filters']) ? $params['filters'] : array());
-        $filters = $request_filters;
-        if ($solution_role) {
-            // El selector principal es una decisión explícita del cliente. Se
-            // aplica como filtro fuerte del vocabulario ROL, separado de los
-            // filtros secundarios para que la primera petición siga siendo una
-            // búsqueda y pueda lanzar preguntas de aclaración si hacen falta.
-            $filters['vocabulary']['rol'] = array($solution_role);
-        }
+        $filters = self::sanitize_filters(isset($params['filters']) && is_array($params['filters']) ? $params['filters'] : array());
         $orderby = isset($params['orderby']) ? sanitize_key((string) $params['orderby']) : 'relevance';
         if (!in_array($orderby, array('relevance', 'price_asc', 'price_desc', 'newest', 'title'), true)) {
             $orderby = 'relevance';
@@ -206,7 +190,7 @@ final class SEO_Dependiente_API {
         }
         $request_kind = $page > 1
             ? 'paginate'
-            : (($semantic_hint || self::has_active_filters($request_filters) || 'relevance' !== $orderby) ? 'refine' : 'search');
+            : (($semantic_hint || self::has_active_filters($filters) || 'relevance' !== $orderby) ? 'refine' : 'search');
 
         $semantic_rules_active = 0;
         if (class_exists('SEO_Dependiente_Semantics')) {
@@ -227,140 +211,37 @@ final class SEO_Dependiente_API {
         } else {
             $semantic = array();
         }
-        // 1A. Productos directos: primera pasada solo sobre campos de identidad y
-        // clasificación del producto. No abre todavía descripciones largas ni rutas
-        // semánticas extensivas.
-        $tokens = !empty($semantic['groups']) && class_exists('SEO_Dependiente_Semantics')
-            ? SEO_Dependiente_Semantics::group_variants($semantic)
-            : self::query_token_groups($query);
-
-        $primary_diagnostic = array();
-        $primary_rows = self::primary_candidate_rows($query, $semantic, $primary_diagnostic);
-        $primary_documents = array();
-        $primary_matched = self::score_candidate_rows(
-            $primary_rows,
-            $query,
-            $tokens,
-            $filters,
-            $mode,
-            $semantic,
-            $primary_documents
-        );
-        self::sort_documents($primary_matched, $orderby);
-
-        // 1B. Conocimiento editorial directo. Las FAQs ya no hacen una
-        // búsqueda textual global en esta fase: se resolverán después, cuando
-        // conozcamos los productos/categorías candidatos y podamos seguir su owner.
-        $direct_related = self::direct_content_search($query, 18, true, $semantic);
-
-        // 2. La búsqueda extensiva se abre cuando la señal local de PRODUCTOS
-        // es insuficiente. El contenido editorial puede complementar una respuesta,
-        // pero nunca sustituir la recuperación del catálogo cuando no hay productos.
-        $primary_product_count = count($primary_matched);
-        $local_sufficient = self::local_search_sufficient($primary_matched, $direct_related);
-        $has_catalog_semantic_route = self::has_catalog_semantic_route($semantic);
-        $run_extended = !$local_sufficient;
-        $extended_reasons = array();
-        if (!$local_sufficient) {
-            $extended_reasons[] = 'local_product_signal_insufficient';
-        }
-        if (0 === $primary_product_count) {
-            $run_extended = true;
-            $extended_reasons[] = 'no_primary_products';
-        }
-        // Una ruta semántica TIPO/ROL/etc. es una señal explícita de catálogo.
-        // Si la primera pasada todavía no ofrece una respuesta amplia, abrimos la
-        // capa semántica aunque existan landings, posts o FAQs relacionados.
-        if ($has_catalog_semantic_route && $primary_product_count < 6) {
-            $run_extended = true;
-            $extended_reasons[] = 'catalog_semantic_route';
-        }
-        // Cuando el cliente ha elegido un ROL concreto, no dejamos que varias
-        // guías editoriales oculten la segunda pasada del catálogo si todavía
-        // hay pocos productos de ese rol. Es especialmente importante en frases
-        // de problema como "se me ha roto un grifo" + Herramienta.
-        if ($solution_role && $primary_product_count < 3) {
-            $run_extended = true;
-            $extended_reasons[] = 'solution_role';
-        }
-        $search_diagnostic = $primary_diagnostic;
-        $search_diagnostic['solution_role'] = $solution_role;
-        $search_diagnostic['primary_product_count'] = $primary_product_count;
-        $search_diagnostic['direct_knowledge_count'] = count($direct_related);
-        $search_diagnostic['extended_search'] = $run_extended ? 'executed' : 'skipped';
-        $search_diagnostic['extended_reasons'] = array_values(array_unique($extended_reasons));
-        $search_diagnostic['semantic_catalog_route'] = $has_catalog_semantic_route ? 1 : 0;
+        $search_diagnostic = array();
+        $candidate_rows = self::candidate_rows($query, $semantic, $search_diagnostic);
         $search_diagnostic['semantic_rules_active'] = (int) $semantic_rules_active;
         if ($semantic_hint) {
             $search_diagnostic['semantic_hint'] = $semantic_hint;
         }
-
-        if ($run_extended) {
-            $extended_diagnostic = array();
-            $extended_rows = self::candidate_rows($query, $semantic, $extended_diagnostic);
-            $row_map = array();
-            foreach (array_merge($primary_rows, $extended_rows) as $row) {
-                $product_id = absint($row['product_id'] ?? 0);
-                if ($product_id) {
-                    $row_map[$product_id] = $row;
-                }
-            }
-            $candidate_rows = array_values($row_map);
-            $search_diagnostic = array_merge($search_diagnostic, $extended_diagnostic);
-            $search_diagnostic['primary_product_count'] = count($primary_matched);
-            $search_diagnostic['direct_knowledge_count'] = count($direct_related);
-            $search_diagnostic['extended_search'] = 'executed';
-            $search_diagnostic['primary_strategy'] = (string) ($primary_diagnostic['strategy'] ?? 'primary_direct');
-        } else {
-            $candidate_rows = $primary_rows;
-            $search_diagnostic['strategy'] = 'primary_direct';
-        }
-
-        $documents = array();
-        $matched = self::score_candidate_rows(
-            $candidate_rows,
-            $query,
-            $tokens,
-            $filters,
-            $mode,
-            $semantic,
-            $documents
-        );
-        $primary_id_map = array();
-        foreach ($primary_matched as $primary_document) {
-            $primary_id_map[absint($primary_document['product_id'] ?? 0)] = true;
-        }
-        foreach ($matched as &$matched_document) {
-            $matched_document['_search_tier'] = isset($primary_id_map[absint($matched_document['product_id'] ?? 0)])
-                ? 'direct'
-                : 'extended';
-        }
-        unset($matched_document);
-        self::sort_documents($matched, $orderby);
+        $documents = array_map(array('SEO_Dependiente_Index', 'decode_row'), $candidate_rows);
         $facets = self::build_facets($documents);
 
-        // v0.2.12: contenido editorial y FAQ son ramas paralelas. Una FAQ solo
-        // hereda de su owner producto/categoria y nunca compite semanticamente con
-        // posts o paginas. Se conservan dos carriles independientes en la respuesta.
-        $faq_related_internal = self::faq_content_search($raw_query, 18, $matched ? $matched : $documents, true, $explicit_faq_owner);
-        $faq_related = self::rank_related_items($faq_related_internal, 12, true);
-
-        $editorial_direct = self::rank_related_items($direct_related, 18, true);
-        $editorial_category = $run_extended
-            ? self::category_related_content($matched ? $matched : $documents, $query, 18)
-            : array();
-        $editorial_related = self::merge_related_items($editorial_direct, $editorial_category, 12);
-
-        // `related` se mantiene por compatibilidad con el frontend, pero se forma
-        // preservando ambos carriles para que un tipo de conocimiento no expulse al otro.
-        $related = self::merge_related_lanes($editorial_related, $faq_related, $query, 6);
-        $search_diagnostic['editorial_related_count'] = count($editorial_related);
-        $search_diagnostic['faq_related_count'] = count($faq_related);
-        if (!empty($explicit_faq_owner['object_id'])) {
-            $search_diagnostic['faq_owner_resolution'] = sanitize_key((string) ($explicit_faq_owner['source'] ?? 'explicit'));
-            $search_diagnostic['faq_owner_type'] = absint($explicit_faq_owner['object_type'] ?? 0);
-            $search_diagnostic['faq_owner_id'] = absint($explicit_faq_owner['object_id'] ?? 0);
+        $matched = array();
+        $tokens = !empty($semantic['groups']) && class_exists('SEO_Dependiente_Semantics')
+            ? SEO_Dependiente_Semantics::group_variants($semantic)
+            : self::query_token_groups($query);
+        foreach ($documents as $document) {
+            if (!self::matches_filters($document, $filters)) {
+                continue;
+            }
+            $score = self::score_document($document, $query, $tokens, $filters, $mode, $semantic);
+            if (isset($score['eligible']) && !$score['eligible']) {
+                continue;
+            }
+            $document['_score'] = $score['score'];
+            $document['_reasons'] = $score['reasons'];
+            $document['_object_hits'] = absint($score['object_hits'] ?? 0);
+            $document['_route_hits'] = absint($score['route_hits'] ?? 0);
+            $matched[] = $document;
         }
+
+        self::sort_documents($matched, $orderby);
+        $related_source = $matched ? $matched : $documents;
+        $related = self::related_content($related_source, $query, 6);
 
         $total = count($matched);
         $pages = $total ? (int) ceil($total / $per_page) : 0;
@@ -391,38 +272,21 @@ final class SEO_Dependiente_API {
             $total,
             $search_diagnostic,
             $semantic_hint,
-            $request_kind,
-            $explicit_faq_owner
+            $request_kind
         );
-        // Amazon es una tercera fuente complementaria, no un fallback condicionado.
-        // Se prepara en toda busqueda que tenga consulta. El frontend la carga aparte
-        // para no bloquear productos ni guias si Amazon tarda o falla.
-        // Contexto visual para Amazon sin API. Se resuelve con el mismo helper
-        // que usa la plantilla de producto/categoría en producción; de este modo
-        // no dependemos de que el JSON de resultados traiga ya una URL de imagen.
-        // Las imágenes siguen siendo orientativas del catálogo propio, no fichas
-        // ni fotografías atribuidas a un producto concreto de Amazon.
-        $amazon_context_images = self::amazon_context_images($results, $related, $matched);
-
+        // Punto de enlace explicito Dependiente -> Amazon.
+        // El buscador principal decide primero con el catalogo propio y SOLO aqui,
+        // una vez conocido el resultado, delega al modulo Amazon la politica de fallback.
         $amazon_fallback = self::amazon_fallback($query, $semantic, array(
             'page'            => $page,
-            'solution_role'   => $solution_role,
             'total'           => $total,
             'strategy'        => (string) ($search_diagnostic['strategy'] ?? 'strict'),
             'top_object_hits' => !empty($matched) ? absint($matched[0]['_object_hits'] ?? 0) : 0,
-            'context_images'  => $amazon_context_images,
         ));
 
         $execution_ms = (microtime(true) - $started_at) * 1000;
         $search_id = '';
-        $should_log_search = (bool) apply_filters(
-            'seo_dependiente_should_log_search',
-            true,
-            $query,
-            $request_kind,
-            $request
-        );
-        if ($should_log_search && class_exists('SEO_Dependiente_Search_Log') && '' !== trim($query)) {
+        if (class_exists('SEO_Dependiente_Search_Log') && '' !== trim($query)) {
             // El diagnostico guardado incorpora el estado de la peticion para poder
             // reconstruir despues la ruta real: filtros, orden, pagina y aclaracion.
             $log_diagnostic = $search_diagnostic;
@@ -430,15 +294,7 @@ final class SEO_Dependiente_API {
                 'page'          => $page,
                 'orderby'       => $orderby,
                 'filters'       => $filters,
-                'solution_role' => $solution_role,
                 'semantic_hint' => $semantic_hint,
-            );
-            $log_diagnostic['knowledge_results'] = count($related);
-            $log_diagnostic['external_search'] = array(
-                'provider'    => (string) ($amazon_fallback['provider'] ?? 'amazon'),
-                'should_load' => !empty($amazon_fallback['should_load']),
-                'reason'      => (string) ($amazon_fallback['reason'] ?? ''),
-                'status'      => (string) ($amazon_fallback['status'] ?? ''),
             );
             $search_id = SEO_Dependiente_Search_Log::record_search(array(
                 'query'           => $query,
@@ -456,10 +312,9 @@ final class SEO_Dependiente_API {
             ));
         }
 
-        $response_payload = array(
+        return rest_ensure_response(array(
             'query'           => $query,
             'mode'            => $mode,
-            'solution_role'   => $solution_role,
             'page'            => $page,
             'per_page'        => $per_page,
             'pages'           => $pages,
@@ -468,10 +323,6 @@ final class SEO_Dependiente_API {
             'truncated'       => count($candidate_rows) >= self::CANDIDATE_LIMIT,
             'results'         => $results,
             'related'         => $related,
-            // Carriles canonicos separados. FAQ: solo owner producto/categoria.
-            // Editorial: posts/paginas por Vocabulary/relaciones editoriales.
-            'related_editorial' => $editorial_related,
-            'related_faq'       => $faq_related,
             'facets'          => $facets,
             'filters'         => $filters,
             'semantic'        => $public_semantic,
@@ -480,179 +331,18 @@ final class SEO_Dependiente_API {
             'semantic_rules_active' => (int) $semantic_rules_active,
             'clarification'    => $clarification,
             'external_fallback' => $amazon_fallback,
-        );
-        if ((bool) apply_filters('seo_dependiente_expose_search_diagnostic', false, $request, $semantic)) {
-            $response_payload['search_diagnostic'] = self::public_search_diagnostic($search_diagnostic);
-        }
-        return rest_ensure_response($response_payload);
+        ));
     }
 
 
     /**
-     * Caller de Amazon (fuente 1C) desde el flujo principal del Dependiente.
-     * La busqueda interna nunca depende de Amazon ni de Creators API.
+     * Caller del modulo Amazon desde el flujo principal del Dependiente.
+     *
+     * Esta funcion es intencionadamente pequena: seo-dependiente-api.php decide
+     * CUANDO consultar un proveedor externo y seo-dependiente-amazon.php decide
+     * COMO construir/limitar esa consulta. Si Amazon no esta disponible, devuelve
+     * un descriptor inactivo y la busqueda interna continua sin degradarse.
      */
-    /**
-     * Resuelve imágenes de apoyo para las búsquedas afiliadas Amazon reutilizando
-     * el mismo criterio visual de las plantillas DHT. Prioriza thumbnails locales
-     * de productos/categorías y después acepta las imágenes ya serializadas por el
-     * Dependiente. Nunca obtiene ni scrapea imágenes de Amazon en el modo sin API.
-     */
-    private static function amazon_context_images($results, $related, $matched = array()) {
-        $images = array();
-        $seen = array();
-
-        $append = static function($candidate) use (&$images, &$seen) {
-            $candidate = esc_url_raw((string) $candidate);
-            if ('' === $candidate || isset($seen[$candidate])) {
-                return false;
-            }
-            $seen[$candidate] = true;
-            $images[] = $candidate;
-            return count($images) >= 12;
-        };
-
-        /*
-         * La plantilla compartida ya conoce todas las fuentes visuales reales:
-         * Media de WooCommerce, wp_seo_supplier_images y Supplier Sync. La cargamos
-         * para no limitar Amazon a _thumbnail_id, que era la causa de que algunas
-         * tarjetas quedasen sin imagen aunque el producto tuviese fotos de proveedor.
-         */
-        if (!function_exists('dht_shared_product_image_candidates')) {
-            $helpers = dirname(__DIR__, 2) . '/seo-system/templates/template-helpers.php';
-            if (is_readable($helpers)) {
-                require_once $helpers;
-            }
-        }
-
-        if (!function_exists('dht_amazon_context_image')) {
-            $category_template = dirname(__DIR__, 2) . '/seo-system/templates/template-amazon-category.php';
-            if (is_readable($category_template)) {
-                require_once $category_template;
-            }
-        }
-        if (!function_exists('dht_amazon_product_deepest_category')) {
-            $product_template = dirname(__DIR__, 2) . '/seo-system/templates/template-amazon-product.php';
-            if (is_readable($product_template)) {
-                require_once $product_template;
-            }
-        }
-
-        $add_product_images = static function($product_id) use ($append) {
-            $product_id = absint($product_id);
-            if (!$product_id) {
-                return false;
-            }
-
-            /*
-             * Primero usamos el resolvedor del propio indice, que tambien contempla
-             * catalogos de proveedor aun no materializados en seo_supplier_images.
-             */
-            if (class_exists('SEO_Dependiente_Index')) {
-                $primary = SEO_Dependiente_Index::product_image_url($product_id);
-                if ($append($primary)) {
-                    return true;
-                }
-            }
-
-            /*
-             * Despues recogemos varias candidatas. Esto es importante porque una URL
-             * remota concreta puede haber caducado aunque la siguiente siga activa.
-             * El logo no se mezcla aqui: se reserva para el ultimo fallback visual.
-             */
-            if (function_exists('dht_shared_product_image_candidates')) {
-                foreach ((array) dht_shared_product_image_candidates($product_id, 'woocommerce_thumbnail', 5, false) as $candidate) {
-                    if ($append($candidate['url'] ?? '')) {
-                        return true;
-                    }
-                }
-            }
-
-            if (function_exists('dht_amazon_context_image')) {
-                $image = dht_amazon_context_image('product', $product_id, array('type' => 'direct'));
-                if ($append($image)) {
-                    return true;
-                }
-            }
-
-            return false;
-        };
-
-        /*
-         * 1) Resultados visibles, en el mismo orden que ve el usuario.
-         */
-        foreach ((array) $results as $item) {
-            if ($add_product_images($item['id'] ?? $item['product_id'] ?? 0)) {
-                return array_slice($images, 0, 12);
-            }
-        }
-
-        /*
-         * 2) Candidatos internos adicionales. Aportan variedad cuando los primeros
-         * resultados comparten una misma imagen o alguno tiene una URL remota rota.
-         */
-        foreach (array_slice((array) $matched, 0, 20) as $document) {
-            if ($add_product_images($document['product_id'] ?? $document['id'] ?? 0)) {
-                return array_slice($images, 0, 12);
-            }
-        }
-
-        /*
-         * 3) Productos de las categorias encontradas. No exigimos _thumbnail_id:
-         * un producto puede tener solamente imagen externa de proveedor.
-         */
-        $category_ids = array();
-        foreach ((array) $matched as $document) {
-            foreach ((array) ($document['categories'] ?? array()) as $category) {
-                $term_id = is_array($category)
-                    ? absint($category['id'] ?? $category['term_id'] ?? 0)
-                    : 0;
-                if ($term_id) {
-                    $category_ids[$term_id] = true;
-                }
-            }
-            if (count($category_ids) >= 8) {
-                break;
-            }
-        }
-
-        foreach (array_keys($category_ids) as $term_id) {
-            $ids = get_posts(array(
-                'post_type'           => 'product',
-                'post_status'         => 'publish',
-                'posts_per_page'      => 6,
-                'fields'              => 'ids',
-                'orderby'             => 'menu_order date',
-                'order'               => 'DESC',
-                'no_found_rows'       => true,
-                'ignore_sticky_posts' => true,
-                'tax_query'           => array(array(
-                    'taxonomy'         => 'product_cat',
-                    'field'            => 'term_id',
-                    'terms'            => array((int) $term_id),
-                    'include_children' => true,
-                )),
-            ));
-
-            foreach ((array) $ids as $product_id) {
-                if ($add_product_images($product_id)) {
-                    return array_slice($images, 0, 12);
-                }
-            }
-        }
-
-        /*
-         * 4) Ultimo apoyo: imagenes ya serializadas por productos, posts o landings.
-         */
-        foreach (array_merge((array) $results, (array) $related) as $item) {
-            if ($append($item['image'] ?? '')) {
-                break;
-            }
-        }
-
-        return array_slice($images, 0, 12);
-    }
-
     private static function amazon_fallback($query, $semantic, $context = array()) {
         $empty = array(
             'provider'    => 'amazon',
@@ -722,7 +412,6 @@ final class SEO_Dependiente_API {
             'note'          => sanitize_textarea_field((string) ($params['note'] ?? '')),
             'query'         => sanitize_text_field((string) ($params['query'] ?? '')),
             'mode'          => sanitize_key((string) ($params['mode'] ?? 'need')),
-            'solution_role' => self::sanitize_solution_role($params['solution_role'] ?? ''),
             'context_label' => sanitize_text_field((string) ($params['context_label'] ?? '')),
             'page_url'      => esc_url_raw((string) ($params['page_url'] ?? '')),
             'filters'       => isset($params['filters']) && is_array($params['filters']) ? $params['filters'] : array(),
@@ -757,7 +446,7 @@ final class SEO_Dependiente_API {
                 'title'       => $product->get_name(),
                 'url'         => get_permalink($product->get_id()),
                 'image'       => self::product_image_or_logo(absint($document['product_id'] ?? 0)),
-                'price'       => self::comparison_price_text($product),
+                'price'       => wp_strip_all_tags($product->get_price_html()),
                 'brand'       => (string) $document['brand_name'],
                 'sku'         => (string) $product->get_sku(),
                 'stock'       => self::stock_label($product->get_stock_status()),
@@ -811,7 +500,7 @@ final class SEO_Dependiente_API {
      * catalogo. El frontend puede retrasar la pregunta y cancelarla si el
      * cliente hace clic antes en un producto.
      */
-    private static function build_clarification($query, $mode, $semantic, $facets, $total, $diagnostic, $semantic_hint, $request_kind = 'search', $resolved_owner = array()) {
+    private static function build_clarification($query, $mode, $semantic, $facets, $total, $diagnostic, $semantic_hint, $request_kind = 'search') {
         $empty = array(
             'should_ask' => false,
             'question'   => '',
@@ -821,11 +510,6 @@ final class SEO_Dependiente_API {
             'options'    => array(),
         );
         if ('' === trim((string) $query) || $semantic_hint || 'compare' === $mode || 'search' !== $request_kind) {
-            return $empty;
-        }
-        // If a product/category has already been resolved to its canonical ID,
-        // asking again which object the user means is a process error.
-        if (absint($resolved_owner['object_id'] ?? 0) && in_array(absint($resolved_owner['object_type'] ?? 0), array(2,3), true)) {
             return $empty;
         }
 
@@ -958,6 +642,12 @@ final class SEO_Dependiente_API {
         return array_keys($out);
     }
 
+    private static function ensure_initial_index() {
+        if (class_exists('WooCommerce') && 0 === SEO_Dependiente_Index::count_indexed()) {
+            SEO_Dependiente_Index::index_batch(1, 60);
+        }
+    }
+
     private static function woocommerce_ready() {
         if (!class_exists('WooCommerce') || !function_exists('wc_get_product')) {
             return new WP_Error(
@@ -972,200 +662,6 @@ final class SEO_Dependiente_API {
     private static function request_params(WP_REST_Request $request) {
         $json = $request->get_json_params();
         return is_array($json) ? $json : $request->get_params();
-    }
-
-    /**
-     * 1A. Recupera candidatos solo desde campos que describen directamente la
-     * identidad/clasificacion del producto. Las descripciones largas quedan para
-     * la fase 2 extensiva.
-     */
-    private static function primary_candidate_rows($query, $semantic = array(), &$diagnostic = array()) {
-        $diagnostic = array(
-            'strategy'            => 'primary_direct',
-            'primary_rows'        => 0,
-            'primary_group_count' => 0,
-        );
-        if (!SEO_Dependiente_Index::table_exists()) {
-            $diagnostic['strategy'] = 'index_unavailable';
-            return array();
-        }
-
-        $groups = self::primary_search_groups($query, $semantic);
-        $diagnostic['primary_group_count'] = count($groups);
-        if (!$groups) {
-            $diagnostic['strategy'] = 'primary_empty';
-            return array();
-        }
-
-        $rows = self::query_primary_index($groups, true, self::CANDIDATE_LIMIT);
-        $diagnostic['primary_rows'] = count($rows);
-        return $rows;
-    }
-
-    private static function primary_search_groups($query, $semantic = array()) {
-        $groups = array();
-        $object_groups = array();
-        if (!empty($semantic['groups'])) {
-            foreach ((array) $semantic['groups'] as $group) {
-                $role = sanitize_key((string) ($group['role'] ?? 'term'));
-                if (in_array($role, array('intent', 'state'), true)) {
-                    continue;
-                }
-                $variants = array_values(array_unique(array_filter(array_map(
-                    array('SEO_Dependiente_Index', 'normalize'),
-                    (array) ($group['variants'] ?? array())
-                ))));
-                if (!$variants) {
-                    continue;
-                }
-                $variants = array_slice($variants, 0, 8);
-                $groups[] = $variants;
-                if ('object' === $role) {
-                    $object_groups[] = $variants;
-                }
-            }
-        }
-        // Cuando el parser ya ha identificado el objeto, la primera pasada usa
-        // ese ancla en vez de exigir con AND palabras de estructura como
-        // "tipo", "tienes" o "catálogo". El resto de términos sigue
-        // participando después en el ranking y en la fase semántica.
-        if ($object_groups) {
-            return array_slice($object_groups, 0, 6);
-        }
-        if (!$groups) {
-            $groups = self::query_token_groups($query);
-        }
-        return array_slice($groups, 0, 10);
-    }
-
-    private static function query_primary_index($groups, $require_all, $limit) {
-        global $wpdb;
-
-        $fields = array(
-            'normalized_title',
-            'sku',
-            'brand_name',
-            'categories_json',
-            'tags_json',
-            'vocabulary_json',
-            'attributes_json',
-        );
-        $clauses = array();
-        $params = array();
-        foreach ((array) $groups as $variants) {
-            $variant_clauses = array();
-            foreach (array_slice((array) $variants, 0, 8) as $variant) {
-                $variant = SEO_Dependiente_Index::normalize((string) $variant);
-                if ('' === $variant) {
-                    continue;
-                }
-                foreach ($fields as $field) {
-                    $variant_clauses[] = '`' . $field . '` LIKE %s';
-                    $params[] = '%' . $wpdb->esc_like($variant) . '%';
-                }
-            }
-            if ($variant_clauses) {
-                $clauses[] = '(' . implode(' OR ', $variant_clauses) . ')';
-            }
-        }
-        if (!$clauses) {
-            return array();
-        }
-
-        $where = implode($require_all ? ' AND ' : ' OR ', $clauses);
-        $params[] = absint($limit);
-        $sql = $wpdb->prepare(
-            'SELECT * FROM `' . esc_sql(SEO_Dependiente_Index::table()) . "` WHERE {$where} ORDER BY featured DESC, updated_at DESC LIMIT %d",
-            $params
-        );
-        return (array) $wpdb->get_results($sql, ARRAY_A);
-    }
-
-    /** Puntua una lista de filas con el ranking comun del Dependiente. */
-    private static function score_candidate_rows($rows, $query, $tokens, $filters, $mode, $semantic, &$documents = array()) {
-        $documents = array_map(array('SEO_Dependiente_Index', 'decode_row'), (array) $rows);
-        $matched = array();
-        foreach ($documents as $document) {
-            if (!self::matches_filters($document, $filters)) {
-                continue;
-            }
-            $score = self::score_document($document, $query, $tokens, $filters, $mode, $semantic);
-            if (isset($score['eligible']) && !$score['eligible']) {
-                continue;
-            }
-            $document['_score'] = $score['score'];
-            $document['_reasons'] = $score['reasons'];
-            $document['_object_hits'] = absint($score['object_hits'] ?? 0);
-            $document['_route_hits'] = absint($score['route_hits'] ?? 0);
-            $matched[] = $document;
-        }
-        return $matched;
-    }
-
-    /**
-     * Umbral de "hay bastante informacion" para decidir si merece la pena abrir
-     * la fase 2. Se puede ajustar sin cambiar el orden de las fuentes.
-     */
-    private static function local_search_sufficient($primary_products, $direct_knowledge) {
-        $products = count((array) $primary_products);
-        $knowledge = count((array) $direct_knowledge);
-
-        // El conocimiento editorial complementa productos; no puede declarar por
-        // sí solo que la búsqueda de catálogo es suficiente. Con cero o un producto
-        // siempre queda abierta la posibilidad de recuperar más catálogo.
-        $sufficient = $products >= 6
-            || ($products >= 3 && $knowledge >= 1)
-            || ($products >= 2 && $knowledge >= 2);
-
-        return (bool) apply_filters(
-            'seo_dependiente_local_search_sufficient',
-            $sufficient,
-            $products,
-            $knowledge
-        );
-    }
-
-    private static function has_catalog_semantic_route($semantic) {
-        foreach ((array) ($semantic['routes'] ?? array()) as $route) {
-            $group = sanitize_key((string) ($route['target_group'] ?? ''));
-            if (!in_array($group, array('rol', 'tipo', 'aplicacion', 'plataforma', 'subtipo'), true)) {
-                continue;
-            }
-            if (absint($route['target_vocabulary_id'] ?? 0) > 0
-                || '' !== trim((string) ($route['target_slug'] ?? ''))) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static function public_search_diagnostic($diagnostic) {
-        $diagnostic = is_array($diagnostic) ? $diagnostic : array();
-        $out = array();
-        foreach (array(
-            'strategy', 'primary_strategy', 'extended_search', 'solution_role', 'faq_owner_resolution'
-        ) as $key) {
-            if (isset($diagnostic[$key])) {
-                $out[$key] = sanitize_key((string) $diagnostic[$key]);
-            }
-        }
-        foreach (array(
-            'primary_rows', 'primary_group_count', 'primary_product_count',
-            'direct_knowledge_count', 'strict_count', 'semantic_product_ids',
-            'semantic_route_rows', 'object_anchor_rows', 'broad_fallback_rows',
-            'semantic_catalog_route', 'semantic_rules_active',
-            'editorial_related_count', 'faq_related_count',
-            'faq_owner_type', 'faq_owner_id'
-        ) as $key) {
-            if (isset($diagnostic[$key])) {
-                $out[$key] = absint($diagnostic[$key]);
-            }
-        }
-        $out['extended_reasons'] = array_values(array_slice(array_filter(array_map(
-            'sanitize_key',
-            (array) ($diagnostic['extended_reasons'] ?? array())
-        )), 0, 8));
-        return $out;
     }
 
     private static function candidate_rows($query, $semantic = array(), &$diagnostic = array()) {
@@ -1412,13 +908,6 @@ final class SEO_Dependiente_API {
         }
 
         return array_values(array_unique(array_filter(array_map(array('SEO_Dependiente_Index', 'normalize'), $variants))));
-    }
-
-    private static function sanitize_solution_role($role) {
-        $role = sanitize_key((string) $role);
-        return in_array($role, array('herramienta', 'repuesto', 'accesorio', 'equipamiento'), true)
-            ? $role
-            : '';
     }
 
     private static function sanitize_filters($filters) {
@@ -1764,13 +1253,6 @@ final class SEO_Dependiente_API {
             if ('title' === $orderby) {
                 return strnatcasecmp((string) $a['title'], (string) $b['title']);
             }
-            // En relevancia, una coincidencia de la fase 1A siempre se presenta
-            // antes que una aproximacion descubierta por la fase 2 extensiva.
-            $a_tier = (string) ($a['_search_tier'] ?? 'direct');
-            $b_tier = (string) ($b['_search_tier'] ?? 'direct');
-            if ($a_tier !== $b_tier) {
-                return 'direct' === $a_tier ? -1 : 1;
-            }
             $score_compare = ((float) $b['_score']) <=> ((float) $a['_score']);
             if (0 !== $score_compare) {
                 return $score_compare;
@@ -1799,7 +1281,6 @@ final class SEO_Dependiente_API {
             'excerpt'       => wp_trim_words(wp_strip_all_tags((string) $document['excerpt']), 25, '…'),
             'reasons'       => (array) $document['_reasons'],
             'score'         => (float) $document['_score'],
-            'search_tier'   => sanitize_key((string) ($document['_search_tier'] ?? 'direct')),
             'key_specs'     => self::key_specs($document, $query, $filters),
             'applications'  => self::vocabulary_item_labels($document, 'aplicacion'),
             'platforms'     => self::vocabulary_item_labels($document, 'plataforma'),
@@ -2400,47 +1881,6 @@ final class SEO_Dependiente_API {
         return $map;
     }
 
-    /**
-     * Convierte el HTML de precio de WooCommerce a texto limpio para el
-     * comparador. get_price_html() incluye textos auxiliares para lectores de
-     * pantalla; si se eliminan las etiquetas sin retirarlos antes, esos textos
-     * se duplican y las entidades como &euro; quedan visibles literalmente.
-     */
-    private static function comparison_price_text($product) {
-        if (!$product || !is_a($product, 'WC_Product')) {
-            return '';
-        }
-
-        $html = (string) $product->get_price_html();
-        if ('' === trim($html)) {
-            return '';
-        }
-
-        // WooCommerce añade descripciones duplicadas solo para accesibilidad.
-        $html = preg_replace(
-            '#<span[^>]*class=(["\'])[^"\']*\bscreen-reader-text\b[^"\']*\1[^>]*>.*?</span>#is',
-            '',
-            $html
-        );
-
-        // Al pasar a texto plano, separa claramente precio anterior y actual.
-        $html = preg_replace('#</del>\s*<ins\b#i', '</del> → <ins', $html);
-
-        $text = wp_strip_all_tags((string) $html, true);
-        $charset = (string) get_bloginfo('charset');
-        $text = html_entity_decode(
-            $text,
-            ENT_QUOTES | ENT_HTML5,
-            $charset ?: 'UTF-8'
-        );
-
-        // Evita espacios no separables y saltos raros dentro de la celda.
-        $text = str_replace("\xC2\xA0", ' ', $text);
-        $text = preg_replace('/[\s\x{00A0}]+/u', ' ', $text);
-
-        return trim((string) $text);
-    }
-
     private static function comparison_criteria($documents) {
         global $wpdb;
 
@@ -2581,890 +2021,7 @@ final class SEO_Dependiente_API {
         return false;
     }
 
-    /**
-     * Capa de conocimiento del Dependiente.
-     *
-     * 1. Busca la consulta original directamente en posts y paginas/landings.
-     * 2. Completa con guias vinculadas a las categorias de los productos encontrados.
-     *
-     * De este modo el contenido puede responder aunque el catalogo no tenga un
-     * producto que aporte previamente una categoria util.
-     */
-    private static function merge_related_items($first, $second, $limit = 8) {
-        $limit = max(1, absint($limit));
-        $items = array();
-        $seen = array();
-        foreach (array_merge((array) $first, (array) $second) as $item) {
-            if (!is_array($item)) {
-                continue;
-            }
-            $key = sanitize_key((string) ($item['type'] ?? 'post')) . ':' . absint($item['id'] ?? 0);
-            if (isset($seen[$key])) {
-                continue;
-            }
-            $seen[$key] = true;
-            $items[] = $item;
-            if (count($items) >= $limit) {
-                break;
-            }
-        }
-        return $items;
-    }
-
-    /**
-     * Mezcla carriles sin convertirlos en relaciones entre si. Para una consulta
-     * que pide expresamente contenido/guia se prioriza editorial; en el resto se
-     * alternan FAQ owner-first y editorial para preservar ambos contextos.
-     */
-    private static function merge_related_lanes($editorial, $faqs, $query, $limit = 6) {
-        $limit = max(1, absint($limit));
-        $editorial = array_values((array) $editorial);
-        $faqs = array_values((array) $faqs);
-        $normalized = SEO_Dependiente_Index::normalize((string) $query);
-        $editorial_intent = (bool) preg_match('/\b(contenido|contenidos|guia|guias|articulo|articulos|pagina|paginas|manual|tutorial|documentacion)\b/u', $normalized);
-
-        $out = array();
-        $seen = array();
-        $push = static function ($item) use (&$out, &$seen, $limit) {
-            if (!is_array($item) || count($out) >= $limit) return;
-            $key = sanitize_key((string) ($item['type'] ?? '')) . ':' . absint($item['id'] ?? 0);
-            if (!$key || isset($seen[$key])) return;
-            $seen[$key] = true;
-            $out[] = $item;
-        };
-
-        if ($editorial_intent) {
-            foreach (array_slice($editorial, 0, max(1, min(4, $limit))) as $item) $push($item);
-            foreach ($faqs as $item) $push($item);
-            foreach ($editorial as $item) $push($item);
-            return $out;
-        }
-
-        $max = max(count($editorial), count($faqs));
-        for ($i = 0; $i < $max && count($out) < $limit; $i++) {
-            if (isset($faqs[$i])) $push($faqs[$i]);
-            if (isset($editorial[$i])) $push($editorial[$i]);
-        }
-        return $out;
-    }
-
-    /**
-     * Ordena y deduplica elementos dentro de un mismo carril de conocimiento.
-     * Desde v0.2.12 FAQ y editorial se ordenan por separado y ya no compiten entre si.
-     */
-    private static function rank_related_items($source_items, $limit = 8, $strip_internal = true) {
-        $limit = max(1, absint($limit));
-        $seen = array();
-        $items = array();
-        foreach ((array) $source_items as $item) {
-            if (!is_array($item)) {
-                continue;
-            }
-            $key = sanitize_key((string) ($item['type'] ?? 'post')) . ':' . absint($item['id'] ?? 0);
-            if (!$key || isset($seen[$key])) {
-                continue;
-            }
-            $seen[$key] = true;
-            $items[] = $item;
-        }
-        usort($items, static function ($a, $b) {
-            if (($a['_score'] ?? 0) !== ($b['_score'] ?? 0)) {
-                return ($b['_score'] ?? 0) <=> ($a['_score'] ?? 0);
-            }
-            return ($b['_modified'] ?? 0) <=> ($a['_modified'] ?? 0);
-        });
-        $items = array_slice($items, 0, $limit);
-        if ($strip_internal) {
-            foreach ($items as &$item) {
-                unset($item['_score'], $item['_modified']);
-            }
-            unset($item);
-        }
-        return $items;
-    }
-
     private static function related_content($documents, $query, $limit = 8) {
-        $limit = max(1, absint($limit));
-        $items = array();
-        $seen = array();
-
-        $direct = self::direct_content_search($query, max(12, $limit * 3));
-        foreach ($direct as $item) {
-            $key = sanitize_key((string) ($item['type'] ?? 'post')) . ':' . absint($item['id'] ?? 0);
-            if (!$item || isset($seen[$key])) {
-                continue;
-            }
-            $seen[$key] = true;
-            $items[] = $item;
-            if (count($items) >= $limit) {
-                return $items;
-            }
-        }
-
-        $category = self::category_related_content($documents, $query, max(12, $limit * 3));
-        foreach ($category as $item) {
-            $key = sanitize_key((string) ($item['type'] ?? 'post')) . ':' . absint($item['id'] ?? 0);
-            if (!$item || isset($seen[$key])) {
-                continue;
-            }
-            $seen[$key] = true;
-            $items[] = $item;
-            if (count($items) >= $limit) {
-                break;
-            }
-        }
-
-        return $items;
-    }
-
-    /**
-     * Busca directamente la frase del cliente en contenido editorial publicado.
-     * WordPress limita primero los candidatos con su buscador nativo y aqui se
-     * vuelve a puntuar para priorizar frase completa, titulo y coincidencias utiles.
-     */
-    /**
-     * Busca conocimiento editorial directo. Las FAQs se resuelven aparte mediante
-     * sus propietarios, una vez conocidos los candidatos del catálogo.
-     */
-    private static function direct_content_search($query, $limit = 18, $keep_internal = false, $semantic = array()) {
-        $query = trim(sanitize_text_field((string) $query));
-        if ('' === $query) {
-            return array();
-        }
-
-        $limit = max(1, absint($limit));
-        $candidate_limit = min(120, max(18, $limit * 5));
-        $search = new WP_Query(array(
-            'post_type'           => array('post', 'page'),
-            'post_status'         => 'publish',
-            's'                   => $query,
-            'posts_per_page'      => $candidate_limit,
-            'orderby'             => 'relevance',
-            'order'               => 'DESC',
-            'ignore_sticky_posts' => true,
-            'no_found_rows'       => true,
-        ));
-
-        $candidate_posts = $search->have_posts() ? (array) $search->posts : array();
-
-        // Primero, candidatos por rutas semanticas exactas ya resueltas por el parser.
-        // Esto evita que palabras del envoltorio de la pregunta ("contenido", "web",
-        // "relacionado") pesen mas que TIPO/ROL/APLICACION realmente detectados.
-        $route_semantic_ids = self::semantic_content_ids_for_routes($semantic, array('post', 'page'), $candidate_limit);
-        $semantic_ids = array_values(array_unique(array_merge(
-            $route_semantic_ids,
-            self::semantic_content_ids_for_query($query, array('post', 'page'), $candidate_limit)
-        )));
-        $candidate_ids = array();
-        foreach ($candidate_posts as $candidate_post) {
-            if ($candidate_post instanceof WP_Post) {
-                $candidate_ids[(int) $candidate_post->ID] = true;
-            }
-        }
-        foreach ($semantic_ids as $semantic_id) {
-            $semantic_id = absint($semantic_id);
-            if (!$semantic_id || isset($candidate_ids[$semantic_id])) {
-                continue;
-            }
-            $semantic_post = get_post($semantic_id);
-            if ($semantic_post instanceof WP_Post && in_array($semantic_post->post_type, array('post', 'page'), true) && 'publish' === $semantic_post->post_status) {
-                $candidate_posts[] = $semantic_post;
-                $candidate_ids[$semantic_id] = true;
-            }
-        }
-
-        $normalized_query = SEO_Dependiente_Index::normalize($query);
-        $query_tokens = array_values(array_unique(array_filter(
-            preg_split('/\\s+/u', $normalized_query),
-            static function ($token) {
-                $length = function_exists('mb_strlen') ? mb_strlen($token, 'UTF-8') : strlen($token);
-                return $length >= 3;
-            }
-        )));
-
-        $structural_ids = array();
-        if (function_exists('wc_get_page_id')) {
-            foreach (array('shop', 'cart', 'checkout', 'myaccount') as $page_key) {
-                $page_id = absint(wc_get_page_id($page_key));
-                if ($page_id) {
-                    $structural_ids[$page_id] = true;
-                }
-            }
-        }
-
-        $route_targets = self::semantic_route_targets($semantic);
-        $route_target_count = count($route_targets);
-
-        $items = array();
-        foreach ($candidate_posts as $post) {
-            if (!$post instanceof WP_Post || isset($structural_ids[(int) $post->ID])) {
-                continue;
-            }
-            if ('page' === $post->post_type && (
-                has_shortcode((string) $post->post_content, 'dependiente') ||
-                has_shortcode((string) $post->post_content, 'dependiente_productos')
-            )) {
-                continue;
-            }
-
-            $title = wp_strip_all_tags((string) $post->post_title);
-            $excerpt = trim(wp_strip_all_tags((string) $post->post_excerpt));
-            $plain_content = trim(wp_strip_all_tags(strip_shortcodes((string) $post->post_content)));
-            $summary_text = $excerpt !== '' ? $excerpt : $plain_content;
-
-            $title_norm = SEO_Dependiente_Index::normalize($title);
-            $excerpt_norm = SEO_Dependiente_Index::normalize($excerpt);
-            $content_norm = SEO_Dependiente_Index::normalize($plain_content);
-            $vocabulary_terms = function_exists('seo_content_vocab_get_flat_terms')
-                ? seo_content_vocab_get_flat_terms($post->post_type, (int) $post->ID)
-                : self::object_vocabulary_terms($post->post_type, (int) $post->ID);
-            $vocabulary_parts = array();
-            $post_route_keys = array();
-            $post_vocabulary_ids = array();
-            foreach ($vocabulary_terms as $vocabulary_term) {
-                $vocabulary_parts[] = (string) ($vocabulary_term['label'] ?? '');
-                $vocabulary_parts[] = str_replace('_', ' ', (string) ($vocabulary_term['slug'] ?? ''));
-                $term_id = absint($vocabulary_term['id'] ?? 0);
-                if ($term_id) {
-                    $post_vocabulary_ids[$term_id] = true;
-                }
-                $term_group = sanitize_key((string) ($vocabulary_term['semantic_group'] ?? $vocabulary_term['group'] ?? ''));
-                $term_slug = SEO_Dependiente_Index::normalize((string) ($vocabulary_term['slug'] ?? ''));
-                if ($term_group && $term_slug) {
-                    $post_route_keys[$term_group . ':' . $term_slug] = true;
-                }
-            }
-            $vocabulary_norm = SEO_Dependiente_Index::normalize(implode(' ', array_filter($vocabulary_parts)));
-            $all_norm = trim($title_norm . ' ' . $excerpt_norm . ' ' . $content_norm . ' ' . $vocabulary_norm);
-
-            $score = 0;
-            $hits = 0;
-            $exact_route_hits = 0;
-            foreach ($route_targets as $target) {
-                $target_id = absint($target['id'] ?? 0);
-                $target_key = sanitize_key((string) ($target['group'] ?? '')) . ':' . (string) ($target['slug'] ?? '');
-                if (($target_id && isset($post_vocabulary_ids[$target_id])) || (!$target_id && isset($post_route_keys[$target_key]))) {
-                    $exact_route_hits++;
-                }
-            }
-            if ($exact_route_hits > 0) {
-                $score += 480 * $exact_route_hits;
-                $hits += 2 * $exact_route_hits;
-                if ($route_target_count > 1 && $exact_route_hits === $route_target_count) {
-                    $score += 720;
-                }
-            }
-            if ($normalized_query && false !== strpos($title_norm, $normalized_query)) {
-                $score += 360;
-            } elseif ($normalized_query && false !== strpos($all_norm, $normalized_query)) {
-                $score += 240;
-            }
-            if ($normalized_query && $vocabulary_norm && false !== strpos($vocabulary_norm, $normalized_query)) {
-                $score += 210;
-                $hits++;
-            }
-            foreach ($query_tokens as $token) {
-                if (false !== strpos($title_norm, $token)) {
-                    $score += 72;
-                    $hits++;
-                } elseif ($vocabulary_norm && false !== strpos($vocabulary_norm, $token)) {
-                    $score += 58;
-                    $hits++;
-                } elseif (false !== strpos($excerpt_norm, $token)) {
-                    $score += 42;
-                    $hits++;
-                } elseif (false !== strpos($content_norm, $token)) {
-                    $score += 18;
-                    $hits++;
-                }
-            }
-            if (!$score || (!$hits && (!$normalized_query || false === strpos($all_norm, $normalized_query)))) {
-                continue;
-            }
-
-            $url = get_permalink((int) $post->ID);
-            if (!$url) {
-                continue;
-            }
-            $image = get_the_post_thumbnail_url((int) $post->ID, 'medium_large');
-            $items[] = array(
-                'id'         => (int) $post->ID,
-                'type'       => 'page' === $post->post_type ? 'landing' : 'post',
-                'type_label' => 'page' === $post->post_type ? 'Pagina' : 'Guia',
-                'title'      => $title,
-                'excerpt'    => wp_trim_words($summary_text, 24, '…'),
-                'url'        => esc_url_raw($url),
-                'image'      => $image ? esc_url_raw($image) : '',
-                '_score'     => $score,
-                '_modified'  => strtotime((string) $post->post_modified) ?: 0,
-            );
-        }
-
-        return self::rank_related_items($items, $limit, !$keep_internal);
-    }
-
-    /**
-     * Rutas Vocabulary exactas detectadas por el parser: grupo:slug.
-     * Se deduplican porque una misma ruta puede aparecer mas de una vez al
-     * combinar reglas canonicas y reglas temporales de Academia.
-     */
-    private static function semantic_route_targets($semantic) {
-        $targets = array();
-        foreach ((array) ($semantic['routes'] ?? array()) as $route) {
-            $group = sanitize_key((string) ($route['target_group'] ?? ''));
-            $slug = SEO_Dependiente_Index::normalize((string) ($route['target_slug'] ?? ''));
-            $id = absint($route['target_vocabulary_id'] ?? 0);
-            if (!in_array($group, array('rol','tipo','aplicacion','plataforma','subtipo'), true) || (!$id && !$slug)) {
-                continue;
-            }
-            $key = $id ? 'id:' . $id : $group . ':' . $slug;
-            $targets[$key] = array('id'=>$id,'group'=>$group,'slug'=>$slug);
-        }
-        return array_values($targets);
-    }
-
-    /**
-     * Recupera contenido editorial por coincidencia exacta con las rutas
-     * Vocabulary ya interpretadas. Prioriza target_vocabulary_id canonico para
-     * no depender de si el slug usa espacios, guiones o guiones bajos.
-     */
-    private static function semantic_content_ids_for_routes($semantic, $object_types, $limit = 80) {
-        global $wpdb;
-        $targets = self::semantic_route_targets($semantic);
-        $object_types = array_values(array_intersect(array('post', 'page'), array_map('sanitize_key', (array) $object_types)));
-        if (!$targets || !$object_types) {
-            return array();
-        }
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-        if (!SEO_Dependiente_Index::table_exists($objects) || !SEO_Dependiente_Index::table_exists($vocabulary)) {
-            return array();
-        }
-
-        $ids = array();
-        $fallback_targets = array();
-        foreach ($targets as $target) {
-            $id = absint($target['id'] ?? 0);
-            if ($id) {
-                $ids[$id] = true;
-            } else {
-                $fallback_targets[] = $target;
-            }
-        }
-
-        $conditions = array();
-        $params = array();
-        if ($ids) {
-            $conditions[] = 'v.id IN (' . implode(',', array_fill(0, count($ids), '%d')) . ')';
-            $params = array_merge($params, array_keys($ids));
-        }
-        foreach ($fallback_targets as $target) {
-            $group = sanitize_key((string) ($target['group'] ?? ''));
-            $slug = SEO_Dependiente_Index::normalize((string) ($target['slug'] ?? ''));
-            if (!$group || !$slug) continue;
-            $dash_slug = sanitize_title($slug);
-            $underscore_slug = str_replace('-', '_', $dash_slug);
-            $conditions[] = "(v.semantic_group=%s AND (v.slug=%s OR v.slug=%s OR REPLACE(REPLACE(LOWER(v.slug), '_', ' '), '-', ' ')=%s OR LOWER(v.label)=%s))";
-            array_push($params, $group, $dash_slug, $underscore_slug, $slug, $slug);
-        }
-        if (!$conditions) {
-            return array();
-        }
-
-        $type_sql = "'" . implode("','", array_map('esc_sql', $object_types)) . "'";
-        $limit = min(250, max(1, absint($limit)));
-        $sql = "SELECT ov.object_id, COUNT(DISTINCT v.id) exact_hits
-                FROM {$objects} ov
-                INNER JOIN {$vocabulary} v ON v.id=ov.vocabulary_id AND v.active=1
-                INNER JOIN {$wpdb->posts} p ON p.ID=ov.object_id AND p.post_status='publish'
-                WHERE ov.object_type IN ({$type_sql})
-                  AND p.post_type=ov.object_type
-                  AND ov.status=1
-                  AND (" . implode(' OR ', $conditions) . ")
-                GROUP BY ov.object_id
-                ORDER BY exact_hits DESC, ov.object_id DESC
-                LIMIT {$limit}";
-        return array_values(array_filter(array_map('absint', (array) $wpdb->get_col($wpdb->prepare($sql, $params)))));
-    }
-
-    /**
-     * Devuelve IDs de posts/paginas cuya clasificacion canonica coincide con la
-     * consulta. Evita depender del helper historico que solo contemplaba posts.
-     */
-    private static function semantic_content_ids_for_query($query, $object_types, $limit = 80) {
-        global $wpdb;
-        $query = SEO_Dependiente_Index::normalize((string) $query);
-        $tokens = array_values(array_unique(array_filter(preg_split('/\\s+/u', $query), static function ($token) {
-            return strlen((string) $token) >= 3;
-        })));
-        $tokens = array_slice($tokens, 0, 8);
-        $object_types = array_values(array_intersect(array('post', 'page'), array_map('sanitize_key', (array) $object_types)));
-        if (!$tokens || !$object_types) {
-            return array();
-        }
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-        if (!SEO_Dependiente_Index::table_exists($objects) || !SEO_Dependiente_Index::table_exists($vocabulary)) {
-            return array();
-        }
-        $conditions = array();
-        $params = array();
-        foreach ($tokens as $token) {
-            $like = '%' . $wpdb->esc_like($token) . '%';
-            $conditions[] = '(LOWER(v.label) LIKE %s OR LOWER(v.slug) LIKE %s)';
-            $params[] = $like;
-            $params[] = $like;
-        }
-        $type_sql = "'" . implode("','", array_map('esc_sql', $object_types)) . "'";
-        $limit = min(250, max(1, absint($limit)));
-        $sql = "SELECT ov.object_id, COUNT(DISTINCT v.id) semantic_hits
-                FROM {$objects} ov
-                INNER JOIN {$vocabulary} v ON v.id=ov.vocabulary_id AND v.active=1
-                INNER JOIN {$wpdb->posts} p ON p.ID=ov.object_id AND p.post_status='publish'
-                WHERE ov.object_type IN ({$type_sql})
-                  AND p.post_type=ov.object_type
-                  AND ov.status=1
-                  AND (" . implode(' OR ', $conditions) . ")
-                GROUP BY ov.object_id
-                ORDER BY semantic_hits DESC, ov.object_id DESC
-                LIMIT {$limit}";
-        return array_values(array_filter(array_map('absint', (array) $wpdb->get_col($wpdb->prepare($sql, $params)))));
-    }
-
-    /**
-     * Resolve a canonical FAQ owner before FAQ retrieval.
-     *
-     * Important: FAQ relations are NEVER resolved by title. Titles/labels are only
-     * a natural-language bridge used to identify the canonical object ID when the
-     * caller did not already provide one. From that point onward the authoritative
-     * key is object_type + object_id.
-     */
-    private static function resolve_explicit_faq_owner($query, $params = array()) {
-        global $wpdb;
-
-        $params = is_array($params) ? $params : array();
-        $context = isset($params['owner_context']) && is_array($params['owner_context'])
-            ? $params['owner_context']
-            : array();
-        $context_type = $context['object_type'] ?? ($params['context_object_type'] ?? ($params['owner_type'] ?? ''));
-        $context_id = absint($context['object_id'] ?? ($params['context_object_id'] ?? ($params['owner_id'] ?? 0)));
-        $validated = self::validate_faq_owner($context_type, $context_id);
-        if ($validated) {
-            $validated['source'] = 'request_context';
-            $validated['label'] = '';
-            return $validated;
-        }
-
-        $query = trim((string) $query);
-        if ('' === $query) {
-            return array();
-        }
-        $plain = function_exists('remove_accents') ? remove_accents($query) : $query;
-        $plain = strtolower((string) $plain);
-        $hint_type = 0;
-        if (preg_match('/\bproducto\b/u', $plain)) {
-            $hint_type = 3;
-        } elseif (preg_match('/\bcategoria\b/u', $plain)) {
-            $hint_type = 2;
-        }
-        if (!$hint_type) {
-            return array();
-        }
-
-        $label = '';
-        if (preg_match('/["\x{00AB}\x{201C}](.{2,700})["\x{00BB}\x{201D}]\s*:\s*/us', $query, $match)) {
-            $label = trim(wp_strip_all_tags((string) ($match[1] ?? '')));
-        }
-        if ('' === $label) {
-            return array();
-        }
-
-        if (3 === $hint_type) {
-            $normalized = SEO_Dependiente_Index::normalize($label);
-            if ($normalized && SEO_Dependiente_Index::table_exists()) {
-                $ids = array_values(array_unique(array_filter(array_map('absint', (array) $wpdb->get_col($wpdb->prepare(
-                    'SELECT product_id FROM `' . esc_sql(SEO_Dependiente_Index::table()) . '` WHERE normalized_title=%s LIMIT 2',
-                    $normalized
-                ))))));
-                if (1 === count($ids)) {
-                    $owner = self::validate_faq_owner(3, $ids[0]);
-                    if ($owner) {
-                        $owner['source'] = 'explicit_query';
-                        $owner['label'] = $label;
-                        return $owner;
-                    }
-                }
-            }
-
-            // Exact canonical WordPress title as a safe fallback if the Dependiente
-            // index is stale. It only resolves the product ID; FAQ lookup still uses ID.
-            $ids = array_values(array_unique(array_filter(array_map('absint', (array) $wpdb->get_col($wpdb->prepare(
-                "SELECT ID FROM {$wpdb->posts} WHERE post_type='product' AND post_status='publish' AND post_title=%s ORDER BY ID ASC LIMIT 2",
-                $label
-            ))))));
-            if (1 === count($ids)) {
-                $owner = self::validate_faq_owner(3, $ids[0]);
-                if ($owner) {
-                    $owner['source'] = 'explicit_query';
-                    $owner['label'] = $label;
-                    return $owner;
-                }
-            }
-            return array();
-        }
-
-        $term = get_term_by('slug', sanitize_title($label), 'product_cat');
-        if (!$term || is_wp_error($term)) {
-            $term = get_term_by('name', $label, 'product_cat');
-        }
-        if ($term && !is_wp_error($term)) {
-            $owner = self::validate_faq_owner(2, absint($term->term_id));
-            if ($owner) {
-                $owner['source'] = 'explicit_query';
-                $owner['label'] = $label;
-                return $owner;
-            }
-        }
-        return array();
-    }
-
-    private static function validate_faq_owner($object_type, $object_id) {
-        $object_id = absint($object_id);
-        if (!$object_id) {
-            return array();
-        }
-        if (is_string($object_type)) {
-            $type = sanitize_key($object_type);
-            if (in_array($type, array('product','producto'), true)) {
-                $object_type = 3;
-            } elseif (in_array($type, array('product_cat','category','categoria'), true)) {
-                $object_type = 2;
-            }
-        }
-        $object_type = absint($object_type);
-        if (3 === $object_type) {
-            $post = get_post($object_id);
-            if (!$post instanceof WP_Post || 'product' !== $post->post_type || 'publish' !== $post->post_status) {
-                return array();
-            }
-            return array('object_type'=>3, 'object_id'=>$object_id, 'type'=>'product');
-        }
-        if (2 === $object_type) {
-            $term = get_term($object_id, 'product_cat');
-            if (!$term || is_wp_error($term)) {
-                return array();
-            }
-            return array('object_type'=>2, 'object_id'=>$object_id, 'type'=>'product_cat');
-        }
-        return array();
-    }
-
-    /** Remove the explicit owner prefix so FAQ ranking uses the actual question. */
-    private static function faq_query_without_owner_context($query) {
-        $query = trim((string) $query);
-        if (preg_match('/["\x{00AB}\x{201C}].{2,700}["\x{00BB}\x{201D}]\s*:\s*(.+)$/us', $query, $match)) {
-            $tail = trim((string) ($match[1] ?? ''));
-            if ('' !== $tail) {
-                return $tail;
-            }
-        }
-        return $query;
-    }
-
-    private static function object_vocabulary_terms($object_type, $object_id) {
-        global $wpdb;
-        $object_type = sanitize_key((string) $object_type);
-        $object_id = absint($object_id);
-        if (!$object_id) {
-            return array();
-        }
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-        if (!SEO_Dependiente_Index::table_exists($objects) || !SEO_Dependiente_Index::table_exists($vocabulary)) {
-            return array();
-        }
-        return (array) $wpdb->get_results($wpdb->prepare(
-            "SELECT v.id,v.semantic_group,v.slug,v.label
-             FROM {$objects} ov INNER JOIN {$vocabulary} v ON v.id=ov.vocabulary_id AND v.active=1
-             WHERE ov.object_type=%s AND ov.object_id=%d AND ov.status=1
-             ORDER BY v.semantic_group,v.label",
-            $object_type, $object_id
-        ), ARRAY_A);
-    }
-
-    /**
-     * Busca FAQs siguiendo primero el enlace estructural del propietario.
-     *
-     * Ruta principal:
-     *   consulta -> productos/categorías candidatos -> object_type/object_id -> FAQs
-     *
-     * La ruta canonica es exclusivamente owner-first. Si el catalogo no identifica
-     * un producto/categoria propietario, no se inventa una relacion FAQ por texto.
-     * Un integrador puede reactivar el fallback de forma explicita mediante filtro,
-     * pero Dependiente lo mantiene desactivado por defecto.
-     */
-    private static function faq_content_search($query, $limit = 30, $documents = array(), $keep_internal = false, $resolved_owner = array()) {
-        global $wpdb;
-        $faq_table = $wpdb->prefix . 'seo_faq';
-        if (!SEO_Dependiente_Index::table_exists($faq_table)) {
-            return array();
-        }
-
-        $validated_owner = self::validate_faq_owner($resolved_owner['object_type'] ?? 0, $resolved_owner['object_id'] ?? 0);
-        $resolved_owner = $validated_owner ? array_merge($resolved_owner, $validated_owner) : array();
-        $faq_query = $resolved_owner ? self::faq_query_without_owner_context($query) : (string) $query;
-        $normalized_query = SEO_Dependiente_Index::normalize($faq_query);
-        $tokens = array_values(array_unique(array_filter(preg_split('/\s+/u', $normalized_query), static function ($token) {
-            $length = function_exists('mb_strlen') ? mb_strlen((string) $token, 'UTF-8') : strlen((string) $token);
-            return $length >= 3;
-        })));
-        $tokens = array_slice($tokens, 0, $resolved_owner ? 10 : 6);
-        if (!$tokens) {
-            return array();
-        }
-
-        $limit = max(1, absint($limit));
-        $candidate_rows = array();
-        $owner_scores = array();
-        $product_ids = array();
-        $category_scores = array();
-
-        // If the question resolves to a canonical owner, lock FAQ retrieval to
-        // that object_type/object_id. No other product/category can enter this lane.
-        if ($resolved_owner) {
-            $resolved_type = absint($resolved_owner['object_type'] ?? 0);
-            $resolved_id = absint($resolved_owner['object_id'] ?? 0);
-            if (3 === $resolved_type && $resolved_id) {
-                $product_ids[$resolved_id] = true;
-                $owner_scores['3:' . $resolved_id] = 1000;
-            } elseif (2 === $resolved_type && $resolved_id) {
-                $category_scores[$resolved_id] = 1000;
-                $owner_scores['2:' . $resolved_id] = 1000;
-            }
-        } else {
-            // Without an explicit owner, derive owners from ranked catalog documents.
-            foreach (array_slice((array) $documents, 0, 24) as $rank => $document) {
-                if (!is_array($document)) {
-                    continue;
-                }
-                $product_id = absint($document['product_id'] ?? $document['id'] ?? 0);
-                if ($product_id && !isset($product_ids[$product_id])) {
-                    $product_ids[$product_id] = true;
-                    $owner_scores['3:' . $product_id] = max(40, 190 - ((int) $rank * 6));
-                }
-                $rank_weight = max(4, 30 - (int) $rank);
-                foreach ((array) ($document['categories'] ?? array()) as $category) {
-                    $category_id = absint($category['id'] ?? 0);
-                    if (!$category_id) {
-                        continue;
-                    }
-                    if (!isset($category_scores[$category_id])) {
-                        $category_scores[$category_id] = 0;
-                    }
-                    $category_scores[$category_id] += $rank_weight;
-                }
-            }
-        }
-
-        if ($category_scores) {
-            arsort($category_scores, SORT_NUMERIC);
-            $category_scores = array_slice($category_scores, 0, 12, true);
-            foreach ($category_scores as $category_id => $score) {
-                $key = '2:' . absint($category_id);
-                if (!isset($owner_scores[$key])) {
-                    $owner_scores[$key] = min(155, 55 + (int) $score);
-                }
-            }
-        }
-
-        $product_ids = array_slice(array_keys($product_ids), 0, 16);
-        $category_ids = array_map('absint', array_keys($category_scores));
-        $owner_conditions = array();
-        $owner_params = array();
-        if ($product_ids) {
-            $owner_conditions[] = '(object_type=3 AND object_id IN (' . implode(',', array_fill(0, count($product_ids), '%d')) . '))';
-            $owner_params = array_merge($owner_params, $product_ids);
-        }
-        if ($category_ids) {
-            $owner_conditions[] = '(object_type=2 AND object_id IN (' . implode(',', array_fill(0, count($category_ids), '%d')) . '))';
-            $owner_params = array_merge($owner_params, $category_ids);
-        }
-
-        if ($owner_conditions) {
-            $owner_limit = min(180, max(30, $limit * 8));
-            $owner_sql = "SELECT id,object_type,object_id,ambito,question,answer,updated_at
-                          FROM {$faq_table}
-                          WHERE active=1 AND (" . implode(' OR ', $owner_conditions) . ")
-                          ORDER BY sort_order ASC,id ASC
-                          LIMIT {$owner_limit}";
-            foreach ((array) $wpdb->get_results($wpdb->prepare($owner_sql, $owner_params), ARRAY_A) as $row) {
-                $faq_id = absint($row['id'] ?? 0);
-                if (!$faq_id) {
-                    continue;
-                }
-                $owner_key = absint($row['object_type'] ?? 0) . ':' . absint($row['object_id'] ?? 0);
-                $row['_faq_route'] = 'owner';
-                $row['_owner_score'] = (int) ($owner_scores[$owner_key] ?? 40);
-                $candidate_rows[$faq_id] = $row;
-            }
-        }
-
-        // Fallback textual solo por opt-in. La verdad canonica de FAQ es
-        // object_type/object_id (producto o categoria), nunca similitud con posts,
-        // paginas, etiquetas u otros contenidos.
-        $allow_text_fallback = (bool) apply_filters(
-            'seo_dependiente_faq_allow_text_fallback',
-            false,
-            $query,
-            $documents
-        );
-        if (!$candidate_rows && !$resolved_owner && $allow_text_fallback) {
-            $conditions = array();
-            $params = array();
-            foreach ($tokens as $token) {
-                $like = '%' . $wpdb->esc_like($token) . '%';
-                $conditions[] = '(LOWER(question) LIKE %s OR LOWER(COALESCE(ambito,\'\')) LIKE %s)';
-                $params[] = $like;
-                $params[] = $like;
-            }
-            $text_limit = min(100, max(24, $limit * 4));
-            $sql = "SELECT id,object_type,object_id,ambito,question,answer,updated_at
-                    FROM {$faq_table}
-                    WHERE active=1 AND object_type IN (2,3) AND (" . implode(' OR ', $conditions) . ")
-                    ORDER BY updated_at DESC,id DESC LIMIT {$text_limit}";
-            foreach ((array) $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A) as $row) {
-                $faq_id = absint($row['id'] ?? 0);
-                if (!$faq_id) {
-                    continue;
-                }
-                $row['_faq_route'] = 'text_fallback';
-                $row['_owner_score'] = 0;
-                $candidate_rows[$faq_id] = $row;
-            }
-        }
-
-        if (!$candidate_rows) {
-            return array();
-        }
-
-        $items = array();
-        $owner_context_cache = array();
-        foreach ($candidate_rows as $row) {
-            $faq_id = absint($row['id'] ?? 0);
-            $object_type = absint($row['object_type'] ?? 0);
-            $object_id = absint($row['object_id'] ?? 0);
-            if (!$faq_id || !$object_id || !in_array($object_type, array(2,3), true)) {
-                continue;
-            }
-
-            $owner_cache_key = $object_type . ':' . $object_id;
-            if (!array_key_exists($owner_cache_key, $owner_context_cache)) {
-                $owner_context_cache[$owner_cache_key] = self::faq_owner_context($object_type, $object_id);
-            }
-            $owner = $owner_context_cache[$owner_cache_key];
-            if (!$owner) {
-                continue;
-            }
-
-            $question = wp_strip_all_tags((string) ($row['question'] ?? ''));
-            $answer = trim(wp_strip_all_tags((string) ($row['answer'] ?? '')));
-            $ambito = trim(wp_strip_all_tags((string) ($row['ambito'] ?? '')));
-            $question_norm = SEO_Dependiente_Index::normalize($question);
-            $answer_norm = SEO_Dependiente_Index::normalize($answer);
-            $ambito_norm = SEO_Dependiente_Index::normalize($ambito);
-            $owner_norm = SEO_Dependiente_Index::normalize(($owner['title'] ?? '') . ' ' . implode(' ', (array) ($owner['vocabulary'] ?? array())));
-            $all_norm = trim($question_norm . ' ' . $ambito_norm . ' ' . $answer_norm . ' ' . $owner_norm);
-            $route = sanitize_key((string) ($row['_faq_route'] ?? 'owner'));
-            $score = max(0, (int) ($row['_owner_score'] ?? 0));
-            $hits = 0;
-
-            if ('owner' === $route) {
-                // Premio fijo por haber llegado a la FAQ mediante su propietario.
-                $score += 145;
-            }
-            if ($normalized_query && false !== strpos($question_norm, $normalized_query)) {
-                $score += 320;
-                $hits++;
-            } elseif ($normalized_query && false !== strpos($all_norm, $normalized_query)) {
-                $score += 180;
-                $hits++;
-            }
-            foreach ($tokens as $token) {
-                if (false !== strpos($question_norm, $token)) {
-                    $score += 74;
-                    $hits++;
-                } elseif ($ambito_norm && false !== strpos($ambito_norm, $token)) {
-                    $score += 52;
-                    $hits++;
-                } elseif (false !== strpos($owner_norm, $token)) {
-                    $score += 46;
-                    $hits++;
-                } elseif (false !== strpos($answer_norm, $token)) {
-                    $score += 18;
-                    $hits++;
-                }
-            }
-
-            // En owner-first el vínculo estructural ya es señal suficiente para
-            // mostrar la FAQ dentro del pequeño conjunto del propietario. En el
-            // fallback textual sí exigimos coincidencia real con la consulta.
-            if ('owner' !== $route && (!$score || 0 === $hits)) {
-                continue;
-            }
-
-            $items[] = array(
-                'id'          => $faq_id,
-                'type'        => 'faq',
-                'type_label'  => 'FAQ',
-                'title'       => $question,
-                'excerpt'     => wp_trim_words($answer, 28, '…'),
-                'url'         => esc_url_raw((string) ($owner['url'] ?? '')),
-                'image'       => '',
-                'owner_type'  => (string) ($owner['type'] ?? ''),
-                'owner_id'    => $object_id,
-                'owner_title' => (string) ($owner['title'] ?? ''),
-                'faq_route'   => $route,
-                'ambito'      => $ambito,
-                '_score'      => $score,
-                '_modified'   => strtotime((string) ($row['updated_at'] ?? '')) ?: 0,
-            );
-        }
-
-        return self::rank_related_items($items, $limit, !$keep_internal);
-    }
-
-    private static function faq_owner_context($object_type, $object_id) {
-        $object_type = absint($object_type);
-        $object_id = absint($object_id);
-        if (1 === $object_type) {
-            $post = get_post($object_id);
-            if (!$post instanceof WP_Post || 'page' !== $post->post_type || 'publish' !== $post->post_status) {
-                return array();
-            }
-            $terms = function_exists('seo_content_vocab_get_flat_terms') ? seo_content_vocab_get_flat_terms('page', $object_id) : self::object_vocabulary_terms('page', $object_id);
-            return array('type'=>'page','title'=>get_the_title($object_id),'url'=>get_permalink($object_id),'vocabulary'=>wp_list_pluck($terms,'label'));
-        }
-        if (2 === $object_type) {
-            $term = get_term($object_id, 'product_cat');
-            if (!$term || is_wp_error($term)) {
-                return array();
-            }
-            $url = get_term_link($term, 'product_cat');
-            $terms = self::object_vocabulary_terms('product_cat', $object_id);
-            return array('type'=>'product_cat','title'=>(string)$term->name,'url'=>is_wp_error($url)?'':$url,'vocabulary'=>wp_list_pluck($terms,'label'));
-        }
-        if (3 === $object_type) {
-            $post = get_post($object_id);
-            if (!$post instanceof WP_Post || 'product' !== $post->post_type || 'publish' !== $post->post_status) {
-                return array();
-            }
-            $terms = self::object_vocabulary_terms('product', $object_id);
-            return array('type'=>'product','title'=>get_the_title($object_id),'url'=>get_permalink($object_id),'vocabulary'=>wp_list_pluck($terms,'label'));
-        }
-        return array();
-    }
-
-    private static function category_related_content($documents, $query, $limit = 8) {
         global $wpdb;
 
         $relations = $wpdb->prefix . 'seo_relations';
@@ -3556,17 +2113,7 @@ final class SEO_Dependiente_API {
             if ($plain_text === '') {
                 $plain_text = wp_strip_all_tags(strip_shortcodes((string) $item['content']));
             }
-            $semantic_text = '';
-            if (in_array($item['source_type'], array('post','landing'), true) && function_exists('seo_content_vocab_get_flat_terms')) {
-                $semantic_parts = array();
-                $semantic_object_type = 'landing' === $item['source_type'] ? 'page' : 'post';
-                foreach (seo_content_vocab_get_flat_terms($semantic_object_type, (int) $item['id']) as $semantic_term) {
-                    $semantic_parts[] = (string) ($semantic_term['label'] ?? '');
-                    $semantic_parts[] = str_replace('_', ' ', (string) ($semantic_term['slug'] ?? ''));
-                }
-                $semantic_text = implode(' ', array_filter($semantic_parts));
-            }
-            $haystack = SEO_Dependiente_Index::normalize($item['title'] . ' ' . $plain_text . ' ' . $semantic_text);
+            $haystack = SEO_Dependiente_Index::normalize($item['title'] . ' ' . $plain_text);
             $score = $category_score;
             $phrase_match = false;
             $query_hits = 0;

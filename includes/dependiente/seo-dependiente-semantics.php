@@ -832,14 +832,28 @@ final class SEO_Dependiente_Semantics {
             self::$vocabulary_cache[$cache_key] = 0;
             return 0;
         }
+        // Vocabulary usa slugs canonicos que pueden conservar guiones bajos
+        // (p. ej. "cajas_de_herramientas_de_taller"), mientras que las rutas
+        // semanticas trabajan con texto normalizado con espacios. Se prueban ambas
+        // representaciones para que una ruta reconocida llegue al ID canonico y,
+        // desde ahi, a seo_object_vocabulary sin depender de coincidencias de texto.
+        $dash_slug = sanitize_title($slug);
+        $underscore_slug = str_replace('-', '_', $dash_slug);
         $id = absint($wpdb->get_var(
             $wpdb->prepare(
                 "SELECT id FROM {$table}
                  WHERE semantic_group = %s AND active = 1
-                   AND (slug = %s OR LOWER(label) = %s)
+                   AND (
+                        slug = %s
+                     OR slug = %s
+                     OR REPLACE(REPLACE(LOWER(slug), '_', ' '), '-', ' ') = %s
+                     OR LOWER(label) = %s
+                   )
                  ORDER BY id ASC LIMIT 1",
                 $group,
-                sanitize_title($slug),
+                $dash_slug,
+                $underscore_slug,
+                $slug,
                 $slug
             )
         ));
