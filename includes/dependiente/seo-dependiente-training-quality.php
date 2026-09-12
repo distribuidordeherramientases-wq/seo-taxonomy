@@ -12,6 +12,8 @@ defined('ABSPATH') || exit;
 final class SEO_Dependiente_Training_Quality {
     const EXPORT_VERSION = 1;
     const DETAIL_LIMIT = 160;
+    const REPORT_BATCH_SIZE = 250;
+    const EXPORT_FAILURE_LIMIT = 1000;
 
     public static function render() {
         if (!self::available()) {
@@ -403,79 +405,96 @@ final class SEO_Dependiente_Training_Quality {
     }
 
     private static function build_report($lesson_key = '', $for_export = false) {
-        $rows = self::evaluated_rows($lesson_key);
         $lessons = self::lesson_rows($lesson_key);
-        $product_ids = array();
-        foreach ($rows as $row) {
-            $expected = self::decode($row['expected_json'] ?? '');
-            $pid = self::source_product_id((string) ($row['source_type'] ?? ''), absint($row['source_id'] ?? 0), $expected);
-            if ($pid) $product_ids[$pid] = true;
-        }
-        $products = self::prefetch_products(array_keys($product_ids));
-        $architecture = self::prefetch_architecture($products, $rows);
-
         $lesson_stats = array();
         $direct = array();
         $context = array();
         $sources = array();
         $diagnostics = array();
         $modules = array();
-        $failures = array();
         $summary = array('lessons_with_data'=>0,'answered'=>0,'top1'=>0,'top3'=>0,'pass_any'=>0,'failed'=>0,'errors'=>0,'review_sources'=>0);
 
-        foreach ($rows as $row) {
-            $lesson = sanitize_key((string) ($row['lesson_key'] ?? ''));
-            if (!isset($lesson_stats[$lesson])) $lesson_stats[$lesson] = self::empty_stats();
-            $status = sanitize_key((string) ($row['evaluation_status'] ?? ''));
-            $is_error = ('error' === $status || 'error' === sanitize_key((string) ($row['run_status'] ?? '')));
-            $is_pass = 0 === strpos($status, 'pass_');
-            $is_fail = !$is_error && !$is_pass && 'observed' !== $status && '' !== $status;
-            $top1 = 'pass_top1' === $status;
-            $top3 = in_array($status, array('pass_top1','pass_top3'), true);
-            $answered = '' !== $status && 'observed' !== $status;
-            if (!$answered) continue;
-
-            self::accumulate_stats($lesson_stats[$lesson], $top1, $top3, $is_pass, $is_fail, $is_error);
-            self::accumulate_stats($summary, $top1, $top3, $is_pass, $is_fail, $is_error);
-
-            $expected = self::decode($row['expected_json'] ?? '');
-            $evaluation = self::decode($row['evaluation_json'] ?? '');
-            $diagnostic = sanitize_key((string) ($evaluation['diagnostic_type'] ?? ($is_error ? 'technical_error' : 'unknown')));
-            if ($is_fail || $is_error) {
-                if (!isset($diagnostics[$diagnostic])) $diagnostics[$diagnostic] = 0;
-                $diagnostics[$diagnostic]++;
+        /*
+         * El informe puede acumular decenas de miles de preguntas. No cargamos
+         * todo el histórico (ni los JSON pesados) en una sola petición PHP:
+         * recorremos el último run de cada pregunta por bloques y liberamos cada
+         * bloque antes de pedir el siguiente.
+         */
+        $last_question_id = 0;
+        do {
+            $rows = self::evaluated_rows_batch($lesson_key, $last_question_id, self::REPORT_BATCH_SIZE);
+            if (!$rows) {
+                break;
             }
 
-            $module_key = $lesson . ':' . absint($row['module_no'] ?? 0);
-            if (!isset($modules[$module_key])) $modules[$module_key] = array('lesson_key'=>$lesson,'module_no'=>absint($row['module_no'] ?? 0),'total'=>0,'failed'=>0,'errors'=>0);
-            $modules[$module_key]['total']++;
-            if ($is_fail) $modules[$module_key]['failed']++;
-            if ($is_error) $modules[$module_key]['errors']++;
-
-            foreach (self::direct_dimensions($row, $expected) as $dimension) {
-                self::accumulate_dimension($direct, $dimension, $is_fail, $is_error);
-            }
-
-            $pid = self::source_product_id((string) ($row['source_type'] ?? ''), absint($row['source_id'] ?? 0), $expected);
-            if ($pid && isset($products[$pid])) {
-                foreach (self::context_dimensions($products[$pid], $architecture) as $dimension) {
-                    self::accumulate_dimension($context, $dimension, $is_fail, $is_error);
-                }
-            } elseif ('category' === sanitize_key((string) ($row['source_type'] ?? '')) && !empty($row['source_id'])) {
-                $cid = absint($row['source_id']);
-                self::accumulate_dimension($context, self::dimension('category', (string)$cid, self::term_name($cid)), $is_fail, $is_error);
-                foreach (self::architecture_dimensions_for_category($cid, $architecture) as $dimension) {
-                    self::accumulate_dimension($context, $dimension, $is_fail, $is_error);
+            $product_ids = array();
+            foreach ($rows as $row) {
+                $last_question_id = max($last_question_id, absint($row['question_id'] ?? 0));
+                $expected = self::decode($row['expected_json'] ?? '');
+                $pid = self::source_product_id((string) ($row['source_type'] ?? ''), absint($row['source_id'] ?? 0), $expected);
+                if ($pid) {
+                    $product_ids[$pid] = true;
                 }
             }
 
-            $source = self::source_dimension($row, $expected, $products);
-            self::accumulate_dimension($sources, $source, $is_fail, $is_error);
+            $products = self::prefetch_products(array_keys($product_ids));
+            $architecture = self::prefetch_architecture($products, $rows);
 
-            if ($is_fail || $is_error) {
-                $failures[] = self::failure_detail($row, $expected, $evaluation, $products, $architecture);
+            foreach ($rows as $row) {
+                $lesson = sanitize_key((string) ($row['lesson_key'] ?? ''));
+                if (!isset($lesson_stats[$lesson])) $lesson_stats[$lesson] = self::empty_stats();
+                $status = sanitize_key((string) ($row['evaluation_status'] ?? ''));
+                $is_error = ('error' === $status || 'error' === sanitize_key((string) ($row['run_status'] ?? '')));
+                $is_pass = 0 === strpos($status, 'pass_');
+                $is_fail = !$is_error && !$is_pass && 'observed' !== $status && '' !== $status;
+                $top1 = 'pass_top1' === $status;
+                $top3 = in_array($status, array('pass_top1','pass_top3'), true);
+                $answered = '' !== $status && 'observed' !== $status;
+                if (!$answered) continue;
+
+                self::accumulate_stats($lesson_stats[$lesson], $top1, $top3, $is_pass, $is_fail, $is_error);
+                self::accumulate_stats($summary, $top1, $top3, $is_pass, $is_fail, $is_error);
+
+                $expected = self::decode($row['expected_json'] ?? '');
+                $evaluation = self::decode($row['evaluation_json'] ?? '');
+                $diagnostic = sanitize_key((string) ($evaluation['diagnostic_type'] ?? ($is_error ? 'technical_error' : 'unknown')));
+                if ($is_fail || $is_error) {
+                    if (!isset($diagnostics[$diagnostic])) $diagnostics[$diagnostic] = 0;
+                    $diagnostics[$diagnostic]++;
+                }
+
+                $module_key = $lesson . ':' . absint($row['module_no'] ?? 0);
+                if (!isset($modules[$module_key])) $modules[$module_key] = array('lesson_key'=>$lesson,'module_no'=>absint($row['module_no'] ?? 0),'total'=>0,'failed'=>0,'errors'=>0);
+                $modules[$module_key]['total']++;
+                if ($is_fail) $modules[$module_key]['failed']++;
+                if ($is_error) $modules[$module_key]['errors']++;
+
+                foreach (self::direct_dimensions($row, $expected) as $dimension) {
+                    self::accumulate_dimension($direct, $dimension, $is_fail, $is_error);
+                }
+
+                $pid = self::source_product_id((string) ($row['source_type'] ?? ''), absint($row['source_id'] ?? 0), $expected);
+                if ($pid && isset($products[$pid])) {
+                    foreach (self::context_dimensions($products[$pid], $architecture) as $dimension) {
+                        self::accumulate_dimension($context, $dimension, $is_fail, $is_error);
+                    }
+                } elseif ('category' === sanitize_key((string) ($row['source_type'] ?? '')) && !empty($row['source_id'])) {
+                    $cid = absint($row['source_id']);
+                    self::accumulate_dimension($context, self::dimension('category', (string)$cid, self::term_name($cid)), $is_fail, $is_error);
+                    foreach (self::architecture_dimensions_for_category($cid, $architecture) as $dimension) {
+                        self::accumulate_dimension($context, $dimension, $is_fail, $is_error);
+                    }
+                }
+
+                $source = self::source_dimension($row, $expected, $products);
+                self::accumulate_dimension($sources, $source, $is_fail, $is_error);
             }
-        }
+
+            unset($products, $architecture, $product_ids, $rows);
+            if (function_exists('gc_collect_cycles')) {
+                gc_collect_cycles();
+            }
+        } while (true);
 
         foreach ($lessons as &$lesson) {
             $stats = $lesson_stats[(string) ($lesson['lesson_key'] ?? '')] ?? self::empty_stats();
@@ -505,7 +524,12 @@ final class SEO_Dependiente_Training_Quality {
             return $rb <=> $ra ?: absint($b['failed']) <=> absint($a['failed']);
         });
 
-        usort($failures, static function($a,$b){ return strcmp((string)($b['created_at']??''),(string)($a['created_at']??'')); });
+        /*
+         * Los JSON de trazas, resultados y respuesta son la parte más pesada.
+         * Solo se cargan para los fallos que realmente se van a mostrar/exportar.
+         */
+        $failure_limit = $for_export ? self::EXPORT_FAILURE_LIMIT : self::DETAIL_LIMIT;
+        $failures = self::latest_failure_details($lesson_key, $failure_limit);
         $export_failures = $for_export ? array_map(array(__CLASS__, 'compact_export_failure'), $failures) : array();
 
         return array(
@@ -521,25 +545,77 @@ final class SEO_Dependiente_Training_Quality {
         );
     }
 
-    private static function evaluated_rows($lesson_key) {
+    /**
+     * Lee un bloque ligero del último run de cada pregunta.
+     * No incluye top_results, response_meta ni error_message.
+     */
+    private static function evaluated_rows_batch($lesson_key, $after_question_id, $limit) {
         global $wpdb;
         $q = SEO_Dependiente_Entrenador::questions_table();
         $r = SEO_Dependiente_Entrenador::runs_table();
+        $limit = max(25, min(1000, absint($limit)));
+        $where = "q.enabled=1 AND q.lesson_key<>'' AND q.lesson_key NOT LIKE 'lab\\_%' AND q.id>%d";
+        $args = array(absint($after_question_id));
+        if ($lesson_key) {
+            $where .= ' AND q.lesson_key=%s';
+            $args[] = $lesson_key;
+        }
+        $args[] = $limit;
+        $sql = "SELECT q.id question_id,q.lesson_key,q.lesson_order,q.module_no,q.source_type,q.source_id,q.source_key,q.question_type,q.expected_json,q.created_at question_created_at,
+                       r.id run_id,r.status run_status,r.evaluation_status,r.evaluation_json,r.created_at run_created_at
+                FROM {$q} q
+                INNER JOIN (SELECT question_id,MAX(id) run_id FROM {$r} WHERE question_id IS NOT NULL GROUP BY question_id) lr ON lr.question_id=q.id
+                INNER JOIN {$r} r ON r.id=lr.run_id
+                WHERE {$where}
+                ORDER BY q.id ASC
+                LIMIT %d";
+        return (array) $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
+    }
+
+    /**
+     * Recupera únicamente los fallos recientes con sus campos pesados.
+     */
+    private static function latest_failure_details($lesson_key, $limit) {
+        global $wpdb;
+        $q = SEO_Dependiente_Entrenador::questions_table();
+        $r = SEO_Dependiente_Entrenador::runs_table();
+        $limit = max(1, min(self::EXPORT_FAILURE_LIMIT, absint($limit)));
         $where = "q.enabled=1 AND q.lesson_key<>'' AND q.lesson_key NOT LIKE 'lab\\_%'";
         $args = array();
         if ($lesson_key) {
             $where .= ' AND q.lesson_key=%s';
             $args[] = $lesson_key;
         }
+        $where .= " AND (r.status='error' OR r.evaluation_status='error' OR (r.evaluation_status<>'' AND r.evaluation_status<>'observed' AND r.evaluation_status NOT LIKE 'pass\\_%'))";
+        $args[] = $limit;
         $sql = "SELECT q.id question_id,q.lesson_key,q.lesson_order,q.module_no,q.source_type,q.source_id,q.source_key,q.question_type,q.mode,q.question,q.expected_json,q.created_at question_created_at,
                        r.id run_id,r.status run_status,r.search_strategy,r.evaluation_status,r.evaluation_score,r.evaluation_json,r.top_results,r.response_meta,r.error_message,r.created_at run_created_at
                 FROM {$q} q
                 INNER JOIN (SELECT question_id,MAX(id) run_id FROM {$r} WHERE question_id IS NOT NULL GROUP BY question_id) lr ON lr.question_id=q.id
                 INNER JOIN {$r} r ON r.id=lr.run_id
                 WHERE {$where}
-                ORDER BY q.lesson_order,q.module_no,q.sequence_no,q.id";
-        if ($args) $sql = $wpdb->prepare($sql, $args);
-        return (array) $wpdb->get_results($sql, ARRAY_A);
+                ORDER BY r.created_at DESC,r.id DESC
+                LIMIT %d";
+        $rows = (array) $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
+        if (!$rows) {
+            return array();
+        }
+
+        $product_ids = array();
+        foreach ($rows as $row) {
+            $expected = self::decode($row['expected_json'] ?? '');
+            $pid = self::source_product_id((string) ($row['source_type'] ?? ''), absint($row['source_id'] ?? 0), $expected);
+            if ($pid) $product_ids[$pid] = true;
+        }
+        $products = self::prefetch_products(array_keys($product_ids));
+        $architecture = self::prefetch_architecture($products, $rows);
+        $failures = array();
+        foreach ($rows as $row) {
+            $expected = self::decode($row['expected_json'] ?? '');
+            $evaluation = self::decode($row['evaluation_json'] ?? '');
+            $failures[] = self::failure_detail($row, $expected, $evaluation, $products, $architecture);
+        }
+        return $failures;
     }
 
     private static function lesson_rows($lesson_key) {
