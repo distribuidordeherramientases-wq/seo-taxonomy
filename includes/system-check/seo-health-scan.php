@@ -658,6 +658,11 @@ if (!function_exists('seo_health_scan_launch')) {
         );
 
         $batch_url = add_query_arg('scan_id', rawurlencode($scan_uuid), $runner['batch_endpoint']);
+        // El callback necesita el scan_id para que seo_health_scan_auth_run()
+        // pueda localizar y autenticar esta ejecucion. Sin este parametro,
+        // GitHub recibe HTTP 400 en el primer event=start y el run queda
+        // indefinidamente en queued 0/N hasta caducar.
+        $callback_url = add_query_arg('scan_id', rawurlencode($scan_uuid), $runner['callback_url']);
         $endpoint = sprintf(
             'https://api.github.com/repos/%1$s/%2$s/actions/workflows/%3$s/dispatches',
             rawurlencode($runner['owner']),
@@ -669,7 +674,7 @@ if (!function_exists('seo_health_scan_launch')) {
             'inputs' => array(
                 'scan_id' => $scan_uuid,
                 'batch_url' => $batch_url,
-                'callback_url' => $runner['callback_url'],
+                'callback_url' => $callback_url,
                 'callback_token' => $callback_token,
             ),
         );
