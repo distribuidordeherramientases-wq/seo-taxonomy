@@ -8,7 +8,7 @@
  *
  * @package SEOSystem
  * @subpackage Processes_Clonador
- * @since 2.5.10
+ * @since 2.5.11
  */
 
 defined('ABSPATH') || exit;
