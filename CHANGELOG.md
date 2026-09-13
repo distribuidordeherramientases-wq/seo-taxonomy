@@ -1,3 +1,29 @@
+## [2.3.4] 2026-09-13 Reorganización interna y consolidación de `seo-taxonomy`
+
+
+Se realizó una revisión general de la arquitectura del plugin con el objetivo de consolidar los módulos activos, eliminar implementaciones heredadas y reducir la coexistencia de código duplicado.
+
+La estructura de `includes/` fue reorganizada progresivamente para mantener los servicios dentro de sus directorios específicos. Se eliminaron directorios y archivos legacy relacionados con Analista, Dependiente, Clonador, Productos, Social Network e imágenes, manteniendo como referencia las implementaciones canónicas de cada subsistema.
+
+También se actualizaron los mecanismos de carga y bootstrap para adaptarlos a la nueva organización interna y evitar la inclusión simultánea de versiones antiguas y modernas de un mismo servicio.
+
+La revisión de integridad posterior confirmó la eliminación de duplicados de código: las funciones globales, tipos y métodos duplicados pasaron a cero en el entorno de staging.
+
+Durante el mismo ciclo se introdujeron mejoras adicionales en distintos componentes del sistema, entre ellas:
+
+* evolución del servicio Dependiente y corrección de interrupciones relacionadas con cambios de catálogo;
+* mejoras en Academia y ampliación de contenidos y FAQs;
+* correcciones y ampliaciones del Auditor de datos, incluyendo reducción de falsos positivos;
+* mejoras en plantillas y en su sistema de comprobación y sincronización;
+* actualización de filtros de producto;
+* incorporación de migas de pan en la cabecera;
+* nuevas herramientas para identificar y eliminar imágenes locales procedentes de proveedores;
+* ajustes en el cargador de plantillas, autoload y archivos de versión;
+* diversas correcciones de estabilidad y mantenimiento.
+
+Tras estos cambios, el plugin mantiene operativos los principales subsistemas de proveedores, catálogo, Data Layer y WooCommerce. Permanecen pendientes determinadas incidencias funcionales y de configuración del entorno de staging, principalmente relacionadas con la portada, la resolución de las páginas de tienda, carrito y checkout, y varias comprobaciones SEO y semánticas que se abordarán de forma independiente.
+
+
 ## [2.3.3] - 2026-09-08
 
 Release correspondiente al **Milestone 2.3.3**, centrada en SEO técnico y datos estructurados, importación y sincronización de datos, logística y facturación, calidad del dato, plantillas y estabilidad general del plugin.
