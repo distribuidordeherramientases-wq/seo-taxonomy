@@ -57,6 +57,9 @@ final class SEO_Dependiente_Plugin {
         if (class_exists('SEO_Dependiente_Help')) {
             SEO_Dependiente_Help::install();
         }
+        if (class_exists('SEO_Dependiente_Interprete_DB')) {
+            SEO_Dependiente_Interprete_DB::install();
+        }
         update_option('seo_dependiente_db_version', SEO_DEPENDIENTE_DB_VERSION, false);
 
         $defaults = array(
@@ -178,7 +181,7 @@ final class SEO_Dependiente_Plugin {
         $atts = shortcode_atts(
             array(
                 'title'    => '¿Qué necesitas?',
-                'subtitle' => 'Describe lo que necesitas y elige qué tipo de solución quieres encontrar.',
+                'subtitle' => 'Describe lo que necesitas. El Dependiente intentará entender tu intención y buscar la solución adecuada.',
             ),
             $atts,
             'dependiente_productos'
@@ -187,7 +190,6 @@ final class SEO_Dependiente_Plugin {
         $this->enqueue_assets();
 
         $query_input_id = wp_unique_id('seo-dependiente-query-');
-        $solution_role_id = wp_unique_id('seo-dependiente-role-');
         $help_email_id = wp_unique_id('seo-dependiente-help-email-');
         $help_note_id = wp_unique_id('seo-dependiente-help-note-');
         ob_start();
@@ -212,19 +214,9 @@ final class SEO_Dependiente_Plugin {
                             autocomplete="off"
                             maxlength="180"
                         >
-                        <label class="seo-dependiente__role-select" for="<?php echo esc_attr($solution_role_id); ?>">
-                            <span>Quiero encontrar</span>
-                            <select id="<?php echo esc_attr($solution_role_id); ?>" data-dependiente-role required>
-                                <option value="" selected disabled>Elige una opción</option>
-                                <option value="herramienta">Herramienta</option>
-                                <option value="repuesto">Repuesto / recambio</option>
-                                <option value="accesorio">Accesorio</option>
-                                <option value="equipamiento">Equipamiento</option>
-                            </select>
-                        </label>
                         <button type="submit">Buscar</button>
                     </div>
-                    <p class="seo-dependiente__ask-help">Describe el problema, producto o trabajo y selecciona qué tipo de solución quieres. El Dependiente usará ambas cosas en la misma búsqueda.</p>
+                    <p class="seo-dependiente__ask-help">Describe el problema, producto o trabajo. El Intérprete convertirá tu forma de hablar en conceptos que el Dependiente pueda buscar.</p>
                     <div class="seo-dependiente__examples" data-dependiente-examples aria-label="Ejemplos de búsqueda"></div>
                 </form>
 

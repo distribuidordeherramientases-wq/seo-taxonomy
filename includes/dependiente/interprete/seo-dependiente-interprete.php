@@ -5,13 +5,12 @@ defined('ABSPATH') || exit;
 /**
  * Interprete del Dependiente.
  *
- * Convierte frases naturales del cliente en una consulta corta y canonica que
- * el buscador ya sabe resolver. La v0.1.0 es deliberadamente conservadora:
- * solo reescribe cuando existe una señal de alta confianza y nunca aprende ni
- * modifica datos automaticamente.
+ * Mision: convertir la forma natural de hablar del cliente en conceptos que
+ * el motor del Dependiente ya sabe buscar. No aprende catalogo ni sustituye a
+ * Academia: aprende lenguaje de cliente y lo traduce al lenguaje canonico.
  */
 final class SEO_Dependiente_Interprete {
-    const VERSION = '0.1.0';
+    const VERSION = '0.2.0';
 
     /**
      * Interpreta una consulta de cliente.
@@ -33,6 +32,7 @@ final class SEO_Dependiente_Interprete {
             'rule'          => '',
             'reason'        => '',
             'concepts'      => array(),
+            'lesson_key'    => '',
         );
 
         if ('' === $normalized) {
@@ -40,10 +40,8 @@ final class SEO_Dependiente_Interprete {
         }
 
         /*
-         * Si el cliente ya escribe "extractor" y ademas nombra el objeto,
-         * reducimos la conversacion a la busqueda literal que ya sabemos que
-         * funciona. Esto evita que palabras como "necesito", "herramienta" o
-         * "recomiendas" bloqueen la recuperacion por AND.
+         * Regresion base: si el cliente ya escribe extractor + objeto,
+         * conservamos la ruta literal que sabemos que funciona.
          */
         $extractor_targets = array(
             'rodamiento' => array('rodamiento', 'rodamientos', 'cojinete', 'cojinetes'),
@@ -60,16 +58,18 @@ final class SEO_Dependiente_Interprete {
                         'extractor ' . self::plural_search_term($canonical),
                         0.99,
                         'literal_extractor_object',
-                        'Se conserva la palabra literal extractor y el objeto principal.',
-                        array('herramienta' => 'extractor', 'objeto' => $canonical)
+                        'Se conserva extractor y el objeto principal.',
+                        array('herramienta' => 'extractor', 'objeto' => $canonical),
+                        'i1_subject_action'
                     );
                 }
             }
         }
 
         /*
-         * Intencion de extraccion expresada en lenguaje natural.
-         * Ejemplo: "tengo que sacar un rodamiento muy agarrado".
+         * Intencion de extraccion expresada de forma natural.
+         * Esta regla queda como regresion critica mientras la tabla linguistica
+         * amplia su cobertura.
          */
         $extraction_actions = array(
             'sacar', 'sacarlo', 'sacarla', 'sacarlos', 'sacarlas',
@@ -87,19 +87,20 @@ final class SEO_Dependiente_Interprete {
                         0.98,
                         'natural_extraction_object',
                         'Accion de extraccion mas objeto reconocido.',
-                        array('intencion' => 'extraer', 'herramienta' => 'extractor', 'objeto' => $canonical)
+                        array('intencion' => 'extraer', 'herramienta' => 'extractor', 'objeto' => $canonical),
+                        'i1_subject_action'
                     );
                 }
             }
         }
 
         /*
-         * Desambiguacion de compresor de aire frente a compresores mecanicos de
-         * muelles/suspension. Solo se activa con contexto inequivoco de aire.
+         * Desambiguacion de compresor de aire frente a compresores mecanicos
+         * de muelles/suspension.
          */
         $air_context = array(
             'inflar', 'inflado', 'rueda', 'ruedas', 'neumatico', 'neumaticos',
-            'aire', 'neumatica', 'neumaticas', 'neumatico', 'neumaticos',
+            'aire', 'neumatica', 'neumaticas',
         );
         $has_air_context = self::has_any($normalized, $air_context)
             || self::contains_phrase($normalized, 'herramienta neumatica')
@@ -112,7 +113,8 @@ final class SEO_Dependiente_Interprete {
                 0.98,
                 'air_compressor_context',
                 'Compresor desambiguado por contexto de inflado o uso neumatico.',
-                array('producto' => 'compresor', 'medio' => 'aire')
+                array('producto' => 'compresor', 'medio' => 'aire'),
+                'i1_subject_action'
             );
         }
 
@@ -125,7 +127,66 @@ final class SEO_Dependiente_Interprete {
                 0.95,
                 'air_need_without_product_name',
                 'Necesidad de inflado y herramienta neumatica interpretada como compresor de aire.',
-                array('necesidad' => 'aire_comprimido', 'producto' => 'compresor')
+                array('necesidad' => 'aire_comprimido', 'producto' => 'compresor'),
+                'i1_subject_action'
+            );
+        }
+
+        /*
+         * Memoria linguistica persistente. Aqui vive el aprendizaje del
+         * Interprete: verbo/sinonimo/frase -> concepto canonico de busqueda.
+         */
+        $lexicon_result = self::interpret_from_lexicon($result);
+        if (!empty($lexicon_result['changed'])) {
+            return $lexicon_result;
+        }
+
+        return $result;
+    }
+
+    private static function interpret_from_lexicon($result) {
+        if (!class_exists('SEO_Dependiente_Interprete_DB')) {
+            return $result;
+        }
+
+        $rows = SEO_Dependiente_Interprete_DB::matching_rows((string) ($result['normalized'] ?? ''));
+        if (!$rows) {
+            return $result;
+        }
+
+        foreach ($rows as $row) {
+            $target = self::clean_query((string) ($row['target_search'] ?? ''));
+            if ('' === $target) {
+                continue;
+            }
+
+            $matched_context = isset($row['matched_context']) && is_array($row['matched_context'])
+                ? $row['matched_context']
+                : array();
+            if ($matched_context) {
+                $context = self::canonical_context_term((string) reset($matched_context));
+                if ('' !== $context && !self::contains_phrase(self::normalize($target), self::normalize($context))) {
+                    $target .= ' ' . $context;
+                }
+            }
+
+            $expression = (string) ($row['expression'] ?? '');
+            $canonical = (string) ($row['canonical_term'] ?? $target);
+            $relation = sanitize_key((string) ($row['relation_type'] ?? 'synonym'));
+            $lesson_key = sanitize_key((string) ($row['lesson_key'] ?? ''));
+
+            return self::rewrite(
+                $result,
+                $target,
+                (float) ($row['confidence'] ?? 0.9),
+                'lexicon_' . $relation,
+                'El Intérprete traduce "' . $expression . '" al concepto "' . $canonical . '".',
+                array(
+                    'expresion_cliente' => $expression,
+                    'concepto_canonico' => $canonical,
+                    'relacion' => $relation,
+                ),
+                $lesson_key
             );
         }
 
@@ -133,7 +194,8 @@ final class SEO_Dependiente_Interprete {
     }
 
     /**
-     * Vista simple para probar el Interprete en STAGING sin modificar datos.
+     * Vista de prueba en STAGING. El entrenamiento real se almacena en el
+     * lexico, pero esta pantalla nunca modifica datos al cargarla.
      */
     public static function render_tab() {
         if (!current_user_can('manage_options') && !current_user_can('manage_woocommerce')) {
@@ -144,11 +206,19 @@ final class SEO_Dependiente_Interprete {
             ? self::clean_query(wp_unslash((string) $_GET['interpreter_q']))
             : '';
         $test = '' !== $query ? self::interpret($query) : array();
+        $stats = class_exists('SEO_Dependiente_Interprete_DB')
+            ? SEO_Dependiente_Interprete_DB::stats()
+            : array('ready' => false, 'active' => 0, 'lesson_i1' => 0, 'linked_vocabulary' => 0);
         ?>
         <div class="postbox seo-dependiente-admin__box" style="margin-top:16px; padding:18px;">
             <h2 style="margin-top:0;">Intérprete <small>v<?php echo esc_html(self::VERSION); ?></small></h2>
-            <p>Convierte lenguaje natural del cliente en una búsqueda corta que el Dependiente pueda resolver.</p>
-            <p><strong>v0.1:</strong> alta confianza, sin aprendizaje automático y sin modificar conocimiento.</p>
+            <p><strong>Objetivo:</strong> enseñar al Dependiente a entender cómo habla el cliente.</p>
+            <p>
+                Memoria lingüística: <strong><?php echo !empty($stats['ready']) ? 'lista' : 'no disponible'; ?></strong>
+                · expresiones activas: <strong><?php echo esc_html(number_format_i18n((int) ($stats['active'] ?? 0))); ?></strong>
+                · I1 sujeto ↔ acción: <strong><?php echo esc_html(number_format_i18n((int) ($stats['lesson_i1'] ?? 0))); ?></strong>
+                · enlazadas a Vocabulary: <strong><?php echo esc_html(number_format_i18n((int) ($stats['linked_vocabulary'] ?? 0))); ?></strong>
+            </p>
 
             <form method="get" action="<?php echo esc_url(admin_url('admin.php')); ?>">
                 <input type="hidden" name="page" value="seo-dependiente">
@@ -165,6 +235,9 @@ final class SEO_Dependiente_Interprete {
                 <p><strong>Original:</strong> <?php echo esc_html((string) $test['original']); ?></p>
                 <p><strong>Búsqueda resultante:</strong> <code><?php echo esc_html((string) $test['search_query']); ?></code></p>
                 <p><strong>Cambio:</strong> <?php echo !empty($test['changed']) ? 'Sí' : 'No'; ?> · <strong>Confianza:</strong> <?php echo esc_html(number_format_i18n(((float) $test['confidence']) * 100, 0)); ?>%</p>
+                <?php if (!empty($test['lesson_key'])) : ?>
+                    <p><strong>Lección:</strong> <code><?php echo esc_html((string) $test['lesson_key']); ?></code></p>
+                <?php endif; ?>
                 <?php if (!empty($test['reason'])) : ?>
                     <p><strong>Motivo:</strong> <?php echo esc_html((string) $test['reason']); ?></p>
                 <?php endif; ?>
@@ -172,21 +245,22 @@ final class SEO_Dependiente_Interprete {
         </div>
 
         <div class="postbox seo-dependiente-admin__box" style="padding:18px;">
-            <h2 style="margin-top:0;">Pruebas iniciales</h2>
-            <p><code>Tengo que sacar un rodamiento muy agarrado</code> → <code>extractor rodamientos</code></p>
-            <p><code>Necesito un extractor de rodamientos para sacar uno agarrado</code> → <code>extractor rodamientos</code></p>
-            <p><code>Necesito un compresor para inflar ruedas y usar herramientas neumáticas</code> → <code>compresor aire</code></p>
+            <h2 style="margin-top:0;">Lección I1 · sujeto ↔ verbo ↔ sinónimo</h2>
+            <p><code>taladro</code> ↔ <code>taladrar</code> ↔ <code>perforar</code> ↔ <code>agujerear</code></p>
+            <p><code>extractor</code> ↔ <code>extraer</code> / <code>sacar</code> + objeto mecánico</p>
+            <p><code>soldadora</code> ↔ <code>soldar</code> · <code>lijadora</code> ↔ <code>lijar</code> · <code>remachadora</code> ↔ <code>remachar</code></p>
         </div>
         <?php
     }
 
-    private static function rewrite($result, $search_query, $confidence, $rule, $reason, $concepts = array()) {
+    private static function rewrite($result, $search_query, $confidence, $rule, $reason, $concepts = array(), $lesson_key = '') {
         $result['search_query'] = self::clean_query($search_query);
         $result['changed'] = self::normalize((string) $result['search_query']) !== (string) $result['normalized'];
         $result['confidence'] = min(1, max(0, (float) $confidence));
         $result['rule'] = sanitize_key((string) $rule);
         $result['reason'] = (string) $reason;
         $result['concepts'] = is_array($concepts) ? $concepts : array();
+        $result['lesson_key'] = sanitize_key((string) $lesson_key);
         return $result;
     }
 
@@ -235,5 +309,22 @@ final class SEO_Dependiente_Interprete {
             'rotula'     => 'rotulas',
         );
         return $map[$canonical] ?? $canonical;
+    }
+
+    private static function canonical_context_term($term) {
+        $term = self::normalize($term);
+        $map = array(
+            'rodamiento' => 'rodamientos',
+            'rodamientos' => 'rodamientos',
+            'cojinete' => 'rodamientos',
+            'cojinetes' => 'rodamientos',
+            'polea' => 'poleas',
+            'poleas' => 'poleas',
+            'engranaje' => 'engranajes',
+            'engranajes' => 'engranajes',
+            'rotula' => 'rotulas',
+            'rotulas' => 'rotulas',
+        );
+        return $map[$term] ?? $term;
     }
 }

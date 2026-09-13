@@ -10,7 +10,6 @@
         const elements = {
             form: root.querySelector('[data-dependiente-search-form]'),
             query: root.querySelector('[data-dependiente-query]'),
-            role: root.querySelector('[data-dependiente-role]'),
             submit: root.querySelector('[data-dependiente-search-form] button[type="submit"]'),
             examples: root.querySelector('[data-dependiente-examples]'),
             discovery: root.querySelector('[data-dependiente-discovery]'),
@@ -49,7 +48,6 @@
             contextLabel: '',
             mode: 'need',
             modeSource: 'default',
-            solutionRole: '',
             page: 1,
             perPage: Number(config.resultsPerPage || 18),
             orderby: 'relevance',
@@ -80,18 +78,10 @@
 
         const initialParams = new URLSearchParams(window.location.search);
         const initialQuery = initialParams.get('dep_q');
-        const initialRole = initialParams.get('dep_role');
-        if (initialRole && ['herramienta', 'repuesto', 'accesorio', 'equipamiento'].includes(initialRole)) {
-            setSolutionRole(initialRole);
-        }
         if (initialQuery) {
             elements.query.value = initialQuery;
             state.q = initialQuery;
-            if (state.solutionRole) {
-                search(true);
-            } else {
-                elements.status.textContent = 'Elige qué tipo de solución quieres encontrar para completar la búsqueda.';
-            }
+            search(true);
         }
 
         function bindEvents() {
@@ -115,12 +105,6 @@
             elements.form.addEventListener('submit', function (event) {
                 event.preventDefault();
                 const nextQuery = elements.query.value.trim();
-                state.solutionRole = elements.role ? String(elements.role.value || '') : state.solutionRole;
-
-                if (nextQuery && !ensureSolutionRole()) {
-                    return;
-                }
-
                 // Una busqueda escrita despues de entrar por una tarjeta visual
                 // inicia una necesidad nueva. Evita arrastrar, por ejemplo, el
                 // filtro/plataforma Milwaukee a "se me ha roto un grifo". El rol
@@ -139,17 +123,6 @@
                 state.page = 1;
                 search(true);
             });
-
-            if (elements.role) {
-                elements.role.addEventListener('change', function () {
-                    setSolutionRole(elements.role.value);
-                    state.semanticHint = null;
-                    state.page = 1;
-                    if (state.q.trim()) {
-                        search(true);
-                    }
-                });
-            }
 
             elements.sort.addEventListener('change', function () {
                 state.orderby = elements.sort.value;
@@ -353,9 +326,7 @@
                     state.contextLabel = '';
                     state.semanticHint = null;
                     state.page = 1;
-                    if (ensureSolutionRole()) {
-                        search(true);
-                    }
+                    search(true);
                 });
             });
         }
@@ -403,65 +374,13 @@
 
         function setMode(mode, source) {
             // Los antiguos modos siguen existiendo internamente para la navegación
-            // visual secundaria, pero ya no cambian el buscador principal. El cliente
-            // siempre ve una única barra y el contexto explícito lo marca el selector
-            // de tipo de solución.
+            // visual secundaria, pero el buscador principal queda en texto libre.
             state.mode = mode;
             if (source) state.modeSource = source;
         }
 
-        function setSolutionRole(role) {
-            const allowed = ['herramienta', 'repuesto', 'accesorio', 'equipamiento'];
-            role = allowed.includes(String(role || '')) ? String(role) : '';
-            state.solutionRole = role;
-            if (elements.role && elements.role.value !== role) {
-                elements.role.value = role;
-            }
-            if (elements.role && typeof elements.role.setCustomValidity === 'function') {
-                elements.role.setCustomValidity('');
-            }
-        }
-
-        function ensureSolutionRole() {
-            if (!state.q.trim() && elements.query) {
-                state.q = elements.query.value.trim();
-            }
-            if (!state.q.trim()) {
-                return true;
-            }
-            if (state.solutionRole) {
-                if (elements.role && typeof elements.role.setCustomValidity === 'function') {
-                    elements.role.setCustomValidity('');
-                }
-                return true;
-            }
-            const message = 'Elige Herramienta, Repuesto / recambio, Accesorio o Equipamiento.';
-            elements.status.textContent = message;
-            if (elements.role) {
-                if (typeof elements.role.setCustomValidity === 'function') {
-                    elements.role.setCustomValidity(message);
-                }
-                if (typeof elements.role.reportValidity === 'function') {
-                    elements.role.reportValidity();
-                }
-                elements.role.focus({ preventScroll: true });
-            }
-            return false;
-        }
-
-        function solutionRoleLabel() {
-            const labels = {
-                herramienta: 'Herramientas',
-                repuesto: 'Repuestos / recambios',
-                accesorio: 'Accesorios',
-                equipamiento: 'Equipamiento'
-            };
-            return labels[state.solutionRole] || '';
-        }
-
         async function search(resetScroll) {
             if (state.loading) return;
-            if (state.q.trim() && !ensureSolutionRole()) return;
             clearClarificationTimer();
             removeClarification();
             clearFeedbackTimer();
@@ -490,7 +409,6 @@
                     body: {
                         q: state.q,
                         mode: state.mode,
-                        solution_role: state.solutionRole,
                         page: state.page,
                         per_page: state.perPage,
                         orderby: state.orderby,
@@ -661,7 +579,6 @@
                         note: noteInput ? noteInput.value.trim() : '',
                         query: state.q || (elements.query ? elements.query.value.trim() : ''),
                         mode: state.mode,
-                        solution_role: state.solutionRole,
                         context_label: state.contextLabel || '',
                         page_url: window.location.href,
                         filters: state.filters || emptyFilters(),
@@ -859,10 +776,6 @@
         function renderSummary(data) {
             const total = Number(data.total || 0);
             let subject = state.q ? 'para “' + escapeHtml(state.q) + '”' : (state.contextLabel ? 'para ' + escapeHtml(state.contextLabel) : 'con los criterios elegidos');
-            const roleLabel = solutionRoleLabel();
-            if (roleLabel && state.q) {
-                subject += ' · buscando ' + escapeHtml(roleLabel.toLowerCase());
-            }
             if (!total) {
                 elements.summary.innerHTML = '<span><strong>No encuentro una coincidencia clara</strong> ' + subject + '.</span>';
                 return;
@@ -1462,8 +1375,7 @@
             const url = new URL(window.location.href);
             if (state.q) url.searchParams.set('dep_q', state.q);
             else url.searchParams.delete('dep_q');
-            if (state.solutionRole) url.searchParams.set('dep_role', state.solutionRole);
-            else url.searchParams.delete('dep_role');
+            url.searchParams.delete('dep_role');
             window.history.replaceState({}, '', url.toString());
         }
     }

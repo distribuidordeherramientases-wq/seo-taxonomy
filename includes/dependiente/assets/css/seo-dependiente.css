@@ -334,7 +334,7 @@ body.seo-dependiente-app-body * {
 
 .seo-dependiente__ask-row {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) minmax(210px, 250px) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
     gap: 12px;
     padding: 10px;

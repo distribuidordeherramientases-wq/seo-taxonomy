@@ -304,6 +304,7 @@ final class SEO_Dependiente_API {
             $search_diagnostic['interpreter_version'] = sanitize_text_field((string) ($interpreter['version'] ?? ''));
             $search_diagnostic['interpreter_changed'] = !empty($interpreter['changed']) ? 1 : 0;
             $search_diagnostic['interpreter_rule'] = sanitize_key((string) ($interpreter['rule'] ?? ''));
+            $search_diagnostic['interpreter_lesson'] = sanitize_key((string) ($interpreter['lesson_key'] ?? ''));
             $search_diagnostic['interpreter_query'] = sanitize_text_field((string) ($interpreter['search_query'] ?? ''));
             $search_diagnostic['interpreter_confidence'] = (float) ($interpreter['confidence'] ?? 0);
         }
@@ -476,6 +477,7 @@ final class SEO_Dependiente_API {
             'query'           => $raw_query,
             'interpreted_query' => $query,
             'interpreter_changed' => !empty($interpreter['changed']),
+            'interpreter_lesson' => sanitize_key((string) ($interpreter['lesson_key'] ?? '')),
             'mode'            => $mode,
             'solution_role'   => $solution_role,
             'page'            => $page,
