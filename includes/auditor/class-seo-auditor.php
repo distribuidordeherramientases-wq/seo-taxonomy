@@ -14,7 +14,13 @@ defined('ABSPATH') || exit;
 final class SEO_Auditor {
     const REPORT_OPTION = 'seo_auditor_last_report';
     const HISTORY_OPTION = 'seo_auditor_history';
-    const REPORT_VERSION = 4;
+    const REPORT_VERSION = 5;
+    const MAX_BEHAVIOR_PROBES = 60;
+    const MAX_BEHAVIOR_CROSS_PROBES = 24;
+    const MAX_BEHAVIOR_FAQ_PROBES = 18;
+    const MAX_BEHAVIOR_CATEGORY_PROBES = 12;
+    const MAX_BEHAVIOR_EDITORIAL_PROBES = 6;
+    const BEHAVIOR_TOP_LIMIT = 8;
     const MAX_FINDINGS = 1200;
     const MAX_CATEGORY_PROFILES = 250;
     const MAX_ENTITY_FINDINGS_PER_RULE = 60;
@@ -43,7 +49,7 @@ final class SEO_Auditor {
 
     public static function handle_run() {
         self::guard_action('seo_auditor_run');
-        @set_time_limit(300);
+        @set_time_limit(600);
         $report = self::run_audit();
         update_option(self::REPORT_OPTION, $report, false);
         self::append_history($report);
@@ -71,7 +77,7 @@ final class SEO_Auditor {
         $report = self::last_report();
         $history = (array) get_option(self::HISTORY_OPTION, array());
         $view = sanitize_key((string) ($_GET['audit_view'] ?? 'summary'));
-        if (!in_array($view, array('summary','chain','findings','categories','architecture','academia'), true)) {
+        if (!in_array($view, array('summary','chain','findings','categories','architecture','behavior','academia'), true)) {
             $view = 'summary';
         }
 
@@ -81,7 +87,7 @@ final class SEO_Auditor {
 
         echo '<section class="seo-auditor">';
         echo '<div class="seo-auditor__hero">';
-        echo '<div><h2>Auditor de datos</h2><p>Audita la fuente canonica de WordPress/WooCommerce antes de Academia: identidad, coherencia interna, categorias, etiquetas, atributos, Vocabulary, FAQs y arquitectura. El indice y el aprendizaje se contrastan como capas derivadas y nunca bloquean por si solos la auditoria de la fuente.</p></div>';
+        echo '<div><h2>Auditor de datos</h2><p>Audita la fuente canonica antes de Academia y ejecuta una muestra determinista del motor real para detectar retrieval, owner FAQ, relaciones cruzadas, rutas semanticas y aclaraciones innecesarias. No entrena, no reindexa y no escribe busquedas de clientes.</p></div>';
         echo '<div class="seo-auditor__actions">';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
         echo '<input type="hidden" name="action" value="seo_auditor_run">';
@@ -112,6 +118,8 @@ final class SEO_Auditor {
             self::render_categories($report);
         } elseif ('architecture' === $view) {
             self::render_architecture($report);
+        } elseif ('behavior' === $view) {
+            self::render_behavior($report);
         } elseif ('academia' === $view) {
             self::render_academia($report);
         } else {
@@ -178,6 +186,10 @@ final class SEO_Auditor {
             self::audit_architecture_content($relation_data, (array)$inventory['categories']);
         }
 
+        // Preflight conductual independiente de Academia. Ejecuta el motor real
+        // sin log de clientes, sin academy_stage y sin mutar aprendizaje.
+        $behavior = self::audit_behavior($inventory, $object_vocabulary, $data_state);
+
         // Academia/Estudiante se cruzan despues de auditar la materia prima.
         $academy = self::audit_academia($inventory);
         $learning = self::audit_learning_state($academy);
@@ -203,6 +215,7 @@ final class SEO_Auditor {
         $systemic_patterns = self::build_systemic_patterns(self::$findings);
         $action_plan = self::build_action_plan($systemic_patterns);
         $source_quality = self::build_source_quality($inventory, self::$findings);
+        $pre_academy_gate = self::build_pre_academy_gate($source_quality, $behavior);
 
         $public_inventory = $inventory;
         unset(
@@ -225,6 +238,8 @@ final class SEO_Auditor {
             'data_state'=>$data_state,
             'inventory'=>$public_inventory,
             'source_quality'=>$source_quality,
+            'behavior_audit'=>$behavior,
+            'pre_academy_gate'=>$pre_academy_gate,
             'rule_counts'=>self::$rule_counts,
             'source_integrity'=>$source_integrity,
             'systemic_patterns'=>$systemic_patterns,
@@ -251,6 +266,10 @@ final class SEO_Auditor {
                 'academy_l6_failures_are_reclassified_against_source_identity'=>true,
                 'legacy_academy_ignored'=>true,
                 'systemic_patterns_prioritized_over_mass_entity_findings'=>true,
+                'behavior_probes_independent_from_academia'=>true,
+                'behavior_probes_customer_log_written'=>false,
+                'behavior_probes_academy_stage_used'=>false,
+                'behavior_probe_sample_is_deterministic_not_exhaustive'=>true,
             ),
         );
     }
@@ -1182,6 +1201,172 @@ final class SEO_Auditor {
         if(!isset($categories[$cid]))return array();$term=$categories[$cid];$parent=absint($term->parent??0);$base=self::specific_vocab_concepts((array)($object_vocabulary['product_cat:'.$cid]??array()));$best=array();$best_score=0.0;foreach($categories as $oid=>$other){if($oid==$cid||absint($other->parent??0)!==$parent)continue;$score=self::token_jaccard((string)$term->name,(string)$other->name);$other_v=self::specific_vocab_concepts((array)($object_vocabulary['product_cat:'.$oid]??array()));if($base&&$other_v){$inter=count(array_intersect($base,$other_v));$score=max($score,$inter/max(1,count(array_unique(array_merge($base,$other_v)))));}$count=count((array)($category_products[$oid]??array()));if($count>0&&$score>$best_score){$best_score=$score;$best=array('category_id'=>absint($oid),'category'=>(string)$other->name,'products'=>$count,'similarity'=>round($score,3));}}return $best_score>=0.30?$best:array();
     }
 
+    /**
+     * Preflight conductual independiente de Academia.
+     * Ejecuta una muestra estable contra el mismo API que usa el cliente, pero:
+     * - no escribe search log;
+     * - no incluye academy_stage;
+     * - no muta aprendizaje;
+     * - no fuerza ensure_ready si la semantica no esta ya preparada.
+     */
+    private static function audit_behavior($inventory,$object_vocabulary,$data_state) {
+        $out=array(
+            'available'=>false,'status'=>'unavailable','reason'=>'','planned'=>0,'executed'=>0,
+            'passed'=>0,'failed'=>0,'technical_errors'=>0,'fail_ratio'=>0,
+            'by_kind'=>array(),'diagnostics'=>array(),'samples'=>array(),
+            'customer_search_log_written'=>false,'academy_stage_used'=>false,
+            'sample_mode'=>'deterministic_spread','max_probes'=>self::MAX_BEHAVIOR_PROBES,
+        );
+        $pre=self::behavior_engine_preflight($inventory,$data_state);
+        if(empty($pre['ready'])){
+            $out['reason']=(string)($pre['reason']??'Motor no preparado para pruebas de solo lectura.');
+            self::finding('motor_behavior_probe_unavailable','medium','motor_probe','preflight','Pruebas del motor no disponibles',$out['reason'],$pre,'Preparar/verificar el motor e indice y repetir Auditor antes de iniciar Academia.');
+            return $out;
+        }
+        $out['available']=true;
+        $out['engine_preflight']=$pre;
+        $candidates=self::behavior_probe_candidates($inventory,$object_vocabulary);
+        $plan=array_merge(
+            self::spread_sample((array)($candidates['cross']??array()),self::MAX_BEHAVIOR_CROSS_PROBES),
+            self::spread_sample((array)($candidates['faq']??array()),self::MAX_BEHAVIOR_FAQ_PROBES),
+            self::spread_sample((array)($candidates['category']??array()),self::MAX_BEHAVIOR_CATEGORY_PROBES),
+            self::spread_sample((array)($candidates['editorial']??array()),self::MAX_BEHAVIOR_EDITORIAL_PROBES)
+        );
+        $plan=array_slice($plan,0,self::MAX_BEHAVIOR_PROBES);
+        $out['planned']=count($plan);
+        foreach($plan as $probe){
+            $kind=sanitize_key((string)($probe['kind']??'other'))?:'other';
+            if(!isset($out['by_kind'][$kind]))$out['by_kind'][$kind]=array('executed'=>0,'passed'=>0,'failed'=>0,'technical_errors'=>0);
+            $result=self::execute_behavior_probe($probe);
+            $out['executed']++;$out['by_kind'][$kind]['executed']++;
+            if(!empty($result['technical_error'])){
+                $out['technical_errors']++;$out['failed']++;$out['by_kind'][$kind]['technical_errors']++;$out['by_kind'][$kind]['failed']++;
+            }elseif(!empty($result['passed'])){
+                $out['passed']++;$out['by_kind'][$kind]['passed']++;
+            }else{
+                $out['failed']++;$out['by_kind'][$kind]['failed']++;
+            }
+            foreach((array)($result['diagnostics']??array()) as $diag){$diag=sanitize_key((string)$diag);if($diag)$out['diagnostics'][$diag]=1+absint($out['diagnostics'][$diag]??0);}
+            if((empty($result['passed'])||!empty($result['diagnostics']))&&count($out['samples'])<60){
+                $out['samples'][]=array('kind'=>$kind,'query'=>(string)($probe['query']??''),'status'=>!empty($result['technical_error'])?'technical_error':(!empty($result['passed'])?'pass':'fail'),'diagnostics'=>array_values((array)($result['diagnostics']??array())),'evidence'=>(array)($result['evidence']??array()));
+            }
+            self::behavior_findings($probe,$result);
+        }
+        $out['fail_ratio']=$out['executed']?round($out['failed']/$out['executed'],4):0;
+        if($out['technical_errors']>0)$out['status']='technical_error';
+        elseif($out['failed']>0)$out['status']='review_before_academy';
+        else $out['status']='ready';
+        if($out['failed']>0){
+            $sev=$out['technical_errors']>0||$out['fail_ratio']>=0.15?'high':'medium';
+            self::finding('motor_preflight_behavior_debt',$sev,'motor_probe','summary','Deuda conductual antes de Academia','La muestra del motor detecta fallos reproducibles antes de iniciar formacion.',array('executed'=>$out['executed'],'failed'=>$out['failed'],'technical_errors'=>$out['technical_errors'],'fail_ratio'=>$out['fail_ratio'],'diagnostics'=>$out['diagnostics']),'Revisar los patrones del motor y repetir Auditor. No usar Academia para compensar un defecto reproducible del motor.');
+        }
+        return $out;
+    }
+
+    private static function behavior_engine_preflight($inventory,$data_state) {
+        global $wpdb;
+        if(!class_exists('SEO_Dependiente_API'))return array('ready'=>false,'reason'=>'SEO_Dependiente_API no esta cargado.');
+        if(!class_exists('SEO_Dependiente_Index')||empty($inventory['index_table_present'])||empty($inventory['index_verified']))return array('ready'=>false,'reason'=>'El indice de Dependiente no esta verificado.');
+        if(!class_exists('SEO_Dependiente_Semantics'))return array('ready'=>false,'reason'=>'La capa semantica de Dependiente no esta cargada.');
+        if(!method_exists('SEO_Dependiente_Semantics','table'))return array('ready'=>false,'reason'=>'No se puede verificar la tabla semantica sin mutarla.');
+        $table=SEO_Dependiente_Semantics::table();
+        if(!self::table_exists($table))return array('ready'=>false,'reason'=>'La tabla semantica no existe; Auditor no la crea en modo solo lectura.');
+        $seed_count=absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE source='seed'"));
+        $seed_option=(string)get_option('seo_dependiente_semantic_seed_version','');
+        $seed_expected=defined('SEO_Dependiente_Semantics::SEED_VERSION')?(string)SEO_Dependiente_Semantics::SEED_VERSION:'';
+        if($seed_count<1)return array('ready'=>false,'reason'=>'No hay seed semantico preparado; Auditor no lo genera en modo solo lectura.','seed_count'=>$seed_count);
+        if($seed_expected!==''&&$seed_option!==$seed_expected)return array('ready'=>false,'reason'=>'El seed semantico requiere sincronizacion; Auditor evita ejecutar ensure_ready para no escribir.','seed_version'=>$seed_option,'expected_seed_version'=>$seed_expected);
+        return array('ready'=>true,'index_verified'=>true,'semantic_seed_count'=>$seed_count,'semantic_seed_version'=>$seed_option,'can_source_audit'=>!empty($data_state['can_source_audit']));
+    }
+
+    private static function behavior_probe_candidates($inventory,$object_vocabulary) {
+        $products=(array)($inventory['products']??array());$categories=(array)($inventory['categories']??array());$category_products=(array)($inventory['category_products']??array());$faqs=(array)($inventory['faqs']??array());$editorial=(array)($inventory['editorial']??array());
+        $product_title_counts=array();foreach($products as $p){$n=self::norm((string)($p['title']??''));if($n)$product_title_counts[$n]=1+absint($product_title_counts[$n]??0);}
+        $category_name_counts=array();foreach($categories as $term){$n=self::norm((string)($term->name??''));if($n)$category_name_counts[$n]=1+absint($category_name_counts[$n]??0);}
+        $published_editorial=array();foreach($editorial as $row){$id=absint($row['ID']??0);$type=sanitize_key((string)($row['post_type']??''));if($id&&in_array($type,array('post','page'),true))$published_editorial[$type.':'.$id]=true;}
+        $concepts=array();
+        foreach((array)$object_vocabulary as $key=>$rows){
+            if(!preg_match('/^(product|post|page):([0-9]+)$/',(string)$key,$m))continue;$type=$m[1];$id=absint($m[2]);
+            if('product'===$type&&!isset($products[$id]))continue;if(in_array($type,array('post','page'),true)&&empty($published_editorial[$type.':'.$id]))continue;
+            foreach((array)$rows as $v){$group=sanitize_key((string)($v['group']??''));$slug=sanitize_title((string)($v['slug']??''));if(!$slug||!in_array($group,array('tipo','subtipo','rol','aplicacion','plataforma'),true))continue;$ck=$group.':'.$slug;if(!isset($concepts[$ck]))$concepts[$ck]=array('group'=>$group,'slug'=>$slug,'label'=>(string)($v['label']??$slug),'products'=>array(),'editorial'=>array());if('product'===$type)$concepts[$ck]['products'][$id]=true;else{$response_type='page'===$type?'landing':$type;$concepts[$ck]['editorial'][$response_type.':'.$id]=true;}}
+        }
+        $cross=array();foreach($concepts as $ck=>$c){if(empty($c['products'])||empty($c['editorial']))continue;$cross[]=array('kind'=>'cross','key'=>$ck,'query'=>'Sobre "'.(string)$c['label'].'", que productos y contenidos relacionados tienes?','group'=>$c['group'],'slug'=>$c['slug'],'label'=>$c['label'],'expected_product_ids'=>array_map('absint',array_keys($c['products'])),'expected_editorial_refs'=>array_values(array_keys($c['editorial'])));}
+        usort($cross,static function($a,$b){return strcmp((string)$a['key'],(string)$b['key']);});
+
+        $faq=array();$seen_owner=array();foreach($faqs as $f){$ot=absint($f['object_type']??0);$oid=absint($f['object_id']??0);$fid=absint($f['id']??0);$q=trim((string)($f['question']??''));$answer_length=absint($f['answer_length']??0);if(!$fid||!$oid||!$q||$answer_length<1||!in_array($ot,array(2,3),true))continue;$owner=$ot.':'.$oid;if(isset($seen_owner[$owner]))continue;$label='';$owner_type='';if(3===$ot&&isset($products[$oid])){$label=(string)($products[$oid]['title']??'');$owner_type='product';if(absint($product_title_counts[self::norm($label)]??0)>1)continue;}elseif(2===$ot&&isset($categories[$oid])){$label=(string)($categories[$oid]->name??'');$owner_type='product_cat';if(absint($category_name_counts[self::norm($label)]??0)>1)continue;}if($label==='')continue;$seen_owner[$owner]=true;$prefix=3===$ot?'Sobre el producto "'.$label.'": ':'Sobre la categoria "'.$label.'": ';$faq[]=array('kind'=>'faq','key'=>'faq:'.$fid,'query'=>$prefix.$q,'faq_id'=>$fid,'owner_type'=>$ot,'owner_id'=>$oid,'owner_label'=>$label,'owner_key'=>$owner_type.':'.$oid);}
+        usort($faq,static function($a,$b){return strcmp((string)$a['key'],(string)$b['key']);});
+
+        $category=array();foreach($categories as $cid=>$term){$ids=array_map('absint',array_keys((array)($category_products[$cid]??array())));if(!$ids)continue;$name=(string)($term->name??'');if($name===''||absint($category_name_counts[self::norm($name)]??0)>1)continue;$category[]=array('kind'=>'category','key'=>'category:'.absint($cid),'query'=>'Busco productos de la categoria "'.$name.'"','category_id'=>absint($cid),'category_name'=>$name,'expected_product_ids'=>$ids);}
+        usort($category,static function($a,$b){return strcmp((string)$a['key'],(string)$b['key']);});
+
+        $editorial_probes=array();foreach($editorial as $row){$id=absint($row['ID']??0);$type=sanitize_key((string)($row['post_type']??''));$title=trim((string)($row['post_title']??''));if(!$id||$title===''||!in_array($type,array('post','page'),true))continue;$response_type='page'===$type?'landing':$type;$editorial_probes[]=array('kind'=>'editorial','key'=>$response_type.':'.$id,'query'=>'Que contenido relacionado tienes sobre .$title.?','expected_ref'=>$response_type.':'.$id,'title'=>$title);}
+        usort($editorial_probes,static function($a,$b){return strcmp((string)$a['key'],(string)$b['key']);});
+        return array('cross'=>$cross,'faq'=>$faq,'category'=>$category,'editorial'=>$editorial_probes);
+    }
+
+    private static function spread_sample($rows,$limit) {
+        $rows=array_values((array)$rows);$n=count($rows);$limit=min(absint($limit),$n);if($limit<1)return array();if($limit===$n)return $rows;$out=array();$used=array();for($i=0;$i<$limit;$i++){$idx=(int)floor(($i+0.5)*$n/$limit);$idx=min($n-1,max(0,$idx));while(isset($used[$idx])&&$idx+1<$n)$idx++;while(isset($used[$idx])&&$idx>0)$idx--;if(isset($used[$idx]))continue;$used[$idx]=true;$out[]=$rows[$idx];}return $out;
+    }
+
+    public static function behavior_skip_search_log($should_log){return false;}
+    public static function behavior_expose_search_diagnostic($expose=false){return true;}
+    public static function behavior_disable_faq_text_fallback($allow=true){return false;}
+
+    private static function execute_behavior_probe($probe) {
+        $kind=sanitize_key((string)($probe['kind']??''));$request=new WP_REST_Request('POST','/seo-taxonomy/v1/search');$request->set_body_params(array('q'=>(string)($probe['query']??''),'mode'=>'need','page'=>1,'orderby'=>'relevance','session_id'=>'auditor:'.sanitize_key((string)($probe['key']??wp_generate_uuid4()))));
+        add_filter('seo_dependiente_should_log_search',array(__CLASS__,'behavior_skip_search_log'),999,4);add_filter('seo_dependiente_expose_search_diagnostic',array(__CLASS__,'behavior_expose_search_diagnostic'),999,3);if('faq'===$kind)add_filter('seo_dependiente_faq_allow_text_fallback',array(__CLASS__,'behavior_disable_faq_text_fallback'),999,1);
+        try{$response=SEO_Dependiente_API::search($request);}catch(Throwable $e){$response=new WP_Error('seo_auditor_behavior_exception',$e->getMessage());}finally{remove_filter('seo_dependiente_should_log_search',array(__CLASS__,'behavior_skip_search_log'),999);remove_filter('seo_dependiente_expose_search_diagnostic',array(__CLASS__,'behavior_expose_search_diagnostic'),999);if('faq'===$kind)remove_filter('seo_dependiente_faq_allow_text_fallback',array(__CLASS__,'behavior_disable_faq_text_fallback'),999);}
+        if(is_wp_error($response))return array('passed'=>false,'technical_error'=>true,'diagnostics'=>array('technical_error'),'evidence'=>array('message'=>$response->get_error_message()));
+        $data=$response instanceof WP_REST_Response?(array)$response->get_data():(is_array($response)?$response:array());if(!$data)return array('passed'=>false,'technical_error'=>true,'diagnostics'=>array('technical_error'),'evidence'=>array('message'=>'Respuesta vacia/no reconocida.'));
+        if('faq'===$kind)return self::evaluate_behavior_faq($probe,$data);if('cross'===$kind)return self::evaluate_behavior_cross($probe,$data);if('category'===$kind)return self::evaluate_behavior_category($probe,$data);if('editorial'===$kind)return self::evaluate_behavior_editorial($probe,$data);return array('passed'=>true,'technical_error'=>false,'diagnostics'=>array(),'evidence'=>array());
+    }
+
+    private static function evaluate_behavior_faq($probe,$data) {
+        $diag=array();$sd=(array)($data['search_diagnostic']??array());$resolved_id=absint($sd['faq_owner_id']??0);$resolved_type=absint($sd['faq_owner_type']??0);$expected_id=absint($probe['faq_id']??0);$owner_id=absint($probe['owner_id']??0);$owner_type=absint($probe['owner_type']??0);$rows=array_values((array)($data['related_faq']??array()));$exact_pos=0;$same_owner=0;foreach($rows as $i=>$r){if(absint($r['id']??0)===$expected_id&&0===$exact_pos)$exact_pos=$i+1;if(absint($r['owner_id']??0)===$owner_id&&self::behavior_owner_type_number($r['owner_type']??0)===$owner_type)$same_owner++;}
+        if($resolved_id!==$owner_id||$resolved_type!==$owner_type)$diag[]='explicit_owner_resolution_gap';
+        if($exact_pos<1)$diag[]='faq_owner_retrieval_gap';elseif($exact_pos>self::BEHAVIOR_TOP_LIMIT)$diag[]='faq_owner_ranking_gap';
+        $clar=(array)($data['clarification']??array());if(!empty($clar['should_ask'])&&in_array(sanitize_key((string)($clar['reason']??'')),array('missing_object','missing_intent'),true))$diag[]='clarification_gap';
+        $hard=array_intersect($diag,array('explicit_owner_resolution_gap','faq_owner_retrieval_gap','faq_owner_ranking_gap'));
+        $e=array('expected_faq_id'=>$expected_id,'expected_owner_type'=>$owner_type,'expected_owner_id'=>$owner_id,'resolved_owner_type'=>$resolved_type,'resolved_owner_id'=>$resolved_id,'faq_position'=>$exact_pos,'same_owner_faqs'=>$same_owner,'returned_faqs'=>count($rows),'search_strategy'=>(string)($data['search_strategy']??''));
+        return array('passed'=>empty($hard),'technical_error'=>false,'diagnostics'=>array_values(array_unique($diag)),'evidence'=>$e);
+    }
+
+    private static function evaluate_behavior_cross($probe,$data) {
+        $diag=array();$expected_products=array_fill_keys(array_map('absint',(array)($probe['expected_product_ids']??array())),true);$expected_editorial=array_fill_keys((array)($probe['expected_editorial_refs']??array()),true);$product_pos=0;foreach(array_slice(array_values((array)($data['results']??array())),0,self::BEHAVIOR_TOP_LIMIT) as $i=>$r){if(isset($expected_products[absint($r['id']??0)])){$product_pos=$i+1;break;}}
+        $editorial_pos=0;$editorial_any_pos=0;foreach(array_values((array)($data['related_editorial']??array())) as $i=>$r){$ref=sanitize_key((string)($r['type']??'')).':'.absint($r['id']??0);if(isset($expected_editorial[$ref])){if(!$editorial_any_pos)$editorial_any_pos=$i+1;if($i<self::BEHAVIOR_TOP_LIMIT&&!$editorial_pos)$editorial_pos=$i+1;}}
+        $semantic=(array)($data['semantic']??array());$route_ok=false;foreach((array)($semantic['routes']??array()) as $r){if(sanitize_key((string)($r['target_group']??''))===sanitize_key((string)($probe['group']??''))&&sanitize_title((string)($r['target_slug']??''))===sanitize_title((string)($probe['slug']??''))){$route_ok=true;break;}}
+        if(!$route_ok)$diag[]='semantic_route_unresolved';if(!$product_pos)$diag[]='retrieval_gap';if($product_pos&&!$editorial_pos){$diag[]=$editorial_any_pos>self::BEHAVIOR_TOP_LIMIT?'cross_ranking_gap':'cross_retrieval_gap';}
+        $clar=(array)($data['clarification']??array());if(!empty($clar['should_ask'])&&($product_pos||$editorial_pos))$diag[]='clarification_gap';
+        $hard=array_intersect($diag,array('semantic_route_unresolved','retrieval_gap','cross_retrieval_gap','cross_ranking_gap'));
+        return array('passed'=>empty($hard),'technical_error'=>false,'diagnostics'=>array_values(array_unique($diag)),'evidence'=>array('concept'=>(string)($probe['key']??''),'product_position'=>$product_pos,'editorial_position'=>$editorial_pos,'editorial_any_position'=>$editorial_any_pos,'route_ok'=>$route_ok,'search_strategy'=>(string)($data['search_strategy']??''),'result_count'=>absint($data['total']??0),'related_editorial_count'=>count((array)($data['related_editorial']??array()))));
+    }
+
+    private static function evaluate_behavior_category($probe,$data) {
+        $diag=array();$expected=array_fill_keys(array_map('absint',(array)($probe['expected_product_ids']??array())),true);$pos=0;foreach(array_slice(array_values((array)($data['results']??array())),0,self::BEHAVIOR_TOP_LIMIT) as $i=>$r){if(isset($expected[absint($r['id']??0)])){$pos=$i+1;break;}}if(!$pos)$diag[]='category_retrieval_gap';$clar=(array)($data['clarification']??array());if(!empty($clar['should_ask'])&&$pos)$diag[]='clarification_gap';return array('passed'=>$pos>0,'technical_error'=>false,'diagnostics'=>array_values(array_unique($diag)),'evidence'=>array('category_id'=>absint($probe['category_id']??0),'matched_product_position'=>$pos,'result_count'=>absint($data['total']??0),'search_strategy'=>(string)($data['search_strategy']??'')));
+    }
+
+    private static function evaluate_behavior_editorial($probe,$data) {
+        $expected=(string)($probe['expected_ref']??'');$pos=0;foreach(array_values((array)($data['related_editorial']??array())) as $i=>$r){$ref=sanitize_key((string)($r['type']??'')).':'.absint($r['id']??0);if($ref===$expected){$pos=$i+1;break;}}$diag=array();if(!$pos)$diag[]='editorial_retrieval_gap';elseif($pos>self::BEHAVIOR_TOP_LIMIT)$diag[]='editorial_ranking_gap';$hard=array_intersect($diag,array('editorial_retrieval_gap','editorial_ranking_gap'));return array('passed'=>empty($hard),'technical_error'=>false,'diagnostics'=>$diag,'evidence'=>array('expected_ref'=>$expected,'editorial_position'=>$pos,'related_editorial_count'=>count((array)($data['related_editorial']??array())),'search_strategy'=>(string)($data['search_strategy']??'')));
+    }
+
+    private static function behavior_owner_type_number($value) {
+        if(is_numeric($value))return absint($value);$v=sanitize_key((string)$value);if(in_array($v,array('product','producto'),true))return 3;if(in_array($v,array('product_cat','category','categoria'),true))return 2;return 0;
+    }
+
+    private static function behavior_findings($probe,$result) {
+        $key=(string)($probe['key']??'');$title=(string)($probe['label']??$probe['owner_label']??$probe['category_name']??$key);$e=(array)($result['evidence']??array());
+        if(!empty($result['technical_error'])){self::finding('motor_probe_technical_error','high','motor_probe',$key,$title,'La prueba del motor termino con error tecnico.',$e,'Corregir el error tecnico antes de iniciar Academia.');return;}
+        foreach((array)($result['diagnostics']??array()) as $d){$d=sanitize_key((string)$d);$sev='medium';$headline='Fallo conductual reproducible del motor';$rec='Revisar el motor y repetir Auditor antes de iniciar Academia.';if('clarification_gap'===$d){$sev='low';$headline='Aclaracion potencialmente innecesaria';$rec='Revisar la politica de aclaracion; no usar Academia para forzar una respuesta memorizada.';}elseif('faq_owner_ranking_gap'===$d||'cross_ranking_gap'===$d){$sev='medium';$headline='Resultado canonico recuperado fuera de Top8';}elseif('explicit_owner_resolution_gap'===$d){$sev='high';$headline='Owner explicito no resuelto por el motor';}elseif('semantic_route_unresolved'===$d){$sev='medium';$headline='Concepto canonico sin ruta semantica efectiva';}self::finding('motor_probe_'.$d,$sev,'motor_probe',$key,$title,$headline,$e,$rec);}
+    }
+
+    private static function build_pre_academy_gate($source_quality,$behavior) {
+        $source=(string)($source_quality['status']??'ready');$motor=(string)($behavior['status']??'unavailable');$reasons=array();$status='ready';
+        if(in_array($source,array('blocked','review_before_academy'),true)){$status='review_before_academy';$reasons[]='Hay deuda de fuente canonica.';}
+        if('unavailable'===$motor){$status='review_before_academy';$reasons[]='No se pudo comprobar el comportamiento del motor.';}elseif('technical_error'===$motor){$status='review_before_academy';$reasons[]='Las pruebas del motor tienen errores tecnicos.';}elseif('review_before_academy'===$motor){$status='review_before_academy';$reasons[]='El motor reproduce fallos antes de Academia.';}
+        if('ready'===$status)$reasons[]='Fuente y muestra conductual sin bloqueos reproducibles.';
+        return array('status'=>$status,'source_status'=>$source,'behavior_status'=>$motor,'message'=>implode(' ',$reasons),'recommendation'=>'ready'===$status?'Se puede iniciar Academia.':'Revisar primero los patrones marcados por Auditor y repetir el preflight.');
+    }
+
     private static function build_source_quality($inventory,$findings) {
         $out=array('status'=>'ready','blocking_entities'=>array(),'review_entities'=>array(),'identity_groups'=>0,'source_findings'=>0,'blocking_source_findings'=>0,'index_findings'=>0);
         foreach((array)$findings as $f){$root=(string)($f['root_cause']??'');$sev=(string)($f['severity']??'');$type=(string)($f['entity_type']??'');$id=$f['entity_id']??'';$code=(string)($f['code']??'');if('MOTOR/INDICE'===$root){$out['index_findings']++;continue;}if(false===strpos($root,'FUENTE'))continue;$out['source_findings']++;if(in_array($sev,array('critical','high'),true))$out['blocking_source_findings']++;if('source_owner_identity_ambiguous'===$code)$out['identity_groups']++;if(in_array($type,array('product','product_group','category','category_group','faq'),true)&&$id!==''){ $row=array('type'=>$type,'id'=>$id,'code'=>$code,'severity'=>$sev,'title'=>(string)($f['title']??''));if(in_array($sev,array('critical','high'),true))$out['blocking_entities'][]=$row;elseif('medium'===$sev)$out['review_entities'][]=$row;}}
@@ -1349,7 +1534,7 @@ final class SEO_Auditor {
     private static function render_empty() {
         echo '<div class="seo-auditor__empty">';
         echo '<h3>Que comprobara</h3>';
-        echo '<ul><li>Productos: titulo ↔ excerpt ↔ descripcion ↔ titulo/meta SEO, categorias, etiquetas, atributos WooCommerce + seo_attributes y Vocabulary.</li><li>Identidad: titulos duplicados, variantes indistinguibles, posibles productos duplicados y descripciones cruzadas.</li><li>Categorias: nombre, excerpt, description, Vocabulary, homogeneidad, outliers, division/fusion y productos asignados.</li><li>Arquitectura: categoria → hub secundario → hub primario → cluster, incluyendo contenido de los hubs.</li><li>FAQs: owner exclusivamente por object_type + object_id y coherencia semantica de la pregunta con su owner.</li><li>Academia/Estudiante: cruza sus fallos con defectos o ambiguedades de la fuente antes de culpar al motor.</li><li>Indice del Dependiente: se audita como capa derivada, pero nunca bloquea por si solo la auditoria del inventario real.</li></ul>';
+        echo '<ul><li>Productos: titulo ↔ excerpt ↔ descripcion ↔ titulo/meta SEO, categorias, etiquetas, atributos WooCommerce + seo_attributes y Vocabulary.</li><li>Identidad: titulos duplicados, variantes indistinguibles, posibles productos duplicados y descripciones cruzadas.</li><li>Categorias: nombre, excerpt, description, Vocabulary, homogeneidad, outliers, division/fusion y productos asignados.</li><li>Arquitectura: categoria → hub secundario → hub primario → cluster, incluyendo contenido de los hubs.</li><li>FAQs: owner exclusivamente por object_type + object_id y coherencia semantica de la pregunta con su owner.</li><li>Motor: ejecuta una muestra real de categorias, FAQs, relaciones cruzadas y contenido editorial sin registrar busquedas ni usar academy_stage.</li><li>Academia/Estudiante: si existe localmente, cruza sus fallos con defectos o ambiguedades de la fuente antes de culpar al motor.</li><li>Indice del Dependiente: se audita como capa derivada, pero nunca bloquea por si solo la auditoria del inventario real.</li></ul>';
         echo '<p><strong>No se ejecuta nada al cargar esta pagina.</strong> Solo el boton inicia una auditoria de solo lectura.</p>';
         echo '</div>';
     }
@@ -1357,7 +1542,7 @@ final class SEO_Auditor {
     private static function render_subnav($view) {
         $base=add_query_arg(array('page'=>'seo-dependiente','tab'=>'auditor'),admin_url('admin.php'));
         echo '<nav class="seo-auditor__subnav">';
-        foreach(array('summary'=>'Resumen','chain'=>'Cadena de aprendizaje','findings'=>'Hallazgos','categories'=>'Categorias y productos','architecture'=>'Hubs y relaciones','academia'=>'Academia v2') as $slug=>$label){
+        foreach(array('summary'=>'Resumen','chain'=>'Cadena de aprendizaje','findings'=>'Hallazgos','categories'=>'Categorias y productos','architecture'=>'Hubs y relaciones','behavior'=>'Pruebas del motor','academia'=>'Academia v2') as $slug=>$label){
             $url=add_query_arg('audit_view',$slug,$base);echo '<a class="'.($view===$slug?'is-active':'').'" href="'.esc_url($url).'">'.esc_html($label).'</a>';
         }
         echo '</nav>';
@@ -1369,7 +1554,9 @@ final class SEO_Auditor {
         self::metric('Hallazgos',$s['findings']??0);self::metric('Criticos',$s['critical']??0,'critical');self::metric('Prioridad alta',$s['high']??0,'high');self::metric('Revisar',$s['medium']??0,'medium');self::metric('Observar',$s['low']??0,'low');self::metric('Entidades afectadas',$s['entities_to_review']??0);
         echo '</div>';
         echo '<div class="notice '.(!empty($d['can_source_audit'])?'notice-success':'notice-error').' inline"><p><strong>Fuente canonica:</strong> '.esc_html((string)($d['source_status']??'desconocido')).' · <strong>Indice:</strong> '.esc_html((string)($d['index_status']??'desconocido')).' · '.esc_html((string)($d['message']??'')).'</p></div>';
-        echo '<div class="notice '.('blocked'===($q['status']??'')||'review_before_academy'===($q['status']??'')?'notice-warning':'notice-info').' inline"><p><strong>Calidad para Academia:</strong> '.esc_html((string)($q['status']??'desconocido')).' · hallazgos fuente: '.esc_html(absint($q['source_findings']??0)).' · bloqueantes/alta: '.esc_html(absint($q['blocking_source_findings']??0)).' · grupos de identidad ambigua: '.esc_html(absint($q['identity_groups']??0)).'.</p></div>';
+        echo '<div class="notice '.('blocked'===($q['status']??'')||'review_before_academy'===($q['status']??'')?'notice-warning':'notice-info').' inline"><p><strong>Calidad de fuente:</strong> '.esc_html((string)($q['status']??'desconocido')).' · hallazgos fuente: '.esc_html(absint($q['source_findings']??0)).' · bloqueantes/alta: '.esc_html(absint($q['blocking_source_findings']??0)).' · grupos de identidad ambigua: '.esc_html(absint($q['identity_groups']??0)).'.</p></div>';
+        $b=(array)($report['behavior_audit']??array());$gate=(array)($report['pre_academy_gate']??array());
+        echo '<div class="notice '.('ready'===($gate['status']??'')?'notice-success':'notice-warning').' inline"><p><strong>Preflight antes de Academia:</strong> '.esc_html((string)($gate['status']??'desconocido')).' · pruebas motor: '.esc_html(absint($b['executed']??0)).' · fallos: '.esc_html(absint($b['failed']??0)).' · errores tecnicos: '.esc_html(absint($b['technical_errors']??0)).'. '.esc_html((string)($gate['message']??'')).'</p></div>';
         echo '<div class="seo-auditor__grid">';
         echo '<div class="postbox"><h3>Fuente canonica e indice derivado</h3><table class="widefat striped"><tbody>';
         foreach(array('published_products'=>'Productos publicados','canonical_products_loaded'=>'Productos canonicos cargados','indexable_products'=>'Productos indexables','hidden_products'=>'Excluidos hidden','indexed_products'=>'Productos indexados','index_missing_products'=>'Faltan en indice','index_extra_products'=>'Sobran en indice','index_stale_rows'=>'Filas desactualizadas','categories_total'=>'Categorias','invalid_index_category_refs'=>'Refs. categoria invalidas') as $k=>$label){echo '<tr><th>'.esc_html($label).'</th><td>'.esc_html(number_format_i18n(absint($i[$k]??0))).'</td></tr>';}
@@ -1412,6 +1599,22 @@ final class SEO_Auditor {
     private static function render_architecture($report) {
         $p=(array)($report['architecture_profiles']??array());
         foreach(array('hub_secondary'=>'Hubs secundarios','hub_primary'=>'Hubs primarios','cluster'=>'Clusters') as $key=>$label){echo '<h3>'.esc_html($label).'</h3><table class="widefat striped"><thead><tr><th>Entidad</th><th>Hijos</th><th>Productos</th></tr></thead><tbody>';foreach((array)($p[$key]??array()) as $r){echo '<tr><td><strong>'.esc_html((string)$r['title']).'</strong><div class="description">#'.esc_html(absint($r['id'])).'</div></td><td>'.esc_html(absint($r['children'])).'</td><td>'.esc_html(absint($r['products'])).'</td></tr>';}echo '</tbody></table>';}
+    }
+
+    private static function render_behavior($report) {
+        $b=(array)($report['behavior_audit']??array());$gate=(array)($report['pre_academy_gate']??array());
+        echo '<h3>Pruebas del motor antes de Academia</h3>';
+        echo '<p class="description">Muestra determinista contra el motor real de Dependiente. No usa academy_stage, no escribe log de clientes y no entrena.</p>';
+        echo '<div class="notice '.('ready'===($gate['status']??'')?'notice-success':'notice-warning').' inline"><p><strong>Estado:</strong> '.esc_html((string)($gate['status']??'desconocido')).' - '.esc_html((string)($gate['message']??'')).'</p></div>';
+        echo '<div class="seo-auditor__metrics">';
+        self::metric('Pruebas',absint($b['executed']??0));self::metric('Correctas',absint($b['passed']??0));self::metric('Fallos',absint($b['failed']??0),'medium');self::metric('Errores tecnicos',absint($b['technical_errors']??0),'critical');
+        echo '</div>';
+        if(empty($b['available'])){echo '<p>No se pudieron ejecutar pruebas del motor: '.esc_html((string)($b['reason']??'motor no disponible')).'</p>';return;}
+        echo '<table class="widefat striped"><thead><tr><th>Tipo</th><th>Ejecutadas</th><th>Correctas</th><th>Fallos</th></tr></thead><tbody>';
+        foreach((array)($b['by_kind']??array()) as $kind=>$r){echo '<tr><td>'.esc_html((string)$kind).'</td><td>'.esc_html(absint($r['executed']??0)).'</td><td>'.esc_html(absint($r['passed']??0)).'</td><td>'.esc_html(absint($r['failed']??0)).'</td></tr>';}
+        echo '</tbody></table>';
+        $diag=(array)($b['diagnostics']??array());if($diag){arsort($diag,SORT_NUMERIC);echo '<h3>Diagnosticos del motor</h3><table class="widefat striped"><thead><tr><th>Diagnostico</th><th>Casos</th></tr></thead><tbody>';foreach($diag as $k=>$n){echo '<tr><td><code>'.esc_html((string)$k).'</code></td><td>'.esc_html(absint($n)).'</td></tr>';}echo '</tbody></table>';}
+        $samples=(array)($b['samples']??array());if($samples){echo '<h3>Muestras</h3><table class="widefat striped"><thead><tr><th>Tipo</th><th>Consulta</th><th>Estado</th><th>Diagnosticos</th></tr></thead><tbody>';foreach(array_slice($samples,0,40) as $r){echo '<tr><td>'.esc_html((string)($r['kind']??'')).'</td><td>'.esc_html((string)($r['query']??'')).'</td><td>'.esc_html((string)($r['status']??'')).'</td><td>'.esc_html(implode(', ',(array)($r['diagnostics']??array())) ?: '-').'</td></tr>';}echo '</tbody></table>';}
     }
 
     private static function render_academia($report) {
@@ -1531,7 +1734,8 @@ final class SEO_Auditor {
     private static function scope_for($code,$type) {
         if(strpos($code,'data_')===0||'system'===$type)return 'data_state';
         if(0===strpos($code,'source_'))return 'catalog';
-        if(0===strpos($code,'motor_')||0===strpos($code,'academy_test_'))return 'academia';
+        if(0===strpos($code,'motor_'))return 'behavior';
+        if(0===strpos($code,'academy_test_'))return 'academia';
         if(strpos($code,'learning_')===0)return 'learning';
         if(strpos($code,'academy_')===0||'lesson'===$type)return 'academia';
         if(strpos($code,'faq_')===0||'faq'===$type)return 'faq';
