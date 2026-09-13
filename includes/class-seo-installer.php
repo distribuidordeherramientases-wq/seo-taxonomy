@@ -532,7 +532,7 @@ final class SEO_System_Installer
             'includes/seo-marketing.php',
             'includes/seo-image-scan.php',
             'includes/seo-search.php',
-            'includes/seo-social-network.php',
+            'includes/social-network/social-bootstrap.php',
             'includes/seo-google-info.php',
             'includes/seo-google-trends.php',
             'includes/seo-landing-pages.php',

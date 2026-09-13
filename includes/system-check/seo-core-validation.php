@@ -6084,7 +6084,7 @@ function seo_core_system_test_get_function_files() {
         array('includes/import-export/suppliers/recipes/import_amazon.php', true),
         array('includes/seo-dashboard.php', true),
         array('includes/category-admin.php', true),
-        array('includes/product-page-admin.php', true),
+        array('includes/productos/product-page-admin.php', true),
         array('includes/pages-admin.php', true),
         array('includes/seo-images.php', true),
         array('includes/admin-redirects.php', true),
