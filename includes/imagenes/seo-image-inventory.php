@@ -1218,11 +1218,14 @@ if (!function_exists('seo_pictures_admin_page')) {
             'conexion'               => 'inventory',
             'escaneo'                => 'errors',
             'errores'                => 'errors',
+            'limpieza'               => 'cleanup',
+            'liberar_espacio'         => 'cleanup',
+            'media_cleanup'           => 'cleanup',
         );
         if (isset($aliases[$tab])) {
             $tab = $aliases[$tab];
         }
-        if (!in_array($tab, array('inventory', 'anomalies', 'assignment', 'errors'), true)) {
+        if (!in_array($tab, array('inventory', 'anomalies', 'assignment', 'errors', 'cleanup'), true)) {
             $tab = 'inventory';
         }
 
@@ -1235,6 +1238,7 @@ if (!function_exists('seo_pictures_admin_page')) {
             'anomalies'  => 'Anomalías',
             'assignment' => 'Asignación',
             'errors'     => 'Errores',
+            'cleanup'    => 'Liberar espacio',
         );
 
         echo '<nav class="nav-tab-wrapper">';
@@ -1250,6 +1254,8 @@ if (!function_exists('seo_pictures_admin_page')) {
             seo_images_render_assignment_tab();
         } elseif ($tab === 'errors' && function_exists('seo_health_render_scope_tab')) {
             seo_health_render_scope_tab('image');
+        } elseif ($tab === 'cleanup' && function_exists('seo_images_render_media_cleanup_tab')) {
+            seo_images_render_media_cleanup_tab();
         } else {
             seo_images_render_inventory_tab();
         }

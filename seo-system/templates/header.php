@@ -36,6 +36,310 @@ if (function_exists('WC') && WC() && WC()->cart) {
 $whatsapp_number = '34640874540';
 $whatsapp_text   = rawurlencode('Hola, necesito informacion sobre un producto.');
 $whatsapp_url    = 'https://wa.me/' . $whatsapp_number . '?text=' . $whatsapp_text;
+
+/**
+ * Construye las migas de pan globales de las plantillas DHT.
+ *
+ * Se mantiene en la cabecera compartida para que productos, categorias,
+ * paginas, entradas y archivos usen la misma jerarquia visual.
+ *
+ * @return array<int,array{label:string,url:string}>
+ */
+if (!function_exists('dht_header_get_breadcrumb_items')) {
+    function dht_header_get_breadcrumb_items() {
+        if (is_front_page()) {
+            return array();
+        }
+
+        $items = array(
+            array(
+                'label' => 'Inicio',
+                'url'   => home_url('/'),
+            ),
+        );
+
+        $shop_url = function_exists('wc_get_page_permalink')
+            ? wc_get_page_permalink('shop')
+            : home_url('/tienda/');
+
+        if (!$shop_url) {
+            $shop_url = home_url('/tienda/');
+        }
+
+        $posts_page_id = (int) get_option('page_for_posts');
+        $blog_url      = $posts_page_id > 0 ? get_permalink($posts_page_id) : home_url('/blog/');
+        $blog_label    = $posts_page_id > 0 ? get_the_title($posts_page_id) : 'Blog';
+
+        if ($blog_label === '') {
+            $blog_label = 'Blog';
+        }
+
+        $append_term_ancestors = static function (&$target, $term, $taxonomy) {
+            if (!$term || is_wp_error($term) || empty($term->term_id)) {
+                return;
+            }
+
+            $ancestor_ids = array_reverse(
+                get_ancestors((int) $term->term_id, $taxonomy, 'taxonomy')
+            );
+
+            foreach ($ancestor_ids as $ancestor_id) {
+                $ancestor = get_term((int) $ancestor_id, $taxonomy);
+                if (!$ancestor || is_wp_error($ancestor)) {
+                    continue;
+                }
+
+                $url = get_term_link($ancestor);
+                if (is_wp_error($url)) {
+                    $url = '';
+                }
+
+                $target[] = array(
+                    'label' => (string) $ancestor->name,
+                    'url'   => (string) $url,
+                );
+            }
+        };
+
+        $add_current = static function (&$target, $label) {
+            $label = trim(wp_strip_all_tags((string) $label));
+            if ($label === '') {
+                return;
+            }
+
+            $target[] = array(
+                'label' => $label,
+                'url'   => '',
+            );
+        };
+
+        /* WooCommerce: tienda, categorias, productos y paginas de compra. */
+        if (function_exists('is_shop') && is_shop()) {
+            $add_current($items, 'Tienda');
+            return apply_filters('dht_header_breadcrumb_items', $items);
+        }
+
+        if (function_exists('is_product_category') && is_product_category()) {
+            $items[] = array('label' => 'Tienda', 'url' => $shop_url);
+            $term = get_queried_object();
+            $append_term_ancestors($items, $term, 'product_cat');
+            $add_current($items, isset($term->name) ? $term->name : single_term_title('', false));
+            return apply_filters('dht_header_breadcrumb_items', $items);
+        }
+
+        if (function_exists('is_product_tag') && is_product_tag()) {
+            $items[] = array('label' => 'Tienda', 'url' => $shop_url);
+            $term = get_queried_object();
+            $add_current($items, isset($term->name) ? $term->name : single_term_title('', false));
+            return apply_filters('dht_header_breadcrumb_items', $items);
+        }
+
+        if (function_exists('is_product') && is_product()) {
+            $items[] = array('label' => 'Tienda', 'url' => $shop_url);
+
+            $terms = wp_get_post_terms(get_the_ID(), 'product_cat');
+            if (!is_wp_error($terms) && !empty($terms)) {
+                usort(
+                    $terms,
+                    static function ($a, $b) {
+                        $depth_a = count(get_ancestors((int) $a->term_id, 'product_cat', 'taxonomy'));
+                        $depth_b = count(get_ancestors((int) $b->term_id, 'product_cat', 'taxonomy'));
+
+                        if ($depth_a === $depth_b) {
+                            return (int) $a->term_id <=> (int) $b->term_id;
+                        }
+
+                        return $depth_b <=> $depth_a;
+                    }
+                );
+
+                $term = $terms[0];
+                $append_term_ancestors($items, $term, 'product_cat');
+                $term_url = get_term_link($term);
+                $items[] = array(
+                    'label' => (string) $term->name,
+                    'url'   => is_wp_error($term_url) ? '' : (string) $term_url,
+                );
+            }
+
+            $add_current($items, get_the_title());
+            return apply_filters('dht_header_breadcrumb_items', $items);
+        }
+
+        if (function_exists('is_cart') && is_cart()) {
+            $items[] = array('label' => 'Tienda', 'url' => $shop_url);
+            $add_current($items, 'Carrito');
+            return apply_filters('dht_header_breadcrumb_items', $items);
+        }
+
+        if (function_exists('is_checkout') && is_checkout()) {
+            $items[] = array('label' => 'Tienda', 'url' => $shop_url);
+            $add_current($items, get_the_title() ?: 'Finalizar compra');
+            return apply_filters('dht_header_breadcrumb_items', $items);
+        }
+
+        if (function_exists('is_account_page') && is_account_page()) {
+            $items[] = array('label' => 'Tienda', 'url' => $shop_url);
+            $add_current($items, get_the_title() ?: 'Mi cuenta');
+            return apply_filters('dht_header_breadcrumb_items', $items);
+        }
+
+        /* Blog y entradas. */
+        if (is_home()) {
+            $add_current($items, $blog_label);
+            return apply_filters('dht_header_breadcrumb_items', $items);
+        }
+
+        if (is_singular('post')) {
+            $items[] = array('label' => $blog_label, 'url' => $blog_url);
+
+            $terms = get_the_category(get_the_ID());
+            if (!empty($terms)) {
+                usort(
+                    $terms,
+                    static function ($a, $b) {
+                        $depth_a = count(get_ancestors((int) $a->term_id, 'category', 'taxonomy'));
+                        $depth_b = count(get_ancestors((int) $b->term_id, 'category', 'taxonomy'));
+
+                        if ($depth_a === $depth_b) {
+                            return (int) $a->term_id <=> (int) $b->term_id;
+                        }
+
+                        return $depth_b <=> $depth_a;
+                    }
+                );
+
+                $term = $terms[0];
+                $append_term_ancestors($items, $term, 'category');
+                $term_url = get_term_link($term);
+                $items[] = array(
+                    'label' => (string) $term->name,
+                    'url'   => is_wp_error($term_url) ? '' : (string) $term_url,
+                );
+            }
+
+            $add_current($items, get_the_title());
+            return apply_filters('dht_header_breadcrumb_items', $items);
+        }
+
+        if (is_category()) {
+            $items[] = array('label' => $blog_label, 'url' => $blog_url);
+            $term = get_queried_object();
+            $append_term_ancestors($items, $term, 'category');
+            $add_current($items, isset($term->name) ? $term->name : single_cat_title('', false));
+            return apply_filters('dht_header_breadcrumb_items', $items);
+        }
+
+        if (is_tag()) {
+            $items[] = array('label' => $blog_label, 'url' => $blog_url);
+            $add_current($items, single_tag_title('', false));
+            return apply_filters('dht_header_breadcrumb_items', $items);
+        }
+
+        if (is_author() || is_date()) {
+            $items[] = array('label' => $blog_label, 'url' => $blog_url);
+            $add_current($items, get_the_archive_title());
+            return apply_filters('dht_header_breadcrumb_items', $items);
+        }
+
+        /* Paginas jerarquicas. */
+        if (is_page()) {
+            $ancestor_ids = array_reverse(get_post_ancestors(get_the_ID()));
+            foreach ($ancestor_ids as $ancestor_id) {
+                $items[] = array(
+                    'label' => get_the_title($ancestor_id),
+                    'url'   => get_permalink($ancestor_id),
+                );
+            }
+
+            $add_current($items, get_the_title());
+            return apply_filters('dht_header_breadcrumb_items', $items);
+        }
+
+        /* Otros tipos de contenido y taxonomias del plugin. */
+        if (is_singular()) {
+            $post_type = get_post_type();
+            $object = $post_type ? get_post_type_object($post_type) : null;
+
+            if ($object && !empty($object->has_archive)) {
+                $archive_url = get_post_type_archive_link($post_type);
+                if ($archive_url) {
+                    $items[] = array(
+                        'label' => isset($object->labels->name) ? $object->labels->name : $object->label,
+                        'url'   => $archive_url,
+                    );
+                }
+            }
+
+            $add_current($items, get_the_title());
+            return apply_filters('dht_header_breadcrumb_items', $items);
+        }
+
+        if (is_tax()) {
+            $term = get_queried_object();
+            if ($term && !is_wp_error($term) && !empty($term->taxonomy)) {
+                $append_term_ancestors($items, $term, $term->taxonomy);
+                $add_current($items, $term->name);
+            }
+            return apply_filters('dht_header_breadcrumb_items', $items);
+        }
+
+        if (is_post_type_archive()) {
+            $add_current($items, post_type_archive_title('', false));
+            return apply_filters('dht_header_breadcrumb_items', $items);
+        }
+
+        if (is_search()) {
+            $add_current($items, sprintf('Resultados para “%s”', get_search_query()));
+            return apply_filters('dht_header_breadcrumb_items', $items);
+        }
+
+        if (is_404()) {
+            $add_current($items, 'Pagina no encontrada');
+            return apply_filters('dht_header_breadcrumb_items', $items);
+        }
+
+        return apply_filters('dht_header_breadcrumb_items', $items);
+    }
+}
+
+if (!function_exists('dht_header_render_breadcrumbs')) {
+    function dht_header_render_breadcrumbs() {
+        $items = dht_header_get_breadcrumb_items();
+        if (count($items) < 2) {
+            return;
+        }
+        ?>
+        <nav class="dht-header-breadcrumbs" aria-label="Migas de pan">
+            <div class="dht-header-breadcrumbs__inner">
+                <ol itemscope itemtype="https://schema.org/BreadcrumbList">
+                    <?php foreach ($items as $index => $item) : ?>
+                        <?php
+                        $label   = isset($item['label']) ? trim((string) $item['label']) : '';
+                        $url     = isset($item['url']) ? (string) $item['url'] : '';
+                        $is_last = $index === count($items) - 1;
+
+                        if ($label === '') {
+                            continue;
+                        }
+                        ?>
+                        <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+                            <?php if (!$is_last && $url !== '') : ?>
+                                <a itemprop="item" href="<?php echo esc_url($url); ?>">
+                                    <span itemprop="name"><?php echo esc_html($label); ?></span>
+                                </a>
+                            <?php else : ?>
+                                <span itemprop="name"<?php echo $is_last ? ' aria-current="page"' : ''; ?>><?php echo esc_html($label); ?></span>
+                            <?php endif; ?>
+                            <meta itemprop="position" content="<?php echo esc_attr((string) ($index + 1)); ?>">
+                        </li>
+                    <?php endforeach; ?>
+                </ol>
+            </div>
+        </nav>
+        <?php
+    }
+}
 ?>
 <!doctype html>
 <html <?php language_attributes(); ?>>
@@ -290,5 +594,10 @@ $whatsapp_url    = 'https://wa.me/' . $whatsapp_number . '?text=' . $whatsapp_te
  */
 if (function_exists('generate_navigation_position')) {
     generate_navigation_position();
+}
+
+/* Migas de pan globales, debajo de la navegacion principal. */
+if (function_exists('dht_header_render_breadcrumbs')) {
+    dht_header_render_breadcrumbs();
 }
 ?>

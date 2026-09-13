@@ -2,7 +2,7 @@
 /**
  * Cargador del modulo de imagenes.
  *
- * Se conserva esta ruta porque includes/bootstrap.php ya carga este archivo
+ * Se conserva esta ruta porque el bootstrap principal carga este archivo
  * en las instalaciones existentes. El contenido funcional vive ahora en
  * includes/imagenes/.
  */

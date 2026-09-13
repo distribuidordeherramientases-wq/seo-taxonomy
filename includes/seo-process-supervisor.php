@@ -398,11 +398,69 @@ if (!function_exists('seo_process_supervisor_spawn_http')) {
 }
 
 if (!function_exists('seo_process_supervisor_start')) {
+    /**
+     * Arranca el controlador persistente del Gestor de procesos cuando el
+     * hosting lo permite. Prioridad: PHP CLI desacoplado -> loopback propio ->
+     * gestor periódico (cron/pulsos web) como respaldo.
+     *
+     * Esto es importante para trabajos largos como el Clonador: marcar el
+     * gestor como "activo" no basta; debe existir un proceso que entregue
+     * ventanas aunque el administrador cierre la pantalla.
+     */
     function seo_process_supervisor_start($force = false, $reason = 'automatic') {
         $settings = seo_process_supervisor_settings();
-        if (empty($settings['enabled']) && !in_array($reason, array('manual', 'restart', 'settings'), true)) {
+        if (empty($settings['enabled']) && !in_array($reason, array('manual', 'restart', 'settings', 'clonador'), true)) {
             return new WP_Error('supervisor_disabled', 'El gestor está desactivado.');
         }
+
+        $current = seo_process_supervisor_state();
+        $current_backend = sanitize_key((string) ($current['backend'] ?? ''));
+        $direct_active = seo_process_supervisor_is_active($current)
+            && in_array($current_backend, array('direct_cli', 'direct_http'), true)
+            && in_array(sanitize_key((string) ($current['status'] ?? '')), array('running', 'waiting'), true);
+
+        if ($direct_active && !$force) {
+            return array(
+                'started' => true,
+                'already_running' => true,
+                'backend' => $current_backend,
+                'pid' => absint($current['pid'] ?? 0),
+                'message' => 'El Gestor de procesos ya tiene un worker persistente activo.',
+            );
+        }
+
+        // Un reinicio manual no crea dos workers: pide al actual que entregue el
+        // control y su propio handover lanzará el sustituto tras liberar el lock.
+        if ($direct_active && $force) {
+            seo_process_supervisor_save_state(array(
+                'stop_requested' => 1,
+                'restart_requested' => 1,
+                'next_cycle_at' => time(),
+            ));
+            seo_process_supervisor_log('info', 'supervisor_restart_requested', 'Se solicitó el reinicio del worker persistente.', 'Supervisor', array('backend' => $current_backend));
+            return array(
+                'started' => true,
+                'already_running' => true,
+                'backend' => $current_backend,
+                'pid' => absint($current['pid'] ?? 0),
+                'message' => 'Reinicio solicitado al worker persistente.',
+            );
+        }
+
+        // Limpia únicamente locks claramente abandonados. Nunca rompe un lock
+        // cuyo heartbeat todavía pueda pertenecer a un proceso vivo.
+        if (!seo_process_supervisor_is_active($current)) {
+            $lock = get_option(SEO_PROCESS_SUPERVISOR_LOCK_OPTION, array());
+            if (is_array($lock) && !empty($lock)) {
+                $lock_at = absint($lock['at'] ?? 0);
+                $lock_pid = absint($lock['pid'] ?? 0);
+                $pid_alive = $lock_pid ? seo_process_supervisor_pid_alive($lock_pid) : false;
+                if (($lock_at && (time() - $lock_at) > 180) || false === $pid_alive) {
+                    delete_option(SEO_PROCESS_SUPERVISOR_LOCK_OPTION);
+                }
+            }
+        }
+
         seo_process_supervisor_save_state(array(
             'active'            => 1,
             'status'            => 'waiting',
@@ -411,13 +469,104 @@ if (!function_exists('seo_process_supervisor_start')) {
             'stop_requested'    => 0,
             'restart_requested' => 0,
             'dispatch_pending'  => 0,
+            'dispatch_id'       => '',
+            'dispatch_at'       => 0,
+            'dispatch_backend'  => '',
+            'dispatch_pid'      => 0,
             'dispatch_error'    => '',
             'last_error'        => '',
             'next_cycle_at'     => time(),
         ));
         seo_process_supervisor_schedule_backup(true);
-        seo_process_supervisor_log('info', 'manager_enabled', 'Gestor periódico habilitado.', 'Supervisor', array('reason' => $reason));
-        return array('started' => true, 'message' => 'Gestor periódico activado.');
+
+        $dispatch_id = sanitize_key('supervisor-' . strtolower(wp_generate_password(18, false, false)));
+        $dispatch_at = time();
+        $signature = seo_process_supervisor_signature($dispatch_id, $dispatch_at);
+        seo_process_supervisor_save_state(array(
+            'dispatch_pending' => 1,
+            'dispatch_id' => $dispatch_id,
+            'dispatch_at' => $dispatch_at,
+            'dispatch_backend' => '',
+            'dispatch_pid' => 0,
+            'dispatch_error' => '',
+        ));
+
+        $errors = array();
+        $launch = seo_process_supervisor_spawn_cli($dispatch_id, $dispatch_at, $signature);
+        if (!is_wp_error($launch)) {
+            $fresh = seo_process_supervisor_state();
+            $changes = array(
+                'active' => 1,
+                'dispatch_backend' => 'direct_cli',
+                'dispatch_pid' => absint($launch['pid'] ?? 0),
+                'last_error' => '',
+            );
+            // Si el hijo aún no ha reclamado el despacho, dejamos visible el
+            // backend y PID previstos. Si ya lo reclamó, respetamos el estado
+            // RUNNING escrito por el propio worker.
+            if (!empty($fresh['dispatch_pending'])) {
+                $changes['backend'] = 'direct_cli';
+                $changes['pid'] = absint($launch['pid'] ?? 0);
+                $changes['status'] = 'waiting';
+            }
+            seo_process_supervisor_save_state($changes);
+            seo_process_supervisor_log('success', 'supervisor_direct_started', 'Gestor persistente arrancado mediante PHP CLI.', 'Supervisor', array('backend' => 'direct_cli', 'pid' => absint($launch['pid'] ?? 0), 'reason' => $reason));
+            return array('started' => true, 'backend' => 'direct_cli', 'pid' => absint($launch['pid'] ?? 0), 'message' => 'Gestor persistente PHP CLI arrancado.');
+        }
+        $errors[] = $launch->get_error_message();
+
+        // El mismo despacho puede ser reclamado por el loopback si PHP CLI no
+        // está disponible. Si el CLI llegó a reclamarlo, dispatch_pending ya
+        // será 0 y no intentamos crear un segundo controlador.
+        $fresh = seo_process_supervisor_state();
+        if (!empty($fresh['dispatch_pending'])) {
+            $launch = seo_process_supervisor_spawn_http($dispatch_id, $dispatch_at, $signature);
+            if (!is_wp_error($launch)) {
+                $fresh = seo_process_supervisor_state();
+                $changes = array(
+                    'active' => 1,
+                    'dispatch_backend' => 'direct_http',
+                    'dispatch_pid' => 0,
+                    'last_error' => '',
+                );
+                if (!empty($fresh['dispatch_pending'])) {
+                    $changes['backend'] = 'direct_http';
+                    $changes['pid'] = 0;
+                    $changes['status'] = 'waiting';
+                }
+                seo_process_supervisor_save_state($changes);
+                seo_process_supervisor_log('success', 'supervisor_direct_started', 'Gestor persistente arrancado mediante loopback propio.', 'Supervisor', array('backend' => 'direct_http', 'reason' => $reason));
+                return array('started' => true, 'backend' => 'direct_http', 'pid' => 0, 'message' => 'Gestor persistente por loopback arrancado.');
+            }
+            $errors[] = $launch->get_error_message();
+        }
+
+        // Último recurso: el job sigue siendo válido y será atendido por cron o
+        // pulsos web. Dejamos el motivo visible para no confundir "gestor
+        // activado" con "worker persistente ejecutándose".
+        $error_text = implode(' | ', array_filter(array_map('sanitize_text_field', $errors)));
+        seo_process_supervisor_save_state(array(
+            'active' => 0,
+            'status' => 'waiting',
+            'pid' => 0,
+            'backend' => 'periodic_manager',
+            'dispatch_pending' => 0,
+            'dispatch_id' => '',
+            'dispatch_at' => 0,
+            'dispatch_backend' => 'periodic_manager',
+            'dispatch_pid' => 0,
+            'dispatch_error' => $error_text,
+            'last_error' => '',
+            'next_cycle_at' => time(),
+        ));
+        seo_process_supervisor_log('warning', 'supervisor_direct_unavailable', 'No se pudo desacoplar un worker persistente; se mantiene el gestor periódico de respaldo.', 'Supervisor', array('reason' => $reason));
+        return array(
+            'started' => true,
+            'backend' => 'periodic_manager',
+            'pid' => 0,
+            'fallback' => true,
+            'message' => 'No se pudo arrancar un worker persistente; quedan activos cron y pulsos web de respaldo.',
+        );
     }
 }
 
@@ -1374,8 +1523,17 @@ if (!function_exists('seo_process_supervisor_control_action')) {
             update_option(SEO_PROCESS_SUPERVISOR_OPTION, $settings, false);
             seo_process_supervisor_save_state(array('stop_requested' => 0, 'last_error' => '', 'status' => 'waiting'));
             seo_process_supervisor_schedule_backup(true);
-            seo_process_supervisor_run_manager_window('manual_manager', min(20, absint($settings['runtime_seconds'] ?? 45)));
-            $message = 'Gestor activado y ciclo de comprobación ejecutado.';
+            $launch = seo_process_supervisor_start('restart' === $command, 'restart' === $command ? 'restart' : 'manual');
+            if (is_wp_error($launch)) {
+                $message = 'No se pudo activar el gestor: ' . $launch->get_error_message();
+            } else {
+                $message = sanitize_text_field((string) ($launch['message'] ?? 'Gestor activado.'));
+                if (!empty($launch['fallback'])) {
+                    // El fallback periódico sigue siendo funcional, pero hacemos
+                    // una primera ventana ahora para no esperar al siguiente cron.
+                    seo_process_supervisor_run_manager_window('manual_manager', min(20, absint($settings['runtime_seconds'] ?? 45)));
+                }
+            }
         } elseif ('cycle' === $command) {
             seo_process_supervisor_run_manager_window('manual_manager', min(20, absint($settings['runtime_seconds'] ?? 45)));
             $message = 'Comprobación ejecutada.';

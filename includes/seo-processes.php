@@ -7,7 +7,7 @@
  * - Import / Export por lotes.
  * - Academia del Dependiente.
  * - Clasificador semantico por jobs.
- * - Auditorias de salud de paginas, posts e imagenes.
+ * - Auditorias de salud de paginas, posts, imagenes, productos y sitemap publico.
  *
  * La pantalla centraliza monitorizacion, limites de velocidad y el arranque
  * explicito de los controladores propios. Import/Export y Academia pueden
@@ -75,7 +75,6 @@ if (!function_exists('seo_processes_control_defaults')) {
                 'critical_delay_seconds' => 90,
             ),
             'health-page' => array(
-                'batch' => 250,
                 'load_batch' => 60,
                 'initial_workers' => 2,
                 'max_workers' => 8,
@@ -87,7 +86,6 @@ if (!function_exists('seo_processes_control_defaults')) {
                 'max_interval_ms' => 3000,
             ),
             'health-post' => array(
-                'batch' => 250,
                 'load_batch' => 60,
                 'initial_workers' => 2,
                 'max_workers' => 8,
@@ -99,8 +97,30 @@ if (!function_exists('seo_processes_control_defaults')) {
                 'max_interval_ms' => 3000,
             ),
             'health-image' => array(
-                'batch' => 500,
                 'load_batch' => 300,
+                'initial_workers' => 2,
+                'max_workers' => 8,
+                'fast_p95_ms' => 800,
+                'slow_p95_ms' => 1500,
+                'very_slow_p95_ms' => 2500,
+                'min_interval_ms' => 120,
+                'initial_interval_ms' => 300,
+                'max_interval_ms' => 3000,
+            ),
+            'health-product' => array(
+                'load_batch' => 60,
+                'initial_workers' => 2,
+                'max_workers' => 8,
+                'fast_p95_ms' => 800,
+                'slow_p95_ms' => 1500,
+                'very_slow_p95_ms' => 2500,
+                'min_interval_ms' => 120,
+                'initial_interval_ms' => 300,
+                'max_interval_ms' => 3000,
+            ),
+            'health-sitemap' => array(
+                'remote_batch' => 100,
+                'load_batch' => 60,
                 'initial_workers' => 2,
                 'max_workers' => 8,
                 'fast_p95_ms' => 800,
@@ -175,11 +195,16 @@ if (!function_exists('seo_processes_sanitize_controls')) {
         $classifier['critical_delay_seconds'] = max($classifier['heavy_delay_seconds'], min(900, absint($classifier['critical_delay_seconds'])));
         $out['classifier'] = $classifier;
 
-        foreach (array('page', 'post', 'image') as $scope) {
+        foreach (array('page', 'post', 'image', 'product', 'sitemap') as $scope) {
             $key = 'health-' . $scope;
             $health = wp_parse_args(isset($raw[$key]) && is_array($raw[$key]) ? $raw[$key] : array(), $defaults[$key]);
-            $health['batch'] = max(10, min(2000, absint($health['batch'])));
-            $health['load_batch'] = max(5, min($health['batch'], absint($health['load_batch'])));
+            // Compatibilidad: configuraciones antiguas podían guardar `batch`,
+            // pero el escaneo normal ya no se limita desde WordPress.
+            unset($health['batch']);
+            if ($scope === 'sitemap') {
+                $health['remote_batch'] = max(10, min(500, absint($health['remote_batch'])));
+            }
+            $health['load_batch'] = max(5, min(2000, absint($health['load_batch'])));
             $health['max_workers'] = max(1, min(16, absint($health['max_workers'])));
             $health['initial_workers'] = max(1, min($health['max_workers'], absint($health['initial_workers'])));
             $health['fast_p95_ms'] = max(100, min(10000, absint($health['fast_p95_ms'])));
@@ -266,7 +291,6 @@ if (!function_exists('seo_processes_filter_health_scope_config')) {
         }
         $control = seo_processes_control_for('health-' . sanitize_key((string) $scope));
         if ($control) {
-            $config['batch'] = absint($control['batch']);
             $config['load_batch'] = absint($control['load_batch']);
         }
         return $config;
@@ -1005,9 +1029,6 @@ if (!function_exists('seo_processes_collect_health')) {
         }
 
         $load_bits = array();
-        if (is_array($config) && !empty($config['batch'])) {
-            $load_bits[] = 'Lote máx.: ' . number_format_i18n(absint($config['batch']));
-        }
         $runner_control = seo_processes_health_runner_control($scope);
         if (!empty($runner_control['max_workers'])) {
             $load_bits[] = 'objetivo remoto: ' . number_format_i18n(absint($runner_control['initial_workers'])) . '–' . number_format_i18n(absint($runner_control['max_workers'])) . ' workers';
@@ -1067,6 +1088,7 @@ if (!function_exists('seo_processes_collect')) {
             seo_processes_collect_health('page'),
             seo_processes_collect_health('post'),
             seo_processes_collect_health('image'),
+            seo_processes_collect_health('product'),
         );
 
         /**
@@ -1238,14 +1260,16 @@ if (!function_exists('seo_processes_render_control_panel')) {
                 <p class="description">El Clasificador solo se inicia o reanuda manualmente. El gestor únicamente lo mantiene vivo mientras el job esté activo.</p>
             </details>
 
-            <?php foreach (array('page' => 'Chequeo de páginas', 'post' => 'Chequeo de posts', 'image' => 'Chequeo de imágenes') as $scope => $title) :
+            <?php foreach (array('page' => 'Chequeo de páginas', 'post' => 'Chequeo de posts', 'image' => 'Chequeo de imágenes', 'product' => 'Chequeo de productos', 'sitemap' => 'Chequeo de sitemap público') as $scope => $title) :
                 $key = 'health-' . $scope;
                 $health = $settings[$key];
             ?>
             <details class="seo-process-control-card">
                 <summary><strong><?php echo esc_html($title); ?></strong><span>Runner GitHub</span></summary>
                 <div class="seo-process-control-grid">
-                    <label>Tamaño de lote<?php seo_processes_number_input($key,'batch',$health['batch'],10,2000); ?><small>Este límite sí lo aplica WordPress.</small></label>
+                    <?php if ($scope === 'sitemap') : ?>
+                    <label>Lote remoto<?php seo_processes_number_input($key,'remote_batch',$health['remote_batch'],10,500); ?><small>URLs que el worker solicita a WordPress en cada tramo. No limita el alcance total.</small></label>
+                    <?php endif; ?>
                     <label>Lote test carga<?php seo_processes_number_input($key,'load_batch',$health['load_batch'],5,2000); ?><small>URLs en modo test.</small></label>
                     <label>Workers iniciales<?php seo_processes_number_input($key,'initial_workers',$health['initial_workers'],1,16); ?><small>Se envía al runner.</small></label>
                     <label>Workers máximos<?php seo_processes_number_input($key,'max_workers',$health['max_workers'],1,16); ?><small>Se envía al runner.</small></label>
@@ -1256,7 +1280,11 @@ if (!function_exists('seo_processes_render_control_panel')) {
                     <label>Intervalo inicial<?php seo_processes_number_input($key,'initial_interval_ms',$health['initial_interval_ms'],10,10000); ?><small>ms entre peticiones.</small></label>
                     <label>Intervalo máximo<?php seo_processes_number_input($key,'max_interval_ms',$health['max_interval_ms'],10,30000); ?><small>ms entre peticiones.</small></label>
                 </div>
-                <p class="seo-process-control-warning"><strong>Importante:</strong> WordPress aplica el tamaño del lote y devuelve los demás límites en <code>control</code> dentro del JSON del lote. El workflow remoto debe ser compatible con esa clave para que cambien sus workers/intervalos.</p>
+                <?php if ($scope === 'sitemap') : ?>
+                <p class="seo-process-control-warning"><strong>Importante:</strong> WordPress conserva el inventario completo generado desde el <code>sitemap.xml</code> vigente. El worker pide lotes pequeños de forma sucesiva hasta terminar; <strong>Lote remoto</strong> regula cada petición, no la cobertura total.</p>
+                <?php else : ?>
+                <p class="seo-process-control-warning"><strong>Importante:</strong> el escaneo normal entrega el inventario completo al runner. WordPress no limita el número de páginas, posts, imágenes o productos. El worker recibe <code>control</code> y aplica workers/intervalos desde este gestor. Solo el test de carga conserva un límite de muestra.</p>
+                <?php endif; ?>
             </details>
             <?php endforeach; ?>
 

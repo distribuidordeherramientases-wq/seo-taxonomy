@@ -5,9 +5,9 @@ defined('ABSPATH') || exit;
 /**
  * Reinicio controlado del conocimiento operativo de Dependiente.
  *
- * El reset esta pensado para staging y para ciclos de entrenamiento. Elimina
- * todo lo generado durante pruebas/aprendizaje, pero conserva las reglas seed
- * del motor y las fuentes maestras del catalogo (productos, etiquetas,
+ * Reinicio seguro para PRO o STAGING. Elimina todo el conocimiento generado
+ * por uso/Academia y el indice derivado, pero conserva las reglas seed del
+ * motor y las fuentes maestras del catalogo (productos, categorias, etiquetas,
  * vocabulario y atributos SEO).
  */
 final class SEO_Dependiente_Reset {
@@ -59,13 +59,24 @@ final class SEO_Dependiente_Reset {
         try {
             // Evita que un indice en segundo plano vuelva a poblar la tabla justo
             // despues del reset. La reindexacion se hara manualmente cuando toque.
-            wp_clear_scheduled_hook('seo_dependiente_background_index');
+            if (class_exists('SEO_Dependiente_Plugin') && is_callable(array('SEO_Dependiente_Plugin', 'stop_reindex'))) {
+                $stop_result = SEO_Dependiente_Plugin::stop_reindex(false, 'knowledge_reset');
+                if (is_wp_error($stop_result)) {
+                    throw new RuntimeException($stop_result->get_error_message());
+                }
+            } else {
+                wp_clear_scheduled_hook('seo_dependiente_background_index');
+            }
+            delete_option('seo_dependiente_reindex_state');
+            delete_option('seo_dependiente_reindex_lock');
             if (class_exists('SEO_Dependiente_Entrenador')) {
                 SEO_Dependiente_Entrenador::reset_automation_state();
             }
             delete_option('seo_dependiente_background_page');
             delete_option('seo_dependiente_last_full_index');
             delete_option('seo_dependiente_knowledge_snapshot');
+            delete_option('seo_dependiente_knowledge_last_import');
+            delete_option('seo_dependiente_knowledge_last_export');
 
             if (false === $wpdb->query('START TRANSACTION')) {
                 throw new RuntimeException('No se pudo iniciar la transaccion de reinicio.');
@@ -102,10 +113,16 @@ final class SEO_Dependiente_Reset {
             }
 
             $after = self::preview();
+            $verification = self::verify_clean_state($after);
+            if (is_wp_error($verification)) {
+                return $verification;
+            }
+
             return array(
                 'before' => $before,
                 'after'  => $after,
-                'message'=> 'Conocimiento reiniciado. Se han conservado las reglas base (seed) y las fuentes maestras del catalogo. La Academia v2 vuelve a la Lección 1 tras reindexar.',
+                'verified' => true,
+                'message'=> 'Dependiente ha quedado limpio y verificado. Se conserva solo el baseline seed y las fuentes maestras del catalogo. Reindexa el catalogo en PRO antes de iniciar Academia v2 desde la Leccion 1.',
             );
         } catch (Throwable $error) {
             if ($transaction_started) {
@@ -115,6 +132,36 @@ final class SEO_Dependiente_Reset {
         } finally {
             delete_transient(self::LOCK_KEY);
         }
+    }
+
+
+    private static function verify_clean_state($after) {
+        $must_be_zero = array(
+            'index',
+            'search_log',
+            'trainer_questions',
+            'trainer_runs',
+            'trainer_lessons',
+            'semantic_reset',
+        );
+        $dirty = array();
+        foreach ($must_be_zero as $key) {
+            $value = absint($after[$key] ?? 0);
+            if ($value !== 0) {
+                $dirty[$key] = $value;
+            }
+        }
+        if ($dirty) {
+            $parts = array();
+            foreach ($dirty as $key => $value) {
+                $parts[] = $key . '=' . $value;
+            }
+            return new WP_Error(
+                'seo_dependiente_reset_incomplete',
+                'El reinicio no ha quedado limpio. Persisten datos: ' . implode(', ', $parts) . '. No inicies Academia hasta corregirlo.'
+            );
+        }
+        return true;
     }
 
     private static function tables() {

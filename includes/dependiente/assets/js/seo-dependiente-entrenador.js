@@ -10,6 +10,8 @@
     const prepareButton = root.querySelector('[data-trainer-prepare-lesson]');
     const runModuleButton = root.querySelector('[data-trainer-run-module]');
     const exportButton = root.querySelector('[data-trainer-export-lesson]');
+    const exportLessonButtons = Array.from(root.querySelectorAll('[data-trainer-export-lesson], [data-trainer-export-lesson-key]'));
+    const exportCourseButton = root.querySelector('[data-trainer-export-course]');
     const prepareProgress = root.querySelector('[data-trainer-prepare-progress]');
     const prepareBar = root.querySelector('[data-trainer-prepare-bar]');
     const prepareStatus = root.querySelector('[data-trainer-prepare-status]');
@@ -84,7 +86,7 @@
 
     function setBusy(value) {
         busy = !!value;
-        [prepareButton, runModuleButton, exportButton].forEach(function (button) {
+        [prepareButton, runModuleButton, exportCourseButton].concat(exportLessonButtons).forEach(function (button) {
             if (button) button.disabled = busy;
         });
         root.classList.toggle('is-busy', busy);
@@ -289,22 +291,19 @@
         }
     }
 
-    async function exportLesson() {
-        if (busy || !lessonKey) return;
+    async function exportLesson(event) {
+        const button = event && event.currentTarget ? event.currentTarget : exportButton;
+        const requestedLessonKey = button && button.dataset && button.dataset.trainerExportLessonKey
+            ? button.dataset.trainerExportLessonKey
+            : lessonKey;
+        if (busy || !requestedLessonKey) return;
         setBusy(true);
         if (runStatus) runStatus.textContent = 'Preparando JSON de la lección…';
         try {
-            const data = await post('seo_dependiente_entrenador_export_lesson', { lesson_key: lessonKey });
+            const data = await post('seo_dependiente_entrenador_export_lesson', { lesson_key: requestedLessonKey });
             const blob = new Blob([JSON.stringify(data.document || {}, null, 2)], { type: 'application/json;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = data.filename || ('dependiente-academia-' + lessonKey + '.json');
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
-            if (runStatus) runStatus.textContent = 'JSON descargado.';
+            downloadBlob(blob, data.filename || ('dependiente-academia-' + requestedLessonKey + '.json'));
+            if (runStatus) runStatus.textContent = 'JSON de la lección descargado.';
         } catch (error) {
             if (runStatus) runStatus.textContent = 'No se pudo descargar el JSON: ' + error.message;
         } finally {
@@ -312,7 +311,65 @@
         }
     }
 
+    function downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+    }
+
+    function filenameFromDisposition(value, fallback) {
+        const match = String(value || '').match(/filename\*?=(?:UTF-8''|\")?([^\";]+)/i);
+        return match && match[1] ? decodeURIComponent(match[1].trim()) : fallback;
+    }
+
+    async function exportCourse() {
+        if (busy || !exportCourseButton) return;
+        setBusy(true);
+        if (runStatus) runStatus.textContent = 'Preparando informe completo de Academia…';
+        try {
+            const body = new URLSearchParams({
+                action: 'seo_dependiente_entrenador_export_course',
+                nonce: config.nonce || ''
+            });
+            const response = await fetch(config.ajaxUrl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                body: body.toString()
+            });
+            if (!response.ok) {
+                const raw = await response.text();
+                let message = 'HTTP ' + response.status + ': no se pudo exportar el curso.';
+                try {
+                    const payload = JSON.parse(raw);
+                    if (payload && payload.data && payload.data.message) message = payload.data.message;
+                } catch (ignore) {}
+                throw new Error(message);
+            }
+            const blob = await response.blob();
+            const filename = filenameFromDisposition(
+                response.headers.get('Content-Disposition'),
+                'dependiente-academia-curso-completo.json'
+            );
+            downloadBlob(blob, filename);
+            if (runStatus) runStatus.textContent = 'Informe completo de Academia descargado.';
+        } catch (error) {
+            if (runStatus) runStatus.textContent = 'No se pudo descargar el curso completo: ' + error.message;
+            window.alert('No se pudo descargar el curso completo: ' + error.message);
+        } finally {
+            setBusy(false);
+        }
+    }
+
     prepareButton && prepareButton.addEventListener('click', prepareLesson);
     runModuleButton && runModuleButton.addEventListener('click', runModule);
-    exportButton && exportButton.addEventListener('click', exportLesson);
+    exportLessonButtons.forEach(function (button) {
+        button.addEventListener('click', exportLesson);
+    });
+    exportCourseButton && exportCourseButton.addEventListener('click', exportCourse);
 }());

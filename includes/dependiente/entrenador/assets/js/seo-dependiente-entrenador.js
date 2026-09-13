@@ -9,7 +9,9 @@
     const currentModule = Number(root.dataset.currentModule || 0);
     const prepareButton = root.querySelector('[data-trainer-prepare-lesson]');
     const runModuleButton = root.querySelector('[data-trainer-run-module]');
-    const exportButton = root.querySelector('[data-trainer-export-lesson]');
+    const exportLessonButtons = Array.from(root.querySelectorAll('[data-trainer-export-lesson], [data-trainer-export-lesson-key]'));
+    const exportProgressButtons = Array.from(root.querySelectorAll('[data-trainer-export-progress], [data-trainer-export-progress-key]'));
+    const exportCourseButton = root.querySelector('[data-trainer-export-course]');
     const prepareProgress = root.querySelector('[data-trainer-prepare-progress]');
     const prepareBar = root.querySelector('[data-trainer-prepare-bar]');
     const prepareStatus = root.querySelector('[data-trainer-prepare-status]');
@@ -36,9 +38,11 @@
     let autoRunning = root.dataset.autoRunning === '1';
     let labBatchKey = labRoot ? (labRoot.dataset.labBatchKey || '') : '';
     const baseDisabled = new WeakMap();
-    [prepareButton, runModuleButton, autoButton, labImportButton, labRunButton].forEach(function (button) {
-        if (button) baseDisabled.set(button, !!button.disabled);
-    });
+    [prepareButton, runModuleButton, autoButton, labImportButton, labRunButton, labExportButton, exportCourseButton]
+        .concat(exportLessonButtons, exportProgressButtons)
+        .forEach(function (button) {
+            if (button) baseDisabled.set(button, !!button.disabled);
+        });
 
     async function post(action, data) {
         const body = new URLSearchParams(Object.assign({ action, nonce: config.nonce || '' }, data || {}));
@@ -145,12 +149,14 @@
         busy = !!value;
         if (prepareButton) prepareButton.disabled = busy || autoRunning || !!baseDisabled.get(prepareButton);
         if (runModuleButton) runModuleButton.disabled = busy || autoRunning || !!baseDisabled.get(runModuleButton);
-        if (exportButton) exportButton.disabled = busy;
+        exportLessonButtons.forEach(function (button) { button.disabled = busy || !!baseDisabled.get(button); });
+        exportProgressButtons.forEach(function (button) { button.disabled = busy || !!baseDisabled.get(button); });
+        if (exportCourseButton) exportCourseButton.disabled = busy || !!baseDisabled.get(exportCourseButton);
         if (autoButton) autoButton.disabled = busy || autoRunning || !!baseDisabled.get(autoButton);
         if (manualButton) manualButton.disabled = busy || !autoRunning;
         if (labImportButton) labImportButton.disabled = busy || autoRunning || !!baseDisabled.get(labImportButton);
         if (labRunButton) labRunButton.disabled = busy || autoRunning || !!baseDisabled.get(labRunButton);
-        if (labExportButton) labExportButton.disabled = busy;
+        if (labExportButton) labExportButton.disabled = busy || !!baseDisabled.get(labExportButton);
         if (labFile) labFile.disabled = busy;
         if (labText) labText.disabled = busy;
         if (labMode) labMode.disabled = busy;
@@ -192,10 +198,26 @@
         return labels[status] || status || 'Sin evaluar';
     }
 
+    function diagnosticLabel(type) {
+        const labels = {
+            mastered: 'Conocimiento resuelto',
+            parser_gap: 'Fallo de interpretación',
+            retrieval_gap: 'Fallo de recuperación',
+            ranking_gap: 'Fallo de ranking/filtro',
+            clarification_gap: 'Aclaración innecesaria',
+            curriculum_invalid: 'Pregunta a revisar',
+            technical_error: 'Error técnico',
+            observed: 'Observación'
+        };
+        return labels[type] || type || '';
+    }
+
     function renderRunRow(row) {
         const status = String(row.evaluation_status || '');
         const statusClass = status.indexOf('pass_') === 0 ? 'is-ok' : (status === 'error' ? 'is-error' : 'is-empty');
         const results = Array.isArray(row.top_results) ? row.top_results : [];
+        const evaluation = row.evaluation && typeof row.evaluation === 'object' ? row.evaluation : {};
+        const diagnostic = diagnosticLabel(String(evaluation.diagnostic_type || ''));
         const resultsHtml = results.length
             ? '<ol class="seo-dependiente-trainer__answer-list">' + results.slice(0, 5).map(function (result) {
                 const reasons = Array.isArray(result.reasons) && result.reasons.length
@@ -210,6 +232,7 @@
             '<td><strong>' + escapeHtml(row.question || '') + '</strong>' +
                 (row.search_strategy ? '<div class="description">Estrategia: <code>' + escapeHtml(row.search_strategy) + '</code></div>' : '') + '</td>' +
             '<td><span class="seo-dependiente-trainer__status ' + statusClass + '">' + escapeHtml(evaluationLabel(status)) + '</span>' +
+                (diagnostic ? '<div class="description">' + escapeHtml(diagnostic) + '</div>' : '') +
                 (row.error_message ? '<div class="description">' + escapeHtml(row.error_message) + '</div>' : '') + '</td>' +
             '<td>' + resultsHtml + '</td>' +
             '</tr>';
@@ -333,6 +356,18 @@
                         ' evaluados · ' + duration.toFixed(1) + ' s último lote · siguiente lote: ' + batchSize + '.';
                 }
 
+                if (String(data.lesson_status || '') === 'needs_training') {
+                    if (runStatus) {
+                        const gate = data.quality_gate || {};
+                        const achieved = Math.round(Number(gate.pass_any_ratio || 0) * 1000) / 10;
+                        const required = Math.round(Number(gate.min_pass_any || 0) * 1000) / 10;
+                        runStatus.textContent = 'Lección evaluada, pero no supera el quality gate (' + achieved + '% / mínimo ' + required + '%). ' +
+                            'No se ha creado snapshot ni promocionado conocimiento.';
+                    }
+                    window.setTimeout(function () { window.location.reload(); }, 900);
+                    return;
+                }
+
                 if (data.module_done || data.lesson_done) {
                     if (runStatus) {
                         runStatus.textContent = data.lesson_done
@@ -375,13 +410,16 @@
         autoRunning = !!(data && data.running);
         root.dataset.autoRunning = autoRunning ? '1' : '0';
         if (autoBadge) {
-            autoBadge.textContent = autoRunning ? 'Automático activo' : ((data && data.state && data.state.status === 'completed') ? 'Completado' : 'Manual');
+            const stateStatus = String(data && data.state ? data.state.status || '' : '');
+            autoBadge.textContent = autoRunning
+                ? 'Automático activo'
+                : (stateStatus === 'completed' ? 'Completado' : (stateStatus === 'needs_training' ? 'Necesita entrenamiento' : 'Manual'));
             autoBadge.classList.toggle('is-running', autoRunning);
         }
         if (autoStatus) autoStatus.textContent = describeAutomation(data);
         setBusy(false);
 
-        if (wasRunning && !autoRunning && data && data.state && ['completed', 'error'].includes(String(data.state.status || ''))) {
+        if (wasRunning && !autoRunning && data && data.state && ['completed', 'error', 'needs_training'].includes(String(data.state.status || ''))) {
             window.setTimeout(function () { window.location.reload(); }, 1200);
         }
     }
@@ -428,6 +466,8 @@
 
     function renderLabRunRow(row) {
         const results = Array.isArray(row.top_results) ? row.top_results : [];
+        const evaluation = row.evaluation && typeof row.evaluation === 'object' ? row.evaluation : {};
+        const diagnostic = diagnosticLabel(String(evaluation.diagnostic_type || ''));
         const resultsHtml = results.length
             ? '<ol class="seo-dependiente-trainer__answer-list">' + results.slice(0, 5).map(function (result) {
                 const reasons = Array.isArray(result.reasons) && result.reasons.length
@@ -583,24 +623,99 @@
         }
     }
 
-    async function exportLesson() {
-        if (busy || !lessonKey) return;
+    function downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+    }
+
+    function requestedLessonKey(event, dataKey) {
+        const button = event && event.currentTarget ? event.currentTarget : null;
+        return button && button.dataset && button.dataset[dataKey]
+            ? String(button.dataset[dataKey])
+            : lessonKey;
+    }
+
+    async function exportLesson(event) {
+        const requested = requestedLessonKey(event, 'trainerExportLessonKey');
+        if (busy || !requested) return;
         setBusy(true);
-        if (runStatus) runStatus.textContent = 'Preparando JSON de la lección…';
+        if (runStatus) runStatus.textContent = 'Preparando informe completo de la lección…';
         try {
-            const data = await post('seo_dependiente_entrenador_export_lesson', { lesson_key: lessonKey });
+            const data = await post('seo_dependiente_entrenador_export_lesson', { lesson_key: requested });
             const blob = new Blob([JSON.stringify(data.document || {}, null, 2)], { type: 'application/json;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = data.filename || ('dependiente-academia-' + lessonKey + '.json');
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
-            if (runStatus) runStatus.textContent = 'JSON descargado.';
+            downloadBlob(blob, data.filename || ('dependiente-academia-' + requested + '.json'));
+            if (runStatus) runStatus.textContent = 'Informe completo descargado.';
         } catch (error) {
-            if (runStatus) runStatus.textContent = 'No se pudo descargar el JSON: ' + error.message;
+            if (runStatus) runStatus.textContent = 'No se pudo descargar el informe: ' + error.message;
+            else window.alert('No se pudo descargar el informe: ' + error.message);
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    async function exportProgress(event) {
+        const requested = requestedLessonKey(event, 'trainerExportProgressKey');
+        if (busy || !requested) return;
+        setBusy(true);
+        if (runStatus) runStatus.textContent = 'Calculando evolución de la lección…';
+        try {
+            const data = await post('seo_dependiente_entrenador_export_progress', { lesson_key: requested });
+            const blob = new Blob([JSON.stringify(data.document || {}, null, 2)], { type: 'application/json;charset=utf-8' });
+            downloadBlob(blob, data.filename || ('dependiente-academia-progreso-' + requested + '.json'));
+            if (runStatus) runStatus.textContent = 'Informe de progreso descargado.';
+        } catch (error) {
+            if (runStatus) runStatus.textContent = 'No se pudo descargar el progreso: ' + error.message;
+            else window.alert('No se pudo descargar el progreso: ' + error.message);
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    function filenameFromDisposition(value, fallback) {
+        const match = String(value || '').match(/filename\*?=(?:UTF-8''|\")?([^\";]+)/i);
+        return match && match[1] ? decodeURIComponent(match[1].trim()) : fallback;
+    }
+
+    async function exportCourse() {
+        if (busy || !exportCourseButton) return;
+        setBusy(true);
+        if (runStatus) runStatus.textContent = 'Preparando informe completo de Academia…';
+        try {
+            const body = new URLSearchParams({
+                action: 'seo_dependiente_entrenador_export_course',
+                nonce: config.nonce || ''
+            });
+            const response = await fetch(config.ajaxUrl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                body: body.toString()
+            });
+            if (!response.ok) {
+                const raw = await response.text();
+                let message = 'HTTP ' + response.status + ': no se pudo exportar el curso.';
+                try {
+                    const payload = JSON.parse(raw);
+                    if (payload && payload.data && payload.data.message) message = payload.data.message;
+                } catch (ignore) {}
+                throw new Error(message);
+            }
+            const blob = await response.blob();
+            const filename = filenameFromDisposition(
+                response.headers.get('Content-Disposition'),
+                'dependiente-academia-curso-completo.json'
+            );
+            downloadBlob(blob, filename);
+            if (runStatus) runStatus.textContent = 'Informe completo de Academia descargado.';
+        } catch (error) {
+            if (runStatus) runStatus.textContent = 'No se pudo descargar el curso completo: ' + error.message;
+            window.alert('No se pudo descargar el curso completo: ' + error.message);
         } finally {
             setBusy(false);
         }
@@ -608,7 +723,9 @@
 
     prepareButton && prepareButton.addEventListener('click', prepareLesson);
     runModuleButton && runModuleButton.addEventListener('click', runModule);
-    exportButton && exportButton.addEventListener('click', exportLesson);
+    exportLessonButtons.forEach(function (button) { button.addEventListener('click', exportLesson); });
+    exportProgressButtons.forEach(function (button) { button.addEventListener('click', exportProgress); });
+    exportCourseButton && exportCourseButton.addEventListener('click', exportCourse);
     autoButton && autoButton.addEventListener('click', function () { setTrainingMode('auto'); });
     manualButton && manualButton.addEventListener('click', function () { setTrainingMode('manual'); });
     labImportButton && labImportButton.addEventListener('click', importLabBatch);

@@ -125,11 +125,17 @@ final class SEO_Dependiente_Index {
 
         $pages = max(1, absint($query->max_num_pages));
         return array(
-            'processed' => $processed,
-            'total'     => absint($query->found_posts),
-            'pages'     => $pages,
-            'page'      => $page,
-            'done'      => $page >= $pages,
+            'processed'      => $processed,
+            // El barrido pagina todos los productos publicados. La verificacion,
+            // en cambio, compara solo el universo realmente indexable: los
+            // productos con visibilidad WooCommerce "hidden" se excluyen de
+            // Dependiente de forma deliberada en index_product().
+            'scan_total'     => absint($query->found_posts),
+            'indexable_total'=> self::count_indexable(),
+            'total'          => self::count_indexable(),
+            'pages'          => $pages,
+            'page'           => $page,
+            'done'           => $page >= $pages,
         );
     }
 
@@ -280,12 +286,146 @@ final class SEO_Dependiente_Index {
         ));
     }
 
-    public static function status() {
+    /**
+     * SQL comun para el universo que Dependiente puede indexar.
+     *
+     * WooCommerce representa la visibilidad "hidden" mediante la presencia
+     * simultanea de los terminos exclude-from-catalog y exclude-from-search de
+     * la taxonomia product_visibility. No debemos confundirlo con "catalog"
+     * o "search", que solo tienen una de las dos exclusiones y siguen siendo
+     * indexables por Dependiente.
+     */
+    private static function indexable_where_sql($post_alias = 'p') {
+        global $wpdb;
+        $post_alias = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $post_alias);
+        if ('' === $post_alias) {
+            $post_alias = 'p';
+        }
+
+        $catalog_excluded = "EXISTS (
+            SELECT 1
+              FROM {$wpdb->term_relationships} tr_catalog
+              INNER JOIN {$wpdb->term_taxonomy} tt_catalog ON tt_catalog.term_taxonomy_id = tr_catalog.term_taxonomy_id
+              INNER JOIN {$wpdb->terms} t_catalog ON t_catalog.term_id = tt_catalog.term_id
+             WHERE tr_catalog.object_id = {$post_alias}.ID
+               AND tt_catalog.taxonomy = 'product_visibility'
+               AND t_catalog.slug = 'exclude-from-catalog'
+        )";
+        $search_excluded = "EXISTS (
+            SELECT 1
+              FROM {$wpdb->term_relationships} tr_search
+              INNER JOIN {$wpdb->term_taxonomy} tt_search ON tt_search.term_taxonomy_id = tr_search.term_taxonomy_id
+              INNER JOIN {$wpdb->terms} t_search ON t_search.term_id = tt_search.term_id
+             WHERE tr_search.object_id = {$post_alias}.ID
+               AND tt_search.taxonomy = 'product_visibility'
+               AND t_search.slug = 'exclude-from-search'
+        )";
+
+        return "{$post_alias}.post_type = 'product'
+            AND {$post_alias}.post_status = 'publish'
+            AND NOT (({$catalog_excluded}) AND ({$search_excluded}))";
+    }
+
+    public static function count_indexable() {
+        global $wpdb;
+        $where = self::indexable_where_sql('p');
+        return absint($wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} p WHERE {$where}"));
+    }
+
+    public static function count_hidden_published() {
+        return max(0, self::count_published() - self::count_indexable());
+    }
+
+    /**
+     * Verificacion fuerte del indice: compara IDs, no solo contadores.
+     */
+    public static function verification_report($sample_limit = 20) {
+        global $wpdb;
+
+        $sample_limit = min(100, max(1, absint($sample_limit)));
+        $index_table = self::table();
+        $expected = self::count_indexable();
+        $published = self::count_published();
+        $indexed = self::count_indexed();
+
+        if (!self::table_exists()) {
+            return array(
+                'verified'        => 0 === $expected,
+                'published'       => $published,
+                'indexable'       => $expected,
+                'excluded_hidden' => max(0, $published - $expected),
+                'indexed'         => 0,
+                'missing'         => $expected,
+                'extra'           => 0,
+                'missing_ids'     => array(),
+                'extra_ids'       => array(),
+            );
+        }
+
+        $where = self::indexable_where_sql('p');
+        $missing = absint($wpdb->get_var(
+            "SELECT COUNT(*)
+               FROM {$wpdb->posts} p
+              WHERE {$where}
+                AND NOT EXISTS (
+                    SELECT 1 FROM `{$index_table}` i WHERE i.product_id = p.ID
+                )"
+        ));
+        $extra = absint($wpdb->get_var(
+            "SELECT COUNT(*)
+               FROM `{$index_table}` i
+              WHERE NOT EXISTS (
+                    SELECT 1 FROM {$wpdb->posts} p
+                     WHERE p.ID = i.product_id
+                       AND {$where}
+              )"
+        ));
+
+        $missing_ids = array_map('absint', (array) $wpdb->get_col(
+            "SELECT p.ID
+               FROM {$wpdb->posts} p
+              WHERE {$where}
+                AND NOT EXISTS (
+                    SELECT 1 FROM `{$index_table}` i WHERE i.product_id = p.ID
+                )
+              ORDER BY p.ID ASC
+              LIMIT {$sample_limit}"
+        ));
+        $extra_ids = array_map('absint', (array) $wpdb->get_col(
+            "SELECT i.product_id
+               FROM `{$index_table}` i
+              WHERE NOT EXISTS (
+                    SELECT 1 FROM {$wpdb->posts} p
+                     WHERE p.ID = i.product_id
+                       AND {$where}
+              )
+              ORDER BY i.product_id ASC
+              LIMIT {$sample_limit}"
+        ));
+
         return array(
-            'indexed'   => self::count_indexed(),
-            'published' => self::count_published(),
-            'last_full' => (string) get_option('seo_dependiente_last_full_index', ''),
-            'page_id'   => absint(get_option('seo_dependiente_page_id', 0)),
+            'verified'        => 0 === $missing && 0 === $extra && $indexed === $expected,
+            'published'       => $published,
+            'indexable'       => $expected,
+            'excluded_hidden' => max(0, $published - $expected),
+            'indexed'         => $indexed,
+            'missing'         => $missing,
+            'extra'           => $extra,
+            'missing_ids'     => array_values(array_filter($missing_ids)),
+            'extra_ids'       => array_values(array_filter($extra_ids)),
+        );
+    }
+
+    public static function status() {
+        $published = self::count_published();
+        $indexable = self::count_indexable();
+        return array(
+            'indexed'         => self::count_indexed(),
+            'published'       => $published,
+            'indexable'       => $indexable,
+            'excluded_hidden' => max(0, $published - $indexable),
+            'last_full'       => (string) get_option('seo_dependiente_last_full_index', ''),
+            'page_id'         => absint(get_option('seo_dependiente_page_id', 0)),
         );
     }
 

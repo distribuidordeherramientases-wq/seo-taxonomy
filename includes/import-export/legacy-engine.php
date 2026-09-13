@@ -12143,6 +12143,8 @@ function seo_import_export_page() {
                 <div class="card" style="max-width:none;padding:20px;"><h2>Exportar FAQs</h2><p>Exporta preguntas, respuestas, ámbito, orden, estado y métricas.</p><form method="post"><?php wp_nonce_field( 'seo_export_faqs_csv', 'seo_export_faqs_nonce' ); ?><button type="submit" name="seo_export_faqs" value="1" class="button button-primary">Exportar FAQs</button></form></div>
                 <div class="card" style="max-width:none;padding:20px;"><h2>Importar FAQs</h2><p>Actualiza por faq_id o crea una FAQ nueva cuando el ID no exista.</p><form method="post" enctype="multipart/form-data"><?php wp_nonce_field( 'seo_import_faqs_csv', 'seo_import_faqs_nonce' ); ?><input type="file" name="faqs_csv" accept=".csv,text/csv" required><p><button type="submit" name="seo_import_faqs" value="1" class="button button-primary">Importar FAQs</button></p></form></div>
 
+                <?php if ( function_exists( 'seo_comentarista_render_import_export_cards' ) ) { seo_comentarista_render_import_export_cards(); } ?>
+
                 <div class="card" style="max-width:none;padding:20px;">
                     <h2>Exportar redirects</h2>
                     <p>Exporta la tabla <code>wp_seo_redirects</code>, incluidas las métricas <code>hits</code> y <code>last_hit</code>.</p>

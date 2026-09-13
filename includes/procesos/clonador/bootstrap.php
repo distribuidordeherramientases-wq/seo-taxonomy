@@ -1,13 +1,11 @@
 <?php
 /**
- * Integracion del Clonador para Academia con el Gestor de procesos nativo.
+ * Compatibilidad temporal con instalaciones que todavia cargan bootstrap.php.
  *
- * @package SEOSystem
- * @subpackage Processes_Clonador
- * @since 2.5.6
+ * El bootstrap real del proceso Clonador es clonador-bootstrap.php.
+ *
+ * @deprecated 2.5.10
  */
 
-defined('ABSPATH') || exit;
-
-require_once __DIR__ . '/process.php';
-SEO_Clonador_Process::init();
+defined( 'ABSPATH' ) || exit;
+require_once __DIR__ . '/clonador-bootstrap.php';

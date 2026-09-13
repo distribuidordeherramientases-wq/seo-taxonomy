@@ -9,6 +9,7 @@ final class SEO_Dependiente_Admin {
         add_action('admin_post_seo_dependiente_export_diagnostic', array(__CLASS__, 'export_diagnostic_json'));
         add_action('admin_post_seo_dependiente_learning_review', array(__CLASS__, 'review_learning_candidate'));
         add_action('wp_ajax_seo_dependiente_reindex', array(__CLASS__, 'ajax_reindex'));
+        add_action('wp_ajax_seo_dependiente_reindex_status', array(__CLASS__, 'ajax_reindex_status'));
         add_action('wp_ajax_seo_dependiente_clear', array(__CLASS__, 'ajax_clear'));
         add_action('wp_ajax_seo_dependiente_reset_knowledge', array(__CLASS__, 'ajax_reset_knowledge'));
     }
@@ -45,7 +46,7 @@ final class SEO_Dependiente_Admin {
         }
 
         $tab = sanitize_key((string) ($_GET['tab'] ?? 'settings'));
-        if (!in_array($tab, array('settings', 'diagnostic', 'learning', 'trainer', 'knowledge'), true)) {
+        if (!in_array($tab, array('settings', 'diagnostic', 'learning', 'trainer', 'knowledge', 'auditor'), true)) {
             $tab = 'settings';
         }
         ?>
@@ -59,6 +60,7 @@ final class SEO_Dependiente_Admin {
                 <?php self::render_tab_link('learning', 'Aprendizaje', $tab); ?>
                 <?php self::render_tab_link('trainer', 'Academia', $tab); ?>
                 <?php self::render_tab_link('knowledge', 'Conocimiento', $tab); ?>
+                <?php self::render_tab_link('auditor', 'Auditor', $tab); ?>
             </nav>
 
             <?php
@@ -78,6 +80,12 @@ final class SEO_Dependiente_Admin {
                 } else {
                     echo '<div class="notice notice-error"><p>No está disponible el módulo de portabilidad del conocimiento.</p></div>';
                 }
+            } elseif ('auditor' === $tab) {
+                if (class_exists('SEO_Auditor')) {
+                    SEO_Auditor::render_tab();
+                } else {
+                    echo '<div class="notice notice-error"><p>No está disponible el módulo Auditor.</p></div>';
+                }
             } else {
                 self::render_settings_tab();
             }
@@ -91,7 +99,9 @@ final class SEO_Dependiente_Admin {
         $options = get_option('seo_dependiente_options', array());
         $page_id = absint($status['page_id']);
         $page_url = $page_id ? get_permalink($page_id) : '';
-        $indexed_percentage = $status['published'] ? min(100, round(($status['indexed'] / $status['published']) * 100)) : 0;
+        $indexable_total = absint($status['indexable'] ?? $status['published'] ?? 0);
+        $excluded_hidden = absint($status['excluded_hidden'] ?? 0);
+        $indexed_percentage = $indexable_total ? min(100, round(($status['indexed'] / $indexable_total) * 100)) : 0;
         global $wpdb;
         $integrations = array(
             'WooCommerce'                       => class_exists('WooCommerce'),
@@ -112,7 +122,10 @@ final class SEO_Dependiente_Admin {
             <div>
                 <div class="postbox seo-dependiente-admin__box">
                     <h2 class="seo-dependiente-admin__box-title">Estado del catálogo</h2>
-                    <p><strong data-dependiente-indexed><?php echo esc_html(number_format_i18n($status['indexed'])); ?></strong> de <strong data-dependiente-total><?php echo esc_html(number_format_i18n($status['published'])); ?></strong> productos publicados están indexados.</p>
+                    <p><strong data-dependiente-indexed><?php echo esc_html(number_format_i18n($status['indexed'])); ?></strong> de <strong data-dependiente-total><?php echo esc_html(number_format_i18n($indexable_total)); ?></strong> productos indexables están indexados.</p>
+                    <?php if ($excluded_hidden > 0) : ?>
+                        <p class="description"><strong><?php echo esc_html(number_format_i18n($excluded_hidden)); ?></strong> producto(s) publicado(s) con visibilidad WooCommerce "Oculto" se excluyen correctamente del índice.</p>
+                    <?php endif; ?>
                     <div class="seo-dependiente-admin__progress">
                         <div class="seo-dependiente-admin__progress-bar" data-dependiente-progress-bar data-initial-percent="<?php echo esc_attr($indexed_percentage); ?>"></div>
                     </div>
@@ -121,7 +134,7 @@ final class SEO_Dependiente_Admin {
                         <button type="button" class="button button-primary" data-dependiente-reindex>Reindexar catálogo completo</button>
                         <button type="button" class="button" data-dependiente-clear>Vaciar índice</button>
                     </p>
-                    <p class="description">El índice se actualiza también al guardar cada producto. La reindexación completa recoge cambios masivos en términos, vocabulario o atributos.</p>
+                    <p class="description">El índice se actualiza también al guardar cada producto. La reindexación completa se ejecuta por lotes en segundo plano: puedes cerrar esta pantalla y el Gestor de procesos continuará una reindexación que hayas iniciado manualmente.</p>
                 </div>
 
                 <form class="postbox seo-dependiente-admin__box" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
@@ -300,6 +313,17 @@ final class SEO_Dependiente_Admin {
         }
 
         $learning = SEO_Dependiente_Insights::learning_rules();
+
+        // v0.2.11: observatorio de Academia dentro de Aprendizaje.
+        // Es solo lectura y no modifica conocimiento, preguntas ni fuentes.
+        if (class_exists('SEO_Dependiente_Training_Quality')) {
+            SEO_Dependiente_Training_Quality::render();
+            $quality_view = sanitize_key((string) ($_GET['learning_view'] ?? 'summary'));
+            if (in_array($quality_view, array('evolution', 'quality', 'failures'), true)) {
+                return;
+            }
+        }
+
         if (isset($_GET['reviewed'])) {
             $message = 'approved' === $_GET['reviewed'] ? 'Candidato aprobado y activado.' : ('rejected' === $_GET['reviewed'] ? 'Candidato rechazado.' : 'Revisión guardada.');
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html($message) . '</p></div>';
@@ -315,7 +339,7 @@ final class SEO_Dependiente_Admin {
         </div>
 
         <section class="postbox seo-dependiente-admin__box seo-dependiente-admin__wide-box">
-            <h2 class="seo-dependiente-admin__box-title">Candidatos pendientes</h2>
+            <h2 class="seo-dependiente-admin__box-title">Aprendizaje observacional · Candidatos pendientes</h2>
             <p class="description">Aprobar activa la regla. Rechazar conserva la evidencia para auditoría, pero la regla permanece inactiva.</p>
             <?php self::render_learning_cards($learning['candidates'] ?? array(), true); ?>
         </section>
@@ -413,19 +437,19 @@ final class SEO_Dependiente_Admin {
         }
         check_ajax_referer('seo_dependiente_admin', 'nonce');
 
-        $page = max(1, absint($_POST['page'] ?? 1));
-        $reset = !empty($_POST['reset']);
-        if ($reset) {
-            SEO_Dependiente_Index::clear();
-            $page = 1;
+        $result = SEO_Dependiente_Plugin::start_reindex();
+        if (is_wp_error($result)) {
+            wp_send_json_error(array('message' => $result->get_error_message()), 500);
         }
-        $result = SEO_Dependiente_Index::index_batch($page, 50);
-        if (!empty($result['done'])) {
-            update_option('seo_dependiente_last_full_index', current_time('mysql'), false);
-            delete_option('seo_dependiente_background_page');
-        }
-        $result['indexed'] = SEO_Dependiente_Index::count_indexed();
         wp_send_json_success($result);
+    }
+
+    public static function ajax_reindex_status() {
+        if (!current_user_can(self::capability())) {
+            wp_send_json_error(array('message' => 'Permisos insuficientes.'), 403);
+        }
+        check_ajax_referer('seo_dependiente_admin', 'nonce');
+        wp_send_json_success(SEO_Dependiente_Plugin::reindex_state());
     }
 
     public static function ajax_clear() {
@@ -433,8 +457,15 @@ final class SEO_Dependiente_Admin {
             wp_send_json_error(array('message' => 'Permisos insuficientes.'), 403);
         }
         check_ajax_referer('seo_dependiente_admin', 'nonce');
-        SEO_Dependiente_Index::clear();
-        wp_send_json_success(array('indexed' => 0));
+        $result = SEO_Dependiente_Plugin::stop_reindex(true, 'manual_clear');
+        if (is_wp_error($result)) {
+            wp_send_json_error(array('message' => $result->get_error_message()), 409);
+        }
+        delete_option('seo_dependiente_last_full_index');
+        wp_send_json_success(array(
+            'indexed' => 0,
+            'status'  => 'stopped',
+        ));
     }
 
     public static function ajax_reset_knowledge() {
@@ -466,7 +497,7 @@ final class SEO_Dependiente_Admin {
         ?>
         <section class="postbox seo-dependiente-admin__box seo-dependiente-admin__danger-zone" data-dependiente-reset-root>
             <h2 class="seo-dependiente-admin__box-title">Zona peligrosa · Reiniciar conocimiento</h2>
-            <p><strong>Devuelve Dependiente a un estado limpio de entrenamiento.</strong> Está pensado para staging y para repetir ciclos de aprendizaje desde cero.</p>
+            <p><strong>Devuelve Dependiente a un estado limpio de entrenamiento.</strong> Se puede ejecutar en PRO para comenzar una Academia nueva desde cero sin borrar el catálogo.</p>
             <div class="seo-dependiente-admin__reset-grid">
                 <div><strong data-reset-zero><?php echo esc_html(number_format_i18n(absint($counts['semantic_reset'] ?? 0))); ?></strong><span>reglas no seed que se borrarán</span></div>
                 <div><strong data-reset-zero><?php echo esc_html(number_format_i18n(absint($counts['search_log'] ?? 0))); ?></strong><span>búsquedas/evidencias que se borrarán</span></div>
@@ -481,10 +512,10 @@ final class SEO_Dependiente_Admin {
 
             <div class="seo-dependiente-admin__reset-confirm" data-dependiente-reset-confirm hidden>
                 <h3>Confirmación necesaria</h3>
-                <p>Esta acción eliminará el aprendizaje, el historial usado como evidencia, las lecciones, ejercicios y ejecuciones de la Academia y el índice de productos de Dependiente. No se puede deshacer desde esta pantalla.</p>
+                <p>Esta acción eliminará el aprendizaje, el historial usado como evidencia, las lecciones, ejercicios y ejecuciones de Academia y el índice derivado de Dependiente. Después verifica que todo haya quedado a cero. No borra productos, categorías, Vocabulary ni atributos SEO.</p>
                 <p><strong>Las reglas base <code>seed</code> se mantienen como baseline limpio.</strong></p>
                 <div class="seo-dependiente-admin__reset-actions">
-                    <button type="button" class="button seo-dependiente-admin__danger-button is-confirm" data-dependiente-reset-confirm-button>Sí, borrar todo el conocimiento de pruebas</button>
+                    <button type="button" class="button seo-dependiente-admin__danger-button is-confirm" data-dependiente-reset-confirm-button>Sí, borrar el conocimiento y empezar desde cero</button>
                     <button type="button" class="button" data-dependiente-reset-cancel>Cancelar</button>
                 </div>
             </div>

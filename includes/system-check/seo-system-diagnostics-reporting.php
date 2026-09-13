@@ -882,6 +882,13 @@ function seo_system_diagnostics_maybe_render_export_panel() {
         return;
     }
 
+    // Informes SEO ya tiene sus propias vistas y controles. El resumen global
+    // pertenece a los chequeos de sistema y no debe duplicarse sobre este informe.
+    $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+    if ($page === 'seo-reports') {
+        return;
+    }
+
     if (seo_system_diagnostics_is_core_validation_screen()) {
         return;
     }

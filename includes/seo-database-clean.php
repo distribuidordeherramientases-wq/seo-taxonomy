@@ -426,6 +426,12 @@ function seo_clean_db_handle_post_actions() {
         case 'clean_orphan_termmeta':
         case 'clean_orphan_term_relationships':
         case 'clean_wc_sessions':
+        case 'clean_orphan_usermeta':
+        case 'clean_as_orphan_logs':
+        case 'clean_as_old_completed_logs':
+        case 'clean_as_orphan_claims':
+        case 'clean_wc_expired_reserved_stock':
+        case 'clean_wc_orphan_order_itemmeta':
             return seo_clean_db_handle_database_cleanup_action($action);
     }
 
@@ -1950,6 +1956,12 @@ function seo_clean_db_get_cleanup_stats() {
     $stats['orphan_termmeta'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->termmeta} tm LEFT JOIN {$wpdb->terms} t ON t.term_id = tm.term_id WHERE t.term_id IS NULL");
     $stats['orphan_term_relationships'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->term_relationships} tr LEFT JOIN {$wpdb->posts} p ON p.ID = tr.object_id WHERE p.ID IS NULL");
     $stats['wc_sessions'] = seo_clean_db_count_wc_expired_sessions();
+    $stats['orphan_usermeta'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->usermeta} um LEFT JOIN {$wpdb->users} u ON u.ID = um.user_id WHERE u.ID IS NULL");
+    $stats['as_orphan_logs'] = seo_clean_db_count_as_orphan_logs();
+    $stats['as_old_completed_logs'] = seo_clean_db_count_as_old_completed_logs();
+    $stats['as_orphan_claims'] = seo_clean_db_count_as_orphan_claims();
+    $stats['wc_expired_reserved_stock'] = seo_clean_db_count_wc_expired_reserved_stock();
+    $stats['wc_orphan_order_itemmeta'] = seo_clean_db_count_wc_orphan_order_itemmeta();
 
     return $stats;
 }
@@ -1988,6 +2000,111 @@ function seo_clean_db_count_wc_expired_sessions() {
 
     return (int) $wpdb->get_var(
         $wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE session_expiry < %d", time())
+    );
+}
+
+
+/**
+ * Cuenta logs de Action Scheduler cuyo action_id ya no existe.
+ */
+function seo_clean_db_count_as_orphan_logs() {
+    global $wpdb;
+
+    $logs = $wpdb->prefix . 'actionscheduler_logs';
+    $actions = $wpdb->prefix . 'actionscheduler_actions';
+
+    if (!seo_clean_db_table_exists($logs) || !seo_clean_db_table_exists($actions)) {
+        return 0;
+    }
+
+    return (int) $wpdb->get_var(
+        "SELECT COUNT(*)
+         FROM {$logs} l
+         LEFT JOIN {$actions} a ON a.action_id = l.action_id
+         WHERE a.action_id IS NULL"
+    );
+}
+
+/**
+ * Cuenta logs antiguos de acciones ya finalizadas/canceladas.
+ * Conserva 30 días de historial para diagnóstico.
+ */
+function seo_clean_db_count_as_old_completed_logs() {
+    global $wpdb;
+
+    $logs = $wpdb->prefix . 'actionscheduler_logs';
+    $actions = $wpdb->prefix . 'actionscheduler_actions';
+
+    if (!seo_clean_db_table_exists($logs) || !seo_clean_db_table_exists($actions)) {
+        return 0;
+    }
+
+    return (int) $wpdb->get_var(
+        "SELECT COUNT(*)
+         FROM {$logs} l
+         INNER JOIN {$actions} a ON a.action_id = l.action_id
+         WHERE a.status IN ('complete', 'canceled')
+           AND l.log_date_gmt < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY)"
+    );
+}
+
+/**
+ * Cuenta claims de Action Scheduler sin acciones asociadas y con más de 24 h.
+ */
+function seo_clean_db_count_as_orphan_claims() {
+    global $wpdb;
+
+    $claims = $wpdb->prefix . 'actionscheduler_claims';
+    $actions = $wpdb->prefix . 'actionscheduler_actions';
+
+    if (!seo_clean_db_table_exists($claims) || !seo_clean_db_table_exists($actions)) {
+        return 0;
+    }
+
+    return (int) $wpdb->get_var(
+        "SELECT COUNT(*)
+         FROM {$claims} c
+         LEFT JOIN {$actions} a ON a.claim_id = c.claim_id
+         WHERE a.action_id IS NULL
+           AND c.date_created_gmt < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY)"
+    );
+}
+
+/**
+ * Cuenta reservas de stock WooCommerce ya expiradas.
+ */
+function seo_clean_db_count_wc_expired_reserved_stock() {
+    global $wpdb;
+
+    $table = $wpdb->prefix . 'wc_reserved_stock';
+
+    if (!seo_clean_db_table_exists($table)) {
+        return 0;
+    }
+
+    return (int) $wpdb->get_var(
+        "SELECT COUNT(*) FROM {$table} WHERE expires < UTC_TIMESTAMP()"
+    );
+}
+
+/**
+ * Cuenta metadatos de items de pedido cuyo item padre ya no existe.
+ */
+function seo_clean_db_count_wc_orphan_order_itemmeta() {
+    global $wpdb;
+
+    $items = $wpdb->prefix . 'woocommerce_order_items';
+    $meta = $wpdb->prefix . 'woocommerce_order_itemmeta';
+
+    if (!seo_clean_db_table_exists($items) || !seo_clean_db_table_exists($meta)) {
+        return 0;
+    }
+
+    return (int) $wpdb->get_var(
+        "SELECT COUNT(*)
+         FROM {$meta} m
+         LEFT JOIN {$items} i ON i.order_item_id = m.order_item_id
+         WHERE i.order_item_id IS NULL"
     );
 }
 
@@ -2041,6 +2158,30 @@ function seo_clean_db_handle_database_cleanup_action($action) {
         case 'clean_wc_sessions':
             $deleted = seo_clean_db_delete_wc_expired_sessions();
             return seo_clean_db_cleanup_result($deleted, 'Sesiones WooCommerce expiradas eliminadas');
+
+        case 'clean_orphan_usermeta':
+            $deleted = $wpdb->query("DELETE um FROM {$wpdb->usermeta} um LEFT JOIN {$wpdb->users} u ON u.ID = um.user_id WHERE u.ID IS NULL");
+            return seo_clean_db_cleanup_result($deleted, 'Metadatos de usuarios huérfanos eliminados');
+
+        case 'clean_as_orphan_logs':
+            $deleted = seo_clean_db_delete_as_orphan_logs();
+            return seo_clean_db_cleanup_result($deleted, 'Logs huérfanos de Action Scheduler eliminados');
+
+        case 'clean_as_old_completed_logs':
+            $deleted = seo_clean_db_delete_as_old_completed_logs();
+            return seo_clean_db_cleanup_result($deleted, 'Logs antiguos de Action Scheduler eliminados');
+
+        case 'clean_as_orphan_claims':
+            $deleted = seo_clean_db_delete_as_orphan_claims();
+            return seo_clean_db_cleanup_result($deleted, 'Claims huérfanos de Action Scheduler eliminados');
+
+        case 'clean_wc_expired_reserved_stock':
+            $deleted = seo_clean_db_delete_wc_expired_reserved_stock();
+            return seo_clean_db_cleanup_result($deleted, 'Reservas de stock WooCommerce expiradas eliminadas');
+
+        case 'clean_wc_orphan_order_itemmeta':
+            $deleted = seo_clean_db_delete_wc_orphan_order_itemmeta();
+            return seo_clean_db_cleanup_result($deleted, 'Metadatos huérfanos de items de pedido eliminados');
     }
 
     return array('type' => 'warning', 'message' => 'Acción de limpieza no reconocida.');
@@ -2124,6 +2265,109 @@ function seo_clean_db_delete_wc_expired_sessions() {
     return $wpdb->query($wpdb->prepare("DELETE FROM {$table} WHERE session_expiry < %d", time()));
 }
 
+
+/**
+ * Elimina logs de Action Scheduler sin acción asociada.
+ */
+function seo_clean_db_delete_as_orphan_logs() {
+    global $wpdb;
+
+    $logs = $wpdb->prefix . 'actionscheduler_logs';
+    $actions = $wpdb->prefix . 'actionscheduler_actions';
+
+    if (!seo_clean_db_table_exists($logs) || !seo_clean_db_table_exists($actions)) {
+        return 0;
+    }
+
+    return $wpdb->query(
+        "DELETE l
+         FROM {$logs} l
+         LEFT JOIN {$actions} a ON a.action_id = l.action_id
+         WHERE a.action_id IS NULL"
+    );
+}
+
+/**
+ * Elimina únicamente logs de más de 30 días de acciones completas/canceladas.
+ * No elimina acciones pendientes, fallidas ni en ejecución.
+ */
+function seo_clean_db_delete_as_old_completed_logs() {
+    global $wpdb;
+
+    $logs = $wpdb->prefix . 'actionscheduler_logs';
+    $actions = $wpdb->prefix . 'actionscheduler_actions';
+
+    if (!seo_clean_db_table_exists($logs) || !seo_clean_db_table_exists($actions)) {
+        return 0;
+    }
+
+    return $wpdb->query(
+        "DELETE l
+         FROM {$logs} l
+         INNER JOIN {$actions} a ON a.action_id = l.action_id
+         WHERE a.status IN ('complete', 'canceled')
+           AND l.log_date_gmt < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY)"
+    );
+}
+
+/**
+ * Elimina claims de Action Scheduler sin acciones asociadas y antiguos (>24 h).
+ */
+function seo_clean_db_delete_as_orphan_claims() {
+    global $wpdb;
+
+    $claims = $wpdb->prefix . 'actionscheduler_claims';
+    $actions = $wpdb->prefix . 'actionscheduler_actions';
+
+    if (!seo_clean_db_table_exists($claims) || !seo_clean_db_table_exists($actions)) {
+        return 0;
+    }
+
+    return $wpdb->query(
+        "DELETE c
+         FROM {$claims} c
+         LEFT JOIN {$actions} a ON a.claim_id = c.claim_id
+         WHERE a.action_id IS NULL
+           AND c.date_created_gmt < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY)"
+    );
+}
+
+/**
+ * Elimina reservas de stock WooCommerce ya vencidas.
+ */
+function seo_clean_db_delete_wc_expired_reserved_stock() {
+    global $wpdb;
+
+    $table = $wpdb->prefix . 'wc_reserved_stock';
+
+    if (!seo_clean_db_table_exists($table)) {
+        return 0;
+    }
+
+    return $wpdb->query("DELETE FROM {$table} WHERE expires < UTC_TIMESTAMP()");
+}
+
+/**
+ * Elimina metadatos de items de pedido cuyo item padre ya no existe.
+ */
+function seo_clean_db_delete_wc_orphan_order_itemmeta() {
+    global $wpdb;
+
+    $items = $wpdb->prefix . 'woocommerce_order_items';
+    $meta = $wpdb->prefix . 'woocommerce_order_itemmeta';
+
+    if (!seo_clean_db_table_exists($items) || !seo_clean_db_table_exists($meta)) {
+        return 0;
+    }
+
+    return $wpdb->query(
+        "DELETE m
+         FROM {$meta} m
+         LEFT JOIN {$items} i ON i.order_item_id = m.order_item_id
+         WHERE i.order_item_id IS NULL"
+    );
+}
+
 /**
  * Renderiza la pestaña de limpieza BBDD.
  */
@@ -2157,6 +2401,12 @@ function seo_clean_db_render_database_cleanup_tab() {
     seo_clean_db_cleanup_row('Termmeta huérfano', $stats['orphan_termmeta'], 'Bajo', 'clean_orphan_termmeta', 'Eliminar termmeta huérfano', 'Se eliminarán metadatos sin término asociado. ¿Continuar?');
     seo_clean_db_cleanup_row('Relaciones de términos huérfanas', $stats['orphan_term_relationships'], 'Medio', 'clean_orphan_term_relationships', 'Eliminar relaciones huérfanas', 'Se eliminarán relaciones de términos sin objeto asociado. Recomendado backup previo. ¿Continuar?');
     seo_clean_db_cleanup_row('Sesiones WooCommerce expiradas', $stats['wc_sessions'], 'Bajo', 'clean_wc_sessions', 'Eliminar sesiones expiradas', 'Se eliminarán sesiones WooCommerce expiradas. ¿Continuar?');
+    seo_clean_db_cleanup_row('Usermeta huérfano', $stats['orphan_usermeta'], 'Bajo', 'clean_orphan_usermeta', 'Eliminar usermeta huérfano', 'Se eliminarán metadatos asociados a usuarios que ya no existen. ¿Continuar?');
+    seo_clean_db_cleanup_row('Action Scheduler: logs huérfanos', $stats['as_orphan_logs'], 'Bajo', 'clean_as_orphan_logs', 'Eliminar logs huérfanos', 'Se eliminarán únicamente logs cuyo action_id ya no existe. ¿Continuar?');
+    seo_clean_db_cleanup_row('Action Scheduler: logs antiguos completados/cancelados (>30 días)', $stats['as_old_completed_logs'], 'Bajo', 'clean_as_old_completed_logs', 'Purgar logs antiguos', 'Se eliminará solo historial de más de 30 días perteneciente a acciones ya completas o canceladas. No se tocarán acciones pendientes, fallidas ni en ejecución. ¿Continuar?');
+    seo_clean_db_cleanup_row('Action Scheduler: claims huérfanos (>24 h)', $stats['as_orphan_claims'], 'Bajo', 'clean_as_orphan_claims', 'Eliminar claims huérfanos', 'Se eliminarán únicamente claims sin ninguna acción asociada y con más de 24 horas. ¿Continuar?');
+    seo_clean_db_cleanup_row('WooCommerce: reservas de stock expiradas', $stats['wc_expired_reserved_stock'], 'Bajo', 'clean_wc_expired_reserved_stock', 'Eliminar reservas expiradas', 'Se eliminarán únicamente reservas de stock cuya fecha de expiración ya ha pasado. ¿Continuar?');
+    seo_clean_db_cleanup_row('WooCommerce: order item meta huérfano', $stats['wc_orphan_order_itemmeta'], 'Bajo', 'clean_wc_orphan_order_itemmeta', 'Eliminar meta huérfano', 'Se eliminarán metadatos de líneas de pedido cuyo item padre ya no existe. No se eliminan pedidos ni líneas de pedido. ¿Continuar?');
 
     echo '</tbody></table>';
     echo '</div>';
@@ -2178,6 +2428,12 @@ function seo_clean_db_cleanup_label($key) {
         'orphan_termmeta' => 'Termmeta huérfano',
         'orphan_term_relationships' => 'Relaciones términos huérfanas',
         'wc_sessions' => 'Sesiones WC expiradas',
+        'orphan_usermeta' => 'Usermeta huérfano',
+        'as_orphan_logs' => 'AS logs huérfanos',
+        'as_old_completed_logs' => 'AS logs antiguos >30 días',
+        'as_orphan_claims' => 'AS claims huérfanos >24 h',
+        'wc_expired_reserved_stock' => 'Reservas stock WC expiradas',
+        'wc_orphan_order_itemmeta' => 'Order item meta huérfano',
     );
 
     return isset($labels[$key]) ? $labels[$key] : $key;

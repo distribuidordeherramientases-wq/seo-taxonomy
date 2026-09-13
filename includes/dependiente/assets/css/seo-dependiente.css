@@ -2816,3 +2816,161 @@ button.seo-dependiente__chip::after {
         grid-template-columns: 1fr;
     }
 }
+
+/* =========================================================
+   Dependiente v0.2.11 · Aprendizaje / Calidad de formacion
+   ========================================================= */
+.seo-dependiente-training-quality {
+    margin: 18px 0 28px;
+}
+
+.seo-dependiente-training-quality__intro {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    align-items: flex-start;
+    padding: 18px 20px;
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 6px;
+}
+
+.seo-dependiente-training-quality__intro h2 {
+    margin: 0 0 6px;
+}
+
+.seo-dependiente-training-quality__legend,
+.seo-dependiente-training-quality__subnav,
+.seo-dependiente-training-quality__filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.seo-dependiente-training-quality__legend span,
+.seo-dependiente-training-quality__pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.seo-dependiente-training-quality__legend .is-ok,
+.seo-dependiente-training-quality__pill.is-ok { background: #edfaef; color: #17633a; }
+.seo-dependiente-training-quality__legend .is-debt,
+.seo-dependiente-training-quality__pill.is-debt { background: #fff8e5; color: #8a5a00; }
+.seo-dependiente-training-quality__legend .is-review,
+.seo-dependiente-training-quality__pill.is-review { background: #fcf0f1; color: #9f2d2d; }
+.seo-dependiente-training-quality__legend .is-engine,
+.seo-dependiente-training-quality__pill.is-engine { background: #e8f4fd; color: #005a9c; }
+.seo-dependiente-training-quality__pill.is-empty { background: #f0f0f1; color: #646970; }
+
+.seo-dependiente-training-quality__subnav {
+    margin: 14px 0 10px;
+}
+
+.seo-dependiente-training-quality__filter {
+    margin: 0 0 16px;
+    padding: 10px 12px;
+    background: #f6f7f7;
+    border: 1px solid #dcdcde;
+}
+
+.seo-dependiente-training-quality__filter select {
+    min-width: 270px;
+    margin-left: 6px;
+}
+
+.seo-dependiente-training-quality__metrics {
+    margin: 16px 0;
+    grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+}
+
+.seo-dependiente-training-quality__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.seo-dependiente-training-quality__grid > .postbox {
+    max-width: none;
+}
+
+.seo-dependiente-training-quality__failures {
+    display: grid;
+    gap: 10px;
+}
+
+.seo-dependiente-training-quality__failure {
+    border: 1px solid #dcdcde;
+    border-radius: 5px;
+    background: #fff;
+}
+
+.seo-dependiente-training-quality__failure > summary {
+    cursor: pointer;
+    padding: 12px 14px;
+    background: #f6f7f7;
+}
+
+.seo-dependiente-training-quality__failure-status {
+    display: inline-block;
+    margin-right: 8px;
+    color: #9f2d2d;
+}
+
+.seo-dependiente-training-quality__failure-body {
+    display: grid;
+    grid-template-columns: minmax(220px, .9fr) minmax(220px, .9fr) minmax(320px, 1.4fr);
+    gap: 18px;
+    padding: 15px;
+}
+
+.seo-dependiente-training-quality__failure-body h4 {
+    margin-top: 0;
+}
+
+.seo-dependiente-training-quality__failure pre {
+    max-height: 360px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    padding: 10px;
+    background: #f6f7f7;
+    border: 1px solid #dcdcde;
+}
+
+.seo-dependiente-training-quality__source {
+    border-left: 3px solid #dba617;
+    padding-left: 14px;
+}
+
+@media (max-width: 1100px) {
+    .seo-dependiente-training-quality__grid,
+    .seo-dependiente-training-quality__failure-body {
+        grid-template-columns: 1fr;
+    }
+    .seo-dependiente-training-quality__source {
+        border-left: 0;
+        border-top: 3px solid #dba617;
+        padding: 14px 0 0;
+    }
+}
+
+@media (max-width: 782px) {
+    .seo-dependiente-training-quality__intro {
+        display: block;
+    }
+    .seo-dependiente-training-quality__legend {
+        margin-top: 12px;
+    }
+    .seo-dependiente-training-quality__filter select {
+        width: 100%;
+        min-width: 0;
+        margin: 6px 0 0;
+    }
+}

@@ -16,6 +16,7 @@ final class SEO_Dependiente_Semantics {
     const SEED_VERSION = '2026-08-31.1';
 
     private static $rules = null;
+    private static $academy_rules = null;
     private static $vocabulary_cache = array();
 
     public static function table() {
@@ -76,6 +77,7 @@ final class SEO_Dependiente_Semantics {
         self::seed_defaults();
         self::resolve_vocabulary_ids();
         self::$rules = null;
+        self::$academy_rules = null;
     }
 
     public static function table_exists() {
@@ -106,6 +108,7 @@ final class SEO_Dependiente_Semantics {
             self::seed_defaults();
             self::resolve_vocabulary_ids();
             self::$rules = null;
+        self::$academy_rules = null;
         }
 
         return (int) $wpdb->get_var(
@@ -131,6 +134,7 @@ final class SEO_Dependiente_Semantics {
 
         update_option('seo_dependiente_semantic_seed_version', self::SEED_VERSION, false);
         self::$rules = null;
+        self::$academy_rules = null;
         return $inserted;
     }
 
@@ -299,6 +303,7 @@ final class SEO_Dependiente_Semantics {
             }
         }
         self::$rules = null;
+        self::$academy_rules = null;
     }
 
     public static function analyze($query) {
@@ -659,8 +664,36 @@ final class SEO_Dependiente_Semantics {
         );
     }
 
+    /**
+     * Vacía únicamente las cachés de reglas de la petición actual.
+     *
+     * Academia usa este método al preparar/promocionar reglas para que el aula
+     * vea inmediatamente el estado vigente sin afectar al resto de peticiones.
+     */
+    public static function flush_runtime_cache() {
+        self::$rules = null;
+        self::$academy_rules = null;
+    }
+
     private static function rules() {
         global $wpdb;
+
+        $include_academy_stage = (bool) apply_filters('seo_dependiente_include_academy_stage', false);
+        if ($include_academy_stage) {
+            if (null !== self::$academy_rules) {
+                return self::$academy_rules;
+            }
+            self::$academy_rules = array();
+            if (!self::table_exists()) {
+                return self::$academy_rules;
+            }
+            self::$academy_rules = (array) $wpdb->get_results(
+                'SELECT * FROM `' . esc_sql(self::table()) . "` WHERE language = 'es' AND (active = 1 OR source = 'academy_stage') ORDER BY priority DESC, id ASC",
+                ARRAY_A
+            );
+            return self::$academy_rules;
+        }
+
         if (null !== self::$rules) {
             return self::$rules;
         }
@@ -799,14 +832,28 @@ final class SEO_Dependiente_Semantics {
             self::$vocabulary_cache[$cache_key] = 0;
             return 0;
         }
+        // Vocabulary usa slugs canonicos que pueden conservar guiones bajos
+        // (p. ej. "cajas_de_herramientas_de_taller"), mientras que las rutas
+        // semanticas trabajan con texto normalizado con espacios. Se prueban ambas
+        // representaciones para que una ruta reconocida llegue al ID canonico y,
+        // desde ahi, a seo_object_vocabulary sin depender de coincidencias de texto.
+        $dash_slug = sanitize_title($slug);
+        $underscore_slug = str_replace('-', '_', $dash_slug);
         $id = absint($wpdb->get_var(
             $wpdb->prepare(
                 "SELECT id FROM {$table}
                  WHERE semantic_group = %s AND active = 1
-                   AND (slug = %s OR LOWER(label) = %s)
+                   AND (
+                        slug = %s
+                     OR slug = %s
+                     OR REPLACE(REPLACE(LOWER(slug), '_', ' '), '-', ' ') = %s
+                     OR LOWER(label) = %s
+                   )
                  ORDER BY id ASC LIMIT 1",
                 $group,
-                sanitize_title($slug),
+                $dash_slug,
+                $underscore_slug,
+                $slug,
                 $slug
             )
         ));
