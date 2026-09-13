@@ -23,6 +23,7 @@ final class SEO_Clonador_Engine {
     const LOCK_NAME = 'seo_clonador_staging';
     const WORKER_JOB_OPTION = 'seo_clonador_worker_job';
     const WORKER_MAP_PREFIX = 'seo_clonador_worker_map_';
+    const HANDOFF_OPTION = 'seo_clonador_handoff';
 
     private static $post_types = array('product', 'product_variation', 'page', 'post');
     private static $taxonomies = array('product_cat', 'product_tag', 'post_tag');
@@ -1768,6 +1769,63 @@ final class SEO_Clonador_Engine {
     }
 
     /**
+     * Registra el traspaso seguro entre Clonador -> reindexado -> Auditor.
+     *
+     * No arranca ningun proceso. Solo deja evidencia de que la copia fue
+     * verificada y de que el indice derivado de Dependiente debe reconstruirse
+     * antes de considerar STAGING listo para una auditoria profunda.
+     */
+    private static function mark_post_clone_handoff($stg, $options_table, $generation, $verification, $extra = array()) {
+        $verification = is_array($verification) ? $verification : array();
+        $summary = isset($verification['summary']) && is_array($verification['summary']) ? $verification['summary'] : array();
+        $handoff = array(
+            'schema' => array('name' => 'seo_clonador_handoff', 'version' => 1),
+            'clonador_version' => defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.5.11',
+            'generation' => (string) $generation,
+            'clone_verified' => !empty($verification['passed']) ? 1 : 0,
+            'verification_checks_total' => absint($summary['checks_total'] ?? 0),
+            'verification_checks_passed' => absint($summary['passed'] ?? 0),
+            'verification_checks_failed' => absint($summary['failed'] ?? 0),
+            'reindex_required' => 1,
+            'auditor_ready' => 0,
+            'next_step' => 'reindex_dependiente',
+            'created_at' => time(),
+        );
+        foreach ((array) $extra as $key => $value) {
+            $key = sanitize_key((string) $key);
+            if ('' !== $key) {
+                $handoff[$key] = is_scalar($value) ? $value : (array) $value;
+            }
+        }
+
+        $r = self::set_staging_option($stg, $options_table, self::HANDOFF_OPTION, $handoff);
+        if (is_wp_error($r)) return $r;
+
+        $pending = array(
+            'required' => 1,
+            'reason' => 'environment_clonador',
+            'generation' => (string) $generation,
+            'created_at' => time(),
+            'clone_verified' => 1,
+            'auditor_ready' => 0,
+            'clonador_version' => defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.5.11',
+        );
+        $r = self::set_staging_option($stg, $options_table, 'seo_semantic_catalog_reindex_pending', $pending);
+        if (is_wp_error($r)) return $r;
+
+        $drift = array(
+            'reason' => 'environment_clonador',
+            'generation' => (string) $generation,
+            'created_at' => time(),
+            'clone_verified' => 1,
+        );
+        $r = self::set_staging_option($stg, $options_table, 'seo_semantic_catalog_drift', $drift);
+        if (is_wp_error($r)) return $r;
+
+        return $handoff;
+    }
+
+    /**
      * Vaciado logico del perimetro gestionado en STAGING.
      *
      * Las tablas dedicadas del catalogo se vacian completas. En las tablas
@@ -1962,19 +2020,20 @@ final class SEO_Clonador_Engine {
             'identity' => $identity,
             'duration_seconds' => round(microtime(true) - $started, 3),
         );
-        self::set_staging_option($stg, $stg_tables['options'], 'seo_clonador_generation', $payload);
-        self::set_staging_option($stg, $stg_tables['options'], 'seo_clonador_last', $payload);
-        self::set_staging_option($stg, $stg_tables['options'], 'seo_semantic_catalog_reindex_pending', array(
-            'reason' => 'environment_clonador',
-            'generation' => $generation,
-            'created_at' => time(),
-        ));
-        self::set_staging_option($stg, $stg_tables['options'], 'seo_semantic_catalog_drift', array(
-            'reason' => 'environment_clonador',
-            'generation' => $generation,
-            'created_at' => time(),
-        ));
-        self::progress('completed', 'Clonacion completada y verificada.', $stats);
+        $r = self::set_staging_option($stg, $stg_tables['options'], 'seo_clonador_generation', $payload);
+        if (is_wp_error($r)) return $r;
+        $r = self::set_staging_option($stg, $stg_tables['options'], 'seo_clonador_last', $payload);
+        if (is_wp_error($r)) return $r;
+        $handoff = self::mark_post_clone_handoff(
+            $stg,
+            $stg_tables['options'],
+            $generation,
+            (array) ($stats['verification'] ?? array()),
+            array('mode' => 'synchronous')
+        );
+        if (is_wp_error($handoff)) return $handoff;
+        $payload['handoff'] = $handoff;
+        self::progress('completed', 'Clonacion completada y verificada. Reindexa Dependiente antes de ejecutar el Auditor.', $stats);
         self::$progress_callback = null;
         return $payload;
     }
@@ -2623,8 +2682,51 @@ final class SEO_Clonador_Engine {
     }
 
     private static function worker_phase_complete($stg,$stg_tables,&$state){
-        $generation=function_exists('wp_generate_uuid4')?wp_generate_uuid4():uniqid('clone-',true);$payload=array('generation'=>$generation,'completed_at'=>time(),'source'=>'pro','destination'=>'staging','engine'=>'portable_clone_manual_worker_2.5.9','stats'=>(array)$state['stats'],'identity'=>(array)$state['identity'],'duration_seconds'=>max(0,time()-absint($state['started_at']??time())));
-        $r=self::set_staging_option($stg,$stg_tables['options'],'seo_clonador_generation',$payload);if(is_wp_error($r))return$r;$r=self::set_staging_option($stg,$stg_tables['options'],'seo_clonador_last',$payload);if(is_wp_error($r))return$r;self::set_staging_option($stg,$stg_tables['options'],'seo_semantic_catalog_reindex_pending',array('reason'=>'environment_clonador','generation'=>$generation,'created_at'=>time()));self::set_staging_option($stg,$stg_tables['options'],'seo_semantic_catalog_drift',array('reason'=>'environment_clonador','generation'=>$generation,'created_at'=>time()));$state['status']='completed';$state['phase']='completed';$state['completed_at']=time();$state['message']='Clonacion PRO → STAGING terminada y verificada.';self::worker_refresh_progress($state);$verification=is_array($state['stats']['verification']??null)?$state['stats']['verification']:array();$state['result']=array('generation'=>$generation,'duration_seconds'=>$payload['duration_seconds'],'completed_at'=>$state['completed_at'],'copied_total'=>absint($state['progress']['copied_total']??0),'warnings_total'=>count((array)$state['warnings']),'verification'=>$verification);return true;
+        $generation = function_exists('wp_generate_uuid4') ? wp_generate_uuid4() : uniqid('clone-', true);
+        $verification = is_array($state['stats']['verification'] ?? null) ? $state['stats']['verification'] : array();
+        $payload = array(
+            'generation' => $generation,
+            'completed_at' => time(),
+            'source' => 'pro',
+            'destination' => 'staging',
+            'engine' => 'portable_clone_manual_worker_2.5.11',
+            'stats' => (array) $state['stats'],
+            'identity' => (array) $state['identity'],
+            'duration_seconds' => max(0, time() - absint($state['started_at'] ?? time())),
+        );
+
+        $r = self::set_staging_option($stg, $stg_tables['options'], 'seo_clonador_generation', $payload);
+        if (is_wp_error($r)) return $r;
+        $r = self::set_staging_option($stg, $stg_tables['options'], 'seo_clonador_last', $payload);
+        if (is_wp_error($r)) return $r;
+
+        $handoff = self::mark_post_clone_handoff(
+            $stg,
+            $stg_tables['options'],
+            $generation,
+            $verification,
+            array(
+                'job_id' => sanitize_key((string) ($state['job_id'] ?? '')),
+                'mode' => 'process_manager',
+            )
+        );
+        if (is_wp_error($handoff)) return $handoff;
+
+        $state['status'] = 'completed';
+        $state['phase'] = 'completed';
+        $state['completed_at'] = time();
+        $state['message'] = 'Clonacion PRO -> STAGING terminada y verificada. Reindexa Dependiente antes de ejecutar el Auditor.';
+        self::worker_refresh_progress($state);
+        $state['result'] = array(
+            'generation' => $generation,
+            'duration_seconds' => $payload['duration_seconds'],
+            'completed_at' => $state['completed_at'],
+            'copied_total' => absint($state['progress']['copied_total'] ?? 0),
+            'warnings_total' => count((array) $state['warnings']),
+            'verification' => $verification,
+            'handoff' => $handoff,
+        );
+        return true;
     }
 
     private static function worker_step($pro,$stg,$pro_tables,$stg_tables,&$state){
@@ -2833,8 +2935,8 @@ final class SEO_Clonador_Engine {
                 'actions' => (array) ($analysis['actions'] ?? array()),
                 'identity_resolution' => (array) ($analysis['identity_resolution'] ?? array()),
                 'reference_audit' => (array) ($analysis['reference_audit'] ?? array()),
-                'plan_version' => defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.5.9',
-                'engine_revision' => 'academia-cloner-manual-worker-2.5.9',
+                'plan_version' => defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.5.11',
+                'engine_revision' => 'academia-cloner-manual-worker-2.5.11',
                 'dry_run' => true,
                 'writes_performed' => 0,
                 'conflicts' => (array) $analysis['conflicts'],
@@ -2989,7 +3091,7 @@ final class SEO_Clonador_Engine {
         add_action('admin_notices', static function () {
             if (!current_user_can('manage_options')) return;
             $url = admin_url('admin.php?page=seo-dependiente');
-            echo '<div class="notice notice-success"><p><strong>PRO → STAGING:</strong> la clonacion del catalogo termino. La caché local de STAGING se ha invalidado. <a href="' . esc_url($url) . '">Reindexa Dependiente</a> para regenerar su índice derivado con el catálogo alineado.</p></div>';
+            echo '<div class="notice notice-success"><p><strong>PRO → STAGING:</strong> la clonacion termino y fue verificada. La cache local de STAGING se ha invalidado. <a href="' . esc_url($url) . '">Reindexa Dependiente</a> y espera a que el indice termine antes de ejecutar el Auditor. El Clonador no inicia ninguno de esos procesos automaticamente.</p></div>';
         });
     }
 }

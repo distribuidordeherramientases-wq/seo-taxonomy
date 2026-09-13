@@ -4,7 +4,7 @@
  *
  * @package SEOSystem
  * @subpackage Clonador
- * @since 2.5.9
+ * @since 2.5.11
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -285,12 +285,14 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
                     const secs=(currentJob.result&&currentJob.result.duration_seconds)||0;
                     const copied=(currentJob.result&&currentJob.result.copied_total)||progress.copied_total||0;
                     live.className='seo-clonador-live is-success';
+                    const handoff=(currentJob.result&&currentJob.result.handoff)||{};
                     live.innerHTML='<div class="seo-clonador-live-title">✓ CLONACIÓN CORRECTA Y VERIFICADA</div>'+ 
                         '<div class="seo-clonador-live-phase">PRO y STAGING coinciden en todos los controles del perímetro clonado.</div>'+ 
                         '<div class="seo-clonador-progress"><span style="width:100%"></span></div>'+ 
                         '<div class="seo-clonador-live-meta"><span><strong>100%</strong></span><span>Copiado: <strong>'+n(copied)+'</strong> filas/objetos</span><span>Duración: '+n(secs)+' s</span><span>Warnings: '+n((currentJob.result&&currentJob.result.warnings_total)||(currentJob.warnings||[]).length)+'</span></div>'+ 
+                        '<div class="seo-clonador-manual" style="margin:14px 0 0"><strong>SIGUIENTE PASO:</strong> reindexa Dependiente en STAGING y espera a que termine. Después ejecuta el Auditor. El Clonador no inicia ninguno de esos procesos automáticamente.</div>'+
                         renderKpis(verification)+renderAllChecks(verification);
-                    status.textContent='Clonación terminada y VERIFICADA'+(secs?(' en '+secs+' s.'):'.');
+                    status.textContent='Clonación terminada y VERIFICADA. Pendiente: reindexar Dependiente antes de auditar.';
                     if(pollTimer){clearInterval(pollTimer);pollTimer=null;}
                     updateControls();
                     return;
