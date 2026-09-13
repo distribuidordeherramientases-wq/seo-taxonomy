@@ -39,6 +39,12 @@ final class SEO_Dependiente_Entrenador {
     const LAB_IMPORT_LIMIT = 5000;
     const LAB_UPLOAD_MAX_BYTES = 2097152;
 
+    /**
+     * Diagnostico de preparacion de L7 dentro de la peticion/proceso actual.
+     * Se persiste en metadata al preparar o fallar la leccion.
+     */
+    private static $lesson7_diagnostics = array();
+
     public static function init() {
         add_action('admin_enqueue_scripts', array(__CLASS__, 'enqueue'), 20);
         add_action('wp_ajax_seo_dependiente_entrenador_prepare_lesson', array(__CLASS__, 'ajax_prepare_lesson'));
@@ -380,6 +386,24 @@ final class SEO_Dependiente_Entrenador {
                 self::clear_lesson_data($lesson_key);
                 self::clear_staged_academy_rules($lesson_key);
                 $total = self::lesson_source_total($lesson_key);
+                if ('v2_l7_cross' === $lesson_key && $total < 1) {
+                    $code = self::lesson7_prepare_error_code();
+                    self::update_lesson($lesson_key, array(
+                        'status'           => 'ready',
+                        'prepare_offset'   => 0,
+                        'prepare_total'    => 0,
+                        'item_count'       => 0,
+                        'module_count'     => 0,
+                        'completed_items'  => 0,
+                        'snapshot_before'  => absint(get_option(self::KNOWLEDGE_SNAPSHOT_OPTION, 0)),
+                        'snapshot_after'   => 0,
+                        'source_signature' => null,
+                        'started_at'       => null,
+                        'completed_at'     => null,
+                        'metadata'         => self::lesson7_prepare_metadata($code),
+                    ));
+                    throw new RuntimeException(self::lesson7_prepare_exception_message($code));
+                }
                 self::update_lesson($lesson_key, array(
                     'status'          => 'preparing',
                     'prepare_offset'  => 0,
@@ -426,7 +450,13 @@ final class SEO_Dependiente_Entrenador {
                         'module_count'     => 0,
                         'snapshot_after'   => 0,
                         'source_signature' => self::lesson_source_signature($lesson_key),
-                        'metadata'         => array('prepare_error' => 'no_curriculum_items'),
+                        'metadata'         => 'v2_l7_cross' === $lesson_key
+                            ? self::lesson7_prepare_metadata('l7_insert_failed', array(
+                                'prepare_total'  => $total,
+                                'prepare_offset' => $new_offset,
+                                'question_count' => $item_count,
+                            ))
+                            : array('prepare_error' => 'no_curriculum_items'),
                     ));
                     throw new RuntimeException('Esta lección no ha podido generar ejercicios con los datos actuales del catálogo. Revisa la clasificación/etiquetas y vuelve a indexar antes de continuar.');
                 }
@@ -442,7 +472,12 @@ final class SEO_Dependiente_Entrenador {
                     'module_count'     => $module_count,
                     'snapshot_after'   => 0,
                     'source_signature' => self::lesson_source_signature($lesson_key),
-                    'metadata'         => array('prepared_rules_source' => 'academy_stage'),
+                    'metadata'         => 'v2_l7_cross' === $lesson_key
+                        ? array(
+                            'prepared_rules_source' => 'academy_stage',
+                            'l7_preparation'        => self::$lesson7_diagnostics,
+                        )
+                        : array('prepared_rules_source' => 'academy_stage'),
                 ));
             }
 
@@ -989,6 +1024,24 @@ final class SEO_Dependiente_Entrenador {
                 self::clear_lesson_data($lesson_key);
                 self::clear_staged_academy_rules($lesson_key);
                 $total = self::lesson_source_total($lesson_key);
+                if ('v2_l7_cross' === $lesson_key && $total < 1) {
+                    $code = self::lesson7_prepare_error_code();
+                    self::update_lesson($lesson_key, array(
+                        'status'           => 'ready',
+                        'prepare_offset'   => 0,
+                        'prepare_total'    => 0,
+                        'item_count'       => 0,
+                        'module_count'     => 0,
+                        'completed_items'  => 0,
+                        'snapshot_before'  => absint(get_option(self::KNOWLEDGE_SNAPSHOT_OPTION, 0)),
+                        'snapshot_after'   => 0,
+                        'source_signature' => null,
+                        'started_at'       => null,
+                        'completed_at'     => null,
+                        'metadata'         => self::lesson7_prepare_metadata($code),
+                    ));
+                    throw new RuntimeException(self::lesson7_prepare_exception_message($code));
+                }
                 self::update_lesson($lesson_key, array(
                     'status'           => 'preparing',
                     'prepare_offset'   => 0,
@@ -1034,7 +1087,13 @@ final class SEO_Dependiente_Entrenador {
                         'module_count'     => 0,
                         'snapshot_after'   => 0,
                         'source_signature' => self::lesson_source_signature($lesson_key),
-                        'metadata'         => array('prepare_error' => 'no_curriculum_items'),
+                        'metadata'         => 'v2_l7_cross' === $lesson_key
+                            ? self::lesson7_prepare_metadata('l7_insert_failed', array(
+                                'prepare_total'  => $total,
+                                'prepare_offset' => $new_offset,
+                                'question_count' => $item_count,
+                            ))
+                            : array('prepare_error' => 'no_curriculum_items'),
                     ));
                     throw new RuntimeException('Esta lección no ha podido generar ejercicios con los datos actuales del catálogo. Revisa la clasificación/etiquetas y vuelve a indexar antes de continuar.');
                 }
@@ -1044,7 +1103,12 @@ final class SEO_Dependiente_Entrenador {
                     'module_count'     => $module_count,
                     'snapshot_after'   => 0,
                     'source_signature' => self::lesson_source_signature($lesson_key),
-                    'metadata'         => array('prepared_rules_source' => 'academy_stage'),
+                    'metadata'         => 'v2_l7_cross' === $lesson_key
+                        ? array(
+                            'prepared_rules_source' => 'academy_stage',
+                            'l7_preparation'        => self::$lesson7_diagnostics,
+                        )
+                        : array('prepared_rules_source' => 'academy_stage'),
                 ));
             }
 
@@ -4019,41 +4083,216 @@ final class SEO_Dependiente_Entrenador {
     }
 
     private static function lesson7_sources() {
-        static $cache=null;
-        if(null!==$cache) return $cache;
         global $wpdb;
-        $cache=array(); $objects=$wpdb->prefix.'seo_object_vocabulary'; $vocabulary=$wpdb->prefix.'seo_vocabulary';
-        if(!self::table_exists($objects)||!self::table_exists($vocabulary)) return $cache;
-        $limit=self::MAX_CROSS_SOURCES;
-        $rows=(array)$wpdb->get_results(
-            "SELECT v.id,v.semantic_group,v.slug,v.label,
-                    SUM(ov.object_type='product') product_count,
-                    SUM(ov.object_type IN ('post','page')) editorial_count
-             FROM {$vocabulary} v INNER JOIN {$objects} ov ON ov.vocabulary_id=v.id AND ov.status=1
-             WHERE v.active=1 AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
-             GROUP BY v.id,v.semantic_group,v.slug,v.label
-             HAVING product_count>0 AND editorial_count>0
-             ORDER BY (product_count+editorial_count) DESC,v.id ASC LIMIT {$limit}", ARRAY_A
+
+        // L7 se reconstruye en cada llamada deliberadamente. Academia puede ejecutar
+        // varias lecciones dentro del mismo proceso PHP; no debemos conservar un
+        // cache vacio si las asignaciones semanticas han cambiado durante ese proceso.
+        $items = array();
+        $objects = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
+        $index = class_exists('SEO_Dependiente_Index') ? SEO_Dependiente_Index::table() : '';
+        $limit = self::MAX_CROSS_SOURCES;
+
+        $diag = array(
+            'strategy'                    => 'live_object_joins_v1',
+            'objects_table'               => self::table_exists($objects) ? 'ok' : 'missing',
+            'vocabulary_table'            => self::table_exists($vocabulary) ? 'ok' : 'missing',
+            'index_table'                 => ($index && self::table_exists($index)) ? 'ok' : 'missing',
+            'assignment_candidates'       => 0,
+            'valid_candidates'            => 0,
+            'curriculum_items'            => 0,
+            'product_relations'           => 0,
+            'editorial_relations'         => 0,
+            'related_assignments'         => 0,
+            'discarded_missing_identity'  => 0,
+            'discarded_without_related'   => 0,
+            'wpdb_last_error'             => '',
         );
-        if(!$rows) return $cache;
-        $ids=array_values(array_filter(array_map('absint',wp_list_pluck($rows,'id'))));
-        $related=array();
-        if($ids){
-            $id_sql=implode(',',array_map('absint',$ids));
-            $assign=(array)$wpdb->get_results("SELECT vocabulary_id,object_type,object_id FROM {$objects} WHERE status=1 AND object_type IN ('post','page') AND vocabulary_id IN ({$id_sql}) ORDER BY vocabulary_id,object_id",ARRAY_A);
-            foreach($assign as $a){$vid=absint($a['vocabulary_id']??0);if(!$vid)continue;$related[$vid][]=array('type'=>'page'===(string)$a['object_type']?'landing':'post','id'=>absint($a['object_id']??0));}
+        self::$lesson7_diagnostics = $diag;
+
+        if ('ok' !== $diag['objects_table'] || 'ok' !== $diag['vocabulary_table'] || 'ok' !== $diag['index_table']) {
+            return $items;
         }
-        foreach($rows as $row){
-            $id=absint($row['id']??0);$group=sanitize_key((string)$row['semantic_group']);$slug=sanitize_title((string)$row['slug']);$label=trim((string)$row['label']);
-            if(!$id||!$group||!$slug||!$label||empty($related[$id]))continue;
-            $cache[]=array(
-                'source_type'=>'cross','source_id'=>$id,'source_key'=>'cross:'.$id,'question_type'=>'cross_semantic','mode'=>'need',
-                'question'=>'Sobre "'.$label.'", ¿qué productos y contenidos relacionados tienes?',
-                'expected'=>array('kind'=>'cross','conditions'=>array($group=>array($slug)),'acceptable_related'=>array_slice($related[$id],0,80),'label'=>$label),
-                'rules'=>array(array('kind'=>'vocabulary_route','id'=>$id,'group'=>$group,'slug'=>$slug,'label'=>$label)),
+
+        // Conteo de evidencia bruta: no usa HAVING ni aliases agregados. Sirve para
+        // distinguir "no existen cruces" de "existen cruces pero fueron filtrados".
+        $candidate_sql = "SELECT COUNT(*)
+            FROM {$vocabulary} v
+            WHERE v.active=1
+              AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
+              AND EXISTS (
+                    SELECT 1 FROM {$objects} op
+                    WHERE op.vocabulary_id=v.id AND op.status=1 AND op.object_type='product'
+              )
+              AND EXISTS (
+                    SELECT 1 FROM {$objects} oe
+                    WHERE oe.vocabulary_id=v.id AND oe.status=1 AND oe.object_type IN ('post','page')
+              )";
+        $diag['assignment_candidates'] = absint($wpdb->get_var($candidate_sql));
+        if (!empty($wpdb->last_error)) {
+            $diag['wpdb_last_error'] = sanitize_text_field((string) $wpdb->last_error);
+            self::$lesson7_diagnostics = $diag;
+            return $items;
+        }
+
+        // Inventario valido para formacion. A diferencia de la consulta antigua,
+        // verifica que el producto siga en el indice actual y que post/pagina exista,
+        // sea del tipo esperado y este publicado. Las subconsultas agregadas evitan
+        // depender de aliases en HAVING, que fue una fuente fragil de falsos ceros.
+        $rows_sql = "SELECT v.id,v.semantic_group,v.slug,v.label,
+                            pc.product_count,ec.editorial_count
+                     FROM {$vocabulary} v
+                     INNER JOIN (
+                         SELECT ov.vocabulary_id,COUNT(DISTINCT ov.object_id) product_count
+                         FROM {$objects} ov
+                         INNER JOIN {$index} di ON di.product_id=ov.object_id
+                         WHERE ov.status=1 AND ov.object_type='product'
+                         GROUP BY ov.vocabulary_id
+                     ) pc ON pc.vocabulary_id=v.id
+                     INNER JOIN (
+                         SELECT ov.vocabulary_id,COUNT(DISTINCT ov.object_id) editorial_count
+                         FROM {$objects} ov
+                         INNER JOIN {$wpdb->posts} p ON p.ID=ov.object_id
+                         WHERE ov.status=1
+                           AND p.post_status='publish'
+                           AND ((ov.object_type='post' AND p.post_type='post')
+                                OR (ov.object_type='page' AND p.post_type='page'))
+                         GROUP BY ov.vocabulary_id
+                     ) ec ON ec.vocabulary_id=v.id
+                     WHERE v.active=1
+                       AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
+                     ORDER BY (pc.product_count+ec.editorial_count) DESC,v.id ASC
+                     LIMIT {$limit}";
+        $rows = (array) $wpdb->get_results($rows_sql, ARRAY_A);
+        if (!empty($wpdb->last_error)) {
+            $diag['wpdb_last_error'] = sanitize_text_field((string) $wpdb->last_error);
+            self::$lesson7_diagnostics = $diag;
+            return $items;
+        }
+
+        $diag['valid_candidates'] = count($rows);
+        foreach ($rows as $row) {
+            $diag['product_relations'] += absint($row['product_count'] ?? 0);
+            $diag['editorial_relations'] += absint($row['editorial_count'] ?? 0);
+        }
+
+        $ids = array_values(array_filter(array_map('absint', wp_list_pluck($rows, 'id'))));
+        $related = array();
+        if ($ids) {
+            $id_sql = implode(',', array_map('absint', $ids));
+            $assign_sql = "SELECT ov.vocabulary_id,ov.object_type,ov.object_id
+                           FROM {$objects} ov
+                           INNER JOIN {$wpdb->posts} p ON p.ID=ov.object_id
+                           WHERE ov.status=1
+                             AND ov.vocabulary_id IN ({$id_sql})
+                             AND p.post_status='publish'
+                             AND ((ov.object_type='post' AND p.post_type='post')
+                                  OR (ov.object_type='page' AND p.post_type='page'))
+                           ORDER BY ov.vocabulary_id,ov.object_id";
+            $assign = (array) $wpdb->get_results($assign_sql, ARRAY_A);
+            if (!empty($wpdb->last_error)) {
+                $diag['wpdb_last_error'] = sanitize_text_field((string) $wpdb->last_error);
+                self::$lesson7_diagnostics = $diag;
+                return array();
+            }
+            $diag['related_assignments'] = count($assign);
+            foreach ($assign as $a) {
+                $vid = absint($a['vocabulary_id'] ?? 0);
+                $oid = absint($a['object_id'] ?? 0);
+                if (!$vid || !$oid) {
+                    continue;
+                }
+                $related[$vid][] = array(
+                    'type' => 'page' === (string) ($a['object_type'] ?? '') ? 'landing' : 'post',
+                    'id'   => $oid,
+                );
+            }
+        }
+
+        foreach ($rows as $row) {
+            $id = absint($row['id'] ?? 0);
+            $group = sanitize_key((string) ($row['semantic_group'] ?? ''));
+            $slug = sanitize_title((string) ($row['slug'] ?? ''));
+            $label = trim(wp_strip_all_tags((string) ($row['label'] ?? '')));
+            if (!$id || !$group || !$slug || !$label) {
+                $diag['discarded_missing_identity']++;
+                continue;
+            }
+            if (empty($related[$id])) {
+                $diag['discarded_without_related']++;
+                continue;
+            }
+            $items[] = array(
+                'source_type'   => 'cross',
+                'source_id'     => $id,
+                'source_key'    => 'cross:' . $id,
+                'question_type' => 'cross_semantic',
+                'mode'          => 'need',
+                'question'      => 'Sobre "' . $label . '", ¿qué productos y contenidos relacionados tienes?',
+                'expected'      => array(
+                    'kind'               => 'cross',
+                    'conditions'         => array($group => array($slug)),
+                    'acceptable_related' => array_slice($related[$id], 0, 80),
+                    'label'              => $label,
+                ),
+                'rules' => array(array(
+                    'kind'  => 'vocabulary_route',
+                    'id'    => $id,
+                    'group' => $group,
+                    'slug'  => $slug,
+                    'label' => $label,
+                )),
             );
         }
-        return $cache;
+
+        $diag['curriculum_items'] = count($items);
+        self::$lesson7_diagnostics = $diag;
+        return $items;
+    }
+
+    private static function lesson7_prepare_error_code($default = 'l7_no_database_candidates') {
+        $diag = (array) self::$lesson7_diagnostics;
+        if (!empty($diag['wpdb_last_error'])) {
+            return 'l7_query_error';
+        }
+        if (absint($diag['assignment_candidates'] ?? 0) > 0 && absint($diag['valid_candidates'] ?? 0) < 1) {
+            return 'l7_candidates_filtered';
+        }
+        if (absint($diag['valid_candidates'] ?? 0) > 0 && absint($diag['curriculum_items'] ?? 0) < 1) {
+            return 'l7_item_build_failed';
+        }
+        return sanitize_key((string) $default) ?: 'l7_no_database_candidates';
+    }
+
+    private static function lesson7_prepare_metadata($prepare_error = '', $extra = array()) {
+        global $wpdb;
+        $diag = array_merge((array) self::$lesson7_diagnostics, (array) $extra);
+        if (empty($diag['wpdb_last_error']) && !empty($wpdb->last_error)) {
+            $diag['wpdb_last_error'] = sanitize_text_field((string) $wpdb->last_error);
+        }
+        return array(
+            'prepare_error'   => sanitize_key((string) $prepare_error),
+            'l7_preparation'  => $diag,
+        );
+    }
+
+    private static function lesson7_prepare_exception_message($code) {
+        $diag = (array) self::$lesson7_diagnostics;
+        $raw = absint($diag['assignment_candidates'] ?? 0);
+        $valid = absint($diag['valid_candidates'] ?? 0);
+        $items = absint($diag['curriculum_items'] ?? 0);
+        $sql_error = trim((string) ($diag['wpdb_last_error'] ?? ''));
+        if ('l7_query_error' === $code) {
+            return 'L7 no se ha preparado por un error SQL. Candidatos detectados: ' . $raw . '. ' . ($sql_error ? 'Detalle: ' . $sql_error : 'Revisa el diagnostico guardado en metadata.');
+        }
+        if ('l7_candidates_filtered' === $code) {
+            return 'L7 encontro ' . $raw . ' conceptos cruzados, pero ninguno conserva simultaneamente producto indexado y contenido editorial publicado. Revisa la integridad de las asignaciones, no el aprendizaje de L6.';
+        }
+        if ('l7_item_build_failed' === $code) {
+            return 'L7 encontro ' . $valid . ' conceptos validos, pero genero ' . $items . ' ejercicios. Es un fallo del preparador; el diagnostico queda guardado en metadata.';
+        }
+        return 'L7 no encontro conceptos que conecten productos con posts o paginas publicados. El diagnostico queda guardado en metadata.';
     }
 
     private static function lesson8_sources() {
