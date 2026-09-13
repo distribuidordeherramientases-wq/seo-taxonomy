@@ -146,7 +146,16 @@ final class SEO_Dependiente_API {
             $raw_query = substr($raw_query, 0, 1000);
         }
         $explicit_faq_owner = self::resolve_explicit_faq_owner($raw_query, $params);
-        $query = $raw_query;
+
+        // Intérprete v0.1: transforma lenguaje natural en una consulta canónica
+        // solo cuando la señal es de alta confianza. La pregunta original se
+        // conserva para la respuesta y para cualquier capa de atención al cliente.
+        $interpreter = class_exists('SEO_Dependiente_Interprete')
+            ? SEO_Dependiente_Interprete::interpret($raw_query)
+            : array();
+        $query = !empty($interpreter['search_query'])
+            ? (string) $interpreter['search_query']
+            : $raw_query;
         if (function_exists('mb_substr')) {
             $query = mb_substr($query, 0, 180, 'UTF-8');
         } else {
@@ -291,6 +300,13 @@ final class SEO_Dependiente_API {
         $search_diagnostic['extended_reasons'] = array_values(array_unique($extended_reasons));
         $search_diagnostic['semantic_catalog_route'] = $has_catalog_semantic_route ? 1 : 0;
         $search_diagnostic['semantic_rules_active'] = (int) $semantic_rules_active;
+        if ($interpreter) {
+            $search_diagnostic['interpreter_version'] = sanitize_text_field((string) ($interpreter['version'] ?? ''));
+            $search_diagnostic['interpreter_changed'] = !empty($interpreter['changed']) ? 1 : 0;
+            $search_diagnostic['interpreter_rule'] = sanitize_key((string) ($interpreter['rule'] ?? ''));
+            $search_diagnostic['interpreter_query'] = sanitize_text_field((string) ($interpreter['search_query'] ?? ''));
+            $search_diagnostic['interpreter_confidence'] = (float) ($interpreter['confidence'] ?? 0);
+        }
         if ($semantic_hint) {
             $search_diagnostic['semantic_hint'] = $semantic_hint;
         }
@@ -457,7 +473,9 @@ final class SEO_Dependiente_API {
         }
 
         $response_payload = array(
-            'query'           => $query,
+            'query'           => $raw_query,
+            'interpreted_query' => $query,
+            'interpreter_changed' => !empty($interpreter['changed']),
             'mode'            => $mode,
             'solution_role'   => $solution_role,
             'page'            => $page,
