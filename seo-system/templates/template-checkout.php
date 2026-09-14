@@ -15,6 +15,8 @@ dht_template_render_header();
 
     <section class="dht-checkout-main">
         <div class="dht-checkout-container">
+            <?php dht_template_render_service_promise('strip', 'checkout'); ?>
+
             <?php echo do_shortcode('[woocommerce_checkout]'); ?>
         </div>
     </section>

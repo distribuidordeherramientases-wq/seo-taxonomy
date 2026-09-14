@@ -1130,3 +1130,90 @@ if (!function_exists('dht_template_device_variant_file')) {
         );
     }
 }
+
+/* ==========================================================
+   PROPUESTA DE VALOR: ACOMPAÑAMIENTO ANTES Y DESPUÉS DE LA COMPRA
+   Componente reutilizable para no repetir mensajes distintos
+   en cada plantilla ni convertir la web en una sucesion de banners.
+========================================================== */
+if (!function_exists('dht_template_service_page_url')) {
+    function dht_template_service_page_url()
+    {
+        $page = get_page_by_path('nuestro-servicio');
+        if ($page instanceof WP_Post) {
+            $url = get_permalink($page);
+            if ($url) {
+                return $url;
+            }
+        }
+
+        return home_url('/nuestro-servicio/');
+    }
+}
+
+if (!function_exists('dht_template_render_service_promise')) {
+    function dht_template_render_service_promise($variant = 'strip', $context = 'browse')
+    {
+        $variant = sanitize_html_class((string) $variant);
+        $context = sanitize_key((string) $context);
+
+        $messages = array(
+            'home' => array(
+                'kicker' => 'Compra con respaldo',
+                'title'  => 'Una persona detrás de tu compra',
+                'body'   => 'Si surge una incidencia, te ayudamos a gestionar la comunicación con el fabricante o distribuidor y hacemos seguimiento contigo, en castellano.',
+            ),
+            'browse' => array(
+                'kicker' => 'Nuestro servicio',
+                'title'  => 'No compras solo un producto',
+                'body'   => 'Tienes una persona a la que llamar. Si aparece una incidencia, te ayudamos con la gestión y el seguimiento frente al fabricante o distribuidor.',
+            ),
+            'product' => array(
+                'kicker' => 'Acompañamiento posventa',
+                'title'  => 'Nuestro acompañamiento no termina al pagar',
+                'body'   => 'Si este producto presenta una incidencia, puedes llamarnos. Te ayudamos a gestionar la comunicación con el fabricante o distribuidor y seguimos el caso contigo.',
+            ),
+            'checkout' => array(
+                'kicker' => 'Compra con respaldo',
+                'title'  => 'Después de la compra, seguimos aquí',
+                'body'   => 'Si surge una incidencia con el pedido o el producto, puedes hablar con nosotros en castellano y te ayudaremos con la gestión y el seguimiento.',
+            ),
+            'after' => array(
+                'kicker' => 'Guarda nuestro contacto',
+                'title'  => 'Seguimos contigo después de la compra',
+                'body'   => 'Si surge una incidencia, llámanos. Te ayudaremos a gestionar la comunicación con el fabricante o distribuidor y a hacer seguimiento del caso.',
+            ),
+        );
+
+        $message = isset($messages[$context]) ? $messages[$context] : $messages['browse'];
+        $service_url = dht_template_service_page_url();
+        $phone_label = '+34 640 87 45 40';
+        $phone_href  = 'tel:+34640874540';
+        $show_points = in_array($variant, array('card', 'purchase', 'after'), true);
+        ?>
+        <aside class="dht-service-promise dht-service-promise--<?php echo esc_attr($variant); ?>" aria-label="Acompañamiento de compra y posventa">
+            <div class="dht-service-promise__content">
+                <span class="dht-service-promise__kicker"><?php echo esc_html($message['kicker']); ?></span>
+                <strong class="dht-service-promise__title"><?php echo esc_html($message['title']); ?></strong>
+                <p class="dht-service-promise__text"><?php echo esc_html($message['body']); ?></p>
+
+                <?php if ($show_points) : ?>
+                    <ul class="dht-service-promise__points" aria-label="Cómo te acompañamos">
+                        <li>Atención en castellano</li>
+                        <li>Ayuda con la gestión</li>
+                        <li>Seguimiento contigo</li>
+                    </ul>
+                <?php endif; ?>
+            </div>
+
+            <div class="dht-service-promise__actions">
+                <a class="dht-service-promise__phone" href="<?php echo esc_url($phone_href); ?>">
+                    <span>Habla con una persona</span>
+                    <strong><?php echo esc_html($phone_label); ?></strong>
+                </a>
+                <a class="dht-service-promise__link" href="<?php echo esc_url($service_url); ?>">Cómo funciona nuestro servicio</a>
+            </div>
+        </aside>
+        <?php
+    }
+}

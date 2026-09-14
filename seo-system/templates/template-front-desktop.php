@@ -605,7 +605,7 @@ $more_categories = array_slice($root_categories, 8, 8);
                     <div class="sf-hero-copy">
                         <span class="sf-eyebrow">Herramientas · taller · automoción · mantenimiento</span>
                         <h1>Encuentra la herramienta que necesitas, sin perderte en el catálogo</h1>
-                        <p>Compra por departamento, aplicación o producto. Una tienda técnica pensada para localizar rápido herramientas, maquinaria, consumibles y equipamiento profesional.</p>
+                        <p>Compra por departamento, aplicación o producto. Una tienda técnica pensada para localizar rápido herramientas, maquinaria, consumibles y equipamiento profesional. Y si después surge una incidencia, te ayudamos a gestionarla.</p>
                         <div class="sf-actions">
                             <a class="sf-btn sf-btn--primary" href="<?php echo esc_url(dht_template_shop_url()); ?>">Ver todo el catálogo</a>
                             <a class="sf-btn sf-btn--ghost" href="<?php echo esc_url(dht_template_contact_url()); ?>">Ayuda para elegir</a>
@@ -626,6 +626,12 @@ $more_categories = array_slice($root_categories, 8, 8);
                         </a>
                     <?php endforeach; ?>
                 </div>
+            </div>
+        </section>
+
+        <section class="dht-service-section" aria-label="Nuestro servicio de acompañamiento">
+            <div class="sf-shell">
+                <?php dht_template_render_service_promise('strip', 'home'); ?>
             </div>
         </section>
 
@@ -820,14 +826,6 @@ $more_categories = array_slice($root_categories, 8, 8);
             </section>
         <?php endif; ?>
 
-        <section class="sf-service-bar">
-            <div class="sf-shell sf-service-grid">
-                <div><strong>Atención técnica</strong><span>Ayuda real antes y después de la compra</span></div>
-                <div><strong>Compra segura</strong><span>Pago protegido y seguimiento del pedido</span></div>
-                <div><strong>Catálogo especializado</strong><span>Herramientas, maquinaria y equipamiento técnico</span></div>
-                <div><strong>Contacto directo</strong><span>Teléfono, email y WhatsApp</span></div>
-            </div>
-        </section>
     </div>
 </main>
 

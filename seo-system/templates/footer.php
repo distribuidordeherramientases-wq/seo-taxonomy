@@ -60,7 +60,7 @@ $service_links = array(
             </a>
 
             <strong><?php echo esc_html($site_name); ?></strong>
-            <p class="footer-brand-copy">Herramientas, maquinaria y equipamiento técnico para particulares, profesionales y empresas en España.</p>
+            <p class="footer-brand-copy">Herramientas, maquinaria y equipamiento técnico con atención en castellano y acompañamiento antes y después de la compra.</p>
 
             <div class="footer-contact" aria-label="Datos de contacto">
                 <a href="<?php echo esc_url($phone_href); ?>">☎ <?php echo esc_html($phone_label); ?></a>

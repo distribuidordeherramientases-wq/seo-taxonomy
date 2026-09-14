@@ -860,6 +860,8 @@ $schema_product_graph = array(
         <?php endif; ?>
       </div>
 
+      <?php dht_template_render_service_promise('purchase', 'product'); ?>
+
       <div class="dh-product-trust" aria-label="Ventajas de compra">
         <div><span aria-hidden="true">🚚</span> Envío</div>
         <div><span aria-hidden="true">🔒</span> Pago seguro</div>
@@ -868,7 +870,7 @@ $schema_product_graph = array(
       </div>
 
       <div class="dh-contact-box">
-        <span>¿Necesitas ayuda?</span>
+        <span>¿Prefieres hablar con una persona?</span>
         <a href="tel:+34640874540">640 87 45 40</a>
         <a href="mailto:servicioacliente@distribuidordeherramientas.es">Escríbenos</a>
       </div>

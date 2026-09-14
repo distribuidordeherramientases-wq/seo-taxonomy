@@ -512,6 +512,12 @@ if (!$shop_title) {
         </div>
     </section>
 
+    <section class="dht-service-section" aria-label="Nuestro servicio de acompañamiento">
+        <div class="sf-shell">
+            <?php dht_template_render_service_promise('strip', 'browse'); ?>
+        </div>
+    </section>
+
     <?php if (!empty($root_categories)) : ?>
         <nav class="sf-quick-nav shop-quick-nav" aria-label="Categorías de producto">
             <div class="sf-shell sf-quick-nav-row">
@@ -598,14 +604,6 @@ if (!$shop_title) {
         </div>
     </section>
 
-    <section class="sf-service-bar shop-service-bar" aria-label="Ventajas de la tienda">
-        <div class="sf-shell sf-service-grid">
-            <div><strong>Catálogo especializado</strong><span>Herramienta, maquinaria y equipamiento técnico</span></div>
-            <div><strong>Atención técnica</strong><span>Ayuda para elegir producto y compatibilidad</span></div>
-            <div><strong>Compra segura</strong><span>Pago protegido y seguimiento de pedidos</span></div>
-            <div><strong>Contacto directo</strong><span>Teléfono, email y WhatsApp</span></div>
-        </div>
-    </section>
 </main>
 
 <?php

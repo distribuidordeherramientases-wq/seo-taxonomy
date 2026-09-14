@@ -5975,3 +5975,184 @@ html {
     }
 }
 
+
+/* ==========================================================
+   PROPUESTA DE VALOR / ACOMPANAMIENTO DE COMPRA
+   Componente deliberadamente sobrio: texto, jerarquia y contacto.
+   No usa imagenes promocionales para evitar ruido visual.
+========================================================== */
+.dht-service-section {
+    width: 100%;
+    padding: 14px 0 0;
+    background: var(--dht-white);
+}
+
+.dht-service-promise {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 24px;
+    width: 100%;
+    padding: 18px 22px;
+    border: 1px solid #cfe2ef;
+    border-radius: var(--dht-radius);
+    background: #f4f9fc;
+    color: var(--dht-text);
+}
+
+.dht-service-promise__content {
+    min-width: 0;
+}
+
+.dht-service-promise__kicker {
+    display: block;
+    margin-bottom: 3px;
+    color: var(--dht-primary-dark);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    line-height: 1.2;
+    text-transform: uppercase;
+}
+
+.dht-service-promise__title {
+    display: block;
+    color: var(--dht-dark);
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+.dht-service-promise__text {
+    max-width: 820px;
+    margin: 5px 0 0;
+    color: var(--dht-text-soft);
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+.dht-service-promise__actions {
+    display: flex;
+    min-width: 220px;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 7px;
+}
+
+.dht-service-promise__phone {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    color: var(--dht-dark);
+    text-decoration: none;
+}
+
+.dht-service-promise__phone span {
+    color: var(--dht-text-soft);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.dht-service-promise__phone strong {
+    color: var(--dht-primary-dark);
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.dht-service-promise__link {
+    color: var(--dht-primary-dark);
+    font-size: 12px;
+    font-weight: 800;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.dht-service-promise__points {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.dht-service-promise__points li {
+    position: relative;
+    margin: 0;
+    padding-left: 15px;
+    color: var(--dht-dark-soft);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.dht-service-promise__points li::before {
+    content: "";
+    position: absolute;
+    top: .58em;
+    left: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--dht-primary);
+}
+
+.dht-service-promise--purchase,
+.dht-service-promise--card,
+.dht-service-promise--after {
+    align-items: start;
+    padding: 20px;
+    border-color: #bcd9ea;
+    background: #f1f8fc;
+}
+
+.dht-service-promise--purchase {
+    margin-top: 14px;
+}
+
+.dht-service-promise--after {
+    margin: 22px 0;
+}
+
+.dht-checkout-main .dht-service-promise,
+.dht-cart-main .dht-service-promise,
+.dht-cart-mobile-main .dht-service-promise {
+    margin-bottom: 18px;
+}
+
+@media (max-width: 782px) {
+    .dht-service-section {
+        padding-top: 10px;
+    }
+
+    .dht-service-promise {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding: 15px 16px;
+        border-radius: 12px;
+    }
+
+    .dht-service-promise__title {
+        font-size: 16px;
+    }
+
+    .dht-service-promise__text {
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .dht-service-promise__actions,
+    .dht-service-promise__phone {
+        min-width: 0;
+        align-items: flex-start;
+    }
+
+    .dht-service-promise__phone strong {
+        font-size: 15px;
+    }
+
+    .dht-service-promise__points {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+}

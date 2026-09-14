@@ -603,8 +603,14 @@ $more_categories = array_slice($root_categories, 8, 8);
             <div class="sf-mobile-shell">
                 <span class="sf-eyebrow">Catálogo profesional</span>
                 <h1>Todo para taller, automoción y mantenimiento</h1>
-                <p>Entra por categoría o descubre productos directamente.</p>
+                <p>Entra por categoría o descubre productos directamente. Si después surge una incidencia, te ayudamos a gestionarla.</p>
                 <a class="sf-btn sf-btn--primary sf-btn--full" href="<?php echo esc_url(dht_template_shop_url()); ?>">Ver catálogo</a>
+            </div>
+        </section>
+
+        <section class="dht-service-section" aria-label="Nuestro servicio de acompañamiento">
+            <div class="sf-mobile-shell">
+                <?php dht_template_render_service_promise('strip', 'home'); ?>
             </div>
         </section>
 
@@ -703,14 +709,6 @@ $more_categories = array_slice($root_categories, 8, 8);
             </section>
         <?php endif; ?>
 
-        <section class="sf-mobile-services">
-            <div class="sf-mobile-shell sf-mobile-services-grid">
-                <div><strong>Compra segura</strong><span>Pago protegido</span></div>
-                <div><strong>Soporte real</strong><span>Antes y después</span></div>
-                <div><strong>Catálogo técnico</strong><span>Especializado</span></div>
-                <div><strong>Contacto directo</strong><span>WhatsApp y teléfono</span></div>
-            </div>
-        </section>
     </div>
 </main>
 

@@ -314,6 +314,12 @@ $json = array(
 
     </section>
 
+    <section class="dht-service-section" aria-label="Nuestro servicio de acompañamiento">
+        <div class="dht-container">
+            <?php dht_template_render_service_promise('strip', 'browse'); ?>
+        </div>
+    </section>
+
 
     <!-- =====================================================
          DESCRIPCIÓN DE LA CATEGORÍA
