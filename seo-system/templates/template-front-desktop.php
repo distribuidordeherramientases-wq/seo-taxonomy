@@ -650,15 +650,38 @@ $dht_phone_href  = 'tel:+34640874540';
 $dht_whatsapp_url = 'https://wa.me/34640874540';
 
 $dht_dependiente_image = '';
-foreach (array('dependiente', 'dependiente-tienda', 'asesor-tienda') as $dht_media_slug) {
-    $dht_media = get_page_by_path($dht_media_slug, OBJECT, 'attachment');
-    if ($dht_media instanceof WP_Post) {
-        $dht_dependiente_image = wp_get_attachment_image_url($dht_media->ID, 'large');
-        if ($dht_dependiente_image) {
-            break;
-        }
+
+/*
+ * La imagen del Dependiente se localiza por el archivo real de Media y no
+ * solamente por el slug del attachment. WordPress puede modificar el slug
+ * aunque el fichero siga llamandose dependiente.webp.
+ */
+$dht_dependiente_relative_file = '2026/09/dependiente.webp';
+$dht_dependiente_ids = get_posts(array(
+    'post_type'      => 'attachment',
+    'post_status'    => 'inherit',
+    'posts_per_page' => 1,
+    'fields'         => 'ids',
+    'meta_key'       => '_wp_attached_file',
+    'meta_value'     => $dht_dependiente_relative_file,
+    'no_found_rows'  => true,
+));
+
+if (!empty($dht_dependiente_ids)) {
+    $dht_dependiente_image = wp_get_attachment_image_url((int) $dht_dependiente_ids[0], 'large');
+    if (!$dht_dependiente_image) {
+        $dht_dependiente_image = wp_get_attachment_url((int) $dht_dependiente_ids[0]);
     }
 }
+
+/* Fallback directo al archivo si Media no devuelve el attachment. */
+if (!$dht_dependiente_image) {
+    $dht_upload_dir = wp_upload_dir();
+    if (empty($dht_upload_dir['error']) && !empty($dht_upload_dir['baseurl'])) {
+        $dht_dependiente_image = trailingslashit($dht_upload_dir['baseurl']) . $dht_dependiente_relative_file;
+    }
+}
+
 $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url', $dht_dependiente_image);
 ?>
 
