@@ -28,6 +28,7 @@ final class SEO_Dependiente_Linguista {
 
         add_filter('seo_process_supervisor_has_pending_work', array(__CLASS__, 'supervisor_has_pending_work'), 20, 1);
         add_filter('seo_process_supervisor_manager_targets', array(__CLASS__, 'supervisor_manager_targets'), 20, 3);
+        add_filter('seo_processes_monitor_items', array(__CLASS__, 'processes_monitor_items'), 20, 1);
         add_action('admin_post_seo_dependiente_linguista_control', array(__CLASS__, 'handle_admin_control'));
     }
 
@@ -1545,12 +1546,19 @@ final class SEO_Dependiente_Linguista {
         if ($pending) {
             return true;
         }
+        if (function_exists('seo_process_supervisor_settings')) {
+            $settings = seo_process_supervisor_settings();
+            if (empty($settings['linguista'])) {
+                return false;
+            }
+        }
         return self::is_pending();
     }
 
     public static function supervisor_manager_targets($targets, $settings, $source) {
         $targets = is_array($targets) ? $targets : array();
-        if (!self::is_pending()) {
+        $settings = is_array($settings) ? $settings : array();
+        if (empty($settings['linguista']) || !self::is_pending()) {
             return $targets;
         }
         $state = self::state();
