@@ -1,12 +1,12 @@
 <?php
 /**
- * Receta oficial Rubix para el importador de proveedores de SEO System.
+ * Receta oficial RUBIX para el importador de proveedores de SEO System.
  *
- * La receta PHP no rastrea Rubix. Solo:
- * - declara la receta de importacion/mapeo;
- * - registra Rubix como scraper externo;
- * - delega el scraping en GitHub Actions, que ejecuta scrapers/rubix.py;
- * - enlaza el CSV devuelto con la receta de importacion "rubix".
+ * Flujo:
+ * - La receta de importacion solo declara RUBIX para el mapeo/CSV comun.
+ * - La obtencion web NO se ejecuta en PHP/WordPress.
+ * - "RUBIX - Python externo" delega el scraping en GitHub Actions.
+ * - GitHub ejecuta scrapers/rubix.py y devuelve el CSV estandar a WordPress.
  *
  * @package SEOSystem
  * @subpackage SupplierImports
@@ -15,10 +15,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/*
- * Receta de importacion manual/comun.
- * Permite cargar el CSV devuelto por GitHub o un CSV/XLS/XLSX manual.
- */
+/* Receta de importacion/mapeo del CSV devuelto por el scraper. */
 add_filter(
     'seo_proveedores_import_recipes',
     static function ( $recipes ) {
@@ -28,11 +25,11 @@ add_filter(
 
         $recipes['rubix'] = [
             'id'          => 'rubix',
-            'label'       => 'Rubix - mapeo de archivo',
+            'label'       => 'RUBIX - mapeo de archivo',
             'provider'    => 'RUBIX',
             'version'     => '1.1.0',
             'mode'        => 'mapping',
-            'description' => 'Importa un CSV/XLS/XLSX de Rubix mediante el mapeo visual comun. Esta receta no rastrea la web.',
+            'description' => 'Importa el CSV estandar generado por el scraper Python de Rubix. Tambien permite carga manual CSV/XLS/XLSX mediante el mapeo comun.',
         ];
 
         return $recipes;
@@ -40,12 +37,11 @@ add_filter(
 );
 
 /**
- * Fuente web externa de Rubix.
+ * Fuente web externa RUBIX mediante GitHub Actions.
  *
- * Esta entrada hace que Rubix aparezca dentro de "Scraper externo" en
- * "Obtener catalogo desde la web". Al pulsar "Iniciar obtencion", WordPress
- * llama al GitHub Python Runner con recipe_id=rubix. El workflow ejecuta
- * scrapers/rubix.py y devuelve el CSV estandar al callback de WordPress.
+ * Esta entrada hace que RUBIX aparezca en el grupo "Scraper externo" de
+ * "Obtener catalogo desde la web". No registra ninguna receta en
+ * seo_supplier_crawl_recipes, por lo que RUBIX no aparece en el rastreo PHP.
  */
 add_filter(
     'seo_supplier_external_web_recipes',
@@ -56,7 +52,7 @@ add_filter(
 
         $recipes['rubix_github'] = [
             'id'               => 'rubix_github',
-            'label'            => 'Rubix - Python externo',
+            'label'            => 'RUBIX - Python externo',
             'provider'         => 'RUBIX',
             'version'          => '1.1.0',
             'runner'           => 'github',
