@@ -57,6 +57,7 @@
             loading: false,
             searchId: '',
             semanticHint: null,
+            semanticHints: [],
             clarification: null,
             clarificationTimer: null,
             feedbackTimer: null,
@@ -120,6 +121,7 @@
                 state.q = nextQuery;
                 state.contextLabel = '';
                 state.semanticHint = null;
+                state.semanticHints = [];
                 state.page = 1;
                 search(true);
             });
@@ -325,6 +327,7 @@
                     state.q = value;
                     state.contextLabel = '';
                     state.semanticHint = null;
+                    state.semanticHints = [];
                     state.page = 1;
                     search(true);
                 });
@@ -355,6 +358,7 @@
                     state.contextLabel = cards[index] ? cards[index].label : '';
                     state.q = '';
                     state.semanticHint = null;
+                    state.semanticHints = [];
                     elements.query.value = '';
                     state.page = 1;
                     setMode(mode, 'menu');
@@ -368,6 +372,7 @@
             if (!slug) return;
             if (filter.type === 'categories') state.filters.categories = [slug];
             if (filter.type === 'tags') state.filters.tags = [slug];
+            if (filter.type === 'brands') state.filters.brands = [slug];
             if (filter.type === 'vocabulary' && filter.group) state.filters.vocabulary[filter.group] = [slug];
             if (filter.type === 'attributes' && filter.group) state.filters.attributes[filter.group] = [slug];
         }
@@ -413,11 +418,16 @@
                         per_page: state.perPage,
                         orderby: state.orderby,
                         filters: state.filters,
-                        semantic_hint: state.semanticHint || null
+                        semantic_hint: state.semanticHint || null,
+                        semantic_hints: Array.isArray(state.semanticHints) ? state.semanticHints : []
                     }
                 });
                 state.facets = data.facets || null;
                 state.searchId = String(data.search_id || '');
+                if (Array.isArray(data.semantic_hints)) {
+                    state.semanticHints = data.semantic_hints.slice(0, 2);
+                    state.semanticHint = state.semanticHints.length ? state.semanticHints[state.semanticHints.length - 1] : null;
+                }
                 updateHelpPrompt(data);
                 renderSummary(data);
                 renderFilters(data.facets || {});
@@ -583,6 +593,7 @@
                         page_url: window.location.href,
                         filters: state.filters || emptyFilters(),
                         semantic_hint: state.semanticHint || null,
+                        semantic_hints: Array.isArray(state.semanticHints) ? state.semanticHints : [],
                         orderby: state.orderby || 'relevance',
                         compare_ids: Array.from(state.compare || []),
                         website: websiteInput ? websiteInput.value : ''
@@ -636,8 +647,13 @@
 
         function renderClarification(clarification) {
             if (!state.searchId || elements.results.querySelector('[data-dependiente-clarification]')) return;
+            const step = Math.max(1, Number(clarification.step || (state.semanticHints.length + 1) || 1));
+            const maxSteps = Math.max(step, Number(clarification.max_steps || 2));
+            const reduction = Math.max(0, Number(clarification.estimated_reduction || 0));
             const options = (clarification.options || []).map(function (option) {
-                return '<button type="button" class="seo-dependiente__empty-action" data-dependiente-clarify' +
+                const count = Number(option.count || 0);
+                const countText = count > 0 ? '<small>' + numberFormat(count) + ' opciones</small>' : '';
+                return '<button type="button" class="seo-dependiente__clarification-option" data-dependiente-clarify' +
                     ' data-role="' + escapeAttr(option.role || clarification.role || 'term') + '"' +
                     ' data-value="' + escapeAttr(option.value || '') + '"' +
                     ' data-label="' + escapeAttr(option.label || option.value || '') + '"' +
@@ -645,14 +661,21 @@
                     ' data-source-group="' + escapeAttr(option.source_group || '') + '"' +
                     ' data-source-slug="' + escapeAttr(option.source_slug || '') + '"' +
                     ' data-filter="' + escapeAttr(JSON.stringify(option.filter || {})) + '">' +
-                    escapeHtml(option.label || option.value || '') + '</button>';
+                    '<span>' + escapeHtml(option.label || option.value || '') + '</span>' + countText + '</button>';
             }).join('');
 
-            const html = '<section class="seo-dependiente__empty-actions seo-dependiente__clarification" data-dependiente-clarification>' +
+            const reductionText = reduction >= 20
+                ? '<span class="seo-dependiente__clarification-impact">Esta respuesta puede descartar aprox. ' + escapeHtml(String(reduction)) + '% de opciones.</span>'
+                : '<span class="seo-dependiente__clarification-impact">Con esta respuesta puedo orientar mejor la búsqueda.</span>';
+            const html = '<section class="seo-dependiente__clarification" data-dependiente-clarification role="region" aria-live="polite" aria-label="Pregunta del Intérprete">' +
                 assistantAvatarHtml('seo-dependiente__assistant-avatar--message') +
                 '<div class="seo-dependiente__assistant-message">' +
+                '<div class="seo-dependiente__clarification-head"><span>Antes de afinar los productos</span><small>Pregunta ' + step + ' de hasta ' + maxSteps + '</small></div>' +
                 '<strong>' + escapeHtml(clarification.question || '¿Puedes concretar un poco más?') + '</strong>' +
-                '<div>' + options + '<button type="button" class="seo-dependiente__empty-action" data-dependiente-clarify-other>Otro</button></div>' +
+                '<p>Elige una opción. No hace falta escribir y usaré tu respuesta para filtrar lo que recibe el Dependiente.</p>' +
+                '<div class="seo-dependiente__clarification-options">' + options +
+                '<button type="button" class="seo-dependiente__clarification-option is-other" data-dependiente-clarify-other><span>Otro</span><small>Escribir solo si ninguna encaja</small></button></div>' +
+                reductionText +
                 '<div data-dependiente-clarify-other-slot></div>' +
                 '</div></section>';
             elements.results.insertAdjacentHTML('afterbegin', html);
@@ -711,7 +734,7 @@
             if (filter && filter.slug) {
                 applyCardFilter(filter);
             }
-            state.semanticHint = {
+            const hint = {
                 role: option.role,
                 value: option.value,
                 label: option.label,
@@ -719,6 +742,13 @@
                 source_group: option.source_group || '',
                 source_slug: option.source_slug || ''
             };
+            state.semanticHint = hint;
+            const key = [hint.role || '', hint.value || '', hint.source_group || ''].join('|');
+            state.semanticHints = (Array.isArray(state.semanticHints) ? state.semanticHints : []).filter(function (known) {
+                return [known.role || '', known.value || '', known.source_group || ''].join('|') !== key;
+            });
+            state.semanticHints.push(hint);
+            state.semanticHints = state.semanticHints.slice(-2);
             state.page = 1;
             removeClarification();
             search(false);
@@ -730,7 +760,10 @@
                 search_id: state.searchId,
                 event: 'clarification_shown',
                 question: clarification.question || '',
-                options: clarification.options || []
+                options: clarification.options || [],
+                clarification_step: Number(clarification.step || 1),
+                clarification_axis: clarification.axis || '',
+                clarification_strategy: clarification.strategy || ''
             });
         }
 
@@ -744,6 +777,8 @@
                 source: option.source || 'closed_option',
                 source_group: option.source_group || '',
                 source_slug: option.source_slug || '',
+                clarification_step: Number((state.clarification && state.clarification.step) || 1),
+                clarification_axis: (state.clarification && state.clarification.axis) || '',
                 is_other: isOther ? 1 : 0
             });
         }
