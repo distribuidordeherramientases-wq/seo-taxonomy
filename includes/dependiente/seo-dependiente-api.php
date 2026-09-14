@@ -74,6 +74,10 @@ final class SEO_Dependiente_API {
         $rows = SEO_Dependiente_Index::get_rows(1200);
         $documents = array_map(array('SEO_Dependiente_Index', 'decode_row'), $rows);
         $facets = self::build_facets($documents);
+        // Para preguntar no usamos todo el universo candidato: el Intérprete recibe
+        // la distribución de los resultados que siguen vivos tras búsqueda/filtros.
+        // Si no hay resultados, cae al conjunto candidato para poder reconducir.
+        $clarification_facets = self::build_facets($matched ? $matched : $documents);
         $max_cards = min(12, max(4, absint(SEO_Dependiente_Plugin::option('menu_cards', 8))));
 
         $actions = isset($facets['vocabulary']['aplicacion']) ? $facets['vocabulary']['aplicacion'] : array();
@@ -147,15 +151,40 @@ final class SEO_Dependiente_API {
         }
         $explicit_faq_owner = self::resolve_explicit_faq_owner($raw_query, $params);
 
-        // Intérprete: transforma lenguaje natural en una consulta canónica
-        // solo cuando la señal es de alta confianza. La pregunta original se
-        // conserva para la respuesta y para cualquier capa de atención al cliente.
+        // El diálogo del Intérprete puede aportar hasta dos confirmaciones. Se
+        // conservan acumuladas para que la segunda respuesta no borre la primera.
+        $semantic_hints = self::sanitize_semantic_hints($params['semantic_hints'] ?? array());
+        $legacy_hint = self::sanitize_semantic_hint($params['semantic_hint'] ?? array());
+        if ($legacy_hint) {
+            $duplicate = false;
+            foreach ($semantic_hints as $known_hint) {
+                if (($known_hint['role'] ?? '') === ($legacy_hint['role'] ?? '')
+                    && ($known_hint['value'] ?? '') === ($legacy_hint['value'] ?? '')
+                    && ($known_hint['source_group'] ?? '') === ($legacy_hint['source_group'] ?? '')) {
+                    $duplicate = true;
+                    break;
+                }
+            }
+            if (!$duplicate) {
+                $semantic_hints[] = $legacy_hint;
+            }
+        }
+        $semantic_hints = array_slice($semantic_hints, 0, 2);
+        $semantic_hint = $semantic_hints ? $semantic_hints[count($semantic_hints) - 1] : array();
+
+        // Intérprete: limpia y orienta lenguaje natural. El Dependiente recibe
+        // después una consulta canónica y, si hubo diálogo, las confirmaciones
+        // elegidas por el cliente.
         $interpreter = class_exists('SEO_Dependiente_Interprete')
             ? SEO_Dependiente_Interprete::interpret($raw_query)
             : array();
-        $query = !empty($interpreter['search_query'])
-            ? (string) $interpreter['search_query']
-            : $raw_query;
+        if (class_exists('SEO_Dependiente_Interprete') && method_exists('SEO_Dependiente_Interprete', 'refine_search_query')) {
+            $query = SEO_Dependiente_Interprete::refine_search_query($interpreter, $semantic_hints);
+        } else {
+            $query = !empty($interpreter['search_query'])
+                ? (string) $interpreter['search_query']
+                : $raw_query;
+        }
         if (function_exists('mb_substr')) {
             $query = mb_substr($query, 0, 180, 'UTF-8');
         } else {
@@ -182,7 +211,6 @@ final class SEO_Dependiente_API {
             $orderby = 'relevance';
         }
         $session_id = isset($params['session_id']) ? sanitize_text_field((string) $params['session_id']) : '';
-        $semantic_hint = self::sanitize_semantic_hint($params['semantic_hint'] ?? array());
 
         // Si el frontend no envia session_id, intentamos mantener una sesion anonima
         // para detectar reformulaciones consecutivas sin guardar IP ni datos personales.
@@ -215,7 +243,7 @@ final class SEO_Dependiente_API {
         }
         $request_kind = $page > 1
             ? 'paginate'
-            : (($semantic_hint || self::has_active_filters($request_filters) || 'relevance' !== $orderby) ? 'refine' : 'search');
+            : (($semantic_hints || self::has_active_filters($request_filters) || 'relevance' !== $orderby) ? 'refine' : 'search');
 
         $semantic_rules_active = 0;
         if (class_exists('SEO_Dependiente_Semantics')) {
@@ -224,14 +252,14 @@ final class SEO_Dependiente_API {
             }
             // La confirmacion no cambia la frase original del cliente. Se usa
             // unicamente como contexto adicional para reinterpretar y refinar.
+            // refine_search_query() ya incorpora las confirmaciones al texto
+            // canónico entregado al motor. No las duplicamos al analizar semántica.
             $analysis_query = $query;
-            if ($semantic_hint) {
-                $analysis_query = trim($analysis_query . ' ' . (string) $semantic_hint['value']);
-            }
             $semantic = SEO_Dependiente_Semantics::analyze($analysis_query);
-            if ($semantic_hint) {
+            if ($semantic_hints) {
                 $semantic['normalized'] = SEO_Dependiente_Semantics::normalize($query);
                 $semantic['confirmed_hint'] = $semantic_hint;
+                $semantic['confirmed_hints'] = $semantic_hints;
             }
         } else {
             $semantic = array();
@@ -308,8 +336,10 @@ final class SEO_Dependiente_API {
             $search_diagnostic['interpreter_query'] = sanitize_text_field((string) ($interpreter['search_query'] ?? ''));
             $search_diagnostic['interpreter_confidence'] = (float) ($interpreter['confidence'] ?? 0);
         }
-        if ($semantic_hint) {
+        if ($semantic_hints) {
             $search_diagnostic['semantic_hint'] = $semantic_hint;
+            $search_diagnostic['semantic_hints'] = $semantic_hints;
+            $search_diagnostic['clarification_answers'] = count($semantic_hints);
         }
 
         if ($run_extended) {
@@ -397,19 +427,21 @@ final class SEO_Dependiente_API {
         $public_semantic = class_exists('SEO_Dependiente_Semantics')
             ? SEO_Dependiente_Semantics::public_analysis($semantic)
             : array();
-        if ($semantic_hint) {
+        if ($semantic_hints) {
             $public_semantic['confirmed_hint'] = $semantic_hint;
+            $public_semantic['confirmed_hints'] = $semantic_hints;
         }
         $clarification = self::build_clarification(
-            $query,
+            $raw_query,
             $mode,
             $semantic,
-            $facets,
+            $clarification_facets,
             $total,
             $search_diagnostic,
-            $semantic_hint,
+            $semantic_hints,
             $request_kind,
-            $explicit_faq_owner
+            $explicit_faq_owner,
+            $interpreter
         );
         // Amazon es una tercera fuente complementaria, no un fallback condicionado.
         // Se prepara en toda busqueda que tenga consulta. El frontend la carga aparte
@@ -448,7 +480,8 @@ final class SEO_Dependiente_API {
                 'orderby'       => $orderby,
                 'filters'       => $filters,
                 'solution_role' => $solution_role,
-                'semantic_hint' => $semantic_hint,
+                'semantic_hint'  => $semantic_hint,
+                'semantic_hints' => $semantic_hints,
             );
             $log_diagnostic['knowledge_results'] = count($related);
             $log_diagnostic['external_search'] = array(
@@ -478,6 +511,8 @@ final class SEO_Dependiente_API {
             'interpreted_query' => $query,
             'interpreter_changed' => !empty($interpreter['changed']),
             'interpreter_lesson' => sanitize_key((string) ($interpreter['lesson_key'] ?? '')),
+            'interpreter_confidence' => (float) ($interpreter['confidence'] ?? 0),
+            'semantic_hints'  => $semantic_hints,
             'mode'            => $mode,
             'solution_role'   => $solution_role,
             'page'            => $page,
@@ -825,157 +860,72 @@ final class SEO_Dependiente_API {
         );
     }
 
-    /**
-     * Decide si conviene pedir una aclaracion y genera opciones cerradas a
-     * partir de intenciones controladas o del vocabulario/facetas reales del
-     * catalogo. El frontend puede retrasar la pregunta y cancelarla si el
-     * cliente hace clic antes en un producto.
-     */
-    private static function build_clarification($query, $mode, $semantic, $facets, $total, $diagnostic, $semantic_hint, $request_kind = 'search', $resolved_owner = array()) {
-        $empty = array(
-            'should_ask' => false,
-            'question'   => '',
-            'role'       => '',
-            'reason'     => '',
-            'delay_ms'   => 0,
-            'options'    => array(),
-        );
-        if ('' === trim((string) $query) || $semantic_hint || 'compare' === $mode || 'search' !== $request_kind) {
-            return $empty;
+    private static function sanitize_semantic_hints($hints) {
+        $clean = array();
+        if (!is_array($hints)) {
+            return $clean;
         }
-        // If a product/category has already been resolved to its canonical ID,
-        // asking again which object the user means is a process error.
-        if (absint($resolved_owner['object_id'] ?? 0) && in_array(absint($resolved_owner['object_type'] ?? 0), array(2,3), true)) {
-            return $empty;
-        }
-
-        $intent = self::semantic_first($semantic, 'intent');
-        $object = self::semantic_first($semantic, 'object');
-        $unresolved = self::semantic_unresolved($semantic);
-        $strategy = sanitize_key((string) ($diagnostic['strategy'] ?? 'strict'));
-        $weak_strategy = in_array($strategy, array('broad_fallback','catalog_fallback','index_unavailable'), true);
-
-        $role = '';
-        $reason = '';
-        if (!$object && ($unresolved || $weak_strategy || 0 === absint($total) || ('need' === $mode && $intent))) {
-            $role = 'object';
-            $reason = 'missing_object';
-        } elseif ('need' === $mode && !$intent) {
-            $role = 'intent';
-            $reason = 'missing_intent';
-        } elseif (($weak_strategy || 0 === absint($total)) && $object && $intent) {
-            $role = 'context';
-            $reason = 'weak_match';
-        }
-
-        if (!$role) {
-            return $empty;
-        }
-
-        $options = self::clarification_options($role, $facets);
-        if (count($options) < 2) {
-            return $empty;
-        }
-
-        if ('intent' === $role) {
-            $question = $object
-                ? 'Para afinar, ¿qué quieres hacer con “' . $object . '”?' 
-                : 'Para afinar, ¿qué quieres hacer?';
-        } elseif ('object' === $role) {
-            $question = '¿A qué tipo de producto o herramienta te refieres?';
-        } else {
-            $question = '¿En qué uso o contexto encaja mejor lo que buscas?';
-        }
-
-        return array(
-            'should_ask' => true,
-            'question'   => $question,
-            'role'       => $role,
-            'reason'     => $reason,
-            // Si la busqueda es muy debil/no tiene resultados, preguntar ya.
-            // En el resto de casos esperar: si hace clic, no se molesta al usuario.
-            'delay_ms'   => ($weak_strategy || 0 === absint($total)) ? 0 : 7000,
-            'options'    => array_slice($options, 0, 4),
-        );
-    }
-
-    private static function clarification_options($role, $facets) {
-        if ('intent' === $role) {
-            return array(
-                array('role'=>'intent','value'=>'reparar','label'=>'Reparar / arreglar','source'=>'controlled_intent','source_group'=>'intent','source_slug'=>'reparar'),
-                array('role'=>'intent','value'=>'sustituir','label'=>'Cambiar / sustituir','source'=>'controlled_intent','source_group'=>'intent','source_slug'=>'sustituir'),
-                array('role'=>'intent','value'=>'instalar','label'=>'Instalar / montar','source'=>'controlled_intent','source_group'=>'intent','source_slug'=>'instalar'),
-                array('role'=>'intent','value'=>'comprar','label'=>'Comprar uno nuevo','source'=>'controlled_intent','source_group'=>'intent','source_slug'=>'comprar'),
-            );
-        }
-
-        $options = array();
-        $seen = array();
-        $sources = array();
-        if ('object' === $role) {
-            $sources = array(
-                array('items'=>(array) ($facets['vocabulary']['subtipo'] ?? array()), 'source'=>'catalog_vocabulary', 'group'=>'subtipo', 'filter_type'=>'vocabulary'),
-                array('items'=>(array) ($facets['vocabulary']['tipo'] ?? array()), 'source'=>'catalog_vocabulary', 'group'=>'tipo', 'filter_type'=>'vocabulary'),
-                array('items'=>(array) ($facets['categories'] ?? array()), 'source'=>'category', 'group'=>'category', 'filter_type'=>'categories'),
-            );
-        } elseif ('context' === $role) {
-            $sources = array(
-                array('items'=>(array) ($facets['vocabulary']['aplicacion'] ?? array()), 'source'=>'catalog_vocabulary', 'group'=>'aplicacion', 'filter_type'=>'vocabulary'),
-                array('items'=>(array) ($facets['vocabulary']['plataforma'] ?? array()), 'source'=>'catalog_vocabulary', 'group'=>'plataforma', 'filter_type'=>'vocabulary'),
-            );
-        }
-
-        foreach ($sources as $source) {
-            foreach (array_slice((array) $source['items'], 0, 8) as $item) {
-                $slug = sanitize_title((string) ($item['slug'] ?? ''));
-                $label = sanitize_text_field((string) ($item['label'] ?? $slug));
-                if (!$slug || !$label) {
-                    continue;
-                }
-                $key = $source['group'] . '|' . $slug;
-                if (isset($seen[$key])) {
-                    continue;
-                }
-                $seen[$key] = true;
-                $filter = 'vocabulary' === $source['filter_type']
-                    ? array('type'=>'vocabulary','group'=>$source['group'],'slug'=>$slug)
-                    : array('type'=>'categories','group'=>'','slug'=>$slug);
-                $options[] = array(
-                    'role'         => $role,
-                    'value'        => $slug,
-                    'label'        => $label,
-                    'source'       => $source['source'],
-                    'source_group' => $source['group'],
-                    'source_slug'  => $slug,
-                    'filter'       => $filter,
-                );
-                if (count($options) >= 4) {
-                    return $options;
-                }
-            }
-        }
-        return $options;
-    }
-
-    private static function semantic_first($semantic, $role) {
-        $values = array_values(array_filter((array) ($semantic['concepts'][$role] ?? array())));
-        return $values ? sanitize_text_field((string) $values[0]) : '';
-    }
-
-    private static function semantic_unresolved($semantic) {
-        $out = array();
-        foreach ((array) ($semantic['groups'] ?? array()) as $group) {
-            if ('term' !== sanitize_key((string) ($group['role'] ?? 'term'))) {
+        foreach ($hints as $hint) {
+            $hint = self::sanitize_semantic_hint($hint);
+            if (!$hint) {
                 continue;
             }
-            $term = class_exists('SEO_Dependiente_Semantics')
-                ? SEO_Dependiente_Semantics::normalize((string) ($group['canonical'] ?? ''))
-                : SEO_Dependiente_Index::normalize((string) ($group['canonical'] ?? ''));
-            if ($term && strlen($term) >= 2) {
-                $out[$term] = true;
+            $duplicate = false;
+            foreach ($clean as $known) {
+                if (($known['role'] ?? '') === ($hint['role'] ?? '')
+                    && ($known['value'] ?? '') === ($hint['value'] ?? '')
+                    && ($known['source_group'] ?? '') === ($hint['source_group'] ?? '')) {
+                    $duplicate = true;
+                    break;
+                }
+            }
+            if (!$duplicate) {
+                $clean[] = $hint;
+            }
+            if (count($clean) >= 2) {
+                break;
             }
         }
-        return array_keys($out);
+        return $clean;
+    }
+
+    /**
+     * El Dependiente ya no redacta preguntas. Entrega únicamente orientación
+     * agregada del catálogo al Intérprete, que decide si preguntar, qué eje
+     * divide mejor los candidatos y qué opciones cerradas mostrar.
+     */
+    private static function build_clarification($query, $mode, $semantic, $facets, $total, $diagnostic, $semantic_hints, $request_kind = 'search', $resolved_owner = array(), $interpreter = array()) {
+        $empty = array(
+            'should_ask'          => false,
+            'question'            => '',
+            'role'                => '',
+            'reason'              => '',
+            'delay_ms'            => 0,
+            'step'                => 0,
+            'max_steps'           => 2,
+            'strategy'            => 'interpreter_information_gain',
+            'axis'                => '',
+            'estimated_reduction' => 0,
+            'options'             => array(),
+        );
+        if (!class_exists('SEO_Dependiente_Interprete') || !method_exists('SEO_Dependiente_Interprete', 'plan_clarification')) {
+            return $empty;
+        }
+
+        $clarification = SEO_Dependiente_Interprete::plan_clarification(array(
+            'query'           => (string) $query,
+            'mode'            => (string) $mode,
+            'semantic'        => is_array($semantic) ? $semantic : array(),
+            'facets'          => is_array($facets) ? $facets : array(),
+            'total'           => absint($total),
+            'diagnostic'      => is_array($diagnostic) ? $diagnostic : array(),
+            'confirmed_hints' => is_array($semantic_hints) ? $semantic_hints : array(),
+            'request_kind'    => (string) $request_kind,
+            'resolved_owner'  => is_array($resolved_owner) ? $resolved_owner : array(),
+            'interpretation'  => is_array($interpreter) ? $interpreter : array(),
+        ));
+
+        return is_array($clarification) ? wp_parse_args($clarification, $empty) : $empty;
     }
 
     private static function woocommerce_ready() {
