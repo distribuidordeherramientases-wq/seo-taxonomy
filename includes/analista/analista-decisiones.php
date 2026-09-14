@@ -61,7 +61,7 @@ if (!function_exists('seo_analista_clean_evidence')) {
             $query = is_array($row) ? ($row['query'] ?? $row['query_text'] ?? '') : $row;
             $query = seo_analista_clean_query($query);
             $key = seo_analista_normalize_text($query);
-            if ($query === '' || $key === '' || isset($seen[$key])) continue;
+            if ($query === '' || $key === '' || !seo_analista_query_is_actionable($query) || isset($seen[$key])) continue;
             $seen[$key] = true;
             $out[] = $query;
             if (count($out) >= max(1, absint($limit))) break;
@@ -79,7 +79,7 @@ if (!function_exists('seo_analista_google_plan')) {
         $grouped = array();
 
         foreach ((array) ($payload['rows'] ?? array()) as $row) {
-            if (!is_array($row) || (int) ($row['priority'] ?? 0) < 45) continue;
+            if (!is_array($row) || (int) ($row['priority'] ?? 0) < 35) continue;
 
             $topic = seo_analista_clean_query($row['topic'] ?? '');
             if ($topic === '' || !seo_analista_query_is_actionable($topic)) continue;
@@ -345,6 +345,15 @@ if (!function_exists('seo_analista_decision_plan')) {
             if (!seo_analista_merge_external_signal($plan, $row, 0.65)) $plan[] = $row;
         }
 
+        // Bing es una fuente secundaria: confirma demanda y rastreo, pero no
+        // puede sustituir a Search Console ni elevar por si solo una tarea a
+        // HACER_AHORA. Su peso final se controla en analista-estrategia.php.
+        if (function_exists('seo_analista_bing_work')) {
+            foreach (seo_analista_bing_work($days, 35) as $row) {
+                if (!seo_analista_merge_external_signal($plan, $row, 0.70)) $plan[] = $row;
+            }
+        }
+
         $search = seo_analista_internal_search_snapshot($days, 40);
         foreach (array_slice((array) ($search['gaps'] ?? array()), 0, 15) as $row) {
             $count = (int) ($row['searches'] ?? 0);
@@ -433,15 +442,30 @@ if (!function_exists('seo_analista_decision_plan')) {
             unset($existing);
         }
         usort($dedup, static function($a,$b){ return (int) ($b['priority'] ?? 0) <=> (int) ($a['priority'] ?? 0); });
+
+        // La prioridad legacy solo sirve para reunir candidatos. La decision
+        // final se recalcula por autoridad, visitas, ventas, confianza y
+        // calidad real de las fuentes.
+        if (function_exists('seo_analista_prioritize_portfolio')) {
+            return seo_analista_prioritize_portfolio($dedup, $days, max(10, min(80, absint($limit))), 10);
+        }
         return array_slice($dedup, 0, max(5, min(80, absint($limit))));
     }
 }
 
 if (!function_exists('seo_analista_plan_summary')) {
     function seo_analista_plan_summary(array $plan) {
+        if (function_exists('seo_analista_strategy_summary')) return seo_analista_strategy_summary($plan);
         $out = array(
             'total' => count($plan),
             'high' => 0,
+            'hacer_ahora' => 0,
+            'hacer_despues' => 0,
+            'vigilar' => 0,
+            'sin_accion' => 0,
+            'authority' => 0,
+            'traffic' => 0,
+            'sales' => 0,
             'catalogo' => 0,
             'contenido' => 0,
             'seo' => 0,
@@ -455,9 +479,7 @@ if (!function_exists('seo_analista_plan_summary')) {
             $channel = (string) ($row['channel'] ?? 'seo');
             if (isset($out[$channel])) $out[$channel]++;
             else $out['seo']++;
-            if (stripos((string) ($row['source'] ?? ''), 'competencia') !== false || !empty($row['competition'])) {
-                $out['competencia']++;
-            }
+            if (stripos((string) ($row['source'] ?? ''), 'competencia') !== false || !empty($row['competition'])) $out['competencia']++;
         }
         return $out;
     }

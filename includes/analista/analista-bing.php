@@ -115,8 +115,16 @@ if (!function_exists('seo_analista_bing_rows_in_period')) {
 if (!function_exists('seo_analista_bing_aggregate_stats')) {
     function seo_analista_bing_aggregate_stats(array $rows, $key_name, $limit = 50) {
         $groups = array();
+        $key_names = is_array($key_name) ? $key_name : array($key_name);
         foreach ($rows as $row) {
-            $key = trim((string) ($row[$key_name] ?? ''));
+            $key = '';
+            foreach ($key_names as $candidate_key) {
+                $candidate_key = (string) $candidate_key;
+                if ($candidate_key !== '' && isset($row[$candidate_key]) && trim((string) $row[$candidate_key]) !== '') {
+                    $key = trim((string) $row[$candidate_key]);
+                    break;
+                }
+            }
             if ($key === '') continue;
             if (!isset($groups[$key])) {
                 $groups[$key] = array(
@@ -223,7 +231,7 @@ if (!function_exists('seo_analista_bing_snapshot')) {
         $queries = is_wp_error($queries_raw) ? array() : seo_analista_bing_rows_in_period((array) $queries_raw, $days);
         $pages = is_wp_error($pages_raw) ? array() : seo_analista_bing_rows_in_period((array) $pages_raw, $days);
         $base['top_queries'] = seo_analista_bing_aggregate_stats($queries, 'Query', $limit);
-        $base['top_pages'] = seo_analista_bing_aggregate_stats($pages, 'Query', $limit);
+        $base['top_pages'] = seo_analista_bing_aggregate_stats($pages, array('Url','URL','Page','PageUrl','Query'), $limit);
 
         foreach ($base['top_queries'] as &$row) $row['query'] = $row['value'];
         unset($row);
