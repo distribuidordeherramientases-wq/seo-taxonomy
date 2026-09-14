@@ -10,7 +10,7 @@ defined('ABSPATH') || exit;
  * Academia: aprende lenguaje de cliente y lo traduce al lenguaje canonico.
  */
 final class SEO_Dependiente_Interprete {
-    const VERSION = '0.4.0';
+    const VERSION = '0.5.0';
 
     private static $morphology = null;
 
@@ -260,6 +260,12 @@ final class SEO_Dependiente_Interprete {
             ? SEO_Dependiente_Linguista::process_monitor_payload()
             : array();
         ?>
+        <?php if (!empty($_GET['linguista_notice'])) : ?>
+            <div class="notice notice-success is-dismissible"><p><?php echo esc_html(rawurldecode(sanitize_text_field(wp_unslash($_GET['linguista_notice'])))); ?></p></div>
+        <?php endif; ?>
+        <?php if (!empty($_GET['linguista_error'])) : ?>
+            <div class="notice notice-error is-dismissible"><p><?php echo esc_html(rawurldecode(sanitize_text_field(wp_unslash($_GET['linguista_error'])))); ?></p></div>
+        <?php endif; ?>
         <div class="postbox seo-dependiente-admin__box" style="margin-top:16px; padding:18px;">
             <h2 style="margin-top:0;">Intérprete <small>v<?php echo esc_html(self::VERSION); ?></small></h2>
             <p><strong>Objetivo:</strong> enseñar al Dependiente a entender cómo habla el cliente.</p>
@@ -296,21 +302,107 @@ final class SEO_Dependiente_Interprete {
 
         <div class="postbox seo-dependiente-admin__box" style="padding:18px;">
             <h2 style="margin-top:0;">Lingüista · formación del Intérprete</h2>
-            <p><strong>Objetivo:</strong> que el Intérprete entienda cómo habla el cliente y entregue al Dependiente una petición clara. El catálogo específico se aprende automáticamente; no hay que mantener una lista manual de todas las palabras.</p>
-            <?php if ($linguista) :
+            <p><strong>Objetivo:</strong> enseñar al Intérprete a comprender cómo habla el cliente y entregar al Dependiente una petición clara. Academia enseña catálogo al Dependiente; Lingüista enseña lenguaje al Intérprete.</p>
+            <?php if (!$linguista) : ?>
+                <div class="notice notice-error inline"><p><strong>Lingüista no está cargado.</strong> Revisa el bootstrap del Intérprete antes de iniciar la formación.</p></div>
+            <?php else :
                 $ling_state = isset($linguista['state']) && is_array($linguista['state']) ? $linguista['state'] : array();
                 $ling_current = isset($linguista['current']) && is_array($linguista['current']) ? $linguista['current'] : array();
+                $ling_rows = isset($linguista['lesson_statuses']) && is_array($linguista['lesson_statuses']) ? $linguista['lesson_statuses'] : array();
+                $ling_progress = absint($linguista['progress'] ?? 0);
+                $ling_status = sanitize_key((string) ($ling_state['status'] ?? 'stopped'));
+                $ling_running = !empty($linguista['running']);
+                $status_labels = array(
+                    'stopped' => 'Preparado',
+                    'running' => 'En formación',
+                    'paused' => 'Pausado',
+                    'error' => 'Error',
+                    'completed' => 'Curso completado',
+                );
+                $status_label = $status_labels[$ling_status] ?? $ling_status;
             ?>
-                <p>Estado: <strong><?php echo esc_html((string) ($ling_state['status'] ?? 'stopped')); ?></strong>
-                · aprendidas activas: <strong><?php echo esc_html(number_format_i18n((int) ($stats['active'] ?? 0))); ?></strong>
-                · evidencias: <strong><?php echo esc_html(number_format_i18n((int) ($stats['evidence'] ?? 0))); ?></strong></p>
-                <?php if ($ling_current) : ?><p>Actual: <strong>Lección <?php echo esc_html((string) absint($ling_current['order'] ?? 0)); ?> · <?php echo esc_html((string) ($ling_current['title'] ?? '')); ?></strong></p><?php endif; ?>
-                <ol>
-                    <?php foreach ((array) ($linguista['lessons'] ?? array()) as $lesson) : ?>
-                        <li><strong><?php echo esc_html('L' . absint($lesson['order'] ?? 0) . ' · ' . (string) ($lesson['title'] ?? '')); ?></strong> — <?php echo esc_html((string) ($lesson['goal'] ?? '')); ?></li>
+                <p>
+                    Estado: <strong><?php echo esc_html($status_label); ?></strong>
+                    · progreso: <strong><?php echo esc_html(number_format_i18n($ling_progress)); ?>%</strong>
+                    · lote actual: <strong><?php echo esc_html(number_format_i18n(absint($ling_state['batch_size'] ?? 0))); ?></strong>
+                    · memoria activa: <strong><?php echo esc_html(number_format_i18n((int) ($stats['active'] ?? 0))); ?></strong>
+                    · evidencias: <strong><?php echo esc_html(number_format_i18n((int) ($stats['evidence'] ?? 0))); ?></strong>
+                </p>
+                <div style="height:10px;background:#dcdcde;border-radius:8px;overflow:hidden;max-width:760px;margin:8px 0 14px;">
+                    <div style="height:100%;width:<?php echo esc_attr((string) $ling_progress); ?>%;background:#2271b1;"></div>
+                </div>
+                <?php if ($ling_current) : ?>
+                    <p>Lección actual: <strong>L<?php echo esc_html((string) absint($ling_current['order'] ?? 0)); ?> · <?php echo esc_html((string) ($ling_current['title'] ?? '')); ?></strong></p>
+                <?php endif; ?>
+                <?php if (!empty($ling_state['last_message'])) : ?>
+                    <p class="description"><?php echo esc_html((string) $ling_state['last_message']); ?></p>
+                <?php endif; ?>
+                <?php if (!empty($ling_state['last_error'])) : ?>
+                    <div class="notice notice-error inline"><p><?php echo esc_html((string) $ling_state['last_error']); ?></p></div>
+                <?php endif; ?>
+
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 18px;">
+                    <?php if ($ling_running) : ?>
+                        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                            <input type="hidden" name="action" value="seo_dependiente_linguista_control">
+                            <input type="hidden" name="command" value="pause">
+                            <?php wp_nonce_field('seo_dependiente_linguista_control'); ?>
+                            <button type="submit" class="button">Pausar formación</button>
+                        </form>
+                    <?php elseif (in_array($ling_status, array('paused','error'), true)) : ?>
+                        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                            <input type="hidden" name="action" value="seo_dependiente_linguista_control">
+                            <input type="hidden" name="command" value="resume">
+                            <?php wp_nonce_field('seo_dependiente_linguista_control'); ?>
+                            <button type="submit" class="button button-primary">Reanudar formación</button>
+                        </form>
+                    <?php elseif ('completed' !== $ling_status) : ?>
+                        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                            <input type="hidden" name="action" value="seo_dependiente_linguista_control">
+                            <input type="hidden" name="command" value="start">
+                            <?php wp_nonce_field('seo_dependiente_linguista_control'); ?>
+                            <button type="submit" class="button button-primary">Iniciar formación Lingüista</button>
+                        </form>
+                    <?php endif; ?>
+                    <?php if ('completed' === $ling_status) : ?>
+                        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" onsubmit="return confirm('¿Reentrenar Lingüista desde L1? La memoria aprendida no se borra; se vuelve a validar.');">
+                            <input type="hidden" name="action" value="seo_dependiente_linguista_control">
+                            <input type="hidden" name="command" value="restart_course">
+                            <?php wp_nonce_field('seo_dependiente_linguista_control'); ?>
+                            <button type="submit" class="button">Reentrenar desde L1</button>
+                        </form>
+                    <?php endif; ?>
+                </div>
+
+                <table class="widefat striped" style="max-width:1100px;">
+                    <thead><tr><th>Lección</th><th>Estado</th><th>Progreso</th><th>Aprendido / revisado</th><th>Acción</th></tr></thead>
+                    <tbody>
+                    <?php foreach ($ling_rows as $row) :
+                        $row_status = sanitize_key((string) ($row['status'] ?? 'pending'));
+                        $row_labels = array('completed'=>'Completada','running'=>'En curso','paused'=>'Pausada','error'=>'Error','pending'=>'Pendiente','locked'=>'Bloqueada');
+                    ?>
+                        <tr>
+                            <td><strong>L<?php echo esc_html((string) absint($row['order'] ?? 0)); ?> · <?php echo esc_html((string) ($row['title'] ?? '')); ?></strong><br><small><?php echo esc_html((string) ($row['goal'] ?? '')); ?></small></td>
+                            <td><?php echo esc_html($row_labels[$row_status] ?? $row_status); ?></td>
+                            <td><?php echo esc_html(number_format_i18n(absint($row['progress'] ?? 0))); ?>%</td>
+                            <td><?php echo esc_html(number_format_i18n(absint($row['learned'] ?? 0))); ?> aprendidas · <?php echo esc_html(number_format_i18n(absint($row['rejected'] ?? 0))); ?> rechazadas · <?php echo esc_html(number_format_i18n(absint($row['processed'] ?? 0))); ?> procesadas</td>
+                            <td>
+                                <?php if (!$ling_running && in_array($row_status, array('completed','paused','error'), true)) : ?>
+                                    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" onsubmit="return confirm('¿Reentrenar desde esta lección? Los resultados posteriores se invalidarán, pero no se borrará la memoria lingüística ya aprendida.');">
+                                        <input type="hidden" name="action" value="seo_dependiente_linguista_control">
+                                        <input type="hidden" name="command" value="retrain_from">
+                                        <input type="hidden" name="lesson_key" value="<?php echo esc_attr((string) ($row['key'] ?? '')); ?>">
+                                        <?php wp_nonce_field('seo_dependiente_linguista_control'); ?>
+                                        <button type="submit" class="button button-small">Reentrenar desde aquí</button>
+                                    </form>
+                                <?php else : ?>—<?php endif; ?>
+                            </td>
+                        </tr>
                     <?php endforeach; ?>
-                </ol>
-                <p><a class="button button-primary" href="<?php echo esc_url(add_query_arg(array('page'=>'seo-processes'), admin_url('admin.php'))); ?>">Abrir Gestor de procesos</a></p>
+                    </tbody>
+                </table>
+
+                <p class="description" style="margin-top:14px;"><strong>Worker:</strong> Lingüista solo empieza cuando lo arrancas aquí. Después el gestor le concede ventanas de trabajo y procesa lotes pequeños/adaptativos; nunca lanza toda una lección de golpe.</p>
             <?php endif; ?>
             <p class="description">Regresión base conservada: <code>extractor ↔ extraer/sacar</code>, <code>taladro ↔ taladrar/perforar/agujerear</code> y desambiguación de compresor de aire.</p>
         </div>
