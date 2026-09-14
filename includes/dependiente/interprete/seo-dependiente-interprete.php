@@ -10,7 +10,7 @@ defined('ABSPATH') || exit;
  * Academia: aprende lenguaje de cliente y lo traduce al lenguaje canonico.
  */
 final class SEO_Dependiente_Interprete {
-    const VERSION = '0.5.0';
+    const VERSION = '0.6.0';
 
     private static $morphology = null;
 
@@ -238,6 +238,429 @@ final class SEO_Dependiente_Interprete {
         }
 
         return $result;
+    }
+
+
+    /**
+     * Diseña, desde el Intérprete, una pregunta corta de desambiguación.
+     *
+     * El Intérprete no consulta productos ni decide resultados. Recibe únicamente
+     * la orientación agregada del conjunto candidato (facetas + recuentos) y elige
+     * la pregunta que mejor puede reducir la ambigüedad. El API del Dependiente se
+     * limita a ejecutar después el filtro confirmado por el cliente.
+     *
+     * @param array $context Contexto agregado de la búsqueda.
+     * @return array
+     */
+    public static function plan_clarification($context = array()) {
+        $empty = array(
+            'should_ask'          => false,
+            'question'            => '',
+            'role'                => '',
+            'reason'              => '',
+            'delay_ms'            => 0,
+            'step'                => 0,
+            'max_steps'           => 2,
+            'strategy'            => 'interpreter_information_gain',
+            'axis'                => '',
+            'estimated_reduction' => 0,
+            'options'             => array(),
+        );
+
+        $query = self::clean_query((string) ($context['query'] ?? ''));
+        $mode = sanitize_key((string) ($context['mode'] ?? 'need'));
+        $request_kind = sanitize_key((string) ($context['request_kind'] ?? 'search'));
+        $resolved_owner = isset($context['resolved_owner']) && is_array($context['resolved_owner'])
+            ? $context['resolved_owner']
+            : array();
+        $confirmed = self::sanitize_guidance_hints((array) ($context['confirmed_hints'] ?? array()));
+        $step = count($confirmed) + 1;
+
+        if ('' === $query || 'compare' === $mode || $step > 2 || in_array($request_kind, array('paginate','compare'), true)) {
+            return $empty;
+        }
+        if (absint($resolved_owner['object_id'] ?? 0) && in_array(absint($resolved_owner['object_type'] ?? 0), array(2,3), true)) {
+            return $empty;
+        }
+
+        $semantic = isset($context['semantic']) && is_array($context['semantic']) ? $context['semantic'] : array();
+        $facets = isset($context['facets']) && is_array($context['facets']) ? $context['facets'] : array();
+        $diagnostic = isset($context['diagnostic']) && is_array($context['diagnostic']) ? $context['diagnostic'] : array();
+        $interpretation = isset($context['interpretation']) && is_array($context['interpretation']) ? $context['interpretation'] : array();
+        $total = max(0, absint($context['total'] ?? 0));
+        $strategy = sanitize_key((string) ($diagnostic['strategy'] ?? 'strict'));
+        $weak_strategy = in_array($strategy, array('broad_fallback','catalog_fallback','index_unavailable'), true);
+        $object = self::semantic_first_value($semantic, 'object');
+        $intent = self::semantic_first_value($semantic, 'intent');
+        $unresolved = self::semantic_unresolved_values($semantic);
+        $language = isset($interpretation['language']) && is_array($interpretation['language']) ? $interpretation['language'] : array();
+        $content_tokens = array_values(array_filter((array) ($language['content_tokens'] ?? array())));
+        if (!$content_tokens) {
+            $content_tokens = array_values(array_filter(explode(' ', self::normalize($query))));
+        }
+
+        // Tras una respuesta buena, con pocos candidatos y estrategia sólida no
+        // molestamos al cliente con una segunda pregunta innecesaria.
+        if ($confirmed && !$weak_strategy && !$unresolved && $total > 0 && $total <= 8) {
+            return $empty;
+        }
+        if (!$confirmed && !$weak_strategy && !$unresolved && $total > 0 && $total <= 3 && count($content_tokens) >= 2) {
+            return $empty;
+        }
+
+        $answered_axes = array();
+        foreach ($confirmed as $hint) {
+            $group = sanitize_key((string) ($hint['source_group'] ?? ''));
+            $role = sanitize_key((string) ($hint['role'] ?? 'term'));
+            $answered_axes[$role . '|' . $group] = true;
+            if ($group) {
+                $answered_axes['group|' . $group] = true;
+            }
+        }
+
+        $reason = '';
+        $preferred = '';
+        if (!$object && ($unresolved || $weak_strategy || 0 === $total)) {
+            $preferred = 'object';
+            $reason = 'missing_object';
+        } elseif ('need' === $mode && !$intent && !isset($answered_axes['intent|intent'])) {
+            $preferred = 'intent';
+            $reason = 'missing_intent';
+        } elseif ($weak_strategy || 0 === $total) {
+            $preferred = 'context';
+            $reason = 'weak_match';
+        } elseif ($total > 8 || count($content_tokens) <= 3) {
+            $preferred = 'context';
+            $reason = 'broad_result_set';
+        } else {
+            return $empty;
+        }
+
+        $axes = self::clarification_axes($facets, $total, $object, $answered_axes);
+        $axis = self::choose_clarification_axis($axes, $preferred);
+
+        // Si falta intención, una aplicación real del catálogo es mejor pregunta
+        // que una lista genérica de verbos. Solo caemos al repertorio controlado
+        // cuando no existe una división útil en las facetas candidatas.
+        if ('intent' === $preferred && (!$axis || !in_array((string) ($axis['kind'] ?? ''), array('application','tag','attribute'), true))) {
+            $options = self::controlled_intent_options();
+            if (count($options) >= 2) {
+                $axis = array(
+                    'kind'      => 'intent',
+                    'group'     => 'intent',
+                    'role'      => 'intent',
+                    'question'  => $object
+                        ? '¿Qué quieres hacer con “' . $object . '”?' 
+                        : '¿Qué quieres conseguir?',
+                    'score'     => 0.55,
+                    'reduction' => 45,
+                    'options'   => $options,
+                );
+            }
+        }
+
+        if (!$axis || empty($axis['options']) || count((array) $axis['options']) < 2) {
+            return $empty;
+        }
+
+        $options = array_slice(array_values((array) $axis['options']), 0, 4);
+        return array(
+            'should_ask'          => true,
+            'question'            => sanitize_text_field((string) ($axis['question'] ?? '¿Cuál de estas opciones encaja mejor?')),
+            'role'                => sanitize_key((string) ($axis['role'] ?? $preferred ?: 'context')),
+            'reason'              => $reason ?: 'information_gain',
+            // Las preguntas forman parte de la interpretación, no son un mensaje
+            // secundario. Se muestran enseguida; una interacción con producto las
+            // cancela como hasta ahora.
+            'delay_ms'            => $weak_strategy || 0 === $total ? 0 : 350,
+            'step'                => $step,
+            'max_steps'           => 2,
+            'strategy'            => 'interpreter_information_gain',
+            'axis'                => sanitize_key((string) ($axis['group'] ?? $axis['kind'] ?? '')),
+            'estimated_reduction' => max(0, min(95, absint($axis['reduction'] ?? 0))),
+            'options'             => $options,
+        );
+    }
+
+    /**
+     * Genera la consulta limpia que el Intérprete entrega al Dependiente.
+     * Las confirmaciones del diálogo se agregan como orientación canónica, sin
+     * reemplazar ni reescribir lo que el cliente escribió originalmente.
+     */
+    public static function refine_search_query($interpretation, $confirmed_hints = array()) {
+        $interpretation = is_array($interpretation) ? $interpretation : array();
+        $query = self::clean_query((string) ($interpretation['search_query'] ?? $interpretation['original'] ?? ''));
+        $language = isset($interpretation['language']) && is_array($interpretation['language']) ? $interpretation['language'] : array();
+
+        // Cuando Lingüista ya ha activado gramática natural, preferimos la versión
+        // sin palabras funcionales si el léxico no produjo una reescritura mejor.
+        if (empty($interpretation['changed']) && !empty($language['enabled'])) {
+            $semantic_query = self::clean_query((string) ($language['semantic_query'] ?? ''));
+            if ('' !== $semantic_query) {
+                $query = $semantic_query;
+            }
+        }
+
+        $parts = array();
+        if ('' !== $query) {
+            $parts[] = $query;
+        }
+        foreach (self::sanitize_guidance_hints((array) $confirmed_hints) as $hint) {
+            $value = self::clean_query((string) ($hint['value'] ?? ''));
+            if ('' !== $value && !self::contains_phrase(self::normalize(implode(' ', $parts)), self::normalize($value))) {
+                $parts[] = $value;
+            }
+        }
+        return self::clean_query(implode(' ', array_unique($parts)));
+    }
+
+    private static function sanitize_guidance_hints($hints) {
+        $clean = array();
+        foreach ((array) $hints as $hint) {
+            if (!is_array($hint)) {
+                continue;
+            }
+            $role = sanitize_key((string) ($hint['role'] ?? 'term'));
+            if (!in_array($role, array('intent','object','context','state','term'), true)) {
+                continue;
+            }
+            $value = self::normalize((string) ($hint['value'] ?? ''));
+            if ('' === $value) {
+                continue;
+            }
+            $clean[] = array(
+                'role'         => $role,
+                'value'        => $value,
+                'label'        => sanitize_text_field((string) ($hint['label'] ?? $value)),
+                'source'       => sanitize_key((string) ($hint['source'] ?? 'interpreter_clarification')) ?: 'interpreter_clarification',
+                'source_group' => sanitize_key((string) ($hint['source_group'] ?? '')),
+                'source_slug'  => sanitize_title((string) ($hint['source_slug'] ?? '')),
+            );
+            if (count($clean) >= 2) {
+                break;
+            }
+        }
+        return $clean;
+    }
+
+    private static function clarification_axes($facets, $total, $object, $answered_axes) {
+        $axes = array();
+        $total = max(1, absint($total));
+        $vocabulary = isset($facets['vocabulary']) && is_array($facets['vocabulary']) ? $facets['vocabulary'] : array();
+
+        $vocab_defs = array(
+            'aplicacion' => array('kind'=>'application','role'=>'context','priority'=>0.18,'question'=>'¿Para qué uso lo necesitas?'),
+            'subtipo'    => array('kind'=>'subtype','role'=>'object','priority'=>0.15,'question'=>$object ? '¿Qué tipo de “' . $object . '” encaja mejor?' : '¿Qué tipo de producto se acerca más a lo que buscas?'),
+            'tipo'       => array('kind'=>'type','role'=>'object','priority'=>0.12,'question'=>$object ? '¿Qué tipo de “' . $object . '” buscas?' : '¿A qué tipo de producto o herramienta te refieres?'),
+            'plataforma' => array('kind'=>'platform','role'=>'context','priority'=>0.10,'question'=>'¿Con qué sistema o plataforma debe ser compatible?'),
+            'rol'        => array('kind'=>'role','role'=>'object','priority'=>0.04,'question'=>'¿Qué necesitas exactamente: herramienta, accesorio u otro tipo de producto?'),
+        );
+        foreach ($vocab_defs as $group => $def) {
+            if (isset($answered_axes['group|' . $group])) {
+                continue;
+            }
+            $axis = self::make_catalog_axis((array) ($vocabulary[$group] ?? array()), $total, array_merge($def, array(
+                'group'       => $group,
+                'filter_type' => 'vocabulary',
+                'source'      => 'catalog_vocabulary',
+            )));
+            if ($axis) {
+                $axes[] = $axis;
+            }
+        }
+
+        foreach ((array) ($facets['attributes'] ?? array()) as $attribute) {
+            $group = sanitize_key((string) ($attribute['key'] ?? ''));
+            $label = sanitize_text_field((string) ($attribute['label'] ?? $group));
+            if (!$group || isset($answered_axes['group|' . $group])) {
+                continue;
+            }
+            $label_norm = self::normalize($label);
+            $question = '¿Qué opción de “' . $label . '” necesitas?';
+            $priority = 0.08;
+            if (preg_match('/\b(material|superficie|soporte)\b/', $label_norm)) {
+                $question = '¿Sobre qué material o superficie lo vas a usar?';
+                $priority = 0.24;
+            } elseif (preg_match('/\b(ubicacion|estancia|lugar|interior|exterior)\b/', $label_norm)) {
+                $question = '¿Dónde lo vas a usar?';
+                $priority = 0.22;
+            } elseif (preg_match('/\b(uso|aplicacion|trabajo)\b/', $label_norm)) {
+                $question = '¿Para qué trabajo lo necesitas?';
+                $priority = 0.20;
+            } elseif (preg_match('/\b(compatibilidad|compatible|sistema)\b/', $label_norm)) {
+                $question = '¿Con qué sistema debe ser compatible?';
+                $priority = 0.18;
+            }
+            $axis = self::make_catalog_axis((array) ($attribute['values'] ?? array()), $total, array(
+                'kind'        => 'attribute',
+                'role'        => 'context',
+                'group'       => $group,
+                'filter_type' => 'attributes',
+                'source'      => 'catalog_attribute',
+                'priority'    => $priority,
+                'question'    => $question,
+            ));
+            if ($axis) {
+                $axes[] = $axis;
+            }
+        }
+
+        if (!isset($answered_axes['group|category'])) {
+            $axis = self::make_catalog_axis((array) ($facets['categories'] ?? array()), $total, array(
+                'kind'        => 'category',
+                'role'        => 'object',
+                'group'       => 'category',
+                'filter_type' => 'categories',
+                'source'      => 'category',
+                'priority'    => 0.09,
+                'question'    => $object
+                    ? '¿Qué familia se parece más al “' . $object . '” que buscas?'
+                    : '¿A qué familia de producto te refieres?',
+            ));
+            if ($axis) {
+                $axes[] = $axis;
+            }
+        }
+
+        if (!isset($answered_axes['group|tag'])) {
+            $axis = self::make_catalog_axis((array) ($facets['tags'] ?? array()), $total, array(
+                'kind'        => 'tag',
+                'role'        => 'context',
+                'group'       => 'tag',
+                'filter_type' => 'tags',
+                'source'      => 'catalog_tag',
+                'priority'    => 0.05,
+                'question'    => '¿Cuál de estas características encaja mejor con lo que quieres hacer?',
+            ));
+            if ($axis) {
+                $axes[] = $axis;
+            }
+        }
+
+        return $axes;
+    }
+
+    private static function make_catalog_axis($items, $total, $def) {
+        $items = array_values(array_filter((array) $items, static function($item) {
+            return is_array($item) && !empty($item['slug']) && !empty($item['label']) && absint($item['count'] ?? 0) > 0;
+        }));
+        if (count($items) < 2) {
+            return array();
+        }
+
+        usort($items, static function($a, $b) {
+            return absint($b['count'] ?? 0) <=> absint($a['count'] ?? 0);
+        });
+        $items = array_slice($items, 0, 6);
+        $top = array_slice($items, 0, 4);
+        $counts = array_map(static function($item) { return max(1, absint($item['count'] ?? 0)); }, $top);
+        $sum = max(1, array_sum($counts));
+        $max_share = max($counts) / $sum;
+        $balance = max(0.0, min(1.0, (1.0 - $max_share) / 0.75));
+        $coverage = max(0.0, min(1.0, $sum / max(1, absint($total))));
+        $diversity = max(0.0, min(1.0, count($top) / 4));
+        $priority = (float) ($def['priority'] ?? 0);
+        $score = min(1.5, ($coverage * 0.42) + ($balance * 0.36) + ($diversity * 0.22) + $priority);
+        $reduction = (int) round(max(0, min(0.95, 1.0 - $max_share)) * 100);
+
+        $options = array();
+        foreach ($top as $item) {
+            $slug = sanitize_title((string) ($item['slug'] ?? ''));
+            $label = sanitize_text_field((string) ($item['label'] ?? $slug));
+            if (!$slug || !$label) {
+                continue;
+            }
+            $filter_type = sanitize_key((string) ($def['filter_type'] ?? ''));
+            $group = sanitize_key((string) ($def['group'] ?? ''));
+            $filter = array();
+            if (in_array($filter_type, array('vocabulary','attributes'), true)) {
+                $filter = array('type'=>$filter_type, 'group'=>$group, 'slug'=>$slug);
+            } elseif (in_array($filter_type, array('categories','tags','brands'), true)) {
+                $filter = array('type'=>$filter_type, 'group'=>'','slug'=>$slug);
+            }
+            $options[] = array(
+                'role'         => sanitize_key((string) ($def['role'] ?? 'context')),
+                'value'        => $slug,
+                'label'        => $label,
+                'source'       => sanitize_key((string) ($def['source'] ?? 'catalog_orientation')),
+                'source_group' => $group,
+                'source_slug'  => $slug,
+                'count'        => absint($item['count'] ?? 0),
+                'filter'       => $filter,
+            );
+        }
+        if (count($options) < 2) {
+            return array();
+        }
+
+        return array(
+            'kind'      => sanitize_key((string) ($def['kind'] ?? 'context')),
+            'group'     => sanitize_key((string) ($def['group'] ?? '')),
+            'role'      => sanitize_key((string) ($def['role'] ?? 'context')),
+            'question'  => sanitize_text_field((string) ($def['question'] ?? '¿Cuál de estas opciones encaja mejor?')),
+            'score'     => $score,
+            'reduction' => $reduction,
+            'options'   => $options,
+        );
+    }
+
+    private static function choose_clarification_axis($axes, $preferred) {
+        $axes = array_values(array_filter((array) $axes));
+        if (!$axes) {
+            return array();
+        }
+        $preferred = sanitize_key((string) $preferred);
+        foreach ($axes as &$axis) {
+            $bonus = 0.0;
+            $kind = sanitize_key((string) ($axis['kind'] ?? ''));
+            $role = sanitize_key((string) ($axis['role'] ?? ''));
+            if ('object' === $preferred && ('object' === $role || in_array($kind, array('type','subtype','category','role'), true))) {
+                $bonus = 0.24;
+            } elseif ('intent' === $preferred && in_array($kind, array('application','tag','attribute'), true)) {
+                $bonus = 0.25;
+            } elseif ('context' === $preferred && 'context' === $role) {
+                $bonus = 0.18;
+            }
+            $axis['_rank'] = (float) ($axis['score'] ?? 0) + $bonus;
+        }
+        unset($axis);
+        usort($axes, static function($a, $b) {
+            if ((float) ($a['_rank'] ?? 0) === (float) ($b['_rank'] ?? 0)) {
+                return 0;
+            }
+            return (float) ($a['_rank'] ?? 0) < (float) ($b['_rank'] ?? 0) ? 1 : -1;
+        });
+        $best = $axes[0];
+        unset($best['_rank']);
+        return $best;
+    }
+
+    private static function controlled_intent_options() {
+        return array(
+            array('role'=>'intent','value'=>'reparar','label'=>'Reparar / arreglar','source'=>'interpreter_intent','source_group'=>'intent','source_slug'=>'reparar','filter'=>array()),
+            array('role'=>'intent','value'=>'instalar','label'=>'Instalar / montar','source'=>'interpreter_intent','source_group'=>'intent','source_slug'=>'instalar','filter'=>array()),
+            array('role'=>'intent','value'=>'sustituir','label'=>'Cambiar / sustituir','source'=>'interpreter_intent','source_group'=>'intent','source_slug'=>'sustituir','filter'=>array()),
+            array('role'=>'intent','value'=>'comprar','label'=>'Comprar / elegir','source'=>'interpreter_intent','source_group'=>'intent','source_slug'=>'comprar','filter'=>array()),
+        );
+    }
+
+    private static function semantic_first_value($semantic, $role) {
+        $values = array_values(array_filter((array) ($semantic['concepts'][$role] ?? array())));
+        return $values ? sanitize_text_field((string) $values[0]) : '';
+    }
+
+    private static function semantic_unresolved_values($semantic) {
+        $out = array();
+        foreach ((array) ($semantic['groups'] ?? array()) as $group) {
+            if ('term' !== sanitize_key((string) ($group['role'] ?? 'term'))) {
+                continue;
+            }
+            $term = self::normalize((string) ($group['canonical'] ?? ''));
+            if ($term && strlen($term) >= 2) {
+                $out[$term] = true;
+            }
+        }
+        return array_keys($out);
     }
 
     /**
