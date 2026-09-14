@@ -11,7 +11,7 @@ defined('ABSPATH') || exit;
  * preparado en la memoria local del Intérprete.
  */
 final class SEO_Dependiente_Linguista {
-    const VERSION = '0.2.0';
+    const VERSION = '0.3.0';
     const STATE_OPTION = 'seo_dependiente_linguista_state';
     const GRAMMAR_OPTION = 'seo_dependiente_interprete_grammar';
     const MORPHOLOGY_OPTION = 'seo_dependiente_interprete_morphology';
@@ -28,7 +28,7 @@ final class SEO_Dependiente_Linguista {
 
         add_filter('seo_process_supervisor_has_pending_work', array(__CLASS__, 'supervisor_has_pending_work'), 20, 1);
         add_filter('seo_process_supervisor_manager_targets', array(__CLASS__, 'supervisor_manager_targets'), 20, 3);
-        add_filter('seo_processes_monitor_items', array(__CLASS__, 'processes_monitor_items'), 20, 1);
+        add_action('admin_post_seo_dependiente_linguista_control', array(__CLASS__, 'handle_admin_control'));
     }
 
     public static function lessons() {
@@ -89,6 +89,7 @@ final class SEO_Dependiente_Linguista {
     public static function state() {
         $stored = get_option(self::STATE_OPTION, array());
         $state = wp_parse_args(is_array($stored) ? $stored : array(), self::default_state());
+        $state['version'] = self::VERSION;
         $state['lesson_results'] = isset($state['lesson_results']) && is_array($state['lesson_results']) ? $state['lesson_results'] : array();
         return $state;
     }
@@ -110,53 +111,232 @@ final class SEO_Dependiente_Linguista {
     }
 
     public static function process_control_start() {
+        return self::process_control_start_from('', true);
+    }
+
+    /**
+     * Inicia una formación nueva o reentrena desde una lección concreta.
+     * Nunca borra la memoria lingüística ya aprendida: revalida y actualiza
+     * relaciones por lotes. Al reentrenar desde una lección se invalidan solo
+     * los resultados de esa lección y de las posteriores.
+     */
+    public static function process_control_start_from($lesson_key = '', $fresh_course = false) {
         if (!class_exists('SEO_Dependiente_Interprete_DB')) {
             return new WP_Error('linguista_db_missing', 'La memoria del Intérprete no está disponible.');
         }
         SEO_Dependiente_Interprete_DB::install();
-
-        $current = self::state();
-        if (self::is_pending()) {
-            return array('started' => true, 'message' => 'Lingüista ya está en ejecución.');
-        }
 
         $lessons = self::lessons();
         if (!$lessons) {
             return new WP_Error('linguista_curriculum_missing', 'No se ha podido cargar el plan de formación de Lingüista.');
         }
 
-        $run_id = gmdate('YmdHis') . '-' . wp_generate_password(6, false, false);
-        $first = $lessons[0];
+        $target_index = 0;
+        $lesson_key = sanitize_key((string) $lesson_key);
+        if ('' !== $lesson_key) {
+            $found = false;
+            foreach ($lessons as $index => $lesson) {
+                if ($lesson_key === sanitize_key((string) ($lesson['key'] ?? ''))) {
+                    $target_index = absint($index);
+                    $found = true;
+                    break;
+                }
+            }
+            if (!$found) {
+                return new WP_Error('linguista_lesson_missing', 'La lección solicitada no existe.');
+            }
+        }
+
+        $current = self::state();
+        if (self::is_pending() && !$fresh_course && $target_index === absint($current['lesson_index'] ?? 0)) {
+            return array('started' => true, 'message' => 'Lingüista ya está trabajando en esa lección.');
+        }
+
+        $kept_results = array();
+        if (!$fresh_course && !empty($current['lesson_results']) && is_array($current['lesson_results'])) {
+            foreach ($lessons as $index => $lesson) {
+                if ($index >= $target_index) {
+                    break;
+                }
+                $key = sanitize_key((string) ($lesson['key'] ?? ''));
+                if ($key && isset($current['lesson_results'][$key])) {
+                    $kept_results[$key] = $current['lesson_results'][$key];
+                }
+            }
+        }
+
+        $target = $lessons[$target_index];
         $state = self::default_state();
         $state['enabled'] = 1;
         $state['status'] = 'running';
-        $state['run_id'] = $run_id;
-        $state['lesson_index'] = 0;
-        $state['current_lesson'] = sanitize_key((string) $first['key']);
+        $state['run_id'] = gmdate('YmdHis') . '-' . wp_generate_password(6, false, false);
+        $state['lesson_index'] = $target_index;
+        $state['current_lesson'] = sanitize_key((string) ($target['key'] ?? ''));
         $state['lesson_total'] = self::lesson_total($state['current_lesson']);
-        $state['batch_size'] = self::control_config()['initial_batch'];
+        $control = self::control_config();
+        $state['batch_size'] = absint($control['initial_batch'] ?? 60);
         $state['started_at'] = time();
         $state['heartbeat_at'] = time();
         $state['last_activity_at'] = time();
-        $state['last_message'] = 'Formación Lingüista iniciada manualmente. Lección 1 preparada.';
+        $state['not_before'] = 0;
+        $state['lesson_results'] = $kept_results;
+        $state['last_message'] = 'Lingüista preparado en L' . absint($target['order'] ?? ($target_index + 1)) . ': ' . sanitize_text_field((string) ($target['title'] ?? '')) . '. El worker continuará por lotes.';
         update_option(self::STATE_OPTION, $state, false);
 
-        if (function_exists('seo_process_supervisor_managed_update')) {
-            seo_process_supervisor_managed_update('linguista', array(
-                'name' => 'Lingüista',
-                'pending' => 1,
-                'healthy' => 1,
-                'last_checked' => time(),
-                'last_result' => 'started',
-                'last_error' => '',
-                'detail' => 'Formación del Intérprete iniciada manualmente; el gestor continuará por lotes.',
-            ));
+        self::notify_supervisor('started', 'Formación del Intérprete iniciada manualmente; el worker continuará por lotes.');
+        self::nudge_supervisor(0);
+
+        return array('started' => true, 'message' => $state['last_message']);
+    }
+
+    public static function process_control_pause() {
+        $state = self::state();
+        if ('completed' === sanitize_key((string) ($state['status'] ?? ''))) {
+            return new WP_Error('linguista_completed', 'La formación ya está completada.');
         }
-        if (function_exists('seo_process_supervisor_nudge')) {
-            seo_process_supervisor_nudge(0, 'linguista');
+        self::save_state(array(
+            'enabled' => 0,
+            'status' => 'paused',
+            'not_before' => 0,
+            'last_activity_at' => time(),
+            'last_message' => 'Formación pausada por el usuario. El worker no procesará más lotes hasta reanudar.',
+        ));
+        self::notify_supervisor('paused', 'Formación Lingüista pausada por el usuario.');
+        return array('paused' => true, 'message' => 'Lingüista pausado.');
+    }
+
+    public static function process_control_resume() {
+        $state = self::state();
+        $status = sanitize_key((string) ($state['status'] ?? 'stopped'));
+        if ('completed' === $status) {
+            return new WP_Error('linguista_completed', 'La formación está completada. Usa Reentrenar desde L1 o desde una lección.');
+        }
+        $lessons = self::lessons();
+        $index = min(absint($state['lesson_index'] ?? 0), max(0, count($lessons) - 1));
+        if (empty($state['current_lesson']) && isset($lessons[$index])) {
+            $state['current_lesson'] = sanitize_key((string) ($lessons[$index]['key'] ?? ''));
+            $state['lesson_total'] = self::lesson_total($state['current_lesson']);
+        }
+        $state['enabled'] = 1;
+        $state['status'] = 'running';
+        $state['not_before'] = 0;
+        $state['heartbeat_at'] = time();
+        $state['last_activity_at'] = time();
+        $state['last_error'] = '';
+        $state['last_message'] = 'Formación Lingüista reanudada. El worker continuará desde el último cursor guardado.';
+        update_option(self::STATE_OPTION, $state, false);
+        self::notify_supervisor('resumed', 'Formación Lingüista reanudada; continuará desde el cursor guardado.');
+        self::nudge_supervisor(0);
+        return array('resumed' => true, 'message' => 'Lingüista reanudado.');
+    }
+
+    public static function handle_admin_control() {
+        if (!current_user_can('manage_options') && !current_user_can('manage_woocommerce')) {
+            wp_die(esc_html__('No tienes permisos para controlar Lingüista.', 'seo-taxonomy'));
+        }
+        check_admin_referer('seo_dependiente_linguista_control');
+
+        $command = isset($_POST['command']) ? sanitize_key(wp_unslash((string) $_POST['command'])) : '';
+        $lesson_key = isset($_POST['lesson_key']) ? sanitize_key(wp_unslash((string) $_POST['lesson_key'])) : '';
+
+        if ('pause' === $command) {
+            $result = self::process_control_pause();
+        } elseif ('resume' === $command) {
+            $result = self::process_control_resume();
+        } elseif ('retrain_from' === $command) {
+            $result = self::process_control_start_from($lesson_key, false);
+        } elseif ('restart_course' === $command) {
+            $result = self::process_control_start_from('', true);
+        } else {
+            $result = self::process_control_start();
         }
 
-        return array('started' => true, 'message' => 'Lingüista iniciado. El Gestor de procesos continuará la formación del Intérprete.');
+        $args = array('page' => 'seo-dependiente', 'tab' => 'interpreter');
+        if (is_wp_error($result)) {
+            $args['linguista_error'] = rawurlencode($result->get_error_message());
+        } else {
+            $args['linguista_notice'] = rawurlencode((string) ($result['message'] ?? 'Estado de Lingüista actualizado.'));
+        }
+        wp_safe_redirect(add_query_arg($args, admin_url('admin.php')));
+        exit;
+    }
+
+    private static function notify_supervisor($result, $detail) {
+        if (!function_exists('seo_process_supervisor_managed_update')) {
+            return;
+        }
+        seo_process_supervisor_managed_update('linguista', array(
+            'name' => 'Lingüista',
+            'pending' => self::is_pending() ? 1 : 0,
+            'healthy' => 1,
+            'last_checked' => time(),
+            'last_result' => sanitize_key((string) $result),
+            'last_error' => '',
+            'detail' => sanitize_text_field((string) $detail),
+        ));
+    }
+
+    private static function nudge_supervisor($delay = 0) {
+        if (function_exists('seo_process_supervisor_nudge')) {
+            seo_process_supervisor_nudge(absint($delay), 'linguista');
+        }
+    }
+
+    public static function course_progress() {
+        $state = self::state();
+        $lessons = self::lessons();
+        $count = max(1, count($lessons));
+        if ('completed' === sanitize_key((string) ($state['status'] ?? ''))) {
+            return 100;
+        }
+        $index = min(absint($state['lesson_index'] ?? 0), $count - 1);
+        $lesson_total = absint($state['lesson_total'] ?? 0);
+        $lesson_processed = absint($state['lesson_processed'] ?? 0);
+        $fraction = $lesson_total > 0 ? min(1, $lesson_processed / $lesson_total) : 0;
+        return min(100, max(0, (int) round((($index + $fraction) / $count) * 100)));
+    }
+
+    public static function lesson_statuses() {
+        $state = self::state();
+        $results = isset($state['lesson_results']) && is_array($state['lesson_results']) ? $state['lesson_results'] : array();
+        $current_key = sanitize_key((string) ($state['current_lesson'] ?? ''));
+        $current_status = sanitize_key((string) ($state['status'] ?? 'stopped'));
+        $rows = array();
+        foreach (self::lessons() as $index => $lesson) {
+            $key = sanitize_key((string) ($lesson['key'] ?? ''));
+            $result = isset($results[$key]) && is_array($results[$key]) ? $results[$key] : array();
+            $status = 'pending';
+            $progress = 0;
+            $processed = absint($result['processed'] ?? 0);
+            $learned = absint($result['learned'] ?? 0);
+            $rejected = absint($result['rejected'] ?? 0);
+            if ($result) {
+                $status = 'completed';
+                $progress = 100;
+            } elseif ($key && $key === $current_key) {
+                $status = in_array($current_status, array('running', 'paused', 'error'), true) ? $current_status : 'pending';
+                $total = absint($state['lesson_total'] ?? 0);
+                $processed = absint($state['lesson_processed'] ?? 0);
+                $learned = absint($state['lesson_learned'] ?? 0);
+                $rejected = absint($state['lesson_rejected'] ?? 0);
+                $progress = $total > 0 ? min(99, (int) round(($processed / $total) * 100)) : 0;
+            } elseif ($index > absint($state['lesson_index'] ?? 0) && 'completed' !== $current_status) {
+                $status = 'locked';
+            }
+            $rows[] = array(
+                'key' => $key,
+                'order' => absint($lesson['order'] ?? ($index + 1)),
+                'title' => (string) ($lesson['title'] ?? ''),
+                'goal' => (string) ($lesson['goal'] ?? ''),
+                'status' => $status,
+                'progress' => $progress,
+                'processed' => $processed,
+                'learned' => $learned,
+                'rejected' => $rejected,
+                'result' => $result,
+            );
+        }
+        return $rows;
     }
 
     public static function process_monitor_payload() {
@@ -171,6 +351,8 @@ final class SEO_Dependiente_Linguista {
             'state'   => $state,
             'current' => $lesson,
             'lessons' => $lessons,
+            'lesson_statuses' => self::lesson_statuses(),
+            'progress' => self::course_progress(),
             'stats'   => $stats,
         );
     }
@@ -231,7 +413,10 @@ final class SEO_Dependiente_Linguista {
 
                 if (!empty($result['done'])) {
                     self::finish_current_lesson($state, $result);
-                    continue;
+                    // Una ventana del worker no encadena otra lección. Se
+                    // guarda el cierre y la siguiente lección espera al turno
+                    // siguiente, igual que Academia.
+                    break;
                 }
 
                 self::adapt_speed($duration);
@@ -1360,13 +1545,12 @@ final class SEO_Dependiente_Linguista {
         if ($pending) {
             return true;
         }
-        $settings = function_exists('seo_process_supervisor_settings') ? seo_process_supervisor_settings() : array('linguista' => 1);
-        return !empty($settings['linguista']) && self::is_pending();
+        return self::is_pending();
     }
 
     public static function supervisor_manager_targets($targets, $settings, $source) {
         $targets = is_array($targets) ? $targets : array();
-        if (empty($settings['linguista']) || !self::is_pending()) {
+        if (!self::is_pending()) {
             return $targets;
         }
         $state = self::state();
