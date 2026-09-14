@@ -147,7 +147,7 @@ final class SEO_Dependiente_API {
         }
         $explicit_faq_owner = self::resolve_explicit_faq_owner($raw_query, $params);
 
-        // Intérprete v0.1: transforma lenguaje natural en una consulta canónica
+        // Intérprete: transforma lenguaje natural en una consulta canónica
         // solo cuando la señal es de alta confianza. La pregunta original se
         // conserva para la respuesta y para cualquier capa de atención al cliente.
         $interpreter = class_exists('SEO_Dependiente_Interprete')

@@ -10,7 +10,9 @@ defined('ABSPATH') || exit;
  * Academia: aprende lenguaje de cliente y lo traduce al lenguaje canonico.
  */
 final class SEO_Dependiente_Interprete {
-    const VERSION = '0.2.0';
+    const VERSION = '0.4.0';
+
+    private static $morphology = null;
 
     /**
      * Interpreta una consulta de cliente.
@@ -22,6 +24,7 @@ final class SEO_Dependiente_Interprete {
         $original = self::clean_query($query);
         $normalized = self::normalize($original);
 
+        $language = self::analyze_language($normalized);
         $result = array(
             'version'       => self::VERSION,
             'original'      => $original,
@@ -33,6 +36,8 @@ final class SEO_Dependiente_Interprete {
             'reason'        => '',
             'concepts'      => array(),
             'lesson_key'    => '',
+            'intent'        => self::detect_intent($normalized),
+            'language'      => $language,
         );
 
         if ('' === $normalized) {
@@ -136,20 +141,62 @@ final class SEO_Dependiente_Interprete {
          * Memoria linguistica persistente. Aqui vive el aprendizaje del
          * Interprete: verbo/sinonimo/frase -> concepto canonico de busqueda.
          */
-        $lexicon_result = self::interpret_from_lexicon($result);
+        $lexicon_result = self::interpret_from_lexicon($result, false);
         if (!empty($lexicon_result['changed'])) {
             return $lexicon_result;
+        }
+
+        /*
+         * Segunda lectura: gramática castellana. Se eliminan palabras funcionales
+         * y se convierten formas verbales conocidas a su infinitivo. Solo se usa
+         * para consultar conocimiento ya aprendido; nunca crea una relación nueva
+         * mientras atiende a un cliente.
+         */
+        $semantic_query = self::normalize((string) ($language['semantic_query'] ?? ''));
+        if ('' !== $semantic_query && $semantic_query !== $normalized) {
+            $semantic_result = $result;
+            $semantic_result['normalized'] = $semantic_query;
+            $semantic_match = self::interpret_from_lexicon($semantic_result, false);
+            if (!empty($semantic_match['changed'])) {
+                $semantic_match['normalized'] = $normalized;
+                $semantic_match['changed'] = self::normalize((string) ($semantic_match['search_query'] ?? '')) !== $normalized;
+                $semantic_match['rule'] = sanitize_key('language_' . (string) ($semantic_match['rule'] ?? 'lexicon'));
+                $semantic_match['reason'] = 'Análisis lingüístico: ' . (string) ($semantic_match['reason'] ?? 'expresión comprendida.');
+                $semantic_match['language'] = $language;
+                return $semantic_match;
+            }
+        }
+
+        // Tras L6, las erratas pequeñas se comparan solo contra expresiones ya
+        // aprendidas. Para palabras cortas se limita a una edición; las largas
+        // admiten dos (incluye muchas transposiciones), evitando falsos positivos.
+        $grammar = self::grammar_settings();
+        $fuzzy_distance = !empty($grammar['natural_language']) ? absint($grammar['fuzzy_distance'] ?? 0) : 0;
+        if ($fuzzy_distance > 0) {
+            $fuzzy_base = $result;
+            if ('' !== $semantic_query) {
+                $fuzzy_base['normalized'] = $semantic_query;
+            }
+            $fuzzy_result = self::interpret_from_lexicon($fuzzy_base, true, $fuzzy_distance);
+            if (!empty($fuzzy_result['changed'])) {
+                $fuzzy_result['normalized'] = $normalized;
+                $fuzzy_result['changed'] = self::normalize((string) ($fuzzy_result['search_query'] ?? '')) !== $normalized;
+                $fuzzy_result['language'] = $language;
+                return $fuzzy_result;
+            }
         }
 
         return $result;
     }
 
-    private static function interpret_from_lexicon($result) {
+    private static function interpret_from_lexicon($result, $fuzzy = false, $fuzzy_distance = 1) {
         if (!class_exists('SEO_Dependiente_Interprete_DB')) {
             return $result;
         }
 
-        $rows = SEO_Dependiente_Interprete_DB::matching_rows((string) ($result['normalized'] ?? ''));
+        $rows = $fuzzy
+            ? SEO_Dependiente_Interprete_DB::fuzzy_matching_rows((string) ($result['normalized'] ?? ''), $fuzzy_distance)
+            : SEO_Dependiente_Interprete_DB::matching_rows((string) ($result['normalized'] ?? ''));
         if (!$rows) {
             return $result;
         }
@@ -179,8 +226,8 @@ final class SEO_Dependiente_Interprete {
                 $result,
                 $target,
                 (float) ($row['confidence'] ?? 0.9),
-                'lexicon_' . $relation,
-                'El Intérprete traduce "' . $expression . '" al concepto "' . $canonical . '".',
+                ($fuzzy ? 'lexicon_fuzzy_' : 'lexicon_') . $relation,
+                ($fuzzy ? 'Coincidencia ortográfica aproximada: ' : 'El Intérprete traduce ') . '"' . $expression . '" al concepto "' . $canonical . '".',
                 array(
                     'expresion_cliente' => $expression,
                     'concepto_canonico' => $canonical,
@@ -209,6 +256,9 @@ final class SEO_Dependiente_Interprete {
         $stats = class_exists('SEO_Dependiente_Interprete_DB')
             ? SEO_Dependiente_Interprete_DB::stats()
             : array('ready' => false, 'active' => 0, 'lesson_i1' => 0, 'linked_vocabulary' => 0);
+        $linguista = class_exists('SEO_Dependiente_Linguista')
+            ? SEO_Dependiente_Linguista::process_monitor_payload()
+            : array();
         ?>
         <div class="postbox seo-dependiente-admin__box" style="margin-top:16px; padding:18px;">
             <h2 style="margin-top:0;">Intérprete <small>v<?php echo esc_html(self::VERSION); ?></small></h2>
@@ -245,12 +295,150 @@ final class SEO_Dependiente_Interprete {
         </div>
 
         <div class="postbox seo-dependiente-admin__box" style="padding:18px;">
-            <h2 style="margin-top:0;">Lección I1 · sujeto ↔ verbo ↔ sinónimo</h2>
-            <p><code>taladro</code> ↔ <code>taladrar</code> ↔ <code>perforar</code> ↔ <code>agujerear</code></p>
-            <p><code>extractor</code> ↔ <code>extraer</code> / <code>sacar</code> + objeto mecánico</p>
-            <p><code>soldadora</code> ↔ <code>soldar</code> · <code>lijadora</code> ↔ <code>lijar</code> · <code>remachadora</code> ↔ <code>remachar</code></p>
+            <h2 style="margin-top:0;">Lingüista · formación del Intérprete</h2>
+            <p><strong>Objetivo:</strong> que el Intérprete entienda cómo habla el cliente y entregue al Dependiente una petición clara. El catálogo específico se aprende automáticamente; no hay que mantener una lista manual de todas las palabras.</p>
+            <?php if ($linguista) :
+                $ling_state = isset($linguista['state']) && is_array($linguista['state']) ? $linguista['state'] : array();
+                $ling_current = isset($linguista['current']) && is_array($linguista['current']) ? $linguista['current'] : array();
+            ?>
+                <p>Estado: <strong><?php echo esc_html((string) ($ling_state['status'] ?? 'stopped')); ?></strong>
+                · aprendidas activas: <strong><?php echo esc_html(number_format_i18n((int) ($stats['active'] ?? 0))); ?></strong>
+                · evidencias: <strong><?php echo esc_html(number_format_i18n((int) ($stats['evidence'] ?? 0))); ?></strong></p>
+                <?php if ($ling_current) : ?><p>Actual: <strong>Lección <?php echo esc_html((string) absint($ling_current['order'] ?? 0)); ?> · <?php echo esc_html((string) ($ling_current['title'] ?? '')); ?></strong></p><?php endif; ?>
+                <ol>
+                    <?php foreach ((array) ($linguista['lessons'] ?? array()) as $lesson) : ?>
+                        <li><strong><?php echo esc_html('L' . absint($lesson['order'] ?? 0) . ' · ' . (string) ($lesson['title'] ?? '')); ?></strong> — <?php echo esc_html((string) ($lesson['goal'] ?? '')); ?></li>
+                    <?php endforeach; ?>
+                </ol>
+                <p><a class="button button-primary" href="<?php echo esc_url(add_query_arg(array('page'=>'seo-processes'), admin_url('admin.php'))); ?>">Abrir Gestor de procesos</a></p>
+            <?php endif; ?>
+            <p class="description">Regresión base conservada: <code>extractor ↔ extraer/sacar</code>, <code>taladro ↔ taladrar/perforar/agujerear</code> y desambiguación de compresor de aire.</p>
         </div>
         <?php
+    }
+
+    private static function grammar_settings() {
+        $stored = get_option('seo_dependiente_interprete_grammar', array());
+        return is_array($stored) ? $stored : array();
+    }
+
+    private static function morphology_settings() {
+        if (is_array(self::$morphology)) {
+            return self::$morphology;
+        }
+        $stored = get_option('seo_dependiente_interprete_morphology', array());
+        self::$morphology = is_array($stored) ? $stored : array();
+        return self::$morphology;
+    }
+
+    /**
+     * Analiza castellano antes de buscar: reconoce palabras funcionales, formas
+     * verbales (incluidas irregulares aprendidas) y construye una versión
+     * semántica sin ruido. No modifica datos ni aprende durante la petición.
+     */
+    private static function analyze_language($normalized) {
+        $normalized = self::normalize($normalized);
+        $base = array(
+            'enabled'        => false,
+            'semantic_query' => $normalized,
+            'content_tokens' => array_values(array_filter(explode(' ', $normalized))),
+            'removed_tokens' => array(),
+            'verbs'          => array(),
+            'tokens'         => array(),
+        );
+        if ('' === $normalized) {
+            return $base;
+        }
+
+        $grammar = self::grammar_settings();
+        if (empty($grammar['natural_language'])) {
+            return $base;
+        }
+        $base['enabled'] = true;
+
+        $stopword_map = array();
+        foreach ((array) ($grammar['stopword_groups'] ?? array()) as $group => $words) {
+            foreach ((array) $words as $word) {
+                $word = self::normalize($word);
+                if ('' !== $word && false === strpos($word, ' ')) {
+                    $stopword_map[$word] = sanitize_key((string) $group);
+                }
+            }
+        }
+        $semantic_stopwords = array_flip(array_values(array_filter(array_map(array(__CLASS__, 'normalize'), (array) ($grammar['semantic_stopwords'] ?? array())))));
+        $stop_verbs = array_flip(array_values(array_filter(array_map(array(__CLASS__, 'normalize'), (array) ($grammar['stop_verbs'] ?? array())))));
+        $irregular = array();
+        foreach ((array) ($grammar['irregular_forms'] ?? array()) as $form => $lemma) {
+            $form = self::normalize($form);
+            $lemma = self::normalize($lemma);
+            if ('' !== $form && '' !== $lemma && false === strpos($form, ' ') && false === strpos($lemma, ' ')) {
+                $irregular[$form] = $lemma;
+            }
+        }
+        $morphology = self::morphology_settings();
+        $forms = isset($morphology['forms']) && is_array($morphology['forms']) ? $morphology['forms'] : array();
+
+        $semantic = array();
+        foreach (array_values(array_filter(explode(' ', $normalized))) as $token) {
+            $role = isset($stopword_map[$token]) ? $stopword_map[$token] : 'content';
+            $lemma = '';
+            $verb_source = '';
+
+            if (isset($forms[$token]) && is_string($forms[$token]) && '' !== $forms[$token]) {
+                $lemma = self::normalize($forms[$token]);
+                $verb_source = 'learned_morphology';
+            } elseif (isset($irregular[$token])) {
+                $lemma = $irregular[$token];
+                $verb_source = 'irregular_dictionary';
+            } elseif (preg_match('/(?:ar|er|ir)$/', $token)) {
+                $lemma = $token;
+                $verb_source = 'infinitive';
+            }
+
+            if ('' !== $lemma) {
+                $role = isset($stop_verbs[$lemma]) ? 'stop_verb' : 'verb';
+                $base['verbs'][] = array('surface' => $token, 'lemma' => $lemma, 'source' => $verb_source);
+            }
+
+            $remove = ('stop_verb' === $role) || isset($semantic_stopwords[$token]);
+            $base['tokens'][] = array(
+                'token'   => $token,
+                'role'    => $role,
+                'lemma'   => $lemma,
+                'removed' => $remove ? 1 : 0,
+            );
+            if ($remove) {
+                $base['removed_tokens'][] = $token;
+                continue;
+            }
+            $semantic[] = '' !== $lemma ? $lemma : $token;
+        }
+
+        $semantic = array_values(array_filter($semantic));
+        $base['content_tokens'] = $semantic;
+        $base['semantic_query'] = implode(' ', $semantic);
+        return $base;
+    }
+
+    private static function detect_intent($normalized) {
+        $normalized = self::normalize($normalized);
+        if ('' === $normalized) {
+            return 'unknown';
+        }
+        $grammar = self::grammar_settings();
+        if (empty($grammar['intent_detection']) || empty($grammar['intents']) || !is_array($grammar['intents'])) {
+            return 'find_product';
+        }
+        // Las intenciones más específicas se prueban antes que la búsqueda genérica.
+        $order = array('compare','compatibility','replacement','accessory','solve_problem','find_product');
+        foreach ($order as $intent) {
+            foreach ((array) ($grammar['intents'][$intent] ?? array()) as $phrase) {
+                if (self::contains_phrase($normalized, self::normalize($phrase))) {
+                    return $intent;
+                }
+            }
+        }
+        return 'find_product';
     }
 
     private static function rewrite($result, $search_query, $confidence, $rule, $reason, $concepts = array(), $lesson_key = '') {
