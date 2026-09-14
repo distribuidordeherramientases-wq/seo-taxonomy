@@ -642,38 +642,94 @@ $latest_posts = get_posts(array(
 
 $department_categories = array_slice($root_categories, 0, 8);
 $more_categories = array_slice($root_categories, 8, 8);
+
+/* Presentacion del Dependiente y servicio humano sin depender de archivos adicionales. */
+$dht_service_url = home_url('/nuestro-servicio/');
+$dht_phone_label = '+34 640 87 45 40';
+$dht_phone_href  = 'tel:+34640874540';
+$dht_whatsapp_url = 'https://wa.me/34640874540';
+
+$dht_dependiente_image = '';
+foreach (array('dependiente', 'dependiente-tienda', 'asesor-tienda') as $dht_media_slug) {
+    $dht_media = get_page_by_path($dht_media_slug, OBJECT, 'attachment');
+    if ($dht_media instanceof WP_Post) {
+        $dht_dependiente_image = wp_get_attachment_image_url($dht_media->ID, 'large');
+        if ($dht_dependiente_image) {
+            break;
+        }
+    }
+}
+$dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url', $dht_dependiente_image);
 ?>
+
+
 
 <main class="dht-storefront dht-storefront--desktop dht-front-structure" id="dht-storefront">
     <div class="sf-layout sf-layout--desktop">
         <section class="sf-home-entry" aria-labelledby="dht-home-title">
-            <div class="sf-shell sf-home-entry-grid">
-                <div class="sf-home-finder">
-                    <span class="sf-eyebrow">Buscador + Dependiente</span>
-                    <h1 id="dht-home-title">Dinos qué necesitas. Te ayudamos a encontrarlo.</h1>
-                    <p class="sf-home-finder-lead">Busca como lo explicarías en una tienda: por herramienta, trabajo, aplicación, medida, marca o referencia. El catálogo sigue estando detrás; aquí empezamos por tu necesidad.</p>
+            <div class="sf-shell">
+                <div class="sf-front-hero">
+                    <div class="sf-front-hero-copy">
+                        <span class="sf-eyebrow">Tu Dependiente del catálogo</span>
+                        <h1 id="dht-home-title">Encuentra lo que necesitas con Dependiente</h1>
+                        <p class="sf-front-hero-lead">Relaciona tu búsqueda con el catálogo y compara opciones. Puedes empezar por un producto, una necesidad, una aplicación, una medida, una marca o una referencia.</p>
 
-                    <div class="sf-home-search" aria-label="Buscar en el catálogo">
-                        <?php if (shortcode_exists('seo_search')) : ?>
-                            <?php echo do_shortcode('[seo_search placeholder="¿Qué necesitas hacer o encontrar?"]'); ?>
-                        <?php else : ?>
-                            <form class="sf-home-search-form" role="search" method="get" action="<?php echo esc_url(home_url('/')); ?>">
-                                <label class="screen-reader-text" for="dht-home-search">Buscar productos</label>
-                                <input id="dht-home-search" type="search" name="s" placeholder="¿Qué necesitas hacer o encontrar?" autocomplete="off">
-                                <input type="hidden" name="post_type" value="product">
-                                <button type="submit">Buscar</button>
-                            </form>
-                        <?php endif; ?>
+                        <div class="sf-home-search" aria-label="Preguntar al Dependiente">
+                            <?php if (shortcode_exists('seo_search')) : ?>
+                                <?php echo do_shortcode('[seo_search placeholder="Producto, necesidad, uso o referencia..."]'); ?>
+                            <?php else : ?>
+                                <form class="sf-home-search-form" role="search" method="get" action="<?php echo esc_url(home_url('/')); ?>">
+                                    <label class="screen-reader-text" for="dht-home-search">Buscar productos</label>
+                                    <input id="dht-home-search" type="search" name="s" placeholder="Producto, necesidad, uso o referencia..." autocomplete="off">
+                                    <input type="hidden" name="post_type" value="product">
+                                    <button type="submit">Preguntar</button>
+                                </form>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="sf-search-examples" aria-label="Ejemplos de búsqueda">
+                            <span>extractor rodamientos</span><span>taladro hormigón</span><span>kit plato ducha</span><span>compresor aire</span>
+                        </div>
+                        <div class="sf-front-hero-links">
+                            <a href="<?php echo esc_url(dht_template_shop_url()); ?>">Ver todo el catálogo</a>
+                            <a href="<?php echo esc_url($dht_phone_href); ?>">¿Prefieres una persona? <?php echo esc_html($dht_phone_label); ?></a>
+                        </div>
                     </div>
 
-                    <div class="sf-home-finder-meta">
-                        <span>Prueba con lenguaje natural: producto, problema, uso o referencia.</span>
-                        <a href="<?php echo esc_url(dht_template_shop_url()); ?>">Prefiero ver todo el catálogo <span aria-hidden="true">→</span></a>
+                    <div class="sf-front-person" aria-label="Dependiente y atención humana">
+                        <?php if ($dht_dependiente_image) : ?>
+                            <img src="<?php echo esc_url($dht_dependiente_image); ?>" alt="Persona del equipo de Distribuidor de Herramientas" loading="eager" fetchpriority="high">
+                        <?php else : ?>
+                            <div class="sf-front-person-fallback"><svg viewBox="0 0 200 200" aria-hidden="true" focusable="false"><circle cx="100" cy="68" r="38" fill="currentColor" opacity=".95"/><path d="M35 180c7-45 32-68 65-68s58 23 65 68H35z" fill="currentColor" opacity=".95"/><path d="M58 68c3-29 20-47 42-47s39 18 42 47c-12-9-27-14-42-14s-30 5-42 14z" fill="currentColor" opacity=".75"/></svg></div>
+                        <?php endif; ?>
+                        <div class="sf-front-person-badge">
+                            <strong>Dependiente te ayuda a buscar</strong>
+                            <span>Y si prefieres hablar con una persona, estamos al otro lado del teléfono.</span>
+                        </div>
                     </div>
                 </div>
+            </div>
+        </section>
 
-                <div class="sf-home-entry-service">
-                    <?php dht_template_render_service_promise('card', 'home'); ?>
+        <section class="sf-service-band" aria-labelledby="dht-service-title">
+            <div class="sf-shell">
+                <div class="sf-service-panel">
+                    <div>
+                        <span class="sf-service-kicker">Soporte personal antes y después de la compra</span>
+                        <h2 id="dht-service-title">Una persona para ayudarte como intermediario</h2>
+                        <p>Te atendemos en castellano y, si surge una incidencia, te ayudamos a comunicarte y hacer seguimiento con el fabricante o distribuidor. La idea es ahorrarte llamadas, correos, tickets y gestiones innecesarias con proveedores que muchas veces están fuera de España.</p>
+                        <div class="sf-service-actions">
+                            <a href="<?php echo esc_url($dht_phone_href); ?>">Llamar: <?php echo esc_html($dht_phone_label); ?></a>
+                            <a href="<?php echo esc_url($dht_whatsapp_url); ?>" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+                        </div>
+                        <small class="sf-service-legal">Actuamos como apoyo e interlocutor en la gestión. Este servicio no sustituye el soporte técnico del fabricante ni modifica las responsabilidades y garantías legales que correspondan en cada caso.</small>
+                    </div>
+                    <div class="sf-service-grid" aria-label="Cómo te ayudamos">
+                        <div class="sf-service-point"><strong>Antes de comprar</strong><span>Te orientamos para localizar y comparar opciones del catálogo.</span></div>
+                        <div class="sf-service-point"><strong>Incidencias</strong><span>Te ayudamos a preparar y tramitar la comunicación con el proveedor o fabricante.</span></div>
+                        <div class="sf-service-point"><strong>Menos correos y llamadas</strong><span>Conocemos los canales habituales y podemos ayudarte a seguir el proceso.</span></div>
+                        <div class="sf-service-point"><strong>Atención en castellano</strong><span>Tienes un contacto cercano al que explicar lo que está ocurriendo.</span></div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -842,9 +898,9 @@ $more_categories = array_slice($root_categories, 8, 8);
                 </div>
                 <div class="sf-home-reminder sf-home-reminder--service">
                     <span class="sf-eyebrow">Después de comprar</span>
-                    <strong>No te dejamos solo con el fabricante</strong>
-                    <p>Si aparece una incidencia, te ayudamos con la gestión, la comunicación y el seguimiento en castellano.</p>
-                    <a class="sf-home-reminder-link" href="<?php echo esc_url(dht_template_service_page_url()); ?>">Conocer el acompañamiento posventa <span aria-hidden="true">→</span></a>
+                    <strong>Te ayudamos con la gestión</strong>
+                    <p>Si aparece una incidencia, te ayudamos como interlocutor en la comunicación y el seguimiento con el proveedor o fabricante.</p>
+                    <a class="sf-home-reminder-link" href="<?php echo esc_url($dht_service_url); ?>">Conocer el acompañamiento posventa <span aria-hidden="true">→</span></a>
                 </div>
             </div>
         </section>
