@@ -11,7 +11,7 @@ defined('ABSPATH') || exit;
  * preparado en la memoria local del Intérprete.
  */
 final class SEO_Dependiente_Linguista {
-    const VERSION = '0.3.0';
+    const VERSION = '0.4.0';
     const STATE_OPTION = 'seo_dependiente_linguista_state';
     const GRAMMAR_OPTION = 'seo_dependiente_interprete_grammar';
     const MORPHOLOGY_OPTION = 'seo_dependiente_interprete_morphology';
@@ -30,6 +30,7 @@ final class SEO_Dependiente_Linguista {
         add_filter('seo_process_supervisor_manager_targets', array(__CLASS__, 'supervisor_manager_targets'), 20, 3);
         add_filter('seo_processes_monitor_items', array(__CLASS__, 'processes_monitor_items'), 20, 1);
         add_action('admin_post_seo_dependiente_linguista_control', array(__CLASS__, 'handle_admin_control'));
+        add_action('admin_post_seo_dependiente_linguista_export', array(__CLASS__, 'handle_admin_export'));
     }
 
     public static function lessons() {
@@ -75,6 +76,10 @@ final class SEO_Dependiente_Linguista {
             'exam_fail'          => 0,
             'batch_size'         => 60,
             'started_at'         => 0,
+            'completed_at'       => 0,
+            'course_started_stats' => array(),
+            'course_completed_stats' => array(),
+            'lesson_started_stats' => array(),
             'heartbeat_at'       => 0,
             'last_activity_at'   => 0,
             'last_duration'      => 0.0,
@@ -92,6 +97,9 @@ final class SEO_Dependiente_Linguista {
         $state = wp_parse_args(is_array($stored) ? $stored : array(), self::default_state());
         $state['version'] = self::VERSION;
         $state['lesson_results'] = isset($state['lesson_results']) && is_array($state['lesson_results']) ? $state['lesson_results'] : array();
+        $state['course_started_stats'] = isset($state['course_started_stats']) && is_array($state['course_started_stats']) ? $state['course_started_stats'] : array();
+        $state['course_completed_stats'] = isset($state['course_completed_stats']) && is_array($state['course_completed_stats']) ? $state['course_completed_stats'] : array();
+        $state['lesson_started_stats'] = isset($state['lesson_started_stats']) && is_array($state['lesson_started_stats']) ? $state['lesson_started_stats'] : array();
         return $state;
     }
 
@@ -176,7 +184,12 @@ final class SEO_Dependiente_Linguista {
         $state['lesson_total'] = self::lesson_total($state['current_lesson']);
         $control = self::control_config();
         $state['batch_size'] = absint($control['initial_batch'] ?? 60);
+        $start_stats = self::memory_stats_snapshot();
         $state['started_at'] = time();
+        $state['completed_at'] = 0;
+        $state['course_started_stats'] = $start_stats;
+        $state['course_completed_stats'] = array();
+        $state['lesson_started_stats'] = $start_stats;
         $state['heartbeat_at'] = time();
         $state['last_activity_at'] = time();
         $state['not_before'] = 0;
@@ -229,6 +242,229 @@ final class SEO_Dependiente_Linguista {
         self::notify_supervisor('resumed', 'Formación Lingüista reanudada; continuará desde el cursor guardado.');
         self::nudge_supervisor(0);
         return array('resumed' => true, 'message' => 'Lingüista reanudado.');
+    }
+
+    private static function memory_stats_snapshot() {
+        $stats = class_exists('SEO_Dependiente_Interprete_DB') ? SEO_Dependiente_Interprete_DB::stats() : array();
+        return array(
+            'ready' => !empty($stats['ready']),
+            'evidence_ready' => !empty($stats['evidence_ready']),
+            'active' => absint($stats['active'] ?? 0),
+            'staged' => absint($stats['staged'] ?? 0),
+            'validated' => absint($stats['validated'] ?? 0),
+            'evidence' => absint($stats['evidence'] ?? 0),
+            'linked_vocabulary' => absint($stats['linked_vocabulary'] ?? 0),
+            'lesson_i1' => absint($stats['lesson_i1'] ?? 0),
+        );
+    }
+
+    private static function stats_delta($before, $after) {
+        $before = is_array($before) ? $before : array();
+        $after = is_array($after) ? $after : array();
+        $keys = array('active', 'staged', 'validated', 'evidence', 'linked_vocabulary', 'lesson_i1');
+        $delta = array();
+        foreach ($keys as $key) {
+            $delta[$key] = (int) ($after[$key] ?? 0) - (int) ($before[$key] ?? 0);
+        }
+        return $delta;
+    }
+
+    private static function lesson_definition($lesson_key) {
+        $lesson_key = sanitize_key((string) $lesson_key);
+        foreach (self::lessons() as $index => $lesson) {
+            if ($lesson_key === sanitize_key((string) ($lesson['key'] ?? ''))) {
+                return array(
+                    'key' => $lesson_key,
+                    'order' => absint($lesson['order'] ?? ($index + 1)),
+                    'title' => (string) ($lesson['title'] ?? ''),
+                    'goal' => (string) ($lesson['goal'] ?? ''),
+                );
+            }
+        }
+        return array();
+    }
+
+    private static function lesson_export_payload($lesson_key, $state = null) {
+        $state = is_array($state) ? $state : self::state();
+        $lesson_key = sanitize_key((string) $lesson_key);
+        $result = isset($state['lesson_results'][$lesson_key]) && is_array($state['lesson_results'][$lesson_key])
+            ? $state['lesson_results'][$lesson_key]
+            : array();
+        if (!$result) {
+            return new WP_Error('linguista_export_missing', 'La lección todavía no tiene un resultado completado para exportar.');
+        }
+        $lesson = self::lesson_definition($lesson_key);
+        if (!$lesson) {
+            return new WP_Error('linguista_export_lesson_missing', 'No se encuentra la definición de la lección solicitada.');
+        }
+
+        $processed = absint($result['processed'] ?? 0);
+        $learned = absint($result['learned'] ?? 0);
+        $rejected = absint($result['rejected'] ?? 0);
+        $before = isset($result['memory_before']) && is_array($result['memory_before']) ? $result['memory_before'] : array();
+        $after = isset($result['memory_after']) && is_array($result['memory_after']) ? $result['memory_after'] : array();
+        $payload = array(
+            'schema' => 'seo-dependiente-linguista-lesson',
+            'schema_version' => 1,
+            'generated_at' => gmdate('c'),
+            'linguista_version' => self::VERSION,
+            'run_id' => (string) ($result['run_id'] ?? $state['run_id'] ?? ''),
+            'lesson' => array_merge($lesson, array(
+                'status' => 'completed',
+                'completed_at' => !empty($result['completed_at']) ? gmdate('c', absint($result['completed_at'])) : null,
+                'message' => (string) ($result['message'] ?? ''),
+            )),
+            'metrics' => array(
+                'processed' => $processed,
+                'learned' => $learned,
+                'rejected' => $rejected,
+                'learning_rate_percent' => $processed > 0 ? round(($learned / $processed) * 100, 2) : 0,
+                'rejection_rate_percent' => $processed > 0 ? round(($rejected / $processed) * 100, 2) : 0,
+            ),
+            'memory' => array(
+                'snapshot_available' => !empty($before) && !empty($after),
+                'before' => $before,
+                'after' => $after,
+                'delta' => self::stats_delta($before, $after),
+            ),
+        );
+        if (isset($result['pass']) || isset($result['fail']) || isset($result['rate'])) {
+            $payload['exam'] = array(
+                'pass' => absint($result['pass'] ?? 0),
+                'fail' => absint($result['fail'] ?? 0),
+                'rate_percent' => (float) ($result['rate'] ?? 0),
+            );
+        }
+        return $payload;
+    }
+
+    private static function course_export_payload($state = null) {
+        $state = is_array($state) ? $state : self::state();
+        if ('completed' !== sanitize_key((string) ($state['status'] ?? ''))) {
+            return new WP_Error('linguista_course_incomplete', 'El JSON completo estará disponible cuando finalicen todas las lecciones.');
+        }
+
+        $lessons = array();
+        $evolution = array();
+        $cumulative = array('processed' => 0, 'learned' => 0, 'rejected' => 0);
+        $course_baseline = isset($state['course_started_stats']) && is_array($state['course_started_stats'])
+            ? $state['course_started_stats']
+            : array();
+        foreach (self::lessons() as $lesson) {
+            $key = sanitize_key((string) ($lesson['key'] ?? ''));
+            $lesson_payload = self::lesson_export_payload($key, $state);
+            if (is_wp_error($lesson_payload)) {
+                continue;
+            }
+            $lessons[] = $lesson_payload;
+            $metrics = $lesson_payload['metrics'];
+            $cumulative['processed'] += absint($metrics['processed'] ?? 0);
+            $cumulative['learned'] += absint($metrics['learned'] ?? 0);
+            $cumulative['rejected'] += absint($metrics['rejected'] ?? 0);
+            $memory_after = isset($lesson_payload['memory']['after']) && is_array($lesson_payload['memory']['after'])
+                ? $lesson_payload['memory']['after']
+                : array();
+            $retained = !empty($state['run_id']) && !empty($lesson_payload['run_id']) && (string) $lesson_payload['run_id'] !== (string) $state['run_id'];
+            $point = array(
+                'order' => absint($lesson_payload['lesson']['order'] ?? 0),
+                'key' => (string) ($lesson_payload['lesson']['key'] ?? ''),
+                'title' => (string) ($lesson_payload['lesson']['title'] ?? ''),
+                'completed_at' => $lesson_payload['lesson']['completed_at'] ?? null,
+                'processed' => absint($metrics['processed'] ?? 0),
+                'learned' => absint($metrics['learned'] ?? 0),
+                'rejected' => absint($metrics['rejected'] ?? 0),
+                'learning_rate_percent' => (float) ($metrics['learning_rate_percent'] ?? 0),
+                'run_id' => (string) ($lesson_payload['run_id'] ?? ''),
+                'retained_from_previous_run' => $retained,
+                'cumulative' => $cumulative,
+                'memory_after' => $memory_after,
+                'memory_growth_from_course_start' => (!$retained && $course_baseline && $memory_after)
+                    ? self::stats_delta($course_baseline, $memory_after)
+                    : null,
+            );
+            if (isset($lesson_payload['exam'])) {
+                $point['exam'] = $lesson_payload['exam'];
+            }
+            $evolution[] = $point;
+        }
+
+        $final_memory = isset($state['course_completed_stats']) && is_array($state['course_completed_stats']) && $state['course_completed_stats']
+            ? $state['course_completed_stats']
+            : self::memory_stats_snapshot();
+        $mixed_runs = false;
+        foreach ($evolution as $point) {
+            if (!empty($point['retained_from_previous_run'])) {
+                $mixed_runs = true;
+                break;
+            }
+        }
+        return array(
+            'schema' => 'seo-dependiente-linguista-course',
+            'schema_version' => 1,
+            'generated_at' => gmdate('c'),
+            'linguista_version' => self::VERSION,
+            'run_id' => (string) ($state['run_id'] ?? ''),
+            'course' => array(
+                'status' => 'completed',
+                'started_at' => !empty($state['started_at']) ? gmdate('c', absint($state['started_at'])) : null,
+                'completed_at' => !empty($state['completed_at']) ? gmdate('c', absint($state['completed_at'])) : null,
+                'lesson_count' => count($lessons),
+                'contains_retained_results' => $mixed_runs,
+            ),
+            'summary' => array(
+                'processed' => $cumulative['processed'],
+                'learned' => $cumulative['learned'],
+                'rejected' => $cumulative['rejected'],
+                'learning_rate_percent' => $cumulative['processed'] > 0 ? round(($cumulative['learned'] / $cumulative['processed']) * 100, 2) : 0,
+                'memory_snapshot_available' => !empty($course_baseline) && !empty($final_memory),
+                'memory_start' => $course_baseline,
+                'memory_end' => $final_memory,
+                'memory_delta' => self::stats_delta($course_baseline, $final_memory),
+            ),
+            'evolution' => $evolution,
+            'lessons' => $lessons,
+        );
+    }
+
+    public static function export_url($type = 'course', $lesson_key = '') {
+        $args = array(
+            'action' => 'seo_dependiente_linguista_export',
+            'export_type' => 'lesson' === $type ? 'lesson' : 'course',
+        );
+        if ('lesson' === $type) {
+            $args['lesson_key'] = sanitize_key((string) $lesson_key);
+        }
+        return wp_nonce_url(add_query_arg($args, admin_url('admin-post.php')), 'seo_dependiente_linguista_export');
+    }
+
+    public static function handle_admin_export() {
+        if (!current_user_can('manage_options') && !current_user_can('manage_woocommerce')) {
+            wp_die(esc_html__('No tienes permisos para exportar la formación Lingüista.', 'seo-taxonomy'));
+        }
+        check_admin_referer('seo_dependiente_linguista_export');
+
+        $type = isset($_GET['export_type']) ? sanitize_key(wp_unslash((string) $_GET['export_type'])) : 'course';
+        $state = self::state();
+        if ('lesson' === $type) {
+            $lesson_key = isset($_GET['lesson_key']) ? sanitize_key(wp_unslash((string) $_GET['lesson_key'])) : '';
+            $payload = self::lesson_export_payload($lesson_key, $state);
+            $lesson = self::lesson_definition($lesson_key);
+            $order = absint($lesson['order'] ?? 0);
+            $filename = 'linguista-leccion-' . ($order ?: $lesson_key) . '-' . sanitize_file_name((string) ($state['run_id'] ?? 'resultado')) . '.json';
+        } else {
+            $payload = self::course_export_payload($state);
+            $filename = 'linguista-evolucion-completa-' . sanitize_file_name((string) ($state['run_id'] ?? 'resultado')) . '.json';
+        }
+
+        if (is_wp_error($payload)) {
+            wp_die(esc_html($payload->get_error_message()), esc_html__('Exportación Lingüista', 'seo-taxonomy'), array('response' => 400));
+        }
+
+        nocache_headers();
+        header('Content-Type: application/json; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        echo wp_json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
     }
 
     public static function handle_admin_control() {
@@ -1167,12 +1403,23 @@ final class SEO_Dependiente_Linguista {
         $results = isset($state['lesson_results']) && is_array($state['lesson_results']) ? $state['lesson_results'] : array();
         // process_manager_slice() ya incorporó el último lote al estado antes
         // de cerrar la lección; no se vuelve a sumar aquí.
+        $memory_before = isset($state['lesson_started_stats']) && is_array($state['lesson_started_stats'])
+            ? $state['lesson_started_stats']
+            : array();
+        if (!$memory_before && !empty($state['course_started_stats']) && is_array($state['course_started_stats'])) {
+            $memory_before = $state['course_started_stats'];
+        }
+        $memory_after = self::memory_stats_snapshot();
         $results[$key] = array(
+            'run_id' => sanitize_text_field((string) ($state['run_id'] ?? '')),
             'completed_at' => time(),
             'processed' => absint($state['lesson_processed'] ?? 0),
             'learned' => absint($state['lesson_learned'] ?? 0),
             'rejected' => absint($state['lesson_rejected'] ?? 0),
             'message' => sanitize_text_field((string) ($result['message'] ?? 'Lección completada.')),
+            'memory_before' => $memory_before,
+            'memory_after' => $memory_after,
+            'memory_delta' => self::stats_delta($memory_before, $memory_after),
         );
         if ('ling_l8_exam' === $key) {
             $fresh = self::state();
@@ -1195,6 +1442,9 @@ final class SEO_Dependiente_Linguista {
                 'lesson_rejected' => 0,
                 'lesson_total' => 0,
                 'lesson_results' => $results,
+                'lesson_started_stats' => array(),
+                'course_completed_stats' => $memory_after,
+                'completed_at' => time(),
                 'heartbeat_at' => time(),
                 'last_activity_at' => time(),
                 'not_before' => 0,
@@ -1214,6 +1464,7 @@ final class SEO_Dependiente_Linguista {
             'lesson_rejected' => 0,
             'lesson_total' => self::lesson_total((string) $next['key']),
             'lesson_results' => $results,
+            'lesson_started_stats' => $memory_after,
             'heartbeat_at' => time(),
             'last_activity_at' => time(),
             'last_message' => 'Lección ' . absint($next['order'] ?? ($next_index + 1)) . ' preparada: ' . sanitize_text_field((string) ($next['title'] ?? '')) . '.',
