@@ -198,6 +198,12 @@ final class SEO_Dependiente_API {
         if ($interpreter_debug) {
             $interpreter_debug['dependiente_query'] = sanitize_text_field((string) $query);
         }
+        // Perfil estructurado del Intérprete. Dependiente no acepta una bolsa plana
+        // de palabras como si todas significaran lo mismo: distingue conceptos de
+        // identidad (p.ej. taladro), vocabulario de catálogo (TIPO/ROL/etc.),
+        // acciones y contexto. Esto evita que "pared" o "madera" desplacen a
+        // una señal comercial mucho más fuerte como "taladro".
+        $assist_profile = self::interpreter_assist_profile($interpreter);
         $mode = isset($params['mode']) ? sanitize_key((string) $params['mode']) : 'need';
         if (!in_array($mode, array('need', 'product', 'tool', 'compare'), true)) {
             $mode = 'need';
@@ -273,10 +279,10 @@ final class SEO_Dependiente_API {
         // Diagnóstico visible en staging: muestra qué conceptos está usando
         // realmente Dependiente para recuperar productos. No altera la búsqueda.
         $dependiente_debug_groups = self::debug_search_groups($semantic, $tokens);
-        $dependiente_primary_groups = self::primary_search_groups($query, $semantic);
+        $dependiente_primary_groups = self::primary_search_groups($query, $semantic, $assist_profile);
 
         $primary_diagnostic = array();
-        $primary_rows = self::primary_candidate_rows($query, $semantic, $primary_diagnostic);
+        $primary_rows = self::primary_candidate_rows($query, $semantic, $assist_profile, $primary_diagnostic);
         $primary_documents = array();
         $primary_matched = self::score_candidate_rows(
             $primary_rows,
@@ -285,6 +291,7 @@ final class SEO_Dependiente_API {
             $filters,
             $mode,
             $semantic,
+            $assist_profile,
             $primary_documents
         );
         self::sort_documents($primary_matched, $orderby);
@@ -365,7 +372,7 @@ final class SEO_Dependiente_API {
             $search_diagnostic['primary_strategy'] = (string) ($primary_diagnostic['strategy'] ?? 'primary_direct');
         } else {
             $candidate_rows = $primary_rows;
-            $search_diagnostic['strategy'] = 'primary_direct';
+            $search_diagnostic['strategy'] = (string) ($primary_diagnostic['strategy'] ?? 'primary_direct');
         }
 
         $documents = array();
@@ -376,6 +383,7 @@ final class SEO_Dependiente_API {
             $filters,
             $mode,
             $semantic,
+            $assist_profile,
             $documents
         );
         $primary_id_map = array();
@@ -408,6 +416,9 @@ final class SEO_Dependiente_API {
                     'title'    => sanitize_text_field((string) $debug_title),
                     'score'    => (float) ($debug_document['_score'] ?? 0),
                     'coverage' => absint($debug_document['_coverage'] ?? 0),
+                    'identity_hits' => absint($debug_document['_assist_identity_hits'] ?? 0),
+                    'vocabulary_hits' => absint($debug_document['_assist_vocabulary_hits'] ?? 0),
+                    'action_hits' => absint($debug_document['_assist_action_hits'] ?? 0),
                     'reasons'  => array_values(array_slice(array_map('sanitize_text_field', (array) ($debug_document['_reasons'] ?? array())), 0, 4)),
                     'tier'     => sanitize_key((string) ($debug_document['_search_tier'] ?? '')),
                 );
@@ -417,7 +428,7 @@ final class SEO_Dependiente_API {
                 'query'             => sanitize_text_field((string) $query),
                 'groups'            => $dependiente_debug_groups,
                 'primary_groups'    => self::debug_plain_groups($dependiente_primary_groups),
-                'catalog_fields'    => array('título', 'SKU', 'marca', 'categorías', 'etiquetas', 'Vocabulary', 'atributos'),
+                'catalog_fields'    => array('título', 'categorías', 'etiquetas', 'Vocabulary TIPO/ROL/APLICACIÓN cuando hace falta'),
                 'strategy'          => sanitize_key((string) ($search_diagnostic['strategy'] ?? 'primary_direct')),
                 'primary_strategy'  => sanitize_key((string) ($search_diagnostic['primary_strategy'] ?? ($primary_diagnostic['strategy'] ?? 'primary_direct'))),
                 'primary_rows'      => absint($search_diagnostic['primary_rows'] ?? ($primary_diagnostic['primary_rows'] ?? 0)),
@@ -425,6 +436,7 @@ final class SEO_Dependiente_API {
                 'matched_rows'      => count($matched),
                 'extended_search'   => sanitize_key((string) ($search_diagnostic['extended_search'] ?? 'skipped')),
                 'semantic_routes'   => self::debug_semantic_routes($semantic),
+                'assist_profile'    => $assist_profile,
                 'top_matches'       => $top_debug_matches,
             );
         }
@@ -1060,7 +1072,93 @@ final class SEO_Dependiente_API {
      * identidad/clasificacion del producto. Las descripciones largas quedan para
      * la fase 2 extensiva.
      */
-    private static function primary_candidate_rows($query, $semantic = array(), &$diagnostic = array()) {
+    /**
+     * Construye el perfil de ayuda lingüística que Dependiente puede utilizar
+     * sin delegar en Intérprete ninguna decisión de catálogo.
+     *
+     * - identity_terms: conceptos comerciales relacionados (taladro, broca...) y
+     *   categoría/etiqueta explícitamente reconocidas.
+     * - vocabulary_terms: TIPO, ROL, APLICACIÓN, PLATAFORMA y SUBTIPO.
+     * - action_terms: acciones canónicas (taladrar, cortar, lijar...).
+     * - context_terms: palabras conservadas como contexto (pared, madera...).
+     */
+    private static function interpreter_assist_profile($interpreter) {
+        $profile = array(
+            'concept_terms'    => array(),
+            'identity_terms'   => array(),
+            'vocabulary_terms' => array(),
+            'action_terms'     => array(),
+            'context_terms'    => array(),
+        );
+        if (!is_array($interpreter) || empty($interpreter['structured']) || !is_array($interpreter['structured'])) {
+            return $profile;
+        }
+
+        $structured = $interpreter['structured'];
+        foreach ((array) ($structured['actions'] ?? array()) as $action) {
+            $canonical = SEO_Dependiente_Index::normalize((string) ($action['canonical_action'] ?? $action['lemma'] ?? ''));
+            $related = SEO_Dependiente_Index::normalize((string) ($action['related_concept'] ?? ''));
+            if ($canonical) {
+                $profile['action_terms'][] = $canonical;
+            }
+            if ($related) {
+                $profile['concept_terms'][] = $related;
+            }
+        }
+        foreach ((array) ($structured['related_concepts'] ?? array()) as $item) {
+            $term = SEO_Dependiente_Index::normalize((string) ($item['term'] ?? ''));
+            if ($term) {
+                $profile['concept_terms'][] = $term;
+            }
+        }
+
+        $semantic_groups = isset($structured['semantic_groups']) && is_array($structured['semantic_groups'])
+            ? $structured['semantic_groups']
+            : array();
+        foreach (array('category','tag') as $group) {
+            foreach ((array) ($semantic_groups[$group] ?? array()) as $item) {
+                $term = SEO_Dependiente_Index::normalize((string) ($item['target'] ?? $item['term'] ?? ''));
+                if ($term) {
+                    $profile['identity_terms'][] = $term;
+                }
+            }
+        }
+        foreach (array('rol','tipo','aplicacion','plataforma','subtipo') as $group) {
+            foreach ((array) ($semantic_groups[$group] ?? array()) as $item) {
+                $term = SEO_Dependiente_Index::normalize((string) ($item['target'] ?? $item['term'] ?? ''));
+                if ($term) {
+                    $profile['vocabulary_terms'][] = $term;
+                }
+            }
+        }
+        foreach ((array) ($structured['context'] ?? array()) as $term) {
+            $term = SEO_Dependiente_Index::normalize((string) $term);
+            if ($term) {
+                $profile['context_terms'][] = $term;
+            }
+        }
+
+        // Si Lingüista ha identificado un concepto relacionado concreto (p.ej.
+        // agujerear -> taladro), ese concepto es el ancla principal. Etiquetas
+        // genéricas como madera/pared siguen viajando como contexto, pero no abren
+        // por sí solas la familia de productos mientras exista una ancla mejor.
+        if ($profile['concept_terms']) {
+            $profile['context_terms'] = array_merge($profile['context_terms'], $profile['identity_terms']);
+            $profile['identity_terms'] = $profile['concept_terms'];
+        }
+
+        foreach ($profile as $key => $terms) {
+            $profile[$key] = array_slice(array_values(array_unique(array_filter($terms))), 0, 12);
+        }
+        return $profile;
+    }
+
+    /**
+     * 1A. Recuperación de identidad. Si Intérprete ha reconocido un concepto
+     * comercial, este manda en la primera pasada. El contexto sirve después para
+     * ordenar, pero no para decidir por sí solo qué familia de producto entra.
+     */
+    private static function primary_candidate_rows($query, $semantic = array(), $assist_profile = array(), &$diagnostic = array()) {
         $diagnostic = array(
             'strategy'            => 'primary_direct',
             'primary_rows'        => 0,
@@ -1071,21 +1169,101 @@ final class SEO_Dependiente_API {
             return array();
         }
 
-        $groups = self::primary_search_groups($query, $semantic);
-        $diagnostic['primary_group_count'] = count($groups);
-        if (!$groups) {
-            $diagnostic['strategy'] = 'primary_empty';
-            return array();
+        $identity_terms = array_values(array_filter((array) ($assist_profile['identity_terms'] ?? array())));
+        $vocabulary_terms = array_values(array_filter((array) ($assist_profile['vocabulary_terms'] ?? array())));
+        $action_terms = array_values(array_filter((array) ($assist_profile['action_terms'] ?? array())));
+        $rows = array();
+
+        // 1. Un concepto relacionado como "taladro" busca primero donde un
+        // producto define realmente su identidad. No se miran descripción ni
+        // atributos, evitando coincidencias accidentales.
+        if ($identity_terms) {
+            $identity_groups = array_map(static function ($term) { return array($term); }, array_slice($identity_terms, 0, 8));
+            $rows = self::query_primary_index(
+                $identity_groups,
+                false,
+                self::CANDIDATE_LIMIT,
+                array('normalized_title','categories_json','tags_json')
+            );
+            if ($rows) {
+                $diagnostic['strategy'] = 'primary_interpreter_identity';
+            }
         }
 
-        $rows = self::query_primary_index($groups, true, self::CANDIDATE_LIMIT);
+        // 2. TIPO/ROL/APLICACIÓN/etc. sí viven en Vocabulary; se añaden como
+        // señales de clasificación, sin abrir todavía el texto descriptivo.
+        if ($vocabulary_terms && count($rows) < 6) {
+            $vocabulary_groups = array_map(static function ($term) { return array($term); }, array_slice($vocabulary_terms, 0, 8));
+            $vocab_rows = self::query_primary_index(
+                $vocabulary_groups,
+                false,
+                self::CANDIDATE_LIMIT,
+                array('normalized_title','categories_json','tags_json','vocabulary_json')
+            );
+            $rows = self::merge_candidate_rows($rows, $vocab_rows);
+            if ($vocab_rows && 'primary_interpreter_identity' !== $diagnostic['strategy']) {
+                $diagnostic['strategy'] = 'primary_interpreter_vocabulary';
+            }
+        }
+
+        // 3. La acción canónica es un respaldo. Si ya tenemos una familia clara
+        // no dejamos que una palabra contextual más genérica contamine la primera
+        // pasada; si faltan candidatos, la acción amplía de forma controlada.
+        if ($action_terms && count($rows) < 6) {
+            $action_groups = array_map(static function ($term) { return array($term); }, array_slice($action_terms, 0, 6));
+            $action_rows = self::query_primary_index(
+                $action_groups,
+                false,
+                self::CANDIDATE_LIMIT,
+                array('normalized_title','categories_json','tags_json','vocabulary_json')
+            );
+            $rows = self::merge_candidate_rows($rows, $action_rows);
+            if ($action_rows && 'primary_direct' === $diagnostic['strategy']) {
+                $diagnostic['strategy'] = 'primary_interpreter_action';
+            }
+        }
+
+        // Sin señal estructurada, Dependiente conserva su búsqueda normal, pero ya
+        // no colapsa a un único "objeto" y no exige que todos los términos estén
+        // simultáneamente en la identidad del producto.
+        if (!$rows) {
+            $groups = self::primary_search_groups($query, $semantic, $assist_profile);
+            $diagnostic['primary_group_count'] = count($groups);
+            if (!$groups) {
+                $diagnostic['strategy'] = 'primary_empty';
+                return array();
+            }
+            $rows = self::query_primary_index(
+                $groups,
+                false,
+                self::CANDIDATE_LIMIT,
+                array('normalized_title','sku','brand_name','categories_json','tags_json')
+            );
+        } else {
+            $diagnostic['primary_group_count'] = count($identity_terms) + count($vocabulary_terms) + count($action_terms);
+        }
+
         $diagnostic['primary_rows'] = count($rows);
         return $rows;
     }
 
-    private static function primary_search_groups($query, $semantic = array()) {
+    private static function primary_search_groups($query, $semantic = array(), $assist_profile = array()) {
         $groups = array();
-        $object_groups = array();
+
+        // Para diagnóstico y fallback, las señales fuertes del Intérprete se
+        // muestran primero. El contexto no se convierte en ancla de catálogo.
+        foreach (array('identity_terms','vocabulary_terms','action_terms') as $key) {
+            foreach ((array) ($assist_profile[$key] ?? array()) as $term) {
+                $term = SEO_Dependiente_Index::normalize((string) $term);
+                if ($term) {
+                    $groups[] = array($term);
+                }
+            }
+        }
+        if ($groups) {
+            return array_slice($groups, 0, 12);
+        }
+
         if (!empty($semantic['groups'])) {
             foreach ((array) $semantic['groups'] as $group) {
                 $role = sanitize_key((string) ($group['role'] ?? 'term'));
@@ -1096,22 +1274,10 @@ final class SEO_Dependiente_API {
                     array('SEO_Dependiente_Index', 'normalize'),
                     (array) ($group['variants'] ?? array())
                 ))));
-                if (!$variants) {
-                    continue;
-                }
-                $variants = array_slice($variants, 0, 8);
-                $groups[] = $variants;
-                if ('object' === $role) {
-                    $object_groups[] = $variants;
+                if ($variants) {
+                    $groups[] = array_slice($variants, 0, 8);
                 }
             }
-        }
-        // Cuando el parser ya ha identificado el objeto, la primera pasada usa
-        // ese ancla en vez de exigir con AND palabras de estructura como
-        // "tipo", "tienes" o "catálogo". El resto de términos sigue
-        // participando después en el ranking y en la fase semántica.
-        if ($object_groups) {
-            return array_slice($object_groups, 0, 6);
         }
         if (!$groups) {
             $groups = self::query_token_groups($query);
@@ -1119,18 +1285,24 @@ final class SEO_Dependiente_API {
         return array_slice($groups, 0, 10);
     }
 
-    private static function query_primary_index($groups, $require_all, $limit) {
+    private static function query_primary_index($groups, $require_all, $limit, $fields = array()) {
         global $wpdb;
 
-        $fields = array(
-            'normalized_title',
-            'sku',
-            'brand_name',
-            'categories_json',
-            'tags_json',
-            'vocabulary_json',
-            'attributes_json',
-        );
+        if (!$fields) {
+            $fields = array(
+                'normalized_title',
+                'sku',
+                'brand_name',
+                'categories_json',
+                'tags_json',
+            );
+        }
+        $allowed_fields = array('normalized_title','sku','brand_name','categories_json','tags_json','vocabulary_json','attributes_json');
+        $fields = array_values(array_intersect($allowed_fields, (array) $fields));
+        if (!$fields) {
+            return array();
+        }
+
         $clauses = array();
         $params = array();
         foreach ((array) $groups as $variants) {
@@ -1163,14 +1335,14 @@ final class SEO_Dependiente_API {
     }
 
     /** Puntua una lista de filas con el ranking comun del Dependiente. */
-    private static function score_candidate_rows($rows, $query, $tokens, $filters, $mode, $semantic, &$documents = array()) {
+    private static function score_candidate_rows($rows, $query, $tokens, $filters, $mode, $semantic, $assist_profile = array(), &$documents = array()) {
         $documents = array_map(array('SEO_Dependiente_Index', 'decode_row'), (array) $rows);
         $matched = array();
         foreach ($documents as $document) {
             if (!self::matches_filters($document, $filters)) {
                 continue;
             }
-            $score = self::score_document($document, $query, $tokens, $filters, $mode, $semantic);
+            $score = self::score_document($document, $query, $tokens, $filters, $mode, $semantic, $assist_profile);
             if (isset($score['eligible']) && !$score['eligible']) {
                 continue;
             }
@@ -1179,6 +1351,9 @@ final class SEO_Dependiente_API {
             $document['_object_hits'] = absint($score['object_hits'] ?? 0);
             $document['_route_hits'] = absint($score['route_hits'] ?? 0);
             $document['_coverage'] = absint($score['coverage'] ?? 0);
+            $document['_assist_identity_hits'] = absint($score['assist_identity_hits'] ?? 0);
+            $document['_assist_vocabulary_hits'] = absint($score['assist_vocabulary_hits'] ?? 0);
+            $document['_assist_action_hits'] = absint($score['assist_action_hits'] ?? 0);
             $matched[] = $document;
         }
         return $matched;
@@ -1639,7 +1814,7 @@ final class SEO_Dependiente_API {
         return (bool) array_intersect($selected, $available);
     }
 
-    private static function score_document($document, $query, $token_groups, $filters, $mode = 'need', $semantic = array()) {
+    private static function score_document($document, $query, $token_groups, $filters, $mode = 'need', $semantic = array(), $assist_profile = array()) {
         $score = !empty($document['featured']) ? 8.0 : 0.0;
         if ('instock' === $document['stock_status']) {
             $score += 5.0;
@@ -1794,6 +1969,62 @@ final class SEO_Dependiente_API {
             $reasons[] = 'Disponibilidad solicitada';
         }
 
+        // Jerarquía lingüística: las señales que Intérprete identifica como
+        // concepto/TIPO/ROL pesan mucho más que el contexto. Así "taladro" manda
+        // sobre "pared" o "madera", sin que Intérprete decida ningún producto.
+        $assist_identity_hits = 0;
+        $assist_vocabulary_hits = 0;
+        $assist_action_hits = 0;
+        foreach ((array) ($assist_profile['identity_terms'] ?? array()) as $term) {
+            $term = SEO_Dependiente_Index::normalize((string) $term);
+            if (!$term) {
+                continue;
+            }
+            if (false !== strpos($title, $term)) {
+                $score += 620;
+                $assist_identity_hits++;
+            } elseif (false !== strpos($categories, $term)) {
+                $score += 520;
+                $assist_identity_hits++;
+            } elseif (false !== strpos($tags, $term)) {
+                $score += 420;
+                $assist_identity_hits++;
+            }
+        }
+        foreach ((array) ($assist_profile['vocabulary_terms'] ?? array()) as $term) {
+            $term = SEO_Dependiente_Index::normalize((string) $term);
+            if (!$term) {
+                continue;
+            }
+            if (false !== strpos($vocabulary, $term)) {
+                $score += 280;
+                $assist_vocabulary_hits++;
+            } elseif (false !== strpos($title, $term) || false !== strpos($categories, $term) || false !== strpos($tags, $term)) {
+                $score += 340;
+                $assist_vocabulary_hits++;
+            }
+        }
+        foreach ((array) ($assist_profile['action_terms'] ?? array()) as $term) {
+            $term = SEO_Dependiente_Index::normalize((string) $term);
+            if (!$term) {
+                continue;
+            }
+            if (false !== strpos($applications, $term)
+                || false !== strpos($title, $term)
+                || false !== strpos($categories, $term)
+                || false !== strpos($tags, $term)) {
+                $score += 190;
+                $assist_action_hits++;
+            }
+        }
+        if ($assist_identity_hits) {
+            $reasons[] = 'Coincide con el concepto principal';
+        } elseif ($assist_vocabulary_hits) {
+            $reasons[] = 'Coincide con la clasificación interpretada';
+        } elseif ($assist_action_hits) {
+            $reasons[] = 'Coincide con la acción interpretada';
+        }
+
         $semantic_score = array('bonus' => 0, 'reasons' => array(), 'route_hits' => 0, 'object_hits' => 0);
         if ($semantic && class_exists('SEO_Dependiente_Semantics')) {
             $semantic_score = SEO_Dependiente_Semantics::score_document($document, $semantic);
@@ -1813,6 +2044,9 @@ final class SEO_Dependiente_API {
             'object_hits' => absint($semantic_score['object_hits'] ?? 0),
             'route_hits'  => absint($semantic_score['route_hits'] ?? 0),
             'coverage'    => absint($coverage),
+            'assist_identity_hits' => absint($assist_identity_hits),
+            'assist_vocabulary_hits' => absint($assist_vocabulary_hits),
+            'assist_action_hits' => absint($assist_action_hits),
         );
     }
 
@@ -1848,8 +2082,24 @@ final class SEO_Dependiente_API {
             if ('title' === $orderby) {
                 return strnatcasecmp((string) $a['title'], (string) $b['title']);
             }
-            // En relevancia, una coincidencia de la fase 1A siempre se presenta
-            // antes que una aproximacion descubierta por la fase 2 extensiva.
+            // Las señales lingüísticas estructuradas mandan sobre la procedencia
+            // técnica del candidato. Un Taladro encontrado por el concepto "taladro"
+            // debe ir antes que un producto genérico que entró por contexto/ruta.
+            $a_identity = absint($a['_assist_identity_hits'] ?? 0);
+            $b_identity = absint($b['_assist_identity_hits'] ?? 0);
+            if ($a_identity !== $b_identity) {
+                return $b_identity <=> $a_identity;
+            }
+            $a_vocab = absint($a['_assist_vocabulary_hits'] ?? 0);
+            $b_vocab = absint($b['_assist_vocabulary_hits'] ?? 0);
+            if ($a_vocab !== $b_vocab) {
+                return $b_vocab <=> $a_vocab;
+            }
+            $a_action = absint($a['_assist_action_hits'] ?? 0);
+            $b_action = absint($b['_assist_action_hits'] ?? 0);
+            if ($a_action !== $b_action) {
+                return $b_action <=> $a_action;
+            }
             $a_tier = (string) ($a['_search_tier'] ?? 'direct');
             $b_tier = (string) ($b['_search_tier'] ?? 'direct');
             if ($a_tier !== $b_tier) {
