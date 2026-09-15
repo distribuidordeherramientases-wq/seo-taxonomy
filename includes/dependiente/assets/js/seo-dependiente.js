@@ -1026,6 +1026,16 @@
 
         function renderResults(results, data) {
             if (!results.length) {
+                const hasClarification = Boolean(
+                    data && data.clarification && data.clarification.should_ask &&
+                    Array.isArray(data.clarification.options) && data.clarification.options.length >= 2
+                );
+                if (hasClarification) {
+                    const helpHtml = elements.help ? '<div class="seo-dependiente__empty-help">' + assistantAvatarHtml('seo-dependiente__assistant-avatar--message') + '<button type="button" class="seo-dependiente__empty-action" data-dependiente-help-open>Pedir ayuda con esta búsqueda</button><small>Enviaremos el recorrido de Dependiente para que no tengas que empezar de cero.</small></div>' : '';
+                    elements.results.innerHTML = '<div class="seo-dependiente__empty is-awaiting-clarification"><strong>Vamos a concretarlo</strong><span>Responde a la pregunta anterior. Mantendré lo que ya has dicho y añadiré tu elección para afinar los productos.</span>' + helpHtml + '</div>';
+                    return;
+                }
+
                 const actions = [];
                 if (activeFilterCount(state.filters) > 0) {
                     actions.push('<button type="button" class="seo-dependiente__empty-action is-primary" data-dependiente-zero-reset>Quitar filtros y repetir</button>');
