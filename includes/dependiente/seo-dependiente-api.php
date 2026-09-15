@@ -972,13 +972,11 @@ final class SEO_Dependiente_API {
                 }
             }
         }
-        // Cuando el parser ya ha identificado el objeto, la primera pasada usa
-        // ese ancla en vez de exigir con AND palabras de estructura como
-        // "tipo", "tienes" o "catálogo". El resto de términos sigue
-        // participando después en el ranking y en la fase semántica.
-        if ($object_groups) {
-            return array_slice($object_groups, 0, 6);
-        }
+        // Intérprete ya entrega una consulta limpia. Por tanto, la búsqueda
+        // primaria no debe reducirse solo al objeto reconocido: hacerlo provoca
+        // que consultas distintas terminen compartiendo casi los mismos
+        // candidatos. Conservamos TODOS los conceptos útiles y dejamos que el
+        // AND inicial exija coherencia entre acción, objeto y contexto.
         if (!$groups) {
             $groups = self::query_token_groups($query);
         }
@@ -1666,10 +1664,19 @@ final class SEO_Dependiente_API {
             $reasons = array_merge($reasons, (array) ($semantic_score['reasons'] ?? array()));
         }
 
-        // Todo candidato recuperado por coincidencia léxica sigue siendo
-        // elegible. La capa semántica aporta bonus de ranking, pero no puede
-        // eliminar un producto que el índice textual ha encontrado.
-        $eligible = true;
+        // Un fallback OR puede recuperar productos por una sola palabra muy
+        // genérica (p. ej. "madera"). Esos candidatos no deben sobrevivir si
+        // ignoran el resto de la consulta limpia. Exigimos cobertura mínima de
+        // conceptos; la semántica puede mejorar ranking, pero no convertir una
+        // coincidencia aislada en un resultado válido.
+        $group_count = count($token_groups);
+        $minimum_coverage = 1;
+        if (2 === $group_count) {
+            $minimum_coverage = 2;
+        } elseif ($group_count >= 3) {
+            $minimum_coverage = max(2, (int) ceil($group_count * 0.5));
+        }
+        $eligible = $coverage >= $minimum_coverage;
 
         return array(
             'score'   => round($score, 4),
