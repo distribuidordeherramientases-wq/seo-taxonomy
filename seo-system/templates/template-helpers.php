@@ -1165,12 +1165,12 @@ if (!function_exists('dht_template_render_service_promise')) {
             ),
             'browse' => array(
                 'kicker' => 'Nuestro servicio',
-                'title'  => 'No compras solo un producto',
-                'body'   => 'Tienes una persona a la que llamar. Si aparece una incidencia, te ayudamos con la gestión y el seguimiento frente al fabricante o distribuidor.',
+                'title'  => 'Una persona detrás de tu compra',
+                'body'   => 'Te atendemos en castellano y, si surge una incidencia, te ayudamos a gestionar la comunicación y el seguimiento con el fabricante o distribuidor.',
             ),
             'product' => array(
                 'kicker' => 'Acompañamiento posventa',
-                'title'  => 'Nuestro acompañamiento no termina al pagar',
+                'title'  => 'Te acompañamos también después de la compra',
                 'body'   => 'Si este producto presenta una incidencia, puedes llamarnos. Te ayudamos a gestionar la comunicación con el fabricante o distribuidor y seguimos el caso contigo.',
             ),
             'checkout' => array(
