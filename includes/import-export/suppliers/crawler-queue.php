@@ -12,13 +12,13 @@
  *
  * @package SEOSystem
  * @subpackage SupplierImports
- * @version 0.3.2
+ * @version 0.3.3
  */
 
 defined( 'ABSPATH' ) || exit;
 
 if ( ! defined( 'SEO_SUPPLIER_CRAWL_VERSION' ) ) {
-    define( 'SEO_SUPPLIER_CRAWL_VERSION', '0.3.2' );
+    define( 'SEO_SUPPLIER_CRAWL_VERSION', '0.3.3' );
 }
 
 add_action( 'init', 'seo_supplier_crawl_resume_started_recipes', 30 );
@@ -48,10 +48,16 @@ function seo_supplier_crawl_recipes() {
             continue;
         }
 
+        $execution = sanitize_key( (string) ( $recipe['execution'] ?? 'crawl' ) );
+        if ( ! in_array( $execution, [ 'crawl', 'local_process' ], true ) ) {
+            $execution = 'crawl';
+        }
+
         $recipe['id']             = $id;
         $recipe['provider']       = $provider;
         $recipe['label']          = $label;
-        $recipe['auto_enabled']   = ! empty( $recipe['auto_enabled'] );
+        $recipe['execution']      = $execution;
+        $recipe['auto_enabled']   = 'crawl' === $execution && ! empty( $recipe['auto_enabled'] );
         $recipe['min_delay']      = max( 15, absint( $recipe['min_delay'] ?? $recipe['crawl_delay'] ?? 45 ) );
         $recipe['initial_delay']  = max( $recipe['min_delay'], absint( $recipe['initial_delay'] ?? $recipe['crawl_delay'] ?? 75 ) );
         $recipe['max_delay']      = max( $recipe['initial_delay'], min( 6 * HOUR_IN_SECONDS, absint( $recipe['max_delay'] ?? 1800 ) ) );
@@ -1401,6 +1407,10 @@ function seo_supplier_crawl_resume_started_recipes() {
     }
 
     foreach ( seo_supplier_crawl_recipes() as $recipe_id => $recipe ) {
+        if ( 'local_process' === ( $recipe['execution'] ?? 'crawl' ) ) {
+            continue;
+        }
+
         $state = seo_supplier_crawl_state( $recipe_id );
 
         // Migracion desde v0.3.0: las recetas que arrancaron solas quedan
@@ -1532,6 +1542,52 @@ function seo_supplier_crawl_handle_start_request() {
                     'page'             => 'seo-import-export',
                     'seo_ie_tab'       => 'importar-proveedor',
                     'seo_crawl_notice' => 'recipe_missing',
+                ],
+                admin_url( 'admin.php' )
+            )
+        );
+        exit;
+    }
+
+    if ( 'local_process' === ( $recipe['execution'] ?? 'crawl' ) ) {
+        $callback = $recipe['start_callback'] ?? '';
+        $catalog_complete = ! empty( $_POST['seo_supplier_catalog_complete'] );
+
+        if ( ! is_callable( $callback ) ) {
+            $result = new WP_Error( 'seo_supplier_local_callback_missing', 'La receta local no tiene un start_callback valido.' );
+        } else {
+            try {
+                $result = call_user_func( $callback, $recipe, $catalog_complete );
+            } catch ( Throwable $exception ) {
+                $result = new WP_Error( 'seo_supplier_local_exception', $exception->getMessage() );
+            }
+        }
+
+        if ( is_wp_error( $result ) ) {
+            wp_safe_redirect(
+                add_query_arg(
+                    [
+                        'page'              => 'seo-import-export',
+                        'seo_ie_tab'        => 'importar-proveedor',
+                        'seo_crawl_notice'  => 'local_error',
+                        'seo_crawl_recipe'  => $recipe_id,
+                        'seo_crawl_message' => $result->get_error_message(),
+                    ],
+                    admin_url( 'admin.php' )
+                )
+            );
+            exit;
+        }
+
+        $message = is_array( $result ) ? sanitize_text_field( (string) ( $result['message'] ?? '' ) ) : '';
+        wp_safe_redirect(
+            add_query_arg(
+                [
+                    'page'              => 'seo-import-export',
+                    'seo_ie_tab'        => 'importar-proveedor',
+                    'seo_crawl_notice'  => 'local_started',
+                    'seo_crawl_recipe'  => $recipe_id,
+                    'seo_crawl_message' => $message,
                 ],
                 admin_url( 'admin.php' )
             )
@@ -1839,6 +1895,14 @@ function seo_supplier_crawler_render_inline() {
 
     $recipes          = seo_supplier_crawl_recipes();
     $external_recipes = seo_supplier_external_web_recipes();
+    $local_recipes    = array_filter(
+        $recipes,
+        static fn( $recipe ) => 'local_process' === ( $recipe['execution'] ?? 'crawl' )
+    );
+    $crawl_recipes    = array_filter(
+        $recipes,
+        static fn( $recipe ) => 'local_process' !== ( $recipe['execution'] ?? 'crawl' )
+    );
     if ( empty( $recipes ) && empty( $external_recipes ) ) {
         return;
     }
@@ -1850,7 +1914,7 @@ function seo_supplier_crawler_render_inline() {
     ?>
     <div style="border-top:1px solid #dcdcde;margin-top:24px;padding-top:20px;">
         <h3 style="margin-top:0;">Obtener catalogo desde la web</h3>
-        <p>Elige el proveedor y pulsa <strong>Iniciar obtencion</strong>. Las recetas sencillas pueden usar la cola PHP de WordPress; las recetas Python se ejecutan fuera del hosting (por ejemplo, en GitHub Actions). En ambos casos el resultado termina como <strong>CSV estandar</strong> y entra por el mismo importador comun.</p>
+        <p>Elige el proveedor y pulsa <strong>Iniciar obtencion</strong>. Hay scrapers externos, rastreos PHP y procesos locales ejecutados por el propio WordPress. Todos terminan como <strong>CSV estandar</strong> y pasan por el mismo importador comun.</p>
 
         <?php if ( 'reset' === $notice ) : ?>
             <div class="notice notice-success inline"><p><strong>Rastreos PHP reiniciados.</strong> Tareas canceladas, cola y staging vacios. El catalogo comun y los CSV existentes no se han tocado.</p></div>
@@ -1860,11 +1924,15 @@ function seo_supplier_crawler_render_inline() {
             <div class="notice notice-success inline"><p><strong><?php echo esc_html( $external_recipes[ $notice_recipe ]['label'] ); ?>:</strong> scraper externo iniciado en GitHub Actions. Puedes cerrar esta pagina; el CSV volvera automaticamente a WordPress.<?php echo '' !== $notice_run ? ' ID remoto: ' . esc_html( $notice_run ) . '.' : ''; ?></p></div>
         <?php elseif ( 'external_error' === $notice ) : ?>
             <div class="notice notice-error inline"><p><strong>No se pudo iniciar el scraper externo.</strong> <?php echo esc_html( $notice_message ); ?></p></div>
+        <?php elseif ( 'local_started' === $notice && isset( $local_recipes[ $notice_recipe ] ) ) : ?>
+            <div class="notice notice-success inline"><p><strong><?php echo esc_html( $local_recipes[ $notice_recipe ]['label'] ); ?>:</strong> proceso local completado. <?php echo esc_html( $notice_message ); ?></p></div>
+        <?php elseif ( 'local_error' === $notice ) : ?>
+            <div class="notice notice-error inline"><p><strong>No se pudo ejecutar el proceso local.</strong> <?php echo esc_html( $notice_message ); ?></p></div>
         <?php elseif ( 'recipe_missing' === $notice ) : ?>
             <div class="notice notice-error inline"><p>No se encontro la receta web seleccionada.</p></div>
         <?php endif; ?>
 
-        <form method="post" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin:14px 0 18px;">
+        <form method="post" enctype="multipart/form-data" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin:14px 0 18px;">
             <?php wp_nonce_field( 'seo_supplier_crawl_start', 'seo_supplier_crawl_nonce' ); ?>
             <label>
                 <strong>Proveedor / receta web</strong><br>
@@ -1879,9 +1947,18 @@ function seo_supplier_crawler_render_inline() {
                             <?php endforeach; ?>
                         </optgroup>
                     <?php endif; ?>
-                    <?php if ( ! empty( $recipes ) ) : ?>
+                    <?php if ( ! empty( $local_recipes ) ) : ?>
+                        <optgroup label="Proceso local en WordPress">
+                            <?php foreach ( $local_recipes as $recipe_id => $recipe ) : ?>
+                                <option value="<?php echo esc_attr( 'crawl:' . $recipe_id ); ?>" data-local-files="1">
+                                    <?php echo esc_html( $recipe['label'] ); ?><?php echo ! empty( $recipe['version'] ) ? ' - v' . esc_html( $recipe['version'] ) : ''; ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </optgroup>
+                    <?php endif; ?>
+                    <?php if ( ! empty( $crawl_recipes ) ) : ?>
                         <optgroup label="Rastreo PHP en WordPress">
-                            <?php foreach ( $recipes as $recipe_id => $recipe ) : ?>
+                            <?php foreach ( $crawl_recipes as $recipe_id => $recipe ) : ?>
                                 <?php $state = seo_supplier_crawl_state( $recipe_id ); ?>
                                 <option value="<?php echo esc_attr( 'crawl:' . $recipe_id ); ?>">
                                     <?php echo esc_html( $recipe['label'] ); ?><?php echo ! empty( $recipe['version'] ) ? ' - v' . esc_html( $recipe['version'] ) : ''; ?><?php echo ! empty( $state['manual_started'] ) ? ' - iniciado' : ''; ?>
@@ -1891,13 +1968,30 @@ function seo_supplier_crawler_render_inline() {
                     <?php endif; ?>
                 </select>
             </label>
+            <label id="seo-supplier-local-files-wrap" style="display:none;">
+                <strong>HTML guardados de Rubix</strong><br>
+                <input type="file" name="seo_supplier_local_files[]" multiple accept=".html,.htm,.txt,text/html,text/plain">
+            </label>
             <label>
                 <input type="checkbox" name="seo_supplier_catalog_complete" value="1"> Catalogo completo
             </label>
             <button type="submit" name="seo_supplier_crawl_start" value="1" class="button button-primary">Iniciar obtencion</button>
         </form>
+        <script>
+        (function(){
+            var select = document.querySelector('select[name="seo_supplier_crawl_recipe"]');
+            var wrap = document.getElementById('seo-supplier-local-files-wrap');
+            if (!select || !wrap) return;
+            function refreshLocalFiles() {
+                var option = select.options[select.selectedIndex];
+                wrap.style.display = option && option.getAttribute('data-local-files') === '1' ? '' : 'none';
+            }
+            select.addEventListener('change', refreshLocalFiles);
+            refreshLocalFiles();
+        }());
+        </script>
 
-        <p class="description">Nada empieza por abrir esta pagina. El proceso solo se activa al elegir una receta y pulsar el boton. En scrapers externos puedes cerrar el navegador: GitHub trabaja por su cuenta y devuelve el CSV al terminar. Deja <strong>Catalogo completo</strong> desmarcado en las pruebas cortas.</p>
+        <p class="description">Nada empieza por abrir esta pagina. El proceso solo se activa al elegir una receta y pulsar el boton. Los procesos locales se ejecutan en este servidor y no llaman a GitHub. Deja <strong>Catalogo completo</strong> desmarcado en las pruebas cortas.</p>
 
         <form method="post" style="margin:12px 0 18px;">
             <?php wp_nonce_field( 'seo_supplier_crawl_reset_all', 'seo_supplier_crawl_reset_nonce' ); ?>
@@ -1907,7 +2001,7 @@ function seo_supplier_crawler_render_inline() {
 
         <?php
         $started = [];
-        foreach ( $recipes as $recipe_id => $recipe ) {
+        foreach ( $crawl_recipes as $recipe_id => $recipe ) {
             $state = seo_supplier_crawl_state( $recipe_id );
             if ( ! empty( $state['manual_started'] ) ) {
                 $started[ $recipe_id ] = $recipe;
