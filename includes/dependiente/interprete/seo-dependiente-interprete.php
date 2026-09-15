@@ -11,7 +11,7 @@ defined('ABSPATH') || exit;
  * lenguaje, elimina ruido y puede pedir contexto linguistico que falte.
  */
 final class SEO_Dependiente_Interprete {
-    const VERSION = '0.8.1';
+    const VERSION = '0.8.2';
 
     private static $morphology = null;
 
@@ -132,7 +132,13 @@ final class SEO_Dependiente_Interprete {
         // aprendidas. Para palabras cortas se limita a una edición; las largas
         // admiten dos (incluye muchas transposiciones), evitando falsos positivos.
         $grammar = self::grammar_settings();
-        $fuzzy_distance = !empty($grammar['natural_language']) ? absint($grammar['fuzzy_distance'] ?? 0) : 0;
+        // Corrección conservadora desde el primer día: una edición contra formas
+        // ya conocidas. La formación puede ampliar el margen, pero no habilita la
+        // capacidad básica de corregir una errata evidente.
+        $fuzzy_distance = 1;
+        if (!empty($grammar['natural_language'])) {
+            $fuzzy_distance = max(1, absint($grammar['fuzzy_distance'] ?? 1));
+        }
         if ($fuzzy_distance > 0) {
             $fuzzy_base = $result;
             if ('' !== $semantic_query) {
@@ -289,6 +295,11 @@ final class SEO_Dependiente_Interprete {
         $confirmed = self::sanitize_guidance_hints((array) ($context['confirmed_hints'] ?? array()));
         $step = count($confirmed) + 1;
 
+        // El Intérprete solo pregunta cuando el Dependiente declara que necesita
+        // ayuda. Nunca compite con una respuesta que ya está produciendo resultados.
+        if (empty($context['dependiente_needs_help'])) {
+            return $empty;
+        }
         if ('' === $query || 'compare' === $mode || $step > 2 || in_array($request_kind, array('paginate','compare'), true)) {
             return $empty;
         }
@@ -1029,7 +1040,7 @@ final class SEO_Dependiente_Interprete {
             }
         }
         $semantic_stopwords = array_flip(array_values(array_filter(array_map(array(__CLASS__, 'normalize'), array_merge($base_noise, (array) ($grammar['semantic_stopwords'] ?? array()))))));
-        $stop_verbs = array_flip(array_values(array_filter(array_map(array(__CLASS__, 'normalize'), array_merge(array('querer','necesitar','buscar','poder'), (array) ($grammar['stop_verbs'] ?? array()))))));
+        $stop_verbs = array_flip(array_values(array_filter(array_map(array(__CLASS__, 'normalize'), array_merge(array('querer','necesitar','buscar','poder','haber','ir','hacer'), (array) ($grammar['stop_verbs'] ?? array()))))));
         $irregular = array();
         foreach ((array) ($grammar['irregular_forms'] ?? array()) as $form => $lemma) {
             $form = self::normalize($form);
@@ -1053,6 +1064,9 @@ final class SEO_Dependiente_Interprete {
             } elseif (isset($irregular[$token])) {
                 $lemma = $irregular[$token];
                 $verb_source = 'irregular_dictionary';
+            } elseif ('' !== ($base_lemma = self::base_verb_lemma($token))) {
+                $lemma = $base_lemma;
+                $verb_source = 'base_morphology';
             } elseif (isset(array(
                 'quiero'=>'querer','quiere'=>'querer','queremos'=>'querer','quisiera'=>'querer',
                 'necesito'=>'necesitar','necesita'=>'necesitar','necesitamos'=>'necesitar',
@@ -1095,6 +1109,77 @@ final class SEO_Dependiente_Interprete {
         $base['content_tokens'] = $semantic;
         $base['semantic_query'] = implode(' ', $semantic);
         return $base;
+    }
+
+    /**
+     * Morfología mínima disponible sin esperar a Lingüista. Cubre auxiliares y
+     * verbos regulares frecuentes del dominio en presente, pasado, futuro,
+     * condicional, gerundio y participio. La memoria aprendida siempre tiene
+     * prioridad sobre esta base.
+     */
+    private static function base_verb_lemma($token) {
+        $token = self::normalize($token);
+        if ('' === $token || false !== strpos($token, ' ')) {
+            return '';
+        }
+
+        $irregular = array(
+            'he'=>'haber','has'=>'haber','ha'=>'haber','hemos'=>'haber','habeis'=>'haber','han'=>'haber',
+            'habia'=>'haber','habias'=>'haber','habiamos'=>'haber','habian'=>'haber','hubo'=>'haber','hubieron'=>'haber',
+            'voy'=>'ir','vas'=>'ir','va'=>'ir','vamos'=>'ir','vais'=>'ir','van'=>'ir','iba'=>'ir','ibas'=>'ir','ibamos'=>'ir','iban'=>'ir',
+            'hago'=>'hacer','haces'=>'hacer','hace'=>'hacer','hacemos'=>'hacer','hacen'=>'hacer','hice'=>'hacer','hizo'=>'hacer','hicimos'=>'hacer','hicieron'=>'hacer','hecho'=>'hacer','haciendo'=>'hacer',
+            'rompo'=>'romper','rompes'=>'romper','rompe'=>'romper','rompen'=>'romper','roto'=>'romper',
+            'abro'=>'abrir','abres'=>'abrir','abre'=>'abrir','abren'=>'abrir','abierto'=>'abrir',
+        );
+        if (isset($irregular[$token])) {
+            return $irregular[$token];
+        }
+
+        $verbs = array(
+            'taladrar','perforar','agujerear','lijar','cortar','pulir','soldar','atornillar','fresar',
+            'montar','instalar','reparar','arreglar','pintar','inflar','sacar','comprar','usar','cambiar',
+            'limpiar','mover','elevar','fijar','aspirar','cepillar','romper','abrir','demoler','extraer',
+        );
+        foreach ($verbs as $verb) {
+            if ($token === $verb) {
+                return $verb;
+            }
+            $ending = substr($verb, -2);
+            $stem = substr($verb, 0, -2);
+            $forms = array();
+            if ('ar' === $ending) {
+                $forms = array(
+                    $stem.'o',$stem.'as',$stem.'a',$stem.'amos',$stem.'ais',$stem.'an',
+                    $stem.'e',$stem.'aste',$stem.'amos',$stem.'asteis',$stem.'aron',
+                    $stem.'aba',$stem.'abas',$stem.'abamos',$stem.'abais',$stem.'aban',
+                    $verb.'e',$verb.'as',$verb.'a',$verb.'emos',$verb.'eis',$verb.'an',
+                    $verb.'ia',$verb.'ias',$verb.'iamos',$verb.'iais',$verb.'ian',
+                    $stem.'ando',$stem.'ado',
+                );
+            } elseif ('er' === $ending) {
+                $forms = array(
+                    $stem.'o',$stem.'es',$stem.'e',$stem.'emos',$stem.'eis',$stem.'en',
+                    $stem.'i',$stem.'iste',$stem.'io',$stem.'imos',$stem.'isteis',$stem.'ieron',
+                    $stem.'ia',$stem.'ias',$stem.'iamos',$stem.'iais',$stem.'ian',
+                    $verb.'e',$verb.'as',$verb.'a',$verb.'emos',$verb.'eis',$verb.'an',
+                    $verb.'ia',$verb.'ias',$verb.'iamos',$verb.'iais',$verb.'ian',
+                    $stem.'iendo',$stem.'ido',
+                );
+            } elseif ('ir' === $ending) {
+                $forms = array(
+                    $stem.'o',$stem.'es',$stem.'e',$stem.'imos',$stem.'is',$stem.'en',
+                    $stem.'i',$stem.'iste',$stem.'io',$stem.'imos',$stem.'isteis',$stem.'ieron',
+                    $stem.'ia',$stem.'ias',$stem.'iamos',$stem.'iais',$stem.'ian',
+                    $verb.'e',$verb.'as',$verb.'a',$verb.'emos',$verb.'eis',$verb.'an',
+                    $verb.'ia',$verb.'ias',$verb.'iamos',$verb.'iais',$verb.'ian',
+                    $stem.'iendo',$stem.'ido',
+                );
+            }
+            if (in_array($token, $forms, true)) {
+                return $verb;
+            }
+        }
+        return '';
     }
 
     private static function detect_intent($normalized) {
