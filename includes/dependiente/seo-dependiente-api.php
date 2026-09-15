@@ -299,6 +299,7 @@ final class SEO_Dependiente_API {
         // considera publicables. No dejamos que esas filas decidan si la primera
         // pasada es suficiente ni que inflen facetas, totales o paginación.
         $primary_matched = self::filter_searchable_documents($primary_matched);
+        $primary_matched = self::identity_coherent_documents($primary_matched, $assist_profile);
 
         // 1B. Conocimiento editorial directo. Las FAQs ya no hacen una
         // búsqueda textual global en esta fase: se resolverán después, cuando
@@ -400,6 +401,8 @@ final class SEO_Dependiente_API {
         // Solo los productos realmente publicables pueden participar desde aquí.
         // Esto mantiene sincronizados tarjetas, facetas, total y paginación.
         $matched = self::filter_searchable_documents($matched);
+        $matched = self::identity_coherent_documents($matched, $assist_profile);
+        self::sort_documents($matched, $orderby);
         // Los filtros visibles deben describir exactamente los productos que siguen
         // vivos tras ranking/filtros, no todo el conjunto candidato recuperado.
         $facets = self::build_facets($matched);
@@ -417,6 +420,7 @@ final class SEO_Dependiente_API {
                     'score'    => (float) ($debug_document['_score'] ?? 0),
                     'coverage' => absint($debug_document['_coverage'] ?? 0),
                     'identity_hits' => absint($debug_document['_assist_identity_hits'] ?? 0),
+                    'identity_sources' => array_values(array_slice(array_map('sanitize_text_field', (array) ($debug_document['_assist_identity_sources'] ?? array())), 0, 6)),
                     'vocabulary_hits' => absint($debug_document['_assist_vocabulary_hits'] ?? 0),
                     'action_hits' => absint($debug_document['_assist_action_hits'] ?? 0),
                     'reasons'  => array_values(array_slice(array_map('sanitize_text_field', (array) ($debug_document['_reasons'] ?? array())), 0, 4)),
@@ -1150,7 +1154,179 @@ final class SEO_Dependiente_API {
         foreach ($profile as $key => $terms) {
             $profile[$key] = array_slice(array_values(array_unique(array_filter($terms))), 0, 12);
         }
+
+        // La identidad comercial se verifica también contra WooCommerce vivo.
+        // El índice puede quedarse desfasado tras importaciones/clonados; una fila
+        // antigua nunca debe convertir un producto distinto en "taladro".
+        $profile['_live_identity_ids'] = $profile['identity_terms']
+            ? self::live_identity_product_ids($profile['identity_terms'], 500)
+            : array();
+
         return $profile;
+    }
+
+    /**
+     * Devuelve variantes morfológicas conservadoras para una ancla de identidad.
+     * No intenta sinonimia: eso pertenece a Intérprete/Lingüista.
+     */
+    private static function identity_forms($term) {
+        $term = SEO_Dependiente_Index::normalize((string) $term);
+        if ('' === $term) {
+            return array();
+        }
+        $forms = array($term);
+        $parts = preg_split('/\s+/', $term);
+        if (1 === count($parts)) {
+            $last = $parts[0];
+            if (preg_match('/[aeiou]$/', $last)) {
+                $forms[] = $last . 's';
+            } elseif (preg_match('/[rlndz]$/', $last)) {
+                $forms[] = $last . 'es';
+            } else {
+                $forms[] = $last . 's';
+            }
+            if (substr($last, -1) === 's' && strlen($last) > 3) {
+                $forms[] = substr($last, 0, -1);
+            }
+        }
+        return array_values(array_unique(array_filter($forms)));
+    }
+
+    /** Coincidencia por palabra/frase completa; evita falsos positivos por substring. */
+    private static function identity_text_matches($text, $term) {
+        $text = ' ' . SEO_Dependiente_Index::normalize((string) $text) . ' ';
+        foreach (self::identity_forms($term) as $form) {
+            if (false !== strpos($text, ' ' . $form . ' ')) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Busca IDs directamente en WooCommerce vivo por título o categoría.
+     * Esta vía no usa el índice semántico y sirve de guardia frente a filas viejas.
+     */
+    private static function live_identity_product_ids($terms, $limit = 500) {
+        global $wpdb;
+        $limit = min(800, max(20, absint($limit)));
+        $ids = array();
+        foreach (array_slice((array) $terms, 0, 6) as $term) {
+            $term = SEO_Dependiente_Index::normalize((string) $term);
+            if ('' === $term) {
+                continue;
+            }
+            foreach (self::identity_forms($term) as $form) {
+                $like = '%' . $wpdb->esc_like($form) . '%';
+                $sql = $wpdb->prepare(
+                    "SELECT DISTINCT p.ID
+                     FROM {$wpdb->posts} p
+                     LEFT JOIN {$wpdb->term_relationships} tr ON tr.object_id = p.ID
+                     LEFT JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id AND tt.taxonomy = 'product_cat'
+                     LEFT JOIN {$wpdb->terms} t ON t.term_id = tt.term_id
+                     WHERE p.post_type = 'product'
+                       AND p.post_status = 'publish'
+                       AND (p.post_title LIKE %s OR t.name LIKE %s OR t.slug LIKE %s)
+                     LIMIT %d",
+                    $like,
+                    $like,
+                    '%' . $wpdb->esc_like(sanitize_title($form)) . '%',
+                    $limit
+                );
+                foreach ((array) $wpdb->get_col($sql) as $product_id) {
+                    $ids[absint($product_id)] = true;
+                    if (count($ids) >= $limit) {
+                        break 3;
+                    }
+                }
+            }
+        }
+        return array_values(array_filter(array_map('absint', array_keys($ids))));
+    }
+
+    /** Obtiene filas del índice por ID, sin volver a decidir identidad desde el índice. */
+    private static function index_rows_by_product_ids($product_ids, $limit = 500) {
+        global $wpdb;
+        if (!SEO_Dependiente_Index::table_exists()) {
+            return array();
+        }
+        $ids = array_slice(array_values(array_unique(array_filter(array_map('absint', (array) $product_ids)))), 0, absint($limit));
+        if (!$ids) {
+            return array();
+        }
+        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+        $sql = $wpdb->prepare(
+            'SELECT * FROM `' . esc_sql(SEO_Dependiente_Index::table()) . "` WHERE product_id IN ({$placeholders})",
+            $ids
+        );
+        return (array) $wpdb->get_results($sql, ARRAY_A);
+    }
+
+    /**
+     * Comprueba la identidad contra el producto vivo. Las etiquetas NO cuentan
+     * como identidad fuerte: pueden describir uso/contexto y estaban provocando
+     * falsos positivos como Marcadores de Entrada => taladro.
+     */
+    private static function live_identity_evidence($document, $terms, $live_ids = array()) {
+        $product_id = absint($document['product_id'] ?? 0);
+        if (!$product_id || !$terms) {
+            return array('hits' => 0, 'sources' => array());
+        }
+        $live_map = array_fill_keys(array_map('absint', (array) $live_ids), true);
+        if ($live_map && !isset($live_map[$product_id])) {
+            return array('hits' => 0, 'sources' => array());
+        }
+        $product = wc_get_product($product_id);
+        if (!$product instanceof WC_Product) {
+            return array('hits' => 0, 'sources' => array());
+        }
+        $title = (string) $product->get_name();
+        $categories = wp_get_post_terms($product_id, 'product_cat', array('fields' => 'names'));
+        if (is_wp_error($categories)) {
+            $categories = array();
+        }
+        $sources = array();
+        $hits = 0;
+        foreach ((array) $terms as $term) {
+            $term = SEO_Dependiente_Index::normalize((string) $term);
+            if ('' === $term) {
+                continue;
+            }
+            if (self::identity_text_matches($title, $term)) {
+                $hits++;
+                $sources[] = 'titulo:' . $term;
+                continue;
+            }
+            foreach ((array) $categories as $category_name) {
+                if (self::identity_text_matches((string) $category_name, $term)) {
+                    $hits++;
+                    $sources[] = 'categoria:' . SEO_Dependiente_Index::normalize((string) $category_name);
+                    break;
+                }
+            }
+        }
+        return array(
+            'hits' => $hits,
+            'sources' => array_values(array_unique(array_filter($sources))),
+        );
+    }
+
+    /**
+     * Si existen suficientes productos con identidad viva real, elimina del
+     * conjunto los candidatos que solo entraron por contexto/rutas secundarias.
+     */
+    private static function identity_coherent_documents($documents, $assist_profile) {
+        $documents = array_values((array) $documents);
+        if (empty($assist_profile['identity_terms'])) {
+            return $documents;
+        }
+        $strong = array_values(array_filter($documents, static function ($document) {
+            return absint($document['_assist_identity_hits'] ?? 0) > 0;
+        }));
+        if (count($strong) < 3) {
+            return $documents;
+        }
+        return $strong;
     }
 
     /**
@@ -1185,9 +1361,18 @@ final class SEO_Dependiente_API {
                 self::CANDIDATE_LIMIT,
                 array('normalized_title','categories_json','tags_json')
             );
+            // Añadimos además los productos que WooCommerce vivo identifica
+            // por título/categoría. Esto protege la búsqueda frente a un índice
+            // desfasado y evita que un ID reutilizado herede la identidad antigua.
+            $live_identity_rows = self::index_rows_by_product_ids(
+                (array) ($assist_profile['_live_identity_ids'] ?? array()),
+                500
+            );
+            $rows = self::merge_candidate_rows($rows, $live_identity_rows);
             if ($rows) {
                 $diagnostic['strategy'] = 'primary_interpreter_identity';
             }
+            $diagnostic['live_identity_rows'] = count($live_identity_rows);
         }
 
         // 2. TIPO/ROL/APLICACIÓN/etc. sí viven en Vocabulary; se añaden como
@@ -1352,6 +1537,7 @@ final class SEO_Dependiente_API {
             $document['_route_hits'] = absint($score['route_hits'] ?? 0);
             $document['_coverage'] = absint($score['coverage'] ?? 0);
             $document['_assist_identity_hits'] = absint($score['assist_identity_hits'] ?? 0);
+            $document['_assist_identity_sources'] = array_values((array) ($score['assist_identity_sources'] ?? array()));
             $document['_assist_vocabulary_hits'] = absint($score['assist_vocabulary_hits'] ?? 0);
             $document['_assist_action_hits'] = absint($score['assist_action_hits'] ?? 0);
             $matched[] = $document;
@@ -1422,7 +1608,7 @@ final class SEO_Dependiente_API {
             }
         }
         foreach (array(
-            'primary_rows', 'primary_group_count', 'primary_product_count',
+            'primary_rows', 'primary_group_count', 'primary_product_count', 'live_identity_rows',
             'direct_knowledge_count', 'strict_count', 'semantic_product_ids',
             'semantic_route_rows', 'object_anchor_rows', 'broad_fallback_rows',
             'semantic_catalog_route', 'semantic_rules_active',
@@ -1973,22 +2159,26 @@ final class SEO_Dependiente_API {
         // concepto/TIPO/ROL pesan mucho más que el contexto. Así "taladro" manda
         // sobre "pared" o "madera", sin que Intérprete decida ningún producto.
         $assist_identity_hits = 0;
+        $assist_identity_sources = array();
         $assist_vocabulary_hits = 0;
         $assist_action_hits = 0;
-        foreach ((array) ($assist_profile['identity_terms'] ?? array()) as $term) {
-            $term = SEO_Dependiente_Index::normalize((string) $term);
-            if (!$term) {
-                continue;
-            }
-            if (false !== strpos($title, $term)) {
+
+        // IDENTIDAD FUERTE = evidencia en el producto vivo, no una coincidencia
+        // accidental de etiqueta/descripcion del índice. Título y categoría son
+        // las fuentes de identidad; las etiquetas siguen ayudando al ranking
+        // normal, pero no pueden declarar por sí solas que algo ES un taladro.
+        $identity_evidence = self::live_identity_evidence(
+            $document,
+            (array) ($assist_profile['identity_terms'] ?? array()),
+            (array) ($assist_profile['_live_identity_ids'] ?? array())
+        );
+        $assist_identity_hits = absint($identity_evidence['hits'] ?? 0);
+        $assist_identity_sources = array_values((array) ($identity_evidence['sources'] ?? array()));
+        foreach ($assist_identity_sources as $source) {
+            if (0 === strpos((string) $source, 'titulo:')) {
                 $score += 620;
-                $assist_identity_hits++;
-            } elseif (false !== strpos($categories, $term)) {
+            } elseif (0 === strpos((string) $source, 'categoria:')) {
                 $score += 520;
-                $assist_identity_hits++;
-            } elseif (false !== strpos($tags, $term)) {
-                $score += 420;
-                $assist_identity_hits++;
             }
         }
         foreach ((array) ($assist_profile['vocabulary_terms'] ?? array()) as $term) {
@@ -2045,6 +2235,7 @@ final class SEO_Dependiente_API {
             'route_hits'  => absint($semantic_score['route_hits'] ?? 0),
             'coverage'    => absint($coverage),
             'assist_identity_hits' => absint($assist_identity_hits),
+            'assist_identity_sources' => array_values(array_unique(array_filter($assist_identity_sources))),
             'assist_vocabulary_hits' => absint($assist_vocabulary_hits),
             'assist_action_hits' => absint($assist_action_hits),
         );

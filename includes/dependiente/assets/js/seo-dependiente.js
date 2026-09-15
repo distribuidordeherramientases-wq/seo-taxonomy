@@ -985,9 +985,10 @@
                 const score = item && item.score !== undefined ? String(item.score) : '0';
                 const coverage = item && item.coverage !== undefined ? String(item.coverage) : '0';
                 const identityHits = item && item.identity_hits !== undefined ? String(item.identity_hits) : '0';
+                const identitySources = item && Array.isArray(item.identity_sources) ? item.identity_sources.filter(Boolean).join(' | ') : '';
                 const vocabularyHits = item && item.vocabulary_hits !== undefined ? String(item.vocabulary_hits) : '0';
                 const actionHits = item && item.action_hits !== undefined ? String(item.action_hits) : '0';
-                return '<div style="margin-left:8px">• ' + escapeHtml(String(item.title || ('#' + String(item.id || '')))) + ' · score ' + escapeHtml(score) + ' · cobertura ' + escapeHtml(coverage) + ' · identidad ' + escapeHtml(identityHits) + ' · vocab ' + escapeHtml(vocabularyHits) + ' · acción ' + escapeHtml(actionHits) + (reasons ? ' · ' + escapeHtml(reasons) : '') + '</div>';
+                return '<div style="margin-left:8px">• ' + escapeHtml(String(item.title || ('#' + String(item.id || '')))) + ' · score ' + escapeHtml(score) + ' · cobertura ' + escapeHtml(coverage) + ' · identidad ' + escapeHtml(identityHits) + (identitySources ? ' [' + escapeHtml(identitySources) + ']' : '') + ' · vocab ' + escapeHtml(vocabularyHits) + ' · acción ' + escapeHtml(actionHits) + (reasons ? ' · ' + escapeHtml(reasons) : '') + '</div>';
             }).join('') + '</div>' : '';
             return '<div class="seo-dependiente__interpreter-log" style="margin:14px 0;padding:12px;border:1px dashed #9aa59d;border-radius:10px;background:#f8faf8;font-size:12px;line-height:1.45;overflow-wrap:anywhere">' +
                 '<strong style="display:block;margin-bottom:7px">LOG INTÉRPRETE · STAGING</strong>' +
