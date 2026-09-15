@@ -270,6 +270,11 @@ final class SEO_Dependiente_API {
             ? SEO_Dependiente_Semantics::group_variants($semantic)
             : self::query_token_groups($query);
 
+        // Diagnóstico visible en staging: muestra qué conceptos está usando
+        // realmente Dependiente para recuperar productos. No altera la búsqueda.
+        $dependiente_debug_groups = self::debug_search_groups($semantic, $tokens);
+        $dependiente_primary_groups = self::primary_search_groups($query, $semantic);
+
         $primary_diagnostic = array();
         $primary_rows = self::primary_candidate_rows($query, $semantic, $primary_diagnostic);
         $primary_documents = array();
@@ -390,6 +395,39 @@ final class SEO_Dependiente_API {
         // Los filtros visibles deben describir exactamente los productos que siguen
         // vivos tras ranking/filtros, no todo el conjunto candidato recuperado.
         $facets = self::build_facets($matched);
+
+        if ($interpreter_debug) {
+            $top_debug_matches = array();
+            foreach (array_slice($matched, 0, 5) as $debug_document) {
+                $debug_product = wc_get_product(absint($debug_document['product_id'] ?? 0));
+                $debug_title = $debug_product instanceof WC_Product
+                    ? $debug_product->get_name()
+                    : (string) ($debug_document['normalized_title'] ?? '');
+                $top_debug_matches[] = array(
+                    'id'       => absint($debug_document['product_id'] ?? 0),
+                    'title'    => sanitize_text_field((string) $debug_title),
+                    'score'    => (float) ($debug_document['_score'] ?? 0),
+                    'coverage' => absint($debug_document['_coverage'] ?? 0),
+                    'reasons'  => array_values(array_slice(array_map('sanitize_text_field', (array) ($debug_document['_reasons'] ?? array())), 0, 4)),
+                    'tier'     => sanitize_key((string) ($debug_document['_search_tier'] ?? '')),
+                );
+            }
+
+            $interpreter_debug['dependiente'] = array(
+                'query'             => sanitize_text_field((string) $query),
+                'groups'            => $dependiente_debug_groups,
+                'primary_groups'    => self::debug_plain_groups($dependiente_primary_groups),
+                'catalog_fields'    => array('título', 'SKU', 'marca', 'categorías', 'etiquetas', 'Vocabulary', 'atributos'),
+                'strategy'          => sanitize_key((string) ($search_diagnostic['strategy'] ?? 'primary_direct')),
+                'primary_strategy'  => sanitize_key((string) ($search_diagnostic['primary_strategy'] ?? ($primary_diagnostic['strategy'] ?? 'primary_direct'))),
+                'primary_rows'      => absint($search_diagnostic['primary_rows'] ?? ($primary_diagnostic['primary_rows'] ?? 0)),
+                'candidate_rows'    => count($candidate_rows),
+                'matched_rows'      => count($matched),
+                'extended_search'   => sanitize_key((string) ($search_diagnostic['extended_search'] ?? 'skipped')),
+                'semantic_routes'   => self::debug_semantic_routes($semantic),
+                'top_matches'       => $top_debug_matches,
+            );
+        }
 
         // Las preguntas se calculan con el conjunto que realmente sigue vivo.
         // Si la búsqueda queda a cero, usamos los candidatos recuperados para que
@@ -961,6 +999,62 @@ final class SEO_Dependiente_API {
         return is_array($json) ? $json : $request->get_params();
     }
 
+    /** Convierte los grupos semánticos/tokens en un formato seguro de diagnóstico. */
+    private static function debug_search_groups($semantic, $token_groups) {
+        $out = array();
+        $semantic_groups = isset($semantic['groups']) && is_array($semantic['groups']) ? $semantic['groups'] : array();
+        if ($semantic_groups) {
+            foreach (array_slice($semantic_groups, 0, 12) as $group) {
+                $variants = array_values(array_unique(array_filter(array_map('sanitize_text_field', (array) ($group['variants'] ?? array())))));
+                if (!$variants) {
+                    continue;
+                }
+                $out[] = array(
+                    'role'      => sanitize_key((string) ($group['role'] ?? 'term')) ?: 'term',
+                    'canonical' => sanitize_text_field((string) ($group['canonical'] ?? ($variants[0] ?? ''))),
+                    'variants'  => array_slice($variants, 0, 8),
+                );
+            }
+            return $out;
+        }
+        foreach (array_slice((array) $token_groups, 0, 12) as $variants) {
+            $variants = array_values(array_unique(array_filter(array_map('sanitize_text_field', (array) $variants))));
+            if ($variants) {
+                $out[] = array('role' => 'term', 'canonical' => (string) $variants[0], 'variants' => array_slice($variants, 0, 8));
+            }
+        }
+        return $out;
+    }
+
+    /** Formato compacto para los grupos usados en la primera consulta al índice. */
+    private static function debug_plain_groups($groups) {
+        $out = array();
+        foreach (array_slice((array) $groups, 0, 12) as $variants) {
+            $variants = array_values(array_unique(array_filter(array_map('sanitize_text_field', (array) $variants))));
+            if ($variants) {
+                $out[] = array_slice($variants, 0, 8);
+            }
+        }
+        return $out;
+    }
+
+    /** Rutas TIPO/ROL/APLICACION/etc. activadas por la semántica de Dependiente. */
+    private static function debug_semantic_routes($semantic) {
+        $out = array();
+        foreach (array_slice((array) ($semantic['routes'] ?? array()), 0, 12) as $route) {
+            $target = sanitize_text_field((string) ($route['target_slug'] ?? ''));
+            if ('' === $target) {
+                continue;
+            }
+            $out[] = array(
+                'group' => sanitize_key((string) ($route['target_group'] ?? '')),
+                'term'  => $target,
+                'role'  => sanitize_key((string) ($route['result_role'] ?? '')),
+            );
+        }
+        return $out;
+    }
+
     /**
      * 1A. Recupera candidatos solo desde campos que describen directamente la
      * identidad/clasificacion del producto. Las descripciones largas quedan para
@@ -1084,6 +1178,7 @@ final class SEO_Dependiente_API {
             $document['_reasons'] = $score['reasons'];
             $document['_object_hits'] = absint($score['object_hits'] ?? 0);
             $document['_route_hits'] = absint($score['route_hits'] ?? 0);
+            $document['_coverage'] = absint($score['coverage'] ?? 0);
             $matched[] = $document;
         }
         return $matched;

@@ -952,6 +952,35 @@
             }).filter(Boolean).join('');
 
             const relatedText = related.length ? related.map(function (item) { return item && item.term ? String(item.term) : ''; }).filter(Boolean).join(' · ') : '—';
+            const dep = debug.dependiente && typeof debug.dependiente === 'object' ? debug.dependiente : {};
+            const depGroups = Array.isArray(dep.groups) ? dep.groups : [];
+            const depPrimary = Array.isArray(dep.primary_groups) ? dep.primary_groups : [];
+            const depFields = Array.isArray(dep.catalog_fields) ? dep.catalog_fields : [];
+            const depRoutes = Array.isArray(dep.semantic_routes) ? dep.semantic_routes : [];
+            const depMatches = Array.isArray(dep.top_matches) ? dep.top_matches : [];
+            const roleLabels = {intent:'intención', object:'objeto', state:'estado', term:'término', material:'material', tool:'herramienta', action:'acción'};
+            const depGroupText = depGroups.length ? depGroups.map(function (group) {
+                const role = group && group.role ? String(group.role) : 'term';
+                const variants = group && Array.isArray(group.variants) ? group.variants.filter(Boolean) : [];
+                const canonical = group && group.canonical ? String(group.canonical) : '';
+                const values = variants.length ? variants.join(' / ') : canonical;
+                return (roleLabels[role] || role) + ': ' + values;
+            }).filter(Boolean).join(' | ') : '—';
+            const depPrimaryText = depPrimary.length ? depPrimary.map(function (variants) {
+                return Array.isArray(variants) ? variants.filter(Boolean).join(' / ') : '';
+            }).filter(Boolean).join(' | ') : '—';
+            const depRoutesText = depRoutes.length ? depRoutes.map(function (route) {
+                const group = route && route.group ? String(route.group).toUpperCase() : 'RUTA';
+                const term = route && route.term ? String(route.term) : '';
+                const role = route && route.role ? ' (' + String(route.role) + ')' : '';
+                return group + ': ' + term + role;
+            }).filter(Boolean).join(' | ') : '—';
+            const depMatchesHtml = depMatches.length ? '<div style="margin-top:5px"><b>Primeros productos puntuados:</b>' + depMatches.map(function (item) {
+                const reasons = item && Array.isArray(item.reasons) ? item.reasons.filter(Boolean).join(', ') : '';
+                const score = item && item.score !== undefined ? String(item.score) : '0';
+                const coverage = item && item.coverage !== undefined ? String(item.coverage) : '0';
+                return '<div style="margin-left:8px">• ' + escapeHtml(String(item.title || ('#' + String(item.id || '')))) + ' · score ' + escapeHtml(score) + ' · cobertura ' + escapeHtml(coverage) + (reasons ? ' · ' + escapeHtml(reasons) : '') + '</div>';
+            }).join('') + '</div>' : '';
             return '<div class="seo-dependiente__interpreter-log" style="margin:14px 0;padding:12px;border:1px dashed #9aa59d;border-radius:10px;background:#f8faf8;font-size:12px;line-height:1.45;overflow-wrap:anywhere">' +
                 '<strong style="display:block;margin-bottom:7px">LOG INTÉRPRETE · STAGING</strong>' +
                 '<div><b>Cliente:</b> ' + escapeHtml(String(debug.raw_query || '—')) + '</div>' +
@@ -965,6 +994,16 @@
                 '<div><b>Ruido quitado:</b> ' + escapeHtml(removed.length ? removed.join(' · ') : '—') + '</div>' +
                 '<div><b>Transformaciones:</b> ' + escapeHtml(transformations.length ? transformations.join(' | ') : '—') + '</div>' +
                 '<div><b>Confianza:</b> ' + escapeHtml(String(confidence)) + '% · <b>Modo:</b> asistencia lingüística activa</div>' +
+                '<div style="height:1px;background:#d9dfda;margin:9px 0"></div>' +
+                '<strong style="display:block;margin-bottom:5px">LOG DEPENDIENTE · STAGING</strong>' +
+                '<div><b>Consulta efectiva:</b> ' + escapeHtml(String(dep.query || debug.dependiente_query || '—')) + '</div>' +
+                '<div><b>Grupos que busca:</b> ' + escapeHtml(depGroupText) + '</div>' +
+                '<div><b>Primera pasada al índice:</b> ' + escapeHtml(depPrimaryText) + '</div>' +
+                '<div><b>Busca en campos:</b> ' + escapeHtml(depFields.length ? depFields.join(' · ') : '—') + '</div>' +
+                '<div><b>Rutas semánticas activas:</b> ' + escapeHtml(depRoutesText) + '</div>' +
+                '<div><b>Estrategia:</b> ' + escapeHtml(String(dep.strategy || '—')) + ' · <b>Extensiva:</b> ' + escapeHtml(String(dep.extended_search || '—')) + '</div>' +
+                '<div><b>Candidatos:</b> primarios ' + escapeHtml(String(dep.primary_rows || 0)) + ' · recuperados ' + escapeHtml(String(dep.candidate_rows || 0)) + ' · válidos ' + escapeHtml(String(dep.matched_rows || 0)) + '</div>' +
+                depMatchesHtml +
                 '</div>';
         }
 
