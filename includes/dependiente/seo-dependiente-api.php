@@ -983,7 +983,6 @@ final class SEO_Dependiente_API {
             'brand_name',
             'categories_json',
             'tags_json',
-            'vocabulary_json',
             'attributes_json',
         );
         $clauses = array();
@@ -1662,13 +1661,13 @@ final class SEO_Dependiente_API {
             }
             if (0 === $group_index && (
                 !empty($group_hits['title'])
-                || !empty($group_hits['application'])
-                || !empty($group_hits['platform'])
                 || !empty($group_hits['category'])
                 || !empty($group_hits['tag'])
-                || !empty($group_hits['attribute'])
-                || $vocabulary_hit
             )) {
+                // El concepto principal solo puede validar identidad comercial
+                // real del producto. Vocabulary/aplicación/atributos enriquecen
+                // el ranking, pero no pueden convertir por sí solos un producto
+                // ajeno en candidato (p. ej. un poste que menciona "brocas").
                 $anchor_hits++;
             }
             $group_index++;
@@ -1760,7 +1759,9 @@ final class SEO_Dependiente_API {
         $route_hits = absint($semantic_score['route_hits'] ?? 0);
         $eligible = $coverage > 0;
         if ($group_count > 1) {
-            $eligible = $anchor_hits > 0 || $route_hits > 0;
+            // La semántica puede ordenar, nunca justificar por sí sola un producto
+            // que no coincide con la identidad del concepto principal.
+            $eligible = $anchor_hits > 0;
         }
 
         return array(
