@@ -2491,6 +2491,86 @@ function seo_ie_product_v2_set_meta( $product_id, $meta_key, $value, $empty_clea
 }
 
 /**
+ * Carga el Vocabulary canonico activo de los productos para el inventario reducido.
+ *
+ * El mapa usa slugs semanticos, no IDs, para que el inventario sea portable entre
+ * instalaciones que compartan el mismo catalogo semantico pero no los mismos IDs.
+ *
+ * @param int[] $product_ids IDs locales de producto.
+ * @return array<int,array<string,string[]>>
+ */
+function seo_ie_product_reduced_vocabulary_map( $product_ids ) {
+    global $wpdb;
+
+    $product_ids = array_values( array_unique( array_filter( array_map( 'absint', (array) $product_ids ) ) ) );
+
+    if ( empty( $product_ids ) ) {
+        return [];
+    }
+
+    $objects_table = $wpdb->prefix . 'seo_object_vocabulary';
+    $vocab_table   = $wpdb->prefix . 'seo_vocabulary';
+
+    $objects_exists = $wpdb->get_var(
+        $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $objects_table ) )
+    );
+    $vocab_exists = $wpdb->get_var(
+        $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $vocab_table ) )
+    );
+
+    if ( $objects_table !== $objects_exists || $vocab_table !== $vocab_exists ) {
+        return [];
+    }
+
+    $allowed_groups = [ 'tipo', 'subtipo', 'rol', 'aplicacion', 'plataforma' ];
+    $map            = [];
+
+    foreach ( array_chunk( $product_ids, 500 ) as $chunk ) {
+        $placeholders = implode( ',', array_fill( 0, count( $chunk ), '%d' ) );
+        $sql = "
+            SELECT ov.object_id, v.semantic_group, v.slug
+            FROM {$objects_table} ov
+            INNER JOIN {$vocab_table} v
+                ON v.id = ov.vocabulary_id
+               AND v.active = 1
+            WHERE ov.object_type = 'product'
+              AND ov.status = 1
+              AND v.semantic_group IN ('tipo','subtipo','rol','aplicacion','plataforma')
+              AND ov.object_id IN ({$placeholders})
+            ORDER BY ov.object_id ASC,
+                     FIELD(v.semantic_group,'tipo','subtipo','rol','aplicacion','plataforma') ASC,
+                     v.slug ASC
+        ";
+        $prepared = $wpdb->prepare( $sql, $chunk );
+        $rows     = $prepared ? $wpdb->get_results( $prepared ) : [];
+
+        foreach ( (array) $rows as $row ) {
+            $object_id = absint( $row->object_id ?? 0 );
+            $group     = sanitize_key( $row->semantic_group ?? '' );
+            $slug      = sanitize_title( $row->slug ?? '' );
+
+            if ( 0 === $object_id || ! in_array( $group, $allowed_groups, true ) || '' === $slug ) {
+                continue;
+            }
+
+            if ( ! isset( $map[ $object_id ][ $group ] ) ) {
+                $map[ $object_id ][ $group ] = [];
+            }
+
+            $map[ $object_id ][ $group ][ $slug ] = $slug;
+        }
+    }
+
+    foreach ( $map as $product_id => $groups ) {
+        foreach ( $groups as $group => $slugs ) {
+            $map[ $product_id ][ $group ] = array_values( $slugs );
+        }
+    }
+
+    return $map;
+}
+
+/**
  * Exporta todos los productos a CSV.
  *
  * Orígenes:
@@ -2672,43 +2752,66 @@ function seo_export_products_csv() {
     }
 
     $attributes_by_product = [];
+    $attribute_rows = function_exists( 'seo_attributes_get_rows_for_products' )
+        ? seo_attributes_get_rows_for_products( null )
+        : [];
 
-    if ( ! $reduced_export ) {
-        $attribute_rows = function_exists( 'seo_attributes_get_rows_for_products' )
-            ? seo_attributes_get_rows_for_products( null )
-            : [];
-
-        foreach ( $attribute_rows as $attribute_row ) {
-            $attributes_by_product[ absint( $attribute_row->product_id ) ][] = $attribute_row;
-        }
+    foreach ( $attribute_rows as $attribute_row ) {
+        $attributes_by_product[ absint( $attribute_row->product_id ) ][] = $attribute_row;
     }
 
-    $classification_titles = [];
-    $get_title = static function ( $post_id, $fallback ) use ( &$classification_titles ) {
+    $product_ids_for_export = array_map( 'absint', wp_list_pluck( $posts, 'ID' ) );
+    $vocabulary_by_product  = $reduced_export ? seo_ie_product_reduced_vocabulary_map( $product_ids_for_export ) : [];
+
+    $classification_cache = [];
+    $get_classification = static function ( $post_id, $fallback ) use ( &$classification_cache ) {
         $post_id = absint( $post_id );
 
-        if ( isset( $classification_titles[ $post_id ] ) ) {
-            return $classification_titles[ $post_id ];
+        if ( isset( $classification_cache[ $post_id ] ) ) {
+            return $classification_cache[ $post_id ];
         }
 
         $post = get_post( $post_id );
-        $classification_titles[ $post_id ] = $post instanceof WP_Post
-            ? $post->post_title
-            : sprintf( '%s #%d', $fallback, $post_id );
+        $classification_cache[ $post_id ] = [
+            'title' => $post instanceof WP_Post ? $post->post_title : sprintf( '%s #%d', $fallback, $post_id ),
+            'slug'  => $post instanceof WP_Post ? $post->post_name : '',
+        ];
 
-        return $classification_titles[ $post_id ];
+        return $classification_cache[ $post_id ];
     };
 
     $columns = $reduced_export
         ? [
+            'schema_version',
+            'source_site',
             'product_id',
             'sku',
+            'slug',
             'tipo_producto',
             'titulo',
             'estado',
-            'categorias_ids',
-            'categorias',
             'ambito',
+            'cluster_ids',
+            'cluster_slugs',
+            'cluster',
+            'hub_primario_ids',
+            'hub_primario_slugs',
+            'hub_primario',
+            'hub_secundario_ids',
+            'hub_secundario_slugs',
+            'hub_secundario',
+            'categorias_ids',
+            'categorias_slugs',
+            'categorias',
+            'etiquetas_wc_ids',
+            'etiquetas_wc_slugs',
+            'etiquetas_wc',
+            'vocab_tipo',
+            'vocab_subtipo',
+            'vocab_rol',
+            'vocab_aplicacion',
+            'vocab_plataforma',
+            'atributos_seo_json',
         ]
         : [
             'schema_version', 'product_id', 'sku', 'tipo_producto', 'titulo', 'slug', 'url', 'estado',
@@ -2725,7 +2828,7 @@ function seo_export_products_csv() {
             'fecha_creacion', 'fecha_modificacion',
         ];
 
-    $filename = ( $reduced_export ? 'seo_products_reduced_' : 'seo_products_v2_' ) . wp_date( 'Ymd_His' ) . '.csv';
+    $filename = ( $reduced_export ? 'seo_products_reduced_portable_' : 'seo_products_v2_' ) . wp_date( 'Ymd_His' ) . '.csv';
     seo_ie_store_log(
         [
             'operacion'    => $reduced_export ? 'Exportación de inventario reducido de productos' : 'Exportación de productos V2',
@@ -2736,8 +2839,10 @@ function seo_export_products_csv() {
             'advertencias' => 0,
             'detalles'     => $reduced_export
                 ? [
-                    'Inventario ligero para revisión de taxonomía: identidad, estado, categorías WooCommerce y ámbito canónico.',
-                    'No incluye contenido, precios, stock, proveedor, etiquetas, atributos, imágenes ni variaciones.',
+                    'Inventario reducido y portable para revisión de taxonomía, arquitectura y semántica.',
+                    'Incluye SKU y slug de producto; IDs, slugs y nombres de cluster, hubs y categorías; etiquetas WooCommerce; Vocabulary y atributos SEO canónicos.',
+                    'Los IDs son locales al source_site. Para cruces entre entornos deben priorizarse SKU/slug de producto y slugs de categorías/hubs/etiquetas.',
+                    'No incluye contenido largo, precios, stock, proveedor, imágenes, galerías, atributos WooCommerce ni variaciones.',
                 ]
                 : [
                     'Incluye datos editoriales, comerciales, stock, marca, proveedor, imágenes, etiquetas WooCommerce y atributos.',
@@ -2760,6 +2865,7 @@ function seo_export_products_csv() {
 
         $category_terms = wp_get_post_terms( $product_id, 'product_cat' );
         $category_ids   = [];
+        $category_slugs = [];
         $category_names = [];
         $cluster_ids    = [];
         $primary_ids    = [];
@@ -2769,10 +2875,8 @@ function seo_export_products_csv() {
             foreach ( $category_terms as $term ) {
                 $term_id = absint( $term->term_id );
                 $category_ids[]   = $term_id;
+                $category_slugs[] = $term->slug;
                 $category_names[] = $term->name;
-                if ( $reduced_export ) {
-                    continue;
-                }
 
                 $classification_ids = array_merge( [ $term_id ], get_ancestors( $term_id, 'product_cat', 'taxonomy' ) );
 
@@ -2797,16 +2901,88 @@ function seo_export_products_csv() {
             $scope = seo_catalog_get_product_legacy_ambito( $product_id );
         }
 
+        $cluster_ids   = array_values( array_unique( array_filter( array_map( 'absint', $cluster_ids ) ) ) );
+        $primary_ids   = array_values( array_unique( array_filter( array_map( 'absint', $primary_ids ) ) ) );
+        $secondary_ids = array_values( array_unique( array_filter( array_map( 'absint', $secondary_ids ) ) ) );
+
+        $cluster_names = [];
+        $cluster_slugs = [];
+        foreach ( $cluster_ids as $classification_id ) {
+            $identity = $get_classification( $classification_id, 'Cluster' );
+            $cluster_names[] = $identity['title'];
+            if ( '' !== $identity['slug'] ) {
+                $cluster_slugs[] = $identity['slug'];
+            }
+        }
+
+        $primary_names = [];
+        $primary_slugs = [];
+        foreach ( $primary_ids as $classification_id ) {
+            $identity = $get_classification( $classification_id, 'Hub primario' );
+            $primary_names[] = $identity['title'];
+            if ( '' !== $identity['slug'] ) {
+                $primary_slugs[] = $identity['slug'];
+            }
+        }
+
+        $secondary_names = [];
+        $secondary_slugs = [];
+        foreach ( $secondary_ids as $classification_id ) {
+            $identity = $get_classification( $classification_id, 'Hub secundario' );
+            $secondary_names[] = $identity['title'];
+            if ( '' !== $identity['slug'] ) {
+                $secondary_slugs[] = $identity['slug'];
+            }
+        }
+
+        $tag_terms = wp_get_post_terms( $product_id, 'product_tag' );
+        $tag_ids   = [];
+        $tag_slugs = [];
+        $tag_names = [];
+
+        if ( ! is_wp_error( $tag_terms ) ) {
+            foreach ( $tag_terms as $term ) {
+                $tag_ids[]   = absint( $term->term_id );
+                $tag_slugs[] = $term->slug;
+                $tag_names[] = $term->name;
+            }
+        }
+
+        $seo_attribute_rows = $attributes_by_product[ $product_id ] ?? [];
+        $vocabulary         = $vocabulary_by_product[ $product_id ] ?? [];
+
         if ( $reduced_export ) {
             $row = [
-                'product_id'     => $product_id,
-                'sku'            => $product->get_sku( 'edit' ),
-                'tipo_producto'  => $product->get_type(),
-                'titulo'         => $product->get_name( 'edit' ),
-                'estado'         => $product->get_status( 'edit' ),
-                'categorias_ids' => implode( ',', array_unique( $category_ids ) ),
-                'categorias'     => implode( ' | ', array_unique( $category_names ) ),
-                'ambito'         => $scope,
+                'schema_version'       => '2.1-reduced-portable',
+                'source_site'          => home_url( '/' ),
+                'product_id'           => $product_id,
+                'sku'                  => $product->get_sku( 'edit' ),
+                'slug'                 => $post->post_name,
+                'tipo_producto'        => $product->get_type(),
+                'titulo'               => $product->get_name( 'edit' ),
+                'estado'               => $product->get_status( 'edit' ),
+                'ambito'               => $scope,
+                'cluster_ids'          => implode( ',', $cluster_ids ),
+                'cluster_slugs'        => implode( ' | ', array_values( array_unique( $cluster_slugs ) ) ),
+                'cluster'              => implode( ' | ', array_values( array_unique( $cluster_names ) ) ),
+                'hub_primario_ids'     => implode( ',', $primary_ids ),
+                'hub_primario_slugs'   => implode( ' | ', array_values( array_unique( $primary_slugs ) ) ),
+                'hub_primario'         => implode( ' | ', array_values( array_unique( $primary_names ) ) ),
+                'hub_secundario_ids'   => implode( ',', $secondary_ids ),
+                'hub_secundario_slugs' => implode( ' | ', array_values( array_unique( $secondary_slugs ) ) ),
+                'hub_secundario'       => implode( ' | ', array_values( array_unique( $secondary_names ) ) ),
+                'categorias_ids'       => implode( ',', array_values( array_unique( $category_ids ) ) ),
+                'categorias_slugs'     => implode( ' | ', array_values( array_unique( $category_slugs ) ) ),
+                'categorias'           => implode( ' | ', array_values( array_unique( $category_names ) ) ),
+                'etiquetas_wc_ids'     => implode( ',', array_values( array_unique( $tag_ids ) ) ),
+                'etiquetas_wc_slugs'   => implode( ' | ', array_values( array_unique( $tag_slugs ) ) ),
+                'etiquetas_wc'         => implode( ' | ', array_values( array_unique( $tag_names ) ) ),
+                'vocab_tipo'           => implode( ' | ', $vocabulary['tipo'] ?? [] ),
+                'vocab_subtipo'        => implode( ' | ', $vocabulary['subtipo'] ?? [] ),
+                'vocab_rol'            => implode( ' | ', $vocabulary['rol'] ?? [] ),
+                'vocab_aplicacion'     => implode( ' | ', $vocabulary['aplicacion'] ?? [] ),
+                'vocab_plataforma'     => implode( ' | ', $vocabulary['plataforma'] ?? [] ),
+                'atributos_seo_json'   => seo_ie_product_v2_seo_attributes_json( $seo_attribute_rows, $scope ),
             ];
 
             seo_ie_write_csv_row(
@@ -2821,26 +2997,7 @@ function seo_export_products_csv() {
             continue;
         }
 
-        $cluster_ids   = array_values( array_unique( array_filter( array_map( 'absint', $cluster_ids ) ) ) );
-        $primary_ids   = array_values( array_unique( array_filter( array_map( 'absint', $primary_ids ) ) ) );
-        $secondary_ids = array_values( array_unique( array_filter( array_map( 'absint', $secondary_ids ) ) ) );
-        $cluster_names   = array_map( static fn( $id ) => $get_title( $id, 'Cluster' ), $cluster_ids );
-        $primary_names   = array_map( static fn( $id ) => $get_title( $id, 'Hub primario' ), $primary_ids );
-        $secondary_names = array_map( static fn( $id ) => $get_title( $id, 'Hub secundario' ), $secondary_ids );
-
-        $tag_terms = wp_get_post_terms( $product_id, 'product_tag' );
-        $tag_ids   = [];
-        $tag_names = [];
-
-        if ( ! is_wp_error( $tag_terms ) ) {
-            foreach ( $tag_terms as $term ) {
-                $tag_ids[]   = absint( $term->term_id );
-                $tag_names[] = $term->name;
-            }
-        }
-
         $brand = seo_ie_product_v2_brand_data( $product_id );
-        $seo_attribute_rows = $attributes_by_product[ $product_id ] ?? [];
         $thumbnail_id = absint( get_post_thumbnail_id( $product_id ) );
         $gallery_ids  = array_values( array_unique( array_filter( array_map( 'absint', $product->get_gallery_image_ids() ) ) ) );
         $gallery_urls = [];
@@ -10884,11 +11041,11 @@ function seo_import_export_page() {
                             value="1"
                             class="button"
                         >
-                            Exportar inventario reducido
+                            Exportar inventario reducido portable
                         </button>
                     </p>
                     <p class="description">
-                        El inventario reducido conserva solo ID, SKU, tipo, título, estado, categorías y ámbito; reutiliza los mismos filtros del export completo.
+                        El inventario reducido portable conserva identidad, arquitectura (cluster/hubs/categorías con ID + slug + nombre), etiquetas WooCommerce, Vocabulary y atributos SEO; excluye contenido largo, precios, stock, proveedor e imágenes.
                     </p>
             
                 </form>
