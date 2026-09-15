@@ -74,10 +74,6 @@ final class SEO_Dependiente_API {
         $rows = SEO_Dependiente_Index::get_rows(1200);
         $documents = array_map(array('SEO_Dependiente_Index', 'decode_row'), $rows);
         $facets = self::build_facets($documents);
-        // Para preguntar no usamos todo el universo candidato: el Intérprete recibe
-        // la distribución de los resultados que siguen vivos tras búsqueda/filtros.
-        // Si no hay resultados, cae al conjunto candidato para poder reconducir.
-        $clarification_facets = self::build_facets($matched ? $matched : $documents);
         $max_cards = min(12, max(4, absint(SEO_Dependiente_Plugin::option('menu_cards', 8))));
 
         $actions = isset($facets['vocabulary']['aplicacion']) ? $facets['vocabulary']['aplicacion'] : array();
@@ -385,6 +381,12 @@ final class SEO_Dependiente_API {
         unset($matched_document);
         self::sort_documents($matched, $orderby);
         $facets = self::build_facets($documents);
+
+        // Las preguntas se calculan con el conjunto que realmente sigue vivo.
+        // Si la búsqueda queda a cero, usamos los candidatos recuperados para que
+        // el Dependiente pueda proponer una bifurcación real del catálogo sin
+        // inventar opciones ni consultar otra fuente desde el Intérprete.
+        $clarification_facets = self::build_facets($matched ? $matched : $documents);
 
         // v0.2.12: contenido editorial y FAQ son ramas paralelas. Una FAQ solo
         // hereda de su owner producto/categoria y nunca compite semanticamente con
