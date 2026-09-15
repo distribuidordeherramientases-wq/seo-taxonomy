@@ -11,7 +11,7 @@ defined('ABSPATH') || exit;
  * lenguaje, elimina ruido y puede pedir contexto linguistico que falte.
  */
 final class SEO_Dependiente_Interprete {
-    const VERSION = '0.8.0';
+    const VERSION = '0.8.1';
 
     private static $morphology = null;
 
@@ -198,6 +198,13 @@ final class SEO_Dependiente_Interprete {
             $relation = sanitize_key((string) ($row['relation_type'] ?? 'synonym'));
             $lesson_key = sanitize_key((string) ($row['lesson_key'] ?? ''));
 
+            // Una equivalencia del léxico sustituye únicamente la expresión
+            // comprendida. El resto de conceptos útiles de la frase se conservan.
+            // Ej.: "quiero agujerear una pared" -> "perforar pared", nunca
+            // solamente "perforar". Esta separación es esencial: el Intérprete
+            // normaliza lenguaje, pero no debe borrar contexto que necesita Dependiente.
+            $target = self::merge_lexicon_target_with_context($result, $row, $target);
+
             return self::rewrite(
                 $result,
                 $target,
@@ -216,6 +223,36 @@ final class SEO_Dependiente_Interprete {
         return $result;
     }
 
+
+    /**
+     * Conserva los conceptos no sustituidos cuando una regla lingüística
+     * normaliza una palabra o expresión. No consulta catálogo ni facetas.
+     */
+    private static function merge_lexicon_target_with_context($result, $row, $target) {
+        $language = isset($result['language']) && is_array($result['language']) ? $result['language'] : array();
+        $base = self::normalize((string) ($language['semantic_query'] ?? ''));
+        if ('' === $base) {
+            $base = self::normalize((string) ($result['normalized'] ?? ''));
+        }
+        $expression = self::normalize((string) ($row['normalized_expression'] ?? $row['expression'] ?? ''));
+        $target = self::normalize((string) $target);
+        if ('' === $target) {
+            return $base;
+        }
+
+        $remove = array_fill_keys(array_values(array_filter(explode(' ', $expression))), true);
+        $tokens = array();
+        foreach (array_values(array_filter(explode(' ', $target))) as $token) {
+            $tokens[$token] = true;
+        }
+        foreach (array_values(array_filter(explode(' ', $base))) as $token) {
+            if (isset($remove[$token])) {
+                continue;
+            }
+            $tokens[$token] = true;
+        }
+        return self::clean_query(implode(' ', array_keys($tokens)));
+    }
 
     /**
      * Diseña, desde el Intérprete, una pregunta corta de desambiguación.
