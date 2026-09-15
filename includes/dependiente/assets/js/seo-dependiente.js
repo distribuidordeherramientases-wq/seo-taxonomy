@@ -53,6 +53,7 @@
             orderby: 'relevance',
             filters: emptyFilters(),
             facets: null,
+            interpreterDebug: null,
             bootstrap: null,
             loading: false,
             searchId: '',
@@ -428,6 +429,7 @@
                     }
                 });
                 state.facets = data.facets || null;
+                state.interpreterDebug = data.interpreter_debug || null;
                 state.searchId = String(data.search_id || '');
                 if (Array.isArray(data.semantic_hints)) {
                     state.semanticHints = data.semantic_hints.slice(0, 2);
@@ -878,10 +880,7 @@
 
         function renderSummary(data) {
             const total = Number(data.total || 0);
-            const interpreted = String(data.interpreted_query || '').trim();
-            const interpreterLine = interpreted
-                ? '<small class="seo-dependiente__interpreter-keywords"><span>Intérprete entiende:</span> <strong>' + escapeHtml(interpreted.split(/\s+/).filter(Boolean).join(' · ')) + '</strong></small>'
-                : '';
+            const interpreterLine = '';
             let subject = state.q ? 'para “' + escapeHtml(state.q) + '”' : (state.contextLabel ? 'para ' + escapeHtml(state.contextLabel) : 'con los criterios elegidos');
             if (!total) {
                 elements.summary.innerHTML = '<span class="seo-dependiente__summary-copy"><span><strong>Estoy ampliando la búsqueda</strong> ' + subject + '. Puedes añadir un detalle para afinarla.</span>' + interpreterLine + '</span>';
@@ -902,6 +901,7 @@
             groups.push(renderFacetGroup('Tipo de producto', 'vocabulary', 'tipo', vocabulary.tipo || [], false));
             groups.push(renderFacetGroup('Subtipo', 'vocabulary', 'subtipo', vocabulary.subtipo || [], false));
             groups.push(renderFacetGroup('Etiquetas', 'tags', '', facets.tags || [], false));
+            groups.push(renderInterpreterDebug(state.interpreterDebug));
 
             (facets.attributes || []).forEach(function (attribute, index) {
                 groups.push(renderFacetGroup(attribute.label, 'attributes', attribute.key, attribute.values || [], index < 3));
@@ -919,6 +919,22 @@
                 groups.filter(Boolean).join('') +
                 '<button type="submit" class="seo-dependiente__filter-apply">Aplicar filtros</button>' +
                 '</form>';
+        }
+
+        function renderInterpreterDebug(debug) {
+            if (!debug || !debug.enabled) return '';
+            const removed = Array.isArray(debug.removed_tokens) ? debug.removed_tokens.filter(Boolean) : [];
+            const transformations = Array.isArray(debug.transformations) ? debug.transformations.filter(Boolean) : [];
+            const confidence = Math.round(Number(debug.confidence || 0) * 100);
+            return '<div class="seo-dependiente__interpreter-log" style="margin:14px 0;padding:12px;border:1px dashed #9aa59d;border-radius:10px;background:#f8faf8;font-size:12px;line-height:1.45;overflow-wrap:anywhere">' +
+                '<strong style="display:block;margin-bottom:7px">LOG INTÉRPRETE · STAGING</strong>' +
+                '<div><b>Cliente:</b> ' + escapeHtml(String(debug.raw_query || '—')) + '</div>' +
+                '<div><b>Intérprete filtra:</b> ' + escapeHtml(String(debug.filtered_query || '—')) + '</div>' +
+                '<div><b>Dependiente recibe:</b> ' + escapeHtml(String(debug.dependiente_query || '—')) + '</div>' +
+                '<div><b>Ruido quitado:</b> ' + escapeHtml(removed.length ? removed.join(' · ') : '—') + '</div>' +
+                '<div><b>Transformaciones:</b> ' + escapeHtml(transformations.length ? transformations.join(' | ') : '—') + '</div>' +
+                '<div><b>Confianza:</b> ' + escapeHtml(String(confidence)) + '% · <b>Modo:</b> sombra (no influye)</div>' +
+                '</div>';
         }
 
         function renderFacetGroup(label, kind, group, items, open) {
