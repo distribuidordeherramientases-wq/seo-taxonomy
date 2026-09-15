@@ -516,3 +516,128 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* Lección continua: Actualización incremental */
+.seo-dependiente-trainer__update {
+    padding: 18px;
+    margin: 0 0 18px;
+    border-left: 4px solid #2271b1;
+}
+
+.seo-dependiente-trainer__update.is-running {
+    background: #f7fbff;
+}
+
+.seo-dependiente-trainer__update h2 {
+    margin: 0 0 6px;
+}
+
+.seo-dependiente-trainer__update-actions,
+.seo-dependiente-trainer__update-meta,
+.seo-dependiente-trainer__update-delta {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.seo-dependiente-trainer__update-meta,
+.seo-dependiente-trainer__update-delta {
+    margin-top: 14px;
+}
+
+.seo-dependiente-trainer__update-meta > span,
+.seo-dependiente-trainer__update-delta > span {
+    padding: 9px 11px;
+    border: 1px solid #dcdcde;
+    border-radius: 7px;
+    background: #fff;
+    color: #50575e;
+}
+
+.seo-dependiente-trainer__update-meta strong,
+.seo-dependiente-trainer__update-delta strong {
+    display: block;
+    color: #1d2327;
+}
+
+.seo-dependiente-trainer__update-modules {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(160px, 1fr));
+    gap: 9px;
+    margin-top: 15px;
+}
+
+.seo-dependiente-trainer__update-module {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 3px 8px;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid #dcdcde;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.seo-dependiente-trainer__update-module strong {
+    grid-row: 1 / span 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #f0f0f1;
+}
+
+.seo-dependiente-trainer__update-module small {
+    color: #646970;
+}
+
+.seo-dependiente-trainer__update-module.is-completed,
+.seo-dependiente-trainer__update-module.is-skipped {
+    border-color: #8ed49e;
+    background: #f5fbf6;
+}
+
+.seo-dependiente-trainer__update-module.is-completed strong {
+    background: #00a32a;
+    color: #fff;
+}
+
+.seo-dependiente-trainer__update-module.is-running,
+.seo-dependiente-trainer__update-module.is-preparing {
+    border-color: #72aee6;
+    background: #f0f6fc;
+}
+
+.seo-dependiente-trainer__update-module.is-running strong,
+.seo-dependiente-trainer__update-module.is-preparing strong {
+    background: #2271b1;
+    color: #fff;
+}
+
+.seo-dependiente-trainer__update-module.is-failed {
+    border-color: #d63638;
+    background: #fcf0f1;
+}
+
+.seo-dependiente-trainer__update-note {
+    margin: 14px 0 0;
+    padding: 10px 12px;
+    border-radius: 7px;
+    background: #fff8e5;
+    color: #6e4e00;
+}
+
+@media (max-width: 900px) {
+    .seo-dependiente-trainer__update-modules {
+        grid-template-columns: repeat(2, minmax(140px, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .seo-dependiente-trainer__update-modules {
+        grid-template-columns: 1fr;
+    }
+}
