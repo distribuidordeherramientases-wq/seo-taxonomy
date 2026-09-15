@@ -434,7 +434,7 @@ final class SEO_Dependiente_API {
             $public_semantic['confirmed_hints'] = $semantic_hints;
         }
         $clarification = self::build_clarification(
-            $raw_query,
+            $query,
             $mode,
             $semantic,
             $clarification_facets,
@@ -843,7 +843,7 @@ final class SEO_Dependiente_API {
             return array();
         }
         $role = sanitize_key((string) ($hint['role'] ?? ''));
-        if (!in_array($role, array('intent','object','context','state','term'), true)) {
+        if (!in_array($role, array('intent','object','context','state','term','material'), true)) {
             return array();
         }
         $value = class_exists('SEO_Dependiente_Semantics')
