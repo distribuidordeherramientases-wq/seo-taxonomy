@@ -147,12 +147,11 @@ final class SEO_Dependiente_API {
         }
         $explicit_faq_owner = self::resolve_explicit_faq_owner($raw_query, $params);
 
-        // El diálogo del Intérprete puede aportar hasta dos confirmaciones. Se
-        // conservan acumuladas para que la segunda respuesta no borre la primera.
+        // Intérprete mínimo no dialoga ni aporta filtros. Solo limpia el texto.
         $semantic_hints = array();
         $semantic_hint = array();
 
-        // V2 is strictly serial: client -> interpreter -> one canonical query -> Dependiente.
+        // Flujo único: cliente -> filtro lingüístico mínimo -> Dependiente.
         $interpreter = class_exists('SEO_Dependiente_Interprete')
             ? SEO_Dependiente_Interprete::interpret($raw_query)
             : array();
@@ -170,7 +169,7 @@ final class SEO_Dependiente_API {
             $query = substr($query, 0, 180);
             $raw_search_query = substr($raw_query, 0, 180);
         }
-        // V2 keeps raw_search_query only for diagnostics. Search execution uses only $query.
+        // La consulta original queda solo para diagnóstico. Dependiente busca únicamente con la consulta filtrada.
         $mode = isset($params['mode']) ? sanitize_key((string) $params['mode']) : 'need';
         if (!in_array($mode, array('need', 'product', 'tool', 'compare'), true)) {
             $mode = 'need';
@@ -256,6 +255,10 @@ final class SEO_Dependiente_API {
             $primary_documents
         );
         self::sort_documents($primary_matched, $orderby);
+        // El índice puede conservar temporalmente filas que WooCommerce ya no
+        // considera publicables. No dejamos que esas filas decidan si la primera
+        // pasada es suficiente ni que inflen facetas, totales o paginación.
+        $primary_matched = self::filter_searchable_documents($primary_matched);
 
         // 1B. Conocimiento editorial directo. Las FAQs ya no hacen una
         // búsqueda textual global en esta fase: se resolverán después, cuando
@@ -300,7 +303,7 @@ final class SEO_Dependiente_API {
         $search_diagnostic['extended_reasons'] = array_values(array_unique($extended_reasons));
         $search_diagnostic['semantic_catalog_route'] = $has_catalog_semantic_route ? 1 : 0;
         $search_diagnostic['semantic_rules_active'] = (int) $semantic_rules_active;
-        $search_diagnostic['interpreter_assist_mode'] = 'serial_v2';
+        $search_diagnostic['interpreter_assist_mode'] = 'minimal_filter';
         $search_diagnostic['raw_query'] = sanitize_text_field((string) $raw_search_query);
         $search_diagnostic['interpreted_query'] = sanitize_text_field((string) $query);
         if ($interpreter) {
@@ -353,6 +356,9 @@ final class SEO_Dependiente_API {
         }
         unset($matched_document);
         self::sort_documents($matched, $orderby);
+        // Solo los productos realmente publicables pueden participar desde aquí.
+        // Esto mantiene sincronizados tarjetas, facetas, total y paginación.
+        $matched = self::filter_searchable_documents($matched);
         // Los filtros visibles deben describir exactamente los productos que siguen
         // vivos tras ranking/filtros, no todo el conjunto candidato recuperado.
         $facets = self::build_facets($matched);
@@ -392,20 +398,21 @@ final class SEO_Dependiente_API {
             $page = $pages;
         }
         $offset = ($page - 1) * $per_page;
-        // No limitamos la ventana antes de comprobar visibilidad WooCommerce.
-        // Si alguno de los primeros candidatos está oculto, seguimos avanzando
-        // hasta completar la página en vez de mostrar una página vacía con total > 0.
-        $page_documents = array_slice($matched, $offset);
+        // $matched ya contiene únicamente productos publicables, por lo que la
+        // ventana de página y el contador usan exactamente el mismo universo.
+        $page_documents = array_slice($matched, $offset, $per_page);
         $results = array();
         foreach ($page_documents as $document) {
             $serialized = self::serialize_result($document, $query, $filters);
             if ($serialized) {
                 $results[] = $serialized;
-                if (count($results) >= $per_page) {
-                    break;
-                }
             }
         }
+
+        // La zona principal reutiliza la misma inteligencia que alimenta los
+        // filtros laterales: categorías reales y productos representativos del
+        // conjunto encontrado por Dependiente. No interviene Intérprete aquí.
+        $discovery = self::build_search_discovery($facets, $matched, $results);
 
         $public_semantic = class_exists('SEO_Dependiente_Semantics')
             ? SEO_Dependiente_Semantics::public_analysis($semantic)
@@ -511,6 +518,7 @@ final class SEO_Dependiente_API {
             'related_editorial' => $editorial_related,
             'related_faq'       => $faq_related,
             'facets'          => $facets,
+            'discovery'       => $discovery,
             'filters'         => $filters,
             'semantic'        => $public_semantic,
             'search_id'       => $search_id,
@@ -877,44 +885,24 @@ final class SEO_Dependiente_API {
      * agregada del catálogo al Intérprete, que decide si preguntar, qué eje
      * divide mejor los candidatos y qué opciones cerradas mostrar.
      */
+    /**
+     * Intérprete mínimo no pregunta ni construye aclaraciones.
+     * Cualquier afinado visible pertenece exclusivamente al Dependiente.
+     */
     private static function build_clarification($query, $mode, $semantic, $facets, $total, $diagnostic, $semantic_hints, $request_kind = 'search', $resolved_owner = array(), $interpreter = array()) {
-        $empty = array(
+        return array(
             'should_ask'          => false,
             'question'            => '',
             'role'                => '',
-            'reason'              => '',
+            'reason'              => 'interpreter_minimal_no_dialogue',
             'delay_ms'            => 0,
             'step'                => 0,
-            'max_steps'           => 2,
-            'strategy'            => 'interpreter_information_gain',
+            'max_steps'           => 0,
+            'strategy'            => 'interpreter_minimal_filter',
             'axis'                => '',
             'estimated_reduction' => 0,
             'options'             => array(),
         );
-        if (!class_exists('SEO_Dependiente_Interprete') || !method_exists('SEO_Dependiente_Interprete', 'plan_clarification')) {
-            return $empty;
-        }
-        // El Intérprete no interrumpe una búsqueda que el Dependiente ya ha resuelto.
-        // Por ahora solo puede pedir contexto cuando no hay ningún producto utilizable.
-        if (absint($total) > 0) {
-            return $empty;
-        }
-
-        $clarification = SEO_Dependiente_Interprete::plan_clarification(array(
-            'query'           => (string) $query,
-            'mode'            => (string) $mode,
-            'semantic'        => is_array($semantic) ? $semantic : array(),
-            'facets'          => is_array($facets) ? $facets : array(),
-            'total'           => absint($total),
-            'diagnostic'      => is_array($diagnostic) ? $diagnostic : array(),
-            'confirmed_hints' => is_array($semantic_hints) ? $semantic_hints : array(),
-            'request_kind'    => (string) $request_kind,
-            'resolved_owner'  => is_array($resolved_owner) ? $resolved_owner : array(),
-            'interpretation'  => is_array($interpreter) ? $interpreter : array(),
-            'dependiente_needs_help' => absint($total) === 0,
-        ));
-
-        return is_array($clarification) ? wp_parse_args($clarification, $empty) : $empty;
     }
 
     private static function woocommerce_ready() {
@@ -1740,9 +1728,79 @@ final class SEO_Dependiente_API {
         });
     }
 
+    /**
+     * Determina si un producto del índice puede mostrarse en Dependiente.
+     *
+     * No usamos WC_Product::is_visible() porque puede incorporar filtros de la
+     * plantilla/contexto y producir el estado imposible que vimos en producción:
+     * cientos de facetas y páginas, pero cero tarjetas. El índice ya excluye
+     * productos ocultos; aquí repetimos únicamente las garantías esenciales.
+     */
+    private static function product_is_searchable($product) {
+        if (!$product || !is_a($product, 'WC_Product')) {
+            return false;
+        }
+        $product_id = absint($product->get_id());
+        if (!$product_id || 'publish' !== get_post_status($product_id)) {
+            return false;
+        }
+        if ('hidden' === (string) $product->get_catalog_visibility()) {
+            return false;
+        }
+        return (bool) apply_filters('seo_dependiente_product_is_searchable', true, $product);
+    }
+
+    /**
+     * Filtra documentos antes de construir facetas/total/paginación.
+     */
+    private static function filter_searchable_documents($documents) {
+        $out = array();
+        foreach ((array) $documents as $document) {
+            $product_id = absint($document['product_id'] ?? 0);
+            if (!$product_id) {
+                continue;
+            }
+            $product = wc_get_product($product_id);
+            if (!self::product_is_searchable($product)) {
+                continue;
+            }
+            $out[] = $document;
+        }
+        return $out;
+    }
+
+    /**
+     * Construye una navegación visual desde las MISMAS facetas y productos que
+     * Dependiente ya ha calculado para la columna izquierda.
+     */
+    private static function build_search_discovery($facets, $documents, $results) {
+        $facets = is_array($facets) ? $facets : array();
+        $documents = array_values((array) $documents);
+        $categories = self::make_cards(
+            array_slice((array) ($facets['categories'] ?? array()), 0, 6),
+            'categories',
+            '',
+            $documents
+        );
+
+        $quick = array();
+        $vocabulary = (array) ($facets['vocabulary'] ?? array());
+        if (!empty($vocabulary['aplicacion'])) {
+            $quick = self::make_cards(array_slice((array) $vocabulary['aplicacion'], 0, 6), 'vocabulary', 'aplicacion', $documents);
+        } elseif (!empty($facets['tags'])) {
+            $quick = self::make_cards(array_slice((array) $facets['tags'], 0, 6), 'tags', '', $documents);
+        }
+
+        return array(
+            'categories' => $categories,
+            'quick_filters' => $quick,
+            'products' => array_slice(array_values((array) $results), 0, 4),
+        );
+    }
+
     private static function serialize_result($document, $query, $filters) {
         $product = wc_get_product(absint($document['product_id']));
-        if (!$product || !$product->is_visible()) {
+        if (!self::product_is_searchable($product)) {
             return null;
         }
 
