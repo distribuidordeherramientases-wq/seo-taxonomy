@@ -2104,22 +2104,28 @@ final class SEO_Dependiente_API {
     }
 
     private static function score_document($document, $query, $token_groups, $filters, $mode = 'need', $semantic = array(), $assist_profile = array()) {
+        // Ranking estructurado: el conocimiento explícito del catálogo manda.
+        // Texto libre (excerpt/descripción) y semántica solo pueden reforzar una
+        // coincidencia que ya tenga evidencia estructurada, nunca crearla por sí solos.
         $score = !empty($document['featured']) ? 8.0 : 0.0;
         if ('instock' === $document['stock_status']) {
             $score += 5.0;
         }
         $reasons = array();
 
-        $title = (string) $document['normalized_title'];
-        $sku = SEO_Dependiente_Index::normalize((string) $document['sku']);
-        $brand = SEO_Dependiente_Index::normalize((string) $document['brand_name']);
-        $categories = SEO_Dependiente_Index::normalize(self::join_labels($document['categories'], 'name'));
-        $tags = SEO_Dependiente_Index::normalize(self::join_labels($document['tags'], 'name'));
-        $vocabulary = SEO_Dependiente_Index::normalize(self::all_vocabulary_text($document['vocabulary']));
-        $applications = SEO_Dependiente_Index::normalize(self::vocabulary_labels($document, 'aplicacion'));
-        $platforms = SEO_Dependiente_Index::normalize(self::vocabulary_labels($document, 'plataforma'));
-        $attributes = SEO_Dependiente_Index::normalize(self::all_attributes_text($document['attributes']));
-        $excerpt = SEO_Dependiente_Index::normalize((string) $document['excerpt']);
+        $title       = (string) $document['normalized_title'];
+        $sku         = SEO_Dependiente_Index::normalize((string) $document['sku']);
+        $brand       = SEO_Dependiente_Index::normalize((string) $document['brand_name']);
+        $categories  = SEO_Dependiente_Index::normalize(self::join_labels($document['categories'], 'name'));
+        $tags        = SEO_Dependiente_Index::normalize(self::join_labels($document['tags'], 'name'));
+        $types       = SEO_Dependiente_Index::normalize(self::vocabulary_labels($document, 'tipo'));
+        $roles       = SEO_Dependiente_Index::normalize(self::vocabulary_labels($document, 'rol'));
+        $subtypes    = SEO_Dependiente_Index::normalize(self::vocabulary_labels($document, 'subtipo'));
+        $applications= SEO_Dependiente_Index::normalize(self::vocabulary_labels($document, 'aplicacion'));
+        $platforms   = SEO_Dependiente_Index::normalize(self::vocabulary_labels($document, 'plataforma'));
+        $vocabulary  = SEO_Dependiente_Index::normalize(self::all_vocabulary_text($document['vocabulary']));
+        $attributes  = SEO_Dependiente_Index::normalize(self::all_attributes_text($document['attributes']));
+        $excerpt     = SEO_Dependiente_Index::normalize((string) $document['excerpt']);
         $search_text = (string) $document['search_text'];
 
         $core_tokens = array();
@@ -2132,55 +2138,58 @@ final class SEO_Dependiente_API {
         $normalized_query = SEO_Dependiente_Index::normalize($query);
 
         if ($normalized_query && $sku && $normalized_query === $sku) {
-            $score += 900;
+            $score += 1200;
             $reasons[] = 'Referencia exacta';
         }
         if ($core_phrase && $title === $core_phrase) {
-            $score += 650;
+            $score += 900;
             $reasons[] = 'Nombre exacto';
         } elseif ($core_phrase && false !== strpos($title, $core_phrase)) {
-            $score += 340;
+            $score += 500;
             $reasons[] = 'Coincide en el nombre';
         }
 
         $coverage = 0;
-        $field_hits = array('title' => 0, 'application' => 0, 'platform' => 0, 'brand' => 0, 'category' => 0, 'tag' => 0, 'attribute' => 0, 'excerpt' => 0);
+        $field_hits = array(
+            'title'       => 0,
+            'type'        => 0,
+            'role'        => 0,
+            'category'    => 0,
+            'tag'         => 0,
+            'attribute'   => 0,
+            'subtype'     => 0,
+            'application' => 0,
+            'platform'    => 0,
+            'brand'       => 0,
+            'excerpt'     => 0,
+        );
+        $generic_vocabulary_hits = 0;
+
         foreach ($token_groups as $variants) {
             $token_found = false;
             $group_hits = array_fill_keys(array_keys($field_hits), false);
             $vocabulary_hit = false;
             foreach ($variants as $variant) {
+                $variant = SEO_Dependiente_Index::normalize((string) $variant);
+                if (!$variant) {
+                    continue;
+                }
                 if (!$token_found && false !== strpos($search_text, $variant)) {
                     $token_found = true;
                     $coverage++;
                 }
-                if (false !== strpos($title, $variant)) {
-                    $group_hits['title'] = true;
-                }
-                if (false !== strpos($applications, $variant)) {
-                    $group_hits['application'] = true;
-                }
-                if (false !== strpos($platforms, $variant)) {
-                    $group_hits['platform'] = true;
-                }
-                if (false !== strpos($brand, $variant)) {
-                    $group_hits['brand'] = true;
-                }
-                if (false !== strpos($categories, $variant)) {
-                    $group_hits['category'] = true;
-                }
-                if (false !== strpos($tags, $variant)) {
-                    $group_hits['tag'] = true;
-                }
-                if (false !== strpos($attributes, $variant)) {
-                    $group_hits['attribute'] = true;
-                }
-                if (false !== strpos($excerpt, $variant)) {
-                    $group_hits['excerpt'] = true;
-                }
-                if (false !== strpos($vocabulary, $variant)) {
-                    $vocabulary_hit = true;
-                }
+                if (false !== strpos($title, $variant))        { $group_hits['title'] = true; }
+                if (false !== strpos($types, $variant))        { $group_hits['type'] = true; }
+                if (false !== strpos($roles, $variant))        { $group_hits['role'] = true; }
+                if (false !== strpos($categories, $variant))   { $group_hits['category'] = true; }
+                if (false !== strpos($tags, $variant))         { $group_hits['tag'] = true; }
+                if (false !== strpos($attributes, $variant))   { $group_hits['attribute'] = true; }
+                if (false !== strpos($subtypes, $variant))     { $group_hits['subtype'] = true; }
+                if (false !== strpos($applications, $variant)) { $group_hits['application'] = true; }
+                if (false !== strpos($platforms, $variant))    { $group_hits['platform'] = true; }
+                if (false !== strpos($brand, $variant))        { $group_hits['brand'] = true; }
+                if (false !== strpos($excerpt, $variant))      { $group_hits['excerpt'] = true; }
+                if (false !== strpos($vocabulary, $variant))   { $vocabulary_hit = true; }
             }
             foreach ($group_hits as $field => $hit) {
                 if ($hit) {
@@ -2188,69 +2197,78 @@ final class SEO_Dependiente_API {
                 }
             }
             if ($vocabulary_hit) {
-                $score += 8;
+                $generic_vocabulary_hits++;
             }
         }
 
+        // Pesos del catálogo. TIPO/ROL/categoría/etiquetas/atributos son la base.
+        // Excerpt es solo apoyo y nunca puede hacer elegible un producto por sí solo.
         $weights = array(
-            'title'       => 54,
-            'application' => 52,
-            'platform'    => 44,
-            'brand'       => 36,
-            'category'    => 36,
-            'tag'         => 30,
-            'attribute'   => 30,
-            'excerpt'     => 12,
+            'type'        => 420,
+            'role'        => 420,
+            'category'    => 380,
+            'tag'         => 360,
+            'attribute'   => 320,
+            'subtype'     => 300,
+            'application' => 240,
+            'platform'    => 210,
+            'title'       => 180,
+            'brand'       => 70,
+            'excerpt'     => 6,
         );
         if ('product' === $mode) {
-            $weights = array_merge($weights, array('title' => 76, 'brand' => 54, 'application' => 30, 'platform' => 32, 'category' => 30));
+            $weights['title'] = 240;
+            $weights['brand'] = 90;
         } elseif ('tool' === $mode) {
-            $weights = array_merge($weights, array('title' => 42, 'application' => 36, 'platform' => 74, 'attribute' => 46, 'brand' => 32));
+            $weights['platform'] = 260;
+            $weights['attribute'] = 350;
         } elseif ('compare' === $mode) {
-            $weights = array_merge($weights, array('title' => 58, 'category' => 48, 'attribute' => 38, 'application' => 42));
+            $weights['category'] = 420;
+            $weights['attribute'] = 360;
         }
         foreach ($field_hits as $field => $hits) {
             $score += $hits * (isset($weights[$field]) ? $weights[$field] : 0);
         }
+        // Vocabulary genérico solo desempata; sus grupos concretos ya pesan arriba.
+        $score += min(30, $generic_vocabulary_hits * 6);
+
+        // La cobertura textual no manda. Solo aporta un pequeño refuerzo.
         if ($token_groups) {
-            $score += 180 * ($coverage / max(1, count($token_groups)));
+            $score += 40 * ($coverage / max(1, count($token_groups)));
         }
 
-        if ($field_hits['application']) {
-            $reasons[] = 'Encaja con la acción';
-        }
-        if ($field_hits['platform']) {
-            $reasons[] = 'Compatible con la plataforma';
-        }
-        if ($field_hits['attribute']) {
-            $reasons[] = 'Coincide en características';
-        }
-        if ($field_hits['brand']) {
-            $reasons[] = 'Coincide en la marca';
-        }
-        if ($field_hits['category'] || $field_hits['tag']) {
-            $reasons[] = 'Familia de producto adecuada';
-        }
-        if (!$reasons && $field_hits['excerpt']) {
-            $reasons[] = 'Coincide en la descripción';
-        }
+        $structured_hits =
+            $field_hits['type'] + $field_hits['role'] + $field_hits['category'] +
+            $field_hits['tag'] + $field_hits['attribute'] + $field_hits['subtype'] +
+            $field_hits['application'] + $field_hits['platform'] + $field_hits['title'];
+
+        if ($field_hits['type'])        { $reasons[] = 'Coincide con el TIPO'; }
+        if ($field_hits['role'])        { $reasons[] = 'Coincide con el ROL'; }
+        if ($field_hits['category'])    { $reasons[] = 'Categoría adecuada'; }
+        if ($field_hits['tag'])         { $reasons[] = 'Coincide con las etiquetas'; }
+        if ($field_hits['attribute'])   { $reasons[] = 'Coincide con los atributos'; }
+        if ($field_hits['subtype'])     { $reasons[] = 'Coincide con el SUBTIPO'; }
+        if ($field_hits['application']) { $reasons[] = 'Encaja con la aplicación'; }
+        if ($field_hits['platform'])    { $reasons[] = 'Compatible con la plataforma'; }
+        if ($field_hits['brand'])       { $reasons[] = 'Coincide en la marca'; }
+        if ($field_hits['title'])       { $reasons[] = 'Coincide en el nombre'; }
 
         foreach ($filters['vocabulary'] as $group => $selected) {
             if ($selected) {
-                $score += 80;
+                $score += 120;
                 $reasons[] = self::vocabulary_group_reason($group);
             }
         }
         if ($filters['attributes']) {
-            $score += 60 * count($filters['attributes']);
+            $score += 100 * count($filters['attributes']);
             $reasons[] = 'Cumple los atributos elegidos';
         }
         if ($filters['brands']) {
-            $score += 50;
+            $score += 70;
             $reasons[] = 'Marca seleccionada';
         }
         if ($filters['ranges']) {
-            $score += 40;
+            $score += 50;
             $reasons[] = 'Dentro del rango indicado';
         }
         if ($filters['stock']) {
@@ -2258,58 +2276,60 @@ final class SEO_Dependiente_API {
             $reasons[] = 'Disponibilidad solicitada';
         }
 
-        // Jerarquía lingüística: las señales que Intérprete identifica como
-        // concepto/TIPO/ROL pesan mucho más que el contexto. Así "taladro" manda
-        // sobre "pared" o "madera", sin que Intérprete decida ningún producto.
+        // Señales del Intérprete: traducen lenguaje del cliente a vocabulario del
+        // Dependiente. Nunca consultan productos; aquí Dependiente comprueba si el
+        // producto posee de verdad esa clasificación estructurada.
         $assist_identity_hits = 0;
         $assist_identity_sources = array();
         $assist_vocabulary_hits = 0;
         $assist_action_hits = 0;
 
-        // IDENTIDAD FUERTE = evidencia en el producto vivo, no una coincidencia
-        // accidental de etiqueta/descripcion del índice. Título y categoría son
-        // las fuentes de identidad; las etiquetas siguen ayudando al ranking
-        // normal, pero no pueden declarar por sí solas que algo ES un taladro.
-        $identity_evidence = self::live_identity_evidence(
-            $document,
-            (array) ($assist_profile['identity_terms'] ?? array()),
-            (array) ($assist_profile['_live_identity_ids'] ?? array())
-        );
-        $assist_identity_hits = absint($identity_evidence['hits'] ?? 0);
-        $assist_identity_sources = array_values((array) ($identity_evidence['sources'] ?? array()));
-        foreach ($assist_identity_sources as $source) {
-            if (0 === strpos((string) $source, 'titulo:')) {
-                $score += 620;
-            } elseif (0 === strpos((string) $source, 'categoria:')) {
-                $score += 520;
+        foreach ((array) ($assist_profile['identity_terms'] ?? array()) as $term) {
+            $term = SEO_Dependiente_Index::normalize((string) $term);
+            if (!$term) {
+                continue;
+            }
+            $sources = array();
+            if (false !== strpos($types, $term))      { $sources[] = 'tipo:' . $term; $score += 900; }
+            if (false !== strpos($roles, $term))      { $sources[] = 'rol:' . $term; $score += 900; }
+            if (false !== strpos($categories, $term)) { $sources[] = 'categoria:' . $term; $score += 820; }
+            if (false !== strpos($tags, $term))       { $sources[] = 'etiqueta:' . $term; $score += 780; }
+            if (false !== strpos($subtypes, $term))   { $sources[] = 'subtipo:' . $term; $score += 700; }
+            if (false !== strpos($attributes, $term)) { $sources[] = 'atributo:' . $term; $score += 620; }
+            if (false !== strpos($title, $term))      { $sources[] = 'titulo:' . $term; $score += 500; }
+            if ($sources) {
+                $assist_identity_hits++;
+                $assist_identity_sources = array_merge($assist_identity_sources, $sources);
             }
         }
+
         foreach ((array) ($assist_profile['vocabulary_terms'] ?? array()) as $term) {
             $term = SEO_Dependiente_Index::normalize((string) $term);
             if (!$term) {
                 continue;
             }
-            if (false !== strpos($vocabulary, $term)) {
-                $score += 280;
-                $assist_vocabulary_hits++;
-            } elseif (false !== strpos($title, $term) || false !== strpos($categories, $term) || false !== strpos($tags, $term)) {
-                $score += 340;
+            if (false !== strpos($types, $term) || false !== strpos($roles, $term)
+                || false !== strpos($categories, $term) || false !== strpos($tags, $term)
+                || false !== strpos($subtypes, $term) || false !== strpos($attributes, $term)
+                || false !== strpos($applications, $term) || false !== strpos($platforms, $term)) {
+                $score += 360;
                 $assist_vocabulary_hits++;
             }
         }
+
         foreach ((array) ($assist_profile['action_terms'] ?? array()) as $term) {
             $term = SEO_Dependiente_Index::normalize((string) $term);
             if (!$term) {
                 continue;
             }
-            if (false !== strpos($applications, $term)
-                || false !== strpos($title, $term)
-                || false !== strpos($categories, $term)
-                || false !== strpos($tags, $term)) {
-                $score += 190;
+            if (false !== strpos($applications, $term) || false !== strpos($tags, $term)
+                || false !== strpos($categories, $term) || false !== strpos($types, $term)
+                || false !== strpos($roles, $term)) {
+                $score += 320;
                 $assist_action_hits++;
             }
         }
+
         if ($assist_identity_hits) {
             $reasons[] = 'Coincide con el concepto principal';
         } elseif ($assist_vocabulary_hits) {
@@ -2318,21 +2338,38 @@ final class SEO_Dependiente_API {
             $reasons[] = 'Coincide con la acción interpretada';
         }
 
+        // La semántica de Academia puede reordenar coincidencias estructuradas,
+        // pero nunca rescatar un producto que solo aparece por descripción.
         $semantic_score = array('bonus' => 0, 'reasons' => array(), 'route_hits' => 0, 'object_hits' => 0);
-        if ($semantic && class_exists('SEO_Dependiente_Semantics')) {
+        if ($structured_hits > 0 && $semantic && class_exists('SEO_Dependiente_Semantics')) {
             $semantic_score = SEO_Dependiente_Semantics::score_document($document, $semantic);
-            $score += (float) ($semantic_score['bonus'] ?? 0);
-            $reasons = array_merge($reasons, (array) ($semantic_score['reasons'] ?? array()));
+            $semantic_bonus = min(80.0, max(0.0, (float) ($semantic_score['bonus'] ?? 0)));
+            $score += $semantic_bonus;
+            if ($semantic_bonus > 0) {
+                $reasons = array_merge($reasons, (array) ($semantic_score['reasons'] ?? array()));
+            }
         }
 
-        // Todo candidato recuperado por coincidencia léxica sigue siendo
-        // elegible. La capa semántica aporta bonus de ranking, pero no puede
-        // eliminar un producto que el índice textual ha encontrado.
-        $eligible = true;
+        // REGLA DE ELEGIBILIDAD:
+        // - con concepto principal del Intérprete, el producto debe demostrarlo
+        //   en TIPO/ROL/categoría/etiqueta/subtipo/atributo/título;
+        // - sin concepto principal, debe existir al menos una señal estructurada;
+        // - excerpt/descripción nunca hace elegible un producto por sí sola.
+        $has_assist_identity = !empty($assist_profile['identity_terms']);
+        if ($has_assist_identity) {
+            $eligible = $assist_identity_hits > 0;
+        } else {
+            $eligible = $structured_hits > 0 || ($normalized_query && $sku && $normalized_query === $sku);
+        }
+
+        if (!$eligible && $field_hits['excerpt']) {
+            // Se conserva solo para diagnóstico; no se muestra como resultado.
+            $reasons[] = 'Solo coincide en texto libre';
+        }
 
         return array(
             'score'   => round($score, 4),
-            'reasons' => array_slice(array_values(array_unique(array_filter($reasons))), 0, 4),
+            'reasons' => array_slice(array_values(array_unique(array_filter($reasons))), 0, 5),
             'eligible'=> (bool) $eligible,
             'object_hits' => absint($semantic_score['object_hits'] ?? 0),
             'route_hits'  => absint($semantic_score['route_hits'] ?? 0),
