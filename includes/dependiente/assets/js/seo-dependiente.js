@@ -958,6 +958,11 @@
             const depFields = Array.isArray(dep.catalog_fields) ? dep.catalog_fields : [];
             const depRoutes = Array.isArray(dep.semantic_routes) ? dep.semantic_routes : [];
             const depMatches = Array.isArray(dep.top_matches) ? dep.top_matches : [];
+            const depAssist = dep.assist_profile && typeof dep.assist_profile === 'object' ? dep.assist_profile : {};
+            const depIdentity = Array.isArray(depAssist.identity_terms) ? depAssist.identity_terms.filter(Boolean) : [];
+            const depVocabulary = Array.isArray(depAssist.vocabulary_terms) ? depAssist.vocabulary_terms.filter(Boolean) : [];
+            const depActions = Array.isArray(depAssist.action_terms) ? depAssist.action_terms.filter(Boolean) : [];
+            const depContext = Array.isArray(depAssist.context_terms) ? depAssist.context_terms.filter(Boolean) : [];
             const roleLabels = {intent:'intención', object:'objeto', state:'estado', term:'término', material:'material', tool:'herramienta', action:'acción'};
             const depGroupText = depGroups.length ? depGroups.map(function (group) {
                 const role = group && group.role ? String(group.role) : 'term';
@@ -979,7 +984,10 @@
                 const reasons = item && Array.isArray(item.reasons) ? item.reasons.filter(Boolean).join(', ') : '';
                 const score = item && item.score !== undefined ? String(item.score) : '0';
                 const coverage = item && item.coverage !== undefined ? String(item.coverage) : '0';
-                return '<div style="margin-left:8px">• ' + escapeHtml(String(item.title || ('#' + String(item.id || '')))) + ' · score ' + escapeHtml(score) + ' · cobertura ' + escapeHtml(coverage) + (reasons ? ' · ' + escapeHtml(reasons) : '') + '</div>';
+                const identityHits = item && item.identity_hits !== undefined ? String(item.identity_hits) : '0';
+                const vocabularyHits = item && item.vocabulary_hits !== undefined ? String(item.vocabulary_hits) : '0';
+                const actionHits = item && item.action_hits !== undefined ? String(item.action_hits) : '0';
+                return '<div style="margin-left:8px">• ' + escapeHtml(String(item.title || ('#' + String(item.id || '')))) + ' · score ' + escapeHtml(score) + ' · cobertura ' + escapeHtml(coverage) + ' · identidad ' + escapeHtml(identityHits) + ' · vocab ' + escapeHtml(vocabularyHits) + ' · acción ' + escapeHtml(actionHits) + (reasons ? ' · ' + escapeHtml(reasons) : '') + '</div>';
             }).join('') + '</div>' : '';
             return '<div class="seo-dependiente__interpreter-log" style="margin:14px 0;padding:12px;border:1px dashed #9aa59d;border-radius:10px;background:#f8faf8;font-size:12px;line-height:1.45;overflow-wrap:anywhere">' +
                 '<strong style="display:block;margin-bottom:7px">LOG INTÉRPRETE · STAGING</strong>' +
@@ -999,6 +1007,10 @@
                 '<div><b>Consulta efectiva:</b> ' + escapeHtml(String(dep.query || debug.dependiente_query || '—')) + '</div>' +
                 '<div><b>Grupos que busca:</b> ' + escapeHtml(depGroupText) + '</div>' +
                 '<div><b>Primera pasada al índice:</b> ' + escapeHtml(depPrimaryText) + '</div>' +
+                '<div><b>Anclas de identidad:</b> ' + escapeHtml(depIdentity.length ? depIdentity.join(' · ') : '—') + '</div>' +
+                '<div><b>Vocabulario estructurado:</b> ' + escapeHtml(depVocabulary.length ? depVocabulary.join(' · ') : '—') + '</div>' +
+                '<div><b>Acciones:</b> ' + escapeHtml(depActions.length ? depActions.join(' · ') : '—') + '</div>' +
+                '<div><b>Contexto secundario:</b> ' + escapeHtml(depContext.length ? depContext.join(' · ') : '—') + '</div>' +
                 '<div><b>Busca en campos:</b> ' + escapeHtml(depFields.length ? depFields.join(' · ') : '—') + '</div>' +
                 '<div><b>Rutas semánticas activas:</b> ' + escapeHtml(depRoutesText) + '</div>' +
                 '<div><b>Estrategia:</b> ' + escapeHtml(String(dep.strategy || '—')) + ' · <b>Extensiva:</b> ' + escapeHtml(String(dep.extended_search || '—')) + '</div>' +
