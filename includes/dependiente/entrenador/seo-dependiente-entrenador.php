@@ -13,7 +13,7 @@ defined('ABSPATH') || exit;
  */
 final class SEO_Dependiente_Entrenador {
     const DB_VERSION = '2026-09-09.1';
-    const CURRICULUM_VERSION = '2.1';
+    const CURRICULUM_VERSION = '2.2';
     const PROGRESS_REPORT_VERSION = 3;
     const MAX_INVENTORY_SOURCES = 3000;
     const MAX_FEATURE_SOURCES = 12000;
@@ -271,7 +271,7 @@ final class SEO_Dependiente_Entrenador {
         <div class="seo-dependiente-trainer" data-trainer-root data-current-lesson="<?php echo esc_attr($current_key); ?>" data-current-module="<?php echo esc_attr($next_module); ?>" data-auto-running="<?php echo $auto_running ? '1' : '0'; ?>">
             <div class="seo-dependiente-trainer__intro">
                 <div>
-                    <h2>Academia del Dependiente v2.1</h2>
+                    <h2>Academia del Dependiente v2.2</h2>
                     <p>Formación guiada sobre el catálogo real de PRO. L1–L7 trabajan en un aula aislada con conocimiento activo + reglas academy_stage de la lección; los clientes siguen usando solo conocimiento activo. L8 examina sin ayuda del aula.</p>
                 </div>
                 <div class="seo-dependiente-trainer__intro-badges">
@@ -299,6 +299,8 @@ final class SEO_Dependiente_Entrenador {
                     self::render_lesson_card($lesson_key, $definition, $row, $current_key);
                 endforeach; ?>
             </div>
+
+            <?php if (class_exists('SEO_Dependiente_Actualizacion')) { SEO_Dependiente_Actualizacion::render_card(); } ?>
 
             <section class="postbox seo-dependiente-admin__box seo-dependiente-trainer__reports">
                 <div class="seo-dependiente-trainer__section-head">
@@ -627,6 +629,27 @@ final class SEO_Dependiente_Entrenador {
             wp_send_json_error(array('message' => $preflight['message']), 409);
         }
 
+        if (class_exists('SEO_Dependiente_Actualizacion') && SEO_Dependiente_Actualizacion::has_pending_work()) {
+            $update_current = SEO_Dependiente_Actualizacion::monitor_current();
+            self::save_auto_state(array(
+                'enabled'        => true,
+                'mode'           => 'auto',
+                'status'         => 'running',
+                'started_at'     => current_time('mysql'),
+                'updated_at'     => current_time('mysql'),
+                'current_lesson' => $update_current ? (string) ($update_current['lesson_key'] ?? 'actualizacion') : 'actualizacion',
+                'current_module' => $update_current ? absint($update_current['next_module'] ?? 0) : 0,
+                'last_error'     => '',
+                'last_message'   => 'Actualización reanudada. Arrancando el siguiente lote…',
+            ));
+            if (!self::schedule_auto_worker(0, true)) {
+                self::save_auto_state(array('enabled'=>false,'status'=>'error','last_error'=>'No se pudo reanudar la Actualización.'));
+                wp_send_json_error(array('message' => 'No se pudo reanudar la Actualización en el Gestor de procesos.'), 500);
+            }
+            self::schedule_auto_watchdog(60);
+            wp_send_json_success(self::automation_payload());
+        }
+
         $lessons = self::lessons_by_key();
         $current_key = self::current_lesson_key($lessons);
         if (!$current_key) {
@@ -746,6 +769,39 @@ final class SEO_Dependiente_Entrenador {
             $preflight = self::catalog_preflight();
             if (!$preflight['ready']) {
                 throw new RuntimeException($preflight['message']);
+            }
+
+            // La lección continua de Actualización comparte exactamente el mismo
+            // worker de Academia. Tiene prioridad únicamente cuando ha sido
+            // solicitada de forma explícita y la formación inicial ya terminó.
+            if (class_exists('SEO_Dependiente_Actualizacion') && SEO_Dependiente_Actualizacion::has_pending_work()) {
+                $update_result = SEO_Dependiente_Actualizacion::worker_step($source);
+                $update_current = SEO_Dependiente_Actualizacion::monitor_current();
+                self::save_auto_state(array(
+                    'current_lesson' => $update_current ? (string) ($update_current['lesson_key'] ?? '') : '',
+                    'current_module' => $update_current ? absint($update_current['next_module'] ?? 0) : 0,
+                    'last_message'   => sanitize_text_field((string) ($update_result['message'] ?? 'Actualización en curso.')),
+                    'last_error'     => !empty($update_result['error']) ? sanitize_text_field((string) ($update_result['message'] ?? 'Error de actualización.')) : '',
+                    'updated_at'     => current_time('mysql'),
+                ));
+                if (!empty($update_result['done'])) {
+                    $update_state = SEO_Dependiente_Actualizacion::state();
+                    $is_error = 'error' === (string) ($update_state['status'] ?? '');
+                    self::save_auto_state(array(
+                        'enabled'        => false,
+                        'mode'           => 'auto',
+                        'status'         => $is_error ? 'error' : 'completed',
+                        'current_lesson' => '',
+                        'current_module' => 0,
+                        'last_message'   => sanitize_text_field((string) ($update_state['last_message'] ?? ($is_error ? 'Actualización detenida.' : 'Actualización completada.'))),
+                        'last_error'     => $is_error ? sanitize_text_field((string) ($update_state['last_error'] ?? '')) : '',
+                        'updated_at'     => current_time('mysql'),
+                    ));
+                    self::clear_auto_schedule();
+                    return;
+                }
+                self::schedule_auto_worker(max(1, absint($update_result['delay'] ?? 1)));
+                return;
             }
 
             $lessons = self::lessons_by_key();
@@ -940,6 +996,9 @@ final class SEO_Dependiente_Entrenador {
 
             throw new RuntimeException('La lección activa está en un estado no ejecutable: ' . $status . '.');
         } catch (Throwable $error) {
+            if (class_exists('SEO_Dependiente_Actualizacion') && SEO_Dependiente_Actualizacion::has_pending_work()) {
+                SEO_Dependiente_Actualizacion::mark_error($error->getMessage());
+            }
             self::save_auto_state(array(
                 'enabled'      => false,
                 'mode'         => 'auto',
@@ -980,12 +1039,15 @@ final class SEO_Dependiente_Entrenador {
         $current_key = self::current_lesson_key($lessons);
         $definition = $current_key ? self::lesson_definition($current_key) : null;
         $lesson = $current_key ? self::lesson_row($current_key) : null;
+        $update_current = class_exists('SEO_Dependiente_Actualizacion') && SEO_Dependiente_Actualizacion::has_pending_work()
+            ? SEO_Dependiente_Actualizacion::monitor_current()
+            : null;
 
         return array(
             'state' => $state,
             'running' => self::is_auto_running($state),
             'scheduler' => self::automation_scheduler_status(),
-            'current' => $current_key ? array(
+            'current' => $update_current ?: ($current_key ? array(
                 'lesson_key'   => $current_key,
                 'lesson_order' => absint($definition['order'] ?? 0),
                 'title'        => (string) ($definition['title'] ?? ''),
@@ -993,7 +1055,7 @@ final class SEO_Dependiente_Entrenador {
                 'next_module'  => self::next_pending_module($current_key),
                 'module_count' => absint($lesson['module_count'] ?? 0),
                 'summary'      => self::lesson_summary($current_key),
-            ) : null,
+            ) : null),
         );
     }
 
@@ -1262,11 +1324,14 @@ final class SEO_Dependiente_Entrenador {
         $current_key = self::current_lesson_key($lessons);
         $definition = $current_key ? self::lesson_definition($current_key) : null;
         $lesson = $current_key ? self::lesson_row($current_key) : null;
+        $update_current = class_exists('SEO_Dependiente_Actualizacion') && SEO_Dependiente_Actualizacion::has_pending_work()
+            ? SEO_Dependiente_Actualizacion::monitor_current()
+            : null;
         return array(
             'state' => $state,
             'running' => self::is_auto_running($state),
             'scheduler' => self::automation_scheduler_status(),
-            'current' => $current_key ? array(
+            'current' => $update_current ?: ($current_key ? array(
                 'lesson_key'    => $current_key,
                 'lesson_order'  => absint($definition['order'] ?? 0),
                 'title'         => (string) ($definition['title'] ?? ''),
@@ -1274,7 +1339,7 @@ final class SEO_Dependiente_Entrenador {
                 'next_module'   => self::next_pending_module($current_key),
                 'module_count'  => absint($lesson['module_count'] ?? 0),
                 'summary'       => self::lesson_summary($current_key),
-            ) : null,
+            ) : null),
         );
     }
 
@@ -4636,8 +4701,12 @@ final class SEO_Dependiente_Entrenador {
 
         $started_at = microtime(true);
         $lesson_key = sanitize_key((string) ($question['lesson_key'] ?? ''));
+        $expected_preview = self::decode_json($question['expected_json'] ?? '');
+        $expected_preview_kind = sanitize_key((string) ($expected_preview['kind'] ?? ''));
+        // Las actualizaciones M1-M8 trabajan en un aula aislada. Incluso el examen M8
+        // debe ver el conocimiento candidato en staging; solo M9 lo publica.
         $use_classroom_stage = self::lesson_uses_classroom_stage($lesson_key);
-        $faq_owner_only = 'v2_l6_faq' === $lesson_key;
+        $faq_owner_only = 'v2_l6_faq' === $lesson_key || 'faq' === $expected_preview_kind;
         add_filter('seo_dependiente_should_log_search', array(__CLASS__, 'skip_customer_search_log'), 999, 4);
         add_filter('seo_dependiente_expose_search_diagnostic', array(__CLASS__, 'expose_search_diagnostic'), 999, 3);
         if ($use_classroom_stage) {
@@ -5772,6 +5841,317 @@ final class SEO_Dependiente_Entrenador {
         global $wpdb;
         $name = 'seo_dep_academy_' . sanitize_key((string) $scope);
         $wpdb->get_var($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $name));
+    }
+
+    /**
+     * API interna para la lección continua de Actualización.
+     * Mantiene el conocimiento de catálogo dentro de Entrenador y evita que el
+     * módulo incremental replique la lógica de las ocho lecciones.
+     */
+    public static function update_initial_course_status() {
+        $row = self::lesson_row('v2_l8_exam');
+        return array(
+            'completed'    => is_array($row) && 'completed' === (string) ($row['status'] ?? ''),
+            'completed_at' => is_array($row) ? (string) ($row['completed_at'] ?? '') : '',
+            'snapshot'     => is_array($row) ? absint($row['snapshot_after'] ?? 0) : 0,
+        );
+    }
+
+    public static function update_queue_worker($message = 'Actualización encolada.') {
+        $initial = self::update_initial_course_status();
+        if (empty($initial['completed'])) {
+            return new WP_Error('academy_update_locked', 'La actualización requiere haber completado L1–L8.');
+        }
+        $state = self::auto_state();
+        $worker_heartbeat = absint($state['worker_heartbeat_ts'] ?? 0);
+        $worker_is_fresh = !empty($state['worker_active']) && $worker_heartbeat && (time() - $worker_heartbeat) <= 90;
+        if (self::controller_is_active($state) || $worker_is_fresh) {
+            return new WP_Error('academy_busy', 'Academia ya tiene un lote en ejecución.');
+        }
+        self::save_auto_state(array(
+            'enabled'               => true,
+            'mode'                  => 'auto',
+            'status'                => 'running',
+            'started_at'            => current_time('mysql'),
+            'updated_at'            => current_time('mysql'),
+            'current_lesson'        => 'actualizacion',
+            'current_module'        => 1,
+            'batch_size'            => self::auto_speed_config()['initial_batch'],
+            'fast_streak'           => 0,
+            'no_progress_cycles'    => 0,
+            'last_error'            => '',
+            'last_message'          => sanitize_text_field((string) $message),
+            'direct_worker_pending' => 0,
+            'direct_worker_dispatch_id' => '',
+            'direct_worker_not_before' => 0,
+        ));
+        if (!self::schedule_auto_worker(0, true)) {
+            return new WP_Error('academy_update_queue_failed', 'No se pudo entregar la actualización al Gestor de workers.');
+        }
+        self::schedule_auto_watchdog(60);
+        return array('queued' => true);
+    }
+
+    public static function update_all_category_items() {
+        $items = array();
+        $offset = 0;
+        do {
+            $batch = self::lesson1_batch($offset, self::PREPARE_BATCH_LIMIT);
+            foreach ($batch as $item) {
+                $items[] = $item;
+            }
+            $count = count($batch);
+            $offset += $count;
+        } while ($count >= self::PREPARE_BATCH_LIMIT);
+        return $items;
+    }
+
+    public static function update_build_module_items($module_no, $delta) {
+        global $wpdb;
+        $module_no = absint($module_no);
+        $delta = is_array($delta) ? $delta : array();
+        $product_ids = array_values(array_filter(array_map('absint', (array) ($delta['product_ids'] ?? array()))));
+        $category_ids = array_values(array_filter(array_map('absint', (array) ($delta['category_ids'] ?? array()))));
+        $editorial_ids = array_values(array_filter(array_map('absint', (array) ($delta['editorial_ids'] ?? array()))));
+        $vocabulary_ids = array_values(array_filter(array_map('absint', (array) ($delta['vocabulary_ids'] ?? array()))));
+        $faq_ids = array_values(array_filter(array_map('absint', (array) ($delta['faq_ids'] ?? array()))));
+
+        if (1 === $module_no) {
+            if (!$category_ids) return array();
+            $wanted = array_fill_keys($category_ids, true);
+            return array_values(array_filter(self::update_all_category_items(), static function ($item) use ($wanted) {
+                return !empty($wanted[absint($item['source_id'] ?? 0)]);
+            }));
+        }
+
+        if (2 === $module_no) {
+            if (!$product_ids || !class_exists('SEO_Dependiente_Index') || !SEO_Dependiente_Index::table_exists()) return array();
+            $out = array();
+            foreach (array_chunk($product_ids, 200) as $chunk) {
+                $placeholders = implode(',', array_fill(0, count($chunk), '%d'));
+                $rows = (array) $wpdb->get_results($wpdb->prepare(
+                    'SELECT product_id,title,brand_slug,categories_json,vocabulary_json FROM ' . SEO_Dependiente_Index::table() . " WHERE product_id IN ({$placeholders}) ORDER BY product_id ASC",
+                    $chunk
+                ), ARRAY_A);
+                foreach ($rows as $row) {
+                    $product_id = absint($row['product_id'] ?? 0);
+                    $title = trim((string) ($row['title'] ?? ''));
+                    if (!$product_id || '' === $title) continue;
+                    $out[] = array(
+                        'source_type'   => 'product',
+                        'source_id'     => $product_id,
+                        'source_key'    => 'product:' . $product_id,
+                        'question_type' => 'product_identity',
+                        'mode'          => 'product',
+                        'question'      => '¿Qué producto es "' . self::shorten($title, 300) . '"?',
+                        'expected'      => array(
+                            'kind'       => 'product',
+                            'product_id' => $product_id,
+                            'title'      => $title,
+                            'categories' => self::decode_json($row['categories_json'] ?? ''),
+                        ),
+                        'rules'         => array(),
+                    );
+                }
+            }
+            return $out;
+        }
+
+        if (3 === $module_no) {
+            if (!$vocabulary_ids) return array();
+            $wanted = array_fill_keys($vocabulary_ids, true);
+            return array_values(array_filter(self::lesson3_sources(), static function ($item) use ($wanted) {
+                $id = absint($item['source_id'] ?? 0);
+                if ($id && !empty($wanted[$id])) return true;
+                $key = (string) ($item['source_key'] ?? '');
+                if (preg_match('/^pair:(\d+):(\d+)$/', $key, $m)) {
+                    return !empty($wanted[absint($m[1])]) || !empty($wanted[absint($m[2])]);
+                }
+                return false;
+            }));
+        }
+
+        if (4 === $module_no) {
+            if (!$product_ids || !class_exists('SEO_Dependiente_Index') || !SEO_Dependiente_Index::table_exists()) return array();
+            $out = array();
+            foreach (array_chunk($product_ids, 200) as $chunk) {
+                $placeholders = implode(',', array_fill(0, count($chunk), '%d'));
+                $rows = (array) $wpdb->get_results($wpdb->prepare(
+                    'SELECT product_id,vocabulary_json,tags_json,attributes_json FROM ' . SEO_Dependiente_Index::table() . " WHERE product_id IN ({$placeholders}) ORDER BY product_id ASC",
+                    $chunk
+                ), ARRAY_A);
+                foreach ($rows as $row) {
+                    foreach (self::feature_items_from_index_row($row) as $item) {
+                        $out[] = $item;
+                    }
+                }
+            }
+            return $out;
+        }
+
+        if (5 === $module_no) {
+            if (!$editorial_ids && !$vocabulary_ids) return array();
+            $wanted_posts = array_fill_keys($editorial_ids, true);
+            $wanted_vocab = array_fill_keys($vocabulary_ids, true);
+            return array_values(array_filter(self::lesson5_sources(), static function ($item) use ($wanted_posts, $wanted_vocab) {
+                foreach ((array) ($item['expected']['acceptable_related'] ?? array()) as $related) {
+                    if (!empty($wanted_posts[absint($related['id'] ?? 0)])) return true;
+                }
+                foreach ((array) ($item['rules'] ?? array()) as $rule) {
+                    if (!empty($wanted_vocab[absint($rule['id'] ?? 0)])) return true;
+                }
+                return false;
+            }));
+        }
+
+        if (6 === $module_no) {
+            if (!$faq_ids && !$product_ids && !$category_ids) return array();
+            $wanted_faq = array_fill_keys($faq_ids, true);
+            $wanted_products = array_fill_keys($product_ids, true);
+            $wanted_categories = array_fill_keys($category_ids, true);
+            $faq_table = $wpdb->prefix . 'seo_faq';
+            if (!self::table_exists($faq_table)) return array();
+            $rows = (array) $wpdb->get_results(
+                "SELECT f.id,f.object_type,f.object_id,f.ambito,f.question,f.answer,
+                        CASE WHEN f.object_type=3 THEN p.post_title ELSE t.name END owner_title
+                 FROM {$faq_table} f
+                 LEFT JOIN {$wpdb->posts} p ON f.object_type=3 AND p.ID=f.object_id AND p.post_type='product' AND p.post_status='publish'
+                 LEFT JOIN {$wpdb->term_taxonomy} tt ON f.object_type=2 AND tt.term_id=f.object_id AND tt.taxonomy='product_cat'
+                 LEFT JOIN {$wpdb->terms} t ON t.term_id=tt.term_id
+                 WHERE f.active=1 AND f.object_type IN (2,3)
+                   AND ((f.object_type=3 AND p.ID IS NOT NULL) OR (f.object_type=2 AND tt.term_id IS NOT NULL))
+                 ORDER BY f.id ASC",
+                ARRAY_A
+            );
+            $out = array();
+            foreach ($rows as $row) {
+                $id = absint($row['id'] ?? 0);
+                $ot = absint($row['object_type'] ?? 0);
+                $oid = absint($row['object_id'] ?? 0);
+                $include = !empty($wanted_faq[$id]) || (3 === $ot && !empty($wanted_products[$oid])) || (2 === $ot && !empty($wanted_categories[$oid]));
+                if (!$include) continue;
+                $q = trim(wp_strip_all_tags((string) ($row['question'] ?? '')));
+                $owner_title = trim(wp_strip_all_tags((string) ($row['owner_title'] ?? '')));
+                if (!$id || !$oid || !$q || !$owner_title) continue;
+                $out[] = array(
+                    'source_type'   => 'faq',
+                    'source_id'     => $id,
+                    'source_key'    => 'faq:' . $ot . ':' . $oid . ':' . $id,
+                    'question_type' => 'faq_owner_context',
+                    'mode'          => 'need',
+                    'question'      => self::shorten('Sobre el ' . (2 === $ot ? 'categoría' : 'producto') . ' "' . $owner_title . '": ' . $q, 490),
+                    'expected'      => array(
+                        'kind'               => 'faq',
+                        'faq_id'             => $id,
+                        'owner_type'         => $ot,
+                        'owner_id'           => $oid,
+                        'owner_title'        => $owner_title,
+                        'ambito'             => trim(wp_strip_all_tags((string) ($row['ambito'] ?? ''))),
+                        'faq_route_required' => 'owner',
+                    ),
+                    'rules' => array(),
+                );
+            }
+            return $out;
+        }
+
+        if (7 === $module_no) {
+            if (!$vocabulary_ids) return array();
+            $wanted = array_fill_keys($vocabulary_ids, true);
+            return array_values(array_filter(self::lesson7_sources(), static function ($item) use ($wanted) {
+                return !empty($wanted[absint($item['source_id'] ?? 0)]);
+            }));
+        }
+
+        return array();
+    }
+
+    public static function update_stage_item_rules($stage_key, $item) {
+        self::stage_item_rules(sanitize_key((string) $stage_key), $item);
+    }
+
+    public static function update_clear_staged_rules($stage_key) {
+        self::clear_staged_academy_rules(sanitize_key((string) $stage_key));
+    }
+
+    public static function update_pending_questions($lesson_key, $module_no, $limit) {
+        return self::pending_module_questions(sanitize_key((string) $lesson_key), absint($module_no), max(1, absint($limit)));
+    }
+
+    public static function update_run_question($question, $batch_uuid) {
+        return self::run_question((array) $question, (string) $batch_uuid);
+    }
+
+    public static function update_question_count($lesson_key) {
+        return self::question_count(sanitize_key((string) $lesson_key));
+    }
+
+    public static function update_module_summary($lesson_key, $module_no) {
+        $row = self::single_module_progress(sanitize_key((string) $lesson_key), absint($module_no));
+        if (!$row) return array('total'=>0,'answered'=>0,'passed'=>0,'failed'=>0,'errors'=>0);
+        return array_map('absint', wp_parse_args($row, array('total'=>0,'answered'=>0,'passed'=>0,'failed'=>0,'errors'=>0)));
+    }
+
+    public static function update_module_min_pass($module_no) {
+        $map = array(1=>0.50,2=>0.45,3=>0.50,4=>0.45,5=>0.35,6=>0.45,7=>0.30,8=>0.40);
+        $module_no = absint($module_no);
+        return isset($map[$module_no]) ? (float) $map[$module_no] : 0.40;
+    }
+
+    public static function update_merge_staged_rules($stage_key) {
+        global $wpdb;
+        $stage_key = sanitize_key((string) $stage_key);
+        if (!$stage_key || !class_exists('SEO_Dependiente_Semantics')) {
+            return array('staged'=>0,'merged'=>0,'created'=>0,'updated'=>0);
+        }
+        SEO_Dependiente_Semantics::ensure_ready();
+        $table = SEO_Dependiente_Semantics::table();
+        if (!self::table_exists($table)) return array('staged'=>0,'merged'=>0,'created'=>0,'updated'=>0);
+        $prefix = $wpdb->esc_like('academy-' . $stage_key . '-') . '%';
+        $rows = (array) $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE source='academy_stage' AND rule_key LIKE %s ORDER BY id ASC",
+            $prefix
+        ), ARRAY_A);
+        $created = 0; $updated = 0; $merged = 0;
+        foreach ($rows as $row) {
+            $metadata = self::decode_json($row['metadata'] ?? '');
+            $academy = is_array($metadata['academy'] ?? null) ? $metadata['academy'] : array();
+            $source_type = sanitize_key((string) ($academy['source_type'] ?? ''));
+            $source_id = absint($academy['source_id'] ?? 0);
+            $rule_type = sanitize_key((string) ($row['rule_type'] ?? 'alias'));
+            $suffix = 'route' === $rule_type ? 'route' : 'alias';
+            $canonical_key = '';
+            if ('category' === $source_type && $source_id) {
+                $canonical_key = 'academy-v2_l1_categories-category-' . $source_id;
+            } elseif ('vocabulary' === $source_type && $source_id) {
+                $group = sanitize_key((string) ($row['target_group'] ?? ''));
+                $base_lesson = in_array($group, array('tipo','rol'), true) ? 'v2_l3_type_role' : 'v2_l4_features';
+                $canonical_key = 'academy-' . $base_lesson . '-' . $group . '-' . $source_id . '-' . $suffix;
+            }
+            if (!$canonical_key) {
+                $canonical_key = 'academy-update-' . substr(hash('sha256', (string) ($row['rule_key'] ?? '')), 0, 24);
+            }
+            $exists = absint($wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE rule_key=%s LIMIT 1", $canonical_key)));
+            $data = $row;
+            unset($data['id'], $data['created_at'], $data['updated_at']);
+            $data['rule_key'] = $canonical_key;
+            $data['source'] = 'academy';
+            $data['active'] = 1;
+            $data['metadata'] = self::json(array_merge($metadata, array('academy_update' => array('stage' => $stage_key, 'merged_at' => current_time('mysql')))));
+            if (self::upsert_academy_rule($data)) {
+                $merged++;
+                if ($exists) $updated++; else $created++;
+            }
+        }
+        self::clear_staged_academy_rules($stage_key);
+        return array('staged'=>count($rows),'merged'=>$merged,'created'=>$created,'updated'=>$updated);
+    }
+
+    public static function update_publish_snapshot() {
+        $current = absint(get_option(self::KNOWLEDGE_SNAPSHOT_OPTION, 0));
+        $next = $current + 1;
+        update_option(self::KNOWLEDGE_SNAPSHOT_OPTION, $next, false);
+        return $next;
     }
 
     private static function guard_ajax() {
