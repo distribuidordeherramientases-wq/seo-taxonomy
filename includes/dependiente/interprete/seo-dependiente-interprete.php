@@ -10,7 +10,7 @@ defined('ABSPATH') || exit;
  * Academia: aprende lenguaje de cliente y lo traduce al lenguaje canonico.
  */
 final class SEO_Dependiente_Interprete {
-    const VERSION = '0.7.0';
+    const VERSION = '0.7.1';
 
     private static $morphology = null;
 
@@ -329,10 +329,19 @@ final class SEO_Dependiente_Interprete {
 
         $reason = '';
         $preferred = '';
+        $product_family_answered = false;
+        foreach (array('category', 'tipo', 'subtipo') as $family_group) {
+            if (isset($answered_axes['group|' . $family_group])) {
+                $product_family_answered = true;
+                break;
+            }
+        }
+
         // Una acción no identifica una familia de producto. “Taladrar” puede
-        // significar máquina, broca/corona, accesorio, soporte, etc. Si todavía no
-        // tenemos producto explícito, la primera pregunta debe resolver esa rama.
-        if (!$product_object && $action && !isset($answered_axes['object|category']) && !isset($answered_axes['object|rol'])) {
+        // significar máquina, broca/corona, accesorio, soporte, etc. Una respuesta
+        // genérica de ROL (p. ej. “Herramienta”) tampoco identifica todavía el
+        // producto: seguimos pidiendo una rama concreta de tipo/subtipo/categoría.
+        if (!$product_object && $action && !$product_family_answered) {
             $preferred = 'object';
             $reason = 'action_without_product';
         } elseif (!$object && ($unresolved || $weak_strategy || 0 === $total)) {
@@ -352,7 +361,7 @@ final class SEO_Dependiente_Interprete {
         }
 
         $axes = self::clarification_axes($facets, $total, $question_object, $answered_axes, $action, $query);
-        $axis = self::choose_clarification_axis($axes, $preferred);
+        $axis = self::choose_clarification_axis($axes, $preferred, 'action_without_product' === $reason);
 
         // Si falta intención, una aplicación real del catálogo es mejor pregunta
         // que una lista genérica de verbos. Solo caemos al repertorio controlado
@@ -422,6 +431,21 @@ final class SEO_Dependiente_Interprete {
         }
         foreach (self::sanitize_guidance_hints((array) $confirmed_hints) as $hint) {
             $value = self::clean_query((string) ($hint['value'] ?? ''));
+            $source = sanitize_key((string) ($hint['source'] ?? ''));
+
+            // Las respuestas que ya se aplican como faceta fuerte del catálogo no
+            // deben añadirse además como texto libre. Hacer “consulta + herramienta”
+            // o “consulta + categoría” puede empeorar el ranking y duplicar la misma
+            // restricción. Conservamos la pista para conversación/aprendizaje y el
+            // filtro para Dependiente; solo el texto libre/intent se suma a la query.
+            $filtered_catalog_hint = in_array($source, array(
+                'catalog_vocabulary', 'catalog_attribute', 'catalog_tag',
+                'catalog_category', 'category', 'catalog_brand', 'catalog_orientation'
+            ), true);
+            if ($filtered_catalog_hint) {
+                continue;
+            }
+
             if ('' !== $value && !self::contains_phrase(self::normalize(implode(' ', $parts)), self::normalize($value))) {
                 $parts[] = $value;
             }
@@ -622,7 +646,7 @@ final class SEO_Dependiente_Interprete {
         );
     }
 
-    private static function choose_clarification_axis($axes, $preferred) {
+    private static function choose_clarification_axis($axes, $preferred, $prefer_concrete_product_branch = false) {
         $axes = array_values(array_filter((array) $axes));
         if (!$axes) {
             return array();
@@ -642,6 +666,20 @@ final class SEO_Dependiente_Interprete {
             if ($object_axes) {
                 $axes = $object_axes;
             }
+
+            // Para una acción sin producto (“perforar”, “lijar”, “cortar”...),
+            // “Herramienta / Accesorio / Equipamiento” es demasiado genérico como
+            // primera bifurcación. Si el catálogo ofrece tipo, subtipo o categoría,
+            // preguntamos por esa rama concreta y dejamos ROL solo como fallback.
+            if ($prefer_concrete_product_branch) {
+                $concrete_axes = array_values(array_filter($axes, static function($axis) {
+                    $kind = sanitize_key((string) ($axis['kind'] ?? ''));
+                    return in_array($kind, array('type','subtype','category'), true);
+                }));
+                if ($concrete_axes) {
+                    $axes = $concrete_axes;
+                }
+            }
         }
 
         foreach ($axes as &$axis) {
@@ -650,6 +688,17 @@ final class SEO_Dependiente_Interprete {
             $role = sanitize_key((string) ($axis['role'] ?? ''));
             if ('object' === $preferred && ('object' === $role || in_array($kind, array('type','subtype','category','role'), true))) {
                 $bonus = 0.24;
+                if ($prefer_concrete_product_branch) {
+                    // Primero una familia reconocible por el cliente; el subtipo
+                    // queda ligeramente por detrás para no preguntar demasiado fino.
+                    if ('type' === $kind) {
+                        $bonus += 0.18;
+                    } elseif ('category' === $kind) {
+                        $bonus += 0.14;
+                    } elseif ('subtype' === $kind) {
+                        $bonus += 0.10;
+                    }
+                }
             } elseif ('intent' === $preferred && in_array($kind, array('application','tag','attribute'), true)) {
                 $bonus = 0.25;
             } elseif ('context' === $preferred && 'context' === $role) {
