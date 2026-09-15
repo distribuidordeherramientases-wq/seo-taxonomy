@@ -238,9 +238,11 @@ final class SEO_Dependiente_API {
         // 1A. Productos directos: primera pasada solo sobre campos de identidad y
         // clasificación del producto. No abre todavía descripciones largas ni rutas
         // semánticas extensivas.
-        $tokens = !empty($semantic['groups']) && class_exists('SEO_Dependiente_Semantics')
-            ? SEO_Dependiente_Semantics::group_variants($semantic)
-            : self::query_token_groups($query);
+        // Dependiente trabaja con una sola coleccion de grupos: conserva las
+        // relaciones semanticas conocidas y las completa con variantes de busqueda
+        // orientadas al catalogo. Intérprete ya ha limpiado la frase; aqui no se
+        // reinterpreta al cliente, solo se prepara la recuperacion de productos.
+        $tokens = self::search_token_groups($query, $semantic);
 
         $primary_diagnostic = array();
         $primary_rows = self::primary_candidate_rows($query, $semantic, $primary_diagnostic);
@@ -944,42 +946,31 @@ final class SEO_Dependiente_API {
             return array();
         }
 
-        $rows = self::query_primary_index($groups, true, self::CANDIDATE_LIMIT);
+        // Primero intentamos una coincidencia estricta. Si devuelve pocos
+        // productos, abrimos la misma busqueda en OR sobre campos de identidad.
+        // El ranking posterior decide relevancia; no obligamos a que una ficha
+        // repita literalmente todos los contextos de la consulta.
+        $strict = self::query_primary_index($groups, true, self::CANDIDATE_LIMIT);
+        $diagnostic['primary_strict_rows'] = count($strict);
+        if (count($strict) >= 12 || count($groups) <= 1) {
+            $diagnostic['primary_rows'] = count($strict);
+            return $strict;
+        }
+
+        $broad = self::query_primary_index($groups, false, self::CANDIDATE_LIMIT);
+        $diagnostic['primary_broad_rows'] = count($broad);
+        $rows = self::merge_candidate_rows($strict, $broad);
         $diagnostic['primary_rows'] = count($rows);
+        $diagnostic['strategy'] = $strict ? 'primary_relaxed' : 'primary_broad';
         return $rows;
     }
 
     private static function primary_search_groups($query, $semantic = array()) {
-        $groups = array();
-        $object_groups = array();
-        if (!empty($semantic['groups'])) {
-            foreach ((array) $semantic['groups'] as $group) {
-                $role = sanitize_key((string) ($group['role'] ?? 'term'));
-                if (in_array($role, array('intent', 'state'), true)) {
-                    continue;
-                }
-                $variants = array_values(array_unique(array_filter(array_map(
-                    array('SEO_Dependiente_Index', 'normalize'),
-                    (array) ($group['variants'] ?? array())
-                ))));
-                if (!$variants) {
-                    continue;
-                }
-                $variants = array_slice($variants, 0, 8);
-                $groups[] = $variants;
-                if ('object' === $role) {
-                    $object_groups[] = $variants;
-                }
-            }
-        }
-        // Intérprete ya entrega una consulta limpia. Por tanto, la búsqueda
-        // primaria no debe reducirse solo al objeto reconocido: hacerlo provoca
-        // que consultas distintas terminen compartiendo casi los mismos
-        // candidatos. Conservamos TODOS los conceptos útiles y dejamos que el
-        // AND inicial exija coherencia entre acción, objeto y contexto.
-        if (!$groups) {
-            $groups = self::query_token_groups($query);
-        }
+        // La consulta ya llega limpia desde Intérprete. No descartamos el grupo
+        // `intent`: en Dependiente ese grupo puede contener precisamente la accion
+        // util (perforar, cortar, lijar...). Solo los estados puros se dejan fuera
+        // de la primera recuperacion y siguen disponibles para la capa semantica.
+        $groups = self::search_token_groups($query, $semantic, array('state'));
         return array_slice($groups, 0, 10);
     }
 
@@ -1073,9 +1064,10 @@ final class SEO_Dependiente_API {
         // El conocimiento editorial complementa productos; no puede declarar por
         // sí solo que la búsqueda de catálogo es suficiente. Con cero o un producto
         // siempre queda abierta la posibilidad de recuperar más catálogo.
-        $sufficient = $products >= 6
-            || ($products >= 3 && $knowledge >= 1)
-            || ($products >= 2 && $knowledge >= 2);
+        // El contenido editorial complementa, pero no puede cerrar la busqueda
+        // de catalogo. Si solo hay dos productos (aunque existan muchas guias),
+        // Dependiente debe seguir buscando productos.
+        $sufficient = $products >= 6;
 
         return (bool) apply_filters(
             'seo_dependiente_local_search_sufficient',
@@ -1110,7 +1102,7 @@ final class SEO_Dependiente_API {
             }
         }
         foreach (array(
-            'primary_rows', 'primary_group_count', 'primary_product_count',
+            'primary_rows', 'primary_strict_rows', 'primary_broad_rows', 'primary_group_count', 'primary_product_count',
             'direct_knowledge_count', 'strict_count', 'semantic_product_ids',
             'semantic_route_rows', 'object_anchor_rows', 'broad_fallback_rows',
             'semantic_catalog_route', 'semantic_rules_active',
@@ -1143,9 +1135,7 @@ final class SEO_Dependiente_API {
             $diagnostic['strategy'] = 'index_unavailable';
             return array();
         }
-        $groups = !empty($semantic['groups']) && class_exists('SEO_Dependiente_Semantics')
-            ? SEO_Dependiente_Semantics::group_variants($semantic)
-            : self::query_token_groups($query);
+        $groups = self::search_token_groups($query, $semantic);
         if (!$groups) {
             $diagnostic['strategy'] = 'catalog_fallback';
             return SEO_Dependiente_Index::get_rows(self::CANDIDATE_LIMIT);
@@ -1273,15 +1263,78 @@ final class SEO_Dependiente_API {
         return (array) $wpdb->get_results($sql, ARRAY_A);
     }
 
-    private static function query_token_groups($query) {
-        if (class_exists('SEO_Dependiente_Semantics') && SEO_Dependiente_Semantics::table_exists()) {
-            $analysis = SEO_Dependiente_Semantics::analyze($query);
-            $semantic_groups = SEO_Dependiente_Semantics::group_variants($analysis);
-            if ($semantic_groups) {
-                return $semantic_groups;
+    /**
+     * Grupos de busqueda definitivos del Dependiente.
+     *
+     * La semantica aporta relaciones conocidas del catalogo. Las variantes
+     * lexicas completan cada grupo para que una accion pueda recuperar la familia
+     * comercial que la realiza (p. ej. agujerear -> taladro/broca/perforacion).
+     * Esto no modifica la consulta del cliente ni decide un producto: solo amplia
+     * el vocabulario con el que Dependiente consulta su propio indice.
+     */
+    private static function search_token_groups($query, $semantic = array(), $excluded_roles = array()) {
+        // Partimos siempre de la consulta limpia para conservar el orden real de
+        // los conceptos del cliente. Esto hace que el primer termino util sea el
+        // ancla del ranking y evita que el orden interno de las reglas semanticas
+        // cambie la intencion de la busqueda.
+        $groups = self::query_token_groups($query);
+        $excluded_roles = array_values(array_filter(array_map('sanitize_key', (array) $excluded_roles)));
+        $semantic_groups = array();
+
+        foreach ((array) ($semantic['groups'] ?? array()) as $group) {
+            $role = sanitize_key((string) ($group['role'] ?? 'term')) ?: 'term';
+            if ($excluded_roles && in_array($role, $excluded_roles, true)) {
+                continue;
+            }
+
+            $variants = array_values(array_unique(array_filter(array_map(
+                array('SEO_Dependiente_Index', 'normalize'),
+                (array) ($group['variants'] ?? array())
+            ))));
+            $seeds = array_merge(
+                $variants,
+                array(
+                    SEO_Dependiente_Index::normalize((string) ($group['canonical'] ?? '')),
+                    SEO_Dependiente_Index::normalize((string) ($group['source_expression'] ?? '')),
+                )
+            );
+            foreach (array_values(array_unique(array_filter($seeds))) as $seed) {
+                $variants = array_merge($variants, self::token_variants($seed));
+            }
+            $variants = array_values(array_unique(array_filter($variants)));
+            if ($variants) {
+                $semantic_groups[] = array_slice($variants, 0, 18);
             }
         }
 
+        // Enriquece los grupos existentes sin alterar su orden. Una regla
+        // semantica se fusiona con el concepto textual cuando comparten alguna
+        // variante; las reglas adicionales se agregan al final.
+        $used = array();
+        foreach ($groups as $index => $variants) {
+            foreach ($semantic_groups as $semantic_index => $semantic_variants) {
+                if (!array_intersect($variants, $semantic_variants)) {
+                    continue;
+                }
+                $groups[$index] = array_slice(array_values(array_unique(array_merge($variants, $semantic_variants))), 0, 18);
+                $variants = $groups[$index];
+                $used[$semantic_index] = true;
+            }
+        }
+        foreach ($semantic_groups as $semantic_index => $semantic_variants) {
+            if (isset($used[$semantic_index])) {
+                continue;
+            }
+            $groups[] = $semantic_variants;
+            if (count($groups) >= 10) {
+                break;
+            }
+        }
+
+        return array_slice(array_values(array_filter($groups)), 0, 10);
+    }
+
+    private static function query_token_groups($query) {
         $normalized = SEO_Dependiente_Index::normalize($query);
         if (!$normalized) {
             return array();
@@ -1330,7 +1383,11 @@ final class SEO_Dependiente_API {
             'arreglar'    => array('reparar', 'reparacion', 'recambio', 'repuesto'),
             'reparar'     => array('reparacion', 'arreglar', 'repuesto'),
             'cortar'      => array('corte', 'cortador', 'cortadora'),
-            'taladrar'    => array('taladro', 'perforar', 'perforacion'),
+            'taladrar'    => array('taladro', 'perforar', 'perforacion', 'broca', 'brocas'),
+            'perforar'    => array('perforacion', 'taladrar', 'taladro', 'broca', 'brocas'),
+            'agujerear'   => array('agujero', 'agujeros', 'perforar', 'perforacion', 'taladrar', 'taladro', 'broca', 'brocas'),
+            'agujero'     => array('agujeros', 'agujerear', 'perforar', 'perforacion', 'taladro', 'broca', 'brocas'),
+            'agujeros'    => array('agujero', 'agujerear', 'perforar', 'perforacion', 'taladro', 'broca', 'brocas'),
             'atornillar'  => array('atornillador', 'atornillado', 'tornillo'),
             'lijar'       => array('lijado', 'lijadora', 'lija'),
             'soldar'      => array('soldadura', 'soldador'),
@@ -1543,6 +1600,10 @@ final class SEO_Dependiente_API {
         }
 
         $coverage = 0;
+        $weighted_coverage = 0.0;
+        $coverage_weight_total = 0.0;
+        $anchor_hits = 0;
+        $group_index = 0;
         $field_hits = array('title' => 0, 'application' => 0, 'platform' => 0, 'brand' => 0, 'category' => 0, 'tag' => 0, 'attribute' => 0, 'excerpt' => 0);
         foreach ($token_groups as $variants) {
             $token_found = false;
@@ -1589,6 +1650,28 @@ final class SEO_Dependiente_API {
             if ($vocabulary_hit) {
                 $score += 8;
             }
+
+            // El primer concepto de la consulta limpia actua como ancla. No exige
+            // que tambien aparezcan literalmente todos los contextos (pared,
+            // madera, medida...), pero evita que un producto entre solo porque
+            // coincide con un contexto secundario.
+            $group_weight = (0 === $group_index) ? 2.0 : 1.0;
+            $coverage_weight_total += $group_weight;
+            if ($token_found) {
+                $weighted_coverage += $group_weight;
+            }
+            if (0 === $group_index && (
+                !empty($group_hits['title'])
+                || !empty($group_hits['application'])
+                || !empty($group_hits['platform'])
+                || !empty($group_hits['category'])
+                || !empty($group_hits['tag'])
+                || !empty($group_hits['attribute'])
+                || $vocabulary_hit
+            )) {
+                $anchor_hits++;
+            }
+            $group_index++;
         }
 
         $weights = array(
@@ -1612,7 +1695,11 @@ final class SEO_Dependiente_API {
             $score += $hits * (isset($weights[$field]) ? $weights[$field] : 0);
         }
         if ($token_groups) {
-            $score += 180 * ($coverage / max(1, count($token_groups)));
+            $score += 220 * ($weighted_coverage / max(1.0, $coverage_weight_total));
+        }
+        if ($anchor_hits) {
+            $score += 120;
+            $reasons[] = 'Coincide con el concepto principal';
         }
 
         if ($field_hits['application']) {
@@ -1664,26 +1751,25 @@ final class SEO_Dependiente_API {
             $reasons = array_merge($reasons, (array) ($semantic_score['reasons'] ?? array()));
         }
 
-        // Un fallback OR puede recuperar productos por una sola palabra muy
-        // genérica (p. ej. "madera"). Esos candidatos no deben sobrevivir si
-        // ignoran el resto de la consulta limpia. Exigimos cobertura mínima de
-        // conceptos; la semántica puede mejorar ranking, pero no convertir una
-        // coincidencia aislada en un resultado válido.
+        // No exigimos 2 de 3 palabras literales: eso expulsaba taladros y
+        // brocas cuando "pared" o "madera" no estaban repetidos en la ficha.
+        // Para consultas con varios conceptos basta con que el producto responda
+        // al concepto principal en campos fuertes o que exista una ruta semantica
+        // de catalogo. Los demas conceptos sirven para ordenar, no para bloquear.
         $group_count = count($token_groups);
-        $minimum_coverage = 1;
-        if (2 === $group_count) {
-            $minimum_coverage = 2;
-        } elseif ($group_count >= 3) {
-            $minimum_coverage = max(2, (int) ceil($group_count * 0.5));
+        $route_hits = absint($semantic_score['route_hits'] ?? 0);
+        $eligible = $coverage > 0;
+        if ($group_count > 1) {
+            $eligible = $anchor_hits > 0 || $route_hits > 0;
         }
-        $eligible = $coverage >= $minimum_coverage;
 
         return array(
             'score'   => round($score, 4),
             'reasons' => array_slice(array_values(array_unique(array_filter($reasons))), 0, 4),
             'eligible'=> (bool) $eligible,
             'object_hits' => absint($semantic_score['object_hits'] ?? 0),
-            'route_hits'  => absint($semantic_score['route_hits'] ?? 0),
+            'route_hits'  => $route_hits,
+            'anchor_hits' => absint($anchor_hits),
             'coverage'    => absint($coverage),
         );
     }
