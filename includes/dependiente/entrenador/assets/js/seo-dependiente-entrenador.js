@@ -33,12 +33,16 @@
     const labStatus = root.querySelector('[data-trainer-lab-status]');
     const labProgressBar = root.querySelector('[data-trainer-lab-progress-bar]');
     const labRunBody = root.querySelector('[data-trainer-lab-run-body]');
+    const updateRoot = root.querySelector('[data-trainer-update]');
+    const updateStartButton = root.querySelector('[data-trainer-update-start]');
+    const updateExportButton = root.querySelector('[data-trainer-update-export]');
+    const updateStatus = root.querySelector('[data-trainer-update-status]');
 
     let busy = false;
     let autoRunning = root.dataset.autoRunning === '1';
     let labBatchKey = labRoot ? (labRoot.dataset.labBatchKey || '') : '';
     const baseDisabled = new WeakMap();
-    [prepareButton, runModuleButton, autoButton, labImportButton, labRunButton, labExportButton, exportCourseButton]
+    [prepareButton, runModuleButton, autoButton, labImportButton, labRunButton, labExportButton, exportCourseButton, updateStartButton, updateExportButton]
         .concat(exportLessonButtons, exportProgressButtons)
         .forEach(function (button) {
             if (button) baseDisabled.set(button, !!button.disabled);
@@ -399,6 +403,10 @@
             return state.last_message;
         }
         if (data && data.running && current) {
+            if (Number(current.lesson_order || 0) === 0 && String(current.title || '') === 'Actualización') {
+                return 'Automático activo · Actualización' +
+                    (Number(current.next_module || 0) > 0 ? ' · módulo ' + Number(current.next_module || 0) : '') + '.';
+            }
             return 'Automático activo · Lección ' + Number(current.lesson_order || 0) + ' · ' + String(current.title || '') +
                 (Number(current.next_module || 0) > 0 ? ' · módulo ' + Number(current.next_module || 0) : '') + '.';
         }
@@ -623,6 +631,36 @@
         }
     }
 
+    async function startKnowledgeUpdate() {
+        if (busy || !updateStartButton) return;
+        setBusy(true);
+        if (updateStatus) updateStatus.textContent = 'Entregando la actualización al Gestor de workers…';
+        try {
+            await post('seo_dependiente_actualizacion_start', {});
+            if (updateStatus) updateStatus.textContent = 'Actualización encolada. Los módulos avanzarán por el worker compartido.';
+            window.setTimeout(function () { window.location.reload(); }, 700);
+        } catch (error) {
+            if (updateStatus) updateStatus.textContent = 'No se pudo iniciar la actualización: ' + error.message;
+            setBusy(false);
+        }
+    }
+
+    async function exportKnowledgeUpdate() {
+        if (busy || !updateExportButton) return;
+        setBusy(true);
+        if (updateStatus) updateStatus.textContent = 'Preparando informe JSON de Actualización…';
+        try {
+            const data = await post('seo_dependiente_actualizacion_export', {});
+            const blob = new Blob([JSON.stringify(data.document || {}, null, 2)], { type: 'application/json;charset=utf-8' });
+            downloadBlob(blob, data.filename || 'dependiente-actualizacion.json');
+            if (updateStatus) updateStatus.textContent = 'Informe de Actualización descargado.';
+        } catch (error) {
+            if (updateStatus) updateStatus.textContent = 'No se pudo descargar el informe: ' + error.message;
+        } finally {
+            setBusy(false);
+        }
+    }
+
     function downloadBlob(blob, filename) {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -731,6 +769,8 @@
     labImportButton && labImportButton.addEventListener('click', importLabBatch);
     labRunButton && labRunButton.addEventListener('click', runLabBatch);
     labExportButton && labExportButton.addEventListener('click', exportLabBatch);
+    updateStartButton && updateStartButton.addEventListener('click', startKnowledgeUpdate);
+    updateExportButton && updateExportButton.addEventListener('click', exportKnowledgeUpdate);
 
     setBusy(false);
     if (autoRunning) window.setTimeout(pollAutomation, 1500);
