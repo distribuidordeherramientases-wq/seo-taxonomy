@@ -425,9 +425,40 @@ final class SEO_Dependiente_API {
         $matched = self::filter_searchable_documents($matched);
         $matched = self::identity_coherent_documents($matched, $assist_profile);
         self::sort_documents($matched, $orderby);
-        // Los filtros visibles deben describir exactamente los productos que siguen
-        // vivos tras ranking/filtros, no todo el conjunto candidato recuperado.
+        // Los filtros visibles describen los productos validados. Si el ranking estricto
+        // deja la salida a cero pero la base léxica ya había recuperado candidatos reales
+        // (p. ej. 137 productos con "lijadora" en título/categoría), conservamos ese
+        // conjunto únicamente como superficie de refinado: categorías/facetas clicables.
+        // No los declaramos todavía como resultados válidos; sirven para que el cliente
+        // pueda acotar la familia que Dependiente ya encontró en su propio índice.
+        $lexical_discovery_documents = array();
+        if (!$matched && absint($primary_diagnostic['lexical_identity_rows'] ?? 0) > 0 && $primary_documents) {
+            // IMPORTANTE: estos documentos vienen de la base lexica que Dependiente
+            // ya encontro en SU indice (p.ej. 137 candidatos para "lijadora").
+            // No los volvemos a descartar con la validacion final de producto, porque
+            // precisamente estamos usando esta capa para ofrecer CATEGORIAS de
+            // refinado cuando el ranking estricto ha dejado la salida a cero.
+            // Si el cliente ya ha marcado filtros, los respetamos aqui tambien.
+            foreach ((array) $primary_documents as $discovery_document) {
+                if (!self::matches_filters($discovery_document, $filters)) {
+                    continue;
+                }
+                $lexical_discovery_documents[] = $discovery_document;
+            }
+        }
+
         $facets = self::build_facets($matched);
+        $discovery_documents = $matched;
+        $discovery_facets = $facets;
+        $discovery_source = 'validated_results';
+        if (!$matched && $lexical_discovery_documents) {
+            $discovery_documents = $lexical_discovery_documents;
+            $discovery_facets = self::build_facets($lexical_discovery_documents);
+            // También reutilizamos estas facetas en la columna izquierda para que
+            // los mismos candidatos puedan refinarse desde ambos lados de la UI.
+            $facets = $discovery_facets;
+            $discovery_source = 'lexical_candidates';
+        }
 
         if ($interpreter_debug) {
             $top_debug_matches = array();
@@ -472,14 +503,18 @@ final class SEO_Dependiente_API {
                 'semantic_routes'   => self::debug_semantic_routes($semantic),
                 'assist_profile'    => $assist_profile,
                 'top_matches'       => $top_debug_matches,
+                'discovery_source'  => sanitize_key((string) $discovery_source),
+                'discovery_candidates' => count($discovery_documents),
+                'discovery_categories' => count((array) ($discovery_facets['categories'] ?? array())),
             );
         }
 
-        // Las preguntas se calculan con el conjunto que realmente sigue vivo.
-        // Si la búsqueda queda a cero, usamos los candidatos recuperados para que
-        // el Dependiente pueda proponer una bifurcación real del catálogo sin
-        // inventar opciones ni consultar otra fuente desde el Intérprete.
-        $clarification_facets = self::build_facets($matched ? $matched : $documents);
+        // Las preguntas/refinados se calculan con el mejor conjunto disponible.
+        // Si el ranking estricto queda a cero pero existe base léxica, usamos esos
+        // candidatos antes que el universo extensivo para evitar opciones irrelevantes.
+        $clarification_facets = self::build_facets(
+            $matched ? $matched : ($lexical_discovery_documents ? $lexical_discovery_documents : $documents)
+        );
 
         // v0.2.12: contenido editorial y FAQ son ramas paralelas. Una FAQ solo
         // hereda de su owner producto/categoria y nunca compite semanticamente con
@@ -521,10 +556,12 @@ final class SEO_Dependiente_API {
             }
         }
 
-        // La zona principal reutiliza la misma inteligencia que alimenta los
-        // filtros laterales: categorías reales y productos representativos del
-        // conjunto encontrado por Dependiente. No interviene Intérprete aquí.
-        $discovery = self::build_search_discovery($facets, $matched, $results);
+        // La zona principal reutiliza las categorías/facetas del mejor conjunto
+        // disponible. Si todavía no hay resultados validados, muestra categorías de
+        // los candidatos léxicos para que el cliente pueda hacer clic y afinar.
+        $discovery = self::build_search_discovery($discovery_facets, $discovery_documents, $results);
+        $discovery['source'] = $discovery_source;
+        $discovery['candidate_count'] = count($discovery_documents);
 
         $public_semantic = class_exists('SEO_Dependiente_Semantics')
             ? SEO_Dependiente_Semantics::public_analysis($semantic)
@@ -2493,7 +2530,7 @@ final class SEO_Dependiente_API {
         $facets = is_array($facets) ? $facets : array();
         $documents = array_values((array) $documents);
         $categories = self::make_cards(
-            array_slice((array) ($facets['categories'] ?? array()), 0, 6),
+            array_slice((array) ($facets['categories'] ?? array()), 0, 12),
             'categories',
             '',
             $documents
