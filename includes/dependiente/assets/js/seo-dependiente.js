@@ -204,6 +204,18 @@
                     return;
                 }
 
+                const discoveryFilter = event.target.closest('[data-dependiente-discovery-filter]');
+                if (discoveryFilter) {
+                    event.preventDefault();
+                    let filter = {};
+                    try { filter = JSON.parse(discoveryFilter.dataset.dependienteDiscoveryFilter || '{}'); } catch (error) { filter = {}; }
+                    applyCardFilter(filter);
+                    state.contextLabel = discoveryFilter.dataset.dependienteDiscoveryLabel || state.contextLabel || '';
+                    state.page = 1;
+                    search(false);
+                    return;
+                }
+
                 const clarify = event.target.closest('[data-dependiente-clarify]');
                 if (clarify) {
                     event.preventDefault();
@@ -427,7 +439,7 @@
                 renderActiveFilters();
                 renderResults(data.results || [], data);
                 renderRelated(data.related || [], Number(data.total || 0));
-                renderPagination(data.page || 1, data.pages || 0);
+                renderPagination(data.page || 1, data.pages || 0, (data.results || []).length);
                 loadAmazonFallback(data.external_fallback || null);
                 state.clarification = data.clarification || null;
                 scheduleClarification(state.clarification);
@@ -866,13 +878,17 @@
 
         function renderSummary(data) {
             const total = Number(data.total || 0);
+            const interpreted = String(data.interpreted_query || '').trim();
+            const interpreterLine = interpreted
+                ? '<small class="seo-dependiente__interpreter-keywords"><span>Intérprete entiende:</span> <strong>' + escapeHtml(interpreted.split(/\s+/).filter(Boolean).join(' · ')) + '</strong></small>'
+                : '';
             let subject = state.q ? 'para “' + escapeHtml(state.q) + '”' : (state.contextLabel ? 'para ' + escapeHtml(state.contextLabel) : 'con los criterios elegidos');
             if (!total) {
-                elements.summary.innerHTML = '<span><strong>Estoy ampliando la búsqueda</strong> ' + subject + '. Puedes añadir un detalle para afinarla.</span>';
+                elements.summary.innerHTML = '<span class="seo-dependiente__summary-copy"><span><strong>Estoy ampliando la búsqueda</strong> ' + subject + '. Puedes añadir un detalle para afinarla.</span>' + interpreterLine + '</span>';
                 return;
             }
             const noun = total === 1 ? 'opción' : 'opciones';
-            elements.summary.innerHTML = '<span><strong>He encontrado ' + numberFormat(total) + ' ' + noun + '</strong> ' + subject + '. Te muestro primero las que mejor encajan.</span>';
+            elements.summary.innerHTML = '<span class="seo-dependiente__summary-copy"><span><strong>He encontrado ' + numberFormat(total) + ' ' + noun + '</strong> ' + subject + '. Te muestro primero las que mejor encajan.</span>' + interpreterLine + '</span>';
         }
 
         function renderFilters(facets) {
@@ -1022,6 +1038,7 @@
         }
 
         function renderResults(results, data) {
+            const discoveryHtml = renderSearchDiscovery(data && data.discovery ? data.discovery : null);
             if (!results.length) {
                 const hasClarification = Boolean(
                     data && data.clarification && data.clarification.should_ask &&
@@ -1029,18 +1046,45 @@
                 );
                 const helpHtml = elements.help ? '<div class="seo-dependiente__empty-help">' + assistantAvatarHtml('seo-dependiente__assistant-avatar--message') + '<button type="button" class="seo-dependiente__empty-action" data-dependiente-help-open>Pedir ayuda con esta búsqueda</button><small>Enviaremos el recorrido de Dependiente para que no tengas que empezar de cero.</small></div>' : '';
 
-                // La pregunta es una ayuda adicional, nunca una pantalla de fracaso.
-                // Si todavía no hay tarjetas publicables dejamos espacio a la
-                // aclaración y a las guías/FAQs relacionadas sin decir al cliente
-                // que "no hay coincidencia".
-                elements.results.innerHTML = hasClarification
+                // Nunca mostramos paginación o un hueco vacío si no existen
+                // tarjetas publicables. Si hay navegación visual real del
+                // Dependiente, esa navegación ocupa la zona principal.
+                elements.results.innerHTML = discoveryHtml || (hasClarification
                     ? ''
-                    : '<div class="seo-dependiente__empty is-awaiting-clarification"><strong>Vamos a afinar la búsqueda</strong><span>Dependiente está revisando las opciones más relacionadas. Puedes concretar la consulta o usar los filtros si quieres.</span>' + helpHtml + '</div>';
+                    : '<div class="seo-dependiente__empty is-awaiting-clarification"><strong>Vamos a afinar la búsqueda</strong><span>Dependiente está revisando las opciones más relacionadas. Puedes concretar la consulta o usar los filtros si quieres.</span>' + helpHtml + '</div>');
                 return;
             }
-            elements.results.innerHTML = results.map(function (product, index) {
+
+            const heading = '<div class="seo-dependiente__results-heading"><small>Resultados de Dependiente</small><strong>Productos que mejor encajan</strong></div>';
+            elements.results.innerHTML = discoveryHtml + heading + results.map(function (product, index) {
                 return renderProductCard(product, index + 1);
             }).join('');
+        }
+
+        function renderSearchDiscovery(discovery) {
+            if (!discovery) return '';
+            const categories = Array.isArray(discovery.categories) ? discovery.categories.slice(0, 6) : [];
+            const quick = Array.isArray(discovery.quick_filters) ? discovery.quick_filters.slice(0, 6) : [];
+            if (!categories.length && !quick.length) return '';
+
+            const chips = quick.map(function (card) {
+                return '<button type="button" class="seo-dependiente__discovery-chip" data-dependiente-discovery-filter="' + escapeAttr(JSON.stringify(card.filter || {})) + '" data-dependiente-discovery-label="' + escapeAttr(card.label || '') + '">' + escapeHtml(card.label || '') + '<small>' + numberFormat(card.count || 0) + '</small></button>';
+            }).join('');
+
+            const cards = categories.map(function (card) {
+                const imageClass = card.image_kind === 'logo' ? ' seo-dependiente__visual-card--logo' : '';
+                return '<button type="button" class="seo-dependiente__visual-card seo-dependiente__search-visual-card' + imageClass + '" data-dependiente-discovery-filter="' + escapeAttr(JSON.stringify(card.filter || {})) + '" data-dependiente-discovery-label="' + escapeAttr(card.label || '') + '">' +
+                    '<img src="' + escapeAttr(card.image || config.placeholderImage || '') + '" alt="" loading="lazy" decoding="async">' +
+                    '<span class="seo-dependiente__visual-card-arrow" aria-hidden="true">→</span>' +
+                    '<span class="seo-dependiente__visual-card-content"><strong>' + escapeHtml(card.label || '') + '</strong><small>' + numberFormat(card.count || 0) + ' opciones</small></span>' +
+                    '</button>';
+            }).join('');
+
+            return '<section class="seo-dependiente__result-discovery" aria-label="Opciones para afinar la búsqueda">' +
+                '<div class="seo-dependiente__result-discovery-head"><small>Según los resultados de Dependiente</small><strong>Elige una opción para afinar</strong></div>' +
+                (chips ? '<div class="seo-dependiente__discovery-chips">' + chips + '</div>' : '') +
+                (cards ? '<div class="seo-dependiente__visual-menu seo-dependiente__search-visual-menu">' + cards + '</div>' : '') +
+                '</section>';
         }
 
         function zeroResultAlternatives(data) {
@@ -1339,8 +1383,8 @@
                 '<span class="seo-dependiente__related-link">Leer →</span></span></a>';
         }
 
-        function renderPagination(page, pages) {
-            if (pages <= 1) {
+        function renderPagination(page, pages, visibleResults) {
+            if (pages <= 1 || Number(visibleResults || 0) <= 0) {
                 elements.pagination.innerHTML = '';
                 return;
             }
