@@ -3,20 +3,28 @@
 defined('ABSPATH') || exit;
 
 /**
- * Interprete del Dependiente.
+ * Interprete minimo del Dependiente.
  *
- * Mision: limpiar y normalizar la forma natural de hablar del cliente para
- * entregar al Dependiente una consulta corta y util. No consulta el catalogo,
- * no decide familias de producto y no sustituye al Dependiente: comprende
- * lenguaje, elimina ruido y puede pedir contexto linguistico que falte.
+ * Contrato de runtime:
+ * - escucha el campo de texto del cliente;
+ * - normaliza texto y corrige erratas conservadoras;
+ * - elimina articulos, pronombres, preposiciones seguras y ruido funcional;
+ * - lleva formas verbales conocidas a infinitivo;
+ * - entrega UNA unica consulta filtrada al Dependiente;
+ * - no usa sinonimos semanticos, no consulta catalogo, no elige categorias,
+ *   no busca productos y no pregunta nada al cliente.
+ *
+ * La memoria de Linguista se conserva intacta. En este modo solo se aprovechan
+ * recursos puramente linguisticos (morfologia/ortografia), nunca relaciones
+ * semanticas o comerciales.
  */
 final class SEO_Dependiente_Interprete {
-    const VERSION = '0.8.2';
+    const VERSION = '1.1.1';
 
     private static $morphology = null;
 
     /**
-     * Interpreta una consulta de cliente.
+     * Filtra lenguaje humano y devuelve una unica consulta para Dependiente.
      *
      * @param string $query Consulta original.
      * @return array
@@ -24,791 +32,88 @@ final class SEO_Dependiente_Interprete {
     public static function interpret($query) {
         $original = self::clean_query($query);
         $normalized = self::normalize($original);
-
-        $language = self::analyze_language($normalized);
         $result = array(
-            'version'       => self::VERSION,
-            'original'      => $original,
-            'normalized'    => $normalized,
-            'search_query'  => $original,
-            'changed'       => false,
-            'confidence'    => 0.0,
-            'rule'          => '',
-            'reason'        => '',
-            'concepts'      => array(),
-            'lesson_key'    => '',
-            'intent'        => self::detect_intent($normalized),
-            'language'      => $language,
+            'version'         => self::VERSION,
+            'original'        => $original,
+            'normalized'      => $normalized,
+            'search_query'    => $normalized,
+            'changed'         => false,
+            'confidence'      => 1.0,
+            'rule'            => 'interpreter_minimal_filter',
+            'reason'          => 'Filtro linguistico minimo: limpiar ruido, corregir erratas y lematizar verbos.',
+            'concepts'        => array(),
+            'lesson_key'      => '',
+            'intent'          => 'filter_text',
+            'language'        => array(),
+            'transformations' => array(),
+            'lexicon_matches' => array(),
         );
 
         if ('' === $normalized) {
+            $result['confidence'] = 0.0;
             return $result;
         }
 
-        /*
-         * Regresion base: si el cliente ya escribe extractor + objeto,
-         * conservamos la ruta literal que sabemos que funciona.
-         */
-        $extractor_targets = array(
-            'rodamiento' => array('rodamiento', 'rodamientos', 'cojinete', 'cojinetes'),
-            'polea'      => array('polea', 'poleas'),
-            'engranaje'  => array('engranaje', 'engranajes'),
-            'rotula'     => array('rotula', 'rotulas'),
-        );
+        $trace = array();
 
-        if (self::has_any($normalized, array('extractor', 'extractores'))) {
-            foreach ($extractor_targets as $canonical => $variants) {
-                if (self::has_any($normalized, $variants)) {
-                    return self::rewrite(
-                        $result,
-                        'extractor ' . self::plural_search_term($canonical),
-                        0.99,
-                        'literal_extractor_object',
-                        'Se conserva extractor y el objeto principal.',
-                        array('herramienta' => 'extractor', 'objeto' => $canonical),
-                        'i1_subject_action'
-                    );
-                }
-            }
+        // 1. Ortografia: solo correcciones conservadoras contra lenguaje ya conocido.
+        $corrected = self::correct_typos($normalized, $trace);
+
+        // 2. Filtro linguistico base: ruido seguro + infinitivo. Nada de semantica.
+        $language = self::analyze_language($corrected);
+        $working = self::dedupe_query((string) ($language['semantic_query'] ?? $corrected));
+
+        // Nunca dejamos la consulta vacia por exceso de limpieza.
+        if ('' === $working) {
+            $working = $corrected ?: $normalized;
         }
 
-        /*
-         * Desambiguacion de compresor de aire frente a compresores mecanicos
-         * de muelles/suspension.
-         */
-        $air_context = array(
-            'inflar', 'inflado', 'rueda', 'ruedas', 'neumatico', 'neumaticos',
-            'aire', 'neumatica', 'neumaticas',
-        );
-        $has_air_context = self::has_any($normalized, $air_context)
-            || self::contains_phrase($normalized, 'herramienta neumatica')
-            || self::contains_phrase($normalized, 'herramientas neumaticas');
+        $language['typo_corrected'] = self::normalize($corrected) !== $normalized;
+        $result['search_query'] = self::clean_query($working);
+        $result['changed'] = self::normalize($result['search_query']) !== $normalized;
+        $result['language'] = $language;
+        $result['transformations'] = array_values(array_unique($trace));
 
-        if ($has_air_context && self::has_any($normalized, array('compresor', 'compresores'))) {
-            return self::rewrite(
-                $result,
-                'compresor aire',
-                0.98,
-                'air_compressor_context',
-                'Compresor desambiguado por contexto de inflado o uso neumatico.',
-                array('producto' => 'compresor', 'medio' => 'aire'),
-                'i1_subject_action'
-            );
+        if (!empty($language['removed_tokens'])) {
+            $result['confidence'] = min($result['confidence'], 0.99);
         }
-
-
-
-        /*
-         * Memoria linguistica persistente. Aqui vive el aprendizaje del
-         * Interprete: verbo/sinonimo/frase -> concepto canonico de busqueda.
-         */
-        $lexicon_result = self::interpret_from_lexicon($result, false);
-        if (!empty($lexicon_result['changed'])) {
-            return $lexicon_result;
-        }
-
-        /*
-         * Segunda lectura: gramática castellana. Se eliminan palabras funcionales
-         * y se convierten formas verbales conocidas a su infinitivo. Solo se usa
-         * para consultar conocimiento ya aprendido; nunca crea una relación nueva
-         * mientras atiende a un cliente.
-         */
-        $semantic_query = self::normalize((string) ($language['semantic_query'] ?? ''));
-        if ('' !== $semantic_query && $semantic_query !== $normalized) {
-            $semantic_result = $result;
-            $semantic_result['normalized'] = $semantic_query;
-            $semantic_match = self::interpret_from_lexicon($semantic_result, false);
-            if (!empty($semantic_match['changed'])) {
-                $semantic_match['normalized'] = $normalized;
-                $semantic_match['changed'] = self::normalize((string) ($semantic_match['search_query'] ?? '')) !== $normalized;
-                $semantic_match['rule'] = sanitize_key('language_' . (string) ($semantic_match['rule'] ?? 'lexicon'));
-                $semantic_match['reason'] = 'Análisis lingüístico: ' . (string) ($semantic_match['reason'] ?? 'expresión comprendida.');
-                $semantic_match['language'] = $language;
-                return $semantic_match;
-            }
-        }
-
-        // Tras L6, las erratas pequeñas se comparan solo contra expresiones ya
-        // aprendidas. Para palabras cortas se limita a una edición; las largas
-        // admiten dos (incluye muchas transposiciones), evitando falsos positivos.
-        $grammar = self::grammar_settings();
-        // Corrección conservadora desde el primer día: una edición contra formas
-        // ya conocidas. La formación puede ampliar el margen, pero no habilita la
-        // capacidad básica de corregir una errata evidente.
-        $fuzzy_distance = 1;
-        if (!empty($grammar['natural_language'])) {
-            $fuzzy_distance = max(1, absint($grammar['fuzzy_distance'] ?? 1));
-        }
-        if ($fuzzy_distance > 0) {
-            $fuzzy_base = $result;
-            if ('' !== $semantic_query) {
-                $fuzzy_base['normalized'] = $semantic_query;
-            }
-            $fuzzy_result = self::interpret_from_lexicon($fuzzy_base, true, $fuzzy_distance);
-            if (!empty($fuzzy_result['changed'])) {
-                $fuzzy_result['normalized'] = $normalized;
-                $fuzzy_result['changed'] = self::normalize((string) ($fuzzy_result['search_query'] ?? '')) !== $normalized;
-                $fuzzy_result['language'] = $language;
-                return $fuzzy_result;
-            }
-        }
-
-        // Si ninguna equivalencia aprendida ha producido una reescritura mejor,
-        // la salida normal del Intérprete es la frase limpia: artículos,
-        // preposiciones y ruido fuera; conceptos y acciones útiles dentro.
-        // Esto no resuelve el catálogo: solo reduce el lenguaje del cliente.
-        $semantic_query = self::clean_query((string) ($language['semantic_query'] ?? ''));
-        if ('' !== $semantic_query) {
-            $result['search_query'] = $semantic_query;
-            $result['changed'] = self::normalize($semantic_query) !== self::normalize($original);
-            if ($result['changed']) {
-                $result['confidence'] = max((float) $result['confidence'], 0.90);
-                $result['rule'] = 'language_cleanup';
-                $result['reason'] = 'Consulta reducida a palabras útiles sin resolver el catálogo.';
-            }
+        if (!empty($language['typo_corrected'])) {
+            $result['confidence'] = min($result['confidence'], 0.92);
         }
 
         return $result;
     }
 
-    private static function interpret_from_lexicon($result, $fuzzy = false, $fuzzy_distance = 1) {
-        if (!class_exists('SEO_Dependiente_Interprete_DB')) {
-            return $result;
+    /**
+     * El Dependiente recibe exactamente la consulta filtrada. Las antiguas
+     * respuestas de dialogo/hints no participan en el runtime.
+     */
+    public static function refine_search_query($interpretation, $confirmed_hints = array()) {
+        $interpretation = is_array($interpretation) ? $interpretation : array();
+        $query = self::clean_query((string) ($interpretation['search_query'] ?? ''));
+        if ('' !== $query) {
+            return $query;
         }
-
-        $rows = $fuzzy
-            ? SEO_Dependiente_Interprete_DB::fuzzy_matching_rows((string) ($result['normalized'] ?? ''), $fuzzy_distance)
-            : SEO_Dependiente_Interprete_DB::matching_rows((string) ($result['normalized'] ?? ''));
-        if (!$rows) {
-            return $result;
-        }
-
-        foreach ($rows as $row) {
-            $target = self::clean_query((string) ($row['target_search'] ?? ''));
-            if ('' === $target) {
-                continue;
-            }
-
-            $matched_context = isset($row['matched_context']) && is_array($row['matched_context'])
-                ? $row['matched_context']
-                : array();
-            if ($matched_context) {
-                $context = self::canonical_context_term((string) reset($matched_context));
-                if ('' !== $context && !self::contains_phrase(self::normalize($target), self::normalize($context))) {
-                    $target .= ' ' . $context;
-                }
-            }
-
-            $expression = (string) ($row['expression'] ?? '');
-            $canonical = (string) ($row['canonical_term'] ?? $target);
-            $relation = sanitize_key((string) ($row['relation_type'] ?? 'synonym'));
-            $lesson_key = sanitize_key((string) ($row['lesson_key'] ?? ''));
-
-            // Una equivalencia del léxico sustituye únicamente la expresión
-            // comprendida. El resto de conceptos útiles de la frase se conservan.
-            // Ej.: "quiero agujerear una pared" -> "perforar pared", nunca
-            // solamente "perforar". Esta separación es esencial: el Intérprete
-            // normaliza lenguaje, pero no debe borrar contexto que necesita Dependiente.
-            $target = self::merge_lexicon_target_with_context($result, $row, $target);
-
-            return self::rewrite(
-                $result,
-                $target,
-                (float) ($row['confidence'] ?? 0.9),
-                ($fuzzy ? 'lexicon_fuzzy_' : 'lexicon_') . $relation,
-                ($fuzzy ? 'Coincidencia ortográfica aproximada: ' : 'El Intérprete traduce ') . '"' . $expression . '" al concepto "' . $canonical . '".',
-                array(
-                    'expresion_cliente' => $expression,
-                    'concepto_canonico' => $canonical,
-                    'relacion' => $relation,
-                ),
-                $lesson_key
-            );
-        }
-
-        return $result;
+        return self::clean_query((string) ($interpretation['original'] ?? ''));
     }
 
-
-    /**
-     * Conserva los conceptos no sustituidos cuando una regla lingüística
-     * normaliza una palabra o expresión. No consulta catálogo ni facetas.
-     */
-    private static function merge_lexicon_target_with_context($result, $row, $target) {
-        $language = isset($result['language']) && is_array($result['language']) ? $result['language'] : array();
-        $base = self::normalize((string) ($language['semantic_query'] ?? ''));
-        if ('' === $base) {
-            $base = self::normalize((string) ($result['normalized'] ?? ''));
-        }
-        $expression = self::normalize((string) ($row['normalized_expression'] ?? $row['expression'] ?? ''));
-        $target = self::normalize((string) $target);
-        if ('' === $target) {
-            return $base;
-        }
-
-        $remove = array_fill_keys(array_values(array_filter(explode(' ', $expression))), true);
-        $tokens = array();
-        foreach (array_values(array_filter(explode(' ', $target))) as $token) {
-            $tokens[$token] = true;
-        }
-        foreach (array_values(array_filter(explode(' ', $base))) as $token) {
-            if (isset($remove[$token])) {
-                continue;
-            }
-            $tokens[$token] = true;
-        }
-        return self::clean_query(implode(' ', array_keys($tokens)));
-    }
-
-    /**
-     * Diseña, desde el Intérprete, una pregunta corta de desambiguación.
-     *
-     * El Intérprete no consulta productos ni decide resultados. Recibe únicamente
-     * la orientación agregada del conjunto candidato (facetas + recuentos) y elige
-     * la pregunta que mejor puede reducir la ambigüedad. El API del Dependiente se
-     * limita a ejecutar después el filtro confirmado por el cliente.
-     *
-     * @param array $context Contexto agregado de la búsqueda.
-     * @return array
-     */
+    /** Intérprete mínimo nunca pregunta al cliente. */
     public static function plan_clarification($context = array()) {
-        $empty = array(
+        return array(
             'should_ask'          => false,
             'question'            => '',
             'role'                => '',
-            'reason'              => '',
+            'reason'              => 'interpreter_minimal_no_dialogue',
             'delay_ms'            => 0,
             'step'                => 0,
-            'max_steps'           => 2,
-            'strategy'            => 'interpreter_language_context',
+            'max_steps'           => 0,
+            'strategy'            => 'interpreter_minimal_filter',
             'axis'                => '',
             'estimated_reduction' => 0,
             'options'             => array(),
         );
-
-        $query = self::clean_query((string) ($context['query'] ?? ''));
-        $mode = sanitize_key((string) ($context['mode'] ?? 'need'));
-        $request_kind = sanitize_key((string) ($context['request_kind'] ?? 'search'));
-        $resolved_owner = isset($context['resolved_owner']) && is_array($context['resolved_owner'])
-            ? $context['resolved_owner']
-            : array();
-        $confirmed = self::sanitize_guidance_hints((array) ($context['confirmed_hints'] ?? array()));
-        $step = count($confirmed) + 1;
-
-        // El Intérprete solo pregunta cuando el Dependiente declara que necesita
-        // ayuda. Nunca compite con una respuesta que ya está produciendo resultados.
-        if (empty($context['dependiente_needs_help'])) {
-            return $empty;
-        }
-        if ('' === $query || 'compare' === $mode || $step > 2 || in_array($request_kind, array('paginate','compare'), true)) {
-            return $empty;
-        }
-        if (absint($resolved_owner['object_id'] ?? 0) && in_array(absint($resolved_owner['object_type'] ?? 0), array(2,3), true)) {
-            return $empty;
-        }
-
-        /*
-         * Importante: el Intérprete NO consulta facetas, categorías, productos,
-         * etiquetas ni FAQs para decidir la pregunta. Esas fuentes pertenecen al
-         * Dependiente. Aquí solo comprobamos si a la frase limpia le falta un dato
-         * lingüístico muy útil para comprender la necesidad.
-         */
-        $interpretation = isset($context['interpretation']) && is_array($context['interpretation'])
-            ? $context['interpretation']
-            : array();
-        $normalized = self::normalize($query);
-        $action = self::interpretation_action($interpretation, $query);
-
-        $materials = array(
-            'hormigon','cemento','ladrillo','madera','metal','hierro','acero','aluminio',
-            'ceramica','azulejo','vidrio','plastico','yeso','pladur','piedra','mamposteria'
-        );
-        $has_material = self::has_any($normalized, $materials);
-        foreach ($confirmed as $hint) {
-            if ('material' === sanitize_key((string) ($hint['role'] ?? ''))) {
-                $has_material = true;
-                break;
-            }
-        }
-
-        $question = '';
-        $options = array();
-        $axis = '';
-
-        $drill_context = in_array($action, array('taladrar','perforar','agujerear'), true)
-            || self::has_any($normalized, array('taladro','taladros','broca','brocas','corona','coronas'));
-        $sand_context = in_array($action, array('lijar','pulir'), true)
-            || self::has_any($normalized, array('lijadora','lijadoras','lija','lijas'));
-        $cut_context = in_array($action, array('cortar','serrar'), true)
-            || self::has_any($normalized, array('sierra','sierras','amoladora','amoladoras','disco','discos'));
-
-        if (!$has_material && ($drill_context || $sand_context || $cut_context)) {
-            if ($drill_context) {
-                $question = self::contains_phrase($normalized, 'pared')
-                    ? '¿De qué material es la pared?'
-                    : '¿Qué material quieres perforar?';
-                $axis = 'material_perforacion';
-                $choices = array('hormigon'=>'Hormigón','ladrillo'=>'Ladrillo','metal'=>'Metal','madera'=>'Madera');
-            } elseif ($sand_context) {
-                $question = '¿Qué material quieres lijar o pulir?';
-                $axis = 'material_lijado';
-                $choices = array('madera'=>'Madera','metal'=>'Metal','yeso'=>'Pared / yeso','hormigon'=>'Hormigón / piedra');
-            } else {
-                $question = '¿Qué material quieres cortar?';
-                $axis = 'material_corte';
-                $choices = array('metal'=>'Metal','madera'=>'Madera','plastico'=>'Plástico','ceramica'=>'Cerámica');
-            }
-
-            foreach ($choices as $value => $label) {
-                $options[] = array(
-                    'role'         => 'material',
-                    'value'        => $value,
-                    'label'        => $label,
-                    'source'       => 'interpreter_language_context',
-                    'source_group' => 'language_material',
-                    'source_slug'  => $value,
-                    'filter'       => array(),
-                    'count'        => 0,
-                );
-            }
-        }
-
-        if (!$question || count($options) < 2) {
-            return $empty;
-        }
-
-        return array(
-            'should_ask'          => true,
-            'question'            => $question,
-            'role'                => 'material',
-            'reason'              => 'missing_language_context',
-            'delay_ms'            => 0,
-            'step'                => $step,
-            'max_steps'           => 2,
-            'strategy'            => 'interpreter_language_context',
-            'axis'                => $axis,
-            'estimated_reduction' => 0,
-            'options'             => array_slice($options, 0, 4),
-        );
     }
 
-    /**
-     * Genera la consulta limpia que el Intérprete entrega al Dependiente.
-     * Las respuestas del diálogo añaden palabras de contexto; nunca eligen una
-     * categoría de catálogo ni sustituyen la consulta original.
-     */
-    public static function refine_search_query($interpretation, $confirmed_hints = array()) {
-        $interpretation = is_array($interpretation) ? $interpretation : array();
-        $query = self::clean_query((string) ($interpretation['search_query'] ?? $interpretation['original'] ?? ''));
-        $language = isset($interpretation['language']) && is_array($interpretation['language']) ? $interpretation['language'] : array();
-
-        // Cuando Lingüista ya ha activado gramática natural, preferimos la versión
-        // sin palabras funcionales si el léxico no produjo una reescritura mejor.
-        if ((empty($interpretation['changed']) || 'language_cleanup' === (string) ($interpretation['rule'] ?? '')) && !empty($language['semantic_query'])) {
-            $semantic_query = self::clean_query((string) ($language['semantic_query'] ?? ''));
-            if ('' !== $semantic_query) {
-                $query = $semantic_query;
-            }
-        }
-
-        $parts = array();
-        if ('' !== $query) {
-            $parts[] = $query;
-        }
-        foreach (self::sanitize_guidance_hints((array) $confirmed_hints) as $hint) {
-            $value = self::clean_query((string) ($hint['value'] ?? ''));
-            $source = sanitize_key((string) ($hint['source'] ?? ''));
-
-            // Las respuestas que ya se aplican como faceta fuerte del catálogo no
-            // deben añadirse además como texto libre. Hacer “consulta + herramienta”
-            // o “consulta + categoría” puede empeorar el ranking y duplicar la misma
-            // restricción. Conservamos la pista para conversación/aprendizaje y el
-            // filtro para Dependiente; solo el texto libre/intent se suma a la query.
-            $filtered_catalog_hint = in_array($source, array(
-                'catalog_vocabulary', 'catalog_attribute', 'catalog_tag',
-                'catalog_category', 'category', 'catalog_brand', 'catalog_orientation'
-            ), true);
-            if ($filtered_catalog_hint) {
-                continue;
-            }
-
-            if ('' !== $value && !self::contains_phrase(self::normalize(implode(' ', $parts)), self::normalize($value))) {
-                $parts[] = $value;
-            }
-        }
-        return self::clean_query(implode(' ', array_unique($parts)));
-    }
-
-    private static function sanitize_guidance_hints($hints) {
-        $clean = array();
-        foreach ((array) $hints as $hint) {
-            if (!is_array($hint)) {
-                continue;
-            }
-            $role = sanitize_key((string) ($hint['role'] ?? 'term'));
-            if (!in_array($role, array('intent','object','context','state','term','material'), true)) {
-                continue;
-            }
-            $value = self::normalize((string) ($hint['value'] ?? ''));
-            if ('' === $value) {
-                continue;
-            }
-            $clean[] = array(
-                'role'         => $role,
-                'value'        => $value,
-                'label'        => sanitize_text_field((string) ($hint['label'] ?? $value)),
-                'source'       => sanitize_key((string) ($hint['source'] ?? 'interpreter_clarification')) ?: 'interpreter_clarification',
-                'source_group' => sanitize_key((string) ($hint['source_group'] ?? '')),
-                'source_slug'  => sanitize_title((string) ($hint['source_slug'] ?? '')),
-            );
-            if (count($clean) >= 2) {
-                break;
-            }
-        }
-        return $clean;
-    }
-
-    private static function clarification_axes($facets, $total, $object, $answered_axes, $action = '', $query = '') {
-        $axes = array();
-        $total = max(1, absint($total));
-        $action = self::normalize((string) $action);
-        $query = self::normalize((string) $query);
-        $vocabulary = isset($facets['vocabulary']) && is_array($facets['vocabulary']) ? $facets['vocabulary'] : array();
-        $action_question = $action ? '¿Qué necesitas para ' . $action . '?' : '';
-
-        $vocab_defs = array(
-            'aplicacion' => array('kind'=>'application','role'=>'context','priority'=>0.18,'question'=>'¿Para qué uso lo necesitas?'),
-            'subtipo'    => array('kind'=>'subtype','role'=>'object','priority'=>0.15,'question'=>$object ? '¿Qué tipo de “' . $object . '” encaja mejor?' : ($action_question ?: '¿Qué tipo de producto se acerca más a lo que buscas?')),
-            'tipo'       => array('kind'=>'type','role'=>'object','priority'=>0.12,'question'=>$object ? '¿Qué tipo de “' . $object . '” buscas?' : ($action_question ?: '¿A qué tipo de producto o herramienta te refieres?')),
-            'plataforma' => array('kind'=>'platform','role'=>'context','priority'=>0.10,'question'=>'¿Con qué sistema o plataforma debe ser compatible?'),
-            'rol'        => array('kind'=>'role','role'=>'object','priority'=>0.04,'question'=>$action_question ?: '¿Qué necesitas exactamente: herramienta, accesorio u otro tipo de producto?'),
-        );
-        foreach ($vocab_defs as $group => $def) {
-            if (isset($answered_axes['group|' . $group]) || self::facet_items_match_query((array) ($vocabulary[$group] ?? array()), $query)) {
-                continue;
-            }
-            $axis = self::make_catalog_axis((array) ($vocabulary[$group] ?? array()), $total, array_merge($def, array(
-                'group'       => $group,
-                'filter_type' => 'vocabulary',
-                'source'      => 'catalog_vocabulary',
-            )));
-            if ($axis) {
-                $axes[] = $axis;
-            }
-        }
-
-        foreach ((array) ($facets['attributes'] ?? array()) as $attribute) {
-            $group = sanitize_key((string) ($attribute['key'] ?? ''));
-            $label = sanitize_text_field((string) ($attribute['label'] ?? $group));
-            if (!$group || isset($answered_axes['group|' . $group]) || self::facet_items_match_query((array) ($attribute['values'] ?? array()), $query)) {
-                continue;
-            }
-            $label_norm = self::normalize($label);
-            $question = '¿Qué opción de “' . $label . '” necesitas?';
-            $priority = 0.08;
-            if (preg_match('/\b(material|superficie|soporte)\b/', $label_norm)) {
-                $question = '¿Sobre qué material o superficie lo vas a usar?';
-                $priority = 0.24;
-            } elseif (preg_match('/\b(ubicacion|estancia|lugar|interior|exterior)\b/', $label_norm)) {
-                $question = '¿Dónde lo vas a usar?';
-                $priority = 0.22;
-            } elseif (preg_match('/\b(uso|aplicacion|trabajo)\b/', $label_norm)) {
-                $question = '¿Para qué trabajo lo necesitas?';
-                $priority = 0.20;
-            } elseif (preg_match('/\b(compatibilidad|compatible|sistema)\b/', $label_norm)) {
-                $question = '¿Con qué sistema debe ser compatible?';
-                $priority = 0.18;
-            }
-            $axis = self::make_catalog_axis((array) ($attribute['values'] ?? array()), $total, array(
-                'kind'        => 'attribute',
-                'role'        => 'context',
-                'group'       => $group,
-                'filter_type' => 'attributes',
-                'source'      => 'catalog_attribute',
-                'priority'    => $priority,
-                'question'    => $question,
-            ));
-            if ($axis) {
-                $axes[] = $axis;
-            }
-        }
-
-        if (!isset($answered_axes['group|category']) && !self::facet_items_match_query((array) ($facets['categories'] ?? array()), $query)) {
-            $axis = self::make_catalog_axis((array) ($facets['categories'] ?? array()), $total, array(
-                'kind'        => 'category',
-                'role'        => 'object',
-                'group'       => 'category',
-                'filter_type' => 'categories',
-                'source'      => 'category',
-                'priority'    => 0.09,
-                'question'    => $object
-                    ? '¿Qué familia se parece más al “' . $object . '” que buscas?'
-                    : ($action_question ?: '¿A qué familia de producto te refieres?'),
-            ));
-            if ($axis) {
-                $axes[] = $axis;
-            }
-        }
-
-        if (!isset($answered_axes['group|tag']) && !self::facet_items_match_query((array) ($facets['tags'] ?? array()), $query)) {
-            $axis = self::make_catalog_axis((array) ($facets['tags'] ?? array()), $total, array(
-                'kind'        => 'tag',
-                'role'        => 'context',
-                'group'       => 'tag',
-                'filter_type' => 'tags',
-                'source'      => 'catalog_tag',
-                'priority'    => 0.05,
-                'question'    => '¿Cuál de estas características encaja mejor con lo que quieres hacer?',
-            ));
-            if ($axis) {
-                $axes[] = $axis;
-            }
-        }
-
-        return $axes;
-    }
-
-    private static function make_catalog_axis($items, $total, $def) {
-        $items = array_values(array_filter((array) $items, static function($item) {
-            return is_array($item) && !empty($item['slug']) && !empty($item['label']) && absint($item['count'] ?? 0) > 0;
-        }));
-        if (count($items) < 2) {
-            return array();
-        }
-
-        usort($items, static function($a, $b) {
-            return absint($b['count'] ?? 0) <=> absint($a['count'] ?? 0);
-        });
-        $items = array_slice($items, 0, 6);
-        $top = array_slice($items, 0, 4);
-        $counts = array_map(static function($item) { return max(1, absint($item['count'] ?? 0)); }, $top);
-        $sum = max(1, array_sum($counts));
-        $max_share = max($counts) / $sum;
-        $balance = max(0.0, min(1.0, (1.0 - $max_share) / 0.75));
-        $coverage = max(0.0, min(1.0, $sum / max(1, absint($total))));
-        $diversity = max(0.0, min(1.0, count($top) / 4));
-        $priority = (float) ($def['priority'] ?? 0);
-        $score = min(1.5, ($coverage * 0.42) + ($balance * 0.36) + ($diversity * 0.22) + $priority);
-        $reduction = (int) round(max(0, min(0.95, 1.0 - $max_share)) * 100);
-
-        $options = array();
-        foreach ($top as $item) {
-            $slug = sanitize_title((string) ($item['slug'] ?? ''));
-            $label = sanitize_text_field((string) ($item['label'] ?? $slug));
-            if (!$slug || !$label) {
-                continue;
-            }
-            $filter_type = sanitize_key((string) ($def['filter_type'] ?? ''));
-            $group = sanitize_key((string) ($def['group'] ?? ''));
-            $filter = array();
-            if (in_array($filter_type, array('vocabulary','attributes'), true)) {
-                $filter = array('type'=>$filter_type, 'group'=>$group, 'slug'=>$slug);
-            } elseif (in_array($filter_type, array('categories','tags','brands'), true)) {
-                $filter = array('type'=>$filter_type, 'group'=>'','slug'=>$slug);
-            }
-            $options[] = array(
-                'role'         => sanitize_key((string) ($def['role'] ?? 'context')),
-                'value'        => $slug,
-                'label'        => $label,
-                'source'       => sanitize_key((string) ($def['source'] ?? 'catalog_orientation')),
-                'source_group' => $group,
-                'source_slug'  => $slug,
-                'count'        => absint($item['count'] ?? 0),
-                'filter'       => $filter,
-            );
-        }
-        if (count($options) < 2) {
-            return array();
-        }
-
-        return array(
-            'kind'      => sanitize_key((string) ($def['kind'] ?? 'context')),
-            'group'     => sanitize_key((string) ($def['group'] ?? '')),
-            'role'      => sanitize_key((string) ($def['role'] ?? 'context')),
-            'question'  => sanitize_text_field((string) ($def['question'] ?? '¿Cuál de estas opciones encaja mejor?')),
-            'score'     => $score,
-            'reduction' => $reduction,
-            'options'   => $options,
-        );
-    }
-
-    private static function choose_clarification_axis($axes, $preferred, $prefer_concrete_product_branch = false) {
-        $axes = array_values(array_filter((array) $axes));
-        if (!$axes) {
-            return array();
-        }
-        $preferred = sanitize_key((string) $preferred);
-
-        // Cuando falta saber qué producto quiere el cliente, no dejamos que un eje
-        // contextual estadísticamente fuerte (material, uso, etiqueta...) desplace
-        // la bifurcación comercial. Si existe al menos un eje de objeto/familia,
-        // elegimos dentro de ese subconjunto.
-        if ('object' === $preferred) {
-            $object_axes = array_values(array_filter($axes, static function($axis) {
-                $kind = sanitize_key((string) ($axis['kind'] ?? ''));
-                $role = sanitize_key((string) ($axis['role'] ?? ''));
-                return 'object' === $role || in_array($kind, array('type','subtype','category','role'), true);
-            }));
-            if ($object_axes) {
-                $axes = $object_axes;
-            }
-
-            // Para una acción sin producto (“perforar”, “lijar”, “cortar”...),
-            // “Herramienta / Accesorio / Equipamiento” es demasiado genérico como
-            // primera bifurcación. Si el catálogo ofrece tipo, subtipo o categoría,
-            // preguntamos por esa rama concreta y dejamos ROL solo como fallback.
-            if ($prefer_concrete_product_branch) {
-                $concrete_axes = array_values(array_filter($axes, static function($axis) {
-                    $kind = sanitize_key((string) ($axis['kind'] ?? ''));
-                    return in_array($kind, array('type','subtype','category'), true);
-                }));
-                if ($concrete_axes) {
-                    $axes = $concrete_axes;
-                }
-            }
-        }
-
-        foreach ($axes as &$axis) {
-            $bonus = 0.0;
-            $kind = sanitize_key((string) ($axis['kind'] ?? ''));
-            $role = sanitize_key((string) ($axis['role'] ?? ''));
-            if ('object' === $preferred && ('object' === $role || in_array($kind, array('type','subtype','category','role'), true))) {
-                $bonus = 0.24;
-                if ($prefer_concrete_product_branch) {
-                    // Primero una familia reconocible por el cliente; el subtipo
-                    // queda ligeramente por detrás para no preguntar demasiado fino.
-                    if ('type' === $kind) {
-                        $bonus += 0.18;
-                    } elseif ('category' === $kind) {
-                        $bonus += 0.14;
-                    } elseif ('subtype' === $kind) {
-                        $bonus += 0.10;
-                    }
-                }
-            } elseif ('intent' === $preferred && in_array($kind, array('application','tag','attribute'), true)) {
-                $bonus = 0.25;
-            } elseif ('context' === $preferred && 'context' === $role) {
-                $bonus = 0.18;
-            }
-            $axis['_rank'] = (float) ($axis['score'] ?? 0) + $bonus;
-        }
-        unset($axis);
-        usort($axes, static function($a, $b) {
-            if ((float) ($a['_rank'] ?? 0) === (float) ($b['_rank'] ?? 0)) {
-                return 0;
-            }
-            return (float) ($a['_rank'] ?? 0) < (float) ($b['_rank'] ?? 0) ? 1 : -1;
-        });
-        $best = $axes[0];
-        unset($best['_rank']);
-        return $best;
-    }
-
-    private static function controlled_intent_options() {
-        return array(
-            array('role'=>'intent','value'=>'reparar','label'=>'Reparar / arreglar','source'=>'interpreter_intent','source_group'=>'intent','source_slug'=>'reparar','filter'=>array()),
-            array('role'=>'intent','value'=>'instalar','label'=>'Instalar / montar','source'=>'interpreter_intent','source_group'=>'intent','source_slug'=>'instalar','filter'=>array()),
-            array('role'=>'intent','value'=>'sustituir','label'=>'Cambiar / sustituir','source'=>'interpreter_intent','source_group'=>'intent','source_slug'=>'sustituir','filter'=>array()),
-            array('role'=>'intent','value'=>'comprar','label'=>'Comprar / elegir','source'=>'interpreter_intent','source_group'=>'intent','source_slug'=>'comprar','filter'=>array()),
-        );
-    }
-
-    private static function interpretation_product_object($interpretation) {
-        $concepts = isset($interpretation['concepts']) && is_array($interpretation['concepts']) ? $interpretation['concepts'] : array();
-        foreach (array('producto','product','herramienta','tool') as $key) {
-            if (empty($concepts[$key])) {
-                continue;
-            }
-            $value = is_array($concepts[$key]) ? reset($concepts[$key]) : $concepts[$key];
-            $value = self::normalize((string) $value);
-            if ('' !== $value) {
-                return $value;
-            }
-        }
-        return '';
-    }
-
-    private static function interpretation_action($interpretation, $query = '') {
-        $concepts = isset($interpretation['concepts']) && is_array($interpretation['concepts']) ? $interpretation['concepts'] : array();
-        foreach (array('accion','action','intencion') as $key) {
-            if (empty($concepts[$key])) {
-                continue;
-            }
-            $value = is_array($concepts[$key]) ? reset($concepts[$key]) : $concepts[$key];
-            $value = self::normalize((string) $value);
-            if ('' !== $value) {
-                return $value;
-            }
-        }
-
-        $language = isset($interpretation['language']) && is_array($interpretation['language']) ? $interpretation['language'] : array();
-        $non_action_verbs = array('ser','estar','haber','tener','hacer','poder','querer','necesitar','buscar','comprar','elegir','usar','utilizar','servir','deber','gustar','preferir','encontrar','mirar');
-        foreach ((array) ($language['verbs'] ?? array()) as $verb) {
-            $lemma = self::normalize((string) ($verb['lemma'] ?? ''));
-            if ('' !== $lemma && !in_array($lemma, $non_action_verbs, true)) {
-                return $lemma;
-            }
-        }
-
-        // Antes de L6 puede no estar activa la gramática completa. Solo usamos
-        // como respaldo un repertorio corto de acciones inequívocas del dominio;
-        // no clasificamos cualquier palabra acabada en -ar/-er/-ir como verbo.
-        $domain_actions = array(
-            'taladrar','perforar','agujerear','cortar','lijar','pulir','atornillar','desatornillar',
-            'apretar','aflojar','serrar','fresar','roscar','remachar','soldar','medir','nivelar',
-            'inflar','clavar','grapar','pintar','limpiar','aspirar','demoler','romper','montar',
-            'instalar','reparar','cambiar','sustituir','extraer','sacar','quitar','retirar'
-        );
-        foreach (array_values(array_filter(explode(' ', self::normalize((string) $query)))) as $token) {
-            if (in_array($token, $domain_actions, true)) {
-                return $token;
-            }
-        }
-        return '';
-    }
-
-    private static function facet_items_match_query($items, $query) {
-        $query = self::normalize((string) $query);
-        if ('' === $query) {
-            return false;
-        }
-        foreach ((array) $items as $item) {
-            if (!is_array($item)) {
-                continue;
-            }
-            foreach (array($item['label'] ?? '', str_replace('-', ' ', (string) ($item['slug'] ?? ''))) as $candidate) {
-                $candidate = self::normalize((string) $candidate);
-                if (strlen($candidate) >= 3 && self::contains_phrase($query, $candidate)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    private static function semantic_first_value($semantic, $role) {
-        $values = array_values(array_filter((array) ($semantic['concepts'][$role] ?? array())));
-        return $values ? sanitize_text_field((string) $values[0]) : '';
-    }
-
-    private static function semantic_unresolved_values($semantic) {
-        $out = array();
-        foreach ((array) ($semantic['groups'] ?? array()) as $group) {
-            if ('term' !== sanitize_key((string) ($group['role'] ?? 'term'))) {
-                continue;
-            }
-            $term = self::normalize((string) ($group['canonical'] ?? ''));
-            if ($term && strlen($term) >= 2) {
-                $out[$term] = true;
-            }
-        }
-        return array_keys($out);
-    }
-
-    /**
-     * Vista de prueba en STAGING. El entrenamiento real se almacena en el
-     * lexico, pero esta pantalla nunca modifica datos al cargarla.
-     */
     public static function render_tab() {
         if (!current_user_can('manage_options') && !current_user_can('manage_woocommerce')) {
             wp_die(esc_html__('No tienes permisos para acceder al Intérprete.', 'seo-taxonomy'));
@@ -832,8 +137,8 @@ final class SEO_Dependiente_Interprete {
             <div class="notice notice-error is-dismissible"><p><?php echo esc_html(rawurldecode(sanitize_text_field(wp_unslash($_GET['linguista_error'])))); ?></p></div>
         <?php endif; ?>
         <div class="postbox seo-dependiente-admin__box" style="margin-top:16px; padding:18px;">
-            <h2 style="margin-top:0;">Intérprete <small>v<?php echo esc_html(self::VERSION); ?></small></h2>
-            <p><strong>Objetivo:</strong> enseñar al Dependiente a entender cómo habla el cliente.</p>
+            <h2 style="margin-top:0;">Intérprete · filtro lingüístico <small>v<?php echo esc_html(self::VERSION); ?></small></h2>
+            <p><strong>Objetivo:</strong> limpiar el texto del cliente antes de entregarlo al Dependiente, sin consultar ni decidir nada del catálogo.</p>
             <p>
                 Memoria lingüística: <strong><?php echo !empty($stats['ready']) ? 'lista' : 'no disponible'; ?></strong>
                 · expresiones activas: <strong><?php echo esc_html(number_format_i18n((int) ($stats['active'] ?? 0))); ?></strong>
@@ -976,10 +281,11 @@ final class SEO_Dependiente_Interprete {
                 <p class="description" style="margin-top:14px;"><strong>Informes:</strong> al completar cada lección queda disponible su JSON con métricas y fotografía de memoria antes/después. Al terminar L8 aparece además el JSON de evolución completa L1 → L8.</p>
                 <p class="description"><strong>Worker:</strong> Lingüista solo empieza cuando lo arrancas aquí. Después el gestor le concede ventanas de trabajo y procesa lotes pequeños/adaptativos; nunca lanza toda una lección de golpe.</p>
             <?php endif; ?>
-            <p class="description">Regresión base conservada: <code>extractor ↔ extraer/sacar</code>, <code>taladro ↔ taladrar/perforar/agujerear</code> y desambiguación de compresor de aire.</p>
+            <p class="description"><strong>Modo mínimo:</strong> elimina ruido, corrige erratas conservadoras y lleva verbos a infinitivo. No usa sinónimos, no pregunta, no mira catálogo y no decide productos ni categorías.</p>
         </div>
         <?php
     }
+
 
     private static function grammar_settings() {
         $stored = get_option('seo_dependiente_interprete_grammar', array());
@@ -996,51 +302,135 @@ final class SEO_Dependiente_Interprete {
     }
 
     /**
-     * Analiza castellano antes de buscar: reconoce palabras funcionales, formas
-     * verbales (incluidas irregulares aprendidas) y construye una versión
-     * semántica sin ruido. No modifica datos ni aprende durante la petición.
+     * Corrige erratas de forma conservadora. Solo usa expresiones que ya conoce
+     * la memoria linguistica; nunca target_search, categorias ni productos.
+     */
+    private static function correct_typos($normalized, &$trace) {
+        $normalized = self::normalize($normalized);
+        if ('' === $normalized) {
+            return '';
+        }
+
+        // Error mecanico obvio: una consonante duplicada accidentalmente.
+        // Conservamos rr, ll y cc porque son secuencias validas en castellano.
+        $collapsed = preg_replace('/([^aeiourlc])\\1+/u', '$1', $normalized);
+        if (is_string($collapsed) && $collapsed !== $normalized) {
+            $trace[] = 'typo:duplicated_letter';
+            $normalized = self::normalize($collapsed);
+        }
+
+        if (!class_exists('SEO_Dependiente_Interprete_DB')) {
+            return $normalized;
+        }
+
+        // Pedimos distancia 2 para poder detectar una transposicion adyacente
+        // (itenda -> tienda), pero aplicamos criterios mas estrictos despues.
+        $rows = SEO_Dependiente_Interprete_DB::fuzzy_matching_rows($normalized, 2);
+        if (!$rows) {
+            return $normalized;
+        }
+
+        $tokens = array_values(array_filter(explode(' ', $normalized)));
+        $best = array();
+        foreach ((array) $rows as $row) {
+            $expr = self::normalize((string) ($row['normalized_expression'] ?? $row['expression'] ?? ''));
+            if ('' === $expr || false !== strpos($expr, ' ') || strlen($expr) < 5) {
+                continue;
+            }
+            foreach ($tokens as $index => $token) {
+                if ($token === $expr || strlen($token) < 5) {
+                    continue;
+                }
+                // Una forma verbal reconocible no es una errata. Evita, por
+                // ejemplo, corregir "taladrado" a "taladro".
+                if (self::known_verb_form($token)) {
+                    continue;
+                }
+                $distance = self::typo_distance($token, $expr);
+                $allowed = strlen($token) >= 8 ? 2 : 1;
+                if ($distance < 1 || $distance > $allowed) {
+                    continue;
+                }
+
+                // Para distancia 2 exigimos anclas externas iguales para evitar
+                // convertir una palabra valida en otra distinta por semejanza.
+                if (2 === $distance && (substr($token, 0, 1) !== substr($expr, 0, 1) || substr($token, -1) !== substr($expr, -1))) {
+                    continue;
+                }
+                if (!isset($best[$index]) || $distance < $best[$index]['distance']) {
+                    $best[$index] = array('value' => $expr, 'distance' => $distance, 'from' => $token);
+                }
+            }
+        }
+
+        foreach ($best as $index => $candidate) {
+            $tokens[$index] = $candidate['value'];
+            $trace[] = 'typo:' . $candidate['from'] . '->' . $candidate['value'];
+        }
+        return self::normalize(implode(' ', $tokens));
+    }
+
+    /** Distancia conservadora con soporte para una transposicion adyacente. */
+    private static function typo_distance($left, $right) {
+        $left = self::normalize($left);
+        $right = self::normalize($right);
+        if ($left === $right) {
+            return 0;
+        }
+        if (strlen($left) === strlen($right)) {
+            $length = strlen($left);
+            for ($i = 0; $i < $length - 1; $i++) {
+                if ($left[$i] === $right[$i + 1] && $left[$i + 1] === $right[$i]) {
+                    $swapped = $left;
+                    $swapped[$i] = $left[$i + 1];
+                    $swapped[$i + 1] = $left[$i];
+                    if ($swapped === $right) {
+                        return 1;
+                    }
+                }
+            }
+        }
+        return levenshtein($left, $right);
+    }
+
+    /**
+     * Filtro linguistico base. No resuelve sinonimos ni familias semanticas.
      */
     private static function analyze_language($normalized) {
         $normalized = self::normalize($normalized);
         $base = array(
-            'enabled'        => false,
+            'enabled'        => true,
             'semantic_query' => $normalized,
-            'content_tokens' => array_values(array_filter(explode(' ', $normalized))),
+            'content_tokens' => array(),
             'removed_tokens' => array(),
             'verbs'          => array(),
             'tokens'         => array(),
+            'typo_corrected' => false,
         );
         if ('' === $normalized) {
             return $base;
         }
 
         $grammar = self::grammar_settings();
-        $base['enabled'] = true;
-        $trained_natural_language = !empty($grammar['natural_language']);
 
-        // Limpieza segura disponible desde el primer día. Lingüista amplía esta
-        // base en L6 con morfología, irregulares y reglas de español del dominio.
-        $base_stopwords = array(
+        // Solo ruido seguro. Deliberadamente NO quitamos: no, sin, con, entre,
+        // sobre, bajo; pueden cambiar el significado comercial de la consulta.
+        $stopwords = array(
             'el','la','los','las','un','una','unos','unas','de','del','a','al','en','por','para',
             'y','o','que','me','te','se','mi','tu','su','mis','tus','sus','este','esta','estos','estas',
-            'ese','esa','esos','esas','lo','le','les','nos','os'
+            'ese','esa','esos','esas','lo','le','les','nos','os','yo','usted','ustedes','ellos','ellas'
         );
-        $base_noise = array('algo','cosa','cosas','aparato','aparatos');
+        $noise = array('algo','cosa','cosas','aparato','aparatos');
+        // En modo mínimo no importamos stopwords ni stop-verbs aprendidos:
+        // queremos que la limpieza sea estable y totalmente predecible.
+        $stopword_map = array_fill_keys($stopwords, true);
+        $noise_map = array_fill_keys($noise, true);
 
-        $stopword_map = array();
-        foreach ($base_stopwords as $word) {
-            $stopword_map[$word] = 'base_stopword';
-        }
-        foreach ((array) ($grammar['stopword_groups'] ?? array()) as $group => $words) {
-            foreach ((array) $words as $word) {
-                $word = self::normalize($word);
-                if ('' !== $word && false === strpos($word, ' ')) {
-                    $stopword_map[$word] = sanitize_key((string) $group);
-                }
-            }
-        }
-        $semantic_stopwords = array_flip(array_values(array_filter(array_map(array(__CLASS__, 'normalize'), array_merge($base_noise, (array) ($grammar['semantic_stopwords'] ?? array()))))));
-        $stop_verbs = array_flip(array_values(array_filter(array_map(array(__CLASS__, 'normalize'), array_merge(array('querer','necesitar','buscar','poder','haber','ir','hacer'), (array) ($grammar['stop_verbs'] ?? array()))))));
+        // Verbos funcionales que expresan peticion, no la tarea del producto.
+        $stop_verbs = array_fill_keys(array(
+            'querer','necesitar','buscar','poder','haber','ir','hacer','deber','gustar','preferir','encontrar','tener'
+        ), true);
+
         $irregular = array();
         foreach ((array) ($grammar['irregular_forms'] ?? array()) as $form => $lemma) {
             $form = self::normalize($form);
@@ -1049,52 +439,48 @@ final class SEO_Dependiente_Interprete {
                 $irregular[$form] = $lemma;
             }
         }
+
         $morphology = self::morphology_settings();
         $forms = isset($morphology['forms']) && is_array($morphology['forms']) ? $morphology['forms'] : array();
 
         $semantic = array();
-        foreach (array_values(array_filter(explode(' ', $normalized))) as $token) {
-            $role = isset($stopword_map[$token]) ? $stopword_map[$token] : 'content';
+        $input_tokens = array_values(array_filter(explode(' ', $normalized)));
+        foreach ($input_tokens as $index => $token) {
             $lemma = '';
-            $verb_source = '';
-
+            $source = '';
             if (isset($forms[$token]) && is_string($forms[$token]) && '' !== $forms[$token]) {
-                $lemma = self::normalize($forms[$token]);
-                $verb_source = 'learned_morphology';
-            } elseif (isset($irregular[$token])) {
+                $learned_lemma = self::normalize($forms[$token]);
+                // La memoria de Lingüista puede contener relaciones semánticas históricas.
+                // En modo mínimo solo aceptamos una forma aprendida si es morfología
+                // pura: el destino debe ser un infinitivo y nunca se sustituye un
+                // infinitivo escrito por el cliente por otro concepto distinto.
+                if (self::safe_learned_lemma($token, $learned_lemma)) {
+                    $lemma = $learned_lemma;
+                    $source = 'learned_morphology';
+                }
+            }
+            if ('' === $lemma && isset($irregular[$token])) {
                 $lemma = $irregular[$token];
-                $verb_source = 'irregular_dictionary';
-            } elseif ('' !== ($base_lemma = self::base_verb_lemma($token))) {
-                $lemma = $base_lemma;
-                $verb_source = 'base_morphology';
-            } elseif (isset(array(
-                'quiero'=>'querer','quiere'=>'querer','queremos'=>'querer','quisiera'=>'querer',
-                'necesito'=>'necesitar','necesita'=>'necesitar','necesitamos'=>'necesitar',
-                'busco'=>'buscar','busca'=>'buscar','buscamos'=>'buscar',
-                'puedo'=>'poder','puede'=>'poder','podria'=>'poder'
-            )[$token])) {
-                $request_forms = array(
-                    'quiero'=>'querer','quiere'=>'querer','queremos'=>'querer','quisiera'=>'querer',
-                    'necesito'=>'necesitar','necesita'=>'necesitar','necesitamos'=>'necesitar',
-                    'busco'=>'buscar','busca'=>'buscar','buscamos'=>'buscar',
-                    'puedo'=>'poder','puede'=>'poder','podria'=>'poder'
-                );
-                $lemma = $request_forms[$token];
-                $verb_source = 'base_request_verb';
-            } elseif (preg_match('/(?:ar|er|ir)$/', $token)) {
-                $lemma = $token;
-                $verb_source = 'infinitive';
+                $source = 'irregular_dictionary';
+            } else {
+                $lemma = self::base_verb_lemma($token);
+                $source = '' !== $lemma ? 'base_morphology' : '';
+            }
+
+            // Algunas formas verbales coinciden con nombres de producto
+            // (p. ej. "taladro"). Si el contexto es nominal, no las tocamos.
+            if ('' !== $lemma && self::looks_like_noun_usage($input_tokens, $index, $token, $lemma)) {
+                $lemma = '';
+                $source = '';
             }
 
             if ('' !== $lemma) {
-                $role = isset($stop_verbs[$lemma]) ? 'stop_verb' : 'verb';
-                $base['verbs'][] = array('surface' => $token, 'lemma' => $lemma, 'source' => $verb_source);
+                $base['verbs'][] = array('surface' => $token, 'lemma' => $lemma, 'source' => $source);
             }
 
-            $remove = ('stop_verb' === $role) || ('base_stopword' === $role) || isset($semantic_stopwords[$token]);
+            $remove = isset($stopword_map[$token]) || isset($noise_map[$token]) || ('' !== $lemma && isset($stop_verbs[$lemma]));
             $base['tokens'][] = array(
                 'token'   => $token,
-                'role'    => $role,
                 'lemma'   => $lemma,
                 'removed' => $remove ? 1 : 0,
             );
@@ -1102,21 +488,86 @@ final class SEO_Dependiente_Interprete {
                 $base['removed_tokens'][] = $token;
                 continue;
             }
+
+            // Si es verbo de tarea, enviamos infinitivo; si no, conservamos token.
             $semantic[] = '' !== $lemma ? $lemma : $token;
         }
 
-        $semantic = array_values(array_filter($semantic));
-        $base['content_tokens'] = $semantic;
-        $base['semantic_query'] = implode(' ', $semantic);
+        $base['content_tokens'] = array_values(array_filter($semantic));
+        $base['semantic_query'] = implode(' ', $base['content_tokens']);
         return $base;
     }
 
     /**
-     * Morfología mínima disponible sin esperar a Lingüista. Cubre auxiliares y
-     * verbos regulares frecuentes del dominio en presente, pasado, futuro,
-     * condicional, gerundio y participio. La memoria aprendida siempre tiene
-     * prioridad sobre esta base.
+     * Acepta memoria aprendida solo cuando representa morfología, no semántica.
+     * Ejemplos válidos: taladramos -> taladrar. Ejemplos rechazados:
+     * agujerear -> taladro o agujerear -> perforar.
      */
+    private static function safe_learned_lemma($surface, $lemma) {
+        $surface = self::normalize($surface);
+        $lemma = self::normalize($lemma);
+        if ('' === $surface || '' === $lemma || false !== strpos($lemma, ' ')) {
+            return false;
+        }
+        if (!preg_match('/(?:ar|er|ir)$/', $lemma)) {
+            return false;
+        }
+        // Si el cliente ya escribió un infinitivo, se conserva exactamente ese
+        // verbo. Intérprete mínimo no convierte sinónimos ni familias semánticas.
+        if (preg_match('/(?:ar|er|ir)$/', $surface)) {
+            return $surface === $lemma;
+        }
+        // Para formas conjugadas exigimos afinidad léxica básica. Las formas
+        // irregulares verdaderas se resuelven mediante el diccionario gramatical.
+        $stem = substr($lemma, 0, -2);
+        $prefix = substr($stem, 0, min(3, strlen($stem)));
+        return '' !== $prefix && 0 === strpos($surface, $prefix);
+    }
+
+    /** Devuelve true si el token ya parece una forma verbal valida. */
+    private static function known_verb_form($token) {
+        $token = self::normalize($token);
+        if ('' === $token) {
+            return false;
+        }
+        $morphology = self::morphology_settings();
+        $forms = isset($morphology['forms']) && is_array($morphology['forms']) ? $morphology['forms'] : array();
+        if (isset($forms[$token]) && is_string($forms[$token]) && '' !== $forms[$token]) {
+            return true;
+        }
+        return '' !== self::base_verb_lemma($token);
+    }
+
+    /**
+     * Evita convertir nombres de producto en verbos por una coincidencia
+     * morfologica. Es deliberadamente conservador: si hay articulo/determinante
+     * delante, o una forma en -o aparece sin sujeto explicito, preservamos el
+     * termino tal como lo escribio el cliente.
+     */
+    private static function looks_like_noun_usage($tokens, $index, $token, $lemma) {
+        $tokens = array_values((array) $tokens);
+        $previous = $index > 0 ? self::normalize($tokens[$index - 1]) : '';
+        $determiners = array('el','la','los','las','un','una','unos','unas','este','esta','ese','esa','mi','tu','su');
+        if (in_array($previous, $determiners, true)) {
+            return true;
+        }
+
+        $lemma = self::normalize($lemma);
+        $token = self::normalize($token);
+        if (in_array($lemma, array('querer','necesitar','buscar','poder','haber','ir','hacer','deber','gustar','preferir','encontrar','tener'), true)) {
+            return false;
+        }
+        if (strlen($lemma) > 2 && in_array(substr($lemma, -2), array('ar','er','ir'), true)) {
+            $stem = substr($lemma, 0, -2);
+            // Primera persona presente: taladro, corto, lijo... puede ser nombre.
+            if ($token === $stem . 'o') {
+                return 'yo' !== $previous;
+            }
+        }
+        return false;
+    }
+
+    /** Morfologia minima disponible incluso sin ninguna leccion de Linguista. */
     private static function base_verb_lemma($token) {
         $token = self::normalize($token);
         if ('' === $token || false !== strpos($token, ' ')) {
@@ -1128,8 +579,13 @@ final class SEO_Dependiente_Interprete {
             'habia'=>'haber','habias'=>'haber','habiamos'=>'haber','habian'=>'haber','hubo'=>'haber','hubieron'=>'haber',
             'voy'=>'ir','vas'=>'ir','va'=>'ir','vamos'=>'ir','vais'=>'ir','van'=>'ir','iba'=>'ir','ibas'=>'ir','ibamos'=>'ir','iban'=>'ir',
             'hago'=>'hacer','haces'=>'hacer','hace'=>'hacer','hacemos'=>'hacer','hacen'=>'hacer','hice'=>'hacer','hizo'=>'hacer','hicimos'=>'hacer','hicieron'=>'hacer','hecho'=>'hacer','haciendo'=>'hacer',
+            'tengo'=>'tener','tienes'=>'tener','tiene'=>'tener','tenemos'=>'tener','teneis'=>'tener','tienen'=>'tener','tenia'=>'tener','tenias'=>'tener','teniamos'=>'tener','tenian'=>'tener','tuve'=>'tener','tuvo'=>'tener','tuvimos'=>'tener','tuvieron'=>'tener',
+            'quiero'=>'querer','quiere'=>'querer','queremos'=>'querer','quisiera'=>'querer','quisieramos'=>'querer',
+            'necesito'=>'necesitar','necesita'=>'necesitar','necesitamos'=>'necesitar','necesitan'=>'necesitar',
+            'busco'=>'buscar','busca'=>'buscar','buscamos'=>'buscar','buscan'=>'buscar',
+            'puedo'=>'poder','puede'=>'poder','podemos'=>'poder','pueden'=>'poder','podria'=>'poder','podriamos'=>'poder',
             'rompo'=>'romper','rompes'=>'romper','rompe'=>'romper','rompen'=>'romper','roto'=>'romper',
-            'abro'=>'abrir','abres'=>'abrir','abre'=>'abrir','abren'=>'abrir','abierto'=>'abrir',
+            'abro'=>'abrir','abres'=>'abrir','abre'=>'abrir','abren'=>'abrir','abierto'=>'abrir'
         );
         if (isset($irregular[$token])) {
             return $irregular[$token];
@@ -1139,6 +595,7 @@ final class SEO_Dependiente_Interprete {
             'taladrar','perforar','agujerear','lijar','cortar','pulir','soldar','atornillar','fresar',
             'montar','instalar','reparar','arreglar','pintar','inflar','sacar','comprar','usar','cambiar',
             'limpiar','mover','elevar','fijar','aspirar','cepillar','romper','abrir','demoler','extraer',
+            'querer','necesitar','buscar','poder','deber','preferir','encontrar','hacer','tener'
         );
         foreach ($verbs as $verb) {
             if ($token === $verb) {
@@ -1154,7 +611,7 @@ final class SEO_Dependiente_Interprete {
                     $stem.'aba',$stem.'abas',$stem.'abamos',$stem.'abais',$stem.'aban',
                     $verb.'e',$verb.'as',$verb.'a',$verb.'emos',$verb.'eis',$verb.'an',
                     $verb.'ia',$verb.'ias',$verb.'iamos',$verb.'iais',$verb.'ian',
-                    $stem.'ando',$stem.'ado',
+                    $stem.'ando',$stem.'ado'
                 );
             } elseif ('er' === $ending) {
                 $forms = array(
@@ -1163,7 +620,7 @@ final class SEO_Dependiente_Interprete {
                     $stem.'ia',$stem.'ias',$stem.'iamos',$stem.'iais',$stem.'ian',
                     $verb.'e',$verb.'as',$verb.'a',$verb.'emos',$verb.'eis',$verb.'an',
                     $verb.'ia',$verb.'ias',$verb.'iamos',$verb.'iais',$verb.'ian',
-                    $stem.'iendo',$stem.'ido',
+                    $stem.'iendo',$stem.'ido'
                 );
             } elseif ('ir' === $ending) {
                 $forms = array(
@@ -1172,7 +629,7 @@ final class SEO_Dependiente_Interprete {
                     $stem.'ia',$stem.'ias',$stem.'iamos',$stem.'iais',$stem.'ian',
                     $verb.'e',$verb.'as',$verb.'a',$verb.'emos',$verb.'eis',$verb.'an',
                     $verb.'ia',$verb.'ias',$verb.'iamos',$verb.'iais',$verb.'ian',
-                    $stem.'iendo',$stem.'ido',
+                    $stem.'iendo',$stem.'ido'
                 );
             }
             if (in_array($token, $forms, true)) {
@@ -1182,41 +639,22 @@ final class SEO_Dependiente_Interprete {
         return '';
     }
 
-    private static function detect_intent($normalized) {
-        $normalized = self::normalize($normalized);
-        if ('' === $normalized) {
-            return 'unknown';
-        }
-        $grammar = self::grammar_settings();
-        if (empty($grammar['intent_detection']) || empty($grammar['intents']) || !is_array($grammar['intents'])) {
-            return 'find_product';
-        }
-        // Las intenciones más específicas se prueban antes que la búsqueda genérica.
-        $order = array('compare','compatibility','replacement','accessory','solve_problem','find_product');
-        foreach ($order as $intent) {
-            foreach ((array) ($grammar['intents'][$intent] ?? array()) as $phrase) {
-                if (self::contains_phrase($normalized, self::normalize($phrase))) {
-                    return $intent;
-                }
+    private static function dedupe_query($query) {
+        $out = array();
+        $seen = array();
+        foreach (array_values(array_filter(explode(' ', self::normalize($query)))) as $token) {
+            if (isset($seen[$token])) {
+                continue;
             }
+            $seen[$token] = true;
+            $out[] = $token;
         }
-        return 'find_product';
-    }
-
-    private static function rewrite($result, $search_query, $confidence, $rule, $reason, $concepts = array(), $lesson_key = '') {
-        $result['search_query'] = self::clean_query($search_query);
-        $result['changed'] = self::normalize((string) $result['search_query']) !== (string) $result['normalized'];
-        $result['confidence'] = min(1, max(0, (float) $confidence));
-        $result['rule'] = sanitize_key((string) $rule);
-        $result['reason'] = (string) $reason;
-        $result['concepts'] = is_array($concepts) ? $concepts : array();
-        $result['lesson_key'] = sanitize_key((string) $lesson_key);
-        return $result;
+        return implode(' ', $out);
     }
 
     private static function clean_query($value) {
         $value = sanitize_text_field((string) $value);
-        $value = preg_replace('/\s+/u', ' ', trim($value));
+        $value = preg_replace('/\\s+/u', ' ', trim($value));
         if (function_exists('mb_substr')) {
             return mb_substr($value, 0, 1000, 'UTF-8');
         }
@@ -1228,53 +666,8 @@ final class SEO_Dependiente_Interprete {
             return SEO_Dependiente_Index::normalize((string) $value);
         }
         $value = function_exists('remove_accents') ? remove_accents((string) $value) : (string) $value;
-        $value = strtolower($value);
+        $value = function_exists('mb_strtolower') ? mb_strtolower($value, 'UTF-8') : strtolower($value);
         $value = preg_replace('/[^a-z0-9]+/u', ' ', $value);
-        return trim(preg_replace('/\s+/u', ' ', $value));
-    }
-
-    private static function has_any($normalized, $terms) {
-        foreach ((array) $terms as $term) {
-            if (self::contains_phrase($normalized, self::normalize($term))) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static function contains_phrase($haystack, $needle) {
-        $haystack = trim((string) $haystack);
-        $needle = trim((string) $needle);
-        if ('' === $haystack || '' === $needle) {
-            return false;
-        }
-        return false !== strpos(' ' . $haystack . ' ', ' ' . $needle . ' ');
-    }
-
-    private static function plural_search_term($canonical) {
-        $map = array(
-            'rodamiento' => 'rodamientos',
-            'polea'      => 'poleas',
-            'engranaje'  => 'engranajes',
-            'rotula'     => 'rotulas',
-        );
-        return $map[$canonical] ?? $canonical;
-    }
-
-    private static function canonical_context_term($term) {
-        $term = self::normalize($term);
-        $map = array(
-            'rodamiento' => 'rodamientos',
-            'rodamientos' => 'rodamientos',
-            'cojinete' => 'rodamientos',
-            'cojinetes' => 'rodamientos',
-            'polea' => 'poleas',
-            'poleas' => 'poleas',
-            'engranaje' => 'engranajes',
-            'engranajes' => 'engranajes',
-            'rotula' => 'rotulas',
-            'rotulas' => 'rotulas',
-        );
-        return $map[$term] ?? $term;
+        return trim(preg_replace('/\\s+/u', ' ', $value));
     }
 }
