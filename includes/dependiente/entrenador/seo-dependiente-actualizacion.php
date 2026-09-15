@@ -13,7 +13,7 @@ defined('ABSPATH') || exit;
  * workers que ya controla Academia.
  */
 final class SEO_Dependiente_Actualizacion {
-    const VERSION = '1.0.0';
+    const VERSION = '1.0.1';
     const STATE_OPTION = 'seo_dependiente_academy_update_state';
     const HISTORY_OPTION = 'seo_dependiente_academy_update_history';
     const LAST_SUCCESS_OPTION = 'seo_dependiente_academy_update_last_success';
