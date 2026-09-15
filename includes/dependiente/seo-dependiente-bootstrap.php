@@ -18,7 +18,6 @@ require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-help.php';
 require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-amazon.php';
 require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-api.php';
 require_once SEO_DEPENDIENTE_PATH . 'entrenador/seo-dependiente-entrenador.php';
-require_once SEO_DEPENDIENTE_PATH . 'entrenador/seo-dependiente-actualizacion.php';
 require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-training-quality.php';
 
 // Auditor academico: modulo hermano, solo lectura, exclusivo de esta instalacion STAGING.
