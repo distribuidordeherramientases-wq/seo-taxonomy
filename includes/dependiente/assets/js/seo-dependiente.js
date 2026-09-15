@@ -665,7 +665,7 @@
                 '<div class="seo-dependiente__assistant-message">' +
                 '<div class="seo-dependiente__clarification-head"><span>Antes de afinar los productos</span><small>Pregunta ' + step + ' de hasta ' + maxSteps + '</small></div>' +
                 '<strong>' + escapeHtml(clarification.question || '¿Puedes concretar un poco más?') + '</strong>' +
-                '<p>Elige una opción. No hace falta escribir y usaré tu respuesta para filtrar lo que recibe el Dependiente.</p>' +
+                '<p>Elige una opción. Añadiré esa información a la consulta limpia que recibe el Dependiente.</p>' +
                 '<div class="seo-dependiente__clarification-options">' + options +
                 '<button type="button" class="seo-dependiente__clarification-option is-other" data-dependiente-clarify-other><span>Otro</span><small>Escribir solo si ninguna encaja</small></button></div>' +
                 reductionText +
@@ -793,12 +793,9 @@
             clearClarificationTimer();
             sendClarificationFeedback(originalSearchId, option, Boolean(isOther));
 
-            // Las opciones basadas en el catálogo se convierten en filtro fuerte,
-            // pero nunca sustituyen la frase original. Cada respuesta se suma a la
-            // conversación y el Dependiente recibe contexto + confirmaciones.
-            if (filter && filter.slug) {
-                applyCardFilter(filter);
-            }
+            // Una respuesta del Intérprete mejora el lenguaje de la consulta.
+            // No abre categorías ni aplica filtros duros: el Dependiente decide
+            // después cómo resolver esas palabras dentro de su catálogo.
             rememberSemanticHint({
                 role: option.role,
                 value: option.value,
@@ -871,7 +868,7 @@
             const total = Number(data.total || 0);
             let subject = state.q ? 'para “' + escapeHtml(state.q) + '”' : (state.contextLabel ? 'para ' + escapeHtml(state.contextLabel) : 'con los criterios elegidos');
             if (!total) {
-                elements.summary.innerHTML = '<span><strong>No encuentro una coincidencia clara</strong> ' + subject + '.</span>';
+                elements.summary.innerHTML = '<span><strong>Estoy ampliando la búsqueda</strong> ' + subject + '. Puedes añadir un detalle para afinarla.</span>';
                 return;
             }
             const noun = total === 1 ? 'opción' : 'opciones';
@@ -1030,32 +1027,15 @@
                     data && data.clarification && data.clarification.should_ask &&
                     Array.isArray(data.clarification.options) && data.clarification.options.length >= 2
                 );
-                if (hasClarification) {
-                    const helpHtml = elements.help ? '<div class="seo-dependiente__empty-help">' + assistantAvatarHtml('seo-dependiente__assistant-avatar--message') + '<button type="button" class="seo-dependiente__empty-action" data-dependiente-help-open>Pedir ayuda con esta búsqueda</button><small>Enviaremos el recorrido de Dependiente para que no tengas que empezar de cero.</small></div>' : '';
-                    elements.results.innerHTML = '<div class="seo-dependiente__empty is-awaiting-clarification"><strong>Vamos a concretarlo</strong><span>Responde a la pregunta anterior. Mantendré lo que ya has dicho y añadiré tu elección para afinar los productos.</span>' + helpHtml + '</div>';
-                    return;
-                }
-
-                const actions = [];
-                if (activeFilterCount(state.filters) > 0) {
-                    actions.push('<button type="button" class="seo-dependiente__empty-action is-primary" data-dependiente-zero-reset>Quitar filtros y repetir</button>');
-                }
-
-                const alternatives = zeroResultAlternatives(data || {});
-                alternatives.forEach(function (item) {
-                    actions.push('<button type="button" class="seo-dependiente__empty-action" data-dependiente-zero-filter="' + escapeAttr(JSON.stringify(item.filter || {})) + '"' +
-                        ' data-dependiente-zero-label="' + escapeAttr(item.label || '') + '"' +
-                        ' data-dependiente-zero-value="' + escapeAttr(item.value || '') + '"' +
-                        ' data-dependiente-zero-role="' + escapeAttr(item.role || 'object') + '"' +
-                        ' data-dependiente-zero-source="' + escapeAttr(item.source || 'catalog_alternative') + '"' +
-                        ' data-dependiente-zero-group="' + escapeAttr(item.source_group || '') + '"' +
-                        ' data-dependiente-zero-slug="' + escapeAttr(item.source_slug || '') + '"' +
-                        ' data-dependiente-zero-mode="' + escapeAttr(item.mode || 'need') + '">' + escapeHtml(item.text || item.label || 'Explorar') + '</button>');
-                });
-
-                const actionsHtml = actions.length ? '<div class="seo-dependiente__empty-actions"><span>También puedes probar:</span><div>' + actions.join('') + '</div></div>' : '';
                 const helpHtml = elements.help ? '<div class="seo-dependiente__empty-help">' + assistantAvatarHtml('seo-dependiente__assistant-avatar--message') + '<button type="button" class="seo-dependiente__empty-action" data-dependiente-help-open>Pedir ayuda con esta búsqueda</button><small>Enviaremos el recorrido de Dependiente para que no tengas que empezar de cero.</small></div>' : '';
-                elements.results.innerHTML = '<div class="seo-dependiente__empty"><strong>No hay una coincidencia clara</strong><span>' + escapeHtml((config.labels && config.labels.noResults) || 'Prueba con otros términos o elimina un filtro.') + '</span>' + actionsHtml + helpHtml + '</div>';
+
+                // La pregunta es una ayuda adicional, nunca una pantalla de fracaso.
+                // Si todavía no hay tarjetas publicables dejamos espacio a la
+                // aclaración y a las guías/FAQs relacionadas sin decir al cliente
+                // que "no hay coincidencia".
+                elements.results.innerHTML = hasClarification
+                    ? ''
+                    : '<div class="seo-dependiente__empty is-awaiting-clarification"><strong>Vamos a afinar la búsqueda</strong><span>Dependiente está revisando las opciones más relacionadas. Puedes concretar la consulta o usar los filtros si quieres.</span>' + helpHtml + '</div>';
                 return;
             }
             elements.results.innerHTML = results.map(function (product, index) {
@@ -1064,49 +1044,10 @@
         }
 
         function zeroResultAlternatives(data) {
-            // Si el Intérprete ya ha preparado una pregunta con opciones reales del
-            // catálogo, no mostramos una segunda batería genérica de “Explorar…”.
-            // scheduleClarification() insertará esa pregunta encima del estado vacío.
-            if (data && data.clarification && data.clarification.should_ask && Array.isArray(data.clarification.options) && data.clarification.options.length >= 2) {
-                return [];
-            }
-
-            const items = [];
-            const categories = data && data.facets && Array.isArray(data.facets.categories) ? data.facets.categories : [];
-            categories.slice(0, 3).forEach(function (category) {
-                if (!category || !category.slug) return;
-                items.push({
-                    text: 'Buscar dentro de ' + String(category.label || category.slug),
-                    label: String(category.label || category.slug),
-                    value: String(category.slug),
-                    role: 'object',
-                    source: 'catalog_category',
-                    source_group: 'category',
-                    source_slug: String(category.slug),
-                    mode: state.mode || 'need',
-                    filter: { type: 'categories', slug: category.slug }
-                });
-            });
-
-            if (!items.length && state.bootstrap && Array.isArray(state.bootstrap.actions)) {
-                state.bootstrap.actions.slice(0, 3).forEach(function (action) {
-                    if (!action || !action.filter) return;
-                    const filter = action.filter || {};
-                    items.push({
-                        text: 'Añadir ' + String(action.label || 'otra opción'),
-                        label: String(action.label || ''),
-                        value: String(filter.slug || action.slug || ''),
-                        role: filter.type === 'vocabulary' && filter.group === 'aplicacion' ? 'context' : 'object',
-                        source: 'catalog_bootstrap',
-                        source_group: String(filter.group || filter.type || ''),
-                        source_slug: String(filter.slug || ''),
-                        mode: state.mode || 'need',
-                        filter: filter
-                    });
-                });
-            }
-
-            return items;
+            // Ya no convertimos un estado débil en navegación por categorías.
+            // El Dependiente mantiene la búsqueda normal y el Intérprete solo
+            // añade contexto lingüístico mediante sus preguntas.
+            return [];
         }
 
         function renderProductCard(product, position) {
