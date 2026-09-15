@@ -111,7 +111,7 @@
                 // filtro/plataforma Milwaukee a "se me ha roto un grifo". El rol
                 // seleccionado en el buscador se conserva porque forma parte de la
                 // nueva consulta escrita.
-                if (nextQuery && state.modeSource === 'menu') {
+                if (nextQuery && (state.modeSource === 'menu' || state.modeSource === 'refine')) {
                     state.filters = emptyFilters();
                     state.orderby = 'relevance';
                     if (elements.sort) elements.sort.value = 'relevance';
@@ -200,14 +200,7 @@
                     event.preventDefault();
                     let filter = {};
                     try { filter = JSON.parse(alternative.dataset.dependienteZeroFilter || '{}'); } catch (error) { filter = {}; }
-                    state.filters = emptyFilters();
-                    applyCardFilter(filter);
-                    state.q = '';
-                    state.contextLabel = alternative.dataset.dependienteZeroLabel || '';
-                    elements.query.value = '';
-                    state.page = 1;
-                    setMode(alternative.dataset.dependienteZeroMode || 'need', 'menu');
-                    search(true);
+                    confirmCatalogAlternative(alternative, filter);
                     return;
                 }
 
@@ -721,6 +714,78 @@
             }, {}, true);
         }
 
+        function rememberSemanticHint(hint) {
+            if (!hint || !hint.value) return;
+            const cleanHint = {
+                role: hint.role || 'term',
+                value: hint.value || '',
+                label: hint.label || hint.value || '',
+                source: hint.source || 'clarification',
+                source_group: hint.source_group || '',
+                source_slug: hint.source_slug || ''
+            };
+            state.semanticHint = cleanHint;
+            const key = [cleanHint.role || '', cleanHint.value || '', cleanHint.source_group || ''].join('|');
+            state.semanticHints = (Array.isArray(state.semanticHints) ? state.semanticHints : []).filter(function (known) {
+                return [known.role || '', known.value || '', known.source_group || ''].join('|') !== key;
+            });
+            state.semanticHints.push(cleanHint);
+            // La conversación está limitada a dos aclaraciones. Conservamos ambas
+            // confirmaciones para que la segunda nunca borre la primera.
+            state.semanticHints = state.semanticHints.slice(-2);
+        }
+
+        function confirmCatalogAlternative(button, filter) {
+            const originalSearchId = state.searchId;
+            const label = button.dataset.dependienteZeroLabel || button.textContent || '';
+            const value = button.dataset.dependienteZeroValue || (filter && filter.slug) || '';
+            const role = button.dataset.dependienteZeroRole || 'object';
+            const sourceGroup = button.dataset.dependienteZeroGroup || (filter && filter.group) || ((filter && filter.type === 'categories') ? 'category' : (filter && filter.type) || '');
+            const sourceSlug = button.dataset.dependienteZeroSlug || (filter && filter.slug) || '';
+
+            state.hasResultInteraction = true;
+            clearClarificationTimer();
+
+            // Una alternativa sugerida por el catálogo es una precisión de la
+            // conversación, no una búsqueda nueva. Conservamos q, filtros previos y
+            // respuestas confirmadas; solo añadimos/reemplazamos el eje elegido.
+            if (filter && filter.slug) {
+                applyCardFilter(filter);
+            }
+            if (value) {
+                rememberSemanticHint({
+                    role: role,
+                    value: value,
+                    label: label,
+                    source: button.dataset.dependienteZeroSource || 'catalog_alternative',
+                    source_group: sourceGroup,
+                    source_slug: sourceSlug
+                });
+            }
+            if (label) {
+                state.contextLabel = state.contextLabel ? state.contextLabel + ' · ' + label : label;
+            }
+            state.page = 1;
+            setMode(button.dataset.dependienteZeroMode || state.mode || 'need', 'refine');
+
+            if (originalSearchId && value) {
+                sendFeedbackEvent({
+                    search_id: originalSearchId,
+                    event: 'clarify',
+                    role: role,
+                    choice_value: value,
+                    label: label,
+                    source: button.dataset.dependienteZeroSource || 'catalog_alternative',
+                    source_group: sourceGroup,
+                    source_slug: sourceSlug,
+                    clarification_step: Math.min(2, Math.max(1, state.semanticHints.length)),
+                    clarification_axis: sourceGroup,
+                    is_other: 0
+                });
+            }
+            search(false);
+        }
+
         function confirmClarification(option, filter, isOther) {
             const originalSearchId = state.searchId;
             if (!originalSearchId) return;
@@ -728,27 +793,21 @@
             clearClarificationTimer();
             sendClarificationFeedback(originalSearchId, option, Boolean(isOther));
 
-            // Las opciones basadas en el vocabulario real pueden convertirse
-            // directamente en un filtro del catalogo. La intencion confirmada se
-            // envia como pista semantica sin modificar el texto que escribio el cliente.
+            // Las opciones basadas en el catálogo se convierten en filtro fuerte,
+            // pero nunca sustituyen la frase original. Cada respuesta se suma a la
+            // conversación y el Dependiente recibe contexto + confirmaciones.
             if (filter && filter.slug) {
                 applyCardFilter(filter);
             }
-            const hint = {
+            rememberSemanticHint({
                 role: option.role,
                 value: option.value,
                 label: option.label,
                 source: option.source,
                 source_group: option.source_group || '',
                 source_slug: option.source_slug || ''
-            };
-            state.semanticHint = hint;
-            const key = [hint.role || '', hint.value || '', hint.source_group || ''].join('|');
-            state.semanticHints = (Array.isArray(state.semanticHints) ? state.semanticHints : []).filter(function (known) {
-                return [known.role || '', known.value || '', known.source_group || ''].join('|') !== key;
             });
-            state.semanticHints.push(hint);
-            state.semanticHints = state.semanticHints.slice(-2);
+            setMode(state.mode || 'need', 'refine');
             state.page = 1;
             removeClarification();
             search(false);
@@ -974,7 +1033,14 @@
 
                 const alternatives = zeroResultAlternatives(data || {});
                 alternatives.forEach(function (item) {
-                    actions.push('<button type="button" class="seo-dependiente__empty-action" data-dependiente-zero-filter="' + escapeAttr(JSON.stringify(item.filter || {})) + '" data-dependiente-zero-label="' + escapeAttr(item.label || '') + '" data-dependiente-zero-mode="' + escapeAttr(item.mode || 'need') + '">' + escapeHtml(item.text || item.label || 'Explorar') + '</button>');
+                    actions.push('<button type="button" class="seo-dependiente__empty-action" data-dependiente-zero-filter="' + escapeAttr(JSON.stringify(item.filter || {})) + '"' +
+                        ' data-dependiente-zero-label="' + escapeAttr(item.label || '') + '"' +
+                        ' data-dependiente-zero-value="' + escapeAttr(item.value || '') + '"' +
+                        ' data-dependiente-zero-role="' + escapeAttr(item.role || 'object') + '"' +
+                        ' data-dependiente-zero-source="' + escapeAttr(item.source || 'catalog_alternative') + '"' +
+                        ' data-dependiente-zero-group="' + escapeAttr(item.source_group || '') + '"' +
+                        ' data-dependiente-zero-slug="' + escapeAttr(item.source_slug || '') + '"' +
+                        ' data-dependiente-zero-mode="' + escapeAttr(item.mode || 'need') + '">' + escapeHtml(item.text || item.label || 'Explorar') + '</button>');
                 });
 
                 const actionsHtml = actions.length ? '<div class="seo-dependiente__empty-actions"><span>También puedes probar:</span><div>' + actions.join('') + '</div></div>' : '';
@@ -988,14 +1054,26 @@
         }
 
         function zeroResultAlternatives(data) {
+            // Si el Intérprete ya ha preparado una pregunta con opciones reales del
+            // catálogo, no mostramos una segunda batería genérica de “Explorar…”.
+            // scheduleClarification() insertará esa pregunta encima del estado vacío.
+            if (data && data.clarification && data.clarification.should_ask && Array.isArray(data.clarification.options) && data.clarification.options.length >= 2) {
+                return [];
+            }
+
             const items = [];
             const categories = data && data.facets && Array.isArray(data.facets.categories) ? data.facets.categories : [];
             categories.slice(0, 3).forEach(function (category) {
                 if (!category || !category.slug) return;
                 items.push({
-                    text: 'Explorar ' + String(category.label || category.slug),
+                    text: 'Buscar dentro de ' + String(category.label || category.slug),
                     label: String(category.label || category.slug),
-                    mode: 'need',
+                    value: String(category.slug),
+                    role: 'object',
+                    source: 'catalog_category',
+                    source_group: 'category',
+                    source_slug: String(category.slug),
+                    mode: state.mode || 'need',
                     filter: { type: 'categories', slug: category.slug }
                 });
             });
@@ -1003,11 +1081,17 @@
             if (!items.length && state.bootstrap && Array.isArray(state.bootstrap.actions)) {
                 state.bootstrap.actions.slice(0, 3).forEach(function (action) {
                     if (!action || !action.filter) return;
+                    const filter = action.filter || {};
                     items.push({
-                        text: 'Explorar ' + String(action.label || 'otra tarea'),
+                        text: 'Añadir ' + String(action.label || 'otra opción'),
                         label: String(action.label || ''),
-                        mode: 'need',
-                        filter: action.filter
+                        value: String(filter.slug || action.slug || ''),
+                        role: filter.type === 'vocabulary' && filter.group === 'aplicacion' ? 'context' : 'object',
+                        source: 'catalog_bootstrap',
+                        source_group: String(filter.group || filter.type || ''),
+                        source_slug: String(filter.slug || ''),
+                        mode: state.mode || 'need',
+                        filter: filter
                     });
                 });
             }
