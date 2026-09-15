@@ -149,28 +149,10 @@ final class SEO_Dependiente_API {
 
         // El diálogo del Intérprete puede aportar hasta dos confirmaciones. Se
         // conservan acumuladas para que la segunda respuesta no borre la primera.
-        $semantic_hints = self::sanitize_semantic_hints($params['semantic_hints'] ?? array());
-        $legacy_hint = self::sanitize_semantic_hint($params['semantic_hint'] ?? array());
-        if ($legacy_hint) {
-            $duplicate = false;
-            foreach ($semantic_hints as $known_hint) {
-                if (($known_hint['role'] ?? '') === ($legacy_hint['role'] ?? '')
-                    && ($known_hint['value'] ?? '') === ($legacy_hint['value'] ?? '')
-                    && ($known_hint['source_group'] ?? '') === ($legacy_hint['source_group'] ?? '')) {
-                    $duplicate = true;
-                    break;
-                }
-            }
-            if (!$duplicate) {
-                $semantic_hints[] = $legacy_hint;
-            }
-        }
-        $semantic_hints = array_slice($semantic_hints, 0, 2);
-        $semantic_hint = $semantic_hints ? $semantic_hints[count($semantic_hints) - 1] : array();
+        $semantic_hints = array();
+        $semantic_hint = array();
 
-        // Intérprete: limpia y orienta lenguaje natural. El Dependiente recibe
-        // después una consulta canónica y, si hubo diálogo, las confirmaciones
-        // elegidas por el cliente.
+        // V2 is strictly serial: client -> interpreter -> one canonical query -> Dependiente.
         $interpreter = class_exists('SEO_Dependiente_Interprete')
             ? SEO_Dependiente_Interprete::interpret($raw_query)
             : array();
@@ -188,10 +170,7 @@ final class SEO_Dependiente_API {
             $query = substr($query, 0, 180);
             $raw_search_query = substr($raw_query, 0, 180);
         }
-        // Modo de asistencia protegida: el Intérprete propone una consulta limpia,
-        // pero nunca sustituye la capacidad de recuperación del Dependiente. Ambas
-        // rutas se conservan y se fusionan; la original actúa como red de seguridad.
-        $interpreter_assist = SEO_Dependiente_Index::normalize($query) !== SEO_Dependiente_Index::normalize($raw_search_query);
+        // V2 keeps raw_search_query only for diagnostics. Search execution uses only $query.
         $mode = isset($params['mode']) ? sanitize_key((string) $params['mode']) : 'need';
         if (!in_array($mode, array('need', 'product', 'tool', 'compare'), true)) {
             $mode = 'need';
@@ -252,17 +231,8 @@ final class SEO_Dependiente_API {
             if (method_exists('SEO_Dependiente_Semantics', 'ensure_ready')) {
                 $semantic_rules_active = SEO_Dependiente_Semantics::ensure_ready();
             }
-            // La confirmacion no cambia la frase original del cliente. Se usa
-            // unicamente como contexto adicional para reinterpretar y refinar.
-            // refine_search_query() ya incorpora las confirmaciones al texto
-            // canónico entregado al motor. No las duplicamos al analizar semántica.
             $analysis_query = $query;
             $semantic = SEO_Dependiente_Semantics::analyze($analysis_query);
-            if ($semantic_hints) {
-                $semantic['normalized'] = SEO_Dependiente_Semantics::normalize($query);
-                $semantic['confirmed_hint'] = $semantic_hint;
-                $semantic['confirmed_hints'] = $semantic_hints;
-            }
         } else {
             $semantic = array();
         }
@@ -272,22 +242,14 @@ final class SEO_Dependiente_API {
         $tokens = !empty($semantic['groups']) && class_exists('SEO_Dependiente_Semantics')
             ? SEO_Dependiente_Semantics::group_variants($semantic)
             : self::query_token_groups($query);
-        $raw_tokens = self::query_token_groups($raw_search_query);
 
         $primary_diagnostic = array();
-        $primary_rows_interpreted = self::primary_candidate_rows($query, $semantic, $primary_diagnostic);
-        $primary_raw_diagnostic = array();
-        $primary_rows_raw = $interpreter_assist
-            ? self::primary_candidate_rows($raw_search_query, array(), $primary_raw_diagnostic)
-            : array();
-        $primary_rows = self::merge_candidate_rows($primary_rows_raw, $primary_rows_interpreted);
+        $primary_rows = self::primary_candidate_rows($query, $semantic, $primary_diagnostic);
         $primary_documents = array();
-        $primary_matched = self::score_candidate_rows_guarded(
+        $primary_matched = self::score_candidate_rows(
             $primary_rows,
             $query,
             $tokens,
-            $raw_search_query,
-            $raw_tokens,
             $filters,
             $mode,
             $semantic,
@@ -338,12 +300,9 @@ final class SEO_Dependiente_API {
         $search_diagnostic['extended_reasons'] = array_values(array_unique($extended_reasons));
         $search_diagnostic['semantic_catalog_route'] = $has_catalog_semantic_route ? 1 : 0;
         $search_diagnostic['semantic_rules_active'] = (int) $semantic_rules_active;
-        $search_diagnostic['interpreter_assist_mode'] = $interpreter_assist ? 'guarded_dual_query' : 'same_query';
+        $search_diagnostic['interpreter_assist_mode'] = 'serial_v2';
         $search_diagnostic['raw_query'] = sanitize_text_field((string) $raw_search_query);
         $search_diagnostic['interpreted_query'] = sanitize_text_field((string) $query);
-        if ($interpreter_assist && $primary_raw_diagnostic) {
-            $search_diagnostic['raw_primary_rows'] = absint($primary_raw_diagnostic['primary_rows'] ?? 0);
-        }
         if ($interpreter) {
             $search_diagnostic['interpreter_version'] = sanitize_text_field((string) ($interpreter['version'] ?? ''));
             $search_diagnostic['interpreter_changed'] = !empty($interpreter['changed']) ? 1 : 0;
@@ -351,6 +310,7 @@ final class SEO_Dependiente_API {
             $search_diagnostic['interpreter_lesson'] = sanitize_key((string) ($interpreter['lesson_key'] ?? ''));
             $search_diagnostic['interpreter_query'] = sanitize_text_field((string) ($interpreter['search_query'] ?? ''));
             $search_diagnostic['interpreter_confidence'] = (float) ($interpreter['confidence'] ?? 0);
+            $search_diagnostic['interpreter_transformations'] = array_values(array_slice(array_map('sanitize_text_field', (array) ($interpreter['transformations'] ?? array())), 0, 20));
         }
         if ($semantic_hints) {
             $search_diagnostic['semantic_hint'] = $semantic_hint;
@@ -360,19 +320,8 @@ final class SEO_Dependiente_API {
 
         if ($run_extended) {
             $extended_diagnostic = array();
-            $extended_rows_interpreted = self::candidate_rows($query, $semantic, $extended_diagnostic);
-            $extended_raw_diagnostic = array();
-            $extended_rows_raw = $interpreter_assist
-                ? self::candidate_rows($raw_search_query, array(), $extended_raw_diagnostic)
-                : array();
-            $candidate_rows = self::merge_candidate_rows(
-                $primary_rows,
-                self::merge_candidate_rows($extended_rows_raw, $extended_rows_interpreted)
-            );
-            if ($interpreter_assist && $extended_raw_diagnostic) {
-                $search_diagnostic['raw_extended_strategy'] = sanitize_key((string) ($extended_raw_diagnostic['strategy'] ?? ''));
-                $search_diagnostic['raw_broad_fallback_rows'] = absint($extended_raw_diagnostic['broad_fallback_rows'] ?? 0);
-            }
+            $extended_rows = self::candidate_rows($query, $semantic, $extended_diagnostic);
+            $candidate_rows = self::merge_candidate_rows($primary_rows, $extended_rows);
             $search_diagnostic = array_merge($search_diagnostic, $extended_diagnostic);
             $search_diagnostic['primary_product_count'] = count($primary_matched);
             $search_diagnostic['direct_knowledge_count'] = count($direct_related);
@@ -384,12 +333,10 @@ final class SEO_Dependiente_API {
         }
 
         $documents = array();
-        $matched = self::score_candidate_rows_guarded(
+        $matched = self::score_candidate_rows(
             $candidate_rows,
             $query,
             $tokens,
-            $raw_search_query,
-            $raw_tokens,
             $filters,
             $mode,
             $semantic,
@@ -419,7 +366,7 @@ final class SEO_Dependiente_API {
         // v0.2.12: contenido editorial y FAQ son ramas paralelas. Una FAQ solo
         // hereda de su owner producto/categoria y nunca compite semanticamente con
         // posts o paginas. Se conservan dos carriles independientes en la respuesta.
-        $faq_related_internal = self::faq_content_search($raw_query, 18, $matched ? $matched : $documents, true, $explicit_faq_owner);
+        $faq_related_internal = self::faq_content_search($query, 18, $matched ? $matched : $documents, true, $explicit_faq_owner);
         $faq_related = self::rank_related_items($faq_related_internal, 12, true);
 
         $editorial_direct = self::rank_related_items($direct_related, 18, true);
@@ -1109,71 +1056,6 @@ final class SEO_Dependiente_API {
             $document['_reasons'] = $score['reasons'];
             $document['_object_hits'] = absint($score['object_hits'] ?? 0);
             $document['_route_hits'] = absint($score['route_hits'] ?? 0);
-            $matched[] = $document;
-        }
-        return $matched;
-    }
-
-
-    /**
-     * El Intérprete actúa como asistente, nunca como sustituto. Se puntúa la
-     * consulta original y la consulta limpia sobre los mismos candidatos. Si la
-     * original ya reconoce el producto, conserva el control y la interpretación
-     * solo puede aportar un bonus pequeño; si la original no reconoce nada pero
-     * la limpia sí, entonces la interpretación puede rescatar el producto.
-     */
-    private static function score_candidate_rows_guarded($rows, $query, $tokens, $raw_query, $raw_tokens, $filters, $mode, $semantic, &$documents = array()) {
-        $documents = array_map(array('SEO_Dependiente_Index', 'decode_row'), (array) $rows);
-        $matched = array();
-        $same_query = SEO_Dependiente_Index::normalize((string) $query) === SEO_Dependiente_Index::normalize((string) $raw_query);
-
-        foreach ($documents as $document) {
-            if (!self::matches_filters($document, $filters)) {
-                continue;
-            }
-
-            $interpreted = self::score_document($document, $query, $tokens, $filters, $mode, $semantic);
-            $chosen = $interpreted;
-            $source = 'interpreted';
-
-            if (!$same_query) {
-                // Baseline deliberadamente sin rutas semánticas del Intérprete.
-                $raw = self::score_document($document, $raw_query, $raw_tokens, $filters, $mode, array());
-                $raw_coverage = absint($raw['coverage'] ?? 0);
-                $interpreted_coverage = absint($interpreted['coverage'] ?? 0);
-
-                if ($raw_coverage > 0) {
-                    $chosen = $raw;
-                    $source = 'raw';
-                    if ($interpreted_coverage > 0 && (float) ($interpreted['score'] ?? 0) > (float) ($raw['score'] ?? 0)) {
-                        $assist_bonus = min(30.0, (float) $interpreted['score'] - (float) $raw['score']);
-                        $chosen['score'] = (float) $raw['score'] + max(0.0, $assist_bonus);
-                        $chosen['reasons'] = array_slice(array_values(array_unique(array_merge(
-                            (array) ($raw['reasons'] ?? array()),
-                            (array) ($interpreted['reasons'] ?? array())
-                        ))), 0, 4);
-                        $source = 'raw+interpreter';
-                    }
-                } elseif ($interpreted_coverage > 0) {
-                    $chosen = $interpreted;
-                    $source = 'interpreter_rescue';
-                } else {
-                    // Ninguna de las dos consultas tiene cobertura léxica real.
-                    // Conservamos el mejor score solo para rutas semánticas ya
-                    // conocidas por el Dependiente, sin inventar una tercera vía.
-                    $chosen = ((float) ($interpreted['score'] ?? 0) > (float) ($raw['score'] ?? 0)) ? $interpreted : $raw;
-                    $source = 'semantic_only';
-                }
-            }
-
-            if (isset($chosen['eligible']) && !$chosen['eligible']) {
-                continue;
-            }
-            $document['_score'] = (float) ($chosen['score'] ?? 0);
-            $document['_reasons'] = (array) ($chosen['reasons'] ?? array());
-            $document['_object_hits'] = absint($chosen['object_hits'] ?? 0);
-            $document['_route_hits'] = absint($chosen['route_hits'] ?? 0);
-            $document['_query_source'] = $source;
             $matched[] = $document;
         }
         return $matched;
