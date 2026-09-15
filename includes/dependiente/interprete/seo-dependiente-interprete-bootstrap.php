@@ -7,11 +7,12 @@ if (!class_exists('SEO_Dependiente_Interprete_DB') && is_readable($seo_dependien
     require_once $seo_dependiente_interprete_db_file;
 }
 
-// Intérprete runtime desactivado temporalmente. Conservamos DB y Lingüista.
-// En STAGING podemos cargar la clase en modo sombra para mostrar un log de
-// diagnostico. El resultado de interpret() NO modifica la consulta que usa
-// Dependiente.
-if (defined('SEO_DEPENDIENTE_INTERPRETER_LOG') && SEO_DEPENDIENTE_INTERPRETER_LOG) {
+// Intérprete runtime: puente lingüístico. Se carga para diagnóstico y/o para
+// enriquecer la consulta que después resolverá exclusivamente Dependiente.
+$seo_dependiente_interpreter_runtime =
+    (defined('SEO_DEPENDIENTE_INTERPRETER_LOG') && SEO_DEPENDIENTE_INTERPRETER_LOG)
+    || (defined('SEO_DEPENDIENTE_INTERPRETER_ASSIST') && SEO_DEPENDIENTE_INTERPRETER_ASSIST);
+if ($seo_dependiente_interpreter_runtime) {
     $seo_dependiente_interprete_file = __DIR__ . '/seo-dependiente-interprete.php';
     if (!class_exists('SEO_Dependiente_Interprete') && is_readable($seo_dependiente_interprete_file)) {
         require_once $seo_dependiente_interprete_file;

@@ -4,9 +4,12 @@
  */
 defined('ABSPATH') || exit;
 
-define('SEO_DEPENDIENTE_VERSION', '0.2.33');
+define('SEO_DEPENDIENTE_VERSION', '0.2.34');
 if (!defined('SEO_DEPENDIENTE_INTERPRETER_LOG')) {
-    define('SEO_DEPENDIENTE_INTERPRETER_LOG', true); // STAGING: solo diagnostico, no altera la busqueda.
+    define('SEO_DEPENDIENTE_INTERPRETER_LOG', true); // STAGING: muestra diagnostico.
+}
+if (!defined('SEO_DEPENDIENTE_INTERPRETER_ASSIST')) {
+    define('SEO_DEPENDIENTE_INTERPRETER_ASSIST', true); // STAGING: el puente linguistico enriquece la consulta.
 }
 define('SEO_DEPENDIENTE_DB_VERSION', '0.4.0');
 define('SEO_DEPENDIENTE_PATH', __DIR__ . '/');

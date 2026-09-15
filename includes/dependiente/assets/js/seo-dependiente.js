@@ -925,15 +925,46 @@
             if (!debug || !debug.enabled) return '';
             const removed = Array.isArray(debug.removed_tokens) ? debug.removed_tokens.filter(Boolean) : [];
             const transformations = Array.isArray(debug.transformations) ? debug.transformations.filter(Boolean) : [];
+            const assist = Array.isArray(debug.assist_terms) ? debug.assist_terms.filter(Boolean) : [];
+            const structured = debug.structured && typeof debug.structured === 'object' ? debug.structured : {};
+            const actions = Array.isArray(structured.actions) ? structured.actions : [];
+            const related = Array.isArray(structured.related_concepts) ? structured.related_concepts : [];
+            const context = Array.isArray(structured.context) ? structured.context.filter(Boolean) : [];
+            const groups = structured.semantic_groups && typeof structured.semantic_groups === 'object' ? structured.semantic_groups : {};
             const confidence = Math.round(Number(debug.confidence || 0) * 100);
+
+            const actionText = actions.length ? actions.map(function (item) {
+                const canonical = item && item.canonical_action ? String(item.canonical_action) : '';
+                const relatedTerm = item && item.related_concept ? String(item.related_concept) : '';
+                const surface = item && item.surface ? String(item.surface) : '';
+                let text = surface || canonical;
+                if (canonical && canonical !== surface) text += ' → ' + canonical;
+                if (relatedTerm) text += ' → concepto ' + relatedTerm;
+                return text;
+            }).filter(Boolean).join(' | ') : '—';
+
+            const semanticLines = ['rol','tipo','aplicacion','plataforma','subtipo','category','tag'].map(function (group) {
+                const items = Array.isArray(groups[group]) ? groups[group] : [];
+                if (!items.length) return '';
+                const label = group === 'category' ? 'categoría' : (group === 'tag' ? 'etiqueta' : group);
+                const values = items.map(function (item) { return item && (item.target || item.term) ? String(item.target || item.term) : ''; }).filter(Boolean);
+                return '<div><b>' + escapeHtml(label.toUpperCase()) + ':</b> ' + escapeHtml(values.join(' · ')) + '</div>';
+            }).filter(Boolean).join('');
+
+            const relatedText = related.length ? related.map(function (item) { return item && item.term ? String(item.term) : ''; }).filter(Boolean).join(' · ') : '—';
             return '<div class="seo-dependiente__interpreter-log" style="margin:14px 0;padding:12px;border:1px dashed #9aa59d;border-radius:10px;background:#f8faf8;font-size:12px;line-height:1.45;overflow-wrap:anywhere">' +
                 '<strong style="display:block;margin-bottom:7px">LOG INTÉRPRETE · STAGING</strong>' +
                 '<div><b>Cliente:</b> ' + escapeHtml(String(debug.raw_query || '—')) + '</div>' +
-                '<div><b>Intérprete filtra:</b> ' + escapeHtml(String(debug.filtered_query || '—')) + '</div>' +
+                '<div><b>Texto filtrado:</b> ' + escapeHtml(String(debug.filtered_query || '—')) + '</div>' +
+                '<div><b>Acción:</b> ' + escapeHtml(actionText) + '</div>' +
+                semanticLines +
+                '<div><b>Conceptos relacionados:</b> ' + escapeHtml(relatedText) + '</div>' +
+                '<div><b>Contexto sin clasificar:</b> ' + escapeHtml(context.length ? context.join(' · ') : '—') + '</div>' +
+                '<div><b>Señales añadidas:</b> ' + escapeHtml(assist.length ? assist.join(' · ') : '—') + '</div>' +
                 '<div><b>Dependiente recibe:</b> ' + escapeHtml(String(debug.dependiente_query || '—')) + '</div>' +
                 '<div><b>Ruido quitado:</b> ' + escapeHtml(removed.length ? removed.join(' · ') : '—') + '</div>' +
                 '<div><b>Transformaciones:</b> ' + escapeHtml(transformations.length ? transformations.join(' | ') : '—') + '</div>' +
-                '<div><b>Confianza:</b> ' + escapeHtml(String(confidence)) + '% · <b>Modo:</b> sombra (no influye)</div>' +
+                '<div><b>Confianza:</b> ' + escapeHtml(String(confidence)) + '% · <b>Modo:</b> asistencia lingüística activa</div>' +
                 '</div>';
         }
 

@@ -10,16 +10,16 @@ defined('ABSPATH') || exit;
  * - normaliza texto y corrige erratas conservadoras;
  * - elimina articulos, pronombres, preposiciones seguras y ruido funcional;
  * - lleva formas verbales conocidas a infinitivo;
- * - entrega UNA unica consulta filtrada al Dependiente;
- * - no usa sinonimos semanticos, no consulta catalogo, no elige categorias,
- *   no busca productos y no pregunta nada al cliente.
+ * - entrega una consulta filtrada y enriquecida linguisticamente al Dependiente;
+ * - usa la memoria validada de Linguista para identificar accion y vocabulario
+ *   canonico (TIPO/ROL/APLICACION/PLATAFORMA/SUBTIPO/categoria/etiqueta);
+ * - no consulta productos, no selecciona catalogo, no aplica filtros y no pregunta.
  *
- * La memoria de Linguista se conserva intacta. En este modo solo se aprovechan
- * recursos puramente linguisticos (morfologia/ortografia), nunca relaciones
- * semanticas o comerciales.
+ * La memoria de Linguista se usa como diccionario de traduccion entre el lenguaje
+ * del cliente y el idioma semantico que ya conoce Dependiente.
  */
 final class SEO_Dependiente_Interprete {
-    const VERSION = '1.1.1';
+    const VERSION = '1.2.0';
 
     private static $morphology = null;
 
@@ -39,12 +39,15 @@ final class SEO_Dependiente_Interprete {
             'search_query'    => $normalized,
             'changed'         => false,
             'confidence'      => 1.0,
-            'rule'            => 'interpreter_minimal_filter',
-            'reason'          => 'Filtro linguistico minimo: limpiar ruido, corregir erratas y lematizar verbos.',
+            'rule'            => 'interpreter_linguistic_bridge',
+            'reason'          => 'Filtro linguistico + traduccion al vocabulario semantico aprendido por Linguista.',
             'concepts'        => array(),
             'lesson_key'      => '',
-            'intent'          => 'filter_text',
+            'intent'          => 'linguistic_bridge',
             'language'        => array(),
+            'structured'      => array(),
+            'assist_terms'    => array(),
+            'dependiente_query' => $normalized,
             'transformations' => array(),
             'lexicon_matches' => array(),
         );
@@ -59,7 +62,7 @@ final class SEO_Dependiente_Interprete {
         // 1. Ortografia: solo correcciones conservadoras contra lenguaje ya conocido.
         $corrected = self::correct_typos($normalized, $trace);
 
-        // 2. Filtro linguistico base: ruido seguro + infinitivo. Nada de semantica.
+        // 2. Filtro linguistico base: ruido seguro + infinitivo.
         $language = self::analyze_language($corrected);
         $working = self::dedupe_query((string) ($language['semantic_query'] ?? $corrected));
 
@@ -68,10 +71,22 @@ final class SEO_Dependiente_Interprete {
             $working = $corrected ?: $normalized;
         }
 
+        // 3. Traduccion al idioma de Dependiente. Solo consulta la memoria
+        // linguistica ya aprendida; no toca productos ni facetas del catalogo.
+        $structured = self::classify_with_linguista($corrected, $working);
+        $assist_terms = isset($structured['assist_terms']) && is_array($structured['assist_terms'])
+            ? $structured['assist_terms']
+            : array();
+        $dependiente_query = self::dedupe_query(trim($working . ' ' . implode(' ', $assist_terms)));
+
         $language['typo_corrected'] = self::normalize($corrected) !== $normalized;
         $result['search_query'] = self::clean_query($working);
+        $result['dependiente_query'] = self::clean_query($dependiente_query ?: $working);
         $result['changed'] = self::normalize($result['search_query']) !== $normalized;
         $result['language'] = $language;
+        $result['structured'] = $structured;
+        $result['assist_terms'] = $assist_terms;
+        $result['lexicon_matches'] = isset($structured['matches']) ? $structured['matches'] : array();
         $result['transformations'] = array_values(array_unique($trace));
 
         if (!empty($language['removed_tokens'])) {
@@ -90,6 +105,10 @@ final class SEO_Dependiente_Interprete {
      */
     public static function refine_search_query($interpretation, $confirmed_hints = array()) {
         $interpretation = is_array($interpretation) ? $interpretation : array();
+        $query = self::clean_query((string) ($interpretation['dependiente_query'] ?? ''));
+        if ('' !== $query) {
+            return $query;
+        }
         $query = self::clean_query((string) ($interpretation['search_query'] ?? ''));
         if ('' !== $query) {
             return $query;
@@ -137,8 +156,8 @@ final class SEO_Dependiente_Interprete {
             <div class="notice notice-error is-dismissible"><p><?php echo esc_html(rawurldecode(sanitize_text_field(wp_unslash($_GET['linguista_error'])))); ?></p></div>
         <?php endif; ?>
         <div class="postbox seo-dependiente-admin__box" style="margin-top:16px; padding:18px;">
-            <h2 style="margin-top:0;">Intérprete · filtro lingüístico <small>v<?php echo esc_html(self::VERSION); ?></small></h2>
-            <p><strong>Objetivo:</strong> limpiar el texto del cliente antes de entregarlo al Dependiente, sin consultar ni decidir nada del catálogo.</p>
+            <h2 style="margin-top:0;">Intérprete · puente lingüístico <small>v<?php echo esc_html(self::VERSION); ?></small></h2>
+            <p><strong>Objetivo:</strong> limpiar el texto, identificar su función lingüística y traducirlo al vocabulario semántico que entiende Dependiente, sin buscar productos ni decidir catálogo.</p>
             <p>
                 Memoria lingüística: <strong><?php echo !empty($stats['ready']) ? 'lista' : 'no disponible'; ?></strong>
                 · expresiones activas: <strong><?php echo esc_html(number_format_i18n((int) ($stats['active'] ?? 0))); ?></strong>
@@ -159,7 +178,8 @@ final class SEO_Dependiente_Interprete {
             <?php if ($test) : ?>
                 <hr>
                 <p><strong>Original:</strong> <?php echo esc_html((string) $test['original']); ?></p>
-                <p><strong>Búsqueda resultante:</strong> <code><?php echo esc_html((string) $test['search_query']); ?></code></p>
+                <p><strong>Texto filtrado:</strong> <code><?php echo esc_html((string) $test['search_query']); ?></code></p>
+                <p><strong>Dependiente recibe:</strong> <code><?php echo esc_html((string) ($test['dependiente_query'] ?? $test['search_query'])); ?></code></p>
                 <p><strong>Cambio:</strong> <?php echo !empty($test['changed']) ? 'Sí' : 'No'; ?> · <strong>Confianza:</strong> <?php echo esc_html(number_format_i18n(((float) $test['confidence']) * 100, 0)); ?>%</p>
                 <?php if (!empty($test['lesson_key'])) : ?>
                     <p><strong>Lección:</strong> <code><?php echo esc_html((string) $test['lesson_key']); ?></code></p>
@@ -281,7 +301,7 @@ final class SEO_Dependiente_Interprete {
                 <p class="description" style="margin-top:14px;"><strong>Informes:</strong> al completar cada lección queda disponible su JSON con métricas y fotografía de memoria antes/después. Al terminar L8 aparece además el JSON de evolución completa L1 → L8.</p>
                 <p class="description"><strong>Worker:</strong> Lingüista solo empieza cuando lo arrancas aquí. Después el gestor le concede ventanas de trabajo y procesa lotes pequeños/adaptativos; nunca lanza toda una lección de golpe.</p>
             <?php endif; ?>
-            <p class="description"><strong>Modo mínimo:</strong> elimina ruido, corrige erratas conservadoras y lleva verbos a infinitivo. No usa sinónimos, no pregunta, no mira catálogo y no decide productos ni categorías.</p>
+            <p class="description"><strong>Contrato:</strong> filtra lenguaje y usa solo memoria lingüística validada para identificar acción y vocabulario canónico. No busca productos, no consulta facetas, no aplica filtros y no pregunta al cliente.</p>
         </div>
         <?php
     }
@@ -341,6 +361,11 @@ final class SEO_Dependiente_Interprete {
                 if ($token === $expr || strlen($token) < 5) {
                     continue;
                 }
+                // Si el token ya existe literalmente en la memoria, es una palabra
+                // conocida y queda protegida frente al corrector.
+                if (self::known_lexicon_expression($token)) {
+                    continue;
+                }
                 // Una forma verbal reconocible no es una errata. Evita, por
                 // ejemplo, corregir "taladrado" a "taladro".
                 if (self::known_verb_form($token)) {
@@ -352,6 +377,12 @@ final class SEO_Dependiente_Interprete {
                     continue;
                 }
 
+                // Nunca corregimos una sustitucion simple entre dos palabras de
+                // igual longitud (pared -> pares). Solo permitimos transposicion
+                // adyacente o insercion/eliminacion conservadora.
+                if (strlen($token) === strlen($expr) && !self::is_adjacent_transposition($token, $expr)) {
+                    continue;
+                }
                 // Para distancia 2 exigimos anclas externas iguales para evitar
                 // convertir una palabra valida en otra distinta por semejanza.
                 if (2 === $distance && (substr($token, 0, 1) !== substr($expr, 0, 1) || substr($token, -1) !== substr($expr, -1))) {
@@ -368,6 +399,34 @@ final class SEO_Dependiente_Interprete {
             $trace[] = 'typo:' . $candidate['from'] . '->' . $candidate['value'];
         }
         return self::normalize(implode(' ', $tokens));
+    }
+
+    private static function known_lexicon_expression($token) {
+        if (!class_exists('SEO_Dependiente_Interprete_DB')) {
+            return false;
+        }
+        $row = SEO_Dependiente_Interprete_DB::find_target_for_expression($token);
+        return !empty($row);
+    }
+
+    private static function is_adjacent_transposition($left, $right) {
+        $left = self::normalize($left);
+        $right = self::normalize($right);
+        if (strlen($left) !== strlen($right) || $left === $right) {
+            return false;
+        }
+        $length = strlen($left);
+        for ($i = 0; $i < $length - 1; $i++) {
+            if ($left[$i] === $right[$i + 1] && $left[$i + 1] === $right[$i]) {
+                $swapped = $left;
+                $swapped[$i] = $left[$i + 1];
+                $swapped[$i + 1] = $left[$i];
+                if ($swapped === $right) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /** Distancia conservadora con soporte para una transposicion adyacente. */
@@ -496,6 +555,251 @@ final class SEO_Dependiente_Interprete {
         $base['content_tokens'] = array_values(array_filter($semantic));
         $base['semantic_query'] = implode(' ', $base['content_tokens']);
         return $base;
+    }
+
+    /**
+     * Traduce el texto filtrado al idioma semantico que conoce Dependiente.
+     * Solo usa seo_interprete_lexicon: no consulta productos, facetas ni resultados.
+     */
+    private static function classify_with_linguista($corrected_query, $filtered_query) {
+        $out = array(
+            'actions'         => array(),
+            'semantic_groups' => array(
+                'rol' => array(), 'tipo' => array(), 'aplicacion' => array(),
+                'plataforma' => array(), 'subtipo' => array(), 'category' => array(), 'tag' => array(),
+            ),
+            'related_concepts'=> array(),
+            'context'         => array(),
+            'assist_terms'    => array(),
+            'matches'         => array(),
+        );
+        if (!class_exists('SEO_Dependiente_Interprete_DB')) {
+            $out['context'] = array_values(array_filter(explode(' ', self::normalize($filtered_query))));
+            return $out;
+        }
+
+        $corrected_query = self::normalize($corrected_query);
+        $filtered_query = self::normalize($filtered_query);
+        $rows = array_merge(
+            SEO_Dependiente_Interprete_DB::matching_rows($corrected_query),
+            SEO_Dependiente_Interprete_DB::matching_rows($filtered_query)
+        );
+        $rows_by_id = array();
+        foreach ($rows as $row) {
+            $row_id = absint($row['id'] ?? 0);
+            $signature = $row_id ? 'id:' . $row_id : md5(wp_json_encode($row));
+            if (!isset($rows_by_id[$signature])) {
+                $rows_by_id[$signature] = $row;
+            }
+        }
+        $rows = array_values($rows_by_id);
+        $content_tokens = array_values(array_filter(explode(' ', $filtered_query)));
+        $verb_map = array();
+        foreach (self::analyze_language($corrected_query)['verbs'] ?? array() as $verb) {
+            $surface = self::normalize((string) ($verb['surface'] ?? ''));
+            $lemma = self::normalize((string) ($verb['lemma'] ?? ''));
+            if ($surface && $lemma) {
+                $verb_map[$surface] = $lemma;
+                $verb_map[$lemma] = $lemma;
+            }
+        }
+
+        $matched_tokens = array();
+        foreach ((array) $rows as $row) {
+            $expression = self::normalize((string) ($row['normalized_expression'] ?? $row['expression'] ?? ''));
+            if (!$expression) {
+                continue;
+            }
+            $relation = sanitize_key((string) ($row['relation_type'] ?? ''));
+            $group = sanitize_key((string) ($row['semantic_group'] ?? ''));
+            $canonical = self::normalize((string) ($row['canonical_term'] ?? ''));
+            $target = self::normalize((string) ($row['target_search'] ?? $canonical));
+            $confidence = (float) ($row['confidence'] ?? 0);
+            $vocabulary_id = absint($row['vocabulary_id'] ?? 0);
+
+            $match_view = array(
+                'expression' => $expression,
+                'relation' => $relation,
+                'canonical' => $canonical,
+                'target' => $target,
+                'group' => $group,
+                'vocabulary_id' => $vocabulary_id,
+                'confidence' => $confidence,
+            );
+            $out['matches'][] = $match_view;
+
+            foreach (explode(' ', $expression) as $part) {
+                if (in_array($part, $content_tokens, true)) {
+                    $matched_tokens[$part] = true;
+                }
+            }
+
+            if (in_array($relation, array('verb_to_tool','phrase_to_tool'), true)) {
+                $surface_action = '';
+                foreach (explode(' ', $expression) as $part) {
+                    if (isset($verb_map[$part])) {
+                        $surface_action = $verb_map[$part];
+                        break;
+                    }
+                }
+                if (!$surface_action && preg_match('/(?:ar|er|ir)$/', $expression)) {
+                    $surface_action = $expression;
+                }
+                $canonical_action = self::canonical_action_for_concept($canonical ?: $target);
+                if (!$canonical_action) {
+                    $canonical_action = $surface_action ?: $expression;
+                }
+                $out['actions'][] = array(
+                    'surface' => $expression,
+                    'lemma' => $surface_action ?: $expression,
+                    'canonical_action' => $canonical_action,
+                    'related_concept' => $target ?: $canonical,
+                    'confidence' => $confidence,
+                    'source' => $relation,
+                );
+                if ($canonical_action) {
+                    $out['assist_terms'][] = $canonical_action;
+                }
+                if ($target) {
+                    $out['related_concepts'][] = array(
+                        'term' => $target,
+                        'group' => $group,
+                        'vocabulary_id' => $vocabulary_id,
+                        'confidence' => $confidence,
+                        'source' => $relation,
+                    );
+                    $out['assist_terms'][] = $target;
+                }
+            }
+
+            if (array_key_exists($group, $out['semantic_groups']) && $canonical) {
+                $out['semantic_groups'][$group][] = array(
+                    'term' => $canonical,
+                    'target' => $target ?: $canonical,
+                    'vocabulary_id' => $vocabulary_id,
+                    'confidence' => $confidence,
+                    'source' => $relation,
+                );
+                $out['assist_terms'][] = $target ?: $canonical;
+            }
+        }
+
+        // Todo token que no tenga una clasificacion segura sigue viajando como
+        // contexto. No se inventa categoria/tipo/rol para palabras como "pared".
+        foreach ($content_tokens as $token) {
+            if (isset($verb_map[$token])) {
+                $has_action = false;
+                foreach ($out['actions'] as $action) {
+                    if ($action['lemma'] === $verb_map[$token] || $action['surface'] === $token) {
+                        $has_action = true;
+                        break;
+                    }
+                }
+                if (!$has_action) {
+                    $out['actions'][] = array(
+                        'surface' => $token,
+                        'lemma' => $verb_map[$token],
+                        'canonical_action' => $verb_map[$token],
+                        'related_concept' => '',
+                        'confidence' => 1.0,
+                        'source' => 'morphology',
+                    );
+                }
+                continue;
+            }
+            if (!isset($matched_tokens[$token])) {
+                $out['context'][] = $token;
+            }
+        }
+
+        $out['actions'] = self::unique_structured_rows($out['actions'], array('canonical_action','related_concept','surface'));
+        $out['related_concepts'] = self::unique_structured_rows($out['related_concepts'], array('term','group'));
+        foreach ($out['semantic_groups'] as $group => $items) {
+            $out['semantic_groups'][$group] = self::unique_structured_rows($items, array('term','target'));
+        }
+        $out['context'] = array_values(array_unique(array_filter($out['context'])));
+
+        // La memoria puede contener muchas relaciones válidas. Para no convertir
+        // Intérprete en un buscador, solo enviamos a Dependiente la mejor acción,
+        // su concepto relacionado y como máximo un término por grupo semántico.
+        $assist = array();
+        if (!empty($out['actions'][0])) {
+            $assist[] = self::normalize((string) ($out['actions'][0]['canonical_action'] ?? ''));
+            $assist[] = self::normalize((string) ($out['actions'][0]['related_concept'] ?? ''));
+        }
+        foreach (array('rol','tipo','aplicacion','plataforma','subtipo','category','tag') as $group) {
+            if (!empty($out['semantic_groups'][$group][0])) {
+                $assist[] = self::normalize((string) ($out['semantic_groups'][$group][0]['target'] ?? $out['semantic_groups'][$group][0]['term'] ?? ''));
+            }
+        }
+        $out['assist_terms'] = array_slice(array_values(array_unique(array_filter($assist))), 0, 8);
+        $out['matches'] = array_slice($out['matches'], 0, 20);
+        return $out;
+    }
+
+    /**
+     * Para una relacion accion -> concepto, busca el infinitivo canonico mejor
+     * respaldado que apunte al mismo concepto (p.ej. agujerear -> taladro -> taladrar).
+     */
+    private static function canonical_action_for_concept($concept) {
+        $concept = self::normalize($concept);
+        if (!$concept || !class_exists('SEO_Dependiente_Interprete_DB')) {
+            return '';
+        }
+        $candidates = array();
+        foreach ((array) SEO_Dependiente_Interprete_DB::active_rows() as $row) {
+            $relation = sanitize_key((string) ($row['relation_type'] ?? ''));
+            if (!in_array($relation, array('verb_to_tool','phrase_to_tool'), true)) {
+                continue;
+            }
+            $canonical = self::normalize((string) ($row['canonical_term'] ?? ''));
+            $target = self::normalize((string) ($row['target_search'] ?? ''));
+            if ($concept !== $canonical && $concept !== $target) {
+                continue;
+            }
+            $expression = self::normalize((string) ($row['normalized_expression'] ?? $row['expression'] ?? ''));
+            if (!preg_match('/^(?:[a-z0-9]+)(?:ar|er|ir)$/', $expression)) {
+                continue;
+            }
+            $candidates[] = array(
+                'verb' => $expression,
+                'priority' => absint($row['priority'] ?? 5),
+                'confidence' => (float) ($row['confidence'] ?? 0),
+            );
+        }
+        if (!$candidates) {
+            return '';
+        }
+        usort($candidates, static function ($a, $b) {
+            $priority = $a['priority'] <=> $b['priority'];
+            if (0 !== $priority) {
+                return $priority;
+            }
+            $confidence = $b['confidence'] <=> $a['confidence'];
+            if (0 !== $confidence) {
+                return $confidence;
+            }
+            return strlen($a['verb']) <=> strlen($b['verb']);
+        });
+        return (string) ($candidates[0]['verb'] ?? '');
+    }
+
+    private static function unique_structured_rows($rows, $keys) {
+        $out = array();
+        $seen = array();
+        foreach ((array) $rows as $row) {
+            $parts = array();
+            foreach ((array) $keys as $key) {
+                $parts[] = self::normalize((string) ($row[$key] ?? ''));
+            }
+            $signature = implode('|', $parts);
+            if ('' === trim(str_replace('|', '', $signature)) || isset($seen[$signature])) {
+                continue;
+            }
+            $seen[$signature] = true;
+            $out[] = $row;
+        }
+        return $out;
     }
 
     /**

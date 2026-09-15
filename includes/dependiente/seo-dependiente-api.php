@@ -147,46 +147,53 @@ final class SEO_Dependiente_API {
         }
         $explicit_faq_owner = self::resolve_explicit_faq_owner($raw_query, $params);
 
-        // Modo Dependiente puro: la consulta del cliente entra directamente en
-        // el motor de catalogo. Intérprete no participa, no transforma texto,
-        // no pregunta y no condiciona resultados. Lingüista y su memoria se
-        // conservan aparte para poder retomar el desarrollo en el futuro.
+        // Intérprete actúa como puente lingüístico, no como buscador. Limpia la
+        // frase y añade señales canónicas aprendidas por Lingüista. Dependiente
+        // sigue siendo el único que consulta catálogo, calcula facetas y decide
+        // qué productos mostrar.
         $semantic_hints = array();
         $semantic_hint = array();
         $interpreter = array();
         $interpreter_debug = array();
+        $raw_search_query = $raw_query;
+        $query_for_dependiente = $raw_query;
 
-        // STAGING LOG: ejecutamos Intérprete en sombra solo para observar qué
-        // entiende. Su salida NO sustituye ni condiciona la consulta de Dependiente.
-        if (defined('SEO_DEPENDIENTE_INTERPRETER_LOG')
-            && SEO_DEPENDIENTE_INTERPRETER_LOG
+        $interpreter_enabled = defined('SEO_DEPENDIENTE_INTERPRETER_ASSIST')
+            && SEO_DEPENDIENTE_INTERPRETER_ASSIST
             && class_exists('SEO_Dependiente_Interprete')
-            && '' !== trim($raw_query)
-        ) {
-            $shadow = SEO_Dependiente_Interprete::interpret($raw_query);
-            if (is_array($shadow)) {
-                $language = isset($shadow['language']) && is_array($shadow['language']) ? $shadow['language'] : array();
+            && '' !== trim($raw_query);
+        if ($interpreter_enabled) {
+            $interpreter = SEO_Dependiente_Interprete::interpret($raw_query);
+            if (is_array($interpreter)) {
+                $candidate = SEO_Dependiente_Interprete::refine_search_query($interpreter);
+                if ('' !== trim((string) $candidate)) {
+                    $query_for_dependiente = (string) $candidate;
+                }
+                $language = isset($interpreter['language']) && is_array($interpreter['language']) ? $interpreter['language'] : array();
+                $structured = isset($interpreter['structured']) && is_array($interpreter['structured']) ? $interpreter['structured'] : array();
                 $interpreter_debug = array(
-                    'enabled'         => true,
-                    'mode'            => 'shadow',
-                    'version'         => sanitize_text_field((string) ($shadow['version'] ?? '')),
-                    'raw_query'       => sanitize_text_field((string) $raw_query),
-                    'normalized'      => sanitize_text_field((string) ($shadow['normalized'] ?? '')),
-                    'filtered_query'  => sanitize_text_field((string) ($shadow['search_query'] ?? '')),
-                    'removed_tokens'  => array_values(array_slice(array_map('sanitize_text_field', (array) ($language['removed_tokens'] ?? array())), 0, 30)),
-                    'transformations' => array_values(array_slice(array_map('sanitize_text_field', (array) ($shadow['transformations'] ?? array())), 0, 30)),
-                    'confidence'      => (float) ($shadow['confidence'] ?? 0),
-                    'affects_search'  => false,
+                    'enabled'          => true,
+                    'mode'             => 'assist',
+                    'version'          => sanitize_text_field((string) ($interpreter['version'] ?? '')),
+                    'raw_query'        => sanitize_text_field((string) $raw_query),
+                    'normalized'       => sanitize_text_field((string) ($interpreter['normalized'] ?? '')),
+                    'filtered_query'   => sanitize_text_field((string) ($interpreter['search_query'] ?? '')),
+                    'assist_terms'     => array_values(array_slice(array_map('sanitize_text_field', (array) ($interpreter['assist_terms'] ?? array())), 0, 12)),
+                    'structured'       => $structured,
+                    'removed_tokens'   => array_values(array_slice(array_map('sanitize_text_field', (array) ($language['removed_tokens'] ?? array())), 0, 30)),
+                    'transformations'  => array_values(array_slice(array_map('sanitize_text_field', (array) ($interpreter['transformations'] ?? array())), 0, 30)),
+                    'confidence'       => (float) ($interpreter['confidence'] ?? 0),
+                    'affects_search'   => true,
                 );
             }
         }
 
         if (function_exists('mb_substr')) {
-            $query = mb_substr($raw_query, 0, 180, 'UTF-8');
-            $raw_search_query = $query;
+            $query = mb_substr($query_for_dependiente, 0, 240, 'UTF-8');
+            $raw_search_query = mb_substr($raw_search_query, 0, 240, 'UTF-8');
         } else {
-            $query = substr($raw_query, 0, 180);
-            $raw_search_query = $query;
+            $query = substr($query_for_dependiente, 0, 240);
+            $raw_search_query = substr($raw_search_query, 0, 240);
         }
         if ($interpreter_debug) {
             $interpreter_debug['dependiente_query'] = sanitize_text_field((string) $query);
@@ -324,7 +331,7 @@ final class SEO_Dependiente_API {
         $search_diagnostic['extended_reasons'] = array_values(array_unique($extended_reasons));
         $search_diagnostic['semantic_catalog_route'] = $has_catalog_semantic_route ? 1 : 0;
         $search_diagnostic['semantic_rules_active'] = (int) $semantic_rules_active;
-        $search_diagnostic['interpreter_assist_mode'] = $interpreter_debug ? 'shadow_log' : 'disabled';
+        $search_diagnostic['interpreter_assist_mode'] = $interpreter_debug ? 'linguistic_bridge' : 'disabled';
         $search_diagnostic['raw_query'] = sanitize_text_field((string) $raw_search_query);
         $search_diagnostic['interpreted_query'] = sanitize_text_field((string) $query);
         if ($interpreter) {
@@ -509,10 +516,11 @@ final class SEO_Dependiente_API {
 
         $response_payload = array(
             'query'           => $raw_query,
-            'interpreted_query' => '',
-            'interpreter_changed' => false,
-            'interpreter_lesson' => '',
-            'interpreter_confidence' => 0,
+            'interpreted_query' => $interpreter ? sanitize_text_field((string) ($interpreter['search_query'] ?? '')) : '',
+            'dependiente_query' => sanitize_text_field((string) $query),
+            'interpreter_changed' => $interpreter ? !empty($interpreter['changed']) : false,
+            'interpreter_lesson' => $interpreter ? sanitize_key((string) ($interpreter['lesson_key'] ?? '')) : '',
+            'interpreter_confidence' => $interpreter ? (float) ($interpreter['confidence'] ?? 0) : 0,
             'interpreter_debug' => $interpreter_debug,
             'semantic_hints'  => $semantic_hints,
             'mode'            => $mode,
