@@ -317,6 +317,27 @@ final class SEO_Dependiente_API {
         if (!$local_sufficient) {
             $extended_reasons[] = 'local_product_signal_insufficient';
         }
+
+        // Si la primera pasada ya contiene identidad viva verificada, no abrimos
+        // la recuperación extensiva. Esa capa era la que volvía a mezclar productos
+        // de contexto y anulaba la ventaja de haber identificado "taladro".
+        $primary_identity_count = 0;
+        foreach ((array) $primary_matched as $primary_identity_document) {
+            if (absint($primary_identity_document['_assist_identity_hits'] ?? 0) > 0) {
+                $primary_identity_count++;
+            }
+        }
+        $lexical_identity_count = absint($primary_diagnostic['lexical_identity_rows'] ?? 0);
+        if ($lexical_identity_count > 0) {
+            // Si el propio indice ya devuelve coincidencias literales de la ancla
+            // (taladro, broca, lijadora...), ese conjunto es el que llega al
+            // mostrador. La recuperacion extensiva no puede sustituirlo.
+            $run_extended = false;
+            $extended_reasons[] = 'identity_lexical_base';
+        } elseif ($primary_identity_count > 0) {
+            $run_extended = false;
+            $extended_reasons[] = 'strong_identity_primary';
+        }
         if (0 === $primary_product_count) {
             $run_extended = true;
             $extended_reasons[] = 'no_primary_products';
@@ -324,7 +345,7 @@ final class SEO_Dependiente_API {
         // Una ruta semántica TIPO/ROL/etc. es una señal explícita de catálogo.
         // Si la primera pasada todavía no ofrece una respuesta amplia, abrimos la
         // capa semántica aunque existan landings, posts o FAQs relacionados.
-        if ($has_catalog_semantic_route && $primary_product_count < 6) {
+        if (0 === $lexical_identity_count && 0 === $primary_identity_count && $has_catalog_semantic_route && $primary_product_count < 6) {
             $run_extended = true;
             $extended_reasons[] = 'catalog_semantic_route';
         }
@@ -332,13 +353,14 @@ final class SEO_Dependiente_API {
         // guías editoriales oculten la segunda pasada del catálogo si todavía
         // hay pocos productos de ese rol. Es especialmente importante en frases
         // de problema como "se me ha roto un grifo" + Herramienta.
-        if ($solution_role && $primary_product_count < 3) {
+        if (0 === $lexical_identity_count && 0 === $primary_identity_count && $solution_role && $primary_product_count < 3) {
             $run_extended = true;
             $extended_reasons[] = 'solution_role';
         }
         $search_diagnostic = $primary_diagnostic;
         $search_diagnostic['solution_role'] = $solution_role;
         $search_diagnostic['primary_product_count'] = $primary_product_count;
+        $search_diagnostic['primary_identity_count'] = $primary_identity_count;
         $search_diagnostic['direct_knowledge_count'] = count($direct_related);
         $search_diagnostic['extended_search'] = $run_extended ? 'executed' : 'skipped';
         $search_diagnostic['extended_reasons'] = array_values(array_unique($extended_reasons));
@@ -436,6 +458,14 @@ final class SEO_Dependiente_API {
                 'strategy'          => sanitize_key((string) ($search_diagnostic['strategy'] ?? 'primary_direct')),
                 'primary_strategy'  => sanitize_key((string) ($search_diagnostic['primary_strategy'] ?? ($primary_diagnostic['strategy'] ?? 'primary_direct'))),
                 'primary_rows'      => absint($search_diagnostic['primary_rows'] ?? ($primary_diagnostic['primary_rows'] ?? 0)),
+                'primary_identity_count' => absint($search_diagnostic['primary_identity_count'] ?? 0),
+                'live_identity_ids' => absint($search_diagnostic['live_identity_ids'] ?? ($primary_diagnostic['live_identity_ids'] ?? 0)),
+                'live_identity_rows'=> absint($search_diagnostic['live_identity_rows'] ?? ($primary_diagnostic['live_identity_rows'] ?? 0)),
+                'index_identity_rows'=> absint($search_diagnostic['index_identity_rows'] ?? ($primary_diagnostic['index_identity_rows'] ?? 0)),
+                'lexical_identity_title_rows' => absint($search_diagnostic['lexical_identity_title_rows'] ?? ($primary_diagnostic['lexical_identity_title_rows'] ?? 0)),
+                'lexical_identity_category_rows' => absint($search_diagnostic['lexical_identity_category_rows'] ?? ($primary_diagnostic['lexical_identity_category_rows'] ?? 0)),
+                'lexical_identity_rows' => absint($search_diagnostic['lexical_identity_rows'] ?? ($primary_diagnostic['lexical_identity_rows'] ?? 0)),
+                'presentation_source' => sanitize_key((string) ($search_diagnostic['presentation_source'] ?? ($primary_diagnostic['presentation_source'] ?? 'ranking'))),
                 'candidate_rows'    => count($candidate_rows),
                 'matched_rows'      => count($matched),
                 'extended_search'   => sanitize_key((string) ($search_diagnostic['extended_search'] ?? 'skipped')),
@@ -1280,8 +1310,17 @@ final class SEO_Dependiente_API {
         if (!$product instanceof WC_Product) {
             return array('hits' => 0, 'sources' => array());
         }
+
+        // Las variaciones heredan la identidad comercial del producto padre.
+        $taxonomy_product_id = $product_id;
+        if ($product->is_type('variation') && method_exists($product, 'get_parent_id')) {
+            $parent_id = absint($product->get_parent_id());
+            if ($parent_id) {
+                $taxonomy_product_id = $parent_id;
+            }
+        }
         $title = (string) $product->get_name();
-        $categories = wp_get_post_terms($product_id, 'product_cat', array('fields' => 'names'));
+        $categories = wp_get_post_terms($taxonomy_product_id, 'product_cat', array('fields' => 'names'));
         if (is_wp_error($categories)) {
             $categories = array();
         }
@@ -1305,28 +1344,53 @@ final class SEO_Dependiente_API {
                 }
             }
         }
+
+        // Si el producto pertenece al conjunto que WooCommerce vivo encontró por
+        // título/categoría, esa evidencia ya es suficiente aunque el texto exacto
+        // haya cambiado entre la consulta SQL y esta lectura.
+        if (0 === $hits && isset($live_map[$product_id])) {
+            $hits = 1;
+            $sources[] = 'woocommerce:identidad';
+        }
+
         return array(
             'hits' => $hits,
             'sources' => array_values(array_unique(array_filter($sources))),
         );
     }
 
-    /**
-     * Si existen suficientes productos con identidad viva real, elimina del
-     * conjunto los candidatos que solo entraron por contexto/rutas secundarias.
-     */
     private static function identity_coherent_documents($documents, $assist_profile) {
         $documents = array_values((array) $documents);
         if (empty($assist_profile['identity_terms'])) {
             return $documents;
         }
+
         $strong = array_values(array_filter($documents, static function ($document) {
             return absint($document['_assist_identity_hits'] ?? 0) > 0;
         }));
-        if (count($strong) < 3) {
-            return $documents;
+        if ($strong) {
+            return $strong;
         }
-        return $strong;
+
+        // Segunda guardia: los IDs obtenidos directamente de WooCommerce se han
+        // resuelto por título/categoría viva. Si por cualquier motivo el scorer no
+        // pudo reconstruir la evidencia (índice antiguo, términos no cacheados...),
+        // esos productos siguen siendo preferibles a candidatos contextuales.
+        $live_ids = array_values(array_filter(array_map(
+            'absint',
+            (array) ($assist_profile['_live_identity_ids'] ?? array())
+        )));
+        if ($live_ids) {
+            $live_map = array_fill_keys($live_ids, true);
+            $live_documents = array_values(array_filter($documents, static function ($document) use ($live_map) {
+                return isset($live_map[absint($document['product_id'] ?? 0)]);
+            }));
+            if ($live_documents) {
+                return $live_documents;
+            }
+        }
+
+        return $documents;
     }
 
     /**
@@ -1350,29 +1414,54 @@ final class SEO_Dependiente_API {
         $action_terms = array_values(array_filter((array) ($assist_profile['action_terms'] ?? array())));
         $rows = array();
 
-        // 1. Un concepto relacionado como "taladro" busca primero donde un
-        // producto define realmente su identidad. No se miran descripción ni
-        // atributos, evitando coincidencias accidentales.
+        // 1. Suelo lexico obligatorio del propio indice de Dependiente.
+        // Si Intérprete entrega un concepto comercial claro (p.ej. "taladro"),
+        // primero hacemos exactamente lo que haria un buscador PHP simple:
+        // buscar esa palabra en el TITULO y, como respaldo, en la CATEGORIA.
+        // Esta capa manda sobre semantica, contexto, Vocabulary y descripciones.
         if ($identity_terms) {
             $identity_groups = array_map(static function ($term) { return array($term); }, array_slice($identity_terms, 0, 8));
-            $rows = self::query_primary_index(
+
+            $title_identity_rows = self::query_primary_index(
                 $identity_groups,
                 false,
                 self::CANDIDATE_LIMIT,
-                array('normalized_title','categories_json','tags_json')
+                array('normalized_title')
             );
-            // Añadimos además los productos que WooCommerce vivo identifica
-            // por título/categoría. Esto protege la búsqueda frente a un índice
-            // desfasado y evita que un ID reutilizado herede la identidad antigua.
-            $live_identity_rows = self::index_rows_by_product_ids(
-                (array) ($assist_profile['_live_identity_ids'] ?? array()),
-                500
+            $category_identity_rows = self::query_primary_index(
+                $identity_groups,
+                false,
+                self::CANDIDATE_LIMIT,
+                array('categories_json')
             );
-            $rows = self::merge_candidate_rows($rows, $live_identity_rows);
+
+            // El mostrador parte SIEMPRE de estas coincidencias lexicas. Las de
+            // titulo conservan prioridad de insercion; categoria solo completa.
+            $rows = self::merge_candidate_rows($title_identity_rows, $category_identity_rows);
+            $diagnostic['lexical_identity_title_rows'] = count($title_identity_rows);
+            $diagnostic['lexical_identity_category_rows'] = count($category_identity_rows);
+            $diagnostic['lexical_identity_rows'] = count($rows);
+            $diagnostic['presentation_source'] = $rows ? 'identity_lexical_base' : 'no_identity_lexical_base';
+
+            // Mantenemos el diagnostico previo solo como comprobacion auxiliar;
+            // ya no decide que productos llegan al mostrador.
+            $live_identity_ids = array_values(array_filter(array_map(
+                'absint',
+                (array) ($assist_profile['_live_identity_ids'] ?? array())
+            )));
+            $diagnostic['live_identity_ids'] = count($live_identity_ids);
+            $diagnostic['live_identity_rows'] = 0;
+            $diagnostic['index_identity_rows'] = count($rows);
+
             if ($rows) {
-                $diagnostic['strategy'] = 'primary_interpreter_identity';
+                $diagnostic['strategy'] = 'primary_identity_lexical_base';
+                $diagnostic['primary_group_count'] = count($identity_terms);
+                $diagnostic['primary_rows'] = count($rows);
+                // IMPORTANTE: si el buscador base ya ha encontrado "taladro",
+                // no mezclamos aqui acciones, contexto ni rutas semanticas.
+                // Esas capas solo sirven para ordenar/enriquecer esos resultados.
+                return $rows;
             }
-            $diagnostic['live_identity_rows'] = count($live_identity_rows);
         }
 
         // 2. TIPO/ROL/APLICACIÓN/etc. sí viven en Vocabulary; se añaden como
@@ -1548,13 +1637,27 @@ final class SEO_Dependiente_API {
     /** Fusiona filas del índice sin duplicar productos; el segundo conjunto gana. */
     private static function merge_candidate_rows($first, $second) {
         $map = array();
-        foreach (array_merge((array) $first, (array) $second) as $row) {
+        foreach ((array) $first as $row) {
             $product_id = absint($row['product_id'] ?? 0);
-            if ($product_id) {
-                $map[$product_id] = $row;
+            if (!$product_id) {
+                continue;
             }
-            if (count($map) >= self::CANDIDATE_LIMIT) {
-                break;
+            if (count($map) >= self::CANDIDATE_LIMIT && !isset($map[$product_id])) {
+                continue;
+            }
+            $map[$product_id] = $row;
+        }
+        foreach ((array) $second as $row) {
+            $product_id = absint($row['product_id'] ?? 0);
+            if (!$product_id) {
+                continue;
+            }
+            if (isset($map[$product_id])) {
+                $map[$product_id] = $row;
+                continue;
+            }
+            if (count($map) < self::CANDIDATE_LIMIT) {
+                $map[$product_id] = $row;
             }
         }
         return array_values($map);

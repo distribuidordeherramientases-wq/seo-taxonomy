@@ -1015,6 +1015,9 @@
                 '<div><b>Busca en campos:</b> ' + escapeHtml(depFields.length ? depFields.join(' · ') : '—') + '</div>' +
                 '<div><b>Rutas semánticas activas:</b> ' + escapeHtml(depRoutesText) + '</div>' +
                 '<div><b>Estrategia:</b> ' + escapeHtml(String(dep.strategy || '—')) + ' · <b>Extensiva:</b> ' + escapeHtml(String(dep.extended_search || '—')) + '</div>' +
+                '<div><b>Base léxica:</b> título ' + escapeHtml(String(dep.lexical_identity_title_rows || 0)) + ' · categoría ' + escapeHtml(String(dep.lexical_identity_category_rows || 0)) + ' · mostrador ' + escapeHtml(String(dep.lexical_identity_rows || 0)) + '</div>' +
+                '<div><b>Fuente del mostrador:</b> ' + escapeHtml(String(dep.presentation_source || 'ranking')) + '</div>' +
+                '<div><b>Comprobación auxiliar:</b> IDs ' + escapeHtml(String(dep.live_identity_ids || 0)) + ' · índice ' + escapeHtml(String(dep.index_identity_rows || 0)) + ' · válidas ' + escapeHtml(String(dep.primary_identity_count || 0)) + '</div>' +
                 '<div><b>Candidatos:</b> primarios ' + escapeHtml(String(dep.primary_rows || 0)) + ' · recuperados ' + escapeHtml(String(dep.candidate_rows || 0)) + ' · válidos ' + escapeHtml(String(dep.matched_rows || 0)) + '</div>' +
                 depMatchesHtml +
                 '</div>';

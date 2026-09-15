@@ -4,7 +4,7 @@
  */
 defined('ABSPATH') || exit;
 
-define('SEO_DEPENDIENTE_VERSION', '0.2.37');
+define('SEO_DEPENDIENTE_VERSION', '0.2.40');
 if (!defined('SEO_DEPENDIENTE_INTERPRETER_LOG')) {
     define('SEO_DEPENDIENTE_INTERPRETER_LOG', true); // STAGING: muestra diagnostico.
 }
