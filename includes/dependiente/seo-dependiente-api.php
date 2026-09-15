@@ -1231,16 +1231,16 @@ final class SEO_Dependiente_API {
         }
 
         /*
-         * Solo se conserva el OR general como ultimo recurso cuando no se ha
-         * reconocido ningun objeto que pueda actuar de ancla semantica.
+         * Suelo léxico obligatorio. Una interpretación semántica nunca puede
+         * impedir que entren productos que coinciden literalmente con alguno
+         * de los conceptos enviados por el Intérprete. La semántica reordena y
+         * refuerza; no sustituye el buscador textual del catálogo.
          */
-        $has_object_anchor = class_exists('SEO_Dependiente_Semantics') && $semantic
-            ? (bool) SEO_Dependiente_Semantics::group_variants($semantic, array('object'))
-            : false;
-        if (!$has_object_anchor && count($merged) < 12) {
-            $broad = self::query_index($groups, false, self::CANDIDATE_LIMIT);
+        if (count($groups) > 1 && count($merged) < self::CANDIDATE_LIMIT) {
+            $broad_limit = min(900, self::CANDIDATE_LIMIT);
+            $broad = self::query_index($groups, false, $broad_limit);
             $diagnostic['broad_fallback_rows'] = count($broad);
-            if ($broad) {
+            if ($broad && 'semantic_routes' !== $diagnostic['strategy']) {
                 $diagnostic['strategy'] = 'broad_fallback';
             }
             foreach ($broad as $row) {
@@ -1676,24 +1676,10 @@ final class SEO_Dependiente_API {
             $reasons = array_merge($reasons, (array) ($semantic_score['reasons'] ?? array()));
         }
 
+        // Todo candidato recuperado por coincidencia léxica sigue siendo
+        // elegible. La capa semántica aporta bonus de ranking, pero no puede
+        // eliminar un producto que el índice textual ha encontrado.
         $eligible = true;
-        if (SEO_Dependiente_Index::normalize($query) && $token_groups && $semantic) {
-            $route_hits = absint($semantic_score['route_hits'] ?? 0);
-            $object_hits = absint($semantic_score['object_hits'] ?? 0);
-            $has_object = !empty($semantic['concepts']['object']);
-
-            if ($has_object) {
-                // Con objeto reconocido, no mostrar candidatos que solo casen con el verbo.
-                $eligible = $route_hits > 0
-                    || $object_hits > 0
-                    || $coverage >= count($token_groups);
-            } else {
-                // Para consultas no clasificadas se mantiene una relajacion prudente.
-                $eligible = $route_hits > 0
-                    || count($token_groups) <= 1
-                    || ($coverage / max(1, count($token_groups))) >= 0.5;
-            }
-        }
 
         return array(
             'score'   => round($score, 4),
