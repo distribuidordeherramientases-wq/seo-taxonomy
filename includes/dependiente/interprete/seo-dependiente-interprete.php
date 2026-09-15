@@ -10,7 +10,7 @@ defined('ABSPATH') || exit;
  * Academia: aprende lenguaje de cliente y lo traduce al lenguaje canonico.
  */
 final class SEO_Dependiente_Interprete {
-    const VERSION = '0.6.0';
+    const VERSION = '0.7.0';
 
     private static $morphology = null;
 
@@ -299,6 +299,15 @@ final class SEO_Dependiente_Interprete {
             $content_tokens = array_values(array_filter(explode(' ', self::normalize($query))));
         }
 
+        // El objeto semántico puede ser el destino del trabajo (pared, viga,
+        // hormigón...) y no necesariamente el producto que el cliente quiere.
+        // Para preguntas comerciales solo damos por conocido el producto cuando el
+        // propio Intérprete tiene una señal explícita de producto/herramienta.
+        $product_object = self::interpretation_product_object($interpretation);
+        $action = self::interpretation_action($interpretation, $query);
+        $question_object = $product_object ?: ('' === $action ? $object : '');
+        $has_action = '' !== $action || '' !== $intent;
+
         // Tras una respuesta buena, con pocos candidatos y estrategia sólida no
         // molestamos al cliente con una segunda pregunta innecesaria.
         if ($confirmed && !$weak_strategy && !$unresolved && $total > 0 && $total <= 8) {
@@ -320,10 +329,16 @@ final class SEO_Dependiente_Interprete {
 
         $reason = '';
         $preferred = '';
-        if (!$object && ($unresolved || $weak_strategy || 0 === $total)) {
+        // Una acción no identifica una familia de producto. “Taladrar” puede
+        // significar máquina, broca/corona, accesorio, soporte, etc. Si todavía no
+        // tenemos producto explícito, la primera pregunta debe resolver esa rama.
+        if (!$product_object && $action && !isset($answered_axes['object|category']) && !isset($answered_axes['object|rol'])) {
+            $preferred = 'object';
+            $reason = 'action_without_product';
+        } elseif (!$object && ($unresolved || $weak_strategy || 0 === $total)) {
             $preferred = 'object';
             $reason = 'missing_object';
-        } elseif ('need' === $mode && !$intent && !isset($answered_axes['intent|intent'])) {
+        } elseif ('need' === $mode && !$has_action && !isset($answered_axes['intent|intent'])) {
             $preferred = 'intent';
             $reason = 'missing_intent';
         } elseif ($weak_strategy || 0 === $total) {
@@ -336,13 +351,13 @@ final class SEO_Dependiente_Interprete {
             return $empty;
         }
 
-        $axes = self::clarification_axes($facets, $total, $object, $answered_axes);
+        $axes = self::clarification_axes($facets, $total, $question_object, $answered_axes, $action, $query);
         $axis = self::choose_clarification_axis($axes, $preferred);
 
         // Si falta intención, una aplicación real del catálogo es mejor pregunta
         // que una lista genérica de verbos. Solo caemos al repertorio controlado
         // cuando no existe una división útil en las facetas candidatas.
-        if ('intent' === $preferred && (!$axis || !in_array((string) ($axis['kind'] ?? ''), array('application','tag','attribute'), true))) {
+        if ('intent' === $preferred && '' === $action && (!$axis || !in_array((string) ($axis['kind'] ?? ''), array('application','tag','attribute'), true))) {
             $options = self::controlled_intent_options();
             if (count($options) >= 2) {
                 $axis = array(
@@ -443,20 +458,23 @@ final class SEO_Dependiente_Interprete {
         return $clean;
     }
 
-    private static function clarification_axes($facets, $total, $object, $answered_axes) {
+    private static function clarification_axes($facets, $total, $object, $answered_axes, $action = '', $query = '') {
         $axes = array();
         $total = max(1, absint($total));
+        $action = self::normalize((string) $action);
+        $query = self::normalize((string) $query);
         $vocabulary = isset($facets['vocabulary']) && is_array($facets['vocabulary']) ? $facets['vocabulary'] : array();
+        $action_question = $action ? '¿Qué necesitas para ' . $action . '?' : '';
 
         $vocab_defs = array(
             'aplicacion' => array('kind'=>'application','role'=>'context','priority'=>0.18,'question'=>'¿Para qué uso lo necesitas?'),
-            'subtipo'    => array('kind'=>'subtype','role'=>'object','priority'=>0.15,'question'=>$object ? '¿Qué tipo de “' . $object . '” encaja mejor?' : '¿Qué tipo de producto se acerca más a lo que buscas?'),
-            'tipo'       => array('kind'=>'type','role'=>'object','priority'=>0.12,'question'=>$object ? '¿Qué tipo de “' . $object . '” buscas?' : '¿A qué tipo de producto o herramienta te refieres?'),
+            'subtipo'    => array('kind'=>'subtype','role'=>'object','priority'=>0.15,'question'=>$object ? '¿Qué tipo de “' . $object . '” encaja mejor?' : ($action_question ?: '¿Qué tipo de producto se acerca más a lo que buscas?')),
+            'tipo'       => array('kind'=>'type','role'=>'object','priority'=>0.12,'question'=>$object ? '¿Qué tipo de “' . $object . '” buscas?' : ($action_question ?: '¿A qué tipo de producto o herramienta te refieres?')),
             'plataforma' => array('kind'=>'platform','role'=>'context','priority'=>0.10,'question'=>'¿Con qué sistema o plataforma debe ser compatible?'),
-            'rol'        => array('kind'=>'role','role'=>'object','priority'=>0.04,'question'=>'¿Qué necesitas exactamente: herramienta, accesorio u otro tipo de producto?'),
+            'rol'        => array('kind'=>'role','role'=>'object','priority'=>0.04,'question'=>$action_question ?: '¿Qué necesitas exactamente: herramienta, accesorio u otro tipo de producto?'),
         );
         foreach ($vocab_defs as $group => $def) {
-            if (isset($answered_axes['group|' . $group])) {
+            if (isset($answered_axes['group|' . $group]) || self::facet_items_match_query((array) ($vocabulary[$group] ?? array()), $query)) {
                 continue;
             }
             $axis = self::make_catalog_axis((array) ($vocabulary[$group] ?? array()), $total, array_merge($def, array(
@@ -472,7 +490,7 @@ final class SEO_Dependiente_Interprete {
         foreach ((array) ($facets['attributes'] ?? array()) as $attribute) {
             $group = sanitize_key((string) ($attribute['key'] ?? ''));
             $label = sanitize_text_field((string) ($attribute['label'] ?? $group));
-            if (!$group || isset($answered_axes['group|' . $group])) {
+            if (!$group || isset($answered_axes['group|' . $group]) || self::facet_items_match_query((array) ($attribute['values'] ?? array()), $query)) {
                 continue;
             }
             $label_norm = self::normalize($label);
@@ -505,7 +523,7 @@ final class SEO_Dependiente_Interprete {
             }
         }
 
-        if (!isset($answered_axes['group|category'])) {
+        if (!isset($answered_axes['group|category']) && !self::facet_items_match_query((array) ($facets['categories'] ?? array()), $query)) {
             $axis = self::make_catalog_axis((array) ($facets['categories'] ?? array()), $total, array(
                 'kind'        => 'category',
                 'role'        => 'object',
@@ -515,14 +533,14 @@ final class SEO_Dependiente_Interprete {
                 'priority'    => 0.09,
                 'question'    => $object
                     ? '¿Qué familia se parece más al “' . $object . '” que buscas?'
-                    : '¿A qué familia de producto te refieres?',
+                    : ($action_question ?: '¿A qué familia de producto te refieres?'),
             ));
             if ($axis) {
                 $axes[] = $axis;
             }
         }
 
-        if (!isset($answered_axes['group|tag'])) {
+        if (!isset($answered_axes['group|tag']) && !self::facet_items_match_query((array) ($facets['tags'] ?? array()), $query)) {
             $axis = self::make_catalog_axis((array) ($facets['tags'] ?? array()), $total, array(
                 'kind'        => 'tag',
                 'role'        => 'context',
@@ -610,6 +628,22 @@ final class SEO_Dependiente_Interprete {
             return array();
         }
         $preferred = sanitize_key((string) $preferred);
+
+        // Cuando falta saber qué producto quiere el cliente, no dejamos que un eje
+        // contextual estadísticamente fuerte (material, uso, etiqueta...) desplace
+        // la bifurcación comercial. Si existe al menos un eje de objeto/familia,
+        // elegimos dentro de ese subconjunto.
+        if ('object' === $preferred) {
+            $object_axes = array_values(array_filter($axes, static function($axis) {
+                $kind = sanitize_key((string) ($axis['kind'] ?? ''));
+                $role = sanitize_key((string) ($axis['role'] ?? ''));
+                return 'object' === $role || in_array($kind, array('type','subtype','category','role'), true);
+            }));
+            if ($object_axes) {
+                $axes = $object_axes;
+            }
+        }
+
         foreach ($axes as &$axis) {
             $bonus = 0.0;
             $kind = sanitize_key((string) ($axis['kind'] ?? ''));
@@ -642,6 +676,78 @@ final class SEO_Dependiente_Interprete {
             array('role'=>'intent','value'=>'sustituir','label'=>'Cambiar / sustituir','source'=>'interpreter_intent','source_group'=>'intent','source_slug'=>'sustituir','filter'=>array()),
             array('role'=>'intent','value'=>'comprar','label'=>'Comprar / elegir','source'=>'interpreter_intent','source_group'=>'intent','source_slug'=>'comprar','filter'=>array()),
         );
+    }
+
+    private static function interpretation_product_object($interpretation) {
+        $concepts = isset($interpretation['concepts']) && is_array($interpretation['concepts']) ? $interpretation['concepts'] : array();
+        foreach (array('producto','product','herramienta','tool') as $key) {
+            if (empty($concepts[$key])) {
+                continue;
+            }
+            $value = is_array($concepts[$key]) ? reset($concepts[$key]) : $concepts[$key];
+            $value = self::normalize((string) $value);
+            if ('' !== $value) {
+                return $value;
+            }
+        }
+        return '';
+    }
+
+    private static function interpretation_action($interpretation, $query = '') {
+        $concepts = isset($interpretation['concepts']) && is_array($interpretation['concepts']) ? $interpretation['concepts'] : array();
+        foreach (array('accion','action','intencion') as $key) {
+            if (empty($concepts[$key])) {
+                continue;
+            }
+            $value = is_array($concepts[$key]) ? reset($concepts[$key]) : $concepts[$key];
+            $value = self::normalize((string) $value);
+            if ('' !== $value) {
+                return $value;
+            }
+        }
+
+        $language = isset($interpretation['language']) && is_array($interpretation['language']) ? $interpretation['language'] : array();
+        foreach ((array) ($language['verbs'] ?? array()) as $verb) {
+            $lemma = self::normalize((string) ($verb['lemma'] ?? ''));
+            if ('' !== $lemma) {
+                return $lemma;
+            }
+        }
+
+        // Antes de L6 puede no estar activa la gramática completa. Solo usamos
+        // como respaldo un repertorio corto de acciones inequívocas del dominio;
+        // no clasificamos cualquier palabra acabada en -ar/-er/-ir como verbo.
+        $domain_actions = array(
+            'taladrar','perforar','agujerear','cortar','lijar','pulir','atornillar','desatornillar',
+            'apretar','aflojar','serrar','fresar','roscar','remachar','soldar','medir','nivelar',
+            'inflar','clavar','grapar','pintar','limpiar','aspirar','demoler','romper','montar',
+            'instalar','reparar','cambiar','sustituir','extraer','sacar','quitar','retirar'
+        );
+        foreach (array_values(array_filter(explode(' ', self::normalize((string) $query)))) as $token) {
+            if (in_array($token, $domain_actions, true)) {
+                return $token;
+            }
+        }
+        return '';
+    }
+
+    private static function facet_items_match_query($items, $query) {
+        $query = self::normalize((string) $query);
+        if ('' === $query) {
+            return false;
+        }
+        foreach ((array) $items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            foreach (array($item['label'] ?? '', str_replace('-', ' ', (string) ($item['slug'] ?? ''))) as $candidate) {
+                $candidate = self::normalize((string) $candidate);
+                if (strlen($candidate) >= 3 && self::contains_phrase($query, $candidate)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static function semantic_first_value($semantic, $role) {
