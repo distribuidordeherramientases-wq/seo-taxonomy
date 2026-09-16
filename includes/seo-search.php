@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 ========================================================= */
 
 if (!defined('SEO_SEARCH_VERSION')) {
-    define('SEO_SEARCH_VERSION', '2.3.0-predictive');
+    define('SEO_SEARCH_VERSION', '2.3.1-predictive-fast');
 }
 
 if (!defined('SEO_SEARCH_OPTION')) {
@@ -29,7 +29,7 @@ function seo_search_default_options() {
         'results_per_page'      => 24,
         'autocomplete_enabled'  => 1,
         'autocomplete_limit'    => 8,
-        'autocomplete_min_chars'=> 2,
+        'autocomplete_min_chars'=> 3,
         'search_title'          => 1,
         'search_content'        => 1,
         'search_sku'            => 1,
@@ -996,46 +996,127 @@ function seo_search_log_query($keyword, $results_count) {
 ========================================================= */
 
 /**
- * Devuelve sugerencias ligeras para el predictivo.
+ * Predictivo rapido de catalogo.
  *
- * Importante: no llama a seo_search_query_products(), porque esa funcion
- * construye facetas globales y resulta innecesariamente costosa para cada
- * pulsacion del autocompletado. Reutilizamos directamente el ranking del
- * motor de busqueda (titulo, SKU, categorias, atributos, Vocabulary,
- * sinonimos y tolerancia a errores) y cargamos solo los primeros productos.
+ * Esta ruta esta deliberadamente separada del buscador completo. Mientras el
+ * usuario escribe solo consultamos dos fuentes baratas y faciles de entender:
+ *   1. categorias de producto (product_cat), por nombre/slug;
+ *   2. productos publicados, exclusivamente por post_title.
+ *
+ * No se recorren atributos, Vocabulary, metadatos, sinonimos ni fuzzy search.
+ * Esa profundidad queda reservada para la busqueda completa y Dependiente.
  */
-function seo_search_autocomplete_products($keyword, $limit = 8) {
-    $limit = min(20, max(3, absint($limit)));
-    $candidate_limit = max(40, min(180, $limit * 12));
-    $ids = seo_search_find_matching_ids($keyword, $candidate_limit);
+function seo_search_autocomplete_fast($keyword, $category_limit = 3, $product_limit = 6) {
+    global $wpdb;
 
-    if (!$ids) {
+    $normalized = seo_search_normalize_text($keyword);
+    if ('' === $normalized) {
         return array();
     }
 
+    $category_limit = min(5, max(1, absint($category_limit)));
+    $product_limit  = min(8, max(1, absint($product_limit)));
+
+    // Evita repetir la misma consulta si el usuario borra y vuelve a escribir.
+    $cache_key = 'seo_predictive_fast_' . md5($normalized . '|' . $category_limit . '|' . $product_limit);
+    $cached = get_transient($cache_key);
+    if (is_array($cached)) {
+        return $cached;
+    }
+
     $results = array();
-    foreach (array_slice($ids, 0, $limit) as $product_id) {
-        $product_id = absint($product_id);
+    $contains = '%' . $wpdb->esc_like($normalized) . '%';
+    $prefix   = $wpdb->esc_like($normalized) . '%';
+
+    // 1) Categorias. Consulta corta: nombre o slug, sin calcular arboles/facetas.
+    $category_rows = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT t.term_id, t.name, t.slug, tt.count
+             FROM {$wpdb->terms} t
+             INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_id = t.term_id
+             WHERE tt.taxonomy = 'product_cat'
+               AND tt.count > 0
+               AND (LOWER(t.name) LIKE %s OR LOWER(t.slug) LIKE %s)
+             ORDER BY CASE WHEN LOWER(t.name) LIKE %s THEN 0 ELSE 1 END,
+                      tt.count DESC,
+                      t.name ASC
+             LIMIT %d",
+            $contains,
+            $contains,
+            $prefix,
+            $category_limit
+        )
+    );
+
+    foreach ((array) $category_rows as $row) {
+        $term_id = absint($row->term_id);
+        if (!$term_id) {
+            continue;
+        }
+        $url = get_term_link($term_id, 'product_cat');
+        if (is_wp_error($url)) {
+            continue;
+        }
+        $results[] = array(
+            'type'  => 'category',
+            'id'    => $term_id,
+            'title' => (string) $row->name,
+            'url'   => $url,
+            'count' => absint($row->count),
+        );
+    }
+
+    // 2) Productos. Solo titulo. Para consultas con varias palabras exigimos
+    // que todas aparezcan en el titulo, sin abrir metadatos ni taxonomias.
+    $words = array_values(array_filter(explode(' ', $normalized), static function ($word) {
+        return strlen($word) >= 2;
+    }));
+    $words = array_slice($words, 0, 5);
+
+    $where = array();
+    $params = array();
+    if ($words) {
+        foreach ($words as $word) {
+            $where[] = 'LOWER(post_title) LIKE %s';
+            $params[] = '%' . $wpdb->esc_like($word) . '%';
+        }
+    } else {
+        $where[] = 'LOWER(post_title) LIKE %s';
+        $params[] = $contains;
+    }
+
+    $sql = "SELECT ID, post_title
+            FROM {$wpdb->posts}
+            WHERE post_type = 'product'
+              AND post_status = 'publish'
+              AND " . implode(' AND ', $where) . "
+            ORDER BY CASE WHEN LOWER(post_title) LIKE %s THEN 0 ELSE 1 END,
+                     CHAR_LENGTH(post_title) ASC,
+                     ID DESC
+            LIMIT %d";
+    $params[] = $prefix;
+    $params[] = $product_limit;
+
+    $product_rows = $wpdb->get_results($wpdb->prepare($sql, $params));
+
+    foreach ((array) $product_rows as $row) {
+        $product_id = absint($row->ID);
         if (!$product_id) {
             continue;
         }
-
-        $product = wc_get_product($product_id);
-        if (!$product || 'publish' !== get_post_status($product_id)) {
-            continue;
-        }
-
         $image = get_the_post_thumbnail_url($product_id, 'woocommerce_thumbnail');
         $results[] = array(
-            'id'         => $product_id,
-            'title'      => get_the_title($product_id),
-            'url'        => get_permalink($product_id),
-            'sku'        => $product->get_sku(),
-            'image'      => $image ? $image : wc_placeholder_img_src('woocommerce_thumbnail'),
-            'price_html' => $product->get_price_html(),
-            'stock'      => $product->is_in_stock() ? __('En stock', 'seo-search') : __('Agotado', 'seo-search'),
+            'type'  => 'product',
+            'id'    => $product_id,
+            'title' => (string) $row->post_title,
+            'url'   => get_permalink($product_id),
+            'image' => $image ? $image : '',
         );
     }
+
+    // TTL corto: suficiente para que el tipeo repetido sea instantaneo sin
+    // mantener resultados obsoletos demasiado tiempo tras cambios de catalogo.
+    set_transient($cache_key, $results, 10 * MINUTE_IN_SECONDS);
 
     return $results;
 }
@@ -1048,13 +1129,14 @@ function seo_search_ajax_autocomplete() {
     check_ajax_referer('seo_search_autocomplete', 'nonce');
 
     $keyword = isset($_GET['term']) && !is_array($_GET['term']) ? sanitize_text_field(wp_unslash($_GET['term'])) : '';
-    $min_chars = absint(seo_search_get_option('autocomplete_min_chars', 2));
+    $min_chars = max(3, absint(seo_search_get_option('autocomplete_min_chars', 3)));
     if (strlen(seo_search_normalize_text($keyword)) < $min_chars) {
         wp_send_json_success(array());
     }
 
     $limit = absint(seo_search_get_option('autocomplete_limit', 8));
-    wp_send_json_success(seo_search_autocomplete_products($keyword, $limit));
+    $product_limit = min(6, max(3, $limit));
+    wp_send_json_success(seo_search_autocomplete_fast($keyword, 3, $product_limit));
 }
 add_action('wp_ajax_seo_search_autocomplete', 'seo_search_ajax_autocomplete');
 add_action('wp_ajax_nopriv_seo_search_autocomplete', 'seo_search_ajax_autocomplete');
@@ -1087,7 +1169,7 @@ function seo_search_enqueue_front_assets() {
         'ajaxUrl'          => admin_url('admin-ajax.php'),
         'nonce'            => wp_create_nonce('seo_search_autocomplete'),
         'enabled'          => (bool) seo_search_get_option('autocomplete_enabled', 1),
-        'minChars'         => absint(seo_search_get_option('autocomplete_min_chars', 2)),
+        'minChars'         => max(3, absint(seo_search_get_option('autocomplete_min_chars', 3))),
         'searchLabel'      => __('Ver todos los resultados', 'seo-search'),
         'emptyLabel'       => __('Sin coincidencias', 'seo-search'),
         'dependienteUrl'   => esc_url_raw($dependiente_url),
@@ -1195,23 +1277,39 @@ function seo_search_frontend_js() {
 
         function render(items, term) {
             var html = '';
-            if (!items.length) {
-                html = '<div class="seo-search-auto-empty">' + escapeHtml(window.seoSearchConfig.emptyLabel) + '</div>';
-            } else {
-                items.forEach(function(item){
-                    html += '<a class="seo-search-auto-item" role="option" aria-selected="false" href="' + escapeHtml(item.url) + '">';
-                    html += '<img src="' + escapeHtml(item.image) + '" alt="" loading="lazy">';
+            var categories = items.filter(function(item){ return item && item.type === 'category'; });
+            var products = items.filter(function(item){ return item && item.type === 'product'; });
+
+            if (categories.length) {
+                html += '<div class="seo-search-auto-section">Categorías</div>';
+                categories.forEach(function(item){
+                    html += '<a class="seo-search-auto-item seo-search-auto-category" role="option" aria-selected="false" href="' + escapeHtml(item.url) + '">';
+                    html += '<span class="seo-search-auto-icon" aria-hidden="true">⌁</span>';
                     html += '<span class="seo-search-auto-copy"><strong>' + escapeHtml(item.title) + '</strong>';
-                    var meta = [];
-                    if (item.sku) meta.push('Ref. ' + escapeHtml(item.sku));
-                    if (item.stock) meta.push(escapeHtml(item.stock));
-                    if (meta.length) html += '<small>' + meta.join(' · ') + '</small>';
-                    html += '</span>';
-                    if (item.price_html) html += '<span class="seo-search-auto-price">' + item.price_html + '</span>';
-                    html += '</a>';
+                    if (item.count) html += '<small>' + escapeHtml(String(item.count)) + ' productos</small>';
+                    html += '</span><span class="seo-search-auto-arrow" aria-hidden="true">→</span></a>';
                 });
-                html += '<button class="seo-search-auto-all" type="submit">' + escapeHtml(window.seoSearchConfig.searchLabel) + ' “' + escapeHtml(term) + '”</button>';
             }
+
+            if (products.length) {
+                html += '<div class="seo-search-auto-section">Productos</div>';
+                products.forEach(function(item){
+                    html += '<a class="seo-search-auto-item seo-search-auto-product" role="option" aria-selected="false" href="' + escapeHtml(item.url) + '">';
+                    if (item.image) {
+                        html += '<img src="' + escapeHtml(item.image) + '" alt="" loading="lazy">';
+                    } else {
+                        html += '<span class="seo-search-auto-icon" aria-hidden="true">◻</span>';
+                    }
+                    html += '<span class="seo-search-auto-copy"><strong>' + escapeHtml(item.title) + '</strong><small>Producto</small></span>';
+                    html += '<span class="seo-search-auto-arrow" aria-hidden="true">→</span></a>';
+                });
+            }
+
+            if (!categories.length && !products.length) {
+                html = '<div class="seo-search-auto-empty">No hay coincidencias rápidas. Pulsa Enter para buscar en todo el catálogo.</div>';
+            }
+
+            html += '<button class="seo-search-auto-all" type="submit">' + escapeHtml(window.seoSearchConfig.searchLabel) + ' “' + escapeHtml(term) + '”</button>';
 
             var depUrl = dependienteUrl(term);
             if (depUrl && window.seoSearchConfig.dependienteLabel) {
@@ -1240,23 +1338,33 @@ function seo_search_frontend_js() {
             }
 
             timer = setTimeout(function(){
-                $host.addClass('is-loading');
-                $form.addClass('is-loading');
-                request = $.get(window.seoSearchConfig.ajaxUrl, {
-                    action: 'seo_search_autocomplete',
-                    nonce: window.seoSearchConfig.nonce,
-                    term: term
+                $panel.attr('hidden', true);
+                $input.attr('aria-expanded', 'false');
+                // Sin spinner ni animaciones: el buscador permanece quieto mientras
+                // llega una respuesta rapida. Si el servidor tarda demasiado, se
+                // cancela silenciosamente y Enter sigue ejecutando la busqueda completa.
+                request = $.ajax({
+                    url: window.seoSearchConfig.ajaxUrl,
+                    method: 'GET',
+                    dataType: 'json',
+                    timeout: 1200,
+                    data: {
+                        action: 'seo_search_autocomplete',
+                        nonce: window.seoSearchConfig.nonce,
+                        term: term
+                    }
                 }).done(function(response){
                     var items = response && response.success ? response.data : [];
                     resultCache[cacheKey] = items;
                     if ($.trim($input.val()).toLocaleLowerCase() === cacheKey) {
                         render(items, term);
                     }
-                }).always(function(){
-                    $host.removeClass('is-loading');
-                    $form.removeClass('is-loading');
+                }).fail(function(xhr, status){
+                    if (status !== 'abort' && $.trim($input.val()).toLocaleLowerCase() === cacheKey) {
+                        closePanel();
+                    }
                 });
-            }, 220);
+            }, 160);
         });
 
         $input.on('focus.seoPredictive', function(){
@@ -1322,8 +1430,8 @@ JS;
 function seo_search_frontend_css() {
     $columns = absint(seo_search_get_option('grid_columns', 4));
     return "
-.seo-search-box{position:relative;width:100%;max-width:720px}.seo-search-host{position:relative}.seo-search-form{display:flex;gap:8px;position:relative}.seo-search-input{width:100%;min-height:46px;padding:10px 14px;border:1px solid #d5d7da;border-radius:8px;font-size:16px;background:#fff}.seo-search-input:focus{outline:2px solid #2271b1;outline-offset:1px;border-color:#2271b1}.seo-search-button{min-width:48px;padding:10px 15px;border:0;border-radius:8px;background:#111;color:#fff;cursor:pointer;font-size:17px}.seo-search-button:hover{background:#333}.seo-search-box.is-loading:after,.seo-search-host.is-loading:after{content:'';position:absolute;right:65px;top:15px;width:16px;height:16px;border:2px solid #ddd;border-top-color:#111;border-radius:50%;animation:seoSearchSpin .7s linear infinite}@keyframes seoSearchSpin{to{transform:rotate(360deg)}}
-.seo-search-autocomplete{position:absolute;z-index:99999;top:calc(100% + 6px);left:0;right:0;max-height:470px;overflow:auto;background:#fff;border:1px solid #ddd;border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,.15)}.seo-search-auto-item{display:grid;grid-template-columns:54px 1fr auto;gap:12px;align-items:center;padding:10px 12px;color:inherit;text-decoration:none;border-bottom:1px solid #eee}.seo-search-auto-item:hover,.seo-search-auto-item.is-active{background:#f5f7f9}.seo-search-auto-item img{width:54px;height:54px;object-fit:cover;border-radius:6px}.seo-search-auto-copy{display:flex;flex-direction:column;min-width:0}.seo-search-auto-copy strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.seo-search-auto-copy small{color:#666}.seo-search-auto-price{font-weight:600;white-space:nowrap}.seo-search-auto-all{width:100%;padding:12px;border:0;background:#f7f7f7;cursor:pointer;font-weight:600}.seo-search-auto-empty{padding:16px;color:#666}.seo-search-auto-dependiente{display:flex;align-items:center;justify-content:center;gap:7px;padding:12px 14px;background:#eef4ff;color:#183b74!important;text-decoration:none;font-weight:700;border-top:1px solid #dbe7fb}.seo-search-auto-dependiente:hover,.seo-search-auto-dependiente:focus-visible{background:#e2ecff}
+.seo-search-box{position:relative;width:100%;max-width:720px}.seo-search-host{position:relative}.seo-search-form{display:flex;gap:8px;position:relative}.seo-search-input{width:100%;min-height:46px;padding:10px 14px;border:1px solid #d5d7da;border-radius:8px;font-size:16px;background:#fff}.seo-search-input:focus{outline:2px solid #2271b1;outline-offset:1px;border-color:#2271b1}.seo-search-button{min-width:48px;padding:10px 15px;border:0;border-radius:8px;background:#111;color:#fff;cursor:pointer;font-size:17px}.seo-search-button:hover{background:#333}
+.seo-search-auto-section{padding:8px 12px 6px;background:#f7f8fa;color:#5f6670;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid #eceff2}.seo-search-auto-icon{width:54px;height:54px;display:grid;place-items:center;border-radius:7px;background:#f1f3f5;color:#354052;font-size:22px}.seo-search-auto-arrow{color:#8a919a;font-size:18px}.seo-search-auto-category{grid-template-columns:54px 1fr auto}.seo-search-auto-product{grid-template-columns:54px 1fr auto}.seo-search-autocomplete{position:absolute;z-index:99999;top:calc(100% + 6px);left:0;right:0;max-height:470px;overflow:auto;background:#fff;border:1px solid #ddd;border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,.15)}.seo-search-auto-item{display:grid;grid-template-columns:54px 1fr auto;gap:12px;align-items:center;padding:10px 12px;color:inherit;text-decoration:none;border-bottom:1px solid #eee}.seo-search-auto-item:hover,.seo-search-auto-item.is-active{background:#f5f7f9}.seo-search-auto-item img{width:54px;height:54px;object-fit:cover;border-radius:6px}.seo-search-auto-copy{display:flex;flex-direction:column;min-width:0}.seo-search-auto-copy strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.seo-search-auto-copy small{color:#666}.seo-search-auto-price{font-weight:600;white-space:nowrap}.seo-search-auto-all{width:100%;padding:12px;border:0;background:#f7f7f7;cursor:pointer;font-weight:600}.seo-search-auto-empty{padding:16px;color:#666}.seo-search-auto-dependiente{display:flex;align-items:center;justify-content:center;gap:7px;padding:12px 14px;background:#eef4ff;color:#183b74!important;text-decoration:none;font-weight:700;border-top:1px solid #dbe7fb}.seo-search-auto-dependiente:hover,.seo-search-auto-dependiente:focus-visible{background:#e2ecff}
 .seo-search-page{max-width:1440px;margin:0 auto;padding:28px 20px}.seo-search-page-header{display:flex;align-items:end;justify-content:space-between;gap:20px;margin:24px 0}.seo-search-page-header h1{margin:0}.seo-search-summary{color:#5c636a}.seo-search-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 18px;padding:12px;background:#f6f7f7;border-radius:8px}.seo-search-toolbar-right{display:flex;gap:8px;align-items:center}.seo-search-toolbar select{min-height:38px}.seo-search-filter-toggle{display:none;padding:9px 12px;border:1px solid #ccd0d4;background:#fff;border-radius:6px}.seo-search-content{display:grid;grid-template-columns:270px minmax(0,1fr);gap:28px}.seo-search-sidebar{border:1px solid #e1e3e5;border-radius:10px;padding:16px;align-self:start}.seo-search-filter-group{padding:0 0 16px;margin:0 0 16px;border-bottom:1px solid #ececec}.seo-search-filter-group:last-child{border-bottom:0;margin-bottom:0}.seo-search-filter-group h3{font-size:16px;margin:0 0 10px}.seo-search-filter-list{display:grid;gap:7px;max-height:240px;overflow:auto}.seo-search-filter-list label{display:flex;justify-content:space-between;gap:8px;font-size:14px}.seo-search-filter-list a{text-decoration:none;color:inherit}.seo-search-filter-count{color:#767676}.seo-search-price-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}.seo-search-price-fields input{width:100%}.seo-search-apply{width:100%;margin-top:10px;padding:9px;border:0;border-radius:6px;background:#2271b1;color:#fff;cursor:pointer}.seo-search-clear{display:block;text-align:center;margin-top:9px}.seo-search-products{display:grid;grid-template-columns:repeat({$columns},minmax(0,1fr));gap:20px}.seo-search-products.is-list{grid-template-columns:1fr}.seo-search-card{display:flex;flex-direction:column;border:1px solid #e2e4e7;border-radius:10px;overflow:hidden;background:#fff;transition:transform .15s,box-shadow .15s}.seo-search-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.08)}.seo-search-products.is-list .seo-search-card{display:grid;grid-template-columns:180px 1fr}.seo-search-card-image{display:block;aspect-ratio:1/1;background:#f4f4f4}.seo-search-products.is-list .seo-search-card-image{aspect-ratio:auto;min-height:180px}.seo-search-card-image img{width:100%;height:100%;object-fit:cover}.seo-search-card-body{display:flex;flex-direction:column;gap:8px;padding:14px;height:100%}.seo-search-card-title{font-size:17px;line-height:1.3;margin:0}.seo-search-card-title a{text-decoration:none;color:inherit}.seo-search-card-meta{font-size:13px;color:#666}.seo-search-card-price{font-size:17px;font-weight:700;margin-top:auto}.seo-search-stock.in-stock{color:#16803a}.seo-search-stock.out-of-stock{color:#b32d2e}.seo-search-card-button{display:inline-flex;justify-content:center;padding:9px 12px;border-radius:6px;background:#111;color:#fff!important;text-decoration:none;margin-top:4px}.seo-search-pagination{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:28px 0}.seo-search-pagination .page-numbers{padding:8px 11px;border:1px solid #ddd;border-radius:5px;text-decoration:none}.seo-search-pagination .current{background:#111;color:#fff;border-color:#111}.seo-search-no-results{padding:32px;border:1px dashed #c3c4c7;border-radius:10px;text-align:center}.seo-search-hidden-fields input{display:none}
 
 .seo-search-related-categories{margin:0 0 16px}.seo-search-related-categories-head{display:flex;justify-content:space-between;gap:12px;margin:0 0 10px}.seo-search-related-categories-head span{color:#666;font-size:12px}.seo-search-related-categories-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.seo-search-related-category{position:relative;min-height:110px;overflow:hidden;border:1px solid #e1e3e5;border-radius:10px;background:#f5f5f5;color:#fff;text-decoration:none}.seo-search-related-category img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.seo-search-related-category:after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.72))}.seo-search-related-category>span{position:absolute;z-index:1;left:10px;right:10px;bottom:9px;display:flex;flex-direction:column;gap:2px}.seo-search-related-category small{font-size:11px}.seo-search-related-category.is-active{outline:3px solid #2271b1;outline-offset:1px}
