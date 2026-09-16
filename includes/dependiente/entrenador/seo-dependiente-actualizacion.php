@@ -5,15 +5,17 @@ defined('ABSPATH') || exit;
 /**
  * Actualización incremental de la Academia del Dependiente.
  *
- * No es una novena lección del currículo inicial. Es una lección repetible,
- * sin número, que reutiliza las ocho capacidades de Academia sobre el delta
- * del catálogo y reserva el módulo 9 para reconciliar/publicar conocimiento.
+ * No forma parte del currículo inicial. Es una lección repetible, sin número,
+ * que solo se habilita después de L1-L9. Reutiliza las ocho comprobaciones
+ * incrementales existentes sobre el delta; la memoria de producto de L9 se
+ * mantiene desde V3 cuando los productos cambian. El módulo 9 reconcilia y
+ * publica el conocimiento candidato.
  *
  * El botón solo encola trabajo. La ejecución real la hace el mismo Gestor de
  * workers que ya controla Academia.
  */
 final class SEO_Dependiente_Actualizacion {
-    const VERSION = '1.0.1';
+    const VERSION = '1.0.2';
     const STATE_OPTION = 'seo_dependiente_academy_update_state';
     const HISTORY_OPTION = 'seo_dependiente_academy_update_history';
     const LAST_SUCCESS_OPTION = 'seo_dependiente_academy_update_last_success';
@@ -116,7 +118,7 @@ final class SEO_Dependiente_Actualizacion {
                 <div>
                     <span class="seo-dependiente-trainer__eyebrow">Lección continua · sin número</span>
                     <h2>Actualización</h2>
-                    <p class="description">Revisa únicamente lo nuevo o modificado desde el último aprendizaje. Pasa ese delta por los ocho filtros de Academia y el módulo 9 reconcilia el resultado con el conocimiento activo.</p>
+                    <p class="description">Revisa únicamente lo nuevo o modificado desde el último aprendizaje. Pasa el delta por las comprobaciones incrementales de Academia; la memoria de necesidades y productos de L9 se mantiene desde V3 y el módulo 9 reconcilia el resultado con el conocimiento activo.</p>
                 </div>
                 <div class="seo-dependiente-trainer__update-actions">
                     <button type="button" class="button button-primary" data-trainer-update-start <?php disabled(!$available || $running); ?>><?php echo $running ? 'Actualización en curso…' : 'Actualizar conocimiento'; ?></button>
@@ -125,7 +127,11 @@ final class SEO_Dependiente_Actualizacion {
             </div>
 
             <?php if (!$available) : ?>
-                <p class="seo-dependiente-trainer__update-note">La Actualización se desbloquea cuando termina la formación inicial L1–L8.</p>
+                <?php if (empty($initial['l8_completed'])) : ?>
+                    <p class="seo-dependiente-trainer__update-note">STAGING no tiene acreditada como completada la formación L1–L8. Si esas lecciones se aprendieron en PRO, no las repitas aquí: instala esta misma versión en PRO y STAGING, exporta de nuevo el conocimiento desde PRO e impórtalo en STAGING para trasladar también el estado de las lecciones completadas. Después quedará disponible L9.</p>
+                <?php else : ?>
+                    <p class="seo-dependiente-trainer__update-note">L1–L8 ya están completadas. La Actualización se habilitará cuando termine L9 · Necesidades y productos.</p>
+                <?php endif; ?>
             <?php else : ?>
                 <div class="seo-dependiente-trainer__update-meta">
                     <span><strong>Última actualización</strong><?php echo $last_at ? esc_html($last_at) : 'Todavía no ejecutada'; ?></span>
@@ -169,7 +175,10 @@ final class SEO_Dependiente_Actualizacion {
         }
         $initial = SEO_Dependiente_Entrenador::update_initial_course_status();
         if (empty($initial['completed'])) {
-            wp_send_json_error(array('message' => 'Completa primero las ocho lecciones iniciales.'), 409);
+            if (empty($initial['l8_completed'])) {
+                wp_send_json_error(array('message' => 'STAGING no tiene L1–L8 acreditadas como completadas. Reimporta desde PRO una copia de conocimiento generada con esta versión; no es necesario repetir esas lecciones.'), 409);
+            }
+            wp_send_json_error(array('message' => 'Completa primero L9 · Necesidades y productos.'), 409);
         }
         if (self::is_running()) {
             wp_send_json_success(self::payload());

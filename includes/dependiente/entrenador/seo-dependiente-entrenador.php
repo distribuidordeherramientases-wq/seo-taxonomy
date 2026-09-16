@@ -13,7 +13,7 @@ defined('ABSPATH') || exit;
  */
 final class SEO_Dependiente_Entrenador {
     const DB_VERSION = '2026-09-09.1';
-    const CURRICULUM_VERSION = '2.3';
+    const CURRICULUM_VERSION = '2.3.1';
     const PROGRESS_REPORT_VERSION = 3;
     const MAX_INVENTORY_SOURCES = 3000;
     const MAX_FEATURE_SOURCES = 12000;
@@ -5959,11 +5959,21 @@ final class SEO_Dependiente_Entrenador {
      * módulo incremental replique la lógica de las nueve lecciones.
      */
     public static function update_initial_course_status() {
-        $row = self::lesson_row('v2_l9_product_language');
+        // La formación inicial termina ahora en L9. Conservamos el estado de L8
+        // por separado para poder distinguir un STAGING que recibió conocimiento
+        // desde PRO pero no recibió/avanzó los estados de Academia, de una
+        // instalación que simplemente tiene pendiente la nueva L9.
+        $row8 = self::lesson_row('v2_l8_exam');
+        $row9 = self::lesson_row('v2_l9_product_language');
+        $l8_completed = is_array($row8) && 'completed' === (string) ($row8['status'] ?? '');
+        $l9_completed = is_array($row9) && 'completed' === (string) ($row9['status'] ?? '');
         return array(
-            'completed'    => is_array($row) && 'completed' === (string) ($row['status'] ?? ''),
-            'completed_at' => is_array($row) ? (string) ($row['completed_at'] ?? '') : '',
-            'snapshot'     => is_array($row) ? absint($row['snapshot_after'] ?? 0) : 0,
+            'completed'       => $l9_completed,
+            'l8_completed'    => $l8_completed,
+            'l9_completed'    => $l9_completed,
+            'l8_completed_at' => is_array($row8) ? (string) ($row8['completed_at'] ?? '') : '',
+            'completed_at'    => is_array($row9) ? (string) ($row9['completed_at'] ?? '') : '',
+            'snapshot'        => is_array($row9) ? absint($row9['snapshot_after'] ?? 0) : 0,
         );
     }
 
