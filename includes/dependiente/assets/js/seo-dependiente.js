@@ -1808,6 +1808,12 @@
         if (!response.ok) {
             throw new Error(payload && payload.message ? payload.message : 'Error de comunicación con el catálogo.');
         }
+        // Una respuesta HTTP 200 vacía/no JSON no es un resultado válido. Antes
+        // devolvíamos null y search() fallaba después en data.facets, ocultando el
+        // problema real con un TypeError de JavaScript.
+        if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+            throw new Error('El servidor ha devuelto una respuesta vacía o incompleta. Revisa el log de PHP/REST de esta búsqueda.');
+        }
         return payload;
     }
 
