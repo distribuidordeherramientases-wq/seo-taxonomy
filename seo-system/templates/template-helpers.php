@@ -1132,6 +1132,122 @@ if (!function_exists('dht_template_device_variant_file')) {
 }
 
 /* ==========================================================
+   GOOGLE MERCHANT: POLITICAS GLOBALES DE DEVOLUCION Y ENVIO
+   - La politica de devoluciones visible vive en /devoluciones-y-reembolsos/.
+   - La politica de envio visible vive en /envios-y-entrega/.
+   - Los Offer de producto solo referencian estas politicas globales por @id.
+   - No se inventan tarifas ni plazos: dependen del proveedor/producto/destino.
+========================================================== */
+if (!function_exists('dht_template_return_policy_url')) {
+    function dht_template_return_policy_url()
+    {
+        $page = get_page_by_path('devoluciones-y-reembolsos');
+        if (!$page instanceof WP_Post) {
+            $page = get_page_by_path('devoluciones');
+        }
+
+        if ($page instanceof WP_Post) {
+            $url = get_permalink($page);
+            if ($url) {
+                return trailingslashit((string) $url);
+            }
+        }
+
+        return trailingslashit(home_url('/devoluciones-y-reembolsos/'));
+    }
+}
+
+if (!function_exists('dht_template_shipping_policy_url')) {
+    function dht_template_shipping_policy_url()
+    {
+        $page = get_page_by_path('envios-y-entrega');
+        if ($page instanceof WP_Post) {
+            $url = get_permalink($page);
+            if ($url) {
+                return trailingslashit((string) $url);
+            }
+        }
+
+        return trailingslashit(home_url('/envios-y-entrega/'));
+    }
+}
+
+if (!function_exists('dht_template_schema_merchant_policy_ids')) {
+    function dht_template_schema_merchant_policy_ids()
+    {
+        $home_url = trailingslashit(home_url('/'));
+
+        return array(
+            'organization' => $home_url . '#organization',
+            'returns'      => $home_url . '#merchant-return-policy',
+            'shipping'     => $home_url . '#shipping-service',
+        );
+    }
+}
+
+if (!function_exists('dht_template_schema_merchant_organization_properties')) {
+    /**
+     * Propiedades para el Organization global de la tienda.
+     * MerchantReturnPolicy usa merchantReturnLink, opcion admitida por Google
+     * cuando la politica completa se explica en una pagina propia.
+     *
+     * ShippingService declara el destino general ES sin inventar coste ni plazo.
+     * Esos datos dependen de cada proveedor/producto y se muestran o comunican
+     * durante el proceso de compra.
+     */
+    function dht_template_schema_merchant_organization_properties()
+    {
+        $ids = dht_template_schema_merchant_policy_ids();
+
+        return array(
+            'hasMerchantReturnPolicy' => array(
+                '@type'              => 'MerchantReturnPolicy',
+                '@id'                => $ids['returns'],
+                'merchantReturnLink' => esc_url_raw(dht_template_return_policy_url()),
+            ),
+            'hasShippingService' => array(
+                '@type'           => 'ShippingService',
+                '@id'             => $ids['shipping'],
+                'name'            => 'Envíos y entrega',
+                'description'     => 'Los gastos y plazos de entrega dependen del producto, proveedor, origen logístico y destino. Las condiciones aplicables se muestran o comunican durante la compra.',
+                'fulfillmentType' => 'https://schema.org/FulfillmentTypeDelivery',
+                'shippingConditions' => array(
+                    '@type' => 'ShippingConditions',
+                    'shippingDestination' => array(
+                        '@type'          => 'DefinedRegion',
+                        'addressCountry' => 'ES',
+                    ),
+                ),
+            ),
+        );
+    }
+}
+
+if (!function_exists('dht_template_schema_offer_merchant_policies')) {
+    /**
+     * Referencias desde Product > Offer a las politicas globales.
+     * Google admite @id para devoluciones y OfferShippingDetails >
+     * hasShippingService > @id para la politica global de envio.
+     */
+    function dht_template_schema_offer_merchant_policies()
+    {
+        $ids = dht_template_schema_merchant_policy_ids();
+
+        return array(
+            'hasMerchantReturnPolicy' => array(
+                '@id' => $ids['returns'],
+            ),
+            'shippingDetails' => array(
+                '@type' => 'OfferShippingDetails',
+                'hasShippingService' => array(
+                    '@id' => $ids['shipping'],
+                ),
+            ),
+        );
+    }
+}
+
+/* ==========================================================
    PROPUESTA DE VALOR: ACOMPAÑAMIENTO ANTES Y DESPUÉS DE LA COMPRA
    Componente reutilizable para no repetir mensajes distintos
    en cada plantilla ni convertir la web en una sucesion de banners.

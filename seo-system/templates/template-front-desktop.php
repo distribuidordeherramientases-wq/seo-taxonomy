@@ -32,6 +32,14 @@ $schema_organization = array(
     'url'   => $schema_home_url,
 );
 
+/* Politicas Merchant globales referenciadas por los Offer de producto. */
+if (function_exists('dht_template_schema_merchant_organization_properties')) {
+    $schema_organization = array_merge(
+        $schema_organization,
+        dht_template_schema_merchant_organization_properties()
+    );
+}
+
 if (!empty($schema_logo_candidate['url'])) {
     $schema_organization['logo'] = array(
         '@type' => 'ImageObject',
