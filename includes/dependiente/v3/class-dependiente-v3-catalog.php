@@ -218,6 +218,7 @@ final class SEO_Dependiente_V3_Catalog {
 
         $debug['elapsed_ms'] = round((microtime(true) - $started) * 1000, 1);
         $debug['final_ranked'] = $total;
+        $debug['catalog_build'] = '3.0.4-sql-alias';
 
         return array(
             'products' => $products,
@@ -233,7 +234,7 @@ final class SEO_Dependiente_V3_Catalog {
     }
 
     private static function index_select_sql() {
-        return 'product_id,title,normalized_title,excerpt,sku,brand_name,brand_slug,categories_json,tags_json,vocabulary_json,attributes_json,commercial_json,search_text,price,regular_price,sale_price,weight,length,width,height,stock_status,featured,product_type,image_url,permalink,post_modified_gmt,updated_at';
+        return 'i.product_id,i.title,i.normalized_title,i.excerpt,i.sku,i.brand_name,i.brand_slug,i.categories_json,i.tags_json,i.vocabulary_json,i.attributes_json,i.commercial_json,i.search_text,i.price,i.regular_price,i.sale_price,i.weight,i.length,i.width,i.height,i.stock_status,i.featured,i.product_type,i.image_url,i.permalink,i.post_modified_gmt,i.updated_at';
     }
 
     private static function index_phrase_rows($phrase, $limit) {
