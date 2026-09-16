@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 ========================================================= */
 
 if (!defined('SEO_SEARCH_VERSION')) {
-    define('SEO_SEARCH_VERSION', '2.2.1-safe');
+    define('SEO_SEARCH_VERSION', '2.2.2-safe');
 }
 
 if (!defined('SEO_SEARCH_OPTION')) {
@@ -1517,318 +1517,52 @@ function seo_search_preserve_query_fields($exclude = array()) {
 }
 
 /* =========================================================
-   PÁGINA DE RESULTADOS Y FILTROS
+   COMPATIBILIDAD CON URLs ANTIGUAS
 ========================================================= */
 
-function seo_search_is_results_request() {
-    if (!class_exists('WooCommerce')) {
-        return false;
-    }
-
+/**
+ * Las versiones anteriores usaban ?q=...&seo_search=1.
+ * La rama safe usa exclusivamente la busqueda nativa de WooCommerce:
+ * ?s=...&post_type=product.
+ *
+ * Esta redireccion es deliberadamente ligera: no ejecuta busquedas,
+ * no consulta Dependiente y no crea una segunda WP_Query.
+ */
+add_action('init', function () {
     if (is_admin() || wp_doing_ajax() || (defined('REST_REQUEST') && REST_REQUEST)) {
-        return false;
-    }
-
-    $param = seo_search_get_option('query_parameter', 'q');
-    if (!isset($_GET[$param]) || is_array($_GET[$param]) || '' === trim((string) wp_unslash($_GET[$param]))) {
-        return false;
-    }
-
-    return !empty($_GET['seo_search']) || (!isset($_GET['s']) && 'q' === $param);
-}
-
-
-add_filter('wp_robots', function ($robots) {
-    if (seo_search_is_results_request()) {
-        $robots['noindex'] = true;
-        $robots['follow'] = true;
-    }
-    return $robots;
-});
-
-add_filter('pre_get_document_title', function ($title) {
-    if (!seo_search_is_results_request()) {
-        return $title;
-    }
-    $param = seo_search_get_option('query_parameter', 'q');
-    $keyword = isset($_GET[$param]) && !is_array($_GET[$param]) ? sanitize_text_field(wp_unslash($_GET[$param])) : '';
-    return sprintf(__('Resultados para “%s”', 'seo-search'), $keyword);
-});
-
-add_action('template_redirect', function () {
-    if (!seo_search_is_results_request()) {
         return;
     }
 
-    $param = seo_search_get_option('query_parameter', 'q');
-    $keyword = !is_array($_GET[$param]) ? sanitize_text_field(wp_unslash($_GET[$param])) : '';
-    $page = max(1, absint(isset($_GET['product-page']) ? $_GET['product-page'] : 1));
-    $filters = seo_search_get_active_filters();
-    $data = seo_search_query_products($keyword, $page, null, $filters);
-
-    if (1 === $page) {
-        seo_search_log_query($keyword, $data['total']);
+    if (empty($_GET['seo_search']) || !isset($_GET['q']) || is_array($_GET['q'])) {
+        return;
     }
 
-    global $seo_search_keyword, $seo_search_data, $seo_search_filters;
-    $seo_search_keyword = $keyword;
-    $seo_search_data = $data;
-    $seo_search_filters = $filters;
-
-    $override = locate_template(array('seo-search-results.php', 'seo-search/search-results.php'));
-    if ($override) {
-        include $override;
-        exit;
+    $keyword = trim((string) sanitize_text_field(wp_unslash($_GET['q'])));
+    if ('' === $keyword) {
+        return;
     }
 
-    status_header(200);
-    nocache_headers();
-    get_header();
-    echo seo_search_render_results_page($keyword, $data, $filters); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-    get_footer();
+    $shop_url = function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/');
+    $args = array(
+        's'         => $keyword,
+        'post_type' => 'product',
+    );
+
+    // Conserva solo los filtros que pertenecen al buscador.
+    foreach ($_GET as $key => $value) {
+        $key = sanitize_key($key);
+        if (in_array($key, array('q', 'seo_search', 's', 'post_type', 'paged', 'product-page'), true)) {
+            continue;
+        }
+        if (0 !== strpos($key, 'filter_') && !in_array($key, array('orderby', 'layout'), true)) {
+            continue;
+        }
+        $args[$key] = wp_unslash($value);
+    }
+
+    wp_safe_redirect(add_query_arg($args, $shop_url), 302);
     exit;
-});
-
-function seo_search_render_results_page($keyword, $data, $filters) {
-    seo_search_enqueue_front_assets();
-
-    ob_start();
-    ?>
-    <main class="seo-search-page" id="seo-search-results">
-        <?php echo do_shortcode('[seo_search]'); ?>
-
-        <header class="seo-search-page-header">
-            <div>
-                <h1><?php printf(esc_html__('Resultados para “%s”', 'seo-search'), esc_html($keyword)); ?></h1>
-                <div class="seo-search-summary">
-                    <?php printf(esc_html(_n('%d producto encontrado', '%d productos encontrados', $data['total'], 'seo-search')), absint($data['total'])); ?>
-                </div>
-            </div>
-        </header>
-
-        <form class="seo-search-results-form" method="get" action="<?php echo esc_url(seo_search_results_url()); ?>">
-            <?php $param = seo_search_get_option('query_parameter', 'q'); ?>
-            <input type="hidden" name="<?php echo esc_attr($param); ?>" value="<?php echo esc_attr($keyword); ?>">
-            <input type="hidden" name="seo_search" value="1">
-
-            <div class="seo-search-toolbar">
-                <button class="seo-search-filter-toggle" type="button"><?php esc_html_e('Filtros', 'seo-search'); ?></button>
-                <div><?php esc_html_e('Afina los resultados con los filtros disponibles.', 'seo-search'); ?></div>
-                <div class="seo-search-toolbar-right">
-                    <label class="screen-reader-text" for="seo-search-orderby"><?php esc_html_e('Ordenar', 'seo-search'); ?></label>
-                    <select id="seo-search-orderby" class="seo-search-auto-submit" name="orderby">
-                        <?php
-                        $sorting = array(
-                            'relevance' => __('Relevancia', 'seo-search'),
-                            'date' => __('Más recientes', 'seo-search'),
-                            'price_asc' => __('Precio: menor a mayor', 'seo-search'),
-                            'price_desc' => __('Precio: mayor a menor', 'seo-search'),
-                            'title' => __('Nombre', 'seo-search'),
-                            'popularity' => __('Popularidad', 'seo-search'),
-                        );
-                        foreach ($sorting as $value => $label) {
-                            printf('<option value="%s"%s>%s</option>', esc_attr($value), selected($filters['orderby'], $value, false), esc_html($label));
-                        }
-                        ?>
-                    </select>
-                    <select class="seo-search-auto-submit" name="layout" aria-label="<?php esc_attr_e('Diseño', 'seo-search'); ?>">
-                        <option value="grid" <?php selected($filters['layout'], 'grid'); ?>><?php esc_html_e('Cuadrícula', 'seo-search'); ?></option>
-                        <option value="list" <?php selected($filters['layout'], 'list'); ?>><?php esc_html_e('Lista', 'seo-search'); ?></option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="seo-search-content">
-                <?php echo seo_search_render_filters($data['facets'], $filters, $keyword); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-
-                <section>
-                    <?php if ($data['query'] && $data['query']->have_posts()) : ?>
-                        <div class="seo-search-products <?php echo 'list' === $filters['layout'] ? 'is-list' : 'is-grid'; ?>">
-                            <?php
-                            while ($data['query']->have_posts()) {
-                                $data['query']->the_post();
-                                echo seo_search_render_product_card(get_the_ID()); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-                            }
-                            wp_reset_postdata();
-                            ?>
-                        </div>
-                        <?php echo seo_search_render_pagination($data['pages'], max(1, absint(isset($_GET['product-page']) ? $_GET['product-page'] : 1))); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-                    <?php else : ?>
-                        <div class="seo-search-no-results">
-                            <h2><?php esc_html_e('No hay resultados', 'seo-search'); ?></h2>
-                            <p><?php echo esc_html(seo_search_get_option('no_results_text', '')); ?></p>
-                        </div>
-                    <?php endif; ?>
-                </section>
-            </div>
-        </form>
-    </main>
-    <?php
-    return ob_get_clean();
-}
-
-function seo_search_render_filters($facets, $filters, $keyword) {
-    $options = seo_search_get_options();
-    $has_filters = false;
-
-    ob_start();
-    ?>
-    <aside class="seo-search-sidebar" aria-label="<?php esc_attr_e('Filtros de productos', 'seo-search'); ?>">
-        <?php if (!empty($options['filter_categories']) && !empty($facets['categories'])) : $has_filters = true; ?>
-            <?php echo seo_search_render_single_select_filter(__('Categorías', 'seo-search'), 'filter_category', $facets['categories'], $filters['category']); // phpcs:ignore ?>
-        <?php endif; ?>
-
-        <?php if (!empty($options['filter_brand']) && !empty($facets['brands'])) : $has_filters = true; ?>
-            <?php echo seo_search_render_single_select_filter(__('Marca', 'seo-search'), 'filter_brand', $facets['brands'], $filters['brand']); // phpcs:ignore ?>
-        <?php endif; ?>
-
-        <?php if (!empty($options['filter_vocabulary']) && !empty($facets['vocabulary'])) : ?>
-            <?php foreach (seo_search_advanced_filter_groups() as $semantic_group => $semantic_label) :
-                $semantic_terms = isset($facets['vocabulary'][$semantic_group]) ? $facets['vocabulary'][$semantic_group] : array();
-                if (!$semantic_terms) {
-                    continue;
-                }
-                $has_filters = true;
-                $semantic_selected = !empty($filters['vocabulary'][$semantic_group][0]) ? $filters['vocabulary'][$semantic_group][0] : '';
-                echo seo_search_render_single_select_filter(
-                    $semantic_label,
-                    'filter_vocab[' . $semantic_group . ']',
-                    $semantic_terms,
-                    $semantic_selected
-                ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-            endforeach; ?>
-        <?php endif; ?>
-
-        <?php if (!empty($options['filter_attributes']) && !empty($facets['attributes'])) : $has_filters = true; ?>
-            <?php foreach ($facets['attributes'] as $taxonomy => $attribute) : ?>
-                <div class="seo-search-filter-group">
-                    <h3><?php echo esc_html($attribute['label']); ?></h3>
-                    <div class="seo-search-filter-list">
-                        <?php foreach (array_slice($attribute['terms'], 0, 40) as $term) : ?>
-                            <label>
-                                <span><input type="checkbox" name="filter_attr[<?php echo esc_attr($taxonomy); ?>][]" value="<?php echo esc_attr($term['slug']); ?>" <?php checked(in_array($term['slug'], isset($filters['attributes'][$taxonomy]) ? $filters['attributes'][$taxonomy] : array(), true)); ?>> <?php echo esc_html($term['name']); ?></span>
-                                <span class="seo-search-filter-count"><?php echo absint($term['count']); ?></span>
-                            </label>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-        <?php endif; ?>
-
-        <?php if (!empty($options['filter_price']) && ('' !== $facets['price']['min'] || '' !== $facets['price']['max'])) : $has_filters = true; ?>
-            <div class="seo-search-filter-group">
-                <h3><?php esc_html_e('Precio', 'seo-search'); ?></h3>
-                <div class="seo-search-price-fields">
-                    <input type="number" step="0.01" min="0" name="filter_min_price" value="<?php echo esc_attr($filters['min_price']); ?>" placeholder="<?php echo esc_attr($facets['price']['min']); ?>" aria-label="<?php esc_attr_e('Precio mínimo', 'seo-search'); ?>">
-                    <input type="number" step="0.01" min="0" name="filter_max_price" value="<?php echo esc_attr($filters['max_price']); ?>" placeholder="<?php echo esc_attr($facets['price']['max']); ?>" aria-label="<?php esc_attr_e('Precio máximo', 'seo-search'); ?>">
-                </div>
-            </div>
-        <?php endif; ?>
-
-        <?php if (!empty($options['filter_stock'])) : $has_filters = true; ?>
-            <div class="seo-search-filter-group">
-                <h3><?php esc_html_e('Disponibilidad', 'seo-search'); ?></h3>
-                <select name="filter_stock" style="width:100%">
-                    <option value=""><?php esc_html_e('Cualquier estado', 'seo-search'); ?></option>
-                    <option value="instock" <?php selected($filters['stock'], 'instock'); ?>><?php esc_html_e('En stock', 'seo-search'); ?></option>
-                    <option value="onbackorder" <?php selected($filters['stock'], 'onbackorder'); ?>><?php esc_html_e('Disponible bajo pedido', 'seo-search'); ?></option>
-                    <option value="outofstock" <?php selected($filters['stock'], 'outofstock'); ?>><?php esc_html_e('Agotado', 'seo-search'); ?></option>
-                </select>
-            </div>
-        <?php endif; ?>
-
-        <?php if ($has_filters) : ?>
-            <button class="seo-search-apply" type="submit"><?php esc_html_e('Aplicar filtros', 'seo-search'); ?></button>
-            <a class="seo-search-clear" href="<?php echo esc_url(add_query_arg(array(seo_search_get_option('query_parameter', 'q') => $keyword, 'seo_search' => 1), seo_search_results_url())); ?>"><?php esc_html_e('Limpiar filtros', 'seo-search'); ?></a>
-        <?php else : ?>
-            <p><?php esc_html_e('No hay filtros disponibles para esta búsqueda.', 'seo-search'); ?></p>
-        <?php endif; ?>
-    </aside>
-    <?php
-    return ob_get_clean();
-}
-
-function seo_search_render_single_select_filter($title, $name, $terms, $selected_value) {
-    ob_start();
-    ?>
-    <div class="seo-search-filter-group">
-        <h3><?php echo esc_html($title); ?></h3>
-        <div class="seo-search-filter-list">
-            <label>
-                <span><input type="radio" name="<?php echo esc_attr($name); ?>" value="" <?php checked('', $selected_value); ?>> <?php esc_html_e('Todas', 'seo-search'); ?></span>
-            </label>
-            <?php foreach (array_slice($terms, 0, 50) as $term) : ?>
-                <label>
-                    <span><input type="radio" name="<?php echo esc_attr($name); ?>" value="<?php echo esc_attr($term['slug']); ?>" <?php checked($term['slug'], $selected_value); ?>> <?php echo esc_html($term['name']); ?></span>
-                    <span class="seo-search-filter-count"><?php echo absint($term['count']); ?></span>
-                </label>
-            <?php endforeach; ?>
-        </div>
-    </div>
-    <?php
-    return ob_get_clean();
-}
-
-function seo_search_render_product_card($product_id) {
-    $product = wc_get_product($product_id);
-    if (!$product || !$product->is_visible()) {
-        return '';
-    }
-
-    $options = seo_search_get_options();
-    $classes = $product->is_in_stock() ? 'in-stock' : 'out-of-stock';
-    $stock_text = $product->is_in_stock() ? __('En stock', 'seo-search') : __('Agotado', 'seo-search');
-
-    ob_start();
-    ?>
-    <article class="seo-search-card">
-        <?php if (!empty($options['show_image'])) : ?>
-            <a class="seo-search-card-image" href="<?php echo esc_url(get_permalink($product_id)); ?>">
-                <?php echo wp_kses_post($product->get_image('woocommerce_thumbnail', array('loading' => 'lazy'))); ?>
-            </a>
-        <?php endif; ?>
-        <div class="seo-search-card-body">
-            <?php if (!empty($options['show_category'])) : ?>
-                <div class="seo-search-card-meta"><?php echo wp_kses_post(wc_get_product_category_list($product_id, ', ')); ?></div>
-            <?php endif; ?>
-            <h2 class="seo-search-card-title"><a href="<?php echo esc_url(get_permalink($product_id)); ?>"><?php echo esc_html(get_the_title($product_id)); ?></a></h2>
-            <?php if (!empty($options['show_sku']) && $product->get_sku()) : ?>
-                <div class="seo-search-card-meta"><?php printf(esc_html__('Ref. %s', 'seo-search'), esc_html($product->get_sku())); ?></div>
-            <?php endif; ?>
-            <?php if (!empty($options['show_excerpt'])) : ?>
-                <div class="seo-search-card-excerpt"><?php echo esc_html(wp_trim_words(get_post_field('post_excerpt', $product_id), 24)); ?></div>
-            <?php endif; ?>
-            <?php if (!empty($options['show_stock'])) : ?>
-                <div class="seo-search-stock <?php echo esc_attr($classes); ?>"><?php echo esc_html($stock_text); ?></div>
-            <?php endif; ?>
-            <?php if (!empty($options['show_price'])) : ?>
-                <div class="seo-search-card-price"><?php echo wp_kses_post($product->get_price_html()); ?></div>
-            <?php endif; ?>
-            <a class="seo-search-card-button" href="<?php echo esc_url(get_permalink($product_id)); ?>"><?php esc_html_e('Ver producto', 'seo-search'); ?></a>
-        </div>
-    </article>
-    <?php
-    return ob_get_clean();
-}
-
-function seo_search_render_pagination($total_pages, $current_page) {
-    if ($total_pages < 2) {
-        return '';
-    }
-
-    $base_url = remove_query_arg('product-page');
-    $links = paginate_links(array(
-        'base'      => esc_url_raw(add_query_arg('product-page', '%#%', $base_url)),
-        'format'    => '',
-        'current'   => max(1, $current_page),
-        'total'     => max(1, $total_pages),
-        'type'      => 'array',
-        'prev_text' => '←',
-        'next_text' => '→',
-    ));
-
-    return $links ? '<nav class="seo-search-pagination" aria-label="' . esc_attr__('Paginación', 'seo-search') . '">' . implode('', $links) . '</nav>' : '';
-}
+}, 1);
 
 /* =========================================================
    ADMINISTRACIÓN
