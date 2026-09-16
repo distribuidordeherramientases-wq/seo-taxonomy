@@ -1068,10 +1068,11 @@
                 '<div><b>Contexto secundario:</b> ' + escapeHtml(depContext.length ? depContext.join(' · ') : '—') + '</div>' +
                 '<div><b>Busca en campos:</b> ' + escapeHtml(depFields.length ? depFields.join(' · ') : '—') + '</div>' +
                 '<div><b>Rutas semánticas activas:</b> ' + escapeHtml(depRoutesText) + '</div>' +
-                '<div><b>Estrategia:</b> ' + escapeHtml(String(dep.strategy || '—')) + ' · <b>Extensiva:</b> ' + escapeHtml(String(dep.extended_search || '—')) + '</div>' +
+                '<div><b>Estrategia:</b> ' + escapeHtml(String(dep.strategy || '—')) + ' · <b>Índice completo:</b> ' + escapeHtml(String(dep.extended_search || '—')) + '</div>' +
                 '<div><b>Base léxica:</b> título ' + escapeHtml(String(dep.lexical_identity_title_rows || 0)) + ' · categoría ' + escapeHtml(String(dep.lexical_identity_category_rows || 0)) + ' · mostrador ' + escapeHtml(String(dep.lexical_identity_rows || 0)) + '</div>' +
                 '<div><b>Fuente del mostrador:</b> ' + escapeHtml(String(dep.presentation_source || 'ranking')) + '</div>' +
-                '<div><b>Comprobación auxiliar:</b> IDs ' + escapeHtml(String(dep.live_identity_ids || 0)) + ' · índice ' + escapeHtml(String(dep.index_identity_rows || 0)) + ' · válidas ' + escapeHtml(String(dep.primary_identity_count || 0)) + '</div>' +
+                '<div><b>Catálogo vivo:</b> IDs ' + escapeHtml(String(dep.live_catalog_ids || 0)) + ' · indexados ' + escapeHtml(String(dep.live_catalog_rows || 0)) + ' · reparados ' + escapeHtml(String(dep.live_catalog_reindexed || 0)) + ' · fuente ' + escapeHtml(String(dep.live_catalog_source || 'none')) + '</div>' +
+                '<div><b>Validación técnica:</b> antes ' + escapeHtml(String(dep.matched_rows_before_live_validation || 0)) + ' · después ' + escapeHtml(String(dep.matched_rows || 0)) + '</div>' +
                 '<div><b>Candidatos:</b> primarios ' + escapeHtml(String(dep.primary_rows || 0)) + ' · recuperados ' + escapeHtml(String(dep.candidate_rows || 0)) + ' · puntuados ' + escapeHtml(String(dep.matched_rows || 0)) + '</div>' +
                 '<div><b>Descubrimiento:</b> ' + escapeHtml(String(dep.discovery_source || '—')) + ' · candidatos ' + escapeHtml(String(dep.discovery_candidates || 0)) + ' · categorías ' + escapeHtml(String(dep.discovery_categories || 0)) + '</div>' +
                 '<div><b>Filas SIN FILTRAR pedidas:</b> ' + escapeHtml(String(dep.unfiltered_primary_count || depUnfilteredRows.length || 0)) + '</div>' +
