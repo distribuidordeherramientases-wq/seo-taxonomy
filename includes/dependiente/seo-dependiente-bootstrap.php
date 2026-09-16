@@ -1,22 +1,29 @@
 <?php
 /**
- * Dependiente 3.0 - bootstrap hibrido.
+ * Dependiente V3 - bootstrap hibrido con infraestructura legacy completa.
  *
- * V3 es el runtime publico/decisor del Dependiente.
- * El runtime historico se conserva como soporte de administracion,
- * informes, Academia, Interprete, conocimiento y tareas de mantenimiento.
+ * OBJETIVO
+ * -------
+ * Mantener TODO el ecosistema historico de Dependiente que no es el buscador
+ * publico: Academia, Interprete/Linguista, conocimiento, aprendizaje,
+ * indexacion y reindexacion, mantenimiento incremental del indice, supervisor
+ * de procesos, import/export, diagnostico, auditoria, ayuda, etc.
  *
- * IMPORTANTE:
- * - Se carga la clase SEO_Dependiente_Plugin porque el panel legacy usa
- *   algunos de sus metodos estaticos (reindexacion, estado, etc.).
- * - NO se ejecuta SEO_Dependiente_Plugin::instance(), para evitar que el
- *   runtime publico antiguo registre shortcodes, endpoints REST, plantillas
- *   y busqueda en paralelo con V3.
+ * Solo se sustituye el runtime publico de busqueda por Dependiente V3:
+ * - UI/shortcodes publicos -> V3
+ * - plantilla publica       -> V3
+ * - assets publicos         -> V3
+ * - endpoint de busqueda    -> /seo-taxonomy/v3/search
+ *
+ * El core legacy SI se instancia para conservar sus hooks de infraestructura.
+ * Inmediatamente despues se desactivan unicamente sus hooks de UI/busqueda
+ * publica. De este modo no perdemos servicios auxiliares cada vez que V3
+ * sustituye el algoritmo de busqueda.
  */
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_DEPENDIENTE_VERSION')) {
-    define('SEO_DEPENDIENTE_VERSION', '3.0.0');
+    define('SEO_DEPENDIENTE_VERSION', '3.0.3');
 }
 if (!defined('SEO_DEPENDIENTE_DB_VERSION')) {
     define('SEO_DEPENDIENTE_DB_VERSION', '0.4.0');
@@ -28,9 +35,8 @@ if (!defined('SEO_DEPENDIENTE_URL')) {
     define('SEO_DEPENDIENTE_URL', SEO_SYSTEM_URL . 'includes/dependiente/');
 }
 
-// Diagnostico/puente del Interprete historico para Academia y administracion.
-// No convierte al runtime legacy en el buscador publico porque el core antiguo
-// no se instancia en este bootstrap.
+// El Interprete historico sigue disponible para Academia, diagnostico,
+// Linguista y conocimiento. La busqueda publica la decide V3.
 if (!defined('SEO_DEPENDIENTE_INTERPRETER_LOG')) {
     define('SEO_DEPENDIENTE_INTERPRETER_LOG', true);
 }
@@ -40,13 +46,11 @@ if (!defined('SEO_DEPENDIENTE_INTERPRETER_ASSIST')) {
 
 /*
  * -------------------------------------------------------------------------
- * SOPORTE LEGACY: admin, informes, Academia y conocimiento
+ * INFRAESTRUCTURA HISTORICA COMPLETA
  * -------------------------------------------------------------------------
- * Estas clases siguen siendo necesarias para la interfaz administrativa y
- * para los workers de Academia. El API legacy se carga como clase porque
- * Academia lo usa internamente, pero sus rutas REST publicas NO se registran:
- * ese registro dependia de SEO_Dependiente_Plugin::instance(), que aqui no
- * se ejecuta.
+ * Se mantiene el mismo conjunto de modulos que utilizaba Dependiente antes de
+ * V3. No duplicamos su logica: cargamos e instanciamos el core original y
+ * despues apagamos solamente su superficie publica de busqueda.
  */
 require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-index.php';
 require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-semantics.php';
@@ -82,15 +86,66 @@ require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-knowledge-transfer.php';
 require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-admin.php';
 require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-core.php';
 
-// El core legacy ya no se instancia. Solo recuperamos sus hooks de admin.
-if (is_admin() && class_exists('SEO_Dependiente_Admin')) {
-    SEO_Dependiente_Admin::init();
-}
+/*
+ * Instanciamos el core legacy porque su constructor no solo contenia el
+ * buscador: tambien registra upgrades, pagina, AJAX/admin, indexacion al
+ * guardar productos, borrado del indice, reindexacion en segundo plano y
+ * conexion con el Gestor de procesos.
+ */
+$seo_dependiente_legacy = SEO_Dependiente_Plugin::instance();
 
 /*
  * -------------------------------------------------------------------------
- * RUNTIME V3: buscador / interprete / catalogo / decisor publico
+ * DESACTIVAR SOLO LA SUPERFICIE PUBLICA LEGACY
  * -------------------------------------------------------------------------
+ * Conservamos todos los hooks de infraestructura registrados por el core.
+ * Quitamos exclusivamente los que harian convivir la UI/busqueda antigua con
+ * V3.
+ */
+if (is_object($seo_dependiente_legacy)) {
+    // Los shortcodes publicos los registra V3.
+    remove_action('init', array($seo_dependiente_legacy, 'register_shortcode'), 10);
+
+    // La pagina publica usa la plantilla V3.
+    remove_filter('template_include', array($seo_dependiente_legacy, 'template_include'), 99);
+
+    // Robots y assets de la pagina publica pasan a V3.
+    remove_filter('wp_robots', array($seo_dependiente_legacy, 'filter_query_state_robots'), 99);
+    remove_action('wp_enqueue_scripts', array($seo_dependiente_legacy, 'enqueue_page_assets'), 20);
+
+    // Proteccion para cargas extraordinariamente tardias.
+    remove_shortcode('dependiente_productos');
+    remove_shortcode('dependiente');
+}
+
+/*
+ * El API v1 legacy contiene mas cosas que la busqueda (feedback, ayuda,
+ * comparacion, bootstrap). Lo conservamos para no amputar funcionalidades
+ * auxiliares, pero retiramos EXCLUSIVAMENTE /v1/search.
+ *
+ * V3 registra su busqueda en /seo-taxonomy/v3/search.
+ */
+add_action('rest_api_init', static function () {
+    if (function_exists('unregister_rest_route')) {
+        unregister_rest_route('seo-taxonomy/v1', '/search');
+    }
+}, 999);
+
+// Fallback compatible: aunque unregister_rest_route no exista, el endpoint
+// antiguo de busqueda no se publica en el mapa final de REST.
+add_filter('rest_endpoints', static function ($endpoints) {
+    if (is_array($endpoints)) {
+        unset($endpoints['/seo-taxonomy/v1/search']);
+    }
+    return $endpoints;
+}, PHP_INT_MAX);
+
+/*
+ * -------------------------------------------------------------------------
+ * RUNTIME PUBLICO V3
+ * -------------------------------------------------------------------------
+ * Esta es la unica capa que sustituye al Dependiente antiguo: interpretacion
+ * de la consulta para V3, recuperacion, ranking, API de busqueda y frontend.
  */
 if (!defined('SEO_DEPENDIENTE_V3_PATH')) {
     define('SEO_DEPENDIENTE_V3_PATH', __DIR__ . '/v3/');
