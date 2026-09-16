@@ -69,7 +69,7 @@
         };
 
         bindEvents();
-        renderLoadingMenus();
+        removeDefaultExplorationSections();
         loadBootstrap();
         renderCompareTray();
 
@@ -302,19 +302,40 @@
                 const data = await api('bootstrap', { method: 'GET' });
                 state.bootstrap = data;
                 renderExamples(data.examples || []);
-                renderVisualMenu(elements.actions, data.actions || [], 'need');
-                renderVisualMenu(elements.tools, data.tools || [], 'tool');
+                // Los antiguos escaparates generales (tipo de tarea / herramienta
+                // o sistema) no participan en la consulta y se han retirado de la
+                // experiencia. Dependiente muestra solo opciones nacidas de la
+                // busqueda actual.
+                removeDefaultExplorationSections();
             } catch (error) {
-                renderMenuError(elements.actions);
-                renderMenuError(elements.tools);
+                removeDefaultExplorationSections();
             }
         }
 
-        function renderLoadingMenus() {
+        function removeDefaultExplorationSections() {
+            const headings = root.querySelectorAll('h1,h2,h3,h4,h5');
+            headings.forEach(function (heading) {
+                const text = String(heading.textContent || '').trim().toLowerCase();
+                if (text !== 'explora por tipo de tarea' && text !== 'explora por herramienta o sistema') {
+                    return;
+                }
+                const section = heading.closest('section') || heading.parentElement;
+                if (section && section !== root) {
+                    section.remove();
+                } else {
+                    heading.remove();
+                }
+            });
+
             [elements.actions, elements.tools].forEach(function (container) {
-                container.innerHTML = Array.from({ length: 4 }).map(function () {
-                    return '<div class="seo-dependiente__visual-card seo-dependiente__skeleton" aria-hidden="true"></div>';
-                }).join('');
+                if (!container || !container.isConnected) return;
+                const section = container.closest('section');
+                if (section && section !== root) {
+                    section.remove();
+                } else {
+                    container.hidden = true;
+                    container.innerHTML = '';
+                }
             });
         }
 
@@ -403,6 +424,11 @@
                 elements.related.hidden = true;
                 elements.related.innerHTML = '';
             }
+            const previousCandidates = root.querySelector('[data-dependiente-candidate-products]');
+            if (previousCandidates) {
+                previousCandidates.hidden = true;
+                previousCandidates.innerHTML = '';
+            }
             state.amazonRequestId += 1;
             clearAmazon();
             elements.status.textContent = config.labels && config.labels.loading ? config.labels.loading : 'Revisando el catálogo…';
@@ -440,6 +466,7 @@
                 renderFilters(data.facets || {});
                 renderActiveFilters();
                 renderResults(data.results || [], data);
+                renderCandidateProducts(data.candidate_products || []);
                 renderRelated(data.related || [], Number(data.total || 0));
                 renderPagination(data.page || 1, data.pages || 0, (data.results || []).length);
                 loadAmazonFallback(data.external_fallback || null);
@@ -456,6 +483,11 @@
                 if (elements.related) {
                     elements.related.hidden = true;
                     elements.related.innerHTML = '';
+                }
+                const candidateBlock = root.querySelector('[data-dependiente-candidate-products]');
+                if (candidateBlock) {
+                    candidateBlock.hidden = true;
+                    candidateBlock.innerHTML = '';
                 }
                 clearAmazon();
                 clearFeedbackPrompt();
@@ -1200,8 +1232,12 @@
             }).join('');
 
             const cards = categories.map(function (card) {
-                const imageClass = card.image_kind === 'logo' ? ' seo-dependiente__visual-card--logo' : '';
-                const inner = '<img src="' + escapeAttr(card.image || config.placeholderImage || '') + '" alt="" loading="lazy" decoding="async">' +
+                const imageUrl = String(card.image || '');
+                const isPlaceholder = !imageUrl || /woocommerce-placeholder|\/placeholder\./i.test(imageUrl);
+                const hasUsefulImage = !isPlaceholder && card.image_kind !== 'none';
+                const imageClass = hasUsefulImage && card.image_kind === 'logo' ? ' seo-dependiente__visual-card--logo' : (hasUsefulImage ? '' : ' seo-dependiente__visual-card--text-only');
+                const media = hasUsefulImage ? '<img src="' + escapeAttr(imageUrl) + '" alt="" loading="lazy" decoding="async">' : '';
+                const inner = media +
                     '<span class="seo-dependiente__visual-card-arrow" aria-hidden="true">↗</span>' +
                     '<span class="seo-dependiente__visual-card-content"><strong>' + escapeHtml(card.label || '') + '</strong><small>' + numberFormat(card.count || 0) + ' opciones</small></span>';
 
@@ -1494,6 +1530,36 @@
                     '<div class="seo-dependiente__amazon-foot"><strong>' + escapeHtml(product.price || 'Consultar en Amazon') + '</strong><a href="' + escapeAttr(product.url || '#') + '" target="_blank" rel="sponsored nofollow noopener">Ver en Amazon ↗</a></div>' +
                 '</div>' +
             '</article>';
+        }
+
+        function renderCandidateProducts(products) {
+            let container = root.querySelector('[data-dependiente-candidate-products]');
+            if (!container) {
+                container = document.createElement('section');
+                container.setAttribute('data-dependiente-candidate-products', '');
+                container.className = 'seo-dependiente__candidate-products';
+                // Debe quedar antes de Guías y soluciones. Si existe el carril
+                // editorial, insertamos el bloque justo delante.
+                if (elements.related && elements.related.parentNode) {
+                    elements.related.parentNode.insertBefore(container, elements.related);
+                } else if (elements.workspace) {
+                    elements.workspace.appendChild(container);
+                }
+            }
+
+            if (!Array.isArray(products) || !products.length) {
+                container.hidden = true;
+                container.innerHTML = '';
+                return;
+            }
+
+            const cards = products.slice(0, 12).map(function (product, index) {
+                return renderProductCard(product, index + 1);
+            }).join('');
+
+            container.innerHTML = '<div class="seo-dependiente__results-heading" style="margin:0 0 14px"><small>Productos encontrados por Dependiente</small><strong>Mejor puntuación entre los candidatos</strong></div>' +
+                '<div class="seo-dependiente__candidate-product-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">' + cards + '</div>';
+            container.hidden = false;
         }
 
         function renderRelated(items, totalResults) {
