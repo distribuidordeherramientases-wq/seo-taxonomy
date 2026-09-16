@@ -470,6 +470,19 @@ final class SEO_Dependiente_API {
                 $debug_title = $debug_product instanceof WC_Product
                     ? $debug_product->get_name()
                     : (string) ($debug_document['normalized_title'] ?? '');
+
+                // El ranking normal conserva solo escalares. Para el log de staging
+                // volvemos a calcular el MISMO score de estos 20 productos y extraemos
+                // su desglose. Así el diagnóstico no infla cientos/miles de candidatos.
+                $debug_score = self::score_document(
+                    $debug_document,
+                    $query,
+                    $tokens,
+                    $filters,
+                    $mode,
+                    $semantic,
+                    $assist_profile
+                );
                 $top_debug_matches[] = array(
                     'id'       => absint($debug_document['product_id'] ?? 0),
                     'title'    => sanitize_text_field((string) $debug_title),
@@ -486,7 +499,7 @@ final class SEO_Dependiente_API {
                             'points' => round((float) ($part['points'] ?? 0), 4),
                             'detail' => sanitize_text_field((string) ($part['detail'] ?? '')),
                         );
-                    }, (array) ($debug_document['_score_parts'] ?? array())), 0, 40)),
+                    }, (array) ($debug_score['score_parts'] ?? array())), 0, 40)),
                     'tier'     => sanitize_key((string) ($debug_document['_search_tier'] ?? '')),
                     'survives_live_validation' => isset($final_debug_ids[absint($debug_document['product_id'] ?? 0)]) ? 1 : 0,
                 );
@@ -1729,7 +1742,10 @@ final class SEO_Dependiente_API {
             $score = self::score_document($document, $query, $tokens, $filters, $mode, $semantic, $assist_profile);
             $document['_score'] = $score['score'];
             $document['_reasons'] = $score['reasons'];
-            $document['_score_parts'] = array_values((array) ($score['score_parts'] ?? array()));
+            // No guardamos el desglose completo en TODOS los candidatos. En
+            // consultas amplias puede haber mas de mil productos y cada array de
+            // score_parts multiplica memoria y tiempo sin aportar nada al ranking.
+            // El desglose de staging se recalcula solo para los primeros resultados.
             $document['_object_hits'] = absint($score['object_hits'] ?? 0);
             $document['_route_hits'] = absint($score['route_hits'] ?? 0);
             $document['_coverage'] = absint($score['coverage'] ?? 0);
