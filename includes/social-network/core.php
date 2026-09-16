@@ -119,6 +119,13 @@ function seo_social_network_default_settings()
                 'page_name'                => '',
                 'page_link'                => '',
                 'publish_mode'             => 'image',
+                // Comercio / Merchant: verificacion de dominio sin plugin externo.
+                'domain_verify_enabled'    => 0,
+                'domain_verify_code'       => '',
+                'catalog_feed_url'         => '',
+                'merchant_last_test_at'    => '',
+                'merchant_last_test_ok'    => 0,
+                'merchant_last_test_error' => '',
                 'last_test_at'             => '',
                 'last_test_ok'             => 0,
                 'last_test_error'          => '',
@@ -875,10 +882,29 @@ function seo_social_network_handle_disconnect()
     $settings = seo_social_network_get_settings();
 
     if (isset($settings['providers'][$provider_key])) {
+        $current_provider = is_array($settings['providers'][$provider_key]) ? $settings['providers'][$provider_key] : array();
         $defaults = seo_social_network_default_settings();
         $settings['providers'][$provider_key] = isset($defaults['providers'][$provider_key])
             ? $defaults['providers'][$provider_key]
             : array('enabled' => 0);
+
+        // Desconectar la API social de Pinterest no debe retirar la verificacion
+        // Merchant del dominio ni el feed configurado en Conexiones.
+        if ('pinterest' === $provider_key) {
+            foreach (array(
+                'domain_verify_enabled',
+                'domain_verify_code',
+                'catalog_feed_url',
+                'merchant_last_test_at',
+                'merchant_last_test_ok',
+                'merchant_last_test_error',
+            ) as $merchant_key) {
+                if (array_key_exists($merchant_key, $current_provider)) {
+                    $settings['providers'][$provider_key][$merchant_key] = $current_provider[$merchant_key];
+                }
+            }
+        }
+
         seo_social_network_save_settings($settings);
     }
 
