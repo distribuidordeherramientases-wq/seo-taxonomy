@@ -990,6 +990,9 @@
             const depFields = Array.isArray(dep.catalog_fields) ? dep.catalog_fields : [];
             const depRoutes = Array.isArray(dep.semantic_routes) ? dep.semantic_routes : [];
             const depMatches = Array.isArray(dep.top_matches) ? dep.top_matches : [];
+            const depCategoryRanking = Array.isArray(dep.category_ranking) ? dep.category_ranking : [];
+            const depFilterRejections = Array.isArray(dep.ranking_filter_rejections) ? dep.ranking_filter_rejections : [];
+            const depLiveRejections = Array.isArray(dep.live_validation_rejections) ? dep.live_validation_rejections : [];
             const depUnfilteredRows = Array.isArray(dep.unfiltered_primary_rows) ? dep.unfiltered_primary_rows : [];
             const depAssist = dep.assist_profile && typeof dep.assist_profile === 'object' ? dep.assist_profile : {};
             const depIdentity = Array.isArray(depAssist.identity_terms) ? depAssist.identity_terms.filter(Boolean) : [];
@@ -1013,16 +1016,69 @@
                 const role = route && route.role ? ' (' + String(route.role) + ')' : '';
                 return group + ': ' + term + role;
             }).filter(Boolean).join(' | ') : '—';
-            const depMatchesHtml = depMatches.length ? '<div style="margin-top:5px"><b>Primeros productos puntuados:</b>' + depMatches.map(function (item) {
-                const reasons = item && Array.isArray(item.reasons) ? item.reasons.filter(Boolean).join(', ') : '';
-                const score = item && item.score !== undefined ? String(item.score) : '0';
-                const coverage = item && item.coverage !== undefined ? String(item.coverage) : '0';
-                const identityHits = item && item.identity_hits !== undefined ? String(item.identity_hits) : '0';
-                const identitySources = item && Array.isArray(item.identity_sources) ? item.identity_sources.filter(Boolean).join(' | ') : '';
-                const vocabularyHits = item && item.vocabulary_hits !== undefined ? String(item.vocabulary_hits) : '0';
-                const actionHits = item && item.action_hits !== undefined ? String(item.action_hits) : '0';
-                return '<div style="margin-left:8px">• ' + escapeHtml(String(item.title || ('#' + String(item.id || '')))) + ' · score ' + escapeHtml(score) + ' · cobertura ' + escapeHtml(coverage) + ' · identidad ' + escapeHtml(identityHits) + (identitySources ? ' [' + escapeHtml(identitySources) + ']' : '') + ' · vocab ' + escapeHtml(vocabularyHits) + ' · acción ' + escapeHtml(actionHits) + (reasons ? ' · ' + escapeHtml(reasons) : '') + '</div>';
-            }).join('') + '</div>' : '';
+            const depMatchesHtml = depMatches.length ?
+                '<details open style="margin-top:10px"><summary style="cursor:pointer;font-weight:700">PUNTUACIÓN DEL RANKING POSTERIOR (' + escapeHtml(String(depMatches.length)) + ' primeros)</summary>' +
+                '<div style="margin:6px 0 7px">Aquí se ve exactamente por qué cada producto recibe su puntuación. Los componentes se suman al score total.</div>' +
+                '<div style="max-height:620px;overflow:auto;border:1px solid #d9dfda;border-radius:7px;background:#fff">' +
+                '<table style="width:100%;border-collapse:collapse;font-size:11px;line-height:1.35"><thead><tr>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:left;border-bottom:1px solid #d9dfda">#</th>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:left;border-bottom:1px solid #d9dfda">ID</th>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:left;border-bottom:1px solid #d9dfda">Producto</th>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:right;border-bottom:1px solid #d9dfda">Score</th>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:left;border-bottom:1px solid #d9dfda">Estado</th>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:left;border-bottom:1px solid #d9dfda">Desglose exacto</th>' +
+                '</tr></thead><tbody>' + depMatches.map(function (item, idx) {
+                    const parts = item && Array.isArray(item.score_parts) ? item.score_parts : [];
+                    const breakdown = parts.length ? parts.map(function (part) {
+                        const label = part && part.label ? String(part.label) : 'Puntos';
+                        const points = part && part.points !== undefined ? Number(part.points) : 0;
+                        const detail = part && part.detail ? ' [' + String(part.detail) + ']' : '';
+                        return label + ' +' + String(points) + detail;
+                    }).join(' | ') : 'Sin desglose disponible';
+                    return '<tr>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top">' + escapeHtml(String(idx + 1)) + '</td>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top">' + escapeHtml(String(item.id || '')) + '</td>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top;font-weight:600">' + escapeHtml(String(item.title || '')) + '</td>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top;text-align:right;font-weight:700">' + escapeHtml(String(item.score !== undefined ? item.score : 0)) + '</td>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top">' + escapeHtml((item.survives_live_validation ? 'final' : 'descartado técnico') + (item.tier ? ' · ' + String(item.tier) : '')) + '</td>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top">' + escapeHtml(breakdown) + '</td>' +
+                    '</tr>';
+                }).join('') + '</tbody></table></div></details>' : '';
+
+            const depFilterRejectHtml = (depFilterRejections.length || depLiveRejections.length) ?
+                '<details style="margin-top:10px"><summary style="cursor:pointer;font-weight:700">PRODUCTOS DESCARTADOS DESPUÉS DE RECUPERARLOS</summary>' +
+                '<div style="margin:6px 0"><b>Filtros elegidos por el usuario:</b> ' + escapeHtml(String(dep.ranking_filtered_out || 0)) + ' descartados antes de puntuar. <b>Validación técnica:</b> ' + escapeHtml(String(dep.live_validation_rejected_rows || 0)) + ' descartados después de puntuar.</div>' +
+                (depFilterRejections.length ? '<div><b>Por filtros:</b>' + depFilterRejections.map(function (item) {
+                    const reasons = item && Array.isArray(item.reasons) ? item.reasons.filter(Boolean).join(' | ') : 'Sin motivo registrado';
+                    return '<div style="margin-left:8px">• #' + escapeHtml(String(item.id || '')) + ' ' + escapeHtml(String(item.title || '')) + ' → ' + escapeHtml(reasons) + '</div>';
+                }).join('') + '</div>' : '') +
+                (depLiveRejections.length ? '<div style="margin-top:5px"><b>Por validación técnica:</b>' + depLiveRejections.map(function (item) {
+                    return '<div style="margin-left:8px">• #' + escapeHtml(String(item.id || '')) + ' ' + escapeHtml(String(item.title || '')) + ' → ' + escapeHtml(String(item.reason || '')) + '</div>';
+                }).join('') + '</div>' : '') +
+                '</details>' : '';
+
+            const depCategoryRankingHtml = depCategoryRanking.length ?
+                '<details open style="margin-top:10px"><summary style="cursor:pointer;font-weight:700">ORDEN DE CATEGORÍAS (' + escapeHtml(String(depCategoryRanking.length)) + ' primeras)</summary>' +
+                '<div style="margin:6px 0 7px"><b>Regla actual:</b> las categorías no reciben un score independiente; se ordenan por la primera aparición de uno de sus productos dentro del ranking final.</div>' +
+                '<div style="max-height:420px;overflow:auto;border:1px solid #d9dfda;border-radius:7px;background:#fff">' +
+                '<table style="width:100%;border-collapse:collapse;font-size:11px;line-height:1.35"><thead><tr>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:left;border-bottom:1px solid #d9dfda">#</th>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:left;border-bottom:1px solid #d9dfda">Categoría</th>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:right;border-bottom:1px solid #d9dfda">Productos</th>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:right;border-bottom:1px solid #d9dfda">Primer producto #</th>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:right;border-bottom:1px solid #d9dfda">Score de ese producto</th>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:left;border-bottom:1px solid #d9dfda">Producto que la coloca</th>' +
+                '</tr></thead><tbody>' + depCategoryRanking.map(function (item, idx) {
+                    return '<tr>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top">' + escapeHtml(String(idx + 1)) + '</td>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top;font-weight:600">' + escapeHtml(String(item.label || item.slug || '')) + '</td>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top;text-align:right">' + escapeHtml(String(item.count || 0)) + '</td>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top;text-align:right">' + escapeHtml(String(item.first_product_rank || '—')) + '</td>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top;text-align:right">' + escapeHtml(String(item.best_product_score || 0)) + '</td>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top">' + escapeHtml(String(item.best_product_title || '—')) + '</td>' +
+                    '</tr>';
+                }).join('') + '</tbody></table></div></details>' : '';
+
 
             // Tabla STAGING de TODAS las filas de la primera pasada. No usa
             // score, elegibilidad, `válidos`, filtros ni serialización de tarjetas.
@@ -1072,12 +1128,15 @@
                 '<div><b>Base léxica:</b> título ' + escapeHtml(String(dep.lexical_identity_title_rows || 0)) + ' · categoría ' + escapeHtml(String(dep.lexical_identity_category_rows || 0)) + ' · mostrador ' + escapeHtml(String(dep.lexical_identity_rows || 0)) + '</div>' +
                 '<div><b>Fuente del mostrador:</b> ' + escapeHtml(String(dep.presentation_source || 'ranking')) + '</div>' +
                 '<div><b>Catálogo vivo:</b> IDs ' + escapeHtml(String(dep.live_catalog_ids || 0)) + ' · indexados ' + escapeHtml(String(dep.live_catalog_rows || 0)) + ' · reparados ' + escapeHtml(String(dep.live_catalog_reindexed || 0)) + ' · fuente ' + escapeHtml(String(dep.live_catalog_source || 'none')) + '</div>' +
-                '<div><b>Validación técnica:</b> antes ' + escapeHtml(String(dep.matched_rows_before_live_validation || 0)) + ' · después ' + escapeHtml(String(dep.matched_rows || 0)) + '</div>' +
-                '<div><b>Candidatos:</b> primarios ' + escapeHtml(String(dep.primary_rows || 0)) + ' · recuperados ' + escapeHtml(String(dep.candidate_rows || 0)) + ' · puntuados ' + escapeHtml(String(dep.matched_rows || 0)) + '</div>' +
+                '<div><b>Filtro/ranking posterior:</b> entrada ' + escapeHtml(String(dep.ranking_input_rows || dep.candidate_rows || 0)) + ' · descartados por filtros ' + escapeHtml(String(dep.ranking_filtered_out || 0)) + ' · puntuados ' + escapeHtml(String(dep.ranking_scored_rows || 0)) + '</div>' +
+                '<div><b>Validación técnica:</b> antes ' + escapeHtml(String(dep.matched_rows_before_live_validation || 0)) + ' · descartados ' + escapeHtml(String(dep.live_validation_rejected_rows || 0)) + ' · después ' + escapeHtml(String(dep.matched_rows || 0)) + '</div>' +
+                '<div><b>Candidatos:</b> primarios ' + escapeHtml(String(dep.primary_rows || 0)) + ' · recuperados ' + escapeHtml(String(dep.candidate_rows || 0)) + ' · finales ' + escapeHtml(String(dep.matched_rows || 0)) + '</div>' +
                 '<div><b>Descubrimiento:</b> ' + escapeHtml(String(dep.discovery_source || '—')) + ' · candidatos ' + escapeHtml(String(dep.discovery_candidates || 0)) + ' · categorías ' + escapeHtml(String(dep.discovery_categories || 0)) + '</div>' +
                 '<div><b>Filas SIN FILTRAR pedidas:</b> ' + escapeHtml(String(dep.unfiltered_primary_count || depUnfilteredRows.length || 0)) + '</div>' +
                 depUnfilteredHtml +
                 depMatchesHtml +
+                depCategoryRankingHtml +
+                depFilterRejectHtml +
                 '</div>';
         }
 
