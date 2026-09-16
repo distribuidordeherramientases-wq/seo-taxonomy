@@ -958,6 +958,7 @@
             const depFields = Array.isArray(dep.catalog_fields) ? dep.catalog_fields : [];
             const depRoutes = Array.isArray(dep.semantic_routes) ? dep.semantic_routes : [];
             const depMatches = Array.isArray(dep.top_matches) ? dep.top_matches : [];
+            const depUnfilteredRows = Array.isArray(dep.unfiltered_primary_rows) ? dep.unfiltered_primary_rows : [];
             const depAssist = dep.assist_profile && typeof dep.assist_profile === 'object' ? dep.assist_profile : {};
             const depIdentity = Array.isArray(depAssist.identity_terms) ? depAssist.identity_terms.filter(Boolean) : [];
             const depVocabulary = Array.isArray(depAssist.vocabulary_terms) ? depAssist.vocabulary_terms.filter(Boolean) : [];
@@ -990,6 +991,27 @@
                 const actionHits = item && item.action_hits !== undefined ? String(item.action_hits) : '0';
                 return '<div style="margin-left:8px">• ' + escapeHtml(String(item.title || ('#' + String(item.id || '')))) + ' · score ' + escapeHtml(score) + ' · cobertura ' + escapeHtml(coverage) + ' · identidad ' + escapeHtml(identityHits) + (identitySources ? ' [' + escapeHtml(identitySources) + ']' : '') + ' · vocab ' + escapeHtml(vocabularyHits) + ' · acción ' + escapeHtml(actionHits) + (reasons ? ' · ' + escapeHtml(reasons) : '') + '</div>';
             }).join('') + '</div>' : '';
+
+            // Tabla STAGING de TODAS las filas de la primera pasada. No usa
+            // score, elegibilidad, `válidos`, filtros ni serialización de tarjetas.
+            const depUnfilteredHtml = depUnfilteredRows.length ?
+                '<details open style="margin-top:10px"><summary style="cursor:pointer;font-weight:700">PRODUCTOS DEL ÍNDICE SIN FILTRAR (' + escapeHtml(String(depUnfilteredRows.length)) + ')</summary>' +
+                '<div style="margin:6px 0 5px"><b>Sin filtrar:</b> estas son exactamente las filas de la primera pasada antes de cualquier validación o ranking.</div>' +
+                '<div style="max-height:520px;overflow:auto;border:1px solid #d9dfda;border-radius:7px;background:#fff">' +
+                '<table style="width:100%;border-collapse:collapse;font-size:11px;line-height:1.35"><thead><tr>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:left;border-bottom:1px solid #d9dfda">#</th>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:left;border-bottom:1px solid #d9dfda">ID</th>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:left;border-bottom:1px solid #d9dfda">Producto</th>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:left;border-bottom:1px solid #d9dfda">Categorías del índice</th>' +
+                '</tr></thead><tbody>' + depUnfilteredRows.map(function (item) {
+                    const categories = item && Array.isArray(item.categories) ? item.categories.filter(Boolean).join(' · ') : '';
+                    return '<tr>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top">' + escapeHtml(String(item.position || '')) + '</td>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top">' + escapeHtml(String(item.id || '')) + '</td>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top;font-weight:600">' + escapeHtml(String(item.title || '')) + '</td>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top">' + escapeHtml(categories || '—') + '</td>' +
+                    '</tr>';
+                }).join('') + '</tbody></table></div></details>' : '';
             return '<div class="seo-dependiente__interpreter-log" style="margin:14px 0;padding:12px;border:1px dashed #9aa59d;border-radius:10px;background:#f8faf8;font-size:12px;line-height:1.45;overflow-wrap:anywhere">' +
                 '<strong style="display:block;margin-bottom:7px">LOG INTÉRPRETE · STAGING</strong>' +
                 '<div><b>Cliente:</b> ' + escapeHtml(String(debug.raw_query || '—')) + '</div>' +
@@ -1019,6 +1041,9 @@
                 '<div><b>Fuente del mostrador:</b> ' + escapeHtml(String(dep.presentation_source || 'ranking')) + '</div>' +
                 '<div><b>Comprobación auxiliar:</b> IDs ' + escapeHtml(String(dep.live_identity_ids || 0)) + ' · índice ' + escapeHtml(String(dep.index_identity_rows || 0)) + ' · válidas ' + escapeHtml(String(dep.primary_identity_count || 0)) + '</div>' +
                 '<div><b>Candidatos:</b> primarios ' + escapeHtml(String(dep.primary_rows || 0)) + ' · recuperados ' + escapeHtml(String(dep.candidate_rows || 0)) + ' · válidos ' + escapeHtml(String(dep.matched_rows || 0)) + '</div>' +
+                '<div><b>Descubrimiento:</b> ' + escapeHtml(String(dep.discovery_source || '—')) + ' · candidatos ' + escapeHtml(String(dep.discovery_candidates || 0)) + ' · categorías ' + escapeHtml(String(dep.discovery_categories || 0)) + '</div>' +
+                '<div><b>Filas SIN FILTRAR pedidas:</b> ' + escapeHtml(String(dep.unfiltered_primary_count || depUnfilteredRows.length || 0)) + '</div>' +
+                depUnfilteredHtml +
                 depMatchesHtml +
                 '</div>';
         }
@@ -1165,7 +1190,7 @@
 
         function renderSearchDiscovery(discovery) {
             if (!discovery) return '';
-            const categories = Array.isArray(discovery.categories) ? discovery.categories.slice(0, 6) : [];
+            const categories = Array.isArray(discovery.categories) ? discovery.categories.slice(0, 12) : [];
             const quick = Array.isArray(discovery.quick_filters) ? discovery.quick_filters.slice(0, 6) : [];
             if (!categories.length && !quick.length) return '';
 
@@ -1182,8 +1207,16 @@
                     '</button>';
             }).join('');
 
+            const lexicalCandidates = String(discovery.source || '') === 'lexical_candidates';
+            const eyebrow = lexicalCandidates ? 'Según los candidatos encontrados por Dependiente' : 'Según los resultados de Dependiente';
+            const heading = lexicalCandidates ? 'Elige una categoría para afinar' : 'Elige una opción para afinar';
+            const candidateNote = lexicalCandidates && Number(discovery.candidate_count || 0) > 0
+                ? '<p class="seo-dependiente__discovery-note">Dependiente ha encontrado ' + numberFormat(discovery.candidate_count || 0) + ' candidatos en su índice. Estas categorías pertenecen a esos candidatos.</p>'
+                : '';
+
             return '<section class="seo-dependiente__result-discovery" aria-label="Opciones para afinar la búsqueda">' +
-                '<div class="seo-dependiente__result-discovery-head"><small>Según los resultados de Dependiente</small><strong>Elige una opción para afinar</strong></div>' +
+                '<div class="seo-dependiente__result-discovery-head"><small>' + escapeHtml(eyebrow) + '</small><strong>' + escapeHtml(heading) + '</strong></div>' +
+                candidateNote +
                 (chips ? '<div class="seo-dependiente__discovery-chips">' + chips + '</div>' : '') +
                 (cards ? '<div class="seo-dependiente__visual-menu seo-dependiente__search-visual-menu">' + cards + '</div>' : '') +
                 '</section>';

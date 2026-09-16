@@ -506,6 +506,9 @@ final class SEO_Dependiente_API {
                 'discovery_source'  => sanitize_key((string) $discovery_source),
                 'discovery_candidates' => count($discovery_documents),
                 'discovery_categories' => count((array) ($discovery_facets['categories'] ?? array())),
+                // STAGING: lista COMPLETA de la primera pasada, sin score ni filtros.
+                'unfiltered_primary_count' => count($primary_rows),
+                'unfiltered_primary_rows'  => self::debug_unfiltered_primary_rows($primary_rows),
             );
         }
 
@@ -1133,6 +1136,58 @@ final class SEO_Dependiente_API {
                 'group' => sanitize_key((string) ($route['target_group'] ?? '')),
                 'term'  => $target,
                 'role'  => sanitize_key((string) ($route['result_role'] ?? '')),
+            );
+        }
+        return $out;
+    }
+
+
+    /**
+     * Diagnóstico STAGING SIN FILTRAR de la primera pasada al índice.
+     *
+     * Importante: recibe exactamente las filas devueltas por
+     * primary_candidate_rows() ANTES de scoring, elegibilidad, filtros de
+     * catálogo, publicación o coherencia de identidad. Sirve para comprobar qué
+     * encontró realmente Dependiente aunque después otra fase deje `válidos=0`.
+     */
+    private static function debug_unfiltered_primary_rows($rows) {
+        $out = array();
+        $position = 0;
+        foreach ((array) $rows as $row) {
+            $position++;
+            $product_id = absint($row['product_id'] ?? 0);
+            $document = SEO_Dependiente_Index::decode_row($row);
+
+            $title = sanitize_text_field((string) ($document['title'] ?? $document['normalized_title'] ?? ''));
+            if ('' === $title) {
+                $title = sanitize_text_field((string) ($row['normalized_title'] ?? ''));
+            }
+            if ('' === $title) {
+                $title = $product_id ? ('Producto #' . $product_id) : ('Fila #' . $position);
+            }
+
+            $categories = array();
+            foreach ((array) ($document['categories'] ?? array()) as $category) {
+                if (is_array($category)) {
+                    $label = sanitize_text_field((string) ($category['name'] ?? $category['label'] ?? $category['slug'] ?? ''));
+                } elseif (is_object($category)) {
+                    $label = sanitize_text_field((string) ($category->name ?? $category->slug ?? ''));
+                } else {
+                    $label = sanitize_text_field((string) $category);
+                }
+                if ('' !== $label) {
+                    $categories[] = $label;
+                }
+            }
+
+            // No eliminamos la fila aunque el producto ya no exista o no sea
+            // publicable: el objetivo de este log es mostrar EXACTAMENTE lo que
+            // devolvió el índice antes de cualquier filtro posterior.
+            $out[] = array(
+                'position'   => $position,
+                'id'         => $product_id,
+                'title'      => $title,
+                'categories' => array_values(array_unique($categories)),
             );
         }
         return $out;
