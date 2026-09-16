@@ -11,7 +11,7 @@ defined('ABSPATH') || exit;
  * preparado en la memoria local del Intérprete.
  */
 final class SEO_Dependiente_Linguista {
-    const VERSION = '0.4.0';
+    const VERSION = '0.4.1';
     const STATE_OPTION = 'seo_dependiente_linguista_state';
     const GRAMMAR_OPTION = 'seo_dependiente_interprete_grammar';
     const MORPHOLOGY_OPTION = 'seo_dependiente_interprete_morphology';
@@ -1342,7 +1342,16 @@ final class SEO_Dependiente_Linguista {
     /** L8: examen cerrado sobre reglas activas, sin crear nuevo conocimiento. */
     private static function lesson_exam($state) {
         global $wpdb;
-        $batch = min(100, self::batch_size($state));
+
+        /*
+         * L8 es mucho mas caro que una leccion normal: cada caso ejecuta el
+         * Interprete completo contra la memoria activa. No heredamos lotes de
+         * cientos/miles de elementos porque un corte del hosting antes de
+         * devolver el lote dejaría el cursor sin guardar y reintentaria siempre
+         * las mismas reglas.
+         */
+        $batch = min(20, max(1, self::batch_size($state)));
+        $soft_deadline = microtime(true) + 5.0;
         $cursor = absint($state['cursor'] ?? 0);
         $table = SEO_Dependiente_Interprete_DB::table();
         $rows = (array) $wpdb->get_results($wpdb->prepare(
@@ -1360,35 +1369,56 @@ final class SEO_Dependiente_Linguista {
 
         $pass = 0;
         $fail = 0;
+        $processed = 0;
+        $last_id = $cursor;
         foreach ($rows as $row) {
+            $row_id = absint($row['id'] ?? 0);
             $expression = trim((string) ($row['expression'] ?? ''));
             $target = trim((string) ($row['target_search'] ?? ''));
-            if ('' === $expression || '' === $target || !class_exists('SEO_Dependiente_Interprete')) {
+
+            try {
+                if ('' === $expression || '' === $target || !class_exists('SEO_Dependiente_Interprete')) {
+                    $fail++;
+                } else {
+                    $relation = sanitize_key((string) ($row['relation_type'] ?? ''));
+                    $question = in_array($relation, array('verb_to_tool','phrase_to_tool'), true)
+                        ? 'Necesito una herramienta para ' . $expression
+                        : 'Estoy buscando ' . $expression;
+                    $interpretation = SEO_Dependiente_Interprete::interpret($question);
+                    $actual = SEO_Dependiente_Interprete_DB::normalize((string) ($interpretation['search_query'] ?? ''));
+                    $expected = SEO_Dependiente_Interprete_DB::normalize($target);
+                    if ('' !== $expected && (false !== strpos(' ' . $actual . ' ', ' ' . $expected . ' ') || false !== strpos($actual, $expected))) {
+                        $pass++;
+                    } else {
+                        $fail++;
+                    }
+                }
+            } catch (Throwable $e) {
+                // Un caso defectuoso cuenta como fallo del examen, pero no debe
+                // bloquear indefinidamente toda la formacion.
                 $fail++;
-                continue;
             }
-            $relation = sanitize_key((string) ($row['relation_type'] ?? ''));
-            $question = in_array($relation, array('verb_to_tool','phrase_to_tool'), true)
-                ? 'Necesito una herramienta para ' . $expression
-                : 'Estoy buscando ' . $expression;
-            $interpretation = SEO_Dependiente_Interprete::interpret($question);
-            $actual = SEO_Dependiente_Interprete_DB::normalize((string) ($interpretation['search_query'] ?? ''));
-            $expected = SEO_Dependiente_Interprete_DB::normalize($target);
-            if ('' !== $expected && (false !== strpos(' ' . $actual . ' ', ' ' . $expected . ' ') || false !== strpos($actual, $expected))) {
-                $pass++;
-            } else {
-                $fail++;
+
+            $processed++;
+            if ($row_id) {
+                $last_id = $row_id;
+            }
+
+            // Devuelve el control pronto para que process_manager_slice() guarde
+            // cursor y contadores antes de que el hosting corte la peticion.
+            if ($processed > 0 && microtime(true) >= $soft_deadline) {
+                break;
             }
         }
-        $last = end($rows);
+
         return array(
             'done' => false,
-            'processed' => count($rows),
+            'processed' => $processed,
             'learned' => 0,
             'rejected' => $fail,
-            'message' => 'Examen conversacional en curso.',
+            'message' => 'Examen conversacional en curso · ' . number_format_i18n($processed) . ' reglas verificadas en este lote.',
             'state_changes' => array(
-                'cursor' => absint($last['id'] ?? $cursor),
+                'cursor' => $last_id,
                 'exam_pass' => absint($state['exam_pass'] ?? 0) + $pass,
                 'exam_fail' => absint($state['exam_fail'] ?? 0) + $fail,
             ),
