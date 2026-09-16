@@ -1171,7 +1171,7 @@ function seo_social_network_render_admin_tab()
 
     seo_social_network_maybe_install_tables();
 
-    $allowed = array('publications', 'connections', 'reports');
+    $allowed = array('publications', 'programador', 'connections', 'reports');
     $subtab = isset($_GET['social_subtab']) ? sanitize_key(wp_unslash($_GET['social_subtab'])) : 'publications';
     if (!in_array($subtab, $allowed, true)) {
         $subtab = 'publications';
@@ -1196,6 +1196,7 @@ function seo_social_network_render_admin_tab()
 
     $tabs = array(
         'publications' => 'Publicaciones',
+        'programador'  => 'Programador',
         'connections'  => 'Conexiones',
         'reports'      => 'Informes',
     );
@@ -1207,7 +1208,9 @@ function seo_social_network_render_admin_tab()
     }
     echo '</nav>';
 
-    if ('connections' === $subtab) {
+    if ('programador' === $subtab && function_exists('seo_social_programador_render_admin')) {
+        seo_social_programador_render_admin();
+    } elseif ('connections' === $subtab) {
         seo_social_network_render_connections();
     } elseif ('reports' === $subtab) {
         seo_social_network_render_reports();
