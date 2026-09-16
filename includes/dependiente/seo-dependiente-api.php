@@ -2599,10 +2599,75 @@ final class SEO_Dependiente_API {
             $quick = self::make_cards(array_slice((array) $facets['tags'], 0, 6), 'tags', '', $documents);
         }
 
+        // Si el ranking final deja la búsqueda a cero, NO escondemos los
+        // productos que Dependiente ya recuperó en su primera pasada. Esta
+        // colección es deliberadamente previa a score/elegibilidad: sirve de
+        // mostrador y diagnóstico, no de validación semántica.
+        $products = array_slice(array_values((array) $results), 0, 12);
+        if (!$products && $documents) {
+            foreach (array_slice($documents, 0, 18) as $document) {
+                $product = self::serialize_discovery_product($document);
+                if ($product) {
+                    $products[] = $product;
+                }
+                if (count($products) >= 12) {
+                    break;
+                }
+            }
+        }
+
         return array(
             'categories' => $categories,
             'quick_filters' => $quick,
-            'products' => array_slice(array_values((array) $results), 0, 4),
+            'products' => $products,
+        );
+    }
+
+    /**
+     * Serializa un candidato de la primera pasada SIN aplicar score, reglas de
+     * elegibilidad ni filtros semánticos. Solo exige que el producto exista para
+     * poder construir su enlace público.
+     */
+    private static function serialize_discovery_product($document) {
+        $product_id = absint($document['product_id'] ?? 0);
+        if (!$product_id) {
+            return null;
+        }
+
+        $product = wc_get_product($product_id);
+        if (!$product) {
+            return null;
+        }
+
+        $categories = array();
+        foreach ((array) ($document['categories'] ?? array()) as $category) {
+            $name = is_array($category) ? (string) ($category['name'] ?? '') : '';
+            if ($name) {
+                $categories[] = $name;
+            }
+        }
+
+        return array(
+            'id'            => $product_id,
+            'title'         => $product->get_name(),
+            'url'           => get_permalink($product_id),
+            'image'         => self::product_image_or_logo($product_id),
+            'price_html'    => wp_kses_post($product->get_price_html()),
+            'price'         => isset($document['price']) && '' !== (string) $document['price'] ? (float) $document['price'] : null,
+            'brand'         => (string) ($document['brand_name'] ?? ''),
+            'sku'           => (string) $product->get_sku(),
+            'stock_status'  => (string) ($document['stock_status'] ?? $product->get_stock_status()),
+            'stock_label'   => self::stock_label((string) ($document['stock_status'] ?? $product->get_stock_status())),
+            'excerpt'       => '',
+            'reasons'       => array(),
+            'score'         => 0,
+            'search_tier'   => 'direct',
+            'key_specs'     => array(),
+            'applications'  => array(),
+            'platforms'     => array(),
+            'categories'    => array_slice(array_values(array_unique($categories)), 0, 2),
+            'compare_label' => 'Añadir a comparación',
+            'unfiltered'    => true,
         );
     }
 
@@ -2821,11 +2886,32 @@ final class SEO_Dependiente_API {
                 'image'        => (string) ($visual['url'] ?? ''),
                 'image_kind'   => (string) ($visual['kind'] ?? 'product'),
                 'image_source' => (string) ($visual['source'] ?? ''),
+                'url'          => 'categories' === $type ? self::category_url_by_slug($slug) : '',
                 'filter'       => array('type' => $type, 'group' => $group, 'slug' => $slug),
             );
         }
 
         return $cards;
+    }
+
+    private static function category_url_by_slug($slug) {
+        $slug = sanitize_title((string) $slug);
+        if (!$slug) {
+            return '';
+        }
+
+        $term = get_term_by('slug', $slug, 'product_cat');
+        if (!$term || is_wp_error($term)) {
+            return '';
+        }
+
+        $url = get_term_link($term, 'product_cat');
+        return is_wp_error($url) ? '' : esc_url_raw((string) $url);
+    }
+
+    private static function is_placeholder_image($url) {
+        $url = strtolower((string) $url);
+        return '' === $url || false !== strpos($url, 'woocommerce-placeholder') || false !== strpos($url, '/placeholder.');
     }
 
     /**
@@ -2843,7 +2929,9 @@ final class SEO_Dependiente_API {
     private static function resolve_card_image($item, $type, $group, $documents) {
         $slug = sanitize_title((string) ($item['slug'] ?? ''));
 
-        if ('categories' === $type && !empty($item['image'])) {
+        $matches = self::matching_documents($documents, $type, $group, $slug);
+
+        if ('categories' === $type && !empty($item['image']) && !self::is_placeholder_image((string) $item['image'])) {
             return array(
                 'url'    => esc_url_raw((string) $item['image']),
                 'kind'   => 'category',
@@ -2851,7 +2939,15 @@ final class SEO_Dependiente_API {
             );
         }
 
-        $matches = self::matching_documents($documents, $type, $group, $slug);
+        // Muchas categorías de staging no tienen thumbnail propio y devuelven
+        // el placeholder de WooCommerce. En ese caso usamos un producto real de
+        // la propia categoría para que la tarjeta sea visualmente informativa.
+        if ('categories' === $type) {
+            $product = self::representative_product_image($matches);
+            if (!empty($product['url']) && !self::is_placeholder_image((string) $product['url'])) {
+                return $product;
+            }
+        }
 
         // Para conceptos que no son categorias, la mejor representacion
         // visual suele ser una categoria real compartida por sus productos.

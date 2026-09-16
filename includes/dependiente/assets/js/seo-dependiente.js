@@ -1192,7 +1192,8 @@
             if (!discovery) return '';
             const categories = Array.isArray(discovery.categories) ? discovery.categories.slice(0, 12) : [];
             const quick = Array.isArray(discovery.quick_filters) ? discovery.quick_filters.slice(0, 6) : [];
-            if (!categories.length && !quick.length) return '';
+            const products = Array.isArray(discovery.products) ? discovery.products.slice(0, 12) : [];
+            if (!categories.length && !quick.length && !products.length) return '';
 
             const chips = quick.map(function (card) {
                 return '<button type="button" class="seo-dependiente__discovery-chip" data-dependiente-discovery-filter="' + escapeAttr(JSON.stringify(card.filter || {})) + '" data-dependiente-discovery-label="' + escapeAttr(card.label || '') + '">' + escapeHtml(card.label || '') + '<small>' + numberFormat(card.count || 0) + '</small></button>';
@@ -1200,18 +1201,31 @@
 
             const cards = categories.map(function (card) {
                 const imageClass = card.image_kind === 'logo' ? ' seo-dependiente__visual-card--logo' : '';
-                return '<button type="button" class="seo-dependiente__visual-card seo-dependiente__search-visual-card' + imageClass + '" data-dependiente-discovery-filter="' + escapeAttr(JSON.stringify(card.filter || {})) + '" data-dependiente-discovery-label="' + escapeAttr(card.label || '') + '">' +
-                    '<img src="' + escapeAttr(card.image || config.placeholderImage || '') + '" alt="" loading="lazy" decoding="async">' +
-                    '<span class="seo-dependiente__visual-card-arrow" aria-hidden="true">→</span>' +
-                    '<span class="seo-dependiente__visual-card-content"><strong>' + escapeHtml(card.label || '') + '</strong><small>' + numberFormat(card.count || 0) + ' opciones</small></span>' +
-                    '</button>';
+                const inner = '<img src="' + escapeAttr(card.image || config.placeholderImage || '') + '" alt="" loading="lazy" decoding="async">' +
+                    '<span class="seo-dependiente__visual-card-arrow" aria-hidden="true">↗</span>' +
+                    '<span class="seo-dependiente__visual-card-content"><strong>' + escapeHtml(card.label || '') + '</strong><small>' + numberFormat(card.count || 0) + ' opciones</small></span>';
+
+                if (card.url) {
+                    return '<a class="seo-dependiente__visual-card seo-dependiente__search-visual-card' + imageClass + '" href="' + escapeAttr(card.url) + '" target="_blank" rel="noopener noreferrer">' + inner + '</a>';
+                }
+
+                return '<button type="button" class="seo-dependiente__visual-card seo-dependiente__search-visual-card' + imageClass + '" data-dependiente-discovery-filter="' + escapeAttr(JSON.stringify(card.filter || {})) + '" data-dependiente-discovery-label="' + escapeAttr(card.label || '') + '">' + inner + '</button>';
             }).join('');
 
             const lexicalCandidates = String(discovery.source || '') === 'lexical_candidates';
             const eyebrow = lexicalCandidates ? 'Según los candidatos encontrados por Dependiente' : 'Según los resultados de Dependiente';
-            const heading = lexicalCandidates ? 'Elige una categoría para afinar' : 'Elige una opción para afinar';
+            const heading = lexicalCandidates ? 'Elige una categoría o abre un producto' : 'Elige una opción para afinar';
             const candidateNote = lexicalCandidates && Number(discovery.candidate_count || 0) > 0
-                ? '<p class="seo-dependiente__discovery-note">Dependiente ha encontrado ' + numberFormat(discovery.candidate_count || 0) + ' candidatos en su índice. Estas categorías pertenecen a esos candidatos.</p>'
+                ? '<p class="seo-dependiente__discovery-note">Dependiente ha encontrado ' + numberFormat(discovery.candidate_count || 0) + ' candidatos en su índice. Las categorías y productos de abajo salen directamente de esa primera pasada.</p>'
+                : '';
+
+            const productHeading = products.length
+                ? '<div class="seo-dependiente__results-heading" style="margin-top:20px"><small>Productos encontrados por Dependiente</small><strong>' + (lexicalCandidates ? 'Primera pasada sin filtrar' : 'Productos relacionados') + '</strong></div>'
+                : '';
+            const productGrid = products.length
+                ? '<div class="seo-dependiente__discovery-product-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:12px">' + products.map(function (product, index) {
+                    return renderProductCard(product, index + 1);
+                }).join('') + '</div>'
                 : '';
 
             return '<section class="seo-dependiente__result-discovery" aria-label="Opciones para afinar la búsqueda">' +
@@ -1219,6 +1233,7 @@
                 candidateNote +
                 (chips ? '<div class="seo-dependiente__discovery-chips">' + chips + '</div>' : '') +
                 (cards ? '<div class="seo-dependiente__visual-menu seo-dependiente__search-visual-menu">' + cards + '</div>' : '') +
+                productHeading + productGrid +
                 '</section>';
         }
 
@@ -1246,15 +1261,15 @@
                 return '<div class="seo-dependiente__spec"><span>' + escapeHtml(spec.label) + '</span><strong>' + escapeHtml(spec.value) + '</strong></div>';
             }).join('');
             return '<article class="seo-dependiente__product-card">' +
-                '<a class="seo-dependiente__product-image" data-dependiente-product-link data-product-id="' + Number(product.id) + '" data-position="' + Number(position || 0) + '" href="' + escapeAttr(product.url) + '"><img src="' + escapeAttr(product.image || config.placeholderImage || '') + '" alt="' + escapeAttr(product.title) + '" loading="lazy"></a>' +
+                '<a class="seo-dependiente__product-image" data-dependiente-product-link data-product-id="' + Number(product.id) + '" data-position="' + Number(position || 0) + '" href="' + escapeAttr(product.url) + '" target="_blank" rel="noopener noreferrer"><img src="' + escapeAttr(product.image || config.placeholderImage || '') + '" alt="' + escapeAttr(product.title) + '" loading="lazy"></a>' +
                 '<button type="button" class="seo-dependiente__compare-toggle" data-compare-id="' + Number(product.id) + '" aria-pressed="' + (selected ? 'true' : 'false') + '">' + (selected ? 'Seleccionado' : 'Comparar') + '</button>' +
                 '<div class="seo-dependiente__product-body">' +
                 '<div class="seo-dependiente__product-kicker">' + kicker + '</div>' +
-                '<h2 class="seo-dependiente__product-title"><a data-dependiente-product-link data-product-id="' + Number(product.id) + '" data-position="' + Number(position || 0) + '" href="' + escapeAttr(product.url) + '">' + escapeHtml(product.title) + '</a></h2>' +
+                '<h2 class="seo-dependiente__product-title"><a data-dependiente-product-link data-product-id="' + Number(product.id) + '" data-position="' + Number(position || 0) + '" href="' + escapeAttr(product.url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(product.title) + '</a></h2>' +
                 (reasons ? '<div class="seo-dependiente__match-reasons">' + reasons + '</div>' : '') +
                 (product.excerpt ? '<p class="seo-dependiente__excerpt">' + escapeHtml(product.excerpt) + '</p>' : '') +
                 (specs ? '<div class="seo-dependiente__specs">' + specs + '</div>' : '') +
-                '<div class="seo-dependiente__product-foot"><div class="seo-dependiente__price">' + (product.price_html || '') + '</div><a class="seo-dependiente__card-button" data-dependiente-product-link data-product-id="' + Number(product.id) + '" data-position="' + Number(position || 0) + '" href="' + escapeAttr(product.url) + '">' + escapeHtml((config.labels && config.labels.viewProduct) || 'Ver producto') + '</a></div>' +
+                '<div class="seo-dependiente__product-foot"><div class="seo-dependiente__price">' + (product.price_html || '') + '</div><a class="seo-dependiente__card-button" data-dependiente-product-link data-product-id="' + Number(product.id) + '" data-position="' + Number(position || 0) + '" href="' + escapeAttr(product.url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml((config.labels && config.labels.viewProduct) || 'Ver producto') + '</a></div>' +
                 '</div></article>';
         }
 
@@ -1591,7 +1606,7 @@
             const criteria = data.criteria || {};
             const criteriaHtml = criteria.labels && criteria.labels.length ? '<div class="seo-dependiente__criteria"><strong>' + escapeHtml(criteria.title || 'Qué conviene comprobar') + '</strong>' + criteria.labels.map(function (label) { return '<span class="seo-dependiente__chip">' + escapeHtml(label) + '</span>'; }).join('') + '</div>' : '';
             const head = '<thead><tr><th>Criterio</th>' + products.map(function (product) {
-                return '<th><div class="seo-dependiente__comparison-product"><img src="' + escapeAttr(product.image || config.placeholderImage || '') + '" alt=""><a href="' + escapeAttr(product.url) + '">' + escapeHtml(product.title) + '</a></div></th>';
+                return '<th><div class="seo-dependiente__comparison-product"><img src="' + escapeAttr(product.image || config.placeholderImage || '') + '" alt=""><a href="' + escapeAttr(product.url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(product.title) + '</a></div></th>';
             }).join('') + '</tr></thead>';
             const body = '<tbody>' + (data.rows || []).map(function (row) {
                 const classes = [row.different ? 'is-different' : '', row.priority ? 'is-priority' : ''].filter(Boolean).join(' ');
