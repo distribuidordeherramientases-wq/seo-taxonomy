@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 ========================================================= */
 
 if (!defined('SEO_SEARCH_VERSION')) {
-    define('SEO_SEARCH_VERSION', '2.3.2');
+    define('SEO_SEARCH_VERSION', '2.3.5');
 }
 
 if (!defined('SEO_SEARCH_OPTION')) {
@@ -1522,6 +1522,56 @@ function seo_search_results_url() {
     return home_url('/');
 }
 
+/**
+ * Convierte la busqueda legacy de WooCommerce/WordPress del header
+ * (?s=...&post_type=product) en la ruta propia de SEO Search.
+ *
+ * Se ejecuta en init para evitar que WordPress llegue a lanzar la consulta
+ * generica de busqueda de productos antes de que nuestro template_redirect
+ * pueda tomar el control. Esto evita tanto la plantilla legacy de resultados
+ * como consultas innecesariamente pesadas sobre wp_posts.
+ */
+function seo_search_redirect_legacy_product_search() {
+    if (is_admin() || wp_doing_ajax() || (defined('REST_REQUEST') && REST_REQUEST)) {
+        return;
+    }
+
+    if (!empty($_GET['seo_search']) || !isset($_GET['s']) || is_array($_GET['s'])) {
+        return;
+    }
+
+    $keyword = trim(sanitize_text_field(wp_unslash($_GET['s'])));
+    if ('' === $keyword) {
+        return;
+    }
+
+    $post_type = isset($_GET['post_type']) ? wp_unslash($_GET['post_type']) : '';
+    $is_product_search = false;
+
+    if (is_array($post_type)) {
+        $post_types = array_map('sanitize_key', $post_type);
+        $is_product_search = in_array('product', $post_types, true);
+    } else {
+        $is_product_search = 'product' === sanitize_key((string) $post_type);
+    }
+
+    if (!$is_product_search) {
+        return;
+    }
+
+    $param = seo_search_get_option('query_parameter', 'q');
+    $args = array(
+        $param        => $keyword,
+        'seo_search'  => 1,
+    );
+
+    $target = add_query_arg($args, seo_search_results_url());
+
+    wp_safe_redirect($target, 302, 'SEO Search');
+    exit;
+}
+add_action('init', 'seo_search_redirect_legacy_product_search', 20);
+
 function seo_search_enqueue_front_assets() {
     static $done = false;
     if ($done) {
@@ -1654,55 +1704,172 @@ function seo_search_frontend_js() {
     }
 
     function hideLegacyShopCategorySection() {
-        if (!window.seoSearchConfig || !window.seoSearchConfig.hideLegacyShopCategories || !document.querySelector('.seo-search-vocab-bar')) {
+        if (!window.seoSearchConfig || !window.seoSearchConfig.hideLegacyShopCategories) {
             return false;
         }
+
+        // Este bloque es promocional/estatico de la plantilla de tienda y no forma
+        // parte de los resultados ni de los filtros de SEO Search.
+        var isShopContext = !!document.querySelector('.seo-search-vocab-bar') ||
+            document.body.classList.contains('woocommerce-shop') ||
+            document.body.classList.contains('post-type-archive-product') ||
+            document.body.classList.contains('tax-product_cat');
+        if (!isShopContext) {
+            return false;
+        }
+
+        var legacyLabels = [
+            'kits de herramientas a bateria',
+            'cables, carga y conectividad para dispositivos moviles',
+            'reparacion de moviles y pantallas',
+            'cables adaptadores y accesorios de diagnosis',
+            'estanterias y mobiliario de taller',
+            'herramientas de medicion',
+            'juegos de herramientas',
+            'accesorios y recambios para soldadura electronica'
+        ];
+
+        function legacyHits(text) {
+            var hits = 0;
+            legacyLabels.forEach(function(label){
+                if (text.indexOf(label) !== -1) {
+                    hits++;
+                }
+            });
+            return hits;
+        }
+
+        function removeCandidate(candidate) {
+            if (!candidate || !candidate.parentNode) {
+                return false;
+            }
+            if (candidate.querySelector('.seo-search-vocab-bar, .seo-search-products, .products, .woocommerce-result-count')) {
+                return false;
+            }
+            candidate.setAttribute('aria-hidden', 'true');
+            candidate.style.setProperty('display', 'none', 'important');
+            candidate.parentNode.removeChild(candidate);
+            return true;
+        }
+
         var removed = false;
-        var headings = document.querySelectorAll('h1,h2,h3,h4');
+        var headings = document.querySelectorAll('h1,h2,h3,h4,h5,h6');
         Array.prototype.forEach.call(headings, function(heading){
             if (normalizeLabel(heading.textContent) !== 'encuentra antes lo que necesitas') {
                 return;
             }
-            var node = heading.parentElement;
+
+            var node = heading;
             var candidate = null;
             var depth = 0;
-            while (node && node !== document.body && depth < 8) {
+
+            // Elegimos el PRIMER ancestro que ya contiene varias de las tarjetas
+            // estaticas. Antes se dependia del numero de enlaces y algunas plantillas
+            // construyen las tarjetas con contenedores/click handlers, por lo que el
+            // bloque no llegaba a detectarse.
+            while (node && node !== document.body && depth < 14) {
                 var text = normalizeLabel(node.textContent);
-                var links = node.querySelectorAll('a').length;
                 var containsFilters = !!node.querySelector('.seo-search-vocab-bar');
+                var containsResults = !!node.querySelector('.seo-search-products,.products,.woocommerce-result-count');
                 var containsCatalog = text.indexOf('catalogo completo') !== -1 || text.indexOf('todos los productos') !== -1;
+                var hits = legacyHits(text);
 
-                // Preferimos el contenedor mas pequeno que contiene el bloque viejo completo.
-                if (!containsFilters && !containsCatalog && links >= 4 &&
-                    text.indexOf('compra por categoria') !== -1 &&
-                    text.indexOf('categorias con mas productos') !== -1) {
+                if (!containsFilters && !containsResults && !containsCatalog && hits >= 2) {
                     candidate = node;
                     break;
                 }
 
-                // Respaldo para plantillas que han cambiado el subtitulo pero mantienen las tarjetas.
-                if (!containsFilters && !containsCatalog && links >= 4 && depth <= 4) {
+                // Una seccion semantica que contiene el titulo y al menos una tarjeta
+                // tambien es suficiente si no invade el catalogo.
+                if (!containsFilters && !containsResults && !containsCatalog &&
+                    (node.tagName === 'SECTION' || node.tagName === 'ARTICLE') && hits >= 1) {
                     candidate = node;
-                }
-                if (containsFilters || containsCatalog) {
                     break;
                 }
+
                 node = node.parentElement;
                 depth++;
             }
-            if (candidate && candidate.parentNode) {
-                candidate.parentNode.removeChild(candidate);
+
+            if (removeCandidate(candidate)) {
                 removed = true;
+                return;
+            }
+
+            // Fallback para plantillas donde cabecera y rejilla son hermanos sin un
+            // wrapper exclusivo: ocultamos la cabecera y los hermanos que contienen
+            // las tarjetas estaticas, deteniendonos antes del catalogo/filtros.
+            var headerBlock = heading.parentElement;
+            while (headerBlock && headerBlock !== document.body) {
+                var headerText = normalizeLabel(headerBlock.textContent);
+                if (headerText.indexOf('compra por categoria') !== -1 ||
+                    headerText.indexOf('categorias con mas productos') !== -1) {
+                    break;
+                }
+                headerBlock = headerBlock.parentElement;
+            }
+
+            if (headerBlock && headerBlock !== document.body &&
+                !headerBlock.querySelector('.seo-search-vocab-bar')) {
+                var sibling = headerBlock.nextElementSibling;
+                var toRemove = [headerBlock];
+                var guard = 0;
+                while (sibling && guard < 6) {
+                    var siblingText = normalizeLabel(sibling.textContent);
+                    if (sibling.querySelector('.seo-search-vocab-bar,.seo-search-products,.products,.woocommerce-result-count') ||
+                        siblingText.indexOf('catalogo completo') !== -1 ||
+                        siblingText.indexOf('todos los productos') !== -1) {
+                        break;
+                    }
+                    if (legacyHits(siblingText) > 0 || siblingText.indexOf('explorar') !== -1) {
+                        toRemove.push(sibling);
+                        sibling = sibling.nextElementSibling;
+                        guard++;
+                        continue;
+                    }
+                    break;
+                }
+
+                if (toRemove.length > 1) {
+                    toRemove.forEach(function(element){
+                        if (element && element.parentNode) {
+                            element.parentNode.removeChild(element);
+                        }
+                    });
+                    removed = true;
+                }
             }
         });
+
         return removed;
     }
 
     function ensureLegacyShopCategorySectionHidden() {
         hideLegacyShopCategorySection();
-        window.setTimeout(hideLegacyShopCategorySection, 80);
-        window.setTimeout(hideLegacyShopCategorySection, 450);
-        window.setTimeout(hideLegacyShopCategorySection, 1200);
+        [80, 300, 800, 1600, 3000, 6000].forEach(function(delay){
+            window.setTimeout(hideLegacyShopCategorySection, delay);
+        });
+
+        // La portada/tienda puede inyectar este bloque despues del DOM ready.
+        // Observamos inserciones y lo retiramos en cuanto aparezca.
+        if ('MutationObserver' in window && document.body && !window.seoSearchLegacyObserver) {
+            var observer = new MutationObserver(function(mutations){
+                var shouldCheck = mutations.some(function(mutation){
+                    return mutation.addedNodes && mutation.addedNodes.length;
+                });
+                if (shouldCheck) {
+                    hideLegacyShopCategorySection();
+                }
+            });
+            observer.observe(document.body, {childList:true, subtree:true});
+            window.seoSearchLegacyObserver = observer;
+            window.setTimeout(function(){
+                if (window.seoSearchLegacyObserver) {
+                    window.seoSearchLegacyObserver.disconnect();
+                    window.seoSearchLegacyObserver = null;
+                }
+            }, 15000);
+        }
     }
 
     $(function(){
