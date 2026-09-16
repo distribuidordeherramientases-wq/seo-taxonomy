@@ -559,10 +559,29 @@ final class SEO_Dependiente_API {
             }
         }
 
+        // Aunque la validacion final sea estricta, conservamos un escaparate
+        // separado con los candidatos de la PRIMERA pasada ordenados por el score
+        // del Dependiente. No interviene en total/paginacion ni convierte esos
+        // candidatos en resultados validados; sirve para mostrar al cliente lo que
+        // Dependiente realmente ha encontrado antes del contenido editorial.
+        $candidate_products = self::top_scored_candidate_products(
+            $primary_documents,
+            $query,
+            $tokens,
+            $filters,
+            $mode,
+            $semantic,
+            $assist_profile,
+            12
+        );
+
         // La zona principal reutiliza las categorías/facetas del mejor conjunto
         // disponible. Si todavía no hay resultados validados, muestra categorías de
         // los candidatos léxicos para que el cliente pueda hacer clic y afinar.
         $discovery = self::build_search_discovery($discovery_facets, $discovery_documents, $results);
+        // Los productos se presentan en un bloque independiente antes de Guías y
+        // soluciones para que las categorías queden limpias y el orden sea estable.
+        $discovery['products'] = array();
         $discovery['source'] = $discovery_source;
         $discovery['candidate_count'] = count($discovery_documents);
 
@@ -656,6 +675,7 @@ final class SEO_Dependiente_API {
             'candidate_total' => count($documents),
             'truncated'       => count($candidate_rows) >= self::CANDIDATE_LIMIT,
             'results'         => $results,
+            'candidate_products' => $candidate_products,
             'related'         => $related,
             // Carriles canonicos separados. FAQ: solo owner producto/categoria.
             // Editorial: posts/paginas por Vocabulary/relaciones editoriales.
@@ -2581,6 +2601,57 @@ final class SEO_Dependiente_API {
      * Construye una navegación visual desde las MISMAS facetas y productos que
      * Dependiente ya ha calculado para la columna izquierda.
      */
+    /**
+     * Productos con mejor puntuacion dentro de la primera pasada lexical.
+     * Se puntuan TODOS los candidatos recuperados, incluso si la regla estricta
+     * de elegibilidad los dejaria fuera del resultado final. Esto permite mostrar
+     * el trabajo real de Dependiente sin contaminar total, facetas o paginacion.
+     */
+    private static function top_scored_candidate_products($documents, $query, $tokens, $filters, $mode, $semantic, $assist_profile, $limit = 12) {
+        $ranked = array();
+        foreach ((array) $documents as $document) {
+            if (!self::matches_filters($document, $filters)) {
+                continue;
+            }
+            $product_id = absint($document['product_id'] ?? 0);
+            if (!$product_id) {
+                continue;
+            }
+            $product = wc_get_product($product_id);
+            if (!$product || !self::product_is_searchable($product)) {
+                continue;
+            }
+
+            $score = self::score_document($document, $query, $tokens, $filters, $mode, $semantic, $assist_profile);
+            $document['_score'] = (float) ($score['score'] ?? 0);
+            $document['_reasons'] = array_values((array) ($score['reasons'] ?? array()));
+            $document['_search_tier'] = 'direct';
+            $document['_candidate_eligible'] = !empty($score['eligible']);
+            $ranked[] = $document;
+        }
+
+        usort($ranked, static function ($a, $b) {
+            $score_compare = ((float) ($b['_score'] ?? 0)) <=> ((float) ($a['_score'] ?? 0));
+            if (0 !== $score_compare) {
+                return $score_compare;
+            }
+            return strnatcasecmp((string) ($a['normalized_title'] ?? ''), (string) ($b['normalized_title'] ?? ''));
+        });
+
+        $out = array();
+        foreach (array_slice($ranked, 0, max(1, absint($limit))) as $document) {
+            $item = self::serialize_discovery_product($document);
+            if (!$item) {
+                continue;
+            }
+            $item['score'] = (float) ($document['_score'] ?? 0);
+            $item['reasons'] = array_slice(array_values((array) ($document['_reasons'] ?? array())), 0, 4);
+            $item['candidate_eligible'] = !empty($document['_candidate_eligible']);
+            $out[] = $item;
+        }
+        return $out;
+    }
+
     private static function build_search_discovery($facets, $documents, $results) {
         $facets = is_array($facets) ? $facets : array();
         $documents = array_values((array) $documents);
@@ -2959,14 +3030,23 @@ final class SEO_Dependiente_API {
         }
 
         $product = self::representative_product_image($matches);
-        if (!empty($product['url'])) {
+        if (!empty($product['url']) && !self::is_placeholder_image((string) $product['url'])) {
             return $product;
         }
 
+        $logo = self::company_logo_url();
+        if ($logo && !self::is_placeholder_image($logo)) {
+            return array(
+                'url'    => $logo,
+                'kind'   => 'logo',
+                'source' => 'company-logo',
+            );
+        }
+
         return array(
-            'url'    => self::company_logo_url(),
-            'kind'   => 'logo',
-            'source' => 'company-logo',
+            'url'    => '',
+            'kind'   => 'none',
+            'source' => 'no-useful-image',
         );
     }
 
