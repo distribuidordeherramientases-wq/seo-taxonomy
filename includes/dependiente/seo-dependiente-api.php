@@ -397,6 +397,7 @@ final class SEO_Dependiente_API {
         }
 
         $documents = array();
+        $ranking_diagnostic = array();
         $matched = self::score_candidate_rows(
             $candidate_rows,
             $query,
@@ -405,7 +406,8 @@ final class SEO_Dependiente_API {
             $mode,
             $semantic,
             $assist_profile,
-            $documents
+            $documents,
+            $ranking_diagnostic
         );
         $primary_id_map = array();
         foreach ($primary_matched as $primary_document) {
@@ -418,11 +420,13 @@ final class SEO_Dependiente_API {
         }
         unset($matched_document);
         self::sort_documents($matched, $orderby);
+        $scored_before_live_validation = $matched;
         $matched_before_live_validation = count($matched);
         // Comprobacion tecnica contra WooCommerce vivo. No decide relevancia. Las
         // filas huerfanas se eliminan tambien del indice para que el sistema se
         // autocorrija despues de importaciones, clonados o borrados masivos.
-        $matched = self::filter_searchable_documents($matched);
+        $live_validation_diagnostic = array();
+        $matched = self::filter_searchable_documents($matched, $live_validation_diagnostic);
         self::sort_documents($matched, $orderby);
         $search_diagnostic['matched_before_live_validation'] = $matched_before_live_validation;
         $search_diagnostic['matched_after_live_validation'] = count($matched);
@@ -457,7 +461,11 @@ final class SEO_Dependiente_API {
 
         if ($interpreter_debug) {
             $top_debug_matches = array();
-            foreach (array_slice($matched, 0, 5) as $debug_document) {
+            $final_debug_ids = array();
+            foreach ((array) $matched as $final_debug_document) {
+                $final_debug_ids[absint($final_debug_document['product_id'] ?? 0)] = true;
+            }
+            foreach (array_slice($scored_before_live_validation, 0, 20) as $debug_document) {
                 $debug_product = wc_get_product(absint($debug_document['product_id'] ?? 0));
                 $debug_title = $debug_product instanceof WC_Product
                     ? $debug_product->get_name()
@@ -471,8 +479,16 @@ final class SEO_Dependiente_API {
                     'identity_sources' => array_values(array_slice(array_map('sanitize_text_field', (array) ($debug_document['_assist_identity_sources'] ?? array())), 0, 6)),
                     'vocabulary_hits' => absint($debug_document['_assist_vocabulary_hits'] ?? 0),
                     'action_hits' => absint($debug_document['_assist_action_hits'] ?? 0),
-                    'reasons'  => array_values(array_slice(array_map('sanitize_text_field', (array) ($debug_document['_reasons'] ?? array())), 0, 4)),
+                    'reasons'  => array_values(array_slice(array_map('sanitize_text_field', (array) ($debug_document['_reasons'] ?? array())), 0, 6)),
+                    'score_parts' => array_values(array_slice(array_map(static function ($part) {
+                        return array(
+                            'label' => sanitize_text_field((string) ($part['label'] ?? '')),
+                            'points' => round((float) ($part['points'] ?? 0), 4),
+                            'detail' => sanitize_text_field((string) ($part['detail'] ?? '')),
+                        );
+                    }, (array) ($debug_document['_score_parts'] ?? array())), 0, 40)),
                     'tier'     => sanitize_key((string) ($debug_document['_search_tier'] ?? '')),
+                    'survives_live_validation' => isset($final_debug_ids[absint($debug_document['product_id'] ?? 0)]) ? 1 : 0,
                 );
             }
 
@@ -502,7 +518,17 @@ final class SEO_Dependiente_API {
                 'extended_search'   => sanitize_key((string) ($search_diagnostic['extended_search'] ?? 'skipped')),
                 'semantic_routes'   => self::debug_semantic_routes($semantic),
                 'assist_profile'    => $assist_profile,
+                'ranking_input_rows' => absint($ranking_diagnostic['input_rows'] ?? count($candidate_rows)),
+                'ranking_filtered_out' => absint($ranking_diagnostic['filtered_out'] ?? 0),
+                'ranking_scored_rows' => absint($ranking_diagnostic['scored_rows'] ?? count($matched)),
+                'ranking_filter_rejections' => array_values(array_slice((array) ($ranking_diagnostic['filter_rejections'] ?? array()), 0, 20)),
+                'live_validation_input_rows' => absint($live_validation_diagnostic['input_rows'] ?? 0),
+                'live_validation_rejected_rows' => absint($live_validation_diagnostic['rejected_rows'] ?? 0),
+                'live_validation_output_rows' => absint($live_validation_diagnostic['output_rows'] ?? count($matched)),
+                'live_validation_rejections' => array_values(array_slice((array) ($live_validation_diagnostic['rejections'] ?? array()), 0, 20)),
                 'top_matches'       => $top_debug_matches,
+                'category_order_rule' => 'primera_aparicion_en_productos_ordenados',
+                'category_ranking' => self::debug_category_ranking((array) ($discovery_facets['categories'] ?? array()), $discovery_documents, 20),
                 'discovery_source'  => sanitize_key((string) $discovery_source),
                 'discovery_candidates' => count($discovery_documents),
                 'discovery_categories' => count((array) ($discovery_facets['categories'] ?? array())),
@@ -1675,16 +1701,35 @@ final class SEO_Dependiente_API {
     }
 
     /** Puntua una lista de filas con el ranking comun del Dependiente. */
-    private static function score_candidate_rows($rows, $query, $tokens, $filters, $mode, $semantic, $assist_profile = array(), &$documents = array()) {
+    private static function score_candidate_rows($rows, $query, $tokens, $filters, $mode, $semantic, $assist_profile = array(), &$documents = array(), &$ranking_diagnostic = null) {
         $documents = array_map(array('SEO_Dependiente_Index', 'decode_row'), (array) $rows);
         $matched = array();
+        if (is_array($ranking_diagnostic)) {
+            $ranking_diagnostic = array(
+                'input_rows' => count($documents),
+                'filtered_out' => 0,
+                'scored_rows' => 0,
+                'filter_rejections' => array(),
+            );
+        }
         foreach ($documents as $document) {
             if (!self::matches_filters($document, $filters)) {
+                if (is_array($ranking_diagnostic)) {
+                    $ranking_diagnostic['filtered_out']++;
+                    if (count($ranking_diagnostic['filter_rejections']) < 20) {
+                        $ranking_diagnostic['filter_rejections'][] = array(
+                            'id' => absint($document['product_id'] ?? 0),
+                            'title' => sanitize_text_field((string) ($document['normalized_title'] ?? '')),
+                            'reasons' => self::filter_mismatch_reasons($document, $filters),
+                        );
+                    }
+                }
                 continue;
             }
             $score = self::score_document($document, $query, $tokens, $filters, $mode, $semantic, $assist_profile);
             $document['_score'] = $score['score'];
             $document['_reasons'] = $score['reasons'];
+            $document['_score_parts'] = array_values((array) ($score['score_parts'] ?? array()));
             $document['_object_hits'] = absint($score['object_hits'] ?? 0);
             $document['_route_hits'] = absint($score['route_hits'] ?? 0);
             $document['_coverage'] = absint($score['coverage'] ?? 0);
@@ -1693,6 +1738,9 @@ final class SEO_Dependiente_API {
             $document['_assist_vocabulary_hits'] = absint($score['assist_vocabulary_hits'] ?? 0);
             $document['_assist_action_hits'] = absint($score['assist_action_hits'] ?? 0);
             $matched[] = $document;
+        }
+        if (is_array($ranking_diagnostic)) {
+            $ranking_diagnostic['scored_rows'] = count($matched);
         }
         return $matched;
     }
@@ -2272,6 +2320,51 @@ final class SEO_Dependiente_API {
         return true;
     }
 
+    private static function filter_mismatch_reasons($document, $filters) {
+        $reasons = array();
+        if (!self::document_has_term_slugs($document['categories'], $filters['categories'])) {
+            $reasons[] = 'No cumple categoría seleccionada';
+        }
+        if (!self::document_has_term_slugs($document['tags'], $filters['tags'])) {
+            $reasons[] = 'No cumple etiqueta seleccionada';
+        }
+        if ($filters['brands'] && !in_array(sanitize_title((string) $document['brand_slug']), $filters['brands'], true)) {
+            $reasons[] = 'No cumple marca seleccionada';
+        }
+        if ($filters['stock'] && !in_array(sanitize_title((string) $document['stock_status']), $filters['stock'], true)) {
+            $reasons[] = 'No cumple disponibilidad seleccionada';
+        }
+        foreach ($filters['vocabulary'] as $group => $selected) {
+            $available = array();
+            foreach ((array) ($document['vocabulary'][$group] ?? array()) as $item) {
+                $available[] = sanitize_title((string) ($item['slug'] ?? ''));
+            }
+            if (!array_intersect($selected, $available)) {
+                $reasons[] = 'No cumple Vocabulary ' . sanitize_text_field((string) $group);
+            }
+        }
+        $attribute_map = self::attributes_slug_map($document['attributes']);
+        foreach ($filters['attributes'] as $key => $selected) {
+            if (empty($attribute_map[$key]) || !array_intersect($selected, $attribute_map[$key])) {
+                $reasons[] = 'No cumple atributo ' . sanitize_text_field((string) $key);
+            }
+        }
+        foreach ($filters['ranges'] as $field => $range) {
+            $value = isset($document[$field]) && '' !== (string) $document[$field] ? (float) $document[$field] : null;
+            if (null === $value) {
+                $reasons[] = 'Sin valor para rango ' . sanitize_text_field((string) $field);
+                continue;
+            }
+            if (null !== $range['min'] && $value < $range['min']) {
+                $reasons[] = 'Por debajo del mínimo de ' . sanitize_text_field((string) $field);
+            }
+            if (null !== $range['max'] && $value > $range['max']) {
+                $reasons[] = 'Por encima del máximo de ' . sanitize_text_field((string) $field);
+            }
+        }
+        return array_values(array_slice(array_unique(array_filter($reasons)), 0, 8));
+    }
+
     private static function document_has_term_slugs($items, $selected) {
         if (!$selected) {
             return true;
@@ -2287,9 +2380,15 @@ final class SEO_Dependiente_API {
         // Ranking estructurado: el conocimiento explícito del catálogo manda.
         // Texto libre conserva un peso débil. Las rutas semánticas que Dependiente
         // haya activado participan con sus propios pesos, sin una elegibilidad posterior.
-        $score = !empty($document['featured']) ? 8.0 : 0.0;
+        $score = 0.0;
+        $score_parts = array();
+        if (!empty($document['featured'])) {
+            $score += 8.0;
+            $score_parts[] = array('label' => 'Producto destacado', 'points' => 8.0, 'detail' => 'featured');
+        }
         if ('instock' === $document['stock_status']) {
             $score += 5.0;
+            $score_parts[] = array('label' => 'En stock', 'points' => 5.0, 'detail' => 'stock_status=instock');
         }
         $reasons = array();
 
@@ -2319,18 +2418,22 @@ final class SEO_Dependiente_API {
 
         if ($normalized_query && $sku && $normalized_query === $sku) {
             $score += 1200;
+            $score_parts[] = array('label' => 'Referencia exacta', 'points' => 1200.0, 'detail' => $sku);
             $reasons[] = 'Referencia exacta';
         }
         if ($core_phrase && $title === $core_phrase) {
             $score += 900;
+            $score_parts[] = array('label' => 'Nombre exacto', 'points' => 900.0, 'detail' => $core_phrase);
             $reasons[] = 'Nombre exacto';
         } elseif ($core_phrase && count($core_tokens) > 1 && false !== strpos($title, $core_phrase)) {
             $score += 500;
+            $score_parts[] = array('label' => 'Frase completa en título', 'points' => 500.0, 'detail' => $core_phrase);
             $reasons[] = 'Coincide en el nombre';
         } elseif ($core_phrase && 1 === count($core_tokens) && self::identity_text_matches($title, $core_phrase)) {
             // Para una sola palabra exigimos limite de palabra y evitamos que
             // un prefijo se convierta en una coincidencia de identidad completa.
             $score += 500;
+            $score_parts[] = array('label' => 'Término completo en título', 'points' => 500.0, 'detail' => $core_phrase);
             $reasons[] = 'Coincide en el nombre';
         }
 
@@ -2411,15 +2514,45 @@ final class SEO_Dependiente_API {
             $weights['category'] = 420;
             $weights['attribute'] = 360;
         }
+        $field_labels = array(
+            'type' => 'TIPO',
+            'role' => 'ROL',
+            'category' => 'Categoría',
+            'tag' => 'Etiqueta',
+            'attribute' => 'Atributo',
+            'subtype' => 'SUBTIPO',
+            'application' => 'APLICACIÓN',
+            'platform' => 'PLATAFORMA',
+            'title' => 'Título',
+            'brand' => 'Marca',
+            'excerpt' => 'Excerpt',
+        );
         foreach ($field_hits as $field => $hits) {
-            $score += $hits * (isset($weights[$field]) ? $weights[$field] : 0);
+            $weight = isset($weights[$field]) ? (float) $weights[$field] : 0.0;
+            $points = (float) $hits * $weight;
+            $score += $points;
+            if ($points > 0) {
+                $score_parts[] = array(
+                    'label' => (string) ($field_labels[$field] ?? $field),
+                    'points' => $points,
+                    'detail' => absint($hits) . ' coincidencia(s) × ' . $weight,
+                );
+            }
         }
         // Vocabulary genérico solo desempata; sus grupos concretos ya pesan arriba.
-        $score += min(30, $generic_vocabulary_hits * 6);
+        $generic_vocabulary_points = min(30, $generic_vocabulary_hits * 6);
+        $score += $generic_vocabulary_points;
+        if ($generic_vocabulary_points > 0) {
+            $score_parts[] = array('label' => 'Vocabulary genérico', 'points' => (float) $generic_vocabulary_points, 'detail' => absint($generic_vocabulary_hits) . ' coincidencia(s)');
+        }
 
         // La cobertura textual no manda. Solo aporta un pequeño refuerzo.
         if ($token_groups) {
-            $score += 40 * ($coverage / max(1, count($token_groups)));
+            $coverage_points = 40 * ($coverage / max(1, count($token_groups)));
+            $score += $coverage_points;
+            if ($coverage_points > 0) {
+                $score_parts[] = array('label' => 'Cobertura textual', 'points' => (float) $coverage_points, 'detail' => absint($coverage) . '/' . count($token_groups) . ' grupos');
+            }
         }
 
         $structured_hits =
@@ -2441,23 +2574,29 @@ final class SEO_Dependiente_API {
         foreach ($filters['vocabulary'] as $group => $selected) {
             if ($selected) {
                 $score += 120;
+                $score_parts[] = array('label' => 'Filtro Vocabulary', 'points' => 120.0, 'detail' => self::vocabulary_group_reason($group));
                 $reasons[] = self::vocabulary_group_reason($group);
             }
         }
         if ($filters['attributes']) {
-            $score += 100 * count($filters['attributes']);
+            $filter_attribute_points = 100 * count($filters['attributes']);
+            $score += $filter_attribute_points;
+            $score_parts[] = array('label' => 'Filtros de atributos', 'points' => (float) $filter_attribute_points, 'detail' => count($filters['attributes']) . ' grupo(s)');
             $reasons[] = 'Cumple los atributos elegidos';
         }
         if ($filters['brands']) {
             $score += 70;
+            $score_parts[] = array('label' => 'Filtro de marca', 'points' => 70.0, 'detail' => implode(', ', array_map('sanitize_text_field', (array) $filters['brands'])));
             $reasons[] = 'Marca seleccionada';
         }
         if ($filters['ranges']) {
             $score += 50;
+            $score_parts[] = array('label' => 'Filtro de rango', 'points' => 50.0, 'detail' => implode(', ', array_keys((array) $filters['ranges'])));
             $reasons[] = 'Dentro del rango indicado';
         }
         if ($filters['stock']) {
             $score += 30;
+            $score_parts[] = array('label' => 'Filtro de disponibilidad', 'points' => 30.0, 'detail' => implode(', ', array_map('sanitize_text_field', (array) $filters['stock'])));
             $reasons[] = 'Disponibilidad solicitada';
         }
 
@@ -2475,13 +2614,41 @@ final class SEO_Dependiente_API {
                 continue;
             }
             $sources = array();
-            if (self::identity_text_matches($types, $term))      { $sources[] = 'tipo:' . $term; $score += 900; }
-            if (self::identity_text_matches($roles, $term))      { $sources[] = 'rol:' . $term; $score += 900; }
-            if (self::identity_text_matches($categories, $term)) { $sources[] = 'categoria:' . $term; $score += 820; }
-            if (self::identity_text_matches($tags, $term))       { $sources[] = 'etiqueta:' . $term; $score += 780; }
-            if (self::identity_text_matches($subtypes, $term))   { $sources[] = 'subtipo:' . $term; $score += 700; }
-            if (self::identity_text_matches($attributes, $term)) { $sources[] = 'atributo:' . $term; $score += 620; }
-            if (self::identity_text_matches($title, $term))      { $sources[] = 'titulo:' . $term; $score += 500; }
+            if (self::identity_text_matches($types, $term)) {
+                $sources[] = 'tipo:' . $term;
+                $score += 900;
+                $score_parts[] = array('label' => 'Identidad intérprete · TIPO', 'points' => 900.0, 'detail' => $term);
+            }
+            if (self::identity_text_matches($roles, $term)) {
+                $sources[] = 'rol:' . $term;
+                $score += 900;
+                $score_parts[] = array('label' => 'Identidad intérprete · ROL', 'points' => 900.0, 'detail' => $term);
+            }
+            if (self::identity_text_matches($categories, $term)) {
+                $sources[] = 'categoria:' . $term;
+                $score += 820;
+                $score_parts[] = array('label' => 'Identidad intérprete · categoría', 'points' => 820.0, 'detail' => $term);
+            }
+            if (self::identity_text_matches($tags, $term)) {
+                $sources[] = 'etiqueta:' . $term;
+                $score += 780;
+                $score_parts[] = array('label' => 'Identidad intérprete · etiqueta', 'points' => 780.0, 'detail' => $term);
+            }
+            if (self::identity_text_matches($subtypes, $term)) {
+                $sources[] = 'subtipo:' . $term;
+                $score += 700;
+                $score_parts[] = array('label' => 'Identidad intérprete · SUBTIPO', 'points' => 700.0, 'detail' => $term);
+            }
+            if (self::identity_text_matches($attributes, $term)) {
+                $sources[] = 'atributo:' . $term;
+                $score += 620;
+                $score_parts[] = array('label' => 'Identidad intérprete · atributo', 'points' => 620.0, 'detail' => $term);
+            }
+            if (self::identity_text_matches($title, $term)) {
+                $sources[] = 'titulo:' . $term;
+                $score += 500;
+                $score_parts[] = array('label' => 'Identidad intérprete · título', 'points' => 500.0, 'detail' => $term);
+            }
             if ($sources) {
                 $assist_identity_hits++;
                 $assist_identity_sources = array_merge($assist_identity_sources, $sources);
@@ -2498,6 +2665,7 @@ final class SEO_Dependiente_API {
                 || self::identity_text_matches($subtypes, $term) || self::identity_text_matches($attributes, $term)
                 || self::identity_text_matches($applications, $term) || self::identity_text_matches($platforms, $term)) {
                 $score += 360;
+                $score_parts[] = array('label' => 'Vocabulary del intérprete', 'points' => 360.0, 'detail' => $term);
                 $assist_vocabulary_hits++;
             }
         }
@@ -2511,6 +2679,7 @@ final class SEO_Dependiente_API {
                 || self::identity_text_matches($categories, $term) || self::identity_text_matches($types, $term)
                 || self::identity_text_matches($roles, $term)) {
                 $score += 320;
+                $score_parts[] = array('label' => 'Acción del intérprete', 'points' => 320.0, 'detail' => $term);
                 $assist_action_hits++;
             }
         }
@@ -2533,6 +2702,11 @@ final class SEO_Dependiente_API {
             $semantic_bonus = max(0.0, (float) ($semantic_score['bonus'] ?? 0));
             $score += $semantic_bonus;
             if ($semantic_bonus > 0) {
+                $score_parts[] = array(
+                    'label' => 'Semántica / rutas de Dependiente',
+                    'points' => $semantic_bonus,
+                    'detail' => implode(' | ', array_slice(array_map('sanitize_text_field', (array) ($semantic_score['reasons'] ?? array())), 0, 5)),
+                );
                 $reasons = array_merge($reasons, (array) ($semantic_score['reasons'] ?? array()));
             }
         }
@@ -2547,6 +2721,15 @@ final class SEO_Dependiente_API {
             'assist_identity_sources' => array_values(array_unique(array_filter($assist_identity_sources))),
             'assist_vocabulary_hits' => absint($assist_vocabulary_hits),
             'assist_action_hits' => absint($assist_action_hits),
+            'score_parts' => array_values(array_map(static function ($part) {
+                return array(
+                    'label' => sanitize_text_field((string) ($part['label'] ?? '')),
+                    'points' => round((float) ($part['points'] ?? 0), 4),
+                    'detail' => sanitize_text_field((string) ($part['detail'] ?? '')),
+                );
+            }, array_filter($score_parts, static function ($part) {
+                return abs((float) ($part['points'] ?? 0)) > 0.00001;
+            }))),
         );
     }
 
@@ -2629,15 +2812,39 @@ final class SEO_Dependiente_API {
     /**
      * Filtra documentos antes de construir facetas/total/paginación.
      */
-    private static function filter_searchable_documents($documents) {
+    private static function filter_searchable_documents($documents, &$diagnostic = null) {
         $out = array();
+        if (is_array($diagnostic)) {
+            $diagnostic = array(
+                'input_rows' => count((array) $documents),
+                'rejected_rows' => 0,
+                'output_rows' => 0,
+                'rejections' => array(),
+            );
+        }
         foreach ((array) $documents as $document) {
             $product_id = absint($document['product_id'] ?? 0);
             if (!$product_id) {
+                if (is_array($diagnostic)) {
+                    $diagnostic['rejected_rows']++;
+                    if (count($diagnostic['rejections']) < 20) {
+                        $diagnostic['rejections'][] = array('id' => 0, 'title' => sanitize_text_field((string) ($document['normalized_title'] ?? '')), 'reason' => 'ID de producto vacío');
+                    }
+                }
                 continue;
             }
             $product = wc_get_product($product_id);
             if (!self::product_is_searchable($product)) {
+                if (is_array($diagnostic)) {
+                    $diagnostic['rejected_rows']++;
+                    if (count($diagnostic['rejections']) < 20) {
+                        $diagnostic['rejections'][] = array(
+                            'id' => $product_id,
+                            'title' => sanitize_text_field((string) ($document['normalized_title'] ?? '')),
+                            'reason' => $product ? 'Producto no publicado' : 'Producto inexistente en WooCommerce',
+                        );
+                    }
+                }
                 // Si el ID del indice ya no representa un producto publicado,
                 // limpiamos esa fila obsoleta para que no vuelva a contaminar
                 // futuras busquedas.
@@ -2647,6 +2854,9 @@ final class SEO_Dependiente_API {
                 continue;
             }
             $out[] = $document;
+        }
+        if (is_array($diagnostic)) {
+            $diagnostic['output_rows'] = count($out);
         }
         return $out;
     }
@@ -2948,6 +3158,69 @@ final class SEO_Dependiente_API {
      * el orden de productos que ya decidió Dependiente. No añade score ni reglas
      * nuevas: solo proyecta el ranking existente sobre las categorías.
      */
+    private static function debug_category_ranking($facet_items, $documents, $limit = 20) {
+        $facet_map = array();
+        foreach ((array) $facet_items as $item) {
+            $slug = sanitize_title((string) ($item['slug'] ?? ''));
+            if (!$slug) {
+                continue;
+            }
+            $facet_map[$slug] = array(
+                'label' => sanitize_text_field((string) ($item['label'] ?? $slug)),
+                'slug' => $slug,
+                'count' => absint($item['count'] ?? 0),
+            );
+        }
+
+        $out = array();
+        $seen = array();
+        foreach ((array) $documents as $rank => $document) {
+            foreach ((array) ($document['categories'] ?? array()) as $category) {
+                $slug = sanitize_title((string) ($category['slug'] ?? ''));
+                if (!$slug || isset($seen[$slug])) {
+                    continue;
+                }
+                $seen[$slug] = true;
+                $facet = isset($facet_map[$slug]) ? $facet_map[$slug] : array(
+                    'label' => sanitize_text_field((string) ($category['name'] ?? $slug)),
+                    'slug' => $slug,
+                    'count' => 0,
+                );
+                $out[] = array(
+                    'label' => $facet['label'],
+                    'slug' => $slug,
+                    'count' => absint($facet['count']),
+                    'first_product_rank' => absint($rank) + 1,
+                    'best_product_id' => absint($document['product_id'] ?? 0),
+                    'best_product_title' => sanitize_text_field((string) ($document['normalized_title'] ?? '')),
+                    'best_product_score' => round((float) ($document['_score'] ?? 0), 4),
+                );
+                if (count($out) >= $limit) {
+                    return $out;
+                }
+            }
+        }
+
+        foreach ($facet_map as $slug => $facet) {
+            if (isset($seen[$slug])) {
+                continue;
+            }
+            $out[] = array(
+                'label' => $facet['label'],
+                'slug' => $slug,
+                'count' => absint($facet['count']),
+                'first_product_rank' => 0,
+                'best_product_id' => 0,
+                'best_product_title' => '',
+                'best_product_score' => 0.0,
+            );
+            if (count($out) >= $limit) {
+                break;
+            }
+        }
+        return $out;
+    }
+
     private static function categories_in_ranked_document_order($facet_items, $documents, $limit = 12) {
         $facet_map = array();
         $fallback_order = array();
