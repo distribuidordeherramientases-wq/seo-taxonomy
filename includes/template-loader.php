@@ -268,7 +268,23 @@ function seo_template_loader($template) {
     }
 
     /* =====================================================
-       2E. TIENDA WOOCOMMERCE
+       2E. BUSQUEDA
+
+       Una busqueda de productos puede ser tambien un archive de
+       WooCommerce y hacer que is_shop() sea true. La busqueda debe
+       resolverse antes que la tienda para no cargar template-shop
+       cuando existe un termino `s`.
+    ===================================================== */
+    if (is_search()) {
+
+        $tpl = seo_template_get_registered_template('search');
+
+        $file = seo_template_resolve_registered_file($tpl, $base_path);
+        return $file !== '' ? $file : $template;
+    }
+
+    /* =====================================================
+       2F. TIENDA WOOCOMMERCE
 
        El archivo principal de tienda de WooCommerce no es una
        pagina singular normal. Debe resolverse de forma explicita
