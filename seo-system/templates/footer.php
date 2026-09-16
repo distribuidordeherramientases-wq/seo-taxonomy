@@ -31,6 +31,8 @@ $resolve_page = static function (array $slugs, $fallback = '') {
     return $fallback !== '' ? home_url('/' . trim($fallback, '/') . '/') : '';
 };
 
+$shipping_url = $resolve_page(array('envios-y-entrega', 'envios'), 'envios-y-entrega');
+
 $corporate_links = array(
     'Nosotros'              => $resolve_page(array('nosotros'), 'nosotros'),
     'Nuestro servicio'      => $resolve_page(array('nuestro-servicio'), 'nuestro-servicio'),
@@ -40,6 +42,7 @@ $corporate_links = array(
 
 $service_links = array(
     'Devoluciones y reembolsos' => $resolve_page(array('devoluciones-y-reembolsos', 'devoluciones'), 'devoluciones-y-reembolsos'),
+    'Envíos y entrega'           => $shipping_url,
     'Términos y condiciones'     => $resolve_page(array('terminos-y-condiciones'), 'terminos-y-condiciones'),
     'Privacidad de datos'        => $privacy_url ?: $resolve_page(array('privacidad-de-datos', 'politica-de-privacidad'), 'privacidad-de-datos'),
     'Tienda'                     => $shop_url,
@@ -89,7 +92,7 @@ $service_links = array(
 
         <section class="footer-column footer-coverage" aria-label="Cobertura y dominio oficial">
             <h2>Servicio en España</h2>
-            <p>Atendemos pedidos y consultas en <strong>España peninsular, Islas Baleares e Islas Canarias</strong>, de acuerdo con las condiciones de envío aplicables a cada producto y proveedor.</p>
+            <p>Atendemos pedidos y consultas en <strong>España peninsular, Islas Baleares e Islas Canarias</strong>, de acuerdo con las <a href="<?php echo esc_url($shipping_url); ?>">condiciones de envío</a> aplicables a cada producto y proveedor.</p>
 
             <div class="footer-official-domain">
                 <span class="footer-official-label">Dominio oficial</span>
