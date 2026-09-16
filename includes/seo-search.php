@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 ========================================================= */
 
 if (!defined('SEO_SEARCH_VERSION')) {
-    define('SEO_SEARCH_VERSION', '2.3.1');
+    define('SEO_SEARCH_VERSION', '2.3.2');
 }
 
 if (!defined('SEO_SEARCH_OPTION')) {
@@ -1655,8 +1655,9 @@ function seo_search_frontend_js() {
 
     function hideLegacyShopCategorySection() {
         if (!window.seoSearchConfig || !window.seoSearchConfig.hideLegacyShopCategories || !document.querySelector('.seo-search-vocab-bar')) {
-            return;
+            return false;
         }
+        var removed = false;
         var headings = document.querySelectorAll('h1,h2,h3,h4');
         Array.prototype.forEach.call(headings, function(heading){
             if (normalizeLabel(heading.textContent) !== 'encuentra antes lo que necesitas') {
@@ -1664,24 +1665,48 @@ function seo_search_frontend_js() {
             }
             var node = heading.parentElement;
             var candidate = null;
-            while (node && node !== document.body) {
+            var depth = 0;
+            while (node && node !== document.body && depth < 8) {
                 var text = normalizeLabel(node.textContent);
-                if (text.indexOf('catalogo completo') !== -1 || node.querySelector('.seo-search-vocab-bar')) {
+                var links = node.querySelectorAll('a').length;
+                var containsFilters = !!node.querySelector('.seo-search-vocab-bar');
+                var containsCatalog = text.indexOf('catalogo completo') !== -1 || text.indexOf('todos los productos') !== -1;
+
+                // Preferimos el contenedor mas pequeno que contiene el bloque viejo completo.
+                if (!containsFilters && !containsCatalog && links >= 4 &&
+                    text.indexOf('compra por categoria') !== -1 &&
+                    text.indexOf('categorias con mas productos') !== -1) {
+                    candidate = node;
                     break;
                 }
-                if (text.indexOf('compra por categoria') !== -1 && text.indexOf('categorias con mas productos') !== -1 && node.querySelectorAll('a').length >= 4) {
+
+                // Respaldo para plantillas que han cambiado el subtitulo pero mantienen las tarjetas.
+                if (!containsFilters && !containsCatalog && links >= 4 && depth <= 4) {
                     candidate = node;
                 }
+                if (containsFilters || containsCatalog) {
+                    break;
+                }
                 node = node.parentElement;
+                depth++;
             }
-            if (candidate) {
-                candidate.remove();
+            if (candidate && candidate.parentNode) {
+                candidate.parentNode.removeChild(candidate);
+                removed = true;
             }
         });
+        return removed;
+    }
+
+    function ensureLegacyShopCategorySectionHidden() {
+        hideLegacyShopCategorySection();
+        window.setTimeout(hideLegacyShopCategorySection, 80);
+        window.setTimeout(hideLegacyShopCategorySection, 450);
+        window.setTimeout(hideLegacyShopCategorySection, 1200);
     }
 
     $(function(){
-        hideLegacyShopCategorySection();
+        ensureLegacyShopCategorySectionHidden();
         $('.seo-search-box').each(function(){ initSearch($(this)); });
 
         $(document).on('click', '.seo-search-filter-toggle', function(){
@@ -1770,7 +1795,71 @@ function seo_search_current_shop_keyword() {
             }
         }
     }
+
+    // Con enlaces permanentes WordPress puede transformar ?s=termino en /search/termino/.
+    // En ese caso la consulta ya no esta en $_GET, pero si en las query vars.
+    if (function_exists('get_search_query')) {
+        $value = trim((string) get_search_query(false));
+        if ('' !== $value) {
+            return sanitize_text_field($value);
+        }
+    }
+    if (function_exists('get_query_var')) {
+        $value = trim((string) get_query_var('s', ''));
+        if ('' !== $value) {
+            return sanitize_text_field($value);
+        }
+    }
+
+    global $wp_query;
+    if ($wp_query instanceof WP_Query && !empty($wp_query->query_vars['s'])) {
+        return sanitize_text_field((string) $wp_query->query_vars['s']);
+    }
+
     return '';
+}
+
+/**
+ * IDs de producto de la busqueda nativa actual. Sirven para que las cuatro
+ * categorias visuales reflejen exactamente el universo que WooCommerce/WordPress
+ * ya esta mostrando, y no una busqueda paralela distinta.
+ */
+function seo_search_current_native_product_ids($keyword, $limit = 800) {
+    $limit = min(1200, max(4, absint($limit)));
+    $ids = array();
+
+    global $wp_query;
+    if ($wp_query instanceof WP_Query && !empty($wp_query->posts)) {
+        foreach ((array) $wp_query->posts as $post) {
+            $post_id = $post instanceof WP_Post ? absint($post->ID) : absint($post);
+            if (!$post_id) {
+                continue;
+            }
+            if ('product_variation' === get_post_type($post_id)) {
+                $post_id = absint(wp_get_post_parent_id($post_id));
+            }
+            if ($post_id && 'product' === get_post_type($post_id)) {
+                $ids[] = $post_id;
+            }
+        }
+    }
+
+    // Si la plantilla usa una consulta secundaria o el loop aun no esta disponible,
+    // reproducimos la busqueda nativa de productos como respaldo.
+    if (count($ids) < 4 && '' !== trim((string) $keyword)) {
+        $native = get_posts(array(
+            'post_type'        => 'product',
+            'post_status'      => 'publish',
+            's'                => (string) $keyword,
+            'fields'           => 'ids',
+            'posts_per_page'   => $limit,
+            'no_found_rows'    => true,
+            'suppress_filters' => false,
+        ));
+        $ids = array_merge($ids, array_map('absint', (array) $native));
+    }
+
+    return array_slice(array_values(array_unique(array_filter($ids))), 0, $limit);
 }
 
 /**
@@ -1792,7 +1881,11 @@ function seo_search_related_categories_for_keyword($keyword, $limit = 4) {
         return $cached;
     }
 
-    $candidate_ids = array_values(array_unique(array_filter(array_map('absint', seo_search_find_matching_ids($keyword, 1200)))));
+    // Primero usamos el universo que la pagina ya esta mostrando y despues
+    // completamos con el motor SEO Search. Asi las tarjetas no contradicen el listado.
+    $native_ids = seo_search_current_native_product_ids($keyword, 800);
+    $search_ids = array_values(array_unique(array_filter(array_map('absint', seo_search_find_matching_ids($keyword, 1200)))));
+    $candidate_ids = array_values(array_unique(array_merge($native_ids, $search_ids)));
     if (!$candidate_ids) {
         set_transient($cache_key, array(), 5 * MINUTE_IN_SECONDS);
         return array();
@@ -1965,7 +2058,7 @@ function seo_search_render_advanced_search_shortcode($atts = array(), $shortcode
 
     ob_start();
     ?>
-    <form class="seo-search-vocab-bar <?php echo esc_attr($atts['class']); ?>" method="get" action="<?php echo esc_url($action); ?>">
+    <form class="seo-search-vocab-bar <?php echo esc_attr($atts['class']); ?>" data-seo-search-version="<?php echo esc_attr(SEO_SEARCH_VERSION); ?>" method="get" action="<?php echo esc_url($action); ?>">
         <?php echo seo_search_render_related_category_cards($keyword); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
         <div class="seo-search-vocab-grid">
             <?php foreach ($labels as $group => $label) :
