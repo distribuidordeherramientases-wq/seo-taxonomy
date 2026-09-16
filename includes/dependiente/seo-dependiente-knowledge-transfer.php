@@ -144,6 +144,9 @@ final class SEO_Dependiente_Knowledge_Transfer {
         $checkpoint_id = function_exists('wp_generate_uuid4') ? wp_generate_uuid4() : uniqid('checkpoint-', true);
         $rules = self::export_rules();
         $lessons = self::export_completed_lessons();
+        $lesson9_memory = class_exists('SEO_Dependiente_V3_Lesson9')
+            ? SEO_Dependiente_V3_Lesson9::export_memory()
+            : array();
         $snapshot = absint(get_option('seo_dependiente_knowledge_snapshot', 0));
         $catalog = class_exists('SEO_Dependiente_Index') ? SEO_Dependiente_Index::status() : array();
 
@@ -166,6 +169,7 @@ final class SEO_Dependiente_Knowledge_Transfer {
                 'knowledge_snapshot'         => $snapshot,
                 'semantic_rules'             => count($rules),
                 'academy_completed_lessons'  => count($lessons),
+                'lesson9_memory_rows'        => count($lesson9_memory),
                 'rules_digest'               => self::rules_digest($rules),
                 'catalog'                    => array(
                     'indexed'         => absint($catalog['indexed'] ?? 0),
@@ -178,6 +182,7 @@ final class SEO_Dependiente_Knowledge_Transfer {
             'semantic_rules' => $rules,
             'academy' => array(
                 'completed_lessons' => $lessons,
+                'lesson9_memory'    => $lesson9_memory,
             ),
         );
 
@@ -190,6 +195,7 @@ final class SEO_Dependiente_Knowledge_Transfer {
             'checkpoint_id' => $checkpoint_id,
             'exported_at'   => current_time('mysql'),
             'rules'         => count($rules),
+            'lesson9_memory'=> count($lesson9_memory),
             'snapshot'      => $snapshot,
         ), false);
 
@@ -299,6 +305,9 @@ final class SEO_Dependiente_Knowledge_Transfer {
         $lessons = isset($document['academy']['completed_lessons']) && is_array($document['academy']['completed_lessons'])
             ? $document['academy']['completed_lessons']
             : array();
+        $lesson9_memory = isset($document['academy']['lesson9_memory']) && is_array($document['academy']['lesson9_memory'])
+            ? $document['academy']['lesson9_memory']
+            : array();
         $incoming_snapshot = absint($document['manifest']['knowledge_snapshot'] ?? 0);
         $before_snapshot = absint(get_option('seo_dependiente_knowledge_snapshot', 0));
         $transaction_started = false;
@@ -317,6 +326,11 @@ final class SEO_Dependiente_Knowledge_Transfer {
             $lesson_result = self::merge_completed_lessons($lessons);
             if (is_wp_error($lesson_result)) {
                 throw new RuntimeException($lesson_result->get_error_message());
+            }
+
+            $lesson9_result = array('inserted'=>0, 'identical'=>0, 'ignored'=>0);
+            if ($lesson9_memory && class_exists('SEO_Dependiente_V3_Lesson9')) {
+                $lesson9_result = SEO_Dependiente_V3_Lesson9::import_memory($lesson9_memory);
             }
 
             $lesson_snapshot = absint($lesson_result['max_snapshot'] ?? 0);
@@ -345,6 +359,9 @@ final class SEO_Dependiente_Knowledge_Transfer {
                 'conflict_samples'     => array_slice((array) ($rule_result['conflict_samples'] ?? array()), 0, 20),
                 'lessons_completed'    => absint($lesson_result['completed'] ?? 0),
                 'lessons_already_done' => absint($lesson_result['already_completed'] ?? 0),
+                'lesson9_inserted'     => absint($lesson9_result['inserted'] ?? 0),
+                'lesson9_identical'    => absint($lesson9_result['identical'] ?? 0),
+                'lesson9_ignored'      => absint($lesson9_result['ignored'] ?? 0),
                 'snapshot_before'      => $before_snapshot,
                 'snapshot_after'       => $after_snapshot,
             );
@@ -873,6 +890,8 @@ final class SEO_Dependiente_Knowledge_Transfer {
             'equivalentes ' . absint($details['rules_equivalent'] ?? 0),
             'conflictos conservados en destino ' . absint($details['rules_conflicts'] ?? 0),
             'lecciones avanzadas ' . absint($details['lessons_completed'] ?? 0),
+            'memoria L9 nueva ' . absint($details['lesson9_inserted'] ?? 0),
+            'memoria L9 idéntica ' . absint($details['lesson9_identical'] ?? 0),
             'snapshot ' . absint($details['snapshot_before'] ?? 0) . ' → ' . absint($details['snapshot_after'] ?? 0),
         );
         if (!empty($details['conflict_samples'])) {

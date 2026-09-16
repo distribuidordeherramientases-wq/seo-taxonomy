@@ -13,7 +13,7 @@ defined('ABSPATH') || exit;
  */
 final class SEO_Dependiente_Entrenador {
     const DB_VERSION = '2026-09-09.1';
-    const CURRICULUM_VERSION = '2.2';
+    const CURRICULUM_VERSION = '2.3';
     const PROGRESS_REPORT_VERSION = 3;
     const MAX_INVENTORY_SOURCES = 3000;
     const MAX_FEATURE_SOURCES = 12000;
@@ -271,8 +271,8 @@ final class SEO_Dependiente_Entrenador {
         <div class="seo-dependiente-trainer" data-trainer-root data-current-lesson="<?php echo esc_attr($current_key); ?>" data-current-module="<?php echo esc_attr($next_module); ?>" data-auto-running="<?php echo $auto_running ? '1' : '0'; ?>">
             <div class="seo-dependiente-trainer__intro">
                 <div>
-                    <h2>Academia del Dependiente v2.2</h2>
-                    <p>Formación guiada sobre el catálogo real de PRO. L1–L7 trabajan en un aula aislada con conocimiento activo + reglas academy_stage de la lección; los clientes siguen usando solo conocimiento activo. L8 examina sin ayuda del aula.</p>
+                    <h2>Academia del Dependiente v2.3</h2>
+                    <p>Formación guiada sobre el catálogo real de PRO. L1–L7 trabajan con el conocimiento canónico del catálogo; L8 comprueba regresiones sin ayuda del aula. L9 genera necesidades desde los productos reales y ensaya el buscador V3 con una memoria aislada que solo se publica si supera el control de calidad.</p>
                 </div>
                 <div class="seo-dependiente-trainer__intro-badges">
                     <span class="seo-dependiente-trainer__isolation">Consultas aisladas del aprendizaje de clientes</span>
@@ -321,7 +321,7 @@ final class SEO_Dependiente_Entrenador {
                     <div class="seo-dependiente-trainer__section-head">
                         <div>
                             <h2>Resultados de la lección actual</h2>
-                            <p class="description">El acierto se calcula contra la verdad esperada del catálogo. Estos resultados muestran cómo responde el Dependiente durante la formación. En L1–L7 el aula puede usar reglas academy_stage preparadas desde la verdad canónica; esas reglas no llegan a clientes hasta superar el control de calidad. L8 usa solo conocimiento activo.</p>
+                            <p class="description">El acierto se calcula contra la verdad esperada del catálogo. Estos resultados muestran cómo responde el Dependiente durante la formación. En L1–L7 el aula puede usar reglas academy_stage preparadas desde la verdad canónica; L8 usa solo conocimiento activo. L9 usa memoria de producto aislada y ejecuta las preguntas contra el runtime V3; esa memoria no llega a clientes hasta superar el control de calidad.</p>
                         </div>
                         <div>
                             <button type="button" class="button" data-trainer-export-progress>Descargar progreso</button>
@@ -2764,6 +2764,14 @@ final class SEO_Dependiente_Entrenador {
                 'source'      => 'Muestra de preguntas ya preparadas en L1–L7',
                 'min_pass_any'=> 0.40,
             ),
+            'v2_l9_product_language' => array(
+                'order'       => 9,
+                'title'       => 'Necesidades y productos',
+                'description' => 'Parte de cada producto real y genera una necesidad natural con TIPO, aplicación, subtipo, etiquetas o atributos para aprender a volver desde el lenguaje del cliente a la familia o producto adecuado.',
+                'module_size' => 40,
+                'source'      => 'Índice de productos + TIPO/ROL + aplicaciones + etiquetas + atributos + texto',
+                'min_pass_any'=> 0.45,
+            ),
         );
     }
 
@@ -3313,12 +3321,18 @@ final class SEO_Dependiente_Entrenador {
         if ('v2_l8_exam' === $lesson_key) {
             return count(self::lesson8_sources());
         }
+        if ('v2_l9_product_language' === $lesson_key && class_exists('SEO_Dependiente_V3_Lesson9')) {
+            return SEO_Dependiente_V3_Lesson9::source_total();
+        }
         return 0;
     }
 
     private static function lesson_source_batch($lesson_key, $offset, $limit) {
         if ('v2_l1_categories' === $lesson_key) {
             return self::lesson1_batch($offset, $limit);
+        }
+        if ('v2_l9_product_language' === $lesson_key && class_exists('SEO_Dependiente_V3_Lesson9')) {
+            return SEO_Dependiente_V3_Lesson9::source_batch($offset, $limit);
         }
         $map = array(
             'v2_l2_inventory' => 'lesson2_sources',
@@ -4431,6 +4445,8 @@ final class SEO_Dependiente_Entrenador {
                 self::stage_category_alias($lesson_key, $rule);
             } elseif ('vocabulary_route' === $kind) {
                 self::stage_vocabulary_route($lesson_key, $rule);
+            } elseif ('lesson9_product_memory' === $kind && class_exists('SEO_Dependiente_V3_Lesson9')) {
+                SEO_Dependiente_V3_Lesson9::stage_product_memory($lesson_key, $rule);
             }
         }
     }
@@ -4580,6 +4596,9 @@ final class SEO_Dependiente_Entrenador {
 
     private static function clear_staged_academy_rules($lesson_key) {
         global $wpdb;
+        if (class_exists('SEO_Dependiente_V3_Lesson9')) {
+            SEO_Dependiente_V3_Lesson9::clear_stage($lesson_key);
+        }
         if (!class_exists('SEO_Dependiente_Semantics')) {
             return;
         }
@@ -4596,21 +4615,26 @@ final class SEO_Dependiente_Entrenador {
 
     private static function activate_staged_academy_rules($lesson_key) {
         global $wpdb;
-        if (!class_exists('SEO_Dependiente_Semantics')) {
-            return 0;
+        $updated = 0;
+
+        if (class_exists('SEO_Dependiente_Semantics')) {
+            $table = SEO_Dependiente_Semantics::table();
+            if (self::table_exists($table)) {
+                $prefix = $wpdb->esc_like('academy-' . $lesson_key . '-') . '%';
+                $semantic_updated = (int) $wpdb->query($wpdb->prepare(
+                    "UPDATE {$table} SET source = 'academy', active = 1, updated_at = %s WHERE source = 'academy_stage' AND rule_key LIKE %s",
+                    current_time('mysql'),
+                    $prefix
+                ));
+                $updated += max(0, $semantic_updated);
+                if ($semantic_updated > 0 && method_exists('SEO_Dependiente_Semantics', 'flush_runtime_cache')) {
+                    SEO_Dependiente_Semantics::flush_runtime_cache();
+                }
+            }
         }
-        $table = SEO_Dependiente_Semantics::table();
-        if (!self::table_exists($table)) {
-            return 0;
-        }
-        $prefix = $wpdb->esc_like('academy-' . $lesson_key . '-') . '%';
-        $updated = (int) $wpdb->query($wpdb->prepare(
-            "UPDATE {$table} SET source = 'academy', active = 1, updated_at = %s WHERE source = 'academy_stage' AND rule_key LIKE %s",
-            current_time('mysql'),
-            $prefix
-        ));
-        if ($updated > 0 && method_exists('SEO_Dependiente_Semantics', 'flush_runtime_cache')) {
-            SEO_Dependiente_Semantics::flush_runtime_cache();
+
+        if (class_exists('SEO_Dependiente_V3_Lesson9')) {
+            $updated += max(0, (int) SEO_Dependiente_V3_Lesson9::activate_stage($lesson_key));
         }
         return $updated;
     }
@@ -4669,6 +4693,74 @@ final class SEO_Dependiente_Entrenador {
         ), ARRAY_A);
     }
 
+    /**
+     * Ejecuta una pregunta de L9 contra el runtime público V3 y adapta su
+     * respuesta al contrato interno que ya usa el evaluador de Academia.
+     * Así L9 examina exactamente el buscador que verá el cliente, sin volver a
+     * activar el algoritmo legacy /v1.
+     */
+    private static function run_lesson9_v3_search(WP_REST_Request $request) {
+        $response = SEO_Dependiente_V3_API::search($request);
+        if (is_wp_error($response)) {
+            return $response;
+        }
+        if ($response instanceof WP_REST_Response) {
+            $v3 = (array) $response->get_data();
+        } elseif (is_array($response)) {
+            $v3 = $response;
+        } else {
+            return new WP_Error('seo_dependiente_l9_v3_invalid', 'V3 devolvió una respuesta no reconocida durante la Lección 9.');
+        }
+
+        $results = array();
+        foreach (array_values((array) ($v3['products'] ?? array())) as $product) {
+            if (!is_array($product)) {
+                continue;
+            }
+            $sources = array_values(array_unique(array_filter(array_map('sanitize_text_field', (array) ($product['sources'] ?? array())))));
+            $results[] = array(
+                'id'      => absint($product['id'] ?? 0),
+                'title'   => sanitize_text_field((string) ($product['title'] ?? '')),
+                'score'   => isset($product['score']) ? (float) $product['score'] : 0,
+                'reasons' => array_slice($sources, 0, 6),
+            );
+        }
+
+        $interpretation = is_array($v3['interpretation'] ?? null) ? $v3['interpretation'] : array();
+        $debug = is_array($v3['debug'] ?? null) ? $v3['debug'] : array();
+        $retrieval = is_array($debug['retrieval'] ?? null) ? $debug['retrieval'] : array();
+        $pagination = is_array($v3['pagination'] ?? null) ? $v3['pagination'] : array();
+
+        return array(
+            'results'         => $results,
+            'total'           => absint($pagination['total'] ?? count($results)),
+            'search_strategy' => 'v3_l9',
+            'semantic'        => array(
+                'normalized' => (string) ($interpretation['normalized'] ?? ''),
+                'filtered'   => (string) ($interpretation['filtered'] ?? ''),
+                'groups'     => array_values((array) ($interpretation['groups'] ?? array())),
+                'actions'    => array_values((array) ($interpretation['actions'] ?? array())),
+                'concepts'   => (array) ($interpretation['concepts'] ?? array()),
+                'routes'     => array_values((array) ($interpretation['routes'] ?? array())),
+            ),
+            'search_diagnostic' => array(
+                'strategy'             => 'v3_l9',
+                'primary_rows'         => absint($retrieval['exact'] ?? 0) + absint($retrieval['conjunctive'] ?? 0),
+                'direct_knowledge_count'=> absint($retrieval['lesson9'] ?? 0),
+                'strict_count'         => absint($retrieval['conjunctive'] ?? 0),
+                'semantic_product_ids' => absint($retrieval['vocabulary'] ?? 0) + absint($retrieval['lesson9'] ?? 0),
+                'semantic_route_rows'  => absint($retrieval['routes'] ?? 0),
+                'broad_fallback_rows'  => absint($retrieval['partial'] ?? 0),
+                'extended_search'      => 'executed',
+                'extended_reasons'     => array('v3_runtime', 'lesson9_classroom'),
+            ),
+            'related'          => array(),
+            'related_editorial'=> array(),
+            'related_faq'      => array(),
+            'v3_debug'         => $debug,
+        );
+    }
+
     private static function run_question($question, $batch_uuid) {
         global $wpdb;
         $question_id = absint($question['id'] ?? 0);
@@ -4690,21 +4782,31 @@ final class SEO_Dependiente_Entrenador {
             (string) $question['lesson_key']
         ));
 
-        $request = new WP_REST_Request('POST', '/seo-taxonomy/v1/search');
-        $request->set_body_params(array(
-            'q'          => (string) ($question['question'] ?? ''),
-            'mode'       => self::sanitize_mode($question['mode'] ?? 'need'),
-            'page'       => 1,
-            'orderby'    => 'relevance',
-            'session_id' => 'academy:' . (string) $question['lesson_key'] . ':' . $question_id,
-        ));
-
         $started_at = microtime(true);
         $lesson_key = sanitize_key((string) ($question['lesson_key'] ?? ''));
+        $use_v3_lesson9 = 'v2_l9_product_language' === $lesson_key
+            && class_exists('SEO_Dependiente_V3_Lesson9')
+            && class_exists('SEO_Dependiente_V3_API');
+
+        $request = new WP_REST_Request($use_v3_lesson9 ? 'GET' : 'POST', $use_v3_lesson9 ? '/seo-taxonomy/v3/search' : '/seo-taxonomy/v1/search');
+        if ($use_v3_lesson9) {
+            $request->set_query_params(array(
+                'q'    => (string) ($question['question'] ?? ''),
+                'page' => 1,
+            ));
+        } else {
+            $request->set_body_params(array(
+                'q'          => (string) ($question['question'] ?? ''),
+                'mode'       => self::sanitize_mode($question['mode'] ?? 'need'),
+                'page'       => 1,
+                'orderby'    => 'relevance',
+                'session_id' => 'academy:' . (string) $question['lesson_key'] . ':' . $question_id,
+            ));
+        }
         $expected_preview = self::decode_json($question['expected_json'] ?? '');
         $expected_preview_kind = sanitize_key((string) ($expected_preview['kind'] ?? ''));
-        // Las actualizaciones M1-M8 trabajan en un aula aislada. Incluso el examen M8
-        // debe ver el conocimiento candidato en staging; solo M9 lo publica.
+        // Las lecciones con staging semántico trabajan en un aula aislada. L9 usa,
+        // además, su propia memoria de producto inactiva hasta superar calidad.
         $use_classroom_stage = self::lesson_uses_classroom_stage($lesson_key);
         $faq_owner_only = 'v2_l6_faq' === $lesson_key || 'faq' === $expected_preview_kind;
         add_filter('seo_dependiente_should_log_search', array(__CLASS__, 'skip_customer_search_log'), 999, 4);
@@ -4716,10 +4818,18 @@ final class SEO_Dependiente_Entrenador {
             add_filter('seo_dependiente_faq_allow_text_fallback', array(__CLASS__, 'disable_faq_text_fallback'), 999, 1);
         }
         try {
-            $response = SEO_Dependiente_API::search($request);
+            if ($use_v3_lesson9) {
+                SEO_Dependiente_V3_Lesson9::set_classroom_lesson($lesson_key);
+                $response = self::run_lesson9_v3_search($request);
+            } else {
+                $response = SEO_Dependiente_API::search($request);
+            }
         } catch (Throwable $error) {
             $response = new WP_Error('seo_dependiente_academy_exception', $error->getMessage());
         } finally {
+            if ($use_v3_lesson9) {
+                SEO_Dependiente_V3_Lesson9::set_classroom_lesson('');
+            }
             remove_filter('seo_dependiente_should_log_search', array(__CLASS__, 'skip_customer_search_log'), 999);
             remove_filter('seo_dependiente_expose_search_diagnostic', array(__CLASS__, 'expose_search_diagnostic'), 999);
             if ($use_classroom_stage) {
@@ -5846,10 +5956,10 @@ final class SEO_Dependiente_Entrenador {
     /**
      * API interna para la lección continua de Actualización.
      * Mantiene el conocimiento de catálogo dentro de Entrenador y evita que el
-     * módulo incremental replique la lógica de las ocho lecciones.
+     * módulo incremental replique la lógica de las nueve lecciones.
      */
     public static function update_initial_course_status() {
-        $row = self::lesson_row('v2_l8_exam');
+        $row = self::lesson_row('v2_l9_product_language');
         return array(
             'completed'    => is_array($row) && 'completed' === (string) ($row['status'] ?? ''),
             'completed_at' => is_array($row) ? (string) ($row['completed_at'] ?? '') : '',
@@ -5860,7 +5970,7 @@ final class SEO_Dependiente_Entrenador {
     public static function update_queue_worker($message = 'Actualización encolada.') {
         $initial = self::update_initial_course_status();
         if (empty($initial['completed'])) {
-            return new WP_Error('academy_update_locked', 'La actualización requiere haber completado L1–L8.');
+            return new WP_Error('academy_update_locked', 'La actualización requiere haber completado L1–L9.');
         }
         $state = self::auto_state();
         $worker_heartbeat = absint($state['worker_heartbeat_ts'] ?? 0);
