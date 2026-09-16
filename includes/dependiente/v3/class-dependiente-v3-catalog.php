@@ -12,7 +12,7 @@ defined('ABSPATH') || exit;
 final class SEO_Dependiente_V3_Catalog {
     const MAX_GROUPS = 6;
     const MAX_VARIANTS = 4;
-    const MAX_CANDIDATES = 800;
+    const MAX_CANDIDATES = 1800;
 
     public static function search($interpretation, $args = array()) {
         $started = microtime(true);
@@ -23,7 +23,7 @@ final class SEO_Dependiente_V3_Catalog {
 
         $debug = array(
             'index_available' => SEO_Dependiente_V3_DB::exists('seo_dependiente_index'),
-            'retrieval' => array('exact' => 0, 'conjunctive' => 0, 'partial' => 0, 'vocabulary' => 0, 'routes' => 0, 'learned' => 0, 'live_fallback' => 0),
+            'retrieval' => array('exact' => 0, 'conjunctive' => 0, 'partial' => 0, 'vocabulary' => 0, 'lesson9' => 0, 'routes' => 0, 'context_routes' => 0, 'ignored_routes' => 0, 'learned' => 0, 'live_fallback' => 0),
             'candidates_before_publish_check' => 0,
             'candidates_after_publish_check' => 0,
             'discarded_unpublished' => 0,
@@ -69,7 +69,33 @@ final class SEO_Dependiente_V3_Catalog {
                 self::merge_rows($candidates, $rows, 'query_vocabulary', array('vocabulary_ids' => $vocab_ids));
             }
 
+            // Lección 9: memoria dinámica producto <- lenguaje del cliente.
+            // Solo entra si Academia ha construido la tabla L9 y la consulta
+            // acumula evidencia suficiente; una señal genérica aislada no vale.
+            if (class_exists('SEO_Dependiente_V3_Lesson9')) {
+                $l9_matches = SEO_Dependiente_V3_Lesson9::match_query((string) ($interpretation['normalized'] ?? ''), 320);
+                if ($l9_matches) {
+                    $l9_ids = array_values(array_unique(array_filter(array_map('absint', array_keys($l9_matches)))));
+                    $debug['retrieval']['lesson9'] = count($l9_ids);
+                    $rows = self::index_rows_by_ids($l9_ids);
+                    foreach ($rows as $row) {
+                        $pid = absint($row['product_id'] ?? 0);
+                        if (!$pid || empty($l9_matches[$pid])) continue;
+                        self::merge_rows($candidates, array($row), 'lesson9', array('lesson9' => $l9_matches[$pid]));
+                    }
+                }
+            }
+
             foreach ((array) ($interpretation['routes'] ?? array()) as $route) {
+                if (!self::is_solution_route($route)) {
+                    if ('context' === sanitize_key((string) ($route['result_role'] ?? ''))) {
+                        $debug['retrieval']['context_routes']++;
+                    } else {
+                        $debug['retrieval']['ignored_routes']++;
+                    }
+                    continue;
+                }
+
                 $route_ids = array();
                 $target_id = absint($route['target_vocabulary_id'] ?? 0);
                 $target_slug = SEO_Dependiente_V3_DB::normalize($route['target_slug'] ?? '');
@@ -116,10 +142,6 @@ final class SEO_Dependiente_V3_Catalog {
             }
         }
 
-        if (count($candidates) > self::MAX_CANDIDATES) {
-            $candidates = array_slice($candidates, 0, self::MAX_CANDIDATES, true);
-        }
-
         $debug['candidates_before_publish_check'] = count($candidates);
         $published = self::published_id_map(array_keys($candidates));
         foreach (array_keys($candidates) as $id) {
@@ -129,6 +151,7 @@ final class SEO_Dependiente_V3_Catalog {
             }
         }
         $debug['candidates_after_publish_check'] = count($candidates);
+        $candidates = self::trim_candidates_preserving_routes($candidates, self::MAX_CANDIDATES);
 
         $has_action = !empty($interpretation['actions']);
         $ranked = array();
@@ -166,7 +189,8 @@ final class SEO_Dependiente_V3_Catalog {
                 'coverage' => absint($item['ranking']['coverage']),
                 'coverage_total' => count($groups),
                 'phrase_hit' => !empty($item['ranking']['phrase_hit']),
-                'solution_priority' => !empty($item['ranking']['solution_priority']),
+                'solution_priority' => absint($item['ranking']['solution_priority'] ?? 0),
+                'lesson9_strength' => absint($item['ranking']['lesson9_strength'] ?? 0),
                 'sources' => array_values(array_unique((array) ($item['sources'] ?? array()))),
                 'evidence' => $item['ranking']['evidence'],
             );
@@ -183,7 +207,7 @@ final class SEO_Dependiente_V3_Catalog {
             }));
         }
 
-        $categories = self::build_categories($ranked, $groups);
+        $categories = self::build_categories($ranked);
         $total = count($ranked);
         $offset = ($page - 1) * $per_page;
         $page_rows = array_slice($ranked, $offset, $per_page);
@@ -219,9 +243,10 @@ final class SEO_Dependiente_V3_Catalog {
         $phrase = SEO_Dependiente_V3_DB::normalize($phrase);
         if (!$phrase) return array();
         $like = '%' . $wpdb->esc_like($phrase) . '%';
-        $sql = "SELECT " . self::index_select_sql() . " FROM {$table}
-                WHERE normalized_title LIKE %s OR search_text LIKE %s
-                ORDER BY CASE WHEN normalized_title LIKE %s THEN 0 ELSE 1 END, product_id DESC
+        $sql = "SELECT " . self::index_select_sql() . " FROM {$table} i
+                INNER JOIN {$wpdb->posts} p ON p.ID=i.product_id AND p.post_type='product' AND p.post_status='publish'
+                WHERE i.normalized_title LIKE %s OR i.search_text LIKE %s
+                ORDER BY CASE WHEN i.normalized_title LIKE %s THEN 0 ELSE 1 END, i.product_id DESC
                 LIMIT %d";
         return (array) $wpdb->get_results($wpdb->prepare($sql, $like, $like, $like, absint($limit)), ARRAY_A);
     }
@@ -237,14 +262,16 @@ final class SEO_Dependiente_V3_Catalog {
             if (!$variants) continue;
             $or = array();
             foreach ($variants as $variant) {
-                $or[] = 'search_text LIKE %s';
+                $or[] = 'i.search_text LIKE %s';
                 $params[] = '%' . $wpdb->esc_like(SEO_Dependiente_V3_DB::normalize($variant)) . '%';
             }
             $clauses[] = '(' . implode(' OR ', $or) . ')';
         }
         if (!$clauses) return array();
         $join = $require_all ? ' AND ' : ' OR ';
-        $sql = "SELECT " . self::index_select_sql() . " FROM {$table} WHERE " . implode($join, $clauses) . " LIMIT %d";
+        $sql = "SELECT " . self::index_select_sql() . " FROM {$table} i
+                INNER JOIN {$wpdb->posts} p ON p.ID=i.product_id AND p.post_type='product' AND p.post_status='publish'
+                WHERE " . implode($join, $clauses) . " LIMIT %d";
         $params[] = absint($limit);
         return (array) $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
     }
@@ -254,7 +281,9 @@ final class SEO_Dependiente_V3_Catalog {
         $ids = array_values(array_unique(array_filter(array_map('absint', (array) $ids))));
         if (!$ids || !SEO_Dependiente_V3_DB::exists('seo_dependiente_index')) return array();
         $table = SEO_Dependiente_V3_DB::table('seo_dependiente_index');
-        $sql = "SELECT " . self::index_select_sql() . " FROM {$table} WHERE product_id IN (" . implode(',', $ids) . ')';
+        $sql = "SELECT " . self::index_select_sql() . " FROM {$table} i
+                INNER JOIN {$wpdb->posts} p ON p.ID=i.product_id AND p.post_type='product' AND p.post_status='publish'
+                WHERE i.product_id IN (" . implode(',', $ids) . ')';
         return (array) $wpdb->get_results($sql, ARRAY_A);
     }
 
@@ -263,9 +292,10 @@ final class SEO_Dependiente_V3_Catalog {
         $ids = array_values(array_unique(array_filter(array_map('absint', (array) $vocabulary_ids))));
         if (!$ids || !SEO_Dependiente_V3_DB::exists('seo_object_vocabulary')) return array();
         $table = SEO_Dependiente_V3_DB::table('seo_object_vocabulary');
-        $sql = "SELECT DISTINCT object_id FROM {$table}
-                WHERE object_type='product' AND status=1 AND vocabulary_id IN (" . implode(',', $ids) . ')
-                ORDER BY object_id DESC LIMIT ' . absint($limit);
+        $sql = "SELECT DISTINCT ov.object_id FROM {$table} ov
+                INNER JOIN {$wpdb->posts} p ON p.ID=ov.object_id AND p.post_type='product' AND p.post_status='publish'
+                WHERE ov.object_type='product' AND ov.status=1 AND ov.vocabulary_id IN (" . implode(',', $ids) . ')
+                ORDER BY ov.object_id DESC LIMIT ' . absint($limit);
         return array_values(array_unique(array_filter(array_map('absint', (array) $wpdb->get_col($sql)))));
     }
 
@@ -274,7 +304,7 @@ final class SEO_Dependiente_V3_Catalog {
             $id = absint($row['product_id'] ?? 0);
             if (!$id) continue;
             if (!isset($candidates[$id])) {
-                $candidates[$id] = array('row' => $row, 'sources' => array(), 'route_hits' => array(), 'vocabulary_hits' => array(), 'related_hits' => array());
+                $candidates[$id] = array('row' => $row, 'sources' => array(), 'route_hits' => array(), 'vocabulary_hits' => array(), 'related_hits' => array(), 'lesson9_hits' => array());
             }
             $candidates[$id]['sources'][] = $source;
             if ('semantic_route' === $source && !empty($meta['route'])) {
@@ -286,7 +316,37 @@ final class SEO_Dependiente_V3_Catalog {
             if ('learned_related' === $source && !empty($meta['related'])) {
                 $candidates[$id]['related_hits'][] = $meta['related'];
             }
+            if ('lesson9' === $source && !empty($meta['lesson9'])) {
+                $candidates[$id]['lesson9_hits'][] = $meta['lesson9'];
+            }
         }
+    }
+
+    private static function is_solution_route($route) {
+        $role = sanitize_key((string) ($route['result_role'] ?? ''));
+        return in_array($role, array('primary_product','tool','replacement','accessory','consumable'), true);
+    }
+
+    private static function trim_candidates_preserving_routes($candidates, $limit) {
+        $limit = max(1, absint($limit));
+        if (count($candidates) <= $limit) {
+            return $candidates;
+        }
+        $priority = array();
+        $secondary = array();
+        $rest = array();
+        foreach ($candidates as $id => $candidate) {
+            $sources = array_values(array_unique((array) ($candidate['sources'] ?? array())));
+            if (!empty($candidate['route_hits']) || !empty($candidate['lesson9_hits'])) {
+                $priority[$id] = $candidate;
+            } elseif (array_intersect($sources, array('exact_phrase','all_groups'))) {
+                $secondary[$id] = $candidate;
+            } else {
+                $rest[$id] = $candidate;
+            }
+        }
+        $out = $priority + $secondary + $rest;
+        return array_slice($out, 0, $limit, true);
     }
 
     private static function published_id_map($ids) {
@@ -367,12 +427,38 @@ final class SEO_Dependiente_V3_Catalog {
             $evidence[] = array('concept' => 'vocabulary_asignado', 'variant' => implode(',', array_map('absint', $candidate['vocabulary_hits'])), 'field' => 'vocabulary_id', 'points' => 180);
         }
 
+        $lesson9_strength = 0;
+        $lesson9_priority = 0;
+        if (!empty($candidate['lesson9_hits'])) {
+            foreach ((array) $candidate['lesson9_hits'] as $hit) {
+                $lesson9_strength = max($lesson9_strength, absint($hit['score'] ?? 0));
+                $strong_hits = absint($hit['strong_hits'] ?? 0);
+                $matched_count = absint($hit['matched_count'] ?? 0);
+                if ($strong_hits >= 2 || ($strong_hits >= 1 && $matched_count >= 2 && $lesson9_strength >= 180)) {
+                    $lesson9_priority = 1;
+                }
+            }
+            $bonus = min(720, 160 + (int) round($lesson9_strength * 0.85));
+            $score += $bonus;
+            $structured_hits += min(3, absint($candidate['lesson9_hits'][0]['type_count'] ?? 1));
+            $signals = array();
+            foreach ((array) ($candidate['lesson9_hits'][0]['matched_signals'] ?? array()) as $signal) {
+                $signals[] = (string) ($signal['signal'] ?? '');
+            }
+            $evidence[] = array(
+                'concept' => 'academia_l9',
+                'variant' => implode(' · ', array_slice(array_values(array_unique(array_filter($signals))), 0, 5)),
+                'field' => 'lesson9_memory',
+                'points' => $bonus,
+            );
+        }
+
         $route_weight = 0;
         foreach ((array) ($candidate['route_hits'] ?? array()) as $route) {
             $route_weight = max($route_weight, absint($route['weight'] ?? 0));
         }
-        $solution_priority = $has_action && !empty($candidate['route_hits']) ? 1 : 0;
-        if ($solution_priority) {
+        $solution_priority = $has_action && !empty($candidate['route_hits']) ? 2 : (($has_action && $lesson9_priority) ? 1 : 0);
+        if ($solution_priority >= 2 && !empty($candidate['route_hits'])) {
             $bonus = 650 + min(500, $route_weight);
             $score += $bonus;
             $evidence[] = array('concept' => 'ruta_aprendida', 'variant' => (string) ($candidate['route_hits'][0]['target_slug'] ?? ''), 'field' => 'semantic_route', 'points' => $bonus);
@@ -388,6 +474,8 @@ final class SEO_Dependiente_V3_Catalog {
             'structured_hits' => $structured_hits,
             'solution_priority' => $solution_priority,
             'route_weight' => $route_weight,
+            'lesson9_priority' => $lesson9_priority,
+            'lesson9_strength' => $lesson9_strength,
             'evidence' => $evidence,
         );
     }
@@ -407,7 +495,7 @@ final class SEO_Dependiente_V3_Catalog {
         );
     }
 
-    private static function build_categories($ranked, $groups) {
+    private static function build_categories($ranked) {
         $map = array();
         foreach (array_slice((array) $ranked, 0, 160) as $position => $candidate) {
             $cats = SEO_Dependiente_V3_DB::json_array($candidate['row']['categories_json'] ?? '');
@@ -416,25 +504,23 @@ final class SEO_Dependiente_V3_Catalog {
                 $slug = sanitize_title((string) ($cat['slug'] ?? $name));
                 if (!$name || !$slug) continue;
                 if (!isset($map[$slug])) {
-                    $map[$slug] = array('name' => $name, 'slug' => $slug, 'count' => 0, 'first_rank' => $position, 'best_score' => 0, 'coverage' => 0);
+                    $map[$slug] = array(
+                        'name' => $name,
+                        'slug' => $slug,
+                        'count' => 0,
+                        'first_rank' => $position,
+                        'best_score' => 0,
+                    );
                 }
                 $map[$slug]['count']++;
                 $map[$slug]['first_rank'] = min($map[$slug]['first_rank'], $position);
                 $map[$slug]['best_score'] = max($map[$slug]['best_score'], (float) ($candidate['ranking']['score'] ?? 0));
-                $cat_text = SEO_Dependiente_V3_DB::normalize($name . ' ' . $slug);
-                $coverage = 0;
-                foreach ((array) $groups as $group) {
-                    if (SEO_Dependiente_V3_DB::contains_any($cat_text, (array) ($group['variants'] ?? array()))) {
-                        $coverage++;
-                    }
-                }
-                $map[$slug]['coverage'] = max($map[$slug]['coverage'], $coverage);
             }
         }
         $cats = array_values($map);
         usort($cats, static function ($a, $b) {
-            $cmp = (int) $b['coverage'] <=> (int) $a['coverage'];
-            if (0 !== $cmp) return $cmp;
+            // La categoria no vuelve a interpretar la consulta. Sigue la salida
+            // ya ordenada de Dependiente: primero la categoria del mejor producto.
             $cmp = (int) $a['first_rank'] <=> (int) $b['first_rank'];
             if (0 !== $cmp) return $cmp;
             $cmp = (float) $b['best_score'] <=> (float) $a['best_score'];

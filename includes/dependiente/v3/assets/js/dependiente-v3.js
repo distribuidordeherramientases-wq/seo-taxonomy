@@ -181,7 +181,11 @@
             const i = data.interpretation || {};
             const d = data.debug || {};
             const groups = (i.groups || []).map(g => '<li><strong>' + esc(g.canonical) + '</strong> <small>' + esc(g.role) + ' · ' + esc((g.variants || []).join(' / ')) + '</small></li>').join('');
-            const routes = (i.routes || []).map(r => '<li>' + esc(r.result_role || r.target_group || 'ruta') + ' → <strong>' + esc(r.target_slug || ('vocab #' + r.target_vocabulary_id)) + '</strong> <small>peso ' + esc(r.weight) + '</small></li>').join('');
+            const routes = (i.routes || []).map(r => {
+                const condition = [r.source_group && r.source_slug ? (r.source_group + '=' + r.source_slug) : '', r.context_group && r.context_slug ? (r.context_group + '=' + r.context_slug) : ''].filter(Boolean).join(' + ');
+                return '<li>' + esc(r.result_role || r.target_group || 'ruta') + ' → <strong>' + esc(r.target_slug || ('vocab #' + r.target_vocabulary_id)) + '</strong>' +
+                    '<small>' + esc(condition || 'sin condición') + ' · peso ' + esc(r.weight) + (r.target_vocabulary_id ? ' · vocab #' + esc(r.target_vocabulary_id) : '') + '</small></li>';
+            }).join('');
             const ranked = (d.ranked_top || []).map(function (r, idx) {
                 const evidence = (r.evidence || []).map(e => esc(e.concept) + ' → ' + esc(e.field) + ' +' + esc(e.points)).join(' · ');
                 return '<li><strong>#' + (idx + 1) + ' · ' + esc(r.title) + '</strong>' +
@@ -189,6 +193,9 @@
                     '<em>' + evidence + '</em></li>';
             }).join('');
             const retrieval = d.retrieval || {};
+            const catlog = (data.categories || []).map(function (c, idx) {
+                return '<li><strong>#' + (idx + 1) + ' · ' + esc(c.name) + '</strong><small>primer producto #' + (Number(c.first_rank || 0) + 1) + ' · score máx. ' + esc(c.best_score || 0) + ' · ' + esc(c.count || 0) + ' productos</small></li>';
+            }).join('');
             debugContent.innerHTML =
                 '<section><h3>INTÉRPRETE</h3>' +
                 '<p><b>Cliente:</b> ' + esc(i.raw || data.query || '') + '</p>' +
@@ -200,11 +207,12 @@
                 '<h4>Rutas aprendidas</h4><ul>' + (routes || '<li>—</li>') + '</ul></section>' +
                 '<section><h3>DEPENDIENTE</h3>' +
                 '<p><b>Exactos:</b> ' + esc(retrieval.exact || 0) + ' · <b>Todos los conceptos:</b> ' + esc(retrieval.conjunctive || 0) + '</p>' +
-                '<p><b>Parciales:</b> ' + esc(retrieval.partial || 0) + ' · <b>Vocabulary:</b> ' + esc(retrieval.vocabulary || 0) + '</p>' +
-                '<p><b>Rutas:</b> ' + esc(retrieval.routes || 0) + ' · <b>Catálogo vivo:</b> ' + esc(retrieval.live_fallback || 0) + '</p>' +
+                '<p><b>Parciales:</b> ' + esc(retrieval.partial || 0) + ' · <b>Vocabulary:</b> ' + esc(retrieval.vocabulary || 0) + ' · <b>Academia L9:</b> ' + esc(retrieval.lesson9 || 0) + '</p>' +
+                '<p><b>Rutas solución:</b> ' + esc(retrieval.routes || 0) + ' · <b>Rutas contexto:</b> ' + esc(retrieval.context_routes || 0) + ' · <b>Catálogo vivo:</b> ' + esc(retrieval.live_fallback || 0) + '</p>' +
                 '<p><b>Antes comprobación técnica:</b> ' + esc(d.candidates_before_publish_check || 0) + '</p>' +
                 '<p><b>Después:</b> ' + esc(d.candidates_after_publish_check || 0) + ' · <b>No publicados:</b> ' + esc(d.discarded_unpublished || 0) + '</p>' +
                 '<p><b>Tiempo:</b> ' + esc(d.request_ms || d.elapsed_ms || 0) + ' ms</p></section>' +
+                '<section><h3>CATEGORÍAS DERIVADAS DEL RANKING</h3><ol class="dependiente-v3__rank-log">' + (catlog || '<li>Sin categorías.</li>') + '</ol></section>' +
                 '<section><h3>RANKING TRANSPARENTE</h3><ol class="dependiente-v3__rank-log">' + (ranked || '<li>Sin resultados puntuados.</li>') + '</ol></section>';
         }
     }

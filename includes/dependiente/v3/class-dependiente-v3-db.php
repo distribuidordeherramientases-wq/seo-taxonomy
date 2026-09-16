@@ -39,12 +39,18 @@ final class SEO_Dependiente_V3_DB {
         }
         $out = array($term);
         if (false === strpos($term, ' ') && strlen($term) >= 4) {
-            if (substr($term, -2) === 'es' && strlen($term) > 5) {
-                $out[] = substr($term, 0, -2);
-            } elseif (substr($term, -1) === 's' && strlen($term) > 4) {
-                $out[] = substr($term, 0, -1);
-            } else {
+            $last = substr($term, -1);
+            $last2 = substr($term, -2);
+            if ('z' === $last && strlen($term) > 4) {
+                $out[] = substr($term, 0, -1) . 'ces';
+            } elseif (preg_match('/[aeiou]$/', $term)) {
                 $out[] = $term . 's';
+            } elseif ('s' === $last && strlen($term) > 4) {
+                $out[] = substr($term, 0, -1);
+                if ('es' === $last2 && strlen($term) > 5) {
+                    $out[] = substr($term, 0, -2);
+                }
+            } else {
                 $out[] = $term . 'es';
             }
         }
@@ -131,6 +137,8 @@ final class SEO_Dependiente_V3_DB {
             'seo_vocabulary',
             'seo_object_vocabulary',
             'seo_type_role_map',
+            'seo_dependiente_l9_signals',
+            'seo_dependiente_l9_exercises',
         );
         $result = array();
         foreach ($tables as $table) {
