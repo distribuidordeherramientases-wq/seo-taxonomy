@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 ========================================================= */
 
 if (!defined('SEO_SEARCH_VERSION')) {
-    define('SEO_SEARCH_VERSION', '2.2.2-safe');
+    define('SEO_SEARCH_VERSION', '2.3.0-predictive');
 }
 
 if (!defined('SEO_SEARCH_OPTION')) {
@@ -995,6 +995,51 @@ function seo_search_log_query($keyword, $results_count) {
    AUTOCOMPLETADO AJAX
 ========================================================= */
 
+/**
+ * Devuelve sugerencias ligeras para el predictivo.
+ *
+ * Importante: no llama a seo_search_query_products(), porque esa funcion
+ * construye facetas globales y resulta innecesariamente costosa para cada
+ * pulsacion del autocompletado. Reutilizamos directamente el ranking del
+ * motor de busqueda (titulo, SKU, categorias, atributos, Vocabulary,
+ * sinonimos y tolerancia a errores) y cargamos solo los primeros productos.
+ */
+function seo_search_autocomplete_products($keyword, $limit = 8) {
+    $limit = min(20, max(3, absint($limit)));
+    $candidate_limit = max(40, min(180, $limit * 12));
+    $ids = seo_search_find_matching_ids($keyword, $candidate_limit);
+
+    if (!$ids) {
+        return array();
+    }
+
+    $results = array();
+    foreach (array_slice($ids, 0, $limit) as $product_id) {
+        $product_id = absint($product_id);
+        if (!$product_id) {
+            continue;
+        }
+
+        $product = wc_get_product($product_id);
+        if (!$product || 'publish' !== get_post_status($product_id)) {
+            continue;
+        }
+
+        $image = get_the_post_thumbnail_url($product_id, 'woocommerce_thumbnail');
+        $results[] = array(
+            'id'         => $product_id,
+            'title'      => get_the_title($product_id),
+            'url'        => get_permalink($product_id),
+            'sku'        => $product->get_sku(),
+            'image'      => $image ? $image : wc_placeholder_img_src('woocommerce_thumbnail'),
+            'price_html' => $product->get_price_html(),
+            'stock'      => $product->is_in_stock() ? __('En stock', 'seo-search') : __('Agotado', 'seo-search'),
+        );
+    }
+
+    return $results;
+}
+
 function seo_search_ajax_autocomplete() {
     if (!class_exists('WooCommerce')) {
         wp_send_json_error(array('message' => __('WooCommerce no está activo.', 'seo-search')), 503);
@@ -1009,26 +1054,7 @@ function seo_search_ajax_autocomplete() {
     }
 
     $limit = absint(seo_search_get_option('autocomplete_limit', 8));
-    $products = seo_search_products($keyword, $limit);
-    $payload = array();
-
-    foreach ($products as $item) {
-        $product = wc_get_product($item['id']);
-        if (!$product) {
-            continue;
-        }
-        $payload[] = array(
-            'id'       => $item['id'],
-            'title'    => $item['title'],
-            'url'      => $item['url'],
-            'sku'      => $item['sku'],
-            'image'    => $item['image'] ? $item['image'] : wc_placeholder_img_src('woocommerce_thumbnail'),
-            'price_html'=> $product->get_price_html(),
-            'stock'    => $product->is_in_stock() ? __('En stock', 'seo-search') : __('Agotado', 'seo-search'),
-        );
-    }
-
-    wp_send_json_success($payload);
+    wp_send_json_success(seo_search_autocomplete_products($keyword, $limit));
 }
 add_action('wp_ajax_seo_search_autocomplete', 'seo_search_ajax_autocomplete');
 add_action('wp_ajax_nopriv_seo_search_autocomplete', 'seo_search_ajax_autocomplete');
@@ -1054,13 +1080,18 @@ function seo_search_enqueue_front_assets() {
 
     wp_enqueue_script('jquery');
 
+    $dependiente_page_id = absint(get_option('seo_dependiente_page_id', 0));
+    $dependiente_url = $dependiente_page_id ? get_permalink($dependiente_page_id) : home_url('/dependiente/');
+
     $config = array(
-        'ajaxUrl'     => admin_url('admin-ajax.php'),
-        'nonce'       => wp_create_nonce('seo_search_autocomplete'),
-        'enabled'     => (bool) seo_search_get_option('autocomplete_enabled', 1),
-        'minChars'    => absint(seo_search_get_option('autocomplete_min_chars', 2)),
-        'searchLabel' => __('Ver todos los resultados', 'seo-search'),
-        'emptyLabel'  => __('Sin coincidencias', 'seo-search'),
+        'ajaxUrl'          => admin_url('admin-ajax.php'),
+        'nonce'            => wp_create_nonce('seo_search_autocomplete'),
+        'enabled'          => (bool) seo_search_get_option('autocomplete_enabled', 1),
+        'minChars'         => absint(seo_search_get_option('autocomplete_min_chars', 2)),
+        'searchLabel'      => __('Ver todos los resultados', 'seo-search'),
+        'emptyLabel'       => __('Sin coincidencias', 'seo-search'),
+        'dependienteUrl'   => esc_url_raw($dependiente_url),
+        'dependienteLabel' => __('¿No sabes cómo se llama? Preguntar al Dependiente', 'seo-search'),
     );
 
     wp_add_inline_script('jquery', 'window.seoSearchConfig=' . wp_json_encode($config) . ';', 'before');
@@ -1070,29 +1101,87 @@ function seo_search_enqueue_front_assets() {
     wp_add_inline_style('seo-search-inline', seo_search_frontend_css());
 }
 
+/**
+ * El predictivo del encabezado debe estar disponible en cualquier pagina del
+ * catalogo, incluso cuando no se renderiza el shortcode [seo_search].
+ * Solo se cargan los activos; no se ejecuta ninguna busqueda hasta que el
+ * usuario escribe el minimo de caracteres configurado.
+ */
+function seo_search_enqueue_global_predictive() {
+    if (is_admin() || !class_exists('WooCommerce') || !seo_search_get_option('autocomplete_enabled', 1)) {
+        return;
+    }
+    seo_search_enqueue_front_assets();
+}
+add_action('wp_enqueue_scripts', 'seo_search_enqueue_global_predictive', 30);
+
 function seo_search_frontend_js() {
     return <<<'JS'
 (function($){
     'use strict';
 
+    var resultCache = {};
+
     function escapeHtml(value) {
         return $('<div>').text(value || '').html();
     }
 
-    function initSearch($box) {
-        var $form = $box.find('.seo-search-form');
-        var $input = $box.find('.seo-search-input');
-        var $panel = $box.find('.seo-search-autocomplete');
+    function dependienteUrl(term) {
+        if (!window.seoSearchConfig || !window.seoSearchConfig.dependienteUrl) return '';
+        try {
+            var url = new URL(window.seoSearchConfig.dependienteUrl, window.location.origin);
+            url.searchParams.set('dep_q', term || '');
+            return url.toString();
+        } catch (e) {
+            var sep = window.seoSearchConfig.dependienteUrl.indexOf('?') === -1 ? '?' : '&';
+            return window.seoSearchConfig.dependienteUrl + sep + 'dep_q=' + encodeURIComponent(term || '');
+        }
+    }
+
+    function initSearch($host, nativeForm) {
+        if ($host.data('seoPredictiveReady')) return;
+
+        var $form = nativeForm ? $host : $host.find('.seo-search-form').first();
+        var $input = nativeForm ? $form.find('input[type="search"][name="s"]').first() : $host.find('.seo-search-input').first();
+        var $panel = nativeForm ? $form.find('.seo-search-autocomplete').first() : $host.find('.seo-search-autocomplete').first();
         var timer = null;
         var request = null;
         var activeIndex = -1;
 
-        if (!window.seoSearchConfig || !window.seoSearchConfig.enabled || !$panel.length) {
+        if (!window.seoSearchConfig || !window.seoSearchConfig.enabled || !$form.length || !$input.length) {
             return;
         }
 
+        if (nativeForm) {
+            var postType = $form.find('input[name="post_type"]').val();
+            if (postType && postType !== 'product') return;
+
+            $form.addClass('seo-search-host');
+            if (!$panel.length) {
+                var panelId = ($input.attr('id') || ('seo-native-search-' + Math.random().toString(36).slice(2))) + '-listbox';
+                $panel = $('<div>', {
+                    id: panelId,
+                    'class': 'seo-search-autocomplete',
+                    role: 'listbox',
+                    hidden: true
+                });
+                $form.append($panel);
+                $input.attr({
+                    'aria-autocomplete': 'list',
+                    'aria-controls': panelId,
+                    'aria-expanded': 'false',
+                    'autocomplete': 'off'
+                });
+            }
+        }
+
+        if (!$panel.length) return;
+        $host.data('seoPredictiveReady', true);
+        $form.data('seoPredictiveReady', true);
+
         function closePanel() {
             $panel.attr('hidden', true).empty();
+            $input.attr('aria-expanded', 'false');
             activeIndex = -1;
         }
 
@@ -1113,39 +1202,72 @@ function seo_search_frontend_js() {
                     html += '<a class="seo-search-auto-item" role="option" aria-selected="false" href="' + escapeHtml(item.url) + '">';
                     html += '<img src="' + escapeHtml(item.image) + '" alt="" loading="lazy">';
                     html += '<span class="seo-search-auto-copy"><strong>' + escapeHtml(item.title) + '</strong>';
-                    if (item.sku) html += '<small>Ref. ' + escapeHtml(item.sku) + '</small>';
+                    var meta = [];
+                    if (item.sku) meta.push('Ref. ' + escapeHtml(item.sku));
+                    if (item.stock) meta.push(escapeHtml(item.stock));
+                    if (meta.length) html += '<small>' + meta.join(' · ') + '</small>';
                     html += '</span>';
                     if (item.price_html) html += '<span class="seo-search-auto-price">' + item.price_html + '</span>';
                     html += '</a>';
                 });
                 html += '<button class="seo-search-auto-all" type="submit">' + escapeHtml(window.seoSearchConfig.searchLabel) + ' “' + escapeHtml(term) + '”</button>';
             }
+
+            var depUrl = dependienteUrl(term);
+            if (depUrl && window.seoSearchConfig.dependienteLabel) {
+                html += '<a class="seo-search-auto-dependiente" href="' + escapeHtml(depUrl) + '">';
+                html += '<span aria-hidden="true">✦</span> ' + escapeHtml(window.seoSearchConfig.dependienteLabel) + ' <span aria-hidden="true">→</span>';
+                html += '</a>';
+            }
+
             $panel.html(html).removeAttr('hidden');
+            $input.attr('aria-expanded', 'true');
         }
 
-        $input.on('input', function(){
+        $input.on('input.seoPredictive', function(){
             var term = $.trim($input.val());
+            var cacheKey = term.toLocaleLowerCase();
             clearTimeout(timer);
             if (request && request.readyState !== 4) request.abort();
             if (term.length < window.seoSearchConfig.minChars) {
                 closePanel();
                 return;
             }
+
+            if (Object.prototype.hasOwnProperty.call(resultCache, cacheKey)) {
+                render(resultCache[cacheKey], term);
+                return;
+            }
+
             timer = setTimeout(function(){
-                $box.addClass('is-loading');
+                $host.addClass('is-loading');
+                $form.addClass('is-loading');
                 request = $.get(window.seoSearchConfig.ajaxUrl, {
                     action: 'seo_search_autocomplete',
                     nonce: window.seoSearchConfig.nonce,
                     term: term
                 }).done(function(response){
-                    render(response && response.success ? response.data : [], term);
+                    var items = response && response.success ? response.data : [];
+                    resultCache[cacheKey] = items;
+                    if ($.trim($input.val()).toLocaleLowerCase() === cacheKey) {
+                        render(items, term);
+                    }
                 }).always(function(){
-                    $box.removeClass('is-loading');
+                    $host.removeClass('is-loading');
+                    $form.removeClass('is-loading');
                 });
             }, 220);
         });
 
-        $input.on('keydown', function(event){
+        $input.on('focus.seoPredictive', function(){
+            var term = $.trim($input.val());
+            var cacheKey = term.toLocaleLowerCase();
+            if (term.length >= window.seoSearchConfig.minChars && Object.prototype.hasOwnProperty.call(resultCache, cacheKey)) {
+                render(resultCache[cacheKey], term);
+            }
+        });
+
+        $input.on('keydown.seoPredictive', function(event){
             if ($panel.is('[hidden]')) return;
             var count = $panel.find('[role="option"]').length;
             if (event.key === 'ArrowDown' && count) {
@@ -1162,13 +1284,28 @@ function seo_search_frontend_js() {
             }
         });
 
-        $(document).on('click', function(event){
-            if (!$.contains($box[0], event.target) && event.target !== $box[0]) closePanel();
+        $(document).on('click.seoPredictive', function(event){
+            var node = nativeForm ? $form[0] : $host[0];
+            if (node && !$.contains(node, event.target) && event.target !== node) closePanel();
         });
     }
 
     $(function(){
-        $('.seo-search-box').each(function(){ initSearch($(this)); });
+        $('.seo-search-box').each(function(){ initSearch($(this), false); });
+
+        /*
+         * Cabeceras y plantillas antiguas: si ya existe un formulario nativo
+         * de productos no obligamos a sustituir el HTML por el shortcode.
+         * El predictivo se acopla de forma progresiva al buscador existente.
+         */
+        $('form.search[role="search"], form[role="search"].search').each(function(){
+            var $form = $(this);
+            if ($form.closest('.seo-search-box').length) return;
+            if (!$form.find('input[type="search"][name="s"]').length) return;
+            var postType = $form.find('input[name="post_type"]').val();
+            if (postType !== 'product') return;
+            initSearch($form, true);
+        });
 
         $(document).on('click', '.seo-search-filter-toggle', function(){
             $('.seo-search-sidebar').toggleClass('is-open');
@@ -1185,8 +1322,8 @@ JS;
 function seo_search_frontend_css() {
     $columns = absint(seo_search_get_option('grid_columns', 4));
     return "
-.seo-search-box{position:relative;width:100%;max-width:720px}.seo-search-form{display:flex;gap:8px;position:relative}.seo-search-input{width:100%;min-height:46px;padding:10px 14px;border:1px solid #d5d7da;border-radius:8px;font-size:16px;background:#fff}.seo-search-input:focus{outline:2px solid #2271b1;outline-offset:1px;border-color:#2271b1}.seo-search-button{min-width:48px;padding:10px 15px;border:0;border-radius:8px;background:#111;color:#fff;cursor:pointer;font-size:17px}.seo-search-button:hover{background:#333}.seo-search-box.is-loading:after{content:'';position:absolute;right:65px;top:15px;width:16px;height:16px;border:2px solid #ddd;border-top-color:#111;border-radius:50%;animation:seoSearchSpin .7s linear infinite}@keyframes seoSearchSpin{to{transform:rotate(360deg)}}
-.seo-search-autocomplete{position:absolute;z-index:99999;top:calc(100% + 6px);left:0;right:0;max-height:470px;overflow:auto;background:#fff;border:1px solid #ddd;border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,.15)}.seo-search-auto-item{display:grid;grid-template-columns:54px 1fr auto;gap:12px;align-items:center;padding:10px 12px;color:inherit;text-decoration:none;border-bottom:1px solid #eee}.seo-search-auto-item:hover,.seo-search-auto-item.is-active{background:#f5f7f9}.seo-search-auto-item img{width:54px;height:54px;object-fit:cover;border-radius:6px}.seo-search-auto-copy{display:flex;flex-direction:column;min-width:0}.seo-search-auto-copy strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.seo-search-auto-copy small{color:#666}.seo-search-auto-price{font-weight:600;white-space:nowrap}.seo-search-auto-all{width:100%;padding:12px;border:0;background:#f7f7f7;cursor:pointer;font-weight:600}.seo-search-auto-empty{padding:16px;color:#666}
+.seo-search-box{position:relative;width:100%;max-width:720px}.seo-search-host{position:relative}.seo-search-form{display:flex;gap:8px;position:relative}.seo-search-input{width:100%;min-height:46px;padding:10px 14px;border:1px solid #d5d7da;border-radius:8px;font-size:16px;background:#fff}.seo-search-input:focus{outline:2px solid #2271b1;outline-offset:1px;border-color:#2271b1}.seo-search-button{min-width:48px;padding:10px 15px;border:0;border-radius:8px;background:#111;color:#fff;cursor:pointer;font-size:17px}.seo-search-button:hover{background:#333}.seo-search-box.is-loading:after,.seo-search-host.is-loading:after{content:'';position:absolute;right:65px;top:15px;width:16px;height:16px;border:2px solid #ddd;border-top-color:#111;border-radius:50%;animation:seoSearchSpin .7s linear infinite}@keyframes seoSearchSpin{to{transform:rotate(360deg)}}
+.seo-search-autocomplete{position:absolute;z-index:99999;top:calc(100% + 6px);left:0;right:0;max-height:470px;overflow:auto;background:#fff;border:1px solid #ddd;border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,.15)}.seo-search-auto-item{display:grid;grid-template-columns:54px 1fr auto;gap:12px;align-items:center;padding:10px 12px;color:inherit;text-decoration:none;border-bottom:1px solid #eee}.seo-search-auto-item:hover,.seo-search-auto-item.is-active{background:#f5f7f9}.seo-search-auto-item img{width:54px;height:54px;object-fit:cover;border-radius:6px}.seo-search-auto-copy{display:flex;flex-direction:column;min-width:0}.seo-search-auto-copy strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.seo-search-auto-copy small{color:#666}.seo-search-auto-price{font-weight:600;white-space:nowrap}.seo-search-auto-all{width:100%;padding:12px;border:0;background:#f7f7f7;cursor:pointer;font-weight:600}.seo-search-auto-empty{padding:16px;color:#666}.seo-search-auto-dependiente{display:flex;align-items:center;justify-content:center;gap:7px;padding:12px 14px;background:#eef4ff;color:#183b74!important;text-decoration:none;font-weight:700;border-top:1px solid #dbe7fb}.seo-search-auto-dependiente:hover,.seo-search-auto-dependiente:focus-visible{background:#e2ecff}
 .seo-search-page{max-width:1440px;margin:0 auto;padding:28px 20px}.seo-search-page-header{display:flex;align-items:end;justify-content:space-between;gap:20px;margin:24px 0}.seo-search-page-header h1{margin:0}.seo-search-summary{color:#5c636a}.seo-search-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 18px;padding:12px;background:#f6f7f7;border-radius:8px}.seo-search-toolbar-right{display:flex;gap:8px;align-items:center}.seo-search-toolbar select{min-height:38px}.seo-search-filter-toggle{display:none;padding:9px 12px;border:1px solid #ccd0d4;background:#fff;border-radius:6px}.seo-search-content{display:grid;grid-template-columns:270px minmax(0,1fr);gap:28px}.seo-search-sidebar{border:1px solid #e1e3e5;border-radius:10px;padding:16px;align-self:start}.seo-search-filter-group{padding:0 0 16px;margin:0 0 16px;border-bottom:1px solid #ececec}.seo-search-filter-group:last-child{border-bottom:0;margin-bottom:0}.seo-search-filter-group h3{font-size:16px;margin:0 0 10px}.seo-search-filter-list{display:grid;gap:7px;max-height:240px;overflow:auto}.seo-search-filter-list label{display:flex;justify-content:space-between;gap:8px;font-size:14px}.seo-search-filter-list a{text-decoration:none;color:inherit}.seo-search-filter-count{color:#767676}.seo-search-price-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}.seo-search-price-fields input{width:100%}.seo-search-apply{width:100%;margin-top:10px;padding:9px;border:0;border-radius:6px;background:#2271b1;color:#fff;cursor:pointer}.seo-search-clear{display:block;text-align:center;margin-top:9px}.seo-search-products{display:grid;grid-template-columns:repeat({$columns},minmax(0,1fr));gap:20px}.seo-search-products.is-list{grid-template-columns:1fr}.seo-search-card{display:flex;flex-direction:column;border:1px solid #e2e4e7;border-radius:10px;overflow:hidden;background:#fff;transition:transform .15s,box-shadow .15s}.seo-search-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.08)}.seo-search-products.is-list .seo-search-card{display:grid;grid-template-columns:180px 1fr}.seo-search-card-image{display:block;aspect-ratio:1/1;background:#f4f4f4}.seo-search-products.is-list .seo-search-card-image{aspect-ratio:auto;min-height:180px}.seo-search-card-image img{width:100%;height:100%;object-fit:cover}.seo-search-card-body{display:flex;flex-direction:column;gap:8px;padding:14px;height:100%}.seo-search-card-title{font-size:17px;line-height:1.3;margin:0}.seo-search-card-title a{text-decoration:none;color:inherit}.seo-search-card-meta{font-size:13px;color:#666}.seo-search-card-price{font-size:17px;font-weight:700;margin-top:auto}.seo-search-stock.in-stock{color:#16803a}.seo-search-stock.out-of-stock{color:#b32d2e}.seo-search-card-button{display:inline-flex;justify-content:center;padding:9px 12px;border-radius:6px;background:#111;color:#fff!important;text-decoration:none;margin-top:4px}.seo-search-pagination{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:28px 0}.seo-search-pagination .page-numbers{padding:8px 11px;border:1px solid #ddd;border-radius:5px;text-decoration:none}.seo-search-pagination .current{background:#111;color:#fff;border-color:#111}.seo-search-no-results{padding:32px;border:1px dashed #c3c4c7;border-radius:10px;text-align:center}.seo-search-hidden-fields input{display:none}
 
 .seo-search-related-categories{margin:0 0 16px}.seo-search-related-categories-head{display:flex;justify-content:space-between;gap:12px;margin:0 0 10px}.seo-search-related-categories-head span{color:#666;font-size:12px}.seo-search-related-categories-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.seo-search-related-category{position:relative;min-height:110px;overflow:hidden;border:1px solid #e1e3e5;border-radius:10px;background:#f5f5f5;color:#fff;text-decoration:none}.seo-search-related-category img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.seo-search-related-category:after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.72))}.seo-search-related-category>span{position:absolute;z-index:1;left:10px;right:10px;bottom:9px;display:flex;flex-direction:column;gap:2px}.seo-search-related-category small{font-size:11px}.seo-search-related-category.is-active{outline:3px solid #2271b1;outline-offset:1px}
