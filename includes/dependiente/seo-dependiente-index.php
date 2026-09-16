@@ -128,8 +128,7 @@ final class SEO_Dependiente_Index {
             'processed'      => $processed,
             // El barrido pagina todos los productos publicados. La verificacion,
             // en cambio, compara solo el universo realmente indexable: los
-            // productos con visibilidad WooCommerce "hidden" se excluyen de
-            // Dependiente de forma deliberada en index_product().
+            // productos publicados constituyen el universo canonico de Dependiente.
             'scan_total'     => absint($query->found_posts),
             'indexable_total'=> self::count_indexable(),
             'total'          => self::count_indexable(),
@@ -156,10 +155,9 @@ final class SEO_Dependiente_Index {
             self::delete_product($product_id);
             return false;
         }
-        if ('hidden' === $product->get_catalog_visibility()) {
-            self::delete_product($product_id);
-            return false;
-        }
+        // Dependiente trabaja sobre todo el catalogo publicado. La visibilidad
+        // de los archivos de WooCommerce no convierte un producto publicado en
+        // desconocido para el asistente.
 
         $categories = self::get_terms($product_id, 'product_cat');
         $tags = taxonomy_exists('product_tag') ? self::get_terms($product_id, 'product_tag') : array();
@@ -288,42 +286,14 @@ final class SEO_Dependiente_Index {
 
     /**
      * SQL comun para el universo que Dependiente puede indexar.
-     *
-     * WooCommerce representa la visibilidad "hidden" mediante la presencia
-     * simultanea de los terminos exclude-from-catalog y exclude-from-search de
-     * la taxonomia product_visibility. No debemos confundirlo con "catalog"
-     * o "search", que solo tienen una de las dos exclusiones y siguen siendo
-     * indexables por Dependiente.
+     * Dependiente usa como fuente canonica todos los productos publicados.
      */
     private static function indexable_where_sql($post_alias = 'p') {
-        global $wpdb;
         $post_alias = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $post_alias);
         if ('' === $post_alias) {
             $post_alias = 'p';
         }
-
-        $catalog_excluded = "EXISTS (
-            SELECT 1
-              FROM {$wpdb->term_relationships} tr_catalog
-              INNER JOIN {$wpdb->term_taxonomy} tt_catalog ON tt_catalog.term_taxonomy_id = tr_catalog.term_taxonomy_id
-              INNER JOIN {$wpdb->terms} t_catalog ON t_catalog.term_id = tt_catalog.term_id
-             WHERE tr_catalog.object_id = {$post_alias}.ID
-               AND tt_catalog.taxonomy = 'product_visibility'
-               AND t_catalog.slug = 'exclude-from-catalog'
-        )";
-        $search_excluded = "EXISTS (
-            SELECT 1
-              FROM {$wpdb->term_relationships} tr_search
-              INNER JOIN {$wpdb->term_taxonomy} tt_search ON tt_search.term_taxonomy_id = tr_search.term_taxonomy_id
-              INNER JOIN {$wpdb->terms} t_search ON t_search.term_id = tt_search.term_id
-             WHERE tr_search.object_id = {$post_alias}.ID
-               AND tt_search.taxonomy = 'product_visibility'
-               AND t_search.slug = 'exclude-from-search'
-        )";
-
-        return "{$post_alias}.post_type = 'product'
-            AND {$post_alias}.post_status = 'publish'
-            AND NOT (({$catalog_excluded}) AND ({$search_excluded}))";
+        return "{$post_alias}.post_type = 'product' AND {$post_alias}.post_status = 'publish'";
     }
 
     public static function count_indexable() {
