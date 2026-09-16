@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 ========================================================= */
 
 if (!defined('SEO_SEARCH_VERSION')) {
-    define('SEO_SEARCH_VERSION', '2.3.5');
+    define('SEO_SEARCH_VERSION', '2.2.1-safe');
 }
 
 if (!defined('SEO_SEARCH_OPTION')) {
@@ -59,7 +59,6 @@ function seo_search_default_options() {
         'advanced_auto_submit'  => 0,
         'advanced_related_categories' => 1,
         'advanced_related_limit' => 4,
-        'hide_legacy_shop_categories' => 1,
         'filter_brand'          => 1,
         'brand_taxonomy'        => 'product_brand',
         'filter_attributes'     => 1,
@@ -70,10 +69,6 @@ function seo_search_default_options() {
         'log_searches'          => 1,
         'query_parameter'       => 'q',
         'results_page_id'       => 0,
-        'guided_navigation'     => 1,
-        'guided_quick_results'  => 4,
-        'guided_skip_single'    => 1,
-        'guided_progressive'    => 1,
         'no_results_text'       => 'No hemos encontrado productos. Prueba con otros términos o elimina algún filtro.',
     );
 }
@@ -369,375 +364,6 @@ function seo_search_current_request_value($key, $default = '') {
         return $default;
     }
     return sanitize_text_field(wp_unslash($_GET[$key]));
-}
-
-
-/**
- * Filtros de navegacion guiada sobre la arquitectura SEO canonica.
- * No sustituyen a Dependiente ni crean una taxonomia paralela: solo recorren
- * Cluster -> Hub primario -> Hub secundario -> categoria sobre los productos
- * que ya ha recuperado el buscador.
- */
-function seo_search_get_guided_filters() {
-    return array(
-        'cluster'       => absint(seo_search_current_request_value('guide_cluster', 0)),
-        'hub_primary'   => absint(seo_search_current_request_value('guide_primary', 0)),
-        'hub_secondary' => absint(seo_search_current_request_value('guide_secondary', 0)),
-        'show_all'      => !empty($_GET['guide_all']) ? 1 : 0,
-    );
-}
-
-function seo_search_guided_relations_ready() {
-    global $wpdb;
-    $table = $wpdb->prefix . 'seo_relations';
-    static $ready = null;
-    if (null !== $ready) {
-        return $ready;
-    }
-    $ready = (string) $wpdb->get_var(
-        $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table))
-    ) === $table;
-    return $ready;
-}
-
-function seo_search_filter_ids_by_guided_hierarchy($product_ids, $guided = null) {
-    global $wpdb;
-
-    $product_ids = array_values(array_unique(array_filter(array_map('absint', (array) $product_ids))));
-    $guided = is_array($guided) ? $guided : seo_search_get_guided_filters();
-    if (!$product_ids || !seo_search_guided_relations_ready()) {
-        return $product_ids;
-    }
-    if (empty($guided['cluster']) && empty($guided['hub_primary']) && empty($guided['hub_secondary'])) {
-        return $product_ids;
-    }
-
-    $relations = $wpdb->prefix . 'seo_relations';
-    $id_sql = implode(',', $product_ids);
-    $where = array("tr.object_id IN ({$id_sql})", "tt.taxonomy = 'product_cat'");
-    $params = array();
-
-    if (!empty($guided['cluster'])) {
-        $where[] = 'r_cl.source_id = %d';
-        $params[] = absint($guided['cluster']);
-    }
-    if (!empty($guided['hub_primary'])) {
-        $where[] = 'r_hp.source_id = %d';
-        $params[] = absint($guided['hub_primary']);
-    }
-    if (!empty($guided['hub_secondary'])) {
-        $where[] = 'r_hs.source_id = %d';
-        $params[] = absint($guided['hub_secondary']);
-    }
-
-    $sql = "SELECT DISTINCT tr.object_id
-            FROM {$wpdb->term_relationships} tr
-            INNER JOIN {$wpdb->term_taxonomy} tt
-                ON tt.term_taxonomy_id = tr.term_taxonomy_id
-            INNER JOIN {$relations} r_hs
-                ON r_hs.target_id = tt.term_id
-               AND r_hs.target_type = 'product_cat'
-               AND r_hs.relation_type = 'hub_secondary_to_category'
-            INNER JOIN {$relations} r_hp
-                ON r_hp.target_id = r_hs.source_id
-               AND r_hp.relation_type = 'hub_primary_to_hub_secondary'
-            INNER JOIN {$relations} r_cl
-                ON r_cl.target_id = r_hp.source_id
-               AND r_cl.relation_type = 'cluster_to_primary'
-            WHERE " . implode(' AND ', $where);
-
-    if ($params) {
-        $sql = $wpdb->prepare($sql, $params);
-    }
-    return array_values(array_unique(array_filter(array_map('absint', (array) $wpdb->get_col($sql)))));
-}
-
-function seo_search_guided_rows($product_ids, $guided = null) {
-    global $wpdb;
-
-    $product_ids = array_values(array_unique(array_filter(array_map('absint', (array) $product_ids))));
-    $guided = is_array($guided) ? $guided : seo_search_get_guided_filters();
-    if (!$product_ids || !seo_search_guided_relations_ready()) {
-        return array();
-    }
-
-    $relations = $wpdb->prefix . 'seo_relations';
-    $id_sql = implode(',', $product_ids);
-    $where = array("tr.object_id IN ({$id_sql})", "tt.taxonomy = 'product_cat'", "hs.post_status = 'publish'", "hp.post_status = 'publish'", "cl.post_status = 'publish'");
-    $params = array();
-
-    if (!empty($guided['cluster'])) {
-        $where[] = 'cl.ID = %d';
-        $params[] = absint($guided['cluster']);
-    }
-    if (!empty($guided['hub_primary'])) {
-        $where[] = 'hp.ID = %d';
-        $params[] = absint($guided['hub_primary']);
-    }
-    if (!empty($guided['hub_secondary'])) {
-        $where[] = 'hs.ID = %d';
-        $params[] = absint($guided['hub_secondary']);
-    }
-
-    $sql = "SELECT DISTINCT
-                tr.object_id AS product_id,
-                cat.term_id AS category_id,
-                cat.name AS category_name,
-                cat.slug AS category_slug,
-                hs.ID AS secondary_id,
-                hs.post_title AS secondary_name,
-                hp.ID AS primary_id,
-                hp.post_title AS primary_name,
-                cl.ID AS cluster_id,
-                cl.post_title AS cluster_name
-            FROM {$wpdb->term_relationships} tr
-            INNER JOIN {$wpdb->term_taxonomy} tt
-                ON tt.term_taxonomy_id = tr.term_taxonomy_id
-            INNER JOIN {$wpdb->terms} cat
-                ON cat.term_id = tt.term_id
-            INNER JOIN {$relations} r_hs
-                ON r_hs.target_id = cat.term_id
-               AND r_hs.target_type = 'product_cat'
-               AND r_hs.relation_type = 'hub_secondary_to_category'
-            INNER JOIN {$wpdb->posts} hs
-                ON hs.ID = r_hs.source_id
-            INNER JOIN {$relations} r_hp
-                ON r_hp.target_id = hs.ID
-               AND r_hp.relation_type = 'hub_primary_to_hub_secondary'
-            INNER JOIN {$wpdb->posts} hp
-                ON hp.ID = r_hp.source_id
-            INNER JOIN {$relations} r_cl
-                ON r_cl.target_id = hp.ID
-               AND r_cl.relation_type = 'cluster_to_primary'
-            INNER JOIN {$wpdb->posts} cl
-                ON cl.ID = r_cl.source_id
-            WHERE " . implode(' AND ', $where) . "
-            ORDER BY cl.post_title, hp.post_title, hs.post_title, cat.name";
-
-    if ($params) {
-        $sql = $wpdb->prepare($sql, $params);
-    }
-    return (array) $wpdb->get_results($sql, ARRAY_A);
-}
-
-function seo_search_guided_options_from_rows($rows, $level) {
-    $config = array(
-        'cluster'       => array('id' => 'cluster_id', 'name' => 'cluster_name'),
-        'hub_primary'   => array('id' => 'primary_id', 'name' => 'primary_name'),
-        'hub_secondary' => array('id' => 'secondary_id', 'name' => 'secondary_name'),
-        'category'      => array('id' => 'category_id', 'name' => 'category_name', 'slug' => 'category_slug'),
-    );
-    if (!isset($config[$level])) {
-        return array();
-    }
-
-    $map = array();
-    foreach ((array) $rows as $row) {
-        $id = absint($row[$config[$level]['id']] ?? 0);
-        $name = trim((string) ($row[$config[$level]['name']] ?? ''));
-        if (!$id || '' === $name) {
-            continue;
-        }
-        if (!isset($map[$id])) {
-            $map[$id] = array(
-                'id'       => $id,
-                'name'     => $name,
-                'slug'     => isset($config[$level]['slug']) ? sanitize_title((string) ($row[$config[$level]['slug']] ?? '')) : '',
-                'products' => array(),
-            );
-        }
-        $product_id = absint($row['product_id'] ?? 0);
-        if ($product_id) {
-            $map[$id]['products'][$product_id] = true;
-        }
-    }
-
-    $options = array();
-    foreach ($map as $item) {
-        $item['count'] = count($item['products']);
-        unset($item['products']);
-        $options[] = $item;
-    }
-    usort($options, static function($a, $b) {
-        if ($a['count'] === $b['count']) {
-            return strcasecmp($a['name'], $b['name']);
-        }
-        return $b['count'] <=> $a['count'];
-    });
-    return $options;
-}
-
-function seo_search_build_guided_navigation($product_ids, $filters = null, $guided = null) {
-    $filters = is_array($filters) ? $filters : seo_search_get_active_filters();
-    $guided = is_array($guided) ? $guided : seo_search_get_guided_filters();
-    $rows = seo_search_guided_rows($product_ids, $guided);
-
-    $path = array();
-    if (!empty($guided['cluster'])) {
-        $path[] = array('level' => 'cluster', 'id' => absint($guided['cluster']), 'name' => get_the_title(absint($guided['cluster'])));
-    }
-    if (!empty($guided['hub_primary'])) {
-        $path[] = array('level' => 'hub_primary', 'id' => absint($guided['hub_primary']), 'name' => get_the_title(absint($guided['hub_primary'])));
-    }
-    if (!empty($guided['hub_secondary'])) {
-        $path[] = array('level' => 'hub_secondary', 'id' => absint($guided['hub_secondary']), 'name' => get_the_title(absint($guided['hub_secondary'])));
-    }
-    if (!empty($filters['category'])) {
-        $term = get_term_by('slug', $filters['category'], 'product_cat');
-        if ($term && !is_wp_error($term)) {
-            $path[] = array('level' => 'category', 'id' => absint($term->term_id), 'name' => $term->name, 'slug' => $term->slug);
-        }
-    }
-
-    if (!empty($filters['category']) || !$rows) {
-        return array('level' => '', 'options' => array(), 'path' => $path, 'complete' => !empty($filters['category']));
-    }
-
-    if (!empty($guided['hub_secondary'])) {
-        $level = 'category';
-    } elseif (!empty($guided['hub_primary'])) {
-        $level = 'hub_secondary';
-    } elseif (!empty($guided['cluster'])) {
-        $level = 'hub_primary';
-    } else {
-        $level = 'cluster';
-    }
-
-    $next = array(
-        'cluster' => 'hub_primary',
-        'hub_primary' => 'hub_secondary',
-        'hub_secondary' => 'category',
-        'category' => '',
-    );
-    $options = seo_search_guided_options_from_rows($rows, $level);
-
-    if (seo_search_get_option('guided_skip_single', 1)) {
-        while (1 === count($options) && !empty($next[$level])) {
-            $level = $next[$level];
-            $options = seo_search_guided_options_from_rows($rows, $level);
-        }
-    }
-
-    return array(
-        'level'    => $level,
-        'options'  => $options,
-        'path'     => array_values(array_filter($path, static function($item) { return !empty($item['name']); })),
-        'complete' => !$options,
-    );
-}
-
-function seo_search_current_filtered_candidate_ids($product_ids, $filters) {
-    $product_ids = array_values(array_unique(array_filter(array_map('absint', (array) $product_ids))));
-    if (!$product_ids) {
-        return array();
-    }
-    $args = array(
-        'post_type'              => 'product',
-        'post_status'            => 'publish',
-        'post__in'               => $product_ids,
-        'posts_per_page'         => min(5000, count($product_ids)),
-        'fields'                 => 'ids',
-        'orderby'                => 'post__in',
-        'ignore_sticky_posts'    => true,
-        'no_found_rows'          => true,
-        'update_post_meta_cache' => false,
-        'update_post_term_cache' => false,
-    );
-    $tax_query = seo_search_build_tax_query($filters);
-    if ($tax_query) {
-        $args['tax_query'] = $tax_query;
-    }
-    $meta_query = seo_search_build_meta_query($filters);
-    if ($meta_query) {
-        $args['meta_query'] = $meta_query;
-    }
-    return array_values(array_unique(array_filter(array_map('absint', (array) get_posts($args)))));
-}
-
-/**
- * Dependiente actua solo como apoyo de ranking para las cuatro soluciones rápidas.
- * El universo de productos sigue siendo el que determina SEO Search y la jerarquia
- * canonica. Si Dependiente no esta disponible, el flujo sigue funcionando igual.
- */
-function seo_search_dependiente_ranked_ids($keyword, $limit = 36) {
-    $keyword = trim((string) $keyword);
-    if ('' === $keyword || !class_exists('SEO_Dependiente_API') || !method_exists('SEO_Dependiente_API', 'search') || !class_exists('WP_REST_Request')) {
-        return array();
-    }
-
-    $cache_key = 'seo_search_dep_rank_' . md5(seo_search_normalize_text($keyword));
-    $cached = get_transient($cache_key);
-    if (is_array($cached)) {
-        return $cached;
-    }
-
-    $request = new WP_REST_Request('POST', '/seo-taxonomy/v1/search');
-    $request->set_param('q', $keyword);
-    $request->set_param('page', 1);
-    $request->set_param('per_page', min(48, max(12, absint($limit))));
-    $request->set_param('mode', 'need');
-
-    $disable_log = static function() { return false; };
-    add_filter('seo_dependiente_should_log_search', $disable_log, PHP_INT_MAX);
-    try {
-        $response = SEO_Dependiente_API::search($request);
-    } catch (Throwable $e) {
-        $response = null;
-    }
-    remove_filter('seo_dependiente_should_log_search', $disable_log, PHP_INT_MAX);
-
-    if (is_wp_error($response) || !$response) {
-        set_transient($cache_key, array(), 5 * MINUTE_IN_SECONDS);
-        return array();
-    }
-
-    if ($response instanceof WP_REST_Response) {
-        $payload = $response->get_data();
-    } elseif (is_array($response)) {
-        $payload = $response;
-    } else {
-        $payload = array();
-    }
-
-    $ids = array();
-    foreach ((array) ($payload['results'] ?? array()) as $item) {
-        $id = absint($item['id'] ?? $item['product_id'] ?? 0);
-        if ($id) {
-            $ids[] = $id;
-        }
-    }
-    $ids = array_values(array_unique($ids));
-    set_transient($cache_key, $ids, 5 * MINUTE_IN_SECONDS);
-    return $ids;
-}
-
-function seo_search_guided_suggestion_ids($keyword, $candidate_ids, $filters, $limit = null) {
-    $limit = null === $limit ? absint(seo_search_get_option('guided_quick_results', 4)) : absint($limit);
-    $limit = min(8, max(1, $limit));
-    $candidate_ids = seo_search_current_filtered_candidate_ids($candidate_ids, $filters);
-    if (!$candidate_ids) {
-        return array();
-    }
-
-    $allowed = array_fill_keys($candidate_ids, true);
-    $out = array();
-    foreach (seo_search_dependiente_ranked_ids($keyword, 36) as $id) {
-        if (isset($allowed[$id])) {
-            $out[] = $id;
-            if (count($out) >= $limit) {
-                return $out;
-            }
-        }
-    }
-    foreach ($candidate_ids as $id) {
-        if (!in_array($id, $out, true)) {
-            $out[] = $id;
-            if (count($out) >= $limit) {
-                break;
-            }
-        }
-    }
-    return $out;
 }
 
 function seo_search_get_active_filters() {
@@ -1085,11 +711,6 @@ function seo_search_query_products($keyword, $page = 1, $limit = null, $filters 
         $matching_ids = seo_search_get_vocabulary_matching_product_ids($filters['vocabulary'], $matching_ids);
     }
 
-    $guided_filters = seo_search_get_guided_filters();
-    if ($matching_ids && seo_search_get_option('guided_navigation', 1)) {
-        $matching_ids = seo_search_filter_ids_by_guided_hierarchy($matching_ids, $guided_filters);
-    }
-
     if (!$matching_ids) {
         return array(
             'query' => null,
@@ -1098,8 +719,6 @@ function seo_search_query_products($keyword, $page = 1, $limit = null, $filters 
             'total' => 0,
             'pages' => 0,
             'facets' => seo_search_empty_facets(),
-            'guided' => array('level' => '', 'options' => array(), 'path' => array(), 'complete' => false),
-            'suggestion_ids' => array(),
         );
     }
 
@@ -1155,12 +774,6 @@ function seo_search_query_products($keyword, $page = 1, $limit = null, $filters 
 
     $query = new WP_Query($args);
     $facets = seo_search_build_facets(array_slice($matching_ids, 0, 2000));
-    $guided = seo_search_get_option('guided_navigation', 1)
-        ? seo_search_build_guided_navigation($matching_ids, $filters, $guided_filters)
-        : array('level' => '', 'options' => array(), 'path' => array(), 'complete' => true);
-    $suggestion_ids = seo_search_get_option('guided_navigation', 1)
-        ? seo_search_guided_suggestion_ids($keyword, $matching_ids, $filters)
-        : array();
 
     return array(
         'query'    => $query,
@@ -1169,8 +782,6 @@ function seo_search_query_products($keyword, $page = 1, $limit = null, $filters 
         'total'    => absint($query->found_posts),
         'pages'    => absint($query->max_num_pages),
         'facets'   => $facets,
-        'guided'   => $guided,
-        'suggestion_ids' => $suggestion_ids,
     );
 }
 
@@ -1326,11 +937,6 @@ function seo_search_log_table_name() {
     return $wpdb->prefix . 'seo_search_log';
 }
 
-function seo_search_guided_log_table_name() {
-    global $wpdb;
-    return $wpdb->prefix . 'seo_search_guided_log';
-}
-
 function seo_search_maybe_install_log_table() {
     $installed = get_option('seo_search_db_version', '');
     if (SEO_SEARCH_VERSION === $installed) {
@@ -1354,25 +960,6 @@ function seo_search_maybe_install_log_table() {
         KEY normalized_term (normalized_term),
         KEY results_count (results_count),
         KEY searched_at (searched_at)
-    ) {$charset};");
-
-    $guided_table = seo_search_guided_log_table_name();
-    dbDelta("CREATE TABLE {$guided_table} (
-        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-        search_term VARCHAR(255) NOT NULL,
-        normalized_term VARCHAR(255) NOT NULL,
-        level VARCHAR(32) NOT NULL,
-        entity_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
-        entity_slug VARCHAR(200) NOT NULL DEFAULT '',
-        entity_name VARCHAR(255) NOT NULL DEFAULT '',
-        results_count INT UNSIGNED NOT NULL DEFAULT 0,
-        user_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
-        session_hash CHAR(64) NOT NULL DEFAULT '',
-        selected_at DATETIME NOT NULL,
-        PRIMARY KEY (id),
-        KEY normalized_term (normalized_term),
-        KEY level_entity (level, entity_id),
-        KEY selected_at (selected_at)
     ) {$charset};");
 
     update_option('seo_search_db_version', SEO_SEARCH_VERSION, false);
@@ -1401,70 +988,6 @@ function seo_search_log_query($keyword, $results_count) {
             'searched_at'     => current_time('mysql'),
         ),
         array('%s', '%s', '%d', '%d', '%s', '%s')
-    );
-}
-
-function seo_search_is_refinement_request() {
-    foreach (array('guide_cluster','guide_primary','guide_secondary','guide_all','filter_category','filter_brand','filter_stock','filter_min_price','filter_max_price','filter_vocab','filter_attr','orderby','layout') as $key) {
-        if (!empty($_GET[$key])) {
-            return true;
-        }
-    }
-    return false;
-}
-
-function seo_search_log_guided_choice($keyword, $results_count = 0) {
-    if (!seo_search_get_option('log_searches', 1)) {
-        return;
-    }
-    $level = seo_search_current_request_value('guide_choice_level', '');
-    $entity_id = absint(seo_search_current_request_value('guide_choice_id', 0));
-    if (!$entity_id || !in_array($level, array('cluster','hub_primary','hub_secondary','category'), true)) {
-        return;
-    }
-
-    $entity_name = '';
-    $entity_slug = '';
-    if ('category' === $level) {
-        $term = get_term($entity_id, 'product_cat');
-        if ($term && !is_wp_error($term)) {
-            $entity_name = (string) $term->name;
-            $entity_slug = (string) $term->slug;
-        }
-    } else {
-        $entity_name = (string) get_the_title($entity_id);
-        $post = get_post($entity_id);
-        $entity_slug = $post instanceof WP_Post ? (string) $post->post_name : '';
-    }
-    if ('' === $entity_name) {
-        return;
-    }
-
-    seo_search_maybe_install_log_table();
-    $cookie_seed = isset($_COOKIE[LOGGED_IN_COOKIE]) ? wp_unslash($_COOKIE[LOGGED_IN_COOKIE]) : wp_get_session_token();
-    $session_hash = hash('sha256', wp_salt('nonce') . '|' . $cookie_seed . '|' . seo_search_normalize_text($keyword));
-    $dedupe_key = 'seo_search_guided_seen_' . md5($session_hash . '|' . $level . '|' . $entity_id);
-    if (get_transient($dedupe_key)) {
-        return;
-    }
-    set_transient($dedupe_key, 1, 30 * MINUTE_IN_SECONDS);
-
-    global $wpdb;
-    $wpdb->insert(
-        seo_search_guided_log_table_name(),
-        array(
-            'search_term'     => sanitize_text_field($keyword),
-            'normalized_term' => seo_search_normalize_text($keyword),
-            'level'           => $level,
-            'entity_id'       => $entity_id,
-            'entity_slug'     => sanitize_title($entity_slug),
-            'entity_name'     => sanitize_text_field($entity_name),
-            'results_count'   => absint($results_count),
-            'user_id'         => get_current_user_id(),
-            'session_hash'    => $session_hash,
-            'selected_at'     => current_time('mysql'),
-        ),
-        array('%s','%s','%s','%d','%s','%s','%d','%d','%s','%s')
     );
 }
 
@@ -1522,56 +1045,6 @@ function seo_search_results_url() {
     return home_url('/');
 }
 
-/**
- * Convierte la busqueda legacy de WooCommerce/WordPress del header
- * (?s=...&post_type=product) en la ruta propia de SEO Search.
- *
- * Se ejecuta en init para evitar que WordPress llegue a lanzar la consulta
- * generica de busqueda de productos antes de que nuestro template_redirect
- * pueda tomar el control. Esto evita tanto la plantilla legacy de resultados
- * como consultas innecesariamente pesadas sobre wp_posts.
- */
-function seo_search_redirect_legacy_product_search() {
-    if (is_admin() || wp_doing_ajax() || (defined('REST_REQUEST') && REST_REQUEST)) {
-        return;
-    }
-
-    if (!empty($_GET['seo_search']) || !isset($_GET['s']) || is_array($_GET['s'])) {
-        return;
-    }
-
-    $keyword = trim(sanitize_text_field(wp_unslash($_GET['s'])));
-    if ('' === $keyword) {
-        return;
-    }
-
-    $post_type = isset($_GET['post_type']) ? wp_unslash($_GET['post_type']) : '';
-    $is_product_search = false;
-
-    if (is_array($post_type)) {
-        $post_types = array_map('sanitize_key', $post_type);
-        $is_product_search = in_array('product', $post_types, true);
-    } else {
-        $is_product_search = 'product' === sanitize_key((string) $post_type);
-    }
-
-    if (!$is_product_search) {
-        return;
-    }
-
-    $param = seo_search_get_option('query_parameter', 'q');
-    $args = array(
-        $param        => $keyword,
-        'seo_search'  => 1,
-    );
-
-    $target = add_query_arg($args, seo_search_results_url());
-
-    wp_safe_redirect($target, 302, 'SEO Search');
-    exit;
-}
-add_action('init', 'seo_search_redirect_legacy_product_search', 20);
-
 function seo_search_enqueue_front_assets() {
     static $done = false;
     if ($done) {
@@ -1588,7 +1061,6 @@ function seo_search_enqueue_front_assets() {
         'minChars'    => absint(seo_search_get_option('autocomplete_min_chars', 2)),
         'searchLabel' => __('Ver todos los resultados', 'seo-search'),
         'emptyLabel'  => __('Sin coincidencias', 'seo-search'),
-        'hideLegacyShopCategories' => (bool) seo_search_get_option('hide_legacy_shop_categories', 1),
     );
 
     wp_add_inline_script('jquery', 'window.seoSearchConfig=' . wp_json_encode($config) . ';', 'before');
@@ -1695,185 +1167,7 @@ function seo_search_frontend_js() {
         });
     }
 
-    function normalizeLabel(value) {
-        value = (value || '').toLowerCase();
-        if (value.normalize) {
-            value = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        }
-        return value.replace(/\s+/g, ' ').trim();
-    }
-
-    function hideLegacyShopCategorySection() {
-        if (!window.seoSearchConfig || !window.seoSearchConfig.hideLegacyShopCategories) {
-            return false;
-        }
-
-        // Este bloque es promocional/estatico de la plantilla de tienda y no forma
-        // parte de los resultados ni de los filtros de SEO Search.
-        var isShopContext = !!document.querySelector('.seo-search-vocab-bar') ||
-            document.body.classList.contains('woocommerce-shop') ||
-            document.body.classList.contains('post-type-archive-product') ||
-            document.body.classList.contains('tax-product_cat');
-        if (!isShopContext) {
-            return false;
-        }
-
-        var legacyLabels = [
-            'kits de herramientas a bateria',
-            'cables, carga y conectividad para dispositivos moviles',
-            'reparacion de moviles y pantallas',
-            'cables adaptadores y accesorios de diagnosis',
-            'estanterias y mobiliario de taller',
-            'herramientas de medicion',
-            'juegos de herramientas',
-            'accesorios y recambios para soldadura electronica'
-        ];
-
-        function legacyHits(text) {
-            var hits = 0;
-            legacyLabels.forEach(function(label){
-                if (text.indexOf(label) !== -1) {
-                    hits++;
-                }
-            });
-            return hits;
-        }
-
-        function removeCandidate(candidate) {
-            if (!candidate || !candidate.parentNode) {
-                return false;
-            }
-            if (candidate.querySelector('.seo-search-vocab-bar, .seo-search-products, .products, .woocommerce-result-count')) {
-                return false;
-            }
-            candidate.setAttribute('aria-hidden', 'true');
-            candidate.style.setProperty('display', 'none', 'important');
-            candidate.parentNode.removeChild(candidate);
-            return true;
-        }
-
-        var removed = false;
-        var headings = document.querySelectorAll('h1,h2,h3,h4,h5,h6');
-        Array.prototype.forEach.call(headings, function(heading){
-            if (normalizeLabel(heading.textContent) !== 'encuentra antes lo que necesitas') {
-                return;
-            }
-
-            var node = heading;
-            var candidate = null;
-            var depth = 0;
-
-            // Elegimos el PRIMER ancestro que ya contiene varias de las tarjetas
-            // estaticas. Antes se dependia del numero de enlaces y algunas plantillas
-            // construyen las tarjetas con contenedores/click handlers, por lo que el
-            // bloque no llegaba a detectarse.
-            while (node && node !== document.body && depth < 14) {
-                var text = normalizeLabel(node.textContent);
-                var containsFilters = !!node.querySelector('.seo-search-vocab-bar');
-                var containsResults = !!node.querySelector('.seo-search-products,.products,.woocommerce-result-count');
-                var containsCatalog = text.indexOf('catalogo completo') !== -1 || text.indexOf('todos los productos') !== -1;
-                var hits = legacyHits(text);
-
-                if (!containsFilters && !containsResults && !containsCatalog && hits >= 2) {
-                    candidate = node;
-                    break;
-                }
-
-                // Una seccion semantica que contiene el titulo y al menos una tarjeta
-                // tambien es suficiente si no invade el catalogo.
-                if (!containsFilters && !containsResults && !containsCatalog &&
-                    (node.tagName === 'SECTION' || node.tagName === 'ARTICLE') && hits >= 1) {
-                    candidate = node;
-                    break;
-                }
-
-                node = node.parentElement;
-                depth++;
-            }
-
-            if (removeCandidate(candidate)) {
-                removed = true;
-                return;
-            }
-
-            // Fallback para plantillas donde cabecera y rejilla son hermanos sin un
-            // wrapper exclusivo: ocultamos la cabecera y los hermanos que contienen
-            // las tarjetas estaticas, deteniendonos antes del catalogo/filtros.
-            var headerBlock = heading.parentElement;
-            while (headerBlock && headerBlock !== document.body) {
-                var headerText = normalizeLabel(headerBlock.textContent);
-                if (headerText.indexOf('compra por categoria') !== -1 ||
-                    headerText.indexOf('categorias con mas productos') !== -1) {
-                    break;
-                }
-                headerBlock = headerBlock.parentElement;
-            }
-
-            if (headerBlock && headerBlock !== document.body &&
-                !headerBlock.querySelector('.seo-search-vocab-bar')) {
-                var sibling = headerBlock.nextElementSibling;
-                var toRemove = [headerBlock];
-                var guard = 0;
-                while (sibling && guard < 6) {
-                    var siblingText = normalizeLabel(sibling.textContent);
-                    if (sibling.querySelector('.seo-search-vocab-bar,.seo-search-products,.products,.woocommerce-result-count') ||
-                        siblingText.indexOf('catalogo completo') !== -1 ||
-                        siblingText.indexOf('todos los productos') !== -1) {
-                        break;
-                    }
-                    if (legacyHits(siblingText) > 0 || siblingText.indexOf('explorar') !== -1) {
-                        toRemove.push(sibling);
-                        sibling = sibling.nextElementSibling;
-                        guard++;
-                        continue;
-                    }
-                    break;
-                }
-
-                if (toRemove.length > 1) {
-                    toRemove.forEach(function(element){
-                        if (element && element.parentNode) {
-                            element.parentNode.removeChild(element);
-                        }
-                    });
-                    removed = true;
-                }
-            }
-        });
-
-        return removed;
-    }
-
-    function ensureLegacyShopCategorySectionHidden() {
-        hideLegacyShopCategorySection();
-        [80, 300, 800, 1600, 3000, 6000].forEach(function(delay){
-            window.setTimeout(hideLegacyShopCategorySection, delay);
-        });
-
-        // La portada/tienda puede inyectar este bloque despues del DOM ready.
-        // Observamos inserciones y lo retiramos en cuanto aparezca.
-        if ('MutationObserver' in window && document.body && !window.seoSearchLegacyObserver) {
-            var observer = new MutationObserver(function(mutations){
-                var shouldCheck = mutations.some(function(mutation){
-                    return mutation.addedNodes && mutation.addedNodes.length;
-                });
-                if (shouldCheck) {
-                    hideLegacyShopCategorySection();
-                }
-            });
-            observer.observe(document.body, {childList:true, subtree:true});
-            window.seoSearchLegacyObserver = observer;
-            window.setTimeout(function(){
-                if (window.seoSearchLegacyObserver) {
-                    window.seoSearchLegacyObserver.disconnect();
-                    window.seoSearchLegacyObserver = null;
-                }
-            }, 15000);
-        }
-    }
-
     $(function(){
-        ensureLegacyShopCategorySectionHidden();
         $('.seo-search-box').each(function(){ initSearch($(this)); });
 
         $(document).on('click', '.seo-search-filter-toggle', function(){
@@ -1895,9 +1189,9 @@ function seo_search_frontend_css() {
 .seo-search-autocomplete{position:absolute;z-index:99999;top:calc(100% + 6px);left:0;right:0;max-height:470px;overflow:auto;background:#fff;border:1px solid #ddd;border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,.15)}.seo-search-auto-item{display:grid;grid-template-columns:54px 1fr auto;gap:12px;align-items:center;padding:10px 12px;color:inherit;text-decoration:none;border-bottom:1px solid #eee}.seo-search-auto-item:hover,.seo-search-auto-item.is-active{background:#f5f7f9}.seo-search-auto-item img{width:54px;height:54px;object-fit:cover;border-radius:6px}.seo-search-auto-copy{display:flex;flex-direction:column;min-width:0}.seo-search-auto-copy strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.seo-search-auto-copy small{color:#666}.seo-search-auto-price{font-weight:600;white-space:nowrap}.seo-search-auto-all{width:100%;padding:12px;border:0;background:#f7f7f7;cursor:pointer;font-weight:600}.seo-search-auto-empty{padding:16px;color:#666}
 .seo-search-page{max-width:1440px;margin:0 auto;padding:28px 20px}.seo-search-page-header{display:flex;align-items:end;justify-content:space-between;gap:20px;margin:24px 0}.seo-search-page-header h1{margin:0}.seo-search-summary{color:#5c636a}.seo-search-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 18px;padding:12px;background:#f6f7f7;border-radius:8px}.seo-search-toolbar-right{display:flex;gap:8px;align-items:center}.seo-search-toolbar select{min-height:38px}.seo-search-filter-toggle{display:none;padding:9px 12px;border:1px solid #ccd0d4;background:#fff;border-radius:6px}.seo-search-content{display:grid;grid-template-columns:270px minmax(0,1fr);gap:28px}.seo-search-sidebar{border:1px solid #e1e3e5;border-radius:10px;padding:16px;align-self:start}.seo-search-filter-group{padding:0 0 16px;margin:0 0 16px;border-bottom:1px solid #ececec}.seo-search-filter-group:last-child{border-bottom:0;margin-bottom:0}.seo-search-filter-group h3{font-size:16px;margin:0 0 10px}.seo-search-filter-list{display:grid;gap:7px;max-height:240px;overflow:auto}.seo-search-filter-list label{display:flex;justify-content:space-between;gap:8px;font-size:14px}.seo-search-filter-list a{text-decoration:none;color:inherit}.seo-search-filter-count{color:#767676}.seo-search-price-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}.seo-search-price-fields input{width:100%}.seo-search-apply{width:100%;margin-top:10px;padding:9px;border:0;border-radius:6px;background:#2271b1;color:#fff;cursor:pointer}.seo-search-clear{display:block;text-align:center;margin-top:9px}.seo-search-products{display:grid;grid-template-columns:repeat({$columns},minmax(0,1fr));gap:20px}.seo-search-products.is-list{grid-template-columns:1fr}.seo-search-card{display:flex;flex-direction:column;border:1px solid #e2e4e7;border-radius:10px;overflow:hidden;background:#fff;transition:transform .15s,box-shadow .15s}.seo-search-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.08)}.seo-search-products.is-list .seo-search-card{display:grid;grid-template-columns:180px 1fr}.seo-search-card-image{display:block;aspect-ratio:1/1;background:#f4f4f4}.seo-search-products.is-list .seo-search-card-image{aspect-ratio:auto;min-height:180px}.seo-search-card-image img{width:100%;height:100%;object-fit:cover}.seo-search-card-body{display:flex;flex-direction:column;gap:8px;padding:14px;height:100%}.seo-search-card-title{font-size:17px;line-height:1.3;margin:0}.seo-search-card-title a{text-decoration:none;color:inherit}.seo-search-card-meta{font-size:13px;color:#666}.seo-search-card-price{font-size:17px;font-weight:700;margin-top:auto}.seo-search-stock.in-stock{color:#16803a}.seo-search-stock.out-of-stock{color:#b32d2e}.seo-search-card-button{display:inline-flex;justify-content:center;padding:9px 12px;border-radius:6px;background:#111;color:#fff!important;text-decoration:none;margin-top:4px}.seo-search-pagination{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:28px 0}.seo-search-pagination .page-numbers{padding:8px 11px;border:1px solid #ddd;border-radius:5px;text-decoration:none}.seo-search-pagination .current{background:#111;color:#fff;border-color:#111}.seo-search-no-results{padding:32px;border:1px dashed #c3c4c7;border-radius:10px;text-align:center}.seo-search-hidden-fields input{display:none}
 
-.seo-search-vocab-bar{margin:0 0 24px;padding:16px;border:1px solid #e1e3e5;border-radius:12px;background:#fff}.seo-search-related-categories{margin:0 0 18px}.seo-search-related-categories-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 10px}.seo-search-related-categories-head strong{font-size:16px}.seo-search-related-categories-head span{font-size:13px;color:#646970}.seo-search-related-categories-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.seo-search-related-category{position:relative;display:block;min-height:132px;overflow:hidden;border-radius:12px;background:#e9eef2;color:#fff;text-decoration:none;box-shadow:0 1px 3px rgba(0,0,0,.08);transition:transform .15s,box-shadow .15s,outline-color .15s}.seo-search-related-category:hover{transform:translateY(-2px);box-shadow:0 7px 20px rgba(0,0,0,.13)}.seo-search-related-category.is-active{outline:3px solid #2271b1;outline-offset:2px}.seo-search-related-category-image{position:absolute;inset:0}.seo-search-related-category-image:after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,20,30,.05) 20%,rgba(10,20,30,.78) 100%)}.seo-search-related-category-image img{width:100%;height:100%;object-fit:cover;display:block}.seo-search-related-category-overlay{position:absolute;left:0;right:0;bottom:0;z-index:1;display:flex;flex-direction:column;gap:2px;padding:12px;text-shadow:0 1px 3px rgba(0,0,0,.35)}.seo-search-related-category-overlay strong{font-size:15px;line-height:1.2}.seo-search-related-category-overlay small{font-size:12px;color:#fff}.seo-search-vocab-grid{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:12px}.seo-search-vocab-field{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600}.seo-search-vocab-field select{width:100%;min-height:42px;border:1px solid #ccd0d4;border-radius:7px;background:#fff;padding:7px}.seo-search-vocab-actions{display:flex;align-items:center;gap:12px;margin-top:14px}.seo-search-vocab-actions button{padding:9px 14px;border:0;border-radius:7px;background:#111;color:#fff;cursor:pointer}.seo-search-vocab-actions a{text-decoration:none}.seo-search-vocab-bar .seo-search-auto-submit{cursor:pointer}
-.seo-search-guided{margin:0 0 26px;padding:20px;border:1px solid #dfe3e7;border-radius:14px;background:#fff}.seo-search-guided-head{display:flex;justify-content:space-between;gap:20px;margin-bottom:14px}.seo-search-guided-head h2,.seo-search-guided-step h2{margin:2px 0 6px}.seo-search-guided-head p,.seo-search-guided-step p{margin:0;color:#5c636a}.seo-search-guided-kicker{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#2271b1}.seo-search-guided-products{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:14px 0 22px}.seo-search-guided-products .seo-search-card-title{font-size:15px}.seo-search-guided-products .seo-search-card-body{padding:11px}.seo-search-guided-path{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:4px 0 18px;padding:10px 12px;background:#f6f7f7;border-radius:8px;font-size:13px}.seo-search-guided-path span:after{content:'›';margin-left:8px;color:#8c8f94}.seo-search-guided-path a{margin-left:auto}.seo-search-guided-step{border-top:1px solid #eceff1;padding-top:18px}.seo-search-guided-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}.seo-search-guided-option{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 14px;border:1px solid #dcdcde;border-radius:10px;text-decoration:none;color:inherit;background:#fff;transition:border-color .15s,box-shadow .15s,transform .15s}.seo-search-guided-option:hover{border-color:#2271b1;box-shadow:0 5px 18px rgba(0,0,0,.07);transform:translateY(-1px)}.seo-search-guided-option span{font-weight:650}.seo-search-guided-option small{white-space:nowrap;color:#646970}.seo-search-guided-all{display:inline-block;margin-top:14px;font-size:14px}
-@media(max-width:1050px){.seo-search-related-categories-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.seo-search-vocab-grid{grid-template-columns:repeat(3,minmax(150px,1fr))}.seo-search-products{grid-template-columns:repeat(3,minmax(0,1fr))}.seo-search-guided-products{grid-template-columns:repeat(2,minmax(0,1fr))}.seo-search-guided-options{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:820px){.seo-search-vocab-grid{grid-template-columns:repeat(2,minmax(140px,1fr))}.seo-search-content{grid-template-columns:1fr}.seo-search-sidebar{display:none}.seo-search-sidebar.is-open{display:block}.seo-search-filter-toggle{display:inline-block}.seo-search-products{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:560px){.seo-search-related-categories-head{align-items:flex-start;flex-direction:column}.seo-search-related-category{min-height:115px}.seo-search-vocab-grid{grid-template-columns:1fr}.seo-search-guided-products,.seo-search-guided-options{grid-template-columns:1fr}.seo-search-guided{padding:14px}.seo-search-guided-path a{width:100%;margin-left:0}.seo-search-page{padding:20px 14px}.seo-search-page-header{align-items:start;flex-direction:column}.seo-search-toolbar{align-items:stretch;flex-direction:column}.seo-search-toolbar-right{justify-content:space-between}.seo-search-products{grid-template-columns:1fr}.seo-search-products.is-list .seo-search-card{grid-template-columns:110px 1fr}.seo-search-auto-item{grid-template-columns:48px 1fr}.seo-search-auto-price{display:none}}
+.seo-search-related-categories{margin:0 0 16px}.seo-search-related-categories-head{display:flex;justify-content:space-between;gap:12px;margin:0 0 10px}.seo-search-related-categories-head span{color:#666;font-size:12px}.seo-search-related-categories-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.seo-search-related-category{position:relative;min-height:110px;overflow:hidden;border:1px solid #e1e3e5;border-radius:10px;background:#f5f5f5;color:#fff;text-decoration:none}.seo-search-related-category img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.seo-search-related-category:after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.72))}.seo-search-related-category>span{position:absolute;z-index:1;left:10px;right:10px;bottom:9px;display:flex;flex-direction:column;gap:2px}.seo-search-related-category small{font-size:11px}.seo-search-related-category.is-active{outline:3px solid #2271b1;outline-offset:1px}
+.seo-search-vocab-bar{margin:0 0 24px;padding:16px;border:1px solid #e1e3e5;border-radius:12px;background:#fff}.seo-search-vocab-grid{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:12px}.seo-search-vocab-field{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600}.seo-search-vocab-field select{width:100%;min-height:42px;border:1px solid #ccd0d4;border-radius:7px;background:#fff;padding:7px}.seo-search-vocab-actions{display:flex;align-items:center;gap:12px;margin-top:14px}.seo-search-vocab-actions button{padding:9px 14px;border:0;border-radius:7px;background:#111;color:#fff;cursor:pointer}.seo-search-vocab-actions a{text-decoration:none}.seo-search-vocab-bar .seo-search-auto-submit{cursor:pointer}
+@media(max-width:1050px){.seo-search-related-categories-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.seo-search-vocab-grid{grid-template-columns:repeat(3,minmax(150px,1fr))}.seo-search-products{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:820px){.seo-search-vocab-grid{grid-template-columns:repeat(2,minmax(140px,1fr))}.seo-search-content{grid-template-columns:1fr}.seo-search-sidebar{display:none}.seo-search-sidebar.is-open{display:block}.seo-search-filter-toggle{display:inline-block}.seo-search-products{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:560px){.seo-search-related-categories-head{flex-direction:column}.seo-search-vocab-grid{grid-template-columns:1fr}.seo-search-page{padding:20px 14px}.seo-search-page-header{align-items:start;flex-direction:column}.seo-search-toolbar{align-items:stretch;flex-direction:column}.seo-search-toolbar-right{justify-content:space-between}.seo-search-products{grid-template-columns:1fr}.seo-search-products.is-list .seo-search-card{grid-template-columns:110px 1fr}.seo-search-auto-item{grid-template-columns:48px 1fr}.seo-search-auto-price{display:none}}
 ";
 }
 
@@ -1914,29 +1208,29 @@ add_shortcode('seo_search', function ($atts) {
         'class'       => '',
     ), $atts, 'seo_search');
 
-    $param = seo_search_get_option('query_parameter', 'q');
-    $current = isset($_GET[$param]) && !is_array($_GET[$param]) ? sanitize_text_field(wp_unslash($_GET[$param])) : '';
+    $current = seo_search_native_keyword();
     $id = wp_unique_id('seo-search-');
+    $shop_url = function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/');
 
     ob_start();
     ?>
     <div class="seo-search-box <?php echo esc_attr($atts['class']); ?>">
-        <form class="seo-search-form" method="get" action="<?php echo esc_url(seo_search_results_url()); ?>" role="search">
+        <form class="seo-search-form" method="get" action="<?php echo esc_url($shop_url); ?>" role="search">
             <label class="screen-reader-text" for="<?php echo esc_attr($id); ?>"><?php esc_html_e('Buscar productos', 'seo-search'); ?></label>
             <input
                 id="<?php echo esc_attr($id); ?>"
                 class="seo-search-input"
                 type="search"
-                name="<?php echo esc_attr($param); ?>"
+                name="s"
                 value="<?php echo esc_attr($current); ?>"
                 placeholder="<?php echo esc_attr($atts['placeholder']); ?>"
                 autocomplete="off"
                 aria-autocomplete="list"
                 aria-controls="<?php echo esc_attr($id); ?>-listbox"
             >
-            <input type="hidden" name="seo_search" value="1">
+            <input type="hidden" name="post_type" value="product">
             <button type="submit" class="seo-search-button" aria-label="<?php esc_attr_e('Buscar', 'seo-search'); ?>"><?php echo esc_html($atts['button_text']); ?></button>
-            <?php seo_search_preserve_query_fields(array($param, 'paged', 'product-page', 'guide_cluster', 'guide_primary', 'guide_secondary', 'guide_all', 'guide_choice_level', 'guide_choice_id', 'filter_category', 'filter_tag', 'filter_brand', 'filter_stock', 'filter_min_price', 'filter_max_price', 'filter_vocab', 'filter_attr', 'orderby')); ?>
+            <?php seo_search_preserve_query_fields(array('s', 'post_type', 'paged', 'product-page')); ?>
         </form>
         <?php if (seo_search_get_option('autocomplete_enabled', 1)) : ?>
             <div id="<?php echo esc_attr($id); ?>-listbox" class="seo-search-autocomplete" role="listbox" hidden></div>
@@ -1948,244 +1242,140 @@ add_shortcode('seo_search', function ($atts) {
 
 
 /**
- * Devuelve la consulta comercial activa en la tienda.
- * Acepta tanto el parametro propio de SEO Search como la busqueda nativa de WordPress/WooCommerce.
+ * Devuelve el termino de la busqueda nativa actual de WordPress/WooCommerce.
+ * Esta version no lanza una segunda busqueda ni consulta Dependiente en frontend.
  */
-function seo_search_current_shop_keyword() {
-    $param = seo_search_get_option('query_parameter', 'q');
-    $keys = array_values(array_unique(array_filter(array($param, 's'))));
-    foreach ($keys as $key) {
-        if (isset($_GET[$key]) && !is_array($_GET[$key])) {
-            $value = trim(sanitize_text_field(wp_unslash($_GET[$key])));
-            if ('' !== $value) {
-                return $value;
-            }
+function seo_search_native_keyword() {
+    if (isset($_GET['s']) && !is_array($_GET['s'])) {
+        $value = trim((string) sanitize_text_field(wp_unslash($_GET['s'])));
+        if ('' !== $value) {
+            return $value;
         }
     }
-
-    // Con enlaces permanentes WordPress puede transformar ?s=termino en /search/termino/.
-    // En ese caso la consulta ya no esta en $_GET, pero si en las query vars.
     if (function_exists('get_search_query')) {
         $value = trim((string) get_search_query(false));
         if ('' !== $value) {
             return sanitize_text_field($value);
         }
     }
-    if (function_exists('get_query_var')) {
-        $value = trim((string) get_query_var('s', ''));
-        if ('' !== $value) {
-            return sanitize_text_field($value);
-        }
-    }
-
-    global $wp_query;
-    if ($wp_query instanceof WP_Query && !empty($wp_query->query_vars['s'])) {
-        return sanitize_text_field((string) $wp_query->query_vars['s']);
-    }
-
     return '';
 }
 
 /**
- * IDs de producto de la busqueda nativa actual. Sirven para que las cuatro
- * categorias visuales reflejen exactamente el universo que WooCommerce/WordPress
- * ya esta mostrando, y no una busqueda paralela distinta.
+ * Toma solo los productos que WordPress ya ha cargado para la pagina actual.
+ * No crea WP_Query adicionales y por tanto no multiplica el coste de la busqueda.
  */
-function seo_search_current_native_product_ids($keyword, $limit = 800) {
-    $limit = min(1200, max(4, absint($limit)));
-    $ids = array();
-
+function seo_search_current_query_product_ids($limit = 24) {
     global $wp_query;
-    if ($wp_query instanceof WP_Query && !empty($wp_query->posts)) {
-        foreach ((array) $wp_query->posts as $post) {
-            $post_id = $post instanceof WP_Post ? absint($post->ID) : absint($post);
-            if (!$post_id) {
-                continue;
-            }
-            if ('product_variation' === get_post_type($post_id)) {
-                $post_id = absint(wp_get_post_parent_id($post_id));
-            }
-            if ($post_id && 'product' === get_post_type($post_id)) {
-                $ids[] = $post_id;
-            }
+    $ids = array();
+    if (!$wp_query instanceof WP_Query || empty($wp_query->posts)) {
+        return $ids;
+    }
+    foreach ((array) $wp_query->posts as $post) {
+        $id = $post instanceof WP_Post ? absint($post->ID) : absint($post);
+        if (!$id) {
+            continue;
+        }
+        if ('product_variation' === get_post_type($id)) {
+            $id = absint(wp_get_post_parent_id($id));
+        }
+        if ($id && 'product' === get_post_type($id)) {
+            $ids[] = $id;
+        }
+        if (count($ids) >= absint($limit)) {
+            break;
         }
     }
-
-    // Si la plantilla usa una consulta secundaria o el loop aun no esta disponible,
-    // reproducimos la busqueda nativa de productos como respaldo.
-    if (count($ids) < 4 && '' !== trim((string) $keyword)) {
-        $native = get_posts(array(
-            'post_type'        => 'product',
-            'post_status'      => 'publish',
-            's'                => (string) $keyword,
-            'fields'           => 'ids',
-            'posts_per_page'   => $limit,
-            'no_found_rows'    => true,
-            'suppress_filters' => false,
-        ));
-        $ids = array_merge($ids, array_map('absint', (array) $native));
-    }
-
-    return array_slice(array_values(array_unique(array_filter($ids))), 0, $limit);
+    return array_values(array_unique($ids));
 }
 
 /**
- * Calcula las categorias WooCommerce mas relacionadas con la consulta actual.
- * La arquitectura y SEO Search determinan el universo; Dependiente solo aporta un boost de ranking.
+ * Calcula hasta cuatro categorias usando exclusivamente los productos ya cargados.
+ * Es deliberadamente simple para no penalizar TTFB ni memoria.
  */
-function seo_search_related_categories_for_keyword($keyword, $limit = 4) {
+function seo_search_light_related_categories($limit = 4) {
     global $wpdb;
-
-    $keyword = trim((string) $keyword);
-    $limit = min(8, max(1, absint($limit)));
-    if ('' === $keyword || !taxonomy_exists('product_cat')) {
+    if ('' === seo_search_native_keyword() || !taxonomy_exists('product_cat')) {
         return array();
     }
 
-    $cache_key = 'seo_search_related_cats_' . md5(seo_search_normalize_text($keyword) . '|' . $limit);
-    $cached = get_transient($cache_key);
-    if (is_array($cached)) {
-        return $cached;
-    }
-
-    // Primero usamos el universo que la pagina ya esta mostrando y despues
-    // completamos con el motor SEO Search. Asi las tarjetas no contradicen el listado.
-    $native_ids = seo_search_current_native_product_ids($keyword, 800);
-    $search_ids = array_values(array_unique(array_filter(array_map('absint', seo_search_find_matching_ids($keyword, 1200)))));
-    $candidate_ids = array_values(array_unique(array_merge($native_ids, $search_ids)));
-    if (!$candidate_ids) {
-        set_transient($cache_key, array(), 5 * MINUTE_IN_SECONDS);
+    $ids = seo_search_current_query_product_ids(24);
+    if (!$ids) {
         return array();
     }
-    $candidate_ids = array_slice($candidate_ids, 0, 800);
 
-    $rank = array();
-    foreach ($candidate_ids as $index => $product_id) {
-        $rank[$product_id] = $index;
-    }
-
-    $dependent_rank = array();
-    foreach (seo_search_dependiente_ranked_ids($keyword, 32) as $index => $product_id) {
-        $dependent_rank[absint($product_id)] = $index;
-    }
-
-    $id_sql = implode(',', array_map('absint', $candidate_ids));
+    $ids_sql = implode(',', array_map('absint', $ids));
     $rows = $wpdb->get_results(
-        "SELECT tr.object_id AS product_id, t.term_id, t.name, t.slug
-         FROM {$wpdb->term_relationships} tr
-         INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
-         INNER JOIN {$wpdb->terms} t ON t.term_id = tt.term_id
-         WHERE tr.object_id IN ({$id_sql})
-           AND tt.taxonomy = 'product_cat'",
+        "SELECT tr.object_id AS product_id, t.term_id, t.name, t.slug\n"
+        . "FROM {$wpdb->term_relationships} tr\n"
+        . "INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id\n"
+        . "INNER JOIN {$wpdb->terms} t ON t.term_id = tt.term_id\n"
+        . "WHERE tr.object_id IN ({$ids_sql}) AND tt.taxonomy = 'product_cat'",
         ARRAY_A
     );
 
-    $query_tokens = array_values(array_filter(explode(' ', seo_search_normalize_text($keyword)), static function($token) {
-        return strlen($token) >= 3;
-    }));
-    $categories = array();
-
+    $cats = array();
     foreach ((array) $rows as $row) {
         $term_id = absint($row['term_id']);
         $product_id = absint($row['product_id']);
         if (!$term_id || !$product_id) {
             continue;
         }
-        if (!isset($categories[$term_id])) {
-            $categories[$term_id] = array(
+        if (!isset($cats[$term_id])) {
+            $cats[$term_id] = array(
                 'id' => $term_id,
                 'name' => (string) $row['name'],
                 'slug' => (string) $row['slug'],
                 'count' => 0,
-                'score' => 0.0,
-                'best_product_id' => $product_id,
-                'best_rank' => PHP_INT_MAX,
+                'product_id' => $product_id,
             );
         }
-
-        $product_rank = isset($rank[$product_id]) ? absint($rank[$product_id]) : 9999;
-        $categories[$term_id]['count']++;
-        $categories[$term_id]['score'] += 24 / (1 + log(2 + $product_rank));
-        if ($product_rank < $categories[$term_id]['best_rank']) {
-            $categories[$term_id]['best_rank'] = $product_rank;
-            $categories[$term_id]['best_product_id'] = $product_id;
-        }
-        if (isset($dependent_rank[$product_id])) {
-            $categories[$term_id]['score'] += 60 / (1 + absint($dependent_rank[$product_id]));
-        }
+        $cats[$term_id]['count']++;
     }
 
-    foreach ($categories as &$category) {
-        $category['score'] += min(40, $category['count'] * 1.6);
-        $category_name = seo_search_normalize_text($category['name']);
-        foreach ($query_tokens as $token) {
-            if (false !== strpos($category_name, $token)) {
-                $category['score'] += 18;
-            }
+    uasort($cats, static function ($a, $b) {
+        if (absint($a['count']) === absint($b['count'])) {
+            return strcasecmp((string) $a['name'], (string) $b['name']);
         }
-
-        $thumbnail_id = absint(get_term_meta($category['id'], 'thumbnail_id', true));
-        $image = $thumbnail_id ? wp_get_attachment_image_url($thumbnail_id, 'woocommerce_thumbnail') : '';
-        if (!$image && !empty($category['best_product_id'])) {
-            $image = get_the_post_thumbnail_url(absint($category['best_product_id']), 'woocommerce_thumbnail');
-        }
-        if (!$image && function_exists('wc_placeholder_img_src')) {
-            $image = wc_placeholder_img_src('woocommerce_thumbnail');
-        }
-        $category['image'] = $image;
-    }
-    unset($category);
-
-    uasort($categories, static function($a, $b) {
-        if ((float) $a['score'] === (float) $b['score']) {
-            if (absint($a['count']) === absint($b['count'])) {
-                return strcasecmp((string) $a['name'], (string) $b['name']);
-            }
-            return absint($b['count']) <=> absint($a['count']);
-        }
-        return ((float) $b['score'] <=> (float) $a['score']);
+        return absint($b['count']) <=> absint($a['count']);
     });
 
-    $out = array_slice(array_values($categories), 0, $limit);
-    set_transient($cache_key, $out, 5 * MINUTE_IN_SECONDS);
+    $out = array_slice(array_values($cats), 0, max(1, absint($limit)));
+    foreach ($out as &$cat) {
+        $thumb_id = absint(get_term_meta($cat['id'], 'thumbnail_id', true));
+        $image = $thumb_id ? wp_get_attachment_image_url($thumb_id, 'woocommerce_thumbnail') : '';
+        if (!$image && !empty($cat['product_id'])) {
+            $image = get_the_post_thumbnail_url(absint($cat['product_id']), 'woocommerce_thumbnail');
+        }
+        $cat['image'] = $image;
+    }
+    unset($cat);
     return $out;
 }
 
-function seo_search_related_category_url($slug) {
-    $url = remove_query_arg(array('filter_category', 'paged', 'product-page'));
-    return add_query_arg('filter_category', sanitize_title((string) $slug), $url);
-}
-
-function seo_search_render_related_category_cards($keyword) {
+function seo_search_render_light_related_categories() {
     if (!seo_search_get_option('advanced_related_categories', 1)) {
         return '';
     }
-    $limit = absint(seo_search_get_option('advanced_related_limit', 4));
-    $categories = seo_search_related_categories_for_keyword($keyword, $limit);
-    if (!$categories) {
+    $cats = seo_search_light_related_categories(absint(seo_search_get_option('advanced_related_limit', 4)));
+    if (!$cats) {
         return '';
     }
-
     $active = sanitize_title((string) seo_search_current_request_value('filter_category', ''));
     ob_start();
     ?>
-    <div class="seo-search-related-categories" aria-label="<?php esc_attr_e('Categorías relacionadas', 'seo-search'); ?>">
+    <div class="seo-search-related-categories">
         <div class="seo-search-related-categories-head">
             <strong><?php esc_html_e('Categorías que mejor encajan', 'seo-search'); ?></strong>
-            <span><?php esc_html_e('Elige una para acotar sin perder tu búsqueda.', 'seo-search'); ?></span>
+            <span><?php esc_html_e('Elige una para acotar la búsqueda.', 'seo-search'); ?></span>
         </div>
         <div class="seo-search-related-categories-grid">
-            <?php foreach ($categories as $category) : ?>
-                <a class="seo-search-related-category<?php echo $active === $category['slug'] ? ' is-active' : ''; ?>" href="<?php echo esc_url(seo_search_related_category_url($category['slug'])); ?>">
-                    <span class="seo-search-related-category-image">
-                        <?php if (!empty($category['image'])) : ?>
-                            <img src="<?php echo esc_url($category['image']); ?>" alt="" loading="lazy">
-                        <?php endif; ?>
-                    </span>
-                    <span class="seo-search-related-category-overlay">
-                        <strong><?php echo esc_html($category['name']); ?></strong>
-                        <small><?php printf(esc_html(_n('%d coincidencia', '%d coincidencias', $category['count'], 'seo-search')), absint($category['count'])); ?></small>
-                    </span>
+            <?php foreach ($cats as $cat) :
+                $url = add_query_arg('filter_category', sanitize_title($cat['slug']), remove_query_arg(array('filter_category', 'paged', 'product-page')));
+                ?>
+                <a class="seo-search-related-category<?php echo $active === $cat['slug'] ? ' is-active' : ''; ?>" href="<?php echo esc_url($url); ?>">
+                    <?php if (!empty($cat['image'])) : ?><img src="<?php echo esc_url($cat['image']); ?>" alt="" loading="lazy"><?php endif; ?>
+                    <span><strong><?php echo esc_html($cat['name']); ?></strong><small><?php echo absint($cat['count']); ?> coincidencias</small></span>
                 </a>
             <?php endforeach; ?>
         </div>
@@ -2221,12 +1411,11 @@ function seo_search_render_advanced_search_shortcode($atts = array(), $shortcode
     $active = seo_search_get_active_vocabulary_filters();
     $show_counts = (bool) seo_search_get_option('advanced_show_counts', 1);
     $auto_submit = (bool) seo_search_get_option('advanced_auto_submit', 0);
-    $keyword = seo_search_current_shop_keyword();
 
     ob_start();
     ?>
-    <form class="seo-search-vocab-bar <?php echo esc_attr($atts['class']); ?>" data-seo-search-version="<?php echo esc_attr(SEO_SEARCH_VERSION); ?>" method="get" action="<?php echo esc_url($action); ?>">
-        <?php echo seo_search_render_related_category_cards($keyword); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+    <form class="seo-search-vocab-bar <?php echo esc_attr($atts['class']); ?>" method="get" action="<?php echo esc_url($action); ?>">
+        <?php echo seo_search_render_light_related_categories(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
         <div class="seo-search-vocab-grid">
             <?php foreach ($labels as $group => $label) :
                 $terms = isset($facets[$group]) ? $facets[$group] : array();
@@ -2273,31 +1462,35 @@ add_action('woocommerce_product_query', function ($query) {
         return;
     }
 
-    $vocabulary_filters = seo_search_vocabulary_tables_ready() ? seo_search_get_active_vocabulary_filters() : array();
     $category = sanitize_title((string) seo_search_current_request_value('filter_category', ''));
-    if (!$vocabulary_filters && '' === $category) {
-        return;
-    }
-
     if ('' !== $category) {
         $tax_query = (array) $query->get('tax_query');
         $tax_query[] = array(
             'taxonomy' => 'product_cat',
-            'field' => 'slug',
-            'terms' => array($category),
+            'field'    => 'slug',
+            'terms'    => array($category),
             'operator' => 'IN',
         );
         $query->set('tax_query', $tax_query);
     }
 
-    if ($vocabulary_filters) {
-        $matching_ids = seo_search_get_vocabulary_matching_product_ids($vocabulary_filters);
-        $current_ids = array_values(array_unique(array_filter(array_map('absint', (array) $query->get('post__in')))));
-        if ($current_ids) {
-            $matching_ids = array_values(array_intersect($current_ids, $matching_ids));
-        }
-        $query->set('post__in', $matching_ids ? $matching_ids : array(0));
+    if (!seo_search_vocabulary_tables_ready()) {
+        return;
     }
+
+    $filters = seo_search_get_active_vocabulary_filters();
+    if (!$filters) {
+        return;
+    }
+
+    $matching_ids = seo_search_get_vocabulary_matching_product_ids($filters);
+    $current_ids = array_values(array_unique(array_filter(array_map('absint', (array) $query->get('post__in')))));
+
+    if ($current_ids) {
+        $matching_ids = array_values(array_intersect($current_ids, $matching_ids));
+    }
+
+    $query->set('post__in', $matching_ids ? $matching_ids : array(0));
 }, 30);
 
 function seo_search_preserve_query_fields($exclude = array()) {
@@ -2373,11 +1566,8 @@ add_action('template_redirect', function () {
     $filters = seo_search_get_active_filters();
     $data = seo_search_query_products($keyword, $page, null, $filters);
 
-    if (1 === $page && !seo_search_is_refinement_request()) {
-        seo_search_log_query($keyword, $data['total']);
-    }
     if (1 === $page) {
-        seo_search_log_guided_choice($keyword, $data['total']);
+        seo_search_log_query($keyword, $data['total']);
     }
 
     global $seo_search_keyword, $seo_search_data, $seo_search_filters;
@@ -2399,155 +1589,6 @@ add_action('template_redirect', function () {
     exit;
 });
 
-
-function seo_search_guided_query_args($keyword) {
-    $param = seo_search_get_option('query_parameter', 'q');
-    $args = array($param => $keyword, 'seo_search' => 1);
-    foreach (array('orderby','layout','filter_brand','filter_stock','filter_min_price','filter_max_price') as $key) {
-        if (isset($_GET[$key]) && !is_array($_GET[$key]) && '' !== (string) $_GET[$key]) {
-            $args[$key] = sanitize_text_field(wp_unslash($_GET[$key]));
-        }
-    }
-    if (isset($_GET['filter_vocab']) && is_array($_GET['filter_vocab'])) {
-        $args['filter_vocab'] = wp_unslash($_GET['filter_vocab']);
-    }
-    if (isset($_GET['filter_attr']) && is_array($_GET['filter_attr'])) {
-        $args['filter_attr'] = wp_unslash($_GET['filter_attr']);
-    }
-    $guided = seo_search_get_guided_filters();
-    if ($guided['cluster']) {
-        $args['guide_cluster'] = $guided['cluster'];
-    }
-    if ($guided['hub_primary']) {
-        $args['guide_primary'] = $guided['hub_primary'];
-    }
-    if ($guided['hub_secondary']) {
-        $args['guide_secondary'] = $guided['hub_secondary'];
-    }
-    $category = seo_search_current_request_value('filter_category', '');
-    if ($category) {
-        $args['filter_category'] = sanitize_title($category);
-    }
-    return $args;
-}
-
-function seo_search_guided_choice_url($keyword, $level, $option) {
-    $args = seo_search_guided_query_args($keyword);
-    unset($args['guide_all'], $args['product-page'], $args['paged']);
-
-    $args['guide_choice_level'] = $level;
-    $args['guide_choice_id'] = absint($option['id']);
-
-    if ('cluster' === $level) {
-        $args['guide_cluster'] = absint($option['id']);
-        unset($args['guide_primary'], $args['guide_secondary'], $args['filter_category']);
-    } elseif ('hub_primary' === $level) {
-        $args['guide_primary'] = absint($option['id']);
-        unset($args['guide_secondary'], $args['filter_category']);
-    } elseif ('hub_secondary' === $level) {
-        $args['guide_secondary'] = absint($option['id']);
-        unset($args['filter_category']);
-    } elseif ('category' === $level) {
-        $args['filter_category'] = sanitize_title((string) ($option['slug'] ?? ''));
-    }
-    return add_query_arg($args, seo_search_results_url());
-}
-
-function seo_search_guided_reset_url($keyword) {
-    $args = seo_search_guided_query_args($keyword);
-    unset($args['guide_cluster'], $args['guide_primary'], $args['guide_secondary'], $args['filter_category'], $args['guide_all']);
-    return add_query_arg($args, seo_search_results_url());
-}
-
-function seo_search_guided_show_all_url($keyword) {
-    $args = seo_search_guided_query_args($keyword);
-    $args['guide_all'] = 1;
-    return add_query_arg($args, seo_search_results_url());
-}
-
-function seo_search_guided_level_copy($level) {
-    $copy = array(
-        'cluster' => array(
-            'title' => __('¿En qué área encaja mejor tu búsqueda?', 'seo-search'),
-            'text'  => __('Elige una familia general. No cambia tus palabras: solo acota el catálogo.', 'seo-search'),
-        ),
-        'hub_primary' => array(
-            'title' => __('Elige la familia principal', 'seo-search'),
-            'text'  => __('Con esta elección afinamos los resultados dentro del área seleccionada.', 'seo-search'),
-        ),
-        'hub_secondary' => array(
-            'title' => __('Afina el tipo de solución', 'seo-search'),
-            'text'  => __('Selecciona la especialidad que más se parece a lo que necesitas.', 'seo-search'),
-        ),
-        'category' => array(
-            'title' => __('Elige la categoría más concreta', 'seo-search'),
-            'text'  => __('Este último paso deja el catálogo en una familia de compra mucho más precisa.', 'seo-search'),
-        ),
-    );
-    return $copy[$level] ?? array('title' => __('Afina tu búsqueda', 'seo-search'), 'text' => '');
-}
-
-function seo_search_render_guided_experience($keyword, $data, $filters) {
-    if (!seo_search_get_option('guided_navigation', 1)) {
-        return '';
-    }
-    $guided = isset($data['guided']) && is_array($data['guided']) ? $data['guided'] : array();
-    $suggestion_ids = array_values(array_unique(array_filter(array_map('absint', (array) ($data['suggestion_ids'] ?? array())))));
-    if (!$suggestion_ids && empty($guided['options'])) {
-        return '';
-    }
-
-    $copy = seo_search_guided_level_copy((string) ($guided['level'] ?? ''));
-    ob_start();
-    ?>
-    <section class="seo-search-guided" aria-label="<?php esc_attr_e('Búsqueda guiada', 'seo-search'); ?>">
-        <?php if ($suggestion_ids) : ?>
-            <div class="seo-search-guided-head">
-                <div>
-                    <span class="seo-search-guided-kicker"><?php esc_html_e('4 soluciones rápidas', 'seo-search'); ?></span>
-                    <h2><?php esc_html_e('Lo que mejor encaja ahora', 'seo-search'); ?></h2>
-                    <p><?php esc_html_e('Estas propuestas priorizan las coincidencias más relevantes. Puedes abrir una directamente o seguir afinando el catálogo.', 'seo-search'); ?></p>
-                </div>
-            </div>
-            <div class="seo-search-guided-products">
-                <?php foreach ($suggestion_ids as $product_id) {
-                    echo seo_search_render_product_card($product_id); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-                } ?>
-            </div>
-        <?php endif; ?>
-
-        <?php if (!empty($guided['path'])) : ?>
-            <div class="seo-search-guided-path" aria-label="<?php esc_attr_e('Ruta elegida', 'seo-search'); ?>">
-                <strong><?php esc_html_e('Ruta:', 'seo-search'); ?></strong>
-                <?php foreach ($guided['path'] as $step) : ?>
-                    <span><?php echo esc_html($step['name']); ?></span>
-                <?php endforeach; ?>
-                <a href="<?php echo esc_url(seo_search_guided_reset_url($keyword)); ?>"><?php esc_html_e('Empezar de nuevo', 'seo-search'); ?></a>
-            </div>
-        <?php endif; ?>
-
-        <?php if (!empty($guided['options'])) : ?>
-            <div class="seo-search-guided-step">
-                <h2><?php echo esc_html($copy['title']); ?></h2>
-                <?php if (!empty($copy['text'])) : ?><p><?php echo esc_html($copy['text']); ?></p><?php endif; ?>
-                <div class="seo-search-guided-options">
-                    <?php foreach ((array) $guided['options'] as $option) : ?>
-                        <a class="seo-search-guided-option" href="<?php echo esc_url(seo_search_guided_choice_url($keyword, $guided['level'], $option)); ?>">
-                            <span><?php echo esc_html($option['name']); ?></span>
-                            <small><?php printf(esc_html(_n('%d producto', '%d productos', $option['count'], 'seo-search')), absint($option['count'])); ?></small>
-                        </a>
-                    <?php endforeach; ?>
-                </div>
-                <a class="seo-search-guided-all" href="<?php echo esc_url(seo_search_guided_show_all_url($keyword)); ?>">
-                    <?php printf(esc_html__('Ver los %d resultados sin seguir filtrando', 'seo-search'), absint($data['total'] ?? 0)); ?>
-                </a>
-            </div>
-        <?php endif; ?>
-    </section>
-    <?php
-    return ob_get_clean();
-}
-
 function seo_search_render_results_page($keyword, $data, $filters) {
     seo_search_enqueue_front_assets();
 
@@ -2565,15 +1606,6 @@ function seo_search_render_results_page($keyword, $data, $filters) {
             </div>
         </header>
 
-        <?php echo seo_search_render_guided_experience($keyword, $data, $filters); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-
-        <?php
-        $guided_progressive = seo_search_get_option('guided_progressive', 1)
-            && empty($_GET['guide_all'])
-            && !empty($data['guided']['options'])
-            && empty($data['guided']['complete']);
-        ?>
-        <?php if (!$guided_progressive) : ?>
         <form class="seo-search-results-form" method="get" action="<?php echo esc_url(seo_search_results_url()); ?>">
             <?php $param = seo_search_get_option('query_parameter', 'q'); ?>
             <input type="hidden" name="<?php echo esc_attr($param); ?>" value="<?php echo esc_attr($keyword); ?>">
@@ -2630,7 +1662,6 @@ function seo_search_render_results_page($keyword, $data, $filters) {
                 </section>
             </div>
         </form>
-        <?php endif; ?>
     </main>
     <?php
     return ob_get_clean();
