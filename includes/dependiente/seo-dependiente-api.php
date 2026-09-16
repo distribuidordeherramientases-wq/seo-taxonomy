@@ -299,7 +299,6 @@ final class SEO_Dependiente_API {
         // considera publicables. No dejamos que esas filas decidan si la primera
         // pasada es suficiente ni que inflen facetas, totales o paginación.
         $primary_matched = self::filter_searchable_documents($primary_matched);
-        $primary_matched = self::identity_coherent_documents($primary_matched, $assist_profile);
 
         // 1B. Conocimiento editorial directo. Las FAQs ya no hacen una
         // búsqueda textual global en esta fase: se resolverán después, cuando
@@ -312,15 +311,17 @@ final class SEO_Dependiente_API {
         $primary_product_count = count($primary_matched);
         $local_sufficient = self::local_search_sufficient($primary_matched, $direct_related);
         $has_catalog_semantic_route = self::has_catalog_semantic_route($semantic);
+        $has_semantic_routes = !empty($semantic['routes']);
         $run_extended = !$local_sufficient;
         $extended_reasons = array();
         if (!$local_sufficient) {
             $extended_reasons[] = 'local_product_signal_insufficient';
         }
 
-        // Si la primera pasada ya contiene identidad viva verificada, no abrimos
-        // la recuperación extensiva. Esa capa era la que volvía a mezclar productos
-        // de contexto y anulaba la ventaja de haber identificado "taladro".
+        // La primera pasada léxica sigue siendo la base, pero ya no puede cerrar
+        // la puerta a rutas que Dependiente haya decidido activar. Si existen rutas
+        // semánticas (SEARCH, TIPO, ROL, APLICACION, etc.), se recuperan y se fusionan
+        // con la base léxica; después manda únicamente el ranking del Dependiente.
         $primary_identity_count = 0;
         foreach ((array) $primary_matched as $primary_identity_document) {
             if (absint($primary_identity_document['_assist_identity_hits'] ?? 0) > 0) {
@@ -329,23 +330,18 @@ final class SEO_Dependiente_API {
         }
         $lexical_identity_count = absint($primary_diagnostic['lexical_identity_rows'] ?? 0);
         if ($lexical_identity_count > 0) {
-            // Si el propio indice ya devuelve coincidencias literales de la ancla
-            // (taladro, broca, lijadora...), ese conjunto es el que llega al
-            // mostrador. La recuperacion extensiva no puede sustituirlo.
-            $run_extended = false;
             $extended_reasons[] = 'identity_lexical_base';
         } elseif ($primary_identity_count > 0) {
-            $run_extended = false;
             $extended_reasons[] = 'strong_identity_primary';
         }
         if (0 === $primary_product_count) {
             $run_extended = true;
             $extended_reasons[] = 'no_primary_products';
         }
-        // Una ruta semántica TIPO/ROL/etc. es una señal explícita de catálogo.
-        // Si la primera pasada todavía no ofrece una respuesta amplia, abrimos la
-        // capa semántica aunque existan landings, posts o FAQs relacionados.
-        if (0 === $lexical_identity_count && 0 === $primary_identity_count && $has_catalog_semantic_route && $primary_product_count < 6) {
+        if ($has_semantic_routes) {
+            $run_extended = true;
+            $extended_reasons[] = 'semantic_routes';
+        } elseif ($has_catalog_semantic_route && $primary_product_count < 6) {
             $run_extended = true;
             $extended_reasons[] = 'catalog_semantic_route';
         }
@@ -423,22 +419,15 @@ final class SEO_Dependiente_API {
         // Solo los productos realmente publicables pueden participar desde aquí.
         // Esto mantiene sincronizados tarjetas, facetas, total y paginación.
         $matched = self::filter_searchable_documents($matched);
-        $matched = self::identity_coherent_documents($matched, $assist_profile);
         self::sort_documents($matched, $orderby);
-        // Los filtros visibles describen los productos validados. Si el ranking estricto
-        // deja la salida a cero pero la base léxica ya había recuperado candidatos reales
-        // (p. ej. 137 productos con "lijadora" en título/categoría), conservamos ese
-        // conjunto únicamente como superficie de refinado: categorías/facetas clicables.
-        // No los declaramos todavía como resultados válidos; sirven para que el cliente
-        // pueda acotar la familia que Dependiente ya encontró en su propio índice.
+        // Las facetas y categorías se construyen con el mismo conjunto puntuado que
+        // alimenta los productos. Solo mantenemos la base léxica como respaldo si, por
+        // publicación/visibilidad, el conjunto recuperado termina realmente vacío.
         $lexical_discovery_documents = array();
         if (!$matched && absint($primary_diagnostic['lexical_identity_rows'] ?? 0) > 0 && $primary_documents) {
-            // IMPORTANTE: estos documentos vienen de la base lexica que Dependiente
-            // ya encontro en SU indice (p.ej. 137 candidatos para "lijadora").
-            // No los volvemos a descartar con la validacion final de producto, porque
-            // precisamente estamos usando esta capa para ofrecer CATEGORIAS de
-            // refinado cuando el ranking estricto ha dejado la salida a cero.
-            // Si el cliente ya ha marcado filtros, los respetamos aqui tambien.
+            // Estos documentos vienen de la base léxica de Dependiente. Si el conjunto
+            // puntuado no puede mostrarse, sirven únicamente para mantener categorías
+            // navegables, respetando siempre los filtros elegidos por el cliente.
             foreach ((array) $primary_documents as $discovery_document) {
                 if (!self::matches_filters($discovery_document, $filters)) {
                     continue;
@@ -450,7 +439,7 @@ final class SEO_Dependiente_API {
         $facets = self::build_facets($matched);
         $discovery_documents = $matched;
         $discovery_facets = $facets;
-        $discovery_source = 'validated_results';
+        $discovery_source = 'ranked_candidates';
         if (!$matched && $lexical_discovery_documents) {
             $discovery_documents = $lexical_discovery_documents;
             $discovery_facets = self::build_facets($lexical_discovery_documents);
@@ -512,9 +501,8 @@ final class SEO_Dependiente_API {
             );
         }
 
-        // Las preguntas/refinados se calculan con el mejor conjunto disponible.
-        // Si el ranking estricto queda a cero pero existe base léxica, usamos esos
-        // candidatos antes que el universo extensivo para evitar opciones irrelevantes.
+        // Los refinados se calculan con el mismo conjunto puntuado; la base léxica
+        // solo actúa como respaldo si no queda ningún producto publicable.
         $clarification_facets = self::build_facets(
             $matched ? $matched : ($lexical_discovery_documents ? $lexical_discovery_documents : $documents)
         );
@@ -559,21 +547,10 @@ final class SEO_Dependiente_API {
             }
         }
 
-        // Aunque la validacion final sea estricta, conservamos un escaparate
-        // separado con los candidatos de la PRIMERA pasada ordenados por el score
-        // del Dependiente. No interviene en total/paginacion ni convierte esos
-        // candidatos en resultados validados; sirve para mostrar al cliente lo que
-        // Dependiente realmente ha encontrado antes del contenido editorial.
-        $candidate_products = self::top_scored_candidate_products(
-            $primary_documents,
-            $query,
-            $tokens,
-            $filters,
-            $mode,
-            $semantic,
-            $assist_profile,
-            12
-        );
+        // Los productos ya son los candidatos recuperados por Dependiente,
+        // puntuados y ordenados. No mantenemos un segundo escaparate basado solo
+        // en la primera pasada porque duplicaría resultados y ocultaría las rutas.
+        $candidate_products = array();
 
         // La zona principal reutiliza las categorías/facetas del mejor conjunto
         // disponible. Si todavía no hay resultados validados, muestra categorías de
@@ -1471,44 +1448,10 @@ final class SEO_Dependiente_API {
         );
     }
 
-    private static function identity_coherent_documents($documents, $assist_profile) {
-        $documents = array_values((array) $documents);
-        if (empty($assist_profile['identity_terms'])) {
-            return $documents;
-        }
-
-        $strong = array_values(array_filter($documents, static function ($document) {
-            return absint($document['_assist_identity_hits'] ?? 0) > 0;
-        }));
-        if ($strong) {
-            return $strong;
-        }
-
-        // Segunda guardia: los IDs obtenidos directamente de WooCommerce se han
-        // resuelto por título/categoría viva. Si por cualquier motivo el scorer no
-        // pudo reconstruir la evidencia (índice antiguo, términos no cacheados...),
-        // esos productos siguen siendo preferibles a candidatos contextuales.
-        $live_ids = array_values(array_filter(array_map(
-            'absint',
-            (array) ($assist_profile['_live_identity_ids'] ?? array())
-        )));
-        if ($live_ids) {
-            $live_map = array_fill_keys($live_ids, true);
-            $live_documents = array_values(array_filter($documents, static function ($document) use ($live_map) {
-                return isset($live_map[absint($document['product_id'] ?? 0)]);
-            }));
-            if ($live_documents) {
-                return $live_documents;
-            }
-        }
-
-        return $documents;
-    }
 
     /**
-     * 1A. Recuperación de identidad. Si Intérprete ha reconocido un concepto
-     * comercial, este manda en la primera pasada. El contexto sirve después para
-     * ordenar, pero no para decidir por sí solo qué familia de producto entra.
+     * 1A. Recuperación léxica de identidad. Es la base inicial del índice, pero
+     * no excluye las rutas que Dependiente active después.
      */
     private static function primary_candidate_rows($query, $semantic = array(), $assist_profile = array(), &$diagnostic = array()) {
         $diagnostic = array(
@@ -1530,7 +1473,7 @@ final class SEO_Dependiente_API {
         // Si Intérprete entrega un concepto comercial claro (p.ej. "taladro"),
         // primero hacemos exactamente lo que haria un buscador PHP simple:
         // buscar esa palabra en el TITULO y, como respaldo, en la CATEGORIA.
-        // Esta capa manda sobre semantica, contexto, Vocabulary y descripciones.
+        // Esta capa aporta la base léxica; las rutas se fusionan después y compiten por score.
         if ($identity_terms) {
             $identity_groups = array_map(static function ($term) { return array($term); }, array_slice($identity_terms, 0, 8));
 
@@ -1729,9 +1672,6 @@ final class SEO_Dependiente_API {
                 continue;
             }
             $score = self::score_document($document, $query, $tokens, $filters, $mode, $semantic, $assist_profile);
-            if (isset($score['eligible']) && !$score['eligible']) {
-                continue;
-            }
             $document['_score'] = $score['score'];
             $document['_reasons'] = $score['reasons'];
             $document['_object_hits'] = absint($score['object_hits'] ?? 0);
@@ -2217,8 +2157,8 @@ final class SEO_Dependiente_API {
 
     private static function score_document($document, $query, $token_groups, $filters, $mode = 'need', $semantic = array(), $assist_profile = array()) {
         // Ranking estructurado: el conocimiento explícito del catálogo manda.
-        // Texto libre (excerpt/descripción) y semántica solo pueden reforzar una
-        // coincidencia que ya tenga evidencia estructurada, nunca crearla por sí solos.
+        // Texto libre conserva un peso débil. Las rutas semánticas que Dependiente
+        // haya activado participan con sus propios pesos, sin una elegibilidad posterior.
         $score = !empty($document['featured']) ? 8.0 : 0.0;
         if ('instock' === $document['stock_status']) {
             $score += 5.0;
@@ -2450,39 +2390,23 @@ final class SEO_Dependiente_API {
             $reasons[] = 'Coincide con la acción interpretada';
         }
 
-        // La semántica de Academia puede reordenar coincidencias estructuradas,
-        // pero nunca rescatar un producto que solo aparece por descripción.
+        // Si Dependiente ha activado una ruta semántica, su propia puntuación
+        // participa siempre. Ya no existe una guardia posterior que exija volver a
+        // demostrar la identidad original y borre herramientas/repuestos recuperados
+        // correctamente por esas rutas.
         $semantic_score = array('bonus' => 0, 'reasons' => array(), 'route_hits' => 0, 'object_hits' => 0);
-        if ($structured_hits > 0 && $semantic && class_exists('SEO_Dependiente_Semantics')) {
+        if ($semantic && class_exists('SEO_Dependiente_Semantics')) {
             $semantic_score = SEO_Dependiente_Semantics::score_document($document, $semantic);
-            $semantic_bonus = min(80.0, max(0.0, (float) ($semantic_score['bonus'] ?? 0)));
+            $semantic_bonus = max(0.0, (float) ($semantic_score['bonus'] ?? 0));
             $score += $semantic_bonus;
             if ($semantic_bonus > 0) {
                 $reasons = array_merge($reasons, (array) ($semantic_score['reasons'] ?? array()));
             }
         }
 
-        // REGLA DE ELEGIBILIDAD:
-        // - con concepto principal del Intérprete, el producto debe demostrarlo
-        //   en TIPO/ROL/categoría/etiqueta/subtipo/atributo/título;
-        // - sin concepto principal, debe existir al menos una señal estructurada;
-        // - excerpt/descripción nunca hace elegible un producto por sí sola.
-        $has_assist_identity = !empty($assist_profile['identity_terms']);
-        if ($has_assist_identity) {
-            $eligible = $assist_identity_hits > 0;
-        } else {
-            $eligible = $structured_hits > 0 || ($normalized_query && $sku && $normalized_query === $sku);
-        }
-
-        if (!$eligible && $field_hits['excerpt']) {
-            // Se conserva solo para diagnóstico; no se muestra como resultado.
-            $reasons[] = 'Solo coincide en texto libre';
-        }
-
         return array(
             'score'   => round($score, 4),
             'reasons' => array_slice(array_values(array_unique(array_filter($reasons))), 0, 5),
-            'eligible'=> (bool) $eligible,
             'object_hits' => absint($semantic_score['object_hits'] ?? 0),
             'route_hits'  => absint($semantic_score['route_hits'] ?? 0),
             'coverage'    => absint($coverage),
@@ -2525,9 +2449,13 @@ final class SEO_Dependiente_API {
             if ('title' === $orderby) {
                 return strnatcasecmp((string) $a['title'], (string) $b['title']);
             }
-            // Las señales lingüísticas estructuradas mandan sobre la procedencia
-            // técnica del candidato. Un Taladro encontrado por el concepto "taladro"
-            // debe ir antes que un producto genérico que entró por contexto/ruta.
+            // En relevancia manda la puntuación total del Dependiente. Las señales
+            // de identidad/vocabulario solo desempatan; no vuelven a filtrar ni a
+            // colocar por delante un candidato con peor score.
+            $score_compare = ((float) $b['_score']) <=> ((float) $a['_score']);
+            if (0 !== $score_compare) {
+                return $score_compare;
+            }
             $a_identity = absint($a['_assist_identity_hits'] ?? 0);
             $b_identity = absint($b['_assist_identity_hits'] ?? 0);
             if ($a_identity !== $b_identity) {
@@ -2542,15 +2470,6 @@ final class SEO_Dependiente_API {
             $b_action = absint($b['_assist_action_hits'] ?? 0);
             if ($a_action !== $b_action) {
                 return $b_action <=> $a_action;
-            }
-            $a_tier = (string) ($a['_search_tier'] ?? 'direct');
-            $b_tier = (string) ($b['_search_tier'] ?? 'direct');
-            if ($a_tier !== $b_tier) {
-                return 'direct' === $a_tier ? -1 : 1;
-            }
-            $score_compare = ((float) $b['_score']) <=> ((float) $a['_score']);
-            if (0 !== $score_compare) {
-                return $score_compare;
             }
             return absint($b['product_id']) <=> absint($a['product_id']);
         });
@@ -2601,56 +2520,6 @@ final class SEO_Dependiente_API {
      * Construye una navegación visual desde las MISMAS facetas y productos que
      * Dependiente ya ha calculado para la columna izquierda.
      */
-    /**
-     * Productos con mejor puntuacion dentro de la primera pasada lexical.
-     * Se puntuan TODOS los candidatos recuperados, incluso si la regla estricta
-     * de elegibilidad los dejaria fuera del resultado final. Esto permite mostrar
-     * el trabajo real de Dependiente sin contaminar total, facetas o paginacion.
-     */
-    private static function top_scored_candidate_products($documents, $query, $tokens, $filters, $mode, $semantic, $assist_profile, $limit = 12) {
-        $ranked = array();
-        foreach ((array) $documents as $document) {
-            if (!self::matches_filters($document, $filters)) {
-                continue;
-            }
-            $product_id = absint($document['product_id'] ?? 0);
-            if (!$product_id) {
-                continue;
-            }
-            $product = wc_get_product($product_id);
-            if (!$product || !self::product_is_searchable($product)) {
-                continue;
-            }
-
-            $score = self::score_document($document, $query, $tokens, $filters, $mode, $semantic, $assist_profile);
-            $document['_score'] = (float) ($score['score'] ?? 0);
-            $document['_reasons'] = array_values((array) ($score['reasons'] ?? array()));
-            $document['_search_tier'] = 'direct';
-            $document['_candidate_eligible'] = !empty($score['eligible']);
-            $ranked[] = $document;
-        }
-
-        usort($ranked, static function ($a, $b) {
-            $score_compare = ((float) ($b['_score'] ?? 0)) <=> ((float) ($a['_score'] ?? 0));
-            if (0 !== $score_compare) {
-                return $score_compare;
-            }
-            return strnatcasecmp((string) ($a['normalized_title'] ?? ''), (string) ($b['normalized_title'] ?? ''));
-        });
-
-        $out = array();
-        foreach (array_slice($ranked, 0, max(1, absint($limit))) as $document) {
-            $item = self::serialize_discovery_product($document);
-            if (!$item) {
-                continue;
-            }
-            $item['score'] = (float) ($document['_score'] ?? 0);
-            $item['reasons'] = array_slice(array_values((array) ($document['_reasons'] ?? array())), 0, 4);
-            $item['candidate_eligible'] = !empty($document['_candidate_eligible']);
-            $out[] = $item;
-        }
-        return $out;
-    }
 
     private static function build_search_discovery($facets, $documents, $results) {
         $facets = is_array($facets) ? $facets : array();
