@@ -51,6 +51,7 @@ if (!function_exists('seo_images_cleanup_delete_stats')) {
             'deleted'         => 0,
             'already_missing' => 0,
             'error'           => 0,
+            'protected'       => 0,
             'processed'       => 0,
             'pending'         => seo_images_cleanup_pending_delete_count(),
         );
@@ -359,6 +360,48 @@ if (!function_exists('seo_images_cleanup_delete_batch')) {
             if ($post->post_type !== 'attachment' || strpos((string) get_post_mime_type($attachment_id), 'image/') !== 0) {
                 $result['message'] = 'El ID existe pero ya no es un attachment de imagen.';
                 seo_images_cleanup_write_log(array_merge($result, array('status' => 'error')));
+                $results[] = $result;
+                continue;
+            }
+
+            // Revalidación justo antes de borrar. La auditoría puede haberse
+            // ejecutado minutos antes y, entretanto, el attachment puede haberse
+            // asignado a una página, post, landing/hub/cluster o categoría.
+            // En ese caso se conserva y se reclasifica para que no vuelva a entrar
+            // en este mismo lote de borrado.
+            if (!function_exists('seo_images_cleanup_collect_required_local_usage')) {
+                $result['message'] = 'No se pudo revalidar el uso local; borrado cancelado por seguridad.';
+                seo_images_cleanup_write_log(array_merge($result, array('status' => 'error')));
+                $results[] = $result;
+                continue;
+            }
+
+            $required_usage = seo_images_cleanup_collect_required_local_usage(array($attachment_id));
+            if (!empty($required_usage[$attachment_id])) {
+                global $wpdb;
+                $candidate_table = seo_images_cleanup_table_candidates();
+                $reason_labels = $required_usage[$attachment_id]['labels'] ?? array();
+                $reason_rules  = $required_usage[$attachment_id]['reasons'] ?? array();
+
+                $wpdb->update(
+                    $candidate_table,
+                    array(
+                        'decision'       => 'CONSERVAR_USO_LOCAL',
+                        'safe_to_delete' => 0,
+                        'match_rules'    => implode(',', array_values(array_unique(array_filter(array_merge(
+                            preg_split('/\s*,\s*/', (string) ($row['match_rules'] ?? ''), -1, PREG_SPLIT_NO_EMPTY),
+                            $reason_rules
+                        ))))),
+                    ),
+                    array('attachment_id' => $attachment_id),
+                    array('%s', '%d', '%s'),
+                    array('%d')
+                );
+
+                $result['status']   = 'protected';
+                $result['decision'] = 'CONSERVAR_USO_LOCAL';
+                $result['message']  = 'Conservado por uso local activo' . (!empty($reason_labels) ? ': ' . implode(', ', array_slice($reason_labels, 0, 6)) : '.');
+                seo_images_cleanup_write_log($result);
                 $results[] = $result;
                 continue;
             }
