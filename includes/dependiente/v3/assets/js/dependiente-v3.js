@@ -15,6 +15,7 @@
         const workspace = root.querySelector('[data-dep3-workspace]');
         const categoriesSection = root.querySelector('[data-dep3-categories-section]');
         const categories = root.querySelector('[data-dep3-categories]');
+        const guidanceCopy = root.querySelector('[data-dep3-guidance-copy]');
         const productsSection = root.querySelector('[data-dep3-products-section]');
         const products = root.querySelector('[data-dep3-products]');
         const pagination = root.querySelector('[data-dep3-pagination]');
@@ -37,15 +38,19 @@
             runSearch(1);
         });
 
-        clearCategory.addEventListener('click', function () {
-            currentCategory = '';
-            runSearch(1);
-        });
+        if (clearCategory) {
+            clearCategory.addEventListener('click', function () {
+                currentCategory = '';
+                runSearch(1);
+            });
+        }
 
         categories.addEventListener('click', function (event) {
             const button = event.target.closest('[data-dep3-category]');
             if (!button) return;
-            currentCategory = button.getAttribute('data-dep3-category') || '';
+            const selected = button.getAttribute('data-dep3-category') || '';
+            if (!selected) return;
+            currentCategory = selected;
             runSearch(1);
         });
 
@@ -57,9 +62,11 @@
 
         const params = new URLSearchParams(window.location.search);
         const initial = (params.get('dep_q') || '').trim();
+        const initialCategory = (params.get('dep_cat') || '').trim();
         if (initial) {
             input.value = initial;
             currentQuery = initial;
+            currentCategory = initialCategory;
             runSearch(1, false);
         }
 
@@ -70,7 +77,7 @@
             const timer = window.setTimeout(() => controller.abort(), 40000);
 
             status.className = 'dependiente-v3__status is-loading';
-            status.textContent = 'Buscando en el catálogo aprendido…';
+            status.textContent = currentCategory ? 'Afinando con tu elección…' : 'Interpretando lo que necesitas…';
             workspace.hidden = false;
             productsSection.hidden = true;
             categoriesSection.hidden = true;
@@ -96,11 +103,7 @@
                 }
 
                 render(data);
-                if (updateUrl) {
-                    const browserUrl = new URL(window.location.href);
-                    browserUrl.searchParams.set('dep_q', currentQuery);
-                    window.history.replaceState({}, '', browserUrl.toString());
-                }
+                if (updateUrl) updateBrowserUrl();
             } catch (error) {
                 const aborted = error && error.name === 'AbortError';
                 status.className = 'dependiente-v3__status is-error';
@@ -111,29 +114,69 @@
             }
         }
 
-        function render(data) {
-            const resultCount = data.pagination && data.pagination.total ? Number(data.pagination.total) : 0;
-            status.className = 'dependiente-v3__status is-ok';
-            status.innerHTML = '<strong>' + esc(resultCount) + ' resultados</strong><span> para “' + esc(data.query || currentQuery) + '” · Dependiente ' + esc(data.version || '') + '</span>';
+        function updateBrowserUrl() {
+            const browserUrl = new URL(window.location.href);
+            browserUrl.searchParams.set('dep_q', currentQuery);
+            if (currentCategory) browserUrl.searchParams.set('dep_cat', currentCategory);
+            else browserUrl.searchParams.delete('dep_cat');
+            window.history.replaceState({}, '', browserUrl.toString());
+        }
 
-            renderCategories(data.categories || []);
-            renderProducts(data.products || []);
-            renderPagination(data.pagination || {});
+        function render(data) {
+            const decision = data.decision || {};
+            const suggestions = data.suggestions || data.categories || [];
+            renderStatus(data, decision, suggestions);
+            renderSuggestions(suggestions, decision);
+
+            if (decision.show_products) {
+                renderProducts(data.products || []);
+                renderPagination(data.pagination || {});
+            } else {
+                productsSection.hidden = true;
+                products.innerHTML = '';
+                pagination.innerHTML = '';
+            }
             renderDebug(data);
         }
 
-        function renderCategories(items) {
+        function renderStatus(data, decision, suggestions) {
+            const candidateCount = Number(decision.candidate_count || (data.pagination && data.pagination.candidate_total) || 0);
+            const selected = suggestions.find(item => item.selected || (currentCategory && currentCategory === item.slug));
+            status.className = 'dependiente-v3__status ' + (decision.show_products ? 'is-ok' : 'is-waiting');
+
+            if (decision.reason === 'client_choice') {
+                status.innerHTML = '<strong>Entendido' + (selected ? ': ' + esc(selected.name) : '') + '.</strong>' +
+                    '<span> He usado tu elección para ordenar ' + esc(candidateCount) + ' coincidencias.</span>';
+                return;
+            }
+            if (decision.show_products) {
+                status.innerHTML = '<strong>Creo que sé por dónde vas.</strong><span> Te enseño las opciones que he entendido y, debajo, los productos que mejor encajan.</span>';
+                return;
+            }
+            if (suggestions.length) {
+                status.innerHTML = '<strong>Necesito una pista más.</strong><span> Elige una de las opciones de abajo antes de que te recomiende productos.</span>';
+                return;
+            }
+            status.innerHTML = '<strong>No tengo suficiente claridad todavía.</strong><span> Prueba a explicar qué quieres hacer, sobre qué objeto y para qué uso.</span>';
+        }
+
+        function renderSuggestions(items, decision) {
             if (!items.length) {
                 categoriesSection.hidden = true;
                 categories.innerHTML = '';
+                if (guidanceCopy) guidanceCopy.textContent = '';
                 return;
             }
             categoriesSection.hidden = false;
-            categories.innerHTML = items.map(function (item) {
-                const active = currentCategory && currentCategory === item.slug;
-                return '<button type="button" class="dependiente-v3__category' + (active ? ' is-active' : '') + '" data-dep3-category="' + esc(item.slug) + '">' +
-                    '<strong>' + esc(item.name) + '</strong>' +
-                    '<span>' + esc(item.count) + ' productos</span>' +
+            if (guidanceCopy) guidanceCopy.textContent = decision.message || 'Elige la opción que más se parezca a lo que necesitas.';
+            categories.innerHTML = items.slice(0, 8).map(function (item, index) {
+                const active = !!(item.selected || (currentCategory && currentCategory === item.slug));
+                const rank = Number(item.rank || (index + 1));
+                return '<button type="button" class="dependiente-v3__category dependiente-v3__choice' + (active ? ' is-active' : '') + '" ' +
+                    'data-dep3-category="' + esc(item.slug) + '" aria-pressed="' + (active ? 'true' : 'false') + '">' +
+                    '<span class="dependiente-v3__choice-kicker">Opción ' + String(rank).padStart(2, '0') + '</span>' +
+                    '<strong class="dependiente-v3__choice-name">' + esc(item.name) + '</strong>' +
+                    '<span class="dependiente-v3__choice-meta">' + (active ? 'Elegida' : 'Elegir') + '</span>' +
                     '</button>';
             }).join('');
         }
@@ -142,7 +185,7 @@
             productsSection.hidden = false;
             clearCategory.hidden = !currentCategory;
             if (!items.length) {
-                products.innerHTML = '<div class="dependiente-v3__empty"><strong>No hay productos en este filtro.</strong><span>Prueba otra categoría o vuelve a ver todos los resultados.</span></div>';
+                products.innerHTML = '<div class="dependiente-v3__empty"><strong>No hay productos en esta opción.</strong><span>Quita la elección o prueba otra de las interpretaciones.</span></div>';
                 return;
             }
             products.innerHTML = items.map(function (item) {
@@ -180,6 +223,7 @@
             if (!config.showDebug || !debugContent) return;
             const i = data.interpretation || {};
             const d = data.debug || {};
+            const decision = data.decision || d.decision || {};
             const groups = (i.groups || []).map(g => '<li><strong>' + esc(g.canonical) + '</strong> <small>' + esc(g.role) + ' · ' + esc((g.variants || []).join(' / ')) + '</small></li>').join('');
             const routes = (i.routes || []).map(r => {
                 const condition = [r.source_group && r.source_slug ? (r.source_group + '=' + r.source_slug) : '', r.context_group && r.context_slug ? (r.context_group + '=' + r.context_slug) : ''].filter(Boolean).join(' + ');
@@ -193,8 +237,8 @@
                     '<em>' + evidence + '</em></li>';
             }).join('');
             const retrieval = d.retrieval || {};
-            const catlog = (data.categories || []).map(function (c, idx) {
-                return '<li><strong>#' + (idx + 1) + ' · ' + esc(c.name) + '</strong><small>primer producto #' + (Number(c.first_rank || 0) + 1) + ' · score máx. ' + esc(c.best_score || 0) + ' · ' + esc(c.count || 0) + ' productos</small></li>';
+            const suggestionLog = (data.suggestions || data.categories || []).map(function (c, idx) {
+                return '<li><strong>#' + (idx + 1) + ' · ' + esc(c.name) + '</strong><small>primer producto #' + (Number(c.first_rank || 0) + 1) + ' · score máx. ' + esc(c.best_score || 0) + ' · ' + esc(c.count || 0) + ' coincidencias</small></li>';
             }).join('');
             debugContent.innerHTML =
                 '<section><h3>INTÉRPRETE</h3>' +
@@ -205,6 +249,10 @@
                 '<p><b>Ruido:</b> ' + esc((i.ignored || []).join(' · ') || '—') + '</p>' +
                 '<h4>Conceptos entregados</h4><ul>' + (groups || '<li>—</li>') + '</ul>' +
                 '<h4>Rutas aprendidas</h4><ul>' + (routes || '<li>—</li>') + '</ul></section>' +
+                '<section><h3>DECISIÓN VISUAL</h3>' +
+                '<p><b>Confianza:</b> ' + esc(decision.confidence || 0) + '% · <b>Nivel:</b> ' + esc(decision.level || '—') + '</p>' +
+                '<p><b>Mostrar productos:</b> ' + (decision.show_products ? 'sí' : 'no') + ' · <b>Motivo:</b> ' + esc(decision.reason || '—') + '</p>' +
+                '<p><b>Candidatos:</b> ' + esc(decision.candidate_count || 0) + '</p></section>' +
                 '<section><h3>DEPENDIENTE</h3>' +
                 '<p><b>Exactos:</b> ' + esc(retrieval.exact || 0) + ' · <b>Todos los conceptos:</b> ' + esc(retrieval.conjunctive || 0) + '</p>' +
                 '<p><b>Parciales:</b> ' + esc(retrieval.partial || 0) + ' · <b>Vocabulary:</b> ' + esc(retrieval.vocabulary || 0) + ' · <b>Academia L9:</b> ' + esc(retrieval.lesson9 || 0) + '</p>' +
@@ -212,7 +260,7 @@
                 '<p><b>Antes comprobación técnica:</b> ' + esc(d.candidates_before_publish_check || 0) + '</p>' +
                 '<p><b>Después:</b> ' + esc(d.candidates_after_publish_check || 0) + ' · <b>No publicados:</b> ' + esc(d.discarded_unpublished || 0) + '</p>' +
                 '<p><b>Tiempo:</b> ' + esc(d.request_ms || d.elapsed_ms || 0) + ' ms</p></section>' +
-                '<section><h3>CATEGORÍAS DERIVADAS DEL RANKING</h3><ol class="dependiente-v3__rank-log">' + (catlog || '<li>Sin categorías.</li>') + '</ol></section>' +
+                '<section><h3>8 INTERPRETACIONES VISUALES</h3><ol class="dependiente-v3__rank-log">' + (suggestionLog || '<li>Sin opciones.</li>') + '</ol></section>' +
                 '<section><h3>RANKING TRANSPARENTE</h3><ol class="dependiente-v3__rank-log">' + (ranked || '<li>Sin resultados puntuados.</li>') + '</ol></section>';
         }
     }

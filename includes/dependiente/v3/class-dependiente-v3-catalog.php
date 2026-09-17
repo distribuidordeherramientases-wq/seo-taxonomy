@@ -196,6 +196,12 @@ final class SEO_Dependiente_V3_Catalog {
             );
         }
 
+        // Las ocho opciones visuales se calculan ANTES de aplicar la elección
+        // del cliente. Así la parrilla permanece estable cuando pulsa una opción
+        // y la elección actúa como evidencia fuerte, no como una consulta nueva.
+        $suggestions = self::build_suggestions($ranked, $category_filter, 8);
+        $decision = self::build_decision($ranked, $interpretation, $category_filter, $suggestions);
+
         if ($category_filter) {
             $ranked = array_values(array_filter($ranked, static function ($candidate) use ($category_filter) {
                 foreach (SEO_Dependiente_V3_DB::json_array($candidate['row']['categories_json'] ?? '') as $cat) {
@@ -207,26 +213,33 @@ final class SEO_Dependiente_V3_Catalog {
             }));
         }
 
-        $categories = self::build_categories($ranked);
-        $total = count($ranked);
+        $candidate_total = count($ranked);
+        $deliver_products = !empty($decision['show_products']);
+        $total = $deliver_products ? $candidate_total : 0;
         $offset = ($page - 1) * $per_page;
-        $page_rows = array_slice($ranked, $offset, $per_page);
+        $page_rows = $deliver_products ? array_slice($ranked, $offset, $per_page) : array();
         $products = array();
         foreach ($page_rows as $item) {
             $products[] = self::format_product($item);
         }
 
+        $decision['candidate_count'] = $candidate_total;
         $debug['elapsed_ms'] = round((microtime(true) - $started) * 1000, 1);
-        $debug['final_ranked'] = $total;
-        $debug['catalog_build'] = '3.0.4-sql-alias';
+        $debug['final_ranked'] = $candidate_total;
+        $debug['decision'] = $decision;
+        $debug['catalog_build'] = '3.1.0-visual-guidance';
 
         return array(
             'products' => $products,
-            'categories' => $categories,
+            // Se mantiene categories por compatibilidad con clientes V3 antiguos.
+            'categories' => $suggestions,
+            'suggestions' => $suggestions,
+            'decision' => $decision,
             'pagination' => array(
                 'page' => $page,
                 'per_page' => $per_page,
                 'total' => $total,
+                'candidate_total' => $candidate_total,
                 'pages' => max(1, (int) ceil($total / $per_page)),
             ),
             'debug' => $debug,
@@ -496,9 +509,9 @@ final class SEO_Dependiente_V3_Catalog {
         );
     }
 
-    private static function build_categories($ranked) {
+    private static function build_categories($ranked, $limit = 24) {
         $map = array();
-        foreach (array_slice((array) $ranked, 0, 160) as $position => $candidate) {
+        foreach (array_slice((array) $ranked, 0, 220) as $position => $candidate) {
             $cats = SEO_Dependiente_V3_DB::json_array($candidate['row']['categories_json'] ?? '');
             foreach ($cats as $cat) {
                 $name = trim((string) ($cat['name'] ?? ''));
@@ -528,7 +541,194 @@ final class SEO_Dependiente_V3_Catalog {
             if (0 !== $cmp) return $cmp;
             return (int) $b['count'] <=> (int) $a['count'];
         });
-        return array_slice($cats, 0, 12);
+        return array_slice($cats, 0, max(1, absint($limit)));
+    }
+
+    /**
+     * Devuelve hasta ocho interpretaciones visuales distintas. Se prioriza la
+     * categoria del mejor producto, pero se intenta evitar una parrilla formada
+     * solo por variantes casi identicas. Si no hay ocho categorias reales, no se
+     * inventan opciones: se devuelven unicamente las respaldadas por catalogo.
+     */
+    private static function build_suggestions($ranked, $selected_slug = '', $limit = 8) {
+        $limit = min(8, max(1, absint($limit)));
+        $pool = self::build_categories($ranked, 32);
+        $selected_slug = sanitize_title((string) $selected_slug);
+        $picked = array();
+        $deferred = array();
+
+        foreach ($pool as $item) {
+            $too_similar = false;
+            foreach ($picked as $existing) {
+                if (self::suggestions_too_similar($item['name'], $existing['name'])) {
+                    $too_similar = true;
+                    break;
+                }
+            }
+            if ($too_similar) {
+                $deferred[] = $item;
+                continue;
+            }
+            $picked[] = $item;
+            if (count($picked) >= $limit) break;
+        }
+
+        if (count($picked) < $limit) {
+            foreach ($deferred as $item) {
+                $already = false;
+                foreach ($picked as $existing) {
+                    if ($existing['slug'] === $item['slug']) {
+                        $already = true;
+                        break;
+                    }
+                }
+                if ($already) continue;
+                $picked[] = $item;
+                if (count($picked) >= $limit) break;
+            }
+        }
+
+        foreach ($picked as $idx => &$item) {
+            $item['rank'] = $idx + 1;
+            $item['selected'] = ($selected_slug && $selected_slug === $item['slug']);
+            $item['kind'] = 'category';
+        }
+        unset($item);
+
+        return array_values($picked);
+    }
+
+    private static function suggestions_too_similar($a, $b) {
+        $a = SEO_Dependiente_V3_DB::normalize($a);
+        $b = SEO_Dependiente_V3_DB::normalize($b);
+        if (!$a || !$b) return false;
+        if ($a === $b) return true;
+
+        $ta = array_values(array_unique(array_filter(preg_split('/\s+/', $a))));
+        $tb = array_values(array_unique(array_filter(preg_split('/\s+/', $b))));
+        if (!$ta || !$tb) return false;
+        $common = count(array_intersect($ta, $tb));
+        $min_count = max(1, min(count($ta), count($tb)));
+        return ($common / $min_count) >= 0.80;
+    }
+
+    /**
+     * Decide si Dependiente puede enseñar productos inmediatamente o debe pedir
+     * primero una confirmacion visual. La confianza se apoya en evidencias del
+     * ranking; una accion de trabajo sin ruta/solucion aprendida se trata de forma
+     * conservadora para evitar casos como "reparar un grifo" -> comprar grifos.
+     */
+    private static function build_decision($ranked, $interpretation, $selected_slug, $suggestions) {
+        $selected_slug = sanitize_title((string) $selected_slug);
+        if ($selected_slug) {
+            return array(
+                'confidence' => 100,
+                'level' => 'selected',
+                'show_products' => true,
+                'needs_choice' => false,
+                'reason' => 'client_choice',
+                'message' => 'Perfecto. Tomo tu eleccion como la pista principal y te muestro los productos que mejor encajan.',
+            );
+        }
+
+        if (!$ranked) {
+            return array(
+                'confidence' => 0,
+                'level' => 'low',
+                'show_products' => false,
+                'needs_choice' => true,
+                'reason' => 'no_candidates',
+                'message' => 'No tengo una respuesta suficientemente clara todavia. Prueba a concretar un poco mas lo que necesitas.',
+            );
+        }
+
+        $top = (array) ($ranked[0]['ranking'] ?? array());
+        $second = isset($ranked[1]) ? (array) ($ranked[1]['ranking'] ?? array()) : array();
+        $group_total = count((array) ($interpretation['groups'] ?? array()));
+        $coverage = absint($top['coverage'] ?? 0);
+        $full_coverage = $group_total > 0 && $coverage >= $group_total;
+        $top_score = (float) ($top['score'] ?? 0);
+        $second_score = (float) ($second['score'] ?? 0);
+        $margin_ratio = $top_score > 0 ? max(0, ($top_score - $second_score) / $top_score) : 0;
+        $phrase_hit = absint($top['phrase_hit'] ?? 0);
+        $structured_hits = absint($top['structured_hits'] ?? 0);
+        $solution_priority = absint($top['solution_priority'] ?? 0);
+        $lesson9_strength = absint($top['lesson9_strength'] ?? 0);
+        $actions = array_values(array_filter(array_map(array('SEO_Dependiente_V3_DB', 'normalize'), (array) ($interpretation['actions'] ?? array()))));
+        $has_action = !empty($actions);
+
+        $confidence = 15;
+        if ($full_coverage) $confidence += 25;
+        if ($phrase_hit >= 2) $confidence += 20;
+        elseif ($phrase_hit >= 1) $confidence += 10;
+        if ($structured_hits >= 2) $confidence += 15;
+        elseif ($structured_hits >= 1) $confidence += 8;
+        if ($solution_priority >= 1) $confidence += 20;
+        if ($lesson9_strength >= 180) $confidence += 12;
+        if ($margin_ratio >= 0.20) $confidence += 10;
+        elseif ($margin_ratio >= 0.08) $confidence += 5;
+        if ($top_score >= 1000) $confidence += 8;
+        elseif ($top_score >= 600) $confidence += 4;
+        if (!$has_action && $full_coverage) $confidence += 10;
+
+        $requires_solution = self::action_requires_solution_evidence($actions);
+        if ($requires_solution && $solution_priority < 1 && $lesson9_strength < 180) {
+            $confidence = min($confidence, 54);
+        }
+        if ($group_total >= 2 && !$full_coverage) {
+            $confidence = min($confidence, 62);
+        }
+        if (count((array) $suggestions) < 2 && $confidence < 70) {
+            $confidence = min($confidence, 49);
+        }
+
+        $confidence = max(0, min(100, (int) round($confidence)));
+        $show_products = $confidence >= 70;
+        $level = $show_products ? 'high' : ($confidence >= 50 ? 'medium' : 'low');
+        $reason = 'mixed_signals';
+        $message = 'He encontrado varias posibilidades. Elige la que mejor encaja y entonces te enseno los productos.';
+
+        if ($show_products) {
+            $reason = 'strong_match';
+            $message = 'Creo que he entendido lo que buscas. Puedes afinar la respuesta eligiendo una de estas opciones.';
+        } elseif ($requires_solution && $solution_priority < 1 && $lesson9_strength < 180) {
+            $reason = 'task_needs_confirmation';
+            $message = 'Entiendo la tarea, pero no tengo bastante evidencia para elegir la solucion por ti. ¿Cual de estas opciones se parece mas a lo que necesitas?';
+        } elseif (!$suggestions) {
+            $reason = 'no_suggestions';
+            $message = 'Tengo coincidencias, pero no una interpretacion suficientemente clara. Prueba a describir para que lo necesitas.';
+        }
+
+        return array(
+            'confidence' => $confidence,
+            'level' => $level,
+            'show_products' => $show_products,
+            'needs_choice' => !$show_products,
+            'reason' => $reason,
+            'message' => $message,
+            'signals' => array(
+                'groups' => $group_total,
+                'coverage' => $coverage,
+                'full_coverage' => $full_coverage,
+                'phrase_hit' => $phrase_hit,
+                'structured_hits' => $structured_hits,
+                'solution_priority' => $solution_priority,
+                'lesson9_strength' => $lesson9_strength,
+                'margin' => round($margin_ratio, 3),
+            ),
+        );
+    }
+
+    private static function action_requires_solution_evidence($actions) {
+        if (!$actions) return false;
+        // Acciones comerciales/conversacionales no implican transformar el objeto.
+        $non_transformative = array('comprar','buscar','encontrar','ver','comparar','querer','necesitar');
+        foreach ((array) $actions as $action) {
+            if (!in_array(SEO_Dependiente_V3_DB::normalize($action), $non_transformative, true)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static function format_product($candidate) {

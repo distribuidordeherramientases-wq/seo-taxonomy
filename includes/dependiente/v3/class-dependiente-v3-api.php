@@ -77,11 +77,15 @@ final class SEO_Dependiente_V3_API {
 
         return rest_ensure_response(array(
             'version' => SEO_DEPENDIENTE_VERSION,
+            'build' => '3.1.0-visual-guidance',
             'query' => $query,
             'interpretation' => $public_interpretation,
-            'categories' => array_values((array) $catalog['categories']),
-            'products' => array_values((array) $catalog['products']),
-            'pagination' => (array) $catalog['pagination'],
+            // categories se conserva para no romper consumidores V3 anteriores.
+            'categories' => array_values((array) ($catalog['categories'] ?? array())),
+            'suggestions' => array_values((array) ($catalog['suggestions'] ?? $catalog['categories'] ?? array())),
+            'decision' => (array) ($catalog['decision'] ?? array()),
+            'products' => array_values((array) ($catalog['products'] ?? array())),
+            'pagination' => (array) ($catalog['pagination'] ?? array()),
             'debug' => $debug,
         ));
     }

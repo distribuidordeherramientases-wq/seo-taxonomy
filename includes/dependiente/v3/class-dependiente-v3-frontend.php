@@ -55,18 +55,19 @@ final class SEO_Dependiente_V3_Frontend {
                 </aside>
 
                 <main class="dependiente-v3__main">
-                    <section class="dependiente-v3__categories" data-dep3-categories-section hidden>
+                    <section class="dependiente-v3__categories dependiente-v3__guidance" data-dep3-categories-section hidden>
                         <div class="dependiente-v3__section-head">
-                            <span>Primero</span>
-                            <h2>Categorías que mejor encajan</h2>
+                            <span>Lo que he entendido</span>
+                            <h2>¿Cuál de estas opciones encaja mejor?</h2>
+                            <p class="dependiente-v3__guidance-copy" data-dep3-guidance-copy></p>
                         </div>
                         <div class="dependiente-v3__category-grid" data-dep3-categories></div>
                     </section>
 
                     <section class="dependiente-v3__products" data-dep3-products-section hidden>
                         <div class="dependiente-v3__section-head dependiente-v3__section-head--products">
-                            <div><span>Después</span><h2>Productos que mejor encajan</h2></div>
-                            <button type="button" class="dependiente-v3__clear-category" data-dep3-clear-category hidden>Ver todas las categorías</button>
+                            <div><span>Selección</span><h2>Productos que mejor encajan</h2></div>
+                            <button type="button" class="dependiente-v3__clear-category" data-dep3-clear-category hidden>Quitar elección</button>
                         </div>
                         <div class="dependiente-v3__product-grid" data-dep3-products></div>
                         <nav class="dependiente-v3__pagination" data-dep3-pagination aria-label="Paginación"></nav>
@@ -84,17 +85,19 @@ final class SEO_Dependiente_V3_Frontend {
     }
 
     public static function enqueue_assets() {
+        // Sufijo propio para invalidar caches sin cambiar la version global del plugin.
+        $asset_version = SEO_DEPENDIENTE_VERSION . '-visual-guidance-1';
         wp_enqueue_style(
             'seo-dependiente-v3',
             SEO_DEPENDIENTE_V3_URL . 'assets/css/dependiente-v3.css',
             array(),
-            SEO_DEPENDIENTE_VERSION
+            $asset_version
         );
         wp_enqueue_script(
             'seo-dependiente-v3',
             SEO_DEPENDIENTE_V3_URL . 'assets/js/dependiente-v3.js',
             array(),
-            SEO_DEPENDIENTE_VERSION,
+            $asset_version,
             true
         );
         wp_localize_script('seo-dependiente-v3', 'SEO_DEPENDIENTE_V3', array(
