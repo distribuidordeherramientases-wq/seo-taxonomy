@@ -46,7 +46,7 @@ final class SEO_Dependiente_Admin {
         }
 
         $tab = sanitize_key((string) ($_GET['tab'] ?? 'settings'));
-        if (!in_array($tab, array('settings', 'diagnostic', 'learning', 'trainer', 'knowledge', 'auditor'), true)) {
+        if (!in_array($tab, array('settings', 'diagnostic', 'learning', 'trainer', 'interpreter', 'knowledge', 'auditor'), true)) {
             $tab = 'settings';
         }
         ?>
@@ -59,6 +59,7 @@ final class SEO_Dependiente_Admin {
                 <?php self::render_tab_link('diagnostic', 'Informe', $tab); ?>
                 <?php self::render_tab_link('learning', 'Aprendizaje', $tab); ?>
                 <?php self::render_tab_link('trainer', 'Academia', $tab); ?>
+                <?php self::render_tab_link('interpreter', 'Intérprete', $tab); ?>
                 <?php self::render_tab_link('knowledge', 'Conocimiento', $tab); ?>
                 <?php self::render_tab_link('auditor', 'Auditor', $tab); ?>
             </nav>
@@ -73,6 +74,12 @@ final class SEO_Dependiente_Admin {
                     SEO_Dependiente_Entrenador::render_tab();
                 } else {
                     echo '<div class="notice notice-error"><p>No está disponible el módulo Academia.</p></div>';
+                }
+            } elseif ('interpreter' === $tab) {
+                if (class_exists('SEO_Dependiente_Interprete')) {
+                    SEO_Dependiente_Interprete::render_tab();
+                } else {
+                    echo '<div class="notice notice-error"><p>No está disponible el módulo Intérprete.</p></div>';
                 }
             } elseif ('knowledge' === $tab) {
                 if (class_exists('SEO_Dependiente_Knowledge_Transfer')) {

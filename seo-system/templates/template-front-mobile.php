@@ -32,6 +32,14 @@ $schema_organization = array(
     'url'   => $schema_home_url,
 );
 
+/* Politicas Merchant globales referenciadas por los Offer de producto. */
+if (function_exists('dht_template_schema_merchant_organization_properties')) {
+    $schema_organization = array_merge(
+        $schema_organization,
+        dht_template_schema_merchant_organization_properties()
+    );
+}
+
 if (!empty($schema_logo_candidate['url'])) {
     $schema_organization['logo'] = array(
         '@type' => 'ImageObject',
@@ -540,20 +548,71 @@ $render_products = static function ($products, $extra_class = '') {
     remove_filter('woocommerce_product_get_image', 'dht_front_mobile_product_image_external_fallback', 20);
 };
 
-/* Clusters reales del sistema SEO, si existe la tabla de relaciones. */
+/* Estructura editorial real: cluster -> hub primario -> hub secundario. */
 $cluster_ids = array();
+$hub_primary_ids = array();
+$hub_secondary_by_primary = array();
 $relations_table = $wpdb->prefix . 'seo_relations';
 $table_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $relations_table));
 
 if ($table_exists === $relations_table) {
     $cluster_ids = $wpdb->get_col(
-        "SELECT DISTINCT source_id
+        "SELECT source_id
          FROM {$relations_table}
          WHERE source_type = 'cluster'
-         ORDER BY source_id ASC
-         LIMIT 8"
+         GROUP BY source_id
+         ORDER BY MIN(id) ASC
+         LIMIT 12"
     );
     $cluster_ids = dht_template_public_post_ids($cluster_ids);
+
+    $primary_from_targets = $wpdb->get_col(
+        "SELECT target_id
+         FROM {$relations_table}
+         WHERE target_type = 'hub_primary'
+         GROUP BY target_id
+         ORDER BY MIN(id) ASC
+         LIMIT 30"
+    );
+    $primary_from_sources = $wpdb->get_col(
+        "SELECT source_id
+         FROM {$relations_table}
+         WHERE source_type = 'hub_primary'
+         GROUP BY source_id
+         ORDER BY MIN(id) ASC
+         LIMIT 30"
+    );
+    $hub_primary_ids = dht_template_public_post_ids(array_merge($primary_from_targets, $primary_from_sources));
+
+    if (!empty($hub_primary_ids)) {
+        $primary_lookup = array_fill_keys(array_map('absint', $hub_primary_ids), true);
+        $secondary_rows = $wpdb->get_results(
+            "SELECT source_id, target_id, MIN(id) AS sort_id
+             FROM {$relations_table}
+             WHERE source_type = 'hub_primary'
+               AND target_type = 'hub_secondary'
+               AND relation_type = 'hub_primary_to_hub_secondary'
+             GROUP BY source_id, target_id
+             ORDER BY sort_id ASC"
+        );
+
+        foreach ((array) $secondary_rows as $row) {
+            $primary_id = absint($row->source_id ?? 0);
+            $secondary_id = absint($row->target_id ?? 0);
+            if ($primary_id < 1 || $secondary_id < 1 || empty($primary_lookup[$primary_id])) {
+                continue;
+            }
+            if (!isset($hub_secondary_by_primary[$primary_id])) {
+                $hub_secondary_by_primary[$primary_id] = array();
+            }
+            if (count($hub_secondary_by_primary[$primary_id]) >= 4) {
+                continue;
+            }
+            if (get_post_status($secondary_id) === 'publish' && get_permalink($secondary_id)) {
+                $hub_secondary_by_primary[$primary_id][] = $secondary_id;
+            }
+        }
+    }
 }
 
 $get_cluster_image = static function ($cluster_id) use ($wpdb, $relations_table, $table_exists) {
@@ -589,27 +648,156 @@ $latest_posts = get_posts(array(
     'no_found_rows'  => true,
 ));
 
-$hero_categories = array_slice($root_categories, 0, 3);
 $department_categories = array_slice($root_categories, 0, 8);
 $more_categories = array_slice($root_categories, 8, 8);
+
+/* Presentacion del Dependiente y servicio humano sin depender de archivos adicionales. */
+$dht_service_url = home_url('/nuestro-servicio/');
+$dht_phone_label = '+34 640 87 45 40';
+$dht_phone_href  = 'tel:+34640874540';
+$dht_whatsapp_url = 'https://wa.me/34640874540';
+
+$dht_dependiente_image = '';
+
+/*
+ * La imagen del Dependiente se localiza por el archivo real de Media y no
+ * solamente por el slug del attachment. WordPress puede modificar el slug
+ * aunque el fichero siga llamandose dependiente.webp.
+ */
+$dht_dependiente_relative_file = '2026/09/dependiente.webp';
+$dht_dependiente_ids = get_posts(array(
+    'post_type'      => 'attachment',
+    'post_status'    => 'inherit',
+    'posts_per_page' => 1,
+    'fields'         => 'ids',
+    'meta_key'       => '_wp_attached_file',
+    'meta_value'     => $dht_dependiente_relative_file,
+    'no_found_rows'  => true,
+));
+
+if (!empty($dht_dependiente_ids)) {
+    $dht_dependiente_image = wp_get_attachment_image_url((int) $dht_dependiente_ids[0], 'large');
+    if (!$dht_dependiente_image) {
+        $dht_dependiente_image = wp_get_attachment_url((int) $dht_dependiente_ids[0]);
+    }
+}
+
+/* Fallback directo al archivo si Media no devuelve el attachment. */
+if (!$dht_dependiente_image) {
+    $dht_upload_dir = wp_upload_dir();
+    if (empty($dht_upload_dir['error']) && !empty($dht_upload_dir['baseurl'])) {
+        $dht_dependiente_image = trailingslashit($dht_upload_dir['baseurl']) . $dht_dependiente_relative_file;
+    }
+}
+
+$dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url', $dht_dependiente_image);
 ?>
 
-<main class="dht-storefront dht-storefront--mobile" id="dht-storefront">
-    <!-- =========================================================
-         MOBILE: composición propia, no escritorio comprimido
-    ========================================================== -->
+
+
+<main class="dht-storefront dht-storefront--mobile dht-front-structure" id="dht-storefront">
     <div class="sf-layout sf-layout--mobile">
-        <section class="sf-mobile-hero">
+        <section class="sf-mobile-entry" aria-labelledby="dht-home-title-mobile">
             <div class="sf-mobile-shell">
-                <span class="sf-eyebrow">Catálogo profesional</span>
-                <h1>Todo para taller, automoción y mantenimiento</h1>
-                <p>Entra por categoría o descubre productos directamente.</p>
-                <a class="sf-btn sf-btn--primary sf-btn--full" href="<?php echo esc_url(dht_template_shop_url()); ?>">Ver catálogo</a>
+                <div class="sf-mobile-finder">
+                    <div class="sf-mobile-finder-copy">
+                        <span class="sf-eyebrow">Tu Dependiente del catálogo</span>
+                        <h1 id="dht-home-title-mobile">Encuentra lo que necesitas</h1>
+                        <p>Busca por producto, necesidad, aplicación, medida, marca o referencia. Dependiente relaciona tu búsqueda con el catálogo y compara opciones.</p>
+                        <div class="sf-home-search">
+                            <?php if (shortcode_exists('seo_search')) : ?>
+                                <?php echo do_shortcode('[seo_search placeholder="Producto, necesidad, uso o referencia..."]'); ?>
+                            <?php else : ?>
+                                <form class="sf-home-search-form" role="search" method="get" action="<?php echo esc_url(home_url('/')); ?>">
+                                    <label class="screen-reader-text" for="dht-home-search-mobile">Buscar productos</label>
+                                    <input id="dht-home-search-mobile" type="search" name="s" placeholder="Producto, necesidad, uso o referencia..." autocomplete="off">
+                                    <input type="hidden" name="post_type" value="product">
+                                    <button type="submit">Buscar</button>
+                                </form>
+                            <?php endif; ?>
+                        </div>
+                        <div class="sf-search-examples"><span>extractor rodamientos</span><span>taladro hormigón</span><span>kit plato ducha</span><span>compresor aire</span></div>
+                        <a class="sf-mobile-catalog-link" href="<?php echo esc_url(dht_template_shop_url()); ?>">Ver todo el catálogo →</a>
+                    </div>
+                    <div class="sf-mobile-person">
+                        <?php if ($dht_dependiente_image) : ?>
+                            <img src="<?php echo esc_url($dht_dependiente_image); ?>" alt="Persona del equipo de Distribuidor de Herramientas" loading="eager" fetchpriority="high">
+                        <?php else : ?>
+                            <div class="sf-mobile-person-fallback"><svg viewBox="0 0 200 200" aria-hidden="true" focusable="false"><circle cx="100" cy="68" r="38" fill="currentColor" opacity=".95"/><path d="M35 180c7-45 32-68 65-68s58 23 65 68H35z" fill="currentColor" opacity=".95"/><path d="M58 68c3-29 20-47 42-47s39 18 42 47c-12-9-27-14-42-14s-30 5-42 14z" fill="currentColor" opacity=".75"/></svg></div>
+                        <?php endif; ?>
+                        <div class="sf-mobile-person-badge"><strong>Dependiente te ayuda a buscar</strong><span>Si prefieres una persona, también puedes llamarnos.</span></div>
+                    </div>
+                </div>
             </div>
         </section>
 
+        <section class="sf-mobile-service" aria-labelledby="dht-service-title-mobile">
+            <div class="sf-mobile-shell">
+                <div class="sf-mobile-service-panel">
+                    <span class="sf-service-kicker">Soporte personal antes y después de la compra</span>
+                    <h2 id="dht-service-title-mobile">Te ayudamos como intermediarios</h2>
+                    <p>Si surge una incidencia, te ayudamos en castellano con la comunicación y el seguimiento frente al fabricante o distribuidor.</p>
+                    <div class="sf-mobile-service-grid">
+                        <div class="sf-mobile-service-point"><strong>Antes de comprar</strong><span>Orientación para encontrar y comparar opciones.</span></div>
+                        <div class="sf-mobile-service-point"><strong>Después de comprar</strong><span>Ayuda con correos, tickets y seguimiento de incidencias.</span></div>
+                        <div class="sf-mobile-service-point"><strong>Proveedores extranjeros</strong><span>Te ayudamos a gestionar la comunicación cuando el proceso se complica.</span></div>
+                    </div>
+                    <div class="sf-mobile-service-actions">
+                        <a href="<?php echo esc_url($dht_phone_href); ?>">Llamar</a>
+                        <a href="<?php echo esc_url($dht_whatsapp_url); ?>" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+                    </div>
+                    <small class="sf-service-legal">Somos apoyo e interlocutor en la gestión; no sustituimos el soporte técnico del fabricante ni alteramos las responsabilidades y garantías legales aplicables.</small>
+                </div>
+            </div>
+        </section>
+
+        <?php if (!empty($cluster_ids)) : ?>
+            <section class="sf-mobile-section sf-mobile-section--structure">
+                <div class="sf-mobile-shell">
+                    <div class="sf-mobile-heading"><div><span class="sf-eyebrow">Visión general</span><h2>Empieza por un área</h2></div></div>
+                    <div class="sf-mobile-cluster-track sf-mobile-cluster-track--light">
+                        <?php foreach ($cluster_ids as $cluster_id) :
+                            $image = $get_cluster_image($cluster_id);
+                            ?>
+                            <a class="sf-mobile-cluster sf-mobile-cluster--light" href="<?php echo esc_url(get_permalink($cluster_id)); ?>">
+                                <span><?php if ($image) : ?><img src="<?php echo esc_url($image); ?>" alt="" loading="lazy"><?php else : ?><span class="sf-structure-placeholder" aria-hidden="true">Área</span><?php endif; ?></span>
+                                <strong><?php echo esc_html(get_the_title($cluster_id)); ?></strong>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </section>
+        <?php endif; ?>
+
+        <?php if (!empty($hub_primary_ids)) : ?>
+            <section class="sf-mobile-section sf-mobile-section--hubs">
+                <div class="sf-mobile-shell">
+                    <div class="sf-mobile-heading"><div><span class="sf-eyebrow">Explora por especialidad</span><h2>Áreas principales</h2></div></div>
+                    <div class="sf-mobile-hub-list">
+                        <?php foreach ($hub_primary_ids as $hub_id) :
+                            $secondary_ids = $hub_secondary_by_primary[$hub_id] ?? array();
+                            ?>
+                            <article class="sf-mobile-hub-card">
+                                <a class="sf-mobile-hub-title" href="<?php echo esc_url(get_permalink($hub_id)); ?>">
+                                    <strong><?php echo esc_html(get_the_title($hub_id)); ?></strong>
+                                    <span aria-hidden="true">→</span>
+                                </a>
+                                <?php if (!empty($secondary_ids)) : ?>
+                                    <div class="sf-mobile-secondary-links">
+                                        <?php foreach (array_slice($secondary_ids, 0, 3) as $secondary_id) : ?>
+                                            <a href="<?php echo esc_url(get_permalink($secondary_id)); ?>"><?php echo esc_html(get_the_title($secondary_id)); ?></a>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+                            </article>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </section>
+        <?php endif; ?>
+
         <?php if (!empty($root_categories)) : ?>
-            <nav class="sf-mobile-chips" aria-label="Categorías rápidas">
+            <nav class="sf-mobile-chips sf-mobile-chips--after-structure" aria-label="Categorías rápidas">
                 <div class="sf-mobile-shell sf-mobile-chip-track">
                     <?php foreach (array_slice($root_categories, 0, 12) as $term) : ?>
                         <a href="<?php echo esc_url(dht_template_safe_term_link($term)); ?>"><?php echo esc_html($term->name); ?></a>
@@ -618,7 +806,7 @@ $more_categories = array_slice($root_categories, 8, 8);
             </nav>
         <?php endif; ?>
 
-        <section class="sf-mobile-section">
+        <section class="sf-mobile-section sf-mobile-section--categories">
             <div class="sf-mobile-shell">
                 <div class="sf-mobile-heading"><h2>Compra por categoría</h2><a href="<?php echo esc_url(dht_template_shop_url()); ?>">Ver todas</a></div>
                 <div class="sf-mobile-category-grid">
@@ -641,23 +829,20 @@ $more_categories = array_slice($root_categories, 8, 8);
             </div>
         </section>
 
-        <?php if (!empty($cluster_ids)) : ?>
-            <section class="sf-mobile-section sf-mobile-section--dark">
-                <div class="sf-mobile-shell">
-                    <div class="sf-mobile-heading sf-mobile-heading--inverse"><h2>Explora por necesidad</h2></div>
-                    <div class="sf-mobile-cluster-track">
-                        <?php foreach (array_slice($cluster_ids, 0, 6) as $cluster_id) :
-                            $image = $get_cluster_image($cluster_id);
-                            ?>
-                            <a class="sf-mobile-cluster" href="<?php echo esc_url(get_permalink($cluster_id)); ?>">
-                                <span><?php if ($image) : ?><img src="<?php echo esc_url($image); ?>" alt="" loading="lazy"><?php endif; ?></span>
-                                <strong><?php echo esc_html(get_the_title($cluster_id)); ?></strong>
-                            </a>
-                        <?php endforeach; ?>
-                    </div>
+        <section class="sf-mobile-promo sf-mobile-promo--split">
+            <div class="sf-mobile-shell">
+                <div class="sf-mobile-help">
+                    <span>Antes de comprar</span>
+                    <strong>Busca como si hablaras con un dependiente.</strong>
+                    <a href="#dht-home-title-mobile">Volver al buscador</a>
                 </div>
-            </section>
-        <?php endif; ?>
+                <div class="sf-mobile-help sf-mobile-help--service">
+                    <span>Después de comprar</span>
+                    <strong>Si hay una incidencia, te ayudamos como intermediarios en la gestión.</strong>
+                    <a href="<?php echo esc_url($dht_service_url); ?>">Cómo funciona</a>
+                </div>
+            </div>
+        </section>
 
         <?php if (!empty($sale_products)) : ?>
             <section class="sf-mobile-section sf-mobile-section--products">
@@ -667,16 +852,6 @@ $more_categories = array_slice($root_categories, 8, 8);
                 </div>
             </section>
         <?php endif; ?>
-
-        <section class="sf-mobile-promo">
-            <div class="sf-mobile-shell">
-                <div class="sf-mobile-help">
-                    <span>¿No sabes cuál elegir?</span>
-                    <strong>Consulta compatibilidad o alternativas antes de comprar.</strong>
-                    <a href="https://wa.me/34640874540" target="_blank" rel="noopener noreferrer">Hablar por WhatsApp</a>
-                </div>
-            </div>
-        </section>
 
         <section class="sf-mobile-section sf-mobile-section--products">
             <div class="sf-mobile-shell">
@@ -702,15 +877,6 @@ $more_categories = array_slice($root_categories, 8, 8);
                 </div>
             </section>
         <?php endif; ?>
-
-        <section class="sf-mobile-services">
-            <div class="sf-mobile-shell sf-mobile-services-grid">
-                <div><strong>Compra segura</strong><span>Pago protegido</span></div>
-                <div><strong>Soporte real</strong><span>Antes y después</span></div>
-                <div><strong>Catálogo técnico</strong><span>Especializado</span></div>
-                <div><strong>Contacto directo</strong><span>WhatsApp y teléfono</span></div>
-            </div>
-        </section>
     </div>
 </main>
 

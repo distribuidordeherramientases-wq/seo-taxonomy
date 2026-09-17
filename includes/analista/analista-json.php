@@ -73,8 +73,13 @@ if (!function_exists('seo_analista_build_json_export')) {
         $trend_work = function_exists('seo_analista_trend_work') ? seo_analista_trend_work($days, 100) : array();
         $search_acceleration = function_exists('seo_analista_search_acceleration') ? seo_analista_search_acceleration($days, 80) : array();
         $catalog_guidance = seo_analista_catalog_guidance($days, 30);
-        $source_health = seo_analista_google_source_health($days);
+        $source_health = function_exists('seo_analista_source_health_all') ? seo_analista_source_health_all($days) : seo_analista_google_source_health($days);
+        $bing = function_exists('seo_analista_bing_snapshot') ? seo_analista_bing_snapshot($days, 50) : array();
+        $bing_google = function_exists('seo_analista_bing_google_query_compare')
+            ? seo_analista_bing_google_query_compare((array) ($data['queries'] ?? array()), (array) ($bing['top_queries'] ?? array()), 40)
+            : array();
         $catalog_structure = seo_analista_catalog_structure_snapshot((array) ($data['pages'] ?? array()));
+        $architecture_advice = function_exists('seo_analista_architecture_advice') ? seo_analista_architecture_advice($days, 100) : array();
         $tracked_keywords = seo_analista_tracked_keyword_snapshot(
             (array) ($data['queries'] ?? array()),
             (array) ($data['previous_queries'] ?? array())
@@ -94,7 +99,7 @@ if (!function_exists('seo_analista_build_json_export')) {
         $payload = array(
             'schema' => array(
                 'name' => 'seo-analista-unificado',
-                'version' => 3,
+                'version' => 5,
             ),
             'generated_at' => gmdate('c'),
             'site' => array(
@@ -142,6 +147,18 @@ if (!function_exists('seo_analista_build_json_export')) {
                 'tracked_keywords' => $tracked_keywords,
                 'competition' => $competition,
                 'google_trends' => array_slice((array) $market, 0, 40),
+                'bing' => array(
+                    'available' => !empty($bing['available']),
+                    'connected' => !empty($bing['connected']),
+                    'configured' => !empty($bing['configured']),
+                    'latest_date' => (string) ($bing['latest_date'] ?? ''),
+                    'traffic' => (array) ($bing['traffic'] ?? array()),
+                    'crawl' => (array) ($bing['crawl'] ?? array()),
+                    'top_queries' => array_slice((array) ($bing['top_queries'] ?? array()), 0, 30),
+                    'top_pages' => array_slice((array) ($bing['top_pages'] ?? array()), 0, 30),
+                    'errors' => (array) ($bing['errors'] ?? array()),
+                ),
+                'bing_google_queries' => $bing_google,
                 'catalog_guidance' => array_slice((array) ($catalog_guidance['items'] ?? array()), 0, 30),
                 'suppliers' => array(
                     'available' => !empty($suppliers['available']),
@@ -152,6 +169,13 @@ if (!function_exists('seo_analista_build_json_export')) {
                     'issues' => array_slice((array) ($suppliers['issues'] ?? array()), 0, 15),
                 ),
             ),
+            'estrategia' => array(
+                'objetivos' => array('autoridad', 'visitas', 'ventas'),
+                'regla' => 'Una entidad = una tarea; fuentes no disponibles pesan 0; HACER_AHORA se limita a 10 trabajos.',
+                'summary' => $plan_summary,
+                'plan_accion' => $plan,
+            ),
+            'arquitectura' => $architecture_advice,
             'hacia_donde_vamos' => array(
                 'summary' => $plan_summary,
                 'plan' => $plan,

@@ -55,6 +55,11 @@ function seo_social_network_default_settings()
             'post' => 0,
             'page' => 0,
         ),
+        'auto_publish_providers' => array(
+            'facebook'  => 1,
+            'linkedin'  => 1,
+            'pinterest' => 1,
+        ),
         'templates' => array(
             'facebook' => array(
                 'post' => "{titulo}\n\n{extracto}\n\n{url}",
@@ -140,6 +145,13 @@ function seo_social_network_get_settings()
 
     foreach (array('post', 'page') as $post_type) {
         $settings['auto_publish'][$post_type] = !empty($settings['auto_publish'][$post_type]) ? 1 : 0;
+    }
+
+    if (!isset($settings['auto_publish_providers']) || !is_array($settings['auto_publish_providers'])) {
+        $settings['auto_publish_providers'] = $defaults['auto_publish_providers'];
+    }
+    foreach (array_keys($defaults['auto_publish_providers']) as $provider_key) {
+        $settings['auto_publish_providers'][$provider_key] = !empty($settings['auto_publish_providers'][$provider_key]) ? 1 : 0;
     }
 
     if (!isset($settings['templates']) || !is_array($settings['templates'])) {
@@ -745,6 +757,9 @@ function seo_social_network_schedule_on_publish($new_status, $old_status, $post)
         if (empty($settings['providers'][$provider_key]['enabled'])) {
             continue;
         }
+        if (isset($settings['auto_publish_providers'][$provider_key]) && empty($settings['auto_publish_providers'][$provider_key])) {
+            continue;
+        }
 
         $args = array($post->ID, sanitize_key($provider_key));
         if (!wp_next_scheduled('seo_social_network_publish_scheduled', $args)) {
@@ -773,13 +788,99 @@ function seo_social_network_publish_scheduled($content_id, $provider)
 add_action('seo_social_network_publish_scheduled', 'seo_social_network_publish_scheduled', 10, 2);
 
 /**
+ * Clave meta de una programacion manual.
+ *
+ * @param string $provider
+ * @return string
+ */
+function seo_social_network_schedule_meta_key($provider)
+{
+    return '_seo_social_schedule_' . sanitize_key($provider);
+}
+
+/**
+ * @param int    $content_id
+ * @param string $provider
+ * @return int
+ */
+function seo_social_network_get_scheduled_timestamp($content_id, $provider)
+{
+    return absint(get_post_meta(absint($content_id), seo_social_network_schedule_meta_key($provider), true));
+}
+
+/**
+ * Programa o reprograma una publicacion concreta.
+ *
+ * @param int    $content_id
+ * @param string $provider
+ * @param int    $timestamp Unix timestamp UTC.
+ * @return true|WP_Error
+ */
+function seo_social_network_set_scheduled_publication($content_id, $provider, $timestamp)
+{
+    $content_id = absint($content_id);
+    $provider = sanitize_key($provider);
+    $timestamp = absint($timestamp);
+    $post = get_post($content_id);
+
+    if (!$post || 'publish' !== $post->post_status) {
+        return new WP_Error('invalid_content', 'El contenido no existe o no esta publicado.');
+    }
+    if (!seo_social_network_get_provider($provider)) {
+        return new WP_Error('invalid_provider', 'La red social indicada no esta disponible.');
+    }
+    if ($timestamp <= time() + 30) {
+        return new WP_Error('invalid_schedule', 'La fecha debe estar en el futuro.');
+    }
+
+    $args = array($content_id, $provider);
+    wp_clear_scheduled_hook('seo_social_network_publish_manual_scheduled', $args);
+    update_post_meta($content_id, seo_social_network_schedule_meta_key($provider), $timestamp);
+
+    if (!wp_schedule_single_event($timestamp, 'seo_social_network_publish_manual_scheduled', $args)) {
+        delete_post_meta($content_id, seo_social_network_schedule_meta_key($provider));
+        return new WP_Error('schedule_failed', 'WordPress no pudo crear la tarea programada.');
+    }
+
+    return true;
+}
+
+/**
+ * @param int    $content_id
+ * @param string $provider
+ */
+function seo_social_network_clear_scheduled_publication($content_id, $provider)
+{
+    $content_id = absint($content_id);
+    $provider = sanitize_key($provider);
+    wp_clear_scheduled_hook('seo_social_network_publish_manual_scheduled', array($content_id, $provider));
+    delete_post_meta($content_id, seo_social_network_schedule_meta_key($provider));
+}
+
+/**
+ * Ejecuta una publicacion creada desde el Programador.
+ *
+ * @param int    $content_id
+ * @param string $provider
+ */
+function seo_social_network_publish_manual_scheduled($content_id, $provider)
+{
+    seo_social_network_clear_scheduled_publication($content_id, $provider);
+    $result = seo_social_network_publish_content($content_id, $provider);
+    if (is_wp_error($result)) {
+        error_log('[SEO Social] Publicacion programada fallida: ' . $result->get_error_message());
+    }
+}
+add_action('seo_social_network_publish_manual_scheduled', 'seo_social_network_publish_manual_scheduled', 10, 2);
+
+/**
  * URL del modulo social.
  *
  * @param string $subtab
  * @param array  $args
  * @return string
  */
-function seo_social_network_admin_url($subtab = 'publications', $args = array())
+function seo_social_network_admin_url($subtab = 'templates', $args = array())
 {
     return add_query_arg(
         array_merge(
@@ -888,7 +989,156 @@ function seo_social_network_handle_disconnect()
 add_action('admin_post_seo_social_network_disconnect', 'seo_social_network_handle_disconnect');
 
 /**
- * Guarda automaticos y plantillas globales.
+ * Guarda exclusivamente las plantillas generales.
+ */
+function seo_social_network_handle_save_templates()
+{
+    if (!current_user_can('manage_options')) {
+        wp_die(esc_html__('No tienes permisos para modificar plantillas sociales.', 'seo-system'));
+    }
+
+    check_admin_referer('seo_social_network_save_templates');
+    $settings = seo_social_network_get_settings();
+    $templates = isset($_POST['templates']) && is_array($_POST['templates'])
+        ? wp_unslash($_POST['templates'])
+        : array();
+
+    foreach (seo_social_network_get_providers() as $provider_key => $provider) {
+        foreach (seo_social_network_supported_post_types() as $post_type) {
+            if (!isset($templates[$provider_key][$post_type])) {
+                continue;
+            }
+            $value = trim((string) $templates[$provider_key][$post_type]);
+            if ($value !== '') {
+                $settings['templates'][$provider_key][$post_type] = $value;
+            }
+        }
+    }
+
+    seo_social_network_save_settings($settings);
+    wp_safe_redirect(seo_social_network_admin_url('templates', array('social_msg' => 'templates_saved')));
+    exit;
+}
+add_action('admin_post_seo_social_network_save_templates', 'seo_social_network_handle_save_templates');
+
+/**
+ * Guarda exclusivamente las reglas de publicacion automatica.
+ */
+function seo_social_network_handle_save_automation()
+{
+    if (!current_user_can('manage_options')) {
+        wp_die(esc_html__('No tienes permisos para modificar la automatizacion social.', 'seo-system'));
+    }
+
+    check_admin_referer('seo_social_network_save_automation');
+    $settings = seo_social_network_get_settings();
+
+    $auto = isset($_POST['auto_publish']) && is_array($_POST['auto_publish'])
+        ? wp_unslash($_POST['auto_publish'])
+        : array();
+    foreach (seo_social_network_supported_post_types() as $post_type) {
+        $settings['auto_publish'][$post_type] = !empty($auto[$post_type]) ? 1 : 0;
+    }
+
+    $targets = isset($_POST['auto_publish_providers']) && is_array($_POST['auto_publish_providers'])
+        ? wp_unslash($_POST['auto_publish_providers'])
+        : array();
+    foreach (seo_social_network_get_providers() as $provider_key => $provider) {
+        $settings['auto_publish_providers'][$provider_key] = !empty($targets[$provider_key]) ? 1 : 0;
+    }
+
+    seo_social_network_save_settings($settings);
+    wp_safe_redirect(seo_social_network_admin_url('automation', array('social_msg' => 'automation_saved')));
+    exit;
+}
+add_action('admin_post_seo_social_network_save_automation', 'seo_social_network_handle_save_automation');
+
+/**
+ * Acciones del Programador: programar, publicar ahora o cancelar.
+ */
+function seo_social_network_handle_scheduler_action()
+{
+    if (!current_user_can('manage_options')) {
+        wp_die(esc_html__('No tienes permisos para programar publicaciones sociales.', 'seo-system'));
+    }
+
+    check_admin_referer('seo_social_network_scheduler');
+
+    if (!empty($_POST['cancel_schedule'])) {
+        $parts = explode('|', sanitize_text_field(wp_unslash($_POST['cancel_schedule'])), 2);
+        $content_id = isset($parts[0]) ? absint($parts[0]) : 0;
+        $provider = isset($parts[1]) ? sanitize_key($parts[1]) : '';
+        if ($content_id && $provider) {
+            seo_social_network_clear_scheduled_publication($content_id, $provider);
+        }
+        wp_safe_redirect(seo_social_network_admin_url('scheduler', array('social_msg' => 'schedule_cancelled')));
+        exit;
+    }
+
+    $content_id = !empty($_POST['schedule_content_id'])
+        ? absint($_POST['schedule_content_id'])
+        : (!empty($_POST['publish_content_id']) ? absint($_POST['publish_content_id']) : 0);
+    $mode = !empty($_POST['publish_content_id']) ? 'now' : 'schedule';
+    $providers_by_content = isset($_POST['providers']) && is_array($_POST['providers'])
+        ? wp_unslash($_POST['providers'])
+        : array();
+    $providers = isset($providers_by_content[$content_id]) && is_array($providers_by_content[$content_id])
+        ? array_values(array_unique(array_map('sanitize_key', $providers_by_content[$content_id])))
+        : array();
+
+    if (!$content_id || empty($providers)) {
+        wp_safe_redirect(seo_social_network_admin_url('scheduler', array('social_msg' => 'scheduler_missing_selection')));
+        exit;
+    }
+
+    $available = seo_social_network_get_providers();
+    $settings = seo_social_network_get_settings();
+    $providers = array_values(array_filter($providers, function ($provider) use ($available, $settings) {
+        return isset($available[$provider]) && !empty($settings['providers'][$provider]['enabled']);
+    }));
+
+    if (empty($providers)) {
+        wp_safe_redirect(seo_social_network_admin_url('scheduler', array('social_msg' => 'scheduler_no_connected_provider')));
+        exit;
+    }
+
+    if ('now' === $mode) {
+        $failed = 0;
+        foreach ($providers as $provider) {
+            seo_social_network_clear_scheduled_publication($content_id, $provider);
+            if (is_wp_error(seo_social_network_publish_content($content_id, $provider))) {
+                $failed++;
+            }
+        }
+        wp_safe_redirect(seo_social_network_admin_url('scheduler', array('social_msg' => $failed ? 'publish_failed' : 'published')));
+        exit;
+    }
+
+    $dates = isset($_POST['schedule_at']) && is_array($_POST['schedule_at']) ? wp_unslash($_POST['schedule_at']) : array();
+    $raw_date = isset($dates[$content_id]) ? sanitize_text_field($dates[$content_id]) : '';
+    $dt = $raw_date !== '' ? DateTimeImmutable::createFromFormat('Y-m-d\TH:i', $raw_date, wp_timezone()) : false;
+    $timestamp = $dt instanceof DateTimeImmutable ? $dt->getTimestamp() : 0;
+
+    if (!$timestamp || $timestamp <= time() + 30) {
+        wp_safe_redirect(seo_social_network_admin_url('scheduler', array('social_msg' => 'scheduler_invalid_date')));
+        exit;
+    }
+
+    $failed = 0;
+    foreach ($providers as $provider) {
+        if (is_wp_error(seo_social_network_set_scheduled_publication($content_id, $provider, $timestamp))) {
+            $failed++;
+        }
+    }
+
+    wp_safe_redirect(seo_social_network_admin_url('scheduler', array('social_msg' => $failed ? 'schedule_failed' : 'scheduled')));
+    exit;
+}
+add_action('admin_post_seo_social_network_scheduler_action', 'seo_social_network_handle_scheduler_action');
+
+/**
+ * Guarda automaticos y plantillas globales. Se conserva por compatibilidad con
+ * formularios antiguos; la interfaz nueva usa acciones separadas.
  */
 function seo_social_network_handle_save_publication_settings()
 {
@@ -922,7 +1172,7 @@ function seo_social_network_handle_save_publication_settings()
     }
 
     seo_social_network_save_settings($settings);
-    wp_safe_redirect(seo_social_network_admin_url('publications', array('social_msg' => 'publication_settings_saved')));
+    wp_safe_redirect(seo_social_network_admin_url('templates', array('social_msg' => 'publication_settings_saved')));
     exit;
 }
 add_action('admin_post_seo_social_network_save_publication_settings', 'seo_social_network_handle_save_publication_settings');
@@ -956,7 +1206,7 @@ function seo_social_network_handle_publish_now()
         set_transient('seo_social_network_error_' . get_current_user_id(), $result->get_error_message(), 90);
     }
 
-    wp_safe_redirect(seo_social_network_admin_url('publications', $args));
+    wp_safe_redirect(seo_social_network_admin_url('scheduler', $args));
     exit;
 }
 add_action('admin_post_seo_social_network_publish_now', 'seo_social_network_handle_publish_now');
@@ -979,7 +1229,7 @@ function seo_social_network_handle_save_content_template()
 
     wp_safe_redirect(
         seo_social_network_admin_url(
-            'publications',
+            'scheduler',
             array(
                 'social_msg'        => 'content_template_saved',
                 'social_content_id' => $content_id,
@@ -1082,7 +1332,15 @@ function seo_social_network_render_notice()
         'connection_error'           => array('error', 'No se pudo guardar la conexion.'),
         'invalid_provider'           => array('error', 'El proveedor solicitado no esta disponible.'),
         'disconnected'               => array('success', 'Proveedor desconectado y credencial eliminada.'),
-        'publication_settings_saved' => array('success', 'Automaticos y plantillas guardados.'),
+        'publication_settings_saved' => array('success', 'Configuracion guardada.'),
+        'templates_saved'            => array('success', 'Plantillas generales guardadas.'),
+        'automation_saved'           => array('success', 'Automatizacion guardada.'),
+        'scheduled'                  => array('success', 'Publicacion programada.'),
+        'schedule_cancelled'         => array('success', 'Programacion cancelada.'),
+        'schedule_failed'            => array('error', 'No se pudo crear alguna de las tareas programadas.'),
+        'scheduler_missing_selection'=> array('warning', 'Selecciona al menos una red social para ese contenido.'),
+        'scheduler_no_connected_provider' => array('warning', 'Las redes seleccionadas no estan conectadas.'),
+        'scheduler_invalid_date'     => array('warning', 'Indica una fecha y hora futuras.'),
         'content_template_saved'     => array('success', 'Plantilla particular guardada. Si la dejas vacia, se usa la plantilla general.'),
         'published'                  => array('success', 'Contenido publicado correctamente en la red social.'),
         'publish_failed'             => array('error', 'No se pudo publicar el contenido.'),
@@ -1145,20 +1403,23 @@ function seo_social_network_render_admin_tab()
 
     seo_social_network_maybe_install_tables();
 
-    $allowed = array('publications', 'connections', 'reports');
-    $subtab = isset($_GET['social_subtab']) ? sanitize_key(wp_unslash($_GET['social_subtab'])) : 'publications';
+    $allowed = array('templates', 'automation', 'scheduler', 'connections', 'reports', 'publications');
+    $subtab = isset($_GET['social_subtab']) ? sanitize_key(wp_unslash($_GET['social_subtab'])) : 'templates';
     if (!in_array($subtab, $allowed, true)) {
-        $subtab = 'publications';
+        $subtab = 'templates';
+    }
+    if ('publications' === $subtab) {
+        $subtab = 'templates';
     }
 
     seo_social_network_render_styles();
     seo_social_network_render_notice();
 
     echo '<div class="seo-social-header">';
-    echo '<div><h2>Redes sociales</h2><p>Publicacion, atribucion de visitas y resultados desde un unico modulo.</p></div>';
+    echo '<div><h2>Redes sociales</h2><p>Define una vez el formato, automatiza si quieres y usa el Programador solo como agenda.</p></div>';
     echo '<div class="seo-social-provider-strip">';
+    $settings = seo_social_network_get_settings();
     foreach (seo_social_network_get_providers() as $provider_key => $provider) {
-        $settings = seo_social_network_get_settings();
         $connected = !empty($settings['providers'][$provider_key]['enabled']);
         echo '<span class="seo-social-provider-pill ' . ($connected ? 'is-connected' : '') . '">';
         echo esc_html(isset($provider['label']) ? $provider['label'] : ucfirst($provider_key));
@@ -1169,9 +1430,11 @@ function seo_social_network_render_admin_tab()
     echo '</div></div>';
 
     $tabs = array(
-        'publications' => 'Publicaciones',
-        'connections'  => 'Conexiones',
-        'reports'      => 'Informes',
+        'templates'   => 'Plantillas',
+        'automation'  => 'Automatización',
+        'scheduler'   => 'Programador',
+        'connections' => 'Conexiones',
+        'reports'     => 'Informes',
     );
 
     echo '<nav class="seo-social-subnav">';
@@ -1185,8 +1448,12 @@ function seo_social_network_render_admin_tab()
         seo_social_network_render_connections();
     } elseif ('reports' === $subtab) {
         seo_social_network_render_reports();
+    } elseif ('automation' === $subtab) {
+        seo_social_network_render_automation();
+    } elseif ('scheduler' === $subtab) {
+        seo_social_network_render_scheduler();
     } else {
-        seo_social_network_render_publications();
+        seo_social_network_render_templates();
     }
 }
 
@@ -1196,11 +1463,12 @@ function seo_social_network_render_admin_tab()
 function seo_social_network_render_styles()
 {
     echo '<style>
-        .seo-social-header{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;margin:4px 0 18px;padding:20px;background:#fff;border:1px solid #dcdcde;border-radius:8px}.seo-social-header h2{margin:0 0 5px;font-size:22px}.seo-social-header p{margin:0;color:#646970}.seo-social-provider-strip{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.seo-social-provider-pill{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;background:#f0f0f1;color:#50575e;font-size:12px;font-weight:600}.seo-social-provider-pill.is-connected{background:#edfaef;color:#176b2c}.seo-social-provider-pill.is-planned{background:#f6f7f7;color:#787c82}
-        .seo-social-subnav{display:flex;gap:8px;margin:0 0 18px;border-bottom:1px solid #c3c4c7}.seo-social-subnav-link{display:inline-block;margin-bottom:-1px;padding:10px 14px;text-decoration:none;border:1px solid transparent;border-radius:6px 6px 0 0;font-weight:600}.seo-social-subnav-link.is-active{background:#fff;border-color:#c3c4c7 #c3c4c7 #fff;color:#1d2327}
-        .seo-social-card{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:20px;margin:0 0 18px}.seo-social-card h2,.seo-social-card h3{margin-top:0}.seo-social-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}.seo-social-field label{display:block;font-weight:600;margin:0 0 6px}.seo-social-field input[type=text],.seo-social-field input[type=password],.seo-social-field select,.seo-social-field textarea{width:100%}.seo-social-field textarea{min-height:120px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}.seo-social-help{color:#646970;font-size:12px;line-height:1.45}.seo-social-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:16px}.seo-social-state{display:inline-flex;padding:3px 7px;border-radius:999px;font-size:11px;font-weight:700;background:#f0f0f1;color:#50575e}.seo-social-state.is-published,.seo-social-state.is-ok{background:#edfaef;color:#176b2c}.seo-social-state.is-failed{background:#fcf0f1;color:#b32d2e}.seo-social-state.is-pending{background:#fff8e5;color:#8a5500}
-        .seo-social-vars{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}.seo-social-vars code{font-size:11px;padding:3px 6px;background:#f6f7f7}.seo-social-table-wrap{overflow:auto}.seo-social-table{width:100%;border-collapse:collapse}.seo-social-table th,.seo-social-table td{padding:12px 10px;border-bottom:1px solid #e2e4e7;text-align:left;vertical-align:top}.seo-social-table th{font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:#50575e}.seo-social-content-title{min-width:230px}.seo-social-editor{min-width:360px}.seo-social-editor textarea{width:100%;min-height:120px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}.seo-social-preview{white-space:pre-wrap;background:#f6f7f7;border:1px solid #dcdcde;border-radius:6px;padding:10px;max-height:170px;overflow:auto;font-size:12px;line-height:1.45}.seo-social-row-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.seo-social-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}.seo-social-metric{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:16px}.seo-social-metric strong{display:block;font-size:24px;line-height:1.1}.seo-social-metric span{display:block;color:#646970;margin-top:5px;font-size:12px}.seo-social-provider-card{position:relative}.seo-social-provider-card .dashicons{font-size:32px;width:32px;height:32px;margin-bottom:8px}.seo-social-code-note{padding:10px 12px;background:#f6f7f7;border-left:4px solid #2271b1}.seo-social-filterbar{display:flex;gap:8px;flex-wrap:wrap;align-items:end}.seo-social-filterbar .seo-social-field{min-width:180px;flex:1}.seo-social-filterbar .seo-social-field.is-search{min-width:280px;flex:2}
-        @media(max-width:900px){.seo-social-header{flex-direction:column}.seo-social-provider-strip{justify-content:flex-start}.seo-social-editor{min-width:290px}}
+        .seo-social-header{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;margin:4px 0 18px;padding:20px;background:#fff;border:1px solid #dcdcde;border-radius:8px}.seo-social-header h2{margin:0 0 5px;font-size:22px}.seo-social-header p{margin:0;color:#646970;max-width:720px}.seo-social-provider-strip{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.seo-social-provider-pill{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;background:#f0f0f1;color:#50575e;font-size:12px;font-weight:600}.seo-social-provider-pill.is-connected{background:#edfaef;color:#176b2c}.seo-social-provider-pill.is-planned{background:#f6f7f7;color:#787c82}
+        .seo-social-subnav{display:flex;gap:8px;margin:0 0 18px;border-bottom:1px solid #c3c4c7;overflow:auto}.seo-social-subnav-link{display:inline-block;margin-bottom:-1px;padding:10px 14px;text-decoration:none;border:1px solid transparent;border-radius:6px 6px 0 0;font-weight:600;white-space:nowrap}.seo-social-subnav-link.is-active{background:#fff;border-color:#c3c4c7 #c3c4c7 #fff;color:#1d2327}
+        .seo-social-card{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:20px;margin:0 0 18px}.seo-social-card h2,.seo-social-card h3{margin-top:0}.seo-social-intro{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.seo-social-intro p{max-width:760px;margin-top:4px;color:#646970}.seo-social-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}.seo-social-field label{display:block;font-weight:600;margin:0 0 6px}.seo-social-field input[type=text],.seo-social-field input[type=password],.seo-social-field select,.seo-social-field textarea{width:100%}.seo-social-field textarea{min-height:120px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}.seo-social-help{color:#646970;font-size:12px;line-height:1.45}.seo-social-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:16px}.seo-social-state{display:inline-flex;padding:3px 7px;border-radius:999px;font-size:11px;font-weight:700;background:#f0f0f1;color:#50575e}.seo-social-state.is-published,.seo-social-state.is-ok{background:#edfaef;color:#176b2c}.seo-social-state.is-failed{background:#fcf0f1;color:#b32d2e}.seo-social-state.is-pending,.seo-social-state.is-scheduled{background:#fff8e5;color:#8a5500}
+        .seo-social-vars{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}.seo-social-vars code{font-size:11px;padding:3px 6px;background:#f6f7f7}.seo-social-table-wrap{overflow:auto}.seo-social-table{width:100%;border-collapse:collapse}.seo-social-table th,.seo-social-table td{padding:12px 10px;border-bottom:1px solid #e2e4e7;text-align:left;vertical-align:top}.seo-social-table th{font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:#50575e}.seo-social-content-title{min-width:250px}.seo-social-preview{white-space:pre-wrap;background:#f6f7f7;border:1px solid #dcdcde;border-radius:6px;padding:10px;max-height:170px;overflow:auto;font-size:12px;line-height:1.45}.seo-social-row-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.seo-social-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}.seo-social-metric{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:16px}.seo-social-metric strong{display:block;font-size:24px;line-height:1.1}.seo-social-metric span{display:block;color:#646970;margin-top:5px;font-size:12px}.seo-social-provider-card{position:relative}.seo-social-provider-card .dashicons{font-size:32px;width:32px;height:32px;margin-bottom:8px}.seo-social-code-note{padding:10px 12px;background:#f6f7f7;border-left:4px solid #2271b1}.seo-social-filterbar{display:flex;gap:8px;flex-wrap:wrap;align-items:end}.seo-social-filterbar .seo-social-field{min-width:180px;flex:1}.seo-social-filterbar .seo-social-field.is-search{min-width:280px;flex:2}
+        .seo-social-template-card{border:1px solid #e2e4e7;border-radius:8px;padding:16px;background:#fcfcfc}.seo-social-template-card__head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:14px}.seo-social-template-card__head h3{margin:0}.seo-social-automation-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}.seo-social-option{display:block;padding:14px;border:1px solid #dcdcde;border-radius:8px;background:#fff}.seo-social-option strong{display:block;margin-bottom:4px}.seo-social-option small{display:block;color:#646970;margin-left:24px}.seo-social-network-checks{display:flex;flex-wrap:wrap;gap:8px}.seo-social-network-check{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #dcdcde;border-radius:7px;background:#fff}.seo-social-scheduler-networks{display:flex;flex-wrap:wrap;gap:8px;min-width:220px}.seo-social-scheduler-networks label{white-space:nowrap}.seo-social-date{min-width:190px}.seo-social-date input{width:100%}.seo-social-scheduled-list{margin-top:7px}.seo-social-scheduled-item{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:5px}.seo-social-scheduled-item button{padding:0;border:0;background:none;color:#b32d2e;cursor:pointer;text-decoration:underline;font-size:11px}.seo-social-thumb{width:64px;height:48px;object-fit:cover;border-radius:5px;vertical-align:middle;margin-top:8px}.seo-social-template-preview-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px;margin-top:8px}.seo-social-template-preview-grid strong{display:block;margin-bottom:4px}
+        @media(max-width:900px){.seo-social-header,.seo-social-intro{flex-direction:column}.seo-social-provider-strip{justify-content:flex-start}.seo-social-table th,.seo-social-table td{padding:10px 7px}.seo-social-scheduler-networks{min-width:180px}}
     </style>';
 }
 
@@ -1242,7 +1510,7 @@ function seo_social_network_render_connections()
 }
 
 /**
- * Consulta contenidos publicados para la pantalla.
+ * Consulta contenidos publicados para el Programador.
  *
  * @return WP_Query
  */
@@ -1251,7 +1519,6 @@ function seo_social_network_publications_query()
     $type = isset($_GET['social_type']) ? sanitize_key(wp_unslash($_GET['social_type'])) : '';
     $search = isset($_GET['social_search']) ? sanitize_text_field(wp_unslash($_GET['social_search'])) : '';
     $supported = seo_social_network_supported_post_types();
-
     $post_types = in_array($type, $supported, true) ? array($type) : $supported;
 
     return new WP_Query(
@@ -1273,67 +1540,105 @@ function seo_social_network_publications_query()
 }
 
 /**
- * Subpestana Publicaciones.
+ * Plantillas globales: solo define como se redacta cada red.
  */
-function seo_social_network_render_publications()
+function seo_social_network_render_templates()
 {
     $settings = seo_social_network_get_settings();
     $providers = seo_social_network_get_providers();
 
     echo '<section class="seo-social-card">';
-    echo '<h2>Automaticos y plantillas</h2>';
-    echo '<p>Las variables se sustituyen justo antes de publicar. Cada contenido puede tener una plantilla propia sin perder la general.</p>';
+    echo '<div class="seo-social-intro"><div><h2>Plantillas de publicación</h2><p>Define una sola vez cómo debe redactarse una entrada o una página en cada red. El Programador utilizará estas plantillas automáticamente; aquí no se decide cuándo publicar.</p></div><span class="seo-social-state is-ok">Formato general</span></div>';
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
-    echo '<input type="hidden" name="action" value="seo_social_network_save_publication_settings">';
-    wp_nonce_field('seo_social_network_save_publication_settings');
+    echo '<input type="hidden" name="action" value="seo_social_network_save_templates">';
+    wp_nonce_field('seo_social_network_save_templates');
 
-    echo '<div class="seo-social-grid">';
-    echo '<div>';
-    echo '<h3>Publicacion automatica</h3>';
-    echo '<label><input type="checkbox" name="auto_publish[post]" value="1" ' . checked(!empty($settings['auto_publish']['post']), true, false) . '> Entradas nuevas al publicarse</label><br>';
-    echo '<label><input type="checkbox" name="auto_publish[page]" value="1" ' . checked(!empty($settings['auto_publish']['page']), true, false) . '> Paginas / Landings nuevas al publicarse</label>';
-    echo '<p class="seo-social-help">Solo se dispara en la primera transicion a Publicado. Las actualizaciones posteriores no generan duplicados automaticamente.</p>';
-    echo '</div>';
-
+    echo '<div class="seo-social-grid" style="margin-top:18px">';
     foreach ($providers as $provider_key => $provider) {
-        echo '<div>';
-        echo '<h3>Plantillas · ' . esc_html(isset($provider['label']) ? $provider['label'] : ucfirst($provider_key)) . '</h3>';
-        foreach (array('post' => 'Entradas', 'page' => 'Paginas / Landings') as $post_type => $label) {
-            $value = isset($settings['templates'][$provider_key][$post_type])
-                ? (string) $settings['templates'][$provider_key][$post_type]
-                : '';
-            echo '<div class="seo-social-field" style="margin-bottom:12px"><label>' . esc_html($label) . '</label><textarea name="templates[' . esc_attr($provider_key) . '][' . esc_attr($post_type) . ']">' . esc_textarea($value) . '</textarea></div>';
+        $label = isset($provider['label']) ? $provider['label'] : ucfirst($provider_key);
+        $connected = !empty($settings['providers'][$provider_key]['enabled']);
+        echo '<div class="seo-social-template-card">';
+        echo '<div class="seo-social-template-card__head"><h3>' . esc_html($label) . '</h3><span class="seo-social-state ' . ($connected ? 'is-ok' : '') . '">' . esc_html($connected ? 'Conectado' : 'Sin conectar') . '</span></div>';
+        foreach (array('post' => 'Entradas', 'page' => 'Páginas / Landings') as $post_type => $type_label) {
+            $value = isset($settings['templates'][$provider_key][$post_type]) ? (string) $settings['templates'][$provider_key][$post_type] : '';
+            echo '<div class="seo-social-field" style="margin-bottom:14px"><label>' . esc_html($type_label) . '</label><textarea name="templates[' . esc_attr($provider_key) . '][' . esc_attr($post_type) . ']">' . esc_textarea($value) . '</textarea></div>';
         }
         echo '</div>';
     }
     echo '</div>';
 
-    echo '<div class="seo-social-vars"><strong>Comodines:</strong> ';
+    echo '<div class="seo-social-vars"><strong>Variables disponibles:</strong> ';
     foreach (array('{titulo}', '{extracto}', '{fecha}', '{url}', '{sitio}', '{autor}', '{tipo}', '{categorias}', '{imagen}') as $var) {
         echo '<code>' . esc_html($var) . '</code>';
     }
     echo '</div>';
-    echo '<div class="seo-social-actions"><button type="submit" class="button button-primary">Guardar automaticos y plantillas</button></div>';
-    echo '</form>';
-    echo '</section>';
+    echo '<div class="seo-social-actions"><button type="submit" class="button button-primary">Guardar plantillas</button></div>';
+    echo '</form></section>';
+}
+
+/**
+ * Automatizacion: solo decide qué eventos disparan publicaciones y a qué redes.
+ */
+function seo_social_network_render_automation()
+{
+    $settings = seo_social_network_get_settings();
+    $providers = seo_social_network_get_providers();
 
     echo '<section class="seo-social-card">';
-    echo '<h2>Contenido publicable</h2>';
-    echo '<form method="get" class="seo-social-filterbar">';
-    echo '<input type="hidden" name="page" value="seo-menu-marketing"><input type="hidden" name="tab" value="social"><input type="hidden" name="social_subtab" value="publications">';
-    echo '<div class="seo-social-field"><label>Tipo</label><select name="social_type"><option value="">Entradas + Paginas/Landings</option>';
+    echo '<div class="seo-social-intro"><div><h2>Publicación automática</h2><p>Activa esta opción únicamente si quieres que una pieza se publique en redes la primera vez que pasa a estado Publicado en WordPress. No cambia el formato: utiliza las plantillas generales.</p></div><span class="seo-social-state">Disparador</span></div>';
+    echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+    echo '<input type="hidden" name="action" value="seo_social_network_save_automation">';
+    wp_nonce_field('seo_social_network_save_automation');
+
+    echo '<h3 style="margin-top:20px">Qué contenido activa la automatización</h3>';
+    echo '<div class="seo-social-automation-options">';
+    echo '<label class="seo-social-option"><input type="checkbox" name="auto_publish[post]" value="1" ' . checked(!empty($settings['auto_publish']['post']), true, false) . '> <strong style="display:inline">Entradas</strong><small>Solo en la primera transición a Publicado.</small></label>';
+    echo '<label class="seo-social-option"><input type="checkbox" name="auto_publish[page]" value="1" ' . checked(!empty($settings['auto_publish']['page']), true, false) . '> <strong style="display:inline">Páginas / Landings</strong><small>Solo en la primera transición a Publicado.</small></label>';
+    echo '</div>';
+
+    echo '<h3 style="margin-top:22px">Redes de destino</h3>';
+    echo '<div class="seo-social-network-checks">';
+    foreach ($providers as $provider_key => $provider) {
+        $label = isset($provider['label']) ? $provider['label'] : ucfirst($provider_key);
+        $connected = !empty($settings['providers'][$provider_key]['enabled']);
+        $checked = !empty($settings['auto_publish_providers'][$provider_key]);
+        echo '<label class="seo-social-network-check"><input type="checkbox" name="auto_publish_providers[' . esc_attr($provider_key) . ']" value="1" ' . checked($checked, true, false) . '> ' . esc_html($label) . ' <span class="seo-social-state ' . ($connected ? 'is-ok' : '') . '">' . esc_html($connected ? 'conectado' : 'sin conectar') . '</span></label>';
+    }
+    echo '</div>';
+    echo '<p class="seo-social-help">Una red no conectada no publicará aunque esté seleccionada. Las ediciones posteriores del contenido no generan duplicados automáticos.</p>';
+    echo '<div class="seo-social-actions"><button type="submit" class="button button-primary">Guardar automatización</button></div>';
+    echo '</form></section>';
+}
+
+/**
+ * Programador: agenda simple, sin repetir los editores de plantillas.
+ */
+function seo_social_network_render_scheduler()
+{
+    $settings = seo_social_network_get_settings();
+    $providers = seo_social_network_get_providers();
+
+    echo '<section class="seo-social-card">';
+    echo '<div class="seo-social-intro"><div><h2>Programador</h2><p>Selecciona una pieza, marca las redes y elige fecha y hora. El texto se genera automáticamente con la plantilla correspondiente. No tienes que volver a redactar Facebook, LinkedIn o Pinterest aquí.</p></div><span class="seo-social-state is-scheduled">Agenda</span></div>';
+
+    echo '<form method="get" class="seo-social-filterbar" style="margin-top:18px">';
+    echo '<input type="hidden" name="page" value="seo-menu-marketing"><input type="hidden" name="tab" value="social"><input type="hidden" name="social_subtab" value="scheduler">';
+    echo '<div class="seo-social-field"><label>Tipo</label><select name="social_type"><option value="">Entradas + Páginas/Landings</option>';
     $current_type = isset($_GET['social_type']) ? sanitize_key(wp_unslash($_GET['social_type'])) : '';
-    echo '<option value="post" ' . selected($current_type, 'post', false) . '>Entradas</option><option value="page" ' . selected($current_type, 'page', false) . '>Paginas / Landings</option></select></div>';
+    echo '<option value="post" ' . selected($current_type, 'post', false) . '>Entradas</option><option value="page" ' . selected($current_type, 'page', false) . '>Páginas / Landings</option></select></div>';
     $search = isset($_GET['social_search']) ? sanitize_text_field(wp_unslash($_GET['social_search'])) : '';
-    echo '<div class="seo-social-field is-search"><label>Buscar</label><input type="text" name="social_search" value="' . esc_attr($search) . '" placeholder="Titulo del contenido..."></div>';
+    echo '<div class="seo-social-field is-search"><label>Buscar contenido</label><input type="text" name="social_search" value="' . esc_attr($search) . '" placeholder="Título del contenido..."></div>';
     echo '<button class="button" type="submit">Filtrar</button>';
     echo '</form>';
 
     $query = seo_social_network_publications_query();
-    echo '<div class="seo-social-table-wrap"><table class="seo-social-table"><thead><tr><th>Contenido</th><th>Red / estado</th><th>Texto para publicar</th></tr></thead><tbody>';
+    echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+    echo '<input type="hidden" name="action" value="seo_social_network_scheduler_action">';
+    wp_nonce_field('seo_social_network_scheduler');
+    echo '<div class="seo-social-table-wrap"><table class="seo-social-table"><thead><tr><th>Contenido</th><th>Redes</th><th>Fecha y hora</th><th>Acción</th></tr></thead><tbody>';
 
     if (!$query->have_posts()) {
-        echo '<tr><td colspan="3">No se ha encontrado contenido publicado.</td></tr>';
+        echo '<tr><td colspan="4">No se ha encontrado contenido publicado.</td></tr>';
     }
 
     while ($query->have_posts()) {
@@ -1344,71 +1649,56 @@ function seo_social_network_render_publications()
         }
 
         echo '<tr id="seo-social-content-' . esc_attr((string) $post->ID) . '">';
-        echo '<td class="seo-social-content-title"><strong><a href="' . esc_url(get_edit_post_link($post->ID)) . '">' . esc_html(get_the_title($post)) . '</a></strong><br><span class="seo-social-state">' . esc_html(seo_social_network_content_type_label($post)) . '</span><p class="seo-social-help">Publicado: ' . esc_html(get_the_date('', $post)) . '<br>#' . esc_html((string) $post->ID) . '</p>';
+        echo '<td class="seo-social-content-title"><strong><a href="' . esc_url(get_edit_post_link($post->ID)) . '">' . esc_html(get_the_title($post)) . '</a></strong><br><span class="seo-social-state">' . esc_html(seo_social_network_content_type_label($post)) . '</span><p class="seo-social-help">Publicado: ' . esc_html(get_the_date('', $post)) . ' · #' . esc_html((string) $post->ID) . '</p>';
         if (has_post_thumbnail($post)) {
-            echo get_the_post_thumbnail($post->ID, array(90, 60), array('style' => 'width:90px;height:60px;object-fit:cover;border-radius:5px')); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+            echo get_the_post_thumbnail($post->ID, array(64, 48), array('class' => 'seo-social-thumb')); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         }
         echo '</td>';
 
-        echo '<td>';
+        echo '<td><div class="seo-social-scheduler-networks">';
+        $has_connected = false;
         foreach ($providers as $provider_key => $provider) {
-            $latest = seo_social_network_get_latest_publication($post->ID, $provider_key);
-            $connected = !empty($settings['providers'][$provider_key]['enabled']);
-            $status = $latest ? sanitize_key($latest->status) : '';
             $label = isset($provider['label']) ? $provider['label'] : ucfirst($provider_key);
-            echo '<p><strong>' . esc_html($label) . '</strong><br>';
-            if ($latest) {
-                echo '<span class="seo-social-state is-' . esc_attr($status) . '">' . esc_html(ucfirst($status)) . '</span>';
-                if ('published' === $status && !empty($latest->published_at)) {
-                    echo '<br><small>' . esc_html(mysql2date(get_option('date_format') . ' ' . get_option('time_format'), $latest->published_at)) . '</small>';
-                }
-                if (!empty($latest->remote_url)) {
-                    echo '<br><a href="' . esc_url($latest->remote_url) . '" target="_blank" rel="noopener noreferrer">Ver publicacion</a>';
-                }
-                if ('failed' === $status && !empty($latest->error_message)) {
-                    echo '<br><small style="color:#b32d2e">' . esc_html(wp_trim_words($latest->error_message, 18, '...')) . '</small>';
-                }
-                if ('published' === $status) {
-                    echo '<br><small>Visitas web: ' . esc_html(number_format_i18n((int) $latest->clicks)) . '</small>';
-                }
-            } else {
-                echo '<span class="seo-social-state">No publicado</span>';
+            $connected = !empty($settings['providers'][$provider_key]['enabled']);
+            if ($connected) {
+                $has_connected = true;
             }
-            if (!$connected) {
-                echo '<br><small><a href="' . esc_url(seo_social_network_admin_url('connections')) . '">Conectar primero</a></small>';
-            }
-            echo '</p>';
+            echo '<label><input type="checkbox" name="providers[' . esc_attr((string) $post->ID) . '][]" value="' . esc_attr($provider_key) . '" ' . disabled(!$connected, true, false) . '> ' . esc_html($label) . '</label>';
         }
-        echo '</td>';
+        echo '</div>';
+        if (!$has_connected) {
+            echo '<p class="seo-social-help"><a href="' . esc_url(seo_social_network_admin_url('connections')) . '">Conecta una red para poder programar</a>.</p>';
+        }
 
-        echo '<td class="seo-social-editor">';
+        echo '<div class="seo-social-scheduled-list">';
         foreach ($providers as $provider_key => $provider) {
+            $timestamp = seo_social_network_get_scheduled_timestamp($post->ID, $provider_key);
+            if (!$timestamp) {
+                continue;
+            }
+            $label = isset($provider['label']) ? $provider['label'] : ucfirst($provider_key);
+            echo '<div class="seo-social-scheduled-item"><span class="seo-social-state is-scheduled">' . esc_html($label) . ': ' . esc_html(wp_date(get_option('date_format') . ' ' . get_option('time_format'), $timestamp, wp_timezone())) . '</span><button type="submit" name="cancel_schedule" value="' . esc_attr($post->ID . '|' . $provider_key) . '">Cancelar</button></div>';
+        }
+        echo '</div></td>';
+
+        echo '<td class="seo-social-date"><input type="datetime-local" name="schedule_at[' . esc_attr((string) $post->ID) . ']" aria-label="Fecha y hora para ' . esc_attr(get_the_title($post)) . '"><p class="seo-social-help">Zona horaria: ' . esc_html(wp_timezone_string()) . '</p></td>';
+
+        echo '<td><div class="seo-social-row-actions" style="margin-top:0"><button type="submit" name="schedule_content_id" value="' . esc_attr((string) $post->ID) . '" class="button button-primary" ' . disabled(!$has_connected, true, false) . '>Programar</button><button type="submit" name="publish_content_id" value="' . esc_attr((string) $post->ID) . '" class="button" ' . disabled(!$has_connected, true, false) . '>Publicar ahora</button></div>';
+        echo '<details style="margin-top:9px"><summary style="cursor:pointer">Vista previa</summary><div class="seo-social-template-preview-grid">';
+        foreach ($providers as $provider_key => $provider) {
+            $label = isset($provider['label']) ? $provider['label'] : ucfirst($provider_key);
             $template = seo_social_network_get_template_for_content($post, $provider_key);
-            $is_custom = (string) get_post_meta($post->ID, seo_social_network_custom_template_meta_key($post->ID, $provider_key), true) !== '';
             $preview_url = add_query_arg(array('utm_source' => $provider_key, 'utm_medium' => 'social'), get_permalink($post));
             $preview = seo_social_network_render_template($template, $post, $preview_url);
-
-            echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin-bottom:18px">';
-            echo '<input type="hidden" name="content_id" value="' . esc_attr((string) $post->ID) . '"><input type="hidden" name="provider" value="' . esc_attr($provider_key) . '">';
-            wp_nonce_field('seo_social_network_publish_' . $post->ID . '_' . $provider_key);
-            echo '<label><strong>' . esc_html(isset($provider['label']) ? $provider['label'] : ucfirst($provider_key)) . '</strong> ' . ($is_custom ? '<span class="seo-social-state is-pending">Plantilla propia</span>' : '<span class="seo-social-state">Plantilla general</span>') . '</label>';
-            echo '<textarea name="message_template">' . esc_textarea($template) . '</textarea>';
-            echo '<details style="margin-top:6px"><summary style="cursor:pointer">Vista previa</summary><div class="seo-social-preview">' . esc_html($preview) . '</div></details>';
-            echo '<label style="display:block;margin-top:7px"><input type="checkbox" name="save_custom_template" value="1"> Guardar este texto como plantilla propia del contenido</label>';
-            echo '<div class="seo-social-row-actions">';
-            echo '<button type="submit" name="action" value="seo_social_network_publish_now" class="button button-primary" ' . disabled(empty($settings['providers'][$provider_key]['enabled']), true, false) . '>Publicar ahora</button>';
-            echo '<button type="submit" name="action" value="seo_social_network_save_content_template" class="button" formaction="' . esc_url(admin_url('admin-post.php')) . '" onclick="this.form.querySelector(\'[name=_wpnonce]\').value=\'' . esc_js(wp_create_nonce('seo_social_network_template_' . $post->ID . '_' . $provider_key)) . '\';">Guardar plantilla</button>';
-            if ($is_custom) {
-                echo '<span class="seo-social-help">Vacia el campo y pulsa Guardar plantilla para volver a la general.</span>';
-            }
-            echo '</div></form>';
+            echo '<div><strong>' . esc_html($label) . '</strong><div class="seo-social-preview">' . esc_html($preview) . '</div></div>';
         }
-        echo '</td>';
+        echo '</div></details></td>';
         echo '</tr>';
     }
     wp_reset_postdata();
 
-    echo '</tbody></table></div>';
+    echo '</tbody></table></div></form>';
+    echo '<p class="seo-social-code-note"><strong>Cómo funciona:</strong> el Programador solo guarda la fecha y las redes. En el momento de publicar, toma la plantilla general de cada red. WordPress ejecuta las tareas con WP-Cron, por lo que la hora puede depender de que el sitio reciba una petición alrededor de ese momento.</p>';
     echo '</section>';
 }
 

@@ -1,14 +1,14 @@
 <?php
 /**
- * Auditor de datos canonicos y comportamiento de SEO Taxonomy.
+ * Auditor de catalogo y Academia/Estudiante de SEO Taxonomy.
  *
- * Modulo de solo lectura: audita la fuente canonica y contrasta indices, Academia
- * y aprendizaje como capas derivadas. Nunca modifica contenido ni conocimiento.
+ * Modulo de solo lectura con dos auditorias independientes: catalogo y Academia/Estudiante.
+ * Nunca modifica contenido ni conocimiento.
  */
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_AUDITOR_VERSION')) {
-    define('SEO_AUDITOR_VERSION', '0.5.1');
+    define('SEO_AUDITOR_VERSION', '0.6.0');
 }
 if (!defined('SEO_AUDITOR_PATH')) {
     define('SEO_AUDITOR_PATH', __DIR__ . '/');

@@ -72,23 +72,35 @@ if (!function_exists('seo_analista_search_acceleration')) {
 
             $prev = (array) ($previous[$row['query_hash'] ?? ''] ?? array());
             $prev_imp = (float) ($prev['impressions'] ?? 0);
-            $delta = $impressions - $prev_imp;
-            $growth = $prev_imp > 0 ? ($delta / $prev_imp) * 100 : ($impressions >= 8 ? 100.0 : 0.0);
+            $growth_quality = function_exists('seo_analista_growth_signal')
+                ? seo_analista_growth_signal($impressions, $prev_imp)
+                : array(
+                    'delta' => $impressions - $prev_imp,
+                    'raw_growth_pct' => $prev_imp > 0 ? (($impressions - $prev_imp) / $prev_imp) * 100 : ($impressions > 0 ? 100.0 : 0.0),
+                    'smoothed_growth_pct' => 0.0,
+                    'signal' => 0.0,
+                );
+            $delta = (float) ($growth_quality['delta'] ?? ($impressions - $prev_imp));
+            $growth = (float) ($growth_quality['smoothed_growth_pct'] ?? 0);
+            $raw_growth = (float) ($growth_quality['raw_growth_pct'] ?? 0);
+            $growth_signal = (float) ($growth_quality['signal'] ?? 0);
             $prev_pos = (float) ($prev['position'] ?? 0);
             $position_gain = ($prev_pos > 0 && $position > 0) ? $prev_pos - $position : 0.0;
 
-            // Un +100 % con 3-5 impresiones no equivale a una tendencia real.
-            if ($growth < 25 && $delta < 8 && $position_gain < 8) continue;
+            // La aceleracion exige volumen absoluto o una mejora clara de
+            // posicion. El porcentaje aislado no basta.
+            if ($delta < 8 && $impressions < 25 && $position_gain < 8) continue;
+            if ($delta < 3 && $position_gain < 4) continue;
 
-            $score = 30;
-            $score += min(24, log(1 + $impressions) * 4.2);
-            if ($delta >= 30) $score += min(16, max(0, $growth) / 12);
-            elseif ($delta >= 12) $score += min(10, max(0, $growth) / 20);
-            elseif ($delta >= 8) $score += min(6, max(0, $growth) / 30);
-            else $score += min(3, max(0, $growth) / 50);
-            $score += min(10, max(0, $position_gain));
-            if ($position <= 20 && $impressions >= 10) $score += 8;
-            $score = min(100, (int) round($score));
+            $score = 24;
+            $score += min(25, log(1 + $impressions) * 4.0);
+            $score += min(18, max(0, $delta) * 0.35);
+            $score += min(10, max(0, $growth_signal) * 0.10);
+            $score += min(12, max(0, $position_gain) * 0.8);
+            if ($position <= 10 && $impressions >= 10) $score += 10;
+            elseif ($position <= 20 && $impressions >= 10) $score += 8;
+            elseif ($position > 70 && $impressions < 80) $score -= 8;
+            $score = min(95, max(0, (int) round($score)));
 
             $catalog = function_exists('seo_google_opportunity_catalog_context')
                 ? (array) seo_google_opportunity_catalog_context($query)
@@ -103,6 +115,8 @@ if (!function_exists('seo_analista_search_acceleration')) {
                 'previous_impressions' => $prev_imp,
                 'delta_impressions' => $delta,
                 'growth' => $growth,
+                'raw_growth' => $raw_growth,
+                'growth_signal' => $growth_signal,
                 'position' => $position,
                 'previous_position' => $prev_pos,
                 'position_gain' => $position_gain,

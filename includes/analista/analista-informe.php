@@ -340,6 +340,12 @@ if (!function_exists('seo_analista_render_directive_details')) {
         if ($keywords) {
             echo '<div class="seo-analista-directive-block"><strong>Consultas / términos a cubrir</strong><p>' . esc_html(implode(' · ', array_slice($keywords, 0, 10))) . '</p></div>';
         }
+        $measurement = array_values(array_filter((array) ($row['measurement'] ?? array())));
+        if ($measurement) {
+            echo '<div class="seo-analista-directive-block"><strong>Cómo medir si funcionó</strong><ul>';
+            foreach (array_slice($measurement, 0, 6) as $item) echo '<li>' . esc_html((string) $item) . '</li>';
+            echo '</ul></div>';
+        }
 
         $edit_url = (string) ($entity['edit_url'] ?? '');
         $public_url = (string) ($entity['url'] ?? $target['url'] ?? '');
@@ -365,6 +371,8 @@ if (!function_exists('seo_analista_render_directive_rows')) {
             $entity = (array) ($row['entity'] ?? array());
             echo '<article class="seo-analista-plan-row"><div class="seo-analista-plan-priority"><small>#' . esc_html($index + 1) . '</small>' . wp_kses_post(seo_analista_score_badge($row['priority'] ?? 0)) . '</div><div class="seo-analista-plan-body">';
             echo '<div class="seo-analista-plan-head"><strong>' . esc_html((string) ($row['topic'] ?? '')) . '</strong><span>' . esc_html((string) ($row['action_label'] ?? '')) . '</span>';
+            if (!empty($row['work_bucket'])) echo '<em>' . esc_html(str_replace('_', ' ', (string) $row['work_bucket'])) . '</em>';
+            if (!empty($row['objective']['primary_label'])) echo '<em>Objetivo: ' . esc_html((string) $row['objective']['primary_label']) . '</em>';
             if (!empty($entity['type_label'])) echo '<em>' . esc_html((string) $entity['type_label']) . '</em>';
             echo '</div>';
             echo '<p>' . esc_html((string) ($row['reason'] ?? '')) . '</p>';
@@ -377,6 +385,12 @@ if (!function_exists('seo_analista_render_directive_rows')) {
             if (isset($row['metrics']['impressions_growth_pct']) && null !== $row['metrics']['impressions_growth_pct']) $meta[] = 'Variación: ' . sprintf('%+.0f%%', (float) $row['metrics']['impressions_growth_pct']);
             if (!empty($row['market']['growth'])) $meta[] = 'Trends: ' . sprintf('%+.0f%%', (float) $row['market']['growth']);
             if (!empty($row['market']['breakout'])) $meta[] = 'BREAKOUT';
+            if (!empty($row['objective'])) {
+                $meta[] = 'Autoridad ' . absint($row['objective']['authority'] ?? 0) . '/100';
+                $meta[] = 'Visitas ' . absint($row['objective']['traffic'] ?? 0) . '/100';
+                $meta[] = 'Ventas ' . absint($row['objective']['sales'] ?? 0) . '/100';
+            }
+            if (isset($row['confidence'])) $meta[] = 'Confianza ' . absint($row['confidence']) . '/100';
             if ($meta) echo '<div class="seo-analista-plan-meta">' . esc_html(implode(' · ', $meta)) . '</div>';
             seo_analista_render_directive_details($row);
             echo '</div></article>';
@@ -408,12 +422,22 @@ if (!function_exists('seo_analista_render_content_view')) {
 
 if (!function_exists('seo_analista_render_structure_view')) {
     function seo_analista_render_structure_view($days) {
+        $architecture = function_exists('seo_analista_architecture_advice') ? seo_analista_architecture_advice($days, 80) : array();
+        $architecture_rows = (array) ($architecture['recommendations'] ?? array());
+        $architecture_summary = (array) ($architecture['summary'] ?? array());
         $rows = function_exists('seo_analista_structure_work') ? seo_analista_structure_work($days, 140) : array();
         $counts = array('category' => 0, 'cluster' => 0, 'hub_primary' => 0, 'hub_secondary' => 0);
         foreach ($rows as $row) {
             $type = (string) ($row['entity']['type'] ?? '');
             if (isset($counts[$type])) $counts[$type]++;
         }
+        echo '<div class="seo-analista-grid">';
+        seo_analista_render_metric_card('Recomendaciones arquitectura', number_format_i18n((int) ($architecture_summary['recommendations'] ?? 0)), '', 'Solo lectura: no mueve ni crea nodos automaticamente.');
+        seo_analista_render_metric_card('Nuevos secundarios', number_format_i18n((int) ($architecture_summary['create_secondary'] ?? 0)), '', 'Familias coherentes hoy mezcladas dentro de otros hubs.');
+        seo_analista_render_metric_card('Nuevos primarios', number_format_i18n((int) ($architecture_summary['create_primary'] ?? 0)), '', 'Dominios comerciales con varias familias secundarias.');
+        seo_analista_render_metric_card('Revisiones de Cluster', number_format_i18n((int) ($architecture_summary['cluster_review'] ?? 0)), '', 'Primarios que pueden estar actuando como un Cluster.');
+        echo '</div>';
+        seo_analista_render_directive_rows($architecture_rows, 'Arquitectura comercial recomendada', 'Compara catalogo, Vocabulary, demanda y Google Product Category cuando exista. Google se usa como referencia, no como jerarquia obligatoria.', 60);
         echo '<div class="seo-analista-grid">';
         seo_analista_render_metric_card('Categorías', number_format_i18n($counts['category']), '', 'Categorías con mejora o impulso justificable.');
         seo_analista_render_metric_card('Clusters', number_format_i18n($counts['cluster']), '', 'Clusters con literatura, relaciones o demanda a revisar.');
@@ -443,25 +467,39 @@ if (!function_exists('seo_analista_render_trends_view')) {
 }
 
 if (!function_exists('seo_analista_render_plan')) {
-    function seo_analista_render_plan(array $plan, $limit = 20) {
-        seo_analista_render_directive_rows(
-            $plan,
-            'Guion de trabajo',
-            'Ordenado por prioridad. No se limita a decir qué tema mirar: indica qué entidad trabajar, por qué y qué cambios concretos aplicar.',
-            $limit
+    function seo_analista_render_plan(array $plan, $limit = 30) {
+        $groups = array(
+            'HACER_AHORA' => array('title'=>'Hacer ahora','description'=>'Los trabajos con mejor combinación de impacto, cercanía al resultado y confianza. Máximo 10.'),
+            'HACER_DESPUES' => array('title'=>'Hacer después','description'=>'Oportunidades válidas, pero con menor retorno inmediato o menor evidencia.'),
+            'VIGILAR' => array('title'=>'Vigilar','description'=>'Señales que deben madurar antes de invertir trabajo editorial o estructural.'),
+            'SIN_ACCION' => array('title'=>'Sin acción por ahora','description'=>'No existe evidencia suficiente para dedicar recursos ahora.'),
         );
+        $bucketed = array();
+        foreach ($plan as $row) {
+            $bucket = (string) ($row['work_bucket'] ?? 'HACER_DESPUES');
+            if (!isset($groups[$bucket])) $bucket = 'HACER_DESPUES';
+            $bucketed[$bucket][] = $row;
+        }
+        $remaining = max(1, absint($limit));
+        foreach ($groups as $bucket => $meta) {
+            if (empty($bucketed[$bucket]) || $remaining <= 0) continue;
+            $rows = $bucketed[$bucket];
+            $take = min($remaining, $bucket === 'HACER_AHORA' ? 10 : count($rows));
+            seo_analista_render_directive_rows($rows, $meta['title'], $meta['description'], $take);
+            $remaining -= $take;
+        }
     }
 }
 
 if (!function_exists('seo_analista_render_roadmap')) {
     function seo_analista_render_roadmap(array $plan, array $summary, array $suppliers, array $search) {
         echo '<div class="seo-analista-grid">';
-        seo_analista_render_metric_card('Prioridades altas', number_format_i18n((int) ($summary['high'] ?? 0)), '', 'Acciones con prioridad 75 o superior.');
-        seo_analista_render_metric_card('Estructura', number_format_i18n((int) ($summary['estructura'] ?? 0)), '', 'Categorías, hubs y clusters.');
-        seo_analista_render_metric_card('SEO / cobertura', number_format_i18n((int) ($summary['seo'] ?? 0)), '', 'Intenciones aún sin destino suficientemente claro.');
-        seo_analista_render_metric_card('Catálogo', number_format_i18n((int) ($summary['catalogo'] ?? 0)), '', 'Surtido y huecos de producto.');
-        seo_analista_render_metric_card('Contenido', number_format_i18n((int) ($summary['contenido'] ?? 0)), '', 'Posts, páginas y productos: mejorar, impulsar o crear.');
-        seo_analista_render_metric_card('Competencia', number_format_i18n((int) ($summary['competencia'] ?? 0)), '', 'Acciones reforzadas por datos competitivos.');
+        seo_analista_render_metric_card('Hacer ahora', number_format_i18n((int) ($summary['hacer_ahora'] ?? $summary['high'] ?? 0)), '', 'Máximo 10 trabajos con mejor retorno esperado.');
+        seo_analista_render_metric_card('Hacer después', number_format_i18n((int) ($summary['hacer_despues'] ?? 0)), '', 'Oportunidades válidas de segunda prioridad.');
+        seo_analista_render_metric_card('Vigilar', number_format_i18n((int) ($summary['vigilar'] ?? 0)), '', 'Señales que aún necesitan más evidencia.');
+        seo_analista_render_metric_card('Objetivo autoridad', number_format_i18n((int) ($summary['authority'] ?? 0)), '', 'Trabajos cuyo objetivo principal es ganar autoridad.');
+        seo_analista_render_metric_card('Objetivo visitas', number_format_i18n((int) ($summary['traffic'] ?? 0)), '', 'Trabajos cuyo objetivo principal es ganar tráfico orgánico.');
+        seo_analista_render_metric_card('Objetivo ventas', number_format_i18n((int) ($summary['sales'] ?? 0)), '', 'Trabajos cuyo objetivo principal es mejorar demanda comercial.');
         seo_analista_render_metric_card('Proveedores con aviso', number_format_i18n(count((array) ($suppliers['issues'] ?? array()))), '', 'Problemas de feed que pueden afectar al catálogo.');
         echo '</div>';
         seo_analista_render_plan($plan, 30);
@@ -478,14 +516,16 @@ if (!function_exists('seo_analista_render_roadmap')) {
 
 if (!function_exists('seo_analista_render_sources')) {
     function seo_analista_render_sources(array $health, array $competition, array $suppliers) {
-        echo '<details class="seo-analista-sources"><summary><strong>Fuentes y calidad de datos</strong> · abrir solo si necesitas diagnosticar</summary><div class="seo-analista-source-grid">';
-        foreach ($health as $row) {
+        echo '<details class="seo-analista-sources"><summary><strong>Fuentes y calidad de datos</strong> · una fuente pendiente pesa 0 en la prioridad</summary><div class="seo-analista-source-grid">';
+        foreach ($health as $key => $row) {
             $state = (string) ($row['state'] ?? 'pending');
-            echo '<div class="seo-analista-source ' . esc_attr($state) . '"><strong>' . esc_html((string) ($row['label'] ?? 'Fuente')) . '</strong><span>' . esc_html(strtoupper($state)) . '</span><p>' . esc_html((string) ($row['detail'] ?? '')) . '</p></div>';
+            $weight = isset($row['weight']) ? ' · peso ' . number_format_i18n((float) $row['weight'], 2) : '';
+            echo '<div class="seo-analista-source ' . esc_attr($state) . '"><strong>' . esc_html((string) ($row['label'] ?? 'Fuente')) . '</strong><span>' . esc_html(strtoupper($state)) . '</span><p>' . esc_html((string) ($row['detail'] ?? '') . $weight) . '</p></div>';
         }
-        echo '<div class="seo-analista-source ' . (!empty($competition['available']) ? 'ok' : 'pending') . '"><strong>Competencia</strong><span>' . (!empty($competition['available']) ? 'OK' : 'PENDIENTE') . '</span><p>' . esc_html(!empty($competition['available']) ? number_format_i18n((int) ($competition['row_count'] ?? 0)) . ' posiciones externas disponibles.' : 'Sin posiciones externas disponibles.') . '</p></div>';
-        echo '<div class="seo-analista-source ' . (!empty($suppliers['available']) ? 'ok' : 'pending') . '"><strong>Proveedores</strong><span>' . (!empty($suppliers['available']) ? 'OK' : 'PENDIENTE') . '</span><p>' . esc_html(!empty($suppliers['available']) ? number_format_i18n((int) ($suppliers['providers'] ?? 0)) . ' proveedores en la base local.' : 'Fuente no disponible.') . '</p></div>';
+        if (!isset($health['competition'])) echo '<div class="seo-analista-source ' . (!empty($competition['available']) ? 'ok' : 'pending') . '"><strong>Competencia</strong><span>' . (!empty($competition['available']) ? 'OK' : 'PENDIENTE') . '</span><p>' . esc_html(!empty($competition['available']) ? number_format_i18n((int) ($competition['row_count'] ?? 0)) . ' posiciones externas disponibles.' : 'Sin posiciones externas disponibles.') . '</p></div>';
+        if (!isset($health['suppliers'])) echo '<div class="seo-analista-source ' . (!empty($suppliers['available']) ? 'ok' : 'pending') . '"><strong>Proveedores</strong><span>' . (!empty($suppliers['available']) ? 'OK' : 'PENDIENTE') . '</span><p>' . esc_html(!empty($suppliers['available']) ? number_format_i18n((int) ($suppliers['providers'] ?? 0)) . ' proveedores en la base local.' : 'Fuente no disponible.') . '</p></div>';
         echo '</div></details>';
+        if (function_exists('seo_analista_render_bing_settings_form')) seo_analista_render_bing_settings_form();
     }
 }
 

@@ -15,7 +15,6 @@
             discovery: root.querySelector('[data-dependiente-discovery]'),
             actions: root.querySelector('[data-dependiente-actions]'),
             tools: root.querySelector('[data-dependiente-tools]'),
-            paths: root.querySelectorAll('[data-dependiente-mode]'),
             workspace: root.querySelector('[data-dependiente-workspace]'),
             filters: root.querySelector('[data-dependiente-filters]'),
             related: root.querySelector('[data-dependiente-related]'),
@@ -26,31 +25,46 @@
             status: root.querySelector('[data-dependiente-status]'),
             results: root.querySelector('[data-dependiente-results]'),
             pagination: root.querySelector('[data-dependiente-pagination]'),
+            amazon: root.querySelector('[data-dependiente-amazon]'),
+            feedback: root.querySelector('[data-dependiente-feedback]'),
             compareTray: root.querySelector('[data-dependiente-compare-tray]'),
             compareCount: root.querySelector('[data-dependiente-compare-count]'),
             compareClear: root.querySelector('[data-dependiente-compare-clear]'),
             compareOpen: root.querySelector('[data-dependiente-compare-open]'),
             dialog: root.querySelector('[data-dependiente-dialog]'),
             dialogClose: root.querySelector('[data-dependiente-dialog-close]'),
-            compareContent: root.querySelector('[data-dependiente-compare-content]')
+            compareContent: root.querySelector('[data-dependiente-compare-content]'),
+            help: root.querySelector('[data-dependiente-help]'),
+            helpToggle: root.querySelector('[data-dependiente-help-toggle]'),
+            helpPanel: root.querySelector('[data-dependiente-help-panel]'),
+            helpForm: root.querySelector('[data-dependiente-help-form]'),
+            helpStatus: root.querySelector('[data-dependiente-help-status]'),
+            helpTitle: root.querySelector('[data-dependiente-help-title]'),
+            helpText: root.querySelector('[data-dependiente-help-text]')
         };
 
         const state = {
             q: '',
             contextLabel: '',
             mode: 'need',
+            modeSource: 'default',
             page: 1,
             perPage: Number(config.resultsPerPage || 18),
             orderby: 'relevance',
             filters: emptyFilters(),
             facets: null,
+            interpreterDebug: null,
             bootstrap: null,
             loading: false,
             searchId: '',
             semanticHint: null,
+            semanticHints: [],
             clarification: null,
             clarificationTimer: null,
+            feedbackTimer: null,
             hasResultInteraction: false,
+            helpSubmitting: false,
+            amazonRequestId: 0,
             compare: loadCompareIds()
         };
 
@@ -59,7 +73,13 @@
         loadBootstrap();
         renderCompareTray();
 
-        const initialQuery = new URLSearchParams(window.location.search).get('dep_q');
+        function assistantAvatarHtml(extraClass) {
+            const classes = 'seo-dependiente__assistant-avatar' + (extraClass ? ' ' + extraClass : '');
+            return '<span class="' + classes + '" aria-hidden="true"><span>👤</span></span>';
+        }
+
+        const initialParams = new URLSearchParams(window.location.search);
+        const initialQuery = initialParams.get('dep_q');
         if (initialQuery) {
             elements.query.value = initialQuery;
             state.q = initialQuery;
@@ -86,20 +106,25 @@
 
             elements.form.addEventListener('submit', function (event) {
                 event.preventDefault();
-                state.q = elements.query.value.trim();
+                const nextQuery = elements.query.value.trim();
+                // Una busqueda escrita despues de entrar por una tarjeta visual
+                // inicia una necesidad nueva. Evita arrastrar, por ejemplo, el
+                // filtro/plataforma Milwaukee a "se me ha roto un grifo". El rol
+                // seleccionado en el buscador se conserva porque forma parte de la
+                // nueva consulta escrita.
+                if (nextQuery && (state.modeSource === 'menu' || state.modeSource === 'refine')) {
+                    state.filters = emptyFilters();
+                    state.orderby = 'relevance';
+                    if (elements.sort) elements.sort.value = 'relevance';
+                    setMode('need', 'default');
+                }
+
+                state.q = nextQuery;
                 state.contextLabel = '';
                 state.semanticHint = null;
+                state.semanticHints = [];
                 state.page = 1;
                 search(true);
-            });
-
-            elements.paths.forEach(function (button) {
-                button.addEventListener('click', function () {
-                    setMode(button.dataset.dependienteMode || 'need');
-                    if (elements.query) {
-                        elements.query.focus({ preventScroll: true });
-                    }
-                });
             });
 
             elements.sort.addEventListener('change', function () {
@@ -118,6 +143,7 @@
                 if (!form) return;
                 event.preventDefault();
                 readFiltersFromForm(form);
+                state.modeSource = 'filter';
                 state.page = 1;
                 search(false);
                 if (window.innerWidth <= 860) {
@@ -153,6 +179,13 @@
             });
 
             elements.results.addEventListener('click', function (event) {
+                const helpOpen = event.target.closest('[data-dependiente-help-open]');
+                if (helpOpen) {
+                    event.preventDefault();
+                    openHelp(true);
+                    return;
+                }
+
                 const reset = event.target.closest('[data-dependiente-zero-reset]');
                 if (reset) {
                     event.preventDefault();
@@ -168,14 +201,19 @@
                     event.preventDefault();
                     let filter = {};
                     try { filter = JSON.parse(alternative.dataset.dependienteZeroFilter || '{}'); } catch (error) { filter = {}; }
-                    state.filters = emptyFilters();
+                    confirmCatalogAlternative(alternative, filter);
+                    return;
+                }
+
+                const discoveryFilter = event.target.closest('[data-dependiente-discovery-filter]');
+                if (discoveryFilter) {
+                    event.preventDefault();
+                    let filter = {};
+                    try { filter = JSON.parse(discoveryFilter.dataset.dependienteDiscoveryFilter || '{}'); } catch (error) { filter = {}; }
                     applyCardFilter(filter);
-                    state.q = '';
-                    state.contextLabel = alternative.dataset.dependienteZeroLabel || '';
-                    elements.query.value = '';
+                    state.contextLabel = discoveryFilter.dataset.dependienteDiscoveryLabel || state.contextLabel || '';
                     state.page = 1;
-                    setMode(alternative.dataset.dependienteZeroMode || 'need');
-                    search(true);
+                    search(false);
                     return;
                 }
 
@@ -223,6 +261,27 @@
                 }
                 handleClarificationOther(form, value);
             });
+
+            if (elements.helpToggle) {
+                elements.helpToggle.addEventListener('click', function () {
+                    if (!elements.helpPanel) return;
+                    if (elements.helpPanel.hidden) openHelp(true);
+                    else closeHelp();
+                });
+            }
+
+            if (elements.helpForm) {
+                elements.helpForm.addEventListener('submit', submitHelpRequest);
+            }
+
+            if (elements.feedback) {
+                elements.feedback.addEventListener('click', function (event) {
+                    const button = event.target.closest('[data-dependiente-feedback-value]');
+                    if (!button) return;
+                    event.preventDefault();
+                    submitHelpfulFeedback(Number(button.dataset.dependienteFeedbackValue || 0));
+                });
+            }
 
             elements.compareClear.addEventListener('click', function () {
                 state.compare.clear();
@@ -274,6 +333,7 @@
                     state.q = value;
                     state.contextLabel = '';
                     state.semanticHint = null;
+                    state.semanticHints = [];
                     state.page = 1;
                     search(true);
                 });
@@ -299,13 +359,15 @@
                     let filter = {};
                     try { filter = JSON.parse(button.dataset.cardFilter || '{}'); } catch (error) { filter = {}; }
                     state.filters = emptyFilters();
+                    setSolutionRole('');
                     applyCardFilter(filter);
                     state.contextLabel = cards[index] ? cards[index].label : '';
                     state.q = '';
                     state.semanticHint = null;
+                    state.semanticHints = [];
                     elements.query.value = '';
                     state.page = 1;
-                    setMode(mode);
+                    setMode(mode, 'menu');
                     search(true);
                 });
             });
@@ -316,28 +378,24 @@
             if (!slug) return;
             if (filter.type === 'categories') state.filters.categories = [slug];
             if (filter.type === 'tags') state.filters.tags = [slug];
+            if (filter.type === 'brands') state.filters.brands = [slug];
             if (filter.type === 'vocabulary' && filter.group) state.filters.vocabulary[filter.group] = [slug];
             if (filter.type === 'attributes' && filter.group) state.filters.attributes[filter.group] = [slug];
         }
 
-        function setMode(mode) {
+        function setMode(mode, source) {
+            // Los antiguos modos siguen existiendo internamente para la navegación
+            // visual secundaria, pero el buscador principal queda en texto libre.
             state.mode = mode;
-            elements.paths.forEach(function (button) {
-                button.classList.toggle('is-active', button.dataset.dependienteMode === mode);
-            });
-
-            const placeholders = config.modePlaceholders || {};
-            const buttons = config.modeButtons || {};
-            elements.query.placeholder = placeholders[mode] || placeholders.need || 'Cuéntame qué necesitas';
-            if (elements.submit) {
-                elements.submit.textContent = buttons[mode] || buttons.need || 'Buscar';
-            }
+            if (source) state.modeSource = source;
         }
 
         async function search(resetScroll) {
             if (state.loading) return;
             clearClarificationTimer();
             removeClarification();
+            clearFeedbackTimer();
+            clearFeedbackPrompt();
             state.hasResultInteraction = false;
             state.loading = true;
             elements.workspace.hidden = false;
@@ -345,6 +403,8 @@
                 elements.related.hidden = true;
                 elements.related.innerHTML = '';
             }
+            state.amazonRequestId += 1;
+            clearAmazon();
             elements.status.textContent = config.labels && config.labels.loading ? config.labels.loading : 'Revisando el catálogo…';
             elements.results.innerHTML = Array.from({ length: 6 }).map(function () {
                 return '<div class="seo-dependiente__skeleton" aria-hidden="true"></div>';
@@ -364,32 +424,204 @@
                         per_page: state.perPage,
                         orderby: state.orderby,
                         filters: state.filters,
-                        semantic_hint: state.semanticHint || null
+                        semantic_hint: state.semanticHint || null,
+                        semantic_hints: Array.isArray(state.semanticHints) ? state.semanticHints : []
                     }
                 });
                 state.facets = data.facets || null;
+                state.interpreterDebug = data.interpreter_debug || null;
                 state.searchId = String(data.search_id || '');
+                if (Array.isArray(data.semantic_hints)) {
+                    state.semanticHints = data.semantic_hints.slice(0, 2);
+                    state.semanticHint = state.semanticHints.length ? state.semanticHints[state.semanticHints.length - 1] : null;
+                }
+                updateHelpPrompt(data);
                 renderSummary(data);
                 renderFilters(data.facets || {});
                 renderActiveFilters();
                 renderResults(data.results || [], data);
                 renderRelated(data.related || [], Number(data.total || 0));
-                renderPagination(data.page || 1, data.pages || 0);
+                renderPagination(data.page || 1, data.pages || 0, (data.results || []).length);
+                loadAmazonFallback(data.external_fallback || null);
                 state.clarification = data.clarification || null;
                 scheduleClarification(state.clarification);
+                scheduleFeedbackPrompt(data, state.clarification);
                 elements.status.textContent = data.truncated ? 'He encontrado muchas coincidencias. Añade una medida, marca, compatibilidad o uso para afinar mejor.' : '';
                 updateUrl();
             } catch (error) {
+                updateHelpPrompt({ error: true, total: 0, search_strategy: 'index_unavailable' });
                 elements.summary.innerHTML = '<strong>No he podido terminar la búsqueda.</strong>';
                 elements.status.textContent = error.message || (config.labels && config.labels.error) || 'Ha ocurrido un error.';
-                elements.results.innerHTML = '<div class="seo-dependiente__empty"><strong>Prueba de nuevo</strong><span>Comprueba la conexión o simplifica la consulta.</span></div>';
+                elements.results.innerHTML = '<div class="seo-dependiente__empty"><strong>Prueba de nuevo</strong><span>Comprueba la conexión o simplifica la consulta.</span><div class="seo-dependiente__empty-help"><button type="button" class="seo-dependiente__empty-action" data-dependiente-help-open>Pedir ayuda con esta búsqueda</button><small>Podemos revisar el recorrido que has hecho y responderte por correo.</small></div></div>';
                 if (elements.related) {
                     elements.related.hidden = true;
                     elements.related.innerHTML = '';
                 }
+                clearAmazon();
+                clearFeedbackPrompt();
             } finally {
                 state.loading = false;
                 syncCompareButtons();
+            }
+        }
+
+        function clearFeedbackTimer() {
+            if (state.feedbackTimer) {
+                window.clearTimeout(state.feedbackTimer);
+                state.feedbackTimer = null;
+            }
+        }
+
+        function clearFeedbackPrompt() {
+            if (!elements.feedback) return;
+            elements.feedback.hidden = true;
+            elements.feedback.innerHTML = '';
+        }
+
+        function scheduleFeedbackPrompt(data, clarification) {
+            clearFeedbackTimer();
+            clearFeedbackPrompt();
+            if (!elements.feedback || !state.searchId) return;
+
+            // Si antes necesitamos desambiguar, esa pregunta tiene prioridad.
+            // Tras responderla se hace una nueva busqueda y entonces pedimos valoracion.
+            if (clarification && clarification.should_ask && Array.isArray(clarification.options) && clarification.options.length >= 2) {
+                return;
+            }
+
+            const searchId = state.searchId;
+            state.feedbackTimer = window.setTimeout(function () {
+                state.feedbackTimer = null;
+                if (!state.searchId || state.searchId !== searchId || state.loading) return;
+                renderFeedbackPrompt();
+            }, 4500);
+        }
+
+        function renderFeedbackPrompt() {
+            if (!elements.feedback || !state.searchId) return;
+            elements.feedback.hidden = false;
+            elements.feedback.innerHTML = assistantAvatarHtml('seo-dependiente__assistant-avatar--message') +
+                '<div class="seo-dependiente__feedback-copy"><strong>¿Te ha servido esta respuesta?</strong><span>Tu valoración nos ayuda a mejorar qué entiende el Dependiente y cuándo debe buscar alternativas.</span></div>' +
+                '<div class="seo-dependiente__feedback-actions">' +
+                '<button type="button" data-dependiente-feedback-value="1">Sí</button>' +
+                '<button type="button" data-dependiente-feedback-value="-1">No</button>' +
+                '</div>';
+        }
+
+        function submitHelpfulFeedback(value) {
+            if (!elements.feedback || !state.searchId || !value) return;
+            clearFeedbackTimer();
+            sendFeedbackEvent({
+                search_id: state.searchId,
+                event: 'helpful',
+                value: value > 0 ? 1 : -1
+            });
+            elements.feedback.hidden = false;
+            elements.feedback.innerHTML = assistantAvatarHtml('seo-dependiente__assistant-avatar--message') + '<div class="seo-dependiente__feedback-thanks"><strong>Gracias.</strong><span>He guardado tu valoración para mejorar las próximas búsquedas.</span></div>';
+        }
+
+        function updateHelpPrompt(data) {
+            if (!elements.help) return;
+            const strategy = String((data && data.search_strategy) || '');
+            const weakStrategies = ['broad_fallback', 'catalog_fallback', 'index_unavailable'];
+            const total = Number(data && data.total !== undefined ? data.total : -1);
+            const prominent = Boolean(data && data.error) || total === 0 || weakStrategies.indexOf(strategy) !== -1;
+
+            elements.help.classList.toggle('is-prominent', prominent);
+            if (elements.helpTitle) {
+                elements.helpTitle.textContent = prominent
+                    ? '¿No hemos encontrado lo que necesitas?'
+                    : '¿No encuentras lo que buscas?';
+            }
+            if (elements.helpText) {
+                elements.helpText.textContent = prominent
+                    ? 'Pídenos ayuda. Revisaremos esta búsqueda con su recorrido completo y te responderemos por correo.'
+                    : 'Podemos revisar tu búsqueda con todo el contexto y responderte por correo.';
+            }
+        }
+
+        function openHelp(focusEmail) {
+            if (!elements.helpPanel || !elements.helpToggle) return;
+            elements.helpPanel.hidden = false;
+            elements.helpToggle.setAttribute('aria-expanded', 'true');
+            elements.helpToggle.textContent = 'Cerrar';
+            if (elements.help) elements.help.classList.add('is-open');
+            if (focusEmail && elements.helpForm) {
+                const email = elements.helpForm.querySelector('input[name="help_email"]');
+                window.setTimeout(function () {
+                    if (email) email.focus({ preventScroll: true });
+                    if (elements.help && typeof elements.help.scrollIntoView === 'function') {
+                        elements.help.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                }, 40);
+            }
+        }
+
+        function closeHelp() {
+            if (!elements.helpPanel || !elements.helpToggle) return;
+            elements.helpPanel.hidden = true;
+            elements.helpToggle.setAttribute('aria-expanded', 'false');
+            elements.helpToggle.textContent = 'Pedir ayuda';
+            if (elements.help) elements.help.classList.remove('is-open');
+        }
+
+        async function submitHelpRequest(event) {
+            event.preventDefault();
+            if (!elements.helpForm || state.helpSubmitting) return;
+
+            const emailInput = elements.helpForm.querySelector('input[name="help_email"]');
+            const noteInput = elements.helpForm.querySelector('textarea[name="help_note"]');
+            const websiteInput = elements.helpForm.querySelector('input[name="website"]');
+            const submitButton = elements.helpForm.querySelector('[data-dependiente-help-submit]');
+
+            if (!emailInput || !emailInput.value.trim()) {
+                if (emailInput && typeof emailInput.reportValidity === 'function') emailInput.reportValidity();
+                return;
+            }
+            if (typeof elements.helpForm.reportValidity === 'function' && !elements.helpForm.reportValidity()) return;
+
+            state.helpSubmitting = true;
+            if (submitButton) submitButton.disabled = true;
+            if (elements.helpStatus) {
+                elements.helpStatus.classList.remove('is-success', 'is-error');
+                elements.helpStatus.textContent = 'Enviando la consulta con el contexto de esta búsqueda…';
+            }
+
+            try {
+                const data = await api('help-request', {
+                    method: 'POST',
+                    body: {
+                        search_id: state.searchId || '',
+                        email: emailInput.value.trim(),
+                        note: noteInput ? noteInput.value.trim() : '',
+                        query: state.q || (elements.query ? elements.query.value.trim() : ''),
+                        mode: state.mode,
+                        context_label: state.contextLabel || '',
+                        page_url: window.location.href,
+                        filters: state.filters || emptyFilters(),
+                        semantic_hint: state.semanticHint || null,
+                        semantic_hints: Array.isArray(state.semanticHints) ? state.semanticHints : [],
+                        orderby: state.orderby || 'relevance',
+                        compare_ids: Array.from(state.compare || []),
+                        website: websiteInput ? websiteInput.value : ''
+                    }
+                });
+                if (elements.helpStatus) {
+                    elements.helpStatus.classList.add('is-success');
+                    elements.helpStatus.textContent = data && data.message
+                        ? data.message
+                        : 'Solicitud enviada. Te responderemos por correo.';
+                }
+                if (elements.help) elements.help.classList.add('is-sent');
+                if (noteInput) noteInput.value = '';
+            } catch (error) {
+                if (elements.helpStatus) {
+                    elements.helpStatus.classList.add('is-error');
+                    elements.helpStatus.textContent = error.message || 'No he podido enviar la solicitud. Inténtalo de nuevo.';
+                }
+            } finally {
+                state.helpSubmitting = false;
+                if (submitButton) submitButton.disabled = false;
             }
         }
 
@@ -422,8 +654,13 @@
 
         function renderClarification(clarification) {
             if (!state.searchId || elements.results.querySelector('[data-dependiente-clarification]')) return;
+            const step = Math.max(1, Number(clarification.step || (state.semanticHints.length + 1) || 1));
+            const maxSteps = Math.max(step, Number(clarification.max_steps || 2));
+            const reduction = Math.max(0, Number(clarification.estimated_reduction || 0));
             const options = (clarification.options || []).map(function (option) {
-                return '<button type="button" class="seo-dependiente__empty-action" data-dependiente-clarify' +
+                const count = Number(option.count || 0);
+                const countText = count > 0 ? '<small>' + numberFormat(count) + ' opciones</small>' : '';
+                return '<button type="button" class="seo-dependiente__clarification-option" data-dependiente-clarify' +
                     ' data-role="' + escapeAttr(option.role || clarification.role || 'term') + '"' +
                     ' data-value="' + escapeAttr(option.value || '') + '"' +
                     ' data-label="' + escapeAttr(option.label || option.value || '') + '"' +
@@ -431,14 +668,23 @@
                     ' data-source-group="' + escapeAttr(option.source_group || '') + '"' +
                     ' data-source-slug="' + escapeAttr(option.source_slug || '') + '"' +
                     ' data-filter="' + escapeAttr(JSON.stringify(option.filter || {})) + '">' +
-                    escapeHtml(option.label || option.value || '') + '</button>';
+                    '<span>' + escapeHtml(option.label || option.value || '') + '</span>' + countText + '</button>';
             }).join('');
 
-            const html = '<section class="seo-dependiente__empty-actions seo-dependiente__clarification" data-dependiente-clarification>' +
+            const reductionText = reduction >= 20
+                ? '<span class="seo-dependiente__clarification-impact">Esta respuesta puede descartar aprox. ' + escapeHtml(String(reduction)) + '% de opciones.</span>'
+                : '<span class="seo-dependiente__clarification-impact">Con esta respuesta puedo orientar mejor la búsqueda.</span>';
+            const html = '<section class="seo-dependiente__clarification" data-dependiente-clarification role="region" aria-live="polite" aria-label="Pregunta del Intérprete">' +
+                assistantAvatarHtml('seo-dependiente__assistant-avatar--message') +
+                '<div class="seo-dependiente__assistant-message">' +
+                '<div class="seo-dependiente__clarification-head"><span>Antes de afinar los productos</span><small>Pregunta ' + step + ' de hasta ' + maxSteps + '</small></div>' +
                 '<strong>' + escapeHtml(clarification.question || '¿Puedes concretar un poco más?') + '</strong>' +
-                '<div>' + options + '<button type="button" class="seo-dependiente__empty-action" data-dependiente-clarify-other>Otro</button></div>' +
+                '<p>Elige una opción. Añadiré esa información a la consulta limpia que recibe el Dependiente.</p>' +
+                '<div class="seo-dependiente__clarification-options">' + options +
+                '<button type="button" class="seo-dependiente__clarification-option is-other" data-dependiente-clarify-other><span>Otro</span><small>Escribir solo si ninguna encaja</small></button></div>' +
+                reductionText +
                 '<div data-dependiente-clarify-other-slot></div>' +
-                '</section>';
+                '</div></section>';
             elements.results.insertAdjacentHTML('afterbegin', html);
             trackClarificationShown(clarification);
         }
@@ -482,6 +728,78 @@
             }, {}, true);
         }
 
+        function rememberSemanticHint(hint) {
+            if (!hint || !hint.value) return;
+            const cleanHint = {
+                role: hint.role || 'term',
+                value: hint.value || '',
+                label: hint.label || hint.value || '',
+                source: hint.source || 'clarification',
+                source_group: hint.source_group || '',
+                source_slug: hint.source_slug || ''
+            };
+            state.semanticHint = cleanHint;
+            const key = [cleanHint.role || '', cleanHint.value || '', cleanHint.source_group || ''].join('|');
+            state.semanticHints = (Array.isArray(state.semanticHints) ? state.semanticHints : []).filter(function (known) {
+                return [known.role || '', known.value || '', known.source_group || ''].join('|') !== key;
+            });
+            state.semanticHints.push(cleanHint);
+            // La conversación está limitada a dos aclaraciones. Conservamos ambas
+            // confirmaciones para que la segunda nunca borre la primera.
+            state.semanticHints = state.semanticHints.slice(-2);
+        }
+
+        function confirmCatalogAlternative(button, filter) {
+            const originalSearchId = state.searchId;
+            const label = button.dataset.dependienteZeroLabel || button.textContent || '';
+            const value = button.dataset.dependienteZeroValue || (filter && filter.slug) || '';
+            const role = button.dataset.dependienteZeroRole || 'object';
+            const sourceGroup = button.dataset.dependienteZeroGroup || (filter && filter.group) || ((filter && filter.type === 'categories') ? 'category' : (filter && filter.type) || '');
+            const sourceSlug = button.dataset.dependienteZeroSlug || (filter && filter.slug) || '';
+
+            state.hasResultInteraction = true;
+            clearClarificationTimer();
+
+            // Una alternativa sugerida por el catálogo es una precisión de la
+            // conversación, no una búsqueda nueva. Conservamos q, filtros previos y
+            // respuestas confirmadas; solo añadimos/reemplazamos el eje elegido.
+            if (filter && filter.slug) {
+                applyCardFilter(filter);
+            }
+            if (value) {
+                rememberSemanticHint({
+                    role: role,
+                    value: value,
+                    label: label,
+                    source: button.dataset.dependienteZeroSource || 'catalog_alternative',
+                    source_group: sourceGroup,
+                    source_slug: sourceSlug
+                });
+            }
+            if (label) {
+                state.contextLabel = state.contextLabel ? state.contextLabel + ' · ' + label : label;
+            }
+            state.page = 1;
+            setMode(button.dataset.dependienteZeroMode || state.mode || 'need', 'refine');
+
+            if (originalSearchId && value) {
+                sendFeedbackEvent({
+                    search_id: originalSearchId,
+                    event: 'clarify',
+                    role: role,
+                    choice_value: value,
+                    label: label,
+                    source: button.dataset.dependienteZeroSource || 'catalog_alternative',
+                    source_group: sourceGroup,
+                    source_slug: sourceSlug,
+                    clarification_step: Math.min(2, Math.max(1, state.semanticHints.length)),
+                    clarification_axis: sourceGroup,
+                    is_other: 0
+                });
+            }
+            search(false);
+        }
+
         function confirmClarification(option, filter, isOther) {
             const originalSearchId = state.searchId;
             if (!originalSearchId) return;
@@ -489,20 +807,18 @@
             clearClarificationTimer();
             sendClarificationFeedback(originalSearchId, option, Boolean(isOther));
 
-            // Las opciones basadas en el vocabulario real pueden convertirse
-            // directamente en un filtro del catalogo. La intencion confirmada se
-            // envia como pista semantica sin modificar el texto que escribio el cliente.
-            if (filter && filter.slug) {
-                applyCardFilter(filter);
-            }
-            state.semanticHint = {
+            // Una respuesta del Intérprete mejora el lenguaje de la consulta.
+            // No abre categorías ni aplica filtros duros: el Dependiente decide
+            // después cómo resolver esas palabras dentro de su catálogo.
+            rememberSemanticHint({
                 role: option.role,
                 value: option.value,
                 label: option.label,
                 source: option.source,
                 source_group: option.source_group || '',
                 source_slug: option.source_slug || ''
-            };
+            });
+            setMode(state.mode || 'need', 'refine');
             state.page = 1;
             removeClarification();
             search(false);
@@ -514,7 +830,10 @@
                 search_id: state.searchId,
                 event: 'clarification_shown',
                 question: clarification.question || '',
-                options: clarification.options || []
+                options: clarification.options || [],
+                clarification_step: Number(clarification.step || 1),
+                clarification_axis: clarification.axis || '',
+                clarification_strategy: clarification.strategy || ''
             });
         }
 
@@ -528,6 +847,8 @@
                 source: option.source || 'closed_option',
                 source_group: option.source_group || '',
                 source_slug: option.source_slug || '',
+                clarification_step: Number((state.clarification && state.clarification.step) || 1),
+                clarification_axis: (state.clarification && state.clarification.axis) || '',
                 is_other: isOther ? 1 : 0
             });
         }
@@ -559,13 +880,14 @@
 
         function renderSummary(data) {
             const total = Number(data.total || 0);
+            const interpreterLine = '';
             let subject = state.q ? 'para “' + escapeHtml(state.q) + '”' : (state.contextLabel ? 'para ' + escapeHtml(state.contextLabel) : 'con los criterios elegidos');
             if (!total) {
-                elements.summary.innerHTML = '<span><strong>No encuentro una coincidencia clara</strong> ' + subject + '.</span>';
+                elements.summary.innerHTML = '<span class="seo-dependiente__summary-copy"><span><strong>Estoy ampliando la búsqueda</strong> ' + subject + '. Puedes añadir un detalle para afinarla.</span>' + interpreterLine + '</span>';
                 return;
             }
             const noun = total === 1 ? 'opción' : 'opciones';
-            elements.summary.innerHTML = '<span><strong>He encontrado ' + numberFormat(total) + ' ' + noun + '</strong> ' + subject + '. Te muestro primero las que mejor encajan.</span>';
+            elements.summary.innerHTML = '<span class="seo-dependiente__summary-copy"><span><strong>He encontrado ' + numberFormat(total) + ' ' + noun + '</strong> ' + subject + '. Te muestro primero las que mejor encajan.</span>' + interpreterLine + '</span>';
         }
 
         function renderFilters(facets) {
@@ -579,6 +901,7 @@
             groups.push(renderFacetGroup('Tipo de producto', 'vocabulary', 'tipo', vocabulary.tipo || [], false));
             groups.push(renderFacetGroup('Subtipo', 'vocabulary', 'subtipo', vocabulary.subtipo || [], false));
             groups.push(renderFacetGroup('Etiquetas', 'tags', '', facets.tags || [], false));
+            groups.push(renderInterpreterDebug(state.interpreterDebug));
 
             (facets.attributes || []).forEach(function (attribute, index) {
                 groups.push(renderFacetGroup(attribute.label, 'attributes', attribute.key, attribute.values || [], index < 3));
@@ -596,6 +919,109 @@
                 groups.filter(Boolean).join('') +
                 '<button type="submit" class="seo-dependiente__filter-apply">Aplicar filtros</button>' +
                 '</form>';
+        }
+
+        function renderInterpreterDebug(debug) {
+            if (!debug || !debug.enabled) return '';
+            const removed = Array.isArray(debug.removed_tokens) ? debug.removed_tokens.filter(Boolean) : [];
+            const transformations = Array.isArray(debug.transformations) ? debug.transformations.filter(Boolean) : [];
+            const assist = Array.isArray(debug.assist_terms) ? debug.assist_terms.filter(Boolean) : [];
+            const structured = debug.structured && typeof debug.structured === 'object' ? debug.structured : {};
+            const actions = Array.isArray(structured.actions) ? structured.actions : [];
+            const related = Array.isArray(structured.related_concepts) ? structured.related_concepts : [];
+            const context = Array.isArray(structured.context) ? structured.context.filter(Boolean) : [];
+            const groups = structured.semantic_groups && typeof structured.semantic_groups === 'object' ? structured.semantic_groups : {};
+            const confidence = Math.round(Number(debug.confidence || 0) * 100);
+
+            const actionText = actions.length ? actions.map(function (item) {
+                const canonical = item && item.canonical_action ? String(item.canonical_action) : '';
+                const relatedTerm = item && item.related_concept ? String(item.related_concept) : '';
+                const surface = item && item.surface ? String(item.surface) : '';
+                let text = surface || canonical;
+                if (canonical && canonical !== surface) text += ' → ' + canonical;
+                if (relatedTerm) text += ' → concepto ' + relatedTerm;
+                return text;
+            }).filter(Boolean).join(' | ') : '—';
+
+            const semanticLines = ['rol','tipo','aplicacion','plataforma','subtipo','category','tag'].map(function (group) {
+                const items = Array.isArray(groups[group]) ? groups[group] : [];
+                if (!items.length) return '';
+                const label = group === 'category' ? 'categoría' : (group === 'tag' ? 'etiqueta' : group);
+                const values = items.map(function (item) { return item && (item.target || item.term) ? String(item.target || item.term) : ''; }).filter(Boolean);
+                return '<div><b>' + escapeHtml(label.toUpperCase()) + ':</b> ' + escapeHtml(values.join(' · ')) + '</div>';
+            }).filter(Boolean).join('');
+
+            const relatedText = related.length ? related.map(function (item) { return item && item.term ? String(item.term) : ''; }).filter(Boolean).join(' · ') : '—';
+            const dep = debug.dependiente && typeof debug.dependiente === 'object' ? debug.dependiente : {};
+            const depGroups = Array.isArray(dep.groups) ? dep.groups : [];
+            const depPrimary = Array.isArray(dep.primary_groups) ? dep.primary_groups : [];
+            const depFields = Array.isArray(dep.catalog_fields) ? dep.catalog_fields : [];
+            const depRoutes = Array.isArray(dep.semantic_routes) ? dep.semantic_routes : [];
+            const depMatches = Array.isArray(dep.top_matches) ? dep.top_matches : [];
+            const depAssist = dep.assist_profile && typeof dep.assist_profile === 'object' ? dep.assist_profile : {};
+            const depIdentity = Array.isArray(depAssist.identity_terms) ? depAssist.identity_terms.filter(Boolean) : [];
+            const depVocabulary = Array.isArray(depAssist.vocabulary_terms) ? depAssist.vocabulary_terms.filter(Boolean) : [];
+            const depActions = Array.isArray(depAssist.action_terms) ? depAssist.action_terms.filter(Boolean) : [];
+            const depContext = Array.isArray(depAssist.context_terms) ? depAssist.context_terms.filter(Boolean) : [];
+            const roleLabels = {intent:'intención', object:'objeto', state:'estado', term:'término', material:'material', tool:'herramienta', action:'acción'};
+            const depGroupText = depGroups.length ? depGroups.map(function (group) {
+                const role = group && group.role ? String(group.role) : 'term';
+                const variants = group && Array.isArray(group.variants) ? group.variants.filter(Boolean) : [];
+                const canonical = group && group.canonical ? String(group.canonical) : '';
+                const values = variants.length ? variants.join(' / ') : canonical;
+                return (roleLabels[role] || role) + ': ' + values;
+            }).filter(Boolean).join(' | ') : '—';
+            const depPrimaryText = depPrimary.length ? depPrimary.map(function (variants) {
+                return Array.isArray(variants) ? variants.filter(Boolean).join(' / ') : '';
+            }).filter(Boolean).join(' | ') : '—';
+            const depRoutesText = depRoutes.length ? depRoutes.map(function (route) {
+                const group = route && route.group ? String(route.group).toUpperCase() : 'RUTA';
+                const term = route && route.term ? String(route.term) : '';
+                const role = route && route.role ? ' (' + String(route.role) + ')' : '';
+                return group + ': ' + term + role;
+            }).filter(Boolean).join(' | ') : '—';
+            const depMatchesHtml = depMatches.length ? '<div style="margin-top:5px"><b>Primeros productos puntuados:</b>' + depMatches.map(function (item) {
+                const reasons = item && Array.isArray(item.reasons) ? item.reasons.filter(Boolean).join(', ') : '';
+                const score = item && item.score !== undefined ? String(item.score) : '0';
+                const coverage = item && item.coverage !== undefined ? String(item.coverage) : '0';
+                const identityHits = item && item.identity_hits !== undefined ? String(item.identity_hits) : '0';
+                const identitySources = item && Array.isArray(item.identity_sources) ? item.identity_sources.filter(Boolean).join(' | ') : '';
+                const vocabularyHits = item && item.vocabulary_hits !== undefined ? String(item.vocabulary_hits) : '0';
+                const actionHits = item && item.action_hits !== undefined ? String(item.action_hits) : '0';
+                return '<div style="margin-left:8px">• ' + escapeHtml(String(item.title || ('#' + String(item.id || '')))) + ' · score ' + escapeHtml(score) + ' · cobertura ' + escapeHtml(coverage) + ' · identidad ' + escapeHtml(identityHits) + (identitySources ? ' [' + escapeHtml(identitySources) + ']' : '') + ' · vocab ' + escapeHtml(vocabularyHits) + ' · acción ' + escapeHtml(actionHits) + (reasons ? ' · ' + escapeHtml(reasons) : '') + '</div>';
+            }).join('') + '</div>' : '';
+            return '<div class="seo-dependiente__interpreter-log" style="margin:14px 0;padding:12px;border:1px dashed #9aa59d;border-radius:10px;background:#f8faf8;font-size:12px;line-height:1.45;overflow-wrap:anywhere">' +
+                '<strong style="display:block;margin-bottom:7px">LOG INTÉRPRETE · STAGING</strong>' +
+                '<div><b>Cliente:</b> ' + escapeHtml(String(debug.raw_query || '—')) + '</div>' +
+                '<div><b>Texto filtrado:</b> ' + escapeHtml(String(debug.filtered_query || '—')) + '</div>' +
+                '<div><b>Acción:</b> ' + escapeHtml(actionText) + '</div>' +
+                semanticLines +
+                '<div><b>Conceptos relacionados:</b> ' + escapeHtml(relatedText) + '</div>' +
+                '<div><b>Contexto sin clasificar:</b> ' + escapeHtml(context.length ? context.join(' · ') : '—') + '</div>' +
+                '<div><b>Señales añadidas:</b> ' + escapeHtml(assist.length ? assist.join(' · ') : '—') + '</div>' +
+                '<div><b>Dependiente recibe:</b> ' + escapeHtml(String(debug.dependiente_query || '—')) + '</div>' +
+                '<div><b>Ruido quitado:</b> ' + escapeHtml(removed.length ? removed.join(' · ') : '—') + '</div>' +
+                '<div><b>Transformaciones:</b> ' + escapeHtml(transformations.length ? transformations.join(' | ') : '—') + '</div>' +
+                '<div><b>Confianza:</b> ' + escapeHtml(String(confidence)) + '% · <b>Modo:</b> asistencia lingüística activa</div>' +
+                '<div style="height:1px;background:#d9dfda;margin:9px 0"></div>' +
+                '<strong style="display:block;margin-bottom:5px">LOG DEPENDIENTE · STAGING</strong>' +
+                '<div><b>Consulta efectiva:</b> ' + escapeHtml(String(dep.query || debug.dependiente_query || '—')) + '</div>' +
+                '<div><b>Grupos que busca:</b> ' + escapeHtml(depGroupText) + '</div>' +
+                '<div><b>Primera pasada al índice:</b> ' + escapeHtml(depPrimaryText) + '</div>' +
+                '<div><b>Anclas de identidad:</b> ' + escapeHtml(depIdentity.length ? depIdentity.join(' · ') : '—') + '</div>' +
+                '<div><b>Vocabulario estructurado:</b> ' + escapeHtml(depVocabulary.length ? depVocabulary.join(' · ') : '—') + '</div>' +
+                '<div><b>Acciones:</b> ' + escapeHtml(depActions.length ? depActions.join(' · ') : '—') + '</div>' +
+                '<div><b>Contexto secundario:</b> ' + escapeHtml(depContext.length ? depContext.join(' · ') : '—') + '</div>' +
+                '<div><b>Busca en campos:</b> ' + escapeHtml(depFields.length ? depFields.join(' · ') : '—') + '</div>' +
+                '<div><b>Rutas semánticas activas:</b> ' + escapeHtml(depRoutesText) + '</div>' +
+                '<div><b>Estrategia:</b> ' + escapeHtml(String(dep.strategy || '—')) + ' · <b>Extensiva:</b> ' + escapeHtml(String(dep.extended_search || '—')) + '</div>' +
+                '<div><b>Base léxica:</b> título ' + escapeHtml(String(dep.lexical_identity_title_rows || 0)) + ' · categoría ' + escapeHtml(String(dep.lexical_identity_category_rows || 0)) + ' · mostrador ' + escapeHtml(String(dep.lexical_identity_rows || 0)) + '</div>' +
+                '<div><b>Fuente del mostrador:</b> ' + escapeHtml(String(dep.presentation_source || 'ranking')) + '</div>' +
+                '<div><b>Comprobación auxiliar:</b> IDs ' + escapeHtml(String(dep.live_identity_ids || 0)) + ' · índice ' + escapeHtml(String(dep.index_identity_rows || 0)) + ' · válidas ' + escapeHtml(String(dep.primary_identity_count || 0)) + '</div>' +
+                '<div><b>Candidatos:</b> primarios ' + escapeHtml(String(dep.primary_rows || 0)) + ' · recuperados ' + escapeHtml(String(dep.candidate_rows || 0)) + ' · válidos ' + escapeHtml(String(dep.matched_rows || 0)) + '</div>' +
+                '<div><b>Descubrimiento:</b> ' + escapeHtml(String(dep.discovery_source || '—')) + ' · candidatos ' + escapeHtml(String(dep.discovery_candidates || 0)) + ' · categorías ' + escapeHtml(String(dep.discovery_categories || 0)) + '</div>' +
+                depMatchesHtml +
+                '</div>';
         }
 
         function renderFacetGroup(label, kind, group, items, open) {
@@ -715,58 +1141,76 @@
         }
 
         function renderResults(results, data) {
+            const discoveryHtml = renderSearchDiscovery(data && data.discovery ? data.discovery : null);
             if (!results.length) {
-                const actions = [];
-                if (activeFilterCount(state.filters) > 0) {
-                    actions.push('<button type="button" class="seo-dependiente__empty-action is-primary" data-dependiente-zero-reset>Quitar filtros y repetir</button>');
-                }
+                const hasClarification = Boolean(
+                    data && data.clarification && data.clarification.should_ask &&
+                    Array.isArray(data.clarification.options) && data.clarification.options.length >= 2
+                );
+                const helpHtml = elements.help ? '<div class="seo-dependiente__empty-help">' + assistantAvatarHtml('seo-dependiente__assistant-avatar--message') + '<button type="button" class="seo-dependiente__empty-action" data-dependiente-help-open>Pedir ayuda con esta búsqueda</button><small>Enviaremos el recorrido de Dependiente para que no tengas que empezar de cero.</small></div>' : '';
 
-                const alternatives = zeroResultAlternatives(data || {});
-                alternatives.forEach(function (item) {
-                    actions.push('<button type="button" class="seo-dependiente__empty-action" data-dependiente-zero-filter="' + escapeAttr(JSON.stringify(item.filter || {})) + '" data-dependiente-zero-label="' + escapeAttr(item.label || '') + '" data-dependiente-zero-mode="' + escapeAttr(item.mode || 'need') + '">' + escapeHtml(item.text || item.label || 'Explorar') + '</button>');
-                });
-
-                const actionsHtml = actions.length ? '<div class="seo-dependiente__empty-actions"><span>También puedes probar:</span><div>' + actions.join('') + '</div></div>' : '';
-                elements.results.innerHTML = '<div class="seo-dependiente__empty"><strong>No hay una coincidencia clara</strong><span>' + escapeHtml((config.labels && config.labels.noResults) || 'Prueba con otros términos o elimina un filtro.') + '</span>' + actionsHtml + '</div>';
+                // Nunca mostramos paginación o un hueco vacío si no existen
+                // tarjetas publicables. Si hay navegación visual real del
+                // Dependiente, esa navegación ocupa la zona principal.
+                elements.results.innerHTML = discoveryHtml || (hasClarification
+                    ? ''
+                    : '<div class="seo-dependiente__empty is-awaiting-clarification"><strong>Vamos a afinar la búsqueda</strong><span>Dependiente está revisando las opciones más relacionadas. Puedes concretar la consulta o usar los filtros si quieres.</span>' + helpHtml + '</div>');
                 return;
             }
-            elements.results.innerHTML = results.map(function (product, index) {
+
+            const heading = '<div class="seo-dependiente__results-heading"><small>Resultados de Dependiente</small><strong>Productos que mejor encajan</strong></div>';
+            elements.results.innerHTML = discoveryHtml + heading + results.map(function (product, index) {
                 return renderProductCard(product, index + 1);
             }).join('');
         }
 
+        function renderSearchDiscovery(discovery) {
+            if (!discovery) return '';
+            const categories = Array.isArray(discovery.categories) ? discovery.categories.slice(0, 12) : [];
+            const quick = Array.isArray(discovery.quick_filters) ? discovery.quick_filters.slice(0, 6) : [];
+            if (!categories.length && !quick.length) return '';
+
+            const chips = quick.map(function (card) {
+                return '<button type="button" class="seo-dependiente__discovery-chip" data-dependiente-discovery-filter="' + escapeAttr(JSON.stringify(card.filter || {})) + '" data-dependiente-discovery-label="' + escapeAttr(card.label || '') + '">' + escapeHtml(card.label || '') + '<small>' + numberFormat(card.count || 0) + '</small></button>';
+            }).join('');
+
+            const cards = categories.map(function (card) {
+                const imageClass = card.image_kind === 'logo' ? ' seo-dependiente__visual-card--logo' : '';
+                return '<button type="button" class="seo-dependiente__visual-card seo-dependiente__search-visual-card' + imageClass + '" data-dependiente-discovery-filter="' + escapeAttr(JSON.stringify(card.filter || {})) + '" data-dependiente-discovery-label="' + escapeAttr(card.label || '') + '">' +
+                    '<img src="' + escapeAttr(card.image || config.placeholderImage || '') + '" alt="" loading="lazy" decoding="async">' +
+                    '<span class="seo-dependiente__visual-card-arrow" aria-hidden="true">→</span>' +
+                    '<span class="seo-dependiente__visual-card-content"><strong>' + escapeHtml(card.label || '') + '</strong><small>' + numberFormat(card.count || 0) + ' opciones</small></span>' +
+                    '</button>';
+            }).join('');
+
+            const lexicalCandidates = String(discovery.source || '') === 'lexical_candidates';
+            const eyebrow = lexicalCandidates ? 'Según los candidatos encontrados por Dependiente' : 'Según los resultados de Dependiente';
+            const heading = lexicalCandidates ? 'Elige una categoría para afinar' : 'Elige una opción para afinar';
+            const candidateNote = lexicalCandidates && Number(discovery.candidate_count || 0) > 0
+                ? '<p class="seo-dependiente__discovery-note">Dependiente ha encontrado ' + numberFormat(discovery.candidate_count || 0) + ' candidatos en su índice. Estas categorías pertenecen a esos candidatos.</p>'
+                : '';
+
+            return '<section class="seo-dependiente__result-discovery" aria-label="Opciones para afinar la búsqueda">' +
+                '<div class="seo-dependiente__result-discovery-head"><small>' + escapeHtml(eyebrow) + '</small><strong>' + escapeHtml(heading) + '</strong></div>' +
+                candidateNote +
+                (chips ? '<div class="seo-dependiente__discovery-chips">' + chips + '</div>' : '') +
+                (cards ? '<div class="seo-dependiente__visual-menu seo-dependiente__search-visual-menu">' + cards + '</div>' : '') +
+                '</section>';
+        }
+
         function zeroResultAlternatives(data) {
-            const items = [];
-            const categories = data && data.facets && Array.isArray(data.facets.categories) ? data.facets.categories : [];
-            categories.slice(0, 3).forEach(function (category) {
-                if (!category || !category.slug) return;
-                items.push({
-                    text: 'Explorar ' + String(category.label || category.slug),
-                    label: String(category.label || category.slug),
-                    mode: 'need',
-                    filter: { type: 'categories', slug: category.slug }
-                });
-            });
-
-            if (!items.length && state.bootstrap && Array.isArray(state.bootstrap.actions)) {
-                state.bootstrap.actions.slice(0, 3).forEach(function (action) {
-                    if (!action || !action.filter) return;
-                    items.push({
-                        text: 'Explorar ' + String(action.label || 'otra tarea'),
-                        label: String(action.label || ''),
-                        mode: 'need',
-                        filter: action.filter
-                    });
-                });
-            }
-
-            return items;
+            // Ya no convertimos un estado débil en navegación por categorías.
+            // El Dependiente mantiene la búsqueda normal y el Intérprete solo
+            // añade contexto lingüístico mediante sus preguntas.
+            return [];
         }
 
         function renderProductCard(product, position) {
             const selected = state.compare.has(Number(product.id));
             const categories = (product.categories || []).join(' · ');
+            const tier = product.search_tier === 'extended' ? 'Relacionado' : 'Coincidencia directa';
             const kicker = [
+                '<span class="seo-dependiente__search-tier ' + (product.search_tier === 'extended' ? 'is-extended' : 'is-direct') + '">' + tier + '</span>',
                 product.brand ? escapeHtml(product.brand) : '',
                 categories ? escapeHtml(categories) : '',
                 '<span class="seo-dependiente__stock ' + (product.stock_status === 'outofstock' ? 'is-out' : '') + '">' + escapeHtml(product.stock_label || '') + '</span>'
@@ -790,6 +1234,229 @@
                 '</div></article>';
         }
 
+        function clearAmazon() {
+            if (!elements.amazon) return;
+            elements.amazon.hidden = true;
+            elements.amazon.innerHTML = '';
+        }
+
+        async function loadAmazonFallback(fallback) {
+            if (!elements.amazon) return;
+            const requestId = ++state.amazonRequestId;
+            clearAmazon();
+            if (!fallback) return;
+
+            if (!fallback.should_load) {
+                const status = String(fallback.status || '');
+                if (status === 'partner_tag_missing') {
+                    renderAmazonStatus(
+                        'Amazon Afiliados está pendiente de configurar.',
+                        'Falta el Partner Tag de amazon.es. No hace falta Creators API: guarda únicamente el Partner Tag en Conexiones → Amazon Afiliados.'
+                    );
+                } else if (status && status !== 'empty_query' && status !== 'query_unusable' && status !== 'inactive') {
+                    renderAmazonStatus(
+                        'No he podido preparar Amazon para esta búsqueda.',
+                        'El catálogo y las guías siguen disponibles. Estado: ' + status + '.'
+                    );
+                }
+                return;
+            }
+
+            if (!fallback.query || !fallback.token || !fallback.bucket) {
+                renderAmazonStatus(
+                    'No he podido preparar Amazon para esta búsqueda.',
+                    'La configuración afiliada existe, pero faltan datos internos de la solicitud.'
+                );
+                return;
+            }
+
+            elements.amazon.hidden = false;
+            elements.amazon.innerHTML = '<div class="seo-dependiente__amazon-loading"><strong>Preparando opciones de Amazon…</strong><span>Las añadimos después de nuestro catálogo y nuestras guías.</span></div>';
+
+            try {
+                const data = await api('amazon-search', {
+                    method: 'POST',
+                    body: {
+                        q: String(fallback.query || ''),
+                        token: String(fallback.token || ''),
+                        bucket: Number(fallback.bucket || 0)
+                    }
+                });
+                if (requestId !== state.amazonRequestId) return;
+                renderAmazon(data || {}, fallback);
+            } catch (error) {
+                // No rompemos la busqueda principal, pero tampoco ocultamos que el
+                // proveedor externo fue consultado y no pudo responder.
+                if (requestId === state.amazonRequestId) {
+                    renderAmazonStatus('No he podido preparar los enlaces de Amazon.', 'Nuestro catálogo y nuestras guías siguen disponibles.');
+                }
+            }
+        }
+
+        function renderAmazonStatus(title, text) {
+            if (!elements.amazon) return;
+            elements.amazon.hidden = false;
+            elements.amazon.innerHTML = '<div class="seo-dependiente__amazon-loading"><strong>' + escapeHtml(title || '') + '</strong><span>' + escapeHtml(text || '') + '</span></div>';
+        }
+
+        function renderAmazon(response, fallback) {
+            if (!elements.amazon) return;
+            const items = response && Array.isArray(response.items) ? response.items : [];
+            const mode = response && response.mode ? String(response.mode) : 'affiliate';
+            if (!items.length) {
+                renderAmazonStatus('No hay opciones de Amazon para esta búsqueda.', 'Nuestro catálogo y nuestras guías siguen disponibles.');
+                return;
+            }
+
+            const affiliateMode = mode === 'affiliate' || items.some(function (item) { return item && item.type === 'search'; });
+            const reasonText = affiliateMode
+                ? 'Estas son búsquedas afiliadas relacionadas. Al abrirlas verás en Amazon los productos, precios y disponibilidad actualizados.'
+                : 'Como complemento a los productos y contenidos de nuestra web, también hemos consultado Amazon.';
+            const contextImages = fallback && Array.isArray(fallback.context_images)
+                ? fallback.context_images.filter(Boolean)
+                : [];
+            const cards = affiliateMode
+                ? items.map(function (item, index) { return renderAmazonSearchCard(item, index, contextImages); }).join('')
+                : items.map(renderAmazonCard).join('');
+            const title = affiliateMode ? 'Más opciones en Amazon' : 'Productos relacionados en Amazon';
+            const eyebrow = affiliateMode ? 'Búsquedas afiliadas' : 'Catálogo externo';
+
+            elements.amazon.innerHTML = '<div class="seo-dependiente__amazon-head">' +
+                '<div><span class="seo-dependiente__amazon-eyebrow">' + escapeHtml(eyebrow) + '</span><h2>' + escapeHtml(title) + '</h2><p>' + escapeHtml(reasonText) + '</p></div>' +
+                '<span class="seo-dependiente__amazon-badge">Amazon</span>' +
+                '</div>' +
+                '<div class="seo-dependiente__amazon-grid">' + cards + '</div>' +
+                '<p class="seo-dependiente__amazon-disclosure">Como Afiliado de Amazon, podemos obtener ingresos por compras adscritas realizadas desde estos enlaces. En el modo sin API no mostramos precios ni disponibilidad: se consultan directamente en Amazon.</p>';
+            bindAmazonImageFallbacks(elements.amazon, contextImages);
+            elements.amazon.hidden = false;
+        }
+
+        function bindAmazonImageFallbacks(root, contextImages) {
+            if (!root) return;
+
+            const fallbackImage = String(config.placeholderImage || '');
+            const cleanContextImages = Array.isArray(contextImages)
+                ? contextImages.map(function (url) { return String(url || '').trim(); }).filter(Boolean)
+                : [];
+
+            /*
+             * Las tarjetas sin API se pintan primero con un placeholder limpio.
+             * Solo insertamos una imagen despues de comprobar que el navegador puede
+             * cargarla. Asi evitamos el icono de imagen rota y podemos saltar a la
+             * siguiente foto de proveedor si una URL remota ha caducado.
+             */
+            root.querySelectorAll('.seo-dependiente__amazon-search-image').forEach(function (image) {
+                const startIndex = Math.max(0, Number(image.dataset.amazonImageIndex || 0));
+                const candidates = [];
+
+                if (cleanContextImages.length) {
+                    const offset = startIndex % cleanContextImages.length;
+                    cleanContextImages.slice(offset).concat(cleanContextImages.slice(0, offset)).forEach(function (url) {
+                        if (url && candidates.indexOf(url) === -1) candidates.push(url);
+                    });
+                }
+
+                if (fallbackImage && candidates.indexOf(fallbackImage) === -1) {
+                    candidates.push(fallbackImage);
+                }
+
+                const visual = image.closest('.seo-dependiente__amazon-search-visual');
+                const placeholder = visual ? visual.querySelector('.seo-dependiente__amazon-search-placeholder') : null;
+                const note = visual ? visual.querySelector('.seo-dependiente__amazon-media-note') : null;
+
+                const tryCandidate = function (candidateIndex) {
+                    if (candidateIndex >= candidates.length) {
+                        image.hidden = true;
+                        image.removeAttribute('src');
+                        if (placeholder) placeholder.hidden = false;
+                        if (note) note.hidden = true;
+                        return;
+                    }
+
+                    const candidate = candidates[candidateIndex];
+                    const probe = new Image();
+
+                    probe.onload = function () {
+                        image.src = candidate;
+                        image.hidden = false;
+                        if (placeholder) placeholder.hidden = true;
+
+                        const isFallback = fallbackImage && candidate === fallbackImage;
+                        image.classList.toggle('seo-dependiente__amazon-search-image--fallback', Boolean(isFallback));
+                        if (note) {
+                            note.textContent = isFallback ? 'Imagen de referencia' : 'Imagen orientativa relacionada';
+                            note.hidden = false;
+                        }
+                    };
+
+                    probe.onerror = function () {
+                        tryCandidate(candidateIndex + 1);
+                    };
+
+                    probe.src = candidate;
+                };
+
+                tryCandidate(0);
+            });
+
+            /*
+             * Fichas enriquecidas de Creators: si alguna imagen real fallase,
+             * intentamos el fallback corporativo y, si tambien falla, la ocultamos.
+             */
+            root.querySelectorAll('.seo-dependiente__amazon-image img').forEach(function (image) {
+                image.addEventListener('error', function () {
+                    if (fallbackImage && image.dataset.fallbackApplied !== '1') {
+                        image.dataset.fallbackApplied = '1';
+                        image.src = fallbackImage;
+                        return;
+                    }
+                    image.style.visibility = 'hidden';
+                });
+            });
+        }
+
+        function renderAmazonSearchCard(item, index, contextImages) {
+            const query = item.query || item.title || '';
+            const placeholder = '<span class="seo-dependiente__amazon-search-placeholder">' +
+                '<span class="seo-dependiente__amazon-search-mark">amazon</span>' +
+                '<span class="seo-dependiente__amazon-search-query">' + escapeHtml(query) + '</span>' +
+                '</span>';
+            const visual = placeholder +
+                '<img class="seo-dependiente__amazon-search-image" data-amazon-image-index="' + Number(index || 0) + '" alt="" loading="lazy" decoding="async" hidden>' +
+                '<span class="seo-dependiente__amazon-source-badge">Amazon</span>' +
+                '<span class="seo-dependiente__amazon-media-note" hidden></span>';
+
+            return '<article class="seo-dependiente__amazon-card seo-dependiente__amazon-card--search">' +
+                '<a class="seo-dependiente__amazon-search-visual" href="' + escapeAttr(item.url || '#') + '" target="_blank" rel="sponsored nofollow noopener" aria-label="' + escapeAttr('Buscar ' + query + ' en Amazon') + '">' +
+                    visual +
+                '</a>' +
+                '<div class="seo-dependiente__amazon-body">' +
+                    '<div class="seo-dependiente__amazon-kicker">Enlace de afiliado · Búsqueda en Amazon</div>' +
+                    '<h3><a href="' + escapeAttr(item.url || '#') + '" target="_blank" rel="sponsored nofollow noopener">' + escapeHtml(item.title || query) + '</a></h3>' +
+                    (item.description ? '<p class="seo-dependiente__amazon-search-description">' + escapeHtml(item.description) + '</p>' : '') +
+                    '<div class="seo-dependiente__amazon-foot"><span></span><a href="' + escapeAttr(item.url || '#') + '" target="_blank" rel="sponsored nofollow noopener">Ver opciones en Amazon ↗</a></div>' +
+                '</div>' +
+            '</article>';
+        }
+
+        function renderAmazonCard(product) {
+            const image = product.image || config.placeholderImage || '';
+            const features = (product.features || []).slice(0, 2).map(function (feature) {
+                return '<li>' + escapeHtml(feature) + '</li>';
+            }).join('');
+            const kicker = ['Enlace pagado', product.brand ? escapeHtml(product.brand) : '', product.asin ? 'ASIN ' + escapeHtml(product.asin) : ''].filter(Boolean).join(' · ');
+
+            return '<article class="seo-dependiente__amazon-card">' +
+                '<a class="seo-dependiente__amazon-image" href="' + escapeAttr(product.url || '#') + '" target="_blank" rel="sponsored nofollow noopener"><img src="' + escapeAttr(image) + '" alt="' + escapeAttr(product.title || '') + '" loading="lazy" decoding="async"></a>' +
+                '<div class="seo-dependiente__amazon-body">' +
+                    (kicker ? '<div class="seo-dependiente__amazon-kicker">' + kicker + '</div>' : '') +
+                    '<h3><a href="' + escapeAttr(product.url || '#') + '" target="_blank" rel="sponsored nofollow noopener">' + escapeHtml(product.title || '') + '</a></h3>' +
+                    (features ? '<ul class="seo-dependiente__amazon-features">' + features + '</ul>' : '') +
+                    '<div class="seo-dependiente__amazon-foot"><strong>' + escapeHtml(product.price || 'Consultar en Amazon') + '</strong><a href="' + escapeAttr(product.url || '#') + '" target="_blank" rel="sponsored nofollow noopener">Ver en Amazon ↗</a></div>' +
+                '</div>' +
+            '</article>';
+        }
+
         function renderRelated(items, totalResults) {
             if (!elements.related) return;
             if (!items || !items.length) {
@@ -802,26 +1469,33 @@
             const rest = items.slice(3);
             const cards = first.map(renderRelatedCard).join('');
             const more = rest.length ? '<details class="seo-dependiente__related-more"><summary>Ver más información (' + rest.length + ')</summary><div class="seo-dependiente__related-more-list">' + rest.map(renderRelatedCard).join('') + '</div></details>' : '';
-            const helpText = totalResults > 0
-                ? 'Contenido relacionado con las categorías de los productos que mejor encajan.'
-                : 'Aunque no haya un producto exacto, estas guías pueden ayudarte a orientar la búsqueda.';
+            const helpText = 'Contenido de nuestras guías y soluciones relacionado directamente con tu búsqueda o con los productos encontrados.';
+            const total = items.length;
+
             elements.related.innerHTML = '<div class="seo-dependiente__related-inner">' +
-                '<div class="seo-dependiente__related-head"><span>También te puede ayudar</span><h2>Guías y soluciones</h2><p>' + escapeHtml(helpText) + '</p></div>' +
-                '<div class="seo-dependiente__related-list">' + cards + '</div>' + more + '</div>';
+                '<div class="seo-dependiente__related-summary">' +
+                    '<span class="seo-dependiente__related-summary-copy"><small>Información de nuestra web</small><strong>Guías y soluciones <em>(' + total + ')</em></strong></span>' +
+                '</div>' +
+                '<div class="seo-dependiente__related-panel">' +
+                    '<p class="seo-dependiente__related-help">' + escapeHtml(helpText) + '</p>' +
+                    '<div class="seo-dependiente__related-list">' + cards + '</div>' + more +
+                '</div>' +
+            '</div>';
             elements.related.hidden = false;
         }
 
         function renderRelatedCard(item) {
-            const image = item.image ? '<span class="seo-dependiente__related-image"><img src="' + escapeAttr(item.image) + '" alt="" loading="lazy" decoding="async"></span>' : '';
-            return '<article class="seo-dependiente__related-card">' + image +
-                '<div class="seo-dependiente__related-body"><span class="seo-dependiente__related-type">' + escapeHtml(item.type_label || 'Guía') + '</span>' +
-                '<h3><a href="' + escapeAttr(item.url || '#') + '">' + escapeHtml(item.title || '') + '</a></h3>' +
-                (item.excerpt ? '<p>' + escapeHtml(item.excerpt) + '</p>' : '') +
-                '<a class="seo-dependiente__related-link" href="' + escapeAttr(item.url || '#') + '">Leer →</a></div></article>';
+            const image = item.image ? '<span class="seo-dependiente__related-image"><img src="' + escapeAttr(item.image) + '" alt="" loading="lazy" decoding="async"></span>' : '<span class="seo-dependiente__related-image seo-dependiente__related-image--empty" aria-hidden="true"></span>';
+            const url = escapeAttr(item.url || '#');
+            return '<a class="seo-dependiente__related-card" href="' + url + '">' + image +
+                '<span class="seo-dependiente__related-body"><span class="seo-dependiente__related-type">' + escapeHtml(item.type_label || 'Guía') + '</span>' +
+                '<strong class="seo-dependiente__related-title">' + escapeHtml(item.title || '') + '</strong>' +
+                (item.excerpt ? '<span class="seo-dependiente__related-excerpt">' + escapeHtml(item.excerpt) + '</span>' : '') +
+                '<span class="seo-dependiente__related-link">Leer →</span></span></a>';
         }
 
-        function renderPagination(page, pages) {
-            if (pages <= 1) {
+        function renderPagination(page, pages, visibleResults) {
+            if (pages <= 1 || Number(visibleResults || 0) <= 0) {
                 elements.pagination.innerHTML = '';
                 return;
             }
@@ -926,6 +1600,7 @@
             const url = new URL(window.location.href);
             if (state.q) url.searchParams.set('dep_q', state.q);
             else url.searchParams.delete('dep_q');
+            url.searchParams.delete('dep_role');
             window.history.replaceState({}, '', url.toString());
         }
     }

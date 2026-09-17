@@ -1,3 +1,100 @@
+## [2.3.5]- 2026-09-17
+
+### Resumen
+
+Actualización amplia de STAGING centrada en la evolución de **Dependiente**, el **Intérprete**, la formación semántica mediante **Lingüista/Academia**, mejoras de arquitectura comercial y plantillas, y nuevas herramientas de importación de proveedores.
+
+Esta versión supone una evolución importante del sistema de consulta asistida, manteniendo separadas las funciones de decisión en frontend de los procesos administrativos, informes y aprendizaje.
+
+---
+
+### Dependiente e Intérprete
+
+- Evolución del servicio **Intérprete** con nuevas versiones y mejoras sucesivas en el análisis de consultas.
+- Incorporación de diálogo inteligente de **desambiguación** antes de emitir una recomendación cuando la intención del usuario no es suficientemente precisa.
+- El diálogo entre **Intérprete y Dependiente** pasa a ser acumulativo, conservando el contexto generado durante la conversación.
+- Mejora de la coordinación entre ambos sistemas para evitar respuestas aisladas y aprovechar las decisiones tomadas en pasos anteriores.
+- Priorización de familias de producto concretas al generar preguntas de aclaración.
+- Corrección de casos en los que Dependiente no encontraba correctamente posts o contenido relacionado.
+- Corrección de la carga de imágenes en el frontend de Dependiente.
+- Mejoras generales del comportamiento y presentación del Dependiente en frontend.
+
+### Academia, Lingüista y aprendizaje
+
+- Incorporación y evolución del módulo **Lingüista** como soporte semántico del Intérprete.
+- Integración de los procesos de formación de Lingüista en el gestor de workers.
+- Añadida exportación de la evolución y estado de Lingüista en formato JSON para diagnóstico y seguimiento.
+- Incorporada **actualización incremental de la Academia de Dependiente**, evitando regeneraciones completas cuando solo es necesario procesar información nueva o modificada.
+- Mejoras en el flujo de aprendizaje para mantener actualizados los datos utilizados por Dependiente sin sustituir el conocimiento histórico existente.
+
+### Arquitectura comercial y contenido
+
+- Nuevas recomendaciones de arquitectura para **Clusters, Hubs primarios y Hubs secundarios**.
+- Mejoras de las plantillas para incorporar señales y recomendaciones de marketing.
+- Ajustes de frontend y helpers de plantillas para mantener coherencia entre STAGING y producción.
+- Actualización de informes cuya validación de relaciones entre posts y categorías había quedado obsoleta.
+
+### Proveedores e importación
+
+- Incorporado soporte para un **importador externo**.
+- Actualización de la integración con **Rubix** para procesos de scraping.
+- Añadido lanzador específico para Rubix.
+- Eliminada una receta antigua de importación de Emuca que ya no formaba parte del flujo vigente.
+- Mejoras en la gestión e inventario reducido utilizado durante procesos de importación.
+- Mejorado el exportador reducido de productos.
+
+### Mantenimiento y limpieza
+
+- Eliminación de archivos de backup antiguos y residuos que ya no debían formar parte del árbol activo del plugin.
+- Limpieza progresiva de código legacy derivado de anteriores versiones de Dependiente e Intérprete.
+- Ajustes para reducir duplicidades y mantener una única implementación canónica de cada componente.
+
+### Compatibilidad
+
+- WordPress 7.1
+- WooCommerce 11.1.x
+- PHP 8.4.x
+
+### Notas de despliegue
+
+Los cambios se han desarrollado y validado primero en **STAGING**.
+
+Antes de promover esta versión a producción se recomienda:
+
+1. Ejecutar el chequeo completo del plugin.
+2. Confirmar que no existen funciones, clases o métodos duplicados.
+3. Validar Dependiente, Intérprete y Academia desde administración.
+4. Comprobar producto, categoría, buscador y frontend de Dependiente.
+5. Revisar que los procesos de proveedores y workers no tengan tareas bloqueadas.
+6. Promover `staging` hacia `main` mediante Pull Request después de revisar `Files changed`.
+
+
+## [2.3.4] 2026-09-13 Reorganización interna y consolidación de `seo-taxonomy`
+
+
+Se realizó una revisión general de la arquitectura del plugin con el objetivo de consolidar los módulos activos, eliminar implementaciones heredadas y reducir la coexistencia de código duplicado.
+
+La estructura de `includes/` fue reorganizada progresivamente para mantener los servicios dentro de sus directorios específicos. Se eliminaron directorios y archivos legacy relacionados con Analista, Dependiente, Clonador, Productos, Social Network e imágenes, manteniendo como referencia las implementaciones canónicas de cada subsistema.
+
+También se actualizaron los mecanismos de carga y bootstrap para adaptarlos a la nueva organización interna y evitar la inclusión simultánea de versiones antiguas y modernas de un mismo servicio.
+
+La revisión de integridad posterior confirmó la eliminación de duplicados de código: las funciones globales, tipos y métodos duplicados pasaron a cero en el entorno de staging.
+
+Durante el mismo ciclo se introdujeron mejoras adicionales en distintos componentes del sistema, entre ellas:
+
+* evolución del servicio Dependiente y corrección de interrupciones relacionadas con cambios de catálogo;
+* mejoras en Academia y ampliación de contenidos y FAQs;
+* correcciones y ampliaciones del Auditor de datos, incluyendo reducción de falsos positivos;
+* mejoras en plantillas y en su sistema de comprobación y sincronización;
+* actualización de filtros de producto;
+* incorporación de migas de pan en la cabecera;
+* nuevas herramientas para identificar y eliminar imágenes locales procedentes de proveedores;
+* ajustes en el cargador de plantillas, autoload y archivos de versión;
+* diversas correcciones de estabilidad y mantenimiento.
+
+Tras estos cambios, el plugin mantiene operativos los principales subsistemas de proveedores, catálogo, Data Layer y WooCommerce. Permanecen pendientes determinadas incidencias funcionales y de configuración del entorno de staging, principalmente relacionadas con la portada, la resolución de las páginas de tienda, carrito y checkout, y varias comprobaciones SEO y semánticas que se abordarán de forma independiente.
+
+
 ## [2.3.3] - 2026-09-08
 
 Release correspondiente al **Milestone 2.3.3**, centrada en SEO técnico y datos estructurados, importación y sincronización de datos, logística y facturación, calidad del dato, plantillas y estabilidad general del plugin.

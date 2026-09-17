@@ -6,11 +6,12 @@
  * ejercer carga sostenida sobre WordPress o sobre el servidor publico:
  * - Import / Export por lotes.
  * - Academia del Dependiente.
+ * - Lingüista, formación del Intérprete.
  * - Clasificador semantico por jobs.
  * - Auditorias de salud de paginas, posts, imagenes, productos y sitemap publico.
  *
  * La pantalla centraliza monitorizacion, limites de velocidad y el arranque
- * explicito de los controladores propios. Import/Export y Academia pueden
+ * explicito de los controladores propios. Import/Export, Academia y Lingüista pueden
  * reanudarse desde aqui sin entregar el camino critico a WP-Cron/Action Scheduler.
  *
  * @package SEOSystem
@@ -50,6 +51,19 @@ if (!function_exists('seo_processes_control_defaults')) {
                 'growth_factor' => 1.34,
                 'slowdown_factor' => 0.50,
                 'fast_streak_required' => 2,
+                'normal_delay_seconds' => 1,
+                'slow_delay_seconds' => 2,
+                'critical_delay_seconds' => 5,
+            ),
+            'linguista' => array(
+                'min_batch' => 20,
+                'initial_batch' => 60,
+                'max_batch' => 180,
+                'fast_seconds' => 1.5,
+                'slow_seconds' => 5.0,
+                'very_slow_seconds' => 10.0,
+                'growth_factor' => 1.35,
+                'slowdown_factor' => 0.55,
                 'normal_delay_seconds' => 1,
                 'slow_delay_seconds' => 2,
                 'critical_delay_seconds' => 5,
@@ -173,6 +187,20 @@ if (!function_exists('seo_processes_sanitize_controls')) {
         $academy['slow_delay_seconds'] = max($academy['normal_delay_seconds'], min(120, absint($academy['slow_delay_seconds'])));
         $academy['critical_delay_seconds'] = max($academy['slow_delay_seconds'], min(300, absint($academy['critical_delay_seconds'])));
         $out['academy'] = $academy;
+
+        $linguista = wp_parse_args(isset($raw['linguista']) && is_array($raw['linguista']) ? $raw['linguista'] : array(), $defaults['linguista']);
+        $linguista['min_batch'] = max(1, min(200, absint($linguista['min_batch'])));
+        $linguista['initial_batch'] = max($linguista['min_batch'], min(500, absint($linguista['initial_batch'])));
+        $linguista['max_batch'] = max($linguista['initial_batch'], min(1000, absint($linguista['max_batch'])));
+        $linguista['fast_seconds'] = seo_processes_clamp_float($linguista['fast_seconds'], 0.1, 30.0);
+        $linguista['slow_seconds'] = max($linguista['fast_seconds'] + 0.1, seo_processes_clamp_float($linguista['slow_seconds'], 0.2, 120.0));
+        $linguista['very_slow_seconds'] = max($linguista['slow_seconds'] + 0.1, seo_processes_clamp_float($linguista['very_slow_seconds'], 0.3, 300.0));
+        $linguista['growth_factor'] = seo_processes_clamp_float($linguista['growth_factor'], 1.05, 2.00);
+        $linguista['slowdown_factor'] = seo_processes_clamp_float($linguista['slowdown_factor'], 0.20, 0.95);
+        $linguista['normal_delay_seconds'] = max(1, min(30, absint($linguista['normal_delay_seconds'])));
+        $linguista['slow_delay_seconds'] = max($linguista['normal_delay_seconds'], min(120, absint($linguista['slow_delay_seconds'])));
+        $linguista['critical_delay_seconds'] = max($linguista['slow_delay_seconds'], min(300, absint($linguista['critical_delay_seconds'])));
+        $out['linguista'] = $linguista;
 
         $classifier = wp_parse_args(isset($raw['classifier']) && is_array($raw['classifier']) ? $raw['classifier'] : array(), $defaults['classifier']);
         $classifier['fast_min_rows'] = max(1, min(100, absint($classifier['fast_min_rows'])));
@@ -1185,6 +1213,7 @@ if (!function_exists('seo_processes_render_control_panel')) {
         $settings = seo_processes_control_settings();
         $import = $settings['import-export'];
         $academy = $settings['academy'];
+        $linguista = $settings['linguista'];
         $classifier = $settings['classifier'];
         ?>
         <form class="seo-process-controls" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
@@ -1233,6 +1262,24 @@ if (!function_exists('seo_processes_render_control_panel')) {
                     <label>Pausa lenta<?php seo_processes_number_input('academy','slow_delay_seconds',$academy['slow_delay_seconds'],1,120); ?><small>Segundos.</small></label>
                     <label>Pausa crítica<?php seo_processes_number_input('academy','critical_delay_seconds',$academy['critical_delay_seconds'],1,300); ?><small>Segundos.</small></label>
                 </div>
+            </details>
+
+            <details class="seo-process-control-card" open>
+                <summary><strong>Lingüista</strong><span>Formación del Intérprete · worker compartido</span></summary>
+                <div class="seo-process-control-grid">
+                    <label>Lote mínimo<?php seo_processes_number_input('linguista','min_batch',$linguista['min_batch'],1,200); ?><small>Elementos lingüísticos.</small></label>
+                    <label>Lote inicial<?php seo_processes_number_input('linguista','initial_batch',$linguista['initial_batch'],1,500); ?><small>Elementos al arrancar.</small></label>
+                    <label>Lote máximo<?php seo_processes_number_input('linguista','max_batch',$linguista['max_batch'],1,1000); ?><small>Techo absoluto por ventana.</small></label>
+                    <label>Rápido ≤<?php seo_processes_number_input('linguista','fast_seconds',$linguista['fast_seconds'],0.1,30,'0.1'); ?><small>Segundos por lote.</small></label>
+                    <label>Lento ≥<?php seo_processes_number_input('linguista','slow_seconds',$linguista['slow_seconds'],0.2,120,'0.1'); ?><small>Empieza a reducir.</small></label>
+                    <label>Crítico ≥<?php seo_processes_number_input('linguista','very_slow_seconds',$linguista['very_slow_seconds'],0.3,300,'0.1'); ?><small>Recorte fuerte.</small></label>
+                    <label>Multiplicador subida<?php seo_processes_number_input('linguista','growth_factor',$linguista['growth_factor'],1.05,2.00,'0.01'); ?><small>Crecimiento del siguiente lote.</small></label>
+                    <label>Multiplicador bajada<?php seo_processes_number_input('linguista','slowdown_factor',$linguista['slowdown_factor'],0.20,0.95,'0.01'); ?><small>Se aplica en zona lenta o crítica.</small></label>
+                    <label>Pausa normal<?php seo_processes_number_input('linguista','normal_delay_seconds',$linguista['normal_delay_seconds'],1,30); ?><small>Segundos.</small></label>
+                    <label>Pausa lenta<?php seo_processes_number_input('linguista','slow_delay_seconds',$linguista['slow_delay_seconds'],1,120); ?><small>Segundos.</small></label>
+                    <label>Pausa crítica<?php seo_processes_number_input('linguista','critical_delay_seconds',$linguista['critical_delay_seconds'],1,300); ?><small>Segundos.</small></label>
+                </div>
+                <p class="description">Lingüista no ejecuta trabajo pesado desde sus botones: solo deja la formación pendiente y el Gestor de workers le entrega ventanas en round-robin.</p>
             </details>
 
             <details class="seo-process-control-card" open>
@@ -1337,6 +1384,18 @@ if (!function_exists('seo_processes_worker_control')) {
                 wp_send_json_error(array('message' => 'El motor propio de Academia no está disponible.'), 500);
             }
             $result = SEO_Dependiente_Entrenador::process_control_start();
+        } elseif ('linguista' === $process_id) {
+            if (!class_exists('SEO_Dependiente_Linguista') || !is_callable(array('SEO_Dependiente_Linguista', 'process_control_start'))) {
+                wp_send_json_error(array('message' => 'El motor de formación Lingüista no está disponible.'), 500);
+            }
+            $linguista_state = is_callable(array('SEO_Dependiente_Linguista', 'state'))
+                ? (array) SEO_Dependiente_Linguista::state()
+                : array();
+            if ('paused' === sanitize_key((string) ($linguista_state['status'] ?? ''))) {
+                $result = SEO_Dependiente_Linguista::process_control_resume();
+            } else {
+                $result = SEO_Dependiente_Linguista::process_control_start();
+            }
         } elseif ('classifier' === $process_id) {
             $job = seo_processes_classifier_current_job();
             if (!$job || 'paused' !== sanitize_key((string)($job['status'] ?? '')) || !function_exists('seo_classifier_job_control')) {

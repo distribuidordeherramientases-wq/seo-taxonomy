@@ -471,6 +471,8 @@ $cart_count = dht_seo_cart_v3_count();
                 <a class="dht-cart-back" href="<?php echo esc_url($shop_url); ?>">&larr; Seguir comprando</a>
             </div>
 
+            <?php dht_template_render_service_promise('strip', 'checkout'); ?>
+
             <?php dht_seo_cart_v3_render(); ?>
         </div>
     </section>

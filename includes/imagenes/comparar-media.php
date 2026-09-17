@@ -682,6 +682,90 @@ if (!function_exists('seo_images_cleanup_collect_media_context')) {
     }
 }
 
+if (!function_exists('seo_images_cleanup_collect_required_local_usage')) {
+    /**
+     * Detecta attachments que deben permanecer en Media porque son la imagen
+     * representativa de contenido editorial/estructural.
+     *
+     * Los productos se excluyen expresamente: sus imágenes pueden servirse desde
+     * la tabla externa del proveedor. En cambio páginas, posts, landings, hubs,
+     * clusters y otros CPT no-producto necesitan conservar su attachment local.
+     * También se protege cualquier thumbnail de término/taxonomía.
+     *
+     * @param array $attachment_ids IDs de attachments.
+     * @return array<int,array{reasons:array,labels:array}>
+     */
+    function seo_images_cleanup_collect_required_local_usage(array $attachment_ids) {
+        global $wpdb;
+
+        $ids = array_values(array_unique(array_filter(array_map('absint', $attachment_ids))));
+        $usage = array();
+
+        if (empty($ids)) {
+            return $usage;
+        }
+
+        $id_sql = implode(',', $ids);
+
+        // Imágenes destacadas de contenido que no es producto. Esto cubre posts,
+        // páginas y las landings/hubs/clusters, que en este proyecto son páginas.
+        $post_rows = (array) $wpdb->get_results(
+            "SELECT CAST(pm.meta_value AS UNSIGNED) AS attachment_id,
+                    p.ID AS object_id,
+                    p.post_type
+             FROM {$wpdb->postmeta} pm
+             INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+             WHERE pm.meta_key = '_thumbnail_id'
+               AND CAST(pm.meta_value AS UNSIGNED) IN ({$id_sql})
+               AND p.post_status NOT IN ('trash', 'auto-draft')
+               AND p.post_type NOT IN ('product', 'product_variation', 'attachment', 'revision')",
+            ARRAY_A
+        );
+
+        foreach ($post_rows as $row) {
+            $attachment_id = absint($row['attachment_id']);
+            $object_id     = absint($row['object_id']);
+            $post_type     = sanitize_key($row['post_type']);
+            if (!$attachment_id || !$object_id) {
+                continue;
+            }
+            $usage[$attachment_id]['reasons']['USO_LOCAL_CONTENIDO'] = 'USO_LOCAL_CONTENIDO';
+            $usage[$attachment_id]['labels'][] = $post_type . ' #' . $object_id;
+        }
+
+        // Imágenes de categorías y cualquier otra taxonomía. Las taxonomías no
+        // tienen fallback externo y por tanto su thumbnail debe seguir en Media.
+        $term_rows = (array) $wpdb->get_results(
+            "SELECT CAST(tm.meta_value AS UNSIGNED) AS attachment_id,
+                    tm.term_id,
+                    COALESCE(tt.taxonomy, '') AS taxonomy
+             FROM {$wpdb->termmeta} tm
+             LEFT JOIN {$wpdb->term_taxonomy} tt ON tt.term_id = tm.term_id
+             WHERE tm.meta_key = 'thumbnail_id'
+               AND CAST(tm.meta_value AS UNSIGNED) IN ({$id_sql})",
+            ARRAY_A
+        );
+
+        foreach ($term_rows as $row) {
+            $attachment_id = absint($row['attachment_id']);
+            $term_id       = absint($row['term_id']);
+            $taxonomy      = sanitize_key($row['taxonomy']);
+            if (!$attachment_id || !$term_id) {
+                continue;
+            }
+            $usage[$attachment_id]['reasons']['USO_LOCAL_TAXONOMIA'] = 'USO_LOCAL_TAXONOMIA';
+            $usage[$attachment_id]['labels'][] = ($taxonomy !== '' ? $taxonomy : 'term') . ' #' . $term_id;
+        }
+
+        foreach ($usage as $attachment_id => $data) {
+            $usage[$attachment_id]['reasons'] = array_values($data['reasons'] ?? array());
+            $usage[$attachment_id]['labels']  = array_values(array_unique($data['labels'] ?? array()));
+        }
+
+        return $usage;
+    }
+}
+
 if (!function_exists('seo_images_cleanup_index_source_maps')) {
     function seo_images_cleanup_index_source_maps(array $rows, $column) {
         $map = array();
@@ -796,6 +880,7 @@ if (!function_exists('seo_images_cleanup_audit_media_batch')) {
         }
 
         $context = seo_images_cleanup_collect_media_context($ids);
+        $required_local_usage = seo_images_cleanup_collect_required_local_usage($ids);
 
         $media_signatures = array();
         $basename_keys = array();
@@ -920,7 +1005,16 @@ if (!function_exists('seo_images_cleanup_audit_media_batch')) {
                 }
             }
 
-            if ($has_origin) {
+            // Regla de máxima prioridad: aunque exista una copia externa exacta,
+            // la imagen NO se borra si WordPress la necesita localmente para una
+            // página/post/landing/hub/cluster o para una categoría/taxonomía.
+            if (!empty($required_local_usage[$id])) {
+                foreach ($required_local_usage[$id]['reasons'] as $local_reason) {
+                    $rules[$local_reason] = $local_reason;
+                }
+                $decision = 'CONSERVAR_USO_LOCAL';
+                $safe = 0;
+            } elseif ($has_origin) {
                 $decision = 'BORRAR_URL_ORIGEN_EXACTA';
                 $safe = 1;
             } elseif ($has_path) {
@@ -1025,6 +1119,7 @@ if (!function_exists('seo_images_cleanup_candidate_stats')) {
             'BORRAR_MISMO_PRODUCTO'        => 0,
             'BORRAR_RUTA_PROVEEDOR_UNICA'  => 0,
             'REVISAR_NOMBRE_COMPARTIDO'    => 0,
+            'CONSERVAR_USO_LOCAL'           => 0,
         );
 
         $rows = (array) $wpdb->get_results(

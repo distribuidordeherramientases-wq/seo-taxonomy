@@ -22,8 +22,8 @@
  * @author David Perez Martorell
  * @license GPL-2.0-or-later
  * @since 2.0.0
- * @version 2026-09-05
- * Build: 039
+ * @version 2026-08-30
+ * Build: 034
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -71,17 +71,6 @@ if ( is_readable( $seo_supplier_connections_file ) ) {
 unset( $seo_supplier_connections_file );
 
 /*
- * Versionado temporal compartido entre los importadores. Protege la
- * sincronizacion PRO <-> STAGING para que una fila antigua no pise una
- * version local mas reciente y conserva las fechas de origen al importar.
- */
-$seo_sync_versioning_file = __DIR__ . '/sync-versioning.php';
-if ( is_readable( $seo_sync_versioning_file ) ) {
-    require_once $seo_sync_versioning_file;
-}
-unset( $seo_sync_versioning_file );
-
-/*
  * La cola multientidad vive en un modulo independiente para mantener
  * seo-export.php centrado en los importadores y exportadores individuales.
  */
@@ -106,13 +95,10 @@ unset( $seo_import_batch_file );
 
 // Procesa las operaciones antes de que WordPress imprima HTML.
 add_action( 'admin_init', 'seo_export_categories_csv' );
+add_action( 'admin_init', 'seo_import_categories_csv' );
 add_action( 'admin_init', 'seo_export_products_csv' );
-add_action( 'admin_init', 'seo_export_required_catalogs_csv' );
-// La importacion individual de categorias ya no se registra en admin_init.
-// El motor seo_import_categories_csv() se conserva exclusivamente como backend
-// de la cola automatica, que valida/audita el archivo antes de ejecutarlo.
-// La importacion manual de productos esta deshabilitada. El motor de productos
-// se conserva exclusivamente como backend de la cola automatica por cabeceras.
+add_action( 'admin_init', 'seo_import_products_csv' );
+add_action( 'wp_ajax_seo_ie_product_import', 'seo_import_products_csv' );
 add_action( 'seo_ie_process_product_import_batch', 'seo_ie_product_import_background_worker', 10, 2 );
 add_action( 'seo_ie_product_import_watchdog', 'seo_ie_product_import_watchdog_worker', 10, 2 );
 add_action( 'admin_init', 'seo_export_pages_csv' );
@@ -265,10 +251,6 @@ function seo_ie_normalize_csv_header( $header, $entity ) {
         'category_image_id'  => 'imagen_destacada_id',
         'category_image'     => 'imagen_destacada',
         'category_image_url' => 'imagen_destacada',
-        'modified'           => 'fecha_modificada',
-        'term_modified'      => 'fecha_modificada',
-        'modified_gmt'       => 'fecha_modificada_gmt',
-        'term_modified_gmt'  => 'fecha_modificada_gmt',
     ];
 
     $product_aliases = [
@@ -320,15 +302,8 @@ function seo_ie_normalize_csv_header( $header, $entity ) {
         'wc_attributes'            => 'atributos_wc_json',
         'woocommerce_attributes'   => 'atributos_wc_json',
         'seo_attributes_json'      => 'atributos_seo_json',
-        'semantic_type'            => 'tipo_semantico',
-        'semantic_role'            => 'rol',
-        'application'              => 'aplicacion',
-        'platform'                 => 'plataforma',
-        'subtype'                  => 'subtipo',
         'date_created'             => 'fecha_creacion',
-        'date_created_gmt'         => 'fecha_creacion_gmt',
         'date_modified'            => 'fecha_modificacion',
-        'date_modified_gmt'        => 'fecha_modificacion_gmt',
     ];
 
     $page_aliases = [
@@ -520,17 +495,16 @@ function seo_ie_build_csv_row( $header, $csv_row ) {
 }
 
 /**
- * Inserta o actualiza contenido editorial temporal de categorías en wp_seo_nodes.
+ * Inserta o actualiza un único valor de wp_seo_nodes.
  *
- * Desde 2.3.4 seo_nodes ya no admite semántica de producto/categoría (ambito).
- * Solo se mantienen aquí excerpt y description hasta su futura migración editorial.
- * Si el valor queda vacío, elimina únicamente ese rol.
+ * Mantiene una sola fila por pareja objeto/rol y elimina duplicados
+ * antiguos. Si el valor queda vacío, elimina únicamente ese rol.
  *
  * @since 2.0.0
  *
- * @param string $object_type Solo category.
+ * @param string $object_type category o product.
  * @param int    $object_id   ID real de WordPress.
- * @param string $seo_role    excerpt o description.
+ * @param string $seo_role    ambito, excerpt o description, según el objeto.
  * @param string $keywords    Valor que se almacenará.
  * @return bool
  */
@@ -545,7 +519,8 @@ function seo_ie_upsert_node_value( $object_type, $object_id, $seo_role, $keyword
     $table       = $wpdb->prefix . 'seo_nodes';
 
     $valid_roles = [
-        'category' => [ 'excerpt', 'description' ],
+        'category' => [ 'ambito', 'excerpt', 'description' ],
+        'product'  => [ 'ambito' ],
     ];
 
     if (
@@ -747,388 +722,6 @@ function seo_ie_open_csv_download( $filename ) {
 function seo_ie_write_csv_row( $output, $fields ) {
 
     fputcsv( $output, $fields, ';', '"', '' );
-}
-
-/**
- * Exporta en un unico CSV los catalogos maestros que deben respetarse al
- * crear o actualizar productos/categorias desde sistemas externos.
- *
- * El archivo NO exporta asignaciones actuales de objetos/productos. Por tanto,
- * seo_object_vocabulary y sql_product_atributos quedan fuera deliberadamente:
- * son tablas destino de asignacion, no diccionarios de valores permitidos.
- *
- * Catalogos incluidos:
- * - seo_vocabulary: etiquetas semanticas activas.
- * - seo_type_role_map: relacion canonica TIPO -> ROL activa.
- * - sql_atributos: definiciones activas de atributos tecnicos.
- * - sql_atributos_terminos: terminos activos permitidos.
- * - sql_atributos_aliases: aliases utilizables para atributos activos.
- * - product_tag: etiquetas WooCommerce existentes que el importador de productos puede asignar.
- *
- * @since 2.0.0
- *
- * @return void
- */
-function seo_export_required_catalogs_csv() {
-
-    if ( ! isset( $_POST['seo_export_required_catalogs'] ) ) {
-        return;
-    }
-
-    if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para exportar los catalogos obligatorios.', 'seo-system' ) );
-    }
-
-    check_admin_referer(
-        'seo_export_required_catalogs_csv',
-        'seo_export_required_catalogs_nonce'
-    );
-
-    global $wpdb;
-
-    $tables = [
-        'seo_vocabulary'         => $wpdb->prefix . 'seo_vocabulary',
-        'seo_type_role_map'      => $wpdb->prefix . 'seo_type_role_map',
-        'sql_atributos'          => $wpdb->prefix . 'sql_atributos',
-        'sql_atributos_terminos' => $wpdb->prefix . 'sql_atributos_terminos',
-        'sql_atributos_aliases'  => $wpdb->prefix . 'sql_atributos_aliases',
-    ];
-
-    $missing = [];
-
-    foreach ( $tables as $logical_name => $physical_name ) {
-        $found = $wpdb->get_var(
-            $wpdb->prepare(
-                'SHOW TABLES LIKE %s',
-                $wpdb->esc_like( $physical_name )
-            )
-        );
-
-        if ( $physical_name !== $found ) {
-            $missing[] = $logical_name;
-        }
-    }
-
-    if ( $missing ) {
-        wp_die(
-            esc_html(
-                sprintf(
-                    'No se puede generar el CSV maestro porque faltan estas tablas: %s.',
-                    implode( ', ', $missing )
-                )
-            ),
-            esc_html__( 'Catalogos SEO incompletos', 'seo-system' )
-        );
-    }
-
-    $filename = 'seo_catalogos_obligatorios_' . wp_date( 'Ymd_His' ) . '.csv';
-    $output   = seo_ie_open_csv_download( $filename );
-
-    $headers = [
-        'tabla',
-        'tabla_fisica',
-        'tipo_registro',
-        'uso',
-        'id',
-        'semantic_group',
-        'slug',
-        'label',
-        'parent_id',
-        'source',
-        'active',
-        'type_vocabulary_id',
-        'type_slug',
-        'type_label',
-        'role_vocabulary_id',
-        'role_slug',
-        'role_label',
-        'confidence',
-        'attribute_id',
-        'attribute_slug',
-        'attribute_name',
-        'attribute_group',
-        'attribute_type',
-        'unit_type',
-        'base_unit',
-        'multiple',
-        'filterable',
-        'visible',
-        'seo',
-        'sort_order',
-        'term_id',
-        'term_slug',
-        'term_name',
-        'alias',
-    ];
-
-    seo_ie_write_csv_row( $output, $headers );
-
-    $exported = 0;
-
-    $write_record = static function ( $data ) use ( $output, $headers, &$exported ) {
-        $row = [];
-
-        foreach ( $headers as $header ) {
-            $row[] = array_key_exists( $header, $data ) ? $data[ $header ] : '';
-        }
-
-        seo_ie_write_csv_row( $output, $row );
-        $exported++;
-    };
-
-    // 1) Vocabulario semantico activo: ROL, TIPO, APLICACION, PLATAFORMA,
-    // SUBTIPO y cualquier otro grupo canonico habilitado en la instalacion.
-    $vocabulary_rows = $wpdb->get_results(
-        "SELECT id, semantic_group, slug, label, parent_id, source, active
-         FROM {$tables['seo_vocabulary']}
-         WHERE active = 1
-         ORDER BY semantic_group ASC, label ASC, id ASC",
-        ARRAY_A
-    );
-
-    foreach ( (array) $vocabulary_rows as $row ) {
-        $write_record(
-            [
-                'tabla'          => 'seo_vocabulary',
-                'tabla_fisica'   => $tables['seo_vocabulary'],
-                'tipo_registro'  => 'vocabulary',
-                'uso'            => 'Etiqueta semantica permitida',
-                'id'             => $row['id'],
-                'semantic_group' => $row['semantic_group'],
-                'slug'           => $row['slug'],
-                'label'          => $row['label'],
-                'parent_id'      => $row['parent_id'],
-                'source'         => $row['source'],
-                'active'         => $row['active'],
-            ]
-        );
-    }
-
-    // 2) Mapeo TIPO -> ROL: solo relaciones activas cuyos dos extremos estan
-    // tambien activos y pertenecen a los grupos semanticos correctos.
-    $type_role_rows = $wpdb->get_results(
-        "SELECT
-            m.id,
-            m.type_vocabulary_id,
-            tv.slug AS type_slug,
-            tv.label AS type_label,
-            m.role_vocabulary_id,
-            rv.slug AS role_slug,
-            rv.label AS role_label,
-            m.confidence,
-            m.source,
-            m.active
-         FROM {$tables['seo_type_role_map']} m
-         INNER JOIN {$tables['seo_vocabulary']} tv
-            ON tv.id = m.type_vocabulary_id
-           AND tv.active = 1
-           AND tv.semantic_group = 'tipo'
-         INNER JOIN {$tables['seo_vocabulary']} rv
-            ON rv.id = m.role_vocabulary_id
-           AND rv.active = 1
-           AND rv.semantic_group = 'rol'
-         WHERE m.active = 1
-         ORDER BY tv.label ASC, rv.label ASC, m.id ASC",
-        ARRAY_A
-    );
-
-    foreach ( (array) $type_role_rows as $row ) {
-        $write_record(
-            [
-                'tabla'              => 'seo_type_role_map',
-                'tabla_fisica'       => $tables['seo_type_role_map'],
-                'tipo_registro'      => 'type_role_map',
-                'uso'                => 'Relacion obligatoria TIPO -> ROL',
-                'id'                 => $row['id'],
-                'source'             => $row['source'],
-                'active'             => $row['active'],
-                'type_vocabulary_id' => $row['type_vocabulary_id'],
-                'type_slug'          => $row['type_slug'],
-                'type_label'         => $row['type_label'],
-                'role_vocabulary_id' => $row['role_vocabulary_id'],
-                'role_slug'          => $row['role_slug'],
-                'role_label'         => $row['role_label'],
-                'confidence'         => $row['confidence'],
-            ]
-        );
-    }
-
-    // 3) Definiciones activas de atributos tecnicos.
-    $attribute_rows = $wpdb->get_results(
-        "SELECT
-            id, slug, nombre, grupo, tipo, unidad_tipo, unidad_base,
-            multiple, filtrable, visible, seo, orden, activo
-         FROM {$tables['sql_atributos']}
-         WHERE activo = 1
-         ORDER BY orden ASC, nombre ASC, id ASC",
-        ARRAY_A
-    );
-
-    foreach ( (array) $attribute_rows as $row ) {
-        $write_record(
-            [
-                'tabla'           => 'sql_atributos',
-                'tabla_fisica'    => $tables['sql_atributos'],
-                'tipo_registro'   => 'attribute',
-                'uso'             => 'Definicion de atributo permitida',
-                'id'              => $row['id'],
-                'active'          => $row['activo'],
-                'attribute_id'    => $row['id'],
-                'attribute_slug'  => $row['slug'],
-                'attribute_name'  => $row['nombre'],
-                'attribute_group' => $row['grupo'],
-                'attribute_type'  => $row['tipo'],
-                'unit_type'       => $row['unidad_tipo'],
-                'base_unit'       => $row['unidad_base'],
-                'multiple'        => $row['multiple'],
-                'filterable'      => $row['filtrable'],
-                'visible'         => $row['visible'],
-                'seo'             => $row['seo'],
-                'sort_order'      => $row['orden'],
-            ]
-        );
-    }
-
-    // 4) Terminos controlados activos de atributos activos.
-    $term_rows = $wpdb->get_results(
-        "SELECT
-            t.id AS term_id,
-            t.atributo_id AS attribute_id,
-            a.slug AS attribute_slug,
-            a.nombre AS attribute_name,
-            a.grupo AS attribute_group,
-            a.tipo AS attribute_type,
-            t.slug AS term_slug,
-            t.nombre AS term_name,
-            t.orden AS sort_order,
-            t.activo AS active
-         FROM {$tables['sql_atributos_terminos']} t
-         INNER JOIN {$tables['sql_atributos']} a
-            ON a.id = t.atributo_id
-           AND a.activo = 1
-         WHERE t.activo = 1
-         ORDER BY a.orden ASC, a.nombre ASC, t.orden ASC, t.nombre ASC, t.id ASC",
-        ARRAY_A
-    );
-
-    foreach ( (array) $term_rows as $row ) {
-        $write_record(
-            [
-                'tabla'           => 'sql_atributos_terminos',
-                'tabla_fisica'    => $tables['sql_atributos_terminos'],
-                'tipo_registro'   => 'attribute_term',
-                'uso'             => 'Valor controlado permitido para atributo tipo termino',
-                'id'              => $row['term_id'],
-                'active'          => $row['active'],
-                'attribute_id'    => $row['attribute_id'],
-                'attribute_slug'  => $row['attribute_slug'],
-                'attribute_name'  => $row['attribute_name'],
-                'attribute_group' => $row['attribute_group'],
-                'attribute_type'  => $row['attribute_type'],
-                'sort_order'      => $row['sort_order'],
-                'term_id'         => $row['term_id'],
-                'term_slug'       => $row['term_slug'],
-                'term_name'       => $row['term_name'],
-            ]
-        );
-    }
-
-    // 5) Aliases reconocidos. Si el alias apunta a un termino, solo se incluye
-    // cuando dicho termino esta activo; los aliases sin termino siguen siendo
-    // validos para atributos activos que los utilicen como normalizacion libre.
-    $alias_rows = $wpdb->get_results(
-        "SELECT
-            al.id,
-            al.atributo_id AS attribute_id,
-            a.slug AS attribute_slug,
-            a.nombre AS attribute_name,
-            a.grupo AS attribute_group,
-            a.tipo AS attribute_type,
-            al.termino_id AS term_id,
-            t.slug AS term_slug,
-            t.nombre AS term_name,
-            al.alias
-         FROM {$tables['sql_atributos_aliases']} al
-         INNER JOIN {$tables['sql_atributos']} a
-            ON a.id = al.atributo_id
-           AND a.activo = 1
-         LEFT JOIN {$tables['sql_atributos_terminos']} t
-            ON t.id = al.termino_id
-           AND t.activo = 1
-         WHERE al.termino_id IS NULL OR t.id IS NOT NULL
-         ORDER BY a.orden ASC, a.nombre ASC, al.alias ASC, al.id ASC",
-        ARRAY_A
-    );
-
-    foreach ( (array) $alias_rows as $row ) {
-        $write_record(
-            [
-                'tabla'           => 'sql_atributos_aliases',
-                'tabla_fisica'    => $tables['sql_atributos_aliases'],
-                'tipo_registro'   => 'attribute_alias',
-                'uso'             => 'Alias aceptado para normalizar un valor existente',
-                'id'              => $row['id'],
-                'attribute_id'    => $row['attribute_id'],
-                'attribute_slug'  => $row['attribute_slug'],
-                'attribute_name'  => $row['attribute_name'],
-                'attribute_group' => $row['attribute_group'],
-                'attribute_type'  => $row['attribute_type'],
-                'term_id'         => $row['term_id'],
-                'term_slug'       => $row['term_slug'],
-                'term_name'       => $row['term_name'],
-                'alias'           => $row['alias'],
-            ]
-        );
-    }
-
-    // 6) Etiquetas WooCommerce existentes. El importador de productos en modo
-    // seguro nunca crea product_tag implícitamente; por eso forman parte del
-    // catálogo permitido y, si faltan, se dan de alta previamente con el
-    // importador explícito de vocabulario.
-    if ( taxonomy_exists( 'product_tag' ) ) {
-        $product_tags = get_terms(
-            [
-                'taxonomy'   => 'product_tag',
-                'hide_empty' => false,
-                'orderby'    => 'name',
-                'order'      => 'ASC',
-            ]
-        );
-
-        if ( ! is_wp_error( $product_tags ) ) {
-            foreach ( (array) $product_tags as $term ) {
-                $write_record(
-                    [
-                        'tabla'         => 'woocommerce_product_tag',
-                        'tabla_fisica'  => $wpdb->terms . ' + ' . $wpdb->term_taxonomy,
-                        'tipo_registro' => 'product_tag',
-                        'uso'           => 'Etiqueta WooCommerce permitida',
-                        'id'            => (int) $term->term_id,
-                        'slug'          => (string) $term->slug,
-                        'label'         => (string) $term->name,
-                        'active'        => 1,
-                    ]
-                );
-            }
-        }
-    }
-
-    seo_ie_store_log(
-        [
-            'operacion'  => 'Exportacion de catalogos obligatorios',
-            'archivo'    => $filename,
-            'procesados' => $exported,
-            'correctos'  => $exported,
-            'errores'    => 0,
-            'detalles'   => [
-                'CSV unico con valores activos de seo_vocabulary, seo_type_role_map, sql_atributos, sql_atributos_terminos, sql_atributos_aliases y product_tag.',
-                'seo_object_vocabulary y sql_product_atributos no se exportan porque contienen asignaciones, no catalogos de valores permitidos.',
-            ],
-        ]
-    );
-
-    fclose( $output );
-    exit;
 }
 
 /**
@@ -1429,8 +1022,7 @@ function seo_ie_import_category_thumbnail( $category_id, $row, $line, &$log ) {
  *
  * Orígenes:
  * - WordPress/WooCommerce: ID, nombre, slug, padre e imagen de categoría.
- * - wp_seo_nodes: excerpt y description (almacenamiento editorial temporal).
- * - Vocabulary canónico: ROL exportado bajo la cabecera legacy ambito.
+ * - wp_seo_nodes: ámbito, excerpt y description.
  * - wp_seo_relations: hub secundario estructural de la categoría cuando es único.
  *
  * @since 2.0.0
@@ -1456,10 +1048,10 @@ function seo_export_categories_csv() {
 
     $nodes = $wpdb->get_results(
         "
-        SELECT object_id, seo_role, keywords, updated_at
+        SELECT object_id, seo_role, keywords
         FROM {$wpdb->prefix}seo_nodes
         WHERE object_type = 'category'
-          AND seo_role IN ('excerpt', 'description')
+          AND seo_role IN ('ambito', 'excerpt', 'description')
           AND status = 1
         ORDER BY object_id ASC, seo_role ASC, updated_at DESC, id DESC
         "
@@ -1474,18 +1066,17 @@ function seo_export_categories_csv() {
 
         if ( ! isset( $nodes_by_category[ $category_id ] ) ) {
             $nodes_by_category[ $category_id ] = [
+                'ambito'      => '',
                 'excerpt'     => '',
                 'description' => '',
-                '_latest_updated_at' => '',
             ];
         }
 
-        if ( '' !== trim( (string) $node->updated_at ) && ( '' === $nodes_by_category[ $category_id ]['_latest_updated_at'] || strcmp( (string) $node->updated_at, $nodes_by_category[ $category_id ]['_latest_updated_at'] ) > 0 ) ) {
-            $nodes_by_category[ $category_id ]['_latest_updated_at'] = (string) $node->updated_at;
-        }
-
         // La consulta está ordenada por la fila activa más reciente.
-        if ( 'excerpt' === $seo_role && '' === $nodes_by_category[ $category_id ]['excerpt'] ) {
+        if ( 'ambito' === $seo_role && '' === $nodes_by_category[ $category_id ]['ambito'] ) {
+            $nodes_by_category[ $category_id ]['ambito'] =
+                seo_ie_normalize_ambito( $node->keywords );
+        } elseif ( 'excerpt' === $seo_role && '' === $nodes_by_category[ $category_id ]['excerpt'] ) {
             $nodes_by_category[ $category_id ]['excerpt'] = (string) $node->keywords;
         } elseif ( 'description' === $seo_role && '' === $nodes_by_category[ $category_id ]['description'] ) {
             $nodes_by_category[ $category_id ]['description'] = (string) $node->keywords;
@@ -1506,25 +1097,6 @@ function seo_export_categories_csv() {
             esc_html( $categories->get_error_message() ),
             esc_html__( 'Error exportando categorías', 'seo-system' )
         );
-    }
-
-    // La cabecera legacy `ambito` se conserva, pero desde 2.3.4 su fuente es
-    // exclusivamente el grupo ROL del Vocabulary canónico de product_cat.
-    $category_roles = [];
-    if ( function_exists( 'seo_category_vocabulary_rows_map' ) ) {
-        $vocabulary_rows = seo_category_vocabulary_rows_map( wp_list_pluck( $categories, 'term_id' ) );
-        foreach ( (array) $vocabulary_rows as $category_id => $rows ) {
-            foreach ( (array) $rows as $row ) {
-                if ( 'rol' !== sanitize_key( (string) ( $row['semantic_group'] ?? '' ) ) ) {
-                    continue;
-                }
-                $role = seo_ie_normalize_ambito( $row['slug'] ?? $row['label'] ?? '' );
-                if ( '' !== $role ) {
-                    $category_roles[ absint( $category_id ) ] = $role;
-                    break;
-                }
-            }
-        }
     }
 
     // La jerarquía SEO no depende del parent de WordPress. Se exporta aparte.
@@ -1567,7 +1139,7 @@ function seo_export_categories_csv() {
             'correctos'  => count( $categories ),
             'errores'    => 0,
             'detalles'   => [
-                'WordPress/WooCommerce aporta ID, nombre, slug, padre e imagen. Vocabulary aporta ROL (cabecera ambito). seo_nodes conserva temporalmente excerpt/description. seo_relations aporta hub_secondary_id cuando la asignación es única.',
+                'WordPress/WooCommerce aporta ID, nombre, slug, padre e imagen (attachment ID + URL). seo_nodes aporta ámbito, excerpt y description. seo_relations aporta hub_secondary_id cuando la asignación es única.',
             ],
         ]
     );
@@ -1587,8 +1159,6 @@ function seo_export_categories_csv() {
             'description',
             'excerpt',
             'ambito',
-            'fecha_modificada',
-            'fecha_modificada_gmt',
         ]
     );
 
@@ -1598,17 +1168,10 @@ function seo_export_categories_csv() {
         $thumbnail_id  = absint( get_term_meta( $category_id, 'thumbnail_id', true ) );
         $thumbnail_url = 0 < $thumbnail_id ? ( wp_get_attachment_url( $thumbnail_id ) ?: '' ) : '';
         $node_data     = $nodes_by_category[ $category_id ] ?? [
+            'ambito'      => '',
             'excerpt'     => '',
             'description' => '',
-            '_latest_updated_at' => '',
         ];
-
-        $category_modified_ts = function_exists( 'seo_ie_sync_category_modified_timestamp' )
-            ? seo_ie_sync_category_modified_timestamp( $category_id )
-            : 0;
-        if ( $category_modified_ts <= 0 && ! empty( $node_data['_latest_updated_at'] ) && function_exists( 'seo_ie_sync_datetime_to_timestamp' ) ) {
-            $category_modified_ts = seo_ie_sync_datetime_to_timestamp( $node_data['_latest_updated_at'], false );
-        }
 
         seo_ie_write_csv_row(
             $output,
@@ -1624,9 +1187,7 @@ function seo_export_categories_csv() {
                 $thumbnail_url,
                 $node_data['description'],
                 $node_data['excerpt'],
-                (string) ( $category_roles[ $category_id ] ?? '' ),
-                $category_modified_ts > 0 && function_exists( 'seo_ie_sync_format_timestamp' ) ? seo_ie_sync_format_timestamp( $category_modified_ts, false ) : '',
-                $category_modified_ts > 0 && function_exists( 'seo_ie_sync_format_timestamp' ) ? seo_ie_sync_format_timestamp( $category_modified_ts, true ) : '',
+                $node_data['ambito'],
             ]
         );
     }
@@ -1636,14 +1197,10 @@ function seo_export_categories_csv() {
 }
 
 /**
- * Backend interno de importación de categorías para la cola automatizada.
- *
- * No se registra en admin_init ni dispone de formulario de importación manual.
- * La cola auditada prepara el contexto interno y llama directamente a esta función.
+ * Importa categorías desde el CSV generado por SEO System.
  *
  * Actualiza o crea categorías, manteniendo ID/nombre/slug/padre e imagen en WordPress
- * y excerpt/description en wp_seo_nodes. La cabecera legacy ambito se traduce
- * al grupo ROL del Vocabulary canónico y nunca vuelve a crear category/ambito.
+ * y ámbito/excerpt/description en wp_seo_nodes.
  * Si hub_secondary_id está informado, sincroniza la relación estructural única
  * hub_secondary_to_category. Si category_id está vacío, reutiliza primero una
  * categoría existente por slug/nombre y solo crea una nueva si no existe.
@@ -1656,12 +1213,6 @@ function seo_export_categories_csv() {
 function seo_import_categories_csv() {
 
     global $wpdb;
-
-    // La importación de categorías queda reservada a la cola automática.
-    // Esto evita que un POST manual pueda saltarse la auditoría previa.
-    if ( function_exists( 'seo_ie_batch_is_internal' ) && ! seo_ie_batch_is_internal( 'category' ) ) {
-        return;
-    }
 
     if ( ! isset( $_POST['seo_import_categories'] ) ) {
         return;
@@ -1703,36 +1254,6 @@ function seo_import_categories_csv() {
         wp_die( esc_html__( 'El CSV de categorías está vacío.', 'seo-system' ) );
     }
 
-    // Cinturon de seguridad: el CSV de catalogos maestros incluye `term_id`,
-    // `slug` y `label`, por lo que nunca debe pasar por product_cat aunque el
-    // detector de cola fuese antiguo o una ruta manual lo enviase aqui.
-    $raw_category_keys = array_map(
-        static function ( $column ) {
-            $column = seo_ie_csv_to_utf8( (string) $column );
-            $column = preg_replace( '/^\xEF\xBB\xBF/', '', $column );
-            return sanitize_key( trim( $column ) );
-        },
-        (array) $header
-    );
-    $looks_like_catalog = in_array( 'tipo_registro', $raw_category_keys, true )
-        && ( in_array( 'tabla', $raw_category_keys, true ) || in_array( 'tabla_fisica', $raw_category_keys, true ) );
-
-    if ( $looks_like_catalog ) {
-        fclose( $handle );
-        $log = [
-            'operacion'  => 'Importación de categorías bloqueada',
-            'archivo'    => sanitize_file_name( $_FILES['categories_csv']['name'] ?? '' ),
-            'procesados' => 0,
-            'correctos'  => 0,
-            'errores'    => 1,
-            'detalles'   => [
-                'CSV de vocabulario/atributos detectado. Se ha bloqueado antes de escribir product_cat; debe procesarse con el importador de vocabulario y atributos.',
-            ],
-        ];
-        seo_ie_store_log( $log );
-        return $log;
-    }
-
     $header = seo_ie_normalize_csv_header( $header, 'category' );
 
     if ( ! in_array( 'category_id', $header, true ) ) {
@@ -1745,7 +1266,6 @@ function seo_import_categories_csv() {
         'archivo'    => sanitize_file_name( $_FILES['categories_csv']['name'] ),
         'procesados' => 0,
         'correctos'  => 0,
-        'omitidos'   => 0,
         'errores'    => 0,
         'detalles'   => [],
     ];
@@ -1767,7 +1287,6 @@ $batch_size      = PHP_INT_MAX;
         $row         = seo_ie_build_csv_row( $header, $csv_row );
  
  $category_id = absint( $row['category_id'] ?? 0 );
- $category_preexisting = false;
 
 /*
  * Si category_id viene vacío se crea una categoría nueva.
@@ -1775,7 +1294,6 @@ $batch_size      = PHP_INT_MAX;
  */
 if ( $category_id > 0 ) {
 
-    $category_preexisting = true;
     $category = get_term( $category_id, 'product_cat' );
 
     if ( ! $category || is_wp_error( $category ) ) {
@@ -1813,7 +1331,6 @@ if ( $category_id > 0 ) {
     }
 
     if ( $existing && ! is_wp_error( $existing ) ) {
-        $category_preexisting = true;
         $category_id = absint( $existing->term_id );
         seo_ie_add_log_detail(
             $log,
@@ -1865,24 +1382,6 @@ if ( $category_id > 0 ) {
         );
     }
 }
-
-        if ( $category_preexisting && function_exists( 'seo_ie_sync_category_update_decision' ) ) {
-            $version_decision = seo_ie_sync_category_update_decision( $category_id, $row );
-            if ( ! empty( $version_decision['skip'] ) ) {
-                $log['omitidos']++;
-                seo_ie_add_log_detail(
-                    $log,
-                    sprintf(
-                        'Fila %d, categoría %d: omitida; la versión local (%s) es más reciente que el CSV (%s).',
-                        $line,
-                        $category_id,
-                        seo_ie_sync_format_timestamp( $version_decision['destination'], true ),
-                        seo_ie_sync_format_timestamp( $version_decision['source'], true )
-                    )
-                );
-                continue;
-            }
-        }
 
  
 
@@ -2025,7 +1524,7 @@ if ( ! empty( $term_data ) ) {
                 seo_ie_add_log_detail(
                     $log,
                     sprintf(
-                        'Fila %d, categoría %d: ámbito/ROL no válido «%s».',
+                        'Fila %d, categoría %d: ámbito no válido «%s».',
                         $line,
                         $category_id,
                         $raw_ambito
@@ -2034,57 +1533,12 @@ if ( ! empty( $term_data ) ) {
                 continue;
             }
 
-            if ( ! function_exists( 'seo_category_vocabulary_rows_map' )
-                || ! function_exists( 'seo_category_vocabulary_find_active_term' )
-                || ! function_exists( 'seo_category_vocabulary_replace' ) ) {
-                $log['errores']++;
-                seo_ie_add_log_detail(
-                    $log,
-                    sprintf( 'Fila %d, categoría %d: Vocabulary canónico no disponible para guardar ROL.', $line, $category_id )
-                );
-                continue;
-            }
-
-            $groups = [
-                'rol'        => [],
-                'tipo'       => [],
-                'aplicacion' => [],
-                'plataforma' => [],
-                'subtipo'    => [],
-            ];
-            $current_map = seo_category_vocabulary_rows_map( [ $category_id ] );
-            foreach ( (array) ( $current_map[ $category_id ] ?? [] ) as $assignment ) {
-                $group = sanitize_key( (string) ( $assignment['semantic_group'] ?? '' ) );
-                $term_id = absint( $assignment['vocabulary_id'] ?? 0 );
-                if ( isset( $groups[ $group ] ) && $term_id > 0 ) {
-                    $groups[ $group ][] = $term_id;
-                }
-            }
-
-            // Una celda vacía limpia únicamente ROL; el resto del Vocabulary se preserva.
-            $groups['rol'] = [];
-            if ( '' !== $ambito ) {
-                $role_term = seo_category_vocabulary_find_active_term( 'rol', $ambito );
-                if ( ! $role_term ) {
-                    $log['errores']++;
-                    seo_ie_add_log_detail(
-                        $log,
-                        sprintf( 'Fila %d, categoría %d: no existe un término ROL canónico inequívoco para «%s».', $line, $category_id, $ambito )
-                    );
-                    continue;
-                }
-                $groups['rol'] = [ absint( $role_term['id'] ?? 0 ) ];
-            }
-
-            $role_result = seo_category_vocabulary_replace( $category_id, $groups, 'legacy_category_csv' );
-            if ( is_wp_error( $role_result ) ) {
-                $log['errores']++;
-                seo_ie_add_log_detail(
-                    $log,
-                    sprintf( 'Fila %d, categoría %d: %s', $line, $category_id, $role_result->get_error_message() )
-                );
-                continue;
-            }
+            seo_ie_upsert_node_value(
+                'category',
+                $category_id,
+                'ambito',
+                $ambito
+            );
         }
 
         /*
@@ -2200,10 +1654,6 @@ if ( ! empty( $term_data ) ) {
             );
         }
 
-        if ( function_exists( 'seo_ie_sync_restore_category_modified' ) ) {
-            seo_ie_sync_restore_category_modified( $category_id, $row );
-        }
-
         $log['correctos']++;
     }
 
@@ -2236,34 +1686,6 @@ function seo_ie_product_v2_wc_ready() {
         && function_exists( 'wc_get_product_id_by_sku' )
         && class_exists( 'WC_Product' )
         && class_exists( 'WC_Product_Simple' );
-}
-
-/**
- * Normaliza un SKU procedente de WooCommerce o de un CSV.
- *
- * Algunos productos legacy usan "0" como valor centinela para "sin SKU".
- * WooCommerce, en cambio, trata el SKU como identificador unico. Para evitar
- * falsos conflictos y reescrituras accidentales, "0" se considera vacio.
- *
- * @param mixed $value Valor original.
- * @return string SKU limpio o cadena vacia.
- */
-function seo_ie_product_v2_normalize_sku( $value ) {
-    if ( is_array( $value ) || is_object( $value ) ) {
-        return '';
-    }
-
-    $sku = function_exists( 'wc_clean' )
-        ? wc_clean( (string) $value )
-        : sanitize_text_field( (string) $value );
-
-    $sku = trim( (string) $sku );
-
-    if ( '' === $sku || '0' === $sku ) {
-        return '';
-    }
-
-    return $sku;
 }
 
 /**
@@ -2692,7 +2114,6 @@ function seo_ie_product_v2_build_wc_attributes( $rows, $dry_run = false ) {
     return $attributes;
 }
 
-
 /**
  * Serializa los atributos SEO en JSON, manteniendo también la columna antigua.
  *
@@ -2777,323 +2198,6 @@ function seo_ie_product_v2_parse_seo_attributes_json( $encoded, $product_scope )
 }
 
 /**
- * Valida atributos SEO contra el maestro canónico sin escribir datos.
- *
- * Los atributos de tipo término deben existir como término o alias. Para tipos
- * numéricos/rango/boolean se aplican comprobaciones mínimas de forma para evitar
- * que texto arbitrario termine en un campo estructurado.
- *
- * @param array $rows Filas normalizadas del parser de atributos.
- * @return array<int,array<string,string>> Incidencias para el CSV de rechazados.
- */
-function seo_ie_product_v2_validate_seo_attributes( $rows ) {
-    $issues = [];
-
-    if ( ! function_exists( 'seo_attributes_get_definition' ) ) {
-        throw new RuntimeException( 'El servicio canónico de atributos no está disponible.' );
-    }
-
-    $counts = [];
-
-    foreach ( (array) $rows as $row ) {
-        if ( ! is_array( $row ) ) {
-            continue;
-        }
-
-        $type  = sanitize_key( (string) ( $row['attribute_type'] ?? $row['slug'] ?? '' ) );
-        $value = sanitize_textarea_field( trim( (string) ( $row['attribute_value'] ?? $row['value'] ?? '' ) ) );
-
-        if ( '' === $type || '' === $value ) {
-            $issues[] = [
-                'domain' => 'attributes',
-                'field'  => $type ?: 'atributo',
-                'value'  => $value,
-                'reason' => 'El atributo está incompleto.',
-            ];
-            continue;
-        }
-
-        $definition = seo_attributes_get_definition( $type, true );
-        if ( ! is_array( $definition ) ) {
-            $issues[] = [
-                'domain' => 'attributes',
-                'field'  => $type,
-                'value'  => $value,
-                'reason' => sprintf( 'El atributo «%s» no existe o está inactivo en el vocabulario canónico.', $type ),
-            ];
-            continue;
-        }
-
-        $attribute_id = absint( $definition['id'] ?? 0 );
-        $counts[ $attribute_id ] = absint( $counts[ $attribute_id ] ?? 0 ) + 1;
-
-        $data_type = sanitize_key( (string) ( $definition['tipo'] ?? 'texto' ) );
-
-        if ( 'termino' === $data_type ) {
-            $term = function_exists( 'seo_attributes_resolve_term' )
-                ? seo_attributes_resolve_term( $attribute_id, $value )
-                : null;
-
-            if ( ! $term ) {
-                $issues[] = [
-                    'domain' => 'attributes',
-                    'field'  => $type,
-                    'value'  => $value,
-                    'reason' => sprintf( 'El valor «%s» no existe como término o alias activo de «%s».', $value, $type ),
-                ];
-            }
-            continue;
-        }
-
-        if ( in_array( $data_type, [ 'numero', 'rango' ], true ) ) {
-            if ( ! preg_match( '/[-+]?\d+(?:[\.,]\d+)?/u', $value ) ) {
-                $issues[] = [
-                    'domain' => 'attributes',
-                    'field'  => $type,
-                    'value'  => $value,
-                    'reason' => sprintf( '«%s» requiere un valor numérico o rango reconocible.', $type ),
-                ];
-            }
-            continue;
-        }
-
-        if ( 'boolean' === $data_type ) {
-            $normalized_bool = trim( $value );
-            $normalized_bool = function_exists( 'mb_strtolower' )
-                ? mb_strtolower( $normalized_bool, 'UTF-8' )
-                : strtolower( $normalized_bool );
-            $normalized_bool = remove_accents( $normalized_bool );
-            if ( ! in_array( $normalized_bool, [ '1', '0', 'si', 'no', 'true', 'false', 'yes' ], true ) ) {
-                $issues[] = [
-                    'domain' => 'attributes',
-                    'field'  => $type,
-                    'value'  => $value,
-                    'reason' => sprintf( '«%s» requiere un valor booleano reconocible.', $type ),
-                ];
-            }
-        }
-    }
-
-    /* Un atributo no múltiple no puede recibir varias filas en la misma carga. */
-    foreach ( $counts as $attribute_id => $count ) {
-        if ( $count < 2 ) {
-            continue;
-        }
-
-        $definition = null;
-        foreach ( (array) $rows as $row ) {
-            $candidate = sanitize_key( (string) ( $row['attribute_type'] ?? $row['slug'] ?? '' ) );
-            if ( '' === $candidate ) {
-                continue;
-            }
-            $candidate_def = seo_attributes_get_definition( $candidate, true );
-            if ( is_array( $candidate_def ) && absint( $candidate_def['id'] ?? 0 ) === absint( $attribute_id ) ) {
-                $definition = $candidate_def;
-                break;
-            }
-        }
-
-        if ( is_array( $definition ) && empty( $definition['multiple'] ) ) {
-            $issues[] = [
-                'domain' => 'attributes',
-                'field'  => sanitize_key( (string) ( $definition['slug'] ?? 'atributo' ) ),
-                'value'  => (string) $count,
-                'reason' => 'El atributo no admite múltiples valores en el maestro canónico.',
-            ];
-        }
-    }
-
-    return $issues;
-}
-
-/**
- * Resuelve etiquetas semánticas de producto exclusivamente contra el vocabulario
- * canónico activo. Nunca crea vocabulario.
- *
- * @param array $row Fila CSV normalizada.
- * @return array{groups:array,issues:array,has_values:bool}
- */
-function seo_ie_product_v2_resolve_semantic_labels( $row ) {
-    $result = [
-        'groups'     => [],
-        'issues'     => [],
-        'has_values' => false,
-    ];
-
-    if ( ! function_exists( 'seo_catalog_find_active_vocabulary_term' ) ) {
-        throw new RuntimeException( 'El vocabulario semántico canónico no está disponible.' );
-    }
-
-    $columns = [
-        'tipo'       => [ 'tipo_semantico', 'tipo' ],
-        'aplicacion' => [ 'aplicacion' ],
-        'plataforma' => [ 'plataforma' ],
-        'subtipo'    => [ 'subtipo' ],
-    ];
-
-    foreach ( $columns as $group => $candidates ) {
-        $raw = null;
-        foreach ( $candidates as $column ) {
-            if ( array_key_exists( $column, $row ) ) {
-                $raw = $row[ $column ];
-                break;
-            }
-        }
-
-        if ( null === $raw || '' === trim( (string) $raw ) ) {
-            continue;
-        }
-
-        $result['has_values'] = true;
-        $values = seo_ie_product_v2_name_list( $raw );
-
-        if ( 'tipo' === $group && 1 !== count( $values ) ) {
-            $result['issues'][] = [
-                'domain' => 'semantic_labels',
-                'field'  => $group,
-                'value'  => is_scalar( $raw ) ? (string) $raw : wp_json_encode( $raw ),
-                'reason' => 'TIPO debe contener exactamente un valor canónico.',
-            ];
-            continue;
-        }
-
-        $ids = [];
-        foreach ( $values as $value ) {
-            $term = seo_catalog_find_active_vocabulary_term( $group, $value );
-            if ( ! is_array( $term ) ) {
-                $result['issues'][] = [
-                    'domain' => 'semantic_labels',
-                    'field'  => $group,
-                    'value'  => $value,
-                    'reason' => sprintf( '«%s» no existe o está inactivo en el vocabulario %s.', $value, strtoupper( $group ) ),
-                ];
-                continue;
-            }
-            $ids[] = absint( $term['id'] ?? 0 );
-        }
-
-        if ( count( $ids ) === count( $values ) ) {
-            $result['groups'][ $group ] = array_values( array_unique( array_filter( $ids ) ) );
-        }
-    }
-
-    $derived_role_from_type = null;
-    if ( ! empty( $result['groups']['tipo'] ) ) {
-        if ( ! function_exists( 'seo_catalog_get_role_for_type_vocabulary' ) ) {
-            throw new RuntimeException( 'No está disponible el mapa canónico TIPO → ROL.' );
-        }
-
-        $derived_role_from_type = seo_catalog_get_role_for_type_vocabulary( (int) $result['groups']['tipo'][0] );
-        if ( ! is_array( $derived_role_from_type ) || absint( $derived_role_from_type['id'] ?? 0 ) < 1 ) {
-            $result['issues'][] = [
-                'domain' => 'semantic_labels',
-                'field'  => 'tipo',
-                'value'  => (string) ( $row['tipo_semantico'] ?? $row['tipo'] ?? '' ),
-                'reason' => 'El TIPO existe, pero no tiene un ROL activo asociado en el mapa canónico.',
-            ];
-            unset( $result['groups']['tipo'] );
-        }
-    }
-
-    /* ROL es de solo validación: siempre se materializa desde TIPO. */
-    if ( array_key_exists( 'rol', $row ) && '' !== trim( (string) $row['rol'] ) ) {
-        $result['has_values'] = true;
-        $role_values = seo_ie_product_v2_name_list( $row['rol'] );
-
-        if ( 1 !== count( $role_values ) ) {
-            $result['issues'][] = [
-                'domain' => 'semantic_labels',
-                'field'  => 'rol',
-                'value'  => (string) $row['rol'],
-                'reason' => 'ROL debe contener un único valor y no se importa directamente.',
-            ];
-        } else {
-            $role_term = seo_catalog_find_active_vocabulary_term( 'rol', $role_values[0] );
-            if ( ! is_array( $role_term ) ) {
-                $result['issues'][] = [
-                    'domain' => 'semantic_labels',
-                    'field'  => 'rol',
-                    'value'  => $role_values[0],
-                    'reason' => 'El ROL indicado no existe o está inactivo.',
-                ];
-            } elseif ( empty( $result['groups']['tipo'] ) ) {
-                $result['issues'][] = [
-                    'domain' => 'semantic_labels',
-                    'field'  => 'rol',
-                    'value'  => $role_values[0],
-                    'reason' => 'ROL no se importa directamente. Debe venir acompañado de un TIPO válido para poder derivarlo.',
-                ];
-            } elseif ( ! empty( $result['groups']['tipo'] ) && function_exists( 'seo_catalog_get_role_for_type_vocabulary' ) ) {
-                $derived = is_array( $derived_role_from_type )
-                    ? $derived_role_from_type
-                    : seo_catalog_get_role_for_type_vocabulary( (int) $result['groups']['tipo'][0] );
-                if ( ! is_array( $derived ) || absint( $derived['id'] ?? 0 ) !== absint( $role_term['id'] ?? 0 ) ) {
-                    $result['issues'][] = [
-                        'domain' => 'semantic_labels',
-                        'field'  => 'rol',
-                        'value'  => $role_values[0],
-                        'reason' => 'El ROL indicado no coincide con el ROL canónico derivado del TIPO.',
-                    ];
-                }
-            }
-        }
-    }
-
-    return $result;
-}
-
-/**
- * Resuelve términos existentes de una taxonomía sin crear ninguno.
- *
- * @param string $taxonomy Taxonomía de WordPress.
- * @param mixed  $ids_value IDs recibidos.
- * @param mixed  $names_value Nombres recibidos.
- * @return array{ids:array,issues:array,has_values:bool}
- */
-function seo_ie_product_v2_resolve_existing_terms( $taxonomy, $ids_value, $names_value ) {
-    $result = [ 'ids' => [], 'issues' => [], 'has_values' => false ];
-
-    foreach ( seo_ie_product_v2_list( $ids_value ) as $raw_id ) {
-        $result['has_values'] = true;
-        $term_id = absint( $raw_id );
-        $term    = $term_id ? get_term( $term_id, $taxonomy ) : null;
-
-        if ( $term && ! is_wp_error( $term ) ) {
-            $result['ids'][] = $term_id;
-        } else {
-            $result['issues'][] = [
-                'domain' => 'wc_tags',
-                'field'  => $taxonomy,
-                'value'  => (string) $raw_id,
-                'reason' => sprintf( 'El término ID %d no existe en %s.', $term_id, $taxonomy ),
-            ];
-        }
-    }
-
-    foreach ( seo_ie_product_v2_name_list( $names_value ) as $name ) {
-        $result['has_values'] = true;
-        $term = get_term_by( 'name', $name, $taxonomy );
-        if ( ! $term ) {
-            $term = get_term_by( 'slug', sanitize_title( $name ), $taxonomy );
-        }
-
-        if ( $term && ! is_wp_error( $term ) ) {
-            $result['ids'][] = absint( $term->term_id );
-        } else {
-            $result['issues'][] = [
-                'domain' => 'wc_tags',
-                'field'  => $taxonomy,
-                'value'  => $name,
-                'reason' => sprintf( '«%s» no existe en %s. El importador seguro no crea términos nuevos.', $name, $taxonomy ),
-            ];
-        }
-    }
-
-    $result['ids'] = array_values( array_unique( array_filter( array_map( 'absint', $result['ids'] ) ) ) );
-    return $result;
-}
-
-/**
  * Localiza un producto por ID, SKU o slug y detecta identidades en conflicto.
  *
  * @param array $row Fila CSV.
@@ -3110,7 +2214,16 @@ function seo_ie_product_v2_locate( $row ) {
 
     $source_id = absint( $row['product_id'] ?? 0 );
 
-    $sku = seo_ie_product_v2_normalize_sku( $row['sku'] ?? '' );
+    $sku = function_exists( 'wc_clean' )
+        ? wc_clean( (string) ( $row['sku'] ?? '' ) )
+        : sanitize_text_field( (string) ( $row['sku'] ?? '' ) );
+
+    $sku = trim( (string) $sku );
+
+    // SKU "0" no se considera un identificador válido.
+    if ( '0' === $sku ) {
+        $sku = '';
+    }
 
     $slug = sanitize_title( $row['slug'] ?? '' );
 
@@ -3378,6 +2491,86 @@ function seo_ie_product_v2_set_meta( $product_id, $meta_key, $value, $empty_clea
 }
 
 /**
+ * Carga el Vocabulary canonico activo de los productos para el inventario reducido.
+ *
+ * El mapa usa slugs semanticos, no IDs, para que el inventario sea portable entre
+ * instalaciones que compartan el mismo catalogo semantico pero no los mismos IDs.
+ *
+ * @param int[] $product_ids IDs locales de producto.
+ * @return array<int,array<string,string[]>>
+ */
+function seo_ie_product_reduced_vocabulary_map( $product_ids ) {
+    global $wpdb;
+
+    $product_ids = array_values( array_unique( array_filter( array_map( 'absint', (array) $product_ids ) ) ) );
+
+    if ( empty( $product_ids ) ) {
+        return [];
+    }
+
+    $objects_table = $wpdb->prefix . 'seo_object_vocabulary';
+    $vocab_table   = $wpdb->prefix . 'seo_vocabulary';
+
+    $objects_exists = $wpdb->get_var(
+        $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $objects_table ) )
+    );
+    $vocab_exists = $wpdb->get_var(
+        $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $vocab_table ) )
+    );
+
+    if ( $objects_table !== $objects_exists || $vocab_table !== $vocab_exists ) {
+        return [];
+    }
+
+    $allowed_groups = [ 'tipo', 'subtipo', 'rol', 'aplicacion', 'plataforma' ];
+    $map            = [];
+
+    foreach ( array_chunk( $product_ids, 500 ) as $chunk ) {
+        $placeholders = implode( ',', array_fill( 0, count( $chunk ), '%d' ) );
+        $sql = "
+            SELECT ov.object_id, v.semantic_group, v.slug
+            FROM {$objects_table} ov
+            INNER JOIN {$vocab_table} v
+                ON v.id = ov.vocabulary_id
+               AND v.active = 1
+            WHERE ov.object_type = 'product'
+              AND ov.status = 1
+              AND v.semantic_group IN ('tipo','subtipo','rol','aplicacion','plataforma')
+              AND ov.object_id IN ({$placeholders})
+            ORDER BY ov.object_id ASC,
+                     FIELD(v.semantic_group,'tipo','subtipo','rol','aplicacion','plataforma') ASC,
+                     v.slug ASC
+        ";
+        $prepared = $wpdb->prepare( $sql, $chunk );
+        $rows     = $prepared ? $wpdb->get_results( $prepared ) : [];
+
+        foreach ( (array) $rows as $row ) {
+            $object_id = absint( $row->object_id ?? 0 );
+            $group     = sanitize_key( $row->semantic_group ?? '' );
+            $slug      = sanitize_title( $row->slug ?? '' );
+
+            if ( 0 === $object_id || ! in_array( $group, $allowed_groups, true ) || '' === $slug ) {
+                continue;
+            }
+
+            if ( ! isset( $map[ $object_id ][ $group ] ) ) {
+                $map[ $object_id ][ $group ] = [];
+            }
+
+            $map[ $object_id ][ $group ][ $slug ] = $slug;
+        }
+    }
+
+    foreach ( $map as $product_id => $groups ) {
+        foreach ( $groups as $group => $slugs ) {
+            $map[ $product_id ][ $group ] = array_values( $slugs );
+        }
+    }
+
+    return $map;
+}
+
+/**
  * Exporta todos los productos a CSV.
  *
  * Orígenes:
@@ -3412,7 +2605,9 @@ function seo_ie_product_v2_set_meta( $product_id, $meta_key, $value, $empty_clea
  */
 function seo_export_products_csv() {
 
-    if ( ! isset( $_POST['seo_export_products'] ) ) {
+    $reduced_export = isset( $_POST['seo_export_products_reduced'] );
+
+    if ( ! isset( $_POST['seo_export_products'] ) && ! $reduced_export ) {
         return;
     }
 
@@ -3556,60 +2751,104 @@ function seo_export_products_csv() {
         );
     }
 
-    $attribute_rows = function_exists('seo_attributes_get_rows_for_products')
-        ? seo_attributes_get_rows_for_products(null)
-        : [];
     $attributes_by_product = [];
+    $attribute_rows = function_exists( 'seo_attributes_get_rows_for_products' )
+        ? seo_attributes_get_rows_for_products( null )
+        : [];
 
     foreach ( $attribute_rows as $attribute_row ) {
         $attributes_by_product[ absint( $attribute_row->product_id ) ][] = $attribute_row;
     }
 
-    $classification_titles = [];
-    $get_title = static function ( $post_id, $fallback ) use ( &$classification_titles ) {
+    $product_ids_for_export = array_map( 'absint', wp_list_pluck( $posts, 'ID' ) );
+    $vocabulary_by_product  = $reduced_export ? seo_ie_product_reduced_vocabulary_map( $product_ids_for_export ) : [];
+
+    $classification_cache = [];
+    $get_classification = static function ( $post_id, $fallback ) use ( &$classification_cache ) {
         $post_id = absint( $post_id );
 
-        if ( isset( $classification_titles[ $post_id ] ) ) {
-            return $classification_titles[ $post_id ];
+        if ( isset( $classification_cache[ $post_id ] ) ) {
+            return $classification_cache[ $post_id ];
         }
 
         $post = get_post( $post_id );
-        $classification_titles[ $post_id ] = $post instanceof WP_Post
-            ? $post->post_title
-            : sprintf( '%s #%d', $fallback, $post_id );
+        $classification_cache[ $post_id ] = [
+            'title' => $post instanceof WP_Post ? $post->post_title : sprintf( '%s #%d', $fallback, $post_id ),
+            'slug'  => $post instanceof WP_Post ? $post->post_name : '',
+        ];
 
-        return $classification_titles[ $post_id ];
+        return $classification_cache[ $post_id ];
     };
 
-    $columns = [
-        'schema_version', 'product_id', 'sku', 'tipo_producto', 'titulo', 'slug', 'url', 'estado',
-        'destacado', 'visibilidad_catalogo', 'cluster', 'hub_primario', 'hub_secundario',
-        'categorias_ids', 'categorias', 'etiquetas_wc_ids', 'etiquetas_wc',
-        'marca_taxonomia', 'marca_ids', 'marca', 'fabricante', 'proveedor',
-        'proveedor_id_externo', 'proveedor_catalogo_id', 'categoria_proveedor', 'precio_proveedor',
-        'ambito', 'atributos_seo_json', 'atributos_seo', 'atributos_wc_json',
-        'excerpt', 'description', 'precio_normal', 'precio_rebajado', 'precio_actual', 'moneda',
-        'estado_impuesto', 'clase_impuesto', 'gestionar_stock', 'cantidad_stock', 'estado_stock',
-        'pedidos_pendientes', 'vendido_individualmente', 'peso', 'longitud', 'anchura', 'altura',
-        'virtual', 'descargable', 'clase_envio_id', 'clase_envio', 'imagen_destacada_id',
-        'imagen_destacada', 'galeria_ids', 'galeria_urls', 'variaciones_total', 'variaciones_ids',
-        'fecha_creacion', 'fecha_creacion_gmt', 'fecha_modificacion', 'fecha_modificacion_gmt',
-    ];
+    $columns = $reduced_export
+        ? [
+            'schema_version',
+            'source_site',
+            'product_id',
+            'sku',
+            'slug',
+            'tipo_producto',
+            'titulo',
+            'estado',
+            'ambito',
+            'cluster_ids',
+            'cluster_slugs',
+            'cluster',
+            'hub_primario_ids',
+            'hub_primario_slugs',
+            'hub_primario',
+            'hub_secundario_ids',
+            'hub_secundario_slugs',
+            'hub_secundario',
+            'categorias_ids',
+            'categorias_slugs',
+            'categorias',
+            'etiquetas_wc_ids',
+            'etiquetas_wc_slugs',
+            'etiquetas_wc',
+            'vocab_tipo',
+            'vocab_subtipo',
+            'vocab_rol',
+            'vocab_aplicacion',
+            'vocab_plataforma',
+            'atributos_seo_json',
+        ]
+        : [
+            'schema_version', 'product_id', 'sku', 'tipo_producto', 'titulo', 'slug', 'url', 'estado',
+            'destacado', 'visibilidad_catalogo', 'cluster', 'hub_primario', 'hub_secundario',
+            'categorias_ids', 'categorias', 'etiquetas_wc_ids', 'etiquetas_wc',
+            'marca_taxonomia', 'marca_ids', 'marca', 'fabricante', 'proveedor',
+            'proveedor_id_externo', 'proveedor_catalogo_id', 'categoria_proveedor', 'precio_proveedor',
+            'ambito', 'atributos_seo_json', 'atributos_seo', 'atributos_wc_json',
+            'excerpt', 'description', 'precio_normal', 'precio_rebajado', 'precio_actual', 'moneda',
+            'estado_impuesto', 'clase_impuesto', 'gestionar_stock', 'cantidad_stock', 'estado_stock',
+            'pedidos_pendientes', 'vendido_individualmente', 'peso', 'longitud', 'anchura', 'altura',
+            'virtual', 'descargable', 'clase_envio_id', 'clase_envio', 'imagen_destacada_id',
+            'imagen_destacada', 'galeria_ids', 'galeria_urls', 'variaciones_total', 'variaciones_ids',
+            'fecha_creacion', 'fecha_modificacion',
+        ];
 
-    $filename = 'seo_products_v2_' . wp_date( 'Ymd_His' ) . '.csv';
+    $filename = ( $reduced_export ? 'seo_products_reduced_portable_' : 'seo_products_v2_' ) . wp_date( 'Ymd_His' ) . '.csv';
     seo_ie_store_log(
         [
-            'operacion'    => 'Exportación de productos V2',
+            'operacion'    => $reduced_export ? 'Exportación de inventario reducido de productos' : 'Exportación de productos V2',
             'archivo'      => $filename,
             'procesados'   => count( $posts ),
             'correctos'    => count( $posts ),
             'errores'      => 0,
             'advertencias' => 0,
-            'detalles'     => [
-                'Incluye datos editoriales, comerciales, stock, marca, proveedor, imágenes, etiquetas WooCommerce y atributos.',
-                'La columna atributos_seo se conserva para compatibilidad; atributos_seo_json es el formato recomendado.',
-                'Las variaciones se listan como inventario, pero no se exportan como filas independientes.',
-            ],
+            'detalles'     => $reduced_export
+                ? [
+                    'Inventario reducido y portable para revisión de taxonomía, arquitectura y semántica.',
+                    'Incluye SKU y slug de producto; IDs, slugs y nombres de cluster, hubs y categorías; etiquetas WooCommerce; Vocabulary y atributos SEO canónicos.',
+                    'Los IDs son locales al source_site. Para cruces entre entornos deben priorizarse SKU/slug de producto y slugs de categorías/hubs/etiquetas.',
+                    'No incluye contenido largo, precios, stock, proveedor, imágenes, galerías, atributos WooCommerce ni variaciones.',
+                ]
+                : [
+                    'Incluye datos editoriales, comerciales, stock, marca, proveedor, imágenes, etiquetas WooCommerce y atributos.',
+                    'La columna atributos_seo se conserva para compatibilidad; atributos_seo_json es el formato recomendado.',
+                    'Las variaciones se listan como inventario, pero no se exportan como filas independientes.',
+                ],
         ]
     );
 
@@ -3626,6 +2865,7 @@ function seo_export_products_csv() {
 
         $category_terms = wp_get_post_terms( $product_id, 'product_cat' );
         $category_ids   = [];
+        $category_slugs = [];
         $category_names = [];
         $cluster_ids    = [];
         $primary_ids    = [];
@@ -3635,7 +2875,9 @@ function seo_export_products_csv() {
             foreach ( $category_terms as $term ) {
                 $term_id = absint( $term->term_id );
                 $category_ids[]   = $term_id;
+                $category_slugs[] = $term->slug;
                 $category_names[] = $term->name;
+
                 $classification_ids = array_merge( [ $term_id ], get_ancestors( $term_id, 'product_cat', 'taxonomy' ) );
 
                 foreach ( $classification_ids as $classification_id ) {
@@ -3654,27 +2896,108 @@ function seo_export_products_csv() {
             }
         }
 
+        $scope = $canonical_roles_by_product[ $product_id ] ?? '';
+        if ( '' === $scope && function_exists( 'seo_catalog_get_product_legacy_ambito' ) ) {
+            $scope = seo_catalog_get_product_legacy_ambito( $product_id );
+        }
+
         $cluster_ids   = array_values( array_unique( array_filter( array_map( 'absint', $cluster_ids ) ) ) );
         $primary_ids   = array_values( array_unique( array_filter( array_map( 'absint', $primary_ids ) ) ) );
         $secondary_ids = array_values( array_unique( array_filter( array_map( 'absint', $secondary_ids ) ) ) );
-        $cluster_names   = array_map( static fn( $id ) => $get_title( $id, 'Cluster' ), $cluster_ids );
-        $primary_names   = array_map( static fn( $id ) => $get_title( $id, 'Hub primario' ), $primary_ids );
-        $secondary_names = array_map( static fn( $id ) => $get_title( $id, 'Hub secundario' ), $secondary_ids );
+
+        $cluster_names = [];
+        $cluster_slugs = [];
+        foreach ( $cluster_ids as $classification_id ) {
+            $identity = $get_classification( $classification_id, 'Cluster' );
+            $cluster_names[] = $identity['title'];
+            if ( '' !== $identity['slug'] ) {
+                $cluster_slugs[] = $identity['slug'];
+            }
+        }
+
+        $primary_names = [];
+        $primary_slugs = [];
+        foreach ( $primary_ids as $classification_id ) {
+            $identity = $get_classification( $classification_id, 'Hub primario' );
+            $primary_names[] = $identity['title'];
+            if ( '' !== $identity['slug'] ) {
+                $primary_slugs[] = $identity['slug'];
+            }
+        }
+
+        $secondary_names = [];
+        $secondary_slugs = [];
+        foreach ( $secondary_ids as $classification_id ) {
+            $identity = $get_classification( $classification_id, 'Hub secundario' );
+            $secondary_names[] = $identity['title'];
+            if ( '' !== $identity['slug'] ) {
+                $secondary_slugs[] = $identity['slug'];
+            }
+        }
 
         $tag_terms = wp_get_post_terms( $product_id, 'product_tag' );
         $tag_ids   = [];
+        $tag_slugs = [];
         $tag_names = [];
 
         if ( ! is_wp_error( $tag_terms ) ) {
             foreach ( $tag_terms as $term ) {
                 $tag_ids[]   = absint( $term->term_id );
+                $tag_slugs[] = $term->slug;
                 $tag_names[] = $term->name;
             }
         }
 
-        $brand = seo_ie_product_v2_brand_data( $product_id );
-        $scope = $canonical_roles_by_product[ $product_id ] ?? '';
         $seo_attribute_rows = $attributes_by_product[ $product_id ] ?? [];
+        $vocabulary         = $vocabulary_by_product[ $product_id ] ?? [];
+
+        if ( $reduced_export ) {
+            $row = [
+                'schema_version'       => '2.1-reduced-portable',
+                'source_site'          => home_url( '/' ),
+                'product_id'           => $product_id,
+                'sku'                  => $product->get_sku( 'edit' ),
+                'slug'                 => $post->post_name,
+                'tipo_producto'        => $product->get_type(),
+                'titulo'               => $product->get_name( 'edit' ),
+                'estado'               => $product->get_status( 'edit' ),
+                'ambito'               => $scope,
+                'cluster_ids'          => implode( ',', $cluster_ids ),
+                'cluster_slugs'        => implode( ' | ', array_values( array_unique( $cluster_slugs ) ) ),
+                'cluster'              => implode( ' | ', array_values( array_unique( $cluster_names ) ) ),
+                'hub_primario_ids'     => implode( ',', $primary_ids ),
+                'hub_primario_slugs'   => implode( ' | ', array_values( array_unique( $primary_slugs ) ) ),
+                'hub_primario'         => implode( ' | ', array_values( array_unique( $primary_names ) ) ),
+                'hub_secundario_ids'   => implode( ',', $secondary_ids ),
+                'hub_secundario_slugs' => implode( ' | ', array_values( array_unique( $secondary_slugs ) ) ),
+                'hub_secundario'       => implode( ' | ', array_values( array_unique( $secondary_names ) ) ),
+                'categorias_ids'       => implode( ',', array_values( array_unique( $category_ids ) ) ),
+                'categorias_slugs'     => implode( ' | ', array_values( array_unique( $category_slugs ) ) ),
+                'categorias'           => implode( ' | ', array_values( array_unique( $category_names ) ) ),
+                'etiquetas_wc_ids'     => implode( ',', array_values( array_unique( $tag_ids ) ) ),
+                'etiquetas_wc_slugs'   => implode( ' | ', array_values( array_unique( $tag_slugs ) ) ),
+                'etiquetas_wc'         => implode( ' | ', array_values( array_unique( $tag_names ) ) ),
+                'vocab_tipo'           => implode( ' | ', $vocabulary['tipo'] ?? [] ),
+                'vocab_subtipo'        => implode( ' | ', $vocabulary['subtipo'] ?? [] ),
+                'vocab_rol'            => implode( ' | ', $vocabulary['rol'] ?? [] ),
+                'vocab_aplicacion'     => implode( ' | ', $vocabulary['aplicacion'] ?? [] ),
+                'vocab_plataforma'     => implode( ' | ', $vocabulary['plataforma'] ?? [] ),
+                'atributos_seo_json'   => seo_ie_product_v2_seo_attributes_json( $seo_attribute_rows, $scope ),
+            ];
+
+            seo_ie_write_csv_row(
+                $output,
+                array_map(
+                    static function ( $column ) use ( $row ) {
+                        return $row[ $column ] ?? '';
+                    },
+                    $columns
+                )
+            );
+            continue;
+        }
+
+        $brand = seo_ie_product_v2_brand_data( $product_id );
         $thumbnail_id = absint( get_post_thumbnail_id( $product_id ) );
         $gallery_ids  = array_values( array_unique( array_filter( array_map( 'absint', $product->get_gallery_image_ids() ) ) ) );
         $gallery_urls = [];
@@ -3694,7 +3017,7 @@ function seo_export_products_csv() {
         $row = [
             'schema_version'             => '2.0',
             'product_id'                 => $product_id,
-            'sku'                        => seo_ie_product_v2_normalize_sku( $product->get_sku( 'edit' ) ),
+            'sku'                        => $product->get_sku( 'edit' ),
             'tipo_producto'              => $product->get_type(),
             'titulo'                     => $product->get_name( 'edit' ),
             'slug'                       => $post->post_name,
@@ -3750,9 +3073,7 @@ function seo_export_products_csv() {
             'variaciones_total'          => count( $children ),
             'variaciones_ids'            => implode( ',', $children ),
             'fecha_creacion'             => $created ? $created->date( 'Y-m-d H:i:s' ) : '',
-            'fecha_creacion_gmt'         => $created ? gmdate( 'Y-m-d H:i:s', $created->getTimestamp() ) : '',
             'fecha_modificacion'         => $modified ? $modified->date( 'Y-m-d H:i:s' ) : '',
-            'fecha_modificacion_gmt'     => $modified ? gmdate( 'Y-m-d H:i:s', $modified->getTimestamp() ) : '',
         ];
 
         seo_ie_write_csv_row(
@@ -4258,9 +3579,6 @@ function seo_ie_product_import_diagnostics( $user_id, $token, $state ) {
         'last_schedule_attempt_at'  => absint( $state['last_schedule_attempt_at'] ?? 0 ),
         'last_schedule_error'       => sanitize_text_field( $state['last_schedule_error'] ?? '' ),
         'last_error'                => sanitize_text_field( $state['last_error'] ?? '' ),
-        'last_error_line'           => absint( $state['last_error_line'] ?? 0 ),
-        'last_error_product_id'     => absint( $state['last_error_product_id'] ?? 0 ),
-        'retries'                   => absint( $state['retries'] ?? 0 ),
         'last_watchdog_at'          => absint( $state['last_watchdog_at'] ?? 0 ),
         'wp_cron_disabled'          => defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON,
         'php_pid'                   => absint( $state['last_worker_pid'] ?? 0 ),
@@ -4919,17 +4237,12 @@ function seo_ie_product_import_background_failure( $user_id, $token, $error ) {
 
     $state['log'] = $log;
 
-    $retry_delays = [ 1 => 20, 2 => 40, 3 => 60, 4 => 120, 5 => 180, 6 => 300 ];
-
-    if ( isset( $retry_delays[ $state['retries'] ] ) ) {
-        $delay = absint( $retry_delays[ $state['retries'] ] );
-        $state['status']  = 'retrying';
-        $state['message'] = sprintf( 'Error temporal. Reintento automatico %d/6 en %d s.', $state['retries'], $delay );
+    if ( 3 >= $state['retries'] ) {
+        $state['status'] = 'retrying';
         set_transient( seo_ie_product_import_state_key( $user_id, $token ), $state, DAY_IN_SECONDS );
         seo_ie_product_import_set_active( $user_id, $token, $state );
         seo_ie_store_log( $log );
-        seo_ie_product_import_schedule( $user_id, $token, $delay, true );
-        seo_ie_product_import_schedule_watchdog( $user_id, $token, max( 60, $delay + 30 ), true );
+        seo_ie_product_import_schedule( $user_id, $token, 30 * $state['retries'], true );
         return;
     }
 
@@ -5024,12 +4337,6 @@ function seo_ie_product_import_background_worker( $user_id, $token ) {
 function seo_import_products_csv( $background_user_id = 0, $background_token = '', $background_mode = false ) {
 
     $is_background = (bool) $background_mode;
-
-    // Contrato actual: este motor solo puede ejecutarse desde la cola interna.
-    // La importacion manual fue retirada para separar producto base de enriquecimiento.
-    if ( ! $is_background ) {
-        return;
-    }
     $is_initial    = ! $is_background && isset( $_POST['seo_import_products'] );
     $is_continue   = ! $is_background && isset( $_POST['seo_import_products_continue'] );
     $is_status     = ! $is_background && isset( $_POST['seo_import_products_status'] );
@@ -5654,9 +4961,6 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
         $last_product_reference = absint( $row['product_id'] ?? 0 );
 
         try {
-            $rejection_issues = [];
-            $semantic_labels  = null;
-
             $located = seo_ie_product_v2_locate( $row );
 
             foreach ( $located['warnings'] as $warning ) {
@@ -5670,40 +4974,6 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
             $product_id = absint( $located['product_id'] );
             $last_product_reference = $product_id ?: $last_product_reference;
             $creating   = 0 === $product_id;
-
-            if ( ! $creating && function_exists( 'seo_ie_sync_post_update_decision' ) ) {
-                $version_decision = seo_ie_sync_post_update_decision(
-                    $product_id,
-                    $row,
-                    'fecha_modificacion',
-                    'fecha_modificacion_gmt'
-                );
-                if ( ! empty( $version_decision['skip'] ) ) {
-                    $log['omitidos']++;
-                    seo_ie_add_log_detail(
-                        $log,
-                        sprintf(
-                            'Fila %d, producto %d: omitido; la versión local (%s) es más reciente que el CSV (%s).',
-                            $line,
-                            $product_id,
-                            seo_ie_sync_format_timestamp( $version_decision['destination'], true ),
-                            seo_ie_sync_format_timestamp( $version_decision['source'], true )
-                        )
-                    );
-                    continue;
-                }
-            }
-
-            /*
-             * En la cola automatica los CSV completos se usan tambien para
-             * enriquecimiento/clasificacion. En actualizaciones de productos
-             * existentes el SKU es solo identidad informativa y se conserva.
-             * Solo se permite escribirlo al crear un producto, fuera de la cola
-             * automatica o si un flujo futuro activa update_sku de forma expresa.
-             */
-            $allow_sku_write = $creating
-                || empty( $state['batch_queue_mode'] )
-                || ! empty( $options['update_sku'] );
 
             if ( $creating && empty( $options['create'] ) ) {
                 $log['omitidos']++;
@@ -5753,44 +5023,20 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
 
             $tag_resolution = null;
             if ( ! empty( $options['wc_tags'] ) && ( array_key_exists( 'etiquetas_wc_ids', $row ) || array_key_exists( 'etiquetas_wc', $row ) ) ) {
-                if ( ! empty( $state['batch_queue_mode'] ) ) {
-                    $tag_resolution = seo_ie_product_v2_resolve_existing_terms(
-                        'product_tag',
-                        $row['etiquetas_wc_ids'] ?? '',
-                        $row['etiquetas_wc'] ?? ''
-                    );
+                $tag_resolution = seo_ie_product_v2_resolve_terms(
+                    'product_tag',
+                    $row['etiquetas_wc_ids'] ?? '',
+                    $row['etiquetas_wc'] ?? '',
+                    true,
+                    true
+                );
 
-                    if ( ! empty( $tag_resolution['issues'] ) ) {
-                        $rejection_issues = array_merge( $rejection_issues, (array) $tag_resolution['issues'] );
-                        $tag_resolution = null;
-                    }
-                } else {
-                    /* Compatibilidad con el importador histórico fuera de la cola automática. */
-                    $tag_resolution = seo_ie_product_v2_resolve_terms(
-                        'product_tag',
-                        $row['etiquetas_wc_ids'] ?? '',
-                        $row['etiquetas_wc'] ?? '',
-                        true,
-                        true
-                    );
-
-                    if ( ! empty( $tag_resolution['errors'] ) ) {
-                        throw new RuntimeException( 'Etiquetas WooCommerce: ' . implode( ' | ', $tag_resolution['errors'] ) );
-                    }
-
-                    foreach ( $tag_resolution['warnings'] as $warning ) {
-                        seo_ie_add_log_warning( $log, sprintf( 'Fila %d: %s', $line, $warning ) );
-                    }
+                if ( ! empty( $tag_resolution['errors'] ) ) {
+                    throw new RuntimeException( 'Etiquetas WooCommerce: ' . implode( ' | ', $tag_resolution['errors'] ) );
                 }
-            }
 
-            if ( ! empty( $options['labels'] ) || ! empty( $options['vocabulary'] ) ) {
-                $semantic_labels = seo_ie_product_v2_resolve_semantic_labels( $row );
-                if ( ! empty( $semantic_labels['issues'] ) ) {
-                    $rejection_issues = array_merge( $rejection_issues, (array) $semantic_labels['issues'] );
-                    // La clasificación semántica se trata como una unidad: si un
-                    // valor no es canónico, no se modifica ningún grupo de la fila.
-                    $semantic_labels['groups'] = [];
+                foreach ( $tag_resolution['warnings'] as $warning ) {
+                    seo_ie_add_log_warning( $log, sprintf( 'Fila %d: %s', $line, $warning ) );
                 }
             }
 
@@ -5830,11 +5076,12 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
             }
 
             /*
-             * Para productos existentes el ROL canónico prevalece sobre la
-             * cabecera legacy del CSV. No existe fallback semántico a seo_nodes.
+             * Para productos existentes el ROL canónico prevalece sobre el
+             * campo legacy del CSV y sobre seo_nodes/ambito. De este modo una
+             * importación antigua no puede romper TIPO -> ROL.
              */
             if ( 0 < $product_id && function_exists( 'seo_catalog_get_product_role' ) ) {
-                $canonical_scope = seo_catalog_get_product_role( $product_id, false );
+                $canonical_scope = seo_catalog_get_product_role( $product_id, true );
 
                 if ( '' !== $canonical_scope ) {
                     if (
@@ -5857,6 +5104,19 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
                 }
             }
 
+            if (
+                '' === $scope
+                && ! empty( $options['seo_attributes'] )
+                && (
+                    array_key_exists( 'atributos_seo_json', $row )
+                    || array_key_exists( 'atributos_seo', $row )
+                )
+                && 0 < $product_id
+                && function_exists( 'seo_catalog_get_product_legacy_ambito' )
+            ) {
+                $scope = seo_catalog_get_product_legacy_ambito( $product_id );
+            }
+
             $seo_attributes = null;
             if ( ! empty( $options['seo_attributes'] ) ) {
                 if ( array_key_exists( 'atributos_seo_json', $row ) ) {
@@ -5866,28 +5126,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
                 }
 
                 if ( is_array( $seo_attributes ) && ! empty( $seo_attributes['errors'] ) ) {
-                    if ( ! empty( $state['batch_queue_mode'] ) ) {
-                        foreach ( (array) $seo_attributes['errors'] as $attribute_error ) {
-                            $rejection_issues[] = [
-                                'domain' => 'attributes',
-                                'field'  => array_key_exists( 'atributos_seo_json', $row ) ? 'atributos_seo_json' : 'atributos_seo',
-                                'value'  => (string) ( $row['atributos_seo_json'] ?? $row['atributos_seo'] ?? '' ),
-                                'reason' => sanitize_text_field( (string) $attribute_error ),
-                            ];
-                        }
-                        $seo_attributes = null;
-                    } else {
-                        throw new RuntimeException( 'Atributos SEO: ' . implode( ' | ', $seo_attributes['errors'] ) );
-                    }
-                } elseif ( is_array( $seo_attributes ) && ! empty( $state['batch_queue_mode'] ) ) {
-                    $attribute_issues = seo_ie_product_v2_validate_seo_attributes( (array) ( $seo_attributes['rows'] ?? [] ) );
-                    if ( ! empty( $attribute_issues ) ) {
-                        $rejection_issues = array_merge( $rejection_issues, $attribute_issues );
-                        // replace_product() sustituye el conjunto completo. Si una
-                        // fila contiene un atributo inválido, rechazamos la fila
-                        // completa antes de realizar ninguna escritura.
-                        $seo_attributes = null;
-                    }
+                    throw new RuntimeException( 'Atributos SEO: ' . implode( ' | ', $seo_attributes['errors'] ) );
                 }
             }
 
@@ -5907,8 +5146,8 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
             }
 
             if ( ! empty( $options['commerce'] ) ) {
-                if ( $allow_sku_write && array_key_exists( 'sku', $row ) ) {
-                    $sku = seo_ie_product_v2_normalize_sku( $row['sku'] );
+                if ( array_key_exists( 'sku', $row ) ) {
+                    $sku = function_exists( 'wc_clean' ) ? wc_clean( $row['sku'] ) : sanitize_text_field( $row['sku'] );
 
                     if ( '' !== $sku ) {
                         $sku_owner = absint( wc_get_product_id_by_sku( $sku ) );
@@ -5937,38 +5176,6 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
 
                 if ( '' !== $sale && '' !== $regular && (float) $sale > (float) $regular ) {
                     throw new RuntimeException( 'El precio rebajado no puede ser mayor que el precio normal.' );
-                }
-            }
-
-            if ( ! empty( $rejection_issues ) ) {
-                $written_rejections = function_exists( 'seo_ie_batch_product_record_rejections' )
-                    ? seo_ie_batch_product_record_rejections( $state, $line, $row, $rejection_issues, $product_id )
-                    : 0;
-
-                if ( $written_rejections > 0 ) {
-                    $log['advertencias'] = absint( $log['advertencias'] ?? 0 ) + 1;
-                    $log['omitidos']     = absint( $log['omitidos'] ?? 0 ) + 1;
-                    $log['rechazados_enriquecimiento'] = absint( $state['rejected_count'] ?? 0 );
-                    $log['incidencias_enriquecimiento'] = absint( $state['rejected_issue_count'] ?? 0 );
-
-                    /*
-                     * La fila completa se deja intacta. Así el CSV de rechazados
-                     * puede corregirse y reimportarse después de dar de alta el
-                     * vocabulario necesario, sin haber aplicado cambios parciales.
-                     */
-                    continue;
-                } elseif ( ! empty( $state['batch_queue_mode'] ) ) {
-                    throw new RuntimeException( 'Se detectó enriquecimiento no válido, pero no se pudo escribir el CSV de rechazados.' );
-                } else {
-                    $rejection_messages = array_values(
-                        array_filter(
-                            array_map(
-                                static fn( $issue ) => is_array( $issue ) ? sanitize_text_field( (string) ( $issue['reason'] ?? '' ) ) : '',
-                                $rejection_issues
-                            )
-                        )
-                    );
-                    throw new RuntimeException( 'Enriquecimiento no válido: ' . implode( ' | ', $rejection_messages ) );
                 }
             }
 
@@ -6060,15 +5267,8 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
             }
 
             if ( ! empty( $options['commerce'] ) ) {
-                if ( $allow_sku_write && array_key_exists( 'sku', $row ) ) {
-                    $sku = seo_ie_product_v2_normalize_sku( $row['sku'] );
-
-                    if ( '' !== $sku ) {
-                        $product->set_sku( $sku );
-                    } elseif ( $empty_clears && empty( $state['batch_queue_mode'] ) ) {
-                        // El vaciado explicito de SKU solo se permite fuera de la cola automatica.
-                        $product->set_sku( '' );
-                    }
+                if ( array_key_exists( 'sku', $row ) && ( '' !== trim( (string) $row['sku'] ) || $empty_clears ) ) {
+                    $product->set_sku( function_exists( 'wc_clean' ) ? wc_clean( $row['sku'] ) : sanitize_text_field( $row['sku'] ) );
                 }
 
                 if ( array_key_exists( 'precio_normal', $row ) && ( '' !== trim( (string) $row['precio_normal'] ) || $empty_clears ) ) {
@@ -6172,7 +5372,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
                 }
             }
 
-            if ( is_array( $tag_resolution ) && empty( $state['batch_queue_mode'] ) ) {
+            if ( is_array( $tag_resolution ) ) {
                 $tag_resolution = seo_ie_product_v2_resolve_terms(
                     'product_tag',
                     $row['etiquetas_wc_ids'] ?? '',
@@ -6186,7 +5386,6 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
                 }
             }
 
-            /* En la cola automática tag_resolution ya contiene solo IDs existentes. */
             if ( is_array( $brand_resolution ) && '' !== $brand_taxonomy ) {
                 $brand_resolution = seo_ie_product_v2_resolve_terms(
                     $brand_taxonomy,
@@ -6239,28 +5438,6 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
                 }
             }
 
-            if (
-                is_array( $semantic_labels )
-                && ! empty( $semantic_labels['has_values'] )
-                && ! empty( $semantic_labels['groups'] )
-            ) {
-                if ( ! function_exists( 'seo_catalog_apply_product_vocabulary_changes' ) ) {
-                    throw new RuntimeException( 'El servicio de asignación del vocabulario semántico no está disponible.' );
-                }
-
-                $semantic_result = seo_catalog_apply_product_vocabulary_changes(
-                    $product_id,
-                    (array) $semantic_labels['groups'],
-                    'import_export_product_v2'
-                );
-
-                if ( empty( $semantic_result['ok'] ) ) {
-                    throw new RuntimeException(
-                        'Etiquetas semánticas: ' . (string) ( $semantic_result['message'] ?? 'No se pudieron aplicar.' )
-                    );
-                }
-            }
-
             if ( ! empty( $options['brand_provider'] ) ) {
                 if ( is_array( $brand_resolution ) && '' !== $brand_taxonomy ) {
                     $has_brand_values = '' !== trim( (string) ( $row['marca_ids'] ?? '' ) ) || '' !== trim( (string) ( $row['marca'] ?? '' ) );
@@ -6307,20 +5484,23 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
                         }
                     }
 
-                    if (
-                        '' !== $effective_scope
-                        && function_exists( 'seo_catalog_get_product_role' )
-                        && '' === seo_catalog_get_product_role( $product_id, false )
-                        && function_exists( 'seo_catalog_assign_provisional_product_role' )
-                    ) {
-                        // Compatibilidad de CSV antiguo: `ambito` se materializa como ROL
-                        // canónico, nunca como seo_nodes/product/ambito.
-                        seo_catalog_assign_provisional_product_role(
-                            $product_id,
-                            $effective_scope,
-                            'legacy_import_bridge',
-                            0.6000
-                        );
+                    if ( '' !== $effective_scope ) {
+                        seo_ie_upsert_node_value( 'product', $product_id, 'ambito', $effective_scope );
+
+                        if (
+                            function_exists( 'seo_catalog_get_product_role' )
+                            && '' === seo_catalog_get_product_role( $product_id, false )
+                            && function_exists( 'seo_catalog_assign_provisional_product_role' )
+                        ) {
+                            seo_catalog_assign_provisional_product_role(
+                                $product_id,
+                                $effective_scope,
+                                'legacy_import_bridge',
+                                0.6000
+                            );
+                        }
+                    } elseif ( $empty_clears ) {
+                        seo_ie_upsert_node_value( 'product', $product_id, 'ambito', '' );
                     }
 
                     $scope = $effective_scope;
@@ -6400,13 +5580,6 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
                 }
             }
 
-            if ( function_exists( 'seo_ie_sync_restore_post_created' ) && $creating ) {
-                seo_ie_sync_restore_post_created( $product_id, $row, 'fecha_creacion', 'fecha_creacion_gmt' );
-            }
-            if ( function_exists( 'seo_ie_sync_restore_post_modified' ) ) {
-                seo_ie_sync_restore_post_modified( $product_id, $row, 'fecha_modificacion', 'fecha_modificacion_gmt' );
-            }
-
             clean_post_cache( $product_id );
             wc_delete_product_transients( $product_id );
 
@@ -6419,27 +5592,8 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
             $log['correctos']++;
         } catch ( Throwable $exception ) {
             $log['errores']++;
-            $last_row_error                = sanitize_text_field( $exception->getMessage() );
-            $state['last_error_line']      = absint( $line );
-            $state['last_error_product_id']= absint( $last_product_reference );
+            $last_row_error = sanitize_text_field( $exception->getMessage() );
             seo_ie_add_log_detail( $log, sprintf( 'Fila %d: %s', $line, $last_row_error ) );
-
-            if ( function_exists( 'seo_ie_batch_product_record_rejections' ) ) {
-                seo_ie_batch_product_record_rejections(
-                    $state,
-                    $line,
-                    $row,
-                    [
-                        [
-                            'domain' => 'row_error',
-                            'field'  => '',
-                            'value'  => '',
-                            'reason' => $last_row_error,
-                        ],
-                    ],
-                    $last_product_reference
-                );
-            }
         }
     }
 
@@ -6473,28 +5627,6 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
 
     if ( '' !== $last_row_error ) {
         $state['last_error'] = $last_row_error;
-    }
-
-    /* Publica un log parcial junto al CSV de processing para poder auditarlo
-     * y descargar errores sin esperar a que termine todo el inventario. */
-    if (
-        ! empty( $state['batch_queue_mode'] )
-        && function_exists( 'seo_ie_batch_write_sidecar_log' )
-        && ! empty( $state['queue_source_path'] )
-        && is_file( $state['queue_source_path'] )
-    ) {
-        seo_ie_batch_write_sidecar_log(
-            $state['queue_source_path'],
-            $log,
-            [
-                'entity'        => 'product',
-                'result'        => 'processing',
-                'progress'      => seo_ie_product_import_progress( $state ),
-                'line'          => absint( $line ),
-                'last_error'    => sanitize_text_field( $state['last_error'] ?? '' ),
-                'updated_at_ts' => time(),
-            ]
-        );
     }
 
     seo_ie_product_import_add_transaction(
@@ -7753,13 +6885,6 @@ function seo_ie_replace_product_cat_relations( $source_type, $source_id, $term_i
     }
 
     $wpdb->query( 'COMMIT' );
-
-    if ( 'post' === $source_type && function_exists('seo_content_vocab_sync_post_relations') ) {
-        seo_content_vocab_sync_post_relations($source_id);
-    }
-    // Las páginas no heredan Vocabulary automáticamente desde product_cat.
-    // Las asignaciones semánticas de página son explícitas y auditables.
-
     return true;
 }
 
@@ -7867,7 +6992,7 @@ function seo_ie_apply_page_seo_role_for_import( $page_id, $seo_role ) {
             'object_type' => 'page',
             'object_id'   => $page_id,
             'seo_role'    => $seo_role,
-            'keywords'    => null,
+            'keywords'    => '',
             'status'      => 1,
             'created_at'  => current_time( 'mysql' ),
             'updated_at'  => current_time( 'mysql' ),
@@ -8004,7 +7129,7 @@ function seo_export_pages_csv() {
             'errores'      => 0,
             'advertencias' => 0,
             'detalles'     => [
-                'Se exportaron contenido, jerarquía, rol SEO, relación comercial con product_cat, Vocabulary manual, imagen y metadatos de página.',
+                'Se exportaron contenido, jerarquía, rol SEO, relación comercial con product_cat, imagen y metadatos de página.',
                 'No se exportaron bloqueos de edición, datos de papelera ni contraseñas de acceso a páginas.',
             ],
         ]
@@ -8039,11 +7164,6 @@ function seo_export_pages_csv() {
             'product_cat_relacion_ids',
             'product_cat_relacion_slugs',
             'product_cat_relacion_nombres',
-            'vocab_rol',
-            'vocab_tipo',
-            'vocab_aplicacion',
-            'vocab_plataforma',
-            'vocab_subtipo',
             'imagen_destacada_id',
             'imagen_destacada',
             'meta_seo',
@@ -8090,11 +7210,6 @@ function seo_export_pages_csv() {
                 seo_ie_encode_post_list( $product_cats['ids'] ),
                 seo_ie_encode_post_list( $product_cats['slugs'] ),
                 seo_ie_encode_post_list( $product_cats['names'] ),
-                seo_ie_encode_post_list( function_exists('seo_page_vocab_export_group') ? seo_page_vocab_export_group($page_id, 'rol', 'slug', 'manual') : [] ),
-                seo_ie_encode_post_list( function_exists('seo_page_vocab_export_group') ? seo_page_vocab_export_group($page_id, 'tipo', 'slug', 'manual') : [] ),
-                seo_ie_encode_post_list( function_exists('seo_page_vocab_export_group') ? seo_page_vocab_export_group($page_id, 'aplicacion', 'slug', 'manual') : [] ),
-                seo_ie_encode_post_list( function_exists('seo_page_vocab_export_group') ? seo_page_vocab_export_group($page_id, 'plataforma', 'slug', 'manual') : [] ),
-                seo_ie_encode_post_list( function_exists('seo_page_vocab_export_group') ? seo_page_vocab_export_group($page_id, 'subtipo', 'slug', 'manual') : [] ),
                 absint( $image_id ),
                 0 < $image_id ? wp_get_attachment_url( $image_id ) : '',
                 seo_ie_encode_page_meta_payload( $meta['seo'] ),
@@ -8759,36 +7874,6 @@ function seo_import_pages_csv() {
         $creating = ! $is_existing;
         $page_id  = $is_existing ? $existing_id : 0;
 
-        if ( $is_existing && function_exists( 'seo_ie_sync_post_update_decision' ) ) {
-            $version_decision = seo_ie_sync_post_update_decision(
-                $page_id,
-                $row,
-                'fecha_modificada',
-                'fecha_modificada_gmt'
-            );
-            if ( ! empty( $version_decision['skip'] ) ) {
-                $log['omitidos']++;
-                $row_to_target[ $index ] = $page_id;
-                if ( 0 < $item['source_id'] ) {
-                    $source_id_to_target[ $item['source_id'] ] = $page_id;
-                }
-                if ( '' !== $item['source_path'] ) {
-                    $path_to_target[ $item['source_path'] ] = $page_id;
-                }
-                seo_ie_add_log_detail(
-                    $log,
-                    sprintf(
-                        'Fila %d, página %d: omitida; la versión local (%s) es más reciente que el CSV (%s).',
-                        $item['line'],
-                        $page_id,
-                        seo_ie_sync_format_timestamp( $version_decision['destination'], true ),
-                        seo_ie_sync_format_timestamp( $version_decision['source'], true )
-                    )
-                );
-                continue;
-            }
-        }
-
         $title = sanitize_text_field( $row['titulo'] ?? '' );
 
         if ( $creating && '' === $title ) {
@@ -9318,12 +8403,6 @@ function seo_import_pages_csv() {
             }
         }
 
-        if ( $import_relations && $page_role_saved && in_array( $effective_page_role, seo_ie_page_structural_roles(), true ) ) {
-            if ( function_exists('seo_page_vocab_import_row') ) {
-                seo_page_vocab_import_row($page_id, $row, $item['line'], $log);
-            }
-        }
-
         if ( $import_seo_meta && array_key_exists( 'meta_seo', $row ) ) {
             seo_ie_apply_page_meta_payload(
                 $page_id,
@@ -9354,10 +8433,6 @@ function seo_import_pages_csv() {
                 $item['line'],
                 $log
             );
-        }
-
-        if ( function_exists( 'seo_ie_sync_restore_post_modified' ) ) {
-            seo_ie_sync_restore_post_modified( $page_id, $row, 'fecha_modificada', 'fecha_modificada_gmt' );
         }
 
         clean_post_cache( $page_id );
@@ -9623,9 +8698,8 @@ function seo_ie_decode_post_list( $value ) {
 }
 
 /**
- * Resuelve exclusivamente la categoria editorial de WordPress descrita por una fila.
- * Las antiguas etiquetas post_tag se ignoran: la semantica vive en Vocabulary.
- * Devuelve null cuando el CSV no contiene columnas de categoria.
+ * Resuelve las categorías o etiquetas descritas por una fila.
+ * Devuelve null cuando el CSV no contiene columnas de esa taxonomía.
  *
  * @param string $taxonomy Taxonomía.
  * @param array  $row      Fila.
@@ -9634,14 +8708,11 @@ function seo_ie_decode_post_list( $value ) {
  * @return int[]|null
  */
 function seo_ie_resolve_post_terms( $taxonomy, $row, $line, &$log ) {
-    if ( 'category' !== $taxonomy ) {
-        return null;
-    }
-
-    $ids_key   = 'categorias_ids';
-    $slugs_key = 'categorias_slugs';
-    $names_key = 'categorias_nombres';
-    $label     = 'categoría';
+    $is_category = 'category' === $taxonomy;
+    $ids_key     = $is_category ? 'categorias_ids' : 'etiquetas_ids';
+    $slugs_key   = $is_category ? 'categorias_slugs' : 'etiquetas_slugs';
+    $names_key   = $is_category ? 'categorias_nombres' : 'etiquetas_nombres';
+    $label       = $is_category ? 'categoría' : 'etiqueta';
 
     if (
         ! array_key_exists( $ids_key, $row )
@@ -9880,7 +8951,7 @@ function seo_export_posts_csv() {
             'errores'      => 0,
             'advertencias' => 0,
             'detalles'     => [
-                'Se exportaron contenido, categorías editoriales, relación comercial con product_cat, Vocabulary canónico, formato, autor, fechas, imagen y metadatos.',
+                'Se exportaron contenido, categorías editoriales, relación comercial con product_cat, etiquetas, formato, autor, fechas, imagen y metadatos.',
                 'No se exportaron revisiones, bloqueos de edición ni datos de papelera.',
             ],
         ]
@@ -9897,7 +8968,7 @@ function seo_export_posts_csv() {
             'excerpt', 'description',
             'categorias_ids', 'categorias_slugs', 'categorias_nombres',
             'product_cat_relacion_ids', 'product_cat_relacion_slugs', 'product_cat_relacion_nombres',
-            'vocab_rol', 'vocab_tipo', 'vocab_aplicacion', 'vocab_plataforma', 'vocab_subtipo',
+            'etiquetas_ids', 'etiquetas_slugs', 'etiquetas_nombres',
             'formato', 'sticky',
             'imagen_destacada_id', 'imagen_destacada',
             'meta_seo', 'meta_personalizados',
@@ -9910,7 +8981,9 @@ function seo_export_posts_csv() {
         $image_id   = get_post_thumbnail_id( $post_id );
         $meta       = seo_ie_get_page_meta_payload( $post_id );
         $categories = wp_get_post_terms( $post_id, 'category' );
+        $tags       = wp_get_post_terms( $post_id, 'post_tag' );
         $categories   = is_wp_error( $categories ) ? [] : $categories;
+        $tags         = is_wp_error( $tags ) ? [] : $tags;
         $product_cats = seo_ie_get_product_cat_relation_payload_for_export( 'post', $post_id );
         $format       = get_post_format( $post_id );
 
@@ -9938,11 +9011,9 @@ function seo_export_posts_csv() {
                 seo_ie_encode_post_list( $product_cats['ids'] ),
                 seo_ie_encode_post_list( $product_cats['slugs'] ),
                 seo_ie_encode_post_list( $product_cats['names'] ),
-                seo_ie_encode_post_list( function_exists('seo_content_vocab_export_group') ? seo_content_vocab_export_group('post', $post_id, 'rol', 'slug', 'manual') : [] ),
-                seo_ie_encode_post_list( function_exists('seo_content_vocab_export_group') ? seo_content_vocab_export_group('post', $post_id, 'tipo', 'slug', 'manual') : [] ),
-                seo_ie_encode_post_list( function_exists('seo_content_vocab_export_group') ? seo_content_vocab_export_group('post', $post_id, 'aplicacion', 'slug', 'manual') : [] ),
-                seo_ie_encode_post_list( function_exists('seo_content_vocab_export_group') ? seo_content_vocab_export_group('post', $post_id, 'plataforma', 'slug', 'manual') : [] ),
-                seo_ie_encode_post_list( function_exists('seo_content_vocab_export_group') ? seo_content_vocab_export_group('post', $post_id, 'subtipo', 'slug', 'manual') : [] ),
+                seo_ie_encode_post_list( wp_list_pluck( $tags, 'term_id' ) ),
+                seo_ie_encode_post_list( wp_list_pluck( $tags, 'slug' ) ),
+                seo_ie_encode_post_list( wp_list_pluck( $tags, 'name' ) ),
                 $format ? $format : 'standard',
                 is_sticky( $post_id ) ? 1 : 0,
                 absint( $image_id ),
@@ -10254,30 +9325,6 @@ function seo_import_posts_csv() {
 
         $creating = ! $is_existing;
         $post_id  = $is_existing ? $existing_id : 0;
-
-        if ( $is_existing && function_exists( 'seo_ie_sync_post_update_decision' ) ) {
-            $version_decision = seo_ie_sync_post_update_decision(
-                $post_id,
-                $row,
-                'fecha_modificada',
-                'fecha_modificada_gmt'
-            );
-            if ( ! empty( $version_decision['skip'] ) ) {
-                $log['omitidos']++;
-                seo_ie_add_log_detail(
-                    $log,
-                    sprintf(
-                        'Fila %d, entrada %d: omitida; la versión local (%s) es más reciente que el CSV (%s).',
-                        $item['line'],
-                        $post_id,
-                        seo_ie_sync_format_timestamp( $version_decision['destination'], true ),
-                        seo_ie_sync_format_timestamp( $version_decision['source'], true )
-                    )
-                );
-                continue;
-            }
-        }
-
         $title    = sanitize_text_field( $row['titulo'] ?? '' );
 
         if ( $creating && '' === $title ) {
@@ -10315,9 +9362,6 @@ function seo_import_posts_csv() {
                 $item['line'],
                 $log
             );
-            if ( function_exists('seo_content_vocab_validate_import_row') ) {
-                seo_content_vocab_validate_import_row($row, $item['line'], $log);
-            }
         }
 
         if ( $dry_run ) {
@@ -10431,6 +9475,15 @@ function seo_import_posts_csv() {
                 }
             }
 
+            $tag_ids = seo_ie_resolve_post_terms( 'post_tag', $row, $item['line'], $log );
+            if ( null !== $tag_ids ) {
+                $term_result = wp_set_post_terms( $post_id, $tag_ids, 'post_tag', false );
+                if ( is_wp_error( $term_result ) ) {
+                    $log['errores']++;
+                    seo_ie_add_log_detail( $log, sprintf( 'Fila %d, entrada %d: no se pudieron guardar las etiquetas: %s', $item['line'], $post_id, $term_result->get_error_message() ) );
+                }
+            }
+
             if ( array_key_exists( 'formato', $row ) ) {
                 $format = sanitize_key( $row['formato'] );
                 if ( '' === $format || 'standard' === $format ) {
@@ -10464,12 +9517,6 @@ function seo_import_posts_csv() {
             );
         }
 
-        if ( $import_relations && function_exists('seo_content_vocab_import_row') ) {
-            // La semantica del post se importa exclusivamente desde vocab_*.
-            // Las columnas legacy etiquetas_* se ignoran y nunca alimentan Vocabulary.
-            seo_content_vocab_import_row('post', $post_id, $row, $item['line'], $log);
-        }
-
         if ( $import_seo_meta && array_key_exists( 'meta_seo', $row ) ) {
             seo_ie_apply_page_meta_payload( $post_id, $item['seo_meta_payload'], $log, $item['line'], 'el metadato SEO' );
         }
@@ -10478,10 +9525,6 @@ function seo_import_posts_csv() {
         }
         if ( $import_image ) {
             seo_ie_import_post_thumbnail( $post_id, $row, $item['line'], $log );
-        }
-
-        if ( function_exists( 'seo_ie_sync_restore_post_modified' ) ) {
-            seo_ie_sync_restore_post_modified( $post_id, $row, 'fecha_modificada', 'fecha_modificada_gmt' );
         }
 
         clean_post_cache( $post_id );
@@ -10729,7 +9772,6 @@ function seo_import_faqs_csv() {
         'correctos'  => 0,
         'creados'    => 0,
         'actualizados' => 0,
-        'omitidos'   => 0,
         'errores'    => 0,
         'detalles'   => [],
     ];
@@ -10821,37 +9863,16 @@ function seo_import_faqs_csv() {
             $data['updated_at'] = trim( $row['updated_at'] );
         }
 
-        $existing_faq = $faq_id
-            ? $wpdb->get_row(
-                $wpdb->prepare(
-                    "SELECT id, updated_at FROM {$table} WHERE id = %d LIMIT 1",
-                    $faq_id
-                ),
-                ARRAY_A
-            )
-            : null;
-        $exists = is_array( $existing_faq ) ? absint( $existing_faq['id'] ?? 0 ) : 0;
-
-        if ( $exists && function_exists( 'seo_ie_sync_faq_update_decision' ) && array_key_exists( 'updated_at', $row ) ) {
-            $version_decision = seo_ie_sync_faq_update_decision(
-                (string) ( $existing_faq['updated_at'] ?? '' ),
-                (string) $row['updated_at']
-            );
-            if ( ! empty( $version_decision['skip'] ) ) {
-                $log['omitidos']++;
-                seo_ie_add_log_detail(
-                    $log,
-                    sprintf(
-                        'Fila %d, FAQ %d: omitida; la versión local (%s) es más reciente que el CSV (%s).',
-                        $line,
-                        $faq_id,
-                        seo_ie_sync_format_timestamp( $version_decision['destination'], true ),
-                        seo_ie_sync_format_timestamp( $version_decision['source'], true )
+        $exists = $faq_id
+            ? absint(
+                $wpdb->get_var(
+                    $wpdb->prepare(
+                        "SELECT id FROM {$table} WHERE id = %d LIMIT 1",
+                        $faq_id
                     )
-                );
-                continue;
-            }
-        }
+                )
+            )
+            : 0;
 
         if ( $exists ) {
 
@@ -11935,21 +10956,22 @@ function seo_import_export_page() {
         wp_die( esc_html__( 'No tienes permisos para acceder a esta página.', 'seo-system' ) );
     }
 
-    $allowed_tabs = [ 'wordpress', 'import-batch', 'catalogo-semantico', 'clonador', 'importar-proveedor', 'importar-amazon', 'conexiones-proveedores', 'catalogo-proveedores', 'sincronizacion-proveedores' ];
+    $allowed_tabs = [ 'wordpress', 'import-batch', 'clonador', 'catalogo-semantico', 'importar-proveedor', 'importar-amazon', 'conexiones-proveedores', 'catalogo-proveedores', 'sincronizacion-proveedores' ];
     $tab = sanitize_key( $_GET['seo_ie_tab'] ?? 'wordpress' );
     if ( ! in_array( $tab, $allowed_tabs, true ) ) {
         $tab = 'wordpress';
     }
     $last_log = seo_ie_get_last_log();
+    $active_product_import = seo_ie_product_import_get_active( get_current_user_id() );
     $base = add_query_arg( [ 'page' => 'seo-import-export' ], admin_url( 'admin.php' ) );
     ?>
     <div class="wrap">
         <h1><?php echo esc_html__( 'Importar / Exportar SEO System', 'seo-system' ); ?></h1>
         <nav class="nav-tab-wrapper" style="margin-bottom:20px;">
-            <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'wordpress', $base ) ); ?>" class="nav-tab <?php echo 'wordpress' === $tab ? 'nav-tab-active' : ''; ?>">Importar / Exportar</a>
+            <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'wordpress', $base ) ); ?>" class="nav-tab <?php echo 'wordpress' === $tab ? 'nav-tab-active' : ''; ?>">Importacion individual</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'import-batch', $base ) ); ?>" class="nav-tab <?php echo 'import-batch' === $tab ? 'nav-tab-active' : ''; ?>">Importacion por lotes</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'clonador', $base ) ); ?>" class="nav-tab <?php echo 'clonador' === $tab ? 'nav-tab-active' : ''; ?>">Clonador PRO → STAGING</a>
-            <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'catalogo-semantico', $base ) ); ?>" class="nav-tab <?php echo 'catalogo-semantico' === $tab ? 'nav-tab-active' : ''; ?>">Catalogo semantico</a>
+            <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'catalogo-semantico', $base ) ); ?>" class="nav-tab <?php echo 'catalogo-semantico' === $tab ? 'nav-tab-active' : ''; ?>">Catálogo semántico</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'importar-proveedor', $base ) ); ?>" class="nav-tab <?php echo 'importar-proveedor' === $tab ? 'nav-tab-active' : ''; ?>">Importar proveedor</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'importar-amazon', $base ) ); ?>" class="nav-tab <?php echo 'importar-amazon' === $tab ? 'nav-tab-active' : ''; ?>">Importar Amazon</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'conexiones-proveedores', $base ) ); ?>" class="nav-tab <?php echo 'conexiones-proveedores' === $tab ? 'nav-tab-active' : ''; ?>">Conexiones con proveedores</a>
@@ -11960,6 +10982,32 @@ function seo_import_export_page() {
         <?php if ( 'wordpress' === $tab ) : ?>
             <p><?php echo esc_html__( 'Los CSV se generan en UTF-8 y usan punto y coma como separador.', 'seo-system' ); ?></p>
 
+            <div
+                id="seo-product-import-status"
+                class="notice notice-info inline"
+                style="<?php echo empty( $active_product_import ) ? 'display:none;' : ''; ?>padding:12px 16px;margin:12px 0 20px;max-width:1166px;"
+                aria-live="polite"
+            >
+                <p style="margin:0 0 8px;">
+                    <strong id="seo-product-import-status-title">Actualizando productos…</strong>
+                    <span id="seo-product-import-status-message">El proceso se ejecuta en el servidor; puedes cerrar esta pestaña.</span>
+                </p>
+                <div style="height:12px;max-width:760px;background:#dcdcde;border-radius:6px;overflow:hidden;" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="seo-product-import-progress-wrap">
+                    <div id="seo-product-import-progress" style="height:100%;width:0;background:#2271b1;transition:width .2s ease;"></div>
+                </div>
+                <p id="seo-product-import-counts" style="margin:8px 0 0;"></p>
+                <p style="margin:8px 0 0;">
+                    <button type="button" id="seo-product-import-resume" class="button" style="display:none;">Reintentar cola</button>
+                    <button type="button" id="seo-product-import-stop" class="button" style="<?php echo empty( $active_product_import ) ? 'display:none;' : ''; ?>color:#b32d2e;border-color:#b32d2e;">Detener importación</button>
+                    <button type="button" id="seo-product-import-reset" class="button" style="<?php echo empty( $active_product_import ) ? 'display:none;' : ''; ?>color:#8a2424;border-color:#8a2424;">Liberar importación bloqueada</button>
+                </p>
+                <details id="seo-product-import-diagnostics-wrap" style="margin-top:12px;" open>
+                    <summary><strong>Diagnóstico de la transacción en curso</strong></summary>
+                    <div id="seo-product-import-diagnostics" style="margin-top:8px;max-width:100%;overflow:auto;"></div>
+                    <p style="margin:10px 0 4px;"><strong>Últimos eventos del proceso</strong></p>
+                    <pre id="seo-product-import-transactions" style="max-height:260px;overflow:auto;background:#f6f7f7;border:1px solid #dcdcde;padding:10px;white-space:pre-wrap;"></pre>
+                </details>
+            </div>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;max-width:1200px;">
 
             <!-- Pantalla de exportación de productos -->
@@ -11969,7 +11017,6 @@ function seo_import_export_page() {
             
                 <p>
                     Exporta un catálogo V2 completo: contenido, SKU, precios, stock, marca, proveedor, taxonomías, atributos e imágenes.
-                    La importación manual de productos está deshabilitada; las altas y actualizaciones base se realizan desde <strong>Importación por lotes</strong>.
                 </p>
             
                 <form method="post">
@@ -11978,28 +11025,6 @@ function seo_import_export_page() {
                         'seo_export_products_csv',
                         'seo_export_products_nonce'
                     ); ?>
-
-                    <?php wp_nonce_field(
-                        'seo_export_required_catalogs_csv',
-                        'seo_export_required_catalogs_nonce'
-                    ); ?>
-
-                    <div style="margin:16px 0;padding:14px 16px;border:1px solid #c3a57a;border-radius:4px;background:#fffaf3;">
-                        <strong>Valores obligatorios para altas y actualizaciones</strong>
-                        <p style="margin:6px 0 12px;">
-                            Las etiquetas semánticas y los atributos enviados por un sistema externo deben usar valores ya existentes y activos.
-                            Este CSV único reúne <code>seo_vocabulary</code>, <code>seo_type_role_map</code>, <code>sql_atributos</code>,
-                            <code>sql_atributos_terminos</code>, <code>sql_atributos_aliases</code> y las <code>product_tag</code> de WooCommerce. Si un valor no existe, debe darse de alta previamente; no debe inventarse durante el alta del producto.
-                        </p>
-                        <button
-                            type="submit"
-                            name="seo_export_required_catalogs"
-                            value="1"
-                            class="button button-secondary"
-                        >
-                            Descargar catálogos obligatorios CSV
-                        </button>
-                    </div>
             
                     <?php seo_ie_render_product_export_filters(); ?>
 
@@ -12012,40 +11037,615 @@ function seo_import_export_page() {
                         >
                             Exportar productos
                         </button>
+                        <button
+                            type="submit"
+                            name="seo_export_products_reduced"
+                            value="1"
+                            class="button"
+                        >
+                            Exportar inventario reducido portable
+                        </button>
+                    </p>
+                    <p class="description">
+                        El inventario reducido portable conserva identidad, arquitectura (cluster/hubs/categorías con ID + slug + nombre), etiquetas WooCommerce, Vocabulary y atributos SEO; excluye contenido largo, precios, stock, proveedor e imágenes.
                     </p>
             
                 </form>
             
             </div>
 
-                <?php if ( function_exists( 'seo_proveedores_render_export_productos_card' ) ) { seo_proveedores_render_export_productos_card(); } ?>
-
-                <?php if ( function_exists( 'seo_ie_render_required_catalogs_import_card' ) ) { seo_ie_render_required_catalogs_import_card(); } ?>
 
                 <div class="card" style="max-width:none;padding:20px;">
                     <h2>Exportar categorías</h2>
                     <p>Exporta la estructura WooCommerce y sus datos SEO.</p>
                     <form method="post">
                         <?php wp_nonce_field( 'seo_export_categories_csv', 'seo_export_categories_nonce' ); ?>
-                        <?php wp_nonce_field( 'seo_export_required_catalogs_csv', 'seo_export_required_catalogs_nonce' ); ?>
-
-                        <p>
-                            <button type="submit" name="seo_export_categories" value="1" class="button button-primary">Exportar categorías</button>
-                        </p>
-
-                        <div style="margin:16px 0 0;padding:14px 16px;border:1px solid #c3a57a;border-radius:4px;background:#fffaf3;">
-                            <strong>Valores obligatorios para altas y actualizaciones</strong>
-                            <p style="margin:6px 0 12px;">
-                                La clasificación debe utilizar vocabulario existente y activo. El mismo CSV maestro usado para productos contiene el vocabulario semántico, la relación <strong>TIPO → ROL</strong> y los catálogos SQL de atributos/valores permitidos.
-                                Si falta un valor, debe darse de alta en su maestro antes de asignarlo.
-                            </p>
-                            <button type="submit" name="seo_export_required_catalogs" value="1" class="button button-secondary">
-                                Descargar catálogos obligatorios CSV
-                            </button>
-                        </div>
+                        <button type="submit" name="seo_export_categories" value="1" class="button button-primary">Exportar categorías</button>
                     </form>
                 </div>
 
+                <div class="card" style="max-width:none;padding:20px;"><h2>Importar categorías</h2><p>Crea o actualiza categorías. Si category_id está vacío, reutiliza por slug/nombre o crea la categoría. Admite imagen_destacada_id e imagen_destacada (URL); la URL puede descargar la imagen a Medios y se usa para evitar asociar un ID incorrecto. hub_secondary_id permite asignarla a la jerarquía SEO.</p><form method="post" enctype="multipart/form-data"><?php wp_nonce_field( 'seo_import_categories_csv', 'seo_import_categories_nonce' ); ?><input type="file" name="categories_csv" accept=".csv,text/csv" required><p><button type="submit" name="seo_import_categories" value="1" class="button button-primary">Importar categorías</button></p></form></div>
+                    
+
+                <div class="card" style="max-width:none;padding:20px;">
+                    <h2>Importar un archivo de productos V2</h2>
+                    <p>Identifica cada producto por ID, SKU o slug. Las columnas que no existan en el CSV nunca se modifican.</p>
+                    <form id="seo-product-import-form" method="post" enctype="multipart/form-data">
+                        <?php wp_nonce_field( 'seo_import_products_csv', 'seo_import_products_nonce' ); ?>
+                        <input type="file" name="products_csv" accept=".csv,text/csv" required>
+
+                        <h3>Bloques que se importarán</h3>
+                        <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_product_core" value="1" checked> Contenido: título, slug, estado, excerpt, descripción y visibilidad</label>
+                        <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_product_commerce" value="1" checked> WooCommerce: SKU, precios, impuestos, stock, peso y dimensiones</label>
+                        <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_product_categories" value="1" checked> Categorías WooCommerce</label>
+                        <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_product_wc_tags" value="1" checked> Etiquetas WooCommerce</label>
+                        <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_product_brand_provider" value="1" checked> Marca, fabricante y datos del proveedor</label>
+                        <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_product_scope" value="1" checked> Ámbito del producto</label>
+                        <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_product_attributes" value="1" checked> Atributos SEO internos</label>
+                        <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_product_wc_attributes" value="1" checked> Atributos WooCommerce en JSON</label>
+                        <label style="display:block;margin-bottom:12px;"><input type="checkbox" name="import_product_image" value="1"> Imagen principal y galería <span class="description">(puede descargar archivos externos)</span></label>
+
+                        <h3>Seguridad</h3>
+                        <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="product_import_dry_run" value="1" checked> Simular primero, sin modificar productos</label>
+                        <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="create_if_missing" value="1"> Crear productos simples cuando no existan</label>
+                        <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="created_products_as_draft" value="1" checked> Mantener los productos nuevos como borrador</label>
+                        <label style="display:block;margin-bottom:12px;"><input type="checkbox" name="product_empty_clears" value="1"> Las celdas vacías eliminan el dato <strong>(usar con precaución)</strong></label>
+
+                        <details style="margin:12px 0;">
+                            <summary><strong>Reglas de importación</strong></summary>
+                            <ul style="list-style:disc;margin-left:20px;">
+                                <li>Orden de identificación: product_id, SKU y slug; si señalan productos distintos, la fila se bloquea.</li>
+                                <li>Las columnas ausentes se ignoran.</li>
+                                <li>Por defecto, una celda vacía conserva el valor actual.</li>
+                                <li>No se crean categorías ausentes. Sí pueden crearse etiquetas, marcas y términos de atributos globales.</li>
+                                <li>Las variaciones se listan como inventario, pero esta pantalla no crea ni elimina variaciones.</li>
+                                <li>La importación se ejecuta en la cola del servidor y continúa aunque cierres esta pestaña.</li>
+                                <li>El botón Detener cancela los lotes pendientes; la fila que ya esté guardándose termina antes de cerrar el proceso.</li>
+                            </ul>
+                        </details>
+
+                        <button type="submit" id="seo-product-import-submit" name="seo_import_products" value="1" class="button button-primary">Analizar / importar productos</button>
+                    </form>
+                </div>
+
+                <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    const form = document.getElementById('seo-product-import-form');
+                    const submitButton = document.getElementById('seo-product-import-submit');
+                    const statusBox = document.getElementById('seo-product-import-status');
+                    const statusTitle = document.getElementById('seo-product-import-status-title');
+                    const statusMessage = document.getElementById('seo-product-import-status-message');
+                    const counts = document.getElementById('seo-product-import-counts');
+                    const progress = document.getElementById('seo-product-import-progress');
+                    const progressWrap = document.getElementById('seo-product-import-progress-wrap');
+                    const resumeButton = document.getElementById('seo-product-import-resume');
+                    const stopButton = document.getElementById('seo-product-import-stop');
+                    const resetButton = document.getElementById('seo-product-import-reset');
+                    const diagnosticsBox = document.getElementById('seo-product-import-diagnostics');
+                    const transactionsBox = document.getElementById('seo-product-import-transactions');
+                    const endpoint = <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>;
+                    const initialActive = <?php echo wp_json_encode( $active_product_import ); ?>;
+                    const startNonceField = form ? form.querySelector('input[name="seo_import_products_nonce"]') : null;
+                    const startNonce = startNonceField ? startNonceField.value : '';
+
+                    if (!form || !statusBox) {
+                        return;
+                    }
+
+                    let token = initialActive.token || '';
+                    let polling = false;
+                    let retryCount = 0;
+                    let retryDelay = 1500;
+                    let lastData = initialActive || {};
+
+                    function createToken() {
+                        if (window.crypto && window.crypto.getRandomValues) {
+                            const bytes = new Uint8Array(24);
+                            window.crypto.getRandomValues(bytes);
+                            return Array.from(bytes, function (value) {
+                                return value.toString(16).padStart(2, '0');
+                            }).join('');
+                        }
+
+                        return String(Date.now()) + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+                    }
+
+                    function sleep(milliseconds) {
+                        return new Promise(function (resolve) {
+                            window.setTimeout(resolve, milliseconds);
+                        });
+                    }
+
+                    function setProgress(value) {
+                        const percentage = Math.max(0, Math.min(100, Number(value) || 0));
+                        progress.style.width = percentage + '%';
+                        progressWrap.setAttribute('aria-valuenow', String(percentage));
+                    }
+
+                    function formatTimestamp(value) {
+                        const timestamp = Number(value || 0);
+                        if (!timestamp) {
+                            return '—';
+                        }
+                        return new Date(timestamp * 1000).toLocaleString();
+                    }
+
+                    function renderDiagnostics(data) {
+                        if (!diagnosticsBox || !transactionsBox) {
+                            return;
+                        }
+
+                        const diagnostic = (data && data.diagnostics) || {};
+                        const rows = [
+                            ['Token', diagnostic.token || token || '—'],
+                            ['Estado interno', diagnostic.status || (data && data.status) || '—'],
+                            ['Archivo temporal', (diagnostic.file || '—') + (diagnostic.file_exists === false ? ' (no existe)' : '')],
+                            ['Línea / desplazamiento', String(diagnostic.line || 0) + ' / ' + String(diagnostic.offset || 0) + ' bytes'],
+                            ['Lote / filas del último lote', String(diagnostic.batch_number || 0) + ' / ' + String(diagnostic.last_batch_rows || 0)],
+                            ['Último product_id', diagnostic.last_product_id || '—'],
+                            ['Última actividad', formatTimestamp(diagnostic.last_activity_at) + ' · inactivo ' + String(diagnostic.idle_seconds || 0) + ' s'],
+                            ['Último lote', formatTimestamp(diagnostic.last_batch_started_at) + ' → ' + formatTimestamp(diagnostic.last_batch_finished_at) + ' · ' + String(diagnostic.last_batch_duration || 0) + ' s'],
+                            ['Ritmo adaptativo', 'objetivo anterior ' + String(diagnostic.last_batch_target_rows || 0) + ' · procesadas ' + String(diagnostic.last_batch_rows || 0) + ' · siguiente ' + String(diagnostic.adaptive_next_batch_size || 0) + ' · pausa ' + String(diagnostic.adaptive_next_delay || 0) + ' s'],
+                            ['Coste por producto', String(diagnostic.last_batch_seconds_per_row || 0) + ' s/fila · memoria ' + String(Math.round(Number(diagnostic.last_batch_memory_ratio || 0) * 100)) + '% · consultas ' + String(diagnostic.last_batch_query_count || 0)],
+                            ['Regulador', (diagnostic.adaptive_pressure || 'baja') + ' · ' + (diagnostic.adaptive_reason || 'arranque') + (diagnostic.last_batch_time_cutoff ? ' · corte por tiempo' : '') + (diagnostic.last_batch_memory_cutoff ? ' · corte por memoria' : '')],
+                            ['Bloqueo', diagnostic.lock_active ? 'activo desde ' + formatTimestamp(diagnostic.lock_started_at) + ' (' + String(diagnostic.lock_age_seconds || 0) + ' s)' : 'no activo'],
+                            ['Callback del lote', Number(diagnostic.callback_count || 0) > 0 ? 'registrado' : 'NO registrado'],
+                            ['Callback watchdog', Number(diagnostic.watchdog_callback_count || 0) > 0 ? 'registrado' : 'NO registrado'],
+                            ['Motor Action Scheduler', diagnostic.action_scheduler_ready ? 'disponible' : 'no inicializado; respaldo WP-Cron'],
+                            ['Acción pendiente/en curso', diagnostic.scheduled ? 'sí' : 'no'],
+                            ['Próxima acción', diagnostic.next_scheduled || 'ninguna'],
+                            ['IDs de acciones conocidas', Array.isArray(diagnostic.known_action_ids) && diagnostic.known_action_ids.length ? diagnostic.known_action_ids.join(', ') : 'ninguno'],
+                            ['Última programación', formatTimestamp(diagnostic.last_schedule_attempt_at) + ' · ' + (diagnostic.last_schedule_backend || '—') + ' · ' + (diagnostic.last_schedule_result || '—') + (diagnostic.last_action_id ? ' · ID ' + diagnostic.last_action_id : '')],
+                            ['Último watchdog', formatTimestamp(diagnostic.last_watchdog_at)],
+                            ['Último error', diagnostic.last_schedule_error || diagnostic.last_error || '—']
+                        ];
+
+                        const table = document.createElement('table');
+                        table.className = 'widefat striped';
+                        table.style.maxWidth = '1000px';
+                        const tbody = document.createElement('tbody');
+
+                        rows.forEach(function (row) {
+                            const tr = document.createElement('tr');
+                            const th = document.createElement('th');
+                            const td = document.createElement('td');
+                            th.textContent = row[0];
+                            td.textContent = String(row[1]);
+                            th.style.width = '230px';
+                            tr.appendChild(th);
+                            tr.appendChild(td);
+                            tbody.appendChild(tr);
+                        });
+
+                        table.appendChild(tbody);
+                        diagnosticsBox.replaceChildren(table);
+
+                        const transactions = Array.isArray(data && data.transactions) ? data.transactions : [];
+                        transactionsBox.textContent = transactions.length
+                            ? transactions.map(function (item) {
+                                const details = Object.keys(item || {})
+                                    .filter(function (key) { return !['time', 'event', 'message'].includes(key); })
+                                    .map(function (key) { return key + '=' + item[key]; })
+                                    .join(' · ');
+                                return '[' + formatTimestamp(item.time) + '] ' + (item.event || 'evento') + ': ' + (item.message || '') + (details ? ' · ' + details : '');
+                            }).join('\n')
+                            : 'Todavía no hay eventos técnicos registrados.';
+
+                        if (diagnostic.scheduled === false && token && !['completed', 'stopped', 'stopping'].includes(String(data && data.status || ''))) {
+                            resumeButton.style.display = 'inline-block';
+                            resumeButton.textContent = 'Reprogramar siguiente lote';
+                        }
+                    }
+
+                    function showStatus(title, message, data) {
+                        statusBox.style.display = 'block';
+                        statusTitle.textContent = title;
+                        statusMessage.textContent = message || '';
+
+                        if (data) {
+                            lastData = data;
+                            setProgress(data.progress ?? data.progreso ?? 0);
+                            const log = data.log || {};
+                            const processed = Number(data.processed ?? log.procesados ?? 0);
+                            const correct = Number(data.correctos ?? log.correctos ?? 0);
+                            const errors = Number(data.errores ?? log.errores ?? 0);
+                            const warnings = Number(log.advertencias ?? 0);
+                            counts.textContent = 'Procesados: ' + processed + ' · Correctos: ' + correct + ' · Errores: ' + errors + ' · Advertencias: ' + warnings;
+                            renderDiagnostics(data);
+                        }
+                    }
+
+                    function extractError(text, fallback) {
+                        try {
+                            const parsed = JSON.parse(text);
+                            if (parsed && parsed.data) {
+                                if (typeof parsed.data === 'string') {
+                                    return parsed.data;
+                                }
+                                if (parsed.data.message) {
+                                    return parsed.data.message;
+                                }
+                            }
+                        } catch (error) {
+                            // La respuesta puede ser HTML de wp_die().
+                        }
+
+                        const clean = String(text || '')
+                            .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+                            .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+                            .replace(/<[^>]+>/g, ' ')
+                            .replace(/\s+/g, ' ')
+                            .trim();
+
+                        return clean || fallback;
+                    }
+
+                    async function request(formData) {
+                        const controller = new AbortController();
+                        const timeoutId = window.setTimeout(function () {
+                            controller.abort();
+                        }, 120000);
+
+                        try {
+                            const response = await fetch(endpoint, {
+                                method: 'POST',
+                                credentials: 'same-origin',
+                                body: formData,
+                                cache: 'no-store',
+                                signal: controller.signal
+                            });
+                            const text = await response.text();
+                            let payload = null;
+
+                            try {
+                                payload = JSON.parse(text);
+                            } catch (error) {
+                                throw new Error(extractError(text, 'El servidor devolvió una respuesta no válida.'));
+                            }
+
+                            if (!response.ok || !payload || payload.success !== true) {
+                                throw new Error(extractError(text, 'No se pudo consultar la importación.'));
+                            }
+
+                            return payload.data || {};
+                        } catch (error) {
+                            if (error && error.name === 'AbortError') {
+                                throw new Error('La consulta de estado ha superado el tiempo de espera. La cola del servidor puede seguir trabajando.');
+                            }
+
+                            throw error;
+                        } finally {
+                            window.clearTimeout(timeoutId);
+                        }
+                    }
+
+                    async function stopImport() {
+                        if (!token || !startNonce) {
+                            throw new Error('No se dispone de datos suficientes para detener la importación.');
+                        }
+
+                        const formData = new FormData();
+                        formData.append('action', 'seo_ie_product_import');
+                        formData.append('seo_import_products_stop', '1');
+                        formData.append('seo_import_token', token);
+                        formData.append('seo_import_products_nonce', startNonce);
+                        return request(formData);
+                    }
+
+                    async function getImportStatus(resume) {
+                        if (!token || !startNonce) {
+                            throw new Error('No se dispone de datos suficientes para consultar la importación.');
+                        }
+
+                        const formData = new FormData();
+                        formData.append('action', 'seo_ie_product_import');
+                        formData.append(resume ? 'seo_import_products_resume' : 'seo_import_products_status', '1');
+                        formData.append('seo_import_token', token);
+                        formData.append('seo_import_products_nonce', startNonce);
+                        return request(formData);
+                    }
+
+                    async function resetImport() {
+                        if (!token || !startNonce) {
+                            throw new Error('No se dispone de datos suficientes para liberar la importación.');
+                        }
+
+                        const formData = new FormData();
+                        formData.append('action', 'seo_ie_product_import');
+                        formData.append('seo_import_products_reset', '1');
+                        formData.append('seo_import_token', token);
+                        formData.append('seo_import_products_nonce', startNonce);
+                        return request(formData);
+                    }
+
+                    async function pollImport() {
+                        if (polling || !token) {
+                            return;
+                        }
+
+                        polling = true;
+                        submitButton.disabled = true;
+                        resumeButton.style.display = 'none';
+                        resumeButton.textContent = 'Reprogramar siguiente lote';
+                        stopButton.style.display = 'inline-block';
+                        stopButton.disabled = false;
+
+                        while (token) {
+                            try {
+                                const data = await getImportStatus(false);
+                                retryCount = 0;
+                                retryDelay = 1500;
+
+                                if (data.status === 'completed') {
+                                    showStatus('Importación finalizada', data.message || 'El proceso ha terminado correctamente.', data);
+                                    setProgress(100);
+                                    token = '';
+                                    polling = false;
+                                    submitButton.disabled = false;
+                                    resumeButton.style.display = 'none';
+                                    stopButton.style.display = 'none';
+                                    resetButton.style.display = 'none';
+                                    return;
+                                }
+
+                                if (data.status === 'stopped') {
+                                    showStatus('Importación detenida', data.message || 'Los cambios ya aplicados se conservan.', data);
+                                    token = '';
+                                    polling = false;
+                                    submitButton.disabled = false;
+                                    resumeButton.style.display = 'none';
+                                    stopButton.style.display = 'none';
+                                    resetButton.style.display = 'none';
+                                    return;
+                                }
+
+                                if (data.status === 'stopping') {
+                                    showStatus('Deteniendo importación…', data.message || 'Se está terminando de forma segura la fila en ejecución.', data);
+                                    stopButton.style.display = 'inline-block';
+                                    stopButton.disabled = true;
+                                    await sleep(1500);
+                                    continue;
+                                }
+
+                                if (data.status === 'failed') {
+                                    showStatus('Importación detenida', data.message || 'La cola se ha detenido después de varios reintentos.', data);
+                                    polling = false;
+                                    submitButton.disabled = false;
+                                    resumeButton.style.display = 'inline-block';
+                                    stopButton.style.display = 'inline-block';
+                                    stopButton.disabled = false;
+                                    resetButton.style.display = 'inline-block';
+                                    resetButton.disabled = false;
+                                    return;
+                                }
+
+                                stopButton.style.display = 'inline-block';
+                                stopButton.disabled = false;
+                                resetButton.style.display = 'inline-block';
+                                resetButton.disabled = false;
+                                showStatus(
+                                    'Actualizando productos…',
+                                    data.message || 'La importación continúa en el servidor; puedes cerrar esta pestaña.',
+                                    data
+                                );
+                                await sleep(2500);
+                            } catch (error) {
+                                retryCount++;
+                                showStatus(
+                                    'No se puede consultar el progreso',
+                                    error.message + ' La importación puede seguir activa en el servidor.',
+                                    lastData
+                                );
+
+                                if (retryCount >= 6) {
+                                    polling = false;
+                                    submitButton.disabled = true;
+                                    resumeButton.style.display = 'inline-block';
+                                    stopButton.style.display = 'inline-block';
+                                    stopButton.disabled = false;
+                                    resetButton.style.display = 'inline-block';
+                                    resetButton.disabled = false;
+                                    statusMessage.textContent = 'No se puede consultar la cola ahora. El panel conserva el último diagnóstico. Pulsa Reprogramar siguiente lote; usa Liberar únicamente si deseas abandonar definitivamente esta importación.';
+                                    return;
+                                }
+
+                                await sleep(retryDelay);
+                                retryDelay = Math.min(retryDelay * 2, 15000);
+                            }
+                        }
+
+                        polling = false;
+                        submitButton.disabled = Boolean(token);
+                    }
+
+                    form.addEventListener('submit', async function (event) {
+                        event.preventDefault();
+
+                        if (polling || token) {
+                            showStatus(
+                                'Hay una importación anterior activa',
+                                'Antes de cargar otro CSV, detén la importación actual o usa Liberar importación bloqueada.',
+                                lastData
+                            );
+                            stopButton.style.display = 'inline-block';
+                            resetButton.style.display = 'inline-block';
+                            return;
+                        }
+
+                        const fileInput = form.querySelector('input[name="products_csv"]');
+
+                        if (!fileInput || !fileInput.files || !fileInput.files.length) {
+                            showStatus('Falta el archivo CSV', 'Selecciona un archivo antes de iniciar la importación.', null);
+                            return;
+                        }
+
+                        submitButton.disabled = true;
+                        retryCount = 0;
+                        retryDelay = 1500;
+                        token = createToken();
+                        showStatus('Preparando importación…', 'Guardando el CSV, validando sus columnas y creando la cola del servidor.', { progress: 0, processed: 0, correctos: 0, errores: 0, log: {} });
+
+                        const formData = new FormData(form);
+                        formData.set('action', 'seo_ie_product_import');
+                        formData.set('seo_import_products', '1');
+                        formData.set('seo_import_client_token', token);
+
+                        try {
+                            const data = await request(formData);
+                            token = data.token || token;
+                            stopButton.style.display = 'inline-block';
+                            stopButton.disabled = false;
+                            resetButton.style.display = 'inline-block';
+                            resetButton.disabled = false;
+                            showStatus('Actualizando productos…', data.message || 'La cola del servidor se ha iniciado.', data);
+                            pollImport();
+                        } catch (error) {
+                            showStatus('Comprobando si la cola se inició…', error.message, lastData);
+
+                            try {
+                                await sleep(1500);
+                                const data = await getImportStatus(false);
+                                showStatus('Actualizando productos…', data.message || 'La cola del servidor está activa.', data);
+                                pollImport();
+                            } catch (recoveryError) {
+                                submitButton.disabled = true;
+                                stopButton.style.display = 'inline-block';
+                                stopButton.disabled = false;
+                                resetButton.style.display = 'inline-block';
+                                resetButton.disabled = false;
+                                showStatus(
+                                    'No se pudo confirmar el inicio',
+                                    (recoveryError.message || error.message) + ' Puedes liberar este intento antes de volver a cargar el CSV.',
+                                    lastData
+                                );
+                            }
+                        }
+                    });
+
+                    stopButton.addEventListener('click', async function () {
+                        if (!token || stopButton.disabled) {
+                            return;
+                        }
+
+                        if (!window.confirm('¿Detener la importación? Los productos ya procesados se conservarán.')) {
+                            return;
+                        }
+
+                        stopButton.disabled = true;
+                        resumeButton.style.display = 'none';
+                        showStatus('Solicitando detención…', 'Cancelando los lotes pendientes y esperando a que termine la fila en ejecución.', lastData);
+
+                        try {
+                            const data = await stopImport();
+
+                            if (data.status === 'stopped') {
+                                showStatus('Importación detenida', data.message || 'Los cambios ya aplicados se conservan.', data);
+                                token = '';
+                                polling = false;
+                                submitButton.disabled = false;
+                                stopButton.style.display = 'none';
+                                resetButton.style.display = 'none';
+                                return;
+                            }
+
+                            showStatus('Deteniendo importación…', data.message || 'La detención se completará al terminar la fila en ejecución.', data);
+                            stopButton.style.display = 'inline-block';
+                            stopButton.disabled = true;
+
+                            if (!polling) {
+                                pollImport();
+                            }
+                        } catch (error) {
+                            stopButton.disabled = false;
+                            showStatus('No se pudo solicitar la detención', error.message, lastData);
+                        }
+                    });
+
+                    resetButton.addEventListener('click', async function () {
+                        if (!token || resetButton.disabled) {
+                            return;
+                        }
+
+                        if (!window.confirm('¿Liberar la importación anterior? Se cancelarán sus lotes pendientes y se conservará todo lo ya procesado.')) {
+                            return;
+                        }
+
+                        resetButton.disabled = true;
+                        stopButton.disabled = true;
+                        resumeButton.style.display = 'none';
+                        showStatus('Liberando importación…', 'Cancelando la cola anterior y eliminando el estado que bloquea una nueva carga.', lastData);
+
+                        try {
+                            const data = await resetImport();
+
+                            if (data.status === 'stopping') {
+                                showStatus('Liberación pendiente…', data.message || 'Se espera a que termine la fila en ejecución.', data);
+                                resetButton.disabled = false;
+                                stopButton.disabled = true;
+                                if (!polling) {
+                                    pollImport();
+                                }
+                                return;
+                            }
+
+                            showStatus('Importación anterior liberada', data.message || 'Ya puedes seleccionar y cargar un nuevo CSV.', data);
+                            token = '';
+                            polling = false;
+                            submitButton.disabled = false;
+                            resumeButton.style.display = 'none';
+                            stopButton.style.display = 'none';
+                            resetButton.style.display = 'none';
+                        } catch (error) {
+                            resetButton.disabled = false;
+                            stopButton.disabled = false;
+                            showStatus('No se pudo liberar la importación', error.message, lastData);
+                        }
+                    });
+
+                    resumeButton.addEventListener('click', async function () {
+                        if (!token) {
+                            return;
+                        }
+
+                        resumeButton.disabled = true;
+                        retryCount = 0;
+                        retryDelay = 1500;
+
+                        try {
+                            const data = await getImportStatus(true);
+                            showStatus('Actualizando productos…', data.message || 'Se ha solicitado programar el siguiente lote.', data);
+                            resumeButton.disabled = false;
+                            stopButton.style.display = 'inline-block';
+                            stopButton.disabled = false;
+                            pollImport();
+                        } catch (error) {
+                            resumeButton.disabled = false;
+                            showStatus('No se pudo reprogramar el siguiente lote', error.message, lastData);
+                        }
+                    });
+
+                    if (token) {
+                        renderDiagnostics(initialActive);
+                        stopButton.style.display = 'inline-block';
+                        resetButton.style.display = 'inline-block';
+                        resetButton.disabled = false;
+
+                        if (initialActive.status === 'failed') {
+                            showStatus('Importación detenida por error', 'La cola se detuvo después de varios reintentos. Puedes reintentarla o cancelarla.', initialActive);
+                            resumeButton.style.display = 'inline-block';
+                            stopButton.disabled = false;
+                        } else if (initialActive.status === 'stopping') {
+                            showStatus('Deteniendo importación…', 'La solicitud de detención está pendiente de que termine la fila en ejecución.', initialActive);
+                            stopButton.disabled = true;
+                            pollImport();
+                        } else {
+                            showStatus('Actualizando productos…', 'La importación continúa en el servidor; puedes cerrarla o detenerla desde aquí.', initialActive);
+                            stopButton.disabled = false;
+                            pollImport();
+                        }
+                    }
+                });
+                </script>
 
                 <div class="card" style="max-width:none;padding:20px;">
                     <h2>Exportar páginas</h2>
@@ -12087,7 +11687,7 @@ function seo_import_export_page() {
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_page_seo_meta" value="1" checked> Metadatos SEO</label>
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_page_custom_meta" value="1" checked> Metadatos personalizados y de maquetadores</label>
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_page_image" value="1" checked> Imagen destacada</label>
-                        <label style="display:block;margin-bottom:10px;"><input type="checkbox" name="import_page_relations" value="1" checked> Rol SEO, relación product_cat y Vocabulary canónico</label>
+                        <label style="display:block;margin-bottom:10px;"><input type="checkbox" name="import_page_relations" value="1" checked> Rol SEO y relación comercial con product_cat (seo_nodes + seo_relations)</label>
                         <label style="display:block;margin:12px 0;padding:10px;border-left:4px solid #72aee6;background:#f0f6fc;"><input type="checkbox" name="page_import_dry_run" value="1" checked> <strong>Simular primero</strong>: validar y mostrar el resultado sin escribir datos.</label>
 
                         <button type="submit" name="seo_import_pages" value="1" class="button button-primary">Procesar páginas</button>
@@ -12095,7 +11695,7 @@ function seo_import_export_page() {
                 </div>
                 <div class="card" style="max-width:none;padding:20px;">
                     <h2>Exportar entradas (posts)</h2>
-                    <p>Exporta contenido, autor, fechas, categorías editoriales, relación product_cat, Vocabulary canónico, formato, sticky, imagen destacada y metadatos. No exporta <code>post_tag</code>.</p>
+                    <p>Exporta contenido, autor, fechas, categorías, etiquetas, formato, sticky, imagen destacada y metadatos.</p>
                     <form method="post">
                         <?php wp_nonce_field( 'seo_export_posts_csv', 'seo_export_posts_nonce' ); ?>
                         <fieldset style="margin:12px 0;">
@@ -12112,7 +11712,7 @@ function seo_import_export_page() {
 
                 <div class="card" style="max-width:none;padding:20px;">
                     <h2>Importar entradas (posts)</h2>
-                    <p>Crea o actualiza el contenido en WordPress. Las categorías editoriales siguen siendo independientes de la relación comercial post → product_cat. La semántica se importa únicamente desde <code>vocab_*</code> hacia Vocabulary; las columnas legacy <code>etiquetas_*</code> se ignoran y nunca escriben <code>post_tag</code>. Una product_cat inexistente no detiene la importación: el post queda sin relación comercial y se registra ERROR RELACIÓN.</p>
+                    <p>Crea o actualiza el contenido en WordPress. Las categorías editoriales siguen siendo independientes de la relación comercial post → product_cat, que se guarda en SEO Relations. Una product_cat inexistente no detiene la importación: el post queda sin relación comercial y se registra ERROR RELACIÓN.</p>
                     <form method="post" enctype="multipart/form-data">
                         <?php wp_nonce_field( 'seo_import_posts_csv', 'seo_import_posts_nonce' ); ?>
                         <input type="file" name="posts_csv" accept=".csv,text/csv" required>
@@ -12128,12 +11728,12 @@ function seo_import_export_page() {
 
                         <h3>Datos que se importarán</h3>
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_post_core" value="1" checked> Título, slug, estado, excerpt y contenido</label>
-                        <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_post_taxonomies" value="1" checked> Categorías editoriales, formato, sticky, comentarios y pings</label>
+                        <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_post_taxonomies" value="1" checked> Categorías, etiquetas, formato, sticky, comentarios y pings</label>
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_post_author_date" value="1" checked> Autor y fecha de publicación</label>
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_post_seo_meta" value="1" checked> Metadatos SEO</label>
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_post_custom_meta" value="1" checked> Metadatos personalizados y de maquetadores</label>
                         <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="import_post_image" value="1" checked> Imagen destacada</label>
-                        <label style="display:block;margin-bottom:10px;"><input type="checkbox" name="import_post_relations" value="1" checked> Relación product_cat + Vocabulary canónico</label>
+                        <label style="display:block;margin-bottom:10px;"><input type="checkbox" name="import_post_relations" value="1" checked> Relación comercial con product_cat (seo_relations)</label>
                         <label style="display:block;margin:12px 0;padding:10px;border-left:4px solid #72aee6;background:#f0f6fc;"><input type="checkbox" name="post_import_dry_run" value="1" checked> <strong>Simular primero</strong>: validar y mostrar el resultado sin escribir datos.</label>
 
                         <button type="submit" name="seo_import_posts" value="1" class="button button-primary">Procesar entradas</button>
@@ -12142,8 +11742,6 @@ function seo_import_export_page() {
 
                 <div class="card" style="max-width:none;padding:20px;"><h2>Exportar FAQs</h2><p>Exporta preguntas, respuestas, ámbito, orden, estado y métricas.</p><form method="post"><?php wp_nonce_field( 'seo_export_faqs_csv', 'seo_export_faqs_nonce' ); ?><button type="submit" name="seo_export_faqs" value="1" class="button button-primary">Exportar FAQs</button></form></div>
                 <div class="card" style="max-width:none;padding:20px;"><h2>Importar FAQs</h2><p>Actualiza por faq_id o crea una FAQ nueva cuando el ID no exista.</p><form method="post" enctype="multipart/form-data"><?php wp_nonce_field( 'seo_import_faqs_csv', 'seo_import_faqs_nonce' ); ?><input type="file" name="faqs_csv" accept=".csv,text/csv" required><p><button type="submit" name="seo_import_faqs" value="1" class="button button-primary">Importar FAQs</button></p></form></div>
-
-                <?php if ( function_exists( 'seo_comentarista_render_import_export_cards' ) ) { seo_comentarista_render_import_export_cards(); } ?>
 
                 <div class="card" style="max-width:none;padding:20px;">
                     <h2>Exportar redirects</h2>
@@ -12166,14 +11764,12 @@ function seo_import_export_page() {
                 </div>
             </div>
             <?php seo_ie_render_log( $last_log ); ?>
-        <?php elseif ( 'catalogo-semantico' === $tab ) : ?>
-            <?php if ( class_exists( 'SEO_Semantic_Catalog_Transfer' ) ) { SEO_Semantic_Catalog_Transfer::render_tab(); } else { echo '<div class="notice notice-error inline"><p>No se ha podido cargar el catalogo semantico portable.</p></div>'; } ?>
-
-        <?php elseif ( 'clonador' === $tab ) : ?>
-            <?php if ( function_exists( 'seo_clonador_render' ) ) { seo_clonador_render(); } else { echo '<div class="notice notice-error inline"><p>No se ha podido cargar el Clonador PRO → STAGING.</p></div>'; } ?>
-
         <?php elseif ( 'import-batch' === $tab ) : ?>
             <?php if ( function_exists( 'seo_ie_batch_render_page' ) ) { seo_ie_batch_render_page(); } else { echo '<div class="notice notice-error inline"><p>Falta el modulo seo-import-batch.php.</p></div>'; } ?>
+        <?php elseif ( 'clonador' === $tab ) : ?>
+            <?php if ( function_exists( 'seo_clonador_render' ) ) { seo_clonador_render(); } else { echo '<div class="notice notice-error inline"><p>No se ha podido cargar el módulo Clonador PRO → STAGING.</p></div>'; } ?>
+        <?php elseif ( 'catalogo-semantico' === $tab ) : ?>
+            <?php if ( class_exists( 'SEO_Semantic_Catalog_Transfer' ) && is_callable( [ 'SEO_Semantic_Catalog_Transfer', 'render_tab' ] ) ) { SEO_Semantic_Catalog_Transfer::render_tab(); } else { echo '<div class="notice notice-error inline"><p>No se ha podido cargar el catálogo semántico portable.</p></div>'; } ?>
         <?php elseif ( 'importar-proveedor' === $tab ) : ?>
             <?php if ( function_exists( 'seo_proveedores_render_importador' ) ) { seo_proveedores_render_importador(); } else { echo '<div class="notice notice-error inline"><p>No se ha podido cargar el motor de importación de proveedores.</p></div>'; } ?>
             <?php if ( ! empty( $last_log ) && 'Importación de catálogo de proveedor' === ( $last_log['operacion'] ?? '' ) ) { seo_ie_render_log( $last_log ); } ?>

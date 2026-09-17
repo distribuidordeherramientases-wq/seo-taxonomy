@@ -121,6 +121,14 @@ function seo_social_pinterest_sanitize_connection($posted, $current)
         'page_name'                => $board_name,
         'page_link'                => $page_link,
         'publish_mode'             => 'image',
+        // Estos campos pertenecen a Pinterest Merchant y se editan desde
+        // Importar/Exportar > Conexiones. Se conservan al guardar OAuth/social.
+        'domain_verify_enabled'    => !empty($current['domain_verify_enabled']) ? 1 : 0,
+        'domain_verify_code'       => isset($current['domain_verify_code']) ? sanitize_text_field((string) $current['domain_verify_code']) : '',
+        'catalog_feed_url'         => isset($current['catalog_feed_url']) ? esc_url_raw((string) $current['catalog_feed_url']) : '',
+        'merchant_last_test_at'    => isset($current['merchant_last_test_at']) ? sanitize_text_field((string) $current['merchant_last_test_at']) : '',
+        'merchant_last_test_ok'    => !empty($current['merchant_last_test_ok']) ? 1 : 0,
+        'merchant_last_test_error' => isset($current['merchant_last_test_error']) ? sanitize_text_field((string) $current['merchant_last_test_error']) : '',
         'last_test_at'             => isset($current['last_test_at']) ? sanitize_text_field((string) $current['last_test_at']) : '',
         'last_test_ok'             => !empty($current['last_test_ok']) ? 1 : 0,
         'last_test_error'          => isset($current['last_test_error']) ? sanitize_text_field((string) $current['last_test_error']) : '',
@@ -693,6 +701,237 @@ function seo_social_pinterest_register_rest_route()
     );
 }
 add_action('rest_api_init', 'seo_social_pinterest_register_rest_route');
+
+/**
+ * Extrae el codigo de verificacion de dominio de Pinterest.
+ * Acepta tanto el valor suelto como la etiqueta <meta> completa que entrega
+ * Pinterest, pero nunca guarda HTML arbitrario.
+ *
+ * @param string $value
+ * @return string
+ */
+function seo_social_pinterest_extract_domain_verify($value)
+{
+    $value = trim((string) $value);
+    if ($value === '') {
+        return '';
+    }
+
+    if (stripos($value, '<meta') !== false) {
+        if (preg_match('/<meta\b[^>]*\bname\s*=\s*(["\'])p:domain_verify\1[^>]*\bcontent\s*=\s*(["\'])([^"\']+)\2[^>]*>/i', $value, $match)) {
+            $value = $match[3];
+        } elseif (preg_match('/<meta\b[^>]*\bcontent\s*=\s*(["\'])([^"\']+)\1[^>]*\bname\s*=\s*(["\'])p:domain_verify\3[^>]*>/i', $value, $match)) {
+            $value = $match[2];
+        } else {
+            return '';
+        }
+    }
+
+    $value = sanitize_text_field($value);
+    if (!preg_match('/^[A-Za-z0-9._:-]{6,255}$/', $value)) {
+        return '';
+    }
+
+    return $value;
+}
+
+/**
+ * Devuelve la configuracion Pinterest Merchant almacenada dentro del proveedor
+ * Pinterest comun. No duplica tokens ni credenciales.
+ *
+ * @return array
+ */
+function seo_social_pinterest_merchant_settings()
+{
+    $settings = seo_social_network_get_settings();
+    $config = isset($settings['providers']['pinterest']) && is_array($settings['providers']['pinterest'])
+        ? $settings['providers']['pinterest']
+        : array();
+
+    return array(
+        'domain_verify_enabled'    => !empty($config['domain_verify_enabled']) ? 1 : 0,
+        'domain_verify_code'       => isset($config['domain_verify_code']) ? seo_social_pinterest_extract_domain_verify($config['domain_verify_code']) : '',
+        'catalog_feed_url'         => isset($config['catalog_feed_url']) ? esc_url_raw((string) $config['catalog_feed_url']) : '',
+        'merchant_last_test_at'    => isset($config['merchant_last_test_at']) ? sanitize_text_field((string) $config['merchant_last_test_at']) : '',
+        'merchant_last_test_ok'    => !empty($config['merchant_last_test_ok']) ? 1 : 0,
+        'merchant_last_test_error' => isset($config['merchant_last_test_error']) ? sanitize_text_field((string) $config['merchant_last_test_error']) : '',
+    );
+}
+
+/**
+ * Guarda solo la parte Merchant sin tocar OAuth, tokens, tableros o publicacion.
+ */
+function seo_social_pinterest_save_merchant_connection()
+{
+    if (!current_user_can('manage_options')) {
+        wp_die(esc_html__('No tienes permisos para configurar Pinterest.', 'seo-system'));
+    }
+
+    check_admin_referer('seo_social_pinterest_merchant_save', 'seo_social_pinterest_merchant_nonce');
+
+    $raw_code = isset($_POST['domain_verify_code']) ? wp_unslash($_POST['domain_verify_code']) : '';
+    $code = seo_social_pinterest_extract_domain_verify($raw_code);
+    $enabled = empty($_POST['domain_verify_enabled']) ? 0 : 1;
+    $feed_url = isset($_POST['catalog_feed_url']) ? esc_url_raw(trim((string) wp_unslash($_POST['catalog_feed_url']))) : '';
+
+    if ($enabled && $code === '') {
+        wp_safe_redirect(add_query_arg(
+            array(
+                'page'                    => 'seo-import-export',
+                'seo_ie_tab'              => 'conexiones-proveedores',
+                'pinterest_merchant_error' => 'verification_code',
+            ),
+            admin_url('admin.php')
+        ));
+        exit;
+    }
+
+    $settings = seo_social_network_get_settings();
+    $config = isset($settings['providers']['pinterest']) && is_array($settings['providers']['pinterest'])
+        ? $settings['providers']['pinterest']
+        : array();
+
+    $config['domain_verify_enabled'] = $enabled;
+    $config['domain_verify_code'] = $code;
+    $config['catalog_feed_url'] = $feed_url;
+    // Al cambiar la configuracion, la prueba anterior deja de ser concluyente.
+    $config['merchant_last_test_at'] = '';
+    $config['merchant_last_test_ok'] = 0;
+    $config['merchant_last_test_error'] = '';
+
+    $settings['providers']['pinterest'] = $config;
+    seo_social_network_save_settings($settings);
+
+    wp_safe_redirect(add_query_arg(
+        array(
+            'page'                     => 'seo-import-export',
+            'seo_ie_tab'               => 'conexiones-proveedores',
+            'pinterest_merchant_saved' => 1,
+        ),
+        admin_url('admin.php')
+    ));
+    exit;
+}
+add_action('admin_post_seo_social_pinterest_merchant_save', 'seo_social_pinterest_save_merchant_connection');
+
+/**
+ * Imprime exclusivamente la meta de verificacion de dominio. No carga JS,
+ * cookies, pixel, Pinterest Tag ni seguimiento de conversiones.
+ */
+function seo_social_pinterest_domain_verify_head()
+{
+    if (is_admin()) {
+        return;
+    }
+
+    $merchant = seo_social_pinterest_merchant_settings();
+    if (empty($merchant['domain_verify_enabled']) || $merchant['domain_verify_code'] === '') {
+        return;
+    }
+
+    echo "\n<!-- SEO System: Pinterest domain verification -->\n";
+    echo '<meta name="p:domain_verify" content="' . esc_attr($merchant['domain_verify_code']) . '">' . "\n";
+}
+add_action('wp_head', 'seo_social_pinterest_domain_verify_head', 5);
+
+/**
+ * Comprueba desde el servidor que la home publica contiene exactamente la meta
+ * guardada. La URL de prueba lleva query string para reducir falsos negativos
+ * provocados por caches intermedias.
+ *
+ * @return array
+ */
+function seo_social_pinterest_test_merchant_connection()
+{
+    $merchant = seo_social_pinterest_merchant_settings();
+    $code = (string) ($merchant['domain_verify_code'] ?? '');
+
+    if (empty($merchant['domain_verify_enabled']) || $code === '') {
+        return array(
+            'ok'       => false,
+            'messages' => array('Activa la verificacion e introduce el codigo de Pinterest antes de probar.'),
+        );
+    }
+
+    $url = add_query_arg('seo_pinterest_verify', (string) time(), home_url('/'));
+    $response = wp_remote_get(
+        $url,
+        array(
+            'timeout'     => 20,
+            'redirection' => 5,
+            'headers'     => array(
+                'Cache-Control' => 'no-cache',
+                'User-Agent'    => 'SEO-System-Pinterest-Verify/1.0',
+            ),
+        )
+    );
+
+    if (is_wp_error($response)) {
+        return array(
+            'ok'       => false,
+            'messages' => array('No se pudo consultar la web publica: ' . $response->get_error_message()),
+        );
+    }
+
+    $status = (int) wp_remote_retrieve_response_code($response);
+    $html = (string) wp_remote_retrieve_body($response);
+    if ($status < 200 || $status >= 400 || $html === '') {
+        return array(
+            'ok'       => false,
+            'messages' => array('La comprobacion publica devolvio HTTP ' . $status . '.'),
+        );
+    }
+
+    $head_html = $html;
+    $head_end = stripos($html, '</head>');
+    if (false !== $head_end) {
+        $head_html = substr($html, 0, $head_end + 7);
+    }
+
+    $found = false;
+    if (preg_match_all('/<meta\b[^>]*>/i', $head_html, $matches)) {
+        foreach ((array) $matches[0] as $meta) {
+            if (stripos($meta, 'p:domain_verify') === false) {
+                continue;
+            }
+            $meta_code = seo_social_pinterest_extract_domain_verify($meta);
+            if ($meta_code !== '' && hash_equals($code, $meta_code)) {
+                $found = true;
+                break;
+            }
+        }
+    }
+
+    return array(
+        'ok'       => $found,
+        'messages' => array(
+            $found
+                ? 'Pinterest: etiqueta de verificacion encontrada correctamente en el <head> publico.'
+                : 'Pinterest: no se encontro en el HTML publico la etiqueta de verificacion guardada. Purga cache si acabas de cambiarla.',
+        ),
+    );
+}
+
+/**
+ * Guarda el resultado de la ultima comprobacion Merchant.
+ *
+ * @param array $test
+ */
+function seo_social_pinterest_store_merchant_test($test)
+{
+    $test = is_array($test) ? $test : array();
+    $settings = seo_social_network_get_settings();
+    $config = isset($settings['providers']['pinterest']) && is_array($settings['providers']['pinterest'])
+        ? $settings['providers']['pinterest']
+        : array();
+
+    $messages = array_map('sanitize_text_field', (array) ($test['messages'] ?? array()));
+    $config['merchant_last_test_at'] = current_time('mysql');
+    $config['merchant_last_test_ok'] = !empty($test['ok']) ? 1 : 0;
+    $config['merchant_last_test_error'] = !empty($test['ok']) ? '' : implode(' ', $messages);
+    $settings['providers']['pinterest'] = $config;
+    seo_social_network_save_settings($settings);
+}
 
 /**
  * @param array $config

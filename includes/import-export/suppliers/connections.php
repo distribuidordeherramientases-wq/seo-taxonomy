@@ -7,7 +7,7 @@
  *
  * @package SEOSystem
  * @subpackage ImportExport
- * @version 0.7.0
+ * @version 0.8.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -83,6 +83,16 @@ if ( ! function_exists( 'seo_proveedores_api_connections' ) ) {
                 'label'    => 'Google Search / Analytics',
                 'provider' => 'Google',
                 'market'   => '',
+            ];
+        }
+
+        if ( function_exists( 'seo_social_pinterest_merchant_settings' ) ) {
+            $connections['pinterest_merchant'] = [
+                'id'       => 'pinterest_merchant',
+                'label'    => 'Pinterest Merchant',
+                'provider' => 'Pinterest',
+                'market'   => '',
+                'type'     => 'commerce',
             ];
         }
 
@@ -166,6 +176,25 @@ if ( ! function_exists( 'seo_proveedores_render_conexiones' ) ) {
             }
         }
 
+        if ( isset( $_POST['seo_pinterest_merchant_test_connection'] ) ) {
+            check_admin_referer( 'seo_pinterest_merchant_connection_test', 'seo_pinterest_merchant_connection_nonce' );
+
+            if ( ! function_exists( 'seo_social_pinterest_test_merchant_connection' ) ) {
+                $error = 'El servicio Pinterest Merchant no esta cargado.';
+            } else {
+                $test = seo_social_pinterest_test_merchant_connection();
+                if ( function_exists( 'seo_social_pinterest_store_merchant_test' ) ) {
+                    seo_social_pinterest_store_merchant_test( $test );
+                }
+                $messages = array_map( 'sanitize_text_field', (array) ( $test['messages'] ?? [] ) );
+                if ( empty( $test['ok'] ) ) {
+                    $error = implode( ' ', $messages );
+                } else {
+                    $notice = implode( ' ', $messages );
+                }
+            }
+        }
+
 
         if ( isset( $_POST['seo_google_python_test_connection'] ) ) {
             check_admin_referer( 'seo_google_python_connection_test', 'seo_google_python_connection_nonce' );
@@ -224,7 +253,7 @@ if ( ! function_exists( 'seo_proveedores_render_conexiones' ) ) {
         echo '<div class="card" style="max-width:none;padding:20px;margin-top:20px;">';
         echo '<h2 style="margin-top:0;">Conexiones e integraciones</h2>';
         echo '<p>Configura aqui conexiones de entornos, APIs de proveedores, ejecutores externos y servicios de infraestructura. Cada credencial se define una sola vez y los modulos autorizados reutilizan la conexion.</p>';
-        echo '<p><code>Modulo conexiones v0.7.0</code></p>';
+        echo '<p><code>Modulo conexiones v0.8.0</code></p>';
 
         if ( ! function_exists( 'seo_github_python_runner_settings' ) ) {
             $gh_loader = isset( $GLOBALS['seo_github_python_runner_loader'] ) && is_array( $GLOBALS['seo_github_python_runner_loader'] )
@@ -258,6 +287,17 @@ if ( ! function_exists( 'seo_proveedores_render_conexiones' ) ) {
         }
         if ( isset( $_GET['google_search_saved'] ) ) {
             echo '<div class="notice notice-success inline"><p>Configuracion de Google Search / Analytics guardada.</p></div>';
+        }
+        if ( isset( $_GET['pinterest_merchant_saved'] ) ) {
+            echo '<div class="notice notice-success inline"><p>Configuracion de Pinterest Merchant guardada.</p></div>';
+        }
+        if ( isset( $_GET['pinterest_merchant_error'] ) ) {
+            $pinterest_error = sanitize_key( $_GET['pinterest_merchant_error'] );
+            $pinterest_message = 'No se pudo guardar la configuracion de Pinterest.';
+            if ( 'verification_code' === $pinterest_error ) {
+                $pinterest_message = 'El codigo de verificacion de Pinterest no es valido. Puedes pegar el codigo o la etiqueta meta completa que te da Pinterest.';
+            }
+            echo '<div class="notice notice-error inline"><p>' . esc_html( $pinterest_message ) . '</p></div>';
         }
 
         if ( isset( $_GET['google_python_saved'] ) ) {
@@ -415,6 +455,42 @@ if ( ! function_exists( 'seo_proveedores_render_conexiones' ) ) {
             echo '</form>';
             echo '<p class="description" style="margin-top:12px;">Los informes de landings podran reutilizar <code>seo_google_search_console_query()</code> y <code>seo_google_analytics_run_report()</code> sin conocer ni exponer las credenciales.</p>';
             echo '<p class="description" style="margin-top:6px;"><strong>WooCommerce / GA4:</strong> con la medicion frontend activa, SEO System envia <code>view_item</code>, <code>add_to_cart</code>, <code>remove_from_cart</code>, <code>view_cart</code>, <code>begin_checkout</code>, <code>add_shipping_info</code>, <code>add_payment_info</code> y <code>purchase</code>. Los eventos automaticos <code>form_start</code>/<code>form_submit</code> no se consideran ventas.</p>';
+            echo '</div>';
+        }
+
+        if ( isset( $connections['pinterest_merchant'] ) && function_exists( 'seo_social_pinterest_merchant_settings' ) ) {
+            $pinterest = seo_social_pinterest_merchant_settings();
+            $pinterest_enabled = ! empty( $pinterest['domain_verify_enabled'] );
+            $pinterest_code = trim( (string) ( $pinterest['domain_verify_code'] ?? '' ) );
+            $pinterest_configured = $pinterest_enabled && '' !== $pinterest_code;
+            $pinterest_verified = $pinterest_configured && ! empty( $pinterest['merchant_last_test_ok'] );
+            $pinterest_badge = $pinterest_verified ? 'Etiqueta verificada' : ( $pinterest_configured ? 'Configurado, pendiente de prueba' : 'Pendiente de configurar' );
+            $pinterest_badge_bg = $pinterest_verified ? '#edfaef' : '#fff8e5';
+
+            echo '<div style="border:1px solid #dcdcde;border-radius:6px;padding:18px;margin-top:18px;background:#fff;">';
+            echo '<div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;">';
+            echo '<div><h3 style="margin:0 0 6px;">Pinterest Merchant / Sitio web</h3><p style="margin:0;max-width:900px;">Verificacion de dominio para Pinterest sin instalar plugins. SEO System inserta solo la meta de verificacion en <code>&lt;head&gt;</code>; no activa Pinterest Tag, cookies ni seguimiento.</p></div>';
+            echo '<span style="display:inline-block;padding:5px 9px;border-radius:12px;background:' . esc_attr( $pinterest_badge_bg ) . ';">' . esc_html( $pinterest_badge ) . '</span>';
+            echo '</div>';
+
+            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:18px;">';
+            echo '<input type="hidden" name="action" value="seo_social_pinterest_merchant_save">';
+            wp_nonce_field( 'seo_social_pinterest_merchant_save', 'seo_social_pinterest_merchant_nonce' );
+            echo '<label style="grid-column:1/-1;"><input type="checkbox" name="domain_verify_enabled" value="1" ' . checked( $pinterest_enabled, true, false ) . '> <strong>Publicar verificacion de dominio de Pinterest en el &lt;head&gt;</strong></label>';
+            echo '<label style="grid-column:1/-1;"><strong>Codigo o etiqueta HTML de verificacion</strong><br><input type="text" name="domain_verify_code" value="' . esc_attr( $pinterest_code ) . '" placeholder="Pega el codigo o &lt;meta name=&quot;p:domain_verify&quot; ...&gt; completo" class="large-text code" autocomplete="off" style="width:100%;"><br><span class="description">Se guarda solo el valor del codigo. Nunca se almacena ni imprime HTML arbitrario.</span></label>';
+            echo '<label style="grid-column:1/-1;"><strong>URL de feed de catalogo Pinterest</strong> <span class="description">(opcional, para el siguiente paso)</span><br><input type="url" name="catalog_feed_url" value="' . esc_attr( $pinterest['catalog_feed_url'] ?? '' ) . '" placeholder="https://www.ejemplo.com/feeds/pinterest.xml" class="large-text code" style="width:100%;"><br><span class="description">Dejalo vacio hasta que generemos el feed del catalogo. No instala ni conecta ningun plugin.</span></label>';
+            echo '<div style="grid-column:1/-1;"><button class="button button-primary" type="submit">Guardar Pinterest</button></div>';
+            echo '</form>';
+
+            echo '<form method="post" style="margin-top:12px;">';
+            wp_nonce_field( 'seo_pinterest_merchant_connection_test', 'seo_pinterest_merchant_connection_nonce' );
+            echo '<button class="button" type="submit" name="seo_pinterest_merchant_test_connection" value="1" ' . disabled( ! $pinterest_configured, true, false ) . '>Probar etiqueta Pinterest en frontend</button>';
+            echo '</form>';
+
+            echo '<p class="description" style="margin-top:12px;">Sitio que se verificara: <code>' . esc_html( home_url( '/' ) ) . '</code>. Pinterest permite reclamar el dominio con una etiqueta HTML en el <code>&lt;head&gt;</code>.</p>';
+            if ( ! empty( $pinterest['merchant_last_test_at'] ) ) {
+                echo '<p class="description"><strong>Ultima prueba:</strong> ' . esc_html( $pinterest['merchant_last_test_at'] ) . ' · ' . ( ! empty( $pinterest['merchant_last_test_ok'] ) ? '<span style="color:#1d6b43;">correcta</span>' : '<span style="color:#b32d2e;">fallida</span>' ) . '</p>';
+            }
             echo '</div>';
         }
 

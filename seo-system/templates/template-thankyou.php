@@ -30,6 +30,8 @@ dht_template_render_header();
                 <p>El pedido se ha recibido correctamente. Recibiras la informacion de seguimiento cuando este disponible.</p>
             <?php endif; ?>
 
+            <?php dht_template_render_service_promise('after', 'after'); ?>
+
             <a class="dht-btn dht-btn-primary" href="<?php echo esc_url(dht_template_shop_url()); ?>">Volver a la tienda</a>
         </div>
     </section>

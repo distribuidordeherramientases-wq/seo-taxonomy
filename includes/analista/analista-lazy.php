@@ -37,8 +37,8 @@ if (!function_exists('seo_analista_lazy_reports')) {
                 'description' => 'Google Trends y aceleraciones de Search Console, solo cuando lo solicitas.',
             ),
             'trabajo' => array(
-                'label' => 'Guion de trabajo',
-                'description' => 'Prioridades ejecutivas combinadas para decidir qué hacer primero.',
+                'label' => 'Plan de acción',
+                'description' => 'Máximo 10 HACER AHORA, con objetivo principal de autoridad, visitas o ventas.',
             ),
             'competencia' => array(
                 'label' => 'Competencia',
@@ -274,7 +274,7 @@ if (!function_exists('seo_analista_lazy_render_work')) {
 
 if (!function_exists('seo_analista_lazy_render_sources')) {
     function seo_analista_lazy_render_sources($days) {
-        $health = seo_analista_google_source_health($days);
+        $health = function_exists('seo_analista_source_health_all') ? seo_analista_source_health_all($days) : seo_analista_google_source_health($days);
         $competition = seo_analista_competition_snapshot(20);
         $suppliers = seo_analista_supplier_snapshot(20);
         seo_analista_render_sources($health, $competition, $suppliers);

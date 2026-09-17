@@ -580,6 +580,17 @@ if ($schema_active_price > 0 && $product->is_purchasable()) {
         $schema_offer['availability'] = $schema_stock_map[$schema_stock_status];
     }
 
+    /*
+     * Politicas Merchant globales. No duplicamos tarifas/plazos por producto:
+     * cada Offer referencia la politica corporativa mediante @id.
+     */
+    if (function_exists('dht_template_schema_offer_merchant_policies')) {
+        $schema_offer = array_merge(
+            $schema_offer,
+            dht_template_schema_offer_merchant_policies()
+        );
+    }
+
     $schema_regular_price = (float) $product->get_regular_price();
     if ($product->is_on_sale() && $schema_regular_price > $schema_active_price) {
         $schema_offer['priceSpecification'] = array(
@@ -860,6 +871,8 @@ $schema_product_graph = array(
         <?php endif; ?>
       </div>
 
+      <?php dht_template_render_service_promise('purchase', 'product'); ?>
+
       <div class="dh-product-trust" aria-label="Ventajas de compra">
         <div><span aria-hidden="true">🚚</span> Envío</div>
         <div><span aria-hidden="true">🔒</span> Pago seguro</div>
@@ -868,7 +881,7 @@ $schema_product_graph = array(
       </div>
 
       <div class="dh-contact-box">
-        <span>¿Necesitas ayuda?</span>
+        <span>¿Prefieres hablar con una persona?</span>
         <a href="tel:+34640874540">640 87 45 40</a>
         <a href="mailto:servicioacliente@distribuidordeherramientas.es">Escríbenos</a>
       </div>

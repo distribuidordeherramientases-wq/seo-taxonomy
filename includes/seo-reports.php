@@ -3,7 +3,7 @@
 Plugin Name: SEO Menu Manager
 Plugin URI: https://www.distribuidordeherramientas.es/
 Description: Generador de informes con vistas Normal y Detallada
-Version: 1.2.5
+Version: 1.2.6
 Requires PHP: 7.4
 Requires at least: 5.8
 Author: David Perez Martorell davidperezmartorell@gmail.com
@@ -2054,12 +2054,19 @@ function seo_render_anomalies_report() {
     }
 
     /*
-     * Posts sin relación comercial con product_cat.
+     * Posts sin Vocabulary semantico activo.
+     *
+     * Modelo actual:
+     * - la conexion editorial del post con el catalogo se resuelve mediante Vocabulary;
+     * - post_to_category ya no es una relacion obligatoria y no debe auditarse como error;
+     * - solo se consideran asignaciones activas a terminos de Vocabulary tambien activos;
+     * - se auditan los grupos canonicos usados por el sistema semantico.
+     *
      * Incluye publicados y programados; excluye borradores, papelera y revisiones.
      */
-    echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:40px;">📰 Posts sin categoría de producto asociada</h3>';
+    echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:40px;">📰 Posts sin Vocabulary semántico activo</h3>';
 
-    $posts_without_product_category = $wpdb->get_results("
+    $posts_without_vocabulary = $wpdb->get_results("
         SELECT
             p.ID AS post_id,
             p.post_title,
@@ -2070,27 +2077,30 @@ function seo_render_anomalies_report() {
           AND p.post_status IN ('publish', 'future')
           AND NOT EXISTS (
               SELECT 1
-              FROM {$wpdb->prefix}seo_relations r
-              WHERE r.source_type = 'post'
-                AND r.source_id = p.ID
-                AND r.target_type = 'product_cat'
-                AND r.relation_type = 'post_to_category'
+              FROM {$wpdb->prefix}seo_object_vocabulary ov
+              INNER JOIN {$wpdb->prefix}seo_vocabulary v
+                  ON v.id = ov.vocabulary_id
+              WHERE ov.object_type = 'post'
+                AND ov.object_id = p.ID
+                AND ov.status = 1
+                AND v.active = 1
+                AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
           )
         ORDER BY p.post_status ASC, p.post_date DESC, p.ID DESC
     " );
 
-    if (!empty($posts_without_product_category)) {
+    if (!empty($posts_without_vocabulary)) {
         echo '<p style="color:#646970;">';
-        echo 'Estas entradas están publicadas o programadas, pero no tienen ninguna relación <code>post_to_category</code> hacia <code>product_cat</code>.';
+        echo 'Estas entradas están publicadas o programadas, pero no tienen ninguna asignación activa de Vocabulary canónico. En el modelo actual no se exige una relación directa <code>post_to_category</code>.';
         echo '</p>';
         echo '<div style="background:#fcf0f1;border-left:4px solid #d63638;padding:10px 12px;margin-bottom:12px;">';
-        echo 'Total detectados: <strong>' . esc_html(number_format_i18n(count($posts_without_product_category))) . '</strong>';
+        echo 'Total detectados: <strong>' . esc_html(number_format_i18n(count($posts_without_vocabulary))) . '</strong>';
         echo '</div>';
 
-        foreach ($posts_without_product_category as $post_row) {
+        foreach ($posts_without_vocabulary as $post_row) {
             $post_id  = (int) $post_row->post_id;
             $title    = $post_row->post_title ?: '(Sin título)';
-            // Abrir el editor SEO del plugin, no el editor clasico de WordPress.
+            // Abrir el editor SEO del plugin, donde se gestiona la semantica del post.
             $edit_url = add_query_arg(
                 array(
                     'page'    => 'seo-post-editor',
@@ -2107,7 +2117,7 @@ function seo_render_anomalies_report() {
             if (!empty($post_row->post_date)) {
                 echo ' · Fecha: <strong>' . esc_html($post_row->post_date) . '</strong>';
             }
-            echo '<br><span style="color:#b32d2e;">Sin relación comercial post_to_category.</span>';
+            echo '<br><span style="color:#b32d2e;">Sin Vocabulary semántico activo en rol, tipo, aplicación, plataforma o subtipo.</span>';
 
             if ($view_url || $edit_url) {
                 echo '<div style="margin-top:6px;">';
@@ -2118,7 +2128,7 @@ function seo_render_anomalies_report() {
                     echo ' · ';
                 }
                 if ($edit_url) {
-                    echo '<a href="' . esc_url($edit_url) . '">Editar</a>';
+                    echo '<a href="' . esc_url($edit_url) . '">Editar Vocabulary</a>';
                 }
                 echo '</div>';
             }
@@ -2126,7 +2136,7 @@ function seo_render_anomalies_report() {
             echo '</div>';
         }
     } else {
-        echo '<p style="color:#2e7d32;font-style:italic;">Todos los posts publicados o programados tienen al menos una categoría de producto asociada.</p>';
+        echo '<p style="color:#2e7d32;font-style:italic;">Todos los posts publicados o programados tienen al menos un término de Vocabulary canónico activo.</p>';
     }
     
     echo '<h3 style="color:#ff9800; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:40px;">⚠️ Categorías sin asignación estructural</h3>';

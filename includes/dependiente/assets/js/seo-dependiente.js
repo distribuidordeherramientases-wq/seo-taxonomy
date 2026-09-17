@@ -10,7 +10,6 @@
         const elements = {
             form: root.querySelector('[data-dependiente-search-form]'),
             query: root.querySelector('[data-dependiente-query]'),
-            role: root.querySelector('[data-dependiente-role]'),
             submit: root.querySelector('[data-dependiente-search-form] button[type="submit"]'),
             examples: root.querySelector('[data-dependiente-examples]'),
             discovery: root.querySelector('[data-dependiente-discovery]'),
@@ -49,16 +48,17 @@
             contextLabel: '',
             mode: 'need',
             modeSource: 'default',
-            solutionRole: '',
             page: 1,
             perPage: Number(config.resultsPerPage || 18),
             orderby: 'relevance',
             filters: emptyFilters(),
             facets: null,
+            interpreterDebug: null,
             bootstrap: null,
             loading: false,
             searchId: '',
             semanticHint: null,
+            semanticHints: [],
             clarification: null,
             clarificationTimer: null,
             feedbackTimer: null,
@@ -69,7 +69,7 @@
         };
 
         bindEvents();
-        renderLoadingMenus();
+        removeDefaultExplorationSections();
         loadBootstrap();
         renderCompareTray();
 
@@ -80,18 +80,10 @@
 
         const initialParams = new URLSearchParams(window.location.search);
         const initialQuery = initialParams.get('dep_q');
-        const initialRole = initialParams.get('dep_role');
-        if (initialRole && ['herramienta', 'repuesto', 'accesorio', 'equipamiento'].includes(initialRole)) {
-            setSolutionRole(initialRole);
-        }
         if (initialQuery) {
             elements.query.value = initialQuery;
             state.q = initialQuery;
-            if (state.solutionRole) {
-                search(true);
-            } else {
-                elements.status.textContent = 'Elige qué tipo de solución quieres encontrar para completar la búsqueda.';
-            }
+            search(true);
         }
 
         function bindEvents() {
@@ -115,18 +107,12 @@
             elements.form.addEventListener('submit', function (event) {
                 event.preventDefault();
                 const nextQuery = elements.query.value.trim();
-                state.solutionRole = elements.role ? String(elements.role.value || '') : state.solutionRole;
-
-                if (nextQuery && !ensureSolutionRole()) {
-                    return;
-                }
-
                 // Una busqueda escrita despues de entrar por una tarjeta visual
                 // inicia una necesidad nueva. Evita arrastrar, por ejemplo, el
                 // filtro/plataforma Milwaukee a "se me ha roto un grifo". El rol
                 // seleccionado en el buscador se conserva porque forma parte de la
                 // nueva consulta escrita.
-                if (nextQuery && state.modeSource === 'menu') {
+                if (nextQuery && (state.modeSource === 'menu' || state.modeSource === 'refine')) {
                     state.filters = emptyFilters();
                     state.orderby = 'relevance';
                     if (elements.sort) elements.sort.value = 'relevance';
@@ -136,20 +122,10 @@
                 state.q = nextQuery;
                 state.contextLabel = '';
                 state.semanticHint = null;
+                state.semanticHints = [];
                 state.page = 1;
                 search(true);
             });
-
-            if (elements.role) {
-                elements.role.addEventListener('change', function () {
-                    setSolutionRole(elements.role.value);
-                    state.semanticHint = null;
-                    state.page = 1;
-                    if (state.q.trim()) {
-                        search(true);
-                    }
-                });
-            }
 
             elements.sort.addEventListener('change', function () {
                 state.orderby = elements.sort.value;
@@ -225,14 +201,19 @@
                     event.preventDefault();
                     let filter = {};
                     try { filter = JSON.parse(alternative.dataset.dependienteZeroFilter || '{}'); } catch (error) { filter = {}; }
-                    state.filters = emptyFilters();
+                    confirmCatalogAlternative(alternative, filter);
+                    return;
+                }
+
+                const discoveryFilter = event.target.closest('[data-dependiente-discovery-filter]');
+                if (discoveryFilter) {
+                    event.preventDefault();
+                    let filter = {};
+                    try { filter = JSON.parse(discoveryFilter.dataset.dependienteDiscoveryFilter || '{}'); } catch (error) { filter = {}; }
                     applyCardFilter(filter);
-                    state.q = '';
-                    state.contextLabel = alternative.dataset.dependienteZeroLabel || '';
-                    elements.query.value = '';
+                    state.contextLabel = discoveryFilter.dataset.dependienteDiscoveryLabel || state.contextLabel || '';
                     state.page = 1;
-                    setMode(alternative.dataset.dependienteZeroMode || 'need', 'menu');
-                    search(true);
+                    search(false);
                     return;
                 }
 
@@ -321,19 +302,40 @@
                 const data = await api('bootstrap', { method: 'GET' });
                 state.bootstrap = data;
                 renderExamples(data.examples || []);
-                renderVisualMenu(elements.actions, data.actions || [], 'need');
-                renderVisualMenu(elements.tools, data.tools || [], 'tool');
+                // Los antiguos escaparates generales (tipo de tarea / herramienta
+                // o sistema) no participan en la consulta y se han retirado de la
+                // experiencia. Dependiente muestra solo opciones nacidas de la
+                // busqueda actual.
+                removeDefaultExplorationSections();
             } catch (error) {
-                renderMenuError(elements.actions);
-                renderMenuError(elements.tools);
+                removeDefaultExplorationSections();
             }
         }
 
-        function renderLoadingMenus() {
+        function removeDefaultExplorationSections() {
+            const headings = root.querySelectorAll('h1,h2,h3,h4,h5');
+            headings.forEach(function (heading) {
+                const text = String(heading.textContent || '').trim().toLowerCase();
+                if (text !== 'explora por tipo de tarea' && text !== 'explora por herramienta o sistema') {
+                    return;
+                }
+                const section = heading.closest('section') || heading.parentElement;
+                if (section && section !== root) {
+                    section.remove();
+                } else {
+                    heading.remove();
+                }
+            });
+
             [elements.actions, elements.tools].forEach(function (container) {
-                container.innerHTML = Array.from({ length: 4 }).map(function () {
-                    return '<div class="seo-dependiente__visual-card seo-dependiente__skeleton" aria-hidden="true"></div>';
-                }).join('');
+                if (!container || !container.isConnected) return;
+                const section = container.closest('section');
+                if (section && section !== root) {
+                    section.remove();
+                } else {
+                    container.hidden = true;
+                    container.innerHTML = '';
+                }
             });
         }
 
@@ -352,10 +354,9 @@
                     state.q = value;
                     state.contextLabel = '';
                     state.semanticHint = null;
+                    state.semanticHints = [];
                     state.page = 1;
-                    if (ensureSolutionRole()) {
-                        search(true);
-                    }
+                    search(true);
                 });
             });
         }
@@ -384,6 +385,7 @@
                     state.contextLabel = cards[index] ? cards[index].label : '';
                     state.q = '';
                     state.semanticHint = null;
+                    state.semanticHints = [];
                     elements.query.value = '';
                     state.page = 1;
                     setMode(mode, 'menu');
@@ -397,71 +399,20 @@
             if (!slug) return;
             if (filter.type === 'categories') state.filters.categories = [slug];
             if (filter.type === 'tags') state.filters.tags = [slug];
+            if (filter.type === 'brands') state.filters.brands = [slug];
             if (filter.type === 'vocabulary' && filter.group) state.filters.vocabulary[filter.group] = [slug];
             if (filter.type === 'attributes' && filter.group) state.filters.attributes[filter.group] = [slug];
         }
 
         function setMode(mode, source) {
             // Los antiguos modos siguen existiendo internamente para la navegación
-            // visual secundaria, pero ya no cambian el buscador principal. El cliente
-            // siempre ve una única barra y el contexto explícito lo marca el selector
-            // de tipo de solución.
+            // visual secundaria, pero el buscador principal queda en texto libre.
             state.mode = mode;
             if (source) state.modeSource = source;
         }
 
-        function setSolutionRole(role) {
-            const allowed = ['herramienta', 'repuesto', 'accesorio', 'equipamiento'];
-            role = allowed.includes(String(role || '')) ? String(role) : '';
-            state.solutionRole = role;
-            if (elements.role && elements.role.value !== role) {
-                elements.role.value = role;
-            }
-            if (elements.role && typeof elements.role.setCustomValidity === 'function') {
-                elements.role.setCustomValidity('');
-            }
-        }
-
-        function ensureSolutionRole() {
-            if (!state.q.trim() && elements.query) {
-                state.q = elements.query.value.trim();
-            }
-            if (!state.q.trim()) {
-                return true;
-            }
-            if (state.solutionRole) {
-                if (elements.role && typeof elements.role.setCustomValidity === 'function') {
-                    elements.role.setCustomValidity('');
-                }
-                return true;
-            }
-            const message = 'Elige Herramienta, Repuesto / recambio, Accesorio o Equipamiento.';
-            elements.status.textContent = message;
-            if (elements.role) {
-                if (typeof elements.role.setCustomValidity === 'function') {
-                    elements.role.setCustomValidity(message);
-                }
-                if (typeof elements.role.reportValidity === 'function') {
-                    elements.role.reportValidity();
-                }
-                elements.role.focus({ preventScroll: true });
-            }
-            return false;
-        }
-
-        function solutionRoleLabel() {
-            const labels = {
-                herramienta: 'Herramientas',
-                repuesto: 'Repuestos / recambios',
-                accesorio: 'Accesorios',
-                equipamiento: 'Equipamiento'
-            };
-            return labels[state.solutionRole] || '';
-        }
-
         async function search(resetScroll) {
             if (state.loading) return;
-            if (state.q.trim() && !ensureSolutionRole()) return;
             clearClarificationTimer();
             removeClarification();
             clearFeedbackTimer();
@@ -472,6 +423,11 @@
             if (elements.related) {
                 elements.related.hidden = true;
                 elements.related.innerHTML = '';
+            }
+            const previousCandidates = root.querySelector('[data-dependiente-candidate-products]');
+            if (previousCandidates) {
+                previousCandidates.hidden = true;
+                previousCandidates.innerHTML = '';
             }
             state.amazonRequestId += 1;
             clearAmazon();
@@ -490,23 +446,29 @@
                     body: {
                         q: state.q,
                         mode: state.mode,
-                        solution_role: state.solutionRole,
                         page: state.page,
                         per_page: state.perPage,
                         orderby: state.orderby,
                         filters: state.filters,
-                        semantic_hint: state.semanticHint || null
+                        semantic_hint: state.semanticHint || null,
+                        semantic_hints: Array.isArray(state.semanticHints) ? state.semanticHints : []
                     }
                 });
                 state.facets = data.facets || null;
+                state.interpreterDebug = data.interpreter_debug || null;
                 state.searchId = String(data.search_id || '');
+                if (Array.isArray(data.semantic_hints)) {
+                    state.semanticHints = data.semantic_hints.slice(0, 2);
+                    state.semanticHint = state.semanticHints.length ? state.semanticHints[state.semanticHints.length - 1] : null;
+                }
                 updateHelpPrompt(data);
                 renderSummary(data);
                 renderFilters(data.facets || {});
                 renderActiveFilters();
                 renderResults(data.results || [], data);
+                renderCandidateProducts(data.candidate_products || []);
                 renderRelated(data.related || [], Number(data.total || 0));
-                renderPagination(data.page || 1, data.pages || 0);
+                renderPagination(data.page || 1, data.pages || 0, (data.results || []).length);
                 loadAmazonFallback(data.external_fallback || null);
                 state.clarification = data.clarification || null;
                 scheduleClarification(state.clarification);
@@ -521,6 +483,11 @@
                 if (elements.related) {
                     elements.related.hidden = true;
                     elements.related.innerHTML = '';
+                }
+                const candidateBlock = root.querySelector('[data-dependiente-candidate-products]');
+                if (candidateBlock) {
+                    candidateBlock.hidden = true;
+                    candidateBlock.innerHTML = '';
                 }
                 clearAmazon();
                 clearFeedbackPrompt();
@@ -661,11 +628,11 @@
                         note: noteInput ? noteInput.value.trim() : '',
                         query: state.q || (elements.query ? elements.query.value.trim() : ''),
                         mode: state.mode,
-                        solution_role: state.solutionRole,
                         context_label: state.contextLabel || '',
                         page_url: window.location.href,
                         filters: state.filters || emptyFilters(),
                         semantic_hint: state.semanticHint || null,
+                        semantic_hints: Array.isArray(state.semanticHints) ? state.semanticHints : [],
                         orderby: state.orderby || 'relevance',
                         compare_ids: Array.from(state.compare || []),
                         website: websiteInput ? websiteInput.value : ''
@@ -719,8 +686,13 @@
 
         function renderClarification(clarification) {
             if (!state.searchId || elements.results.querySelector('[data-dependiente-clarification]')) return;
+            const step = Math.max(1, Number(clarification.step || (state.semanticHints.length + 1) || 1));
+            const maxSteps = Math.max(step, Number(clarification.max_steps || 2));
+            const reduction = Math.max(0, Number(clarification.estimated_reduction || 0));
             const options = (clarification.options || []).map(function (option) {
-                return '<button type="button" class="seo-dependiente__empty-action" data-dependiente-clarify' +
+                const count = Number(option.count || 0);
+                const countText = count > 0 ? '<small>' + numberFormat(count) + ' opciones</small>' : '';
+                return '<button type="button" class="seo-dependiente__clarification-option" data-dependiente-clarify' +
                     ' data-role="' + escapeAttr(option.role || clarification.role || 'term') + '"' +
                     ' data-value="' + escapeAttr(option.value || '') + '"' +
                     ' data-label="' + escapeAttr(option.label || option.value || '') + '"' +
@@ -728,14 +700,21 @@
                     ' data-source-group="' + escapeAttr(option.source_group || '') + '"' +
                     ' data-source-slug="' + escapeAttr(option.source_slug || '') + '"' +
                     ' data-filter="' + escapeAttr(JSON.stringify(option.filter || {})) + '">' +
-                    escapeHtml(option.label || option.value || '') + '</button>';
+                    '<span>' + escapeHtml(option.label || option.value || '') + '</span>' + countText + '</button>';
             }).join('');
 
-            const html = '<section class="seo-dependiente__empty-actions seo-dependiente__clarification" data-dependiente-clarification>' +
+            const reductionText = reduction >= 20
+                ? '<span class="seo-dependiente__clarification-impact">Esta respuesta puede descartar aprox. ' + escapeHtml(String(reduction)) + '% de opciones.</span>'
+                : '<span class="seo-dependiente__clarification-impact">Con esta respuesta puedo orientar mejor la búsqueda.</span>';
+            const html = '<section class="seo-dependiente__clarification" data-dependiente-clarification role="region" aria-live="polite" aria-label="Pregunta del Intérprete">' +
                 assistantAvatarHtml('seo-dependiente__assistant-avatar--message') +
                 '<div class="seo-dependiente__assistant-message">' +
+                '<div class="seo-dependiente__clarification-head"><span>Antes de afinar los productos</span><small>Pregunta ' + step + ' de hasta ' + maxSteps + '</small></div>' +
                 '<strong>' + escapeHtml(clarification.question || '¿Puedes concretar un poco más?') + '</strong>' +
-                '<div>' + options + '<button type="button" class="seo-dependiente__empty-action" data-dependiente-clarify-other>Otro</button></div>' +
+                '<p>Elige una opción. Añadiré esa información a la consulta limpia que recibe el Dependiente.</p>' +
+                '<div class="seo-dependiente__clarification-options">' + options +
+                '<button type="button" class="seo-dependiente__clarification-option is-other" data-dependiente-clarify-other><span>Otro</span><small>Escribir solo si ninguna encaja</small></button></div>' +
+                reductionText +
                 '<div data-dependiente-clarify-other-slot></div>' +
                 '</div></section>';
             elements.results.insertAdjacentHTML('afterbegin', html);
@@ -781,6 +760,78 @@
             }, {}, true);
         }
 
+        function rememberSemanticHint(hint) {
+            if (!hint || !hint.value) return;
+            const cleanHint = {
+                role: hint.role || 'term',
+                value: hint.value || '',
+                label: hint.label || hint.value || '',
+                source: hint.source || 'clarification',
+                source_group: hint.source_group || '',
+                source_slug: hint.source_slug || ''
+            };
+            state.semanticHint = cleanHint;
+            const key = [cleanHint.role || '', cleanHint.value || '', cleanHint.source_group || ''].join('|');
+            state.semanticHints = (Array.isArray(state.semanticHints) ? state.semanticHints : []).filter(function (known) {
+                return [known.role || '', known.value || '', known.source_group || ''].join('|') !== key;
+            });
+            state.semanticHints.push(cleanHint);
+            // La conversación está limitada a dos aclaraciones. Conservamos ambas
+            // confirmaciones para que la segunda nunca borre la primera.
+            state.semanticHints = state.semanticHints.slice(-2);
+        }
+
+        function confirmCatalogAlternative(button, filter) {
+            const originalSearchId = state.searchId;
+            const label = button.dataset.dependienteZeroLabel || button.textContent || '';
+            const value = button.dataset.dependienteZeroValue || (filter && filter.slug) || '';
+            const role = button.dataset.dependienteZeroRole || 'object';
+            const sourceGroup = button.dataset.dependienteZeroGroup || (filter && filter.group) || ((filter && filter.type === 'categories') ? 'category' : (filter && filter.type) || '');
+            const sourceSlug = button.dataset.dependienteZeroSlug || (filter && filter.slug) || '';
+
+            state.hasResultInteraction = true;
+            clearClarificationTimer();
+
+            // Una alternativa sugerida por el catálogo es una precisión de la
+            // conversación, no una búsqueda nueva. Conservamos q, filtros previos y
+            // respuestas confirmadas; solo añadimos/reemplazamos el eje elegido.
+            if (filter && filter.slug) {
+                applyCardFilter(filter);
+            }
+            if (value) {
+                rememberSemanticHint({
+                    role: role,
+                    value: value,
+                    label: label,
+                    source: button.dataset.dependienteZeroSource || 'catalog_alternative',
+                    source_group: sourceGroup,
+                    source_slug: sourceSlug
+                });
+            }
+            if (label) {
+                state.contextLabel = state.contextLabel ? state.contextLabel + ' · ' + label : label;
+            }
+            state.page = 1;
+            setMode(button.dataset.dependienteZeroMode || state.mode || 'need', 'refine');
+
+            if (originalSearchId && value) {
+                sendFeedbackEvent({
+                    search_id: originalSearchId,
+                    event: 'clarify',
+                    role: role,
+                    choice_value: value,
+                    label: label,
+                    source: button.dataset.dependienteZeroSource || 'catalog_alternative',
+                    source_group: sourceGroup,
+                    source_slug: sourceSlug,
+                    clarification_step: Math.min(2, Math.max(1, state.semanticHints.length)),
+                    clarification_axis: sourceGroup,
+                    is_other: 0
+                });
+            }
+            search(false);
+        }
+
         function confirmClarification(option, filter, isOther) {
             const originalSearchId = state.searchId;
             if (!originalSearchId) return;
@@ -788,20 +839,18 @@
             clearClarificationTimer();
             sendClarificationFeedback(originalSearchId, option, Boolean(isOther));
 
-            // Las opciones basadas en el vocabulario real pueden convertirse
-            // directamente en un filtro del catalogo. La intencion confirmada se
-            // envia como pista semantica sin modificar el texto que escribio el cliente.
-            if (filter && filter.slug) {
-                applyCardFilter(filter);
-            }
-            state.semanticHint = {
+            // Una respuesta del Intérprete mejora el lenguaje de la consulta.
+            // No abre categorías ni aplica filtros duros: el Dependiente decide
+            // después cómo resolver esas palabras dentro de su catálogo.
+            rememberSemanticHint({
                 role: option.role,
                 value: option.value,
                 label: option.label,
                 source: option.source,
                 source_group: option.source_group || '',
                 source_slug: option.source_slug || ''
-            };
+            });
+            setMode(state.mode || 'need', 'refine');
             state.page = 1;
             removeClarification();
             search(false);
@@ -813,7 +862,10 @@
                 search_id: state.searchId,
                 event: 'clarification_shown',
                 question: clarification.question || '',
-                options: clarification.options || []
+                options: clarification.options || [],
+                clarification_step: Number(clarification.step || 1),
+                clarification_axis: clarification.axis || '',
+                clarification_strategy: clarification.strategy || ''
             });
         }
 
@@ -827,6 +879,8 @@
                 source: option.source || 'closed_option',
                 source_group: option.source_group || '',
                 source_slug: option.source_slug || '',
+                clarification_step: Number((state.clarification && state.clarification.step) || 1),
+                clarification_axis: (state.clarification && state.clarification.axis) || '',
                 is_other: isOther ? 1 : 0
             });
         }
@@ -858,17 +912,14 @@
 
         function renderSummary(data) {
             const total = Number(data.total || 0);
+            const interpreterLine = '';
             let subject = state.q ? 'para “' + escapeHtml(state.q) + '”' : (state.contextLabel ? 'para ' + escapeHtml(state.contextLabel) : 'con los criterios elegidos');
-            const roleLabel = solutionRoleLabel();
-            if (roleLabel && state.q) {
-                subject += ' · buscando ' + escapeHtml(roleLabel.toLowerCase());
-            }
             if (!total) {
-                elements.summary.innerHTML = '<span><strong>No encuentro una coincidencia clara</strong> ' + subject + '.</span>';
+                elements.summary.innerHTML = '<span class="seo-dependiente__summary-copy"><span><strong>Estoy ampliando la búsqueda</strong> ' + subject + '. Puedes añadir un detalle para afinarla.</span>' + interpreterLine + '</span>';
                 return;
             }
             const noun = total === 1 ? 'opción' : 'opciones';
-            elements.summary.innerHTML = '<span><strong>He encontrado ' + numberFormat(total) + ' ' + noun + '</strong> ' + subject + '. Te muestro primero las que mejor encajan.</span>';
+            elements.summary.innerHTML = '<span class="seo-dependiente__summary-copy"><span><strong>He encontrado ' + numberFormat(total) + ' ' + noun + '</strong> ' + subject + '. Te muestro primero las que mejor encajan.</span>' + interpreterLine + '</span>';
         }
 
         function renderFilters(facets) {
@@ -882,6 +933,7 @@
             groups.push(renderFacetGroup('Tipo de producto', 'vocabulary', 'tipo', vocabulary.tipo || [], false));
             groups.push(renderFacetGroup('Subtipo', 'vocabulary', 'subtipo', vocabulary.subtipo || [], false));
             groups.push(renderFacetGroup('Etiquetas', 'tags', '', facets.tags || [], false));
+            groups.push(renderInterpreterDebug(state.interpreterDebug));
 
             (facets.attributes || []).forEach(function (attribute, index) {
                 groups.push(renderFacetGroup(attribute.label, 'attributes', attribute.key, attribute.values || [], index < 3));
@@ -899,6 +951,193 @@
                 groups.filter(Boolean).join('') +
                 '<button type="submit" class="seo-dependiente__filter-apply">Aplicar filtros</button>' +
                 '</form>';
+        }
+
+        function renderInterpreterDebug(debug) {
+            if (!debug || !debug.enabled) return '';
+            const removed = Array.isArray(debug.removed_tokens) ? debug.removed_tokens.filter(Boolean) : [];
+            const transformations = Array.isArray(debug.transformations) ? debug.transformations.filter(Boolean) : [];
+            const assist = Array.isArray(debug.assist_terms) ? debug.assist_terms.filter(Boolean) : [];
+            const structured = debug.structured && typeof debug.structured === 'object' ? debug.structured : {};
+            const actions = Array.isArray(structured.actions) ? structured.actions : [];
+            const related = Array.isArray(structured.related_concepts) ? structured.related_concepts : [];
+            const context = Array.isArray(structured.context) ? structured.context.filter(Boolean) : [];
+            const groups = structured.semantic_groups && typeof structured.semantic_groups === 'object' ? structured.semantic_groups : {};
+            const confidence = Math.round(Number(debug.confidence || 0) * 100);
+
+            const actionText = actions.length ? actions.map(function (item) {
+                const canonical = item && item.canonical_action ? String(item.canonical_action) : '';
+                const relatedTerm = item && item.related_concept ? String(item.related_concept) : '';
+                const surface = item && item.surface ? String(item.surface) : '';
+                let text = surface || canonical;
+                if (canonical && canonical !== surface) text += ' → ' + canonical;
+                if (relatedTerm) text += ' → concepto ' + relatedTerm;
+                return text;
+            }).filter(Boolean).join(' | ') : '—';
+
+            const semanticLines = ['rol','tipo','aplicacion','plataforma','subtipo','category','tag'].map(function (group) {
+                const items = Array.isArray(groups[group]) ? groups[group] : [];
+                if (!items.length) return '';
+                const label = group === 'category' ? 'categoría' : (group === 'tag' ? 'etiqueta' : group);
+                const values = items.map(function (item) { return item && (item.target || item.term) ? String(item.target || item.term) : ''; }).filter(Boolean);
+                return '<div><b>' + escapeHtml(label.toUpperCase()) + ':</b> ' + escapeHtml(values.join(' · ')) + '</div>';
+            }).filter(Boolean).join('');
+
+            const relatedText = related.length ? related.map(function (item) { return item && item.term ? String(item.term) : ''; }).filter(Boolean).join(' · ') : '—';
+            const dep = debug.dependiente && typeof debug.dependiente === 'object' ? debug.dependiente : {};
+            const depGroups = Array.isArray(dep.groups) ? dep.groups : [];
+            const depPrimary = Array.isArray(dep.primary_groups) ? dep.primary_groups : [];
+            const depFields = Array.isArray(dep.catalog_fields) ? dep.catalog_fields : [];
+            const depRoutes = Array.isArray(dep.semantic_routes) ? dep.semantic_routes : [];
+            const depMatches = Array.isArray(dep.top_matches) ? dep.top_matches : [];
+            const depCategoryRanking = Array.isArray(dep.category_ranking) ? dep.category_ranking : [];
+            const depFilterRejections = Array.isArray(dep.ranking_filter_rejections) ? dep.ranking_filter_rejections : [];
+            const depLiveRejections = Array.isArray(dep.live_validation_rejections) ? dep.live_validation_rejections : [];
+            const depUnfilteredRows = Array.isArray(dep.unfiltered_primary_rows) ? dep.unfiltered_primary_rows : [];
+            const depAssist = dep.assist_profile && typeof dep.assist_profile === 'object' ? dep.assist_profile : {};
+            const depIdentity = Array.isArray(depAssist.identity_terms) ? depAssist.identity_terms.filter(Boolean) : [];
+            const depVocabulary = Array.isArray(depAssist.vocabulary_terms) ? depAssist.vocabulary_terms.filter(Boolean) : [];
+            const depActions = Array.isArray(depAssist.action_terms) ? depAssist.action_terms.filter(Boolean) : [];
+            const depContext = Array.isArray(depAssist.context_terms) ? depAssist.context_terms.filter(Boolean) : [];
+            const roleLabels = {intent:'intención', object:'objeto', state:'estado', term:'término', material:'material', tool:'herramienta', action:'acción'};
+            const depGroupText = depGroups.length ? depGroups.map(function (group) {
+                const role = group && group.role ? String(group.role) : 'term';
+                const variants = group && Array.isArray(group.variants) ? group.variants.filter(Boolean) : [];
+                const canonical = group && group.canonical ? String(group.canonical) : '';
+                const values = variants.length ? variants.join(' / ') : canonical;
+                return (roleLabels[role] || role) + ': ' + values;
+            }).filter(Boolean).join(' | ') : '—';
+            const depPrimaryText = depPrimary.length ? depPrimary.map(function (variants) {
+                return Array.isArray(variants) ? variants.filter(Boolean).join(' / ') : '';
+            }).filter(Boolean).join(' | ') : '—';
+            const depRoutesText = depRoutes.length ? depRoutes.map(function (route) {
+                const group = route && route.group ? String(route.group).toUpperCase() : 'RUTA';
+                const term = route && route.term ? String(route.term) : '';
+                const role = route && route.role ? ' (' + String(route.role) + ')' : '';
+                return group + ': ' + term + role;
+            }).filter(Boolean).join(' | ') : '—';
+            const depMatchesHtml = depMatches.length ?
+                '<details open style="margin-top:10px"><summary style="cursor:pointer;font-weight:700">PUNTUACIÓN DEL RANKING POSTERIOR (' + escapeHtml(String(depMatches.length)) + ' primeros)</summary>' +
+                '<div style="margin:6px 0 7px">Aquí se ve exactamente por qué cada producto recibe su puntuación. Los componentes se suman al score total.</div>' +
+                '<div style="max-height:620px;overflow:auto;border:1px solid #d9dfda;border-radius:7px;background:#fff">' +
+                '<table style="width:100%;border-collapse:collapse;font-size:11px;line-height:1.35"><thead><tr>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:left;border-bottom:1px solid #d9dfda">#</th>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:left;border-bottom:1px solid #d9dfda">ID</th>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:left;border-bottom:1px solid #d9dfda">Producto</th>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:right;border-bottom:1px solid #d9dfda">Score</th>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:left;border-bottom:1px solid #d9dfda">Estado</th>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:left;border-bottom:1px solid #d9dfda">Desglose exacto</th>' +
+                '</tr></thead><tbody>' + depMatches.map(function (item, idx) {
+                    const parts = item && Array.isArray(item.score_parts) ? item.score_parts : [];
+                    const breakdown = parts.length ? parts.map(function (part) {
+                        const label = part && part.label ? String(part.label) : 'Puntos';
+                        const points = part && part.points !== undefined ? Number(part.points) : 0;
+                        const detail = part && part.detail ? ' [' + String(part.detail) + ']' : '';
+                        return label + ' +' + String(points) + detail;
+                    }).join(' | ') : 'Sin desglose disponible';
+                    return '<tr>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top">' + escapeHtml(String(idx + 1)) + '</td>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top">' + escapeHtml(String(item.id || '')) + '</td>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top;font-weight:600">' + escapeHtml(String(item.title || '')) + '</td>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top;text-align:right;font-weight:700">' + escapeHtml(String(item.score !== undefined ? item.score : 0)) + '</td>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top">' + escapeHtml((item.survives_live_validation ? 'final' : 'descartado técnico') + (item.tier ? ' · ' + String(item.tier) : '')) + '</td>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top">' + escapeHtml(breakdown) + '</td>' +
+                    '</tr>';
+                }).join('') + '</tbody></table></div></details>' : '';
+
+            const depFilterRejectHtml = (depFilterRejections.length || depLiveRejections.length) ?
+                '<details style="margin-top:10px"><summary style="cursor:pointer;font-weight:700">PRODUCTOS DESCARTADOS DESPUÉS DE RECUPERARLOS</summary>' +
+                '<div style="margin:6px 0"><b>Filtros elegidos por el usuario:</b> ' + escapeHtml(String(dep.ranking_filtered_out || 0)) + ' descartados antes de puntuar. <b>Validación técnica:</b> ' + escapeHtml(String(dep.live_validation_rejected_rows || 0)) + ' descartados después de puntuar.</div>' +
+                (depFilterRejections.length ? '<div><b>Por filtros:</b>' + depFilterRejections.map(function (item) {
+                    const reasons = item && Array.isArray(item.reasons) ? item.reasons.filter(Boolean).join(' | ') : 'Sin motivo registrado';
+                    return '<div style="margin-left:8px">• #' + escapeHtml(String(item.id || '')) + ' ' + escapeHtml(String(item.title || '')) + ' → ' + escapeHtml(reasons) + '</div>';
+                }).join('') + '</div>' : '') +
+                (depLiveRejections.length ? '<div style="margin-top:5px"><b>Por validación técnica:</b>' + depLiveRejections.map(function (item) {
+                    return '<div style="margin-left:8px">• #' + escapeHtml(String(item.id || '')) + ' ' + escapeHtml(String(item.title || '')) + ' → ' + escapeHtml(String(item.reason || '')) + '</div>';
+                }).join('') + '</div>' : '') +
+                '</details>' : '';
+
+            const depCategoryRankingHtml = depCategoryRanking.length ?
+                '<details open style="margin-top:10px"><summary style="cursor:pointer;font-weight:700">ORDEN DE CATEGORÍAS (' + escapeHtml(String(depCategoryRanking.length)) + ' primeras)</summary>' +
+                '<div style="margin:6px 0 7px"><b>Regla actual:</b> las categorías no reciben un score independiente; se ordenan por la primera aparición de uno de sus productos dentro del ranking final.</div>' +
+                '<div style="max-height:420px;overflow:auto;border:1px solid #d9dfda;border-radius:7px;background:#fff">' +
+                '<table style="width:100%;border-collapse:collapse;font-size:11px;line-height:1.35"><thead><tr>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:left;border-bottom:1px solid #d9dfda">#</th>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:left;border-bottom:1px solid #d9dfda">Categoría</th>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:right;border-bottom:1px solid #d9dfda">Productos</th>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:right;border-bottom:1px solid #d9dfda">Primer producto #</th>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:right;border-bottom:1px solid #d9dfda">Score de ese producto</th>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:left;border-bottom:1px solid #d9dfda">Producto que la coloca</th>' +
+                '</tr></thead><tbody>' + depCategoryRanking.map(function (item, idx) {
+                    return '<tr>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top">' + escapeHtml(String(idx + 1)) + '</td>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top;font-weight:600">' + escapeHtml(String(item.label || item.slug || '')) + '</td>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top;text-align:right">' + escapeHtml(String(item.count || 0)) + '</td>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top;text-align:right">' + escapeHtml(String(item.first_product_rank || '—')) + '</td>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top;text-align:right">' + escapeHtml(String(item.best_product_score || 0)) + '</td>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top">' + escapeHtml(String(item.best_product_title || '—')) + '</td>' +
+                    '</tr>';
+                }).join('') + '</tbody></table></div></details>' : '';
+
+
+            // Tabla STAGING de TODAS las filas de la primera pasada. No usa
+            // score, elegibilidad, `válidos`, filtros ni serialización de tarjetas.
+            const depUnfilteredHtml = depUnfilteredRows.length ?
+                '<details open style="margin-top:10px"><summary style="cursor:pointer;font-weight:700">PRODUCTOS DEL ÍNDICE SIN FILTRAR (' + escapeHtml(String(depUnfilteredRows.length)) + ')</summary>' +
+                '<div style="margin:6px 0 5px"><b>Sin filtrar:</b> estas son exactamente las filas de la primera pasada antes de cualquier validación o ranking.</div>' +
+                '<div style="max-height:520px;overflow:auto;border:1px solid #d9dfda;border-radius:7px;background:#fff">' +
+                '<table style="width:100%;border-collapse:collapse;font-size:11px;line-height:1.35"><thead><tr>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:left;border-bottom:1px solid #d9dfda">#</th>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:left;border-bottom:1px solid #d9dfda">ID</th>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:left;border-bottom:1px solid #d9dfda">Producto</th>' +
+                '<th style="position:sticky;top:0;background:#eef3ef;padding:5px;text-align:left;border-bottom:1px solid #d9dfda">Categorías del índice</th>' +
+                '</tr></thead><tbody>' + depUnfilteredRows.map(function (item) {
+                    const categories = item && Array.isArray(item.categories) ? item.categories.filter(Boolean).join(' · ') : '';
+                    return '<tr>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top">' + escapeHtml(String(item.position || '')) + '</td>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top">' + escapeHtml(String(item.id || '')) + '</td>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top;font-weight:600">' + escapeHtml(String(item.title || '')) + '</td>' +
+                        '<td style="padding:5px;border-bottom:1px solid #edf0ed;vertical-align:top">' + escapeHtml(categories || '—') + '</td>' +
+                    '</tr>';
+                }).join('') + '</tbody></table></div></details>' : '';
+            return '<div class="seo-dependiente__interpreter-log" style="margin:14px 0;padding:12px;border:1px dashed #9aa59d;border-radius:10px;background:#f8faf8;font-size:12px;line-height:1.45;overflow-wrap:anywhere">' +
+                '<strong style="display:block;margin-bottom:7px">LOG INTÉRPRETE · STAGING</strong>' +
+                '<div><b>Cliente:</b> ' + escapeHtml(String(debug.raw_query || '—')) + '</div>' +
+                '<div><b>Texto filtrado:</b> ' + escapeHtml(String(debug.filtered_query || '—')) + '</div>' +
+                '<div><b>Acción:</b> ' + escapeHtml(actionText) + '</div>' +
+                semanticLines +
+                '<div><b>Conceptos relacionados:</b> ' + escapeHtml(relatedText) + '</div>' +
+                '<div><b>Contexto sin clasificar:</b> ' + escapeHtml(context.length ? context.join(' · ') : '—') + '</div>' +
+                '<div><b>Señales añadidas:</b> ' + escapeHtml(assist.length ? assist.join(' · ') : '—') + '</div>' +
+                '<div><b>Dependiente recibe:</b> ' + escapeHtml(String(debug.dependiente_query || '—')) + '</div>' +
+                '<div><b>Ruido quitado:</b> ' + escapeHtml(removed.length ? removed.join(' · ') : '—') + '</div>' +
+                '<div><b>Transformaciones:</b> ' + escapeHtml(transformations.length ? transformations.join(' | ') : '—') + '</div>' +
+                '<div><b>Confianza:</b> ' + escapeHtml(String(confidence)) + '% · <b>Modo:</b> asistencia lingüística activa</div>' +
+                '<div style="height:1px;background:#d9dfda;margin:9px 0"></div>' +
+                '<strong style="display:block;margin-bottom:5px">LOG DEPENDIENTE · STAGING</strong>' +
+                '<div><b>Consulta efectiva:</b> ' + escapeHtml(String(dep.query || debug.dependiente_query || '—')) + '</div>' +
+                '<div><b>Grupos que busca:</b> ' + escapeHtml(depGroupText) + '</div>' +
+                '<div><b>Primera pasada al índice:</b> ' + escapeHtml(depPrimaryText) + '</div>' +
+                '<div><b>Anclas de identidad:</b> ' + escapeHtml(depIdentity.length ? depIdentity.join(' · ') : '—') + '</div>' +
+                '<div><b>Vocabulario estructurado:</b> ' + escapeHtml(depVocabulary.length ? depVocabulary.join(' · ') : '—') + '</div>' +
+                '<div><b>Acciones:</b> ' + escapeHtml(depActions.length ? depActions.join(' · ') : '—') + '</div>' +
+                '<div><b>Contexto secundario:</b> ' + escapeHtml(depContext.length ? depContext.join(' · ') : '—') + '</div>' +
+                '<div><b>Busca en campos:</b> ' + escapeHtml(depFields.length ? depFields.join(' · ') : '—') + '</div>' +
+                '<div><b>Rutas semánticas activas:</b> ' + escapeHtml(depRoutesText) + '</div>' +
+                '<div><b>Estrategia:</b> ' + escapeHtml(String(dep.strategy || '—')) + ' · <b>Índice completo:</b> ' + escapeHtml(String(dep.extended_search || '—')) + '</div>' +
+                '<div><b>Base léxica:</b> título ' + escapeHtml(String(dep.lexical_identity_title_rows || 0)) + ' · categoría ' + escapeHtml(String(dep.lexical_identity_category_rows || 0)) + ' · mostrador ' + escapeHtml(String(dep.lexical_identity_rows || 0)) + '</div>' +
+                '<div><b>Fuente del mostrador:</b> ' + escapeHtml(String(dep.presentation_source || 'ranking')) + '</div>' +
+                '<div><b>Catálogo vivo:</b> IDs ' + escapeHtml(String(dep.live_catalog_ids || 0)) + ' · indexados ' + escapeHtml(String(dep.live_catalog_rows || 0)) + ' · reparados ' + escapeHtml(String(dep.live_catalog_reindexed || 0)) + ' · fuente ' + escapeHtml(String(dep.live_catalog_source || 'none')) + '</div>' +
+                '<div><b>Filtro/ranking posterior:</b> entrada ' + escapeHtml(String(dep.ranking_input_rows || dep.candidate_rows || 0)) + ' · descartados por filtros ' + escapeHtml(String(dep.ranking_filtered_out || 0)) + ' · puntuados ' + escapeHtml(String(dep.ranking_scored_rows || 0)) + '</div>' +
+                '<div><b>Validación técnica:</b> antes ' + escapeHtml(String(dep.matched_rows_before_live_validation || 0)) + ' · descartados ' + escapeHtml(String(dep.live_validation_rejected_rows || 0)) + ' · después ' + escapeHtml(String(dep.matched_rows || 0)) + '</div>' +
+                '<div><b>Candidatos:</b> primarios ' + escapeHtml(String(dep.primary_rows || 0)) + ' · recuperados ' + escapeHtml(String(dep.candidate_rows || 0)) + ' · finales ' + escapeHtml(String(dep.matched_rows || 0)) + '</div>' +
+                '<div><b>Descubrimiento:</b> ' + escapeHtml(String(dep.discovery_source || '—')) + ' · candidatos ' + escapeHtml(String(dep.discovery_candidates || 0)) + ' · categorías ' + escapeHtml(String(dep.discovery_categories || 0)) + '</div>' +
+                '<div><b>Filas SIN FILTRAR pedidas:</b> ' + escapeHtml(String(dep.unfiltered_primary_count || depUnfilteredRows.length || 0)) + '</div>' +
+                depUnfilteredHtml +
+                depMatchesHtml +
+                depCategoryRankingHtml +
+                depFilterRejectHtml +
+                '</div>';
         }
 
         function renderFacetGroup(label, kind, group, items, open) {
@@ -1018,53 +1257,87 @@
         }
 
         function renderResults(results, data) {
+            const discoveryHtml = renderSearchDiscovery(data && data.discovery ? data.discovery : null);
             if (!results.length) {
-                const actions = [];
-                if (activeFilterCount(state.filters) > 0) {
-                    actions.push('<button type="button" class="seo-dependiente__empty-action is-primary" data-dependiente-zero-reset>Quitar filtros y repetir</button>');
-                }
-
-                const alternatives = zeroResultAlternatives(data || {});
-                alternatives.forEach(function (item) {
-                    actions.push('<button type="button" class="seo-dependiente__empty-action" data-dependiente-zero-filter="' + escapeAttr(JSON.stringify(item.filter || {})) + '" data-dependiente-zero-label="' + escapeAttr(item.label || '') + '" data-dependiente-zero-mode="' + escapeAttr(item.mode || 'need') + '">' + escapeHtml(item.text || item.label || 'Explorar') + '</button>');
-                });
-
-                const actionsHtml = actions.length ? '<div class="seo-dependiente__empty-actions"><span>También puedes probar:</span><div>' + actions.join('') + '</div></div>' : '';
+                const hasClarification = Boolean(
+                    data && data.clarification && data.clarification.should_ask &&
+                    Array.isArray(data.clarification.options) && data.clarification.options.length >= 2
+                );
                 const helpHtml = elements.help ? '<div class="seo-dependiente__empty-help">' + assistantAvatarHtml('seo-dependiente__assistant-avatar--message') + '<button type="button" class="seo-dependiente__empty-action" data-dependiente-help-open>Pedir ayuda con esta búsqueda</button><small>Enviaremos el recorrido de Dependiente para que no tengas que empezar de cero.</small></div>' : '';
-                elements.results.innerHTML = '<div class="seo-dependiente__empty"><strong>No hay una coincidencia clara</strong><span>' + escapeHtml((config.labels && config.labels.noResults) || 'Prueba con otros términos o elimina un filtro.') + '</span>' + actionsHtml + helpHtml + '</div>';
+
+                // Nunca mostramos paginación o un hueco vacío si no existen
+                // tarjetas publicables. Si hay navegación visual real del
+                // Dependiente, esa navegación ocupa la zona principal.
+                elements.results.innerHTML = discoveryHtml || (hasClarification
+                    ? ''
+                    : '<div class="seo-dependiente__empty is-awaiting-clarification"><strong>Vamos a afinar la búsqueda</strong><span>Dependiente está revisando las opciones más relacionadas. Puedes concretar la consulta o usar los filtros si quieres.</span>' + helpHtml + '</div>');
                 return;
             }
-            elements.results.innerHTML = results.map(function (product, index) {
+
+            const heading = '<div class="seo-dependiente__results-heading"><small>Resultados de Dependiente</small><strong>Productos que mejor encajan</strong></div>';
+            elements.results.innerHTML = discoveryHtml + heading + results.map(function (product, index) {
                 return renderProductCard(product, index + 1);
             }).join('');
         }
 
+        function renderSearchDiscovery(discovery) {
+            if (!discovery) return '';
+            const categories = Array.isArray(discovery.categories) ? discovery.categories.slice(0, 12) : [];
+            const quick = Array.isArray(discovery.quick_filters) ? discovery.quick_filters.slice(0, 6) : [];
+            const products = Array.isArray(discovery.products) ? discovery.products.slice(0, 12) : [];
+            if (!categories.length && !quick.length && !products.length) return '';
+
+            const chips = quick.map(function (card) {
+                return '<button type="button" class="seo-dependiente__discovery-chip" data-dependiente-discovery-filter="' + escapeAttr(JSON.stringify(card.filter || {})) + '" data-dependiente-discovery-label="' + escapeAttr(card.label || '') + '">' + escapeHtml(card.label || '') + '<small>' + numberFormat(card.count || 0) + '</small></button>';
+            }).join('');
+
+            const cards = categories.map(function (card) {
+                const imageUrl = String(card.image || '');
+                const isPlaceholder = !imageUrl || /woocommerce-placeholder|\/placeholder\./i.test(imageUrl);
+                const hasUsefulImage = !isPlaceholder && card.image_kind !== 'none';
+                const imageClass = hasUsefulImage && card.image_kind === 'logo' ? ' seo-dependiente__visual-card--logo' : (hasUsefulImage ? '' : ' seo-dependiente__visual-card--text-only');
+                const media = hasUsefulImage ? '<img src="' + escapeAttr(imageUrl) + '" alt="" loading="lazy" decoding="async">' : '';
+                const inner = media +
+                    '<span class="seo-dependiente__visual-card-arrow" aria-hidden="true">↗</span>' +
+                    '<span class="seo-dependiente__visual-card-content"><strong>' + escapeHtml(card.label || '') + '</strong><small>' + numberFormat(card.count || 0) + ' opciones</small></span>';
+
+                if (card.url) {
+                    return '<a class="seo-dependiente__visual-card seo-dependiente__search-visual-card' + imageClass + '" href="' + escapeAttr(card.url) + '" target="_blank" rel="noopener noreferrer">' + inner + '</a>';
+                }
+
+                return '<button type="button" class="seo-dependiente__visual-card seo-dependiente__search-visual-card' + imageClass + '" data-dependiente-discovery-filter="' + escapeAttr(JSON.stringify(card.filter || {})) + '" data-dependiente-discovery-label="' + escapeAttr(card.label || '') + '">' + inner + '</button>';
+            }).join('');
+
+            const lexicalCandidates = String(discovery.source || '') === 'lexical_candidates';
+            const eyebrow = lexicalCandidates ? 'Según los candidatos encontrados por Dependiente' : 'Según los resultados de Dependiente';
+            const heading = lexicalCandidates ? 'Elige una categoría o abre un producto' : 'Elige una opción para afinar';
+            const candidateNote = lexicalCandidates && Number(discovery.candidate_count || 0) > 0
+                ? '<p class="seo-dependiente__discovery-note">Dependiente ha encontrado ' + numberFormat(discovery.candidate_count || 0) + ' candidatos en su índice. Las categorías y productos de abajo salen directamente de esa primera pasada.</p>'
+                : '';
+
+            const productHeading = products.length
+                ? '<div class="seo-dependiente__results-heading" style="margin-top:20px"><small>Productos encontrados por Dependiente</small><strong>' + (lexicalCandidates ? 'Primera pasada sin filtrar' : 'Productos relacionados') + '</strong></div>'
+                : '';
+            const productGrid = products.length
+                ? '<div class="seo-dependiente__discovery-product-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:12px">' + products.map(function (product, index) {
+                    return renderProductCard(product, index + 1);
+                }).join('') + '</div>'
+                : '';
+
+            return '<section class="seo-dependiente__result-discovery" aria-label="Opciones para afinar la búsqueda">' +
+                '<div class="seo-dependiente__result-discovery-head"><small>' + escapeHtml(eyebrow) + '</small><strong>' + escapeHtml(heading) + '</strong></div>' +
+                candidateNote +
+                (chips ? '<div class="seo-dependiente__discovery-chips">' + chips + '</div>' : '') +
+                (cards ? '<div class="seo-dependiente__visual-menu seo-dependiente__search-visual-menu">' + cards + '</div>' : '') +
+                productHeading + productGrid +
+                '</section>';
+        }
+
         function zeroResultAlternatives(data) {
-            const items = [];
-            const categories = data && data.facets && Array.isArray(data.facets.categories) ? data.facets.categories : [];
-            categories.slice(0, 3).forEach(function (category) {
-                if (!category || !category.slug) return;
-                items.push({
-                    text: 'Explorar ' + String(category.label || category.slug),
-                    label: String(category.label || category.slug),
-                    mode: 'need',
-                    filter: { type: 'categories', slug: category.slug }
-                });
-            });
-
-            if (!items.length && state.bootstrap && Array.isArray(state.bootstrap.actions)) {
-                state.bootstrap.actions.slice(0, 3).forEach(function (action) {
-                    if (!action || !action.filter) return;
-                    items.push({
-                        text: 'Explorar ' + String(action.label || 'otra tarea'),
-                        label: String(action.label || ''),
-                        mode: 'need',
-                        filter: action.filter
-                    });
-                });
-            }
-
-            return items;
+            // Ya no convertimos un estado débil en navegación por categorías.
+            // El Dependiente mantiene la búsqueda normal y el Intérprete solo
+            // añade contexto lingüístico mediante sus preguntas.
+            return [];
         }
 
         function renderProductCard(product, position) {
@@ -1084,15 +1357,15 @@
                 return '<div class="seo-dependiente__spec"><span>' + escapeHtml(spec.label) + '</span><strong>' + escapeHtml(spec.value) + '</strong></div>';
             }).join('');
             return '<article class="seo-dependiente__product-card">' +
-                '<a class="seo-dependiente__product-image" data-dependiente-product-link data-product-id="' + Number(product.id) + '" data-position="' + Number(position || 0) + '" href="' + escapeAttr(product.url) + '"><img src="' + escapeAttr(product.image || config.placeholderImage || '') + '" alt="' + escapeAttr(product.title) + '" loading="lazy"></a>' +
+                '<a class="seo-dependiente__product-image" data-dependiente-product-link data-product-id="' + Number(product.id) + '" data-position="' + Number(position || 0) + '" href="' + escapeAttr(product.url) + '" target="_blank" rel="noopener noreferrer"><img src="' + escapeAttr(product.image || config.placeholderImage || '') + '" alt="' + escapeAttr(product.title) + '" loading="lazy"></a>' +
                 '<button type="button" class="seo-dependiente__compare-toggle" data-compare-id="' + Number(product.id) + '" aria-pressed="' + (selected ? 'true' : 'false') + '">' + (selected ? 'Seleccionado' : 'Comparar') + '</button>' +
                 '<div class="seo-dependiente__product-body">' +
                 '<div class="seo-dependiente__product-kicker">' + kicker + '</div>' +
-                '<h2 class="seo-dependiente__product-title"><a data-dependiente-product-link data-product-id="' + Number(product.id) + '" data-position="' + Number(position || 0) + '" href="' + escapeAttr(product.url) + '">' + escapeHtml(product.title) + '</a></h2>' +
+                '<h2 class="seo-dependiente__product-title"><a data-dependiente-product-link data-product-id="' + Number(product.id) + '" data-position="' + Number(position || 0) + '" href="' + escapeAttr(product.url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(product.title) + '</a></h2>' +
                 (reasons ? '<div class="seo-dependiente__match-reasons">' + reasons + '</div>' : '') +
                 (product.excerpt ? '<p class="seo-dependiente__excerpt">' + escapeHtml(product.excerpt) + '</p>' : '') +
                 (specs ? '<div class="seo-dependiente__specs">' + specs + '</div>' : '') +
-                '<div class="seo-dependiente__product-foot"><div class="seo-dependiente__price">' + (product.price_html || '') + '</div><a class="seo-dependiente__card-button" data-dependiente-product-link data-product-id="' + Number(product.id) + '" data-position="' + Number(position || 0) + '" href="' + escapeAttr(product.url) + '">' + escapeHtml((config.labels && config.labels.viewProduct) || 'Ver producto') + '</a></div>' +
+                '<div class="seo-dependiente__product-foot"><div class="seo-dependiente__price">' + (product.price_html || '') + '</div><a class="seo-dependiente__card-button" data-dependiente-product-link data-product-id="' + Number(product.id) + '" data-position="' + Number(position || 0) + '" href="' + escapeAttr(product.url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml((config.labels && config.labels.viewProduct) || 'Ver producto') + '</a></div>' +
                 '</div></article>';
         }
 
@@ -1319,6 +1592,36 @@
             '</article>';
         }
 
+        function renderCandidateProducts(products) {
+            let container = root.querySelector('[data-dependiente-candidate-products]');
+            if (!container) {
+                container = document.createElement('section');
+                container.setAttribute('data-dependiente-candidate-products', '');
+                container.className = 'seo-dependiente__candidate-products';
+                // Debe quedar antes de Guías y soluciones. Si existe el carril
+                // editorial, insertamos el bloque justo delante.
+                if (elements.related && elements.related.parentNode) {
+                    elements.related.parentNode.insertBefore(container, elements.related);
+                } else if (elements.workspace) {
+                    elements.workspace.appendChild(container);
+                }
+            }
+
+            if (!Array.isArray(products) || !products.length) {
+                container.hidden = true;
+                container.innerHTML = '';
+                return;
+            }
+
+            const cards = products.slice(0, 12).map(function (product, index) {
+                return renderProductCard(product, index + 1);
+            }).join('');
+
+            container.innerHTML = '<div class="seo-dependiente__results-heading" style="margin:0 0 14px"><small>Productos encontrados por Dependiente</small><strong>Mejor puntuación entre los candidatos</strong></div>' +
+                '<div class="seo-dependiente__candidate-product-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">' + cards + '</div>';
+            container.hidden = false;
+        }
+
         function renderRelated(items, totalResults) {
             if (!elements.related) return;
             if (!items || !items.length) {
@@ -1356,8 +1659,8 @@
                 '<span class="seo-dependiente__related-link">Leer →</span></span></a>';
         }
 
-        function renderPagination(page, pages) {
-            if (pages <= 1) {
+        function renderPagination(page, pages, visibleResults) {
+            if (pages <= 1 || Number(visibleResults || 0) <= 0) {
                 elements.pagination.innerHTML = '';
                 return;
             }
@@ -1429,7 +1732,7 @@
             const criteria = data.criteria || {};
             const criteriaHtml = criteria.labels && criteria.labels.length ? '<div class="seo-dependiente__criteria"><strong>' + escapeHtml(criteria.title || 'Qué conviene comprobar') + '</strong>' + criteria.labels.map(function (label) { return '<span class="seo-dependiente__chip">' + escapeHtml(label) + '</span>'; }).join('') + '</div>' : '';
             const head = '<thead><tr><th>Criterio</th>' + products.map(function (product) {
-                return '<th><div class="seo-dependiente__comparison-product"><img src="' + escapeAttr(product.image || config.placeholderImage || '') + '" alt=""><a href="' + escapeAttr(product.url) + '">' + escapeHtml(product.title) + '</a></div></th>';
+                return '<th><div class="seo-dependiente__comparison-product"><img src="' + escapeAttr(product.image || config.placeholderImage || '') + '" alt=""><a href="' + escapeAttr(product.url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(product.title) + '</a></div></th>';
             }).join('') + '</tr></thead>';
             const body = '<tbody>' + (data.rows || []).map(function (row) {
                 const classes = [row.different ? 'is-different' : '', row.priority ? 'is-priority' : ''].filter(Boolean).join(' ');
@@ -1462,8 +1765,7 @@
             const url = new URL(window.location.href);
             if (state.q) url.searchParams.set('dep_q', state.q);
             else url.searchParams.delete('dep_q');
-            if (state.solutionRole) url.searchParams.set('dep_role', state.solutionRole);
-            else url.searchParams.delete('dep_role');
+            url.searchParams.delete('dep_role');
             window.history.replaceState({}, '', url.toString());
         }
     }
@@ -1505,6 +1807,12 @@
         try { payload = await response.json(); } catch (error) { payload = null; }
         if (!response.ok) {
             throw new Error(payload && payload.message ? payload.message : 'Error de comunicación con el catálogo.');
+        }
+        // Una respuesta HTTP 200 vacía/no JSON no es un resultado válido. Antes
+        // devolvíamos null y search() fallaba después en data.facets, ocultando el
+        // problema real con un TypeError de JavaScript.
+        if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+            throw new Error('El servidor ha devuelto una respuesta vacía o incompleta. Revisa el log de PHP/REST de esta búsqueda.');
         }
         return payload;
     }

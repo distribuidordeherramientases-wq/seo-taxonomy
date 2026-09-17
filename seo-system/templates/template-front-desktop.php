@@ -32,6 +32,14 @@ $schema_organization = array(
     'url'   => $schema_home_url,
 );
 
+/* Politicas Merchant globales referenciadas por los Offer de producto. */
+if (function_exists('dht_template_schema_merchant_organization_properties')) {
+    $schema_organization = array_merge(
+        $schema_organization,
+        dht_template_schema_merchant_organization_properties()
+    );
+}
+
 if (!empty($schema_logo_candidate['url'])) {
     $schema_organization['logo'] = array(
         '@type' => 'ImageObject',
@@ -540,20 +548,71 @@ $render_products = static function ($products, $extra_class = '') {
     remove_filter('woocommerce_product_get_image', 'dht_template_product_image_external_fallback', 20);
 };
 
-/* Clusters reales del sistema SEO, si existe la tabla de relaciones. */
+/* Estructura editorial real: cluster -> hub primario -> hub secundario. */
 $cluster_ids = array();
+$hub_primary_ids = array();
+$hub_secondary_by_primary = array();
 $relations_table = $wpdb->prefix . 'seo_relations';
 $table_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $relations_table));
 
 if ($table_exists === $relations_table) {
     $cluster_ids = $wpdb->get_col(
-        "SELECT DISTINCT source_id
+        "SELECT source_id
          FROM {$relations_table}
          WHERE source_type = 'cluster'
-         ORDER BY source_id ASC
-         LIMIT 8"
+         GROUP BY source_id
+         ORDER BY MIN(id) ASC
+         LIMIT 12"
     );
     $cluster_ids = dht_template_public_post_ids($cluster_ids);
+
+    $primary_from_targets = $wpdb->get_col(
+        "SELECT target_id
+         FROM {$relations_table}
+         WHERE target_type = 'hub_primary'
+         GROUP BY target_id
+         ORDER BY MIN(id) ASC
+         LIMIT 30"
+    );
+    $primary_from_sources = $wpdb->get_col(
+        "SELECT source_id
+         FROM {$relations_table}
+         WHERE source_type = 'hub_primary'
+         GROUP BY source_id
+         ORDER BY MIN(id) ASC
+         LIMIT 30"
+    );
+    $hub_primary_ids = dht_template_public_post_ids(array_merge($primary_from_targets, $primary_from_sources));
+
+    if (!empty($hub_primary_ids)) {
+        $primary_lookup = array_fill_keys(array_map('absint', $hub_primary_ids), true);
+        $secondary_rows = $wpdb->get_results(
+            "SELECT source_id, target_id, MIN(id) AS sort_id
+             FROM {$relations_table}
+             WHERE source_type = 'hub_primary'
+               AND target_type = 'hub_secondary'
+               AND relation_type = 'hub_primary_to_hub_secondary'
+             GROUP BY source_id, target_id
+             ORDER BY sort_id ASC"
+        );
+
+        foreach ((array) $secondary_rows as $row) {
+            $primary_id = absint($row->source_id ?? 0);
+            $secondary_id = absint($row->target_id ?? 0);
+            if ($primary_id < 1 || $secondary_id < 1 || empty($primary_lookup[$primary_id])) {
+                continue;
+            }
+            if (!isset($hub_secondary_by_primary[$primary_id])) {
+                $hub_secondary_by_primary[$primary_id] = array();
+            }
+            if (count($hub_secondary_by_primary[$primary_id]) >= 4) {
+                continue;
+            }
+            if (get_post_status($secondary_id) === 'publish' && get_permalink($secondary_id)) {
+                $hub_secondary_by_primary[$primary_id][] = $secondary_id;
+            }
+        }
+    }
 }
 
 $get_cluster_image = static function ($cluster_id) use ($wpdb, $relations_table, $table_exists) {
@@ -589,50 +648,211 @@ $latest_posts = get_posts(array(
     'no_found_rows'  => true,
 ));
 
-$hero_categories = array_slice($root_categories, 0, 3);
 $department_categories = array_slice($root_categories, 0, 8);
 $more_categories = array_slice($root_categories, 8, 8);
+
+/* Presentacion del Dependiente y servicio humano sin depender de archivos adicionales. */
+$dht_service_url = home_url('/nuestro-servicio/');
+$dht_phone_label = '+34 640 87 45 40';
+$dht_phone_href  = 'tel:+34640874540';
+$dht_whatsapp_url = 'https://wa.me/34640874540';
+
+$dht_dependiente_image = '';
+
+/*
+ * La imagen del Dependiente se localiza por el archivo real de Media y no
+ * solamente por el slug del attachment. WordPress puede modificar el slug
+ * aunque el fichero siga llamandose dependiente.webp.
+ */
+$dht_dependiente_relative_file = '2026/09/dependiente.webp';
+$dht_dependiente_ids = get_posts(array(
+    'post_type'      => 'attachment',
+    'post_status'    => 'inherit',
+    'posts_per_page' => 1,
+    'fields'         => 'ids',
+    'meta_key'       => '_wp_attached_file',
+    'meta_value'     => $dht_dependiente_relative_file,
+    'no_found_rows'  => true,
+));
+
+if (!empty($dht_dependiente_ids)) {
+    $dht_dependiente_image = wp_get_attachment_image_url((int) $dht_dependiente_ids[0], 'large');
+    if (!$dht_dependiente_image) {
+        $dht_dependiente_image = wp_get_attachment_url((int) $dht_dependiente_ids[0]);
+    }
+}
+
+/* Fallback directo al archivo si Media no devuelve el attachment. */
+if (!$dht_dependiente_image) {
+    $dht_upload_dir = wp_upload_dir();
+    if (empty($dht_upload_dir['error']) && !empty($dht_upload_dir['baseurl'])) {
+        $dht_dependiente_image = trailingslashit($dht_upload_dir['baseurl']) . $dht_dependiente_relative_file;
+    }
+}
+
+$dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url', $dht_dependiente_image);
 ?>
 
-<main class="dht-storefront dht-storefront--desktop" id="dht-storefront">
-    <!-- =========================================================
-         DESKTOP / TABLET GRANDE
-    ========================================================== -->
+
+
+<main class="dht-storefront dht-storefront--desktop dht-front-structure" id="dht-storefront">
     <div class="sf-layout sf-layout--desktop">
-        <section class="sf-hero" aria-label="Portada de la tienda">
-            <div class="sf-shell sf-hero-grid">
-                <div class="sf-hero-main">
-                    <div class="sf-hero-copy">
-                        <span class="sf-eyebrow">Herramientas · taller · automoción · mantenimiento</span>
-                        <h1>Encuentra la herramienta que necesitas, sin perderte en el catálogo</h1>
-                        <p>Compra por departamento, aplicación o producto. Una tienda técnica pensada para localizar rápido herramientas, maquinaria, consumibles y equipamiento profesional.</p>
-                        <div class="sf-actions">
-                            <a class="sf-btn sf-btn--primary" href="<?php echo esc_url(dht_template_shop_url()); ?>">Ver todo el catálogo</a>
-                            <a class="sf-btn sf-btn--ghost" href="<?php echo esc_url(dht_template_contact_url()); ?>">Ayuda para elegir</a>
+        <section class="sf-home-entry" aria-labelledby="dht-home-title">
+            <div class="sf-shell">
+                <div class="sf-front-hero">
+                    <div class="sf-front-hero-copy">
+                        <span class="sf-eyebrow">Tu Dependiente del catálogo</span>
+                        <h1 id="dht-home-title">Encuentra lo que necesitas con Dependiente</h1>
+                        <p class="sf-front-hero-lead">Relaciona tu búsqueda con el catálogo y compara opciones. Puedes empezar por un producto, una necesidad, una aplicación, una medida, una marca o una referencia.</p>
+
+                        <div class="sf-home-search" aria-label="Preguntar al Dependiente">
+                            <?php if (shortcode_exists('seo_search')) : ?>
+                                <?php echo do_shortcode('[seo_search placeholder="Producto, necesidad, uso o referencia..."]'); ?>
+                            <?php else : ?>
+                                <form class="sf-home-search-form" role="search" method="get" action="<?php echo esc_url(home_url('/')); ?>">
+                                    <label class="screen-reader-text" for="dht-home-search">Buscar productos</label>
+                                    <input id="dht-home-search" type="search" name="s" placeholder="Producto, necesidad, uso o referencia..." autocomplete="off">
+                                    <input type="hidden" name="post_type" value="product">
+                                    <button type="submit">Preguntar</button>
+                                </form>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="sf-search-examples" aria-label="Ejemplos de búsqueda">
+                            <span>extractor rodamientos</span><span>taladro hormigón</span><span>kit plato ducha</span><span>compresor aire</span>
+                        </div>
+                        <div class="sf-front-hero-links">
+                            <a href="<?php echo esc_url(dht_template_shop_url()); ?>">Ver todo el catálogo</a>
+                            <a href="<?php echo esc_url($dht_phone_href); ?>">¿Prefieres una persona? <?php echo esc_html($dht_phone_label); ?></a>
                         </div>
                     </div>
-                </div>
 
-                <div class="sf-hero-picks" aria-label="Departamentos destacados">
-                    <?php foreach ($hero_categories as $index => $term) :
-                        $image = $get_term_image($term, 'large');
-                        $link  = dht_template_safe_term_link($term);
-                        ?>
-                        <a class="sf-hero-pick sf-hero-pick--<?php echo esc_attr((string) ($index + 1)); ?>" href="<?php echo esc_url($link); ?>">
-                            <?php if ($image) : ?>
-                                <img src="<?php echo esc_url($image); ?>" alt="<?php echo esc_attr($term->name); ?>" loading="<?php echo $index === 0 ? 'eager' : 'lazy'; ?>">
-                            <?php endif; ?>
-                            <span><?php echo esc_html($term->name); ?></span>
-                        </a>
-                    <?php endforeach; ?>
+                    <div class="sf-front-person" aria-label="Dependiente y atención humana">
+                        <?php if ($dht_dependiente_image) : ?>
+                            <img src="<?php echo esc_url($dht_dependiente_image); ?>" alt="Persona del equipo de Distribuidor de Herramientas" loading="eager" fetchpriority="high">
+                        <?php else : ?>
+                            <div class="sf-front-person-fallback"><svg viewBox="0 0 200 200" aria-hidden="true" focusable="false"><circle cx="100" cy="68" r="38" fill="currentColor" opacity=".95"/><path d="M35 180c7-45 32-68 65-68s58 23 65 68H35z" fill="currentColor" opacity=".95"/><path d="M58 68c3-29 20-47 42-47s39 18 42 47c-12-9-27-14-42-14s-30 5-42 14z" fill="currentColor" opacity=".75"/></svg></div>
+                        <?php endif; ?>
+                        <div class="sf-front-person-badge">
+                            <strong>Dependiente te ayuda a buscar</strong>
+                            <span>Y si prefieres hablar con una persona, estamos al otro lado del teléfono.</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
 
+        <section class="sf-service-band" aria-labelledby="dht-service-title">
+            <div class="sf-shell">
+                <div class="sf-service-panel">
+                    <div>
+                        <span class="sf-service-kicker">Soporte personal antes y después de la compra</span>
+                        <h2 id="dht-service-title">Una persona para ayudarte como intermediario</h2>
+                        <p>Te atendemos en castellano y, si surge una incidencia, te ayudamos a comunicarte y hacer seguimiento con el fabricante o distribuidor. La idea es ahorrarte llamadas, correos, tickets y gestiones innecesarias con proveedores que muchas veces están fuera de España.</p>
+                        <div class="sf-service-actions">
+                            <a href="<?php echo esc_url($dht_phone_href); ?>">Llamar: <?php echo esc_html($dht_phone_label); ?></a>
+                            <a href="<?php echo esc_url($dht_whatsapp_url); ?>" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+                        </div>
+                        <small class="sf-service-legal">Actuamos como apoyo e interlocutor en la gestión. Este servicio no sustituye el soporte técnico del fabricante ni modifica las responsabilidades y garantías legales que correspondan en cada caso.</small>
+                    </div>
+                    <div class="sf-service-grid" aria-label="Cómo te ayudamos">
+                        <div class="sf-service-point"><strong>Antes de comprar</strong><span>Te orientamos para localizar y comparar opciones del catálogo.</span></div>
+                        <div class="sf-service-point"><strong>Incidencias</strong><span>Te ayudamos a preparar y tramitar la comunicación con el proveedor o fabricante.</span></div>
+                        <div class="sf-service-point"><strong>Menos correos y llamadas</strong><span>Conocemos los canales habituales y podemos ayudarte a seguir el proceso.</span></div>
+                        <div class="sf-service-point"><strong>Atención en castellano</strong><span>Tienes un contacto cercano al que explicar lo que está ocurriendo.</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <?php if (!empty($cluster_ids)) : ?>
+            <section class="sf-section sf-section--structure sf-section--clusters" aria-labelledby="dht-clusters-title">
+                <div class="sf-shell">
+                    <div class="sf-section-head">
+                        <div>
+                            <span class="sf-eyebrow">Visión general</span>
+                            <h2 id="dht-clusters-title">Empieza por el área que mejor encaja contigo</h2>
+                        </div>
+                        <span class="sf-structure-note">Primero la necesidad; después bajamos al producto.</span>
+                    </div>
+                    <div class="sf-structure-cluster-grid">
+                        <?php foreach ($cluster_ids as $cluster_id) :
+                            $cluster_image = $get_cluster_image($cluster_id);
+                            $summary = dht_template_post_summary($cluster_id, 22);
+                            ?>
+                            <a class="sf-structure-cluster" href="<?php echo esc_url(get_permalink($cluster_id)); ?>">
+                                <span class="sf-structure-cluster-media">
+                                    <?php if ($cluster_image) : ?>
+                                        <img src="<?php echo esc_url($cluster_image); ?>" alt="" loading="lazy">
+                                    <?php else : ?>
+                                        <span class="sf-structure-placeholder" aria-hidden="true">Área</span>
+                                    <?php endif; ?>
+                                </span>
+                                <span class="sf-structure-cluster-copy">
+                                    <strong><?php echo esc_html(get_the_title($cluster_id)); ?></strong>
+                                    <?php if ($summary) : ?><span><?php echo esc_html($summary); ?></span><?php endif; ?>
+                                    <em>Explorar área <span aria-hidden="true">→</span></em>
+                                </span>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </section>
+        <?php endif; ?>
+
+        <?php if (!empty($hub_primary_ids)) : ?>
+            <section class="sf-section sf-section--hubs" aria-labelledby="dht-hubs-title">
+                <div class="sf-shell">
+                    <div class="sf-section-head">
+                        <div>
+                            <span class="sf-eyebrow">Explora por especialidad</span>
+                            <h2 id="dht-hubs-title">Áreas principales del catálogo</h2>
+                        </div>
+                        <a class="sf-text-link" href="<?php echo esc_url(dht_template_shop_url()); ?>">Ir a la tienda <span aria-hidden="true">→</span></a>
+                    </div>
+
+                    <div class="sf-primary-hub-grid">
+                        <?php foreach ($hub_primary_ids as $hub_id) :
+                            $hub_image = dht_template_node_image_url('hub_primary', $hub_id, 'medium_large');
+                            $hub_summary = dht_template_post_summary($hub_id, 16);
+                            $secondary_ids = $hub_secondary_by_primary[$hub_id] ?? array();
+                            ?>
+                            <article class="sf-primary-hub-card">
+                                <a class="sf-primary-hub-main" href="<?php echo esc_url(get_permalink($hub_id)); ?>">
+                                    <span class="sf-primary-hub-media">
+                                        <?php if ($hub_image) : ?>
+                                            <img src="<?php echo esc_url($hub_image); ?>" alt="" loading="lazy">
+                                        <?php else : ?>
+                                            <span class="sf-structure-placeholder" aria-hidden="true">DHT</span>
+                                        <?php endif; ?>
+                                    </span>
+                                    <span class="sf-primary-hub-copy">
+                                        <strong><?php echo esc_html(get_the_title($hub_id)); ?></strong>
+                                        <?php if ($hub_summary) : ?><span><?php echo esc_html($hub_summary); ?></span><?php endif; ?>
+                                    </span>
+                                </a>
+
+                                <?php if (!empty($secondary_ids)) : ?>
+                                    <div class="sf-secondary-links" aria-label="Subáreas de <?php echo esc_attr(get_the_title($hub_id)); ?>">
+                                        <?php foreach ($secondary_ids as $secondary_id) : ?>
+                                            <a href="<?php echo esc_url(get_permalink($secondary_id)); ?>"><?php echo esc_html(get_the_title($secondary_id)); ?></a>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+
+                                <a class="sf-primary-hub-more" href="<?php echo esc_url(get_permalink($hub_id)); ?>">Ver área completa <span aria-hidden="true">→</span></a>
+                            </article>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </section>
+        <?php endif; ?>
+
         <?php if (!empty($root_categories)) : ?>
-            <nav class="sf-quick-nav" aria-label="Accesos rápidos a departamentos">
+            <nav class="sf-quick-nav sf-quick-nav--after-structure" aria-label="Accesos rápidos a categorías">
                 <div class="sf-shell sf-quick-nav-row">
-                    <?php foreach (array_slice($root_categories, 0, 10) as $term) : ?>
+                    <span class="sf-quick-nav-label">Categorías:</span>
+                    <?php foreach (array_slice($root_categories, 0, 12) as $term) : ?>
                         <a href="<?php echo esc_url(dht_template_safe_term_link($term)); ?>"><?php echo esc_html($term->name); ?></a>
                     <?php endforeach; ?>
                 </div>
@@ -643,8 +863,8 @@ $more_categories = array_slice($root_categories, 8, 8);
             <div class="sf-shell">
                 <div class="sf-section-head">
                     <div>
-                        <span class="sf-eyebrow">Compra por departamento</span>
-                        <h2>Todo el catálogo, organizado para encontrarlo rápido</h2>
+                        <span class="sf-eyebrow">Baja hasta el producto</span>
+                        <h2>Compra por categoría cuando ya sabes qué buscas</h2>
                     </div>
                     <a class="sf-text-link" href="<?php echo esc_url(dht_template_shop_url()); ?>">Ver catálogo completo <span aria-hidden="true">→</span></a>
                 </div>
@@ -666,9 +886,7 @@ $more_categories = array_slice($root_categories, 8, 8);
                                         ?>
                                         <a class="sf-subcat" href="<?php echo esc_url(dht_template_safe_term_link($child)); ?>">
                                             <span class="sf-subcat-media">
-                                                <?php if ($child_image) : ?>
-                                                    <img src="<?php echo esc_url($child_image); ?>" alt="<?php echo esc_attr($child->name); ?>" loading="lazy">
-                                                <?php endif; ?>
+                                                <?php if ($child_image) : ?><img src="<?php echo esc_url($child_image); ?>" alt="<?php echo esc_attr($child->name); ?>" loading="lazy"><?php endif; ?>
                                             </span>
                                             <span class="sf-subcat-name"><?php echo esc_html($child->name); ?></span>
                                         </a>
@@ -678,9 +896,7 @@ $more_categories = array_slice($root_categories, 8, 8);
                                 $root_image = $get_term_image($term, 'large');
                                 ?>
                                 <a class="sf-department-fallback" href="<?php echo esc_url(dht_template_safe_term_link($term)); ?>">
-                                    <?php if ($root_image) : ?>
-                                        <img src="<?php echo esc_url($root_image); ?>" alt="<?php echo esc_attr($term->name); ?>" loading="lazy">
-                                    <?php endif; ?>
+                                    <?php if ($root_image) : ?><img src="<?php echo esc_url($root_image); ?>" alt="<?php echo esc_attr($term->name); ?>" loading="lazy"><?php endif; ?>
                                     <span>Explorar <?php echo esc_html($term->name); ?></span>
                                 </a>
                             <?php endif; ?>
@@ -700,55 +916,22 @@ $more_categories = array_slice($root_categories, 8, 8);
             </div>
         </section>
 
-        <?php if (!empty($cluster_ids)) : ?>
-            <section class="sf-section sf-section--dark">
-                <div class="sf-shell">
-                    <div class="sf-section-head sf-section-head--inverse">
-                        <div><span class="sf-eyebrow">Explora por trabajo o necesidad</span><h2>Áreas especializadas</h2></div>
-                    </div>
-                    <div class="sf-cluster-grid">
-                        <?php foreach (array_slice($cluster_ids, 0, 6) as $cluster_id) :
-                            $cluster_image = $get_cluster_image($cluster_id);
-                            $summary = dht_template_post_summary($cluster_id, 18);
-                            ?>
-                            <a class="sf-cluster-card" href="<?php echo esc_url(get_permalink($cluster_id)); ?>">
-                                <span class="sf-cluster-media">
-                                    <?php if ($cluster_image) : ?>
-                                        <img src="<?php echo esc_url($cluster_image); ?>" alt="<?php echo esc_attr(get_the_title($cluster_id)); ?>" loading="lazy">
-                                    <?php endif; ?>
-                                </span>
-                                <span class="sf-cluster-body">
-                                    <strong><?php echo esc_html(get_the_title($cluster_id)); ?></strong>
-                                    <?php if ($summary) : ?><span><?php echo esc_html($summary); ?></span><?php endif; ?>
-                                    <em>Explorar <span aria-hidden="true">→</span></em>
-                                </span>
-                            </a>
-                        <?php endforeach; ?>
+        <section class="sf-section sf-promo-row">
+            <div class="sf-shell sf-home-reminder-grid">
+                <div class="sf-home-reminder">
+                    <span class="sf-eyebrow">Antes de comprar</span>
+                    <strong>¿Dudas entre varios productos?</strong>
+                    <p>Usa el buscador como si hablaras con un dependiente o consúltanos antes de decidir.</p>
+                    <div class="sf-actions">
+                        <a class="sf-btn sf-btn--primary" href="#dht-home-title">Volver al buscador</a>
+                        <a class="sf-home-reminder-link" href="https://wa.me/34640874540" target="_blank" rel="noopener noreferrer">Consultar por WhatsApp</a>
                     </div>
                 </div>
-            </section>
-        <?php endif; ?>
-
-        <section class="sf-section sf-promo-row">
-            <div class="sf-shell sf-promo-grid">
-                <?php if (!empty($root_categories[0])) :
-                    $promo_term = $root_categories[0];
-                    $promo_image = $get_term_image($promo_term, 'large');
-                    ?>
-                    <a class="sf-promo sf-promo--image" href="<?php echo esc_url(dht_template_safe_term_link($promo_term)); ?>">
-                        <?php if ($promo_image) : ?><img src="<?php echo esc_url($promo_image); ?>" alt="" loading="lazy"><?php endif; ?>
-                        <span class="sf-promo-overlay"></span>
-                        <span class="sf-promo-content"><small>Selección destacada</small><strong><?php echo esc_html($promo_term->name); ?></strong><em>Ver departamento →</em></span>
-                    </a>
-                <?php endif; ?>
-
-                <div class="sf-promo sf-promo--service">
-                    <span class="sf-promo-content">
-                        <small>¿Dudas de compatibilidad?</small>
-                        <strong>Te ayudamos a elegir antes de comprar</strong>
-                        <span>Consulta medidas, usos, compatibilidad o alternativas directamente con nosotros.</span>
-                        <a class="sf-btn sf-btn--light" href="https://wa.me/34640874540" target="_blank" rel="noopener noreferrer">Consultar por WhatsApp</a>
-                    </span>
+                <div class="sf-home-reminder sf-home-reminder--service">
+                    <span class="sf-eyebrow">Después de comprar</span>
+                    <strong>Te ayudamos con la gestión</strong>
+                    <p>Si aparece una incidencia, te ayudamos como interlocutor en la comunicación y el seguimiento con el proveedor o fabricante.</p>
+                    <a class="sf-home-reminder-link" href="<?php echo esc_url($dht_service_url); ?>">Conocer el acompañamiento posventa <span aria-hidden="true">→</span></a>
                 </div>
             </div>
         </section>
@@ -756,9 +939,7 @@ $more_categories = array_slice($root_categories, 8, 8);
         <?php if (!empty($sale_products)) : ?>
             <section class="sf-section sf-section--products sf-section--soft">
                 <div class="sf-shell">
-                    <div class="sf-section-head sf-section-head--tight">
-                        <div><span class="sf-eyebrow">Oportunidades</span><h2>Ofertas destacadas</h2></div>
-                    </div>
+                    <div class="sf-section-head sf-section-head--tight"><div><span class="sf-eyebrow">Oportunidades</span><h2>Ofertas destacadas</h2></div></div>
                     <?php $render_products($sale_products, 'sf-products--desktop'); ?>
                 </div>
             </section>
@@ -767,9 +948,7 @@ $more_categories = array_slice($root_categories, 8, 8);
         <?php if (!empty($more_categories)) : ?>
             <section class="sf-section">
                 <div class="sf-shell">
-                    <div class="sf-section-head sf-section-head--tight">
-                        <div><span class="sf-eyebrow">Sigue explorando</span><h2>Más departamentos</h2></div>
-                    </div>
+                    <div class="sf-section-head sf-section-head--tight"><div><span class="sf-eyebrow">Sigue explorando</span><h2>Más categorías</h2></div></div>
                     <div class="sf-category-strip">
                         <?php foreach ($more_categories as $term) :
                             $image = $get_term_image($term, 'woocommerce_thumbnail');
@@ -786,9 +965,7 @@ $more_categories = array_slice($root_categories, 8, 8);
 
         <section class="sf-section sf-section--products">
             <div class="sf-shell">
-                <div class="sf-section-head sf-section-head--tight">
-                    <div><span class="sf-eyebrow">Recién incorporado</span><h2>Novedades del catálogo</h2></div>
-                </div>
+                <div class="sf-section-head sf-section-head--tight"><div><span class="sf-eyebrow">Recién incorporado</span><h2>Novedades del catálogo</h2></div></div>
                 <?php $render_products($new_products, 'sf-products--desktop'); ?>
             </div>
         </section>
@@ -805,9 +982,7 @@ $more_categories = array_slice($root_categories, 8, 8);
                             $image = dht_template_post_image_url($article->ID, 'medium_large');
                             ?>
                             <article class="sf-article-card">
-                                <a class="sf-article-media" href="<?php echo esc_url(get_permalink($article)); ?>">
-                                    <?php if ($image) : ?><img src="<?php echo esc_url($image); ?>" alt="" loading="lazy"><?php endif; ?>
-                                </a>
+                                <a class="sf-article-media" href="<?php echo esc_url(get_permalink($article)); ?>"><?php if ($image) : ?><img src="<?php echo esc_url($image); ?>" alt="" loading="lazy"><?php endif; ?></a>
                                 <div class="sf-article-body">
                                     <h3><a href="<?php echo esc_url(get_permalink($article)); ?>"><?php echo esc_html(get_the_title($article)); ?></a></h3>
                                     <p><?php echo esc_html(dht_template_post_summary($article->ID, 18)); ?></p>
@@ -819,15 +994,6 @@ $more_categories = array_slice($root_categories, 8, 8);
                 </div>
             </section>
         <?php endif; ?>
-
-        <section class="sf-service-bar">
-            <div class="sf-shell sf-service-grid">
-                <div><strong>Atención técnica</strong><span>Ayuda real antes y después de la compra</span></div>
-                <div><strong>Compra segura</strong><span>Pago protegido y seguimiento del pedido</span></div>
-                <div><strong>Catálogo especializado</strong><span>Herramientas, maquinaria y equipamiento técnico</span></div>
-                <div><strong>Contacto directo</strong><span>Teléfono, email y WhatsApp</span></div>
-            </div>
-        </section>
     </div>
 </main>
 

@@ -28,6 +28,7 @@ final class SEO_Dependiente_Reset {
             'trainer_questions' => self::count_rows($tables['trainer_questions']),
             'trainer_runs'      => self::count_rows($tables['trainer_runs']),
             'trainer_lessons'   => self::count_rows($tables['trainer_lessons']),
+            'lesson9_memory'    => self::count_rows($tables['lesson9_memory']),
             'semantic_seed'     => 0,
             'semantic_reset'    => 0,
         );
@@ -87,6 +88,7 @@ final class SEO_Dependiente_Reset {
             self::delete_all($tables['trainer_questions']);
             self::delete_all($tables['trainer_lessons']);
             self::delete_all($tables['search_log']);
+            self::delete_all($tables['lesson9_memory']);
 
             // Las reglas seed son el baseline versionado del motor. Todo lo
             // manual, aprendido, candidato o rechazado se elimina.
@@ -142,6 +144,7 @@ final class SEO_Dependiente_Reset {
             'trainer_questions',
             'trainer_runs',
             'trainer_lessons',
+            'lesson9_memory',
             'semantic_reset',
         );
         $dirty = array();
@@ -174,6 +177,7 @@ final class SEO_Dependiente_Reset {
             'trainer_questions' => class_exists('SEO_Dependiente_Entrenador') ? SEO_Dependiente_Entrenador::questions_table() : $wpdb->prefix . 'seo_dependiente_trainer_questions',
             'trainer_runs'      => class_exists('SEO_Dependiente_Entrenador') ? SEO_Dependiente_Entrenador::runs_table() : $wpdb->prefix . 'seo_dependiente_trainer_runs',
             'trainer_lessons'   => class_exists('SEO_Dependiente_Entrenador') ? SEO_Dependiente_Entrenador::lessons_table() : $wpdb->prefix . 'seo_dependiente_trainer_lessons',
+            'lesson9_memory'    => class_exists('SEO_Dependiente_V3_Lesson9') ? SEO_Dependiente_V3_Lesson9::table() : $wpdb->prefix . 'seo_dependiente_l9_signals',
         );
     }
 
