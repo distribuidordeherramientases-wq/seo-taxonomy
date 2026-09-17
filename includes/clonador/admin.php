@@ -4,7 +4,7 @@
  *
  * @package SEOSystem
  * @subpackage Clonador
- * @since 2.5.11
+ * @since 2.6.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -207,7 +207,7 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
             function renderKpis(verification){
                 verification=verification||{};
                 const checks=verification.critical_kpis||{};
-                const wanted=['post_type:product','taxonomy:product_cat','kpi:products_with_category','kpi:products_without_category','kpi:products_with_seo_attributes','kpi:products_without_seo_attributes','table:sql_product_atributos','term_relationships','table:seo_faq','table:seo_vocabulary','table:seo_object_vocabulary'];
+                const wanted=['post_type:product','taxonomy:product_cat','kpi:products_with_category','kpi:products_without_category','kpi:products_with_seo_attributes','kpi:products_without_seo_attributes','table:sql_product_atributos','term_relationships','table:seo_faq','table:seo_vocabulary','table:seo_object_vocabulary','table:seo_dependiente_semantics','table:seo_interprete_lexicon','table:seo_interprete_lexicon_evidence','table:seo_dependiente_trainer_lessons','table:seo_dependiente_l9_signals','option:seo_dependiente_knowledge_snapshot','option:seo_dependiente_academy_update_last_success'];
                 const cards=[];
                 wanted.forEach(key=>{const c=checks[key];if(!c)return;cards.push('<div class="seo-clonador-kpi '+(c.ok?'ok':'bad')+'"><div class="seo-clonador-kpi-label">'+esc(c.label||key)+'</div><div class="seo-clonador-kpi-value">'+(c.ok?'✓ ':'✕ ')+n(c.staging)+'</div><div>PRO '+n(c.pro)+' · STAGING '+n(c.staging)+'</div></div>');});
                 const sm=verification.summary||{};
@@ -290,9 +290,9 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
                         '<div class="seo-clonador-live-phase">PRO y STAGING coinciden en todos los controles del perímetro clonado.</div>'+ 
                         '<div class="seo-clonador-progress"><span style="width:100%"></span></div>'+ 
                         '<div class="seo-clonador-live-meta"><span><strong>100%</strong></span><span>Copiado: <strong>'+n(copied)+'</strong> filas/objetos</span><span>Duración: '+n(secs)+' s</span><span>Warnings: '+n((currentJob.result&&currentJob.result.warnings_total)||(currentJob.warnings||[]).length)+'</span></div>'+ 
-                        '<div class="seo-clonador-manual" style="margin:14px 0 0"><strong>SIGUIENTE PASO:</strong> reindexa Dependiente en STAGING y espera a que termine. Después ejecuta el Auditor. El Clonador no inicia ninguno de esos procesos automáticamente.</div>'+
+                        '<div class="seo-clonador-manual" style="margin:14px 0 0"><strong>CATÁLOGO + CEREBRO SINCRONIZADOS.</strong> Academia/Intérprete conservan el estado portable de PRO; workers, búsquedas de prueba e índice quedan limpios. <strong>SIGUIENTE PASO:</strong> reindexa Dependiente en STAGING y espera a que termine. Después ejecuta el Auditor.</div>'+
                         renderKpis(verification)+renderAllChecks(verification);
-                    status.textContent='Clonación terminada y VERIFICADA. Pendiente: reindexar Dependiente antes de auditar.';
+                    status.textContent='Clonación terminada y VERIFICADA: catálogo + cerebro sincronizados. Pendiente: reindexar Dependiente antes de auditar.';
                     if(pollTimer){clearInterval(pollTimer);pollTimer=null;}
                     updateControls();
                     return;
