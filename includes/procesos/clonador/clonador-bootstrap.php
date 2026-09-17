@@ -1,13 +1,13 @@
 <?php
 /**
- * Integracion del Clonador para Academia con el Gestor de procesos nativo.
+ * Integracion del Clonador espejo PRO-STAGING con el Gestor de procesos nativo.
  *
  * No ejecuta una clonacion por cargar WordPress. Solo registra el proceso y
  * continua trabajos que ya fueron iniciados expresamente por un administrador.
  *
  * @package SEOSystem
  * @subpackage Processes_Clonador
- * @since 2.6.0
+ * @since 2.7.0
  */
 
 defined( 'ABSPATH' ) || exit;

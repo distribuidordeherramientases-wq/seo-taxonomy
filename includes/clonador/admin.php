@@ -4,7 +4,7 @@
  *
  * @package SEOSystem
  * @subpackage Clonador
- * @since 2.6.0
+ * @since 2.7.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -72,10 +72,10 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
 
         <div class="seo-clonador">
             <div class="seo-clonador-card">
-                <h1 style="margin-top:0;font-size:30px;line-height:1.2;">Clonador para Academia</h1>
-                <p style="font-size:15px;margin-top:-8px;"><strong>PRO → STAGING</strong> · Datos base para Academia · v<?php echo esc_html( SEO_CLONADOR_VERSION ); ?></p>
+                <h1 style="margin-top:0;font-size:30px;line-height:1.2;">Clonador espejo PRO → STAGING</h1>
+                <p style="font-size:15px;margin-top:-8px;"><strong>PRO → STAGING</strong> · Contenido + estructura + catálogo + cerebro SEO · v<?php echo esc_html( SEO_CLONADOR_VERSION ); ?></p>
                 <p><strong>PRO es siempre el origen. STAGING es siempre el destino.</strong> No existe ninguna operación STAGING → PRO.</p>
-                <p>La clonación elimina el perímetro gestionado de STAGING y lo reconstruye desde PRO. Los IDs anteriores de STAGING no se conservan ni se comparan.</p>
+                <p>La clonación vacía el contenido de STAGING y lo reconstruye desde PRO. Los objetos WordPress, adjuntos, menús, plantillas y términos conservan los IDs canónicos de PRO para no romper referencias internas.</p>
                 <p>Entorno desde el que has abierto la pantalla: <strong><?php echo esc_html( $current ? strtoupper( $current ) : 'NO IDENTIFICADO' ); ?></strong>.</p>
             </div>
 
@@ -85,7 +85,7 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
 
             <div class="seo-clonador-warning">
                 <strong>Operación destructiva en STAGING.</strong>
-                Se eliminan y reconstruyen los objetos/taxonomías/tablas gestionados. No se hace <code>TRUNCATE</code> de tablas compartidas como <code>wp_posts</code> o <code>wp_terms</code>. PRO nunca se modifica.
+                El contenido de <code>wp_posts</code> de STAGING se vacía por lotes y se reconstruye desde PRO; no se copian pedidos/transacciones. Usuarios, sesiones, credenciales, cron, locks, cachés y conexiones del entorno permanecen locales. PRO nunca se modifica.
             </div>
 
             <?php if ( function_exists( 'seo_clonador_db_render_connections' ) ) { seo_clonador_db_render_connections(); } ?>
