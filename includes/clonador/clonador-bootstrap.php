@@ -13,7 +13,7 @@ if ( defined( 'SEO_CLONADOR_LOADED' ) ) {
     return;
 }
 define( 'SEO_CLONADOR_LOADED', true );
-define( 'SEO_CLONADOR_VERSION', '2.7.0' );
+define( 'SEO_CLONADOR_VERSION', '2.7.1' );
 define( 'SEO_CLONADOR_DIR', __DIR__ );
 
 $seo_clonador_required = array(

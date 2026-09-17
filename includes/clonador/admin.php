@@ -191,7 +191,7 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
                 if((data.conflicts||[]).length)html+='<div class="notice notice-error inline"><p><strong>Conflictos:</strong> '+n(data.conflicts.length)+'. ARRANQUE bloqueado.</p></div>';
                 summary.innerHTML=html;
                 plan.style.display='block';plan.textContent=JSON.stringify(data,null,2);
-                status.textContent=data.can_apply?'Simulación correcta. Nada se ha escrito. Pulsa ARRANCAR cuando tú decidas.':'Simulación bloqueada por conflictos.';
+                status.textContent=data.can_apply?'Simulación correcta. Nada se ha escrito. Pulsa ARRANCAR cuando tú decidas.':'Simulación completada. Se detectaron '+n((data.conflicts||[]).length)+' conflicto(s); ARRANCAR CLONACIÓN permanece bloqueado.';
                 updateControls();
             }
             function renderTables(title,tables,current=false){

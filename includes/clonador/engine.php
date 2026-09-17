@@ -29,7 +29,7 @@ final class SEO_Clonador_Engine {
     private static $taxonomies = array('product_cat', 'product_tag', 'post_tag', 'category', 'nav_menu');
     private static $scope_cache = array();
     private static $excluded_post_types = array(
-        'revision', 'customize_changeset', 'user_request', 'oembed_cache',
+        'revision', 'customize_changeset', 'user_request', 'oembed_cache', 'wmpc-trash',
         'shop_order', 'shop_order_refund', 'shop_coupon', 'shop_order_placehold'
     );
     private static $progress_callback = null;
@@ -171,7 +171,13 @@ final class SEO_Clonador_Engine {
     }
 
     private static function latest_state_timestamp($value) {
-        $keys = array('worker_heartbeat_ts','controller_heartbeat_ts','heartbeat_ts','heartbeat_at','heartbeat','last_activity_at','updated_at','last_seen_at');
+        /*
+         * Solo un heartbeat explicito demuestra que un worker/controlador sigue
+         * vivo. updated_at/last_activity_at pueden cambiar precisamente al
+         * FINALIZAR o PAUSAR un proceso y no deben prolongar artificialmente el
+         * bloqueo del Clonador.
+         */
+        $keys = array('worker_heartbeat_ts','controller_heartbeat_ts','heartbeat_ts','heartbeat_at','heartbeat');
         $best = 0;
         $walk = function($v) use (&$walk, &$best, $keys) {
             if (!is_array($v)) return;
@@ -2124,7 +2130,7 @@ final class SEO_Clonador_Engine {
         $summary = isset($verification['summary']) && is_array($verification['summary']) ? $verification['summary'] : array();
         $handoff = array(
             'schema' => array('name' => 'seo_clonador_handoff', 'version' => 1),
-            'clonador_version' => defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.7.0',
+            'clonador_version' => defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.7.1',
             'generation' => (string) $generation,
             'clone_verified' => !empty($verification['passed']) ? 1 : 0,
             'verification_checks_total' => absint($summary['checks_total'] ?? 0),
@@ -2152,7 +2158,7 @@ final class SEO_Clonador_Engine {
             'created_at' => time(),
             'clone_verified' => 1,
             'auditor_ready' => 0,
-            'clonador_version' => defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.7.0',
+            'clonador_version' => defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.7.1',
         );
         $r = self::set_staging_option($stg, $options_table, 'seo_semantic_catalog_reindex_pending', $pending);
         if (is_wp_error($r)) return $r;
@@ -2614,7 +2620,7 @@ final class SEO_Clonador_Engine {
             if (is_wp_error($r)) return $r;
             $state = self::worker_state_defaults();
             $state['job_id'] = $job_id;
-            $state['engine_version'] = defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.7.0';
+            $state['engine_version'] = defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.7.1';
             $state['status'] = 'queued';
             $state['phase'] = 'preflight';
             $state['message'] = 'Esperando al Gestor de procesos.';
@@ -3277,7 +3283,7 @@ final class SEO_Clonador_Engine {
             'completed_at' => time(),
             'source' => 'pro',
             'destination' => 'staging',
-            'engine' => 'canonical_site_mirror_worker_2.7.0',
+            'engine' => 'canonical_site_mirror_worker_2.7.1',
             'stats' => (array) $state['stats'],
             'identity' => (array) $state['identity'],
             'duration_seconds' => max(0, time() - absint($state['started_at'] ?? time())),
@@ -3407,7 +3413,7 @@ final class SEO_Clonador_Engine {
                 return new WP_Error('clonador_reverify_job', 'El job visible no coincide con el job guardado en STAGING.');
             }
             $job_version = (string) ($state['engine_version'] ?? '');
-            $current_version = defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.7.0';
+            $current_version = defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.7.1';
             if ($job_version !== $current_version) {
                 return new WP_Error('clonador_reverify_version', 'No se puede reverificar un job de otra version del Clonador. Inicia una copia nueva con ' . $current_version . '.');
             }
@@ -3467,7 +3473,7 @@ final class SEO_Clonador_Engine {
         $pair=self::open_pair();if(is_wp_error($pair))return$pair;list($pro,$stg)=$pair;$pro_tables=self::all_required_tables(seo_clonador_db_prefix('pro'));$stg_tables=self::all_required_tables(seo_clonador_db_prefix('staging'));
         $lock_name=self::LOCK_NAME.'_manager';$lock=self::scalar($stg,"SELECT GET_LOCK('".mysqli_real_escape_string($stg,$lock_name)."',0) AS l",'l');if('1'!==(string)$lock){@mysqli_close($pro);@mysqli_close($stg);return new WP_Error('clonador_worker_lock','Otra ventana del Clonador ya esta trabajando.');}
         try{
-            $state=self::worker_state_get($stg,$stg_tables['options']);if(is_wp_error($state))return$state;if(!$job_id||$job_id!==sanitize_key((string)$state['job_id']))return new WP_Error('clonador_worker_job','El job local no coincide con el job activo de STAGING.');$job_version=(string)($state['engine_version']??'');$current_version=defined('SEO_CLONADOR_VERSION')?SEO_CLONADOR_VERSION:'2.7.0';if($job_version!==$current_version)return new WP_Error('clonador_worker_version','El job pertenece a Clonador '.($job_version?:'legacy').' y el motor actual es '.$current_version.'. Inicia una simulacion y clonacion nuevas.');if('completed'===(string)$state['status'])return$state;if('failed'===(string)$state['status'])return new WP_Error('clonador_worker_failed',(string)$state['last_error']);
+            $state=self::worker_state_get($stg,$stg_tables['options']);if(is_wp_error($state))return$state;if(!$job_id||$job_id!==sanitize_key((string)$state['job_id']))return new WP_Error('clonador_worker_job','El job local no coincide con el job activo de STAGING.');$job_version=(string)($state['engine_version']??'');$current_version=defined('SEO_CLONADOR_VERSION')?SEO_CLONADOR_VERSION:'2.7.1';if($job_version!==$current_version)return new WP_Error('clonador_worker_version','El job pertenece a Clonador '.($job_version?:'legacy').' y el motor actual es '.$current_version.'. Inicia una simulacion y clonacion nuevas.');if('completed'===(string)$state['status'])return$state;if('failed'===(string)$state['status'])return new WP_Error('clonador_worker_failed',(string)$state['last_error']);
             $state['status']='running';$state['message']=$state['message']?:'Clonando por lotes mediante el Gestor de procesos.';
             $steps=0;
             while((microtime(true)-$started)<max(3,$budget-2)&&$steps<$max_steps&&'completed'!==(string)$state['status']){
@@ -3494,7 +3500,7 @@ final class SEO_Clonador_Engine {
         // codigo externo intenta invocarlo. La UI oficial usa el Gestor.
         return new WP_Error(
             'clonador_legacy_path_disabled',
-            'El Clonador 2.7.0 ejecuta el espejo funcional PRO -> STAGING mediante el Gestor de procesos: contenido, estructura, catalogo y conocimiento; runtime local y credenciales permanecen fuera del espejo.'
+            'El Clonador 2.7.1 ejecuta el espejo funcional PRO -> STAGING mediante el Gestor de procesos: contenido, estructura, catalogo y conocimiento; runtime local y credenciales permanecen fuera del espejo.'
         );
     }
 
@@ -3525,8 +3531,8 @@ final class SEO_Clonador_Engine {
                 'identity_resolution' => (array) ($analysis['identity_resolution'] ?? array()),
                 'reference_audit' => (array) ($analysis['reference_audit'] ?? array()),
                 'learning_reference_audit' => (array) ($analysis['learning_reference_audit'] ?? array()),
-                'plan_version' => defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.7.0',
-                'engine_revision' => 'site-mirror-brain-worker-2.7.0',
+                'plan_version' => defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.7.1',
+                'engine_revision' => 'site-mirror-brain-worker-2.7.1',
                 'dry_run' => true,
                 'writes_performed' => 0,
                 'conflicts' => (array) $analysis['conflicts'],
