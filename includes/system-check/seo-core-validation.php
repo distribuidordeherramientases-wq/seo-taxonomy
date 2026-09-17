@@ -3,7 +3,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_CORE_SYSTEM_TEST_VERSION')) {
-    define('SEO_CORE_SYSTEM_TEST_VERSION', '8.9.1');
+    define('SEO_CORE_SYSTEM_TEST_VERSION', '8.9.2');
 }
 
 $seo_core_settings_module = __DIR__ . '/seo-core-validation-settings.php';
@@ -2767,6 +2767,7 @@ function seo_core_system_test_functional_business() {
         '8.18 Política meta robots' => seo_core_system_test_robots_check($page_urls, $http_enabled),
         '8.19 Encabezados H1 de plantillas' => seo_core_system_test_h1_check($page_urls, $product, $category, $http_enabled),
         '8.20 Datos estructurados JSON-LD' => seo_core_system_test_structured_data_check($page_urls, $http_enabled),
+        '8.20B Google Merchant: devoluciones y envío en Offer' => seo_core_system_test_offer_policy_fields_check($page_urls, $http_enabled),
         '8.21 Sitemap público' => seo_core_system_test_sitemap_check($http_enabled),
         '8.21B Indexación pública coherente' => seo_core_system_test_indexation_readiness_check($page_urls, $http_enabled),
         '8.22 Imagen principal del producto' => seo_core_system_test_product_image_check($product, $http_enabled),
@@ -4328,6 +4329,206 @@ function seo_core_system_test_structured_data_check($urls, $enabled) {
     return seo_core_system_test_check_ok('JSON-LD válido. Bloques: ' . number_format_i18n($blocks) . '; tipos: ' . implode(', ', array_keys($types)) . '.', $meta);
 }
 
+
+/**
+ * Comprueba los campos recomendados por Google para fichas de comerciantes
+ * dentro de cada Offer de la pagina de producto.
+ *
+ * Google permite definir politicas globales en Organization. Aun asi, este
+ * chequeo es deliberadamente estricto con Offer para detectar los avisos de
+ * Search Console "Falta el campo hasMerchantReturnPolicy" y
+ * "Falta el campo shippingDetails". La ausencia se informa como warning, no
+ * como error critico de elegibilidad.
+ */
+function seo_core_system_test_offer_policy_fields_check($urls, $enabled) {
+    if (!$enabled) return seo_core_system_test_check_info('Comprobacion HTTP desactivada.');
+
+    $url = isset($urls['producto']) ? (string) $urls['producto'] : '';
+    if ($url === '') {
+        return seo_core_system_test_check_not_evaluable(
+            'No se ha podido resolver una URL de producto para comprobar hasMerchantReturnPolicy y shippingDetails en Offer.',
+            'PRODUCT_URL_UNAVAILABLE',
+            array('owner' => 'SEO', 'confidence' => 96)
+        );
+    }
+
+    $probe = seo_core_system_test_http_probe($url);
+    if (!seo_core_system_test_probe_is_usable_html($probe)) {
+        return seo_core_system_test_check_not_evaluable(
+            'La pagina de producto no ha podido evaluarse para comprobar los campos de Google Merchant en Offer.',
+            seo_core_system_test_probe_blocker($probe),
+            array(
+                'owner' => 'SEO',
+                'confidence' => 96,
+                'evidence' => array(
+                    'url' => $url,
+                    'blocker' => seo_core_system_test_probe_blocker($probe),
+                ),
+            )
+        );
+    }
+
+    $parsed = seo_core_system_test_extract_json_ld($probe['body']);
+    if ((int) $parsed['invalid'] > 0) {
+        return seo_core_system_test_check_warning(
+            'No se puede validar con fiabilidad hasMerchantReturnPolicy y shippingDetails porque hay JSON-LD invalido en la pagina de producto.',
+            array(
+                'owner' => 'SEO',
+                'confidence' => 96,
+                'evidence' => array(
+                    'url' => $url,
+                    'blocks' => (int) $parsed['blocks'],
+                    'invalid' => (int) $parsed['invalid'],
+                ),
+            )
+        );
+    }
+
+    $offers = array();
+    $organizations = array();
+    foreach ((array) ($parsed['documents'] ?? array()) as $document) {
+        seo_core_system_test_collect_schema_nodes_by_type($document, 'Offer', $offers);
+        seo_core_system_test_collect_schema_nodes_by_type($document, 'Organization', $organizations);
+    }
+
+    $offer_count = count($offers);
+    $with_return_policy = 0;
+    $with_shipping_details = 0;
+    $missing_return_policy = array();
+    $missing_shipping_details = array();
+
+    foreach ($offers as $index => $offer) {
+        $number = $index + 1;
+        if (seo_core_system_test_schema_property_present($offer, 'hasMerchantReturnPolicy')) {
+            $with_return_policy++;
+        } else {
+            $missing_return_policy[] = $number;
+        }
+        if (seo_core_system_test_schema_property_present($offer, 'shippingDetails')) {
+            $with_shipping_details++;
+        } else {
+            $missing_shipping_details[] = $number;
+        }
+    }
+
+    $organization_return_policy = false;
+    $organization_shipping_service = false;
+    foreach ($organizations as $organization) {
+        if (seo_core_system_test_schema_property_present($organization, 'hasMerchantReturnPolicy')) {
+            $organization_return_policy = true;
+        }
+        if (seo_core_system_test_schema_property_present($organization, 'hasShippingService')) {
+            $organization_shipping_service = true;
+        }
+    }
+
+    $meta = array(
+        'owner' => 'SEO',
+        'coverage' => 100,
+        'confidence' => 98,
+        'evidence' => array(
+            'url' => $url,
+            'offers' => $offer_count,
+            'offers_with_hasMerchantReturnPolicy' => $with_return_policy,
+            'offers_with_shippingDetails' => $with_shipping_details,
+            'offers_missing_hasMerchantReturnPolicy' => $missing_return_policy,
+            'offers_missing_shippingDetails' => $missing_shipping_details,
+            'organization_hasMerchantReturnPolicy' => $organization_return_policy,
+            'organization_hasShippingService' => $organization_shipping_service,
+            'google_classification' => 'recommended_offer_fields',
+        ),
+        'remediation' => array(
+            'kind' => 'Datos estructurados Google Merchant',
+            'summary' => 'Evitar los avisos de Google para hasMerchantReturnPolicy y shippingDetails dentro de Offer.',
+            'steps' => array(
+                'Comprueba que cada Offer del producto incluya hasMerchantReturnPolicy.',
+                'Comprueba que cada Offer del producto incluya shippingDetails.',
+                'Si la politica es global, puedes referenciarla desde Offer mediante @id en lugar de duplicar todos sus datos.',
+                'Valida despues una URL de producto con la prueba de resultados enriquecidos de Google.',
+            ),
+        ),
+    );
+
+    if ($offer_count === 0) {
+        return seo_core_system_test_check_warning(
+            'No se ha localizado ningun objeto Offer en el JSON-LD de la pagina de producto; no se pueden comprobar hasMerchantReturnPolicy ni shippingDetails.',
+            $meta
+        );
+    }
+
+    $missing = array();
+    if (!empty($missing_return_policy)) {
+        $missing[] = 'hasMerchantReturnPolicy en ' . count($missing_return_policy) . ' Offer';
+    }
+    if (!empty($missing_shipping_details)) {
+        $missing[] = 'shippingDetails en ' . count($missing_shipping_details) . ' Offer';
+    }
+
+    if (!empty($missing)) {
+        $global_notes = array();
+        if ($organization_return_policy) $global_notes[] = 'politica global de devoluciones detectada en Organization';
+        if ($organization_shipping_service) $global_notes[] = 'politica global de envio detectada en Organization';
+        $suffix = !empty($global_notes) ? ' (' . implode('; ', $global_notes) . ')' : '';
+        return seo_core_system_test_check_warning(
+            'Google Merchant: faltan campos recomendados en Offer: ' . implode('; ', $missing) . $suffix . '.',
+            $meta
+        );
+    }
+
+    return seo_core_system_test_check_ok(
+        'Google Merchant: todos los Offer inspeccionados incluyen hasMerchantReturnPolicy y shippingDetails. Offers: ' . number_format_i18n($offer_count) . '.',
+        $meta
+    );
+}
+
+function seo_core_system_test_collect_schema_nodes_by_type($value, $expected_type, &$nodes) {
+    if (!is_array($value)) {
+        return;
+    }
+
+    if (seo_core_system_test_schema_node_has_type($value, $expected_type)) {
+        $nodes[] = $value;
+    }
+
+    foreach ($value as $child) {
+        if (is_array($child)) {
+            seo_core_system_test_collect_schema_nodes_by_type($child, $expected_type, $nodes);
+        }
+    }
+}
+
+function seo_core_system_test_schema_node_has_type($node, $expected_type) {
+    if (!is_array($node) || !isset($node['@type'])) {
+        return false;
+    }
+
+    foreach ((array) $node['@type'] as $type) {
+        if (!is_string($type) || $type === '') {
+            continue;
+        }
+        $normalized = preg_replace('~^.*[/:#]~', '', trim($type));
+        if (strcasecmp((string) $normalized, (string) $expected_type) === 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function seo_core_system_test_schema_property_present($node, $property) {
+    if (!is_array($node) || !array_key_exists($property, $node)) {
+        return false;
+    }
+
+    $value = $node[$property];
+    if (is_array($value)) {
+        return !empty($value);
+    }
+    if (is_string($value)) {
+        return trim($value) !== '';
+    }
+    return $value !== null;
+}
+
 function seo_core_system_test_sitemap_check($enabled) {
     if (!$enabled) {
         return seo_core_system_test_check_info('Comprobacion HTTP desactivada.');
@@ -4923,7 +5124,7 @@ function seo_core_system_test_normalize_url_for_compare($url) {
 }
 
 function seo_core_system_test_extract_json_ld($html) {
-    $result = array('blocks' => 0, 'invalid' => 0, 'types' => array());
+    $result = array('blocks' => 0, 'invalid' => 0, 'types' => array(), 'documents' => array());
     if (!preg_match_all('/<script\b[^>]*type\s*=\s*["\']application\/ld\+json["\'][^>]*>(.*?)<\/script>/is', (string) $html, $matches)) {
         return $result;
     }
@@ -4940,6 +5141,7 @@ function seo_core_system_test_extract_json_ld($html) {
             $result['invalid']++;
             continue;
         }
+        $result['documents'][] = $decoded;
         seo_core_system_test_collect_schema_types($decoded, $result['types']);
     }
     $result['types'] = array_values(array_unique($result['types']));
@@ -7489,6 +7691,7 @@ function seo_core_system_test_render_business_report($results) {
                 '8.18 Política meta robots',
                 '8.19 Encabezados H1 de plantillas',
                 '8.20 Datos estructurados JSON-LD',
+                '8.20B Google Merchant: devoluciones y envío en Offer',
                 '8.21 Sitemap público',
                 '8.22 Imagen principal del producto',
                 '8.23 Recursos CSS y JavaScript esenciales',
