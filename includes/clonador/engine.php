@@ -74,6 +74,20 @@ final class SEO_Clonador_Engine {
         return '`' . $value . '`';
     }
 
+    private static function is_transient_ddl_error($message) {
+        $message = strtolower((string) $message);
+        if ('' === $message) return false;
+        foreach (array(
+            'definition is being modified by concurrent ddl statement',
+            'table definition has changed, please retry transaction',
+            'table definition has changed',
+            'metadata lock'
+        ) as $fragment) {
+            if (false !== strpos($message, $fragment)) return true;
+        }
+        return false;
+    }
+
     private static function rows($mysqli, $sql) {
         $result = @mysqli_query($mysqli, $sql);
         if (false === $result) {
@@ -346,6 +360,33 @@ final class SEO_Clonador_Engine {
                     ($error ? ' MySQL: ' . $error : '')
                 );
             }
+        }
+        return true;
+    }
+
+    private static function validate_staging_ddl_capability($stg) {
+        $rows = self::rows($stg, 'SHOW GRANTS');
+        if (is_wp_error($rows)) return $rows;
+        $grants = array();
+        foreach ((array) $rows as $row) {
+            foreach ((array) $row as $value) $grants[] = strtoupper((string) $value);
+        }
+        $granted = array();
+        foreach ($grants as $grant_line) {
+            if (false === strpos($grant_line, 'GRANT ') || false === strpos($grant_line, ' ON ')) continue;
+            $list = trim(substr($grant_line, 6, strpos($grant_line, ' ON ') - 6));
+            foreach (explode(',', $list) as $privilege) $granted[] = trim($privilege);
+        }
+        if (in_array('ALL PRIVILEGES', $granted, true)) return true;
+        $missing = array();
+        foreach (array('CREATE','DROP','ALTER') as $privilege) {
+            if (!in_array($privilege, $granted, true)) $missing[] = $privilege;
+        }
+        if ($missing) {
+            return new WP_Error(
+                'clonador_staging_ddl_denied',
+                'STAGING necesita permisos DDL para reconciliar esquemas: falta ' . implode(', ', $missing) . '. Concede esos permisos solo sobre la BBDD de STAGING; PRO permanece en solo lectura.'
+            );
         }
         return true;
     }
@@ -1021,6 +1062,10 @@ final class SEO_Clonador_Engine {
                 $schema_reconcile[] = $brain_key;
                 $warnings[] = 'STAGING tiene esquema distinto en ' . $brain_key . '; APPLY reconstruira esa tabla con el esquema de PRO antes de copiar datos.';
             }
+        }
+        if ($schema_reconcile) {
+            $ddl = self::validate_staging_ddl_capability($stg);
+            if (is_wp_error($ddl)) $conflicts[] = $ddl->get_error_message();
         }
 
         $summary = array();
@@ -2465,6 +2510,7 @@ final class SEO_Clonador_Engine {
             'source_marker' => '',
             'target_marker' => '',
             'identity' => array(),
+            'schema_reconcile_keys' => array(),
             'stats' => array(),
             'warnings' => array(),
             'progress' => array(),
@@ -2628,6 +2674,8 @@ final class SEO_Clonador_Engine {
             $state['source_marker'] = (string) $preview['source_marker'];
             $state['target_marker'] = (string) $preview['target_marker'];
             $state['identity'] = isset($preview['identity']) && is_array($preview['identity']) ? $preview['identity'] : array();
+            $preview_schema = isset($preview['actions']['schema_reconcile']) && is_array($preview['actions']['schema_reconcile']) ? array_keys($preview['actions']['schema_reconcile']) : array();
+            $state['schema_reconcile_keys'] = array_values(array_intersect(self::custom_table_keys(), array_map('sanitize_key', $preview_schema)));
             $r = self::worker_state_set($stg, $options_table, $state);
             if (is_wp_error($r)) return $r;
             return $state;
@@ -2651,24 +2699,48 @@ final class SEO_Clonador_Engine {
     }
 
     private static function worker_phase_schema_reconcile($pro, $stg, $pro_tables, $stg_tables, &$state) {
-        $keys = self::custom_table_keys();
+        // IMPORTANT: use only the tables that the current dry-run/preflight marked
+        // for rebuild. The old implementation re-read every managed custom table,
+        // which could collide with unrelated plugin dbDelta/DDL on a table that did
+        // not need reconciliation (notably seo_dependiente_l9_signals).
+        $allowed = self::custom_table_keys();
+        $keys = isset($state['schema_reconcile_keys']) && is_array($state['schema_reconcile_keys'])
+            ? array_values(array_intersect($allowed, array_map('sanitize_key', $state['schema_reconcile_keys'])))
+            : array();
         $index = absint($state['cursor']['index'] ?? 0);
-        while ($index < count($keys)) {
-            $key = $keys[$index];
-            $src = self::table_columns($pro, $pro_tables[$key]); $dst = self::table_columns($stg, $stg_tables[$key]);
-            if (is_wp_error($src)) return $src; if (is_wp_error($dst)) return $dst;
-            $index++;
-            $state['cursor'] = array('index'=>$index);
-            if ($src !== $dst) {
-                $r = self::rebuild_table_from_source_schema($pro, $stg, $pro_tables[$key], $stg_tables[$key]);
-                if (is_wp_error($r)) return $r;
-                self::worker_stat_add($state, 'schema_reconciled', 1);
-                $state['message'] = 'Esquema de ' . $key . ' reconciliado con PRO.';
-                return true;
-            }
+
+        if (!$keys || $index >= count($keys)) {
+            $state['phase'] = 'reset_posts';
+            $state['cursor'] = array();
+            $state['message'] = $keys
+                ? 'Esquemas planificados reconciliados. Vaciando contenido de STAGING.'
+                : 'La simulacion no requiere reconstruir esquemas. Vaciando contenido de STAGING.';
+            return true;
         }
-        $state['phase'] = 'reset_posts'; $state['cursor'] = array();
-        $state['message'] = 'Esquemas compatibles. Vaciando contenido de STAGING.';
+
+        $key = $keys[$index];
+        if (empty($pro_tables[$key]) || empty($stg_tables[$key])) {
+            return new WP_Error('clonador_schema_key', 'Tabla gestionada desconocida al reconciliar esquema: ' . sanitize_text_field($key));
+        }
+
+        // Revalidate only the planned table. If a previous attempt already aligned
+        // it, do not DROP/CREATE it again.
+        $src = self::table_columns($pro, $pro_tables[$key]);
+        if (is_wp_error($src)) return $src;
+        $dst = self::table_columns($stg, $stg_tables[$key]);
+        if (is_wp_error($dst)) return $dst;
+
+        if ($src !== $dst) {
+            $r = self::rebuild_table_from_source_schema($pro, $stg, $pro_tables[$key], $stg_tables[$key]);
+            if (is_wp_error($r)) return $r;
+            self::worker_stat_add($state, 'schema_reconciled', 1);
+            $state['message'] = 'Esquema de ' . $key . ' reconciliado con PRO.';
+        } else {
+            $state['message'] = 'Esquema de ' . $key . ' ya estaba alineado; no se reconstruye.';
+        }
+
+        $index++;
+        $state['cursor'] = array('index'=>$index);
         return true;
     }
 
@@ -3337,7 +3409,7 @@ final class SEO_Clonador_Engine {
     private static function worker_step($pro,$stg,$pro_tables,$stg_tables,&$state){
         switch((string)$state['phase']){
             case 'preflight':
-                $analysis=self::analyze($pro,$stg,$pro_tables,$stg_tables);if(is_wp_error($analysis))return$analysis;if(!empty($analysis['conflicts']))return new WP_Error('clonador_worker_conflicts','Conflictos: '.implode(' | ',array_slice((array)$analysis['conflicts'],0,10)));if(!hash_equals((string)$state['source_marker'],(string)$analysis['source_marker']))return new WP_Error('clonador_worker_source_changed','PRO cambio desde la simulacion.');if(!hash_equals((string)$state['target_marker'],(string)$analysis['target_marker']))return new WP_Error('clonador_worker_target_changed','STAGING cambio desde la simulacion.');$state['identity']=(array)$analysis['identity'];$state['started_at']=time();$state['status']='running';$state['phase']='schema_reconcile';$state['cursor']=array('index'=>0);$state['message']='Prevalidacion correcta. Reconciliando esquemas gestionados con PRO.';return true;
+                $analysis=self::analyze($pro,$stg,$pro_tables,$stg_tables);if(is_wp_error($analysis))return$analysis;if(!empty($analysis['conflicts']))return new WP_Error('clonador_worker_conflicts','Conflictos: '.implode(' | ',array_slice((array)$analysis['conflicts'],0,10)));if(!hash_equals((string)$state['source_marker'],(string)$analysis['source_marker']))return new WP_Error('clonador_worker_source_changed','PRO cambio desde la simulacion.');if(!hash_equals((string)$state['target_marker'],(string)$analysis['target_marker']))return new WP_Error('clonador_worker_target_changed','STAGING cambio desde la simulacion.');$state['identity']=(array)$analysis['identity'];$fresh_schema=isset($analysis['actions']['schema_reconcile'])&&is_array($analysis['actions']['schema_reconcile'])?array_keys($analysis['actions']['schema_reconcile']):array();$state['schema_reconcile_keys']=array_values(array_intersect(self::custom_table_keys(),array_map('sanitize_key',$fresh_schema)));$state['started_at']=time();$state['status']='running';$state['phase']='schema_reconcile';$state['cursor']=array('index'=>0);$state['message']='Prevalidacion correcta. Reconciliando solo los esquemas marcados por la simulacion.';return true;
             case 'schema_reconcile': return self::worker_phase_schema_reconcile($pro,$stg,$pro_tables,$stg_tables,$state);
             case 'reset_posts': return self::worker_batch_reset_posts($stg,$stg_tables,$state);
             case 'reset_taxonomies': return self::worker_batch_reset_taxonomies($stg,$stg_tables,$state);
@@ -3478,12 +3550,32 @@ final class SEO_Clonador_Engine {
             $steps=0;
             while((microtime(true)-$started)<max(3,$budget-2)&&$steps<$max_steps&&'completed'!==(string)$state['status']){
                 $r=self::exec($stg,'START TRANSACTION');if(is_wp_error($r))return$r;
+                $state_before_step=$state;
                 try{
                     $r=self::worker_step($pro,$stg,$pro_tables,$stg_tables,$state);if(is_wp_error($r))throw new RuntimeException($r->get_error_message());
-                    $state['status']='completed'===(string)$state['phase']?'completed':'running';$state['updated_at']=time();$state['worker_source']=sanitize_key((string)$source);
+                    $state['status']='completed'===(string)$state['phase']?'completed':'running';$state['updated_at']=time();$state['worker_source']=sanitize_key((string)$source);$state['transient_ddl_retries']=0;
                     $r=self::worker_state_set($stg,$stg_tables['options'],$state);if(is_wp_error($r))throw new RuntimeException($r->get_error_message());
                     $r=self::exec($stg,'COMMIT');if(is_wp_error($r))throw new RuntimeException($r->get_error_message());
-                }catch(Throwable $e){@mysqli_query($stg,'ROLLBACK');$state['status']='failed';$state['last_error']=sanitize_text_field($e->getMessage());$state['message']='Clonacion detenida en fase '.sanitize_key((string)$state['phase']).'. STAGING esta incompleto; reiniciar vuelve a vaciarlo.';$state['completed_at']=time();self::worker_refresh_progress($state);self::worker_state_set($stg,$stg_tables['options'],$state);return new WP_Error('clonador_worker_slice',$e->getMessage(),array('state'=>$state));}
+                }catch(Throwable $e){
+                    @mysqli_query($stg,'ROLLBACK');
+                    $error_message=sanitize_text_field($e->getMessage());
+                    if(self::is_transient_ddl_error($error_message)){
+                        $state=$state_before_step;
+                        $tries=absint($state['transient_ddl_retries']??0)+1;
+                        $state['transient_ddl_retries']=$tries;
+                        if($tries<=8){
+                            self::worker_warning($state,'STAGING tuvo un DDL concurrente durante la copia. El lote se reintentara automaticamente sin avanzar el cursor.');
+                            $state['status']='running';
+                            $state['last_error']='';
+                            $state['message']='DDL concurrente detectado en STAGING; lote revertido y preparado para reintento automatico (' . $tries . '/8).';
+                            $state['updated_at']=time();
+                            self::worker_state_set($stg,$stg_tables['options'],$state);
+                            usleep(min(3000000,500000*$tries));
+                            return $state;
+                        }
+                    }
+                    $state=$state_before_step;$state['status']='failed';$state['last_error']=$error_message;$state['message']='Clonacion detenida en fase '.sanitize_key((string)$state['phase']).'. STAGING esta incompleto; reiniciar vuelve a vaciarlo.';$state['completed_at']=time();self::worker_refresh_progress($state);self::worker_state_set($stg,$stg_tables['options'],$state);return new WP_Error('clonador_worker_slice',$e->getMessage(),array('state'=>$state));
+                }
                 $steps++;
             }
             return $state;
@@ -3524,6 +3616,22 @@ final class SEO_Clonador_Engine {
                 'identity' => (array) $analysis['identity'],
                 'previewed_at' => time(),
             ), self::PREVIEW_TTL);
+            // Una simulacion nueva sustituye el estado visible de un job anterior
+            // ya terminado/fallido/parado. El historico tecnico permanece en logs,
+            // pero el UI no debe mezclarlo con el plan vigente.
+            if (class_exists('SEO_Clonador_Process') && is_callable(array('SEO_Clonador_Process','state')) && is_callable(array('SEO_Clonador_Process','save'))) {
+                $old_job = SEO_Clonador_Process::state();
+                $old_status = sanitize_key((string)($old_job['status'] ?? 'idle'));
+                if (empty($old_job['run_requested']) && in_array($old_status, array('failed','completed','paused','idle'), true)) {
+                    SEO_Clonador_Process::save(array(
+                        'job_id'=>'', 'status'=>'idle', 'run_requested'=>0, 'phase'=>'preview',
+                        'message'=>'Nueva simulacion completada; el plan actual sustituye el estado visual del job anterior.',
+                        'created_at'=>0, 'started_at'=>0, 'heartbeat_at'=>0, 'completed_at'=>0,
+                        'requested_by'=>0, 'stopped_by'=>0, 'stopped_at'=>0, 'last_error'=>'',
+                        'next_eligible_at'=>0, 'stats'=>array(), 'warnings'=>array(), 'progress'=>array(), 'result'=>array()
+                    ));
+                }
+            }
             wp_send_json_success(array(
                 'identity' => (array) $analysis['identity'],
                 'summary' => (array) $analysis['summary'],
@@ -3532,7 +3640,7 @@ final class SEO_Clonador_Engine {
                 'reference_audit' => (array) ($analysis['reference_audit'] ?? array()),
                 'learning_reference_audit' => (array) ($analysis['learning_reference_audit'] ?? array()),
                 'plan_version' => defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.7.1',
-                'engine_revision' => 'site-mirror-brain-worker-2.7.1',
+                'engine_revision' => 'site-mirror-brain-worker-2.7.1-r3',
                 'dry_run' => true,
                 'writes_performed' => 0,
                 'conflicts' => (array) $analysis['conflicts'],
