@@ -566,6 +566,24 @@ if ($table_exists === $relations_table) {
     );
     $cluster_ids = dht_template_public_post_ids($cluster_ids);
 
+    /* Prioridad estrategica de portada: negocio profesional primero, despues automocion y bricolaje. */
+    $cluster_weights = array(
+        'equipamiento-profesional' => 300,
+        'automocion'               => 200,
+        'bricolaje'                => 100,
+    );
+    usort($cluster_ids, static function ($left, $right) use ($cluster_weights) {
+        $left_key  = sanitize_title(get_the_title($left));
+        $right_key = sanitize_title(get_the_title($right));
+        $left_weight  = $cluster_weights[$left_key] ?? 0;
+        $right_weight = $cluster_weights[$right_key] ?? 0;
+        if ($left_weight === $right_weight) {
+            return $left <=> $right;
+        }
+        return $right_weight <=> $left_weight;
+    });
+    $cluster_ids = dht_template_public_post_ids(array_slice($cluster_ids, 0, 6));
+
     $primary_from_targets = $wpdb->get_col(
         "SELECT target_id
          FROM {$relations_table}
@@ -583,6 +601,56 @@ if ($table_exists === $relations_table) {
          LIMIT 30"
     );
     $hub_primary_ids = dht_template_public_post_ids(array_merge($primary_from_targets, $primary_from_sources));
+
+    /* La portada no muestra todos los hubs ni depende del orden de alta.
+     * Reparte hasta ocho hubs entre los clusters visibles para representar
+     * de forma equilibrada la arquitectura real del catalogo. */
+    if (!empty($hub_primary_ids) && !empty($cluster_ids)) {
+        $candidate_lookup = array_fill_keys(array_map('absint', $hub_primary_ids), true);
+        $cluster_hub_rows = $wpdb->get_results(
+            "SELECT source_id, target_id, MIN(id) AS sort_id
+             FROM {$relations_table}
+             WHERE source_type = 'cluster'
+               AND target_type = 'hub_primary'
+               AND relation_type IN ('cluster_to_primary', 'cluster_to_hub_primary')
+             GROUP BY source_id, target_id
+             ORDER BY sort_id ASC"
+        );
+        $hubs_by_cluster = array();
+        foreach ((array) $cluster_hub_rows as $row) {
+            $cluster_id = absint($row->source_id ?? 0);
+            $hub_id = absint($row->target_id ?? 0);
+            if ($cluster_id < 1 || $hub_id < 1 || empty($candidate_lookup[$hub_id])) {
+                continue;
+            }
+            $hubs_by_cluster[$cluster_id][] = $hub_id;
+        }
+
+        $selected_hubs = array();
+        $max_front_hubs = 8;
+        for ($round = 0; $round < $max_front_hubs && count($selected_hubs) < $max_front_hubs; $round++) {
+            foreach ($cluster_ids as $cluster_id) {
+                $candidate = $hubs_by_cluster[$cluster_id][$round] ?? 0;
+                if ($candidate && !in_array($candidate, $selected_hubs, true)) {
+                    $selected_hubs[] = $candidate;
+                    if (count($selected_hubs) >= $max_front_hubs) {
+                        break 2;
+                    }
+                }
+            }
+        }
+        foreach ($hub_primary_ids as $candidate) {
+            if (count($selected_hubs) >= $max_front_hubs) {
+                break;
+            }
+            if (!in_array($candidate, $selected_hubs, true)) {
+                $selected_hubs[] = $candidate;
+            }
+        }
+        $hub_primary_ids = dht_template_public_post_ids($selected_hubs);
+    } else {
+        $hub_primary_ids = array_slice($hub_primary_ids, 0, 8);
+    }
 
     if (!empty($hub_primary_ids)) {
         $primary_lookup = array_fill_keys(array_map('absint', $hub_primary_ids), true);
@@ -605,7 +673,7 @@ if ($table_exists === $relations_table) {
             if (!isset($hub_secondary_by_primary[$primary_id])) {
                 $hub_secondary_by_primary[$primary_id] = array();
             }
-            if (count($hub_secondary_by_primary[$primary_id]) >= 4) {
+            if (count($hub_secondary_by_primary[$primary_id]) >= 3) {
                 continue;
             }
             if (get_post_status($secondary_id) === 'publish' && get_permalink($secondary_id)) {
@@ -851,7 +919,7 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
         <?php if (!empty($root_categories)) : ?>
             <nav class="sf-quick-nav sf-quick-nav--after-structure" aria-label="Accesos rápidos a categorías">
                 <div class="sf-shell sf-quick-nav-row">
-                    <span class="sf-quick-nav-label">Categorías:</span>
+                    <span class="sf-quick-nav-label">Categorías con más referencias:</span>
                     <?php foreach (array_slice($root_categories, 0, 12) as $term) : ?>
                         <a href="<?php echo esc_url(dht_template_safe_term_link($term)); ?>"><?php echo esc_html($term->name); ?></a>
                     <?php endforeach; ?>
@@ -863,8 +931,8 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
             <div class="sf-shell">
                 <div class="sf-section-head">
                     <div>
-                        <span class="sf-eyebrow">Baja hasta el producto</span>
-                        <h2>Compra por categoría cuando ya sabes qué buscas</h2>
+                        <span class="sf-eyebrow">Catálogo directo</span>
+                        <h2>Explora categorías amplias cuando ya sabes qué buscas</h2>
                     </div>
                     <a class="sf-text-link" href="<?php echo esc_url(dht_template_shop_url()); ?>">Ver catálogo completo <span aria-hidden="true">→</span></a>
                 </div>
@@ -909,7 +977,7 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
         <section class="sf-section sf-section--products">
             <div class="sf-shell">
                 <div class="sf-section-head sf-section-head--tight">
-                    <div><span class="sf-eyebrow">Lo que más se busca</span><h2>Productos populares</h2></div>
+                    <div><span class="sf-eyebrow">Demanda del catálogo</span><h2>Productos populares</h2></div>
                     <a class="sf-text-link" href="<?php echo esc_url(dht_template_shop_url()); ?>">Ver más <span aria-hidden="true">→</span></a>
                 </div>
                 <?php $render_products($popular_products, 'sf-products--desktop'); ?>

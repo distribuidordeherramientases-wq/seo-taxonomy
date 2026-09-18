@@ -6818,3 +6818,162 @@ html {
 
 .dht-front-structure.dht-storefront--mobile .sf-structure-placeholder{display:grid;place-items:center;width:100%;height:100%;background:linear-gradient(135deg,#dfeaf1,#f3f7f9);color:#547083;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}.dht-front-structure.dht-storefront--mobile .sf-mobile-chips--after-structure{margin-top:0}.dht-front-structure.dht-storefront--mobile .sf-mobile-promo--split .sf-mobile-shell{display:grid;grid-template-columns:1fr 1fr;gap:8px}.dht-front-structure.dht-storefront--mobile .sf-mobile-help--service{background:linear-gradient(135deg,#e9f5fb,#d9edf8)!important}.dht-front-structure.dht-storefront--mobile .sf-mobile-help--service a{color:#0b5f9e!important}.dht-front-structure.dht-storefront--mobile .sf-mobile-help--service strong{color:#17324a}
 
+
+
+/* ==========================================================
+   MARKETING ESTRATEGICO 2026 - DEPENDIENTE CONTEXTUAL
+   Estilos centralizados para CTA reutilizable en cluster, hubs,
+   landings, posts, blog y soluciones.
+========================================================== */
+.dht-assistant-section{
+  padding:22px 0;
+}
+.dht-assistant-section--article{
+  padding-top:8px;
+  padding-bottom:26px;
+}
+.dht-assistant-section--index{
+  padding-top:16px;
+  padding-bottom:12px;
+}
+.dht-service-section--structural{
+  padding:18px 0 8px;
+}
+.dht-assistant-cta{
+  display:grid;
+  grid-template-columns:minmax(0,1.05fr) minmax(320px,.95fr);
+  gap:24px;
+  align-items:center;
+  padding:22px 24px;
+  border:1px solid #cbdcf6;
+  border-radius:18px;
+  background:linear-gradient(135deg,#f4f8ff 0%,#ffffff 66%);
+  box-shadow:0 8px 24px rgba(24,58,112,.06);
+}
+.dht-assistant-cta__copy{
+  min-width:0;
+}
+.dht-assistant-cta__kicker{
+  display:block;
+  margin-bottom:5px;
+  color:#2457a6;
+  font-size:.72rem;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.dht-assistant-cta__title{
+  display:block;
+  margin:0 0 7px;
+  color:#17233a;
+  font-size:clamp(1.15rem,2vw,1.5rem);
+  line-height:1.15;
+}
+.dht-assistant-cta__copy p{
+  margin:0;
+  color:#526178;
+  font-size:.93rem;
+  line-height:1.55;
+}
+.dht-assistant-cta__action{
+  min-width:0;
+}
+.dht-assistant-cta__form{
+  display:flex;
+  width:100%;
+  min-width:0;
+  border:1px solid #b7c9e6;
+  border-radius:12px;
+  overflow:hidden;
+  background:#fff;
+  box-shadow:0 3px 12px rgba(25,54,102,.06);
+}
+.dht-assistant-cta__form input[type="search"]{
+  flex:1 1 auto;
+  min-width:0;
+  min-height:46px;
+  margin:0;
+  padding:0 14px;
+  border:0;
+  outline:0;
+  background:#fff;
+  color:#1d293d;
+  font:inherit;
+}
+.dht-assistant-cta__form button{
+  flex:0 0 auto;
+  min-height:46px;
+  margin:0;
+  padding:0 16px;
+  border:0;
+  background:#163e78;
+  color:#fff;
+  font:inherit;
+  font-weight:800;
+  cursor:pointer;
+}
+.dht-assistant-cta__form button:hover,
+.dht-assistant-cta__form button:focus-visible{
+  background:#0f315f;
+}
+.dht-assistant-cta__links{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  margin-top:9px;
+  color:#758198;
+  font-size:.8rem;
+}
+.dht-assistant-cta__links a{
+  color:#315b98;
+  font-weight:700;
+  text-decoration:none;
+}
+.dht-assistant-cta__links a:hover,
+.dht-assistant-cta__links a:focus-visible{
+  text-decoration:underline;
+}
+.dht-assistant-cta--compact{
+  grid-template-columns:minmax(0,1fr) minmax(300px,.8fr);
+  padding:16px 18px;
+  border-radius:14px;
+}
+.dht-assistant-cta--compact .dht-assistant-cta__title{
+  font-size:1.08rem;
+}
+.dht-assistant-cta--compact .dht-assistant-cta__copy p{
+  font-size:.86rem;
+}
+@media (max-width:782px){
+  .dht-assistant-section{
+    padding:14px 0;
+  }
+  .dht-service-section--structural{
+    padding:12px 0 4px;
+  }
+  .dht-assistant-cta,
+  .dht-assistant-cta--compact{
+    grid-template-columns:1fr;
+    gap:14px;
+    padding:16px;
+    border-radius:14px;
+  }
+  .dht-assistant-cta__form{
+    display:grid;
+    grid-template-columns:1fr;
+    overflow:visible;
+    border:0;
+    box-shadow:none;
+    background:transparent;
+    gap:8px;
+  }
+  .dht-assistant-cta__form input[type="search"]{
+    width:100%;
+    border:1px solid #b7c9e6;
+    border-radius:10px;
+  }
+  .dht-assistant-cta__form button{
+    width:100%;
+    border-radius:10px;
+  }
+}

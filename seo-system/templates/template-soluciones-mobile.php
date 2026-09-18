@@ -568,6 +568,12 @@ $grid_posts    = ($paged === 1) ? array_slice($landing_posts, 5) : $landing_post
         </div>
     </header>
 
+    <section class="dht-assistant-section dht-assistant-section--index">
+        <div class="hub-container">
+            <?php dht_template_render_dependiente_cta('', 'compact'); ?>
+        </div>
+    </section>
+
     <?php if ($landing_query->have_posts()) : ?>
         <?php if ($featured) :
             $featured_id    = (int) $featured->ID;

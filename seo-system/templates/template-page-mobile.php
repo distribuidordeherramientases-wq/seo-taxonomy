@@ -579,6 +579,14 @@ while (have_posts()) :
             </main>
         </div>
 
+        <?php if ($is_landing) : ?>
+            <section class="dht-assistant-section">
+                <div class="dht-container">
+                    <?php dht_template_render_dependiente_cta(get_the_title(), 'context'); ?>
+                </div>
+            </section>
+        <?php endif; ?>
+
         <?php if ($is_landing && !empty($related_product_cats)) : ?>
             <section id="dht-related-products" class="dht-post-section dht-reco dht-page-products">
                 <div class="dht-container">

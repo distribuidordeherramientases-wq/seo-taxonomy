@@ -642,6 +642,12 @@ while (have_posts()) :
             </div>
         </div>
 
+        <section class="dht-assistant-section dht-assistant-section--article">
+            <div class="dht-container">
+                <?php dht_template_render_dependiente_cta(get_the_title(), 'guide'); ?>
+            </div>
+        </section>
+
 
         <!-- =====================================================
              CATEGORÍA COMERCIAL RELACIONADA
