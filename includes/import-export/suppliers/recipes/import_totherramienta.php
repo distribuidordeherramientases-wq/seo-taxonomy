@@ -20,7 +20,7 @@
  *
  * @package SEOSystem
  * @subpackage SupplierImports
- * @version 1.1.0
+ * @version 1.2.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -37,7 +37,7 @@ if ( ! function_exists( 'seo_supplier_recipe_totherramienta_agent_profile' ) ) {
     function seo_supplier_recipe_totherramienta_agent_profile() {
         return (string) apply_filters(
             'seo_totherramienta_ucp_agent_profile',
-            'https://shopify.dev/ucp/agent-profiles/2026-08-25/valid-with-capabilities.json'
+            'https://shopify.dev/ucp/agent-profiles/examples/2026-08-25/valid-with-capabilities.json'
         );
     }
 }
@@ -269,9 +269,10 @@ if ( ! function_exists( 'seo_supplier_recipe_totherramienta_ucp_call' ) ) {
      * @param string $tool Nombre de herramienta.
      * @param array  $catalog Argumentos catalog.
      * @param int    $request_id ID JSON-RPC.
+     * @param int    $timeout Timeout HTTP.
      * @return array|WP_Error structuredContent.
      */
-    function seo_supplier_recipe_totherramienta_ucp_call( $tool, array $catalog, $request_id = 1 ) {
+    function seo_supplier_recipe_totherramienta_ucp_call( $tool, array $catalog, $request_id = 1, $timeout = 45 ) {
         $endpoint = esc_url_raw( seo_supplier_recipe_totherramienta_endpoint() );
         $profile  = esc_url_raw( seo_supplier_recipe_totherramienta_agent_profile() );
 
@@ -299,12 +300,12 @@ if ( ! function_exists( 'seo_supplier_recipe_totherramienta_ucp_call' ) ) {
         $response = wp_safe_remote_post(
             $endpoint,
             [
-                'timeout'     => 60,
+                'timeout'     => max( 5, min( 60, absint( $timeout ) ) ),
                 'redirection' => 3,
                 'headers'     => [
                     'Content-Type' => 'application/json',
                     'Accept'       => 'application/json',
-                    'User-Agent'   => 'DistribuidorDeHerramientas-SEOSystem/1.0; +' . home_url( '/' ),
+                    'User-Agent'   => 'DistribuidorDeHerramientas-SEOSystem/1.2; +' . home_url( '/' ),
                 ],
                 'body'        => wp_json_encode( $payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
                 'data_format' => 'body',
@@ -1513,300 +1514,767 @@ if ( ! function_exists( 'seo_supplier_recipe_totherramienta_ucp_rows_fallback' )
     }
 }
 
-if ( ! function_exists( 'seo_supplier_recipe_totherramienta_start' ) ) {
+if ( ! function_exists( 'seo_supplier_recipe_totherramienta_managed_delay' ) ) {
     /**
-     * Descarga y verifica el catalogo publico Shopify.
+     * Ritmo adaptativo del proceso gestionado. No duerme dentro de la peticion:
+     * guarda el instante de la siguiente ejecucion y devuelve el control al worker.
+     *
+     * @param array  $state Estado.
+     * @param string $outcome success|throttle|server_error|network_error|blocked.
+     * @param int    $hint Segundos sugeridos por Retry-After.
+     * @return array
+     */
+    function seo_supplier_recipe_totherramienta_managed_delay( array $state, $outcome, $hint = 0 ) {
+        $minimum = 15;
+        $maximum = 30 * MINUTE_IN_SECONDS;
+        $current = max( $minimum, absint( $state['adaptive_delay'] ?? $minimum ) );
+        $streak  = absint( $state['success_streak'] ?? 0 );
+
+        if ( 'success' === $outcome ) {
+            $streak++;
+            if ( $streak >= 6 && $current > $minimum ) {
+                $current = max( $minimum, (int) floor( $current * 0.85 ) );
+                $streak  = 0;
+            }
+        } elseif ( 'throttle' === $outcome ) {
+            $current = max( $current * 3, absint( $hint ), 60 );
+            $streak  = 0;
+        } elseif ( 'server_error' === $outcome ) {
+            $current = max( $current * 2, 60 );
+            $streak  = 0;
+        } elseif ( 'network_error' === $outcome ) {
+            $current = max( (int) ceil( $current * 1.5 ), 45 );
+            $streak  = 0;
+        } elseif ( 'blocked' === $outcome ) {
+            $current = max( $current * 4, 5 * MINUTE_IN_SECONDS );
+            $streak  = 0;
+        }
+
+        $state['adaptive_delay'] = min( $maximum, max( $minimum, absint( $current ) ) );
+        $state['success_streak'] = $streak;
+        $state['last_rate_event']= sanitize_key( (string) $outcome );
+        return $state;
+    }
+}
+
+if ( ! function_exists( 'seo_supplier_recipe_totherramienta_reset_staging' ) ) {
+    /**
+     * Vacía exclusivamente el staging temporal de esta receta. No toca el
+     * catálogo comercial ni productos WooCommerce.
+     *
+     * @param string $recipe_id ID.
+     * @return void
+     */
+    function seo_supplier_recipe_totherramienta_reset_staging( $recipe_id ) {
+        if ( ! function_exists( 'seo_supplier_crawl_install_table' ) || ! function_exists( 'seo_supplier_crawl_records_table' ) ) {
+            return;
+        }
+        seo_supplier_crawl_install_table();
+        global $wpdb;
+        $table = seo_supplier_crawl_records_table();
+        $wpdb->delete( $table, [ 'recipe' => sanitize_key( $recipe_id ) ], [ '%s' ] );
+    }
+}
+
+if ( ! function_exists( 'seo_supplier_recipe_totherramienta_manager_pending' ) ) {
+    /**
+     * El supervisor solo recoge el proceso despues de un arranque manual.
      *
      * @param array $recipe Receta.
-     * @param bool  $catalog_complete Si el usuario marco catalogo completo.
+     * @return bool
+     */
+    function seo_supplier_recipe_totherramienta_manager_pending( $recipe ) {
+        if ( ! is_array( $recipe ) || empty( $recipe['id'] ) || ! function_exists( 'seo_supplier_crawl_state' ) ) {
+            return false;
+        }
+        $state  = seo_supplier_crawl_state( $recipe['id'] );
+        $status = sanitize_key( (string) ( $state['status'] ?? '' ) );
+        return ! empty( $state['manual_started'] )
+            && ! empty( $state['enabled'] )
+            && in_array( $status, [ 'queued', 'running', 'waiting', 'finalizing' ], true );
+    }
+}
+
+if ( ! function_exists( 'seo_supplier_recipe_totherramienta_managed_get' ) ) {
+    /**
+     * Una sola petición HTTP. Los reintentos y las esperas pertenecen al estado
+     * del worker, no a un bucle bloqueante dentro de esta función.
+     *
+     * @param string $url URL.
+     * @param int    $budget Presupuesto orientativo del supervisor.
      * @return array|WP_Error
      */
-    function seo_supplier_recipe_totherramienta_start( $recipe, $catalog_complete = false ) {
-        if ( ! is_array( $recipe ) ) {
-            return new WP_Error( 'totherramienta_recipe_invalid', 'Receta TotHerramienta no valida.' );
-        }
-        if ( ! function_exists( 'seo_proveedores_importar_csv_estandar' ) ) {
-            return new WP_Error( 'totherramienta_importer_missing', 'El importador comun de proveedores no esta cargado.' );
-        }
-
-        if ( function_exists( 'set_time_limit' ) ) {
-            @set_time_limit( $catalog_complete ? 1200 : 180 );
-        }
-        @ignore_user_abort( true );
-
-        $store = seo_supplier_recipe_totherramienta_store_url();
-        $products = [];
-        $source_stats = [];
-        $source_errors = [];
-
-        $endpoints = [
-            'products.json' => $store . '/products.json',
-        ];
-        if ( $catalog_complete ) {
-            $endpoints['collections/all/products.json'] = $store . '/collections/all/products.json';
-        }
-
-        foreach ( $endpoints as $source_name => $endpoint ) {
-            $feed = seo_supplier_recipe_totherramienta_feed_collect( $endpoint, $catalog_complete );
-            if ( is_wp_error( $feed ) ) {
-                $source_errors[] = $source_name . ': ' . $feed->get_error_message();
-                continue;
-            }
-            $source_stats[] = $source_name . '=' . count( $feed['products'] ) . ' productos/' . (int) $feed['pages'] . ' pag.';
-            if ( ! empty( $feed['warning'] ) ) {
-                $source_errors[] = $source_name . ': ' . $feed['warning'];
-            }
-            foreach ( $feed['products'] as $key => $product ) {
-                $products[ $key ] = isset( $products[ $key ] )
-                    ? seo_supplier_recipe_totherramienta_merge_product( $products[ $key ], $product )
-                    : $product;
-            }
-        }
-
-        // Prueba corta: si Shopify JSON no responde, UCP/MCP queda como ultimo fallback.
-        if ( ! $catalog_complete && empty( $products ) ) {
-            $rows = seo_supplier_recipe_totherramienta_ucp_rows_fallback( 50 );
-            if ( is_wp_error( $rows ) ) {
-                return new WP_Error(
-                    'totherramienta_all_sources_failed',
-                    'No respondieron los feeds Shopify JSON y tambien fallo UCP/MCP. ' . implode( ' | ', $source_errors ) . ' | UCP: ' . $rows->get_error_message()
-                );
-            }
-            $state = seo_supplier_recipe_totherramienta_write_csv( $recipe, $rows, false, 'ucp_mcp_fallback' );
-            if ( is_wp_error( $state ) ) {
-                return $state;
-            }
-            $preparation_log = [
-                'procesados' => count( $rows ),
-                'preparados' => count( $rows ),
-                'omitidos'   => 0,
-                'errores'    => count( $source_errors ),
-                'detalles'   => array_merge( [ 'Fallback UCP/MCP usado porque Shopify JSON no respondio.' ], $source_errors ),
-            ];
-            $result = seo_proveedores_importar_csv_estandar( $state, $preparation_log );
-            if ( is_wp_error( $result ) ) {
-                return $result;
-            }
-            return [
-                'message'          => 'UCP/MCP fallback completado: ' . count( $rows ) . ' referencias. Es una prueba corta y NO representa el catalogo completo.',
-                'products'         => count( $rows ),
-                'rows'             => count( $rows ),
-                'pages'            => 1,
-                'catalog_complete' => false,
-                'filename'         => (string) ( $state['filename'] ?? '' ),
-                'extended_filename'=> (string) ( $state['extended_filename'] ?? '' ),
-            ];
-        }
-
-        $sitemap = null;
-        $ajax_added = 0;
-        $sitemap_count = 0;
-
-        if ( $catalog_complete ) {
-            $sitemap = seo_supplier_recipe_totherramienta_sitemap_products();
-            if ( is_wp_error( $sitemap ) ) {
-                return new WP_Error(
-                    'totherramienta_full_unverified',
-                    'Se obtuvieron ' . count( $products ) . ' productos por Shopify JSON, pero no se pudo verificar el catalogo completo contra sitemap.xml: ' . $sitemap->get_error_message() . '. No se importa un catalogo completo sin verificar.'
-                );
-            }
-
-            $sitemap_count = count( $sitemap['handles'] );
-            $handles_present = [];
-            foreach ( $products as $product ) {
-                $handle = sanitize_title( (string) ( $product['handle'] ?? '' ) );
-                if ( '' !== $handle ) {
-                    $handles_present[ $handle ] = true;
-                }
-            }
-
-            $missing = array_diff_key( $sitemap['handles'], $handles_present );
-            $max_ajax = (int) apply_filters( 'seo_totherramienta_ajax_completion_max', 3000 );
-            if ( count( $missing ) > $max_ajax ) {
-                return new WP_Error(
-                    'totherramienta_ajax_guard',
-                    'Faltan ' . count( $missing ) . ' productos respecto al sitemap y supera el limite de seguridad Ajax (' . $max_ajax . ').'
-                );
-            }
-
-            $ajax_errors = [];
-            $missing_handles = array_keys( $missing );
-            $batch = seo_supplier_recipe_totherramienta_ajax_products_batch( $missing_handles );
-            foreach ( $batch['products'] as $handle => $product ) {
-                $key = seo_supplier_recipe_totherramienta_product_key( $product );
-                if ( '' !== $key ) {
-                    $products[ $key ] = $product;
-                    $ajax_added++;
-                }
-            }
-            // Reintento individual de fallos: wp_safe_remote_get aplica los
-            // reintentos/backoff definidos en remote_get para 429/5xx.
-            foreach ( $batch['errors'] as $handle => $batch_error ) {
-                $product = seo_supplier_recipe_totherramienta_ajax_product( $handle );
-                if ( is_wp_error( $product ) ) {
-                    $ajax_errors[ $handle ] = $batch_error . '; retry: ' . $product->get_error_message();
-                } else {
-                    $key = seo_supplier_recipe_totherramienta_product_key( $product );
-                    if ( '' !== $key ) {
-                        $products[ $key ] = $product;
-                        $ajax_added++;
-                    }
-                }
-            }
-
-            $handles_present = [];
-            foreach ( $products as $product ) {
-                $handle = sanitize_title( (string) ( $product['handle'] ?? '' ) );
-                if ( '' !== $handle ) {
-                    $handles_present[ $handle ] = true;
-                }
-            }
-            $still_missing = array_diff_key( $sitemap['handles'], $handles_present );
-            if ( ! empty( $still_missing ) ) {
-                $sample = array_slice( array_keys( $still_missing ), 0, 10 );
-                $detail = [];
-                foreach ( $sample as $handle ) {
-                    $detail[] = $handle . ( isset( $ajax_errors[ $handle ] ) ? ' (' . $ajax_errors[ $handle ] . ')' : '' );
-                }
-                return new WP_Error(
-                    'totherramienta_incomplete_after_ajax',
-                    'El sitemap publica ' . $sitemap_count . ' productos y aun faltan ' . count( $still_missing ) . ' despues de completar por Ajax. Ejemplos: ' . implode( ', ', $detail ) . '. No se importa un catalogo parcial.'
-                );
-            }
-        }
-
-
-        // Enriquecimiento de detalle: recupera barcode/GTIN y otros campos que el
-        // feed agregado puede omitir. Es best-effort para productos ya presentes;
-        // un fallo aqui no convierte un catalogo verificado en parcial.
-        $enriched_ajax = 0;
-        $enrichment_errors = 0;
-        $enrich_all = (bool) apply_filters( 'seo_totherramienta_enrich_ajax_details', true, $catalog_complete );
-        $enrich_limit = (int) apply_filters( 'seo_totherramienta_enrich_ajax_limit', $catalog_complete ? 3000 : 50 );
-        if ( $enrich_all && $enrich_limit > 0 && ! empty( $products ) ) {
-            $candidate_keys = [];
-            foreach ( $products as $key => $product ) {
-                if ( seo_supplier_recipe_totherramienta_needs_ajax_enrichment( $product ) ) {
-                    $candidate_keys[] = $key;
-                }
-            }
-            $candidate_keys = array_slice( $candidate_keys, 0, $enrich_limit );
-            $handle_to_key = [];
-            foreach ( $candidate_keys as $key ) {
-                $handle = sanitize_title( (string) ( $products[ $key ]['handle'] ?? '' ) );
-                if ( '' !== $handle ) {
-                    $handle_to_key[ $handle ] = $key;
-                }
-            }
-            $batch = seo_supplier_recipe_totherramienta_ajax_products_batch( array_keys( $handle_to_key ) );
-            foreach ( $batch['products'] as $handle => $detail ) {
-                if ( ! isset( $handle_to_key[ $handle ] ) ) {
-                    continue;
-                }
-                $key = $handle_to_key[ $handle ];
-                // Conservamos el precio decimal del feed como fuente principal
-                // y rellenamos barcode, disponibilidad y demas campos ausentes.
-                $products[ $key ] = seo_supplier_recipe_totherramienta_merge_product( $products[ $key ], $detail );
-                $enriched_ajax++;
-            }
-            $enrichment_errors += count( $batch['errors'] );
-        }
-
-        if ( empty( $products ) ) {
-            return new WP_Error(
-                'totherramienta_shopify_empty',
-                'Los endpoints Shopify JSON no devolvieron productos. ' . implode( ' | ', $source_errors )
-            );
-        }
-
-        $all_rows = [];
-        $seen_rows = [];
-        foreach ( $products as $product ) {
-            foreach ( seo_supplier_recipe_totherramienta_shopify_rows( $product ) as $row ) {
-                $external_id = trim( (string) ( $row['proveedor_id_externo'] ?? '' ) );
-                $name = trim( (string) ( $row['nombre'] ?? '' ) );
-                if ( '' === $external_id || '' === $name ) {
-                    continue;
-                }
-                if ( isset( $seen_rows[ $external_id ] ) ) {
-                    continue;
-                }
-                $seen_rows[ $external_id ] = true;
-                $all_rows[] = $row;
-            }
-        }
-
-        if ( empty( $all_rows ) ) {
-            return new WP_Error( 'totherramienta_no_rows', 'Shopify devolvio productos, pero ninguno pudo normalizarse al CSV estandar.' );
-        }
-
-        $verified_complete = $catalog_complete && $sitemap_count > 0;
-        $state = seo_supplier_recipe_totherramienta_write_csv( $recipe, $all_rows, $verified_complete, 'shopify_json_ajax' );
-        if ( is_wp_error( $state ) ) {
-            return $state;
-        }
-
-        $details = [
-            'TotHerramienta Shopify JSON: ' . count( $products ) . ' productos unicos, ' . count( $all_rows ) . ' referencias/variantes.',
-        ];
-        foreach ( $source_stats as $line ) {
-            $details[] = $line;
-        }
-        foreach ( $source_errors as $line ) {
-            $details[] = 'Aviso: ' . $line;
-        }
-        if ( $catalog_complete ) {
-            $details[] = 'Sitemap verificado: ' . $sitemap_count . ' handles publicados; completados por Ajax: ' . $ajax_added . '.';
-        }
-        if ( $enriched_ajax > 0 || $enrichment_errors > 0 ) {
-            $details[] = 'Enriquecimiento Ajax de detalle: ' . $enriched_ajax . ' productos enriquecidos; ' . $enrichment_errors . ' fallos no criticos.';
-        }
-        if ( ! empty( $state['extended_filename'] ) ) {
-            $details[] = 'CSV ampliado: ' . $state['extended_filename'];
-        }
-
-        $preparation_log = [
-            'procesados' => count( $all_rows ),
-            'preparados' => count( $all_rows ),
-            'omitidos'   => 0,
-            'errores'    => count( $source_errors ),
-            'detalles'   => $details,
-        ];
-
-        $result = seo_proveedores_importar_csv_estandar( $state, $preparation_log );
-        if ( is_wp_error( $result ) ) {
-            return $result;
-        }
-
-        $message = sprintf(
-            'Shopify JSON completado: %d productos, %d referencias. Nuevos: %d; actualizados: %d; sin cambios: %d.',
-            count( $products ),
-            count( $all_rows ),
-            absint( $result['creados'] ?? 0 ),
-            absint( $result['actualizados'] ?? 0 ),
-            absint( $result['sin_cambios'] ?? 0 )
+    function seo_supplier_recipe_totherramienta_managed_get( $url, $budget = 20 ) {
+        $timeout = max( 5, min( 20, absint( $budget ) ) );
+        $response = wp_safe_remote_get(
+            esc_url_raw( $url ),
+            [
+                'timeout'     => $timeout,
+                'redirection' => 4,
+                'headers'     => [
+                    'Accept'          => 'application/json,*/*;q=0.6',
+                    'Accept-Language' => 'es-ES,es;q=0.9,en;q=0.5',
+                    'Cache-Control'   => 'no-cache',
+                    'User-Agent'      => 'DistribuidorDeHerramientas-SEOSystem/1.2; +' . home_url( '/' ),
+                ],
+            ]
         );
-        if ( $catalog_complete ) {
-            $message .= ' Sitemap verificado: ' . number_format_i18n( $sitemap_count ) . ' productos; completados por Ajax: ' . number_format_i18n( $ajax_added ) . '.';
-        } else {
-            $message .= ' Prueba corta: catalogo completo desmarcado.';
-        }
-        if ( $enriched_ajax > 0 ) {
-            $message .= ' Detalle Ajax enriquecido en ' . number_format_i18n( $enriched_ajax ) . ' productos.';
-        }
-        if ( ! empty( $state['extended_url'] ) ) {
-            $message .= ' CSV ampliado (GTIN/EAN/barcode y metadatos): ' . $state['extended_url'];
+
+        if ( is_wp_error( $response ) ) {
+            return $response;
         }
 
         return [
-            'message'           => $message,
-            'products'          => count( $products ),
-            'rows'              => count( $all_rows ),
-            'pages'             => count( $source_stats ),
-            'catalog_complete'  => $verified_complete,
-            'filename'          => (string) ( $state['filename'] ?? '' ),
-            'extended_filename' => (string) ( $state['extended_filename'] ?? '' ),
-            'extended_url'      => (string) ( $state['extended_url'] ?? '' ),
+            'status'      => (int) wp_remote_retrieve_response_code( $response ),
+            'body'        => (string) wp_remote_retrieve_body( $response ),
+            'retry_after' => absint( wp_remote_retrieve_header( $response, 'retry-after' ) ),
+            'content_type'=> (string) wp_remote_retrieve_header( $response, 'content-type' ),
+        ];
+    }
+}
+
+if ( ! function_exists( 'seo_supplier_recipe_totherramienta_stage_rows' ) ) {
+    /**
+     * Guarda filas normalizadas en el staging común de proveedores.
+     *
+     * @param array $recipe Receta.
+     * @param array $rows Filas estandar.
+     * @return int Filas aceptadas.
+     */
+    function seo_supplier_recipe_totherramienta_stage_rows( array $recipe, array $rows ) {
+        if ( ! function_exists( 'seo_supplier_crawl_upsert_record' ) ) {
+            return 0;
+        }
+        $accepted = 0;
+        foreach ( $rows as $row ) {
+            if ( ! is_array( $row ) ) {
+                continue;
+            }
+            $saved = seo_supplier_crawl_upsert_record( $recipe, $row );
+            if ( ! is_wp_error( $saved ) ) {
+                $accepted++;
+            }
+        }
+        return $accepted;
+    }
+}
+
+if ( ! function_exists( 'seo_supplier_recipe_totherramienta_switch_ucp' ) ) {
+    /**
+     * Cambia de fuente sin convertir una busqueda UCP en prueba de completitud.
+     *
+     * Para catalogo completo se intenta primero el feed alternativo
+     * /collections/all/products.json. UCP/MCP se reserva para pruebas parciales:
+     * search_catalog puede ser paginado, pero sigue siendo una busqueda y no se
+     * usa como certificacion del universo completo publicado por la tienda.
+     *
+     * @param array  $state Estado.
+     * @param string $reason Motivo.
+     * @return array
+     */
+    function seo_supplier_recipe_totherramienta_switch_ucp( array $state, $reason ) {
+        if ( ! empty( $state['catalog_complete_requested'] ) ) {
+            $feed = sanitize_key( (string) ( $state['shopify_feed'] ?? 'products' ) );
+            if ( 'collections_all' !== $feed ) {
+                $state['phase']                    = 'shopify';
+                $state['status']                   = 'waiting';
+                $state['shopify_feed']             = 'collections_all';
+                $state['shopify_page']             = 1;
+                $state['last_page_signature']      = '';
+                $state['source_failures']          = 0;
+                $state['shopify_fallback_failures']= 0;
+                $state['success_streak']           = 0;
+                $state['adaptive_delay']           = max( 30, min( 300, absint( $state['adaptive_delay'] ?? 30 ) ) );
+                $state['next_attempt_at']          = time() + absint( $state['adaptive_delay'] );
+                $state['last_message']             = 'El feed principal no permite continuar con seguridad. Se conserva el staging y se probará /collections/all/products.json desde el inicio. ' . sanitize_text_field( $reason );
+                $state['source']                   = 'shopify_collection_all_managed';
+                return $state;
+            }
+
+            $fallback_failures = absint( $state['shopify_fallback_failures'] ?? 0 ) + 1;
+            $state['shopify_fallback_failures'] = $fallback_failures;
+            $state = seo_supplier_recipe_totherramienta_managed_delay( $state, 'blocked' );
+            if ( $fallback_failures >= 8 ) {
+                $state['status']       = 'error';
+                $state['enabled']      = false;
+                $state['last_error']   = 'Los dos feeds Shopify quedaron bloqueados de forma repetida; no se puede certificar el catalogo completo.';
+                $state['last_message'] = $state['last_error'] . ' El staging parcial se conserva y no se ejecutan bajas.';
+                return $state;
+            }
+
+            $state['phase']           = 'shopify';
+            $state['status']          = 'waiting';
+            $state['source_failures'] = 0;
+            $state['next_attempt_at'] = time() + absint( $state['adaptive_delay'] );
+            $state['last_message']    = 'El feed alternativo sigue bloqueado. Se conserva el checkpoint y se reintentará sin importar el catálogo como completo. ' . sanitize_text_field( $reason );
+            return $state;
+        }
+
+        $state['phase']            = 'ucp';
+        $state['status']           = 'running';
+        $state['ucp_cursor']       = '';
+        $state['ucp_page']         = 1;
+        $state['ucp_last_cursor']  = '';
+        $state['source_failures']  = 0;
+        $state['success_streak']   = 0;
+        $state['adaptive_delay']   = max( 15, min( 120, absint( $state['adaptive_delay'] ?? 15 ) ) );
+        $state['next_attempt_at']  = time() + 5;
+        $state['last_message']     = 'Shopify JSON no permite completar la prueba corta. Se cambia a UCP/MCP paginado como fuente parcial. ' . sanitize_text_field( $reason );
+        $state['source']           = 'ucp_mcp_partial';
+        return $state;
+    }
+}
+
+if ( ! function_exists( 'seo_supplier_recipe_totherramienta_finalize_managed' ) ) {
+    /**
+     * Genera el CSV desde el staging y lo entrega al importador común. Solo
+     * declara catálogo completo cuando la fuente paginada alcanzó su final.
+     *
+     * @param array $recipe Receta.
+     * @param array $state Estado actual.
+     * @return array
+     */
+    function seo_supplier_recipe_totherramienta_finalize_managed( array $recipe, array $state ) {
+        if ( ! function_exists( 'seo_supplier_crawl_build_standard_csv' ) || ! function_exists( 'seo_proveedores_importar_csv_estandar' ) ) {
+            $state['status']       = 'error';
+            $state['enabled']      = false;
+            $state['last_error']   = 'El pipeline común de proveedores no está disponible.';
+            $state['last_message'] = $state['last_error'];
+            return $state;
+        }
+
+        $prepared = seo_supplier_crawl_build_standard_csv( $recipe );
+        if ( is_wp_error( $prepared ) ) {
+            $state['status']       = 'error';
+            $state['enabled']      = false;
+            $state['last_error']   = $prepared->get_error_message();
+            $state['last_message'] = 'No se pudo preparar el CSV final: ' . $prepared->get_error_message();
+            return $state;
+        }
+
+        $verified_complete = ! empty( $state['catalog_complete_requested'] ) && ! empty( $state['catalog_proven_complete'] );
+        $prepared['state']['v2_source']           = sanitize_key( (string) ( $state['source'] ?? 'managed_supplier' ) );
+        $prepared['state']['v2_catalog_complete'] = $verified_complete ? 1 : 0;
+        $prepared['state']['v2_auto_apply']       = 0;
+        $prepared['state']['v2_auto_bajas']       = 0;
+        $prepared['state']['v2_image_mode']       = 'external';
+        $prepared['state']['v2_force_image_mode'] = 0;
+        $prepared['log']['errores']               = 0;
+        $prepared['log']['omitidos']              = 0;
+        $prepared['log']['detalles'][] = sprintf(
+            'Descarga gestionada por worker: %d productos observados, %d referencias normalizadas, %d peticiones.',
+            absint( $state['products_seen'] ?? 0 ),
+            absint( $state['references_seen'] ?? 0 ),
+            absint( $state['requests'] ?? 0 )
+        );
+        $prepared['log']['detalles'][] = $verified_complete
+            ? 'La fuente paginada alcanzó explícitamente el final; catálogo completo verificado sin depender de sitemap.xml.'
+            : 'Ejecución parcial: no se habilita detección de bajas.';
+
+        $result = seo_proveedores_importar_csv_estandar( $prepared['state'], $prepared['log'] );
+        if ( is_wp_error( $result ) ) {
+            $state['status']       = 'error';
+            $state['enabled']      = false;
+            $state['last_error']   = $result->get_error_message();
+            $state['last_message'] = 'Falló la importación del CSV preparado: ' . $result->get_error_message();
+            return $state;
+        }
+
+        if ( function_exists( 'seo_supplier_crawl_records_table' ) ) {
+            global $wpdb;
+            $table = seo_supplier_crawl_records_table();
+            $wpdb->query(
+                $wpdb->prepare(
+                    "UPDATE {$table} SET imported_hash = record_hash WHERE recipe = %s",
+                    $recipe['id']
+                )
+            );
+        }
+
+        $state['status']          = 'completed';
+        $state['enabled']         = false;
+        $state['completed_at']    = current_time( 'mysql' );
+        $state['next_attempt_at'] = 0;
+        $state['progress']        = 100;
+        $state['last_error']      = '';
+        $state['last_csv_filename']= (string) ( $prepared['state']['filename'] ?? '' );
+        $state['last_import_created']   = absint( $result['creados'] ?? 0 );
+        $state['last_import_updated']   = absint( $result['actualizados'] ?? 0 );
+        $state['last_import_unchanged'] = absint( $result['sin_cambios'] ?? 0 );
+        $state['last_message'] = sprintf(
+            'TotHerramienta finalizado: %d productos observados, %d referencias. Nuevos: %d; actualizados: %d; sin cambios: %d. Catálogo completo: %s.',
+            absint( $state['products_seen'] ?? 0 ),
+            absint( $state['references_seen'] ?? 0 ),
+            absint( $result['creados'] ?? 0 ),
+            absint( $result['actualizados'] ?? 0 ),
+            absint( $result['sin_cambios'] ?? 0 ),
+            $verified_complete ? 'sí' : 'no'
+        );
+        return $state;
+    }
+}
+
+if ( ! function_exists( 'seo_supplier_recipe_totherramienta_manager_slice' ) ) {
+    /**
+     * Una ventana del worker. Como máximo realiza una petición remota y guarda
+     * checkpoint antes de devolver el control al supervisor.
+     *
+     * @param int    $budget Segundos asignados.
+     * @param string $source Motor del supervisor.
+     * @param array  $recipe Receta.
+     * @return bool True si se realizó trabajo.
+     */
+    function seo_supplier_recipe_totherramienta_manager_slice( $budget, $source, $recipe ) {
+        unset( $source );
+        if ( ! is_array( $recipe ) || empty( $recipe['id'] ) ) {
+            return false;
+        }
+
+        $recipe_id = sanitize_key( $recipe['id'] );
+        $state     = seo_supplier_crawl_state( $recipe_id );
+        if ( empty( $state['enabled'] ) ) {
+            return false;
+        }
+
+        $due = absint( $state['next_attempt_at'] ?? 0 );
+        if ( $due && $due > time() ) {
+            $state['status'] = 'waiting';
+            seo_supplier_crawl_store_state( $recipe_id, $state );
+            return false;
+        }
+
+        if ( 'finalizing' === sanitize_key( (string) ( $state['status'] ?? '' ) ) || 'finalize' === sanitize_key( (string) ( $state['phase'] ?? '' ) ) ) {
+            $state = seo_supplier_recipe_totherramienta_finalize_managed( $recipe, $state );
+            seo_supplier_crawl_store_state( $recipe_id, $state );
+            return true;
+        }
+
+        $state['status'] = 'running';
+        $state['last_worker_at'] = time();
+        $phase = sanitize_key( (string) ( $state['phase'] ?? 'shopify' ) );
+        $limit = max( 10, min( 100, absint( $state['page_size'] ?? 50 ) ) );
+
+        if ( 'shopify' === $phase ) {
+            $page = max( 1, absint( $state['shopify_page'] ?? 1 ) );
+            $feed = sanitize_key( (string) ( $state['shopify_feed'] ?? 'products' ) );
+            $feed_path = 'collections_all' === $feed
+                ? '/collections/all/products.json'
+                : '/products.json';
+            $url  = add_query_arg(
+                [ 'limit' => $limit, 'page' => $page ],
+                seo_supplier_recipe_totherramienta_store_url() . $feed_path
+            );
+            $response = seo_supplier_recipe_totherramienta_managed_get( $url, $budget );
+            $state['requests'] = absint( $state['requests'] ?? 0 ) + 1;
+            $state['last_url'] = $url;
+
+            if ( is_wp_error( $response ) ) {
+                $state['source_failures'] = absint( $state['source_failures'] ?? 0 ) + 1;
+                $state = seo_supplier_recipe_totherramienta_managed_delay( $state, 'network_error' );
+                if ( $state['source_failures'] >= 4 && empty( $state['catalog_complete_requested'] ) ) {
+                    $state = seo_supplier_recipe_totherramienta_switch_ucp( $state, 'Errores de red repetidos en Shopify JSON.' );
+                } else {
+                    $state['status']          = 'waiting';
+                    $state['next_attempt_at'] = time() + absint( $state['adaptive_delay'] );
+                    $state['last_error']      = $response->get_error_message();
+                    $state['last_message']    = 'Error de red en Shopify JSON. Se conserva el checkpoint y se reintentará más tarde: ' . $response->get_error_message();
+                }
+                seo_supplier_crawl_store_state( $recipe_id, $state );
+                return true;
+            }
+
+            $http = absint( $response['status'] ?? 0 );
+            $body = (string) ( $response['body'] ?? '' );
+            $state['last_http'] = $http;
+
+            if ( 429 === $http || $http >= 500 ) {
+                $state['source_failures'] = absint( $state['source_failures'] ?? 0 ) + 1;
+                $challenge = 429 === $http && (
+                    false !== stripos( $body, 'enable javascript' )
+                    || false !== stripos( $body, 'verifying your connection' )
+                    || false !== stripos( $body, 'cloudflare' )
+                );
+                $state = seo_supplier_recipe_totherramienta_managed_delay(
+                    $state,
+                    $challenge ? 'blocked' : ( 429 === $http ? 'throttle' : 'server_error' ),
+                    absint( $response['retry_after'] ?? 0 )
+                );
+                if ( $state['source_failures'] >= 4 && ( empty( $state['catalog_complete_requested'] ) || $challenge ) ) {
+                    $state = seo_supplier_recipe_totherramienta_switch_ucp( $state, 'Shopify JSON respondió HTTP ' . $http . ( $challenge ? ' con verificación de navegador' : '' ) . ' repetidamente.' );
+                } else {
+                    $state['status']          = 'waiting';
+                    $state['next_attempt_at'] = time() + absint( $state['adaptive_delay'] );
+                    $state['last_message']    = 'Shopify JSON respondió HTTP ' . $http . '. Se conserva el checkpoint; pausa adaptativa de ' . absint( $state['adaptive_delay'] ) . ' s.';
+                }
+                seo_supplier_crawl_store_state( $recipe_id, $state );
+                return true;
+            }
+
+            if ( in_array( $http, [ 401, 403, 404 ], true ) ) {
+                $state = seo_supplier_recipe_totherramienta_managed_delay( $state, 'blocked' );
+                $state = seo_supplier_recipe_totherramienta_switch_ucp( $state, $feed_path . ' no está accesible (HTTP ' . $http . ').' );
+                seo_supplier_crawl_store_state( $recipe_id, $state );
+                return true;
+            }
+
+            if ( $http < 200 || $http >= 300 ) {
+                $state['source_failures'] = absint( $state['source_failures'] ?? 0 ) + 1;
+                $state = seo_supplier_recipe_totherramienta_managed_delay( $state, 'server_error' );
+                if ( $state['source_failures'] >= 3 ) {
+                    $state = seo_supplier_recipe_totherramienta_switch_ucp( $state, 'Respuesta HTTP no válida en ' . $feed_path . ': ' . $http . '.' );
+                } else {
+                    $state['next_attempt_at'] = time() + absint( $state['adaptive_delay'] );
+                    $state['last_message'] = 'Respuesta HTTP ' . $http . ' en Shopify JSON; se reintentará.';
+                }
+                seo_supplier_crawl_store_state( $recipe_id, $state );
+                return true;
+            }
+
+            $decoded = json_decode( $body, true );
+            $products = is_array( $decoded ) && isset( $decoded['products'] ) && is_array( $decoded['products'] )
+                ? $decoded['products']
+                : null;
+
+            if ( null === $products ) {
+                $challenge = false !== stripos( $body, 'enable javascript' )
+                    || false !== stripos( $body, 'verifying your connection' )
+                    || false !== stripos( $body, 'cloudflare' );
+                $state['source_failures'] = absint( $state['source_failures'] ?? 0 ) + 1;
+                $state = seo_supplier_recipe_totherramienta_managed_delay( $state, $challenge ? 'blocked' : 'server_error' );
+                if ( $state['source_failures'] >= 3 ) {
+                    $state = seo_supplier_recipe_totherramienta_switch_ucp( $state, $feed_path . ' no devolvió JSON de catálogo válido.' );
+                } else {
+                    $state['next_attempt_at'] = time() + absint( $state['adaptive_delay'] );
+                    $state['last_message'] = $challenge
+                        ? 'El proveedor ha activado verificación del navegador. Se reduce el ritmo antes de reintentar.'
+                        : 'Shopify JSON devolvió un cuerpo no válido. Se reintentará con pausa.';
+                }
+                seo_supplier_crawl_store_state( $recipe_id, $state );
+                return true;
+            }
+
+            if ( empty( $products ) ) {
+                if ( 1 === $page ) {
+                    $state = seo_supplier_recipe_totherramienta_switch_ucp( $state, $feed_path . ' devolvió cero productos en la primera página.' );
+                } else {
+                    $state['catalog_proven_complete'] = ! empty( $state['catalog_complete_requested'] ) ? 1 : 0;
+                    $state['phase']             = 'finalize';
+                    $state['status']            = 'finalizing';
+                    $state['next_attempt_at']   = 0;
+                    $state['last_message']      = 'Shopify JSON alcanzó una página vacía. La paginación ha terminado y se prepara la importación.';
+                }
+                seo_supplier_crawl_store_state( $recipe_id, $state );
+                if ( function_exists( 'seo_process_supervisor_nudge' ) ) {
+                    seo_process_supervisor_nudge( 0, 'supplier_imports' );
+                }
+                return true;
+            }
+
+            $first = is_array( reset( $products ) ) ? reset( $products ) : [];
+            $last  = is_array( end( $products ) ) ? end( $products ) : [];
+            $sig   = seo_supplier_recipe_totherramienta_product_key( (array) $first ) . '|' . seo_supplier_recipe_totherramienta_product_key( (array) $last ) . '|' . count( $products );
+            if ( $page > 1 && '' !== $sig && hash_equals( (string) ( $state['last_page_signature'] ?? '' ), $sig ) ) {
+                $state = seo_supplier_recipe_totherramienta_switch_ucp( $state, $feed_path . ' repitió la misma página y no permite continuar la paginación con seguridad.' );
+                seo_supplier_crawl_store_state( $recipe_id, $state );
+                return true;
+            }
+
+            $references = 0;
+            foreach ( $products as $product ) {
+                if ( ! is_array( $product ) ) {
+                    continue;
+                }
+                $product['_seo_source'] = 'feed';
+                $references += seo_supplier_recipe_totherramienta_stage_rows(
+                    $recipe,
+                    seo_supplier_recipe_totherramienta_shopify_rows( $product )
+                );
+            }
+
+            $state['products_seen']      = absint( $state['products_seen'] ?? 0 ) + count( $products );
+            $state['references_seen']    = absint( $state['references_seen'] ?? 0 ) + $references;
+            $state['shopify_page']       = $page + 1;
+            $state['last_page_signature']= $sig;
+            $state['source_failures']    = 0;
+            $state['last_error']         = '';
+            $state['source']             = 'collections_all' === $feed ? 'shopify_collection_all_managed' : 'shopify_json_managed';
+            $state = seo_supplier_recipe_totherramienta_managed_delay( $state, 'success' );
+
+            if ( empty( $state['catalog_complete_requested'] ) ) {
+                $state['phase']           = 'finalize';
+                $state['status']          = 'finalizing';
+                $state['next_attempt_at'] = 0;
+                $state['last_message']    = 'Prueba corta obtenida: ' . count( $products ) . ' productos en una página. Se prepara una importación parcial.';
+            } else {
+                $state['next_attempt_at'] = time() + absint( $state['adaptive_delay'] );
+                $state['last_message'] = sprintf(
+                    'Shopify JSON %s página %d: %d productos, %d referencias. Acumulado: %d observaciones. Siguiente petición en %d s.',
+                    $feed_path,
+                    $page,
+                    count( $products ),
+                    $references,
+                    absint( $state['products_seen'] ),
+                    absint( $state['adaptive_delay'] )
+                );
+            }
+            seo_supplier_crawl_store_state( $recipe_id, $state );
+            return true;
+        }
+
+        if ( 'ucp' === $phase ) {
+            $cursor = trim( (string) ( $state['ucp_cursor'] ?? '' ) );
+            $page   = max( 1, absint( $state['ucp_page'] ?? 1 ) );
+            $catalog = [
+                // available=false significa incluir también los no disponibles.
+                'filters' => [ 'available' => false ],
+                'context' => [
+                    'address_country' => 'ES',
+                    'language'        => 'es',
+                    'currency'        => 'EUR',
+                    'intent'          => 'Catalog synchronization for product comparison and resale.',
+                ],
+                'pagination' => [ 'limit' => min( 250, $limit ) ],
+            ];
+            if ( '' !== $cursor ) {
+                $catalog['pagination']['cursor'] = $cursor;
+            }
+
+            $structured = seo_supplier_recipe_totherramienta_ucp_call( 'search_catalog', $catalog, 1000 + $page, max( 5, min( 20, absint( $budget ) ) ) );
+            $state['requests'] = absint( $state['requests'] ?? 0 ) + 1;
+
+            if ( is_wp_error( $structured ) ) {
+                $message = $structured->get_error_message();
+                $throttle = false !== stripos( $message, '429' );
+                $server   = preg_match( '/HTTP\s+5\d\d/i', $message );
+                $state['source_failures'] = absint( $state['source_failures'] ?? 0 ) + 1;
+                $state = seo_supplier_recipe_totherramienta_managed_delay( $state, $throttle ? 'throttle' : ( $server ? 'server_error' : 'network_error' ) );
+
+                if ( $state['source_failures'] >= 8 && ! $throttle && ! $server ) {
+                    $state['status']       = 'error';
+                    $state['enabled']      = false;
+                    $state['last_error']   = $message;
+                    $state['last_message'] = 'UCP/MCP no permite continuar después de varios intentos: ' . $message;
+                } else {
+                    $state['status']          = 'waiting';
+                    $state['next_attempt_at'] = time() + absint( $state['adaptive_delay'] );
+                    $state['last_error']      = $message;
+                    $state['last_message']    = 'UCP/MCP temporalmente no disponible. Se reintentará en ' . absint( $state['adaptive_delay'] ) . ' s. ' . $message;
+                }
+                seo_supplier_crawl_store_state( $recipe_id, $state );
+                return true;
+            }
+
+            $products   = array_values( array_filter( (array) ( $structured['products'] ?? [] ), 'is_array' ) );
+            $pagination = is_array( $structured['pagination'] ?? null ) ? $structured['pagination'] : [];
+            $next_cursor= trim( (string) ( $pagination['cursor'] ?? '' ) );
+            $has_next   = array_key_exists( 'has_next_page', $pagination ) ? (bool) $pagination['has_next_page'] : null;
+            $total_count= isset( $pagination['total_count'] ) && is_numeric( $pagination['total_count'] ) ? absint( $pagination['total_count'] ) : 0;
+
+            $references = 0;
+            foreach ( $products as $product ) {
+                $references += seo_supplier_recipe_totherramienta_stage_rows(
+                    $recipe,
+                    seo_supplier_recipe_totherramienta_product_rows( $product )
+                );
+            }
+
+            $state['products_seen']   = absint( $state['products_seen'] ?? 0 ) + count( $products );
+            $state['references_seen'] = absint( $state['references_seen'] ?? 0 ) + $references;
+            $state['ucp_total_count'] = $total_count ?: absint( $state['ucp_total_count'] ?? 0 );
+            $state['source_failures'] = 0;
+            $state = seo_supplier_recipe_totherramienta_managed_delay( $state, 'success' );
+
+            if ( false === $has_next ) {
+                if ( 0 === absint( $state['products_seen'] ?? 0 ) ) {
+                    $state['status']       = 'error';
+                    $state['enabled']      = false;
+                    $state['last_error']   = 'UCP/MCP terminó sin devolver productos.';
+                    $state['last_message'] = $state['last_error'];
+                } elseif ( ! empty( $state['catalog_complete_requested'] ) ) {
+                    $state['status']       = 'error';
+                    $state['enabled']      = false;
+                    $state['catalog_proven_complete'] = 0;
+                    $state['last_error']   = 'UCP/MCP agotó sus resultados, pero search_catalog no se usa como prueba del universo completo de la tienda.';
+                    $state['last_message'] = $state['last_error'] . ' El staging se conserva y no se ejecutan bajas.';
+                } else {
+                    $state['catalog_proven_complete'] = 0;
+                    $state['phase']           = 'finalize';
+                    $state['status']          = 'finalizing';
+                    $state['next_attempt_at'] = 0;
+                    $state['last_message']    = 'UCP/MCP indicó has_next_page=false. La prueba parcial terminó y se prepara la importación sin bajas.';
+                }
+                seo_supplier_crawl_store_state( $recipe_id, $state );
+                if ( function_exists( 'seo_process_supervisor_nudge' ) ) {
+                    seo_process_supervisor_nudge( 0, 'supplier_imports' );
+                }
+                return true;
+            }
+
+            if ( true === $has_next ) {
+                if ( '' === $next_cursor || ( '' !== $cursor && hash_equals( $cursor, $next_cursor ) ) ) {
+                    $state['status']       = 'error';
+                    $state['enabled']      = false;
+                    $state['last_error']   = 'UCP/MCP anunció otra página pero no entregó un cursor nuevo.';
+                    $state['last_message'] = $state['last_error'];
+                    seo_supplier_crawl_store_state( $recipe_id, $state );
+                    return true;
+                }
+                $state['ucp_last_cursor'] = $cursor;
+                $state['ucp_cursor']      = $next_cursor;
+                $state['ucp_page']        = $page + 1;
+            } else {
+                // Sin metadata de paginación no se declara catálogo completo.
+                if ( empty( $state['catalog_complete_requested'] ) ) {
+                    $state['phase']           = 'finalize';
+                    $state['status']          = 'finalizing';
+                    $state['next_attempt_at'] = 0;
+                    $state['last_message']    = 'UCP/MCP devolvió una página sin metadata de continuidad. Se importa como prueba parcial.';
+                    seo_supplier_crawl_store_state( $recipe_id, $state );
+                    return true;
+                }
+                $state['status']       = 'error';
+                $state['enabled']      = false;
+                $state['last_error']   = 'UCP/MCP no devolvió pagination.has_next_page; no se puede certificar catálogo completo.';
+                $state['last_message'] = $state['last_error'];
+                seo_supplier_crawl_store_state( $recipe_id, $state );
+                return true;
+            }
+
+            if ( empty( $state['catalog_complete_requested'] ) ) {
+                $state['phase']           = 'finalize';
+                $state['status']          = 'finalizing';
+                $state['next_attempt_at'] = 0;
+                $state['last_message']    = 'Prueba corta UCP/MCP obtenida. Se prepara una importación parcial.';
+            } else {
+                $state['next_attempt_at'] = time() + absint( $state['adaptive_delay'] );
+                if ( $total_count > 0 ) {
+                    $state['progress'] = min( 99, (int) floor( 100 * min( $total_count, absint( $state['products_seen'] ) ) / $total_count ) );
+                }
+                $state['last_message'] = sprintf(
+                    'UCP/MCP página %d: %d productos, %d referencias. Acumulado: %d%s. Siguiente petición en %d s.',
+                    $page,
+                    count( $products ),
+                    $references,
+                    absint( $state['products_seen'] ),
+                    $total_count ? ' de ~' . number_format_i18n( $total_count ) : '',
+                    absint( $state['adaptive_delay'] )
+                );
+            }
+            seo_supplier_crawl_store_state( $recipe_id, $state );
+            return true;
+        }
+
+        $state['status']       = 'error';
+        $state['enabled']      = false;
+        $state['last_error']   = 'Fase desconocida del proceso de TotHerramienta.';
+        $state['last_message'] = $state['last_error'];
+        seo_supplier_crawl_store_state( $recipe_id, $state );
+        return false;
+    }
+}
+
+if ( ! function_exists( 'seo_supplier_recipe_totherramienta_start' ) ) {
+    /**
+     * Inicializa el proceso y devuelve la petición web al administrador. Toda la
+     * descarga se realiza después en el Gestor de workers.
+     *
+     * @param array $recipe Receta.
+     * @param bool  $catalog_complete Si el usuario marcó catálogo completo.
+     * @return array|WP_Error
+     */
+    function seo_supplier_recipe_totherramienta_start( $recipe, $catalog_complete = false ) {
+        if ( ! is_array( $recipe ) || empty( $recipe['id'] ) ) {
+            return new WP_Error( 'totherramienta_recipe_invalid', 'Receta TotHerramienta no válida.' );
+        }
+        if ( ! function_exists( 'seo_supplier_crawl_state' ) || ! function_exists( 'seo_supplier_crawl_store_state' ) ) {
+            return new WP_Error( 'totherramienta_worker_missing', 'El gestor de staging/procesos de proveedores no está cargado.' );
+        }
+
+        $recipe_id = sanitize_key( $recipe['id'] );
+        $existing  = seo_supplier_crawl_state( $recipe_id );
+        if ( seo_supplier_recipe_totherramienta_manager_pending( $recipe ) ) {
+            if ( function_exists( 'seo_process_supervisor_nudge' ) ) {
+                seo_process_supervisor_nudge( 0, 'supplier_imports' );
+            }
+            return [
+                'message' => 'TotHerramienta ya tiene una importación en curso. El Gestor de workers continuará desde el último checkpoint.',
+            ];
+        }
+
+        $existing_status = sanitize_key( (string) ( $existing['status'] ?? '' ) );
+        $same_mode = ( ! empty( $existing['catalog_complete_requested'] ) ) === (bool) $catalog_complete;
+        if ( ! empty( $existing['manual_started'] ) && $same_mode && in_array( $existing_status, [ 'error', 'blocked' ], true ) ) {
+            $existing['enabled']                    = true;
+            $existing['status']                     = 'queued';
+            $existing['next_attempt_at']            = 0;
+            $existing['source_failures']            = 0;
+            $existing['shopify_fallback_failures']  = 0;
+            $existing['last_error']                 = '';
+            $existing['last_message']               = 'Importación reanudada desde el último checkpoint conservado. El worker continuará sin vaciar el staging.';
+            seo_supplier_crawl_store_state( $recipe_id, $existing );
+            if ( function_exists( 'seo_process_supervisor_nudge' ) ) {
+                seo_process_supervisor_nudge( 0, 'supplier_imports' );
+            }
+            return [ 'message' => $existing['last_message'] ];
+        }
+
+        seo_supplier_recipe_totherramienta_reset_staging( $recipe_id );
+
+        $state = [
+            'manual_started'            => true,
+            'enabled'                   => true,
+            'status'                    => 'queued',
+            'phase'                     => 'shopify',
+            'source'                    => 'shopify_json_managed',
+            'catalog_complete_requested'=> $catalog_complete ? 1 : 0,
+            'catalog_proven_complete'   => 0,
+            'page_size'                 => 50,
+            'shopify_feed'              => 'products',
+            'shopify_page'              => 1,
+            'shopify_fallback_failures' => 0,
+            'ucp_page'                  => 1,
+            'ucp_cursor'                => '',
+            'ucp_last_cursor'           => '',
+            'products_seen'             => 0,
+            'references_seen'           => 0,
+            'requests'                  => 0,
+            'source_failures'           => 0,
+            'adaptive_delay'            => 15,
+            'success_streak'            => 0,
+            'next_attempt_at'           => 0,
+            'progress'                  => 0,
+            'started_at'                => current_time( 'mysql' ),
+            'run_token'                 => wp_generate_password( 16, false, false ),
+            'last_error'                => '',
+            'last_message'              => $catalog_complete
+                ? 'Importación completa encolada. El worker descargará TotHerramienta en bloques de 50 y guardará un checkpoint tras cada petición.'
+                : 'Prueba corta encolada. El worker descargará un bloque de hasta 50 productos.',
+        ];
+        if ( ! empty( $existing['last_csv_filename'] ) ) {
+            $state['previous_csv_filename'] = (string) $existing['last_csv_filename'];
+        }
+        seo_supplier_crawl_store_state( $recipe_id, $state );
+
+        if ( function_exists( 'seo_process_supervisor_managed_update' ) ) {
+            seo_process_supervisor_managed_update(
+                'supplier-import-' . $recipe_id,
+                [
+                    'name'         => 'Importación proveedores · TotHerramienta',
+                    'pending'      => 1,
+                    'healthy'      => 1,
+                    'last_checked' => time(),
+                    'last_result'  => 'queued',
+                    'last_error'   => '',
+                    'detail'       => $state['last_message'],
+                ]
+            );
+        }
+        if ( function_exists( 'seo_process_supervisor_nudge' ) ) {
+            seo_process_supervisor_nudge( 0, 'supplier_imports' );
+        }
+
+        return [
+            'message' => $state['last_message'] . ' Puedes seguir el avance en Procesos > Gestor de workers.',
         ];
     }
 }
@@ -1824,9 +2292,9 @@ add_filter(
             'id'          => 'totherramienta',
             'label'       => 'TotHerramienta - archivo / Shopify JSON',
             'provider'    => 'TOTHERRAMIENTA',
-            'version'     => '1.1.0',
+            'version'     => '1.2.0',
             'mode'        => 'mapping',
-            'description' => 'Permite cargar manualmente CSV/XLS/XLSX. La obtencion automatica usa Shopify JSON, sitemap y Ajax Product API; UCP/MCP queda como ultimo fallback.',
+            'description' => 'Permite cargar manualmente CSV/XLS/XLSX. La obtención automática se ejecuta por lotes en el Gestor de workers, con feeds Shopify paginados; UCP/MCP queda como apoyo para pruebas parciales.',
         ];
         return $recipes;
     }
@@ -1843,13 +2311,16 @@ add_filter(
         }
         $recipes['totherramienta_ucp'] = [
             'id'                   => 'totherramienta_ucp',
-            'label'                => 'TotHerramienta - Shopify JSON/UCP - v1.1.0',
+            'label'                => 'TotHerramienta - Shopify JSON/UCP por worker',
             'provider'             => 'TOTHERRAMIENTA',
-            'version'              => '1.1.0',
+            'version'              => '1.2.0',
             'execution'            => 'local_process',
-            'start_callback'       => 'seo_supplier_recipe_totherramienta_start',
-            'requires_local_files' => false,
-            'description'          => 'Descarga el catalogo por Shopify JSON, verifica contra sitemap.xml y completa faltantes mediante Ajax Product API. Genera CSV estandar y CSV ampliado con GTIN/EAN/barcode y metadatos. UCP/MCP queda como ultimo fallback.',
+            'start_callback'          => 'seo_supplier_recipe_totherramienta_start',
+            'manager_pending_callback'=> 'seo_supplier_recipe_totherramienta_manager_pending',
+            'manager_slice_callback'  => 'seo_supplier_recipe_totherramienta_manager_slice',
+            'manager_label'           => 'Importación proveedores · TotHerramienta',
+            'requires_local_files'    => false,
+            'description'             => 'El botón solo encola el proceso. El Gestor de workers descarga el catálogo en bloques de 50, guarda checkpoints y adapta el ritmo ante 429/5xx. Para catálogo completo exige agotar un feed Shopify paginado; UCP/MCP se reserva para pruebas parciales y nunca certifica bajas.',
         ];
         return $recipes;
     }
