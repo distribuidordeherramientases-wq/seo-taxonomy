@@ -410,138 +410,6 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
         }
         $rendered = true;
         ?>
-        <style id="dht-category-live-compare-styles">
-        .dht-category-product-grid .dh-product-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            align-items: center;
-        }
-        .dht-category-compare-toggle {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 38px;
-            padding: 8px 12px;
-            border: 1px solid var(--dht-border-color, #d1d5db);
-            border-radius: 8px;
-            background: var(--dht-surface, #fff);
-            color: inherit;
-            font: inherit;
-            font-weight: 700;
-            line-height: 1.2;
-            cursor: pointer;
-        }
-        .dht-category-compare-toggle[aria-pressed="true"] {
-            border-color: currentColor;
-            box-shadow: inset 0 0 0 1px currentColor;
-        }
-        .dht-category-compare-toggle:disabled {
-            opacity: .45;
-            cursor: not-allowed;
-        }
-        .dht-category-live-compare {
-            margin-top: 20px;
-            padding: 16px;
-            border: 1px solid var(--dht-border-color, #e5e7eb);
-            border-radius: 12px;
-            background: var(--dht-surface, #fff);
-        }
-        .dht-category-live-compare[hidden],
-        .dht-category-live-compare-result[hidden] {
-            display: none !important;
-        }
-        .dht-category-live-compare-toolbar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            align-items: center;
-        }
-        .dht-category-live-compare-count {
-            margin-right: auto;
-            font-weight: 700;
-        }
-        .dht-category-live-compare-toolbar button {
-            min-height: 38px;
-            padding: 8px 13px;
-            border: 1px solid var(--dht-border-color, #d1d5db);
-            border-radius: 8px;
-            background: var(--dht-surface, #fff);
-            color: inherit;
-            font: inherit;
-            font-weight: 700;
-            cursor: pointer;
-        }
-        .dht-category-live-compare-toolbar button:disabled {
-            opacity: .45;
-            cursor: not-allowed;
-        }
-        .dht-category-live-compare-note {
-            flex-basis: 100%;
-            margin: 0;
-            font-size: .92em;
-            opacity: .75;
-        }
-        .dht-category-live-compare-result {
-            margin-top: 18px;
-        }
-        .dht-category-live-compare-result h3 {
-            margin: 0 0 12px;
-        }
-        .dht-category-live-compare-table-wrap {
-            width: 100%;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        .dht-category-live-compare-table {
-            width: 100%;
-            min-width: 760px;
-            border-collapse: collapse;
-        }
-        .dht-category-live-compare-table th,
-        .dht-category-live-compare-table td {
-            padding: 12px 13px;
-            border-bottom: 1px solid var(--dht-border-color, #e5e7eb);
-            text-align: left;
-            vertical-align: top;
-        }
-        .dht-category-live-compare-table thead th {
-            background: var(--dht-surface-soft, #f8fafc);
-            vertical-align: bottom;
-        }
-        .dht-category-live-compare-table tbody th {
-            width: 180px;
-            font-weight: 700;
-        }
-        .dht-category-live-compare-product {
-            display: grid;
-            gap: 8px;
-            min-width: 150px;
-        }
-        .dht-category-live-compare-product img {
-            width: 72px;
-            height: 72px;
-            object-fit: contain;
-            border-radius: 8px;
-            background: #fff;
-        }
-        .dht-category-live-compare-product a {
-            font-weight: 700;
-            text-decoration: none;
-        }
-        @media (max-width: 767px) {
-            .dht-category-live-compare {
-                padding: 12px;
-            }
-            .dht-category-live-compare-toolbar button {
-                flex: 1 1 auto;
-            }
-            .dht-category-live-compare-table th,
-            .dht-category-live-compare-table td {
-                padding: 10px 11px;
-            }
-        }
-        </style>
         <script id="dht-category-live-compare-script">
         (function () {
             'use strict';
@@ -911,6 +779,153 @@ if (!function_exists('dht_template_node_category_ids')) {
         ));
 
         return dht_template_public_term_ids($ids, 'product_cat');
+    }
+}
+
+
+/* ==========================================================
+   CATEGORIAS: RELACIONES COMERCIALES Y CRITERIOS DE ELECCION
+   - Primero respeta subcategorias reales.
+   - Si no las hay, usa Vocabulary canonico compartido y exige
+     una afinidad minima para evitar familias hermanas aleatorias.
+========================================================== */
+if (!function_exists('dht_template_related_product_categories')) {
+    function dht_template_related_product_categories($term, $limit = 6)
+    {
+        global $wpdb;
+
+        if (!$term instanceof WP_Term || 'product_cat' !== $term->taxonomy) {
+            return array();
+        }
+
+        $limit = max(1, min(8, absint($limit)));
+
+        $children = get_terms(array(
+            'taxonomy'   => 'product_cat',
+            'parent'     => (int) $term->term_id,
+            'hide_empty' => true,
+            'number'     => $limit,
+            'orderby'    => 'count',
+            'order'      => 'DESC',
+        ));
+
+        if (!is_wp_error($children) && !empty($children)) {
+            return array_values($children);
+        }
+
+        $object_table = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocab_table  = $wpdb->prefix . 'seo_vocabulary';
+        $taxonomy_table = $wpdb->term_taxonomy;
+
+        $object_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($object_table)));
+        $vocab_exists  = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($vocab_table)));
+
+        if ($object_exists !== $object_table || $vocab_exists !== $vocab_table) {
+            return array();
+        }
+
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT
+                    ov_other.object_id AS term_id,
+                    COUNT(DISTINCT ov_other.vocabulary_id) AS shared_terms,
+                    SUM(
+                        CASE v.semantic_group
+                            WHEN 'tipo' THEN 6
+                            WHEN 'subtipo' THEN 5
+                            WHEN 'aplicacion' THEN 5
+                            WHEN 'plataforma' THEN 3
+                            WHEN 'rol' THEN 1
+                            ELSE 1
+                        END
+                    ) AS relevance,
+                    MAX(tt.count) AS product_count
+                 FROM {$object_table} ov_current
+                 INNER JOIN {$object_table} ov_other
+                    ON ov_other.vocabulary_id = ov_current.vocabulary_id
+                   AND ov_other.object_type = 'product_cat'
+                   AND ov_other.status = 1
+                   AND ov_other.object_id <> ov_current.object_id
+                 INNER JOIN {$vocab_table} v
+                    ON v.id = ov_current.vocabulary_id
+                   AND v.active = 1
+                 INNER JOIN {$taxonomy_table} tt
+                    ON tt.term_id = ov_other.object_id
+                   AND tt.taxonomy = 'product_cat'
+                   AND tt.count > 0
+                 WHERE ov_current.object_type = 'product_cat'
+                   AND ov_current.object_id = %d
+                   AND ov_current.status = 1
+                 GROUP BY ov_other.object_id
+                 HAVING relevance >= 3
+                 ORDER BY relevance DESC, shared_terms DESC, product_count DESC, term_id ASC
+                 LIMIT %d",
+                (int) $term->term_id,
+                $limit
+            ),
+            ARRAY_A
+        );
+
+        $related = array();
+        foreach ((array) $rows as $row) {
+            $candidate = get_term(absint($row['term_id'] ?? 0), 'product_cat');
+            if ($candidate instanceof WP_Term && !is_wp_error($candidate) && $candidate->count > 0) {
+                $related[] = $candidate;
+            }
+        }
+
+        return $related;
+    }
+}
+
+if (!function_exists('dht_template_category_choice_criteria')) {
+    function dht_template_category_choice_criteria($products, $limit = 6)
+    {
+        $limit = max(1, min(8, absint($limit)));
+        $counts = array();
+
+        foreach ((array) $products as $item) {
+            $product = $item instanceof WC_Product
+                ? $item
+                : (function_exists('wc_get_product') ? wc_get_product(absint($item)) : null);
+
+            if (!$product instanceof WC_Product) {
+                continue;
+            }
+
+            foreach ($product->get_attributes() as $attribute) {
+                if (!$attribute instanceof WC_Product_Attribute || !$attribute->get_visible()) {
+                    continue;
+                }
+
+                $label = trim(wp_strip_all_tags((string) wc_attribute_label($attribute->get_name(), $product)));
+                if ($label === '') {
+                    continue;
+                }
+
+                $key = sanitize_title(remove_accents(mb_strtolower($label)));
+                if ($key === '') {
+                    continue;
+                }
+
+                if (!isset($counts[$key])) {
+                    $counts[$key] = array('label' => $label, 'count' => 0);
+                }
+                $counts[$key]['count']++;
+            }
+        }
+
+        uasort($counts, static function ($a, $b) {
+            $count_cmp = (int) $b['count'] <=> (int) $a['count'];
+            if ($count_cmp !== 0) {
+                return $count_cmp;
+            }
+            return strcasecmp((string) $a['label'], (string) $b['label']);
+        });
+
+        return array_values(array_slice(array_map(static function ($item) {
+            return (string) $item['label'];
+        }, $counts), 0, $limit));
     }
 }
 
