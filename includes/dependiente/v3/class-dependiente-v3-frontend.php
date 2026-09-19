@@ -3,6 +3,7 @@
 defined('ABSPATH') || exit;
 
 final class SEO_Dependiente_V3_Frontend {
+    private static $editor_style_attached = false;
     public static function init() {
         add_action('init', array(__CLASS__, 'register_shortcodes'), 20);
         add_action('init', array(__CLASS__, 'ensure_page'), 30);
@@ -86,13 +87,14 @@ final class SEO_Dependiente_V3_Frontend {
 
     public static function enqueue_assets() {
         // Sufijo propio para invalidar caches sin cambiar la version global del plugin.
-        $asset_version = SEO_DEPENDIENTE_VERSION . '-visual-guidance-1';
+        $asset_version = SEO_DEPENDIENTE_VERSION . '-visual-guidance-2-style-editor';
         wp_enqueue_style(
             'seo-dependiente-v3',
             SEO_DEPENDIENTE_V3_URL . 'assets/css/dependiente-v3.css',
             array(),
             $asset_version
         );
+        self::attach_editor_style();
         wp_enqueue_script(
             'seo-dependiente-v3',
             SEO_DEPENDIENTE_V3_URL . 'assets/js/dependiente-v3.js',
@@ -105,6 +107,32 @@ final class SEO_Dependiente_V3_Frontend {
             'showDebug' => current_user_can('manage_options'),
             'version' => SEO_DEPENDIENTE_VERSION,
         ));
+    }
+
+    /**
+     * Inyecta sobre la hoja base las variables validadas por
+     * SEO Marketing > Estilo visual > Dependiente 3.0.
+     *
+     * La hoja base mantiene fallbacks, de modo que Dependiente sigue siendo
+     * funcional incluso si el modulo de Marketing no esta disponible.
+     */
+    private static function attach_editor_style() {
+        if (self::$editor_style_attached) {
+            return;
+        }
+
+        if (
+            !function_exists('seo_marketing_style_get_settings')
+            || !function_exists('seo_marketing_style_build_dependiente_css')
+        ) {
+            return;
+        }
+
+        $css = seo_marketing_style_build_dependiente_css(seo_marketing_style_get_settings());
+        if (is_string($css) && $css !== '') {
+            wp_add_inline_style('seo-dependiente-v3', $css);
+            self::$editor_style_attached = true;
+        }
     }
 
     public static function template_include($template) {
