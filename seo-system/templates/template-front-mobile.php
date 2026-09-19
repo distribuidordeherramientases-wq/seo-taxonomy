@@ -770,21 +770,21 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
                 <div class="sf-mobile-finder">
                     <div class="sf-mobile-finder-copy">
                         <span class="sf-eyebrow">Tu Dependiente del catálogo</span>
-                        <h1 id="dht-home-title-mobile">Encuentra lo que necesitas</h1>
-                        <p>Busca por producto, necesidad, aplicación, medida, marca o referencia. Dependiente relaciona tu búsqueda con el catálogo y compara opciones.</p>
-                        <div class="sf-home-search">
-                            <?php if (shortcode_exists('seo_search')) : ?>
-                                <?php echo do_shortcode('[seo_search placeholder="Producto, necesidad, uso o referencia..."]'); ?>
-                            <?php else : ?>
-                                <form class="sf-home-search-form" role="search" method="get" action="<?php echo esc_url(home_url('/')); ?>">
-                                    <label class="screen-reader-text" for="dht-home-search-mobile">Buscar productos</label>
-                                    <input id="dht-home-search-mobile" type="search" name="s" placeholder="Producto, necesidad, uso o referencia..." autocomplete="off">
-                                    <input type="hidden" name="post_type" value="product">
-                                    <button type="submit">Buscar</button>
-                                </form>
-                            <?php endif; ?>
+                        <h1 id="dht-home-title-mobile">Encuentra lo que necesitas con Dependiente</h1>
+                        <p>Cuéntale qué quieres hacer, qué problema tienes o qué necesitas conseguir. Puedes escribirlo como se lo explicarías a un dependiente.</p>
+                        <div class="sf-home-search" aria-label="Preguntar al Dependiente">
+                            <form class="sf-home-search-form" role="search" method="get" action="<?php echo esc_url(home_url('/dependiente/')); ?>">
+                                <label class="screen-reader-text" for="dht-home-search-mobile">Cuéntale a Dependiente qué necesitas</label>
+                                <input id="dht-home-search-mobile" type="search" name="dep_q" placeholder="¿Qué necesitas hacer o resolver?" autocomplete="off">
+                                <button type="submit">Preguntar</button>
+                            </form>
                         </div>
-                        <div class="sf-search-examples"><span>extractor rodamientos</span><span>taladro hormigón</span><span>kit plato ducha</span><span>compresor aire</span></div>
+                        <div class="sf-search-examples" aria-label="Ejemplos para preguntar al Dependiente">
+                            <a class="sf-search-example" style="text-decoration:none;color:inherit" href="<?php echo esc_url(add_query_arg('dep_q', 'se me ha roto un grifo y quiero cambiarlo', home_url('/dependiente/'))); ?>"><span>se me ha roto un grifo</span></a>
+                            <a class="sf-search-example" style="text-decoration:none;color:inherit" href="<?php echo esc_url(add_query_arg('dep_q', 'quiero perforar una pared de hormigón', home_url('/dependiente/'))); ?>"><span>perforar una pared de hormigón</span></a>
+                            <a class="sf-search-example" style="text-decoration:none;color:inherit" href="<?php echo esc_url(add_query_arg('dep_q', 'necesito una máquina para cortar los arbustos del jardín', home_url('/dependiente/'))); ?>"><span>cortar los arbustos del jardín</span></a>
+                            <a class="sf-search-example" style="text-decoration:none;color:inherit" href="<?php echo esc_url(add_query_arg('dep_q', 'quiero reparar un motor y no sé qué herramienta necesito', home_url('/dependiente/'))); ?>"><span>reparar un motor</span></a>
+                        </div>
                         <a class="sf-mobile-catalog-link" href="<?php echo esc_url(dht_template_shop_url()); ?>">Ver todo el catálogo →</a>
                     </div>
                     <div class="sf-mobile-person">
