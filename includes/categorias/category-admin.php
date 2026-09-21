@@ -1472,6 +1472,419 @@ if (!function_exists('seo_category_catalog_path_label')) {
     }
 }
 
+
+if (!function_exists('seo_category_catalog_export_json')) {
+    /**
+     * Exporta el inventario REAL categoria-producto de WooCommerce a JSON.
+     * Respeta los filtros activos de "Tabla catalogo", pero ignora la paginacion
+     * para incluir todas las categorias que coincidan.
+     */
+    function seo_category_catalog_export_json() {
+        if (!current_user_can('manage_options')) {
+            wp_die('No tienes permisos para exportar el inventario de catalogo.');
+        }
+
+        check_admin_referer('seo_category_catalog_export_json');
+
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(0);
+        }
+        while (ob_get_level() > 0) {
+            @ob_end_clean();
+        }
+
+        global $wpdb;
+
+        $terms_table         = $wpdb->terms;
+        $tt_table            = $wpdb->term_taxonomy;
+        $relationships_table = $wpdb->term_relationships;
+        $posts_table         = $wpdb->posts;
+        $postmeta_table      = $wpdb->postmeta;
+
+        $catalog_q = isset($_GET['catalog_q'])
+            ? sanitize_text_field(wp_unslash($_GET['catalog_q']))
+            : '';
+        $catalog_state = isset($_GET['catalog_state'])
+            ? sanitize_key(wp_unslash($_GET['catalog_state']))
+            : 'all';
+        $catalog_sort = isset($_GET['catalog_sort'])
+            ? sanitize_key(wp_unslash($_GET['catalog_sort']))
+            : 'products_desc';
+
+        if (!in_array($catalog_state, ['all', 'with_products', 'empty'], true)) {
+            $catalog_state = 'all';
+        }
+        if (!in_array($catalog_sort, ['products_desc', 'products_asc', 'published_desc', 'name_asc', 'name_desc'], true)) {
+            $catalog_sort = 'products_desc';
+        }
+
+        $valid_product_status_sql = "p.post_status NOT IN ('trash','auto-draft','inherit')";
+
+        $total_categories = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$tt_table} WHERE taxonomy = 'product_cat'"
+        );
+        $total_products = (int) $wpdb->get_var(
+            "SELECT COUNT(*)
+             FROM {$posts_table} p
+             WHERE p.post_type = 'product'
+               AND {$valid_product_status_sql}"
+        );
+        $published_products = (int) $wpdb->get_var(
+            "SELECT COUNT(*)
+             FROM {$posts_table} p
+             WHERE p.post_type = 'product'
+               AND p.post_status = 'publish'"
+        );
+        $categorized_products = (int) $wpdb->get_var(
+            "SELECT COUNT(DISTINCT p.ID)
+             FROM {$posts_table} p
+             INNER JOIN {$relationships_table} tr ON tr.object_id = p.ID
+             INNER JOIN {$tt_table} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
+             WHERE p.post_type = 'product'
+               AND {$valid_product_status_sql}
+               AND tt.taxonomy = 'product_cat'"
+        );
+        $category_product_assignments = (int) $wpdb->get_var(
+            "SELECT COUNT(*)
+             FROM {$relationships_table} tr
+             INNER JOIN {$tt_table} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
+             INNER JOIN {$posts_table} p ON p.ID = tr.object_id
+             WHERE tt.taxonomy = 'product_cat'
+               AND p.post_type = 'product'
+               AND {$valid_product_status_sql}"
+        );
+        $categories_with_products = (int) $wpdb->get_var(
+            "SELECT COUNT(DISTINCT tt.term_id)
+             FROM {$tt_table} tt
+             INNER JOIN {$relationships_table} tr ON tr.term_taxonomy_id = tt.term_taxonomy_id
+             INNER JOIN {$posts_table} p ON p.ID = tr.object_id
+             WHERE tt.taxonomy = 'product_cat'
+               AND p.post_type = 'product'
+               AND {$valid_product_status_sql}"
+        );
+        $multi_category_products = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM (
+                SELECT p.ID
+                FROM {$posts_table} p
+                INNER JOIN {$relationships_table} tr ON tr.object_id = p.ID
+                INNER JOIN {$tt_table} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
+                WHERE p.post_type = 'product'
+                  AND {$valid_product_status_sql}
+                  AND tt.taxonomy = 'product_cat'
+                GROUP BY p.ID
+                HAVING COUNT(DISTINCT tt.term_id) > 1
+             ) seo_multi_category_products"
+        );
+        $counter_mismatches = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM (
+                SELECT tt.term_taxonomy_id,
+                       tt.count AS woo_count,
+                       COUNT(DISTINCT p.ID) AS real_published_count
+                FROM {$tt_table} tt
+                LEFT JOIN {$relationships_table} tr ON tr.term_taxonomy_id = tt.term_taxonomy_id
+                LEFT JOIN {$posts_table} p
+                       ON p.ID = tr.object_id
+                      AND p.post_type = 'product'
+                      AND p.post_status = 'publish'
+                WHERE tt.taxonomy = 'product_cat'
+                GROUP BY tt.term_taxonomy_id, tt.count
+                HAVING real_published_count <> woo_count
+             ) seo_category_counter_mismatches"
+        );
+
+        $empty_categories = max(0, $total_categories - $categories_with_products);
+        $uncategorized_products_count = max(0, $total_products - $categorized_products);
+        $avg_categories_per_product = $categorized_products > 0
+            ? round($category_product_assignments / $categorized_products, 2)
+            : 0;
+
+        $search_sql = '';
+        $search_params = [];
+        if ($catalog_q !== '') {
+            $like = '%' . $wpdb->esc_like($catalog_q) . '%';
+            $search_sql = " AND (
+                t.name LIKE %s
+                OR t.slug LIKE %s
+                OR EXISTS (
+                    SELECT 1
+                    FROM {$relationships_table} tr_search
+                    INNER JOIN {$posts_table} p_search ON p_search.ID = tr_search.object_id
+                    LEFT JOIN {$postmeta_table} sku_search
+                           ON sku_search.post_id = p_search.ID
+                          AND sku_search.meta_key = '_sku'
+                    WHERE tr_search.term_taxonomy_id = tt.term_taxonomy_id
+                      AND p_search.post_type = 'product'
+                      AND p_search.post_status NOT IN ('trash','auto-draft','inherit')
+                      AND (p_search.post_title LIKE %s OR sku_search.meta_value LIKE %s)
+                )
+            )";
+            $search_params = [$like, $like, $like, $like];
+        }
+
+        $summary_sql = "SELECT
+                tt.term_id,
+                tt.term_taxonomy_id,
+                tt.parent,
+                tt.count AS woo_count,
+                t.name,
+                t.slug,
+                COUNT(DISTINCT p.ID) AS product_count,
+                COUNT(DISTINCT CASE WHEN p.post_status = 'publish' THEN p.ID END) AS published_count,
+                COUNT(DISTINCT CASE WHEN p.ID IS NOT NULL AND p.post_status <> 'publish' THEN p.ID END) AS nonpublished_count
+            FROM {$tt_table} tt
+            INNER JOIN {$terms_table} t ON t.term_id = tt.term_id
+            LEFT JOIN {$relationships_table} tr ON tr.term_taxonomy_id = tt.term_taxonomy_id
+            LEFT JOIN {$posts_table} p
+                   ON p.ID = tr.object_id
+                  AND p.post_type = 'product'
+                  AND p.post_status NOT IN ('trash','auto-draft','inherit')
+            WHERE tt.taxonomy = 'product_cat'
+            {$search_sql}
+            GROUP BY tt.term_id, tt.term_taxonomy_id, tt.parent, tt.count, t.name, t.slug";
+
+        if ($catalog_state === 'with_products') {
+            $summary_sql .= ' HAVING product_count > 0';
+        } elseif ($catalog_state === 'empty') {
+            $summary_sql .= ' HAVING product_count = 0';
+        }
+
+        switch ($catalog_sort) {
+            case 'products_asc':
+                $summary_sql .= ' ORDER BY product_count ASC, t.name ASC';
+                break;
+            case 'published_desc':
+                $summary_sql .= ' ORDER BY published_count DESC, product_count DESC, t.name ASC';
+                break;
+            case 'name_desc':
+                $summary_sql .= ' ORDER BY t.name DESC';
+                break;
+            case 'name_asc':
+                $summary_sql .= ' ORDER BY t.name ASC';
+                break;
+            case 'products_desc':
+            default:
+                $summary_sql .= ' ORDER BY product_count DESC, t.name ASC';
+                break;
+        }
+
+        $summary_rows = $search_params
+            ? $wpdb->get_results($wpdb->prepare($summary_sql, ...$search_params), ARRAY_A)
+            : $wpdb->get_results($summary_sql, ARRAY_A);
+        $summary_rows = is_array($summary_rows) ? $summary_rows : [];
+
+        // Mapa completo de categorias para construir rutas aunque el export este filtrado.
+        $category_map = [];
+        $all_terms_for_path = $wpdb->get_results(
+            "SELECT tt.term_id, tt.parent, t.name
+             FROM {$tt_table} tt
+             INNER JOIN {$terms_table} t ON t.term_id = tt.term_id
+             WHERE tt.taxonomy = 'product_cat'",
+            ARRAY_A
+        );
+        foreach ((array) $all_terms_for_path as $path_row) {
+            $category_map[absint($path_row['term_id'] ?? 0)] = [
+                'name'   => (string) ($path_row['name'] ?? ''),
+                'parent' => absint($path_row['parent'] ?? 0),
+            ];
+        }
+
+        $uncategorized_rows = $wpdb->get_results(
+            "SELECT p.ID AS product_id,
+                    p.post_title,
+                    p.post_name,
+                    p.post_status,
+                    MAX(CASE WHEN pm.meta_key = '_sku' THEN pm.meta_value END) AS sku,
+                    MAX(CASE WHEN pm.meta_key = '_stock_status' THEN pm.meta_value END) AS stock_status,
+                    MAX(CASE WHEN pm.meta_key = '_stock' THEN pm.meta_value END) AS stock_quantity
+             FROM {$posts_table} p
+             LEFT JOIN {$postmeta_table} pm
+                    ON pm.post_id = p.ID
+                   AND pm.meta_key IN ('_sku','_stock_status','_stock')
+             WHERE p.post_type = 'product'
+               AND {$valid_product_status_sql}
+               AND NOT EXISTS (
+                    SELECT 1
+                    FROM {$relationships_table} tr_u
+                    INNER JOIN {$tt_table} tt_u ON tt_u.term_taxonomy_id = tr_u.term_taxonomy_id
+                    WHERE tr_u.object_id = p.ID
+                      AND tt_u.taxonomy = 'product_cat'
+               )
+             GROUP BY p.ID, p.post_title, p.post_name, p.post_status
+             ORDER BY p.post_title ASC",
+            ARRAY_A
+        );
+
+        $charset = get_option('blog_charset') ?: 'UTF-8';
+        $filename = 'inventario-real-categorias-productos-' . wp_date('Ymd-His') . '.json';
+        nocache_headers();
+        header('Content-Type: application/json; charset=' . $charset);
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('X-Content-Type-Options: nosniff');
+
+        $header = [
+            'schema' => [
+                'name' => 'seo-category-real-catalog-inventory',
+                'version' => 1,
+            ],
+            'generated_at' => wp_date('c'),
+            'site_url' => home_url('/'),
+            'source_of_truth' => [
+                'categories' => 'term_taxonomy taxonomy=product_cat',
+                'assignments' => 'term_relationships + term_taxonomy + posts',
+                'products' => "posts post_type=product excluding trash/auto-draft/inherit",
+                'woo_counter' => 'term_taxonomy.count diagnostic only',
+            ],
+            'filters' => [
+                'query' => $catalog_q,
+                'state' => $catalog_state,
+                'sort' => $catalog_sort,
+                'pagination_applied' => false,
+            ],
+            'kpis' => [
+                'categories_total' => $total_categories,
+                'categories_with_products' => $categories_with_products,
+                'categories_empty' => $empty_categories,
+                'products_real' => $total_products,
+                'products_published' => $published_products,
+                'products_uncategorized' => $uncategorized_products_count,
+                'category_product_assignments' => $category_product_assignments,
+                'products_multi_category' => $multi_category_products,
+                'avg_categories_per_categorized_product' => $avg_categories_per_product,
+                'woo_counter_mismatches' => $counter_mismatches,
+                'categories_matching_filters' => count($summary_rows),
+            ],
+        ];
+
+        $header_json = wp_json_encode($header, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if ($header_json === false) {
+            $header_json = '{}';
+        }
+        echo substr($header_json, 0, -1) . ',"categories":[';
+
+        $batch_size = 50;
+        $first_category = true;
+
+        for ($offset = 0; $offset < count($summary_rows); $offset += $batch_size) {
+            $batch_rows = array_slice($summary_rows, $offset, $batch_size);
+            $batch_category_ids = array_values(array_filter(array_map(static function($row) {
+                return absint($row['term_id'] ?? 0);
+            }, $batch_rows)));
+
+            $products_by_category = [];
+            foreach ($batch_category_ids as $category_id) {
+                $products_by_category[$category_id] = [];
+            }
+
+            if ($batch_category_ids) {
+                $placeholders = implode(',', array_fill(0, count($batch_category_ids), '%d'));
+                $product_sql = "SELECT
+                        tt.term_id AS category_id,
+                        p.ID AS product_id,
+                        p.post_title,
+                        p.post_name,
+                        p.post_status,
+                        MAX(CASE WHEN pm.meta_key = '_sku' THEN pm.meta_value END) AS sku,
+                        MAX(CASE WHEN pm.meta_key = '_stock_status' THEN pm.meta_value END) AS stock_status,
+                        MAX(CASE WHEN pm.meta_key = '_stock' THEN pm.meta_value END) AS stock_quantity
+                    FROM {$tt_table} tt
+                    INNER JOIN {$relationships_table} tr ON tr.term_taxonomy_id = tt.term_taxonomy_id
+                    INNER JOIN {$posts_table} p
+                            ON p.ID = tr.object_id
+                           AND p.post_type = 'product'
+                           AND p.post_status NOT IN ('trash','auto-draft','inherit')
+                    LEFT JOIN {$postmeta_table} pm
+                           ON pm.post_id = p.ID
+                          AND pm.meta_key IN ('_sku','_stock_status','_stock')
+                    WHERE tt.taxonomy = 'product_cat'
+                      AND tt.term_id IN ({$placeholders})
+                    GROUP BY tt.term_id, p.ID, p.post_title, p.post_name, p.post_status
+                    ORDER BY tt.term_id ASC, p.post_title ASC";
+
+                $product_rows = $wpdb->get_results(
+                    $wpdb->prepare($product_sql, ...$batch_category_ids),
+                    ARRAY_A
+                );
+
+                foreach ((array) $product_rows as $product_row) {
+                    $category_id = absint($product_row['category_id'] ?? 0);
+                    if (!isset($products_by_category[$category_id])) {
+                        $products_by_category[$category_id] = [];
+                    }
+                    $products_by_category[$category_id][] = [
+                        'id' => absint($product_row['product_id'] ?? 0),
+                        'title' => (string) ($product_row['post_title'] ?? ''),
+                        'slug' => (string) ($product_row['post_name'] ?? ''),
+                        'sku' => (string) ($product_row['sku'] ?? ''),
+                        'status' => (string) ($product_row['post_status'] ?? ''),
+                        'stock_status' => (string) ($product_row['stock_status'] ?? ''),
+                        'stock_quantity' => ($product_row['stock_quantity'] ?? '') === ''
+                            ? null
+                            : (string) $product_row['stock_quantity'],
+                    ];
+                }
+            }
+
+            foreach ($batch_rows as $row) {
+                $category_id = absint($row['term_id'] ?? 0);
+                $published_count = absint($row['published_count'] ?? 0);
+                $woo_count = absint($row['woo_count'] ?? 0);
+                $item = [
+                    'id' => $category_id,
+                    'term_taxonomy_id' => absint($row['term_taxonomy_id'] ?? 0),
+                    'name' => (string) ($row['name'] ?? ''),
+                    'slug' => (string) ($row['slug'] ?? ''),
+                    'parent_id' => absint($row['parent'] ?? 0),
+                    'path' => seo_category_catalog_path_label($category_id, $category_map),
+                    'counts' => [
+                        'real_products' => absint($row['product_count'] ?? 0),
+                        'published_products' => $published_count,
+                        'nonpublished_products' => absint($row['nonpublished_count'] ?? 0),
+                        'woo_counter' => $woo_count,
+                        'woo_counter_matches_published' => $woo_count === $published_count,
+                    ],
+                    'products' => $products_by_category[$category_id] ?? [],
+                ];
+
+                $json = wp_json_encode($item, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                if ($json === false) {
+                    continue;
+                }
+                if (!$first_category) {
+                    echo ',';
+                }
+                echo $json;
+                $first_category = false;
+            }
+
+            if (function_exists('flush')) {
+                @flush();
+            }
+        }
+
+        echo '],"uncategorized_products":';
+        $uncategorized_export = [];
+        foreach ((array) $uncategorized_rows as $product_row) {
+            $uncategorized_export[] = [
+                'id' => absint($product_row['product_id'] ?? 0),
+                'title' => (string) ($product_row['post_title'] ?? ''),
+                'slug' => (string) ($product_row['post_name'] ?? ''),
+                'sku' => (string) ($product_row['sku'] ?? ''),
+                'status' => (string) ($product_row['post_status'] ?? ''),
+                'stock_status' => (string) ($product_row['stock_status'] ?? ''),
+                'stock_quantity' => ($product_row['stock_quantity'] ?? '') === ''
+                    ? null
+                    : (string) $product_row['stock_quantity'],
+            ];
+        }
+        $uncategorized_json = wp_json_encode($uncategorized_export, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        echo $uncategorized_json !== false ? $uncategorized_json : '[]';
+        echo '}';
+        exit;
+    }
+}
+add_action('admin_post_seo_category_catalog_export_json', 'seo_category_catalog_export_json');
+
+
 if (!function_exists('seo_category_catalog_table_render')) {
     /**
      * Tabla de control del inventario REAL de WooCommerce por relaciones
@@ -1770,8 +2183,21 @@ if (!function_exists('seo_category_catalog_table_render')) {
         }
 
         echo '<div style="max-width:100%;">';
-        echo '<h2 style="margin-top:0;">Inventario real categorías ↔ productos</h2>';
+        echo '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">';
+        echo '<h2 style="margin:0;">Inventario real categorías ↔ productos</h2>';
+        $catalog_export_url = wp_nonce_url(
+            add_query_arg([
+                'action' => 'seo_category_catalog_export_json',
+                'catalog_q' => $catalog_q,
+                'catalog_state' => $catalog_state,
+                'catalog_sort' => $catalog_sort,
+            ], admin_url('admin-post.php')),
+            'seo_category_catalog_export_json'
+        );
+        echo '<a class="button button-primary" href="' . esc_url($catalog_export_url) . '">Descargar JSON</a>';
+        echo '</div>';
         echo '<p style="max-width:1180px;">Esta vista cuenta las asignaciones reales de WooCommerce leyendo <code>term_relationships</code> + <code>term_taxonomy</code> + <code>posts</code>. No usa afinidad SEO, Vocabulary ni el contador de productos del informe editorial para decidir cuántos productos tiene una categoría. El contador Woo/WordPress se muestra aparte solo como diagnóstico.</p>';
+        echo '<p style="max-width:1180px;color:#646970;"><strong>JSON:</strong> exporta todos los resultados que coinciden con los filtros actuales, sin paginación, incluyendo KPIs, categorías, ruta jerárquica y los productos reales asignados (ID, título, slug, SKU, estado y stock).</p>';
 
         // KPIs.
         $kpis = [
