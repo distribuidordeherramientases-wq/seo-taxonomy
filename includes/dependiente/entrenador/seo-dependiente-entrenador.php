@@ -13,7 +13,7 @@ defined('ABSPATH') || exit;
  */
 final class SEO_Dependiente_Entrenador {
     const DB_VERSION = '2026-09-09.1';
-    const CURRICULUM_VERSION = '2.3.1';
+    const CURRICULUM_VERSION = '2.4.0';
     const PROGRESS_REPORT_VERSION = 3;
     const MAX_INVENTORY_SOURCES = 3000;
     const MAX_FEATURE_SOURCES = 12000;
@@ -272,7 +272,7 @@ final class SEO_Dependiente_Entrenador {
             <div class="seo-dependiente-trainer__intro">
                 <div>
                     <h2>Academia del Dependiente v2.3</h2>
-                    <p>Formación guiada sobre el catálogo real de PRO. L1–L7 trabajan con el conocimiento canónico del catálogo; L8 comprueba regresiones sin ayuda del aula. L9 genera necesidades desde los productos reales y ensaya el buscador V3 con una memoria aislada que solo se publica si supera el control de calidad.</p>
+                    <p>Formación guiada sobre el catálogo real de PRO. L1–L7 trabajan con el conocimiento canónico del catálogo; L8 comprueba regresiones sin ayuda del aula. L9 genera necesidades desde los productos reales y ensaya el buscador V3 con una memoria aislada. L10 vuelve únicamente sobre la deuda real de L1–L9, descarta verdades históricas que ya cambiaron y mide qué fallos siguen abiertos sin duplicar reglas.</p>
                 </div>
                 <div class="seo-dependiente-trainer__intro-badges">
                     <span class="seo-dependiente-trainer__isolation">Consultas aisladas del aprendizaje de clientes</span>
@@ -321,7 +321,7 @@ final class SEO_Dependiente_Entrenador {
                     <div class="seo-dependiente-trainer__section-head">
                         <div>
                             <h2>Resultados de la lección actual</h2>
-                            <p class="description">El acierto se calcula contra la verdad esperada del catálogo. Estos resultados muestran cómo responde el Dependiente durante la formación. En L1–L7 el aula puede usar reglas academy_stage preparadas desde la verdad canónica; L8 usa solo conocimiento activo. L9 usa memoria de producto aislada y ejecuta las preguntas contra el runtime V3; esa memoria no llega a clientes hasta superar el control de calidad.</p>
+                            <p class="description">El acierto se calcula contra la verdad esperada del catálogo. Estos resultados muestran cómo responde el Dependiente durante la formación. En L1–L7 el aula puede usar reglas academy_stage preparadas desde la verdad canónica; L8 usa solo conocimiento activo. L9 usa memoria de producto aislada y ejecuta las preguntas contra el runtime V3; esa memoria no llega a clientes hasta superar el control de calidad. L10 usa solo conocimiento activo y reexamina la deuda histórica válida, sin crear ni duplicar reglas.</p>
                         </div>
                         <div>
                             <button type="button" class="button" data-trainer-export-progress>Descargar progreso</button>
@@ -479,7 +479,12 @@ final class SEO_Dependiente_Entrenador {
                             'prepared_rules_source' => 'academy_stage',
                             'l7_preparation'        => self::$lesson7_diagnostics,
                         )
-                        : array('prepared_rules_source' => 'academy_stage'),
+                        : ('v2_l10_consolidation_debt' === $lesson_key && class_exists('SEO_Dependiente_V3_Lesson10')
+                            ? array(
+                                'prepared_rules_source' => 'active_only',
+                                'debt_inventory'        => SEO_Dependiente_V3_Lesson10::stats(),
+                            )
+                            : array('prepared_rules_source' => 'academy_stage')),
                 ));
             }
 
@@ -1170,7 +1175,12 @@ final class SEO_Dependiente_Entrenador {
                             'prepared_rules_source' => 'academy_stage',
                             'l7_preparation'        => self::$lesson7_diagnostics,
                         )
-                        : array('prepared_rules_source' => 'academy_stage'),
+                        : ('v2_l10_consolidation_debt' === $lesson_key && class_exists('SEO_Dependiente_V3_Lesson10')
+                            ? array(
+                                'prepared_rules_source' => 'active_only',
+                                'debt_inventory'        => SEO_Dependiente_V3_Lesson10::stats(),
+                            )
+                            : array('prepared_rules_source' => 'academy_stage')),
                 ));
             }
 
@@ -2569,6 +2579,9 @@ final class SEO_Dependiente_Entrenador {
                 'failed_gate_status'          => 'needs_training',
                 'l1_to_l7_are_training'       => true,
                 'l8_is_closed_exam'           => true,
+                'l9_is_product_language_training' => true,
+                'l10_is_historical_debt_regression' => true,
+                'l10_does_not_duplicate_or_promote_rules' => true,
                 'progress_reconstructed_from_runs' => true,
                 'progress_is_observational_not_causal' => true,
             ),
@@ -2695,6 +2708,7 @@ final class SEO_Dependiente_Entrenador {
         $lesson_key = sanitize_key((string) $lesson_key);
         return '' !== $lesson_key
             && 'v2_l8_exam' !== $lesson_key
+            && 'v2_l10_consolidation_debt' !== $lesson_key
             && 0 !== strpos($lesson_key, self::LAB_PREFIX);
     }
 
@@ -2771,6 +2785,17 @@ final class SEO_Dependiente_Entrenador {
                 'module_size' => 40,
                 'source'      => 'Índice de productos + TIPO/ROL + aplicaciones + etiquetas + atributos + texto',
                 'min_pass_any'=> 0.45,
+            ),
+            'v2_l10_consolidation_debt' => array(
+                'order'       => 10,
+                'title'       => 'Consolidación, deuda y regresión',
+                'description' => 'Reexamina la deuda real que quedó abierta en L1–L9 contra las fuentes y el conocimiento actuales. Descarta preguntas cuya fuente ya cambió y separa deuda resuelta de deuda todavía abierta sin duplicar reglas.',
+                'module_size' => 40,
+                'source'      => 'Último fallo por pregunta L1–L9, validado contra las fuentes actuales',
+                // L10 es una auditoría de consolidación. Se completa si no hay
+                // errores técnicos; el porcentaje de acierto mide deuda cerrada,
+                // no debe ocultar la deuda que siga abierta bloqueando el informe.
+                'min_pass_any'=> 0.0,
             ),
         );
     }
@@ -3145,8 +3170,30 @@ final class SEO_Dependiente_Entrenador {
             <?php if ($prepared) : ?>
                 <div class="seo-dependiente-trainer__lesson-snapshots">
                     <span>Base de entrada <strong>snapshot <?php echo esc_html(number_format_i18n(absint($lesson['snapshot_before'] ?? 0))); ?></strong></span>
-                    <span><?php echo 'v2_l8_exam' === $lesson_key ? 'Examen cerrado: solo conocimiento activo' : 'Aula aislada: conocimiento activo + academy_stage de esta lección'; ?></span>
+                    <span><?php
+                        if ('v2_l8_exam' === $lesson_key) {
+                            echo 'Examen cerrado: solo conocimiento activo';
+                        } elseif ('v2_l10_consolidation_debt' === $lesson_key) {
+                            echo 'Regresión de deuda: solo conocimiento activo · no duplica reglas';
+                        } else {
+                            echo 'Aula aislada: conocimiento activo + academy_stage de esta lección';
+                        }
+                    ?></span>
                 </div>
+                <?php if ('v2_l10_consolidation_debt' === $lesson_key) :
+                    $l10_meta = self::decode_json($lesson['metadata'] ?? '');
+                    $debt_inventory = is_array($l10_meta['debt_inventory'] ?? null) ? $l10_meta['debt_inventory'] : array();
+                    if ($debt_inventory) : ?>
+                        <div class="notice notice-info inline"><p>
+                            <strong>Inventario de deuda L10:</strong>
+                            <?php echo esc_html(number_format_i18n(absint($debt_inventory['historical_failed_rows'] ?? 0))); ?> fallos históricos detectados ·
+                            <?php echo esc_html(number_format_i18n(absint($debt_inventory['eligible_debt'] ?? 0))); ?> reexaminables ·
+                            <?php echo esc_html(number_format_i18n(absint($debt_inventory['excluded_stale_source'] ?? 0))); ?> descartados porque la fuente actual ya cambió/no existe ·
+                            <?php echo esc_html(number_format_i18n(absint($debt_inventory['excluded_curriculum_invalid'] ?? 0))); ?> descartados por currículo inválido ·
+                            <?php echo esc_html(number_format_i18n(absint($debt_inventory['duplicates_removed'] ?? 0))); ?> duplicados eliminados.
+                        </p></div>
+                    <?php endif;
+                endif; ?>
                 <div class="seo-dependiente-trainer__module-progress" data-trainer-module-progress hidden>
                     <div class="seo-dependiente-trainer__progress"><div class="seo-dependiente-trainer__progress-bar" data-trainer-progress-bar></div></div>
                     <p data-trainer-run-status aria-live="polite"></p>
@@ -3324,6 +3371,9 @@ final class SEO_Dependiente_Entrenador {
         if ('v2_l9_product_language' === $lesson_key && class_exists('SEO_Dependiente_V3_Lesson9')) {
             return SEO_Dependiente_V3_Lesson9::source_total();
         }
+        if ('v2_l10_consolidation_debt' === $lesson_key && class_exists('SEO_Dependiente_V3_Lesson10')) {
+            return SEO_Dependiente_V3_Lesson10::source_total();
+        }
         return 0;
     }
 
@@ -3333,6 +3383,9 @@ final class SEO_Dependiente_Entrenador {
         }
         if ('v2_l9_product_language' === $lesson_key && class_exists('SEO_Dependiente_V3_Lesson9')) {
             return SEO_Dependiente_V3_Lesson9::source_batch($offset, $limit);
+        }
+        if ('v2_l10_consolidation_debt' === $lesson_key && class_exists('SEO_Dependiente_V3_Lesson10')) {
+            return SEO_Dependiente_V3_Lesson10::source_batch($offset, $limit);
         }
         $map = array(
             'v2_l2_inventory' => 'lesson2_sources',
@@ -4699,7 +4752,9 @@ final class SEO_Dependiente_Entrenador {
      * Así L9 examina exactamente el buscador que verá el cliente, sin volver a
      * activar el algoritmo legacy /v1.
      */
-    private static function run_lesson9_v3_search(WP_REST_Request $request) {
+    private static function run_lesson9_v3_search(WP_REST_Request $request, $strategy = 'v3_l9', $reason = 'lesson9_classroom') {
+        $strategy = sanitize_key((string) $strategy) ?: 'v3_l9';
+        $reason = sanitize_key((string) $reason) ?: 'lesson9_classroom';
         $response = SEO_Dependiente_V3_API::search($request);
         if (is_wp_error($response)) {
             return $response;
@@ -4734,7 +4789,7 @@ final class SEO_Dependiente_Entrenador {
         return array(
             'results'         => $results,
             'total'           => absint($pagination['total'] ?? count($results)),
-            'search_strategy' => 'v3_l9',
+            'search_strategy' => $strategy,
             'semantic'        => array(
                 'normalized' => (string) ($interpretation['normalized'] ?? ''),
                 'filtered'   => (string) ($interpretation['filtered'] ?? ''),
@@ -4744,7 +4799,7 @@ final class SEO_Dependiente_Entrenador {
                 'routes'     => array_values((array) ($interpretation['routes'] ?? array())),
             ),
             'search_diagnostic' => array(
-                'strategy'             => 'v3_l9',
+                'strategy'             => $strategy,
                 'primary_rows'         => absint($retrieval['exact'] ?? 0) + absint($retrieval['conjunctive'] ?? 0),
                 'direct_knowledge_count'=> absint($retrieval['lesson9'] ?? 0),
                 'strict_count'         => absint($retrieval['conjunctive'] ?? 0),
@@ -4752,7 +4807,7 @@ final class SEO_Dependiente_Entrenador {
                 'semantic_route_rows'  => absint($retrieval['routes'] ?? 0),
                 'broad_fallback_rows'  => absint($retrieval['partial'] ?? 0),
                 'extended_search'      => 'executed',
-                'extended_reasons'     => array('v3_runtime', 'lesson9_classroom'),
+                'extended_reasons'     => array('v3_runtime', $reason),
             ),
             'related'          => array(),
             'related_editorial'=> array(),
@@ -4787,9 +4842,17 @@ final class SEO_Dependiente_Entrenador {
         $use_v3_lesson9 = 'v2_l9_product_language' === $lesson_key
             && class_exists('SEO_Dependiente_V3_Lesson9')
             && class_exists('SEO_Dependiente_V3_API');
+        $expected_preview = self::decode_json($question['expected_json'] ?? '');
+        $expected_preview_kind = sanitize_key((string) ($expected_preview['kind'] ?? ''));
+        $academy_preview = is_array($expected_preview['academy'] ?? null) ? $expected_preview['academy'] : array();
+        $origin_lesson = sanitize_key((string) ($academy_preview['origin_lesson'] ?? ''));
+        $use_v3_l10_debt = 'v2_l10_consolidation_debt' === $lesson_key
+            && 'v2_l9_product_language' === $origin_lesson
+            && class_exists('SEO_Dependiente_V3_API');
+        $use_v3_runtime = $use_v3_lesson9 || $use_v3_l10_debt;
 
-        $request = new WP_REST_Request($use_v3_lesson9 ? 'GET' : 'POST', $use_v3_lesson9 ? '/seo-taxonomy/v3/search' : '/seo-taxonomy/v1/search');
-        if ($use_v3_lesson9) {
+        $request = new WP_REST_Request($use_v3_runtime ? 'GET' : 'POST', $use_v3_runtime ? '/seo-taxonomy/v3/search' : '/seo-taxonomy/v1/search');
+        if ($use_v3_runtime) {
             $request->set_query_params(array(
                 'q'    => (string) ($question['question'] ?? ''),
                 'page' => 1,
@@ -4803,10 +4866,9 @@ final class SEO_Dependiente_Entrenador {
                 'session_id' => 'academy:' . (string) $question['lesson_key'] . ':' . $question_id,
             ));
         }
-        $expected_preview = self::decode_json($question['expected_json'] ?? '');
-        $expected_preview_kind = sanitize_key((string) ($expected_preview['kind'] ?? ''));
         // Las lecciones con staging semántico trabajan en un aula aislada. L9 usa,
         // además, su propia memoria de producto inactiva hasta superar calidad.
+        // L10, en cambio, revalida exclusivamente conocimiento ya activo.
         $use_classroom_stage = self::lesson_uses_classroom_stage($lesson_key);
         $faq_owner_only = 'v2_l6_faq' === $lesson_key || 'faq' === $expected_preview_kind;
         add_filter('seo_dependiente_should_log_search', array(__CLASS__, 'skip_customer_search_log'), 999, 4);
@@ -4818,9 +4880,15 @@ final class SEO_Dependiente_Entrenador {
             add_filter('seo_dependiente_faq_allow_text_fallback', array(__CLASS__, 'disable_faq_text_fallback'), 999, 1);
         }
         try {
-            if ($use_v3_lesson9) {
-                SEO_Dependiente_V3_Lesson9::set_classroom_lesson($lesson_key);
-                $response = self::run_lesson9_v3_search($request);
+            if ($use_v3_runtime) {
+                if ($use_v3_lesson9) {
+                    SEO_Dependiente_V3_Lesson9::set_classroom_lesson($lesson_key);
+                }
+                $response = self::run_lesson9_v3_search(
+                    $request,
+                    $use_v3_l10_debt ? 'v3_l10_debt' : 'v3_l9',
+                    $use_v3_l10_debt ? 'lesson10_historical_debt' : 'lesson9_classroom'
+                );
             } else {
                 $response = SEO_Dependiente_API::search($request);
             }
@@ -5680,8 +5748,15 @@ final class SEO_Dependiente_Entrenador {
 
         $activated_rules = self::activate_staged_academy_rules($lesson_key);
         $before = absint($lesson['snapshot_before'] ?? 0);
-        $after = max(absint(get_option(self::KNOWLEDGE_SNAPSHOT_OPTION, 0)), $before) + 1;
-        update_option(self::KNOWLEDGE_SNAPSHOT_OPTION, $after, false);
+        $is_debt_regression = 'v2_l10_consolidation_debt' === $lesson_key;
+        if ($is_debt_regression) {
+            // L10 no crea reglas: acredita el estado actual de la deuda sin
+            // fingir una nueva versión de conocimiento.
+            $after = max(absint(get_option(self::KNOWLEDGE_SNAPSHOT_OPTION, 0)), $before);
+        } else {
+            $after = max(absint(get_option(self::KNOWLEDGE_SNAPSHOT_OPTION, 0)), $before) + 1;
+            update_option(self::KNOWLEDGE_SNAPSHOT_OPTION, $after, false);
+        }
         self::update_lesson($lesson_key, array(
             'status'          => 'completed',
             'completed_items' => absint($summary['answered']),
@@ -5691,6 +5766,10 @@ final class SEO_Dependiente_Entrenador {
                 'activated_rules'    => max(0, (int) $activated_rules),
                 'quality_gate'       => $quality_gate,
                 'summary'            => $summary,
+                'knowledge_changed'  => !$is_debt_regression,
+                'debt_inventory'     => $is_debt_regression && class_exists('SEO_Dependiente_V3_Lesson10')
+                    ? SEO_Dependiente_V3_Lesson10::stats()
+                    : array(),
             ),
             'completed_at'    => current_time('mysql'),
         ));
