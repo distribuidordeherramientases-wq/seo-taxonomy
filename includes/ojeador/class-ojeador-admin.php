@@ -7,7 +7,7 @@
  *
  * @package SEOSystem
  * @subpackage Ojeador
- * @since 0.3.0
+ * @since 0.3.1
  */
 
 defined('ABSPATH') || exit;
@@ -15,9 +15,15 @@ defined('ABSPATH') || exit;
 final class SEO_Ojeador_Admin {
     const PAGE = 'seo-ojeador';
 
+    /** @var bool True when Herramientas executed the PHP extension filter. */
+    private static $tools_filter_used = false;
+
     public static function init() {
         add_action('admin_menu', array(__CLASS__, 'register_page'), 90);
         add_filter('seo_tools_cards', array(__CLASS__, 'register_tool_card'));
+        // Compatibility fallback: older seo-admin.php versions do not expose
+        // seo_tools_cards. In that case add the card only on Herramientas.
+        add_action('admin_footer', array(__CLASS__, 'tools_fallback_card'), 99);
 
         add_action('admin_post_seo_ojeador_save_settings', array(__CLASS__, 'save_settings'));
         add_action('admin_post_seo_ojeador_start', array(__CLASS__, 'start'));
@@ -40,6 +46,7 @@ final class SEO_Ojeador_Admin {
     }
 
     public static function register_tool_card($tools) {
+        self::$tools_filter_used = true;
         if (!is_array($tools)) {
             $tools = array();
         }
@@ -55,6 +62,46 @@ final class SEO_Ojeador_Admin {
             'desc' => 'Precios externos, comparativas, ofertas, históricos y barridos del mercado.',
         );
         return $tools;
+    }
+
+    /**
+     * Compatibility bridge for installations whose Tools screen predates the
+     * seo_tools_cards filter. It is deliberately a fallback: when the PHP
+     * filter exists this method outputs nothing.
+     */
+    public static function tools_fallback_card() {
+        if (self::$tools_filter_used || !current_user_can('manage_options')) {
+            return;
+        }
+        $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+        if ('seo-tools' !== $page) {
+            return;
+        }
+
+        $url = admin_url('admin.php?page=' . self::PAGE);
+        ?>
+        <script id="seo-ojeador-tools-card-fallback">
+        (function(){
+            var grid = document.querySelector('.seo-tools-grid');
+            if (!grid) return;
+            var href = <?php echo wp_json_encode($url); ?>;
+            var links = grid.querySelectorAll('a[href]');
+            for (var i = 0; i < links.length; i++) {
+                if (links[i].href === href || links[i].getAttribute('href') === href) return;
+            }
+            var a = document.createElement('a');
+            a.className = 'seo-tool-card-link';
+            a.href = href;
+            a.innerHTML = '<div class="seo-tool-card">' +
+                '<span class="dashicons dashicons-visibility"></span>' +
+                '<h2>Ojeador</h2>' +
+                '<p>Precios externos, comparativas, ofertas, históricos y barridos del mercado.</p>' +
+                '<span class="button button-primary">Abrir</span>' +
+                '</div>';
+            grid.appendChild(a);
+        })();
+        </script>
+        <?php
     }
 
 
