@@ -130,6 +130,139 @@ if (!function_exists('seo_analista_issue_flags')) {
     }
 }
 
+if (!function_exists('seo_analista_position_profile')) {
+    /**
+     * Traduce la posición media en una intensidad de intervención.
+     *
+     * La posición no se usa solo como puntuación: cambia el tipo de trabajo.
+     * Una URL en Top 5 se protege; una URL 11-20 se empuja a Top 10; una URL
+     * 50-100 necesita autoridad y cobertura antes de obsesionarse con el CTR.
+     */
+    function seo_analista_position_profile($position, $impressions = 0) {
+        $position = max(0.0, (float) $position);
+        $impressions = max(0.0, (float) $impressions);
+
+        if ($position > 0 && $position <= 5) {
+            return array(
+                'code' => 'PROTEGER_TOP5',
+                'label' => 'Proteger Top 5',
+                'priority_adjustment' => $impressions >= 15 ? 2 : 0,
+            );
+        }
+        if ($position > 5 && $position <= 10) {
+            return array(
+                'code' => 'CONSOLIDAR_TOP10',
+                'label' => 'Consolidar Top 10',
+                'priority_adjustment' => 10,
+            );
+        }
+        if ($position > 10 && $position <= 20) {
+            return array(
+                'code' => 'EMPUJAR_TOP10',
+                'label' => 'Empujar a Top 10',
+                'priority_adjustment' => 14,
+            );
+        }
+        if ($position > 20 && $position <= 50) {
+            return array(
+                'code' => 'EMPUJAR_TOP20',
+                'label' => 'Empujar a Top 20',
+                'priority_adjustment' => 5,
+            );
+        }
+        if ($position > 50 && $position <= 100) {
+            return array(
+                'code' => 'CONSTRUIR_AUTORIDAD',
+                'label' => 'Construir autoridad',
+                'priority_adjustment' => $impressions >= 50 ? 0 : -3,
+            );
+        }
+        if ($position > 100) {
+            return array(
+                'code' => 'REPLANTEAR_COBERTURA',
+                'label' => 'Replantear cobertura',
+                'priority_adjustment' => -7,
+            );
+        }
+        return array(
+            'code' => 'VALIDAR_COBERTURA',
+            'label' => 'Validar cobertura',
+            'priority_adjustment' => -5,
+        );
+    }
+}
+
+if (!function_exists('seo_analista_apply_intervention_guidance')) {
+    /** Ajusta la receta editorial para no tratar igual una URL #4 que una #70. */
+    function seo_analista_apply_intervention_guidance(array $row, array $profile) {
+        $code = (string) ($profile['code'] ?? '');
+        $changes = array_values(array_filter((array) ($row['recommended_changes'] ?? array())));
+
+        if ($code === 'PROTEGER_TOP5') {
+            // Una URL ya situada arriba no debe recibir una reescritura amplia
+            // solo porque el contador de palabras sea bajo.
+            $changes = array_values(array_filter($changes, static function($change) {
+                $text = seo_analista_normalize_text((string) $change);
+                if (strpos($text, 'ampliar la literatura con uso') === 0) return false;
+                if (strpos($text, 'reescribir el titulo para expresar') === 0) return false;
+                return true;
+            }));
+            array_unshift($changes, 'Intervención conservadora: no reescribir la URL de forma amplia; cubrir solo huecos concretos y preservar la intención que ya está posicionando.');
+        } elseif ($code === 'CONSOLIDAR_TOP10') {
+            array_unshift($changes, 'Consolidar Top 10: reforzar la intención que ya funciona, el snippet y el enlazado interno antes de ampliar el alcance de la URL.');
+        } elseif ($code === 'EMPUJAR_TOP10') {
+            array_unshift($changes, 'Empujar a Top 10: priorizar cobertura útil de la intención, SEO title/meta y enlaces internos hacia esta URL.');
+        } elseif ($code === 'EMPUJAR_TOP20') {
+            array_unshift($changes, 'Empujar a Top 20: ampliar cobertura semántica/comercial y reforzar enlaces internos sin crear una URL competidora.');
+        } elseif ($code === 'CONSTRUIR_AUTORIDAD') {
+            array_unshift($changes, 'Construir autoridad: completar cobertura, relaciones y enlazado; medir avance hacia Top 50/Top 20 antes de abrir nuevas URLs para la misma intención.');
+        } elseif ($code === 'REPLANTEAR_COBERTURA') {
+            array_unshift($changes, 'Replantear cobertura: comprobar intención, entidad canónica y competencia interna antes de seguir añadiendo texto.');
+        }
+
+        $row['recommended_changes'] = array_values(array_unique(array_filter($changes)));
+        return $row;
+    }
+}
+
+if (!function_exists('seo_analista_catalog_strategy')) {
+    /**
+     * Distingue una categoría que necesita producto de otra que solo necesita
+     * contenido. No ordena comprar: con 6-12 productos pide revisar variantes.
+     */
+    function seo_analista_catalog_strategy(array $row) {
+        $entity = (array) ($row['entity'] ?? array());
+        if (sanitize_key((string) ($entity['type'] ?? '')) !== 'category') return array();
+
+        $catalog = (array) ($row['catalog'] ?? array());
+        if (!array_key_exists('products', $catalog) || $catalog['products'] === null) return array();
+        $products = max(0, (int) $catalog['products']);
+        $metrics = (array) ($row['metrics'] ?? array());
+        $impressions = max(0.0, (float) ($metrics['impressions'] ?? 0));
+        $intent = sanitize_key((string) ($row['intent'] ?? ''));
+        if ($intent === '' && function_exists('seo_analista_intent')) $intent = seo_analista_intent((string) ($row['topic'] ?? ''));
+        if (!in_array($intent, array('comercial','transaccional'), true)) return array();
+
+        if ($products > 0 && $products <= 5 && $impressions >= 10) {
+            return array(
+                'code' => 'AMPLIAR',
+                'label' => 'Ampliar surtido',
+                'priority_adjustment' => 7,
+                'change' => 'Ampliar surtido con criterio: revisar las variantes que aparecen en las consultas y buscar producto/proveedor solo para cubrir huecos reales.',
+            );
+        }
+        if ($products >= 6 && $products <= 12 && $impressions >= 30) {
+            return array(
+                'code' => 'REVISAR',
+                'label' => 'Revisar profundidad de surtido',
+                'priority_adjustment' => 4,
+                'change' => 'Revisar profundidad de surtido: comprobar si faltan medidas, capacidades, formatos o variantes presentes en las consultas antes de añadir productos.',
+            );
+        }
+        return array();
+    }
+}
+
 if (!function_exists('seo_analista_business_scores')) {
     function seo_analista_business_scores(array $row, array $health = array()) {
         $metrics = (array) ($row['metrics'] ?? array());
@@ -194,6 +327,7 @@ if (!function_exists('seo_analista_business_scores')) {
         if (!empty($row['internal_search'])) $sales += 15;
         $products = isset($row['catalog']['products']) ? (int) $row['catalog']['products'] : null;
         if ($type === 'category' && null !== $products && $products > 0 && $products <= 5 && in_array($intent, array('comercial','transaccional'), true)) $sales += 7;
+        elseif ($type === 'category' && null !== $products && $products >= 6 && $products <= 12 && $impressions >= 30 && in_array($intent, array('comercial','transaccional'), true)) $sales += 4;
         $sales = max(0, min(100, (int) round($sales)));
 
         if ($type === 'page' && $role === 'corporate_page') {
@@ -244,12 +378,18 @@ if (!function_exists('seo_analista_measurement_plan')) {
         $position = (float) ($metrics['position'] ?? 0);
         $impressions = (float) ($metrics['impressions'] ?? 0);
         $ctr = (float) ($metrics['ctr'] ?? 0);
+        $stage = (string) ($row['intervention']['code'] ?? '');
         $out = array();
 
+        if ($stage === 'PROTEGER_TOP5') $out[] = 'Objetivo de posición: conservar Top 5 y mejorar clics sin ampliar innecesariamente la intención.';
+        elseif ($stage === 'CONSOLIDAR_TOP10') $out[] = 'Objetivo de posición: consolidar Top 10 y acercar la URL a Top 5.';
+        elseif ($stage === 'EMPUJAR_TOP10') $out[] = 'Objetivo de posición: entrar en Top 10 para las consultas ya detectadas.';
+        elseif ($stage === 'EMPUJAR_TOP20') $out[] = 'Objetivo de posición: entrar en Top 20 antes de abrir nuevas URLs para la misma intención.';
+        elseif ($stage === 'CONSTRUIR_AUTORIDAD') $out[] = 'Objetivo de posición: ganar consultas en Top 50 y acercar la familia a Top 20.';
+        elseif ($stage === 'REPLANTEAR_COBERTURA') $out[] = 'Objetivo de posición: validar primero intención y URL canónica antes de medir una subida.';
+
         if ($objective === 'traffic') {
-            if ($position > 10 && $position <= 20) $out[] = 'Objetivo: entrar en Top 10 para las consultas ya detectadas.';
-            elseif ($position > 20 && $position <= 50) $out[] = 'Objetivo: acercar la URL a Top 20 antes de ampliar a nuevas URLs.';
-            elseif ($position > 0 && $position <= 10 && $ctr < 0.01) $out[] = 'Objetivo: aumentar CTR y clics manteniendo o mejorando la posicion actual.';
+            if ($position > 0 && $position <= 10 && $ctr < 0.01) $out[] = 'Objetivo de tráfico: aumentar CTR y clics manteniendo o mejorando la posición actual.';
             else $out[] = 'Medir crecimiento de clics e impresiones cualificadas de la misma URL.';
         } elseif ($objective === 'sales') {
             $out[] = 'Medir clics organicos que llegan a categorias/productos y el avance de las consultas comerciales/transaccionales.';
@@ -287,6 +427,36 @@ if (!function_exists('seo_analista_enrich_business_row')) {
         $impressions = (float) ($metrics['impressions'] ?? 0);
         $bing_impressions = (float) ($metrics['bing_impressions'] ?? 0);
         $position = (float) ($metrics['position'] ?? 0);
+        $position_profile = seo_analista_position_profile($position, $impressions);
+        $priority += (int) ($position_profile['priority_adjustment'] ?? 0);
+
+        // Una categoría comercial que ya concentra muchas consultas merece
+        // competir con las quick wins: es una familia, no una keyword aislada.
+        $entity_type = sanitize_key((string) (($row['entity']['type'] ?? '')));
+        $row_intent = sanitize_key((string) ($row['intent'] ?? ''));
+        if ($row_intent === '' && function_exists('seo_analista_intent')) $row_intent = seo_analista_intent((string) ($row['topic'] ?? ''));
+        $query_count = max(0, (int) ($metrics['queries'] ?? 0));
+        $family_demand_bonus = 0;
+        if ($entity_type === 'category' && in_array($row_intent, array('comercial','transaccional'), true)) {
+            if ($impressions >= 100 && $query_count >= 10) $family_demand_bonus = 10;
+            elseif ($impressions >= 50 && $query_count >= 8) $family_demand_bonus = 5;
+        }
+        $priority += $family_demand_bonus;
+
+        $previous_position = max(0.0, (float) ($metrics['previous_position'] ?? 0));
+        $position_gain = ($previous_position > 0 && $position > 0) ? $previous_position - $position : 0.0;
+        if ($position_gain >= 5) $priority += 3;
+        elseif ($position_gain <= -5) $priority -= 4;
+
+        // Normaliza el crecimiento con la misma fórmula que usa la estrategia.
+        // Así el informe no mezcla deltas agregados de distintas señales.
+        $growth = (array) ($scores['growth'] ?? array());
+        if (isset($growth['previous'])) $metrics['previous_impressions'] = (float) $growth['previous'];
+        if (isset($growth['delta'])) $metrics['impressions_delta'] = (float) $growth['delta'];
+        if (isset($growth['raw_growth_pct'])) $metrics['impressions_growth_pct'] = (float) $growth['raw_growth_pct'];
+
+        $catalog_strategy = seo_analista_catalog_strategy(array_merge($row, array('metrics'=>$metrics)));
+        if ($catalog_strategy) $priority += (int) ($catalog_strategy['priority_adjustment'] ?? 0);
         $has_demand_evidence = $impressions >= 10 || $bing_impressions >= 20 || !empty($row['internal_search']) || !empty($row['competition']) || !empty($row['market']['breakout']);
         if (!$has_demand_evidence) $priority -= 10;
         if ($position > 70 && $impressions < 100) $priority -= 7;
@@ -301,6 +471,39 @@ if (!function_exists('seo_analista_enrich_business_row')) {
         $row['legacy_priority'] = (int) ($row['priority'] ?? 0);
         $row['priority'] = $priority;
         $row['work_bucket'] = $bucket;
+        $row['metrics'] = $metrics;
+        $row['intervention'] = $position_profile;
+        $row['position_movement'] = array(
+            'previous_position' => $previous_position,
+            'current_position' => $position,
+            'gain' => $position_gain,
+            'state' => $position_gain >= 2 ? 'improved' : ($position_gain <= -2 ? 'declined' : 'stable'),
+        );
+        if ($family_demand_bonus > 0) {
+            $row['family_demand'] = array(
+                'broad' => true,
+                'priority_adjustment' => $family_demand_bonus,
+                'label' => 'Demanda comercial concentrada',
+            );
+        }
+        if ($catalog_strategy) {
+            $row['catalog_strategy'] = $catalog_strategy;
+            if ((string) ($catalog_strategy['code'] ?? '') === 'AMPLIAR') {
+                $row['action'] = 'MEJORAR_CATEGORIA_SURTIDO';
+                $row['action_label'] = 'Mejorar categoría + ampliar surtido';
+                $row['channel'] = 'catalogo';
+            } elseif ((string) ($catalog_strategy['code'] ?? '') === 'REVISAR') {
+                $row['action'] = 'REVISAR_CATEGORIA_SURTIDO';
+                $row['action_label'] = 'Mejorar categoría + revisar surtido';
+                $row['channel'] = 'catalogo';
+            }
+            if (!empty($catalog_strategy['change'])) {
+                $row['recommended_changes'] = array_values(array_unique(array_merge(
+                    (array) ($row['recommended_changes'] ?? array()),
+                    array((string) $catalog_strategy['change'])
+                )));
+            }
+        }
         $row['objective'] = array(
             'primary' => $primary,
             'primary_label' => seo_analista_objective_label($primary),
@@ -309,11 +512,24 @@ if (!function_exists('seo_analista_enrich_business_row')) {
             'sales' => (int) $scores['sales'],
         );
         $row['confidence'] = $confidence;
-        $row['growth_quality'] = $scores['growth'];
+        $row['growth_quality'] = $growth;
+        $row = seo_analista_apply_intervention_guidance($row, $position_profile);
+
+        if ($primary === 'sales' && in_array(sanitize_key((string) (($row['entity']['type'] ?? ''))), array('category','product'), true)) {
+            $row['recommended_changes'] = array_values(array_unique(array_merge(
+                (array) ($row['recommended_changes'] ?? array()),
+                array('Validar oferta antes de tratarla como prioridad comercial: disponibilidad/stock, proveedor, precio final y margen o comisión.')
+            )));
+        }
         $row['measurement'] = seo_analista_measurement_plan($row, $primary, $health);
         $row['why_now'] = array_values(array_filter(array(
             $impressions > 0 ? number_format_i18n($impressions, 0) . ' impresiones organicas ya existentes.' : '',
             $position > 0 ? 'Posicion media ' . number_format_i18n($position, 1) . '.' : '',
+            !empty($position_profile['label']) ? 'Intervencion: ' . (string) $position_profile['label'] . '.' : '',
+            $family_demand_bonus > 0 ? 'La categoria concentra ' . number_format_i18n($query_count) . ' consultas comerciales sobre la misma familia.' : '',
+            $previous_position > 0 && abs($position_gain) >= 2 ? ($position_gain > 0
+                ? 'La posicion mejora ' . number_format_i18n(abs($position_gain), 1) . ' puestos frente al periodo anterior.'
+                : 'La posicion empeora ' . number_format_i18n(abs($position_gain), 1) . ' puestos frente al periodo anterior.') : '',
             !empty($row['issues']) ? count((array) $row['issues']) . ' problemas corregibles detectados.' : '',
             'Objetivo principal: ' . seo_analista_objective_label($primary) . '.',
         )));

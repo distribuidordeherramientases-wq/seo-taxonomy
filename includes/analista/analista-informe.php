@@ -2,7 +2,7 @@
 /**
  * Vista ejecutiva de Informes SEO > Analista.
  *
- * Analista 3.1: resumen, literatura, estructura, tendencias, comparación y guion accionable.
+ * Analista 3.6: resumen, literatura, estructura, tendencias y plan accionable por nivel de intervención.
  */
 
 defined('ABSPATH') || exit;
@@ -373,6 +373,7 @@ if (!function_exists('seo_analista_render_directive_rows')) {
             echo '<div class="seo-analista-plan-head"><strong>' . esc_html((string) ($row['topic'] ?? '')) . '</strong><span>' . esc_html((string) ($row['action_label'] ?? '')) . '</span>';
             if (!empty($row['work_bucket'])) echo '<em>' . esc_html(str_replace('_', ' ', (string) $row['work_bucket'])) . '</em>';
             if (!empty($row['objective']['primary_label'])) echo '<em>Objetivo: ' . esc_html((string) $row['objective']['primary_label']) . '</em>';
+            if (!empty($row['intervention']['label'])) echo '<em>Intervención: ' . esc_html((string) $row['intervention']['label']) . '</em>';
             if (!empty($entity['type_label'])) echo '<em>' . esc_html((string) $entity['type_label']) . '</em>';
             echo '</div>';
             echo '<p>' . esc_html((string) ($row['reason'] ?? '')) . '</p>';
@@ -382,9 +383,28 @@ if (!function_exists('seo_analista_render_directive_rows')) {
             if (isset($catalog['products']) && null !== $catalog['products']) $meta[] = 'Productos: ' . number_format_i18n((int) $catalog['products']);
             if (!empty($row['metrics']['position'])) $meta[] = 'Posición: ' . number_format_i18n((float) $row['metrics']['position'], 1);
             if (!empty($row['metrics']['impressions'])) $meta[] = 'Impresiones: ' . number_format_i18n((float) $row['metrics']['impressions'], 0);
-            if (isset($row['metrics']['impressions_growth_pct']) && null !== $row['metrics']['impressions_growth_pct']) $meta[] = 'Variación: ' . sprintf('%+.0f%%', (float) $row['metrics']['impressions_growth_pct']);
-            if (!empty($row['market']['growth'])) $meta[] = 'Trends: ' . sprintf('%+.0f%%', (float) $row['market']['growth']);
+            $growth_previous = isset($row['growth_quality']['previous']) ? (float) $row['growth_quality']['previous'] : null;
+            $growth_current = isset($row['growth_quality']['current']) ? (float) $row['growth_quality']['current'] : null;
+            if ($growth_previous !== null && $growth_previous <= 0 && $growth_current > 0) {
+                $meta[] = 'Nueva señal del periodo';
+            } elseif (isset($row['metrics']['impressions_growth_pct']) && null !== $row['metrics']['impressions_growth_pct']) {
+                $meta[] = 'Variación: ' . sprintf('%+.0f%%', (float) $row['metrics']['impressions_growth_pct']);
+            }
+            $market_score = max((float) ($row['market']['score'] ?? 0), (float) ($row['metrics']['market_score'] ?? 0));
+            $market_kind = sanitize_key((string) ($row['market']['signal_kind'] ?? ''));
+            $source_norm = seo_analista_normalize_text((string) ($row['source'] ?? ''));
+            $is_real_trends = $market_score > 0 && (strpos($source_norm, 'google trends') !== false || $market_kind !== '');
+            $trends_growth = (float) ($row['market']['trends_growth'] ?? ($is_real_trends ? ($row['market']['growth'] ?? 0) : 0));
+            if ($is_real_trends && $trends_growth != 0.0) $meta[] = 'Google Trends: ' . sprintf('%+.0f%%', $trends_growth);
             if (!empty($row['market']['breakout'])) $meta[] = 'BREAKOUT';
+            if (!empty($row['position_movement']['previous_position']) && abs((float) ($row['position_movement']['gain'] ?? 0)) >= 2) {
+                $gain = (float) $row['position_movement']['gain'];
+                $meta[] = $gain > 0
+                    ? 'Posición mejora ' . number_format_i18n(abs($gain), 1)
+                    : 'Posición empeora ' . number_format_i18n(abs($gain), 1);
+            }
+            if (!empty($row['catalog_strategy']['label'])) $meta[] = 'Surtido: ' . (string) $row['catalog_strategy']['label'];
+            if (!empty($row['family_demand']['label'])) $meta[] = (string) $row['family_demand']['label'];
             if (!empty($row['objective'])) {
                 $meta[] = 'Autoridad ' . absint($row['objective']['authority'] ?? 0) . '/100';
                 $meta[] = 'Visitas ' . absint($row['objective']['traffic'] ?? 0) . '/100';

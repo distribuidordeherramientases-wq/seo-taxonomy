@@ -525,8 +525,10 @@ if (!function_exists('seo_analista_build_entity_work_row')) {
 
         $priority = ($is_corporate ? 12 : 18) + (int) $profile['issue_score'] + $demand_score;
         if (!$has_issues && $impressions < 5) $priority -= 20;
-        $accelerating = !$is_corporate && $growth !== null && $growth >= 40 && $impressions >= 10 && $delta_impressions >= 8;
+        $new_signal = !$is_corporate && $previous_impressions <= 0 && $impressions >= 10;
+        $accelerating = !$is_corporate && $previous_impressions > 0 && $growth !== null && $growth >= 40 && $impressions >= 10 && $delta_impressions >= 8;
         if ($accelerating) $priority += 7;
+        elseif ($new_signal) $priority += 3;
         if (!$is_corporate && $position > 0 && $position <= 20 && $impressions >= 5) $priority += 5;
         $priority = max(0, min(100, $priority));
 
@@ -534,6 +536,7 @@ if (!function_exists('seo_analista_build_entity_work_row')) {
         if ($has_issues) $reason_parts[] = 'La entidad tiene problemas editoriales concretos que se pueden corregir.';
         if ($impressions > 0) $reason_parts[] = 'Google ya la muestra: ' . number_format_i18n($impressions, 0) . ' impresiones, posición ' . number_format_i18n($position, 1) . '.';
         if ($accelerating) $reason_parts[] = 'La demanda asociada está acelerando respecto al periodo anterior.';
+        elseif ($new_signal) $reason_parts[] = 'Es una señal nueva del periodo: todavía no debe interpretarse como crecimiento consolidado.';
         if (!$has_issues && $impressions > 0) $reason_parts[] = 'La base editorial es razonable: conviene impulsarla, no rehacerla.';
 
         $meta = function_exists('seo_analista_action_meta') ? seo_analista_action_meta($action) : array('label' => $action, 'channel' => 'contenido');

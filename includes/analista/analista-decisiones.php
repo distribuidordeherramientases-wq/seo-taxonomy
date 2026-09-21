@@ -19,6 +19,8 @@ if (!function_exists('seo_analista_action_meta')) {
             'MEJORAR_PRODUCTO' => array('label' => 'Mejorar producto', 'channel' => 'contenido'),
             'IMPULSAR_PRODUCTO' => array('label' => 'Impulsar producto', 'channel' => 'contenido'),
             'MEJORAR_CATEGORIA' => array('label' => 'Mejorar categoría', 'channel' => 'estructura'),
+            'MEJORAR_CATEGORIA_SURTIDO' => array('label' => 'Mejorar categoría + ampliar surtido', 'channel' => 'catalogo'),
+            'REVISAR_CATEGORIA_SURTIDO' => array('label' => 'Mejorar categoría + revisar surtido', 'channel' => 'catalogo'),
             'IMPULSAR_CATEGORIA' => array('label' => 'Impulsar categoría', 'channel' => 'estructura'),
             'MEJORAR_CLUSTER' => array('label' => 'Mejorar cluster', 'channel' => 'estructura'),
             'IMPULSAR_CLUSTER' => array('label' => 'Impulsar cluster', 'channel' => 'estructura'),
@@ -66,6 +68,36 @@ if (!function_exists('seo_analista_clean_evidence')) {
             $out[] = $query;
             if (count($out) >= max(1, absint($limit))) break;
         }
+        return $out;
+    }
+}
+
+if (!function_exists('seo_analista_merge_market_signal')) {
+    /** Mantiene separadas las senales de Trends y la aceleracion interna de GSC. */
+    function seo_analista_merge_market_signal(array $base, array $incoming, $source = '') {
+        $out = array_merge($base, $incoming);
+        $base_score = (float) ($base['score'] ?? 0);
+        $incoming_score = (float) ($incoming['score'] ?? 0);
+        $out['score'] = max($base_score, $incoming_score);
+        $out['breakout'] = !empty($base['breakout']) || !empty($incoming['breakout']);
+
+        $source_norm = seo_analista_normalize_text((string) $source);
+        $incoming_kind = sanitize_key((string) ($incoming['signal_kind'] ?? ''));
+        $is_trends = $incoming_score > 0 && (strpos($source_norm, 'google trends') !== false || $incoming_kind !== '');
+        $is_gsc = strpos($source_norm, 'search console') !== false;
+        $growth = (float) ($incoming['growth'] ?? 0);
+
+        $out['trends_growth'] = max((float) ($base['trends_growth'] ?? 0), (float) ($incoming['trends_growth'] ?? 0), $is_trends ? $growth : 0.0);
+        $out['gsc_growth'] = max((float) ($base['gsc_growth'] ?? 0), (float) ($incoming['gsc_growth'] ?? 0), $is_gsc ? $growth : 0.0);
+        $out['growth'] = max((float) ($base['growth'] ?? 0), $growth);
+
+        if ($incoming_kind !== '' && $incoming_score > 0) $out['signal_kind'] = $incoming_kind;
+        elseif (!empty($base['signal_kind'])) $out['signal_kind'] = (string) $base['signal_kind'];
+
+        $out['seeds'] = array_values(array_unique(array_filter(array_merge(
+            (array) ($base['seeds'] ?? array()),
+            (array) ($incoming['seeds'] ?? array())
+        ))));
         return $out;
     }
 }
@@ -307,7 +339,13 @@ if (!function_exists('seo_analista_merge_external_signal')) {
                 $existing['recommended_changes'] = array_values(array_unique(array_merge((array) ($existing['recommended_changes'] ?? array()), (array) ($signal['recommended_changes'] ?? array()))));
             }
 
-            if (!empty($signal['market'])) $existing['market'] = array_merge((array) ($existing['market'] ?? array()), (array) $signal['market']);
+            if (!empty($signal['market'])) {
+                $existing['market'] = seo_analista_merge_market_signal(
+                    (array) ($existing['market'] ?? array()),
+                    (array) $signal['market'],
+                    (string) ($signal['source'] ?? implode(' + ', (array) ($signal['sources'] ?? array())))
+                );
+            }
             if (!empty($signal['competition'])) $existing['competition'] = $signal['competition'];
             if (!empty($signal['internal_search'])) $existing['internal_search'] = $signal['internal_search'];
             unset($existing);
@@ -438,7 +476,13 @@ if (!function_exists('seo_analista_decision_plan')) {
             $existing['evidence'] = array_slice((array) $existing['evidence'], 0, 12);
             $existing['keywords'] = array_slice((array) $existing['keywords'], 0, 12);
             $existing['source'] = implode(' + ', (array) ($existing['sources'] ?? array()));
-            if (!empty($row['market'])) $existing['market'] = array_merge((array) ($existing['market'] ?? array()), (array) $row['market']);
+            if (!empty($row['market'])) {
+                $existing['market'] = seo_analista_merge_market_signal(
+                    (array) ($existing['market'] ?? array()),
+                    (array) $row['market'],
+                    (string) ($row['source'] ?? implode(' + ', (array) ($row['sources'] ?? array())))
+                );
+            }
             unset($existing);
         }
         usort($dedup, static function($a,$b){ return (int) ($b['priority'] ?? 0) <=> (int) ($a['priority'] ?? 0); });
