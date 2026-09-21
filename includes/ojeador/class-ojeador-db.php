@@ -4,14 +4,14 @@
  *
  * @package SEOSystem
  * @subpackage Ojeador
- * @since 0.1.0
+ * @since 0.2.0
  */
 
 defined('ABSPATH') || exit;
 
 final class SEO_Ojeador_DB {
     const OPTION_DB_VERSION = 'seo_ojeador_db_version';
-    const DB_VERSION = '0.1.0';
+    const DB_VERSION = '0.2.0';
 
     public static function table($name) {
         global $wpdb;
@@ -222,6 +222,8 @@ final class SEO_Ojeador_DB {
         );
 
         if ($existing) {
+            // A refresh must not reactivate a product that an administrator paused.
+            unset($row['status']);
             $wpdb->update($table, $row, array('id' => absint($existing['id'])));
             return absint($existing['id']);
         }
@@ -540,6 +542,163 @@ final class SEO_Ojeador_DB {
             'median' => self::median($values),
         );
         return array('product' => $product_row, 'offers' => $offers, 'stats' => $stats);
+    }
+
+
+
+    public static function set_product_status($object_id, $status) {
+        global $wpdb;
+        $status = sanitize_key((string) $status);
+        if (!in_array($status, array('active', 'paused'), true)) {
+            return false;
+        }
+        return false !== $wpdb->update(
+            self::table('products'),
+            array('status' => $status, 'updated_at' => self::utc_now()),
+            array('object_id' => absint($object_id))
+        );
+    }
+
+    public static function set_offer_active($offer_id, $active) {
+        global $wpdb;
+        return false !== $wpdb->update(
+            self::table('offers'),
+            array('active' => $active ? 1 : 0),
+            array('id' => absint($offer_id))
+        );
+    }
+
+    public static function list_products($args = array()) {
+        global $wpdb;
+        $args = wp_parse_args($args, array(
+            'limit' => 100,
+            'offset' => 0,
+            'search' => '',
+            'status' => '',
+        ));
+        $limit = max(1, min(500, absint($args['limit'])));
+        $offset = max(0, absint($args['offset']));
+        $where = array('1=1');
+        $params = array();
+        $status = sanitize_key((string) $args['status']);
+        if (in_array($status, array('active', 'paused'), true)) {
+            $where[] = 'p.status=%s';
+            $params[] = $status;
+        }
+        $search = trim((string) $args['search']);
+        if ($search !== '') {
+            $like = '%' . $wpdb->esc_like($search) . '%';
+            if (ctype_digit($search)) {
+                $where[] = '(p.object_id=%d OR p.canonical_name LIKE %s OR p.sku LIKE %s OR p.gtin LIKE %s OR p.mpn LIKE %s OR p.brand LIKE %s OR p.model LIKE %s)';
+                $params[] = absint($search);
+                foreach (range(1, 6) as $unused) { $params[] = $like; }
+            } else {
+                $where[] = '(p.canonical_name LIKE %s OR p.sku LIKE %s OR p.gtin LIKE %s OR p.mpn LIKE %s OR p.brand LIKE %s OR p.model LIKE %s)';
+                foreach (range(1, 6) as $unused) { $params[] = $like; }
+            }
+        }
+        $products = self::table('products');
+        $offers = self::table('offers');
+        $sql = "SELECT p.*,
+                       COUNT(CASE WHEN o.active=1 THEN 1 END) AS offer_count,
+                       COUNT(CASE WHEN o.active=1 AND o.match_status IN ('confirmed','probable') THEN 1 END) AS usable_offer_count,
+                       MIN(CASE WHEN o.active=1 AND o.match_status IN ('confirmed','probable') THEN COALESCE(o.total_price,o.price_gross,o.price_raw) END) AS market_min,
+                       MAX(CASE WHEN o.active=1 AND o.match_status IN ('confirmed','probable') THEN COALESCE(o.total_price,o.price_gross,o.price_raw) END) AS market_max,
+                       MAX(o.observed_at) AS offers_observed_at
+                FROM {$products} p
+                LEFT JOIN {$offers} o ON o.ojeador_product_id=p.id
+                WHERE " . implode(' AND ', $where) . "
+                GROUP BY p.id
+                ORDER BY COALESCE(p.last_scan_at,p.created_at) DESC, p.id DESC
+                LIMIT {$limit} OFFSET {$offset}";
+        if ($params) {
+            $sql = $wpdb->prepare($sql, $params);
+        }
+        return (array) $wpdb->get_results($sql, ARRAY_A);
+    }
+
+    public static function list_offers($args = array()) {
+        global $wpdb;
+        $args = wp_parse_args($args, array(
+            'limit' => 100,
+            'offset' => 0,
+            'search' => '',
+            'match_status' => '',
+            'active' => '',
+        ));
+        $limit = max(1, min(500, absint($args['limit'])));
+        $offset = max(0, absint($args['offset']));
+        $where = array('1=1');
+        $params = array();
+        $match_status = sanitize_key((string) $args['match_status']);
+        if (in_array($match_status, array('confirmed','probable','review','rejected'), true)) {
+            $where[] = 'o.match_status=%s';
+            $params[] = $match_status;
+        }
+        if ($args['active'] !== '') {
+            $where[] = 'o.active=%d';
+            $params[] = empty($args['active']) ? 0 : 1;
+        }
+        $search = trim((string) $args['search']);
+        if ($search !== '') {
+            $like = '%' . $wpdb->esc_like($search) . '%';
+            $where[] = '(p.canonical_name LIKE %s OR o.merchant_name LIKE %s OR o.seller_name LIKE %s OR o.observed_title LIKE %s OR o.observed_gtin LIKE %s OR o.observed_mpn LIKE %s)';
+            foreach (range(1, 6) as $unused) { $params[] = $like; }
+        }
+        $sql = "SELECT o.*, p.object_id, p.canonical_name, p.brand AS canonical_brand, p.mpn AS canonical_mpn, p.gtin AS canonical_gtin
+                FROM " . self::table('offers') . " o
+                INNER JOIN " . self::table('products') . " p ON p.id=o.ojeador_product_id
+                WHERE " . implode(' AND ', $where) . "
+                ORDER BY o.observed_at DESC, o.id DESC
+                LIMIT {$limit} OFFSET {$offset}";
+        if ($params) {
+            $sql = $wpdb->prepare($sql, $params);
+        }
+        return (array) $wpdb->get_results($sql, ARRAY_A);
+    }
+
+    public static function list_history($limit = 150) {
+        global $wpdb;
+        $limit = max(1, min(500, absint($limit)));
+        $sql = "SELECT h.*, o.merchant_name, o.url, o.match_status, p.object_id, p.canonical_name
+                FROM " . self::table('history') . " h
+                INNER JOIN " . self::table('offers') . " o ON o.id=h.offer_id
+                INNER JOIN " . self::table('products') . " p ON p.id=o.ojeador_product_id
+                ORDER BY h.observed_at DESC, h.id DESC
+                LIMIT {$limit}";
+        return (array) $wpdb->get_results($sql, ARRAY_A);
+    }
+
+    public static function list_runs($limit = 80) {
+        global $wpdb;
+        $limit = max(1, min(300, absint($limit)));
+        return (array) $wpdb->get_results(
+            'SELECT * FROM ' . self::table('runs') . ' ORDER BY id DESC LIMIT ' . $limit,
+            ARRAY_A
+        );
+    }
+
+    public static function market_summary() {
+        global $wpdb;
+        $products = self::table('products');
+        $offers = self::table('offers');
+        $history = self::table('history');
+        $runs = self::table('runs');
+        $now = self::utc_now();
+        return array(
+            'products' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$products}")),
+            'products_active' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$products} WHERE status='active'")),
+            'products_paused' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$products} WHERE status='paused'")),
+            'products_compared' => absint($wpdb->get_var("SELECT COUNT(DISTINCT o.ojeador_product_id) FROM {$offers} o WHERE o.active=1 AND o.match_status IN ('confirmed','probable')")),
+            'offers' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$offers} WHERE active=1")),
+            'confirmed' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$offers} WHERE active=1 AND match_status='confirmed'")),
+            'review' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$offers} WHERE active=1 AND match_status='review'")),
+            'fresh' => absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$offers} WHERE active=1 AND (expires_at IS NULL OR expires_at >= %s)", $now))),
+            'stale' => absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$offers} WHERE active=1 AND expires_at IS NOT NULL AND expires_at < %s", $now))),
+            'merchants' => absint($wpdb->get_var("SELECT COUNT(DISTINCT merchant_name) FROM {$offers} WHERE active=1 AND merchant_name<>''")),
+            'history_rows' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$history}")),
+            'runs' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$runs}")),
+        );
     }
 
     private static function median($values) {

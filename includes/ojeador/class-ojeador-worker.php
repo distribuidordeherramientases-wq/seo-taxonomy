@@ -4,7 +4,7 @@
  *
  * @package SEOSystem
  * @subpackage Ojeador
- * @since 0.1.0
+ * @since 0.2.0
  */
 
 defined('ABSPATH') || exit;
@@ -12,16 +12,13 @@ defined('ABSPATH') || exit;
 final class SEO_Ojeador_Worker {
     const OPTION_SETTINGS = 'seo_ojeador_settings';
     const CRON_HOOK = 'seo_ojeador_weekly_scan';
-    const LOCK_NAME = 'seo_ojeador_worker_v01';
+    const LOCK_NAME = 'seo_ojeador_worker_v02';
 
     public static function init() {
         add_filter('cron_schedules', array(__CLASS__, 'cron_schedules'));
         add_action('init', array(__CLASS__, 'ensure_schedule'), 120);
         add_action(self::CRON_HOOK, array(__CLASS__, 'scheduled_run'));
 
-        add_filter('seo_process_supervisor_has_pending_work', array(__CLASS__, 'filter_pending_work'));
-        add_filter('seo_process_supervisor_manager_targets', array(__CLASS__, 'filter_manager_targets'), 20, 3);
-        add_filter('seo_processes_monitor_items', array(__CLASS__, 'filter_monitor_items'));
     }
 
     public static function defaults() {
@@ -32,7 +29,6 @@ final class SEO_Ojeador_Worker {
             'hour' => 3,
             'minute' => 30,
             'max_products_per_run' => 100,
-            'batch_products' => 4,
             'max_offers_per_product' => 8,
             'freshness_hours' => 168,
             'request_timeout' => 12,
@@ -55,7 +51,6 @@ final class SEO_Ojeador_Worker {
             'hour' => max(0, min(23, absint($raw['hour']))),
             'minute' => max(0, min(59, absint($raw['minute']))),
             'max_products_per_run' => max(1, min(10000, absint($raw['max_products_per_run']))),
-            'batch_products' => max(1, min(25, absint($raw['batch_products']))),
             'max_offers_per_product' => max(1, min(20, absint($raw['max_offers_per_product']))),
             'freshness_hours' => max(1, min(720, absint($raw['freshness_hours']))),
             'request_timeout' => max(5, min(25, absint($raw['request_timeout']))),
@@ -186,58 +181,7 @@ final class SEO_Ojeador_Worker {
         return (bool) SEO_Ojeador_DB::active_run();
     }
 
-    public static function filter_pending_work($pending) {
-        return $pending || self::is_pending();
-    }
-
-    public static function filter_manager_targets($targets, $settings, $source) {
-        if (!self::is_pending()) {
-            return $targets;
-        }
-        $targets[] = array(
-            'type' => 'ojeador',
-            'data' => array(),
-            'callback' => array(__CLASS__, 'manager_target_callback'),
-        );
-        return $targets;
-    }
-
-    public static function manager_target_callback($budget, $source, $target) {
-        $key = 'ojeador';
-        if (function_exists('seo_process_supervisor_managed_update')) {
-            seo_process_supervisor_managed_update($key, array(
-                'name' => 'Ojeador',
-                'pending' => 1,
-                'healthy' => 1,
-                'last_checked' => time(),
-                'last_attempt_at' => time(),
-                'last_result' => 'running',
-                'last_error' => '',
-                'detail' => 'El gestor esta ejecutando una ventana de Ojeador.',
-            ));
-        }
-        if (function_exists('seo_process_supervisor_log')) {
-            seo_process_supervisor_log('info', 'process_window_started', 'Ojeador entra en una ventana del gestor.', 'Ojeador', array('seconds' => absint($budget)));
-        }
-
-        $ok = self::process_manager_slice($budget, $source);
-        $still = self::is_pending();
-        $latest = SEO_Ojeador_DB::latest_run();
-        if (function_exists('seo_process_supervisor_managed_update')) {
-            seo_process_supervisor_managed_update($key, array(
-                'name' => 'Ojeador',
-                'pending' => $still ? 1 : 0,
-                'healthy' => $ok ? 1 : 0,
-                'last_checked' => time(),
-                'last_result' => $still ? ($ok ? 'processed' : 'waiting') : sanitize_key((string) ($latest['status'] ?? 'idle')),
-                'last_error' => sanitize_text_field((string) ($latest['last_error'] ?? '')),
-                'detail' => $still ? 'Ventana completada; continuara en el siguiente ciclo.' : 'Ojeador terminado o sin trabajo pendiente.',
-            ));
-        }
-        return $ok;
-    }
-
-    public static function process_manager_slice($budget_seconds = 20, $source = 'manager') {
+    public static function process_manager_slice($budget_seconds = 20, $source = 'manager', $control = null) {
         global $wpdb;
         $run = SEO_Ojeador_DB::active_run();
         if (!$run) {
@@ -261,7 +205,9 @@ final class SEO_Ojeador_Worker {
             }
 
             $processed_this_slice = 0;
-            $batch_limit = absint($settings['batch_products']);
+            $batch_limit = class_exists('SEO_Ojeador_Process')
+                ? SEO_Ojeador_Process::current_batch_size(is_array($control) ? $control : null)
+                : 3;
             while ($processed_this_slice < $batch_limit && (microtime(true) - $started) < max(3, ((float) $budget_seconds - 1))) {
                 $run = SEO_Ojeador_DB::run_row($run_id);
                 if (!$run || !in_array((string) $run['status'], array('pending', 'running'), true)) {
@@ -464,13 +410,30 @@ final class SEO_Ojeador_Worker {
 
     private static function published_product_count() {
         global $wpdb;
-        return absint($wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='product' AND post_status='publish'"));
+        $watch = SEO_Ojeador_DB::table('products');
+        return absint($wpdb->get_var(
+            "SELECT COUNT(*)
+             FROM {$wpdb->posts} p
+             LEFT JOIN {$watch} o ON o.object_id=p.ID
+             WHERE p.post_type='product'
+               AND p.post_status='publish'
+               AND (o.status IS NULL OR o.status<>'paused')"
+        ));
     }
 
     private static function next_product_id($cursor) {
         global $wpdb;
+        $watch = SEO_Ojeador_DB::table('products');
         return absint($wpdb->get_var($wpdb->prepare(
-            "SELECT ID FROM {$wpdb->posts} WHERE post_type='product' AND post_status='publish' AND ID>%d ORDER BY ID ASC LIMIT 1",
+            "SELECT p.ID
+             FROM {$wpdb->posts} p
+             LEFT JOIN {$watch} o ON o.object_id=p.ID
+             WHERE p.post_type='product'
+               AND p.post_status='publish'
+               AND p.ID>%d
+               AND (o.status IS NULL OR o.status<>'paused')
+             ORDER BY p.ID ASC
+             LIMIT 1",
             absint($cursor)
         )));
     }
@@ -493,57 +456,4 @@ final class SEO_Ojeador_Worker {
         }
     }
 
-    public static function filter_monitor_items($items) {
-        $run = SEO_Ojeador_DB::active_run();
-        if (!$run) {
-            $run = SEO_Ojeador_DB::latest_run();
-        }
-        $status = sanitize_key((string) ($run['status'] ?? 'stopped'));
-        $processed = absint($run['processed_products'] ?? 0);
-        $total = absint($run['total_candidates'] ?? 0);
-        $progress = $total > 0 ? min(100, round(($processed / $total) * 100, 1)) : null;
-        $heartbeat = !empty($run['heartbeat_at']) ? strtotime((string) $run['heartbeat_at'] . ' UTC') : 0;
-        $age = $heartbeat ? max(0, time() - $heartbeat) : null;
-
-        if ($status === 'running' || $status === 'pending') {
-            $state = function_exists('seo_processes_state') ? seo_processes_state('running', 'En ejecucion', 'running') : array('tone' => 'running', 'label' => 'En ejecucion');
-        } elseif ($status === 'completed') {
-            $state = function_exists('seo_processes_state') ? seo_processes_state('completed', 'Parado - completado', 'completed') : array('tone' => 'completed', 'label' => 'Completado');
-        } elseif ($status === 'failed') {
-            $state = function_exists('seo_processes_state') ? seo_processes_state('error', 'Fallido', 'failed') : array('tone' => 'error', 'label' => 'Fallido');
-        } elseif ($status === 'stopped') {
-            $state = function_exists('seo_processes_state') ? seo_processes_state('stopped', 'Parado', 'stopped') : array('tone' => 'stopped', 'label' => 'Parado');
-        } else {
-            $state = function_exists('seo_processes_state') ? seo_processes_state('stopped', 'Sin actividad', 'stopped') : array('tone' => 'stopped', 'label' => 'Sin actividad');
-        }
-
-        $elapsed = 0;
-        if (!empty($run['started_at'])) {
-            $start_ts = strtotime((string) $run['started_at'] . ' UTC');
-            if ($start_ts) {
-                $end_ts = !empty($run['completed_at']) ? strtotime((string) $run['completed_at'] . ' UTC') : time();
-                $elapsed = max(1, $end_ts - $start_ts);
-            }
-        }
-        $rate = ($elapsed > 0 && $processed > 0) ? round(($processed / $elapsed) * 60, 1) : 0;
-        $activity = null === $age ? 'Sin actividad registrada' : ($age < 60 ? 'Hace ' . $age . ' s' : 'Hace ' . floor($age / 60) . ' min');
-
-        $items[] = array(
-            'id' => 'ojeador',
-            'name' => 'Ojeador',
-            'kind' => 'Inteligencia de precios y ofertas externas',
-            'state' => $state,
-            'speed' => $rate > 0 ? number_format_i18n($rate, 1) . ' productos/min' : '0 productos/min',
-            'response' => $run ? number_format_i18n(absint($run['offers_seen'] ?? 0)) . ' ofertas observadas' : 'Sin barridos',
-            'load' => $run ? number_format_i18n($processed) . ' / ' . number_format_i18n($total) . ' productos' : 'Sin job iniciado',
-            'activity' => $activity,
-            'activity_age' => $age,
-            'progress' => $progress,
-            'progress_text' => null !== $progress ? number_format_i18n($progress, 1) . '%' : '---',
-            'detail' => $run ? ('Ultimo estado: ' . ($status ?: 'desconocido') . (!empty($run['last_error']) ? ' - ' . $run['last_error'] : '')) : 'Sin actividad registrada.',
-            'url' => add_query_arg(array('page' => 'seo-processes', 'tab' => 'ojeador'), admin_url('admin.php')),
-            'can_start' => false,
-        );
-        return $items;
-    }
 }
