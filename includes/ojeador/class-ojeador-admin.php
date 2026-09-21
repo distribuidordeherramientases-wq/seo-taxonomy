@@ -7,7 +7,7 @@
  *
  * @package SEOSystem
  * @subpackage Ojeador
- * @since 0.2.0
+ * @since 0.3.0
  */
 
 defined('ABSPATH') || exit;
@@ -18,7 +18,6 @@ final class SEO_Ojeador_Admin {
     public static function init() {
         add_action('admin_menu', array(__CLASS__, 'register_page'), 90);
         add_filter('seo_tools_cards', array(__CLASS__, 'register_tool_card'));
-        add_action('admin_footer', array(__CLASS__, 'inject_tools_card_fallback'));
 
         add_action('admin_post_seo_ojeador_save_settings', array(__CLASS__, 'save_settings'));
         add_action('admin_post_seo_ojeador_start', array(__CLASS__, 'start'));
@@ -58,33 +57,6 @@ final class SEO_Ojeador_Admin {
         return $tools;
     }
 
-    /**
-     * Compatibility fallback for installations whose Herramientas page has not
-     * yet added the generic seo_tools_cards filter. It injects only the card.
-     */
-    public static function inject_tools_card_fallback() {
-        if (!is_admin() || !current_user_can('manage_options')) {
-            return;
-        }
-        $page = sanitize_key((string) ($_GET['page'] ?? ''));
-        if ('seo-tools' !== $page) {
-            return;
-        }
-        $url = add_query_arg(array('page' => self::PAGE), admin_url('admin.php'));
-        ?>
-        <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            var grid = document.querySelector('.seo-tools-grid');
-            if (!grid || grid.querySelector('a[href*="page=seo-ojeador"]')) return;
-            var link = document.createElement('a');
-            link.className = 'seo-tool-card-link';
-            link.href = <?php echo wp_json_encode($url); ?>;
-            link.innerHTML = '<div class="seo-tool-card"><span class="dashicons dashicons-visibility"></span><h2>Ojeador</h2><p>Precios externos, comparativas, ofertas, históricos y barridos del mercado.</p><span class="button button-primary">Abrir</span></div>';
-            grid.appendChild(link);
-        });
-        </script>
-        <?php
-    }
 
     private static function guard($action) {
         if (!current_user_can('manage_options')) {
@@ -95,7 +67,7 @@ final class SEO_Ojeador_Admin {
 
     private static function current_tab() {
         $tab = sanitize_key((string) ($_REQUEST['tab'] ?? 'resumen'));
-        return in_array($tab, array('resumen','comparativas','productos','ofertas','historico','barridos','configuracion'), true)
+        return in_array($tab, array('resumen','comparativas','productos','ofertas','historico','escaneo-externo','barridos','configuracion'), true)
             ? $tab
             : 'resumen';
     }
@@ -189,7 +161,7 @@ final class SEO_Ojeador_Admin {
         <div class="wrap seo-ojeador-wrap">
             <div class="seo-ojeador-titlebar">
                 <div>
-                    <h1>Ojeador <span>v<?php echo esc_html(defined('SEO_OJEADOR_VERSION') ? SEO_OJEADOR_VERSION : '0.2.0'); ?></span></h1>
+                    <h1>Ojeador <span>v<?php echo esc_html(defined('SEO_OJEADOR_VERSION') ? SEO_OJEADOR_VERSION : '0.3.0'); ?></span></h1>
                     <p>Inteligencia de precios y ofertas externas. La presión sobre el servidor se regula desde <strong>SEO Taxonomy → Procesos</strong>.</p>
                 </div>
                 <a class="button" href="<?php echo esc_url(add_query_arg(array('page'=>'seo-processes'), admin_url('admin.php'))); ?>">Abrir Procesos</a>
@@ -202,6 +174,7 @@ final class SEO_Ojeador_Admin {
                 case 'productos': self::render_products(); break;
                 case 'ofertas': self::render_offers(); break;
                 case 'historico': self::render_history(); break;
+                case 'escaneo-externo': SEO_Ojeador_Import_Export::render_admin(); break;
                 case 'barridos': self::render_scans(); break;
                 case 'configuracion': self::render_settings(); break;
                 case 'resumen':
@@ -220,6 +193,7 @@ final class SEO_Ojeador_Admin {
             'productos' => 'Productos vigilados',
             'ofertas' => 'Ofertas',
             'historico' => 'Histórico',
+            'escaneo-externo' => 'Escaneo externo',
             'barridos' => 'Barridos',
             'configuracion' => 'Configuración',
         );
@@ -360,6 +334,11 @@ final class SEO_Ojeador_Admin {
             <p class="description">El total solo es plenamente comparable cuando IVA y transporte están confirmados. Si faltan, Ojeador conserva la oferta pero la marca como comparación parcial.</p>
             <h3>Ofertas observadas</h3>
             <?php self::offers_table($data['offers']); ?>
+            <?php if (!empty($data['supplier_offers'])) : ?>
+                <h3>Referencia interna de proveedores</h3>
+                <p class="description">Estas filas sirven para comparar coste/origen y no entran en la mediana del mercado exterior.</p>
+                <?php self::offers_table($data['supplier_offers']); ?>
+            <?php endif; ?>
             <h3>Añadir URL externa</h3>
             <form class="seo-ojeador-inline-form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
                 <input type="hidden" name="action" value="seo_ojeador_add_offer"><input type="hidden" name="product_id" value="<?php echo esc_attr((string)$object_id); ?>"><?php wp_nonce_field('seo_ojeador_add_offer'); ?>
@@ -407,11 +386,11 @@ final class SEO_Ojeador_Admin {
 
     private static function offers_table($rows, $show_product = false) {
         ?>
-        <div class="seo-ojeador-table-wrap"><table class="widefat striped"><thead><tr><?php if ($show_product) : ?><th>Producto</th><?php endif; ?><th>Comercio</th><th>Precio</th><th>IVA</th><th>Transporte</th><th>Total</th><th>Stock</th><th>Match</th><th>Observado</th><th>Acciones</th></tr></thead><tbody>
-        <?php if (!$rows) : ?><tr><td colspan="10">No hay ofertas.</td></tr><?php else : foreach ($rows as $offer) : ?>
+        <div class="seo-ojeador-table-wrap"><table class="widefat striped"><thead><tr><?php if ($show_product) : ?><th>Producto</th><?php endif; ?><th>Comercio</th><th>Precio</th><th>IVA</th><th>Transporte</th><th>Total</th><th>Stock</th><th>Match</th><th>Actualización</th><th>Observado</th><th>Acciones</th></tr></thead><tbody>
+        <?php if (!$rows) : ?><tr><td colspan="11">No hay ofertas.</td></tr><?php else : foreach ($rows as $offer) : ?>
             <tr><?php if ($show_product) : ?><td><a href="<?php echo esc_url(add_query_arg(array('page'=>self::PAGE,'tab'=>'comparativas','object_id'=>absint($offer['object_id'] ?? 0)), admin_url('admin.php'))); ?>"><strong><?php echo esc_html($offer['canonical_name'] ?? ''); ?></strong></a><br><small>#<?php echo esc_html((string)absint($offer['object_id'] ?? 0)); ?></small></td><?php endif; ?>
                 <td><strong><?php echo esc_html($offer['merchant_name'] ?: $offer['source_key']); ?></strong><?php if (!empty($offer['url'])) : ?><br><a href="<?php echo esc_url($offer['url']); ?>" target="_blank" rel="noopener noreferrer">Abrir oferta</a><?php endif; ?></td>
-                <td><?php echo esc_html(self::money($offer['price_raw'])); ?></td><td><?php echo esc_html(self::vat_label($offer)); ?></td><td><?php echo esc_html(self::shipping_label($offer)); ?></td><td><strong><?php echo esc_html(self::money($offer['total_price'] ?: ($offer['price_gross'] ?: $offer['price_raw']))); ?></strong></td><td><?php echo esc_html($offer['stock_status'] ?: '—'); ?></td><td><?php echo esc_html((string)$offer['match_status']); ?><br><small><?php echo esc_html((string)$offer['match_method']); ?> · <?php echo esc_html(number_format_i18n(((float)$offer['match_confidence'])*100,1)); ?>%</small></td><td><?php echo esc_html((string)$offer['observed_at']); ?><?php if (empty($offer['active'])) : ?><br><small>INACTIVA</small><?php endif; ?></td><td><?php self::offer_actions($offer); ?></td>
+                <td><?php echo esc_html(self::money($offer['price_raw'])); ?></td><td><?php echo esc_html(self::vat_label($offer)); ?></td><td><?php echo esc_html(self::shipping_label($offer)); ?></td><td><strong><?php echo esc_html(self::money($offer['total_price'] ?: ($offer['price_gross'] ?: $offer['price_raw']))); ?></strong></td><td><?php echo esc_html($offer['stock_status'] ?: '—'); ?></td><td><?php echo esc_html((string)$offer['match_status']); ?><br><small><?php echo esc_html((string)$offer['match_method']); ?> · <?php echo esc_html(number_format_i18n(((float)$offer['match_confidence'])*100,1)); ?>%</small></td><td><?php echo esc_html((string)($offer['refresh_mode'] ?? 'import_only')); ?><br><small><?php echo esc_html((string)($offer['extraction_method'] ?? '')); ?></small></td><td><?php echo esc_html((string)$offer['observed_at']); ?><?php if (empty($offer['active'])) : ?><br><small>INACTIVA</small><?php endif; ?></td><td><?php self::offer_actions($offer); ?></td>
             </tr>
         <?php endforeach; endif; ?></tbody></table></div>
         <?php
@@ -473,7 +452,7 @@ final class SEO_Ojeador_Admin {
             <label><input type="checkbox" name="ojeador[auto_enabled]" value="1" <?php checked(!empty($settings['auto_enabled'])); ?>> Barrido automático semanal</label><label><input type="checkbox" name="ojeador[allow_non_production]" value="1" <?php checked(!empty($settings['allow_non_production'])); ?>> Permitir automático fuera de producción</label>
             <label>Día <select name="ojeador[weekday]"><?php foreach ($days as $i=>$day) : ?><option value="<?php echo esc_attr((string)$i); ?>" <?php selected((int)$settings['weekday'],$i); ?>><?php echo esc_html($day); ?></option><?php endforeach; ?></select></label><label>Hora <input type="number" name="ojeador[hour]" min="0" max="23" value="<?php echo esc_attr((string)$settings['hour']); ?>"></label><label>Minuto <input type="number" name="ojeador[minute]" min="0" max="59" value="<?php echo esc_attr((string)$settings['minute']); ?>"></label>
             <label>Productos por barrido <input type="number" name="ojeador[max_products_per_run]" min="1" max="10000" value="<?php echo esc_attr((string)$settings['max_products_per_run']); ?>"></label><label>Máx. ofertas por producto <input type="number" name="ojeador[max_offers_per_product]" min="1" max="20" value="<?php echo esc_attr((string)$settings['max_offers_per_product']); ?>"></label><label>Vigencia oferta (h) <input type="number" name="ojeador[freshness_hours]" min="1" max="720" value="<?php echo esc_attr((string)$settings['freshness_hours']); ?>"></label><label>Timeout URL (s) <input type="number" name="ojeador[request_timeout]" min="5" max="25" value="<?php echo esc_attr((string)$settings['request_timeout']); ?>"></label>
-            <label><input type="checkbox" name="ojeador[include_provider_catalog]" value="1" <?php checked(!empty($settings['include_provider_catalog'])); ?>> Usar catálogo de proveedores</label><label><input type="checkbox" name="ojeador[refresh_existing_urls]" value="1" <?php checked(!empty($settings['refresh_existing_urls'])); ?>> Refrescar URLs ya guardadas</label>
+            <label><input type="checkbox" name="ojeador[include_provider_catalog]" value="1" <?php checked(!empty($settings['include_provider_catalog'])); ?>> Usar catálogo de proveedores</label><label><input type="checkbox" name="ojeador[refresh_existing_urls]" value="1" <?php checked(!empty($settings['refresh_existing_urls'])); ?>> Refrescar URLs marcadas como web (las import_only no se visitan)</label>
         </div><p><button class="button button-primary" type="submit">Guardar configuración</button> <a class="button" href="<?php echo esc_url(add_query_arg(array('page'=>'seo-processes'), admin_url('admin.php'))); ?>">Regular presión en Procesos</a></p></form></section>
         <?php
     }

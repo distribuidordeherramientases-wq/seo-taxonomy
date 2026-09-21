@@ -4,14 +4,14 @@
  *
  * @package SEOSystem
  * @subpackage Ojeador
- * @since 0.2.0
+ * @since 0.3.0
  */
 
 defined('ABSPATH') || exit;
 
 final class SEO_Ojeador_DB {
     const OPTION_DB_VERSION = 'seo_ojeador_db_version';
-    const DB_VERSION = '0.2.0';
+    const DB_VERSION = '0.3.0';
 
     public static function table($name) {
         global $wpdb;
@@ -91,6 +91,10 @@ final class SEO_Ojeador_DB {
         $sql_offers = "CREATE TABLE {$offers} (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             ojeador_product_id BIGINT UNSIGNED NOT NULL,
+            object_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+            refresh_mode VARCHAR(24) NOT NULL DEFAULT 'import_only',
+            import_batch VARCHAR(64) NOT NULL DEFAULT '',
+            imported_at DATETIME NULL,
             source_key VARCHAR(80) NOT NULL DEFAULT '',
             source_type VARCHAR(32) NOT NULL DEFAULT 'external_url',
             merchant_name VARCHAR(190) NOT NULL DEFAULT '',
@@ -129,6 +133,8 @@ final class SEO_Ojeador_DB {
             raw_json LONGTEXT NULL,
             PRIMARY KEY  (id),
             UNIQUE KEY product_offer (ojeador_product_id,offer_key),
+            KEY object_id (object_id),
+            KEY refresh_mode (refresh_mode),
             KEY source_key (source_key),
             KEY merchant_name (merchant_name),
             KEY match_status (match_status),
@@ -140,6 +146,7 @@ final class SEO_Ojeador_DB {
         $sql_history = "CREATE TABLE {$history} (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             offer_id BIGINT UNSIGNED NOT NULL,
+            object_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
             fingerprint CHAR(64) NOT NULL,
             price_raw DECIMAL(18,6) NULL,
             price_net DECIMAL(18,6) NULL,
@@ -156,6 +163,7 @@ final class SEO_Ojeador_DB {
             PRIMARY KEY  (id),
             UNIQUE KEY offer_fingerprint (offer_id,fingerprint),
             KEY offer_id (offer_id),
+            KEY object_id (object_id),
             KEY observed_at (observed_at)
         ) {$charset};";
 
@@ -189,6 +197,12 @@ final class SEO_Ojeador_DB {
         dbDelta($sql_offers);
         dbDelta($sql_history);
         dbDelta($sql_runs);
+
+        // v0.3.0: las ofertas pasan a conservar también el object_id común.
+        // Esto permite consultar la comparativa directamente por el ID WooCommerce
+        // sin tratar nuestra propia ficha como una oferta de Ojeador.
+        $wpdb->query("UPDATE {$offers} o INNER JOIN {$products} p ON p.id=o.ojeador_product_id SET o.object_id=p.object_id WHERE o.object_id=0");
+        $wpdb->query("UPDATE {$history} h INNER JOIN {$offers} o ON o.id=h.offer_id SET h.object_id=o.object_id WHERE h.object_id=0");
 
         if (!self::schema_ready()) {
             return new WP_Error('ojeador_schema', 'No se pudieron crear todas las tablas de Ojeador.');
@@ -267,6 +281,16 @@ final class SEO_Ojeador_DB {
         ), ARRAY_A);
     }
 
+    public static function offer_rows_for_object($object_id, $include_inactive = false) {
+        global $wpdb;
+        $table = self::table('offers');
+        $where = $include_inactive ? '' : ' AND active=1';
+        return (array) $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE object_id=%d {$where} ORDER BY match_confidence DESC, observed_at DESC, id DESC",
+            absint($object_id)
+        ), ARRAY_A);
+    }
+
     public static function offer_row($offer_id) {
         global $wpdb;
         $table = self::table('offers');
@@ -293,6 +317,16 @@ final class SEO_Ojeador_DB {
         $url = esc_url_raw((string) ($offer['url'] ?? ''));
         $url_hash = $url !== '' ? hash('sha256', $url) : '';
         $now = self::utc_now();
+        $object_id = absint($offer['object_id'] ?? 0);
+        if ($object_id < 1) {
+            $object_id = absint($wpdb->get_var($wpdb->prepare(
+                'SELECT object_id FROM ' . self::table('products') . ' WHERE id=%d LIMIT 1',
+                $ojeador_product_id
+            )));
+        }
+        if ($object_id < 1) {
+            return new WP_Error('ojeador_offer_object', 'No se pudo resolver el object_id de la oferta.');
+        }
         $observed_at = self::sanitize_mysql_date($offer['observed_at'] ?? '') ?: $now;
         $expires_at = self::sanitize_mysql_date($offer['expires_at'] ?? '');
 
@@ -310,7 +344,15 @@ final class SEO_Ojeador_DB {
         );
         $fingerprint = hash('sha256', wp_json_encode($snapshot));
 
+        $refresh_mode = sanitize_key((string) ($offer['refresh_mode'] ?? 'import_only'));
+        if (!in_array($refresh_mode, array('import_only', 'generic_web', 'internal_feed'), true)) {
+            $refresh_mode = 'import_only';
+        }
         $data = array(
+            'object_id' => $object_id,
+            'refresh_mode' => $refresh_mode,
+            'import_batch' => sanitize_text_field((string) ($offer['import_batch'] ?? '')),
+            'imported_at' => self::sanitize_mysql_date($offer['imported_at'] ?? '') ?: null,
             'source_key' => sanitize_key((string) ($offer['source_key'] ?? '')),
             'source_type' => sanitize_key((string) ($offer['source_type'] ?? 'external_url')) ?: 'external_url',
             'merchant_name' => sanitize_text_field((string) ($offer['merchant_name'] ?? '')),
@@ -381,6 +423,7 @@ final class SEO_Ojeador_DB {
         $table = self::table('history');
         $row = array(
             'offer_id' => absint($offer_id),
+            'object_id' => absint($offer['object_id'] ?? 0),
             'fingerprint' => (string) $fingerprint,
             'price_raw' => self::decimal_or_null($offer['price_raw'] ?? null),
             'price_net' => self::decimal_or_null($offer['price_net'] ?? null),
@@ -486,12 +529,12 @@ final class SEO_Ojeador_DB {
         $offers = self::table('offers');
         $limit = max(1, min(200, absint($limit)));
         $sql = "SELECT p.*,
-                       COUNT(CASE WHEN o.active=1 AND o.match_status IN ('confirmed','probable') THEN 1 END) AS offer_count,
-                       MIN(CASE WHEN o.active=1 AND o.match_status IN ('confirmed','probable') THEN COALESCE(o.total_price,o.price_gross,o.price_raw) END) AS market_min,
-                       MAX(CASE WHEN o.active=1 AND o.match_status IN ('confirmed','probable') THEN COALESCE(o.total_price,o.price_gross,o.price_raw) END) AS market_max,
+                       COUNT(CASE WHEN o.active=1 AND o.source_type<>'provider_catalog' AND o.match_status IN ('confirmed','probable') THEN 1 END) AS offer_count,
+                       MIN(CASE WHEN o.active=1 AND o.source_type<>'provider_catalog' AND o.match_status IN ('confirmed','probable') THEN COALESCE(o.total_price,o.price_gross,o.price_raw) END) AS market_min,
+                       MAX(CASE WHEN o.active=1 AND o.source_type<>'provider_catalog' AND o.match_status IN ('confirmed','probable') THEN COALESCE(o.total_price,o.price_gross,o.price_raw) END) AS market_max,
                        MAX(o.observed_at) AS offers_observed_at
                 FROM {$products} p
-                LEFT JOIN {$offers} o ON o.ojeador_product_id=p.id
+                LEFT JOIN {$offers} o ON o.object_id=p.object_id
                 GROUP BY p.id
                 ORDER BY COALESCE(p.last_scan_at,p.created_at) DESC, p.id DESC
                 LIMIT {$limit}";
@@ -505,27 +548,58 @@ final class SEO_Ojeador_DB {
         $now = self::utc_now();
         return array(
             'products' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$products}")),
-            'offers' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$offers} WHERE active=1")),
-            'confirmed' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$offers} WHERE active=1 AND match_status='confirmed'")),
-            'review' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$offers} WHERE active=1 AND match_status='review'")),
-            'fresh' => absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$offers} WHERE active=1 AND (expires_at IS NULL OR expires_at >= %s)", $now))),
+            'offers' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$offers} WHERE active=1 AND source_type<>'provider_catalog'")),
+            'supplier_offers' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$offers} WHERE active=1 AND source_type='provider_catalog'")),
+            'import_only' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$offers} WHERE active=1 AND refresh_mode='import_only'")),
+            'confirmed' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$offers} WHERE active=1 AND source_type<>'provider_catalog' AND match_status='confirmed'")),
+            'review' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$offers} WHERE active=1 AND source_type<>'provider_catalog' AND match_status='review'")),
+            'fresh' => absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$offers} WHERE active=1 AND source_type<>'provider_catalog' AND (expires_at IS NULL OR expires_at >= %s)", $now))),
         );
     }
 
     public static function comparison_for_object($object_id) {
+        $object_id = absint($object_id);
         $product_row = self::product_row_by_object($object_id);
-        if (!$product_row) {
-            return array('product' => null, 'offers' => array(), 'stats' => array());
+        if (!$product_row && class_exists('SEO_Ojeador_Identity')) {
+            $identity = SEO_Ojeador_Identity::from_product($object_id);
+            if (!is_wp_error($identity)) {
+                $product_row = array(
+                    'object_id' => $object_id,
+                    'sku' => (string) ($identity['sku'] ?? ''),
+                    'gtin' => (string) ($identity['gtin'] ?? ''),
+                    'mpn' => (string) ($identity['mpn'] ?? ''),
+                    'brand' => (string) ($identity['brand'] ?? ''),
+                    'model' => (string) ($identity['model'] ?? ''),
+                    'canonical_name' => (string) ($identity['name'] ?? ''),
+                );
+            }
         }
-        $offers = self::offer_rows_for_product(absint($product_row['id']));
-        $usable = array_values(array_filter($offers, static function ($row) {
-            return in_array((string) ($row['match_status'] ?? ''), array('confirmed', 'probable'), true);
+        $offers = self::offer_rows_for_object($object_id);
+        $market_offers = array_values(array_filter($offers, static function ($row) {
+            return (string) ($row['source_type'] ?? '') !== 'provider_catalog';
+        }));
+        $supplier_offers = array_values(array_filter($offers, static function ($row) {
+            return (string) ($row['source_type'] ?? '') === 'provider_catalog';
+        }));
+        return array(
+            'product' => $product_row,
+            'offers' => $market_offers,
+            'all_offers' => $offers,
+            'supplier_offers' => $supplier_offers,
+            'stats' => self::stats_for_offers($market_offers),
+            'supplier_stats' => self::stats_for_offers($supplier_offers),
+        );
+    }
+
+    private static function stats_for_offers($offers) {
+        $usable = array_values(array_filter((array) $offers, static function ($row) {
+            return !empty($row['active']) && in_array((string) ($row['match_status'] ?? ''), array('confirmed', 'probable'), true);
         }));
         $values = array();
         foreach ($usable as $row) {
             $value = null;
             foreach (array('total_price', 'price_gross', 'price_raw') as $key) {
-                if ($row[$key] !== null && $row[$key] !== '') {
+                if (isset($row[$key]) && $row[$key] !== null && $row[$key] !== '') {
                     $value = (float) $row[$key];
                     break;
                 }
@@ -535,15 +609,13 @@ final class SEO_Ojeador_DB {
             }
         }
         sort($values, SORT_NUMERIC);
-        $stats = array(
+        return array(
             'count' => count($values),
             'min' => $values ? min($values) : null,
             'max' => $values ? max($values) : null,
             'median' => self::median($values),
         );
-        return array('product' => $product_row, 'offers' => $offers, 'stats' => $stats);
     }
-
 
 
     public static function set_product_status($object_id, $status) {
@@ -600,13 +672,13 @@ final class SEO_Ojeador_DB {
         $products = self::table('products');
         $offers = self::table('offers');
         $sql = "SELECT p.*,
-                       COUNT(CASE WHEN o.active=1 THEN 1 END) AS offer_count,
-                       COUNT(CASE WHEN o.active=1 AND o.match_status IN ('confirmed','probable') THEN 1 END) AS usable_offer_count,
-                       MIN(CASE WHEN o.active=1 AND o.match_status IN ('confirmed','probable') THEN COALESCE(o.total_price,o.price_gross,o.price_raw) END) AS market_min,
-                       MAX(CASE WHEN o.active=1 AND o.match_status IN ('confirmed','probable') THEN COALESCE(o.total_price,o.price_gross,o.price_raw) END) AS market_max,
+                       COUNT(CASE WHEN o.active=1 AND o.source_type<>'provider_catalog' THEN 1 END) AS offer_count,
+                       COUNT(CASE WHEN o.active=1 AND o.source_type<>'provider_catalog' AND o.match_status IN ('confirmed','probable') THEN 1 END) AS usable_offer_count,
+                       MIN(CASE WHEN o.active=1 AND o.source_type<>'provider_catalog' AND o.match_status IN ('confirmed','probable') THEN COALESCE(o.total_price,o.price_gross,o.price_raw) END) AS market_min,
+                       MAX(CASE WHEN o.active=1 AND o.source_type<>'provider_catalog' AND o.match_status IN ('confirmed','probable') THEN COALESCE(o.total_price,o.price_gross,o.price_raw) END) AS market_max,
                        MAX(o.observed_at) AS offers_observed_at
                 FROM {$products} p
-                LEFT JOIN {$offers} o ON o.ojeador_product_id=p.id
+                LEFT JOIN {$offers} o ON o.object_id=p.object_id
                 WHERE " . implode(' AND ', $where) . "
                 GROUP BY p.id
                 ORDER BY COALESCE(p.last_scan_at,p.created_at) DESC, p.id DESC
@@ -645,9 +717,9 @@ final class SEO_Ojeador_DB {
             $where[] = '(p.canonical_name LIKE %s OR o.merchant_name LIKE %s OR o.seller_name LIKE %s OR o.observed_title LIKE %s OR o.observed_gtin LIKE %s OR o.observed_mpn LIKE %s)';
             foreach (range(1, 6) as $unused) { $params[] = $like; }
         }
-        $sql = "SELECT o.*, p.object_id, p.canonical_name, p.brand AS canonical_brand, p.mpn AS canonical_mpn, p.gtin AS canonical_gtin
+        $sql = "SELECT o.*, o.object_id, p.canonical_name, p.brand AS canonical_brand, p.mpn AS canonical_mpn, p.gtin AS canonical_gtin
                 FROM " . self::table('offers') . " o
-                INNER JOIN " . self::table('products') . " p ON p.id=o.ojeador_product_id
+                LEFT JOIN " . self::table('products') . " p ON p.object_id=o.object_id
                 WHERE " . implode(' AND ', $where) . "
                 ORDER BY o.observed_at DESC, o.id DESC
                 LIMIT {$limit} OFFSET {$offset}";
@@ -660,10 +732,10 @@ final class SEO_Ojeador_DB {
     public static function list_history($limit = 150) {
         global $wpdb;
         $limit = max(1, min(500, absint($limit)));
-        $sql = "SELECT h.*, o.merchant_name, o.url, o.match_status, p.object_id, p.canonical_name
+        $sql = "SELECT h.*, o.merchant_name, o.url, o.match_status, o.object_id, p.canonical_name
                 FROM " . self::table('history') . " h
                 INNER JOIN " . self::table('offers') . " o ON o.id=h.offer_id
-                INNER JOIN " . self::table('products') . " p ON p.id=o.ojeador_product_id
+                LEFT JOIN " . self::table('products') . " p ON p.object_id=o.object_id
                 ORDER BY h.observed_at DESC, h.id DESC
                 LIMIT {$limit}";
         return (array) $wpdb->get_results($sql, ARRAY_A);
@@ -689,13 +761,15 @@ final class SEO_Ojeador_DB {
             'products' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$products}")),
             'products_active' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$products} WHERE status='active'")),
             'products_paused' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$products} WHERE status='paused'")),
-            'products_compared' => absint($wpdb->get_var("SELECT COUNT(DISTINCT o.ojeador_product_id) FROM {$offers} o WHERE o.active=1 AND o.match_status IN ('confirmed','probable')")),
-            'offers' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$offers} WHERE active=1")),
-            'confirmed' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$offers} WHERE active=1 AND match_status='confirmed'")),
-            'review' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$offers} WHERE active=1 AND match_status='review'")),
-            'fresh' => absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$offers} WHERE active=1 AND (expires_at IS NULL OR expires_at >= %s)", $now))),
-            'stale' => absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$offers} WHERE active=1 AND expires_at IS NOT NULL AND expires_at < %s", $now))),
-            'merchants' => absint($wpdb->get_var("SELECT COUNT(DISTINCT merchant_name) FROM {$offers} WHERE active=1 AND merchant_name<>''")),
+            'products_compared' => absint($wpdb->get_var("SELECT COUNT(DISTINCT o.object_id) FROM {$offers} o WHERE o.active=1 AND o.source_type<>'provider_catalog' AND o.match_status IN ('confirmed','probable')")),
+            'offers' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$offers} WHERE active=1 AND source_type<>'provider_catalog'")),
+            'supplier_offers' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$offers} WHERE active=1 AND source_type='provider_catalog'")),
+            'import_only' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$offers} WHERE active=1 AND refresh_mode='import_only'")),
+            'confirmed' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$offers} WHERE active=1 AND source_type<>'provider_catalog' AND match_status='confirmed'")),
+            'review' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$offers} WHERE active=1 AND source_type<>'provider_catalog' AND match_status='review'")),
+            'fresh' => absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$offers} WHERE active=1 AND source_type<>'provider_catalog' AND (expires_at IS NULL OR expires_at >= %s)", $now))),
+            'stale' => absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$offers} WHERE active=1 AND source_type<>'provider_catalog' AND expires_at IS NOT NULL AND expires_at < %s", $now))),
+            'merchants' => absint($wpdb->get_var("SELECT COUNT(DISTINCT merchant_name) FROM {$offers} WHERE active=1 AND source_type<>'provider_catalog' AND merchant_name<>''")),
             'history_rows' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$history}")),
             'runs' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$runs}")),
         );

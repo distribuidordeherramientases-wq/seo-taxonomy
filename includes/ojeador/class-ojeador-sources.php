@@ -4,7 +4,7 @@
  *
  * @package SEOSystem
  * @subpackage Ojeador
- * @since 0.1.0
+ * @since 0.3.0
  */
 
 defined('ABSPATH') || exit;
@@ -37,9 +37,13 @@ final class SEO_Ojeador_Sources {
             if (in_array((string) ($row['source_type'] ?? ''), array('provider_catalog'), true)) {
                 continue;
             }
+            if ((string) ($row['refresh_mode'] ?? 'import_only') === 'import_only') {
+                continue;
+            }
             $out[] = array(
                 'source_key' => sanitize_key((string) ($row['source_key'] ?? 'external_url')),
                 'source_type' => sanitize_key((string) ($row['source_type'] ?? 'external_url')) ?: 'external_url',
+                'refresh_mode' => sanitize_key((string) ($row['refresh_mode'] ?? 'generic_web')) ?: 'generic_web',
                 'merchant_name' => sanitize_text_field((string) ($row['merchant_name'] ?? '')),
                 'external_product_id' => sanitize_text_field((string) ($row['external_product_id'] ?? '')),
                 'url' => esc_url_raw((string) $row['url']),
@@ -56,6 +60,7 @@ final class SEO_Ojeador_Sources {
         return array(
             'source_key' => 'manual',
             'source_type' => 'external_url',
+            'refresh_mode' => 'generic_web',
             'merchant_name' => sanitize_text_field((string) $merchant_name),
             'external_product_id' => '',
             'url' => $url,
@@ -121,6 +126,7 @@ final class SEO_Ojeador_Sources {
             $out[] = array(
                 'source_key' => 'supplier_' . sanitize_key($provider ?: 'catalog'),
                 'source_type' => 'provider_catalog',
+                'refresh_mode' => 'internal_feed',
                 'merchant_name' => $provider,
                 'external_product_id' => $external_id,
                 'url' => $url,

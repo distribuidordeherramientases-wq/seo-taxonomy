@@ -4,7 +4,7 @@
  *
  * @package SEOSystem
  * @subpackage Ojeador
- * @since 0.2.0
+ * @since 0.2.1
  */
 
 defined('ABSPATH') || exit;
@@ -375,6 +375,8 @@ final class SEO_Ojeador_Worker {
         return array(
             'source_key' => sanitize_key((string) ($candidate['source_key'] ?? 'external')),
             'source_type' => sanitize_key((string) ($candidate['source_type'] ?? 'external_url')) ?: 'external_url',
+            'refresh_mode' => sanitize_key((string) ($candidate['refresh_mode'] ?? 'generic_web')) ?: 'generic_web',
+            'object_id' => absint($identity['object_id'] ?? 0),
             'merchant_name' => sanitize_text_field((string) ($candidate['merchant_name'] ?? '')),
             'seller_name' => sanitize_text_field((string) ($data['seller_name'] ?? '')),
             'external_product_id' => sanitize_text_field((string) ($candidate['external_product_id'] ?? '')),
