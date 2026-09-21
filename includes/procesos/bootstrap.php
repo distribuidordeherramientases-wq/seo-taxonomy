@@ -115,3 +115,14 @@ require_once SEO_SYSTEM_PATH . 'includes/seo-process-supervisor.php';
 require_once SEO_SYSTEM_PATH . 'includes/procesos/woocommerce/bootstrap.php';
 require_once SEO_SYSTEM_PATH . 'includes/procesos/clonador/clonador-bootstrap.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-processes.php';
+
+/*
+|--------------------------------------------------------------------------
+| OJEADOR - inteligencia de precios y ofertas externas
+|--------------------------------------------------------------------------
+*/
+$seo_ojeador_bootstrap = dirname(__DIR__) . '/ojeador/ojeador-bootstrap.php';
+if (is_readable($seo_ojeador_bootstrap)) {
+    require_once $seo_ojeador_bootstrap;
+}
+unset($seo_ojeador_bootstrap);
