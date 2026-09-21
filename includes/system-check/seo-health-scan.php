@@ -6,8 +6,8 @@
  * Cada pestaña dispone de su propio escaneo y de un test de carga seguro.
  * Los workers se ejecutan en GitHub Actions y devuelven resultados por REST.
  *
- * Version: 2026-09-10
- * Build: 005
+ * Version: 2026-09-21
+ * Build: 006
  */
 
 defined('ABSPATH') || exit;
@@ -496,12 +496,14 @@ if (!function_exists('seo_health_scan_latest_run')) {
 
 if (!function_exists('seo_health_scan_select_batch')) {
     /**
-     * Selecciona un lote compatible con los workers GitHub actuales.
+     * Selecciona los elementos que recibirá el worker GitHub.
      *
-     * Los workflows de page/post/image/product no consumen una cola remota de
-     * forma continua: descargan una vez el JSON del endpoint y procesan ese
-     * lote. Por seguridad, WordPress limita cada ejecución y una pasada nueva
-     * continúa con los elementos que todavía no se han comprobado.
+     * Para páginas WordPress el escaneo normal reserva TODO el inventario activo
+     * en una sola ejecución. El inventario se sincroniza automáticamente antes
+     * de lanzar el workflow; no hace falta pulsar "Actualizar inventario" ni
+     * repetir manualmente "siguiente lote".
+     *
+     * Los demás ámbitos conservan por compatibilidad su selección por lotes.
      */
     function seo_health_scan_select_batch($scope, $mode, $limit) {
         global $wpdb;
@@ -521,7 +523,19 @@ if (!function_exists('seo_health_scan_select_batch')) {
             );
         }
 
-        // Primero cubrimos elementos que nunca se han comprobado.
+        if ('page' === sanitize_key((string) $scope)) {
+            return $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT id,object_id,url,label,source FROM {$table}
+                     WHERE scope=%s AND active=1 AND queued_scan_id=0
+                     ORDER BY id ASC",
+                    $scope
+                ),
+                ARRAY_A
+            );
+        }
+
+        // Compatibilidad para posts, productos e imágenes: primero pendientes.
         $pending = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT id,object_id,url,label,source FROM {$table}
@@ -720,7 +734,7 @@ if (!function_exists('seo_health_scan_handle_action')) {
                 );
                 $wpdb->query("UPDATE {$tables['items']} SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=" . absint($active['id']));
                 $msg = 'synced';
-                $detail = 'Escaneo cancelado y elementos liberados.';
+                $detail = 'Escaneo parado y elementos pendientes liberados.';
             } else {
                 $msg = 'sync_error';
                 $detail = 'No hay un escaneo activo que cancelar.';
@@ -1112,23 +1126,37 @@ if (!function_exists('seo_health_render_scope_tab')) {
             echo '<p>El inventario se construye solo con <strong>' . esc_html(strtolower($scope_config['label'])) . ' publicadas</strong>. Otros tipos de contenido no entran en este escaneo.</p>';
         }
         echo '<div class="seo-health-actions">';
-        foreach (array('sync'=>'Actualizar inventario','scan'=>'Escanear siguiente lote','load_test'=>'Test de carga seguro') as $task=>$label) {
-            echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
-            echo '<input type="hidden" name="action" value="seo_health_scan_action"><input type="hidden" name="scope" value="' . esc_attr($scope) . '"><input type="hidden" name="task" value="' . esc_attr($task) . '">';
-            wp_nonce_field('seo_health_scan_action');
-            $disabled = ($task !== 'sync' && (!empty($active) || !empty($missing))) ? ' disabled' : '';
-            $class = $task === 'scan' ? 'button button-primary' : 'button';
-            echo '<button class="' . esc_attr($class) . '"' . $disabled . '>' . esc_html($label) . '</button></form>';
+        if ('page' === $scope) {
+            if (!$active) {
+                echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+                echo '<input type="hidden" name="action" value="seo_health_scan_action"><input type="hidden" name="scope" value="' . esc_attr($scope) . '"><input type="hidden" name="task" value="scan">';
+                wp_nonce_field('seo_health_scan_action');
+                $disabled = !empty($missing) ? ' disabled' : '';
+                echo '<button class="button button-primary"' . $disabled . '>Iniciar escaneo</button></form>';
+            }
+        } else {
+            foreach (array('sync'=>'Actualizar inventario','scan'=>'Escanear siguiente lote','load_test'=>'Test de carga seguro') as $task=>$label) {
+                echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+                echo '<input type="hidden" name="action" value="seo_health_scan_action"><input type="hidden" name="scope" value="' . esc_attr($scope) . '"><input type="hidden" name="task" value="' . esc_attr($task) . '">';
+                wp_nonce_field('seo_health_scan_action');
+                $disabled = ($task !== 'sync' && (!empty($active) || !empty($missing))) ? ' disabled' : '';
+                $class = $task === 'scan' ? 'button button-primary' : 'button';
+                echo '<button class="' . esc_attr($class) . '"' . $disabled . '>' . esc_html($label) . '</button></form>';
+            }
         }
         if ($active) {
-            echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" onsubmit="return confirm(\'¿Cancelar este escaneo? Los elementos no recibidos volverán a quedar disponibles.\');">';
+            echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" onsubmit="return confirm(\'¿Parar este escaneo? Los resultados aún no recibidos quedarán sin actualizar.\');">';
             echo '<input type="hidden" name="action" value="seo_health_scan_action"><input type="hidden" name="scope" value="' . esc_attr($scope) . '"><input type="hidden" name="task" value="cancel">';
             wp_nonce_field('seo_health_scan_action');
-            echo '<button class="button" style="color:#b32d2e">Cancelar escaneo</button></form>';
+            echo '<button class="button" style="color:#b32d2e;border-color:#b32d2e">Parar escaneo</button></form>';
             echo '<span class="description"><strong>En curso:</strong> ' . esc_html($active['mode'] === 'load_test' ? 'test de carga' : 'escaneo') . ' · ' . esc_html(number_format_i18n($active['processed_items'])) . '/' . esc_html(number_format_i18n($active['total_items'])) . '</span>';
         }
         echo '</div>';
-        echo '<p class="description"><strong>Escaneo por lotes:</strong> cada ejecución reserva un máximo de ' . esc_html(number_format_i18n(absint($scope_config['batch']))) . ' elementos para ser compatible con el worker GitHub actual. Los pendientes se cubren primero; el test de carga mantiene su propia muestra.</p>';
+        if ('page' === $scope) {
+            echo '<p class="description"><strong>Escaneo completo:</strong> al iniciarlo, WordPress actualiza automáticamente el inventario y reserva todas las páginas publicadas para una única ejecución del worker. No requiere pulsar "Actualizar inventario" ni lanzar lotes sucesivos.</p>';
+        } else {
+            echo '<p class="description"><strong>Escaneo por lotes:</strong> cada ejecución reserva un máximo de ' . esc_html(number_format_i18n(absint($scope_config['batch']))) . ' elementos para ser compatible con el worker GitHub actual. Los pendientes se cubren primero; el test de carga mantiene su propia muestra.</p>';
+        }
         if (!empty($missing)) {
             echo '<p style="color:#b32d2e"><strong>GitHub incompleto:</strong> ' . esc_html(implode(', ', $missing)) . '.</p>';
         } else {
