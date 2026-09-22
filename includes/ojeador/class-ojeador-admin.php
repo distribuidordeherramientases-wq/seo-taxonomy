@@ -141,7 +141,7 @@ final class SEO_Ojeador_Admin {
             <div class="seo-ojeador-head">
                 <div>
                     <h1 style="margin-bottom:0">Ojeador <small style="font-size:14px;color:#646970">v<?php echo esc_html(SEO_OJEADOR_VERSION); ?></small></h1>
-                    <p class="seo-ojeador-sub">Consulta Google Shopping por categorías de nuestro catálogo y conserva todos los resultados que devuelva la API. Los productos concretos quedan como una capa de enriquecimiento posterior, no como unidad principal del escaneo.</p>
+                    <p class="seo-ojeador-sub">Consulta Google Shopping por categorías con una sola búsqueda por consulta única. Reutiliza consultas idénticas recientes y conserva todos los bloques de productos que lleguen en la misma respuesta.</p>
                 </div>
                 <div class="seo-ojeador-actions">
                     <?php if (SEO_Ojeador_Worker::is_pending()) : ?>
@@ -154,7 +154,7 @@ final class SEO_Ojeador_Admin {
             </div>
 
             <?php if ($notice === 'settings_saved') : ?><div class="notice notice-success inline"><p>Configuración guardada.</p></div><?php endif; ?>
-            <?php if ($notice === 'scan_started') : ?><div class="notice notice-success inline"><p>Ojeador está consultando categorías pendientes. Cada categoría consume una consulta de Google Shopping y se guarda toda la respuesta útil.</p></div><?php endif; ?>
+            <?php if ($notice === 'scan_started') : ?><div class="notice notice-success inline"><p>Ojeador está consultando categorías pendientes. Cada consulta única consume como máximo una búsqueda; si ya existe una instantánea reciente con la misma consulta, se reutiliza sin nueva petición.</p></div><?php endif; ?>
             <?php if ($notice === 'scan_stopped') : ?><div class="notice notice-info inline"><p>Proceso detenido.</p></div><?php endif; ?>
             <?php if ($error !== '') : ?><div class="notice notice-error inline"><p><?php echo esc_html($error); ?></p></div><?php endif; ?>
             <?php if (is_wp_error($ready)) : ?><div class="notice notice-warning inline"><p><strong>Google Shopping:</strong> <?php echo esc_html($ready->get_error_message()); ?></p></div><?php endif; ?>
@@ -210,20 +210,21 @@ final class SEO_Ojeador_Admin {
 
             <details class="seo-ojeador-box seo-ojeador-config">
                 <summary>Conexión Google Shopping y ritmo</summary>
-                <p class="seo-ojeador-muted">Una categoría consume una consulta. Ojeador no limita cuántos resultados puede devolver Google en esa consulta.</p>
+                <p class="seo-ojeador-muted">Ojeador hace una sola petición por consulta única, reutiliza instantáneas idénticas recientes y no pagina Google Shopping para evitar gastar búsquedas sin ganancia real.</p>
                 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
                     <?php wp_nonce_field('seo_ojeador_settings_save'); ?>
                     <input type="hidden" name="action" value="seo_ojeador_settings_save">
                     <div class="seo-ojeador-grid">
                         <label><strong>SerpApi API key</strong><input type="password" name="ojeador[api_key]" value="" placeholder="<?php echo esc_attr($settings['api_key'] !== '' ? 'Configurada · dejar vacío para conservar' : 'API key'); ?>" autocomplete="new-password"></label>
                         <label><strong>Actualizar cada</strong><input type="number" min="6" max="2160" name="ojeador[interval_hours]" value="<?php echo absint($settings['interval_hours']); ?>"><small>Horas por categoría. 720 = aproximadamente mensual.</small></label>
-                        <label><strong>Categorías por paso del worker</strong><input type="number" min="1" max="20" name="ojeador[batch_size]" value="<?php echo absint($settings['batch_size']); ?>"><small>Controla cuántas consultas hace cada pulso. No limita resultados por consulta.</small></label>
+                        <label><strong>Categorías por paso del worker</strong><input type="number" min="1" max="20" name="ojeador[batch_size]" value="<?php echo absint($settings['batch_size']); ?>"><small>Controla cuántas categorías procesa cada pulso. Las consultas idénticas pueden reutilizarse.</small></label>
+                        <label><strong>Reutilizar consulta durante</strong><input type="number" min="1" max="168" name="ojeador[query_reuse_hours]" value="<?php echo absint($settings['query_reuse_hours']); ?>"><small>Horas. 24 evita repetir en el mismo día una consulta idéntica ya guardada.</small></label>
                         <label><strong>Límite mensual local</strong><input type="number" min="1" max="1000000" name="ojeador[monthly_query_limit]" value="<?php echo absint($settings['monthly_query_limit']); ?>"><small>Para el plan gratuito: 250. Se puede aumentar al cambiar de plan.</small></label>
                     </div>
                     <p><label><input type="checkbox" name="ojeador[auto_enabled]" value="1" <?php checked(!empty($settings['auto_enabled'])); ?>> Mantener el mercado de categorías actualizado automáticamente</label></p>
                     <p><button class="button button-primary" type="submit">Guardar</button></p>
                 </form>
-                <p><strong>Resultados por consulta:</strong> sin límite interno. Se guarda todo lo que entregue Google Shopping.</p>
+                <p><strong>Resultados por consulta:</strong> sin límite interno. Se combinan y deduplican los resultados principales y los bloques categorizados devueltos por Google en la misma respuesta.</p>
                 <p><code>define('SEO_OJEADOR_SERPAPI_KEY', 'tu_api_key');</code></p>
             </details>
         </div>

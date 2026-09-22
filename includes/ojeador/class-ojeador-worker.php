@@ -160,15 +160,18 @@ final class SEO_Ojeador_Worker {
                 $processed++;
                 $last_term_id = absint($term_id);
                 $scan = SEO_Ojeador_Shopping::scan_category($context);
-                $api_queries++;
 
                 if (is_wp_error($scan)) {
+                    // At this point readiness/context already passed. Most errors
+                    // therefore come from an attempted remote request.
+                    $api_queries++;
                     SEO_Ojeador_DB::save_category_error($term_id, $scan, SEO_Ojeador_Shopping::build_category_query($context));
                     $errors++;
                     $last_error = $scan->get_error_message();
                     continue;
                 }
 
+                $api_queries += absint($scan['api_queries'] ?? 1);
                 $saved = SEO_Ojeador_DB::save_category_scan($term_id, $scan, absint($settings['interval_hours']));
                 if (is_wp_error($saved)) {
                     $errors++;

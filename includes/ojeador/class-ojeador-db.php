@@ -534,6 +534,98 @@ final class SEO_Ojeador_DB {
         return $wpdb->get_results($sql, ARRAY_A);
     }
 
+    /**
+     * Reuse a recent snapshot produced by the exact same Google Shopping query.
+     * This avoids spending a second request when different categories resolve to
+     * the same operational shopping_query.
+     *
+     * @param string $query Exact query text.
+     * @param int $exclude_term_id Target category that must not be its own source.
+     * @param int $max_age_hours Maximum age of the reusable snapshot.
+     * @return array|null
+     */
+    public static function recent_category_scan_for_query($query, $exclude_term_id = 0, $max_age_hours = 24) {
+        global $wpdb;
+        $query = sanitize_text_field((string) $query);
+        $exclude_term_id = absint($exclude_term_id);
+        $max_age_hours = max(1, min(168, absint($max_age_hours)));
+        if ($query === '') {
+            return null;
+        }
+
+        $cutoff = gmdate('Y-m-d H:i:s', time() - ($max_age_hours * HOUR_IN_SECONDS));
+        $source = $wpdb->get_row($wpdb->prepare(
+            "SELECT term_id,status,result_count,last_scan_at
+             FROM " . self::table('categories') . "
+             WHERE query_text=%s
+               AND term_id<>%d
+               AND status IN ('ok','no_results')
+               AND last_scan_at IS NOT NULL
+               AND last_scan_at>=%s
+             ORDER BY last_scan_at DESC
+             LIMIT 1",
+            $query,
+            $exclude_term_id,
+            $cutoff
+        ), ARRAY_A);
+
+        if (!is_array($source) || empty($source['term_id'])) {
+            return null;
+        }
+
+        $status = sanitize_key((string) ($source['status'] ?? ''));
+        $results = array();
+        if ($status === 'ok') {
+            foreach (self::results_for_category(absint($source['term_id']), 5000) as $row) {
+                $raw = array();
+                if (!empty($row['raw_json'])) {
+                    $decoded = json_decode((string) $row['raw_json'], true);
+                    if (is_array($decoded)) {
+                        $raw = $decoded;
+                    }
+                }
+                $results[] = array(
+                    'google_product_id' => (string) ($row['google_product_id'] ?? ''),
+                    'immersive_token' => (string) ($row['immersive_token'] ?? ''),
+                    'gtin' => (string) ($row['gtin'] ?? ''),
+                    'mpn' => (string) ($row['mpn'] ?? ''),
+                    'brand' => (string) ($row['brand'] ?? ''),
+                    'model' => (string) ($row['model'] ?? ''),
+                    'title' => (string) ($row['title'] ?? ''),
+                    'description' => (string) ($row['description'] ?? ''),
+                    'merchant' => (string) ($row['merchant'] ?? ''),
+                    'price' => $row['price'] !== null ? (float) $row['price'] : null,
+                    'old_price' => $row['old_price'] !== null ? (float) $row['old_price'] : null,
+                    'currency' => (string) ($row['currency'] ?? 'EUR'),
+                    'delivery' => (string) ($row['delivery'] ?? ''),
+                    'rating' => $row['rating'] !== null ? (float) $row['rating'] : null,
+                    'reviews' => absint($row['reviews'] ?? 0),
+                    'image_url' => (string) ($row['image_url'] ?? ''),
+                    'merchant_url' => (string) ($row['merchant_url'] ?? ''),
+                    'product_url' => (string) ($row['product_url'] ?? ''),
+                    'position' => absint($row['result_position'] ?? 0),
+                    'source' => (string) ($row['source'] ?? 'google_shopping_category'),
+                    'raw' => $raw,
+                );
+            }
+            if (!$results) {
+                return null;
+            }
+        }
+
+        return array(
+            'status' => $status === 'ok' && $results ? 'ok' : 'no_results',
+            'query' => $query,
+            'results' => $results,
+            'reused_from_term_id' => absint($source['term_id']),
+            'raw_search' => array(
+                'ojeador_reused_query' => true,
+                'source_term_id' => absint($source['term_id']),
+                'source_last_scan_at' => (string) ($source['last_scan_at'] ?? ''),
+            ),
+        );
+    }
+
     public static function results_for_category($term_id, $limit = 1000) {
         global $wpdb;
         $limit = max(1, min(5000, absint($limit)));

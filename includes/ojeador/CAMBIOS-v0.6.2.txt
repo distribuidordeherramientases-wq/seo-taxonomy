@@ -1,0 +1,12 @@
+Ojeador v0.6.2 - eficiencia Google Shopping
+
+- Una sola petición remota por consulta única.
+- Reutilización local (24 h por defecto) cuando dos categorías resuelven a la misma shopping_query.
+- Aprovecha el caché de SerpApi: no fuerza no_cache.
+- No pagina Google Shopping ni lanza búsquedas alternativas automáticas.
+- Recoge y deduplica shopping_results + categorized_shopping_results y, si aparecen, bloques inline/featured de la misma respuesta.
+- Prioridad de consulta: shopping_query > google_alias_es > suggested_wp_name > nombre WooCommerce > google_name_en.
+- Solo consume mappings del Clasificador con status=approved.
+- Mantiene compatibilidad si el Clasificador no está disponible.
+
+Objetivo: mínimo consumo de búsquedas con el máximo número de resultados aprovechables por respuesta.

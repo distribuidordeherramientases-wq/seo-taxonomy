@@ -25,6 +25,8 @@ final class SEO_Ojeador_Shopping {
             'interval_hours' => 720,
             // Number of category queries per worker pulse. It never limits Google results.
             'batch_size' => 1,
+            // Reuse an identical category query locally before spending another API request.
+            'query_reuse_hours' => 24,
             // Local safety ceiling for the current SerpApi plan. Increase it when the plan changes.
             'monthly_query_limit' => 250,
         );
@@ -46,6 +48,7 @@ final class SEO_Ojeador_Shopping {
             'auto_enabled' => empty($raw['auto_enabled']) ? 0 : 1,
             'interval_hours' => max(6, min(2160, absint($raw['interval_hours']))),
             'batch_size' => max(1, min(20, absint($raw['batch_size']))),
+            'query_reuse_hours' => max(1, min(168, absint($raw['query_reuse_hours']))),
             'monthly_query_limit' => max(1, min(1000000, absint($raw['monthly_query_limit']))),
         );
     }
@@ -131,7 +134,85 @@ final class SEO_Ojeador_Shopping {
     }
 
     /**
-     * Build the market query for a WooCommerce category.
+     * Build ordered query candidates without spending API requests.
+     *
+     * Priority is deliberately Spanish/operational first:
+     * shopping_query > google_alias_es > suggested_wp_name > WooCommerce name
+     * > google_name_en. Only approved classifier mappings are consumed.
+     *
+     * @param int|array $category Category term ID or category context.
+     * @return array
+     */
+    public static function build_category_query_candidates($category) {
+        if (is_numeric($category)) {
+            $category = SEO_Ojeador_DB::category_context(absint($category));
+        }
+        if (is_wp_error($category) || !is_array($category)) {
+            return array();
+        }
+
+        $term_id = absint($category['term_id'] ?? 0);
+        $fallback = sanitize_text_field((string) ($category['name'] ?? ''));
+        $candidates = array();
+
+        if ($term_id > 0 && function_exists('seo_classifier_google_schema_get_mapping')) {
+            $mapping = seo_classifier_google_schema_get_mapping('product_cat', $term_id);
+            if (is_array($mapping) && (string) ($mapping['status'] ?? '') === 'approved') {
+                foreach (array('shopping_query', 'google_alias_es', 'suggested_wp_name') as $field) {
+                    $value = sanitize_text_field((string) ($mapping[$field] ?? ''));
+                    if ($value !== '') {
+                        $candidates[] = $value;
+                    }
+                }
+
+                if ($fallback !== '') {
+                    $candidates[] = $fallback;
+                }
+
+                // English taxonomy name is intentionally last. It is useful as a
+                // rescue value, but is normally a worse query for Shopping Spain.
+                $google_name_en = sanitize_text_field((string) ($mapping['google_name_en'] ?? ''));
+                if ($google_name_en !== '') {
+                    $candidates[] = $google_name_en;
+                }
+            }
+        }
+
+        if (!$candidates && $fallback !== '') {
+            $candidates[] = $fallback;
+        }
+
+        // Compatibility with older classifier builds that expose only the helper.
+        if ($term_id > 0 && function_exists('seo_classifier_google_schema_category_search_name')) {
+            $legacy = sanitize_text_field((string) seo_classifier_google_schema_category_search_name($term_id, ''));
+            if ($legacy !== '') {
+                $candidates[] = $legacy;
+            }
+        }
+
+        $unique = array();
+        $seen = array();
+        foreach ($candidates as $candidate) {
+            $candidate = trim((string) apply_filters('seo_ojeador_category_query_candidate', $candidate, $category));
+            if ($candidate === '') {
+                continue;
+            }
+            $key = function_exists('mb_strtolower') ? mb_strtolower($candidate, 'UTF-8') : strtolower($candidate);
+            $key = preg_replace('/\s+/u', ' ', $key);
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $unique[] = $candidate;
+        }
+        return $unique;
+    }
+
+    /**
+     * Build the single market query used for this category.
+     *
+     * Ojeador intentionally performs no speculative multi-query fan-out. A good
+     * shopping_query can therefore improve recall without multiplying API cost.
      *
      * @param int|array $category Category term ID or category context.
      * @return string
@@ -143,17 +224,87 @@ final class SEO_Ojeador_Shopping {
         if (is_wp_error($category) || !is_array($category)) {
             return '';
         }
-        $query = sanitize_text_field((string) ($category['name'] ?? ''));
-        /**
-         * Allows a future semantic layer to refine only the text sent to Google
-         * without changing the category that owns the downloaded market data.
-         */
-        return trim((string) apply_filters('seo_ojeador_category_query', $query, $category));
+        $candidates = self::build_category_query_candidates($category);
+        $query = $candidates ? (string) reset($candidates) : '';
+        return trim((string) apply_filters('seo_ojeador_category_query', $query, $category, $candidates));
     }
 
     /**
-     * One category = one Google Shopping query. Every shopping_results row is
-     * normalized and returned; Ojeador does not slice or cap Google's response.
+     * Extract every product block available in one Google Shopping response.
+     *
+     * Besides the main shopping_results array, Google can return categorized
+     * shopping blocks in the same response. Flattening them here increases the
+     * number of useful market rows without issuing extra searches.
+     *
+     * @param array $search Raw SerpApi response.
+     * @return array
+     */
+    private static function collect_category_results($search) {
+        $search = is_array($search) ? $search : array();
+        $rows = array();
+
+        foreach ((array) ($search['shopping_results'] ?? array()) as $row) {
+            if (is_array($row)) {
+                $rows[] = $row;
+            }
+        }
+
+        foreach ((array) ($search['categorized_shopping_results'] ?? array()) as $group) {
+            if (!is_array($group)) {
+                continue;
+            }
+            foreach ((array) ($group['shopping_results'] ?? array()) as $row) {
+                if (is_array($row)) {
+                    $rows[] = $row;
+                }
+            }
+        }
+
+        // Kept defensive: some Google layouts expose additional shopping blocks
+        // under these keys. If absent, this costs nothing.
+        foreach (array('inline_shopping_results', 'featured_shopping_results') as $key) {
+            foreach ((array) ($search[$key] ?? array()) as $row) {
+                if (is_array($row)) {
+                    $rows[] = $row;
+                }
+            }
+        }
+
+        $results = array();
+        $seen = array();
+        foreach ($rows as $row) {
+            $normalized = self::normalize_category_result($row);
+            if ($normalized === null) {
+                continue;
+            }
+            $product_id = sanitize_text_field((string) ($normalized['google_product_id'] ?? ''));
+            if ($product_id !== '') {
+                $key = 'google|' . $product_id . '|' . sanitize_title((string) ($normalized['merchant'] ?? ''));
+            } else {
+                $key = 'fallback|' . strtolower(
+                    (string) ($normalized['title'] ?? '') . '|' .
+                    (string) ($normalized['merchant'] ?? '') . '|' .
+                    (string) ($normalized['price'] ?? '') . '|' .
+                    (string) ($normalized['merchant_url'] ?? '')
+                );
+            }
+            $hash = hash('sha256', $key);
+            if (isset($seen[$hash])) {
+                continue;
+            }
+            $seen[$hash] = true;
+            $results[] = $normalized;
+        }
+        return $results;
+    }
+
+    /**
+     * One unique category query = at most one Google Shopping request.
+     *
+     * Identical queries scanned recently are reused from Ojeador's own database,
+     * so two categories with the same operational query do not spend two API
+     * requests. Google Shopping currently returns a fixed first-page result set;
+     * Ojeador deliberately does not paginate or issue broadening retries.
      *
      * @param int|array $category WooCommerce category term ID/context.
      * @return array|WP_Error
@@ -174,6 +325,19 @@ final class SEO_Ojeador_Shopping {
             return new WP_Error('ojeador_category_query', 'La categoría no genera una consulta válida.');
         }
 
+        $term_id = absint($category['term_id'] ?? 0);
+        $settings = self::settings();
+        $reuse_hours = max(1, absint($settings['query_reuse_hours'] ?? 24));
+        if ($term_id > 0 && method_exists('SEO_Ojeador_DB', 'recent_category_scan_for_query')) {
+            $reused = SEO_Ojeador_DB::recent_category_scan_for_query($query, $term_id, $reuse_hours);
+            if (is_array($reused)) {
+                $reused['query'] = $query;
+                $reused['api_queries'] = 0;
+                $reused['reused'] = 1;
+                return $reused;
+            }
+        }
+
         $search = self::request(array(
             'engine' => 'google_shopping',
             'q' => $query,
@@ -181,75 +345,22 @@ final class SEO_Ojeador_Shopping {
             'gl' => 'es',
             'hl' => 'es',
             'device' => 'desktop',
+            // no_cache is intentionally omitted: SerpApi may serve an identical
+            // request from its one-hour cache without charging another search.
         ));
         if (is_wp_error($search)) {
             return $search;
         }
 
-        $results = array();
-        foreach ((array) ($search['shopping_results'] ?? array()) as $row) {
-            $normalized = self::normalize_category_result($row);
-            if ($normalized !== null) {
-                $results[] = $normalized;
-            }
-        }
+        $results = self::collect_category_results($search);
 
         return array(
             'status' => $results ? 'ok' : 'no_results',
             'query' => $query,
             'results' => $results,
+            'api_queries' => 1,
+            'reused' => 0,
             'raw_search' => self::compact_raw($search),
-        );
-    }
-
-    private static function normalize_category_result($row) {
-        if (!is_array($row)) {
-            return null;
-        }
-        $title = sanitize_text_field((string) ($row['title'] ?? ''));
-        $google_product_id = sanitize_text_field((string) ($row['product_id'] ?? ''));
-        if ($title === '' && $google_product_id === '') {
-            return null;
-        }
-
-        $image = '';
-        if (!empty($row['thumbnail']) && is_string($row['thumbnail'])) {
-            $image = (string) $row['thumbnail'];
-        } elseif (!empty($row['thumbnails']) && is_array($row['thumbnails'])) {
-            $first = reset($row['thumbnails']);
-            if (is_string($first)) {
-                $image = $first;
-            } elseif (is_array($first)) {
-                $image = (string) ($first['url'] ?? $first['thumbnail'] ?? '');
-            }
-        }
-
-        $merchant_url = (string) ($row['direct_link'] ?? $row['link'] ?? '');
-        $product_url = (string) ($row['product_link'] ?? '');
-        $description = (string) ($row['snippet'] ?? $row['description'] ?? '');
-
-        return array(
-            'google_product_id' => $google_product_id,
-            'immersive_token' => sanitize_text_field((string) ($row['immersive_product_page_token'] ?? '')),
-            'gtin' => SEO_Ojeador_Identity::normalize_gtin($row['gtin'] ?? $row['ean'] ?? $row['upc'] ?? ''),
-            'mpn' => sanitize_text_field((string) ($row['mpn'] ?? $row['part_number'] ?? '')),
-            'brand' => sanitize_text_field((string) ($row['brand'] ?? '')),
-            'model' => sanitize_text_field((string) ($row['model'] ?? '')),
-            'title' => $title,
-            'description' => sanitize_textarea_field($description),
-            'merchant' => sanitize_text_field((string) ($row['source'] ?? $row['seller'] ?? '')),
-            'price' => self::number($row['extracted_price'] ?? $row['price'] ?? null),
-            'old_price' => self::number($row['extracted_old_price'] ?? $row['old_price'] ?? null),
-            'currency' => self::currency_from_values($row),
-            'delivery' => sanitize_text_field((string) ($row['delivery'] ?? '')),
-            'rating' => self::number($row['rating'] ?? null),
-            'reviews' => absint($row['reviews'] ?? 0),
-            'image_url' => esc_url_raw($image),
-            'merchant_url' => esc_url_raw($merchant_url),
-            'product_url' => esc_url_raw($product_url),
-            'position' => absint($row['position'] ?? 0),
-            'source' => 'google_shopping_category',
-            'raw' => self::compact_raw($row),
         );
     }
 
