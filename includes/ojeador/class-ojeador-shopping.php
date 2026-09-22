@@ -7,7 +7,7 @@
  *
  * @package SEOSystem
  * @subpackage Ojeador
- * @since 0.5.0
+ * @since 0.5.1
  */
 
 defined('ABSPATH') || exit;
@@ -22,7 +22,6 @@ final class SEO_Ojeador_Shopping {
             'auto_enabled' => 0,
             'interval_hours' => 168,
             'batch_size' => 4,
-            'max_offers' => 8,
         );
     }
 
@@ -42,7 +41,6 @@ final class SEO_Ojeador_Shopping {
             'auto_enabled' => empty($raw['auto_enabled']) ? 0 : 1,
             'interval_hours' => max(6, min(720, absint($raw['interval_hours']))),
             'batch_size' => max(1, min(20, absint($raw['batch_size']))),
-            'max_offers' => max(3, min(13, absint($raw['max_offers']))),
         );
     }
 
@@ -157,10 +155,8 @@ final class SEO_Ojeador_Shopping {
             $offers = self::extract_search_offers((array) ($search['shopping_results'] ?? array()), $identity);
         }
 
-        $max = absint(self::settings()['max_offers']);
-        if (count($offers) > $max) {
-            $offers = array_slice($offers, 0, $max);
-        }
+        // No recortamos la respuesta: se conservan todas las ofertas que
+        // Google Shopping/SerpApi haya devuelto para esta consulta.
 
         return array(
             'status' => $offers ? 'ok' : 'no_offers',
