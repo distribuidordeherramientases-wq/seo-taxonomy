@@ -11,7 +11,7 @@
  * @author      David Pérez Martorell
  * @license     GPL-2.0-or-later
  * @since       2.0.0
- * @version     2.0.2
+ * @version     2.0.1
  *
  * Convenciones:
  * - Registrar únicamente menús y submenús.
@@ -89,103 +89,6 @@ if (!function_exists('seo_post_admin_callback')) {
     }
 }
 
-
-/*
- * Clasificador.
- *
- * La lógica del motor permanece en includes/clasificador. Este archivo solo
- * carga defensivamente el bootstrap y registra su pantalla administrativa.
- */
-if (!function_exists('seo_classifier_google_schema_render_panel')) {
-    $seo_classifier_bootstrap_file = __DIR__ . '/clasificador/bootstrap.php';
-    if (is_readable($seo_classifier_bootstrap_file)) {
-        require_once $seo_classifier_bootstrap_file;
-    }
-}
-
-if (!function_exists('seo_classifier_admin_page')) {
-    /**
-     * Pantalla contenedora del Clasificador.
-     *
-     * Las pestañas se registran como descriptores y pueden ampliarse mediante
-     * el filtro seo_classifier_admin_tabs sin acoplar la navegación al motor.
-     */
-    function seo_classifier_admin_page() {
-        if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para gestionar el Clasificador.', 'seo-system'));
-        }
-
-        // Segundo intento defensivo por si el bootstrap no estaba disponible
-        // cuando se cargó inicialmente seo-admin.php.
-        if (!function_exists('seo_classifier_google_schema_render_panel')) {
-            $seo_classifier_bootstrap_file = __DIR__ . '/clasificador/bootstrap.php';
-            if (is_readable($seo_classifier_bootstrap_file)) {
-                require_once $seo_classifier_bootstrap_file;
-            }
-        }
-
-        $tabs = [];
-
-        if (function_exists('seo_classifier_google_schema_tab')) {
-            $descriptor = seo_classifier_google_schema_tab();
-            if (is_array($descriptor) && !empty($descriptor['slug']) && !empty($descriptor['label']) && !empty($descriptor['callback'])) {
-                $tabs[sanitize_key((string)$descriptor['slug'])] = [
-                    'label'    => (string)$descriptor['label'],
-                    'callback' => $descriptor['callback'],
-                ];
-            }
-        } elseif (function_exists('seo_classifier_google_schema_render_panel')) {
-            $tabs['google-schema'] = [
-                'label'    => 'Google esquema',
-                'callback' => 'seo_classifier_google_schema_render_panel',
-            ];
-        }
-
-        $tabs = apply_filters('seo_classifier_admin_tabs', $tabs);
-
-        echo '<div class="wrap seo-classifier-admin">';
-        echo '<h1>Clasificador</h1>';
-
-        if (empty($tabs)) {
-            $expected = __DIR__ . '/clasificador/google-schema.php';
-            echo '<div class="notice notice-error"><p><strong>No hay pestañas disponibles en Clasificador.</strong></p>';
-            echo '<p>Archivo esperado para Google esquema: <code>' . esc_html($expected) . '</code></p>';
-            echo '<p>Existe/legible: <strong>' . (is_readable($expected) ? 'SI' : 'NO') . '</strong></p></div>';
-            echo '</div>';
-            return;
-        }
-
-        $requested_tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : '';
-        $tab_keys = array_keys($tabs);
-        $active_tab = isset($tabs[$requested_tab]) ? $requested_tab : (string)reset($tab_keys);
-
-        echo '<nav class="nav-tab-wrapper" aria-label="Pestañas del Clasificador">';
-        foreach ($tabs as $slug => $tab) {
-            $url = add_query_arg(
-                [
-                    'page' => 'seo-classifier',
-                    'tab'  => $slug,
-                ],
-                admin_url('admin.php')
-            );
-            $class = 'nav-tab' . ($slug === $active_tab ? ' nav-tab-active' : '');
-            echo '<a class="' . esc_attr($class) . '" href="' . esc_url($url) . '">' . esc_html((string)$tab['label']) . '</a>';
-        }
-        echo '</nav>';
-        echo '<div class="seo-classifier-tab-content" style="margin-top:20px;">';
-
-        $callback = $tabs[$active_tab]['callback'] ?? '';
-        if (is_callable($callback)) {
-            call_user_func($callback);
-        } else {
-            echo '<div class="notice notice-error"><p>La pestaña seleccionada no tiene un callback válido.</p></div>';
-        }
-
-        echo '</div>';
-        echo '</div>';
-    }
-}
-
 /****************************
  ADMIN MENU
 ***************************/
@@ -247,17 +150,6 @@ add_submenu_page(
         'manage_options',
         'seo-tags-vocabulary',
         'seo_tags_vocabulary_admin_page'
-    );
-
-
-    // Clasificador: organización semántica y correspondencia con Google.
-    add_submenu_page(
-        'seo-system',
-        'Clasificador',
-        'Clasificador',
-        'manage_options',
-        'seo-classifier',
-        'seo_classifier_admin_page'
     );
 
     // Páginas

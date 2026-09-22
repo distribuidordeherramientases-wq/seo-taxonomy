@@ -4457,7 +4457,7 @@ if (!function_exists('seo_tags_vocabulary_admin_page')) {
         }
 
         $domain = sanitize_key($_GET['domain'] ?? 'labels');
-        if (!in_array($domain, ['labels', 'attributes', 'assignment'], true)) {
+        if (!in_array($domain, ['labels', 'attributes', 'assignment', 'google_schema'], true)) {
             $domain = 'labels';
         }
 
@@ -4475,7 +4475,7 @@ if (!function_exists('seo_tags_vocabulary_admin_page')) {
 
         echo '<div class="wrap seo-tags-wrap">';
         echo '<h1>Semántica <span class="seo-tags-mode">Vocabularios canónicos</span></h1>';
-        echo '<p class="seo-tags-intro">Unifica los diccionarios que describen el catálogo: etiquetas semánticas de clasificación y atributos técnicos de producto. Cada familia conserva su propio modelo y controles de integridad.</p>';
+        echo '<p class="seo-tags-intro">Unifica los diccionarios que describen el catálogo: etiquetas semánticas, atributos técnicos y la correspondencia de nuestra arquitectura con la taxonomía de Google. Cada familia conserva su propio modelo y controles de integridad.</p>';
         seo_tags_vocab_render_styles();
         echo '<style>.seo-semantic-domain-tabs{margin:18px 0 10px;border-bottom:1px solid #c3c4c7}.seo-semantic-domain-tabs .nav-tab{font-size:15px;padding:8px 18px}.seo-semantic-subtabs{margin:8px 0 20px}.seo-semantic-domain-title{display:flex;align-items:center;gap:10px;margin:16px 0 4px}</style>';
 
@@ -4483,9 +4483,18 @@ if (!function_exists('seo_tags_vocabulary_admin_page')) {
         echo '<a class="nav-tab ' . ($domain === 'labels' ? 'nav-tab-active' : '') . '" href="' . esc_url($base . '&domain=labels&section=vocabulary') . '">Etiquetas</a>';
         echo '<a class="nav-tab ' . ($domain === 'attributes' ? 'nav-tab-active' : '') . '" href="' . esc_url($base . '&domain=attributes&attribute_section=definitions') . '">Atributos</a>';
         echo '<a class="nav-tab ' . ($domain === 'assignment' ? 'nav-tab-active' : '') . '" href="' . esc_url($base . '&domain=assignment&assignment_section=product_labels') . '">Asignación</a>';
+        echo '<a class="nav-tab ' . ($domain === 'google_schema' ? 'nav-tab-active' : '') . '" href="' . esc_url($base . '&domain=google_schema') . '">Google esquema</a>';
         echo '</nav>';
 
-        if ($domain === 'assignment') {
+        if ($domain === 'google_schema') {
+            echo '<div class="seo-semantic-domain-title"><h2 style="margin:0">Google esquema</h2><span class="seo-tags-mode">Taxonomía Google</span></div>';
+            echo '<p class="seo-tags-intro">Relaciona clusters, hubs y categorías de WordPress con la nomenclatura de Google sin duplicar la jerarquía. Los elementos se leen dinámicamente de <code>seo_relations</code> y la correspondencia se guarda aparte.</p>';
+            if (function_exists('seo_classifier_google_schema_render_panel')) {
+                seo_classifier_google_schema_render_panel();
+            } else {
+                echo '<div class="notice notice-error inline"><p>El módulo <code>Clasificador / Google esquema</code> no está cargado.</p></div>';
+            }
+        } elseif ($domain === 'assignment') {
             seo_assignment_render();
         } elseif ($domain === 'labels') {
             $summary = seo_tags_vocab_get_summary();
