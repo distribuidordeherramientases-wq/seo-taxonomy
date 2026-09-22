@@ -1054,6 +1054,589 @@ function seo_social_network_handle_save_automation()
 add_action('admin_post_seo_social_network_save_automation', 'seo_social_network_handle_save_automation');
 
 /**
+ * Columnas reconocidas por el importador CSV del Programador.
+ *
+ * El formato esta pensado para Excel/LibreOffice usando CSV UTF-8 con punto y coma.
+ * Se aceptan algunos alias para que una exportacion antigua o una hoja manual siga
+ * siendo importable.
+ *
+ * @return array<string,string[]>
+ */
+function seo_social_network_scheduler_import_columns()
+{
+    return array(
+        'content_id'   => array('contenido_id', 'content_id', 'id', 'post_id'),
+        'providers'    => array('redes', 'red', 'provider', 'providers'),
+        'scheduled_at' => array('fecha_hora', 'fecha', 'scheduled_at', 'date_time', 'datetime'),
+        'title'        => array('titulo', 'title'),
+    );
+}
+
+/**
+ * Evita que Excel interprete como formula un valor exportado a CSV.
+ *
+ * @param mixed $value
+ * @return string
+ */
+function seo_social_network_scheduler_csv_safe_cell($value)
+{
+    $value = (string) $value;
+    if ($value !== '' && preg_match('/^[=+\-@\t\r]/', $value)) {
+        return "'" . $value;
+    }
+    return $value;
+}
+
+/**
+ * Envia un CSV UTF-8 compatible con Excel y finaliza la peticion.
+ *
+ * @param string $filename
+ * @param array  $headers
+ * @param array  $rows
+ */
+function seo_social_network_scheduler_send_csv($filename, $headers, $rows)
+{
+    nocache_headers();
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . sanitize_file_name($filename) . '"');
+    header('X-Content-Type-Options: nosniff');
+
+    $out = fopen('php://output', 'w');
+    if (false === $out) {
+        wp_die(esc_html__('No se pudo generar el archivo CSV.', 'seo-system'));
+    }
+
+    // BOM UTF-8 para que Excel conserve acentos sin preguntar por la codificacion.
+    fwrite($out, "\xEF\xBB\xBF");
+    fputcsv($out, array_map('seo_social_network_scheduler_csv_safe_cell', $headers), ';', '"', '');
+    foreach ((array) $rows as $row) {
+        fputcsv($out, array_map('seo_social_network_scheduler_csv_safe_cell', (array) $row), ';', '"', '');
+    }
+    fclose($out);
+    exit;
+}
+
+/**
+ * Devuelve contenidos publicables para facilitar la preparacion del Excel.
+ *
+ * @return array<int,array<int,string>>
+ */
+function seo_social_network_scheduler_exportable_content_rows()
+{
+    global $wpdb;
+    $types = function_exists('seo_social_network_supported_post_types')
+        ? array_values(array_filter(array_map('sanitize_key', seo_social_network_supported_post_types())))
+        : array('post', 'page');
+
+    if (empty($types)) {
+        return array();
+    }
+
+    $placeholders = implode(',', array_fill(0, count($types), '%s'));
+    $sql = "SELECT ID, post_title, post_type, post_modified
+            FROM {$wpdb->posts}
+            WHERE post_status = 'publish'
+              AND post_type IN ({$placeholders})
+            ORDER BY post_modified DESC, ID DESC";
+    $rows = $wpdb->get_results($wpdb->prepare($sql, $types)); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+    $result = array();
+    foreach ((array) $rows as $row) {
+        $post = get_post((int) $row->ID);
+        if (!$post) {
+            continue;
+        }
+        $result[] = array(
+            (string) $post->ID,
+            get_the_title($post),
+            function_exists('seo_social_network_content_type_label') ? seo_social_network_content_type_label($post) : $post->post_type,
+            get_permalink($post),
+            has_post_thumbnail($post) ? 'si' : 'no',
+        );
+    }
+    return $result;
+}
+
+/**
+ * Devuelve la agenda manual vigente (una fila por contenido/red).
+ *
+ * @return array<int,array<int,string>>
+ */
+function seo_social_network_scheduler_exportable_agenda_rows()
+{
+    global $wpdb;
+    $prefix = '_seo_social_schedule_';
+    $like = $wpdb->esc_like($prefix) . '%';
+    $sql = $wpdb->prepare(
+        "SELECT pm.post_id, pm.meta_key, pm.meta_value, p.post_title, p.post_type
+         FROM {$wpdb->postmeta} pm
+         INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+         WHERE pm.meta_key LIKE %s
+           AND p.post_status = 'publish'
+         ORDER BY CAST(pm.meta_value AS UNSIGNED) ASC, pm.post_id ASC",
+        $like
+    );
+    $rows = $wpdb->get_results($sql);
+    $providers = function_exists('seo_social_network_get_providers') ? seo_social_network_get_providers() : array();
+    $result = array();
+
+    foreach ((array) $rows as $row) {
+        $timestamp = absint($row->meta_value);
+        if (!$timestamp) {
+            continue;
+        }
+        $provider = sanitize_key(substr((string) $row->meta_key, strlen($prefix)));
+        if ($provider === '' || !isset($providers[$provider])) {
+            continue;
+        }
+        $result[] = array(
+            (string) absint($row->post_id),
+            (string) $row->post_title,
+            (string) $row->post_type,
+            $provider,
+            wp_date('Y-m-d H:i', $timestamp, wp_timezone()),
+            wp_timezone_string(),
+            'programada',
+        );
+    }
+    return $result;
+}
+
+/**
+ * Historial de intentos de publicacion para exportacion.
+ *
+ * @return array<int,array<int,string>>
+ */
+function seo_social_network_scheduler_exportable_history_rows()
+{
+    global $wpdb;
+    $table = seo_social_network_publications_table();
+    $rows = $wpdb->get_results(
+        "SELECT sp.*, p.post_title
+         FROM {$table} sp
+         LEFT JOIN {$wpdb->posts} p ON p.ID = sp.content_id
+         ORDER BY sp.id DESC"
+    ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+
+    $result = array();
+    foreach ((array) $rows as $row) {
+        $result[] = array(
+            (string) absint($row->id),
+            (string) absint($row->content_id),
+            $row->post_title ? (string) $row->post_title : 'Contenido #' . absint($row->content_id),
+            (string) $row->content_type,
+            (string) $row->provider,
+            (string) $row->status,
+            (string) ($row->published_at ?: ''),
+            (string) absint($row->clicks),
+            (string) absint($row->reactions),
+            (string) absint($row->comments),
+            (string) absint($row->shares),
+            (string) ($row->target_url ?: ''),
+            (string) ($row->remote_url ?: ''),
+            (string) ($row->error_message ?: ''),
+        );
+    }
+    return $result;
+}
+
+/**
+ * Exportaciones CSV del Programador.
+ */
+function seo_social_network_handle_scheduler_export()
+{
+    if (!current_user_can('manage_options')) {
+        wp_die(esc_html__('No tienes permisos para exportar la programacion social.', 'seo-system'));
+    }
+    check_admin_referer('seo_social_network_scheduler_export');
+
+    $kind = isset($_POST['export_kind']) ? sanitize_key(wp_unslash($_POST['export_kind'])) : '';
+    $stamp = wp_date('Ymd-His', time(), wp_timezone());
+
+    if ('template' === $kind) {
+        seo_social_network_scheduler_send_csv(
+            'programacion-social-plantilla-' . $stamp . '.csv',
+            array('contenido_id', 'titulo', 'redes', 'fecha_hora'),
+            array()
+        );
+    }
+
+    if ('content' === $kind) {
+        seo_social_network_scheduler_send_csv(
+            'contenidos-publicables-' . $stamp . '.csv',
+            array('contenido_id', 'titulo', 'tipo', 'url', 'imagen_destacada'),
+            seo_social_network_scheduler_exportable_content_rows()
+        );
+    }
+
+    if ('agenda' === $kind) {
+        seo_social_network_scheduler_send_csv(
+            'agenda-social-' . $stamp . '.csv',
+            array('contenido_id', 'titulo', 'tipo', 'redes', 'fecha_hora', 'zona_horaria', 'estado'),
+            seo_social_network_scheduler_exportable_agenda_rows()
+        );
+    }
+
+    if ('history' === $kind) {
+        seo_social_network_scheduler_send_csv(
+            'historial-social-' . $stamp . '.csv',
+            array('publicacion_id', 'contenido_id', 'titulo', 'tipo', 'red', 'estado', 'fecha_publicacion', 'visitas_web', 'reacciones', 'comentarios', 'compartidos', 'url_medida', 'url_red_social', 'error'),
+            seo_social_network_scheduler_exportable_history_rows()
+        );
+    }
+
+    wp_safe_redirect(seo_social_network_admin_url('scheduler', array('social_msg' => 'scheduler_export_invalid')));
+    exit;
+}
+add_action('admin_post_seo_social_network_scheduler_export', 'seo_social_network_handle_scheduler_export');
+
+/**
+ * Detecta el delimitador mas probable de un CSV exportado por Excel/LibreOffice.
+ *
+ * @param string $line
+ * @return string
+ */
+function seo_social_network_scheduler_detect_delimiter($line)
+{
+    $counts = array(
+        ';'  => substr_count((string) $line, ';'),
+        ','  => substr_count((string) $line, ','),
+        "\t" => substr_count((string) $line, "\t"),
+    );
+    arsort($counts);
+    $delimiter = key($counts);
+    return $counts[$delimiter] > 0 ? $delimiter : ';';
+}
+
+/**
+ * Normaliza un nombre de columna de CSV.
+ *
+ * @param string $value
+ * @return string
+ */
+function seo_social_network_scheduler_normalize_header($value)
+{
+    $value = preg_replace('/^\xEF\xBB\xBF/', '', (string) $value);
+    $value = remove_accents(strtolower(trim($value)));
+    $value = preg_replace('/[^a-z0-9_]+/', '_', $value);
+    return trim((string) $value, '_');
+}
+
+/**
+ * Resuelve indices de columnas a partir de los alias admitidos.
+ *
+ * @param array $headers
+ * @return array<string,int>
+ */
+function seo_social_network_scheduler_resolve_columns($headers)
+{
+    $normalized = array();
+    foreach ((array) $headers as $index => $header) {
+        $normalized[seo_social_network_scheduler_normalize_header($header)] = (int) $index;
+    }
+
+    $resolved = array();
+    foreach (seo_social_network_scheduler_import_columns() as $canonical => $aliases) {
+        foreach ($aliases as $alias) {
+            $alias = seo_social_network_scheduler_normalize_header($alias);
+            if (array_key_exists($alias, $normalized)) {
+                $resolved[$canonical] = $normalized[$alias];
+                break;
+            }
+        }
+    }
+    return $resolved;
+}
+
+/**
+ * Convierte una fecha de CSV/Excel a timestamp en la zona horaria de WordPress.
+ *
+ * @param string $value
+ * @return int|WP_Error
+ */
+function seo_social_network_scheduler_parse_import_datetime($value)
+{
+    $value = trim((string) $value);
+    if ($value === '') {
+        return new WP_Error('missing_datetime', 'Falta fecha_hora.');
+    }
+
+    $timezone = wp_timezone();
+    $formats = array('Y-m-d H:i', 'Y-m-d H:i:s', 'Y-m-d\\TH:i', 'd/m/Y H:i', 'd/m/Y H:i:s', 'd-m-Y H:i', 'd-m-Y H:i:s');
+    foreach ($formats as $format) {
+        $date = DateTimeImmutable::createFromFormat('!' . $format, $value, $timezone);
+        $errors = DateTimeImmutable::getLastErrors();
+        if ($date instanceof DateTimeImmutable && (false === $errors || (0 === (int) $errors['warning_count'] && 0 === (int) $errors['error_count']))) {
+            return $date->getTimestamp();
+        }
+    }
+
+    return new WP_Error('invalid_datetime', 'Fecha/hora no reconocida: ' . $value);
+}
+
+/**
+ * Divide la columna redes. Se aceptan coma, barra vertical o espacios.
+ *
+ * @param string $value
+ * @return string[]
+ */
+function seo_social_network_scheduler_parse_providers($value)
+{
+    $value = strtolower(trim((string) $value));
+    if ($value === '') {
+        return array();
+    }
+    $parts = preg_split('/[,|\s]+/', $value);
+    return array_values(array_unique(array_filter(array_map('sanitize_key', (array) $parts))));
+}
+
+/**
+ * Lee y valida un CSV sin crear todavia ninguna tarea.
+ *
+ * @param string $path
+ * @return array|WP_Error
+ */
+function seo_social_network_scheduler_parse_import_file($path)
+{
+    if (!is_readable($path)) {
+        return new WP_Error('file_unreadable', 'No se puede leer el CSV seleccionado.');
+    }
+
+    $handle = fopen($path, 'r');
+    if (false === $handle) {
+        return new WP_Error('file_unreadable', 'No se puede abrir el CSV seleccionado.');
+    }
+
+    $first_line = fgets($handle);
+    if (false === $first_line) {
+        fclose($handle);
+        return new WP_Error('empty_file', 'El archivo CSV esta vacio.');
+    }
+    $delimiter = seo_social_network_scheduler_detect_delimiter($first_line);
+    rewind($handle);
+
+    $headers = fgetcsv($handle, 0, $delimiter, '"', '');
+    if (!is_array($headers)) {
+        fclose($handle);
+        return new WP_Error('invalid_header', 'No se ha podido leer la cabecera del CSV.');
+    }
+    $columns = seo_social_network_scheduler_resolve_columns($headers);
+    foreach (array('content_id', 'providers', 'scheduled_at') as $required) {
+        if (!isset($columns[$required])) {
+            fclose($handle);
+            return new WP_Error('missing_column', 'Falta una columna obligatoria: ' . $required . '.');
+        }
+    }
+
+    $available = function_exists('seo_social_network_get_providers') ? seo_social_network_get_providers() : array();
+    $settings = function_exists('seo_social_network_get_settings') ? seo_social_network_get_settings() : array();
+    $supported_types = function_exists('seo_social_network_supported_post_types') ? seo_social_network_supported_post_types() : array('post', 'page');
+    $entries = array();
+    $seen = array();
+    $line_number = 1;
+    $expanded_count = 0;
+
+    while (($row = fgetcsv($handle, 0, $delimiter, '"', '')) !== false) {
+        $line_number++;
+        if (!is_array($row) || empty(array_filter($row, static function ($v) { return trim((string) $v) !== ''; }))) {
+            continue;
+        }
+        if ($line_number > 2001) {
+            fclose($handle);
+            return new WP_Error('too_many_rows', 'El CSV supera el limite de 2000 filas. Divide la importacion en varios archivos.');
+        }
+
+        $content_id = absint(isset($row[$columns['content_id']]) ? $row[$columns['content_id']] : 0);
+        $provider_values = isset($row[$columns['providers']]) ? $row[$columns['providers']] : '';
+        $raw_date = isset($row[$columns['scheduled_at']]) ? $row[$columns['scheduled_at']] : '';
+        $csv_title = isset($columns['title'], $row[$columns['title']]) ? sanitize_text_field($row[$columns['title']]) : '';
+        $providers = seo_social_network_scheduler_parse_providers($provider_values);
+        $post = $content_id ? get_post($content_id) : null;
+        $date_result = seo_social_network_scheduler_parse_import_datetime($raw_date);
+        $timestamp = is_wp_error($date_result) ? 0 : (int) $date_result;
+
+        $base_errors = array();
+        if (!$content_id) {
+            $base_errors[] = 'contenido_id no valido';
+        } elseif (!$post || 'publish' !== $post->post_status) {
+            $base_errors[] = 'el contenido no existe o no esta publicado';
+        } elseif (!in_array($post->post_type, $supported_types, true)) {
+            $base_errors[] = 'tipo de contenido no publicable';
+        }
+        if (empty($providers)) {
+            $base_errors[] = 'falta la red';
+        }
+        if (is_wp_error($date_result)) {
+            $base_errors[] = $date_result->get_error_message();
+        } elseif ($timestamp <= time() + 30) {
+            $base_errors[] = 'la fecha debe estar al menos un minuto en el futuro';
+        }
+
+        if (empty($providers)) {
+            $providers = array('');
+        }
+
+        foreach ($providers as $provider) {
+            $expanded_count++;
+            if ($expanded_count > 3000) {
+                fclose($handle);
+                return new WP_Error('too_many_jobs', 'La importacion supera 3000 programaciones al expandir las redes.');
+            }
+
+            $errors = $base_errors;
+            if ($provider !== '') {
+                if (!isset($available[$provider])) {
+                    $errors[] = 'red no disponible: ' . $provider;
+                } elseif (empty($settings['providers'][$provider]['enabled'])) {
+                    $errors[] = 'red sin conectar: ' . $provider;
+                }
+            }
+
+            $key = $content_id . '|' . $provider;
+            if ($content_id && $provider !== '' && isset($seen[$key])) {
+                $errors[] = 'duplicado dentro del archivo (mismo contenido y red)';
+            } else {
+                $seen[$key] = true;
+            }
+
+            $existing = ($content_id && $provider !== '') ? seo_social_network_get_scheduled_timestamp($content_id, $provider) : 0;
+            $entries[] = array(
+                'row'           => $line_number,
+                'content_id'    => $content_id,
+                'title'         => $post ? get_the_title($post) : $csv_title,
+                'provider'      => $provider,
+                'scheduled_at'  => $timestamp,
+                'scheduled_txt' => $timestamp ? wp_date('Y-m-d H:i', $timestamp, wp_timezone()) : (string) $raw_date,
+                'existing_at'   => $existing,
+                'errors'        => array_values(array_unique($errors)),
+            );
+        }
+    }
+    fclose($handle);
+
+    if (empty($entries)) {
+        return new WP_Error('no_rows', 'El CSV no contiene filas de programacion.');
+    }
+
+    return array(
+        'entries'   => $entries,
+        'delimiter' => $delimiter,
+    );
+}
+
+/**
+ * Primera fase del import: valida y muestra una previsualizacion antes de tocar WP-Cron.
+ */
+function seo_social_network_handle_scheduler_import_preview()
+{
+    if (!current_user_can('manage_options')) {
+        wp_die(esc_html__('No tienes permisos para importar programaciones sociales.', 'seo-system'));
+    }
+    check_admin_referer('seo_social_network_scheduler_import');
+
+    if (empty($_FILES['schedule_csv']) || !is_array($_FILES['schedule_csv'])) {
+        wp_safe_redirect(seo_social_network_admin_url('scheduler', array('social_msg' => 'scheduler_import_missing_file')));
+        exit;
+    }
+
+    $file = $_FILES['schedule_csv']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+    if (!empty($file['error']) || empty($file['tmp_name'])) {
+        wp_safe_redirect(seo_social_network_admin_url('scheduler', array('social_msg' => 'scheduler_import_upload_error')));
+        exit;
+    }
+    if (!empty($file['size']) && (int) $file['size'] > 2 * MB_IN_BYTES) {
+        wp_safe_redirect(seo_social_network_admin_url('scheduler', array('social_msg' => 'scheduler_import_too_large')));
+        exit;
+    }
+
+    $name = isset($file['name']) ? sanitize_file_name((string) $file['name']) : '';
+    $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+    if (!in_array($ext, array('csv', 'txt', 'tsv'), true)) {
+        wp_safe_redirect(seo_social_network_admin_url('scheduler', array('social_msg' => 'scheduler_import_bad_type')));
+        exit;
+    }
+
+    $parsed = seo_social_network_scheduler_parse_import_file((string) $file['tmp_name']);
+    if (is_wp_error($parsed)) {
+        set_transient('seo_social_scheduler_import_error_' . get_current_user_id(), $parsed->get_error_message(), 5 * MINUTE_IN_SECONDS);
+        wp_safe_redirect(seo_social_network_admin_url('scheduler', array('social_msg' => 'scheduler_import_invalid')));
+        exit;
+    }
+
+    $token = sanitize_key(wp_generate_password(20, false, false));
+    $key = 'seo_social_scheduler_import_' . get_current_user_id() . '_' . $token;
+    set_transient($key, $parsed, 20 * MINUTE_IN_SECONDS);
+
+    wp_safe_redirect(
+        seo_social_network_admin_url(
+            'scheduler',
+            array(
+                'social_msg' => 'scheduler_import_preview',
+                'import_key' => $token,
+            )
+        )
+    );
+    exit;
+}
+add_action('admin_post_seo_social_network_scheduler_import_preview', 'seo_social_network_handle_scheduler_import_preview');
+
+/**
+ * Segunda fase del import: crea/reprograma solo las filas validadas.
+ */
+function seo_social_network_handle_scheduler_import_confirm()
+{
+    if (!current_user_can('manage_options')) {
+        wp_die(esc_html__('No tienes permisos para importar programaciones sociales.', 'seo-system'));
+    }
+    check_admin_referer('seo_social_network_scheduler_import_confirm');
+
+    $token = isset($_POST['import_key']) ? sanitize_key(wp_unslash($_POST['import_key'])) : '';
+    $key = 'seo_social_scheduler_import_' . get_current_user_id() . '_' . $token;
+    $parsed = $token !== '' ? get_transient($key) : false;
+    if (!is_array($parsed) || empty($parsed['entries'])) {
+        wp_safe_redirect(seo_social_network_admin_url('scheduler', array('social_msg' => 'scheduler_import_expired')));
+        exit;
+    }
+
+    $created = 0;
+    $reprogrammed = 0;
+    $failed = 0;
+    foreach ($parsed['entries'] as $entry) {
+        if (!empty($entry['errors'])) {
+            continue;
+        }
+        $had_existing = !empty($entry['existing_at']);
+        $result = seo_social_network_set_scheduled_publication(
+            absint($entry['content_id']),
+            sanitize_key($entry['provider']),
+            absint($entry['scheduled_at'])
+        );
+        if (is_wp_error($result)) {
+            $failed++;
+        } elseif ($had_existing) {
+            $reprogrammed++;
+        } else {
+            $created++;
+        }
+    }
+    delete_transient($key);
+
+    wp_safe_redirect(
+        seo_social_network_admin_url(
+            'scheduler',
+            array(
+                'social_msg'  => $failed ? 'scheduler_import_partial' : 'scheduler_imported',
+                'created'     => $created,
+                'reprogrammed'=> $reprogrammed,
+                'failed'      => $failed,
+            )
+        )
+    );
+    exit;
+}
+add_action('admin_post_seo_social_network_scheduler_import_confirm', 'seo_social_network_handle_scheduler_import_confirm');
+
+/**
  * Acciones del Programador: programar, publicar ahora o cancelar.
  */
 function seo_social_network_handle_scheduler_action()
@@ -1341,6 +1924,16 @@ function seo_social_network_render_notice()
         'scheduler_missing_selection'=> array('warning', 'Selecciona al menos una red social para ese contenido.'),
         'scheduler_no_connected_provider' => array('warning', 'Las redes seleccionadas no estan conectadas.'),
         'scheduler_invalid_date'     => array('warning', 'Indica una fecha y hora futuras.'),
+        'scheduler_export_invalid'   => array('warning', 'No se reconoce el tipo de exportacion solicitado.'),
+        'scheduler_import_missing_file' => array('warning', 'Selecciona un archivo CSV para importar.'),
+        'scheduler_import_upload_error' => array('error', 'No se pudo recibir el archivo CSV.'),
+        'scheduler_import_too_large' => array('warning', 'El CSV supera el limite de 2 MB. Divide la programacion en varios archivos.'),
+        'scheduler_import_bad_type'  => array('warning', 'El archivo debe ser CSV, TXT o TSV. Para Excel, guarda la hoja como CSV UTF-8.'),
+        'scheduler_import_invalid'   => array('error', 'El CSV no se pudo validar.'),
+        'scheduler_import_preview'   => array('success', 'CSV validado. Revisa la previsualizacion antes de importar.'),
+        'scheduler_import_expired'   => array('warning', 'La previsualizacion de importacion ha caducado. Vuelve a cargar el CSV.'),
+        'scheduler_imported'         => array('success', 'Programacion importada correctamente.'),
+        'scheduler_import_partial'   => array('warning', 'La importacion termino con alguna tarea que no pudo programarse.'),
         'content_template_saved'     => array('success', 'Plantilla particular guardada. Si la dejas vacia, se usa la plantilla general.'),
         'published'                  => array('success', 'Contenido publicado correctamente en la red social.'),
         'publish_failed'             => array('error', 'No se pudo publicar el contenido.'),
@@ -1359,6 +1952,21 @@ function seo_social_network_render_notice()
     }
 
     $text = $messages[$message][1];
+    if ('scheduler_import_invalid' === $message) {
+        $detail = get_transient('seo_social_scheduler_import_error_' . get_current_user_id());
+        if ($detail) {
+            delete_transient('seo_social_scheduler_import_error_' . get_current_user_id());
+            $text .= ' ' . $detail;
+        }
+    }
+
+    if (in_array($message, array('scheduler_imported', 'scheduler_import_partial'), true)) {
+        $created = isset($_GET['created']) ? absint($_GET['created']) : 0;
+        $reprogrammed = isset($_GET['reprogrammed']) ? absint($_GET['reprogrammed']) : 0;
+        $failed = isset($_GET['failed']) ? absint($_GET['failed']) : 0;
+        $text .= ' Nuevas: ' . $created . '. Reprogramadas: ' . $reprogrammed . '. Fallidas: ' . $failed . '.';
+    }
+
     if ('publish_failed' === $message) {
         $detail = get_transient('seo_social_network_error_' . get_current_user_id());
         if ($detail) {
@@ -1467,8 +2075,8 @@ function seo_social_network_render_styles()
         .seo-social-subnav{display:flex;gap:8px;margin:0 0 18px;border-bottom:1px solid #c3c4c7;overflow:auto}.seo-social-subnav-link{display:inline-block;margin-bottom:-1px;padding:10px 14px;text-decoration:none;border:1px solid transparent;border-radius:6px 6px 0 0;font-weight:600;white-space:nowrap}.seo-social-subnav-link.is-active{background:#fff;border-color:#c3c4c7 #c3c4c7 #fff;color:#1d2327}
         .seo-social-card{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:20px;margin:0 0 18px}.seo-social-card h2,.seo-social-card h3{margin-top:0}.seo-social-intro{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.seo-social-intro p{max-width:760px;margin-top:4px;color:#646970}.seo-social-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}.seo-social-field label{display:block;font-weight:600;margin:0 0 6px}.seo-social-field input[type=text],.seo-social-field input[type=password],.seo-social-field select,.seo-social-field textarea{width:100%}.seo-social-field textarea{min-height:120px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}.seo-social-help{color:#646970;font-size:12px;line-height:1.45}.seo-social-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:16px}.seo-social-state{display:inline-flex;padding:3px 7px;border-radius:999px;font-size:11px;font-weight:700;background:#f0f0f1;color:#50575e}.seo-social-state.is-published,.seo-social-state.is-ok{background:#edfaef;color:#176b2c}.seo-social-state.is-failed{background:#fcf0f1;color:#b32d2e}.seo-social-state.is-pending,.seo-social-state.is-scheduled{background:#fff8e5;color:#8a5500}
         .seo-social-vars{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}.seo-social-vars code{font-size:11px;padding:3px 6px;background:#f6f7f7}.seo-social-table-wrap{overflow:auto}.seo-social-table{width:100%;border-collapse:collapse}.seo-social-table th,.seo-social-table td{padding:12px 10px;border-bottom:1px solid #e2e4e7;text-align:left;vertical-align:top}.seo-social-table th{font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:#50575e}.seo-social-content-title{min-width:250px}.seo-social-preview{white-space:pre-wrap;background:#f6f7f7;border:1px solid #dcdcde;border-radius:6px;padding:10px;max-height:170px;overflow:auto;font-size:12px;line-height:1.45}.seo-social-row-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.seo-social-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}.seo-social-metric{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:16px}.seo-social-metric strong{display:block;font-size:24px;line-height:1.1}.seo-social-metric span{display:block;color:#646970;margin-top:5px;font-size:12px}.seo-social-provider-card{position:relative}.seo-social-provider-card .dashicons{font-size:32px;width:32px;height:32px;margin-bottom:8px}.seo-social-code-note{padding:10px 12px;background:#f6f7f7;border-left:4px solid #2271b1}.seo-social-filterbar{display:flex;gap:8px;flex-wrap:wrap;align-items:end}.seo-social-filterbar .seo-social-field{min-width:180px;flex:1}.seo-social-filterbar .seo-social-field.is-search{min-width:280px;flex:2}
-        .seo-social-template-card{border:1px solid #e2e4e7;border-radius:8px;padding:16px;background:#fcfcfc}.seo-social-template-card__head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:14px}.seo-social-template-card__head h3{margin:0}.seo-social-automation-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}.seo-social-option{display:block;padding:14px;border:1px solid #dcdcde;border-radius:8px;background:#fff}.seo-social-option strong{display:block;margin-bottom:4px}.seo-social-option small{display:block;color:#646970;margin-left:24px}.seo-social-network-checks{display:flex;flex-wrap:wrap;gap:8px}.seo-social-network-check{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #dcdcde;border-radius:7px;background:#fff}.seo-social-scheduler-networks{display:flex;flex-wrap:wrap;gap:8px;min-width:220px}.seo-social-scheduler-networks label{white-space:nowrap}.seo-social-date{min-width:190px}.seo-social-date input{width:100%}.seo-social-scheduled-list{margin-top:7px}.seo-social-scheduled-item{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:5px}.seo-social-scheduled-item button{padding:0;border:0;background:none;color:#b32d2e;cursor:pointer;text-decoration:underline;font-size:11px}.seo-social-thumb{width:64px;height:48px;object-fit:cover;border-radius:5px;vertical-align:middle;margin-top:8px}.seo-social-template-preview-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px;margin-top:8px}.seo-social-template-preview-grid strong{display:block;margin-bottom:4px}
-        @media(max-width:900px){.seo-social-header,.seo-social-intro{flex-direction:column}.seo-social-provider-strip{justify-content:flex-start}.seo-social-table th,.seo-social-table td{padding:10px 7px}.seo-social-scheduler-networks{min-width:180px}}
+        .seo-social-template-card{border:1px solid #e2e4e7;border-radius:8px;padding:16px;background:#fcfcfc}.seo-social-template-card__head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:14px}.seo-social-template-card__head h3{margin:0}.seo-social-automation-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}.seo-social-option{display:block;padding:14px;border:1px solid #dcdcde;border-radius:8px;background:#fff}.seo-social-option strong{display:block;margin-bottom:4px}.seo-social-option small{display:block;color:#646970;margin-left:24px}.seo-social-network-checks{display:flex;flex-wrap:wrap;gap:8px}.seo-social-network-check{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #dcdcde;border-radius:7px;background:#fff}.seo-social-scheduler-networks{display:flex;flex-wrap:wrap;gap:8px;min-width:220px}.seo-social-scheduler-networks label{white-space:nowrap}.seo-social-date{min-width:190px}.seo-social-date input{width:100%}.seo-social-scheduled-list{margin-top:7px}.seo-social-scheduled-item{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:5px}.seo-social-scheduled-item button{padding:0;border:0;background:none;color:#b32d2e;cursor:pointer;text-decoration:underline;font-size:11px}.seo-social-thumb{width:64px;height:48px;object-fit:cover;border-radius:5px;vertical-align:middle;margin-top:8px}.seo-social-template-preview-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px;margin-top:8px}.seo-social-template-preview-grid strong{display:block;margin-bottom:4px}.seo-social-scheduler-io{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin:18px 0}.seo-social-scheduler-io__block{padding:15px;border:1px solid #dcdcde;border-radius:8px;background:#fcfcfc}.seo-social-scheduler-io__block h3{margin:0 0 6px}.seo-social-import-form,.seo-social-export-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}.seo-social-import-form input[type=file]{max-width:100%}.seo-social-import-preview{margin:16px 0;padding:16px;border:1px solid #dcdcde;border-radius:8px;background:#fff}.seo-social-import-preview .seo-social-table{margin-top:10px}
+        @media(max-width:900px){.seo-social-header,.seo-social-intro{flex-direction:column}.seo-social-provider-strip{justify-content:flex-start}.seo-social-table th,.seo-social-table td{padding:10px 7px}.seo-social-scheduler-networks{min-width:180px}.seo-social-scheduler-io{grid-template-columns:1fr}}
     </style>';
 }
 
@@ -1620,6 +2228,78 @@ function seo_social_network_render_scheduler()
 
     echo '<section class="seo-social-card">';
     echo '<div class="seo-social-intro"><div><h2>Programador</h2><p>Selecciona una pieza, marca las redes y elige fecha y hora. El texto se genera automáticamente con la plantilla correspondiente. No tienes que volver a redactar Facebook, LinkedIn o Pinterest aquí.</p></div><span class="seo-social-state is-scheduled">Agenda</span></div>';
+
+    echo '<div class="seo-social-scheduler-io">';
+    echo '<div class="seo-social-scheduler-io__block"><h3>Programacion masiva con Excel / CSV</h3><p class="seo-social-help">Descarga la lista de contenidos, prepara la hoja en Excel y guardala como <strong>CSV UTF-8</strong>. Columnas obligatorias: <code>contenido_id</code>, <code>redes</code> y <code>fecha_hora</code>. En <code>redes</code> puedes usar una o varias, por ejemplo <code>facebook,linkedin</code>. Las fechas aceptan <code>2026-09-25 10:30</code> o <code>25/09/2026 10:30</code>.</p>';
+    echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" enctype="multipart/form-data" class="seo-social-import-form">';
+    echo '<input type="hidden" name="action" value="seo_social_network_scheduler_import_preview">';
+    wp_nonce_field('seo_social_network_scheduler_import');
+    echo '<input type="file" name="schedule_csv" accept=".csv,.txt,.tsv,text/csv,text/plain" required>';
+    echo '<button type="submit" class="button button-primary">Validar CSV antes de importar</button></form></div>';
+
+    echo '<div class="seo-social-scheduler-io__block"><h3>Exportar</h3><p class="seo-social-help">Todos los archivos usan UTF-8 y punto y coma para abrirlos directamente con Excel en configuraciones regionales españolas.</p>';
+    echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="seo-social-export-actions">';
+    echo '<input type="hidden" name="action" value="seo_social_network_scheduler_export">';
+    wp_nonce_field('seo_social_network_scheduler_export');
+    echo '<button class="button" type="submit" name="export_kind" value="template">Descargar plantilla CSV</button>';
+    echo '<button class="button" type="submit" name="export_kind" value="content">Exportar contenidos</button>';
+    echo '<button class="button" type="submit" name="export_kind" value="agenda">Exportar agenda</button>';
+    echo '<button class="button" type="submit" name="export_kind" value="history">Exportar historial</button>';
+    echo '</form></div></div>';
+
+    $import_token = isset($_GET['import_key']) ? sanitize_key(wp_unslash($_GET['import_key'])) : '';
+    $import_preview = false;
+    if ($import_token !== '') {
+        $import_preview = get_transient('seo_social_scheduler_import_' . get_current_user_id() . '_' . $import_token);
+    }
+    if (is_array($import_preview) && !empty($import_preview['entries'])) {
+        $valid_count = 0;
+        $error_count = 0;
+        $reprogram_count = 0;
+        foreach ($import_preview['entries'] as $entry) {
+            if (!empty($entry['errors'])) {
+                $error_count++;
+            } else {
+                $valid_count++;
+                if (!empty($entry['existing_at'])) {
+                    $reprogram_count++;
+                }
+            }
+        }
+
+        echo '<div class="seo-social-import-preview"><div class="seo-social-intro"><div><h3>Previsualizacion de importacion</h3><p>Valida antes de crear tareas. Las filas con error no se importaran. Si ya existe una programacion para el mismo contenido y red, se reprogramara a la nueva fecha.</p></div><span class="seo-social-state ' . ($error_count ? 'is-pending' : 'is-ok') . '">' . esc_html((string) $valid_count) . ' validas · ' . esc_html((string) $error_count) . ' con error</span></div>';
+        echo '<div class="seo-social-table-wrap"><table class="seo-social-table"><thead><tr><th>Fila</th><th>Contenido</th><th>Red</th><th>Fecha y hora</th><th>Resultado</th></tr></thead><tbody>';
+        foreach ($import_preview['entries'] as $entry) {
+            $errors = isset($entry['errors']) && is_array($entry['errors']) ? $entry['errors'] : array();
+            $state_class = !empty($errors) ? 'is-failed' : (!empty($entry['existing_at']) ? 'is-pending' : 'is-ok');
+            $state_text = !empty($errors) ? 'Error' : (!empty($entry['existing_at']) ? 'Reprogramara' : 'Nueva');
+            echo '<tr>';
+            echo '<td>' . esc_html((string) absint($entry['row'])) . '</td>';
+            echo '<td><strong>' . esc_html((string) $entry['title']) . '</strong><br><small>#' . esc_html((string) absint($entry['content_id'])) . '</small></td>';
+            echo '<td>' . esc_html((string) $entry['provider']) . '</td>';
+            echo '<td>' . esc_html((string) $entry['scheduled_txt']) . '</td>';
+            echo '<td><span class="seo-social-state ' . esc_attr($state_class) . '">' . esc_html($state_text) . '</span>';
+            if (!empty($errors)) {
+                echo '<br><small style="color:#b32d2e">' . esc_html(implode('; ', $errors)) . '</small>';
+            } elseif (!empty($entry['existing_at'])) {
+                echo '<br><small>Actual: ' . esc_html(wp_date('Y-m-d H:i', absint($entry['existing_at']), wp_timezone())) . '</small>';
+            }
+            echo '</td></tr>';
+        }
+        echo '</tbody></table></div>';
+        echo '<div class="seo-social-actions">';
+        if ($valid_count > 0) {
+            echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+            echo '<input type="hidden" name="action" value="seo_social_network_scheduler_import_confirm"><input type="hidden" name="import_key" value="' . esc_attr($import_token) . '">';
+            wp_nonce_field('seo_social_network_scheduler_import_confirm');
+            echo '<button type="submit" class="button button-primary">Importar ' . esc_html((string) $valid_count) . ' programaciones</button></form>';
+        }
+        echo '<a class="button" href="' . esc_url(seo_social_network_admin_url('scheduler')) . '">Descartar previsualizacion</a>';
+        if ($reprogram_count > 0) {
+            echo '<span class="seo-social-help">' . esc_html((string) $reprogram_count) . ' sustituiran una programacion existente.</span>';
+        }
+        echo '</div></div>';
+    }
 
     echo '<form method="get" class="seo-social-filterbar" style="margin-top:18px">';
     echo '<input type="hidden" name="page" value="seo-menu-marketing"><input type="hidden" name="tab" value="social"><input type="hidden" name="social_subtab" value="scheduler">';
