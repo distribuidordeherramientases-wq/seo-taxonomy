@@ -1,13 +1,13 @@
 <?php
 /**
- * Automatic product-by-product Google Shopping worker.
+ * Category-first Google Shopping worker.
  *
- * Small internal batches are only a load-control detail. The user starts one
- * scan and the worker keeps advancing through all due WooCommerce products.
+ * One WooCommerce category produces one Google Shopping query. Every result
+ * returned by the API is stored; batch size only controls queries per pulse.
  *
  * @package SEOSystem
  * @subpackage Ojeador
- * @since 0.5.0
+ * @since 0.6.0
  */
 
 defined('ABSPATH') || exit;
@@ -77,7 +77,10 @@ final class SEO_Ojeador_Worker {
         if (empty($settings['auto_enabled'])) {
             return;
         }
-        if (SEO_Ojeador_DB::count_due_products() < 1) {
+        if (SEO_Ojeador_DB::count_due_categories() < 1) {
+            return;
+        }
+        if (is_wp_error(SEO_Ojeador_Shopping::readiness())) {
             return;
         }
         $last = absint(get_option(self::OPTION_LAST_SYNC, 0));
@@ -97,6 +100,7 @@ final class SEO_Ojeador_Worker {
             if (!$run) {
                 return true;
             }
+
             $run_id = absint($run['id']);
             $now = SEO_Ojeador_DB::utc_now();
             SEO_Ojeador_DB::update_run($run_id, array(
@@ -107,7 +111,18 @@ final class SEO_Ojeador_Worker {
             ));
 
             $settings = SEO_Ojeador_Shopping::settings();
-            $ids = SEO_Ojeador_DB::due_product_ids(absint($settings['batch_size']));
+            $ready = SEO_Ojeador_Shopping::readiness();
+            if (is_wp_error($ready)) {
+                SEO_Ojeador_DB::update_run($run_id, array(
+                    'status' => 'completed',
+                    'heartbeat_at' => SEO_Ojeador_DB::utc_now(),
+                    'completed_at' => SEO_Ojeador_DB::utc_now(),
+                    'last_error' => $ready->get_error_message(),
+                ));
+                return true;
+            }
+
+            $ids = SEO_Ojeador_DB::due_category_ids(absint($settings['batch_size']));
             if (!$ids) {
                 SEO_Ojeador_DB::update_run($run_id, array(
                     'status' => 'completed',
@@ -118,68 +133,72 @@ final class SEO_Ojeador_Worker {
                 return true;
             }
 
-            $processed = absint($run['processed_products'] ?? 0);
-            $compared = absint($run['compared_products'] ?? 0);
-            $no_match = absint($run['no_match_products'] ?? 0);
-            $offers_seen = absint($run['offers_seen'] ?? 0);
+            $processed = absint($run['processed_categories'] ?? 0);
+            $with_results = absint($run['categories_with_results'] ?? 0);
+            $without_results = absint($run['categories_without_results'] ?? 0);
+            $results_seen = absint($run['results_seen'] ?? 0);
+            $api_queries = absint($run['api_queries'] ?? 0);
             $errors = absint($run['errors_count'] ?? 0);
-            $last_object_id = absint($run['last_object_id'] ?? 0);
+            $last_term_id = absint($run['last_term_id'] ?? 0);
             $last_error = '';
 
-            foreach ($ids as $object_id) {
-                $identity = SEO_Ojeador_Identity::from_product($object_id);
-                $processed++;
-                $last_object_id = absint($object_id);
+            foreach ($ids as $term_id) {
+                // Stop exactly at the configured monthly ceiling.
+                $ready = SEO_Ojeador_Shopping::readiness();
+                if (is_wp_error($ready)) {
+                    $last_error = $ready->get_error_message();
+                    break;
+                }
 
-                if (is_wp_error($identity)) {
+                $context = SEO_Ojeador_DB::category_context($term_id);
+                if (is_wp_error($context)) {
                     $errors++;
-                    $last_error = $identity->get_error_message();
+                    $last_error = $context->get_error_message();
                     continue;
                 }
 
-                $has_strong_identity = SEO_Ojeador_Identity::normalize_gtin($identity['gtin'] ?? '') !== ''
-                    || trim((string) ($identity['mpn'] ?? '')) !== ''
-                    || trim((string) ($identity['model'] ?? '')) !== '';
-                if (!$has_strong_identity) {
-                    SEO_Ojeador_DB::save_weak_identity($identity);
-                    $no_match++;
-                    continue;
-                }
+                $processed++;
+                $last_term_id = absint($term_id);
+                $scan = SEO_Ojeador_Shopping::scan_category($context);
+                $api_queries++;
 
-                $scan = SEO_Ojeador_Shopping::scan($identity);
                 if (is_wp_error($scan)) {
-                    SEO_Ojeador_DB::save_error($identity, $scan);
+                    SEO_Ojeador_DB::save_category_error($term_id, $scan, SEO_Ojeador_Shopping::build_category_query($context));
                     $errors++;
                     $last_error = $scan->get_error_message();
                     continue;
                 }
 
-                $saved = SEO_Ojeador_DB::save_scan($identity, $scan, absint($settings['interval_hours']));
+                $saved = SEO_Ojeador_DB::save_category_scan($term_id, $scan, absint($settings['interval_hours']));
                 if (is_wp_error($saved)) {
                     $errors++;
                     $last_error = $saved->get_error_message();
                     continue;
                 }
 
-                $count = absint($saved['offers'] ?? 0);
-                $offers_seen += $count;
-                if ((string) ($saved['status'] ?? '') === 'ok' && $count > 0) {
-                    $compared++;
+                $count = absint($saved['results'] ?? 0);
+                $results_seen += $count;
+                if ($count > 0) {
+                    $with_results++;
                 } else {
-                    $no_match++;
+                    $without_results++;
                 }
             }
 
+            $usage = SEO_Ojeador_Shopping::usage_month();
+            $status = ($usage['limit'] > 0 && $usage['used'] >= $usage['limit']) ? 'completed' : 'running';
             SEO_Ojeador_DB::update_run($run_id, array(
-                'status' => 'running',
-                'processed_products' => $processed,
-                'compared_products' => $compared,
-                'no_match_products' => $no_match,
-                'offers_seen' => $offers_seen,
+                'status' => $status,
+                'processed_categories' => $processed,
+                'categories_with_results' => $with_results,
+                'categories_without_results' => $without_results,
+                'results_seen' => $results_seen,
+                'api_queries' => $api_queries,
                 'errors_count' => $errors,
-                'last_object_id' => $last_object_id,
+                'last_term_id' => $last_term_id,
                 'last_error' => $last_error,
                 'heartbeat_at' => SEO_Ojeador_DB::utc_now(),
+                'completed_at' => $status === 'completed' ? SEO_Ojeador_DB::utc_now() : null,
             ));
             return true;
         } finally {

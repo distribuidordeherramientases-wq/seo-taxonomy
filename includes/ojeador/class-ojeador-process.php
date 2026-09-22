@@ -4,7 +4,7 @@
  *
  * @package SEOSystem
  * @subpackage Ojeador
- * @since 0.5.0
+ * @since 0.6.0
  */
 
 defined('ABSPATH') || exit;
@@ -52,26 +52,26 @@ final class SEO_Ojeador_Process {
             $state = function_exists('seo_processes_state') ? seo_processes_state('stopped', 'Parado', 'stopped') : array('tone'=>'stopped','label'=>'Parado');
         }
 
-        $processed = absint($run['processed_products'] ?? 0);
+        $processed = absint($run['processed_categories'] ?? 0);
         $total = absint($run['total_candidates'] ?? 0);
-        $compared = absint($run['compared_products'] ?? 0);
-        $offers = absint($run['offers_seen'] ?? 0);
+        $results = absint($run['results_seen'] ?? 0);
+        $queries = absint($run['api_queries'] ?? 0);
         $errors = absint($run['errors_count'] ?? 0);
         $progress = $total > 0 ? min(100, round(($processed / $total) * 100, 1)) : null;
 
         $items[] = array(
             'id' => 'ojeador_market',
             'name' => 'Ojeador',
-            'kind' => 'Google Shopping · comparativa de ofertas',
+            'kind' => 'Google Shopping · mercado por categorías',
             'state' => $state,
-            'speed' => 'automático por productos',
-            'response' => number_format_i18n($compared) . ' productos comparados',
+            'speed' => 'automático por categorías',
+            'response' => number_format_i18n($processed) . ' categorías consultadas',
             'load' => 'API Google Shopping',
             'activity' => !empty($run['heartbeat_at']) ? (string) $run['heartbeat_at'] : 'Sin actividad',
             'activity_age' => null,
             'progress' => $progress,
-            'progress_text' => number_format_i18n($processed) . ($total ? ' / ' . number_format_i18n($total) : '') . ' productos',
-            'detail' => number_format_i18n($offers) . ' ofertas recogidas · ' . number_format_i18n($errors) . ' errores.',
+            'progress_text' => number_format_i18n($processed) . ($total ? ' / ' . number_format_i18n($total) : '') . ' categorías',
+            'detail' => number_format_i18n($queries) . ' consultas · ' . number_format_i18n($results) . ' resultados · ' . number_format_i18n($errors) . ' errores.',
             'url' => add_query_arg(array('page'=>'seo-ojeador'), admin_url('admin.php')),
             'can_start' => false,
         );

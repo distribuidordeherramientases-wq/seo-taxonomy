@@ -7,7 +7,7 @@
  *
  * @package SEOSystem
  * @subpackage Ojeador
- * @since 0.5.1
+ * @since 0.6.0
  */
 
 defined('ABSPATH') || exit;
@@ -15,13 +15,18 @@ defined('ABSPATH') || exit;
 final class SEO_Ojeador_Shopping {
     const OPTION_SETTINGS = 'seo_ojeador_shopping_settings';
     const API_URL = 'https://serpapi.com/search.json';
+    const OPTION_USAGE = 'seo_ojeador_serpapi_usage_v1';
 
     public static function defaults() {
         return array(
             'api_key' => '',
             'auto_enabled' => 0,
-            'interval_hours' => 168,
-            'batch_size' => 4,
+            // Category market snapshots are intentionally slower than exact-product pricing.
+            'interval_hours' => 720,
+            // Number of category queries per worker pulse. It never limits Google results.
+            'batch_size' => 1,
+            // Local safety ceiling for the current SerpApi plan. Increase it when the plan changes.
+            'monthly_query_limit' => 250,
         );
     }
 
@@ -39,8 +44,9 @@ final class SEO_Ojeador_Shopping {
         return array(
             'api_key' => sanitize_text_field((string) $raw['api_key']),
             'auto_enabled' => empty($raw['auto_enabled']) ? 0 : 1,
-            'interval_hours' => max(6, min(720, absint($raw['interval_hours']))),
+            'interval_hours' => max(6, min(2160, absint($raw['interval_hours']))),
             'batch_size' => max(1, min(20, absint($raw['batch_size']))),
+            'monthly_query_limit' => max(1, min(1000000, absint($raw['monthly_query_limit']))),
         );
     }
 
@@ -60,6 +66,41 @@ final class SEO_Ojeador_Shopping {
         if ($s['api_key'] === '') {
             return new WP_Error('ojeador_shopping_key', 'Falta la API key de SerpApi para consultar Google Shopping.');
         }
+        $usage = self::usage_month();
+        if ($usage['limit'] > 0 && $usage['used'] >= $usage['limit']) {
+            return new WP_Error('ojeador_shopping_budget', 'Se ha alcanzado el límite mensual configurado de consultas a SerpApi.');
+        }
+        return true;
+    }
+
+    public static function usage_month() {
+        $settings = self::settings();
+        $month = gmdate('Y-m');
+        $stored = get_option(self::OPTION_USAGE, array());
+        $stored = is_array($stored) ? $stored : array();
+        $used = isset($stored[$month]) ? absint($stored[$month]) : 0;
+        return array(
+            'month' => $month,
+            'used' => $used,
+            'limit' => absint($settings['monthly_query_limit']),
+            'remaining' => max(0, absint($settings['monthly_query_limit']) - $used),
+        );
+    }
+
+    private static function reserve_query() {
+        $usage = self::usage_month();
+        if ($usage['limit'] > 0 && $usage['used'] >= $usage['limit']) {
+            return new WP_Error('ojeador_shopping_budget', 'Límite mensual de consultas alcanzado.');
+        }
+        $stored = get_option(self::OPTION_USAGE, array());
+        $stored = is_array($stored) ? $stored : array();
+        $stored[$usage['month']] = $usage['used'] + 1;
+        // Keep only recent months so this tiny option cannot grow forever.
+        if (count($stored) > 18) {
+            ksort($stored);
+            $stored = array_slice($stored, -18, null, true);
+        }
+        update_option(self::OPTION_USAGE, $stored, false);
         return true;
     }
 
@@ -87,6 +128,129 @@ final class SEO_Ojeador_Shopping {
             return trim($brand . ' ' . $model);
         }
         return $name;
+    }
+
+    /**
+     * Build the market query for a WooCommerce category.
+     *
+     * @param int|array $category Category term ID or category context.
+     * @return string
+     */
+    public static function build_category_query($category) {
+        if (is_numeric($category)) {
+            $category = SEO_Ojeador_DB::category_context(absint($category));
+        }
+        if (is_wp_error($category) || !is_array($category)) {
+            return '';
+        }
+        $query = sanitize_text_field((string) ($category['name'] ?? ''));
+        /**
+         * Allows a future semantic layer to refine only the text sent to Google
+         * without changing the category that owns the downloaded market data.
+         */
+        return trim((string) apply_filters('seo_ojeador_category_query', $query, $category));
+    }
+
+    /**
+     * One category = one Google Shopping query. Every shopping_results row is
+     * normalized and returned; Ojeador does not slice or cap Google's response.
+     *
+     * @param int|array $category WooCommerce category term ID/context.
+     * @return array|WP_Error
+     */
+    public static function scan_category($category) {
+        $ready = self::readiness();
+        if (is_wp_error($ready)) {
+            return $ready;
+        }
+        if (is_numeric($category)) {
+            $category = SEO_Ojeador_DB::category_context(absint($category));
+        }
+        if (is_wp_error($category) || !is_array($category)) {
+            return new WP_Error('ojeador_category', 'Categoría no válida para Google Shopping.');
+        }
+        $query = self::build_category_query($category);
+        if ($query === '') {
+            return new WP_Error('ojeador_category_query', 'La categoría no genera una consulta válida.');
+        }
+
+        $search = self::request(array(
+            'engine' => 'google_shopping',
+            'q' => $query,
+            'google_domain' => 'google.es',
+            'gl' => 'es',
+            'hl' => 'es',
+            'device' => 'desktop',
+        ));
+        if (is_wp_error($search)) {
+            return $search;
+        }
+
+        $results = array();
+        foreach ((array) ($search['shopping_results'] ?? array()) as $row) {
+            $normalized = self::normalize_category_result($row);
+            if ($normalized !== null) {
+                $results[] = $normalized;
+            }
+        }
+
+        return array(
+            'status' => $results ? 'ok' : 'no_results',
+            'query' => $query,
+            'results' => $results,
+            'raw_search' => self::compact_raw($search),
+        );
+    }
+
+    private static function normalize_category_result($row) {
+        if (!is_array($row)) {
+            return null;
+        }
+        $title = sanitize_text_field((string) ($row['title'] ?? ''));
+        $google_product_id = sanitize_text_field((string) ($row['product_id'] ?? ''));
+        if ($title === '' && $google_product_id === '') {
+            return null;
+        }
+
+        $image = '';
+        if (!empty($row['thumbnail']) && is_string($row['thumbnail'])) {
+            $image = (string) $row['thumbnail'];
+        } elseif (!empty($row['thumbnails']) && is_array($row['thumbnails'])) {
+            $first = reset($row['thumbnails']);
+            if (is_string($first)) {
+                $image = $first;
+            } elseif (is_array($first)) {
+                $image = (string) ($first['url'] ?? $first['thumbnail'] ?? '');
+            }
+        }
+
+        $merchant_url = (string) ($row['direct_link'] ?? $row['link'] ?? '');
+        $product_url = (string) ($row['product_link'] ?? '');
+        $description = (string) ($row['snippet'] ?? $row['description'] ?? '');
+
+        return array(
+            'google_product_id' => $google_product_id,
+            'immersive_token' => sanitize_text_field((string) ($row['immersive_product_page_token'] ?? '')),
+            'gtin' => SEO_Ojeador_Identity::normalize_gtin($row['gtin'] ?? $row['ean'] ?? $row['upc'] ?? ''),
+            'mpn' => sanitize_text_field((string) ($row['mpn'] ?? $row['part_number'] ?? '')),
+            'brand' => sanitize_text_field((string) ($row['brand'] ?? '')),
+            'model' => sanitize_text_field((string) ($row['model'] ?? '')),
+            'title' => $title,
+            'description' => sanitize_textarea_field($description),
+            'merchant' => sanitize_text_field((string) ($row['source'] ?? $row['seller'] ?? '')),
+            'price' => self::number($row['extracted_price'] ?? $row['price'] ?? null),
+            'old_price' => self::number($row['extracted_old_price'] ?? $row['old_price'] ?? null),
+            'currency' => self::currency_from_values($row),
+            'delivery' => sanitize_text_field((string) ($row['delivery'] ?? '')),
+            'rating' => self::number($row['rating'] ?? null),
+            'reviews' => absint($row['reviews'] ?? 0),
+            'image_url' => esc_url_raw($image),
+            'merchant_url' => esc_url_raw($merchant_url),
+            'product_url' => esc_url_raw($product_url),
+            'position' => absint($row['position'] ?? 0),
+            'source' => 'google_shopping_category',
+            'raw' => self::compact_raw($row),
+        );
     }
 
     /**
@@ -171,6 +335,10 @@ final class SEO_Ojeador_Shopping {
 
     private static function request($args) {
         $s = self::settings();
+        $reserved = self::reserve_query();
+        if (is_wp_error($reserved)) {
+            return $reserved;
+        }
         $args = array_merge((array) $args, array('api_key' => $s['api_key']));
         $url = add_query_arg($args, self::API_URL);
         $response = wp_safe_remote_get($url, array(
@@ -178,7 +346,7 @@ final class SEO_Ojeador_Shopping {
             'redirection' => 3,
             'headers' => array(
                 'Accept' => 'application/json',
-                'User-Agent' => 'SEO-System-Ojeador/' . (defined('SEO_OJEADOR_VERSION') ? SEO_OJEADOR_VERSION : '0.5.0'),
+                'User-Agent' => 'SEO-System-Ojeador/' . (defined('SEO_OJEADOR_VERSION') ? SEO_OJEADOR_VERSION : '0.6.0'),
             ),
         ));
         if (is_wp_error($response)) {
