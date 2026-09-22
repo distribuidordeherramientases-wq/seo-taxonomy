@@ -640,6 +640,290 @@ if (!function_exists('seo_redirects_admin_issue_badge')) {
     }
 }
 
+
+if (!function_exists('seo_redirects_admin_send_json_download')) {
+    function seo_redirects_admin_send_json_download($filename, $payload) {
+        if (headers_sent()) {
+            wp_die(esc_html__('No se puede iniciar la descarga porque ya se enviaron cabeceras.', 'seo-menu-manager'));
+        }
+
+        nocache_headers();
+        header('Content-Type: application/json; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . sanitize_file_name($filename) . '"');
+
+        $json = wp_json_encode(
+            $payload,
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+        );
+
+        if (!is_string($json)) {
+            wp_die(esc_html__('No se pudo generar el JSON de redirecciones.', 'seo-menu-manager'));
+        }
+
+        echo $json; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- descarga JSON controlada.
+        exit;
+    }
+}
+
+if (!function_exists('seo_redirects_admin_export_payload')) {
+    function seo_redirects_admin_export_payload($rows, $diagnostics, $stats, $mode = 'backup') {
+        $mode = ($mode === 'analysis') ? 'analysis' : 'backup';
+        $redirects = array();
+
+        foreach ($rows as $row) {
+            $id = (int) $row->id;
+            $item = array(
+                'id'          => $id,
+                'origin_url'  => (string) $row->origin_url,
+                'target_url'  => (string) $row->target_url,
+                'status_code' => (int) $row->status_code,
+                'hits'        => (int) $row->hits,
+                'last_hit'    => !empty($row->last_hit) ? (string) $row->last_hit : null,
+            );
+
+            if ($mode === 'analysis' && isset($diagnostics[$id])) {
+                $diag = $diagnostics[$id];
+                $item['diagnostic'] = array(
+                    'severity'         => (string) ($diag['severity'] ?? 'ok'),
+                    'structural'       => !empty($diag['structural']),
+                    'suspicious'       => !empty($diag['suspicious']),
+                    'chain_hops'       => (int) ($diag['chain_hops'] ?? 0),
+                    'cycle'            => !empty($diag['cycle']),
+                    'origin_effective' => $diag['origin_effective'] ?? null,
+                    'target_effective' => $diag['target_effective'] ?? null,
+                    'issues'           => array_values($diag['issues'] ?? array()),
+                );
+            }
+
+            $redirects[] = $item;
+        }
+
+        $summary = array(
+            'redirects_total'        => (int) ($stats['total'] ?? count($rows)),
+            'with_activity'          => (int) ($stats['with_hits'] ?? 0),
+            'without_activity'       => (int) ($stats['without_hits'] ?? 0),
+            'hits_total_cumulative'  => (int) ($stats['hits_total'] ?? 0),
+            'used_last_24h_rules'    => (int) ($stats['last_24h'] ?? 0),
+            'used_last_7d_rules'     => (int) ($stats['last_7d'] ?? 0),
+            'used_last_30d_rules'    => (int) ($stats['last_30d'] ?? 0),
+            'structural_issues'      => (int) ($stats['structural'] ?? 0),
+            'suspicious_heuristic'   => (int) ($stats['suspicious'] ?? 0),
+            'chains'                 => (int) ($stats['chains'] ?? 0),
+            'cycles'                 => (int) ($stats['cycles'] ?? 0),
+            'duplicates'             => (int) ($stats['duplicates'] ?? 0),
+            'external_targets'       => (int) ($stats['external_targets'] ?? 0),
+        );
+
+        $payload = array(
+            'schema' => array(
+                'name'    => 'seo-system-redirects-export',
+                'version' => '1.0.0',
+            ),
+            'export_type' => $mode,
+            'generated_at' => wp_date(DATE_ATOM),
+            'site' => array(
+                'home_url' => home_url('/'),
+                'timezone' => wp_timezone_string(),
+            ),
+            'summary' => $summary,
+            'metric_notes' => array(
+                'hits_total_cumulative' => 'Suma histórica de hits almacenados en todas las reglas; no representa hits de las últimas 24 horas.',
+                'used_last_24h_rules' => 'Número de reglas cuyo last_hit está dentro de las últimas 24 horas; no es el número de redirecciones ejecutadas en 24 horas.',
+                'used_last_7d_rules' => 'Número de reglas cuyo last_hit está dentro de los últimos 7 días.',
+                'used_last_30d_rules' => 'Número de reglas cuyo last_hit está dentro de los últimos 30 días.',
+                'suspicious_heuristic' => 'Señal heurística de baja afinidad semántica; requiere revisión humana y no implica que la regla sea incorrecta.',
+            ),
+            'redirects' => $redirects,
+        );
+
+        if ($mode === 'analysis') {
+            $payload['analysis_notes'] = array(
+                'La exportación incluye el diagnóstico estructural y heurístico calculado por el mismo gestor.',
+                'Los contadores de actividad son agregados y no contienen IPs, usuarios, cookies ni datos de clientes.',
+                'Una cadena indica más de un salto interno; un ciclo indica una redirección circular.',
+            );
+        }
+
+        return $payload;
+    }
+}
+
+if (!function_exists('seo_redirects_admin_map_would_create_cycle')) {
+    function seo_redirects_admin_map_would_create_cycle($map, $origin, $target) {
+        if ($origin === null || $target === null) {
+            return false;
+        }
+
+        if ($origin === $target) {
+            return true;
+        }
+
+        $seen = array($origin => true);
+        $current = $target;
+        $max = count($map) + 2;
+
+        for ($i = 0; $i < $max; $i++) {
+            if ($current === $origin || isset($seen[$current])) {
+                return true;
+            }
+
+            if (!isset($map[$current])) {
+                return false;
+            }
+
+            $seen[$current] = true;
+            $current = $map[$current];
+        }
+
+        return true;
+    }
+}
+
+if (!function_exists('seo_redirects_admin_import_json_file')) {
+    function seo_redirects_admin_import_json_file($file, $table_redirects, $wpdb, $preserve_activity = false) {
+        $result = array(
+            'total_input'      => 0,
+            'inserted'         => 0,
+            'skipped_existing' => 0,
+            'skipped_invalid'  => 0,
+            'skipped_cycle'    => 0,
+            'db_errors'        => 0,
+            'error'            => '',
+        );
+
+        if (!is_array($file) || empty($file['tmp_name'])) {
+            $result['error'] = 'Selecciona un archivo JSON para importar.';
+            return $result;
+        }
+
+        $upload_error = isset($file['error']) ? (int) $file['error'] : UPLOAD_ERR_OK;
+        if ($upload_error !== UPLOAD_ERR_OK) {
+            $result['error'] = 'La subida del JSON ha fallado. Código de subida: ' . $upload_error . '.';
+            return $result;
+        }
+
+        $size = isset($file['size']) ? (int) $file['size'] : 0;
+        if ($size <= 0 || $size > 25 * MB_IN_BYTES) {
+            $result['error'] = 'El JSON está vacío o supera el límite de 25 MB.';
+            return $result;
+        }
+
+        $raw = file_get_contents($file['tmp_name']);
+        if (!is_string($raw) || $raw === '') {
+            $result['error'] = 'No se pudo leer el archivo JSON.';
+            return $result;
+        }
+
+        $payload = json_decode($raw, true);
+        if (!is_array($payload) || json_last_error() !== JSON_ERROR_NONE) {
+            $result['error'] = 'JSON inválido: ' . json_last_error_msg() . '.';
+            return $result;
+        }
+
+        if (!isset($payload['redirects']) || !is_array($payload['redirects'])) {
+            $result['error'] = 'El JSON no contiene el bloque redirects esperado.';
+            return $result;
+        }
+
+        $items = $payload['redirects'];
+        $result['total_input'] = count($items);
+
+        if ($result['total_input'] > 50000) {
+            $result['error'] = 'El archivo supera el máximo de 50.000 reglas por importación.';
+            return $result;
+        }
+
+        $existing_rows = seo_redirects_admin_existing_rows($table_redirects, $wpdb);
+        $known_origins = array();
+        $map = array();
+
+        foreach ($existing_rows as $row) {
+            $origin = seo_redirects_admin_effective_path($row->origin_url);
+            $target = seo_redirects_admin_effective_path($row->target_url);
+
+            if ($origin === null) {
+                continue;
+            }
+
+            $known_origins[$origin] = true;
+            if ($target !== null && !isset($map[$origin])) {
+                $map[$origin] = $target;
+            }
+        }
+
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                $result['skipped_invalid']++;
+                continue;
+            }
+
+            $origin_error = '';
+            $target_error = '';
+            $origin_url = seo_redirects_admin_normalize_origin($item['origin_url'] ?? '', $origin_error);
+            $target_url = seo_redirects_admin_normalize_target($item['target_url'] ?? '', $target_error);
+            $status_code = isset($item['status_code']) ? (int) $item['status_code'] : 301;
+
+            if (!in_array($status_code, array(301, 302), true)) {
+                $status_code = 301;
+            }
+
+            $origin = seo_redirects_admin_effective_path($origin_url);
+            $target = seo_redirects_admin_effective_path($target_url);
+
+            if ($origin_error !== '' || $target_error !== '' || $origin_url === '' || $target_url === '' || $origin === null || ($target !== null && $origin === $target)) {
+                $result['skipped_invalid']++;
+                continue;
+            }
+
+            if (isset($known_origins[$origin])) {
+                $result['skipped_existing']++;
+                continue;
+            }
+
+            if (seo_redirects_admin_map_would_create_cycle($map, $origin, $target)) {
+                $result['skipped_cycle']++;
+                continue;
+            }
+
+            $hits = 0;
+            $last_hit = null;
+
+            if ($preserve_activity) {
+                $hits = max(0, (int) ($item['hits'] ?? 0));
+                $candidate_last_hit = isset($item['last_hit']) ? trim((string) $item['last_hit']) : '';
+                if ($candidate_last_hit !== '' && preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $candidate_last_hit)) {
+                    $last_hit = $candidate_last_hit;
+                }
+            }
+
+            $inserted = $wpdb->insert(
+                $table_redirects,
+                array(
+                    'origin_url'  => $origin_url,
+                    'target_url'  => $target_url,
+                    'status_code' => $status_code,
+                    'hits'        => $hits,
+                    'last_hit'    => $last_hit,
+                ),
+                array('%s', '%s', '%d', '%d', '%s')
+            );
+
+            if ($inserted === false) {
+                $result['db_errors']++;
+                continue;
+            }
+
+            $result['inserted']++;
+            $known_origins[$origin] = true;
+            if ($target !== null) {
+                $map[$origin] = $target;
+            }
+        }
+
+        return $result;
+    }
+}
+
 function seo_menu_manager_redirects_page() {
     if (!current_user_can('manage_options')) {
         wp_die(esc_html__('No tienes permisos para gestionar redirecciones.', 'seo-menu-manager'));
@@ -654,10 +938,71 @@ function seo_menu_manager_redirects_page() {
     $existing_rows = seo_redirects_admin_existing_rows($table_redirects, $wpdb);
 
     // =========================
+    // EXPORTACIONES JSON
+    // =========================
+    if (isset($_POST['action_seo_redirect'])) {
+        $early_action = sanitize_key(wp_unslash($_POST['action_seo_redirect']));
+
+        if (in_array($early_action, array('export_backup_json', 'export_analysis_json'), true)) {
+            check_admin_referer('seo_redirects_export_nonce');
+
+            $export_analysis = seo_redirects_admin_build_diagnostics($existing_rows);
+            $export_mode = ($early_action === 'export_analysis_json') ? 'analysis' : 'backup';
+            $payload = seo_redirects_admin_export_payload(
+                $existing_rows,
+                $export_analysis['diagnostics'],
+                $export_analysis['stats'],
+                $export_mode
+            );
+
+            $filename = sprintf(
+                'seo-redirects-%s-%s.json',
+                $export_mode,
+                wp_date('Ymd-His')
+            );
+
+            seo_redirects_admin_send_json_download($filename, $payload);
+        }
+    }
+
+    // =========================
     // ACCIONES POST
     // =========================
     if (isset($_POST['action_seo_redirect'])) {
         $action = sanitize_key(wp_unslash($_POST['action_seo_redirect']));
+
+        // =========================
+        // IMPORT JSON (solo añade orígenes que no existen)
+        // =========================
+        if ($action === 'import_json') {
+            check_admin_referer('seo_redirects_import_nonce');
+
+            $preserve_activity = !empty($_POST['preserve_activity']);
+            $import_result = seo_redirects_admin_import_json_file(
+                $_FILES['redirects_json'] ?? array(),
+                $table_redirects,
+                $wpdb,
+                $preserve_activity
+            );
+
+            if ($import_result['error'] !== '') {
+                $message = $import_result['error'];
+                $message_class = 'error';
+            } else {
+                $message = sprintf(
+                    'Importación terminada. Entrada: %1$d; añadidas: %2$d; ya existentes: %3$d; inválidas: %4$d; ciclos evitados: %5$d; errores BD: %6$d.',
+                    (int) $import_result['total_input'],
+                    (int) $import_result['inserted'],
+                    (int) $import_result['skipped_existing'],
+                    (int) $import_result['skipped_invalid'],
+                    (int) $import_result['skipped_cycle'],
+                    (int) $import_result['db_errors']
+                );
+                $message_class = $import_result['db_errors'] > 0 ? 'notice notice-warning' : 'updated';
+            }
+
+            $existing_rows = seo_redirects_admin_existing_rows($table_redirects, $wpdb);
+        }
 
         // =========================
         // ADD
@@ -1141,6 +1486,52 @@ function seo_menu_manager_redirects_page() {
             <div class="seo-rd-kpi <?php echo $stats['cycles'] ? 'is-error' : 'is-ok'; ?>">
                 <strong><?php echo number_format_i18n($stats['cycles']); ?></strong>
                 <span>Ciclos</span>
+            </div>
+        </div>
+
+        <div class="seo-rd-card" style="margin:0 0 18px;">
+            <h2>Exportar / importar / analizar</h2>
+            <p style="color:#646970;max-width:1050px;">
+                El JSON de copia sirve para respaldo o traslado. El JSON de análisis añade diagnóstico por regla y un resumen interpretable para auditoría. La importación es no destructiva: solo añade orígenes que todavía no existen y nunca borra ni sobrescribe reglas actuales.
+            </p>
+
+            <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;">
+                <form method="post" style="min-width:300px;">
+                    <?php wp_nonce_field('seo_redirects_export_nonce'); ?>
+                    <p style="margin-top:0;"><strong>Exportar</strong></p>
+                    <p style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <button type="submit" name="action_seo_redirect" value="export_backup_json" class="button">
+                            Exportar copia JSON
+                        </button>
+                        <button type="submit" name="action_seo_redirect" value="export_analysis_json" class="button button-primary">
+                            Exportar JSON de análisis
+                        </button>
+                    </p>
+                    <p class="description">
+                        El JSON de análisis incluye KPIs, reglas, hits acumulados, último uso, cadenas, ciclos, incidencias estructurales y señales heurísticas.
+                    </p>
+                </form>
+
+                <form method="post" enctype="multipart/form-data" style="min-width:340px;max-width:620px;">
+                    <?php wp_nonce_field('seo_redirects_import_nonce'); ?>
+                    <input type="hidden" name="action_seo_redirect" value="import_json">
+                    <p style="margin-top:0;"><strong>Importar JSON</strong></p>
+                    <p>
+                        <input type="file" name="redirects_json" accept="application/json,.json" required>
+                    </p>
+                    <p>
+                        <label>
+                            <input type="checkbox" name="preserve_activity" value="1">
+                            Conservar hits y último uso del archivo
+                        </label>
+                    </p>
+                    <p class="description">
+                        Por seguridad, la importación solo crea reglas cuyo origen no exista. Las reglas existentes se omiten, y se bloquean autoredirecciones, datos inválidos y ciclos.
+                    </p>
+                    <p>
+                        <button type="submit" class="button">Importar solo nuevas</button>
+                    </p>
+                </form>
             </div>
         </div>
 
