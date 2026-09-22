@@ -11,7 +11,7 @@ defined('ABSPATH') || exit;
 
 if (!function_exists('seo_classifier_google_schema_version')) {
     function seo_classifier_google_schema_version() {
-        return '1.0.0';
+        return '1.1.0';
     }
 }
 
@@ -155,6 +155,7 @@ if (!function_exists('seo_classifier_google_schema_collect_nodes')) {
                 'object_type' => $type,
                 'object_id' => $id,
                 'name' => '',
+                'slug' => '',
                 'path' => '',
             ];
         }
@@ -168,6 +169,7 @@ if (!function_exists('seo_classifier_google_schema_collect_nodes')) {
         }
 
         $names = [];
+        $slugs = [];
         if ($page_ids) {
             $posts = get_posts([
                 'post_type' => 'any',
@@ -179,6 +181,7 @@ if (!function_exists('seo_classifier_google_schema_collect_nodes')) {
             ]);
             foreach ((array)$posts as $post) {
                 $names['post:' . (int)$post->ID] = (string)get_the_title($post);
+                $slugs['post:' . (int)$post->ID] = (string)$post->post_name;
             }
         }
         if ($term_ids && taxonomy_exists('product_cat')) {
@@ -190,6 +193,7 @@ if (!function_exists('seo_classifier_google_schema_collect_nodes')) {
             if (!is_wp_error($terms)) {
                 foreach ((array)$terms as $term) {
                     $names['term:' . (int)$term->term_id] = (string)$term->name;
+                    $slugs['term:' . (int)$term->term_id] = (string)$term->slug;
                 }
             }
         }
@@ -199,6 +203,7 @@ if (!function_exists('seo_classifier_google_schema_collect_nodes')) {
                 ? 'term:' . $node['object_id']
                 : 'post:' . $node['object_id'];
             $nodes[$key]['name'] = trim((string)($names[$name_key] ?? ''));
+            $nodes[$key]['slug'] = sanitize_title((string)($slugs[$name_key] ?? ''));
             if ($nodes[$key]['name'] === '') {
                 $nodes[$key]['name'] = '#' . $node['object_id'];
             }
@@ -450,8 +455,32 @@ if (!function_exists('seo_classifier_google_schema_render_panel')) {
             }
         }
 
+        if (isset($_GET['seo_google_schema_imported']) && function_exists('seo_classifier_google_schema_get_import_report')) {
+            $report = seo_classifier_google_schema_get_import_report();
+            if (is_array($report)) {
+                $errors_total = absint($report['errors_total'] ?? 0);
+                $notice_class = $errors_total > 0 ? 'notice-warning' : 'notice-success';
+                echo '<div class="notice ' . esc_attr($notice_class) . ' is-dismissible"><p><strong>Importación terminada.</strong> ';
+                echo 'Insertados: ' . esc_html(number_format_i18n(absint($report['inserted'] ?? 0))) . ' · ';
+                echo 'Actualizados: ' . esc_html(number_format_i18n(absint($report['updated'] ?? 0))) . ' · ';
+                echo 'Omitidos: ' . esc_html(number_format_i18n(absint($report['skipped'] ?? 0))) . ' · ';
+                echo 'Errores: ' . esc_html(number_format_i18n($errors_total)) . '.</p>';
+                if (!empty($report['errors'])) {
+                    echo '<ul style="margin:0 0 10px 32px;list-style:disc">';
+                    foreach ((array)$report['errors'] as $error) {
+                        echo '<li>' . esc_html((string)$error) . '</li>';
+                    }
+                    echo '</ul>';
+                }
+                echo '</div>';
+            }
+        }
+
         $nodes = seo_classifier_google_schema_collect_nodes();
         $mapping = seo_classifier_google_schema_mapping_index();
+        $kpis = function_exists('seo_classifier_google_schema_kpis')
+            ? seo_classifier_google_schema_kpis($nodes, $mapping)
+            : ['total'=>count($nodes),'related'=>0,'approved'=>0,'pending'=>count($nodes),'coverage_pct'=>0];
         $types = seo_classifier_google_schema_node_types();
         $statuses = seo_classifier_google_schema_statuses();
         $grouped = array_fill_keys(array_keys($types), []);
@@ -459,9 +488,24 @@ if (!function_exists('seo_classifier_google_schema_render_panel')) {
             if (isset($grouped[$node['object_type']])) $grouped[$node['object_type']][] = $node;
         }
 
+        $export_base = add_query_arg(
+            ['action' => 'seo_classifier_google_schema_export'],
+            admin_url('admin-post.php')
+        );
+        $export_csv = wp_nonce_url(add_query_arg('format', 'csv', $export_base), 'seo_classifier_google_schema_export');
+        $export_json = wp_nonce_url(add_query_arg('format', 'json', $export_base), 'seo_classifier_google_schema_export');
+
         echo '<div class="seo-classifier-google-schema">';
-        echo '<p>La jerarquía y el nombre actual se leen dinámicamente de <code>seo_relations</code> y WordPress. Aquí solo se guarda la correspondencia con Google y el nombre de búsqueda que podrá consumir Ojeador.</p>';
+        echo '<p>La jerarquía y el nombre actual se leen dinámicamente de <code>seo_relations</code> y WordPress. Exporta el inventario, completa las columnas de Google y vuelve a importarlo. <strong>No modifiques object_type ni object_id.</strong></p>';
         echo '<style>
+            .seo-classifier-google-schema .seo-gs-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;max-width:1000px;margin:16px 0 20px}
+            .seo-classifier-google-schema .seo-gs-kpi{background:#fff;border:1px solid #dcdcde;border-radius:6px;padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+            .seo-classifier-google-schema .seo-gs-kpi strong{display:block;font-size:24px;line-height:1.2;margin-top:4px}
+            .seo-classifier-google-schema .seo-gs-kpi span{color:#646970;font-size:12px;text-transform:uppercase;letter-spacing:.03em}
+            .seo-classifier-google-schema .seo-gs-transfer{display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px;padding:14px 16px;margin:0 0 24px;background:#f6f7f7;border:1px solid #dcdcde;border-radius:6px}
+            .seo-classifier-google-schema .seo-gs-transfer form{display:flex;align-items:flex-end;flex-wrap:wrap;gap:8px;margin:0}
+            .seo-classifier-google-schema .seo-gs-transfer label{font-weight:600}
+            .seo-classifier-google-schema .seo-gs-transfer input[type=file]{max-width:360px}
             .seo-classifier-google-schema .seo-gs-table{width:100%;border-collapse:collapse;margin:10px 0 28px;background:#fff}
             .seo-classifier-google-schema .seo-gs-table th,.seo-classifier-google-schema .seo-gs-table td{padding:8px;border:1px solid #dcdcde;vertical-align:top}
             .seo-classifier-google-schema .seo-gs-table th{background:#f6f7f7;text-align:left}
@@ -471,6 +515,31 @@ if (!function_exists('seo_classifier_google_schema_render_panel')) {
             .seo-classifier-google-schema textarea{width:100%;min-width:190px;min-height:48px}
             .seo-classifier-google-schema .seo-gs-actions{white-space:nowrap}
         </style>';
+
+        echo '<div class="seo-gs-kpis">';
+        $cards = [
+            ['label'=>'Elementos','value'=>absint($kpis['total'] ?? 0)],
+            ['label'=>'Relacionados','value'=>absint($kpis['related'] ?? 0)],
+            ['label'=>'Aprobados','value'=>absint($kpis['approved'] ?? 0)],
+            ['label'=>'Pendientes','value'=>absint($kpis['pending'] ?? 0)],
+            ['label'=>'Cobertura','value'=>number_format_i18n((float)($kpis['coverage_pct'] ?? 0), 1) . '%'],
+        ];
+        foreach ($cards as $card) {
+            echo '<div class="seo-gs-kpi"><span>' . esc_html($card['label']) . '</span><strong>' . esc_html((string)$card['value']) . '</strong></div>';
+        }
+        echo '</div>';
+
+        echo '<div class="seo-gs-transfer">';
+        echo '<a class="button button-secondary" href="' . esc_url($export_csv) . '">Exportar CSV</a>';
+        echo '<a class="button button-secondary" href="' . esc_url($export_json) . '">Exportar JSON</a>';
+        echo '<form method="post" enctype="multipart/form-data" action="' . esc_url(admin_url('admin-post.php')) . '">';
+        wp_nonce_field('seo_classifier_google_schema_import');
+        echo '<input type="hidden" name="action" value="seo_classifier_google_schema_import">';
+        echo '<label>Importar relaciones<br><input type="file" name="seo_google_schema_file" accept=".csv,.txt,.json,text/csv,text/plain,application/json" required></label>';
+        submit_button('Importar', 'primary', 'submit', false);
+        echo '</form>';
+        echo '<span class="description">CSV (separado por ;, , o tabulador) o JSON. Las filas sin datos Google se ignoran.</span>';
+        echo '</div>';
 
         foreach ($types as $type => $label) {
             echo '<h2>' . esc_html($label) . ' <span style="font-weight:400;color:#646970">(' . number_format_i18n(count($grouped[$type])) . ')</span></h2>';
