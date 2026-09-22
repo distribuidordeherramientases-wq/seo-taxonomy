@@ -963,8 +963,60 @@ $schema_product_graph = array(
     </section>
   <?php endif; ?>
 
-  <section id="reviews" class="dh-product-reviews">
-    <h2>Opiniones del producto</h2>
+  <?php
+  /*
+   * Comentarista: mostramos exclusivamente comentarios externos publicados
+   * asociados al producto actual. Si no existe ninguno, no se imprime ni
+   * el título, ni la nota, ni un contenedor vacío.
+   *
+   * Estos datos NO se incorporan al AggregateRating del Product JSON-LD.
+   */
+  $external_product_comments = array();
+
+  if (
+      function_exists('seo_comentarista_table_exists')
+      && function_exists('seo_comentarista_table_name')
+      && function_exists('seo_comentarista_render_item')
+      && seo_comentarista_table_exists()
+  ) {
+      $comentarista_table = seo_comentarista_table_name();
+
+      $external_product_comments = (array) $wpdb->get_results(
+          $wpdb->prepare(
+              "SELECT *
+               FROM {$comentarista_table}
+               WHERE product_id = %d
+                 AND status = 'published'
+                 AND content_type = 'comment'
+               ORDER BY display_order ASC, id DESC
+               LIMIT 12",
+              $product_id
+          ),
+          ARRAY_A
+      );
+  }
+  ?>
+
+  <?php if (!empty($external_product_comments)) : ?>
+    <section class="dh-product-reviews dh-product-external-comments seo-comentarista" aria-labelledby="dh-external-comments-title">
+      <header class="seo-comentarista__header">
+        <h2 id="dh-external-comments-title">Comentarios externos sobre este producto</h2>
+        <p class="dh-external-comments-notice">
+          Estos comentarios proceden de fuentes externas y no son opiniones de clientes de Distribuidor de Herramientas.
+          La autoría y, cuando se indique, la condición de compra corresponden a la información facilitada por la fuente original.
+        </p>
+      </header>
+
+      <div class="seo-comentarista__items">
+        <?php foreach ($external_product_comments as $external_comment) : ?>
+          <?php echo seo_comentarista_render_item($external_comment); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+        <?php endforeach; ?>
+      </div>
+    </section>
+  <?php endif; ?>
+
+  <section id="reviews" class="dh-product-reviews dh-product-customer-reviews">
+    <h2>Opiniones de clientes de esta tienda</h2>
     <?php comments_template(); ?>
   </section>
 
