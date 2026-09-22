@@ -7,14 +7,14 @@
  *
  * @package SEOSystem
  * @subpackage Ojeador
- * @since 0.5.0
+ * @since 0.5.1
  */
 
 defined('ABSPATH') || exit;
 
 final class SEO_Ojeador_DB {
     const OPTION_DB_VERSION = 'seo_ojeador_db_version';
-    const DB_VERSION = '0.5.0';
+    const DB_VERSION = '0.5.1';
 
     public static function table($name) {
         global $wpdb;
@@ -368,9 +368,9 @@ final class SEO_Ojeador_DB {
         return ($value === null || $value === '' || !is_numeric($value)) ? null : round((float) $value, 6);
     }
 
-    public static function offers_for_object($object_id, $limit = 13) {
+    public static function offers_for_object($object_id, $limit = 1000) {
         global $wpdb;
-        $limit = max(1, min(50, absint($limit)));
+        $limit = max(1, min(1000, absint($limit)));
         return $wpdb->get_results($wpdb->prepare(
             'SELECT * FROM ' . self::table('offers') . ' WHERE object_id=%d AND active=1 ORDER BY COALESCE(total_price,price) ASC, offer_position ASC LIMIT %d',
             absint($object_id),

@@ -4,7 +4,7 @@
  *
  * @package SEOSystem
  * @subpackage Ojeador
- * @since 0.5.0
+ * @since 0.5.1
  */
 
 defined('ABSPATH') || exit;
@@ -151,7 +151,7 @@ final class SEO_Ojeador_Admin {
             <div class="seo-ojeador-head">
                 <div>
                     <h1 style="margin-bottom:0">Ojeador <small style="font-size:14px;color:#646970">v<?php echo esc_html(SEO_OJEADOR_VERSION); ?></small></h1>
-                    <p class="seo-ojeador-sub">Una sola función: recorrer automáticamente nuestros productos, consultar Google Shopping con su identidad y guardar unas pocas ofertas comparables para saber cómo está nuestro precio.</p>
+                    <p class="seo-ojeador-sub">Una sola función: consultar Google Shopping y conservar todas las ofertas comparables que devuelva la API, sin recortar la respuesta.</p>
                 </div>
                 <div class="seo-ojeador-actions">
                     <?php if (SEO_Ojeador_Worker::is_pending()) : ?>
@@ -196,7 +196,7 @@ final class SEO_Ojeador_Admin {
                 $median = is_numeric($row['market_median']) ? (float) $row['market_median'] : null;
                 $max = is_numeric($row['market_max']) ? (float) $row['market_max'] : null;
                 list($signal,$color,$pct) = self::signal($our,$median);
-                $offers = SEO_Ojeador_DB::offers_for_object(absint($row['object_id']), 8);
+                $offers = SEO_Ojeador_DB::offers_for_object(absint($row['object_id']), 1000);
                 $currency = (string) ($row['currency'] ?: 'EUR');
             ?>
                 <tr>
@@ -226,8 +226,8 @@ final class SEO_Ojeador_Admin {
                     <div class="seo-ojeador-grid">
                         <label><strong>SerpApi API key</strong><input type="password" name="ojeador[api_key]" value="" placeholder="<?php echo $settings['api_key'] !== '' ? esc_attr('Configurada · dejar vacío para conservar') : esc_attr('Pegar API key'); ?>" <?php disabled(defined('SEO_OJEADOR_SERPAPI_KEY')); ?>></label>
                         <label><strong>Actualizar cada</strong><input type="number" min="6" max="720" name="ojeador[interval_hours]" value="<?php echo absint($settings['interval_hours']); ?>"><small>horas por producto; 168 = semanal.</small></label>
-                        <label><strong>Productos por paso del worker</strong><input type="number" min="1" max="20" name="ojeador[batch_size]" value="<?php echo absint($settings['batch_size']); ?>"><small>Es interno y automático; no requiere ir agregando productos manualmente.</small></label>
-                        <label><strong>Máximo de ofertas por producto</strong><input type="number" min="3" max="13" name="ojeador[max_offers]" value="<?php echo absint($settings['max_offers']); ?>"></label>
+                        <label><strong>Productos Woo por paso del worker</strong><input type="number" min="1" max="20" name="ojeador[batch_size]" value="<?php echo absint($settings['batch_size']); ?>"><small>Solo controla cuántos productos locales procesa cada ciclo. No limita los resultados que devuelve Google.</small></label>
+                        <div><strong>Resultados por consulta</strong><p style="margin:6px 0 0"><span class="seo-ojeador-pill" style="color:#008a20">Sin límite interno</span><br><small>Ojeador guarda todos los resultados/ofertas que entregue Google Shopping/SerpApi.</small></p></div>
                     </div>
                     <p><label><input type="checkbox" name="ojeador[auto_enabled]" value="1" <?php checked(!empty($settings['auto_enabled'])); ?>> Mantener la comparativa actualizada automáticamente</label></p>
                     <p><button class="button button-primary">Guardar</button></p>
