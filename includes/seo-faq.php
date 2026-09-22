@@ -49,6 +49,603 @@ add_filter('seo_data_layer_tables', 'seo_faq_register_data_layer_table');
 
 
 /**
+ * Tabla agregada de telemetria de bloques FAQ.
+ *
+ * Mantiene las cargas/aperturas historicas por FAQ en seo_faq, pero separa
+ * las metricas propias del bloque (render, viewport, engagement y errores).
+ */
+function seo_faq_metrics_table_name()
+{
+    global $wpdb;
+    return $wpdb->prefix . 'seo_faq_metrics';
+}
+
+/**
+ * Crea o actualiza la tabla de telemetria sin recopilar datos personales.
+ */
+function seo_faq_maybe_upgrade_metrics_schema()
+{
+    $schema_version = '2.1.0';
+
+    if ((string) get_option('seo_faq_metrics_schema_version', '') === $schema_version) {
+        return;
+    }
+
+    global $wpdb;
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+    $table   = seo_faq_metrics_table_name();
+    $charset = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE {$table} (
+        object_type tinyint unsigned NOT NULL,
+        object_id bigint unsigned NOT NULL,
+        block_render_count bigint unsigned NOT NULL DEFAULT 0,
+        block_view_count bigint unsigned NOT NULL DEFAULT 0,
+        engaged_block_count bigint unsigned NOT NULL DEFAULT 0,
+        faq_open_count bigint unsigned NOT NULL DEFAULT 0,
+        render_error_count bigint unsigned NOT NULL DEFAULT 0,
+        partial_render_count bigint unsigned NOT NULL DEFAULT 0,
+        missing_render_count bigint unsigned NOT NULL DEFAULT 0,
+        last_rendered_at datetime NULL,
+        last_viewed_at datetime NULL,
+        last_opened_at datetime NULL,
+        last_error_at datetime NULL,
+        updated_at datetime NOT NULL,
+        PRIMARY KEY  (object_type, object_id),
+        KEY last_rendered_at (last_rendered_at),
+        KEY last_error_at (last_error_at)
+    ) {$charset};";
+
+    dbDelta($sql);
+    update_option('seo_faq_metrics_schema_version', $schema_version, false);
+}
+add_action('init', 'seo_faq_maybe_upgrade_metrics_schema', 5);
+
+/**
+ * Firma estable por destino para aceptar telemetria publica sin exponer un
+ * endpoint de escritura generico. No identifica al visitante.
+ */
+function seo_faq_tracking_token($object_type, $object_id)
+{
+    return hash_hmac(
+        'sha256',
+        (int) $object_type . ':' . absint($object_id),
+        wp_salt('nonce')
+    );
+}
+
+/**
+ * Resuelve el destino FAQ correspondiente a la pagina publica actual.
+ */
+function seo_faq_frontend_tracking_context()
+{
+    if (is_admin() || wp_doing_ajax()) {
+        return null;
+    }
+
+    global $wpdb;
+
+    $table = seo_faq_table_name();
+    $object_type = 0;
+    $object_id   = 0;
+
+    if (function_exists('is_product') && is_product()) {
+        $object_type = 3;
+        $object_id   = absint(get_queried_object_id());
+    } elseif (function_exists('is_product_category') && is_product_category()) {
+        $object_type = 2;
+        $object_id   = absint(get_queried_object_id());
+    } elseif (is_singular()) {
+        $candidate = absint(get_queried_object_id());
+        if ($candidate > 0) {
+            $has_hub_faq = (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT COUNT(*) FROM {$table} WHERE object_type = 1 AND object_id = %d AND active = 1",
+                    $candidate
+                )
+            );
+            if ($has_hub_faq > 0) {
+                $object_type = 1;
+                $object_id   = $candidate;
+            }
+        }
+    }
+
+    if ($object_type <= 0 || $object_id <= 0) {
+        return null;
+    }
+
+    $faqs = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT id, question
+             FROM {$table}
+             WHERE object_type = %d
+               AND object_id = %d
+               AND active = 1
+             ORDER BY sort_order ASC, id ASC",
+            $object_type,
+            $object_id
+        ),
+        ARRAY_A
+    );
+
+    if (!is_array($faqs) || !$faqs) {
+        return null;
+    }
+
+    return [
+        'object_type' => $object_type,
+        'object_id'   => $object_id,
+        'faqs'        => array_map(
+            static function ($row) {
+                return [
+                    'id'       => (int) $row['id'],
+                    'question' => trim(wp_strip_all_tags((string) $row['question'])),
+                ];
+            },
+            $faqs
+        ),
+    ];
+}
+
+/**
+ * Inserta o incrementa contadores agregados del bloque FAQ.
+ */
+function seo_faq_increment_block_metric($object_type, $object_id, $metric)
+{
+    global $wpdb;
+
+    $allowed = [
+        'block_render_count'   => 'last_rendered_at',
+        'block_view_count'     => 'last_viewed_at',
+        'engaged_block_count'  => 'last_opened_at',
+        'faq_open_count'       => 'last_opened_at',
+        'render_error_count'   => 'last_error_at',
+        'partial_render_count' => 'last_error_at',
+        'missing_render_count' => 'last_error_at',
+    ];
+
+    if (!isset($allowed[$metric])) {
+        return false;
+    }
+
+    seo_faq_maybe_upgrade_metrics_schema();
+
+    $table      = seo_faq_metrics_table_name();
+    $time_field = $allowed[$metric];
+    $now        = current_time('mysql', true);
+
+    $sql = "INSERT INTO {$table}
+                (object_type, object_id, {$metric}, {$time_field}, updated_at)
+            VALUES (%d, %d, 1, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                {$metric} = {$metric} + 1,
+                {$time_field} = VALUES({$time_field}),
+                updated_at = VALUES(updated_at)";
+
+    return $wpdb->query(
+        $wpdb->prepare($sql, (int) $object_type, absint($object_id), $now, $now)
+    );
+}
+
+/**
+ * Endpoint de telemetria del frontend.
+ *
+ * Eventos:
+ * - render: el bloque existe en el DOM; incrementa load_count de todas las FAQs activas.
+ * - view: al menos una pregunta del bloque entra en viewport.
+ * - open: se abre una FAQ concreta.
+ * - render_error: el destino tiene FAQs activas pero no se localizaron en el DOM.
+ */
+function seo_faq_track_event()
+{
+    global $wpdb;
+
+    $event       = isset($_POST['event']) ? sanitize_key(wp_unslash($_POST['event'])) : '';
+    $object_type = isset($_POST['object_type']) ? absint($_POST['object_type']) : 0;
+    $object_id   = isset($_POST['object_id']) ? absint($_POST['object_id']) : 0;
+    $faq_id      = isset($_POST['faq_id']) ? absint($_POST['faq_id']) : 0;
+    $faq_ids     = isset($_POST['faq_ids']) ? wp_parse_id_list(wp_unslash($_POST['faq_ids'])) : [];
+    $count_block = !isset($_POST['count_block']) || !empty($_POST['count_block']) ? 1 : 0;
+    $error_type  = isset($_POST['error_type']) ? sanitize_key(wp_unslash($_POST['error_type'])) : '';
+    $first_open  = !empty($_POST['first_open']) ? 1 : 0;
+    $token       = isset($_POST['token']) ? sanitize_text_field(wp_unslash($_POST['token'])) : '';
+
+    if (!in_array($object_type, [1, 2, 3], true) || $object_id <= 0) {
+        wp_send_json_error(['message' => 'Destino FAQ invalido.'], 400);
+    }
+
+    if (!hash_equals(seo_faq_tracking_token($object_type, $object_id), $token)) {
+        wp_send_json_error(['message' => 'Firma de tracking invalida.'], 403);
+    }
+
+    if (!in_array($event, ['render', 'view', 'open', 'render_error'], true)) {
+        wp_send_json_error(['message' => 'Evento FAQ invalido.'], 400);
+    }
+
+    $table = seo_faq_table_name();
+
+    $active_count = (int) $wpdb->get_var(
+        $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$table}
+             WHERE object_type = %d AND object_id = %d AND active = 1",
+            $object_type,
+            $object_id
+        )
+    );
+
+    if ($active_count <= 0) {
+        wp_send_json_error(['message' => 'El destino no tiene FAQs activas.'], 404);
+    }
+
+    if ($event === 'render') {
+        $faq_ids = array_values(array_unique(array_filter(array_map('absint', $faq_ids))));
+
+        if ($faq_ids) {
+            $placeholders = implode(',', array_fill(0, count($faq_ids), '%d'));
+            $params = array_merge([$object_type, $object_id], $faq_ids);
+            $sql = "UPDATE {$table}
+                    SET load_count = load_count + 1, updated_at = updated_at
+                    WHERE object_type = %d
+                      AND object_id = %d
+                      AND active = 1
+                      AND id IN ({$placeholders})";
+            $wpdb->query($wpdb->prepare($sql, $params));
+        } else {
+            $wpdb->query(
+                $wpdb->prepare(
+                    "UPDATE {$table}
+                     SET load_count = load_count + 1, updated_at = updated_at
+                     WHERE object_type = %d AND object_id = %d AND active = 1",
+                    $object_type,
+                    $object_id
+                )
+            );
+        }
+
+        if ($count_block) {
+            seo_faq_increment_block_metric($object_type, $object_id, 'block_render_count');
+        }
+    }
+
+    if ($event === 'view') {
+        seo_faq_increment_block_metric($object_type, $object_id, 'block_view_count');
+    }
+
+    if ($event === 'render_error') {
+        seo_faq_increment_block_metric($object_type, $object_id, 'render_error_count');
+        if ($error_type === 'partial') {
+            seo_faq_increment_block_metric($object_type, $object_id, 'partial_render_count');
+        } else {
+            seo_faq_increment_block_metric($object_type, $object_id, 'missing_render_count');
+        }
+    }
+
+    if ($event === 'open') {
+        if ($faq_id <= 0) {
+            wp_send_json_error(['message' => 'FAQ no indicada.'], 400);
+        }
+
+        $valid = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$table}
+                 WHERE id = %d
+                   AND object_type = %d
+                   AND object_id = %d
+                   AND active = 1",
+                $faq_id,
+                $object_type,
+                $object_id
+            )
+        );
+
+        if ($valid <= 0) {
+            wp_send_json_error(['message' => 'FAQ no valida para este destino.'], 404);
+        }
+
+        $wpdb->query(
+            $wpdb->prepare(
+                "UPDATE {$table} SET open_count = open_count + 1, updated_at = updated_at WHERE id = %d",
+                $faq_id
+            )
+        );
+
+        seo_faq_increment_block_metric($object_type, $object_id, 'faq_open_count');
+        if ($first_open) {
+            seo_faq_increment_block_metric($object_type, $object_id, 'engaged_block_count');
+        }
+    }
+
+    wp_send_json_success(['event' => $event]);
+}
+add_action('wp_ajax_seo_faq_track', 'seo_faq_track_event');
+add_action('wp_ajax_nopriv_seo_faq_track', 'seo_faq_track_event');
+
+/**
+ * Puente de tracking compatible con renderizadores FAQ antiguos.
+ *
+ * No obliga a cambiar el HTML existente: localiza las preguntas activas por
+ * texto, marca render/viewport y detecta aperturas en summary, botones y
+ * cabeceras de acordeon. Si el renderizador ya expone data-seo-faq-id, se usa
+ * ese atributo como via prioritaria.
+ */
+function seo_faq_render_frontend_tracking_bridge()
+{
+    $context = seo_faq_frontend_tracking_context();
+    if (!$context) {
+        return;
+    }
+
+    $payload = [
+        'ajaxUrl'     => admin_url('admin-ajax.php'),
+        'objectType'  => (int) $context['object_type'],
+        'objectId'    => (int) $context['object_id'],
+        'token'       => seo_faq_tracking_token($context['object_type'], $context['object_id']),
+        'faqs'        => $context['faqs'],
+    ];
+    ?>
+    <script id="seo-faq-telemetry">
+    (function () {
+        'use strict';
+
+        var cfg = <?php echo wp_json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+        if (!cfg || !cfg.faqs || !cfg.faqs.length) return;
+
+        var sentRender = false;
+        var sentView = false;
+        var sentError = false;
+        var firstOpen = true;
+        var opened = new Set();
+        var renderedIds = new Set();
+        var observer = null;
+        var mutationObserver = null;
+        var stopTimer = null;
+
+        function normalize(value) {
+            return String(value || '')
+                .toLowerCase()
+                .replace(/[\u2018\u2019\u201c\u201d]/g, '"')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        cfg.faqs = cfg.faqs.map(function (faq) {
+            faq.normalized = normalize(faq.question);
+            return faq;
+        });
+
+        function send(event, extra) {
+            var data = new URLSearchParams();
+            data.set('action', 'seo_faq_track');
+            data.set('event', event);
+            data.set('object_type', cfg.objectType);
+            data.set('object_id', cfg.objectId);
+            data.set('token', cfg.token);
+
+            Object.keys(extra || {}).forEach(function (key) {
+                data.set(key, extra[key]);
+            });
+
+            if (navigator.sendBeacon) {
+                navigator.sendBeacon(cfg.ajaxUrl, data);
+                return;
+            }
+
+            fetch(cfg.ajaxUrl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                keepalive: true,
+                headers: {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'},
+                body: data.toString()
+            }).catch(function () {});
+        }
+
+        function explicitNode(faq) {
+            return document.querySelector('[data-seo-faq-id="' + faq.id + '"]');
+        }
+
+        function questionNode(faq) {
+            var explicit = explicitNode(faq);
+            if (explicit) return explicit;
+
+            var selectors = [
+                'details summary',
+                'button',
+                '[role="button"]',
+                '.faq-question',
+                '.accordion-title',
+                '.accordion-header',
+                '.elementor-tab-title',
+                '.vc_tta-panel-title',
+                'dt',
+                'h2', 'h3', 'h4', 'h5'
+            ];
+            var nodes = document.querySelectorAll(selectors.join(','));
+
+            for (var i = 0; i < nodes.length; i++) {
+                var text = normalize(nodes[i].innerText || nodes[i].textContent);
+                if (!text) continue;
+                if (text === faq.normalized || text.indexOf(faq.normalized) === 0) {
+                    return nodes[i];
+                }
+            }
+
+            var fallback = document.querySelectorAll('div,span,p,a,strong');
+            for (var j = 0; j < fallback.length; j++) {
+                if (fallback[j].children && fallback[j].children.length > 4) continue;
+                var fallbackText = normalize(fallback[j].innerText || fallback[j].textContent);
+                if (fallbackText === faq.normalized) return fallback[j];
+            }
+            return null;
+        }
+
+        function markView(node) {
+            if (sentView || !node) return;
+
+            if (!('IntersectionObserver' in window)) {
+                sentView = true;
+                send('view');
+                return;
+            }
+
+            if (!observer) {
+                observer = new IntersectionObserver(function (entries) {
+                    entries.forEach(function (entry) {
+                        if (!sentView && entry.isIntersecting) {
+                            sentView = true;
+                            send('view');
+                            observer.disconnect();
+                        }
+                    });
+                }, {threshold: 0.1});
+            }
+
+            observer.observe(node);
+        }
+
+        function recordOpen(faq) {
+            if (!faq || opened.has(faq.id)) return;
+            if (!sentView) {
+                sentView = true;
+                send('view');
+                if (observer) observer.disconnect();
+            }
+            opened.add(faq.id);
+            send('open', {
+                faq_id: faq.id,
+                first_open: firstOpen ? 1 : 0
+            });
+            firstOpen = false;
+        }
+
+        function attachFaqNode(node, faq) {
+            if (!node || node.dataset.seoFaqTracked === '1') return;
+            node.dataset.seoFaqTracked = '1';
+            node.dataset.seoFaqId = String(faq.id);
+            node.addEventListener('click', function () { recordOpen(faq); }, true);
+        }
+
+        document.addEventListener('click', function (event) {
+            var node = event.target;
+            for (var depth = 0; node && depth < 7; depth++, node = node.parentElement) {
+                var explicitId = node.dataset && node.dataset.seoFaqId ? parseInt(node.dataset.seoFaqId, 10) : 0;
+                var text = normalize(node.innerText || node.textContent);
+                var faq = cfg.faqs.find(function (item) {
+                    if (explicitId && item.id === explicitId) return true;
+                    return text && (text === item.normalized || (text.indexOf(item.normalized) === 0 && text.length <= item.normalized.length + 80));
+                });
+                if (faq) {
+                    recordOpen(faq);
+                    break;
+                }
+            }
+        }, true);
+
+        function scan() {
+            var found = [];
+            var bodyText = normalize(document.body ? document.body.innerText : '');
+            var newIds = [];
+
+            cfg.faqs.forEach(function (faq) {
+                var appears = bodyText.indexOf(faq.normalized) !== -1;
+                if (appears && !renderedIds.has(faq.id)) {
+                    renderedIds.add(faq.id);
+                    newIds.push(faq.id);
+                }
+
+                var node = questionNode(faq);
+                if (node) {
+                    found.push({faq: faq, node: node});
+                    attachFaqNode(node, faq);
+                }
+            });
+
+            if (newIds.length) {
+                send('render', {
+                    faq_ids: newIds.join(','),
+                    count_block: sentRender ? 0 : 1
+                });
+                sentRender = true;
+            }
+
+            if (found.length) markView(found[0].node);
+            return renderedIds.size === cfg.faqs.length;
+        }
+
+        function start() {
+            scan();
+
+            mutationObserver = new MutationObserver(function () { scan(); });
+            mutationObserver.observe(document.documentElement, {childList: true, subtree: true});
+
+            stopTimer = setTimeout(function () {
+                scan();
+                if (mutationObserver) mutationObserver.disconnect();
+                mutationObserver = null;
+                if (renderedIds.size < cfg.faqs.length && !sentError) {
+                    sentError = true;
+                    send('render_error', {
+                        missing_count: cfg.faqs.length - renderedIds.size,
+                        error_type: renderedIds.size > 0 ? 'partial' : 'missing'
+                    });
+                }
+            }, 5000);
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', start, {once: true});
+        } else {
+            start();
+        }
+    }());
+    </script>
+    <?php
+}
+add_action('wp_footer', 'seo_faq_render_frontend_tracking_bridge', 100);
+
+/**
+ * Exporta el informe completo de KPIs y filas de rendimiento en JSON.
+ */
+function seo_faq_export_json()
+{
+    if (!current_user_can('manage_options')) {
+        wp_die('No tienes permisos para exportar el informe de FAQs.');
+    }
+
+    check_admin_referer('seo_faq_export_json');
+    seo_faq_maybe_upgrade_metrics_schema();
+
+    $filters = seo_faq_report_read_performance_filters($_GET);
+    $payload = [
+        'meta' => [
+            'schema_version' => '2.1.0',
+            'generated_at'   => current_time('mysql', true),
+            'timezone'       => 'UTC',
+            'filters'        => $filters,
+        ],
+        'summary'          => seo_faq_report_get_summary(),
+        'targets'          => seo_faq_report_get_target_counts(),
+        'quality'          => seo_faq_report_get_quality_metrics(),
+        'usage'            => seo_faq_report_get_usage_metrics(),
+        'tracking'         => seo_faq_report_get_tracking_metrics(),
+        'editorial'        => seo_faq_report_get_editorial_quality(),
+        'performance_rows' => seo_faq_report_get_performance_rows($filters, 50000),
+        'object_tracking'  => seo_faq_report_get_object_tracking_rows(50000),
+    ];
+
+    $filename = 'seo-faq-report-' . gmdate('Ymd-His') . '.json';
+    nocache_headers();
+    header('Content-Type: application/json; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    echo wp_json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+add_action('admin_post_seo_faq_export_json', 'seo_faq_export_json');
+
+
+/**
  * Indica si el motor transaccional y de rollback está cargado.
  */
 function seo_faq_data_layer_available()
@@ -871,12 +1468,22 @@ function seo_faq_read_classification_filters($source)
         $hub_level = 'hub_secondary';
     }
 
+    $faq_presence = isset($source['faq_presence'])
+        ? sanitize_key(wp_unslash($source['faq_presence']))
+        : 'all';
+
+    if (!in_array($faq_presence, ['all', 'with', 'without'], true)) {
+        $faq_presence = 'all';
+    }
+
     return [
         'cluster'        => isset($source['cluster']) ? absint($source['cluster']) : 0,
         'hub_primario'   => isset($source['hub_primario']) ? absint($source['hub_primario']) : 0,
         'hub_secundario' => isset($source['hub_secundario']) ? absint($source['hub_secundario']) : 0,
         'cat'            => isset($source['cat']) ? absint($source['cat']) : 0,
         'hub_level'      => $hub_level,
+        'faq_search'     => isset($source['faq_search']) ? sanitize_text_field(wp_unslash($source['faq_search'])) : '',
+        'faq_presence'   => $faq_presence,
     ];
 }
 
@@ -1110,37 +1717,22 @@ function seo_faq_get_classification_targets($current_tab, $filters, $hierarchy)
 function seo_faq_render_classification_filters($current_tab, $filters, $hierarchy)
 {
     ?>
-    <div
-        style="
-            margin-top:24px;
-            padding:16px;
-            background:#f6f7f7;
-            border:1px solid #dcdcde;
-            border-radius:6px;
-        "
-    >
-        <h2 style="margin-top:0;">Clasificación SEO</h2>
-
-        <form method="get">
+    <div class="seo-faq-classification-filters" style="margin-top:24px;padding:16px;background:#f6f7f7;border:1px solid #dcdcde;border-radius:6px;">
+        <h2 style="margin-top:0;">Clasificacion y busqueda</h2>
+        <form method="get" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
             <input type="hidden" name="page" value="seo-faq">
             <input type="hidden" name="tab" value="<?php echo esc_attr($current_tab); ?>">
 
             <?php if ($current_tab === 'hubs') : ?>
                 <select name="hub_level" onchange="this.form.submit()">
-                    <option value="cluster" <?php selected($filters['hub_level'], 'cluster'); ?>>
-                        Gestionar clusters
-                    </option>
-                    <option value="hub_primary" <?php selected($filters['hub_level'], 'hub_primary'); ?>>
-                        Gestionar hubs primarios
-                    </option>
-                    <option value="hub_secondary" <?php selected($filters['hub_level'], 'hub_secondary'); ?>>
-                        Gestionar hubs secundarios
-                    </option>
+                    <option value="cluster" <?php selected($filters['hub_level'], 'cluster'); ?>>Clusters</option>
+                    <option value="hub_primary" <?php selected($filters['hub_level'], 'hub_primary'); ?>>Hubs primarios</option>
+                    <option value="hub_secondary" <?php selected($filters['hub_level'], 'hub_secondary'); ?>>Hubs secundarios</option>
                 </select>
             <?php endif; ?>
 
             <select name="cluster" onchange="this.form.submit()">
-                <option value="0">Cluster</option>
+                <option value="0">Todos los clusters</option>
                 <?php foreach ($hierarchy['cluster_ids'] as $id) : ?>
                     <?php $post = get_post($id); ?>
                     <option value="<?php echo esc_attr($id); ?>" <?php selected($filters['cluster'], $id); ?>>
@@ -1150,7 +1742,7 @@ function seo_faq_render_classification_filters($current_tab, $filters, $hierarch
             </select>
 
             <select name="hub_primario" onchange="this.form.submit()">
-                <option value="0">Hub primario</option>
+                <option value="0">Todos los hubs primarios</option>
                 <?php foreach ($hierarchy['hub_primarios_ids'] as $id) : ?>
                     <?php $post = get_post($id); ?>
                     <option value="<?php echo esc_attr($id); ?>" <?php selected($filters['hub_primario'], $id); ?>>
@@ -1160,7 +1752,7 @@ function seo_faq_render_classification_filters($current_tab, $filters, $hierarch
             </select>
 
             <select name="hub_secundario" onchange="this.form.submit()">
-                <option value="0">Hub secundario</option>
+                <option value="0">Todos los hubs secundarios</option>
                 <?php foreach ($hierarchy['hub_secundarios_ids'] as $id) : ?>
                     <?php $post = get_post($id); ?>
                     <option value="<?php echo esc_attr($id); ?>" <?php selected($filters['hub_secundario'], $id); ?>>
@@ -1171,7 +1763,7 @@ function seo_faq_render_classification_filters($current_tab, $filters, $hierarch
 
             <?php if ($current_tab === 'categories' || $current_tab === 'products') : ?>
                 <select name="cat" onchange="this.form.submit()">
-                    <option value="0">Categoría</option>
+                    <option value="0">Todas las categorias</option>
                     <?php foreach ($hierarchy['category_ids'] as $term_id) : ?>
                         <?php $term = get_term($term_id, 'product_cat'); ?>
                         <?php if (!$term || is_wp_error($term)) continue; ?>
@@ -1182,9 +1774,16 @@ function seo_faq_render_classification_filters($current_tab, $filters, $hierarch
                 </select>
             <?php endif; ?>
 
-            <noscript>
-                <?php submit_button('Aplicar filtros', 'secondary', '', false); ?>
-            </noscript>
+            <input type="search" name="faq_search" value="<?php echo esc_attr($filters['faq_search']); ?>" placeholder="Buscar por nombre o ID" style="min-width:220px;">
+
+            <select name="faq_presence">
+                <option value="all" <?php selected($filters['faq_presence'], 'all'); ?>>Con y sin FAQs</option>
+                <option value="with" <?php selected($filters['faq_presence'], 'with'); ?>>Solo con FAQs</option>
+                <option value="without" <?php selected($filters['faq_presence'], 'without'); ?>>Solo sin FAQs</option>
+            </select>
+
+            <?php submit_button('Aplicar', 'secondary', '', false); ?>
+            <a class="button" href="<?php echo esc_url(add_query_arg(['page' => 'seo-faq', 'tab' => $current_tab], admin_url('admin.php'))); ?>">Limpiar</a>
         </form>
     </div>
     <?php
@@ -1201,97 +1800,74 @@ function seo_faq_render_classification_targets(
     $targets
 ) {
     if (!$targets) {
-        echo '<p style="margin-top:20px;color:#646970;">Selecciona la clasificación necesaria para mostrar elementos.</p>';
+        echo '<p style="margin-top:20px;color:#646970;">Selecciona la clasificacion necesaria para mostrar elementos.</p>';
         return;
     }
 
-    $counts = seo_faq_get_target_counts(
-        $object_type,
-        wp_list_pluck($targets, 'id')
-    );
+    $counts = seo_faq_get_target_counts($object_type, wp_list_pluck($targets, 'id'));
+    $search = trim((string) ($filters['faq_search'] ?? ''));
+    $presence = (string) ($filters['faq_presence'] ?? 'all');
+
+    $targets = array_values(array_filter(
+        $targets,
+        static function ($target) use ($counts, $search, $presence) {
+            $id = (int) $target['id'];
+            $count = isset($counts[$id]) ? (int) $counts[$id] : 0;
+
+            if ($presence === 'with' && $count <= 0) return false;
+            if ($presence === 'without' && $count > 0) return false;
+
+            if ($search !== '') {
+                $haystack = (string) $target['label'] . ' #' . $id;
+                if (function_exists('mb_stripos')) {
+                    if (mb_stripos($haystack, $search, 0, 'UTF-8') === false) return false;
+                } elseif (stripos($haystack, $search) === false) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    ));
+
+    if (!$targets) {
+        echo '<div class="notice notice-info inline"><p>No hay elementos que coincidan con los filtros actuales.</p></div>';
+        return;
+    }
 
     ?>
     <form method="post" style="margin-top:24px;">
         <?php wp_nonce_field('seo_faq_bulk_create'); ?>
-
         <input type="hidden" name="seo_faq_action" value="bulk_create">
         <?php seo_faq_render_filter_hidden_fields($filters); ?>
 
-        <h2>Seleccionar elementos</h2>
-
-        <p>
-            Puedes marcar uno o varios. Al guardar se insertará una fila independiente
-            en <code>seo_faq</code> para cada elemento seleccionado.
-        </p>
+        <h2>Elementos <span class="description">(<?php echo esc_html(number_format_i18n(count($targets))); ?>)</span></h2>
+        <p>Selecciona uno o varios destinos para crear una misma FAQ. El contador muestra todas las FAQs existentes del destino.</p>
 
         <table class="widefat striped">
-            <thead>
-                <tr>
-                    <th style="width:50px;">
-                        <input
-                            type="checkbox"
-                            onclick="var checked=this.checked;document.querySelectorAll('.seo-faq-target').forEach(function(el){el.checked=checked;});"
-                            aria-label="Seleccionar todos"
-                        >
-                    </th>
-                    <th>Elemento</th>
-                    <th style="width:100px;">FAQs</th>
-                    <th style="width:140px;">Acción</th>
-                </tr>
-            </thead>
-
+            <thead><tr>
+                <th style="width:50px;"><input type="checkbox" onclick="var checked=this.checked;document.querySelectorAll('.seo-faq-target').forEach(function(el){el.checked=checked;});" aria-label="Seleccionar todos"></th>
+                <th>Elemento</th><th style="width:100px;">FAQs</th><th style="width:140px;">Accion</th>
+            </tr></thead>
             <tbody>
-                <?php foreach ($targets as $target) : ?>
-                    <?php
-                    $manage_args = seo_faq_build_filter_args(
-                        $current_tab,
-                        $filters
-                    );
-
-                    $manage_args['object_id'] = $target['id'];
-
-                    $manage_url = add_query_arg(
-                        $manage_args,
-                        admin_url('admin.php')
-                    );
-                    ?>
-                    <tr>
-                        <td>
-                            <input
-                                type="checkbox"
-                                class="seo-faq-target"
-                                name="target_ids[]"
-                                value="<?php echo esc_attr($target['id']); ?>"
-                            >
-                        </td>
-
-                        <td><?php echo esc_html($target['label']); ?></td>
-
-                        <td><?php echo esc_html($counts[$target['id']] ?? 0); ?></td>
-
-                        <td>
-                            <a href="<?php echo esc_url($manage_url); ?>" class="button button-secondary">
-                                Gestionar
-                            </a>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
+            <?php foreach ($targets as $target) : ?>
+                <?php
+                $manage_args = seo_faq_build_filter_args($current_tab, $filters);
+                $manage_args['object_id'] = $target['id'];
+                $manage_url = add_query_arg($manage_args, admin_url('admin.php'));
+                ?>
+                <tr>
+                    <td><input type="checkbox" class="seo-faq-target" name="target_ids[]" value="<?php echo esc_attr($target['id']); ?>"></td>
+                    <td><?php echo esc_html($target['label']); ?> <code>#<?php echo esc_html((string) $target['id']); ?></code></td>
+                    <td><?php echo esc_html($counts[$target['id']] ?? 0); ?></td>
+                    <td><a href="<?php echo esc_url($manage_url); ?>" class="button button-secondary">Gestionar</a></td>
+                </tr>
+            <?php endforeach; ?>
             </tbody>
         </table>
 
-        <div
-            style="
-                max-width:900px;
-                margin-top:24px;
-                padding:20px;
-                background:#fff;
-                border:1px solid #ccd0d4;
-            "
-        >
+        <div style="max-width:900px;margin-top:24px;padding:20px;background:#fff;border:1px solid #ccd0d4;">
             <h2>Nueva FAQ</h2>
-
             <?php seo_faq_render_fields(null, 'bulk'); ?>
-
             <?php submit_button('Crear FAQ en los elementos seleccionados'); ?>
         </div>
     </form>
@@ -1991,6 +2567,7 @@ function seo_faq_clear_cache($object_type, $object_id)
     $cache_key = $object_type . ':' . $object_id;
 
     wp_cache_delete($cache_key, 'seo_faq');
+    delete_transient('seo_faq_editorial_quality_v2');
 
     do_action(
         'seo_system_faq_cache_cleared',
@@ -2013,6 +2590,8 @@ function seo_faq_build_filter_args($current_tab, $filters)
         'hub_secundario'  => $filters['hub_secundario'],
         'cat'             => $filters['cat'],
         'hub_level'       => $filters['hub_level'],
+        'faq_search'      => $filters['faq_search'] ?? '',
+        'faq_presence'    => $filters['faq_presence'] ?? 'all',
     ];
 }
 
@@ -2028,6 +2607,8 @@ function seo_faq_render_filter_hidden_fields($filters)
     <input type="hidden" name="hub_secundario" value="<?php echo esc_attr($filters['hub_secundario']); ?>">
     <input type="hidden" name="cat" value="<?php echo esc_attr($filters['cat']); ?>">
     <input type="hidden" name="hub_level" value="<?php echo esc_attr($filters['hub_level']); ?>">
+    <input type="hidden" name="faq_search" value="<?php echo esc_attr($filters['faq_search'] ?? ''); ?>">
+    <input type="hidden" name="faq_presence" value="<?php echo esc_attr($filters['faq_presence'] ?? 'all'); ?>">
     <?php
 }
 
@@ -2915,6 +3496,371 @@ function seo_faq_report_render_unpublished_targets($rows)
 }
 
 
+
+/**
+ * KPIs agregados de telemetria por bloque.
+ */
+function seo_faq_report_get_tracking_metrics()
+{
+    global $wpdb;
+
+    seo_faq_maybe_upgrade_metrics_schema();
+
+    $metrics_table = seo_faq_metrics_table_name();
+    $faq_table     = seo_faq_table_name();
+    $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $metrics_table));
+
+    $empty = [
+        'available'               => false,
+        'objects_tracked'         => 0,
+        'block_renders'           => 0,
+        'block_views'             => 0,
+        'engaged_blocks'          => 0,
+        'faq_opens'               => 0,
+        'render_errors'           => 0,
+        'partial_renders'         => 0,
+        'missing_renders'         => 0,
+        'objects_with_errors'     => 0,
+        'render_success_rate'     => 0,
+        'view_rate'               => 0,
+        'engagement_rate'         => 0,
+        'opens_per_engaged_block' => 0,
+        'active_never_rendered'   => 0,
+        'high_exposure_no_open'   => 0,
+        'open_without_render'     => 0,
+    ];
+
+    if ($exists !== $metrics_table) {
+        return $empty;
+    }
+
+    $row = $wpdb->get_row(
+        "SELECT COUNT(*) AS objects_tracked,
+                COALESCE(SUM(block_render_count), 0) AS block_renders,
+                COALESCE(SUM(block_view_count), 0) AS block_views,
+                COALESCE(SUM(engaged_block_count), 0) AS engaged_blocks,
+                COALESCE(SUM(faq_open_count), 0) AS faq_opens,
+                COALESCE(SUM(render_error_count), 0) AS render_errors,
+                COALESCE(SUM(partial_render_count), 0) AS partial_renders,
+                COALESCE(SUM(missing_render_count), 0) AS missing_renders,
+                COALESCE(SUM(render_error_count > 0), 0) AS objects_with_errors
+         FROM {$metrics_table}"
+    );
+
+    $renders = $row ? (int) $row->block_renders : 0;
+    $views   = $row ? (int) $row->block_views : 0;
+    $engaged = $row ? (int) $row->engaged_blocks : 0;
+    $opens   = $row ? (int) $row->faq_opens : 0;
+    $errors   = $row ? (int) $row->render_errors : 0;
+    $partial  = $row ? (int) $row->partial_renders : 0;
+    $missing  = $row ? (int) $row->missing_renders : 0;
+    $attempts = $renders + $missing;
+    $healthy  = max(0, $renders - $partial);
+
+    return [
+        'available'               => true,
+        'objects_tracked'         => $row ? (int) $row->objects_tracked : 0,
+        'block_renders'           => $renders,
+        'block_views'             => $views,
+        'engaged_blocks'          => $engaged,
+        'faq_opens'               => $opens,
+        'render_errors'           => $errors,
+        'partial_renders'         => $partial,
+        'missing_renders'         => $missing,
+        'objects_with_errors'     => $row ? (int) $row->objects_with_errors : 0,
+        'render_success_rate'     => $attempts > 0 ? round(($healthy / $attempts) * 100, 2) : 0,
+        'view_rate'               => $renders > 0 ? round(($views / $renders) * 100, 2) : 0,
+        'engagement_rate'         => $views > 0 ? round(($engaged / $views) * 100, 2) : 0,
+        'opens_per_engaged_block' => $engaged > 0 ? round($opens / $engaged, 2) : 0,
+        'active_never_rendered'   => (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$faq_table} WHERE active = 1 AND load_count = 0"
+        ),
+        'high_exposure_no_open'   => (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$faq_table} WHERE active = 1 AND load_count >= 20 AND open_count = 0"
+        ),
+        'open_without_render'     => (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$faq_table} WHERE open_count > load_count"
+        ),
+    ];
+}
+
+/**
+ * Filtros del explorador de rendimiento.
+ */
+function seo_faq_report_read_performance_filters($source)
+{
+    $type = isset($source['perf_type']) ? absint($source['perf_type']) : 0;
+    if (!in_array($type, [0, 1, 2, 3], true)) {
+        $type = 0;
+    }
+
+    $status = isset($source['perf_status']) ? sanitize_key(wp_unslash($source['perf_status'])) : 'active';
+    if (!in_array($status, ['all', 'active', 'inactive'], true)) {
+        $status = 'active';
+    }
+
+    $usage = isset($source['perf_usage']) ? sanitize_key(wp_unslash($source['perf_usage'])) : 'all';
+    if (!in_array($usage, ['all', 'never_rendered', 'no_opens', 'opened', 'low_engagement', 'inconsistent'], true)) {
+        $usage = 'all';
+    }
+
+    $order = isset($source['perf_order']) ? sanitize_key(wp_unslash($source['perf_order'])) : 'loads';
+    if (!in_array($order, ['loads', 'opens', 'open_rate', 'recent'], true)) {
+        $order = 'loads';
+    }
+
+    return [
+        'type'      => $type,
+        'status'    => $status,
+        'usage'     => $usage,
+        'search'    => isset($source['perf_search']) ? sanitize_text_field(wp_unslash($source['perf_search'])) : '',
+        'min_loads' => isset($source['perf_min_loads']) ? absint($source['perf_min_loads']) : 0,
+        'min_opens' => isset($source['perf_min_opens']) ? absint($source['perf_min_opens']) : 0,
+        'order'     => $order,
+    ];
+}
+
+/**
+ * Filas de rendimiento individual, filtrables y exportables.
+ */
+function seo_faq_report_get_performance_rows($filters, $limit = 100)
+{
+    global $wpdb;
+
+    $table = seo_faq_table_name();
+    $limit = max(1, min(50000, (int) $limit));
+    $where = ['1=1'];
+    $args  = [];
+
+    if (!empty($filters['type'])) {
+        $where[] = 'object_type = %d';
+        $args[]  = (int) $filters['type'];
+    }
+
+    if (($filters['status'] ?? 'active') === 'active') {
+        $where[] = 'active = 1';
+    } elseif (($filters['status'] ?? '') === 'inactive') {
+        $where[] = 'active = 0';
+    }
+
+    $usage = $filters['usage'] ?? 'all';
+    if ($usage === 'never_rendered') {
+        $where[] = 'load_count = 0';
+    } elseif ($usage === 'no_opens') {
+        $where[] = 'load_count > 0 AND open_count = 0';
+    } elseif ($usage === 'opened') {
+        $where[] = 'open_count > 0';
+    } elseif ($usage === 'low_engagement') {
+        $where[] = 'load_count >= 20 AND (open_count / NULLIF(load_count, 0)) < 0.01';
+    } elseif ($usage === 'inconsistent') {
+        $where[] = 'open_count > load_count';
+    }
+
+    if (!empty($filters['search'])) {
+        $where[] = 'question LIKE %s';
+        $args[]  = '%' . $wpdb->esc_like((string) $filters['search']) . '%';
+    }
+
+    if (!empty($filters['min_loads'])) {
+        $where[] = 'load_count >= %d';
+        $args[]  = (int) $filters['min_loads'];
+    }
+
+    if (!empty($filters['min_opens'])) {
+        $where[] = 'open_count >= %d';
+        $args[]  = (int) $filters['min_opens'];
+    }
+
+    $order_map = [
+        'loads'     => 'load_count DESC, open_count DESC, id ASC',
+        'opens'     => 'open_count DESC, load_count DESC, id ASC',
+        'open_rate' => '(open_count / NULLIF(load_count, 0)) DESC, load_count DESC, id ASC',
+        'recent'    => 'updated_at DESC, id DESC',
+    ];
+    $order_by = $order_map[$filters['order'] ?? 'loads'];
+
+    $sql = "SELECT id, object_type, object_id, question, active,
+                   load_count, open_count,
+                   ROUND(open_count / NULLIF(load_count, 0) * 100, 2) AS open_rate,
+                   updated_at
+            FROM {$table}
+            WHERE " . implode(' AND ', $where) . "
+            ORDER BY {$order_by}
+            LIMIT {$limit}";
+
+    if ($args) {
+        $sql = $wpdb->prepare($sql, $args);
+    }
+
+    $rows = $wpdb->get_results($sql, ARRAY_A);
+    return is_array($rows) ? $rows : [];
+}
+
+/**
+ * Telemetria por objeto para exportacion y diagnostico de errores.
+ */
+function seo_faq_report_get_object_tracking_rows($limit = 100)
+{
+    global $wpdb;
+
+    seo_faq_maybe_upgrade_metrics_schema();
+    $table = seo_faq_metrics_table_name();
+    $limit = max(1, min(50000, (int) $limit));
+
+    $rows = $wpdb->get_results(
+        "SELECT object_type, object_id, block_render_count, block_view_count,
+                engaged_block_count, faq_open_count, render_error_count,
+                partial_render_count, missing_render_count,
+                ROUND(engaged_block_count / NULLIF(block_view_count, 0) * 100, 2) AS engagement_rate,
+                last_rendered_at, last_viewed_at, last_opened_at, last_error_at, updated_at
+         FROM {$table}
+         ORDER BY render_error_count DESC, block_view_count DESC, object_type ASC, object_id ASC
+         LIMIT {$limit}",
+        ARRAY_A
+    );
+
+    return is_array($rows) ? $rows : [];
+}
+
+/**
+ * Boton de descarga JSON respetando los filtros del explorador.
+ */
+function seo_faq_report_render_export_button($filters)
+{
+    $args = [
+        'action'         => 'seo_faq_export_json',
+        'perf_type'      => (int) $filters['type'],
+        'perf_status'    => (string) $filters['status'],
+        'perf_usage'     => (string) $filters['usage'],
+        'perf_search'    => (string) $filters['search'],
+        'perf_min_loads' => (int) $filters['min_loads'],
+        'perf_min_opens' => (int) $filters['min_opens'],
+        'perf_order'     => (string) $filters['order'],
+    ];
+
+    $url = add_query_arg($args, admin_url('admin-post.php'));
+    $url = wp_nonce_url($url, 'seo_faq_export_json');
+
+    echo '<p class="seo-faq-report-actions">';
+    echo '<a class="button button-primary" href="' . esc_url($url) . '">Descargar informe JSON</a>';
+    echo '<span class="description">Incluye KPIs, calidad, telemetria por objeto y las filas que coinciden con los filtros actuales.</span>';
+    echo '</p>';
+}
+
+/**
+ * Filtros modernos del explorador de rendimiento.
+ */
+function seo_faq_report_render_performance_filters($filters)
+{
+    echo '<form method="get" class="seo-faq-performance-filters">';
+    echo '<input type="hidden" name="page" value="seo-faq">';
+    echo '<input type="hidden" name="tab" value="report">';
+
+    echo '<label>Buscar <input type="search" name="perf_search" value="' . esc_attr($filters['search']) . '" placeholder="Pregunta"></label>';
+
+    echo '<label>Nivel <select name="perf_type">';
+    echo '<option value="0"' . selected($filters['type'], 0, false) . '>Todos</option>';
+    foreach ([1, 2, 3] as $type) {
+        echo '<option value="' . esc_attr($type) . '"' . selected($filters['type'], $type, false) . '>' . esc_html(seo_faq_report_type_label($type)) . '</option>';
+    }
+    echo '</select></label>';
+
+    echo '<label>Estado <select name="perf_status">';
+    echo '<option value="active"' . selected($filters['status'], 'active', false) . '>Activas</option>';
+    echo '<option value="inactive"' . selected($filters['status'], 'inactive', false) . '>Inactivas</option>';
+    echo '<option value="all"' . selected($filters['status'], 'all', false) . '>Todas</option>';
+    echo '</select></label>';
+
+    $usage_labels = [
+        'all'             => 'Cualquier uso',
+        'never_rendered'  => 'Nunca renderizadas',
+        'no_opens'        => 'Renderizadas sin aperturas',
+        'opened'          => 'Con aperturas',
+        'low_engagement'  => '20+ renders y <1% apertura',
+        'inconsistent'    => 'Aperturas > renders',
+    ];
+    echo '<label>Diagnostico <select name="perf_usage">';
+    foreach ($usage_labels as $value => $label) {
+        echo '<option value="' . esc_attr($value) . '"' . selected($filters['usage'], $value, false) . '>' . esc_html($label) . '</option>';
+    }
+    echo '</select></label>';
+
+    echo '<label>Min. renders <input type="number" min="0" name="perf_min_loads" value="' . esc_attr($filters['min_loads']) . '"></label>';
+    echo '<label>Min. aperturas <input type="number" min="0" name="perf_min_opens" value="' . esc_attr($filters['min_opens']) . '"></label>';
+
+    echo '<label>Orden <select name="perf_order">';
+    $orders = ['loads' => 'Mas renderizadas', 'opens' => 'Mas abiertas', 'open_rate' => 'Mayor tasa apertura', 'recent' => 'Actualizadas recientemente'];
+    foreach ($orders as $value => $label) {
+        echo '<option value="' . esc_attr($value) . '"' . selected($filters['order'], $value, false) . '>' . esc_html($label) . '</option>';
+    }
+    echo '</select></label>';
+
+    submit_button('Aplicar filtros', 'secondary', '', false);
+    echo '<a class="button" href="' . esc_url(add_query_arg(['page' => 'seo-faq', 'tab' => 'report'], admin_url('admin.php'))) . '">Limpiar</a>';
+    echo '</form>';
+}
+
+/**
+ * Explorador de rendimiento de FAQs individuales.
+ */
+function seo_faq_report_render_performance_explorer($filters)
+{
+    $rows = seo_faq_report_get_performance_rows($filters, 100);
+
+    echo '<h3>Explorador de rendimiento</h3>';
+    echo '<p>Filtra preguntas por nivel, estado y uso. Se muestran hasta 100 filas; el JSON exporta hasta 50.000.</p>';
+    seo_faq_report_render_performance_filters($filters);
+
+    seo_faq_report_render_rows(
+        'Resultados filtrados',
+        $rows,
+        ['id', 'object_type', 'object_id', 'question', 'active', 'load_count', 'open_count', 'open_rate', 'updated_at']
+    );
+}
+
+/**
+ * Diagnostico de la capa de tracking del bloque.
+ */
+function seo_faq_report_render_tracking($tracking)
+{
+    echo '<h3>KPIs de tracking</h3>';
+    echo '<p>Separa renderizado, visibilidad en viewport y engagement. Los contadores empiezan a acumularse desde que esta version queda desplegada.</p>';
+
+    echo '<table class="widefat striped seo-faq-report-table"><thead><tr><th>KPI</th><th>Valor</th><th>Interpretacion</th></tr></thead><tbody>';
+    $rows = [
+        ['Bloques renderizados', number_format_i18n($tracking['block_renders']), 'El bloque FAQ se encontro realmente en el DOM.'],
+        ['Bloques vistos', number_format_i18n($tracking['block_views']), 'Al menos una cabecera FAQ entro en el viewport.'],
+        ['Bloques con interaccion', number_format_i18n($tracking['engaged_blocks']), 'En esa vista se abrio al menos una FAQ.'],
+        ['Engagement del bloque', $tracking['engagement_rate'] . '%', 'Bloques con apertura / bloques vistos.'],
+        ['Aperturas por bloque interactuado', $tracking['opens_per_engaged_block'], 'Numero medio de preguntas abiertas cuando hay interaccion.'],
+        ['Exito de render completo', $tracking['render_success_rate'] . '%', 'Bloques con todas las FAQs esperadas / intentos detectados.'],
+        ['Renders parciales', number_format_i18n($tracking['partial_renders']), 'El bloque aparecio, pero faltaba al menos una FAQ activa.'],
+        ['Bloques ausentes', number_format_i18n($tracking['missing_renders']), 'Habia FAQs activas para el destino pero no aparecio ninguna en el DOM tras 5 s.'],
+        ['Incidencias de render', number_format_i18n($tracking['render_errors']), 'Suma de renders parciales y bloques ausentes.'],
+        ['Objetos con algun fallo', number_format_i18n($tracking['objects_with_errors']), 'Destinos distintos con al menos un fallo historico.'],
+        ['Activas nunca renderizadas', number_format_i18n($tracking['active_never_rendered']), 'FAQs activas cuyo load_count sigue en cero.'],
+        ['20+ renders sin aperturas', number_format_i18n($tracking['high_exposure_no_open']), 'Preguntas con exposicion suficiente y ninguna interaccion.'],
+        ['Aperturas > renders', number_format_i18n($tracking['open_without_render']), 'Inconsistencia de datos que conviene revisar.'],
+    ];
+    foreach ($rows as $row) {
+        echo '<tr><td><strong>' . esc_html($row[0]) . '</strong></td><td>' . esc_html((string) $row[1]) . '</td><td>' . esc_html($row[2]) . '</td></tr>';
+    }
+    echo '</tbody></table>';
+
+    $errors = array_filter(
+        seo_faq_report_get_object_tracking_rows(50),
+        static function ($row) {
+            return (int) $row['render_error_count'] > 0;
+        }
+    );
+    $errors = array_slice(array_values($errors), 0, 25);
+    seo_faq_report_render_rows(
+        'Destinos con errores de render',
+        $errors,
+        ['object_type', 'object_id', 'block_render_count', 'block_view_count', 'engaged_block_count', 'partial_render_count', 'missing_render_count', 'render_error_count', 'last_error_at']
+    );
+}
+
 /**
  * Renderiza el informe de situación y permite limpiar, de forma reversible,
  * únicamente las FAQs definitivamente huérfanas.
@@ -2931,29 +3877,39 @@ function seo_faq_render_report()
         return;
     }
 
+    seo_faq_maybe_upgrade_metrics_schema();
+
     $summary     = seo_faq_report_get_summary();
     $targets     = seo_faq_report_get_target_counts();
     $quality     = seo_faq_report_get_quality_metrics();
     $usage       = seo_faq_report_get_usage_metrics();
+    $tracking    = seo_faq_report_get_tracking_metrics();
+    $editorial   = seo_faq_report_get_editorial_quality();
     $duplicates  = seo_faq_report_get_duplicate_groups();
     $orphans     = seo_faq_report_get_orphan_rows();
     $unpublished = seo_faq_report_get_unpublished_rows();
+    $perf_filter = seo_faq_report_read_performance_filters($_GET);
 
     seo_faq_report_render_styles();
 
     echo '<div class="seo-faq-report">';
-    echo '<h2>Informe de FAQs</h2>';
-    echo '<p>Este informe muestra cobertura, calidad y uso real mediante <code>load_count</code> y <code>open_count</code>. Las FAQs definitivamente huérfanas pueden eliminarse mediante operaciones auditables y reversibles.</p>';
+    echo '<div class="seo-faq-report-head">';
+    echo '<div><h2>Informe de FAQs</h2>';
+    echo '<p>Panel de cobertura, calidad editorial y telemetria real. El tracking distingue renderizado, entrada en viewport y apertura de cada pregunta.</p></div>';
+    seo_faq_report_render_export_button($perf_filter);
+    echo '</div>';
 
-    seo_faq_report_render_cards($summary, $quality, $usage);
+    seo_faq_report_render_cards($summary, $quality, $usage, $tracking);
+    seo_faq_report_render_tracking($tracking);
+    seo_faq_report_render_usage($usage, $tracking);
+    seo_faq_report_render_performance_explorer($perf_filter);
+    seo_faq_report_render_editorial_quality($editorial);
     seo_faq_report_render_levels($summary, $targets);
     seo_faq_report_render_quality($quality);
     seo_faq_report_render_duplicate_management($duplicates);
     seo_faq_report_render_orphan_management($orphans);
     seo_faq_report_render_unpublished_targets($unpublished);
-    seo_faq_report_render_usage($usage);
     seo_faq_report_render_missing();
-    seo_faq_report_render_details();
 
     echo '</div>';
 }
@@ -3166,7 +4122,7 @@ function seo_faq_report_get_usage_metrics()
 /**
  * Tarjetas superiores del informe.
  */
-function seo_faq_report_render_cards($summary, $quality, $usage)
+function seo_faq_report_render_cards($summary, $quality, $usage, $tracking)
 {
     $total_faqs    = array_sum(array_column($summary, 'total_faqs'));
     $active_faqs   = array_sum(array_column($summary, 'active_faqs'));
@@ -3175,16 +4131,13 @@ function seo_faq_report_render_cards($summary, $quality, $usage)
 
     echo '<div class="seo-faq-report-cards">';
     seo_faq_report_card('Total FAQs', $total_faqs, 'Registros en seo_faq');
-    seo_faq_report_card('Activas', $active_faqs, 'FAQs visibles');
-    seo_faq_report_card('Inactivas', $inactive_faqs, 'FAQs no visibles');
-    seo_faq_report_card('Objetos con FAQ', $objects_with, 'Hubs, categorías o productos');
-    seo_faq_report_card('FAQs a revisar', $quality['short_or_empty'], 'Vacías o demasiado cortas');
-    seo_faq_report_card(
-        'Huérfanas definitivas',
-        (int) $quality['orphan_hubs'] + (int) $quality['orphan_categories'] + (int) $quality['orphan_products'],
-        'Se pueden limpiar con rollback'
-    );
-    seo_faq_report_card('Ratio apertura', $usage['open_rate'] . '%', 'open_count / load_count');
+    seo_faq_report_card('Activas', $active_faqs, 'Preguntas disponibles en frontend');
+    seo_faq_report_card('Inactivas', $inactive_faqs, 'Preguntas no mostradas');
+    seo_faq_report_card('Objetos con FAQ', $objects_with, 'Hubs, categorias o productos');
+    seo_faq_report_card('Bloques renderizados', $tracking['block_renders'], 'Bloques FAQ detectados en el DOM');
+    seo_faq_report_card('Bloques vistos', $tracking['block_views'], 'Entraron realmente en viewport');
+    seo_faq_report_card('Engagement', $tracking['engagement_rate'] . '%', 'Bloques vistos con alguna apertura');
+    seo_faq_report_card('Errores de render', $tracking['render_errors'], 'FAQs esperadas que no aparecieron');
     echo '</div>';
 }
 
@@ -3205,13 +4158,9 @@ function seo_faq_report_card($label, $value, $description)
  */
 function seo_faq_report_render_levels($summary, $targets)
 {
-    
-    $editorial = seo_faq_report_get_editorial_quality();
-    seo_faq_report_render_editorial_quality($editorial);
-    
     echo '<h3>FAQs por nivel</h3>';
     echo '<table class="widefat striped seo-faq-report-table"><thead><tr>';
-    echo '<th>Nivel</th><th>FAQs</th><th>Activas</th><th>Inactivas</th><th>Objetos con FAQ</th><th>Objetos totales</th><th>Sin FAQ</th><th>Cobertura</th><th>Última actualización</th>';
+    echo '<th>Nivel</th><th>FAQs</th><th>Activas</th><th>Inactivas</th><th>Objetos con FAQ</th><th>Objetos totales</th><th>Sin FAQ</th><th>Cobertura</th><th>Ultima actualizacion</th>';
     echo '</tr></thead><tbody>';
 
     foreach ($summary as $object_type => $row) {
@@ -3276,41 +4225,63 @@ function seo_faq_report_quality_row($label, $count, $description)
 
 
 /**
- * Calcula una auditoría editorial orientativa de calidad FAQ.
+ * Calcula una auditoria editorial orientativa para todo el inventario FAQ.
  *
- * No intenta medir verdad absoluta. Ordena trabajo editorial según señales simples:
- * - pregunta con intención real de cliente;
- * - respuesta suficientemente desarrollada;
- * - respuesta orientada a decisión o prevención de error;
- * - cobertura por categoría.
+ * El resultado se cachea porque puntuar decenas de miles de respuestas en
+ * cada carga del admin seria innecesariamente costoso.
  */
-function seo_faq_report_get_editorial_quality() {
-    global $wpdb;
+function seo_faq_report_get_editorial_quality()
+{
+    $cached = get_transient('seo_faq_editorial_quality_v2');
+    if (is_array($cached)) {
+        return $cached;
+    }
 
+    global $wpdb;
     $table = seo_faq_table_name();
 
     $rows = $wpdb->get_results(
         "SELECT f.id, f.object_type, f.object_id, f.question, f.answer, f.active,
-                t.name AS category_name
+                CASE
+                    WHEN f.object_type = 2 THEN t.name
+                    WHEN f.object_type IN (1, 3) THEN p.post_title
+                    ELSE NULL
+                END AS object_name
          FROM {$table} f
-         LEFT JOIN {$wpdb->terms} t
-            ON t.term_id = f.object_id
+         LEFT JOIN {$wpdb->posts} p
+            ON p.ID = f.object_id
+           AND f.object_type IN (1, 3)
          LEFT JOIN {$wpdb->term_taxonomy} tt
             ON tt.term_id = f.object_id
            AND tt.taxonomy = 'product_cat'
-         WHERE f.object_type = 2
-           AND tt.term_id IS NOT NULL
-         ORDER BY f.object_id ASC, f.sort_order ASC, f.id ASC",
+           AND f.object_type = 2
+         LEFT JOIN {$wpdb->terms} t
+            ON t.term_id = tt.term_id
+         WHERE f.object_type IN (1, 2, 3)
+         ORDER BY f.object_type ASC, f.object_id ASC, f.sort_order ASC, f.id ASC",
         ARRAY_A
     );
 
     $result = [
-        'total'      => 0,
-        'excellent'  => 0,
-        'correct'    => 0,
-        'improvable' => 0,
+        'total'       => 0,
+        'excellent'   => 0,
+        'correct'     => 0,
+        'improvable'  => 0,
+        'by_type'     => [],
         'by_category' => [],
     ];
+
+    foreach ([1, 2, 3] as $type) {
+        $result['by_type'][$type] = [
+            'label'      => seo_faq_report_type_label($type),
+            'total'      => 0,
+            'excellent'  => 0,
+            'correct'    => 0,
+            'improvable' => 0,
+            'score_total'=> 0,
+            'avg_score'  => 0,
+        ];
+    }
 
     if (!is_array($rows) || !$rows) {
         return $result;
@@ -3319,26 +4290,37 @@ function seo_faq_report_get_editorial_quality() {
     foreach ($rows as $row) {
         $score = seo_faq_report_editorial_score($row['question'], $row['answer']);
         $class = seo_faq_report_editorial_class($score);
+        $type  = (int) $row['object_type'];
 
         $result['total']++;
+        $result['by_type'][$type]['total']++;
+        $result['by_type'][$type]['score_total'] += $score;
+
         if ($class === 'A') {
             $result['excellent']++;
+            $result['by_type'][$type]['excellent']++;
         } elseif ($class === 'B') {
             $result['correct']++;
+            $result['by_type'][$type]['correct']++;
         } else {
             $result['improvable']++;
+            $result['by_type'][$type]['improvable']++;
+        }
+
+        if ($type !== 2) {
+            continue;
         }
 
         $object_id = (int) $row['object_id'];
         if (!isset($result['by_category'][$object_id])) {
             $result['by_category'][$object_id] = [
-                'object_id' => $object_id,
-                'label' => $row['category_name'] ?: ('Categoría #' . $object_id),
-                'faqs' => 0,
-                'score_total' => 0,
-                'excellent' => 0,
-                'correct' => 0,
-                'improvable' => 0,
+                'object_id'       => $object_id,
+                'label'           => $row['object_name'] ?: ('Categoria #' . $object_id),
+                'faqs'            => 0,
+                'score_total'     => 0,
+                'excellent'       => 0,
+                'correct'         => 0,
+                'improvable'      => 0,
                 'sample_question' => '',
             ];
         }
@@ -3357,6 +4339,13 @@ function seo_faq_report_get_editorial_quality() {
         }
     }
 
+    foreach ($result['by_type'] as &$type_row) {
+        $type_row['avg_score'] = $type_row['total'] > 0
+            ? round($type_row['score_total'] / $type_row['total'], 2)
+            : 0;
+    }
+    unset($type_row);
+
     foreach ($result['by_category'] as &$category) {
         $category['avg_score'] = $category['faqs'] > 0
             ? round($category['score_total'] / $category['faqs'], 2)
@@ -3374,6 +4363,7 @@ function seo_faq_report_get_editorial_quality() {
         }
     );
 
+    set_transient('seo_faq_editorial_quality_v2', $result, 6 * HOUR_IN_SECONDS);
     return $result;
 }
 
@@ -3441,123 +4431,77 @@ function seo_faq_report_editorial_class($score) {
 }
 
 /**
- * Renderiza el diagnóstico editorial dentro del informe FAQ.
+ * Renderiza el diagnostico editorial del inventario completo.
  */
-function seo_faq_report_render_editorial_quality($editorial) {
+function seo_faq_report_render_editorial_quality($editorial)
+{
     $total = isset($editorial['total']) ? (int) $editorial['total'] : 0;
 
-    echo '<h3>Diagnóstico editorial de FAQs</h3>';
-    echo '<p>Clasificación orientativa para priorizar qué FAQs conviene mejorar antes de generar más contenido.</p>';
-    ?>
-        <details style="margin:10px 0;">
-            <summary><strong>¿Cómo se calcula la calidad editorial?</strong></summary>
-        
-            <p>
-            Esta clasificación es orientativa y no pretende determinar si una FAQ es correcta o incorrecta.
-            Su objetivo es ayudar a priorizar qué categorías conviene revisar primero.
-            </p>
-        
-            <h4>🟢 Clase A</h4>
-            <ul>
-                <li>Pregunta natural que podría hacer un cliente real.</li>
-                <li>Ayuda a tomar una decisión de compra.</li>
-                <li>Respuesta suficientemente desarrollada.</li>
-                <li>Incluye orientación práctica o evita errores frecuentes.</li>
-            </ul>
-        
-            <h4>🟡 Clase B</h4>
-            <ul>
-                <li>FAQ útil y correcta.</li>
-                <li>Cubre una duda frecuente.</li>
-                <li>Puede mejorarse en naturalidad o profundidad.</li>
-            </ul>
-        
-            <h4>🔴 Clase C</h4>
-            <ul>
-                <li>No significa que sea incorrecta.</li>
-                <li>Suele ser una pregunta demasiado técnica o poco orientada al comprador.</li>
-                <li>También puede indicar respuestas mejorables o menos desarrolladas.</li>
-                <li>Se muestra como candidata prioritaria para revisión.</li>
-            </ul>
-        
-            <h4>¿Cómo se puntúa?</h4>
-            <p>
-            El sistema analiza automáticamente aspectos como:
-            </p>
-        
-            <ul>
-                <li>Longitud de la pregunta.</li>
-                <li>Longitud de la respuesta.</li>
-                <li>Uso de lenguaje propio de un comprador real.</li>
-                <li>Orientación a elección, compatibilidad o comparación.</li>
-                <li>Capacidad para evitar errores de compra.</li>
-            </ul>
-        
-            <p>
-            Esta puntuación no sustituye el criterio humano y debe utilizarse únicamente para ordenar el trabajo editorial.
-            </p>
-        </details>
-    <?php
+    echo '<h3>Diagnostico editorial de FAQs</h3>';
+    echo '<p>Clasificacion heuristica para priorizar revision. Ahora audita hubs, categorias y productos; no sustituye una revision humana ni valida la veracidad de la respuesta.</p>';
+
     if ($total <= 0) {
-        echo '<p>No hay FAQs de categorías válidas para auditar.</p>';
+        echo '<p>No hay FAQs validas para auditar.</p>';
         return;
     }
 
     echo '<div class="seo-faq-report-cards">';
-    seo_faq_report_card('FAQs auditadas', $total, 'Solo categorías válidas');
-    seo_faq_report_card('Clase A', (int) $editorial['excellent'], 'Preguntas fuertes');
-    seo_faq_report_card('Clase B', (int) $editorial['correct'], 'Correctas');
-    seo_faq_report_card('Clase C', (int) $editorial['improvable'], 'Mejorables');
+    seo_faq_report_card('FAQs auditadas', $total, 'Inventario completo');
+    seo_faq_report_card('Clase A', (int) $editorial['excellent'], 'Senales editoriales fuertes');
+    seo_faq_report_card('Clase B', (int) $editorial['correct'], 'Correctas con margen de mejora');
+    seo_faq_report_card('Clase C', (int) $editorial['improvable'], 'Prioridad de revision');
     echo '</div>';
 
-    echo '<h4>Categorías prioritarias para mejorar FAQs</h4>';
-    echo '<p>Se muestran las categorías con más FAQs clase C o menor puntuación media.</p>';
+    echo '<table class="widefat striped seo-faq-report-table"><thead><tr>';
+    echo '<th>Nivel</th><th>FAQs</th><th>A</th><th>B</th><th>C</th><th>Puntuacion media</th>';
+    echo '</tr></thead><tbody>';
+    foreach ((array) $editorial['by_type'] as $type_row) {
+        echo '<tr>';
+        echo '<td><strong>' . esc_html($type_row['label']) . '</strong></td>';
+        echo '<td>' . esc_html(number_format_i18n((int) $type_row['total'])) . '</td>';
+        echo '<td>' . esc_html(number_format_i18n((int) $type_row['excellent'])) . '</td>';
+        echo '<td>' . esc_html(number_format_i18n((int) $type_row['correct'])) . '</td>';
+        echo '<td>' . esc_html(number_format_i18n((int) $type_row['improvable'])) . '</td>';
+        echo '<td>' . esc_html((string) $type_row['avg_score']) . '</td>';
+        echo '</tr>';
+    }
+    echo '</tbody></table>';
 
-    $rows = array_slice((array) $editorial['by_category'], 0, 20, true);
+    echo '<details style="margin:10px 0 20px;">';
+    echo '<summary><strong>Como se calcula la calidad editorial</strong></summary>';
+    echo '<p>La puntuacion usa longitud, lenguaje de intencion de compra, orientacion a compatibilidad/decision y presencia de recomendaciones o limites. A no significa perfecta y C no significa incorrecta.</p>';
+    echo '</details>';
 
-    $quality_filter = isset($_GET['quality_filter'])
-    ? sanitize_key($_GET['quality_filter'])
-    : 'all';
+    echo '<h4>Categorias prioritarias para mejorar FAQs</h4>';
+    echo '<p>Se muestran las categorias con mas FAQs clase C o menor puntuacion media.</p>';
+
+    $quality_filter = isset($_GET['quality_filter']) ? sanitize_key(wp_unslash($_GET['quality_filter'])) : 'all';
     echo '<form method="get" style="margin-bottom:15px;">';
-    
     echo '<input type="hidden" name="page" value="seo-faq">';
     echo '<input type="hidden" name="tab" value="report">';
-    
     echo '<select name="quality_filter">';
-    
     echo '<option value="all"' . selected($quality_filter, 'all', false) . '>Todas</option>';
-    echo '<option value="c"' . selected($quality_filter, 'c', false) . '>Solo categorías con FAQs C</option>';
-    echo '<option value="c3"' . selected($quality_filter, 'c3', false) . '>3 o más FAQs C</option>';
-    echo '<option value="c5"' . selected($quality_filter, 'c5', false) . '>5 o más FAQs C</option>';
-    echo '<option value="good"' . selected($quality_filter, 'good', false) . '>Categorías correctas</option>';
-    
-    echo '</select>';
-    
-    submit_button('Filtrar', 'secondary', '', false);
-    
+    echo '<option value="c"' . selected($quality_filter, 'c', false) . '>Solo categorias con FAQs C</option>';
+    echo '<option value="c3"' . selected($quality_filter, 'c3', false) . '>3 o mas FAQs C</option>';
+    echo '<option value="c5"' . selected($quality_filter, 'c5', false) . '>5 o mas FAQs C</option>';
+    echo '<option value="good"' . selected($quality_filter, 'good', false) . '>Categorias sin FAQs C</option>';
+    echo '</select> ';
+    submit_button('Filtrar calidad', 'secondary', '', false);
     echo '</form>';
 
-    echo '<table class="widefat striped seo-faq-report-table">';
-    echo '<thead><tr>';
-    echo '<th>Categoría</th><th>FAQs</th><th>A</th><th>B</th><th>C</th><th>Puntuación media</th><th>Ejemplo a revisar</th>';
+    echo '<table class="widefat striped seo-faq-report-table"><thead><tr>';
+    echo '<th>Categoria</th><th>FAQs</th><th>A</th><th>B</th><th>C</th><th>Puntuacion media</th><th>Ejemplo a revisar</th>';
     echo '</tr></thead><tbody>';
 
-    foreach ($rows as $row) {
-        if ($quality_filter === 'c' && (int) $row['improvable'] === 0) {
-            continue;
-        }
-        
-        if ($quality_filter === 'c3' && (int) $row['improvable'] < 3) {
-            continue;
-        }
-        
-        if ($quality_filter === 'c5' && (int) $row['improvable'] < 5) {
-            continue;
-        }
-        
-        if ($quality_filter === 'good' && (int) $row['improvable'] > 0) {
-            continue;
-        }
+    $shown = 0;
+    foreach ((array) $editorial['by_category'] as $row) {
+        if ($quality_filter === 'c' && (int) $row['improvable'] === 0) continue;
+        if ($quality_filter === 'c3' && (int) $row['improvable'] < 3) continue;
+        if ($quality_filter === 'c5' && (int) $row['improvable'] < 5) continue;
+        if ($quality_filter === 'good' && (int) $row['improvable'] > 0) continue;
+        if ($shown >= 30) break;
+        $shown++;
+
         echo '<tr>';
         echo '<td>' . esc_html($row['label']) . ' <code>#' . esc_html((string) $row['object_id']) . '</code></td>';
         echo '<td>' . esc_html(number_format_i18n((int) $row['faqs'])) . '</td>';
@@ -3568,24 +4512,26 @@ function seo_faq_report_render_editorial_quality($editorial) {
         echo '<td>' . esc_html(wp_trim_words((string) $row['sample_question'], 18, '...')) . '</td>';
         echo '</tr>';
     }
-
     echo '</tbody></table>';
-
-    echo '<p><strong>Criterio:</strong> A no significa perfecto y C no significa incorrecto. Sirve para ordenar trabajo editorial: primero cubrir categorías sin FAQ, después mejorar las categorías con más FAQs C.</p>';
 }
 
 /**
  * Uso agregado.
  */
-function seo_faq_report_render_usage($usage)
+function seo_faq_report_render_usage($usage, $tracking)
 {
-    echo '<h3>Uso</h3>';
-    echo '<table class="widefat striped seo-faq-report-table"><thead><tr><th>Métrica</th><th>Valor</th><th>Interpretación</th></tr></thead><tbody>';
-    echo '<tr><td>Cargas totales</td><td>' . esc_html(number_format_i18n($usage['total_loads'])) . '</td><td>Veces que se han mostrado FAQs.</td></tr>';
-    echo '<tr><td>Aperturas totales</td><td>' . esc_html(number_format_i18n($usage['total_opens'])) . '</td><td>Veces que el usuario ha abierto una FAQ.</td></tr>';
-    echo '<tr><td>Ratio de apertura</td><td>' . esc_html($usage['open_rate']) . '%</td><td>Ayuda a detectar si las preguntas interesan.</td></tr>';
-    echo '<tr><td>Cargadas pero nunca abiertas</td><td>' . esc_html(number_format_i18n($usage['loaded_never_opened'])) . '</td><td>FAQs visibles que no reciben interacción.</td></tr>';
-    echo '<tr><td>Nunca cargadas</td><td>' . esc_html(number_format_i18n($usage['never_loaded'])) . '</td><td>FAQs sin datos de visualización.</td></tr>';
+    echo '<h3>Uso e interaccion</h3>';
+    echo '<p><strong>Importante:</strong> las cargas individuales se cuentan por FAQ. Un bloque con 4 preguntas renderizado una vez suma 1 bloque renderizado y 4 cargas individuales. Por eso el KPI principal del bloque sale de la tabla agregada de telemetria.</p>';
+    echo '<table class="widefat striped seo-faq-report-table"><thead><tr><th>Metrica</th><th>Valor</th><th>Interpretacion</th></tr></thead><tbody>';
+    echo '<tr><td>Renders individuales de FAQ</td><td>' . esc_html(number_format_i18n($usage['total_loads'])) . '</td><td>Suma de load_count de cada pregunta renderizada.</td></tr>';
+    echo '<tr><td>Aperturas individuales</td><td>' . esc_html(number_format_i18n($usage['total_opens'])) . '</td><td>Suma de preguntas abiertas.</td></tr>';
+    echo '<tr><td>Tasa individual de apertura</td><td>' . esc_html($usage['open_rate']) . '%</td><td>Aperturas / renders individuales.</td></tr>';
+    echo '<tr><td>Renderizadas pero nunca abiertas</td><td>' . esc_html(number_format_i18n($usage['loaded_never_opened'])) . '</td><td>FAQs con exposicion pero sin ninguna apertura.</td></tr>';
+    echo '<tr><td>Activas nunca renderizadas</td><td>' . esc_html(number_format_i18n($tracking['active_never_rendered'])) . '</td><td>FAQs activas cuyo bloque todavia no se ha detectado en frontend.</td></tr>';
+    echo '<tr><td>Bloques renderizados</td><td>' . esc_html(number_format_i18n($tracking['block_renders'])) . '</td><td>Una carga de pagina con bloque FAQ detectado cuenta una vez.</td></tr>';
+    echo '<tr><td>Bloques vistos</td><td>' . esc_html(number_format_i18n($tracking['block_views'])) . '</td><td>El usuario llego a la zona FAQ del documento.</td></tr>';
+    echo '<tr><td>Bloques con alguna apertura</td><td>' . esc_html(number_format_i18n($tracking['engaged_blocks'])) . '</td><td>Vistas de bloque donde se abrio al menos una pregunta.</td></tr>';
+    echo '<tr><td>Engagement del bloque</td><td>' . esc_html($tracking['engagement_rate']) . '%</td><td>Bloques interactuados / bloques vistos.</td></tr>';
     echo '</tbody></table>';
 }
 
@@ -3595,7 +4541,7 @@ function seo_faq_report_render_usage($usage)
 function seo_faq_report_render_missing()
 {
     echo '<h3>Oportunidades de cobertura</h3>';
-    echo '<p>Muestra una muestra de elementos sin FAQs. El objetivo final es crear FAQs para todos los niveles útiles del sistema.</p>';
+    echo '<p>Muestra una muestra de elementos sin FAQs. La cobertura es una senal de inventario, no un objetivo por si sola: conviene crear FAQs solo cuando exista una duda de compra real y documentada.</p>';
     echo '<div class="seo-faq-report-columns">';
 
     foreach ([1, 2, 3] as $object_type) {
@@ -3684,63 +4630,44 @@ function seo_faq_report_get_missing_items($object_type, $limit = 15)
     return [];
 }
 
-/**
- * Renderiza detalles accionables.
- */
-function seo_faq_report_render_details()
-{
-    global $wpdb;
-    $table = seo_faq_table_name();
 
-    $top_opened = $wpdb->get_results(
-        "SELECT id, object_type, object_id, question, load_count, open_count,
-                ROUND(open_count / NULLIF(load_count, 0) * 100, 2) AS open_rate
-         FROM {$table}
-         ORDER BY open_count DESC, load_count DESC
-         LIMIT 25",
-        ARRAY_A
-    );
-    seo_faq_report_render_rows('Top FAQs más abiertas', $top_opened, ['id', 'object_type', 'object_id', 'question', 'load_count', 'open_count', 'open_rate']);
-
-    $never_opened = $wpdb->get_results(
-        "SELECT id, object_type, object_id, question, load_count, open_count
-         FROM {$table}
-         WHERE load_count > 0 AND open_count = 0
-         ORDER BY load_count DESC
-         LIMIT 25",
-        ARRAY_A
-    );
-    seo_faq_report_render_rows('FAQs cargadas pero nunca abiertas', $never_opened, ['id', 'object_type', 'object_id', 'question', 'load_count', 'open_count']);
-
-    $short_rows = $wpdb->get_results(
-        "SELECT id, object_type, object_id, question,
-                CHAR_LENGTH(TRIM(question)) AS question_length,
-                CHAR_LENGTH(TRIM(answer)) AS answer_length,
-                active
-         FROM {$table}
-         WHERE TRIM(question) = '' OR TRIM(answer) = '' OR CHAR_LENGTH(TRIM(question)) < 20 OR CHAR_LENGTH(TRIM(answer)) < 80
-         ORDER BY updated_at DESC
-         LIMIT 25",
-        ARRAY_A
-    );
-    seo_faq_report_render_rows('FAQs vacías o demasiado cortas', $short_rows, ['id', 'object_type', 'object_id', 'question', 'question_length', 'answer_length', 'active']);
-}
 
 /**
  * Renderiza tabla genérica de detalles.
  */
 function seo_faq_report_render_rows($title, $rows, $columns)
 {
+    $labels = [
+        'id'                  => 'FAQ',
+        'object_type'         => 'Nivel',
+        'object_id'           => 'Destino',
+        'question'            => 'Pregunta',
+        'active'              => 'Activa',
+        'load_count'          => 'Renders',
+        'open_count'          => 'Aperturas',
+        'open_rate'           => 'Apertura',
+        'updated_at'          => 'Actualizada',
+        'block_render_count'  => 'Bloques renderizados',
+        'block_view_count'    => 'Bloques vistos',
+        'engaged_block_count' => 'Con interaccion',
+        'faq_open_count'      => 'Aperturas FAQ',
+        'render_error_count'  => 'Errores render',
+        'partial_render_count'=> 'Parciales',
+        'missing_render_count'=> 'Ausentes',
+        'engagement_rate'     => 'Engagement',
+        'last_error_at'       => 'Ultimo error',
+    ];
+
     echo '<h3>' . esc_html($title) . '</h3>';
 
     if (!$rows) {
-        echo '<p>No se han encontrado registros en esta sección.</p>';
+        echo '<p>No se han encontrado registros en esta seccion.</p>';
         return;
     }
 
-    echo '<table class="widefat striped seo-faq-report-table"><thead><tr>';
+    echo '<div class="seo-faq-table-scroll"><table class="widefat striped seo-faq-report-table"><thead><tr>';
     foreach ($columns as $column) {
-        echo '<th>' . esc_html($column) . '</th>';
+        echo '<th>' . esc_html($labels[$column] ?? $column) . '</th>';
     }
     echo '</tr></thead><tbody>';
 
@@ -3750,13 +4677,17 @@ function seo_faq_report_render_rows($title, $rows, $columns)
             $value = isset($row[$column]) ? $row[$column] : '';
             if ($column === 'object_type') {
                 $value = seo_faq_report_type_label((int) $value);
+            } elseif ($column === 'active') {
+                $value = (int) $value === 1 ? 'Si' : 'No';
+            } elseif (in_array($column, ['open_rate', 'engagement_rate'], true) && $value !== '' && $value !== null) {
+                $value = $value . '%';
             }
             echo '<td>' . seo_faq_report_format_cell($value) . '</td>';
         }
         echo '</tr>';
     }
 
-    echo '</tbody></table>';
+    echo '</tbody></table></div>';
 }
 
 /**
@@ -3821,7 +4752,15 @@ function seo_faq_report_render_styles()
         .seo-faq-orphan-table{margin:0;border:0;}
         .seo-faq-orphan-table thead th{background:#f0f0f1;color:#1d2327;position:static;height:auto;line-height:1.4;}
         .seo-faq-orphan-table td,.seo-faq-orphan-table th{vertical-align:top;}
-        @media (max-width:782px){.seo-faq-duplicate-group-head,.seo-faq-orphan-group-head{align-items:flex-start;flex-direction:column;}.seo-faq-duplicate-table,.seo-faq-orphan-table{display:block;overflow-x:auto;}}
+        .seo-faq-report-head{display:flex;gap:20px;align-items:flex-start;justify-content:space-between;margin-top:18px;}
+        .seo-faq-report-head h2{margin-top:0;}
+        .seo-faq-report-actions{display:flex;flex-direction:column;gap:6px;align-items:flex-start;min-width:260px;margin:0;}
+        .seo-faq-performance-filters{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;background:#fff;border:1px solid #dcdcde;padding:14px;margin:12px 0 18px;}
+        .seo-faq-performance-filters label{display:flex;flex-direction:column;gap:4px;font-weight:600;}
+        .seo-faq-performance-filters input[type=number]{width:110px;}
+        .seo-faq-table-scroll{overflow-x:auto;}
+        .seo-faq-report-table td{vertical-align:top;}
+        @media (max-width:782px){.seo-faq-report-head{flex-direction:column;}.seo-faq-performance-filters{align-items:stretch;}.seo-faq-duplicate-group-head,.seo-faq-orphan-group-head{align-items:flex-start;flex-direction:column;}.seo-faq-duplicate-table,.seo-faq-orphan-table{display:block;overflow-x:auto;}}
     </style>';
 }
 
