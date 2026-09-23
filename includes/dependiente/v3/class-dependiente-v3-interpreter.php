@@ -90,7 +90,37 @@ final class SEO_Dependiente_V3_Interpreter {
         }
 
         $result['routes'] = self::resolve_routes($result);
+        self::reinforce_lexicon_usage($result);
         return $result;
+    }
+
+    /**
+     * El uso real del buscador puede consolidar una hipotesis linguistica, pero
+     * solo en peticiones REST publicas. Academia, Lingüista y las vistas de
+     * administracion no deben inflar la confianza durante sus propias pruebas.
+     */
+    private static function reinforce_lexicon_usage($result) {
+        if (!defined('REST_REQUEST') || !REST_REQUEST || is_admin()) {
+            return;
+        }
+        if (!class_exists('SEO_Dependiente_Interprete_DB') || !method_exists('SEO_Dependiente_Interprete_DB', 'reinforce_usage')) {
+            return;
+        }
+        $enabled = apply_filters('seo_dependiente_interprete_reinforce_usage', true, $result);
+        if (!$enabled) {
+            return;
+        }
+        $ids = array();
+        foreach ((array) ($result['lexicon_hits'] ?? array()) as $hit) {
+            $id = absint($hit['id'] ?? 0);
+            if ($id) {
+                $ids[] = $id;
+            }
+        }
+        $ids = array_slice(array_values(array_unique($ids)), 0, 3);
+        if ($ids) {
+            SEO_Dependiente_Interprete_DB::reinforce_usage($ids, (string) ($result['normalized'] ?? ''));
+        }
     }
 
     private static function apply_semantic_memory(&$result, $ngrams, &$consumed) {
