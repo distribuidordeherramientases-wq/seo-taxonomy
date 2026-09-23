@@ -5,6 +5,97 @@
 
 defined('ABSPATH') || exit;
 
+/* ==========================================================
+   CANONICAL DHT
+   WordPress conserva ID, slug y permalink. DHT controla la
+   politica canonical para producto y product_cat.
+   ========================================================== */
+if (!function_exists('dht_template_get_canonical_url')) {
+    function dht_template_get_canonical_url()
+    {
+        $canonical = '';
+        $context = array(
+            'object_type' => '',
+            'object_id'   => 0,
+        );
+
+        if (function_exists('is_product_category') && is_product_category()) {
+            $term = get_queried_object();
+
+            if ($term && is_a($term, 'WP_Term') && 'product_cat' === $term->taxonomy) {
+                $term_url = get_term_link($term);
+
+                if (!is_wp_error($term_url) && $term_url) {
+                    $canonical = (string) $term_url;
+
+                    $paged = max(1, absint(get_query_var('paged')));
+                    if ($paged > 1) {
+                        $paged_url = get_pagenum_link($paged);
+                        if ($paged_url) {
+                            $canonical = (string) $paged_url;
+                        }
+                    }
+
+                    $context = array(
+                        'object_type' => 'product_cat',
+                        'object_id'   => (int) $term->term_id,
+                    );
+                }
+            }
+        } elseif (function_exists('is_product') && is_product()) {
+            $product_id = absint(get_queried_object_id());
+            if ($product_id > 0) {
+                $permalink = get_permalink($product_id);
+                if ($permalink) {
+                    $canonical = (string) $permalink;
+                    $context = array(
+                        'object_type' => 'product',
+                        'object_id'   => $product_id,
+                    );
+                }
+            }
+        }
+
+        $canonical = esc_url_raw($canonical);
+        if ($canonical === '') {
+            return '';
+        }
+
+        return esc_url_raw((string) apply_filters('dht_template_canonical_url', $canonical, $context));
+    }
+}
+
+if (!function_exists('dht_template_render_wp_head')) {
+    function dht_template_render_wp_head()
+    {
+        $canonical = dht_template_get_canonical_url();
+
+        if ($canonical === '') {
+            wp_head();
+            return;
+        }
+
+        /*
+         * Ejecuta wp_head completo para conservar todos sus efectos y hooks,
+         * pero elimina cualquier canonical publicado por Core o plugins.
+         * Despues se imprime una sola canonical DHT calculada desde la URL
+         * publica actual de la entidad.
+         */
+        ob_start();
+        wp_head();
+        $head = (string) ob_get_clean();
+
+        $head = preg_replace(
+            '~<link\\b[^>]*\\brel\\s*=\\s*["\\\']canonical["\\\'][^>]*>\\s*~i',
+            '',
+            $head
+        );
+
+        echo $head; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        echo "\n<link rel=\"canonical\" href=\"" . esc_url($canonical) . "\">\n";
+    }
+}
+
 if (!function_exists('dht_template_render_header')) {
     function dht_template_render_header()
     {
@@ -1328,6 +1419,83 @@ if (!function_exists('dht_template_render_service_promise')) {
                     <strong><?php echo esc_html($phone_label); ?></strong>
                 </a>
                 <a class="dht-service-promise__link" href="<?php echo esc_url($service_url); ?>">Cómo funciona nuestro servicio</a>
+            </div>
+        </aside>
+        <?php
+    }
+}
+
+
+/* ==========================================================
+   DEPENDIENTE: CTA CONTEXTUAL DE MARKETING
+   Una sola pieza reutilizable para convertir páginas editoriales
+   y estructurales en puntos de entrada al buscador/Dependiente.
+   No interpreta por sí misma: solo conserva una promesa prudente
+   y envía la consulta a la página del Dependiente.
+========================================================== */
+if (!function_exists('dht_template_dependiente_page_url')) {
+    function dht_template_dependiente_page_url()
+    {
+        $page = get_page_by_path('dependiente');
+        if ($page instanceof WP_Post) {
+            $url = get_permalink($page);
+            if ($url) {
+                return $url;
+            }
+        }
+
+        return home_url('/dependiente/');
+    }
+}
+
+if (!function_exists('dht_template_render_dependiente_cta')) {
+    function dht_template_render_dependiente_cta($context = '', $variant = 'context')
+    {
+        $context = trim(wp_strip_all_tags((string) $context));
+        $variant = sanitize_html_class((string) $variant);
+        $url = dht_template_dependiente_page_url();
+        $service_url = dht_template_service_page_url();
+        $shop_url = dht_template_shop_url();
+
+        if ('guide' === $variant) {
+            $kicker = 'De la guía al catálogo';
+            $title = 'Convierte esta información en una búsqueda concreta';
+            $body = 'Escribe el producto, la necesidad, el uso, la marca o la referencia que quieres localizar. Dependiente relaciona la consulta con el catálogo y compara opciones.';
+        } elseif ('compact' === $variant) {
+            $kicker = 'Tu Dependiente del catálogo';
+            $title = '¿Quieres localizar una opción concreta?';
+            $body = 'Escribe lo que buscas y continúa en Dependiente.';
+        } else {
+            $kicker = 'Busca con Dependiente';
+            $title = $context !== ''
+                ? '¿Qué necesitas dentro de ' . $context . '?'
+                : '¿No tienes claro qué producto necesitas?';
+            $body = 'Empieza por un producto, una necesidad, una aplicación, una marca o una referencia. Dependiente relaciona la consulta con el catálogo para ayudarte a localizar opciones.';
+        }
+
+        $placeholder = $context !== ''
+            ? 'Producto, uso o necesidad en ' . $context . '...'
+            : 'Producto, necesidad, uso o referencia...';
+        $input_id = wp_unique_id('dht-dependiente-query-');
+        ?>
+        <aside class="dht-assistant-cta dht-assistant-cta--<?php echo esc_attr($variant); ?>" aria-label="Buscar con Dependiente">
+            <div class="dht-assistant-cta__copy">
+                <span class="dht-assistant-cta__kicker"><?php echo esc_html($kicker); ?></span>
+                <strong class="dht-assistant-cta__title"><?php echo esc_html($title); ?></strong>
+                <p><?php echo esc_html($body); ?></p>
+            </div>
+
+            <div class="dht-assistant-cta__action">
+                <form class="dht-assistant-cta__form" action="<?php echo esc_url($url); ?>" method="get">
+                    <label class="screen-reader-text" for="<?php echo esc_attr($input_id); ?>">Describe lo que buscas</label>
+                    <input id="<?php echo esc_attr($input_id); ?>" type="search" name="dep_q" value="" placeholder="<?php echo esc_attr($placeholder); ?>" autocomplete="off">
+                    <button type="submit">Preguntar al Dependiente</button>
+                </form>
+                <div class="dht-assistant-cta__links">
+                    <a href="<?php echo esc_url($shop_url); ?>">Ver catálogo</a>
+                    <span aria-hidden="true">·</span>
+                    <a href="<?php echo esc_url($service_url); ?>">Nuestro acompañamiento</a>
+                </div>
             </div>
         </aside>
         <?php

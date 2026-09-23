@@ -201,6 +201,12 @@ dht_template_render_header();
         </section>
     <?php endif; ?>
 
+    <section class="dht-assistant-section">
+        <div class="hub-container">
+            <?php dht_template_render_dependiente_cta($hub_title, 'context'); ?>
+        </div>
+    </section>
+
     <?php if (!empty($category_ids)) : ?>
         <section class="hub-links">
             <div class="hub-container">
@@ -259,6 +265,12 @@ dht_template_render_header();
             </div>
         </section>
     <?php endif; ?>
+
+    <section class="dht-service-section dht-service-section--structural" aria-label="Nuestro servicio de acompañamiento">
+        <div class="hub-container">
+            <?php dht_template_render_service_promise('strip', 'browse'); ?>
+        </div>
+    </section>
 
     <section class="hub-cta">
         <div class="hub-container hub-cta-inner">

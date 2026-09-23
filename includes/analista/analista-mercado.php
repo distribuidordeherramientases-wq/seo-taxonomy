@@ -241,6 +241,8 @@ if (!function_exists('seo_analista_trend_work_row')) {
             'market' => array(
                 'score' => $is_trends ? (float) ($market['score'] ?? 0) : 0.0,
                 'growth' => $growth,
+                'trends_growth' => $is_trends ? $growth : 0.0,
+                'gsc_growth' => $is_trends ? 0.0 : $growth,
                 'breakout' => !empty($market['breakout']),
                 'signal_kind' => (string) ($market['signal_kind'] ?? ''),
                 'seeds' => (array) ($market['seeds'] ?? array()),
@@ -294,7 +296,16 @@ if (!function_exists('seo_analista_consolidate_trend_rows')) {
             if (!empty($row['market'])) {
                 $g['market']['score'] = max((float) ($g['market']['score'] ?? 0), (float) ($row['market']['score'] ?? 0));
                 $g['market']['growth'] = max((float) ($g['market']['growth'] ?? 0), (float) ($row['market']['growth'] ?? 0));
+                $g['market']['trends_growth'] = max((float) ($g['market']['trends_growth'] ?? 0), (float) ($row['market']['trends_growth'] ?? 0));
+                $g['market']['gsc_growth'] = max((float) ($g['market']['gsc_growth'] ?? 0), (float) ($row['market']['gsc_growth'] ?? 0));
                 $g['market']['breakout'] = !empty($g['market']['breakout']) || !empty($row['market']['breakout']);
+                if (empty($g['market']['signal_kind']) && !empty($row['market']['signal_kind']) && (float) ($row['market']['score'] ?? 0) > 0) {
+                    $g['market']['signal_kind'] = (string) $row['market']['signal_kind'];
+                }
+                $g['market']['seeds'] = array_values(array_unique(array_filter(array_merge(
+                    (array) ($g['market']['seeds'] ?? array()),
+                    (array) ($row['market']['seeds'] ?? array())
+                ))));
             }
             unset($g);
         }

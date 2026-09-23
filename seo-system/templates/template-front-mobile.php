@@ -566,6 +566,24 @@ if ($table_exists === $relations_table) {
     );
     $cluster_ids = dht_template_public_post_ids($cluster_ids);
 
+    /* Prioridad estrategica de portada: negocio profesional primero, despues automocion y bricolaje. */
+    $cluster_weights = array(
+        'equipamiento-profesional' => 300,
+        'automocion'               => 200,
+        'bricolaje'                => 100,
+    );
+    usort($cluster_ids, static function ($left, $right) use ($cluster_weights) {
+        $left_key  = sanitize_title(get_the_title($left));
+        $right_key = sanitize_title(get_the_title($right));
+        $left_weight  = $cluster_weights[$left_key] ?? 0;
+        $right_weight = $cluster_weights[$right_key] ?? 0;
+        if ($left_weight === $right_weight) {
+            return $left <=> $right;
+        }
+        return $right_weight <=> $left_weight;
+    });
+    $cluster_ids = dht_template_public_post_ids(array_slice($cluster_ids, 0, 6));
+
     $primary_from_targets = $wpdb->get_col(
         "SELECT target_id
          FROM {$relations_table}
@@ -583,6 +601,56 @@ if ($table_exists === $relations_table) {
          LIMIT 30"
     );
     $hub_primary_ids = dht_template_public_post_ids(array_merge($primary_from_targets, $primary_from_sources));
+
+    /* La portada no muestra todos los hubs ni depende del orden de alta.
+     * Reparte hasta ocho hubs entre los clusters visibles para representar
+     * de forma equilibrada la arquitectura real del catalogo. */
+    if (!empty($hub_primary_ids) && !empty($cluster_ids)) {
+        $candidate_lookup = array_fill_keys(array_map('absint', $hub_primary_ids), true);
+        $cluster_hub_rows = $wpdb->get_results(
+            "SELECT source_id, target_id, MIN(id) AS sort_id
+             FROM {$relations_table}
+             WHERE source_type = 'cluster'
+               AND target_type = 'hub_primary'
+               AND relation_type IN ('cluster_to_primary', 'cluster_to_hub_primary')
+             GROUP BY source_id, target_id
+             ORDER BY sort_id ASC"
+        );
+        $hubs_by_cluster = array();
+        foreach ((array) $cluster_hub_rows as $row) {
+            $cluster_id = absint($row->source_id ?? 0);
+            $hub_id = absint($row->target_id ?? 0);
+            if ($cluster_id < 1 || $hub_id < 1 || empty($candidate_lookup[$hub_id])) {
+                continue;
+            }
+            $hubs_by_cluster[$cluster_id][] = $hub_id;
+        }
+
+        $selected_hubs = array();
+        $max_front_hubs = 8;
+        for ($round = 0; $round < $max_front_hubs && count($selected_hubs) < $max_front_hubs; $round++) {
+            foreach ($cluster_ids as $cluster_id) {
+                $candidate = $hubs_by_cluster[$cluster_id][$round] ?? 0;
+                if ($candidate && !in_array($candidate, $selected_hubs, true)) {
+                    $selected_hubs[] = $candidate;
+                    if (count($selected_hubs) >= $max_front_hubs) {
+                        break 2;
+                    }
+                }
+            }
+        }
+        foreach ($hub_primary_ids as $candidate) {
+            if (count($selected_hubs) >= $max_front_hubs) {
+                break;
+            }
+            if (!in_array($candidate, $selected_hubs, true)) {
+                $selected_hubs[] = $candidate;
+            }
+        }
+        $hub_primary_ids = dht_template_public_post_ids($selected_hubs);
+    } else {
+        $hub_primary_ids = array_slice($hub_primary_ids, 0, 8);
+    }
 
     if (!empty($hub_primary_ids)) {
         $primary_lookup = array_fill_keys(array_map('absint', $hub_primary_ids), true);
@@ -605,7 +673,7 @@ if ($table_exists === $relations_table) {
             if (!isset($hub_secondary_by_primary[$primary_id])) {
                 $hub_secondary_by_primary[$primary_id] = array();
             }
-            if (count($hub_secondary_by_primary[$primary_id]) >= 4) {
+            if (count($hub_secondary_by_primary[$primary_id]) >= 3) {
                 continue;
             }
             if (get_post_status($secondary_id) === 'publish' && get_permalink($secondary_id)) {
@@ -702,21 +770,21 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
                 <div class="sf-mobile-finder">
                     <div class="sf-mobile-finder-copy">
                         <span class="sf-eyebrow">Tu Dependiente del catálogo</span>
-                        <h1 id="dht-home-title-mobile">Encuentra lo que necesitas</h1>
-                        <p>Busca por producto, necesidad, aplicación, medida, marca o referencia. Dependiente relaciona tu búsqueda con el catálogo y compara opciones.</p>
-                        <div class="sf-home-search">
-                            <?php if (shortcode_exists('seo_search')) : ?>
-                                <?php echo do_shortcode('[seo_search placeholder="Producto, necesidad, uso o referencia..."]'); ?>
-                            <?php else : ?>
-                                <form class="sf-home-search-form" role="search" method="get" action="<?php echo esc_url(home_url('/')); ?>">
-                                    <label class="screen-reader-text" for="dht-home-search-mobile">Buscar productos</label>
-                                    <input id="dht-home-search-mobile" type="search" name="s" placeholder="Producto, necesidad, uso o referencia..." autocomplete="off">
-                                    <input type="hidden" name="post_type" value="product">
-                                    <button type="submit">Buscar</button>
-                                </form>
-                            <?php endif; ?>
+                        <h1 id="dht-home-title-mobile">Encuentra lo que necesitas con Dependiente</h1>
+                        <p>Cuéntale qué quieres hacer, qué problema tienes o qué necesitas conseguir. Puedes escribirlo como se lo explicarías a un dependiente.</p>
+                        <div class="sf-home-search" aria-label="Preguntar al Dependiente">
+                            <form class="sf-home-search-form" role="search" method="get" action="<?php echo esc_url(home_url('/dependiente/')); ?>">
+                                <label class="screen-reader-text" for="dht-home-search-mobile">Cuéntale a Dependiente qué necesitas</label>
+                                <input id="dht-home-search-mobile" type="search" name="dep_q" placeholder="¿Qué necesitas hacer o resolver?" autocomplete="off">
+                                <button type="submit">Preguntar</button>
+                            </form>
                         </div>
-                        <div class="sf-search-examples"><span>extractor rodamientos</span><span>taladro hormigón</span><span>kit plato ducha</span><span>compresor aire</span></div>
+                        <div class="sf-search-examples" aria-label="Ejemplos para preguntar al Dependiente">
+                            <a class="sf-search-example" style="text-decoration:none;color:inherit" href="<?php echo esc_url(add_query_arg('dep_q', 'se me ha roto un grifo y quiero cambiarlo', home_url('/dependiente/'))); ?>"><span>se me ha roto un grifo</span></a>
+                            <a class="sf-search-example" style="text-decoration:none;color:inherit" href="<?php echo esc_url(add_query_arg('dep_q', 'quiero perforar una pared de hormigón', home_url('/dependiente/'))); ?>"><span>perforar una pared de hormigón</span></a>
+                            <a class="sf-search-example" style="text-decoration:none;color:inherit" href="<?php echo esc_url(add_query_arg('dep_q', 'necesito una máquina para cortar los arbustos del jardín', home_url('/dependiente/'))); ?>"><span>cortar los arbustos del jardín</span></a>
+                            <a class="sf-search-example" style="text-decoration:none;color:inherit" href="<?php echo esc_url(add_query_arg('dep_q', 'quiero reparar un motor y no sé qué herramienta necesito', home_url('/dependiente/'))); ?>"><span>reparar un motor</span></a>
+                        </div>
                         <a class="sf-mobile-catalog-link" href="<?php echo esc_url(dht_template_shop_url()); ?>">Ver todo el catálogo →</a>
                     </div>
                     <div class="sf-mobile-person">
@@ -808,7 +876,7 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
 
         <section class="sf-mobile-section sf-mobile-section--categories">
             <div class="sf-mobile-shell">
-                <div class="sf-mobile-heading"><h2>Compra por categoría</h2><a href="<?php echo esc_url(dht_template_shop_url()); ?>">Ver todas</a></div>
+                <div class="sf-mobile-heading"><h2>Categorías con más referencias</h2><a href="<?php echo esc_url(dht_template_shop_url()); ?>">Ver todas</a></div>
                 <div class="sf-mobile-category-grid">
                     <?php foreach (array_slice($root_categories, 0, 10) as $term) :
                         $image = $get_term_image($term, 'woocommerce_thumbnail');
@@ -833,7 +901,7 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
             <div class="sf-mobile-shell">
                 <div class="sf-mobile-help">
                     <span>Antes de comprar</span>
-                    <strong>Busca como si hablaras con un dependiente.</strong>
+                    <strong>Busca por producto, uso, necesidad o referencia.</strong>
                     <a href="#dht-home-title-mobile">Volver al buscador</a>
                 </div>
                 <div class="sf-mobile-help sf-mobile-help--service">

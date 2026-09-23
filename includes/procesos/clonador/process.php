@@ -1,6 +1,6 @@
 <?php
 /**
- * Clonador para Academia integrado con el Gestor de procesos nativo.
+ * Clonador espejo PRO-STAGING integrado con el Gestor de procesos nativo.
  *
  * El administrador inicia y detiene expresamente la clonacion. El Gestor de
  * procesos nunca crea ni arranca trabajos por su cuenta: solo entrega ventanas
@@ -8,7 +8,7 @@
  *
  * @package SEOSystem
  * @subpackage Processes_Clonador
- * @since 2.5.11
+ * @since 2.7.1
  */
 
 defined('ABSPATH') || exit;
@@ -124,7 +124,7 @@ final class SEO_Clonador_Process {
             $detail .= ' · PARADA por el usuario · velocidad ' . $speed . '/5.';
         }
         seo_process_supervisor_managed_update('clonador-academia', array(
-            'name' => 'Clonador para Academia',
+            'name' => 'Clonador espejo PRO-STAGING',
             'pending' => $running ? 1 : 0,
             'healthy' => $healthy ? 1 : 0,
             'last_checked' => time(),
@@ -227,7 +227,7 @@ final class SEO_Clonador_Process {
         if (function_exists('seo_process_supervisor_nudge')) seo_process_supervisor_nudge(0, 'clonador');
         if (function_exists('seo_process_supervisor_schedule_backup')) seo_process_supervisor_schedule_backup();
         if (function_exists('seo_process_supervisor_log')) {
-            seo_process_supervisor_log('success', 'clone_user_started', 'El administrador inicio manualmente la clonacion. El worker solo gestionara sus lotes.', 'Clonador para Academia', array('speed' => $speed));
+            seo_process_supervisor_log('success', 'clone_user_started', 'El administrador inicio manualmente la clonacion. El worker solo gestionara sus lotes.', 'Clonador espejo PRO-STAGING', array('speed' => $speed));
         }
         return self::public_state();
     }
@@ -246,7 +246,7 @@ final class SEO_Clonador_Process {
             'message' => 'Clonacion PARADA por el usuario. El worker no ejecutara mas lotes hasta una reanudacion explicita.',
         ));
         if (function_exists('seo_process_supervisor_log')) {
-            seo_process_supervisor_log('warning', 'clone_user_stopped', 'El administrador paro manualmente la clonacion. No se ejecutaran mas lotes.', 'Clonador para Academia');
+            seo_process_supervisor_log('warning', 'clone_user_stopped', 'El administrador paro manualmente la clonacion. No se ejecutaran mas lotes.', 'Clonador espejo PRO-STAGING');
         }
         return self::public_state();
     }
@@ -271,7 +271,7 @@ final class SEO_Clonador_Process {
         if (function_exists('seo_process_supervisor_nudge')) seo_process_supervisor_nudge(0, 'clonador');
         if (function_exists('seo_process_supervisor_schedule_backup')) seo_process_supervisor_schedule_backup();
         if (function_exists('seo_process_supervisor_log')) {
-            seo_process_supervisor_log('success', 'clone_user_resumed', 'El administrador reanudo manualmente la clonacion.', 'Clonador para Academia');
+            seo_process_supervisor_log('success', 'clone_user_resumed', 'El administrador reanudo manualmente la clonacion.', 'Clonador espejo PRO-STAGING');
         }
         return self::public_state();
     }
@@ -324,7 +324,7 @@ final class SEO_Clonador_Process {
             'result' => isset($remote['result']) && is_array($remote['result']) ? $remote['result'] : array(),
         ));
         if (function_exists('seo_process_supervisor_log')) {
-            seo_process_supervisor_log('success', 'clone_user_reverified', 'El administrador reverifico la copia existente sin repetir la clonacion.', 'Clonador para Academia');
+            seo_process_supervisor_log('success', 'clone_user_reverified', 'El administrador reverifico la copia existente sin repetir la clonacion.', 'Clonador espejo PRO-STAGING');
         }
         return self::public_state();
     }
@@ -409,7 +409,7 @@ final class SEO_Clonador_Process {
                 'result' => isset($remote_state['result']) && is_array($remote_state['result']) ? $remote_state['result'] : array(),
             ));
             if (function_exists('seo_process_supervisor_log')) {
-                seo_process_supervisor_log('error', 'clone_slice_failed', $result->get_error_message(), 'Clonador para Academia');
+                seo_process_supervisor_log('error', 'clone_slice_failed', $result->get_error_message(), 'Clonador espejo PRO-STAGING');
             }
             return false;
         }

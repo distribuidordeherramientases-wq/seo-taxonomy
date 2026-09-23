@@ -1,6 +1,6 @@
 <?php
 /**
- * Analista 3.1 - informes parciales bajo demanda.
+ * Analista 3.6 - informes parciales bajo demanda.
  *
  * La pantalla principal no ejecuta calculos SEO pesados. Cada bloque se
  * genera exclusivamente cuando el administrador pulsa su boton y llega una
@@ -38,7 +38,7 @@ if (!function_exists('seo_analista_lazy_reports')) {
             ),
             'trabajo' => array(
                 'label' => 'Plan de acción',
-                'description' => 'Máximo 10 HACER AHORA, con objetivo principal de autoridad, visitas o ventas.',
+                'description' => 'Máximo 10 HACER AHORA, priorizados por cercanía a Top 10, impacto, confianza y tipo de intervención.',
             ),
             'competencia' => array(
                 'label' => 'Competencia',

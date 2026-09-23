@@ -1,0 +1,37 @@
+OJEADOR v0.6.3 - Priorizacion inteligente de categorias
+
+OBJETIVO
+Aprovechar el limite mensual de Google Shopping consultando primero las categorias
+que aportan mas informacion y evitando gastar consultas en nomenclatura no revisada.
+
+REGLAS DE ADMISION
+- Solo product_cat con productos (count > 0).
+- Google Esquema debe estar status=approved.
+- shopping_query debe estar rellena.
+- review/pending/rejected no se envian a Google Shopping.
+- Ya no existe fallback automatico al nombre WooCommerce para categorias no aprobadas.
+
+ORDEN DE TRABAJO
+1. Mientras exista alguna categoria sin una primera instantanea hecha con su shopping_query
+   actual, Ojeador NO repite categorias ya cubiertas.
+2. Dentro de las categorias pendientes de primera cobertura: Analista 28 dias, primero clics
+   y despues impresiones.
+3. A igualdad de trafico: mas productos WooCommerce primero.
+4. Cuando toda la cobertura inicial esta completa, se aplica el mismo orden a las
+   categorias que ya esten vencidas por intervalo; la antiguedad es el ultimo desempate.
+5. Si cambia shopping_query, la categoria vuelve a considerarse pendiente de primera
+   consulta valida aunque tenga una instantanea antigua.
+
+ANALISTA
+- Usa seo_analista_get_data(28) y cruza las metricas por URL/path de la categoria.
+- La lectura se cachea una hora para no recalcular Analista en cada pulso del worker.
+- Si Analista no tiene datos, el orden cae automaticamente al numero de productos.
+
+INTERFAZ
+- Muestra categorias aptas y excluidas por vocabulario.
+- Muestra la shopping_query aprobada antes de consultar.
+- Nueva columna Prioridad: Primera consulta / Actualizar / Al dia / Excluida.
+- Muestra clics e impresiones de Analista de los ultimos 28 dias.
+
+SIN CAMBIO DE ESQUEMA SQL
+No se crean tablas ni columnas nuevas.

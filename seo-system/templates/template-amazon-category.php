@@ -146,6 +146,12 @@ if (!function_exists('dht_amazon_family_variants')) {
         $name = trim(wp_strip_all_tags((string)$name));
         $key  = sanitize_title(remove_accents(mb_strtolower($name)));
         $sets = array(
+            'camaras-inspeccion-tuberias' => array(
+                array('label'=>'Cámaras con localizador','query'=>'cámara inspección tuberías localizador 512 Hz','description'=>'Busca opciones de inspección con localización de sonda para trabajos donde importa conocer la posición del cabezal.'),
+                array('label'=>'Sondas de mayor longitud','query'=>'cámara inspección tuberías sonda 30m 50m','description'=>'Compara equipos por longitud de cable o sonda cuando necesitas cubrir recorridos más largos.'),
+                array('label'=>'Cámaras y endoscopios profesionales','query'=>'cámara endoscopio inspección tuberías profesional','description'=>'Explora equipos orientados a inspección frecuente, mantenimiento y trabajos profesionales.'),
+                array('label'=>'Accesorios y sondas','query'=>'accesorios sonda cámara inspección tuberías','description'=>'Localiza complementos relacionados con inspección, guiado, protección y uso de la sonda.'),
+            ),
             'destornillador' => array(
                 array('label'=>'Destornilladores aislados VDE','query'=>'destornilladores aislados VDE','description'=>'Opciones para trabajos eléctricos donde importan el aislamiento, la medida y el tipo de punta.'),
                 array('label'=>'Destornilladores de precisión','query'=>'destornilladores de precisión','description'=>'Formatos pequeños para electrónica, mecanismos, móviles y tornillería de reducido tamaño.'),
@@ -159,6 +165,9 @@ if (!function_exists('dht_amazon_family_variants')) {
                 array('label'=>'Soportes y accesorios de elevación','query'=>'accesorios soporte gato hidráulico maquinaria','description'=>'Complementos para apoyo, estabilización y trabajo alrededor de equipos de elevación.'),
             ),
         );
+        if (false !== strpos($key, 'camara') && (false !== strpos($key, 'tuber') || false !== strpos($key, 'inspeccion'))) {
+            return $sets['camaras-inspeccion-tuberias'];
+        }
         foreach ($sets as $needle => $items) {
             if (false !== strpos($key, $needle)) return $items;
         }
@@ -174,6 +183,7 @@ if (!function_exists('dht_amazon_family_variants')) {
 if (!function_exists('dht_amazon_compare_points')) {
     function dht_amazon_compare_points($name) {
         $key = sanitize_title(remove_accents(mb_strtolower((string)$name)));
+        if (false !== strpos($key, 'camara') && (false !== strpos($key, 'tuber') || false !== strpos($key, 'inspeccion'))) return array('Longitud de sonda o cable','Diámetro del cabezal y acceso','Resolución, pantalla y grabación','Impermeabilidad y condiciones de trabajo','Localizador, accesorios y frecuencia de uso');
         if (false !== strpos($key, 'destornill')) return array('Tipo y geometría de la punta','Medidas incluidas','Aislamiento o certificación VDE cuando corresponda','Ergonomía, agarre y longitud','Uso general, precisión, impacto o carraca');
         if (false !== strpos($key, 'gato')) return array('Capacidad nominal de carga','Altura mínima de entrada','Altura máxima y recorrido','Tipo de accionamiento y estabilidad','Aplicación: vehículo, taller o maquinaria industrial');
         return array('Tipo de uso y compatibilidad','Medidas, capacidad o rango de trabajo','Materiales y construcción','Accesorios incluidos','Frecuencia de uso y nivel profesional');
@@ -398,18 +408,14 @@ if (!function_exists('dht_amazon_intent_links_markup')) {
                 continue;
             }
 
-            $image = dht_amazon_context_image($context_type, $object_id, $intent);
+            $image = '';
             $is_direct = (($intent['type'] ?? '') === 'direct');
 
             echo '<article class="dht-amazon-intent-card">';
             echo '<a class="dht-amazon-intent-media" href="' . esc_url($url) . '" target="_blank" rel="sponsored noopener" data-amazon-click="search" data-amazon-context="' . esc_attr($context_type) . '" data-amazon-object-id="' . esc_attr($object_id) . '" data-amazon-intent="' . esc_attr($intent['type'] ?? 'direct') . '" data-amazon-query="' . esc_attr($query) . '">';
-            if ($image !== '') {
-                echo '<img src="' . esc_url($image) . '" alt="' . esc_attr($query) . '" loading="lazy">';
-            } else {
-                echo '<span class="dht-amazon-intent-placeholder" aria-hidden="true"><span>amazon</span></span>';
-            }
+            echo '<span class="dht-amazon-intent-placeholder" aria-hidden="true"><span class="dht-amazon-placeholder-brand">Amazon</span><span class="dht-amazon-placeholder-query">' . esc_html($query) . '</span></span>';
             echo '<span class="dht-amazon-source-badge">Amazon</span>';
-            echo '<span class="dht-amazon-media-note">Imagen orientativa de la categoría</span>';
+            echo '<span class="dht-amazon-media-note">Búsqueda relacionada</span>';
             echo '</a>';
             echo '<div class="dht-amazon-intent-body">';
             echo '<span class="dht-amazon-intent-type">' . esc_html($is_direct ? 'Más opciones' : 'Relacionado') . '</span>';
@@ -425,14 +431,7 @@ if (!function_exists('dht_amazon_intent_links_markup')) {
 
 if (!function_exists('dht_amazon_styles')) {
     function dht_amazon_styles() {
-        static $printed = false;
-        if ($printed) return;
-        $printed = true;
-        ?>
-        <style>
-        .dht-amazon-section{margin-top:34px}.dht-amazon-kicker{display:inline-block;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:#6b7280;margin-bottom:6px}.dht-amazon-grid,.dht-amazon-intent-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}.dht-amazon-card,.dht-amazon-intent-card{border:1px solid #e2e5e9;border-radius:14px;background:#fff;overflow:hidden;display:flex;flex-direction:column;min-width:0;box-shadow:0 4px 16px rgba(20,28,38,.05);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}.dht-amazon-card:hover,.dht-amazon-intent-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(20,28,38,.1);border-color:#c7ccd1}.dht-amazon-card-media,.dht-amazon-intent-media{position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:1/1;background:#f7f8f9;padding:18px;text-decoration:none;overflow:hidden}.dht-amazon-card-media img,.dht-amazon-intent-media img{width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply}.dht-amazon-card-placeholder,.dht-amazon-intent-placeholder{display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:linear-gradient(145deg,#f5f6f7,#eceff1);border-radius:10px}.dht-amazon-intent-placeholder span{font-size:24px;font-weight:800;letter-spacing:-.04em;color:#59636e}.dht-amazon-media-note{position:absolute;right:10px;bottom:10px;padding:4px 7px;border-radius:6px;background:rgba(255,255,255,.92);font-size:9px;font-weight:700;color:#68717b}.dht-amazon-source-badge{position:absolute;left:12px;top:12px;padding:5px 9px;border-radius:999px;background:#fff;border:1px solid #e1e4e8;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;box-shadow:0 2px 8px rgba(20,28,38,.08)}.dht-amazon-card-body,.dht-amazon-intent-body{padding:15px 16px 17px;display:flex;flex-direction:column;gap:8px;flex:1}.dht-amazon-card-brand,.dht-amazon-intent-type{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280}.dht-amazon-card-title,.dht-amazon-intent-body h3{font-size:16px;line-height:1.35;margin:0;color:#17202a}.dht-amazon-card-title a{text-decoration:none;color:inherit}.dht-amazon-intent-body p{font-size:13px;line-height:1.45;color:#66707a;margin:0 0 4px}.dht-amazon-card-price{font-size:18px;font-weight:800}.dht-amazon-card-cta,.dht-amazon-intent-cta{display:inline-flex;align-items:center;justify-content:center;gap:7px;margin-top:auto;padding:10px 12px;border-radius:8px;text-decoration:none;background:#232f3e;color:#fff!important;font-size:13px;font-weight:700;border:1px solid #232f3e;transition:background .15s ease,border-color .15s ease}.dht-amazon-card-cta:hover,.dht-amazon-intent-cta:hover{background:#131a22;border-color:#131a22}.dht-amazon-market-copy{margin:0 0 20px;padding:18px 20px;border:1px solid #e5e7eb;border-radius:12px;background:#fafafa}.dht-amazon-market-copy p{margin:0;line-height:1.65;color:#4b5563}.dht-amazon-compare{margin:22px 0}.dht-amazon-compare h3{margin:0 0 10px;font-size:18px}.dht-amazon-compare ul{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 24px;margin:0;padding-left:20px}.dht-amazon-compare li{line-height:1.45;color:#4b5563}.dht-amazon-disclosure{font-size:11px;color:#747c85;margin:13px 0 0}.dht-amazon-debug{padding:10px 12px;border:1px dashed #d4aa00;background:#fffbe6;border-radius:8px;font-size:12px;color:#5f5600}@media(max-width:1050px){.dht-amazon-grid,.dht-amazon-intent-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:760px){.dht-amazon-grid,.dht-amazon-intent-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}.dht-amazon-card-body,.dht-amazon-intent-body{padding:13px}}@media(max-width:760px){.dht-amazon-compare ul{grid-template-columns:1fr}}@media(max-width:460px){.dht-amazon-grid,.dht-amazon-intent-grid{grid-template-columns:1fr 1fr}.dht-amazon-card-media,.dht-amazon-intent-media{padding:10px}.dht-amazon-intent-body p{display:none}.dht-amazon-card-cta,.dht-amazon-intent-cta{font-size:12px;padding:9px 8px}}
-        </style>
-        <?php
+        // Estilos centralizados en styles-template.css.
     }
 }
 
@@ -486,9 +485,6 @@ if (!function_exists('dht_render_amazon_category_block')) {
                     </div>
                 <?php else : ?>
                     <?php dht_amazon_intent_links_markup($intents, 'category', (int)$term->term_id); ?>
-                    <?php if (current_user_can('manage_options')) : ?>
-                        <details class="dht-amazon-debug" style="margin-top:12px;"><summary><strong>Diagnóstico Amazon</strong></summary><div style="margin-top:7px;">Modo sin API. Las tarjetas anteriores son búsquedas afiliadas dinámicas. Consulta principal preparada: <code><?php echo esc_html($primary_query); ?></code>.</div></details>
-                    <?php endif; ?>
                 <?php endif; ?>
             </div>
         </section>

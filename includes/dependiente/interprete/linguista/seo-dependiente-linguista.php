@@ -11,7 +11,7 @@ defined('ABSPATH') || exit;
  * preparado en la memoria local del Intérprete.
  */
 final class SEO_Dependiente_Linguista {
-    const VERSION = '0.4.1';
+    const VERSION = '0.5.0';
     const STATE_OPTION = 'seo_dependiente_linguista_state';
     const GRAMMAR_OPTION = 'seo_dependiente_interprete_grammar';
     const MORPHOLOGY_OPTION = 'seo_dependiente_interprete_morphology';
@@ -74,6 +74,13 @@ final class SEO_Dependiente_Linguista {
             'rejected_total'     => 0,
             'exam_pass'          => 0,
             'exam_fail'          => 0,
+            'exam_exact'         => 0,
+            'exam_semantic'      => 0,
+            'exam_auto_learned'  => 0,
+            'exam_ambiguous'     => 0,
+            'exam_invalid'       => 0,
+            'exam_active_max_id' => 0,
+            'exam_candidate_max_id' => 0,
             'batch_size'         => 60,
             'started_at'         => 0,
             'completed_at'       => 0,
@@ -255,13 +262,15 @@ final class SEO_Dependiente_Linguista {
             'evidence' => absint($stats['evidence'] ?? 0),
             'linked_vocabulary' => absint($stats['linked_vocabulary'] ?? 0),
             'lesson_i1' => absint($stats['lesson_i1'] ?? 0),
+            'usage_total' => absint($stats['usage_total'] ?? 0),
+            'provisional' => absint($stats['provisional'] ?? 0),
         );
     }
 
     private static function stats_delta($before, $after) {
         $before = is_array($before) ? $before : array();
         $after = is_array($after) ? $after : array();
-        $keys = array('active', 'staged', 'validated', 'evidence', 'linked_vocabulary', 'lesson_i1');
+        $keys = array('active', 'staged', 'validated', 'evidence', 'linked_vocabulary', 'lesson_i1', 'usage_total', 'provisional');
         $delta = array();
         foreach ($keys as $key) {
             $delta[$key] = (int) ($after[$key] ?? 0) - (int) ($before[$key] ?? 0);
@@ -333,6 +342,11 @@ final class SEO_Dependiente_Linguista {
                 'pass' => absint($result['pass'] ?? 0),
                 'fail' => absint($result['fail'] ?? 0),
                 'rate_percent' => (float) ($result['rate'] ?? 0),
+                'exact' => absint($result['exact'] ?? 0),
+                'semantic' => absint($result['semantic'] ?? 0),
+                'auto_learned' => absint($result['auto_learned'] ?? 0),
+                'ambiguous' => absint($result['ambiguous'] ?? 0),
+                'invalid' => absint($result['invalid'] ?? 0),
             );
         }
         return $payload;
@@ -1339,73 +1353,251 @@ final class SEO_Dependiente_Linguista {
         return array('done' => true, 'processed' => 1, 'learned' => 1, 'rejected' => 0, 'message' => 'Detección de intención activada.');
     }
 
-    /** L8: examen cerrado sobre reglas activas, sin crear nuevo conocimiento. */
+    /**
+     * L8: regresion linguistica + autoaprendizaje prudente.
+     *
+     * Fase A: deforma de manera determinista relaciones activas (ruido,
+     * flexion y erratas de una edicion) y comprueba que el Intérprete conserva
+     * la accion/concepto/contexto. Si una variante ortografica o morfologica
+     * segura falla, se aprende automaticamente con confianza alta.
+     *
+     * Fase B: revisa candidatos Lingüista que quedaron inactivos por falta de
+     * evidencia. Se activan como hipotesis de confianza moderada cuando no son
+     * ambiguos; si necesitan contexto, solo se activan cuando ese contexto ya
+     * existe. El uso real posterior puede elevar o reducir su confianza.
+     */
     private static function lesson_exam($state) {
         global $wpdb;
 
-        /*
-         * L8 es mucho mas caro que una leccion normal: cada caso ejecuta el
-         * Interprete completo contra la memoria activa. No heredamos lotes de
-         * cientos/miles de elementos porque un corte del hosting antes de
-         * devolver el lote dejaría el cursor sin guardar y reintentaria siempre
-         * las mismas reglas.
-         */
         $batch = min(20, max(1, self::batch_size($state)));
         $soft_deadline = microtime(true) + 5.0;
         $cursor = absint($state['cursor'] ?? 0);
+        $phase = sanitize_key((string) ($state['lesson_phase'] ?? '')) ?: 'active_regression';
         $table = SEO_Dependiente_Interprete_DB::table();
+
+        if ('active_regression' === $phase) {
+            $max_id = absint($state['exam_active_max_id'] ?? 0);
+            if (!$max_id) {
+                $max_id = absint($wpdb->get_var("SELECT MAX(id) FROM {$table} WHERE active=1 AND language='es'"));
+            }
+            $rows = (array) $wpdb->get_results($wpdb->prepare(
+                "SELECT id,expression,normalized_expression,canonical_term,target_search,relation_type,semantic_group,vocabulary_id,context_terms,context_required,confidence,priority,source,evidence_count,validated
+                   FROM {$table}
+                  WHERE active=1 AND language='es' AND id>%d AND id<=%d
+                  ORDER BY id ASC LIMIT %d",
+                $cursor,
+                $max_id,
+                $batch
+            ), ARRAY_A);
+
+            if (!$rows) {
+                $candidate_max = absint($wpdb->get_var(
+                    "SELECT MAX(id) FROM {$table}
+                      WHERE active=0 AND language='es'
+                        AND source IN ('linguista_catalog_actions','linguista_explicit_synonym')
+                        AND relation_type IN ('synonym','catalog_variant','verb_to_tool','phrase_to_tool')"
+                ));
+                return array(
+                    'done' => false,
+                    'processed' => 0,
+                    'learned' => 0,
+                    'rejected' => 0,
+                    'message' => 'Regresión de memoria activa terminada. L8 pasa a consolidar hipótesis lingüísticas pendientes.',
+                    'state_changes' => array(
+                        'lesson_phase' => 'candidate_learning',
+                        'cursor' => 0,
+                        'exam_active_max_id' => $max_id,
+                        'exam_candidate_max_id' => $candidate_max,
+                    ),
+                );
+            }
+
+            $pass = 0;
+            $fail = 0;
+            $learned = 0;
+            $exact = 0;
+            $semantic = 0;
+            $invalid = 0;
+            $processed = 0;
+            $last_id = $cursor;
+
+            foreach ($rows as $row) {
+                $row_id = absint($row['id'] ?? 0);
+                $case = self::l8_build_case($row);
+                if (!$case || !class_exists('SEO_Dependiente_Interprete')) {
+                    $fail++;
+                    $invalid++;
+                    $processed++;
+                    $last_id = $row_id ?: $last_id;
+                    continue;
+                }
+
+                try {
+                    $interpretation = SEO_Dependiente_Interprete::interpret((string) $case['question']);
+                    $evaluation = self::l8_evaluate_case($row, $case, $interpretation);
+                    if ('exact' === $evaluation) {
+                        $pass++;
+                        $exact++;
+                    } elseif ('semantic' === $evaluation) {
+                        $pass++;
+                        $semantic++;
+                    } else {
+                        $auto_id = self::l8_learn_safe_variant($row, $case);
+                        if ($auto_id) {
+                            $learned++;
+                            $interpretation = SEO_Dependiente_Interprete::interpret((string) $case['question']);
+                            $evaluation = self::l8_evaluate_case($row, $case, $interpretation);
+                            if ('exact' === $evaluation) {
+                                $pass++;
+                                $exact++;
+                            } elseif ('semantic' === $evaluation) {
+                                $pass++;
+                                $semantic++;
+                            } else {
+                                $fail++;
+                            }
+                        } else {
+                            $fail++;
+                        }
+                    }
+                } catch (Throwable $e) {
+                    $fail++;
+                }
+
+                $processed++;
+                if ($row_id) {
+                    $last_id = $row_id;
+                }
+                if ($processed > 0 && microtime(true) >= $soft_deadline) {
+                    break;
+                }
+            }
+
+            return array(
+                'done' => false,
+                'processed' => $processed,
+                'learned' => $learned,
+                'rejected' => $fail,
+                'message' => 'L8 · regresión lingüística: ' . number_format_i18n($pass) . ' correctas, ' . number_format_i18n($learned) . ' autocorregidas y ' . number_format_i18n($fail) . ' fallos reales en este lote.',
+                'state_changes' => array(
+                    'cursor' => $last_id,
+                    'exam_active_max_id' => $max_id,
+                    'exam_pass' => absint($state['exam_pass'] ?? 0) + $pass,
+                    'exam_fail' => absint($state['exam_fail'] ?? 0) + $fail,
+                    'exam_exact' => absint($state['exam_exact'] ?? 0) + $exact,
+                    'exam_semantic' => absint($state['exam_semantic'] ?? 0) + $semantic,
+                    'exam_auto_learned' => absint($state['exam_auto_learned'] ?? 0) + $learned,
+                    'exam_invalid' => absint($state['exam_invalid'] ?? 0) + $invalid,
+                ),
+            );
+        }
+
+        // Fase B: candidatos pendientes de L2/L3. No se inventan pares nuevos:
+        // solo se aceptan hipotesis que ya tienen origen/evidencia Lingüista.
+        $max_id = absint($state['exam_candidate_max_id'] ?? 0);
+        if (!$max_id) {
+            $max_id = absint($wpdb->get_var(
+                "SELECT MAX(id) FROM {$table}
+                  WHERE active=0 AND language='es'
+                    AND source IN ('linguista_catalog_actions','linguista_explicit_synonym')
+                    AND relation_type IN ('synonym','catalog_variant','verb_to_tool','phrase_to_tool')"
+            ));
+        }
         $rows = (array) $wpdb->get_results($wpdb->prepare(
-            "SELECT id,expression,target_search,relation_type FROM {$table} WHERE active=1 AND language='es' AND id>%d ORDER BY id ASC LIMIT %d",
+            "SELECT id,expression,normalized_expression,canonical_term,target_search,relation_type,semantic_group,vocabulary_id,context_terms,context_required,confidence,priority,source,evidence_count,validated
+               FROM {$table}
+              WHERE active=0 AND language='es' AND id>%d AND id<=%d
+                AND source IN ('linguista_catalog_actions','linguista_explicit_synonym')
+                AND relation_type IN ('synonym','catalog_variant','verb_to_tool','phrase_to_tool')
+              ORDER BY id ASC LIMIT %d",
             $cursor,
+            $max_id,
             $batch
         ), ARRAY_A);
+
         if (!$rows) {
             $pass = absint($state['exam_pass'] ?? 0);
             $fail = absint($state['exam_fail'] ?? 0);
             $total = $pass + $fail;
             $rate = $total > 0 ? round(($pass / $total) * 100, 2) : 0;
-            return array('done' => true, 'processed' => 0, 'learned' => 0, 'rejected' => 0, 'message' => 'Examen Lingüista terminado: ' . number_format_i18n($rate, 2) . '% de aciertos.', 'state_changes' => array('exam_rate' => $rate));
+            return array(
+                'done' => true,
+                'processed' => 0,
+                'learned' => 0,
+                'rejected' => 0,
+                'message' => 'L8 terminada: ' . number_format_i18n($rate, 2) . '% de regresión válida · ' . number_format_i18n(absint($state['exam_auto_learned'] ?? 0)) . ' variantes/hipótesis aprendidas automáticamente.',
+                'state_changes' => array('exam_rate' => $rate),
+            );
         }
 
         $pass = 0;
         $fail = 0;
+        $learned = 0;
+        $exact = 0;
+        $semantic = 0;
+        $ambiguous = 0;
+        $invalid = 0;
         $processed = 0;
         $last_id = $cursor;
+
         foreach ($rows as $row) {
             $row_id = absint($row['id'] ?? 0);
-            $expression = trim((string) ($row['expression'] ?? ''));
-            $target = trim((string) ($row['target_search'] ?? ''));
+            $expression = SEO_Dependiente_Interprete_DB::normalize((string) ($row['normalized_expression'] ?? $row['expression'] ?? ''));
+            $target = SEO_Dependiente_Interprete_DB::normalize((string) ($row['target_search'] ?? ''));
+            $contexts = json_decode((string) ($row['context_terms'] ?? ''), true);
+            $contexts = is_array($contexts) ? array_values(array_filter($contexts)) : array();
 
-            try {
-                if ('' === $expression || '' === $target || !class_exists('SEO_Dependiente_Interprete')) {
-                    $fail++;
+            if (!$row_id || '' === $expression || '' === $target) {
+                $invalid++;
+                $fail++;
+            } else {
+                $canonical_count = SEO_Dependiente_Interprete_DB::canonical_count_for_expression($expression);
+                $needs_context = $canonical_count > 1;
+                if ($needs_context && !$contexts) {
+                    // No se elige un sinonimo global a ciegas si la misma forma
+                    // apunta a varios conceptos y no tenemos contexto para separarlos.
+                    $ambiguous++;
                 } else {
-                    $relation = sanitize_key((string) ($row['relation_type'] ?? ''));
-                    $question = in_array($relation, array('verb_to_tool','phrase_to_tool'), true)
-                        ? 'Necesito una herramienta para ' . $expression
-                        : 'Estoy buscando ' . $expression;
-                    $interpretation = SEO_Dependiente_Interprete::interpret($question);
-                    $actual = SEO_Dependiente_Interprete_DB::normalize((string) ($interpretation['search_query'] ?? ''));
-                    $expected = SEO_Dependiente_Interprete_DB::normalize($target);
-                    if ('' !== $expected && (false !== strpos(' ' . $actual . ' ', ' ' . $expected . ' ') || false !== strpos($actual, $expected))) {
-                        $pass++;
-                    } else {
+                    $confidence = self::l8_candidate_confidence($row);
+                    SEO_Dependiente_Interprete_DB::update_row($row_id, array(
+                        'active' => 1,
+                        'validated' => 1,
+                        'context_required' => $needs_context ? 1 : !empty($row['context_required']),
+                        'confidence' => $confidence,
+                        'source' => 'linguista_l8_auto',
+                        'lesson_key' => 'ling_l8_exam',
+                    ));
+                    $learned++;
+
+                    $case = self::l8_build_case($row, false);
+                    try {
+                        $interpretation = SEO_Dependiente_Interprete::interpret((string) ($case['question'] ?? $expression));
+                        $evaluation = self::l8_evaluate_case($row, $case, $interpretation);
+                        if ('exact' === $evaluation) {
+                            $pass++;
+                            $exact++;
+                        } elseif ('semantic' === $evaluation) {
+                            $pass++;
+                            $semantic++;
+                        } else {
+                            // Se conserva como hipotesis activa de confianza baja:
+                            // el uso real decidira si se consolida o pierde peso.
+                            SEO_Dependiente_Interprete_DB::update_row($row_id, array(
+                                'confidence' => min($confidence, 0.68),
+                            ));
+                            $fail++;
+                        }
+                    } catch (Throwable $e) {
+                        SEO_Dependiente_Interprete_DB::update_row($row_id, array('confidence' => min($confidence, 0.68)));
                         $fail++;
                     }
                 }
-            } catch (Throwable $e) {
-                // Un caso defectuoso cuenta como fallo del examen, pero no debe
-                // bloquear indefinidamente toda la formacion.
-                $fail++;
             }
 
             $processed++;
             if ($row_id) {
                 $last_id = $row_id;
             }
-
-            // Devuelve el control pronto para que process_manager_slice() guarde
-            // cursor y contadores antes de que el hosting corte la peticion.
             if ($processed > 0 && microtime(true) >= $soft_deadline) {
                 break;
             }
@@ -1414,15 +1606,267 @@ final class SEO_Dependiente_Linguista {
         return array(
             'done' => false,
             'processed' => $processed,
-            'learned' => 0,
+            'learned' => $learned,
             'rejected' => $fail,
-            'message' => 'Examen conversacional en curso · ' . number_format_i18n($processed) . ' reglas verificadas en este lote.',
+            'message' => 'L8 · hipótesis: ' . number_format_i18n($learned) . ' activadas, ' . number_format_i18n($ambiguous) . ' ambiguas retenidas y ' . number_format_i18n($fail) . ' fallos.',
             'state_changes' => array(
                 'cursor' => $last_id,
+                'exam_candidate_max_id' => $max_id,
                 'exam_pass' => absint($state['exam_pass'] ?? 0) + $pass,
                 'exam_fail' => absint($state['exam_fail'] ?? 0) + $fail,
+                'exam_exact' => absint($state['exam_exact'] ?? 0) + $exact,
+                'exam_semantic' => absint($state['exam_semantic'] ?? 0) + $semantic,
+                'exam_auto_learned' => absint($state['exam_auto_learned'] ?? 0) + $learned,
+                'exam_ambiguous' => absint($state['exam_ambiguous'] ?? 0) + $ambiguous,
+                'exam_invalid' => absint($state['exam_invalid'] ?? 0) + $invalid,
             ),
         );
+    }
+
+    private static function l8_build_case($row, $mutate = true) {
+        $expression = SEO_Dependiente_Interprete_DB::normalize((string) ($row['normalized_expression'] ?? $row['expression'] ?? ''));
+        if ('' === $expression) {
+            return array();
+        }
+        $relation = sanitize_key((string) ($row['relation_type'] ?? ''));
+        $contexts = json_decode((string) ($row['context_terms'] ?? ''), true);
+        $contexts = is_array($contexts) ? array_values(array_filter(array_map(array('SEO_Dependiente_Interprete_DB', 'normalize'), $contexts))) : array();
+        $context = '';
+        foreach ($contexts as $candidate) {
+            if ($candidate && false === strpos(' ' . $expression . ' ', ' ' . $candidate . ' ')) {
+                $context = $candidate;
+                break;
+            }
+        }
+
+        $surface = $expression;
+        $kind = 'plain';
+        if ($mutate) {
+            $selector = absint($row['id'] ?? 0) % 5;
+            if (1 === $selector) {
+                $surface = self::l8_typo_variant($expression, 'transpose');
+                $kind = $surface !== $expression ? 'typo_transpose' : 'noise';
+            } elseif (2 === $selector) {
+                $surface = self::l8_typo_variant($expression, 'omit');
+                $kind = $surface !== $expression ? 'typo_omit' : 'noise';
+            } elseif (3 === $selector) {
+                $surface = self::l8_typo_variant($expression, 'duplicate');
+                $kind = $surface !== $expression ? 'typo_duplicate' : 'noise';
+            } elseif (4 === $selector) {
+                $variant = self::l8_morphology_variant($expression);
+                $surface = $variant ?: $expression;
+                $kind = $variant && $variant !== $expression ? 'morphology' : 'noise';
+            } else {
+                $kind = 'noise';
+            }
+        }
+
+        $is_action = in_array($relation, array('verb_to_tool','phrase_to_tool'), true);
+        if ('noise' === $kind) {
+            $question = $is_action
+                ? 'Hola, por favor, necesito poder ' . $surface
+                : 'Hola, estoy buscando un ' . $surface;
+        } else {
+            $question = $is_action
+                ? 'Necesito ' . $surface
+                : 'Estoy buscando ' . $surface;
+        }
+        if ($context) {
+            $question .= ' ' . $context;
+        }
+
+        return array(
+            'question' => trim($question),
+            'surface' => $surface,
+            'expected_expression' => $expression,
+            'context' => $context,
+            'variant_kind' => $kind,
+        );
+    }
+
+    private static function l8_evaluate_case($row, $case, $interpretation) {
+        $search = SEO_Dependiente_Interprete_DB::normalize((string) ($interpretation['search_query'] ?? ''));
+        $dependiente = SEO_Dependiente_Interprete_DB::normalize((string) ($interpretation['dependiente_query'] ?? $search));
+        $expected_expression = SEO_Dependiente_Interprete_DB::normalize((string) ($case['expected_expression'] ?? $row['expression'] ?? ''));
+        $canonical = SEO_Dependiente_Interprete_DB::normalize((string) ($row['canonical_term'] ?? ''));
+        $target = SEO_Dependiente_Interprete_DB::normalize((string) ($row['target_search'] ?? ''));
+        $context = SEO_Dependiente_Interprete_DB::normalize((string) ($case['context'] ?? ''));
+
+        $context_ok = true;
+        if ($context) {
+            $context_ok = false;
+            foreach (explode(' ', $context) as $token) {
+                if (strlen($token) < 3) {
+                    continue;
+                }
+                if (false !== strpos(' ' . $search . ' ', ' ' . $token . ' ') || false !== strpos(' ' . $dependiente . ' ', ' ' . $token . ' ')) {
+                    $context_ok = true;
+                    break;
+                }
+            }
+        }
+        if (!$context_ok) {
+            return 'fail';
+        }
+
+        if ($expected_expression && (self::l8_contains_phrase($search, $expected_expression) || self::l8_contains_phrase($dependiente, $expected_expression))) {
+            return 'exact';
+        }
+
+        if ($canonical && self::l8_contains_phrase($dependiente, $canonical)) {
+            return 'semantic';
+        }
+        if ($target && self::l8_contains_phrase($dependiente, $target)) {
+            return 'semantic';
+        }
+
+        $vocabulary_id = absint($row['vocabulary_id'] ?? 0);
+        foreach ((array) ($interpretation['lexicon_matches'] ?? array()) as $match) {
+            if ($vocabulary_id && $vocabulary_id === absint($match['vocabulary_id'] ?? 0)) {
+                return 'semantic';
+            }
+            $match_canonical = SEO_Dependiente_Interprete_DB::normalize((string) ($match['canonical'] ?? ''));
+            $match_target = SEO_Dependiente_Interprete_DB::normalize((string) ($match['target'] ?? ''));
+            if (($canonical && $canonical === $match_canonical) || ($target && $target === $match_target)) {
+                return 'semantic';
+            }
+        }
+        return 'fail';
+    }
+
+    private static function l8_learn_safe_variant($row, $case) {
+        $kind = sanitize_key((string) ($case['variant_kind'] ?? ''));
+        if (!in_array($kind, array('typo_transpose','typo_omit','typo_duplicate','morphology'), true)) {
+            return 0;
+        }
+        $surface = SEO_Dependiente_Interprete_DB::normalize((string) ($case['surface'] ?? ''));
+        $expected = SEO_Dependiente_Interprete_DB::normalize((string) ($case['expected_expression'] ?? ''));
+        if (!$surface || !$expected || $surface === $expected) {
+            return 0;
+        }
+
+        $canonical = trim((string) ($row['canonical_term'] ?? ''));
+        $target = trim((string) ($row['target_search'] ?? $canonical));
+        if ('' === $canonical || '' === $target) {
+            return 0;
+        }
+
+        // Una errata generada no puede secuestrar una palabra que ya exista
+        // activamente con otro significado. En ese caso se considera una
+        // colision semantica y no se aprende automaticamente.
+        $known = SEO_Dependiente_Interprete_DB::find_target_for_expression($surface);
+        if ($known) {
+            $known_canonical = SEO_Dependiente_Interprete_DB::normalize((string) ($known['canonical_term'] ?? ''));
+            $known_target = SEO_Dependiente_Interprete_DB::normalize((string) ($known['target_search'] ?? ''));
+            $expected_canonical = SEO_Dependiente_Interprete_DB::normalize($canonical);
+            $expected_target = SEO_Dependiente_Interprete_DB::normalize($target);
+            if (($known_canonical && $known_canonical !== $expected_canonical) || ($known_target && $known_target !== $expected_target)) {
+                return 0;
+            }
+        }
+        $contexts = json_decode((string) ($row['context_terms'] ?? ''), true);
+        $contexts = is_array($contexts) ? $contexts : array();
+        $confidence = 'morphology' === $kind ? 0.90 : 0.94;
+        $id = SEO_Dependiente_Interprete_DB::upsert_row(array(
+            'expression' => $surface,
+            'canonical_term' => $canonical,
+            'target_search' => $target,
+            'relation_type' => sanitize_key((string) ($row['relation_type'] ?? 'synonym')) ?: 'synonym',
+            'semantic_group' => sanitize_key((string) ($row['semantic_group'] ?? '')),
+            'vocabulary_id' => absint($row['vocabulary_id'] ?? 0),
+            'context_terms' => $contexts,
+            'context_required' => !empty($row['context_required']),
+            'confidence' => $confidence,
+            'priority' => max(2, absint($row['priority'] ?? 5)),
+            'source' => 'linguista_l8_auto',
+            'lesson_key' => 'ling_l8_exam',
+            'validated' => 1,
+            'active' => 1,
+        ));
+        if ($id) {
+            SEO_Dependiente_Interprete_DB::add_evidence(
+                $id,
+                'linguista_l8_generated',
+                absint($row['id'] ?? 0),
+                hash('sha256', $surface . '|' . $expected . '|' . $kind . '|' . $target),
+                'ling_l8_exam',
+                $confidence,
+                $contexts
+            );
+        }
+        return absint($id);
+    }
+
+    private static function l8_candidate_confidence($row) {
+        $evidence = max(1, absint($row['evidence_count'] ?? 1));
+        $relation = sanitize_key((string) ($row['relation_type'] ?? ''));
+        $source = sanitize_key((string) ($row['source'] ?? ''));
+        $existing = min(0.94, max(0, (float) ($row['confidence'] ?? 0)));
+        if ('linguista_explicit_synonym' === $source || in_array($relation, array('synonym','catalog_variant'), true)) {
+            $base = 0.78 + min(0.12, log(1 + $evidence) * 0.045);
+        } else {
+            $base = 0.68 + min(0.18, log(1 + $evidence) * 0.055);
+        }
+        return min(0.94, max($existing, $base));
+    }
+
+    private static function l8_typo_variant($expression, $mode) {
+        $tokens = array_values(array_filter(explode(' ', SEO_Dependiente_Interprete_DB::normalize($expression))));
+        $best = -1;
+        $best_len = 0;
+        foreach ($tokens as $index => $token) {
+            $len = strlen($token);
+            if ($len >= 5 && $len > $best_len) {
+                $best = $index;
+                $best_len = $len;
+            }
+        }
+        if ($best < 0) {
+            return SEO_Dependiente_Interprete_DB::normalize($expression);
+        }
+        $word = $tokens[$best];
+        $len = strlen($word);
+        $pos = max(1, min($len - 2, (int) floor($len / 2)));
+        if ('transpose' === $mode && $pos + 1 < $len) {
+            $chars = str_split($word);
+            $tmp = $chars[$pos];
+            $chars[$pos] = $chars[$pos + 1];
+            $chars[$pos + 1] = $tmp;
+            $word = implode('', $chars);
+        } elseif ('omit' === $mode) {
+            $word = substr($word, 0, $pos) . substr($word, $pos + 1);
+        } elseif ('duplicate' === $mode) {
+            $word = substr($word, 0, $pos) . $word[$pos] . substr($word, $pos);
+        }
+        $tokens[$best] = $word;
+        return trim(implode(' ', $tokens));
+    }
+
+    private static function l8_morphology_variant($expression) {
+        static $by_lemma = null;
+        $expression = SEO_Dependiente_Interprete_DB::normalize($expression);
+        if (false !== strpos($expression, ' ')) {
+            return '';
+        }
+        if (null === $by_lemma) {
+            $by_lemma = array();
+            $compiled = get_option(self::MORPHOLOGY_OPTION, array());
+            $forms = is_array($compiled) && is_array($compiled['forms'] ?? null) ? $compiled['forms'] : array();
+            foreach ($forms as $surface => $lemma) {
+                $surface = SEO_Dependiente_Interprete_DB::normalize($surface);
+                $lemma = SEO_Dependiente_Interprete_DB::normalize($lemma);
+                if ($surface && $lemma && $surface !== $lemma && !isset($by_lemma[$lemma])) {
+                    $by_lemma[$lemma] = $surface;
+                }
+            }
+        }
+        return (string) ($by_lemma[$expression] ?? '');
+    }
+
+    private static function l8_contains_phrase($haystack, $needle) {
+        $haystack = SEO_Dependiente_Interprete_DB::normalize($haystack);
+        $needle = SEO_Dependiente_Interprete_DB::normalize($needle);
+        return '' !== $needle && false !== strpos(' ' . $haystack . ' ', ' ' . $needle . ' ');
     }
 
     private static function finish_current_lesson($state, $result) {
@@ -1456,6 +1900,11 @@ final class SEO_Dependiente_Linguista {
             $results[$key]['pass'] = absint($fresh['exam_pass'] ?? 0);
             $results[$key]['fail'] = absint($fresh['exam_fail'] ?? 0);
             $results[$key]['rate'] = (float) ($fresh['exam_rate'] ?? 0);
+            $results[$key]['exact'] = absint($fresh['exam_exact'] ?? 0);
+            $results[$key]['semantic'] = absint($fresh['exam_semantic'] ?? 0);
+            $results[$key]['auto_learned'] = absint($fresh['exam_auto_learned'] ?? 0);
+            $results[$key]['ambiguous'] = absint($fresh['exam_ambiguous'] ?? 0);
+            $results[$key]['invalid'] = absint($fresh['exam_invalid'] ?? 0);
         }
 
         $next_index = $index + 1;
@@ -1537,7 +1986,12 @@ final class SEO_Dependiente_Linguista {
         }
         if ('ling_l8_exam' === $key) {
             $table = SEO_Dependiente_Interprete_DB::table();
-            return self::table_exists($table) ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=1 AND language='es'")) : 0;
+            if (!self::table_exists($table)) {
+                return 0;
+            }
+            $active = absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=1 AND language='es'"));
+            $candidates = absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=0 AND language='es' AND source IN ('linguista_catalog_actions','linguista_explicit_synonym') AND relation_type IN ('synonym','catalog_variant','verb_to_tool','phrase_to_tool')"));
+            return $active + $candidates;
         }
         return 0;
     }

@@ -214,7 +214,7 @@ final class SEO_Dependiente_Training_Quality {
 
     private static function render_evolution($data) {
         echo '<section class="postbox seo-dependiente-admin__box seo-dependiente-admin__wide-box">';
-        echo '<h3>Evolucion observada L1 → L8</h3><p class="description">Mide rendimiento observado. No atribuye causalmente la mejora a la ensenanza porque la dificultad y el tipo de pregunta cambian entre lecciones.</p>';
+        echo '<h3>Evolucion observada del curso</h3><p class="description">Mide rendimiento observado. No atribuye causalmente la mejora a la ensenanza porque la dificultad y el tipo de pregunta cambian entre lecciones.</p>';
         self::render_lessons_table($data['lessons'], true);
         echo '</section>';
 

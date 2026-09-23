@@ -3523,7 +3523,6 @@ function seo_core_system_test_http_trace($url, $max_hops = 6) {
             'headers' => array(
                 'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.7',
                 'Accept-Language' => 'es-ES,es;q=0.9,en;q=0.7',
-                'Cache-Control' => 'no-cache',
                 'Referer' => home_url('/'),
             ),
         );
@@ -4068,15 +4067,17 @@ function seo_core_system_test_html_titles_check($urls, $enabled) {
     if (!empty($missing)) {
         return seo_core_system_test_check_ko('Falta un titulo HTML utilizable en: ' . implode(', ', $missing) . '. Paginas inspeccionadas: ' . number_format_i18n($checked) . '.');
     }
-    if (!empty($duplicates) || !empty($blocked)) {
-        $parts = array();
-        if (!empty($duplicates)) {
-            $parts[] = 'titulos multiples: ' . implode(', ', $duplicates);
-        }
-        if (!empty($blocked)) {
-            $parts[] = 'no evaluables: ' . implode(', ', array_keys($blocked));
-        }
+    if (!empty($duplicates)) {
+        $parts = array('titulos multiples: ' . implode(', ', $duplicates));
+        if (!empty($blocked)) $parts[] = 'no evaluables: ' . implode(', ', array_keys($blocked));
         return seo_core_system_test_check_warning('Los titulos evaluados existen, pero hay incidencias: ' . implode('; ', $parts) . '.', array('coverage' => (int) round(($checked / max(1, $checked + count($blocked))) * 100), 'evidence' => $blocked));
+    }
+    if (!empty($blocked)) {
+        return seo_core_system_test_check_not_evaluable(
+            'Los titulos que sí pudieron evaluarse son correctos, pero quedaron páginas no evaluables desde el propio servidor: ' . implode(', ', array_keys($blocked)) . '.',
+            'HTTP_TRANSPORT_UNAVAILABLE',
+            array('coverage' => (int) round(($checked / max(1, $checked + count($blocked))) * 100), 'evidence' => $blocked)
+        );
     }
 
     return seo_core_system_test_check_ok('Portada, tienda, categoria y producto contienen un unico titulo HTML no vacio.');
@@ -4144,7 +4145,11 @@ function seo_core_system_test_canonical_check($urls, $enabled) {
         return seo_core_system_test_check_warning('Canonical mejorable: ' . implode('; ', $parts) . '.', $meta);
     }
     if (!empty($blocked)) {
-        return seo_core_system_test_check_warning('Las páginas evaluadas contienen canonical coherente, pero quedaron páginas no evaluables: ' . implode(', ', array_keys($blocked)) . '.', $meta);
+        return seo_core_system_test_check_not_evaluable(
+            'Las páginas que sí pudieron evaluarse contienen canonical coherente, pero quedaron páginas no evaluables desde el propio servidor: ' . implode(', ', array_keys($blocked)) . '.',
+            'HTTP_TRANSPORT_UNAVAILABLE',
+            $meta
+        );
     }
 
     return seo_core_system_test_check_ok('Las páginas configuradas contienen una sola canonical coherente con su URL pública.', $meta);
@@ -4189,9 +4194,16 @@ function seo_core_system_test_robots_check($urls, $enabled) {
         return seo_core_system_test_check_not_evaluable('No se recibió ninguna página con HTTP 200 y HTML válido para comprobar meta robots.', 'HTTP_HTML_UNAVAILABLE', array('evidence' => $blocked));
     }
     if (!empty($issues_ko)) return seo_core_system_test_check_ko('Politica robots critica: ' . implode('; ', $issues_ko) . '.', array('owner' => 'SEO'));
-    if (!empty($issues_warning) || !empty($blocked)) {
+    if (!empty($issues_warning)) {
         if (!empty($blocked)) $issues_warning[] = 'páginas no evaluables: ' . implode(', ', array_keys($blocked));
         return seo_core_system_test_check_warning('Politica robots mejorable: ' . implode('; ', $issues_warning) . '.', array('owner' => 'SEO', 'coverage' => (int) round(($checked / max(1, $checked + count($blocked))) * 100), 'evidence' => $blocked));
+    }
+    if (!empty($blocked)) {
+        return seo_core_system_test_check_not_evaluable(
+            'La politica robots es correcta en las páginas evaluadas, pero quedaron páginas no evaluables desde el propio servidor: ' . implode(', ', array_keys($blocked)) . '.',
+            'HTTP_TRANSPORT_UNAVAILABLE',
+            array('owner' => 'SEO', 'coverage' => (int) round(($checked / max(1, $checked + count($blocked))) * 100), 'evidence' => $blocked)
+        );
     }
     return seo_core_system_test_check_ok('Producto y categoria son indexables; busqueda, carrito y checkout declaran noindex.', array('owner' => 'SEO'));
 }
@@ -4251,12 +4263,19 @@ function seo_core_system_test_h1_check($urls, $product, $category, $enabled) {
         return seo_core_system_test_check_not_evaluable('No se recibió ninguna página con HTTP 200 y HTML válido para comprobar H1.', 'HTTP_HTML_UNAVAILABLE', $meta);
     }
     if (!empty($missing)) return seo_core_system_test_check_ko('Falta H1 en: ' . implode(', ', $missing) . '.', $meta);
-    if (!empty($multiple) || !empty($content_mismatch) || !empty($blocked)) {
+    if (!empty($multiple) || !empty($content_mismatch)) {
         $parts = array();
         if (!empty($multiple)) $parts[] = 'H1 múltiples: ' . implode(', ', $multiple);
         if (!empty($content_mismatch)) $parts[] = 'H1 por debajo del ' . $threshold . '% esperado: ' . implode(', ', $content_mismatch);
         if (!empty($blocked)) $parts[] = 'no evaluables: ' . implode(', ', array_keys($blocked));
         return seo_core_system_test_check_warning(implode('; ', $parts) . '.', $meta);
+    }
+    if (!empty($blocked)) {
+        return seo_core_system_test_check_not_evaluable(
+            'Los H1 de las páginas evaluadas son correctos, pero quedaron páginas no evaluables desde el propio servidor: ' . implode(', ', array_keys($blocked)) . '.',
+            'HTTP_TRANSPORT_UNAVAILABLE',
+            $meta
+        );
     }
     return seo_core_system_test_check_ok('Producto y categoría contienen un único H1 relacionado con el contenido representativo. Umbral: ' . $threshold . '%.', $meta);
 }
@@ -4325,7 +4344,11 @@ function seo_core_system_test_structured_data_check($urls, $enabled) {
         }
         return seo_core_system_test_check_warning('JSON-LD válido, pero faltan tipos configurados: ' . implode(', ', $missing) . '. Tipos por página: ' . implode(' | ', $page_parts) . '.', $meta);
     }
-    if (!empty($blocked)) return seo_core_system_test_check_warning('JSON-LD correcto en las páginas evaluadas; quedaron páginas no evaluables: ' . implode(', ', array_keys($blocked)) . '.', $meta);
+    if (!empty($blocked)) return seo_core_system_test_check_not_evaluable(
+        'JSON-LD correcto en las páginas evaluadas; quedaron páginas no evaluables desde el propio servidor: ' . implode(', ', array_keys($blocked)) . '.',
+        'HTTP_TRANSPORT_UNAVAILABLE',
+        $meta
+    );
     return seo_core_system_test_check_ok('JSON-LD válido. Bloques: ' . number_format_i18n($blocks) . '; tipos: ' . implode(', ', array_keys($types)) . '.', $meta);
 }
 
@@ -4758,7 +4781,7 @@ function seo_core_system_test_store_readiness_check($product, $urls, $enabled) {
 
 function seo_core_system_test_indexation_readiness_check($urls, $enabled) {
     $evidence = array('blog_public' => (string) get_option('blog_public', '1') === '1', 'robots_txt' => array(), 'public_pages' => array());
-    $critical = array(); $warnings = array();
+    $critical = array(); $warnings = array(); $blocked = array(); $checked = 0; $targets = 0;
     if (!$evidence['blog_public']) $critical[] = 'WordPress disuade a los buscadores';
     if (!$enabled) return seo_core_system_test_check_info('Comprobación HTTP de indexación desactivada.', array('owner' => 'SEO', 'area' => 'indexation', 'evidence' => $evidence));
 
@@ -4771,8 +4794,15 @@ function seo_core_system_test_indexation_readiness_check($urls, $enabled) {
 
     foreach (array('portada', 'tienda', 'categoria', 'producto') as $name) {
         if (empty($urls[$name])) continue;
+        $targets++;
         $probe = seo_core_system_test_http_probe($urls[$name]);
-        $evidence['public_pages'][$name] = array('code' => (int) ($probe['code'] ?? 0), 'blocker' => seo_core_system_test_probe_blocker($probe));
+        $blocker = seo_core_system_test_probe_blocker($probe);
+        $evidence['public_pages'][$name] = array('code' => (int) ($probe['code'] ?? 0), 'blocker' => $blocker);
+        if (!empty($probe['transport_error']) || !empty($probe['security_challenge'])) {
+            $blocked[$name] = $blocker !== '' ? $blocker : 'HTTP_UNAVAILABLE';
+            continue;
+        }
+        $checked++;
         if ((int) ($probe['code'] ?? 0) !== 200) $critical[] = $name . ' no devuelve HTTP 200';
     }
 
@@ -4781,9 +4811,26 @@ function seo_core_system_test_indexation_readiness_check($urls, $enabled) {
     if (($sitemap['severity'] ?? '') === 'ko') $critical[] = 'sitemap inválido';
     elseif (($sitemap['severity'] ?? '') === 'warning') $warnings[] = 'sitemap no concluyente o mejorable';
 
-    $meta = array('owner' => 'SEO', 'area' => 'indexation', 'evidence' => $evidence, 'coverage' => 100, 'confidence' => 90);
+    $coverage = $targets > 0 ? (int) round(($checked / $targets) * 100) : 0;
+    $meta = array(
+        'owner' => 'SEO',
+        'area' => 'indexation',
+        'evidence' => $evidence,
+        'coverage' => $coverage,
+        'confidence' => empty($blocked) ? 90 : 75,
+    );
     if (!empty($critical)) return seo_core_system_test_check_ko('La indexación pública presenta bloqueos: ' . implode('; ', array_unique($critical)) . '.', $meta);
-    if (!empty($warnings)) return seo_core_system_test_check_warning('La indexación pública es parcial: ' . implode('; ', array_unique($warnings)) . '.', $meta);
+    if (!empty($warnings)) {
+        if (!empty($blocked)) $warnings[] = 'páginas no evaluables desde el propio servidor: ' . implode(', ', array_keys($blocked));
+        return seo_core_system_test_check_warning('La indexación pública es parcial: ' . implode('; ', array_unique($warnings)) . '.', $meta);
+    }
+    if (!empty($blocked)) {
+        return seo_core_system_test_check_not_evaluable(
+            'Las señales de indexación que sí pudieron comprobarse son correctas, pero no se pudo verificar desde el propio servidor: ' . implode(', ', array_keys($blocked)) . '. La disponibilidad pública debe confirmarse con el worker externo.',
+            'HTTP_TRANSPORT_UNAVAILABLE',
+            $meta
+        );
+    }
     return seo_core_system_test_check_ok('WordPress es indexable, robots.txt responde, las páginas representativas devuelven HTTP 200 y existe un sitemap válido.', $meta);
 }
 
@@ -4815,9 +4862,16 @@ function seo_core_system_test_internal_links_check($urls, $enabled) {
     }
 
     if ($checks === 0) return seo_core_system_test_check_not_evaluable('No se recibió ninguna página con HTTP 200 y HTML válido para comprobar enlazado interno.', 'HTTP_HTML_UNAVAILABLE', array('evidence' => $blocked));
-    if (!empty($issues) || !empty($blocked)) {
+    if (!empty($issues)) {
         if (!empty($blocked)) $issues[] = 'páginas no evaluables: ' . implode(', ', array_keys($blocked));
         return seo_core_system_test_check_warning('Enlazado interno mejorable: ' . implode('; ', $issues) . '.', array('owner' => 'SEO', 'coverage' => (int) round(($checks / max(1, $checks + count($blocked))) * 100), 'evidence' => $blocked));
+    }
+    if (!empty($blocked)) {
+        return seo_core_system_test_check_not_evaluable(
+            'El enlazado interno evaluado es correcto, pero quedaron páginas no evaluables desde el propio servidor: ' . implode(', ', array_keys($blocked)) . '.',
+            'HTTP_TRANSPORT_UNAVAILABLE',
+            array('owner' => 'SEO', 'coverage' => (int) round(($checks / max(1, $checks + count($blocked))) * 100), 'evidence' => $blocked)
+        );
     }
     return seo_core_system_test_check_ok('La portada enlaza la tienda y las plantillas inspeccionadas contienen enlaces de navegacion entre catalogo, categorias y productos.', array('owner' => 'SEO'));
 }
@@ -4929,7 +4983,12 @@ function seo_core_system_test_performance_check($urls, $enabled) {
     $detail = 'Media: ' . number_format_i18n($average, 2) . ' s; maxima: ' . number_format_i18n($max_time, 2) . ' s (' . $slowest . '); HTML mayor: ' . seo_core_system_test_format_bytes($max_size) . ($largest !== '' ? ' (' . $largest . ')' : '') . '. Cobertura: ' . count($times) . ' páginas.';
     $meta = array('owner' => 'hosting', 'coverage' => (int) round((count($times) / max(1, count($times) + count($blocked))) * 100), 'evidence' => array('times' => $times, 'sizes' => $sizes, 'blocked' => $blocked));
     if ($max_time >= $critical_seconds) return seo_core_system_test_check_ko('Tiempo de respuesta critico. ' . $detail, $meta);
-    if ($max_time >= $warning_seconds || $max_size >= $warning_bytes || !empty($blocked)) return seo_core_system_test_check_warning('Rendimiento mejorable o incompleto. ' . $detail, $meta);
+    if ($max_time >= $warning_seconds || $max_size >= $warning_bytes) return seo_core_system_test_check_warning('Rendimiento mejorable. ' . $detail, $meta);
+    if (!empty($blocked)) return seo_core_system_test_check_not_evaluable(
+        'El rendimiento de las páginas evaluadas está dentro de los umbrales, pero la medición quedó incompleta por páginas no evaluables desde el propio servidor: ' . implode(', ', array_keys($blocked)) . '. ' . $detail,
+        'HTTP_TRANSPORT_UNAVAILABLE',
+        $meta
+    );
     return seo_core_system_test_check_ok('Rendimiento HTTP dentro de los umbrales configurados. ' . $detail, $meta);
 }
 
@@ -4950,17 +5009,29 @@ function seo_core_system_test_visible_errors_check($urls, $enabled) {
     $meta = array('owner' => 'WP', 'coverage' => (int) round(($checked / max(1, $checked + count($blocked))) * 100), 'evidence' => $blocked);
     if (!empty($critical)) return seo_core_system_test_check_ko('Errores criticos visibles en HTML: ' . implode(' | ', array_unique($critical)) . '.', $meta);
     if (!empty($warnings)) return seo_core_system_test_check_warning('Avisos PHP visibles en HTML: ' . implode(' | ', array_unique($warnings)) . '.', $meta);
-    if (!empty($blocked)) return seo_core_system_test_check_warning('No se detectan errores en las páginas evaluadas, pero quedaron páginas no evaluables: ' . implode(', ', array_keys($blocked)) . '.', $meta);
+    if (!empty($blocked)) return seo_core_system_test_check_not_evaluable(
+        'No se detectan errores en las páginas evaluadas, pero quedaron páginas no evaluables desde el propio servidor: ' . implode(', ', array_keys($blocked)) . '.',
+        'HTTP_TRANSPORT_UNAVAILABLE',
+        $meta
+    );
     return seo_core_system_test_check_ok('No se detectan mensajes Fatal, Warning, Notice, Deprecated, Stack Trace ni errores SQL en las paginas inspeccionadas.', $meta);
 }
 
 
 function seo_core_system_test_probe_unavailable_check($probe, $url) {
     if (!empty($probe['transport_error'])) {
-        return seo_core_system_test_check_warning('No se pudo completar la comprobacion HTTP: ' . $probe['transport_error'] . '. URL: ' . $url);
+        return seo_core_system_test_check_not_evaluable(
+            'No se pudo completar la comprobacion HTTP desde el propio servidor: ' . $probe['transport_error'] . '. URL: ' . $url,
+            'HTTP_TRANSPORT_ERROR',
+            array('evidence' => array('url' => $url, 'transport_error' => (string) $probe['transport_error']))
+        );
     }
     if (!empty($probe['security_challenge'])) {
-        return seo_core_system_test_check_warning('La comprobacion fue interceptada por proteccion perimetral o antibot. URL: ' . $url . '.');
+        return seo_core_system_test_check_not_evaluable(
+            'La comprobacion interna fue interceptada por proteccion perimetral o antibot. URL: ' . $url . '.',
+            'HTTP_SECURITY_CHALLENGE',
+            array('evidence' => array('url' => $url, 'http_code' => (int) ($probe['code'] ?? 0)))
+        );
     }
     return null;
 }
@@ -5356,7 +5427,6 @@ function seo_core_system_test_resource_probe($url, $accept = '*/*', $limit = 131
         'limit_response_size' => max(4096, (int) $limit),
         'headers' => array(
             'Accept' => $accept,
-            'Cache-Control' => 'no-cache',
             'Referer' => home_url('/'),
         ),
     );
@@ -5422,9 +5492,19 @@ function seo_core_system_test_functional_http_result($label, $url, $expected_tex
         return seo_core_system_test_result(
             'functional',
             $label,
-            false,
-            'No se pudo verificar por HTTP: ' . $probe['transport_error'] . ' URL: ' . $url,
-            'warning'
+            true,
+            'No evaluable desde el propio servidor: ' . $probe['transport_error'] . ' URL: ' . $url,
+            'info',
+            array(
+                'status' => 'not_evaluable',
+                'blocked_by' => 'http_transport_error',
+                'coverage' => 0,
+                'confidence' => 0,
+                'evidence' => array(
+                    'url' => $url,
+                    'transport_error' => (string) $probe['transport_error'],
+                ),
+            )
         );
     }
 
@@ -5439,11 +5519,23 @@ function seo_core_system_test_functional_http_result($label, $url, $expected_tex
         return seo_core_system_test_result(
             'functional',
             $label,
-            false,
-            'La comprobación interna ha sido interceptada por una protección perimetral o antibot. HTTP ' . (int) $probe['code'] . '.'
+            true,
+            'No evaluable desde el propio servidor: la comprobación fue interceptada por una protección perimetral o antibot. HTTP ' . (int) $probe['code'] . '.'
                 . $challenge_detail . $server_detail
-                . ' No se considera una caída pública; la prueba queda no concluyente. URL: ' . $url,
-            'warning'
+                . ' No se considera una caída pública. URL: ' . $url,
+            'info',
+            array(
+                'status' => 'not_evaluable',
+                'blocked_by' => 'http_security_challenge',
+                'coverage' => 0,
+                'confidence' => 0,
+                'evidence' => array(
+                    'url' => $url,
+                    'http_code' => (int) $probe['code'],
+                    'challenge_reason' => (string) ($probe['challenge_reason'] ?? ''),
+                    'server' => (string) ($probe['server'] ?? ''),
+                ),
+            )
         );
     }
 
@@ -5549,8 +5641,6 @@ function seo_core_system_test_http_probe($url) {
         'user-agent'          => seo_core_system_test_http_user_agent(),
         'limit_response_size' => $response_limit,
         'headers'             => array(
-            'Cache-Control'   => 'no-cache',
-            'Pragma'          => 'no-cache',
             'Accept'          => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'Accept-Language' => 'es-ES,es;q=0.9,en;q=0.7',
             'Referer'         => home_url('/'),

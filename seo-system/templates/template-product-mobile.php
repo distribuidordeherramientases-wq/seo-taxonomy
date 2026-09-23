@@ -968,8 +968,182 @@ $schema_product_graph = array(
     </section>
   <?php endif; ?>
 
-  <section id="reviews" class="dh-product-reviews">
-    <h2>Opiniones del producto</h2>
+  <?php
+  /*
+   * Comentarista: mostramos exclusivamente comentarios externos publicados
+   * asociados al producto actual. Si no existe ninguno, no se imprime ni
+   * el título, ni la nota, ni un contenedor vacío.
+   *
+   * Estos datos NO se incorporan al AggregateRating del Product JSON-LD.
+   */
+  $external_product_comments = array();
+
+  if (
+      function_exists('seo_comentarista_table_exists')
+      && function_exists('seo_comentarista_table_name')
+      && function_exists('seo_comentarista_render_item')
+      && seo_comentarista_table_exists()
+  ) {
+      $comentarista_table = seo_comentarista_table_name();
+
+      $external_product_comments = (array) $wpdb->get_results(
+          $wpdb->prepare(
+              "SELECT *
+               FROM {$comentarista_table}
+               WHERE product_id = %d
+                 AND status = 'published'
+                 AND content_type = 'comment'
+               ORDER BY display_order ASC, id DESC
+               LIMIT 12",
+              $product_id
+          ),
+          ARRAY_A
+      );
+  }
+  ?>
+
+  <?php if (!empty($external_product_comments)) : ?>
+    <section class="dh-product-reviews dh-product-external-comments seo-comentarista" aria-labelledby="dh-external-comments-title">
+      <style>
+        .dh-product-external-comments .dh-external-comments-info {
+          margin: .35rem 0 1.15rem;
+        }
+        .dh-product-external-comments .dh-external-comments-info > summary {
+          cursor: pointer;
+          font-size: .9rem;
+          font-weight: 600;
+          color: #555;
+        }
+        .dh-product-external-comments .dh-external-comments-info-body {
+          margin-top: .65rem;
+          padding: .8rem 1rem;
+          background: #f7f7f7;
+          border-left: 3px solid #d6d6d6;
+          font-size: .9rem;
+          line-height: 1.5;
+        }
+        .dh-product-external-comments .dh-external-comments-info-body p {
+          margin: 0;
+        }
+        .dh-product-external-comments .dh-external-comment-item {
+          padding: 1rem 0;
+          border-top: 1px solid #e8e8e8;
+        }
+        .dh-product-external-comments .dh-external-comment-item:first-child {
+          border-top: 0;
+          padding-top: .25rem;
+        }
+        .dh-product-external-comments .dh-external-comment-heading {
+          display: flex;
+          align-items: baseline;
+          justify-content: space-between;
+          gap: .75rem;
+          flex-wrap: wrap;
+          margin-bottom: .45rem;
+        }
+        .dh-product-external-comments .dh-external-comment-label {
+          font-weight: 700;
+        }
+        .dh-product-external-comments .dh-external-comment-rating {
+          font-size: .9rem;
+          color: #555;
+        }
+        .dh-product-external-comments .dh-external-comment-text {
+          margin: 0;
+          padding: .85rem 1rem;
+          background: #fafafa;
+          border-left: 3px solid #b9b9b9;
+          font-style: normal;
+          line-height: 1.55;
+        }
+        .dh-product-external-comments .dh-external-comment-text p {
+          margin: 0;
+        }
+        .dh-product-external-comments .dh-external-comment-source {
+          margin: .65rem 0 0;
+          font-size: .9rem;
+          line-height: 1.45;
+          color: #555;
+        }
+      </style>
+
+      <header class="seo-comentarista__header">
+        <h2 id="dh-external-comments-title">Comentarios externos sobre este producto</h2>
+
+        <details class="dh-external-comments-info">
+          <summary>Información sobre estos comentarios externos</summary>
+          <div class="dh-external-comments-info-body">
+            <p>
+              Estos comentarios proceden de fuentes externas y no son opiniones de clientes de Distribuidor de Herramientas.
+              Cuando el texto mostrado es un resumen editorial, no es una cita literal. La autoría y, cuando se indique,
+              la condición de compra corresponden a la información facilitada por la fuente original. Puedes consultar
+              siempre la fuente original enlazada en cada comentario.
+            </p>
+          </div>
+        </details>
+      </header>
+
+      <div class="seo-comentarista__items dh-external-comment-list">
+        <?php foreach ($external_product_comments as $external_comment) : ?>
+          <?php
+          $external_comment_text = !empty($external_comment['source_content'])
+              ? (string) $external_comment['source_content']
+              : (string) ($external_comment['editorial_summary'] ?? '');
+
+          // No mostramos al usuario la etiqueta tecnica usada durante la importacion.
+          $external_comment_text = preg_replace(
+              '/^\s*\[Resumen editorial,\s*no cita literal\]\s*/iu',
+              '',
+              $external_comment_text
+          );
+
+          $external_comment_meta = function_exists('seo_comentarista_render_source_meta')
+              ? seo_comentarista_render_source_meta($external_comment)
+              : '';
+
+          $external_comment_rating = function_exists('seo_comentarista_rating_text')
+              ? seo_comentarista_rating_text($external_comment)
+              : '';
+          ?>
+
+          <?php if (trim(wp_strip_all_tags($external_comment_text)) !== '') : ?>
+            <article class="dh-external-comment-item">
+              <div class="dh-external-comment-heading">
+                <strong class="dh-external-comment-label">Comentario externo</strong>
+
+                <?php if ($external_comment_rating !== '') : ?>
+                  <span class="dh-external-comment-rating">
+                    Valoración en la fuente: <strong><?php echo esc_html($external_comment_rating); ?></strong>
+                  </span>
+                <?php endif; ?>
+              </div>
+
+              <blockquote class="dh-external-comment-text">
+                <?php echo wp_kses_post(wpautop($external_comment_text)); ?>
+              </blockquote>
+
+              <?php if ($external_comment_meta !== '') : ?>
+                <p class="dh-external-comment-source">
+                  <strong>Fuente:</strong>
+                  <?php echo wp_kses($external_comment_meta, array(
+                      'strong' => array(),
+                      'a' => array(
+                          'href' => array(),
+                          'target' => array(),
+                          'rel' => array(),
+                      ),
+                  )); ?>
+                </p>
+              <?php endif; ?>
+            </article>
+          <?php endif; ?>
+        <?php endforeach; ?>
+      </div>
+    </section>
+  <?php endif; ?>
+
+  <section id="reviews" class="dh-product-reviews dh-product-customer-reviews">
+    <h2>Opiniones de clientes de esta tienda</h2>
     <?php comments_template(); ?>
   </section>
 

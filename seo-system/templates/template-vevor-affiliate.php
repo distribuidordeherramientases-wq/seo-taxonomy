@@ -21,40 +21,173 @@ global $wpdb;
 
 $table = $wpdb->prefix . 'seo_proveedores_productos';
 $limit = 8;
+$category_context = isset($dht_vevor_category_term) && $dht_vevor_category_term instanceof WP_Term
+    ? $dht_vevor_category_term
+    : null;
+$category_keywords = isset($dht_vevor_category_keywords)
+    ? (string) $dht_vevor_category_keywords
+    : '';
 
-$items = $wpdb->get_results(
-    $wpdb->prepare(
-        "SELECT
-            id,
-            proveedor_id_externo,
-            sku,
-            url_origen,
-            url_canonica,
-            nombre,
-            categoria_proveedor,
-            precio_con_iva,
-            moneda,
-            imagenes,
-            estado_seleccion,
-            estado_sincronizacion
-        FROM {$table}
-        WHERE proveedor = %s
-          AND estado_seleccion = %s
-          AND estado_sincronizacion = %s
-        ORDER BY RAND()
-        LIMIT %d",
-        'vevor',
-        'descartado',
-        'ignorado',
-        $limit
-    ),
-    ARRAY_A
-);
+$items = array();
 
-/*
- * Solo mostramos productos VEVOR descartados e ignorados.
- * No filtramos por stock, http_status u object_id.
- */
+if ($category_context instanceof WP_Term && 'product_cat' === $category_context->taxonomy) {
+    /*
+     * En categorías dejamos de usar una selección aleatoria. Primero buscamos
+     * categorías VEVOR realmente presentes en productos WooCommerce de esta
+     * familia; después completamos por coincidencia textual con el nombre y las
+     * keywords de la categoría. El bloque desaparece si no hay afinidad.
+     */
+    $product_ids = get_posts(array(
+        'post_type'      => 'product',
+        'post_status'    => 'publish',
+        'posts_per_page' => 250,
+        'fields'         => 'ids',
+        'no_found_rows'  => true,
+        'tax_query'      => array(array(
+            'taxonomy'         => 'product_cat',
+            'field'            => 'term_id',
+            'terms'            => array((int) $category_context->term_id),
+            'include_children' => true,
+        )),
+    ));
+
+    $provider_categories = array();
+    if (!empty($product_ids)) {
+        $id_placeholders = implode(',', array_fill(0, count($product_ids), '%d'));
+        $sql = $wpdb->prepare(
+            "SELECT DISTINCT categoria_proveedor
+             FROM {$table}
+             WHERE proveedor = %s
+               AND object_id IN ({$id_placeholders})
+               AND categoria_proveedor IS NOT NULL
+               AND categoria_proveedor <> ''
+             LIMIT 20",
+            ...array_merge(array('vevor'), array_map('absint', $product_ids))
+        );
+        $provider_categories = array_values(array_filter(array_map('trim', (array) $wpdb->get_col($sql))));
+    }
+
+    $raw_tokens = preg_split('/[^\\p{L}\\p{N}]+/u', remove_accents(mb_strtolower($category_context->name . ' ' . $category_keywords)));
+    $stop = array('de','del','la','las','el','los','y','para','por','con','sin','una','uno','unos','unas','en','a','al','que','categoria','productos','producto');
+    $tokens = array();
+    foreach ((array) $raw_tokens as $token) {
+        $token = trim((string) $token);
+        if (mb_strlen($token) < 4 || in_array($token, $stop, true)) {
+            continue;
+        }
+        $tokens[$token] = true;
+        if (count($tokens) >= 8) {
+            break;
+        }
+    }
+    $tokens = array_keys($tokens);
+
+    $where = array('proveedor = %s');
+    $args = array('vevor');
+    $relevance_parts = array();
+
+    if ($provider_categories) {
+        $cat_placeholders = implode(',', array_fill(0, count($provider_categories), '%s'));
+        $where[] = "categoria_proveedor IN ({$cat_placeholders})";
+        $args = array_merge($args, $provider_categories);
+    } elseif ($tokens) {
+        $token_where = array();
+        foreach ($tokens as $token) {
+            $like = '%' . $wpdb->esc_like($token) . '%';
+            $token_where[] = '(nombre LIKE %s OR categoria_proveedor LIKE %s OR descripcion LIKE %s)';
+            array_push($args, $like, $like, $like);
+        }
+        if ($token_where) {
+            $where[] = '(' . implode(' OR ', $token_where) . ')';
+        }
+    }
+
+    if (count($where) > 1) {
+        $sql = "SELECT
+                    id, proveedor_id_externo, sku, url_origen, url_canonica,
+                    nombre, descripcion, categoria_proveedor, precio_con_iva,
+                    moneda, imagenes, estado_seleccion, estado_sincronizacion,
+                    object_id, actualizado
+                FROM {$table}
+                WHERE " . implode(' AND ', $where) . "
+                  AND (url_canonica IS NOT NULL OR url_origen IS NOT NULL)
+                ORDER BY actualizado DESC, id DESC
+                LIMIT 80";
+        $candidates = $wpdb->get_results($wpdb->prepare($sql, ...$args), ARRAY_A);
+
+        $category_keys = array_fill_keys(array_map(static function ($value) {
+            return sanitize_title(remove_accents(mb_strtolower((string) $value)));
+        }, $provider_categories), true);
+        $current_product_ids = array_fill_keys(array_map('absint', (array) $product_ids), true);
+
+        foreach ((array) $candidates as $candidate) {
+            $score = 0;
+            $candidate_category = sanitize_title(remove_accents(mb_strtolower((string) ($candidate['categoria_proveedor'] ?? ''))));
+            if ($candidate_category !== '' && isset($category_keys[$candidate_category])) {
+                $score += 100;
+            }
+
+            $name_haystack = remove_accents(mb_strtolower((string) ($candidate['nombre'] ?? '')));
+            $cat_haystack  = remove_accents(mb_strtolower((string) ($candidate['categoria_proveedor'] ?? '')));
+            $desc_haystack = remove_accents(mb_strtolower((string) ($candidate['descripcion'] ?? '')));
+            foreach ($tokens as $token) {
+                if (false !== mb_strpos($name_haystack, $token)) $score += 10;
+                if (false !== mb_strpos($cat_haystack, $token)) $score += 12;
+                if (false !== mb_strpos($desc_haystack, $token)) $score += 3;
+            }
+
+            $object_id = absint($candidate['object_id'] ?? 0);
+            if ($object_id && isset($current_product_ids[$object_id])) {
+                $score -= 10; // Puede aparecer, pero preferimos no duplicar el mismo producto propio.
+            } else {
+                $score += 5;
+            }
+
+            $candidate['_dht_relevance'] = $score;
+            if ($score >= 10) {
+                $items[] = $candidate;
+            }
+        }
+
+        usort($items, static function ($a, $b) {
+            $cmp = (int) ($b['_dht_relevance'] ?? 0) <=> (int) ($a['_dht_relevance'] ?? 0);
+            if ($cmp !== 0) return $cmp;
+            return (int) ($b['id'] ?? 0) <=> (int) ($a['id'] ?? 0);
+        });
+
+        $deduped = array();
+        $seen = array();
+        foreach ($items as $item) {
+            $key = trim((string) ($item['proveedor_id_externo'] ?? ''));
+            if ($key === '') $key = trim((string) ($item['sku'] ?? ''));
+            if ($key === '') $key = trim((string) ($item['url_canonica'] ?? $item['url_origen'] ?? ''));
+            if ($key === '' || isset($seen[$key])) continue;
+            $seen[$key] = true;
+            unset($item['_dht_relevance']);
+            $deduped[] = $item;
+            if (count($deduped) >= $limit) break;
+        }
+        $items = $deduped;
+    }
+} else {
+    // En otros contextos conservamos el comportamiento anterior.
+    $items = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT
+                id, proveedor_id_externo, sku, url_origen, url_canonica,
+                nombre, categoria_proveedor, precio_con_iva, moneda, imagenes,
+                estado_seleccion, estado_sincronizacion
+             FROM {$table}
+             WHERE proveedor = %s
+               AND estado_seleccion = %s
+               AND estado_sincronizacion = %s
+             ORDER BY RAND()
+             LIMIT %d",
+            'vevor', 'descartado', 'ignorado', $limit
+        ),
+        ARRAY_A
+    );
+}
 
 if (!is_array($items)) {
     $items = array();
@@ -139,9 +272,9 @@ if (!$items) {
 <section class="dht-vevor-products" aria-labelledby="dht-vevor-products-title">
     <div class="dht-vevor-products__inner">
         <header class="dht-vevor-products__header">
-            <span class="dht-vevor-products__kicker">Selección VEVOR</span>
-            <h2 id="dht-vevor-products-title">Productos destacados en VEVOR</h2>
-            <p>Una selección aleatoria de productos disponibles en nuestro catálogo VEVOR.</p>
+            <span class="dht-vevor-products__kicker">Más opciones relacionadas</span>
+            <h2 id="dht-vevor-products-title"><?php echo $category_context instanceof WP_Term ? 'También en VEVOR: ' . esc_html($category_context->name) : 'Productos destacados en VEVOR'; ?></h2>
+            <p><?php echo $category_context instanceof WP_Term ? 'Opciones VEVOR seleccionadas por afinidad con esta categoría. La compra se completa en VEVOR.' : 'Una selección de productos disponibles en VEVOR.'; ?></p>
         </header>
 
         <div class="dht-vevor-products__grid">
@@ -210,25 +343,3 @@ if (!$items) {
     </div>
 </section>
 
-<style>
-.dht-vevor-products{padding:34px 0;background:#fff}
-.dht-vevor-products__inner{width:min(1200px,calc(100% - 32px));margin:0 auto}
-.dht-vevor-products__header{margin-bottom:20px}
-.dht-vevor-products__kicker{display:block;margin-bottom:5px;color:#667085;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
-.dht-vevor-products__header h2{margin:0 0 7px;font-size:clamp(24px,3vw,34px);line-height:1.15}
-.dht-vevor-products__header p{margin:0;color:#667085}
-.dht-vevor-products__grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
-.dht-vevor-product{display:flex;min-width:0;overflow:hidden;flex-direction:column;border:1px solid #e4e7ec;border-radius:14px;background:#fff;box-shadow:0 3px 12px rgba(16,24,40,.06)}
-.dht-vevor-product__media{display:flex;aspect-ratio:1/1;align-items:center;justify-content:center;padding:14px;overflow:hidden;background:#f7f8fa;text-decoration:none}
-.dht-vevor-product__media img{display:block;width:100%;height:100%;object-fit:contain}
-.dht-vevor-product__no-image{font-size:24px;font-weight:900;color:#667085}
-.dht-vevor-product__body{display:flex;flex:1;flex-direction:column;gap:8px;padding:15px}
-.dht-vevor-product__category{overflow:hidden;color:#667085;font-size:11px;font-weight:700;letter-spacing:.04em;text-overflow:ellipsis;text-transform:uppercase;white-space:nowrap}
-.dht-vevor-product h3{display:-webkit-box;margin:0;overflow:hidden;color:#182230;font-size:15px;line-height:1.4;-webkit-box-orient:vertical;-webkit-line-clamp:3}
-.dht-vevor-product__price{font-size:18px;font-weight:850;color:#101828}
-.dht-vevor-product__button{display:inline-flex;align-items:center;justify-content:center;gap:6px;margin-top:auto;padding:10px 12px;border-radius:8px;background:#e84b2c;color:#fff!important;font-size:13px;font-weight:800;text-decoration:none}
-.dht-vevor-product__button:hover{background:#c93a20;color:#fff!important}
-.dht-vevor-products__notice{margin:14px 0 0;color:#667085;font-size:11px}
-@media(max-width:900px){.dht-vevor-products__grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:680px){.dht-vevor-products__grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.dht-vevor-products__inner{width:min(100% - 22px,1200px)}.dht-vevor-product__body{padding:12px}.dht-vevor-product__media{padding:9px}}
-</style>

@@ -267,7 +267,7 @@ $json = array(
                 <div class="dht-category-summary">
 
                     <span class="dht-kicker">
-                        Categoría de productos..
+                        Explora y compara
                     </span>
 
                     <h1>
@@ -281,6 +281,16 @@ $json = array(
                         </div>
 
                     <?php endif; ?>
+
+                    <div class="dht-category-hero-meta" aria-label="Resumen de la categoría">
+                        <span><strong><?php echo esc_html(number_format_i18n((int) $term->count)); ?></strong> productos</span>
+                        <span>Comparación disponible</span>
+                    </div>
+
+                    <div class="dht-category-hero-actions">
+                        <a class="dht-btn dht-btn-primary" href="#dht-category-products">Ver productos</a>
+                        <a class="dht-btn dht-btn-secondary" href="<?php echo esc_url(add_query_arg('dep_q', $term->name, dht_template_dependiente_page_url())); ?>">Ayúdame a elegir</a>
+                    </div>
 
                     <?php if(!empty($category_tags)): ?>
 
@@ -331,8 +341,11 @@ $json = array(
 
             <div class="dht-container">
 
-                <div class="dht-category-description">
-                    <?php echo wp_kses_post($category_description); ?>
+                <div class="dht-category-description-card">
+                    <span class="dht-category-description-kicker">Sobre esta familia</span>
+                    <div class="dht-category-description">
+                        <?php echo wp_kses_post($category_description); ?>
+                    </div>
                 </div>
 
             </div>
@@ -340,6 +353,12 @@ $json = array(
         </section>
 
     <?php endif; ?>
+
+    <section class="dht-section dht-category-assistant-section" aria-label="Ayuda para elegir">
+        <div class="dht-container">
+            <?php dht_template_render_dependiente_cta($term->name, 'context'); ?>
+        </div>
+    </section>
 
 
     <!-- =====================================================
@@ -369,11 +388,20 @@ $json = array(
     <?php if($category_products->have_posts()): ?>
 
         <?php
+        $grid_products = array();
+        foreach ((array) $category_products->posts as $product_post) {
+            $grid_product = wc_get_product($product_post->ID);
+            if ($grid_product && is_a($grid_product, 'WC_Product')) {
+                $grid_products[] = $grid_product;
+            }
+        }
+        $category_choice_criteria = dht_template_category_choice_criteria($grid_products, 6);
+
         wc_set_loop_prop('columns', 2);
         wc_set_loop_prop('total', $category_products->post_count);
         ?>
 
-        <section class="dht-section dht-category-products">
+        <section id="dht-category-products" class="dht-section dht-category-products">
 
             <div class="dht-container">
 
@@ -386,24 +414,23 @@ $json = array(
                         </h2>
 
                         <p class="dht-section-subtitle">
-                            Consulta una selección de productos disponibles en esta categoría.
+                            Compara opciones del catálogo y revisa las características que diferencian cada referencia.
                         </p>
+
+                        <?php if (!empty($category_choice_criteria)) : ?>
+                            <div class="dht-category-choice-criteria" aria-label="Criterios de comparación presentes en los productos">
+                                <strong>Compara especialmente</strong>
+                                <div class="dht-category-choice-criteria__items">
+                                    <?php foreach ($category_choice_criteria as $criterion) : ?>
+                                        <span><?php echo esc_html($criterion); ?></span>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
 
                     </header>
 
                     <?php
-                    /*
-                     * Tarjetas renderizadas por el sistema DHT para no depender
-                     * de content-product.php del child theme. La imagen se resuelve:
-                     * Media -> hasta 3 URLs del proveedor -> logo.
-                     */
-                    $grid_products = array();
-                    foreach ((array) $category_products->posts as $product_post) {
-                        $grid_product = wc_get_product($product_post->ID);
-                        if ($grid_product && is_a($grid_product, 'WC_Product')) {
-                            $grid_products[] = $grid_product;
-                        }
-                    }
                     dht_shared_render_product_grid($grid_products, 'dht-category-product-grid', 3, true);
                     ?>
 
@@ -421,29 +448,7 @@ $json = array(
     ====================================================== -->
 
     <?php
-    $related_categories = get_terms([
-        'taxonomy'   => 'product_cat',
-        'parent'     => $term->term_id,
-        'hide_empty' => true,
-        'number'     => 12,
-        'orderby'    => 'name',
-        'order'      => 'ASC',
-    ]);
-
-    /*
-     * Si no tiene subcategorías, mostrar categorías hermanas.
-     */
-    if(empty($related_categories) || is_wp_error($related_categories)){
-        $related_categories = get_terms([
-            'taxonomy'   => 'product_cat',
-            'parent'     => (int) $term->parent,
-            'exclude'    => [$term->term_id],
-            'hide_empty' => true,
-            'number'     => 8,
-            'orderby'    => 'count',
-            'order'      => 'DESC',
-        ]);
-    }
+    $related_categories = dht_template_related_product_categories($term, 4);
     ?>
 
     <?php if(!empty($related_categories) && !is_wp_error($related_categories)): ?>
@@ -455,11 +460,11 @@ $json = array(
                 <header class="dht-section-header">
 
                     <h2 class="dht-section-title">
-                        Categorías relacionadas
+                        Familias relacionadas
                     </h2>
 
                     <p class="dht-section-subtitle">
-                        Encuentra herramientas y equipamiento dentro de categorías relacionadas.
+                        Amplía la búsqueda con familias conectadas directamente con <?php echo esc_html($term->name); ?>.
                     </p>
 
                 </header>
@@ -497,7 +502,7 @@ $json = array(
                         $related_description = !empty($related_description_html)
                             ? wp_trim_words(
                                 wp_strip_all_tags($related_description_html),
-                                22
+                                16
                             )
                             : 'Ver herramientas y productos disponibles en esta categoría.';
                         ?>
@@ -577,20 +582,33 @@ $json = array(
 
 
     <!-- =====================================================
-         FORMULARIO DE PREGUNTAS
+         CONSULTA HUMANA: FORMULARIO CONSERVADO, COMPACTO
     ====================================================== -->
 
-    <?php
-    $faq_form_object_type = 2;
-    $faq_form_object_id   = $term->term_id;
-    $faq_form_ambito      = '';
-
-    $faq_form_template = __DIR__ . '/faq-form.php';
-
-    if(file_exists($faq_form_template)){
-        include $faq_form_template;
-    }
-    ?>
+    <section class="dht-category-question-section">
+        <div class="dht-container">
+            <details class="dht-category-question-details">
+                <summary>
+                    <span>
+                        <strong>¿Prefieres escribirnos tu duda?</strong>
+                        <small>Abre el formulario y envíanos una pregunta sobre esta categoría.</small>
+                    </span>
+                    <span class="dht-category-question-details__icon" aria-hidden="true">+</span>
+                </summary>
+                <div class="dht-category-question-details__content">
+                    <?php
+                    $faq_form_object_type = 2;
+                    $faq_form_object_id   = $term->term_id;
+                    $faq_form_ambito      = '';
+                    $faq_form_template = __DIR__ . '/faq-form.php';
+                    if(file_exists($faq_form_template)){
+                        include $faq_form_template;
+                    }
+                    ?>
+                </div>
+            </details>
+        </div>
+    </section>
 
     <!-- =====================================================
          PRODUCTOS EXTERNOS / AFILIADOS
@@ -604,13 +622,18 @@ $json = array(
     if (function_exists('dht_render_amazon_category_block')) {
         dht_render_amazon_category_block($term, array(
             'limit' => 8,
-            'title' => 'Productos que te pueden interesar',
+            'title' => 'Más opciones relacionadas en Amazon',
             'mode'  => 'dynamic',
         ));
     }
     ?>
 
-    <?php include __DIR__ . '/template-vevor-affiliate.php'; ?>
+    <?php
+    $dht_vevor_category_term = $term;
+    $dht_vevor_category_keywords = $keywords;
+    include __DIR__ . '/template-vevor-affiliate.php';
+    unset($dht_vevor_category_term, $dht_vevor_category_keywords);
+    ?>
 
 
 </main>

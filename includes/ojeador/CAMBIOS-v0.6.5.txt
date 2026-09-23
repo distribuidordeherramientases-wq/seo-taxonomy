@@ -1,0 +1,7 @@
+Ojeador v0.6.5 - corrección de procesamiento de Google Shopping
+
+- Corrige el fallo que detenía el worker después de recibir HTTP 200: faltaba normalize_category_result().
+- Normaliza y conserva los resultados de categoría devueltos por Google Shopping (título/ID, comercio, precio, precio anterior, moneda, entrega, rating, reviews, imagen y URLs cuando existen).
+- El precio y el comercio son opcionales: un resultado de mercado no se descarta si Google no los expone.
+- Añade protección Throwable en el worker. Una excepción interna se registra como parse_error, actualiza el estado de la categoría y detiene el run para evitar repetir consultas inútiles.
+- No cambia el esquema SQL. La DB sigue en 0.6.4.

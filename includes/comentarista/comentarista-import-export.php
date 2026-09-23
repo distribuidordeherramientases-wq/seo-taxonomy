@@ -12,6 +12,31 @@ add_action('admin_init', 'seo_comentarista_export_csv');
 add_action('admin_init', 'seo_comentarista_import_csv');
 
 /**
+ * Resuelve el producto de una fila importada. El ID tiene prioridad si es válido;
+ * el SKU permite transportar el CSV entre instalaciones donde cambien los IDs.
+ *
+ * @param array $row
+ * @return int
+ */
+function seo_comentarista_import_resolve_product_id($row)
+{
+    $product_id = absint($row['product_id'] ?? 0);
+    if ($product_id && seo_comentarista_validate_product($product_id)) {
+        return $product_id;
+    }
+
+    $sku = trim((string) ($row['product_sku'] ?? ''));
+    if ($sku !== '' && function_exists('wc_get_product_id_by_sku')) {
+        $by_sku = absint(wc_get_product_id_by_sku($sku));
+        if ($by_sku && seo_comentarista_validate_product($by_sku)) {
+            return $by_sku;
+        }
+    }
+
+    return 0;
+}
+
+/**
  * Exporta la tabla de Comentarista a CSV.
  */
 function seo_comentarista_export_csv()
@@ -57,6 +82,8 @@ function seo_comentarista_export_csv()
     $headers = array(
         'comentarista_id',
         'product_id',
+        'product_sku',
+        'product_name',
         'content_type',
         'source_platform',
         'source_name',
@@ -79,9 +106,15 @@ function seo_comentarista_export_csv()
     seo_ie_write_csv_row($output, $headers);
 
     foreach ($rows as $row) {
+        $product = function_exists('wc_get_product') ? wc_get_product((int) $row['product_id']) : null;
+        $product_sku = $product ? (string) $product->get_sku() : '';
+        $product_name = $product ? (string) $product->get_name() : (string) get_the_title((int) $row['product_id']);
+
         seo_ie_write_csv_row($output, array(
             (int) $row['id'],
             (int) $row['product_id'],
+            $product_sku,
+            $product_name,
             (string) $row['content_type'],
             (string) $row['source_platform'],
             (string) ($row['source_name'] ?? ''),
@@ -158,11 +191,13 @@ function seo_comentarista_import_csv()
         $header
     );
 
-    foreach (array('product_id', 'content_type') as $required) {
-        if (!in_array($required, $header, true)) {
-            fclose($handle);
-            wp_die(sprintf(esc_html__('Falta la columna obligatoria %s.', 'seo-system'), esc_html($required)));
-        }
+    if (!in_array('content_type', $header, true)) {
+        fclose($handle);
+        wp_die(esc_html__('Falta la columna obligatoria content_type.', 'seo-system'));
+    }
+    if (!in_array('product_id', $header, true) && !in_array('product_sku', $header, true)) {
+        fclose($handle);
+        wp_die(esc_html__('El CSV debe incluir product_id o product_sku.', 'seo-system'));
     }
 
     $log = array(
@@ -188,9 +223,18 @@ function seo_comentarista_import_csv()
 
         $log['procesados']++;
         $row = seo_ie_build_csv_row($header, $csv_row);
+        $resolved_product_id = seo_comentarista_import_resolve_product_id($row);
+
+        if (!$resolved_product_id) {
+            $log['errores']++;
+            if (function_exists('seo_ie_add_log_detail')) {
+                seo_ie_add_log_detail($log, sprintf('Fila %d: no se pudo resolver el producto por product_id/product_sku.', $line));
+            }
+            continue;
+        }
 
         $data = array(
-            'product_id'          => absint($row['product_id'] ?? 0),
+            'product_id'          => $resolved_product_id,
             'content_type'        => sanitize_key($row['content_type'] ?? 'comment'),
             'source_platform'     => sanitize_key($row['source_platform'] ?? 'web'),
             'source_name'         => (string) ($row['source_name'] ?? ''),
@@ -214,6 +258,17 @@ function seo_comentarista_import_csv()
         $data = seo_comentarista_enrich_source_data($data);
         $id = absint($row['comentarista_id'] ?? 0);
         $existing = $id ? seo_comentarista_get($id) : null;
+
+        if (!$existing && !empty($data['external_id']) && function_exists('seo_comentarista_get_by_external_id')) {
+            $existing = seo_comentarista_get_by_external_id(
+                $data['product_id'],
+                $data['source_platform'],
+                $data['external_id']
+            );
+            if ($existing) {
+                $id = (int) $existing['id'];
+            }
+        }
 
         if ($existing) {
             $result = seo_comentarista_update($id, $data);
@@ -248,12 +303,22 @@ function seo_comentarista_import_csv()
         seo_ie_store_log($log);
     }
 
-    wp_safe_redirect(
-        add_query_arg(
+    $return_to_comentarista = !empty($_POST['seo_comentarista_return'])
+        && sanitize_key(wp_unslash($_POST['seo_comentarista_return'])) === 'comentarista';
+
+    if ($return_to_comentarista) {
+        $redirect = add_query_arg(
+            array('page' => 'seo-comentarista', 'view' => 'import-export', 'imported' => '1'),
+            admin_url('admin.php')
+        );
+    } else {
+        $redirect = add_query_arg(
             array('page' => 'seo-import-export', 'seo_ie_tab' => 'wordpress', 'seo_ie_imported' => 'comentarista'),
             admin_url('admin.php')
-        )
-    );
+        );
+    }
+
+    wp_safe_redirect($redirect);
     exit;
 }
 
@@ -274,13 +339,42 @@ function seo_comentarista_render_import_export_cards()
 
     <div class="card" style="max-width:none;padding:20px;">
         <h2>Importar Comentarista</h2>
-        <p>Actualiza por <code>comentarista_id</code> cuando existe o crea un registro nuevo. El CSV puede contener distintos tipos de contenido externo.</p>
+        <p>Actualiza por <code>comentarista_id</code>; si no existe y hay <code>external_id</code>, intenta localizar la misma evidencia por producto + plataforma + ID externo. Si no encuentra coincidencia, crea un registro nuevo.</p>
         <form method="post" enctype="multipart/form-data">
             <?php wp_nonce_field('seo_import_comentarista_csv', 'seo_import_comentarista_nonce'); ?>
+            <?php if (!empty($_GET['page']) && sanitize_key(wp_unslash($_GET['page'])) === 'seo-comentarista') : ?>
+                <input type="hidden" name="seo_comentarista_return" value="comentarista">
+            <?php endif; ?>
             <input type="file" name="comentarista_csv" accept=".csv,text/csv" required>
-            <p class="description">Obligatorias: <code>product_id</code> y <code>content_type</code>. Para vídeos/social/artículos/enlaces también se requiere <code>source_url</code>.</p>
+            <p class="description">Obligatoria: <code>content_type</code> y al menos uno de <code>product_id</code> o <code>product_sku</code>. Si existe <code>external_id</code>, se usa con producto + plataforma para evitar duplicados en importaciones repetidas. Para vídeos/social/artículos/enlaces también se requiere <code>source_url</code>.</p>
             <p><button type="submit" name="seo_import_comentarista" value="1" class="button button-primary">Importar Comentarista</button></p>
         </form>
     </div>
     <?php
 }
+
+/**
+ * Pantalla propia de Importar / Exportar dentro de Comentarista.
+ * Mantiene la compatibilidad con la pantalla global del sistema, pero evita
+ * depender de ella para administrar los comentarios de productos.
+ */
+function seo_comentarista_import_export_admin_page()
+{
+    if (!current_user_can('manage_options')) {
+        wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'seo-system'));
+    }
+
+    ?>
+    <div class="wrap">
+        <h1>Comentarista</h1>
+        <?php if (function_exists('seo_comentarista_admin_tabs')) : ?>
+            <?php seo_comentarista_admin_tabs('import-export'); ?>
+        <?php endif; ?>
+        <p>Importa o exporta evidencias externas asociadas a productos. El CSV incluye ID, SKU y nombre del producto para facilitar su traslado entre entornos.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:20px;max-width:1100px;">
+            <?php seo_comentarista_render_import_export_cards(); ?>
+        </div>
+    </div>
+    <?php
+}
+

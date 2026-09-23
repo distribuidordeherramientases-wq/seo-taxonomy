@@ -581,19 +581,25 @@ $main_image = dht_landing_v6_main_image($post_id, $related_cat_ids, 'large');
 
             <div class="dht-v6-benefits">
                 <div class="dht-v6-benefit">
-                    <strong>Calidad profesional</strong>
-                    <span>Soluciones seleccionadas para un uso fiable y exigente.</span>
+                    <strong>Empieza por la necesidad</strong>
+                    <span>Usa esta página para situar el trabajo y bajar después a categorías y productos concretos.</span>
                 </div>
                 <div class="dht-v6-benefit">
-                    <strong>Marcas especializadas</strong>
-                    <span>Catalogo de fabricantes y proveedores especializados.</span>
+                    <strong>Compara alternativas</strong>
+                    <span>Revisa familias, características y opciones relacionadas antes de decidir.</span>
                 </div>
                 <div class="dht-v6-benefit">
-                    <strong>Compra con confianza</strong>
-                    <span>Compara alternativas y revisa la opcion adecuada para tu necesidad.</span>
+                    <strong>Acompañamiento humano</strong>
+                    <span>Si surge una incidencia, te ayudamos con la gestión y el seguimiento con fabricante o distribuidor.</span>
                 </div>
             </div>
         </aside>
+    </div>
+</section>
+
+<section class="dht-assistant-section">
+    <div class="hub-container">
+        <?php dht_template_render_dependiente_cta(get_the_title(), 'context'); ?>
     </div>
 </section>
 

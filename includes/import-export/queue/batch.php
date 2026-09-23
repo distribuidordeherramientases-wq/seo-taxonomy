@@ -77,6 +77,8 @@ if ( ! function_exists( 'seo_ie_product_import_schedule_wp_fallback' ) ) {
 add_action( 'admin_init', 'seo_ie_batch_admin_action', 5 );
 add_action( 'seo_ie_process_import_batch_queue', 'seo_ie_batch_queue_worker', 10, 1 );
 add_action( 'wp_ajax_seo_ie_batch_tick', 'seo_ie_batch_ajax_tick' );
+add_action( 'admin_init', 'seo_ie_batch_maybe_cleanup_old_files', 20 );
+add_action( 'seo_process_supervisor_periodic_pulse', 'seo_ie_batch_cleanup_on_supervisor_pulse', 20, 2 );
 
 /**
  * Rutas de la cola.
@@ -94,6 +96,299 @@ function seo_ie_batch_paths() {
         'failed'     => trailingslashit( $base ) . 'failed',
         'rejected'   => trailingslashit( $base ) . 'rejected',
     ];
+}
+
+/**
+ * Retencion maxima de los CSV administrados por la cola.
+ *
+ * El valor es deliberadamente interno al plugin: no depende de WP-Cron ni de
+ * wp-config.php. Puede ajustarse por filtro sin convertirlo en una constante de
+ * infraestructura.
+ *
+ * @return int Dias de retencion.
+ */
+function seo_ie_batch_retention_days() {
+    return max( 1, min( 90, absint( apply_filters( 'seo_ie_batch_retention_days', 7 ) ) ) );
+}
+
+/**
+ * Intervalo minimo entre barridos automaticos de limpieza.
+ *
+ * El supervisor puede emitir pulsos muy frecuentes. Limitar el barrido evita
+ * recorrer el sistema de archivos en cada ciclo del worker.
+ *
+ * @return int Segundos.
+ */
+function seo_ie_batch_cleanup_interval() {
+    return max( HOUR_IN_SECONDS, absint( apply_filters( 'seo_ie_batch_cleanup_interval', 6 * HOUR_IN_SECONDS ) ) );
+}
+
+/**
+ * Estado persistido del ultimo barrido de retencion.
+ *
+ * @return array
+ */
+function seo_ie_batch_cleanup_state() {
+    $state = get_option( 'seo_ie_batch_cleanup_state', [] );
+    return is_array( $state ) ? $state : [];
+}
+
+/**
+ * Devuelve los nombres de processing que pertenecen realmente a un trabajo activo.
+ *
+ * Un CSV activo nunca se borra aunque su mtime sea antiguo. Esto permite limpiar
+ * restos huerfanos de processing sin cortar una importacion en curso.
+ *
+ * @return string[]
+ */
+function seo_ie_batch_active_processing_files() {
+    $protected = [];
+    $status    = seo_ie_batch_status();
+    $state     = sanitize_key( $status['status'] ?? '' );
+
+    if ( in_array( $state, [ 'starting', 'processing', 'stopping' ], true ) ) {
+        $current = sanitize_file_name( (string) ( $status['current_file'] ?? '' ) );
+        if ( '' !== $current ) {
+            $protected[] = $current;
+        }
+    }
+
+    $user_id = absint( $status['user_id'] ?? 0 );
+    if ( 0 < $user_id && function_exists( 'seo_ie_product_import_get_active' ) ) {
+        $active = seo_ie_product_import_get_active( $user_id );
+        if ( is_array( $active ) ) {
+            foreach ( [ 'queue_source_path', 'path', 'archivo', 'filename' ] as $key ) {
+                if ( empty( $active[ $key ] ) ) {
+                    continue;
+                }
+                $name = sanitize_file_name( basename( (string) $active[ $key ] ) );
+                if ( '' !== $name ) {
+                    $protected[] = $name;
+                }
+            }
+        }
+    }
+
+    if ( ! empty( $GLOBALS['seo_ie_batch_context']['source_path'] ) ) {
+        $name = sanitize_file_name( basename( (string) $GLOBALS['seo_ie_batch_context']['source_path'] ) );
+        if ( '' !== $name ) {
+            $protected[] = $name;
+        }
+    }
+
+    return array_values( array_unique( array_filter( $protected ) ) );
+}
+
+/**
+ * Marca temporal usada para decidir la antiguedad real del archivo.
+ *
+ * En imported/failed se prioriza el sidecar, porque rename() conserva el mtime
+ * original del CSV y podria hacer parecer antiguo un archivo importado hoy.
+ *
+ * @param string $bucket Carpeta logica.
+ * @param string $path   CSV.
+ * @return int Timestamp Unix.
+ */
+function seo_ie_batch_retention_timestamp( $bucket, $path ) {
+    $bucket = sanitize_key( $bucket );
+    $path   = (string) $path;
+
+    if ( in_array( $bucket, [ 'imported', 'failed' ], true ) && is_file( $path . '.log.json' ) ) {
+        $sidecar_mtime = filemtime( $path . '.log.json' );
+        if ( false !== $sidecar_mtime ) {
+            return (int) $sidecar_mtime;
+        }
+    }
+
+    $mtime = is_file( $path ) ? filemtime( $path ) : false;
+    return false === $mtime ? 0 : (int) $mtime;
+}
+
+/**
+ * Instantanea de retencion para diagnostico y Plugin Validation.
+ *
+ * Solo cubre las cuatro carpetas operativas acordadas: pending, processing,
+ * imported y failed. rejected queda fuera de esta politica.
+ *
+ * @return array
+ */
+function seo_ie_batch_retention_report() {
+    $paths       = seo_ie_batch_paths();
+    $days        = seo_ie_batch_retention_days();
+    $cutoff      = time() - ( $days * DAY_IN_SECONDS );
+    $protected   = seo_ie_batch_active_processing_files();
+    $buckets     = [];
+    $expired_all = 0;
+    $total_all   = 0;
+
+    foreach ( [ 'pending', 'processing', 'imported', 'failed' ] as $bucket ) {
+        $stats = [
+            'total'            => 0,
+            'expired'          => 0,
+            'protected_active' => 0,
+            'oldest_timestamp' => 0,
+        ];
+
+        foreach ( seo_ie_batch_files( $paths[ $bucket ] ?? '' ) as $path ) {
+            $stats['total']++;
+            $timestamp = seo_ie_batch_retention_timestamp( $bucket, $path );
+
+            if ( 0 < $timestamp && ( 0 === $stats['oldest_timestamp'] || $timestamp < $stats['oldest_timestamp'] ) ) {
+                $stats['oldest_timestamp'] = $timestamp;
+            }
+
+            if ( $timestamp <= 0 || $timestamp > $cutoff ) {
+                continue;
+            }
+
+            if ( 'processing' === $bucket && in_array( basename( $path ), $protected, true ) ) {
+                $stats['protected_active']++;
+                continue;
+            }
+
+            $stats['expired']++;
+        }
+
+        $buckets[ $bucket ] = $stats;
+        $total_all          += $stats['total'];
+        $expired_all        += $stats['expired'];
+    }
+
+    $cleanup = seo_ie_batch_cleanup_state();
+
+    return [
+        'retention_days'      => $days,
+        'cutoff'              => $cutoff,
+        'total_files'         => $total_all,
+        'expired_files'       => $expired_all,
+        'protected_processing'=> count( $protected ),
+        'buckets'             => $buckets,
+        'last_cleanup'        => $cleanup,
+    ];
+}
+
+/**
+ * Borra CSV con mas de siete dias y su .log.json asociado.
+ *
+ * La ejecucion esta estrangulada por tiempo y protegida por un lock breve. No
+ * depende de WP-Cron: puede ser llamada por el gestor de workers y, como red de
+ * seguridad, por una visita de administrador.
+ *
+ * @param bool $force Ignora el intervalo minimo entre barridos.
+ * @return array Estado del barrido.
+ */
+function seo_ie_batch_cleanup_old_files( $force = false ) {
+    $now      = time();
+    $previous = seo_ie_batch_cleanup_state();
+    $last_run = absint( $previous['last_run'] ?? 0 );
+
+    if ( ! $force && 0 < $last_run && ( $now - $last_run ) < seo_ie_batch_cleanup_interval() ) {
+        return $previous;
+    }
+
+    if ( get_transient( 'seo_ie_batch_cleanup_lock' ) ) {
+        return $previous;
+    }
+
+    set_transient( 'seo_ie_batch_cleanup_lock', 1, 10 * MINUTE_IN_SECONDS );
+
+    $queue_lock = function_exists( 'seo_ie_batch_acquire_lock' ) ? seo_ie_batch_acquire_lock() : '';
+    if ( function_exists( 'seo_ie_batch_acquire_lock' ) && '' === $queue_lock ) {
+        delete_transient( 'seo_ie_batch_cleanup_lock' );
+        return $previous;
+    }
+
+    $paths     = seo_ie_batch_paths();
+    $days      = seo_ie_batch_retention_days();
+    $cutoff    = $now - ( $days * DAY_IN_SECONDS );
+    $protected = seo_ie_batch_active_processing_files();
+    $result    = [
+        'last_run'           => $now,
+        'retention_days'     => $days,
+        'scanned'            => 0,
+        'expired'            => 0,
+        'deleted'            => 0,
+        'deleted_logs'       => 0,
+        'protected_active'   => 0,
+        'errors'             => 0,
+        'buckets'            => [],
+    ];
+
+    try {
+        foreach ( [ 'pending', 'processing', 'imported', 'failed' ] as $bucket ) {
+            $bucket_stats = [
+                'scanned'          => 0,
+                'expired'          => 0,
+                'deleted'          => 0,
+                'protected_active' => 0,
+                'errors'           => 0,
+            ];
+
+            foreach ( seo_ie_batch_files( $paths[ $bucket ] ?? '' ) as $path ) {
+                $bucket_stats['scanned']++;
+                $result['scanned']++;
+                $timestamp = seo_ie_batch_retention_timestamp( $bucket, $path );
+
+                if ( $timestamp <= 0 || $timestamp > $cutoff ) {
+                    continue;
+                }
+
+                if ( 'processing' === $bucket && in_array( basename( $path ), $protected, true ) ) {
+                    $bucket_stats['protected_active']++;
+                    $result['protected_active']++;
+                    continue;
+                }
+
+                $bucket_stats['expired']++;
+                $result['expired']++;
+
+                if ( ! @unlink( $path ) ) {
+                    $bucket_stats['errors']++;
+                    $result['errors']++;
+                    continue;
+                }
+
+                $bucket_stats['deleted']++;
+                $result['deleted']++;
+
+                if ( is_file( $path . '.log.json' ) && @unlink( $path . '.log.json' ) ) {
+                    $result['deleted_logs']++;
+                }
+            }
+
+            $result['buckets'][ $bucket ] = $bucket_stats;
+        }
+
+        update_option( 'seo_ie_batch_cleanup_state', $result, false );
+    } finally {
+        if ( '' !== $queue_lock && function_exists( 'seo_ie_batch_release_lock' ) ) {
+            seo_ie_batch_release_lock( $queue_lock );
+        }
+        delete_transient( 'seo_ie_batch_cleanup_lock' );
+    }
+
+    return $result;
+}
+
+/**
+ * Barrido automatico ligero en administracion, con throttle de seis horas.
+ *
+ * @return void
+ */
+function seo_ie_batch_maybe_cleanup_old_files() {
+    seo_ie_batch_cleanup_old_files( false );
+}
+
+/**
+ * Integra la retencion con el pulso periodico del gestor de workers.
+ *
+ * @param string $source      Origen del ciclo.
+ * @param int    $max_runtime Presupuesto del ciclo.
+ * @return void
+ */
+function seo_ie_batch_cleanup_on_supervisor_pulse( $source = '', $max_runtime = 0 ) {
+    unset( $source, $max_runtime );
+    seo_ie_batch_cleanup_old_files( false );
 }
 
 /**

@@ -4,7 +4,7 @@
  *
  * @package SEOSystem
  * @subpackage Clonador
- * @since 2.5.11
+ * @since 2.7.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -68,14 +68,32 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
             .seo-clonador-kpi-value{font-size:20px;font-weight:800}
             .seo-clonador-error{font-size:15px;font-weight:600;color:#a00;margin-top:10px;word-break:break-word}
             .seo-clonador-pending{max-height:155px;overflow:auto;padding-right:4px}
+            .seo-clonador-preflight{margin:18px 0;border:2px solid #dba617;border-radius:8px;background:#fffaf0;overflow:hidden}
+            .seo-clonador-preflight[open]{box-shadow:0 1px 3px rgba(0,0,0,.06)}
+            .seo-clonador-preflight>summary{cursor:pointer;list-style:none;padding:14px 16px;font-size:15px;font-weight:800;color:#5f4300;background:#fff3cd;display:flex;align-items:center;gap:10px}
+            .seo-clonador-preflight>summary::-webkit-details-marker{display:none}
+            .seo-clonador-preflight>summary:before{content:'▶';font-size:11px;transition:transform .15s ease}
+            .seo-clonador-preflight[open]>summary:before{transform:rotate(90deg)}
+            .seo-clonador-preflight-body{padding:15px 16px 16px;background:#fff}
+            .seo-clonador-preflight-intro{margin:0 0 12px;font-weight:700}
+            .seo-clonador-preflight-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin:12px 0}
+            .seo-clonador-preflight-item{border:1px solid #dcdcde;border-radius:6px;padding:11px 12px;background:#f6f7f7}
+            .seo-clonador-preflight-item strong{display:block;margin-bottom:5px}
+            .seo-clonador-badge{display:inline-block;border-radius:999px;padding:3px 9px;font-size:12px;font-weight:800;line-height:1.4;margin-left:5px;vertical-align:1px}
+            .seo-clonador-badge.on{background:#dff4e4;color:#005c16;border:1px solid #86c995}
+            .seo-clonador-badge.off{background:#fde8e7;color:#8a2424;border:1px solid #e4a5a2}
+            .seo-clonador-badge.info{background:#e5f1fb;color:#135e96;border:1px solid #9ec7e6}
+            .seo-clonador-preflight-path{margin:12px 0;padding:10px 12px;border-left:4px solid #2271b1;background:#eef6ff}
+            .seo-clonador-preflight-lock{margin:12px 0 0;padding:11px 12px;border-left:4px solid #d63638;background:#fff2f2;font-weight:700;color:#7a2020}
+            .seo-clonador-run-warning{margin:12px 0 0;padding:10px 12px;border:1px solid #dba617;border-radius:6px;background:#fff3cd;color:#5f4300;font-weight:800}
         </style>
 
         <div class="seo-clonador">
             <div class="seo-clonador-card">
-                <h1 style="margin-top:0;font-size:30px;line-height:1.2;">Clonador para Academia</h1>
-                <p style="font-size:15px;margin-top:-8px;"><strong>PRO → STAGING</strong> · Datos base para Academia · v<?php echo esc_html( SEO_CLONADOR_VERSION ); ?></p>
+                <h1 style="margin-top:0;font-size:30px;line-height:1.2;">Clonador espejo PRO → STAGING</h1>
+                <p style="font-size:15px;margin-top:-8px;"><strong>PRO → STAGING</strong> · Contenido + estructura + catálogo + cerebro SEO · v<?php echo esc_html( SEO_CLONADOR_VERSION ); ?></p>
                 <p><strong>PRO es siempre el origen. STAGING es siempre el destino.</strong> No existe ninguna operación STAGING → PRO.</p>
-                <p>La clonación elimina el perímetro gestionado de STAGING y lo reconstruye desde PRO. Los IDs anteriores de STAGING no se conservan ni se comparan.</p>
+                <p>La clonación vacía el contenido de STAGING y lo reconstruye desde PRO. Los objetos WordPress, adjuntos, menús, plantillas y términos conservan los IDs canónicos de PRO para no romper referencias internas.</p>
                 <p>Entorno desde el que has abierto la pantalla: <strong><?php echo esc_html( $current ? strtoupper( $current ) : 'NO IDENTIFICADO' ); ?></strong>.</p>
             </div>
 
@@ -83,9 +101,55 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
                 <strong>CONTROL MANUAL.</strong> El Gestor de procesos <strong>NO inicia</strong> una clonación. Tú la arrancas con el botón <strong>ARRANCAR CLONACIÓN</strong>. El worker únicamente entrega lotes pequeños mientras el proceso esté iniciado por ti. <strong>PARAR</strong> impide que se lance el siguiente lote.
             </div>
 
+            <details class="seo-clonador-preflight" id="seo-clonador-preflight" open>
+                <summary>⚠ PREPARACIÓN OBLIGATORIA ANTES DE SIMULAR O ARRANCAR</summary>
+                <div class="seo-clonador-preflight-body">
+                    <p class="seo-clonador-preflight-intro">Antes de clonar, deja el Gestor preparado para ejecutar <strong>solo el Clonador</strong>. Esta configuración debe mantenerse durante toda la clonación.</p>
+
+                    <div class="seo-clonador-preflight-grid">
+                        <div class="seo-clonador-preflight-item">
+                            <strong>Gestor de workers <span class="seo-clonador-badge on">ACTIVADO</span></strong>
+                            Debe permanecer activo para entregar las ventanas de trabajo al Clonador.
+                        </div>
+                        <div class="seo-clonador-preflight-item">
+                            <strong>Gestionar Clonador para Academia <span class="seo-clonador-badge on">ACTIVADO</span></strong>
+                            Esta casilla debe estar marcada en el Gestor de workers. El nombre es histórico: habilita el proceso del Clonador.
+                        </div>
+                        <div class="seo-clonador-preflight-item">
+                            <strong>Academia <span class="seo-clonador-badge off">DESACTIVADA / PARADA</span></strong>
+                            No debe recibir ventanas ni modificar conocimiento mientras se obtiene el espejo.
+                        </div>
+                        <div class="seo-clonador-preflight-item">
+                            <strong>Lingüista <span class="seo-clonador-badge off">DESACTIVADO / PAUSADO</span></strong>
+                            Debe permanecer sin procesar lotes durante la clonación.
+                        </div>
+                        <div class="seo-clonador-preflight-item">
+                            <strong>Import / Export <span class="seo-clonador-badge off">DESACTIVADO / PARADO</span></strong>
+                            No importes productos, FAQs ni otros datos mientras el Clonador esté trabajando.
+                        </div>
+                        <div class="seo-clonador-preflight-item">
+                            <strong>Usuario BBDD de STAGING <span class="seo-clonador-badge on">ESCRITURA + DDL</span></strong>
+                            Necesita SELECT, INSERT, UPDATE y DELETE. Si hay esquemas distintos, también CREATE, DROP y ALTER sobre la BBDD de STAGING. PRO permanece en solo lectura.
+                        </div>
+                        <div class="seo-clonador-preflight-item">
+                            <strong>Resto de procesos que escriben datos <span class="seo-clonador-badge off">PARADOS</span></strong>
+                            Evita cualquier proceso que pueda cambiar catálogo, relaciones, esquemas o conocimiento durante el snapshot.
+                        </div>
+                    </div>
+
+                    <div class="seo-clonador-preflight-path">
+                        <strong>Ruta:</strong> <code>Procesos → Gestor de workers</code> · Marca <strong>Gestor activo</strong> y <strong>Gestionar Clonador para Academia</strong>; deja desmarcados Academia, Lingüista, Import / Export y los demás procesos que modifican datos.
+                    </div>
+
+                    <div class="seo-clonador-preflight-lock">
+                        NO reactives Academia, Lingüista, Import / Export ni otros procesos hasta que el Clonador indique <strong>CLONACIÓN CORRECTA Y VERIFICADA</strong>.
+                    </div>
+                </div>
+            </details>
+
             <div class="seo-clonador-warning">
                 <strong>Operación destructiva en STAGING.</strong>
-                Se eliminan y reconstruyen los objetos/taxonomías/tablas gestionados. No se hace <code>TRUNCATE</code> de tablas compartidas como <code>wp_posts</code> o <code>wp_terms</code>. PRO nunca se modifica.
+                El contenido de <code>wp_posts</code> de STAGING se vacía por lotes y se reconstruye desde PRO; no se copian pedidos/transacciones. Usuarios, sesiones, credenciales, cron, locks, cachés y conexiones del entorno permanecen locales. PRO nunca se modifica.
             </div>
 
             <?php if ( function_exists( 'seo_clonador_db_render_connections' ) ) { seo_clonador_db_render_connections(); } ?>
@@ -175,9 +239,33 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
                 setSpeedUi(desiredSpeed);
             }
             function setBusy(on){requestBusy=!!on;updateControls();}
+            function clearPreviousJobUi(){
+                currentJob={};
+                if(pollTimer){clearInterval(pollTimer);pollTimer=null;}
+                if(workerBox){workerBox.style.display='none';workerBox.textContent='';}
+                if(live){live.className='seo-clonador-live';live.innerHTML='';}
+            }
+            function renderPreviewState(data){
+                clearPreviousJobUi();
+                const conflicts=Array.isArray(data&&data.conflicts)?data.conflicts:[];
+                if(data&&data.can_apply){
+                    live.className='seo-clonador-live is-success';
+                    live.innerHTML='<div class="seo-clonador-live-title">✓ SIMULACIÓN CORRECTA · LISTA PARA ARRANCAR</div>'+
+                        '<div class="seo-clonador-live-phase">Este resultado sustituye cualquier error de una clonación anterior.</div>'+
+                        '<div class="seo-clonador-live-meta"><span><strong>0 escrituras</strong></span><span>Conflictos: <strong>0</strong></span><span>Warnings: '+n((data.warnings||[]).length)+'</span></div>'+
+                        '<p style="margin-bottom:0">Revisa el plan y, si todo es correcto, pulsa <strong>ARRANCAR CLONACIÓN</strong>. Mantén el Gestor activo, solo Clonador gestionado y el resto de procesos parados.</p>';
+                }else{
+                    live.className='seo-clonador-live is-paused';
+                    live.innerHTML='<div class="seo-clonador-live-title">⚠ SIMULACIÓN COMPLETADA · ARRANQUE BLOQUEADO</div>'+
+                        '<div class="seo-clonador-live-phase">La simulación es la vigente; el error de cualquier job anterior ya no se muestra como estado actual.</div>'+
+                        '<div class="seo-clonador-live-meta"><span><strong>0 escrituras</strong></span><span>Conflictos: <strong>'+n(conflicts.length)+'</strong></span></div>'+
+                        (conflicts.length?'<div class="seo-clonador-error">'+conflicts.slice(0,6).map(esc).join('<br>')+'</div>':'');
+                }
+            }
 
             function render(data){
                 lastPlan=data;
+                renderPreviewState(data);
                 const rows=[];
                 const actions=data.actions||{};
                 Object.entries(actions.objects||{}).forEach(([k,v])=>rows.push([k,v.source||0,v.staging_before||0,v.delete_from_staging||0,v.create_from_pro||0]));
@@ -191,7 +279,7 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
                 if((data.conflicts||[]).length)html+='<div class="notice notice-error inline"><p><strong>Conflictos:</strong> '+n(data.conflicts.length)+'. ARRANQUE bloqueado.</p></div>';
                 summary.innerHTML=html;
                 plan.style.display='block';plan.textContent=JSON.stringify(data,null,2);
-                status.textContent=data.can_apply?'Simulación correcta. Nada se ha escrito. Pulsa ARRANCAR cuando tú decidas.':'Simulación bloqueada por conflictos.';
+                status.textContent=data.can_apply?'Simulación correcta. Nada se ha escrito. Pulsa ARRANCAR cuando tú decidas.':'Simulación completada. Se detectaron '+n((data.conflicts||[]).length)+' conflicto(s); ARRANCAR CLONACIÓN permanece bloqueado.';
                 updateControls();
             }
             function renderTables(title,tables,current=false){
@@ -207,7 +295,7 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
             function renderKpis(verification){
                 verification=verification||{};
                 const checks=verification.critical_kpis||{};
-                const wanted=['post_type:product','taxonomy:product_cat','kpi:products_with_category','kpi:products_without_category','kpi:products_with_seo_attributes','kpi:products_without_seo_attributes','table:sql_product_atributos','term_relationships','table:seo_faq','table:seo_vocabulary','table:seo_object_vocabulary'];
+                const wanted=['post_type:product','taxonomy:product_cat','kpi:products_with_category','kpi:products_without_category','kpi:products_with_seo_attributes','kpi:products_without_seo_attributes','table:sql_product_atributos','term_relationships','table:seo_faq','table:seo_vocabulary','table:seo_object_vocabulary','table:seo_dependiente_semantics','table:seo_interprete_lexicon','table:seo_interprete_lexicon_evidence','table:seo_dependiente_trainer_lessons','table:seo_dependiente_l9_signals','option:seo_dependiente_knowledge_snapshot','option:seo_dependiente_academy_update_last_success'];
                 const cards=[];
                 wanted.forEach(key=>{const c=checks[key];if(!c)return;cards.push('<div class="seo-clonador-kpi '+(c.ok?'ok':'bad')+'"><div class="seo-clonador-kpi-label">'+esc(c.label||key)+'</div><div class="seo-clonador-kpi-value">'+(c.ok?'✓ ':'✕ ')+n(c.staging)+'</div><div>PRO '+n(c.pro)+' · STAGING '+n(c.staging)+'</div></div>');});
                 const sm=verification.summary||{};
@@ -259,6 +347,7 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
                         renderTables('Tabla(s) en proceso',progress.current_tables||[],true)+
                         renderTables('Tablas que quedan pendientes',progress.pending_tables||[],false)+
                         renderTables('Tablas ya completadas',progress.completed_tables||[],false)+
+                        '<div class="seo-clonador-run-warning">⚠ DURANTE LA CLONACIÓN: mantén el Gestor activo y el Clonador gestionado, pero NO reactives Academia, Lingüista, Import / Export ni otros procesos que escriban datos.</div>'+
                         '<p style="margin-bottom:0"><strong>Estado:</strong> '+esc(currentJob.message||'Procesando por lotes.')+'</p>';
                     status.textContent='Clonación iniciada por ti. El worker solo gestiona los lotes; puedes cambiar de pantalla.';
                     updateControls();
@@ -290,9 +379,9 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
                         '<div class="seo-clonador-live-phase">PRO y STAGING coinciden en todos los controles del perímetro clonado.</div>'+ 
                         '<div class="seo-clonador-progress"><span style="width:100%"></span></div>'+ 
                         '<div class="seo-clonador-live-meta"><span><strong>100%</strong></span><span>Copiado: <strong>'+n(copied)+'</strong> filas/objetos</span><span>Duración: '+n(secs)+' s</span><span>Warnings: '+n((currentJob.result&&currentJob.result.warnings_total)||(currentJob.warnings||[]).length)+'</span></div>'+ 
-                        '<div class="seo-clonador-manual" style="margin:14px 0 0"><strong>SIGUIENTE PASO:</strong> reindexa Dependiente en STAGING y espera a que termine. Después ejecuta el Auditor. El Clonador no inicia ninguno de esos procesos automáticamente.</div>'+
+                        '<div class="seo-clonador-manual" style="margin:14px 0 0"><strong>CATÁLOGO + CEREBRO SINCRONIZADOS.</strong> Academia/Intérprete conservan el estado portable de PRO; workers, búsquedas de prueba e índice quedan limpios. <strong>SIGUIENTE PASO:</strong> reindexa Dependiente en STAGING y espera a que termine. Después ejecuta el Auditor.</div>'+
                         renderKpis(verification)+renderAllChecks(verification);
-                    status.textContent='Clonación terminada y VERIFICADA. Pendiente: reindexar Dependiente antes de auditar.';
+                    status.textContent='Clonación terminada y VERIFICADA. Ya puedes restaurar la gestión normal de procesos. Después reindexa Dependiente en STAGING antes de auditar.';
                     if(pollTimer){clearInterval(pollTimer);pollTimer=null;}
                     updateControls();
                     return;
@@ -334,8 +423,17 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
             }
 
             previewBtn&&previewBtn.addEventListener('click',async()=>{
-                setBusy(true);status.textContent='SIMULANDO. Cero escrituras; no se arranca ningún worker.';summary.innerHTML='';plan.style.display='none';lastPlan=null;
-                try{const data=await post('seo_clonador_preview');render(data);}catch(e){status.textContent='Simulación fallida: '+e.message;}finally{setBusy(false);}
+                setBusy(true);clearPreviousJobUi();status.textContent='SIMULANDO. Cero escrituras; el resultado nuevo sustituirá el estado visual anterior.';summary.innerHTML='';plan.style.display='none';plan.textContent='';lastPlan=null;
+                try{
+                    const data=await post('seo_clonador_preview');
+                    render(data);
+                }catch(e){
+                    currentJob={};
+                    live.className='seo-clonador-live is-failed';
+                    live.innerHTML='<div class="seo-clonador-live-title">✕ SIMULACIÓN FALLIDA</div><div class="seo-clonador-live-phase">No se ha escrito nada.</div><div class="seo-clonador-error">'+esc(e.message)+'</div>';
+                    status.textContent='Simulación fallida: '+e.message;
+                    updateControls();
+                }finally{setBusy(false);}
             });
 
             startBtn&&startBtn.addEventListener('click',async()=>{
@@ -348,7 +446,7 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
                 }
                 if(!lastPlan||!lastPlan.can_apply){status.textContent='Primero pulsa SIMULAR CLONACIÓN y revisa el plan.';return;}
                 const restartNote=paused?'\n\nHay una clonación parada. Esta acción iniciará una NUEVA clonación desde cero y sustituirá ese job.':'';
-                if(!window.confirm('ARRANCAR CLONACIÓN PRO → STAGING\n\nEsta es la acción que INICIA el proceso. Se eliminará el perímetro gestionado actual de STAGING y se reconstruirá desde PRO. PRO no se modifica.'+restartNote+'\n\nVelocidad: '+desiredSpeed+'/5 ('+(speedNames[desiredSpeed]||'Normal')+').\n\n¿ARRANCAR ahora?'))return;
+                if(!window.confirm('ARRANCAR CLONACIÓN PRO → STAGING\n\nANTES DE CONTINUAR:\n✓ Gestor de workers ACTIVO\n✓ Gestionar Clonador para Academia ACTIVADO\n✓ Academia PARADA\n✓ Lingüista PAUSADO/PARADO\n✓ Import / Export y demás procesos de escritura PARADOS\n✓ Usuario STAGING con permisos de escritura y DDL (CREATE/DROP/ALTER si se requieren)\n\nMantén esta configuración hasta que aparezca CLONACIÓN CORRECTA Y VERIFICADA.\n\nEsta acción eliminará el perímetro gestionado actual de STAGING y lo reconstruirá desde PRO. PRO no se modifica.'+restartNote+'\n\nVelocidad: '+desiredSpeed+'/5 ('+(speedNames[desiredSpeed]||'Normal')+').\n\n¿ARRANCAR ahora?'))return;
                 setBusy(true);status.textContent='Iniciando clonación por orden del usuario...';
                 try{
                     const data=await post('seo_clonador_apply',{confirm:'1',speed:String(desiredSpeed)});

@@ -356,6 +356,38 @@ function seo_comentarista_get($id)
 }
 
 /**
+ * Busca una evidencia por la identidad externa que proporciona la fuente.
+ * Se usa, entre otras cosas, para evitar duplicados en importaciones repetidas.
+ *
+ * @param int    $product_id
+ * @param string $source_platform
+ * @param string $external_id
+ * @return array|null
+ */
+function seo_comentarista_get_by_external_id($product_id, $source_platform, $external_id)
+{
+    global $wpdb;
+
+    $product_id = absint($product_id);
+    $source_platform = sanitize_key($source_platform);
+    $external_id = trim((string) $external_id);
+
+    if (!$product_id || $external_id === '' || !seo_comentarista_table_exists()) {
+        return null;
+    }
+
+    return $wpdb->get_row(
+        $wpdb->prepare(
+            'SELECT * FROM ' . seo_comentarista_table_name() . ' WHERE product_id = %d AND source_platform = %s AND external_id = %s ORDER BY id ASC LIMIT 1',
+            $product_id,
+            $source_platform,
+            $external_id
+        ),
+        ARRAY_A
+    );
+}
+
+/**
  * Recupera registros de un producto.
  *
  * @param int         $product_id

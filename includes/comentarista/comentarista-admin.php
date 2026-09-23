@@ -156,6 +156,14 @@ function seo_comentarista_admin_tabs($current = 'records')
             'label' => 'Cobertura',
             'url'   => add_query_arg(array('page' => 'seo-comentarista', 'view' => 'coverage'), admin_url('admin.php')),
         ),
+        'import-export' => array(
+            'label' => 'Importar / Exportar',
+            'url'   => add_query_arg(array('page' => 'seo-comentarista', 'view' => 'import-export'), admin_url('admin.php')),
+        ),
+        'json' => array(
+            'label' => 'JSON',
+            'url'   => add_query_arg(array('page' => 'seo-comentarista', 'view' => 'json'), admin_url('admin.php')),
+        ),
     );
 
     echo '<nav class="nav-tab-wrapper" style="margin-bottom:16px;">';
@@ -181,6 +189,14 @@ function seo_comentarista_admin_page()
     $view = sanitize_key(wp_unslash($_GET['view'] ?? 'records'));
     if ($view === 'coverage' && function_exists('seo_comentarista_coverage_admin_page')) {
         seo_comentarista_coverage_admin_page();
+        return;
+    }
+    if ($view === 'import-export' && function_exists('seo_comentarista_import_export_admin_page')) {
+        seo_comentarista_import_export_admin_page();
+        return;
+    }
+    if ($view === 'json' && function_exists('seo_comentarista_json_admin_page')) {
+        seo_comentarista_json_admin_page();
         return;
     }
 

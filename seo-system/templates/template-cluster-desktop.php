@@ -173,6 +173,12 @@ dht_template_render_header();
         </section>
     <?php endif; ?>
 
+    <section class="dht-assistant-section">
+        <div class="hub-container">
+            <?php dht_template_render_dependiente_cta($cluster_title, 'context'); ?>
+        </div>
+    </section>
+
     <?php if (!empty($hub_ids)) : ?>
         <section id="hubs-cluster" class="hub-section hub-secondary-section">
             <div class="hub-container">
@@ -263,6 +269,12 @@ dht_template_render_header();
             </div>
         </section>
     <?php endif; ?>
+
+    <section class="dht-service-section dht-service-section--structural" aria-label="Nuestro servicio de acompañamiento">
+        <div class="hub-container">
+            <?php dht_template_render_service_promise('strip', 'browse'); ?>
+        </div>
+    </section>
 
     <section class="hub-cta">
         <div class="hub-container hub-cta-inner">

@@ -7,6 +7,8 @@ defined('ABSPATH') || exit;
 
 require_once __DIR__ . '/context.php';
 require_once __DIR__ . '/vocabulary.php';
+require_once __DIR__ . '/google-schema.php';
+require_once __DIR__ . '/google-schema-import-export.php';
 require_once __DIR__ . '/sources.php';
 require_once __DIR__ . '/profiles.php';
 require_once __DIR__ . '/rules.php';

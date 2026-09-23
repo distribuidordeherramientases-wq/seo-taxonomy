@@ -171,7 +171,7 @@ if (!function_exists('seo_analista_build_json_export')) {
             ),
             'estrategia' => array(
                 'objetivos' => array('autoridad', 'visitas', 'ventas'),
-                'regla' => 'Una entidad = una tarea; fuentes no disponibles pesan 0; HACER_AHORA se limita a 10 trabajos.',
+                'regla' => 'Una entidad = una tarea; fuentes no disponibles pesan 0; la intensidad cambia según posición; HACER_AHORA se limita a 10 trabajos.',
                 'summary' => $plan_summary,
                 'plan_accion' => $plan,
             ),

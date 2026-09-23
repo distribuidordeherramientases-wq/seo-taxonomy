@@ -8,9 +8,14 @@
 
 defined('ABSPATH') || exit;
 
+if (!defined('SEO_COMENTARISTA_VERSION')) {
+    define('SEO_COMENTARISTA_VERSION', '2.1.0');
+}
+
 require_once __DIR__ . '/comentarista-db.php';
 require_once __DIR__ . '/comentarista-source.php';
 require_once __DIR__ . '/comentarista-admin.php';
 require_once __DIR__ . '/comentarista-coverage.php';
+require_once __DIR__ . '/comentarista-json.php';
 require_once __DIR__ . '/comentarista-render.php';
 require_once __DIR__ . '/comentarista-import-export.php';

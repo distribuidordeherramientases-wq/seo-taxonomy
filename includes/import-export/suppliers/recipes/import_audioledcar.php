@@ -2,18 +2,18 @@
 /**
  * Receta oficial AUDIOLEDCAR para SEO System.
  *
- * Version 1.0.0 - flujo Python externo + importacion automatica por callback.
+ * Version 1.1.0 - flujo Python externo con CSV artifact e importacion manual.
  *
  * Flujo:
  * 1) "AUDIOLEDCAR - Python externo" lanza el scraper en GitHub Actions.
- * 2) GitHub ejecuta scrapers/audioledcar.py.
- * 3) El CSV estandar se envia al callback privado de WordPress.
- * 4) El importador comun lo entrega a Supplier Sync V2.
- * 5) "AUDIOLEDCAR - mapeo de archivo" queda disponible como via manual.
+ * 2) GitHub ejecuta scrapers/audioledcar.py con control de flujo por lotes.
+ * 3) El CSV estandar queda guardado como artifact descargable de GitHub.
+ * 4) El usuario descarga ese CSV y lo importa con la receta de archivo.
+ * 5) No depende de callback ni de una sincronizacion automatica posterior.
  *
  * @package SEOSystem
  * @subpackage SupplierImports
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -33,7 +33,7 @@ add_filter(
             'id'          => 'audioledcar',
             'label'       => 'AUDIOLEDCAR - mapeo de archivo',
             'provider'    => 'AUDIOLEDCAR',
-            'version'     => '1.0.0',
+            'version'     => '1.1.0',
             'mode'        => 'mapping',
             'description' => 'Importa el CSV estandar generado por el scraper Python de Audioledcar. Tambien admite carga manual mediante el mapeo comun.',
         ];
@@ -61,10 +61,10 @@ add_filter(
             'id'               => 'audioledcar_github',
             'label'            => 'AUDIOLEDCAR - Python externo',
             'provider'         => 'AUDIOLEDCAR',
-            'version'          => '1.0.0',
+            'version'          => '1.1.0',
             'runner'           => 'github',
             'import_recipe_id' => 'audioledcar',
-            'description'      => 'Ejecuta el scraper Python de Audioledcar en GitHub Actions y devuelve automaticamente el CSV al Supplier Sync V2.',
+            'description'      => 'Ejecuta el scraper Python de Audioledcar en GitHub Actions. El CSV queda como artifact descargable para importarlo despues con la receta AUDIOLEDCAR.',
         ];
 
         return $recipes;

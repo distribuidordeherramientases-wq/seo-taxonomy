@@ -101,6 +101,223 @@ function seo_supplier_crawl_recipe( $recipe_id ) {
     return isset( $recipes[ $recipe_id ] ) ? $recipes[ $recipe_id ] : null;
 }
 
+/**
+ * Procesos locales de proveedor que delegan el trabajo largo al supervisor.
+ *
+ * La receta sigue apareciendo en "Obtener catalogo desde la web", pero su
+ * start_callback solo inicializa el estado. El trabajo real se ejecuta en
+ * ventanas pequeñas mediante manager_slice_callback.
+ *
+ * @return array<string,array<string,mixed>>
+ */
+function seo_supplier_managed_process_recipes() {
+    $managed = [];
+    foreach ( seo_supplier_crawl_recipes() as $recipe_id => $recipe ) {
+        if ( 'local_process' !== ( $recipe['execution'] ?? '' ) ) {
+            continue;
+        }
+        if ( empty( $recipe['manager_pending_callback'] ) || empty( $recipe['manager_slice_callback'] ) ) {
+            continue;
+        }
+        if ( ! is_callable( $recipe['manager_pending_callback'] ) || ! is_callable( $recipe['manager_slice_callback'] ) ) {
+            continue;
+        }
+        $managed[ $recipe_id ] = $recipe;
+    }
+    return $managed;
+}
+
+/**
+ * Declara al supervisor que existe una importacion de proveedor iniciada.
+ *
+ * @param bool $pending Estado previo de otros modulos.
+ * @return bool
+ */
+function seo_supplier_process_supervisor_has_pending( $pending ) {
+    if ( $pending ) {
+        return true;
+    }
+
+    $settings = function_exists( 'seo_process_supervisor_settings' )
+        ? seo_process_supervisor_settings()
+        : [ 'supplier_imports' => 1 ];
+    if ( empty( $settings['supplier_imports'] ) ) {
+        return false;
+    }
+
+    foreach ( seo_supplier_managed_process_recipes() as $recipe ) {
+        try {
+            if ( call_user_func( $recipe['manager_pending_callback'], $recipe ) ) {
+                return true;
+            }
+        } catch ( Throwable $exception ) {
+            // El supervisor registrara el error al intentar ejecutar la ventana.
+        }
+    }
+
+    return false;
+}
+add_filter( 'seo_process_supervisor_has_pending_work', 'seo_supplier_process_supervisor_has_pending', 20, 1 );
+
+/**
+ * Inserta las importaciones de proveedor iniciadas en el reparto round-robin
+ * del supervisor. No crea trabajos nuevos: solo recoge recetas arrancadas por
+ * el administrador.
+ *
+ * @param array $targets Targets existentes.
+ * @param array $settings Ajustes del supervisor.
+ * @param string $source Motor activo.
+ * @return array
+ */
+function seo_supplier_process_supervisor_targets( $targets, $settings, $source ) {
+    unset( $source );
+    $targets = is_array( $targets ) ? $targets : [];
+    if ( empty( $settings['supplier_imports'] ) ) {
+        return $targets;
+    }
+
+    foreach ( seo_supplier_managed_process_recipes() as $recipe_id => $recipe ) {
+        $pending = false;
+        try {
+            $pending = (bool) call_user_func( $recipe['manager_pending_callback'], $recipe );
+        } catch ( Throwable $exception ) {
+            $pending = false;
+        }
+        if ( ! $pending ) {
+            continue;
+        }
+
+        $state = seo_supplier_crawl_state( $recipe_id );
+        $due   = absint( $state['next_attempt_at'] ?? 0 );
+        $key   = 'supplier-import-' . sanitize_key( $recipe_id );
+        $label = sanitize_text_field( (string) ( $recipe['manager_label'] ?? ( 'Importacion proveedores - ' . $recipe['label'] ) ) );
+
+        if ( $due && $due > time() ) {
+            if ( function_exists( 'seo_process_supervisor_managed_update' ) ) {
+                seo_process_supervisor_managed_update(
+                    $key,
+                    [
+                        'name'         => $label,
+                        'pending'      => 1,
+                        'healthy'      => 1,
+                        'last_checked' => time(),
+                        'last_result'  => 'waiting',
+                        'last_error'   => '',
+                        'detail'       => sanitize_text_field( (string) ( $state['last_message'] ?? 'En pausa adaptativa antes de la siguiente peticion.' ) ),
+                    ]
+                );
+            }
+            continue;
+        }
+
+        $targets[] = [
+            'type'     => 'supplier_import',
+            'callback' => 'seo_supplier_process_supervisor_run_target',
+            'data'     => [ 'recipe_id' => $recipe_id ],
+        ];
+    }
+
+    return $targets;
+}
+add_filter( 'seo_process_supervisor_manager_targets', 'seo_supplier_process_supervisor_targets', 20, 3 );
+
+/**
+ * Ejecuta una sola ventana de una receta gestionada de proveedor.
+ *
+ * @param int    $budget Segundos asignados por el supervisor.
+ * @param string $source Motor activo.
+ * @param array  $target Target del supervisor.
+ * @return bool
+ */
+function seo_supplier_process_supervisor_run_target( $budget, $source, $target ) {
+    $recipe_id = sanitize_key( (string) ( $target['data']['recipe_id'] ?? '' ) );
+    $recipe    = seo_supplier_crawl_recipe( $recipe_id );
+    if ( ! is_array( $recipe ) || empty( $recipe['manager_slice_callback'] ) || ! is_callable( $recipe['manager_slice_callback'] ) ) {
+        return false;
+    }
+
+    $key   = 'supplier-import-' . $recipe_id;
+    $label = sanitize_text_field( (string) ( $recipe['manager_label'] ?? ( 'Importacion proveedores - ' . $recipe['label'] ) ) );
+    if ( function_exists( 'seo_process_supervisor_managed_update' ) ) {
+        seo_process_supervisor_managed_update(
+            $key,
+            [
+                'name'            => $label,
+                'pending'         => 1,
+                'healthy'         => 1,
+                'last_checked'    => time(),
+                'last_attempt_at' => time(),
+                'last_result'     => 'running',
+                'last_error'      => '',
+                'detail'          => 'El gestor esta ejecutando una ventana de importacion del proveedor.',
+            ]
+        );
+    }
+    if ( function_exists( 'seo_process_supervisor_log' ) ) {
+        seo_process_supervisor_log( 'info', 'process_window_started', $label . ' entra en una ventana del gestor.', 'Importacion proveedores', [ 'recipe' => $recipe_id, 'seconds' => absint( $budget ) ] );
+    }
+
+    $ok = false;
+    $window_started = microtime( true );
+    try {
+        $ok = (bool) call_user_func( $recipe['manager_slice_callback'], max( 5, absint( $budget ) ), sanitize_key( (string) $source ), $recipe );
+    } catch ( Throwable $exception ) {
+        $state = seo_supplier_crawl_state( $recipe_id );
+        $state['status']       = 'error';
+        $state['enabled']      = false;
+        $state['last_error']   = sanitize_text_field( $exception->getMessage() );
+        $state['last_message'] = 'Error del worker: ' . sanitize_text_field( $exception->getMessage() );
+        seo_supplier_crawl_store_state( $recipe_id, $state );
+    }
+
+    $window_seconds = max( 0, microtime( true ) - $window_started );
+    $state   = seo_supplier_crawl_state( $recipe_id );
+    $state['last_window_seconds'] = round( $window_seconds, 3 );
+    $state['last_window_budget']  = max( 5, absint( $budget ) );
+    seo_supplier_crawl_store_state( $recipe_id, $state );
+    $pending = false;
+    try {
+        $pending = (bool) call_user_func( $recipe['manager_pending_callback'], $recipe );
+    } catch ( Throwable $exception ) {
+        $pending = false;
+    }
+    $status  = sanitize_key( (string) ( $state['status'] ?? '' ) );
+    $healthy = ! in_array( $status, [ 'error', 'blocked' ], true );
+    $detail  = sanitize_text_field( (string) ( $state['last_message'] ?? ( $pending ? 'Ventana completada; continuara en el siguiente ciclo.' : 'Proceso finalizado.' ) ) );
+
+    if ( function_exists( 'seo_process_supervisor_managed_update' ) ) {
+        seo_process_supervisor_managed_update(
+            $key,
+            [
+                'name'         => $label,
+                'pending'      => $pending ? 1 : 0,
+                'healthy'      => $healthy ? 1 : 0,
+                'last_checked' => time(),
+                'last_result'  => $pending ? ( $ok ? 'processed' : 'waiting' ) : ( 'completed' === $status ? 'completed' : $status ),
+                'last_error'   => sanitize_text_field( (string) ( $state['last_error'] ?? '' ) ),
+                'detail'       => $detail,
+            ]
+        );
+    }
+
+    $due = absint( $state['next_attempt_at'] ?? 0 );
+    if ( $pending && function_exists( 'seo_process_supervisor_nudge' ) ) {
+        seo_process_supervisor_nudge( $due > time() ? ( $due - time() ) : 0, 'supplier_imports' );
+    }
+
+    if ( $ok && function_exists( 'seo_process_supervisor_state' ) && function_exists( 'seo_process_supervisor_save_state' ) ) {
+        $supervisor_state = seo_process_supervisor_state();
+        seo_process_supervisor_save_state(
+            [
+                'launch_count'   => absint( $supervisor_state['launch_count'] ?? 0 ) + 1,
+                'last_launch_at' => time(),
+            ]
+        );
+    }
+
+    return $ok;
+}
+
 
 /**
  * Registro de fuentes web ejecutadas fuera de WordPress.
@@ -1903,6 +2120,10 @@ function seo_supplier_crawler_render_inline() {
         $recipes,
         static fn( $recipe ) => 'local_process' !== ( $recipe['execution'] ?? 'crawl' )
     );
+    $managed_local_recipes = array_filter(
+        $local_recipes,
+        static fn( $recipe ) => ! empty( $recipe['manager_pending_callback'] ) && ! empty( $recipe['manager_slice_callback'] )
+    );
     if ( empty( $recipes ) && empty( $external_recipes ) ) {
         return;
     }
@@ -1925,7 +2146,8 @@ function seo_supplier_crawler_render_inline() {
         <?php elseif ( 'external_error' === $notice ) : ?>
             <div class="notice notice-error inline"><p><strong>No se pudo iniciar el scraper externo.</strong> <?php echo esc_html( $notice_message ); ?></p></div>
         <?php elseif ( 'local_started' === $notice && isset( $local_recipes[ $notice_recipe ] ) ) : ?>
-            <div class="notice notice-success inline"><p><strong><?php echo esc_html( $local_recipes[ $notice_recipe ]['label'] ); ?>:</strong> proceso local completado. <?php echo esc_html( $notice_message ); ?></p></div>
+            <?php $notice_is_managed = isset( $managed_local_recipes[ $notice_recipe ] ); ?>
+            <div class="notice notice-success inline"><p><strong><?php echo esc_html( $local_recipes[ $notice_recipe ]['label'] ); ?>:</strong> <?php echo esc_html( $notice_is_managed ? 'proceso encolado en el Gestor de workers.' : 'proceso local completado.' ); ?> <?php echo esc_html( $notice_message ); ?></p></div>
         <?php elseif ( 'local_error' === $notice ) : ?>
             <div class="notice notice-error inline"><p><strong>No se pudo ejecutar el proceso local.</strong> <?php echo esc_html( $notice_message ); ?></p></div>
         <?php elseif ( 'recipe_missing' === $notice ) : ?>
@@ -1950,7 +2172,7 @@ function seo_supplier_crawler_render_inline() {
                     <?php if ( ! empty( $local_recipes ) ) : ?>
                         <optgroup label="Proceso local en WordPress">
                             <?php foreach ( $local_recipes as $recipe_id => $recipe ) : ?>
-                                <option value="<?php echo esc_attr( 'crawl:' . $recipe_id ); ?>" data-local-files="1">
+                                <option value="<?php echo esc_attr( 'crawl:' . $recipe_id ); ?>"<?php echo ! empty( $recipe['requires_local_files'] ) ? ' data-local-files="1"' : ''; ?>>
                                     <?php echo esc_html( $recipe['label'] ); ?><?php echo ! empty( $recipe['version'] ) ? ' - v' . esc_html( $recipe['version'] ) : ''; ?>
                                 </option>
                             <?php endforeach; ?>
@@ -2001,7 +2223,7 @@ function seo_supplier_crawler_render_inline() {
 
         <?php
         $started = [];
-        foreach ( $crawl_recipes as $recipe_id => $recipe ) {
+        foreach ( array_merge( $crawl_recipes, $managed_local_recipes ) as $recipe_id => $recipe ) {
             $state = seo_supplier_crawl_state( $recipe_id );
             if ( ! empty( $state['manual_started'] ) ) {
                 $started[ $recipe_id ] = $recipe;
@@ -2018,29 +2240,49 @@ function seo_supplier_crawler_render_inline() {
             <h4>Procesos iniciados</h4>
             <?php foreach ( $started as $recipe_id => $recipe ) : ?>
                 <?php
-                $state         = seo_supplier_crawl_state( $recipe_id );
-                $queue_counts  = seo_supplier_crawl_counts( $recipe_id );
-                $record_counts = seo_supplier_crawl_record_counts( $recipe_id );
-                $catalog_rows  = seo_supplier_crawl_catalog_count( $recipe['provider'] );
-                $delay         = seo_supplier_crawl_effective_delay( $recipe, $state );
-                $running       = ! empty( $state['enabled'] ) && empty( $state['hard_blocked'] );
+                $state            = seo_supplier_crawl_state( $recipe_id );
+                $is_managed_local = isset( $managed_local_recipes[ $recipe_id ] );
+                $queue_counts     = $is_managed_local ? [ 'pending' => 0 ] : seo_supplier_crawl_counts( $recipe_id );
+                $record_counts    = seo_supplier_crawl_record_counts( $recipe_id );
+                $catalog_rows     = seo_supplier_crawl_catalog_count( $recipe['provider'] );
+                $delay            = $is_managed_local
+                    ? max( 0, absint( $state['adaptive_delay'] ?? 0 ) )
+                    : seo_supplier_crawl_effective_delay( $recipe, $state );
+                $running          = ! empty( $state['enabled'] ) && empty( $state['hard_blocked'] );
                 ?>
                 <div style="border:1px solid #dcdcde;border-radius:6px;padding:14px;margin-top:12px;background:#fff;">
                     <p style="margin-top:0;">
                         <strong><?php echo esc_html( $recipe['label'] ); ?></strong>
                         - <span style="color:<?php echo $running ? '#008a20' : '#996800'; ?>;"><?php echo esc_html( $running ? 'Trabajando automaticamente' : 'Detenido' ); ?></span>
                     </p>
-                    <p>
-                        Descubiertos: <strong><?php echo number_format_i18n( $record_counts['total'] ); ?></strong>
-                        - Pendientes de CSV: <strong><?php echo number_format_i18n( $record_counts['dirty'] ); ?></strong>
-                        - Ya en catalogo comun: <strong><?php echo number_format_i18n( $catalog_rows ); ?></strong>
-                        - URLs pendientes: <strong><?php echo number_format_i18n( $queue_counts['pending'] ); ?></strong>
-                    </p>
-                    <p class="description">
-                        Receta: <code><?php echo esc_html( $recipe_id ); ?></code>
-                        - Flujo: web publica -> CSV estandar interno -> importador comun -> Catalogo de proveedores.
-                        Ritmo actual: <?php echo number_format_i18n( $delay ); ?> s/peticion, gestionado automaticamente.
-                    </p>
+                    <?php if ( $is_managed_local ) : ?>
+                        <?php $next_in = max( 0, absint( $state['next_attempt_at'] ?? 0 ) - time() ); ?>
+                        <p>
+                            Productos observados: <strong><?php echo number_format_i18n( absint( $state['products_seen'] ?? 0 ) ); ?></strong>
+                            - Referencias en staging: <strong><?php echo number_format_i18n( $record_counts['total'] ); ?></strong>
+                            - Peticiones: <strong><?php echo number_format_i18n( absint( $state['requests'] ?? 0 ) ); ?></strong>
+                            - Última ventana: <strong><?php echo esc_html( number_format_i18n( (float) ( $state['last_window_seconds'] ?? 0 ), 3 ) ); ?> s</strong>
+                            - Fase: <strong><?php echo esc_html( (string) ( $state['phase'] ?? 'pendiente' ) ); ?></strong>
+                            - Estado: <strong><?php echo esc_html( (string) ( $state['status'] ?? 'pendiente' ) ); ?></strong>
+                        </p>
+                        <p class="description">
+                            Receta: <code><?php echo esc_html( $recipe_id ); ?></code>
+                            - Flujo: fuente paginada -> checkpoint -> staging -> CSV estandar interno -> importador comun.
+                            Ritmo adaptativo: <?php echo number_format_i18n( $delay ); ?> s entre peticiones<?php echo $next_in > 0 ? ' · siguiente intento en ' . esc_html( number_format_i18n( $next_in ) ) . ' s' : ''; ?>.
+                        </p>
+                    <?php else : ?>
+                        <p>
+                            Descubiertos: <strong><?php echo number_format_i18n( $record_counts['total'] ); ?></strong>
+                            - Pendientes de CSV: <strong><?php echo number_format_i18n( $record_counts['dirty'] ); ?></strong>
+                            - Ya en catalogo comun: <strong><?php echo number_format_i18n( $catalog_rows ); ?></strong>
+                            - URLs pendientes: <strong><?php echo number_format_i18n( $queue_counts['pending'] ); ?></strong>
+                        </p>
+                        <p class="description">
+                            Receta: <code><?php echo esc_html( $recipe_id ); ?></code>
+                            - Flujo: web publica -> CSV estandar interno -> importador comun -> Catalogo de proveedores.
+                            Ritmo actual: <?php echo number_format_i18n( $delay ); ?> s/peticion, gestionado automaticamente.
+                        </p>
+                    <?php endif; ?>
                     <?php if ( ! empty( $state['last_csv_import_at'] ) ) : ?>
                         <p class="description">Ultimo CSV interno procesado: <code><?php echo esc_html( $state['last_csv_filename'] ?? '' ); ?></code> - <?php echo esc_html( $state['last_csv_import_at'] ); ?> - <?php echo number_format_i18n( absint( $state['last_csv_rows'] ?? 0 ) ); ?> filas.</p>
                     <?php endif; ?>
