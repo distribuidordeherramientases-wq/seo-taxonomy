@@ -12,13 +12,14 @@ defined('ABSPATH') || exit;
  * aprendizaje válido por defecto.
  */
 final class SEO_Dependiente_Interprete_DB {
-    const SCHEMA_VERSION = '0.3.0';
+    const SCHEMA_VERSION = '0.4.0';
     const SCHEMA_OPTION  = 'seo_dependiente_interprete_schema_version';
 
     private static $rows_cache = null;
     private static $fuzzy_index = null;
     private static $table_exists = null;
     private static $evidence_table_exists = null;
+    private static $usage_columns_ready = null;
 
     public static function table() {
         global $wpdb;
@@ -81,6 +82,9 @@ final class SEO_Dependiente_Interprete_DB {
             source VARCHAR(80) NOT NULL DEFAULT 'interpreter',
             lesson_key VARCHAR(80) NOT NULL DEFAULT '',
             evidence_count INT UNSIGNED NOT NULL DEFAULT 1,
+            usage_count INT UNSIGNED NOT NULL DEFAULT 0,
+            contradiction_count INT UNSIGNED NOT NULL DEFAULT 0,
+            last_used_at DATETIME NULL,
             validated TINYINT(1) NOT NULL DEFAULT 0,
             active TINYINT(1) NOT NULL DEFAULT 1,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -92,7 +96,8 @@ final class SEO_Dependiente_Interprete_DB {
             KEY lesson_active (lesson_key, active),
             KEY language_active (language, active),
             KEY priority_active (priority, active),
-            KEY evidence_active (evidence_count, active)
+            KEY evidence_active (evidence_count, active),
+            KEY usage_active (usage_count, active)
         ) {$charset_collate};";
 
         $sql_evidence = "CREATE TABLE {$evidence} (
@@ -119,6 +124,7 @@ final class SEO_Dependiente_Interprete_DB {
         dbDelta($sql_evidence);
         self::$table_exists = true;
         self::$evidence_table_exists = true;
+        self::$usage_columns_ready = true;
 
         self::seed_i1_subject_action();
         self::resolve_vocabulary_ids();
@@ -315,13 +321,133 @@ final class SEO_Dependiente_Interprete_DB {
             $lexicon_id
         ), ARRAY_A);
         $count = max(1, absint($summary['evidence_count'] ?? 0));
-        $confidence = min(1, max(0, (float) ($summary['max_confidence'] ?? 0)));
+        $evidence_confidence = min(1, max(0, (float) ($summary['max_confidence'] ?? 0)));
+        $current_confidence = (float) $wpdb->get_var($wpdb->prepare(
+            "SELECT confidence FROM " . self::table() . " WHERE id=%d",
+            $lexicon_id
+        ));
+        $confidence = max($current_confidence, $evidence_confidence > 0 ? $evidence_confidence : 0.5);
         $wpdb->update(
             self::table(),
-            array('evidence_count' => $count, 'confidence' => $confidence > 0 ? $confidence : 0.5),
+            array('evidence_count' => $count, 'confidence' => min(1, $confidence)),
             array('id' => $lexicon_id)
         );
         self::clear_cache();
+    }
+
+    /**
+     * Refuerza de forma suave una relacion cuando el runtime V3 la usa de
+     * manera coherente. El uso NO se mezcla con evidence_count: la evidencia
+     * sigue significando fuentes independientes; usage_count mide experiencia
+     * operativa. Si una misma expresion tiene varios destinos activos y no hay
+     * contexto suficiente, la confianza baja y la relacion pasa a requerir
+     * contexto en lugar de consolidarse por simple repeticion.
+     */
+    public static function reinforce_usage($row_ids, $normalized_query = '') {
+        global $wpdb;
+
+        $ids = array_values(array_unique(array_filter(array_map('absint', (array) $row_ids))));
+        if (!$ids || !self::table_exists() || !self::usage_columns_ready()) {
+            return 0;
+        }
+        $ids = array_slice($ids, 0, 20);
+        $in = implode(',', $ids);
+        $rows = (array) $wpdb->get_results(
+            "SELECT id,normalized_expression,canonical_term,confidence,usage_count,contradiction_count,context_terms,context_required,active,source,lesson_key
+               FROM " . self::table() . "
+              WHERE active=1 AND language='es' AND id IN ({$in})",
+            ARRAY_A
+        );
+        if (!$rows) {
+            return 0;
+        }
+
+        $query = self::normalize($normalized_query);
+        $updated = 0;
+        foreach ($rows as $row) {
+            $id = absint($row['id'] ?? 0);
+            $expression = self::normalize((string) ($row['normalized_expression'] ?? ''));
+            if (!$id || '' === $expression) {
+                continue;
+            }
+
+            $contexts = json_decode((string) ($row['context_terms'] ?? ''), true);
+            $contexts = is_array($contexts) ? self::normalize_terms($contexts) : array();
+            $context_hit = false;
+            foreach ($contexts as $context) {
+                if ($context && false !== strpos(' ' . $query . ' ', ' ' . $context . ' ')) {
+                    $context_hit = true;
+                    break;
+                }
+            }
+
+            $active_destinations = self::active_canonical_count_for_expression($expression);
+            $confidence = min(1, max(0, (float) ($row['confidence'] ?? 0)));
+            $usage = absint($row['usage_count'] ?? 0);
+            $contradictions = absint($row['contradiction_count'] ?? 0);
+            $changes = array('last_used_at' => current_time('mysql'));
+
+            if ($active_destinations > 1 && !$context_hit) {
+                $contradictions++;
+                $penalty = min(0.03, 0.006 + ($contradictions * 0.001));
+                $changes['confidence'] = max(0.55, $confidence - $penalty);
+                $changes['contradiction_count'] = $contradictions;
+                $changes['context_required'] = 1;
+            } else {
+                $usage++;
+                $is_provisional = 'linguista_l8_auto' === sanitize_key((string) ($row['source'] ?? ''))
+                    || 'ling_l8_exam' === sanitize_key((string) ($row['lesson_key'] ?? ''));
+                $cap = $is_provisional ? 0.95 : 0.99;
+                $gain = max(0.001, min(0.012, ($cap - $confidence) * 0.08));
+                $changes['confidence'] = min($cap, $confidence + max(0, $gain));
+                $changes['usage_count'] = $usage;
+            }
+
+            $format = array();
+            foreach ($changes as $key => $value) {
+                if (in_array($key, array('usage_count','contradiction_count','context_required'), true)) {
+                    $format[] = '%d';
+                } elseif ('confidence' === $key) {
+                    $format[] = '%f';
+                } else {
+                    $format[] = '%s';
+                }
+            }
+            if (false !== $wpdb->update(self::table(), $changes, array('id' => $id), $format, array('%d'))) {
+                $updated++;
+            }
+        }
+
+        if ($updated) {
+            self::clear_cache();
+        }
+        return $updated;
+    }
+
+    public static function active_canonical_count_for_expression($normalized_expression) {
+        global $wpdb;
+        $normalized_expression = self::normalize($normalized_expression);
+        if ('' === $normalized_expression || !self::table_exists()) {
+            return 0;
+        }
+        return absint($wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(DISTINCT canonical_term) FROM " . self::table() . " WHERE normalized_expression=%s AND language='es' AND active=1",
+            $normalized_expression
+        )));
+    }
+
+    private static function usage_columns_ready() {
+        global $wpdb;
+        if (null !== self::$usage_columns_ready) {
+            return self::$usage_columns_ready;
+        }
+        if (!self::table_exists()) {
+            self::$usage_columns_ready = false;
+            return false;
+        }
+        $column = $wpdb->get_var("SHOW COLUMNS FROM " . self::table() . " LIKE 'usage_count'");
+        self::$usage_columns_ready = 'usage_count' === (string) $column;
+        return self::$usage_columns_ready;
     }
 
     public static function update_row($id, $changes) {
@@ -342,6 +468,10 @@ final class SEO_Dependiente_Interprete_DB {
                 $allowed[$key] = min(255, max(1, absint($value)));
             } elseif ('evidence_count' === $key) {
                 $allowed[$key] = max(1, absint($value));
+            } elseif (in_array($key, array('usage_count','contradiction_count'), true)) {
+                $allowed[$key] = max(0, absint($value));
+            } elseif ('last_used_at' === $key) {
+                $allowed[$key] = sanitize_text_field((string) $value);
             } elseif (in_array($key, array('target_search','canonical_term','expression'), true)) {
                 $allowed[$key] = self::clean_text($value);
             } elseif (in_array($key, array('semantic_group','source','lesson_key','relation_type'), true)) {
@@ -555,6 +685,8 @@ final class SEO_Dependiente_Interprete_DB {
             'evidence' => 0,
             'linked_vocabulary' => 0,
             'lesson_i1' => 0,
+            'usage_total' => 0,
+            'provisional' => 0,
         );
         if (!$stats['ready']) {
             return $stats;
@@ -565,6 +697,10 @@ final class SEO_Dependiente_Interprete_DB {
         $stats['validated'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE validated=1");
         $stats['linked_vocabulary'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=1 AND vocabulary_id IS NOT NULL AND vocabulary_id>0");
         $stats['lesson_i1'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=1 AND lesson_key='i1_subject_action'");
+        if (self::usage_columns_ready()) {
+            $stats['usage_total'] = (int) $wpdb->get_var("SELECT COALESCE(SUM(usage_count),0) FROM {$table} WHERE active=1");
+        }
+        $stats['provisional'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=1 AND source='linguista_l8_auto'");
         if ($stats['evidence_ready']) {
             $stats['evidence'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM " . self::evidence_table() . " WHERE active=1");
         }
