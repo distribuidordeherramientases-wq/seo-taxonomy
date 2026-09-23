@@ -1,3 +1,111 @@
+# Changelog
+
+## [2.3.6] - 2026-09-23
+
+Release centrada en la evolución del sistema de análisis y aprendizaje, la integración con Google Shopping, la mejora de Dependiente, la auditoría SEO, el control del catálogo y diversas tareas de estabilidad y mantenimiento.
+
+### Ojeador y Google Shopping
+
+- Incorporado el nuevo servicio **Ojeador** para obtener y analizar información externa de mercado.
+- Mejorada la priorización de las consultas para concentrar recursos en categorías y áreas con mejores señales de rendimiento.
+- Adaptadas las búsquedas a la nomenclatura y clasificación utilizada por **Google Product Taxonomy**.
+- Mejorados los KPI y la información de seguimiento de Ojeador.
+- Añadidos logs y exportación JSON para facilitar el diagnóstico y el análisis de resultados.
+- Eliminado el límite artificial de consultas/descargas de Google Shopping.
+- Corregidos errores detectados durante la ejecución del servicio Ojeador.
+
+### Academia y Entrenador
+
+- Incorporada la **Lección 9**, incluyendo sistema de preguntas.
+- Incorporada y revisada la **Lección 10** como fase de repaso y consolidación.
+- Optimizada la ejecución de la Lección 10.
+- Mejorado el Entrenador para gestionar de forma más eficiente los procesos relacionados con la nueva fase de aprendizaje.
+- Ajustada la lógica de aprendizaje y revisión para reducir trabajo redundante.
+
+### Dependiente
+
+- Desplegada una nueva evolución de **Dependiente**.
+- Mejorada la coordinación entre Dependiente y los filtros del catálogo.
+- Añadido sistema de feedback para aprovechar mejor las consultas y respuestas de los clientes.
+- Incorporada edición de las plantillas utilizadas por Dependiente.
+- Añadido mecanismo para eliminar conocimiento aprendido cuando sea necesario.
+- Mejorada la integración y presencia de Dependiente dentro del sistema.
+- Incorporado **Comentarista** en las fichas de producto.
+
+### SEO, auditoría y validación
+
+- Ampliados los chequeos del plugin con nuevos controles SEO y técnicos.
+- Incorporadas comprobaciones derivadas de incidencias y recomendaciones detectadas durante las revisiones con Google.
+- Corregida la generación de `canonical` en plantillas de categorías.
+- Mejorado el tratamiento de errores HTTP internos:
+  - los timeouts de transporte ya no se interpretan automáticamente como errores SEO;
+  - los resultados no concluyentes se diferencian de errores reales.
+- Mejorada la priorización del plan de acción SEO.
+- Revisado y mejorado el sistema de análisis de tiempos de carga de páginas.
+- Corregidos problemas en el escaneo externo de páginas que podían producir respuestas HTTP 503.
+- Alineada parte de la terminología y clasificación del catálogo con los esquemas utilizados por Google.
+
+### FAQs
+
+- Modernizado el sistema de FAQs.
+- Mejorada la gestión y preparación de las FAQs para auditoría, análisis y evolución posterior.
+
+### Redirecciones
+
+- Mejorado el gestor de redirects.
+- Añadidas funciones de **exportación e importación**.
+- Añadido JSON de análisis para poder estudiar:
+  - actividad de las reglas;
+  - número de hits;
+  - cadenas;
+  - ciclos;
+  - incidencias estructurales;
+  - posibles redirecciones sospechosas.
+
+### Redes sociales
+
+- Mejorado el sistema de redes sociales.
+- Añadidas funciones de exportación e importación para facilitar la gestión y automatización de publicaciones.
+
+### Inventario y catálogo
+
+- Incorporado un inventario de relación **categoría-producto** para analizar la distribución real del catálogo.
+- Añadida exportación JSON del inventario para análisis externo.
+- Mejoradas las plantillas con el objetivo de reforzar su orientación comercial.
+- Adaptada la portada para poder utilizar información estadística y priorizar dinámicamente los contenidos con mayor interés.
+
+### Importación, proveedores e imágenes
+
+- Corregida la rotación y limpieza de archivos generados por Importar/Exportar.
+- Mejorada la eliminación automática de archivos antiguos ya procesados.
+- Corregida la gestión de imágenes para evitar almacenar innecesariamente en Media imágenes que deben permanecer asociadas al proveedor.
+- Mejorado el Clonador PRO para ampliar la cobertura de los elementos transferidos entre Producción y Staging.
+
+### Rendimiento y estabilidad
+
+- Revisados los tiempos anómalos detectados durante los escaneos de páginas.
+- Mejorada la interacción entre los workers externos, WordPress y los sistemas de caché.
+- Reducidos falsos positivos provocados por peticiones HTTP internas.
+- Mejorada la estabilidad de las tareas de auditoría y diagnóstico.
+
+### Mantenimiento
+
+- Eliminados datos antiguos de componentes SEO ya obsoletos.
+- Limpiadas tablas heredadas de plugins y sistemas anteriores que ya no forman parte de la arquitectura actual.
+- Eliminadas copias y componentes redundantes detectados durante las validaciones de integridad.
+- Mejorada la consistencia general del plugin antes del despliegue a Producción.
+
+### Resumen de la release
+
+Esta versión consolida varios de los servicios principales de SEO System:
+
+- **Ojeador** amplía la inteligencia competitiva y la integración con Google Shopping.
+- **Academia y Entrenador** avanzan en el aprendizaje progresivo del sistema.
+- **Dependiente** gana nuevas capacidades de respuesta, feedback y gestión de conocimiento.
+- **Auditoría y validación** reducen falsos positivos y amplían los controles técnicos y SEO.
+- **Inventario, redirects, FAQs y redes sociales** incorporan nuevas herramientas de análisis y exportación.
+- Se refuerzan la estabilidad, el mantenimiento y la observabilidad general del sistema.
+
 ## [2.3.5]- 2026-09-17
 
 ### Resumen
