@@ -350,7 +350,7 @@ if (!function_exists('dht_header_render_breadcrumbs')) {
     <?php if (is_front_page() && get_bloginfo('description') !== '') : ?>
         <meta name="description" content="<?php echo esc_attr(get_bloginfo('description')); ?>">
     <?php endif; ?>
-    <?php wp_head(); ?>
+    <?php dht_template_render_wp_head(); ?>
 
     <?php if ($dht_css_inline !== '') : ?>
         <style id="dht-template-styles-inline">
