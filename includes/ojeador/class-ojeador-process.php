@@ -71,7 +71,7 @@ final class SEO_Ojeador_Process {
             'activity_age' => null,
             'progress' => $progress,
             'progress_text' => number_format_i18n($processed) . ($total ? ' / ' . number_format_i18n($total) : '') . ' categorías',
-            'detail' => number_format_i18n($queries) . ' consultas · ' . number_format_i18n($results) . ' resultados · ' . number_format_i18n($errors) . ' errores.',
+            'detail' => number_format_i18n($queries) . ' peticiones HTTP · ' . number_format_i18n($results) . ' resultados guardados · ' . number_format_i18n($errors) . ' errores.',
             'url' => add_query_arg(array('page'=>'seo-ojeador'), admin_url('admin.php')),
             'can_start' => false,
         );

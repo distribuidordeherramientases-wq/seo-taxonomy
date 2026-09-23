@@ -1,0 +1,27 @@
+Ojeador v0.6.4 - trazabilidad, uso real de SerpApi y export JSON
+
+1. Contabilidad de consultas
+- El contador mensual visible usa SerpApi Account API como fuente autoritativa cuando está disponible.
+- Se conserva por separado el contador local de peticiones HTTP enviadas por Ojeador.
+- Las respuestas servidas desde caché de SerpApi pueden producir diferencia entre ambos contadores sin ser un error.
+- El worker ya no suma una consulta de forma ciega cuando scan_category() devuelve WP_Error: usa el número real de peticiones intentadas.
+
+2. Log de consultas
+- Nueva tabla wp_seo_ojeador_query_log.
+- Registra run, categoría, consulta, engine, HTTP, search id/status de SerpApi, resultados recibidos, normalizados y guardados, duración y error.
+- Distingue: prepared, requesting, response_ok, parsed, ok, no_results, reused, budget_blocked, network_error, http_error, api_error, parse_error y db_error.
+- Visible en Ojeador con los 100 eventos más recientes.
+
+3. Persistencia y diagnóstico
+- Los errores SQL al guardar categoría o resultados incluyen $wpdb->last_error.
+- Si Google devuelve resultados pero ninguno puede guardarse, ya no se convierte silenciosamente en "Sin resultados": se devuelve error de persistencia.
+- Si falla el guardado del estado de una categoría, el query log queda marcado como db_error.
+
+4. Exportación JSON
+- Botón "Exportar JSON completo": configuración sin API key, uso, resumen, inventario calculado, Google schema product_cat, estados de categorías, resultados, log, runs y tablas legacy.
+- Botón "Exportar log JSON": uso, último run y todo el histórico de query_log.
+- Los ficheros se generan como JSON UTF-8 descargable desde Ojeador.
+
+5. Procesos/UI
+- api_queries pasa a representar peticiones HTTP intentadas por Ojeador, no consumo facturable del proveedor.
+- La UI muestra por separado "Uso SerpApi real" y "Peticiones HTTP Ojeador".

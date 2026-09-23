@@ -159,27 +159,63 @@ final class SEO_Ojeador_Worker {
 
                 $processed++;
                 $last_term_id = absint($term_id);
-                $scan = SEO_Ojeador_Shopping::scan_category($context);
+                $scan = SEO_Ojeador_Shopping::scan_category($context, $run_id);
 
                 if (is_wp_error($scan)) {
-                    // At this point readiness/context already passed. Most errors
-                    // therefore come from an attempted remote request.
-                    $api_queries++;
-                    SEO_Ojeador_DB::save_category_error($term_id, $scan, SEO_Ojeador_Shopping::build_category_query($context));
+                    $error_data = $scan->get_error_data();
+                    $error_data = is_array($error_data) ? $error_data : array();
+                    $api_queries += absint($error_data['ojeador_api_queries'] ?? 0);
+                    $log_id = absint($error_data['ojeador_query_log_id'] ?? 0);
+
+                    $saved_error = SEO_Ojeador_DB::save_category_error(
+                        $term_id,
+                        $scan,
+                        SEO_Ojeador_Shopping::build_category_query($context)
+                    );
+                    if (is_wp_error($saved_error)) {
+                        $last_error = $saved_error->get_error_message();
+                        if ($log_id > 0) {
+                            SEO_Ojeador_DB::update_query_log($log_id, array(
+                                'event_status' => 'db_error',
+                                'error_code' => $saved_error->get_error_code(),
+                                'error_message' => $saved_error->get_error_message(),
+                                'completed_at' => SEO_Ojeador_DB::utc_now(),
+                            ));
+                        }
+                    } else {
+                        $last_error = $scan->get_error_message();
+                    }
                     $errors++;
-                    $last_error = $scan->get_error_message();
                     continue;
                 }
 
-                $api_queries += absint($scan['api_queries'] ?? 1);
+                $api_queries += absint($scan['api_queries'] ?? 0);
+                $log_id = absint($scan['query_log_id'] ?? 0);
                 $saved = SEO_Ojeador_DB::save_category_scan($term_id, $scan, absint($settings['interval_hours']));
                 if (is_wp_error($saved)) {
                     $errors++;
                     $last_error = $saved->get_error_message();
+                    if ($log_id > 0) {
+                        SEO_Ojeador_DB::update_query_log($log_id, array(
+                            'event_status' => 'db_error',
+                            'error_code' => $saved->get_error_code(),
+                            'error_message' => $saved->get_error_message(),
+                            'saved_result_count' => 0,
+                            'completed_at' => SEO_Ojeador_DB::utc_now(),
+                        ));
+                    }
                     continue;
                 }
 
                 $count = absint($saved['results'] ?? 0);
+                if ($log_id > 0) {
+                    SEO_Ojeador_DB::update_query_log($log_id, array(
+                        'event_status' => !empty($scan['reused']) ? 'reused' : (string) ($saved['status'] ?? ($count > 0 ? 'ok' : 'no_results')),
+                        'saved_result_count' => $count,
+                        'error_message' => (string) ($saved['last_save_error'] ?? ''),
+                        'completed_at' => SEO_Ojeador_DB::utc_now(),
+                    ));
+                }
                 $results_seen += $count;
                 if ($count > 0) {
                     $with_results++;

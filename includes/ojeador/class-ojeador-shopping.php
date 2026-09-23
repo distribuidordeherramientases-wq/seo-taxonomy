@@ -15,7 +15,9 @@ defined('ABSPATH') || exit;
 final class SEO_Ojeador_Shopping {
     const OPTION_SETTINGS = 'seo_ojeador_shopping_settings';
     const API_URL = 'https://serpapi.com/search.json';
-    const OPTION_USAGE = 'seo_ojeador_serpapi_usage_v1';
+    const ACCOUNT_URL = 'https://serpapi.com/account.json';
+    const OPTION_USAGE = 'seo_ojeador_serpapi_usage_v1'; // local outbound request attempts, not billing.
+    const ACCOUNT_TRANSIENT = 'seo_ojeador_serpapi_account_v1';
 
     public static function defaults() {
         return array(
@@ -76,35 +78,154 @@ final class SEO_Ojeador_Shopping {
         return true;
     }
 
+    /**
+     * Authoritative SerpApi account usage. Account API is not a search and is
+     * cached briefly so workers do not add unnecessary network latency.
+     */
+    public static function provider_usage($force = false) {
+        $settings = self::settings();
+        if ($settings['api_key'] === '') {
+            return new WP_Error('ojeador_shopping_key', 'Falta la API key de SerpApi.');
+        }
+        if (!$force) {
+            $cached = get_transient(self::ACCOUNT_TRANSIENT);
+            if (is_array($cached)) {
+                if (!empty($cached['_error'])) {
+                    return new WP_Error(
+                        sanitize_key((string) ($cached['_error_code'] ?? 'ojeador_serpapi_account')),
+                        sanitize_text_field((string) $cached['_error'])
+                    );
+                }
+                return $cached;
+            }
+        }
+
+        $response = wp_safe_remote_get(add_query_arg(array('api_key'=>$settings['api_key']), self::ACCOUNT_URL), array(
+            'timeout' => 15,
+            'redirection' => 2,
+            'headers' => array(
+                'Accept' => 'application/json',
+                'User-Agent' => 'SEO-System-Ojeador/' . (defined('SEO_OJEADOR_VERSION') ? SEO_OJEADOR_VERSION : '0.6.4'),
+            ),
+        ));
+        if (is_wp_error($response)) {
+            set_transient(self::ACCOUNT_TRANSIENT, array(
+                '_error' => $response->get_error_message(),
+                '_error_code' => $response->get_error_code(),
+            ), 30);
+            return $response;
+        }
+        $code = absint(wp_remote_retrieve_response_code($response));
+        $body = json_decode(wp_remote_retrieve_body($response), true);
+        if ($code < 200 || $code >= 300 || !is_array($body)) {
+            $error = new WP_Error('ojeador_serpapi_account_http', 'SerpApi Account API HTTP ' . $code . '.');
+            set_transient(self::ACCOUNT_TRANSIENT, array(
+                '_error' => $error->get_error_message(),
+                '_error_code' => $error->get_error_code(),
+            ), 30);
+            return $error;
+        }
+        if (!empty($body['error'])) {
+            $message = is_array($body['error']) ? (string) ($body['error']['message'] ?? 'Error de SerpApi Account API.') : (string) $body['error'];
+            $error = new WP_Error('ojeador_serpapi_account_api', sanitize_text_field($message));
+            set_transient(self::ACCOUNT_TRANSIENT, array(
+                '_error' => $error->get_error_message(),
+                '_error_code' => $error->get_error_code(),
+            ), 30);
+            return $error;
+        }
+
+        // Deliberately exclude api_key/account_email from the returned snapshot.
+        $clean = array(
+            'account_status' => sanitize_text_field((string) ($body['account_status'] ?? '')),
+            'plan_id' => sanitize_key((string) ($body['plan_id'] ?? '')),
+            'plan_name' => sanitize_text_field((string) ($body['plan_name'] ?? '')),
+            'plan_renewal_date' => sanitize_text_field((string) ($body['plan_renewal_date'] ?? '')),
+            'searches_per_month' => absint($body['searches_per_month'] ?? 0),
+            'this_month_usage' => absint($body['this_month_usage'] ?? 0),
+            'plan_searches_left' => absint($body['plan_searches_left'] ?? 0),
+            'total_searches_left' => absint($body['total_searches_left'] ?? 0),
+            'this_hour_searches' => absint($body['this_hour_searches'] ?? 0),
+            'last_hour_searches' => absint($body['last_hour_searches'] ?? 0),
+            'account_rate_limit_per_hour' => absint($body['account_rate_limit_per_hour'] ?? 0),
+            'checked_at_utc' => gmdate('Y-m-d H:i:s'),
+        );
+        set_transient(self::ACCOUNT_TRANSIENT, $clean, 30);
+        return $clean;
+    }
+
+    /**
+     * Monthly usage used by Ojeador.
+     *
+     * `used` is provider-authoritative whenever Account API is available.
+     * `local_requests` is only our outbound attempt counter; cached SerpApi
+     * searches are free, so it is expected that both values can differ.
+     */
     public static function usage_month() {
         $settings = self::settings();
         $month = gmdate('Y-m');
         $stored = get_option(self::OPTION_USAGE, array());
         $stored = is_array($stored) ? $stored : array();
-        $used = isset($stored[$month]) ? absint($stored[$month]) : 0;
+        $local_requests = isset($stored[$month]) ? absint($stored[$month]) : 0;
+        $configured_limit = absint($settings['monthly_query_limit']);
+
+        $provider = self::provider_usage(false);
+        if (!is_wp_error($provider)) {
+            $provider_used = absint($provider['this_month_usage'] ?? 0);
+            $provider_limit = absint($provider['searches_per_month'] ?? 0);
+            $effective_limit = $configured_limit;
+            if ($provider_limit > 0) {
+                $effective_limit = $effective_limit > 0 ? min($effective_limit, $provider_limit) : $provider_limit;
+            }
+            return array(
+                'month' => $month,
+                'used' => $provider_used,
+                'limit' => $effective_limit,
+                'remaining' => $effective_limit > 0 ? max(0, $effective_limit - $provider_used) : 0,
+                'source' => 'serpapi_account',
+                'local_requests' => $local_requests,
+                'provider_used' => $provider_used,
+                'provider_limit' => $provider_limit,
+                'provider_remaining' => absint($provider['total_searches_left'] ?? $provider['plan_searches_left'] ?? 0),
+                'difference_local_minus_provider' => $local_requests - $provider_used,
+                'provider' => $provider,
+            );
+        }
+
         return array(
             'month' => $month,
-            'used' => $used,
-            'limit' => absint($settings['monthly_query_limit']),
-            'remaining' => max(0, absint($settings['monthly_query_limit']) - $used),
+            'used' => $local_requests,
+            'limit' => $configured_limit,
+            'remaining' => $configured_limit > 0 ? max(0, $configured_limit - $local_requests) : 0,
+            'source' => 'local_fallback',
+            'local_requests' => $local_requests,
+            'provider_used' => null,
+            'provider_limit' => null,
+            'provider_remaining' => null,
+            'difference_local_minus_provider' => null,
+            'provider_error' => $provider->get_error_message(),
         );
     }
 
-    private static function reserve_query() {
-        $usage = self::usage_month();
-        if ($usage['limit'] > 0 && $usage['used'] >= $usage['limit']) {
-            return new WP_Error('ojeador_shopping_budget', 'Límite mensual de consultas alcanzado.');
-        }
+    private static function record_request_attempt() {
+        $month = gmdate('Y-m');
         $stored = get_option(self::OPTION_USAGE, array());
         $stored = is_array($stored) ? $stored : array();
-        $stored[$usage['month']] = $usage['used'] + 1;
-        // Keep only recent months so this tiny option cannot grow forever.
+        $stored[$month] = absint($stored[$month] ?? 0) + 1;
         if (count($stored) > 18) {
             ksort($stored);
             $stored = array_slice($stored, -18, null, true);
         }
         update_option(self::OPTION_USAGE, $stored, false);
-        return true;
+    }
+
+    private static function trace_error($code, $message, $trace = array()) {
+        $error = new WP_Error($code, $message);
+        $error->add_data(array(
+            'ojeador_api_queries' => absint($trace['api_queries'] ?? 0),
+            'ojeador_query_log_id' => absint($trace['query_log_id'] ?? 0),
+        ));
+        return $error;
     }
 
     public static function build_query($identity) {
@@ -296,7 +417,7 @@ final class SEO_Ojeador_Shopping {
      * @param int|array $category WooCommerce category term ID/context.
      * @return array|WP_Error
      */
-    public static function scan_category($category) {
+    public static function scan_category($category, $run_id = 0) {
         $ready = self::readiness();
         if (is_wp_error($ready)) {
             return $ready;
@@ -308,23 +429,60 @@ final class SEO_Ojeador_Shopping {
             return new WP_Error('ojeador_category', 'Categoría no válida para Google Shopping.');
         }
         $query = self::build_category_query($category);
+        $term_id = absint($category['term_id'] ?? 0);
         if ($query === '') {
-            return new WP_Error('ojeador_category_query', 'La categoría no genera una consulta válida.');
+            $log_id = SEO_Ojeador_DB::create_query_log(array(
+                'run_id' => absint($run_id),
+                'context_type' => 'category',
+                'term_id' => $term_id,
+                'category_name' => (string) ($category['name'] ?? ''),
+                'query_text' => '',
+                'engine' => 'google_shopping',
+                'event_status' => 'query_error',
+                'request_attempted' => 0,
+                'error_code' => 'ojeador_category_query',
+                'error_message' => 'La categoría no genera una consulta válida.',
+                'completed_at' => SEO_Ojeador_DB::utc_now(),
+            ));
+            return self::trace_error('ojeador_category_query', 'La categoría no genera una consulta válida.', array(
+                'api_queries' => 0,
+                'query_log_id' => is_wp_error($log_id) ? 0 : absint($log_id),
+            ));
         }
 
-        $term_id = absint($category['term_id'] ?? 0);
         $settings = self::settings();
         $reuse_hours = max(1, absint($settings['query_reuse_hours'] ?? 24));
         if ($term_id > 0 && method_exists('SEO_Ojeador_DB', 'recent_category_scan_for_query')) {
             $reused = SEO_Ojeador_DB::recent_category_scan_for_query($query, $term_id, $reuse_hours);
             if (is_array($reused)) {
+                $count = count((array) ($reused['results'] ?? array()));
+                $log_id = SEO_Ojeador_DB::create_query_log(array(
+                    'run_id' => absint($run_id),
+                    'context_type' => 'category',
+                    'term_id' => $term_id,
+                    'category_name' => (string) ($category['name'] ?? ''),
+                    'query_text' => $query,
+                    'engine' => 'google_shopping',
+                    'event_status' => 'reused',
+                    'request_attempted' => 0,
+                    'raw_result_count' => $count,
+                    'normalized_result_count' => $count,
+                    'saved_result_count' => 0,
+                    'metadata' => array(
+                        'reused_from_term_id' => absint($reused['reused_from_term_id'] ?? 0),
+                        'source_last_scan_at' => (string) (($reused['raw_search']['source_last_scan_at'] ?? '')),
+                    ),
+                    'completed_at' => SEO_Ojeador_DB::utc_now(),
+                ));
                 $reused['query'] = $query;
                 $reused['api_queries'] = 0;
+                $reused['query_log_id'] = is_wp_error($log_id) ? 0 : absint($log_id);
                 $reused['reused'] = 1;
                 return $reused;
             }
         }
 
+        $trace = array();
         $search = self::request(array(
             'engine' => 'google_shopping',
             'q' => $query,
@@ -334,18 +492,32 @@ final class SEO_Ojeador_Shopping {
             'device' => 'desktop',
             // no_cache is intentionally omitted: SerpApi may serve an identical
             // request from its one-hour cache without charging another search.
-        ));
+        ), array(
+            'run_id' => absint($run_id),
+            'context_type' => 'category',
+            'term_id' => $term_id,
+            'category_name' => (string) ($category['name'] ?? ''),
+            'query_text' => $query,
+        ), $trace);
         if (is_wp_error($search)) {
             return $search;
         }
 
         $results = self::collect_category_results($search);
+        $log_id = absint($trace['query_log_id'] ?? 0);
+        if ($log_id > 0) {
+            SEO_Ojeador_DB::update_query_log($log_id, array(
+                'event_status' => 'parsed',
+                'normalized_result_count' => count($results),
+            ));
+        }
 
         return array(
             'status' => $results ? 'ok' : 'no_results',
             'query' => $query,
             'results' => $results,
-            'api_queries' => 1,
+            'api_queries' => absint($trace['api_queries'] ?? 1),
+            'query_log_id' => $log_id,
             'reused' => 0,
             'raw_search' => self::compact_raw($search),
         );
@@ -431,35 +603,170 @@ final class SEO_Ojeador_Shopping {
         );
     }
 
-    private static function request($args) {
+    private static function request($args, $context = array(), &$trace = null) {
         $s = self::settings();
-        $reserved = self::reserve_query();
-        if (is_wp_error($reserved)) {
-            return $reserved;
+        $args = (array) $args;
+        $context = is_array($context) ? $context : array();
+        $trace = array(
+            'api_queries' => 0,
+            'query_log_id' => 0,
+            'raw_result_count' => 0,
+        );
+
+        $query = sanitize_text_field((string) ($context['query_text'] ?? $args['q'] ?? ''));
+        $engine = sanitize_key((string) ($args['engine'] ?? 'google_shopping')) ?: 'google_shopping';
+        $log_id = SEO_Ojeador_DB::create_query_log(array(
+            'run_id' => absint($context['run_id'] ?? 0),
+            'context_type' => sanitize_key((string) ($context['context_type'] ?? 'request')) ?: 'request',
+            'term_id' => absint($context['term_id'] ?? 0),
+            'object_id' => absint($context['object_id'] ?? 0),
+            'category_name' => (string) ($context['category_name'] ?? ''),
+            'query_text' => $query,
+            'engine' => $engine,
+            'event_status' => 'prepared',
+            'request_attempted' => 0,
+        ));
+        if (!is_wp_error($log_id)) {
+            $trace['query_log_id'] = absint($log_id);
         }
-        $args = array_merge((array) $args, array('api_key' => $s['api_key']));
+
+        $usage = self::usage_month();
+        if ($usage['limit'] > 0 && $usage['used'] >= $usage['limit']) {
+            if ($trace['query_log_id'] > 0) {
+                SEO_Ojeador_DB::update_query_log($trace['query_log_id'], array(
+                    'event_status' => 'budget_blocked',
+                    'error_code' => 'ojeador_shopping_budget',
+                    'error_message' => 'Límite mensual de consultas alcanzado.',
+                    'completed_at' => SEO_Ojeador_DB::utc_now(),
+                ));
+            }
+            return self::trace_error('ojeador_shopping_budget', 'Límite mensual de consultas alcanzado.', $trace);
+        }
+
+        $args = array_merge($args, array('api_key' => $s['api_key']));
         $url = add_query_arg($args, self::API_URL);
+        $started = microtime(true);
+        self::record_request_attempt();
+        $trace['api_queries'] = 1;
+        if ($trace['query_log_id'] > 0) {
+            SEO_Ojeador_DB::update_query_log($trace['query_log_id'], array(
+                'event_status' => 'requesting',
+                'request_attempted' => 1,
+            ));
+        }
+
         $response = wp_safe_remote_get($url, array(
             'timeout' => 35,
             'redirection' => 3,
             'headers' => array(
                 'Accept' => 'application/json',
-                'User-Agent' => 'SEO-System-Ojeador/' . (defined('SEO_OJEADOR_VERSION') ? SEO_OJEADOR_VERSION : '0.6.0'),
+                'User-Agent' => 'SEO-System-Ojeador/' . (defined('SEO_OJEADOR_VERSION') ? SEO_OJEADOR_VERSION : '0.6.4'),
             ),
         ));
+        $duration_ms = max(0, (int) round((microtime(true) - $started) * 1000));
+
         if (is_wp_error($response)) {
-            return $response;
+            if ($trace['query_log_id'] > 0) {
+                SEO_Ojeador_DB::update_query_log($trace['query_log_id'], array(
+                    'event_status' => 'network_error',
+                    'duration_ms' => $duration_ms,
+                    'error_code' => $response->get_error_code(),
+                    'error_message' => $response->get_error_message(),
+                    'completed_at' => SEO_Ojeador_DB::utc_now(),
+                ));
+            }
+            return self::trace_error($response->get_error_code() ?: 'ojeador_network', $response->get_error_message(), $trace);
         }
-        $code = wp_remote_retrieve_response_code($response);
-        $body = json_decode(wp_remote_retrieve_body($response), true);
-        if ($code < 200 || $code >= 300 || !is_array($body)) {
-            return new WP_Error('ojeador_shopping_http', 'Google Shopping API HTTP ' . absint($code) . '.');
+
+        $code = absint(wp_remote_retrieve_response_code($response));
+        $raw_body = wp_remote_retrieve_body($response);
+        $body = json_decode($raw_body, true);
+        if ($code < 200 || $code >= 300) {
+            $message = 'Google Shopping API HTTP ' . $code . '.';
+            if (is_array($body) && !empty($body['error'])) {
+                $message = is_array($body['error']) ? (string) ($body['error']['message'] ?? $message) : (string) $body['error'];
+            }
+            if ($trace['query_log_id'] > 0) {
+                SEO_Ojeador_DB::update_query_log($trace['query_log_id'], array(
+                    'event_status' => 'http_error',
+                    'http_code' => $code,
+                    'duration_ms' => $duration_ms,
+                    'error_code' => 'ojeador_shopping_http',
+                    'error_message' => $message,
+                    'completed_at' => SEO_Ojeador_DB::utc_now(),
+                ));
+            }
+            return self::trace_error('ojeador_shopping_http', sanitize_text_field($message), $trace);
+        }
+        if (!is_array($body)) {
+            $message = 'SerpApi devolvió una respuesta que no es JSON válido.';
+            if ($trace['query_log_id'] > 0) {
+                SEO_Ojeador_DB::update_query_log($trace['query_log_id'], array(
+                    'event_status' => 'parse_error',
+                    'http_code' => $code,
+                    'duration_ms' => $duration_ms,
+                    'error_code' => 'ojeador_shopping_json',
+                    'error_message' => $message,
+                    'completed_at' => SEO_Ojeador_DB::utc_now(),
+                ));
+            }
+            return self::trace_error('ojeador_shopping_json', $message, $trace);
         }
         if (!empty($body['error'])) {
             $message = is_array($body['error']) ? (string) ($body['error']['message'] ?? 'Error de Google Shopping.') : (string) $body['error'];
-            return new WP_Error('ojeador_shopping_api', sanitize_text_field($message));
+            if ($trace['query_log_id'] > 0) {
+                SEO_Ojeador_DB::update_query_log($trace['query_log_id'], array(
+                    'event_status' => 'api_error',
+                    'http_code' => $code,
+                    'duration_ms' => $duration_ms,
+                    'error_code' => 'ojeador_shopping_api',
+                    'error_message' => $message,
+                    'completed_at' => SEO_Ojeador_DB::utc_now(),
+                ));
+            }
+            return self::trace_error('ojeador_shopping_api', sanitize_text_field($message), $trace);
+        }
+
+        $metadata = is_array($body['search_metadata'] ?? null) ? $body['search_metadata'] : array();
+        $raw_result_count = self::count_response_results($body);
+        $trace['raw_result_count'] = $raw_result_count;
+        if ($trace['query_log_id'] > 0) {
+            SEO_Ojeador_DB::update_query_log($trace['query_log_id'], array(
+                'event_status' => 'response_ok',
+                'http_code' => $code,
+                'provider_search_id' => (string) ($metadata['id'] ?? ''),
+                'provider_status' => (string) ($metadata['status'] ?? ''),
+                'provider_created_at' => (string) ($metadata['created_at'] ?? ''),
+                'provider_processed_at' => (string) ($metadata['processed_at'] ?? ''),
+                'raw_result_count' => $raw_result_count,
+                'duration_ms' => $duration_ms,
+                'metadata' => array(
+                    'search_metadata' => array(
+                        'id' => (string) ($metadata['id'] ?? ''),
+                        'status' => (string) ($metadata['status'] ?? ''),
+                        'created_at' => (string) ($metadata['created_at'] ?? ''),
+                        'processed_at' => (string) ($metadata['processed_at'] ?? ''),
+                        'total_time_taken' => $metadata['total_time_taken'] ?? null,
+                    ),
+                ),
+                'completed_at' => SEO_Ojeador_DB::utc_now(),
+            ));
         }
         return $body;
+    }
+
+    private static function count_response_results($body) {
+        $body = is_array($body) ? $body : array();
+        $count = count((array) ($body['shopping_results'] ?? array()));
+        foreach ((array) ($body['categorized_shopping_results'] ?? array()) as $group) {
+            if (is_array($group)) {
+                $count += count((array) ($group['shopping_results'] ?? array()));
+            }
+        }
+        foreach (array('inline_shopping_results','featured_shopping_results','stores') as $key) {
+            $count += count((array) ($body[$key] ?? array()));
+        }
+        return $count;
     }
 
     private static function best_candidate($rows, $identity, $query) {

@@ -15,7 +15,7 @@ defined('ABSPATH') || exit;
 
 final class SEO_Ojeador_DB {
     const OPTION_DB_VERSION = 'seo_ojeador_db_version';
-    const DB_VERSION = '0.6.0';
+    const DB_VERSION = '0.6.4';
 
     public static function table($name) {
         global $wpdb;
@@ -27,6 +27,7 @@ final class SEO_Ojeador_DB {
             'categories'       => $wpdb->prefix . 'seo_ojeador_market_categories',
             'category_results' => $wpdb->prefix . 'seo_ojeador_market_category_results',
             'runs'             => $wpdb->prefix . 'seo_ojeador_market_runs',
+            'query_log'        => $wpdb->prefix . 'seo_ojeador_query_log',
         );
         return isset($map[$name]) ? $map[$name] : '';
     }
@@ -45,7 +46,7 @@ final class SEO_Ojeador_DB {
 
     private static function tables_exist() {
         global $wpdb;
-        foreach (array('products','offers','categories','category_results','runs') as $name) {
+        foreach (array('products','offers','categories','category_results','runs','query_log') as $name) {
             $table = self::table($name);
             if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) !== $table) {
                 return false;
@@ -64,6 +65,7 @@ final class SEO_Ojeador_DB {
         $categories = self::table('categories');
         $category_results = self::table('category_results');
         $runs = self::table('runs');
+        $query_log = self::table('query_log');
 
         // Exact-product layer retained so historical data/helpers keep working.
         dbDelta("CREATE TABLE {$products} (
@@ -207,6 +209,42 @@ final class SEO_Ojeador_DB {
             created_at datetime NOT NULL,
             PRIMARY KEY  (id),
             KEY status (status),
+            KEY created_at (created_at)
+        ) {$charset};");
+
+
+        // Request-by-request trace. This is intentionally separate from market
+        // snapshots so failed HTTP/API/DB operations remain visible even when a
+        // category row could not be persisted.
+        dbDelta("CREATE TABLE {$query_log} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            run_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            context_type varchar(32) NOT NULL DEFAULT 'category',
+            term_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            object_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            category_name varchar(255) NOT NULL DEFAULT '',
+            query_text varchar(500) NOT NULL DEFAULT '',
+            engine varchar(64) NOT NULL DEFAULT 'google_shopping',
+            event_status varchar(32) NOT NULL DEFAULT 'prepared',
+            request_attempted tinyint(1) unsigned NOT NULL DEFAULT 0,
+            http_code int(10) unsigned NOT NULL DEFAULT 0,
+            provider_search_id varchar(191) NOT NULL DEFAULT '',
+            provider_status varchar(64) NOT NULL DEFAULT '',
+            provider_created_at varchar(64) NOT NULL DEFAULT '',
+            provider_processed_at varchar(64) NOT NULL DEFAULT '',
+            raw_result_count int(10) unsigned NOT NULL DEFAULT 0,
+            normalized_result_count int(10) unsigned NOT NULL DEFAULT 0,
+            saved_result_count int(10) unsigned NOT NULL DEFAULT 0,
+            duration_ms int(10) unsigned NOT NULL DEFAULT 0,
+            error_code varchar(191) NOT NULL DEFAULT '',
+            error_message text NULL,
+            metadata_json longtext NULL,
+            created_at datetime NOT NULL,
+            completed_at datetime NULL,
+            PRIMARY KEY  (id),
+            KEY run_id (run_id),
+            KEY term_id (term_id),
+            KEY event_status (event_status),
             KEY created_at (created_at)
         ) {$charset};");
 
@@ -524,14 +562,24 @@ final class SEO_Ojeador_DB {
         $results = isset($scan['results']) && is_array($scan['results']) ? $scan['results'] : array();
 
         if (in_array($status, array('ok','no_results'), true)) {
-            $wpdb->update(self::table('category_results'), array('active'=>0), array('term_id'=>$term_id));
+            $deactivated = $wpdb->update(self::table('category_results'), array('active'=>0), array('term_id'=>$term_id));
+            if ($deactivated === false) {
+                return new WP_Error(
+                    'ojeador_category_results_deactivate',
+                    'No se pudo cerrar la instantánea anterior de la categoría: ' . sanitize_text_field((string) $wpdb->last_error)
+                );
+            }
         }
 
         $seen = 0;
+        $save_errors = 0;
+        $last_save_error = '';
         $unique_keys = array();
         foreach ($results as $result) {
             $saved = self::upsert_category_result($term_id, $result, $now);
             if (is_wp_error($saved)) {
+                $save_errors++;
+                $last_save_error = $saved->get_error_message();
                 continue;
             }
             $seen++;
@@ -547,6 +595,16 @@ final class SEO_Ojeador_DB {
         }
 
         if ($status === 'ok' && $seen < 1) {
+            if ($results && $save_errors > 0) {
+                return new WP_Error(
+                    'ojeador_category_results_save',
+                    sprintf(
+                        'Google devolvió %d resultados, pero ninguno pudo guardarse. Último error: %s',
+                        count($results),
+                        $last_save_error !== '' ? $last_save_error : 'error SQL no identificado'
+                    )
+                );
+            }
             $status = 'no_results';
         }
 
@@ -567,7 +625,7 @@ final class SEO_Ojeador_DB {
             'unique_result_count' => count($unique_keys),
             'last_scan_at' => $now,
             'next_scan_at' => $next,
-            'last_error' => sanitize_textarea_field((string) ($scan['error'] ?? '')),
+            'last_error' => sanitize_textarea_field((string) ($scan['error'] ?? ($save_errors > 0 ? sprintf('%d resultados no pudieron guardarse. Último error: %s', $save_errors, $last_save_error) : ''))),
             'updated_at' => $now,
         );
 
@@ -580,7 +638,11 @@ final class SEO_Ojeador_DB {
             : $wpdb->insert(self::table('categories'), $row);
 
         if ($ok === false) {
-            return new WP_Error('ojeador_category_save', 'No se pudo guardar el mercado de la categoría.');
+            $db_error = sanitize_text_field((string) $wpdb->last_error);
+            return new WP_Error(
+                'ojeador_category_save',
+                'No se pudo guardar el mercado de la categoría.' . ($db_error !== '' ? ' SQL: ' . $db_error : '')
+            );
         }
 
         return array(
@@ -588,6 +650,8 @@ final class SEO_Ojeador_DB {
             'status' => $status,
             'results' => $seen,
             'unique_results' => count($unique_keys),
+            'save_errors' => $save_errors,
+            'last_save_error' => $last_save_error,
         );
     }
 
@@ -660,15 +724,18 @@ final class SEO_Ojeador_DB {
         ), ARRAY_A);
 
         if ($existing) {
-            $wpdb->update(self::table('category_results'), $data, array('id'=>absint($existing['id'])));
+            $ok = $wpdb->update(self::table('category_results'), $data, array('id'=>absint($existing['id'])));
+            if ($ok === false) {
+                return new WP_Error('ojeador_category_result_update', 'No se pudo actualizar el resultado de Google Shopping: ' . sanitize_text_field((string) $wpdb->last_error));
+            }
             return absint($existing['id']);
         }
 
         $data['first_seen_at'] = $now;
-        $wpdb->insert(self::table('category_results'), $data);
-        return $wpdb->insert_id
+        $ok = $wpdb->insert(self::table('category_results'), $data);
+        return ($ok !== false && $wpdb->insert_id)
             ? absint($wpdb->insert_id)
-            : new WP_Error('ojeador_category_result_insert', 'No se pudo guardar el resultado de Google Shopping.');
+            : new WP_Error('ojeador_category_result_insert', 'No se pudo guardar el resultado de Google Shopping: ' . sanitize_text_field((string) $wpdb->last_error));
     }
 
     public static function category_summary() {
@@ -1206,6 +1273,103 @@ final class SEO_Ojeador_DB {
             }
         }
         return $out;
+    }
+
+    /* ---------------------------------------------------------------------
+     * QUERY LOG
+     * ------------------------------------------------------------------ */
+
+    public static function create_query_log($data = array()) {
+        global $wpdb;
+        $data = is_array($data) ? $data : array();
+        $now = self::utc_now();
+        $row = array(
+            'run_id' => absint($data['run_id'] ?? 0),
+            'context_type' => sanitize_key((string) ($data['context_type'] ?? 'category')) ?: 'category',
+            'term_id' => absint($data['term_id'] ?? 0),
+            'object_id' => absint($data['object_id'] ?? 0),
+            'category_name' => sanitize_text_field((string) ($data['category_name'] ?? '')),
+            'query_text' => sanitize_text_field((string) ($data['query_text'] ?? '')),
+            'engine' => sanitize_key((string) ($data['engine'] ?? 'google_shopping')) ?: 'google_shopping',
+            'event_status' => sanitize_key((string) ($data['event_status'] ?? 'prepared')) ?: 'prepared',
+            'request_attempted' => empty($data['request_attempted']) ? 0 : 1,
+            'http_code' => absint($data['http_code'] ?? 0),
+            'provider_search_id' => sanitize_text_field((string) ($data['provider_search_id'] ?? '')),
+            'provider_status' => sanitize_text_field((string) ($data['provider_status'] ?? '')),
+            'provider_created_at' => sanitize_text_field((string) ($data['provider_created_at'] ?? '')),
+            'provider_processed_at' => sanitize_text_field((string) ($data['provider_processed_at'] ?? '')),
+            'raw_result_count' => absint($data['raw_result_count'] ?? 0),
+            'normalized_result_count' => absint($data['normalized_result_count'] ?? 0),
+            'saved_result_count' => absint($data['saved_result_count'] ?? 0),
+            'duration_ms' => absint($data['duration_ms'] ?? 0),
+            'error_code' => sanitize_key((string) ($data['error_code'] ?? '')),
+            'error_message' => sanitize_textarea_field((string) ($data['error_message'] ?? '')),
+            'metadata_json' => isset($data['metadata']) ? wp_json_encode($data['metadata'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null,
+            'created_at' => sanitize_text_field((string) ($data['created_at'] ?? $now)) ?: $now,
+            'completed_at' => !empty($data['completed_at']) ? sanitize_text_field((string) $data['completed_at']) : null,
+        );
+        $ok = $wpdb->insert(self::table('query_log'), $row);
+        if ($ok === false) {
+            return new WP_Error('ojeador_query_log_insert', 'No se pudo crear el log de consulta: ' . sanitize_text_field((string) $wpdb->last_error));
+        }
+        return absint($wpdb->insert_id);
+    }
+
+    public static function update_query_log($log_id, $data = array()) {
+        global $wpdb;
+        $log_id = absint($log_id);
+        if ($log_id < 1 || !is_array($data) || !$data) {
+            return false;
+        }
+        $allowed = array(
+            'run_id','context_type','term_id','object_id','category_name','query_text','engine','event_status',
+            'request_attempted','http_code','provider_search_id','provider_status','provider_created_at','provider_processed_at',
+            'raw_result_count','normalized_result_count','saved_result_count','duration_ms','error_code','error_message','completed_at'
+        );
+        $row = array();
+        foreach ($allowed as $key) {
+            if (!array_key_exists($key, $data)) {
+                continue;
+            }
+            $value = $data[$key];
+            if (in_array($key, array('run_id','term_id','object_id','http_code','raw_result_count','normalized_result_count','saved_result_count','duration_ms'), true)) {
+                $row[$key] = absint($value);
+            } elseif ($key === 'request_attempted') {
+                $row[$key] = empty($value) ? 0 : 1;
+            } elseif (in_array($key, array('context_type','engine','event_status','error_code'), true)) {
+                $row[$key] = sanitize_key((string) $value);
+            } elseif ($key === 'error_message') {
+                $row[$key] = sanitize_textarea_field((string) $value);
+            } elseif ($key === 'completed_at') {
+                $row[$key] = $value ? sanitize_text_field((string) $value) : null;
+            } else {
+                $row[$key] = sanitize_text_field((string) $value);
+            }
+        }
+        if (array_key_exists('metadata', $data)) {
+            $row['metadata_json'] = wp_json_encode($data['metadata'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
+        if (!$row) {
+            return false;
+        }
+        $ok = $wpdb->update(self::table('query_log'), $row, array('id'=>$log_id));
+        return $ok === false
+            ? new WP_Error('ojeador_query_log_update', 'No se pudo actualizar el log de consulta: ' . sanitize_text_field((string) $wpdb->last_error))
+            : true;
+    }
+
+    public static function list_query_logs($limit = 100) {
+        global $wpdb;
+        $limit = max(1, min(5000, absint($limit)));
+        return $wpdb->get_results($wpdb->prepare(
+            'SELECT * FROM ' . self::table('query_log') . ' ORDER BY id DESC LIMIT %d',
+            $limit
+        ), ARRAY_A);
+    }
+
+    public static function latest_query_log() {
+        global $wpdb;
+        return $wpdb->get_row('SELECT * FROM ' . self::table('query_log') . ' ORDER BY id DESC LIMIT 1', ARRAY_A);
     }
 
     /* ---------------------------------------------------------------------
