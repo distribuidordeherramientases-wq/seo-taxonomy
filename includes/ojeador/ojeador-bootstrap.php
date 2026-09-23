@@ -7,13 +7,13 @@
  *
  * @package SEOSystem
  * @subpackage Ojeador
- * @version 0.6.1
+ * @version 0.6.3
  */
 
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_OJEADOR_VERSION')) {
-    define('SEO_OJEADOR_VERSION', '0.6.2');
+    define('SEO_OJEADOR_VERSION', '0.6.3');
 }
 if (!defined('SEO_OJEADOR_PATH')) {
     define('SEO_OJEADOR_PATH', __DIR__ . '/');

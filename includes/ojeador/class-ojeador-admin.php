@@ -141,7 +141,7 @@ final class SEO_Ojeador_Admin {
             <div class="seo-ojeador-head">
                 <div>
                     <h1 style="margin-bottom:0">Ojeador <small style="font-size:14px;color:#646970">v<?php echo esc_html(SEO_OJEADOR_VERSION); ?></small></h1>
-                    <p class="seo-ojeador-sub">Consulta Google Shopping por categorías con una sola búsqueda por consulta única. Reutiliza consultas idénticas recientes y conserva todos los bloques de productos que lleguen en la misma respuesta.</p>
+                    <p class="seo-ojeador-sub">Consulta Google Shopping sólo para categorías con vocabulario aprobado y <code>shopping_query</code> explícita. Primero completa categorías nunca consultadas con su consulta aprobada; dentro de ese grupo prioriza tráfico de Analista (28 días) y después número de productos.</p>
                 </div>
                 <div class="seo-ojeador-actions">
                     <?php if (SEO_Ojeador_Worker::is_pending()) : ?>
@@ -154,19 +154,20 @@ final class SEO_Ojeador_Admin {
             </div>
 
             <?php if ($notice === 'settings_saved') : ?><div class="notice notice-success inline"><p>Configuración guardada.</p></div><?php endif; ?>
-            <?php if ($notice === 'scan_started') : ?><div class="notice notice-success inline"><p>Ojeador está consultando categorías pendientes. Cada consulta única consume como máximo una búsqueda; si ya existe una instantánea reciente con la misma consulta, se reutiliza sin nueva petición.</p></div><?php endif; ?>
+            <?php if ($notice === 'scan_started') : ?><div class="notice notice-success inline"><p>Ojeador está consultando categorías aptas. No repite categorías mientras quede alguna sin una primera instantánea con su <code>shopping_query</code> aprobada; después prioriza Analista, productos y antigüedad.</p></div><?php endif; ?>
             <?php if ($notice === 'scan_stopped') : ?><div class="notice notice-info inline"><p>Proceso detenido.</p></div><?php endif; ?>
             <?php if ($error !== '') : ?><div class="notice notice-error inline"><p><?php echo esc_html($error); ?></p></div><?php endif; ?>
             <?php if (is_wp_error($ready)) : ?><div class="notice notice-warning inline"><p><strong>Google Shopping:</strong> <?php echo esc_html($ready->get_error_message()); ?></p></div><?php endif; ?>
 
             <div class="seo-ojeador-cards">
-                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n($summary['target']); ?></strong><span>Categorías objetivo</span></div>
-                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n($summary['consulted']); ?></strong><span>Categorías consultadas</span></div>
-                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n($summary['pending']); ?></strong><span>Categorías pendientes</span></div>
+                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n($summary['target']); ?></strong><span>Categorías aptas Ojeador</span></div>
+                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n($summary['excluded'] ?? 0); ?></strong><span>Excluidas por vocabulario</span></div>
+                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n($summary['consulted']); ?></strong><span>Con consulta aprobada realizada</span></div>
+                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n($summary['pending']); ?></strong><span>Sin primera consulta válida</span></div>
                 <div class="seo-ojeador-card"><strong><?php echo number_format_i18n($usage['used']); ?> / <?php echo number_format_i18n($usage['limit']); ?></strong><span>Consultas este mes</span></div>
                 <div class="seo-ojeador-card"><strong><?php echo number_format_i18n($summary['with_results']); ?></strong><span>Categorías con resultados</span></div>
                 <div class="seo-ojeador-card"><strong><?php echo number_format_i18n($summary['without_results']); ?></strong><span>Sin resultados</span></div>
-                <div class="seo-ojeador-card"><strong><?php echo esc_html(number_format_i18n($summary['coverage'], 1)); ?>%</strong><span>Cobertura</span></div>
+                <div class="seo-ojeador-card"><strong><?php echo esc_html(number_format_i18n($summary['coverage'], 1)); ?>%</strong><span>Cobertura válida</span></div>
             </div>
 
             <?php if ($run) : ?>
@@ -186,16 +187,37 @@ final class SEO_Ojeador_Admin {
 
             <div class="seo-ojeador-table">
                 <table class="widefat striped">
-                    <thead><tr><th>Categoría</th><th>Consulta Google</th><th>Productos en catálogo</th><th>Resultados Google</th><th>Estado</th><th>Última consulta</th><th>Próxima</th></tr></thead>
+                    <thead><tr><th>Categoría</th><th>Consulta Google</th><th>Prioridad</th><th>Productos en catálogo</th><th>Resultados Google</th><th>Estado</th><th>Última consulta</th><th>Próxima</th></tr></thead>
                     <tbody>
                     <?php foreach ($rows as $row) :
-                        list($label, $color) = self::status_label($row['status'] ?? '');
+                        $eligible = !empty($row['ojeador_eligible']);
+                        $first_scan = !empty($row['needs_trusted_scan']);
+                        $due = !empty($row['ojeador_due']);
+                        if (!$eligible) {
+                            $label = 'No apta';
+                            $color = '#b32d2e';
+                        } elseif ($first_scan) {
+                            $label = 'Pendiente';
+                            $color = '#996800';
+                        } else {
+                            list($label, $color) = self::status_label($row['status'] ?? '');
+                        }
                         $category_name = (string) ($row['category_name'] ?: $row['woo_category']);
-                        $query_text = (string) ($row['query_text'] ?: $row['woo_category']);
+                        if ($eligible) {
+                            $query_text = $first_scan
+                                ? (string) ($row['trusted_query'] ?? '')
+                                : (string) (($row['query_text'] ?? '') ?: ($row['trusted_query'] ?? ''));
+                        } else {
+                            $query_text = '';
+                        }
+                        $priority_label = !$eligible ? 'Excluida' : ($first_scan ? 'Primera consulta' : ($due ? 'Actualizar' : 'Al día'));
+                        $clicks = (float) ($row['analista_clicks'] ?? 0);
+                        $impressions = (float) ($row['analista_impressions'] ?? 0);
                     ?>
                         <tr>
                             <td><strong><?php echo esc_html($category_name); ?></strong></td>
-                            <td><?php echo esc_html($query_text); ?></td>
+                            <td><?php echo $query_text !== '' ? esc_html($query_text) : '<span class="seo-ojeador-muted">—</span>'; ?></td>
+                            <td><strong><?php echo esc_html($priority_label); ?></strong><?php if ($eligible) : ?><br><small class="seo-ojeador-muted">Analista 28 d: <?php echo number_format_i18n($clicks, 0); ?> clics · <?php echo number_format_i18n($impressions, 0); ?> imp.</small><?php endif; ?></td>
                             <td><?php echo number_format_i18n(absint($row['woo_product_count'] ?? 0)); ?></td>
                             <td><?php echo number_format_i18n(absint($row['result_count'] ?? 0)); ?></td>
                             <td><span class="seo-ojeador-pill" style="color:<?php echo esc_attr($color); ?>"><?php echo esc_html($label); ?></span><?php if (!empty($row['last_error'])) : ?><br><small><?php echo esc_html(wp_trim_words((string) $row['last_error'], 14)); ?></small><?php endif; ?></td>
@@ -203,14 +225,14 @@ final class SEO_Ojeador_Admin {
                             <td><?php echo !empty($row['next_scan_at']) ? esc_html((string) $row['next_scan_at']) : '—'; ?></td>
                         </tr>
                     <?php endforeach; ?>
-                    <?php if (!$rows) : ?><tr><td colspan="7">No hay categorías de producto con contenido.</td></tr><?php endif; ?>
+                    <?php if (!$rows) : ?><tr><td colspan="8">No hay categorías de producto con contenido.</td></tr><?php endif; ?>
                     </tbody>
                 </table>
             </div>
 
             <details class="seo-ojeador-box seo-ojeador-config">
                 <summary>Conexión Google Shopping y ritmo</summary>
-                <p class="seo-ojeador-muted">Ojeador hace una sola petición por consulta única, reutiliza instantáneas idénticas recientes y no pagina Google Shopping para evitar gastar búsquedas sin ganancia real.</p>
+                <p class="seo-ojeador-muted">Ojeador sólo consulta categorías con Google Esquema en <code>approved</code> y <code>shopping_query</code> no vacía. Mientras falte cobertura inicial no repite categorías ya cubiertas. El orden dentro de cada grupo es: clics de Analista, impresiones, número de productos y antigüedad.</p>
                 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
                     <?php wp_nonce_field('seo_ojeador_settings_save'); ?>
                     <input type="hidden" name="action" value="seo_ojeador_settings_save">

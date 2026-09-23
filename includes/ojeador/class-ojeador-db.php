@@ -239,49 +239,261 @@ final class SEO_Ojeador_DB {
      * CATEGORY-FIRST MARKET SCAN
      * ------------------------------------------------------------------ */
 
-    public static function count_target_categories() {
+    private static function google_schema_table() {
         global $wpdb;
-        return absint($wpdb->get_var(
+        return $wpdb->prefix . 'seo_google_schema_map';
+    }
+
+    private static function google_schema_available() {
+        global $wpdb;
+        static $available = null;
+        if ($available !== null) {
+            return $available;
+        }
+        $table = self::google_schema_table();
+        $available = ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) === $table);
+        return $available;
+    }
+
+    private static function normalize_query_text($value) {
+        $value = trim(wp_strip_all_tags((string) $value));
+        $value = preg_replace('/\s+/u', ' ', $value);
+        return function_exists('mb_strtolower') ? mb_strtolower($value, 'UTF-8') : strtolower($value);
+    }
+
+    /**
+     * Categories that Ojeador is allowed to send to Google Shopping.
+     *
+     * Eligibility is deliberately strict: the Google-schema record must be
+     * approved and it must contain an explicit shopping_query. Ojeador no longer
+     * falls back to an unreviewed WooCommerce category name.
+     */
+    private static function eligible_category_rows() {
+        global $wpdb;
+        if (!self::google_schema_available()) {
+            return array();
+        }
+
+        $market = self::table('categories');
+        $schema = self::google_schema_table();
+        return (array) $wpdb->get_results(
+            "SELECT tt.term_id,
+                    t.name AS category_name,
+                    tt.count AS product_count,
+                    gm.shopping_query AS trusted_query,
+                    gm.status AS mapping_status,
+                    c.query_text,
+                    c.status AS market_status,
+                    c.result_count,
+                    c.last_scan_at,
+                    c.next_scan_at,
+                    c.last_error
+             FROM {$wpdb->term_taxonomy} tt
+             JOIN {$wpdb->terms} t ON t.term_id=tt.term_id
+             JOIN {$schema} gm
+               ON gm.object_type='product_cat'
+              AND gm.object_id=tt.term_id
+             LEFT JOIN {$market} c ON c.term_id=tt.term_id
+             WHERE tt.taxonomy='product_cat'
+               AND tt.count>0
+               AND gm.status='approved'
+               AND gm.shopping_query IS NOT NULL
+               AND TRIM(gm.shopping_query)<>''",
+            ARRAY_A
+        );
+    }
+
+    private static function needs_trusted_scan(array $row) {
+        if (empty($row['last_scan_at'])) {
+            return true;
+        }
+        $used = self::normalize_query_text($row['query_text'] ?? '');
+        $trusted = self::normalize_query_text($row['trusted_query'] ?? '');
+        return $trusted === '' || $used !== $trusted;
+    }
+
+    private static function is_category_due(array $row, $now = '') {
+        if (self::needs_trusted_scan($row)) {
+            return true;
+        }
+        $next = trim((string) ($row['next_scan_at'] ?? ''));
+        if ($next === '') {
+            return true;
+        }
+        $now = $now !== '' ? $now : self::utc_now();
+        return $next <= $now;
+    }
+
+    private static function normalize_url_path($url) {
+        $path = (string) wp_parse_url((string) $url, PHP_URL_PATH);
+        if ($path === '') {
+            return '/';
+        }
+        $path = rawurldecode($path);
+        $path = '/' . trim($path, '/');
+        return $path === '' ? '/' : $path;
+    }
+
+    /**
+     * Traffic signals already calculated by Analista for the last 28 days.
+     * Cached because seo_analista_get_data() is much more expensive than the
+     * Ojeador queue selection itself.
+     */
+    private static function analista_page_metrics() {
+        static $request_cache = null;
+        if (is_array($request_cache)) {
+            return $request_cache;
+        }
+
+        $cache_key = 'seo_ojeador_analista_category_metrics_v1';
+        $cached = get_transient($cache_key);
+        if (is_array($cached)) {
+            $request_cache = $cached;
+            return $request_cache;
+        }
+
+        $request_cache = array();
+        if (!function_exists('seo_analista_get_data')) {
+            return $request_cache;
+        }
+
+        $data = seo_analista_get_data(28);
+        if (!is_array($data) || empty($data['ready'])) {
+            return $request_cache;
+        }
+
+        foreach ((array) ($data['pages'] ?? array()) as $page) {
+            if (!is_array($page)) {
+                continue;
+            }
+            $path = self::normalize_url_path($page['page_url'] ?? '');
+            if ($path === '/') {
+                continue;
+            }
+            $request_cache[$path] = array(
+                'clicks' => max(0.0, (float) ($page['clicks'] ?? 0)),
+                'impressions' => max(0.0, (float) ($page['impressions'] ?? 0)),
+                'position' => max(0.0, (float) ($page['position'] ?? 0)),
+            );
+        }
+
+        set_transient($cache_key, $request_cache, HOUR_IN_SECONDS);
+        return $request_cache;
+    }
+
+    private static function add_analista_metrics(array $rows) {
+        $metrics = self::analista_page_metrics();
+        foreach ($rows as &$row) {
+            $row['analista_clicks'] = 0.0;
+            $row['analista_impressions'] = 0.0;
+            $row['analista_position'] = 0.0;
+            $term_id = absint($row['term_id'] ?? 0);
+            if ($term_id < 1 || !$metrics) {
+                continue;
+            }
+            $url = get_term_link($term_id, 'product_cat');
+            if (is_wp_error($url) || !$url) {
+                continue;
+            }
+            $path = self::normalize_url_path($url);
+            if (!isset($metrics[$path])) {
+                continue;
+            }
+            $row['analista_clicks'] = (float) ($metrics[$path]['clicks'] ?? 0);
+            $row['analista_impressions'] = (float) ($metrics[$path]['impressions'] ?? 0);
+            $row['analista_position'] = (float) ($metrics[$path]['position'] ?? 0);
+        }
+        unset($row);
+        return $rows;
+    }
+
+    private static function sort_priority_rows(array $rows) {
+        usort($rows, static function ($a, $b) {
+            $clicks = (float) ($b['analista_clicks'] ?? 0) <=> (float) ($a['analista_clicks'] ?? 0);
+            if ($clicks !== 0) {
+                return $clicks;
+            }
+            $impressions = (float) ($b['analista_impressions'] ?? 0) <=> (float) ($a['analista_impressions'] ?? 0);
+            if ($impressions !== 0) {
+                return $impressions;
+            }
+            $products = absint($b['product_count'] ?? 0) <=> absint($a['product_count'] ?? 0);
+            if ($products !== 0) {
+                return $products;
+            }
+            $a_scan = trim((string) ($a['last_scan_at'] ?? '')) ?: '1970-01-01 00:00:00';
+            $b_scan = trim((string) ($b['last_scan_at'] ?? '')) ?: '1970-01-01 00:00:00';
+            if ($a_scan !== $b_scan) {
+                return strcmp($a_scan, $b_scan);
+            }
+            return absint($a['term_id'] ?? 0) <=> absint($b['term_id'] ?? 0);
+        });
+        return $rows;
+    }
+
+    public static function count_target_categories() {
+        return count(self::eligible_category_rows());
+    }
+
+    public static function count_excluded_categories() {
+        global $wpdb;
+        $all = absint($wpdb->get_var(
             "SELECT COUNT(*) FROM {$wpdb->term_taxonomy} WHERE taxonomy='product_cat' AND count>0"
         ));
+        return max(0, $all - self::count_target_categories());
     }
 
     public static function count_due_categories() {
-        global $wpdb;
-        $table = self::table('categories');
         $now = self::utc_now();
-        $sql = $wpdb->prepare(
-            "SELECT COUNT(*)
-             FROM {$wpdb->term_taxonomy} tt
-             LEFT JOIN {$table} c ON c.term_id=tt.term_id
-             WHERE tt.taxonomy='product_cat' AND tt.count>0
-               AND (c.term_id IS NULL OR c.next_scan_at IS NULL OR c.next_scan_at<=%s)",
-            $now
-        );
-        return absint($wpdb->get_var($sql));
+        $due = array();
+        $first = array();
+        foreach (self::eligible_category_rows() as $row) {
+            if (!self::is_category_due($row, $now)) {
+                continue;
+            }
+            $due[] = $row;
+            if (self::needs_trusted_scan($row)) {
+                $first[] = $row;
+            }
+        }
+        // While trusted coverage is incomplete, do not spend quota repeating
+        // categories that already have a snapshot for their current query.
+        return count($first ? $first : $due);
     }
 
+    /**
+     * Pick the next categories using the three business criteria requested:
+     * 1) complete first trusted coverage before repeating categories;
+     * 2) among candidates, Analista traffic (clicks, then impressions);
+     * 3) product count; oldest snapshot is only the final tie breaker.
+     */
     public static function due_category_ids($limit) {
-        global $wpdb;
         $limit = max(1, min(20, absint($limit)));
-        $table = self::table('categories');
         $now = self::utc_now();
-        $sql = $wpdb->prepare(
-            "SELECT tt.term_id
-             FROM {$wpdb->term_taxonomy} tt
-             JOIN {$wpdb->terms} t ON t.term_id=tt.term_id
-             LEFT JOIN {$table} c ON c.term_id=tt.term_id
-             WHERE tt.taxonomy='product_cat' AND tt.count>0
-               AND (c.term_id IS NULL OR c.next_scan_at IS NULL OR c.next_scan_at<=%s)
-             ORDER BY CASE WHEN c.term_id IS NULL OR c.last_scan_at IS NULL THEN 0 ELSE 1 END ASC,
-                      tt.count DESC,
-                      COALESCE(c.last_scan_at,'1970-01-01 00:00:00') ASC,
-                      tt.term_id ASC
-             LIMIT %d",
-            $now,
-            $limit
-        );
-        return array_map('absint', (array) $wpdb->get_col($sql));
+        $due = array();
+        $first = array();
+
+        foreach (self::eligible_category_rows() as $row) {
+            if (!self::is_category_due($row, $now)) {
+                continue;
+            }
+            $due[] = $row;
+            if (self::needs_trusted_scan($row)) {
+                $first[] = $row;
+            }
+        }
+
+        $pool = $first ? $first : $due;
+        if (!$pool) {
+            return array();
+        }
+
+        $pool = self::add_analista_metrics($pool);
+        $pool = self::sort_priority_rows($pool);
+        $pool = array_slice($pool, 0, $limit);
+        return array_values(array_map(static function ($row) {
+            return absint($row['term_id'] ?? 0);
+        }, $pool));
     }
 
     public static function category_context($term_id) {
@@ -460,37 +672,33 @@ final class SEO_Ojeador_DB {
     }
 
     public static function category_summary() {
-        global $wpdb;
-        $categories = self::table('categories');
-        $target = self::count_target_categories();
+        $rows = self::eligible_category_rows();
+        $target = count($rows);
+        $consulted = 0;
+        $with_results = 0;
+        $without_results = 0;
+        $errors = 0;
 
-        $consulted = absint($wpdb->get_var(
-            "SELECT COUNT(*)
-             FROM {$categories} c
-             JOIN {$wpdb->term_taxonomy} tt ON tt.term_id=c.term_id AND tt.taxonomy='product_cat' AND tt.count>0
-             WHERE c.last_scan_at IS NOT NULL"
-        ));
-        $with_results = absint($wpdb->get_var(
-            "SELECT COUNT(*)
-             FROM {$categories} c
-             JOIN {$wpdb->term_taxonomy} tt ON tt.term_id=c.term_id AND tt.taxonomy='product_cat' AND tt.count>0
-             WHERE c.status='ok' AND c.result_count>0"
-        ));
-        $without_results = absint($wpdb->get_var(
-            "SELECT COUNT(*)
-             FROM {$categories} c
-             JOIN {$wpdb->term_taxonomy} tt ON tt.term_id=c.term_id AND tt.taxonomy='product_cat' AND tt.count>0
-             WHERE c.status='no_results'"
-        ));
-        $errors = absint($wpdb->get_var(
-            "SELECT COUNT(*)
-             FROM {$categories} c
-             JOIN {$wpdb->term_taxonomy} tt ON tt.term_id=c.term_id AND tt.taxonomy='product_cat' AND tt.count>0
-             WHERE c.status='error'"
-        ));
+        foreach ($rows as $row) {
+            // A historical scan made with a different/unapproved query does not
+            // count as trusted coverage after the vocabulary has changed.
+            if (self::needs_trusted_scan($row)) {
+                continue;
+            }
+            $consulted++;
+            $status = sanitize_key((string) ($row['market_status'] ?? ''));
+            if ($status === 'ok' && absint($row['result_count'] ?? 0) > 0) {
+                $with_results++;
+            } elseif ($status === 'no_results') {
+                $without_results++;
+            } elseif ($status === 'error') {
+                $errors++;
+            }
+        }
 
         return array(
             'target' => $target,
+            'excluded' => self::count_excluded_categories(),
             'consulted' => $consulted,
             'pending' => max(0, $target - $consulted),
             'with_results' => $with_results,
@@ -507,31 +715,72 @@ final class SEO_Ojeador_DB {
         $limit = max(1, min(2000, absint($args['limit'])));
         $search = trim((string) $args['search']);
         $categories = self::table('categories');
+        $schema = self::google_schema_table();
+        $has_schema = self::google_schema_available();
 
         $where = "WHERE tt.taxonomy='product_cat' AND tt.count>0";
         $params = array();
         if ($search !== '') {
             $like = '%' . $wpdb->esc_like($search) . '%';
-            $where .= ' AND (t.name LIKE %s OR c.query_text LIKE %s)';
-            $params = array($like, $like);
+            $where .= $has_schema
+                ? ' AND (t.name LIKE %s OR c.query_text LIKE %s OR gm.shopping_query LIKE %s)'
+                : ' AND (t.name LIKE %s OR c.query_text LIKE %s)';
+            $params = $has_schema ? array($like, $like, $like) : array($like, $like);
         }
 
-        $sql = "SELECT tt.term_id,t.name AS woo_category,tt.count AS woo_product_count,
-                       c.category_name,c.query_text,c.status,c.result_count,c.unique_result_count,
-                       c.last_scan_at,c.next_scan_at,c.last_error
-                FROM {$wpdb->term_taxonomy} tt
-                JOIN {$wpdb->terms} t ON t.term_id=tt.term_id
-                LEFT JOIN {$categories} c ON c.term_id=tt.term_id
-                {$where}
-                ORDER BY CASE WHEN c.last_scan_at IS NULL THEN 1 ELSE 0 END ASC,
-                         c.last_scan_at DESC,
-                         tt.count DESC,
-                         t.name ASC
-                LIMIT {$limit}";
+        if ($has_schema) {
+            $sql = "SELECT tt.term_id,t.name AS woo_category,tt.count AS woo_product_count,
+                           c.category_name,c.query_text,c.status,c.result_count,c.unique_result_count,
+                           c.last_scan_at,c.next_scan_at,c.last_error,
+                           gm.status AS google_schema_status,gm.shopping_query AS trusted_query
+                    FROM {$wpdb->term_taxonomy} tt
+                    JOIN {$wpdb->terms} t ON t.term_id=tt.term_id
+                    LEFT JOIN {$categories} c ON c.term_id=tt.term_id
+                    LEFT JOIN {$schema} gm ON gm.object_type='product_cat' AND gm.object_id=tt.term_id
+                    {$where}
+                    LIMIT {$limit}";
+        } else {
+            $sql = "SELECT tt.term_id,t.name AS woo_category,tt.count AS woo_product_count,
+                           c.category_name,c.query_text,c.status,c.result_count,c.unique_result_count,
+                           c.last_scan_at,c.next_scan_at,c.last_error,
+                           '' AS google_schema_status,'' AS trusted_query
+                    FROM {$wpdb->term_taxonomy} tt
+                    JOIN {$wpdb->terms} t ON t.term_id=tt.term_id
+                    LEFT JOIN {$categories} c ON c.term_id=tt.term_id
+                    {$where}
+                    LIMIT {$limit}";
+        }
         if ($params) {
             $sql = $wpdb->prepare($sql, $params);
         }
-        return $wpdb->get_results($sql, ARRAY_A);
+        $rows = (array) $wpdb->get_results($sql, ARRAY_A);
+
+        foreach ($rows as &$row) {
+            $row['product_count'] = absint($row['woo_product_count'] ?? 0);
+            $row['market_status'] = (string) ($row['status'] ?? '');
+            $eligible = (string) ($row['google_schema_status'] ?? '') === 'approved'
+                && trim((string) ($row['trusted_query'] ?? '')) !== '';
+            $row['ojeador_eligible'] = $eligible ? 1 : 0;
+            $row['needs_trusted_scan'] = $eligible && self::needs_trusted_scan($row) ? 1 : 0;
+            $row['ojeador_due'] = $eligible && self::is_category_due($row) ? 1 : 0;
+        }
+        unset($row);
+
+        $rows = self::add_analista_metrics($rows);
+        usort($rows, static function ($a, $b) {
+            $eligible = absint($b['ojeador_eligible'] ?? 0) <=> absint($a['ojeador_eligible'] ?? 0);
+            if ($eligible !== 0) return $eligible;
+            $first = absint($b['needs_trusted_scan'] ?? 0) <=> absint($a['needs_trusted_scan'] ?? 0);
+            if ($first !== 0) return $first;
+            $clicks = (float) ($b['analista_clicks'] ?? 0) <=> (float) ($a['analista_clicks'] ?? 0);
+            if ($clicks !== 0) return $clicks;
+            $impressions = (float) ($b['analista_impressions'] ?? 0) <=> (float) ($a['analista_impressions'] ?? 0);
+            if ($impressions !== 0) return $impressions;
+            $products = absint($b['woo_product_count'] ?? 0) <=> absint($a['woo_product_count'] ?? 0);
+            if ($products !== 0) return $products;
+            return strcasecmp((string) ($a['woo_category'] ?? ''), (string) ($b['woo_category'] ?? ''));
+        });
+        return $rows;
     }
 
     /**

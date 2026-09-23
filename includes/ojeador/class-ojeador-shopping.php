@@ -136,9 +136,9 @@ final class SEO_Ojeador_Shopping {
     /**
      * Build ordered query candidates without spending API requests.
      *
-     * Priority is deliberately Spanish/operational first:
-     * shopping_query > google_alias_es > suggested_wp_name > WooCommerce name
-     * > google_name_en. Only approved classifier mappings are consumed.
+     * Admission is strict: only approved mappings with an explicit
+     * shopping_query are eligible. The operational query is always first; the
+     * remaining reviewed labels are retained only as diagnostic candidates.
      *
      * @param int|array $category Category term ID or category context.
      * @return array
@@ -152,41 +152,28 @@ final class SEO_Ojeador_Shopping {
         }
 
         $term_id = absint($category['term_id'] ?? 0);
-        $fallback = sanitize_text_field((string) ($category['name'] ?? ''));
-        $candidates = array();
-
-        if ($term_id > 0 && function_exists('seo_classifier_google_schema_get_mapping')) {
-            $mapping = seo_classifier_google_schema_get_mapping('product_cat', $term_id);
-            if (is_array($mapping) && (string) ($mapping['status'] ?? '') === 'approved') {
-                foreach (array('shopping_query', 'google_alias_es', 'suggested_wp_name') as $field) {
-                    $value = sanitize_text_field((string) ($mapping[$field] ?? ''));
-                    if ($value !== '') {
-                        $candidates[] = $value;
-                    }
-                }
-
-                if ($fallback !== '') {
-                    $candidates[] = $fallback;
-                }
-
-                // English taxonomy name is intentionally last. It is useful as a
-                // rescue value, but is normally a worse query for Shopping Spain.
-                $google_name_en = sanitize_text_field((string) ($mapping['google_name_en'] ?? ''));
-                if ($google_name_en !== '') {
-                    $candidates[] = $google_name_en;
-                }
-            }
+        if ($term_id < 1 || !function_exists('seo_classifier_google_schema_get_mapping')) {
+            return array();
         }
 
-        if (!$candidates && $fallback !== '') {
-            $candidates[] = $fallback;
+        $mapping = seo_classifier_google_schema_get_mapping('product_cat', $term_id);
+        if (!is_array($mapping) || (string) ($mapping['status'] ?? '') !== 'approved') {
+            return array();
         }
 
-        // Compatibility with older classifier builds that expose only the helper.
-        if ($term_id > 0 && function_exists('seo_classifier_google_schema_category_search_name')) {
-            $legacy = sanitize_text_field((string) seo_classifier_google_schema_category_search_name($term_id, ''));
-            if ($legacy !== '') {
-                $candidates[] = $legacy;
+        // shopping_query is now the admission ticket for Ojeador. This field is
+        // the reviewed operational phrase for Google Shopping; categories in
+        // review/pending or approved rows without it are never queried.
+        $shopping_query = sanitize_text_field((string) ($mapping['shopping_query'] ?? ''));
+        if ($shopping_query === '') {
+            return array();
+        }
+
+        $candidates = array($shopping_query);
+        foreach (array('google_alias_es', 'suggested_wp_name', 'google_name_en') as $field) {
+            $value = sanitize_text_field((string) ($mapping[$field] ?? ''));
+            if ($value !== '') {
+                $candidates[] = $value;
             }
         }
 
