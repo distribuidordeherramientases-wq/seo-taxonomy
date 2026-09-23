@@ -366,40 +366,64 @@ $json = array(
     ====================================================== -->
 
     <?php
-    $category_products = new WP_Query([
-        'post_type'      => 'product',
-        'post_status'    => 'publish',
-        'posts_per_page' => 12,
-        'orderby'        => [
-            'menu_order' => 'ASC',
-            'date'       => 'DESC',
-        ],
-        'tax_query'      => [
-            [
-                'taxonomy'         => 'product_cat',
-                'field'            => 'term_id',
-                'terms'            => [$term->term_id],
-                'include_children' => true,
+    $category_products = null;
+    $grid_products = array();
+    $category_choice_criteria = array();
+
+    try {
+        $category_products = new WP_Query([
+            'post_type'      => 'product',
+            'post_status'    => 'publish',
+            'posts_per_page' => 12,
+            'orderby'        => [
+                'menu_order' => 'ASC',
+                'date'       => 'DESC',
             ],
-        ],
-    ]);
-    ?>
+            'tax_query'      => [
+                [
+                    'taxonomy'         => 'product_cat',
+                    'field'            => 'term_id',
+                    'terms'            => [$term->term_id],
+                    'include_children' => true,
+                ],
+            ],
+        ]);
 
-    <?php if($category_products->have_posts()): ?>
+        if ($category_products instanceof WP_Query && $category_products->have_posts()) {
+            foreach ((array) $category_products->posts as $product_post) {
+                try {
+                    $grid_product = function_exists('wc_get_product') ? wc_get_product($product_post->ID) : null;
+                    if ($grid_product && is_a($grid_product, 'WC_Product')) {
+                        $grid_products[] = $grid_product;
+                    }
+                } catch (Throwable $e) {
+                    error_log('[DHT category] wc_get_product fallo ID ' . (int) $product_post->ID . ': ' . $e->getMessage());
+                }
+            }
 
-        <?php
-        $grid_products = array();
-        foreach ((array) $category_products->posts as $product_post) {
-            $grid_product = wc_get_product($product_post->ID);
-            if ($grid_product && is_a($grid_product, 'WC_Product')) {
-                $grid_products[] = $grid_product;
+            if (function_exists('dht_template_category_choice_criteria')) {
+                try {
+                    $category_choice_criteria = (array) dht_template_category_choice_criteria($grid_products, 6);
+                } catch (Throwable $e) {
+                    error_log('[DHT category] choice_criteria: ' . $e->getMessage());
+                    $category_choice_criteria = array();
+                }
+            }
+
+            if (function_exists('wc_set_loop_prop')) {
+                wc_set_loop_prop('columns', 2);
+                wc_set_loop_prop('total', $category_products->post_count);
             }
         }
-        $category_choice_criteria = dht_template_category_choice_criteria($grid_products, 6);
+    } catch (Throwable $e) {
+        error_log('[DHT category] preparacion productos: ' . $e->getMessage());
+        $category_products = null;
+        $grid_products = array();
+        $category_choice_criteria = array();
+    }
+    ?>
 
-        wc_set_loop_prop('columns', 2);
-        wc_set_loop_prop('total', $category_products->post_count);
-        ?>
+    <?php if($category_products instanceof WP_Query && $category_products->have_posts()): ?>
 
         <section id="dht-category-products" class="dht-section dht-category-products">
 
@@ -431,7 +455,13 @@ $json = array(
                     </header>
 
                     <?php
-                    dht_shared_render_product_grid($grid_products, 'dht-category-product-grid', 3, true);
+                    if (function_exists('dht_shared_render_product_grid')) {
+                        try {
+                            dht_shared_render_product_grid($grid_products, 'dht-category-product-grid', 3, true);
+                        } catch (Throwable $e) {
+                            error_log('[DHT category] render_product_grid: ' . $e->getMessage());
+                        }
+                    }
                     ?>
 
                 </div>
@@ -448,7 +478,42 @@ $json = array(
     ====================================================== -->
 
     <?php
-    $related_categories = dht_template_related_product_categories($term, 4);
+    $related_categories = array();
+    if (function_exists('dht_template_related_product_categories')) {
+        try {
+            $related_categories = (array) dht_template_related_product_categories($term, 4);
+        } catch (Throwable $e) {
+            error_log('[DHT category] related_product_categories: ' . $e->getMessage());
+            $related_categories = array();
+        }
+    }
+
+    /* Fallback: si el helper no esta disponible o falla, conserva la regla
+     * historica de hijas -> hermanas sin tumbar la categoria. */
+    if (empty($related_categories)) {
+        $related_categories = get_terms([
+            'taxonomy'   => 'product_cat',
+            'parent'     => (int) $term->term_id,
+            'hide_empty' => true,
+            'number'     => 4,
+            'orderby'    => 'name',
+            'order'      => 'ASC',
+        ]);
+        if (is_wp_error($related_categories) || empty($related_categories)) {
+            $related_categories = get_terms([
+                'taxonomy'   => 'product_cat',
+                'parent'     => (int) $term->parent,
+                'exclude'    => [(int) $term->term_id],
+                'hide_empty' => true,
+                'number'     => 4,
+                'orderby'    => 'count',
+                'order'      => 'DESC',
+            ]);
+        }
+        if (is_wp_error($related_categories)) {
+            $related_categories = array();
+        }
+    }
     ?>
 
     <?php if(!empty($related_categories) && !is_wp_error($related_categories)): ?>
