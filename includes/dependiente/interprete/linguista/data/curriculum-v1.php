@@ -48,7 +48,7 @@ return array(
     array(
         'key'   => 'ling_l8_exam',
         'order' => 8,
-        'title' => 'Examen conversacional y regresión',
-        'goal'  => 'Probar frases nuevas generadas desde lo aprendido y comprobar que el Intérprete entrega una búsqueda coherente al Dependiente.',
+        'title' => 'Regresión lingüística y autoaprendizaje',
+        'goal'  => 'Probar ruido, flexiones, erratas y equivalencias sobre conocimiento ya respaldado; corregir automáticamente variantes seguras y activar hipótesis semánticas con confianza progresiva y contexto cuando sea necesario.',
     ),
 );
