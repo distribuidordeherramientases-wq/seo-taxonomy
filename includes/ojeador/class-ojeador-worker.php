@@ -141,6 +141,7 @@ final class SEO_Ojeador_Worker {
             $errors = absint($run['errors_count'] ?? 0);
             $last_term_id = absint($run['last_term_id'] ?? 0);
             $last_error = '';
+            $halt_on_exception = false;
 
             foreach ($ids as $term_id) {
                 // Stop exactly at the configured monthly ceiling.
@@ -159,7 +160,43 @@ final class SEO_Ojeador_Worker {
 
                 $processed++;
                 $last_term_id = absint($term_id);
-                $scan = SEO_Ojeador_Shopping::scan_category($context, $run_id);
+                try {
+                    $scan = SEO_Ojeador_Shopping::scan_category($context, $run_id);
+                } catch (\Throwable $e) {
+                    $errors++;
+                    $halt_on_exception = true;
+                    $last_error = sprintf(
+                        'Excepción interna al procesar categoría %d: %s',
+                        absint($term_id),
+                        sanitize_text_field($e->getMessage())
+                    );
+
+                    SEO_Ojeador_DB::create_query_log(array(
+                        'run_id' => $run_id,
+                        'context_type' => 'category',
+                        'term_id' => absint($term_id),
+                        'category_name' => (string) ($context['name'] ?? ''),
+                        'query_text' => SEO_Ojeador_Shopping::build_category_query($context),
+                        'engine' => 'google_shopping',
+                        'event_status' => 'parse_error',
+                        'request_attempted' => 0,
+                        'error_code' => 'ojeador_worker_exception',
+                        'error_message' => $last_error,
+                        'metadata' => array(
+                            'exception_class' => get_class($e),
+                            'file' => basename((string) $e->getFile()),
+                            'line' => absint($e->getLine()),
+                        ),
+                        'completed_at' => SEO_Ojeador_DB::utc_now(),
+                    ));
+
+                    SEO_Ojeador_DB::save_category_error(
+                        $term_id,
+                        new WP_Error('ojeador_worker_exception', $last_error),
+                        SEO_Ojeador_Shopping::build_category_query($context)
+                    );
+                    break;
+                }
 
                 if (is_wp_error($scan)) {
                     $error_data = $scan->get_error_data();
@@ -225,7 +262,9 @@ final class SEO_Ojeador_Worker {
             }
 
             $usage = SEO_Ojeador_Shopping::usage_month();
-            $status = ($usage['limit'] > 0 && $usage['used'] >= $usage['limit']) ? 'completed' : 'running';
+            $status = $halt_on_exception
+                ? 'stopped'
+                : (($usage['limit'] > 0 && $usage['used'] >= $usage['limit']) ? 'completed' : 'running');
             SEO_Ojeador_DB::update_run($run_id, array(
                 'status' => $status,
                 'processed_categories' => $processed,

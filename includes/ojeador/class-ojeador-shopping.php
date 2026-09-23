@@ -338,6 +338,110 @@ final class SEO_Ojeador_Shopping {
     }
 
     /**
+     * Normalize one Google Shopping row into Ojeador's category-market schema.
+     *
+     * Google/SerpApi can omit fields depending on the Shopping layout. We keep
+     * every row that has a usable title or Google product ID; price and merchant
+     * are intentionally optional because the category inventory is market
+     * discovery, not exact-offer matching.
+     *
+     * @param array $row Raw Google Shopping result.
+     * @return array|null
+     */
+    private static function normalize_category_result($row) {
+        if (!is_array($row)) {
+            return null;
+        }
+
+        $scalar = static function ($value) {
+            return is_scalar($value) ? trim((string) $value) : '';
+        };
+
+        $title = sanitize_text_field($scalar($row['title'] ?? ''));
+        $google_product_id = sanitize_text_field($scalar(
+            $row['product_id'] ?? $row['google_product_id'] ?? ''
+        ));
+
+        if ($title === '' && $google_product_id === '') {
+            return null;
+        }
+
+        $merchant = '';
+        foreach (array('source', 'merchant', 'seller', 'store') as $key) {
+            $candidate = sanitize_text_field($scalar($row[$key] ?? ''));
+            if ($candidate !== '') {
+                $merchant = $candidate;
+                break;
+            }
+        }
+
+        $description = '';
+        foreach (array('description', 'snippet') as $key) {
+            $candidate = sanitize_textarea_field($scalar($row[$key] ?? ''));
+            if ($candidate !== '') {
+                $description = $candidate;
+                break;
+            }
+        }
+
+        $image_url = '';
+        foreach (array('thumbnail', 'serpapi_thumbnail', 'image') as $key) {
+            $candidate = esc_url_raw($scalar($row[$key] ?? ''));
+            if ($candidate !== '') {
+                $image_url = $candidate;
+                break;
+            }
+        }
+
+        $product_url = '';
+        foreach (array('product_link', 'link') as $key) {
+            $candidate = esc_url_raw($scalar($row[$key] ?? ''));
+            if ($candidate !== '') {
+                $product_url = $candidate;
+                break;
+            }
+        }
+
+        $merchant_url = '';
+        foreach (array('link', 'product_link') as $key) {
+            $candidate = esc_url_raw($scalar($row[$key] ?? ''));
+            if ($candidate !== '') {
+                $merchant_url = $candidate;
+                break;
+            }
+        }
+
+        $delivery = self::stock_text($row);
+        if ($delivery === '') {
+            $delivery = sanitize_text_field($scalar($row['delivery'] ?? ''));
+        }
+
+        return array(
+            'google_product_id' => $google_product_id,
+            'immersive_token' => sanitize_text_field($scalar($row['immersive_product_page_token'] ?? '')),
+            'gtin' => SEO_Ojeador_Identity::normalize_gtin($scalar($row['gtin'] ?? $row['ean'] ?? '')),
+            'mpn' => sanitize_text_field($scalar($row['mpn'] ?? '')),
+            'brand' => sanitize_text_field($scalar($row['brand'] ?? '')),
+            'model' => sanitize_text_field($scalar($row['model'] ?? '')),
+            'title' => $title,
+            'description' => $description,
+            'merchant' => $merchant,
+            'price' => self::number($row['extracted_price'] ?? $row['price'] ?? null),
+            'old_price' => self::number($row['extracted_old_price'] ?? $row['old_price'] ?? null),
+            'currency' => self::currency_from_values($row),
+            'delivery' => $delivery,
+            'rating' => self::number($row['rating'] ?? null),
+            'reviews' => absint($row['reviews'] ?? 0),
+            'image_url' => $image_url,
+            'merchant_url' => $merchant_url,
+            'product_url' => $product_url,
+            'position' => absint($row['position'] ?? 0),
+            'source' => 'google_shopping',
+            'raw' => self::compact_raw($row),
+        );
+    }
+
+    /**
      * Extract every product block available in one Google Shopping response.
      *
      * Besides the main shopping_results array, Google can return categorized
