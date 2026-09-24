@@ -4554,6 +4554,10 @@ final class SEO_Dependiente_API {
         if (!SEO_Dependiente_Index::table_exists($faq_table)) {
             return array();
         }
+        $faq_has_legacy_scope = (bool) $wpdb->get_var(
+            $wpdb->prepare("SHOW COLUMNS FROM `{$faq_table}` LIKE %s", 'ambito')
+        );
+        $faq_scope_select = $faq_has_legacy_scope ? 'ambito' : "'' AS ambito";
 
         $validated_owner = self::validate_faq_owner($resolved_owner['object_type'] ?? 0, $resolved_owner['object_id'] ?? 0);
         $resolved_owner = $validated_owner ? array_merge($resolved_owner, $validated_owner) : array();
@@ -4637,7 +4641,7 @@ final class SEO_Dependiente_API {
 
         if ($owner_conditions) {
             $owner_limit = min(180, max(30, $limit * 8));
-            $owner_sql = "SELECT id,object_type,object_id,ambito,question,answer,updated_at
+            $owner_sql = "SELECT id,object_type,object_id,{$faq_scope_select},question,answer,updated_at
                           FROM {$faq_table}
                           WHERE active=1 AND (" . implode(' OR ', $owner_conditions) . ")
                           ORDER BY sort_order ASC,id ASC
@@ -4668,12 +4672,17 @@ final class SEO_Dependiente_API {
             $params = array();
             foreach ($tokens as $token) {
                 $like = '%' . $wpdb->esc_like($token) . '%';
-                $conditions[] = '(LOWER(question) LIKE %s OR LOWER(COALESCE(ambito,\'\')) LIKE %s)';
-                $params[] = $like;
-                $params[] = $like;
+                if ($faq_has_legacy_scope) {
+                    $conditions[] = '(LOWER(question) LIKE %s OR LOWER(COALESCE(ambito,\'\')) LIKE %s)';
+                    $params[] = $like;
+                    $params[] = $like;
+                } else {
+                    $conditions[] = 'LOWER(question) LIKE %s';
+                    $params[] = $like;
+                }
             }
             $text_limit = min(100, max(24, $limit * 4));
-            $sql = "SELECT id,object_type,object_id,ambito,question,answer,updated_at
+            $sql = "SELECT id,object_type,object_id,{$faq_scope_select},question,answer,updated_at
                     FROM {$faq_table}
                     WHERE active=1 AND object_type IN (2,3) AND (" . implode(' OR ', $conditions) . ")
                     ORDER BY updated_at DESC,id DESC LIMIT {$text_limit}";
