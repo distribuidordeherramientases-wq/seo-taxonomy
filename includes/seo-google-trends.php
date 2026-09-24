@@ -11,11 +11,13 @@ if (!defined('ABSPATH')) {
  * - Trends actua como fuente externa; no usa las paginas propias para decidir
  *   que demanda existe.
  * - El radar automatico consume el RSS oficial de Tendencias actuales.
- * - Explore usa por defecto la interfaz publica anonima, con lotes pequenos,
- *   cache, pausa entre peticiones y backoff. No requiere OAuth ni cuenta Google.
+ * - Explore usa por defecto la interfaz web publica anonima, con lotes pequenos,
+ *   cache, pausa entre peticiones y backoff. Esta via no requiere OAuth ni cuenta Google.
+ * - La Google Trends API oficial (Alpha) es una via distinta y requiere acceso
+ *   concedido/allowlist; este conector no la usa hasta que exista autorizacion.
  * - CSV y proveedores externos siguen disponibles como respaldo/extensión.
  */
-if (!defined('SEO_GOOGLE_TRENDS_VERSION')) define('SEO_GOOGLE_TRENDS_VERSION', '2.1.1');
+if (!defined('SEO_GOOGLE_TRENDS_VERSION')) define('SEO_GOOGLE_TRENDS_VERSION', '2.2.0');
 if (!defined('SEO_GOOGLE_TRENDS_DB_VERSION')) define('SEO_GOOGLE_TRENDS_DB_VERSION', '2.0.0');
 if (!defined('SEO_GOOGLE_TRENDS_DB_OPTION')) define('SEO_GOOGLE_TRENDS_DB_OPTION', 'seo_google_trends_db_version');
 if (!defined('SEO_GOOGLE_TRENDS_SETTINGS_OPTION')) define('SEO_GOOGLE_TRENDS_SETTINGS_OPTION', 'seo_google_trends_settings_v2');
@@ -917,114 +919,255 @@ function seo_google_trends_public_headers($geo = 'ES', $referer = '') {
 }
 
 /**
- * Abre una superficie publica de Trends para recoger las cookies anonimas que
- * Google decida entregar. No requiere OAuth, API key ni una cuenta Google.
+ * Warmup opcional de la superficie web publica.
  *
- * La antigua ruta /trends/explore/ puede devolver 404 segun el despliegue de
- * la nueva interfaz. Un 404 del HTML de calentamiento no se interpreta como
- * un problema de permisos: se prueban superficies publicas alternativas y,
- * si todas devuelven 404, se permite continuar sin cookies para que el propio
- * endpoint /trends/api/explore determine si el acceso anonimo esta operativo.
+ * No se usa como prueba de permisos: la capa publica de Explore puede responder
+ * sin una sesion previa. Solo 401/403/429 se consideran señales relevantes de
+ * rechazo/bloqueo; 404/410/5xx o errores de red del HTML no deben impedir probar
+ * directamente /trends/api/explore.
  */
 function seo_google_trends_public_warmup($geo = 'ES') {
     $geo = strtoupper((string) $geo);
-    $query = array('geo' => $geo, 'hl' => 'es');
-    $urls = array(
-        add_query_arg($query, 'https://trends.google.com/home'),
-        add_query_arg($query, 'https://trends.google.com/trends/'),
-        add_query_arg(array_merge($query, array('legacy' => '')), 'https://trends.google.com/trends/explore'),
+    $url = add_query_arg(
+        array('geo' => $geo, 'hl' => 'es'),
+        'https://trends.google.com/trends/'
     );
 
-    $last_network_error = '';
-    $last_http_code = 0;
+    $response = wp_safe_remote_get($url, array(
+        'timeout'     => 15,
+        'redirection' => 4,
+        'httpversion' => '1.1',
+        'headers'     => seo_google_trends_public_headers($geo, $url),
+    ));
 
-    foreach ($urls as $url) {
-        $response = wp_safe_remote_get($url, array(
-            'timeout'     => 18,
-            'redirection' => 5,
-            'httpversion' => '1.1',
-            'headers'     => seo_google_trends_public_headers($geo, $url),
-        ));
-
-        if (is_wp_error($response)) {
-            $last_network_error = $response->get_error_message();
-            continue;
-        }
-
-        $code = (int) wp_remote_retrieve_response_code($response);
-        $last_http_code = $code;
-        if ($code >= 200 && $code < 400) {
-            $jar = array();
-            seo_google_trends_public_cookie_merge($jar, $response);
-            return $jar;
-        }
-
-        /* 401/403/429 si son relevantes para permisos/bloqueo y deben parar. */
-        if (in_array($code, array(401, 403, 429), true)) {
-            $message = 'Google Trends publico respondio HTTP ' . $code . ' al preparar la consulta anonima.';
-            seo_google_trends_public_set_backoff($code, $message);
-            return new WP_Error('seo_google_trends_public_warmup_http_' . $code, $message, array('http_code' => $code));
-        }
-
-        /* 404/410 pueden corresponder solo a una superficie web retirada. */
-        if (in_array($code, array(404, 410), true)) {
-            continue;
-        }
-    }
-
-    if ($last_http_code && in_array($last_http_code, array(404, 410), true)) {
-        /*
-         * No bloquear Explore por un 404 de la pagina HTML. El API anonimo se
-         * prueba a continuacion y dara un diagnostico mas fiable.
-         */
+    if (is_wp_error($response)) {
         return array();
     }
 
-    if ($last_network_error !== '') {
+    $code = (int) wp_remote_retrieve_response_code($response);
+    if ($code >= 200 && $code < 400) {
+        $jar = array();
+        seo_google_trends_public_cookie_merge($jar, $response);
+        return $jar;
+    }
+
+    if (in_array($code, array(401, 403, 429), true)) {
+        $message = 'Google Trends publico respondio HTTP ' . $code . ' al preparar una sesion web opcional.';
+        seo_google_trends_public_set_backoff($code, $message);
         return new WP_Error(
-            'seo_google_trends_public_warmup',
-            'No se pudo abrir ninguna superficie publica de Google Trends: ' . $last_network_error
+            'seo_google_trends_public_warmup_http_' . $code,
+            $message,
+            array(
+                'phase'     => 'warmup',
+                'http_code' => $code,
+                'method'    => 'GET',
+                'endpoint'  => 'trends.google.com/trends/',
+            )
         );
     }
 
-    $message = 'No se pudo preparar la consulta anonima de Google Trends.';
-    if ($last_http_code > 0) {
-        $message .= ' Ultimo HTTP recibido: ' . $last_http_code . '.';
-        seo_google_trends_public_set_backoff($last_http_code, $message);
-    }
-    return new WP_Error('seo_google_trends_public_warmup_failed', $message);
+    return array();
 }
 
-function seo_google_trends_public_json_request($method, $endpoint, array $params, array &$cookies, $geo = 'ES') {
-    $url = add_query_arg($params, $endpoint);
+function seo_google_trends_public_error_context($error) {
+    if (!is_wp_error($error)) {
+        return array();
+    }
+    $data = $error->get_error_data();
+    return is_array($data) ? $data : array();
+}
+
+/**
+ * Peticion JSON a la superficie web publica de Trends.
+ *
+ * Los parametros viajan en query string para GET. Si hay que probar POST como
+ * fallback de compatibilidad, se envian como formulario URL-encoded en el body.
+ * El diagnostico guarda solo fase/metodo/ruta/codigo; nunca tokens ni req completos.
+ */
+function seo_google_trends_public_json_request($method, $endpoint, array $params, array &$cookies, $geo = 'ES', $phase = 'request', $apply_backoff = true) {
+    $method = strtoupper((string) $method);
+    $url = $endpoint;
+    $headers = seo_google_trends_public_headers($geo);
     $args = array(
-        'method'      => strtoupper((string) $method),
+        'method'      => $method,
         'timeout'     => 22,
         'redirection' => 2,
         'httpversion' => '1.1',
-        'headers'     => seo_google_trends_public_headers($geo),
+        'headers'     => $headers,
     );
+
+    if ('GET' === $method || 'HEAD' === $method) {
+        $url = add_query_arg($params, $endpoint);
+    } else {
+        $args['body'] = $params;
+        $args['headers']['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
+        $args['headers']['Origin'] = 'https://trends.google.com';
+    }
+
     if ($cookies) {
         $args['cookies'] = array_values($cookies);
     }
+
+    $parts = wp_parse_url($endpoint);
+    $endpoint_label = '';
+    if (is_array($parts)) {
+        $endpoint_label = (string) ($parts['host'] ?? '') . (string) ($parts['path'] ?? '');
+    }
+    if ($endpoint_label === '') {
+        $endpoint_label = sanitize_text_field((string) $endpoint);
+    }
+
     $response = wp_remote_request($url, $args);
     if (is_wp_error($response)) {
-        return new WP_Error('seo_google_trends_public_network', 'No se pudo descargar Google Trends publico: ' . $response->get_error_message());
+        return new WP_Error(
+            'seo_google_trends_public_network',
+            'No se pudo descargar Google Trends publico durante ' . sanitize_key((string) $phase) . ': ' . $response->get_error_message(),
+            array(
+                'phase'     => sanitize_key((string) $phase),
+                'http_code' => 0,
+                'method'    => $method,
+                'endpoint'  => $endpoint_label,
+            )
+        );
     }
+
     seo_google_trends_public_cookie_merge($cookies, $response);
     $code = (int) wp_remote_retrieve_response_code($response);
     if ($code < 200 || $code >= 300) {
         if (429 === $code) {
             $message = 'Google Trends ha limitado temporalmente las consultas publicas (HTTP 429). Se aplicara una pausa automatica.';
+        } elseif (in_array($code, array(401, 403), true)) {
+            $message = 'Google Trends ha rechazado la consulta web publica (HTTP ' . $code . '). Puede ser bloqueo del servidor o una exigencia nueva de sesion; no demuestra falta de acceso a la API oficial.';
+        } elseif (in_array($code, array(404, 405), true)) {
+            $message = 'Google Trends respondio HTTP ' . $code . ' en ' . sanitize_key((string) $phase) . '. Esto apunta a una ruta/metodo web cambiado, no a falta de privilegios de la cuenta.';
         } elseif (400 === $code) {
-            $message = 'Google Trends ha rechazado la consulta publica de Explore (HTTP 400). El plugin conserva datos previos y reduce nuevas peticiones.';
+            $message = 'Google Trends rechazo la peticion de Explore (HTTP 400). La ruta responde, pero los parametros o el formato de la solicitud no son validos.';
+        } elseif ($code >= 500) {
+            $message = 'Google Trends devolvio un error temporal del servidor (HTTP ' . $code . ').';
         } else {
             $message = 'Google Trends publico respondio HTTP ' . $code . '.';
         }
-        seo_google_trends_public_set_backoff($code, $message);
-        return new WP_Error('seo_google_trends_public_http_' . $code, $message, array('http_code' => $code));
+
+        if ($apply_backoff && (429 === $code || in_array($code, array(400, 401, 403), true) || $code >= 500)) {
+            seo_google_trends_public_set_backoff($code, $message);
+        }
+
+        return new WP_Error(
+            'seo_google_trends_public_http_' . $code,
+            $message,
+            array(
+                'phase'        => sanitize_key((string) $phase),
+                'http_code'    => $code,
+                'method'       => $method,
+                'endpoint'     => $endpoint_label,
+                'content_type' => sanitize_text_field((string) wp_remote_retrieve_header($response, 'content-type')),
+            )
+        );
     }
-    return seo_google_trends_public_decode_json(wp_remote_retrieve_body($response));
+
+    $content_type = sanitize_text_field((string) wp_remote_retrieve_header($response, 'content-type'));
+    $decoded = seo_google_trends_public_decode_json(wp_remote_retrieve_body($response));
+    if (is_wp_error($decoded)) {
+        $decode_message = $decoded->get_error_message();
+        if (false !== stripos($content_type, 'text/html')) {
+            $decode_message = 'Google Trends devolvio HTML en lugar de JSON durante ' . sanitize_key((string) $phase) . '. Puede ser una pagina de consentimiento/bloqueo o un cambio de la superficie web.';
+        }
+        if ($apply_backoff) {
+            seo_google_trends_public_set_backoff(200, $decode_message);
+        }
+        return new WP_Error(
+            $decoded->get_error_code(),
+            $decode_message,
+            array(
+                'phase'        => sanitize_key((string) $phase),
+                'http_code'    => $code,
+                'method'       => $method,
+                'endpoint'     => $endpoint_label,
+                'content_type' => $content_type,
+            )
+        );
+    }
+
+    return $decoded;
+}
+
+/**
+ * Explore actual: GET primero, que es el flujo observado en la interfaz web.
+ *
+ * Si Google responde 401/403 se intenta una sola preparacion de cookies y se
+ * repite GET. Un 404/405 prueba POST una vez como fallback de compatibilidad,
+ * porque Google ha alternado el metodo de esta superficie no documentada.
+ */
+function seo_google_trends_public_explore_request(array $request, array &$cookies, $geo = 'ES') {
+    $params = array(
+        'hl'  => 'es-ES',
+        'tz'  => seo_google_trends_public_tz_minutes(),
+        'req' => wp_json_encode($request, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+    );
+    $endpoint = 'https://trends.google.com/trends/api/explore';
+
+    $result = seo_google_trends_public_json_request(
+        'GET',
+        $endpoint,
+        $params,
+        $cookies,
+        $geo,
+        'explore_get',
+        true
+    );
+    if (!is_wp_error($result)) {
+        delete_transient(SEO_GOOGLE_TRENDS_PUBLIC_BACKOFF_TRANSIENT);
+        return $result;
+    }
+
+    $context = seo_google_trends_public_error_context($result);
+    $code = absint($context['http_code'] ?? 0);
+
+    if (in_array($code, array(401, 403), true)) {
+        delete_transient(SEO_GOOGLE_TRENDS_PUBLIC_BACKOFF_TRANSIENT);
+        $warmup = seo_google_trends_public_warmup($geo);
+        if (is_wp_error($warmup)) {
+            return $warmup;
+        }
+        if ($warmup) {
+            $cookies = $warmup;
+        }
+
+        $retry = seo_google_trends_public_json_request(
+            'GET',
+            $endpoint,
+            $params,
+            $cookies,
+            $geo,
+            'explore_get_after_warmup',
+            true
+        );
+        if (!is_wp_error($retry)) {
+            delete_transient(SEO_GOOGLE_TRENDS_PUBLIC_BACKOFF_TRANSIENT);
+            return $retry;
+        }
+        $result = $retry;
+        $context = seo_google_trends_public_error_context($result);
+        $code = absint($context['http_code'] ?? 0);
+    }
+
+    if (in_array($code, array(404, 405), true)) {
+        $fallback = seo_google_trends_public_json_request(
+            'POST',
+            $endpoint,
+            $params,
+            $cookies,
+            $geo,
+            'explore_post_fallback',
+            true
+        );
+        if (!is_wp_error($fallback)) {
+            delete_transient(SEO_GOOGLE_TRENDS_PUBLIC_BACKOFF_TRANSIENT);
+        }
+        return $fallback;
+    }
+
+    return $result;
 }
 
 function seo_google_trends_public_pause(array $settings) {
@@ -1356,7 +1499,13 @@ function seo_google_trends_sync_public_market(array $settings, array $universe, 
     if (empty($settings['public_explore'])) {
         return array('status' => 'disabled', 'stored' => 0, 'provider' => 'public_explore', 'seeds' => 0);
     }
+
     $backoff = seo_google_trends_public_backoff();
+    if ($force && !empty($backoff['until']) && (int) $backoff['until'] > time()) {
+        /* El boton manual debe poder probar inmediatamente una correccion de codigo. */
+        delete_transient(SEO_GOOGLE_TRENDS_PUBLIC_BACKOFF_TRANSIENT);
+        $backoff = array();
+    }
     if (!empty($backoff['until']) && (int) $backoff['until'] > time()) {
         return array(
             'status'   => 'backoff',
@@ -1393,40 +1542,32 @@ function seo_google_trends_sync_public_market(array $settings, array $universe, 
 
     $geo = strtoupper((string) ($settings['geo'] ?? 'ES'));
     $timeframe = 'today 12-m';
-    $cookies = seo_google_trends_public_warmup($geo);
-    if (is_wp_error($cookies)) {
-        return array(
-            'status'   => 'error',
-            'stored'   => 0,
-            'provider' => 'public_explore',
-            'seeds'    => count($terms),
-            'error'    => $cookies->get_error_message(),
-        );
-    }
-
     $comparison = array();
     foreach ($terms as $term) {
         $comparison[] = array('keyword' => $term, 'geo' => $geo, 'time' => $timeframe);
     }
+
     $request = array('comparisonItem' => $comparison, 'category' => 0, 'property' => '');
-    $explore = seo_google_trends_public_json_request('POST', 'https://trends.google.com/trends/api/explore', array(
-        'hl'  => 'es-ES',
-        'tz'  => seo_google_trends_public_tz_minutes(),
-        'req' => wp_json_encode($request, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-    ), $cookies, $geo);
+    $cookies = array();
+    $explore = seo_google_trends_public_explore_request($request, $cookies, $geo);
 
     if (is_wp_error($explore)) {
+        $context = seo_google_trends_public_error_context($explore);
         $fallback = seo_google_trends_public_autocomplete($focus, $geo);
         $fallback_stored = is_wp_error($fallback) ? 0 : seo_google_trends_public_store_autocomplete($focus, $fallback, $geo);
         return array(
-            'status'            => $fallback_stored > 0 ? 'degraded' : 'error',
-            'stored'            => $fallback_stored,
-            'provider'          => $fallback_stored > 0 ? 'public_autocomplete' : 'public_explore',
-            'seeds'             => count($terms),
-            'focus'             => $focus,
-            'anchor'            => $anchor,
-            'autocomplete_rows' => $fallback_stored,
-            'error'             => $explore->get_error_message(),
+            'status'             => $fallback_stored > 0 ? 'degraded' : 'error',
+            'stored'             => $fallback_stored,
+            'provider'           => $fallback_stored > 0 ? 'public_autocomplete' : 'public_explore',
+            'seeds'              => count($terms),
+            'focus'              => $focus,
+            'anchor'             => $anchor,
+            'autocomplete_rows'  => $fallback_stored,
+            'error'              => $explore->get_error_message(),
+            'diagnostic_phase'   => sanitize_key((string) ($context['phase'] ?? 'explore')),
+            'diagnostic_http'    => absint($context['http_code'] ?? 0),
+            'diagnostic_method'  => sanitize_text_field((string) ($context['method'] ?? '')),
+            'diagnostic_endpoint'=> sanitize_text_field((string) ($context['endpoint'] ?? '')),
         );
     }
 
@@ -1434,16 +1575,25 @@ function seo_google_trends_sync_public_market(array $settings, array $universe, 
     $widgets = array_values((array) ($explore['widgets'] ?? array()));
     if (!$widgets) {
         return array(
-            'status'   => 'error',
-            'stored'   => 0,
-            'provider' => 'public_explore',
-            'seeds'    => count($terms),
-            'error'    => 'Explore publico respondio, pero no devolvio widgets analizables.',
+            'status'              => 'error',
+            'stored'              => 0,
+            'provider'            => 'public_explore',
+            'seeds'               => count($terms),
+            'focus'               => $focus,
+            'anchor'              => $anchor,
+            'error'               => 'Explore publico respondio, pero no devolvio widgets analizables.',
+            'diagnostic_phase'    => 'explore_widgets',
+            'diagnostic_http'     => 200,
+            'diagnostic_method'   => 'GET',
+            'diagnostic_endpoint' => 'trends.google.com/trends/api/explore',
         );
     }
 
     $interest_stored = 0;
     $related_stored = 0;
+    $component_errors = array();
+    $diagnostic = array();
+
     $timeline_widget = seo_google_trends_public_find_widget($widgets, 'TIMESERIES');
     if ($timeline_widget) {
         seo_google_trends_public_pause($settings);
@@ -1452,11 +1602,22 @@ function seo_google_trends_sync_public_market(array $settings, array $universe, 
             'tz'    => seo_google_trends_public_tz_minutes(),
             'req'   => wp_json_encode($timeline_widget['request'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'token' => (string) $timeline_widget['token'],
-        ), $cookies, $geo);
+        ), $cookies, $geo, 'widget_timeline', true);
         if (!is_wp_error($timeline)) {
             $stats = seo_google_trends_public_parse_timeline($timeline, $terms);
             $interest_stored = seo_google_trends_public_store_interest($stats, $anchor, $geo, $timeframe);
+        } else {
+            $component_errors[] = 'Serie temporal: ' . $timeline->get_error_message();
+            $diagnostic = seo_google_trends_public_error_context($timeline);
         }
+    } else {
+        $component_errors[] = 'Explore no devolvio el widget TIMESERIES.';
+        $diagnostic = array(
+            'phase'     => 'widget_timeline_missing',
+            'http_code' => 200,
+            'method'    => 'GET',
+            'endpoint'  => 'trends.google.com/trends/api/explore',
+        );
     }
 
     $related_widget = seo_google_trends_public_find_widget($widgets, 'RELATED_QUERIES', $focus);
@@ -1467,24 +1628,43 @@ function seo_google_trends_sync_public_market(array $settings, array $universe, 
             'tz'    => seo_google_trends_public_tz_minutes(),
             'req'   => wp_json_encode($related_widget['request'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'token' => (string) $related_widget['token'],
-        ), $cookies, $geo);
+        ), $cookies, $geo, 'widget_related', true);
         if (!is_wp_error($related)) {
             $related_rows = seo_google_trends_public_parse_related($related);
             $related_stored = seo_google_trends_public_store_related($focus, $related_rows, $geo, $timeframe);
+        } else {
+            $component_errors[] = 'Relacionadas: ' . $related->get_error_message();
+            if (!$diagnostic) {
+                $diagnostic = seo_google_trends_public_error_context($related);
+            }
         }
     }
 
     $stored = $interest_stored + $related_stored;
+    if ($stored > 0) {
+        $status = $component_errors ? 'partial' : 'operational';
+        $error_message = $component_errors ? implode(' ', $component_errors) : '';
+    } else {
+        $status = 'degraded';
+        $error_message = $component_errors
+            ? implode(' ', $component_errors)
+            : 'Explore publico respondio, pero este ciclo no produjo datos almacenables.';
+    }
+
     return array(
-        'status'         => $stored > 0 ? 'operational' : 'degraded',
-        'stored'         => $stored,
-        'provider'       => 'public_explore',
-        'seeds'          => count($terms),
-        'focus'          => $focus,
-        'anchor'         => $anchor,
-        'interest_rows'  => $interest_stored,
-        'related_rows'   => $related_stored,
-        'error'          => $stored > 0 ? '' : 'Explore publico respondio, pero este ciclo no produjo datos almacenables.',
+        'status'              => $status,
+        'stored'              => $stored,
+        'provider'            => 'public_explore',
+        'seeds'               => count($terms),
+        'focus'               => $focus,
+        'anchor'              => $anchor,
+        'interest_rows'       => $interest_stored,
+        'related_rows'        => $related_stored,
+        'error'               => $error_message,
+        'diagnostic_phase'    => sanitize_key((string) ($diagnostic['phase'] ?? '')),
+        'diagnostic_http'     => absint($diagnostic['http_code'] ?? 0),
+        'diagnostic_method'   => sanitize_text_field((string) ($diagnostic['method'] ?? '')),
+        'diagnostic_endpoint' => sanitize_text_field((string) ($diagnostic['endpoint'] ?? '')),
     );
 }
 
@@ -1569,8 +1749,8 @@ function seo_google_trends_sync($force = false, $limit = 0) {
     $universe = seo_google_trends_business_universe(700);
 
     // Las dos fuentes se ejecutan de forma independiente. Un fallo del radar
-    // RSS no debe impedir que un proveedor autorizado de Explore actualice sus
-    // datos, y un fallo del proveedor Explore no invalida el radar.
+    // RSS no debe impedir que el proveedor de mercado actualice sus datos,
+    // y un fallo de Explore no invalida el radar.
     $market_provider = seo_google_trends_sync_market_provider($settings, $universe, $force);
     $rss = seo_google_trends_fetch_rss($settings['geo']);
 
@@ -1598,6 +1778,10 @@ function seo_google_trends_sync($force = false, $limit = 0) {
             'market_related_rows'    => (int) ($market_provider['related_rows'] ?? 0),
             'market_autocomplete_rows'=> (int) ($market_provider['autocomplete_rows'] ?? 0),
             'market_retry_at'        => (string) ($market_provider['retry_at'] ?? ''),
+            'market_diagnostic_phase'    => (string) ($market_provider['diagnostic_phase'] ?? ''),
+            'market_diagnostic_http'     => (int) ($market_provider['diagnostic_http'] ?? 0),
+            'market_diagnostic_method'   => (string) ($market_provider['diagnostic_method'] ?? ''),
+            'market_diagnostic_endpoint' => (string) ($market_provider['diagnostic_endpoint'] ?? ''),
             'error'                  => $message,
         );
         if (!empty($market_provider['error'])) {
@@ -1651,6 +1835,10 @@ function seo_google_trends_sync($force = false, $limit = 0) {
         'market_related_rows'    => (int) ($market_provider['related_rows'] ?? 0),
         'market_autocomplete_rows'=> (int) ($market_provider['autocomplete_rows'] ?? 0),
         'market_retry_at'        => (string) ($market_provider['retry_at'] ?? ''),
+        'market_diagnostic_phase'    => (string) ($market_provider['diagnostic_phase'] ?? ''),
+        'market_diagnostic_http'     => (int) ($market_provider['diagnostic_http'] ?? 0),
+        'market_diagnostic_method'   => (string) ($market_provider['diagnostic_method'] ?? ''),
+        'market_diagnostic_endpoint' => (string) ($market_provider['diagnostic_endpoint'] ?? ''),
     );
     if (!empty($market_provider['error'])) {
         $state['market_provider_error'] = (string) $market_provider['error'];
@@ -1975,22 +2163,36 @@ function seo_google_trends_provider_status() {
     $market_status = (string) ($state['market_provider_status'] ?? 'not_synced');
     $market_error = sanitize_text_field((string) ($state['market_provider_error'] ?? ''));
     $market_connected = $public_count > 0 || ($market_count - $autocomplete_count) > 0;
+    $diagnostic_phase = sanitize_key((string) ($state['market_diagnostic_phase'] ?? ''));
+    $diagnostic_http = absint($state['market_diagnostic_http'] ?? 0);
+    $diagnostic_method = sanitize_text_field((string) ($state['market_diagnostic_method'] ?? ''));
+    $diagnostic_endpoint = sanitize_text_field((string) ($state['market_diagnostic_endpoint'] ?? ''));
+
     if ('operational' === $market_status) {
         $market_detail = sprintf(
-            'Explore publico anonimo operativo: %s señales nuevas/actualizadas en este ciclo; %s señales de mercado almacenadas.',
+            'Explore web publico operativo: %s señales nuevas/actualizadas en este ciclo; %s señales de mercado almacenadas.',
             number_format_i18n((int) ($state['market_signals'] ?? 0)),
             number_format_i18n($market_count)
         );
         if (!empty($state['market_focus'])) {
             $market_detail .= ' Area foco: ' . sanitize_text_field((string) $state['market_focus']) . '.';
         }
+    } elseif ('partial' === $market_status) {
+        $market_detail = sprintf(
+            'Explore web publico ha devuelto datos parciales: %s señales nuevas/actualizadas; %s señales de mercado almacenadas.',
+            number_format_i18n((int) ($state['market_signals'] ?? 0)),
+            number_format_i18n($market_count)
+        );
+        if ($market_error !== '') {
+            $market_detail .= ' ' . $market_error;
+        }
     } elseif ('idle' === $market_status) {
-        $market_detail = 'Explore publico esta disponible, pero no tocaba repetir areas todavia por la cache de consultas suaves.';
+        $market_detail = 'Explore web publico esta disponible, pero no tocaba repetir areas todavia por la cache de consultas suaves.';
         if ($market_count > 0) {
             $market_detail .= ' Se conservan ' . number_format_i18n($market_count) . ' señales.';
         }
     } elseif ('backoff' === $market_status) {
-        $market_detail = 'Explore publico esta en pausa automatica para no insistir a Google.';
+        $market_detail = 'Explore web publico esta en pausa automatica para no insistir a Google.';
         if (!empty($state['market_retry_at'])) {
             $market_detail .= ' Proximo intento despues de ' . sanitize_text_field((string) $state['market_retry_at']) . '.';
         }
@@ -1998,7 +2200,7 @@ function seo_google_trends_provider_status() {
             $market_detail .= ' ' . $market_error;
         }
     } elseif ('degraded' === $market_status) {
-        $market_detail = 'Explore publico esta limitado desde este servidor.';
+        $market_detail = 'Explore web publico esta limitado o incompleto desde este servidor.';
         if ($market_error !== '') {
             $market_detail .= ' ' . $market_error;
         }
@@ -2009,16 +2211,33 @@ function seo_google_trends_provider_status() {
             $market_detail .= ' Se conservan ' . number_format_i18n($public_count) . ' señales validas de Explore anteriores.';
         }
     } elseif ('disabled' === $market_status) {
-        $market_detail = 'La exploracion publica automatica esta desactivada en la configuracion de Trends.';
+        $market_detail = 'La exploracion web publica automatica esta desactivada en la configuracion de Trends.';
     } elseif ('error' === $market_status && $market_error !== '') {
-        $market_detail = 'No se pudo completar Explore publico: ' . $market_error;
+        $market_detail = 'No se pudo completar Explore web publico: ' . $market_error;
         if ($market_count > 0) {
             $market_detail .= ' Se conservan ' . number_format_i18n($market_count) . ' señales anteriores.';
         }
     } else {
         $market_detail = $market_count > 0
-            ? number_format_i18n($market_count) . ' señales de mercado almacenadas. Actualiza para probar Explore publico anonimo.'
-            : 'Explore publico anonimo aun no se ha probado. No requiere OAuth, API key ni una cuenta Google.';
+            ? number_format_i18n($market_count) . ' señales de mercado almacenadas. Actualiza para probar Explore web publico.'
+            : 'Explore web publico aun no se ha probado. Esta via no requiere OAuth ni API key; es distinta de la Google Trends API oficial (Alpha), que si requiere acceso concedido.';
+    }
+
+    if ($diagnostic_phase !== '' || $diagnostic_http > 0 || $diagnostic_endpoint !== '') {
+        $parts = array();
+        if ($diagnostic_phase !== '') {
+            $parts[] = 'fase ' . $diagnostic_phase;
+        }
+        if ($diagnostic_method !== '') {
+            $parts[] = $diagnostic_method;
+        }
+        if ($diagnostic_endpoint !== '') {
+            $parts[] = $diagnostic_endpoint;
+        }
+        if ($diagnostic_http > 0) {
+            $parts[] = 'HTTP ' . $diagnostic_http;
+        }
+        $market_detail .= ' Diagnostico: ' . implode(' · ', $parts) . '.';
     }
 
     return array(
@@ -2036,6 +2255,10 @@ function seo_google_trends_provider_status() {
             'rows'      => $market_count,
             'public_rows' => $public_count,
             'autocomplete_rows' => $autocomplete_count,
+            'diagnostic_phase' => $diagnostic_phase,
+            'diagnostic_http' => $diagnostic_http,
+            'diagnostic_method' => $diagnostic_method,
+            'diagnostic_endpoint' => $diagnostic_endpoint,
             'last_sync' => (string) ($state['synced_at'] ?? ''),
         ),
         'overall' => array(
@@ -2204,7 +2427,7 @@ function seo_google_render_trends_market() {
     echo '<div class="seo-trends-card">';
     echo '<h2 style="margin:0 0 6px;">Mercado Google · Trends</h2>';
     echo '<p style="margin:0;max-width:1000px;"><strong>Objetivo:</strong> descubrir demanda externa y temas emergentes del entorno comercial. El catálogo, las categorías y los hubs solo delimitan el negocio; las páginas, landings y posts se consultan después para medir cobertura y decidir qué mejorar.</p>';
-    echo '<p class="seo-trends-muted"><code>V' . esc_html(SEO_GOOGLE_TRENDS_VERSION) . '</code> · Search Console y Analytics mantienen sus conexiones independientes. Explore publico se consulta de forma anonima y suave: un lote pequeno por ciclo, cache y pausas automaticas. No requiere OAuth ni cuenta Google.</p>';
+    echo '<p class="seo-trends-muted"><code>V' . esc_html(SEO_GOOGLE_TRENDS_VERSION) . '</code> · Search Console y Analytics mantienen sus conexiones independientes. Este modulo usa la capa web publica de Explore con consultas suaves; no es la Google Trends API oficial (Alpha). La via web no requiere OAuth ni API key. La API oficial requiere acceso Alpha concedido por Google y puede incorporarse como proveedor cuando la cuenta sea admitida.</p>';
 
     $notice = sanitize_key(wp_unslash($_GET['trends_notice'] ?? ''));
     if ('synced' === $notice) {
@@ -2237,11 +2460,34 @@ function seo_google_render_trends_market() {
     submit_button('Actualizar mercado + radar', 'primary', 'submit', false);
     echo '</form></div>';
 
-    echo '<div class="seo-trends-card"><h3>Exploración de mercado · pública</h3>';
-    $market_badge = $status['market']['connected'] ? 'DATOS DISPONIBLES' : (in_array((string) ($status['market']['status'] ?? ''), array('degraded','backoff','error'), true) ? 'LIMITADO / REINTENTO SUAVE' : 'PENDIENTE DE PRUEBA');
-    echo seo_google_trends_status_badge($status['market']['connected'], $market_badge);
+    echo '<div class="seo-trends-card"><h3>Exploración de mercado · web pública</h3>';
+    $market_state = (string) ($status['market']['status'] ?? '');
+    if ('partial' === $market_state) {
+        $market_badge = 'DATOS PARCIALES';
+        $market_badge_connected = true;
+    } elseif (!empty($status['market']['connected'])) {
+        $market_badge = 'DATOS DISPONIBLES';
+        $market_badge_connected = true;
+    } elseif (in_array($market_state, array('degraded','backoff','error'), true)) {
+        $market_badge = 'LIMITADO / DIAGNOSTICO';
+        $market_badge_connected = false;
+    } else {
+        $market_badge = 'PENDIENTE DE PRUEBA';
+        $market_badge_connected = false;
+    }
+    echo seo_google_trends_status_badge($market_badge_connected, $market_badge);
     echo '<p>' . esc_html($status['market']['detail']) . '</p>';
-    echo '<p class="seo-trends-muted">Consulta la misma capa pública de Explore que puede usar un visitante sin iniciar sesión. Se comparan pocas áreas por ciclo, con una referencia común, cache y pausas. Si Google limita el servidor, se conserva el último dato válido y Autocomplete actúa solo como descubrimiento auxiliar.</p></div>';
+    if (!empty($status['market']['diagnostic_phase']) || !empty($status['market']['diagnostic_http']) || !empty($status['market']['diagnostic_endpoint'])) {
+        echo '<p class="seo-trends-muted"><strong>Ultimo diagnostico tecnico:</strong> ';
+        $diag = array_filter(array(
+            (string) ($status['market']['diagnostic_phase'] ?? ''),
+            (string) ($status['market']['diagnostic_method'] ?? ''),
+            (string) ($status['market']['diagnostic_endpoint'] ?? ''),
+            !empty($status['market']['diagnostic_http']) ? 'HTTP ' . absint($status['market']['diagnostic_http']) : '',
+        ));
+        echo esc_html(implode(' · ', $diag)) . '</p>';
+    }
+    echo '<p class="seo-trends-muted">Primero se prueba <code>GET /trends/api/explore</code>; solo ante 404/405 se intenta POST una vez. 401/403/429 se tratan como rechazo o limitación; 404/405 como cambio de ruta/método. Autocomplete se usa únicamente para descubrimiento auxiliar y nunca como volumen de demanda.</p></div>';
 
     $gsc_connected = function_exists('seo_google_connection_status') && 'connected' === seo_google_connection_status();
     echo '<div class="seo-trends-card"><h3>Search Console</h3>';
