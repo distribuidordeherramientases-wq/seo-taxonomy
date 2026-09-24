@@ -1,0 +1,33 @@
+Ojeador v0.9.0 - productos estrella y oportunidades de oferta
+
+Objetivo
+- Identificar productos propios que merecen promocion por precio, visibilidad o potencial de negociacion con proveedor.
+- Mantener el analisis como capa de decision: no modifica precios ni lanza promociones automaticamente.
+
+Nueva pestana: Productos estrella
+- Cruza producto WooCommerce + proveedor + coste + categoria + Google Shopping + Analista 28 dias.
+- Precio objetivo: coste de proveedor x 1,20.
+- Comparable de mercado solo con coincidencias de titulo/identidad suficientemente fuertes dentro de la categoria.
+- Muestra confianza del match, comparable, reviews, rating y posicion Shopping.
+- Calcula ventaja de precio y descuento de proveedor necesario para quedar 5% por debajo del comparable.
+- Para VEVOR muestra escenarios de compra con -10% y -15% en pantalla y 0/5/10/15/20% en JSON.
+
+Clasificaciones
+- Estrella: +20% sobre coste queda al menos 8% por debajo del comparable fuerte.
+- Buen precio: +20% sobre coste ya es competitivo frente al comparable.
+- Oferta recomendada: hay visibilidad y el descuento de proveedor necesario entra en un rango negociable.
+- Potencial con descuento: el mercado/reviews justifican revisar una mejora de compra.
+- Alta visibilidad: el producto recibe impresiones propias aunque no exista comparable suficientemente fuerte.
+
+Filtros
+- Producto, proveedor, categoria, clasificacion, score minimo, impresiones minimas y descuento maximo necesario.
+- Orden por score, ventaja de precio, visibilidad, reviews, descuento necesario o proveedor.
+
+JSON
+- Nuevo boton Exportar JSON estrellas.
+- Schema seo_ojeador_star_products 1.0.0.
+- El JSON de analisis general incorpora star_kpis y hasta 500 star_products.
+
+Rendimiento
+- Cache de candidatos 10 minutos y boton Recalcular.
+- Sin migracion SQL ni tablas nuevas.

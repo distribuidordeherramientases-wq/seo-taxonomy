@@ -22,6 +22,7 @@ final class SEO_Ojeador_Admin {
         add_action('admin_post_seo_ojeador_stop', array(__CLASS__, 'stop'));
         add_action('admin_post_seo_ojeador_export_json', array(__CLASS__, 'export_json'));
         add_action('admin_post_seo_ojeador_export_analysis_json', array(__CLASS__, 'export_analysis_json'));
+        add_action('admin_post_seo_ojeador_export_stars_json', array(__CLASS__, 'export_stars_json'));
         add_action('admin_post_seo_ojeador_export_log_json', array(__CLASS__, 'export_log_json'));
     }
 
@@ -260,11 +261,11 @@ final class SEO_Ojeador_Admin {
         echo '{';
         echo '"meta":' . wp_json_encode(array(
             'schema' => 'seo_ojeador_analysis_export',
-            'schema_version' => '2.0.0',
+            'schema_version' => '2.1.0',
             'generated_at_utc' => gmdate('c'),
             'site_url' => home_url('/'),
             'ojeador_version' => defined('SEO_OJEADOR_VERSION') ? SEO_OJEADOR_VERSION : '',
-            'scope' => 'analysis_kpis_recommendations_and_comparison_products',
+            'scope' => 'analysis_kpis_recommendations_comparison_and_star_products',
         ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         echo ',"kpis":' . wp_json_encode((array) ($analysis['kpis'] ?? array()), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         echo ',"thresholds":' . wp_json_encode((array) ($analysis['thresholds'] ?? array()), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -274,8 +275,32 @@ final class SEO_Ojeador_Admin {
         echo ',"merchants":' . wp_json_encode((array) ($analysis['merchants'] ?? array()), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         echo ',"products_comparison":';
         self::stream_analysis_products_json();
+        $stars = SEO_Ojeador_Stars::export_data(false);
+        echo ',"star_kpis":' . wp_json_encode((array) ($stars['kpis'] ?? array()), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        echo ',"star_products":' . wp_json_encode(array_slice((array) ($stars['products'] ?? array()), 0, 500), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         echo ',"notes":' . wp_json_encode((array) ($analysis['notes'] ?? array()), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         echo '}';
+        exit;
+    }
+
+    public static function export_stars_json() {
+        self::guard('seo_ojeador_export_stars_json');
+        $stars = SEO_Ojeador_Stars::export_data(true);
+        self::json_headers('ojeador-productos-estrella-' . gmdate('Ymd-His') . '.json');
+        echo wp_json_encode(array(
+            'meta' => array(
+                'schema' => 'seo_ojeador_star_products',
+                'schema_version' => '1.0.0',
+                'generated_at_utc' => gmdate('c'),
+                'site_url' => home_url('/'),
+                'ojeador_version' => defined('SEO_OJEADOR_VERSION') ? SEO_OJEADOR_VERSION : '',
+                'markup_rule_pct' => 20,
+            ),
+            'kpis' => (array) ($stars['kpis'] ?? array()),
+            'thresholds' => (array) ($stars['thresholds'] ?? array()),
+            'products' => (array) ($stars['products'] ?? array()),
+            'notes' => (array) ($stars['notes'] ?? array()),
+        ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;
     }
 
@@ -419,6 +444,114 @@ final class SEO_Ojeador_Admin {
         <?php
     }
 
+    private static function render_stars($stars) {
+        $stars = is_array($stars) ? $stars : array();
+        $rows = (array) ($stars['rows'] ?? array());
+        $kpis = (array) ($stars['kpis'] ?? array());
+        $filters = (array) ($stars['filters'] ?? array());
+        $providers = (array) ($stars['provider_options'] ?? array());
+        $categories = (array) ($stars['category_options'] ?? array());
+        $classes = (array) ($stars['class_options'] ?? array());
+        $page = absint($stars['page'] ?? 1);
+        $pages = absint($stars['pages'] ?? 1);
+        $total = absint($stars['total'] ?? 0);
+
+        $base_args = array(
+            'page' => self::PAGE,
+            'ojeador_tab' => 'stars',
+            'sq' => (string) ($filters['q'] ?? ''),
+            'sprovider' => (string) ($filters['provider'] ?? ''),
+            'scat' => absint($filters['term_id'] ?? 0),
+            'sclass' => (string) ($filters['class'] ?? ''),
+            'sminscore' => (string) ($filters['min_score'] ?? ''),
+            'sminimp' => (string) ($filters['min_impressions'] ?? ''),
+            'smaxdisc' => (string) ($filters['max_supplier_discount'] ?? ''),
+            'ssort' => (string) ($filters['sort'] ?? 'score'),
+            'sper' => absint($filters['per_page'] ?? 100),
+        );
+        ?>
+        <section class="seo-ojeador-stars">
+            <div style="display:flex;justify-content:space-between;gap:12px;align-items:end;flex-wrap:wrap;margin:20px 0 8px">
+                <div>
+                    <h2 style="margin:0">Productos estrella</h2>
+                    <p class="seo-ojeador-muted" style="margin:4px 0 0">Cruza coste de proveedor, precio objetivo con +20%, comparables de Google Shopping y visibilidad de Analista. No modifica precios automáticamente.</p>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <a class="button" href="<?php echo esc_url(add_query_arg(array('page'=>self::PAGE,'ojeador_tab'=>'stars','stars_refresh'=>1), admin_url('admin.php'))); ?>">Recalcular</a>
+                    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"><?php wp_nonce_field('seo_ojeador_export_stars_json'); ?><input type="hidden" name="action" value="seo_ojeador_export_stars_json"><button class="button" type="submit">Exportar JSON estrellas</button></form>
+                </div>
+            </div>
+
+            <div class="seo-ojeador-cards">
+                <div class="seo-ojeador-card seo-ojeador-star-strong"><strong><?php echo number_format_i18n(absint($kpis['stars'] ?? 0)); ?></strong><span>Estrella<br><small>Precio claramente competitivo</small></span></div>
+                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n(absint($kpis['good_price'] ?? 0)); ?></strong><span>Buen precio<br><small>Compite sin descuento extra</small></span></div>
+                <div class="seo-ojeador-card seo-ojeador-kpi-action"><strong><?php echo number_format_i18n(absint($kpis['offer_recommended'] ?? 0)); ?></strong><span>Oferta recomendada<br><small>Visibilidad + descuento asumible</small></span></div>
+                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n(absint($kpis['discount_potential'] ?? 0)); ?></strong><span>Potencial con descuento</span></div>
+                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n(absint($kpis['high_visibility'] ?? 0)); ?></strong><span>Alta visibilidad<br><small>Revisar oferta manualmente</small></span></div>
+                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n(absint($kpis['vevor_candidates'] ?? 0)); ?></strong><span>Candidatos VEVOR</span></div>
+                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n(absint($kpis['candidates_total'] ?? 0)); ?></strong><span>Candidatos totales</span></div>
+            </div>
+
+            <form method="get" action="<?php echo esc_url(admin_url('admin.php')); ?>" class="seo-ojeador-box">
+                <input type="hidden" name="page" value="<?php echo esc_attr(self::PAGE); ?>">
+                <input type="hidden" name="ojeador_tab" value="stars">
+                <div class="seo-ojeador-filter-grid">
+                    <label><strong>Producto</strong><input type="search" name="sq" value="<?php echo esc_attr((string) ($filters['q'] ?? '')); ?>" placeholder="Nombre, SKU o comparable"></label>
+                    <label><strong>Proveedor</strong><select name="sprovider"><option value="">Todos</option><?php foreach ($providers as $opt) : ?><option value="<?php echo esc_attr((string) ($opt['provider'] ?? '')); ?>" <?php selected((string) ($filters['provider'] ?? ''), (string) ($opt['provider'] ?? '')); ?>><?php echo esc_html((string) ($opt['provider'] ?? '')); ?> (<?php echo number_format_i18n(absint($opt['count'] ?? 0)); ?>)</option><?php endforeach; ?></select></label>
+                    <label><strong>Categoría</strong><select name="scat"><option value="0">Todas</option><?php foreach ($categories as $opt) : ?><option value="<?php echo absint($opt['term_id'] ?? 0); ?>" <?php selected(absint($filters['term_id'] ?? 0), absint($opt['term_id'] ?? 0)); ?>><?php echo esc_html((string) ($opt['category_name'] ?? '')); ?> (<?php echo number_format_i18n(absint($opt['count'] ?? 0)); ?>)</option><?php endforeach; ?></select></label>
+                    <label><strong>Clasificación</strong><select name="sclass"><option value="">Todas</option><?php foreach ($classes as $key=>$label) : ?><option value="<?php echo esc_attr($key); ?>" <?php selected((string) ($filters['class'] ?? ''), $key); ?>><?php echo esc_html($label); ?></option><?php endforeach; ?></select></label>
+                    <label><strong>Score mínimo</strong><input type="number" step="1" min="0" max="100" name="sminscore" value="<?php echo esc_attr((string) ($filters['min_score'] ?? '')); ?>"></label>
+                    <label><strong>Impresiones mín.</strong><input type="number" step="1" min="0" name="sminimp" value="<?php echo esc_attr((string) ($filters['min_impressions'] ?? '')); ?>"></label>
+                    <label><strong>Descuento proveedor máx.</strong><input type="number" step="0.1" min="0" max="100" name="smaxdisc" value="<?php echo esc_attr((string) ($filters['max_supplier_discount'] ?? '')); ?>" placeholder="Ej. 15"></label>
+                    <label><strong>Orden</strong><select name="ssort"><?php $sorts=array('score'=>'Score estrella','advantage'=>'Ventaja de precio','impressions'=>'Visibilidad','reviews'=>'Reviews mercado','discount_needed'=>'Menor descuento necesario','provider'=>'Proveedor'); foreach ($sorts as $key=>$label) : ?><option value="<?php echo esc_attr($key); ?>" <?php selected((string) ($filters['sort'] ?? 'score'), $key); ?>><?php echo esc_html($label); ?></option><?php endforeach; ?></select></label>
+                    <label><strong>Filas</strong><select name="sper"><?php foreach (array(50,100,200) as $n) : ?><option value="<?php echo $n; ?>" <?php selected(absint($filters['per_page'] ?? 100), $n); ?>><?php echo $n; ?></option><?php endforeach; ?></select></label>
+                </div>
+                <p style="margin-bottom:0"><button class="button button-primary">Aplicar filtros</button> <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=' . self::PAGE . '&ojeador_tab=stars')); ?>">Limpiar</a> <span class="seo-ojeador-muted" style="margin-left:8px"><?php echo number_format_i18n($total); ?> candidatos</span></p>
+            </form>
+
+            <div class="seo-ojeador-table" style="margin-top:14px">
+                <table class="widefat striped">
+                    <thead><tr><th>Clasificación</th><th>Nuestro producto</th><th>Categoría</th><th>Coste / precio</th><th>Comparable mercado</th><th>Ventaja</th><th>Visibilidad</th><th>Evidencia</th><th>Acción</th></tr></thead>
+                    <tbody>
+                    <?php foreach ($rows as $row) :
+                        $class = sanitize_key((string) ($row['star_class'] ?? ''));
+                        $tone = $class === 'estrella' ? '#008a20' : ($class === 'oferta_recomendada' ? '#2271b1' : ($class === 'alta_visibilidad' ? '#996800' : '#50575e'));
+                        $cost = isset($row['supplier_cost']) && is_numeric($row['supplier_cost']) ? (float) $row['supplier_cost'] : null;
+                        $target = isset($row['target_price_20']) && is_numeric($row['target_price_20']) ? (float) $row['target_price_20'] : null;
+                        $current = isset($row['current_price']) && is_numeric($row['current_price']) ? (float) $row['current_price'] : null;
+                        $benchmark = isset($row['market_benchmark_price']) && is_numeric($row['market_benchmark_price']) ? (float) $row['market_benchmark_price'] : null;
+                        $adv = isset($row['price_advantage_target_pct']) && is_numeric($row['price_advantage_target_pct']) ? (float) $row['price_advantage_target_pct'] : null;
+                        $disc = isset($row['supplier_discount_to_5pct_below_pct']) && is_numeric($row['supplier_discount_to_5pct_below_pct']) ? (float) $row['supplier_discount_to_5pct_below_pct'] : null;
+                        $rating = isset($row['market_rating']) && is_numeric($row['market_rating']) ? (float) $row['market_rating'] : null;
+                    ?>
+                        <tr>
+                            <td><strong style="color:<?php echo esc_attr($tone); ?>"><?php echo esc_html((string) ($row['star_label'] ?? '')); ?></strong><br><small>Score <?php echo esc_html(number_format_i18n((float) ($row['star_score'] ?? 0), 1)); ?>/100</small></td>
+                            <td><a href="<?php echo esc_url(admin_url('post.php?post=' . absint($row['object_id'] ?? 0) . '&action=edit')); ?>"><strong><?php echo esc_html((string) ($row['product_name'] ?? '')); ?></strong></a><br><small class="seo-ojeador-muted"><?php echo esc_html((string) ($row['provider'] ?? '—')); ?><?php if (!empty($row['supplier_sku'])) : ?> · SKU <?php echo esc_html((string) $row['supplier_sku']); ?><?php endif; ?></small></td>
+                            <td><?php echo esc_html((string) ($row['category_name'] ?? '')); ?></td>
+                            <td><?php if ($cost !== null) : ?>Coste: <strong><?php echo esc_html(number_format_i18n($cost,2)); ?> €</strong><?php endif; ?><br><?php if ($target !== null) : ?>+20%: <strong><?php echo esc_html(number_format_i18n($target,2)); ?> €</strong><?php endif; ?><?php if ($current !== null) : ?><br><small>Actual: <?php echo esc_html(number_format_i18n($current,2)); ?> €</small><?php endif; ?><?php if (stripos((string) ($row['provider'] ?? ''), 'vevor') !== false && !empty($row['supplier_discount_scenarios'])) : $sc=(array) $row['supplier_discount_scenarios']; ?><br><small class="seo-ojeador-muted">VEVOR: -10% → <?php echo esc_html(number_format_i18n((float) ($sc['10_pct'] ?? 0),2)); ?> € · -15% → <?php echo esc_html(number_format_i18n((float) ($sc['15_pct'] ?? 0),2)); ?> €</small><?php endif; ?></td>
+                            <td><?php if ($benchmark !== null) : ?><strong><?php echo esc_html(number_format_i18n($benchmark,2)); ?> €</strong><br><small><?php echo esc_html((string) ($row['benchmark_source'] ?? '')); ?> · <?php echo number_format_i18n(absint($row['comparable_count'] ?? 0)); ?> comparables</small><?php else : ?>—<?php endif; ?><?php if (!empty($row['market_title'])) : ?><br><small class="seo-ojeador-muted"><?php echo esc_html(wp_trim_words((string) $row['market_title'], 14, '…')); ?></small><?php endif; ?></td>
+                            <td><?php if ($adv !== null) : ?><strong><?php echo $adv >= 0 ? '+' : ''; ?><?php echo esc_html(number_format_i18n($adv,1)); ?>%</strong><br><small>vs. comparable</small><?php else : ?>—<?php endif; ?><?php if ($disc !== null && $disc > 0) : ?><br><small>Compra necesaria: -<?php echo esc_html(number_format_i18n($disc,1)); ?>%</small><?php endif; ?></td>
+                            <td><strong><?php echo number_format_i18n((float) ($row['product_impressions'] ?? 0),0); ?></strong> imp. producto<br><small><?php echo number_format_i18n((float) ($row['category_impressions'] ?? 0),0); ?> imp. categoría</small></td>
+                            <td><?php echo $rating !== null ? esc_html(number_format_i18n($rating,1)) . '/5' : '—'; ?><br><small><?php echo number_format_i18n(absint($row['market_reviews'] ?? 0)); ?> reviews · posición <?php echo number_format_i18n(absint($row['market_position'] ?? 0)); ?></small><br><small>Match <?php echo esc_html(number_format_i18n((float) ($row['match_confidence_pct'] ?? 0),0)); ?>%</small></td>
+                            <td><strong><?php echo esc_html((string) ($row['recommendation'] ?? '')); ?></strong><br><small class="seo-ojeador-muted"><?php echo esc_html((string) ($row['reason'] ?? '')); ?></small></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    <?php if (!$rows) : ?><tr><td colspan="9">No hay candidatos que cumplan estos filtros. Si acabas de actualizar precios o mercado, pulsa «Recalcular».</td></tr><?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <?php if ($pages > 1) : ?>
+                <div class="tablenav"><div class="tablenav-pages"><span class="displaying-num"><?php echo number_format_i18n($total); ?> candidatos</span>
+                    <?php if ($page > 1) : $prev=$base_args; $prev['spage']=$page-1; ?><a class="button" href="<?php echo esc_url(add_query_arg($prev, admin_url('admin.php'))); ?>">‹ Anterior</a><?php endif; ?>
+                    <span class="paging-input"><?php echo number_format_i18n($page); ?> de <span class="total-pages"><?php echo number_format_i18n($pages); ?></span></span>
+                    <?php if ($page < $pages) : $next=$base_args; $next['spage']=$page+1; ?><a class="button" href="<?php echo esc_url(add_query_arg($next, admin_url('admin.php'))); ?>">Siguiente ›</a><?php endif; ?>
+                </div></div>
+            <?php endif; ?>
+        </section>
+        <?php
+    }
+
     private static function render_products($comparison, $category_options) {
         $comparison = is_array($comparison) ? $comparison : array();
         $rows = (array) ($comparison['rows'] ?? array());
@@ -507,7 +640,7 @@ final class SEO_Ojeador_Admin {
         }
 
         $tab = sanitize_key((string) ($_GET['ojeador_tab'] ?? 'analysis'));
-        if (!in_array($tab, array('analysis','products','operation'), true)) {
+        if (!in_array($tab, array('analysis','stars','products','operation'), true)) {
             $tab = 'analysis';
         }
 
@@ -520,6 +653,7 @@ final class SEO_Ojeador_Admin {
         $error = isset($_GET['ojeador_error']) ? sanitize_text_field(rawurldecode((string) $_GET['ojeador_error'])) : '';
 
         $analysis = array();
+        $stars = array();
         $comparison = array();
         $category_options = array();
         $summary = array();
@@ -530,6 +664,20 @@ final class SEO_Ojeador_Admin {
 
         if ($tab === 'analysis') {
             $analysis = SEO_Ojeador_Analysis::dashboard(100);
+        } elseif ($tab === 'stars') {
+            $stars = SEO_Ojeador_Stars::dashboard(array(
+                'q' => sanitize_text_field(wp_unslash($_GET['sq'] ?? '')),
+                'provider' => sanitize_text_field(wp_unslash($_GET['sprovider'] ?? '')),
+                'term_id' => absint($_GET['scat'] ?? 0),
+                'class' => sanitize_key((string) ($_GET['sclass'] ?? '')),
+                'min_score' => isset($_GET['sminscore']) ? sanitize_text_field(wp_unslash($_GET['sminscore'])) : '',
+                'min_impressions' => isset($_GET['sminimp']) ? sanitize_text_field(wp_unslash($_GET['sminimp'])) : '',
+                'max_supplier_discount' => isset($_GET['smaxdisc']) ? sanitize_text_field(wp_unslash($_GET['smaxdisc'])) : '',
+                'sort' => sanitize_key((string) ($_GET['ssort'] ?? 'score')),
+                'page' => absint($_GET['spage'] ?? 1),
+                'per_page' => absint($_GET['sper'] ?? 100),
+                'refresh' => !empty($_GET['stars_refresh']) ? 1 : 0,
+            ));
         } elseif ($tab === 'products') {
             $comparison = SEO_Ojeador_Analysis::comparison_products(array(
                 'term_id' => absint($_GET['pcat'] ?? 0),
@@ -553,22 +701,22 @@ final class SEO_Ojeador_Admin {
             $latest_log = SEO_Ojeador_DB::latest_query_log();
         }
         ?>
-        <div class="wrap seo-ojeador-v080">
+        <div class="wrap seo-ojeador-v090">
             <style>
-                .seo-ojeador-v080{max-width:1500px}.seo-ojeador-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
+                .seo-ojeador-v090{max-width:1600px}.seo-ojeador-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
                 .seo-ojeador-sub{color:#646970;margin-top:5px;max-width:1000px}.seo-ojeador-actions{display:flex;gap:8px;flex-wrap:wrap}.seo-ojeador-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;margin:18px 0}
                 .seo-ojeador-card,.seo-ojeador-box{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:15px}.seo-ojeador-card strong{display:block;font-size:24px;line-height:1.1}.seo-ojeador-card span{color:#646970}.seo-ojeador-card small{font-size:11px}.seo-ojeador-kpi-action{border-left:4px solid #008a20}
                 .seo-ojeador-table{overflow:auto;background:#fff;border:1px solid #dcdcde;border-radius:8px}.seo-ojeador-table table{border:0;margin:0}.seo-ojeador-table td{vertical-align:top}.seo-ojeador-muted{color:#646970}.seo-ojeador-pill{font-weight:600;white-space:nowrap}
                 .seo-ojeador-run{margin:12px 0 0;padding:10px 12px;background:#f6f7f7;border-radius:6px}.seo-ojeador-config{margin-top:18px}.seo-ojeador-config summary{cursor:pointer;font-weight:600;font-size:15px}
                 .seo-ojeador-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:14px}.seo-ojeador-grid label{display:block}.seo-ojeador-grid input{width:100%;margin-top:5px}.seo-ojeador-grid small{display:block;color:#646970;margin-top:4px}.seo-ojeador-analysis-detail summary{cursor:pointer;font-weight:600;font-size:15px}.seo-ojeador-analysis-cards{margin-top:10px}
                 .seo-ojeador-action-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px}.seo-ojeador-filter-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px}.seo-ojeador-filter-grid label{display:block}.seo-ojeador-filter-grid input,.seo-ojeador-filter-grid select{width:100%;margin-top:5px}.seo-ojeador-filter-grid .seo-ojeador-check{display:flex;gap:7px;align-items:center;padding-top:24px}.seo-ojeador-filter-grid .seo-ojeador-check input{width:auto;margin:0}
-                .nav-tab-wrapper{margin-top:18px}.seo-ojeador-products .tablenav-pages{display:flex;gap:8px;align-items:center}
+                .nav-tab-wrapper{margin-top:18px}.seo-ojeador-products .tablenav-pages,.seo-ojeador-stars .tablenav-pages{display:flex;gap:8px;align-items:center}.seo-ojeador-star-strong{border-left:4px solid #008a20;background:#f0f8f1}
             </style>
 
             <div class="seo-ojeador-head">
                 <div>
                     <h1 style="margin-bottom:0">Ojeador <small style="font-size:14px;color:#646970">v<?php echo esc_html(SEO_OJEADOR_VERSION); ?></small></h1>
-                    <p class="seo-ojeador-sub">Google Shopping por categorías, análisis accionable y comparación de los productos encontrados. Las recomendaciones sirven para decidir qué revisar; no ejecutan cambios automáticos.</p>
+                    <p class="seo-ojeador-sub">Google Shopping por categorías, análisis accionable, productos estrella y comparación de mercado. Las recomendaciones sirven para decidir qué revisar; no ejecutan cambios automáticos.</p>
                 </div>
                 <div class="seo-ojeador-actions">
                     <?php if (SEO_Ojeador_Worker::is_pending()) : ?>
@@ -589,12 +737,15 @@ final class SEO_Ojeador_Admin {
 
             <nav class="nav-tab-wrapper">
                 <a class="nav-tab <?php echo $tab === 'analysis' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(admin_url('admin.php?page=' . self::PAGE . '&ojeador_tab=analysis')); ?>">Análisis y recomendaciones</a>
+                <a class="nav-tab <?php echo $tab === 'stars' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(admin_url('admin.php?page=' . self::PAGE . '&ojeador_tab=stars')); ?>">Productos estrella</a>
                 <a class="nav-tab <?php echo $tab === 'products' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(admin_url('admin.php?page=' . self::PAGE . '&ojeador_tab=products')); ?>">Comparador de productos</a>
                 <a class="nav-tab <?php echo $tab === 'operation' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(admin_url('admin.php?page=' . self::PAGE . '&ojeador_tab=operation')); ?>">Operación y consultas</a>
             </nav>
 
             <?php if ($tab === 'analysis') : ?>
                 <?php self::render_analysis($analysis); ?>
+            <?php elseif ($tab === 'stars') : ?>
+                <?php self::render_stars($stars); ?>
             <?php elseif ($tab === 'products') : ?>
                 <?php self::render_products($comparison, $category_options); ?>
             <?php else : ?>

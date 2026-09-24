@@ -7,13 +7,13 @@
  *
  * @package SEOSystem
  * @subpackage Ojeador
- * @version 0.8.0
+ * @version 0.9.0
  */
 
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_OJEADOR_VERSION')) {
-    define('SEO_OJEADOR_VERSION', '0.8.0');
+    define('SEO_OJEADOR_VERSION', '0.9.0');
 }
 if (!defined('SEO_OJEADOR_PATH')) {
     define('SEO_OJEADOR_PATH', __DIR__ . '/');
@@ -25,6 +25,7 @@ require_once SEO_OJEADOR_PATH . 'class-ojeador-shopping.php';
 require_once SEO_OJEADOR_PATH . 'class-ojeador-worker.php';
 require_once SEO_OJEADOR_PATH . 'class-ojeador-process.php';
 require_once SEO_OJEADOR_PATH . 'class-ojeador-analysis.php';
+require_once SEO_OJEADOR_PATH . 'class-ojeador-stars.php';
 require_once SEO_OJEADOR_PATH . 'class-ojeador-admin.php';
 
 SEO_Ojeador_DB::maybe_install();
@@ -54,6 +55,13 @@ if (!function_exists('seo_ojeador_get_category_market')) {
 if (!function_exists('seo_ojeador_get_analysis')) {
     function seo_ojeador_get_analysis($action_limit = 30) {
         return SEO_Ojeador_Analysis::dashboard(absint($action_limit));
+    }
+}
+
+
+if (!function_exists('seo_ojeador_get_star_products')) {
+    function seo_ojeador_get_star_products($args = array()) {
+        return SEO_Ojeador_Stars::dashboard(is_array($args) ? $args : array());
     }
 }
 
