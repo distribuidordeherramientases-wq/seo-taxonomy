@@ -10968,7 +10968,7 @@ function seo_import_export_page() {
         wp_die( esc_html__( 'No tienes permisos para acceder a esta página.', 'seo-system' ) );
     }
 
-    $allowed_tabs = [ 'wordpress', 'import-batch', 'clonador', 'catalogo-semantico', 'importar-proveedor', 'importar-amazon', 'conexiones-proveedores', 'catalogo-proveedores', 'sincronizacion-proveedores' ];
+    $allowed_tabs = [ 'wordpress', 'import-batch', 'clonador', 'catalogo-semantico', 'inventarios-comerciales', 'importar-proveedor', 'importar-amazon', 'conexiones-proveedores', 'catalogo-proveedores', 'sincronizacion-proveedores' ];
     $tab = sanitize_key( $_GET['seo_ie_tab'] ?? 'wordpress' );
     if ( ! in_array( $tab, $allowed_tabs, true ) ) {
         $tab = 'wordpress';
@@ -10984,6 +10984,7 @@ function seo_import_export_page() {
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'import-batch', $base ) ); ?>" class="nav-tab <?php echo 'import-batch' === $tab ? 'nav-tab-active' : ''; ?>">Importacion por lotes</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'clonador', $base ) ); ?>" class="nav-tab <?php echo 'clonador' === $tab ? 'nav-tab-active' : ''; ?>">Clonador PRO → STAGING</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'catalogo-semantico', $base ) ); ?>" class="nav-tab <?php echo 'catalogo-semantico' === $tab ? 'nav-tab-active' : ''; ?>">Catálogo semántico</a>
+            <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'inventarios-comerciales', $base ) ); ?>" class="nav-tab <?php echo 'inventarios-comerciales' === $tab ? 'nav-tab-active' : ''; ?>">Inventarios comerciales</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'importar-proveedor', $base ) ); ?>" class="nav-tab <?php echo 'importar-proveedor' === $tab ? 'nav-tab-active' : ''; ?>">Importar proveedor</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'importar-amazon', $base ) ); ?>" class="nav-tab <?php echo 'importar-amazon' === $tab ? 'nav-tab-active' : ''; ?>">Importar Amazon</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'conexiones-proveedores', $base ) ); ?>" class="nav-tab <?php echo 'conexiones-proveedores' === $tab ? 'nav-tab-active' : ''; ?>">Conexiones con proveedores</a>
@@ -11782,6 +11783,8 @@ function seo_import_export_page() {
             <?php if ( function_exists( 'seo_clonador_render' ) ) { seo_clonador_render(); } else { echo '<div class="notice notice-error inline"><p>No se ha podido cargar el módulo Clonador PRO → STAGING.</p></div>'; } ?>
         <?php elseif ( 'catalogo-semantico' === $tab ) : ?>
             <?php if ( class_exists( 'SEO_Semantic_Catalog_Transfer' ) && is_callable( [ 'SEO_Semantic_Catalog_Transfer', 'render_tab' ] ) ) { SEO_Semantic_Catalog_Transfer::render_tab(); } else { echo '<div class="notice notice-error inline"><p>No se ha podido cargar el catálogo semántico portable.</p></div>'; } ?>
+        <?php elseif ( 'inventarios-comerciales' === $tab ) : ?>
+            <?php if ( function_exists( 'seo_ie_cf_render_admin' ) ) { seo_ie_cf_render_admin(); } else { echo '<div class="notice notice-error inline"><p>No se ha podido cargar el modulo de inventarios comerciales.</p></div>'; } ?>
         <?php elseif ( 'importar-proveedor' === $tab ) : ?>
             <?php if ( function_exists( 'seo_proveedores_render_importador' ) ) { seo_proveedores_render_importador(); } else { echo '<div class="notice notice-error inline"><p>No se ha podido cargar el motor de importación de proveedores.</p></div>'; } ?>
             <?php if ( ! empty( $last_log ) && 'Importación de catálogo de proveedor' === ( $last_log['operacion'] ?? '' ) ) { seo_ie_render_log( $last_log ); } ?>
