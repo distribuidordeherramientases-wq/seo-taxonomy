@@ -125,6 +125,7 @@ final class SEO_Solucionador_Admin {
 
         echo '<div class="wrap seo-solucionador"><h1>Solucionador <small style="font-weight:400;color:#646970">v' . esc_html(SEO_SOLUCIONADOR_VERSION) . '</small></h1>';
         echo '<p>Analiza preguntas y senales, comprueba si ya existe una respuesta editorial y propone el post concreto que falta. La propuesta no es un post. Solo al aprobarla se crea un <strong>borrador</strong> con categorias y Vocabulary ya asignados.</p>';
+        self::render_export_button();
 
         if (!empty($_GET['scan'])) echo '<div class="notice notice-success is-dismissible"><p>Analisis de Solucionador completado.</p></div>';
         if (!empty($_GET['sol_msg']) && $_GET['sol_msg'] === 'draft_created') {
@@ -307,6 +308,17 @@ final class SEO_Solucionador_Admin {
             foreach ($counts as $row) echo '<li><strong>' . esc_html((string) $row['source_type']) . ':</strong> ' . esc_html(number_format_i18n(absint($row['evidence'] ?? 0))) . '</li>';
             echo '</ul>';
         }
+        echo '</div>';
+    }
+
+    private static function render_export_button() {
+        echo '<div style="margin:12px 0 16px">';
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline-block">';
+        echo '<input type="hidden" name="action" value="seo_solucionador_export_json">';
+        wp_nonce_field('seo_solucionador_export_json');
+        submit_button('Descargar resultados JSON', 'secondary', 'submit', false);
+        echo '</form>';
+        echo '<span class="description" style="margin-left:10px">Incluye propuestas, clasificacion, evidencias, cobertura editorial y ultimo analisis.</span>';
         echo '</div>';
     }
 

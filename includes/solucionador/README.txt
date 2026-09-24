@@ -76,3 +76,12 @@ Migracion
 ---------
 Si existia Solucionador v0.1.x, dbDelta amplia sus tablas al esquema v0.2.0.
 No es necesario borrar las tablas antes de instalar esta version.
+
+
+EXPORTACION JSON (v0.2.1)
+-------------------------
+La cabecera de Solucionador incorpora el boton "Descargar resultados JSON".
+El fichero exporta una fotografia completa para revision externa: resumen, ultimo
+analisis, propuestas/temas, Vocabulary y categorias propuestos, evidencias por
+fuente, posts existentes o borradores relacionados y el indice de cobertura
+editorial. La exportacion no modifica datos ni crea posts.
