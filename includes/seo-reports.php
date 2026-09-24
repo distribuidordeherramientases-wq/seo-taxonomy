@@ -820,10 +820,6 @@ function seo_reports_render_landing_pages_summary() {
 
     if (function_exists('seo_landing_google_source_status')) {
         $source_status = (array) seo_landing_google_source_status();
-        $trends_direct = function_exists('seo_google_trends_source_status')
-            ? (array) seo_google_trends_source_status()
-            : array();
-
         echo '<ul style="margin:0 0 14px 18px;line-height:1.8;">';
         foreach (array(
             'search_console' => 'Search Console',
@@ -834,48 +830,11 @@ function seo_reports_render_landing_pages_summary() {
                 ? $source_status[$source_key]
                 : array('connected' => false, 'detail' => 'No disponible');
 
-            $status_label = !empty($src['connected']) ? 'conectado' : 'pendiente';
-            $status_color = !empty($src['connected']) ? '#1d6b43' : '#996800';
-
-            if ('trends' === $source_key && $trends_direct) {
-                $radar = isset($trends_direct['radar']) && is_array($trends_direct['radar'])
-                    ? $trends_direct['radar']
-                    : array();
-                $explore = isset($trends_direct['explore']) && is_array($trends_direct['explore'])
-                    ? $trends_direct['explore']
-                    : array();
-                $radar_ok = !empty($radar['connected']);
-                $explore_ok = !empty($explore['connected']);
-                $explore_state = (string) ($explore['status'] ?? '');
-
-                if ($radar_ok && $explore_ok && !in_array($explore_state, array('partial','degraded','backoff','error'), true)) {
-                    $status_label = 'conectado';
-                    $status_color = '#1d6b43';
-                } elseif ($radar_ok || $explore_ok || 'partial' === $explore_state) {
-                    $status_label = 'parcial';
-                    $status_color = '#996800';
-                } elseif (in_array($explore_state, array('degraded','backoff','error'), true)) {
-                    $status_label = 'limitado';
-                    $status_color = '#996800';
-                } else {
-                    $status_label = 'pendiente';
-                    $status_color = '#996800';
-                }
-
-                $detail_parts = array();
-                if (!empty($radar['detail'])) {
-                    $detail_parts[] = 'Radar: ' . (string) $radar['detail'];
-                }
-                if (!empty($explore['detail'])) {
-                    $detail_parts[] = 'Mercado: ' . (string) $explore['detail'];
-                }
-                if ($detail_parts) {
-                    $src['detail'] = implode(' ', $detail_parts);
-                }
-            }
-
+            $connected = !empty($src['connected']);
             echo '<li><strong>' . esc_html($source_label) . ':</strong> ';
-            echo '<span style="color:' . esc_attr($status_color) . ';">' . esc_html($status_label) . '</span>';
+            echo $connected
+                ? '<span style="color:#1d6b43;">conectado</span>'
+                : '<span style="color:#996800;">pendiente</span>';
             if (!empty($src['detail'])) {
                 echo ' <small>' . esc_html((string) $src['detail']) . '</small>';
             }
@@ -3052,5 +3011,22 @@ EXPORT CSV SEO TABLES
         $output = fopen('php://output', 'w');
     
         // BOM para Excel
-        fprintf($output, chr(0xEF)
-Vista previa truncada por el gran tamaño del archivo
+        fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
+    
+        // Cabeceras
+        fputcsv($output, $columns, ';');
+    
+        // Filas
+        foreach ($rows as $row) {
+            $line = [];
+    
+            foreach ($columns as $col) {
+                $line[] = isset($row[$col]) ? $row[$col] : '';
+            }
+    
+            fputcsv($output, $line, ';');
+        }
+    
+        fclose($output);
+        exit;
+    }
