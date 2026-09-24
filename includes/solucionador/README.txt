@@ -1,21 +1,49 @@
-SOLUCIONADOR v0.2.0
+SOLUCIONADOR v0.2.2
 ===================
 
 Objetivo
 --------
-Convertir senales reales del cliente y del sistema en propuestas concretas de
-posts de ayuda, evitando duplicar temas ya cubiertos.
+Convertir preguntas reales y gaps editoriales en propuestas concretas de posts
+de ayuda, evitando crear contenidos duplicados o transformar incidencias tecnicas
+internas en preguntas para clientes.
 
-Fuentes
--------
+Fuentes y responsabilidades
+---------------------------
 - Dependiente / Interprete: fuente principal. Consultas, intent, objeto,
-  contexto, estado, resultados y feedback.
-- Analista: refuerza demanda, mercado y huecos de cobertura.
-- Auditor: aporta hallazgos/probes compatibles con necesidades de cliente,
-  con menor peso.
-- Comentarista: aporta problemas o preguntas detectadas en experiencias
-  externas almacenadas.
+  contexto, estado, resultados y feedback. Puede originar propuestas.
+- Comentarista: problemas/preguntas detectados en experiencias externas. Puede
+  originar propuestas.
+- Analista:
+  * busquedas internas: pueden originar propuestas;
+  * plan de decision: normalmente solo refuerza necesidades ya detectadas;
+  * MEJORAR_PRODUCTO, IMPULSAR_CATEGORIA y decisiones estructurales no se
+    convierten automaticamente en preguntas de cliente.
+- Auditor:
+  * probes conductuales con una consulta real: pueden originar propuestas;
+  * findings: solo una allowlist de gaps editoriales/search/FAQ;
+  * incidencias tecnicas de indice, schema, excerpt, servidor, BD, etc. se excluyen.
 - Posts existentes: inventario editorial para saber si la solucion ya existe.
+
+Cambios principales v0.2.2
+--------------------------
+1. Filtrado fuerte de Analista y Auditor para evitar propuestas falsas.
+2. Separacion entre senales ORIGIN y REINFORCEMENT.
+3. Reanalisis limpio: las evidencias se reconstruyen y los temas automaticos
+   obsoletos se eliminan si ya no tienen evidencia. Los borradores creados se
+   conservan.
+4. Canonizacion mejorada: deteccion/detectar, perforacion/perforar,
+   agujerear/taladrar/perforar, etc. convergen.
+5. Correccion del falso positivo desbloqueada -> bloqueada/atascada mediante
+   limites de palabra.
+6. Cobertura editorial mejorada: el titulo manda y los H2/H3 heredan contexto
+   del post en vez de interpretarse siempre de forma aislada.
+7. Matching de cobertura mas estricto y preferencia por coincidencias de titulo.
+8. Categorias y Vocabulary mas conservadores: umbrales relativos mas altos para
+   no asociar, por ejemplo, una consulta sobre perforar una pared con soportes TV.
+9. Titulos naturales para deteccion de fugas y estados como no funciona,
+   no arranca, fuga, gira en vacio, etc.
+10. La exportacion JSON sigue disponible e incluye las nuevas estadisticas del
+    ultimo escaneo por fuente, temas limpiados y refuerzos descartados.
 
 Regla editorial
 ---------------
@@ -58,30 +86,20 @@ Pestanas
 
 Prueba recomendada en STAGING
 -----------------------------
-1. Sustituir includes/seo-includes-bootstrap.php.
-2. Copiar la carpeta includes/solucionador/ completa.
-3. Abrir Herramientas -> Solucionador.
-4. Pulsar "Reanalizar fuentes".
-5. Revisar varias propuestas: pregunta, titulo, categorias y Vocabulary.
-6. Aprobar UNA propuesta de prueba.
-7. Comprobar que se crea un post draft con:
-   - titulo propuesto;
-   - contenido vacio;
-   - categorias relacionadas;
-   - Vocabulary ya seleccionado.
-8. Rellenar contenido y publicar solo si la propuesta es correcta.
-9. Comprobar que Solucionador marca el tema como cubierto tras publicarlo.
+1. Copiar la carpeta includes/solucionador/ de esta version y, si se usa el
+   paquete completo, sustituir includes/seo-includes-bootstrap.php.
+2. Abrir Herramientas -> Solucionador.
+3. Pulsar "Reanalizar fuentes". Es importante: v0.2.2 limpia automaticamente
+   propuestas automaticas antiguas que ya no pasan los filtros nuevos.
+4. Descargar el JSON y revisar:
+   - propuestas;
+   - titulo;
+   - categorias;
+   - Vocabulary;
+   - coverage;
+   - last_scan.accepted_by_source / discarded_by_source.
+5. No aprobar un borrador hasta validar el primer JSON de v0.2.2.
 
-Migracion
----------
-Si existia Solucionador v0.1.x, dbDelta amplia sus tablas al esquema v0.2.0.
-No es necesario borrar las tablas antes de instalar esta version.
-
-
-EXPORTACION JSON (v0.2.1)
--------------------------
-La cabecera de Solucionador incorpora el boton "Descargar resultados JSON".
-El fichero exporta una fotografia completa para revision externa: resumen, ultimo
-analisis, propuestas/temas, Vocabulary y categorias propuestos, evidencias por
-fuente, posts existentes o borradores relacionados y el indice de cobertura
-editorial. La exportacion no modifica datos ni crea posts.
+Base de datos
+-------------
+No hay cambio de esquema respecto a v0.2.1. DB version sigue siendo 0.2.0.

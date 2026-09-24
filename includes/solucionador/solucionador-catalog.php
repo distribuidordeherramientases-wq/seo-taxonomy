@@ -87,7 +87,7 @@ final class SEO_Solucionador_Catalog {
         $needle = implode(' ', $phrases);
         foreach ($rows as $row) {
             $score = SEO_Solucionador_Normalizer::similarity($needle, (string) ($row['name'] ?? ''));
-            if ($score >= 0.20) self::add_score($category_scores, absint($row['term_id'] ?? 0), 0.75 + (2 * $score));
+            if ($score >= 0.30) self::add_score($category_scores, absint($row['term_id'] ?? 0), 0.75 + (2 * $score));
         }
     }
 
@@ -222,7 +222,7 @@ final class SEO_Solucionador_Catalog {
         $needle = implode(' ', $phrases);
         foreach ($rows as $row) {
             $score = SEO_Solucionador_Normalizer::similarity($needle, (string) ($row['label'] ?? $row['slug'] ?? ''));
-            if ($score >= 0.22) self::add_score($vocab_scores, absint($row['id'] ?? 0), 0.65 + (1.5 * $score));
+            if ($score >= 0.30) self::add_score($vocab_scores, absint($row['id'] ?? 0), 0.65 + (1.5 * $score));
         }
     }
 
@@ -240,7 +240,9 @@ final class SEO_Solucionador_Catalog {
 
         arsort($vocab_scores, SORT_NUMERIC);
         $candidate_ids = array();
+        $top_vocab_score = $vocab_scores ? (float) reset($vocab_scores) : 0.0;
         foreach (array_slice($vocab_scores, 0, 18, true) as $vid => $score) {
+            if ($top_vocab_score > 0 && (float) $score < ($top_vocab_score * 0.55)) continue;
             $candidate_ids[] = absint($vid);
         }
         $candidate_ids = array_values(array_unique(array_filter($candidate_ids)));
@@ -294,7 +296,9 @@ final class SEO_Solucionador_Catalog {
         if (!$scores) return array();
         arsort($scores, SORT_NUMERIC);
         $out = array();
+        $top = $scores ? (float) reset($scores) : 0.0;
         foreach ($scores as $id => $score) {
+            if ($top > 0 && (float) $score < ($top * 0.45)) continue;
             $term = get_term(absint($id), 'product_cat');
             if (!$term || is_wp_error($term)) continue;
             $out[] = array(
@@ -336,7 +340,7 @@ final class SEO_Solucionador_Catalog {
             usort($items, static function($a, $b) { return ($b['score'] <=> $a['score']); });
             $top = isset($items[0]['score']) ? (float) $items[0]['score'] : 0;
             foreach ($items as $row) {
-                if ($top > 0 && (float) $row['score'] < ($top * 0.30)) continue;
+                if ($top > 0 && (float) $row['score'] < ($top * 0.50)) continue;
                 $out[$group][] = array(
                     'id' => absint($row['id'] ?? 0),
                     'slug' => (string) ($row['slug'] ?? ''),

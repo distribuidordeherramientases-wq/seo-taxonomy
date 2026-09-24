@@ -30,35 +30,80 @@ final class SEO_Solucionador_Engine {
         return sanitize_text_field((string) $fallback);
     }
 
+    private static function bump(array &$map, $key, $amount = 1) {
+        $key = sanitize_key((string) $key) ?: 'unknown';
+        $map[$key] = ($map[$key] ?? 0) + $amount;
+    }
+
     public static function scan($days = 180) {
         global $wpdb;
         SEO_Solucionador_DB::maybe_install();
 
+        // Evidence y cobertura son runtime derivado: se reconstruyen para que las
+        // reglas nuevas eliminen propuestas antiguas que ya no son validas.
+        SEO_Solucionador_DB::begin_scan();
         $coverage = SEO_Solucionador_Coverage::rebuild_post_index(5000);
         $sources = SEO_Solucionador_Sources::all($days);
+
         $accepted = 0;
         $discarded = 0;
+        $reinforcement_skipped = 0;
+        $seen_by_source = array();
+        $accepted_by_source = array();
+        $discarded_by_source = array();
+        $origin_topics_by_key = array();
 
         foreach ($sources as $source) {
+            $source_type = sanitize_key((string) ($source['source_type'] ?? '')) ?: 'unknown';
+            self::bump($seen_by_source, $source_type);
+
             $profile = SEO_Solucionador_Normalizer::profile(
                 (string) ($source['source_text'] ?? ''),
                 (array) ($source['hints'] ?? array())
             );
-            if (!$profile) {
+            if (!$profile || SEO_Solucionador_Normalizer::is_weak_profile($profile)) {
                 $discarded++;
+                self::bump($discarded_by_source, $source_type);
                 continue;
             }
-            $topic_id = SEO_Solucionador_DB::upsert_topic(
-                $profile,
-                (string) ($source['source_text'] ?? '')
-            );
+
+            $key = (string) ($profile['canonical_key'] ?? '');
+            $role = sanitize_key((string) ($source['proposal_role'] ?? 'origin')) ?: 'origin';
+            $topic_id = 0;
+
+            if ($role === 'reinforcement') {
+                // Una senal de mercado/estructura no crea por si sola una pregunta.
+                // Solo refuerza un tema originado en este mismo escaneo por una
+                // consulta, comentario, gap editorial explicito o prueba conductual.
+                $topic_id = absint($origin_topics_by_key[$key] ?? 0);
+                if (!$topic_id) {
+                    $reinforcement_skipped++;
+                    $discarded++;
+                    self::bump($discarded_by_source, $source_type);
+                    continue;
+                }
+            } else {
+                $topic_id = SEO_Solucionador_DB::upsert_topic(
+                    $profile,
+                    (string) ($source['source_text'] ?? '')
+                );
+                if ($topic_id) $origin_topics_by_key[$key] = $topic_id;
+            }
+
             if (!$topic_id) {
                 $discarded++;
+                self::bump($discarded_by_source, $source_type);
                 continue;
             }
+
             SEO_Solucionador_DB::add_evidence($topic_id, $source);
             $accepted++;
+            self::bump($accepted_by_source, $source_type);
         }
+
+        // Borra temas de ciclos anteriores que ya no tienen ninguna evidencia
+        // vigente. Los temas con borrador asociado se conservan.
+        $pruned_topics = SEO_Solucionador_DB::prune_orphan_topics();
 
         $topics_table = SEO_Solucionador_DB::topics_table();
         $topics = (array) $wpdb->get_results("SELECT * FROM {$topics_table} ORDER BY id ASC", ARRAY_A);
@@ -169,6 +214,11 @@ final class SEO_Solucionador_Engine {
             'sources_seen' => count($sources),
             'accepted' => $accepted,
             'discarded' => $discarded,
+            'reinforcement_skipped' => $reinforcement_skipped,
+            'pruned_topics' => $pruned_topics,
+            'seen_by_source' => $seen_by_source,
+            'accepted_by_source' => $accepted_by_source,
+            'discarded_by_source' => $discarded_by_source,
             'posts_indexed' => absint($coverage['posts'] ?? 0),
             'post_topics_indexed' => absint($coverage['topics'] ?? 0),
         ), false);
@@ -183,29 +233,39 @@ final class SEO_Solucionador_Engine {
         $u = max(0, (int) ($stats['auditor'] ?? 0));
         $z = max(0, (int) ($stats['zero_results'] ?? 0));
         $n = max(0, (int) ($stats['negative_feedback'] ?? 0));
-        $score = 12
-            + (12 * log(1 + $d))
-            + (6 * log(1 + $c))
-            + (8 * log(1 + $a))
-            + (4 * log(1 + $u))
-            + (4 * log(1 + $z))
-            + (6 * log(1 + $n));
+        $score = 10
+            + (14 * log(1 + $d))
+            + (7 * log(1 + $c))
+            + (6 * log(1 + $a))
+            + (3 * log(1 + $u))
+            + (5 * log(1 + $z))
+            + (7 * log(1 + $n));
         if ($coverage_status === 'uncovered') $score += 12;
         elseif ($coverage_status === 'needs_expansion') $score += 8;
         elseif ($coverage_status === 'covered_parent') $score += 4;
-        elseif ($coverage_status === 'covered_exact') $score -= 20;
+        elseif ($coverage_status === 'covered_exact') $score -= 24;
         return round(max(0, min(100, $score)), 2);
     }
 
     private static function recommended_action(array $stats, $coverage_status) {
         $evidence = absint($stats['total'] ?? 0);
         $dependiente = absint($stats['dependiente'] ?? 0);
+        $comentarista = absint($stats['comentarista'] ?? 0);
         $analista = absint($stats['analista'] ?? 0);
+        $auditor = absint($stats['auditor'] ?? 0);
+
         if ($coverage_status === 'covered_exact') return 'no_action';
         if ($coverage_status === 'covered_parent') return 'create_section';
         if (in_array($coverage_status, array('covered_partial','needs_expansion'), true)) return 'expand_existing_post';
-        if ($coverage_status === 'uncovered' && ($dependiente >= 2 || $evidence >= 3 || ($dependiente >= 1 && $analista >= 1))) {
-            return 'create_post';
+
+        if ($coverage_status === 'uncovered') {
+            // Una unica consulta real con cero resultados/feedback puede quedar en
+            // observacion; la propuesta pasa a crear post con repeticion o cruce
+            // independiente de fuentes.
+            if ($dependiente >= 2) return 'create_post';
+            if ($dependiente >= 1 && ($analista >= 1 || $comentarista >= 1 || $auditor >= 1)) return 'create_post';
+            if ($comentarista >= 2 && ($analista >= 1 || $evidence >= 3)) return 'create_post';
+            if ($evidence >= 3) return 'create_post';
         }
         return 'observe';
     }

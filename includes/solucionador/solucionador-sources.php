@@ -1,6 +1,10 @@
 <?php
 /**
  * Solucionador - adaptadores de fuentes locales.
+ *
+ * v0.2.2 separa fuentes que pueden ORIGINAR una propuesta de las que solo
+ * pueden reforzar una necesidad ya detectada. Esto evita convertir tareas
+ * internas de Analista/Auditor en preguntas para clientes.
  */
 
 defined('ABSPATH') || exit;
@@ -16,7 +20,11 @@ final class SEO_Solucionador_Sources {
         return is_array($decoded) ? $decoded : array();
     }
 
-    public static function dependiente($days = 180, $limit = 1400) {
+    private static function origin_flag($value = true) {
+        return $value ? 'origin' : 'reinforcement';
+    }
+
+    public static function dependiente($days = 180, $limit = 1600) {
         global $wpdb;
         $table = $wpdb->prefix . 'seo_dependiente_search_log';
         if (!self::table_exists($table)) return array();
@@ -68,9 +76,7 @@ final class SEO_Solucionador_Sources {
                 $text,
                 (string) ($row['detected_intent'] ?? ''),
                 (string) ($row['detected_state'] ?? '')
-            )) {
-                continue;
-            }
+            )) continue;
 
             $semantic = self::decode($row['semantic_analysis'] ?? '');
             $matches = array_values(array_slice((array) ($semantic['matches'] ?? array()), 0, 24));
@@ -78,6 +84,7 @@ final class SEO_Solucionador_Sources {
 
             $out[] = array(
                 'source_type' => 'dependiente',
+                'proposal_role' => self::origin_flag(true),
                 'source_id' => 'search:' . md5(implode('|', array(
                     (string) ($row['normalized_text'] ?? $text),
                     (string) ($row['detected_intent'] ?? ''),
@@ -96,6 +103,7 @@ final class SEO_Solucionador_Sources {
                 'evidence_score' => 1.00,
                 'observed_at' => (string) ($row['observed_at'] ?? ''),
                 'source_meta' => array(
+                    'proposal_role' => 'origin',
                     'last_log_id' => absint($row['source_id'] ?? 0),
                     'zero_results' => absint($row['zero_results'] ?? 0),
                     'negative_feedback' => absint($row['negative_feedback'] ?? 0),
@@ -132,6 +140,7 @@ final class SEO_Solucionador_Sources {
             foreach (SEO_Solucionador_Normalizer::extract_problem_sentences($blob, 3) as $index => $sentence) {
                 $out[] = array(
                     'source_type' => 'comentarista',
+                    'proposal_role' => self::origin_flag(true),
                     'source_id' => (string) absint($row['id'] ?? 0) . ':' . ($index + 1),
                     'source_text' => $sentence,
                     'hints' => array(),
@@ -139,6 +148,7 @@ final class SEO_Solucionador_Sources {
                     'evidence_score' => 0.60,
                     'observed_at' => (string) (($row['source_published_at'] ?? '') ?: ($row['captured_at'] ?? '')),
                     'source_meta' => array(
+                        'proposal_role' => 'origin',
                         'product_id' => absint($row['product_id'] ?? 0),
                         'product_title' => (string) ($row['product_title'] ?? ''),
                         'source_name' => (string) ($row['source_name'] ?? ''),
@@ -150,18 +160,42 @@ final class SEO_Solucionador_Sources {
         return $out;
     }
 
-    public static function analista($days = 90, $limit = 140) {
+    private static function analyst_action_can_originate($action, $channel, array $entity) {
+        $action = strtoupper(sanitize_text_field((string) $action));
+        $channel = sanitize_key((string) $channel);
+        $type = sanitize_key((string) ($entity['type'] ?? ''));
+
+        // Nunca convertir una instruccion de mejorar/impulsar una entidad concreta
+        // del catalogo en una pregunta para clientes.
+        if (in_array($type, array('product','product_cat','category','cluster','hub_primary','hub_secondary'), true)) {
+            if (preg_match('/^(MEJORAR|IMPULSAR)_/', $action)) return false;
+        }
+        if (preg_match('/(PRODUCTO|CATEGORIA|ESTRUCTURA|CLUSTER|HUB)/', $action) && !preg_match('/CREAR_(POST|CONTENIDO|GUIA)/', $action)) {
+            return false;
+        }
+
+        // Solo las directrices explicitamente orientadas a crear cobertura editorial
+        // pueden originar una propuesta sin una pregunta previa del cliente.
+        if (preg_match('/CREAR_(POST|CONTENIDO|GUIA)|NUEVO_(POST|CONTENIDO)|COBERTURA_(NUEVA|EDITORIAL)|CONTENT_GAP|EDITORIAL_GAP/', $action)) return true;
+        if ($channel === 'contenido' && $type === '' && preg_match('/CREAR|COBERTURA|NUEV/', $action)) return true;
+        return false;
+    }
+
+    public static function analista($days = 90, $limit = 160) {
         $out = array();
         $days = min(365, max(7, absint($days)));
         $limit = min(250, max(20, absint($limit)));
 
+        // Las busquedas internas representan lenguaje real del cliente y si pueden
+        // originar una propuesta.
         if (function_exists('seo_analista_internal_search_snapshot')) {
             $snapshot = seo_analista_internal_search_snapshot($days, $limit);
-            foreach ((array) ($snapshot['top'] ?? array()) as $i => $row) {
+            foreach ((array) ($snapshot['top'] ?? array()) as $row) {
                 $text = (string) ($row['search_term'] ?? '');
                 if (!SEO_Solucionador_Normalizer::is_solution_signal($text)) continue;
                 $out[] = array(
                     'source_type' => 'analista',
+                    'proposal_role' => self::origin_flag(true),
                     'source_id' => 'search:' . md5((string) ($row['normalized_term'] ?? SEO_Solucionador_Normalizer::normalize($text))),
                     'source_text' => $text,
                     'hints' => array(),
@@ -169,6 +203,7 @@ final class SEO_Solucionador_Sources {
                     'evidence_score' => 0.75,
                     'observed_at' => (string) ($row['last_search'] ?? ''),
                     'source_meta' => array(
+                        'proposal_role' => 'origin',
                         'zero_results' => absint($row['zero_count'] ?? 0),
                         'negative_feedback' => 0,
                         'avg_results' => (float) ($row['avg_results'] ?? 0),
@@ -180,27 +215,36 @@ final class SEO_Solucionador_Sources {
 
         if (function_exists('seo_analista_decision_plan')) {
             $plan = seo_analista_decision_plan($days, min(80, $limit));
-            foreach ((array) $plan as $i => $row) {
+            foreach ((array) $plan as $row) {
+                $entity = is_array($row['entity'] ?? null) ? $row['entity'] : array();
+                $origin = self::analyst_action_can_originate(
+                    (string) ($row['action'] ?? ''),
+                    (string) ($row['channel'] ?? ''),
+                    $entity
+                );
+
                 $texts = array_filter(array_merge(
                     array((string) ($row['topic'] ?? '')),
                     array_slice((array) ($row['keywords'] ?? array()), 0, 5)
                 ));
-                foreach ($texts as $j => $text) {
+                foreach ($texts as $text) {
                     if (!SEO_Solucionador_Normalizer::is_solution_signal($text)) continue;
                     $out[] = array(
                         'source_type' => 'analista',
+                        'proposal_role' => self::origin_flag($origin),
                         'source_id' => 'plan:' . md5(SEO_Solucionador_Normalizer::normalize((string) ($row['topic'] ?? '')) . '|' . SEO_Solucionador_Normalizer::normalize((string) $text)),
                         'source_text' => (string) $text,
                         'hints' => array(),
                         'occurrences' => 1,
-                        'evidence_score' => min(1.0, max(0.55, ((float) ($row['priority'] ?? 50)) / 100)),
+                        'evidence_score' => min(1.0, max(0.45, ((float) ($row['priority'] ?? 50)) / 100)),
                         'observed_at' => current_time('mysql'),
                         'source_meta' => array(
+                            'proposal_role' => self::origin_flag($origin),
                             'priority' => (int) ($row['priority'] ?? 0),
                             'action' => (string) ($row['action'] ?? ''),
                             'channel' => (string) ($row['channel'] ?? ''),
                             'analista_channel' => 'decision_plan',
-                            'entity' => is_array($row['entity'] ?? null) ? $row['entity'] : array(),
+                            'entity' => $entity,
                             'catalog' => is_array($row['catalog'] ?? null) ? $row['catalog'] : array(),
                             'target' => is_array($row['target'] ?? null) ? $row['target'] : array(),
                             'keywords' => array_values(array_slice((array) ($row['keywords'] ?? array()), 0, 8)),
@@ -209,8 +253,13 @@ final class SEO_Solucionador_Sources {
                 }
             }
         }
-
         return $out;
+    }
+
+    private static function auditor_editorial_code($code) {
+        $code = sanitize_key((string) $code);
+        if ($code === '') return false;
+        return (bool) preg_match('/(^|_)(content_gap|editorial_gap|search_gap|query_gap|intent_gap|missing_content|missing_faq|faq_coverage|unanswered_query|uncovered_intent)(_|$)/', $code);
     }
 
     public static function auditor($limit = 250) {
@@ -219,19 +268,24 @@ final class SEO_Solucionador_Sources {
         if (!is_array($report) || !$report) return array();
 
         $out = array();
-        foreach (array_slice((array) ($report['behavior_audit']['samples'] ?? array()), 0, 80) as $i => $sample) {
+
+        // Las pruebas de comportamiento que contienen una consulta de cliente si
+        // pueden originar una necesidad, siempre que el resultado no sea correcto.
+        foreach (array_slice((array) ($report['behavior_audit']['samples'] ?? array()), 0, 80) as $sample) {
             $query = (string) ($sample['query'] ?? '');
             $status = sanitize_key((string) ($sample['status'] ?? ''));
             if ($query === '' || $status === 'ok' || !SEO_Solucionador_Normalizer::is_solution_signal($query)) continue;
             $out[] = array(
                 'source_type' => 'auditor',
+                'proposal_role' => self::origin_flag(true),
                 'source_id' => 'behavior:' . md5(SEO_Solucionador_Normalizer::normalize($query)),
                 'source_text' => $query,
                 'hints' => array(),
                 'occurrences' => 1,
-                'evidence_score' => 0.45,
+                'evidence_score' => 0.50,
                 'observed_at' => (string) ($report['generated_at'] ?? current_time('mysql')),
                 'source_meta' => array(
+                    'proposal_role' => 'origin',
                     'auditor_channel' => 'behavior_probe',
                     'status' => $status,
                     'kind' => (string) ($sample['kind'] ?? ''),
@@ -240,16 +294,17 @@ final class SEO_Solucionador_Sources {
             );
         }
 
-        foreach (array_slice((array) ($report['findings'] ?? array()), 0, $limit) as $i => $finding) {
+        // Findings generales del Auditor son tecnicos por defecto. Solo una
+        // allowlist de gaps editoriales puede alimentar Solucionador.
+        foreach (array_slice((array) ($report['findings'] ?? array()), 0, $limit) as $finding) {
             $code = sanitize_key((string) ($finding['code'] ?? ''));
-            if (preg_match('/image|schema|canonical|duplicate|orphan|server|database|attribute|sitemap|redirect|json|inventory|supplier/', $code)) continue;
+            $entity_type = sanitize_key((string) ($finding['entity_type'] ?? ''));
+            if (!self::auditor_editorial_code($code) || $entity_type === 'system') continue;
 
             $evidence = is_array($finding['evidence'] ?? null) ? $finding['evidence'] : array();
             $candidate_texts = array_filter(array(
                 (string) ($evidence['query'] ?? ''),
                 (string) ($evidence['search_term'] ?? ''),
-                (string) ($finding['headline'] ?? ''),
-                (string) ($finding['recommendation'] ?? ''),
             ));
             $text = '';
             foreach ($candidate_texts as $candidate) {
@@ -262,26 +317,29 @@ final class SEO_Solucionador_Sources {
 
             $out[] = array(
                 'source_type' => 'auditor',
+                'proposal_role' => self::origin_flag(true),
                 'source_id' => 'finding:' . md5($code . '|' . SEO_Solucionador_Normalizer::normalize($text)),
                 'source_text' => $text,
                 'hints' => array(),
                 'occurrences' => 1,
-                'evidence_score' => 0.40,
+                'evidence_score' => 0.45,
                 'observed_at' => (string) ($report['generated_at'] ?? current_time('mysql')),
                 'source_meta' => array(
-                    'auditor_channel' => 'finding',
+                    'proposal_role' => 'origin',
+                    'auditor_channel' => 'editorial_finding',
                     'code' => $code,
                     'severity' => (string) ($finding['severity'] ?? ''),
-                    'entity_type' => (string) ($finding['entity_type'] ?? ''),
+                    'entity_type' => $entity_type,
                     'entity_id' => $finding['entity_id'] ?? '',
                 ),
             );
         }
-
         return $out;
     }
 
     public static function all($days = 180) {
+        // Orden intencional: primero fuentes capaces de originar necesidades reales;
+        // despues Analista/Auditor pueden reforzar temas ya nacidos en este ciclo.
         return array_merge(
             self::dependiente($days, 1600),
             self::comentarista(1200),

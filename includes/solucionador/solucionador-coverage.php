@@ -50,6 +50,35 @@ final class SEO_Solucionador_Coverage {
         return array_slice(array_values(array_unique($out)), 0, 40);
     }
 
+    private static function inherited_heading_profile($heading, array $title_profile, $semantic_context) {
+        if (!SEO_Solucionador_Normalizer::is_solution_signal($heading)) return array();
+        $profile = SEO_Solucionador_Normalizer::profile($heading);
+        if (!$profile) return array();
+
+        // Un H2/H3 se interpreta dentro del articulo, nunca como una consulta
+        // aislada. Si el heading no aporta un objeto/contexto fiable hereda el
+        // del titulo, que a su vez esta respaldado por Vocabulary/categorias.
+        if (SEO_Solucionador_Normalizer::is_weak_profile($profile)) {
+            $hints = array(
+                'action' => (string) ($profile['action'] ?? $title_profile['action'] ?? ''),
+                'object' => (string) ($title_profile['object'] ?? ''),
+                'context' => (string) ($profile['context'] ?? $title_profile['context'] ?? ''),
+                'state' => (string) ($profile['condition'] ?? $title_profile['condition'] ?? ''),
+                'intent' => (string) ($profile['intent'] ?? $title_profile['intent'] ?? ''),
+            );
+            $profile = SEO_Solucionador_Normalizer::profile(trim($heading . ' ' . $semantic_context), $hints);
+        } elseif (empty($profile['context']) && !empty($title_profile['context'])) {
+            $profile = SEO_Solucionador_Normalizer::profile($heading, array(
+                'action' => (string) ($profile['action'] ?? ''),
+                'object' => (string) ($profile['object'] ?? ''),
+                'context' => (string) ($title_profile['context'] ?? ''),
+                'state' => (string) ($profile['condition'] ?? ''),
+                'intent' => (string) ($profile['intent'] ?? ''),
+            ));
+        }
+        return $profile && !SEO_Solucionador_Normalizer::is_weak_profile($profile) ? $profile : array();
+    }
+
     public static function rebuild_post_index($limit = 3500) {
         global $wpdb;
         SEO_Solucionador_DB::clear_post_topics();
@@ -70,13 +99,21 @@ final class SEO_Solucionador_Coverage {
             $categories = self::post_category_text($post_id);
             $semantic_context = trim($vocab . ' ' . $categories);
             $title = trim((string) ($post['post_title'] ?? ''));
-            $profile = SEO_Solucionador_Normalizer::profile(trim($title . ' ' . $semantic_context));
-            if ($profile) {
-                SEO_Solucionador_DB::insert_post_topic($post_id, 'title', $title, $profile);
+
+            // El titulo manda. El contexto semantico solo se usa como fallback si
+            // el titulo por si solo no produce un perfil suficientemente fiable.
+            $title_profile = SEO_Solucionador_Normalizer::profile($title);
+            if (!$title_profile || SEO_Solucionador_Normalizer::is_weak_profile($title_profile)) {
+                $title_profile = SEO_Solucionador_Normalizer::profile(trim($title . ' ' . $semantic_context));
+            }
+            if ($title_profile && !SEO_Solucionador_Normalizer::is_weak_profile($title_profile)) {
+                SEO_Solucionador_DB::insert_post_topic($post_id, 'title', $title, $title_profile);
                 $indexed++;
             }
+
+            if (!$title_profile) continue;
             foreach (self::headings((string) ($post['post_content'] ?? '')) as $heading) {
-                $profile = SEO_Solucionador_Normalizer::profile(trim($heading . ' ' . $semantic_context));
+                $profile = self::inherited_heading_profile($heading, $title_profile, $semantic_context);
                 if (!$profile) continue;
                 SEO_Solucionador_DB::insert_post_topic($post_id, 'heading', $heading, $profile);
                 $indexed++;
@@ -92,7 +129,8 @@ final class SEO_Solucionador_Coverage {
         if ($key === '') return array('status'=>'uncovered','post_id'=>0,'score'=>0,'scope'=>'');
 
         $exact = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM {$table} WHERE canonical_key=%s ORDER BY confidence DESC,id ASC LIMIT 1",
+            "SELECT * FROM {$table} WHERE canonical_key=%s
+             ORDER BY CASE WHEN scope='title' THEN 0 ELSE 1 END,confidence DESC,id ASC LIMIT 1",
             $key
         ), ARRAY_A);
         if ($exact) {
@@ -107,41 +145,61 @@ final class SEO_Solucionador_Coverage {
         $object = sanitize_text_field((string) ($profile['object'] ?? ''));
         $action = sanitize_text_field((string) ($profile['action'] ?? ''));
         $condition = sanitize_text_field((string) ($profile['condition'] ?? ''));
-        $rows = array();
+        $context = sanitize_text_field((string) ($profile['context'] ?? ''));
+
+        $where = array();
+        $params = array();
         if ($object !== '') {
-            $rows = (array) $wpdb->get_results($wpdb->prepare(
-                "SELECT * FROM {$table} WHERE object_term=%s ORDER BY confidence DESC,id ASC LIMIT 250",
-                $object
-            ), ARRAY_A);
+            $where[] = 'object_term=%s';
+            $params[] = $object;
         }
-        if (!$rows && $action !== '') {
-            $rows = (array) $wpdb->get_results($wpdb->prepare(
-                "SELECT * FROM {$table} WHERE action_term=%s ORDER BY confidence DESC,id ASC LIMIT 250",
-                $action
-            ), ARRAY_A);
+        if ($action !== '') {
+            $where[] = 'action_term=%s';
+            $params[] = $action;
         }
+        if (!$where) return array('status'=>'uncovered','post_id'=>0,'score'=>0,'scope'=>'');
+
+        $sql = "SELECT * FROM {$table} WHERE (" . implode(' OR ', $where) . ")
+                ORDER BY CASE WHEN scope='title' THEN 0 ELSE 1 END,confidence DESC,id ASC LIMIT 400";
+        $rows = (array) $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
 
         $best = null;
         $best_score = 0.0;
         $candidate_text = implode(' ', array_filter(array(
-            $profile['action'] ?? '',
-            $profile['object'] ?? '',
-            str_replace('_', ' ', (string) ($profile['condition'] ?? '')),
-            $profile['context'] ?? '',
+            $action,
+            $object,
+            str_replace('_', ' ', $condition),
+            $context,
         )));
+
         foreach ($rows as $row) {
+            $row_action = (string) ($row['action_term'] ?? '');
+            $row_object = (string) ($row['object_term'] ?? '');
+            $row_condition = (string) ($row['condition_term'] ?? '');
+            $row_context = (string) ($row['context_term'] ?? '');
+
+            // Una coincidencia de accion sin objeto comun no basta para decir que
+            // un post cubre la necesidad.
+            if ($object !== '' && $row_object !== '' && $object !== $row_object) {
+                $lexical = SEO_Solucionador_Normalizer::similarity($object, $row_object);
+                if ($lexical < 0.50) continue;
+            }
+
             $score = SEO_Solucionador_Normalizer::similarity($candidate_text, (string) ($row['source_text'] ?? ''));
-            if ($action !== '' && $action === (string) ($row['action_term'] ?? '')) $score += 0.20;
-            if ($object !== '' && $object === (string) ($row['object_term'] ?? '')) $score += 0.30;
-            if ($condition !== '' && $condition === (string) ($row['condition_term'] ?? '')) $score += 0.15;
-            $score = min(1.0, $score);
+            if ($action !== '' && $action === $row_action) $score += 0.25;
+            if ($object !== '' && $object === $row_object) $score += 0.35;
+            if ($condition !== '' && $condition === $row_condition) $score += 0.20;
+            if ($context !== '' && $context === $row_context) $score += 0.18;
+            elseif ($context !== '' && $row_context !== '' && $context !== $row_context) $score -= 0.12;
+            if ((string) ($row['scope'] ?? '') === 'title') $score += 0.12;
+            $score = min(1.0, max(0.0, $score));
             if ($score > $best_score) {
                 $best_score = $score;
                 $best = $row;
             }
         }
 
-        if (!$best || $best_score < 0.48) {
+        if (!$best || $best_score < 0.58) {
             return array('status'=>'uncovered','post_id'=>0,'score'=>$best_score,'scope'=>'');
         }
         $row_condition = (string) ($best['condition_term'] ?? '');
@@ -153,7 +211,7 @@ final class SEO_Solucionador_Coverage {
                 'scope'=>(string)$best['scope'],
             );
         }
-        if ($best_score >= 0.78) {
+        if ($best_score >= 0.82) {
             return array(
                 'status'=>'covered_partial',
                 'post_id'=>absint($best['post_id']),

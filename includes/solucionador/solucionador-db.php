@@ -182,6 +182,46 @@ final class SEO_Solucionador_DB {
         return is_array($row) ? $row : array();
     }
 
+
+    public static function get_topic_id_by_key($canonical_key) {
+        global $wpdb;
+        $canonical_key = sanitize_text_field((string) $canonical_key);
+        if ($canonical_key === '') return 0;
+        return absint($wpdb->get_var($wpdb->prepare(
+            'SELECT id FROM ' . self::topics_table() . ' WHERE canonical_key=%s LIMIT 1',
+            $canonical_key
+        )));
+    }
+
+    /**
+     * Evidencias y clasificacion editorial son datos derivados. Se reconstruyen
+     * en cada escaneo para que un cambio de reglas no deje propuestas obsoletas.
+     */
+    public static function begin_scan() {
+        global $wpdb;
+        if (self::table_exists(self::evidence_table())) {
+            $wpdb->query('TRUNCATE TABLE ' . self::evidence_table());
+        }
+        return true;
+    }
+
+    /**
+     * Elimina temas automaticos que ya no tienen ninguna evidencia vigente.
+     * Conserva cualquier tema que ya tenga un borrador/post asociado.
+     */
+    public static function prune_orphan_topics() {
+        global $wpdb;
+        $topics = self::topics_table();
+        $evidence = self::evidence_table();
+        if (!self::table_exists($topics) || !self::table_exists($evidence)) return 0;
+        $sql = "DELETE t FROM {$topics} t
+                LEFT JOIN {$evidence} e ON e.topic_id=t.id
+                WHERE e.id IS NULL
+                  AND COALESCE(t.draft_post_id,0)=0";
+        $result = $wpdb->query($sql);
+        return $result === false ? 0 : absint($result);
+    }
+
     public static function get_evidence_rows($topic_id) {
         global $wpdb;
         $topic_id = absint($topic_id);

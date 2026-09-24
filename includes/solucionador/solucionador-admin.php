@@ -164,14 +164,14 @@ final class SEO_Solucionador_Admin {
         echo '</div>';
 
         echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Analizar ahora</h2>';
-        echo '<p>Revisa Dependiente/Interprete, Comentarista, Analista, Auditor y los posts existentes. Despues propone titulo, categorias y Vocabulary sin crear contenido.</p>';
+        echo '<p>Revisa Dependiente/Interprete y Comentarista como fuentes directas de necesidades. Analista y Auditor solo originan propuestas cuando contienen una pregunta/gap editorial explicito; el resto de sus senales solo refuerza temas ya detectados.</p>';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_solucionador_scan">';
         wp_nonce_field('seo_solucionador_scan');
         echo '<label><strong>Ventana:</strong> <select name="days"><option value="90">90 dias</option><option value="180" selected>180 dias</option><option value="365">365 dias</option></select></label> ';
         submit_button('Reanalizar fuentes', 'primary', 'submit', false);
         echo '</form>';
         if ($last) {
-            echo '<p class="description" style="margin-top:12px">Ultimo analisis: <strong>' . esc_html(wp_date('d/m/Y H:i', absint($last['at'] ?? 0))) . '</strong> · senales: ' . esc_html(number_format_i18n(absint($last['sources_seen'] ?? 0))) . ' · aceptadas: ' . esc_html(number_format_i18n(absint($last['accepted'] ?? 0))) . ' · posts indexados: ' . esc_html(number_format_i18n(absint($last['posts_indexed'] ?? 0))) . ' · temas de post: ' . esc_html(number_format_i18n(absint($last['post_topics_indexed'] ?? 0))) . '</p>';
+            echo '<p class="description" style="margin-top:12px">Ultimo analisis: <strong>' . esc_html(wp_date('d/m/Y H:i', absint($last['at'] ?? 0))) . '</strong> · senales: ' . esc_html(number_format_i18n(absint($last['sources_seen'] ?? 0))) . ' · aceptadas: ' . esc_html(number_format_i18n(absint($last['accepted'] ?? 0))) . ' · descartadas/refuerzo sin origen: ' . esc_html(number_format_i18n(absint($last['discarded'] ?? 0))) . ' · temas obsoletos limpiados: ' . esc_html(number_format_i18n(absint($last['pruned_topics'] ?? 0))) . ' · posts indexados: ' . esc_html(number_format_i18n(absint($last['posts_indexed'] ?? 0))) . ' · temas de post: ' . esc_html(number_format_i18n(absint($last['post_topics_indexed'] ?? 0))) . '</p>';
         }
         echo '</div>';
     }
@@ -299,8 +299,8 @@ final class SEO_Solucionador_Admin {
             : array();
         echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Fuentes del Solucionador</h2>';
         echo '<p><strong>Dependiente / Interprete:</strong> fuente principal. Preguntas reales, intent, objeto, contexto, estado, resultados y feedback.</p>';
-        echo '<p><strong>Analista:</strong> refuerza demanda, mercado y huecos de cobertura; no decide por si solo que un post sea necesario.</p>';
-        echo '<p><strong>Auditor:</strong> aporta probes y hallazgos compatibles con una necesidad de cliente, con peso menor.</p>';
+        echo '<p><strong>Analista:</strong> las busquedas internas pueden originar propuestas. El plan de decision normalmente solo refuerza; MEJORAR_PRODUCTO/IMPULSAR_CATEGORIA no se convierten en preguntas de cliente.</p>';
+        echo '<p><strong>Auditor:</strong> solo entran probes de comportamiento y gaps editoriales de una allowlist. Hallazgos tecnicos de indice, schema, excerpt, servidor, etc. quedan fuera.</p>';
         echo '<p><strong>Comentarista:</strong> aporta problemas o preguntas observadas en experiencias externas almacenadas.</p>';
         echo '<p><strong>Posts:</strong> forman el inventario de soluciones ya cubiertas. El post nuevo se relaciona con product_cat mediante SEO Relations y con el catalogo mediante Vocabulary.</p>';
         if ($counts) {
