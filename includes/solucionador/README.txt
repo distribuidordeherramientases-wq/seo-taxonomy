@@ -1,4 +1,4 @@
-SOLUCIONADOR v0.2.2
+SOLUCIONADOR v0.2.3
 ===================
 
 Objetivo
@@ -11,8 +11,9 @@ Fuentes y responsabilidades
 ---------------------------
 - Dependiente / Interprete: fuente principal. Consultas, intent, objeto,
   contexto, estado, resultados y feedback. Puede originar propuestas.
-- Comentarista: problemas/preguntas detectados en experiencias externas. Puede
-  originar propuestas.
+- Comentarista: solo las preguntas explicitas pueden originar propuestas.
+  Problemas o limitaciones narrados en reviews actuan como refuerzo; valoraciones
+  positivas, prefijos editoriales y resúmenes no se convierten en preguntas.
 - Analista:
   * busquedas internas: pueden originar propuestas;
   * plan de decision: normalmente solo refuerza necesidades ya detectadas;
@@ -24,7 +25,7 @@ Fuentes y responsabilidades
   * incidencias tecnicas de indice, schema, excerpt, servidor, BD, etc. se excluyen.
 - Posts existentes: inventario editorial para saber si la solucion ya existe.
 
-Cambios principales v0.2.2
+Cambios principales v0.2.3
 --------------------------
 1. Filtrado fuerte de Analista y Auditor para evitar propuestas falsas.
 2. Separacion entre senales ORIGIN y REINFORCEMENT.
@@ -44,6 +45,17 @@ Cambios principales v0.2.2
    no arranca, fuga, gira en vacio, etc.
 10. La exportacion JSON sigue disponible e incluye las nuevas estadisticas del
     ultimo escaneo por fuente, temas limpiados y refuerzos descartados.
+11. Dependiente consume directamente su log estructurado; si no existe, usa la
+    busqueda interna agregada de Analista como fallback, pero la clasifica como
+    Dependiente para no confundir consulta real con demanda de mercado.
+12. Comentarista elimina prefijos editoriales (Positivo, Mixto, Resumen editorial,
+    etc.) y no crea posts a partir de sentimiento o valoraciones genericas.
+13. Comentarista por si solo nunca eleva una propuesta a create_post: requiere
+    una pregunta real o evidencia independiente de Dependiente/Analista/Auditor.
+14. La cobertura editorial clasifica el tipo de post y excluye noticias, piezas
+    informativas, legales y comparativas como cobertura directa de soluciones.
+15. Solo how-to, problem/solution y determinadas guias de compra se usan para
+    decidir si una necesidad ya esta cubierta.
 
 Regla editorial
 ---------------
@@ -89,7 +101,7 @@ Prueba recomendada en STAGING
 1. Copiar la carpeta includes/solucionador/ de esta version y, si se usa el
    paquete completo, sustituir includes/seo-includes-bootstrap.php.
 2. Abrir Herramientas -> Solucionador.
-3. Pulsar "Reanalizar fuentes". Es importante: v0.2.2 limpia automaticamente
+3. Pulsar "Reanalizar fuentes". Es importante: v0.2.3 limpia automaticamente
    propuestas automaticas antiguas que ya no pasan los filtros nuevos.
 4. Descargar el JSON y revisar:
    - propuestas;
@@ -98,7 +110,7 @@ Prueba recomendada en STAGING
    - Vocabulary;
    - coverage;
    - last_scan.accepted_by_source / discarded_by_source.
-5. No aprobar un borrador hasta validar el primer JSON de v0.2.2.
+5. No aprobar un borrador hasta validar el primer JSON de v0.2.3.
 
 Base de datos
 -------------

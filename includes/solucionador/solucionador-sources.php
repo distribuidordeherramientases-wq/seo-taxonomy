@@ -27,10 +27,42 @@ final class SEO_Solucionador_Sources {
     public static function dependiente($days = 180, $limit = 1600) {
         global $wpdb;
         $table = $wpdb->prefix . 'seo_dependiente_search_log';
-        if (!self::table_exists($table)) return array();
 
         $days = min(365, max(7, absint($days)));
         $limit = min(3000, max(50, absint($limit)));
+
+        // Instalaciones antiguas pueden no tener el log estructurado de
+        // Dependiente. Analista ya expone la misma busqueda interna agregada; se
+        // usa como fallback pero se etiqueta como Dependiente porque representa
+        // una consulta real del cliente, no una recomendacion de mercado.
+        if (!self::table_exists($table)) {
+            $out = array();
+            if (function_exists('seo_analista_internal_search_snapshot')) {
+                $snapshot = seo_analista_internal_search_snapshot($days, min(250, $limit));
+                foreach ((array) ($snapshot['top'] ?? array()) as $row) {
+                    $text = (string) ($row['search_term'] ?? '');
+                    if (!SEO_Solucionador_Normalizer::is_solution_signal($text)) continue;
+                    $out[] = array(
+                        'source_type' => 'dependiente',
+                        'proposal_role' => 'origin',
+                        'source_id' => 'fallback-search:' . md5((string) ($row['normalized_term'] ?? SEO_Solucionador_Normalizer::normalize($text))),
+                        'source_text' => $text,
+                        'hints' => array(),
+                        'occurrences' => max(1, absint($row['searches'] ?? 1)),
+                        'evidence_score' => 0.90,
+                        'observed_at' => (string) ($row['last_search'] ?? ''),
+                        'source_meta' => array(
+                            'proposal_role' => 'origin',
+                            'dependiente_channel' => 'analista_internal_search_fallback',
+                            'zero_results' => absint($row['zero_count'] ?? 0),
+                            'negative_feedback' => 0,
+                            'avg_results' => (float) ($row['avg_results'] ?? 0),
+                        ),
+                    );
+                }
+            }
+            return $out;
+        }
 
         $sql = "SELECT
                     s.id source_id,
@@ -137,18 +169,23 @@ final class SEO_Solucionador_Sources {
         $out = array();
         foreach ($rows as $row) {
             $blob = trim((string) ($row['editorial_summary'] ?? '') . ' ' . (string) ($row['source_content'] ?? ''));
-            foreach (SEO_Solucionador_Normalizer::extract_problem_sentences($blob, 3) as $index => $sentence) {
+            foreach (SEO_Solucionador_Normalizer::extract_comentarista_signals($blob, 4) as $index => $signal) {
+                $sentence = (string) ($signal['text'] ?? '');
+                $role = sanitize_key((string) ($signal['proposal_role'] ?? 'reinforcement')) ?: 'reinforcement';
+                $kind = sanitize_key((string) ($signal['kind'] ?? 'problem_statement'));
+                if ($sentence === '') continue;
                 $out[] = array(
                     'source_type' => 'comentarista',
-                    'proposal_role' => self::origin_flag(true),
-                    'source_id' => (string) absint($row['id'] ?? 0) . ':' . ($index + 1),
+                    'proposal_role' => $role,
+                    'source_id' => (string) absint($row['id'] ?? 0) . ':' . $kind . ':' . ($index + 1),
                     'source_text' => $sentence,
                     'hints' => array(),
                     'occurrences' => 1,
-                    'evidence_score' => 0.60,
+                    'evidence_score' => $role === 'origin' ? 0.70 : 0.45,
                     'observed_at' => (string) (($row['source_published_at'] ?? '') ?: ($row['captured_at'] ?? '')),
                     'source_meta' => array(
-                        'proposal_role' => 'origin',
+                        'proposal_role' => $role,
+                        'comentarista_signal_kind' => $kind,
                         'product_id' => absint($row['product_id'] ?? 0),
                         'product_title' => (string) ($row['product_title'] ?? ''),
                         'source_name' => (string) ($row['source_name'] ?? ''),
@@ -186,32 +223,9 @@ final class SEO_Solucionador_Sources {
         $days = min(365, max(7, absint($days)));
         $limit = min(250, max(20, absint($limit)));
 
-        // Las busquedas internas representan lenguaje real del cliente y si pueden
-        // originar una propuesta.
-        if (function_exists('seo_analista_internal_search_snapshot')) {
-            $snapshot = seo_analista_internal_search_snapshot($days, $limit);
-            foreach ((array) ($snapshot['top'] ?? array()) as $row) {
-                $text = (string) ($row['search_term'] ?? '');
-                if (!SEO_Solucionador_Normalizer::is_solution_signal($text)) continue;
-                $out[] = array(
-                    'source_type' => 'analista',
-                    'proposal_role' => self::origin_flag(true),
-                    'source_id' => 'search:' . md5((string) ($row['normalized_term'] ?? SEO_Solucionador_Normalizer::normalize($text))),
-                    'source_text' => $text,
-                    'hints' => array(),
-                    'occurrences' => max(1, absint($row['searches'] ?? 1)),
-                    'evidence_score' => 0.75,
-                    'observed_at' => (string) ($row['last_search'] ?? ''),
-                    'source_meta' => array(
-                        'proposal_role' => 'origin',
-                        'zero_results' => absint($row['zero_count'] ?? 0),
-                        'negative_feedback' => 0,
-                        'avg_results' => (float) ($row['avg_results'] ?? 0),
-                        'analista_channel' => 'internal_search',
-                    ),
-                );
-            }
-        }
+        // Las busquedas internas se consumen desde dependiente(), incluso cuando
+        // proceden del snapshot de Analista como fallback. Asi no se duplican ni
+        // se contabilizan como demanda de mercado.
 
         if (function_exists('seo_analista_decision_plan')) {
             $plan = seo_analista_decision_plan($days, min(80, $limit));
@@ -338,13 +352,14 @@ final class SEO_Solucionador_Sources {
     }
 
     public static function all($days = 180) {
-        // Orden intencional: primero fuentes capaces de originar necesidades reales;
-        // despues Analista/Auditor pueden reforzar temas ya nacidos en este ciclo.
+        // Orden intencional: primero las preguntas reales y los gaps/probes que
+        // pueden originar temas. Comentarista aporta preguntas o refuerzos y
+        // Analista queda al final para reforzar cualquier origen del ciclo.
         return array_merge(
             self::dependiente($days, 1600),
+            self::auditor(300),
             self::comentarista(1200),
-            self::analista(min(180, $days), 160),
-            self::auditor(300)
+            self::analista(min(180, $days), 160)
         );
     }
 }

@@ -12,7 +12,7 @@ final class SEO_Solucionador_Engine {
      */
     private static function representative_question($topic_id, $fallback = '') {
         $rows = SEO_Solucionador_DB::get_evidence_rows($topic_id);
-        foreach (array('dependiente','comentarista','analista','auditor') as $source_type) {
+        foreach (array('dependiente','analista','auditor','comentarista') as $source_type) {
             $best = '';
             $best_score = -1;
             foreach ($rows as $row) {
@@ -264,8 +264,10 @@ final class SEO_Solucionador_Engine {
             // independiente de fuentes.
             if ($dependiente >= 2) return 'create_post';
             if ($dependiente >= 1 && ($analista >= 1 || $comentarista >= 1 || $auditor >= 1)) return 'create_post';
-            if ($comentarista >= 2 && ($analista >= 1 || $evidence >= 3)) return 'create_post';
-            if ($evidence >= 3) return 'create_post';
+            // Comentarista es evidencia secundaria. Varias reviews del mismo o
+            // de distintos productos no justifican por si solas un nuevo post.
+            // Hace falta una pregunta real o un gap editorial independiente.
+            if (($analista + $auditor) >= 2 && $evidence >= 2) return 'create_post';
         }
         return 'observe';
     }

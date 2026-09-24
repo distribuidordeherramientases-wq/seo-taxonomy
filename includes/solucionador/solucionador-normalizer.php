@@ -78,7 +78,10 @@ final class SEO_Solucionador_Normalizer {
             'antes','despues','primero','primera','segundo','segunda','datos','dato','detalle','detalles','idea','clave','regla','punto',
             'cuando','donde','como','porque','debes','debe','puede','puedo','necesitas','necesita','beneficios','beneficio','claro',
             'forma','formas','manera','maneras','pasos','paso','proceso','procesos','opcion','opciones','cosas','cosa','tema','temas',
-            'revisar','comprar','elegir','herramientas','herramienta','equipo','equipos','sistema','sistemas'
+            'revisar','comprar','elegir','herramientas','herramienta','equipo','equipos','sistema','sistemas',
+            'positivo','negativo','mixto','resumen','editorial','literal','comentario','comentarios','resena','resenas',
+            'opinion','opiniones','valoracion','valoraciones','conclusion','conclusiones','recomendacion','recomendaciones',
+            'ventaja','ventajas','desventaja','desventajas','experiencia','experiencias'
         ));
     }
 
@@ -148,6 +151,70 @@ final class SEO_Solucionador_Normalizer {
             }
         }
         return (bool) preg_match('/\b(como|que hago|necesito|quiero|problema|averia)\b/u', $n);
+    }
+
+    private static function strip_editorial_prefix($text) {
+        $text = trim((string) $text);
+        $text = preg_replace('/^\s*\[[^\]]*(resumen|editorial|cita)[^\]]*\]\s*/iu', '', $text);
+        $text = preg_replace('/^\s*(positivo(?:\s+con\s+matiz|\s+con\s+limite\s+de\s+uso)?|negativo|mixto|resumen(?:\s+editorial)?|valoracion|opinion)\s*:\s*/iu', '', $text);
+        return trim((string) $text);
+    }
+
+    private static function explicit_problem_statement($text) {
+        $n = self::normalize($text);
+        if ($n === '') return false;
+        return (bool) preg_match('/\b(no funciona|no carga|no arranca|no responde|falla|fallo|fallos|problema|problemas|limitad[oa]s?|insuficiente|insuficientes|falta|faltan|echa en falta|dificultad|dificultades|lento|lenta|lentamente|oscilacion|oscilaciones|pierde|gotea|atasca|atascado|bloquea|bloqueado|se rompe|roto|ruido|ruidoso|autonomia limitada|poca autonomia)\b/u', $n);
+    }
+
+    /**
+     * Comentarista no es una fuente de preguntas por defecto.
+     * - Una pregunta explicita puede originar una propuesta.
+     * - Un problema/limitacion narrado en una review solo refuerza un tema ya
+     *   detectado por cliente/Analista/Auditor.
+     * - Valoraciones positivas/editoriales no generan temas.
+     */
+    public static function extract_comentarista_signals($text, $limit = 4) {
+        $text = trim(wp_strip_all_tags((string) $text));
+        if ($text === '') return array();
+        $parts = preg_split('/(?<=[\.\?\!])\s+|[\r\n]+/u', $text);
+        $out = array();
+        foreach ((array) $parts as $part) {
+            $part = self::strip_editorial_prefix($part);
+            if ($part === '') continue;
+            $len = function_exists('mb_strlen') ? mb_strlen($part, 'UTF-8') : strlen($part);
+            if ($len < 12 || $len > 360) continue;
+
+            $is_question = strpos($part, '?') !== false;
+            $is_problem = self::explicit_problem_statement($part);
+            if (!$is_question && !$is_problem) continue;
+
+            // Preguntas reales pueden originar. Las afirmaciones de review son
+            // evidencia secundaria para no fabricar posts desde sentimiento.
+            $out[] = array(
+                'text' => $part,
+                'proposal_role' => $is_question ? 'origin' : 'reinforcement',
+                'kind' => $is_question ? 'question' : 'problem_statement',
+            );
+            if (count($out) >= $limit) break;
+        }
+        return $out;
+    }
+
+    public static function editorial_type($title, $content = '') {
+        $n = self::normalize($title);
+        if ($n === '') return 'informational';
+
+        if (preg_match('/\b(multa|multas|dgt|normativa|obligacion|sancion|sanciones|ley|legal)\b/u', $n)) return 'legal';
+        if (preg_match('/\b(comparativa|comparar|vs|versus)\b/u', $n)) return 'comparison';
+        if (preg_match('/\b(guia de compra|cual elegir|como elegir|que elegir|mejor modelo|mejores modelos|antes de comprar)\b/u', $n)) return 'buying_guide';
+        if (preg_match('/^(como|que hacer si|que hacer cuando)\b/u', $n)) return 'how_to';
+        if (preg_match('/\b(error|errores|problema|problemas|averia|averias|no funciona|no arranca|no carga|fuga|fugas|atascado|atascada|roto|rota)\b/u', $n)) return 'problem';
+
+        return 'informational';
+    }
+
+    public static function coverage_eligible_editorial_type($type) {
+        return in_array(sanitize_key((string) $type), array('how_to','problem','buying_guide','solution'), true);
     }
 
     public static function extract_problem_sentences($text, $limit = 3) {

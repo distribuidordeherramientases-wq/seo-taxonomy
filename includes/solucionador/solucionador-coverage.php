@@ -99,6 +99,14 @@ final class SEO_Solucionador_Coverage {
             $categories = self::post_category_text($post_id);
             $semantic_context = trim($vocab . ' ' . $categories);
             $title = trim((string) ($post['post_title'] ?? ''));
+            $editorial_type = SEO_Solucionador_Normalizer::editorial_type($title, (string) ($post['post_content'] ?? ''));
+
+            // Noticias, piezas informativas, legales y comparativas no deben
+            // convertirse artificialmente en cobertura de una solucion. Solo
+            // indexamos contenidos que realmente pueden responder una necesidad.
+            if (!SEO_Solucionador_Normalizer::coverage_eligible_editorial_type($editorial_type)) {
+                continue;
+            }
 
             // El titulo manda. El contexto semantico solo se usa como fallback si
             // el titulo por si solo no produce un perfil suficientemente fiable.
