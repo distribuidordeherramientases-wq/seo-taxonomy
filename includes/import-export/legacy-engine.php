@@ -9593,13 +9593,17 @@ function seo_export_faqs_csv() {
     global $wpdb;
 
     $table = $wpdb->prefix . 'seo_faq';
+    $faq_has_legacy_scope = (bool) $wpdb->get_var(
+        $wpdb->prepare("SHOW COLUMNS FROM `{$table}` LIKE %s", 'ambito')
+    );
+    $faq_scope_select = $faq_has_legacy_scope ? 'ambito' : "'' AS ambito";
     $faqs  = $wpdb->get_results(
         "
         SELECT
             id,
             object_type,
             object_id,
-            ambito,
+            {$faq_scope_select},
             question,
             answer,
             sort_order,
@@ -9764,6 +9768,9 @@ function seo_import_faqs_csv() {
     global $wpdb;
 
     $table = $wpdb->prefix . 'seo_faq';
+    $faq_has_legacy_scope = (bool) $wpdb->get_var(
+        $wpdb->prepare("SHOW COLUMNS FROM `{$table}` LIKE %s", 'ambito')
+    );
 
     $log = [
         'operacion'  => 'Importación de FAQs',
@@ -9831,9 +9838,6 @@ function seo_import_faqs_csv() {
         $data = [
             'object_type' => $object_type,
             'object_id'   => $object_id,
-            'ambito'      => array_key_exists( 'ambito', $row )
-                ? sanitize_text_field( trim( (string) $row['ambito'] ) )
-                : null,
             'question'    => $question,
             'answer'      => $answer,
             'sort_order'  => absint( $row['sort_order'] ?? 0 ),
@@ -9848,13 +9852,21 @@ function seo_import_faqs_csv() {
             '%d',
             '%s',
             '%s',
-            '%s',
             '%d',
             '%d',
             '%d',
             '%d',
             '%s',
         ];
+
+        // Compatibilidad con instalaciones antiguas. `ambito` ya no es parte
+        // del esquema canónico de seo_faq, pero se conserva si la columna existe.
+        if ( $faq_has_legacy_scope ) {
+            $data['ambito'] = array_key_exists( 'ambito', $row )
+                ? sanitize_text_field( trim( (string) $row['ambito'] ) )
+                : '';
+            $formats[] = '%s';
+        }
 
         if (
             array_key_exists( 'updated_at', $row )
