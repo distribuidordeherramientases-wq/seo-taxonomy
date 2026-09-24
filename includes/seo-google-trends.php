@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
  *   cache, pausa entre peticiones y backoff. No requiere OAuth ni cuenta Google.
  * - CSV y proveedores externos siguen disponibles como respaldo/extensión.
  */
-if (!defined('SEO_GOOGLE_TRENDS_VERSION')) define('SEO_GOOGLE_TRENDS_VERSION', '2.1.0');
+if (!defined('SEO_GOOGLE_TRENDS_VERSION')) define('SEO_GOOGLE_TRENDS_VERSION', '2.1.1');
 if (!defined('SEO_GOOGLE_TRENDS_DB_VERSION')) define('SEO_GOOGLE_TRENDS_DB_VERSION', '2.0.0');
 if (!defined('SEO_GOOGLE_TRENDS_DB_OPTION')) define('SEO_GOOGLE_TRENDS_DB_OPTION', 'seo_google_trends_db_version');
 if (!defined('SEO_GOOGLE_TRENDS_SETTINGS_OPTION')) define('SEO_GOOGLE_TRENDS_SETTINGS_OPTION', 'seo_google_trends_settings_v2');
@@ -895,7 +895,16 @@ function seo_google_trends_public_cookie_merge(array &$jar, $response) {
 
 function seo_google_trends_public_headers($geo = 'ES', $referer = '') {
     if ($referer === '') {
-        $referer = 'https://trends.google.com/trends/explore?geo=' . rawurlencode(strtoupper((string) $geo));
+        /*
+         * Google ha cambiado varias veces la superficie web de Trends. El
+         * referer no debe depender de la antigua ruta /trends/explore/, que
+         * algunos servidores reciben actualmente como 404 aunque el API
+         * interno de Explore siga respondiendo.
+         */
+        $referer = add_query_arg(
+            array('geo' => strtoupper((string) $geo), 'hl' => 'es'),
+            'https://trends.google.com/home'
+        );
     }
     return array(
         'Accept'          => 'application/json,text/javascript,*/*;q=0.8',
@@ -908,32 +917,82 @@ function seo_google_trends_public_headers($geo = 'ES', $referer = '') {
 }
 
 /**
- * Abre una pagina publica para obtener las cookies anonimas que entregue
- * Google. No exige NID ni crea una falsa sesion autenticada.
+ * Abre una superficie publica de Trends para recoger las cookies anonimas que
+ * Google decida entregar. No requiere OAuth, API key ni una cuenta Google.
+ *
+ * La antigua ruta /trends/explore/ puede devolver 404 segun el despliegue de
+ * la nueva interfaz. Un 404 del HTML de calentamiento no se interpreta como
+ * un problema de permisos: se prueban superficies publicas alternativas y,
+ * si todas devuelven 404, se permite continuar sin cookies para que el propio
+ * endpoint /trends/api/explore determine si el acceso anonimo esta operativo.
  */
 function seo_google_trends_public_warmup($geo = 'ES') {
-    $url = add_query_arg(
-        array('geo' => strtoupper((string) $geo), 'hl' => 'es'),
-        'https://trends.google.com/trends/explore/'
+    $geo = strtoupper((string) $geo);
+    $query = array('geo' => $geo, 'hl' => 'es');
+    $urls = array(
+        add_query_arg($query, 'https://trends.google.com/home'),
+        add_query_arg($query, 'https://trends.google.com/trends/'),
+        add_query_arg(array_merge($query, array('legacy' => '')), 'https://trends.google.com/trends/explore'),
     );
-    $response = wp_safe_remote_get($url, array(
-        'timeout'     => 18,
-        'redirection' => 3,
-        'httpversion' => '1.1',
-        'headers'     => seo_google_trends_public_headers($geo, $url),
-    ));
-    if (is_wp_error($response)) {
-        return new WP_Error('seo_google_trends_public_warmup', 'No se pudo abrir Google Trends publico: ' . $response->get_error_message());
+
+    $last_network_error = '';
+    $last_http_code = 0;
+
+    foreach ($urls as $url) {
+        $response = wp_safe_remote_get($url, array(
+            'timeout'     => 18,
+            'redirection' => 5,
+            'httpversion' => '1.1',
+            'headers'     => seo_google_trends_public_headers($geo, $url),
+        ));
+
+        if (is_wp_error($response)) {
+            $last_network_error = $response->get_error_message();
+            continue;
+        }
+
+        $code = (int) wp_remote_retrieve_response_code($response);
+        $last_http_code = $code;
+        if ($code >= 200 && $code < 400) {
+            $jar = array();
+            seo_google_trends_public_cookie_merge($jar, $response);
+            return $jar;
+        }
+
+        /* 401/403/429 si son relevantes para permisos/bloqueo y deben parar. */
+        if (in_array($code, array(401, 403, 429), true)) {
+            $message = 'Google Trends publico respondio HTTP ' . $code . ' al preparar la consulta anonima.';
+            seo_google_trends_public_set_backoff($code, $message);
+            return new WP_Error('seo_google_trends_public_warmup_http_' . $code, $message, array('http_code' => $code));
+        }
+
+        /* 404/410 pueden corresponder solo a una superficie web retirada. */
+        if (in_array($code, array(404, 410), true)) {
+            continue;
+        }
     }
-    $code = (int) wp_remote_retrieve_response_code($response);
-    if ($code < 200 || $code >= 400) {
-        $message = 'Google Trends publico respondio HTTP ' . $code . ' al iniciar la sesion anonima.';
-        seo_google_trends_public_set_backoff($code, $message);
-        return new WP_Error('seo_google_trends_public_warmup_http_' . $code, $message);
+
+    if ($last_http_code && in_array($last_http_code, array(404, 410), true)) {
+        /*
+         * No bloquear Explore por un 404 de la pagina HTML. El API anonimo se
+         * prueba a continuacion y dara un diagnostico mas fiable.
+         */
+        return array();
     }
-    $jar = array();
-    seo_google_trends_public_cookie_merge($jar, $response);
-    return $jar;
+
+    if ($last_network_error !== '') {
+        return new WP_Error(
+            'seo_google_trends_public_warmup',
+            'No se pudo abrir ninguna superficie publica de Google Trends: ' . $last_network_error
+        );
+    }
+
+    $message = 'No se pudo preparar la consulta anonima de Google Trends.';
+    if ($last_http_code > 0) {
+        $message .= ' Ultimo HTTP recibido: ' . $last_http_code . '.';
+        seo_google_trends_public_set_backoff($last_http_code, $message);
+    }
+    return new WP_Error('seo_google_trends_public_warmup_failed', $message);
 }
 
 function seo_google_trends_public_json_request($method, $endpoint, array $params, array &$cookies, $geo = 'ES') {
