@@ -2923,8 +2923,11 @@ function seo_server_status_render_woocommerce_tab() {
     $uncat = seo_server_status_count_products_without_category();
     seo_server_status_row('Productos sin categoría', esc_html(number_format_i18n($uncat)), $uncat > 0 ? 'warning' : 'ok', 'Productos publicados sin product_cat asignada.');
 
-    $without_image = seo_server_status_count_products_without_image();
-    seo_server_status_row('Productos sin imagen destacada', esc_html(number_format_i18n($without_image)), $without_image > 0 ? 'warning' : 'ok', 'Puede afectar a conversión y calidad de catálogo.');
+    $without_local_image = seo_server_status_count_products_without_image();
+    seo_server_status_row('Productos sin imagen destacada local', esc_html(number_format_i18n($without_local_image)), 'info', 'Dato informativo: una imagen externa activa en seo_supplier_images también es una fuente válida.');
+
+    $without_any_image = seo_server_status_count_products_without_any_image_source();
+    seo_server_status_row('Productos sin ninguna fuente de imagen', esc_html(number_format_i18n($without_any_image)), $without_any_image > 0 ? 'warning' : 'ok', 'Solo cuenta productos publicados sin attachment local válido y sin imagen externa activa registrada.');
 
     $empty_long = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'product' AND post_status = 'publish' AND TRIM(post_content) = ''");
     $empty_short = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'product' AND post_status = 'publish' AND TRIM(post_excerpt) = ''");
@@ -2972,6 +2975,60 @@ function seo_server_status_count_products_without_image() {
          WHERE p.post_type = 'product'
            AND p.post_status = 'publish'
            AND (pm.meta_value IS NULL OR pm.meta_value = '' OR pm.meta_value = '0')"
+    );
+}
+
+
+/**
+ * Cuenta productos publicados sin ninguna fuente de imagen registrada.
+ * La ausencia de thumbnail local no es un fallo si existe una imagen externa
+ * activa en seo_supplier_images.
+ */
+function seo_server_status_count_products_without_any_image_source() {
+    global $wpdb;
+
+    $supplier_table = $wpdb->prefix . 'seo_supplier_images';
+    if (!seo_server_status_table_exists($supplier_table)) {
+        return seo_server_status_count_products_without_image();
+    }
+
+    $columns = (array) $wpdb->get_col("SHOW COLUMNS FROM {$supplier_table}", 0);
+    $link_columns = array_values(array_intersect(array('product_id', 'object_id'), $columns));
+    if (!$link_columns || !in_array('image_url', $columns, true)) {
+        return seo_server_status_count_products_without_image();
+    }
+
+    $external_links = array();
+    foreach ($link_columns as $column) {
+        $external_links[] = "(si.{$column} = p.ID)";
+    }
+    $status_where = in_array('status', $columns, true) ? "AND si.status = 'active'" : '';
+
+    return (int) $wpdb->get_var(
+        "SELECT COUNT(*)
+         FROM {$wpdb->posts} p
+         WHERE p.post_type = 'product'
+           AND p.post_status = 'publish'
+           AND NOT EXISTS (
+                SELECT 1
+                FROM {$wpdb->postmeta} pm
+                INNER JOIN {$wpdb->posts} a
+                   ON a.ID = CAST(pm.meta_value AS UNSIGNED)
+                  AND a.post_type = 'attachment'
+                WHERE pm.post_id = p.ID
+                  AND pm.meta_key = '_thumbnail_id'
+                  AND pm.meta_value IS NOT NULL
+                  AND pm.meta_value <> ''
+                  AND pm.meta_value <> '0'
+           )
+           AND NOT EXISTS (
+                SELECT 1
+                FROM {$supplier_table} si
+                WHERE (" . implode(' OR ', $external_links) . ")
+                  {$status_where}
+                  AND si.image_url IS NOT NULL
+                  AND TRIM(si.image_url) <> ''
+           )"
     );
 }
 

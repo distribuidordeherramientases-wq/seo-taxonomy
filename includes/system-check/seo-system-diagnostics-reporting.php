@@ -1826,17 +1826,32 @@ function seo_system_diagnostics_render_semantic_alignment($semantic) {
 
     $rows = array(
         array('Categorías', 'Ámbitos inválidos', (int) ($categories['invalid_scope'] ?? 0)),
-        array('Categorías', 'Excerpt desincronizado con la plantilla', (int) ($categories['excerpt_storage_mismatch'] ?? 0)),
         array('Categorías', 'Descripciones con patrón de plantilla', (int) ($categories['template_description'] ?? 0)),
         array('Categorías', 'Filas afectadas por descripción duplicada', (int) ($categories['duplicate_descriptions']['affected_rows'] ?? 0)),
-        array('Productos', 'Atributos sospechosos', (int) ($products['suspicious_attribute_products'] ?? 0)),
+        array('Productos', 'Errores confirmados de atributos', (int) ($products['attribute_error_products'] ?? 0)),
+        array('Productos', 'Atributos para revisión heurística', (int) ($products['attribute_review_products'] ?? $products['suspicious_attribute_products'] ?? 0)),
+        array('Productos', 'SKU = modelo/MPN/referencia (informativo)', (int) ($products['attribute_identifier_matches_sku'] ?? 0)),
+        array('Productos', 'Con imagen local válida', (int) ($products['with_local_image'] ?? 0)),
+        array('Productos', 'Con imagen externa registrada', (int) ($products['with_external_image'] ?? 0)),
+        array('Productos', 'Con ambas fuentes de imagen', (int) ($products['with_both_images'] ?? 0)),
+        array('Productos', 'Sin ninguna imagen válida confirmada', (int) ($products['without_any_valid_image'] ?? 0)),
+        array('Productos', 'Imagen externa pendiente de reintento/verificación', (int) ($products['external_pending_retry'] ?? 0)),
         array('Productos', 'Filas afectadas por excerpt duplicado', (int) ($products['duplicate_excerpts']['affected_rows'] ?? 0)),
         array('Productos', 'Filas afectadas por descripción duplicada', (int) ($products['duplicate_descriptions']['affected_rows'] ?? 0)),
-        array('Productos', 'Categoría interna a revisar', (int) ($products['supplier_category_review'] ?? 0)),
+        array('Productos', 'Contradicciones fuertes de categoría', (int) ($products['category_alignment_errors'] ?? 0)),
+        array('Productos', 'Candidatos refinados a revisión de categoría (informativo)', (int) ($products['supplier_category_review'] ?? 0)),
+        array('Productos', 'Candidatos del detector histórico amplio (informativo)', (int) ($products['supplier_category_review_broad'] ?? 0)),
         array('FAQs', 'Copias activas sobrantes dentro del mismo objeto', (int) ($faqs['duplicate_questions_same_object']['active_extra_rows'] ?? 0)),
+        array('FAQs', 'Preguntas vacías', (int) ($faqs['empty_questions'] ?? 0)),
+        array('FAQs', 'Respuestas vacías', (int) ($faqs['empty_answers'] ?? 0)),
+        array('FAQs', 'Respuestas casi vacías / insignificantes', (int) ($faqs['insignificant_answers'] ?? 0)),
+        array('FAQs', 'Preguntas casi idénticas en el mismo objeto', (int) ($faqs['near_duplicate_questions_same_object']['affected_rows'] ?? 0)),
         array('FAQs', 'Preguntas con patrón repetido', (int) ($faqs['template_questions'] ?? 0)),
         array('FAQs', 'Respuestas con patrón repetido', (int) ($faqs['template_answers'] ?? 0)),
-        array('FAQs', 'Ámbito distinto al objeto', (int) ($faqs['scope_mismatch'] ?? 0)),
+        array('FAQs', 'Respuestas < 40 palabras (informativo)', (int) ($faqs['very_short_answers'] ?? 0)),
+        array('FAQs', 'Productos sin FAQ activa (informativo)', (int) ($products['without_active_faq'] ?? 0)),
+        array('FAQs', 'Categorías sin FAQ activa (informativo)', (int) ($categories['without_active_faq'] ?? 0)),
+        array('FAQs', 'Metadatos scope legacy desalineados (informativo)', (int) ($faqs['legacy_scope_mismatch'] ?? 0)),
         array('FAQs', 'Huérfanas', (int) ($faqs['orphan_rows'] ?? 0)),
     );
 
@@ -1867,10 +1882,13 @@ function seo_system_diagnostics_render_semantic_alignment($semantic) {
     }
 
     $example_sections = array(
-        'Atributos de producto a revisar' => (array) ($products['attribute_examples'] ?? array()),
-        'Posibles desalineamientos producto-categoría' => (array) ($products['alignment_examples'] ?? array()),
-        'FAQs con ámbito distinto' => (array) ($faqs['scope_examples'] ?? array()),
-        'Categorías con fuentes desincronizadas' => (array) ($categories['examples'] ?? array()),
+        'Errores confirmados de atributos' => (array) ($products['attribute_error_examples'] ?? array()),
+        'Atributos para revisión heurística' => (array) ($products['attribute_examples'] ?? array()),
+        'Coincidencias SKU = modelo/MPN/referencia (informativo)' => (array) ($products['attribute_identifier_examples'] ?? array()),
+        'Contradicciones fuertes producto-categoría' => (array) ($products['alignment_error_examples'] ?? array()),
+        'Candidatos refinados producto-categoría (informativo)' => (array) ($products['alignment_examples'] ?? array()),
+        'Candidatos del detector histórico amplio (informativo)' => (array) ($products['alignment_broad_examples'] ?? array()),
+        'FAQs con metadatos scope legacy desalineados (informativo)' => (array) ($faqs['legacy_scope_examples'] ?? array()),
     );
 
     foreach ($example_sections as $label => $examples) {

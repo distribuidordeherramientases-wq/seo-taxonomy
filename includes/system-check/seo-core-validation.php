@@ -4603,38 +4603,190 @@ function seo_core_system_test_sitemap_check($enabled) {
     return seo_core_system_test_check_warning('No se ha localizado un sitemap publico en las rutas habituales.');
 }
 
-function seo_core_system_test_product_image_check($product, $enabled) {
-    if (empty($product['id']) || !function_exists('wc_get_product')) {
-        return seo_core_system_test_check_warning('No hay un producto WooCommerce representativo para comprobar su imagen principal.');
+function seo_core_system_test_external_product_image_rows($product_id, $limit = 3) {
+    global $wpdb;
+
+    $product_id = absint($product_id);
+    $limit = max(1, min(10, absint($limit)));
+    if ($product_id < 1) {
+        return array();
     }
 
-    $wc_product = wc_get_product((int) $product['id']);
+    if (function_exists('seo_images_get_external_product_images')) {
+        return (array) seo_images_get_external_product_images($product_id, $limit);
+    }
+
+    $table = $wpdb->prefix . 'seo_supplier_images';
+    if (!seo_core_system_test_table_exists($table)) {
+        return array();
+    }
+
+    $columns = (array) $wpdb->get_col("SHOW COLUMNS FROM {$table}", 0);
+    $links = array_values(array_intersect(array('product_id', 'object_id'), $columns));
+    if (!$links || !in_array('image_url', $columns, true)) {
+        return array();
+    }
+
+    $where = array();
+    $params = array();
+    foreach ($links as $column) {
+        $where[] = "{$column} = %d";
+        $params[] = $product_id;
+    }
+    $status_where = in_array('status', $columns, true) ? "AND status = 'active'" : '';
+    $order = array();
+    if (in_array('is_primary', $columns, true)) $order[] = 'is_primary DESC';
+    if (in_array('position', $columns, true)) $order[] = 'position ASC';
+    if (in_array('id', $columns, true)) $order[] = 'id ASC';
+    $order_sql = $order ? 'ORDER BY ' . implode(', ', $order) : '';
+    $params[] = $limit;
+
+    return (array) $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT * FROM {$table}
+             WHERE (" . implode(' OR ', $where) . ")
+               {$status_where}
+               AND image_url IS NOT NULL
+               AND TRIM(image_url) <> ''
+             {$order_sql}
+             LIMIT %d",
+            $params
+        ),
+        ARRAY_A
+    );
+}
+
+function seo_core_system_test_classify_image_probe($probe) {
+    $code = (int) ($probe['code'] ?? 0);
+    $content_type = strtolower(trim((string) ($probe['content_type'] ?? '')));
+    if (!empty($probe['transport_error']) || !empty($probe['security_challenge'])) {
+        return 'retry';
+    }
+    if ($code >= 200 && $code <= 299 && strpos($content_type, 'image/') === 0) {
+        return 'valid';
+    }
+    if ($code === 429 || $code === 408 || $code === 425 || ($code >= 500 && $code <= 599) || $code === 0) {
+        return 'retry';
+    }
+    if ($code === 404 || $code === 410) {
+        return 'missing';
+    }
+    if ($code >= 200 && $code <= 299 && strpos($content_type, 'image/') !== 0) {
+        return 'invalid_content';
+    }
+    return 'invalid';
+}
+
+function seo_core_system_test_product_image_check($product, $enabled) {
+    if (empty($product['id']) || !function_exists('wc_get_product')) {
+        return seo_core_system_test_check_warning('No hay un producto WooCommerce representativo para comprobar sus fuentes de imagen.');
+    }
+
+    $product_id = (int) $product['id'];
+    $wc_product = wc_get_product($product_id);
     if (!$wc_product) {
-        return seo_core_system_test_check_ko('WooCommerce no puede cargar el producto representativo ID ' . (int) $product['id'] . '.');
+        return seo_core_system_test_check_ko('WooCommerce no puede cargar el producto representativo ID ' . $product_id . '.');
     }
 
     $image_id = (int) $wc_product->get_image_id();
-    $image_url = $image_id > 0 ? wp_get_attachment_url($image_id) : '';
-    if (!$image_url) {
-        return seo_core_system_test_check_warning('El producto representativo no tiene una imagen destacada local resoluble. Producto ID: ' . (int) $product['id'] . '.');
+    $local_url = $image_id > 0 ? (string) wp_get_attachment_url($image_id) : '';
+    $external_rows = seo_core_system_test_external_product_image_rows($product_id, 3);
+
+    $external_candidates = array();
+    foreach ($external_rows as $row) {
+        $url = esc_url_raw((string) ($row['image_url'] ?? ''));
+        if ($url === '' || !preg_match('#^https?://#i', $url)) {
+            continue;
+        }
+        $external_candidates[$url] = $row;
+    }
+
+    if ($local_url === '' && !$external_candidates) {
+        return seo_core_system_test_check_ko(
+            'El producto no tiene ninguna fuente de imagen: ni attachment local válido ni imagen externa activa en seo_supplier_images. Producto ID: ' . $product_id . '.',
+            array('owner' => 'WP', 'evidence' => array('product_id' => $product_id, 'local' => false, 'external_registered' => 0))
+        );
     }
 
     if (!$enabled) {
-        return seo_core_system_test_check_info('Imagen principal configurada: ' . $image_url . '. Comprobacion HTTP desactivada.');
+        if ($local_url !== '') {
+            return seo_core_system_test_check_ok('Imagen local configurada. La comprobación HTTP está desactivada. Producto ID: ' . $product_id . '.', array('evidence' => array('source' => 'local', 'url' => $local_url)));
+        }
+        return seo_core_system_test_check_info(
+            'El producto tiene ' . number_format_i18n(count($external_candidates)) . ' imagen(es) externa(s) registrada(s), pero la comprobación HTTP está desactivada. Producto ID: ' . $product_id . '.',
+            array('health_impact' => 0, 'evidence' => array('source' => 'external', 'registered' => count($external_candidates)))
+        );
     }
 
-    $probe = seo_core_system_test_resource_probe($image_url, 'image/avif,image/webp,image/apng,image/*,*/*;q=0.5', 128 * 1024);
-    if (!empty($probe['transport_error']) || !empty($probe['security_challenge'])) {
-        return seo_core_system_test_check_warning('La imagen esta configurada, pero no se ha podido verificar por HTTP. URL: ' . $image_url . '.');
-    }
-    if ((int) $probe['code'] < 200 || (int) $probe['code'] >= 400) {
-        return seo_core_system_test_check_ko('La imagen principal devuelve HTTP ' . (int) $probe['code'] . '. URL: ' . $image_url . '.');
-    }
-    if (strpos(strtolower((string) $probe['content_type']), 'image/') !== 0) {
-        return seo_core_system_test_check_warning('La imagen responde con HTTP ' . (int) $probe['code'] . ', pero el Content-Type no es de imagen: ' . $probe['content_type'] . '.');
+    $temporary = array();
+    $missing_once = array();
+    $persistent_missing = array();
+    $invalid = array();
+
+    if ($local_url !== '') {
+        $probe = seo_core_system_test_resource_probe($local_url, 'image/avif,image/webp,image/apng,image/*,*/*;q=0.5', 128 * 1024);
+        $state = seo_core_system_test_classify_image_probe($probe);
+        if ($state === 'valid') {
+            return seo_core_system_test_check_ok(
+                'Imagen principal accesible desde Media. HTTP ' . (int) $probe['code'] . '; tipo: ' . $probe['content_type'] . '; URL: ' . $local_url . '.',
+                array('evidence' => array('source' => 'local', 'url' => $local_url, 'http_code' => (int) $probe['code'], 'content_type' => (string) $probe['content_type']))
+            );
+        }
+        if ($state === 'retry') $temporary[] = 'local ' . $local_url;
+        elseif ($state === 'missing') $invalid[] = 'local HTTP ' . (int) ($probe['code'] ?? 0) . ' ' . $local_url;
+        else $invalid[] = 'local ' . $state . ' ' . $local_url;
     }
 
-    return seo_core_system_test_check_ok('Imagen principal accesible. HTTP ' . (int) $probe['code'] . '; tipo: ' . $probe['content_type'] . '; URL: ' . $image_url . '.');
+    foreach ($external_candidates as $url => $row) {
+        $probe = seo_core_system_test_resource_probe($url, 'image/avif,image/webp,image/apng,image/*,*/*;q=0.5', 128 * 1024);
+        $state = seo_core_system_test_classify_image_probe($probe);
+        if ($state === 'valid') {
+            return seo_core_system_test_check_ok(
+                'Imagen principal accesible desde seo_supplier_images. HTTP ' . (int) $probe['code'] . '; tipo: ' . $probe['content_type'] . '; URL: ' . $url . '.',
+                array('evidence' => array('source' => 'external', 'url' => $url, 'http_code' => (int) $probe['code'], 'content_type' => (string) $probe['content_type']))
+            );
+        }
+
+        if ($state === 'retry') {
+            $temporary[] = 'externa ' . $url;
+            continue;
+        }
+        if ($state === 'missing') {
+            $stored_code = (int) ($row['http_status'] ?? 0);
+            $last_checked = trim((string) ($row['last_checked'] ?? ''));
+            if (in_array($stored_code, array(404, 410), true) && $last_checked !== '') {
+                $persistent_missing[] = 'HTTP ' . (int) ($probe['code'] ?? 0) . ' ' . $url;
+            } else {
+                $missing_once[] = 'HTTP ' . (int) ($probe['code'] ?? 0) . ' ' . $url;
+            }
+            continue;
+        }
+        $invalid[] = 'externa ' . $state . ' ' . $url;
+    }
+
+    if ($persistent_missing && !$temporary && !$missing_once) {
+        return seo_core_system_test_check_ko(
+            'No existe una imagen válida. La fuente externa vuelve a responder 404/410 después de constar ya como ausente en la auditoría: ' . implode(' | ', $persistent_missing) . '.',
+            array('owner' => 'WP', 'evidence' => array('product_id' => $product_id, 'persistent_missing' => $persistent_missing, 'invalid' => $invalid))
+        );
+    }
+
+    if ($temporary || $missing_once) {
+        $parts = array();
+        if ($temporary) $parts[] = 'errores temporales/reintento: ' . implode(' | ', $temporary);
+        if ($missing_once) $parts[] = '404/410 pendiente de confirmar: ' . implode(' | ', $missing_once);
+        if ($persistent_missing) $parts[] = '404/410 previos: ' . implode(' | ', $persistent_missing);
+        if ($invalid) $parts[] = 'otras fuentes inválidas: ' . implode(' | ', $invalid);
+        return seo_core_system_test_check_warning(
+            'La imagen no puede darse por válida todavía; se requiere reintento. ' . implode('; ', $parts) . '.',
+            array('owner' => 'WP', 'evidence' => array('product_id' => $product_id, 'temporary' => $temporary, 'missing_once' => $missing_once, 'persistent_missing' => $persistent_missing, 'invalid' => $invalid))
+        );
+    }
+
+    return seo_core_system_test_check_ko(
+        'El producto tiene fuentes de imagen registradas, pero ninguna responde como image/* con HTTP 2xx. ' . implode(' | ', $invalid) . '.',
+        array('owner' => 'WP', 'evidence' => array('product_id' => $product_id, 'invalid' => $invalid))
+    );
 }
 
 function seo_core_system_test_essential_resources_check($urls, $enabled) {
@@ -6766,6 +6918,7 @@ function seo_core_system_test_is_aggregate_result($result) {
 }
 
 function seo_core_system_test_result_impact($result) {
+    if (array_key_exists('health_impact', (array) $result) && (int) $result['health_impact'] === 0) return 'info';
     $status = isset($result['status']) ? (string) $result['status'] : '';
     if (in_array($status, array('not_evaluable', 'not_applicable', 'info', 'unknown'), true)) return 'info';
     if ($status === 'critical') return 'critical';
@@ -7050,6 +7203,7 @@ function seo_core_system_test_result($group, $label, $passed, $detail = '', $sev
         'remediation' => isset($meta['remediation']) && is_array($meta['remediation'])
             ? $meta['remediation']
             : (function_exists('seo_core_validation_remediation_for_label') ? seo_core_validation_remediation_for_label($label) : array()),
+        'health_impact' => array_key_exists('health_impact', $meta) ? ((int) $meta['health_impact'] === 0 ? 0 : 1) : 1,
     );
     foreach (array('items', 'priority', 'status_code') as $key) {
         if (array_key_exists($key, $meta)) $result[$key] = $meta[$key];

@@ -33,17 +33,14 @@ function seo_core_validation_settings_defaults() {
         'require_schema_product' => 1,
         'require_schema_breadcrumb' => 1,
         'require_schema_site' => 1,
-        'semantic_category_excerpt_mismatch_limit' => 0,
         'semantic_category_without_excerpt_limit' => 0,
         'semantic_product_without_excerpt_limit' => 0,
         'semantic_suspicious_attribute_limit' => 0,
         'semantic_title_like_tag_limit' => 0,
         'semantic_without_attributes_limit' => 0,
-        'semantic_faq_scope_mismatch_limit' => 0,
         'semantic_duplicate_excerpt_percent_limit' => 0,
         'semantic_duplicate_description_percent_limit' => 0,
         'semantic_template_description_percent_limit' => 0,
-        'semantic_category_alignment_limit' => 0,
         'debug_mode' => 0,
     );
 }
@@ -97,14 +94,11 @@ function seo_core_validation_sanitize_settings($input) {
     $clean['http_response_limit_kb'] = max(128, min(8192, absint($input['http_response_limit_kb'] ?? $defaults['http_response_limit_kb'])));
 
     foreach (array(
-        'semantic_category_excerpt_mismatch_limit',
         'semantic_category_without_excerpt_limit',
         'semantic_product_without_excerpt_limit',
         'semantic_suspicious_attribute_limit',
         'semantic_title_like_tag_limit',
         'semantic_without_attributes_limit',
-        'semantic_faq_scope_mismatch_limit',
-        'semantic_category_alignment_limit',
     ) as $count_key) {
         $clean[$count_key] = max(0, min(1000000, absint($input[$count_key] ?? $defaults[$count_key])));
     }
@@ -227,15 +221,14 @@ function seo_core_validation_remediation_catalog() {
             'settings' => array('representative_product_id', 'representative_scan_limit', 'debug_mode'),
         ),
         '10.1 Integridad de fuentes de categorías' => array(
-            'kind' => 'Datos o unificación de fuentes',
-            'summary' => 'Sincronizar el excerpt activo de seo_nodes con termmeta seo_excerpt o hacer que la plantilla lea una única fuente.',
+            'kind' => 'Datos canónicos de categoría',
+            'summary' => 'Excerpt y description de categorías se validan exclusivamente en wp_seo_nodes; no se sincronizan con campos nativos ni termmeta de WordPress.',
             'steps' => array(
-                'Exporta primero los ejemplos en modo debug y confirma cuál es la fuente canónica.',
-                'Corrige el proceso que guarda categorías para escribir ambas fuentes en la misma operación.',
-                'Migra los registros existentes con una operación reversible y vuelve a ejecutar la auditoría.',
-                'Usa la tolerancia solo durante una migración controlada; no como solución permanente.',
+                'Comprueba que exista un nodo activo para excerpt y description cuando el contenido sea necesario.',
+                'Revisa nodos huérfanos o roles duplicados/incoherentes antes de editar contenido.',
+                'Confirma en la muestra pública que la plantilla consume wp_seo_nodes.',
             ),
-            'settings' => array('semantic_category_excerpt_mismatch_limit', 'semantic_category_without_excerpt_limit', 'debug_mode'),
+            'settings' => array('semantic_category_without_excerpt_limit', 'debug_mode'),
         ),
         '10.3 Singularidad del contenido de producto' => array(
             'kind' => 'Contenido y rangos',
@@ -260,34 +253,56 @@ function seo_core_validation_remediation_catalog() {
         ),
         '10.4 Atributos, etiquetas y datos de producto' => array(
             'kind' => 'Datos, reglas y rangos',
-            'summary' => 'Revisar ejemplos de atributos sospechosos antes de regenerar contenido dependiente.',
+            'summary' => 'Separar errores confirmados de señales heurísticas y no corregir atributos por una coincidencia débil.',
             'steps' => array(
                 'Activa debug para ver producto, tipo, valor y motivo de cada ejemplo.',
-                'Corrige valores truncados, valores iguales al SKU y modelos interpretados como medidas.',
+                'Corrige únicamente errores confirmados, como atributos vacíos, valores truncados conocidos, identificadores descriptivos o unidades incompatibles.',
+                'Trata las señales heurísticas como revisión manual: no regeneres contenido ni modifiques atributos automáticamente.',
+                'SKU = modelo/MPN/referencia es informativo y no se considera anomalía por sí solo.',
                 'Limpia etiquetas que copian el título completo o superan una longitud razonable.',
-                'Ajusta los límites solo si existe una excepción de negocio conocida y documentada.',
             ),
             'settings' => array('semantic_suspicious_attribute_limit', 'semantic_title_like_tag_limit', 'semantic_without_attributes_limit', 'debug_mode'),
         ),
         '10.5 Alineación producto-categoría' => array(
-            'kind' => 'Revisión editorial y rango',
-            'summary' => 'Es una señal conservadora: revisar muestras sin reasignar categorías automáticamente.',
+            'kind' => 'Auditoría semántica no destructiva',
+            'summary' => 'Los candidatos heurísticos son revisión informativa y no afectan a la salud. Solo una contradicción fuerte puede convertirse en incidencia.',
             'steps' => array(
-                'Compara título, categorías internas y categoría del proveedor en los ejemplos.',
-                'Corrige primero el mapeo del proveedor si contiene nombres demasiado genéricos.',
-                'Establece un límite operativo para que la alerta represente el volumen pendiente aceptado.',
+                'Revisa primero título, categoría hoja del proveedor y categoría hoja interna; la ruta completa del proveedor es evidencia secundaria.',
+                'Usa etiquetas y atributos para confirmar equivalencias antes de concluir que existe desalineación.',
+                'No interpretes diferencias de profundidad entre taxonomías como error.',
+                'No reasignes categorías automáticamente. Corrige solo contradicciones fuertes verificadas manualmente.',
             ),
-            'settings' => array('semantic_category_alignment_limit', 'debug_mode'),
+            'settings' => array('debug_mode'),
         ),
         '10.6 Integridad de FAQs' => array(
-            'kind' => 'Datos y clasificación',
-            'summary' => 'Alinear el ámbito de cada FAQ con el objeto después de validar la clasificación del producto o categoría.',
+            'kind' => 'Relaciones estructurales de FAQ',
+            'summary' => 'La pertenencia de una FAQ se valida por object_type + object_id. El scope legacy es metadato informativo y no forma parte de la integridad.',
             'steps' => array(
-                'Revisa los ejemplos de FAQ y confirma primero que el ámbito del objeto sea correcto.',
-                'Actualiza las FAQs mediante el flujo reversible del módulo, evitando SQL destructivo directo.',
-                'Usa el límite de desalineaciones como tolerancia temporal durante la limpieza.',
+                'Corrige únicamente object_type/object_id inexistentes, relaciones huérfanas, estados inválidos o duplicados activos indebidos.',
+                'No modifiques FAQs únicamente para alinear un scope heredado.',
+                'Si existe la columna ambito en una instalación antigua, consérvala como metadato compatible hasta una migración explícita.',
             ),
-            'settings' => array('semantic_faq_scope_mismatch_limit', 'debug_mode'),
+            'settings' => array('debug_mode'),
+        ),
+        '10.7 Utilidad editorial de FAQs' => array(
+            'kind' => 'Calidad editorial de FAQ',
+            'summary' => 'Separar problemas reales de calidad de las métricas de longitud o cobertura, que no penalizan por sí mismas.',
+            'steps' => array(
+                'Corrige preguntas o respuestas vacías y revisa duplicados o contenido casi idéntico dentro del mismo objeto.',
+                'Revisa respuestas casi vacías, fórmulas repetidas y respuestas que copian literalmente un atributo sin aportar contexto.',
+                'No alargues respuestas únicamente para superar 40 palabras: la longitud es una métrica informativa.',
+            ),
+            'settings' => array('debug_mode'),
+        ),
+        '10.4B Cobertura efectiva de imágenes de producto' => array(
+            'kind' => 'Fuentes de imagen de producto',
+            'summary' => 'Aceptar Media WordPress o seo_supplier_images como fuentes válidas y penalizar solo cuando no existe ninguna imagen utilizable.',
+            'steps' => array(
+                'Comprueba primero si existe un attachment local válido o una imagen externa activa.',
+                'Reintenta errores temporales 429, timeouts y 5xx antes de declarar una imagen rota.',
+                'Corrige 404/410 confirmados o productos que no tengan ninguna fuente de imagen.',
+            ),
+            'settings' => array('debug_mode'),
         ),
     );
 }
@@ -315,17 +330,14 @@ function seo_core_validation_setting_labels() {
         'require_schema_product' => 'Schema Product',
         'require_schema_breadcrumb' => 'Schema BreadcrumbList',
         'require_schema_site' => 'Schema Organization/WebSite',
-        'semantic_category_excerpt_mismatch_limit' => 'Tolerancia de excerpts desincronizados',
         'semantic_category_without_excerpt_limit' => 'Tolerancia de categorías sin excerpt',
         'semantic_product_without_excerpt_limit' => 'Tolerancia de productos sin descripción corta',
-        'semantic_suspicious_attribute_limit' => 'Tolerancia de productos con atributos sospechosos',
+        'semantic_suspicious_attribute_limit' => 'Umbral de revisión heurística de atributos',
         'semantic_title_like_tag_limit' => 'Tolerancia de etiquetas tipo título',
         'semantic_without_attributes_limit' => 'Tolerancia de productos sin atributos SEO',
-        'semantic_faq_scope_mismatch_limit' => 'Tolerancia de FAQs desalineadas',
         'semantic_duplicate_excerpt_percent_limit' => 'Porcentaje tolerado de excerpts duplicados',
         'semantic_duplicate_description_percent_limit' => 'Porcentaje tolerado de descripciones duplicadas',
         'semantic_template_description_percent_limit' => 'Porcentaje tolerado de descripciones de plantilla',
-        'semantic_category_alignment_limit' => 'Tolerancia de productos pendientes de categoría',
         'debug_mode' => 'Modo debug',
     );
 }
@@ -449,17 +461,14 @@ function seo_core_validation_render_settings_page($results = array()) {
     echo '</table>';
 
     echo '<h3>Rangos de salud semántica</h3><table class="form-table" role="presentation">';
-    seo_core_validation_render_number_field($settings, 'semantic_category_excerpt_mismatch_limit', 'Excerpts de categoría desincronizados', 'Cantidad tolerada temporalmente antes de marcar incidencia.', 0, 1000000);
-    seo_core_validation_render_number_field($settings, 'semantic_category_without_excerpt_limit', 'Categorías sin excerpt visible', 'Cantidad tolerada temporalmente.', 0, 1000000);
+    seo_core_validation_render_number_field($settings, 'semantic_category_without_excerpt_limit', 'Categorías sin excerpt en seo_nodes', 'Cantidad tolerada temporalmente.', 0, 1000000);
     seo_core_validation_render_number_field($settings, 'semantic_product_without_excerpt_limit', 'Productos sin descripción corta', 'Cantidad de productos publicados con wp_posts.post_excerpt vacío tolerada temporalmente. Recomendado: 0.', 0, 1000000);
-    seo_core_validation_render_number_field($settings, 'semantic_suspicious_attribute_limit', 'Productos con atributos sospechosos', 'Cantidad tolerada antes de marcar fallo importante.', 0, 1000000);
+    seo_core_validation_render_number_field($settings, 'semantic_suspicious_attribute_limit', 'Productos para revisión heurística', 'Umbral a partir del cual se muestra warning. Estas señales no se convierten en fallo ni penalizan la puntuación.', 0, 1000000);
     seo_core_validation_render_number_field($settings, 'semantic_title_like_tag_limit', 'Etiquetas que parecen títulos', 'Cantidad tolerada antes de mostrar aviso.', 0, 1000000);
     seo_core_validation_render_number_field($settings, 'semantic_without_attributes_limit', 'Productos sin atributos SEO', 'Cantidad tolerada antes de mostrar aviso.', 0, 1000000);
-    seo_core_validation_render_number_field($settings, 'semantic_faq_scope_mismatch_limit', 'FAQs desalineadas', 'Cantidad tolerada durante una reclasificación controlada.', 0, 1000000);
     seo_core_validation_render_number_field($settings, 'semantic_duplicate_excerpt_percent_limit', 'Excerpts duplicados (%)', 'Porcentaje máximo tolerado sobre productos publicados.', 0, 100, 0.1);
     seo_core_validation_render_number_field($settings, 'semantic_duplicate_description_percent_limit', 'Descripciones duplicadas (%)', 'Porcentaje máximo tolerado sobre productos publicados.', 0, 100, 0.1);
     seo_core_validation_render_number_field($settings, 'semantic_template_description_percent_limit', 'Descripciones de plantilla (%)', 'Porcentaje máximo tolerado sobre productos publicados.', 0, 100, 0.1);
-    seo_core_validation_render_number_field($settings, 'semantic_category_alignment_limit', 'Productos pendientes de categoría', 'Volumen operativo aceptado antes de mostrar aviso.', 0, 1000000);
     echo '</table>';
 
     echo '<h3>Diagnóstico</h3><table class="form-table" role="presentation">';
