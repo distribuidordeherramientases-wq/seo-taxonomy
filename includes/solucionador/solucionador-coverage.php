@@ -50,23 +50,39 @@ final class SEO_Solucionador_Coverage {
         return array_slice(array_values(array_unique($out)), 0, 40);
     }
 
-    private static function inherited_heading_profile($heading, array $title_profile, $semantic_context) {
+    private static function context_supports_object($object, $article_context) {
+        $object = SEO_Solucionador_Normalizer::normalize((string) $object);
+        $context = SEO_Solucionador_Normalizer::normalize((string) $article_context);
+        if ($object === '' || $context === '') return false;
+        return false !== strpos(' ' . $context . ' ', ' ' . $object . ' ');
+    }
+
+    private static function inherited_heading_profile($heading, array $title_profile, $article_context) {
         if (!SEO_Solucionador_Normalizer::is_solution_signal($heading)) return array();
         $profile = SEO_Solucionador_Normalizer::profile($heading);
         if (!$profile) return array();
 
-        // Un H2/H3 se interpreta dentro del articulo, nunca como una consulta
-        // aislada. Si el heading no aporta un objeto/contexto fiable hereda el
-        // del titulo, que a su vez esta respaldado por Vocabulary/categorias.
-        if (SEO_Solucionador_Normalizer::is_weak_profile($profile)) {
+        $title_object = (string) ($title_profile['object'] ?? '');
+        $heading_object = (string) ($profile['object'] ?? '');
+        $supported_object = $heading_object !== '' && (
+            $heading_object === $title_object ||
+            self::context_supports_object($heading_object, $article_context)
+        );
+
+        // H2/H3 no son consultas independientes. Si su objeto es gramatical,
+        // discursivo o no esta respaldado por titulo/Vocabulary/categorias, se
+        // hereda el objeto principal del articulo. Asi evitamos fingerprints
+        // como object=importa, object=tres u object=decide.
+        if (SEO_Solucionador_Normalizer::is_weak_profile($profile) || !$supported_object) {
+            if ($title_object === '') return array();
             $hints = array(
-                'action' => (string) ($profile['action'] ?? $title_profile['action'] ?? ''),
-                'object' => (string) ($title_profile['object'] ?? ''),
-                'context' => (string) ($profile['context'] ?? $title_profile['context'] ?? ''),
-                'state' => (string) ($profile['condition'] ?? $title_profile['condition'] ?? ''),
-                'intent' => (string) ($profile['intent'] ?? $title_profile['intent'] ?? ''),
+                'action' => (string) (($profile['action'] ?? '') ?: ($title_profile['action'] ?? '')),
+                'object' => $title_object,
+                'context' => (string) (($profile['context'] ?? '') ?: ($title_profile['context'] ?? '')),
+                'state' => (string) (($profile['condition'] ?? '') ?: ($title_profile['condition'] ?? '')),
+                'intent' => (string) (($profile['intent'] ?? '') ?: ($title_profile['intent'] ?? '')),
             );
-            $profile = SEO_Solucionador_Normalizer::profile(trim($heading . ' ' . $semantic_context), $hints);
+            $profile = SEO_Solucionador_Normalizer::profile(trim($heading . ' ' . $article_context), $hints);
         } elseif (empty($profile['context']) && !empty($title_profile['context'])) {
             $profile = SEO_Solucionador_Normalizer::profile($heading, array(
                 'action' => (string) ($profile['action'] ?? ''),
@@ -76,7 +92,11 @@ final class SEO_Solucionador_Coverage {
                 'intent' => (string) ($profile['intent'] ?? ''),
             ));
         }
-        return $profile && !SEO_Solucionador_Normalizer::is_weak_profile($profile) ? $profile : array();
+
+        if (!$profile || SEO_Solucionador_Normalizer::is_weak_profile($profile)) return array();
+        $object = (string) ($profile['object'] ?? '');
+        if ($object !== $title_object && !self::context_supports_object($object, $article_context)) return array();
+        return $profile;
     }
 
     public static function rebuild_post_index($limit = 3500) {
@@ -86,7 +106,7 @@ final class SEO_Solucionador_Coverage {
         $posts = (array) $wpdb->get_results($wpdb->prepare(
             "SELECT ID,post_title,post_excerpt,post_content
              FROM {$wpdb->posts}
-             WHERE post_type='post' AND post_status IN ('publish','future')
+             WHERE post_type='post' AND post_status IN ('publish','future','draft')
              ORDER BY ID ASC LIMIT %d",
             $limit
         ), ARRAY_A);
@@ -99,6 +119,7 @@ final class SEO_Solucionador_Coverage {
             $categories = self::post_category_text($post_id);
             $semantic_context = trim($vocab . ' ' . $categories);
             $title = trim((string) ($post['post_title'] ?? ''));
+            $article_context = trim($title . ' ' . $semantic_context);
             $editorial_type = SEO_Solucionador_Normalizer::editorial_type($title, (string) ($post['post_content'] ?? ''));
 
             // Noticias, piezas informativas, legales y comparativas no deben
@@ -121,7 +142,7 @@ final class SEO_Solucionador_Coverage {
 
             if (!$title_profile) continue;
             foreach (self::headings((string) ($post['post_content'] ?? '')) as $heading) {
-                $profile = self::inherited_heading_profile($heading, $title_profile, $semantic_context);
+                $profile = self::inherited_heading_profile($heading, $title_profile, $article_context);
                 if (!$profile) continue;
                 SEO_Solucionador_DB::insert_post_topic($post_id, 'heading', $heading, $profile);
                 $indexed++;
@@ -142,9 +163,10 @@ final class SEO_Solucionador_Coverage {
             $key
         ), ARRAY_A);
         if ($exact) {
+            $post_id = absint($exact['post_id']);
             return array(
-                'status' => 'covered_exact',
-                'post_id' => absint($exact['post_id']),
+                'status' => get_post_status($post_id) === 'draft' ? 'draft_pending' : 'covered_exact',
+                'post_id' => $post_id,
                 'score' => 1.0,
                 'scope' => (string) $exact['scope'],
             );
@@ -209,6 +231,15 @@ final class SEO_Solucionador_Coverage {
 
         if (!$best || $best_score < 0.58) {
             return array('status'=>'uncovered','post_id'=>0,'score'=>$best_score,'scope'=>'');
+        }
+        $best_post_id = absint($best['post_id']);
+        if ($best_post_id && get_post_status($best_post_id) === 'draft') {
+            return array(
+                'status'=>'draft_pending',
+                'post_id'=>$best_post_id,
+                'score'=>$best_score,
+                'scope'=>(string)$best['scope'],
+            );
         }
         $row_condition = (string) ($best['condition_term'] ?? '');
         if ($condition !== '' && $row_condition === '') {

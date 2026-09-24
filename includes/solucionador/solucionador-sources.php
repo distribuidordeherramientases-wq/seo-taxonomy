@@ -2,9 +2,9 @@
 /**
  * Solucionador - adaptadores de fuentes locales.
  *
- * v0.2.2 separa fuentes que pueden ORIGINAR una propuesta de las que solo
- * pueden reforzar una necesidad ya detectada. Esto evita convertir tareas
- * internas de Analista/Auditor en preguntas para clientes.
+ * v0.2.4 conecta el log real de Dependiente V3 y separa fuentes que pueden
+ * originar propuestas de las que solo refuerzan una necesidad ya detectada.
+ * Esto evita convertir tareas internas de Analista/Auditor en preguntas.
  */
 
 defined('ABSPATH') || exit;
@@ -30,121 +30,148 @@ final class SEO_Solucionador_Sources {
 
         $days = min(365, max(7, absint($days)));
         $limit = min(3000, max(50, absint($limit)));
-
-        // Instalaciones antiguas pueden no tener el log estructurado de
-        // Dependiente. Analista ya expone la misma busqueda interna agregada; se
-        // usa como fallback pero se etiqueta como Dependiente porque representa
-        // una consulta real del cliente, no una recomendacion de mercado.
-        if (!self::table_exists($table)) {
-            $out = array();
-            if (function_exists('seo_analista_internal_search_snapshot')) {
-                $snapshot = seo_analista_internal_search_snapshot($days, min(250, $limit));
-                foreach ((array) ($snapshot['top'] ?? array()) as $row) {
-                    $text = (string) ($row['search_term'] ?? '');
-                    if (!SEO_Solucionador_Normalizer::is_solution_signal($text)) continue;
-                    $out[] = array(
-                        'source_type' => 'dependiente',
-                        'proposal_role' => 'origin',
-                        'source_id' => 'fallback-search:' . md5((string) ($row['normalized_term'] ?? SEO_Solucionador_Normalizer::normalize($text))),
-                        'source_text' => $text,
-                        'hints' => array(),
-                        'occurrences' => max(1, absint($row['searches'] ?? 1)),
-                        'evidence_score' => 0.90,
-                        'observed_at' => (string) ($row['last_search'] ?? ''),
-                        'source_meta' => array(
-                            'proposal_role' => 'origin',
-                            'dependiente_channel' => 'analista_internal_search_fallback',
-                            'zero_results' => absint($row['zero_count'] ?? 0),
-                            'negative_feedback' => 0,
-                            'avg_results' => (float) ($row['avg_results'] ?? 0),
-                        ),
-                    );
-                }
-            }
-            return $out;
-        }
-
-        $sql = "SELECT
-                    s.id source_id,
-                    s.query_original source_text,
-                    s.query_normalized normalized_text,
-                    s.detected_intent,
-                    s.detected_object,
-                    s.detected_context,
-                    s.detected_state,
-                    s.clicked_product_id,
-                    s.top_results,
-                    s.semantic_analysis,
-                    s.created_at observed_at,
-                    a.occurrences,
-                    a.zero_results,
-                    a.negative_feedback
-                FROM {$table} s
-                INNER JOIN (
-                    SELECT
-                        MAX(id) last_id,
-                        COUNT(*) occurrences,
-                        SUM(CASE WHEN result_count=0 THEN 1 ELSE 0 END) zero_results,
-                        SUM(CASE WHEN feedback<0 THEN 1 ELSE 0 END) negative_feedback
-                    FROM {$table}
-                    WHERE request_kind='search'
-                      AND created_at >= DATE_SUB(%s, INTERVAL %d DAY)
-                    GROUP BY COALESCE(NULLIF(semantic_signature,''),query_hash),
-                             COALESCE(detected_intent,''),COALESCE(detected_object,''),
-                             COALESCE(detected_context,''),COALESCE(detected_state,'')
-                ) a ON a.last_id=s.id
-                ORDER BY a.occurrences DESC,a.zero_results DESC,a.negative_feedback DESC,s.id DESC
-                LIMIT %d";
-
-        $rows = (array) $wpdb->get_results(
-            $wpdb->prepare($sql, current_time('mysql'), $days, $limit),
-            ARRAY_A
-        );
-
         $out = array();
-        foreach ($rows as $row) {
-            $text = (string) ($row['source_text'] ?? '');
-            if (!SEO_Solucionador_Normalizer::is_solution_signal(
-                $text,
-                (string) ($row['detected_intent'] ?? ''),
-                (string) ($row['detected_state'] ?? '')
-            )) continue;
+        $seen = array();
+        $out_index = array();
 
-            $semantic = self::decode($row['semantic_analysis'] ?? '');
-            $matches = array_values(array_slice((array) ($semantic['matches'] ?? array()), 0, 24));
-            $top_results = array_values(array_slice(self::decode($row['top_results'] ?? ''), 0, 12));
+        // Fuente principal: log canonico del Dependiente. Desde v0.2.4 V3
+        // registra aqui cada consulta publica sin activar aprendizaje legacy.
+        if (self::table_exists($table)) {
+            $sql = "SELECT
+                        s.id source_id,
+                        s.query_original source_text,
+                        s.query_normalized normalized_text,
+                        s.detected_intent,
+                        s.detected_object,
+                        s.detected_context,
+                        s.detected_state,
+                        s.clicked_product_id,
+                        s.top_results,
+                        s.semantic_analysis,
+                        s.strategy_detail,
+                        s.candidate_count,
+                        s.result_count,
+                        s.created_at observed_at,
+                        a.occurrences,
+                        a.zero_results,
+                        a.negative_feedback
+                    FROM {$table} s
+                    INNER JOIN (
+                        SELECT
+                            MAX(id) last_id,
+                            COUNT(*) occurrences,
+                            SUM(CASE WHEN candidate_count=0 THEN 1 ELSE 0 END) zero_results,
+                            SUM(CASE WHEN feedback<0 THEN 1 ELSE 0 END) negative_feedback
+                        FROM {$table}
+                        WHERE request_kind='search'
+                          AND created_at >= DATE_SUB(%s, INTERVAL %d DAY)
+                        GROUP BY COALESCE(NULLIF(semantic_signature,''),query_hash),
+                                 COALESCE(detected_intent,''),COALESCE(detected_object,''),
+                                 COALESCE(detected_context,''),COALESCE(detected_state,'')
+                    ) a ON a.last_id=s.id
+                    ORDER BY a.occurrences DESC,a.zero_results DESC,a.negative_feedback DESC,s.id DESC
+                    LIMIT %d";
 
-            $out[] = array(
-                'source_type' => 'dependiente',
-                'proposal_role' => self::origin_flag(true),
-                'source_id' => 'search:' . md5(implode('|', array(
-                    (string) ($row['normalized_text'] ?? $text),
-                    (string) ($row['detected_intent'] ?? ''),
-                    (string) ($row['detected_object'] ?? ''),
-                    (string) ($row['detected_context'] ?? ''),
-                    (string) ($row['detected_state'] ?? ''),
-                ))),
-                'source_text' => $text,
-                'hints' => array(
-                    'intent' => (string) ($row['detected_intent'] ?? ''),
-                    'object' => (string) ($row['detected_object'] ?? ''),
-                    'context' => (string) ($row['detected_context'] ?? ''),
-                    'state' => (string) ($row['detected_state'] ?? ''),
-                ),
-                'occurrences' => max(1, absint($row['occurrences'] ?? 1)),
-                'evidence_score' => 1.00,
-                'observed_at' => (string) ($row['observed_at'] ?? ''),
-                'source_meta' => array(
-                    'proposal_role' => 'origin',
-                    'last_log_id' => absint($row['source_id'] ?? 0),
-                    'zero_results' => absint($row['zero_results'] ?? 0),
-                    'negative_feedback' => absint($row['negative_feedback'] ?? 0),
-                    'clicked_product_id' => absint($row['clicked_product_id'] ?? 0),
-                    'top_results' => $top_results,
-                    'semantic_matches' => $matches,
-                ),
+            $rows = (array) $wpdb->get_results(
+                $wpdb->prepare($sql, current_time('mysql'), $days, $limit),
+                ARRAY_A
             );
+
+            foreach ($rows as $row) {
+                $text = (string) ($row['source_text'] ?? '');
+                if (!SEO_Solucionador_Normalizer::is_solution_signal(
+                    $text,
+                    (string) ($row['detected_intent'] ?? ''),
+                    (string) ($row['detected_state'] ?? '')
+                )) continue;
+
+                $semantic = self::decode($row['semantic_analysis'] ?? '');
+                $strategy_detail = self::decode($row['strategy_detail'] ?? '');
+                $matches = array_values(array_slice((array) ($semantic['matches'] ?? array()), 0, 24));
+                $top_results = array_values(array_slice(self::decode($row['top_results'] ?? ''), 0, 12));
+                $normalized = (string) ($row['normalized_text'] ?? SEO_Solucionador_Normalizer::normalize($text));
+                $seen[$normalized] = true;
+
+                $out[] = array(
+                    'source_type' => 'dependiente',
+                    'proposal_role' => self::origin_flag(true),
+                    'source_id' => 'search:' . md5(implode('|', array(
+                        $normalized,
+                        (string) ($row['detected_intent'] ?? ''),
+                        (string) ($row['detected_object'] ?? ''),
+                        (string) ($row['detected_context'] ?? ''),
+                        (string) ($row['detected_state'] ?? ''),
+                    ))),
+                    'source_text' => $text,
+                    'hints' => array(
+                        'intent' => (string) ($row['detected_intent'] ?? ''),
+                        'object' => (string) ($row['detected_object'] ?? ''),
+                        'context' => (string) ($row['detected_context'] ?? ''),
+                        'state' => (string) ($row['detected_state'] ?? ''),
+                    ),
+                    'occurrences' => max(1, absint($row['occurrences'] ?? 1)),
+                    'evidence_score' => 1.00,
+                    'observed_at' => (string) ($row['observed_at'] ?? ''),
+                    'source_meta' => array(
+                        'proposal_role' => 'origin',
+                        'dependiente_channel' => sanitize_key((string) ($strategy_detail['runtime'] ?? 'structured_search_log')) ?: 'structured_search_log',
+                        'last_log_id' => absint($row['source_id'] ?? 0),
+                        'zero_results' => absint($row['zero_results'] ?? 0),
+                        'negative_feedback' => absint($row['negative_feedback'] ?? 0),
+                        'candidate_count' => absint($row['candidate_count'] ?? 0),
+                        'shown_results' => absint($row['result_count'] ?? 0),
+                        'clicked_product_id' => absint($row['clicked_product_id'] ?? 0),
+                        'top_results' => $top_results,
+                        'semantic_matches' => $matches,
+                        'actions' => array_values(array_slice((array) ($semantic['actions'] ?? array()), 0, 12)),
+                        'decision' => is_array($strategy_detail['decision'] ?? null) ? $strategy_detail['decision'] : array(),
+                    ),
+                );
+                $out_index[$normalized] = count($out) - 1;
+            }
         }
+
+        // Historico complementario: Analista conserva busquedas internas previas
+        // a la instrumentacion de V3. Se suman siempre (no solo como fallback de
+        // tabla inexistente) y se deduplican frente al log canonico.
+        if (function_exists('seo_analista_internal_search_snapshot')) {
+            $snapshot = seo_analista_internal_search_snapshot($days, min(250, $limit));
+            foreach ((array) ($snapshot['top'] ?? array()) as $row) {
+                $text = (string) ($row['search_term'] ?? '');
+                $normalized = (string) ($row['normalized_term'] ?? SEO_Solucionador_Normalizer::normalize($text));
+                if ($text === '') continue;
+                if (isset($seen[$normalized])) {
+                    $idx = isset($out_index[$normalized]) ? absint($out_index[$normalized]) : -1;
+                    if ($idx >= 0 && isset($out[$idx])) {
+                        $out[$idx]['occurrences'] = max(1, absint($out[$idx]['occurrences'] ?? 1)) + max(1, absint($row['searches'] ?? 1));
+                        $out[$idx]['source_meta']['zero_results'] = absint($out[$idx]['source_meta']['zero_results'] ?? 0) + absint($row['zero_count'] ?? 0);
+                        $out[$idx]['source_meta']['historical_searches'] = absint($row['searches'] ?? 0);
+                    }
+                    continue;
+                }
+                if (!SEO_Solucionador_Normalizer::is_solution_signal($text)) continue;
+                $seen[$normalized] = true;
+                $out[] = array(
+                    'source_type' => 'dependiente',
+                    'proposal_role' => 'origin',
+                    'source_id' => 'historic-search:' . md5($normalized),
+                    'source_text' => $text,
+                    'hints' => array(),
+                    'occurrences' => max(1, absint($row['searches'] ?? 1)),
+                    'evidence_score' => 0.90,
+                    'observed_at' => (string) ($row['last_search'] ?? ''),
+                    'source_meta' => array(
+                        'proposal_role' => 'origin',
+                        'dependiente_channel' => 'analista_internal_search_history',
+                        'zero_results' => absint($row['zero_count'] ?? 0),
+                        'negative_feedback' => 0,
+                        'avg_results' => (float) ($row['avg_results'] ?? 0),
+                    ),
+                );
+                $out_index[$normalized] = count($out) - 1;
+            }
+        }
+
         return $out;
     }
 

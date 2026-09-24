@@ -81,7 +81,13 @@ final class SEO_Solucionador_Normalizer {
             'revisar','comprar','elegir','herramientas','herramienta','equipo','equipos','sistema','sistemas',
             'positivo','negativo','mixto','resumen','editorial','literal','comentario','comentarios','resena','resenas',
             'opinion','opiniones','valoracion','valoraciones','conclusion','conclusiones','recomendacion','recomendaciones',
-            'ventaja','ventajas','desventaja','desventajas','experiencia','experiencias'
+            'ventaja','ventajas','desventaja','desventajas','experiencia','experiencias',
+            // Palabras discursivas que describen la redaccion, no el objeto real
+            // de una necesidad. Evitan fingerprints como object=importa/tres/guia.
+            'error','errores','guia','guias','comparativa','comparativas','historia','historias','mejor','mejores',
+            'consejo','consejos','importante','importa','decide','empieza','son','tener','tiene','haz','evita',
+            'practica','practico','sencilla','sencillo','referencia','referencias','corresponde','conocer','entre',
+            'quien','caso','casos','semi','continua','continuo','tipo','tipos','definir','adaptar','aplicaciones'
         ));
     }
 

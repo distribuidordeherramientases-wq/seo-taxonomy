@@ -175,6 +175,7 @@ final class SEO_Solucionador_Engine {
             $status = (string) ($topic['status'] ?? 'candidate');
             if ($status !== 'dismissed') {
                 if ($coverage_status === 'covered_exact') $status = 'covered';
+                elseif ($coverage_status === 'draft_pending') $status = 'draft_created';
                 elseif ($action === 'observe') $status = 'observe';
                 else $status = 'candidate';
             }
@@ -254,7 +255,7 @@ final class SEO_Solucionador_Engine {
         $analista = absint($stats['analista'] ?? 0);
         $auditor = absint($stats['auditor'] ?? 0);
 
-        if ($coverage_status === 'covered_exact') return 'no_action';
+        if (in_array($coverage_status, array('covered_exact','draft_pending'), true)) return 'no_action';
         if ($coverage_status === 'covered_parent') return 'create_section';
         if (in_array($coverage_status, array('covered_partial','needs_expansion'), true)) return 'expand_existing_post';
 

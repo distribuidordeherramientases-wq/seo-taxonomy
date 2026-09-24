@@ -1,4 +1,4 @@
-SOLUCIONADOR v0.2.3
+SOLUCIONADOR v0.2.4
 ===================
 
 Objetivo
@@ -25,37 +25,26 @@ Fuentes y responsabilidades
   * incidencias tecnicas de indice, schema, excerpt, servidor, BD, etc. se excluyen.
 - Posts existentes: inventario editorial para saber si la solucion ya existe.
 
-Cambios principales v0.2.3
+Cambios principales v0.2.4
 --------------------------
-1. Filtrado fuerte de Analista y Auditor para evitar propuestas falsas.
-2. Separacion entre senales ORIGIN y REINFORCEMENT.
-3. Reanalisis limpio: las evidencias se reconstruyen y los temas automaticos
-   obsoletos se eliminan si ya no tienen evidencia. Los borradores creados se
-   conservan.
-4. Canonizacion mejorada: deteccion/detectar, perforacion/perforar,
-   agujerear/taladrar/perforar, etc. convergen.
-5. Correccion del falso positivo desbloqueada -> bloqueada/atascada mediante
-   limites de palabra.
-6. Cobertura editorial mejorada: el titulo manda y los H2/H3 heredan contexto
-   del post en vez de interpretarse siempre de forma aislada.
-7. Matching de cobertura mas estricto y preferencia por coincidencias de titulo.
-8. Categorias y Vocabulary mas conservadores: umbrales relativos mas altos para
-   no asociar, por ejemplo, una consulta sobre perforar una pared con soportes TV.
-9. Titulos naturales para deteccion de fugas y estados como no funciona,
-   no arranca, fuga, gira en vacio, etc.
-10. La exportacion JSON sigue disponible e incluye las nuevas estadisticas del
-    ultimo escaneo por fuente, temas limpiados y refuerzos descartados.
-11. Dependiente consume directamente su log estructurado; si no existe, usa la
-    busqueda interna agregada de Analista como fallback, pero la clasifica como
-    Dependiente para no confundir consulta real con demanda de mercado.
-12. Comentarista elimina prefijos editoriales (Positivo, Mixto, Resumen editorial,
-    etc.) y no crea posts a partir de sentimiento o valoraciones genericas.
-13. Comentarista por si solo nunca eleva una propuesta a create_post: requiere
-    una pregunta real o evidencia independiente de Dependiente/Analista/Auditor.
-14. La cobertura editorial clasifica el tipo de post y excluye noticias, piezas
-    informativas, legales y comparativas como cobertura directa de soluciones.
-15. Solo how-to, problem/solution y determinadas guias de compra se usan para
-    decidir si una necesidad ya esta cubierta.
+1. Dependiente V3 registra cada consulta publica en seo_dependiente_search_log.
+2. El registro V3 usa la tabla existente, no cambia el esquema y no activa
+   SEO_Dependiente_Learning legacy.
+3. El JSON semantico del log conserva acciones y hits relevantes de V3 para
+   trazabilidad de Interprete/Solucionador.
+4. Solucionador combina siempre el log estructurado de Dependiente con el
+   historico de busquedas internas conservado por Analista y deduplica ambos.
+5. zero_results se calcula con candidate_count=0. Si V3 tiene candidatos pero
+   necesita una aclaracion, no se contabiliza como busqueda sin resultados.
+6. Se mantiene el filtrado fuerte de Analista, Auditor y Comentarista de v0.2.3.
+7. La cobertura editorial incluye posts publish, future y draft para evitar
+   proponer un duplicado mientras ya existe un borrador en preparacion.
+8. Los H2/H3 solo conservan objetos respaldados por el titulo, Vocabulary o
+   categorias. Si no, heredan el objeto principal o se descartan.
+9. Se amplia el filtrado de palabras discursivas para evitar fingerprints como
+   object=importa, object=tres, object=guia u object=decide.
+10. Solucionador continua creando el post solo tras aprobacion y siempre como
+    draft, con Vocabulary y relaciones post_to_category.
 
 Regla editorial
 ---------------
@@ -101,7 +90,7 @@ Prueba recomendada en STAGING
 1. Copiar la carpeta includes/solucionador/ de esta version y, si se usa el
    paquete completo, sustituir includes/seo-includes-bootstrap.php.
 2. Abrir Herramientas -> Solucionador.
-3. Pulsar "Reanalizar fuentes". Es importante: v0.2.3 limpia automaticamente
+3. Pulsar "Reanalizar fuentes". Es importante: v0.2.4 limpia automaticamente
    propuestas automaticas antiguas que ya no pasan los filtros nuevos.
 4. Descargar el JSON y revisar:
    - propuestas;
@@ -110,7 +99,7 @@ Prueba recomendada en STAGING
    - Vocabulary;
    - coverage;
    - last_scan.accepted_by_source / discarded_by_source.
-5. No aprobar un borrador hasta validar el primer JSON de v0.2.3.
+5. No aprobar un borrador hasta validar el primer JSON de v0.2.4.
 
 Base de datos
 -------------
