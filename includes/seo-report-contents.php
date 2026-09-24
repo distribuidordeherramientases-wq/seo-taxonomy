@@ -7,7 +7,7 @@
  *
  * Fuentes utilizadas:
  * - Clusters / hubs: wp_posts (excerpt/description) + Vocabulary canónico (etiquetas).
- * - Categorias: Vocabulary canonico (ROL/TIPO/APLICACION/PLATAFORMA/SUBTIPO) + wp_seo_nodes (excerpt/description) + termmeta seo_excerpt visible.
+ * - Categorias: Vocabulary canonico (ROL/TIPO/APLICACION/PLATAFORMA/SUBTIPO) + wp_seo_nodes (excerpt/description).
  * - Productos: wp_posts + Vocabulary semántico + vocabulario canónico de atributos de producto.
  */
 
@@ -69,8 +69,6 @@ function seo_report_contents_issue_label($issue) {
         'missing_attributes'    => 'Sin atributos SEO',
         'duplicate_excerpt'     => 'Excerpt duplicado exacto',
         'duplicate_description' => 'Description duplicada exacta',
-        'missing_visible_excerpt' => 'Sin excerpt visible',
-        'excerpt_desync'        => 'Excerpt desincronizado',
         'attr_empty_value'      => 'Atributos con valor vacio',
         'attr_duplicate'        => 'Atributos exactos duplicados',
         'attr_unresolved_term'  => 'Atributos término sin resolver',
@@ -250,21 +248,6 @@ function seo_report_contents_category_tags_subquery() {
     ";
 }
 
-/**
- * Subconsulta del excerpt visible almacenado en termmeta.
- */
-function seo_report_contents_category_visible_excerpt_subquery() {
-    global $wpdb;
-
-    return "
-        SELECT
-            term_id,
-            MAX(NULLIF(TRIM(meta_value), '')) AS visible_excerpt
-        FROM {$wpdb->termmeta}
-        WHERE meta_key = 'seo_excerpt'
-        GROUP BY term_id
-    ";
-}
 
 /**
  * Resumen de categorias.
@@ -274,7 +257,6 @@ function seo_report_contents_get_category_summary() {
 
     $node_subquery = seo_report_contents_category_nodes_subquery();
     $tags_subquery = seo_report_contents_category_tags_subquery();
-    $visible_subquery = seo_report_contents_category_visible_excerpt_subquery();
 
     $row = $wpdb->get_row("
         SELECT
@@ -282,11 +264,6 @@ function seo_report_contents_get_category_summary() {
             SUM(CASE WHEN TRIM(COALESCE(n.excerpt_node, '')) = '' THEN 1 ELSE 0 END) AS missing_excerpt,
             SUM(CASE WHEN TRIM(COALESCE(n.description_node, '')) = '' THEN 1 ELSE 0 END) AS missing_description,
             SUM(CASE WHEN TRIM(COALESCE(s.etiquetas, '')) = '' THEN 1 ELSE 0 END) AS missing_tags,
-            SUM(CASE WHEN TRIM(COALESCE(v.visible_excerpt, '')) = '' THEN 1 ELSE 0 END) AS missing_visible_excerpt,
-            SUM(CASE
-                WHEN TRIM(COALESCE(n.excerpt_node, '')) <> TRIM(COALESCE(v.visible_excerpt, ''))
-                THEN 1 ELSE 0 END
-            ) AS excerpt_desync,
             SUM(CASE
                 WHEN TRIM(COALESCE(n.excerpt_node, '')) <> ''
                  AND TRIM(COALESCE(n.description_node, '')) <> ''
@@ -300,8 +277,6 @@ function seo_report_contents_get_category_summary() {
             ON n.object_id = tt.term_id
         LEFT JOIN ({$tags_subquery}) s
             ON s.object_id = tt.term_id
-        LEFT JOIN ({$visible_subquery}) v
-            ON v.term_id = tt.term_id
         WHERE tt.taxonomy = 'product_cat'
     ", ARRAY_A);
 
@@ -318,8 +293,6 @@ function seo_report_contents_get_category_summary() {
         'missing_attributes'      => null,
         'duplicate_excerpt'       => seo_report_contents_get_category_duplicate_count('excerpt'),
         'duplicate_description'   => seo_report_contents_get_category_duplicate_count('description'),
-        'missing_visible_excerpt' => (int) ($row['missing_visible_excerpt'] ?? 0),
-        'excerpt_desync'          => (int) ($row['excerpt_desync'] ?? 0),
         'applicable_fields'       => 3,
     );
 }
@@ -685,20 +658,17 @@ function seo_report_contents_render_summary_table($summaries) {
  * Incidencias especificas de categorias.
  */
 function seo_report_contents_render_category_integrity($summary) {
-    echo '<h2 style="margin-top:30px;">Categorias: fuente interna y excerpt visible</h2>';
-    echo '<p>Se compara el excerpt editorial de <code>wp_seo_nodes</code> con el meta <code>seo_excerpt</code> que puede consumir la plantilla publica.</p>';
+    echo '<h2 style="margin-top:30px;">Categorias: fuente editorial canónica</h2>';
+    echo '<p>El <code>excerpt</code> y la <code>description</code> de las categorías se almacenan y validan exclusivamente en <code>wp_seo_nodes</code>. No se comparan ni sincronizan con campos nativos o termmeta de WordPress.</p>';
 
     echo '<table class="widefat striped" style="max-width:900px;">';
-    echo '<thead><tr><th>Chequeo</th><th>Afectadas</th><th>Lectura</th></tr></thead><tbody>';
-
-    echo '<tr><td><strong>Sin excerpt visible</strong></td><td>';
-    seo_report_contents_render_count_link($summary['missing_visible_excerpt'], 'category', 'missing_visible_excerpt');
-    echo '</td><td>El termmeta <code>seo_excerpt</code> esta vacio o ausente.</td></tr>';
-
-    echo '<tr><td><strong>Excerpt desincronizado</strong></td><td>';
-    seo_report_contents_render_count_link($summary['excerpt_desync'], 'category', 'excerpt_desync');
-    echo '</td><td>El excerpt activo de <code>seo_nodes</code> no coincide exactamente con <code>seo_excerpt</code>.</td></tr>';
-
+    echo '<thead><tr><th>Chequeo</th><th>Afectadas</th><th>Fuente</th></tr></thead><tbody>';
+    echo '<tr><td><strong>Sin excerpt</strong></td><td>';
+    seo_report_contents_render_count_link($summary['missing_excerpt'], 'category', 'missing_excerpt');
+    echo '</td><td><code>wp_seo_nodes</code> · role <code>excerpt</code></td></tr>';
+    echo '<tr><td><strong>Sin description</strong></td><td>';
+    seo_report_contents_render_count_link($summary['missing_description'], 'category', 'missing_description');
+    echo '</td><td><code>wp_seo_nodes</code> · role <code>description</code></td></tr>';
     echo '</tbody></table>';
 }
 
@@ -862,8 +832,7 @@ function seo_report_contents_get_affected_rows($level, $issue, $limit, $offset) 
     if ($level === 'category') {
         $node_subquery = seo_report_contents_category_nodes_subquery();
         $tags_subquery = seo_report_contents_category_tags_subquery();
-        $visible_subquery = seo_report_contents_category_visible_excerpt_subquery();
-
+    
         $where = '';
         if ($issue === 'missing_excerpt') {
             $where = "TRIM(COALESCE(n.excerpt_node, '')) = ''";
@@ -871,10 +840,6 @@ function seo_report_contents_get_affected_rows($level, $issue, $limit, $offset) 
             $where = "TRIM(COALESCE(n.description_node, '')) = ''";
         } elseif ($issue === 'missing_tags') {
             $where = "TRIM(COALESCE(s.etiquetas, '')) = ''";
-        } elseif ($issue === 'missing_visible_excerpt') {
-            $where = "TRIM(COALESCE(v.visible_excerpt, '')) = ''";
-        } elseif ($issue === 'excerpt_desync') {
-            $where = "TRIM(COALESCE(n.excerpt_node, '')) <> TRIM(COALESCE(v.visible_excerpt, ''))";
         } elseif ($issue === 'duplicate_excerpt') {
             $where = "TRIM(COALESCE(n.excerpt_node, '')) <> '' AND MD5(TRIM(n.excerpt_node)) IN (
                 SELECT sig FROM (
@@ -914,7 +879,6 @@ function seo_report_contents_get_affected_rows($level, $issue, $limit, $offset) 
             INNER JOIN {$wpdb->terms} t ON t.term_id = tt.term_id
             LEFT JOIN ({$node_subquery}) n ON n.object_id = tt.term_id
             LEFT JOIN ({$tags_subquery}) s ON s.object_id = tt.term_id
-            LEFT JOIN ({$visible_subquery}) v ON v.term_id = tt.term_id
             WHERE tt.taxonomy = 'product_cat'
               AND {$where}
         ";
@@ -927,8 +891,7 @@ function seo_report_contents_get_affected_rows($level, $issue, $limit, $offset) 
                 'product_cat' AS status,
                 n.excerpt_node AS excerpt_value,
                 n.description_node AS description_value,
-                s.etiquetas AS tags_value,
-                v.visible_excerpt AS visible_excerpt
+                s.etiquetas AS tags_value
             {$base_from}
             ORDER BY t.name ASC, tt.term_id ASC
             LIMIT %d OFFSET %d
@@ -1103,8 +1066,6 @@ function seo_report_contents_render_affected_detail($level, $issue) {
         'missing_attributes',
         'duplicate_excerpt',
         'duplicate_description',
-        'missing_visible_excerpt',
-        'excerpt_desync',
         'attr_empty_value',
         'attr_duplicate',
         'attr_unresolved_term',
@@ -1186,10 +1147,6 @@ function seo_report_contents_render_affected_detail($level, $issue) {
                 echo '<br>Atributos: <strong>' . esc_html(number_format_i18n((int) $row['attribute_count'])) . '</strong>';
             } else {
                 echo $tags === '' ? '<span style="color:#b32d2e;">Sin etiquetas</span>' : esc_html(wp_html_excerpt($tags, 100, '...'));
-                if ($level === 'category' && array_key_exists('visible_excerpt', $row)) {
-                    $visible = trim(wp_strip_all_tags((string) $row['visible_excerpt']));
-                    echo '<br><span style="font-size:11px;color:#646970;">Excerpt visible: ' . ($visible === '' ? 'vacio' : esc_html(wp_html_excerpt($visible, 70, '...'))) . '</span>';
-                }
             }
             echo '</td>';
 
