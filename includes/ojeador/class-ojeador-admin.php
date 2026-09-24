@@ -21,6 +21,7 @@ final class SEO_Ojeador_Admin {
         add_action('admin_post_seo_ojeador_start', array(__CLASS__, 'start'));
         add_action('admin_post_seo_ojeador_stop', array(__CLASS__, 'stop'));
         add_action('admin_post_seo_ojeador_export_json', array(__CLASS__, 'export_json'));
+        add_action('admin_post_seo_ojeador_export_analysis_json', array(__CLASS__, 'export_analysis_json'));
         add_action('admin_post_seo_ojeador_export_log_json', array(__CLASS__, 'export_log_json'));
     }
 
@@ -217,6 +218,67 @@ final class SEO_Ojeador_Admin {
         exit;
     }
 
+    private static function stream_analysis_products_json() {
+        global $wpdb;
+        $table = SEO_Ojeador_DB::table('category_results');
+        $categories = SEO_Ojeador_DB::table('categories');
+        $offset = 0;
+        $chunk = 500;
+        $first = true;
+        echo '[';
+        do {
+            $rows = $wpdb->get_results(
+                "SELECT r.id,r.term_id,COALESCE(NULLIF(c.category_name,''),t.name) AS category_name,
+                        c.query_text,r.google_product_id,r.gtin,r.mpn,r.brand,r.model,r.title,
+                        r.merchant,r.price,r.old_price,r.currency,
+                        CASE WHEN r.old_price>r.price AND r.old_price>0 THEN ROUND(((r.old_price-r.price)/r.old_price)*100,2) ELSE NULL END AS discount_pct,
+                        r.delivery,r.rating,r.reviews,r.result_position,r.product_url,r.image_url,r.observed_at
+                 FROM {$table} r
+                 LEFT JOIN {$categories} c ON c.term_id=r.term_id
+                 LEFT JOIN {$wpdb->terms} t ON t.term_id=r.term_id
+                 WHERE r.active=1 AND c.status='ok'
+                 ORDER BY r.term_id ASC,r.result_position ASC,r.id ASC
+                 LIMIT {$chunk} OFFSET {$offset}",
+                ARRAY_A
+            );
+            foreach ((array) $rows as $row) {
+                if (!$first) echo ',';
+                echo wp_json_encode($row, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                $first = false;
+            }
+            $count = count((array) $rows);
+            $offset += $count;
+        } while ($count === $chunk);
+        echo ']';
+    }
+
+    public static function export_analysis_json() {
+        self::guard('seo_ojeador_export_analysis_json');
+        $analysis = SEO_Ojeador_Analysis::dashboard(500);
+
+        self::json_headers('ojeador-analisis-kpis-' . gmdate('Ymd-His') . '.json');
+        echo '{';
+        echo '"meta":' . wp_json_encode(array(
+            'schema' => 'seo_ojeador_analysis_export',
+            'schema_version' => '2.0.0',
+            'generated_at_utc' => gmdate('c'),
+            'site_url' => home_url('/'),
+            'ojeador_version' => defined('SEO_OJEADOR_VERSION') ? SEO_OJEADOR_VERSION : '',
+            'scope' => 'analysis_kpis_recommendations_and_comparison_products',
+        ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        echo ',"kpis":' . wp_json_encode((array) ($analysis['kpis'] ?? array()), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        echo ',"thresholds":' . wp_json_encode((array) ($analysis['thresholds'] ?? array()), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        echo ',"operational_recommendations":' . wp_json_encode((array) ($analysis['operational_recommendations'] ?? array()), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        echo ',"recommendations":' . wp_json_encode((array) ($analysis['recommendations'] ?? array()), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        echo ',"categories":' . wp_json_encode((array) ($analysis['categories'] ?? array()), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        echo ',"merchants":' . wp_json_encode((array) ($analysis['merchants'] ?? array()), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        echo ',"products_comparison":';
+        self::stream_analysis_products_json();
+        echo ',"notes":' . wp_json_encode((array) ($analysis['notes'] ?? array()), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        echo '}';
+        exit;
+    }
+
     public static function export_log_json() {
         self::guard('seo_ojeador_export_log_json');
         self::json_headers('ojeador-log-consultas-' . gmdate('Ymd-His') . '.json');
@@ -248,84 +310,91 @@ final class SEO_Ojeador_Admin {
 
     private static function render_analysis($analysis) {
         $analysis = is_array($analysis) ? $analysis : array();
-        $sum = (array) ($analysis['summary'] ?? array());
-        $actions = (array) ($analysis['actions'] ?? array());
+        $sum = (array) ($analysis['kpis'] ?? array());
+        $operational = (array) ($analysis['operational_recommendations'] ?? array());
+        $recommendations = (array) ($analysis['recommendations'] ?? array());
         $categories = (array) ($analysis['categories'] ?? array());
         $merchants = (array) ($analysis['merchants'] ?? array());
         ?>
         <section class="seo-ojeador-analysis">
-            <div style="margin:26px 0 8px">
-                <h2 style="margin:0">Análisis de mercado</h2>
-                <p class="seo-ojeador-muted" style="margin:4px 0 0">Convierte las instantáneas de Google Shopping en señales descriptivas y acciones de revisión. No ejecuta cambios comerciales automáticamente.</p>
+            <div style="margin:20px 0 8px">
+                <h2 style="margin:0">Qué está diciendo el mercado</h2>
+                <p class="seo-ojeador-muted" style="margin:4px 0 0">KPIs orientados a decisión. Los resultados de Google Shopping son una muestra por consulta, no una estimación del tamaño absoluto del mercado.</p>
             </div>
 
             <div class="seo-ojeador-cards seo-ojeador-analysis-cards">
-                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n(absint($sum['active_results'] ?? 0)); ?></strong><span>Resultados activos analizados</span></div>
-                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n(absint($sum['unique_merchants'] ?? 0)); ?></strong><span>Comercios identificados</span></div>
-                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n(absint($sum['categories_priority_action'] ?? 0)); ?></strong><span>Categorías con acción de revisión</span></div>
-                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n(absint($sum['categories_high_interest_low_catalog'] ?? 0)); ?></strong><span>Interés alto + surtido reducido</span></div>
-                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n(absint($sum['categories_price_dispersion'] ?? 0)); ?></strong><span>Alta dispersión de precios</span></div>
-                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n(absint($sum['categories_promo_pressure'] ?? 0)); ?></strong><span>Presión promocional</span></div>
+                <div class="seo-ojeador-card"><strong><?php echo esc_html(number_format_i18n((float) ($sum['valid_market_coverage_pct'] ?? 0), 1)); ?>%</strong><span>Cobertura de mercado válida<br><small><?php echo number_format_i18n(absint($sum['categories_with_market'] ?? 0)); ?> / <?php echo number_format_i18n(absint($sum['categories_eligible'] ?? 0)); ?> categorías aptas</small></span></div>
+                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n(absint($sum['categories_pending_first_scan'] ?? 0)); ?></strong><span>Pendientes de primera instantánea</span></div>
+                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n(absint($sum['categories_error'] ?? 0)); ?></strong><span>Consultas con error</span></div>
+                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n(absint($sum['provider_remaining'] ?? 0)); ?> / <?php echo number_format_i18n(absint($sum['provider_limit'] ?? 0)); ?></strong><span>Consultas disponibles</span></div>
+                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n(absint($sum['active_results'] ?? 0)); ?></strong><span>Productos de mercado observados</span></div>
+                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n(absint($sum['unique_merchants'] ?? 0)); ?></strong><span>Comercios distintos</span></div>
+                <div class="seo-ojeador-card"><strong><?php echo esc_html(number_format_i18n((float) ($sum['median_merchants_per_category'] ?? 0), 1)); ?></strong><span>Mediana de comercios / categoría</span></div>
+                <div class="seo-ojeador-card seo-ojeador-kpi-action"><strong><?php echo number_format_i18n(absint($sum['catalog_gap_candidates'] ?? 0)); ?></strong><span>Huecos de catálogo a revisar</span></div>
+                <div class="seo-ojeador-card seo-ojeador-kpi-action"><strong><?php echo number_format_i18n(absint($sum['high_visibility_categories'] ?? 0)); ?></strong><span>Categorías con visibilidad interna alta</span></div>
+                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n(absint($sum['high_promo_categories'] ?? 0)); ?></strong><span>Presión promocional alta</span></div>
+                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n(absint($sum['concentrated_categories'] ?? 0)); ?></strong><span>Oferta concentrada</span></div>
+                <div class="seo-ojeador-card"><strong><?php echo esc_html(number_format_i18n((float) ($sum['avg_price_data_coverage_pct'] ?? 0), 1)); ?>%</strong><span>Cobertura media de precio</span></div>
             </div>
 
-            <div style="margin:20px 0 8px">
-                <h3 style="margin:0">Acciones prioritarias</h3>
-                <p class="seo-ojeador-muted" style="margin:4px 0 0">Ordenadas por necesidad de revisión. Las señales combinan estado de la consulta, Analista 28 días, surtido interno y la muestra de Google Shopping.</p>
+            <?php if ($operational) : ?>
+                <div style="margin:22px 0 8px"><h3 style="margin:0">Bloqueos operativos</h3><p class="seo-ojeador-muted" style="margin:4px 0 0">Antes de interpretar categorías pendientes, resuelve estos puntos.</p></div>
+                <div class="seo-ojeador-action-grid">
+                    <?php foreach ($operational as $rec) : $tone = self::analysis_tone_color($rec['tone'] ?? ''); ?>
+                        <div class="seo-ojeador-box" style="border-left:4px solid <?php echo esc_attr($tone); ?>">
+                            <strong><?php echo esc_html((string) ($rec['signal'] ?? '')); ?></strong>
+                            <p style="margin:7px 0"><strong>Acción:</strong> <?php echo esc_html((string) ($rec['action'] ?? '')); ?></p>
+                            <small class="seo-ojeador-muted"><?php echo esc_html((string) ($rec['reason'] ?? '')); ?></small>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+
+            <div style="display:flex;justify-content:space-between;gap:12px;align-items:end;flex-wrap:wrap;margin:24px 0 8px">
+                <div><h3 style="margin:0">Recomendaciones comerciales</h3><p class="seo-ojeador-muted" style="margin:4px 0 0">Sólo aparecen categorías que activan una regla concreta. Una categoría puede generar varias recomendaciones.</p></div>
+                <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=' . self::PAGE . '&ojeador_tab=products')); ?>">Abrir comparación de productos</a>
             </div>
             <div class="seo-ojeador-table">
                 <table class="widefat striped">
-                    <thead><tr><th>Categoría</th><th>Señal</th><th>Por qué</th><th>Acción propuesta</th><th>Datos</th></tr></thead>
+                    <thead><tr><th>Prioridad</th><th>Categoría</th><th>Índice oportunidad</th><th>Señal</th><th>Qué hacer</th><th>Por qué</th><th>Datos clave</th></tr></thead>
                     <tbody>
-                    <?php foreach ($actions as $row) :
-                        $tone = self::analysis_tone_color($row['analysis_tone'] ?? '');
-                        $pmin = isset($row['price_min']) && $row['price_min'] !== null ? (float) $row['price_min'] : null;
-                        $pmax = isset($row['price_max']) && $row['price_max'] !== null ? (float) $row['price_max'] : null;
-                    ?>
+                    <?php foreach (array_slice($recommendations, 0, 50) as $rec) : $tone = self::analysis_tone_color($rec['tone'] ?? ''); ?>
                         <tr>
-                            <td><strong><?php echo esc_html((string) (($row['category_name'] ?? '') ?: ($row['woo_category'] ?? ''))); ?></strong><br><small class="seo-ojeador-muted"><?php echo esc_html((string) (($row['query_text'] ?? '') ?: ($row['trusted_query'] ?? ''))); ?></small></td>
-                            <td><span class="seo-ojeador-pill" style="color:<?php echo esc_attr($tone); ?>"><?php echo esc_html((string) ($row['analysis_signal'] ?? '')); ?></span></td>
-                            <td><?php echo esc_html((string) ($row['analysis_reason'] ?? '')); ?></td>
-                            <td><strong><?php echo esc_html((string) ($row['analysis_action'] ?? '')); ?></strong></td>
-                            <td><small>
-                                <?php echo number_format_i18n((float) ($row['analista_clicks'] ?? 0), 0); ?> clics ·
-                                <?php echo number_format_i18n((float) ($row['analista_impressions'] ?? 0), 0); ?> imp. ·
-                                <?php echo number_format_i18n(absint($row['woo_product_count'] ?? 0)); ?> prod. propios ·
-                                <?php echo number_format_i18n(absint($row['market_result_count'] ?? 0)); ?> resultados ·
-                                <?php echo number_format_i18n(absint($row['merchant_count'] ?? 0)); ?> comercios
-                                <?php if ($pmin !== null && $pmax !== null) : ?> · <?php echo esc_html(number_format_i18n($pmin, 2)); ?>–<?php echo esc_html(number_format_i18n($pmax, 2)); ?> <?php echo esc_html((string) ($row['currency'] ?? 'EUR')); ?><?php endif; ?>
-                            </small></td>
+                            <td><strong style="color:<?php echo esc_attr($tone); ?>"><?php echo number_format_i18n(absint($rec['priority'] ?? 0)); ?></strong></td>
+                            <td><strong><?php echo esc_html((string) ($rec['category_name'] ?? '')); ?></strong><br><small class="seo-ojeador-muted"><?php echo esc_html((string) ($rec['query_text'] ?? '')); ?></small></td>
+                            <td><strong><?php echo esc_html(number_format_i18n((float) ($rec['opportunity_index'] ?? 0), 1)); ?></strong><br><small>gap <?php echo esc_html(number_format_i18n((float) ($rec['catalog_gap_index'] ?? 0), 0)); ?> · comp. <?php echo esc_html(number_format_i18n((float) ($rec['competition_index'] ?? 0), 0)); ?> · vis. <?php echo esc_html(number_format_i18n((float) ($rec['visibility_index'] ?? 0), 0)); ?></small></td>
+                            <td><span class="seo-ojeador-pill" style="color:<?php echo esc_attr($tone); ?>"><?php echo esc_html((string) ($rec['signal'] ?? '')); ?></span></td>
+                            <td><strong><?php echo esc_html((string) ($rec['action'] ?? '')); ?></strong></td>
+                            <td><?php echo esc_html((string) ($rec['reason'] ?? '')); ?></td>
+                            <td><small><?php echo number_format_i18n(absint($rec['woo_product_count'] ?? 0)); ?> prod. propios · <?php echo number_format_i18n(absint($rec['merchant_count'] ?? 0)); ?> comercios · <?php echo number_format_i18n((float) ($rec['analista_impressions'] ?? 0), 0); ?> imp.</small></td>
                         </tr>
                     <?php endforeach; ?>
-                    <?php if (!$actions) : ?><tr><td colspan="5">No hay acciones prioritarias con las reglas actuales.</td></tr><?php endif; ?>
+                    <?php if (!$recommendations) : ?><tr><td colspan="7">No hay recomendaciones comerciales prioritarias con los datos actuales.</td></tr><?php endif; ?>
                     </tbody>
                 </table>
             </div>
 
             <details class="seo-ojeador-box seo-ojeador-analysis-detail" style="margin-top:18px">
-                <summary>Radiografía completa por categoría (<?php echo number_format_i18n(count($categories)); ?>)</summary>
-                <p class="seo-ojeador-muted">Los resultados son la muestra devuelta por Google Shopping para la <code>shopping_query</code>; no representan el tamaño total del mercado.</p>
+                <summary>Índices por categoría</summary>
+                <p class="seo-ojeador-muted">El índice de oportunidad es una prioridad interna, no una previsión de ventas. La profundidad de catálogo se compara con nuestras propias categorías; competencia usa comercios observados; visibilidad usa impresiones de Analista; reseñas usa volumen de reviews.</p>
                 <div class="seo-ojeador-table" style="margin-top:10px">
                     <table class="widefat striped">
-                        <thead><tr><th>Categoría</th><th>Analista 28 d</th><th>Catálogo</th><th>Mercado</th><th>Precio observado</th><th>Promoción</th><th>Concentración</th><th>Señal</th></tr></thead>
+                        <thead><tr><th>Categoría</th><th>Productos propios</th><th>Comercios</th><th>Analista 28 d</th><th>Oportunidad</th><th>Gap catálogo</th><th>Competencia</th><th>Visibilidad</th><th>Reviews</th><th>Promo</th><th>Concentración</th><th>Acción principal</th></tr></thead>
                         <tbody>
-                        <?php foreach ($categories as $row) :
-                            if (empty($row['ojeador_eligible'])) continue;
-                            $tone = self::analysis_tone_color($row['analysis_tone'] ?? '');
-                            $pmin = isset($row['price_min']) && $row['price_min'] !== null ? (float) $row['price_min'] : null;
-                            $pavg = isset($row['price_avg']) && $row['price_avg'] !== null ? (float) $row['price_avg'] : null;
-                            $pmax = isset($row['price_max']) && $row['price_max'] !== null ? (float) $row['price_max'] : null;
-                            $promo = isset($row['discount_share_pct']) && $row['discount_share_pct'] !== null ? (float) $row['discount_share_pct'] : null;
-                            $conc = isset($row['top_merchant_share_pct']) && $row['top_merchant_share_pct'] !== null ? (float) $row['top_merchant_share_pct'] : null;
-                        ?>
+                        <?php foreach ($categories as $row) : if (empty($row['ojeador_eligible']) || (string) ($row['market_status'] ?? '') !== 'ok') continue; $tone = self::analysis_tone_color($row['analysis_tone'] ?? ''); ?>
                             <tr>
                                 <td><strong><?php echo esc_html((string) (($row['category_name'] ?? '') ?: ($row['woo_category'] ?? ''))); ?></strong></td>
-                                <td><?php echo number_format_i18n((float) ($row['analista_clicks'] ?? 0), 0); ?> clics<br><small><?php echo number_format_i18n((float) ($row['analista_impressions'] ?? 0), 0); ?> imp.</small></td>
-                                <td><?php echo number_format_i18n(absint($row['woo_product_count'] ?? 0)); ?> productos</td>
-                                <td><?php echo number_format_i18n(absint($row['market_result_count'] ?? 0)); ?> resultados<br><small><?php echo number_format_i18n(absint($row['merchant_count'] ?? 0)); ?> comercios</small></td>
-                                <td><?php if ($pavg !== null) : ?><?php echo esc_html(number_format_i18n($pmin, 2)); ?> / <strong><?php echo esc_html(number_format_i18n($pavg, 2)); ?></strong> / <?php echo esc_html(number_format_i18n($pmax, 2)); ?> €<br><small>mín / media / máx</small><?php else : ?>—<?php endif; ?></td>
-                                <td><?php echo $promo !== null ? esc_html(number_format_i18n($promo, 1)) . '%' : '—'; ?></td>
-                                <td><?php echo $conc !== null ? esc_html(number_format_i18n($conc, 1)) . '%' : '—'; ?><br><small>top comercio</small></td>
-                                <td><span class="seo-ojeador-pill" style="color:<?php echo esc_attr($tone); ?>"><?php echo esc_html((string) ($row['analysis_signal'] ?? '')); ?></span><br><small><?php echo esc_html((string) ($row['analysis_action'] ?? '')); ?></small></td>
+                                <td><?php echo number_format_i18n(absint($row['woo_product_count'] ?? 0)); ?></td>
+                                <td><?php echo number_format_i18n(absint($row['merchant_count'] ?? 0)); ?></td>
+                                <td><?php echo number_format_i18n((float) ($row['analista_impressions'] ?? 0), 0); ?> imp.</td>
+                                <td><strong><?php echo esc_html(number_format_i18n((float) ($row['opportunity_index'] ?? 0), 1)); ?></strong></td>
+                                <td><?php echo esc_html(number_format_i18n((float) ($row['catalog_gap_index'] ?? 0), 0)); ?></td>
+                                <td><?php echo esc_html(number_format_i18n((float) ($row['competition_index'] ?? 0), 0)); ?></td>
+                                <td><?php echo esc_html(number_format_i18n((float) ($row['visibility_index'] ?? 0), 0)); ?></td>
+                                <td><?php echo esc_html(number_format_i18n((float) ($row['review_index'] ?? 0), 0)); ?></td>
+                                <td><?php echo esc_html(number_format_i18n((float) ($row['promo_index'] ?? 0), 0)); ?></td>
+                                <td><?php echo esc_html(number_format_i18n((float) ($row['concentration_index'] ?? 0), 0)); ?></td>
+                                <td><span class="seo-ojeador-pill" style="color:<?php echo esc_attr($tone); ?>"><?php echo esc_html((string) ($row['analysis_signal'] ?? '')); ?></span></td>
                             </tr>
                         <?php endforeach; ?>
                         </tbody>
@@ -335,25 +404,99 @@ final class SEO_Ojeador_Admin {
 
             <details class="seo-ojeador-box seo-ojeador-analysis-detail" style="margin-top:12px">
                 <summary>Comercios más visibles en la muestra</summary>
-                <p class="seo-ojeador-muted">Cuenta apariciones en los resultados activos. No compara precios medios entre categorías porque serían magnitudes no homogéneas.</p>
                 <div class="seo-ojeador-table" style="margin-top:10px">
                     <table class="widefat striped">
                         <thead><tr><th>Comercio</th><th>Apariciones</th><th>Categorías</th><th>Con precio</th><th>Con descuento</th></tr></thead>
                         <tbody>
                         <?php foreach ($merchants as $merchant) : ?>
-                            <tr>
-                                <td><strong><?php echo esc_html((string) ($merchant['merchant'] ?? '')); ?></strong></td>
-                                <td><?php echo number_format_i18n(absint($merchant['appearances'] ?? 0)); ?></td>
-                                <td><?php echo number_format_i18n(absint($merchant['categories'] ?? 0)); ?></td>
-                                <td><?php echo number_format_i18n(absint($merchant['rows_with_price'] ?? 0)); ?></td>
-                                <td><?php echo number_format_i18n(absint($merchant['discounted_rows'] ?? 0)); ?></td>
-                            </tr>
+                            <tr><td><strong><?php echo esc_html((string) ($merchant['merchant'] ?? '')); ?></strong></td><td><?php echo number_format_i18n(absint($merchant['appearances'] ?? 0)); ?></td><td><?php echo number_format_i18n(absint($merchant['categories'] ?? 0)); ?></td><td><?php echo number_format_i18n(absint($merchant['rows_with_price'] ?? 0)); ?></td><td><?php echo number_format_i18n(absint($merchant['discounted_rows'] ?? 0)); ?></td></tr>
                         <?php endforeach; ?>
-                        <?php if (!$merchants) : ?><tr><td colspan="5">Todavía no hay comercios identificados.</td></tr><?php endif; ?>
                         </tbody>
                     </table>
                 </div>
             </details>
+        </section>
+        <?php
+    }
+
+    private static function render_products($comparison, $category_options) {
+        $comparison = is_array($comparison) ? $comparison : array();
+        $rows = (array) ($comparison['rows'] ?? array());
+        $filters = (array) ($comparison['filters'] ?? array());
+        $page = absint($comparison['page'] ?? 1);
+        $pages = absint($comparison['pages'] ?? 1);
+        $total = absint($comparison['total'] ?? 0);
+        $base_args = array(
+            'page' => self::PAGE,
+            'ojeador_tab' => 'products',
+            'pcat' => absint($filters['term_id'] ?? 0),
+            'pq' => (string) ($filters['q'] ?? ''),
+            'pmerchant' => (string) ($filters['merchant'] ?? ''),
+            'pmin' => (string) ($filters['min_price'] ?? ''),
+            'pmax' => (string) ($filters['max_price'] ?? ''),
+            'prating' => (string) ($filters['min_rating'] ?? ''),
+            'previews' => (string) ($filters['min_reviews'] ?? ''),
+            'pdiscount' => !empty($filters['discounted']) ? 1 : 0,
+            'psort' => (string) ($filters['sort'] ?? 'position'),
+            'pper' => absint($filters['per_page'] ?? 100),
+        );
+        ?>
+        <section class="seo-ojeador-products">
+            <div style="margin:20px 0 8px"><h2 style="margin:0">Comparador de productos encontrados</h2><p class="seo-ojeador-muted" style="margin:4px 0 0">Explora los productos devueltos por Google Shopping. Úsalo para comparar productos equivalentes antes de tomar decisiones de surtido, precio o promoción.</p></div>
+
+            <form method="get" action="<?php echo esc_url(admin_url('admin.php')); ?>" class="seo-ojeador-box seo-ojeador-filterbox">
+                <input type="hidden" name="page" value="<?php echo esc_attr(self::PAGE); ?>">
+                <input type="hidden" name="ojeador_tab" value="products">
+                <div class="seo-ojeador-filter-grid">
+                    <label><strong>Categoría</strong><select name="pcat"><option value="0">Todas</option><?php foreach ((array) $category_options as $opt) : ?><option value="<?php echo absint($opt['term_id'] ?? 0); ?>" <?php selected(absint($filters['term_id'] ?? 0), absint($opt['term_id'] ?? 0)); ?>><?php echo esc_html((string) ($opt['category_name'] ?? '')); ?> (<?php echo number_format_i18n(absint($opt['products_found'] ?? 0)); ?>)</option><?php endforeach; ?></select></label>
+                    <label><strong>Producto / marca / modelo</strong><input type="search" name="pq" value="<?php echo esc_attr((string) ($filters['q'] ?? '')); ?>" placeholder="Buscar producto"></label>
+                    <label><strong>Comercio</strong><input type="search" name="pmerchant" value="<?php echo esc_attr((string) ($filters['merchant'] ?? '')); ?>" placeholder="Leroy Merlin, Amazon..."></label>
+                    <label><strong>Precio mín.</strong><input type="number" step="0.01" min="0" name="pmin" value="<?php echo esc_attr((string) ($filters['min_price'] ?? '')); ?>"></label>
+                    <label><strong>Precio máx.</strong><input type="number" step="0.01" min="0" name="pmax" value="<?php echo esc_attr((string) ($filters['max_price'] ?? '')); ?>"></label>
+                    <label><strong>Rating mínimo</strong><input type="number" step="0.1" min="0" max="5" name="prating" value="<?php echo esc_attr((string) ($filters['min_rating'] ?? '')); ?>"></label>
+                    <label><strong>Reviews mínimas</strong><input type="number" step="1" min="0" name="previews" value="<?php echo esc_attr((string) ($filters['min_reviews'] ?? '')); ?>"></label>
+                    <label><strong>Orden</strong><select name="psort">
+                        <?php $sorts = array('position'=>'Posición Google','price_asc'=>'Precio ↑','price_desc'=>'Precio ↓','rating_desc'=>'Rating ↓','reviews_desc'=>'Reviews ↓','discount_desc'=>'Descuento ↓','merchant'=>'Comercio','title'=>'Producto','recent'=>'Más reciente'); foreach ($sorts as $key=>$label) : ?><option value="<?php echo esc_attr($key); ?>" <?php selected((string) ($filters['sort'] ?? 'position'), $key); ?>><?php echo esc_html($label); ?></option><?php endforeach; ?>
+                    </select></label>
+                    <label><strong>Filas</strong><select name="pper"><?php foreach (array(50,100,200) as $n) : ?><option value="<?php echo $n; ?>" <?php selected(absint($filters['per_page'] ?? 100), $n); ?>><?php echo $n; ?></option><?php endforeach; ?></select></label>
+                    <label class="seo-ojeador-check"><input type="checkbox" name="pdiscount" value="1" <?php checked(!empty($filters['discounted'])); ?>> Sólo con descuento</label>
+                </div>
+                <p style="margin-bottom:0"><button class="button button-primary">Aplicar filtros</button> <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=' . self::PAGE . '&ojeador_tab=products')); ?>">Limpiar</a> <span class="seo-ojeador-muted" style="margin-left:8px"><?php echo number_format_i18n($total); ?> resultados</span></p>
+            </form>
+
+            <div class="seo-ojeador-table" style="margin-top:14px">
+                <table class="widefat striped">
+                    <thead><tr><th>Categoría</th><th>Producto</th><th>Comercio</th><th>Precio</th><th>Descuento</th><th>Rating / reviews</th><th>Posición</th><th>Observado</th></tr></thead>
+                    <tbody>
+                    <?php foreach ($rows as $row) :
+                        $price = ($row['price'] !== null && $row['price'] !== '') ? (float) $row['price'] : null;
+                        $old = ($row['old_price'] !== null && $row['old_price'] !== '') ? (float) $row['old_price'] : null;
+                        $discount = ($row['discount_pct'] !== null && $row['discount_pct'] !== '') ? (float) $row['discount_pct'] : null;
+                        $rating = ($row['rating'] !== null && $row['rating'] !== '') ? (float) $row['rating'] : null;
+                    ?>
+                        <tr>
+                            <td><strong><?php echo esc_html((string) ($row['category_name'] ?? '')); ?></strong></td>
+                            <td><?php if (!empty($row['product_url'])) : ?><a href="<?php echo esc_url((string) $row['product_url']); ?>" target="_blank" rel="noopener noreferrer"><strong><?php echo esc_html((string) ($row['title'] ?? '')); ?></strong></a><?php else : ?><strong><?php echo esc_html((string) ($row['title'] ?? '')); ?></strong><?php endif; ?><?php if (!empty($row['brand']) || !empty($row['model'])) : ?><br><small class="seo-ojeador-muted"><?php echo esc_html(trim((string) ($row['brand'] ?? '') . ' ' . (string) ($row['model'] ?? ''))); ?></small><?php endif; ?></td>
+                            <td><?php echo esc_html((string) ($row['merchant'] ?? '—')); ?></td>
+                            <td><?php echo $price !== null ? esc_html(number_format_i18n($price, 2)) . ' ' . esc_html((string) ($row['currency'] ?? 'EUR')) : '—'; ?><?php if ($old !== null && $old > 0) : ?><br><small class="seo-ojeador-muted"><del><?php echo esc_html(number_format_i18n($old, 2)); ?></del></small><?php endif; ?></td>
+                            <td><?php echo $discount !== null ? '<strong>' . esc_html(number_format_i18n($discount, 1)) . '%</strong>' : '—'; ?></td>
+                            <td><?php echo $rating !== null ? esc_html(number_format_i18n($rating, 1)) . ' / 5' : '—'; ?><br><small><?php echo number_format_i18n(absint($row['reviews'] ?? 0)); ?> reviews</small></td>
+                            <td><?php echo number_format_i18n(absint($row['result_position'] ?? 0)); ?></td>
+                            <td><?php echo esc_html((string) ($row['observed_at'] ?? '—')); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    <?php if (!$rows) : ?><tr><td colspan="8">No hay productos que cumplan los filtros.</td></tr><?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <?php if ($pages > 1) : ?>
+                <div class="tablenav"><div class="tablenav-pages"><span class="displaying-num"><?php echo number_format_i18n($total); ?> elementos</span>
+                    <?php if ($page > 1) : $prev = $base_args; $prev['ppage']=$page-1; ?><a class="button" href="<?php echo esc_url(add_query_arg($prev, admin_url('admin.php'))); ?>">‹ Anterior</a><?php endif; ?>
+                    <span class="paging-input"><?php echo number_format_i18n($page); ?> de <span class="total-pages"><?php echo number_format_i18n($pages); ?></span></span>
+                    <?php if ($page < $pages) : $next = $base_args; $next['ppage']=$page+1; ?><a class="button" href="<?php echo esc_url(add_query_arg($next, admin_url('admin.php'))); ?>">Siguiente ›</a><?php endif; ?>
+                </div></div>
+            <?php endif; ?>
         </section>
         <?php
     }
@@ -363,36 +506,69 @@ final class SEO_Ojeador_Admin {
             return;
         }
 
-        $summary = SEO_Ojeador_DB::category_summary();
-        $analysis = SEO_Ojeador_Analysis::dashboard(30);
+        $tab = sanitize_key((string) ($_GET['ojeador_tab'] ?? 'analysis'));
+        if (!in_array($tab, array('analysis','products','operation'), true)) {
+            $tab = 'analysis';
+        }
+
         $settings = SEO_Ojeador_Shopping::settings();
         $usage = SEO_Ojeador_Shopping::usage_month();
         $ready = SEO_Ojeador_Shopping::readiness();
         $run = SEO_Ojeador_DB::active_run();
-        if (!$run) {
-            $run = SEO_Ojeador_DB::latest_run();
-        }
-        $search = sanitize_text_field(wp_unslash($_GET['s'] ?? ''));
-        $rows = SEO_Ojeador_DB::list_market_categories(array('limit'=>1000, 'search'=>$search));
-        $logs = SEO_Ojeador_DB::list_query_logs(100);
-        $latest_log = SEO_Ojeador_DB::latest_query_log();
+        if (!$run) $run = SEO_Ojeador_DB::latest_run();
         $notice = sanitize_key((string) ($_GET['ojeador_notice'] ?? ''));
         $error = isset($_GET['ojeador_error']) ? sanitize_text_field(rawurldecode((string) $_GET['ojeador_error'])) : '';
+
+        $analysis = array();
+        $comparison = array();
+        $category_options = array();
+        $summary = array();
+        $rows = array();
+        $logs = array();
+        $latest_log = array();
+        $search = '';
+
+        if ($tab === 'analysis') {
+            $analysis = SEO_Ojeador_Analysis::dashboard(100);
+        } elseif ($tab === 'products') {
+            $comparison = SEO_Ojeador_Analysis::comparison_products(array(
+                'term_id' => absint($_GET['pcat'] ?? 0),
+                'q' => sanitize_text_field(wp_unslash($_GET['pq'] ?? '')),
+                'merchant' => sanitize_text_field(wp_unslash($_GET['pmerchant'] ?? '')),
+                'min_price' => isset($_GET['pmin']) ? sanitize_text_field(wp_unslash($_GET['pmin'])) : '',
+                'max_price' => isset($_GET['pmax']) ? sanitize_text_field(wp_unslash($_GET['pmax'])) : '',
+                'min_rating' => isset($_GET['prating']) ? sanitize_text_field(wp_unslash($_GET['prating'])) : '',
+                'min_reviews' => isset($_GET['previews']) ? sanitize_text_field(wp_unslash($_GET['previews'])) : '',
+                'discounted' => !empty($_GET['pdiscount']) ? 1 : 0,
+                'sort' => sanitize_key((string) ($_GET['psort'] ?? 'position')),
+                'page' => absint($_GET['ppage'] ?? 1),
+                'per_page' => absint($_GET['pper'] ?? 100),
+            ));
+            $category_options = SEO_Ojeador_Analysis::comparison_category_options();
+        } else {
+            $summary = SEO_Ojeador_DB::category_summary();
+            $search = sanitize_text_field(wp_unslash($_GET['s'] ?? ''));
+            $rows = SEO_Ojeador_DB::list_market_categories(array('limit'=>1000, 'search'=>$search));
+            $logs = SEO_Ojeador_DB::list_query_logs(100);
+            $latest_log = SEO_Ojeador_DB::latest_query_log();
+        }
         ?>
-        <div class="wrap seo-ojeador-v060">
+        <div class="wrap seo-ojeador-v080">
             <style>
-                .seo-ojeador-v060{max-width:1450px}.seo-ojeador-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
-                .seo-ojeador-sub{color:#646970;margin-top:5px;max-width:980px}.seo-ojeador-actions{display:flex;gap:8px;flex-wrap:wrap}.seo-ojeador-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin:18px 0}
-                .seo-ojeador-card,.seo-ojeador-box{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:15px}.seo-ojeador-card strong{display:block;font-size:24px;line-height:1.1}.seo-ojeador-card span{color:#646970}
-                .seo-ojeador-table{overflow:auto;background:#fff;border:1px solid #dcdcde;border-radius:8px}.seo-ojeador-table table{border:0;margin:0}.seo-ojeador-muted{color:#646970}.seo-ojeador-pill{font-weight:600;white-space:nowrap}
+                .seo-ojeador-v080{max-width:1500px}.seo-ojeador-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
+                .seo-ojeador-sub{color:#646970;margin-top:5px;max-width:1000px}.seo-ojeador-actions{display:flex;gap:8px;flex-wrap:wrap}.seo-ojeador-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;margin:18px 0}
+                .seo-ojeador-card,.seo-ojeador-box{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:15px}.seo-ojeador-card strong{display:block;font-size:24px;line-height:1.1}.seo-ojeador-card span{color:#646970}.seo-ojeador-card small{font-size:11px}.seo-ojeador-kpi-action{border-left:4px solid #008a20}
+                .seo-ojeador-table{overflow:auto;background:#fff;border:1px solid #dcdcde;border-radius:8px}.seo-ojeador-table table{border:0;margin:0}.seo-ojeador-table td{vertical-align:top}.seo-ojeador-muted{color:#646970}.seo-ojeador-pill{font-weight:600;white-space:nowrap}
                 .seo-ojeador-run{margin:12px 0 0;padding:10px 12px;background:#f6f7f7;border-radius:6px}.seo-ojeador-config{margin-top:18px}.seo-ojeador-config summary{cursor:pointer;font-weight:600;font-size:15px}
                 .seo-ojeador-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:14px}.seo-ojeador-grid label{display:block}.seo-ojeador-grid input{width:100%;margin-top:5px}.seo-ojeador-grid small{display:block;color:#646970;margin-top:4px}.seo-ojeador-analysis-detail summary{cursor:pointer;font-weight:600;font-size:15px}.seo-ojeador-analysis-cards{margin-top:10px}
+                .seo-ojeador-action-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px}.seo-ojeador-filter-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px}.seo-ojeador-filter-grid label{display:block}.seo-ojeador-filter-grid input,.seo-ojeador-filter-grid select{width:100%;margin-top:5px}.seo-ojeador-filter-grid .seo-ojeador-check{display:flex;gap:7px;align-items:center;padding-top:24px}.seo-ojeador-filter-grid .seo-ojeador-check input{width:auto;margin:0}
+                .nav-tab-wrapper{margin-top:18px}.seo-ojeador-products .tablenav-pages{display:flex;gap:8px;align-items:center}
             </style>
 
             <div class="seo-ojeador-head">
                 <div>
                     <h1 style="margin-bottom:0">Ojeador <small style="font-size:14px;color:#646970">v<?php echo esc_html(SEO_OJEADOR_VERSION); ?></small></h1>
-                    <p class="seo-ojeador-sub">Consulta Google Shopping sólo para categorías con vocabulario aprobado y <code>shopping_query</code> explícita. Primero completa categorías nunca consultadas con su consulta aprobada; dentro de ese grupo prioriza tráfico de Analista (28 días) y después número de productos.</p>
+                    <p class="seo-ojeador-sub">Google Shopping por categorías, análisis accionable y comparación de los productos encontrados. Las recomendaciones sirven para decidir qué revisar; no ejecutan cambios automáticos.</p>
                 </div>
                 <div class="seo-ojeador-actions">
                     <?php if (SEO_Ojeador_Worker::is_pending()) : ?>
@@ -401,150 +577,85 @@ final class SEO_Ojeador_Admin {
                         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"><?php wp_nonce_field('seo_ojeador_start'); ?><input type="hidden" name="action" value="seo_ojeador_start"><button class="button button-primary" <?php disabled(is_wp_error($ready)); ?>>Continuar / actualizar mercado</button></form>
                     <?php endif; ?>
                     <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=seo-processes')); ?>">Procesos</a>
-                    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"><?php wp_nonce_field('seo_ojeador_export_json'); ?><input type="hidden" name="action" value="seo_ojeador_export_json"><button class="button" type="submit">Exportar JSON completo</button></form>
-                    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"><?php wp_nonce_field('seo_ojeador_export_log_json'); ?><input type="hidden" name="action" value="seo_ojeador_export_log_json"><button class="button" type="submit">Exportar log JSON</button></form>
+                    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"><?php wp_nonce_field('seo_ojeador_export_analysis_json'); ?><input type="hidden" name="action" value="seo_ojeador_export_analysis_json"><button class="button" type="submit">Exportar JSON análisis</button></form>
                 </div>
             </div>
 
             <?php if ($notice === 'settings_saved') : ?><div class="notice notice-success inline"><p>Configuración guardada.</p></div><?php endif; ?>
-            <?php if ($notice === 'scan_started') : ?><div class="notice notice-success inline"><p>Ojeador está consultando categorías aptas. No repite categorías mientras quede alguna sin una primera instantánea con su <code>shopping_query</code> aprobada; después prioriza Analista, productos y antigüedad.</p></div><?php endif; ?>
+            <?php if ($notice === 'scan_started') : ?><div class="notice notice-success inline"><p>Ojeador está consultando categorías aptas.</p></div><?php endif; ?>
             <?php if ($notice === 'scan_stopped') : ?><div class="notice notice-info inline"><p>Proceso detenido.</p></div><?php endif; ?>
             <?php if ($error !== '') : ?><div class="notice notice-error inline"><p><?php echo esc_html($error); ?></p></div><?php endif; ?>
             <?php if (is_wp_error($ready)) : ?><div class="notice notice-warning inline"><p><strong>Google Shopping:</strong> <?php echo esc_html($ready->get_error_message()); ?></p></div><?php endif; ?>
 
-            <div class="seo-ojeador-cards">
-                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n($summary['target']); ?></strong><span>Categorías aptas Ojeador</span></div>
-                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n($summary['excluded'] ?? 0); ?></strong><span>Excluidas por vocabulario</span></div>
-                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n($summary['consulted']); ?></strong><span>Con consulta aprobada realizada</span></div>
-                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n($summary['pending']); ?></strong><span>Sin primera consulta válida</span></div>
-                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n($usage['used']); ?> / <?php echo number_format_i18n($usage['limit']); ?></strong><span><?php echo ($usage['source'] ?? '') === 'serpapi_account' ? 'Uso SerpApi real' : 'Uso local (fallback)'; ?></span></div>
-                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n(absint($usage['local_requests'] ?? 0)); ?></strong><span>Peticiones HTTP Ojeador</span></div>
-                <?php if (($usage['source'] ?? '') === 'serpapi_account') : ?>
-                    <div class="seo-ojeador-card"><strong><?php $usage_diff = (int) ($usage['difference_local_minus_provider'] ?? 0); echo esc_html(($usage_diff > 0 ? '+' : '') . number_format_i18n($usage_diff)); ?></strong><span>Diferencia local − SerpApi</span></div>
-                <?php endif; ?>
-                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n($summary['with_results']); ?></strong><span>Categorías con resultados</span></div>
-                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n($summary['without_results']); ?></strong><span>Sin resultados</span></div>
-                <div class="seo-ojeador-card"><strong><?php echo esc_html(number_format_i18n($summary['coverage'], 1)); ?>%</strong><span>Cobertura válida</span></div>
-            </div>
+            <nav class="nav-tab-wrapper">
+                <a class="nav-tab <?php echo $tab === 'analysis' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(admin_url('admin.php?page=' . self::PAGE . '&ojeador_tab=analysis')); ?>">Análisis y recomendaciones</a>
+                <a class="nav-tab <?php echo $tab === 'products' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(admin_url('admin.php?page=' . self::PAGE . '&ojeador_tab=products')); ?>">Comparador de productos</a>
+                <a class="nav-tab <?php echo $tab === 'operation' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(admin_url('admin.php?page=' . self::PAGE . '&ojeador_tab=operation')); ?>">Operación y consultas</a>
+            </nav>
 
-            <?php if ($run) : ?>
-                <div class="seo-ojeador-run">
-                    <strong>Último proceso:</strong>
-                    <?php echo esc_html((string) ($run['status'] ?? '')); ?> ·
-                    <?php echo number_format_i18n(absint($run['processed_categories'] ?? 0)); ?> categorías ·
-                    <?php echo number_format_i18n(absint($run['api_queries'] ?? 0)); ?> peticiones HTTP ·
-                    <?php echo number_format_i18n(absint($run['results_seen'] ?? 0)); ?> resultados guardados ·
-                    <?php echo number_format_i18n(absint($run['errors_count'] ?? 0)); ?> errores.
-                    <?php if (($usage['source'] ?? '') === 'serpapi_account') : ?>
-                        <br><small>SerpApi informa de <?php echo number_format_i18n(absint($usage['provider_used'] ?? 0)); ?> búsquedas usadas este mes; Ojeador registra <?php echo number_format_i18n(absint($usage['local_requests'] ?? 0)); ?> peticiones HTTP. La diferencia puede incluir respuestas servidas desde caché gratuita, peticiones fallidas u otras llamadas que compartan la misma API key.</small>
-                    <?php elseif (!empty($usage['provider_error'])) : ?>
-                        <br><small>No se pudo leer Account API: <?php echo esc_html((string) $usage['provider_error']); ?></small>
-                    <?php endif; ?>
+            <?php if ($tab === 'analysis') : ?>
+                <?php self::render_analysis($analysis); ?>
+            <?php elseif ($tab === 'products') : ?>
+                <?php self::render_products($comparison, $category_options); ?>
+            <?php else : ?>
+                <div class="seo-ojeador-cards">
+                    <div class="seo-ojeador-card"><strong><?php echo number_format_i18n($summary['target']); ?></strong><span>Categorías aptas Ojeador</span></div>
+                    <div class="seo-ojeador-card"><strong><?php echo number_format_i18n($summary['excluded'] ?? 0); ?></strong><span>Excluidas por vocabulario</span></div>
+                    <div class="seo-ojeador-card"><strong><?php echo number_format_i18n($summary['consulted']); ?></strong><span>Consultadas</span></div>
+                    <div class="seo-ojeador-card"><strong><?php echo number_format_i18n($summary['pending']); ?></strong><span>Pendientes</span></div>
+                    <div class="seo-ojeador-card"><strong><?php echo number_format_i18n($usage['used']); ?> / <?php echo number_format_i18n($usage['limit']); ?></strong><span>Uso SerpApi</span></div>
+                    <div class="seo-ojeador-card"><strong><?php echo number_format_i18n($summary['with_results']); ?></strong><span>Con resultados</span></div>
+                    <div class="seo-ojeador-card"><strong><?php echo number_format_i18n($summary['errors'] ?? 0); ?></strong><span>Errores</span></div>
+                    <div class="seo-ojeador-card"><strong><?php echo esc_html(number_format_i18n($summary['coverage'], 1)); ?>%</strong><span>Cobertura consultada</span></div>
+                </div>
+
+                <?php if ($run) : ?>
+                    <div class="seo-ojeador-run"><strong>Último proceso:</strong> <?php echo esc_html((string) ($run['status'] ?? '')); ?> · <?php echo number_format_i18n(absint($run['processed_categories'] ?? 0)); ?> categorías · <?php echo number_format_i18n(absint($run['api_queries'] ?? 0)); ?> peticiones HTTP · <?php echo number_format_i18n(absint($run['results_seen'] ?? 0)); ?> resultados · <?php echo number_format_i18n(absint($run['errors_count'] ?? 0)); ?> errores.</div>
+                <?php endif; ?>
+
+                <div style="display:flex;justify-content:space-between;gap:12px;align-items:end;flex-wrap:wrap;margin:22px 0 8px;">
+                    <div><h2 style="margin:0">Mercado por categorías</h2><p class="seo-ojeador-muted" style="margin:4px 0 0">Estado operativo de cada shopping_query.</p></div>
+                    <form method="get" action="<?php echo esc_url(admin_url('admin.php')); ?>"><input type="hidden" name="page" value="<?php echo esc_attr(self::PAGE); ?>"><input type="hidden" name="ojeador_tab" value="operation"><input type="search" name="s" value="<?php echo esc_attr($search); ?>" placeholder="Categoría o consulta"><button class="button">Buscar</button></form>
+                </div>
+                <div class="seo-ojeador-table"><table class="widefat striped"><thead><tr><th>Categoría</th><th>Consulta Google</th><th>Prioridad</th><th>Productos catálogo</th><th>Resultados</th><th>Estado</th><th>Última</th><th>Próxima</th></tr></thead><tbody>
+                    <?php foreach ($rows as $row) :
+                        $eligible = !empty($row['ojeador_eligible']); $first_scan = !empty($row['needs_trusted_scan']); $due = !empty($row['ojeador_due']);
+                        if (!$eligible) { $label='No apta'; $color='#b32d2e'; } elseif ($first_scan) { $label='Pendiente'; $color='#996800'; } else { list($label,$color)=self::status_label($row['status'] ?? ''); }
+                        $category_name=(string)($row['category_name'] ?: $row['woo_category']);
+                        $query_text=$eligible ? (string)($first_scan ? ($row['trusted_query'] ?? '') : (($row['query_text'] ?? '') ?: ($row['trusted_query'] ?? ''))) : '';
+                        $priority_label=!$eligible?'Excluida':($first_scan?'Primera consulta':($due?'Actualizar':'Al día'));
+                    ?>
+                        <tr><td><strong><?php echo esc_html($category_name); ?></strong></td><td><?php echo $query_text!==''?esc_html($query_text):'—'; ?></td><td><?php echo esc_html($priority_label); ?></td><td><?php echo number_format_i18n(absint($row['woo_product_count'] ?? 0)); ?></td><td><?php echo number_format_i18n(absint($row['result_count'] ?? 0)); ?></td><td><span class="seo-ojeador-pill" style="color:<?php echo esc_attr($color); ?>"><?php echo esc_html($label); ?></span><?php if (!empty($row['last_error'])) : ?><br><small><?php echo esc_html(wp_trim_words((string)$row['last_error'],14)); ?></small><?php endif; ?></td><td><?php echo !empty($row['last_scan_at'])?esc_html((string)$row['last_scan_at']):'—'; ?></td><td><?php echo !empty($row['next_scan_at'])?esc_html((string)$row['next_scan_at']):'—'; ?></td></tr>
+                    <?php endforeach; ?>
+                </tbody></table></div>
+
+                <div style="display:flex;justify-content:space-between;gap:12px;align-items:end;flex-wrap:wrap;margin:22px 0 8px;"><div><h2 style="margin:0">Log de consultas Google Shopping</h2><p class="seo-ojeador-muted" style="margin:4px 0 0">Trazabilidad por petición.</p></div><?php if ($latest_log) : ?><small class="seo-ojeador-muted">Último evento: <?php echo esc_html((string) ($latest_log['created_at'] ?? '')); ?></small><?php endif; ?></div>
+                <div class="seo-ojeador-table"><table class="widefat striped"><thead><tr><th>Fecha UTC</th><th>Run</th><th>Categoría</th><th>Consulta</th><th>Resultado</th><th>HTTP</th><th>Recibidos</th><th>Guardados</th><th>Tiempo</th><th>Error</th></tr></thead><tbody>
+                    <?php foreach ($logs as $log) : list($log_label,$log_color)=self::query_log_label($log['event_status'] ?? ''); ?>
+                        <tr><td><?php echo esc_html((string)($log['created_at'] ?? '')); ?></td><td><?php echo absint($log['run_id'] ?? 0) ?: '—'; ?></td><td><?php echo !empty($log['category_name'])?esc_html((string)$log['category_name']):'—'; ?></td><td><?php echo !empty($log['query_text'])?esc_html((string)$log['query_text']):'—'; ?></td><td><span class="seo-ojeador-pill" style="color:<?php echo esc_attr($log_color); ?>"><?php echo esc_html($log_label); ?></span></td><td><?php echo !empty($log['request_attempted'])?absint($log['http_code'] ?? 0):'—'; ?></td><td><?php echo number_format_i18n(absint($log['raw_result_count'] ?? 0)); ?></td><td><?php echo number_format_i18n(absint($log['saved_result_count'] ?? 0)); ?></td><td><?php echo !empty($log['duration_ms'])?number_format_i18n(absint($log['duration_ms'])).' ms':'—'; ?></td><td><?php echo !empty($log['error_message'])?esc_html(wp_trim_words((string)$log['error_message'],18)):'—'; ?></td></tr>
+                    <?php endforeach; ?>
+                </tbody></table></div>
+
+                <details class="seo-ojeador-box seo-ojeador-config"><summary>Conexión Google Shopping y ritmo</summary>
+                    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"><?php wp_nonce_field('seo_ojeador_settings_save'); ?><input type="hidden" name="action" value="seo_ojeador_settings_save">
+                        <div class="seo-ojeador-grid">
+                            <label><strong>SerpApi API key</strong><input type="password" name="ojeador[api_key]" value="" placeholder="<?php echo esc_attr($settings['api_key'] !== '' ? 'Configurada · dejar vacío para conservar' : 'API key'); ?>" autocomplete="new-password"></label>
+                            <label><strong>Actualizar cada</strong><input type="number" min="6" max="2160" name="ojeador[interval_hours]" value="<?php echo absint($settings['interval_hours']); ?>"><small>Horas por categoría.</small></label>
+                            <label><strong>Categorías por paso</strong><input type="number" min="1" max="20" name="ojeador[batch_size]" value="<?php echo absint($settings['batch_size']); ?>"></label>
+                            <label><strong>Reutilizar consulta durante</strong><input type="number" min="1" max="168" name="ojeador[query_reuse_hours]" value="<?php echo absint($settings['query_reuse_hours']); ?>"><small>Horas.</small></label>
+                            <label><strong>Límite mensual local</strong><input type="number" min="1" max="1000000" name="ojeador[monthly_query_limit]" value="<?php echo absint($settings['monthly_query_limit']); ?>"></label>
+                        </div>
+                        <p><label><input type="checkbox" name="ojeador[auto_enabled]" value="1" <?php checked(!empty($settings['auto_enabled'])); ?>> Mantener el mercado actualizado automáticamente</label></p><p><button class="button button-primary" type="submit">Guardar</button></p>
+                    </form>
+                </details>
+
+                <div class="seo-ojeador-actions" style="margin-top:18px">
+                    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"><?php wp_nonce_field('seo_ojeador_export_json'); ?><input type="hidden" name="action" value="seo_ojeador_export_json"><button class="button" type="submit">Exportar JSON completo (auditoría)</button></form>
+                    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"><?php wp_nonce_field('seo_ojeador_export_log_json'); ?><input type="hidden" name="action" value="seo_ojeador_export_log_json"><button class="button" type="submit">Exportar log JSON</button></form>
                 </div>
             <?php endif; ?>
-
-            <?php self::render_analysis($analysis); ?>
-
-            <div style="display:flex;justify-content:space-between;gap:12px;align-items:end;flex-wrap:wrap;margin:22px 0 8px;">
-                <div><h2 style="margin:0">Mercado por categorías</h2><p class="seo-ojeador-muted" style="margin:4px 0 0">Cada fila representa una categoría WooCommerce y su última consulta a Google Shopping.</p></div>
-                <form method="get" action="<?php echo esc_url(admin_url('admin.php')); ?>"><input type="hidden" name="page" value="<?php echo esc_attr(self::PAGE); ?>"><input type="search" name="s" value="<?php echo esc_attr($search); ?>" placeholder="Categoría o consulta"><button class="button">Buscar</button></form>
-            </div>
-
-            <div class="seo-ojeador-table">
-                <table class="widefat striped">
-                    <thead><tr><th>Categoría</th><th>Consulta Google</th><th>Prioridad</th><th>Productos en catálogo</th><th>Resultados Google</th><th>Estado</th><th>Última consulta</th><th>Próxima</th></tr></thead>
-                    <tbody>
-                    <?php foreach ($rows as $row) :
-                        $eligible = !empty($row['ojeador_eligible']);
-                        $first_scan = !empty($row['needs_trusted_scan']);
-                        $due = !empty($row['ojeador_due']);
-                        if (!$eligible) {
-                            $label = 'No apta';
-                            $color = '#b32d2e';
-                        } elseif ($first_scan) {
-                            $label = 'Pendiente';
-                            $color = '#996800';
-                        } else {
-                            list($label, $color) = self::status_label($row['status'] ?? '');
-                        }
-                        $category_name = (string) ($row['category_name'] ?: $row['woo_category']);
-                        if ($eligible) {
-                            $query_text = $first_scan
-                                ? (string) ($row['trusted_query'] ?? '')
-                                : (string) (($row['query_text'] ?? '') ?: ($row['trusted_query'] ?? ''));
-                        } else {
-                            $query_text = '';
-                        }
-                        $priority_label = !$eligible ? 'Excluida' : ($first_scan ? 'Primera consulta' : ($due ? 'Actualizar' : 'Al día'));
-                        $clicks = (float) ($row['analista_clicks'] ?? 0);
-                        $impressions = (float) ($row['analista_impressions'] ?? 0);
-                    ?>
-                        <tr>
-                            <td><strong><?php echo esc_html($category_name); ?></strong></td>
-                            <td><?php echo $query_text !== '' ? esc_html($query_text) : '<span class="seo-ojeador-muted">—</span>'; ?></td>
-                            <td><strong><?php echo esc_html($priority_label); ?></strong><?php if ($eligible) : ?><br><small class="seo-ojeador-muted">Analista 28 d: <?php echo number_format_i18n($clicks, 0); ?> clics · <?php echo number_format_i18n($impressions, 0); ?> imp.</small><?php endif; ?></td>
-                            <td><?php echo number_format_i18n(absint($row['woo_product_count'] ?? 0)); ?></td>
-                            <td><?php echo number_format_i18n(absint($row['result_count'] ?? 0)); ?></td>
-                            <td><span class="seo-ojeador-pill" style="color:<?php echo esc_attr($color); ?>"><?php echo esc_html($label); ?></span><?php if (!empty($row['last_error'])) : ?><br><small><?php echo esc_html(wp_trim_words((string) $row['last_error'], 14)); ?></small><?php endif; ?></td>
-                            <td><?php echo !empty($row['last_scan_at']) ? esc_html((string) $row['last_scan_at']) : '—'; ?></td>
-                            <td><?php echo !empty($row['next_scan_at']) ? esc_html((string) $row['next_scan_at']) : '—'; ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                    <?php if (!$rows) : ?><tr><td colspan="8">No hay categorías de producto con contenido.</td></tr><?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-
-            <div style="display:flex;justify-content:space-between;gap:12px;align-items:end;flex-wrap:wrap;margin:22px 0 8px;">
-                <div><h2 style="margin:0">Log de consultas Google Shopping</h2><p class="seo-ojeador-muted" style="margin:4px 0 0">Trazabilidad por petición: consulta, HTTP, respuesta de SerpApi, resultados normalizados, resultados guardados y errores de persistencia.</p></div>
-                <?php if ($latest_log) : ?><small class="seo-ojeador-muted">Último evento: <?php echo esc_html((string) ($latest_log['created_at'] ?? '')); ?></small><?php endif; ?>
-            </div>
-            <div class="seo-ojeador-table">
-                <table class="widefat striped">
-                    <thead><tr><th>Fecha UTC</th><th>Run</th><th>Categoría</th><th>Consulta</th><th>Resultado</th><th>HTTP</th><th>Recibidos</th><th>Normalizados</th><th>Guardados</th><th>Tiempo</th><th>Error</th></tr></thead>
-                    <tbody>
-                    <?php foreach ($logs as $log) :
-                        list($log_label, $log_color) = self::query_log_label($log['event_status'] ?? '');
-                    ?>
-                        <tr>
-                            <td><?php echo esc_html((string) ($log['created_at'] ?? '')); ?></td>
-                            <td><?php echo absint($log['run_id'] ?? 0) ?: '—'; ?></td>
-                            <td><?php echo !empty($log['category_name']) ? esc_html((string) $log['category_name']) : (!empty($log['term_id']) ? '#' . absint($log['term_id']) : '—'); ?></td>
-                            <td><?php echo !empty($log['query_text']) ? esc_html((string) $log['query_text']) : '—'; ?></td>
-                            <td><span class="seo-ojeador-pill" style="color:<?php echo esc_attr($log_color); ?>"><?php echo esc_html($log_label); ?></span><?php if (!empty($log['provider_search_id'])) : ?><br><small class="seo-ojeador-muted">SerpApi: <?php echo esc_html((string) $log['provider_search_id']); ?></small><?php endif; ?></td>
-                            <td><?php echo !empty($log['request_attempted']) ? absint($log['http_code'] ?? 0) : '—'; ?></td>
-                            <td><?php echo number_format_i18n(absint($log['raw_result_count'] ?? 0)); ?></td>
-                            <td><?php echo number_format_i18n(absint($log['normalized_result_count'] ?? 0)); ?></td>
-                            <td><?php echo number_format_i18n(absint($log['saved_result_count'] ?? 0)); ?></td>
-                            <td><?php echo !empty($log['duration_ms']) ? number_format_i18n(absint($log['duration_ms'])) . ' ms' : '—'; ?></td>
-                            <td><?php echo !empty($log['error_message']) ? esc_html(wp_trim_words((string) $log['error_message'], 18)) : '—'; ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                    <?php if (!$logs) : ?><tr><td colspan="11">Todavía no hay consultas registradas con el nuevo log.</td></tr><?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-
-            <details class="seo-ojeador-box seo-ojeador-config">
-                <summary>Conexión Google Shopping y ritmo</summary>
-                <p class="seo-ojeador-muted">Ojeador sólo consulta categorías con Google Esquema en <code>approved</code> y <code>shopping_query</code> no vacía. Mientras falte cobertura inicial no repite categorías ya cubiertas. El orden dentro de cada grupo es: clics de Analista, impresiones, número de productos y antigüedad.</p>
-                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                    <?php wp_nonce_field('seo_ojeador_settings_save'); ?>
-                    <input type="hidden" name="action" value="seo_ojeador_settings_save">
-                    <div class="seo-ojeador-grid">
-                        <label><strong>SerpApi API key</strong><input type="password" name="ojeador[api_key]" value="" placeholder="<?php echo esc_attr($settings['api_key'] !== '' ? 'Configurada · dejar vacío para conservar' : 'API key'); ?>" autocomplete="new-password"></label>
-                        <label><strong>Actualizar cada</strong><input type="number" min="6" max="2160" name="ojeador[interval_hours]" value="<?php echo absint($settings['interval_hours']); ?>"><small>Horas por categoría. 720 = aproximadamente mensual.</small></label>
-                        <label><strong>Categorías por paso del worker</strong><input type="number" min="1" max="20" name="ojeador[batch_size]" value="<?php echo absint($settings['batch_size']); ?>"><small>Controla cuántas categorías procesa cada pulso. Las consultas idénticas pueden reutilizarse.</small></label>
-                        <label><strong>Reutilizar consulta durante</strong><input type="number" min="1" max="168" name="ojeador[query_reuse_hours]" value="<?php echo absint($settings['query_reuse_hours']); ?>"><small>Horas. 24 evita repetir en el mismo día una consulta idéntica ya guardada.</small></label>
-                        <label><strong>Límite mensual local</strong><input type="number" min="1" max="1000000" name="ojeador[monthly_query_limit]" value="<?php echo absint($settings['monthly_query_limit']); ?>"><small>Techo de seguridad de Ojeador. El uso real se contrasta con SerpApi Account API; las respuestas de caché no se contabilizan como búsquedas del proveedor.</small></label>
-                    </div>
-                    <p><label><input type="checkbox" name="ojeador[auto_enabled]" value="1" <?php checked(!empty($settings['auto_enabled'])); ?>> Mantener el mercado de categorías actualizado automáticamente</label></p>
-                    <p><button class="button button-primary" type="submit">Guardar</button></p>
-                </form>
-                <p><strong>Resultados por consulta:</strong> sin límite interno. Se combinan y deduplican los resultados principales y los bloques categorizados devueltos por Google en la misma respuesta.</p>
-                <p><code>define('SEO_OJEADOR_SERPAPI_KEY', 'tu_api_key');</code></p>
-            </details>
         </div>
         <?php
     }
+
 }
