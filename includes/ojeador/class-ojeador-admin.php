@@ -173,6 +173,7 @@ final class SEO_Ojeador_Admin {
         unset($safe_settings['api_key']);
         $usage = SEO_Ojeador_Shopping::usage_month();
         $summary = SEO_Ojeador_DB::category_summary();
+        $analysis_export = SEO_Ojeador_Analysis::dashboard(200);
         $inventory = SEO_Ojeador_DB::list_market_categories(array('limit'=>2000, 'search'=>''));
         $latest_run = SEO_Ojeador_DB::latest_run();
         $schema_table = $wpdb->prefix . 'seo_google_schema_map';
@@ -191,6 +192,7 @@ final class SEO_Ojeador_Admin {
         echo ',"settings":' . wp_json_encode($safe_settings, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         echo ',"usage":' . wp_json_encode($usage, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         echo ',"summary":' . wp_json_encode($summary, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        echo ',"analysis":' . wp_json_encode($analysis_export, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         echo ',"latest_run":' . wp_json_encode($latest_run, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         echo ',"category_inventory":' . wp_json_encode($inventory, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         echo ',"google_schema_product_cat":';
@@ -233,12 +235,136 @@ final class SEO_Ojeador_Admin {
         exit;
     }
 
+    private static function analysis_tone_color($tone) {
+        switch (sanitize_key((string) $tone)) {
+            case 'danger': return '#b32d2e';
+            case 'warning': return '#996800';
+            case 'opportunity': return '#008a20';
+            case 'info': return '#2271b1';
+            case 'ok': return '#008a20';
+            default: return '#646970';
+        }
+    }
+
+    private static function render_analysis($analysis) {
+        $analysis = is_array($analysis) ? $analysis : array();
+        $sum = (array) ($analysis['summary'] ?? array());
+        $actions = (array) ($analysis['actions'] ?? array());
+        $categories = (array) ($analysis['categories'] ?? array());
+        $merchants = (array) ($analysis['merchants'] ?? array());
+        ?>
+        <section class="seo-ojeador-analysis">
+            <div style="margin:26px 0 8px">
+                <h2 style="margin:0">Análisis de mercado</h2>
+                <p class="seo-ojeador-muted" style="margin:4px 0 0">Convierte las instantáneas de Google Shopping en señales descriptivas y acciones de revisión. No ejecuta cambios comerciales automáticamente.</p>
+            </div>
+
+            <div class="seo-ojeador-cards seo-ojeador-analysis-cards">
+                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n(absint($sum['active_results'] ?? 0)); ?></strong><span>Resultados activos analizados</span></div>
+                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n(absint($sum['unique_merchants'] ?? 0)); ?></strong><span>Comercios identificados</span></div>
+                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n(absint($sum['categories_priority_action'] ?? 0)); ?></strong><span>Categorías con acción de revisión</span></div>
+                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n(absint($sum['categories_high_interest_low_catalog'] ?? 0)); ?></strong><span>Interés alto + surtido reducido</span></div>
+                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n(absint($sum['categories_price_dispersion'] ?? 0)); ?></strong><span>Alta dispersión de precios</span></div>
+                <div class="seo-ojeador-card"><strong><?php echo number_format_i18n(absint($sum['categories_promo_pressure'] ?? 0)); ?></strong><span>Presión promocional</span></div>
+            </div>
+
+            <div style="margin:20px 0 8px">
+                <h3 style="margin:0">Acciones prioritarias</h3>
+                <p class="seo-ojeador-muted" style="margin:4px 0 0">Ordenadas por necesidad de revisión. Las señales combinan estado de la consulta, Analista 28 días, surtido interno y la muestra de Google Shopping.</p>
+            </div>
+            <div class="seo-ojeador-table">
+                <table class="widefat striped">
+                    <thead><tr><th>Categoría</th><th>Señal</th><th>Por qué</th><th>Acción propuesta</th><th>Datos</th></tr></thead>
+                    <tbody>
+                    <?php foreach ($actions as $row) :
+                        $tone = self::analysis_tone_color($row['analysis_tone'] ?? '');
+                        $pmin = isset($row['price_min']) && $row['price_min'] !== null ? (float) $row['price_min'] : null;
+                        $pmax = isset($row['price_max']) && $row['price_max'] !== null ? (float) $row['price_max'] : null;
+                    ?>
+                        <tr>
+                            <td><strong><?php echo esc_html((string) (($row['category_name'] ?? '') ?: ($row['woo_category'] ?? ''))); ?></strong><br><small class="seo-ojeador-muted"><?php echo esc_html((string) (($row['query_text'] ?? '') ?: ($row['trusted_query'] ?? ''))); ?></small></td>
+                            <td><span class="seo-ojeador-pill" style="color:<?php echo esc_attr($tone); ?>"><?php echo esc_html((string) ($row['analysis_signal'] ?? '')); ?></span></td>
+                            <td><?php echo esc_html((string) ($row['analysis_reason'] ?? '')); ?></td>
+                            <td><strong><?php echo esc_html((string) ($row['analysis_action'] ?? '')); ?></strong></td>
+                            <td><small>
+                                <?php echo number_format_i18n((float) ($row['analista_clicks'] ?? 0), 0); ?> clics ·
+                                <?php echo number_format_i18n((float) ($row['analista_impressions'] ?? 0), 0); ?> imp. ·
+                                <?php echo number_format_i18n(absint($row['woo_product_count'] ?? 0)); ?> prod. propios ·
+                                <?php echo number_format_i18n(absint($row['market_result_count'] ?? 0)); ?> resultados ·
+                                <?php echo number_format_i18n(absint($row['merchant_count'] ?? 0)); ?> comercios
+                                <?php if ($pmin !== null && $pmax !== null) : ?> · <?php echo esc_html(number_format_i18n($pmin, 2)); ?>–<?php echo esc_html(number_format_i18n($pmax, 2)); ?> <?php echo esc_html((string) ($row['currency'] ?? 'EUR')); ?><?php endif; ?>
+                            </small></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    <?php if (!$actions) : ?><tr><td colspan="5">No hay acciones prioritarias con las reglas actuales.</td></tr><?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <details class="seo-ojeador-box seo-ojeador-analysis-detail" style="margin-top:18px">
+                <summary>Radiografía completa por categoría (<?php echo number_format_i18n(count($categories)); ?>)</summary>
+                <p class="seo-ojeador-muted">Los resultados son la muestra devuelta por Google Shopping para la <code>shopping_query</code>; no representan el tamaño total del mercado.</p>
+                <div class="seo-ojeador-table" style="margin-top:10px">
+                    <table class="widefat striped">
+                        <thead><tr><th>Categoría</th><th>Analista 28 d</th><th>Catálogo</th><th>Mercado</th><th>Precio observado</th><th>Promoción</th><th>Concentración</th><th>Señal</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($categories as $row) :
+                            if (empty($row['ojeador_eligible'])) continue;
+                            $tone = self::analysis_tone_color($row['analysis_tone'] ?? '');
+                            $pmin = isset($row['price_min']) && $row['price_min'] !== null ? (float) $row['price_min'] : null;
+                            $pavg = isset($row['price_avg']) && $row['price_avg'] !== null ? (float) $row['price_avg'] : null;
+                            $pmax = isset($row['price_max']) && $row['price_max'] !== null ? (float) $row['price_max'] : null;
+                            $promo = isset($row['discount_share_pct']) && $row['discount_share_pct'] !== null ? (float) $row['discount_share_pct'] : null;
+                            $conc = isset($row['top_merchant_share_pct']) && $row['top_merchant_share_pct'] !== null ? (float) $row['top_merchant_share_pct'] : null;
+                        ?>
+                            <tr>
+                                <td><strong><?php echo esc_html((string) (($row['category_name'] ?? '') ?: ($row['woo_category'] ?? ''))); ?></strong></td>
+                                <td><?php echo number_format_i18n((float) ($row['analista_clicks'] ?? 0), 0); ?> clics<br><small><?php echo number_format_i18n((float) ($row['analista_impressions'] ?? 0), 0); ?> imp.</small></td>
+                                <td><?php echo number_format_i18n(absint($row['woo_product_count'] ?? 0)); ?> productos</td>
+                                <td><?php echo number_format_i18n(absint($row['market_result_count'] ?? 0)); ?> resultados<br><small><?php echo number_format_i18n(absint($row['merchant_count'] ?? 0)); ?> comercios</small></td>
+                                <td><?php if ($pavg !== null) : ?><?php echo esc_html(number_format_i18n($pmin, 2)); ?> / <strong><?php echo esc_html(number_format_i18n($pavg, 2)); ?></strong> / <?php echo esc_html(number_format_i18n($pmax, 2)); ?> €<br><small>mín / media / máx</small><?php else : ?>—<?php endif; ?></td>
+                                <td><?php echo $promo !== null ? esc_html(number_format_i18n($promo, 1)) . '%' : '—'; ?></td>
+                                <td><?php echo $conc !== null ? esc_html(number_format_i18n($conc, 1)) . '%' : '—'; ?><br><small>top comercio</small></td>
+                                <td><span class="seo-ojeador-pill" style="color:<?php echo esc_attr($tone); ?>"><?php echo esc_html((string) ($row['analysis_signal'] ?? '')); ?></span><br><small><?php echo esc_html((string) ($row['analysis_action'] ?? '')); ?></small></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+
+            <details class="seo-ojeador-box seo-ojeador-analysis-detail" style="margin-top:12px">
+                <summary>Comercios más visibles en la muestra</summary>
+                <p class="seo-ojeador-muted">Cuenta apariciones en los resultados activos. No compara precios medios entre categorías porque serían magnitudes no homogéneas.</p>
+                <div class="seo-ojeador-table" style="margin-top:10px">
+                    <table class="widefat striped">
+                        <thead><tr><th>Comercio</th><th>Apariciones</th><th>Categorías</th><th>Con precio</th><th>Con descuento</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($merchants as $merchant) : ?>
+                            <tr>
+                                <td><strong><?php echo esc_html((string) ($merchant['merchant'] ?? '')); ?></strong></td>
+                                <td><?php echo number_format_i18n(absint($merchant['appearances'] ?? 0)); ?></td>
+                                <td><?php echo number_format_i18n(absint($merchant['categories'] ?? 0)); ?></td>
+                                <td><?php echo number_format_i18n(absint($merchant['rows_with_price'] ?? 0)); ?></td>
+                                <td><?php echo number_format_i18n(absint($merchant['discounted_rows'] ?? 0)); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        <?php if (!$merchants) : ?><tr><td colspan="5">Todavía no hay comercios identificados.</td></tr><?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+        </section>
+        <?php
+    }
+
     public static function render() {
         if (!current_user_can('manage_options')) {
             return;
         }
 
         $summary = SEO_Ojeador_DB::category_summary();
+        $analysis = SEO_Ojeador_Analysis::dashboard(30);
         $settings = SEO_Ojeador_Shopping::settings();
         $usage = SEO_Ojeador_Shopping::usage_month();
         $ready = SEO_Ojeador_Shopping::readiness();
@@ -260,7 +386,7 @@ final class SEO_Ojeador_Admin {
                 .seo-ojeador-card,.seo-ojeador-box{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:15px}.seo-ojeador-card strong{display:block;font-size:24px;line-height:1.1}.seo-ojeador-card span{color:#646970}
                 .seo-ojeador-table{overflow:auto;background:#fff;border:1px solid #dcdcde;border-radius:8px}.seo-ojeador-table table{border:0;margin:0}.seo-ojeador-muted{color:#646970}.seo-ojeador-pill{font-weight:600;white-space:nowrap}
                 .seo-ojeador-run{margin:12px 0 0;padding:10px 12px;background:#f6f7f7;border-radius:6px}.seo-ojeador-config{margin-top:18px}.seo-ojeador-config summary{cursor:pointer;font-weight:600;font-size:15px}
-                .seo-ojeador-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:14px}.seo-ojeador-grid label{display:block}.seo-ojeador-grid input{width:100%;margin-top:5px}.seo-ojeador-grid small{display:block;color:#646970;margin-top:4px}
+                .seo-ojeador-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:14px}.seo-ojeador-grid label{display:block}.seo-ojeador-grid input{width:100%;margin-top:5px}.seo-ojeador-grid small{display:block;color:#646970;margin-top:4px}.seo-ojeador-analysis-detail summary{cursor:pointer;font-weight:600;font-size:15px}.seo-ojeador-analysis-cards{margin-top:10px}
             </style>
 
             <div class="seo-ojeador-head">
@@ -316,6 +442,8 @@ final class SEO_Ojeador_Admin {
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
+
+            <?php self::render_analysis($analysis); ?>
 
             <div style="display:flex;justify-content:space-between;gap:12px;align-items:end;flex-wrap:wrap;margin:22px 0 8px;">
                 <div><h2 style="margin:0">Mercado por categorías</h2><p class="seo-ojeador-muted" style="margin:4px 0 0">Cada fila representa una categoría WooCommerce y su última consulta a Google Shopping.</p></div>
