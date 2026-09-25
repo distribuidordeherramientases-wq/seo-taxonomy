@@ -1,0 +1,54 @@
+name: Sync documentation to GitHub Wiki
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/wiki/**"
+      - ".github/workflows/sync-wiki.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: seo-taxonomy-wiki-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check Wiki token
+        env:
+          WIKI_TOKEN: ${{ secrets.WIKI_TOKEN }}
+        run: |
+          if [ -z "$WIKI_TOKEN" ]; then
+            echo "::error::Missing repository secret WIKI_TOKEN"
+            exit 1
+          fi
+
+      - name: Clone Wiki
+        env:
+          WIKI_TOKEN: ${{ secrets.WIKI_TOKEN }}
+        run: |
+          git clone "https://x-access-token:${WIKI_TOKEN}@github.com/distribuidordeherramientases-wq/seo-taxonomy.wiki.git" wiki
+
+      - name: Copy documentation
+        run: rsync -av --exclude=".git/" docs/wiki/ wiki/
+
+      - name: Commit and push Wiki
+        run: |
+          cd wiki
+          git config user.name "SEO Taxonomy Docs"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Wiki already up to date."
+            exit 0
+          fi
+          git commit -m "docs: sync SEO Taxonomy manual"
+          git push origin HEAD
