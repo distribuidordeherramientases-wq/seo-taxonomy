@@ -30,3 +30,7 @@ Cada control debe indicar, cuando corresponda:
 Los campos abiertos incluyen ejemplos de formato. Las credenciales, tokens, contraseñas y secretos que aparecen en la documentación son **valores ficticios y no deben utilizarse en producción**.
 
 > Este manual debe mantenerse alineado con la interfaz de la rama activa del plugin. Si una pantalla cambia, la documentación correspondiente debe actualizarse en la misma entrega.
+## Sincronización con GitHub Wiki
+
+Los cambios en `docs/MANUAL-USUARIO.md` y `docs/CONEXIONES-CREDENCIALES.md` se sincronizan automáticamente con la Wiki mediante GitHub Actions al actualizar la rama `staging`.
+
