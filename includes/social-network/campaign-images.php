@@ -3,8 +3,8 @@
  * SEO System - Creatividades sociales automáticas para campañas.
  *
  * Genera imágenes simples, ligeras y cacheables para publicaciones sociales
- * de campañas. V1 se centra en Facebook, pero expone tamaños también para
- * LinkedIn y Pinterest.
+ * de campañas. Expone tamaños adaptados para Facebook, Instagram, LinkedIn,
+ * Pinterest y X.
  */
 
 defined('ABSPATH') || exit;
@@ -65,10 +65,14 @@ function seo_social_campaign_image_canvas($provider)
 {
     $provider = sanitize_key($provider);
     switch ($provider) {
+        case 'instagram':
+            return array('width' => 1080, 'height' => 1350);
         case 'linkedin':
             return array('width' => 1200, 'height' => 627);
         case 'pinterest':
             return array('width' => 1000, 'height' => 1500);
+        case 'x':
+            return array('width' => 1200, 'height' => 675);
         case 'facebook':
         default:
             return array('width' => 1200, 'height' => 630);
