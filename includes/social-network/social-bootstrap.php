@@ -10,6 +10,7 @@ $seo_social_modules = array(
     __DIR__ . '/facebook.php',
     __DIR__ . '/linkedin.php',
     __DIR__ . '/pinterest.php',
+    __DIR__ . '/campaigns.php',
     __DIR__ . '/programador/bootstrap.php',
 );
 

@@ -62,16 +62,19 @@ function seo_social_network_default_settings()
         ),
         'templates' => array(
             'facebook' => array(
-                'post' => "{titulo}\n\n{extracto}\n\n{url}",
-                'page' => "{titulo}\n\n{extracto}\n\n{url}",
+                'post'     => "{titulo}\n\n{extracto}\n\n{url}",
+                'page'     => "{titulo}\n\n{extracto}\n\n{url}",
+                'campaign' => "{producto}\n\n{campana}: {precio_oferta} (antes {precio_regular}).\nDisponible hasta {fecha_fin}.",
             ),
             'linkedin' => array(
-                'post' => "{titulo}\n\n{extracto}",
-                'page' => "{titulo}\n\n{extracto}",
+                'post'     => "{titulo}\n\n{extracto}",
+                'page'     => "{titulo}\n\n{extracto}",
+                'campaign' => "{producto}\n\nDisponible dentro de {campana} por {precio_oferta} (precio habitual {precio_regular}).\nOferta hasta {fecha_fin}.",
             ),
             'pinterest' => array(
-                'post' => "{titulo}\n\n{extracto}",
-                'page' => "{titulo}\n\n{extracto}",
+                'post'     => "{titulo}\n\n{extracto}",
+                'page'     => "{titulo}\n\n{extracto}",
+                'campaign' => "{producto}\n\n{campana}. Precio de campaña: {precio_oferta}. Disponible hasta {fecha_fin}.",
             ),
         ),
         'providers' => array(
@@ -1013,6 +1016,15 @@ function seo_social_network_handle_save_templates()
                 $settings['templates'][$provider_key][$post_type] = $value;
             }
         }
+
+        // Marketing / Campañas no es un post_type de WordPress, pero comparte
+        // la misma pantalla de plantillas y se guarda por proveedor.
+        if (isset($templates[$provider_key]['campaign'])) {
+            $campaign_value = trim((string) $templates[$provider_key]['campaign']);
+            if ($campaign_value !== '') {
+                $settings['templates'][$provider_key]['campaign'] = $campaign_value;
+            }
+        }
     }
 
     seo_social_network_save_settings($settings);
@@ -1199,6 +1211,11 @@ function seo_social_network_scheduler_exportable_agenda_rows()
             'programada',
         );
     }
+
+    if (function_exists('seo_social_campaign_exportable_agenda_rows')) {
+        $result = array_merge($result, seo_social_campaign_exportable_agenda_rows());
+    }
+
     return $result;
 }
 
@@ -2156,7 +2173,7 @@ function seo_social_network_render_templates()
     $providers = seo_social_network_get_providers();
 
     echo '<section class="seo-social-card">';
-    echo '<div class="seo-social-intro"><div><h2>Plantillas de publicación</h2><p>Define una sola vez cómo debe redactarse una entrada o una página en cada red. El Programador utilizará estas plantillas automáticamente; aquí no se decide cuándo publicar.</p></div><span class="seo-social-state is-ok">Formato general</span></div>';
+    echo '<div class="seo-social-intro"><div><h2>Plantillas de publicación</h2><p>Define una sola vez cómo debe redactarse una entrada, una página o un producto incluido en una campaña de Marketing para cada red. El Programador utilizará estas plantillas automáticamente; aquí no se decide cuándo publicar.</p></div><span class="seo-social-state is-ok">Formato general</span></div>';
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
     echo '<input type="hidden" name="action" value="seo_social_network_save_templates">';
     wp_nonce_field('seo_social_network_save_templates');
@@ -2171,12 +2188,14 @@ function seo_social_network_render_templates()
             $value = isset($settings['templates'][$provider_key][$post_type]) ? (string) $settings['templates'][$provider_key][$post_type] : '';
             echo '<div class="seo-social-field" style="margin-bottom:14px"><label>' . esc_html($type_label) . '</label><textarea name="templates[' . esc_attr($provider_key) . '][' . esc_attr($post_type) . ']">' . esc_textarea($value) . '</textarea></div>';
         }
+        $campaign_value = isset($settings['templates'][$provider_key]['campaign']) ? (string) $settings['templates'][$provider_key]['campaign'] : '';
+        echo '<div class="seo-social-field" style="margin-bottom:14px"><label>Campañas / productos en oferta</label><textarea name="templates[' . esc_attr($provider_key) . '][campaign]">' . esc_textarea($campaign_value) . '</textarea><p class="seo-social-help">Se utiliza solo para productos leídos desde Marketing → Campañas.</p></div>';
         echo '</div>';
     }
     echo '</div>';
 
     echo '<div class="seo-social-vars"><strong>Variables disponibles:</strong> ';
-    foreach (array('{titulo}', '{extracto}', '{fecha}', '{url}', '{sitio}', '{autor}', '{tipo}', '{categorias}', '{imagen}') as $var) {
+    foreach (array('{titulo}', '{extracto}', '{fecha}', '{url}', '{sitio}', '{autor}', '{tipo}', '{categorias}', '{imagen}', '{campana}', '{producto}', '{precio_regular}', '{precio_oferta}', '{descuento}', '{descuento_pct}', '{fecha_inicio}', '{fecha_fin}') as $var) {
         echo '<code>' . esc_html($var) . '</code>';
     }
     echo '</div>';
@@ -2299,6 +2318,10 @@ function seo_social_network_render_scheduler()
             echo '<span class="seo-social-help">' . esc_html((string) $reprogram_count) . ' sustituiran una programacion existente.</span>';
         }
         echo '</div></div>';
+    }
+
+    if (function_exists('seo_social_campaign_render_scheduler_panel')) {
+        seo_social_campaign_render_scheduler_panel();
     }
 
     echo '<form method="get" class="seo-social-filterbar" style="margin-top:18px">';
