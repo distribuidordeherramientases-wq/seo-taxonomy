@@ -2,15 +2,15 @@
 /**
  * SEO Taxonomy - Marketing / Campañas.
  *
- * V1: creacion, organizacion temporal, recurrencia basica y productos con
- * precio de campaña. El diseno de banners y creatividades queda fuera de
- * esta version.
+ * V1.2: creacion, organizacion temporal, recurrencia basica, productos con
+ * precio de campana e importacion/exportacion portable del calendario.
+ * El intercambio de campanas NO incluye productos, precios ni creatividades.
  */
 
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_MARKETING_CAMPAIGNS_DB_VERSION')) {
-    define('SEO_MARKETING_CAMPAIGNS_DB_VERSION', 1);
+    define('SEO_MARKETING_CAMPAIGNS_DB_VERSION', 2);
 }
 if (!defined('SEO_MARKETING_CAMPAIGNS_DB_OPTION')) {
     define('SEO_MARKETING_CAMPAIGNS_DB_OPTION', 'seo_marketing_campaigns_db_version');
@@ -52,10 +52,12 @@ function seo_marketing_campaigns_maybe_install_tables()
 
     $sql_campaigns = "CREATE TABLE {$tables['campaigns']} (
         id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        campaign_key varchar(191) NOT NULL DEFAULT '',
         series_key varchar(191) NOT NULL DEFAULT '',
         parent_campaign_id bigint(20) unsigned NULL,
         name varchar(191) NOT NULL,
         edition_label varchar(191) NOT NULL DEFAULT '',
+        campaign_type varchar(24) NOT NULL DEFAULT 'calendar',
         recurrence varchar(20) NOT NULL DEFAULT 'none',
         start_at datetime NOT NULL,
         end_at datetime NOT NULL,
@@ -65,7 +67,9 @@ function seo_marketing_campaigns_maybe_install_tables()
         created_at datetime NOT NULL,
         updated_at datetime NOT NULL,
         PRIMARY KEY  (id),
+        KEY campaign_key (campaign_key),
         KEY series_key (series_key),
+        KEY campaign_type (campaign_type),
         KEY start_at (start_at),
         KEY end_at (end_at),
         KEY enabled_dates (is_enabled,start_at,end_at),
@@ -96,9 +100,191 @@ function seo_marketing_campaigns_maybe_install_tables()
     dbDelta($sql_campaigns);
     dbDelta($sql_products);
 
+    seo_marketing_campaigns_backfill_identity_columns();
+
     update_option(SEO_MARKETING_CAMPAIGNS_DB_OPTION, SEO_MARKETING_CAMPAIGNS_DB_VERSION, false);
 }
 add_action('admin_init', 'seo_marketing_campaigns_maybe_install_tables', 15);
+
+
+/**
+ * Tipos de campana admitidos.
+ *
+ * @return array<string,string>
+ */
+function seo_marketing_campaigns_types()
+{
+    return array(
+        'calendar'     => 'Calendario comercial',
+        'tactical'     => 'Tactica / puntual',
+        'star_product' => 'Producto estrella',
+    );
+}
+
+/**
+ * Normaliza el tipo de campana.
+ *
+ * @param string $type
+ * @return string
+ */
+function seo_marketing_campaigns_normalize_type($type)
+{
+    $type = sanitize_key((string) $type);
+    return isset(seo_marketing_campaigns_types()[$type]) ? $type : 'calendar';
+}
+
+/**
+ * Etiqueta del tipo de campana.
+ *
+ * @param string $type
+ * @return string
+ */
+function seo_marketing_campaigns_type_label($type)
+{
+    $types = seo_marketing_campaigns_types();
+    $type = seo_marketing_campaigns_normalize_type($type);
+    return $types[$type];
+}
+
+/**
+ * Construye una clave portable de campana.
+ *
+ * @param string $name
+ * @param string $edition_label
+ * @param string $start_at
+ * @param string $series_key
+ * @return string
+ */
+function seo_marketing_campaigns_build_key($name, $edition_label, $start_at, $series_key = '')
+{
+    $series_key = sanitize_title((string) $series_key);
+    if ($series_key === '') {
+        $series_key = sanitize_title((string) $name);
+    }
+    if ($series_key === '') {
+        $series_key = 'campaign';
+    }
+
+    $edition_part = sanitize_title((string) $edition_label);
+    if ($edition_part === '' && $start_at !== '') {
+        $ts = seo_marketing_campaigns_timestamp($start_at);
+        if ($ts > 0) {
+            $edition_part = wp_date('Y', $ts, wp_timezone());
+        }
+    }
+    if ($edition_part === '') {
+        $edition_part = 'edition';
+    }
+
+    return sanitize_title($series_key . '-' . $edition_part);
+}
+
+/**
+ * Garantiza una campaign_key unica dentro de la instalacion.
+ *
+ * @param string $base
+ * @param int    $exclude_id
+ * @return string
+ */
+function seo_marketing_campaigns_unique_key($base, $exclude_id = 0)
+{
+    global $wpdb;
+    $tables = seo_marketing_campaigns_tables();
+
+    $base = sanitize_title((string) $base);
+    if ($base === '') {
+        $base = 'campaign';
+    }
+
+    $candidate = $base;
+    $suffix = 2;
+
+    while (true) {
+        if ($exclude_id > 0) {
+            $found = (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT id FROM {$tables['campaigns']} WHERE campaign_key = %s AND id <> %d LIMIT 1",
+                    $candidate,
+                    $exclude_id
+                )
+            );
+        } else {
+            $found = (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT id FROM {$tables['campaigns']} WHERE campaign_key = %s LIMIT 1",
+                    $candidate
+                )
+            );
+        }
+
+        if ($found <= 0) {
+            return $candidate;
+        }
+
+        $candidate = $base . '-' . $suffix;
+        $suffix++;
+    }
+}
+
+/**
+ * Completa identificadores de instalaciones creadas antes de V1.2.
+ */
+function seo_marketing_campaigns_backfill_identity_columns()
+{
+    global $wpdb;
+    $tables = seo_marketing_campaigns_tables();
+
+    $columns = (array) $wpdb->get_col("SHOW COLUMNS FROM {$tables['campaigns']}", 0);
+    if (!in_array('campaign_key', $columns, true) || !in_array('campaign_type', $columns, true)) {
+        return;
+    }
+
+    $wpdb->query(
+        "UPDATE {$tables['campaigns']} SET campaign_type = 'calendar' WHERE campaign_type = '' OR campaign_type IS NULL"
+    );
+
+    $rows = (array) $wpdb->get_results(
+        "SELECT id, campaign_key, series_key, name, edition_label, start_at FROM {$tables['campaigns']} ORDER BY id ASC"
+    );
+
+    foreach ($rows as $row) {
+        $series_key = sanitize_title((string) $row->series_key);
+        if ($series_key === '') {
+            $series_key = sanitize_title((string) $row->name);
+        }
+        if ($series_key === '') {
+            $series_key = 'campaign-' . absint($row->id);
+        }
+
+        $data = array();
+        $formats = array();
+        if ((string) $row->series_key !== $series_key) {
+            $data['series_key'] = $series_key;
+            $formats[] = '%s';
+        }
+
+        if ((string) $row->campaign_key === '') {
+            $base = seo_marketing_campaigns_build_key(
+                (string) $row->name,
+                (string) $row->edition_label,
+                (string) $row->start_at,
+                $series_key
+            );
+            $data['campaign_key'] = seo_marketing_campaigns_unique_key($base, absint($row->id));
+            $formats[] = '%s';
+        }
+
+        if ($data) {
+            $wpdb->update(
+                $tables['campaigns'],
+                $data,
+                array('id' => absint($row->id)),
+                $formats,
+                array('%d')
+            );
+        }
+    }
+}
 
 /**
  * Expone las tablas al Data Layer para auditoria/consulta.
@@ -416,6 +602,73 @@ function seo_marketing_campaigns_parse_local_datetime($value)
     }
 
     return $date ? $date->format('Y-m-d H:i:s') : '';
+}
+
+
+/**
+ * Convierte fechas de importacion (ISO 8601, MySQL o datetime-local) a MySQL
+ * en la zona horaria configurada en WordPress.
+ *
+ * @param string $value
+ * @return string
+ */
+function seo_marketing_campaigns_parse_import_datetime($value)
+{
+    $value = trim((string) $value);
+    if ($value === '') {
+        return '';
+    }
+
+    $local = seo_marketing_campaigns_parse_local_datetime($value);
+    if ($local !== '') {
+        return $local;
+    }
+
+    $timezone = wp_timezone();
+    $formats = array('!Y-m-d H:i:s', '!Y-m-d H:i', '!Y-m-d');
+    foreach ($formats as $format) {
+        $date = DateTimeImmutable::createFromFormat($format, $value, $timezone);
+        if ($date instanceof DateTimeImmutable) {
+            return $date->format('Y-m-d H:i:s');
+        }
+    }
+
+    try {
+        $date = new DateTimeImmutable($value, $timezone);
+        return $date->setTimezone($timezone)->format('Y-m-d H:i:s');
+    } catch (Exception $e) {
+        return '';
+    }
+}
+
+/**
+ * Fecha portable ISO 8601 en la zona horaria de WordPress.
+ *
+ * @param string $mysql
+ * @return string
+ */
+function seo_marketing_campaigns_datetime_iso($mysql)
+{
+    $date = DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', (string) $mysql, wp_timezone());
+    return $date ? $date->format(DATE_ATOM) : '';
+}
+
+/**
+ * Convierte valores habituales de importacion a booleano entero.
+ *
+ * @param mixed $value
+ * @return int
+ */
+function seo_marketing_campaigns_import_bool($value)
+{
+    if (is_bool($value)) {
+        return $value ? 1 : 0;
+    }
+    if (is_int($value) || is_float($value)) {
+        return ((int) $value) !== 0 ? 1 : 0;
+    }
+    $value = strtolower(trim((string) $value));
+    return in_array($value, array('1', 'true', 'yes', 'si', 'sí', 'on', 'enabled', 'activo'), true) ? 1 : 0;
 }
 
 /**
@@ -819,6 +1072,7 @@ function seo_marketing_campaigns_handle_save()
     $campaign_id = isset($_POST['campaign_id']) ? absint($_POST['campaign_id']) : 0;
     $name = isset($_POST['name']) ? sanitize_text_field(wp_unslash($_POST['name'])) : '';
     $edition_label = isset($_POST['edition_label']) ? sanitize_text_field(wp_unslash($_POST['edition_label'])) : '';
+    $campaign_type = isset($_POST['campaign_type']) ? seo_marketing_campaigns_normalize_type(wp_unslash($_POST['campaign_type'])) : 'calendar';
     $recurrence = isset($_POST['recurrence']) ? sanitize_key(wp_unslash($_POST['recurrence'])) : 'none';
     $start_at = seo_marketing_campaigns_parse_local_datetime(isset($_POST['start_at']) ? wp_unslash($_POST['start_at']) : '');
     $end_at = seo_marketing_campaigns_parse_local_datetime(isset($_POST['end_at']) ? wp_unslash($_POST['end_at']) : '');
@@ -868,10 +1122,21 @@ function seo_marketing_campaigns_handle_save()
         $edition_label = wp_date('Y', seo_marketing_campaigns_timestamp($start_at), wp_timezone());
     }
 
+    if ($existing && !empty($existing->campaign_key)) {
+        $campaign_key = (string) $existing->campaign_key;
+    } else {
+        $campaign_key = seo_marketing_campaigns_unique_key(
+            seo_marketing_campaigns_build_key($name, $edition_label, $start_at, $series_key),
+            $campaign_id
+        );
+    }
+
     $data = array(
+        'campaign_key'  => $campaign_key,
         'series_key'    => $series_key,
         'name'          => $name,
         'edition_label' => $edition_label,
+        'campaign_type' => $campaign_type,
         'recurrence'    => $recurrence,
         'start_at'      => $start_at,
         'end_at'        => $end_at,
@@ -885,7 +1150,7 @@ function seo_marketing_campaigns_handle_save()
             $tables['campaigns'],
             $data,
             array('id' => $campaign_id),
-            array('%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s'),
+            array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s'),
             array('%d')
         );
     } else {
@@ -894,7 +1159,7 @@ function seo_marketing_campaigns_handle_save()
         $wpdb->insert(
             $tables['campaigns'],
             $data,
-            array('%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%d', '%s')
+            array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%d', '%s')
         );
         $campaign_id = (int) $wpdb->insert_id;
     }
@@ -1086,10 +1351,19 @@ function seo_marketing_campaigns_handle_duplicate()
     $wpdb->insert(
         $tables['campaigns'],
         array(
+            'campaign_key'       => seo_marketing_campaigns_unique_key(
+                seo_marketing_campaigns_build_key(
+                    (string) $campaign->name,
+                    $new_start->format('Y'),
+                    $new_start->format('Y-m-d H:i:s'),
+                    (string) $campaign->series_key
+                )
+            ),
             'series_key'         => $campaign->series_key,
             'parent_campaign_id' => $campaign_id,
             'name'               => $campaign->name,
             'edition_label'      => $new_start->format('Y'),
+            'campaign_type'      => isset($campaign->campaign_type) ? seo_marketing_campaigns_normalize_type($campaign->campaign_type) : 'calendar',
             'recurrence'         => $campaign->recurrence,
             'start_at'           => $new_start->format('Y-m-d H:i:s'),
             'end_at'             => $new_end->format('Y-m-d H:i:s'),
@@ -1099,7 +1373,7 @@ function seo_marketing_campaigns_handle_duplicate()
             'created_at'         => $now,
             'updated_at'         => $now,
         ),
-        array('%s', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s')
+        array('%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s')
     );
 
     $new_id = (int) $wpdb->insert_id;
@@ -1111,6 +1385,445 @@ function seo_marketing_campaigns_handle_duplicate()
     );
 }
 add_action('admin_post_seo_marketing_campaign_duplicate', 'seo_marketing_campaigns_handle_duplicate');
+
+
+/**
+ * Filas portables del calendario de campanas. No incluye productos ni precios.
+ *
+ * @return array<int,array<string,mixed>>
+ */
+function seo_marketing_campaigns_export_rows()
+{
+    global $wpdb;
+    $tables = seo_marketing_campaigns_tables();
+
+    $rows = (array) $wpdb->get_results(
+        "SELECT campaign_key, series_key, name, edition_label, campaign_type, recurrence, start_at, end_at, is_enabled
+         FROM {$tables['campaigns']}
+         ORDER BY start_at ASC, id ASC"
+    );
+
+    $out = array();
+    foreach ($rows as $row) {
+        $out[] = array(
+            'campaign_key'  => (string) $row->campaign_key,
+            'series_key'    => (string) $row->series_key,
+            'name'          => (string) $row->name,
+            'edition'       => (string) $row->edition_label,
+            'campaign_type' => seo_marketing_campaigns_normalize_type((string) $row->campaign_type),
+            'start_at'      => seo_marketing_campaigns_datetime_iso((string) $row->start_at),
+            'end_at'        => seo_marketing_campaigns_datetime_iso((string) $row->end_at),
+            'recurrence'    => (string) $row->recurrence,
+            'enabled'       => (int) $row->is_enabled === 1,
+        );
+    }
+
+    return $out;
+}
+
+/**
+ * Descarga JSON o CSV del calendario. Nunca exporta productos/precios.
+ */
+function seo_marketing_campaigns_handle_export()
+{
+    if (!current_user_can('manage_options')) {
+        wp_die('No tienes permisos para exportar campañas.');
+    }
+    check_admin_referer('seo_marketing_campaigns_export');
+
+    seo_marketing_campaigns_maybe_install_tables();
+
+    $format = isset($_GET['format']) ? sanitize_key(wp_unslash($_GET['format'])) : 'json';
+    if (!in_array($format, array('json', 'csv'), true)) {
+        $format = 'json';
+    }
+
+    $rows = seo_marketing_campaigns_export_rows();
+    $stamp = wp_date('Ymd-His', time(), wp_timezone());
+    $filename = 'seo-campaigns-' . $stamp . '.' . $format;
+
+    nocache_headers();
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('X-Content-Type-Options: nosniff');
+
+    if ($format === 'csv') {
+        header('Content-Type: text/csv; charset=utf-8');
+        $out = fopen('php://output', 'w');
+        if ($out === false) {
+            wp_die('No se pudo abrir la salida CSV.');
+        }
+        fputcsv($out, array('campaign_key', 'series_key', 'name', 'edition', 'campaign_type', 'start_at', 'end_at', 'recurrence', 'enabled'), ';');
+        foreach ($rows as $row) {
+            fputcsv($out, array(
+                $row['campaign_key'],
+                $row['series_key'],
+                $row['name'],
+                $row['edition'],
+                $row['campaign_type'],
+                $row['start_at'],
+                $row['end_at'],
+                $row['recurrence'],
+                $row['enabled'] ? '1' : '0',
+            ), ';');
+        }
+        fclose($out);
+        exit;
+    }
+
+    header('Content-Type: application/json; charset=utf-8');
+    $payload = array(
+        'schema_version' => '1.0',
+        'kind'           => 'seo_marketing_campaign_calendar',
+        'generated_at'   => wp_date(DATE_ATOM, time(), wp_timezone()),
+        'timezone'       => wp_timezone_string(),
+        'campaigns'      => $rows,
+    );
+    echo wp_json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+add_action('admin_post_seo_marketing_campaigns_export', 'seo_marketing_campaigns_handle_export');
+
+/**
+ * Lee un CSV de campanas.
+ *
+ * @param string $path
+ * @return array|WP_Error
+ */
+function seo_marketing_campaigns_import_read_csv($path)
+{
+    $handle = fopen($path, 'r');
+    if ($handle === false) {
+        return new WP_Error('campaign_csv_open', 'No se pudo abrir el CSV.');
+    }
+
+    $first = fgets($handle);
+    if ($first === false) {
+        fclose($handle);
+        return new WP_Error('campaign_csv_empty', 'El CSV esta vacio.');
+    }
+
+    $semicolon = substr_count($first, ';');
+    $comma = substr_count($first, ',');
+    $delimiter = $semicolon >= $comma ? ';' : ',';
+    rewind($handle);
+
+    $header = fgetcsv($handle, 0, $delimiter);
+    if (!is_array($header)) {
+        fclose($handle);
+        return new WP_Error('campaign_csv_header', 'No se pudo leer la cabecera CSV.');
+    }
+
+    $header = array_map(static function ($value) {
+        $value = preg_replace('/^\xEF\xBB\xBF/', '', (string) $value);
+        return sanitize_key(trim($value));
+    }, $header);
+
+    $rows = array();
+    while (($values = fgetcsv($handle, 0, $delimiter)) !== false) {
+        if (!array_filter($values, static function ($value) { return trim((string) $value) !== ''; })) {
+            continue;
+        }
+        $row = array();
+        foreach ($header as $index => $key) {
+            if ($key !== '') {
+                $row[$key] = isset($values[$index]) ? $values[$index] : '';
+            }
+        }
+        $rows[] = $row;
+    }
+    fclose($handle);
+
+    return $rows;
+}
+
+/**
+ * Lee JSON o CSV subido y devuelve las campanas declaradas.
+ *
+ * @param string $path
+ * @param string $extension
+ * @return array|WP_Error
+ */
+function seo_marketing_campaigns_import_read_file($path, $extension)
+{
+    if ($extension === 'csv') {
+        return seo_marketing_campaigns_import_read_csv($path);
+    }
+
+    $raw = file_get_contents($path);
+    if ($raw === false || trim($raw) === '') {
+        return new WP_Error('campaign_json_empty', 'El JSON esta vacio o no se puede leer.');
+    }
+
+    $data = json_decode($raw, true);
+    if (!is_array($data)) {
+        return new WP_Error('campaign_json_invalid', 'El JSON no es valido.');
+    }
+
+    if (isset($data['campaigns']) && is_array($data['campaigns'])) {
+        return $data['campaigns'];
+    }
+
+    $is_list = empty($data) || array_keys($data) === range(0, count($data) - 1);
+    if ($is_list) {
+        return $data;
+    }
+
+    return new WP_Error('campaign_json_shape', 'El JSON debe contener un array "campaigns".');
+}
+
+/**
+ * Comprueba que una actualizacion de fechas no provoque solapes en productos
+ * que ya estan asociados localmente a esa campana.
+ *
+ * @param int    $campaign_id
+ * @param string $start_at
+ * @param string $end_at
+ * @return WP_Error|true
+ */
+function seo_marketing_campaigns_import_validate_existing_products($campaign_id, $start_at, $end_at)
+{
+    global $wpdb;
+    $tables = seo_marketing_campaigns_tables();
+
+    if ($campaign_id <= 0) {
+        return true;
+    }
+
+    $product_ids = (array) $wpdb->get_col(
+        $wpdb->prepare("SELECT product_id FROM {$tables['products']} WHERE campaign_id = %d", $campaign_id)
+    );
+
+    foreach ($product_ids as $product_id) {
+        $overlap = seo_marketing_campaigns_find_product_overlap(absint($product_id), $campaign_id, $start_at, $end_at);
+        if ($overlap) {
+            return new WP_Error(
+                'campaign_import_overlap',
+                sprintf(
+                    'La campana no se actualiza porque uno de sus productos solaparia con "%s".',
+                    (string) $overlap->name
+                )
+            );
+        }
+    }
+
+    return true;
+}
+
+/**
+ * Normaliza una fila portable.
+ *
+ * @param array $row
+ * @return array|WP_Error
+ */
+function seo_marketing_campaigns_import_normalize_row($row)
+{
+    if (!is_array($row)) {
+        return new WP_Error('campaign_import_row', 'Fila de campana invalida.');
+    }
+
+    $name = sanitize_text_field((string) ($row['name'] ?? ''));
+    $edition = sanitize_text_field((string) ($row['edition'] ?? ($row['edition_label'] ?? '')));
+    $start_at = seo_marketing_campaigns_parse_import_datetime((string) ($row['start_at'] ?? ''));
+    $end_at = seo_marketing_campaigns_parse_import_datetime((string) ($row['end_at'] ?? ''));
+
+    if ($name === '' || $start_at === '' || $end_at === '') {
+        return new WP_Error('campaign_import_required', 'Nombre, inicio y fin son obligatorios.');
+    }
+    if ($end_at <= $start_at) {
+        return new WP_Error('campaign_import_dates', 'La fecha de fin debe ser posterior al inicio.');
+    }
+
+    if ($edition === '') {
+        $edition = wp_date('Y', seo_marketing_campaigns_timestamp($start_at), wp_timezone());
+    }
+
+    $series_key = sanitize_title((string) ($row['series_key'] ?? ''));
+    if ($series_key === '') {
+        $series_key = sanitize_title($name);
+    }
+    if ($series_key === '') {
+        $series_key = 'campaign';
+    }
+
+    $campaign_key = sanitize_title((string) ($row['campaign_key'] ?? ''));
+    if ($campaign_key === '') {
+        $campaign_key = seo_marketing_campaigns_build_key($name, $edition, $start_at, $series_key);
+    }
+
+    $recurrence = sanitize_key((string) ($row['recurrence'] ?? 'none'));
+    if (!in_array($recurrence, array('none', 'annual', 'manual'), true)) {
+        $recurrence = 'none';
+    }
+
+    return array(
+        'campaign_key'  => $campaign_key,
+        'series_key'    => $series_key,
+        'name'          => $name,
+        'edition_label' => $edition,
+        'campaign_type' => seo_marketing_campaigns_normalize_type((string) ($row['campaign_type'] ?? 'calendar')),
+        'recurrence'    => $recurrence,
+        'start_at'      => $start_at,
+        'end_at'        => $end_at,
+        'is_enabled'    => seo_marketing_campaigns_import_bool($row['enabled'] ?? ($row['is_enabled'] ?? 1)),
+    );
+}
+
+/**
+ * Importa el calendario. Upsert por campaign_key y nunca toca productos.
+ */
+function seo_marketing_campaigns_handle_import()
+{
+    if (!current_user_can('manage_options')) {
+        wp_die('No tienes permisos para importar campañas.');
+    }
+    check_admin_referer('seo_marketing_campaigns_import');
+
+    seo_marketing_campaigns_maybe_install_tables();
+
+    $file = isset($_FILES['campaign_import_file']) ? $_FILES['campaign_import_file'] : array();
+    if (empty($file['tmp_name']) || !isset($file['error']) || (int) $file['error'] !== UPLOAD_ERR_OK) {
+        seo_marketing_campaigns_redirect_notice('No se pudo recibir el archivo de importacion.', 'error');
+    }
+    if (!empty($file['size']) && (int) $file['size'] > 2 * 1024 * 1024) {
+        seo_marketing_campaigns_redirect_notice('El archivo supera el limite de 2 MB.', 'error');
+    }
+
+    $extension = strtolower(pathinfo((string) ($file['name'] ?? ''), PATHINFO_EXTENSION));
+    if (!in_array($extension, array('json', 'csv'), true)) {
+        seo_marketing_campaigns_redirect_notice('Solo se admiten archivos JSON o CSV.', 'error');
+    }
+
+    $rows = seo_marketing_campaigns_import_read_file($file['tmp_name'], $extension);
+    if (is_wp_error($rows)) {
+        seo_marketing_campaigns_redirect_notice($rows->get_error_message(), 'error');
+    }
+
+    global $wpdb;
+    $tables = seo_marketing_campaigns_tables();
+    $created = 0;
+    $updated = 0;
+    $skipped = 0;
+    $errors = array();
+    $seen_keys = array();
+    $now = seo_marketing_campaigns_now_mysql();
+
+    foreach ((array) $rows as $index => $raw_row) {
+        $row = seo_marketing_campaigns_import_normalize_row($raw_row);
+        if (is_wp_error($row)) {
+            $skipped++;
+            $errors[] = 'Fila ' . ((int) $index + 1) . ': ' . $row->get_error_message();
+            continue;
+        }
+
+        $key = (string) $row['campaign_key'];
+        if (isset($seen_keys[$key])) {
+            $skipped++;
+            $errors[] = 'Fila ' . ((int) $index + 1) . ': campaign_key duplicada dentro del archivo (' . $key . ').';
+            continue;
+        }
+        $seen_keys[$key] = true;
+
+        $existing = $wpdb->get_row(
+            $wpdb->prepare("SELECT * FROM {$tables['campaigns']} WHERE campaign_key = %s LIMIT 1", $key)
+        );
+
+        if ($existing) {
+            $validation = seo_marketing_campaigns_import_validate_existing_products(
+                absint($existing->id),
+                $row['start_at'],
+                $row['end_at']
+            );
+            if (is_wp_error($validation)) {
+                $skipped++;
+                $errors[] = $key . ': ' . $validation->get_error_message();
+                continue;
+            }
+
+            $data = $row;
+            $data['updated_by'] = get_current_user_id();
+            $data['updated_at'] = $now;
+
+            $result = $wpdb->update(
+                $tables['campaigns'],
+                $data,
+                array('id' => absint($existing->id)),
+                array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s'),
+                array('%d')
+            );
+            if ($result === false) {
+                $skipped++;
+                $errors[] = $key . ': ' . $wpdb->last_error;
+                continue;
+            }
+            seo_marketing_campaigns_reschedule(absint($existing->id));
+            $updated++;
+            continue;
+        }
+
+        $row['campaign_key'] = seo_marketing_campaigns_unique_key($key);
+        $row['created_by'] = get_current_user_id();
+        $row['updated_by'] = get_current_user_id();
+        $row['created_at'] = $now;
+        $row['updated_at'] = $now;
+
+        $result = $wpdb->insert(
+            $tables['campaigns'],
+            $row,
+            array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s')
+        );
+        if ($result === false) {
+            $skipped++;
+            $errors[] = $key . ': ' . $wpdb->last_error;
+            continue;
+        }
+        $new_id = (int) $wpdb->insert_id;
+        seo_marketing_campaigns_reschedule($new_id);
+        $created++;
+    }
+
+    $message = sprintf('Importacion terminada: %d nuevas, %d actualizadas, %d omitidas. Productos y precios no se han modificado.', $created, $updated, $skipped);
+    if ($errors) {
+        $message .= ' Incidencias: ' . implode(' | ', array_slice($errors, 0, 4));
+    }
+
+    seo_marketing_campaigns_redirect_notice($message, $errors ? 'warning' : 'success');
+}
+add_action('admin_post_seo_marketing_campaigns_import', 'seo_marketing_campaigns_handle_import');
+
+/**
+ * Bloque de importacion/exportacion del calendario.
+ */
+function seo_marketing_campaigns_render_import_export()
+{
+    $json_url = wp_nonce_url(
+        add_query_arg(
+            array('action' => 'seo_marketing_campaigns_export', 'format' => 'json'),
+            admin_url('admin-post.php')
+        ),
+        'seo_marketing_campaigns_export'
+    );
+    $csv_url = wp_nonce_url(
+        add_query_arg(
+            array('action' => 'seo_marketing_campaigns_export', 'format' => 'csv'),
+            admin_url('admin-post.php')
+        ),
+        'seo_marketing_campaigns_export'
+    );
+
+    echo '<section class="seo-campaigns-card seo-campaign-import-export">';
+    echo '<h3 style="margin-top:0;">Importar / Exportar calendario</h3>';
+    echo '<p>Intercambia solo la estructura de las campanas: identificadores, nombre, edicion, tipo, recurrencia, inicio, fin y estado habilitado. <strong>No incluye ni modifica productos, precios, banners ni creatividades.</strong></p>';
+    echo '<div class="seo-campaign-ie-grid">';
+    echo '<div><h4>Exportar</h4><p class="description">JSON es el formato canonico. CSV facilita revisar o editar el calendario en una hoja de calculo.</p><p><a class="button button-primary" href="' . esc_url($json_url) . '">Exportar JSON</a> <a class="button" href="' . esc_url($csv_url) . '">Exportar CSV</a></p></div>';
+    echo '<div><h4>Importar</h4><form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" enctype="multipart/form-data">';
+    echo '<input type="hidden" name="action" value="seo_marketing_campaigns_import">';
+    wp_nonce_field('seo_marketing_campaigns_import');
+    echo '<input type="file" name="campaign_import_file" accept=".json,.csv,application/json,text/csv" required>';
+    echo '<p><button type="submit" class="button button-primary">Importar calendario</button></p>';
+    echo '<p class="description">La importacion hace alta/actualizacion por <code>campaign_key</code>. Nunca borra campanas que no aparezcan en el archivo.</p>';
+    echo '</form></div>';
+    echo '</div></section>';
+}
 
 /**
  * Muestra avisos del modulo.
@@ -1138,7 +1851,7 @@ function seo_marketing_campaigns_render_styles()
     echo '<style>
         .seo-campaigns-header{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:18px;}
         .seo-campaigns-header h2{margin:0 0 4px;}.seo-campaigns-header p{margin:0;color:#646970;}
-        .seo-campaigns-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:start;}
+        .seo-campaigns-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;align-items:start;}
         .seo-campaigns-card{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px;box-shadow:0 1px 2px rgba(0,0,0,.03);}
         .seo-campaigns-card h3{margin:0 0 12px;display:flex;justify-content:space-between;gap:12px;align-items:center;}
         .seo-campaign-count{display:inline-grid;place-items:center;min-width:28px;height:28px;border-radius:999px;background:#f0f0f1;font-size:12px;}
@@ -1152,7 +1865,9 @@ function seo_marketing_campaigns_render_styles()
         .seo-campaign-products th{font-size:12px;text-transform:uppercase;color:#50575e;}.seo-campaign-products input[type=number]{width:110px;}
         .seo-campaign-search{display:flex;gap:8px;align-items:end;margin-bottom:14px;}.seo-campaign-search .seo-campaign-field{flex:1;}
         .seo-campaign-status{display:inline-block;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:700;}
-        .seo-campaign-status-current{background:#dff4e7;color:#1d6b43;}.seo-campaign-status-future{background:#e7f1ff;color:#135e96;}.seo-campaign-status-past{background:#f0f0f1;color:#50575e;}
+        .seo-campaign-status-current{background:#dff4e7;color:#1d6b43;}.seo-campaign-status-future{background:#e7f1ff;color:#135e96;}.seo-campaign-status-past{background:#f0f0f1;color:#50575e;}.seo-campaign-status-disabled{background:#fff4d6;color:#7a5200;}
+        .seo-campaign-ie-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;}
+        .seo-campaign-import-export{margin-top:18px;}
         @media(max-width:1100px){.seo-campaigns-grid,.seo-campaign-editor{grid-template-columns:1fr;}}
         @media(max-width:700px){.seo-campaign-form-grid{grid-template-columns:1fr;}.seo-campaign-field-full{grid-column:auto;}.seo-campaign-search{display:block;}.seo-campaign-search .button{margin-top:8px;}}
     </style>';
@@ -1199,7 +1914,7 @@ function seo_marketing_campaigns_search_products($search)
  */
 function seo_marketing_campaigns_render_bucket($title, $campaigns, $state)
 {
-    $status_labels = array('current' => 'En curso', 'future' => 'Proxima', 'past' => 'Finalizada');
+    $status_labels = array('current' => 'En curso', 'future' => 'Proxima', 'past' => 'Finalizada', 'disabled' => 'Deshabilitada');
     echo '<section class="seo-campaigns-card">';
     echo '<h3><span>' . esc_html($title) . '</span><span class="seo-campaign-count">' . esc_html((string) count($campaigns)) . '</span></h3>';
 
@@ -1219,7 +1934,7 @@ function seo_marketing_campaigns_render_bucket($title, $campaigns, $state)
         echo esc_html(wp_date('d/m/Y H:i', seo_marketing_campaigns_timestamp($campaign->start_at), wp_timezone()));
         echo ' - ';
         echo esc_html(wp_date('d/m/Y H:i', seo_marketing_campaigns_timestamp($campaign->end_at), wp_timezone()));
-        echo '<br>' . esc_html(number_format_i18n((int) $campaign->product_count)) . ' producto(s) · ' . esc_html(seo_marketing_campaigns_recurrence_label($campaign->recurrence));
+        echo '<br>' . esc_html(number_format_i18n((int) $campaign->product_count)) . ' producto(s) · ' . esc_html(seo_marketing_campaigns_type_label(isset($campaign->campaign_type) ? $campaign->campaign_type : 'calendar')) . ' · ' . esc_html(seo_marketing_campaigns_recurrence_label($campaign->recurrence));
         echo '</div>';
         echo '<p style="margin:8px 0 0;"><a class="button button-small" href="' . esc_url($edit_url) . '">Abrir campaña</a></p>';
         echo '</div>';
@@ -1240,12 +1955,11 @@ function seo_marketing_campaigns_render_dashboard()
         "SELECT c.*, COUNT(cp.id) AS product_count
          FROM {$tables['campaigns']} c
          LEFT JOIN {$tables['products']} cp ON cp.campaign_id = c.id
-         WHERE c.is_enabled = 1
          GROUP BY c.id
          ORDER BY c.start_at DESC, c.id DESC"
     );
 
-    $buckets = array('current' => array(), 'future' => array(), 'past' => array());
+    $buckets = array('current' => array(), 'future' => array(), 'past' => array(), 'disabled' => array());
     foreach ((array) $rows as $row) {
         $state = seo_marketing_campaigns_temporal_state($row);
         if (isset($buckets[$state])) {
@@ -1267,7 +1981,10 @@ function seo_marketing_campaigns_render_dashboard()
     seo_marketing_campaigns_render_bucket('En curso', $buckets['current'], 'current');
     seo_marketing_campaigns_render_bucket('Proximas', $buckets['future'], 'future');
     seo_marketing_campaigns_render_bucket('Finalizadas', $buckets['past'], 'past');
+    seo_marketing_campaigns_render_bucket('Deshabilitadas', $buckets['disabled'], 'disabled');
     echo '</div>';
+
+    seo_marketing_campaigns_render_import_export();
 }
 
 /**
@@ -1398,8 +2115,11 @@ function seo_marketing_campaigns_render_editor($campaign_id, $is_new = false)
         $end = $start->modify('+7 days');
         $campaign = (object) array(
             'id'            => 0,
+            'campaign_key'  => '',
+            'series_key'    => '',
             'name'          => '',
             'edition_label' => $start->format('Y'),
+            'campaign_type' => 'calendar',
             'recurrence'    => 'none',
             'start_at'      => $start->format('Y-m-d H:i:s'),
             'end_at'        => $end->format('Y-m-d H:i:s'),
@@ -1418,7 +2138,16 @@ function seo_marketing_campaigns_render_editor($campaign_id, $is_new = false)
     wp_nonce_field('seo_marketing_campaign_save');
     echo '<div class="seo-campaign-form-grid">';
     echo '<div class="seo-campaign-field seo-campaign-field-full"><label>Nombre</label><input type="text" name="name" required value="' . esc_attr($campaign->name) . '" placeholder="Navidad"></div>';
+    if (!empty($campaign->id)) {
+        echo '<div class="seo-campaign-field"><label>Identificador</label><input type="text" readonly value="' . esc_attr((string) ($campaign->campaign_key ?? '')) . '"></div>';
+        echo '<div class="seo-campaign-field"><label>Serie</label><input type="text" readonly value="' . esc_attr((string) ($campaign->series_key ?? '')) . '"></div>';
+    }
     echo '<div class="seo-campaign-field"><label>Edicion</label><input type="text" name="edition_label" value="' . esc_attr($campaign->edition_label) . '" placeholder="2026"></div>';
+    echo '<div class="seo-campaign-field"><label>Tipo</label><select name="campaign_type">';
+    foreach (seo_marketing_campaigns_types() as $key => $label) {
+        echo '<option value="' . esc_attr($key) . '" ' . selected(isset($campaign->campaign_type) ? $campaign->campaign_type : 'calendar', $key, false) . '>' . esc_html($label) . '</option>';
+    }
+    echo '</select></div>';
     echo '<div class="seo-campaign-field"><label>Repeticion</label><select name="recurrence">';
     foreach (array('none' => 'No recurrente', 'annual' => 'Anual', 'manual' => 'Nueva edicion manual') as $key => $label) {
         echo '<option value="' . esc_attr($key) . '" ' . selected($campaign->recurrence, $key, false) . '>' . esc_html($label) . '</option>';
