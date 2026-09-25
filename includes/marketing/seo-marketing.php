@@ -34,12 +34,18 @@ if (is_readable($seo_social_network_module)) {
 }
 unset($seo_social_network_module);
 
+$seo_campaigns_module = __DIR__ . '/campaigns.php';
+if (is_readable($seo_campaigns_module)) {
+    require_once $seo_campaigns_module;
+}
+unset($seo_campaigns_module);
+
 if (!defined('SEO_MARKETING_STYLE_OPTION')) {
     define('SEO_MARKETING_STYLE_OPTION', 'seo_marketing_style_settings_v1');
 }
 
 if (!defined('SEO_MARKETING_STYLE_SCHEMA_VERSION')) {
-    define('SEO_MARKETING_STYLE_SCHEMA_VERSION', 7);
+    define('SEO_MARKETING_STYLE_SCHEMA_VERSION', 6);
 }
 
 if (!defined('SEO_MARKETING_AUTO_CATEGORY_LIMIT')) {
@@ -280,35 +286,6 @@ function seo_marketing_style_defaults()
         'footer_text_size'         => 14,
         'footer_logo_width'        => 170,
 
-        // Dependiente 3.0.
-        // Por defecto hereda la paleta general para mantener una sola identidad visual.
-        'dependiente_use_system_palette' => 1,
-        'dependiente_background'         => '#f6f7f8',
-        'dependiente_surface'            => '#ffffff',
-        'dependiente_text'               => '#1d2327',
-        'dependiente_muted'              => '#646970',
-        'dependiente_border'             => '#e1e4e7',
-        'dependiente_action_bg'          => '#1d2327',
-        'dependiente_action_hover'       => '#101820',
-        'dependiente_action_text'        => '#ffffff',
-        'dependiente_active_bg'          => '#f0f6fc',
-        'dependiente_active_border'      => '#2271b1',
-        'dependiente_active_text'        => '#135e96',
-        'dependiente_debug_bg'           => '#101418',
-        'dependiente_debug_text'         => '#d8dee4',
-        'dependiente_debug_muted'        => '#9fa8b1',
-        'dependiente_debug_accent'       => '#9fe870',
-        'dependiente_container_width'    => 1500,
-        'dependiente_debug_width'        => 340,
-        'dependiente_panel_radius'       => 12,
-        'dependiente_control_radius'     => 9,
-        'dependiente_product_radius'     => 10,
-        'dependiente_panel_padding'      => 20,
-        'dependiente_hero_padding'       => 26,
-        'dependiente_search_height'      => 48,
-        'dependiente_product_title_size' => 16,
-        'dependiente_choice_title_size'  => 15,
-
         // FAQ.
         'faq_section_bg'           => '#fafbfc',
         'faq_item_bg'              => '#ffffff',
@@ -458,11 +435,6 @@ function seo_marketing_style_sanitize_settings($input)
         'checkout_hero_text', 'checkout_card_background', 'checkout_summary_background',
         'checkout_text', 'checkout_muted', 'checkout_border', 'checkout_input_background',
         'checkout_action_background', 'checkout_action_hover', 'checkout_action_text',
-        'dependiente_background', 'dependiente_surface', 'dependiente_text',
-        'dependiente_muted', 'dependiente_border', 'dependiente_action_bg',
-        'dependiente_action_hover', 'dependiente_action_text', 'dependiente_active_bg',
-        'dependiente_active_border', 'dependiente_active_text', 'dependiente_debug_bg',
-        'dependiente_debug_text', 'dependiente_debug_muted', 'dependiente_debug_accent',
     );
 
     foreach ($color_keys as $key) {
@@ -584,18 +556,6 @@ function seo_marketing_style_sanitize_settings($input)
     $settings['footer_heading_size']   = seo_marketing_style_clamp(isset($input['footer_heading_size']) ? $input['footer_heading_size'] : null, 12, 28, $defaults['footer_heading_size']);
     $settings['footer_text_size']      = seo_marketing_style_clamp(isset($input['footer_text_size']) ? $input['footer_text_size'] : null, 11, 22, $defaults['footer_text_size']);
     $settings['footer_logo_width']     = seo_marketing_style_clamp(isset($input['footer_logo_width']) ? $input['footer_logo_width'] : null, 90, 300, $defaults['footer_logo_width']);
-
-    $settings['dependiente_use_system_palette'] = !empty($input['dependiente_use_system_palette']) ? 1 : 0;
-    $settings['dependiente_container_width']    = seo_marketing_style_clamp(isset($input['dependiente_container_width']) ? $input['dependiente_container_width'] : null, 960, 1800, $defaults['dependiente_container_width']);
-    $settings['dependiente_debug_width']        = seo_marketing_style_clamp(isset($input['dependiente_debug_width']) ? $input['dependiente_debug_width'] : null, 240, 520, $defaults['dependiente_debug_width']);
-    $settings['dependiente_panel_radius']       = seo_marketing_style_clamp(isset($input['dependiente_panel_radius']) ? $input['dependiente_panel_radius'] : null, 0, 40, $defaults['dependiente_panel_radius']);
-    $settings['dependiente_control_radius']     = seo_marketing_style_clamp(isset($input['dependiente_control_radius']) ? $input['dependiente_control_radius'] : null, 0, 30, $defaults['dependiente_control_radius']);
-    $settings['dependiente_product_radius']     = seo_marketing_style_clamp(isset($input['dependiente_product_radius']) ? $input['dependiente_product_radius'] : null, 0, 40, $defaults['dependiente_product_radius']);
-    $settings['dependiente_panel_padding']      = seo_marketing_style_clamp(isset($input['dependiente_panel_padding']) ? $input['dependiente_panel_padding'] : null, 10, 48, $defaults['dependiente_panel_padding']);
-    $settings['dependiente_hero_padding']       = seo_marketing_style_clamp(isset($input['dependiente_hero_padding']) ? $input['dependiente_hero_padding'] : null, 12, 60, $defaults['dependiente_hero_padding']);
-    $settings['dependiente_search_height']      = seo_marketing_style_clamp(isset($input['dependiente_search_height']) ? $input['dependiente_search_height'] : null, 38, 70, $defaults['dependiente_search_height']);
-    $settings['dependiente_product_title_size'] = seo_marketing_style_clamp(isset($input['dependiente_product_title_size']) ? $input['dependiente_product_title_size'] : null, 13, 26, $defaults['dependiente_product_title_size']);
-    $settings['dependiente_choice_title_size']  = seo_marketing_style_clamp(isset($input['dependiente_choice_title_size']) ? $input['dependiente_choice_title_size'] : null, 12, 24, $defaults['dependiente_choice_title_size']);
 
     $settings['faq_radius'] = seo_marketing_style_clamp(isset($input['faq_radius']) ? $input['faq_radius'] : null, 0, 50, $defaults['faq_radius']);
 
@@ -959,93 +919,6 @@ function seo_marketing_style_handle_export()
     exit;
 }
 add_action('admin_post_seo_marketing_style_export', 'seo_marketing_style_handle_export');
-
-/**
- * Construye exclusivamente las variables visuales de Dependiente V3.
- *
- * Esta funcion es publica para que el propio frontend de Dependiente consuma
- * la configuracion del editor visual sin duplicar opciones ni CSS libre.
- *
- * @param array $settings
- * @return string
- */
-function seo_marketing_style_build_dependiente_css($settings)
-{
-    $settings = seo_marketing_style_sanitize_settings($settings);
-    $shadows = seo_marketing_style_shadow_choices();
-    $shadow = $shadows[$settings['shadow_preset']];
-    $body_font = seo_marketing_style_font_stack($settings['font_body']);
-    $heading_font = seo_marketing_style_font_stack($settings['font_headings']);
-
-    if (!empty($settings['dependiente_use_system_palette'])) {
-        $colors = array(
-            'page_bg'       => 'var(--dht-bg, ' . $settings['background'] . ')',
-            'surface'       => 'var(--dht-white, ' . $settings['white'] . ')',
-            'surface_alt'   => 'var(--dht-bg-light, ' . $settings['background_light'] . ')',
-            'text'          => 'var(--dht-text, ' . $settings['text'] . ')',
-            'muted'         => 'var(--dht-text-soft, ' . $settings['text_soft'] . ')',
-            'border'        => 'var(--dht-border, ' . $settings['border'] . ')',
-            'action_bg'     => 'var(--dht-primary, ' . $settings['primary'] . ')',
-            'action_hover'  => 'var(--dht-primary-dark, ' . $settings['primary_dark'] . ')',
-            'action_text'   => 'var(--dht-white, ' . $settings['white'] . ')',
-            'active_bg'     => 'var(--dht-bg-light, ' . $settings['background_light'] . ')',
-            'active_border' => 'var(--dht-primary, ' . $settings['primary'] . ')',
-            'active_text'   => 'var(--dht-primary-dark, ' . $settings['primary_dark'] . ')',
-            'debug_bg'      => 'var(--dht-dark, ' . $settings['dark'] . ')',
-            'debug_text'    => 'var(--dht-white, ' . $settings['white'] . ')',
-            'debug_muted'   => $settings['hero_text'],
-            'debug_accent'  => 'var(--dht-secondary, ' . $settings['secondary'] . ')',
-            'success'       => 'var(--dht-success, ' . $settings['success'] . ')',
-            'error'         => 'var(--dht-error, ' . $settings['error'] . ')',
-            'price'         => $settings['product_price_color'],
-        );
-    } else {
-        $colors = array(
-            'page_bg'       => $settings['dependiente_background'],
-            'surface'       => $settings['dependiente_surface'],
-            'surface_alt'   => $settings['dependiente_background'],
-            'text'          => $settings['dependiente_text'],
-            'muted'         => $settings['dependiente_muted'],
-            'border'        => $settings['dependiente_border'],
-            'action_bg'     => $settings['dependiente_action_bg'],
-            'action_hover'  => $settings['dependiente_action_hover'],
-            'action_text'   => $settings['dependiente_action_text'],
-            'active_bg'     => $settings['dependiente_active_bg'],
-            'active_border' => $settings['dependiente_active_border'],
-            'active_text'   => $settings['dependiente_active_text'],
-            'debug_bg'      => $settings['dependiente_debug_bg'],
-            'debug_text'    => $settings['dependiente_debug_text'],
-            'debug_muted'   => $settings['dependiente_debug_muted'],
-            'debug_accent'  => $settings['dependiente_debug_accent'],
-            'success'       => $settings['success'],
-            'error'         => $settings['error'],
-            'price'         => $settings['dependiente_action_bg'],
-        );
-    }
-
-    $css = array();
-    $css[] = 'html:root {';
-    foreach ($colors as $key => $value) {
-        $css[] = '  --dep3-' . str_replace('_', '-', $key) . ': ' . $value . ';';
-    }
-    $css[] = '  --dep3-font-body: ' . $body_font . ';';
-    $css[] = '  --dep3-font-headings: ' . $heading_font . ';';
-    $css[] = '  --dep3-shadow: ' . $shadow['small'] . ';';
-    $css[] = '  --dep3-shadow-hover: ' . $shadow['normal'] . ';';
-    $css[] = '  --dep3-container-width: ' . (int) $settings['dependiente_container_width'] . 'px;';
-    $css[] = '  --dep3-debug-width: ' . (int) $settings['dependiente_debug_width'] . 'px;';
-    $css[] = '  --dep3-panel-radius: ' . (int) $settings['dependiente_panel_radius'] . 'px;';
-    $css[] = '  --dep3-control-radius: ' . (int) $settings['dependiente_control_radius'] . 'px;';
-    $css[] = '  --dep3-product-radius: ' . (int) $settings['dependiente_product_radius'] . 'px;';
-    $css[] = '  --dep3-panel-padding: ' . (int) $settings['dependiente_panel_padding'] . 'px;';
-    $css[] = '  --dep3-hero-padding: ' . (int) $settings['dependiente_hero_padding'] . 'px;';
-    $css[] = '  --dep3-search-height: ' . (int) $settings['dependiente_search_height'] . 'px;';
-    $css[] = '  --dep3-product-title-size: ' . (int) $settings['dependiente_product_title_size'] . 'px;';
-    $css[] = '  --dep3-choice-title-size: ' . (int) $settings['dependiente_choice_title_size'] . 'px;';
-    $css[] = '}';
-
-    return implode("\n", $css);
-}
 
 /**
  * Construye CSS seguro. No acepta selectores ni CSS procedente del usuario.
@@ -1791,7 +1664,7 @@ function seo_menu_manager_marketing_page()
         exit;
     }
 
-    $allowed_tabs = array('marketing', 'identity', 'social', 'sitemaps', 'style');
+    $allowed_tabs = array('marketing', 'campaigns', 'identity', 'social', 'sitemaps', 'style');
     $current_tab = $requested_tab;
     if (!in_array($current_tab, $allowed_tabs, true)) {
         $current_tab = 'marketing';
@@ -1810,7 +1683,13 @@ function seo_menu_manager_marketing_page()
 
     echo '<div class="seo-marketing-panel">';
 
-    if ($current_tab === 'identity') {
+    if ($current_tab === 'campaigns') {
+        if (function_exists('seo_marketing_campaigns_render_tab')) {
+            seo_marketing_campaigns_render_tab();
+        } else {
+            echo '<div class="notice notice-error inline"><p>No se ha podido cargar el modulo <code>marketing/campaigns.php</code>.</p></div>';
+        }
+    } elseif ($current_tab === 'identity') {
         seo_marketing_render_identity_tab();
     } elseif ($current_tab === 'sitemaps') {
         seo_marketing_render_sitemaps_tab($sitemap_notice);
@@ -1820,7 +1699,7 @@ function seo_menu_manager_marketing_page()
         if (function_exists('seo_social_network_render_admin_tab')) {
             seo_social_network_render_admin_tab();
         } else {
-            echo '<div class="notice notice-error inline"><p>No se ha podido cargar el modulo <code>social-network/social-bootstrap.php</code>.</p></div>';
+            echo '<div class="notice notice-error inline"><p>No se ha podido cargar el modulo <code>seo-social-network.php</code>.</p></div>';
         }
     } else {
         seo_marketing_render_relations_tab();
@@ -1837,6 +1716,7 @@ function seo_marketing_render_tabs($current_tab)
 {
     $tabs = array(
         'marketing' => 'Marketing',
+        'campaigns' => 'Campañas',
         'identity'  => 'Identidad / Cabecera',
         'social'    => 'Redes sociales',
         'sitemaps'  => 'Sitemaps',
@@ -3188,7 +3068,7 @@ function seo_marketing_render_style_tab()
 
     echo '<div class="seo-marketing-card">';
     echo '<h2>Estilo visual de las plantillas públicas</h2>';
-    echo '<p>Personaliza navegación, clusters, hubs, categorías, productos, carrito, checkout, tarjetas, FAQs, Dependiente y pie de página sin editar CSS. El sistema solo publica propiedades validadas y conserva <code>styles_template.css</code> como base.</p>';
+    echo '<p>Personaliza navegación, clusters, hubs, categorías, productos, carrito, checkout, tarjetas, FAQs y pie de página sin editar CSS. El sistema solo publica propiedades validadas y conserva <code>styles_template.css</code> como base.</p>';
     echo '<p><strong>Estado:</strong> ' . ($record['exists'] ? 'configuración personalizada publicada' : 'se utilizan los valores originales de la hoja CSS') . '.</p>';
     echo '<p>Cada guardado queda registrado en el Centro de Operaciones y puede revertirse si no existen cambios posteriores.</p>';
     echo '</div>';
@@ -3210,7 +3090,6 @@ function seo_marketing_render_style_tab()
     seo_marketing_render_style_faq($settings);
     seo_marketing_render_style_menu($settings);
     seo_marketing_render_style_footer($settings);
-    seo_marketing_render_style_dependiente($settings);
 
     echo '<div class="seo-style-actions">';
     echo '<button type="submit" class="button button-primary">Guardar y publicar estilo</button>';
@@ -3229,7 +3108,7 @@ function seo_marketing_render_style_tab()
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
     echo '<input type="hidden" name="action" value="seo_marketing_style_import">';
     wp_nonce_field('seo_marketing_style_import');
-    echo '<textarea name="style_json" placeholder="{ &quot;schema_version&quot;: 7, &quot;values&quot;: { ... } }"></textarea>';
+    echo '<textarea name="style_json" placeholder="{ &quot;schema_version&quot;: 6, &quot;values&quot;: { ... } }"></textarea>';
     echo '<p><button type="submit" class="button">Importar y publicar</button></p>';
     echo '</form>';
     echo '</div>';
@@ -3689,51 +3568,6 @@ function seo_marketing_render_style_footer($settings)
     seo_marketing_style_number_field('footer_text_size', 'Tamano de texto (px)', $settings['footer_text_size'], 11, 22);
     seo_marketing_style_number_field('footer_logo_width', 'Ancho del logotipo (px)', $settings['footer_logo_width'], 90, 300);
     echo '</div></section>';
-}
-
-/**
- * @param array $settings
- */
-function seo_marketing_render_style_dependiente($settings)
-{
-    echo '<section class="seo-style-section"><h2>11. Dependiente 3.0</h2>';
-    echo '<p>Dependiente consume directamente estos valores desde el mismo gestor visual. La lógica de búsqueda, el ranking y la parrilla 4×2 de interpretaciones no se modifican aquí.</p>';
-    echo '<p><input type="hidden" name="settings[dependiente_use_system_palette]" value="0"><label><input type="checkbox" name="settings[dependiente_use_system_palette]" value="1" ' . checked($settings['dependiente_use_system_palette'], 1, false) . ' data-preview-key="dependiente_use_system_palette"> <strong>Heredar la paleta general del sistema</strong></label></p>';
-    echo '<p style="margin-top:-4px;color:#646970;">Activado: usa colores generales, tipografía, sombras y estados ya definidos arriba. Desactivado: aplica la paleta específica de Dependiente que se configura a continuación.</p>';
-
-    echo '<h3 style="margin:20px 0 12px;">Paleta específica</h3>';
-    echo '<div class="seo-style-fields">';
-    seo_marketing_style_color_field('dependiente_background', 'Fondo de página', $settings['dependiente_background']);
-    seo_marketing_style_color_field('dependiente_surface', 'Paneles y tarjetas', $settings['dependiente_surface']);
-    seo_marketing_style_color_field('dependiente_text', 'Texto principal', $settings['dependiente_text']);
-    seo_marketing_style_color_field('dependiente_muted', 'Texto secundario', $settings['dependiente_muted']);
-    seo_marketing_style_color_field('dependiente_border', 'Bordes', $settings['dependiente_border']);
-    seo_marketing_style_color_field('dependiente_action_bg', 'Botón / acción principal', $settings['dependiente_action_bg']);
-    seo_marketing_style_color_field('dependiente_action_hover', 'Acción principal al pasar', $settings['dependiente_action_hover']);
-    seo_marketing_style_color_field('dependiente_action_text', 'Texto de acción', $settings['dependiente_action_text']);
-    seo_marketing_style_color_field('dependiente_active_bg', 'Opción seleccionada: fondo', $settings['dependiente_active_bg']);
-    seo_marketing_style_color_field('dependiente_active_border', 'Opción seleccionada: borde', $settings['dependiente_active_border']);
-    seo_marketing_style_color_field('dependiente_active_text', 'Opción seleccionada: texto', $settings['dependiente_active_text']);
-    seo_marketing_style_color_field('dependiente_debug_bg', 'Panel de recorrido: fondo', $settings['dependiente_debug_bg']);
-    seo_marketing_style_color_field('dependiente_debug_text', 'Panel de recorrido: texto', $settings['dependiente_debug_text']);
-    seo_marketing_style_color_field('dependiente_debug_muted', 'Panel de recorrido: texto secundario', $settings['dependiente_debug_muted']);
-    seo_marketing_style_color_field('dependiente_debug_accent', 'Panel de recorrido: acento', $settings['dependiente_debug_accent']);
-    echo '</div>';
-
-    echo '<h3 style="margin:24px 0 12px;">Geometría y legibilidad</h3>';
-    echo '<div class="seo-style-fields">';
-    seo_marketing_style_number_field('dependiente_container_width', 'Ancho máximo de Dependiente (px)', $settings['dependiente_container_width'], 960, 1800);
-    seo_marketing_style_number_field('dependiente_debug_width', 'Ancho del recorrido/debug (px)', $settings['dependiente_debug_width'], 240, 520);
-    seo_marketing_style_number_field('dependiente_panel_radius', 'Radio de paneles (px)', $settings['dependiente_panel_radius'], 0, 40);
-    seo_marketing_style_number_field('dependiente_control_radius', 'Radio de botones y campos (px)', $settings['dependiente_control_radius'], 0, 30);
-    seo_marketing_style_number_field('dependiente_product_radius', 'Radio de tarjetas de producto (px)', $settings['dependiente_product_radius'], 0, 40);
-    seo_marketing_style_number_field('dependiente_panel_padding', 'Relleno de paneles (px)', $settings['dependiente_panel_padding'], 10, 48);
-    seo_marketing_style_number_field('dependiente_hero_padding', 'Relleno del buscador superior (px)', $settings['dependiente_hero_padding'], 12, 60);
-    seo_marketing_style_number_field('dependiente_search_height', 'Altura de campo y botón (px)', $settings['dependiente_search_height'], 38, 70);
-    seo_marketing_style_number_field('dependiente_product_title_size', 'Título de producto (px)', $settings['dependiente_product_title_size'], 13, 26);
-    seo_marketing_style_number_field('dependiente_choice_title_size', 'Texto de interpretaciones (px)', $settings['dependiente_choice_title_size'], 12, 24);
-    echo '</div>';
-    echo '</section>';
 }
 
 /**
