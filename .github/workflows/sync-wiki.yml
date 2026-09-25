@@ -1,0 +1,76 @@
+name: Sync documentation to GitHub Wiki
+
+on:
+  push:
+    branches:
+      - staging
+    paths:
+      - 'docs/MANUAL-USUARIO.md'
+      - 'docs/CONEXIONES-CREDENCIALES.md'
+      - '.github/workflows/sync-wiki.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Clone Wiki repository
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" wiki
+
+      - name: Update managed Wiki pages
+        run: |
+          cp docs/MANUAL-USUARIO.md "wiki/Manual-de-usuario.md"
+          cp docs/CONEXIONES-CREDENCIALES.md "wiki/Conexiones-y-credenciales.md"
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          home = Path("wiki/Home.md")
+          text = home.read_text(encoding="utf-8") if home.exists() else "# SEO Taxonomy\n"
+
+          start = "<!-- SEO-TAXONOMY-MANUAL-START -->"
+          end = "<!-- SEO-TAXONOMY-MANUAL-END -->"
+          block = """<!-- SEO-TAXONOMY-MANUAL-START -->
+          ## Manual de usuario
+
+          La introducción y el esquema general explican qué es SEO Taxonomy. Para el uso operativo del plugin consulta:
+
+          - [[Manual de usuario]]
+          - [[Conexiones y credenciales]]
+
+          El manual describe pantallas, pestañas, botones, filtros, casillas, estados y el efecto de las acciones visibles para el usuario.
+          <!-- SEO-TAXONOMY-MANUAL-END -->"""
+
+          if start in text and end in text:
+              before = text.split(start, 1)[0].rstrip()
+              after = text.split(end, 1)[1].lstrip()
+              text = before + "\n\n" + block + ("\n\n" + after if after else "") + "\n"
+          else:
+              text = text.rstrip() + "\n\n" + block + "\n"
+
+          home.write_text(text, encoding="utf-8")
+          PY
+
+      - name: Commit Wiki changes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd wiki
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Home.md Manual-de-usuario.md Conexiones-y-credenciales.md
+          if git diff --cached --quiet; then
+            echo "Wiki already up to date."
+            exit 0
+          fi
+          git commit -m "docs: actualiza manual de usuario y conexiones"
+          git push origin HEAD
