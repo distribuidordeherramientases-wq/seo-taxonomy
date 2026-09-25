@@ -10,7 +10,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_MARKETING_CAMPAIGNS_DB_VERSION')) {
-    define('SEO_MARKETING_CAMPAIGNS_DB_VERSION', 2);
+    define('SEO_MARKETING_CAMPAIGNS_DB_VERSION', 1);
 }
 if (!defined('SEO_MARKETING_CAMPAIGNS_DB_OPTION')) {
     define('SEO_MARKETING_CAMPAIGNS_DB_OPTION', 'seo_marketing_campaigns_db_version');
@@ -57,10 +57,6 @@ function seo_marketing_campaigns_maybe_install_tables()
         name varchar(191) NOT NULL,
         edition_label varchar(191) NOT NULL DEFAULT '',
         recurrence varchar(20) NOT NULL DEFAULT 'none',
-        source varchar(30) NOT NULL DEFAULT 'manual',
-        source_key varchar(191) NOT NULL DEFAULT '',
-        source_meta longtext NULL,
-        proposal_generated_at datetime NULL,
         start_at datetime NOT NULL,
         end_at datetime NOT NULL,
         is_enabled tinyint(1) unsigned NOT NULL DEFAULT 1,
@@ -70,8 +66,6 @@ function seo_marketing_campaigns_maybe_install_tables()
         updated_at datetime NOT NULL,
         PRIMARY KEY  (id),
         KEY series_key (series_key),
-        KEY source_key (source_key),
-        KEY source (source),
         KEY start_at (start_at),
         KEY end_at (end_at),
         KEY enabled_dates (is_enabled,start_at,end_at),
@@ -83,24 +77,6 @@ function seo_marketing_campaigns_maybe_install_tables()
         campaign_id bigint(20) unsigned NOT NULL,
         product_id bigint(20) unsigned NOT NULL,
         campaign_price decimal(19,4) NOT NULL DEFAULT 0,
-        source varchar(30) NOT NULL DEFAULT 'manual',
-        supplier_cost decimal(19,4) NULL,
-        supplier_cost_source varchar(60) NOT NULL DEFAULT '',
-        current_price_snapshot decimal(19,4) NULL,
-        regular_price_snapshot decimal(19,4) NULL,
-        market_benchmark_price decimal(19,4) NULL,
-        market_price_min decimal(19,4) NULL,
-        market_price_max decimal(19,4) NULL,
-        match_confidence_pct decimal(7,3) NULL,
-        gross_margin_amount decimal(19,4) NULL,
-        gross_margin_pct decimal(9,4) NULL,
-        markup_on_cost_pct decimal(9,4) NULL,
-        price_vs_market_pct decimal(9,4) NULL,
-        demand_searches int(10) unsigned NOT NULL DEFAULT 0,
-        demand_clicks int(10) unsigned NOT NULL DEFAULT 0,
-        demand_impressions decimal(19,4) NOT NULL DEFAULT 0,
-        demand_score decimal(9,4) NOT NULL DEFAULT 0,
-        source_meta longtext NULL,
         position int(10) unsigned NOT NULL DEFAULT 0,
         snapshot_taken tinyint(1) unsigned NOT NULL DEFAULT 0,
         original_sale_price varchar(32) NULL,
@@ -149,6 +125,246 @@ function seo_marketing_campaigns_register_data_layer_tables($tables)
     return $tables;
 }
 add_filter('seo_data_layer_tables', 'seo_marketing_campaigns_register_data_layer_tables');
+
+
+/**
+ * Registra la franja publica de campanas en el Gestor de Plantillas.
+ *
+ * Se hace desde este modulo para que el gestor siga siendo generico: basta con
+ * que la fila exista en wp_seo_templates para que aparezca en Archivos de
+ * plantilla y Disponibilidad/activacion, incluidas sus variantes por dispositivo.
+ */
+function seo_marketing_campaigns_register_public_template()
+{
+    if (version_compare((string) get_option('seo_marketing_campaign_template_registry_version', '0'), '1', '>=')) {
+        return;
+    }
+
+    global $wpdb;
+    $table = $wpdb->prefix . 'seo_templates';
+
+    $table_exists = $wpdb->get_var(
+        $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table))
+    );
+    if ($table_exists !== $table) {
+        return;
+    }
+
+    $exists = (string) $wpdb->get_var(
+        $wpdb->prepare("SELECT template_key FROM {$table} WHERE template_key = %s LIMIT 1", 'campaign_strip')
+    );
+
+    if ($exists === '') {
+        $wpdb->query(
+            $wpdb->prepare(
+                "INSERT INTO {$table} (template_key, template_name, template_file, is_active) VALUES (%s, %s, %s, 1)",
+                'campaign_strip',
+                'Campañas promocionales',
+                'template-campaign.php'
+            )
+        );
+    }
+
+    $columns = (array) $wpdb->get_col("SHOW COLUMNS FROM {$table}", 0);
+    $data = array();
+    $formats = array();
+
+    $structural = array(
+        'template_type'           => array('system', '%s'),
+        'assignment_mode'         => array('automatic', '%s'),
+        'is_assignable'           => array(0, '%d'),
+        'device_variants_enabled' => array(1, '%d'),
+        'description'             => array('Franja global de campañas activas mostrada bajo la navegación principal.', '%s'),
+    );
+
+    foreach ($structural as $column => $definition) {
+        if (in_array($column, $columns, true)) {
+            $data[$column] = $definition[0];
+            $formats[] = $definition[1];
+        }
+    }
+
+    if ($data) {
+        $wpdb->update(
+            $table,
+            $data,
+            array('template_key' => 'campaign_strip'),
+            $formats,
+            array('%s')
+        );
+    }
+
+    $required_structural_columns = array_keys($structural);
+    if (!array_diff($required_structural_columns, $columns)) {
+        update_option('seo_marketing_campaign_template_registry_version', '1', false);
+    }
+}
+add_action('admin_init', 'seo_marketing_campaigns_register_public_template', 16);
+
+
+/**
+ * Indica si la franja de campañas está habilitada en el Gestor de Plantillas.
+ *
+ * Si la tabla o el registro aún no existen, se mantiene el comportamiento
+ * compatible y se permite renderizar. Si el registro existe y está inactivo,
+ * el header no carga la franja.
+ *
+ * @return bool
+ */
+function seo_marketing_campaigns_public_template_is_enabled()
+{
+    global $wpdb;
+
+    $table = $wpdb->prefix . 'seo_templates';
+    $table_exists = $wpdb->get_var(
+        $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table))
+    );
+
+    if ($table_exists !== $table) {
+        return true;
+    }
+
+    $row = $wpdb->get_row(
+        $wpdb->prepare(
+            "SELECT is_active FROM {$table} WHERE template_key = %s LIMIT 1",
+            'campaign_strip'
+        )
+    );
+
+    if (!$row) {
+        return true;
+    }
+
+    return (int) $row->is_active === 1;
+}
+
+/**
+ * Devuelve las campanas activas y sus productos listos para la franja publica.
+ *
+ * @return array<int,array{campaign:object,products:array<int,array<string,mixed>>}>
+ */
+function seo_marketing_campaigns_get_public_active()
+{
+    static $cache = null;
+    if (is_array($cache)) {
+        return $cache;
+    }
+
+    $cache = array();
+
+    if (!function_exists('wc_get_product')) {
+        return $cache;
+    }
+
+    global $wpdb;
+    $tables = seo_marketing_campaigns_tables();
+
+    foreach (array('campaigns', 'products') as $required_table) {
+        $table_name = $tables[$required_table];
+        $table_exists = $wpdb->get_var(
+            $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table_name))
+        );
+        if ($table_exists !== $table_name) {
+            return $cache;
+        }
+    }
+
+    $now = seo_marketing_campaigns_now_mysql();
+
+    $rows = (array) $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT
+                c.id AS campaign_id,
+                c.series_key,
+                c.name,
+                c.edition_label,
+                c.start_at,
+                c.end_at,
+                cp.product_id,
+                cp.campaign_price,
+                cp.position,
+                cp.id AS campaign_product_id
+             FROM {$tables['campaigns']} c
+             INNER JOIN {$tables['products']} cp ON cp.campaign_id = c.id
+             WHERE c.is_enabled = 1
+               AND c.start_at <= %s
+               AND c.end_at >= %s
+             ORDER BY c.start_at ASC, c.id ASC, cp.position ASC, cp.id ASC",
+            $now,
+            $now
+        )
+    );
+
+    if (!$rows) {
+        return $cache;
+    }
+
+    $grouped = array();
+
+    foreach ($rows as $row) {
+        $campaign_id = absint($row->campaign_id);
+        $product_id = absint($row->product_id);
+        $product = $product_id > 0 ? wc_get_product($product_id) : null;
+
+        if (!$product || !$product->is_visible() || !$product->is_in_stock()) {
+            continue;
+        }
+
+        $campaign_price = (float) $row->campaign_price;
+        if ($campaign_price <= 0) {
+            continue;
+        }
+
+        if (!isset($grouped[$campaign_id])) {
+            $grouped[$campaign_id] = array(
+                'campaign' => (object) array(
+                    'id'            => $campaign_id,
+                    'series_key'    => sanitize_key((string) $row->series_key),
+                    'name'          => (string) $row->name,
+                    'edition_label' => (string) $row->edition_label,
+                    'start_at'      => (string) $row->start_at,
+                    'end_at'        => (string) $row->end_at,
+                ),
+                'products' => array(),
+            );
+        }
+
+        $regular_raw = $product->get_regular_price('edit');
+        $regular_raw = $regular_raw !== '' ? (float) $regular_raw : (float) $product->get_price('edit');
+
+        $campaign_display = function_exists('wc_get_price_to_display')
+            ? (float) wc_get_price_to_display($product, array('price' => $campaign_price))
+            : $campaign_price;
+        $regular_display = function_exists('wc_get_price_to_display')
+            ? (float) wc_get_price_to_display($product, array('price' => $regular_raw))
+            : $regular_raw;
+
+        $discount = 0;
+        if ($regular_display > 0 && $campaign_display > 0 && $campaign_display < $regular_display) {
+            $discount = (int) round((1 - ($campaign_display / $regular_display)) * 100);
+        }
+
+        $grouped[$campaign_id]['products'][] = array(
+            'id'                => $product_id,
+            'product'           => $product,
+            'name'              => $product->get_name(),
+            'url'               => get_permalink($product_id),
+            'campaign_price'    => $campaign_display,
+            'regular_price'     => $regular_display,
+            'discount_percent'  => max(0, $discount),
+            'position'          => (int) $row->position,
+        );
+    }
+
+    foreach ($grouped as $campaign_id => $item) {
+        if (empty($item['products'])) {
+            unset($grouped[$campaign_id]);
+        }
+    }
+
+    $cache = array_values($grouped);
+    return (array) apply_filters('seo_marketing_campaigns_public_active', $cache);
+}
 
 /**
  * URL de la pestana Campañas.
@@ -226,55 +442,6 @@ function seo_marketing_campaigns_timestamp($mysql)
 {
     $date = DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', (string) $mysql, wp_timezone());
     return $date ? $date->getTimestamp() : 0;
-}
-
-/**
- * Metricas comerciales simples sobre el coste almacenado del proveedor.
- *
- * No representan beneficio neto: no descuentan portes, comisiones,
- * devoluciones ni otros costes operativos.
- *
- * @param mixed $price
- * @param mixed $cost
- * @return array
- */
-function seo_marketing_campaigns_margin_metrics($price, $cost)
-{
-    $price = is_numeric($price) ? (float) $price : 0.0;
-    $cost = is_numeric($cost) ? (float) $cost : 0.0;
-    if ($price <= 0 || $cost <= 0) {
-        return array(
-            'gross_amount' => null,
-            'gross_margin_pct' => null,
-            'markup_on_cost_pct' => null,
-        );
-    }
-    $gross = $price - $cost;
-    return array(
-        'gross_amount' => round($gross, 4),
-        'gross_margin_pct' => round(($gross / $price) * 100, 4),
-        'markup_on_cost_pct' => round(($gross / $cost) * 100, 4),
-    );
-}
-
-/**
- * Ultima campana creada desde una propuesta de Analista.
- *
- * @param string $source_key
- * @return object|null
- */
-function seo_marketing_campaigns_get_by_source_key($source_key)
-{
-    global $wpdb;
-    $tables = seo_marketing_campaigns_tables();
-    $source_key = sanitize_key((string) $source_key);
-    if ($source_key === '') return null;
-    return $wpdb->get_row(
-        $wpdb->prepare(
-            "SELECT * FROM {$tables['campaigns']} WHERE source='analista' AND source_key=%s ORDER BY id DESC LIMIT 1",
-            $source_key
-        )
-    );
 }
 
 /**
@@ -864,24 +1031,14 @@ function seo_marketing_campaigns_handle_update_products()
         if (isset($prices[$product_id])) {
             $price = function_exists('wc_format_decimal') ? wc_format_decimal($prices[$product_id]) : (float) $prices[$product_id];
             if ((float) $price > 0) {
-                $update_data = array(
-                    'campaign_price' => $price,
-                    'updated_at'     => seo_marketing_campaigns_now_mysql(),
-                );
-                if (isset($row->supplier_cost) && is_numeric($row->supplier_cost) && (float) $row->supplier_cost > 0) {
-                    $margin = seo_marketing_campaigns_margin_metrics((float) $price, (float) $row->supplier_cost);
-                    $update_data['gross_margin_amount'] = $margin['gross_amount'];
-                    $update_data['gross_margin_pct'] = $margin['gross_margin_pct'];
-                    $update_data['markup_on_cost_pct'] = $margin['markup_on_cost_pct'];
-                    if (isset($row->market_benchmark_price) && is_numeric($row->market_benchmark_price) && (float) $row->market_benchmark_price > 0) {
-                        $update_data['price_vs_market_pct'] = (((float) $price - (float) $row->market_benchmark_price) / (float) $row->market_benchmark_price) * 100;
-                    }
-                }
                 $wpdb->update(
                     $tables['products'],
-                    $update_data,
+                    array(
+                        'campaign_price' => $price,
+                        'updated_at'     => seo_marketing_campaigns_now_mysql(),
+                    ),
                     array('id' => absint($row->id)),
-                    null,
+                    array('%s', '%s'),
                     array('%d')
                 );
                 $updated++;
@@ -956,207 +1113,6 @@ function seo_marketing_campaigns_handle_duplicate()
 add_action('admin_post_seo_marketing_campaign_duplicate', 'seo_marketing_campaigns_handle_duplicate');
 
 /**
- * Activa una propuesta vigente de Analista y la convierte en una campana real.
- *
- * La propuesta se vuelve a calcular en servidor; no se confian precios ni
- * productos recibidos desde el formulario. Asi la activacion conserva el
- * snapshot real de Ojeador/Analista que existia en ese momento.
- */
-function seo_marketing_campaigns_handle_activate_analista()
-{
-    if (!current_user_can('manage_options')) {
-        wp_die('No tienes permisos para activar propuestas de Analista.');
-    }
-    check_admin_referer('seo_marketing_campaign_activate_analista');
-    seo_marketing_campaigns_maybe_install_tables();
-
-    $source_key = isset($_POST['source_key']) ? sanitize_key(wp_unslash($_POST['source_key'])) : '';
-    $days = isset($_POST['analista_days']) ? absint($_POST['analista_days']) : 28;
-    $days = function_exists('seo_analista_days') ? seo_analista_days($days) : max(7, min(90, $days));
-    if ($source_key === '' || !function_exists('seo_analista_campaign_proposals')) {
-        seo_marketing_campaigns_redirect_notice(
-            'No se ha podido recuperar la propuesta de Analista.',
-            'error',
-            array('campaign_view' => 'analista')
-        );
-    }
-
-    $existing_source = seo_marketing_campaigns_get_by_source_key($source_key);
-    if ($existing_source) {
-        seo_marketing_campaigns_redirect_notice(
-            'Esta propuesta ya se convirtio en una campana. Abre la campana existente para revisarla.',
-            'warning',
-            array('campaign_id' => absint($existing_source->id))
-        );
-    }
-
-    $payload = seo_analista_campaign_proposals($days, 30, true);
-    $proposal = null;
-    foreach ((array) ($payload['proposals'] ?? array()) as $item) {
-        if (sanitize_key((string) ($item['key'] ?? '')) === $source_key) {
-            $proposal = $item;
-            break;
-        }
-    }
-    if (!$proposal || empty($proposal['products'])) {
-        seo_marketing_campaigns_redirect_notice(
-            'La propuesta ya no esta disponible o ha perdido sus productos elegibles.',
-            'warning',
-            array('campaign_view' => 'analista')
-        );
-    }
-
-    $start_at = seo_marketing_campaigns_parse_local_datetime(isset($_POST['start_at']) ? wp_unslash($_POST['start_at']) : '');
-    $end_at = seo_marketing_campaigns_parse_local_datetime(isset($_POST['end_at']) ? wp_unslash($_POST['end_at']) : '');
-    if ($start_at === '') $start_at = (string) ($proposal['start_at'] ?? '');
-    if ($end_at === '') $end_at = (string) ($proposal['end_at'] ?? '');
-    if ($start_at === '' || $end_at === '' || $end_at <= $start_at) {
-        seo_marketing_campaigns_redirect_notice(
-            'Las fechas de la propuesta no son validas.',
-            'error',
-            array('campaign_view' => 'analista')
-        );
-    }
-
-    $valid_products = array();
-    $skipped = array();
-    foreach ((array) $proposal['products'] as $product_row) {
-        $product_id = absint($product_row['product_id'] ?? 0);
-        $campaign_price = is_numeric($product_row['recommended_campaign_price'] ?? null)
-            ? (float) $product_row['recommended_campaign_price']
-            : 0.0;
-        $cost = is_numeric($product_row['supplier_cost'] ?? null) ? (float) $product_row['supplier_cost'] : 0.0;
-        $product = function_exists('wc_get_product') ? wc_get_product($product_id) : null;
-
-        if (!$product || $product->is_type('variable') || $campaign_price <= 0 || $cost <= 0) {
-            $skipped[] = $product_id;
-            continue;
-        }
-        $overlap = seo_marketing_campaigns_find_product_overlap($product_id, 0, $start_at, $end_at);
-        if ($overlap) {
-            $skipped[] = $product_id;
-            continue;
-        }
-        $valid_products[] = array(
-            'product' => $product,
-            'row' => $product_row,
-            'campaign_price' => $campaign_price,
-            'supplier_cost' => $cost,
-        );
-    }
-
-    if (!$valid_products) {
-        seo_marketing_campaigns_redirect_notice(
-            'No se ha activado la propuesta: todos sus productos estan solapados, no existen o no tienen precio/coste valido.',
-            'warning',
-            array('campaign_view' => 'analista')
-        );
-    }
-
-    global $wpdb;
-    $tables = seo_marketing_campaigns_tables();
-    $now = seo_marketing_campaigns_now_mysql();
-    $name = sanitize_text_field((string) ($proposal['name'] ?? 'Campana propuesta por Analista'));
-    $series_key = sanitize_title('analista-' . $name);
-    if ($series_key === '') $series_key = 'analista-' . wp_generate_uuid4();
-    $source_meta = wp_json_encode($proposal, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
-
-    $inserted = $wpdb->insert(
-        $tables['campaigns'],
-        array(
-            'series_key' => $series_key,
-            'parent_campaign_id' => null,
-            'name' => $name,
-            'edition_label' => wp_date('Y-m-d', seo_marketing_campaigns_timestamp($start_at), wp_timezone()),
-            'recurrence' => 'none',
-            'source' => 'analista',
-            'source_key' => $source_key,
-            'source_meta' => $source_meta,
-            'proposal_generated_at' => (string) ($payload['generated_at'] ?? $now),
-            'start_at' => $start_at,
-            'end_at' => $end_at,
-            'is_enabled' => 1,
-            'created_by' => get_current_user_id(),
-            'updated_by' => get_current_user_id(),
-            'created_at' => $now,
-            'updated_at' => $now,
-        )
-    );
-    if (false === $inserted) {
-        seo_marketing_campaigns_redirect_notice(
-            'No se ha podido crear la campana desde la propuesta.',
-            'error',
-            array('campaign_view' => 'analista')
-        );
-    }
-    $campaign_id = absint($wpdb->insert_id);
-    $position = 0;
-    $added = 0;
-
-    foreach ($valid_products as $candidate) {
-        $position++;
-        $product = $candidate['product'];
-        $row = (array) $candidate['row'];
-        $campaign_price = (float) $candidate['campaign_price'];
-        $cost = (float) $candidate['supplier_cost'];
-        $margin = seo_marketing_campaigns_margin_metrics($campaign_price, $cost);
-        $benchmark = is_numeric($row['market_benchmark_price'] ?? null) ? (float) $row['market_benchmark_price'] : null;
-        $price_vs_market = ($benchmark && $benchmark > 0)
-            ? (($campaign_price - $benchmark) / $benchmark) * 100
-            : null;
-        $demand = (array) ($row['demand'] ?? array());
-
-        $ok = $wpdb->insert(
-            $tables['products'],
-            array(
-                'campaign_id' => $campaign_id,
-                'product_id' => $product->get_id(),
-                'campaign_price' => $campaign_price,
-                'source' => 'analista',
-                'supplier_cost' => $cost,
-                'supplier_cost_source' => sanitize_key((string) ($row['supplier_cost_source'] ?? '')),
-                'current_price_snapshot' => is_numeric($row['current_price'] ?? null) ? (float) $row['current_price'] : null,
-                'regular_price_snapshot' => is_numeric($product->get_regular_price('edit')) ? (float) $product->get_regular_price('edit') : null,
-                'market_benchmark_price' => $benchmark,
-                'market_price_min' => is_numeric($row['market_price_min'] ?? null) ? (float) $row['market_price_min'] : null,
-                'market_price_max' => is_numeric($row['market_price_max'] ?? null) ? (float) $row['market_price_max'] : null,
-                'match_confidence_pct' => is_numeric($row['match_confidence_pct'] ?? null) ? (float) $row['match_confidence_pct'] : null,
-                'gross_margin_amount' => $margin['gross_amount'],
-                'gross_margin_pct' => $margin['gross_margin_pct'],
-                'markup_on_cost_pct' => $margin['markup_on_cost_pct'],
-                'price_vs_market_pct' => $price_vs_market,
-                'demand_searches' => absint($demand['dependiente_searches'] ?? 0),
-                'demand_clicks' => absint($demand['dependiente_clicks'] ?? 0),
-                'demand_impressions' => (float) ($demand['search_console_impressions'] ?? 0),
-                'demand_score' => (float) ($demand['score'] ?? 0),
-                'source_meta' => wp_json_encode($row, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE),
-                'position' => $position,
-                'created_at' => $now,
-                'updated_at' => $now,
-            )
-        );
-        if (false !== $ok) $added++;
-    }
-
-    if (!$added) {
-        $wpdb->delete($tables['campaigns'], array('id' => $campaign_id), array('%d'));
-        seo_marketing_campaigns_redirect_notice(
-            'No se ha podido anadir ningun producto a la campana.',
-            'error',
-            array('campaign_view' => 'analista')
-        );
-    }
-
-    seo_marketing_campaigns_reschedule($campaign_id);
-    $message = sprintf('Campana de Analista activada con %d producto(s).', $added);
-    if ($skipped) {
-        $message .= ' Se omitieron ' . count($skipped) . ' producto(s) por solapamiento o datos no validos.';
-    }
-    seo_marketing_campaigns_redirect_notice($message, $skipped ? 'warning' : 'success', array('campaign_id' => $campaign_id));
-}
-add_action('admin_post_seo_marketing_campaign_activate_analista', 'seo_marketing_campaigns_handle_activate_analista');
-
-/**
  * Muestra avisos del modulo.
  */
 function seo_marketing_campaigns_render_notice()
@@ -1184,23 +1140,6 @@ function seo_marketing_campaigns_render_styles()
         .seo-campaigns-header h2{margin:0 0 4px;}.seo-campaigns-header p{margin:0;color:#646970;}
         .seo-campaigns-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:start;}
         .seo-campaigns-card{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px;box-shadow:0 1px 2px rgba(0,0,0,.03);}
-        .seo-campaigns-subnav{display:flex;gap:8px;margin:0 0 18px;flex-wrap:wrap;}
-        .seo-campaigns-subnav a{padding:7px 12px;border:1px solid #c3c4c7;border-radius:999px;text-decoration:none;background:#fff;color:#2c3338;font-weight:600;}
-        .seo-campaigns-subnav a.is-active{background:#2271b1;border-color:#2271b1;color:#fff;}
-        .seo-analista-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 18px;}
-        .seo-analista-kpi{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:14px;}
-        .seo-analista-kpi strong{display:block;font-size:24px;line-height:1.1;margin-top:4px;}
-        .seo-analista-proposal{margin-bottom:18px;}
-        .seo-analista-proposal-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:12px;}
-        .seo-analista-proposal-head h3{margin:0 0 4px;}
-        .seo-analista-proposal table{width:100%;border-collapse:collapse;}
-        .seo-analista-proposal th,.seo-analista-proposal td{padding:9px 8px;border-bottom:1px solid #f0f0f1;text-align:left;vertical-align:top;}
-        .seo-analista-proposal th{font-size:11px;text-transform:uppercase;color:#50575e;}
-        .seo-analista-price-good{color:#1d6b43;font-weight:700;}
-        .seo-analista-price-market{color:#8a5a00;font-weight:700;}
-        .seo-analista-price-bad{color:#b32d2e;font-weight:700;}
-        .seo-analista-activate{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f1;}
-        .seo-analista-activate label{font-weight:600;font-size:12px;}.seo-analista-activate input{width:100%;}
         .seo-campaigns-card h3{margin:0 0 12px;display:flex;justify-content:space-between;gap:12px;align-items:center;}
         .seo-campaign-count{display:inline-grid;place-items:center;min-width:28px;height:28px;border-radius:999px;background:#f0f0f1;font-size:12px;}
         .seo-campaign-row{padding:12px 0;border-top:1px solid #f0f0f1;}.seo-campaign-row:first-of-type{border-top:0;}
@@ -1214,182 +1153,9 @@ function seo_marketing_campaigns_render_styles()
         .seo-campaign-search{display:flex;gap:8px;align-items:end;margin-bottom:14px;}.seo-campaign-search .seo-campaign-field{flex:1;}
         .seo-campaign-status{display:inline-block;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:700;}
         .seo-campaign-status-current{background:#dff4e7;color:#1d6b43;}.seo-campaign-status-future{background:#e7f1ff;color:#135e96;}.seo-campaign-status-past{background:#f0f0f1;color:#50575e;}
-        @media(max-width:1100px){.seo-campaigns-grid,.seo-campaign-editor{grid-template-columns:1fr;}.seo-analista-summary{grid-template-columns:repeat(2,minmax(0,1fr));}}
-        @media(max-width:700px){.seo-campaign-form-grid{grid-template-columns:1fr;}.seo-campaign-field-full{grid-column:auto;}.seo-campaign-search{display:block;}.seo-campaign-search .button{margin-top:8px;}.seo-analista-summary{grid-template-columns:1fr;}.seo-analista-proposal-head,.seo-analista-activate{display:block;}.seo-analista-activate>*{margin-top:8px;}.seo-analista-proposal{overflow-x:auto;}}
+        @media(max-width:1100px){.seo-campaigns-grid,.seo-campaign-editor{grid-template-columns:1fr;}}
+        @media(max-width:700px){.seo-campaign-form-grid{grid-template-columns:1fr;}.seo-campaign-field-full{grid-column:auto;}.seo-campaign-search{display:block;}.seo-campaign-search .button{margin-top:8px;}}
     </style>';
-}
-
-/**
- * Navegacion secundaria dentro de Marketing > Campanas.
- *
- * @param string $current
- */
-function seo_marketing_campaigns_render_subnav($current = 'campaigns')
-{
-    $items = array(
-        'campaigns' => 'Campanas',
-        'analista' => 'Propuestas de Analista',
-    );
-    echo '<nav class="seo-campaigns-subnav" aria-label="Vistas de campanas">';
-    foreach ($items as $key => $label) {
-        $url = seo_marketing_campaigns_admin_url($key === 'analista' ? array('campaign_view' => 'analista') : array());
-        echo '<a class="' . ($current === $key ? 'is-active' : '') . '" href="' . esc_url($url) . '">' . esc_html($label) . '</a>';
-    }
-    echo '</nav>';
-}
-
-/**
- * Precio para tablas internas.
- *
- * @param mixed $value
- * @return string
- */
-function seo_marketing_campaigns_price_html($value)
-{
-    if (!is_numeric($value) || (float) $value <= 0) return '-';
-    if (function_exists('wc_price')) return wp_kses_post(wc_price((float) $value));
-    return esc_html(number_format_i18n((float) $value, 2) . ' EUR');
-}
-
-/**
- * Margen bruto / markup para una opcion de precio.
- *
- * @param array $metrics
- * @return string
- */
-function seo_marketing_campaigns_margin_html($metrics)
-{
-    $metrics = is_array($metrics) ? $metrics : array();
-    if (!isset($metrics['gross_amount']) || !is_numeric($metrics['gross_amount'])) return '-';
-    $gross = (float) $metrics['gross_amount'];
-    $markup = is_numeric($metrics['markup_on_cost_pct'] ?? null) ? (float) $metrics['markup_on_cost_pct'] : null;
-    $margin = is_numeric($metrics['margin_on_sale_pct'] ?? null) ? (float) $metrics['margin_on_sale_pct'] : null;
-    $html = function_exists('wc_price')
-        ? wp_kses_post(wc_price($gross))
-        : esc_html(number_format_i18n($gross, 2) . ' EUR');
-    if ($markup !== null) $html .= '<br><small>+' . esc_html(number_format_i18n($markup, 1)) . '% s/coste</small>';
-    if ($margin !== null) $html .= '<br><small>' . esc_html(number_format_i18n($margin, 1)) . '% s/venta</small>';
-    return $html;
-}
-
-/**
- * Propuestas comerciales calculadas por Analista con Ojeador.
- */
-function seo_marketing_campaigns_render_analista_proposals()
-{
-    $days = isset($_GET['analista_days']) ? absint($_GET['analista_days']) : 28;
-    $days = function_exists('seo_analista_days') ? seo_analista_days($days) : max(7, min(90, $days));
-
-    echo '<div class="seo-campaigns-header"><div><h2>Propuestas de Analista</h2><p>Campanas que Analista activaria al cruzar demanda de clientes, Search Console y posicion de precio de Ojeador.</p></div></div>';
-
-    if (!function_exists('seo_analista_campaign_proposals')) {
-        echo '<div class="notice notice-warning inline"><p>Analista todavia no ha cargado el motor de propuestas de campanas.</p></div>';
-        return;
-    }
-
-    $payload = seo_analista_campaign_proposals($days, 12, false);
-    if (empty($payload['available'])) {
-        echo '<div class="notice notice-info inline"><p>No hay datos suficientes de Ojeador para generar propuestas.</p></div>';
-        return;
-    }
-
-    $summary = (array) ($payload['summary'] ?? array());
-    echo '<div class="seo-analista-summary">';
-    $kpis = array(
-        'Propuestas' => (int) ($summary['proposal_count'] ?? 0),
-        'Productos activables' => (int) ($summary['eligible_products'] ?? 0),
-        'Frenados por precio' => (int) ($summary['blocked_by_price'] ?? 0),
-        'Productos con senal Dependiente' => (int) ($summary['dependiente_products_with_signal'] ?? 0),
-    );
-    foreach ($kpis as $label => $value) {
-        echo '<div class="seo-analista-kpi"><span>' . esc_html($label) . '</span><strong>' . esc_html(number_format_i18n($value)) . '</strong></div>';
-    }
-    echo '</div>';
-
-    $notes = (array) ($payload['notes'] ?? array());
-    if ($notes) {
-        echo '<div class="notice notice-info inline"><p><strong>Como se calcula:</strong> ' . esc_html(implode(' ', array_slice($notes, 0, 3))) . '</p></div>';
-    }
-
-    $proposals = (array) ($payload['proposals'] ?? array());
-    if (!$proposals) {
-        echo '<section class="seo-campaigns-card"><p>No hay ninguna campana que Analista recomiende activar con los datos actuales.</p></section>';
-    }
-
-    foreach ($proposals as $proposal) {
-        $source_key = sanitize_key((string) ($proposal['key'] ?? ''));
-        $activated = $source_key !== '' ? seo_marketing_campaigns_get_by_source_key($source_key) : null;
-        $products = (array) ($proposal['products'] ?? array());
-        $summary_row = (array) ($proposal['summary'] ?? array());
-
-        echo '<section class="seo-campaigns-card seo-analista-proposal">';
-        echo '<div class="seo-analista-proposal-head"><div>';
-        echo '<h3>' . esc_html((string) ($proposal['name'] ?? 'Propuesta')) . '</h3>';
-        echo '<p style="margin:0;color:#646970;">' . esc_html((string) ($proposal['reason'] ?? '')) . '</p>';
-        echo '</div><div style="text-align:right;white-space:nowrap;"><strong>Prioridad ' . esc_html(number_format_i18n((float) ($proposal['priority_score'] ?? 0), 1)) . '/100</strong><br><small>' . esc_html(count($products)) . ' producto(s)</small></div></div>';
-
-        echo '<p class="seo-campaign-meta">';
-        echo esc_html(number_format_i18n((int) ($summary_row['dependiente_searches'] ?? 0))) . ' busquedas Dependiente · ';
-        echo esc_html(number_format_i18n((int) ($summary_row['dependiente_clicks'] ?? 0))) . ' clics internos · ';
-        echo esc_html(number_format_i18n((int) ($summary_row['search_console_impressions'] ?? 0))) . ' impresiones Search Console';
-        echo '</p>';
-
-        echo '<div style="overflow-x:auto;"><table><thead><tr>';
-        echo '<th>Producto</th><th>Demanda</th><th>Coste</th><th>Mercado</th><th>Igualar</th><th>Competir</th><th>Propuesta</th><th>Margen propuesta</th>';
-        echo '</tr></thead><tbody>';
-        foreach ($products as $product) {
-            $demand = (array) ($product['demand'] ?? array());
-            $price_status = (string) ($product['price_status'] ?? '');
-            $status_class = $price_status === 'precio_bueno' ? 'seo-analista-price-good' : ($price_status === 'precio_mercado' ? 'seo-analista-price-market' : 'seo-analista-price-bad');
-            echo '<tr>';
-            echo '<td><strong>' . esc_html((string) ($product['product_name'] ?? '')) . '</strong><br><small>#' . esc_html((string) absint($product['product_id'] ?? 0)) . ' · ' . esc_html((string) ($product['category_name'] ?? '')) . '</small><br><span class="' . esc_attr($status_class) . '">' . esc_html((string) ($product['price_status_label'] ?? '')) . '</span></td>';
-            echo '<td><strong>' . esc_html(number_format_i18n((float) ($demand['score'] ?? 0), 1)) . '/100</strong><br><small>' . esc_html(number_format_i18n((int) ($demand['dependiente_searches'] ?? 0))) . ' busq. · ' . esc_html(number_format_i18n((int) ($demand['dependiente_clicks'] ?? 0))) . ' clics<br>' . esc_html(number_format_i18n((int) ($demand['search_console_impressions'] ?? 0))) . ' imp. Google</small></td>';
-            echo '<td>' . seo_marketing_campaigns_price_html($product['supplier_cost'] ?? null) . '<br><small>' . esc_html((string) ($product['supplier_cost_source'] ?? '')) . '</small></td>';
-            echo '<td>Mediana ' . seo_marketing_campaigns_price_html($product['market_benchmark_price'] ?? null) . '<br><small>Min ' . wp_kses_post(seo_marketing_campaigns_price_html($product['market_price_min'] ?? null)) . ' · ' . esc_html(number_format_i18n((float) ($product['match_confidence_pct'] ?? 0), 1)) . '% confianza</small></td>';
-            echo '<td>' . seo_marketing_campaigns_price_html($product['equal_market']['price'] ?? null) . '<br><small>margen:</small><br>' . seo_marketing_campaigns_margin_html((array) ($product['equal_market'] ?? array())) . '</td>';
-            echo '<td>' . seo_marketing_campaigns_price_html($product['compete_market']['price'] ?? null) . '<br><small>margen:</small><br>' . seo_marketing_campaigns_margin_html((array) ($product['compete_market'] ?? array())) . '</td>';
-            echo '<td><strong>' . seo_marketing_campaigns_price_html($product['recommended_campaign_price'] ?? null) . '</strong><br><small>Actual ' . wp_kses_post(seo_marketing_campaigns_price_html($product['current_price'] ?? null)) . '</small></td>';
-            echo '<td>' . seo_marketing_campaigns_margin_html((array) ($product['recommended_margin'] ?? array())) . '</td>';
-            echo '</tr>';
-        }
-        echo '</tbody></table></div>';
-
-        if ($activated) {
-            $open = seo_marketing_campaigns_admin_url(array('campaign_id' => absint($activated->id)));
-            echo '<p><strong style="color:#1d6b43;">Ya activada.</strong> <a class="button" href="' . esc_url($open) . '">Abrir campana #' . esc_html((string) absint($activated->id)) . '</a></p>';
-        } else {
-            echo '<form class="seo-analista-activate" method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
-            echo '<input type="hidden" name="action" value="seo_marketing_campaign_activate_analista">';
-            echo '<input type="hidden" name="source_key" value="' . esc_attr($source_key) . '">';
-            echo '<input type="hidden" name="analista_days" value="' . esc_attr((string) $days) . '">';
-            wp_nonce_field('seo_marketing_campaign_activate_analista');
-            echo '<div><label>Inicio</label><input type="datetime-local" name="start_at" required value="' . esc_attr(seo_marketing_campaigns_datetime_local((string) ($proposal['start_at'] ?? ''))) . '"></div>';
-            echo '<div><label>Fin</label><input type="datetime-local" name="end_at" required value="' . esc_attr(seo_marketing_campaigns_datetime_local((string) ($proposal['end_at'] ?? ''))) . '"></div>';
-            echo '<div><button type="submit" class="button button-primary">Activar campana</button></div>';
-            echo '</form>';
-        }
-        echo '</section>';
-    }
-
-    $blocked = (array) ($payload['blocked_by_price'] ?? array());
-    if ($blocked) {
-        echo '<section class="seo-campaigns-card seo-analista-proposal">';
-        echo '<h3>Interes frenado por precio <span class="seo-campaign-count">' . esc_html((string) count($blocked)) . '</span></h3>';
-        echo '<p class="description">Analista detecta demanda, pero Ojeador clasifica estos productos como precio muy malo. Se muestran para saber que margen exigiria igualar o competir, pero no se ofrece Activar.</p>';
-        echo '<div style="overflow-x:auto;"><table><thead><tr><th>Producto</th><th>Demanda</th><th>Coste</th><th>Mercado</th><th>Igualar</th><th>Competir</th></tr></thead><tbody>';
-        foreach ($blocked as $product) {
-            $demand = (array) ($product['demand'] ?? array());
-            echo '<tr>';
-            echo '<td><strong>' . esc_html((string) ($product['product_name'] ?? '')) . '</strong><br><small>' . esc_html((string) ($product['category_name'] ?? '')) . '</small></td>';
-            echo '<td>' . esc_html(number_format_i18n((float) ($demand['score'] ?? 0), 1)) . '/100<br><small>' . esc_html(number_format_i18n((int) ($demand['dependiente_searches'] ?? 0))) . ' busq. · ' . esc_html(number_format_i18n((int) ($demand['search_console_impressions'] ?? 0))) . ' imp.</small></td>';
-            echo '<td>' . seo_marketing_campaigns_price_html($product['supplier_cost'] ?? null) . '</td>';
-            echo '<td>' . seo_marketing_campaigns_price_html($product['market_benchmark_price'] ?? null) . '</td>';
-            echo '<td>' . seo_marketing_campaigns_price_html($product['equal_market']['price'] ?? null) . '<br>' . seo_marketing_campaigns_margin_html((array) ($product['equal_market'] ?? array())) . '</td>';
-            echo '<td>' . seo_marketing_campaigns_price_html($product['compete_market']['price'] ?? null) . '<br>' . seo_marketing_campaigns_margin_html((array) ($product['compete_market'] ?? array())) . '</td>';
-            echo '</tr>';
-        }
-        echo '</tbody></table></div></section>';
-    }
 }
 
 /**
@@ -1539,43 +1305,16 @@ function seo_marketing_campaigns_render_existing_products($campaign)
     echo '<input type="hidden" name="campaign_id" value="' . esc_attr((string) $campaign->id) . '">';
     wp_nonce_field('seo_marketing_campaign_update_products');
 
-    echo '<table><thead><tr><th>Producto</th><th>Precio habitual</th><th>Coste</th><th>Mercado</th><th>Precio campana</th><th>Margen bruto</th><th>Demanda</th><th>Aplicado</th><th>Quitar</th></tr></thead><tbody>';
+    echo '<table><thead><tr><th>Producto</th><th>Precio habitual</th><th>Oferta actual</th><th>Precio campaña</th><th>Aplicado</th><th>Quitar</th></tr></thead><tbody>';
     foreach ($rows as $row) {
         $product = function_exists('wc_get_product') ? wc_get_product(absint($row->product_id)) : null;
         $regular = $product ? $product->get_regular_price('edit') : '';
         $sale = $product ? $product->get_sale_price('edit') : '';
-        $source_meta = !empty($row->source_meta) ? json_decode((string) $row->source_meta, true) : array();
-        if (!is_array($source_meta)) $source_meta = array();
-        $margin = seo_marketing_campaigns_margin_metrics($row->campaign_price, $row->supplier_cost ?? null);
         echo '<tr>';
         echo '<td><strong>' . esc_html($row->post_title) . '</strong><br><small>#' . esc_html((string) $row->product_id) . ($row->sku ? ' · SKU ' . esc_html($row->sku) : '') . '</small></td>';
-        echo '<td>' . ($regular !== '' ? wp_kses_post(wc_price($regular)) : '-') . ($sale !== '' ? '<br><small>Oferta actual ' . wp_kses_post(wc_price($sale)) . '</small>' : '') . '</td>';
-        echo '<td>' . seo_marketing_campaigns_price_html($row->supplier_cost ?? null) . (!empty($row->supplier_cost_source) ? '<br><small>' . esc_html((string) $row->supplier_cost_source) . '</small>' : '') . '</td>';
-        echo '<td>' . seo_marketing_campaigns_price_html($row->market_benchmark_price ?? null);
-        if (is_numeric($row->market_price_min ?? null) || is_numeric($row->market_price_max ?? null)) {
-            echo '<br><small>Rango ' . wp_kses_post(seo_marketing_campaigns_price_html($row->market_price_min ?? null)) . ' - ' . wp_kses_post(seo_marketing_campaigns_price_html($row->market_price_max ?? null)) . '</small>';
-        }
-        if (is_numeric($row->match_confidence_pct ?? null)) echo '<br><small>' . esc_html(number_format_i18n((float) $row->match_confidence_pct, 1)) . '% confianza</small>';
-        if (!empty($source_meta['equal_market']['price'])) {
-            echo '<br><small>Igualar ' . wp_kses_post(seo_marketing_campaigns_price_html($source_meta['equal_market']['price'])) . ' · ' . esc_html(number_format_i18n((float) ($source_meta['equal_market']['markup_on_cost_pct'] ?? 0), 1)) . '% s/coste</small>';
-        }
-        if (!empty($source_meta['compete_market']['price'])) {
-            echo '<br><small>Competir ' . wp_kses_post(seo_marketing_campaigns_price_html($source_meta['compete_market']['price'])) . ' · ' . esc_html(number_format_i18n((float) ($source_meta['compete_market']['markup_on_cost_pct'] ?? 0), 1)) . '% s/coste</small>';
-        }
-        echo '</td>';
+        echo '<td>' . ($regular !== '' ? wp_kses_post(wc_price($regular)) : '-') . '</td>';
+        echo '<td>' . ($sale !== '' ? wp_kses_post(wc_price($sale)) : '-') . '</td>';
         echo '<td><input type="number" step="0.01" min="0.01" name="campaign_price[' . esc_attr((string) $row->product_id) . ']" value="' . esc_attr(wc_format_decimal($row->campaign_price, wc_get_price_decimals())) . '"></td>';
-        echo '<td>' . seo_marketing_campaigns_margin_html(array(
-            'gross_amount' => $margin['gross_amount'],
-            'markup_on_cost_pct' => $margin['markup_on_cost_pct'],
-            'margin_on_sale_pct' => $margin['gross_margin_pct'],
-        )) . '</td>';
-        echo '<td>';
-        if ((int) ($row->demand_searches ?? 0) || (int) ($row->demand_clicks ?? 0) || (float) ($row->demand_impressions ?? 0) > 0) {
-            echo '<strong>' . esc_html(number_format_i18n((float) ($row->demand_score ?? 0), 1)) . '/100</strong><br><small>' . esc_html(number_format_i18n((int) ($row->demand_searches ?? 0))) . ' busq. · ' . esc_html(number_format_i18n((int) ($row->demand_clicks ?? 0))) . ' clics · ' . esc_html(number_format_i18n((int) ($row->demand_impressions ?? 0))) . ' imp.</small>';
-        } else {
-            echo '-';
-        }
-        echo '</td>';
         echo '<td>' . (!empty($row->applied) ? '<strong style="color:#1d6b43;">Si</strong>' : 'No') . '</td>';
         echo '<td><label><input type="checkbox" name="remove_product[]" value="' . esc_attr((string) $row->product_id) . '"> Quitar</label></td>';
         echo '</tr>';
@@ -1671,14 +1410,6 @@ function seo_marketing_campaigns_render_editor($campaign_id, $is_new = false)
     $back_url = seo_marketing_campaigns_admin_url();
     echo '<div class="seo-campaigns-header"><div><h2>' . ($campaign->id ? 'Editar campaña' : 'Nueva campaña') . '</h2><p>Primero define la campaña y sus fechas. Despues podras anadir todos los productos necesarios.</p></div><a class="button" href="' . esc_url($back_url) . '">Volver a campañas</a></div>';
 
-    if ($campaign->id && isset($campaign->source) && (string) $campaign->source === 'analista') {
-        $meta = !empty($campaign->source_meta) ? json_decode((string) $campaign->source_meta, true) : array();
-        if (!is_array($meta)) $meta = array();
-        echo '<div class="notice notice-info inline"><p><strong>Origen: propuesta de Analista.</strong>';
-        if (!empty($meta['reason'])) echo ' ' . esc_html((string) $meta['reason']);
-        echo ' Los precios y margenes mostrados abajo conservan el snapshot usado al activar la propuesta.</p></div>';
-    }
-
     echo '<div class="seo-campaign-editor">';
     echo '<section class="seo-campaigns-card">';
     echo '<h3 style="margin-top:0;">Datos de la campaña</h3>';
@@ -1737,18 +1468,9 @@ function seo_marketing_campaigns_render_tab()
 
     $campaign_id = isset($_GET['campaign_id']) ? absint($_GET['campaign_id']) : 0;
     $campaign_action = isset($_GET['campaign_action']) ? sanitize_key(wp_unslash($_GET['campaign_action'])) : '';
-    $campaign_view = isset($_GET['campaign_view']) ? sanitize_key(wp_unslash($_GET['campaign_view'])) : 'campaigns';
-    if (!in_array($campaign_view, array('campaigns', 'analista'), true)) $campaign_view = 'campaigns';
-
-    seo_marketing_campaigns_render_subnav(($campaign_id || $campaign_action === 'new') ? 'campaigns' : $campaign_view);
 
     if ($campaign_id || $campaign_action === 'new') {
         seo_marketing_campaigns_render_editor($campaign_id, $campaign_action === 'new');
-        return;
-    }
-
-    if ($campaign_view === 'analista') {
-        seo_marketing_campaigns_render_analista_proposals();
         return;
     }
 
