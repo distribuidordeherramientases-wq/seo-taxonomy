@@ -1,0 +1,34 @@
+Ojeador v0.8.0 - analisis accionable y comparador de productos
+
+1. Nueva pestaña "Analisis y recomendaciones"
+- Sustituye KPIs descriptivos poco accionables por KPIs de cobertura, pendientes, errores, presupuesto, huecos de catalogo, visibilidad, promocion y concentracion.
+- Separa bloqueos operativos de recomendaciones comerciales.
+- Elimina la dispersion min-max de precios como disparador principal de acciones.
+- Usa percentiles positivos para Analista, evitando que p75=0 convierta cualquier impresion en "interes alto".
+
+2. Nuevos indices por categoria
+- Profundidad y gap de catalogo.
+- Competencia por numero de comercios observados.
+- Visibilidad interna por impresiones de Analista.
+- Intensidad de reviews.
+- Presion promocional.
+- Concentracion del comercio principal.
+- Calidad de datos.
+- Indice de oportunidad interno 0-100.
+
+El indice de oportunidad es una prioridad interna y no una prediccion de ventas ni una estimacion de demanda absoluta.
+
+3. Nueva pestaña "Comparador de productos"
+- Tabla paginada sobre los productos activos encontrados por Google Shopping.
+- Filtros por categoria, texto/marca/modelo, comercio, precio minimo/maximo, rating, reviews y productos con descuento.
+- Orden por posicion Google, precio, rating, reviews, descuento, comercio, titulo o fecha observada.
+- Enlace al resultado/producto devuelto por Google.
+
+4. Nuevo JSON de analisis
+- Boton "Exportar JSON analisis".
+- Incluye solo meta, KPIs, umbrales, recomendaciones operativas, recomendaciones comerciales, categorias con indices, ranking de comercios y tabla compacta de productos comparables.
+- Excluye configuracion sensible, logs, runs, raw_json y la auditoria completa.
+- El JSON completo de auditoria sigue disponible en la pestaña Operacion.
+
+5. Sin cambios de esquema SQL
+- No requiere migracion de base de datos.

@@ -137,13 +137,28 @@ final class SEO_Dependiente_Search_Log {
         if (!empty($semantic['confirmed_hint']) && is_array($semantic['confirmed_hint'])) {
             $public_semantic['confirmed_hint'] = $semantic['confirmed_hint'];
         }
+        // V3 aporta senales adicionales que no existen en el runtime historico.
+        // Se guardan en el JSON sin cambiar el esquema SQL.
+        foreach (array('actions','semantic_hits','lexicon_hits','vocabulary_hits') as $semantic_key) {
+            if (!empty($semantic[$semantic_key]) && is_array($semantic[$semantic_key])) {
+                $public_semantic[$semantic_key] = array_values(array_slice($semantic[$semantic_key], 0, 50));
+            }
+        }
+        if (isset($data['runtime']) && '' !== trim((string) $data['runtime'])) {
+            $public_semantic['runtime'] = sanitize_key((string) $data['runtime']);
+        }
 
         $concepts = is_array($semantic['concepts'] ?? null) ? $semantic['concepts'] : array();
         $intent = self::first_concept($concepts, 'intent');
         $object = self::first_concept($concepts, 'object');
         $context = self::first_concept($concepts, 'context');
         $state = self::first_concept($concepts, 'state');
-        $unresolved = self::unresolved_terms($semantic);
+        $allow_learning = !array_key_exists('allow_learning', (array) $data) || !empty($data['allow_learning']);
+        // V3 utiliza este registro como trazabilidad y fuente para Solucionador,
+        // no como entrada del aprendizaje legacy. Conservamos la interpretacion
+        // completa en semantic_analysis, pero no generamos deuda/candidatos
+        // legacy a partir de sus terminos literales.
+        $unresolved = $allow_learning ? self::unresolved_terms($semantic) : array();
         $uuid = wp_generate_uuid4();
         $session_hash = self::session_hash((string) ($data['session_id'] ?? ''));
         $strategy = sanitize_key((string) ($data['search_strategy'] ?? 'strict')) ?: 'strict';
@@ -187,7 +202,7 @@ final class SEO_Dependiente_Search_Log {
         }
 
         $log_id = absint($wpdb->insert_id);
-        if ('search' === $request_kind && class_exists('SEO_Dependiente_Learning')) {
+        if ($allow_learning && 'search' === $request_kind && class_exists('SEO_Dependiente_Learning')) {
             SEO_Dependiente_Learning::observe_search($log_id);
         }
 

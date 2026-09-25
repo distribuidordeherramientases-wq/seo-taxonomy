@@ -102,6 +102,10 @@ require_once SEO_SYSTEM_PATH . 'includes/seo-export.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-database-report.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-database-clean.php';
 
+require_once SEO_SYSTEM_PATH . 'includes/ojeador/ojeador-bootstrap.php';
+
+
+
 /*
 |--------------------------------------------------------------------------
 | REDIRECCIONES
@@ -140,6 +144,9 @@ require_once SEO_SYSTEM_PATH . 'includes/seo-report-classification.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-dashboard.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-google-info.php';
 require_once SEO_SYSTEM_PATH . 'includes/analista/analista-bootstrap.php';
+
+// Solucionador: convierte senales de cliente/mercado en propuestas de posts y borradores clasificados.
+require_once SEO_SYSTEM_PATH . 'includes/solucionador/solucionador-bootstrap.php';
 
 /*
 |--------------------------------------------------------------------------

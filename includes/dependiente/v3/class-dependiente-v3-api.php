@@ -40,10 +40,13 @@ final class SEO_Dependiente_V3_API {
             $query = substr($query, 0, 180);
         }
 
+        $page = max(1, absint($request->get_param('page')));
+        $category = sanitize_title((string) $request->get_param('category'));
+
         $interpretation = SEO_Dependiente_V3_Interpreter::interpret($query);
         $catalog = SEO_Dependiente_V3_Catalog::search($interpretation, array(
-            'page' => max(1, absint($request->get_param('page'))),
-            'category' => sanitize_title((string) $request->get_param('category')),
+            'page' => $page,
+            'category' => $category,
             'per_page' => 18,
         ));
         if (is_wp_error($catalog)) {
@@ -75,10 +78,57 @@ final class SEO_Dependiente_V3_API {
             'vocabulary_hits' => array_values((array) $interpretation['vocabulary_hits']),
         );
 
+
+        // El runtime V3 es la fuente publica real de consultas. Registramos la
+        // pregunta y su interpretacion en el log canonico para Analista, Auditor
+        // y Solucionador, pero sin activar el aprendizaje legacy.
+        $search_uuid = '';
+        if (class_exists('SEO_Dependiente_Search_Log')) {
+            $decision = (array) ($catalog['decision'] ?? array());
+            $pagination = (array) ($catalog['pagination'] ?? array());
+            $request_kind = $page > 1 ? 'paginate' : ($category !== '' ? 'refine' : 'search');
+            $strategy_detail = array(
+                'runtime' => 'v3',
+                'build' => '3.1.0-visual-guidance',
+                'decision' => array(
+                    'confidence' => absint($decision['confidence'] ?? 0),
+                    'level' => sanitize_key((string) ($decision['level'] ?? '')),
+                    'show_products' => !empty($decision['show_products']),
+                    'needs_choice' => !empty($decision['needs_choice']),
+                    'reason' => sanitize_key((string) ($decision['reason'] ?? '')),
+                    'candidate_count' => absint($decision['candidate_count'] ?? ($pagination['candidate_total'] ?? 0)),
+                ),
+                'category' => $category,
+                'suggestions' => array_values(array_slice(array_map(static function ($item) {
+                    return array(
+                        'id' => absint($item['id'] ?? 0),
+                        'name' => sanitize_text_field((string) ($item['name'] ?? '')),
+                        'slug' => sanitize_title((string) ($item['slug'] ?? '')),
+                    );
+                }, (array) ($catalog['suggestions'] ?? $catalog['categories'] ?? array())), 0, 8)),
+            );
+
+            $search_uuid = SEO_Dependiente_Search_Log::record_search(array(
+                'query' => $query,
+                'semantic' => $interpretation,
+                'runtime' => 'v3',
+                'request_kind' => $request_kind,
+                'mode' => 'need',
+                'search_strategy' => 'v3',
+                'strategy_detail' => $strategy_detail,
+                'candidate_count' => absint($decision['candidate_count'] ?? ($pagination['candidate_total'] ?? 0)),
+                'result_count' => count((array) ($catalog['products'] ?? array())),
+                'results' => (array) ($catalog['products'] ?? array()),
+                'execution_ms' => round((microtime(true) - $started) * 1000, 3),
+                'allow_learning' => false,
+            ));
+        }
+
         return rest_ensure_response(array(
             'version' => SEO_DEPENDIENTE_VERSION,
             'build' => '3.1.0-visual-guidance',
             'query' => $query,
+            'search_uuid' => $search_uuid,
             'interpretation' => $public_interpretation,
             // categories se conserva para no romper consumidores V3 anteriores.
             'categories' => array_values((array) ($catalog['categories'] ?? array())),

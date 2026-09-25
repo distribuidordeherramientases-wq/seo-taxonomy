@@ -1,0 +1,22 @@
+Ojeador v0.7.0 - capa de análisis de mercado
+
+- Añade class-ojeador-analysis.php sin cambiar el esquema SQL.
+- Convierte las instantáneas activas de Google Shopping en una radiografía por categoría:
+  resultados, comercios, cobertura de precio, precio mínimo/medio/máximo, dispersión,
+  descuentos, ratings/reviews y concentración del comercio más visible.
+- Cruza estos datos con Analista 28 días y el tamaño del catálogo propio.
+- Añade reglas de decisión explícitas para revisión (no ejecutan cambios):
+  * error / consulta sin resultados;
+  * interés interno alto + surtido reducido;
+  * alta dispersión de precios;
+  * oferta concentrada;
+  * presión promocional;
+  * datos de precio parciales.
+- Añade al panel Ojeador:
+  * KPIs de análisis;
+  * tabla de acciones prioritarias con motivo y acción;
+  * radiografía completa por categoría;
+  * ranking descriptivo de comercios más visibles.
+- El JSON completo de Ojeador incluye ahora el bloque analysis.
+- La capa deja claro que Google Shopping aporta una muestra de resultados y no el tamaño total del mercado.
+- No modifica automáticamente precios, productos, categorías ni taxonomía.

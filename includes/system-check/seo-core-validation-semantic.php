@@ -8,7 +8,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_CORE_SEMANTIC_TEST_VERSION')) {
-    define('SEO_CORE_SEMANTIC_TEST_VERSION', '2.2.0');
+    define('SEO_CORE_SEMANTIC_TEST_VERSION', '2.5.0');
 }
 
 /**
@@ -20,6 +20,200 @@ function seo_core_system_test_semantic_table_exists($table) {
     $found = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table));
 
     return $found === $table;
+}
+
+/**
+ * Comprueba si una tabla contiene una columna concreta.
+ *
+ * Se usa para tolerar instalaciones antiguas con metadatos legacy sin
+ * convertirlos en una dependencia del esquema actual.
+ */
+function seo_core_system_test_semantic_table_has_column($table, $column) {
+    global $wpdb;
+
+    if (!seo_core_system_test_semantic_table_exists($table)) {
+        return false;
+    }
+
+    $found = $wpdb->get_var(
+        $wpdb->prepare("SHOW COLUMNS FROM `{$table}` LIKE %s", (string) $column)
+    );
+
+    return (string) $found === (string) $column;
+}
+
+
+/**
+ * Inventario agregado de fuentes de imagen por producto.
+ *
+ * No realiza peticiones HTTP masivas. Usa la integridad del attachment local
+ * y el ultimo estado HTTP persistido por seo_supplier_images. Los estados
+ * temporales o aun no verificados se separan para no convertirlos en fallos.
+ */
+function seo_core_system_test_semantic_product_image_inventory($product_ids) {
+    global $wpdb;
+
+    $product_ids = array_values(array_unique(array_filter(array_map('absint', (array) $product_ids))));
+    $states = array();
+    foreach ($product_ids as $product_id) {
+        $states[$product_id] = array(
+            'local' => false,
+            'external_registered' => false,
+            'external_validated' => false,
+            'external_retry' => false,
+            'external_missing' => false,
+        );
+    }
+    if (!$product_ids) {
+        return $states;
+    }
+
+    // Attachment local realmente existente.
+    $local_ids = (array) $wpdb->get_col(
+        "SELECT DISTINCT pm.post_id
+         FROM {$wpdb->postmeta} pm
+         INNER JOIN {$wpdb->posts} p
+            ON p.ID = pm.post_id
+           AND p.post_type = 'product'
+           AND p.post_status NOT IN ('auto-draft','trash')
+         INNER JOIN {$wpdb->posts} a
+            ON a.ID = CAST(pm.meta_value AS UNSIGNED)
+           AND a.post_type = 'attachment'
+         WHERE pm.meta_key = '_thumbnail_id'
+           AND pm.meta_value IS NOT NULL
+           AND pm.meta_value <> ''
+           AND pm.meta_value <> '0'"
+    );
+    foreach ($local_ids as $product_id) {
+        $product_id = absint($product_id);
+        if (isset($states[$product_id])) {
+            $states[$product_id]['local'] = true;
+        }
+    }
+
+    $table = $wpdb->prefix . 'seo_supplier_images';
+    if (!seo_core_system_test_semantic_table_exists($table)) {
+        return $states;
+    }
+
+    $link_columns = array();
+    foreach (array('product_id', 'object_id') as $column) {
+        if (seo_core_system_test_semantic_table_has_column($table, $column)) {
+            $link_columns[] = $column;
+        }
+    }
+    if (!$link_columns || !seo_core_system_test_semantic_table_has_column($table, 'image_url')) {
+        return $states;
+    }
+
+    $has_status = seo_core_system_test_semantic_table_has_column($table, 'status');
+    $has_http = seo_core_system_test_semantic_table_has_column($table, 'http_status');
+
+    foreach ($link_columns as $column) {
+        $http_select = $has_http
+            ? "MAX(CASE WHEN http_status BETWEEN 200 AND 299 THEN 1 ELSE 0 END) AS has_valid,\n"
+              . "MAX(CASE WHEN http_status IS NULL OR http_status = 0 OR http_status IN (408,425,429) OR http_status BETWEEN 500 AND 599 THEN 1 ELSE 0 END) AS has_retry,\n"
+              . "MAX(CASE WHEN http_status IN (404,410) THEN 1 ELSE 0 END) AS has_missing"
+            : "0 AS has_valid, 1 AS has_retry, 0 AS has_missing";
+        $status_where = $has_status ? "AND status = 'active'" : '';
+        // $column procede de una lista blanca fija.
+        $rows = $wpdb->get_results(
+            "SELECT {$column} AS linked_product_id,\n"
+            . "       1 AS has_registered,\n"
+            . "       {$http_select}\n"
+            . "FROM {$table}\n"
+            . "WHERE {$column} IS NOT NULL\n"
+            . "  AND {$column} > 0\n"
+            . "  {$status_where}\n"
+            . "  AND image_url IS NOT NULL\n"
+            . "  AND TRIM(image_url) <> ''\n"
+            . "GROUP BY {$column}",
+            ARRAY_A
+        );
+
+        foreach ((array) $rows as $row) {
+            $product_id = absint($row['linked_product_id'] ?? 0);
+            if (!isset($states[$product_id])) {
+                continue;
+            }
+            $states[$product_id]['external_registered'] = true;
+            $states[$product_id]['external_validated'] = $states[$product_id]['external_validated'] || !empty($row['has_valid']);
+            $states[$product_id]['external_retry'] = $states[$product_id]['external_retry'] || !empty($row['has_retry']);
+            $states[$product_id]['external_missing'] = $states[$product_id]['external_missing'] || !empty($row['has_missing']);
+        }
+    }
+
+    return $states;
+}
+
+/**
+ * Detecta preguntas casi identicas dentro del mismo objeto sin comparar todo
+ * el catalogo contra todo el catalogo. Solo se comparan FAQs activas del mismo
+ * object_type + object_id y se excluyen los duplicados exactos.
+ */
+function seo_core_system_test_semantic_near_duplicate_faq_questions($rows, $threshold = 92.0, $example_limit = 12) {
+    $by_object = array();
+    foreach ((array) $rows as $row) {
+        if (empty($row['active_bool'])) {
+            continue;
+        }
+        $normalized = seo_core_system_test_semantic_normalize_text($row['question'] ?? '');
+        if (strlen($normalized) < 12) {
+            continue;
+        }
+        $key = (int) ($row['object_type'] ?? 0) . ':' . (int) ($row['object_id'] ?? 0);
+        $by_object[$key][] = array(
+            'id' => absint($row['id'] ?? 0),
+            'question' => (string) ($row['question'] ?? ''),
+            'normalized' => $normalized,
+        );
+    }
+
+    $pairs = 0;
+    $affected = array();
+    $examples = array();
+    foreach ($by_object as $object_key => $questions) {
+        $count = count($questions);
+        if ($count < 2) {
+            continue;
+        }
+        for ($i = 0; $i < $count - 1; $i++) {
+            for ($j = $i + 1; $j < $count; $j++) {
+                $a = $questions[$i]['normalized'];
+                $b = $questions[$j]['normalized'];
+                if ($a === $b) {
+                    continue;
+                }
+                $max_len = max(strlen($a), strlen($b));
+                $min_len = min(strlen($a), strlen($b));
+                if ($max_len <= 0 || ($min_len / $max_len) < 0.75) {
+                    continue;
+                }
+                similar_text($a, $b, $percent);
+                if ($percent < $threshold) {
+                    continue;
+                }
+                $pairs++;
+                $affected[$questions[$i]['id']] = true;
+                $affected[$questions[$j]['id']] = true;
+                if (count($examples) < $example_limit) {
+                    $examples[] = array(
+                        'object' => $object_key,
+                        'faq_ids' => array($questions[$i]['id'], $questions[$j]['id']),
+                        'similarity_percent' => round($percent, 1),
+                        'question_a' => seo_core_system_test_semantic_preview($questions[$i]['question'], 140),
+                        'question_b' => seo_core_system_test_semantic_preview($questions[$j]['question'], 140),
+                    );
+                }
+            }
+        }
+    }
+
+    return array(
+        'pairs' => $pairs,
+        'affected_rows' => count($affected),
+        'examples' => $examples,
+    );
 }
 
 /**
@@ -132,6 +326,95 @@ function seo_core_system_test_semantic_matches_patterns($text, $patterns) {
     }
 
     return false;
+}
+
+
+/**
+ * Tipos de atributo que pueden compartir legitimamente el mismo identificador
+ * comercial que SKU/MPN/modelo. La coincidencia por si sola es informativa.
+ */
+function seo_core_system_test_semantic_attribute_is_identifier($attribute_type) {
+    $attribute_type = sanitize_key(remove_accents((string) $attribute_type));
+
+    return in_array($attribute_type, array(
+        'modelo', 'model', 'sku', 'mpn', 'referencia', 'reference',
+        'referencia_fabricante', 'manufacturer_reference', 'part_number',
+    ), true);
+}
+
+/**
+ * Detecta la familia de unidad expresada de forma inequívoca en un valor.
+ * Si aparecen varias familias, devuelve "mixed" para no sobrediagnosticar.
+ */
+function seo_core_system_test_semantic_attribute_unit_family($value) {
+    $value = html_entity_decode((string) $value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $families = array();
+    $patterns = array(
+        'current' => '/[-+]?\d+(?:[.,]\d+)?\s*(?:ma|a|amperios?)\b/iu',
+        'voltage' => '/[-+]?\d+(?:[.,]\d+)?\s*(?:mv|kv|v|voltios?)\b/iu',
+        'power' => '/[-+]?\d+(?:[.,]\d+)?\s*(?:mw|kw|w|vatios?)\b/iu',
+        'weight' => '/[-+]?\d+(?:[.,]\d+)?\s*(?:mg|kg|g|gramos?|kilogramos?)\b/iu',
+        'frequency' => '/[-+]?\d+(?:[.,]\d+)?\s*(?:hz|khz|mhz|ghz)\b/iu',
+        'temperature' => '/[-+]?\d+(?:[.,]\d+)?\s*(?:°\s*)?(?:c|f)\b/iu',
+    );
+
+    foreach ($patterns as $family => $pattern) {
+        if (preg_match($pattern, $value)) {
+            $families[] = $family;
+        }
+    }
+
+    $families = array_values(array_unique($families));
+    if (count($families) === 1) {
+        return $families[0];
+    }
+    if (count($families) > 1) {
+        return 'mixed';
+    }
+
+    return '';
+}
+
+/**
+ * Devuelve la familia de unidad esperada para atributos tecnicos comunes.
+ */
+function seo_core_system_test_semantic_attribute_expected_unit_family($attribute_type) {
+    $attribute_type = sanitize_key(remove_accents((string) $attribute_type));
+    $map = array(
+        'corriente' => 'current',
+        'amperaje' => 'current',
+        'tension' => 'voltage',
+        'voltaje' => 'voltage',
+        'voltage' => 'voltage',
+        'potencia' => 'power',
+        'power' => 'power',
+        'peso' => 'weight',
+        'weight' => 'weight',
+        'frecuencia' => 'frequency',
+        'frequency' => 'frequency',
+        'temperatura' => 'temperature',
+        'temperature' => 'temperature',
+    );
+
+    return $map[$attribute_type] ?? '';
+}
+
+/**
+ * Solo declara error semantico cuando hay una unidad explicita e incompatible.
+ * Valores sin unidad o con varias magnitudes quedan fuera de esta regla.
+ */
+function seo_core_system_test_semantic_attribute_unit_error($attribute_type, $attribute_value) {
+    $expected = seo_core_system_test_semantic_attribute_expected_unit_family($attribute_type);
+    if ($expected === '') {
+        return '';
+    }
+
+    $actual = seo_core_system_test_semantic_attribute_unit_family($attribute_value);
+    if ($actual === '' || $actual === 'mixed' || $actual === $expected) {
+        return '';
+    }
+
+    return 'Unidad incompatible con el tipo de atributo: se esperaba ' . $expected . ' y se detectó ' . $actual . '.';
 }
 
 /**
@@ -387,10 +670,213 @@ function seo_core_system_test_semantic_tokens($text) {
 }
 
 /**
- * Interseccion de tokens.
+ * Variantes lexicas conservadoras de un token para comparar singular/plural
+ * y algunas derivaciones frecuentes sin depender de la profundidad taxonomica.
+ */
+function seo_core_system_test_semantic_token_variants($token) {
+    $token = seo_core_system_test_semantic_normalize_text($token);
+    if ($token === '' || strpos($token, ' ') !== false) {
+        return $token === '' ? array() : array($token);
+    }
+
+    $variants = array($token => true);
+    $length = strlen($token);
+
+    // Plurales espanoles frecuentes. Se conservan todas las variantes para
+    // no convertir una regla linguistica imperfecta en una decision destructiva.
+    if ($length > 4 && substr($token, -1) === 's') {
+        $variants[substr($token, 0, -1)] = true;
+    }
+    if ($length > 5 && substr($token, -2) === 'es') {
+        $variants[substr($token, 0, -2)] = true;
+    }
+    if ($length > 5 && substr($token, -3) === 'ces') {
+        $variants[substr($token, 0, -3) . 'z'] = true;
+    }
+    if ($length > 7 && substr($token, -5) === 'iones') {
+        $variants[substr($token, 0, -5) . 'ion'] = true;
+    }
+
+    // Derivaciones comunes utiles para categorias: limpieza/limpiador,
+    // soldadura/soldador, etc. Solo se aceptan raices de al menos 5 letras.
+    foreach (array(
+        'adores', 'adoras', 'ador', 'adora',
+        'aciones', 'acion', 'amientos', 'amiento', 'imientos', 'imiento',
+        'aduras', 'adura', 'ezas', 'eza', 'erias', 'eria',
+        'icos', 'icas', 'ico', 'ica'
+    ) as $suffix) {
+        if (strlen($token) <= strlen($suffix) + 4 || substr($token, -strlen($suffix)) !== $suffix) {
+            continue;
+        }
+        $root = substr($token, 0, -strlen($suffix));
+        if (strlen($root) >= 5) {
+            $variants[$root] = true;
+        }
+    }
+
+    return array_values(array_filter(array_keys($variants), static function ($value) {
+        return strlen((string) $value) >= 4;
+    }));
+}
+
+/**
+ * Interseccion semantica ligera de tokens. Devuelve tokens del lado izquierdo
+ * que encuentran una variante equivalente en el derecho.
  */
 function seo_core_system_test_semantic_token_overlap($left, $right) {
+    $right_variants = array();
+    foreach ((array) $right as $token) {
+        foreach (seo_core_system_test_semantic_token_variants($token) as $variant) {
+            $right_variants[$variant] = true;
+        }
+    }
+
+    $matched = array();
+    foreach ((array) $left as $token) {
+        foreach (seo_core_system_test_semantic_token_variants($token) as $variant) {
+            if (isset($right_variants[$variant])) {
+                $matched[(string) $token] = true;
+                break;
+            }
+        }
+    }
+
+    return array_keys($matched);
+}
+
+/**
+ * Interseccion literal usada solo para conservar la amplitud del detector
+ * historico como dato de auditoria, nunca como indicador de salud.
+ */
+function seo_core_system_test_semantic_token_overlap_exact($left, $right) {
     return array_values(array_intersect((array) $left, (array) $right));
+}
+
+/**
+ * Extrae la categoria hoja de una ruta textual de proveedor.
+ */
+function seo_core_system_test_semantic_supplier_leaf($path) {
+    $path = trim((string) $path);
+    if ($path === '') {
+        return '';
+    }
+
+    $parts = preg_split('/\s*(?:>|»|›|\|)\s*/u', $path, -1, PREG_SPLIT_NO_EMPTY);
+    if (!is_array($parts) || count($parts) <= 1) {
+        $parts = preg_split('/\s+\/\s+/u', $path, -1, PREG_SPLIT_NO_EMPTY);
+    }
+    if (!is_array($parts) || !$parts) {
+        return $path;
+    }
+
+    return trim((string) end($parts));
+}
+
+/**
+ * Devuelve solo las categorias hoja entre las categorias realmente asignadas
+ * al producto. Si solo hay una asignada, esa es la hoja operativa.
+ */
+function seo_core_system_test_semantic_assigned_leaf_categories($categories, $parent_map) {
+    $categories = (array) $categories;
+    if (!$categories) {
+        return array();
+    }
+
+    $assigned = array_fill_keys(array_map('absint', array_keys($categories)), true);
+    $non_leaf = array();
+
+    foreach (array_keys($assigned) as $term_id) {
+        $parent = absint($parent_map[$term_id] ?? 0);
+        $guard = 0;
+        while ($parent > 0 && $guard < 50) {
+            if (isset($assigned[$parent])) {
+                $non_leaf[$parent] = true;
+            }
+            $parent = absint($parent_map[$parent] ?? 0);
+            $guard++;
+        }
+    }
+
+    $leaf = array();
+    foreach ($categories as $term_id => $name) {
+        $term_id = absint($term_id);
+        if ($term_id > 0 && !isset($non_leaf[$term_id])) {
+            $leaf[$term_id] = (string) $name;
+        }
+    }
+
+    return $leaf ?: $categories;
+}
+
+/**
+ * Indica si una categoria es ancestro de otra dentro de product_cat.
+ */
+function seo_core_system_test_semantic_category_is_ancestor($ancestor_id, $descendant_id, $parent_map) {
+    $ancestor_id = absint($ancestor_id);
+    $current = absint($descendant_id);
+    if ($ancestor_id <= 0 || $current <= 0 || $ancestor_id === $current) {
+        return $ancestor_id > 0 && $ancestor_id === $current;
+    }
+
+    $guard = 0;
+    while ($current > 0 && $guard < 50) {
+        $current = absint($parent_map[$current] ?? 0);
+        if ($current === $ancestor_id) {
+            return true;
+        }
+        $guard++;
+    }
+
+    return false;
+}
+
+/**
+ * Busca una categoria interna cuyo nombre sea una equivalencia fuerte de la
+ * hoja del proveedor y que tambien este respaldada por el titulo del producto.
+ * Se usa solo como evidencia adicional para contradicciones fuertes.
+ */
+function seo_core_system_test_semantic_best_internal_category_match($supplier_leaf_tokens, $title_tokens, $category_token_map, $category_name_map) {
+    $supplier_leaf_tokens = array_values((array) $supplier_leaf_tokens);
+    if (!$supplier_leaf_tokens) {
+        return array();
+    }
+
+    $best = array();
+    $best_score = 0.0;
+    foreach ((array) $category_token_map as $term_id => $category_tokens) {
+        $category_tokens = array_values((array) $category_tokens);
+        if (!$category_tokens) {
+            continue;
+        }
+
+        $supplier_overlap = seo_core_system_test_semantic_token_overlap($supplier_leaf_tokens, $category_tokens);
+        $title_overlap = seo_core_system_test_semantic_token_overlap($title_tokens, $category_tokens);
+        $overlap_count = count($supplier_overlap);
+        if ($overlap_count === 0 || count($title_overlap) === 0) {
+            continue;
+        }
+
+        $supplier_ratio = $overlap_count / max(1, count($supplier_leaf_tokens));
+        $category_ratio = $overlap_count / max(1, count($category_tokens));
+        $score = min($supplier_ratio, $category_ratio);
+
+        // Exige equivalencia fuerte de la hoja, no mera coincidencia con una
+        // palabra generica de una ruta larga.
+        if ($score < 0.75) {
+            continue;
+        }
+        if ($score > $best_score) {
+            $best_score = $score;
+            $best = array(
+                'term_id' => absint($term_id),
+                'name' => (string) ($category_name_map[$term_id] ?? ''),
+                'score' => round($score, 3),
+                'shared_tokens' => $supplier_overlap,
+            );
+        }
+    }
+
+    return $best;
 }
 
 /**
@@ -464,7 +950,7 @@ function seo_core_system_test_semantic_snapshot() {
             "SELECT term_id, meta_key, meta_value
              FROM {$wpdb->termmeta}
              WHERE term_id IN ({$ids_sql})
-               AND meta_key IN ('thumbnail_id', 'seo_excerpt')",
+               AND meta_key = 'thumbnail_id'",
             ARRAY_A
         );
         foreach ((array) $meta_rows as $row) {
@@ -484,6 +970,8 @@ function seo_core_system_test_semantic_snapshot() {
     $category_entities = array();
     $category_scope_map = array();
     $category_name_map = array();
+    $category_parent_map = array();
+    $category_token_map = array();
     $category_ids_existing = array();
     $category_product_titles = array();
 
@@ -523,7 +1011,6 @@ function seo_core_system_test_semantic_snapshot() {
         'template_excerpt' => 0,
         'thin_description' => 0,
         'long_excerpt' => 0,
-        'excerpt_storage_mismatch' => 0,
         'title_like_tags' => 0,
         'without_active_faq' => null,
         'examples' => array(),
@@ -535,7 +1022,6 @@ function seo_core_system_test_semantic_snapshot() {
         $name = (string) ($row['name'] ?? '');
         $description = (string) ($nodes['description'] ?? '');
         $node_excerpt = (string) ($nodes['excerpt'] ?? '');
-        $visible_excerpt = (string) ($category_meta[$category_id]['seo_excerpt'] ?? '');
         $vocabulary = $category_vocabulary['objects'][$category_id] ?? array();
         $tags = implode(', ', (array) ($vocabulary['labels'] ?? array()));
         // Una categoria admite 0..n ROL. El mapa conserva todos los ROL canonicos.
@@ -546,6 +1032,8 @@ function seo_core_system_test_semantic_snapshot() {
         $category_ids_existing[$category_id] = true;
         $category_scope_map[$category_id] = $scopes;
         $category_name_map[$category_id] = $name;
+        $category_parent_map[$category_id] = absint($row['parent'] ?? 0);
+        $category_token_map[$category_id] = seo_core_system_test_semantic_tokens($name);
 
         if ($count === 0) {
             $category_counts['empty']++;
@@ -559,7 +1047,7 @@ function seo_core_system_test_semantic_snapshot() {
         if (seo_core_system_test_semantic_normalize_text($description) === '') {
             $category_counts['without_description']++;
         }
-        if (seo_core_system_test_semantic_normalize_text($visible_excerpt) === '') {
+        if (seo_core_system_test_semantic_normalize_text($node_excerpt) === '') {
             $category_counts['without_excerpt']++;
         }
         if (seo_core_system_test_semantic_normalize_text($tags) === '') {
@@ -581,27 +1069,14 @@ function seo_core_system_test_semantic_snapshot() {
         if (seo_core_system_test_semantic_matches_patterns($description, $category_template_patterns)) {
             $category_counts['template_description']++;
         }
-        if (seo_core_system_test_semantic_matches_patterns($visible_excerpt, $category_template_patterns)) {
+        if (seo_core_system_test_semantic_matches_patterns($node_excerpt, $category_template_patterns)) {
             $category_counts['template_excerpt']++;
         }
         if ($count >= 3 && seo_core_system_test_semantic_word_count($description) > 0 && seo_core_system_test_semantic_word_count($description) < 35) {
             $category_counts['thin_description']++;
         }
-        if (seo_core_system_test_semantic_word_count($visible_excerpt) > 45) {
+        if (seo_core_system_test_semantic_word_count($node_excerpt) > 45) {
             $category_counts['long_excerpt']++;
-        }
-
-        $node_excerpt_key = seo_core_system_test_semantic_normalize_text($node_excerpt);
-        $visible_excerpt_key = seo_core_system_test_semantic_normalize_text($visible_excerpt);
-        if ($node_excerpt_key !== '' && $node_excerpt_key !== $visible_excerpt_key) {
-            $category_counts['excerpt_storage_mismatch']++;
-            if (count($category_counts['examples']) < 12) {
-                $category_counts['examples'][] = array(
-                    'category_id' => $category_id,
-                    'category' => $name,
-                    'issue' => 'El excerpt activo de seo_nodes no coincide con el meta seo_excerpt que usa la plantilla.',
-                );
-            }
         }
 
         $title_like = false;
@@ -624,7 +1099,7 @@ function seo_core_system_test_semantic_snapshot() {
             'id' => $category_id,
             'name' => $name,
             'description' => $description,
-            'excerpt' => $visible_excerpt,
+            'excerpt' => $node_excerpt,
             'tags' => $tags,
         );
     }
@@ -688,6 +1163,8 @@ function seo_core_system_test_semantic_snapshot() {
             $product_meta[(int) $meta_row['post_id']][(string) $meta_row['meta_key']] = (string) $meta_row['meta_value'];
         }
     }
+
+    $product_image_inventory = seo_core_system_test_semantic_product_image_inventory($product_ids);
 
     $product_category_map = array();
     foreach ((array) $category_product_rows as $row) {
@@ -760,25 +1237,51 @@ function seo_core_system_test_semantic_snapshot() {
         'without_excerpt' => 0,
         'without_excerpt_examples' => array(),
         'without_description' => 0,
+        // Imagenes: la fuente valida puede ser Media o seo_supplier_images.
+        // without_image se conserva como alias de compatibilidad y ya no significa
+        // "sin imagen destacada local".
         'without_image' => 0,
+        'without_local_image' => 0,
+        'with_local_image' => 0,
+        'with_external_image' => 0,
+        'with_external_validated' => 0,
+        'with_both_images' => 0,
+        'without_any_image_source' => 0,
+        'without_any_valid_image' => 0,
+        'external_pending_retry' => 0,
+        'external_known_missing' => 0,
         'without_valid_sku' => 0,
         'without_category' => 0,
         'invalid_scope' => 0,
         'template_excerpt' => 0,
         'template_description' => 0,
         'without_seo_attributes' => 0,
+        'attribute_error_products' => 0,
+        'attribute_error_rows' => 0,
+        'attribute_review_products' => 0,
+        'attribute_review_rows' => 0,
+        'attribute_identifier_matches_sku' => 0,
+        // Alias legacy: desde 2.4 representa solo revision heuristica, no error.
         'suspicious_attribute_products' => 0,
         'suspicious_attribute_rows' => 0,
         'title_like_custom_tags' => 0,
         'too_many_custom_tags' => 0,
         'too_many_wc_tags' => 0,
+        // Alineacion producto-categoria: el detector amplio se conserva como
+        // auditoria historica; solo la contradiccion fuerte puede ser error.
+        'supplier_category_review_broad' => 0,
         'supplier_category_review' => 0,
+        'category_alignment_errors' => 0,
         'price_sale_mismatch' => 0,
         'artificial_stock' => 0,
         'without_active_faq' => null,
         'examples' => array(),
+        'attribute_error_examples' => array(),
         'attribute_examples' => array(),
+        'attribute_identifier_examples' => array(),
+        'alignment_broad_examples' => array(),
         'alignment_examples' => array(),
+        'alignment_error_examples' => array(),
     );
 
     foreach ((array) $product_rows as $row) {
@@ -827,7 +1330,46 @@ function seo_core_system_test_semantic_snapshot() {
             if (seo_core_system_test_semantic_normalize_text($description) === '') {
                 $product_counts['without_description']++;
             }
-            if ($image_id <= 0) {
+            $image_state = $product_image_inventory[$product_id] ?? array(
+                'local' => false,
+                'external_registered' => false,
+                'external_validated' => false,
+                'external_retry' => false,
+                'external_missing' => false,
+            );
+            $has_local_image = !empty($image_state['local']);
+            $has_external_image = !empty($image_state['external_registered']);
+            $has_external_validated = !empty($image_state['external_validated']);
+            $has_external_retry = !empty($image_state['external_retry']);
+            $has_external_missing = !empty($image_state['external_missing']);
+
+            if ($has_local_image) {
+                $product_counts['with_local_image']++;
+            } else {
+                $product_counts['without_local_image']++;
+            }
+            if ($has_external_image) {
+                $product_counts['with_external_image']++;
+            }
+            if ($has_external_validated) {
+                $product_counts['with_external_validated']++;
+            }
+            if ($has_local_image && $has_external_image) {
+                $product_counts['with_both_images']++;
+            }
+            if ($has_external_retry) {
+                $product_counts['external_pending_retry']++;
+            }
+            if ($has_external_missing) {
+                $product_counts['external_known_missing']++;
+            }
+            if (!$has_local_image && !$has_external_image) {
+                $product_counts['without_any_image_source']++;
+            }
+            // Un estado pendiente/reintento no se considera imagen invalida: aun no
+            // existe evidencia suficiente para penalizarlo.
+            if (!$has_local_image && !$has_external_validated && !$has_external_retry) {
+                $product_counts['without_any_valid_image']++;
                 $product_counts['without_image']++;
             }
             if ($sku === '' || $sku === '0') {
@@ -870,38 +1412,72 @@ function seo_core_system_test_semantic_snapshot() {
             $product_counts['too_many_wc_tags']++;
         }
 
-        $product_has_suspicious_attribute = false;
+        $product_has_attribute_error = false;
+        $product_has_attribute_review = false;
         foreach ($attributes as $attribute) {
-            $attribute_type = sanitize_key((string) ($attribute['attribute_type'] ?? ''));
+            $attribute_type = sanitize_key(remove_accents((string) ($attribute['attribute_type'] ?? '')));
             $attribute_value = trim((string) ($attribute['attribute_value'] ?? ''));
             $attribute_scope = sanitize_key((string) ($attribute['ambito'] ?? ''));
             $value_key = seo_core_system_test_semantic_normalize_text($attribute_value);
-            $suspicious_reason = '';
+            $error_reason = '';
+            $review_reason = '';
 
             if ($attribute_type === '' || $attribute_value === '') {
-                $suspicious_reason = 'Atributo sin tipo o sin valor.';
+                $error_reason = 'Atributo sin tipo o sin valor.';
             } elseif (!seo_core_system_test_semantic_scope_is_valid($attribute_scope, true, true)) {
-                $suspicious_reason = 'Ambito de atributo no admitido.';
+                $error_reason = 'Ambito de atributo no admitido.';
             } elseif (isset($known_bad_attribute_values[$value_key])) {
-                $suspicious_reason = 'Valor truncado o generico conocido.';
-            } elseif ($sku !== '' && seo_core_system_test_semantic_normalize_text($sku) === $value_key) {
-                $suspicious_reason = 'El valor del atributo coincide con el SKU.';
-            } elseif (
-                $attribute_type === 'corriente'
-                && preg_match('/^\d{3,5}\s*a\+?$/i', $attribute_value)
-                && preg_match('/\b(aoyue|mlink|soldador|desoldador|rework|reballing|estaci[oó]n)\b/iu', $title)
-            ) {
-                $suspicious_reason = 'Una referencia de modelo puede haberse interpretado como amperaje.';
-            } elseif (
-                $attribute_type === 'temperatura'
-                && preg_match('/^\d{1,2}\s*c$/i', $attribute_value)
-                && preg_match('/\b(iphone|ipad|galaxy|m[oó]vil|smartphone)\b/iu', $title)
-            ) {
-                $suspicious_reason = 'Un modelo terminado en C puede haberse interpretado como temperatura.';
+                $error_reason = 'Valor truncado o generico conocido.';
+            } else {
+                $unit_error = seo_core_system_test_semantic_attribute_unit_error($attribute_type, $attribute_value);
+                if ($unit_error !== '') {
+                    $error_reason = $unit_error;
+                } elseif (
+                    seo_core_system_test_semantic_attribute_is_identifier($attribute_type)
+                    && (seo_core_system_test_semantic_word_count($attribute_value) > 8 || strlen($attribute_value) > 80)
+                ) {
+                    $error_reason = 'El identificador parece una frase descriptiva larga, no un modelo o referencia.';
+                } elseif ($sku !== '' && seo_core_system_test_semantic_normalize_text($sku) === $value_key) {
+                    if (seo_core_system_test_semantic_attribute_is_identifier($attribute_type)) {
+                        // SKU == modelo/MPN/referencia es una practica comercial valida.
+                        $product_counts['attribute_identifier_matches_sku']++;
+                        if (count($product_counts['attribute_identifier_examples']) < 20) {
+                            $product_counts['attribute_identifier_examples'][] = array(
+                                'product_id' => $product_id,
+                                'title' => $title,
+                                'attribute_type' => $attribute_type,
+                                'attribute_value' => $attribute_value,
+                                'note' => 'Coincide con SKU; coincidencia informativa y no penalizable.',
+                            );
+                        }
+                    } else {
+                        $review_reason = 'El valor coincide con el SKU en un atributo no identificador; revisar antes de modificar.';
+                    }
+                } elseif (
+                    $attribute_type === 'temperatura'
+                    && preg_match('/^\d{1,2}\s*c$/i', $attribute_value)
+                    && preg_match('/\b(iphone|ipad|galaxy|m[oó]vil|smartphone)\b/iu', $title)
+                ) {
+                    $review_reason = 'Puede ser una referencia de modelo terminada en C; requiere revision contextual.';
+                }
             }
 
-            if ($suspicious_reason !== '') {
-                $product_has_suspicious_attribute = true;
+            if ($error_reason !== '') {
+                $product_has_attribute_error = true;
+                $product_counts['attribute_error_rows']++;
+                if (count($product_counts['attribute_error_examples']) < 20) {
+                    $product_counts['attribute_error_examples'][] = array(
+                        'product_id' => $product_id,
+                        'title' => $title,
+                        'attribute_type' => $attribute_type,
+                        'attribute_value' => $attribute_value,
+                        'reason' => $error_reason,
+                    );
+                }
+            } elseif ($review_reason !== '') {
+                $product_has_attribute_review = true;
+                $product_counts['attribute_review_rows']++;
+                // Alias legacy para consumidores de informes antiguos.
                 $product_counts['suspicious_attribute_rows']++;
                 if (count($product_counts['attribute_examples']) < 20) {
                     $product_counts['attribute_examples'][] = array(
@@ -909,12 +1485,17 @@ function seo_core_system_test_semantic_snapshot() {
                         'title' => $title,
                         'attribute_type' => $attribute_type,
                         'attribute_value' => $attribute_value,
-                        'reason' => $suspicious_reason,
+                        'reason' => $review_reason,
                     );
                 }
             }
         }
-        if ($status === 'publish' && $product_has_suspicious_attribute) {
+        if ($status === 'publish' && $product_has_attribute_error) {
+            $product_counts['attribute_error_products']++;
+        }
+        if ($status === 'publish' && $product_has_attribute_review) {
+            $product_counts['attribute_review_products']++;
+            // Alias legacy para consumidores de informes antiguos.
             $product_counts['suspicious_attribute_products']++;
         }
 
@@ -932,30 +1513,127 @@ function seo_core_system_test_semantic_snapshot() {
             }
         }
 
-        /* Señal conservadora de desalineamiento con la categoria del proveedor. */
+        /*
+         * Auditoria producto-categoria.
+         *
+         * La ruta completa del proveedor se conserva solo como evidencia. La
+         * comparacion operativa prioriza titulo, hoja del proveedor, hoja interna,
+         * etiquetas/atributos y equivalencia lexica ligera. La profundidad de las
+         * dos taxonomias no se interpreta como desalineacion.
+         */
         if ($status === 'publish' && $categories) {
             $supplier_category = trim((string) ($meta['_seo_categoria_proveedor'] ?? ''));
             if ($supplier_category !== '') {
-                $supplier_tokens = seo_core_system_test_semantic_tokens($supplier_category);
                 $title_tokens = seo_core_system_test_semantic_tokens($title);
-                $assigned_tokens = array();
-                foreach ($categories as $category_name) {
-                    $assigned_tokens = array_merge($assigned_tokens, seo_core_system_test_semantic_tokens($category_name));
-                }
-                $assigned_tokens = array_values(array_unique($assigned_tokens));
-                $title_supplier_overlap = seo_core_system_test_semantic_token_overlap($title_tokens, $supplier_tokens);
-                $title_assigned_overlap = seo_core_system_test_semantic_token_overlap($title_tokens, $assigned_tokens);
 
-                if (count($supplier_tokens) >= 2 && count($title_supplier_overlap) >= 1 && count($title_assigned_overlap) === 0) {
-                    $product_counts['supplier_category_review']++;
-                    if (count($product_counts['alignment_examples']) < 20) {
-                        $product_counts['alignment_examples'][] = array(
+                // Detector historico amplio: se conserva para no perder candidatos
+                // ya conocidos, pero nunca afecta a salud ni integridad.
+                $legacy_supplier_tokens = seo_core_system_test_semantic_tokens($supplier_category);
+                $legacy_assigned_tokens = array();
+                foreach ($categories as $category_name) {
+                    $legacy_assigned_tokens = array_merge($legacy_assigned_tokens, seo_core_system_test_semantic_tokens($category_name));
+                }
+                $legacy_assigned_tokens = array_values(array_unique($legacy_assigned_tokens));
+                $legacy_title_supplier = seo_core_system_test_semantic_token_overlap_exact($title_tokens, $legacy_supplier_tokens);
+                $legacy_title_assigned = seo_core_system_test_semantic_token_overlap_exact($title_tokens, $legacy_assigned_tokens);
+                if (count($legacy_supplier_tokens) >= 2 && count($legacy_title_supplier) >= 1 && count($legacy_title_assigned) === 0) {
+                    $product_counts['supplier_category_review_broad']++;
+                    if (count($product_counts['alignment_broad_examples']) < 20) {
+                        $product_counts['alignment_broad_examples'][] = array(
                             'product_id' => $product_id,
                             'title' => $title,
                             'supplier_category' => $supplier_category,
                             'assigned_categories' => array_values($categories),
-                            'shared_supplier_tokens' => $title_supplier_overlap,
+                            'note' => 'Detector historico amplio; informativo y no penalizable.',
                         );
+                    }
+                }
+
+                $supplier_leaf = seo_core_system_test_semantic_supplier_leaf($supplier_category);
+                $supplier_leaf_tokens = seo_core_system_test_semantic_tokens($supplier_leaf);
+                $assigned_leaf_categories = seo_core_system_test_semantic_assigned_leaf_categories($categories, $category_parent_map);
+                $assigned_leaf_tokens = array();
+                foreach ($assigned_leaf_categories as $category_name) {
+                    $assigned_leaf_tokens = array_merge($assigned_leaf_tokens, seo_core_system_test_semantic_tokens($category_name));
+                }
+                $assigned_leaf_tokens = array_values(array_unique($assigned_leaf_tokens));
+
+                $tag_context = array_merge($custom_tag_items, (array) ($wc_product_tags[$product_id] ?? array()));
+                $tag_tokens = seo_core_system_test_semantic_tokens(implode(' ', $tag_context));
+                $attribute_context = array();
+                foreach (array_slice((array) $attributes, 0, 40) as $attribute) {
+                    $attribute_context[] = (string) ($attribute['attribute_type'] ?? '');
+                    $attribute_context[] = (string) ($attribute['attribute_value'] ?? '');
+                }
+                $attribute_tokens = seo_core_system_test_semantic_tokens(implode(' ', $attribute_context));
+                $product_context_tokens = array_values(array_unique(array_merge($title_tokens, $tag_tokens, $attribute_tokens)));
+
+                $title_supplier_overlap = seo_core_system_test_semantic_token_overlap($title_tokens, $supplier_leaf_tokens);
+                $context_supplier_overlap = seo_core_system_test_semantic_token_overlap($product_context_tokens, $supplier_leaf_tokens);
+                $title_assigned_overlap = seo_core_system_test_semantic_token_overlap($title_tokens, $assigned_leaf_tokens);
+                $context_assigned_overlap = seo_core_system_test_semantic_token_overlap($product_context_tokens, $assigned_leaf_tokens);
+                $supplier_assigned_overlap = seo_core_system_test_semantic_token_overlap($supplier_leaf_tokens, $assigned_leaf_tokens);
+
+                $supplier_supported = count($title_supplier_overlap) >= 1 || count($context_supplier_overlap) >= 2;
+                $assigned_supported = count($title_assigned_overlap) >= 1
+                    || count($context_assigned_overlap) >= 1
+                    || count($supplier_assigned_overlap) >= 1;
+
+                if ($supplier_leaf_tokens && $supplier_supported && !$assigned_supported) {
+                    $product_counts['supplier_category_review']++;
+
+                    $best_internal = seo_core_system_test_semantic_best_internal_category_match(
+                        $supplier_leaf_tokens,
+                        $title_tokens,
+                        $category_token_map,
+                        $category_name_map
+                    );
+                    $best_term_id = absint($best_internal['term_id'] ?? 0);
+                    $best_is_assigned_or_parented = false;
+                    if ($best_term_id > 0) {
+                        foreach (array_keys($categories) as $assigned_term_id) {
+                            $assigned_term_id = absint($assigned_term_id);
+                            if (
+                                $assigned_term_id === $best_term_id
+                                || seo_core_system_test_semantic_category_is_ancestor($assigned_term_id, $best_term_id, $category_parent_map)
+                            ) {
+                                $best_is_assigned_or_parented = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    // Solo se declara contradiccion fuerte cuando proveedor y titulo
+                    // apuntan de forma muy clara a una categoria interna existente,
+                    // esa categoria no esta asignada ni cubierta por un ancestro, y
+                    // la categoria hoja asignada carece de cualquier apoyo contextual.
+                    $strong_contradiction = $best_term_id > 0
+                        && !$best_is_assigned_or_parented
+                        && count($title_supplier_overlap) >= min(2, max(1, count($supplier_leaf_tokens)))
+                        && count($context_assigned_overlap) === 0
+                        && count($supplier_assigned_overlap) === 0;
+
+                    $example = array(
+                        'product_id' => $product_id,
+                        'title' => $title,
+                        'supplier_category' => $supplier_category,
+                        'supplier_leaf' => $supplier_leaf,
+                        'assigned_leaf_categories' => array_values($assigned_leaf_categories),
+                        'title_supplier_tokens' => $title_supplier_overlap,
+                        'title_assigned_tokens' => $title_assigned_overlap,
+                        'supplier_assigned_tokens' => $supplier_assigned_overlap,
+                        'best_internal_category' => $best_internal,
+                    );
+
+                    if (count($product_counts['alignment_examples']) < 20) {
+                        $product_counts['alignment_examples'][] = $example;
+                    }
+                    if ($strong_contradiction) {
+                        $product_counts['category_alignment_errors']++;
+                        if (count($product_counts['alignment_error_examples']) < 20) {
+                            $example['reason'] = 'Contradiccion fuerte: titulo y hoja del proveedor respaldan otra categoria interna existente y la categoria asignada no aporta señales compatibles.';
+                            $product_counts['alignment_error_examples'][] = $example;
+                        }
                     }
                 }
             }
@@ -1028,6 +1706,7 @@ function seo_core_system_test_semantic_snapshot() {
     $faq_table = $wpdb->prefix . 'seo_faq';
     $faq_available = seo_core_system_test_semantic_table_exists($faq_table);
     $faq_rows = array();
+    $faq_has_legacy_scope = $faq_available && seo_core_system_test_semantic_table_has_column($faq_table, 'ambito');
     $faq_counts = array(
         'available' => $faq_available,
         'total' => 0,
@@ -1036,24 +1715,32 @@ function seo_core_system_test_semantic_snapshot() {
         'categories' => 0,
         'products' => 0,
         'invalid_object_type' => 0,
-        'invalid_scope' => 0,
+        'invalid_active_state' => 0,
         'orphan_rows' => 0,
         'active_on_unpublished_product' => 0,
+        'empty_questions' => 0,
+        'empty_answers' => 0,
+        'insignificant_answers' => 0,
         'short_answers' => 0,
         'very_short_answers' => 0,
         'template_questions' => 0,
         'template_answers' => 0,
         'attribute_only_questions' => 0,
+        'attribute_only_answers' => 0,
         'product_objects_over_5_active' => 0,
         'category_objects_over_8_active' => 0,
-        'scope_mismatch' => 0,
+        // Metadatos legacy: nunca determinan la pertenencia de una FAQ.
+        'legacy_scope_column' => $faq_has_legacy_scope,
+        'legacy_scope_invalid' => 0,
+        'legacy_scope_mismatch' => 0,
         'examples' => array(),
-        'scope_examples' => array(),
+        'legacy_scope_examples' => array(),
     );
 
     if ($faq_available) {
+        $faq_scope_select = $faq_has_legacy_scope ? 'ambito' : "'' AS ambito";
         $faq_rows = $wpdb->get_results(
-            "SELECT id, object_type, object_id, ambito, question, answer, sort_order, active, load_count, open_count, created_at, updated_at
+            "SELECT id, object_type, object_id, {$faq_scope_select}, question, answer, sort_order, active, load_count, open_count, created_at, updated_at
              FROM {$faq_table}
              ORDER BY object_type ASC, object_id ASC, sort_order ASC, id ASC",
             ARRAY_A
@@ -1084,7 +1771,11 @@ function seo_core_system_test_semantic_snapshot() {
             $scope = sanitize_key(remove_accents(trim((string) ($faq_row['ambito'] ?? ''))));
             $question = (string) ($faq_row['question'] ?? '');
             $answer = (string) ($faq_row['answer'] ?? '');
-            $active = (int) ($faq_row['active'] ?? 0) === 1;
+            $raw_active = (int) ($faq_row['active'] ?? 0);
+            if (!in_array($raw_active, array(0, 1), true)) {
+                $faq_counts['invalid_active_state']++;
+            }
+            $active = $raw_active === 1;
 
             if ($active) {
                 $faq_counts['active']++;
@@ -1108,12 +1799,16 @@ function seo_core_system_test_semantic_snapshot() {
                 $faq_counts['invalid_object_type']++;
             }
 
-            if (!seo_core_system_test_semantic_scope_is_valid($scope, true, false)) {
-                $faq_counts['invalid_scope']++;
+            if ($faq_has_legacy_scope && !seo_core_system_test_semantic_scope_is_valid($scope, true, false)) {
+                $faq_counts['legacy_scope_invalid']++;
             }
 
             $orphan = false;
-            if ($object_type === 2 && !isset($category_ids_existing[$object_id])) {
+            if ($object_id <= 0) {
+                $orphan = true;
+            } elseif ($object_type === 1 && !get_post($object_id)) {
+                $orphan = true;
+            } elseif ($object_type === 2 && !isset($category_ids_existing[$object_id])) {
                 $orphan = true;
             } elseif ($object_type === 3 && !isset($product_ids_existing[$object_id])) {
                 $orphan = true;
@@ -1128,7 +1823,20 @@ function seo_core_system_test_semantic_snapshot() {
                 $faq_counts['active_on_unpublished_product']++;
             }
 
+            $question_normalized = seo_core_system_test_semantic_normalize_text($question);
+            $answer_normalized = seo_core_system_test_semantic_normalize_text($answer);
             $answer_words = seo_core_system_test_semantic_word_count($answer);
+            if ($question_normalized === '') {
+                $faq_counts['empty_questions']++;
+            }
+            if ($answer_normalized === '') {
+                $faq_counts['empty_answers']++;
+            } elseif ($answer_words <= 2 && strlen($answer_normalized) <= 18) {
+                // Muy corta no significa automaticamente mala. Solo se marca como
+                // revision cuando es casi vacia; el umbral editorial de 40 palabras
+                // queda exclusivamente como estadistica.
+                $faq_counts['insignificant_answers']++;
+            }
             if ($answer_words < 60) {
                 $faq_counts['short_answers']++;
             }
@@ -1145,6 +1853,19 @@ function seo_core_system_test_semantic_snapshot() {
                 $faq_counts['attribute_only_questions']++;
             }
 
+            // Solo se considera copia de atributo cuando la respuesta normalizada
+            // coincide literalmente con un valor real del producto. No se deduce
+            // por longitud ni por contener numeros.
+            if ($object_type === 3 && $answer_normalized !== '' && !empty($attributes_by_product[$object_id])) {
+                foreach ((array) $attributes_by_product[$object_id] as $attribute_row) {
+                    $attribute_value_normalized = seo_core_system_test_semantic_normalize_text($attribute_row['attribute_value'] ?? '');
+                    if ($attribute_value_normalized !== '' && $answer_normalized === $attribute_value_normalized) {
+                        $faq_counts['attribute_only_answers']++;
+                        break;
+                    }
+                }
+            }
+
             $entity_scopes = array();
             if ($object_type === 2) {
                 $entity_scopes = array_values(array_filter(array_map('sanitize_key', (array) ($category_scope_map[$object_id] ?? array()))));
@@ -1154,15 +1875,15 @@ function seo_core_system_test_semantic_snapshot() {
                     $entity_scopes[] = $product_scope;
                 }
             }
-            if ($scope !== '' && $entity_scopes && !in_array($scope, $entity_scopes, true)) {
-                $faq_counts['scope_mismatch']++;
-                if (count($faq_counts['scope_examples']) < 20) {
-                    $faq_counts['scope_examples'][] = array(
+            if ($faq_has_legacy_scope && $scope !== '' && $entity_scopes && !in_array($scope, $entity_scopes, true)) {
+                $faq_counts['legacy_scope_mismatch']++;
+                if (count($faq_counts['legacy_scope_examples']) < 20) {
+                    $faq_counts['legacy_scope_examples'][] = array(
                         'faq_id' => $faq_id,
                         'object_type' => $object_type,
                         'object_id' => $object_id,
-                        'faq_scope' => $scope,
-                        'entity_scope' => implode(', ', $entity_scopes),
+                        'legacy_scope' => $scope,
+                        'current_object_role' => implode(', ', $entity_scopes),
                         'question' => seo_core_system_test_semantic_preview($question, 120),
                     );
                 }
@@ -1212,6 +1933,7 @@ function seo_core_system_test_semantic_snapshot() {
             'active_bool',
             20
         );
+        $faq_counts['near_duplicate_questions_same_object'] = seo_core_system_test_semantic_near_duplicate_faq_questions($faq_rows);
 
         $category_counts['without_active_faq'] = max(0, count($category_ids_existing) - count($category_active_objects));
         $product_counts['without_active_faq'] = 0;
@@ -1343,6 +2065,16 @@ function seo_core_system_test_semantic_snapshot() {
                 $snapshot['faqs']['duplicate_questions_same_object']['examples'] ?? array()
             );
         }
+        if ((int) ($snapshot['faqs']['empty_answers'] ?? 0) > 0 || (int) ($snapshot['faqs']['empty_questions'] ?? 0) > 0) {
+            $actions[] = seo_core_system_test_semantic_action(
+                'complete_empty_faq_content',
+                'critical',
+                'faq',
+                'question_answer',
+                (int) ($snapshot['faqs']['empty_answers'] ?? 0) + (int) ($snapshot['faqs']['empty_questions'] ?? 0),
+                'Completar o desactivar FAQs con pregunta o respuesta vacia. La longitud no se usa como criterio: solo la ausencia real de contenido.'
+            );
+        }
         if ((int) $snapshot['faqs']['template_answers'] > 0) {
             $actions[] = seo_core_system_test_semantic_action(
                 'rewrite_template_faq_answers',
@@ -1363,17 +2095,6 @@ function seo_core_system_test_semantic_snapshot() {
                 'Variar o eliminar preguntas de plantilla. Cada pregunta debe representar una duda concreta que afecte a la compra.'
             );
         }
-        if ((int) $snapshot['faqs']['scope_mismatch'] > 0) {
-            $actions[] = seo_core_system_test_semantic_action(
-                'align_faq_scope',
-                'high',
-                'faq',
-                'ambito',
-                $snapshot['faqs']['scope_mismatch'],
-                'Alinear el ambito de la FAQ con el producto o categoria. No cambiarlo por intuicion: revisar primero la clasificacion del objeto.',
-                $snapshot['faqs']['scope_examples']
-            );
-        }
         if ((int) $snapshot['faqs']['orphan_rows'] > 0) {
             $actions[] = seo_core_system_test_semantic_action(
                 'clean_orphan_faqs',
@@ -1386,14 +2107,25 @@ function seo_core_system_test_semantic_snapshot() {
         }
     }
 
-    if ((int) $snapshot['products']['suspicious_attribute_products'] > 0) {
+    if ((int) $snapshot['products']['attribute_error_products'] > 0) {
         $actions[] = seo_core_system_test_semantic_action(
-            'review_suspicious_product_attributes',
-            'critical',
+            'correct_confirmed_product_attribute_errors',
+            'high',
             'product',
             'attributes',
-            $snapshot['products']['suspicious_attribute_products'],
-            'Corregir primero los atributos truncados, valores iguales al SKU y referencias interpretadas como medidas. Despues regenerar etiquetas, excerpt, descripcion y FAQs afectadas.',
+            $snapshot['products']['attribute_error_products'],
+            'Corregir solo inconsistencias confirmadas: atributos vacios, valores truncados conocidos, identificadores descriptivos o unidades incompatibles con el tipo de atributo.',
+            $snapshot['products']['attribute_error_examples']
+        );
+    }
+    if ((int) $snapshot['products']['attribute_review_products'] > 0) {
+        $actions[] = seo_core_system_test_semantic_action(
+            'review_product_attribute_heuristics',
+            'low',
+            'product',
+            'attributes',
+            $snapshot['products']['attribute_review_products'],
+            'Revisar manualmente las señales heuristicas. No modificar ni regenerar contenido automaticamente: una coincidencia sospechosa no demuestra que el atributo sea incorrecto.',
             $snapshot['products']['attribute_examples']
         );
     }
@@ -1430,15 +2162,15 @@ function seo_core_system_test_semantic_snapshot() {
             $snapshot['products']['duplicate_descriptions']['examples'] ?? array()
         );
     }
-    if ((int) $snapshot['products']['supplier_category_review'] > 0) {
+    if ((int) ($snapshot['products']['category_alignment_errors'] ?? 0) > 0) {
         $actions[] = seo_core_system_test_semantic_action(
-            'review_supplier_category_alignment',
-            'medium',
+            'fix_confirmed_product_category_contradictions',
+            'high',
             'product',
             'category',
-            $snapshot['products']['supplier_category_review'],
-            'Revisar manualmente los productos cuya categoria interna no comparte señales con el titulo, mientras la categoria del proveedor si. Es una alerta, no una reasignacion automatica.',
-            $snapshot['products']['alignment_examples']
+            $snapshot['products']['category_alignment_errors'],
+            'Revisar solo las contradicciones fuertes donde titulo y hoja del proveedor respaldan otra categoria interna existente. No reasignar automaticamente: confirmar cada caso antes de modificarlo.',
+            $snapshot['products']['alignment_error_examples'] ?? array()
         );
     }
     if ((int) $snapshot['products']['title_like_custom_tags'] > 0) {
@@ -1460,17 +2192,6 @@ function seo_core_system_test_semantic_snapshot() {
             'rol',
             $snapshot['categories']['invalid_scope'],
             'Corregir los ROL de categoria en Vocabulary. Solo son validos accesorio, herramienta, repuesto, equipamiento o consumible; una categoria puede tener 0..n ROL.'
-        );
-    }
-    if ((int) $snapshot['categories']['excerpt_storage_mismatch'] > 0) {
-        $actions[] = seo_core_system_test_semantic_action(
-            'sync_category_excerpt_storage',
-            'critical',
-            'category',
-            'excerpt',
-            $snapshot['categories']['excerpt_storage_mismatch'],
-            'Sincronizar el excerpt activo de wp_seo_nodes con el meta seo_excerpt que utiliza template-category.php, o unificar la plantilla para leer una sola fuente.',
-            $snapshot['categories']['examples']
         );
     }
     if ((int) $snapshot['categories']['template_description'] > 0) {
@@ -1525,7 +2246,8 @@ function seo_core_system_test_semantic_snapshot() {
     $category_total = max(1, (int) $snapshot['categories']['total']);
     $faq_total = max(1, (int) $snapshot['faqs']['total']);
 
-    $penalty += min(15, (int) round(((int) $snapshot['products']['suspicious_attribute_products'] / $published) * 100));
+    // Solo los errores confirmados de atributos penalizan. Las revisiones heuristicas no bajan la puntuacion.
+    $penalty += min(15, (int) round(((int) $snapshot['products']['attribute_error_products'] / $published) * 100));
     $penalty += min(12, (int) round(((int) $snapshot['products']['without_excerpt'] / $published) * 30));
     $penalty += min(12, (int) round(((int) ($snapshot['products']['duplicate_excerpts']['affected_rows'] ?? 0) / $published) * 18));
     $penalty += min(12, (int) round(((int) ($snapshot['products']['duplicate_descriptions']['affected_rows'] ?? 0) / $published) * 18));
@@ -1533,14 +2255,13 @@ function seo_core_system_test_semantic_snapshot() {
     $penalty += min(8, (int) round(((int) $snapshot['categories']['template_description'] / $category_total) * 12));
     $penalty += min(8, (int) round(((int) ($snapshot['categories']['duplicate_descriptions']['affected_rows'] ?? 0) / $category_total) * 20));
     $penalty += min(8, (int) $snapshot['categories']['invalid_scope'] * 2);
-    $penalty += min(8, (int) round(((int) $snapshot['categories']['excerpt_storage_mismatch'] / $category_total) * 20));
 
     if ($faq_available) {
         $penalty += min(20, (int) round(((int) ($snapshot['faqs']['duplicate_questions_same_object']['active_extra_rows'] ?? 0) / $faq_total) * 150));
+        $penalty += min(12, (int) ($snapshot['faqs']['empty_answers'] ?? 0) + (int) ($snapshot['faqs']['empty_questions'] ?? 0));
         $penalty += min(10, (int) round(((int) $snapshot['faqs']['template_answers'] / $faq_total) * 30));
         $penalty += min(8, (int) round(((int) $snapshot['faqs']['template_questions'] / $faq_total) * 25));
         $penalty += min(8, (int) $snapshot['faqs']['orphan_rows']);
-        $penalty += min(6, (int) round(((int) $snapshot['faqs']['scope_mismatch'] / $faq_total) * 100));
     }
 
     $snapshot['score'] = max(0, 100 - min(100, $penalty));
@@ -1555,9 +2276,10 @@ function seo_core_system_test_semantic_snapshot() {
         'structure' => $structure['available'] ? 100 : 0,
     );
     $snapshot['alignment'] = array(
+        'supplier_category_review_broad' => $snapshot['products']['supplier_category_review_broad'] ?? 0,
         'supplier_category_review' => $snapshot['products']['supplier_category_review'],
-        'faq_scope_mismatch' => $snapshot['faqs']['scope_mismatch'],
-        'category_excerpt_storage_mismatch' => $snapshot['categories']['excerpt_storage_mismatch'],
+        'category_alignment_errors' => $snapshot['products']['category_alignment_errors'] ?? 0,
+        'faq_legacy_scope_mismatch' => $snapshot['faqs']['legacy_scope_mismatch'] ?? 0,
     );
 
     return $snapshot;
@@ -1584,11 +2306,9 @@ function seo_core_system_test_semantic_checks() {
     $structure = $snapshot['structure'];
     $results = array();
 
-    $category_excerpt_limit = (int) seo_core_system_test_semantic_setting('semantic_category_excerpt_mismatch_limit', 0);
     $category_without_excerpt_limit = (int) seo_core_system_test_semantic_setting('semantic_category_without_excerpt_limit', 0);
     $category_source_critical = empty($categories['vocabulary_available'])
-        || (int) $categories['invalid_scope'] > 0
-        || (int) $categories['excerpt_storage_mismatch'] > $category_excerpt_limit;
+        || (int) $categories['invalid_scope'] > 0;
     $category_source_warning = !$category_source_critical
         && (int) $categories['without_excerpt'] > $category_without_excerpt_limit;
     $category_source_severity = $category_source_critical ? 'ko' : ($category_source_warning ? 'warning' : 'ok');
@@ -1596,12 +2316,12 @@ function seo_core_system_test_semantic_checks() {
         'semantic',
         '10.1 Integridad de fuentes de categorías',
         $category_source_severity === 'ok',
-        'Vocabulary categorías: ' . (!empty($categories['vocabulary_available']) ? 'disponible' : 'NO disponible') . '; asignaciones activas: ' . number_format_i18n($categories['vocabulary_assignments']) . '; categorías sin Vocabulary: ' . number_format_i18n($categories['without_tags']) . '; ROL inválidos: ' . number_format_i18n($categories['invalid_scope']) . '; excerpts desincronizados entre seo_nodes y seo_excerpt: ' . number_format_i18n($categories['excerpt_storage_mismatch']) . ' (límite ' . number_format_i18n($category_excerpt_limit) . '); sin descripción: ' . number_format_i18n($categories['without_description']) . '; sin excerpt visible: ' . number_format_i18n($categories['without_excerpt']) . ' (límite ' . number_format_i18n($category_without_excerpt_limit) . ').',
+        'Fuente editorial canónica: wp_seo_nodes; Vocabulary categorías: ' . (!empty($categories['vocabulary_available']) ? 'disponible' : 'NO disponible') . '; asignaciones activas: ' . number_format_i18n($categories['vocabulary_assignments']) . '; categorías sin Vocabulary: ' . number_format_i18n($categories['without_tags']) . '; ROL inválidos: ' . number_format_i18n($categories['invalid_scope']) . '; sin description en seo_nodes: ' . number_format_i18n($categories['without_description']) . '; sin excerpt en seo_nodes: ' . number_format_i18n($categories['without_excerpt']) . ' (límite ' . number_format_i18n($category_without_excerpt_limit) . '). Los campos nativos/termmeta de WordPress no forman parte de esta validación.',
         $category_source_severity,
         array(
             'owner' => 'contenido',
             'area' => 'semantic',
-            'evidence' => array_merge($categories, array('configured_limits' => array('excerpt_storage_mismatch' => $category_excerpt_limit, 'without_excerpt' => $category_without_excerpt_limit))),
+            'evidence' => array_merge($categories, array('canonical_source' => 'wp_seo_nodes', 'configured_limits' => array('without_excerpt' => $category_without_excerpt_limit))),
             'confidence' => 98,
         )
     );
@@ -1678,13 +2398,17 @@ function seo_core_system_test_semantic_checks() {
         )
     );
 
-    $suspicious_limit = (int) seo_core_system_test_semantic_setting('semantic_suspicious_attribute_limit', 0);
+    // Mantiene la clave de ajuste legacy por compatibilidad, pero ahora solo regula
+    // cuando una revision heuristica aparece como warning; nunca la convierte en fail.
+    $review_limit = (int) seo_core_system_test_semantic_setting('semantic_suspicious_attribute_limit', 0);
     $title_like_limit = (int) seo_core_system_test_semantic_setting('semantic_title_like_tag_limit', 0);
     $without_attributes_limit = (int) seo_core_system_test_semantic_setting('semantic_without_attributes_limit', 0);
-    $product_data_critical = (int) $products['invalid_scope'] > 0
-        || (int) $products['suspicious_attribute_products'] > $suspicious_limit;
+    $attribute_errors = (int) ($products['attribute_error_products'] ?? 0);
+    $attribute_reviews = (int) ($products['attribute_review_products'] ?? $products['suspicious_attribute_products']);
+    $product_data_critical = (int) $products['invalid_scope'] > 0 || $attribute_errors > 0;
     $product_data_warning = !$product_data_critical && (
-        (int) $products['title_like_custom_tags'] > $title_like_limit
+        $attribute_reviews > $review_limit
+        || (int) $products['title_like_custom_tags'] > $title_like_limit
         || (int) $products['without_seo_attributes'] > $without_attributes_limit
     );
     $product_data_severity = $product_data_critical ? 'ko' : ($product_data_warning ? 'warning' : 'ok');
@@ -1692,26 +2416,79 @@ function seo_core_system_test_semantic_checks() {
         'semantic',
         '10.4 Atributos, etiquetas y datos de producto',
         $product_data_severity === 'ok',
-        'Productos con atributos sospechosos: ' . number_format_i18n($products['suspicious_attribute_products']) . ' (límite ' . number_format_i18n($suspicious_limit) . '); sin atributos SEO: ' . number_format_i18n($products['without_seo_attributes']) . ' (límite ' . number_format_i18n($without_attributes_limit) . '); etiquetas que parecen títulos: ' . number_format_i18n($products['title_like_custom_tags']) . ' (límite ' . number_format_i18n($title_like_limit) . '); ámbitos inválidos: ' . number_format_i18n($products['invalid_scope']) . '.',
+        'Errores confirmados de atributos: ' . number_format_i18n($attribute_errors) . '; para revisión heurística: ' . number_format_i18n($attribute_reviews) . ' (umbral informativo ' . number_format_i18n($review_limit) . '); coincidencias SKU con modelo/MPN/referencia: ' . number_format_i18n((int) ($products['attribute_identifier_matches_sku'] ?? 0)) . ' (informativo); sin atributos SEO: ' . number_format_i18n($products['without_seo_attributes']) . ' (límite ' . number_format_i18n($without_attributes_limit) . '); etiquetas que parecen títulos: ' . number_format_i18n($products['title_like_custom_tags']) . ' (límite ' . number_format_i18n($title_like_limit) . '); ámbitos inválidos: ' . number_format_i18n($products['invalid_scope']) . '.',
         $product_data_severity,
         array(
             'owner' => 'contenido',
             'area' => 'semantic',
-            'evidence' => array_merge($products, array('configured_limits' => array('suspicious_attributes' => $suspicious_limit, 'title_like_tags' => $title_like_limit, 'without_attributes' => $without_attributes_limit))),
-            'confidence' => 94,
+            'evidence' => array_merge($products, array(
+                'classification' => array(
+                    'error' => 'Inconsistencia estructural o semántica con evidencia fuerte.',
+                    'review' => 'Heurística que requiere revisión humana y no penaliza la puntuación.',
+                    'info' => 'Coincidencias legítimas como SKU = modelo/MPN/referencia.',
+                ),
+                'configured_limits' => array('attribute_review' => $review_limit, 'title_like_tags' => $title_like_limit, 'without_attributes' => $without_attributes_limit),
+            )),
+            'health_impact' => $product_data_critical ? 1 : ($product_data_warning ? 0 : 1),
+            'confidence' => $product_data_critical ? 96 : 90,
         )
     );
 
-    $alignment_review = (int) $products['supplier_category_review'];
-    $alignment_limit = (int) seo_core_system_test_semantic_setting('semantic_category_alignment_limit', 0);
-    $alignment_issue = $alignment_review > $alignment_limit;
+    $image_without_valid = (int) ($products['without_any_valid_image'] ?? 0);
+    $image_pending_retry = (int) ($products['external_pending_retry'] ?? 0);
+    $image_severity = $image_without_valid > 0 ? 'warning' : 'info';
+    $results[] = seo_core_system_test_result(
+        'semantic',
+        '10.4B Cobertura efectiva de imágenes de producto',
+        $image_without_valid === 0,
+        'Con imagen local válida: ' . number_format_i18n($products['with_local_image'] ?? 0) . '; con imagen externa registrada: ' . number_format_i18n($products['with_external_image'] ?? 0) . '; externas validadas HTTP 2xx: ' . number_format_i18n($products['with_external_validated'] ?? 0) . '; con ambas fuentes: ' . number_format_i18n($products['with_both_images'] ?? 0) . '; sin ninguna imagen válida confirmada: ' . number_format_i18n($image_without_valid) . '; externas pendientes de reintento/verificación: ' . number_format_i18n($image_pending_retry) . '. La ausencia de imagen destacada local no es un problema si existe una fuente externa válida.',
+        $image_severity,
+        array(
+            'status' => $image_without_valid > 0 ? 'warning' : 'info',
+            'owner' => 'contenido',
+            'area' => 'semantic',
+            'evidence' => array(
+                'with_local_image' => (int) ($products['with_local_image'] ?? 0),
+                'with_external_image' => (int) ($products['with_external_image'] ?? 0),
+                'with_external_validated' => (int) ($products['with_external_validated'] ?? 0),
+                'with_both_images' => (int) ($products['with_both_images'] ?? 0),
+                'without_any_image_source' => (int) ($products['without_any_image_source'] ?? 0),
+                'without_any_valid_image' => $image_without_valid,
+                'external_pending_retry' => $image_pending_retry,
+                'external_known_missing' => (int) ($products['external_known_missing'] ?? 0),
+                'local_only_absence_affects_health' => false,
+            ),
+            'confidence' => 90,
+        )
+    );
+
+    $alignment_review = (int) ($products['supplier_category_review'] ?? 0);
+    $alignment_broad = (int) ($products['supplier_category_review_broad'] ?? 0);
+    $alignment_errors = (int) ($products['category_alignment_errors'] ?? 0);
+    $alignment_has_error = $alignment_errors > 0;
     $results[] = seo_core_system_test_result(
         'semantic',
         '10.5 Alineación producto-categoría',
-        !$alignment_issue,
-        'Productos que requieren revisar la categoría interna frente al título y la categoría del proveedor: ' . number_format_i18n($alignment_review) . ' (límite ' . number_format_i18n($alignment_limit) . '). Esta señal no reasigna categorías automáticamente.',
-        $alignment_issue ? 'warning' : 'ok',
-        array('owner' => 'SEO', 'area' => 'semantic', 'evidence' => array('count' => $alignment_review, 'limit' => $alignment_limit, 'examples' => $products['alignment_examples']), 'confidence' => 72)
+        !$alignment_has_error,
+        'Contradicciones fuertes confirmables por reglas conservadoras: ' . number_format_i18n($alignment_errors) . '; candidatos refinados a revisión: ' . number_format_i18n($alignment_review) . '; candidatos del detector histórico amplio: ' . number_format_i18n($alignment_broad) . ' (informativo). Las señales de revisión no afectan a la salud del plugin ni implican que el producto esté mal categorizado.',
+        $alignment_has_error ? 'ko' : 'info',
+        array(
+            'status' => $alignment_has_error ? 'fail' : 'info',
+            'owner' => 'SEO',
+            'area' => 'semantic',
+            'evidence' => array(
+                'confirmed_strong_contradictions' => $alignment_errors,
+                'review_candidates' => $alignment_review,
+                'broad_legacy_candidates' => $alignment_broad,
+                'comparison_priority' => array('product_title', 'supplier_leaf_category', 'assigned_leaf_category', 'product_tags_and_attributes', 'semantic_equivalence', 'supplier_full_path_as_secondary_evidence'),
+                'hierarchy_depth_difference_is_error' => false,
+                'review_affects_health' => false,
+                'error_examples' => $products['alignment_error_examples'] ?? array(),
+                'review_examples' => $products['alignment_examples'] ?? array(),
+                'broad_examples' => $products['alignment_broad_examples'] ?? array(),
+            ),
+            'confidence' => $alignment_has_error ? 92 : 85,
+        )
     );
 
     if (empty($faqs['available'])) {
@@ -1732,45 +2509,72 @@ function seo_core_system_test_semantic_checks() {
             array('status' => 'not_evaluable', 'owner' => 'contenido', 'blocked_by' => 'FAQ_TABLE_UNAVAILABLE', 'coverage' => 0, 'confidence' => 0)
         );
     } else {
-        $faq_scope_limit = (int) seo_core_system_test_semantic_setting('semantic_faq_scope_mismatch_limit', 0);
         $faq_integrity_issue = (int) ($faqs['duplicate_questions_same_object']['active_extra_rows'] ?? 0) > 0
             || (int) $faqs['orphan_rows'] > 0
-            || (int) $faqs['invalid_scope'] > 0
-            || (int) $faqs['scope_mismatch'] > $faq_scope_limit;
+            || (int) $faqs['invalid_object_type'] > 0
+            || (int) ($faqs['invalid_active_state'] ?? 0) > 0
+            || (int) ($faqs['active_on_unpublished_product'] ?? 0) > 0;
         $results[] = seo_core_system_test_result(
             'semantic',
             '10.6 Integridad de FAQs',
             !$faq_integrity_issue,
-            'FAQs totales: ' . number_format_i18n($faqs['total']) . '; copias activas sobrantes dentro del mismo objeto: ' . number_format_i18n($faqs['duplicate_questions_same_object']['active_extra_rows'] ?? 0) . '; huérfanas: ' . number_format_i18n($faqs['orphan_rows']) . '; ámbitos inválidos: ' . number_format_i18n($faqs['invalid_scope']) . '; desalineadas con el ámbito del objeto: ' . number_format_i18n($faqs['scope_mismatch']) . ' (límite ' . number_format_i18n($faq_scope_limit) . ').',
+            'FAQs totales: ' . number_format_i18n($faqs['total']) . '; copias activas sobrantes dentro del mismo objeto: ' . number_format_i18n($faqs['duplicate_questions_same_object']['active_extra_rows'] ?? 0) . '; huérfanas/relaciones rotas: ' . number_format_i18n($faqs['orphan_rows']) . '; tipos de objeto inválidos: ' . number_format_i18n($faqs['invalid_object_type']) . '; estados active inválidos: ' . number_format_i18n($faqs['invalid_active_state'] ?? 0) . '; activas sobre productos no publicados: ' . number_format_i18n($faqs['active_on_unpublished_product']) . '. Metadatos scope legacy: columna ' . (!empty($faqs['legacy_scope_column']) ? 'presente' : 'ausente') . '; no reconocidos: ' . number_format_i18n($faqs['legacy_scope_invalid'] ?? 0) . '; desalineados: ' . number_format_i18n($faqs['legacy_scope_mismatch'] ?? 0) . ' (informativo; no afecta a la integridad ni a la publicación).',
             $faq_integrity_issue ? 'ko' : 'ok',
             array(
                 'owner' => 'contenido',
                 'area' => 'semantic',
-                'evidence' => array_merge($faqs, array('configured_limits' => array('scope_mismatch' => $faq_scope_limit))),
+                'evidence' => array_merge($faqs, array('canonical_relation' => 'object_type + object_id', 'legacy_scope_affects_integrity' => false)),
                 'confidence' => 98,
             )
         );
 
-        $faq_editorial_issues = (int) $faqs['template_questions'] + (int) $faqs['template_answers'] + (int) $faqs['attribute_only_questions'];
+        $faq_empty_issues = (int) ($faqs['empty_questions'] ?? 0) + (int) ($faqs['empty_answers'] ?? 0);
+        $faq_editorial_warnings = (int) ($faqs['template_questions'] ?? 0)
+            + (int) ($faqs['template_answers'] ?? 0)
+            + (int) ($faqs['attribute_only_questions'] ?? 0)
+            + (int) ($faqs['attribute_only_answers'] ?? 0)
+            + (int) ($faqs['insignificant_answers'] ?? 0)
+            + (int) ($faqs['duplicate_answers_same_object']['active_extra_rows'] ?? 0)
+            + (int) ($faqs['near_duplicate_questions_same_object']['affected_rows'] ?? 0);
+        $faq_editorial_severity = $faq_empty_issues > 0 ? 'ko' : ($faq_editorial_warnings > 0 ? 'warning' : 'ok');
         $results[] = seo_core_system_test_result(
             'semantic',
             '10.7 Utilidad editorial de FAQs',
-            $faq_editorial_issues === 0,
-            'Preguntas con patrón repetido: ' . number_format_i18n($faqs['template_questions']) . '; respuestas con patrón repetido: ' . number_format_i18n($faqs['template_answers']) . '; preguntas que parecen repetir un atributo sin aportar decisión: ' . number_format_i18n($faqs['attribute_only_questions']) . '; respuestas de menos de 40 palabras: ' . number_format_i18n($faqs['very_short_answers']) . '.',
-            $faq_editorial_issues === 0 ? 'ok' : 'warning',
-            array('owner' => 'contenido', 'area' => 'semantic', 'evidence' => $faqs, 'confidence' => 90)
+            $faq_editorial_severity === 'ok',
+            'Preguntas vacías: ' . number_format_i18n($faqs['empty_questions'] ?? 0) . '; respuestas vacías: ' . number_format_i18n($faqs['empty_answers'] ?? 0) . '; respuestas casi vacías/insignificantes: ' . number_format_i18n($faqs['insignificant_answers'] ?? 0) . '; respuestas duplicadas activas dentro del mismo objeto: ' . number_format_i18n($faqs['duplicate_answers_same_object']['active_extra_rows'] ?? 0) . '; preguntas casi idénticas dentro del mismo objeto: ' . number_format_i18n($faqs['near_duplicate_questions_same_object']['affected_rows'] ?? 0) . '; preguntas con patrón repetido: ' . number_format_i18n($faqs['template_questions']) . '; respuestas con patrón repetido: ' . number_format_i18n($faqs['template_answers']) . '; preguntas que parecen limitarse a repetir un atributo: ' . number_format_i18n($faqs['attribute_only_questions'] ?? 0) . '; respuestas que copian literalmente un atributo: ' . number_format_i18n($faqs['attribute_only_answers'] ?? 0) . '; respuestas de menos de 40 palabras: ' . number_format_i18n($faqs['very_short_answers']) . ' (métrica informativa, sin impacto por longitud).',
+            $faq_editorial_severity,
+            array(
+                'owner' => 'contenido',
+                'area' => 'semantic',
+                'evidence' => array_merge($faqs, array('minimum_answer_words_for_health' => null, 'short_answer_affects_health' => false)),
+                'confidence' => 90,
+            )
         );
     }
 
     if ($faqs['available']) {
-        $coverage_issues = (int) ($snapshot['products']['without_active_faq'] ?? 0) + (int) ($snapshot['categories']['without_active_faq'] ?? 0);
         $results[] = seo_core_system_test_result(
             'semantic',
-            '10.8 Cobertura de FAQs útiles',
-            $coverage_issues === 0,
-            'Productos publicados sin FAQ activa: ' . number_format_i18n($snapshot['products']['without_active_faq'] ?? 0) . '; categorías sin FAQ activa: ' . number_format_i18n($snapshot['categories']['without_active_faq'] ?? 0) . '; productos con más de 5 FAQs activas: ' . number_format_i18n($faqs['product_objects_over_5_active']) . '; categorías con más de 8: ' . number_format_i18n($faqs['category_objects_over_8_active']) . '.',
-            $coverage_issues === 0 ? 'ok' : 'warning',
-            array('owner' => 'contenido', 'area' => 'semantic', 'evidence' => array('products_without_active_faq' => $snapshot['products']['without_active_faq'], 'categories_without_active_faq' => $snapshot['categories']['without_active_faq'], 'products_over_5' => $faqs['product_objects_over_5_active'], 'categories_over_8' => $faqs['category_objects_over_8_active']), 'confidence' => 99)
+            '10.8 Cobertura editorial de FAQs',
+            true,
+            'Productos publicados sin FAQ activa: ' . number_format_i18n($snapshot['products']['without_active_faq'] ?? 0) . '; categorías sin FAQ activa: ' . number_format_i18n($snapshot['categories']['without_active_faq'] ?? 0) . '; respuestas de menos de 40 palabras: ' . number_format_i18n($faqs['very_short_answers'] ?? 0) . '. Estas métricas son informativas y no implican un problema técnico ni editorial por sí mismas.',
+            'info',
+            array(
+                'status' => 'info',
+                'health_impact' => 0,
+                'owner' => 'contenido',
+                'area' => 'semantic',
+                'evidence' => array(
+                    'products_without_active_faq' => $snapshot['products']['without_active_faq'],
+                    'categories_without_active_faq' => $snapshot['categories']['without_active_faq'],
+                    'answers_under_40_words' => $faqs['very_short_answers'] ?? 0,
+                    'products_over_5' => $faqs['product_objects_over_5_active'],
+                    'categories_over_8' => $faqs['category_objects_over_8_active'],
+                    'coverage_affects_health' => false,
+                    'short_answer_affects_health' => false,
+                ),
+                'confidence' => 99,
+            )
         );
     }
 

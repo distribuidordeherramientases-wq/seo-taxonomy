@@ -23,3 +23,13 @@ NOTAS
 
 VALIDACION
 Los cuatro PHP han pasado php -l sin errores de sintaxis.
+
+ANALISTA 3.7.0 - PROPUESTAS DE CAMPANAS
+- Nuevo analista-campanas.php.
+- Cruza Ojeador, Search Console y demanda registrada por Dependiente.
+- Propone grupos de hasta 5 productos, precio recomendado, precio para igualar mercado y precio para competir.
+- Calcula margen bruto orientativo, markup sobre coste y margen sobre venta.
+- Los productos con precio malo se muestran como demanda frenada por precio y no son activables.
+- El JSON maestro pasa a schema version 6 e incluye la seccion campanas.
+- Marketing > Campanas > Propuestas de Analista permite convertir una propuesta en campana real con un boton.
+- Al activar se guarda un snapshot de productos, fechas, coste, mercado, demanda y margenes; la campana usa el motor existente de aplicacion/restauracion de precios.

@@ -48,6 +48,410 @@ add_action('admin_post_seo_delete_empty_product_categories', 'seo_delete_empty_p
 // Acción segura para recalcular los contadores de categorías de producto.
 add_action('admin_post_seo_recount_product_categories', 'seo_recount_product_categories_handler');
 
+// Informes generales bajo demanda: no se calculan al abrir Informes > Informes.
+add_action('wp_ajax_seo_reports_general_partial', 'seo_reports_general_ajax_partial');
+add_action('admin_post_seo_reports_general_json', 'seo_reports_general_json_handler');
+
+/**
+ * Catálogo de informes de la portada Informes > Informes.
+ *
+ * Mantener esta lista ligera es intencionado: abrir la pantalla solo debe
+ * pintar botones. Ninguna función de recogida de datos se ejecuta aquí.
+ */
+function seo_reports_general_definitions() {
+    return array(
+        'google_search' => array(
+            'label'       => 'Google · Visibilidad orgánica',
+            'description' => 'Search Console: clics, impresiones, CTR, posición, consultas, páginas y tendencia.',
+        ),
+        'ai_search' => array(
+            'label'       => 'Posicionamiento y búsqueda con IA',
+            'description' => 'Priorización de URLs según demanda, movimiento, amplitud de consultas y preparación editorial.',
+        ),
+        'post_performance' => array(
+            'label'       => 'Rendimiento de Posts',
+            'description' => 'GA4 + Search Console para el conjunto de entradas y su evolución diaria.',
+        ),
+        'landing_pages' => array(
+            'label'       => 'Rendimiento de Landing Pages',
+            'description' => 'Inventario, estado, visitas, tendencia y señales externas de las landing pages.',
+        ),
+    );
+}
+
+/** URL autenticada para descargar el JSON de un único informe. */
+function seo_reports_general_json_url($report_key) {
+    $report_key = sanitize_key((string) $report_key);
+    if (!isset(seo_reports_general_definitions()[$report_key])) {
+        return '';
+    }
+
+    return wp_nonce_url(
+        add_query_arg(
+            array(
+                'action' => 'seo_reports_general_json',
+                'report' => $report_key,
+            ),
+            admin_url('admin-post.php')
+        ),
+        'seo_reports_general_json_' . $report_key
+    );
+}
+
+/**
+ * Pinta únicamente la carcasa de Informes generales.
+ *
+ * Los cálculos se realizan por AJAX solo al pulsar "Crear informe". El JSON
+ * se genera también bajo demanda cuando se pulsa "Descargar JSON".
+ */
+function seo_reports_render_general_shell() {
+    $reports  = seo_reports_general_definitions();
+    $nonce    = wp_create_nonce('seo_reports_general_partial');
+    $ajax_url = admin_url('admin-ajax.php');
+
+    echo '<div class="seo-reports-lazy-intro">';
+    echo '<strong>Informes bajo demanda</strong>';
+    echo '<p>Esta pantalla ya no ejecuta consultas pesadas al abrirse. Genera únicamente el informe que necesites o descarga su JSON.</p>';
+    echo '</div>';
+
+    echo '<div class="seo-reports-lazy-list">';
+    foreach ($reports as $key => $report) {
+        $json_url = seo_reports_general_json_url($key);
+        echo '<section class="seo-reports-lazy-card" data-seo-report="' . esc_attr($key) . '">';
+        echo '<div class="seo-reports-lazy-card-head">';
+        echo '<div><h3>' . esc_html($report['label']) . '</h3><p>' . esc_html($report['description']) . '</p></div>';
+        echo '<div class="seo-reports-lazy-actions">';
+        echo '<button type="button" class="button button-primary seo-reports-create">Crear informe</button>';
+        if ($json_url !== '') {
+            echo '<a class="button seo-reports-json" href="' . esc_url($json_url) . '">Descargar JSON</a>';
+        }
+        echo '<button type="button" class="button seo-reports-close" style="display:none;">Cerrar informe</button>';
+        echo '</div>';
+        echo '</div>';
+        echo '<div class="seo-reports-lazy-status" aria-live="polite"></div>';
+        echo '<div class="seo-reports-lazy-result" style="display:none;"></div>';
+        echo '</section>';
+    }
+    echo '</div>';
+
+    echo '<style>
+    .seo-reports-lazy-intro{background:#fff;border:1px solid #dcdcde;border-left:4px solid #2271b1;border-radius:8px;padding:15px 18px;margin:16px 0}.seo-reports-lazy-intro p{margin:5px 0 0;color:#646970}
+    .seo-reports-lazy-list{display:flex;flex-direction:column;gap:14px;margin:16px 0 24px}.seo-reports-lazy-card{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px}.seo-reports-lazy-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap}.seo-reports-lazy-card-head h3{margin:0 0 5px;font-size:16px}.seo-reports-lazy-card-head p{margin:0;color:#646970;max-width:900px}.seo-reports-lazy-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.seo-reports-lazy-status{min-height:0;margin-top:0;color:#50575e}.seo-reports-lazy-status.is-visible{min-height:28px;margin-top:12px}.seo-reports-lazy-status .spinner{float:none;margin:0 7px 0 0;vertical-align:middle}.seo-reports-lazy-result{margin-top:14px;border-top:1px solid #f0f0f1;padding-top:2px}.seo-reports-lazy-card.is-running{border-color:#2271b1;box-shadow:0 0 0 1px #2271b1}
+    @media(max-width:782px){.seo-reports-lazy-actions{width:100%}.seo-reports-lazy-actions .button{flex:1 1 auto;text-align:center}}
+    </style>';
+
+    ?>
+    <script>
+    jQuery(function($) {
+        var ajaxUrl = <?php echo wp_json_encode($ajax_url); ?>;
+        var nonce = <?php echo wp_json_encode($nonce); ?>;
+        var running = false;
+
+        function safeText(value) {
+            return $('<div>').text(value || '').html();
+        }
+
+        $('.seo-reports-lazy-card').each(function() {
+            var card = $(this);
+            var createButton = card.find('.seo-reports-create');
+            var closeButton = card.find('.seo-reports-close');
+            var status = card.find('.seo-reports-lazy-status');
+            var result = card.find('.seo-reports-lazy-result');
+
+            createButton.on('click', function() {
+                if (running) {
+                    return;
+                }
+
+                var report = card.data('seo-report');
+                var label = card.find('h3').first().text();
+                running = true;
+
+                $('.seo-reports-create').prop('disabled', true);
+                card.addClass('is-running');
+                result.hide().empty();
+                closeButton.hide();
+                status.addClass('is-visible').html('<span class="spinner is-active"></span><strong>Generando ' + safeText(label) + '…</strong>');
+
+                $.ajax({
+                    url: ajaxUrl,
+                    method: 'POST',
+                    dataType: 'json',
+                    timeout: 240000,
+                    data: {
+                        action: 'seo_reports_general_partial',
+                        nonce: nonce,
+                        report: report
+                    }
+                }).done(function(response) {
+                    if (response && response.success) {
+                        var seconds = response.data && response.data.seconds ? response.data.seconds : 0;
+                        status.html('<strong>' + safeText(label) + ' generado.</strong> ' + seconds + ' s');
+                        result.html(response.data.html || '').show();
+                        closeButton.show();
+                        createButton.text('Actualizar informe');
+                    } else {
+                        var message = response && response.data && response.data.message ? response.data.message : 'No se pudo generar el informe.';
+                        status.html('<div class="notice notice-error inline"><p>' + safeText(message) + '</p></div>');
+                    }
+                }).fail(function(xhr, textStatus) {
+                    var message = 'Error AJAX al generar el informe.';
+                    if (textStatus === 'timeout') {
+                        message = 'El informe superó 240 segundos. Conviene dividir este bloque o revisar la consulta que lo genera.';
+                    } else if (xhr && xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
+                        message = xhr.responseJSON.data.message;
+                    }
+                    status.html('<div class="notice notice-error inline"><p>' + safeText(message) + '</p></div>');
+                }).always(function() {
+                    running = false;
+                    $('.seo-reports-create').prop('disabled', false);
+                    card.removeClass('is-running');
+                });
+            });
+
+            closeButton.on('click', function() {
+                result.empty().hide();
+                status.removeClass('is-visible').empty();
+                closeButton.hide();
+                createButton.text('Crear informe');
+            });
+        });
+    });
+    </script>
+    <?php
+}
+
+/** Ejecuta y captura un único informe visual. */
+function seo_reports_general_render_partial($report_key) {
+    switch ($report_key) {
+        case 'google_search':
+            seo_reports_render_google_search_summary();
+            break;
+        case 'ai_search':
+            if (function_exists('seo_reports_render_ai_search_readiness')) {
+                seo_reports_render_ai_search_readiness();
+            } else {
+                echo '<div class="notice notice-warning inline"><p>El informe de posicionamiento y búsqueda con IA no está disponible.</p></div>';
+            }
+            break;
+        case 'post_performance':
+            seo_reports_render_post_performance_summary();
+            break;
+        case 'landing_pages':
+            seo_reports_render_landing_pages_summary();
+            break;
+    }
+}
+
+/** Combina las series GA4 y Search Console usadas por el informe de posts. */
+function seo_reports_general_post_daily(array $performance) {
+    $ga4 = (array) ($performance['ga4'] ?? array());
+    $gsc = (array) ($performance['gsc'] ?? array());
+    $daily = array();
+
+    foreach ((array) ($ga4['daily'] ?? array()) as $row) {
+        $date = (string) ($row['date'] ?? '');
+        if ($date === '') continue;
+        $daily[$date] = array(
+            'date'        => $date,
+            'pageviews'   => (float) ($row['pageviews'] ?? 0),
+            'sessions'    => (float) ($row['sessions'] ?? 0),
+            'clicks'      => 0.0,
+            'impressions' => 0.0,
+            'position'    => 0.0,
+        );
+    }
+
+    foreach ((array) ($gsc['daily'] ?? array()) as $row) {
+        $date = (string) ($row['date'] ?? '');
+        if ($date === '') continue;
+        if (!isset($daily[$date])) {
+            $daily[$date] = array(
+                'date'        => $date,
+                'pageviews'   => 0.0,
+                'sessions'    => 0.0,
+                'clicks'      => 0.0,
+                'impressions' => 0.0,
+                'position'    => 0.0,
+            );
+        }
+        $daily[$date]['clicks']      = (float) ($row['clicks'] ?? 0);
+        $daily[$date]['impressions'] = (float) ($row['impressions'] ?? 0);
+        $daily[$date]['position']    = (float) ($row['position'] ?? 0);
+    }
+
+    ksort($daily);
+    return array_values($daily);
+}
+
+/** Construye el JSON de un único informe sin renderizar el resto de la página. */
+function seo_reports_general_build_json($report_key) {
+    $definitions = seo_reports_general_definitions();
+    if (!isset($definitions[$report_key])) {
+        return new WP_Error('seo_report_unknown', 'Informe no reconocido.');
+    }
+
+    $payload = array(
+        'schema' => array(
+            'name'    => 'seo-informe-general',
+            'version' => 1,
+        ),
+        'generated_at' => gmdate('c'),
+        'site' => array(
+            'home_url'       => home_url('/'),
+            'plugin_version' => defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : '',
+        ),
+        'report' => array(
+            'key'         => $report_key,
+            'label'       => (string) $definitions[$report_key]['label'],
+            'description' => (string) $definitions[$report_key]['description'],
+        ),
+        'data' => array(),
+        'privacy' => array(
+            'credentials_included' => false,
+            'tokens_included'      => false,
+        ),
+    );
+
+    switch ($report_key) {
+        case 'google_search':
+            foreach (array('seo_google_get_settings', 'seo_google_connection_status', 'seo_google_get_summary_metrics', 'seo_google_get_summary_trend_data') as $fn) {
+                if (!function_exists($fn)) {
+                    return new WP_Error('seo_report_dependency', 'Falta cargar el módulo de Google Search Console.');
+                }
+            }
+            $settings = seo_google_get_settings();
+            $status = seo_google_connection_status();
+            $property_id = isset($settings['property_id']) ? (string) $settings['property_id'] : '';
+            $metrics = ('connected' === $status && $property_id !== '') ? seo_google_get_summary_metrics($property_id, 28) : array();
+            $trend = ($metrics && $property_id !== '') ? seo_google_get_summary_trend_data($property_id, 365) : array();
+            $payload['data'] = array(
+                'connection_status' => (string) $status,
+                'period_days'       => 28,
+                'metrics'           => (array) $metrics,
+                'trend_365d'        => array_values((array) $trend),
+            );
+            break;
+
+        case 'ai_search':
+            if (!function_exists('seo_reports_ai_search_build')) {
+                return new WP_Error('seo_report_dependency', 'Falta cargar el informe de posicionamiento y búsqueda con IA.');
+            }
+            $payload['data'] = (array) seo_reports_ai_search_build(28);
+            break;
+
+        case 'post_performance':
+            if (!function_exists('seo_post_opportunities_get_posts') || !function_exists('seo_post_opportunities_performance')) {
+                return new WP_Error('seo_report_dependency', 'Falta cargar el módulo de oportunidades de posts.');
+            }
+            $days = 60;
+            $posts = seo_post_opportunities_get_posts();
+            $performance = seo_post_opportunities_performance($posts, $days);
+            $ga4 = (array) ($performance['ga4'] ?? array());
+            $gsc = (array) ($performance['gsc'] ?? array());
+            $payload['data'] = array(
+                'period_days' => $days,
+                'sources' => array(
+                    'ga4_available'            => !empty($ga4['available']),
+                    'search_console_available' => !empty($gsc['available']),
+                    'ga4_error'                => (string) ($ga4['error'] ?? ''),
+                    'search_console_error'     => (string) ($gsc['error'] ?? ''),
+                ),
+                'ga4_summary'           => (array) ($ga4['summary'] ?? array()),
+                'search_console_summary'=> (array) ($gsc['summary'] ?? array()),
+                'daily'                 => seo_reports_general_post_daily($performance),
+                'posts'                 => array_values((array) ($performance['rows'] ?? array())),
+            );
+            break;
+
+        case 'landing_pages':
+            foreach (array('seo_landing_get_kpis', 'seo_landing_get_views_series', 'seo_landing_get_external_signals') as $fn) {
+                if (!function_exists($fn)) {
+                    return new WP_Error('seo_report_dependency', 'Falta cargar el módulo de Landing Pages.');
+                }
+            }
+            if (function_exists('seo_landing_maybe_install')) {
+                seo_landing_maybe_install();
+            }
+            $payload['data'] = array(
+                'kpis'             => (array) seo_landing_get_kpis(),
+                'views_30d'        => array_values((array) seo_landing_get_views_series(30)),
+                'external_signals' => array_values((array) seo_landing_get_external_signals()),
+                'source_status'    => function_exists('seo_landing_google_source_status') ? (array) seo_landing_google_source_status() : array(),
+            );
+            break;
+    }
+
+    return $payload;
+}
+
+/** AJAX: genera un solo informe visual cuando el administrador lo solicita. */
+function seo_reports_general_ajax_partial() {
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(array('message' => 'No tienes permisos suficientes.'), 403);
+    }
+
+    check_ajax_referer('seo_reports_general_partial', 'nonce');
+
+    $report_key = isset($_POST['report']) ? sanitize_key(wp_unslash($_POST['report'])) : '';
+    $definitions = seo_reports_general_definitions();
+    if (!isset($definitions[$report_key])) {
+        wp_send_json_error(array('message' => 'Informe no reconocido.'), 400);
+    }
+
+    $started = microtime(true);
+    ob_start();
+
+    try {
+        seo_reports_general_render_partial($report_key);
+        $html = ob_get_clean();
+    } catch (Throwable $e) {
+        ob_end_clean();
+        wp_send_json_error(array('message' => 'Error al generar ' . $definitions[$report_key]['label'] . ': ' . $e->getMessage()), 500);
+    }
+
+    wp_send_json_success(array(
+        'report'  => $report_key,
+        'html'    => $html,
+        'seconds' => round(microtime(true) - $started, 2),
+    ));
+}
+
+/** Descarga JSON: calcula únicamente el informe solicitado. */
+function seo_reports_general_json_handler() {
+    if (!current_user_can('manage_options')) {
+        wp_die(esc_html__('No tienes permisos para exportar este informe.', 'seo-menu-manager'));
+    }
+
+    $report_key = isset($_GET['report']) ? sanitize_key(wp_unslash($_GET['report'])) : '';
+    $definitions = seo_reports_general_definitions();
+    if (!isset($definitions[$report_key])) {
+        wp_die(esc_html__('Informe no reconocido.', 'seo-menu-manager'));
+    }
+
+    check_admin_referer('seo_reports_general_json_' . $report_key);
+
+    $payload = seo_reports_general_build_json($report_key);
+    if (is_wp_error($payload)) {
+        wp_die(esc_html($payload->get_error_message()));
+    }
+
+    $json = wp_json_encode(
+        $payload,
+        JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR
+    );
+    if (false === $json) {
+        wp_die(esc_html__('No se ha podido generar el JSON del informe.', 'seo-menu-manager'));
+    }
+
+    nocache_headers();
+    header('X-Content-Type-Options: nosniff');
+    header('Content-Type: application/json; charset=utf-8');
+    header('Content-Disposition: attachment; filename="seo-informe-' . sanitize_file_name($report_key) . '-' . gmdate('Ymd-His') . '.json"');
+    echo $json;
+    exit;
+}
+
 /**
  * Resumen reutilizado de Search Console para la portada Informes > Informes.
  *
@@ -487,13 +891,8 @@ function seo_reports_page() {
     // Ejecución de acciones según la pestaña escogida.
     if ($active_tab === 'informes') {
         echo '<h2>Informes generales</h2>';
-        echo '<p style="color:#646970;margin-top:-6px;">Vista unificada con los indicadores que quieras consultar sin recorrer los informes técnicos de origen.</p>';
-        seo_reports_render_google_search_summary();
-        if (function_exists('seo_reports_render_ai_search_readiness')) {
-            seo_reports_render_ai_search_readiness();
-        }
-        seo_reports_render_post_performance_summary();
-        seo_reports_render_landing_pages_summary();
+        echo '<p style="color:#646970;margin-top:-6px;">Los informes se generan bajo demanda para que abrir esta opción de menú sea inmediato.</p>';
+        seo_reports_render_general_shell();
     } elseif ($active_tab === 'dashboard') {
         seo_dashboard_page();
     } elseif ($active_tab === 'content') {

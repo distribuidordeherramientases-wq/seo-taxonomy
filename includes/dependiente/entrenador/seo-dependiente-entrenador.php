@@ -4208,6 +4208,7 @@ final class SEO_Dependiente_Entrenador {
         $cache=array();
         $faq=$wpdb->prefix.'seo_faq';
         if (!self::table_exists($faq)) return $cache;
+        $faq_scope_select = self::table_has_column($faq, 'ambito') ? 'f.ambito' : "'' AS ambito";
         $limit=self::MAX_FAQ_SOURCES;
 
         // Una FAQ por owner para que L6 mida la asociación estructural sin hacer
@@ -4215,7 +4216,7 @@ final class SEO_Dependiente_Entrenador {
         // object_type 3 / 2. El texto sigue siendo la materia de la FAQ, pero la
         // ruta de recuperación válida debe ser siempre owner-first.
         $rows=(array)$wpdb->get_results(
-            "SELECT f.id,f.object_type,f.object_id,f.ambito,f.question,f.answer,
+            "SELECT f.id,f.object_type,f.object_id,{$faq_scope_select},f.question,f.answer,
                     CASE WHEN f.object_type=3 THEN p.post_title ELSE t.name END owner_title
              FROM {$faq} f
              INNER JOIN (
@@ -6072,6 +6073,17 @@ final class SEO_Dependiente_Entrenador {
         return (string) $table === (string) $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like((string) $table)));
     }
 
+    private static function table_has_column($table, $column) {
+        global $wpdb;
+        if (!self::table_exists($table)) {
+            return false;
+        }
+        $found = $wpdb->get_var(
+            $wpdb->prepare("SHOW COLUMNS FROM `{$table}` LIKE %s", (string) $column)
+        );
+        return (string) $found === (string) $column;
+    }
+
     private static function acquire_db_lock($scope) {
         global $wpdb;
         $name = 'seo_dep_academy_' . sanitize_key((string) $scope);
@@ -6262,8 +6274,9 @@ final class SEO_Dependiente_Entrenador {
             $wanted_categories = array_fill_keys($category_ids, true);
             $faq_table = $wpdb->prefix . 'seo_faq';
             if (!self::table_exists($faq_table)) return array();
+            $faq_scope_select = self::table_has_column($faq_table, 'ambito') ? 'f.ambito' : "'' AS ambito";
             $rows = (array) $wpdb->get_results(
-                "SELECT f.id,f.object_type,f.object_id,f.ambito,f.question,f.answer,
+                "SELECT f.id,f.object_type,f.object_id,{$faq_scope_select},f.question,f.answer,
                         CASE WHEN f.object_type=3 THEN p.post_title ELSE t.name END owner_title
                  FROM {$faq_table} f
                  LEFT JOIN {$wpdb->posts} p ON f.object_type=3 AND p.ID=f.object_id AND p.post_type='product' AND p.post_status='publish'
