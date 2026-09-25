@@ -17,7 +17,7 @@ if ( defined( 'SEO_IE_CF_VERSION' ) ) {
     return;
 }
 
-define( 'SEO_IE_CF_VERSION', '1.0.0' );
+define( 'SEO_IE_CF_VERSION', '1.3.0' );
 define( 'SEO_IE_CF_DIR', __DIR__ );
 define( 'SEO_IE_CF_GROUP', 'seo-system-commercial-feeds' );
 

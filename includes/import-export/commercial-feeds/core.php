@@ -14,9 +14,11 @@ defined( 'ABSPATH' ) || exit;
 
 const SEO_IE_CF_SETTINGS_OPTION = 'seo_ie_commercial_feeds_settings_v1';
 const SEO_IE_CF_STATE_OPTION    = 'seo_ie_commercial_feeds_state_v1';
+const SEO_IE_CF_HISTORY_OPTION  = 'seo_ie_commercial_feeds_history_v1';
 const SEO_IE_CF_BATCH_SIZE      = 180;
 const SEO_IE_CF_DAILY_HOOK      = 'seo_ie_cf_daily_refresh';
 const SEO_IE_CF_BATCH_HOOK      = 'seo_ie_cf_build_batch';
+const SEO_IE_CF_QUEUED_HOOK     = 'seo_ie_cf_queued_refresh';
 
 /**
  * Registra hooks y planificacion.
@@ -25,6 +27,8 @@ function seo_ie_cf_register_runtime() {
     add_action( 'init', 'seo_ie_cf_maybe_schedule_daily', 30 );
     add_action( SEO_IE_CF_DAILY_HOOK, 'seo_ie_cf_daily_refresh' );
     add_action( SEO_IE_CF_BATCH_HOOK, 'seo_ie_cf_process_batch', 10, 2 );
+    add_action( SEO_IE_CF_QUEUED_HOOK, 'seo_ie_cf_run_queued_refresh', 10, 1 );
+    add_action( 'seo_supplier_sync_products_changed', 'seo_ie_cf_on_supplier_sync_products_changed', 10, 1 );
 }
 
 /**
@@ -39,18 +43,30 @@ function seo_ie_cf_default_settings() {
         }
     }
 
-    $locale = function_exists( 'determine_locale' ) ? determine_locale() : get_locale();
-    $language = strtolower( substr( (string) $locale, 0, 2 ) );
-    if ( ! preg_match( '/^[a-z]{2}$/', $language ) ) {
+    // No uses determine_locale(): en wp-admin puede devolver el idioma
+    // personal del administrador y no el idioma comercial de la tienda.
+    // Para la tienda espanola, ES implica por defecto catalogo en castellano.
+    if ( 'ES' === $country ) {
         $language = 'es';
+    } else {
+        $site_locale = (string) get_option( 'WPLANG', '' );
+        if ( '' === $site_locale ) {
+            $site_locale = (string) get_locale();
+        }
+        $language = strtolower( substr( $site_locale, 0, 2 ) );
+        if ( ! preg_match( '/^[a-z]{2}$/', $language ) ) {
+            $language = 'en';
+        }
     }
 
     return [
-        'enabled_channels' => [ 'google', 'microsoft', 'pinterest', 'universal' ],
-        'country'          => $country,
-        'language'         => $language,
-        'auto_refresh'     => 1,
-        'batch_size'       => SEO_IE_CF_BATCH_SIZE,
+        'enabled_channels'            => [ 'google', 'microsoft', 'pinterest', 'universal', 'json' ],
+        'country'                     => $country,
+        'language'                    => $language,
+        'auto_refresh'                => 1,
+        'daily_time'                  => '03:30',
+        'refresh_after_supplier_sync' => 1,
+        'batch_size'                  => SEO_IE_CF_BATCH_SIZE,
     ];
 }
 
@@ -84,21 +100,58 @@ function seo_ie_cf_settings() {
     }
 
     $settings['auto_refresh'] = empty( $settings['auto_refresh'] ) ? 0 : 1;
+    $settings['refresh_after_supplier_sync'] = empty( $settings['refresh_after_supplier_sync'] ) ? 0 : 1;
+    $settings['daily_time'] = seo_ie_cf_sanitize_daily_time( $settings['daily_time'] ?? '03:30' );
     $settings['batch_size'] = max( 50, min( 500, absint( $settings['batch_size'] ?? SEO_IE_CF_BATCH_SIZE ) ) );
 
     return $settings;
 }
 
 /**
- * Devuelve true solo para produccion. En staging se permite generar manualmente
- * pero nunca se activa la regeneracion automatica para evitar publicar un feed
- * de pruebas en las cuentas comerciales reales.
+ * Normaliza una hora HH:MM para la regeneracion diaria de seguridad.
+ */
+function seo_ie_cf_sanitize_daily_time( $value ) {
+    $value = trim( (string) $value );
+    if ( ! preg_match( '/^(?:[01]\d|2[0-3]):[0-5]\d$/', $value ) ) {
+        return '03:30';
+    }
+    return $value;
+}
+
+/**
+ * Informacion efectiva del entorno. WordPress considera production si no se
+ * define WP_ENVIRONMENT_TYPE; por seguridad un host que contiene staging,
+ * stage, dev, test o local nunca se trata como produccion comercial.
+ */
+function seo_ie_cf_environment_info() {
+    $reported = function_exists( 'wp_get_environment_type' ) ? (string) wp_get_environment_type() : 'production';
+    $host     = strtolower( (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST ) );
+    $effective = $reported ?: 'production';
+    $source    = 'wp_environment';
+
+    if (
+        'production' === $effective
+        && '' !== $host
+        && preg_match( '/(^|[.\-])(staging|stage|dev|test|local)([.\-]|$)/i', $host )
+    ) {
+        $effective = 'staging';
+        $source    = 'host_safety';
+    }
+
+    return [
+        'effective' => sanitize_key( $effective ),
+        'reported'  => sanitize_key( $reported ),
+        'host'      => $host,
+        'source'    => $source,
+    ];
+}
+
+/**
+ * Devuelve true solo para produccion comercial efectiva.
  */
 function seo_ie_cf_is_production() {
-    if ( function_exists( 'wp_get_environment_type' ) ) {
-        return 'production' === wp_get_environment_type();
-    }
-    return true;
+    $environment = seo_ie_cf_environment_info();
+    return 'production' === ( $environment['effective'] ?? '' );
 }
 
 /**
@@ -111,7 +164,27 @@ function seo_ie_cf_storage() {
     }
 
     $dir = trailingslashit( $upload['basedir'] ) . 'seo-system-feeds';
-    $url = trailingslashit( $upload['baseurl'] ) . 'seo-system-feeds';
+
+    // Tras un clon PRO -> STAGING puede quedar una baseurl de uploads del
+    // entorno de origen. El feed siempre debe anunciar el host del entorno
+    // que lo esta generando.
+    $baseurl       = untrailingslashit( (string) $upload['baseurl'] );
+    $home_parts    = wp_parse_url( home_url( '/' ) );
+    $upload_parts  = wp_parse_url( $baseurl );
+    $url_corrected = false;
+    if (
+        ! empty( $home_parts['host'] )
+        && ! empty( $upload_parts['host'] )
+        && 0 !== strcasecmp( (string) $home_parts['host'], (string) $upload_parts['host'] )
+    ) {
+        $scheme = ! empty( $home_parts['scheme'] ) ? $home_parts['scheme'] : 'https';
+        $port   = ! empty( $home_parts['port'] ) ? ':' . absint( $home_parts['port'] ) : '';
+        $path   = ! empty( $upload_parts['path'] ) ? '/' . ltrim( (string) $upload_parts['path'], '/' ) : '/wp-content/uploads';
+        $baseurl = $scheme . '://' . $home_parts['host'] . $port . $path;
+        $url_corrected = true;
+    }
+
+    $url = trailingslashit( $baseurl ) . 'seo-system-feeds';
 
     if ( ! is_dir( $dir ) && ! wp_mkdir_p( $dir ) ) {
         return new WP_Error( 'seo_ie_cf_mkdir', 'No se pudo crear wp-content/uploads/seo-system-feeds.' );
@@ -123,8 +196,9 @@ function seo_ie_cf_storage() {
     }
 
     return [
-        'dir' => wp_normalize_path( $dir ),
-        'url' => untrailingslashit( $url ),
+        'dir'           => wp_normalize_path( $dir ),
+        'url'           => untrailingslashit( $url ),
+        'url_corrected' => $url_corrected,
     ];
 }
 
@@ -142,35 +216,218 @@ function seo_ie_cf_save_state( array $state ) {
     return $state;
 }
 
-/**
- * Agenda refresco diario solo en produccion.
- */
-function seo_ie_cf_maybe_schedule_daily() {
-    $settings = seo_ie_cf_settings();
-    $enabled  = ! empty( $settings['auto_refresh'] ) && seo_ie_cf_is_production();
 
-    if ( function_exists( 'as_has_scheduled_action' ) && function_exists( 'as_schedule_recurring_action' ) ) {
-        $has = as_has_scheduled_action( SEO_IE_CF_DAILY_HOOK, [], SEO_IE_CF_GROUP );
-        if ( $enabled && ! $has ) {
-            as_schedule_recurring_action(
-                time() + 600,
-                DAY_IN_SECONDS,
-                SEO_IE_CF_DAILY_HOOK,
-                [],
-                SEO_IE_CF_GROUP
-            );
-        } elseif ( ! $enabled && $has && function_exists( 'as_unschedule_all_actions' ) ) {
-            as_unschedule_all_actions( SEO_IE_CF_DAILY_HOOK, [], SEO_IE_CF_GROUP );
+/**
+ * Lock ligero por ejecucion para impedir que Action Scheduler y el watchdog
+ * del navegador procesen el mismo lote a la vez.
+ */
+function seo_ie_cf_batch_lock_name( $run_id ) {
+    return 'seo_ie_cf_batch_lock_' . md5( (string) $run_id );
+}
+
+function seo_ie_cf_batch_is_locked( $run_id ) {
+    $key = seo_ie_cf_batch_lock_name( $run_id );
+    $started = absint( get_option( $key, 0 ) );
+    if ( 0 === $started ) {
+        return false;
+    }
+    if ( ( time() - $started ) > 10 * MINUTE_IN_SECONDS ) {
+        delete_option( $key );
+        return false;
+    }
+    return true;
+}
+
+function seo_ie_cf_acquire_batch_lock( $run_id ) {
+    $key = seo_ie_cf_batch_lock_name( $run_id );
+    if ( seo_ie_cf_batch_is_locked( $run_id ) ) {
+        return false;
+    }
+    return (bool) add_option( $key, time(), '', 'no' );
+}
+
+function seo_ie_cf_release_batch_lock( $run_id ) {
+    delete_option( seo_ie_cf_batch_lock_name( $run_id ) );
+}
+
+/**
+ * Retira la accion pendiente del lote actual. Las acciones antiguas que ya
+ * hayan sido reclamadas tambien quedan invalidadas por status/run_id/cursor.
+ */
+function seo_ie_cf_unschedule_batch( $run_id, $cursor ) {
+    $args = [ (string) $run_id, absint( $cursor ) ];
+
+    if ( function_exists( 'as_unschedule_action' ) ) {
+        for ( $i = 0; $i < 10; $i++ ) {
+            $removed = as_unschedule_action( SEO_IE_CF_BATCH_HOOK, $args, SEO_IE_CF_GROUP );
+            if ( false === $removed || null === $removed ) {
+                break;
+            }
         }
+    }
+
+    wp_clear_scheduled_hook( SEO_IE_CF_BATCH_HOOK, $args );
+}
+
+/**
+ * Detiene una generacion sin publicar archivos parciales. Los temporales se
+ * eliminan al iniciar una ejecucion nueva, evitando carreras con un worker que
+ * pudiera estar terminando su lote en otra peticion.
+ */
+function seo_ie_cf_stop_build( $reason = 'manual' ) {
+    $state = seo_ie_cf_state();
+    if ( 'running' !== ( $state['status'] ?? '' ) ) {
+        return $state;
+    }
+
+    $run_id = (string) ( $state['run_id'] ?? '' );
+    $cursor = absint( $state['cursor'] ?? 0 );
+
+    $state['status']          = 'stopped';
+    $state['stop_reason']     = sanitize_key( (string) $reason );
+    $state['completed_at']    = current_time( 'mysql', true );
+    $state['pending_refresh'] = '';
+    seo_ie_cf_save_state( $state );
+
+    seo_ie_cf_unschedule_batch( $run_id, $cursor );
+    seo_ie_cf_record_history( $state );
+
+    return $state;
+}
+
+/**
+ * Historial compacto de las ultimas generaciones terminadas.
+ */
+function seo_ie_cf_history() {
+    $history = get_option( SEO_IE_CF_HISTORY_OPTION, [] );
+    return is_array( $history ) ? $history : [];
+}
+
+function seo_ie_cf_record_history( array $state ) {
+    $run_id = sanitize_text_field( (string) ( $state['run_id'] ?? '' ) );
+    if ( '' === $run_id ) {
         return;
     }
 
-    $has = wp_next_scheduled( SEO_IE_CF_DAILY_HOOK );
-    if ( $enabled && ! $has ) {
-        wp_schedule_event( time() + 600, 'daily', SEO_IE_CF_DAILY_HOOK );
-    } elseif ( ! $enabled && $has ) {
-        wp_clear_scheduled_hook( SEO_IE_CF_DAILY_HOOK );
+    $files = [];
+    foreach ( (array) ( $state['files'] ?? [] ) as $channel => $file ) {
+        $files[ sanitize_key( $channel ) ] = [
+            'filename' => sanitize_file_name( (string) ( $file['filename'] ?? '' ) ),
+            'size'     => absint( $file['size'] ?? 0 ),
+        ];
     }
+
+    $entry = [
+        'run_id'          => $run_id,
+        'status'          => sanitize_key( (string) ( $state['status'] ?? '' ) ),
+        'origin'          => sanitize_key( (string) ( $state['origin'] ?? '' ) ),
+        'started_at'      => sanitize_text_field( (string) ( $state['started_at'] ?? '' ) ),
+        'completed_at'    => sanitize_text_field( (string) ( $state['completed_at'] ?? '' ) ),
+        'candidate_total' => absint( $state['candidate_total'] ?? 0 ),
+        'processed'       => absint( $state['processed'] ?? 0 ),
+        'written'         => absint( $state['written'] ?? 0 ),
+        'excluded'        => absint( $state['excluded'] ?? 0 ),
+        'errors'          => array_slice( array_map( 'sanitize_text_field', (array) ( $state['errors'] ?? [] ) ), -5 ),
+        'files'           => $files,
+        'environment'     => sanitize_key( (string) ( $state['environment'] ?? '' ) ),
+    ];
+
+    $history = array_values(
+        array_filter(
+            seo_ie_cf_history(),
+            static function ( $item ) use ( $run_id ) {
+                return ! is_array( $item ) || (string) ( $item['run_id'] ?? '' ) !== $run_id;
+            }
+        )
+    );
+    array_unshift( $history, $entry );
+    update_option( SEO_IE_CF_HISTORY_OPTION, array_slice( $history, 0, 20 ), false );
+}
+
+/**
+ * Finaliza un estado fallido sin tocar el ultimo feed valido publicado.
+ */
+function seo_ie_cf_mark_failed( array $state, $message = '' ) {
+    $state['status'] = 'failed';
+    if ( '' !== trim( (string) $message ) ) {
+        $state['errors'][] = sanitize_text_field( (string) $message );
+        $state['errors'] = array_slice( (array) $state['errors'], -20 );
+    }
+    $state['completed_at'] = current_time( 'mysql', true );
+    seo_ie_cf_save_state( $state );
+    seo_ie_cf_cleanup_temp_files( $state );
+    seo_ie_cf_record_history( $state );
+    return $state;
+}
+
+/**
+ * Calcula la siguiente hora diaria en la zona horaria configurada en WordPress.
+ */
+function seo_ie_cf_next_daily_timestamp( $daily_time = '03:30' ) {
+    $daily_time = seo_ie_cf_sanitize_daily_time( $daily_time );
+    [ $hour, $minute ] = array_map( 'intval', explode( ':', $daily_time ) );
+    $timezone = function_exists( 'wp_timezone' ) ? wp_timezone() : new DateTimeZone( 'UTC' );
+    $now = new DateTimeImmutable( 'now', $timezone );
+    $next = $now->setTime( $hour, $minute, 0 );
+    if ( $next <= $now ) {
+        $next = $next->modify( '+1 day' );
+    }
+    return $next->getTimestamp();
+}
+
+/**
+ * Devuelve el timestamp de la proxima regeneracion diaria programada.
+ */
+function seo_ie_cf_next_daily_scheduled() {
+    if ( function_exists( 'as_next_scheduled_action' ) ) {
+        $next = as_next_scheduled_action( SEO_IE_CF_DAILY_HOOK, [], SEO_IE_CF_GROUP );
+        if ( is_numeric( $next ) && (int) $next > 0 ) {
+            return (int) $next;
+        }
+    }
+    $next = wp_next_scheduled( SEO_IE_CF_DAILY_HOOK );
+    return $next ? (int) $next : 0;
+}
+
+/**
+ * Elimina cualquier regeneracion diaria pendiente.
+ */
+function seo_ie_cf_unschedule_daily() {
+    if ( function_exists( 'as_unschedule_all_actions' ) ) {
+        as_unschedule_all_actions( SEO_IE_CF_DAILY_HOOK, [], SEO_IE_CF_GROUP );
+    }
+    wp_clear_scheduled_hook( SEO_IE_CF_DAILY_HOOK );
+}
+
+/**
+ * Agenda una ejecucion diaria a una hora visible y estable en hora local.
+ * Se usa una accion unica y, al ejecutarse, se agenda la del dia siguiente;
+ * asi no deriva una hora por los cambios de horario de verano/invierno.
+ */
+function seo_ie_cf_maybe_schedule_daily( $force = false ) {
+    $settings = seo_ie_cf_settings();
+    $enabled  = ! empty( $settings['auto_refresh'] ) && seo_ie_cf_is_production();
+
+    if ( ! $enabled ) {
+        seo_ie_cf_unschedule_daily();
+        return;
+    }
+
+    if ( $force ) {
+        seo_ie_cf_unschedule_daily();
+    }
+
+    if ( seo_ie_cf_next_daily_scheduled() > 0 ) {
+        return;
+    }
+
+    $timestamp = seo_ie_cf_next_daily_timestamp( $settings['daily_time'] );
+    if ( function_exists( 'as_schedule_single_action' ) ) {
+        as_schedule_single_action( $timestamp, SEO_IE_CF_DAILY_HOOK, [], SEO_IE_CF_GROUP, false );
+        return;
+    }
+
+    wp_schedule_single_event( $timestamp, SEO_IE_CF_DAILY_HOOK );
 }
 
 /**
@@ -178,9 +435,86 @@ function seo_ie_cf_maybe_schedule_daily() {
  */
 function seo_ie_cf_daily_refresh() {
     if ( ! seo_ie_cf_is_production() ) {
+        seo_ie_cf_unschedule_daily();
         return;
     }
-    seo_ie_cf_start_build( 'scheduled' );
+
+    seo_ie_cf_start_build( 'daily_safety' );
+    // La accion diaria es unica: programa la siguiente respetando la hora local.
+    seo_ie_cf_maybe_schedule_daily( true );
+}
+
+/**
+ * Programa una regeneracion diferida, evitando duplicados.
+ */
+function seo_ie_cf_schedule_refresh( $origin = 'supplier_sync', $delay = 120 ) {
+    if ( ! seo_ie_cf_is_production() ) {
+        return false;
+    }
+
+    $origin = sanitize_key( (string) $origin );
+    $args   = [ $origin ];
+    $delay  = max( 30, absint( $delay ) );
+
+    if ( function_exists( 'as_has_scheduled_action' ) && as_has_scheduled_action( SEO_IE_CF_QUEUED_HOOK, $args, SEO_IE_CF_GROUP ) ) {
+        return true;
+    }
+    if ( false !== wp_next_scheduled( SEO_IE_CF_QUEUED_HOOK, $args ) ) {
+        return true;
+    }
+
+    if ( function_exists( 'as_schedule_single_action' ) ) {
+        return (int) as_schedule_single_action( time() + $delay, SEO_IE_CF_QUEUED_HOOK, $args, SEO_IE_CF_GROUP, true ) > 0;
+    }
+
+    $scheduled = wp_schedule_single_event( time() + $delay, SEO_IE_CF_QUEUED_HOOK, $args, true );
+    return ! is_wp_error( $scheduled ) && true === $scheduled;
+}
+
+/**
+ * Solicita una regeneracion. Si ya hay una en curso se recuerda la peticion y
+ * se lanza otra al terminar, para no perder cambios aplicados a IDs ya leidos.
+ */
+function seo_ie_cf_request_refresh( $origin = 'supplier_sync' ) {
+    if ( ! seo_ie_cf_is_production() ) {
+        return false;
+    }
+
+    $state = seo_ie_cf_state();
+    if ( 'running' === ( $state['status'] ?? '' ) ) {
+        $state['pending_refresh'] = sanitize_key( (string) $origin );
+        $state['pending_refresh_at'] = current_time( 'mysql', true );
+        seo_ie_cf_save_state( $state );
+        return true;
+    }
+
+    return seo_ie_cf_schedule_refresh( $origin, 120 );
+}
+
+/**
+ * Disparo emitido por Sincronizacion V2 cuando ya ha terminado de aplicar
+ * cambios reales sobre productos WooCommerce.
+ */
+function seo_ie_cf_on_supplier_sync_products_changed( $context = [] ) {
+    $settings = seo_ie_cf_settings();
+    if ( empty( $settings['refresh_after_supplier_sync'] ) ) {
+        return;
+    }
+    seo_ie_cf_request_refresh( 'supplier_sync' );
+}
+
+/**
+ * Ejecuta una regeneracion diferida.
+ */
+function seo_ie_cf_run_queued_refresh( $origin = 'supplier_sync' ) {
+    if ( ! seo_ie_cf_is_production() ) {
+        return;
+    }
+
+    $result = seo_ie_cf_start_build( sanitize_key( (string) $origin ) );
+    if ( is_wp_error( $result ) && 'seo_ie_cf_running' === $result->get_error_code() ) {
+        seo_ie_cf_request_refresh( $origin );
+    }
 }
 
 /**
@@ -190,11 +524,11 @@ function seo_ie_cf_enqueue_batch( $run_id, $cursor ) {
     $args = [ (string) $run_id, absint( $cursor ) ];
 
     if ( function_exists( 'as_enqueue_async_action' ) ) {
-        as_enqueue_async_action( SEO_IE_CF_BATCH_HOOK, $args, SEO_IE_CF_GROUP );
-        return true;
+        return (int) as_enqueue_async_action( SEO_IE_CF_BATCH_HOOK, $args, SEO_IE_CF_GROUP ) > 0;
     }
 
-    return wp_schedule_single_event( time() + 5, SEO_IE_CF_BATCH_HOOK, $args );
+    $scheduled = wp_schedule_single_event( time() + 5, SEO_IE_CF_BATCH_HOOK, $args, true );
+    return ! is_wp_error( $scheduled ) && true === $scheduled;
 }
 
 /**
@@ -227,7 +561,13 @@ function seo_ie_cf_start_build( $origin = 'manual' ) {
         && $last_ts
         && ( time() - $last_ts ) < 2 * HOUR_IN_SECONDS
     ) {
-        return new WP_Error( 'seo_ie_cf_running', 'Ya hay una generacion de inventario en curso.' );
+        return new WP_Error( 'seo_ie_cf_running', 'Ya hay una generacion de inventario en curso. Pulsa Parar antes de iniciar otra.' );
+    }
+
+    // Limpia temporales abandonados de una ejecucion anterior detenida,
+    // fallida o considerada obsoleta. Los feeds finales validos no se tocan.
+    if ( ! empty( $current['files'] ) ) {
+        seo_ie_cf_cleanup_temp_files( $current );
     }
 
     $storage = seo_ie_cf_storage();
@@ -278,18 +618,23 @@ function seo_ie_cf_start_build( $origin = 'manual' ) {
         'excluded_reasons' => [],
         'errors'           => [],
         'files'            => $files,
-        'environment'      => function_exists( 'wp_get_environment_type' ) ? wp_get_environment_type() : 'production',
+        'environment'      => (string) ( seo_ie_cf_environment_info()['effective'] ?? 'production' ),
+        'host'             => (string) ( seo_ie_cf_environment_info()['host'] ?? '' ),
+        'pending_refresh'  => '',
     ];
     seo_ie_cf_save_state( $state );
 
     if ( ! seo_ie_cf_enqueue_batch( $run_id, 0 ) ) {
-        $state['status'] = 'failed';
-        $state['errors'][] = 'No se pudo programar el primer lote.';
-        seo_ie_cf_save_state( $state );
+        seo_ie_cf_mark_failed( $state, 'No se pudo programar el primer lote.' );
         return new WP_Error( 'seo_ie_cf_enqueue', 'No se pudo programar el primer lote.' );
     }
 
-    return $state;
+    // Ejecuta el primer lote en la propia peticion. Asi el arranque no depende
+    // de que Action Scheduler o WP-Cron despierten inmediatamente. La accion
+    // ya encolada queda como respaldo y sera descartada por cursor si llega tarde.
+    seo_ie_cf_process_batch( $run_id, 0 );
+
+    return seo_ie_cf_state();
 }
 
 /**
@@ -327,69 +672,138 @@ function seo_ie_cf_next_ids( $cursor, $limit ) {
  * Ejecuta una tanda de generacion.
  */
 function seo_ie_cf_process_batch( $run_id, $cursor = 0 ) {
+    $run_id = (string) $run_id;
+    $cursor = absint( $cursor );
+
     $state = seo_ie_cf_state();
-    if ( 'running' !== ( $state['status'] ?? '' ) || ! hash_equals( (string) ( $state['run_id'] ?? '' ), (string) $run_id ) ) {
+    if (
+        'running' !== ( $state['status'] ?? '' )
+        || ! hash_equals( (string) ( $state['run_id'] ?? '' ), $run_id )
+        || absint( $state['cursor'] ?? 0 ) !== $cursor
+    ) {
         return;
     }
 
-    $settings = seo_ie_cf_settings();
-    $ids = seo_ie_cf_next_ids( $cursor, $settings['batch_size'] );
-
-    if ( empty( $ids ) ) {
-        seo_ie_cf_finish_build( $state );
+    if ( ! seo_ie_cf_acquire_batch_lock( $run_id ) ) {
         return;
     }
 
-    foreach ( $ids as $product_id ) {
-        $state['processed']++;
-        $result = seo_ie_cf_product_record( $product_id );
-
-        if ( is_wp_error( $result ) ) {
-            $state['excluded']++;
-            $reason = sanitize_key( $result->get_error_code() );
-            if ( '' === $reason ) {
-                $reason = 'unknown';
-            }
-            $state['excluded_reasons'][ $reason ] = 1 + absint( $state['excluded_reasons'][ $reason ] ?? 0 );
-            continue;
-        }
-
-        $written_ok = true;
-        foreach ( (array) $state['files'] as $channel => $file ) {
-            if ( empty( $file['temp'] ) ) {
-                continue;
-            }
-            $write = seo_ie_cf_channel_append_record( $channel, (string) $file['temp'], $result );
-            if ( is_wp_error( $write ) ) {
-                $written_ok = false;
-                $state['errors'][] = $channel . ': ' . $write->get_error_message();
-                if ( count( $state['errors'] ) > 20 ) {
-                    $state['errors'] = array_slice( $state['errors'], -20 );
-                }
-            }
-        }
-
-        if ( $written_ok ) {
-            $state['written']++;
-        } else {
-            // Nunca publiques un feed parcial si falla la escritura de un canal.
-            $state['status'] = 'failed';
-            $state['cursor'] = (int) $product_id;
-            seo_ie_cf_save_state( $state );
-            seo_ie_cf_cleanup_temp_files( $state );
+    try {
+        // Revalida tras adquirir el lock: otra peticion pudo detener o avanzar
+        // la ejecucion mientras esperabamos.
+        $state = seo_ie_cf_state();
+        if (
+            'running' !== ( $state['status'] ?? '' )
+            || ! hash_equals( (string) ( $state['run_id'] ?? '' ), $run_id )
+            || absint( $state['cursor'] ?? 0 ) !== $cursor
+        ) {
             return;
         }
-    }
 
-    $state['cursor'] = (int) end( $ids );
-    seo_ie_cf_save_state( $state );
+        $settings = seo_ie_cf_settings();
+        $ids = seo_ie_cf_next_ids( $cursor, $settings['batch_size'] );
 
-    if ( ! seo_ie_cf_enqueue_batch( $run_id, $state['cursor'] ) ) {
-        $state['status'] = 'failed';
-        $state['errors'][] = 'No se pudo programar el siguiente lote.';
+        if ( empty( $ids ) ) {
+            seo_ie_cf_finish_build( $state );
+            return;
+        }
+
+        foreach ( $ids as $product_id ) {
+            $state['processed']++;
+            $result = seo_ie_cf_product_record( $product_id );
+
+            if ( is_wp_error( $result ) ) {
+                $state['excluded']++;
+                $reason = sanitize_key( $result->get_error_code() );
+                if ( '' === $reason ) {
+                    $reason = 'unknown';
+                }
+                $state['excluded_reasons'][ $reason ] = 1 + absint( $state['excluded_reasons'][ $reason ] ?? 0 );
+                continue;
+            }
+
+            $written_ok = true;
+            foreach ( (array) $state['files'] as $channel => $file ) {
+                if ( empty( $file['temp'] ) ) {
+                    continue;
+                }
+                $write = seo_ie_cf_channel_append_record( $channel, (string) $file['temp'], $result );
+                if ( is_wp_error( $write ) ) {
+                    $written_ok = false;
+                    $state['errors'][] = $channel . ': ' . $write->get_error_message();
+                    if ( count( $state['errors'] ) > 20 ) {
+                        $state['errors'] = array_slice( $state['errors'], -20 );
+                    }
+                }
+            }
+
+            if ( $written_ok ) {
+                $state['written']++;
+            } else {
+                $state['cursor'] = (int) $product_id;
+                seo_ie_cf_mark_failed( $state );
+                return;
+            }
+        }
+
+        // Si el usuario pulso Parar durante este lote, no sobrescribas ese
+        // estado con una copia antigua marcada como running.
+        $latest = seo_ie_cf_state();
+        if (
+            'running' !== ( $latest['status'] ?? '' )
+            || ! hash_equals( (string) ( $latest['run_id'] ?? '' ), $run_id )
+        ) {
+            return;
+        }
+
+        $state['cursor'] = (int) end( $ids );
         seo_ie_cf_save_state( $state );
-        seo_ie_cf_cleanup_temp_files( $state );
+
+        if ( ! seo_ie_cf_enqueue_batch( $run_id, $state['cursor'] ) ) {
+            seo_ie_cf_mark_failed( $state, 'No se pudo programar el siguiente lote.' );
+        }
+    } finally {
+        seo_ie_cf_release_batch_lock( $run_id );
     }
+}
+
+/**
+ * Watchdog asistido por navegador. Action Scheduler sigue siendo la via
+ * principal; si no hay actividad durante unos segundos y la pestana permanece
+ * abierta, ejecuta exactamente un lote protegido por lock.
+ */
+function seo_ie_cf_browser_continue( $minimum_idle = 8 ) {
+    $state = seo_ie_cf_state();
+    if ( 'running' !== ( $state['status'] ?? '' ) ) {
+        return [ 'ran' => false, 'message' => 'La generacion no esta en ejecucion.' ];
+    }
+
+    $run_id = (string) ( $state['run_id'] ?? '' );
+    $cursor = absint( $state['cursor'] ?? 0 );
+    if ( '' === $run_id ) {
+        return [ 'ran' => false, 'message' => 'No hay una ejecucion recuperable.' ];
+    }
+
+    $last_ts = ! empty( $state['updated_at'] ) ? strtotime( (string) $state['updated_at'] . ' UTC' ) : 0;
+    $idle = $last_ts ? max( 0, time() - $last_ts ) : PHP_INT_MAX;
+    if ( $idle < max( 5, absint( $minimum_idle ) ) ) {
+        return [ 'ran' => false, 'message' => 'El ultimo lote es reciente.' ];
+    }
+
+    if ( seo_ie_cf_batch_is_locked( $run_id ) ) {
+        return [ 'ran' => false, 'message' => 'Hay un lote activo.' ];
+    }
+
+    // Retira el lote pendiente equivalente para no acumular duplicados y
+    // procesa uno directamente desde la peticion AJAX del administrador.
+    seo_ie_cf_unschedule_batch( $run_id, $cursor );
+    seo_ie_cf_process_batch( $run_id, $cursor );
+
+    $after = seo_ie_cf_state();
+    return [
+        'ran'     => absint( $after['processed'] ?? 0 ) > absint( $state['processed'] ?? 0 ) || ( $after['status'] ?? '' ) !== 'running',
+        'message' => 'Watchdog ejecutado.',
+    ];
 }
 
 /**
@@ -439,7 +853,15 @@ function seo_ie_cf_finish_build( array $state ) {
         $state['status'] = 'completed';
     }
     $state['completed_at'] = current_time( 'mysql', true );
+
+    $pending_refresh = sanitize_key( (string) ( $state['pending_refresh'] ?? '' ) );
+    $state['pending_refresh'] = '';
     seo_ie_cf_save_state( $state );
+    seo_ie_cf_record_history( $state );
+
+    if ( '' !== $pending_refresh && seo_ie_cf_is_production() ) {
+        seo_ie_cf_schedule_refresh( $pending_refresh, 60 );
+    }
 }
 
 /**
