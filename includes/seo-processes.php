@@ -5,6 +5,7 @@
  * Reune en una sola pantalla el estado observable de los workers que pueden
  * ejercer carga sostenida sobre WordPress o sobre el servidor publico:
  * - Import / Export por lotes.
+ * - Inventarios comerciales / feeds por lotes adaptativos.
  * - Academia del Dependiente.
  * - Lingüista, formación del Intérprete.
  * - Clasificador semantico por jobs.
@@ -33,6 +34,18 @@ if (!function_exists('seo_processes_control_defaults')) {
                 'min_rows' => 2,
                 'initial_rows' => 10,
                 'max_rows' => 2000,
+                'target_seconds' => 35.0,
+                'hard_seconds' => 100.0,
+                'growth_factor' => 1.60,
+                'memory_soft_percent' => 72.0,
+                'memory_hard_percent' => 84.0,
+                'heavy_delay_seconds' => 5,
+                'critical_delay_seconds' => 15,
+            ),
+            'commercial-feeds' => array(
+                'min_rows' => 50,
+                'initial_rows' => 180,
+                'max_rows' => 500,
                 'target_seconds' => 35.0,
                 'hard_seconds' => 100.0,
                 'growth_factor' => 1.60,
@@ -173,6 +186,19 @@ if (!function_exists('seo_processes_sanitize_controls')) {
         $import['critical_delay_seconds'] = max($import['heavy_delay_seconds'], min(300, absint($import['critical_delay_seconds'])));
         $out['import-export'] = $import;
 
+        $feeds = wp_parse_args(isset($raw['commercial-feeds']) && is_array($raw['commercial-feeds']) ? $raw['commercial-feeds'] : array(), $defaults['commercial-feeds']);
+        $feeds['min_rows'] = max(1, min(500, absint($feeds['min_rows'])));
+        $feeds['initial_rows'] = max($feeds['min_rows'], min(2000, absint($feeds['initial_rows'])));
+        $feeds['max_rows'] = max($feeds['initial_rows'], min(5000, absint($feeds['max_rows'])));
+        $feeds['target_seconds'] = seo_processes_clamp_float($feeds['target_seconds'], 5.0, 300.0);
+        $feeds['hard_seconds'] = max($feeds['target_seconds'] + 5.0, seo_processes_clamp_float($feeds['hard_seconds'], 10.0, 600.0));
+        $feeds['growth_factor'] = seo_processes_clamp_float($feeds['growth_factor'], 1.10, 2.00);
+        $feeds['memory_soft_percent'] = seo_processes_clamp_float($feeds['memory_soft_percent'], 20.0, 93.0);
+        $feeds['memory_hard_percent'] = max($feeds['memory_soft_percent'] + 5.0, seo_processes_clamp_float($feeds['memory_hard_percent'], 25.0, 98.0));
+        $feeds['heavy_delay_seconds'] = min(120, absint($feeds['heavy_delay_seconds']));
+        $feeds['critical_delay_seconds'] = max($feeds['heavy_delay_seconds'], min(300, absint($feeds['critical_delay_seconds'])));
+        $out['commercial-feeds'] = $feeds;
+
         $academy = wp_parse_args(isset($raw['academy']) && is_array($raw['academy']) ? $raw['academy'] : array(), $defaults['academy']);
         $academy['min_batch'] = max(1, min(20, absint($academy['min_batch'])));
         $academy['initial_batch'] = max($academy['min_batch'], min(30, absint($academy['initial_batch'])));
@@ -284,6 +310,28 @@ if (!function_exists('seo_processes_filter_import_adaptive_config')) {
     }
 }
 add_filter('seo_ie_product_import_adaptive_config', 'seo_processes_filter_import_adaptive_config', 50);
+
+if (!function_exists('seo_processes_filter_commercial_feeds_adaptive_config')) {
+    function seo_processes_filter_commercial_feeds_adaptive_config($config) {
+        $control = seo_processes_control_for('commercial-feeds');
+        if (!$control) {
+            return $config;
+        }
+        return array_merge((array) $config, array(
+            'min_rows' => $control['min_rows'],
+            'initial_rows' => $control['initial_rows'],
+            'max_rows' => $control['max_rows'],
+            'target_seconds' => $control['target_seconds'],
+            'hard_seconds' => $control['hard_seconds'],
+            'memory_soft_ratio' => $control['memory_soft_percent'] / 100,
+            'memory_hard_ratio' => $control['memory_hard_percent'] / 100,
+            'growth_factor' => $control['growth_factor'],
+            'heavy_delay_seconds' => $control['heavy_delay_seconds'],
+            'critical_delay_seconds' => $control['critical_delay_seconds'],
+        ));
+    }
+}
+add_filter('seo_ie_cf_adaptive_config', 'seo_processes_filter_commercial_feeds_adaptive_config', 50);
 
 
 if (!function_exists('seo_processes_filter_classifier_adaptive_config')) {
@@ -1212,6 +1260,7 @@ if (!function_exists('seo_processes_render_control_panel')) {
     function seo_processes_render_control_panel() {
         $settings = seo_processes_control_settings();
         $import = $settings['import-export'];
+        $commercial_feeds = $settings['commercial-feeds'];
         $academy = $settings['academy'];
         $linguista = $settings['linguista'];
         $classifier = $settings['classifier'];
@@ -1244,6 +1293,23 @@ if (!function_exists('seo_processes_render_control_panel')) {
                     <label>Pausa presión media<?php seo_processes_number_input('import-export','heavy_delay_seconds',$import['heavy_delay_seconds'],0,120); ?><small>Segundos.</small></label>
                     <label>Pausa presión alta<?php seo_processes_number_input('import-export','critical_delay_seconds',$import['critical_delay_seconds'],0,300); ?><small>Segundos.</small></label>
                 </div>
+            </details>
+
+            <details class="seo-process-control-card" open>
+                <summary><strong>Inventarios comerciales</strong><span>Gestor de workers · lotes adaptativos</span></summary>
+                <div class="seo-process-control-grid">
+                    <label>Lote mínimo<?php seo_processes_number_input('commercial-feeds','min_rows',$commercial_feeds['min_rows'],1,500); ?><small>Productos.</small></label>
+                    <label>Lote inicial<?php seo_processes_number_input('commercial-feeds','initial_rows',$commercial_feeds['initial_rows'],1,2000); ?><small>Productos al arrancar.</small></label>
+                    <label>Lote máximo<?php seo_processes_number_input('commercial-feeds','max_rows',$commercial_feeds['max_rows'],1,5000); ?><small>Techo absoluto.</small></label>
+                    <label>Tiempo objetivo<?php seo_processes_number_input('commercial-feeds','target_seconds',$commercial_feeds['target_seconds'],5,300,'0.5'); ?><small>Segundos por lote.</small></label>
+                    <label>Tiempo crítico<?php seo_processes_number_input('commercial-feeds','hard_seconds',$commercial_feeds['hard_seconds'],10,600,'0.5'); ?><small>A partir de aquí recorta fuerte.</small></label>
+                    <label>Multiplicador subida<?php seo_processes_number_input('commercial-feeds','growth_factor',$commercial_feeds['growth_factor'],1.10,2.00,'0.01'); ?><small>Máximo crecimiento entre lotes.</small></label>
+                    <label>Memoria preventiva<?php seo_processes_number_input('commercial-feeds','memory_soft_percent',$commercial_feeds['memory_soft_percent'],20,93,'0.5'); ?><small>% del memory_limit.</small></label>
+                    <label>Memoria crítica<?php seo_processes_number_input('commercial-feeds','memory_hard_percent',$commercial_feeds['memory_hard_percent'],25,98,'0.5'); ?><small>% del memory_limit.</small></label>
+                    <label>Pausa presión media<?php seo_processes_number_input('commercial-feeds','heavy_delay_seconds',$commercial_feeds['heavy_delay_seconds'],0,120); ?><small>Segundos.</small></label>
+                    <label>Pausa presión alta<?php seo_processes_number_input('commercial-feeds','critical_delay_seconds',$commercial_feeds['critical_delay_seconds'],0,300); ?><small>Segundos.</small></label>
+                </div>
+                <p class="description">El tamaño del lote lo decide el mismo regulador que usa Import / Export a partir del tiempo real por producto y de la memoria PHP. Inventarios comerciales no tiene un worker paralelo.</p>
             </details>
 
             <details class="seo-process-control-card" open>
@@ -1379,6 +1445,11 @@ if (!function_exists('seo_processes_worker_control')) {
                 $user_id = get_current_user_id();
             }
             $result = seo_ie_product_import_control_start($user_id);
+        } elseif ('commercial-feeds' === $process_id) {
+            if (!function_exists('seo_ie_cf_start_build')) {
+                wp_send_json_error(array('message' => 'El motor de Inventarios comerciales no está disponible.'), 500);
+            }
+            $result = seo_ie_cf_start_build('manual_processes');
         } elseif ('academy' === $process_id) {
             if (!class_exists('SEO_Dependiente_Entrenador') || !is_callable(array('SEO_Dependiente_Entrenador', 'process_control_start'))) {
                 wp_send_json_error(array('message' => 'El motor propio de Academia no está disponible.'), 500);
