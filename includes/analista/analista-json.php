@@ -84,6 +84,9 @@ if (!function_exists('seo_analista_build_json_export')) {
             (array) ($data['queries'] ?? array()),
             (array) ($data['previous_queries'] ?? array())
         );
+        $campaigns = function_exists('seo_analista_campaign_proposals')
+            ? seo_analista_campaign_proposals($days, 12, false)
+            : array('available'=>false,'proposals'=>array(),'blocked_by_price'=>array());
 
         $queries = array();
         foreach (array_slice((array) ($data['queries'] ?? array()), 0, 120) as $row) {
@@ -99,7 +102,7 @@ if (!function_exists('seo_analista_build_json_export')) {
         $payload = array(
             'schema' => array(
                 'name' => 'seo-analista-unificado',
-                'version' => 5,
+                'version' => 6,
             ),
             'generated_at' => gmdate('c'),
             'site' => array(
@@ -175,6 +178,7 @@ if (!function_exists('seo_analista_build_json_export')) {
                 'summary' => $plan_summary,
                 'plan_accion' => $plan,
             ),
+            'campanas' => $campaigns,
             'arquitectura' => $architecture_advice,
             'hacia_donde_vamos' => array(
                 'summary' => $plan_summary,
