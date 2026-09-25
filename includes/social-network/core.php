@@ -57,14 +57,21 @@ function seo_social_network_default_settings()
         ),
         'auto_publish_providers' => array(
             'facebook'  => 1,
+            'instagram' => 1,
             'linkedin'  => 1,
             'pinterest' => 1,
+            'x'         => 1,
         ),
         'templates' => array(
             'facebook' => array(
                 'post'     => "{titulo}\n\n{extracto}\n\n{url}",
                 'page'     => "{titulo}\n\n{extracto}\n\n{url}",
                 'campaign' => "{producto}\n\n{campana}: {precio_oferta} (antes {precio_regular}).\nDisponible hasta {fecha_fin}.",
+            ),
+            'instagram' => array(
+                'post'     => "{titulo}\n\n{extracto}\n\n{url}",
+                'page'     => "{titulo}\n\n{extracto}\n\n{url}",
+                'campaign' => "{producto}\n\n{campana}: {precio_oferta} (antes {precio_regular}).\nDisponible hasta {fecha_fin}.\n\n{url}",
             ),
             'linkedin' => array(
                 'post'     => "{titulo}\n\n{extracto}",
@@ -75,6 +82,11 @@ function seo_social_network_default_settings()
                 'post'     => "{titulo}\n\n{extracto}",
                 'page'     => "{titulo}\n\n{extracto}",
                 'campaign' => "{producto}\n\n{campana}. Precio de campaña: {precio_oferta}. Disponible hasta {fecha_fin}.",
+            ),
+            'x' => array(
+                'post'     => "{titulo}\n\n{url}",
+                'page'     => "{titulo}\n\n{url}",
+                'campaign' => "{producto}: {precio_oferta} · {campana}\n{url}",
             ),
         ),
         'providers' => array(
@@ -89,6 +101,20 @@ function seo_social_network_default_settings()
                 'last_test_at'     => '',
                 'last_test_ok'     => 0,
                 'last_test_error'  => '',
+            ),
+            'instagram' => array(
+                'enabled'                 => 0,
+                'use_facebook_connection' => 1,
+                'ig_user_id'              => '',
+                'account_username'        => '',
+                'page_name'               => '',
+                'page_link'               => '',
+                'access_token_enc'        => '',
+                'api_version'             => 'v25.0',
+                'publish_mode'            => 'image',
+                'last_test_at'            => '',
+                'last_test_ok'            => 0,
+                'last_test_error'         => '',
             ),
             'linkedin' => array(
                 'enabled'                  => 0,
@@ -127,6 +153,23 @@ function seo_social_network_default_settings()
                 'page_name'                => '',
                 'page_link'                => '',
                 'publish_mode'             => 'image',
+                'last_test_at'             => '',
+                'last_test_ok'             => 0,
+                'last_test_error'          => '',
+            ),
+            'x' => array(
+                'enabled'                  => 0,
+                'client_id'                => '',
+                'client_secret_enc'        => '',
+                'access_token_enc'         => '',
+                'refresh_token_enc'        => '',
+                'token_expires_at'         => 0,
+                'scope'                    => 'tweet.read tweet.write users.read media.write offline.access',
+                'user_id'                  => '',
+                'username'                 => '',
+                'page_name'                => '',
+                'page_link'                => '',
+                'publish_mode'             => 'text_image',
                 'last_test_at'             => '',
                 'last_test_ok'             => 0,
                 'last_test_error'          => '',
@@ -1962,6 +2005,9 @@ function seo_social_network_render_notice()
         'pinterest_connected'        => array('success', 'Pinterest autorizado. Selecciona el tablero de destino y prueba la conexion.'),
         'pinterest_app_missing'      => array('warning', 'Guarda primero el App ID y el App Secret de Pinterest.'),
         'pinterest_oauth_failed'     => array('error', 'No se pudo completar la autorizacion OAuth de Pinterest.'),
+        'x_connected'                => array('success', 'X autorizado. Revisa la cuenta detectada y prueba la conexion.'),
+        'x_app_missing'              => array('warning', 'Guarda primero el Client ID y el Client Secret de X.'),
+        'x_oauth_failed'             => array('error', 'No se pudo completar la autorizacion OAuth de X.'),
     );
 
     if (!isset($messages[$message])) {
@@ -2004,6 +2050,14 @@ function seo_social_network_render_notice()
         $detail = get_transient('seo_social_pinterest_oauth_error_' . get_current_user_id());
         if ($detail) {
             delete_transient('seo_social_pinterest_oauth_error_' . get_current_user_id());
+            $text .= ' ' . $detail;
+        }
+    }
+
+    if ('x_oauth_failed' === $message) {
+        $detail = get_transient('seo_social_x_oauth_error_' . get_current_user_id());
+        if ($detail) {
+            delete_transient('seo_social_x_oauth_error_' . get_current_user_id());
             $text .= ' ' . $detail;
         }
     }
@@ -2051,7 +2105,6 @@ function seo_social_network_render_admin_tab()
         echo ' · ' . esc_html($connected ? 'conectado' : 'sin conectar');
         echo '</span>';
     }
-    echo '<span class="seo-social-provider-pill is-planned">X · preparado</span>';
     echo '</div></div>';
 
     $tabs = array(
@@ -2128,9 +2181,6 @@ function seo_social_network_render_connections()
         }
         echo '</section>';
     }
-    echo '<section class="seo-social-card seo-social-provider-card">';
-    echo '<span class="dashicons dashicons-share"></span><h2>X / otras redes</h2><p><span class="seo-social-state">Preparado para siguiente fase</span></p><p class="seo-social-help">Cada nueva red podra definir su conexion, longitud/formato de texto, publicacion y sincronizacion de metricas.</p>';
-    echo '</section>';
     echo '</div>';
 }
 
@@ -2246,10 +2296,10 @@ function seo_social_network_render_scheduler()
     $providers = seo_social_network_get_providers();
 
     echo '<section class="seo-social-card">';
-    echo '<div class="seo-social-intro"><div><h2>Programador</h2><p>Selecciona una pieza, marca las redes y elige fecha y hora. El texto se genera automáticamente con la plantilla correspondiente. No tienes que volver a redactar Facebook, LinkedIn o Pinterest aquí.</p></div><span class="seo-social-state is-scheduled">Agenda</span></div>';
+    echo '<div class="seo-social-intro"><div><h2>Programador</h2><p>Selecciona una pieza, marca las redes y elige fecha y hora. El texto se genera automáticamente con la plantilla correspondiente. No tienes que volver a redactar Facebook, Instagram, LinkedIn, Pinterest o X aquí.</p></div><span class="seo-social-state is-scheduled">Agenda</span></div>';
 
     echo '<div class="seo-social-scheduler-io">';
-    echo '<div class="seo-social-scheduler-io__block"><h3>Programacion masiva con Excel / CSV</h3><p class="seo-social-help">Descarga la lista de contenidos, prepara la hoja en Excel y guardala como <strong>CSV UTF-8</strong>. Columnas obligatorias: <code>contenido_id</code>, <code>redes</code> y <code>fecha_hora</code>. En <code>redes</code> puedes usar una o varias, por ejemplo <code>facebook,linkedin</code>. Las fechas aceptan <code>2026-09-25 10:30</code> o <code>25/09/2026 10:30</code>.</p>';
+    echo '<div class="seo-social-scheduler-io__block"><h3>Programacion masiva con Excel / CSV</h3><p class="seo-social-help">Descarga la lista de contenidos, prepara la hoja en Excel y guardala como <strong>CSV UTF-8</strong>. Columnas obligatorias: <code>contenido_id</code>, <code>redes</code> y <code>fecha_hora</code>. En <code>redes</code> puedes usar una o varias, por ejemplo <code>facebook,instagram,x</code>. Las fechas aceptan <code>2026-09-25 10:30</code> o <code>25/09/2026 10:30</code>.</p>';
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" enctype="multipart/form-data" class="seo-social-import-form">';
     echo '<input type="hidden" name="action" value="seo_social_network_scheduler_import_preview">';
     wp_nonce_field('seo_social_network_scheduler_import');
