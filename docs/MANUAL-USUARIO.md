@@ -840,6 +840,8 @@ Cuando un usuario no sepa qué hace un botón:
 
 Cada cambio de interfaz debe revisar esta documentación.
 
+Los cambios guardados en este manual en la rama `staging` se publican automáticamente en la GitHub Wiki mediante el workflow de sincronización.
+
 Una nueva pestaña, botón, checkbox, selector, campo de credencial o acción masiva no se considera completamente terminada hasta que el manual explique:
 
 - qué es;
