@@ -262,7 +262,9 @@ function seo_social_campaign_publish_product($campaign_id, $product_id, $provide
 
     $tracking_url = seo_social_campaign_tracking_url($product_id, $provider, $publication_id, $campaign);
     $message = seo_social_campaign_render_template($template, $campaign, $product_item, $tracking_url);
-    $image_url = !empty($product_item['image_url']) ? (string) $product_item['image_url'] : (string) get_the_post_thumbnail_url($product_id, 'full');
+    $image_url = function_exists('seo_social_campaign_resolve_publication_image_url')
+        ? seo_social_campaign_resolve_publication_image_url($campaign, $product_item, $provider)
+        : (!empty($product_item['image_url']) ? (string) $product_item['image_url'] : (string) get_the_post_thumbnail_url($product_id, 'full'));
     $post = get_post($product_id);
 
     $payload = array(
