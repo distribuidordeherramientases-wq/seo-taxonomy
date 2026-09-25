@@ -1,5 +1,109 @@
 # Changelog
 
+## [2.3.7] - 2026-09-25
+
+Release centrada en la evolución comercial del sistema, el análisis de mercado, la automatización de campañas, la integración de inventarios con proveedores, la mejora de Dependiente y Solucionador, la optimización de informes y varias mejoras relacionadas con feeds comerciales, opiniones externas y Google Trends.
+
+### Marketing y campañas comerciales
+
+- Creado el nuevo **servicio de campañas comerciales**.
+- Integrado **Analista** para proponer campañas de marketing a partir de señales de catálogo, demanda y rendimiento.
+- Añadidas **plantillas para campañas publicitarias** y espacios promocionales en la tienda.
+- Incorporada la generación de **imágenes para campañas**.
+- Añadida exportación e importación de campañas y programación mediante **JSON**.
+- Integradas las campañas comerciales en el **programador de redes sociales**.
+- Añadidos **precios de oferta y periodo de vigencia** a los feeds comerciales.
+
+### Ojeador y análisis de mercado
+
+- Mejorados los indicadores de **Ojeador** para presentar comparativas de precios más claras.
+- Incorporado un sistema de clasificación visual mediante **semáforo de precios**:
+  - precio competitivo;
+  - precio dentro de mercado;
+  - precio poco competitivo.
+- Añadida detección de **productos estrella** y oportunidades comerciales.
+- Añadida una nueva capa de **análisis de mercado y acciones prioritarias**.
+- Mejorada la identificación de productos sobre los que puede resultar interesante crear una oferta.
+- Simplificada la lectura de indicadores comerciales para facilitar decisiones de precio y promoción.
+
+### Inventarios y proveedores
+
+- Creado un sistema de **inventarios comerciales por proveedor**.
+- Incorporada la posibilidad de seleccionar y enviar determinados productos a proveedores.
+- Añadidos procesos automáticos de actualización y sincronización de inventarios con proveedores.
+- Preparada la infraestructura para utilizar disponibilidad, precio y catálogo de proveedores como parte del análisis comercial.
+
+### Dependiente V3 y cobertura del catálogo
+
+- Conectado **Dependiente V3** con el sistema actual.
+- Reforzada la cobertura editorial y semántica utilizada por Dependiente.
+- Mejorada la integración de categorías, productos y conocimiento para responder a búsquedas de usuario.
+- Preparada la base para continuar evolucionando la retroalimentación entre Dependiente y las búsquedas realizadas.
+
+### Solucionador
+
+- Creado el nuevo servicio **Solucionador**.
+- Añadida exportación del informe de Solucionador en formato **JSON**.
+- Integrado el nuevo servicio dentro de la arquitectura de análisis y ayuda a la selección de productos.
+
+### Comentarista y opiniones externas
+
+- Corregido un error en el sistema de **importación/exportación de Comentarista**.
+- Añadida integración de **valoraciones externas de productos**.
+- Mejorado el tratamiento de productos sin opiniones para evitar problemas relacionados con `aggregateRating` y datos estructurados.
+- Preparada la infraestructura para incorporar progresivamente información externa de opiniones y valoraciones.
+
+### Informes y rendimiento
+
+- Optimizada la carga de **SEO Reports**, evitando generar automáticamente informes pesados al entrar en la pantalla.
+- Los informes pasan a generarse bajo demanda mediante un botón **Crear informe**.
+- Añadida opción **Cerrar informe**.
+- Añadida descarga individual de informes en formato **JSON**.
+- Reducida la carga inicial y el consumo de recursos en la sección de Informes.
+
+### Google Trends
+
+- Corregida la integración de **Google Trends**.
+- Mejorado el tratamiento de respuestas y señales obtenidas desde Trends.
+- Reforzada su integración con Analista y los sistemas de detección de oportunidades.
+
+### Feeds comerciales
+
+- Añadido soporte para:
+  - precio normal;
+  - precio de oferta;
+  - fecha de inicio de oferta;
+  - fecha de finalización de oferta.
+- Preparados estos datos para su utilización en feeds comerciales y plataformas externas.
+
+### Estabilidad y mantenimiento
+
+- Realizadas correcciones adicionales en servicios de importación, análisis y generación de informes.
+- Mejorada la separación entre procesos pesados y carga de las pantallas administrativas.
+- Reforzada la generación de JSON como formato de intercambio y revisión externa.
+
+### Issues principales
+
+- #299 — Añadir precios de oferta y vigencia a feeds comerciales.
+- #298 — Añadir imágenes de los posts/campañas y exportación JSON.
+- #297 — Enlazar Analista para proponer campañas de marketing.
+- #296 — Crear plantillas para campañas publicitarias.
+- #295 — Crear sistema de fidelización de clientes.
+- #293 — Crear servicio de campañas comerciales.
+- #292 — Agregar procesos automáticos de inventarios con proveedores.
+- #291 — Crear semáforo para visualizar mejor las ofertas de Ojeador.
+- #290 — Añadir productos estrella y oportunidades de oferta.
+- #289 — Mejorar indicadores de Ojeador con comparativas más claras.
+- #288 — Sistema de envío de productos a proveedores e inventarios comerciales.
+- #287 — Añadir capa de análisis de mercado y acciones prioritarias a Ojeador.
+- #286 — Conectar Dependiente V3 y reforzar cobertura editorial.
+- #285 — Añadir JSON al servicio Solucionador.
+- #284 — Crear servicio Solucionador.
+- #283 — Corregir importación/exportación de Comentarista.
+- #282 — Optimizar carga de informes de `seo-reports`.
+- #281 — Corregir Google Trends.
+- #243 — Agregar valoraciones externas de productos.
+- #196 — Corregir ausencia de opiniones y `aggregateRating`.
 ## [2.3.6] - 2026-09-23
 
 Release centrada en la evolución del sistema de análisis y aprendizaje, la integración con Google Shopping, la mejora de Dependiente, la auditoría SEO, el control del catálogo y diversas tareas de estabilidad y mantenimiento.
