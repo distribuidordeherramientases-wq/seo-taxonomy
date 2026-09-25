@@ -26,6 +26,18 @@ jobs:
         run: |
           git clone "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" wiki
 
+      - name: Inventory current Wiki
+        run: |
+          echo "=== WIKI FILES ==="
+          find wiki -maxdepth 1 -type f -printf '%f\n' | sort
+          echo "=== SIDEBAR ==="
+          if [ -f wiki/_Sidebar.md ]; then sed -n '1,220p' wiki/_Sidebar.md; else echo "No _Sidebar.md"; fi
+          echo "=== PAGE HEADINGS ==="
+          for f in wiki/*.md; do
+            echo "--- $(basename "$f")"
+            grep -E '^#{1,3} ' "$f" | head -40 || true
+          done
+
       - name: Update managed Wiki pages
         run: |
           cp docs/MANUAL-USUARIO.md "wiki/Manual-de-usuario.md"
