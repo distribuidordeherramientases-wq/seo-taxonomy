@@ -596,6 +596,33 @@ if (function_exists('generate_navigation_position')) {
     generate_navigation_position();
 }
 
+/*
+ * Campañas promocionales activas.
+ *
+ * Integración deliberadamente defensiva: el header no depende de que el
+ * Gestor de Plantillas, la tabla de campañas o las variantes estén disponibles
+ * durante una subida. Si falta cualquier pieza, simplemente no imprime la
+ * franja y evita provocar un error 500 en todo el sitio.
+ */
+if (
+    function_exists('seo_marketing_campaigns_get_public_active') &&
+    (!function_exists('seo_marketing_campaigns_public_template_is_enabled') || seo_marketing_campaigns_public_template_is_enabled())
+) {
+    $dht_campaigns_preview = seo_marketing_campaigns_get_public_active();
+
+    if (!empty($dht_campaigns_preview)) {
+        $dht_campaign_template = __DIR__ . '/template-campaign.php';
+
+        if (is_readable($dht_campaign_template)) {
+            require $dht_campaign_template;
+        }
+
+        unset($dht_campaign_template);
+    }
+
+    unset($dht_campaigns_preview);
+}
+
 /* Migas de pan globales, debajo de la navegacion principal. */
 if (function_exists('dht_header_render_breadcrumbs')) {
     dht_header_render_breadcrumbs();
