@@ -29,6 +29,18 @@ function seo_ie_cf_register_runtime() {
     add_action( SEO_IE_CF_BATCH_HOOK, 'seo_ie_cf_process_batch', 10, 2 ); // Compatibilidad: solo despierta el gestor central.
     add_action( SEO_IE_CF_QUEUED_HOOK, 'seo_ie_cf_run_queued_refresh', 10, 1 );
     add_action( 'seo_supplier_sync_products_changed', 'seo_ie_cf_on_supplier_sync_products_changed', 10, 1 );
+
+    // Cualquier alta/cambio/borrado real de WooCommerce puede modificar precio,
+    // oferta, stock, titulo o disponibilidad del feed. La regeneracion se
+    // agrupa mediante la cola diferida, por lo que una importacion masiva no
+    // crea una accion por producto.
+    add_action( 'woocommerce_new_product', 'seo_ie_cf_on_woocommerce_product_changed', 20, 1 );
+    add_action( 'woocommerce_update_product', 'seo_ie_cf_on_woocommerce_product_changed', 20, 1 );
+    add_action( 'woocommerce_delete_product', 'seo_ie_cf_on_woocommerce_product_changed', 20, 1 );
+    add_action( 'woocommerce_new_product_variation', 'seo_ie_cf_on_woocommerce_product_changed', 20, 1 );
+    add_action( 'woocommerce_update_product_variation', 'seo_ie_cf_on_woocommerce_product_changed', 20, 1 );
+    add_action( 'woocommerce_delete_product_variation', 'seo_ie_cf_on_woocommerce_product_changed', 20, 1 );
+
     add_filter( 'seo_process_supervisor_has_pending_work', 'seo_ie_cf_supervisor_has_pending_work', 20, 1 );
     add_filter( 'seo_process_supervisor_manager_targets', 'seo_ie_cf_supervisor_manager_targets', 20, 3 );
     add_filter( 'seo_processes_monitor_items', 'seo_ie_cf_processes_monitor_items', 20, 1 );
@@ -518,6 +530,23 @@ function seo_ie_cf_on_supplier_sync_products_changed( $context = [] ) {
         return;
     }
     seo_ie_cf_request_refresh( 'supplier_sync' );
+}
+
+/**
+ * Refresca los feeds tras cambios persistidos en WooCommerce.
+ *
+ * Esto cubre tanto las campañas de Marketing (que escriben sale_price y sus
+ * fechas en el producto) como una oferta creada manualmente desde WooCommerce.
+ * En STAGING no arranca nada automaticamente; se mantiene la politica de
+ * seguridad del generador comercial.
+ *
+ * @param int $product_id
+ */
+function seo_ie_cf_on_woocommerce_product_changed( $product_id = 0 ) {
+    if ( ! absint( $product_id ) ) {
+        return;
+    }
+    seo_ie_cf_request_refresh( 'woocommerce_change' );
 }
 
 /**
@@ -1537,6 +1566,74 @@ function seo_ie_cf_shipping_weight( $product ) {
 }
 
 /**
+ * Periodo ISO 8601 UTC de una oferta WooCommerce.
+ *
+ * Solo se devuelve cuando existen inicio y fin validos. Al usar UTC con Z el
+ * mismo valor sirve para Google, Microsoft y Pinterest sin depender del huso
+ * horario del consumidor del feed.
+ *
+ * @param WC_Product $product
+ * @return string
+ */
+function seo_ie_cf_sale_price_effective_date( $product ) {
+    if ( ! is_object( $product ) ) {
+        return '';
+    }
+
+    $from = method_exists( $product, 'get_date_on_sale_from' ) ? $product->get_date_on_sale_from( 'edit' ) : null;
+    $to   = method_exists( $product, 'get_date_on_sale_to' ) ? $product->get_date_on_sale_to( 'edit' ) : null;
+
+    if ( ! $from || ! $to || ! method_exists( $from, 'getTimestamp' ) || ! method_exists( $to, 'getTimestamp' ) ) {
+        return '';
+    }
+
+    $from_ts = (int) $from->getTimestamp();
+    $to_ts   = (int) $to->getTimestamp();
+    if ( $from_ts <= 0 || $to_ts <= $from_ts ) {
+        return '';
+    }
+
+    return gmdate( 'Y-m-d\TH:i:s\Z', $from_ts ) . '/' . gmdate( 'Y-m-d\TH:i:s\Z', $to_ts );
+}
+
+/**
+ * Decide si un precio de oferta WooCommerce puede anunciarse en los feeds.
+ *
+ * Permite ofertas activas y tambien ofertas futuras si tienen un periodo
+ * completo. Evita publicar antes de tiempo un sale_price futuro sin fecha de
+ * finalizacion y evita mantener ofertas ya vencidas.
+ *
+ * @param WC_Product $product
+ * @param float      $regular_price
+ * @param float      $sale_price
+ * @return bool
+ */
+function seo_ie_cf_sale_price_is_publishable( $product, $regular_price, $sale_price ) {
+    if ( $sale_price <= 0 || $regular_price <= 0 || $sale_price >= $regular_price ) {
+        return false;
+    }
+
+    $from = method_exists( $product, 'get_date_on_sale_from' ) ? $product->get_date_on_sale_from( 'edit' ) : null;
+    $to   = method_exists( $product, 'get_date_on_sale_to' ) ? $product->get_date_on_sale_to( 'edit' ) : null;
+    $now  = time();
+
+    $from_ts = ( $from && method_exists( $from, 'getTimestamp' ) ) ? (int) $from->getTimestamp() : 0;
+    $to_ts   = ( $to && method_exists( $to, 'getTimestamp' ) ) ? (int) $to->getTimestamp() : 0;
+
+    if ( $to_ts > 0 && $to_ts < $now ) {
+        return false;
+    }
+
+    // Si aun no ha empezado, solo se anuncia anticipadamente cuando existe
+    // tambien una fecha de fin valida: asi el receptor no aplica la oferta ya.
+    if ( $from_ts > $now && ( $to_ts <= $from_ts ) ) {
+        return false;
+    }
+
+    return true;
+}
+
+/**
  * Registro canonico de una oferta comercial.
  *
  * @return array<string,mixed>|WP_Error
@@ -1609,16 +1706,30 @@ function seo_ie_cf_product_record( $product_id ) {
     $currency = function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : 'EUR';
     $currency = strtoupper( sanitize_text_field( (string) $currency ) );
 
-    $regular_raw = (float) $product->get_regular_price();
+    // Leemos los precios base en contexto edit para no perder una oferta futura
+    // programada. Luego convertimos ambos al mismo criterio fiscal/visual que
+    // usa el precio mostrado por WooCommerce.
+    $regular_raw = (float) $product->get_regular_price( 'edit' );
+    $sale_raw    = (float) $product->get_sale_price( 'edit' );
+
     $regular_price = $regular_raw > 0 && function_exists( 'wc_get_price_to_display' )
         ? (float) wc_get_price_to_display( $product, [ 'price' => $regular_raw ] )
         : $regular_raw;
+    $sale_display = $sale_raw > 0 && function_exists( 'wc_get_price_to_display' )
+        ? (float) wc_get_price_to_display( $product, [ 'price' => $sale_raw ] )
+        : $sale_raw;
 
-    $price = $current_price;
-    $sale_price = '';
-    if ( $product->is_on_sale() && $regular_price > $current_price ) {
-        $price = $regular_price;
-        $sale_price = wc_format_decimal( $current_price, wc_get_price_decimals() ) . ' ' . $currency;
+    $price                     = $current_price;
+    $sale_price                = '';
+    $sale_price_effective_date = '';
+
+    if ( seo_ie_cf_sale_price_is_publishable( $product, $regular_price, $sale_display ) ) {
+        // En todos los receptores price significa precio habitual y sale_price
+        // el precio rebajado. Esto tambien permite anunciar una oferta futura
+        // antes de que WooCommerce la active en la ficha.
+        $price      = $regular_price;
+        $sale_price = wc_format_decimal( $sale_display, wc_get_price_decimals() ) . ' ' . $currency;
+        $sale_price_effective_date = seo_ie_cf_sale_price_effective_date( $product );
     }
 
     $stock_status = sanitize_key( (string) $product->get_stock_status() );
@@ -1649,9 +1760,10 @@ function seo_ie_cf_product_record( $product_id ) {
         'image_link'              => (string) $images[0],
         'additional_image_link'   => implode( ', ', array_slice( $images, 1, 5 ) ),
         'additional_images'        => array_slice( $images, 1, 5 ),
-        'price'                   => wc_format_decimal( $price, wc_get_price_decimals() ) . ' ' . $currency,
-        'sale_price'              => $sale_price,
-        'availability'            => $availability,
+        'price'                     => wc_format_decimal( $price, wc_get_price_decimals() ) . ' ' . $currency,
+        'sale_price'                => $sale_price,
+        'sale_price_effective_date' => $sale_price_effective_date,
+        'availability'              => $availability,
         'condition'               => 'new',
         'brand'                   => seo_ie_cf_plain_text( $identity['brand'], 100 ),
         'gtin'                    => preg_replace( '/\D+/', '', (string) $identity['gtin'] ),

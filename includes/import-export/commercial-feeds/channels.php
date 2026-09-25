@@ -42,11 +42,18 @@ function seo_ie_cf_channels() {
             'description' => 'Feed CSV para catalogos de Pinterest.',
         ],
         'universal' => [
-            'label'       => 'Catalogo universal',
+            'label'       => 'Catalogo universal CSV',
             'filename'    => 'catalogo-universal.csv',
             'format'      => 'universal_csv',
             'content_type'=> 'text/csv; charset=UTF-8',
             'description' => 'CSV neutro para revisiones, integraciones o nuevos receptores.',
+        ],
+        'json' => [
+            'label'       => 'Catalogo universal JSON',
+            'filename'    => 'catalogo-universal.json',
+            'format'      => 'universal_json',
+            'content_type'=> 'application/json; charset=UTF-8',
+            'description' => 'JSON estructurado del inventario comercial para integraciones, APIs o analisis externo.',
         ],
     ];
 
@@ -67,7 +74,7 @@ function seo_ie_cf_channel_columns( $channel ) {
     if ( 'microsoft' === $channel ) {
         return [
             'id', 'title', 'description', 'link', 'image_link', 'additional_image_link',
-            'price', 'sale_price', 'availability', 'condition', 'brand', 'gtin', 'mpn',
+            'price', 'sale_price', 'sale_price_effective_date', 'availability', 'condition', 'brand', 'gtin', 'mpn',
             'identifier_exists', 'google_product_category', 'product_type', 'item_group_id',
         ];
     }
@@ -75,14 +82,15 @@ function seo_ie_cf_channel_columns( $channel ) {
     if ( 'pinterest' === $channel ) {
         return [
             'id', 'title', 'description', 'link', 'image_link', 'price', 'availability',
-            'item_group_id', 'product_type', 'additional_image_link', 'sale_price', 'brand',
-            'GTIN', 'mpn', 'condition', 'google_product_category',
+            'item_group_id', 'product_type', 'additional_image_link', 'sale_price',
+            'sale_price_effective_date_attribute', 'brand', 'GTIN', 'mpn', 'condition',
+            'google_product_category',
         ];
     }
 
     return [
         'id', 'title', 'description', 'link', 'image_link', 'additional_image_link',
-        'price', 'sale_price', 'availability', 'condition', 'brand', 'gtin', 'mpn',
+        'price', 'sale_price', 'sale_price_effective_date', 'availability', 'condition', 'brand', 'gtin', 'mpn',
         'identifier_exists', 'google_product_category', 'product_type', 'item_group_id',
         'sku', 'supplier', 'shipping_weight',
     ];
@@ -117,6 +125,8 @@ function seo_ie_cf_record_for_channel( array $record, $channel ) {
     $row['availability'] = seo_ie_cf_channel_availability( $record, $channel );
     if ( 'pinterest' === $channel ) {
         $row['GTIN'] = (string) ( $record['gtin'] ?? '' );
+        // Pinterest denomina este campo con sufijo _attribute en su CSV.
+        $row['sale_price_effective_date_attribute'] = (string) ( $record['sale_price_effective_date'] ?? '' );
     }
 
     $out = [];
@@ -150,6 +160,17 @@ function seo_ie_cf_channel_write_header( $channel, $path ) {
         fwrite( $handle, '<title>' . seo_ie_cf_xml( $site_name ) . "</title>\n" );
         fwrite( $handle, '<link>' . seo_ie_cf_xml( $home ) . "</link>\n" );
         fwrite( $handle, '<description>' . seo_ie_cf_xml( 'Catalogo comercial de ' . $site_name ) . "</description>\n" );
+    } elseif ( 'universal_json' === $format ) {
+        $header = [
+            'schema_version' => '1.0',
+            'generated_at'   => gmdate( 'c' ),
+            'source'         => home_url( '/' ),
+        ];
+        fwrite( $handle, "{\n" );
+        fwrite( $handle, '  "schema_version": ' . wp_json_encode( $header['schema_version'] ) . ",\n" );
+        fwrite( $handle, '  "generated_at": ' . wp_json_encode( $header['generated_at'] ) . ",\n" );
+        fwrite( $handle, '  "source": ' . wp_json_encode( $header['source'], JSON_UNESCAPED_SLASHES ) . ",\n" );
+        fwrite( $handle, "  \"products\": [\n" );
     } else {
         $delimiter = 'microsoft_tsv' === $format ? "\t" : ',';
         fputcsv( $handle, seo_ie_cf_channel_columns( $channel ), $delimiter, '"', '\\' );
@@ -177,7 +198,7 @@ function seo_ie_cf_channel_append_record( $channel, $path, array $record ) {
     if ( 'google_xml' === $format ) {
         $fields = [
             'id', 'title', 'description', 'link', 'image_link', 'additional_image_link',
-            'price', 'sale_price', 'availability', 'condition', 'brand', 'gtin', 'mpn',
+            'price', 'sale_price', 'sale_price_effective_date', 'availability', 'condition', 'brand', 'gtin', 'mpn',
             'identifier_exists', 'google_product_category', 'product_type', 'item_group_id',
             'shipping_weight',
         ];
@@ -201,6 +222,19 @@ function seo_ie_cf_channel_append_record( $channel, $path, array $record ) {
             fwrite( $handle, '<g:' . $field . '>' . seo_ie_cf_xml( $value ) . '</g:' . $field . ">\n" );
         }
         fwrite( $handle, "</item>\n" );
+    } elseif ( 'universal_json' === $format ) {
+        if ( seo_ie_cf_json_has_records( $path ) ) {
+            fwrite( $handle, ",\n" );
+        }
+        $json = wp_json_encode(
+            $record,
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE
+        );
+        if ( false === $json ) {
+            fclose( $handle );
+            return new WP_Error( 'seo_ie_cf_json_encode', 'No se pudo serializar un producto al catalogo JSON.' );
+        }
+        fwrite( $handle, '    ' . $json );
     } else {
         $row       = seo_ie_cf_record_for_channel( $record, $channel );
         $delimiter = 'microsoft_tsv' === $format ? "\t" : ',';
@@ -212,6 +246,41 @@ function seo_ie_cf_channel_append_record( $channel, $path, array $record ) {
 }
 
 /**
+ * Indica si el array products del JSON ya contiene al menos un registro.
+ *
+ * Se inspecciona el ultimo caracter no blanco del archivo porque cada lote se
+ * ejecuta en una peticion distinta y no puede depender de estado estatico PHP.
+ */
+function seo_ie_cf_json_has_records( $path ) {
+    $handle = @fopen( $path, 'rb' );
+    if ( ! $handle ) {
+        return false;
+    }
+
+    if ( 0 !== fseek( $handle, 0, SEEK_END ) ) {
+        fclose( $handle );
+        return false;
+    }
+
+    $position = ftell( $handle );
+    while ( $position > 0 ) {
+        $position--;
+        if ( 0 !== fseek( $handle, $position, SEEK_SET ) ) {
+            break;
+        }
+        $char = fgetc( $handle );
+        if ( false === $char || preg_match( '/\s/u', $char ) ) {
+            continue;
+        }
+        fclose( $handle );
+        return '[' !== $char;
+    }
+
+    fclose( $handle );
+    return false;
+}
+
+/**
  * Cierra un canal al finalizar la generacion.
  */
 function seo_ie_cf_channel_finalize( $channel, $path ) {
@@ -220,12 +289,21 @@ function seo_ie_cf_channel_finalize( $channel, $path ) {
         return new WP_Error( 'seo_ie_cf_unknown_channel', 'Canal comercial no reconocido.' );
     }
 
-    if ( 'google_xml' === (string) $channels[ $channel ]['format'] ) {
+    $format = (string) $channels[ $channel ]['format'];
+
+    if ( 'google_xml' === $format ) {
         $handle = @fopen( $path, 'ab' );
         if ( ! $handle ) {
             return new WP_Error( 'seo_ie_cf_finalize_failed', 'No se pudo cerrar el feed XML.' );
         }
         fwrite( $handle, "</channel>\n</rss>\n" );
+        fclose( $handle );
+    } elseif ( 'universal_json' === $format ) {
+        $handle = @fopen( $path, 'ab' );
+        if ( ! $handle ) {
+            return new WP_Error( 'seo_ie_cf_finalize_failed', 'No se pudo cerrar el catalogo JSON.' );
+        }
+        fwrite( $handle, "\n  ]\n}\n" );
         fclose( $handle );
     }
 
