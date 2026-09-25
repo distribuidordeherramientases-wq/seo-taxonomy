@@ -31,16 +31,36 @@ jobs:
             exit 1
           fi
 
-      - name: Clone Wiki
+      - name: Prepare Git authentication
         env:
           WIKI_TOKEN: ${{ secrets.WIKI_TOKEN }}
         run: |
-          git clone "https://x-access-token:${WIKI_TOKEN}@github.com/distribuidordeherramientases-wq/seo-taxonomy.wiki.git" wiki
+          cat > "$RUNNER_TEMP/wiki-askpass.sh" <<'EOF'
+          #!/bin/sh
+          case "$1" in
+            *Username*) echo "x-access-token" ;;
+            *Password*) echo "$WIKI_TOKEN" ;;
+          esac
+          EOF
+          chmod 700 "$RUNNER_TEMP/wiki-askpass.sh"
+
+      - name: Clone Wiki
+        env:
+          WIKI_TOKEN: ${{ secrets.WIKI_TOKEN }}
+          GIT_ASKPASS: ${{ runner.temp }}/wiki-askpass.sh
+          GIT_TERMINAL_PROMPT: "0"
+        run: |
+          git clone "https://github.com/distribuidordeherramientases-wq/seo-taxonomy.wiki.git" wiki
 
       - name: Copy documentation
-        run: rsync -av --exclude=".git/" docs/wiki/ wiki/
+        run: |
+          rsync -av --delete --exclude=".git/" docs/wiki/ wiki/
 
       - name: Commit and push Wiki
+        env:
+          WIKI_TOKEN: ${{ secrets.WIKI_TOKEN }}
+          GIT_ASKPASS: ${{ runner.temp }}/wiki-askpass.sh
+          GIT_TERMINAL_PROMPT: "0"
         run: |
           cd wiki
           git config user.name "SEO Taxonomy Docs"
