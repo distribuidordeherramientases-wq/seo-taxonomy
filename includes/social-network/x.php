@@ -18,7 +18,7 @@ if (!defined('SEO_SOCIAL_X_TOKEN_URL')) {
     define('SEO_SOCIAL_X_TOKEN_URL', 'https://api.x.com/2/oauth2/token');
 }
 if (!defined('SEO_SOCIAL_X_SCOPES')) {
-    define('SEO_SOCIAL_X_SCOPES', 'tweet.read tweet.write users.read media.write offline.access');
+    define('SEO_SOCIAL_X_SCOPES', 'tweet.read tweet.write users.read offline.access');
 }
 
 /**
@@ -624,7 +624,7 @@ function seo_social_x_render_connection($config)
     echo '<div class="seo-social-field" style="margin-top:12px"><label>Access Token manual (opcional)</label><input type="password" name="connection[access_token]" value="" autocomplete="new-password" placeholder="' . esc_attr($has_token ? 'Token guardado; deja vacio para conservarlo' : 'Normalmente se obtiene con Conectar / renovar') . '"></div>';
 
     echo '<p class="seo-social-code-note"><strong>Callback URL:</strong><br><code>' . esc_html(seo_social_x_redirect_uri()) . '</code></p>';
-    echo '<p class="seo-social-help">Configura esa URL como Redirect URI en tu app de X. La app debe permitir OAuth 2.0 con permisos de lectura y escritura. Se solicitan <code>' . esc_html(SEO_SOCIAL_X_SCOPES) . '</code>. La publicacion inicial usa texto + enlace; las imagenes pueden añadirse despues mediante Media API sin cambiar el programador.</p>';
+    echo '<p class="seo-social-help">Configura esa URL como Redirect URI en tu app de X. La app debe permitir OAuth 2.0 con permisos de lectura y escritura. Se solicitan <code>' . esc_html(SEO_SOCIAL_X_SCOPES) . '</code>. La publicacion usa texto + enlace medido. Si mas adelante activamos Media API podremos adjuntar las creatividades sin cambiar el programador.</p>';
 
     if (!empty($config['username'])) {
         echo '<p><strong>Cuenta autorizada:</strong> @' . esc_html($config['username']) . '</p>';
