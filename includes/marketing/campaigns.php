@@ -553,6 +553,158 @@ function seo_marketing_campaigns_get_public_active()
 }
 
 /**
+ * Devuelve campanas habilitadas actuales o futuras con sus productos para
+ * consumidores internos como Redes Sociales. A diferencia de la franja publica,
+ * incluye campanas que todavia no han comenzado para poder preparar su agenda.
+ *
+ * @return array<int,array{campaign:object,products:array<int,array<string,mixed>>}>
+ */
+function seo_marketing_campaigns_get_social_catalog()
+{
+    static $cache = null;
+    if (is_array($cache)) {
+        return $cache;
+    }
+
+    $cache = array();
+    if (!function_exists('wc_get_product')) {
+        return $cache;
+    }
+
+    global $wpdb;
+    $tables = seo_marketing_campaigns_tables();
+    foreach (array('campaigns', 'products') as $required_table) {
+        $table_name = $tables[$required_table];
+        $table_exists = $wpdb->get_var(
+            $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table_name))
+        );
+        if ($table_exists !== $table_name) {
+            return $cache;
+        }
+    }
+
+    $now = seo_marketing_campaigns_now_mysql();
+    $rows = (array) $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT
+                c.id AS campaign_id,
+                c.campaign_key,
+                c.series_key,
+                c.name,
+                c.edition_label,
+                c.campaign_type,
+                c.start_at,
+                c.end_at,
+                cp.product_id,
+                cp.campaign_price,
+                cp.position,
+                cp.id AS campaign_product_id
+             FROM {$tables['campaigns']} c
+             INNER JOIN {$tables['products']} cp ON cp.campaign_id = c.id
+             WHERE c.is_enabled = 1
+               AND c.end_at >= %s
+             ORDER BY c.start_at ASC, c.id ASC, cp.position ASC, cp.id ASC",
+            $now
+        )
+    );
+
+    if (!$rows) {
+        return $cache;
+    }
+
+    $grouped = array();
+    foreach ($rows as $row) {
+        $campaign_id = absint($row->campaign_id);
+        $product_id = absint($row->product_id);
+        $product = $product_id > 0 ? wc_get_product($product_id) : null;
+
+        // Solo planificamos productos publicos y disponibles. Se vuelve a validar
+        // al ejecutar la publicacion por si cambia el stock o la visibilidad.
+        if (!$product || !$product->is_visible() || !$product->is_in_stock()) {
+            continue;
+        }
+
+        $campaign_price = (float) $row->campaign_price;
+        if ($campaign_price <= 0) {
+            continue;
+        }
+
+        if (!isset($grouped[$campaign_id])) {
+            $state = ((string) $row->start_at <= $now) ? 'current' : 'future';
+            $grouped[$campaign_id] = array(
+                'campaign' => (object) array(
+                    'id'            => $campaign_id,
+                    'campaign_key'  => sanitize_title((string) $row->campaign_key),
+                    'series_key'    => sanitize_title((string) $row->series_key),
+                    'name'          => (string) $row->name,
+                    'edition_label' => (string) $row->edition_label,
+                    'campaign_type' => seo_marketing_campaigns_normalize_type((string) $row->campaign_type),
+                    'start_at'      => (string) $row->start_at,
+                    'end_at'        => (string) $row->end_at,
+                    'state'         => $state,
+                ),
+                'products' => array(),
+            );
+        }
+
+        $regular_raw = $product->get_regular_price('edit');
+        $regular_raw = $regular_raw !== '' ? (float) $regular_raw : (float) $product->get_price('edit');
+        $campaign_display = function_exists('wc_get_price_to_display')
+            ? (float) wc_get_price_to_display($product, array('price' => $campaign_price))
+            : $campaign_price;
+        $regular_display = function_exists('wc_get_price_to_display')
+            ? (float) wc_get_price_to_display($product, array('price' => $regular_raw))
+            : $regular_raw;
+
+        $discount = 0;
+        if ($regular_display > 0 && $campaign_display > 0 && $campaign_display < $regular_display) {
+            $discount = (int) round((1 - ($campaign_display / $regular_display)) * 100);
+        }
+
+        $grouped[$campaign_id]['products'][] = array(
+            'id'               => $product_id,
+            'product'          => $product,
+            'name'             => $product->get_name(),
+            'url'              => get_permalink($product_id),
+            'image_url'        => wp_get_attachment_image_url($product->get_image_id(), 'full') ?: '',
+            'campaign_price'   => $campaign_display,
+            'regular_price'    => $regular_display,
+            'discount_percent' => max(0, $discount),
+            'position'         => (int) $row->position,
+        );
+    }
+
+    foreach ($grouped as $campaign_id => $item) {
+        if (empty($item['products'])) {
+            unset($grouped[$campaign_id]);
+        }
+    }
+
+    $cache = array_values($grouped);
+    return (array) apply_filters('seo_marketing_campaigns_social_catalog', $cache);
+}
+
+/**
+ * Recupera una campana del catalogo social por ID.
+ *
+ * @param int $campaign_id
+ * @return array|null
+ */
+function seo_marketing_campaigns_get_social_campaign($campaign_id)
+{
+    $campaign_id = absint($campaign_id);
+    if (!$campaign_id) {
+        return null;
+    }
+    foreach (seo_marketing_campaigns_get_social_catalog() as $item) {
+        if (!empty($item['campaign']->id) && absint($item['campaign']->id) === $campaign_id) {
+            return $item;
+        }
+    }
+    return null;
+}
+
+/**
  * URL de la pestana Campañas.
  *
  * @param array $args
