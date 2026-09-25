@@ -10,7 +10,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_MARKETING_CAMPAIGNS_DB_VERSION')) {
-    define('SEO_MARKETING_CAMPAIGNS_DB_VERSION', 2);
+    define('SEO_MARKETING_CAMPAIGNS_DB_VERSION', 3);
 }
 if (!defined('SEO_MARKETING_CAMPAIGNS_DB_OPTION')) {
     define('SEO_MARKETING_CAMPAIGNS_DB_OPTION', 'seo_marketing_campaigns_db_version');
@@ -59,6 +59,7 @@ function seo_marketing_campaigns_maybe_install_tables()
         edition_label varchar(191) NOT NULL DEFAULT '',
         campaign_type varchar(24) NOT NULL DEFAULT 'calendar',
         recurrence varchar(20) NOT NULL DEFAULT 'none',
+        social_creative_template varchar(32) NOT NULL DEFAULT 'design_1',
         start_at datetime NOT NULL,
         end_at datetime NOT NULL,
         is_enabled tinyint(1) unsigned NOT NULL DEFAULT 1,
@@ -119,6 +120,33 @@ function seo_marketing_campaigns_types()
         'tactical'     => 'Tactica / puntual',
         'star_product' => 'Producto estrella',
     );
+}
+
+/**
+ * Plantillas visuales admitidas para creatividades sociales.
+ *
+ * @return array<string,string>
+ */
+function seo_marketing_campaigns_social_creative_templates()
+{
+    return array(
+        'design_1' => 'Diseño 1 · Tarjeta oscura',
+        'design_2' => 'Diseño 2 · Oferta clara',
+        'design_3' => 'Diseño 3 · Banner intenso',
+    );
+}
+
+/**
+ * Normaliza la plantilla visual seleccionada.
+ *
+ * @param string $value
+ * @return string
+ */
+function seo_marketing_campaigns_normalize_social_creative_template($value)
+{
+    $value = sanitize_key((string) $value);
+    $templates = seo_marketing_campaigns_social_creative_templates();
+    return isset($templates[$value]) ? $value : 'design_1';
 }
 
 /**
@@ -242,6 +270,12 @@ function seo_marketing_campaigns_backfill_identity_columns()
     $wpdb->query(
         "UPDATE {$tables['campaigns']} SET campaign_type = 'calendar' WHERE campaign_type = '' OR campaign_type IS NULL"
     );
+
+    if (in_array('social_creative_template', $columns, true)) {
+        $wpdb->query(
+            "UPDATE {$tables['campaigns']} SET social_creative_template = 'design_1' WHERE social_creative_template = '' OR social_creative_template IS NULL"
+        );
+    }
 
     $rows = (array) $wpdb->get_results(
         "SELECT id, campaign_key, series_key, name, edition_label, start_at FROM {$tables['campaigns']} ORDER BY id ASC"
@@ -464,6 +498,7 @@ function seo_marketing_campaigns_get_public_active()
                 c.series_key,
                 c.name,
                 c.edition_label,
+                c.social_creative_template,
                 c.start_at,
                 c.end_at,
                 cp.product_id,
@@ -507,8 +542,9 @@ function seo_marketing_campaigns_get_public_active()
                     'id'            => $campaign_id,
                     'series_key'    => sanitize_key((string) $row->series_key),
                     'name'          => (string) $row->name,
-                    'edition_label' => (string) $row->edition_label,
-                    'start_at'      => (string) $row->start_at,
+                    'edition_label'           => (string) $row->edition_label,
+                    'social_creative_template' => seo_marketing_campaigns_normalize_social_creative_template((string) $row->social_creative_template),
+                    'start_at'                => (string) $row->start_at,
                     'end_at'        => (string) $row->end_at,
                 ),
                 'products' => array(),
@@ -593,6 +629,7 @@ function seo_marketing_campaigns_get_social_catalog()
                 c.name,
                 c.edition_label,
                 c.campaign_type,
+                c.social_creative_template,
                 c.start_at,
                 c.end_at,
                 cp.product_id,
@@ -638,8 +675,9 @@ function seo_marketing_campaigns_get_social_catalog()
                     'series_key'    => sanitize_title((string) $row->series_key),
                     'name'          => (string) $row->name,
                     'edition_label' => (string) $row->edition_label,
-                    'campaign_type' => seo_marketing_campaigns_normalize_type((string) $row->campaign_type),
-                    'start_at'      => (string) $row->start_at,
+                    'campaign_type'           => seo_marketing_campaigns_normalize_type((string) $row->campaign_type),
+                    'social_creative_template' => seo_marketing_campaigns_normalize_social_creative_template((string) $row->social_creative_template),
+                    'start_at'                => (string) $row->start_at,
                     'end_at'        => (string) $row->end_at,
                     'state'         => $state,
                 ),
@@ -1226,6 +1264,7 @@ function seo_marketing_campaigns_handle_save()
     $edition_label = isset($_POST['edition_label']) ? sanitize_text_field(wp_unslash($_POST['edition_label'])) : '';
     $campaign_type = isset($_POST['campaign_type']) ? seo_marketing_campaigns_normalize_type(wp_unslash($_POST['campaign_type'])) : 'calendar';
     $recurrence = isset($_POST['recurrence']) ? sanitize_key(wp_unslash($_POST['recurrence'])) : 'none';
+    $social_creative_template = isset($_POST['social_creative_template']) ? seo_marketing_campaigns_normalize_social_creative_template(wp_unslash($_POST['social_creative_template'])) : 'design_1';
     $start_at = seo_marketing_campaigns_parse_local_datetime(isset($_POST['start_at']) ? wp_unslash($_POST['start_at']) : '');
     $end_at = seo_marketing_campaigns_parse_local_datetime(isset($_POST['end_at']) ? wp_unslash($_POST['end_at']) : '');
     $is_enabled = !empty($_POST['is_enabled']) ? 1 : 0;
@@ -1288,9 +1327,10 @@ function seo_marketing_campaigns_handle_save()
         'series_key'    => $series_key,
         'name'          => $name,
         'edition_label' => $edition_label,
-        'campaign_type' => $campaign_type,
-        'recurrence'    => $recurrence,
-        'start_at'      => $start_at,
+        'campaign_type'             => $campaign_type,
+        'recurrence'                => $recurrence,
+        'social_creative_template'  => $social_creative_template,
+        'start_at'                  => $start_at,
         'end_at'        => $end_at,
         'is_enabled'    => $is_enabled,
         'updated_by'    => get_current_user_id(),
@@ -1302,7 +1342,7 @@ function seo_marketing_campaigns_handle_save()
             $tables['campaigns'],
             $data,
             array('id' => $campaign_id),
-            array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s'),
+            array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s'),
             array('%d')
         );
     } else {
@@ -1311,7 +1351,7 @@ function seo_marketing_campaigns_handle_save()
         $wpdb->insert(
             $tables['campaigns'],
             $data,
-            array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%d', '%s')
+            array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%d', '%s')
         );
         $campaign_id = (int) $wpdb->insert_id;
     }
@@ -1515,9 +1555,10 @@ function seo_marketing_campaigns_handle_duplicate()
             'parent_campaign_id' => $campaign_id,
             'name'               => $campaign->name,
             'edition_label'      => $new_start->format('Y'),
-            'campaign_type'      => isset($campaign->campaign_type) ? seo_marketing_campaigns_normalize_type($campaign->campaign_type) : 'calendar',
-            'recurrence'         => $campaign->recurrence,
-            'start_at'           => $new_start->format('Y-m-d H:i:s'),
+            'campaign_type'            => isset($campaign->campaign_type) ? seo_marketing_campaigns_normalize_type($campaign->campaign_type) : 'calendar',
+            'recurrence'               => $campaign->recurrence,
+            'social_creative_template' => isset($campaign->social_creative_template) ? seo_marketing_campaigns_normalize_social_creative_template($campaign->social_creative_template) : 'design_1',
+            'start_at'                 => $new_start->format('Y-m-d H:i:s'),
             'end_at'             => $new_end->format('Y-m-d H:i:s'),
             'is_enabled'         => 1,
             'created_by'         => get_current_user_id(),
@@ -1525,7 +1566,7 @@ function seo_marketing_campaigns_handle_duplicate()
             'created_at'         => $now,
             'updated_at'         => $now,
         ),
-        array('%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s')
+        array('%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s')
     );
 
     $new_id = (int) $wpdb->insert_id;
@@ -1550,7 +1591,7 @@ function seo_marketing_campaigns_export_rows()
     $tables = seo_marketing_campaigns_tables();
 
     $rows = (array) $wpdb->get_results(
-        "SELECT campaign_key, series_key, name, edition_label, campaign_type, recurrence, start_at, end_at, is_enabled
+        "SELECT campaign_key, series_key, name, edition_label, campaign_type, recurrence, social_creative_template, start_at, end_at, is_enabled
          FROM {$tables['campaigns']}
          ORDER BY start_at ASC, id ASC"
     );
@@ -1562,8 +1603,9 @@ function seo_marketing_campaigns_export_rows()
             'series_key'    => (string) $row->series_key,
             'name'          => (string) $row->name,
             'edition'       => (string) $row->edition_label,
-            'campaign_type' => seo_marketing_campaigns_normalize_type((string) $row->campaign_type),
-            'start_at'      => seo_marketing_campaigns_datetime_iso((string) $row->start_at),
+            'campaign_type'             => seo_marketing_campaigns_normalize_type((string) $row->campaign_type),
+            'social_creative_template' => seo_marketing_campaigns_normalize_social_creative_template((string) $row->social_creative_template),
+            'start_at'                  => seo_marketing_campaigns_datetime_iso((string) $row->start_at),
             'end_at'        => seo_marketing_campaigns_datetime_iso((string) $row->end_at),
             'recurrence'    => (string) $row->recurrence,
             'enabled'       => (int) $row->is_enabled === 1,
@@ -1604,7 +1646,7 @@ function seo_marketing_campaigns_handle_export()
         if ($out === false) {
             wp_die('No se pudo abrir la salida CSV.');
         }
-        fputcsv($out, array('campaign_key', 'series_key', 'name', 'edition', 'campaign_type', 'start_at', 'end_at', 'recurrence', 'enabled'), ';');
+        fputcsv($out, array('campaign_key', 'series_key', 'name', 'edition', 'campaign_type', 'social_creative_template', 'start_at', 'end_at', 'recurrence', 'enabled'), ';');
         foreach ($rows as $row) {
             fputcsv($out, array(
                 $row['campaign_key'],
@@ -1612,6 +1654,7 @@ function seo_marketing_campaigns_handle_export()
                 $row['name'],
                 $row['edition'],
                 $row['campaign_type'],
+                $row['social_creative_template'],
                 $row['start_at'],
                 $row['end_at'],
                 $row['recurrence'],
@@ -1790,6 +1833,7 @@ function seo_marketing_campaigns_import_normalize_row($row)
     }
 
     $series_key = sanitize_title((string) ($row['series_key'] ?? ''));
+    $social_creative_template = seo_marketing_campaigns_normalize_social_creative_template((string) ($row['social_creative_template'] ?? 'design_1'));
     if ($series_key === '') {
         $series_key = sanitize_title($name);
     }
@@ -1812,9 +1856,10 @@ function seo_marketing_campaigns_import_normalize_row($row)
         'series_key'    => $series_key,
         'name'          => $name,
         'edition_label' => $edition,
-        'campaign_type' => seo_marketing_campaigns_normalize_type((string) ($row['campaign_type'] ?? 'calendar')),
-        'recurrence'    => $recurrence,
-        'start_at'      => $start_at,
+        'campaign_type'             => seo_marketing_campaigns_normalize_type((string) ($row['campaign_type'] ?? 'calendar')),
+        'recurrence'                => $recurrence,
+        'social_creative_template'  => $social_creative_template,
+        'start_at'                  => $start_at,
         'end_at'        => $end_at,
         'is_enabled'    => seo_marketing_campaigns_import_bool($row['enabled'] ?? ($row['is_enabled'] ?? 1)),
     );
@@ -1899,7 +1944,7 @@ function seo_marketing_campaigns_handle_import()
                 $tables['campaigns'],
                 $data,
                 array('id' => absint($existing->id)),
-                array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s'),
+                array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s'),
                 array('%d')
             );
             if ($result === false) {
@@ -1921,7 +1966,7 @@ function seo_marketing_campaigns_handle_import()
         $result = $wpdb->insert(
             $tables['campaigns'],
             $row,
-            array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s')
+            array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s')
         );
         if ($result === false) {
             $skipped++;
@@ -2271,9 +2316,10 @@ function seo_marketing_campaigns_render_editor($campaign_id, $is_new = false)
             'series_key'    => '',
             'name'          => '',
             'edition_label' => $start->format('Y'),
-            'campaign_type' => 'calendar',
-            'recurrence'    => 'none',
-            'start_at'      => $start->format('Y-m-d H:i:s'),
+            'campaign_type'             => 'calendar',
+            'recurrence'                => 'none',
+            'social_creative_template'  => 'design_1',
+            'start_at'                  => $start->format('Y-m-d H:i:s'),
             'end_at'        => $end->format('Y-m-d H:i:s'),
             'is_enabled'    => 1,
         );
@@ -2305,6 +2351,11 @@ function seo_marketing_campaigns_render_editor($campaign_id, $is_new = false)
         echo '<option value="' . esc_attr($key) . '" ' . selected($campaign->recurrence, $key, false) . '>' . esc_html($label) . '</option>';
     }
     echo '</select></div>';
+    echo '<div class="seo-campaign-field"><label>Creatividad social</label><select name="social_creative_template">';
+    foreach (seo_marketing_campaigns_social_creative_templates() as $key => $label) {
+        echo '<option value="' . esc_attr($key) . '" ' . selected(isset($campaign->social_creative_template) ? $campaign->social_creative_template : 'design_1', $key, false) . '>' . esc_html($label) . '</option>';
+    }
+    echo '</select><p class="description">Esta plantilla se usara al generar la imagen social automatica de la campaña para Facebook y, mas adelante, LinkedIn y Pinterest.</p></div>';
     echo '<div class="seo-campaign-field"><label>Inicio</label><input type="datetime-local" name="start_at" required value="' . esc_attr(seo_marketing_campaigns_datetime_local($campaign->start_at)) . '"></div>';
     echo '<div class="seo-campaign-field"><label>Fin</label><input type="datetime-local" name="end_at" required value="' . esc_attr(seo_marketing_campaigns_datetime_local($campaign->end_at)) . '"></div>';
     echo '<div class="seo-campaign-field seo-campaign-field-full"><label><input type="checkbox" name="is_enabled" value="1" ' . checked(!empty($campaign->is_enabled), true, false) . '> Campaña habilitada</label><p class="description">El precio de campaña solo se aplica durante estas fechas. Al finalizar se intenta restaurar la oferta anterior del producto.</p></div>';
