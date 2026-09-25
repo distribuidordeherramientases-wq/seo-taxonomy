@@ -8,14 +8,14 @@
  *
  * @package SEOSystem
  * @subpackage Ojeador
- * @since 0.9.0
+ * @since 0.9.1
  */
 
 defined('ABSPATH') || exit;
 
 final class SEO_Ojeador_Stars {
     const MARKUP = 0.20;
-    const CACHE_KEY = 'seo_ojeador_star_candidates_v090';
+    const CACHE_KEY = 'seo_ojeador_price_position_v091';
     const CACHE_TTL = 600;
 
     /**
@@ -30,10 +30,8 @@ final class SEO_Ojeador_Stars {
             'provider' => '',
             'term_id' => 0,
             'class' => '',
-            'min_score' => '',
             'min_impressions' => '',
-            'max_supplier_discount' => '',
-            'sort' => 'score',
+            'sort' => 'price_status',
             'page' => 1,
             'per_page' => 100,
             'refresh' => 0,
@@ -163,8 +161,9 @@ final class SEO_Ojeador_Stars {
                 'Precio objetivo +20% = coste de proveedor almacenado x 1,20. No se modifica el precio WooCommerce.',
                 'El margen comercial real debe revisar IVA, portes, comisiones de pago, devoluciones y cualquier coste no incluido en el precio del proveedor.',
                 'El comparable de mercado se obtiene solo cuando Ojeador encuentra títulos suficientemente compatibles dentro de la misma categoría. La confianza de coincidencia se muestra siempre.',
-                'Para VEVOR se admite como potencial una negociación de proveedor de hasta el 20%; para otros proveedores el umbral orientativo es del 12%.',
-                'La visibilidad de producto procede de Analista/Search Console cuando la URL del producto está disponible; la visibilidad de categoría se usa como señal secundaria.',
+                'Clasificación de precio: verde si coste +20% queda al menos 5% por debajo del comparable más barato; rojo si queda al menos 5% por encima del comparable más caro; amarillo en el resto del rango.',
+                'Solo se colorea por precio cuando existe al menos un comparable externo y la confianza de identidad es >=90%. Si no, queda como Sin comparación fiable.',
+                'La visibilidad de producto procede de Analista/Search Console y se muestra como dato auxiliar, no como una clasificación adicional.',
             ),
         );
     }
@@ -174,7 +173,7 @@ final class SEO_Ojeador_Stars {
         return array(
             'generated_at_utc' => gmdate('c'),
             'kpis' => array(
-                'candidates_total'=>0,'stars'=>0,'good_price'=>0,'offer_recommended'=>0,'high_visibility'=>0,'discount_potential'=>0,'vevor_candidates'=>0,
+                'candidates_total'=>0,'price_good'=>0,'price_market'=>0,'price_bad'=>0,'without_comparison'=>0,
             ),
             'thresholds' => array(),
             'products' => array(),
@@ -390,12 +389,20 @@ final class SEO_Ojeador_Stars {
             if (empty($m['supplier_direct'])) $competitor_prices[] = $price;
         }
         $benchmark_source = '';
+        $market_min = null;
+        $market_median = null;
+        $market_max = null;
         if ($competitor_prices) {
-            $benchmark = self::median($competitor_prices);
+            sort($competitor_prices, SORT_NUMERIC);
+            $market_min = (float) reset($competitor_prices);
+            $market_max = (float) end($competitor_prices);
+            $market_median = self::median($competitor_prices);
+            $benchmark = $market_median;
             $benchmark_source = 'competidores';
         } elseif ($all_prices) {
+            sort($all_prices, SORT_NUMERIC);
             $benchmark = self::median($all_prices);
-            $benchmark_source = 'mercado_incluye_proveedor';
+            $benchmark_source = 'solo_referencia_proveedor';
         } else {
             $benchmark = null;
         }
@@ -433,6 +440,9 @@ final class SEO_Ojeador_Stars {
                 '20_pct' => round($cost * 0.80 * (1 + self::MARKUP), 2),
             ),
             'market_benchmark_price' => $benchmark !== null ? round($benchmark, 2) : null,
+            'market_price_min' => $market_min !== null ? round($market_min, 2) : null,
+            'market_price_median' => $market_median !== null ? round($market_median, 2) : null,
+            'market_price_max' => $market_max !== null ? round($market_max, 2) : null,
             'benchmark_source' => $benchmark_source,
             'comparable_count' => count($strong),
             'competitor_comparable_count' => count($competitor_prices),
@@ -540,84 +550,80 @@ final class SEO_Ojeador_Stars {
     }
 
     private static function classify(&$row, $thresholds) {
-        $benchmark = self::float_or_null($row['market_benchmark_price'] ?? null);
+        $target = self::float_or_null($row['target_price_20'] ?? null);
+        $min = self::float_or_null($row['market_price_min'] ?? null);
+        $median = self::float_or_null($row['market_price_median'] ?? null);
+        $max = self::float_or_null($row['market_price_max'] ?? null);
         $confidence = (float) ($row['match_confidence_pct'] ?? 0);
-        $advantage = self::float_or_null($row['price_advantage_target_pct'] ?? null);
-        $discount_needed = self::float_or_null($row['supplier_discount_to_5pct_below_pct'] ?? null);
-        $provider = strtolower((string) ($row['provider'] ?? ''));
-        $is_vevor = strpos($provider, 'vevor') !== false;
-        $negotiation_limit = $is_vevor ? 20.0 : 12.0;
-
+        $competitors = absint($row['competitor_comparable_count'] ?? 0);
         $pimp = (float) ($row['product_impressions'] ?? 0);
-        $cimp = (float) ($row['category_impressions'] ?? 0);
-        $p75 = (float) ($thresholds['product_impressions']['p75'] ?? 0);
-        $c75 = (float) ($thresholds['category_impressions']['p75'] ?? 0);
-        $product_high = $pimp > 0 && ($p75 <= 0 || $pimp >= $p75);
-        $category_high = $cimp > 0 && ($c75 <= 0 || $cimp >= $c75);
-        $high_visibility = $product_high || $category_high;
 
-        $price_score = 0.0;
-        if ($advantage !== null) {
-            $price_score = max(0.0, min(100.0, 50.0 + ($advantage * 3.0)));
-        }
-        $vis_product = self::visibility_index($pimp, (array) ($thresholds['product_impressions'] ?? array()));
-        $vis_category = self::visibility_index($cimp, (array) ($thresholds['category_impressions'] ?? array())) * 0.70;
-        $visibility_score = max($vis_product, $vis_category);
-        $reviews = absint($row['market_reviews'] ?? 0);
-        $rating = self::float_or_null($row['market_rating'] ?? null);
-        $proof = min(100.0, (log10($reviews + 1) / 4.0) * 100.0);
-        if ($rating !== null && $rating > 0) $proof *= min(1.0, max(0.4, $rating / 5.0));
-        $match_score = min(100.0, max(0.0, $confidence));
+        // Price positioning is intentionally reduced to three commercial states.
+        // We only colour a row when there is at least one external competitor and
+        // the identity match is strong enough. +/-5% is a neutral tolerance band.
+        $row['star_score'] = 0;
+        $row['price_status'] = '';
+        $row['price_status_label'] = '';
+        $row['price_vs_market_median_pct'] = null;
+        $row['supplier_discount_to_enter_market_pct'] = null;
+        $row['supplier_discount_to_green_pct'] = null;
 
-        if ($benchmark !== null && $confidence >= 82) {
-            $score = ($price_score * 0.45) + ($visibility_score * 0.25) + ($proof * 0.15) + ($match_score * 0.15);
-        } else {
-            $score = ($visibility_score * 0.50) + ($proof * 0.25) + ($match_score * 0.25);
-        }
-        $row['star_score'] = round($score, 1);
-
-        if ($benchmark !== null && $confidence >= 82 && $advantage !== null && $advantage >= 8) {
-            $row['star_class'] = 'estrella';
-            $row['star_label'] = 'Estrella';
-            $row['recommendation'] = 'Destacar y probar promoción: el precio objetivo con +20% ya queda claramente por debajo del comparable.';
-            $row['reason'] = sprintf('Ventaja estimada %.1f%% con +20%% sobre coste; %d imp. producto y %d imp. categoría.', $advantage, (int) $pimp, (int) $cimp);
-            return;
-        }
-        if ($benchmark !== null && $confidence >= 82 && $advantage !== null && $advantage >= 0) {
-            $row['star_class'] = 'buen_precio';
-            $row['star_label'] = 'Buen precio';
-            $row['recommendation'] = 'Mantener en vigilancia comercial: podemos competir sin exigir descuento adicional al proveedor.';
-            $row['reason'] = sprintf('Precio objetivo competitivo (%.1f%% frente al comparable) con confianza %.0f%%.', $advantage, $confidence);
-            return;
-        }
-        if ($high_visibility && $benchmark !== null && $confidence >= 82 && $discount_needed !== null && $discount_needed <= $negotiation_limit) {
-            $row['star_class'] = 'oferta_recomendada';
-            $row['star_label'] = 'Oferta recomendada';
-            $row['recommendation'] = $is_vevor
-                ? 'Intentar descuento VEVOR y lanzar una oferta: hay visibilidad y el ajuste necesario entra en un rango negociable.'
-                : 'Negociar proveedor y probar una oferta: hay visibilidad y el ajuste necesario es moderado.';
-            $row['reason'] = sprintf('Necesita aprox. %.1f%% de mejora de compra para quedar 5%% por debajo del comparable; %d imp. producto / %d categoría.', $discount_needed, (int) $pimp, (int) $cimp);
-            return;
-        }
-        if ($benchmark !== null && $confidence >= 82 && $discount_needed !== null && $discount_needed <= $negotiation_limit && ($reviews >= 50 || $category_high)) {
-            $row['star_class'] = 'potencial_descuento';
-            $row['star_label'] = 'Potencial con descuento';
-            $row['recommendation'] = $is_vevor
-                ? 'Pedir descuento VEVOR: con una mejora razonable de compra podría convertirse en producto promocionable.'
-                : 'Revisar condiciones de proveedor: con una mejora moderada de compra puede entrar en precio.';
-            $row['reason'] = sprintf('Descuento de compra estimado para objetivo: %.1f%%; comparable con %d reviews.', $discount_needed, $reviews);
-            return;
-        }
-        if ($product_high) {
-            $row['star_class'] = 'alta_visibilidad';
-            $row['star_label'] = 'Alta visibilidad';
-            $row['recommendation'] = 'Revisar precio/oferta manualmente: este producto ya está recibiendo visibilidad propia aunque Ojeador no tenga un comparable suficientemente sólido.';
-            $row['reason'] = sprintf('%d impresiones del producto en 28 días.', (int) $pimp);
+        if ($target === null || $target <= 0 || $competitors < 1 || $confidence < 90 || $min === null || $max === null) {
+            if ($pimp > 0) {
+                $row['star_class'] = 'sin_comparacion';
+                $row['star_label'] = 'Sin comparación';
+                $row['price_status'] = 'sin_comparacion';
+                $row['price_status_label'] = 'Sin comparación';
+                $row['recommendation'] = 'No decidir por precio todavía. Mantener visible para revisión porque el producto ya recibe impresiones.';
+                $row['reason'] = sprintf('%d impresiones de producto; falta una comparación externa suficientemente fiable.', (int) $pimp);
+            } else {
+                $row['star_class'] = '';
+                $row['star_label'] = '';
+            }
             return;
         }
 
-        $row['star_class'] = '';
-        $row['star_label'] = '';
+        if ($median !== null && $median > 0) {
+            $row['price_vs_market_median_pct'] = round((($target - $median) / $median) * 100, 1);
+        }
+
+        $green_limit = $min * 0.95; // at least 5% below the cheapest comparable
+        $red_limit = $max * 1.05;   // at least 5% above the most expensive comparable
+
+        if ($target <= $green_limit) {
+            $row['star_class'] = 'precio_bueno';
+            $row['star_label'] = 'Precio muy bueno';
+            $row['price_status'] = 'precio_bueno';
+            $row['price_status_label'] = 'Precio muy bueno';
+            $adv = (($min - $target) / $min) * 100;
+            $row['recommendation'] = 'Usable para destacar u ofrecer: con coste +20% seguimos claramente por debajo del mercado comparable.';
+            $row['reason'] = sprintf('Nuestro objetivo está %.1f%% por debajo del comparable más barato.', $adv);
+            return;
+        }
+
+        if ($target >= $red_limit) {
+            $row['star_class'] = 'precio_malo';
+            $row['star_label'] = 'Precio muy malo';
+            $row['price_status'] = 'precio_malo';
+            $row['price_status_label'] = 'Precio muy malo';
+            $over = (($target - $max) / $max) * 100;
+            $need = max(0.0, (1 - ($max / $target)) * 100);
+            $row['supplier_discount_to_enter_market_pct'] = round($need, 1);
+            $row['recommendation'] = 'No usar como oferta con este coste. Negociar proveedor o revisar margen antes de promocionarlo.';
+            $row['reason'] = sprintf('Nuestro objetivo está %.1f%% por encima del comparable más caro; haría falta aprox. %.1f%% de mejora de compra para entrar en rango.', $over, $need);
+            return;
+        }
+
+        $row['star_class'] = 'precio_mercado';
+        $row['star_label'] = 'Precio de mercado';
+        $row['price_status'] = 'precio_mercado';
+        $row['price_status_label'] = 'Precio de mercado';
+        $need_green = max(0.0, (1 - ($green_limit / $target)) * 100);
+        $row['supplier_discount_to_green_pct'] = round($need_green, 1);
+        $row['recommendation'] = 'Precio utilizable. Si interesa convertirlo en oferta destacada, modular precio o negociar una pequeña mejora de compra.';
+        $row['reason'] = $need_green > 0
+            ? sprintf('Nuestro objetivo cae dentro del rango de mercado; con aprox. %.1f%% de mejora de compra entraría en verde.', $need_green)
+            : 'Nuestro objetivo cae dentro del rango de mercado.';
     }
 
     private static function preclassification_rank($row) {
@@ -632,16 +638,18 @@ final class SEO_Ojeador_Stars {
     /** @return array */
     private static function summary($rows) {
         $out = array(
-            'candidates_total'=>count((array) $rows),'stars'=>0,'good_price'=>0,'offer_recommended'=>0,'high_visibility'=>0,'discount_potential'=>0,'vevor_candidates'=>0,
+            'candidates_total'=>count((array) $rows),
+            'price_good'=>0,
+            'price_market'=>0,
+            'price_bad'=>0,
+            'without_comparison'=>0,
         );
         foreach ((array) $rows as $row) {
             $class = (string) ($row['star_class'] ?? '');
-            if ($class === 'estrella') $out['stars']++;
-            elseif ($class === 'buen_precio') $out['good_price']++;
-            elseif ($class === 'oferta_recomendada') $out['offer_recommended']++;
-            elseif ($class === 'alta_visibilidad') $out['high_visibility']++;
-            elseif ($class === 'potencial_descuento') $out['discount_potential']++;
-            if (stripos((string) ($row['provider'] ?? ''), 'vevor') !== false) $out['vevor_candidates']++;
+            if ($class === 'precio_bueno') $out['price_good']++;
+            elseif ($class === 'precio_mercado') $out['price_market']++;
+            elseif ($class === 'precio_malo') $out['price_bad']++;
+            elseif ($class === 'sin_comparacion') $out['without_comparison']++;
         }
         return $out;
     }
@@ -652,11 +660,9 @@ final class SEO_Ojeador_Stars {
         $provider = SEO_Ojeador_Identity::normalize_text((string) ($args['provider'] ?? ''));
         $term_id = absint($args['term_id'] ?? 0);
         $class = sanitize_key((string) ($args['class'] ?? ''));
-        $min_score = ($args['min_score'] !== '' && is_numeric($args['min_score'])) ? (float) $args['min_score'] : null;
         $min_imp = ($args['min_impressions'] !== '' && is_numeric($args['min_impressions'])) ? (float) $args['min_impressions'] : null;
-        $max_discount = ($args['max_supplier_discount'] !== '' && is_numeric($args['max_supplier_discount'])) ? (float) $args['max_supplier_discount'] : null;
 
-        return array_values(array_filter((array) $rows, static function ($row) use ($q,$provider,$term_id,$class,$min_score,$min_imp,$max_discount) {
+        return array_values(array_filter((array) $rows, static function ($row) use ($q,$provider,$term_id,$class,$min_imp) {
             if ($term_id && absint($row['term_id'] ?? 0) !== $term_id) return false;
             if ($class !== '' && sanitize_key((string) ($row['star_class'] ?? '')) !== $class) return false;
             if ($provider !== '' && SEO_Ojeador_Identity::normalize_text((string) ($row['provider'] ?? '')) !== $provider) return false;
@@ -664,39 +670,34 @@ final class SEO_Ojeador_Stars {
                 $hay = SEO_Ojeador_Identity::normalize_text((string) ($row['product_name'] ?? '') . ' ' . (string) ($row['supplier_name'] ?? '') . ' ' . (string) ($row['market_title'] ?? '') . ' ' . (string) ($row['supplier_sku'] ?? ''));
                 if (strpos($hay, $q) === false) return false;
             }
-            if ($min_score !== null && (float) ($row['star_score'] ?? 0) < $min_score) return false;
             if ($min_imp !== null && max((float) ($row['product_impressions'] ?? 0), (float) ($row['category_impressions'] ?? 0)) < $min_imp) return false;
-            if ($max_discount !== null) {
-                $d = self::float_or_null($row['supplier_discount_to_5pct_below_pct'] ?? null);
-                if ($d === null || $d > $max_discount) return false;
-            }
             return true;
         }));
     }
 
     private static function sort_rows(&$rows, $sort) {
         $sort = sanitize_key((string) $sort);
-        usort($rows, static function ($a, $b) use ($sort) {
+        $rank = array('precio_bueno'=>3,'precio_mercado'=>2,'precio_malo'=>1,'sin_comparacion'=>0);
+        usort($rows, static function ($a, $b) use ($sort, $rank) {
             switch ($sort) {
-                case 'advantage':
-                    return (float) ($b['price_advantage_target_pct'] ?? -999) <=> (float) ($a['price_advantage_target_pct'] ?? -999);
                 case 'impressions':
-                    $ai = max((float) ($a['product_impressions'] ?? 0), (float) ($a['category_impressions'] ?? 0));
-                    $bi = max((float) ($b['product_impressions'] ?? 0), (float) ($b['category_impressions'] ?? 0));
+                    $ai = (float) ($a['product_impressions'] ?? 0);
+                    $bi = (float) ($b['product_impressions'] ?? 0);
                     return $bi <=> $ai;
-                case 'reviews':
-                    return absint($b['market_reviews'] ?? 0) <=> absint($a['market_reviews'] ?? 0);
-                case 'discount_needed':
-                    $ad = self::float_or_null($a['supplier_discount_to_5pct_below_pct'] ?? null); if ($ad === null) $ad = 999;
-                    $bd = self::float_or_null($b['supplier_discount_to_5pct_below_pct'] ?? null); if ($bd === null) $bd = 999;
-                    return $ad <=> $bd;
                 case 'provider':
                     return strcasecmp((string) ($a['provider'] ?? ''), (string) ($b['provider'] ?? ''));
-                case 'score':
+                case 'market_gap':
+                    $am = self::float_or_null($a['price_vs_market_median_pct'] ?? null); if ($am === null) $am = 999;
+                    $bm = self::float_or_null($b['price_vs_market_median_pct'] ?? null); if ($bm === null) $bm = 999;
+                    return $am <=> $bm;
+                case 'price_status':
                 default:
-                    $c = (float) ($b['star_score'] ?? 0) <=> (float) ($a['star_score'] ?? 0);
-                    if ($c !== 0) return $c;
-                    return (float) ($b['match_confidence_pct'] ?? 0) <=> (float) ($a['match_confidence_pct'] ?? 0);
+                    $ar = $rank[(string) ($a['star_class'] ?? '')] ?? -1;
+                    $br = $rank[(string) ($b['star_class'] ?? '')] ?? -1;
+                    if ($ar !== $br) return $br <=> $ar;
+                    $am = self::float_or_null($a['price_vs_market_median_pct'] ?? null); if ($am === null) $am = 999;
+                    $bm = self::float_or_null($b['price_vs_market_median_pct'] ?? null); if ($bm === null) $bm = 999;
+                    return $am <=> $bm;
             }
         });
     }
@@ -732,11 +733,10 @@ final class SEO_Ojeador_Stars {
     /** @return array */
     public static function class_options() {
         return array(
-            'estrella' => 'Estrella',
-            'buen_precio' => 'Buen precio',
-            'oferta_recomendada' => 'Oferta recomendada',
-            'potencial_descuento' => 'Potencial con descuento',
-            'alta_visibilidad' => 'Alta visibilidad',
+            'precio_bueno' => 'Precio muy bueno',
+            'precio_mercado' => 'Precio de mercado',
+            'precio_malo' => 'Precio muy malo',
+            'sin_comparacion' => 'Sin comparación fiable',
         );
     }
 

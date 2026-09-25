@@ -1,0 +1,14 @@
+Ojeador v0.9.1 - Posición de precio simplificada
+
+- Sustituye las cinco clasificaciones de producto por tres estados comerciales de precio:
+  VERDE: Precio muy bueno. Coste +20% queda al menos 5% por debajo del comparable externo más barato.
+  AMARILLO: Precio de mercado. Coste +20% cae dentro del rango de mercado o a menos de 5% de sus extremos.
+  ROJO: Precio muy malo. Coste +20% queda al menos 5% por encima del comparable externo más caro.
+- Los productos con impresiones pero sin comparación externa suficientemente fiable quedan en gris y no cuentan como señal de precio.
+- Exige al menos un comparable de competidor y >=90% de confianza para colorear por precio.
+- Muestra mínimo, mediana y máximo del mercado, además de la diferencia de nuestro objetivo frente a la mediana.
+- Mantiene visualizaciones como dato auxiliar, no como clasificación paralela.
+- Simplifica filtros y elimina score estrella, reviews y descuento proveedor como indicadores principales.
+- El JSON de precios conserva datos de soporte y añade price_status, rango de mercado y descuentos necesarios para entrar/mejorar posición.
+- No modifica precios ni condiciones de proveedor.
+- Sin cambios de esquema SQL.
