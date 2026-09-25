@@ -26,63 +26,113 @@ jobs:
         run: |
           git clone "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" wiki
 
-      - name: Inventory current Wiki
-        run: |
-          echo "=== WIKI FILES ==="
-          find wiki -maxdepth 1 -type f -printf '%f\n' | sort
-          echo "=== SIDEBAR ==="
-          if [ -f wiki/_Sidebar.md ]; then sed -n '1,220p' wiki/_Sidebar.md; else echo "No _Sidebar.md"; fi
-          echo "=== PAGE HEADINGS ==="
-          for f in wiki/*.md; do
-            echo "--- $(basename "$f")"
-            grep -E '^#{1,3} ' "$f" | head -40 || true
-          done
-
-      - name: Update managed Wiki pages
+      - name: Update Wiki from canonical docs
         run: |
           cp docs/MANUAL-USUARIO.md "wiki/Manual-de-usuario.md"
           cp docs/CONEXIONES-CREDENCIALES.md "wiki/Conexiones-y-credenciales.md"
 
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
-          home = Path("wiki/Home.md")
+          wiki = Path("wiki")
+          manual = Path("docs/MANUAL-USUARIO.md").read_text(encoding="utf-8")
+
+          # Divide el manual por secciones principales numeradas.
+          starts = list(re.finditer(r"^# (\d+)\. (.+)$", manual, re.M))
+          sections = {}
+          for idx, m in enumerate(starts):
+              number = int(m.group(1))
+              start = m.start()
+              end = starts[idx + 1].start() if idx + 1 < len(starts) else len(manual)
+              sections[number] = manual[start:end].strip()
+
+          mapping = {
+              4: "Productos.md",
+              5: "Categorias.md",
+              6: "Etiquetas-y-vocabulario.md",
+              7: "Paginas.md",
+              8: "Entradas.md",
+              9: "Imagenes.md",
+              10: "Informes.md",
+              11: "Dependiente.md",
+              12: "Herramientas.md",
+              13: "Ojeador.md",
+              14: "Comentarista.md",
+          }
+
+          def managed_block(name, body):
+              start = f"<!-- SEO-TAXONOMY-MANUAL:{name}:START -->"
+              end = f"<!-- SEO-TAXONOMY-MANUAL:{name}:END -->"
+              return start + "\n\n## Manual operativo\n\n" + body + "\n\n" + end
+
+          def upsert(path, name, body):
+              p = wiki / path
+              original = p.read_text(encoding="utf-8") if p.exists() else f"# {name}\n"
+              start = f"<!-- SEO-TAXONOMY-MANUAL:{name}:START -->"
+              end = f"<!-- SEO-TAXONOMY-MANUAL:{name}:END -->"
+              block = managed_block(name, body)
+              if start in original and end in original:
+                  before = original.split(start, 1)[0].rstrip()
+                  after = original.split(end, 1)[1].lstrip()
+                  text = before + "\n\n" + block + ("\n\n" + after if after else "") + "\n"
+              else:
+                  text = original.rstrip() + "\n\n" + block + "\n"
+              p.write_text(text, encoding="utf-8")
+
+          for number, filename in mapping.items():
+              if number in sections:
+                  # Evita duplicar el H1 numerado dentro de la página existente.
+                  body = re.sub(r"^# \d+\. .+\n+", "", sections[number], count=1).strip()
+                  upsert(filename, Path(filename).stem, body)
+
+          # Home: enlaza la documentación operativa sin sustituir la introducción existente.
+          home = wiki / "Home.md"
           text = home.read_text(encoding="utf-8") if home.exists() else "# SEO Taxonomy\n"
-
           start = "<!-- SEO-TAXONOMY-MANUAL-START -->"
           end = "<!-- SEO-TAXONOMY-MANUAL-END -->"
           block = """<!-- SEO-TAXONOMY-MANUAL-START -->
           ## Manual de usuario
 
-          La introducción y el esquema general explican qué es SEO Taxonomy. Para el uso operativo del plugin consulta:
+          La Wiki combina una introducción conceptual con un manual operativo actualizado desde la rama `staging`.
 
-          - [[Manual de usuario]]
+          - [[Manual de uso]]
           - [[Conexiones y credenciales]]
+          - [[Manual de usuario|Manual-de-usuario]]
 
-          El manual describe pantallas, pestañas, botones, filtros, casillas, estados y el efecto de las acciones visibles para el usuario.
+          Las páginas de Productos, Categorías, Etiquetas, Páginas, Entradas, Imágenes, Informes y Herramientas incluyen ahora un bloque **Manual operativo** con pestañas, botones, filtros, casillas y efectos de las acciones.
           <!-- SEO-TAXONOMY-MANUAL-END -->"""
-
           if start in text and end in text:
               before = text.split(start, 1)[0].rstrip()
               after = text.split(end, 1)[1].lstrip()
               text = before + "\n\n" + block + ("\n\n" + after if after else "") + "\n"
           else:
               text = text.rstrip() + "\n\n" + block + "\n"
-
           home.write_text(text, encoding="utf-8")
+
+          # Sidebar: conserva la navegación existente y añade las páginas nuevas de documentación.
+          sidebar = wiki / "_Sidebar.md"
+          if sidebar.exists():
+              s = sidebar.read_text(encoding="utf-8")
+              if "[[Conexiones y credenciales|Conexiones-y-credenciales]]" not in s:
+                  anchor = "- [[Arquitectura y conceptos|Arquitectura-y-conceptos]]"
+                  addition = "- [[Conexiones y credenciales|Conexiones-y-credenciales]]\n"
+                  if anchor in s:
+                      s = s.replace(anchor, addition + anchor)
+                  else:
+                      s = s.rstrip() + "\n" + addition
+              sidebar.write_text(s, encoding="utf-8")
           PY
 
       - name: Commit Wiki changes
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cd wiki
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Home.md Manual-de-usuario.md Conexiones-y-credenciales.md
+          git add '*.md'
           if git diff --cached --quiet; then
             echo "Wiki already up to date."
             exit 0
           fi
-          git commit -m "docs: actualiza manual de usuario y conexiones"
+          git commit -m "docs: integra manual operativo en la Wiki"
           git push origin HEAD
