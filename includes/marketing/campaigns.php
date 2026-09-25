@@ -2355,7 +2355,7 @@ function seo_marketing_campaigns_render_editor($campaign_id, $is_new = false)
     foreach (seo_marketing_campaigns_social_creative_templates() as $key => $label) {
         echo '<option value="' . esc_attr($key) . '" ' . selected(isset($campaign->social_creative_template) ? $campaign->social_creative_template : 'design_1', $key, false) . '>' . esc_html($label) . '</option>';
     }
-    echo '</select><p class="description">Esta plantilla se usara al generar la imagen social automatica de la campaña para Facebook y, mas adelante, LinkedIn y Pinterest.</p></div>';
+    echo '</select><p class="description">Esta plantilla se usara al generar la imagen social automatica de la campaña para Facebook, Instagram, LinkedIn, Pinterest y X.</p></div>';
     echo '<div class="seo-campaign-field"><label>Inicio</label><input type="datetime-local" name="start_at" required value="' . esc_attr(seo_marketing_campaigns_datetime_local($campaign->start_at)) . '"></div>';
     echo '<div class="seo-campaign-field"><label>Fin</label><input type="datetime-local" name="end_at" required value="' . esc_attr(seo_marketing_campaigns_datetime_local($campaign->end_at)) . '"></div>';
     echo '<div class="seo-campaign-field seo-campaign-field-full"><label><input type="checkbox" name="is_enabled" value="1" ' . checked(!empty($campaign->is_enabled), true, false) . '> Campaña habilitada</label><p class="description">El precio de campaña solo se aplica durante estas fechas. Al finalizar se intenta restaurar la oferta anterior del producto.</p></div>';

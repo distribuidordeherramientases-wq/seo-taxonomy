@@ -8,8 +8,10 @@ defined('ABSPATH') || exit;
 $seo_social_modules = array(
     __DIR__ . '/core.php',
     __DIR__ . '/facebook.php',
+    __DIR__ . '/instagram.php',
     __DIR__ . '/linkedin.php',
     __DIR__ . '/pinterest.php',
+    __DIR__ . '/x.php',
     __DIR__ . '/bootstrap.php',
     __DIR__ . '/campaign-images.php',
     __DIR__ . '/campaigns.php',
