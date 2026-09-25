@@ -54,7 +54,7 @@ function seo_ie_cf_admin_save_settings() {
         'auto_refresh'                => empty( $_POST['auto_refresh'] ) ? 0 : 1,
         'daily_time'                  => seo_ie_cf_sanitize_daily_time( $_POST['daily_time'] ?? '03:30' ),
         'refresh_after_supplier_sync' => empty( $_POST['refresh_after_supplier_sync'] ) ? 0 : 1,
-        'batch_size'                  => max( 50, min( 500, absint( $_POST['batch_size'] ?? SEO_IE_CF_BATCH_SIZE ) ) ),
+        'batch_size'                  => absint( seo_ie_cf_settings()['batch_size'] ?? SEO_IE_CF_BATCH_SIZE ), // Legacy: el lote real lo regula Procesos.
     ];
 
     update_option( SEO_IE_CF_SETTINGS_OPTION, $settings, false );
@@ -122,8 +122,8 @@ function seo_ie_cf_admin_stop() {
 }
 
 /**
- * Pulso del watchdog. Solo actua si la generacion lleva varios segundos sin
- * actividad; si Action Scheduler funciona con normalidad, no hace nada.
+ * Pulso administrativo. No ejecuta productos: solo despierta el Gestor de
+ * workers central para que este reparta la siguiente ventana de trabajo.
  */
 function seo_ie_cf_admin_ajax_tick() {
     if ( ! current_user_can( 'manage_options' ) ) {
@@ -175,7 +175,8 @@ function seo_ie_cf_admin_local_datetime( $utc_mysql ) {
  */
 function seo_ie_cf_admin_origin_label( $origin ) {
     $labels = [
-        'manual'        => 'Manual',
+        'manual'          => 'Manual',
+        'manual_processes'=> 'Manual desde Procesos',
         'supplier_sync' => 'Fin de sincronizacion de proveedores',
         'daily_safety'  => 'Regeneracion diaria de seguridad',
         'scheduled'     => 'Programada',
@@ -200,12 +201,14 @@ function seo_ie_cf_render_admin() {
     $environment = seo_ie_cf_environment_info();
     $is_staging  = ! seo_ie_cf_is_production();
     $next_daily  = seo_ie_cf_next_daily_scheduled();
+    $supervisor_settings = function_exists( 'seo_process_supervisor_settings' ) ? seo_process_supervisor_settings() : [];
+    $manager_enabled = ! empty( $supervisor_settings['enabled'] ) && ! empty( $supervisor_settings['commercial_feeds'] );
 
     if ( isset( $_GET['cf_saved'] ) ) {
         echo '<div class="notice notice-success inline"><p>Configuracion guardada.</p></div>';
     }
     if ( isset( $_GET['cf_started'] ) ) {
-        echo '<div class="notice notice-info inline"><p>Generacion iniciada. El primer lote se ejecuta inmediatamente y los siguientes continuan por Action Scheduler; con esta pestana abierta, el watchdog recupera un worker dormido.</p></div>';
+        echo '<div class="notice notice-info inline"><p>Generacion iniciada y entregada al Gestor de workers. El lote se adapta automaticamente al tiempo real de respuesta y a la carga observada.</p></div>';
     }
     if ( isset( $_GET['cf_stopped'] ) ) {
         echo '<div class="notice notice-warning inline"><p>Generacion detenida por el usuario. No se ha publicado ningun archivo parcial.</p></div>';
@@ -218,6 +221,10 @@ function seo_ie_cf_render_admin() {
         echo '<div class="notice notice-warning inline"><p><strong>STAGING:</strong> esta generacion usa los productos y URLs de este entorno y sirve solo para pruebas. No se programan actualizaciones comerciales ni deben registrarse estas URLs en Google, Microsoft o Pinterest.</p></div>';
     } else {
         echo '<div class="notice notice-success inline"><p><strong>PRODUCCION:</strong> este entorno genera los inventarios comerciales reales. Las plataformas descargan desde estas URLs; no existe un envio directo desde WordPress.</p></div>';
+    }
+
+    if ( ! $manager_enabled ) {
+        echo '<div class="notice notice-error inline"><p><strong>Gestor de workers:</strong> Inventarios comerciales no esta habilitado en Procesos &gt; Gestor de workers. Puedes iniciar una generacion, pero no avanzara hasta habilitar ese proceso.</p></div>';
     }
 
     $status = (string) ( $state['status'] ?? 'never' );
@@ -276,10 +283,10 @@ function seo_ie_cf_render_admin() {
                             <strong>Idioma</strong><br>
                             <input type="text" name="language" value="<?php echo esc_attr( $settings['language'] ); ?>" maxlength="2" size="5">
                         </label>
-                        <label>
+                        <span>
                             <strong>Lote</strong><br>
-                            <input type="number" name="batch_size" value="<?php echo esc_attr( (string) $settings['batch_size'] ); ?>" min="50" max="500" step="10" style="width:90px;">
-                        </label>
+                            <span class="description">Adaptativo · <a href="<?php echo esc_url( add_query_arg( [ 'page' => 'seo-processes' ], admin_url( 'admin.php' ) ) ); ?>">configurar en Procesos</a></span>
+                        </span>
                     </p>
 
                     <label style="display:block;margin:16px 0 8px;">
@@ -308,6 +315,19 @@ function seo_ie_cf_render_admin() {
                 <p><strong>Origen:</strong> <?php echo esc_html( seo_ie_cf_admin_origin_label( $state['origin'] ?? '' ) ); ?></p>
                 <p><strong>Candidatos:</strong> <?php echo esc_html( number_format_i18n( $total ) ); ?></p>
                 <p><strong>Procesados:</strong> <?php echo esc_html( number_format_i18n( $processed ) ); ?> · <strong>publicados:</strong> <?php echo esc_html( number_format_i18n( absint( $state['written'] ?? 0 ) ) ); ?> · <strong>excluidos:</strong> <?php echo esc_html( number_format_i18n( absint( $state['excluded'] ?? 0 ) ) ); ?></p>
+
+                <p><strong>Regulador:</strong>
+                    siguiente lote <?php echo esc_html( number_format_i18n( absint( $state['adaptive_next_batch_size'] ?? SEO_IE_CF_BATCH_SIZE ) ) ); ?>
+                    · presion <?php echo esc_html( (string) ( $state['adaptive_pressure'] ?? 'baja' ) ); ?>
+                    <?php if ( ! empty( $state['adaptive_next_delay'] ) ) : ?>
+                        · pausa <?php echo esc_html( number_format_i18n( absint( $state['adaptive_next_delay'] ) ) ); ?> s
+                    <?php endif; ?>
+                </p>
+                <?php if ( ! empty( $state['last_batch_rows'] ) ) : ?>
+                    <p class="description"><strong>Ultimo lote:</strong> <?php echo esc_html( number_format_i18n( absint( $state['last_batch_rows'] ) ) ); ?> productos en <?php echo esc_html( number_format_i18n( (float) ( $state['last_batch_duration'] ?? 0 ), 2 ) ); ?> s · <?php echo esc_html( (string) ( $state['adaptive_reason'] ?? '' ) ); ?></p>
+                <?php else : ?>
+                    <p class="description">Pendiente de la primera ventana del Gestor de workers.</p>
+                <?php endif; ?>
 
                 <?php if ( 'running' === $status ) : ?>
                     <div style="height:14px;background:#dcdcde;border-radius:7px;overflow:hidden;max-width:620px;">
@@ -343,7 +363,7 @@ function seo_ie_cf_render_admin() {
                         <button type="submit" class="button" <?php disabled( 'running' !== $status ); ?> onclick="return confirm('¿Parar la generacion actual? Los archivos parciales no se publicaran.');">Parar generacion</button>
                     </form>
                 </div>
-                <p class="description">Iniciar crea una generacion nueva completa. Parar invalida la ejecucion actual sin sustituir el ultimo feed valido. Si Action Scheduler se duerme, mantener esta pestana abierta permite al watchdog ejecutar el siguiente lote.</p>
+                <p class="description">Iniciar crea una generacion nueva y la entrega al <strong>Gestor de workers</strong>. Parar invalida la ejecucion actual sin sustituir el ultimo feed valido. El tamaño del lote, la pausa, la presión y la recuperacion se gobiernan desde Procesos; este modulo no mantiene un worker paralelo.</p>
                 <p class="description">Google, Microsoft y Pinterest descargan despues los archivos desde sus URLs; no existe un envio directo.</p>
 
                 <?php if ( ! empty( $state['excluded_reasons'] ) ) : ?>
@@ -461,6 +481,7 @@ function seo_ie_cf_render_admin() {
             var tickUrl = <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>;
             var nonce = <?php echo wp_json_encode( wp_create_nonce( 'seo_ie_cf_tick' ) ); ?>;
 
+            // Este pulso no procesa lotes: solo mantiene visible y elegible el gestor central.
             window.setTimeout(function () {
                 var body = new URLSearchParams();
                 body.append('action', 'seo_ie_cf_tick');

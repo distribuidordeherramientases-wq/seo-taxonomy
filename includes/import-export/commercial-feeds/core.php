@@ -26,9 +26,12 @@ const SEO_IE_CF_QUEUED_HOOK     = 'seo_ie_cf_queued_refresh';
 function seo_ie_cf_register_runtime() {
     add_action( 'init', 'seo_ie_cf_maybe_schedule_daily', 30 );
     add_action( SEO_IE_CF_DAILY_HOOK, 'seo_ie_cf_daily_refresh' );
-    add_action( SEO_IE_CF_BATCH_HOOK, 'seo_ie_cf_process_batch', 10, 2 );
+    add_action( SEO_IE_CF_BATCH_HOOK, 'seo_ie_cf_process_batch', 10, 2 ); // Compatibilidad: solo despierta el gestor central.
     add_action( SEO_IE_CF_QUEUED_HOOK, 'seo_ie_cf_run_queued_refresh', 10, 1 );
     add_action( 'seo_supplier_sync_products_changed', 'seo_ie_cf_on_supplier_sync_products_changed', 10, 1 );
+    add_filter( 'seo_process_supervisor_has_pending_work', 'seo_ie_cf_supervisor_has_pending_work', 20, 1 );
+    add_filter( 'seo_process_supervisor_manager_targets', 'seo_ie_cf_supervisor_manager_targets', 20, 3 );
+    add_filter( 'seo_processes_monitor_items', 'seo_ie_cf_processes_monitor_items', 20, 1 );
 }
 
 /**
@@ -218,8 +221,8 @@ function seo_ie_cf_save_state( array $state ) {
 
 
 /**
- * Lock ligero por ejecucion para impedir que Action Scheduler y el watchdog
- * del navegador procesen el mismo lote a la vez.
+ * Lock ligero por ejecucion. El Gestor de workers es el unico motor de lotes,
+ * pero el lock evita solapes entre dos pulsos concurrentes del propio gestor.
  */
 function seo_ie_cf_batch_lock_name( $run_id ) {
     return 'seo_ie_cf_batch_lock_' . md5( (string) $run_id );
@@ -291,6 +294,20 @@ function seo_ie_cf_stop_build( $reason = 'manual' ) {
 
     seo_ie_cf_unschedule_batch( $run_id, $cursor );
     seo_ie_cf_record_history( $state );
+    if ( function_exists( 'seo_process_supervisor_managed_update' ) ) {
+        seo_process_supervisor_managed_update(
+            'commercial-feeds',
+            [
+                'name'         => 'Inventarios comerciales',
+                'pending'      => 0,
+                'healthy'      => 1,
+                'last_checked' => time(),
+                'last_result'  => 'stopped',
+                'last_error'   => '',
+                'detail'       => 'Generacion detenida por el usuario.',
+            ]
+        );
+    }
 
     return $state;
 }
@@ -518,20 +535,6 @@ function seo_ie_cf_run_queued_refresh( $origin = 'supplier_sync' ) {
 }
 
 /**
- * Encola una tanda de trabajo.
- */
-function seo_ie_cf_enqueue_batch( $run_id, $cursor ) {
-    $args = [ (string) $run_id, absint( $cursor ) ];
-
-    if ( function_exists( 'as_enqueue_async_action' ) ) {
-        return (int) as_enqueue_async_action( SEO_IE_CF_BATCH_HOOK, $args, SEO_IE_CF_GROUP ) > 0;
-    }
-
-    $scheduled = wp_schedule_single_event( time() + 5, SEO_IE_CF_BATCH_HOOK, $args, true );
-    return ! is_wp_error( $scheduled ) && true === $scheduled;
-}
-
-/**
  * Total de ofertas candidatas antes de aplicar reglas editoriales.
  */
 function seo_ie_cf_candidate_count() {
@@ -550,7 +553,14 @@ function seo_ie_cf_candidate_count() {
 }
 
 /**
- * Inicia una generacion completa. Devuelve el estado o WP_Error.
+ * Inicia una generacion completa y la entrega al Gestor de workers.
+ *
+ * Esta funcion prepara los temporales y el estado, pero NO procesa productos:
+ * el reparto de ventanas, el ritmo y la continuidad pertenecen al supervisor
+ * central del plugin.
+ *
+ * @param string $origin Origen funcional de la generacion.
+ * @return array|WP_Error
  */
 function seo_ie_cf_start_build( $origin = 'manual' ) {
     $current = seo_ie_cf_state();
@@ -564,8 +574,6 @@ function seo_ie_cf_start_build( $origin = 'manual' ) {
         return new WP_Error( 'seo_ie_cf_running', 'Ya hay una generacion de inventario en curso. Pulsa Parar antes de iniciar otra.' );
     }
 
-    // Limpia temporales abandonados de una ejecucion anterior detenida,
-    // fallida o considerada obsoleta. Los feeds finales validos no se tocan.
     if ( ! empty( $current['files'] ) ) {
         seo_ie_cf_cleanup_temp_files( $current );
     }
@@ -603,38 +611,329 @@ function seo_ie_cf_start_build( $origin = 'manual' ) {
         return new WP_Error( 'seo_ie_cf_no_channels', 'No hay canales comerciales activos.' );
     }
 
+    $adaptive = seo_ie_cf_adaptive_config();
+    $environment = seo_ie_cf_environment_info();
     $state = [
-        'run_id'           => $run_id,
-        'status'           => 'running',
-        'origin'           => sanitize_key( (string) $origin ),
-        'started_at'       => current_time( 'mysql', true ),
-        'updated_at'       => current_time( 'mysql', true ),
-        'completed_at'     => '',
-        'cursor'           => 0,
-        'candidate_total'  => seo_ie_cf_candidate_count(),
-        'processed'        => 0,
-        'written'          => 0,
-        'excluded'         => 0,
-        'excluded_reasons' => [],
-        'errors'           => [],
-        'files'            => $files,
-        'environment'      => (string) ( seo_ie_cf_environment_info()['effective'] ?? 'production' ),
-        'host'             => (string) ( seo_ie_cf_environment_info()['host'] ?? '' ),
-        'pending_refresh'  => '',
+        'run_id'                         => $run_id,
+        'status'                         => 'running',
+        'origin'                         => sanitize_key( (string) $origin ),
+        'started_at'                     => current_time( 'mysql', true ),
+        'updated_at'                     => current_time( 'mysql', true ),
+        'completed_at'                   => '',
+        'cursor'                         => 0,
+        'candidate_total'                => seo_ie_cf_candidate_count(),
+        'processed'                      => 0,
+        'written'                        => 0,
+        'excluded'                       => 0,
+        'excluded_reasons'               => [],
+        'errors'                         => [],
+        'files'                          => $files,
+        'environment'                    => (string) ( $environment['effective'] ?? 'production' ),
+        'host'                           => (string) ( $environment['host'] ?? '' ),
+        'pending_refresh'                => '',
+        'last_batch_rows'                => 0,
+        'last_batch_target_rows'         => absint( $adaptive['initial_rows'] ),
+        'last_batch_duration'            => 0.0,
+        'last_batch_seconds_per_row'     => 0.0,
+        'last_batch_memory_ratio'        => 0.0,
+        'last_batch_time_budget_reached' => 0,
+        'adaptive_next_batch_size'       => absint( $adaptive['initial_rows'] ),
+        'adaptive_next_delay'            => 0,
+        'adaptive_pressure'              => 'baja',
+        'adaptive_reason'                => 'arranque conservador',
+        'not_before'                     => 0,
+        'last_activity_at'               => time(),
+        'last_worker_backend'            => 'process_manager',
     ];
     seo_ie_cf_save_state( $state );
 
-    if ( ! seo_ie_cf_enqueue_batch( $run_id, 0 ) ) {
-        seo_ie_cf_mark_failed( $state, 'No se pudo programar el primer lote.' );
-        return new WP_Error( 'seo_ie_cf_enqueue', 'No se pudo programar el primer lote.' );
+    if ( function_exists( 'seo_process_supervisor_managed_update' ) ) {
+        seo_process_supervisor_managed_update(
+            'commercial-feeds',
+            [
+                'name'         => 'Inventarios comerciales',
+                'pending'      => 1,
+                'healthy'      => 1,
+                'last_checked' => time(),
+                'last_result'  => 'waiting',
+                'last_error'   => '',
+                'detail'       => 'Generacion iniciada; pendiente de la primera ventana del Gestor de workers.',
+            ]
+        );
+    }
+    if ( function_exists( 'seo_process_supervisor_log' ) ) {
+        seo_process_supervisor_log( 'info', 'commercial_feeds_started', 'Inventarios comerciales entregado al Gestor de workers.', 'Inventarios comerciales', [ 'run_id' => $run_id ] );
+    }
+    if ( function_exists( 'seo_process_supervisor_nudge' ) ) {
+        seo_process_supervisor_nudge( 0, 'commercial_feeds' );
+    }
+    if ( function_exists( 'seo_process_supervisor_start' ) ) {
+        seo_process_supervisor_start( false, 'commercial_feeds' );
     }
 
-    // Ejecuta el primer lote en la propia peticion. Asi el arranque no depende
-    // de que Action Scheduler o WP-Cron despierten inmediatamente. La accion
-    // ya encolada queda como respaldo y sera descartada por cursor si llega tarde.
-    seo_ie_cf_process_batch( $run_id, 0 );
-
     return seo_ie_cf_state();
+}
+
+
+/**
+ * Configuracion adaptativa de Inventarios comerciales.
+ *
+ * Usa el mismo regulador temporal/memoria que Import / Export: el panel
+ * Procesos puede sustituir estos valores mediante seo_ie_cf_adaptive_config.
+ */
+function seo_ie_cf_adaptive_config() {
+    $config = [
+        'min_rows'               => 50,
+        'initial_rows'           => SEO_IE_CF_BATCH_SIZE,
+        'max_rows'               => 500,
+        'target_seconds'         => 35.0,
+        'hard_seconds'           => 100.0,
+        'min_rows_before_cutoff' => 1,
+        'memory_soft_ratio'      => 0.72,
+        'memory_hard_ratio'      => 0.84,
+        'growth_factor'          => 1.60,
+        'heavy_delay_seconds'    => 5,
+        'critical_delay_seconds' => 15,
+    ];
+
+    $filtered = apply_filters( 'seo_ie_cf_adaptive_config', $config );
+    if ( is_array( $filtered ) ) {
+        $config = array_merge( $config, $filtered );
+    }
+
+    $config['min_rows']               = max( 1, absint( $config['min_rows'] ) );
+    $config['initial_rows']           = max( $config['min_rows'], absint( $config['initial_rows'] ) );
+    $config['max_rows']               = max( $config['initial_rows'], min( 5000, absint( $config['max_rows'] ) ) );
+    $config['target_seconds']         = max( 5.0, (float) $config['target_seconds'] );
+    $config['hard_seconds']           = max( $config['target_seconds'] + 5.0, (float) $config['hard_seconds'] );
+    $config['min_rows_before_cutoff'] = max( 1, absint( $config['min_rows_before_cutoff'] ) );
+    $config['memory_soft_ratio']      = min( 0.95, max( 0.20, (float) $config['memory_soft_ratio'] ) );
+    $config['memory_hard_ratio']      = min( 0.98, max( $config['memory_soft_ratio'] + 0.05, (float) $config['memory_hard_ratio'] ) );
+    $config['growth_factor']          = min( 2.0, max( 1.10, (float) $config['growth_factor'] ) );
+    $config['heavy_delay_seconds']    = max( 0, absint( $config['heavy_delay_seconds'] ) );
+    $config['critical_delay_seconds'] = max( $config['heavy_delay_seconds'], absint( $config['critical_delay_seconds'] ) );
+
+    return $config;
+}
+
+function seo_ie_cf_memory_ratio( $peak = false ) {
+    if ( function_exists( 'seo_ie_product_import_memory_ratio' ) ) {
+        return (float) seo_ie_product_import_memory_ratio( $peak );
+    }
+
+    $raw = trim( (string) ini_get( 'memory_limit' ) );
+    if ( '' === $raw || '-1' === $raw ) {
+        return 0.0;
+    }
+    $limit = function_exists( 'wp_convert_hr_to_bytes' ) ? (int) wp_convert_hr_to_bytes( $raw ) : 0;
+    if ( $limit <= 0 ) {
+        return 0.0;
+    }
+    $usage = $peak && function_exists( 'memory_get_peak_usage' ) ? memory_get_peak_usage( true ) : memory_get_usage( true );
+    return max( 0.0, (float) $usage / (float) $limit );
+}
+
+function seo_ie_cf_adaptive_plan( $state ) {
+    $state  = is_array( $state ) ? $state : [];
+    $config = seo_ie_cf_adaptive_config();
+
+    $previous_target = absint( $state['last_batch_target_rows'] ?? 0 );
+    if ( 0 === $previous_target ) {
+        $previous_target = $config['initial_rows'];
+    }
+
+    $previous_rows   = absint( $state['last_batch_rows'] ?? 0 );
+    $duration        = max( 0.0, (float) ( $state['last_batch_duration'] ?? 0 ) );
+    $memory_ratio    = max( 0.0, (float) ( $state['last_batch_memory_ratio'] ?? 0 ) );
+    $budget_reached  = ! empty( $state['last_batch_time_budget_reached'] );
+    $seconds_per_row = 0.0;
+    $next            = $config['initial_rows'];
+    $reason          = 'arranque conservador';
+    $pressure        = 'baja';
+
+    if ( 0 < $previous_rows && 0.0 < $duration ) {
+        $seconds_per_row = $duration / max( 1, $previous_rows );
+        $ideal            = (int) floor( $config['target_seconds'] / max( 0.001, $seconds_per_row ) );
+        $ideal            = max( $config['min_rows'], min( $config['max_rows'], $ideal ) );
+        $next             = $previous_target;
+
+        if ( $memory_ratio >= $config['memory_hard_ratio'] ) {
+            $next     = max( $config['min_rows'], min( $ideal, (int) floor( $previous_target * 0.50 ) ) );
+            $reason   = 'memoria alta: se reduce el lote';
+            $pressure = 'alta';
+        } elseif ( $budget_reached || $duration >= $config['hard_seconds'] ) {
+            $next     = max( $config['min_rows'], min( $ideal, (int) floor( $previous_target * 0.70 ) ) );
+            $reason   = 'lote largo: se reduce al coste observado';
+            $pressure = 'alta';
+        } elseif ( $memory_ratio >= $config['memory_soft_ratio'] ) {
+            $next     = max( $config['min_rows'], min( $previous_target, $ideal ) );
+            $reason   = 'memoria en zona preventiva: no se acelera';
+            $pressure = 'media';
+        } elseif ( $duration > ( $config['target_seconds'] * 1.25 ) ) {
+            $next     = max( $config['min_rows'], min( $previous_target, $ideal ) );
+            $reason   = 'el lote supera el objetivo: se ajusta a la baja';
+            $pressure = 'media';
+        } elseif ( $ideal > $previous_target ) {
+            $growth_cap = max( $previous_target + 2, (int) ceil( $previous_target * $config['growth_factor'] ) );
+            $next       = min( $config['max_rows'], $ideal, $growth_cap );
+            $reason     = 'servidor respondiendo bien: se amplia el lote';
+        } elseif ( $ideal < $previous_target ) {
+            $next     = max( $config['min_rows'], $ideal );
+            $reason   = 'se ajusta el lote al tiempo real por producto';
+            $pressure = 'media';
+        } else {
+            $next   = $previous_target;
+            $reason = 'ritmo estable';
+        }
+    }
+
+    return [
+        'batch_size'      => max( $config['min_rows'], min( $config['max_rows'], absint( $next ) ) ),
+        'time_budget'     => (float) $config['hard_seconds'],
+        'reason'          => $reason,
+        'pressure'        => $pressure,
+        'seconds_per_row' => round( $seconds_per_row, 4 ),
+    ];
+}
+
+function seo_ie_cf_adaptive_delay( $state ) {
+    $config       = seo_ie_cf_adaptive_config();
+    $duration     = max( 0.0, (float) ( $state['last_batch_duration'] ?? 0 ) );
+    $memory_ratio = max( 0.0, (float) ( $state['last_batch_memory_ratio'] ?? 0 ) );
+
+    if ( $memory_ratio >= $config['memory_hard_ratio'] || $duration >= ( $config['hard_seconds'] * 1.15 ) ) {
+        return $config['critical_delay_seconds'];
+    }
+    if (
+        ! empty( $state['last_batch_time_budget_reached'] )
+        || $memory_ratio >= $config['memory_soft_ratio']
+        || $duration > ( $config['target_seconds'] * 1.35 )
+    ) {
+        return $config['heavy_delay_seconds'];
+    }
+    return 0;
+}
+
+function seo_ie_cf_supervisor_enabled() {
+    if ( ! function_exists( 'seo_process_supervisor_settings' ) ) {
+        return true;
+    }
+    $settings = seo_process_supervisor_settings();
+    return ! empty( $settings['enabled'] ) && ! empty( $settings['commercial_feeds'] );
+}
+
+function seo_ie_cf_supervisor_has_pending_work( $pending ) {
+    if ( $pending || ! seo_ie_cf_supervisor_enabled() ) {
+        return (bool) $pending;
+    }
+    $state = seo_ie_cf_state();
+    return 'running' === sanitize_key( (string) ( $state['status'] ?? '' ) );
+}
+
+function seo_ie_cf_supervisor_manager_targets( $targets, $settings, $source ) {
+    $targets = is_array( $targets ) ? $targets : [];
+    if ( empty( $settings['commercial_feeds'] ) ) {
+        return $targets;
+    }
+
+    $state = seo_ie_cf_state();
+    if ( 'running' !== sanitize_key( (string) ( $state['status'] ?? '' ) ) ) {
+        return $targets;
+    }
+
+    $due = absint( $state['not_before'] ?? 0 );
+    if ( $due && $due > time() ) {
+        if ( function_exists( 'seo_process_supervisor_managed_update' ) ) {
+            seo_process_supervisor_managed_update(
+                'commercial-feeds',
+                [
+                    'name'         => 'Inventarios comerciales',
+                    'pending'      => 1,
+                    'healthy'      => 1,
+                    'last_checked' => time(),
+                    'last_result'  => 'waiting',
+                    'last_error'   => '',
+                    'detail'       => 'En pausa adaptativa antes del siguiente lote.',
+                ]
+            );
+        }
+        if ( function_exists( 'seo_process_supervisor_nudge' ) ) {
+            seo_process_supervisor_nudge( max( 1, $due - time() ), 'commercial_feeds' );
+        }
+        return $targets;
+    }
+
+    $targets[] = [
+        'type'     => 'commercial_feeds',
+        'data'     => [ 'run_id' => (string) ( $state['run_id'] ?? '' ) ],
+        'callback' => 'seo_ie_cf_supervisor_run_target',
+    ];
+    return $targets;
+}
+
+function seo_ie_cf_supervisor_run_target( $budget, $source, $target ) {
+    $state = seo_ie_cf_state();
+    if ( 'running' !== sanitize_key( (string) ( $state['status'] ?? '' ) ) ) {
+        return false;
+    }
+
+    if ( function_exists( 'seo_process_supervisor_managed_update' ) ) {
+        seo_process_supervisor_managed_update(
+            'commercial-feeds',
+            [
+                'name'            => 'Inventarios comerciales',
+                'pending'         => 1,
+                'healthy'         => 1,
+                'last_checked'    => time(),
+                'last_attempt_at' => time(),
+                'last_result'     => 'running',
+                'last_error'      => '',
+                'detail'          => 'El gestor esta ejecutando una ventana de generacion de feeds.',
+            ]
+        );
+    }
+    if ( function_exists( 'seo_process_supervisor_log' ) ) {
+        seo_process_supervisor_log( 'info', 'process_window_started', 'Inventarios comerciales entra en una ventana del gestor.', 'Inventarios comerciales', [ 'seconds' => absint( $budget ) ] );
+    }
+
+    $ok = seo_ie_cf_run_manager_slice( max( 5, absint( $budget ) ), sanitize_key( (string) $source ) );
+    $after = seo_ie_cf_state();
+    $pending = 'running' === sanitize_key( (string) ( $after['status'] ?? '' ) );
+    $healthy = ! in_array( sanitize_key( (string) ( $after['status'] ?? '' ) ), [ 'failed' ], true );
+    $detail = $pending
+        ? 'Ventana completada; continuara en el siguiente ciclo del gestor.'
+        : ( 'completed' === ( $after['status'] ?? '' ) ? 'Generacion finalizada.' : 'Generacion parada o sin trabajo pendiente.' );
+    $after_errors = array_values( (array) ( $after['errors'] ?? [] ) );
+    $last_error = $after_errors ? sanitize_text_field( (string) $after_errors[ count( $after_errors ) - 1 ] ) : '';
+
+    if ( function_exists( 'seo_process_supervisor_managed_update' ) ) {
+        seo_process_supervisor_managed_update(
+            'commercial-feeds',
+            [
+                'name'         => 'Inventarios comerciales',
+                'pending'      => $pending ? 1 : 0,
+                'healthy'      => $healthy ? 1 : 0,
+                'last_checked' => time(),
+                'last_result'  => $pending ? ( $ok ? 'processed' : 'waiting' ) : sanitize_key( (string) ( $after['status'] ?? 'idle' ) ),
+                'last_error'   => $last_error,
+                'detail'       => $detail,
+            ]
+        );
+    }
+
+    if ( $pending && function_exists( 'seo_process_supervisor_nudge' ) ) {
+        $due = absint( $after['not_before'] ?? 0 );
+        seo_process_supervisor_nudge( $due > time() ? ( $due - time() ) : 0, 'commercial_feeds' );
+    }
+
+    if ( $ok && function_exists( 'seo_process_supervisor_state' ) && function_exists( 'seo_process_supervisor_save_state' ) ) {
+        $supervisor = seo_process_supervisor_state();
+        seo_process_supervisor_save_state( [
+            'launch_count'   => absint( $supervisor['launch_count'] ?? 0 ) + 1,
+            'last_launch_at' => time(),
+        ] );
+    }
+    return $ok;
 }
 
 /**
@@ -644,7 +943,7 @@ function seo_ie_cf_next_ids( $cursor, $limit ) {
     global $wpdb;
 
     $cursor = absint( $cursor );
-    $limit  = max( 1, min( 500, absint( $limit ) ) );
+    $limit  = max( 1, min( 5000, absint( $limit ) ) );
 
     return array_map(
         'absint',
@@ -669,47 +968,86 @@ function seo_ie_cf_next_ids( $cursor, $limit ) {
 }
 
 /**
- * Ejecuta una tanda de generacion.
+ * Compatibilidad con acciones v1.3 ya encoladas.
+ *
+ * Action Scheduler deja de ser motor de los lotes. Una accion heredada solo
+ * despierta el Gestor de workers; el trabajo se ejecuta en su ventana común.
  */
 function seo_ie_cf_process_batch( $run_id, $cursor = 0 ) {
-    $run_id = (string) $run_id;
-    $cursor = absint( $cursor );
-
     $state = seo_ie_cf_state();
     if (
         'running' !== ( $state['status'] ?? '' )
-        || ! hash_equals( (string) ( $state['run_id'] ?? '' ), $run_id )
-        || absint( $state['cursor'] ?? 0 ) !== $cursor
+        || ! hash_equals( (string) ( $state['run_id'] ?? '' ), (string) $run_id )
     ) {
         return;
     }
+    seo_ie_cf_unschedule_batch( (string) $run_id, absint( $cursor ) );
+    if ( function_exists( 'seo_process_supervisor_nudge' ) ) {
+        seo_process_supervisor_nudge( 0, 'commercial_feeds_legacy' );
+    }
+}
 
-    if ( ! seo_ie_cf_acquire_batch_lock( $run_id ) ) {
-        return;
+
+/**
+ * Ejecuta una ventana de Inventarios comerciales desde el Gestor de workers.
+ *
+ * @param int    $budget Segundos asignados por el supervisor.
+ * @param string $source Backend del gestor.
+ * @return bool True si se proceso trabajo en esta ventana.
+ */
+function seo_ie_cf_run_manager_slice( $budget = 45, $source = 'process_manager' ) {
+    $state = seo_ie_cf_state();
+    if ( 'running' !== ( $state['status'] ?? '' ) ) {
+        return false;
     }
 
+    $due = absint( $state['not_before'] ?? 0 );
+    if ( $due && $due > time() ) {
+        return false;
+    }
+
+    $run_id = (string) ( $state['run_id'] ?? '' );
+    if ( '' === $run_id || ! seo_ie_cf_acquire_batch_lock( $run_id ) ) {
+        return false;
+    }
+
+    $worked = false;
     try {
-        // Revalida tras adquirir el lock: otra peticion pudo detener o avanzar
-        // la ejecucion mientras esperabamos.
         $state = seo_ie_cf_state();
-        if (
-            'running' !== ( $state['status'] ?? '' )
-            || ! hash_equals( (string) ( $state['run_id'] ?? '' ), $run_id )
-            || absint( $state['cursor'] ?? 0 ) !== $cursor
-        ) {
-            return;
+        if ( 'running' !== ( $state['status'] ?? '' ) || ! hash_equals( $run_id, (string) ( $state['run_id'] ?? '' ) ) ) {
+            return false;
         }
 
-        $settings = seo_ie_cf_settings();
-        $ids = seo_ie_cf_next_ids( $cursor, $settings['batch_size'] );
+        $plan   = seo_ie_cf_adaptive_plan( $state );
+        $config = seo_ie_cf_adaptive_config();
+        $target = max( 1, absint( $plan['batch_size'] ) );
+        $cursor = absint( $state['cursor'] ?? 0 );
+        $ids    = seo_ie_cf_next_ids( $cursor, $target );
 
         if ( empty( $ids ) ) {
             seo_ie_cf_finish_build( $state );
-            return;
+            return true;
         }
 
+        $window_started = microtime( true );
+        $manager_budget = max( 5, min( 55, absint( $budget ) ) );
+        $time_budget    = min( (float) $plan['time_budget'], max( 3.0, (float) $manager_budget - 2.0 ) );
+        $rows           = 0;
+        $last_id        = $cursor;
+        $cutoff         = false;
+
         foreach ( $ids as $product_id ) {
+            if (
+                $rows >= $config['min_rows_before_cutoff']
+                && ( microtime( true ) - $window_started ) >= $time_budget
+            ) {
+                $cutoff = true;
+                break;
+            }
+
             $state['processed']++;
+            $rows++;
+            $last_id = (int) $product_id;
             $result = seo_ie_cf_product_record( $product_id );
 
             if ( is_wp_error( $result ) ) {
@@ -740,37 +1078,58 @@ function seo_ie_cf_process_batch( $run_id, $cursor = 0 ) {
             if ( $written_ok ) {
                 $state['written']++;
             } else {
-                $state['cursor'] = (int) $product_id;
+                $state['cursor'] = $last_id;
                 seo_ie_cf_mark_failed( $state );
-                return;
+                return true;
             }
         }
 
-        // Si el usuario pulso Parar durante este lote, no sobrescribas ese
-        // estado con una copia antigua marcada como running.
         $latest = seo_ie_cf_state();
-        if (
-            'running' !== ( $latest['status'] ?? '' )
-            || ! hash_equals( (string) ( $latest['run_id'] ?? '' ), $run_id )
-        ) {
-            return;
+        if ( 'running' !== ( $latest['status'] ?? '' ) || ! hash_equals( $run_id, (string) ( $latest['run_id'] ?? '' ) ) ) {
+            return $rows > 0;
         }
 
-        $state['cursor'] = (int) end( $ids );
-        seo_ie_cf_save_state( $state );
+        $duration = max( 0.001, microtime( true ) - $window_started );
+        $state['cursor']                         = $last_id;
+        $state['last_batch_rows']                = $rows;
+        $state['last_batch_target_rows']         = $target;
+        $state['last_batch_duration']            = round( $duration, 4 );
+        $state['last_batch_seconds_per_row']     = round( $duration / max( 1, $rows ), 4 );
+        $state['last_batch_memory_ratio']        = round( seo_ie_cf_memory_ratio( true ), 4 );
+        $state['last_batch_time_budget_reached'] = $cutoff ? 1 : 0;
+        $state['last_worker_backend']            = sanitize_key( (string) $source );
+        $state['last_activity_at']               = time();
 
-        if ( ! seo_ie_cf_enqueue_batch( $run_id, $state['cursor'] ) ) {
-            seo_ie_cf_mark_failed( $state, 'No se pudo programar el siguiente lote.' );
+        $next_plan = seo_ie_cf_adaptive_plan( $state );
+        $delay     = seo_ie_cf_adaptive_delay( $state );
+        $state['adaptive_next_batch_size'] = absint( $next_plan['batch_size'] );
+        $state['adaptive_next_delay']      = absint( $delay );
+        $state['adaptive_pressure']        = sanitize_key( (string) $next_plan['pressure'] );
+        $state['adaptive_reason']          = sanitize_text_field( (string) $next_plan['reason'] );
+        $state['not_before']               = $delay > 0 ? time() + $delay : 0;
+        seo_ie_cf_save_state( $state );
+        $worked = $rows > 0;
+
+        // Si SQL devolvio menos IDs que el objetivo y se procesaron todos, no
+        // queda ninguna oferta por detras: finaliza sin esperar otro ciclo.
+        if ( ! $cutoff && $rows === count( $ids ) && count( $ids ) < $target ) {
+            seo_ie_cf_finish_build( $state );
+            return true;
+        }
+
+        if ( function_exists( 'seo_process_supervisor_nudge' ) ) {
+            seo_process_supervisor_nudge( $delay, 'commercial_feeds' );
         }
     } finally {
         seo_ie_cf_release_batch_lock( $run_id );
     }
+
+    return $worked;
 }
 
 /**
- * Watchdog asistido por navegador. Action Scheduler sigue siendo la via
- * principal; si no hay actividad durante unos segundos y la pestana permanece
- * abierta, ejecuta exactamente un lote protegido por lock.
+ * Compatibilidad con la UI v1.3: ya no ejecuta lotes desde AJAX.
+ * Solo entrega un pulso al Gestor de workers central.
  */
 function seo_ie_cf_browser_continue( $minimum_idle = 8 ) {
     $state = seo_ie_cf_state();
@@ -778,33 +1137,16 @@ function seo_ie_cf_browser_continue( $minimum_idle = 8 ) {
         return [ 'ran' => false, 'message' => 'La generacion no esta en ejecucion.' ];
     }
 
-    $run_id = (string) ( $state['run_id'] ?? '' );
-    $cursor = absint( $state['cursor'] ?? 0 );
-    if ( '' === $run_id ) {
-        return [ 'ran' => false, 'message' => 'No hay una ejecucion recuperable.' ];
+    if ( function_exists( 'seo_process_supervisor_nudge' ) ) {
+        seo_process_supervisor_nudge( 0, 'commercial_feeds_admin' );
+    }
+    if ( function_exists( 'seo_process_supervisor_start' ) ) {
+        seo_process_supervisor_start( false, 'commercial_feeds_admin' );
     }
 
-    $last_ts = ! empty( $state['updated_at'] ) ? strtotime( (string) $state['updated_at'] . ' UTC' ) : 0;
-    $idle = $last_ts ? max( 0, time() - $last_ts ) : PHP_INT_MAX;
-    if ( $idle < max( 5, absint( $minimum_idle ) ) ) {
-        return [ 'ran' => false, 'message' => 'El ultimo lote es reciente.' ];
-    }
-
-    if ( seo_ie_cf_batch_is_locked( $run_id ) ) {
-        return [ 'ran' => false, 'message' => 'Hay un lote activo.' ];
-    }
-
-    // Retira el lote pendiente equivalente para no acumular duplicados y
-    // procesa uno directamente desde la peticion AJAX del administrador.
-    seo_ie_cf_unschedule_batch( $run_id, $cursor );
-    seo_ie_cf_process_batch( $run_id, $cursor );
-
-    $after = seo_ie_cf_state();
-    return [
-        'ran'     => absint( $after['processed'] ?? 0 ) > absint( $state['processed'] ?? 0 ) || ( $after['status'] ?? '' ) !== 'running',
-        'message' => 'Watchdog ejecutado.',
-    ];
+    return [ 'ran' => false, 'message' => 'Pulso entregado al Gestor de workers.' ];
 }
+
 
 /**
  * Elimina temporales de una generacion fallida. Los feeds finales anteriores
@@ -860,8 +1202,84 @@ function seo_ie_cf_finish_build( array $state ) {
     seo_ie_cf_record_history( $state );
 
     if ( '' !== $pending_refresh && seo_ie_cf_is_production() ) {
-        seo_ie_cf_schedule_refresh( $pending_refresh, 60 );
+        seo_ie_cf_start_build( $pending_refresh );
     }
+}
+
+/**
+ * Añade Inventarios comerciales al Monitor en tiempo real de Procesos.
+ */
+function seo_ie_cf_processes_monitor_items( $items ) {
+    $items = is_array( $items ) ? $items : [];
+    $state = seo_ie_cf_state();
+    $status = sanitize_key( (string) ( $state['status'] ?? 'never' ) );
+    $due = absint( $state['not_before'] ?? 0 );
+    $due_in = $due > time() ? $due - time() : 0;
+
+    if ( 'running' === $status && $due_in > 0 ) {
+        $view_state = function_exists( 'seo_processes_state' ) ? seo_processes_state( 'waiting', 'En espera controlada', 'waiting' ) : [ 'code' => 'waiting', 'label' => 'En espera controlada', 'tone' => 'waiting' ];
+    } elseif ( 'running' === $status ) {
+        $view_state = function_exists( 'seo_processes_state' ) ? seo_processes_state( 'running', 'En ejecucion', 'running' ) : [ 'code' => 'running', 'label' => 'En ejecucion', 'tone' => 'running' ];
+    } elseif ( 'completed' === $status ) {
+        $view_state = function_exists( 'seo_processes_state' ) ? seo_processes_state( 'completed', 'Completado', 'completed' ) : [ 'code' => 'completed', 'label' => 'Completado', 'tone' => 'completed' ];
+    } elseif ( 'failed' === $status ) {
+        $view_state = function_exists( 'seo_processes_state' ) ? seo_processes_state( 'error', 'Con error', 'error' ) : [ 'code' => 'error', 'label' => 'Con error', 'tone' => 'error' ];
+    } else {
+        $view_state = function_exists( 'seo_processes_state' ) ? seo_processes_state( 'stopped', 'Parado', 'stopped' ) : [ 'code' => 'stopped', 'label' => 'Parado', 'tone' => 'stopped' ];
+    }
+
+    $rows = absint( $state['last_batch_rows'] ?? 0 );
+    $duration = max( 0.0, (float) ( $state['last_batch_duration'] ?? 0 ) );
+    $rate = $duration > 0.0 && $rows > 0 ? ( $rows / $duration ) * 60.0 : 0.0;
+    $total = absint( $state['candidate_total'] ?? 0 );
+    $processed = absint( $state['processed'] ?? 0 );
+    $progress = $total > 0 ? min( 100, round( ( $processed / $total ) * 100, 1 ) ) : null;
+    $next_batch = absint( $state['adaptive_next_batch_size'] ?? 0 );
+    $delay = absint( $state['adaptive_next_delay'] ?? 0 );
+    $pressure = sanitize_key( (string) ( $state['adaptive_pressure'] ?? 'baja' ) );
+    $activity_ts = absint( $state['last_activity_at'] ?? 0 );
+    if ( ! $activity_ts && ! empty( $state['updated_at'] ) ) {
+        $activity_ts = strtotime( (string) $state['updated_at'] . ' UTC' );
+    }
+    $age = $activity_ts ? max( 0, time() - $activity_ts ) : null;
+    $activity = null !== $age && function_exists( 'seo_processes_format_age' ) ? seo_processes_format_age( $age ) : ( $activity_ts ? wp_date( 'd/m H:i:s', $activity_ts ) : 'Sin actividad' );
+
+    $load = 'Motor: gestor periodico';
+    if ( $next_batch > 0 ) {
+        $load .= ' · siguiente lote ' . number_format_i18n( $next_batch );
+    }
+    if ( $delay > 0 ) {
+        $load .= ' · pausa propia ' . number_format_i18n( $delay ) . ' s';
+    }
+    $load .= ' · presion ' . ( $pressure ?: 'baja' );
+
+    $response = $duration > 0.0
+        ? number_format_i18n( $duration, 2 ) . ' s el ultimo lote · ' . number_format_i18n( $rows ) . ' productos'
+        : 'Sin lote medido';
+    $detail = number_format_i18n( absint( $state['written'] ?? 0 ) ) . ' publicados · ' . number_format_i18n( absint( $state['excluded'] ?? 0 ) ) . ' excluidos.';
+    if ( ! empty( $state['adaptive_reason'] ) ) {
+        $detail .= ' ' . sanitize_text_field( (string) $state['adaptive_reason'] ) . '.';
+    }
+
+    $items[] = [
+        'id'            => 'commercial-feeds',
+        'name'          => 'Inventarios comerciales',
+        'kind'          => 'Feeds Google, Microsoft, Pinterest y universales',
+        'state'         => $view_state,
+        'speed'         => $rate > 0 ? number_format_i18n( $rate, 1 ) . ' productos/min' : 'Sin ritmo medible',
+        'response'      => $response,
+        'load'          => $load,
+        'activity'      => $activity,
+        'activity_age'  => $age,
+        'progress'      => $progress,
+        'progress_text' => number_format_i18n( $processed ) . ( $total ? ' / ' . number_format_i18n( $total ) : '' ),
+        'detail'        => $detail,
+        'url'           => add_query_arg( [ 'page' => 'seo-import-export', 'seo_ie_tab' => 'inventarios-comerciales' ], admin_url( 'admin.php' ) ),
+        'can_start'     => 'running' !== $status,
+        'start_label'   => 'Iniciar',
+    ];
+
+    return $items;
 }
 
 /**
