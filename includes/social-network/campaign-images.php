@@ -654,6 +654,11 @@ function seo_social_campaign_image_generate($campaign, $product_item, $provider 
     $w = $canvas['width'];
     $h = $canvas['height'];
 
+    imagefilledellipse($image, (int) ($w * 0.90), (int) ($h * 0.20), (int) ($w * 0.30), (int) ($h * 0.55), $accent2);
+    imagefilledellipse($image, (int) ($w * 0.85), (int) ($h * 0.85), (int) ($w * 0.45), (int) ($h * 0.35), $accent2);
+    imagefilledrectangle($image, 0, (int) ($h * 0.78), $w, $h, imagecolorallocatealpha($image, 255, 255, 255, 118));
+    imagefilledpolygon($image, array((int) ($w * 0.72), 0, $w, 0, $w, (int) ($h * 0.25)), 3, imagecolorallocatealpha($image, 255, 255, 255, 118));
+
     // Foto real del producto: se lee de Media o del proveedor, pero la fuente
     // nunca se importa ni se copia a la biblioteca de WordPress.
     $loaded_product = seo_social_campaign_image_load_product($product_item);
@@ -669,11 +674,6 @@ function seo_social_campaign_image_generate($campaign, $product_item, $provider 
         }
         imagedestroy($loaded_product['image']);
     }
-
-    imagefilledellipse($image, (int) ($w * 0.90), (int) ($h * 0.20), (int) ($w * 0.30), (int) ($h * 0.55), $accent2);
-    imagefilledellipse($image, (int) ($w * 0.85), (int) ($h * 0.85), (int) ($w * 0.45), (int) ($h * 0.35), $accent2);
-    imagefilledrectangle($image, 0, (int) ($h * 0.78), $w, $h, imagecolorallocatealpha($image, 255, 255, 255, 118));
-    imagefilledpolygon($image, array((int) ($w * 0.72), 0, $w, 0, $w, (int) ($h * 0.25)), 3, imagecolorallocatealpha($image, 255, 255, 255, 118));
 
     $fonts = seo_social_campaign_image_fonts();
     $font_regular = $fonts['regular'];
