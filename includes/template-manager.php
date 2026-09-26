@@ -109,7 +109,7 @@ function seo_tm_assignment_modes() {
 function seo_tm_ensure_builtin_templates() {
     global $wpdb;
 
-    $catalog_version = '1.0.0';
+    $catalog_version = '1.1.0';
 
     if (version_compare((string) get_option('seo_tm_builtin_templates_version', '0.0.0'), $catalog_version, '>=')) {
         return;
@@ -135,10 +135,19 @@ function seo_tm_ensure_builtin_templates() {
         'template-blog.php'
     ));
 
+    $wpdb->query($wpdb->prepare(
+        "INSERT IGNORE INTO {$table}
+            (template_key, template_name, template_file, is_active)
+         VALUES (%s, %s, %s, 1)",
+        'taxonomy_category',
+        'Categorías del blog',
+        'template-blog-category.php'
+    ));
+
     /*
      * Las columnas ampliadas no existen en instalaciones muy antiguas.
      * Si ya están disponibles, fijamos únicamente las propiedades
-     * estructurales de blog_index; activo/público siguen siendo editables.
+     * estructurales; activo/público siguen siendo editables.
      */
     $columns = $wpdb->get_col("SHOW COLUMNS FROM {$table}", 0);
 
@@ -153,6 +162,22 @@ function seo_tm_ensure_builtin_templates() {
                  assignment_mode = 'automatic',
                  is_assignable = 0
              WHERE template_key = 'blog_index'"
+        );
+
+        $wpdb->query(
+            "UPDATE {$table}
+             SET template_type = 'taxonomy',
+                 assignment_mode = 'automatic',
+                 is_assignable = 0
+             WHERE template_key = 'taxonomy_category'"
+        );
+    }
+
+    if (in_array('device_variants_enabled', $columns, true)) {
+        $wpdb->query(
+            "UPDATE {$table}
+             SET device_variants_enabled = 1
+             WHERE template_key IN ('blog_index', 'taxonomy_category')"
         );
     }
 
