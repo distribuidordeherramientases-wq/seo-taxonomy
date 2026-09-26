@@ -2103,9 +2103,26 @@ function seo_marketing_campaigns_handle_import()
 
     foreach ((array) $rows as $index => $raw_row) {
         $type = sanitize_key((string) ($raw_row['record_type'] ?? ''));
+
         if ($type === '') {
-            $type = 'campaign'; // compatibilidad V1.0.
+            // Compatibilidad:
+            // - CSV/JSON V1.0 de calendario: no llevaba record_type.
+            // - CSV de productos usado antes de V1.3: tampoco llevaba record_type.
+            // Si hay datos propios de producto y no hay datos obligatorios de campana,
+            // se interpreta como fila product; en cualquier otro caso, como campaign.
+            $has_campaign_data =
+                trim((string) ($raw_row['name'] ?? '')) !== ''
+                || trim((string) ($raw_row['start_at'] ?? '')) !== ''
+                || trim((string) ($raw_row['end_at'] ?? '')) !== '';
+
+            $has_product_data =
+                absint($raw_row['product_id'] ?? 0) > 0
+                || trim((string) ($raw_row['sku'] ?? '')) !== ''
+                || trim((string) ($raw_row['campaign_price'] ?? '')) !== '';
+
+            $type = ($has_product_data && !$has_campaign_data) ? 'product' : 'campaign';
         }
+
         if ($type === 'campaign') {
             $campaign_rows[] = array('index' => $index, 'row' => $raw_row);
         } elseif ($type === 'product') {
