@@ -173,8 +173,9 @@ function seo_social_facebook_publish($payload)
     }
 
     $mode = isset($config['publish_mode']) ? sanitize_key($config['publish_mode']) : 'link';
+    $force_image = !empty($payload['force_image']);
 
-    if ('photo' === $mode && $image_url !== '') {
+    if (($force_image || 'photo' === $mode) && $image_url !== '') {
         if ($target_url !== '' && strpos($message, $target_url) === false) {
             $message = trim($message . "\n\n" . $target_url);
         }
