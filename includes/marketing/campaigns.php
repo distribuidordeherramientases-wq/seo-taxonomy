@@ -2,9 +2,9 @@
 /**
  * SEO Taxonomy - Marketing / Campañas.
  *
- * V1.2: creacion, organizacion temporal, recurrencia basica, productos con
- * precio de campana e importacion/exportacion portable del calendario.
- * El intercambio de campanas NO incluye productos, precios ni creatividades.
+ * V1.3: gestion completa de campanas, productos y precios, con edicion,
+ * vaciado/eliminacion segura e importacion/exportacion portable completa.
+ * Mantiene compatibilidad con los CSV/JSON antiguos que solo incluian calendario.
  */
 
 defined('ABSPATH') || exit;
@@ -1513,6 +1513,89 @@ function seo_marketing_campaigns_handle_update_products()
 add_action('admin_post_seo_marketing_campaign_update_products', 'seo_marketing_campaigns_handle_update_products');
 
 /**
+ * Vacia todos los productos de una campana conservando la campana.
+ * Si alguno tiene el precio aplicado, restaura primero su oferta anterior.
+ */
+function seo_marketing_campaigns_handle_clear_products()
+{
+    if (!current_user_can('manage_options')) {
+        wp_die('No tienes permisos para gestionar campanas.');
+    }
+    check_admin_referer('seo_marketing_campaign_clear_products');
+
+    global $wpdb;
+    $tables = seo_marketing_campaigns_tables();
+    $campaign_id = isset($_POST['campaign_id']) ? absint($_POST['campaign_id']) : 0;
+    $campaign = seo_marketing_campaigns_get($campaign_id);
+    if (!$campaign) {
+        seo_marketing_campaigns_redirect_notice('La campana no existe.', 'error');
+    }
+
+    $rows = (array) $wpdb->get_results(
+        $wpdb->prepare("SELECT * FROM {$tables['products']} WHERE campaign_id = %d", $campaign_id)
+    );
+
+    foreach ($rows as $row) {
+        if (!empty($row->applied)) {
+            seo_marketing_campaigns_restore_product_row($row, $campaign);
+        }
+    }
+
+    $removed = (int) $wpdb->query(
+        $wpdb->prepare("DELETE FROM {$tables['products']} WHERE campaign_id = %d", $campaign_id)
+    );
+
+    seo_marketing_campaigns_reschedule($campaign_id);
+    seo_marketing_campaigns_redirect_notice(
+        sprintf('Campana vaciada. Productos eliminados: %d.', max(0, $removed)),
+        'success',
+        array('campaign_id' => $campaign_id)
+    );
+}
+add_action('admin_post_seo_marketing_campaign_clear_products', 'seo_marketing_campaigns_handle_clear_products');
+
+/**
+ * Elimina definitivamente una campana y sus relaciones.
+ * Cancela acciones futuras y restaura antes cualquier precio aplicado.
+ */
+function seo_marketing_campaigns_handle_delete()
+{
+    if (!current_user_can('manage_options')) {
+        wp_die('No tienes permisos para gestionar campanas.');
+    }
+    check_admin_referer('seo_marketing_campaign_delete');
+
+    global $wpdb;
+    $tables = seo_marketing_campaigns_tables();
+    $campaign_id = isset($_POST['campaign_id']) ? absint($_POST['campaign_id']) : 0;
+    $campaign = seo_marketing_campaigns_get($campaign_id);
+    if (!$campaign) {
+        seo_marketing_campaigns_redirect_notice('La campana no existe.', 'error');
+    }
+
+    seo_marketing_campaigns_unschedule($campaign_id);
+
+    $rows = (array) $wpdb->get_results(
+        $wpdb->prepare("SELECT * FROM {$tables['products']} WHERE campaign_id = %d", $campaign_id)
+    );
+    foreach ($rows as $row) {
+        if (!empty($row->applied)) {
+            seo_marketing_campaigns_restore_product_row($row, $campaign);
+        }
+    }
+
+    $wpdb->delete($tables['products'], array('campaign_id' => $campaign_id), array('%d'));
+    $deleted = $wpdb->delete($tables['campaigns'], array('id' => $campaign_id), array('%d'));
+
+    if ($deleted === false) {
+        seo_marketing_campaigns_redirect_notice('No se pudo eliminar la campana.', 'error');
+    }
+
+    seo_marketing_campaigns_redirect_notice('Campana eliminada definitivamente.', 'success');
+}
+add_action('admin_post_seo_marketing_campaign_delete', 'seo_marketing_campaigns_handle_delete');
+
+/**
  * Crea una nueva edicion de la misma serie, sin copiar productos.
  */
 function seo_marketing_campaigns_handle_duplicate()
@@ -1581,7 +1664,9 @@ add_action('admin_post_seo_marketing_campaign_duplicate', 'seo_marketing_campaig
 
 
 /**
- * Filas portables del calendario de campanas. No incluye productos ni precios.
+ * Filas portables del calendario de campanas.
+ *
+ * Se conserva como API interna para consumidores que solo necesitan cabeceras.
  *
  * @return array<int,array<string,mixed>>
  */
@@ -1603,9 +1688,9 @@ function seo_marketing_campaigns_export_rows()
             'series_key'    => (string) $row->series_key,
             'name'          => (string) $row->name,
             'edition'       => (string) $row->edition_label,
-            'campaign_type'             => seo_marketing_campaigns_normalize_type((string) $row->campaign_type),
+            'campaign_type' => seo_marketing_campaigns_normalize_type((string) $row->campaign_type),
             'social_creative_template' => seo_marketing_campaigns_normalize_social_creative_template((string) $row->social_creative_template),
-            'start_at'                  => seo_marketing_campaigns_datetime_iso((string) $row->start_at),
+            'start_at'      => seo_marketing_campaigns_datetime_iso((string) $row->start_at),
             'end_at'        => seo_marketing_campaigns_datetime_iso((string) $row->end_at),
             'recurrence'    => (string) $row->recurrence,
             'enabled'       => (int) $row->is_enabled === 1,
@@ -1616,12 +1701,84 @@ function seo_marketing_campaigns_export_rows()
 }
 
 /**
- * Descarga JSON o CSV del calendario. Nunca exporta productos/precios.
+ * Registros portables completos: cabeceras de campana + productos.
+ *
+ * @return array<int,array<string,mixed>>
+ */
+function seo_marketing_campaigns_export_records()
+{
+    global $wpdb;
+    $tables = seo_marketing_campaigns_tables();
+    $records = array();
+
+    $campaigns = (array) $wpdb->get_results(
+        "SELECT id, campaign_key, series_key, name, edition_label, campaign_type, recurrence, social_creative_template, start_at, end_at, is_enabled
+         FROM {$tables['campaigns']}
+         ORDER BY start_at ASC, id ASC"
+    );
+
+    foreach ($campaigns as $campaign) {
+        $records[] = array(
+            'record_type'               => 'campaign',
+            'campaign_key'              => (string) $campaign->campaign_key,
+            'series_key'                => (string) $campaign->series_key,
+            'name'                      => (string) $campaign->name,
+            'edition'                   => (string) $campaign->edition_label,
+            'campaign_type'             => seo_marketing_campaigns_normalize_type((string) $campaign->campaign_type),
+            'social_creative_template'  => seo_marketing_campaigns_normalize_social_creative_template((string) $campaign->social_creative_template),
+            'start_at'                  => seo_marketing_campaigns_datetime_iso((string) $campaign->start_at),
+            'end_at'                    => seo_marketing_campaigns_datetime_iso((string) $campaign->end_at),
+            'recurrence'                => (string) $campaign->recurrence,
+            'enabled'                   => (int) $campaign->is_enabled === 1 ? 1 : 0,
+            'product_id'                => '',
+            'sku'                       => '',
+            'campaign_price'            => '',
+            'position'                  => '',
+        );
+
+        $products = (array) $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT cp.product_id, cp.campaign_price, cp.position, sku.meta_value AS sku
+                 FROM {$tables['products']} cp
+                 LEFT JOIN {$wpdb->postmeta} sku
+                   ON sku.post_id = cp.product_id AND sku.meta_key = '_sku'
+                 WHERE cp.campaign_id = %d
+                 ORDER BY cp.position ASC, cp.id ASC",
+                absint($campaign->id)
+            )
+        );
+
+        foreach ($products as $product) {
+            $records[] = array(
+                'record_type'               => 'product',
+                'campaign_key'              => (string) $campaign->campaign_key,
+                'series_key'                => '',
+                'name'                      => '',
+                'edition'                   => '',
+                'campaign_type'             => '',
+                'social_creative_template'  => '',
+                'start_at'                  => '',
+                'end_at'                    => '',
+                'recurrence'                => '',
+                'enabled'                   => '',
+                'product_id'                => absint($product->product_id),
+                'sku'                       => (string) $product->sku,
+                'campaign_price'            => (string) $product->campaign_price,
+                'position'                  => (int) $product->position,
+            );
+        }
+    }
+
+    return $records;
+}
+
+/**
+ * Descarga JSON o CSV completo de campanas y productos.
  */
 function seo_marketing_campaigns_handle_export()
 {
     if (!current_user_can('manage_options')) {
-        wp_die('No tienes permisos para exportar campañas.');
+        wp_die('No tienes permisos para exportar campanas.');
     }
     check_admin_referer('seo_marketing_campaigns_export');
 
@@ -1632,7 +1789,7 @@ function seo_marketing_campaigns_handle_export()
         $format = 'json';
     }
 
-    $rows = seo_marketing_campaigns_export_rows();
+    $records = seo_marketing_campaigns_export_records();
     $stamp = wp_date('Ymd-His', time(), wp_timezone());
     $filename = 'seo-campaigns-' . $stamp . '.' . $format;
 
@@ -1646,20 +1803,19 @@ function seo_marketing_campaigns_handle_export()
         if ($out === false) {
             wp_die('No se pudo abrir la salida CSV.');
         }
-        fputcsv($out, array('campaign_key', 'series_key', 'name', 'edition', 'campaign_type', 'social_creative_template', 'start_at', 'end_at', 'recurrence', 'enabled'), ';');
-        foreach ($rows as $row) {
-            fputcsv($out, array(
-                $row['campaign_key'],
-                $row['series_key'],
-                $row['name'],
-                $row['edition'],
-                $row['campaign_type'],
-                $row['social_creative_template'],
-                $row['start_at'],
-                $row['end_at'],
-                $row['recurrence'],
-                $row['enabled'] ? '1' : '0',
-            ), ';');
+
+        $headers = array(
+            'record_type', 'campaign_key', 'series_key', 'name', 'edition',
+            'campaign_type', 'social_creative_template', 'start_at', 'end_at',
+            'recurrence', 'enabled', 'product_id', 'sku', 'campaign_price', 'position',
+        );
+        fputcsv($out, $headers, ';');
+        foreach ($records as $row) {
+            $values = array();
+            foreach ($headers as $header) {
+                $values[] = isset($row[$header]) ? $row[$header] : '';
+            }
+            fputcsv($out, $values, ';');
         }
         fclose($out);
         exit;
@@ -1667,11 +1823,11 @@ function seo_marketing_campaigns_handle_export()
 
     header('Content-Type: application/json; charset=utf-8');
     $payload = array(
-        'schema_version' => '1.0',
-        'kind'           => 'seo_marketing_campaign_calendar',
+        'schema_version' => '1.1',
+        'kind'           => 'seo_marketing_campaigns',
         'generated_at'   => wp_date(DATE_ATOM, time(), wp_timezone()),
         'timezone'       => wp_timezone_string(),
-        'campaigns'      => $rows,
+        'records'        => $records,
     );
     echo wp_json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
@@ -1732,7 +1888,11 @@ function seo_marketing_campaigns_import_read_csv($path)
 }
 
 /**
- * Lee JSON o CSV subido y devuelve las campanas declaradas.
+ * Lee JSON o CSV subido.
+ *
+ * Compatibilidad:
+ * - V1.0: array "campaigns" o lista plana de campanas.
+ * - V1.1: array "records" con record_type=campaign|product.
  *
  * @param string $path
  * @param string $extension
@@ -1754,6 +1914,9 @@ function seo_marketing_campaigns_import_read_file($path, $extension)
         return new WP_Error('campaign_json_invalid', 'El JSON no es valido.');
     }
 
+    if (isset($data['records']) && is_array($data['records'])) {
+        return $data['records'];
+    }
     if (isset($data['campaigns']) && is_array($data['campaigns'])) {
         return $data['campaigns'];
     }
@@ -1763,17 +1926,12 @@ function seo_marketing_campaigns_import_read_file($path, $extension)
         return $data;
     }
 
-    return new WP_Error('campaign_json_shape', 'El JSON debe contener un array "campaigns".');
+    return new WP_Error('campaign_json_shape', 'El JSON debe contener un array "records" o "campaigns".');
 }
 
 /**
  * Comprueba que una actualizacion de fechas no provoque solapes en productos
  * que ya estan asociados localmente a esa campana.
- *
- * @param int    $campaign_id
- * @param string $start_at
- * @param string $end_at
- * @return WP_Error|true
  */
 function seo_marketing_campaigns_import_validate_existing_products($campaign_id, $start_at, $end_at)
 {
@@ -1793,10 +1951,7 @@ function seo_marketing_campaigns_import_validate_existing_products($campaign_id,
         if ($overlap) {
             return new WP_Error(
                 'campaign_import_overlap',
-                sprintf(
-                    'La campana no se actualiza porque uno de sus productos solaparia con "%s".',
-                    (string) $overlap->name
-                )
+                sprintf('La campana no se actualiza porque uno de sus productos solaparia con "%s".', (string) $overlap->name)
             );
         }
     }
@@ -1805,10 +1960,7 @@ function seo_marketing_campaigns_import_validate_existing_products($campaign_id,
 }
 
 /**
- * Normaliza una fila portable.
- *
- * @param array $row
- * @return array|WP_Error
+ * Normaliza una fila portable de campana.
  */
 function seo_marketing_campaigns_import_normalize_row($row)
 {
@@ -1833,7 +1985,6 @@ function seo_marketing_campaigns_import_normalize_row($row)
     }
 
     $series_key = sanitize_title((string) ($row['series_key'] ?? ''));
-    $social_creative_template = seo_marketing_campaigns_normalize_social_creative_template((string) ($row['social_creative_template'] ?? 'design_1'));
     if ($series_key === '') {
         $series_key = sanitize_title($name);
     }
@@ -1852,26 +2003,77 @@ function seo_marketing_campaigns_import_normalize_row($row)
     }
 
     return array(
-        'campaign_key'  => $campaign_key,
-        'series_key'    => $series_key,
-        'name'          => $name,
-        'edition_label' => $edition,
-        'campaign_type'             => seo_marketing_campaigns_normalize_type((string) ($row['campaign_type'] ?? 'calendar')),
-        'recurrence'                => $recurrence,
-        'social_creative_template'  => $social_creative_template,
-        'start_at'                  => $start_at,
-        'end_at'        => $end_at,
-        'is_enabled'    => seo_marketing_campaigns_import_bool($row['enabled'] ?? ($row['is_enabled'] ?? 1)),
+        'campaign_key'             => $campaign_key,
+        'series_key'               => $series_key,
+        'name'                     => $name,
+        'edition_label'            => $edition,
+        'campaign_type'            => seo_marketing_campaigns_normalize_type((string) ($row['campaign_type'] ?? 'calendar')),
+        'recurrence'               => $recurrence,
+        'social_creative_template' => seo_marketing_campaigns_normalize_social_creative_template((string) ($row['social_creative_template'] ?? 'design_1')),
+        'start_at'                 => $start_at,
+        'end_at'                   => $end_at,
+        'is_enabled'               => seo_marketing_campaigns_import_bool($row['enabled'] ?? ($row['is_enabled'] ?? 1)),
     );
 }
 
 /**
- * Importa el calendario. Upsert por campaign_key y nunca toca productos.
+ * Normaliza y resuelve una fila portable de producto.
+ */
+function seo_marketing_campaigns_import_normalize_product_row($row)
+{
+    if (!is_array($row)) {
+        return new WP_Error('campaign_product_row', 'Fila de producto invalida.');
+    }
+
+    $campaign_key = sanitize_title((string) ($row['campaign_key'] ?? ''));
+    if ($campaign_key === '') {
+        return new WP_Error('campaign_product_campaign', 'campaign_key es obligatorio para productos.');
+    }
+
+    $product_id = absint($row['product_id'] ?? 0);
+    $sku = sanitize_text_field((string) ($row['sku'] ?? ''));
+
+    if ($product_id <= 0 && $sku !== '' && function_exists('wc_get_product_id_by_sku')) {
+        $product_id = absint(wc_get_product_id_by_sku($sku));
+    }
+    if ($product_id <= 0) {
+        return new WP_Error('campaign_product_missing', 'No se pudo resolver el producto por product_id o SKU.');
+    }
+
+    $product = function_exists('wc_get_product') ? wc_get_product($product_id) : null;
+    if (!$product) {
+        return new WP_Error('campaign_product_missing', 'El producto no existe.');
+    }
+    if ($product->is_type('variable')) {
+        return new WP_Error('campaign_product_variable', 'Los productos variables se dejan fuera de esta version.');
+    }
+
+    $price_raw = $row['campaign_price'] ?? '';
+    $campaign_price = function_exists('wc_format_decimal') ? wc_format_decimal($price_raw) : (float) $price_raw;
+    if ((float) $campaign_price <= 0) {
+        return new WP_Error('campaign_product_price', 'campaign_price debe ser mayor que cero.');
+    }
+
+    return array(
+        'campaign_key'   => $campaign_key,
+        'product_id'     => $product_id,
+        'campaign_price' => $campaign_price,
+        'position'       => max(0, absint($row['position'] ?? 0)),
+    );
+}
+
+/**
+ * Importa campanas y productos.
+ *
+ * Los CSV/JSON V1.0 sin record_type siguen interpretandose como calendario.
+ * En V1.1 se procesan primero las filas campaign y despues las filas product.
+ * Por defecto se fusionan productos; "replace_products" elimina los no listados
+ * solo en las campanas que tengan filas product dentro del archivo.
  */
 function seo_marketing_campaigns_handle_import()
 {
     if (!current_user_can('manage_options')) {
-        wp_die('No tienes permisos para importar campañas.');
+        wp_die('No tienes permisos para importar campanas.');
     }
     check_admin_referer('seo_marketing_campaigns_import');
 
@@ -1895,17 +2097,38 @@ function seo_marketing_campaigns_handle_import()
         seo_marketing_campaigns_redirect_notice($rows->get_error_message(), 'error');
     }
 
+    $campaign_rows = array();
+    $product_rows = array();
+    $pre_errors = array();
+
+    foreach ((array) $rows as $index => $raw_row) {
+        $type = sanitize_key((string) ($raw_row['record_type'] ?? ''));
+        if ($type === '') {
+            $type = 'campaign'; // compatibilidad V1.0.
+        }
+        if ($type === 'campaign') {
+            $campaign_rows[] = array('index' => $index, 'row' => $raw_row);
+        } elseif ($type === 'product') {
+            $product_rows[] = array('index' => $index, 'row' => $raw_row);
+        } else {
+            $pre_errors[] = 'Fila ' . ((int) $index + 1) . ': record_type desconocido (' . $type . ').';
+        }
+    }
+
     global $wpdb;
     $tables = seo_marketing_campaigns_tables();
     $created = 0;
     $updated = 0;
-    $skipped = 0;
-    $errors = array();
+    $products_upserted = 0;
+    $products_removed = 0;
+    $skipped = count($pre_errors);
+    $errors = $pre_errors;
     $seen_keys = array();
     $now = seo_marketing_campaigns_now_mysql();
 
-    foreach ((array) $rows as $index => $raw_row) {
-        $row = seo_marketing_campaigns_import_normalize_row($raw_row);
+    foreach ($campaign_rows as $item) {
+        $index = $item['index'];
+        $row = seo_marketing_campaigns_import_normalize_row($item['row']);
         if (is_wp_error($row)) {
             $skipped++;
             $errors[] = 'Fila ' . ((int) $index + 1) . ': ' . $row->get_error_message();
@@ -1978,9 +2201,110 @@ function seo_marketing_campaigns_handle_import()
         $created++;
     }
 
-    $message = sprintf('Importacion terminada: %d nuevas, %d actualizadas, %d omitidas. Productos y precios no se han modificado.', $created, $updated, $skipped);
+    $listed_products = array();
+    $touched_campaigns = array();
+
+    foreach ($product_rows as $item) {
+        $index = $item['index'];
+        $row = seo_marketing_campaigns_import_normalize_product_row($item['row']);
+        if (is_wp_error($row)) {
+            $skipped++;
+            $errors[] = 'Fila ' . ((int) $index + 1) . ': ' . $row->get_error_message();
+            continue;
+        }
+
+        $campaign = $wpdb->get_row(
+            $wpdb->prepare("SELECT * FROM {$tables['campaigns']} WHERE campaign_key = %s LIMIT 1", $row['campaign_key'])
+        );
+        if (!$campaign) {
+            $skipped++;
+            $errors[] = 'Fila ' . ((int) $index + 1) . ': no existe la campana ' . $row['campaign_key'] . '.';
+            continue;
+        }
+
+        $overlap = seo_marketing_campaigns_find_product_overlap(
+            $row['product_id'],
+            absint($campaign->id),
+            (string) $campaign->start_at,
+            (string) $campaign->end_at
+        );
+        if ($overlap) {
+            $skipped++;
+            $errors[] = 'Fila ' . ((int) $index + 1) . ': el producto solapa con "' . $overlap->name . '".';
+            continue;
+        }
+
+        $position = $row['position'];
+        if ($position <= 0) {
+            $position = (int) $wpdb->get_var(
+                $wpdb->prepare("SELECT COALESCE(MAX(position),0)+1 FROM {$tables['products']} WHERE campaign_id = %d", absint($campaign->id))
+            );
+        }
+
+        $result = $wpdb->query(
+            $wpdb->prepare(
+                "INSERT INTO {$tables['products']}
+                    (campaign_id,product_id,campaign_price,position,created_at,updated_at)
+                 VALUES (%d,%d,%s,%d,%s,%s)
+                 ON DUPLICATE KEY UPDATE
+                    campaign_price=VALUES(campaign_price),
+                    position=VALUES(position),
+                    updated_at=VALUES(updated_at)",
+                absint($campaign->id),
+                $row['product_id'],
+                $row['campaign_price'],
+                $position,
+                $now,
+                $now
+            )
+        );
+
+        if ($result === false) {
+            $skipped++;
+            $errors[] = 'Fila ' . ((int) $index + 1) . ': ' . $wpdb->last_error;
+            continue;
+        }
+
+        $campaign_id = absint($campaign->id);
+        $products_upserted++;
+        $listed_products[$campaign_id][$row['product_id']] = true;
+        $touched_campaigns[$campaign_id] = $campaign;
+    }
+
+    $replace_products = !empty($_POST['replace_products']);
+    if ($replace_products) {
+        foreach ($touched_campaigns as $campaign_id => $campaign) {
+            $existing_rows = (array) $wpdb->get_results(
+                $wpdb->prepare("SELECT * FROM {$tables['products']} WHERE campaign_id = %d", $campaign_id)
+            );
+            foreach ($existing_rows as $existing_row) {
+                $product_id = absint($existing_row->product_id);
+                if (isset($listed_products[$campaign_id][$product_id])) {
+                    continue;
+                }
+                if (!empty($existing_row->applied)) {
+                    seo_marketing_campaigns_restore_product_row($existing_row, $campaign);
+                }
+                $wpdb->delete($tables['products'], array('id' => absint($existing_row->id)), array('%d'));
+                $products_removed++;
+            }
+        }
+    }
+
+    foreach (array_keys($touched_campaigns) as $campaign_id) {
+        seo_marketing_campaigns_reschedule($campaign_id);
+    }
+
+    $message = sprintf(
+        'Importacion terminada: %d campana(s) nuevas, %d actualizadas, %d producto(s) anadidos/actualizados, %d producto(s) retirados, %d fila(s) omitidas.',
+        $created,
+        $updated,
+        $products_upserted,
+        $products_removed,
+        $skipped
+    );
     if ($errors) {
-        $message .= ' Incidencias: ' . implode(' | ', array_slice($errors, 0, 4));
+        $message .= ' Incidencias: ' . implode(' | ', array_slice($errors, 0, 5));
     }
 
     seo_marketing_campaigns_redirect_notice($message, $errors ? 'warning' : 'success');
@@ -2008,16 +2332,18 @@ function seo_marketing_campaigns_render_import_export()
     );
 
     echo '<section class="seo-campaigns-card seo-campaign-import-export">';
-    echo '<h3 style="margin-top:0;">Importar / Exportar calendario</h3>';
-    echo '<p>Intercambia solo la estructura de las campanas: identificadores, nombre, edicion, tipo, recurrencia, inicio, fin y estado habilitado. <strong>No incluye ni modifica productos, precios, banners ni creatividades.</strong></p>';
+    echo '<h3 style="margin-top:0;">Importar / Exportar campanas</h3>';
+    echo '<p>Intercambia la campana completa: calendario, productos, precio de campana y posicion. Los archivos antiguos que solo contienen calendario siguen siendo compatibles.</p>';
     echo '<div class="seo-campaign-ie-grid">';
-    echo '<div><h4>Exportar</h4><p class="description">JSON es el formato canonico. CSV facilita revisar o editar el calendario en una hoja de calculo.</p><p><a class="button button-primary" href="' . esc_url($json_url) . '">Exportar JSON</a> <a class="button" href="' . esc_url($csv_url) . '">Exportar CSV</a></p></div>';
-    echo '<div><h4>Importar</h4><form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" enctype="multipart/form-data">';
+    echo '<div><h4>Exportar</h4><p class="description">JSON es el formato canonico. CSV incluye filas <code>campaign</code> y <code>product</code> para poder editarlo en una hoja de calculo.</p><p><a class="button button-primary" href="' . esc_url($json_url) . '">Exportar JSON</a> <a class="button" href="' . esc_url($csv_url) . '">Exportar CSV</a></p></div>';
+    echo '<div><h4>Importar / actualizar</h4><form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" enctype="multipart/form-data">';
     echo '<input type="hidden" name="action" value="seo_marketing_campaigns_import">';
     wp_nonce_field('seo_marketing_campaigns_import');
     echo '<input type="file" name="campaign_import_file" accept=".json,.csv,application/json,text/csv" required>';
-    echo '<p><button type="submit" class="button button-primary">Importar calendario</button></p>';
-    echo '<p class="description">La importacion hace alta/actualizacion por <code>campaign_key</code>. Nunca borra campanas que no aparezcan en el archivo.</p>';
+    echo '<p><label><input type="checkbox" name="replace_products" value="1"> Sustituir completamente los productos de las campanas incluidas</label></p>';
+    echo '<p class="description">Sin marcar, la importacion fusiona: anade o actualiza productos y no elimina los que falten. Si marcas la casilla, solo se sustituyen los productos de las campanas que tengan filas <code>product</code> en el archivo.</p>';
+    echo '<p><button type="submit" class="button button-primary">Importar / actualizar</button></p>';
+    echo '<p class="description">Alta/actualizacion por <code>campaign_key</code>. Nunca borra campanas ausentes del archivo.</p>';
     echo '</form></div>';
     echo '</div></section>';
 }
@@ -2065,6 +2391,7 @@ function seo_marketing_campaigns_render_styles()
         .seo-campaign-status-current{background:#dff4e7;color:#1d6b43;}.seo-campaign-status-future{background:#e7f1ff;color:#135e96;}.seo-campaign-status-past{background:#f0f0f1;color:#50575e;}.seo-campaign-status-disabled{background:#fff4d6;color:#7a5200;}
         .seo-campaign-ie-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;}
         .seo-campaign-import-export{margin-top:18px;}
+        .seo-campaign-danger{margin-top:18px;padding-top:16px;border-top:1px solid #dcdcde;}.seo-campaign-danger .button-link-delete{margin-right:12px;}
         @media(max-width:1100px){.seo-campaigns-grid,.seo-campaign-editor{grid-template-columns:1fr;}}
         @media(max-width:700px){.seo-campaign-form-grid{grid-template-columns:1fr;}.seo-campaign-field-full{grid-column:auto;}.seo-campaign-search{display:block;}.seo-campaign-search .button{margin-top:8px;}}
     </style>';
@@ -2171,7 +2498,7 @@ function seo_marketing_campaigns_render_dashboard()
         return strcmp($a->end_at, $b->end_at);
     });
 
-    echo '<div class="seo-campaigns-header"><div><h2>Campañas</h2><p>Organiza las campañas realizadas, activas y futuras. El diseno de banners se incorporara en una fase posterior.</p></div>';
+    echo '<div class="seo-campaigns-header"><div><h2>Campañas</h2><p>Organiza campanas realizadas, activas y futuras, sus productos y precios promocionales.</p></div>';
     echo '<a class="button button-primary" href="' . esc_url(seo_marketing_campaigns_admin_url(array('campaign_action' => 'new'))) . '">Nueva campaña</a></div>';
 
     echo '<div class="seo-campaigns-grid">';
@@ -2359,7 +2686,7 @@ function seo_marketing_campaigns_render_editor($campaign_id, $is_new = false)
     echo '<div class="seo-campaign-field"><label>Inicio</label><input type="datetime-local" name="start_at" required value="' . esc_attr(seo_marketing_campaigns_datetime_local($campaign->start_at)) . '"></div>';
     echo '<div class="seo-campaign-field"><label>Fin</label><input type="datetime-local" name="end_at" required value="' . esc_attr(seo_marketing_campaigns_datetime_local($campaign->end_at)) . '"></div>';
     echo '<div class="seo-campaign-field seo-campaign-field-full"><label><input type="checkbox" name="is_enabled" value="1" ' . checked(!empty($campaign->is_enabled), true, false) . '> Campaña habilitada</label><p class="description">El precio de campaña solo se aplica durante estas fechas. Al finalizar se intenta restaurar la oferta anterior del producto.</p></div>';
-    echo '</div><p><button type="submit" class="button button-primary">Guardar campaña</button></p></form>';
+    echo '</div><p><button type="submit" class="button button-primary">' . ($campaign->id ? 'Guardar cambios' : 'Crear campana') . '</button></p></form>';
 
     if ($campaign->id) {
         echo '<hr style="margin:18px 0;">';
@@ -2369,6 +2696,22 @@ function seo_marketing_campaigns_render_editor($campaign_id, $is_new = false)
         echo '<button type="submit" class="button">Crear nueva edicion (+1 ano)</button>';
         echo '<p class="description">Conserva el nombre/serie y crea otro ID. No copia productos ni precios.</p>';
         echo '</form>';
+
+        echo '<div class="seo-campaign-danger">';
+        echo '<h4>Gestion de la campana</h4>';
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline-block;margin-right:10px;" onsubmit="return confirm(\'¿Vaciar todos los productos de esta campana? Los precios aplicados se restauraran antes.\');">';
+        echo '<input type="hidden" name="action" value="seo_marketing_campaign_clear_products"><input type="hidden" name="campaign_id" value="' . esc_attr((string) $campaign->id) . '">';
+        wp_nonce_field('seo_marketing_campaign_clear_products');
+        echo '<button type="submit" class="button">Vaciar productos</button>';
+        echo '</form>';
+
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline-block;" onsubmit="return confirm(\'¿Eliminar definitivamente esta campana? Se restauraran los precios aplicados y se cancelaran sus tareas programadas.\');">';
+        echo '<input type="hidden" name="action" value="seo_marketing_campaign_delete"><input type="hidden" name="campaign_id" value="' . esc_attr((string) $campaign->id) . '">';
+        wp_nonce_field('seo_marketing_campaign_delete');
+        echo '<button type="submit" class="button button-link-delete">Eliminar campana</button>';
+        echo '</form>';
+        echo '<p class="description">Vaciar conserva la campana. Eliminar borra definitivamente la campana y sus relaciones con productos.</p>';
+        echo '</div>';
     }
     echo '</section>';
 

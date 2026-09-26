@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.3.8.1] - 2026-09-26
+
+### Marketing y campañas
+
+- Completada la gestión de campañas existentes con edición explícita mediante **Guardar cambios**.
+- Añadidos **Vaciar productos** y **Eliminar campaña** con restauración previa de precios aplicados y cancelación de tareas programadas.
+- Ampliada la importación/exportación a un formato completo con registros `campaign` y `product`, incluyendo producto, SKU, precio de campaña y posición.
+- La importación completa mantiene compatibilidad con los CSV/JSON antiguos que solo contienen calendario.
+- Añadido modo de importación por **fusión** (predeterminado) y opción explícita para **sustituir completamente los productos** de las campañas incluidas.
+- Los productos importados se resuelven por `product_id` y, como respaldo, por SKU; se mantienen las validaciones de solapamiento entre campañas.
+
 ## [2.3.7] - 2026-09-25
 
 Release centrada en la evolución comercial del sistema, el análisis de mercado, la automatización de campañas, la integración de inventarios con proveedores, la mejora de Dependiente y Solucionador, la optimización de informes y varias mejoras relacionadas con feeds comerciales, opiniones externas y Google Trends.
