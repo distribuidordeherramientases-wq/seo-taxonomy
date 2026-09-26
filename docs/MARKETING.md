@@ -96,6 +96,21 @@ Un producto no puede participar en dos campañas habilitadas cuyos periodos se s
 
 La validación se aplica tanto al añadir productos como al modificar fechas o importar información.
 
+### Imágenes de las tarjetas públicas
+
+Las franjas públicas de campaña utilizan el mismo resolvedor compartido de imágenes que otras plantillas del catálogo.
+
+Orden de resolución:
+
+1. imagen local de Media, si el producto dispone de una;
+2. imágenes externas activas del proveedor asociadas al producto;
+3. compatibilidad con el resolvedor externo de proveedor;
+4. logo/placeholder como último recurso.
+
+Las imágenes externas se cargan directamente desde su URL de proveedor: **no se descargan ni se copian automáticamente a Media**. Esto permite mostrar productos cuyo catálogo gráfico se mantiene fuera del alojamiento local.
+
+Si una URL externa falla en el navegador, la tarjeta intenta la siguiente imagen disponible del proveedor antes de caer al recurso de sustitución.
+
 ---
 
 ## Importar / Exportar campañas
