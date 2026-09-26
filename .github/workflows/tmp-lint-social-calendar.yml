@@ -1,0 +1,17 @@
+name: Temporal lint social calendar
+
+on:
+  push:
+    branches:
+      - feature/social-calendar
+
+jobs:
+  php-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP syntax
+        run: |
+          php -l includes/social-network/calendar.php
+          php -l includes/social-network/core.php
+          php -l includes/social-network/social-bootstrap.php
