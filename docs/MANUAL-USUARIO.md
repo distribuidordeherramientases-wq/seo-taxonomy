@@ -537,9 +537,153 @@ Una redirección debe apuntar a un destino semánticamente válido. Evitar caden
 
 ## 12.5 Marketing
 
-Agrupa herramientas de campañas y redes sociales cuando están activas.
+Ruta: **SEO Taxonomy → Herramientas → Marketing**
 
-Las subpestañas pueden variar según los módulos cargados. Entre los servicios registrados actualmente se encuentran campañas y social/programador.
+Marketing agrupa la gestión comercial del sitio. Las pestañas dependen de los módulos activos, pero actualmente incluye, entre otras, **Campañas**, **Redes sociales / Programador** y opciones de estilo visual.
+
+Consultar también la página específica [Marketing](MARKETING.md).
+
+### Campañas
+
+Ruta: **SEO Taxonomy → Herramientas → Marketing → Campañas**
+
+La pantalla organiza las campañas en cuatro grupos:
+
+- **En curso**
+- **Próximas**
+- **Finalizadas**
+- **Deshabilitadas**
+
+Cada tarjeta muestra nombre, edición, periodo, número de productos, tipo de campaña y recurrencia.
+
+#### Nueva campaña
+
+**Nueva campaña** — **[Guarda]** crea una campaña nueva.
+
+Campos principales:
+
+- **Nombre**: nombre comercial de la campaña.
+- **Edición**: normalmente el año o identificador de edición.
+- **Tipo**: calendario comercial, táctica/puntual o producto estrella.
+- **Repetición**: no recurrente, anual o nueva edición manual.
+- **Creatividad social**: plantilla utilizada por las publicaciones automáticas de campaña.
+- **Inicio / Fin**: periodo de vigencia.
+- **Campaña habilitada**: permite que el sistema aplique/restaure precios conforme a las fechas.
+
+Una campaña existente mantiene **Identificador** (`campaign_key`) y **Serie** (`series_key`) como referencias internas estables.
+
+**Guardar cambios** — **[Modifica]** actualiza la campaña existente. Si cambian las fechas, se validan posibles solapamientos de sus productos con otras campañas.
+
+#### Productos de la campaña
+
+La tabla de productos muestra:
+
+- producto y SKU;
+- precio habitual;
+- oferta actual;
+- precio de campaña;
+- estado **Aplicado**;
+- casilla **Quitar**.
+
+**Guardar productos y precios** — **[Modifica]** actualiza los precios de campaña y elimina únicamente los productos marcados para quitar.
+
+Si un producto tenía el precio de campaña aplicado, retirarlo provoca primero la restauración segura de su oferta anterior.
+
+#### Añadir productos
+
+El catálogo no se carga completo. Utilizar **Buscar por nombre o SKU**.
+
+La búsqueda permite seleccionar varios productos y definir su **Precio campaña**.
+
+**Añadir seleccionados** — **[Guarda]** añade los productos o actualiza su precio si ya estaban en la campaña.
+
+Los productos variables quedan fuera de esta versión del flujo.
+
+Un mismo producto no puede participar simultáneamente en campañas habilitadas con periodos solapados.
+
+#### Importar / Exportar campañas
+
+La exportación completa admite **JSON** y **CSV** e incluye tanto la campaña como sus productos.
+
+El formato actual distingue registros mediante:
+
+- `record_type=campaign`
+- `record_type=product`
+
+Los registros de producto pueden incluir:
+
+- `campaign_key`;
+- `product_id`;
+- `sku`;
+- `campaign_price`;
+- `position`.
+
+La importación realiza alta/actualización por `campaign_key`.
+
+**Importar / actualizar** — **[Guarda][Modifica]** procesa campañas y productos.
+
+Comportamiento predeterminado:
+
+- crea campañas inexistentes;
+- actualiza campañas existentes;
+- añade productos nuevos;
+- actualiza precio y posición de productos ya asociados;
+- **no elimina** productos que falten en el archivo;
+- **no elimina** campañas ausentes del archivo.
+
+La casilla **Sustituir completamente los productos de las campañas incluidas** cambia este comportamiento: para las campañas que contienen filas de producto en el archivo, los productos no declarados se retiran de la campaña.
+
+El importador mantiene compatibilidad con archivos antiguos que solo contenían calendario. También detecta automáticamente filas de producto antiguas sin `record_type` cuando contienen datos como `product_id`, SKU o `campaign_price`.
+
+La resolución de producto utiliza primero `product_id` y puede utilizar SKU como respaldo.
+
+#### Crear nueva edición
+
+**Crear nueva edición (+1 año)** — **[Guarda]** crea una nueva campaña de la misma serie desplazada un año.
+
+No copia productos ni precios. La nueva edición se completa de forma independiente.
+
+#### Gestión de la campaña
+
+**Vaciar productos** — **[Elimina]** retira todos los productos de la campaña, pero conserva la campaña y su configuración.
+
+Antes de retirar productos con precio aplicado, el sistema intenta restaurar su oferta anterior.
+
+**Eliminar campaña** — **[Elimina]** elimina definitivamente la campaña y sus relaciones con productos.
+
+Antes del borrado:
+
+1. cancela las tareas programadas de aplicación/restauración;
+2. restaura los precios de campaña que sigan aplicados;
+3. elimina las relaciones con productos;
+4. elimina la campaña.
+
+La interfaz solicita confirmación antes de ejecutar estas acciones.
+
+#### Aplicación y restauración de precios
+
+Cuando una campaña habilitada entra en vigor, el sistema guarda una instantánea de la oferta anterior del producto y aplica:
+
+- precio de campaña;
+- fecha de inicio;
+- fecha de finalización.
+
+Al finalizar o deshabilitar la campaña intenta restaurar la oferta anterior.
+
+Como protección, si durante la campaña alguien cambia manualmente el precio y ya no coincide con el precio de campaña, la restauración no pisa ese cambio manual.
+
+#### Recomendación de operación
+
+Para cambios masivos:
+
+1. exportar la campaña actual si se necesita respaldo;
+2. preparar el CSV/JSON;
+3. probar primero en staging;
+4. importar en modo fusión;
+5. revisar productos, precios y fechas;
+6. utilizar **Sustituir completamente** solo cuando el archivo sea deliberadamente la lista definitiva;
+7. promover a producción después de validar el resultado.
+
 
 ## 12.6 Data Table
 
