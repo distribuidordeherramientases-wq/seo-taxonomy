@@ -51,4 +51,10 @@ return array(
         'title' => 'Regresión lingüística y autoaprendizaje',
         'goal'  => 'Probar ruido, flexiones, erratas y equivalencias sobre conocimiento ya respaldado; corregir automáticamente variantes seguras y activar hipótesis semánticas con confianza progresiva y contexto cuando sea necesario.',
     ),
+    array(
+        'key'   => 'ling_l9_dependiente_bridge',
+        'order' => 9,
+        'title' => 'Consolidación desde Dependiente',
+        'goal'  => 'Usar la deuda real de Dependiente L1–L9 para repasar la deuda propia de L8, detectar ruido, variantes y ambigüedades que el Intérprete pueda corregir, aprender solo con evidencia suficiente y llegar consolidado a Dependiente L10.',
+    ),
 );
