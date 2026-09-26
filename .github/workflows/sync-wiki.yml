@@ -7,6 +7,7 @@ on:
     paths:
       - 'docs/MANUAL-USUARIO.md'
       - 'docs/CONEXIONES-CREDENCIALES.md'
+      - 'docs/MARKETING.md'
       - '.github/workflows/sync-wiki.yml'
   workflow_dispatch:
 
@@ -30,6 +31,7 @@ jobs:
         run: |
           cp docs/MANUAL-USUARIO.md "wiki/Manual-de-usuario.md"
           cp docs/CONEXIONES-CREDENCIALES.md "wiki/Conexiones-y-credenciales.md"
+          cp docs/MARKETING.md "wiki/Marketing.md"
 
           python3 - <<'PY'
           from pathlib import Path
@@ -98,6 +100,7 @@ jobs:
 
           - [[Manual de uso]]
           - [[Conexiones y credenciales]]
+          - [[Marketing]]
           - [[Manual de usuario|Manual-de-usuario]]
 
           Las páginas de Productos, Categorías, Etiquetas, Páginas, Entradas, Imágenes, Informes y Herramientas incluyen ahora un bloque **Manual operativo** con pestañas, botones, filtros, casillas y efectos de las acciones.
@@ -114,9 +117,14 @@ jobs:
           sidebar = wiki / "_Sidebar.md"
           if sidebar.exists():
               s = sidebar.read_text(encoding="utf-8")
+              anchor = "- [[Arquitectura y conceptos|Arquitectura-y-conceptos]]"
+              additions = []
               if "[[Conexiones y credenciales|Conexiones-y-credenciales]]" not in s:
-                  anchor = "- [[Arquitectura y conceptos|Arquitectura-y-conceptos]]"
-                  addition = "- [[Conexiones y credenciales|Conexiones-y-credenciales]]\n"
+                  additions.append("- [[Conexiones y credenciales|Conexiones-y-credenciales]]")
+              if "[[Marketing]]" not in s:
+                  additions.append("- [[Marketing]]")
+              if additions:
+                  addition = "\n".join(additions) + "\n"
                   if anchor in s:
                       s = s.replace(anchor, addition + anchor)
                   else:
