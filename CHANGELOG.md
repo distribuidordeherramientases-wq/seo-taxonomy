@@ -4,6 +4,10 @@
 
 Los cambios validados en `staging` que todavía no formen parte de una publicación de producción se documentan aquí. Al cerrar una release semanal, estas entradas se trasladan a la versión fechada correspondiente.
 
+### Marketing y campañas
+
+- Las tarjetas públicas de campaña reutilizan el resolvedor compartido de imágenes de producto: priorizan Media local cuando existe y, en caso contrario, cargan directamente imágenes externas activas del proveedor sin importarlas a Media. Se conservan fallbacks entre varias URLs de proveedor y, como último recurso, el logo/placeholder.
+
 ## [2.3.8.1] - 2026-09-26
 
 ### Marketing y campañas
