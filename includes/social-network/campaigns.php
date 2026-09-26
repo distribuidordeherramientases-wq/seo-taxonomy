@@ -838,7 +838,14 @@ function seo_social_campaign_render_scheduler_panel()
                 $label = isset($provider['label']) ? (string) $provider['label'] : ucfirst($provider_key);
                 $preview_url = add_query_arg(array('utm_source' => $provider_key, 'utm_medium' => 'social'), (string) $products[0]['url']);
                 $preview = seo_social_campaign_render_template(seo_social_campaign_template($provider_key), $campaign, $products[0], $preview_url);
-                echo '<div><strong>' . esc_html($label) . '</strong><div class="seo-social-preview">' . esc_html($preview) . '</div></div>';
+                $preview_image = function_exists('seo_social_campaign_resolve_publication_image_url')
+                    ? seo_social_campaign_resolve_publication_image_url($campaign, $products[0], $provider_key)
+                    : '';
+                echo '<div><strong>' . esc_html($label) . '</strong>';
+                if ($preview_image !== '') {
+                    echo '<div style="margin:8px 0"><img src="' . esc_url($preview_image) . '" alt="" style="display:block;width:100%;max-width:360px;height:auto;border:1px solid #dcdcde;border-radius:8px;background:#fff"></div>';
+                }
+                echo '<div class="seo-social-preview">' . esc_html($preview) . '</div></div>';
             }
             echo '</div></details>';
         }
