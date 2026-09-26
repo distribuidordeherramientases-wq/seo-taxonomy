@@ -10,6 +10,8 @@ La documentación se divide en dos niveles:
 ## Documentos
 
 - [Manual de usuario](MANUAL-USUARIO.md)
+- [Marketing y campañas](MARKETING.md)
+- [Versiones y publicación](RELEASE-PROCESS.md)
 - [Conexiones y credenciales](CONEXIONES-CREDENCIALES.md)
 
 ## Criterio del manual
@@ -32,5 +34,5 @@ Los campos abiertos incluyen ejemplos de formato. Las credenciales, tokens, cont
 > Este manual debe mantenerse alineado con la interfaz de la rama activa del plugin. Si una pantalla cambia, la documentación correspondiente debe actualizarse en la misma entrega.
 ## Sincronización con GitHub Wiki
 
-Los cambios en `docs/MANUAL-USUARIO.md` y `docs/CONEXIONES-CREDENCIALES.md` se sincronizan automáticamente con la Wiki mediante GitHub Actions al actualizar la rama `staging`.
+Los documentos configurados en el workflow de documentación se sincronizan automáticamente con la Wiki mediante GitHub Actions al actualizar la rama `staging`. Actualmente se publican el manual de usuario, Marketing, conexiones/credenciales y el procedimiento de versiones/publicación.
 

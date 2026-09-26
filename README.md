@@ -215,7 +215,10 @@ Documentación disponible:
 
 - [Índice de documentación](docs/README.md)
 - [Manual de usuario](docs/MANUAL-USUARIO.md)
+- [Marketing y campañas](docs/MARKETING.md)
+- [Versiones y publicación](docs/RELEASE-PROCESS.md)
 - [Conexiones y credenciales](docs/CONEXIONES-CREDENCIALES.md)
+- [Historial de cambios](CHANGELOG.md)
 
 El manual se centra en la interfaz visible para el usuario y evita entrar en clases, funciones PHP o archivos internos salvo cuando sea necesario para comprender una operación.
 
@@ -357,32 +360,13 @@ La arquitectura, funcionalidades y estructura interna pueden evolucionar a medid
 
 # 📦 Versiones
 
-Las versiones estables podrán distribuirse mediante **GitHub Releases**.
+El flujo de publicación utiliza `staging` como candidata a la próxima versión y `main` como código aprobado para producción.
 
-Ejemplo:
+Los cambios normales se validan durante la semana en staging y se promueven a producción de forma agrupada, normalmente una vez por semana. Los hotfix críticos pueden seguir un ciclo más corto.
 
-```text
-v0.1.0
-v0.2.0
-v0.5.0
-v1.0.0
-```
+La versión debe mantenerse coherente entre la cabecera del plugin, `SEO_SYSTEM_VERSION`, `readme.txt` y `CHANGELOG.md`.
 
-Se recomienda utilizar versionado semántico:
-
-```text
-MAJOR.MINOR.PATCH
-```
-
-Por ejemplo:
-
-```text
-1.4.2
-```
-
-* `1` → versión principal
-* `4` → nuevas funcionalidades compatibles
-* `2` → correcciones o pequeños cambios
+Consulta [Versiones y publicación](docs/RELEASE-PROCESS.md) para el procedimiento completo.
 
 ---
 
@@ -413,7 +397,7 @@ Antes de publicar nuevas versiones debe comprobarse que el código no contiene i
 
 # 📄 Licencia
 
-Licencia pendiente de definir.
+SEO Taxonomy se distribuye bajo licencia **MIT**, de acuerdo con el archivo [LICENSE](LICENSE).
 
 ---
 
