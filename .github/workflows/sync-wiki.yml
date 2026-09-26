@@ -5,10 +5,7 @@ on:
     branches:
       - staging
     paths:
-      - 'docs/MANUAL-USUARIO.md'
-      - 'docs/CONEXIONES-CREDENCIALES.md'
-      - 'docs/MARKETING.md'
-      - 'docs/RELEASE-PROCESS.md'
+      - 'docs/**'
       - '.github/workflows/sync-wiki.yml'
   workflow_dispatch:
 
@@ -28,113 +25,117 @@ jobs:
         run: |
           git clone "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" wiki
 
-      - name: Update Wiki from canonical docs
+      - name: Update Wiki from canonical documentation
         run: |
-          cp docs/MANUAL-USUARIO.md "wiki/Manual-de-usuario.md"
-          cp docs/CONEXIONES-CREDENCIALES.md "wiki/Conexiones-y-credenciales.md"
-          cp docs/MARKETING.md "wiki/Marketing.md"
-          cp docs/RELEASE-PROCESS.md "wiki/Versiones-y-publicacion.md"
+          cp docs/MANUAL-USUARIO.md wiki/Manual-de-usuario.md
+          cp docs/CONEXIONES-CREDENCIALES.md wiki/Conexiones-y-credenciales.md
 
           python3 - <<'PY'
           from pathlib import Path
           import re
 
+          root = Path(".")
           wiki = Path("wiki")
-          manual = Path("docs/MANUAL-USUARIO.md").read_text(encoding="utf-8")
-
-          # Divide el manual por secciones principales numeradas.
-          starts = list(re.finditer(r"^# (\d+)\. (.+)$", manual, re.M))
-          sections = {}
-          for idx, m in enumerate(starts):
-              number = int(m.group(1))
-              start = m.start()
-              end = starts[idx + 1].start() if idx + 1 < len(starts) else len(manual)
-              sections[number] = manual[start:end].strip()
 
           mapping = {
-              4: "Productos.md",
-              5: "Categorias.md",
-              6: "Etiquetas-y-vocabulario.md",
-              7: "Paginas.md",
-              8: "Entradas.md",
-              9: "Imagenes.md",
-              10: "Informes.md",
-              11: "Dependiente.md",
-              12: "Herramientas.md",
-              13: "Ojeador.md",
-              14: "Comentarista.md",
+              "docs/manual/INICIO.md": ("Home.md", "Inicio"),
+              "docs/manual/PRODUCTOS.md": ("Productos.md", "Productos"),
+              "docs/manual/CATEGORIAS.md": ("Categorias.md", "Categorias"),
+              "docs/manual/ETIQUETAS-Y-VOCABULARIO.md": ("Etiquetas-y-vocabulario.md", "Etiquetas"),
+              "docs/manual/PAGINAS.md": ("Paginas.md", "Paginas"),
+              "docs/manual/ENTRADAS.md": ("Entradas.md", "Entradas"),
+              "docs/manual/IMAGENES.md": ("Imagenes.md", "Imagenes"),
+              "docs/manual/INFORMES.md": ("Informes.md", "Informes"),
+              "docs/manual/DEPENDIENTE.md": ("Dependiente.md", "Dependiente"),
+              "docs/manual/HERRAMIENTAS.md": ("Herramientas.md", "Herramientas"),
+              "docs/manual/MARKETING.md": ("Marketing.md", "Marketing"),
+              "docs/manual/IMPORT-EXPORT.md": ("Import-Export.md", "ImportExport"),
+              "docs/manual/FACTURAS-Y-PRESUPUESTOS.md": ("Facturas-y-presupuestos.md", "Facturas"),
+              "docs/manual/SOLUCIONADOR.md": ("Solucionador.md", "Solucionador"),
+              "docs/manual/OJEADOR.md": ("Ojeador.md", "Ojeador"),
+              "docs/manual/COMENTARISTA.md": ("Comentarista.md", "Comentarista"),
           }
 
-          def managed_block(name, body):
-              start = f"<!-- SEO-TAXONOMY-MANUAL:{name}:START -->"
-              end = f"<!-- SEO-TAXONOMY-MANUAL:{name}:END -->"
-              return start + "\n\n## Manual operativo\n\n" + body + "\n\n" + end
+          def strip_first_h1(text):
+              return re.sub(r"^# .+?\n+", "", text.strip(), count=1).strip()
 
-          def upsert(path, name, body):
-              p = wiki / path
-              original = p.read_text(encoding="utf-8") if p.exists() else f"# {name}\n"
-              start = f"<!-- SEO-TAXONOMY-MANUAL:{name}:START -->"
-              end = f"<!-- SEO-TAXONOMY-MANUAL:{name}:END -->"
-              block = managed_block(name, body)
+          def remove_legacy_home_block(text):
+              return re.sub(
+                  r"\n*<!-- SEO-TAXONOMY-MANUAL-START -->.*?<!-- SEO-TAXONOMY-MANUAL-END -->\n*",
+                  "\n",
+                  text,
+                  flags=re.S,
+              ).rstrip()
+
+          def upsert_managed(target_name, key, source_text):
+              target = wiki / target_name
+              if target.exists():
+                  original = target.read_text(encoding="utf-8")
+              else:
+                  title = re.search(r"^# (.+)$", source_text, re.M)
+                  original = "# " + (title.group(1) if title else key) + "\n"
+
+              if target_name == "Home.md":
+                  original = remove_legacy_home_block(original)
+
+              start = f"<!-- SEO-TAXONOMY-MANUAL:{key}:START -->"
+              end = f"<!-- SEO-TAXONOMY-MANUAL:{key}:END -->"
+              body = strip_first_h1(source_text)
+              block = start + "\n\n## Manual operativo\n\n" + body + "\n\n" + end
+
               if start in original and end in original:
                   before = original.split(start, 1)[0].rstrip()
                   after = original.split(end, 1)[1].lstrip()
-                  text = before + "\n\n" + block + ("\n\n" + after if after else "") + "\n"
+                  updated = before + "\n\n" + block
+                  if after:
+                      updated += "\n\n" + after
+                  updated += "\n"
               else:
-                  text = original.rstrip() + "\n\n" + block + "\n"
-              p.write_text(text, encoding="utf-8")
+                  updated = original.rstrip() + "\n\n" + block + "\n"
 
-          for number, filename in mapping.items():
-              if number in sections:
-                  # Evita duplicar el H1 numerado dentro de la página existente.
-                  body = re.sub(r"^# \d+\. .+\n+", "", sections[number], count=1).strip()
-                  upsert(filename, Path(filename).stem, body)
+              target.write_text(updated, encoding="utf-8")
 
-          # Home: enlaza la documentación operativa sin sustituir la introducción existente.
-          home = wiki / "Home.md"
-          text = home.read_text(encoding="utf-8") if home.exists() else "# SEO Taxonomy\n"
-          start = "<!-- SEO-TAXONOMY-MANUAL-START -->"
-          end = "<!-- SEO-TAXONOMY-MANUAL-END -->"
-          block = """<!-- SEO-TAXONOMY-MANUAL-START -->
-          ## Manual de usuario
+          for source_name, (target_name, key) in mapping.items():
+              source = root / source_name
+              if source.exists():
+                  upsert_managed(target_name, key, source.read_text(encoding="utf-8"))
 
-          La Wiki combina una introducción conceptual con un manual operativo actualizado desde la rama `staging`.
-
-          - [[Manual de uso]]
-          - [[Conexiones y credenciales]]
-          - [[Marketing]]
-          - [[Versiones y publicación|Versiones-y-publicacion]]
-          - [[Manual de usuario|Manual-de-usuario]]
-
-          Las páginas de Productos, Categorías, Etiquetas, Páginas, Entradas, Imágenes, Informes y Herramientas incluyen ahora un bloque **Manual operativo** con pestañas, botones, filtros, casillas y efectos de las acciones.
-          <!-- SEO-TAXONOMY-MANUAL-END -->"""
-          if start in text and end in text:
-              before = text.split(start, 1)[0].rstrip()
-              after = text.split(end, 1)[1].lstrip()
-              text = before + "\n\n" + block + ("\n\n" + after if after else "") + "\n"
-          else:
-              text = text.rstrip() + "\n\n" + block + "\n"
-          home.write_text(text, encoding="utf-8")
-
-          # Sidebar: conserva la navegación existente y añade las páginas nuevas de documentación.
+          # Añade una navegación operativa gestionada sin borrar el índice histórico.
           sidebar = wiki / "_Sidebar.md"
-          if sidebar.exists():
-              s = sidebar.read_text(encoding="utf-8")
-              anchor = "- [[Arquitectura y conceptos|Arquitectura-y-conceptos]]"
-              additions = []
-              if "[[Conexiones y credenciales|Conexiones-y-credenciales]]" not in s:
-                  additions.append("- [[Conexiones y credenciales|Conexiones-y-credenciales]]")
-              if "[[Marketing]]" not in s:
-                  additions.append("- [[Marketing]]")
-              if "[[Versiones y publicación|Versiones-y-publicacion]]" not in s:
-                  additions.append("- [[Versiones y publicación|Versiones-y-publicacion]]")
-              if additions:
-                  addition = "\n".join(additions) + "\n"
-                  if anchor in s:
-                      s = s.replace(anchor, addition + anchor)
-                  else:
-                      s = s.rstrip() + "\n" + addition
-              sidebar.write_text(s, encoding="utf-8")
+          existing = sidebar.read_text(encoding="utf-8") if sidebar.exists() else "### SEO Taxonomy\n"
+          s0 = "<!-- SEO-TAXONOMY-SIDEBAR-MANUAL:START -->"
+          s1 = "<!-- SEO-TAXONOMY-SIDEBAR-MANUAL:END -->"
+          managed = """<!-- SEO-TAXONOMY-SIDEBAR-MANUAL:START -->
+          ### Manual operativo
+          - [[Manual de usuario|Manual-de-usuario]]
+          - [[Productos|Productos]]
+          - [[Categorías|Categorias]]
+          - [[Etiquetas y vocabulario|Etiquetas-y-vocabulario]]
+          - [[Páginas|Paginas]]
+          - [[Entradas|Entradas]]
+          - [[Imágenes|Imagenes]]
+          - [[Informes|Informes]]
+          - [[Dependiente|Dependiente]]
+          - [[Herramientas|Herramientas]]
+            - [[Marketing|Marketing]]
+            - [[Import / Export|Import-Export]]
+            - [[Facturas y presupuestos|Facturas-y-presupuestos]]
+            - [[Solucionador|Solucionador]]
+            - [[Ojeador|Ojeador]]
+          - [[Comentarista|Comentarista]]
+          - [[Conexiones y credenciales|Conexiones-y-credenciales]]
+          <!-- SEO-TAXONOMY-SIDEBAR-MANUAL:END -->"""
+
+          if s0 in existing and s1 in existing:
+              before = existing.split(s0, 1)[0].rstrip()
+              after = existing.split(s1, 1)[1].lstrip()
+              result = before + "\n\n" + managed
+              if after:
+                  result += "\n\n" + after
+              result += "\n"
+          else:
+              result = existing.rstrip() + "\n\n" + managed + "\n"
+          sidebar.write_text(result, encoding="utf-8")
           PY
 
       - name: Commit Wiki changes
@@ -147,5 +148,5 @@ jobs:
             echo "Wiki already up to date."
             exit 0
           fi
-          git commit -m "docs: integra manual operativo en la Wiki"
+          git commit -m "docs: actualiza manual completo de usuario"
           git push origin HEAD

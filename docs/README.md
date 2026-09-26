@@ -4,35 +4,52 @@ Esta carpeta contiene la documentación funcional y el manual de usuario del plu
 
 La documentación se divide en dos niveles:
 
-1. **Introducción y visión general**: explica qué es SEO Taxonomy, su arquitectura y los servicios principales.
-2. **Manual de usuario**: explica cómo utilizar el plugin desde WordPress, incluyendo pestañas, tablas, filtros, botones, casillas, estados, procesos y consecuencias de cada acción.
+1. **Introducción y visión general**: arquitectura, conceptos y servicios.
+2. **Manual de usuario**: interfaz real de WordPress, con menús, pestañas, campos, filtros, botones, checkboxes, estados, procesos y consecuencias de cada acción.
 
-## Documentos
+## Manual general
 
 - [Manual de usuario](MANUAL-USUARIO.md)
+- [Conexiones y credenciales](CONEXIONES-CREDENCIALES.md)
 - [Marketing y campañas](MARKETING.md)
 - [Versiones y publicación](RELEASE-PROCESS.md)
-- [Conexiones y credenciales](CONEXIONES-CREDENCIALES.md)
 
-## Criterio del manual
+## Manual por pantalla
 
-El manual documenta la **interfaz visible para el usuario**. No pretende explicar clases PHP, funciones internas ni la estructura de archivos salvo que resulte necesario para entender una operación.
+- [Inicio](manual/INICIO.md)
+- [Productos](manual/PRODUCTOS.md)
+- [Categorías](manual/CATEGORIAS.md)
+- [Etiquetas y vocabulario](manual/ETIQUETAS-Y-VOCABULARIO.md)
+- [Páginas](manual/PAGINAS.md)
+- [Entradas](manual/ENTRADAS.md)
+- [Imágenes](manual/IMAGENES.md)
+- [Informes](manual/INFORMES.md)
+- [Dependiente](manual/DEPENDIENTE.md)
+- [Herramientas](manual/HERRAMIENTAS.md)
+- [Marketing](manual/MARKETING.md)
+- [Import / Export](manual/IMPORT-EXPORT.md)
+- [Facturas y presupuestos](manual/FACTURAS-Y-PRESUPUESTOS.md)
+- [Solucionador](manual/SOLUCIONADOR.md)
+- [Ojeador](manual/OJEADOR.md)
+- [Comentarista](manual/COMENTARISTA.md)
 
-Cada control debe indicar, cuando corresponda:
+## Criterio documental
+
+Todo elemento visible debe explicarse. Para cada control se documenta, cuando corresponde:
 
 - qué hace;
-- qué datos utiliza;
-- qué modifica;
+- qué valor espera;
+- qué datos consulta o modifica;
 - si lanza un proceso;
 - si consume una API;
-- si puede eliminar o reemplazar información;
-- qué resultado debe esperar el usuario;
-- qué hacer ante un error.
+- si afecta a producción;
+- si elimina o reemplaza información;
+- qué resultado debe esperar el usuario.
 
-Los campos abiertos incluyen ejemplos de formato. Las credenciales, tokens, contraseñas y secretos que aparecen en la documentación son **valores ficticios y no deben utilizarse en producción**.
+Los ejemplos de usuarios, claves, tokens, contraseñas y secretos son ficticios.
 
-> Este manual debe mantenerse alineado con la interfaz de la rama activa del plugin. Si una pantalla cambia, la documentación correspondiente debe actualizarse en la misma entrega.
 ## Sincronización con GitHub Wiki
 
-Los documentos configurados en el workflow de documentación se sincronizan automáticamente con la Wiki mediante GitHub Actions al actualizar la rama `staging`. Actualmente se publican el manual de usuario, Marketing, conexiones/credenciales y el procedimiento de versiones/publicación.
+La documentación de la rama `staging` se sincroniza automáticamente con la Wiki mediante GitHub Actions. Las páginas conceptuales existentes se conservan y reciben un bloque de **Manual operativo** administrado desde `docs/manual/`.
 
+Una modificación visual del plugin no se considera completamente terminada hasta revisar su documentación.
