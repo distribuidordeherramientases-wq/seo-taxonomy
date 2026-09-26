@@ -7,6 +7,8 @@
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: David Pérez
+ * License: MIT
+ * License URI: https://opensource.org/license/mit/
  * Text Domain: seo-taxonomy
  */
 
