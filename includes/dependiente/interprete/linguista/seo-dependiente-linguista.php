@@ -11,7 +11,7 @@ defined('ABSPATH') || exit;
  * preparado en la memoria local del Intérprete.
  */
 final class SEO_Dependiente_Linguista {
-    const VERSION = '0.5.0';
+    const VERSION = '0.6.0';
     const STATE_OPTION = 'seo_dependiente_linguista_state';
     const GRAMMAR_OPTION = 'seo_dependiente_interprete_grammar';
     const MORPHOLOGY_OPTION = 'seo_dependiente_interprete_morphology';
@@ -81,6 +81,16 @@ final class SEO_Dependiente_Linguista {
             'exam_invalid'       => 0,
             'exam_active_max_id' => 0,
             'exam_candidate_max_id' => 0,
+            'l9_review_pass'     => 0,
+            'l9_review_fail'     => 0,
+            'l9_debt_seen'       => 0,
+            'l9_semantic_pass'   => 0,
+            'l9_semantic_fail'   => 0,
+            'l9_noise_evidence'  => 0,
+            'l9_noise_promoted'  => 0,
+            'l9_regression_pass' => 0,
+            'l9_regression_fail' => 0,
+            'l9_regression_rate' => 0.0,
             'batch_size'         => 60,
             'started_at'         => 0,
             'completed_at'       => 0,
@@ -107,6 +117,31 @@ final class SEO_Dependiente_Linguista {
         $state['course_started_stats'] = isset($state['course_started_stats']) && is_array($state['course_started_stats']) ? $state['course_started_stats'] : array();
         $state['course_completed_stats'] = isset($state['course_completed_stats']) && is_array($state['course_completed_stats']) ? $state['course_completed_stats'] : array();
         $state['lesson_started_stats'] = isset($state['lesson_started_stats']) && is_array($state['lesson_started_stats']) ? $state['lesson_started_stats'] : array();
+
+        // Si el currículo se amplía después de haber completado el curso (por
+        // ejemplo al incorporar L9), conserva L1-L8 y deja la nueva lección
+        // preparada. No obliga a reiniciar el curso ni borra memoria aprendida.
+        if ('completed' === sanitize_key((string) ($state['status'] ?? ''))) {
+            foreach (self::lessons() as $index => $lesson) {
+                $key = sanitize_key((string) ($lesson['key'] ?? ''));
+                if ($key && empty($state['lesson_results'][$key])) {
+                    $state['enabled'] = 0;
+                    $state['status'] = 'stopped';
+                    $state['lesson_index'] = absint($index);
+                    $state['current_lesson'] = $key;
+                    $state['lesson_phase'] = '';
+                    $state['cursor'] = 0;
+                    $state['lesson_processed'] = 0;
+                    $state['lesson_learned'] = 0;
+                    $state['lesson_rejected'] = 0;
+                    $state['lesson_total'] = 0;
+                    $state['completed_at'] = 0;
+                    $state['last_message'] = 'Nueva lección L' . absint($lesson['order'] ?? ($index + 1))
+                        . ' disponible: ' . sanitize_text_field((string) ($lesson['title'] ?? '')) . '.';
+                    break;
+                }
+            }
+        }
         return $state;
     }
 
@@ -127,6 +162,14 @@ final class SEO_Dependiente_Linguista {
     }
 
     public static function process_control_start() {
+        $state = self::state();
+        $current = sanitize_key((string) ($state['current_lesson'] ?? ''));
+        if ('stopped' === sanitize_key((string) ($state['status'] ?? ''))
+            && $current
+            && !empty($state['lesson_results'])
+            && empty($state['lesson_results'][$current])) {
+            return self::process_control_start_from($current, false);
+        }
         return self::process_control_start_from('', true);
     }
 
@@ -349,6 +392,9 @@ final class SEO_Dependiente_Linguista {
                 'invalid' => absint($result['invalid'] ?? 0),
             );
         }
+        if (!empty($result['bridge']) && is_array($result['bridge'])) {
+            $payload['dependiente_bridge'] = $result['bridge'];
+        }
         return $payload;
     }
 
@@ -398,6 +444,9 @@ final class SEO_Dependiente_Linguista {
             );
             if (isset($lesson_payload['exam'])) {
                 $point['exam'] = $lesson_payload['exam'];
+            }
+            if (isset($lesson_payload['dependiente_bridge'])) {
+                $point['dependiente_bridge'] = $lesson_payload['dependiente_bridge'];
             }
             $evolution[] = $point;
         }
@@ -719,6 +768,16 @@ final class SEO_Dependiente_Linguista {
         return $did_work || $processed_window > 0 || $learned_window > 0 || $rejected_window > 0;
     }
 
+    private static function lesson9_ready() {
+        if (!class_exists('SEO_Dependiente_Linguista_Lesson9')) {
+            $file = __DIR__ . '/lessons/class-dependiente-linguista-lesson9.php';
+            if (is_readable($file)) {
+                require_once $file;
+            }
+        }
+        return class_exists('SEO_Dependiente_Linguista_Lesson9');
+    }
+
     private static function run_current_lesson_batch($state) {
         $key = sanitize_key((string) ($state['current_lesson'] ?? ''));
         switch ($key) {
@@ -738,6 +797,11 @@ final class SEO_Dependiente_Linguista {
                 return self::lesson_intent($state);
             case 'ling_l8_exam':
                 return self::lesson_exam($state);
+            case 'ling_l9_dependiente_bridge':
+                if (self::lesson9_ready()) {
+                    return SEO_Dependiente_Linguista_Lesson9::run_batch($state);
+                }
+                return array('done' => true, 'processed' => 0, 'learned' => 0, 'rejected' => 1, 'message' => 'No se ha podido cargar L9 de Lingüista.');
         }
         return array('done' => true, 'processed' => 0, 'learned' => 0, 'rejected' => 0, 'message' => 'Lección sin trabajo pendiente.');
     }
@@ -1906,6 +1970,21 @@ final class SEO_Dependiente_Linguista {
             $results[$key]['ambiguous'] = absint($fresh['exam_ambiguous'] ?? 0);
             $results[$key]['invalid'] = absint($fresh['exam_invalid'] ?? 0);
         }
+        if ('ling_l9_dependiente_bridge' === $key) {
+            $fresh = self::state();
+            $results[$key]['bridge'] = array(
+                'review_pass' => absint($fresh['l9_review_pass'] ?? 0),
+                'review_fail' => absint($fresh['l9_review_fail'] ?? 0),
+                'dependiente_cases' => absint($fresh['l9_debt_seen'] ?? 0),
+                'semantic_pass' => absint($fresh['l9_semantic_pass'] ?? 0),
+                'semantic_fail' => absint($fresh['l9_semantic_fail'] ?? 0),
+                'noise_evidence' => absint($fresh['l9_noise_evidence'] ?? 0),
+                'noise_promoted' => absint($fresh['l9_noise_promoted'] ?? 0),
+                'regression_pass' => absint($fresh['l9_regression_pass'] ?? 0),
+                'regression_fail' => absint($fresh['l9_regression_fail'] ?? 0),
+                'regression_rate_percent' => (float) ($fresh['l9_regression_rate'] ?? 0),
+            );
+        }
 
         $next_index = $index + 1;
         if ($next_index >= count($lessons)) {
@@ -1992,6 +2071,9 @@ final class SEO_Dependiente_Linguista {
             $active = absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=1 AND language='es'"));
             $candidates = absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=0 AND language='es' AND source IN ('linguista_catalog_actions','linguista_explicit_synonym') AND relation_type IN ('synonym','catalog_variant','verb_to_tool','phrase_to_tool')"));
             return $active + $candidates;
+        }
+        if ('ling_l9_dependiente_bridge' === $key) {
+            return self::lesson9_ready() ? SEO_Dependiente_Linguista_Lesson9::total() : 0;
         }
         return 0;
     }
