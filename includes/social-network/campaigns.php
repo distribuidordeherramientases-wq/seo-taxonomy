@@ -70,7 +70,9 @@ function seo_social_campaign_template_variables($campaign, $product_item, $track
         }
     }
 
-    $image = !empty($product_item['image_url']) ? (string) $product_item['image_url'] : '';
+    $image = function_exists('seo_social_campaign_product_image_url')
+        ? seo_social_campaign_product_image_url($product_item)
+        : (!empty($product_item['image_url']) ? (string) $product_item['image_url'] : '');
     if ($image === '' && $product_id) {
         $image = (string) get_the_post_thumbnail_url($product_id, 'full');
     }
@@ -276,6 +278,9 @@ function seo_social_campaign_publish_product($campaign_id, $product_id, $provide
         'image_url'      => $image_url,
         'provider'       => $saved_provider,
         'campaign_id'    => $campaign_id,
+        // Las campañas son publicaciones visuales: Facebook debe usar la foto
+        // aunque la conexión general esté configurada en modo "enlace".
+        'force_image'    => 1,
     );
 
     $result = call_user_func($provider_config['publish_callback'], $payload);
@@ -824,7 +829,7 @@ function seo_social_campaign_render_scheduler_panel()
         echo '<div class="seo-social-field"><label>Hora preferida</label><input type="time" name="preferred_time" value="10:30"></div>';
         echo '</div>';
         echo '<div class="seo-social-actions"><button class="button button-primary" type="submit" ' . disabled(empty($connected), true, false) . '>Insertar en huecos libres</button></div>';
-        echo '<p class="seo-social-help">No reprograma contenido existente. Si no cabe un producto dentro de las fechas de campaña respetando la separacion, se deja fuera.</p>';
+        echo '<p class="seo-social-help">No reprograma contenido existente. Si no cabe un producto dentro de las fechas de campaña respetando la separacion, se deja fuera. La creatividad usa la foto real del producto: Media local cuando existe o imagen externa activa del proveedor sin importarla a Media.</p>';
         echo '</form>';
 
         if (!empty($products[0])) {
