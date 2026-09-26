@@ -309,33 +309,62 @@ $blog_page_id = (int) get_option('page_for_posts');
 $paged        = max(1, (int) get_query_var('paged'), (int) get_query_var('page'));
 $per_page     = max(1, (int) get_option('posts_per_page', 10));
 
-$blog_title = $blog_page_id ? trim((string) get_the_title($blog_page_id)) : '';
-if ($blog_title === '') {
-    $blog_title = 'Blog';
-}
+$current_category = is_category() ? get_queried_object() : null;
+$is_blog_category = $current_category instanceof WP_Term && 'category' === $current_category->taxonomy;
 
-$blog_intro = '';
-if ($blog_page_id) {
-    $blog_intro = trim((string) get_post_field('post_excerpt', $blog_page_id));
-    if ($blog_intro === '') {
-        $blog_intro = wp_trim_words(
-            wp_strip_all_tags(strip_shortcodes((string) get_post_field('post_content', $blog_page_id))),
-            34
-        );
+$editorial_category_ids = array();
+foreach (array('guias-y-comparativas', 'noticias') as $editorial_slug) {
+    $editorial_category = get_category_by_slug($editorial_slug);
+    if ($editorial_category instanceof WP_Term) {
+        $editorial_category_ids[] = (int) $editorial_category->term_id;
     }
 }
-if ($blog_intro === '') {
-    $blog_intro = 'Guías, análisis y criterios técnicos para elegir, utilizar y mantener herramientas y equipamiento profesional con más contexto.';
+$editorial_category_ids = array_values(array_unique(array_filter($editorial_category_ids)));
+
+if ($is_blog_category) {
+    $blog_title = trim((string) $current_category->name);
+    $blog_intro = trim(wp_strip_all_tags((string) term_description($current_category->term_id, 'category')));
+} else {
+    $blog_title = $blog_page_id ? trim((string) get_the_title($blog_page_id)) : '';
+    $blog_intro = '';
+
+    if ($blog_page_id) {
+        $blog_intro = trim((string) get_post_field('post_excerpt', $blog_page_id));
+        if ($blog_intro === '') {
+            $blog_intro = wp_trim_words(
+                wp_strip_all_tags(strip_shortcodes((string) get_post_field('post_content', $blog_page_id))),
+                34
+            );
+        }
+    }
 }
 
-$blog_query = new WP_Query(array(
+if ($blog_title === '') {
+    $blog_title = $is_blog_category ? 'Artículos' : 'Blog';
+}
+
+if ($blog_intro === '') {
+    $blog_intro = $is_blog_category
+        ? 'Artículos, guías y novedades de ' . $blog_title . ' seleccionados para ayudarte a encontrar información útil y relacionada.'
+        : 'Guías, análisis y criterios técnicos para elegir, utilizar y mantener herramientas y equipamiento profesional con más contexto.';
+}
+
+$blog_query_args = array(
     'post_type'           => 'post',
     'post_status'         => 'publish',
     'posts_per_page'      => $per_page,
     'paged'               => $paged,
     'ignore_sticky_posts' => false,
     'no_found_rows'       => false,
-));
+);
+
+if ($is_blog_category) {
+    $blog_query_args['category__in'] = array((int) $current_category->term_id);
+} elseif (!empty($editorial_category_ids)) {
+    $blog_query_args['category__in'] = $editorial_category_ids;
+}
+
+$blog_query = new WP_Query($blog_query_args);
 
 $dht_blog_read_time = static function ($post_id) {
     $content = (string) get_post_field('post_content', $post_id);
@@ -354,13 +383,19 @@ $dht_blog_excerpt = static function ($post_id, $words = 30) {
     return $excerpt;
 };
 
-$blog_categories = get_categories(array(
+$blog_category_args = array(
     'taxonomy'   => 'category',
     'hide_empty' => true,
-    'number'     => 12,
     'orderby'    => 'count',
     'order'      => 'DESC',
-));
+);
+
+if (!empty($editorial_category_ids)) {
+    $blog_category_args['include'] = $editorial_category_ids;
+    $blog_category_args['orderby'] = 'include';
+}
+
+$blog_categories = get_categories($blog_category_args);
 $blog_categories = is_array($blog_categories) ? $blog_categories : array();
 
 $item_list = array();
@@ -377,6 +412,13 @@ if ($blog_query->have_posts()) {
 }
 
 $blog_url = $blog_page_id ? get_permalink($blog_page_id) : dht_template_blog_url();
+
+if ($is_blog_category) {
+    $category_url = get_category_link($current_category);
+    if (!is_wp_error($category_url) && $category_url) {
+        $blog_url = (string) $category_url;
+    }
+}
 $json = array(
     '@context' => 'https://schema.org',
     '@graph'   => array(

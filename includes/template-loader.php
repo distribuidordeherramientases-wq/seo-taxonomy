@@ -223,6 +223,21 @@ function seo_template_loader($template) {
     }
 
     /* =====================================================
+       2A. CATEGORIAS DE ENTRADAS / ARCHIVOS DEL BLOG
+
+       Las categorias nativas de WordPress son archivos de la
+       taxonomia `category`. Se resuelven de forma automatica
+       antes del resto de vistas y sin asignaciones por termino.
+    ===================================================== */
+    if (is_category()) {
+
+        $tpl = seo_template_get_registered_template('taxonomy_category');
+
+        $file = seo_template_resolve_registered_file($tpl, $base_path);
+        return $file !== '' ? $file : $template;
+    }
+
+    /* =====================================================
        2B. PEDIDO RECIBIDO / GRACIAS WOOCOMMERCE
 
        El endpoint order-received tambien forma parte del checkout.
