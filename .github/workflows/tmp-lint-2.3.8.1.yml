@@ -1,0 +1,16 @@
+name: Temporal lint 2.3.8.1
+
+on:
+  push:
+    branches:
+      - feature/milestone-2.3.8.1-campaigns
+
+jobs:
+  php-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP syntax
+        run: |
+          php -l includes/marketing/campaigns.php
+          php -l seo-taxonomy.php
