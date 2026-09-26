@@ -313,3 +313,29 @@ La creatividad de campaña incorpora la fotografía real del producto junto con 
 En Facebook, las publicaciones de campaña fuerzan el formato con imagen aunque la conexión general esté configurada como «Enlace con vista previa». Las publicaciones normales conservan la configuración general de Facebook.
 
 La vista previa del Programador muestra tanto el texto como la creatividad que se utilizará para el primer producto de la campaña.
+
+
+---
+
+## Calendario visual de publicaciones sociales
+
+La pestaña **Marketing → Redes sociales → Calendario** muestra la agenda futura en formato mensual sin crear una fuente de datos nueva. Lee exactamente las mismas programaciones que utiliza el Programador y que aparecen en **Exportar agenda**.
+
+La vista combina:
+
+- **Entradas**, identificadas con un color propio.
+- **Páginas / Landings**, con un segundo color.
+- **Ofertas de campañas**, con un tercer color.
+
+Cada evento muestra hora, red y título. El calendario permite navegar por meses y filtrar por red social.
+
+El resumen mensual muestra:
+
+- número de publicaciones;
+- días ocupados;
+- días libres futuros;
+- días con más de una publicación en la misma red.
+
+Los días con colisión en una misma red se resaltan visualmente. Debajo del calendario se mantiene una **vista compacta cronológica** para pantallas pequeñas y revisiones rápidas.
+
+No se duplica ninguna programación ni se crea una tabla adicional: las entradas/landings proceden de la agenda social existente y las ofertas de los metadatos de programación de Campañas.

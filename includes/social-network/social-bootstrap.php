@@ -15,6 +15,7 @@ $seo_social_modules = array(
     __DIR__ . '/bootstrap.php',
     __DIR__ . '/campaign-images.php',
     __DIR__ . '/campaigns.php',
+    __DIR__ . '/calendar.php',
 );
 
 foreach ($seo_social_modules as $seo_social_module) {
