@@ -6,6 +6,9 @@ Los cambios validados en `staging` que todavía no formen parte de una publicaci
 
 ### Marketing y campañas
 
+- Las publicaciones sociales de campañas resuelven la foto real del producto desde Media o desde imágenes externas activas del proveedor, sin importar la fuente externa a Media.
+- Las creatividades sociales incorporan la foto real del producto junto con campaña, precio anterior, precio de oferta y descuento; si el servidor no puede leer una imagen remota, el publicador recibe la URL original como fallback.
+- Facebook fuerza formato imagen para publicaciones de campaña aunque la conexión general esté configurada como enlace. Las creatividades cacheadas se purgan automáticamente a los 60 días y no crean attachments.
 - Las tarjetas públicas de campaña reutilizan el resolvedor compartido de imágenes de producto: priorizan Media local cuando existe y, en caso contrario, cargan directamente imágenes externas activas del proveedor sin importarlas a Media. Se conservan fallbacks entre varias URLs de proveedor y, como último recurso, el logo/placeholder.
 
 ## [2.3.8.1] - 2026-09-26

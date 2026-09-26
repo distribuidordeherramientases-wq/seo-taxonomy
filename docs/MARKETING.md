@@ -292,3 +292,24 @@ Las campañas pueden alimentar o integrarse con:
 - plantillas públicas de campaña en la tienda.
 
 La selección de productos y precios sigue siendo una decisión comercial; el módulo se encarga de almacenar, programar, aplicar y restaurar la campaña.
+
+
+---
+
+## Publicación social de campañas
+
+Las campañas pueden insertarse en la agenda de Redes Sociales producto a producto.
+
+Para cada producto, la imagen se resuelve con este orden:
+
+1. imagen local de WooCommerce/Media, si existe;
+2. imagen externa activa del proveedor;
+3. otras imágenes activas del mismo proveedor como fallback.
+
+Las imágenes externas **no se importan a Media ni crean attachments**. El sistema intenta leerlas en memoria para generar la creatividad de campaña. Si una URL remota no puede descargarse desde el servidor, se entrega directamente al publicador como fallback cuando la red admite URL remota.
+
+La creatividad de campaña incorpora la fotografía real del producto junto con el nombre de campaña, nombre de producto, precio anterior, precio de campaña y descuento. Los PNG finales de campaña se guardan fuera de Media en `uploads/seo-social-campaigns/<red>/` como caché de publicación y se limpian automáticamente al superar 60 días.
+
+En Facebook, las publicaciones de campaña fuerzan el formato con imagen aunque la conexión general esté configurada como «Enlace con vista previa». Las publicaciones normales conservan la configuración general de Facebook.
+
+La vista previa del Programador muestra tanto el texto como la creatividad que se utilizará para el primer producto de la campaña.

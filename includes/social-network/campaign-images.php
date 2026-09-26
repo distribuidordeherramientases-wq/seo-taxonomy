@@ -319,6 +319,247 @@ function seo_social_campaign_image_template_from_campaign($campaign)
 }
 
 /**
+ * Devuelve candidatos de imagen reales del producto sin importar nada a Media.
+ * Prioridad: Media local -> image_url ya resuelta -> proveedor externo.
+ *
+ * @param array $product_item
+ * @param int   $supplier_limit
+ * @return array<int,array{url:string,source:string,attachment_id:int}>
+ */
+function seo_social_campaign_product_image_candidates($product_item, $supplier_limit = 4)
+{
+    global $wpdb;
+
+    $product_id = isset($product_item['id']) ? absint($product_item['id']) : 0;
+    $supplier_limit = max(1, min(10, absint($supplier_limit)));
+    $candidates = array();
+    $seen = array();
+
+    $add = static function ($url, $source, $attachment_id = 0) use (&$candidates, &$seen) {
+        $url = esc_url_raw((string) $url);
+        if ($url === '' || !wp_http_validate_url($url) || isset($seen[$url])) {
+            return;
+        }
+        $seen[$url] = true;
+        $candidates[] = array(
+            'url'           => $url,
+            'source'        => sanitize_key((string) $source),
+            'attachment_id' => absint($attachment_id),
+        );
+    };
+
+    $product = isset($product_item['product']) && is_a($product_item['product'], 'WC_Product')
+        ? $product_item['product']
+        : ($product_id && function_exists('wc_get_product') ? wc_get_product($product_id) : null);
+
+    if ($product) {
+        $attachment_id = absint($product->get_image_id());
+        if ($attachment_id) {
+            $add(wp_get_attachment_image_url($attachment_id, 'full'), 'media', $attachment_id);
+        }
+    }
+
+    if (!empty($product_item['image_url'])) {
+        $add((string) $product_item['image_url'], 'resolved');
+    }
+
+    if ($product_id) {
+        $supplier_table = $wpdb->prefix . 'seo_supplier_images';
+        $exists = $wpdb->get_var(
+            $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($supplier_table))
+        ) === $supplier_table;
+
+        if ($exists) {
+            $urls = $wpdb->get_col(
+                $wpdb->prepare(
+                    "SELECT image_url
+                     FROM {$supplier_table}
+                     WHERE product_id = %d
+                       AND status = 'active'
+                       AND image_url IS NOT NULL
+                       AND TRIM(image_url) <> ''
+                     ORDER BY is_primary DESC, position ASC, id ASC
+                     LIMIT %d",
+                    $product_id,
+                    $supplier_limit
+                )
+            );
+            foreach ((array) $urls as $url) {
+                $add($url, 'supplier');
+            }
+        }
+
+        if (function_exists('seo_supplier_v2_external_primary_url')) {
+            $add(seo_supplier_v2_external_primary_url($product_id), 'supplier');
+        }
+    }
+
+    return (array) apply_filters('seo_social_campaign_product_image_candidates', $candidates, $product_item);
+}
+
+/**
+ * URL real preferida del producto. No crea attachments ni copia la imagen a Media.
+ *
+ * @param array $product_item
+ * @return string
+ */
+function seo_social_campaign_product_image_url($product_item)
+{
+    $candidates = seo_social_campaign_product_image_candidates($product_item);
+    return !empty($candidates[0]['url']) ? esc_url_raw((string) $candidates[0]['url']) : '';
+}
+
+/**
+ * Carga una imagen para componer la creatividad. Las remotas se leen en memoria:
+ * nunca se registran en Media ni se conservan como copia del producto.
+ *
+ * @param array $candidate
+ * @return resource|\GdImage|WP_Error
+ */
+function seo_social_campaign_image_load_candidate($candidate)
+{
+    if (!function_exists('imagecreatefromstring')) {
+        return new WP_Error('gd_missing', 'La extensión GD no está disponible.');
+    }
+
+    $bytes = '';
+    $attachment_id = !empty($candidate['attachment_id']) ? absint($candidate['attachment_id']) : 0;
+
+    if ($attachment_id) {
+        $path = get_attached_file($attachment_id);
+        if ($path && is_readable($path)) {
+            $bytes = (string) @file_get_contents($path);
+        }
+    }
+
+    if ($bytes === '') {
+        $url = !empty($candidate['url']) ? esc_url_raw((string) $candidate['url']) : '';
+        if ($url === '' || !wp_http_validate_url($url)) {
+            return new WP_Error('campaign_image_invalid_url', 'La URL de imagen del producto no es válida.');
+        }
+
+        $response = wp_safe_remote_get(
+            $url,
+            array(
+                'timeout'             => 15,
+                'redirection'         => 3,
+                'limit_response_size' => 10 * MB_IN_BYTES,
+                'user-agent'          => 'SEO-System-Social/' . (defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : '1.0'),
+            )
+        );
+        if (is_wp_error($response)) {
+            return $response;
+        }
+        $code = (int) wp_remote_retrieve_response_code($response);
+        if ($code < 200 || $code >= 300) {
+            return new WP_Error('campaign_image_http', 'La imagen remota devolvió HTTP ' . $code . '.');
+        }
+        $bytes = (string) wp_remote_retrieve_body($response);
+    }
+
+    if ($bytes === '') {
+        return new WP_Error('campaign_image_empty', 'La imagen del producto está vacía.');
+    }
+
+    $image = @imagecreatefromstring($bytes);
+    if (!$image) {
+        return new WP_Error('campaign_image_decode', 'No se pudo decodificar la imagen del producto.');
+    }
+
+    return $image;
+}
+
+/**
+ * Obtiene la primera imagen real que el servidor puede leer para crear el banner.
+ * Si una URL de proveedor falla, prueba automáticamente la siguiente.
+ *
+ * @param array $product_item
+ * @return array{image:mixed,url:string,source:string}|WP_Error
+ */
+function seo_social_campaign_image_load_product($product_item)
+{
+    $last_error = null;
+    foreach (seo_social_campaign_product_image_candidates($product_item, 6) as $candidate) {
+        $image = seo_social_campaign_image_load_candidate($candidate);
+        if (is_wp_error($image)) {
+            $last_error = $image;
+            continue;
+        }
+        return array(
+            'image'  => $image,
+            'url'    => (string) $candidate['url'],
+            'source' => (string) $candidate['source'],
+        );
+    }
+
+    return $last_error instanceof WP_Error
+        ? $last_error
+        : new WP_Error('campaign_product_image_missing', 'El producto no tiene una imagen utilizable.');
+}
+
+/**
+ * Dibuja la foto real del producto dentro de un panel, manteniendo proporción.
+ *
+ * @param resource|\GdImage $canvas
+ * @param resource|\GdImage $source
+ * @param int $x1
+ * @param int $y1
+ * @param int $x2
+ * @param int $y2
+ * @return void
+ */
+function seo_social_campaign_image_draw_product($canvas, $source, $x1, $y1, $x2, $y2)
+{
+    $panel_w = max(1, $x2 - $x1);
+    $panel_h = max(1, $y2 - $y1);
+    $white = imagecolorallocate($canvas, 255, 255, 255);
+    imagefilledroundedrectangle($canvas, $x1, $y1, $x2, $y2, $white, 26);
+
+    $src_w = imagesx($source);
+    $src_h = imagesy($source);
+    if ($src_w <= 0 || $src_h <= 0) {
+        return;
+    }
+
+    $padding = max(18, (int) round(min($panel_w, $panel_h) * 0.06));
+    $avail_w = max(1, $panel_w - (2 * $padding));
+    $avail_h = max(1, $panel_h - (2 * $padding));
+    $scale = min($avail_w / $src_w, $avail_h / $src_h);
+    $dst_w = max(1, (int) floor($src_w * $scale));
+    $dst_h = max(1, (int) floor($src_h * $scale));
+    $dst_x = $x1 + (int) floor(($panel_w - $dst_w) / 2);
+    $dst_y = $y1 + (int) floor(($panel_h - $dst_h) / 2);
+
+    imagealphablending($canvas, true);
+    imagecopyresampled($canvas, $source, $dst_x, $dst_y, 0, 0, $dst_w, $dst_h, $src_w, $src_h);
+}
+
+/**
+ * Evita que las creatividades temporales de campañas crezcan indefinidamente.
+ * Solo borra PNG propios de este módulo y nunca toca Media/attachments.
+ *
+ * @param string $path
+ * @param int    $max_age_days
+ * @return void
+ */
+function seo_social_campaign_image_cleanup_cache($path, $max_age_days = 60)
+{
+    $max_age_days = max(7, absint($max_age_days));
+    $lock_key = 'seo_social_campaign_image_cleanup_' . md5((string) $path);
+    if (get_transient($lock_key)) {
+        return;
+    }
+    set_transient($lock_key, 1, DAY_IN_SECONDS);
+
+    $cutoff = time() - ($max_age_days * DAY_IN_SECONDS);
+    foreach ((array) glob(trailingslashit($path) . 'campaign-*.png') as $file) {
+        if (is_file($file) && filemtime($file) < $cutoff) {
+            @unlink($file);
+        }
+    }
+}
+
+/**
  * @param string $provider
  * @return array{path:string,url:string}|WP_Error
  */
@@ -337,6 +578,8 @@ function seo_social_campaign_image_upload_base($provider)
     if (!wp_mkdir_p($path)) {
         return new WP_Error('upload_dir_create_failed', 'No se pudo crear la carpeta de creatividades sociales.');
     }
+
+    seo_social_campaign_image_cleanup_cache($path, 60);
 
     return array('path' => $path, 'url' => $url);
 }
@@ -376,6 +619,7 @@ function seo_social_campaign_image_generate($campaign, $product_item, $provider 
         'price'         => (string) ($product_item['campaign_price'] ?? ''),
         'regular'       => (string) ($product_item['regular_price'] ?? ''),
         'discount'      => (string) ($product_item['discount_percent'] ?? ''),
+        'source_image'  => seo_social_campaign_product_image_url($product_item),
         'site'          => get_bloginfo('name'),
         'end'           => (string) ($campaign->end_at ?? ''),
     )));
@@ -409,10 +653,37 @@ function seo_social_campaign_image_generate($campaign, $product_item, $provider 
 
     $w = $canvas['width'];
     $h = $canvas['height'];
+
     imagefilledellipse($image, (int) ($w * 0.90), (int) ($h * 0.20), (int) ($w * 0.30), (int) ($h * 0.55), $accent2);
     imagefilledellipse($image, (int) ($w * 0.85), (int) ($h * 0.85), (int) ($w * 0.45), (int) ($h * 0.35), $accent2);
     imagefilledrectangle($image, 0, (int) ($h * 0.78), $w, $h, imagecolorallocatealpha($image, 255, 255, 255, 118));
     imagefilledpolygon($image, array((int) ($w * 0.72), 0, $w, 0, $w, (int) ($h * 0.25)), 3, imagecolorallocatealpha($image, 255, 255, 255, 118));
+
+    // Foto real del producto: se lee de Media o del proveedor, pero la fuente
+    // nunca se importa ni se copia a la biblioteca de WordPress.
+    $source_image_url = seo_social_campaign_product_image_url($product_item);
+    $loaded_product = seo_social_campaign_image_load_product($product_item);
+
+    // Si existe imagen real pero este servidor no puede descargarla (hotlink,
+    // 403, etc.), no sustituimos el producto por una tarjeta sin foto:
+    // el publicador recibirá directamente la URL original como fallback.
+    if ($source_image_url !== '' && is_wp_error($loaded_product)) {
+        imagedestroy($image);
+        return new WP_Error('campaign_product_image_remote_only', 'La creatividad no pudo leer la imagen; se usará la URL original del producto.');
+    }
+
+    if (!is_wp_error($loaded_product) && !empty($loaded_product['image'])) {
+        if ($h > 800) {
+            if ($provider === 'pinterest') {
+                seo_social_campaign_image_draw_product($image, $loaded_product['image'], 70, 990, $w - 70, $h - 55);
+            } else {
+                seo_social_campaign_image_draw_product($image, $loaded_product['image'], 70, 680, $w - 70, $h - 55);
+            }
+        } else {
+            seo_social_campaign_image_draw_product($image, $loaded_product['image'], (int) ($w * 0.67), 72, $w - 52, $h - 72);
+        }
+        imagedestroy($loaded_product['image']);
+    }
 
     $fonts = seo_social_campaign_image_fonts();
     $font_regular = $fonts['regular'];
@@ -509,19 +780,7 @@ function seo_social_campaign_resolve_publication_image_url($campaign, $product_i
         return esc_url_raw((string) $generated['url']);
     }
 
-    if (!empty($product_item['image_url'])) {
-        return esc_url_raw((string) $product_item['image_url']);
-    }
-
-    $product_id = isset($product_item['id']) ? absint($product_item['id']) : 0;
-    if ($product_id > 0) {
-        $thumbnail = (string) get_the_post_thumbnail_url($product_id, 'full');
-        if ($thumbnail !== '') {
-            return esc_url_raw($thumbnail);
-        }
-    }
-
-    return '';
+    return seo_social_campaign_product_image_url($product_item);
 }
 
 /**
