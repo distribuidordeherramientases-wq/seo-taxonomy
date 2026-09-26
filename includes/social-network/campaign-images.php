@@ -661,7 +661,17 @@ function seo_social_campaign_image_generate($campaign, $product_item, $provider 
 
     // Foto real del producto: se lee de Media o del proveedor, pero la fuente
     // nunca se importa ni se copia a la biblioteca de WordPress.
+    $source_image_url = seo_social_campaign_product_image_url($product_item);
     $loaded_product = seo_social_campaign_image_load_product($product_item);
+
+    // Si existe imagen real pero este servidor no puede descargarla (hotlink,
+    // 403, etc.), no sustituimos el producto por una tarjeta sin foto:
+    // el publicador recibirá directamente la URL original como fallback.
+    if ($source_image_url !== '' && is_wp_error($loaded_product)) {
+        imagedestroy($image);
+        return new WP_Error('campaign_product_image_remote_only', 'La creatividad no pudo leer la imagen; se usará la URL original del producto.');
+    }
+
     if (!is_wp_error($loaded_product) && !empty($loaded_product['image'])) {
         if ($h > 800) {
             if ($provider === 'pinterest') {
