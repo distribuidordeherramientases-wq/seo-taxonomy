@@ -282,13 +282,13 @@ final class SEO_Dependiente_Interprete {
                                     <?php if ('completed' === $row_status) : ?>
                                         <a class="button button-small" href="<?php echo esc_url(SEO_Dependiente_Linguista::export_url('lesson', (string) ($row['key'] ?? ''))); ?>">Descargar JSON</a>
                                     <?php endif; ?>
-                                    <?php if (!$ling_running && in_array($row_status, array('completed','paused','error'), true)) : ?>
-                                        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" onsubmit="return confirm('¿Reentrenar desde esta lección? Los resultados posteriores se invalidarán, pero no se borrará la memoria lingüística ya aprendida.');" style="margin:0;">
+                                    <?php if (!$ling_running && in_array($row_status, array('completed','paused','error','pending'), true)) : ?>
+                                        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" onsubmit="return confirm('<?php echo 'pending' === $row_status ? '¿Iniciar esta lección conservando todo lo aprendido anteriormente?' : '¿Reentrenar desde esta lección? Los resultados posteriores se invalidarán, pero no se borrará la memoria lingüística ya aprendida.'; ?>');" style="margin:0;">
                                             <input type="hidden" name="action" value="seo_dependiente_linguista_control">
                                             <input type="hidden" name="command" value="retrain_from">
                                             <input type="hidden" name="lesson_key" value="<?php echo esc_attr((string) ($row['key'] ?? '')); ?>">
                                             <?php wp_nonce_field('seo_dependiente_linguista_control'); ?>
-                                            <button type="submit" class="button button-small">Reentrenar desde aquí</button>
+                                            <button type="submit" class="button button-small"><?php echo 'pending' === $row_status ? 'Iniciar esta lección' : 'Reentrenar desde aquí'; ?></button>
                                         </form>
                                     <?php elseif ('completed' !== $row_status) : ?>—<?php endif; ?>
                                 </div>
@@ -298,7 +298,7 @@ final class SEO_Dependiente_Interprete {
                     </tbody>
                 </table>
 
-                <p class="description" style="margin-top:14px;"><strong>Informes:</strong> al completar cada lección queda disponible su JSON con métricas y fotografía de memoria antes/después. Al terminar L8 aparece además el JSON de evolución completa L1 → L8.</p>
+                <p class="description" style="margin-top:14px;"><strong>Informes:</strong> al completar cada lección queda disponible su JSON con métricas y fotografía de memoria antes/después. Al terminar L9 aparece además el JSON de evolución completa L1 → L9, incluyendo el puente lingüístico con la deuda de Dependiente.</p>
                 <p class="description"><strong>Worker:</strong> Lingüista solo empieza cuando lo arrancas aquí. Después el gestor le concede ventanas de trabajo y procesa lotes pequeños/adaptativos; nunca lanza toda una lección de golpe.</p>
             <?php endif; ?>
             <p class="description"><strong>Contrato:</strong> filtra lenguaje y usa solo memoria lingüística validada para identificar acción y vocabulario canónico. No busca productos, no consulta facetas, no aplica filtros y no pregunta al cliente.</p>
