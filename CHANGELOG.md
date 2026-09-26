@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+
+Los cambios validados en `staging` que todavía no formen parte de una publicación de producción se documentan aquí. Al cerrar una release semanal, estas entradas se trasladan a la versión fechada correspondiente.
+
 ## [2.3.8.1] - 2026-09-26
 
 ### Marketing y campañas
