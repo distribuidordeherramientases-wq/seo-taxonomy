@@ -106,7 +106,7 @@ final class SEO_Ingeniero_Exchange {
 
         // BOM UTF-8 para Excel/LibreOffice.
         fwrite($out, "\xEF\xBB\xBF");
-        fputcsv($out, self::csv_headers());
+        fputcsv($out, self::csv_headers(), ',', '"', '');
 
         foreach ((array) ($payload['categories'] ?? array()) as $category) {
             $source_map = array();
@@ -142,7 +142,7 @@ final class SEO_Ingeniero_Exchange {
                         (string) ($fact['source_type'] ?? ($source['source_type'] ?? '')),
                         (string) ($fact['trust_level'] ?? ($source['trust_level'] ?? '')),
                         (string) ($fact['evidence'] ?? ''),
-                    ));
+                    ), ',', '"', '');
                 }
             }
         }
@@ -161,7 +161,7 @@ final class SEO_Ingeniero_Exchange {
         $out = fopen('php://output', 'w');
         if (!$out) exit;
         fwrite($out, "\xEF\xBB\xBF");
-        fputcsv($out, self::csv_headers());
+        fputcsv($out, self::csv_headers(), ',', '"', '');
         fclose($out);
         exit;
     }
@@ -261,7 +261,7 @@ final class SEO_Ingeniero_Exchange {
         $handle = fopen($path, 'r');
         if (!$handle) return new WP_Error('ingeniero_exchange_csv_open', 'No se pudo abrir el CSV.');
 
-        $headers = fgetcsv($handle);
+        $headers = fgetcsv($handle, 0, ',', '"', '');
         if (!$headers) {
             fclose($handle);
             return new WP_Error('ingeniero_exchange_csv_empty', 'El CSV no contiene cabecera.');
@@ -281,7 +281,7 @@ final class SEO_Ingeniero_Exchange {
 
         $groups = array();
         $line = 1;
-        while (($row = fgetcsv($handle)) !== false) {
+        while (($row = fgetcsv($handle, 0, ',', '"', '')) !== false) {
             $line++;
             if (!array_filter($row, static function($v){ return trim((string)$v) !== ''; })) continue;
             $row = array_pad($row, count($headers), '');
@@ -496,6 +496,7 @@ final class SEO_Ingeniero_Exchange {
 
             $term_id = absint($term->term_id);
             $result['categories']++;
+            $category_imported_knowledge = 0;
             $incoming_to_local = array();
             $url_to_local = array();
 
@@ -644,10 +645,11 @@ final class SEO_Ingeniero_Exchange {
                     $result['errors']++;
                 } else {
                     $result['knowledge']++;
+                    $category_imported_knowledge++;
                 }
             }
 
-            if ($result['knowledge'] > 0) {
+            if ($category_imported_knowledge > 0) {
                 SEO_Ingeniero::set_category_state($term_id, 'revisar', array(
                     'last_error'=>'',
                     'last_import_at'=>time(),
