@@ -9,6 +9,12 @@
  */
 defined('ABSPATH') || exit;
 
+$seo_mysql_audit_file = __DIR__ . '/seo-system-mysql-audit.php';
+if (is_readable($seo_mysql_audit_file)) {
+    require_once $seo_mysql_audit_file;
+}
+unset($seo_mysql_audit_file);
+
 // Monitor externo: GitHub Actions mide la portada y WordPress recibe/almacena los resultados firmados.
 add_action('rest_api_init', 'seo_server_status_register_external_monitor_route');
 
@@ -2039,6 +2045,12 @@ function seo_server_status_collect_snapshot($deep = false) {
             $total = (float) $table->data_length + (float) $table->index_length;
             $checks[] = seo_server_status_make_check('SRV-DB-TABLE-' . strtoupper(substr(sha1($table->table_name), 0, 8)), 'Base de datos', 'Tabla grande', (string) $table->table_name . ' · ' . seo_server_status_format_bytes($total), 'info', 'Dato informativo de capacidad; el tamaño de una tabla no es por sí solo un error de MySQL/MariaDB.');
         }
+
+        if (function_exists('seo_system_mysql_audit_snapshot_checks')) {
+            foreach (seo_system_mysql_audit_snapshot_checks() as $mysql_audit_check) {
+                $checks[] = $mysql_audit_check;
+            }
+        }
     }
 
     return array(
@@ -2653,6 +2665,10 @@ function seo_server_status_render_mysql_tab() {
     echo '</div>';
 
     seo_server_status_render_largest_tables_section();
+
+    if (function_exists('seo_system_mysql_audit_render')) {
+        seo_system_mysql_audit_render();
+    }
 }
 
 /**

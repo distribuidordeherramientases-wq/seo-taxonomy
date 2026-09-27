@@ -1,0 +1,26 @@
+name: Lint System Check
+
+on:
+  pull_request:
+    branches:
+      - staging
+    paths:
+      - 'includes/system-check/**'
+      - 'docs/manual/HERRAMIENTAS.md'
+  push:
+    branches:
+      - staging
+    paths:
+      - 'includes/system-check/**'
+  workflow_dispatch:
+
+jobs:
+  php-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP syntax
+        run: |
+          php -v
+          php -l includes/system-check/seo-system-mysql-audit.php
+          php -l includes/system-check/seo-system-server-status.php
