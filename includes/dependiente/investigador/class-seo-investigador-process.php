@@ -11,11 +11,12 @@ final class SEO_Investigador_Process {
     }
 
     public static function filter_pending_work($pending) {
-        return $pending || SEO_Investigador::is_pending();
+        $settings = function_exists('seo_process_supervisor_settings') ? (array) seo_process_supervisor_settings() : array('investigador'=>1);
+        return $pending || (!empty($settings['investigador']) && SEO_Investigador::is_pending());
     }
 
     public static function filter_manager_targets($targets, $settings, $source) {
-        if (!SEO_Investigador::is_pending()) return $targets;
+        if (empty($settings['investigador']) || !SEO_Investigador::is_pending()) return $targets;
         $targets[] = array(
             'type'=>'investigador',
             'data'=>array(),
