@@ -221,8 +221,13 @@ if (!function_exists('seo_analista_functional_page_ids')) {
             'privacidad-de-datos', 'devoluciones-y-reembolsos', 'contacto',
             'blog', 'tienda', 'dependiente'
         ) as $slug) {
-            $page = get_page_by_path($slug, OBJECT, 'page');
-            if ($page && !empty($page->ID)) $ids[(int) $page->ID] = true;
+            // Durante migraciones/reclasificaciones una URL funcional puede
+            // quedar temporalmente como page o post. Ninguna de las dos debe
+            // competir con contenido editorial/comercial en Analista.
+            foreach (array('page', 'post') as $post_type) {
+                $page = get_page_by_path($slug, OBJECT, $post_type);
+                if ($page && !empty($page->ID)) $ids[(int) $page->ID] = true;
+            }
         }
         return $ids;
     }
