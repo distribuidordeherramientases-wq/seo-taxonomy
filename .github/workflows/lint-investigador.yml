@@ -1,0 +1,33 @@
+name: Lint Investigador
+
+on:
+  pull_request:
+    branches:
+      - staging
+    paths:
+      - 'includes/dependiente/investigador/**'
+      - 'includes/dependiente/seo-dependiente-admin.php'
+      - 'includes/dependiente/seo-dependiente-bootstrap.php'
+      - 'includes/seo-process-supervisor.php'
+  push:
+    branches:
+      - staging
+    paths:
+      - 'includes/dependiente/investigador/**'
+      - 'includes/dependiente/seo-dependiente-admin.php'
+      - 'includes/dependiente/seo-dependiente-bootstrap.php'
+      - 'includes/seo-process-supervisor.php'
+  workflow_dispatch:
+
+jobs:
+  php-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP syntax
+        run: |
+          php -v
+          find includes/dependiente/investigador -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          php -l includes/dependiente/seo-dependiente-admin.php
+          php -l includes/dependiente/seo-dependiente-bootstrap.php
+          php -l includes/seo-process-supervisor.php

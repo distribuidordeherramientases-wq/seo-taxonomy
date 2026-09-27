@@ -9,6 +9,7 @@ Ruta: **SEO Taxonomy → Dependiente**
 - Aprendizaje
 - Academia
 - Intérprete
+- Investigador
 - Conocimiento
 - Auditor
 
@@ -119,6 +120,64 @@ También muestra Modo de formación, Progreso, Informe completo y tabla Módulo 
 - tabla Lección / Estado / Progreso / Aprendido-revisado / Acción.
 - **Reentrenar desde aquí** [Proceso] para una lección concreta.
 
+## Investigador
+
+Investigador añade una capa de **conocimiento técnico externo por categoría** sin mezclarla con el índice comercial de Dependiente.
+
+### Lección 1 · Documentación técnica
+
+V1 investiga categorías WooCommerce con productos y prioriza inicialmente las de mayor catálogo.
+
+Controles:
+
+- **Categorías piloto**: número de categorías a preparar.
+- **Preparar lección** [Proceso]: crea la cola sin realizar todavía consultas externas.
+- **Iniciar / continuar investigación** [Proceso][API]: entrega el trabajo al Gestor de procesos.
+- **Detener** [Proceso].
+- **Exportar JSON** [Exporta].
+- **Revisar conocimiento** [Consulta]: abre fuentes, evidencia, confianza y estado.
+- **Reinvestigar categoría** [Proceso][API]: encola la categoría de nuevo; no bloquea la petición del administrador.
+- **Aprobar / Mantener revisión / Rechazar** [Guarda]: revisión humana del conocimiento consolidado.
+
+KPIs visibles: categorías con productos, investigadas, pendientes, en revisión, errores, fuentes, conocimientos, confianza media y última investigación.
+
+### Búsqueda y presupuesto
+
+V1 usa un provider desacoplado y la implementación SerpApi/Google web. Reutiliza la credencial existente de Ojeador, pero mantiene un límite local independiente para Investigador.
+
+Campos:
+
+- Límite mensual local.
+- Resultados por consulta.
+- Consultas por categoría.
+- Páginas HTML a leer.
+- **Guardar configuración** [Guarda].
+
+Los PDFs se detectan y quedan como `pdf_pending`; v1 no añade un parser pesado.
+
+### Calidad y trazabilidad
+
+- organismo/normativa: confianza alta;
+- documentación técnica: media-alta;
+- web especializada: media;
+- comunidad/opinión: baja.
+
+Una fuente de confianza alta puede sostener conocimiento activo. Fuentes técnicas no oficiales requieren confirmación entre fuentes para activarse automáticamente. Lo dudoso queda en **revisar**.
+
+La relación es siempre: `conocimiento → source_ids → URL/fuente`.
+
+No se guardan copias completas de páginas o manuales.
+
+### Separación de capas
+
+- `seo_dependiente_index`: nuestro catálogo.
+- `seo_investigador_knowledge`: conocimiento técnico externo.
+
+La función `SEO_Investigador::active_knowledge(term_id)` expone conocimiento aprobado para futuras integraciones. En v1 **no se inyecta todavía en las respuestas públicas de Dependiente**.
+
+### Lección 2 · Experiencia práctica
+
+Preparada pero desactivada en v1. Su finalidad futura es recoger foros/comunidades y mantener esa evidencia marcada como experiencia/opinión, no como hecho técnico.
 ## Conocimiento
 
 - **Exportar conocimiento** [Exporta].
@@ -128,18 +187,20 @@ También muestra Modo de formación, Progreso, Informe completo y tabla Módulo 
 
 ## Auditor
 
-La pestaña separa dos auditorías.
+Auditor permite ejecutar bloques independientes para evitar recorrer siempre todo el catálogo:
 
-### Auditoría de catálogo
+- Productos · contenido e identidad.
+- Categorías y arquitectura.
+- Posts.
+- Páginas y landings.
+- FAQs.
+- Motor / índice de Dependiente.
 
-- **Auditar catálogo / Repetir auditoría de catálogo** [Proceso].
-- **Descargar JSON catálogo** [Exporta].
-- revisa fuente canónica, índice derivado, productos, categorías, Vocabulary, FAQs y arquitectura.
+Cada bloque puede ejecutarse, revisar su último informe y exportar JSON.
 
-### Auditoría Academia / Estudiante
+También se conservan las auditorías profundas/globales:
 
-- **Auditar Academia / Repetir auditoría de Academia** [Proceso].
-- **Descargar JSON Academia** [Exporta].
-- revisa lecciones, runs, promoción de reglas, snapshots y estado del aprendizaje.
+- **Auditoría completa de catálogo**: recorre todas las capas.
+- **Academia / Estudiante**: lecciones, runs, promoción de reglas, snapshots y aprendizaje.
 
-Las tablas de hallazgos contienen evidencia y recomendación de revisión; no son órdenes automáticas de cambio.
+Las auditorías son de solo lectura. Los hallazgos son señales de revisión, no órdenes automáticas de cambio.
