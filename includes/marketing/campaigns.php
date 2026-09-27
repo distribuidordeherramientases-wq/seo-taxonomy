@@ -10,7 +10,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_MARKETING_CAMPAIGNS_DB_VERSION')) {
-    define('SEO_MARKETING_CAMPAIGNS_DB_VERSION', 3);
+    define('SEO_MARKETING_CAMPAIGNS_DB_VERSION', 4);
 }
 if (!defined('SEO_MARKETING_CAMPAIGNS_DB_OPTION')) {
     define('SEO_MARKETING_CAMPAIGNS_DB_OPTION', 'seo_marketing_campaigns_db_version');
@@ -90,11 +90,14 @@ function seo_marketing_campaigns_maybe_install_tables()
         applied tinyint(1) unsigned NOT NULL DEFAULT 0,
         applied_at datetime NULL,
         restored_at datetime NULL,
+        visits bigint(20) unsigned NOT NULL DEFAULT 0,
+        last_visit_at datetime NULL,
         created_at datetime NOT NULL,
         updated_at datetime NOT NULL,
         PRIMARY KEY  (id),
         UNIQUE KEY campaign_product (campaign_id,product_id),
         KEY product_id (product_id),
+        KEY campaign_visits (campaign_id,visits),
         KEY campaign_applied (campaign_id,applied)
     ) {$charset_collate};";
 
