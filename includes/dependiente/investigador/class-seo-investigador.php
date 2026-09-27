@@ -176,7 +176,9 @@ final class SEO_Investigador {
 
     public static function start() {
         $state = self::state();
-        if (!$state['queue']) $state = self::prepare_lesson(20, true);
+        if (!$state['queue'] || absint($state['cursor'] ?? 0) >= count((array) $state['queue'])) {
+            $state = self::prepare_lesson(20, true);
+        }
         if (!$state['queue']) return new WP_Error('investigador_empty_queue', 'No hay categorías preparadas.');
 
         $state = self::save_state(array(
@@ -188,8 +190,7 @@ final class SEO_Investigador {
             'last_error'=>'',
             'last_message'=>'Investigación iniciada. El Gestor de procesos continuará por categorías.',
         ));
-        self::schedule_fallback(2);
-        if (function_exists('seo_process_supervisor_nudge')) seo_process_supervisor_nudge(0, 'investigador');
+        self::dispatch(0);
         return $state;
     }
 
@@ -233,19 +234,22 @@ final class SEO_Investigador {
         $term = $term_id ? get_term($term_id, 'product_cat') : null;
         if (!$term || is_wp_error($term)) return new WP_Error('investigador_term_missing', 'La categoría no existe.');
 
-        SEO_Investigador_DB::supersede_category($term_id, self::LESSON_TECHNICAL);
-        self::set_category_state($term_id, 'investigando', array('last_error'=>''));
-        $result = self::research_category($term_id, true);
-        if (is_wp_error($result)) {
-            self::set_category_state($term_id, 'error', array('last_error'=>$result->get_error_message()));
-            return $result;
-        }
-        self::set_category_state(
-            $term_id,
-            !empty($result['review']) ? 'revisar' : 'aprendido',
-            array('last_error'=>'','sources'=>absint($result['sources']??0),'knowledge'=>absint($result['knowledge']??0),'confidence'=>self::category_confidence($term_id))
-        );
-        return $result;
+        $state = self::state();
+        $remaining = array_slice((array) $state['queue'], absint($state['cursor'] ?? 0));
+        $remaining = array_values(array_diff(array_map('absint', $remaining), array($term_id)));
+        array_unshift($remaining, $term_id);
+
+        $state = self::default_state();
+        $state['queue'] = $remaining;
+        $state['enabled'] = 1;
+        $state['status'] = 'running';
+        $state['started_at'] = time();
+        $state['last_message'] = 'Reinvestigación encolada para ' . (string) $term->name . '.';
+        update_option(self::STATE_OPTION, $state, false);
+
+        self::set_category_state($term_id, 'pendiente', array('last_error'=>'','reinvestigate'=>1));
+        self::dispatch(0);
+        return array('queued'=>true,'term_id'=>$term_id,'category'=>(string)$term->name);
     }
 
     public static function research_category($term_id, $force = false) {
@@ -545,6 +549,21 @@ final class SEO_Investigador {
 
     public static function category_status($term_id) {
         return sanitize_key((string) (self::category_state(absint($term_id))['status'] ?? 'pendiente'));
+    }
+
+    public static function dispatch($delay = 0) {
+        if (!self::is_pending()) return false;
+        $delay = max(0, absint($delay));
+        if (function_exists('seo_process_supervisor_settings')) {
+            $manager = (array) seo_process_supervisor_settings();
+            if (!empty($manager['enabled'])) {
+                self::clear_fallback();
+                if (function_exists('seo_process_supervisor_nudge')) seo_process_supervisor_nudge($delay, 'investigador');
+                if (function_exists('seo_process_supervisor_schedule_backup')) seo_process_supervisor_schedule_backup();
+                return true;
+            }
+        }
+        return self::schedule_fallback(max(1, $delay));
     }
 
     public static function schedule_fallback($delay = 30) {
