@@ -8,7 +8,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_AUDITOR_VERSION')) {
-    define('SEO_AUDITOR_VERSION', '0.7.0');
+    define('SEO_AUDITOR_VERSION', '0.8.0');
 }
 if (!defined('SEO_AUDITOR_PATH')) {
     define('SEO_AUDITOR_PATH', __DIR__ . '/');
