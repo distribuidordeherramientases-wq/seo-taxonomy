@@ -112,7 +112,7 @@ final class SEO_Ingeniero_Admin {
         echo '<section class="seo-ingeniero">';
         echo '<div class="postbox seo-dependiente-admin__box" style="padding:18px">';
         echo '<h2 style="margin-top:0">Ingeniero</h2>';
-        echo '<p>Conocimiento externo técnico por categoría para complementar el catálogo. <strong>V1 no publica contenido ni modifica las respuestas públicas de Dependiente.</strong> L1 usa documentación técnica; L2 de experiencia práctica está preparada pero desactivada.</p>';
+        echo '<p>Conocimiento externo técnico por categoría para complementar el catálogo. <strong>V1 no publica contenido ni modifica las respuestas públicas de Dependiente.</strong> Ingeniero consulta fuentes externas, crea una síntesis propia y conserva siempre la referencia al origen.</p>';
         echo '<p class="description">Separación deliberada: <code>seo_dependiente_index</code> sigue representando nuestro catálogo; <code>seo_ingeniero_knowledge</code> conserva teoría externa trazable por fuentes.</p>';
         echo '</div>';
 
@@ -260,7 +260,23 @@ final class SEO_Ingeniero_Admin {
         echo '<table class="widefat striped"><thead><tr><th>Tipo</th><th>Resumen/evidencia</th><th>Confianza</th><th>Estado</th><th>Revisión</th></tr></thead><tbody>';
         foreach ($knowledge as $row) {
             echo '<tr><td><code>' . esc_html((string) ($row['knowledge_type'] ?? '')) . '</code></td>';
-            echo '<td>' . esc_html((string) ($row['summary'] ?? '')) . '<details><summary>Ver evidencias</summary><pre style="white-space:pre-wrap">' . esc_html(wp_json_encode($row['facts'] ?? array(), JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT)) . '</pre></details></td>';
+            echo '<td><strong>Síntesis propia:</strong> ' . esc_html((string) ($row['summary'] ?? ''));
+            $facts = isset($row['facts']) && is_array($row['facts']) ? $row['facts'] : array();
+            if ($facts) {
+                echo '<details><summary>Ver evidencias y fuentes</summary><ul style="margin:8px 0 0 18px">';
+                foreach ($facts as $fact) {
+                    $url = esc_url((string) ($fact['source_url'] ?? ''));
+                    $title = (string) ($fact['source_title'] ?? '');
+                    $evidence = (string) ($fact['evidence'] ?? '');
+                    echo '<li style="margin-bottom:8px">' . esc_html($evidence);
+                    if ($url) {
+                        echo '<br><a href="' . $url . '" target="_blank" rel="noopener">Fuente: ' . esc_html($title ?: $url) . '</a>';
+                    }
+                    echo '</li>';
+                }
+                echo '</ul></details>';
+            }
+            echo '</td>';
             echo '<td>' . esc_html(number_format_i18n(((float)($row['confidence'] ?? 0))*100,1)) . '%</td>';
             echo '<td><code>' . esc_html((string) ($row['status'] ?? '')) . '</code></td>';
             echo '<td><form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:flex;gap:5px;flex-wrap:wrap">';
@@ -274,7 +290,7 @@ final class SEO_Ingeniero_Admin {
         if (!$knowledge) echo '<tr><td colspan="5">Todavía no hay conocimiento consolidado.</td></tr>';
         echo '</tbody></table>';
 
-        echo '<h4 style="margin-top:20px">Fuentes</h4>';
+        echo '<h4 style="margin-top:20px">Fuentes originales consultadas</h4><p class="description">Estas referencias permiten comprobar el origen. El texto de Ingeniero no se publica copiando estas fuentes: se conserva evidencia breve y se genera una síntesis separada.</p>';
         echo '<table class="widefat striped"><thead><tr><th>Fuente</th><th>Tipo</th><th>Confianza</th><th>Estado</th></tr></thead><tbody>';
         foreach ($sources as $source) {
             echo '<tr><td><a href="' . esc_url((string) $source['url']) . '" target="_blank" rel="noopener">' . esc_html((string) ($source['title'] ?: $source['domain'])) . '</a><div class="description">' . esc_html((string) $source['domain']) . '</div></td>';
