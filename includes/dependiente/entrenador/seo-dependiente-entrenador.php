@@ -686,6 +686,22 @@ final class SEO_Dependiente_Entrenador {
             ));
             wp_send_json_success(self::automation_payload());
         }
+        if ('v2_l10_consolidation_debt' === $current_key && !self::interpreter_l9_completed()) {
+            self::save_auto_state(array(
+                'enabled'        => false,
+                'mode'           => 'manual',
+                'status'         => 'stopped',
+                'current_lesson' => $current_key,
+                'current_module' => self::next_pending_module($current_key),
+                'last_error'     => '',
+                'last_message'   => 'L10 detenida: antes debe finalizar L9 del Intérprete.',
+                'updated_at'     => current_time('mysql'),
+            ));
+            self::clear_auto_schedule();
+            wp_send_json_error(array(
+                'message' => 'No se puede iniciar L10 todavía: primero debe finalizar L9 del Intérprete.'
+            ), 409);
+        }
 
         self::save_auto_state(array(
             'enabled'             => true,
@@ -1673,6 +1689,23 @@ final class SEO_Dependiente_Entrenador {
         }
         if (self::controller_is_active($state) || !empty($state['worker_active'])) {
             return array('started' => false, 'message' => 'La Academia ya tiene un proceso propio activo.');
+        }
+
+        $lessons = self::lessons_by_key();
+        $current_key = self::current_lesson_key($lessons);
+        if ('v2_l10_consolidation_debt' === $current_key && !self::interpreter_l9_completed()) {
+            self::save_auto_state(array(
+                'enabled'        => false,
+                'mode'           => 'manual',
+                'status'         => 'stopped',
+                'current_lesson' => $current_key,
+                'current_module' => self::next_pending_module($current_key),
+                'last_error'     => '',
+                'last_message'   => 'L10 detenida: antes debe finalizar L9 del Intérprete.',
+                'updated_at'     => current_time('mysql'),
+            ));
+            self::clear_auto_schedule();
+            return new WP_Error('academy_l10_waits_interpreter_l9', 'No se puede iniciar L10 todavía: primero debe finalizar L9 del Intérprete.');
         }
 
         self::save_auto_state(array(
