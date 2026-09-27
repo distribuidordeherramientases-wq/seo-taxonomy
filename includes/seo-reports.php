@@ -1920,7 +1920,8 @@ function seo_render_faq_orphan_anomaly_row($label, $count, $description) {
  * - existe como product_cat;
  * - no es la categoría predeterminada de WooCommerce;
  * - no tiene ningún producto relacionado, independientemente de su estado;
- * - no tiene subcategorías hijas.
+ * - no tiene subcategorías hijas;
+ * - no está vinculada comercialmente desde una landing.
  */
 function seo_get_empty_product_category_delete_state($term_id) {
 
@@ -1934,6 +1935,7 @@ function seo_get_empty_product_category_delete_state($term_id) {
         'term'          => null,
         'product_count' => 0,
         'child_count'   => 0,
+        'landing_count' => 0,
     );
 
     if ($term_id <= 0) {
@@ -2007,8 +2009,27 @@ function seo_get_empty_product_category_delete_state($term_id) {
         return $state;
     }
 
+    // Una categoría vacía puede seguir siendo un destino comercial válido de
+    // una landing. Borrarla crearía inmediatamente una relación rota y una
+    // nueva anomalía, por lo que se protege aunque no tenga productos todavía.
+    $state['landing_count'] = (int) $wpdb->get_var(
+        $wpdb->prepare(
+            "SELECT COUNT(*)
+             FROM {$wpdb->prefix}seo_relations
+             WHERE target_type = 'product_cat'
+               AND target_id = %d
+               AND relation_type = 'landing_to_category'",
+            $term_id
+        )
+    );
+
+    if ($state['landing_count'] > 0) {
+        $state['reason'] = 'Tiene landing pages asociadas.';
+        return $state;
+    }
+
     $state['eligible'] = true;
-    $state['reason'] = 'Sin productos y sin subcategorías.';
+    $state['reason'] = 'Sin productos, subcategorías ni landings asociadas.';
 
     return $state;
 }
@@ -2453,22 +2474,25 @@ function seo_render_anomalies_report() {
     }
 
     /*
-     * Posts sin Vocabulary semantico activo.
+     * Entradas editoriales sin Vocabulary semantico activo.
      *
      * Modelo actual:
      * - la conexion editorial del post con el catalogo se resuelve mediante Vocabulary;
      * - post_to_category ya no es una relacion obligatoria y no debe auditarse como error;
      * - solo se consideran asignaciones activas a terminos de Vocabulary tambien activos;
-     * - se auditan los grupos canonicos usados por el sistema semantico.
+     * - se auditan los grupos canonicos usados por el sistema semantico;
+     * - las entradas funcionales, legales, corporativas o de navegacion no necesitan
+     *   Vocabulary de catalogo y se excluyen para evitar falsos positivos.
      *
      * Incluye publicados y programados; excluye borradores, papelera y revisiones.
      */
-    echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:40px;">📰 Posts sin Vocabulary semántico activo</h3>';
+    echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:40px;">📰 Entradas editoriales sin Vocabulary semántico activo</h3>';
 
-    $posts_without_vocabulary = $wpdb->get_results("
+    $posts_without_vocabulary_raw = $wpdb->get_results("
         SELECT
             p.ID AS post_id,
             p.post_title,
+            p.post_name,
             p.post_status,
             p.post_date
         FROM {$wpdb->posts} p
@@ -2488,9 +2512,97 @@ function seo_render_anomalies_report() {
         ORDER BY p.post_status ASC, p.post_date DESC, p.ID DESC
     " );
 
+    /*
+     * Inventario real de contenido que actualmente vive como post pero cumple
+     * una función de navegación, cuenta, legal, corporativa, servicio o índice.
+     * No se le debe forzar ROL/TIPO/APLICACION solo para dejar el informe a cero.
+     *
+     * El filtro permite ampliar o reducir este inventario en otras instalaciones
+     * sin modificar el núcleo del informe.
+     */
+    $non_editorial_post_slugs = (array) apply_filters(
+        'seo_reports_non_editorial_post_slugs',
+        array(
+            'carrito',
+            'finalizar-compra',
+            'mi-cuenta',
+            'terminos-y-condiciones',
+            'privacidad-de-datos',
+            'devoluciones-y-reembolsos',
+            'contacto',
+            'blog',
+            'tienda',
+            'dependiente',
+            'inicio',
+            'nosotros',
+            'nuestro-servicio',
+            'proveedores-de-distribuidor-de-herramientas-es',
+            'densl-suministro-profesional-de-equipamiento-de-seguridad-vial-bajo-presupuesto',
+            'soluciones',
+            'productos-genericos-de-ferreteria',
+        )
+    );
+
+    $non_editorial_post_slugs = array_values(
+        array_unique(
+            array_filter(
+                array_map('sanitize_title', $non_editorial_post_slugs)
+            )
+        )
+    );
+
+    $functional_post_ids = array();
+    if (function_exists('wc_get_page_id')) {
+        foreach (array('cart', 'checkout', 'myaccount', 'shop', 'terms') as $wc_page_key) {
+            $wc_page_id = absint(wc_get_page_id($wc_page_key));
+            if ($wc_page_id > 0) {
+                $functional_post_ids[$wc_page_id] = true;
+            }
+        }
+    }
+
+    foreach (array('page_on_front', 'page_for_posts') as $option_key) {
+        $option_id = absint(get_option($option_key));
+        if ($option_id > 0) {
+            $functional_post_ids[$option_id] = true;
+        }
+    }
+
+    $posts_without_vocabulary = array();
+    $posts_without_vocabulary_excluded = 0;
+
+    foreach ((array) $posts_without_vocabulary_raw as $post_row) {
+        $post_id   = absint($post_row->post_id ?? 0);
+        $post_slug = sanitize_title((string) ($post_row->post_name ?? ''));
+
+        $is_non_editorial = isset($functional_post_ids[$post_id])
+            || in_array($post_slug, $non_editorial_post_slugs, true);
+
+        $is_non_editorial = (bool) apply_filters(
+            'seo_reports_is_non_editorial_post',
+            $is_non_editorial,
+            $post_id,
+            $post_slug,
+            $post_row
+        );
+
+        if ($is_non_editorial) {
+            $posts_without_vocabulary_excluded++;
+            continue;
+        }
+
+        $posts_without_vocabulary[] = $post_row;
+    }
+
+    if (!empty($posts_without_vocabulary_excluded)) {
+        echo '<p style="color:#646970;">';
+        echo 'Se han excluido <strong>' . esc_html(number_format_i18n($posts_without_vocabulary_excluded)) . '</strong> entradas funcionales, legales, corporativas o de navegación que no necesitan Vocabulary de catálogo.';
+        echo '</p>';
+    }
+
     if (!empty($posts_without_vocabulary)) {
         echo '<p style="color:#646970;">';
-        echo 'Estas entradas están publicadas o programadas, pero no tienen ninguna asignación activa de Vocabulary canónico. En el modelo actual no se exige una relación directa <code>post_to_category</code>.';
+        echo 'Estas entradas editoriales están publicadas o programadas, pero no tienen ninguna asignación activa de Vocabulary canónico. En el modelo actual no se exige una relación directa <code>post_to_category</code>.';
         echo '</p>';
         echo '<div style="background:#fcf0f1;border-left:4px solid #d63638;padding:10px 12px;margin-bottom:12px;">';
         echo 'Total detectados: <strong>' . esc_html(number_format_i18n(count($posts_without_vocabulary))) . '</strong>';
@@ -2535,7 +2647,7 @@ function seo_render_anomalies_report() {
             echo '</div>';
         }
     } else {
-        echo '<p style="color:#2e7d32;font-style:italic;">Todos los posts publicados o programados tienen al menos un término de Vocabulary canónico activo.</p>';
+        echo '<p style="color:#2e7d32;font-style:italic;">Todas las entradas editoriales publicadas o programadas tienen al menos un término de Vocabulary canónico activo.</p>';
     }
     
     echo '<h3 style="color:#ff9800; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:40px;">⚠️ Categorías sin asignación estructural</h3>';
