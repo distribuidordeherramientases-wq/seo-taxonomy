@@ -17,6 +17,7 @@ La documentación se divide en dos niveles:
 ## Manual por pantalla
 
 - [Inicio](manual/INICIO.md)
+- [Contenidos](manual/CONTENIDOS.md)
 - [Productos](manual/PRODUCTOS.md)
 - [Categorías](manual/CATEGORIAS.md)
 - [Etiquetas y vocabulario](manual/ETIQUETAS-Y-VOCABULARIO.md)
