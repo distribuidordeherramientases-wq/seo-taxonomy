@@ -254,20 +254,13 @@ function seo_marketing_performance_campaign_url($campaign, $product_id, $url)
         return $url;
     }
 
-    $campaign_key = sanitize_title((string) ($campaign->campaign_key ?? ''));
-    if ($campaign_key === '') {
-        $campaign_key = 'campaign-' . $campaign_id;
-    }
     $reference = $campaign_id . '.' . $product_id . '.' . seo_marketing_performance_campaign_signature($campaign_id, $product_id);
 
+    // No se añaden UTM a enlaces internos: hacerlo alteraría la atribución de
+    // Google Analytics. El identificador firmado es suficiente para medir la
+    // franja sin contaminar la fuente de adquisición original.
     return add_query_arg(
-        array(
-            'utm_source' => 'site',
-            'utm_medium' => 'campaign_strip',
-            'utm_campaign' => $campaign_key,
-            'utm_content' => 'campaign-' . $campaign_id . '-product-' . $product_id,
-            'seo_campaign_ref' => $reference,
-        ),
+        array('seo_campaign_ref' => $reference),
         $url
     );
 }
@@ -825,7 +818,7 @@ function seo_marketing_performance_render_social_report($days)
         echo '<button type="submit" class="button">Actualizar ' . esc_html($label) . '</button></form>';
     }
     echo '</div>';
-    echo '<div class="seo-mkt-report-note"><strong>Visitas web</strong> se miden en la tienda mediante enlaces firmados. <strong>Pedidos atribuidos</strong> se guardan en WooCommerce durante 30 días y no necesitan datos personales adicionales.</div>';
+    echo '<div class="seo-mkt-report-note"><strong>Visitas web</strong> se miden en la tienda mediante enlaces firmados. El filtro selecciona publicaciones publicadas en el periodo; sus visitas e interacciones son acumuladas. <strong>Pedidos atribuidos</strong> se guardan en WooCommerce durante 30 días y no necesitan datos personales adicionales.</div>';
 
     echo '<h3>Por red</h3><div style="overflow:auto"><table class="seo-mkt-report-table"><thead><tr><th>Red</th><th>Publicaciones</th><th>Visitas</th><th>Interacciones</th><th>Impresiones</th><th>Alcance</th><th>Pedidos</th><th>Facturación</th><th>Conversión</th></tr></thead><tbody>';
     if (!$report['providers']) {
