@@ -1,5 +1,7 @@
 # Comentarista
 
+Ruta: **SEO Taxonomy → Herramientas → Comentarista**
+
 ## Pestañas
 **Registros**, **Cobertura**, **Importar / Exportar**, **JSON**.
 
