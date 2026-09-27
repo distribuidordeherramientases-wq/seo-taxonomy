@@ -6,6 +6,9 @@ Los cambios validados en `staging` que todavía no formen parte de una publicaci
 
 ### Marketing y campañas
 
+- Añadida pestaña **Informes** de Marketing con dos vistas: **Campañas** y **Redes sociales**. Mide visitas firmadas, interacciones, pedidos atribuidos, facturación atribuida, conversión y ventas observadas durante campañas.
+- Las franjas públicas de campaña incorporan enlaces firmados y contador de visitas por producto sin PII. Las visitas sociales conservan atribución de última interacción durante 30 días y se asocian al pedido WooCommerce (checkout clásico y Store API/Blocks).
+- Las publicaciones sociales de campaña guardan `campaign_id` para unir campaña → publicación → visita → pedido. Los informes distinguen explícitamente **atribución directa** de **ventas observadas durante el periodo**, evitando presentar correlación como causalidad.
 - Añadida una pestaña **Calendario** en Redes sociales que combina entradas, landings y productos de campañas en una vista mensual, con colores por tipo, filtro por red, detección de días libres y dobles publicaciones, y listado compacto responsive.
 - Las publicaciones sociales de campañas resuelven la foto real del producto desde Media o desde imágenes externas activas del proveedor, sin importar la fuente externa a Media.
 - Las creatividades sociales incorporan la foto real del producto junto con campaña, precio anterior, precio de oferta y descuento; si el servidor no puede leer una imagen remota, el publicador recibe la URL original como fallback.
