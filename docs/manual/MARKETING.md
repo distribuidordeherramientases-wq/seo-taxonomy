@@ -3,7 +3,7 @@
 Ruta: **SEO Taxonomy → Herramientas → Marketing**
 
 ## Pestañas
-**Marketing**, **Campañas**, **Identidad / Cabecera**, **Redes sociales**, **Sitemaps**, **Estilo visual**.
+**Marketing**, **Campañas**, **Informes**, **Identidad / Cabecera**, **Redes sociales**, **Sitemaps**, **Estilo visual**.
 
 ## Marketing
 Gestiona asignaciones editoriales por Cluster. Puede mostrar **Asignar todas las categorías favoritas**, selectores jerárquicos, **Guardar selección** y **Asignar automáticamente**. Las acciones de asignación modifican relaciones.
@@ -49,3 +49,13 @@ Secciones: Colores, Tipografía, Componentes, Productos, Carrito, Checkout, Solu
 Checkboxes visibles incluyen color personalizado en enlaces/negritas, colores propios de botones de carrito/checkout e indicador de submenú.
 
 Acciones: **Guardar y publicar estilo**, **Importar configuración JSON**, **Importar y publicar**, **Restaurar diseño original**, **Restaurar valores predeterminados**. La previsualización permite revisar página, carrito y checkout.
+
+
+## Informes
+
+La pestaña **Informes** dispone de dos vistas:
+
+- **Campañas**: visitas de franja y redes, interacción, pedidos/facturación atribuidos y ventas observadas de los productos durante las fechas.
+- **Redes sociales**: publicaciones, visitas web, interacción, pedidos, facturación y conversión por red y publicación.
+
+La atribución es de última interacción válida con ventana de 30 días y se guarda en metadatos privados del pedido. No se almacenan datos personales adicionales para este informe.

@@ -9,7 +9,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_SOCIAL_NETWORK_DB_VERSION')) {
-    define('SEO_SOCIAL_NETWORK_DB_VERSION', 1);
+    define('SEO_SOCIAL_NETWORK_DB_VERSION', 2);
 }
 
 if (!defined('SEO_SOCIAL_NETWORK_SETTINGS_OPTION')) {
@@ -321,6 +321,7 @@ function seo_social_network_maybe_install_tables()
         content_id bigint(20) unsigned NOT NULL,
         content_type varchar(32) NOT NULL DEFAULT '',
         provider varchar(32) NOT NULL DEFAULT '',
+        campaign_id bigint(20) unsigned NOT NULL DEFAULT 0,
         remote_id varchar(191) NOT NULL DEFAULT '',
         remote_url text NULL,
         status varchar(24) NOT NULL DEFAULT 'pending',
@@ -341,6 +342,7 @@ function seo_social_network_maybe_install_tables()
         updated_at datetime NOT NULL,
         PRIMARY KEY  (id),
         KEY content_provider (content_id, provider),
+        KEY campaign_id (campaign_id),
         KEY provider_status (provider, status),
         KEY published_at (published_at)
     ) {$charset_collate};";
@@ -470,7 +472,7 @@ function seo_social_network_capture_visit()
 
     global $wpdb;
     $table = seo_social_network_publications_table();
-    $wpdb->query(
+    $updated = $wpdb->query(
         $wpdb->prepare(
             "UPDATE {$table}
              SET clicks = clicks + 1,
@@ -485,6 +487,18 @@ function seo_social_network_capture_visit()
             $content_id
         )
     );
+
+    if ($updated) {
+        $publication = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM {$table} WHERE id = %d LIMIT 1",
+                $publication_id
+            )
+        );
+        if ($publication) {
+            do_action('seo_social_network_attributed_visit', $publication);
+        }
+    }
 }
 add_action('template_redirect', 'seo_social_network_capture_visit', 1);
 

@@ -238,8 +238,13 @@ if (!$dht_campaigns) {
                                     )
                                 );
                         ?>
+                            <?php
+                            $dht_campaign_url = function_exists('seo_marketing_performance_campaign_url')
+                                ? seo_marketing_performance_campaign_url($dht_campaign, absint($dht_product_item['id']), (string) $dht_product_item['url'])
+                                : (string) $dht_product_item['url'];
+                            ?>
                             <article class="dht-campaign-card">
-                                <a class="dht-campaign-card-link" href="<?php echo esc_url($dht_product_item['url']); ?>">
+                                <a class="dht-campaign-card-link" href="<?php echo esc_url($dht_campaign_url); ?>">
                                     <div class="dht-campaign-image">
                                         <?php if ((int) $dht_product_item['discount_percent'] > 0) : ?>
                                             <span class="dht-campaign-discount">-<?php echo esc_html((string) $dht_product_item['discount_percent']); ?>%</span>
@@ -295,4 +300,4 @@ if (!$dht_campaigns) {
 }());
 </script>
 <?php
-unset($dht_campaigns, $dht_campaign_item, $dht_campaign, $dht_products, $dht_product_item, $dht_product, $dht_image_html);
+unset($dht_campaigns, $dht_campaign_item, $dht_campaign, $dht_products, $dht_product_item, $dht_product, $dht_image_html, $dht_campaign_url);
