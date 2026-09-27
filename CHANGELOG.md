@@ -58,6 +58,8 @@ Release centrada en la evolución comercial del sistema, el análisis de mercado
 
 ### Dependiente V3 y cobertura del catálogo
 
+- Intérprete / Lingüista L9 incorpora diagnóstico en vivo sin modificar el algoritmo de aprendizaje: fase actual, repaso L8, conservación semántica, evidencias de ruido, patrones consolidados, regresión final, últimos 30 casos y exportación JSON del estado en curso.
+
 - Conectado **Dependiente V3** con el sistema actual.
 - Reforzada la cobertura editorial y semántica utilizada por Dependiente.
 - Mejorada la integración de categorías, productos y conocimiento para responder a búsquedas de usuario.
