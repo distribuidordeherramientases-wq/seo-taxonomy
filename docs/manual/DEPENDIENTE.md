@@ -109,6 +109,9 @@ También muestra Modo de formación, Progreso, Informe completo y tabla Módulo 
 
 - **Probar una pregunta** [Consulta]: ejecuta una prueba puntual.
 - bloque **Lingüista · formación del Intérprete**.
+- durante **L9 · Consolidación desde Dependiente**, panel **Diagnóstico en vivo** con fase actual, reglas utilizables/en deuda, conservación semántica, evidencias de ruido, patrones consolidados y regresión.
+- **Últimos casos de L9** [Consulta]: buffer circular de hasta 30 casos; no crea un log ilimitado ni altera el aprendizaje.
+- **Descargar estado L9 JSON** [Exportación]: disponible mientras L9 sigue ejecutándose, con métricas, memoria y últimos diagnósticos.
 - **Pausar formación** [Proceso].
 - **Reanudar formación** [Proceso].
 - **Iniciar formación Lingüista** [Proceso].
