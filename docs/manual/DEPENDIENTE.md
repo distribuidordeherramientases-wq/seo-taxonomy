@@ -141,6 +141,30 @@ Controles:
 
 KPIs visibles: categorías con productos, investigadas, pendientes, en revisión, errores, fuentes, conocimientos, confianza media y última investigación.
 
+### Importar / Exportar conocimiento
+
+Ingeniero permite trabajar con conocimiento obtenido fuera de SerpApi.
+
+Controles:
+
+- **Exportar conocimiento JSON** [Exporta]: paquete canónico con categorías, conocimiento y fuentes.
+- **Exportar conocimiento CSV** [Exporta]: formato tabular para revisión o trabajo externo.
+- **Descargar plantilla CSV** [Exporta].
+- **Importar conocimiento** [Guarda]: acepta JSON o CSV UTF-8.
+
+Reglas de seguridad de la importación:
+
+- cada conocimiento debe conservar al menos una URL de fuente;
+- el sistema intenta resolver la categoría por term_id, slug o nombre;
+- todo conocimiento importado entra en estado **review**;
+- nunca se activa ni publica automáticamente;
+- las evidencias externas se limitan a fragmentos breves;
+- el resumen importado se considera síntesis externa pendiente de revisión humana;
+- el modo **Añadir solo** evita sobrescribir conocimiento existente;
+- el modo **Actualizar existentes** reemplaza el bloque correspondiente, pero también lo deja en revisión.
+
+Este flujo permite incorporar investigación hecha por otras herramientas o procesos sin consumir SerpApi.
+
 ### Búsqueda y presupuesto
 
 V1 usa un provider desacoplado y la implementación SerpApi/Google web. Reutiliza la credencial existente de Ojeador, pero mantiene un límite local independiente para Ingeniero.
