@@ -363,9 +363,25 @@ function seo_reports_ai_search_build($days = 28) {
     }
 
     $rows = array();
+    $functional_ids = function_exists('seo_analista_functional_page_ids')
+        ? (array) seo_analista_functional_page_ids()
+        : array();
+    $functional_slugs = array_flip(array(
+        'carrito', 'finalizar-compra', 'mi-cuenta', 'terminos-y-condiciones',
+        'privacidad-de-datos', 'devoluciones-y-reembolsos', 'contacto',
+        'blog', 'tienda', 'dependiente'
+    ));
+
     foreach ($pages as $page) {
         $url         = (string) ($page['label'] ?? '');
         $page_hash   = (string) ($page['page_hash'] ?? '');
+
+        $wp_id = $url !== '' ? (int) url_to_postid($url) : 0;
+        $path_for_filter = trim((string) wp_parse_url($url, PHP_URL_PATH), '/');
+        $slug_for_filter = $path_for_filter !== '' ? basename($path_for_filter) : '';
+        if (($wp_id > 0 && isset($functional_ids[$wp_id])) || isset($functional_slugs[$slug_for_filter])) {
+            continue;
+        }
         $impressions = max(0, (float) ($page['impressions'] ?? 0));
         $clicks      = max(0, (float) ($page['clicks'] ?? 0));
         $ctr         = max(0, (float) ($page['ctr'] ?? 0));

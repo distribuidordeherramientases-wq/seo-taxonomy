@@ -195,9 +195,21 @@ function seo_post_opportunities_get_posts()
     ));
 
     $out = array();
+    $functional_ids = function_exists('seo_analista_functional_page_ids')
+        ? (array) seo_analista_functional_page_ids()
+        : array();
+    $functional_slugs = array_flip(array(
+        'carrito', 'finalizar-compra', 'mi-cuenta', 'terminos-y-condiciones',
+        'privacidad-de-datos', 'devoluciones-y-reembolsos', 'contacto',
+        'blog', 'tienda', 'dependiente'
+    ));
+
     foreach ($posts as $post) {
         $title = trim((string) $post->post_title);
         if ('' === $title) {
+            continue;
+        }
+        if (isset($functional_ids[(int) $post->ID]) || isset($functional_slugs[(string) $post->post_name])) {
             continue;
         }
 

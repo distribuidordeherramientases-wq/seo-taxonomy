@@ -62,7 +62,7 @@ function seo_reports_general_definitions() {
     return array(
         'google_search' => array(
             'label'       => 'Google · Visibilidad orgánica',
-            'description' => 'Search Console: clics, impresiones, CTR, posición, consultas, páginas y tendencia.',
+            'description' => 'Search Console + contexto de GA4 y Bing: visibilidad, tráfico, embudo y calidad de adquisición.',
         ),
         'ai_search' => array(
             'label'       => 'Posicionamiento y búsqueda con IA',
@@ -325,11 +325,26 @@ function seo_reports_general_build_json($report_key) {
             $property_id = isset($settings['property_id']) ? (string) $settings['property_id'] : '';
             $metrics = ('connected' === $status && $property_id !== '') ? seo_google_get_summary_metrics($property_id, 28) : array();
             $trend = ($metrics && $property_id !== '') ? seo_google_get_summary_trend_data($property_id, 365) : array();
+            $ga4 = function_exists('seo_analista_ga4_snapshot')
+                ? (array) seo_analista_ga4_snapshot(28)
+                : array();
+            $bing = function_exists('seo_analista_bing_snapshot')
+                ? (array) seo_analista_bing_snapshot(28, 30)
+                : array();
             $payload['data'] = array(
                 'connection_status' => (string) $status,
                 'period_days'       => 28,
                 'metrics'           => (array) $metrics,
                 'trend_365d'        => array_values((array) $trend),
+                'ga4'               => $ga4,
+                'bing'              => array(
+                    'available' => !empty($bing['available']),
+                    'connected' => !empty($bing['connected']),
+                    'configured'=> !empty($bing['configured']),
+                    'latest_date'=> (string) ($bing['latest_date'] ?? ''),
+                    'traffic'   => (array) ($bing['traffic'] ?? array()),
+                    'errors'    => (array) ($bing['errors'] ?? array()),
+                ),
             );
             break;
 
@@ -541,6 +556,89 @@ function seo_reports_render_google_search_summary() {
 
     $trend_rows = seo_google_get_summary_trend_data($property_id, 365);
     seo_google_render_summary_charts($trend_rows);
+
+    // Contexto de negocio: Search Console explica visibilidad; GA4 explica
+    // comportamiento. No se comparan clics y sesiones como si fueran iguales.
+    if (function_exists('seo_analista_ga4_snapshot')) {
+        $ga4 = (array) seo_analista_ga4_snapshot(28);
+        if (!empty($ga4['available'])) {
+            $funnel = (array) ($ga4['funnel'] ?? array());
+            $target = (array) ($ga4['target_market'] ?? array());
+            $traffic = (array) ($ga4['traffic_quality'] ?? array());
+            $not_found = (array) ($ga4['not_found'] ?? array());
+
+            echo '<div style="background:#fff;border:1px solid #dcdcde;padding:20px;border-radius:8px;margin-top:16px;">';
+            echo '<h3 style="margin-top:0;">Contexto de tráfico y conversión · GA4</h3>';
+            echo '<p class="description">Complementa la visibilidad de Google con comportamiento real en la web. Los eventos ecommerce son recuentos de eventos y las compras deben contrastarse con WooCommerce.</p>';
+            echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:14px;">';
+
+            $ga_cards = array(
+                'Sesiones' => (int) ($ga4['sessions'] ?? 0),
+                'Usuarios activos' => (int) ($ga4['users'] ?? 0),
+                'Vistas producto' => (int) ($funnel['view_item'] ?? 0),
+                'Añadir carrito' => (int) ($funnel['add_to_cart'] ?? 0),
+                'Checkout' => (int) ($funnel['begin_checkout'] ?? 0),
+                'Compras GA4' => (int) ($ga4['purchases'] ?? 0),
+                'Usuarios España' => (int) ($target['users'] ?? 0),
+                'Vistas 404' => (int) ($not_found['views'] ?? 0),
+            );
+            foreach ($ga_cards as $label => $value) {
+                echo '<div style="border:1px solid #dcdcde;border-radius:6px;padding:12px;">';
+                echo '<div style="color:#646970;font-size:11px;text-transform:uppercase;font-weight:700;">' . esc_html($label) . '</div>';
+                echo '<div style="font-size:24px;font-weight:700;margin-top:5px;">' . esc_html(number_format_i18n($value)) . '</div>';
+                echo '</div>';
+            }
+            echo '</div>';
+
+            if (!empty($ga4['sources'])) {
+                echo '<h4 style="margin:18px 0 8px;">Principales fuentes de sesión</h4>';
+                echo '<div style="overflow:auto;"><table class="widefat striped"><thead><tr><th>Fuente / medio</th><th>Canal</th><th>Sesiones</th><th>Usuarios</th></tr></thead><tbody>';
+                foreach (array_slice((array) $ga4['sources'], 0, 10) as $row) {
+                    echo '<tr><td><strong>' . esc_html((string) ($row['source_medium'] ?? '')) . '</strong></td><td>' . esc_html((string) ($row['channel'] ?? '')) . '</td><td>' . esc_html(number_format_i18n((int) ($row['sessions'] ?? 0))) . '</td><td>' . esc_html(number_format_i18n((int) ($row['users'] ?? 0))) . '</td></tr>';
+                }
+                echo '</tbody></table></div>';
+            }
+
+            $notes = array();
+            if (null !== ($target['user_share_pct'] ?? null)) {
+                $notes[] = 'España representa ' . number_format_i18n((float) $target['user_share_pct'], 1) . '% de los usuarios activos medidos.';
+            }
+            if (null !== ($traffic['direct_share_pct'] ?? null)) {
+                $notes[] = 'Direct representa ' . number_format_i18n((float) $traffic['direct_share_pct'], 1) . '% de las sesiones; conviene interpretarlo con cautela.';
+            }
+            if ((int) ($traffic['ai_sessions'] ?? 0) > 0) {
+                $notes[] = number_format_i18n((int) $traffic['ai_sessions']) . ' sesiones proceden de asistentes IA.';
+            }
+            if ((int) ($not_found['views'] ?? 0) > 0) {
+                $notes[] = number_format_i18n((int) $not_found['views']) . ' vistas llegaron a páginas 404.';
+            }
+            if ($notes) echo '<p class="description" style="margin-top:12px;">' . esc_html(implode(' ', $notes)) . '</p>';
+            echo '</div>';
+        }
+    }
+
+    if (function_exists('seo_analista_bing_snapshot')) {
+        $bing = (array) seo_analista_bing_snapshot(28, 30);
+        echo '<div style="background:#fff;border:1px solid #dcdcde;padding:20px;border-radius:8px;margin-top:16px;">';
+        echo '<h3 style="margin-top:0;">Bing Webmaster · referencia complementaria</h3>';
+        if (!empty($bing['connected'])) {
+            $traffic = (array) ($bing['traffic'] ?? array());
+            echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">';
+            foreach (array(
+                'Clics Bing' => (int) round((float) ($traffic['clicks'] ?? 0)),
+                'Impresiones Bing' => (int) round((float) ($traffic['impressions'] ?? 0)),
+                'CTR Bing' => number_format_i18n(((float) ($traffic['ctr'] ?? 0)) * 100, 2) . '%',
+                'Último dato' => (string) ($bing['latest_date'] ?? '—'),
+            ) as $label => $value) {
+                echo '<div style="border:1px solid #dcdcde;border-radius:6px;padding:12px;"><div style="color:#646970;font-size:11px;text-transform:uppercase;font-weight:700;">' . esc_html($label) . '</div><div style="font-size:24px;font-weight:700;margin-top:5px;">' . esc_html(is_numeric($value) ? number_format_i18n($value) : $value) . '</div></div>';
+            }
+            echo '</div>';
+            echo '<p class="description" style="margin-top:12px;">Bing complementa a Google. Sus clics no deben compararse directamente con sesiones GA4.</p>';
+        } else {
+            echo '<p class="description">Bing no está conectado al Analista en esta instalación. Este bloque no entra en las decisiones hasta que la fuente responda.</p>';
+        }
+        echo '</div>';
+    }
 
     echo '</section>';
 }

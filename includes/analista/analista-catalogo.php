@@ -45,6 +45,21 @@ if (!function_exists('seo_analista_catalog_structure_snapshot')) {
             'secondary_to_category' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$relations_table} WHERE source_type='hub_secondary' AND target_type='product_cat'"),
         );
 
+        // Compatibilidad con instalaciones donde el nodo cluster no conserva
+        // seo_role='cluster' en seo_nodes, pero sí existe como origen real de
+        // relaciones cluster_to_primary. Así evitamos mostrar "0 clusters"
+        // mientras el árbol estructural sí contiene clusters activos.
+        if ($out['clusters'] <= 0 && $out['relations']['cluster_to_primary'] > 0) {
+            $cluster_sources = (int) $wpdb->get_var(
+                "SELECT COUNT(DISTINCT source_id)
+                 FROM {$relations_table}
+                 WHERE relation_type='cluster_to_primary'
+                   AND source_id IS NOT NULL
+                   AND source_id > 0"
+            );
+            if ($cluster_sources > 0) $out['clusters'] = $cluster_sources;
+        }
+
         if (post_type_exists('product')) {
             $counts = wp_count_posts('product');
             $out['products'] = isset($counts->publish) ? (int) $counts->publish : 0;
