@@ -255,6 +255,7 @@ add_filter('parent_file', function ($parent_file) {
         'seo-provider-connections',
         'seo-processes',
         'seo-logistica',
+        'seo-comentarista',
     ], true)) {
         return 'seo-system';
     }
@@ -275,7 +276,7 @@ add_filter('submenu_file', function ($submenu_file) {
         return 'seo-content';
     }
 
-    if (in_array($page, ['seo-search', 'seo-provider-connections', 'seo-processes', 'seo-logistica'], true)) {
+    if (in_array($page, ['seo-search', 'seo-provider-connections', 'seo-processes', 'seo-logistica', 'seo-comentarista'], true)) {
         return 'seo-tools';
     }
 

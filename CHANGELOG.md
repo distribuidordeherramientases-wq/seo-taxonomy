@@ -6,6 +6,8 @@ Los cambios validados en `staging` que todavía no formen parte de una publicaci
 
 ### Administración y navegación
 
+- **Comentarista** se ha movido a **Herramientas** para reducir la saturación del menú principal, conservando su slug y funcionamiento interno.
+
 - Añadida la nueva sección **Contenidos** en el menú principal de SEO Taxonomy, que agrupa Productos, Categorías, Páginas, Entradas e Imágenes en una pantalla de accesos directos. Las rutas internas existentes se conservan para mantener compatibilidad con enlaces, formularios y redirecciones.
 
 ### Marketing y campañas
