@@ -129,6 +129,23 @@ Pestañas: **Resumen**, **PHP**, **MySQL**, **WordPress**, **Seguridad**, **Serv
 
 **Ejecutar chequeo completo** [Proceso] guarda un snapshot. **Rotar secreto** [Modifica] exige actualizar la variable SEO_MONITOR_SECRET en GitHub. El resto de tarjetas son diagnósticas.
 
+### MySQL · Auditoría SQL SEO Taxonomy
+
+La pestaña MySQL incorpora una auditoría de solo lectura que muestra:
+
+- slow query log y `long_query_time`;
+- temporales escritos a disco;
+- pico de conexiones, conexiones abortadas, creación de hilos y esperas de bloqueo;
+- JOIN sin índice y contadores de ordenación;
+- inventario de tablas propias `seo_*`, filas, tamaño e índices;
+- candidatos de índice en tablas grandes;
+- índices duplicados exactos;
+- planes `EXPLAIN` de consultas representativas de relaciones, Vocabulary, proveedores, imágenes, Dependiente, Ingeniero y FAQs.
+
+`EXPLAIN` analiza el plan del optimizador sin ejecutar el SELECT de negocio. La pantalla **no crea ni elimina índices**. Los candidatos son recomendaciones para revisar en STAGING antes de cualquier migración.
+
+El **chequeo completo** añade al snapshot las señales principales de esta auditoría para que aparezcan también en el informe general.
+
 ## Plugin Validation
 
 Pestañas: **Resumen**, **Integridad del código**, **Chequeos avanzados**, **Configuración**.
