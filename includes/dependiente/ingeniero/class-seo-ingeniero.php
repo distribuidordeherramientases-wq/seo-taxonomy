@@ -321,7 +321,7 @@ final class SEO_Ingeniero {
                 'metadata'=>array(
                     'position'=>absint($row['position'] ?? 0),
                     'query_type'=>sanitize_key((string) ($row['query_type'] ?? '')),
-                    'snippet'=>self::limit_text((string) ($row['snippet'] ?? ''), 420),
+                    'snippet'=>self::limit_words((string) ($row['snippet'] ?? ''), 24),
                     'pdf_pending'=>$is_pdf ? 1 : 0,
                 ),
             ));
@@ -480,7 +480,7 @@ final class SEO_Ingeniero {
                     'source_type'=>sanitize_key((string) ($source['source_type'] ?? '')),
                     'trust_level'=>$trust,
                     // Evidencia breve y trazable; no se usa como contenido editorial.
-                    'evidence'=>self::limit_text($sentence, 220),
+                    'evidence'=>self::limit_words($sentence, 24),
                 );
                 if (count($evidence) >= 4) break;
             }
@@ -647,6 +647,15 @@ final class SEO_Ingeniero {
     public static function clear_fallback() {
         if (function_exists('as_unschedule_all_actions')) as_unschedule_all_actions('seo_ingeniero_worker_tick', array(), 'seo-ingeniero');
         wp_clear_scheduled_hook('seo_ingeniero_worker_tick');
+    }
+
+    public static function limit_words($text, $limit = 24) {
+        $text = trim(preg_replace('/\s+/u', ' ', wp_strip_all_tags((string) $text)));
+        $limit = max(1, absint($limit));
+        if ($text === '') return '';
+        $words = preg_split('/\s+/u', $text);
+        if (count($words) <= $limit) return $text;
+        return implode(' ', array_slice($words, 0, $limit)) . '…';
     }
 
     public static function limit_text($text, $limit) {
