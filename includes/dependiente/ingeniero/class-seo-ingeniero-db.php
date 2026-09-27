@@ -9,7 +9,7 @@ defined('ABSPATH') || exit;
 
 final class SEO_Ingeniero_DB {
     const OPTION_DB_VERSION = 'seo_ingeniero_db_version';
-    const DB_VERSION = '0.1.0';
+    const DB_VERSION = '0.1.1';
 
     public static function table($name) {
         global $wpdb;
@@ -93,7 +93,56 @@ final class SEO_Ingeniero_DB {
             KEY confidence (confidence)
         ) {$charset};");
 
+        self::migrate_legacy_investigador();
         update_option(self::OPTION_DB_VERSION, self::DB_VERSION, false);
+    }
+
+    /**
+     * Migra la primera versión publicada en STAGING bajo el nombre Investigador.
+     * No elimina las tablas antiguas: conserva rollback y evita pérdida de datos.
+     */
+    private static function migrate_legacy_investigador() {
+        global $wpdb;
+        $legacy_sources = $wpdb->prefix . 'seo_investigador_sources';
+        $legacy_knowledge = $wpdb->prefix . 'seo_investigador_knowledge';
+        $sources = self::table('sources');
+        $knowledge = self::table('knowledge');
+
+        $legacy_sources_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $legacy_sources)) === $legacy_sources;
+        $legacy_knowledge_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $legacy_knowledge)) === $legacy_knowledge;
+
+        if ($legacy_sources_exists) {
+            $wpdb->query(
+                "INSERT IGNORE INTO {$sources}
+                (id,term_id,lesson,url,url_hash,domain,title,source_type,trust_level,published_at,retrieved_at,http_status,content_hash,status,metadata_json,created_at,updated_at)
+                SELECT id,term_id,lesson,url,url_hash,domain,title,source_type,trust_level,published_at,retrieved_at,http_status,content_hash,status,metadata_json,created_at,updated_at
+                FROM {$legacy_sources}"
+            );
+        }
+
+        if ($legacy_knowledge_exists) {
+            $wpdb->query(
+                "INSERT IGNORE INTO {$knowledge}
+                (id,term_id,lesson,knowledge_type,concept,summary,facts_json,tags_json,source_ids_json,confidence,status,created_at,updated_at)
+                SELECT id,term_id,lesson,knowledge_type,concept,summary,facts_json,tags_json,source_ids_json,confidence,status,created_at,updated_at
+                FROM {$legacy_knowledge}"
+            );
+        }
+
+        $option_map = array(
+            'seo_investigador_state_v1' => 'seo_ingeniero_state_v1',
+            'seo_investigador_category_state_v1' => 'seo_ingeniero_category_state_v1',
+            'seo_investigador_settings' => 'seo_ingeniero_settings',
+            'seo_investigador_serpapi_usage_v1' => 'seo_ingeniero_serpapi_usage_v1',
+        );
+        foreach ($option_map as $old => $new) {
+            if (false === get_option($new, false)) {
+                $value = get_option($old, false);
+                if (false !== $value) {
+                    add_option($new, $value, '', false);
+                }
+            }
+        }
     }
 
     public static function upsert_source($data) {
