@@ -1,6 +1,6 @@
 <?php
 /**
- * Investigador: conocimiento externo técnico por categoría.
+ * Ingeniero: conocimiento externo técnico por categoría.
  *
  * V1:
  * - L1 Documentación técnica activa.
@@ -9,22 +9,22 @@
  */
 defined('ABSPATH') || exit;
 
-final class SEO_Investigador {
-    const VERSION = '0.1.0';
-    const STATE_OPTION = 'seo_investigador_state_v1';
-    const CATEGORY_STATE_OPTION = 'seo_investigador_category_state_v1';
+final class SEO_Ingeniero {
+    const VERSION = '0.1.1';
+    const STATE_OPTION = 'seo_ingeniero_state_v1';
+    const CATEGORY_STATE_OPTION = 'seo_ingeniero_category_state_v1';
     const LESSON_TECHNICAL = 'l1_technical';
     const LESSON_PRACTICAL = 'l2_practical';
 
     private static $provider = null;
 
     public static function init() {
-        SEO_Investigador_DB::maybe_install();
+        SEO_Ingeniero_DB::maybe_install();
         add_action('init', array(__CLASS__, 'maybe_install'), 7);
     }
 
     public static function maybe_install() {
-        SEO_Investigador_DB::maybe_install();
+        SEO_Ingeniero_DB::maybe_install();
     }
 
     public static function lessons() {
@@ -114,10 +114,10 @@ final class SEO_Investigador {
     }
 
     public static function provider() {
-        if (self::$provider instanceof SEO_Investigador_Search_Provider) return self::$provider;
-        $provider = apply_filters('seo_investigador_search_provider', new SEO_Investigador_SerpApi_Provider());
-        if (!($provider instanceof SEO_Investigador_Search_Provider)) {
-            return new WP_Error('investigador_provider_invalid', 'El provider de búsqueda de Investigador no implementa la interfaz requerida.');
+        if (self::$provider instanceof SEO_Ingeniero_Search_Provider) return self::$provider;
+        $provider = apply_filters('seo_ingeniero_search_provider', new SEO_Ingeniero_SerpApi_Provider());
+        if (!($provider instanceof SEO_Ingeniero_Search_Provider)) {
+            return new WP_Error('ingeniero_provider_invalid', 'El provider de búsqueda de Ingeniero no implementa la interfaz requerida.');
         }
         self::$provider = $provider;
         return self::$provider;
@@ -127,7 +127,7 @@ final class SEO_Investigador {
         global $wpdb;
         $limit = max(1, min(100, absint($limit)));
         $excluded = array_filter(array_map('absint', (array) apply_filters(
-            'seo_investigador_excluded_term_ids',
+            'seo_ingeniero_excluded_term_ids',
             array(absint(get_option('default_product_cat', 0)))
         )));
         $where_excluded = $excluded ? ' AND t.term_id NOT IN (' . implode(',', $excluded) . ')' : '';
@@ -146,7 +146,7 @@ final class SEO_Investigador {
 
     public static function prepare_lesson($limit = 20, $only_missing = true) {
         $candidates = self::category_candidates($limit);
-        $stats = SEO_Investigador_DB::category_stats_map(self::LESSON_TECHNICAL);
+        $stats = SEO_Ingeniero_DB::category_stats_map(self::LESSON_TECHNICAL);
         $queue = array();
         foreach ($candidates as $row) {
             $term_id = absint($row['term_id'] ?? 0);
@@ -179,7 +179,7 @@ final class SEO_Investigador {
         if (!$state['queue'] || absint($state['cursor'] ?? 0) >= count((array) $state['queue'])) {
             $state = self::prepare_lesson(20, true);
         }
-        if (!$state['queue']) return new WP_Error('investigador_empty_queue', 'No hay categorías preparadas.');
+        if (!$state['queue']) return new WP_Error('ingeniero_empty_queue', 'No hay categorías preparadas.');
 
         $state = self::save_state(array(
             'enabled'=>1,
@@ -232,7 +232,7 @@ final class SEO_Investigador {
     public static function reinvestigate_category($term_id) {
         $term_id = absint($term_id);
         $term = $term_id ? get_term($term_id, 'product_cat') : null;
-        if (!$term || is_wp_error($term)) return new WP_Error('investigador_term_missing', 'La categoría no existe.');
+        if (!$term || is_wp_error($term)) return new WP_Error('ingeniero_term_missing', 'La categoría no existe.');
 
         $state = self::state();
         $remaining = array_slice((array) $state['queue'], absint($state['cursor'] ?? 0));
@@ -255,12 +255,12 @@ final class SEO_Investigador {
     public static function research_category($term_id, $force = false) {
         $term_id = absint($term_id);
         $term = $term_id ? get_term($term_id, 'product_cat') : null;
-        if (!$term || is_wp_error($term)) return new WP_Error('investigador_term_missing', 'La categoría no existe.');
+        if (!$term || is_wp_error($term)) return new WP_Error('ingeniero_term_missing', 'La categoría no existe.');
 
         $name = trim((string) $term->name);
-        if ($name === '') return new WP_Error('investigador_term_name', 'La categoría no tiene nombre.');
+        if ($name === '') return new WP_Error('ingeniero_term_name', 'La categoría no tiene nombre.');
 
-        $settings = SEO_Investigador_SerpApi_Provider::settings();
+        $settings = SEO_Ingeniero_SerpApi_Provider::settings();
         $provider = self::provider();
         if (is_wp_error($provider)) return $provider;
 
@@ -286,7 +286,7 @@ final class SEO_Investigador {
         }
 
         if (!$results) {
-            return new WP_Error('investigador_no_results', 'No se han encontrado fuentes externas útiles para esta categoría.');
+            return new WP_Error('ingeniero_no_results', 'No se han encontrado fuentes externas útiles para esta categoría.');
         }
 
         usort($results, array(__CLASS__, 'compare_result_priority'));
@@ -305,7 +305,7 @@ final class SEO_Investigador {
             }
 
             $status = $is_pdf ? 'pdf_pending' : (!empty($page['text']) ? 'fetched' : 'search_only');
-            $source_id = SEO_Investigador_DB::upsert_source(array(
+            $source_id = SEO_Ingeniero_DB::upsert_source(array(
                 'term_id'=>$term_id,
                 'lesson'=>self::LESSON_TECHNICAL,
                 'url'=>$row['url'],
@@ -321,7 +321,7 @@ final class SEO_Investigador {
                 'metadata'=>array(
                     'position'=>absint($row['position'] ?? 0),
                     'query_type'=>sanitize_key((string) ($row['query_type'] ?? '')),
-                    'snippet'=>self::limit_text((string) ($row['snippet'] ?? ''), 420),
+                    'snippet'=>self::limit_words((string) ($row['snippet'] ?? ''), 24),
                     'pdf_pending'=>$is_pdf ? 1 : 0,
                 ),
             ));
@@ -341,14 +341,14 @@ final class SEO_Investigador {
         }
 
         if (!$source_rows) {
-            return new WP_Error('investigador_sources_save', 'No se pudo guardar ninguna fuente útil.');
+            return new WP_Error('ingeniero_sources_save', 'No se pudo guardar ninguna fuente útil.');
         }
 
         $knowledge = self::build_knowledge($term_id, $name, $source_rows);
         $active = 0;
         $review = 0;
         foreach ($knowledge as $item) {
-            $saved = SEO_Investigador_DB::upsert_knowledge($item);
+            $saved = SEO_Ingeniero_DB::upsert_knowledge($item);
             if (is_wp_error($saved)) continue;
             if ('active' === $item['status']) $active++;
             else $review++;
@@ -414,7 +414,7 @@ final class SEO_Investigador {
             'timeout'=>18,
             'redirection'=>3,
             'limit_response_size'=>400000,
-            'headers'=>array('User-Agent'=>'SEO-Taxonomy-Investigador/0.1.0'),
+            'headers'=>array('User-Agent'=>'SEO-Taxonomy-Ingeniero/0.1.0'),
         ));
         if (is_wp_error($response)) return array('status'=>0,'text'=>'','content_hash'=>'');
         $status = absint(wp_remote_retrieve_response_code($response));
@@ -475,9 +475,12 @@ final class SEO_Investigador {
                 $scores[] = $score;
                 $evidence[] = array(
                     'source_id'=>absint($source['id'] ?? 0),
+                    'source_url'=>esc_url_raw((string) ($source['url'] ?? '')),
+                    'source_title'=>sanitize_text_field((string) ($source['title'] ?? '')),
                     'source_type'=>sanitize_key((string) ($source['source_type'] ?? '')),
                     'trust_level'=>$trust,
-                    'evidence'=>self::limit_text($sentence, 280),
+                    // Evidencia breve y trazable; no se usa como contenido editorial.
+                    'evidence'=>self::limit_words($sentence, 24),
                 );
                 if (count($evidence) >= 4) break;
             }
@@ -489,9 +492,9 @@ final class SEO_Investigador {
             $status = $confirmed ? 'active' : 'review';
             $confidence = min(0.98, max(0.20, $avg + (count($domains)>=2 ? 0.06 : 0) + ($has_high ? 0.05 : 0)));
 
-            $summary_parts = array();
-            foreach (array_slice($evidence,0,2) as $ev) $summary_parts[] = $ev['evidence'];
-            $summary = self::limit_text(implode(' ', $summary_parts), 600);
+            // El resumen es una síntesis propia. No concatena ni copia frases de
+            // las fuentes: las citas breves quedan separadas en "facts" con URL.
+            $summary = self::original_summary($category_name, $type, $evidence, count($domains), $has_high);
 
             $out[] = array(
                 'term_id'=>$term_id,
@@ -508,6 +511,63 @@ final class SEO_Investigador {
         }
 
         return $out;
+    }
+
+    private static function original_summary($category_name, $type, $evidence, $domain_count, $has_high) {
+        $labels = array(
+            'definition'=>'definición y alcance técnico',
+            'function'=>'principio de funcionamiento',
+            'application'=>'aplicaciones y usos habituales',
+            'type'=>'tipos y variantes',
+            'compatibility'=>'compatibilidades y condiciones de uso',
+            'limitation'=>'limitaciones y restricciones',
+            'maintenance'=>'mantenimiento y conservación',
+            'safety'=>'seguridad y precauciones',
+            'problem'=>'problemas y fallos habituales',
+            'terminology'=>'terminología técnica',
+            'regulation'=>'normativa y referencias técnicas',
+        );
+        $label = $labels[$type] ?? str_replace('_',' ',(string)$type);
+
+        $signals = array();
+        foreach ((array) $evidence as $row) {
+            $text = self::normalize_signal_text((string) ($row['evidence'] ?? ''));
+            foreach (self::technical_signal_terms($text) as $term) {
+                $signals[$term] = true;
+                if (count($signals) >= 6) break 2;
+            }
+        }
+
+        $summary = 'La revisión externa de ' . $category_name . ' aporta contexto sobre ' . $label . '. ';
+        if ($signals) {
+            $summary .= 'Las fuentes coinciden en conceptos como ' . implode(', ', array_keys($signals)) . '. ';
+        }
+        $summary .= 'La síntesis se ha elaborado a partir de ' . max(1, absint($domain_count)) . ' dominio(s) independiente(s)';
+        if ($has_high) {
+            $summary .= ', incluyendo al menos una fuente oficial o normativa';
+        }
+        $summary .= '. Las afirmaciones concretas deben verificarse en las referencias enlazadas antes de publicarse como contenido editorial.';
+        return self::limit_text($summary, 700);
+    }
+
+    private static function normalize_signal_text($text) {
+        $text = function_exists('remove_accents') ? remove_accents((string)$text) : (string)$text;
+        $text = function_exists('mb_strtolower') ? mb_strtolower($text,'UTF-8') : strtolower($text);
+        return preg_replace('/[^a-z0-9%+\-\. ]+/',' ', $text);
+    }
+
+    private static function technical_signal_terms($text) {
+        $dictionary = array(
+            'seguridad','mantenimiento','compatibilidad','presion','temperatura','potencia',
+            'capacidad','caudal','velocidad','precision','tolerancia','material','diametro',
+            'voltaje','corriente','bateria','motor','lubricacion','limpieza','proteccion',
+            'norma','iso','une','ce','fluido','aceite','agua','aire','par','rpm',
+        );
+        $found = array();
+        foreach ($dictionary as $term) {
+            if (preg_match('/\b' . preg_quote($term,'/') . '\b/', $text)) $found[] = $term;
+        }
+        return $found;
     }
 
     private static function best_sentence($text, $keywords) {
@@ -534,7 +594,7 @@ final class SEO_Investigador {
     }
 
     public static function active_knowledge($term_id, $types = array()) {
-        $rows = SEO_Investigador_DB::knowledge_for_category(absint($term_id), true, self::LESSON_TECHNICAL);
+        $rows = SEO_Ingeniero_DB::knowledge_for_category(absint($term_id), true, self::LESSON_TECHNICAL);
         $types = array_values(array_filter(array_map('sanitize_key', (array) $types)));
         if (!$types) return $rows;
         return array_values(array_filter($rows, static function($row) use ($types) {
@@ -543,7 +603,7 @@ final class SEO_Investigador {
     }
 
     public static function category_confidence($term_id) {
-        $stats = SEO_Investigador_DB::category_stats_map(self::LESSON_TECHNICAL);
+        $stats = SEO_Ingeniero_DB::category_stats_map(self::LESSON_TECHNICAL);
         return round((float) ($stats[absint($term_id)]['avg_confidence'] ?? 0), 4);
     }
 
@@ -556,9 +616,9 @@ final class SEO_Investigador {
         $delay = max(0, absint($delay));
         if (function_exists('seo_process_supervisor_settings')) {
             $manager = (array) seo_process_supervisor_settings();
-            if (!empty($manager['enabled']) && !empty($manager['investigador'])) {
+            if (!empty($manager['enabled']) && !empty($manager['ingeniero'])) {
                 self::clear_fallback();
-                if (function_exists('seo_process_supervisor_nudge')) seo_process_supervisor_nudge($delay, 'investigador');
+                if (function_exists('seo_process_supervisor_nudge')) seo_process_supervisor_nudge($delay, 'ingeniero');
                 if (function_exists('seo_process_supervisor_schedule_backup')) seo_process_supervisor_schedule_backup();
                 return true;
             }
@@ -570,23 +630,32 @@ final class SEO_Investigador {
         if (!self::is_pending()) return false;
         $when = time() + max(1, absint($delay));
         if (function_exists('as_schedule_single_action')) {
-            $pending = function_exists('as_next_scheduled_action') ? as_next_scheduled_action('seo_investigador_worker_tick', array(), 'seo-investigador') : false;
+            $pending = function_exists('as_next_scheduled_action') ? as_next_scheduled_action('seo_ingeniero_worker_tick', array(), 'seo-ingeniero') : false;
             if (!$pending) {
-                $id = as_schedule_single_action($when, 'seo_investigador_worker_tick', array(), 'seo-investigador', true, 20);
+                $id = as_schedule_single_action($when, 'seo_ingeniero_worker_tick', array(), 'seo-ingeniero', true, 20);
                 if (absint($id) > 0) return true;
             } else {
                 return true;
             }
         }
-        if (false === wp_next_scheduled('seo_investigador_worker_tick')) {
-            return (bool) wp_schedule_single_event($when, 'seo_investigador_worker_tick');
+        if (false === wp_next_scheduled('seo_ingeniero_worker_tick')) {
+            return (bool) wp_schedule_single_event($when, 'seo_ingeniero_worker_tick');
         }
         return true;
     }
 
     public static function clear_fallback() {
-        if (function_exists('as_unschedule_all_actions')) as_unschedule_all_actions('seo_investigador_worker_tick', array(), 'seo-investigador');
-        wp_clear_scheduled_hook('seo_investigador_worker_tick');
+        if (function_exists('as_unschedule_all_actions')) as_unschedule_all_actions('seo_ingeniero_worker_tick', array(), 'seo-ingeniero');
+        wp_clear_scheduled_hook('seo_ingeniero_worker_tick');
+    }
+
+    public static function limit_words($text, $limit = 24) {
+        $text = trim(preg_replace('/\s+/u', ' ', wp_strip_all_tags((string) $text)));
+        $limit = max(1, absint($limit));
+        if ($text === '') return '';
+        $words = preg_split('/\s+/u', $text);
+        if (count($words) <= $limit) return $text;
+        return implode(' ', array_slice($words, 0, $limit)) . '…';
     }
 
     public static function limit_text($text, $limit) {

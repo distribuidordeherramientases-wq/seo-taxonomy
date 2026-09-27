@@ -9,7 +9,7 @@ Ruta: **SEO Taxonomy → Dependiente**
 - Aprendizaje
 - Academia
 - Intérprete
-- Investigador
+- Ingeniero
 - Conocimiento
 - Auditor
 
@@ -120,9 +120,9 @@ También muestra Modo de formación, Progreso, Informe completo y tabla Módulo 
 - tabla Lección / Estado / Progreso / Aprendido-revisado / Acción.
 - **Reentrenar desde aquí** [Proceso] para una lección concreta.
 
-## Investigador
+## Ingeniero
 
-Investigador añade una capa de **conocimiento técnico externo por categoría** sin mezclarla con el índice comercial de Dependiente.
+Ingeniero añade una capa de **conocimiento técnico externo por categoría** sin mezclarla con el índice comercial de Dependiente.
 
 ### Lección 1 · Documentación técnica
 
@@ -143,7 +143,7 @@ KPIs visibles: categorías con productos, investigadas, pendientes, en revisión
 
 ### Búsqueda y presupuesto
 
-V1 usa un provider desacoplado y la implementación SerpApi/Google web. Reutiliza la credencial existente de Ojeador, pero mantiene un límite local independiente para Investigador.
+V1 usa un provider desacoplado y la implementación SerpApi/Google web. Reutiliza la credencial existente de Ojeador, pero mantiene un límite local independiente para Ingeniero.
 
 Campos:
 
@@ -164,16 +164,18 @@ Los PDFs se detectan y quedan como `pdf_pending`; v1 no añade un parser pesado.
 
 Una fuente de confianza alta puede sostener conocimiento activo. Fuentes técnicas no oficiales requieren confirmación entre fuentes para activarse automáticamente. Lo dudoso queda en **revisar**.
 
-La relación es siempre: `conocimiento → source_ids → URL/fuente`.
+**Política editorial:** Ingeniero separa siempre la evidencia de la redacción. Las frases de origen solo pueden conservarse como evidencia breve y con enlace a la fuente. El resumen/contenido generado debe ser una síntesis propia, no una copia ni una concatenación de textos externos.
+
+La relación es siempre: `conocimiento → source_ids → URL/fuente`. La pantalla de revisión muestra el enlace original junto a cada evidencia para poder comprobarla.
 
 No se guardan copias completas de páginas o manuales.
 
 ### Separación de capas
 
 - `seo_dependiente_index`: nuestro catálogo.
-- `seo_investigador_knowledge`: conocimiento técnico externo.
+- `seo_ingeniero_knowledge`: conocimiento técnico externo.
 
-La función `SEO_Investigador::active_knowledge(term_id)` expone conocimiento aprobado para futuras integraciones. En v1 **no se inyecta todavía en las respuestas públicas de Dependiente**.
+La función `SEO_Ingeniero::active_knowledge(term_id)` expone conocimiento aprobado para futuras integraciones. En v1 **no se inyecta todavía en las respuestas públicas de Dependiente**.
 
 ### Lección 2 · Experiencia práctica
 

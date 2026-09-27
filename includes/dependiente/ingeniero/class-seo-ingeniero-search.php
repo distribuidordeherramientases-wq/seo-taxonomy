@@ -1,17 +1,17 @@
 <?php
 defined('ABSPATH') || exit;
 
-interface SEO_Investigador_Search_Provider {
+interface SEO_Ingeniero_Search_Provider {
     /**
      * @return array|WP_Error
      */
     public function search($query, $context = array());
 }
 
-final class SEO_Investigador_SerpApi_Provider implements SEO_Investigador_Search_Provider {
+final class SEO_Ingeniero_SerpApi_Provider implements SEO_Ingeniero_Search_Provider {
     const API_URL = 'https://serpapi.com/search.json';
-    const USAGE_OPTION = 'seo_investigador_serpapi_usage_v1';
-    const SETTINGS_OPTION = 'seo_investigador_settings';
+    const USAGE_OPTION = 'seo_ingeniero_serpapi_usage_v1';
+    const SETTINGS_OPTION = 'seo_ingeniero_settings';
 
     public static function defaults() {
         return array(
@@ -82,14 +82,14 @@ final class SEO_Investigador_SerpApi_Provider implements SEO_Investigador_Search
 
     public function search($query, $context = array()) {
         $query = trim((string) $query);
-        if ($query === '') return new WP_Error('investigador_query_empty', 'Consulta externa vacía.');
+        if ($query === '') return new WP_Error('ingeniero_query_empty', 'Consulta externa vacía.');
 
         $key = $this->api_key();
-        if ($key === '') return new WP_Error('investigador_serpapi_key', 'Falta la API key de SerpApi. Investigador reutiliza la conexión existente de Ojeador.');
+        if ($key === '') return new WP_Error('ingeniero_serpapi_key', 'Falta la API key de SerpApi. Ingeniero reutiliza la conexión existente de Ojeador.');
 
         $usage = self::usage_month();
         if ($usage['limit'] > 0 && $usage['used'] >= $usage['limit']) {
-            return new WP_Error('investigador_budget', 'Investigador ha alcanzado su presupuesto mensual independiente de SerpApi.');
+            return new WP_Error('ingeniero_budget', 'Ingeniero ha alcanzado su presupuesto mensual independiente de SerpApi.');
         }
 
         $settings = self::settings();
@@ -111,7 +111,7 @@ final class SEO_Investigador_SerpApi_Provider implements SEO_Investigador_Search
             'redirection'=>3,
             'headers'=>array(
                 'Accept'=>'application/json',
-                'User-Agent'=>'SEO-Taxonomy-Investigador/0.1.0',
+                'User-Agent'=>'SEO-Taxonomy-Ingeniero/0.1.0',
             ),
         ));
         $duration_ms = max(0, (int) round((microtime(true)-$started)*1000));
@@ -120,11 +120,11 @@ final class SEO_Investigador_SerpApi_Provider implements SEO_Investigador_Search
         $code = absint(wp_remote_retrieve_response_code($response));
         $body = json_decode(wp_remote_retrieve_body($response), true);
         if ($code < 200 || $code >= 300 || !is_array($body)) {
-            return new WP_Error('investigador_serpapi_http', 'SerpApi devolvió HTTP ' . $code . '.');
+            return new WP_Error('ingeniero_serpapi_http', 'SerpApi devolvió HTTP ' . $code . '.');
         }
         if (!empty($body['error'])) {
             $message = is_array($body['error']) ? (string) ($body['error']['message'] ?? 'Error SerpApi') : (string) $body['error'];
-            return new WP_Error('investigador_serpapi_api', sanitize_text_field($message));
+            return new WP_Error('ingeniero_serpapi_api', sanitize_text_field($message));
         }
 
         $rows = array();

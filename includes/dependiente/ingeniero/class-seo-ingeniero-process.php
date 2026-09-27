@@ -1,24 +1,24 @@
 <?php
 defined('ABSPATH') || exit;
 
-final class SEO_Investigador_Process {
-    const LOCK_OPTION = 'seo_investigador_process_lock';
+final class SEO_Ingeniero_Process {
+    const LOCK_OPTION = 'seo_ingeniero_process_lock';
     public static function init() {
         add_filter('seo_process_supervisor_has_pending_work', array(__CLASS__, 'filter_pending_work'), 30, 1);
         add_filter('seo_process_supervisor_manager_targets', array(__CLASS__, 'filter_manager_targets'), 30, 3);
         add_filter('seo_processes_monitor_items', array(__CLASS__, 'filter_monitor_items'), 30, 1);
-        add_action('seo_investigador_worker_tick', array(__CLASS__, 'fallback_tick'));
+        add_action('seo_ingeniero_worker_tick', array(__CLASS__, 'fallback_tick'));
     }
 
     public static function filter_pending_work($pending) {
-        $settings = function_exists('seo_process_supervisor_settings') ? (array) seo_process_supervisor_settings() : array('investigador'=>1);
-        return $pending || (!empty($settings['investigador']) && SEO_Investigador::is_pending());
+        $settings = function_exists('seo_process_supervisor_settings') ? (array) seo_process_supervisor_settings() : array('ingeniero'=>1);
+        return $pending || (!empty($settings['ingeniero']) && SEO_Ingeniero::is_pending());
     }
 
     public static function filter_manager_targets($targets, $settings, $source) {
-        if (empty($settings['investigador']) || !SEO_Investigador::is_pending()) return $targets;
+        if (empty($settings['ingeniero']) || !SEO_Ingeniero::is_pending()) return $targets;
         $targets[] = array(
-            'type'=>'investigador',
+            'type'=>'ingeniero',
             'data'=>array(),
             'callback'=>array(__CLASS__, 'manager_target_callback'),
         );
@@ -30,54 +30,54 @@ final class SEO_Investigador_Process {
     }
 
     public static function fallback_tick() {
-        if (!SEO_Investigador::is_pending()) return;
+        if (!SEO_Ingeniero::is_pending()) return;
         self::process_slice(20, 'scheduler_fallback');
-        if (SEO_Investigador::is_pending()) SEO_Investigador::schedule_fallback(20);
+        if (SEO_Ingeniero::is_pending()) SEO_Ingeniero::schedule_fallback(20);
     }
 
     public static function process_slice($budget = 20, $source = 'process_manager') {
-        if (!SEO_Investigador::is_pending()) return false;
+        if (!SEO_Ingeniero::is_pending()) return false;
         if (!self::acquire_lock()) return false;
 
         $budget = max(5, min(55, absint($budget)));
         $started = microtime(true);
-        $state = SEO_Investigador::state();
+        $state = SEO_Ingeniero::state();
         $batch_size = max(1, min(3, absint($state['batch_size'] ?? 1)));
         $processed_now = 0;
         $learned_now = 0;
         $review_now = 0;
         $errors_now = 0;
 
-        while (SEO_Investigador::is_pending() && $processed_now < $batch_size) {
+        while (SEO_Ingeniero::is_pending() && $processed_now < $batch_size) {
             if ((microtime(true) - $started) >= max(3, $budget - 2)) break;
 
-            $state = SEO_Investigador::state();
+            $state = SEO_Ingeniero::state();
             $cursor = absint($state['cursor'] ?? 0);
-            $term_id = SEO_Investigador::next_term_id();
+            $term_id = SEO_Ingeniero::next_term_id();
             if (!$term_id) break;
 
             $term = get_term($term_id, 'product_cat');
             $label = $term && !is_wp_error($term) ? (string) $term->name : ('#' . $term_id);
-            SEO_Investigador::set_category_state($term_id, 'investigando', array('last_error'=>''));
-            SEO_Investigador::save_state(array(
+            SEO_Ingeniero::set_category_state($term_id, 'investigando', array('last_error'=>''));
+            SEO_Ingeniero::save_state(array(
                 'last_term_id'=>$term_id,
                 'last_activity_at'=>time(),
                 'last_message'=>'Investigando ' . $label . '…',
                 'last_error'=>'',
             ));
 
-            $result = SEO_Investigador::research_category($term_id);
+            $result = SEO_Ingeniero::research_category($term_id);
             $processed_now++;
             if (is_wp_error($result)) {
                 $errors_now++;
-                $blocking_error = in_array($result->get_error_code(), array('investigador_budget','investigador_serpapi_key','investigador_serpapi_api'), true);
-                SEO_Investigador::set_category_state($term_id, 'error', array(
+                $blocking_error = in_array($result->get_error_code(), array('ingeniero_budget','ingeniero_serpapi_key','ingeniero_serpapi_api'), true);
+                SEO_Ingeniero::set_category_state($term_id, 'error', array(
                     'last_error'=>$result->get_error_message(),
                 ));
 
                 if ($blocking_error) {
                     // No avanzar cursor: tras corregir cuota/configuración se reintenta la misma categoría.
-                    SEO_Investigador::save_state(array(
+                    SEO_Ingeniero::save_state(array(
                         'enabled'=>0,
                         'status'=>'stopped',
                         'errors'=>absint($state['errors'] ?? 0)+1,
@@ -88,7 +88,7 @@ final class SEO_Investigador_Process {
                     break;
                 }
 
-                SEO_Investigador::save_state(array(
+                SEO_Ingeniero::save_state(array(
                     'cursor'=>$cursor+1,
                     'processed'=>absint($state['processed'] ?? 0)+1,
                     'errors'=>absint($state['errors'] ?? 0)+1,
@@ -103,15 +103,15 @@ final class SEO_Investigador_Process {
             if ($needs_review) $review_now++;
             else $learned_now++;
 
-            SEO_Investigador::set_category_state($term_id, $needs_review ? 'revisar' : 'aprendido', array(
+            SEO_Ingeniero::set_category_state($term_id, $needs_review ? 'revisar' : 'aprendido', array(
                 'last_error'=>'',
                 'sources'=>absint($result['sources'] ?? 0),
                 'knowledge'=>absint($result['knowledge'] ?? 0),
-                'confidence'=>SEO_Investigador::category_confidence($term_id),
+                'confidence'=>SEO_Ingeniero::category_confidence($term_id),
                 'last_research_at'=>time(),
             ));
 
-            SEO_Investigador::save_state(array(
+            SEO_Ingeniero::save_state(array(
                 'cursor'=>$cursor+1,
                 'processed'=>absint($state['processed'] ?? 0)+1,
                 'learned'=>absint($state['learned'] ?? 0)+($needs_review?0:1),
@@ -123,7 +123,7 @@ final class SEO_Investigador_Process {
         }
 
         $duration = max(0.001, microtime(true)-$started);
-        $state = SEO_Investigador::state();
+        $state = SEO_Ingeniero::state();
         $next_batch = max(1, min(3, absint($state['batch_size'] ?? 1)));
         if ($processed_now > 0) {
             $per_category = $duration / $processed_now;
@@ -137,28 +137,28 @@ final class SEO_Investigador_Process {
             'last_activity_at'=>time(),
         );
 
-        if (!SEO_Investigador::is_pending()) {
-            $fresh = SEO_Investigador::state();
+        if (!SEO_Ingeniero::is_pending()) {
+            $fresh = SEO_Ingeniero::state();
             if (absint($fresh['cursor'] ?? 0) >= count((array) $fresh['queue'])) {
                 $changes['enabled'] = 0;
                 $changes['status'] = 'completed';
                 $changes['completed_at'] = time();
                 $changes['last_message'] = 'L1 completada para las categorías preparadas.';
-                SEO_Investigador::clear_fallback();
+                SEO_Ingeniero::clear_fallback();
             }
         }
-        SEO_Investigador::save_state($changes);
+        SEO_Ingeniero::save_state($changes);
 
         if (function_exists('seo_process_supervisor_managed_update')) {
-            $progress = SEO_Investigador::progress();
-            seo_process_supervisor_managed_update('investigador', array(
-                'name'=>'Investigador',
-                'pending'=>SEO_Investigador::is_pending()?1:0,
+            $progress = SEO_Ingeniero::progress();
+            seo_process_supervisor_managed_update('ingeniero', array(
+                'name'=>'Ingeniero',
+                'pending'=>SEO_Ingeniero::is_pending()?1:0,
                 'healthy'=>1,
                 'last_checked'=>time(),
                 'last_attempt_at'=>time(),
                 'last_result'=>$processed_now?'processed':'waiting',
-                'last_error'=>(string) (SEO_Investigador::state()['last_error'] ?? ''),
+                'last_error'=>(string) (SEO_Ingeniero::state()['last_error'] ?? ''),
                 'detail'=>number_format_i18n($progress['processed']) . '/' . number_format_i18n($progress['total']) . ' categorías · lote adaptativo ' . $next_batch . '.',
             ));
         }
@@ -181,11 +181,11 @@ final class SEO_Investigador_Process {
     }
 
     public static function filter_monitor_items($items) {
-        $state = SEO_Investigador::state();
-        $progress = SEO_Investigador::progress();
+        $state = SEO_Ingeniero::state();
+        $progress = SEO_Ingeniero::progress();
         $status = sanitize_key((string) ($state['status'] ?? 'stopped'));
 
-        if ('running' === $status && SEO_Investigador::is_pending()) {
+        if ('running' === $status && SEO_Ingeniero::is_pending()) {
             $view_state = function_exists('seo_processes_state') ? seo_processes_state('running','En ejecución','running') : array('tone'=>'running','label'=>'En ejecución');
         } elseif ('completed' === $status) {
             $view_state = function_exists('seo_processes_state') ? seo_processes_state('completed','Completado','completed') : array('tone'=>'completed','label'=>'Completado');
@@ -198,11 +198,11 @@ final class SEO_Investigador_Process {
         $duration = max(0, (float) ($state['last_duration'] ?? 0));
         $batch = max(1, absint($state['batch_size'] ?? 1));
         $speed = ($duration > 0) ? number_format_i18n(($batch/$duration)*60, 1) . ' categorías/min aprox.' : 'Sin lote medido';
-        $usage = SEO_Investigador_SerpApi_Provider::usage_month();
+        $usage = SEO_Ingeniero_SerpApi_Provider::usage_month();
 
         $items[] = array(
-            'id'=>'investigador',
-            'name'=>'Investigador',
+            'id'=>'ingeniero',
+            'name'=>'Ingeniero',
             'kind'=>'Dependiente · conocimiento técnico externo',
             'state'=>$view_state,
             'speed'=>$speed,
@@ -213,8 +213,8 @@ final class SEO_Investigador_Process {
             'progress'=>$progress['total'] ? $progress['percentage'] : null,
             'progress_text'=>number_format_i18n($progress['processed']) . ' / ' . number_format_i18n($progress['total']) . ' categorías',
             'detail'=>(string) ($state['last_message'] ?? ''),
-            'url'=>add_query_arg(array('page'=>'seo-dependiente','tab'=>'researcher'), admin_url('admin.php')),
-            'can_start'=>!SEO_Investigador::is_pending() && $progress['pending'] > 0,
+            'url'=>add_query_arg(array('page'=>'seo-dependiente','tab'=>'engineer'), admin_url('admin.php')),
+            'can_start'=>!SEO_Ingeniero::is_pending() && $progress['pending'] > 0,
             'start_label'=>'Iniciar / continuar',
         );
 
@@ -222,4 +222,4 @@ final class SEO_Investigador_Process {
     }
 }
 
-SEO_Investigador_Process::init();
+SEO_Ingeniero_Process::init();

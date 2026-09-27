@@ -1,21 +1,21 @@
 <?php
 /**
- * Persistencia del Investigador de Dependiente.
+ * Persistencia del Ingeniero de Dependiente.
  *
  * Guarda únicamente fuentes, metadatos y conocimiento resumido. Nunca copia
  * páginas, manuales o artículos completos.
  */
 defined('ABSPATH') || exit;
 
-final class SEO_Investigador_DB {
-    const OPTION_DB_VERSION = 'seo_investigador_db_version';
-    const DB_VERSION = '0.1.0';
+final class SEO_Ingeniero_DB {
+    const OPTION_DB_VERSION = 'seo_ingeniero_db_version';
+    const DB_VERSION = '0.1.1';
 
     public static function table($name) {
         global $wpdb;
         $map = array(
-            'sources'   => $wpdb->prefix . 'seo_investigador_sources',
-            'knowledge' => $wpdb->prefix . 'seo_investigador_knowledge',
+            'sources'   => $wpdb->prefix . 'seo_ingeniero_sources',
+            'knowledge' => $wpdb->prefix . 'seo_ingeniero_knowledge',
         );
         return isset($map[$name]) ? $map[$name] : '';
     }
@@ -93,7 +93,63 @@ final class SEO_Investigador_DB {
             KEY confidence (confidence)
         ) {$charset};");
 
+        self::migrate_legacy_investigador();
         update_option(self::OPTION_DB_VERSION, self::DB_VERSION, false);
+    }
+
+    /**
+     * Migra la primera versión publicada en STAGING bajo el nombre Investigador.
+     * No elimina las tablas antiguas: conserva rollback y evita pérdida de datos.
+     */
+    private static function migrate_legacy_investigador() {
+        global $wpdb;
+        $legacy_sources = $wpdb->prefix . 'seo_investigador_sources';
+        $legacy_knowledge = $wpdb->prefix . 'seo_investigador_knowledge';
+        $sources = self::table('sources');
+        $knowledge = self::table('knowledge');
+
+        $legacy_sources_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $legacy_sources)) === $legacy_sources;
+        $legacy_knowledge_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $legacy_knowledge)) === $legacy_knowledge;
+
+        if ($legacy_sources_exists) {
+            $wpdb->query(
+                "INSERT IGNORE INTO {$sources}
+                (id,term_id,lesson,url,url_hash,domain,title,source_type,trust_level,published_at,retrieved_at,http_status,content_hash,status,metadata_json,created_at,updated_at)
+                SELECT id,term_id,lesson,url,url_hash,domain,title,source_type,trust_level,published_at,retrieved_at,http_status,content_hash,status,metadata_json,created_at,updated_at
+                FROM {$legacy_sources}"
+            );
+        }
+
+        if ($legacy_knowledge_exists) {
+            $wpdb->query(
+                "INSERT IGNORE INTO {$knowledge}
+                (id,term_id,lesson,knowledge_type,concept,summary,facts_json,tags_json,source_ids_json,confidence,status,created_at,updated_at)
+                SELECT id,term_id,lesson,knowledge_type,concept,summary,facts_json,tags_json,source_ids_json,confidence,status,created_at,updated_at
+                FROM {$legacy_knowledge}"
+            );
+        }
+
+        $option_map = array(
+            'seo_investigador_state_v1' => 'seo_ingeniero_state_v1',
+            'seo_investigador_category_state_v1' => 'seo_ingeniero_category_state_v1',
+            'seo_investigador_settings' => 'seo_ingeniero_settings',
+            'seo_investigador_serpapi_usage_v1' => 'seo_ingeniero_serpapi_usage_v1',
+        );
+        foreach ($option_map as $old => $new) {
+            if (false === get_option($new, false)) {
+                $value = get_option($old, false);
+                if (false !== $value) {
+                    add_option($new, $value, '', false);
+                }
+            }
+        }
+
+        // Limpia únicamente la cola antigua; las tablas se conservan como
+        // respaldo hasta validar Ingeniero en STAGING.
+        if (function_exists('as_unschedule_all_actions')) {
+            as_unschedule_all_actions('seo_investigador_worker_tick', array(), 'seo-investigador');
+        }
+        wp_clear_scheduled_hook('seo_investigador_worker_tick');
     }
 
     public static function upsert_source($data) {
@@ -103,7 +159,7 @@ final class SEO_Investigador_DB {
         $term_id = absint($data['term_id'] ?? 0);
         $lesson = sanitize_key((string) ($data['lesson'] ?? 'l1_technical'));
         if (!$term_id || $url === '') {
-            return new WP_Error('investigador_source_invalid', 'La fuente no tiene categoría o URL válida.');
+            return new WP_Error('ingeniero_source_invalid', 'La fuente no tiene categoría o URL válida.');
         }
 
         $url_hash = hash('sha256', strtolower($url));
@@ -134,12 +190,12 @@ final class SEO_Investigador_DB {
 
         if ($existing) {
             $ok = $wpdb->update($table, $row, array('id'=>$existing));
-            return false === $ok ? new WP_Error('investigador_source_update', $wpdb->last_error ?: 'No se pudo actualizar la fuente.') : $existing;
+            return false === $ok ? new WP_Error('ingeniero_source_update', $wpdb->last_error ?: 'No se pudo actualizar la fuente.') : $existing;
         }
 
         $row['created_at'] = gmdate('Y-m-d H:i:s');
         $ok = $wpdb->insert($table, $row);
-        return false === $ok ? new WP_Error('investigador_source_insert', $wpdb->last_error ?: 'No se pudo guardar la fuente.') : absint($wpdb->insert_id);
+        return false === $ok ? new WP_Error('ingeniero_source_insert', $wpdb->last_error ?: 'No se pudo guardar la fuente.') : absint($wpdb->insert_id);
     }
 
     public static function upsert_knowledge($data) {
@@ -149,7 +205,7 @@ final class SEO_Investigador_DB {
         $lesson = sanitize_key((string) ($data['lesson'] ?? 'l1_technical'));
         $type = sanitize_key((string) ($data['knowledge_type'] ?? ''));
         if (!$term_id || !$type) {
-            return new WP_Error('investigador_knowledge_invalid', 'El conocimiento no tiene categoría o tipo válido.');
+            return new WP_Error('ingeniero_knowledge_invalid', 'El conocimiento no tiene categoría o tipo válido.');
         }
 
         $existing = absint($wpdb->get_var($wpdb->prepare(
@@ -175,12 +231,12 @@ final class SEO_Investigador_DB {
 
         if ($existing) {
             $ok = $wpdb->update($table, $row, array('id'=>$existing));
-            return false === $ok ? new WP_Error('investigador_knowledge_update', $wpdb->last_error ?: 'No se pudo actualizar el conocimiento.') : $existing;
+            return false === $ok ? new WP_Error('ingeniero_knowledge_update', $wpdb->last_error ?: 'No se pudo actualizar el conocimiento.') : $existing;
         }
 
         $row['created_at'] = gmdate('Y-m-d H:i:s');
         $ok = $wpdb->insert($table, $row);
-        return false === $ok ? new WP_Error('investigador_knowledge_insert', $wpdb->last_error ?: 'No se pudo guardar el conocimiento.') : absint($wpdb->insert_id);
+        return false === $ok ? new WP_Error('ingeniero_knowledge_insert', $wpdb->last_error ?: 'No se pudo guardar el conocimiento.') : absint($wpdb->insert_id);
     }
 
     public static function sources_for_category($term_id, $lesson = 'l1_technical') {
@@ -220,14 +276,14 @@ final class SEO_Investigador_DB {
         $allowed = array('active','review','rejected');
         $status = sanitize_key((string) $status);
         if (!in_array($status, $allowed, true)) {
-            return new WP_Error('investigador_review_status', 'Estado de revisión no válido.');
+            return new WP_Error('ingeniero_review_status', 'Estado de revisión no válido.');
         }
         $ok = $wpdb->update(
             self::table('knowledge'),
             array('status'=>$status,'updated_at'=>gmdate('Y-m-d H:i:s')),
             array('id'=>absint($id))
         );
-        return false === $ok ? new WP_Error('investigador_review_update', $wpdb->last_error ?: 'No se pudo guardar la revisión.') : true;
+        return false === $ok ? new WP_Error('ingeniero_review_update', $wpdb->last_error ?: 'No se pudo guardar la revisión.') : true;
     }
 
     public static function supersede_category($term_id, $lesson = 'l1_technical') {
@@ -312,7 +368,7 @@ final class SEO_Investigador_DB {
         unset($row);
 
         return array(
-            'schema' => array('name'=>'seo_investigador','version'=>self::DB_VERSION),
+            'schema' => array('name'=>'seo_ingeniero','version'=>self::DB_VERSION),
             'generated_at_gmt' => gmdate('Y-m-d H:i:s'),
             'term_id' => $term_id,
             'sources' => $src,

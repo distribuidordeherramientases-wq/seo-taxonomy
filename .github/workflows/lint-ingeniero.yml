@@ -1,11 +1,11 @@
-name: Lint Investigador
+name: Lint Ingeniero
 
 on:
   pull_request:
     branches:
       - staging
     paths:
-      - 'includes/dependiente/investigador/**'
+      - 'includes/dependiente/ingeniero/**'
       - 'includes/dependiente/seo-dependiente-admin.php'
       - 'includes/dependiente/seo-dependiente-bootstrap.php'
       - 'includes/seo-process-supervisor.php'
@@ -13,7 +13,7 @@ on:
     branches:
       - staging
     paths:
-      - 'includes/dependiente/investigador/**'
+      - 'includes/dependiente/ingeniero/**'
       - 'includes/dependiente/seo-dependiente-admin.php'
       - 'includes/dependiente/seo-dependiente-bootstrap.php'
       - 'includes/seo-process-supervisor.php'
@@ -27,7 +27,7 @@ jobs:
       - name: PHP syntax
         run: |
           php -v
-          find includes/dependiente/investigador -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          find includes/dependiente/ingeniero -type f -name '*.php' -print0 | xargs -0 -n1 php -l
           php -l includes/dependiente/seo-dependiente-admin.php
           php -l includes/dependiente/seo-dependiente-bootstrap.php
           php -l includes/seo-process-supervisor.php
