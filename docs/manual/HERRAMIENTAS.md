@@ -166,3 +166,5 @@ Checkboxes: **Incluir Soluciones**, **Incluir Blog**, **Incluir Dependiente**.
 Acciones principales: **Previsualizar menú**, **Sincronizar menú creado**, **Activar menú SEO**, **Restaurar menú anterior**.
 
 Para añadir elementos hay paneles de Páginas, Entradas, Categorías y Enlaces personalizados con Más reciente / Ver todo / Buscar, checkboxes y botones de añadir. En enlaces personalizados se introducen URL y Texto del enlace.
+
+- **Comentarista**: gestiona evidencias externas, comentarios, vídeos, publicaciones sociales y enlaces asociados a productos.
