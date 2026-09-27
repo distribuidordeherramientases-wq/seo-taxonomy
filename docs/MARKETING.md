@@ -375,4 +375,4 @@ Las publicaciones de campaña guardan también `campaign_id`, por lo que el info
 
 `Campaña → publicación → visita → pedido`.
 
-La franja pública usa `seo_campaign_ref` firmado y añade parámetros UTM. Sus clics se cuentan en la propia fila campaña-producto sin importar ninguna información personal.
+La franja pública usa `seo_campaign_ref` firmado. No añade parámetros UTM a enlaces internos para no alterar la atribución de Google Analytics. Sus clics se cuentan en la propia fila campaña-producto sin importar información personal.
