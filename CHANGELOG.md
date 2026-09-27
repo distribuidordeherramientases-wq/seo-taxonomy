@@ -4,6 +4,10 @@
 
 Los cambios validados en `staging` que todavía no formen parte de una publicación de producción se documentan aquí. Al cerrar una release semanal, estas entradas se trasladan a la versión fechada correspondiente.
 
+### Administración y navegación
+
+- Añadida la nueva sección **Contenidos** en el menú principal de SEO Taxonomy, que agrupa Productos, Categorías, Páginas, Entradas e Imágenes en una pantalla de accesos directos. Las rutas internas existentes se conservan para mantener compatibilidad con enlaces, formularios y redirecciones.
+
 ### Marketing y campañas
 
 - Añadida pestaña **Informes** de Marketing con dos vistas: **Campañas** y **Redes sociales**. Mide visitas firmadas, interacciones, pedidos atribuidos, facturación atribuida, conversión y ventas observadas durante campañas.
