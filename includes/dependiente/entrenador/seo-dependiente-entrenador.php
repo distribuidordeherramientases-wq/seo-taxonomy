@@ -3362,6 +3362,7 @@ final class SEO_Dependiente_Entrenador {
         $prepared = in_array($status, array('prepared', 'in_progress'), true);
         $needs_training = 'needs_training' === $status;
         $quality_gate = self::lesson_quality_gate($lesson);
+        $l10_waiting_interpreter = 'v2_l10_consolidation_debt' === $lesson_key && !self::interpreter_l9_completed();
         ?>
         <section class="postbox seo-dependiente-admin__box seo-dependiente-trainer__current">
             <div class="seo-dependiente-trainer__section-head">
@@ -3375,8 +3376,10 @@ final class SEO_Dependiente_Entrenador {
                         <?php echo $preparing ? 'Continuar preparación' : ($needs_training ? 'Repreparar lección' : 'Preparar lección'); ?>
                     </button>
                 <?php elseif ($prepared && $next_module > 0) : ?>
-                    <button type="button" class="button button-primary button-hero" data-trainer-run-module <?php disabled($auto_running); ?>>
-                        <?php echo esc_html(self::module_has_answers($lesson_key, $next_module) ? 'Continuar módulo ' . $next_module : 'Comenzar módulo ' . $next_module); ?>
+                    <button type="button" class="button button-primary button-hero" data-trainer-run-module <?php disabled($auto_running || $l10_waiting_interpreter); ?>>
+                        <?php echo esc_html($l10_waiting_interpreter
+                            ? 'Esperando Intérprete L9'
+                            : (self::module_has_answers($lesson_key, $next_module) ? 'Continuar módulo ' . $next_module : 'Comenzar módulo ' . $next_module)); ?>
                     </button>
                 <?php endif; ?>
             </div>
@@ -3386,6 +3389,13 @@ final class SEO_Dependiente_Entrenador {
                 $total = absint($lesson['prepare_total'] ?? 0);
                 self::render_progress_bar($done, $total, 'Preparando temario');
             endif; ?>
+
+            <?php if ($l10_waiting_interpreter) : ?>
+                <div class="notice notice-warning inline"><p>
+                    <strong>L10 detenida temporalmente.</strong>
+                    Se conserva todo el progreso ya realizado. Primero debe completarse L9 del Intérprete; después podrás continuar exactamente desde el módulo y pregunta pendientes.
+                </p></div>
+            <?php endif; ?>
 
             <?php if ($needs_training) : ?>
                 <div class="notice notice-error inline"><p>
