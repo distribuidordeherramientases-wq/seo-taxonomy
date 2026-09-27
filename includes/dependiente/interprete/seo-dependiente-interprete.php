@@ -200,7 +200,6 @@ final class SEO_Dependiente_Interprete {
                 $ling_current = isset($linguista['current']) && is_array($linguista['current']) ? $linguista['current'] : array();
                 $ling_rows = isset($linguista['lesson_statuses']) && is_array($linguista['lesson_statuses']) ? $linguista['lesson_statuses'] : array();
                 $ling_progress = absint($linguista['progress'] ?? 0);
-                $l9_diag = isset($linguista['l9_diagnostics']) && is_array($linguista['l9_diagnostics']) ? $linguista['l9_diagnostics'] : array();
                 $ling_status = sanitize_key((string) ($ling_state['status'] ?? 'stopped'));
                 $ling_running = !empty($linguista['running']);
                 $status_labels = array(
@@ -210,7 +209,10 @@ final class SEO_Dependiente_Interprete {
                     'error' => 'Error',
                     'completed' => 'Curso completado',
                 );
-                $status_label = $status_labels[$ling_status] ?? $ling_status;
+                $ling_has_started = !empty($ling_state['run_id']) && !empty($ling_state['current_lesson']);
+                $status_label = ('stopped' === $ling_status && $ling_has_started)
+                    ? 'Detenido'
+                    : ($status_labels[$ling_status] ?? $ling_status);
             ?>
                 <p>
                     Estado: <strong><?php echo esc_html($status_label); ?></strong>
@@ -228,94 +230,6 @@ final class SEO_Dependiente_Interprete {
                 <?php if (!empty($ling_state['last_message'])) : ?>
                     <p class="description"><?php echo esc_html((string) $ling_state['last_message']); ?></p>
                 <?php endif; ?>
-
-                <?php if ($l9_diag) :
-                    $l9_review = isset($l9_diag['review']) && is_array($l9_diag['review']) ? $l9_diag['review'] : array();
-                    $l9_learning = isset($l9_diag['learning']) && is_array($l9_diag['learning']) ? $l9_diag['learning'] : array();
-                    $l9_regression = isset($l9_diag['regression']) && is_array($l9_diag['regression']) ? $l9_diag['regression'] : array();
-                    $l9_recent = isset($l9_diag['recent']) && is_array($l9_diag['recent']) ? array_reverse($l9_diag['recent']) : array();
-                ?>
-                    <div style="margin:16px 0;padding:16px;border:1px solid #c3c4c7;border-left:4px solid #2271b1;background:#fff;">
-                        <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;">
-                            <div>
-                                <h3 style="margin:0 0 5px;">L9 · Diagnóstico en vivo</h3>
-                                <p class="description" style="margin:0;">Fase actual: <strong><?php echo esc_html((string) ($l9_diag['phase_label'] ?? '')); ?></strong>. Este panel observa L9 sin cambiar sus criterios de aprendizaje.</p>
-                            </div>
-                            <a class="button button-small" href="<?php echo esc_url(SEO_Dependiente_Linguista::export_url('l9_status')); ?>">Descargar estado L9 JSON</a>
-                        </div>
-
-                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-top:14px;">
-                            <div style="padding:12px;border:1px solid #dcdcde;border-radius:6px;background:#f6f7f7;">
-                                <strong>Repaso L8</strong><br>
-                                <span><?php echo esc_html(number_format_i18n(absint($l9_review['total'] ?? 0))); ?> revisadas</span><br>
-                                <span><?php echo esc_html(number_format_i18n(absint($l9_review['pass'] ?? 0))); ?> utilizables · <?php echo esc_html(number_format_i18n(absint($l9_review['fail'] ?? 0))); ?> en deuda</span><br>
-                                <small><?php echo esc_html(number_format_i18n((float) ($l9_review['rate_percent'] ?? 0), 2)); ?>% válidas</small>
-                            </div>
-                            <div style="padding:12px;border:1px solid #dcdcde;border-radius:6px;background:#f6f7f7;">
-                                <strong>Aprendizaje Dependiente</strong><br>
-                                <span><?php echo esc_html(number_format_i18n(absint($l9_learning['debt_seen'] ?? 0))); ?> consultas revisadas</span><br>
-                                <span><?php echo esc_html(number_format_i18n(absint($l9_learning['semantic_pass'] ?? 0))); ?> semántica conservada · <?php echo esc_html(number_format_i18n(absint($l9_learning['semantic_fail'] ?? 0))); ?> perdida</span><br>
-                                <small><?php echo esc_html(number_format_i18n(absint($l9_learning['noise_evidence'] ?? 0))); ?> evidencias · <?php echo esc_html(number_format_i18n(absint($l9_learning['noise_promoted'] ?? 0))); ?> patrones consolidados</small>
-                            </div>
-                            <div style="padding:12px;border:1px solid #dcdcde;border-radius:6px;background:#f6f7f7;">
-                                <strong>Regresión final</strong><br>
-                                <span><?php echo esc_html(number_format_i18n(absint($l9_regression['pass'] ?? 0))); ?> correctas · <?php echo esc_html(number_format_i18n(absint($l9_regression['fail'] ?? 0))); ?> en deuda</span><br>
-                                <small><?php echo absint($l9_regression['total'] ?? 0) > 0 ? esc_html(number_format_i18n((float) ($l9_regression['rate_percent'] ?? 0), 2)) . '% válida' : 'Pendiente'; ?></small>
-                            </div>
-                        </div>
-
-                        <details style="margin-top:14px;" <?php echo $l9_recent ? 'open' : ''; ?>>
-                            <summary style="cursor:pointer;font-weight:600;">Últimos casos de L9 (máximo 30)</summary>
-                            <?php if (!$l9_recent) : ?>
-                                <p class="description">Todavía no hay casos de diagnóstico guardados para esta ejecución.</p>
-                            <?php else : ?>
-                                <div style="overflow:auto;margin-top:10px;">
-                                    <table class="widefat striped" style="min-width:1000px;">
-                                        <thead><tr><th>Fase</th><th>Consulta</th><th>Esperado</th><th>Interpretado</th><th>Resultado</th><th>Ruido / residuales</th></tr></thead>
-                                        <tbody>
-                                        <?php foreach ($l9_recent as $diag) :
-                                            $diag_ok = !empty($diag['semantic_ok']);
-                                            $diag_noise = array_values(array_filter(array_map('strval', (array) ($diag['noise'] ?? array()))));
-                                            $diag_residual = array_values(array_filter(array_map('strval', (array) ($diag['residual'] ?? array()))));
-                                            $diag_details = isset($diag['details']) && is_array($diag['details']) ? $diag['details'] : array();
-                                        ?>
-                                            <tr>
-                                                <td><code><?php echo esc_html((string) ($diag['phase'] ?? '')); ?></code></td>
-                                                <td><?php echo esc_html((string) ($diag['question'] ?? '')); ?></td>
-                                                <td><?php echo esc_html((string) ($diag['expected'] ?? '')); ?></td>
-                                                <td><?php echo esc_html((string) ($diag['interpreted'] ?? '')); ?></td>
-                                                <td>
-                                                    <strong style="color:<?php echo $diag_ok ? '#176b2c' : '#b32d2e'; ?>;"><?php echo esc_html((string) ($diag['decision'] ?? ($diag_ok ? 'Correcta' : 'En deuda'))); ?></strong>
-                                                    <?php if ($diag_details) : ?>
-                                                        <br><small>
-                                                        <?php
-                                                        $detail_bits = array();
-                                                        foreach (array_slice($diag_details, 0, 6) as $detail) {
-                                                            if (!is_array($detail)) {
-                                                                continue;
-                                                            }
-                                                            $detail_bits[] = trim((string) ($detail['term'] ?? '')) . ' [' . absint($detail['evidence_count'] ?? 0) . '/3' . (!empty($detail['promoted']) ? ' · consolidado' : '') . ']';
-                                                        }
-                                                        echo esc_html(implode(' · ', array_filter($detail_bits)));
-                                                        ?>
-                                                        </small>
-                                                    <?php endif; ?>
-                                                </td>
-                                                <td>
-                                                    <?php if ($diag_noise) : ?><small><strong>Ruido:</strong> <?php echo esc_html(implode(', ', $diag_noise)); ?></small><?php endif; ?>
-                                                    <?php if ($diag_residual) : ?><br><small><strong>Residual:</strong> <?php echo esc_html(implode(', ', $diag_residual)); ?></small><?php endif; ?>
-                                                    <?php if (!$diag_noise && !$diag_residual) : ?>—<?php endif; ?>
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            <?php endif; ?>
-                        </details>
-                    </div>
-                <?php endif; ?>
-
                 <?php if (!empty($ling_state['last_error'])) : ?>
                     <div class="notice notice-error inline"><p><?php echo esc_html((string) $ling_state['last_error']); ?></p></div>
                 <?php endif; ?>
@@ -328,7 +242,26 @@ final class SEO_Dependiente_Interprete {
                             <?php wp_nonce_field('seo_dependiente_linguista_control'); ?>
                             <button type="submit" class="button">Pausar formación</button>
                         </form>
+                        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" onsubmit="return confirm('¿Detener la formación del Intérprete? Se conservará el progreso actual y no se procesarán más lotes hasta reanudar.');">
+                            <input type="hidden" name="action" value="seo_dependiente_linguista_control">
+                            <input type="hidden" name="command" value="stop">
+                            <?php wp_nonce_field('seo_dependiente_linguista_control'); ?>
+                            <button type="submit" class="button">Detener formación</button>
+                        </form>
                     <?php elseif (in_array($ling_status, array('paused','error'), true)) : ?>
+                        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                            <input type="hidden" name="action" value="seo_dependiente_linguista_control">
+                            <input type="hidden" name="command" value="resume">
+                            <?php wp_nonce_field('seo_dependiente_linguista_control'); ?>
+                            <button type="submit" class="button button-primary">Reanudar formación</button>
+                        </form>
+                        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" onsubmit="return confirm('¿Detener la formación del Intérprete? Se conservará el progreso actual.');">
+                            <input type="hidden" name="action" value="seo_dependiente_linguista_control">
+                            <input type="hidden" name="command" value="stop">
+                            <?php wp_nonce_field('seo_dependiente_linguista_control'); ?>
+                            <button type="submit" class="button">Detener formación</button>
+                        </form>
+                    <?php elseif ('stopped' === $ling_status && $ling_has_started) : ?>
                         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
                             <input type="hidden" name="action" value="seo_dependiente_linguista_control">
                             <input type="hidden" name="command" value="resume">
@@ -359,7 +292,7 @@ final class SEO_Dependiente_Interprete {
                     <tbody>
                     <?php foreach ($ling_rows as $row) :
                         $row_status = sanitize_key((string) ($row['status'] ?? 'pending'));
-                        $row_labels = array('completed'=>'Completada','running'=>'En curso','paused'=>'Pausada','error'=>'Error','pending'=>'Pendiente','locked'=>'Bloqueada');
+                        $row_labels = array('completed'=>'Completada','running'=>'En curso','paused'=>'Pausada','stopped'=>'Detenida','error'=>'Error','pending'=>'Pendiente','locked'=>'Bloqueada');
                     ?>
                         <tr>
                             <td><strong>L<?php echo esc_html((string) absint($row['order'] ?? 0)); ?> · <?php echo esc_html((string) ($row['title'] ?? '')); ?></strong><br><small><?php echo esc_html((string) ($row['goal'] ?? '')); ?></small></td>
@@ -371,13 +304,13 @@ final class SEO_Dependiente_Interprete {
                                     <?php if ('completed' === $row_status) : ?>
                                         <a class="button button-small" href="<?php echo esc_url(SEO_Dependiente_Linguista::export_url('lesson', (string) ($row['key'] ?? ''))); ?>">Descargar JSON</a>
                                     <?php endif; ?>
-                                    <?php if (!$ling_running && in_array($row_status, array('completed','paused','error','pending'), true)) : ?>
-                                        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" onsubmit="return confirm('<?php echo 'pending' === $row_status ? '¿Iniciar esta lección conservando todo lo aprendido anteriormente?' : '¿Reentrenar desde esta lección? Los resultados posteriores se invalidarán, pero no se borrará la memoria lingüística ya aprendida.'; ?>');" style="margin:0;">
+                                    <?php if (!$ling_running && in_array($row_status, array('completed','paused','error'), true)) : ?>
+                                        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" onsubmit="return confirm('¿Reentrenar desde esta lección? Los resultados posteriores se invalidarán, pero no se borrará la memoria lingüística ya aprendida.');" style="margin:0;">
                                             <input type="hidden" name="action" value="seo_dependiente_linguista_control">
                                             <input type="hidden" name="command" value="retrain_from">
                                             <input type="hidden" name="lesson_key" value="<?php echo esc_attr((string) ($row['key'] ?? '')); ?>">
                                             <?php wp_nonce_field('seo_dependiente_linguista_control'); ?>
-                                            <button type="submit" class="button button-small"><?php echo 'pending' === $row_status ? 'Iniciar esta lección' : 'Reentrenar desde aquí'; ?></button>
+                                            <button type="submit" class="button button-small">Reentrenar desde aquí</button>
                                         </form>
                                     <?php elseif ('completed' !== $row_status) : ?>—<?php endif; ?>
                                 </div>
@@ -387,7 +320,7 @@ final class SEO_Dependiente_Interprete {
                     </tbody>
                 </table>
 
-                <p class="description" style="margin-top:14px;"><strong>Informes:</strong> al completar cada lección queda disponible su JSON con métricas y fotografía de memoria antes/después. Al terminar L9 aparece además el JSON de evolución completa L1 → L9, incluyendo el puente lingüístico con la deuda de Dependiente.</p>
+                <p class="description" style="margin-top:14px;"><strong>Informes:</strong> al completar cada lección queda disponible su JSON con métricas y fotografía de memoria antes/después. Al terminar L8 aparece además el JSON de evolución completa L1 → L8.</p>
                 <p class="description"><strong>Worker:</strong> Lingüista solo empieza cuando lo arrancas aquí. Después el gestor le concede ventanas de trabajo y procesa lotes pequeños/adaptativos; nunca lanza toda una lección de golpe.</p>
             <?php endif; ?>
             <p class="description"><strong>Contrato:</strong> filtra lenguaje y usa solo memoria lingüística validada para identificar acción y vocabulario canónico. No busca productos, no consulta facetas, no aplica filtros y no pregunta al cliente.</p>
