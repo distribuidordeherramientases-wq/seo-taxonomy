@@ -170,7 +170,7 @@ function seo_social_campaign_tracking_url($product_id, $provider, $publication_i
  * @param string $template
  * @return int|WP_Error
  */
-function seo_social_campaign_create_pending_publication($product_id, $provider, $template)
+function seo_social_campaign_create_pending_publication($product_id, $provider, $template, $campaign_id = 0)
 {
     global $wpdb;
     $post = get_post(absint($product_id));
@@ -194,9 +194,31 @@ function seo_social_campaign_create_pending_publication($product_id, $provider, 
         array('%d', '%s', '%s', '%s', '%s', '%s', '%s')
     );
 
-    return false === $inserted
-        ? new WP_Error('campaign_publication_insert_failed', 'No se pudo registrar la publicacion de campaña.')
-        : (int) $wpdb->insert_id;
+    if (false === $inserted) {
+        return new WP_Error('campaign_publication_insert_failed', 'No se pudo registrar la publicacion de campaña.');
+    }
+
+    $publication_id = (int) $wpdb->insert_id;
+    $campaign_id = absint($campaign_id);
+    if ($campaign_id > 0) {
+        $column = $wpdb->get_var(
+            $wpdb->prepare(
+                "SHOW COLUMNS FROM {$table} LIKE %s",
+                'campaign_id'
+            )
+        );
+        if ($column) {
+            $wpdb->update(
+                $table,
+                array('campaign_id' => $campaign_id),
+                array('id' => $publication_id),
+                array('%d'),
+                array('%d')
+            );
+        }
+    }
+
+    return $publication_id;
 }
 
 /**
@@ -257,7 +279,7 @@ function seo_social_campaign_publish_product($campaign_id, $product_id, $provide
     }
 
     $template = seo_social_campaign_template($provider);
-    $publication_id = seo_social_campaign_create_pending_publication($product_id, $provider, $template);
+    $publication_id = seo_social_campaign_create_pending_publication($product_id, $provider, $template, $campaign_id);
     if (is_wp_error($publication_id)) {
         return $publication_id;
     }
