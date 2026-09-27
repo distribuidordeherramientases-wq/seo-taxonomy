@@ -70,7 +70,7 @@ final class SEO_Ingeniero_Process {
             $processed_now++;
             if (is_wp_error($result)) {
                 $errors_now++;
-                $blocking_error = in_array($result->get_error_code(), array('ingeniero_budget','ingeniero_serpapi_key','ingeniero_serpapi_api'), true);
+                $blocking_error = in_array($result->get_error_code(), array('ingeniero_budget','ingeniero_serpapi_key','ingeniero_serpapi_api','ingeniero_serpapi_rate_limit'), true);
                 SEO_Ingeniero::set_category_state($term_id, 'error', array(
                     'last_error'=>$result->get_error_message(),
                 ));
@@ -82,7 +82,7 @@ final class SEO_Ingeniero_Process {
                         'status'=>'stopped',
                         'errors'=>absint($state['errors'] ?? 0)+1,
                         'last_error'=>$result->get_error_message(),
-                        'last_message'=>'Investigación pausada por configuración/cuota externa. Corrige la conexión y pulsa Iniciar/continuar.',
+                        'last_message'=>'Investigación pausada por límite/cuota de SerpApi. No se avanzará a la siguiente categoría hasta reanudar.',
                         'last_activity_at'=>time(),
                     ));
                     break;
