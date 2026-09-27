@@ -14,3 +14,5 @@
 .seo-auditor__score.is-debil{color:#b32d2e}
 .seo-auditor__score.is-no_aplica{color:#646970}
 @media(max-width:782px){.seo-auditor__quality-filter .button{flex:1 1 auto;text-align:center}}
+
+.seo-auditor__quality{margin-top:18px}.seo-auditor__quality-filter{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:10px 0 14px}.seo-auditor__quality-table-wrap{overflow-x:auto}.seo-auditor__quality-table th,.seo-auditor__quality-table td{vertical-align:top}.seo-auditor__quality-table th:nth-child(n+3):nth-child(-n+7),.seo-auditor__quality-table td:nth-child(n+3):nth-child(-n+7){white-space:nowrap;text-align:center}.seo-auditor__score{display:inline-block;min-width:58px;padding:4px 7px;border-radius:12px;border:1px solid currentColor;font-weight:700;text-align:center}.seo-auditor__score.is-fuerte{color:#1d6f42}.seo-auditor__score.is-correcta{color:#2271b1}.seo-auditor__score.is-mejorable{color:#8a5a00}.seo-auditor__score.is-debil{color:#b32d2e}.seo-auditor__score.is-no_aplica{color:#646970}
