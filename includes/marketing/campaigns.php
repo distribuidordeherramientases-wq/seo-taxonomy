@@ -498,6 +498,7 @@ function seo_marketing_campaigns_get_public_active()
         $wpdb->prepare(
             "SELECT
                 c.id AS campaign_id,
+                c.campaign_key,
                 c.series_key,
                 c.name,
                 c.edition_label,
@@ -543,6 +544,7 @@ function seo_marketing_campaigns_get_public_active()
             $grouped[$campaign_id] = array(
                 'campaign' => (object) array(
                     'id'            => $campaign_id,
+                    'campaign_key'  => sanitize_title((string) $row->campaign_key),
                     'series_key'    => sanitize_key((string) $row->series_key),
                     'name'          => (string) $row->name,
                     'edition_label'           => (string) $row->edition_label,
