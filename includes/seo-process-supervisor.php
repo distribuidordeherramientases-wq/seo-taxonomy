@@ -41,7 +41,7 @@ if (!function_exists('seo_process_supervisor_defaults')) {
             'commercial_feeds'   => 1,
             'supplier_imports'   => 1,
             'academy'            => 1,
-            'investigador'       => 1,
+            'ingeniero'       => 1,
             'linguista'          => 1,
             'classifier'         => 1,
             'clonador'           => 1,
@@ -63,7 +63,7 @@ if (!function_exists('seo_process_supervisor_sanitize_settings')) {
             'commercial_feeds' => empty($raw['commercial_feeds']) ? 0 : 1,
             'supplier_imports' => empty($raw['supplier_imports']) ? 0 : 1,
             'academy'          => empty($raw['academy']) ? 0 : 1,
-            'investigador'     => empty($raw['investigador']) ? 0 : 1,
+            'ingeniero'     => empty($raw['ingeniero']) ? 0 : 1,
             'linguista'        => empty($raw['linguista']) ? 0 : 1,
             'classifier'       => empty($raw['classifier']) ? 0 : 1,
             'clonador'         => empty($raw['clonador']) ? 0 : 1,
@@ -1806,7 +1806,7 @@ if (!function_exists('seo_process_supervisor_render_page')) {
                     <label><input type="checkbox" name="supervisor[commercial_feeds]" value="1" <?php checked(!empty($settings['commercial_feeds'])); ?>> Gestionar <strong>Inventarios comerciales</strong><small>Genera los feeds por ventanas y regula automáticamente el tamaño de lote.</small></label>
                     <label><input type="checkbox" name="supervisor[supplier_imports]" value="1" <?php checked(!empty($settings['supplier_imports'])); ?>> Gestionar <strong>Importación proveedores</strong><small>Descargas por lotes, checkpoints y pausas adaptativas de proveedores iniciados manualmente.</small></label>
                     <label><input type="checkbox" name="supervisor[academy]" value="1" <?php checked(!empty($settings['academy'])); ?>> Gestionar <strong>Academia</strong><small>Solo después de que tú la hayas arrancado.</small></label>
-                    <label><input type="checkbox" name="supervisor[investigador]" value="1" <?php checked(!empty($settings['investigador'])); ?>> Gestionar <strong>Investigador</strong><small>Investigación técnica externa por categorías. Solo trabaja después de un arranque manual.</small></label>
+                    <label><input type="checkbox" name="supervisor[ingeniero]" value="1" <?php checked(!empty($settings['ingeniero'])); ?>> Gestionar <strong>Ingeniero</strong><small>Conocimiento técnico externo por categorías. Solo trabaja después de un arranque manual.</small></label>
                     <label><input type="checkbox" name="supervisor[linguista]" value="1" <?php checked(!empty($settings['linguista'])); ?>> Gestionar <strong>Lingüista</strong><small>Formación del Intérprete. Solo procesa ventanas después de un arranque o reanudación manual.</small></label>
                     <label><input type="checkbox" name="supervisor[classifier]" value="1" <?php checked(!empty($settings['classifier'])); ?>> Gestionar <strong>Clasificador</strong><small>Solo jobs iniciados o reanudados manualmente.</small></label>
                     <label><input type="checkbox" name="supervisor[clonador]" value="1" <?php checked(!empty($settings['clonador'])); ?>> Gestionar <strong>Clonador para Academia</strong><small>Nunca lo inicia. Solo ejecuta lotes cuando tú lo has arrancado manualmente.</small></label>
