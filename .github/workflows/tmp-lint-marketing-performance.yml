@@ -1,0 +1,21 @@
+name: Temporal lint marketing performance reports
+
+on:
+  push:
+    branches:
+      - feature/marketing-performance-reports
+
+jobs:
+  php-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP syntax
+        run: |
+          php -l includes/marketing/performance-reports.php
+          php -l includes/marketing/seo-marketing.php
+          php -l includes/marketing/campaigns.php
+          php -l includes/social-network/core.php
+          php -l includes/social-network/campaigns.php
+          php -l seo-system/templates/template-campaign-desktop.php
+          php -l seo-system/templates/template-campaign-mobile.php
