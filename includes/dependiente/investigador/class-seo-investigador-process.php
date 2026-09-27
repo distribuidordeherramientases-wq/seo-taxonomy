@@ -2,6 +2,7 @@
 defined('ABSPATH') || exit;
 
 final class SEO_Investigador_Process {
+    const LOCK_OPTION = 'seo_investigador_process_lock';
     public static function init() {
         add_filter('seo_process_supervisor_has_pending_work', array(__CLASS__, 'filter_pending_work'), 30, 1);
         add_filter('seo_process_supervisor_manager_targets', array(__CLASS__, 'filter_manager_targets'), 30, 3);
@@ -35,6 +36,7 @@ final class SEO_Investigador_Process {
 
     public static function process_slice($budget = 20, $source = 'process_manager') {
         if (!SEO_Investigador::is_pending()) return false;
+        if (!self::acquire_lock()) return false;
 
         $budget = max(5, min(55, absint($budget)));
         $started = microtime(true);
@@ -67,9 +69,24 @@ final class SEO_Investigador_Process {
             $processed_now++;
             if (is_wp_error($result)) {
                 $errors_now++;
+                $blocking_error = in_array($result->get_error_code(), array('investigador_budget','investigador_serpapi_key','investigador_serpapi_api'), true);
                 SEO_Investigador::set_category_state($term_id, 'error', array(
                     'last_error'=>$result->get_error_message(),
                 ));
+
+                if ($blocking_error) {
+                    // No avanzar cursor: tras corregir cuota/configuración se reintenta la misma categoría.
+                    SEO_Investigador::save_state(array(
+                        'enabled'=>0,
+                        'status'=>'stopped',
+                        'errors'=>absint($state['errors'] ?? 0)+1,
+                        'last_error'=>$result->get_error_message(),
+                        'last_message'=>'Investigación pausada por configuración/cuota externa. Corrige la conexión y pulsa Iniciar/continuar.',
+                        'last_activity_at'=>time(),
+                    ));
+                    break;
+                }
+
                 SEO_Investigador::save_state(array(
                     'cursor'=>$cursor+1,
                     'processed'=>absint($state['processed'] ?? 0)+1,
@@ -78,16 +95,6 @@ final class SEO_Investigador_Process {
                     'last_message'=>'Error en ' . $label . ': ' . $result->get_error_message(),
                     'last_activity_at'=>time(),
                 ));
-
-                // Cuota/API: no quemar el resto de la cola. Se pausa conservando cursor.
-                if (in_array($result->get_error_code(), array('investigador_budget','investigador_serpapi_key','investigador_serpapi_api'), true)) {
-                    SEO_Investigador::save_state(array(
-                        'enabled'=>0,
-                        'status'=>'stopped',
-                        'last_message'=>'Investigación pausada por configuración/cuota externa. Corrige la conexión y pulsa Iniciar/continuar.',
-                    ));
-                    break;
-                }
                 continue;
             }
 
@@ -155,7 +162,21 @@ final class SEO_Investigador_Process {
             ));
         }
 
+        self::release_lock();
         return $processed_now > 0;
+    }
+
+    private static function acquire_lock() {
+        $lock = get_option(self::LOCK_OPTION, array());
+        if (is_array($lock) && !empty($lock)) {
+            $at = absint($lock['at'] ?? 0);
+            if ($at && (time()-$at) > 120) delete_option(self::LOCK_OPTION);
+        }
+        return add_option(self::LOCK_OPTION, array('at'=>time(),'token'=>wp_generate_password(10,false,false)), '', false);
+    }
+
+    private static function release_lock() {
+        delete_option(self::LOCK_OPTION);
     }
 
     public static function filter_monitor_items($items) {
