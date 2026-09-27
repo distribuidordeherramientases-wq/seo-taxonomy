@@ -118,9 +118,23 @@ final class SEO_Ingeniero_SerpApi_Provider implements SEO_Ingeniero_Search_Provi
 
         if (is_wp_error($response)) return $response;
         $code = absint(wp_remote_retrieve_response_code($response));
-        $body = json_decode(wp_remote_retrieve_body($response), true);
+        $raw_body = (string) wp_remote_retrieve_body($response);
+        $body = json_decode($raw_body, true);
+
+        if (429 === $code) {
+            $message = is_array($body) && !empty($body['error'])
+                ? (is_array($body['error']) ? (string) ($body['error']['message'] ?? 'SerpApi ha limitado las consultas.') : (string) $body['error'])
+                : 'SerpApi ha limitado las consultas o la cuenta se ha quedado sin búsquedas disponibles.';
+            $retry_after = trim((string) wp_remote_retrieve_header($response, 'retry-after'));
+            return new WP_Error(
+                'ingeniero_serpapi_rate_limit',
+                sanitize_text_field($message),
+                array('http_status'=>429,'retry_after'=>$retry_after)
+            );
+        }
+
         if ($code < 200 || $code >= 300 || !is_array($body)) {
-            return new WP_Error('ingeniero_serpapi_http', 'SerpApi devolvió HTTP ' . $code . '.');
+            return new WP_Error('ingeniero_serpapi_http', 'SerpApi devolvió HTTP ' . $code . '.', array('http_status'=>$code));
         }
         if (!empty($body['error'])) {
             $message = is_array($body['error']) ? (string) ($body['error']['message'] ?? 'Error SerpApi') : (string) $body['error'];
