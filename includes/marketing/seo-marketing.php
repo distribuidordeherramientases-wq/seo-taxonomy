@@ -40,6 +40,12 @@ if (is_readable($seo_campaigns_module)) {
 }
 unset($seo_campaigns_module);
 
+$seo_marketing_performance_module = __DIR__ . '/performance-reports.php';
+if (is_readable($seo_marketing_performance_module)) {
+    require_once $seo_marketing_performance_module;
+}
+unset($seo_marketing_performance_module);
+
 if (!defined('SEO_MARKETING_STYLE_OPTION')) {
     define('SEO_MARKETING_STYLE_OPTION', 'seo_marketing_style_settings_v1');
 }
@@ -1664,7 +1670,7 @@ function seo_menu_manager_marketing_page()
         exit;
     }
 
-    $allowed_tabs = array('marketing', 'campaigns', 'identity', 'social', 'sitemaps', 'style');
+    $allowed_tabs = array('marketing', 'campaigns', 'reports', 'identity', 'social', 'sitemaps', 'style');
     $current_tab = $requested_tab;
     if (!in_array($current_tab, $allowed_tabs, true)) {
         $current_tab = 'marketing';
@@ -1688,6 +1694,12 @@ function seo_menu_manager_marketing_page()
             seo_marketing_campaigns_render_tab();
         } else {
             echo '<div class="notice notice-error inline"><p>No se ha podido cargar el modulo <code>marketing/campaigns.php</code>.</p></div>';
+        }
+    } elseif ($current_tab === 'reports') {
+        if (function_exists('seo_marketing_performance_render_tab')) {
+            seo_marketing_performance_render_tab();
+        } else {
+            echo '<div class="notice notice-error inline"><p>No se ha podido cargar el modulo <code>marketing/performance-reports.php</code>.</p></div>';
         }
     } elseif ($current_tab === 'identity') {
         seo_marketing_render_identity_tab();
@@ -1717,6 +1729,7 @@ function seo_marketing_render_tabs($current_tab)
     $tabs = array(
         'marketing' => 'Marketing',
         'campaigns' => 'Campañas',
+        'reports'   => 'Informes',
         'identity'  => 'Identidad / Cabecera',
         'social'    => 'Redes sociales',
         'sitemaps'  => 'Sitemaps',
