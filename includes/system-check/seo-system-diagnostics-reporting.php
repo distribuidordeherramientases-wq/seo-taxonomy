@@ -12,7 +12,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_SYSTEM_DIAGNOSTICS_REPORTING_VERSION')) {
-    define('SEO_SYSTEM_DIAGNOSTICS_REPORTING_VERSION', '4.3.0');
+    define('SEO_SYSTEM_DIAGNOSTICS_REPORTING_VERSION', '4.4.0');
 }
 
 if (!defined('SEO_SYSTEM_DIAGNOSTICS_RECIPIENT')) {
@@ -1462,10 +1462,21 @@ function seo_system_diagnostics_build_server_export_payload($profile = 'ai') {
                 'excluded' => 'usuarios, clientes, pedidos, direcciones, contrasenas, cookies, tokens, filas de tablas y logs completos',
             )
         ),
-        'schema' => array('name' => 'seo-system-server-status-report', 'version' => '1.0.0'),
-        'report_format_version' => 1,
+        'schema' => array('name' => 'seo-system-server-status-report', 'version' => '1.1.0'),
+        'report_format_version' => 2,
         'report_scope' => 'technical_server_security',
         'technical_snapshot' => seo_system_diagnostics_export_recursive($server, 0, 'technical_snapshot'),
+        'mysql_audit' => function_exists('seo_system_mysql_audit_collect')
+            ? seo_system_diagnostics_export_recursive(seo_system_mysql_audit_collect(), 0, 'mysql_audit')
+            : array('available' => false),
+        'mysql_history' => function_exists('seo_system_mysql_audit_load_history')
+            ? seo_system_diagnostics_export_recursive(array(
+                'snapshots' => seo_system_mysql_audit_load_history(),
+                'analysis' => function_exists('seo_system_mysql_audit_history_analysis')
+                    ? seo_system_mysql_audit_history_analysis()
+                    : array(),
+            ), 0, 'mysql_history')
+            : array('available' => false),
         'components' => seo_system_diagnostics_collect_components(),
         'action_scheduler' => seo_system_diagnostics_collect_scheduler_snapshot(),
         'methodology' => array(
@@ -1473,6 +1484,8 @@ function seo_system_diagnostics_build_server_export_payload($profile = 'ai') {
             'limitations' => array(
                 'No incluye los chequeos de Plugin Validation.',
                 'Las sondas HTTP locales pueden quedar no concluyentes si el hosting bloquea peticiones contra si mismo.',
+                'Las filas estimadas por information_schema y EXPLAIN pueden ser aproximadas en InnoDB.',
+                'Los contadores SHOW GLOBAL STATUS son acumulados desde el arranque de MySQL y se interpretan mejor mediante las fotografías históricas.',
             ),
         ),
     );

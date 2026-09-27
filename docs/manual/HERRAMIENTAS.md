@@ -135,16 +135,23 @@ La pestaña MySQL incorpora una auditoría de solo lectura que muestra:
 
 - slow query log y `long_query_time`;
 - temporales escritos a disco;
-- pico de conexiones, conexiones abortadas, creación de hilos y esperas de bloqueo;
+- pico de conexiones, conexiones/clientes abortados, creación de hilos y esperas de bloqueo;
+- hit rate de InnoDB y de table cache;
+- consultas por segundo, full JOIN normalizados, slow queries y esperas InnoDB;
 - JOIN sin índice y contadores de ordenación;
 - inventario de tablas propias `seo_*`, filas, tamaño e índices;
 - candidatos de índice en tablas grandes;
 - índices duplicados exactos;
-- planes `EXPLAIN` de consultas representativas de relaciones, Vocabulary, proveedores, imágenes, Dependiente, Ingeniero y FAQs.
+- planes `EXPLAIN` de consultas representativas de relaciones, Vocabulary, proveedores, imágenes, Dependiente, Ingeniero y FAQs;
+- micro-batería de SELECTs de diagnóstico para medir latencia;
+- gráfico estático de las tablas SEO más grandes;
+- histórico de hasta 30 fotografías del chequeo completo con tendencia de tamaño de BBDD, pico de conexiones, temporales a disco y latencia diagnóstica.
 
-`EXPLAIN` analiza el plan del optimizador sin ejecutar el SELECT de negocio. La pantalla **no crea ni elimina índices**. Los candidatos son recomendaciones para revisar en STAGING antes de cualquier migración.
+`EXPLAIN` analiza el plan del optimizador sin ejecutar el SELECT de negocio. Los gráficos históricos reutilizan fotografías ya guardadas y **no vuelven a consultar MySQL**, por lo que su coste al visualizar la pantalla es mínimo.
 
-El **chequeo completo** añade al snapshot las señales principales de esta auditoría para que aparezcan también en el informe general.
+La pantalla **no crea ni elimina índices**. Los candidatos son recomendaciones para revisar en STAGING antes de cualquier migración.
+
+El **chequeo completo** guarda una nueva fotografía MySQL. La exportación JSON del Estado del servidor incluye además `mysql_audit` y `mysql_history`: tablas, índices, candidatos, duplicados, EXPLAIN, variables, contadores, métricas derivadas, benchmark y evolución entre chequeos.
 
 ## Plugin Validation
 
