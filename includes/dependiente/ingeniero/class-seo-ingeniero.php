@@ -10,7 +10,7 @@
 defined('ABSPATH') || exit;
 
 final class SEO_Ingeniero {
-    const VERSION = '0.1.0';
+    const VERSION = '0.1.1';
     const STATE_OPTION = 'seo_ingeniero_state_v1';
     const CATEGORY_STATE_OPTION = 'seo_ingeniero_category_state_v1';
     const LESSON_TECHNICAL = 'l1_technical';
@@ -475,9 +475,12 @@ final class SEO_Ingeniero {
                 $scores[] = $score;
                 $evidence[] = array(
                     'source_id'=>absint($source['id'] ?? 0),
+                    'source_url'=>esc_url_raw((string) ($source['url'] ?? '')),
+                    'source_title'=>sanitize_text_field((string) ($source['title'] ?? '')),
                     'source_type'=>sanitize_key((string) ($source['source_type'] ?? '')),
                     'trust_level'=>$trust,
-                    'evidence'=>self::limit_text($sentence, 280),
+                    // Evidencia breve y trazable; no se usa como contenido editorial.
+                    'evidence'=>self::limit_text($sentence, 220),
                 );
                 if (count($evidence) >= 4) break;
             }
@@ -489,9 +492,9 @@ final class SEO_Ingeniero {
             $status = $confirmed ? 'active' : 'review';
             $confidence = min(0.98, max(0.20, $avg + (count($domains)>=2 ? 0.06 : 0) + ($has_high ? 0.05 : 0)));
 
-            $summary_parts = array();
-            foreach (array_slice($evidence,0,2) as $ev) $summary_parts[] = $ev['evidence'];
-            $summary = self::limit_text(implode(' ', $summary_parts), 600);
+            // El resumen es una síntesis propia. No concatena ni copia frases de
+            // las fuentes: las citas breves quedan separadas en "facts" con URL.
+            $summary = self::original_summary($category_name, $type, $evidence, count($domains), $has_high);
 
             $out[] = array(
                 'term_id'=>$term_id,
@@ -508,6 +511,63 @@ final class SEO_Ingeniero {
         }
 
         return $out;
+    }
+
+    private static function original_summary($category_name, $type, $evidence, $domain_count, $has_high) {
+        $labels = array(
+            'definition'=>'definición y alcance técnico',
+            'function'=>'principio de funcionamiento',
+            'application'=>'aplicaciones y usos habituales',
+            'type'=>'tipos y variantes',
+            'compatibility'=>'compatibilidades y condiciones de uso',
+            'limitation'=>'limitaciones y restricciones',
+            'maintenance'=>'mantenimiento y conservación',
+            'safety'=>'seguridad y precauciones',
+            'problem'=>'problemas y fallos habituales',
+            'terminology'=>'terminología técnica',
+            'regulation'=>'normativa y referencias técnicas',
+        );
+        $label = $labels[$type] ?? str_replace('_',' ',(string)$type);
+
+        $signals = array();
+        foreach ((array) $evidence as $row) {
+            $text = self::normalize_signal_text((string) ($row['evidence'] ?? ''));
+            foreach (self::technical_signal_terms($text) as $term) {
+                $signals[$term] = true;
+                if (count($signals) >= 6) break 2;
+            }
+        }
+
+        $summary = 'La revisión externa de ' . $category_name . ' aporta contexto sobre ' . $label . '. ';
+        if ($signals) {
+            $summary .= 'Las fuentes coinciden en conceptos como ' . implode(', ', array_keys($signals)) . '. ';
+        }
+        $summary .= 'La síntesis se ha elaborado a partir de ' . max(1, absint($domain_count)) . ' dominio(s) independiente(s)';
+        if ($has_high) {
+            $summary .= ', incluyendo al menos una fuente oficial o normativa';
+        }
+        $summary .= '. Las afirmaciones concretas deben verificarse en las referencias enlazadas antes de publicarse como contenido editorial.';
+        return self::limit_text($summary, 700);
+    }
+
+    private static function normalize_signal_text($text) {
+        $text = function_exists('remove_accents') ? remove_accents((string)$text) : (string)$text;
+        $text = function_exists('mb_strtolower') ? mb_strtolower($text,'UTF-8') : strtolower($text);
+        return preg_replace('/[^a-z0-9%+\-\. ]+/',' ', $text);
+    }
+
+    private static function technical_signal_terms($text) {
+        $dictionary = array(
+            'seguridad','mantenimiento','compatibilidad','presion','temperatura','potencia',
+            'capacidad','caudal','velocidad','precision','tolerancia','material','diametro',
+            'voltaje','corriente','bateria','motor','lubricacion','limpieza','proteccion',
+            'norma','iso','une','ce','fluido','aceite','agua','aire','par','rpm',
+        );
+        $found = array();
+        foreach ($dictionary as $term) {
+            if (preg_match('/\b' . preg_quote($term,'/') . '\b/', $text)) $found[] = $term;
+        }
+        return $found;
     }
 
     private static function best_sentence($text, $keywords) {
