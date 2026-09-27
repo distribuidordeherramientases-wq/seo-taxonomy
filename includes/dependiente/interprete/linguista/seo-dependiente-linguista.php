@@ -232,6 +232,9 @@ final class SEO_Dependiente_Linguista {
         $state['lesson_index'] = $target_index;
         $state['current_lesson'] = sanitize_key((string) ($target['key'] ?? ''));
         $state['lesson_total'] = self::lesson_total($state['current_lesson']);
+        if ('ling_l9_dependiente_bridge' === $state['current_lesson'] && self::lesson9_ready()) {
+            SEO_Dependiente_Linguista_Lesson9::clear_diagnostics();
+        }
         $control = self::control_config();
         $state['batch_size'] = absint($control['initial_batch'] ?? 60);
         $start_stats = self::memory_stats_snapshot();
@@ -398,6 +401,36 @@ final class SEO_Dependiente_Linguista {
         return $payload;
     }
 
+    private static function l9_status_export_payload($state = null) {
+        $state = is_array($state) ? $state : self::state();
+        if (!self::lesson9_ready()) {
+            return new WP_Error('linguista_l9_missing', 'La lección L9 no está disponible.');
+        }
+
+        $snapshot = SEO_Dependiente_Linguista_Lesson9::diagnostic_snapshot($state);
+        return array(
+            'schema' => 'seo-dependiente-linguista-l9-status',
+            'schema_version' => 1,
+            'generated_at' => gmdate('c'),
+            'linguista_version' => self::VERSION,
+            'run_id' => (string) ($state['run_id'] ?? ''),
+            'status' => sanitize_key((string) ($state['status'] ?? '')),
+            'lesson' => self::lesson_definition('ling_l9_dependiente_bridge'),
+            'progress' => array(
+                'lesson_processed' => absint($state['lesson_processed'] ?? 0),
+                'lesson_total' => absint($state['lesson_total'] ?? 0),
+                'lesson_progress_percent' => absint($state['lesson_total'] ?? 0)
+                    ? min(100, round((absint($state['lesson_processed'] ?? 0) / absint($state['lesson_total'])) * 100, 2))
+                    : 0,
+                'last_message' => (string) ($state['last_message'] ?? ''),
+                'last_error' => (string) ($state['last_error'] ?? ''),
+                'last_activity_at' => !empty($state['last_activity_at']) ? gmdate('c', absint($state['last_activity_at'])) : null,
+            ),
+            'diagnostics' => $snapshot,
+            'memory' => self::memory_stats_snapshot(),
+        );
+    }
+
     private static function course_export_payload($state = null) {
         $state = is_array($state) ? $state : self::state();
         if ('completed' !== sanitize_key((string) ($state['status'] ?? ''))) {
@@ -490,9 +523,13 @@ final class SEO_Dependiente_Linguista {
     }
 
     public static function export_url($type = 'course', $lesson_key = '') {
+        $type = sanitize_key((string) $type);
+        if (!in_array($type, array('course','lesson','l9_status'), true)) {
+            $type = 'course';
+        }
         $args = array(
             'action' => 'seo_dependiente_linguista_export',
-            'export_type' => 'lesson' === $type ? 'lesson' : 'course',
+            'export_type' => $type,
         );
         if ('lesson' === $type) {
             $args['lesson_key'] = sanitize_key((string) $lesson_key);
@@ -514,6 +551,9 @@ final class SEO_Dependiente_Linguista {
             $lesson = self::lesson_definition($lesson_key);
             $order = absint($lesson['order'] ?? 0);
             $filename = 'linguista-leccion-' . ($order ?: $lesson_key) . '-' . sanitize_file_name((string) ($state['run_id'] ?? 'resultado')) . '.json';
+        } elseif ('l9_status' === $type) {
+            $payload = self::l9_status_export_payload($state);
+            $filename = 'linguista-l9-estado-' . sanitize_file_name((string) ($state['run_id'] ?? 'actual')) . '.json';
         } else {
             $payload = self::course_export_payload($state);
             $filename = 'linguista-evolucion-completa-' . sanitize_file_name((string) ($state['run_id'] ?? 'resultado')) . '.json';
@@ -654,6 +694,9 @@ final class SEO_Dependiente_Linguista {
             'lesson_statuses' => self::lesson_statuses(),
             'progress' => self::course_progress(),
             'stats'   => $stats,
+            'l9_diagnostics' => ('ling_l9_dependiente_bridge' === sanitize_key((string) ($state['current_lesson'] ?? '')) && self::lesson9_ready())
+                ? SEO_Dependiente_Linguista_Lesson9::diagnostic_snapshot($state)
+                : array(),
         );
     }
 

@@ -26,8 +26,135 @@ final class SEO_Dependiente_Linguista_Lesson9 {
     const VERSION = '0.1.0';
     const LESSON_KEY = 'ling_l9_dependiente_bridge';
     const PROMOTE_EVIDENCE = 3;
+    const DIAGNOSTIC_OPTION = 'seo_dependiente_linguista_l9_recent';
+    const DIAGNOSTIC_LIMIT = 30;
 
     private static $vocabulary_labels = array();
+
+    public static function clear_diagnostics() {
+        delete_option(self::DIAGNOSTIC_OPTION);
+    }
+
+    public static function recent_diagnostics($run_id = '') {
+        $rows = get_option(self::DIAGNOSTIC_OPTION, array());
+        $rows = is_array($rows) ? array_values($rows) : array();
+        $run_id = sanitize_text_field((string) $run_id);
+        if ($run_id !== '') {
+            $rows = array_values(array_filter($rows, static function ($row) use ($run_id) {
+                return is_array($row) && (string) ($row['run_id'] ?? '') === $run_id;
+            }));
+        }
+        return array_slice($rows, -self::DIAGNOSTIC_LIMIT);
+    }
+
+    public static function diagnostic_snapshot($state) {
+        $state = is_array($state) ? $state : array();
+        $phase = sanitize_key((string) ($state['lesson_phase'] ?? '')) ?: 'review_l8';
+        $phase_labels = array(
+            'review_l8' => 'Repaso L8',
+            'learn_dependiente' => 'Aprendizaje desde Dependiente',
+            'regression_dependiente' => 'Regresión final',
+        );
+
+        $review_pass = absint($state['l9_review_pass'] ?? 0);
+        $review_fail = absint($state['l9_review_fail'] ?? 0);
+        $review_total = $review_pass + $review_fail;
+        $semantic_pass = absint($state['l9_semantic_pass'] ?? 0);
+        $semantic_fail = absint($state['l9_semantic_fail'] ?? 0);
+        $semantic_total = $semantic_pass + $semantic_fail;
+        $regression_pass = absint($state['l9_regression_pass'] ?? 0);
+        $regression_fail = absint($state['l9_regression_fail'] ?? 0);
+        $regression_total = $regression_pass + $regression_fail;
+
+        return array(
+            'phase' => $phase,
+            'phase_label' => $phase_labels[$phase] ?? $phase,
+            'review' => array(
+                'pass' => $review_pass,
+                'fail' => $review_fail,
+                'total' => $review_total,
+                'rate_percent' => $review_total ? round(($review_pass / $review_total) * 100, 2) : 0,
+            ),
+            'learning' => array(
+                'debt_seen' => absint($state['l9_debt_seen'] ?? 0),
+                'semantic_pass' => $semantic_pass,
+                'semantic_fail' => $semantic_fail,
+                'semantic_rate_percent' => $semantic_total ? round(($semantic_pass / $semantic_total) * 100, 2) : 0,
+                'noise_evidence' => absint($state['l9_noise_evidence'] ?? 0),
+                'noise_promoted' => absint($state['l9_noise_promoted'] ?? 0),
+            ),
+            'regression' => array(
+                'pass' => $regression_pass,
+                'fail' => $regression_fail,
+                'total' => $regression_total,
+                'rate_percent' => $regression_total ? round(($regression_pass / $regression_total) * 100, 2) : (float) ($state['l9_regression_rate'] ?? 0),
+            ),
+            'recent' => self::recent_diagnostics((string) ($state['run_id'] ?? '')),
+        );
+    }
+
+    private static function append_diagnostics($rows, $state) {
+        $rows = is_array($rows) ? $rows : array();
+        if (!$rows) {
+            return;
+        }
+        $run_id = sanitize_text_field((string) ($state['run_id'] ?? ''));
+        $stored = get_option(self::DIAGNOSTIC_OPTION, array());
+        $stored = is_array($stored) ? array_values($stored) : array();
+
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $row['run_id'] = $run_id;
+            $row['at'] = gmdate('c');
+            $stored[] = $row;
+        }
+        $stored = array_slice($stored, -self::DIAGNOSTIC_LIMIT);
+
+        if (false === get_option(self::DIAGNOSTIC_OPTION, false)) {
+            add_option(self::DIAGNOSTIC_OPTION, $stored, '', 'no');
+        } else {
+            update_option(self::DIAGNOSTIC_OPTION, $stored, false);
+        }
+    }
+
+    private static function expected_summary($expected) {
+        $expected = is_array($expected) ? $expected : array();
+        $targets = self::expected_targets($expected);
+        $parts = array();
+        foreach ($targets as $target) {
+            $label = trim((string) ($target['label'] ?? ''));
+            $slug = trim((string) ($target['slug'] ?? ''));
+            $group = sanitize_key((string) ($target['group'] ?? ''));
+            $value = $label !== '' ? $label : str_replace('-', ' ', $slug);
+            if ($value !== '') {
+                $parts[] = ($group ? $group . ': ' : '') . $value;
+            }
+        }
+        return $parts ? implode(' · ', array_slice(array_values(array_unique($parts)), 0, 6)) : sanitize_text_field((string) ($expected['kind'] ?? ''));
+    }
+
+    private static function interpretation_summary($interpretation) {
+        foreach (array('dependiente_query','search_query','semantic_query','normalized') as $key) {
+            if (!empty($interpretation[$key]) && is_scalar($interpretation[$key])) {
+                return sanitize_text_field((string) $interpretation[$key]);
+            }
+        }
+
+        $parts = array();
+        foreach ((array) ($interpretation['groups'] ?? array()) as $group) {
+            if (!is_array($group)) {
+                continue;
+            }
+            $role = sanitize_key((string) ($group['role'] ?? ''));
+            $canonical = sanitize_text_field((string) ($group['canonical'] ?? ''));
+            if ($canonical !== '') {
+                $parts[] = ($role ? $role . ': ' : '') . $canonical;
+            }
+        }
+        return implode(' · ', array_slice(array_values(array_unique($parts)), 0, 6));
+    }
 
     public static function total() {
         if (!self::ensure_dependencies()) {
@@ -177,6 +304,7 @@ final class SEO_Dependiente_Linguista_Lesson9 {
         $pass = 0;
         $fail = 0;
         $last_id = $cursor;
+        $diagnostics = array();
 
         foreach ($rows as $row) {
             $row_id = absint($row['id'] ?? 0);
@@ -215,7 +343,20 @@ final class SEO_Dependiente_Linguista_Lesson9 {
             } else {
                 $fail++;
             }
+
+            $diagnostics[] = array(
+                'phase' => 'review_l8',
+                'question' => $query,
+                'expected' => sanitize_text_field((string) ($row['canonical_term'] ?? $row['target_search'] ?? '')),
+                'interpreted' => self::interpretation_summary($interpretation),
+                'semantic_ok' => $matched ? 1 : 0,
+                'residual' => array(),
+                'noise' => array(),
+                'decision' => $matched ? 'Regla utilizable por V3' : 'Sigue en deuda',
+            );
         }
+
+        self::append_diagnostics($diagnostics, $state);
 
         return array(
             'done' => false,
@@ -276,6 +417,7 @@ final class SEO_Dependiente_Linguista_Lesson9 {
         $noise_promoted = 0;
         $regression_pass = 0;
         $regression_fail = 0;
+        $diagnostics = array();
 
         foreach ($items as $item) {
             if (!is_array($item)) {
@@ -306,6 +448,7 @@ final class SEO_Dependiente_Linguista_Lesson9 {
             if ($learning) {
                 $source_id = self::evidence_source_id($item);
 
+                $decisions = array();
                 foreach ($problem_noise as $phrase) {
                     $result = self::stage_noise($phrase, $source_id, $question, true);
                     if (!empty($result['evidence'])) {
@@ -315,6 +458,13 @@ final class SEO_Dependiente_Linguista_Lesson9 {
                         $noise_promoted++;
                         $learned++;
                     }
+                    $decisions[] = array(
+                        'term' => $phrase,
+                        'kind' => 'noise',
+                        'evidence_count' => absint($result['evidence_count'] ?? 0),
+                        'promoted' => !empty($result['promoted']) ? 1 : 0,
+                        'status' => !empty($result['promoted']) ? 'Ruido consolidado' : 'Evidencia acumulada',
+                    );
                 }
 
                 // Las palabras residuales se conservan como hipótesis inactivas.
@@ -330,7 +480,26 @@ final class SEO_Dependiente_Linguista_Lesson9 {
                     if (!empty($result['evidence'])) {
                         $noise_evidence++;
                     }
+                    $decisions[] = array(
+                        'term' => $term,
+                        'kind' => 'residual',
+                        'evidence_count' => absint($result['evidence_count'] ?? 0),
+                        'promoted' => 0,
+                        'status' => 'Hipótesis inactiva',
+                    );
                 }
+
+                $diagnostics[] = array(
+                    'phase' => 'learn_dependiente',
+                    'question' => $question,
+                    'expected' => self::expected_summary($expected),
+                    'interpreted' => self::interpretation_summary($interpretation),
+                    'semantic_ok' => $semantic_ok ? 1 : 0,
+                    'residual' => array_values(array_slice($residual, 0, 8)),
+                    'noise' => array_values(array_slice($problem_noise, 0, 8)),
+                    'decision' => $semantic_ok ? 'Semántica conservada' : 'Semántica no conservada',
+                    'details' => array_slice($decisions, 0, 12),
+                );
             } else {
                 $clean = empty($problem_noise);
                 if ($semantic_ok && $clean) {
@@ -339,10 +508,23 @@ final class SEO_Dependiente_Linguista_Lesson9 {
                     $regression_fail++;
                     $rejected++;
                 }
+
+                $diagnostics[] = array(
+                    'phase' => 'regression_dependiente',
+                    'question' => $question,
+                    'expected' => self::expected_summary($expected),
+                    'interpreted' => self::interpretation_summary($interpretation),
+                    'semantic_ok' => $semantic_ok ? 1 : 0,
+                    'residual' => array_values(array_slice($residual, 0, 8)),
+                    'noise' => array_values(array_slice($problem_noise, 0, 8)),
+                    'decision' => ($semantic_ok && $clean) ? 'Regresión correcta' : 'Todavía en deuda',
+                );
             }
 
             $processed++;
         }
+
+        self::append_diagnostics($diagnostics, $state);
 
         $changes = array('cursor' => $cursor + count($items));
         if ($learning) {
@@ -619,7 +801,7 @@ final class SEO_Dependiente_Linguista_Lesson9 {
         global $wpdb;
         $expression = self::normalize($expression);
         if ('' === $expression || strlen($expression) > 191) {
-            return array('evidence' => false, 'promoted' => false);
+            return array('evidence' => false, 'promoted' => false, 'evidence_count' => 0, 'id' => 0);
         }
 
         $table = SEO_Dependiente_Interprete_DB::table();
@@ -648,7 +830,7 @@ final class SEO_Dependiente_Linguista_Lesson9 {
             'active' => 0,
         ));
         if (!$id) {
-            return array('evidence' => false, 'promoted' => false);
+            return array('evidence' => false, 'promoted' => false, 'evidence_count' => 0, 'id' => 0);
         }
 
         $evidence = SEO_Dependiente_Interprete_DB::add_evidence(
@@ -679,7 +861,18 @@ final class SEO_Dependiente_Linguista_Lesson9 {
             }
         }
 
-        return array('evidence' => (bool) $evidence, 'promoted' => $promoted);
+        $final = $wpdb->get_row($wpdb->prepare(
+            "SELECT evidence_count,active FROM {$table} WHERE id=%d",
+            $id
+        ), ARRAY_A);
+
+        return array(
+            'evidence' => (bool) $evidence,
+            'promoted' => $promoted,
+            'evidence_count' => absint($final['evidence_count'] ?? 0),
+            'active' => !empty($final['active']) ? 1 : 0,
+            'id' => absint($id),
+        );
     }
 
     private static function has_conflicting_active_meaning($expression, $noise_id) {
