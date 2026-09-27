@@ -3384,6 +3384,13 @@ final class SEO_Dependiente_Entrenador {
                 <?php endif; ?>
             </div>
 
+            <?php if ($l10_waiting_interpreter) : ?>
+                <div class="notice notice-warning inline"><p>
+                    <strong>L10 está detenida hasta que el Intérprete complete L9.</strong>
+                    Se conserva el progreso ya realizado (incluidos los 23 ejercicios del módulo 1) y no se ejecutarán más preguntas de L10 mientras L9 siga pendiente.
+                </p></div>
+            <?php endif; ?>
+
             <?php if ($preparing) :
                 $done = absint($lesson['prepare_offset'] ?? 0);
                 $total = absint($lesson['prepare_total'] ?? 0);
