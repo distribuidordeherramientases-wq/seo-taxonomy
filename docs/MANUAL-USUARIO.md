@@ -22,21 +22,20 @@ Los campos de claves, tokens, usuarios y secretos se explican con ejemplos ficti
 SEO Taxonomy muestra estas entradas principales:
 
 1. Inicio
-2. Productos
-3. Categorías
-4. Etiquetas
-5. Páginas
-6. Entradas
-7. Imágenes
-8. Informes
-9. Dependiente
-10. Herramientas
+2. Contenidos
+3. Etiquetas
+4. Informes
+5. Dependiente
+6. Herramientas
+
+La pantalla **Contenidos** agrupa los accesos habituales a **Productos, Categorías, Páginas, Entradas e Imágenes**. Las pantallas conservan sus rutas y funcionamiento; solo cambia su ubicación en la navegación principal.
 
 La pantalla **Herramientas** abre los módulos avanzados: Taxonomy, Templates, Search, Redirects, Marketing, Data Table, Clean DB, Import / Export, Procesos, Logística, Conexiones con proveedores, FAQs, Estado del servidor, Plugin Validation, Menu Manager, Facturas y presupuestos, Solucionador y Ojeador.
 
 ## Páginas del manual
 
 - Inicio
+- Contenidos
 - Productos
 - Categorías
 - Etiquetas y vocabulario
