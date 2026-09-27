@@ -153,6 +153,10 @@ final class SEO_Ingeniero_Admin {
         if (!empty($state['last_error'])) echo '<p style="color:#b32d2e"><strong>Último error:</strong> ' . esc_html((string) $state['last_error']) . '</p>';
         echo '</div>';
 
+        if (class_exists('SEO_Ingeniero_Exchange')) {
+            SEO_Ingeniero_Exchange::render_panel();
+        }
+
         echo '<div class="postbox seo-dependiente-admin__box" style="padding:18px">';
         echo '<h3 style="margin-top:0">Fuente de búsqueda y presupuesto</h3>';
         echo '<p>Provider: <strong>SerpApi · Google web</strong>. Reutiliza la API key de Ojeador, pero Ingeniero mantiene un <strong>presupuesto local independiente</strong>. Las consultas web usan <code>engine=google</code> y resultados orgánicos estructurados.</p>';
@@ -321,9 +325,22 @@ final class SEO_Ingeniero_Admin {
             'researched'=>'Categoría reinvestigada.',
             'reviewed'=>'Revisión guardada.',
             'settings'=>'Configuración guardada.',
+            'exchange_imported'=>'Conocimiento externo importado para revisión.',
         );
         if ($notice && isset($messages[$notice])) {
-            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html($messages[$notice]) . '</p></div>';
+            $suffix = '';
+            if ('exchange_imported' === $notice) {
+                $suffix = ' Categorías: ' . absint($_GET['ingeniero_import_categories'] ?? 0)
+                    . ' · Fuentes: ' . absint($_GET['ingeniero_import_sources'] ?? 0)
+                    . ' · Conocimientos: ' . absint($_GET['ingeniero_import_knowledge'] ?? 0)
+                    . ' · Omitidos: ' . absint($_GET['ingeniero_import_skipped'] ?? 0)
+                    . ' · Errores: ' . absint($_GET['ingeniero_import_errors'] ?? 0) . '.';
+            }
+            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html($messages[$notice] . $suffix) . '</p></div>';
+        }
+
+        if (!empty($_GET['ingeniero_exchange_error'])) {
+            echo '<div class="notice notice-error is-dismissible"><p><strong>Importar / Exportar conocimiento:</strong> ' . esc_html(rawurldecode((string) $_GET['ingeniero_exchange_error'])) . '</p></div>';
         }
     }
 }
