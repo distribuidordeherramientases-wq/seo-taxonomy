@@ -13,12 +13,12 @@ if ( defined( 'SEO_CLONADOR_LOADED' ) ) {
     return;
 }
 define( 'SEO_CLONADOR_LOADED', true );
-define( 'SEO_CLONADOR_VERSION', '2.7.1' );
+define( 'SEO_CLONADOR_VERSION', '2.7.2' );
 define( 'SEO_CLONADOR_DIR', __DIR__ );
 
 $seo_clonador_required = array(
     __DIR__ . '/connections.php',
-    __DIR__ . '/engine.php',
+    __DIR__ . '/engine-2.7.2.php',
     __DIR__ . '/admin.php',
 );
 
@@ -46,5 +46,5 @@ foreach ( $seo_clonador_required as $seo_clonador_file ) {
 }
 
 require_once __DIR__ . '/connections.php';
-require_once __DIR__ . '/engine.php';
+require_once __DIR__ . '/engine-2.7.2.php';
 require_once __DIR__ . '/admin.php';

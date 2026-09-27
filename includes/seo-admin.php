@@ -121,25 +121,16 @@ add_submenu_page(
     'seo-home',
     'seo_home_page'
 );
-    // Productos
+    // Contenidos
+    // Agrupa los editores habituales del catálogo para liberar espacio en el
+    // menú principal. Las pantallas conservan sus slugs y callbacks históricos.
     add_submenu_page(
         'seo-system',
-        'Administración de productos',
-        'Productos',
+        'Contenidos',
+        'Contenidos',
         'manage_options',
-        'product-page-admin',
-        'seo_product_admin_callback'
-    );
-
-
-    // Categorías
-    add_submenu_page(
-        'seo-system',
-        'Administración de categorías',
-        'Categorías',
-        'manage_options',
-        'category-seo-admin',
-        'seo_category_admin_callback'
+        'seo-content',
+        'seo_content_page'
     );
 
     // Etiquetas / vocabulario semántico de producto
@@ -150,38 +141,6 @@ add_submenu_page(
         'manage_options',
         'seo-tags-vocabulary',
         'seo_tags_vocabulary_admin_page'
-    );
-
-    // Páginas
-    add_submenu_page(
-        'seo-system',
-        'Administración de páginas',
-        'Páginas',
-        'manage_options',
-        'seo-page-admin',
-        'seo_page_admin_callback'
-    );
-
-    // Entradas
-    // Se registra siempre. Si el modulo no esta disponible, el callback muestra
-    // el motivo exacto en vez de ocultar silenciosamente la opcion del menu.
-    add_submenu_page(
-        'seo-system',
-        'Administración de entradas',
-        'Entradas',
-        'manage_options',
-        'seo-post-editor',
-        'seo_post_admin_callback'
-    );
-
-    // Imágenes
-    add_submenu_page(
-        'seo-system',
-        'Imágenes',
-        'Imágenes',
-        'manage_options',
-        'seo-pictures-admin',
-        'seo_pictures_admin_page'
     );
 
     // Informes
@@ -214,6 +173,16 @@ add_submenu_page(
         'seo_tools_page'
     );
     
+    // Páginas ocultas de Contenidos. Conservan los slugs existentes para no
+    // romper enlaces, formularios ni redirecciones internas.
+add_submenu_page(null, 'Administración de productos', 'Productos', 'manage_options', 'product-page-admin', 'seo_product_admin_callback');
+add_submenu_page(null, 'Administración de categorías', 'Categorías', 'manage_options', 'category-seo-admin', 'seo_category_admin_callback');
+add_submenu_page(null, 'Administración de páginas', 'Páginas', 'manage_options', 'seo-page-admin', 'seo_page_admin_callback');
+// Se registra siempre. Si el módulo no está disponible, el callback muestra
+// el motivo exacto en vez de ocultar silenciosamente la opción.
+add_submenu_page(null, 'Administración de entradas', 'Entradas', 'manage_options', 'seo-post-editor', 'seo_post_admin_callback');
+add_submenu_page(null, 'Imágenes', 'Imágenes', 'manage_options', 'seo-pictures-admin', 'seo_pictures_admin_page');
+
     // Páginas ocultas (accesibles desde Tools)
 add_submenu_page(null, 'Taxonomy', 'Taxonomy', 'manage_options', 'seo-taxonomy', 'seo_taxonomy_page');
 add_submenu_page(null, 'Templates', 'Templates', 'manage_options', 'seo-templates', 'seo_templates_page');
@@ -276,7 +245,18 @@ add_action('admin_menu', function () {
 add_filter('parent_file', function ($parent_file) {
     $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
 
-    if (in_array($page, ['seo-search', 'seo-provider-connections', 'seo-processes', 'seo-logistica'], true)) {
+    if (in_array($page, [
+        'product-page-admin',
+        'category-seo-admin',
+        'seo-page-admin',
+        'seo-post-editor',
+        'seo-pictures-admin',
+        'seo-search',
+        'seo-provider-connections',
+        'seo-processes',
+        'seo-logistica',
+        'seo-comentarista',
+    ], true)) {
         return 'seo-system';
     }
 
@@ -286,7 +266,17 @@ add_filter('parent_file', function ($parent_file) {
 add_filter('submenu_file', function ($submenu_file) {
     $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
 
-    if (in_array($page, ['seo-search', 'seo-provider-connections', 'seo-processes', 'seo-logistica'], true)) {
+    if (in_array($page, [
+        'product-page-admin',
+        'category-seo-admin',
+        'seo-page-admin',
+        'seo-post-editor',
+        'seo-pictures-admin',
+    ], true)) {
+        return 'seo-content';
+    }
+
+    if (in_array($page, ['seo-search', 'seo-provider-connections', 'seo-processes', 'seo-logistica', 'seo-comentarista'], true)) {
         return 'seo-tools';
     }
 
@@ -400,6 +390,71 @@ function seo_provider_connections_page() {
     echo '</div>';
 
     echo '</div>';
+}
+
+
+/**
+ * Lanzador de edición de contenidos.
+ *
+ * Mantiene en una única pantalla los accesos a los editores habituales sin
+ * modificar sus rutas internas ni su lógica.
+ */
+function seo_content_page() {
+    if (!current_user_can('manage_options')) {
+        wp_die(esc_html__('No tienes permisos para gestionar contenidos.', 'seo-system'));
+    }
+
+    $items = [
+        [
+            'title' => 'Productos',
+            'icon'  => 'dashicons-products',
+            'page'  => 'product-page-admin',
+            'desc'  => 'Gestiona productos, inventario, edición, informes y recategorización.'
+        ],
+        [
+            'title' => 'Categorías',
+            'icon'  => 'dashicons-category',
+            'page'  => 'category-seo-admin',
+            'desc'  => 'Edita categorías, contenido SEO, relaciones e inventarios.'
+        ],
+        [
+            'title' => 'Páginas',
+            'icon'  => 'dashicons-admin-page',
+            'page'  => 'seo-page-admin',
+            'desc'  => 'Gestiona hubs, landings, páginas corporativas y estructura editorial.'
+        ],
+        [
+            'title' => 'Entradas',
+            'icon'  => 'dashicons-admin-post',
+            'page'  => 'seo-post-editor',
+            'desc'  => 'Edita posts, guías, comparativas, oportunidades y contenido editorial.'
+        ],
+        [
+            'title' => 'Imágenes',
+            'icon'  => 'dashicons-format-image',
+            'page'  => 'seo-pictures-admin',
+            'desc'  => 'Revisa inventario, anomalías, optimización y asignación de imágenes.'
+        ],
+    ];
+?>
+<div class="wrap seo-content">
+    <h1>SEO Taxonomy - Contenidos</h1>
+    <p>Accesos directos a la edición habitual del catálogo y del contenido editorial.</p>
+
+    <div class="seo-tools-grid">
+        <?php foreach ($items as $item) : ?>
+            <a class="seo-tool-card-link" href="<?php echo esc_url(admin_url('admin.php?page=' . $item['page'])); ?>">
+                <div class="seo-tool-card">
+                    <span class="dashicons <?php echo esc_attr($item['icon']); ?>"></span>
+                    <h2><?php echo esc_html($item['title']); ?></h2>
+                    <p><?php echo esc_html($item['desc']); ?></p>
+                    <span class="button button-primary">Abrir</span>
+                </div>
+            </a>
+        <?php endforeach; ?>
+    </div>
+</div>
+<?php
 }
 
 
@@ -631,13 +686,14 @@ add_action('admin_head', function () {
         ? sanitize_key(wp_unslash($_GET['page']))
         : '';
 
-    if (!in_array($page, ['seo-system', 'seo-home', 'seo-tools'], true)) {
+    if (!in_array($page, ['seo-system', 'seo-home', 'seo-content', 'seo-tools'], true)) {
         return;
     }
 ?>
 <style id="seo-taxonomy-admin-cards">
 
 .seo-home,
+.seo-content,
 .seo-tools{
     box-sizing:border-box;
 }

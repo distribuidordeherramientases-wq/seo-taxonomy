@@ -152,6 +152,10 @@ if (!function_exists('seo_analista_render_where_we_are')) {
         $current = (array) ($data['current'] ?? array());
         $previous = (array) ($data['previous'] ?? array());
         $ga4 = (array) ($google['ga4'] ?? array());
+        $period = (array) ($data['period'] ?? array());
+        $days = (int) ($period['days'] ?? 28);
+        if ($days <= 0) $days = 28;
+        $bing = function_exists('seo_analista_bing_snapshot') ? (array) seo_analista_bing_snapshot($days, 30) : array();
 
         echo '<div class="seo-analista-grid">';
         seo_analista_render_metric_card('Índice de visibilidad', number_format_i18n((float) ($data['visibility_index'] ?? 0), 1), seo_analista_metric_delta($data['visibility_index'] ?? 0, $data['previous_visibility_index'] ?? 0), 'Índice propio basado en distribución de posiciones.');
@@ -161,7 +165,28 @@ if (!function_exists('seo_analista_render_where_we_are')) {
         seo_analista_render_metric_card('Páginas visibles', number_format_i18n((int) ($current['pages'] ?? 0)), seo_analista_metric_delta($current['pages'] ?? 0, $previous['pages'] ?? 0), 'URLs con impresiones en Search Console.');
         seo_analista_render_metric_card('CTR', number_format_i18n(((float) ($current['ctr'] ?? 0)) * 100, 2) . '%', seo_analista_metric_delta($current['ctr'] ?? 0, $previous['ctr'] ?? 0), 'Clics sobre impresiones.');
         seo_analista_render_metric_card('Sesiones GA4', !empty($ga4['available']) ? number_format_i18n((int) ($ga4['sessions'] ?? 0)) : '—', '', !empty($ga4['available']) ? 'Comportamiento medido por Analytics.' : 'GA4 no disponible.');
-        seo_analista_render_metric_card('Búsquedas internas', !empty($search['available']) ? number_format_i18n((int) ($search['total'] ?? 0)) : '—', '', !empty($search['available']) ? number_format_i18n((int) ($search['zero_results'] ?? 0)) . ' sin resultado.' : 'Registro no disponible.');
+        seo_analista_render_metric_card('Usuarios GA4', !empty($ga4['available']) ? number_format_i18n((int) ($ga4['users'] ?? 0)) : '—', '', !empty($ga4['available']) ? 'Usuarios activos del periodo.' : 'GA4 no disponible.');
+        seo_analista_render_metric_card('Vistas producto', !empty($ga4['available']) ? number_format_i18n((int) (($ga4['funnel']['view_item'] ?? 0))) : '—', '', 'Evento view_item; mide interacción con fichas de producto.');
+        seo_analista_render_metric_card('Añadir al carrito', !empty($ga4['available']) ? number_format_i18n((int) (($ga4['funnel']['add_to_cart'] ?? 0))) : '—', '', 'Evento add_to_cart; no equivale a usuarios únicos.');
+        seo_analista_render_metric_card('Checkouts iniciados', !empty($ga4['available']) ? number_format_i18n((int) (($ga4['funnel']['begin_checkout'] ?? 0))) : '—', '', 'Evento begin_checkout.');
+        seo_analista_render_metric_card('Compras GA4', !empty($ga4['available']) ? number_format_i18n((int) ($ga4['purchases'] ?? 0)) : '—', '', 'Medición Analytics; validar siempre contra WooCommerce.');
+        seo_analista_render_metric_card('España', !empty($ga4['available']) ? number_format_i18n((int) (($ga4['target_market']['users'] ?? 0))) : '—', '', !empty($ga4['available']) && null !== ($ga4['target_market']['user_share_pct'] ?? null) ? number_format_i18n((float) $ga4['target_market']['user_share_pct'], 1) . '% de usuarios activos.' : 'Mercado objetivo no medido.');
+        seo_analista_render_metric_card('404 vistas', !empty($ga4['available']) ? number_format_i18n((int) (($ga4['not_found']['views'] ?? 0))) : '—', '', 'Vistas en páginas no encontradas detectadas por GA4.');
+        $search_total = (int) ($search['total'] ?? 0);
+        $search_zero = (int) ($search['zero_results'] ?? 0);
+        $search_zero_pct = $search_total > 0 ? ($search_zero / $search_total) * 100 : null;
+        seo_analista_render_metric_card(
+            'Búsquedas internas',
+            !empty($search['available']) ? number_format_i18n($search_total) : '—',
+            '',
+            !empty($search['available'])
+                ? number_format_i18n($search_zero) . ' sin resultado' . (null !== $search_zero_pct ? ' · ' . number_format_i18n($search_zero_pct, 1) . '%' : '') . '.'
+                : 'Registro no disponible.'
+        );
+        if (!empty($bing['connected'])) {
+            seo_analista_render_metric_card('Bing impresiones', number_format_i18n((int) round((float) ($bing['traffic']['impressions'] ?? 0))), '', 'Bing Webmaster en el mismo horizonte solicitado.');
+            seo_analista_render_metric_card('Bing clics', number_format_i18n((int) round((float) ($bing['traffic']['clicks'] ?? 0))), '', 'Clics reportados por Bing Webmaster.');
+        }
         echo '</div>';
 
         $position_change = (float) ($previous['position'] ?? 0) - (float) ($current['position'] ?? 0);
@@ -171,7 +196,104 @@ if (!function_exists('seo_analista_render_where_we_are')) {
         echo '<div class="seo-analista-action"><strong>Ranking</strong><p>' . esc_html($position_change > 0 ? ('La posición media mejora ' . number_format_i18n($position_change, 1) . ' puestos.') : ($position_change < 0 ? ('La posición media retrocede ' . number_format_i18n(abs($position_change), 1) . ' puestos.') : 'La posición media permanece estable.')) . '</p></div>';
         $movement = (array) ($evolution['movement'] ?? array());
         echo '<div class="seo-analista-action"><strong>Movimiento</strong><p>' . esc_html(number_format_i18n((int) ($movement['improved'] ?? 0)) . ' keywords suben y ' . number_format_i18n((int) ($movement['declined'] ?? 0)) . ' bajan respecto al periodo anterior.') . '</p></div>';
+
+        if (!empty($ga4['available'])) {
+            $funnel = (array) ($ga4['funnel'] ?? array());
+            $traffic = (array) ($ga4['traffic_quality'] ?? array());
+            $target = (array) ($ga4['target_market'] ?? array());
+            $not_found = (array) ($ga4['not_found'] ?? array());
+
+            $commercial = number_format_i18n((int) ($funnel['view_item'] ?? 0)) . ' vistas de producto → '
+                . number_format_i18n((int) ($funnel['add_to_cart'] ?? 0)) . ' carritos → '
+                . number_format_i18n((int) ($funnel['begin_checkout'] ?? 0)) . ' checkout → '
+                . number_format_i18n((int) ($ga4['purchases'] ?? 0)) . ' compras medidas.';
+            echo '<div class="seo-analista-action"><strong>Embudo comercial</strong><p>' . esc_html($commercial) . '</p></div>';
+
+            $direct_share = $traffic['direct_share_pct'] ?? null;
+            $traffic_text = number_format_i18n((int) ($traffic['organic_sessions'] ?? 0)) . ' sesiones orgánicas · '
+                . number_format_i18n((int) ($traffic['ai_sessions'] ?? 0)) . ' desde asistentes IA';
+            if (null !== $direct_share) $traffic_text .= ' · ' . number_format_i18n((float) $direct_share, 1) . '% Direct.';
+            echo '<div class="seo-analista-action"><strong>Adquisición</strong><p>' . esc_html($traffic_text) . '</p></div>';
+
+            $market_text = number_format_i18n((int) ($target['users'] ?? 0)) . ' usuarios activos de España';
+            if (null !== ($target['user_share_pct'] ?? null)) {
+                $market_text .= ' (' . number_format_i18n((float) $target['user_share_pct'], 1) . '% del total)';
+            }
+            $market_text .= '.';
+            echo '<div class="seo-analista-action"><strong>Mercado objetivo</strong><p>' . esc_html($market_text) . '</p></div>';
+
+            if ((int) ($not_found['views'] ?? 0) > 0) {
+                echo '<div class="seo-analista-action"><strong>404</strong><p>' . esc_html(number_format_i18n((int) $not_found['views']) . ' vistas han llegado a páginas no encontradas. Conviene revisar las rutas que las generan.') . '</p></div>';
+            }
+        }
+
+        if (!empty($search['available']) && $search_total > 0) {
+            $search_text = number_format_i18n($search_zero) . ' de ' . number_format_i18n($search_total) . ' búsquedas internas no devolvieron resultados';
+            if (null !== $search_zero_pct) $search_text .= ' (' . number_format_i18n($search_zero_pct, 1) . '%)';
+            $search_text .= '.';
+            echo '<div class="seo-analista-action"><strong>Búsqueda interna</strong><p>' . esc_html($search_text) . '</p></div>';
+        }
+
+        $freshness = array();
+        if (!empty($period['date_to'])) $freshness[] = 'Search Console hasta ' . (string) $period['date_to'];
+        if (!empty($ga4['period']['latest_date'])) $freshness[] = 'GA4 hasta ' . (string) $ga4['period']['latest_date'];
+        if (!empty($bing['connected']) && !empty($bing['latest_date'])) $freshness[] = 'Bing hasta ' . (string) $bing['latest_date'];
+        if ($freshness) {
+            echo '<div class="seo-analista-action"><strong>Actualización de fuentes</strong><p>' . esc_html(implode(' · ', $freshness) . '. Las fechas pueden diferir por el retraso propio de cada plataforma.') . '</p></div>';
+        }
+
+        if (!empty($ga4['available'])) {
+            $gsc_clicks = (int) round((float) ($current['clicks'] ?? 0));
+            $google_sessions = 0;
+            foreach ((array) ($ga4['sources'] ?? array()) as $source_row) {
+                $source_medium = strtolower((string) ($source_row['source_medium'] ?? ''));
+                if (strpos($source_medium, 'google') !== false && strpos($source_medium, 'organic') !== false) {
+                    $google_sessions += (int) ($source_row['sessions'] ?? 0);
+                }
+            }
+            if ($gsc_clicks > 0 || $google_sessions > 0) {
+                echo '<div class="seo-analista-action"><strong>Coherencia de medición</strong><p>' . esc_html('Search Console registra ' . number_format_i18n($gsc_clicks) . ' clics y GA4 atribuye ' . number_format_i18n($google_sessions) . ' sesiones a Google orgánico. No son la misma métrica; una diferencia amplia debe revisarse como señal de medición/atribución, no corregirse automáticamente.') . '</p></div>';
+            }
+        }
         echo '</div></section>';
+
+        if (!empty($ga4['available'])) {
+            $funnel = (array) ($ga4['funnel'] ?? array());
+            echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>Tráfico y conversión</h2><p>Analytics complementa Search Console: separa adquisición, mercado objetivo y pasos del embudo. Los eventos no representan necesariamente usuarios únicos.</p></div></div>';
+
+            echo '<div class="seo-analista-grid compact">';
+            foreach (array(
+                'view_item' => 'Ver producto',
+                'add_to_cart' => 'Añadir al carrito',
+                'view_cart' => 'Ver carrito',
+                'begin_checkout' => 'Iniciar checkout',
+                'purchase' => 'Compra'
+            ) as $key => $label) {
+                seo_analista_render_metric_card($label, number_format_i18n((int) ($funnel[$key] ?? 0)));
+            }
+            echo '</div>';
+
+            if (!empty($ga4['sources'])) {
+                echo '<div class="seo-analista-table-wrap"><table class="widefat striped"><thead><tr><th>Fuente / medio</th><th>Canal</th><th>Sesiones</th><th>Usuarios</th></tr></thead><tbody>';
+                foreach (array_slice((array) $ga4['sources'], 0, 12) as $row) {
+                    echo '<tr><td><strong>' . esc_html((string) ($row['source_medium'] ?? '')) . '</strong></td><td>' . esc_html((string) ($row['channel'] ?? '')) . '</td><td>' . esc_html(number_format_i18n((int) ($row['sessions'] ?? 0))) . '</td><td>' . esc_html(number_format_i18n((int) ($row['users'] ?? 0))) . '</td></tr>';
+                }
+                echo '</tbody></table></div>';
+            }
+
+            if (!empty($ga4['not_found']['rows'])) {
+                echo '<h3 style="margin-top:18px;">Rutas 404 vistas en Analytics</h3>';
+                echo '<div class="seo-analista-table-wrap"><table class="widefat striped"><thead><tr><th>Ruta</th><th>Vistas</th><th>Usuarios</th></tr></thead><tbody>';
+                foreach (array_slice((array) $ga4['not_found']['rows'], 0, 15) as $row) {
+                    echo '<tr><td><code>' . esc_html((string) ($row['path'] ?? '')) . '</code></td><td>' . esc_html(number_format_i18n((int) ($row['views'] ?? 0))) . '</td><td>' . esc_html(number_format_i18n((int) ($row['users'] ?? 0))) . '</td></tr>';
+                }
+                echo '</tbody></table></div>';
+            }
+
+            $period = (array) ($ga4['period'] ?? array());
+            echo '<p class="description" style="margin-top:12px;">GA4 solicitado: ' . esc_html((string) ($period['start'] ?? '')) . ' → ' . esc_html((string) ($period['end'] ?? '')) . (!empty($period['latest_date']) ? ' · último día con sesiones: ' . esc_html((string) $period['latest_date']) : '') . '. No comparar clics de Search Console/Bing con sesiones GA4 como si fueran la misma métrica.</p>';
+            echo '</section>';
+        }
 
         $trend = (array) ($evolution['trend'] ?? array());
         if ($trend) {

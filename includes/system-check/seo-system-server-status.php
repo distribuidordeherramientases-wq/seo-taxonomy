@@ -9,6 +9,12 @@
  */
 defined('ABSPATH') || exit;
 
+$seo_mysql_audit_file = __DIR__ . '/seo-system-mysql-audit.php';
+if (is_readable($seo_mysql_audit_file)) {
+    require_once $seo_mysql_audit_file;
+}
+unset($seo_mysql_audit_file);
+
 // Monitor externo: GitHub Actions mide la portada y WordPress recibe/almacena los resultados firmados.
 add_action('rest_api_init', 'seo_server_status_register_external_monitor_route');
 
@@ -234,8 +240,17 @@ function seo_server_status_render_styles() {
         .seo-mysql-query-track{height:14px;background:#f0f0f1;border-radius:999px;overflow:hidden;}
         .seo-mysql-query-bar{height:100%;background:#2271b1;border-radius:999px;min-width:2px;}
         .seo-mysql-query-time{text-align:right;font-variant-numeric:tabular-nums;font-size:12px;color:#50575e;}
-        @media(max-width:900px){.seo-server-health-strip{grid-template-columns:repeat(2,minmax(140px,1fr));}.seo-server-health-box:first-child{grid-column:1/-1}.seo-server-priority-item{grid-template-columns:1fr;gap:5px;}.seo-response-monitor-kpis,.seo-mysql-live-grid,.seo-mysql-query-kpis{grid-template-columns:repeat(2,minmax(140px,1fr));}.seo-mysql-query-row{grid-template-columns:140px minmax(140px,1fr) 76px;}}
-        @media(max-width:520px){.seo-response-monitor-kpis,.seo-mysql-live-grid,.seo-mysql-query-kpis{grid-template-columns:1fr;}.seo-mysql-query-row{grid-template-columns:1fr;gap:5px;}.seo-mysql-query-time{text-align:left;}.seo-response-monitor-controls{width:100%;}.seo-response-monitor-ranges{width:100%;}.seo-response-monitor-ranges a{flex:1;text-align:center;}}
+        .seo-mysql-history-grid{display:grid;grid-template-columns:repeat(4,minmax(180px,1fr));gap:12px;margin:14px 0;}
+        .seo-mysql-history-card{border:1px solid #dcdcde;border-radius:7px;padding:12px;background:#fff;color:#2271b1;min-width:0;}
+        .seo-mysql-history-card strong{display:block;color:#2c3338;font-size:12px;margin-bottom:6px;}
+        .seo-mysql-history-card svg{display:block;width:100%;height:92px;background:#f8f9fa;border-radius:5px;margin:6px 0;}
+        .seo-mysql-history-value{font-size:19px;font-weight:750;color:#2c3338;}
+        .seo-mysql-table-chart{display:grid;gap:8px;margin-top:12px;}
+        .seo-mysql-table-row{display:grid;grid-template-columns:minmax(180px,1.4fr) minmax(180px,4fr) 90px;gap:10px;align-items:center;}
+        .seo-mysql-table-track{height:14px;background:#f0f0f1;border-radius:999px;overflow:hidden;}
+        .seo-mysql-table-track span{display:block;height:100%;background:#2271b1;border-radius:999px;min-width:2px;}
+        @media(max-width:900px){.seo-server-health-strip{grid-template-columns:repeat(2,minmax(140px,1fr));}.seo-server-health-box:first-child{grid-column:1/-1}.seo-server-priority-item{grid-template-columns:1fr;gap:5px;}.seo-response-monitor-kpis,.seo-mysql-live-grid,.seo-mysql-query-kpis,.seo-mysql-history-grid{grid-template-columns:repeat(2,minmax(140px,1fr));}.seo-mysql-query-row{grid-template-columns:140px minmax(140px,1fr) 76px;}.seo-mysql-table-row{grid-template-columns:150px minmax(140px,1fr) 80px;}}
+        @media(max-width:520px){.seo-response-monitor-kpis,.seo-mysql-live-grid,.seo-mysql-query-kpis,.seo-mysql-history-grid{grid-template-columns:1fr;}.seo-mysql-query-row,.seo-mysql-table-row{grid-template-columns:1fr;gap:5px;}.seo-mysql-query-time{text-align:left;}.seo-response-monitor-controls{width:100%;}.seo-response-monitor-ranges{width:100%;}.seo-response-monitor-ranges a{flex:1;text-align:center;}}
     </style>';
 }
 
@@ -2039,6 +2054,12 @@ function seo_server_status_collect_snapshot($deep = false) {
             $total = (float) $table->data_length + (float) $table->index_length;
             $checks[] = seo_server_status_make_check('SRV-DB-TABLE-' . strtoupper(substr(sha1($table->table_name), 0, 8)), 'Base de datos', 'Tabla grande', (string) $table->table_name . ' · ' . seo_server_status_format_bytes($total), 'info', 'Dato informativo de capacidad; el tamaño de una tabla no es por sí solo un error de MySQL/MariaDB.');
         }
+
+        if (function_exists('seo_system_mysql_audit_snapshot_checks')) {
+            foreach (seo_system_mysql_audit_snapshot_checks() as $mysql_audit_check) {
+                $checks[] = $mysql_audit_check;
+            }
+        }
     }
 
     return array(
@@ -2096,7 +2117,13 @@ function seo_server_status_store_snapshot($snapshot) {
         'warning' => $health['warning'],
     );
     $snapshot['history'] = array_slice($history, -20);
-    return update_option(seo_server_status_snapshot_option_name(), $snapshot, false);
+    $stored = update_option(seo_server_status_snapshot_option_name(), $snapshot, false);
+
+    if (function_exists('seo_system_mysql_audit_store_history') && function_exists('seo_system_mysql_audit_collect')) {
+        seo_system_mysql_audit_store_history(seo_system_mysql_audit_collect());
+    }
+
+    return $stored;
 }
 
 function seo_server_status_load_snapshot() {
@@ -2653,6 +2680,10 @@ function seo_server_status_render_mysql_tab() {
     echo '</div>';
 
     seo_server_status_render_largest_tables_section();
+
+    if (function_exists('seo_system_mysql_audit_render')) {
+        seo_system_mysql_audit_render();
+    }
 }
 
 /**

@@ -70,7 +70,9 @@ function seo_social_campaign_template_variables($campaign, $product_item, $track
         }
     }
 
-    $image = !empty($product_item['image_url']) ? (string) $product_item['image_url'] : '';
+    $image = function_exists('seo_social_campaign_product_image_url')
+        ? seo_social_campaign_product_image_url($product_item)
+        : (!empty($product_item['image_url']) ? (string) $product_item['image_url'] : '');
     if ($image === '' && $product_id) {
         $image = (string) get_the_post_thumbnail_url($product_id, 'full');
     }
@@ -168,7 +170,7 @@ function seo_social_campaign_tracking_url($product_id, $provider, $publication_i
  * @param string $template
  * @return int|WP_Error
  */
-function seo_social_campaign_create_pending_publication($product_id, $provider, $template)
+function seo_social_campaign_create_pending_publication($product_id, $provider, $template, $campaign_id = 0)
 {
     global $wpdb;
     $post = get_post(absint($product_id));
@@ -192,9 +194,31 @@ function seo_social_campaign_create_pending_publication($product_id, $provider, 
         array('%d', '%s', '%s', '%s', '%s', '%s', '%s')
     );
 
-    return false === $inserted
-        ? new WP_Error('campaign_publication_insert_failed', 'No se pudo registrar la publicacion de campaña.')
-        : (int) $wpdb->insert_id;
+    if (false === $inserted) {
+        return new WP_Error('campaign_publication_insert_failed', 'No se pudo registrar la publicacion de campaña.');
+    }
+
+    $publication_id = (int) $wpdb->insert_id;
+    $campaign_id = absint($campaign_id);
+    if ($campaign_id > 0) {
+        $column = $wpdb->get_var(
+            $wpdb->prepare(
+                "SHOW COLUMNS FROM {$table} LIKE %s",
+                'campaign_id'
+            )
+        );
+        if ($column) {
+            $wpdb->update(
+                $table,
+                array('campaign_id' => $campaign_id),
+                array('id' => $publication_id),
+                array('%d'),
+                array('%d')
+            );
+        }
+    }
+
+    return $publication_id;
 }
 
 /**
@@ -255,7 +279,7 @@ function seo_social_campaign_publish_product($campaign_id, $product_id, $provide
     }
 
     $template = seo_social_campaign_template($provider);
-    $publication_id = seo_social_campaign_create_pending_publication($product_id, $provider, $template);
+    $publication_id = seo_social_campaign_create_pending_publication($product_id, $provider, $template, $campaign_id);
     if (is_wp_error($publication_id)) {
         return $publication_id;
     }
@@ -276,6 +300,9 @@ function seo_social_campaign_publish_product($campaign_id, $product_id, $provide
         'image_url'      => $image_url,
         'provider'       => $saved_provider,
         'campaign_id'    => $campaign_id,
+        // Las campañas son publicaciones visuales: Facebook debe usar la foto
+        // aunque la conexión general esté configurada en modo "enlace".
+        'force_image'    => 1,
     );
 
     $result = call_user_func($provider_config['publish_callback'], $payload);
@@ -824,7 +851,7 @@ function seo_social_campaign_render_scheduler_panel()
         echo '<div class="seo-social-field"><label>Hora preferida</label><input type="time" name="preferred_time" value="10:30"></div>';
         echo '</div>';
         echo '<div class="seo-social-actions"><button class="button button-primary" type="submit" ' . disabled(empty($connected), true, false) . '>Insertar en huecos libres</button></div>';
-        echo '<p class="seo-social-help">No reprograma contenido existente. Si no cabe un producto dentro de las fechas de campaña respetando la separacion, se deja fuera.</p>';
+        echo '<p class="seo-social-help">No reprograma contenido existente. Si no cabe un producto dentro de las fechas de campaña respetando la separacion, se deja fuera. La creatividad usa la foto real del producto: Media local cuando existe o imagen externa activa del proveedor sin importarla a Media.</p>';
         echo '</form>';
 
         if (!empty($products[0])) {
@@ -833,7 +860,14 @@ function seo_social_campaign_render_scheduler_panel()
                 $label = isset($provider['label']) ? (string) $provider['label'] : ucfirst($provider_key);
                 $preview_url = add_query_arg(array('utm_source' => $provider_key, 'utm_medium' => 'social'), (string) $products[0]['url']);
                 $preview = seo_social_campaign_render_template(seo_social_campaign_template($provider_key), $campaign, $products[0], $preview_url);
-                echo '<div><strong>' . esc_html($label) . '</strong><div class="seo-social-preview">' . esc_html($preview) . '</div></div>';
+                $preview_image = function_exists('seo_social_campaign_resolve_publication_image_url')
+                    ? seo_social_campaign_resolve_publication_image_url($campaign, $products[0], $provider_key)
+                    : '';
+                echo '<div><strong>' . esc_html($label) . '</strong>';
+                if ($preview_image !== '') {
+                    echo '<div style="margin:8px 0"><img src="' . esc_url($preview_image) . '" alt="" style="display:block;width:100%;max-width:360px;height:auto;border:1px solid #dcdcde;border-radius:8px;background:#fff"></div>';
+                }
+                echo '<div class="seo-social-preview">' . esc_html($preview) . '</div></div>';
             }
             echo '</div></details>';
         }

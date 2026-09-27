@@ -1,5 +1,37 @@
 # Changelog
 
+## [Unreleased]
+
+Los cambios validados en `staging` que todavía no formen parte de una publicación de producción se documentan aquí. Al cerrar una release semanal, estas entradas se trasladan a la versión fechada correspondiente.
+
+### Administración y navegación
+
+- **Comentarista** se ha movido a **Herramientas** para reducir la saturación del menú principal, conservando su slug y funcionamiento interno.
+
+- Añadida la nueva sección **Contenidos** en el menú principal de SEO Taxonomy, que agrupa Productos, Categorías, Páginas, Entradas e Imágenes en una pantalla de accesos directos. Las rutas internas existentes se conservan para mantener compatibilidad con enlaces, formularios y redirecciones.
+
+### Marketing y campañas
+
+- Añadida pestaña **Informes** de Marketing con dos vistas: **Campañas** y **Redes sociales**. Mide visitas firmadas, interacciones, pedidos atribuidos, facturación atribuida, conversión y ventas observadas durante campañas.
+- Las franjas públicas de campaña incorporan enlaces firmados y contador de visitas por producto sin PII. Las visitas sociales conservan atribución de última interacción durante 30 días y se asocian al pedido WooCommerce (checkout clásico y Store API/Blocks).
+- Las publicaciones sociales de campaña guardan `campaign_id` para unir campaña → publicación → visita → pedido. Los informes distinguen explícitamente **atribución directa** de **ventas observadas durante el periodo**, evitando presentar correlación como causalidad.
+- Añadida una pestaña **Calendario** en Redes sociales que combina entradas, landings y productos de campañas en una vista mensual, con colores por tipo, filtro por red, detección de días libres y dobles publicaciones, y listado compacto responsive.
+- Las publicaciones sociales de campañas resuelven la foto real del producto desde Media o desde imágenes externas activas del proveedor, sin importar la fuente externa a Media.
+- Las creatividades sociales incorporan la foto real del producto junto con campaña, precio anterior, precio de oferta y descuento; si el servidor no puede leer una imagen remota, el publicador recibe la URL original como fallback.
+- Facebook fuerza formato imagen para publicaciones de campaña aunque la conexión general esté configurada como enlace. Las creatividades cacheadas se purgan automáticamente a los 60 días y no crean attachments.
+- Las tarjetas públicas de campaña reutilizan el resolvedor compartido de imágenes de producto: priorizan Media local cuando existe y, en caso contrario, cargan directamente imágenes externas activas del proveedor sin importarlas a Media. Se conservan fallbacks entre varias URLs de proveedor y, como último recurso, el logo/placeholder.
+
+## [2.3.8.1] - 2026-09-26
+
+### Marketing y campañas
+
+- Completada la gestión de campañas existentes con edición explícita mediante **Guardar cambios**.
+- Añadidos **Vaciar productos** y **Eliminar campaña** con restauración previa de precios aplicados y cancelación de tareas programadas.
+- Ampliada la importación/exportación a un formato completo con registros `campaign` y `product`, incluyendo producto, SKU, precio de campaña y posición.
+- La importación completa mantiene compatibilidad con los CSV/JSON antiguos que solo contienen calendario.
+- Añadido modo de importación por **fusión** (predeterminado) y opción explícita para **sustituir completamente los productos** de las campañas incluidas.
+- Los productos importados se resuelven por `product_id` y, como respaldo, por SKU; se mantienen las validaciones de solapamiento entre campañas.
+
 ## [2.3.7] - 2026-09-25
 
 Release centrada en la evolución comercial del sistema, el análisis de mercado, la automatización de campañas, la integración de inventarios con proveedores, la mejora de Dependiente y Solucionador, la optimización de informes y varias mejoras relacionadas con feeds comerciales, opiniones externas y Google Trends.
@@ -34,6 +66,8 @@ Release centrada en la evolución comercial del sistema, el análisis de mercado
 - Preparada la infraestructura para utilizar disponibilidad, precio y catálogo de proveedores como parte del análisis comercial.
 
 ### Dependiente V3 y cobertura del catálogo
+
+- Intérprete / Lingüista L9 incorpora diagnóstico en vivo sin modificar el algoritmo de aprendizaje: fase actual, repaso L8, conservación semántica, evidencias de ruido, patrones consolidados, regresión final, últimos 30 casos y exportación JSON del estado en curso.
 
 - Conectado **Dependiente V3** con el sistema actual.
 - Reforzada la cobertura editorial y semántica utilizada por Dependiente.

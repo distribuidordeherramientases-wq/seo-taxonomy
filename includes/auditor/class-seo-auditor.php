@@ -15,8 +15,9 @@ final class SEO_Auditor {
     const REPORT_OPTION = 'seo_auditor_last_report'; // legacy: se conserva para compatibilidad
     const CATALOG_REPORT_OPTION = 'seo_auditor_last_catalog_report';
     const ACADEMY_REPORT_OPTION = 'seo_auditor_last_academy_report';
+    const SCOPED_REPORT_OPTION = 'seo_auditor_scoped_reports';
     const HISTORY_OPTION = 'seo_auditor_history';
-    const REPORT_VERSION = 6;
+    const REPORT_VERSION = 7;
     const MAX_BEHAVIOR_PROBES = 60;
     const MAX_BEHAVIOR_CROSS_PROBES = 24;
     const MAX_BEHAVIOR_FAQ_PROBES = 18;
@@ -40,8 +41,11 @@ final class SEO_Auditor {
         // Auditorias separadas: catalogo y Academia/Estudiante nunca se ejecutan juntas.
         add_action('admin_post_seo_auditor_run_catalog', array(__CLASS__, 'handle_run_catalog'));
         add_action('admin_post_seo_auditor_run_academy', array(__CLASS__, 'handle_run_academy'));
+        add_action('admin_post_seo_auditor_run_scope', array(__CLASS__, 'handle_run_scope'));
         add_action('admin_post_seo_auditor_export_catalog', array(__CLASS__, 'handle_export_catalog'));
         add_action('admin_post_seo_auditor_export_academy', array(__CLASS__, 'handle_export_academy'));
+        add_action('admin_post_seo_auditor_export_scope', array(__CLASS__, 'handle_export_scope'));
+        add_action('admin_post_seo_auditor_export_quality', array(__CLASS__, 'handle_export_quality'));
     }
 
     public static function enqueue($hook) {
@@ -87,6 +91,47 @@ final class SEO_Auditor {
         exit;
     }
 
+    public static function handle_run_scope() {
+        self::guard_action('seo_auditor_run_scope');
+        $scope = self::normalize_scope(isset($_POST['scope']) ? wp_unslash($_POST['scope']) : '');
+        if (!$scope) {
+            wp_die(esc_html__('Ambito de auditoria no valido.', 'seo-taxonomy'));
+        }
+
+        @set_time_limit('engine' === $scope ? 600 : 300);
+        $report = self::run_scoped_audit($scope);
+        $reports = (array) get_option(self::SCOPED_REPORT_OPTION, array());
+        $reports[$scope] = $report;
+        update_option(self::SCOPED_REPORT_OPTION, $reports, false);
+
+        wp_safe_redirect(add_query_arg(array(
+            'page' => 'seo-dependiente',
+            'tab' => 'auditor',
+            'audited' => 'scope',
+            'audit_scope' => $scope,
+        ), admin_url('admin.php')));
+        exit;
+    }
+
+    public static function handle_export_scope() {
+        self::guard_action('seo_auditor_export_scope');
+        $scope = self::normalize_scope(isset($_POST['scope']) ? wp_unslash($_POST['scope']) : '');
+        $reports = (array) get_option(self::SCOPED_REPORT_OPTION, array());
+        self::stream_json_report(
+            $scope && !empty($reports[$scope]) ? (array) $reports[$scope] : array(),
+            'seo-auditor-' . ($scope ?: 'ambito')
+        );
+    }
+
+    public static function handle_export_quality() {
+        self::guard_action('seo_auditor_export_quality');
+        $reports = (array) get_option(self::SCOPED_REPORT_OPTION, array());
+        self::stream_json_report(
+            self::build_quality_overview_payload($reports),
+            'seo-auditor-calidad-seo'
+        );
+    }
+
     public static function handle_export() {
         // Compatibilidad: el export historico pasa a ser el JSON de catalogo.
         self::guard_action('seo_auditor_export');
@@ -120,9 +165,10 @@ final class SEO_Auditor {
         }
         $catalog_report = self::last_catalog_report();
         $academy_report = self::last_academy_report();
+        $scoped_reports = (array) get_option(self::SCOPED_REPORT_OPTION, array());
         $history = (array) get_option(self::HISTORY_OPTION, array());
         $view = sanitize_key((string) ($_GET['audit_view'] ?? 'summary'));
-        if (!in_array($view, array('summary','chain','findings','categories','architecture','behavior','academia'), true)) {
+        if (!in_array($view, array('summary','quality','chain','findings','categories','architecture','behavior','academia'), true)) {
             $view = 'summary';
         }
 
@@ -131,6 +177,12 @@ final class SEO_Auditor {
             echo '<div class="notice notice-success is-dismissible"><p>Auditoria de catalogo completada. No se ha ejecutado Academia ni se ha modificado contenido o conocimiento.</p></div>';
         } elseif ('academy' === $audited) {
             echo '<div class="notice notice-success is-dismissible"><p>Auditoria de Academia/Estudiante completada. No se ha recorrido el catalogo completo ni se ha modificado conocimiento.</p></div>';
+        } elseif ('scope' === $audited) {
+            $done_scope = self::normalize_scope((string) ($_GET['audit_scope'] ?? ''));
+            $labels = self::scope_definitions();
+            if ($done_scope && isset($labels[$done_scope])) {
+                echo '<div class="notice notice-success is-dismissible"><p>Auditoria de <strong>' . esc_html($labels[$done_scope]['label']) . '</strong> completada de forma independiente.</p></div>';
+            }
         }
 
         echo '<section class="seo-auditor">';
@@ -138,16 +190,25 @@ final class SEO_Auditor {
         echo '<div><h2>Auditor</h2><p>Dos auditorias independientes en la misma pestaña. <strong>Catalogo</strong> revisa productos, categorias, Vocabulary, FAQs, arquitectura e indice. <strong>Academia / Estudiante</strong> revisa lecciones, runs, promocion de reglas, snapshots y estado del aprendizaje. Ejecuta y exporta solo la que necesites.</p></div>';
         echo '</div>';
 
-        self::render_audit_actions($catalog_report, $academy_report);
+        self::render_audit_actions($catalog_report, $academy_report, $scoped_reports);
 
-        if (!$catalog_report && !$academy_report) {
+        $scope_view = self::normalize_scope((string) ($_GET['audit_scope'] ?? ''));
+        if ($scope_view && !empty($scoped_reports[$scope_view])) {
+            self::render_scope_report((array) $scoped_reports[$scope_view]);
+            echo '</section>';
+            return;
+        }
+
+        if (!$catalog_report && !$academy_report && !$scoped_reports) {
             self::render_empty();
             echo '</section>';
             return;
         }
 
         self::render_subnav($view);
-        if ('chain' === $view) {
+        if ('quality' === $view) {
+            self::render_quality_overview($scoped_reports);
+        } elseif ('chain' === $view) {
             if ($academy_report) self::render_chain($academy_report); else self::render_missing_scope('Academia / Estudiante');
         } elseif ('academia' === $view) {
             if ($academy_report) self::render_academia($academy_report); else self::render_missing_scope('Academia / Estudiante');
@@ -165,10 +226,38 @@ final class SEO_Auditor {
         echo '</section>';
     }
 
-    private static function render_audit_actions($catalog_report, $academy_report) {
+    private static function render_audit_actions($catalog_report, $academy_report, $scoped_reports = array()) {
+        $scope_defs = self::scope_definitions();
+
+        echo '<h3 style="margin:20px 0 10px">Auditorias por bloque</h3>';
+        echo '<p class="description" style="margin-top:0">Ejecuta solo el area que necesitas. Productos, categorias, posts, paginas y FAQs evitan cargar el resto del catalogo. Motor / indice conserva las pruebas profundas y puede tardar mas.</p>';
+        echo '<div class="seo-auditor__audit-actions">';
+        foreach ($scope_defs as $scope => $def) {
+            $scope_report = !empty($scoped_reports[$scope]) ? (array) $scoped_reports[$scope] : array();
+            echo '<div class="seo-auditor__audit-card"><div><strong>' . esc_html($def['label']) . '</strong><p>' . esc_html($def['description']) . '</p>';
+            if ($scope_report) {
+                echo '<span class="description">Ultima: ' . esc_html((string) ($scope_report['generated_at'] ?? '')) . ' · ' . esc_html((string) ($scope_report['execution_seconds'] ?? 0)) . ' s</span>';
+            }
+            echo '</div><div class="seo-auditor__actions">';
+            echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_auditor_run_scope"><input type="hidden" name="scope" value="' . esc_attr($scope) . '">';
+            wp_nonce_field('seo_auditor_run_scope');
+            submit_button($scope_report ? 'Repetir' : 'Auditar', 'primary', 'submit', false);
+            echo '</form>';
+            if ($scope_report) {
+                echo '<a class="button" href="' . esc_url(add_query_arg(array('page'=>'seo-dependiente','tab'=>'auditor','audit_scope'=>$scope), admin_url('admin.php'))) . '">Ver ultimo</a>';
+                echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_auditor_export_scope"><input type="hidden" name="scope" value="' . esc_attr($scope) . '">';
+                wp_nonce_field('seo_auditor_export_scope');
+                submit_button('JSON', 'secondary', 'submit', false);
+                echo '</form>';
+            }
+            echo '</div></div>';
+        }
+        echo '</div>';
+
+        echo '<h3 style="margin:22px 0 10px">Auditorias profundas / globales</h3>';
         echo '<div class="seo-auditor__audit-actions">';
 
-        echo '<div class="seo-auditor__audit-card"><div><strong>Auditoria de catalogo</strong><p>Fuente canonica, productos, categorias, Vocabulary, FAQs, relaciones, arquitectura, indice y pruebas del motor.</p>';
+        echo '<div class="seo-auditor__audit-card"><div><strong>Auditoria completa de catalogo</strong><p>Recorre productos, categorias, Vocabulary, FAQs, relaciones, arquitectura, indice y pruebas del motor en una sola ejecucion. Es la opcion mas lenta; usala solo cuando necesites una foto global.</p>';
         if ($catalog_report) echo '<span class="description">Ultima: '.esc_html((string)($catalog_report['generated_at']??'')).' · '.esc_html((string)($catalog_report['execution_seconds']??0)).' s</span>';
         echo '</div><div class="seo-auditor__actions">';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_auditor_run_catalog">';
@@ -204,6 +293,78 @@ final class SEO_Auditor {
         echo '<div class="notice notice-info inline"><p>No hay una auditoria guardada de '.esc_html($label).'. Ejecuta su boton arriba; no hace falta ejecutar la otra auditoria.</p></div>';
     }
 
+
+    private static function scope_definitions() {
+        return array(
+            'products' => array(
+                'label' => 'Productos · contenido e identidad',
+                'description' => 'Titulos, excerpts, descripciones, SEO, categoria, Vocabulary, SKU e identidad. No carga FAQs, posts, paginas, arquitectura ni indice.',
+            ),
+            'categories' => array(
+                'label' => 'Categorias y arquitectura',
+                'description' => 'Contenido de categorias, Vocabulary, relaciones y cadena Cluster → Hubs → categoria. Evita cargar textos completos de productos.',
+            ),
+            'posts' => array(
+                'label' => 'Posts',
+                'description' => 'Contenido editorial de entradas, slugs, duplicados y Vocabulary. Solo carga posts publicados.',
+            ),
+            'pages' => array(
+                'label' => 'Paginas y landings',
+                'description' => 'Paginas publicadas, incluidas landings y estructura editorial. Solo carga paginas.',
+            ),
+            'faqs' => array(
+                'label' => 'FAQs',
+                'description' => 'Owners, duplicados, respuestas, coherencia y orfandad. Carga solo la identidad minima de productos/categorias necesaria.',
+            ),
+            'engine' => array(
+                'label' => 'Motor / indice de Dependiente',
+                'description' => 'Indice derivado y pruebas conductuales contra el motor real. Es una auditoria profunda y puede tardar mas.',
+            ),
+        );
+    }
+
+    private static function normalize_scope($scope) {
+        $scope = sanitize_key((string) $scope);
+        $defs = self::scope_definitions();
+        return isset($defs[$scope]) ? $scope : '';
+    }
+
+    private static function render_scope_report($report) {
+        $scope = self::normalize_scope((string) ($report['audit_scope'] ?? ''));
+        $defs = self::scope_definitions();
+        $label = $scope && isset($defs[$scope]) ? $defs[$scope]['label'] : 'Ambito';
+        $summary = (array) ($report['summary'] ?? array());
+
+        echo '<div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin:18px 0">';
+        echo '<div><h3 style="margin:0 0 5px">Ultima auditoria · ' . esc_html($label) . '</h3>';
+        echo '<p class="description">Generada: ' . esc_html((string) ($report['generated_at'] ?? '')) . ' · ' . esc_html((string) ($report['execution_seconds'] ?? 0)) . ' s. Solo lectura: no modifica contenido ni aprendizaje.</p></div>';
+        echo '<a class="button" href="' . esc_url(add_query_arg(array('page'=>'seo-dependiente','tab'=>'auditor'), admin_url('admin.php'))) . '">Volver a Auditor</a>';
+        echo '</div>';
+
+        echo '<div class="seo-auditor__metrics">';
+        self::metric('Hallazgos', absint($summary['findings'] ?? 0));
+        self::metric('Criticos', absint($summary['critical'] ?? 0), 'critical');
+        self::metric('Alta', absint($summary['high'] ?? 0), 'high');
+        self::metric('Media', absint($summary['medium'] ?? 0), 'medium');
+        self::metric('Entidades a revisar', absint($summary['entities_to_review'] ?? 0));
+        echo '</div>';
+
+        if (!empty($report['notes']['performance'])) {
+            echo '<p class="description">' . esc_html((string) $report['notes']['performance']) . '</p>';
+        }
+
+        if ('engine' === $scope && !empty($report['behavior_audit'])) {
+            self::render_behavior($report);
+        }
+
+        if (!empty($report['quality']) && in_array($scope, array('products','categories','posts','pages'), true)) {
+            self::render_quality_block((array) $report['quality'], $scope);
+        }
+
+        echo '<h3>Hallazgos</h3>';
+        self::render_finding_table(array_slice((array) ($report['findings'] ?? array()), 0, 250));
+    }
+
     public static function last_report() {
         // Compatibilidad externa: desde 0.6.0 equivale al ultimo informe de catalogo.
         return self::last_catalog_report();
@@ -221,6 +382,140 @@ final class SEO_Auditor {
         if (is_array($report) && $report) return $report;
         $legacy = get_option(self::REPORT_OPTION, array());
         return is_array($legacy) && !empty($legacy['academy']) ? self::academy_report_from_legacy($legacy) : array();
+    }
+
+
+    public static function run_scoped_audit($scope) {
+        $scope = self::normalize_scope($scope);
+        if (!$scope) return array();
+
+        self::$findings = array();
+        self::$rule_counts = array();
+        $started = microtime(true);
+        $extra = array();
+        $inventory_summary = array();
+
+        if ('products' === $scope) {
+            $inventory = self::collect_products_scope();
+            $vocabulary = self::load_object_vocabulary_for_types(array('product'));
+            self::audit_products((array) $inventory['products'], $vocabulary, (array) $inventory['categories']);
+            $extra['quality'] = self::build_product_quality(
+                (array) $inventory['products'],
+                $vocabulary
+            );
+            $inventory_summary = array(
+                'products' => count((array) $inventory['products']),
+                'categories' => count((array) $inventory['categories']),
+            );
+        } elseif ('categories' === $scope) {
+            $inventory = self::collect_categories_scope();
+            $vocabulary = self::load_object_vocabulary_for_types(array('product_cat'));
+            self::audit_categories(
+                (array) $inventory['categories'],
+                (array) $inventory['category_products'],
+                $vocabulary,
+                (array) $inventory['category_content']
+            );
+            $relation_data = self::audit_relations(
+                (array) $inventory['relations'],
+                (array) $inventory['categories'],
+                (array) $inventory['category_products']
+            );
+            $extra['architecture_profiles'] = self::audit_architecture_sizing($relation_data, (array) $inventory['category_products']);
+            self::audit_architecture_content($relation_data, (array) $inventory['categories']);
+            $extra['quality'] = self::build_category_quality(
+                (array) $inventory['categories'],
+                (array) $inventory['category_products'],
+                (array) $inventory['category_content'],
+                (array) $inventory['relations'],
+                $vocabulary
+            );
+            $inventory_summary = array(
+                'categories' => count((array) $inventory['categories']),
+                'relations' => count((array) $inventory['relations']),
+                'categories_with_products' => count(array_filter((array) $inventory['category_products'])),
+            );
+        } elseif ('posts' === $scope || 'pages' === $scope) {
+            $post_type = 'posts' === $scope ? 'post' : 'page';
+            $editorial = self::collect_editorial_scope($post_type);
+            $vocabulary = self::load_object_vocabulary_for_types(array($post_type));
+            self::audit_editorial($editorial, $vocabulary);
+            $extra['quality'] = self::build_editorial_quality($editorial, $vocabulary, $post_type);
+            $inventory_summary = array($scope => count($editorial));
+        } elseif ('faqs' === $scope) {
+            $inventory = self::collect_faq_scope();
+            $vocabulary = self::load_object_vocabulary_for_types(array('product','product_cat'));
+            self::audit_faqs(
+                (array) $inventory['faqs'],
+                (array) $inventory['published_product_ids'],
+                (array) $inventory['categories'],
+                (array) $inventory['products'],
+                $vocabulary,
+                (array) $inventory['category_content']
+            );
+            $inventory_summary = array(
+                'faqs' => count((array) $inventory['faqs']),
+                'products_minimal' => count((array) $inventory['products']),
+                'categories' => count((array) $inventory['categories']),
+            );
+        } elseif ('engine' === $scope) {
+            // El motor necesita una muestra rica de la fuente para ejecutar probes reales.
+            // Se mantiene separado para que el usuario no pague este coste al auditar contenido.
+            $inventory = self::collect_inventory();
+            $data_state = self::audit_data_state($inventory);
+            $vocabulary = self::load_object_vocabulary();
+            self::audit_index_state($inventory);
+            $extra['data_state'] = $data_state;
+            $extra['behavior_audit'] = self::audit_behavior($inventory, $vocabulary, $data_state);
+            $extra['pre_academy_gate'] = self::build_pre_academy_gate(
+                self::build_source_quality($inventory, self::$findings),
+                $extra['behavior_audit']
+            );
+            $inventory_summary = array(
+                'published_products' => absint($inventory['published_products'] ?? 0),
+                'indexed_products' => absint($inventory['indexed_products'] ?? 0),
+            );
+        }
+
+        usort(self::$findings, static function($a, $b) {
+            $weights = array('critical'=>4,'high'=>3,'medium'=>2,'low'=>1,'info'=>0);
+            $wa = $weights[$a['severity'] ?? 'info'] ?? 0;
+            $wb = $weights[$b['severity'] ?? 'info'] ?? 0;
+            if ($wa !== $wb) return $wb <=> $wa;
+            return strcmp((string) ($a['code'] ?? ''), (string) ($b['code'] ?? ''));
+        });
+
+        $summary = array('findings'=>count(self::$findings),'critical'=>0,'high'=>0,'medium'=>0,'low'=>0,'info'=>0,'entities_to_review'=>0);
+        $entities = array();
+        foreach (self::$findings as $finding) {
+            $severity = (string) ($finding['severity'] ?? 'info');
+            if (isset($summary[$severity])) $summary[$severity]++;
+            $key = (string) ($finding['entity_type'] ?? '') . ':' . (string) ($finding['entity_id'] ?? '');
+            if (':' !== $key) $entities[$key] = true;
+        }
+        $summary['entities_to_review'] = count($entities);
+
+        $report = array(
+            'schema' => array('name'=>'seo_data_auditor_scope','version'=>self::REPORT_VERSION),
+            'auditor_version' => SEO_AUDITOR_VERSION,
+            'generated_at' => current_time('mysql'),
+            'generated_at_gmt' => gmdate('Y-m-d H:i:s'),
+            'execution_seconds' => round(microtime(true) - $started, 3),
+            'mode' => 'manual_read_only',
+            'audit_scope' => $scope,
+            'audit_status' => 'scope_completed',
+            'summary' => $summary,
+            'inventory' => $inventory_summary,
+            'rule_counts' => self::$rule_counts,
+            'findings' => array_slice(self::$findings, 0, self::MAX_FINDINGS),
+            'notes' => array(
+                'read_only' => true,
+                'no_content_mutation' => true,
+                'no_learning_mutation' => true,
+                'performance' => 'La auditoria carga solo las fuentes necesarias para este bloque. Motor / indice es la excepcion porque sus probes necesitan una muestra rica del catalogo.',
+            ),
+        );
+        return array_merge($report, $extra);
     }
 
     public static function run_audit() {
@@ -462,6 +757,253 @@ final class SEO_Auditor {
             'learning_chain'=>(array)($legacy['learning_chain']??array()),
             'findings'=>$findings,
             'notes'=>array('legacy_full_report_split'=>true,'read_only'=>true),
+        );
+    }
+
+
+    private static function load_object_vocabulary_for_types($types) {
+        global $wpdb;
+        $allowed = array('product','product_cat','post','page');
+        $types = array_values(array_intersect($allowed, array_map('sanitize_key', (array) $types)));
+        if (!$types) return array();
+
+        $ov = $wpdb->prefix . 'seo_object_vocabulary';
+        $v = $wpdb->prefix . 'seo_vocabulary';
+        if (!self::table_exists($ov) || !self::table_exists($v)) return array();
+
+        $quoted = array();
+        foreach ($types as $type) $quoted[] = "'" . esc_sql($type) . "'";
+        $rows = (array) $wpdb->get_results(
+            "SELECT ov.object_type,ov.object_id,v.id vocabulary_id,v.semantic_group,v.slug,v.label
+             FROM {$ov} ov
+             INNER JOIN {$v} v ON v.id=ov.vocabulary_id AND v.active=1
+             WHERE ov.status=1 AND ov.object_type IN (" . implode(',', $quoted) . ")
+             ORDER BY ov.object_type,ov.object_id,v.semantic_group,v.id",
+            ARRAY_A
+        );
+
+        $map = array();
+        foreach ($rows as $row) {
+            $key = sanitize_key((string) $row['object_type']) . ':' . absint($row['object_id']);
+            $map[$key][] = array(
+                'id' => absint($row['vocabulary_id']),
+                'group' => sanitize_key((string) $row['semantic_group']),
+                'slug' => (string) $row['slug'],
+                'label' => (string) $row['label'],
+            );
+        }
+        return $map;
+    }
+
+    private static function collect_products_scope() {
+        global $wpdb;
+
+        $rows = (array) $wpdb->get_results(
+            "SELECT ID,post_title,post_name,post_excerpt,post_content,post_modified,post_modified_gmt
+             FROM {$wpdb->posts}
+             WHERE post_type='product' AND post_status='publish'
+             ORDER BY ID ASC",
+            ARRAY_A
+        );
+
+        $products = array();
+        foreach ($rows as $row) {
+            $pid = absint($row['ID'] ?? 0);
+            if (!$pid) continue;
+            $products[$pid] = array(
+                'product_id'=>$pid,
+                'title'=>(string)($row['post_title'] ?? ''),
+                'slug'=>(string)($row['post_name'] ?? ''),
+                'excerpt'=>(string)($row['post_excerpt'] ?? ''),
+                'description'=>(string)($row['post_content'] ?? ''),
+                'seo_title'=>'',
+                'seo_description'=>'',
+                'sku'=>'',
+                'identifiers'=>array(),
+                'shipping'=>array(),
+                'brand_name'=>'',
+                'categories'=>array(),
+                'tags'=>array(),
+                'attributes'=>array(),
+                'taxonomies'=>array(),
+            );
+        }
+
+        if ($products) {
+            $meta_rows = (array) $wpdb->get_results(
+                "SELECT pm.post_id,pm.meta_key,pm.meta_value
+                 FROM {$wpdb->postmeta} pm
+                 INNER JOIN {$wpdb->posts} p ON p.ID=pm.post_id AND p.post_type='product' AND p.post_status='publish'
+                 WHERE pm.meta_key IN ('_sku','_yoast_wpseo_title','_yoast_wpseo_metadesc','rank_math_title','rank_math_description','_aioseo_title','_aioseo_description','_seo_proveedor_id_externo','_seo_proveedor_mpn','_global_unique_id','_wc_gla_gtin','_alg_ean','_ean','ean','_gtin','gtin','wpm_gtin_code')",
+                ARRAY_A
+            );
+            foreach ($meta_rows as $meta) {
+                $pid = absint($meta['post_id'] ?? 0);
+                if (!$pid || empty($products[$pid])) continue;
+                $key = (string) ($meta['meta_key'] ?? '');
+                $value = trim((string) ($meta['meta_value'] ?? ''));
+                if ('_sku' === $key && '' === $products[$pid]['sku']) $products[$pid]['sku'] = $value;
+                elseif (in_array($key,array('_yoast_wpseo_title','rank_math_title','_aioseo_title'),true) && '' === $products[$pid]['seo_title']) $products[$pid]['seo_title'] = $value;
+                elseif (in_array($key,array('_yoast_wpseo_metadesc','rank_math_description','_aioseo_description'),true) && '' === $products[$pid]['seo_description']) $products[$pid]['seo_description'] = $value;
+                elseif (in_array($key,array('_seo_proveedor_id_externo','_seo_proveedor_mpn','_global_unique_id','_wc_gla_gtin','_alg_ean','_ean','ean','_gtin','gtin','wpm_gtin_code'),true) && '' !== $value) $products[$pid]['identifiers'][$key] = $value;
+            }
+
+            $term_rows = (array) $wpdb->get_results(
+                "SELECT tr.object_id,tt.taxonomy,t.term_id,t.slug,t.name
+                 FROM {$wpdb->term_relationships} tr
+                 INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id=tr.term_taxonomy_id
+                 INNER JOIN {$wpdb->terms} t ON t.term_id=tt.term_id
+                 INNER JOIN {$wpdb->posts} p ON p.ID=tr.object_id AND p.post_type='product' AND p.post_status='publish'
+                 WHERE tt.taxonomy IN ('product_cat','product_tag','product_brand','pwb-brand','yith_product_brand')
+                 ORDER BY tr.object_id,tt.taxonomy,t.term_id",
+                ARRAY_A
+            );
+            foreach ($term_rows as $term_row) {
+                $pid = absint($term_row['object_id'] ?? 0);
+                if (!$pid || empty($products[$pid])) continue;
+                $tax = sanitize_key((string) ($term_row['taxonomy'] ?? ''));
+                $term = array('id'=>absint($term_row['term_id'] ?? 0),'slug'=>(string)($term_row['slug'] ?? ''),'name'=>(string)($term_row['name'] ?? ''));
+                if ('product_cat' === $tax) $products[$pid]['categories'][] = $term;
+                elseif ('product_tag' === $tax) $products[$pid]['tags'][] = $term;
+                elseif (in_array($tax,array('product_brand','pwb-brand','yith_product_brand'),true) && '' === $products[$pid]['brand_name']) $products[$pid]['brand_name'] = (string) $term['name'];
+            }
+        }
+
+        $terms = get_terms(array('taxonomy'=>'product_cat','hide_empty'=>false));
+        $categories = array();
+        if (!is_wp_error($terms)) {
+            foreach ((array) $terms as $term) $categories[absint($term->term_id)] = $term;
+        }
+
+        return array('products'=>$products,'categories'=>$categories);
+    }
+
+    private static function collect_categories_scope() {
+        global $wpdb;
+
+        $terms = get_terms(array('taxonomy'=>'product_cat','hide_empty'=>false));
+        $categories = array();
+        if (!is_wp_error($terms)) {
+            foreach ((array) $terms as $term) $categories[absint($term->term_id)] = $term;
+        }
+
+        $category_products = array();
+        $rows = (array) $wpdb->get_results(
+            "SELECT tt.term_id,tr.object_id
+             FROM {$wpdb->term_relationships} tr
+             INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id=tr.term_taxonomy_id AND tt.taxonomy='product_cat'
+             INNER JOIN {$wpdb->posts} p ON p.ID=tr.object_id AND p.post_type='product' AND p.post_status='publish'
+             ORDER BY tt.term_id,tr.object_id",
+            ARRAY_A
+        );
+        foreach ($rows as $row) {
+            $cid = absint($row['term_id'] ?? 0);
+            $pid = absint($row['object_id'] ?? 0);
+            if ($cid && $pid) $category_products[$cid][$pid] = true;
+        }
+
+        $category_content = array();
+        $nodes = $wpdb->prefix . 'seo_nodes';
+        if (self::table_exists($nodes)) {
+            $node_rows = (array) $wpdb->get_results(
+                "SELECT object_type,object_id,seo_role,keywords
+                 FROM {$nodes}
+                 WHERE status=1 AND object_type IN ('category','product_cat')
+                 ORDER BY object_id,seo_role",
+                ARRAY_A
+            );
+            foreach ($node_rows as $row) {
+                $cid = absint($row['object_id'] ?? 0);
+                $role = sanitize_key((string) ($row['seo_role'] ?? ''));
+                if ($cid && $role) $category_content[$cid][$role] = (string) ($row['keywords'] ?? '');
+            }
+        }
+
+        $rel_table = $wpdb->prefix . 'seo_relations';
+        $relations = self::table_exists($rel_table)
+            ? (array) $wpdb->get_results("SELECT source_type,source_id,target_type,target_id,relation_type FROM {$rel_table} ORDER BY source_type,source_id,target_type,target_id,relation_type", ARRAY_A)
+            : array();
+
+        return array(
+            'categories'=>$categories,
+            'category_products'=>$category_products,
+            'category_content'=>$category_content,
+            'relations'=>$relations,
+        );
+    }
+
+    private static function collect_editorial_scope($post_type) {
+        global $wpdb;
+        $post_type = 'post' === $post_type ? 'post' : 'page';
+        return (array) $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT ID,post_type,post_title,post_name,post_excerpt,post_content,post_modified,post_author
+                 FROM {$wpdb->posts}
+                 WHERE post_status='publish' AND post_type=%s
+                 ORDER BY ID ASC",
+                $post_type
+            ),
+            ARRAY_A
+        );
+    }
+
+    private static function collect_faq_scope() {
+        global $wpdb;
+
+        $product_rows = (array) $wpdb->get_results(
+            "SELECT ID,post_title,post_excerpt
+             FROM {$wpdb->posts}
+             WHERE post_type='product' AND post_status='publish'
+             ORDER BY ID ASC",
+            ARRAY_A
+        );
+        $products = array();
+        $published_product_ids = array();
+        foreach ($product_rows as $row) {
+            $pid = absint($row['ID'] ?? 0);
+            if (!$pid) continue;
+            $published_product_ids[$pid] = true;
+            $products[$pid] = array(
+                'title'=>(string)($row['post_title'] ?? ''),
+                'excerpt'=>(string)($row['post_excerpt'] ?? ''),
+                'attributes'=>array(),
+            );
+        }
+
+        $terms = get_terms(array('taxonomy'=>'product_cat','hide_empty'=>false));
+        $categories = array();
+        if (!is_wp_error($terms)) {
+            foreach ((array) $terms as $term) $categories[absint($term->term_id)] = $term;
+        }
+
+        $category_content = array();
+        $nodes = $wpdb->prefix . 'seo_nodes';
+        if (self::table_exists($nodes)) {
+            $node_rows = (array) $wpdb->get_results(
+                "SELECT object_id,seo_role,keywords
+                 FROM {$nodes}
+                 WHERE status=1 AND object_type IN ('category','product_cat')
+                 ORDER BY object_id,seo_role",
+                ARRAY_A
+            );
+            foreach ($node_rows as $row) {
+                $cid = absint($row['object_id'] ?? 0);
+                $role = sanitize_key((string) ($row['seo_role'] ?? ''));
+                if ($cid && $role) $category_content[$cid][$role] = (string) ($row['keywords'] ?? '');
+            }
+        }
+
+        $faq_table = $wpdb->prefix . 'seo_faq';
+        $faqs = self::table_exists($faq_table)
+            ? (array) $wpdb->get_results("SELECT id,object_type,object_id,question,LEFT(answer,2000) answer,CHAR_LENGTH(TRIM(answer)) answer_length,active,updated_at FROM {$faq_table} WHERE active=1 ORDER BY id ASC", ARRAY_A)
+            : array();
+
+        return array(
+            'products'=>$products,
+            'published_product_ids'=>$published_product_ids,
+            'categories'=>$categories,
+            'category_content'=>$category_content,
+            'faqs'=>$faqs,
         );
     }
 
@@ -1761,10 +2303,813 @@ final class SEO_Auditor {
         echo '</div>';
     }
 
+
+    /**
+     * Modelo interno de calidad SEO.
+     *
+     * No pretende reproducir una puntuacion de Google. Resume senales observables
+     * que el proyecto puede controlar y que se alinean con contenido util,
+     * fiabilidad, diferenciacion, arquitectura semantica y preparacion tecnica.
+     */
+    private static function quality_dimensions() {
+        return array(
+            'utility' => array('label'=>'Relevancia y utilidad','max'=>25),
+            'trust' => array('label'=>'Confianza y rigor','max'=>20),
+            'differentiation' => array('label'=>'Diferenciacion / canibalizacion','max'=>20),
+            'architecture' => array('label'=>'Arquitectura semantica','max'=>20),
+            'technical' => array('label'=>'Preparacion tecnica','max'=>15),
+        );
+    }
+
+    private static function quality_band($score) {
+        if (null === $score) return 'no_aplica';
+        $score = (int) $score;
+        if ($score >= 85) return 'fuerte';
+        if ($score >= 70) return 'correcta';
+        if ($score >= 55) return 'mejorable';
+        return 'debil';
+    }
+
+    private static function quality_band_label($band) {
+        $map = array(
+            'fuerte'=>'Fuerte',
+            'correcta'=>'Correcta',
+            'mejorable'=>'Mejorable',
+            'debil'=>'Debil',
+            'no_aplica'=>'No aplica',
+        );
+        return $map[$band] ?? ucfirst((string) $band);
+    }
+
+    private static function quality_intent_key($title) {
+        $tokens = array_values(array_filter(
+            explode(' ', self::norm((string) $title)),
+            static function($token) {
+                if (strlen((string) $token) < 4) return false;
+                return !in_array((string) $token, array(
+                    'como','para','guia','guias','elegir','comprar','mejor','mejores',
+                    'producto','productos','pagina','paginas','todo','todos','todas',
+                    'segun','sobre','nuestro','nuestra'
+                ), true);
+            }
+        ));
+        $tokens = array_values(array_unique($tokens));
+        sort($tokens, SORT_STRING);
+        return implode(' ', array_slice($tokens, 0, 12));
+    }
+
+    private static function quality_template_signature($text, $title='') {
+        $body = self::norm(wp_strip_all_tags(strip_shortcodes((string) $text)));
+        if ($body === '') return '';
+        $title_tokens = array_values(array_filter(explode(' ', self::norm((string) $title))));
+        $tokens = array_values(array_filter(explode(' ', $body), static function($token) use ($title_tokens) {
+            if ($token === '' || strlen($token) < 3) return false;
+            if (in_array($token, $title_tokens, true)) return false;
+            if (preg_match('/^[0-9]+(?:[.,][0-9]+)?$/', $token)) return false;
+            return true;
+        }));
+        if (count($tokens) < 10) return '';
+        return implode(' ', array_slice($tokens, 0, 28));
+    }
+
+    private static function quality_numeric_detail($text) {
+        return preg_match('/\b\d+(?:[.,]\d+)?\s*(?:w|kw|v|a|ah|mah|mm|cm|m|kg|g|l|bar|psi|rpm|nm|hz|°c|db)\b/iu', (string) $text) ? true : false;
+    }
+
+    private static function quality_unique_token_count($text) {
+        $tokens = array_values(array_filter(explode(' ', self::norm((string) $text)), array(__CLASS__, 'meaningful_token')));
+        return count(array_unique($tokens));
+    }
+
+    private static function quality_finalize_row($type, $id, $title, $dimensions, $flags=array(), $context=array()) {
+        $defs = self::quality_dimensions();
+        $clean = array();
+        $total = 0;
+        foreach ($defs as $key=>$def) {
+            $value = isset($dimensions[$key]) ? (int) round((float) $dimensions[$key]) : 0;
+            $value = max(0, min((int) $def['max'], $value));
+            $clean[$key] = $value;
+            $total += $value;
+        }
+
+        $url = '';
+        if ('category' === $type) {
+            $term_url = get_term_link(absint($id), 'product_cat');
+            $url = is_wp_error($term_url) ? '' : (string) $term_url;
+        } else {
+            $url = get_permalink(absint($id)) ?: '';
+        }
+
+        return array(
+            'entity_type'=>sanitize_key((string) $type),
+            'entity_id'=>absint($id),
+            'title'=>(string) $title,
+            'score'=>$total,
+            'band'=>self::quality_band($total),
+            'dimensions'=>$clean,
+            'flags'=>array_slice(array_values(array_unique(array_filter(array_map('strval',(array)$flags)))),0,8),
+            'intent_key'=>self::quality_intent_key($title),
+            'edit_url'=>self::edit_url($type, $id),
+            'url'=>$url,
+            'context'=>(array) $context,
+        );
+    }
+
+    private static function quality_na_row($type, $id, $title, $reason, $context=array()) {
+        $row = self::quality_finalize_row($type, $id, $title, array(), array(), $context);
+        $row['score'] = null;
+        $row['band'] = 'no_aplica';
+        $row['flags'] = array((string) $reason);
+        return $row;
+    }
+
+    private static function quality_report($scope, $rows) {
+        $rows = array_values((array) $rows);
+        usort($rows, static function($a,$b) {
+            $as = null === ($a['score'] ?? null) ? 999 : (int) $a['score'];
+            $bs = null === ($b['score'] ?? null) ? 999 : (int) $b['score'];
+            if ($as !== $bs) return $as <=> $bs;
+            return strcmp((string)($a['title']??''),(string)($b['title']??''));
+        });
+
+        $values = array();
+        $bands = array('fuerte'=>0,'correcta'=>0,'mejorable'=>0,'debil'=>0,'no_aplica'=>0);
+        foreach ($rows as $row) {
+            $band = (string) ($row['band'] ?? 'no_aplica');
+            if (!isset($bands[$band])) $bands[$band] = 0;
+            $bands[$band]++;
+            if (null !== ($row['score'] ?? null)) $values[] = (int) $row['score'];
+        }
+
+        $average = $values ? round(array_sum($values)/count($values),1) : null;
+        $median = $values ? self::median($values) : null;
+
+        return array(
+            'model'=>array(
+                'name'=>'seo_internal_quality_score',
+                'version'=>1,
+                'not_google_score'=>true,
+                'external_authority_included'=>false,
+                'dimensions'=>self::quality_dimensions(),
+                'note'=>'Puntuacion interna de priorizacion. No reproduce algoritmos ni una puntuacion de Google y no incluye autoridad externa/backlinks.',
+            ),
+            'scope'=>sanitize_key((string) $scope),
+            'summary'=>array(
+                'entities'=>count($rows),
+                'scored'=>count($values),
+                'not_applicable'=>count($rows)-count($values),
+                'average'=>$average,
+                'median'=>$median,
+                'bands'=>$bands,
+            ),
+            'rows'=>$rows,
+        );
+    }
+
+    private static function build_product_quality($products, $vocabulary) {
+        $title_groups = array();
+        $sku_groups = array();
+        $identifier_groups = array();
+        $template_groups = array();
+
+        foreach ((array) $products as $pid=>$p) {
+            $title_key = self::norm((string)($p['title']??''));
+            if ($title_key !== '') $title_groups[$title_key][] = absint($pid);
+
+            $sku = self::norm((string)($p['sku']??''));
+            if ($sku !== '') $sku_groups[$sku][] = absint($pid);
+
+            foreach ((array)($p['identifiers']??array()) as $kind=>$value) {
+                $value_key = self::norm((string)$value);
+                if ($value_key !== '') $identifier_groups[$kind.':'.$value_key][] = absint($pid);
+            }
+
+            $signature = self::quality_template_signature((string)($p['description']??''),(string)($p['title']??''));
+            if ($signature !== '') $template_groups[$signature][] = absint($pid);
+        }
+
+        $rows = array();
+        foreach ((array) $products as $pid=>$p) {
+            $pid = absint($pid);
+            $title = trim((string)($p['title']??''));
+            $excerpt = trim(wp_strip_all_tags((string)($p['excerpt']??'')));
+            $description = trim(wp_strip_all_tags(strip_shortcodes((string)($p['description']??''))));
+            $slug = trim((string)($p['slug']??''));
+            $flags = array();
+
+            $utility = 0;
+            if ($title !== '') $utility += 4;
+            $excerpt_len = self::strlen($excerpt);
+            $utility += $excerpt_len >= 60 ? 5 : ($excerpt_len > 0 ? 3 : 0);
+            $desc_len = self::strlen($description);
+            $utility += $desc_len >= 250 ? 10 : ($desc_len >= 120 ? 7 : ($desc_len > 0 ? 3 : 0));
+            $unique_tokens = self::quality_unique_token_count($description);
+            $utility += $unique_tokens >= 24 ? 4 : ($unique_tokens >= 12 ? 2 : 0);
+            if (self::quality_numeric_detail($description)) $utility += 2;
+
+            $trust = 0;
+            $has_stable_id = trim((string)($p['sku']??'')) !== '' || !empty($p['identifiers']);
+            if ($has_stable_id) $trust += 5; else $flags[] = 'Sin SKU o identificador estable visible para Auditor.';
+            if (trim((string)($p['brand_name']??'')) !== '') $trust += 3;
+
+            if ($excerpt !== '' && $title !== '') {
+                $a = self::text_alignment_ratio($title,$excerpt);
+                $trust += $a >= 0.20 ? 4 : ($a >= 0.10 ? 3 : 1);
+                if ($a < 0.10) $flags[] = 'Titulo y excerpt con alineacion debil.';
+            }
+            if ($description !== '' && $title !== '') {
+                $a = self::text_alignment_ratio($title,$description);
+                $trust += $a >= 0.16 ? 4 : ($a >= 0.08 ? 3 : 1);
+                if ($a < 0.08) $flags[] = 'Descripcion con poca evidencia de identidad respecto al titulo.';
+            }
+            $category_alignment = false;
+            foreach ((array)($p['categories']??array()) as $cat) {
+                $cat_name = is_array($cat) ? (string)($cat['name']??'') : '';
+                if ($cat_name !== '' && self::meaningful_overlap($title.' '.$description,$cat_name)) {
+                    $category_alignment = true;
+                    break;
+                }
+            }
+            if ($category_alignment) $trust += 4;
+            elseif (!empty($p['categories'])) $trust += 2;
+
+            $differentiation = 20;
+            $title_key = self::norm($title);
+            if ($title_key !== '' && count((array)($title_groups[$title_key]??array())) > 1) {
+                $differentiation -= 8;
+                $flags[] = 'Titulo compartido con otros productos.';
+            }
+            $sku_key = self::norm((string)($p['sku']??''));
+            if ($sku_key !== '' && count((array)($sku_groups[$sku_key]??array())) > 1) {
+                $differentiation -= 10;
+                $flags[] = 'SKU repetido entre varios productos.';
+            }
+            foreach ((array)($p['identifiers']??array()) as $kind=>$value) {
+                $ik = $kind.':'.self::norm((string)$value);
+                if (count((array)($identifier_groups[$ik]??array())) > 1) {
+                    $differentiation -= 8;
+                    $flags[] = 'Identificador comercial repetido.';
+                    break;
+                }
+            }
+            $signature = self::quality_template_signature($description,$title);
+            $template_count = $signature !== '' ? count((array)($template_groups[$signature]??array())) : 0;
+            if ($template_count >= 10) {
+                $differentiation -= 6;
+                $flags[] = 'Patron de descripcion muy repetido en el catalogo.';
+            } elseif ($template_count >= 3) {
+                $differentiation -= 4;
+                $flags[] = 'Descripcion con plantilla repetida.';
+            } elseif ($template_count > 1) {
+                $differentiation -= 2;
+            }
+
+            $architecture = 0;
+            if (!empty($p['categories'])) $architecture += 8; else $flags[] = 'Sin categoria de producto.';
+            $vocab = (array)($vocabulary['product:'.$pid]??array());
+            if ($vocab) $architecture += 8; else $flags[] = 'Sin Vocabulary canonico activo.';
+            if (!empty($p['tags']) || trim((string)($p['brand_name']??'')) !== '') $architecture += 4;
+
+            $technical = 0;
+            if ($slug !== '') $technical += 5; else $flags[] = 'Slug vacio.';
+            $technical += trim((string)($p['seo_title']??'')) !== '' ? 3 : 1;
+            $technical += trim((string)($p['seo_description']??'')) !== '' ? 3 : ($excerpt !== '' ? 2 : 0);
+            if (get_permalink($pid)) $technical += 2;
+            if (function_exists('wp_get_canonical_url') && wp_get_canonical_url($pid)) $technical += 2;
+
+            $rows[] = self::quality_finalize_row(
+                'product',
+                $pid,
+                $title ?: ('Producto #'.$pid),
+                array(
+                    'utility'=>$utility,
+                    'trust'=>$trust,
+                    'differentiation'=>$differentiation,
+                    'architecture'=>$architecture,
+                    'technical'=>$technical,
+                ),
+                $flags,
+                array('template_reuse'=>$template_count,'vocabulary_count'=>count($vocab))
+            );
+        }
+
+        return self::quality_report('products',$rows);
+    }
+
+    private static function build_category_quality($categories, $category_products, $category_content, $relations, $vocabulary) {
+        $title_groups = array();
+        $slug_groups = array();
+        $template_groups = array();
+        $children = array();
+        $hub_relations = array();
+
+        foreach ((array)$categories as $cid=>$term) {
+            $cid = absint($cid);
+            $title_groups[self::norm((string)$term->name)][] = $cid;
+            $slug_groups[self::norm((string)$term->slug)][] = $cid;
+            if (absint($term->parent) > 0) $children[absint($term->parent)][] = $cid;
+
+            $node = (array)($category_content[$cid]??array());
+            $desc = (string)($node['description']??$term->description);
+            $signature = self::quality_template_signature($desc,(string)$term->name);
+            if ($signature !== '') $template_groups[$signature][] = $cid;
+        }
+
+        foreach ((array)$relations as $rel) {
+            if (
+                'hub_secondary_to_category' === (string)($rel['relation_type']??'')
+                && 'product_cat' === (string)($rel['target_type']??'')
+            ) {
+                $hub_relations[absint($rel['target_id']??0)][] = absint($rel['source_id']??0);
+            }
+        }
+
+        $rows = array();
+        foreach ((array)$categories as $cid=>$term) {
+            $cid = absint($cid);
+            $name = trim((string)$term->name);
+            $slug = trim((string)$term->slug);
+            $node = (array)($category_content[$cid]??array());
+            $excerpt = trim(wp_strip_all_tags((string)($node['excerpt']??'')));
+            $desc = trim(wp_strip_all_tags((string)($node['description']??$term->description)));
+            $products = count((array)($category_products[$cid]??array()));
+            $child_count = count((array)($children[$cid]??array()));
+            $vocab = (array)($vocabulary['product_cat:'.$cid]??array());
+            $flags = array();
+
+            $utility = 0;
+            if ($name !== '') $utility += 4;
+            $excerpt_len = self::strlen($excerpt);
+            $utility += $excerpt_len >= 50 ? 5 : ($excerpt_len > 0 ? 3 : 0);
+            $desc_len = self::strlen($desc);
+            $utility += $desc_len >= 220 ? 10 : ($desc_len >= 100 ? 7 : ($desc_len > 0 ? 3 : 0));
+            if ($products > 0 || $child_count > 0) $utility += 6;
+            else { $utility += 2; $flags[] = 'Categoria sin productos ni subcategorias.'; }
+
+            $trust = 0;
+            if ($excerpt !== '' && $name !== '') {
+                $a = self::text_alignment_ratio($name.' '.implode(' ',self::vocab_labels($vocab)),$excerpt);
+                $trust += $a >= 0.16 ? 5 : ($a >= 0.08 ? 3 : 1);
+                if ($a < 0.08) $flags[] = 'Excerpt poco alineado con la identidad de categoria.';
+            }
+            if ($desc !== '' && $name !== '') {
+                $a = self::text_alignment_ratio($name.' '.implode(' ',self::vocab_labels($vocab)),$desc);
+                $trust += $a >= 0.14 ? 5 : ($a >= 0.07 ? 3 : 1);
+                if ($a < 0.07) $flags[] = 'Descripcion poco alineada con la identidad de categoria.';
+            }
+            if ($vocab) $trust += 5;
+            if ($slug !== '' && self::token_jaccard(self::norm($name), self::norm(str_replace('-',' ',$slug))) >= 0.34) $trust += 5;
+
+            $differentiation = 20;
+            $name_key = self::norm($name);
+            if ($name_key !== '' && count((array)($title_groups[$name_key]??array())) > 1) {
+                $differentiation -= 10;
+                $flags[] = 'Nombre duplicado con otra categoria.';
+            }
+            $slug_key = self::norm($slug);
+            if ($slug_key !== '' && count((array)($slug_groups[$slug_key]??array())) > 1) {
+                $differentiation -= 10;
+                $flags[] = 'Slug duplicado con otra categoria.';
+            }
+            $signature = self::quality_template_signature($desc,$name);
+            $template_count = $signature !== '' ? count((array)($template_groups[$signature]??array())) : 0;
+            if ($template_count >= 10) {
+                $differentiation -= 8;
+                $flags[] = 'Descripcion basada en una plantilla muy repetida.';
+            } elseif ($template_count >= 3) {
+                $differentiation -= 5;
+                $flags[] = 'Descripcion con patron repetido.';
+            } elseif ($template_count > 1) {
+                $differentiation -= 2;
+            }
+
+            $architecture = 0;
+            $hubs = array_values(array_unique(array_filter((array)($hub_relations[$cid]??array()))));
+            if (count($hubs) === 1) $architecture += 8;
+            elseif (count($hubs) > 1) { $architecture += 2; $flags[] = 'Categoria vinculada a varios hubs secundarios.'; }
+            else $flags[] = 'Sin hub secundario asociado.';
+            if ($vocab) $architecture += 6; else $flags[] = 'Sin Vocabulary canonico activo.';
+            if ($products > 0 || $child_count > 0) $architecture += 6;
+
+            $technical = 0;
+            if ($slug !== '') $technical += 5;
+            $term_url = get_term_link($cid,'product_cat');
+            if (!is_wp_error($term_url)) $technical += 5;
+            $parent_id = absint($term->parent);
+            if ($parent_id === 0) $technical += 5;
+            else {
+                $parent = get_term($parent_id,'product_cat');
+                if ($parent && !is_wp_error($parent)) $technical += 5;
+                else $flags[] = 'Categoria padre no resuelve correctamente.';
+            }
+
+            $rows[] = self::quality_finalize_row(
+                'category',
+                $cid,
+                $name ?: ('Categoria #'.$cid),
+                array(
+                    'utility'=>$utility,
+                    'trust'=>$trust,
+                    'differentiation'=>$differentiation,
+                    'architecture'=>$architecture,
+                    'technical'=>$technical,
+                ),
+                $flags,
+                array(
+                    'products'=>$products,
+                    'children'=>$child_count,
+                    'hub_secondary_count'=>count($hubs),
+                    'template_reuse'=>$template_count,
+                    'vocabulary_count'=>count($vocab),
+                )
+            );
+        }
+
+        return self::quality_report('categories',$rows);
+    }
+
+    private static function quality_page_roles() {
+        global $wpdb;
+        $nodes = $wpdb->prefix . 'seo_nodes';
+        if (!self::table_exists($nodes)) return array();
+
+        $rows = (array)$wpdb->get_results(
+            "SELECT object_id,seo_role
+             FROM {$nodes}
+             WHERE status=1
+               AND object_type='page'
+               AND seo_role IN ('cluster','hub_primary','hub_secondary','landing','corporate_page')
+             ORDER BY object_id",
+            ARRAY_A
+        );
+        $map = array();
+        foreach ($rows as $row) {
+            $id = absint($row['object_id']??0);
+            $role = sanitize_key((string)($row['seo_role']??''));
+            if ($id && $role) $map[$id] = $role;
+        }
+        return $map;
+    }
+
+    private static function quality_editorial_mode($row, $page_roles=array()) {
+        $id = absint($row['ID']??0);
+        $slug = sanitize_title((string)($row['post_name']??''));
+        $role = (string)($page_roles[$id]??'');
+
+        $functional = array(
+            'carrito','cart','finalizar-compra','checkout','mi-cuenta','my-account',
+            'tienda','shop','blog','dependiente'
+        );
+        if (in_array($slug,$functional,true)) return 'functional';
+
+        $corporate = array(
+            'inicio','nosotros','nuestro-servicio','contacto','privacidad-de-datos',
+            'terminos-y-condiciones','devoluciones-y-reembolsos',
+            'proveedores-de-distribuidor-de-herramientas-es'
+        );
+        if ('corporate_page' === $role || in_array($slug,$corporate,true)) return 'corporate';
+        return 'editorial';
+    }
+
+    private static function build_editorial_quality($editorial, $vocabulary, $post_type) {
+        $post_type = 'post' === $post_type ? 'post' : 'page';
+        $page_roles = 'page' === $post_type ? self::quality_page_roles() : array();
+        $title_groups = array();
+        $template_groups = array();
+
+        foreach ((array)$editorial as $row) {
+            $id = absint($row['ID']??0);
+            $title = (string)($row['post_title']??'');
+            $title_key = self::norm($title);
+            if ($title_key !== '') $title_groups[$title_key][] = $id;
+            $signature = self::quality_template_signature((string)($row['post_content']??''),$title);
+            if ($signature !== '') $template_groups[$signature][] = $id;
+        }
+
+        $rows = array();
+        foreach ((array)$editorial as $row) {
+            $id = absint($row['ID']??0);
+            if (!$id) continue;
+            $title = trim((string)($row['post_title']??''));
+            $slug = trim((string)($row['post_name']??''));
+            $excerpt = trim(wp_strip_all_tags((string)($row['post_excerpt']??'')));
+            $content = trim(wp_strip_all_tags(strip_shortcodes((string)($row['post_content']??''))));
+            $raw_content = (string)($row['post_content']??'');
+            $mode = self::quality_editorial_mode($row,$page_roles);
+            $role = (string)($page_roles[$id]??'');
+            $flags = array();
+
+            if ('functional' === $mode) {
+                $rows[] = self::quality_na_row(
+                    $post_type,
+                    $id,
+                    $title ?: (ucfirst($post_type).' #'.$id),
+                    'Pagina/entrada funcional: no se evalua como contenido SEO editorial.',
+                    array('mode'=>$mode,'seo_role'=>$role)
+                );
+                continue;
+            }
+
+            $utility = 0;
+            if ($title !== '') $utility += 5;
+            $content_len = self::strlen($content);
+            if ('corporate' === $mode) {
+                $utility += $content_len >= 500 ? 16 : ($content_len >= 220 ? 12 : ($content_len >= 100 ? 8 : ($content_len > 0 ? 4 : 0)));
+            } else {
+                $excerpt_len = self::strlen($excerpt);
+                $utility += $excerpt_len >= 50 ? 4 : ($excerpt_len > 0 ? 2 : 0);
+                $utility += $content_len >= 600 ? 12 : ($content_len >= 250 ? 9 : ($content_len >= 120 ? 6 : ($content_len > 0 ? 3 : 0)));
+            }
+            if ($title !== '' && $content !== '') {
+                $utility += self::meaningful_overlap($title,$content) ? 4 : 1;
+                if (!self::meaningful_overlap($title,$content)) $flags[] = 'Titulo con poco reflejo en el contenido.';
+            }
+
+            $trust = 0;
+            if (absint($row['post_author']??0) > 0) $trust += 4;
+            if ($title !== '' && $content !== '') {
+                $a = self::text_alignment_ratio($title,$content);
+                $trust += $a >= 0.12 ? 4 : ($a >= 0.06 ? 2 : 1);
+            }
+            $vocab = (array)($vocabulary[$post_type.':'.$id]??array());
+            if ('editorial' === $mode) {
+                if ($vocab) $trust += 6; else $flags[] = 'Sin Vocabulary canonico activo.';
+            } else {
+                // En contenido corporativo/legal Vocabulary de catalogo no es requisito.
+                $trust += 6;
+            }
+            if ($excerpt !== '' && $title !== '') {
+                $trust += self::meaningful_overlap($title,$excerpt) ? 3 : 1;
+            } elseif ('corporate' === $mode) {
+                $trust += 2;
+            }
+            if (!empty($row['post_modified'])) $trust += 3;
+
+            $differentiation = 20;
+            $title_key = self::norm($title);
+            if ($title_key !== '' && count((array)($title_groups[$title_key]??array())) > 1) {
+                $differentiation -= 10;
+                $flags[] = 'Titulo duplicado con otro contenido del mismo tipo.';
+            }
+            $signature = self::quality_template_signature($content,$title);
+            $template_count = $signature !== '' ? count((array)($template_groups[$signature]??array())) : 0;
+            if ($template_count >= 5) {
+                $differentiation -= 8;
+                $flags[] = 'Patron de contenido repetido en varias URLs.';
+            } elseif ($template_count >= 2) {
+                $differentiation -= 4;
+                $flags[] = 'Contenido con plantilla repetida.';
+            }
+
+            $architecture = 0;
+            if ('editorial' === $mode) {
+                if ($vocab) $architecture += 10;
+                if (preg_match('/<a\s+[^>]*href=/i',$raw_content)) $architecture += 5;
+                if ('page' === $post_type && $role !== '') $architecture += 5;
+                elseif ('post' === $post_type) $architecture += 5;
+            } else {
+                // Para paginas corporativas la arquitectura de catalogo no aplica igual.
+                $architecture += 10;
+                if (preg_match('/<a\s+[^>]*href=/i',$raw_content)) $architecture += 5;
+                if ($role !== '') $architecture += 5;
+                else $architecture += 3;
+            }
+
+            $technical = 0;
+            if ($slug !== '') $technical += 5; else $flags[] = 'Slug vacio.';
+            if (get_permalink($id)) $technical += 5;
+            if (function_exists('wp_get_canonical_url') && wp_get_canonical_url($id)) $technical += 5;
+
+            $rows[] = self::quality_finalize_row(
+                $post_type,
+                $id,
+                $title ?: (ucfirst($post_type).' #'.$id),
+                array(
+                    'utility'=>$utility,
+                    'trust'=>$trust,
+                    'differentiation'=>$differentiation,
+                    'architecture'=>$architecture,
+                    'technical'=>$technical,
+                ),
+                $flags,
+                array(
+                    'mode'=>$mode,
+                    'seo_role'=>$role,
+                    'template_reuse'=>$template_count,
+                    'vocabulary_count'=>count($vocab),
+                )
+            );
+        }
+
+        return self::quality_report('post'===$post_type?'posts':'pages',$rows);
+    }
+
+    private static function build_quality_overview_payload($scoped_reports) {
+        $payload = array(
+            'schema'=>array('name'=>'seo_internal_quality_overview','version'=>1),
+            'generated_at'=>current_time('mysql'),
+            'not_google_score'=>true,
+            'external_authority_included'=>false,
+            'dimensions'=>self::quality_dimensions(),
+            'scopes'=>array(),
+            'rows'=>array(),
+            'intent_overlap_candidates'=>array(),
+        );
+
+        foreach (array('products','categories','posts','pages') as $scope) {
+            $quality = (array)($scoped_reports[$scope]['quality']??array());
+            if (!$quality) continue;
+            $payload['scopes'][$scope] = array(
+                'generated_at'=>(string)($scoped_reports[$scope]['generated_at']??''),
+                'summary'=>(array)($quality['summary']??array()),
+            );
+            foreach ((array)($quality['rows']??array()) as $row) {
+                $row['scope'] = $scope;
+                $payload['rows'][] = $row;
+            }
+        }
+
+        $groups = array();
+        foreach ($payload['rows'] as $row) {
+            if (null === ($row['score']??null)) continue;
+            $key = trim((string)($row['intent_key']??''));
+            if ($key === '' || count(array_filter(explode(' ',$key))) < 2) continue;
+            $groups[$key][] = $row;
+        }
+
+        foreach ($groups as $key=>$items) {
+            if (count($items) < 2) continue;
+            $types = array_values(array_unique(array_map(static function($r){return (string)($r['entity_type']??'');},$items)));
+            if (count($types) < 2) continue;
+            $payload['intent_overlap_candidates'][] = array(
+                'intent_key'=>$key,
+                'entities'=>array_slice(array_map(static function($r){
+                    return array(
+                        'type'=>(string)($r['entity_type']??''),
+                        'id'=>absint($r['entity_id']??0),
+                        'title'=>(string)($r['title']??''),
+                        'score'=>$r['score']??null,
+                        'url'=>(string)($r['url']??''),
+                    );
+                },$items),0,12),
+            );
+        }
+
+        usort($payload['rows'], static function($a,$b) {
+            $as = null === ($a['score']??null) ? 999 : (int)$a['score'];
+            $bs = null === ($b['score']??null) ? 999 : (int)$b['score'];
+            return $as <=> $bs;
+        });
+
+        return $payload;
+    }
+
+    private static function render_quality_overview($scoped_reports) {
+        $payload = self::build_quality_overview_payload((array)$scoped_reports);
+        echo '<div class="seo-auditor__quality">';
+        echo '<div style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap;">';
+        echo '<div><h3 style="margin:0 0 5px">Calidad SEO interna</h3>';
+        echo '<p class="description" style="max-width:900px">Puntuacion interna de 0 a 100 para priorizar mejoras en productos, categorias, posts y paginas. <strong>No es una puntuacion de Google</strong> y no intenta reproducir su algoritmo. No incluye autoridad externa/backlinks porque Auditor no dispone de una fuente fiable por URL.</p></div>';
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_auditor_export_quality">';
+        wp_nonce_field('seo_auditor_export_quality');
+        submit_button('Descargar JSON de calidad', 'secondary', 'submit', false);
+        echo '</form></div>';
+
+        if (empty($payload['scopes'])) {
+            echo '<div class="notice notice-info inline"><p>Ejecuta las auditorias por bloque de Productos, Categorias, Posts y Paginas. La puntuacion se calcula junto con cada auditoria y reutiliza ese mismo inventario.</p></div></div>';
+            return;
+        }
+
+        echo '<div class="seo-auditor__metrics">';
+        foreach (array('products'=>'Productos','categories'=>'Categorias','posts'=>'Posts','pages'=>'Paginas') as $scope=>$label) {
+            if (empty($payload['scopes'][$scope])) continue;
+            $s = (array)$payload['scopes'][$scope]['summary'];
+            $avg = $s['average'] ?? null;
+            echo '<div class="seo-auditor__metric"><strong>' . esc_html(null === $avg ? '—' : number_format_i18n((float)$avg,1)) . '</strong><span>' . esc_html($label . ' · media /100') . '</span></div>';
+        }
+        echo '</div>';
+
+        echo '<h3>Criterios</h3><table class="widefat striped"><thead><tr><th>Dimension</th><th>Peso</th><th>Lectura</th></tr></thead><tbody>';
+        $readings = array(
+            'utility'=>'Contenido suficiente, especifico y util para la intencion de la URL.',
+            'trust'=>'Coherencia de identidad, datos verificables y ausencia de contradicciones evidentes.',
+            'differentiation'=>'Duplicados, plantillas repetidas y candidatos de solapamiento/canibalizacion.',
+            'architecture'=>'Vocabulary, categorias, hubs/roles y conexiones internas disponibles.',
+            'technical'=>'Slug, URL/canonical y preparacion basica que Auditor puede verificar localmente.',
+        );
+        foreach (self::quality_dimensions() as $key=>$def) {
+            echo '<tr><td><strong>'.esc_html($def['label']).'</strong></td><td>'.esc_html(absint($def['max'])).'</td><td>'.esc_html((string)$readings[$key]).'</td></tr>';
+        }
+        echo '</tbody></table>';
+
+        echo '<h3>URLs con menor puntuacion</h3>';
+        self::render_quality_rows_table(array_slice((array)$payload['rows'],0,100), false);
+
+        echo '<h3>Candidatos de solapamiento de intencion entre tipos</h3>';
+        echo '<p class="description">Solo se muestran coincidencias conservadoras de intencion normalizada entre tipos distintos. Es una senal para revisar; no demuestra canibalizacion por si sola.</p>';
+        $collisions = (array)$payload['intent_overlap_candidates'];
+        if (!$collisions) {
+            echo '<p>No se detectan coincidencias exactas de intencion entre tipos con los snapshots disponibles.</p>';
+        } else {
+            echo '<table class="widefat striped"><thead><tr><th>Intencion</th><th>Entidades</th></tr></thead><tbody>';
+            foreach (array_slice($collisions,0,100) as $group) {
+                $entities = array();
+                foreach ((array)$group['entities'] as $entity) {
+                    $entities[] = (string)$entity['type'].' #'.absint($entity['id']).' · '.(string)$entity['title'];
+                }
+                echo '<tr><td><code>'.esc_html((string)$group['intent_key']).'</code></td><td>'.esc_html(implode(' | ',$entities)).'</td></tr>';
+            }
+            echo '</tbody></table>';
+        }
+        echo '</div>';
+    }
+
+    private static function render_quality_block($quality, $scope) {
+        $summary = (array)($quality['summary']??array());
+        echo '<hr><h3>Calidad SEO interna</h3>';
+        echo '<p class="description">No es una puntuacion de Google. Sirve para localizar primero las URLs con menor calidad observable dentro del inventario actual.</p>';
+        echo '<div class="seo-auditor__metrics">';
+        self::metric('Evaluados',absint($summary['scored']??0));
+        self::metric('Media',null === ($summary['average']??null) ? 0 : (int)round((float)$summary['average']));
+        self::metric('Fuerte',absint($summary['bands']['fuerte']??0));
+        self::metric('Correcta',absint($summary['bands']['correcta']??0));
+        self::metric('Mejorable',absint($summary['bands']['mejorable']??0),'medium');
+        self::metric('Debil',absint($summary['bands']['debil']??0),'high');
+        echo '</div>';
+
+        $rows = (array)($quality['rows']??array());
+        $band_filter = sanitize_key((string)($_GET['quality_band']??''));
+        if ($band_filter && in_array($band_filter,array('fuerte','correcta','mejorable','debil','no_aplica'),true)) {
+            $rows = array_values(array_filter($rows,static function($row)use($band_filter){
+                return (string)($row['band']??'') === $band_filter;
+            }));
+        }
+
+        $per_page = 100;
+        $page = max(1,absint($_GET['quality_page']??1));
+        $total = count($rows);
+        $pages = max(1,(int)ceil($total/$per_page));
+        if ($page > $pages) $page = $pages;
+        $slice = array_slice($rows,($page-1)*$per_page,$per_page);
+
+        echo '<div class="seo-auditor__quality-filter">';
+        echo '<strong>Filtrar:</strong> ';
+        foreach (array(''=>'Todos','debil'=>'Debil','mejorable'=>'Mejorable','correcta'=>'Correcta','fuerte'=>'Fuerte','no_aplica'=>'No aplica') as $band=>$label) {
+            $args = array('page'=>'seo-dependiente','tab'=>'auditor','audit_scope'=>$scope,'quality_page'=>1);
+            if ($band !== '') $args['quality_band']=$band;
+            $url = add_query_arg($args,admin_url('admin.php'));
+            echo '<a class="button '.($band_filter===$band?'button-primary':'').'" href="'.esc_url($url).'">'.esc_html($label).'</a> ';
+        }
+        echo '</div>';
+
+        self::render_quality_rows_table($slice,true);
+
+        if ($pages > 1) {
+            echo '<div class="tablenav"><div class="tablenav-pages"><span class="displaying-num">'.esc_html(number_format_i18n($total)).' elementos</span> ';
+            for ($p=max(1,$page-2); $p<=min($pages,$page+2); $p++) {
+                $args=array('page'=>'seo-dependiente','tab'=>'auditor','audit_scope'=>$scope,'quality_page'=>$p);
+                if ($band_filter) $args['quality_band']=$band_filter;
+                $url=add_query_arg($args,admin_url('admin.php'));
+                echo '<a class="button '.($p===$page?'button-primary':'').'" href="'.esc_url($url).'">'.esc_html($p).'</a> ';
+            }
+            echo '<span class="description">de '.esc_html($pages).'</span></div></div>';
+        }
+    }
+
+    private static function render_quality_rows_table($rows, $show_context=true) {
+        if (!$rows) { echo '<p>No hay elementos para este filtro.</p>'; return; }
+        $defs = self::quality_dimensions();
+        echo '<div class="seo-auditor__quality-table-wrap"><table class="widefat striped seo-auditor__quality-table"><thead><tr>';
+        echo '<th>Entidad</th><th>Total</th>';
+        foreach ($defs as $def) echo '<th>'.esc_html((string)$def['label']).'</th>';
+        echo '<th>Senales</th></tr></thead><tbody>';
+        foreach ((array)$rows as $row) {
+            $score = $row['score']??null;
+            $band = (string)($row['band']??'no_aplica');
+            $dims = (array)($row['dimensions']??array());
+            $flags = (array)($row['flags']??array());
+            $edit = (string)($row['edit_url']??'');
+            $url = (string)($row['url']??'');
+            echo '<tr>';
+            echo '<td><strong>'.esc_html((string)($row['title']??'')).'</strong><div class="description">'.esc_html((string)($row['entity_type']??'')).' #'.esc_html(absint($row['entity_id']??0)).'</div>';
+            if ($edit) echo '<a href="'.esc_url($edit).'">Editar</a>';
+            if ($edit && $url) echo ' · ';
+            if ($url) echo '<a href="'.esc_url($url).'" target="_blank" rel="noopener">Ver</a>';
+            echo '</td>';
+            echo '<td><span class="seo-auditor__score is-'.esc_attr($band).'">'.esc_html(null === $score ? 'N/A' : ((int)$score.'/100')).'</span><div class="description">'.esc_html(self::quality_band_label($band)).'</div></td>';
+            foreach ($defs as $key=>$def) {
+                echo '<td>'.esc_html(absint($dims[$key]??0)).'/'.esc_html(absint($def['max'])).'</td>';
+            }
+            echo '<td>'.esc_html($flags ? implode(' · ',array_slice($flags,0,4)) : 'Sin alertas principales').'</td>';
+            echo '</tr>';
+        }
+        echo '</tbody></table></div>';
+    }
+
     private static function render_subnav($view) {
         $base=add_query_arg(array('page'=>'seo-dependiente','tab'=>'auditor'),admin_url('admin.php'));
         echo '<nav class="seo-auditor__subnav">';
-        foreach(array('summary'=>'Resumen','findings'=>'Hallazgos catalogo','categories'=>'Categorias y productos','architecture'=>'Hubs y relaciones','behavior'=>'Pruebas del motor','academia'=>'Academia / Entrenador','chain'=>'Estudiante / cadena') as $slug=>$label){
+        foreach(array('summary'=>'Resumen','quality'=>'Calidad SEO','findings'=>'Hallazgos catalogo','categories'=>'Categorias y productos','architecture'=>'Hubs y relaciones','behavior'=>'Pruebas del motor','academia'=>'Academia / Entrenador','chain'=>'Estudiante / cadena') as $slug=>$label){
             $url=add_query_arg('audit_view',$slug,$base);echo '<a class="'.($view===$slug?'is-active':'').'" href="'.esc_url($url).'">'.esc_html($label).'</a>';
         }
         echo '</nav>';

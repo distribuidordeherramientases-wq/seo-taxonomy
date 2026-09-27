@@ -258,8 +258,8 @@ final class SEO_Dependiente_Entrenador {
         $snapshot = absint(get_option(self::KNOWLEDGE_SNAPSHOT_OPTION, 0));
         $auto_state = self::auto_state();
         $auto_running = self::is_auto_running($auto_state);
-        $basic_complete = self::basic_curriculum_completed($lessons);
-        $lab_batch = $basic_complete ? self::latest_lab_batch() : null;
+        $lab_unlocked = self::lab_access_allowed($lessons, $auto_state);
+        $lab_batch = $lab_unlocked ? self::latest_lab_batch() : null;
         $has_exportable_lessons = false;
         foreach ((array) $lessons as $lesson_row) {
             if (absint($lesson_row['item_count'] ?? 0) > 0) {
@@ -335,7 +335,7 @@ final class SEO_Dependiente_Entrenador {
                 </section>
             <?php endif; ?>
 
-            <?php self::render_question_lab($basic_complete, $lab_batch, $auto_running); ?>
+            <?php self::render_question_lab($lab_unlocked, $lab_batch, $auto_running); ?>
         </div>
         <?php
     }
@@ -356,6 +356,11 @@ final class SEO_Dependiente_Entrenador {
         $definition = self::lesson_definition($lesson_key);
         if (!$definition) {
             wp_send_json_error(array('message' => 'Lección no reconocida.'), 400);
+        }
+        if ('v2_l10_consolidation_debt' === $lesson_key && !self::interpreter_l9_completed()) {
+            wp_send_json_error(array(
+                'message' => 'L10 requiere que el Intérprete haya completado su L9. Finaliza primero L9 del Lingüista/Intérprete y después continúa con L10.'
+            ), 409);
         }
 
         $preflight = self::catalog_preflight();
@@ -510,6 +515,11 @@ final class SEO_Dependiente_Entrenador {
         }
 
         $lesson_key = sanitize_key((string) wp_unslash($_POST['lesson_key'] ?? ''));
+        if ('v2_l10_consolidation_debt' === $lesson_key && !self::interpreter_l9_completed()) {
+            wp_send_json_error(array(
+                'message' => 'L10 requiere que el Intérprete haya completado su L9. Finaliza primero L9 del Lingüista/Intérprete y después continúa con L10.'
+            ), 409);
+        }
         $module_no = max(1, absint($_POST['module_no'] ?? 0));
         $speed = self::auto_speed_config();
         $batch_size = self::sanitize_batch_size($_POST['batch_size'] ?? $speed['initial_batch']);
@@ -611,6 +621,13 @@ final class SEO_Dependiente_Entrenador {
         }
 
         $mode = sanitize_key((string) wp_unslash($_POST['mode'] ?? 'manual'));
+        if ('stop' === $mode) {
+            $result = self::process_control_stop();
+            if (is_wp_error($result)) {
+                wp_send_json_error(array('message' => $result->get_error_message()), 409);
+            }
+            wp_send_json_success(self::automation_payload());
+        }
         if ('manual' === $mode) {
             self::save_auto_state(array(
                 'enabled'      => false,
@@ -668,6 +685,22 @@ final class SEO_Dependiente_Entrenador {
                 'updated_at'   => current_time('mysql'),
             ));
             wp_send_json_success(self::automation_payload());
+        }
+        if ('v2_l10_consolidation_debt' === $current_key && !self::interpreter_l9_completed()) {
+            self::save_auto_state(array(
+                'enabled'        => false,
+                'mode'           => 'manual',
+                'status'         => 'stopped',
+                'current_lesson' => $current_key,
+                'current_module' => self::next_pending_module($current_key),
+                'last_error'     => '',
+                'last_message'   => 'L10 detenida: antes debe finalizar L9 del Intérprete.',
+                'updated_at'     => current_time('mysql'),
+            ));
+            self::clear_auto_schedule();
+            wp_send_json_error(array(
+                'message' => 'No se puede iniciar L10 todavía: primero debe finalizar L9 del Intérprete.'
+            ), 409);
         }
 
         self::save_auto_state(array(
@@ -756,7 +789,13 @@ final class SEO_Dependiente_Entrenador {
             return;
         }
 
+        // Un "Detener" puede llegar mientras este worker esperaba el lock.
+        // Releer el estado evita que arranque un lote nuevo después de la orden.
         $state = self::auto_state();
+        if (!self::is_auto_running($state)) {
+            self::release_db_lock('auto');
+            return;
+        }
         self::save_auto_state(array(
             'worker_heartbeat_at' => current_time('mysql'),
             'worker_heartbeat_ts' => time(),
@@ -822,6 +861,21 @@ final class SEO_Dependiente_Entrenador {
                     'last_message' => 'Formación automática completada. Todas las lecciones disponibles han terminado.',
                     'last_error'   => '',
                     'updated_at'   => current_time('mysql'),
+                ));
+                self::clear_auto_schedule();
+                return;
+            }
+
+            if ('v2_l10_consolidation_debt' === $lesson_key && !self::interpreter_l9_completed()) {
+                self::save_auto_state(array(
+                    'enabled'        => false,
+                    'mode'           => 'manual',
+                    'status'         => 'stopped',
+                    'current_lesson' => $lesson_key,
+                    'current_module' => self::next_pending_module($lesson_key),
+                    'last_message'   => 'L10 detenida: antes debe finalizar L9 del Intérprete. El progreso de Academia se conserva y el Laboratorio queda disponible mientras L10 esté detenida.',
+                    'last_error'     => '',
+                    'updated_at'     => current_time('mysql'),
                 ));
                 self::clear_auto_schedule();
                 return;
@@ -1576,6 +1630,52 @@ final class SEO_Dependiente_Entrenador {
     }
 
     /**
+     * Detiene la formación automática sin borrar preguntas, runs, cursor ni
+     * conocimiento ya promocionado. Un lote que ya esté dentro de una operación
+     * atómica puede terminar; no se entregará ningún lote nuevo al gestor.
+     *
+     * @return array|WP_Error
+     */
+    public static function process_control_stop() {
+        $state = self::auto_state();
+        if ('completed' === sanitize_key((string) ($state['status'] ?? ''))) {
+            return new WP_Error('academy_completed', 'La Academia ya está completada.');
+        }
+
+        if ('stopped' === sanitize_key((string) ($state['status'] ?? '')) && empty($state['enabled'])) {
+            return array('stopped' => true, 'message' => 'La Academia ya está detenida.');
+        }
+
+        self::save_auto_state(array(
+            'enabled'               => false,
+            'mode'                  => 'manual',
+            'status'                => 'stopped',
+            'next_delay'            => 0,
+            'direct_worker_pending' => 0,
+            'direct_worker_dispatch_id' => '',
+            'direct_worker_not_before' => 0,
+            'last_error'            => '',
+            'last_message'          => 'Formación detenida por el usuario. Se conserva todo el progreso; no se procesarán más lotes hasta reanudar.',
+            'updated_at'            => current_time('mysql'),
+        ));
+        self::clear_auto_schedule();
+
+        if (function_exists('seo_process_supervisor_managed_update')) {
+            seo_process_supervisor_managed_update('academy', array(
+                'name'         => 'Academia',
+                'pending'      => 0,
+                'healthy'      => 0,
+                'last_checked' => time(),
+                'last_result'  => 'stopped',
+                'last_error'   => '',
+                'detail'       => 'Academia detenida manualmente; el progreso se conserva.',
+            ));
+        }
+
+        return array('stopped' => true, 'message' => 'Academia detenida. El progreso se conserva.');
+    }
+
+    /**
      * Arranque explícito desde Herramientas > Procesos.
      *
      * @return array|WP_Error
@@ -1589,6 +1689,23 @@ final class SEO_Dependiente_Entrenador {
         }
         if (self::controller_is_active($state) || !empty($state['worker_active'])) {
             return array('started' => false, 'message' => 'La Academia ya tiene un proceso propio activo.');
+        }
+
+        $lessons = self::lessons_by_key();
+        $current_key = self::current_lesson_key($lessons);
+        if ('v2_l10_consolidation_debt' === $current_key && !self::interpreter_l9_completed()) {
+            self::save_auto_state(array(
+                'enabled'        => false,
+                'mode'           => 'manual',
+                'status'         => 'stopped',
+                'current_lesson' => $current_key,
+                'current_module' => self::next_pending_module($current_key),
+                'last_error'     => '',
+                'last_message'   => 'L10 detenida: antes debe finalizar L9 del Intérprete.',
+                'updated_at'     => current_time('mysql'),
+            ));
+            self::clear_auto_schedule();
+            return new WP_Error('academy_l10_waits_interpreter_l9', 'No se puede iniciar L10 todavía: primero debe finalizar L9 del Intérprete.');
         }
 
         self::save_auto_state(array(
@@ -1749,8 +1866,8 @@ final class SEO_Dependiente_Entrenador {
         if (!self::ensure_ready()) {
             wp_send_json_error(array('message' => 'Academia no disponible.'), 500);
         }
-        if (!self::basic_curriculum_completed()) {
-            wp_send_json_error(array('message' => 'Completa primero las cuatro lecciones básicas de la Academia.'), 409);
+        if (!self::lab_access_allowed()) {
+            wp_send_json_error(array('message' => 'El Laboratorio requiere la formación completada o L1–L9 completadas con L10 detenida voluntariamente.'), 409);
         }
         if (self::is_auto_running()) {
             wp_send_json_error(array('message' => 'La formación automática todavía está activa. Espera a que termine antes de usar el Laboratorio.'), 409);
@@ -1831,8 +1948,8 @@ final class SEO_Dependiente_Entrenador {
         if (!self::ensure_ready() || !class_exists('SEO_Dependiente_API')) {
             wp_send_json_error(array('message' => 'El motor del Dependiente no está disponible.'), 500);
         }
-        if (!self::basic_curriculum_completed()) {
-            wp_send_json_error(array('message' => 'El Laboratorio se desbloquea al completar la formación básica.'), 409);
+        if (!self::lab_access_allowed()) {
+            wp_send_json_error(array('message' => 'El Laboratorio requiere la formación completada o L1–L9 completadas con L10 detenida voluntariamente.'), 409);
         }
         if (self::is_auto_running()) {
             wp_send_json_error(array('message' => 'La formación automática todavía está activa.'), 409);
@@ -2975,6 +3092,59 @@ final class SEO_Dependiente_Entrenador {
         return array('ready'=>$ready,'indexed'=>$indexed,'published'=>$published,'last_full'=>$last_full,'posts'=>$posts,'pages'=>$pages,'faqs'=>$faqs,'fingerprint'=>self::catalog_fingerprint(),'message'=>$message);
     }
 
+    /**
+     * L10 usa el runtime Intérprete + Dependiente V3. Para evitar una fotografía
+     * incoherente, no puede comenzar hasta que Lingüista haya cerrado su L9.
+     */
+    private static function interpreter_l9_completed() {
+        if (class_exists('SEO_Dependiente_Linguista') && is_callable(array('SEO_Dependiente_Linguista', 'state'))) {
+            $state = (array) SEO_Dependiente_Linguista::state();
+        } else {
+            $state = (array) get_option('seo_dependiente_linguista_state', array());
+        }
+        $results = isset($state['lesson_results']) && is_array($state['lesson_results'])
+            ? $state['lesson_results']
+            : array();
+        return !empty($results['ling_l9_dependiente_bridge']);
+    }
+
+    /**
+     * El Laboratorio sigue disponible al completar todo el curso. También puede
+     * usarse de forma diagnóstica cuando únicamente queda L10 y el administrador
+     * la ha detenido de forma explícita. No se marca L10 como completada.
+     */
+    private static function lab_access_allowed($lessons = null, $state = null) {
+        if (null === $lessons) {
+            $lessons = self::lessons_by_key();
+        }
+        if (self::basic_curriculum_completed($lessons)) {
+            return true;
+        }
+
+        $state = is_array($state) ? $state : self::auto_state();
+        if ('stopped' !== sanitize_key((string) ($state['status'] ?? '')) || !empty($state['enabled'])) {
+            return false;
+        }
+
+        $definitions = self::lesson_definitions();
+        $keys = array_keys($definitions);
+        if (!$keys) {
+            return false;
+        }
+        $last_key = (string) end($keys);
+
+        foreach ($definitions as $key => $definition) {
+            $lesson_status = sanitize_key((string) ($lessons[$key]['status'] ?? 'locked'));
+            if ($key === $last_key) {
+                return 'completed' !== $lesson_status;
+            }
+            if ('completed' !== $lesson_status) {
+                return false;
+            }
+        }
+        return false;
+    }
+
     private static function basic_curriculum_completed($lessons = null) {
         if (null === $lessons) {
             $lessons = self::lessons_by_key();
@@ -3112,7 +3282,12 @@ final class SEO_Dependiente_Entrenador {
         } else {
             $message = 'Modo manual: tú decides cuándo preparar y ejecutar cada módulo.';
         }
-        $badge_label = $running ? 'Automático activo' : ('error' === $status ? 'Automático pausado' : ('completed' === $status ? 'Completado' : 'Manual'));
+        $badge_label = $running
+            ? 'Automático activo'
+            : ('stopped' === $status
+                ? 'Detenido'
+                : ('error' === $status ? 'Automático pausado' : ('completed' === $status ? 'Completado' : 'Manual')));
+        $can_stop = $current_key && !in_array($status, array('stopped', 'completed'), true);
         ?>
         <section class="postbox seo-dependiente-admin__box seo-dependiente-trainer__automation <?php echo $running ? 'is-running' : 'is-manual'; ?>" data-trainer-automation>
             <div class="seo-dependiente-trainer__section-head">
@@ -3128,6 +3303,9 @@ final class SEO_Dependiente_Entrenador {
                 </button>
                 <button type="button" class="button" data-trainer-mode-manual <?php disabled(!$running); ?>>
                     Pasar a modo manual
+                </button>
+                <button type="button" class="button" data-trainer-mode-stop <?php disabled(!$can_stop); ?>>
+                    Detener formación
                 </button>
             </div>
             <p class="description" data-trainer-auto-status aria-live="polite"><?php echo esc_html($message); ?></p>

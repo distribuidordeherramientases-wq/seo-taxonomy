@@ -72,6 +72,13 @@ if (is_readable($seo_dependiente_actualizacion)) {
 
 require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-training-quality.php';
 
+// Ingeniero: conocimiento técnico externo por categoría. Mantiene su
+// persistencia separada del índice comercial de Dependiente.
+$seo_ingeniero_bootstrap = SEO_DEPENDIENTE_PATH . 'ingeniero/ingeniero-bootstrap.php';
+if (is_readable($seo_ingeniero_bootstrap)) {
+    require_once $seo_ingeniero_bootstrap;
+}
+
 // Auditor academico: modulo hermano de solo lectura en STAGING.
 $seo_auditor_bootstrap = defined('SEO_SYSTEM_PATH')
     ? rtrim(SEO_SYSTEM_PATH, '/\\') . '/includes/auditor/seo-auditor-bootstrap.php'

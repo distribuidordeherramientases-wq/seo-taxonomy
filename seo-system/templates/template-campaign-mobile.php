@@ -8,6 +8,8 @@
 
 defined('ABSPATH') || exit;
 
+require_once __DIR__ . '/template-helpers.php';
+
 if (!function_exists('seo_marketing_campaigns_get_public_active')) {
     return;
 }
@@ -218,14 +220,41 @@ if (!$dht_campaigns) {
                             $dht_product = $dht_product_item['product'];
                             $dht_regular = (float) $dht_product_item['regular_price'];
                             $dht_campaign_price = (float) $dht_product_item['campaign_price'];
+                            $dht_image_html = function_exists('dht_shared_product_card_image_html')
+                                ? dht_shared_product_card_image_html(
+                                    $dht_product,
+                                    'woocommerce_thumbnail',
+                                    3,
+                                    array(
+                                        'loading' => 'lazy',
+                                        'alt'     => (string) $dht_product_item['name'],
+                                    )
+                                )
+                                : $dht_product->get_image(
+                                    'woocommerce_thumbnail',
+                                    array(
+                                        'loading'  => 'lazy',
+                                        'decoding' => 'async',
+                                    )
+                                );
                         ?>
+                            <?php
+                            $dht_campaign_url = function_exists('seo_marketing_performance_campaign_url')
+                                ? seo_marketing_performance_campaign_url($dht_campaign, absint($dht_product_item['id']), (string) $dht_product_item['url'])
+                                : (string) $dht_product_item['url'];
+                            ?>
                             <article class="dht-campaign-card">
-                                <a class="dht-campaign-card-link" href="<?php echo esc_url($dht_product_item['url']); ?>">
+                                <a class="dht-campaign-card-link" href="<?php echo esc_url($dht_campaign_url); ?>">
                                     <div class="dht-campaign-image">
                                         <?php if ((int) $dht_product_item['discount_percent'] > 0) : ?>
                                             <span class="dht-campaign-discount">-<?php echo esc_html((string) $dht_product_item['discount_percent']); ?>%</span>
                                         <?php endif; ?>
-                                        <?php echo wp_kses_post($dht_product->get_image('woocommerce_thumbnail', array('loading' => 'lazy', 'decoding' => 'async'))); ?>
+                                        <?php
+                                        // El helper ya escapa URL, alt, clases y atributos.
+                                        // Se imprime sin wp_kses_post para conservar el onerror que
+                                        // permite saltar a otra imagen de proveedor si una URL falla.
+                                        echo $dht_image_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                                        ?>
                                     </div>
                                     <div class="dht-campaign-card-body">
                                         <div class="dht-campaign-product-name"><?php echo esc_html($dht_product_item['name']); ?></div>
@@ -271,4 +300,4 @@ if (!$dht_campaigns) {
 }());
 </script>
 <?php
-unset($dht_campaigns, $dht_campaign_item, $dht_campaign, $dht_products, $dht_product_item, $dht_product);
+unset($dht_campaigns, $dht_campaign_item, $dht_campaign, $dht_products, $dht_product_item, $dht_product, $dht_image_html, $dht_campaign_url);

@@ -209,7 +209,10 @@ final class SEO_Dependiente_Interprete {
                     'error' => 'Error',
                     'completed' => 'Curso completado',
                 );
-                $status_label = $status_labels[$ling_status] ?? $ling_status;
+                $ling_has_started = !empty($ling_state['run_id']) && !empty($ling_state['current_lesson']);
+                $status_label = ('stopped' === $ling_status && $ling_has_started)
+                    ? 'Detenido'
+                    : ($status_labels[$ling_status] ?? $ling_status);
             ?>
                 <p>
                     Estado: <strong><?php echo esc_html($status_label); ?></strong>
@@ -239,7 +242,26 @@ final class SEO_Dependiente_Interprete {
                             <?php wp_nonce_field('seo_dependiente_linguista_control'); ?>
                             <button type="submit" class="button">Pausar formación</button>
                         </form>
+                        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" onsubmit="return confirm('¿Detener la formación del Intérprete? Se conservará el progreso actual y no se procesarán más lotes hasta reanudar.');">
+                            <input type="hidden" name="action" value="seo_dependiente_linguista_control">
+                            <input type="hidden" name="command" value="stop">
+                            <?php wp_nonce_field('seo_dependiente_linguista_control'); ?>
+                            <button type="submit" class="button">Detener formación</button>
+                        </form>
                     <?php elseif (in_array($ling_status, array('paused','error'), true)) : ?>
+                        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                            <input type="hidden" name="action" value="seo_dependiente_linguista_control">
+                            <input type="hidden" name="command" value="resume">
+                            <?php wp_nonce_field('seo_dependiente_linguista_control'); ?>
+                            <button type="submit" class="button button-primary">Reanudar formación</button>
+                        </form>
+                        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" onsubmit="return confirm('¿Detener la formación del Intérprete? Se conservará el progreso actual.');">
+                            <input type="hidden" name="action" value="seo_dependiente_linguista_control">
+                            <input type="hidden" name="command" value="stop">
+                            <?php wp_nonce_field('seo_dependiente_linguista_control'); ?>
+                            <button type="submit" class="button">Detener formación</button>
+                        </form>
+                    <?php elseif ('stopped' === $ling_status && $ling_has_started) : ?>
                         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
                             <input type="hidden" name="action" value="seo_dependiente_linguista_control">
                             <input type="hidden" name="command" value="resume">
@@ -270,7 +292,7 @@ final class SEO_Dependiente_Interprete {
                     <tbody>
                     <?php foreach ($ling_rows as $row) :
                         $row_status = sanitize_key((string) ($row['status'] ?? 'pending'));
-                        $row_labels = array('completed'=>'Completada','running'=>'En curso','paused'=>'Pausada','error'=>'Error','pending'=>'Pendiente','locked'=>'Bloqueada');
+                        $row_labels = array('completed'=>'Completada','running'=>'En curso','paused'=>'Pausada','stopped'=>'Detenida','error'=>'Error','pending'=>'Pendiente','locked'=>'Bloqueada');
                     ?>
                         <tr>
                             <td><strong>L<?php echo esc_html((string) absint($row['order'] ?? 0)); ?> · <?php echo esc_html((string) ($row['title'] ?? '')); ?></strong><br><small><?php echo esc_html((string) ($row['goal'] ?? '')); ?></small></td>

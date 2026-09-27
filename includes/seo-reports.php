@@ -62,7 +62,7 @@ function seo_reports_general_definitions() {
     return array(
         'google_search' => array(
             'label'       => 'Google · Visibilidad orgánica',
-            'description' => 'Search Console: clics, impresiones, CTR, posición, consultas, páginas y tendencia.',
+            'description' => 'Search Console + contexto de GA4 y Bing: visibilidad, tráfico, embudo y calidad de adquisición.',
         ),
         'ai_search' => array(
             'label'       => 'Posicionamiento y búsqueda con IA',
@@ -325,11 +325,26 @@ function seo_reports_general_build_json($report_key) {
             $property_id = isset($settings['property_id']) ? (string) $settings['property_id'] : '';
             $metrics = ('connected' === $status && $property_id !== '') ? seo_google_get_summary_metrics($property_id, 28) : array();
             $trend = ($metrics && $property_id !== '') ? seo_google_get_summary_trend_data($property_id, 365) : array();
+            $ga4 = function_exists('seo_analista_ga4_snapshot')
+                ? (array) seo_analista_ga4_snapshot(28)
+                : array();
+            $bing = function_exists('seo_analista_bing_snapshot')
+                ? (array) seo_analista_bing_snapshot(28, 30)
+                : array();
             $payload['data'] = array(
                 'connection_status' => (string) $status,
                 'period_days'       => 28,
                 'metrics'           => (array) $metrics,
                 'trend_365d'        => array_values((array) $trend),
+                'ga4'               => $ga4,
+                'bing'              => array(
+                    'available' => !empty($bing['available']),
+                    'connected' => !empty($bing['connected']),
+                    'configured'=> !empty($bing['configured']),
+                    'latest_date'=> (string) ($bing['latest_date'] ?? ''),
+                    'traffic'   => (array) ($bing['traffic'] ?? array()),
+                    'errors'    => (array) ($bing['errors'] ?? array()),
+                ),
             );
             break;
 
@@ -541,6 +556,89 @@ function seo_reports_render_google_search_summary() {
 
     $trend_rows = seo_google_get_summary_trend_data($property_id, 365);
     seo_google_render_summary_charts($trend_rows);
+
+    // Contexto de negocio: Search Console explica visibilidad; GA4 explica
+    // comportamiento. No se comparan clics y sesiones como si fueran iguales.
+    if (function_exists('seo_analista_ga4_snapshot')) {
+        $ga4 = (array) seo_analista_ga4_snapshot(28);
+        if (!empty($ga4['available'])) {
+            $funnel = (array) ($ga4['funnel'] ?? array());
+            $target = (array) ($ga4['target_market'] ?? array());
+            $traffic = (array) ($ga4['traffic_quality'] ?? array());
+            $not_found = (array) ($ga4['not_found'] ?? array());
+
+            echo '<div style="background:#fff;border:1px solid #dcdcde;padding:20px;border-radius:8px;margin-top:16px;">';
+            echo '<h3 style="margin-top:0;">Contexto de tráfico y conversión · GA4</h3>';
+            echo '<p class="description">Complementa la visibilidad de Google con comportamiento real en la web. Los eventos ecommerce son recuentos de eventos y las compras deben contrastarse con WooCommerce.</p>';
+            echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:14px;">';
+
+            $ga_cards = array(
+                'Sesiones' => (int) ($ga4['sessions'] ?? 0),
+                'Usuarios activos' => (int) ($ga4['users'] ?? 0),
+                'Vistas producto' => (int) ($funnel['view_item'] ?? 0),
+                'Añadir carrito' => (int) ($funnel['add_to_cart'] ?? 0),
+                'Checkout' => (int) ($funnel['begin_checkout'] ?? 0),
+                'Compras GA4' => (int) ($ga4['purchases'] ?? 0),
+                'Usuarios España' => (int) ($target['users'] ?? 0),
+                'Vistas 404' => (int) ($not_found['views'] ?? 0),
+            );
+            foreach ($ga_cards as $label => $value) {
+                echo '<div style="border:1px solid #dcdcde;border-radius:6px;padding:12px;">';
+                echo '<div style="color:#646970;font-size:11px;text-transform:uppercase;font-weight:700;">' . esc_html($label) . '</div>';
+                echo '<div style="font-size:24px;font-weight:700;margin-top:5px;">' . esc_html(number_format_i18n($value)) . '</div>';
+                echo '</div>';
+            }
+            echo '</div>';
+
+            if (!empty($ga4['sources'])) {
+                echo '<h4 style="margin:18px 0 8px;">Principales fuentes de sesión</h4>';
+                echo '<div style="overflow:auto;"><table class="widefat striped"><thead><tr><th>Fuente / medio</th><th>Canal</th><th>Sesiones</th><th>Usuarios</th></tr></thead><tbody>';
+                foreach (array_slice((array) $ga4['sources'], 0, 10) as $row) {
+                    echo '<tr><td><strong>' . esc_html((string) ($row['source_medium'] ?? '')) . '</strong></td><td>' . esc_html((string) ($row['channel'] ?? '')) . '</td><td>' . esc_html(number_format_i18n((int) ($row['sessions'] ?? 0))) . '</td><td>' . esc_html(number_format_i18n((int) ($row['users'] ?? 0))) . '</td></tr>';
+                }
+                echo '</tbody></table></div>';
+            }
+
+            $notes = array();
+            if (null !== ($target['user_share_pct'] ?? null)) {
+                $notes[] = 'España representa ' . number_format_i18n((float) $target['user_share_pct'], 1) . '% de los usuarios activos medidos.';
+            }
+            if (null !== ($traffic['direct_share_pct'] ?? null)) {
+                $notes[] = 'Direct representa ' . number_format_i18n((float) $traffic['direct_share_pct'], 1) . '% de las sesiones; conviene interpretarlo con cautela.';
+            }
+            if ((int) ($traffic['ai_sessions'] ?? 0) > 0) {
+                $notes[] = number_format_i18n((int) $traffic['ai_sessions']) . ' sesiones proceden de asistentes IA.';
+            }
+            if ((int) ($not_found['views'] ?? 0) > 0) {
+                $notes[] = number_format_i18n((int) $not_found['views']) . ' vistas llegaron a páginas 404.';
+            }
+            if ($notes) echo '<p class="description" style="margin-top:12px;">' . esc_html(implode(' ', $notes)) . '</p>';
+            echo '</div>';
+        }
+    }
+
+    if (function_exists('seo_analista_bing_snapshot')) {
+        $bing = (array) seo_analista_bing_snapshot(28, 30);
+        echo '<div style="background:#fff;border:1px solid #dcdcde;padding:20px;border-radius:8px;margin-top:16px;">';
+        echo '<h3 style="margin-top:0;">Bing Webmaster · referencia complementaria</h3>';
+        if (!empty($bing['connected'])) {
+            $traffic = (array) ($bing['traffic'] ?? array());
+            echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">';
+            foreach (array(
+                'Clics Bing' => (int) round((float) ($traffic['clicks'] ?? 0)),
+                'Impresiones Bing' => (int) round((float) ($traffic['impressions'] ?? 0)),
+                'CTR Bing' => number_format_i18n(((float) ($traffic['ctr'] ?? 0)) * 100, 2) . '%',
+                'Último dato' => (string) ($bing['latest_date'] ?? '—'),
+            ) as $label => $value) {
+                echo '<div style="border:1px solid #dcdcde;border-radius:6px;padding:12px;"><div style="color:#646970;font-size:11px;text-transform:uppercase;font-weight:700;">' . esc_html($label) . '</div><div style="font-size:24px;font-weight:700;margin-top:5px;">' . esc_html(is_numeric($value) ? number_format_i18n($value) : $value) . '</div></div>';
+            }
+            echo '</div>';
+            echo '<p class="description" style="margin-top:12px;">Bing complementa a Google. Sus clics no deben compararse directamente con sesiones GA4.</p>';
+        } else {
+            echo '<p class="description">Bing no está conectado al Analista en esta instalación. Este bloque no entra en las decisiones hasta que la fuente responda.</p>';
+        }
+        echo '</div>';
+    }
 
     echo '</section>';
 }
@@ -1920,7 +2018,8 @@ function seo_render_faq_orphan_anomaly_row($label, $count, $description) {
  * - existe como product_cat;
  * - no es la categoría predeterminada de WooCommerce;
  * - no tiene ningún producto relacionado, independientemente de su estado;
- * - no tiene subcategorías hijas.
+ * - no tiene subcategorías hijas;
+ * - no está vinculada comercialmente desde una landing.
  */
 function seo_get_empty_product_category_delete_state($term_id) {
 
@@ -1934,6 +2033,7 @@ function seo_get_empty_product_category_delete_state($term_id) {
         'term'          => null,
         'product_count' => 0,
         'child_count'   => 0,
+        'landing_count' => 0,
     );
 
     if ($term_id <= 0) {
@@ -2007,8 +2107,27 @@ function seo_get_empty_product_category_delete_state($term_id) {
         return $state;
     }
 
+    // Una categoría vacía puede seguir siendo un destino comercial válido de
+    // una landing. Borrarla crearía inmediatamente una relación rota y una
+    // nueva anomalía, por lo que se protege aunque no tenga productos todavía.
+    $state['landing_count'] = (int) $wpdb->get_var(
+        $wpdb->prepare(
+            "SELECT COUNT(*)
+             FROM {$wpdb->prefix}seo_relations
+             WHERE target_type = 'product_cat'
+               AND target_id = %d
+               AND relation_type = 'landing_to_category'",
+            $term_id
+        )
+    );
+
+    if ($state['landing_count'] > 0) {
+        $state['reason'] = 'Tiene landing pages asociadas.';
+        return $state;
+    }
+
     $state['eligible'] = true;
-    $state['reason'] = 'Sin productos y sin subcategorías.';
+    $state['reason'] = 'Sin productos, subcategorías ni landings asociadas.';
 
     return $state;
 }
@@ -2453,22 +2572,25 @@ function seo_render_anomalies_report() {
     }
 
     /*
-     * Posts sin Vocabulary semantico activo.
+     * Entradas editoriales sin Vocabulary semantico activo.
      *
      * Modelo actual:
      * - la conexion editorial del post con el catalogo se resuelve mediante Vocabulary;
      * - post_to_category ya no es una relacion obligatoria y no debe auditarse como error;
      * - solo se consideran asignaciones activas a terminos de Vocabulary tambien activos;
-     * - se auditan los grupos canonicos usados por el sistema semantico.
+     * - se auditan los grupos canonicos usados por el sistema semantico;
+     * - las entradas funcionales, legales, corporativas o de navegacion no necesitan
+     *   Vocabulary de catalogo y se excluyen para evitar falsos positivos.
      *
      * Incluye publicados y programados; excluye borradores, papelera y revisiones.
      */
-    echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:40px;">📰 Posts sin Vocabulary semántico activo</h3>';
+    echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:40px;">📰 Entradas editoriales sin Vocabulary semántico activo</h3>';
 
-    $posts_without_vocabulary = $wpdb->get_results("
+    $posts_without_vocabulary_raw = $wpdb->get_results("
         SELECT
             p.ID AS post_id,
             p.post_title,
+            p.post_name,
             p.post_status,
             p.post_date
         FROM {$wpdb->posts} p
@@ -2488,9 +2610,97 @@ function seo_render_anomalies_report() {
         ORDER BY p.post_status ASC, p.post_date DESC, p.ID DESC
     " );
 
+    /*
+     * Inventario real de contenido que actualmente vive como post pero cumple
+     * una función de navegación, cuenta, legal, corporativa, servicio o índice.
+     * No se le debe forzar ROL/TIPO/APLICACION solo para dejar el informe a cero.
+     *
+     * El filtro permite ampliar o reducir este inventario en otras instalaciones
+     * sin modificar el núcleo del informe.
+     */
+    $non_editorial_post_slugs = (array) apply_filters(
+        'seo_reports_non_editorial_post_slugs',
+        array(
+            'carrito',
+            'finalizar-compra',
+            'mi-cuenta',
+            'terminos-y-condiciones',
+            'privacidad-de-datos',
+            'devoluciones-y-reembolsos',
+            'contacto',
+            'blog',
+            'tienda',
+            'dependiente',
+            'inicio',
+            'nosotros',
+            'nuestro-servicio',
+            'proveedores-de-distribuidor-de-herramientas-es',
+            'densl-suministro-profesional-de-equipamiento-de-seguridad-vial-bajo-presupuesto',
+            'soluciones',
+            'productos-genericos-de-ferreteria',
+        )
+    );
+
+    $non_editorial_post_slugs = array_values(
+        array_unique(
+            array_filter(
+                array_map('sanitize_title', $non_editorial_post_slugs)
+            )
+        )
+    );
+
+    $functional_post_ids = array();
+    if (function_exists('wc_get_page_id')) {
+        foreach (array('cart', 'checkout', 'myaccount', 'shop', 'terms') as $wc_page_key) {
+            $wc_page_id = absint(wc_get_page_id($wc_page_key));
+            if ($wc_page_id > 0) {
+                $functional_post_ids[$wc_page_id] = true;
+            }
+        }
+    }
+
+    foreach (array('page_on_front', 'page_for_posts') as $option_key) {
+        $option_id = absint(get_option($option_key));
+        if ($option_id > 0) {
+            $functional_post_ids[$option_id] = true;
+        }
+    }
+
+    $posts_without_vocabulary = array();
+    $posts_without_vocabulary_excluded = 0;
+
+    foreach ((array) $posts_without_vocabulary_raw as $post_row) {
+        $post_id   = absint($post_row->post_id ?? 0);
+        $post_slug = sanitize_title((string) ($post_row->post_name ?? ''));
+
+        $is_non_editorial = isset($functional_post_ids[$post_id])
+            || in_array($post_slug, $non_editorial_post_slugs, true);
+
+        $is_non_editorial = (bool) apply_filters(
+            'seo_reports_is_non_editorial_post',
+            $is_non_editorial,
+            $post_id,
+            $post_slug,
+            $post_row
+        );
+
+        if ($is_non_editorial) {
+            $posts_without_vocabulary_excluded++;
+            continue;
+        }
+
+        $posts_without_vocabulary[] = $post_row;
+    }
+
+    if (!empty($posts_without_vocabulary_excluded)) {
+        echo '<p style="color:#646970;">';
+        echo 'Se han excluido <strong>' . esc_html(number_format_i18n($posts_without_vocabulary_excluded)) . '</strong> entradas funcionales, legales, corporativas o de navegación que no necesitan Vocabulary de catálogo.';
+        echo '</p>';
+    }
+
     if (!empty($posts_without_vocabulary)) {
         echo '<p style="color:#646970;">';
-        echo 'Estas entradas están publicadas o programadas, pero no tienen ninguna asignación activa de Vocabulary canónico. En el modelo actual no se exige una relación directa <code>post_to_category</code>.';
+        echo 'Estas entradas editoriales están publicadas o programadas, pero no tienen ninguna asignación activa de Vocabulary canónico. En el modelo actual no se exige una relación directa <code>post_to_category</code>.';
         echo '</p>';
         echo '<div style="background:#fcf0f1;border-left:4px solid #d63638;padding:10px 12px;margin-bottom:12px;">';
         echo 'Total detectados: <strong>' . esc_html(number_format_i18n(count($posts_without_vocabulary))) . '</strong>';
@@ -2535,7 +2745,7 @@ function seo_render_anomalies_report() {
             echo '</div>';
         }
     } else {
-        echo '<p style="color:#2e7d32;font-style:italic;">Todos los posts publicados o programados tienen al menos un término de Vocabulary canónico activo.</p>';
+        echo '<p style="color:#2e7d32;font-style:italic;">Todas las entradas editoriales publicadas o programadas tienen al menos un término de Vocabulary canónico activo.</p>';
     }
     
     echo '<h3 style="color:#ff9800; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:40px;">⚠️ Categorías sin asignación estructural</h3>';

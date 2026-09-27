@@ -2,73 +2,151 @@ name: Sync documentation to GitHub Wiki
 
 on:
   push:
-    branches: [main]
+    branches:
+      - staging
     paths:
-      - "docs/wiki/**"
-      - ".github/workflows/sync-wiki.yml"
+      - 'docs/**'
+      - '.github/workflows/sync-wiki.yml'
   workflow_dispatch:
 
 permissions:
-  contents: read
-
-concurrency:
-  group: seo-taxonomy-wiki-sync
-  cancel-in-progress: false
+  contents: write
 
 jobs:
-  sync:
+  sync-wiki:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Check Wiki token
+      - name: Clone Wiki repository
         env:
-          WIKI_TOKEN: ${{ secrets.WIKI_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ -z "$WIKI_TOKEN" ]; then
-            echo "::error::Missing repository secret WIKI_TOKEN"
-            exit 1
-          fi
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" wiki
 
-      - name: Prepare Git authentication
-        env:
-          WIKI_TOKEN: ${{ secrets.WIKI_TOKEN }}
+      - name: Update Wiki from canonical documentation
         run: |
-          cat > "$RUNNER_TEMP/wiki-askpass.sh" <<'EOF'
-          #!/bin/sh
-          case "$1" in
-            *Username*) echo "x-access-token" ;;
-            *Password*) echo "$WIKI_TOKEN" ;;
-          esac
-          EOF
-          chmod 700 "$RUNNER_TEMP/wiki-askpass.sh"
+          cp docs/MANUAL-USUARIO.md wiki/Manual-de-usuario.md
+          cp docs/CONEXIONES-CREDENCIALES.md wiki/Conexiones-y-credenciales.md
 
-      - name: Clone Wiki
-        env:
-          WIKI_TOKEN: ${{ secrets.WIKI_TOKEN }}
-          GIT_ASKPASS: ${{ runner.temp }}/wiki-askpass.sh
-          GIT_TERMINAL_PROMPT: "0"
-        run: |
-          git clone "https://github.com/distribuidordeherramientases-wq/seo-taxonomy.wiki.git" wiki
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
 
-      - name: Copy documentation
-        run: |
-          rsync -av --delete --exclude=".git/" docs/wiki/ wiki/
+          root = Path(".")
+          wiki = Path("wiki")
 
-      - name: Commit and push Wiki
-        env:
-          WIKI_TOKEN: ${{ secrets.WIKI_TOKEN }}
-          GIT_ASKPASS: ${{ runner.temp }}/wiki-askpass.sh
-          GIT_TERMINAL_PROMPT: "0"
+          mapping = {
+              "docs/manual/INICIO.md": ("Home.md", "Inicio"),
+              "docs/manual/PRODUCTOS.md": ("Productos.md", "Productos"),
+              "docs/manual/CATEGORIAS.md": ("Categorias.md", "Categorias"),
+              "docs/manual/ETIQUETAS-Y-VOCABULARIO.md": ("Etiquetas-y-vocabulario.md", "Etiquetas"),
+              "docs/manual/PAGINAS.md": ("Paginas.md", "Paginas"),
+              "docs/manual/ENTRADAS.md": ("Entradas.md", "Entradas"),
+              "docs/manual/IMAGENES.md": ("Imagenes.md", "Imagenes"),
+              "docs/manual/INFORMES.md": ("Informes.md", "Informes"),
+              "docs/manual/DEPENDIENTE.md": ("Dependiente.md", "Dependiente"),
+              "docs/manual/HERRAMIENTAS.md": ("Herramientas.md", "Herramientas"),
+              "docs/manual/MARKETING.md": ("Marketing.md", "Marketing"),
+              "docs/manual/IMPORT-EXPORT.md": ("Import-Export.md", "ImportExport"),
+              "docs/manual/FACTURAS-Y-PRESUPUESTOS.md": ("Facturas-y-presupuestos.md", "Facturas"),
+              "docs/manual/SOLUCIONADOR.md": ("Solucionador.md", "Solucionador"),
+              "docs/manual/OJEADOR.md": ("Ojeador.md", "Ojeador"),
+              "docs/manual/COMENTARISTA.md": ("Comentarista.md", "Comentarista"),
+          }
+
+          def strip_first_h1(text):
+              return re.sub(r"^# .+?\n+", "", text.strip(), count=1).strip()
+
+          def remove_legacy_home_block(text):
+              return re.sub(
+                  r"\n*<!-- SEO-TAXONOMY-MANUAL-START -->.*?<!-- SEO-TAXONOMY-MANUAL-END -->\n*",
+                  "\n",
+                  text,
+                  flags=re.S,
+              ).rstrip()
+
+          def upsert_managed(target_name, key, source_text):
+              target = wiki / target_name
+              if target.exists():
+                  original = target.read_text(encoding="utf-8")
+              else:
+                  title = re.search(r"^# (.+)$", source_text, re.M)
+                  original = "# " + (title.group(1) if title else key) + "\n"
+
+              if target_name == "Home.md":
+                  original = remove_legacy_home_block(original)
+
+              start = f"<!-- SEO-TAXONOMY-MANUAL:{key}:START -->"
+              end = f"<!-- SEO-TAXONOMY-MANUAL:{key}:END -->"
+              body = strip_first_h1(source_text)
+              block = start + "\n\n## Manual operativo\n\n" + body + "\n\n" + end
+
+              if start in original and end in original:
+                  before = original.split(start, 1)[0].rstrip()
+                  after = original.split(end, 1)[1].lstrip()
+                  updated = before + "\n\n" + block
+                  if after:
+                      updated += "\n\n" + after
+                  updated += "\n"
+              else:
+                  updated = original.rstrip() + "\n\n" + block + "\n"
+
+              target.write_text(updated, encoding="utf-8")
+
+          for source_name, (target_name, key) in mapping.items():
+              source = root / source_name
+              if source.exists():
+                  upsert_managed(target_name, key, source.read_text(encoding="utf-8"))
+
+          # Añade una navegación operativa gestionada sin borrar el índice histórico.
+          sidebar = wiki / "_Sidebar.md"
+          existing = sidebar.read_text(encoding="utf-8") if sidebar.exists() else "### SEO Taxonomy\n"
+          s0 = "<!-- SEO-TAXONOMY-SIDEBAR-MANUAL:START -->"
+          s1 = "<!-- SEO-TAXONOMY-SIDEBAR-MANUAL:END -->"
+          managed = """<!-- SEO-TAXONOMY-SIDEBAR-MANUAL:START -->
+          ### Manual operativo
+          - [[Manual de usuario|Manual-de-usuario]]
+          - [[Productos|Productos]]
+          - [[Categorías|Categorias]]
+          - [[Etiquetas y vocabulario|Etiquetas-y-vocabulario]]
+          - [[Páginas|Paginas]]
+          - [[Entradas|Entradas]]
+          - [[Imágenes|Imagenes]]
+          - [[Informes|Informes]]
+          - [[Dependiente|Dependiente]]
+          - [[Herramientas|Herramientas]]
+            - [[Marketing|Marketing]]
+            - [[Import / Export|Import-Export]]
+            - [[Facturas y presupuestos|Facturas-y-presupuestos]]
+            - [[Solucionador|Solucionador]]
+            - [[Ojeador|Ojeador]]
+          - [[Comentarista|Comentarista]]
+          - [[Conexiones y credenciales|Conexiones-y-credenciales]]
+          <!-- SEO-TAXONOMY-SIDEBAR-MANUAL:END -->"""
+
+          if s0 in existing and s1 in existing:
+              before = existing.split(s0, 1)[0].rstrip()
+              after = existing.split(s1, 1)[1].lstrip()
+              result = before + "\n\n" + managed
+              if after:
+                  result += "\n\n" + after
+              result += "\n"
+          else:
+              result = existing.rstrip() + "\n\n" + managed + "\n"
+          sidebar.write_text(result, encoding="utf-8")
+          PY
+
+      - name: Commit Wiki changes
         run: |
           cd wiki
-          git config user.name "SEO Taxonomy Docs"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add '*.md'
           if git diff --cached --quiet; then
             echo "Wiki already up to date."
             exit 0
           fi
-          git commit -m "docs: sync SEO Taxonomy manual"
+          git commit -m "docs: actualiza manual completo de usuario"
           git push origin HEAD

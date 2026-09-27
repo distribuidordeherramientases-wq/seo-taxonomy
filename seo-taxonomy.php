@@ -3,10 +3,12 @@
  * Plugin Name: SEO Taxonomy
  * Plugin URI: https://distribuidordeherramientas.es/
  * Description: Plataforma SEO y comercial para WooCommerce: taxonomía semántica, catálogo, proveedores, Google Shopping, auditoría, automatización, aprendizaje y asistencia inteligente.
- * Version: 2.3.7
+ * Version: 2.3.9
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: David Pérez
+ * License: MIT
+ * License URI: https://opensource.org/license/mit/
  * Text Domain: seo-taxonomy
  */
 
@@ -32,7 +34,7 @@ defined('ABSPATH') || exit;
 /**
  * VERSIONES
  */
-define('SEO_SYSTEM_VERSION', '2.3.7');
+define('SEO_SYSTEM_VERSION', '2.3.9');
 define('SEO_SYSTEM_DB_VERSION', '2.3.7');
 
 /**

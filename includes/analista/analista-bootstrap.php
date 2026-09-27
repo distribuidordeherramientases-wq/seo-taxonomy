@@ -10,7 +10,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_ANALISTA_VERSION')) {
-    define('SEO_ANALISTA_VERSION', '3.7.0');
+    define('SEO_ANALISTA_VERSION', '3.7.1');
 }
 
 $seo_analista_files = array(
