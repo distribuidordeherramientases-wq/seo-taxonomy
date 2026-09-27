@@ -556,7 +556,7 @@ final class SEO_Investigador {
         $delay = max(0, absint($delay));
         if (function_exists('seo_process_supervisor_settings')) {
             $manager = (array) seo_process_supervisor_settings();
-            if (!empty($manager['enabled'])) {
+            if (!empty($manager['enabled']) && !empty($manager['investigador'])) {
                 self::clear_fallback();
                 if (function_exists('seo_process_supervisor_nudge')) seo_process_supervisor_nudge($delay, 'investigador');
                 if (function_exists('seo_process_supervisor_schedule_backup')) seo_process_supervisor_schedule_backup();
