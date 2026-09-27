@@ -12,6 +12,7 @@ defined('ABSPATH') || exit;
 final class SEO_Investigador {
     const VERSION = '0.1.0';
     const STATE_OPTION = 'seo_investigador_state_v1';
+    const CATEGORY_STATE_OPTION = 'seo_investigador_category_state_v1';
     const LESSON_TECHNICAL = 'l1_technical';
     const LESSON_PRACTICAL = 'l2_practical';
 
@@ -83,6 +84,35 @@ final class SEO_Investigador {
         return $state;
     }
 
+    public static function category_states() {
+        $rows = get_option(self::CATEGORY_STATE_OPTION, array());
+        return is_array($rows) ? $rows : array();
+    }
+
+    public static function set_category_state($term_id, $status, $changes = array()) {
+        $term_id = absint($term_id);
+        if (!$term_id) return array();
+        $allowed = array('pendiente','investigando','aprendido','revisar','error');
+        $status = sanitize_key((string) $status);
+        if (!in_array($status, $allowed, true)) $status = 'pendiente';
+        $all = self::category_states();
+        $current = isset($all[$term_id]) && is_array($all[$term_id]) ? $all[$term_id] : array();
+        $all[$term_id] = array_merge($current, array(
+            'term_id'=>$term_id,
+            'status'=>$status,
+            'updated_at'=>time(),
+        ), (array) $changes);
+        update_option(self::CATEGORY_STATE_OPTION, $all, false);
+        return $all[$term_id];
+    }
+
+    public static function category_state($term_id) {
+        $term_id = absint($term_id);
+        $all = self::category_states();
+        if (isset($all[$term_id]) && is_array($all[$term_id])) return $all[$term_id];
+        return array('term_id'=>$term_id,'status'=>'pendiente','updated_at'=>0,'last_error'=>'');
+    }
+
     public static function provider() {
         if (self::$provider instanceof SEO_Investigador_Search_Provider) return self::$provider;
         $provider = apply_filters('seo_investigador_search_provider', new SEO_Investigador_SerpApi_Provider());
@@ -137,6 +167,9 @@ final class SEO_Investigador {
         $state['last_message'] = $queue
             ? sprintf('L1 preparada con %d categorías piloto.', count($queue))
             : 'No hay categorías elegibles para preparar.';
+        foreach ($queue as $term_id) {
+            self::set_category_state($term_id, 'pendiente', array('last_error'=>''));
+        }
         update_option(self::STATE_OPTION, $state, false);
         return $state;
     }
@@ -201,7 +234,17 @@ final class SEO_Investigador {
         if (!$term || is_wp_error($term)) return new WP_Error('investigador_term_missing', 'La categoría no existe.');
 
         SEO_Investigador_DB::supersede_category($term_id, self::LESSON_TECHNICAL);
+        self::set_category_state($term_id, 'investigando', array('last_error'=>''));
         $result = self::research_category($term_id, true);
+        if (is_wp_error($result)) {
+            self::set_category_state($term_id, 'error', array('last_error'=>$result->get_error_message()));
+            return $result;
+        }
+        self::set_category_state(
+            $term_id,
+            !empty($result['review']) ? 'revisar' : 'aprendido',
+            array('last_error'=>'','sources'=>absint($result['sources']??0),'knowledge'=>absint($result['knowledge']??0),'confidence'=>self::category_confidence($term_id))
+        );
         return $result;
     }
 
@@ -495,14 +538,13 @@ final class SEO_Investigador {
         }));
     }
 
-    public static function category_status($term_id) {
-        $term_id = absint($term_id);
-        $state = self::state();
+    public static function category_confidence($term_id) {
         $stats = SEO_Investigador_DB::category_stats_map(self::LESSON_TECHNICAL);
-        if (absint($state['last_term_id'] ?? 0) === $term_id && self::is_pending()) return 'investigando';
-        if (!empty($stats[$term_id]['review'])) return 'revisar';
-        if (!empty($stats[$term_id]['knowledge'])) return 'aprendido';
-        return 'pendiente';
+        return round((float) ($stats[absint($term_id)]['avg_confidence'] ?? 0), 4);
+    }
+
+    public static function category_status($term_id) {
+        return sanitize_key((string) (self::category_state(absint($term_id))['status'] ?? 'pendiente'));
     }
 
     public static function schedule_fallback($delay = 30) {
