@@ -339,3 +339,40 @@ El resumen mensual muestra:
 Los días con colisión en una misma red se resaltan visualmente. Debajo del calendario se mantiene una **vista compacta cronológica** para pantallas pequeñas y revisiones rápidas.
 
 No se duplica ninguna programación ni se crea una tabla adicional: las entradas/landings proceden de la agenda social existente y las ofertas de los metadatos de programación de Campañas.
+
+
+---
+
+## Informes de rendimiento
+
+La pestaña **Marketing → Informes** cierra el ciclo de medición comercial y contiene dos vistas.
+
+### Campañas
+
+Para cada campaña muestra:
+
+- productos incluidos;
+- publicaciones sociales;
+- visitas desde la franja pública de campaña;
+- visitas desde publicaciones sociales;
+- interacciones;
+- pedidos con atribución directa;
+- facturación atribuida;
+- conversión visita → pedido;
+- pedidos, unidades y ventas de los productos observadas durante las fechas de campaña.
+
+**Atribuido** significa que el pedido conserva una interacción firmada de campaña o red social. **Observado durante campaña** significa únicamente que el producto se vendió durante las fechas; no se presenta como venta causada por la campaña.
+
+El detalle por producto separa visitas de la franja, visitas sociales, pedidos atribuidos, unidades y facturación observada.
+
+### Redes sociales
+
+La vista por red y publicación muestra publicaciones, visitas a la web, interacciones, pedidos, facturación y conversión. Las métricas de proveedor pueden actualizarse mediante los conectores disponibles.
+
+Las visitas sociales utilizan el identificador firmado `seo_social_ref`. La atribución se conserva durante **30 días** y guarda solo identificadores técnicos de fuente/campaña/publicación, sin añadir PII. Al crear el pedido se registran metadatos privados de WooCommerce para reconstruir el recorrido.
+
+Las publicaciones de campaña guardan también `campaign_id`, por lo que el informe puede relacionar:
+
+`Campaña → publicación → visita → pedido`.
+
+La franja pública usa `seo_campaign_ref` firmado y añade parámetros UTM. Sus clics se cuentan en la propia fila campaña-producto sin importar ninguna información personal.
