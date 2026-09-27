@@ -7,8 +7,9 @@ defined('ABSPATH') || exit;
 
 function seo_comentarista_register_admin_page()
 {
+    // Página oculta: el acceso visible se ofrece desde SEO Taxonomy → Herramientas.
     add_submenu_page(
-        'seo-system',
+        null,
         'Comentarista',
         'Comentarista',
         'manage_options',
@@ -17,6 +18,33 @@ function seo_comentarista_register_admin_page()
     );
 }
 add_action('admin_menu', 'seo_comentarista_register_admin_page', 35);
+
+/**
+ * Añade Comentarista al lanzador central de Herramientas.
+ *
+ * @param array $tools Tarjetas actuales.
+ * @return array
+ */
+function seo_comentarista_register_tools_card($tools)
+{
+    $tools = is_array($tools) ? $tools : array();
+
+    foreach ($tools as $tool) {
+        if (isset($tool['page']) && 'seo-comentarista' === $tool['page']) {
+            return $tools;
+        }
+    }
+
+    $tools[] = array(
+        'title' => 'Comentarista',
+        'icon'  => 'dashicons-testimonial',
+        'page'  => 'seo-comentarista',
+        'desc'  => 'Gestiona evidencias externas, comentarios, vídeos, publicaciones sociales y enlaces asociados a productos.',
+    );
+
+    return $tools;
+}
+add_filter('seo_tools_items', 'seo_comentarista_register_tools_card');
 
 function seo_comentarista_admin_assets()
 {
