@@ -21,6 +21,7 @@
     const runBody = root.querySelector('[data-trainer-run-body]');
     const autoButton = root.querySelector('[data-trainer-mode-auto]');
     const manualButton = root.querySelector('[data-trainer-mode-manual]');
+    const stopButton = root.querySelector('[data-trainer-mode-stop]');
     const autoStatus = root.querySelector('[data-trainer-auto-status]');
     const autoBadge = root.querySelector('[data-trainer-auto-badge]');
     const labRoot = root.querySelector('[data-trainer-lab]');
@@ -42,7 +43,7 @@
     let autoRunning = root.dataset.autoRunning === '1';
     let labBatchKey = labRoot ? (labRoot.dataset.labBatchKey || '') : '';
     const baseDisabled = new WeakMap();
-    [prepareButton, runModuleButton, autoButton, labImportButton, labRunButton, labExportButton, exportCourseButton, updateStartButton, updateExportButton]
+    [prepareButton, runModuleButton, autoButton, manualButton, stopButton, labImportButton, labRunButton, labExportButton, exportCourseButton, updateStartButton, updateExportButton]
         .concat(exportLessonButtons, exportProgressButtons)
         .forEach(function (button) {
             if (button) baseDisabled.set(button, !!button.disabled);
@@ -158,6 +159,7 @@
         if (exportCourseButton) exportCourseButton.disabled = busy || !!baseDisabled.get(exportCourseButton);
         if (autoButton) autoButton.disabled = busy || autoRunning || !!baseDisabled.get(autoButton);
         if (manualButton) manualButton.disabled = busy || !autoRunning;
+        if (stopButton) stopButton.disabled = busy || !!baseDisabled.get(stopButton);
         if (labImportButton) labImportButton.disabled = busy || autoRunning || !!baseDisabled.get(labImportButton);
         if (labRunButton) labRunButton.disabled = busy || autoRunning || !!baseDisabled.get(labRunButton);
         if (labExportButton) labExportButton.disabled = busy || !!baseDisabled.get(labExportButton);
@@ -421,13 +423,15 @@
             const stateStatus = String(data && data.state ? data.state.status || '' : '');
             autoBadge.textContent = autoRunning
                 ? 'Automático activo'
-                : (stateStatus === 'completed' ? 'Completado' : (stateStatus === 'needs_training' ? 'Necesita entrenamiento' : 'Manual'));
+                : (stateStatus === 'stopped'
+                    ? 'Detenido'
+                    : (stateStatus === 'completed' ? 'Completado' : (stateStatus === 'needs_training' ? 'Necesita entrenamiento' : 'Manual')));
             autoBadge.classList.toggle('is-running', autoRunning);
         }
         if (autoStatus) autoStatus.textContent = describeAutomation(data);
         setBusy(false);
 
-        if (wasRunning && !autoRunning && data && data.state && ['completed', 'error', 'needs_training'].includes(String(data.state.status || ''))) {
+        if (wasRunning && !autoRunning && data && data.state && ['completed', 'error', 'needs_training', 'stopped'].includes(String(data.state.status || ''))) {
             window.setTimeout(function () { window.location.reload(); }, 1200);
         }
     }
@@ -438,7 +442,9 @@
         if (autoStatus) {
             autoStatus.textContent = mode === 'auto'
                 ? 'Activando formación automática…'
-                : 'Pausando después del lote que esté en curso…';
+                : (mode === 'stop'
+                    ? 'Deteniendo la formación; se conservará el progreso…'
+                    : 'Pausando después del lote que esté en curso…');
         }
         try {
             const data = await post('seo_dependiente_entrenador_set_mode', { mode: mode });
@@ -766,6 +772,11 @@
     exportCourseButton && exportCourseButton.addEventListener('click', exportCourse);
     autoButton && autoButton.addEventListener('click', function () { setTrainingMode('auto'); });
     manualButton && manualButton.addEventListener('click', function () { setTrainingMode('manual'); });
+    stopButton && stopButton.addEventListener('click', function () {
+        if (window.confirm('¿Detener la formación? Se conservará el progreso actual y no se procesarán más lotes hasta reanudar.')) {
+            setTrainingMode('stop');
+        }
+    });
     labImportButton && labImportButton.addEventListener('click', importLabBatch);
     labRunButton && labRunButton.addEventListener('click', runLabBatch);
     labExportButton && labExportButton.addEventListener('click', exportLabBatch);
