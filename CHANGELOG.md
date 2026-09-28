@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Auditor
+
+- **Auditor de contenidos** se ha separado de Dependiente y se accede ahora desde **Contenidos → Auditor**. Dependiente conserva únicamente **Auditor Academia**, dedicado a lecciones, Entrenador, Estudiante y aprendizaje. Se mantienen los informes, JSON y datos históricos existentes.
+
 Los cambios validados en `staging` que todavía no formen parte de una publicación de producción se documentan aquí. Al cerrar una release semanal, estas entradas se trasladan a la versión fechada correspondiente.
 
 ### Administración y navegación

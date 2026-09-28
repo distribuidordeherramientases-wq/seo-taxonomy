@@ -182,6 +182,7 @@ add_submenu_page(null, 'Administración de páginas', 'Páginas', 'manage_option
 // el motivo exacto en vez de ocultar silenciosamente la opción.
 add_submenu_page(null, 'Administración de entradas', 'Entradas', 'manage_options', 'seo-post-editor', 'seo_post_admin_callback');
 add_submenu_page(null, 'Imágenes', 'Imágenes', 'manage_options', 'seo-pictures-admin', 'seo_pictures_admin_page');
+add_submenu_page(null, 'Auditor de contenidos', 'Auditor', class_exists('WooCommerce') ? 'manage_woocommerce' : 'manage_options', 'seo-content-auditor', array('SEO_Auditor', 'render_content_page'));
 
     // Páginas ocultas (accesibles desde Tools)
 add_submenu_page(null, 'Taxonomy', 'Taxonomy', 'manage_options', 'seo-taxonomy', 'seo_taxonomy_page');
@@ -251,6 +252,7 @@ add_filter('parent_file', function ($parent_file) {
         'seo-page-admin',
         'seo-post-editor',
         'seo-pictures-admin',
+        'seo-content-auditor',
         'seo-search',
         'seo-provider-connections',
         'seo-processes',
@@ -272,6 +274,7 @@ add_filter('submenu_file', function ($submenu_file) {
         'seo-page-admin',
         'seo-post-editor',
         'seo-pictures-admin',
+        'seo-content-auditor',
     ], true)) {
         return 'seo-content';
     }
@@ -434,6 +437,12 @@ function seo_content_page() {
             'icon'  => 'dashicons-format-image',
             'page'  => 'seo-pictures-admin',
             'desc'  => 'Revisa inventario, anomalías, optimización y asignación de imágenes.'
+        ],
+        [
+            'title' => 'Auditor',
+            'icon'  => 'dashicons-search',
+            'page'  => 'seo-content-auditor',
+            'desc'  => 'Audita calidad, coherencia y arquitectura de productos, categorías, páginas, entradas, FAQs e índice.'
         ],
     ];
 ?>

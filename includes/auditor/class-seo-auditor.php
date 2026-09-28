@@ -49,14 +49,18 @@ final class SEO_Auditor {
     }
 
     public static function enqueue($hook) {
-        if (false === strpos((string) $hook, 'seo-dependiente')) {
+        $page = sanitize_key((string) ($_GET['page'] ?? ''));
+        $tab = sanitize_key((string) ($_GET['tab'] ?? ''));
+        $is_content_auditor = 'seo-content-auditor' === $page;
+        $is_academy_auditor = false !== strpos((string) $hook, 'seo-dependiente') && 'auditor' === $tab;
+
+        if (!$is_content_auditor && !$is_academy_auditor) {
             return;
         }
-        if (sanitize_key((string) ($_GET['tab'] ?? '')) !== 'auditor') {
-            return;
-        }
+
         if (defined('SEO_AUDITOR_URL')) {
-            wp_enqueue_style('seo-auditor', SEO_AUDITOR_URL . 'assets/css/seo-auditor.css', array('seo-dependiente'), SEO_AUDITOR_VERSION);
+            $deps = $is_academy_auditor ? array('seo-dependiente') : array();
+            wp_enqueue_style('seo-auditor', SEO_AUDITOR_URL . 'assets/css/seo-auditor.css', $deps, SEO_AUDITOR_VERSION);
         }
     }
 
@@ -78,7 +82,7 @@ final class SEO_Auditor {
         // Mantener la opcion historica para consumidores externos que aun la lean.
         update_option(self::REPORT_OPTION, $report, false);
         self::append_history($report);
-        wp_safe_redirect(add_query_arg(array('page'=>'seo-dependiente','tab'=>'auditor','audited'=>'catalog'), admin_url('admin.php')));
+        wp_safe_redirect(add_query_arg(array('page'=>'seo-content-auditor','audited'=>'catalog'), admin_url('admin.php')));
         exit;
     }
 
@@ -105,8 +109,7 @@ final class SEO_Auditor {
         update_option(self::SCOPED_REPORT_OPTION, $reports, false);
 
         wp_safe_redirect(add_query_arg(array(
-            'page' => 'seo-dependiente',
-            'tab' => 'auditor',
+            'page' => 'seo-content-auditor',
             'audited' => 'scope',
             'audit_scope' => $scope,
         ), admin_url('admin.php')));
@@ -159,24 +162,33 @@ final class SEO_Auditor {
         exit;
     }
 
+    /**
+     * Compatibilidad: Dependiente sigue llamando a render_tab(), pero desde esta
+     * version esa ubicacion contiene exclusivamente la auditoria academica.
+     */
     public static function render_tab() {
+        self::render_academy_page();
+    }
+
+    /**
+     * Auditor de datos/contenidos. Se muestra desde SEO Taxonomy -> Contenidos.
+     */
+    public static function render_content_page() {
         if (!current_user_can(self::capability())) {
-            wp_die(esc_html__('No tienes permisos para acceder al Auditor.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para acceder al Auditor de contenidos.', 'seo-taxonomy'));
         }
+
         $catalog_report = self::last_catalog_report();
-        $academy_report = self::last_academy_report();
         $scoped_reports = (array) get_option(self::SCOPED_REPORT_OPTION, array());
         $history = (array) get_option(self::HISTORY_OPTION, array());
         $view = sanitize_key((string) ($_GET['audit_view'] ?? 'summary'));
-        if (!in_array($view, array('summary','quality','chain','findings','categories','architecture','behavior','academia'), true)) {
+        if (!in_array($view, array('summary','quality','findings','categories','architecture','behavior'), true)) {
             $view = 'summary';
         }
 
-        $audited = sanitize_key((string)($_GET['audited'] ?? ''));
+        $audited = sanitize_key((string) ($_GET['audited'] ?? ''));
         if ('catalog' === $audited) {
-            echo '<div class="notice notice-success is-dismissible"><p>Auditoria de catalogo completada. No se ha ejecutado Academia ni se ha modificado contenido o conocimiento.</p></div>';
-        } elseif ('academy' === $audited) {
-            echo '<div class="notice notice-success is-dismissible"><p>Auditoria de Academia/Estudiante completada. No se ha recorrido el catalogo completo ni se ha modificado conocimiento.</p></div>';
+            echo '<div class="notice notice-success is-dismissible"><p>Auditoria global de datos completada. No se ha ejecutado Academia ni se ha modificado contenido.</p></div>';
         } elseif ('scope' === $audited) {
             $done_scope = self::normalize_scope((string) ($_GET['audit_scope'] ?? ''));
             $labels = self::scope_definitions();
@@ -185,33 +197,29 @@ final class SEO_Auditor {
             }
         }
 
-        echo '<section class="seo-auditor">';
+        echo '<div class="wrap"><section class="seo-auditor">';
         echo '<div class="seo-auditor__hero">';
-        echo '<div><h2>Auditor</h2><p>Dos auditorias independientes en la misma pestaña. <strong>Catalogo</strong> revisa productos, categorias, Vocabulary, FAQs, arquitectura e indice. <strong>Academia / Estudiante</strong> revisa lecciones, runs, promocion de reglas, snapshots y estado del aprendizaje. Ejecuta y exporta solo la que necesites.</p></div>';
+        echo '<div><h2>Auditor de contenidos y datos</h2><p>Revisa la calidad y coherencia de productos, categorias, posts, paginas, FAQs, relaciones, arquitectura e indice. Esta area no audita Academia ni modifica contenido.</p></div>';
         echo '</div>';
 
-        self::render_audit_actions($catalog_report, $academy_report, $scoped_reports);
+        self::render_content_audit_actions($catalog_report, $scoped_reports);
 
         $scope_view = self::normalize_scope((string) ($_GET['audit_scope'] ?? ''));
         if ($scope_view && !empty($scoped_reports[$scope_view])) {
             self::render_scope_report((array) $scoped_reports[$scope_view]);
-            echo '</section>';
+            echo '</section></div>';
             return;
         }
 
-        if (!$catalog_report && !$academy_report && !$scoped_reports) {
-            self::render_empty();
-            echo '</section>';
+        if (!$catalog_report && !$scoped_reports) {
+            echo '<div class="notice notice-info inline"><p>Todavia no hay auditorias de contenido guardadas. Puedes ejecutar solo el bloque que quieras desde los botones superiores.</p></div>';
+            echo '</section></div>';
             return;
         }
 
-        self::render_subnav($view);
+        self::render_content_subnav($view);
         if ('quality' === $view) {
             self::render_quality_overview($scoped_reports);
-        } elseif ('chain' === $view) {
-            if ($academy_report) self::render_chain($academy_report); else self::render_missing_scope('Academia / Estudiante');
-        } elseif ('academia' === $view) {
-            if ($academy_report) self::render_academia($academy_report); else self::render_missing_scope('Academia / Estudiante');
         } elseif ('findings' === $view) {
             if ($catalog_report) self::render_findings($catalog_report); else self::render_missing_scope('catalogo');
         } elseif ('categories' === $view) {
@@ -221,16 +229,58 @@ final class SEO_Auditor {
         } elseif ('behavior' === $view) {
             if ($catalog_report) self::render_behavior($catalog_report); else self::render_missing_scope('catalogo');
         } else {
-            self::render_summary($catalog_report, $history, $academy_report);
+            self::render_catalog_summary_only($catalog_report, $history);
+        }
+        echo '</section></div>';
+    }
+
+    /**
+     * Auditor de Academia/Estudiante. Permanece dentro de Dependiente.
+     */
+    public static function render_academy_page() {
+        if (!current_user_can(self::capability())) {
+            wp_die(esc_html__('No tienes permisos para acceder al Auditor de Academia.', 'seo-taxonomy'));
+        }
+
+        $academy_report = self::last_academy_report();
+        $view = sanitize_key((string) ($_GET['audit_view'] ?? 'summary'));
+        if (!in_array($view, array('summary','academia','chain'), true)) {
+            $view = 'summary';
+        }
+
+        if ('academy' === sanitize_key((string) ($_GET['audited'] ?? ''))) {
+            echo '<div class="notice notice-success is-dismissible"><p>Auditoria de Academia / Estudiante completada. No se ha recorrido el catalogo ni se ha modificado conocimiento.</p></div>';
+        }
+
+        echo '<section class="seo-auditor">';
+        echo '<div class="seo-auditor__hero">';
+        echo '<div><h2>Auditor de Academia</h2><p>Audita exclusivamente el aprendizaje de Dependiente: lecciones, Entrenador, runs, reglas promocionadas, academy_stage, snapshots y cadena del Estudiante. El catalogo se audita ahora desde <strong>Contenidos -> Auditor</strong>.</p></div>';
+        echo '</div>';
+
+        self::render_academy_audit_actions($academy_report);
+
+        if (!$academy_report) {
+            self::render_missing_scope('Academia / Estudiante');
+            echo '</section>';
+            return;
+        }
+
+        self::render_academy_subnav($view);
+        if ('academia' === $view) {
+            self::render_academia($academy_report);
+        } elseif ('chain' === $view) {
+            self::render_chain($academy_report);
+        } else {
+            self::render_academy_summary_only($academy_report);
         }
         echo '</section>';
     }
 
-    private static function render_audit_actions($catalog_report, $academy_report, $scoped_reports = array()) {
+    private static function render_content_audit_actions($catalog_report, $scoped_reports = array()) {
         $scope_defs = self::scope_definitions();
 
         echo '<h3 style="margin:20px 0 10px">Auditorias por bloque</h3>';
-        echo '<p class="description" style="margin-top:0">Ejecuta solo el area que necesitas. Productos, categorias, posts, paginas y FAQs evitan cargar el resto del catalogo. Motor / indice conserva las pruebas profundas y puede tardar mas.</p>';
+        echo '<p class="description" style="margin-top:0">Ejecuta solo el area que necesites. Cada bloque carga exclusivamente las fuentes necesarias; la auditoria global queda para revisiones completas.</p>';
         echo '<div class="seo-auditor__audit-actions">';
         foreach ($scope_defs as $scope => $def) {
             $scope_report = !empty($scoped_reports[$scope]) ? (array) $scoped_reports[$scope] : array();
@@ -244,7 +294,7 @@ final class SEO_Auditor {
             submit_button($scope_report ? 'Repetir' : 'Auditar', 'primary', 'submit', false);
             echo '</form>';
             if ($scope_report) {
-                echo '<a class="button" href="' . esc_url(add_query_arg(array('page'=>'seo-dependiente','tab'=>'auditor','audit_scope'=>$scope), admin_url('admin.php'))) . '">Ver ultimo</a>';
+                echo '<a class="button" href="' . esc_url(add_query_arg(array('page'=>'seo-content-auditor','audit_scope'=>$scope), admin_url('admin.php'))) . '">Ver ultimo</a>';
                 echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_auditor_export_scope"><input type="hidden" name="scope" value="' . esc_attr($scope) . '">';
                 wp_nonce_field('seo_auditor_export_scope');
                 submit_button('JSON', 'secondary', 'submit', false);
@@ -254,10 +304,9 @@ final class SEO_Auditor {
         }
         echo '</div>';
 
-        echo '<h3 style="margin:22px 0 10px">Auditorias profundas / globales</h3>';
+        echo '<h3 style="margin:22px 0 10px">Auditoria global de datos</h3>';
         echo '<div class="seo-auditor__audit-actions">';
-
-        echo '<div class="seo-auditor__audit-card"><div><strong>Auditoria completa de catalogo</strong><p>Recorre productos, categorias, Vocabulary, FAQs, relaciones, arquitectura, indice y pruebas del motor en una sola ejecucion. Es la opcion mas lenta; usala solo cuando necesites una foto global.</p>';
+        echo '<div class="seo-auditor__audit-card"><div><strong>Auditoria completa de catalogo</strong><p>Recorre productos, categorias, Vocabulary, FAQs, relaciones, arquitectura, indice y pruebas del motor en una sola ejecucion. No incluye Academia / Estudiante.</p>';
         if ($catalog_report) echo '<span class="description">Ultima: '.esc_html((string)($catalog_report['generated_at']??'')).' · '.esc_html((string)($catalog_report['execution_seconds']??0)).' s</span>';
         echo '</div><div class="seo-auditor__actions">';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_auditor_run_catalog">';
@@ -270,14 +319,18 @@ final class SEO_Auditor {
             submit_button('Descargar JSON catalogo', 'secondary', 'submit', false);
             echo '</form>';
         }
-        echo '</div></div>';
+        echo '</div></div></div>';
+    }
 
-        echo '<div class="seo-auditor__audit-card"><div><strong>Auditoria de Academia / Estudiante</strong><p>Lecciones v2, Entrenador, runs, diagnosticos, reglas promocionadas, academy_stage y snapshots. No recorre el inventario completo.</p>';
+    private static function render_academy_audit_actions($academy_report) {
+        echo '<h3 style="margin:20px 0 10px">Auditoria de aprendizaje</h3>';
+        echo '<div class="seo-auditor__audit-actions">';
+        echo '<div class="seo-auditor__audit-card"><div><strong>Academia / Estudiante</strong><p>Lecciones v2, Entrenador, runs, diagnosticos, reglas promocionadas, academy_stage y snapshots. No recorre productos, categorias, posts ni paginas.</p>';
         if ($academy_report) echo '<span class="description">Ultima: '.esc_html((string)($academy_report['generated_at']??'')).' · '.esc_html((string)($academy_report['execution_seconds']??0)).' s</span>';
         echo '</div><div class="seo-auditor__actions">';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_auditor_run_academy">';
         wp_nonce_field('seo_auditor_run_academy');
-        submit_button($academy_report ? 'Repetir auditoria de Academia' : 'Auditar Academia', 'secondary', 'submit', false);
+        submit_button($academy_report ? 'Repetir auditoria de Academia' : 'Auditar Academia', 'primary', 'submit', false);
         echo '</form>';
         if ($academy_report) {
             echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_auditor_export_academy">';
@@ -285,8 +338,7 @@ final class SEO_Auditor {
             submit_button('Descargar JSON Academia', 'secondary', 'submit', false);
             echo '</form>';
         }
-        echo '</div></div>';
-        echo '</div>';
+        echo '</div></div></div>';
     }
 
     private static function render_missing_scope($label) {
@@ -338,7 +390,7 @@ final class SEO_Auditor {
         echo '<div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin:18px 0">';
         echo '<div><h3 style="margin:0 0 5px">Ultima auditoria · ' . esc_html($label) . '</h3>';
         echo '<p class="description">Generada: ' . esc_html((string) ($report['generated_at'] ?? '')) . ' · ' . esc_html((string) ($report['execution_seconds'] ?? 0)) . ' s. Solo lectura: no modifica contenido ni aprendizaje.</p></div>';
-        echo '<a class="button" href="' . esc_url(add_query_arg(array('page'=>'seo-dependiente','tab'=>'auditor'), admin_url('admin.php'))) . '">Volver a Auditor</a>';
+        echo '<a class="button" href="' . esc_url(add_query_arg(array('page'=>'seo-content-auditor'), admin_url('admin.php'))) . '">Volver al Auditor de contenidos</a>';
         echo '</div>';
 
         echo '<div class="seo-auditor__metrics">';
@@ -3055,7 +3107,7 @@ final class SEO_Auditor {
         echo '<div class="seo-auditor__quality-filter">';
         echo '<strong>Filtrar:</strong> ';
         foreach (array(''=>'Todos','debil'=>'Debil','mejorable'=>'Mejorable','correcta'=>'Correcta','fuerte'=>'Fuerte','no_aplica'=>'No aplica') as $band=>$label) {
-            $args = array('page'=>'seo-dependiente','tab'=>'auditor','audit_scope'=>$scope,'quality_page'=>1);
+            $args = array('page'=>'seo-content-auditor','audit_scope'=>$scope,'quality_page'=>1);
             if ($band !== '') $args['quality_band']=$band;
             $url = add_query_arg($args,admin_url('admin.php'));
             echo '<a class="button '.($band_filter===$band?'button-primary':'').'" href="'.esc_url($url).'">'.esc_html($label).'</a> ';
@@ -3067,7 +3119,7 @@ final class SEO_Auditor {
         if ($pages > 1) {
             echo '<div class="tablenav"><div class="tablenav-pages"><span class="displaying-num">'.esc_html(number_format_i18n($total)).' elementos</span> ';
             for ($p=max(1,$page-2); $p<=min($pages,$page+2); $p++) {
-                $args=array('page'=>'seo-dependiente','tab'=>'auditor','audit_scope'=>$scope,'quality_page'=>$p);
+                $args=array('page'=>'seo-content-auditor','audit_scope'=>$scope,'quality_page'=>$p);
                 if ($band_filter) $args['quality_band']=$band_filter;
                 $url=add_query_arg($args,admin_url('admin.php'));
                 echo '<a class="button '.($p===$page?'button-primary':'').'" href="'.esc_url($url).'">'.esc_html($p).'</a> ';
@@ -3104,6 +3156,127 @@ final class SEO_Auditor {
             echo '</tr>';
         }
         echo '</tbody></table></div>';
+    }
+
+    private static function render_content_subnav($view) {
+        $base = add_query_arg(array('page'=>'seo-content-auditor'), admin_url('admin.php'));
+        echo '<nav class="seo-auditor__subnav">';
+        foreach (array(
+            'summary'=>'Resumen',
+            'quality'=>'Calidad SEO',
+            'findings'=>'Hallazgos catalogo',
+            'categories'=>'Categorias y productos',
+            'architecture'=>'Hubs y relaciones',
+            'behavior'=>'Pruebas del motor',
+        ) as $slug=>$label) {
+            $url = add_query_arg('audit_view',$slug,$base);
+            echo '<a class="'.($view===$slug?'is-active':'').'" href="'.esc_url($url).'">'.esc_html($label).'</a>';
+        }
+        echo '</nav>';
+    }
+
+    private static function render_academy_subnav($view) {
+        $base = add_query_arg(array('page'=>'seo-dependiente','tab'=>'auditor'), admin_url('admin.php'));
+        echo '<nav class="seo-auditor__subnav">';
+        foreach (array(
+            'summary'=>'Resumen',
+            'academia'=>'Academia / Entrenador',
+            'chain'=>'Estudiante / cadena',
+        ) as $slug=>$label) {
+            $url = add_query_arg('audit_view',$slug,$base);
+            echo '<a class="'.($view===$slug?'is-active':'').'" href="'.esc_url($url).'">'.esc_html($label).'</a>';
+        }
+        echo '</nav>';
+    }
+
+    private static function render_catalog_summary_only($report, $history) {
+        echo '<div class="seo-auditor__scope-summary">';
+        echo '<h3>Auditoria de catalogo</h3>';
+        if (!$report) {
+            self::render_missing_scope('catalogo');
+            echo '</div>';
+            return;
+        }
+
+        $s=(array)($report['summary']??array());
+        $i=(array)($report['inventory']??array());
+        $d=(array)($report['data_state']??array());
+        $q=(array)($report['source_quality']??array());
+        echo '<div class="seo-auditor__metrics">';
+        self::metric('Hallazgos',$s['findings']??0);
+        self::metric('Criticos',$s['critical']??0,'critical');
+        self::metric('Prioridad alta',$s['high']??0,'high');
+        self::metric('Revisar',$s['medium']??0,'medium');
+        self::metric('Observar',$s['low']??0,'low');
+        self::metric('Entidades afectadas',$s['entities_to_review']??0);
+        echo '</div>';
+
+        echo '<div class="notice '.(!empty($d['can_source_audit'])?'notice-success':'notice-error').' inline"><p><strong>Fuente canonica:</strong> '.esc_html((string)($d['source_status']??'desconocido')).' · <strong>Indice:</strong> '.esc_html((string)($d['index_status']??'desconocido')).' · '.esc_html((string)($d['message']??'')).'</p></div>';
+        echo '<div class="notice '.('blocked'===($q['status']??'')||'review_before_academy'===($q['status']??'')?'notice-warning':'notice-info').' inline"><p><strong>Calidad de fuente:</strong> '.esc_html((string)($q['status']??'desconocido')).' · hallazgos fuente: '.esc_html(absint($q['source_findings']??0)).' · bloqueantes/alta: '.esc_html(absint($q['blocking_source_findings']??0)).' · grupos de identidad ambigua: '.esc_html(absint($q['identity_groups']??0)).'.</p></div>';
+
+        $b=(array)($report['behavior_audit']??array());
+        echo '<div class="seo-auditor__grid">';
+        echo '<div class="postbox"><h3>Fuente canonica e indice derivado</h3><table class="widefat striped"><tbody>';
+        foreach(array('published_products'=>'Productos publicados','canonical_products_loaded'=>'Productos canonicos cargados','indexable_products'=>'Productos indexables','hidden_products'=>'Excluidos hidden','indexed_products'=>'Productos indexados','index_missing_products'=>'Faltan en indice','index_extra_products'=>'Sobran en indice','index_stale_rows'=>'Filas desactualizadas','categories_total'=>'Categorias','invalid_index_category_refs'=>'Refs. categoria invalidas') as $k=>$label){
+            echo '<tr><th>'.esc_html($label).'</th><td>'.esc_html(number_format_i18n(absint($i[$k]??0))).'</td></tr>';
+        }
+        echo '<tr><th>Verificacion fuerte</th><td><strong>'.(!empty($i['index_verified'])?'OK':'NO').'</strong></td></tr></tbody></table></div>';
+        echo '<div class="postbox"><h3>Motor de busqueda</h3><table class="widefat striped"><tbody><tr><th>Estado</th><td>'.esc_html((string)($b['status']??'no ejecutado')).'</td></tr><tr><th>Pruebas</th><td>'.esc_html(absint($b['executed']??0)).'</td></tr><tr><th>Fallos</th><td>'.esc_html(absint($b['failed']??0)).'</td></tr><tr><th>Errores tecnicos</th><td>'.esc_html(absint($b['technical_errors']??0)).'</td></tr></tbody></table></div>';
+        echo '</div>';
+
+        $patterns=(array)($report['systemic_patterns']??array());
+        echo '<h3>Patrones sistemicos prioritarios</h3>';
+        if(!$patterns){
+            echo '<p>No hay patrones agregados.</p>';
+        } else {
+            echo '<table class="widefat striped"><thead><tr><th>Nivel</th><th>Patron</th><th>Capa probable</th><th>Casos</th><th>Accion</th></tr></thead><tbody>';
+            foreach(array_slice($patterns,0,20) as $p){
+                echo '<tr><td><span class="seo-auditor__badge is-'.esc_attr((string)$p['severity']).'">'.esc_html(self::severity_label((string)$p['severity'])).'</span></td><td><code>'.esc_html((string)$p['code']).'</code><div>'.esc_html((string)$p['headline']).'</div></td><td>'.esc_html((string)$p['root_cause']).'</td><td>'.esc_html(number_format_i18n(absint($p['count']))).'</td><td>'.esc_html((string)$p['recommendation']).'</td></tr>';
+            }
+            echo '</tbody></table>';
+        }
+
+        echo '<h3>Prioridad de revision</h3>';
+        self::render_finding_table(array_slice((array)($report['findings']??array()),0,30));
+
+        if($history){
+            echo '<h3>Ultimas auditorias de catalogo</h3><table class="widefat striped"><thead><tr><th>Fecha</th><th>Hallazgos</th><th>Criticos</th><th>Alta</th><th>Revisar</th><th>Dependiente</th></tr></thead><tbody>';
+            foreach(array_slice(array_reverse($history),0,12) as $h){
+                echo '<tr><td>'.esc_html((string)($h['generated_at']??'')).'</td><td>'.esc_html(absint($h['findings']??0)).'</td><td>'.esc_html(absint($h['critical']??0)).'</td><td>'.esc_html(absint($h['high']??0)).'</td><td>'.esc_html(absint($h['medium']??0)).'</td><td>'.esc_html((string)($h['dependiente_version']??'')).'</td></tr>';
+            }
+            echo '</tbody></table>';
+        }
+
+        echo '<p class="description">Catalogo generado: '.esc_html((string)($report['generated_at']??'')).' · '.esc_html((string)($report['execution_seconds']??0)).' s · Auditor '.esc_html((string)($report['auditor_version']??'')).'.</p>';
+        echo '</div>';
+    }
+
+    private static function render_academy_summary_only($academy_report) {
+        echo '<div class="seo-auditor__scope-summary">';
+        $a=(array)($academy_report['academy']??array());
+        $c=(array)($academy_report['learning_chain']??array());
+        $st=(array)($academy_report['student']??array());
+        $ss=(array)($academy_report['summary']??array());
+
+        echo '<div class="seo-auditor__metrics">';
+        self::metric('Lecciones',count((array)($a['lessons']??array())));
+        self::metric('Completadas',$c['academy']['completed']??0);
+        self::metric('Preguntas evaluadas',$c['trainer']['evaluated_questions']??0);
+        self::metric('Fallos',$c['trainer']['failed']??0,'medium');
+        self::metric('Snapshot estudiante',$st['snapshot']??0);
+        self::metric('Hallazgos aprendizaje',$ss['findings']??0);
+        echo '</div>';
+
+        echo '<div class="seo-auditor__grid"><div class="postbox"><h3>Estado de aprendizaje</h3><table class="widefat striped"><tbody>';
+        echo '<tr><th>Estado</th><td><strong>'.esc_html((string)($c['status']??'—')).'</strong></td></tr>';
+        echo '<tr><th>Reglas Academia activas</th><td>'.esc_html(number_format_i18n(absint($st['active_academy_rules']??0))).'</td></tr>';
+        echo '<tr><th>Reglas aprendidas activas</th><td>'.esc_html(number_format_i18n(absint($st['active_learned_rules']??0))).'</td></tr>';
+        echo '<tr><th>academy_stage pendientes</th><td>'.esc_html(number_format_i18n(absint($st['staged_rules']??0))).'</td></tr>';
+        echo '<tr><th>Examen L8</th><td>'.esc_html((string)($c['final']['status']??'pendiente')).'</td></tr>';
+        echo '</tbody></table><p><a href="'.esc_url(add_query_arg(array('page'=>'seo-dependiente','tab'=>'auditor','audit_view'=>'academia'),admin_url('admin.php'))).'">Abrir Academia</a> · <a href="'.esc_url(add_query_arg(array('page'=>'seo-dependiente','tab'=>'auditor','audit_view'=>'chain'),admin_url('admin.php'))).'">Abrir Estudiante/cadena</a></p></div></div>';
+
+        echo '<p class="description">Academia generada: '.esc_html((string)($academy_report['generated_at']??'')).' · '.esc_html((string)($academy_report['execution_seconds']??0)).' s. Esta auditoria no carga el inventario completo.</p>';
+        echo '</div>';
     }
 
     private static function render_subnav($view) {
@@ -3193,14 +3366,14 @@ final class SEO_Auditor {
         echo '<h3>Lecciones Academia v2</h3><table class="widefat striped"><thead><tr><th>Leccion</th><th>Estado</th><th>Snapshot</th><th>Evaluadas</th><th>Pass any</th><th>Fallos</th><th>Gate</th><th>Evidencia</th></tr></thead><tbody>';
         foreach((array)($a['lessons']??array()) as $l){$gate=(array)($l['quality_gate']??array());echo '<tr><td>L'.esc_html(absint($l['order'])).' · '.esc_html((string)$l['title']).'<div class="description"><code>'.esc_html((string)$l['lesson_key']).'</code></div></td><td>'.esc_html((string)$l['status']).'</td><td>'.esc_html(absint($l['snapshot_before'])).' → '.esc_html(absint($l['snapshot_after'])).'</td><td>'.esc_html(absint($l['answered'])).'</td><td>'.esc_html(number_format_i18n(100*(float)($l['pass_any_ratio']??0),1)).'%</td><td>'.esc_html(absint($l['failed'])).'</td><td>'.(!empty($gate['passed'])?'OK':'—').'</td><td>'.esc_html((string)($l['evidence_source']??'none')).'</td></tr>';}
         echo '</tbody></table>';
-        if(!empty($a['source_cross_checked'])){echo '<h3>Fallos L6 reclasificados contra la fuente</h3>';if(empty($a['source_diagnostics']))echo '<p>No hay fallos L6 reclasificados con evidencia disponible.</p>';else{echo '<table class="widefat striped"><thead><tr><th>Diagnostico</th><th>Casos</th><th>Destino</th><th>Muestra</th></tr></thead><tbody>';foreach((array)$a['source_diagnostics'] as $d){$samples=(array)($d['samples']??array());$sample=$samples?((string)($samples[0]['owner_title']??'').' #'.absint($samples[0]['owner_id']??0)):'—';echo '<tr><td><code>'.esc_html((string)$d['key']).'</code><div>'.esc_html((string)$d['label']).'</div></td><td>'.esc_html(absint($d['count'])).'</td><td>'.esc_html((string)$d['destination']).'</td><td>'.esc_html($sample).'</td></tr>';}echo '</tbody></table>';}}else{echo '<div class="notice notice-info inline"><p>Esta auditoria de Academia esta aislada del catalogo por diseno. Los defectos de productos, categorias, Vocabulary y owners se revisan con el boton <strong>Auditar catalogo</strong>.</p></div>';}
+        if(!empty($a['source_cross_checked'])){echo '<h3>Fallos L6 reclasificados contra la fuente</h3>';if(empty($a['source_diagnostics']))echo '<p>No hay fallos L6 reclasificados con evidencia disponible.</p>';else{echo '<table class="widefat striped"><thead><tr><th>Diagnostico</th><th>Casos</th><th>Destino</th><th>Muestra</th></tr></thead><tbody>';foreach((array)$a['source_diagnostics'] as $d){$samples=(array)($d['samples']??array());$sample=$samples?((string)($samples[0]['owner_title']??'').' #'.absint($samples[0]['owner_id']??0)):'—';echo '<tr><td><code>'.esc_html((string)$d['key']).'</code><div>'.esc_html((string)$d['label']).'</div></td><td>'.esc_html(absint($d['count'])).'</td><td>'.esc_html((string)$d['destination']).'</td><td>'.esc_html($sample).'</td></tr>';}echo '</tbody></table>';}}else{echo '<div class="notice notice-info inline"><p>Esta auditoria de Academia esta aislada del catalogo por diseno. Los defectos de productos, categorias, Vocabulary y owners se revisan desde <strong>Contenidos → Auditor</strong>.</p></div>';}
         echo '<h3>Patrones sistemicos</h3>';if(empty($a['systemic_signals']))echo '<p>No se han detectado concentraciones sistemicas con evidencia diagnostica disponible.</p>';else{echo '<table class="widefat striped"><thead><tr><th>Leccion</th><th>Diagnostico</th><th>Concentracion</th><th>Capa observada</th></tr></thead><tbody>';foreach($a['systemic_signals'] as $sig){echo '<tr><td>'.esc_html((string)$sig['title']).'</td><td>'.esc_html((string)$sig['label']).'</td><td>'.esc_html(number_format_i18n(100*(float)$sig['ratio'],1)).'% ('.esc_html(absint($sig['count'])).'/'.esc_html(absint($sig['failed'])).')</td><td>'.esc_html((string)$sig['observed_layer']).'</td></tr>';}echo '</tbody></table>';}
         echo '<h3>Fuentes que reaparecen en varias lecciones</h3>';if(empty($a['recurring_sources']))echo '<p>No hay fuentes con recurrencia suficiente en los runs actualmente conservados.</p>';else{echo '<table class="widefat striped"><thead><tr><th>Fuente</th><th>Evaluaciones</th><th>Fallos</th><th>Lecciones</th></tr></thead><tbody>';foreach($a['recurring_sources'] as $src){echo '<tr><td>'.esc_html((string)$src['label']).'<div class="description"><code>'.esc_html((string)$src['key']).'</code></div></td><td>'.esc_html(absint($src['total'])).'</td><td>'.esc_html(absint($src['failed'])).'</td><td>'.esc_html(implode(', ',(array)$src['lessons'])).'</td></tr>';}echo '</tbody></table>';}
     }
 
     private static function render_chain($report) {
         $c=(array)($report['learning_chain']??array());$student=(array)($report['student']??array());$academy=(array)($report['academy']??array());
-        echo '<h3>Academia → Entrenador → Estudiante</h3><p class="description">Esta vista solo audita aprendizaje. La fuente canonica, categorias, Vocabulary e indice se revisan en la auditoria de catalogo independiente.</p>';
+        echo '<h3>Academia → Entrenador → Estudiante</h3><p class="description">Esta vista solo audita aprendizaje. La fuente canonica, categorias, Vocabulary e indice se revisan desde Contenidos → Auditor.</p>';
         echo '<div class="seo-auditor__chain">';
         self::render_chain_step('1','Academia',!empty($c['academy']['current'])?'v2 activa':'no disponible','Lecciones: '.absint($c['academy']['lessons']??0).' · completadas: '.absint($c['academy']['completed']??0).' · bloqueadas: '.absint($c['academy']['blocked']??0));
         self::render_chain_step('2','Entrenador','observado','Evaluadas: '.number_format_i18n(absint($c['trainer']['evaluated_questions']??0)).' · pass_any: '.number_format_i18n(100*(float)($c['trainer']['pass_any_ratio']??0),1).'% · fallos: '.number_format_i18n(absint($c['trainer']['failed']??0)));

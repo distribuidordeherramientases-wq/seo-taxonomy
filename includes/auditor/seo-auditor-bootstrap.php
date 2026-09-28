@@ -1,14 +1,16 @@
 <?php
 /**
- * Auditor de catalogo y Academia/Estudiante de SEO Taxonomy.
+ * Auditor de SEO Taxonomy.
  *
- * Modulo de solo lectura con dos auditorias independientes: catalogo y Academia/Estudiante.
+ * El motor es compartido, pero la interfaz separa dos responsabilidades:
+ * - datos/contenidos desde SEO Taxonomy -> Contenidos -> Auditor;
+ * - Academia/Estudiante desde Dependiente -> Auditor Academia.
  * Nunca modifica contenido ni conocimiento.
  */
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_AUDITOR_VERSION')) {
-    define('SEO_AUDITOR_VERSION', '0.8.0');
+    define('SEO_AUDITOR_VERSION', '0.9.0');
 }
 if (!defined('SEO_AUDITOR_PATH')) {
     define('SEO_AUDITOR_PATH', __DIR__ . '/');
