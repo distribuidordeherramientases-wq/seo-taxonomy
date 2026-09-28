@@ -11,7 +11,7 @@ Ruta: **SEO Taxonomy → Dependiente**
 - Intérprete
 - Ingeniero
 - Conocimiento
-- Auditor
+- Auditor Academia
 
 ## Configuración
 
@@ -224,9 +224,6 @@ Auditor permite ejecutar bloques independientes para evitar recorrer siempre tod
 
 Cada bloque puede ejecutarse, revisar su último informe y exportar JSON.
 
-También se conservan las auditorías profundas/globales:
-
-- **Auditoría completa de catálogo**: recorre todas las capas.
-- **Academia / Estudiante**: lecciones, runs, promoción de reglas, snapshots y aprendizaje.
+En Dependiente se conserva únicamente **Auditor Academia**, que revisa lecciones, runs, promoción de reglas, snapshots y aprendizaje. La auditoría de productos, categorías, posts, páginas, FAQs, relaciones e índice se ha movido a **SEO Taxonomy → Contenidos → Auditor**.
 
 Las auditorías son de solo lectura. Los hallazgos son señales de revisión, no órdenes automáticas de cambio.
