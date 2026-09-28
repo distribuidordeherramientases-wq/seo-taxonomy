@@ -13,6 +13,7 @@ La pantalla **Contenidos** agrupa los editores que se utilizan con más frecuenc
 | Páginas | Hubs, landings, páginas corporativas y estructura editorial | **Abrir** [Consulta] |
 | Entradas | Posts, guías, comparativas, oportunidades y contenido editorial | **Abrir** [Consulta] |
 | Imágenes | Inventario, anomalías, optimización y asignación de imágenes | **Abrir** [Consulta] |
+| Editor | Propuestas editoriales y borradores a partir de señales internas del catálogo y otros servicios | **Abrir** [Consulta] |
 | Auditor | Calidad, coherencia y arquitectura de productos, categorías, páginas, entradas, FAQs e índice | **Abrir** [Consulta] |
 
 El botón **Abrir** solo navega al editor correspondiente.
