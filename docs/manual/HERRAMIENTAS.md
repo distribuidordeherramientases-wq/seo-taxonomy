@@ -24,7 +24,6 @@ Esta pantalla es un lanzador. El botón **Abrir** de cada tarjeta solo navega al
 | Plugin Validation | Validación interna del plugin |
 | Menu Manager | Generación y sincronización del menú SEO |
 | Facturas y presupuestos | Documentos PDF conectados a WooCommerce |
-| Solucionador | Propuestas editoriales a partir de señales |
 | Ojeador | Mercado por categorías en Google Shopping |
 
 ## Taxonomy
@@ -168,3 +167,5 @@ Acciones principales: **Previsualizar menú**, **Sincronizar menú creado**, **A
 Para añadir elementos hay paneles de Páginas, Entradas, Categorías y Enlaces personalizados con Más reciente / Ver todo / Buscar, checkboxes y botones de añadir. En enlaces personalizados se introducen URL y Texto del enlace.
 
 - **Comentarista**: gestiona evidencias externas, comentarios, vídeos, publicaciones sociales y enlaces asociados a productos.
+
+> **Editor** se encuentra ahora en **SEO Taxonomy → Contenidos**, junto con Productos, Categorías, Páginas, Entradas, Imágenes y Auditor.
