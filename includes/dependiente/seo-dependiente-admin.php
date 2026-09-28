@@ -62,7 +62,7 @@ final class SEO_Dependiente_Admin {
                 <?php self::render_tab_link('interpreter', 'Intérprete', $tab); ?>
                 <?php self::render_tab_link('engineer', 'Ingeniero', $tab); ?>
                 <?php self::render_tab_link('knowledge', 'Conocimiento', $tab); ?>
-                <?php self::render_tab_link('auditor', 'Auditor', $tab); ?>
+                <?php self::render_tab_link('auditor', 'Auditor Academia', $tab); ?>
             </nav>
 
             <?php
