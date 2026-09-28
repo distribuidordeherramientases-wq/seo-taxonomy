@@ -1010,7 +1010,7 @@ if (!function_exists('dht_template_products_for_category_ids')) {
                 $tax_query['relation'] = 'AND';
                 $tax_query[] = array(
                     'taxonomy' => 'product_visibility',
-                    'field'    => 'term_taxonomy_id',
+                    'field'    => 'term_id',
                     'terms'    => array_values($excluded),
                     'operator' => 'NOT IN',
                 );
