@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Plantillas de entradas
+
+- Añadido un bloque de **hasta 8 productos relacionados en las entradas**. Los productos se obtienen exclusivamente de las categorías comerciales enlazadas mediante `post_to_category`, se muestran debajo del contenido principal y usan tarjetas responsive con imagen, título, precio y acción de compra. Implementado en las variantes de escritorio y móvil.
+
 ### Contenidos
 
 - **Editor** sustituye como nombre visible a **Solucionador** en la administración y se mueve de **Herramientas** a **Contenidos**. El cambio es solo de navegación/nomenclatura: se conservan el slug `seo-solucionador`, clases, tablas, acciones y datos existentes.

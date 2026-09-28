@@ -389,6 +389,14 @@ while (have_posts()) :
     $primary_product_cat = !empty($related_product_cats) ? $related_product_cats[0] : null;
     $primary_cat_link    = $primary_product_cat ? dht_template_safe_term_link($primary_product_cat) : '';
 
+    /*
+     * Hasta 8 productos de las categorías comerciales explícitamente
+     * relacionadas con el post. No se infieren por título, tags ni keywords.
+     */
+    $related_products = function_exists('dht_template_products_for_category_ids')
+        ? dht_template_products_for_category_ids($related_category_ids, 8)
+        : array();
+
     /* =========================================================
        DESCRIPCIÓN DE CATEGORÍA
        Reutiliza la misma descripción SEO de template-category.php.
@@ -641,6 +649,39 @@ while (have_posts()) :
                 </aside>
             </div>
         </div>
+
+        <?php if (!empty($related_products)) : ?>
+            <section id="dht-related-products" class="dht-post-section dht-post-products">
+                <div class="dht-container">
+                    <div class="dht-post-section-heading">
+                        <div>
+                            <span class="dht-post-eyebrow">Equipamiento relacionado</span>
+                            <h2 class="dht-post-section-title">Productos relacionados con este artículo</h2>
+                            <p class="dht-post-section-subtitle">
+                                Una selección de hasta 8 productos de las categorías vinculadas directamente con esta información.
+                            </p>
+                        </div>
+                        <?php if ($primary_product_cat && $primary_cat_link !== '') : ?>
+                            <a class="dht-post-section-link" href="<?php echo esc_url($primary_cat_link); ?>">
+                                Ver <?php echo esc_html($primary_product_cat->name); ?> →
+                            </a>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="dht-post-products-panel">
+                        <?php
+                        if (function_exists('dht_shared_render_product_grid')) {
+                            try {
+                                dht_shared_render_product_grid($related_products, 'dht-post-product-grid', 3, false);
+                            } catch (Throwable $e) {
+                                error_log('[DHT post] render productos relacionados: ' . $e->getMessage());
+                            }
+                        }
+                        ?>
+                    </div>
+                </div>
+            </section>
+        <?php endif; ?>
 
         <section class="dht-assistant-section dht-assistant-section--article">
             <div class="dht-container">
