@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Contenidos
+
+- **Editor** sustituye como nombre visible a **Solucionador** en la administración y se mueve de **Herramientas** a **Contenidos**. El cambio es solo de navegación/nomenclatura: se conservan el slug `seo-solucionador`, clases, tablas, acciones y datos existentes.
+
 ### Auditor
 
 - **Auditor de contenidos** se ha separado de Dependiente y se accede ahora desde **Contenidos → Auditor**. Dependiente conserva únicamente **Auditor Academia**, dedicado a lecciones, Entrenador, Estudiante y aprendizaje. Se mantienen los informes, JSON y datos históricos existentes.
