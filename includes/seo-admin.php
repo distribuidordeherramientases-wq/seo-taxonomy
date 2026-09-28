@@ -445,6 +445,10 @@ function seo_content_page() {
             'desc'  => 'Audita calidad, coherencia y arquitectura de productos, categorías, páginas, entradas, FAQs e índice.'
         ],
     ];
+
+    // Los módulos independientes pueden añadir accesos a Contenidos sin
+    // acoplar su implementación a este archivo.
+    $items = apply_filters('seo_content_items', $items);
 ?>
 <div class="wrap seo-content">
     <h1>SEO Taxonomy - Contenidos</h1>
