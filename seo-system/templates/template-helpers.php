@@ -972,6 +972,89 @@ if (!function_exists('dht_shared_render_product_grid')) {
     }
 }
 
+if (!function_exists('dht_template_products_for_category_ids')) {
+    /**
+     * Devuelve productos publicados y visibles de las categorías comerciales
+     * relacionadas con un contenido editorial.
+     *
+     * La selección no se infiere por texto: recibe term_id explícitos
+     * (normalmente procedentes de post_to_category) y devuelve hasta $limit
+     * productos listos para el render compartido de tarjetas.
+     */
+    function dht_template_products_for_category_ids($term_ids, $limit = 8)
+    {
+        $term_ids = array_values(array_unique(array_filter(array_map('absint', (array) $term_ids))));
+        $limit = max(1, min(24, absint($limit)));
+
+        if (!$term_ids || !function_exists('wc_get_product')) {
+            return array();
+        }
+
+        $tax_query = array(
+            array(
+                'taxonomy'         => 'product_cat',
+                'field'            => 'term_id',
+                'terms'            => $term_ids,
+                'include_children' => true,
+                'operator'         => 'IN',
+            ),
+        );
+
+        if (function_exists('wc_get_product_visibility_term_ids')) {
+            $visibility = (array) wc_get_product_visibility_term_ids();
+            $excluded = array_filter(array(
+                absint($visibility['exclude-from-catalog'] ?? 0),
+            ));
+
+            if ($excluded) {
+                $tax_query['relation'] = 'AND';
+                $tax_query[] = array(
+                    'taxonomy' => 'product_visibility',
+                    'field'    => 'term_taxonomy_id',
+                    'terms'    => array_values($excluded),
+                    'operator' => 'NOT IN',
+                );
+            }
+        }
+
+        $query = new WP_Query(array(
+            'post_type'              => 'product',
+            'post_status'            => 'publish',
+            'posts_per_page'         => $limit,
+            'no_found_rows'          => true,
+            'ignore_sticky_posts'    => true,
+            'orderby'                => array(
+                'menu_order' => 'ASC',
+                'date'       => 'DESC',
+            ),
+            'tax_query'              => $tax_query,
+            'update_post_meta_cache' => true,
+            'update_post_term_cache' => false,
+        ));
+
+        $products = array();
+
+        foreach ((array) $query->posts as $product_post) {
+            try {
+                $product = wc_get_product($product_post->ID);
+                if (!$product || !is_a($product, 'WC_Product')) {
+                    continue;
+                }
+                if (method_exists($product, 'is_visible') && !$product->is_visible()) {
+                    continue;
+                }
+                $products[] = $product;
+            } catch (Throwable $e) {
+                error_log('[DHT template] producto relacionado no disponible ID ' . absint($product_post->ID) . ': ' . $e->getMessage());
+            }
+        }
+
+        wp_reset_postdata();
+
+        return array_slice($products, 0, $limit);
+    }
+}
+
 if (!function_exists('dht_template_node_category_ids')) {
     function dht_template_node_category_ids($source_type, $source_id, $limit = 12)
     {
