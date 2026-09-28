@@ -32,7 +32,7 @@ final class SEO_Solucionador_Admin {
             'title' => 'Editor',
             'icon' => 'dashicons-edit-page',
             'page' => 'seo-solucionador',
-            'desc' => 'Gestiona propuestas editoriales y borradores a partir de señales internas para contenidos de soluciones y blog.',
+            'desc' => 'Gestiona propuestas editoriales y borradores a partir de señales internas del catálogo y de otros servicios.',
         );
         return $items;
     }
