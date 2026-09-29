@@ -1,0 +1,25 @@
+name: Temporal lint header value proposition
+
+on:
+  push:
+    branches:
+      - feature/header-value-proposition
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP syntax
+        run: |
+          php -l seo-system/templates/header.php
+          php -l seo-system/templates/template-helpers.php
+      - name: CSS delimiter sanity
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('seo-system/templates/styles-template.css').read_text(encoding='utf-8')
+          if text.count('{') != text.count('}'):
+              raise SystemExit('Unbalanced CSS braces')
+          print('CSS braces balanced')
+          PY
