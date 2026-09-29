@@ -2,29 +2,10 @@
 
 ## [Unreleased]
 
-### Propuesta de valor / cabecera
-
-- Añadida bajo la navegación principal una franja común con los dos pilares comerciales de la tienda: **Dependiente** para ayudar a localizar el producto adecuado y **Compra con respaldo** para hacer visible el acompañamiento antes y después de la compra.
-- Ambos mensajes tienen el mismo peso visual, enlazan a `/dependiente/` y `/nuestro-servicio/`, son responsive y se omiten en carrito, checkout y Mi cuenta para no distraer el funnel transaccional.
-
-
 ### Dependiente / Academia
 
 - Corregida la **Lección 10** para que conserve la marca de currículo `semantic-v2` al guardar preparación, quality gate y finalización. La pérdida de esa marca hacía que, después de completar correctamente L10, la sincronización la interpretase de nuevo como pendiente de migración y la devolviese a **Disponible**.
 - Añadida una recuperación conservadora del caso ya ocurrido: si L1-L9 están completadas, L10 quedó vacía exactamente por esta remigración y el controlador automático acababa de cerrar el curso, se restaura L10 como **Completada** sin obligar a ejecutarla por tercera vez.
-
-
-### Plantillas de entradas
-
-- Añadido un bloque de **hasta 8 productos relacionados en las entradas**. Los productos se obtienen exclusivamente de las categorías comerciales enlazadas mediante `post_to_category`, se muestran debajo del contenido principal y usan tarjetas responsive con imagen, título, precio y acción de compra. Implementado en las variantes de escritorio y móvil.
-
-### Contenidos
-
-- **Editor** sustituye como nombre visible a **Solucionador** en la administración y se mueve de **Herramientas** a **Contenidos**. El cambio es solo de navegación/nomenclatura: se conservan el slug `seo-solucionador`, clases, tablas, acciones y datos existentes.
-
-### Auditor
-
-- **Auditor de contenidos** se ha separado de Dependiente y se accede ahora desde **Contenidos → Auditor**. Dependiente conserva únicamente **Auditor Academia**, dedicado a lecciones, Entrenador, Estudiante y aprendizaje. Se mantienen los informes, JSON y datos históricos existentes.
 
 Los cambios validados en `staging` que todavía no formen parte de una publicación de producción se documentan aquí. Al cerrar una release semanal, estas entradas se trasladan a la versión fechada correspondiente.
 
