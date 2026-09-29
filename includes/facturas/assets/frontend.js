@@ -8,8 +8,26 @@
         var help = box.querySelector('[data-seo-doc-help]');
         var submit = box.querySelector('[data-seo-doc-submit]');
         var buttons = box.querySelectorAll('[data-seo-doc-open]');
+        var compareInput = box.querySelector('[data-seo-compare-ids]');
+        var form = box.querySelector('.seo-facturas-quote-form');
 
         if (!panel || !kindInput || !buttons.length) return;
+
+        function syncComparisonIds() {
+            if (!compareInput) return;
+            var ids = [];
+            try {
+                ids = JSON.parse(window.sessionStorage.getItem('seoLastRequestedComparison') || '[]');
+            } catch (error) {
+                ids = [];
+            }
+            compareInput.value = JSON.stringify(Array.isArray(ids) ? ids.slice(0, 6) : []);
+        }
+
+        syncComparisonIds();
+        if (form) {
+            form.addEventListener('submit', syncComparisonIds);
+        }
 
         function activate(button) {
             var kind = button.getAttribute('data-seo-doc-open') || 'quote';
