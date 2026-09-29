@@ -3782,40 +3782,33 @@ final class SEO_Dependiente_API {
     }
 
     /**
-     * Convierte el HTML de precio de WooCommerce a texto limpio para el
-     * comparador. get_price_html() incluye textos auxiliares para lectores de
-     * pantalla; si se eliminan las etiquetas sin retirarlos antes, esos textos
-     * se duplican y las entidades como &euro; quedan visibles literalmente.
+     * Devuelve un único precio para el comparador público y su PDF:
+     * el precio efectivo actual de WooCommerce. No expone rangos de búsqueda,
+     * datos de Ojeador ni el precio anterior de una oferta.
      */
     private static function comparison_price_text($product) {
         if (!$product || !is_a($product, 'WC_Product')) {
             return '';
         }
 
-        $html = (string) $product->get_price_html();
-        if ('' === trim($html)) {
+        $effective_price = $product->get_price('view');
+        if ('' === (string) $effective_price || !is_numeric($effective_price)) {
             return '';
         }
 
-        // WooCommerce añade descripciones duplicadas solo para accesibilidad.
-        $html = preg_replace(
-            '#<span[^>]*class=(["\'])[^"\']*\bscreen-reader-text\b[^"\']*\1[^>]*>.*?</span>#is',
-            '',
-            $html
-        );
+        $display_price = function_exists('wc_get_price_to_display')
+            ? wc_get_price_to_display($product, array('price' => (float) $effective_price))
+            : (float) $effective_price;
 
-        // Al pasar a texto plano, separa claramente precio anterior y actual.
-        $html = preg_replace('#</del>\s*<ins\b#i', '</del> → <ins', $html);
+        $html = function_exists('wc_price')
+            ? wc_price($display_price)
+            : (string) $display_price;
 
-        $text = wp_strip_all_tags((string) $html, true);
-        $charset = (string) get_bloginfo('charset');
         $text = html_entity_decode(
-            $text,
+            wp_strip_all_tags((string) $html, true),
             ENT_QUOTES | ENT_HTML5,
-            $charset ?: 'UTF-8'
+            (string) get_bloginfo('charset') ?: 'UTF-8'
         );
-
-        // Evita espacios no separables y saltos raros dentro de la celda.
         $text = str_replace("\xC2\xA0", ' ', $text);
         $text = preg_replace('/[\s\x{00A0}]+/u', ' ', $text);
 
