@@ -210,7 +210,10 @@
             parser_gap: 'Fallo de interpretación',
             retrieval_gap: 'Fallo de recuperación',
             ranking_gap: 'Fallo de ranking/filtro',
-            clarification_gap: 'Aclaración innecesaria',
+            clarification_gap: 'Necesita aclaración',
+            low_confidence: 'Confianza insuficiente',
+            semantic_coverage_gap: 'Cobertura semántica insuficiente',
+            teacher_answer_mismatch: 'No coincide con la respuesta de referencia',
             curriculum_invalid: 'Pregunta a revisar',
             technical_error: 'Error técnico',
             observed: 'Observación'
@@ -493,7 +496,7 @@
         const isError = String(row.status || '') === 'error';
         const evaluationStatus = String(row.evaluation_status || evaluation.status || '');
         const learned = evaluationStatus.indexOf('pass_') === 0;
-        const statusClass = isError ? 'is-error' : (learned ? 'is-pass' : 'is-fail');
+        const statusClass = isError ? 'is-error' : (learned ? 'is-ok' : 'is-empty');
         const statusLabel = isError ? 'Error técnico' : (learned ? 'Aprendida' : 'No aprendida');
         return '<tr>' +
             '<td><strong>' + escapeHtml(row.question || '') + '</strong>' +
