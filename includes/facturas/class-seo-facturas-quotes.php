@@ -359,6 +359,9 @@ final class SEO_Facturas_Quotes {
             $qty = max(0.0, (float) ($cart_item['quantity'] ?? 0));
             $line_subtotal = (float) ($cart_item['line_subtotal'] ?? 0);
             $line_total = (float) ($cart_item['line_total'] ?? 0);
+            $commercial = ($product && class_exists('SEO_Facturas_Snapshot'))
+                ? SEO_Facturas_Snapshot::product_commercial_snapshot($product)
+                : array();
 
             $items[] = array(
                 'cart_item_key' => sanitize_text_field((string) $cart_item_key),
@@ -372,10 +375,10 @@ final class SEO_Facturas_Quotes {
                 'total'         => $line_total,
                 'total_tax'     => (float) ($cart_item['line_tax'] ?? 0),
                 'unit_net'      => $qty > 0 ? ($line_total / $qty) : $line_total,
-                'image_data_uri'=> !empty($profile['show_images']) ? self::product_image_data_uri($product) : '',
-                'commercial'    => ($product && class_exists('SEO_Facturas_Snapshot'))
-                    ? SEO_Facturas_Snapshot::product_commercial_snapshot($product)
-                    : array(),
+                'image_data_uri'=> !empty($profile['show_images'])
+                    ? (string) ($commercial['image_data_uri'] ?? self::product_image_data_uri($product))
+                    : '',
+                'commercial'    => $commercial,
             );
         }
 
