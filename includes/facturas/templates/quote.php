@@ -258,7 +258,7 @@ $commercial_items = array_values(array_filter($items, static function ($item) {
                 <?php if (!empty($commercial['image_data_uri'])) : ?>
                     <img src="<?php echo esc_attr($commercial['image_data_uri']); ?>" alt="">
                 <?php else : ?>
-                    <span class="muted">Sin imagen local disponible</span>
+                    <span class="muted">Sin imagen disponible</span>
                 <?php endif; ?>
             </td>
             <td>
