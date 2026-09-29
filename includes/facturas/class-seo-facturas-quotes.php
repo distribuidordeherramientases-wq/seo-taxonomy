@@ -635,19 +635,37 @@ final class SEO_Facturas_Quotes {
     }
 
     private static function is_quote_available() {
-        return (bool) (
-            SEO_Facturas_Settings::get('enabled', 0)
-            && SEO_Facturas_Settings::get('quote_enabled', 0)
-            && class_exists('WooCommerce')
-        );
+        if (!class_exists('WooCommerce')) {
+            return false;
+        }
+
+        /*
+         * Los documentos comerciales del carrito deben seguir disponibles
+         * aunque el sistema documental global no este activado. Ese interruptor
+         * controla la emision automatica ligada a pedidos/facturas, no debe
+         * ocultar la opcion de preparar un presupuesto antes de comprar.
+         */
+        if (!SEO_Facturas_Settings::get('enabled', 0)) {
+            return true;
+        }
+
+        return (bool) SEO_Facturas_Settings::get('quote_enabled', 0);
     }
 
     private static function is_proforma_draft_available() {
-        return (bool) (
-            SEO_Facturas_Settings::get('enabled', 0)
-            && SEO_Facturas_Settings::get('proforma_enabled', 1)
-            && class_exists('WooCommerce')
-        );
+        if (!class_exists('WooCommerce')) {
+            return false;
+        }
+
+        /*
+         * Igual que el presupuesto, la proforma borrador es una previsualizacion
+         * comercial del carrito. No crea pedido ni factura fiscal.
+         */
+        if (!SEO_Facturas_Settings::get('enabled', 0)) {
+            return true;
+        }
+
+        return (bool) SEO_Facturas_Settings::get('proforma_enabled', 1);
     }
 
     private static function draft_numbering() {
