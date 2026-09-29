@@ -192,6 +192,72 @@ final class SEO_Facturas_Snapshot {
         }
 
         if (!$attributes) {
+            $append = static function (&$target, $label, $values, $only_if_missing = false) {
+                $label = trim(wp_strip_all_tags((string) $label));
+                if ('' === $label || ($only_if_missing && isset($target[$label]))) {
+                    return;
+                }
+
+                $values = array_values(array_unique(array_filter(array_map(static function ($value) {
+                    return trim(wp_strip_all_tags((string) $value));
+                }, (array) $values))));
+
+                if (!$values) {
+                    return;
+                }
+
+                $target[$label] = implode(', ', $values);
+            };
+
+            if (function_exists('seo_attributes_get_product_rows')) {
+                $groups = array();
+                foreach ((array) seo_attributes_get_product_rows($product_id) as $row) {
+                    if (isset($row->attribute_visible) && !(int) $row->attribute_visible) {
+                        continue;
+                    }
+
+                    $label = trim((string) ($row->attribute_name ?? ''));
+                    $value = trim((string) ($row->attribute_value ?? ''));
+                    if ('' === $label || '' === $value) {
+                        continue;
+                    }
+                    $groups[$label] = $groups[$label] ?? array();
+                    $groups[$label][] = $value;
+                }
+                foreach ($groups as $label => $values) {
+                    $append($attributes, $label, $values);
+                }
+            }
+
+            $weight = trim((string) $source->get_weight('edit'));
+            if ('' !== $weight && is_numeric($weight) && (float) $weight > 0) {
+                $append(
+                    $attributes,
+                    'Peso',
+                    array(function_exists('wc_format_weight') ? wc_format_weight($weight) : $weight . ' ' . get_option('woocommerce_weight_unit', 'kg')),
+                    true
+                );
+            }
+
+            $dimensions = $source->get_dimensions(false);
+            if (is_array($dimensions)) {
+                $parts = array();
+                foreach (array('length' => 'L', 'width' => 'An', 'height' => 'Al') as $key => $prefix) {
+                    $value = trim((string) ($dimensions[$key] ?? ''));
+                    if ('' !== $value && is_numeric($value) && (float) $value > 0) {
+                        $parts[] = $prefix . ' ' . $value;
+                    }
+                }
+                if ($parts) {
+                    $append(
+                        $attributes,
+                        'Dimensiones',
+                        array(implode(' × ', $parts) . ' ' . get_option('woocommerce_dimension_unit', 'cm')),
+                        true
+                    );
+                }
+            }
+
             foreach ((array) $source->get_attributes() as $attribute) {
                 if (!is_a($attribute, 'WC_Product_Attribute')) {
                     continue;
@@ -209,12 +275,56 @@ final class SEO_Facturas_Snapshot {
                     $values = array();
                 }
 
-                $values = array_values(array_unique(array_filter(array_map(static function ($value) {
-                    return trim(wp_strip_all_tags((string) $value));
-                }, (array) $values))));
+                $append($attributes, $label, $values, true);
+            }
 
-                if ($label && $values) {
-                    $attributes[wp_strip_all_tags($label)] = implode(', ', $values);
+            global $wpdb;
+            $semantic_labels = array(
+                'tipo'       => 'Tipo',
+                'rol'        => 'Rol',
+                'aplicacion' => 'Aplicación',
+                'plataforma' => 'Plataforma',
+                'subtipo'    => 'Subtipo',
+            );
+            $vocabulary_table = $wpdb->prefix . 'seo_vocabulary';
+            $object_table = $wpdb->prefix . 'seo_object_vocabulary';
+            $semantic_available = function_exists('seo_catalog_table_exists')
+                && seo_catalog_table_exists($vocabulary_table)
+                && seo_catalog_table_exists($object_table);
+
+            if ($semantic_available) {
+                $rows = $wpdb->get_results(
+                    $wpdb->prepare(
+                        "SELECT v.semantic_group, v.label
+                         FROM {$object_table} ov
+                         INNER JOIN {$vocabulary_table} v
+                            ON v.id = ov.vocabulary_id
+                           AND v.active = 1
+                         WHERE ov.object_type = 'product'
+                           AND ov.object_id = %d
+                           AND ov.status = 1
+                           AND v.semantic_group IN ('tipo','rol','aplicacion','plataforma','subtipo')
+                         ORDER BY FIELD(v.semantic_group,'tipo','rol','aplicacion','plataforma','subtipo'),
+                                  v.label ASC",
+                        $product_id
+                    ),
+                    ARRAY_A
+                );
+
+                $groups = array();
+                foreach ((array) $rows as $row) {
+                    $group = sanitize_key((string) ($row['semantic_group'] ?? ''));
+                    $label = trim((string) ($row['label'] ?? ''));
+                    if ('' === $group || '' === $label || !isset($semantic_labels[$group])) {
+                        continue;
+                    }
+                    $groups[$group] = $groups[$group] ?? array();
+                    $groups[$group][] = $label;
+                }
+                foreach ($semantic_labels as $group => $display_label) {
+                    if (!empty($groups[$group])) {
+                        $append($attributes, $display_label, $groups[$group]);
+                    }
                 }
             }
         }
