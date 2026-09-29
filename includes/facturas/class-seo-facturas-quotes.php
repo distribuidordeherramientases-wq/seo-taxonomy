@@ -173,6 +173,7 @@ final class SEO_Facturas_Quotes {
                     <?php wp_nonce_field('seo_facturas_quote_download', 'seo_facturas_quote_nonce'); ?>
                     <input type="hidden" name="seo_facturas_quote_download" value="1">
                     <input type="hidden" name="seo_facturas_cart_document_kind" value="<?php echo esc_attr($initial_kind); ?>" data-seo-doc-kind>
+                    <input type="hidden" name="seo_facturas_compare_ids" value="" data-seo-compare-ids>
 
                     <?php if (!empty($s['quote_ask_company'])) : ?>
                         <p class="form-row form-row-wide">
@@ -372,6 +373,9 @@ final class SEO_Facturas_Quotes {
                 'total_tax'     => (float) ($cart_item['line_tax'] ?? 0),
                 'unit_net'      => $qty > 0 ? ($line_total / $qty) : $line_total,
                 'image_data_uri'=> !empty($profile['show_images']) ? self::product_image_data_uri($product) : '',
+                'commercial'    => ($product && class_exists('SEO_Facturas_Snapshot'))
+                    ? SEO_Facturas_Snapshot::product_commercial_snapshot($product)
+                    : array(),
             );
         }
 
@@ -451,6 +455,7 @@ final class SEO_Facturas_Quotes {
             'items'          => $items,
             'coupon_lines'   => $coupons,
             'tax_lines'      => $tax_lines,
+            'comparison'     => self::comparison_from_request(),
             'totals'         => array(
                 'subtotal_items' => (float) $cart->get_subtotal(),
                 'discount_total' => (float) $cart->get_discount_total(),
@@ -469,6 +474,88 @@ final class SEO_Facturas_Quotes {
         );
 
         return apply_filters('seo_facturas_quote_snapshot', $snapshot, $cart, $buyer, $kind);
+    }
+
+    /**
+     * Comparativa solicitada durante esta sesion.
+     *
+     * Los IDs llegan desde sessionStorage mediante el formulario del documento.
+     * No se genera comparativa si el usuario no la abrio previamente.
+     */
+    private static function comparison_from_request() {
+        $raw = isset($_POST['seo_facturas_compare_ids'])
+            ? sanitize_text_field(wp_unslash($_POST['seo_facturas_compare_ids']))
+            : '';
+
+        if ('' === $raw) {
+            return array();
+        }
+
+        $decoded = json_decode($raw, true);
+        $ids = array_values(array_unique(array_filter(array_map('absint', is_array($decoded) ? $decoded : array()))));
+        $ids = array_slice($ids, 0, 6);
+        if (count($ids) < 2 || !function_exists('wc_get_product')) {
+            return array();
+        }
+
+        $products = array();
+        foreach ($ids as $id) {
+            $product = wc_get_product($id);
+            if (!$product || !$product->is_visible()) {
+                continue;
+            }
+
+            $commercial = class_exists('SEO_Facturas_Snapshot')
+                ? SEO_Facturas_Snapshot::product_commercial_snapshot($product)
+                : array();
+
+            if (!$commercial) {
+                continue;
+            }
+
+            $products[] = array(
+                'id'         => absint($id),
+                'name'       => (string) ($commercial['name'] ?? $product->get_name()),
+                'price'      => (string) ($commercial['price'] ?? ''),
+                'attributes' => is_array($commercial['attributes'] ?? null) ? $commercial['attributes'] : array(),
+            );
+        }
+
+        if (count($products) < 2) {
+            return array();
+        }
+
+        $labels = array();
+        foreach ($products as $product) {
+            foreach (array_keys((array) $product['attributes']) as $label) {
+                $label = trim(wp_strip_all_tags((string) $label));
+                if ($label !== '' && !in_array($label, $labels, true)) {
+                    $labels[] = $label;
+                }
+            }
+        }
+        $labels = array_slice($labels, 0, 18);
+
+        $rows = array();
+        $price_values = array();
+        foreach ($products as $product) {
+            $price_values[(string) $product['id']] = (string) $product['price'];
+        }
+        $rows[] = array('label' => 'Precio', 'values' => $price_values);
+
+        foreach ($labels as $label) {
+            $values = array();
+            foreach ($products as $product) {
+                $values[(string) $product['id']] = (string) (($product['attributes'][$label] ?? '') ?: '—');
+            }
+            $rows[] = array('label' => $label, 'values' => $values);
+        }
+
+        return array(
+            'requested' => true,
+            'products'  => $products,
+            'rows'      => $rows,
+        );
     }
 
     private static function customer_address($customer, $kind) {
