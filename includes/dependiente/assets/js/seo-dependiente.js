@@ -1719,8 +1719,12 @@
             elements.compareContent.innerHTML = '<div class="seo-dependiente__compare-content"><div class="seo-dependiente__skeleton"></div></div>';
             showDialog();
             try {
-                const data = await api('compare', { method: 'POST', body: { ids: Array.from(state.compare) } });
+                const requestedIds = Array.from(state.compare).slice(0, Number(config.compareMax || 6));
+                const data = await api('compare', { method: 'POST', body: { ids: requestedIds } });
                 renderComparison(data);
+                try {
+                    window.sessionStorage.setItem('seoLastRequestedComparison', JSON.stringify(requestedIds));
+                } catch (storageError) { /* storage can be unavailable */ }
             } catch (error) {
                 elements.compareContent.innerHTML = '<div class="seo-dependiente__compare-content"><div class="seo-dependiente__empty"><strong>No se pudo crear la comparación</strong><span>' + escapeHtml(error.message) + '</span></div></div>';
             }
