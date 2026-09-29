@@ -420,13 +420,121 @@ if (!function_exists('dht_shared_product_compare_data')) {
             return array();
         }
 
+        /*
+         * El comparador usa como fuente principal la clasificación y los
+         * atributos canónicos de SEO Taxonomy. Los atributos nativos de
+         * WooCommerce quedan como fallback para no perder información legacy.
+         */
         $attributes = array();
-        foreach ((array) $compare_product->get_attributes() as $attribute) {
-            if (!is_a($attribute, 'WC_Product_Attribute')) {
-                continue;
+
+        $append_attribute_values = static function ($label, $values, $only_if_missing = false) use (&$attributes) {
+            $label = trim(wp_strip_all_tags((string) $label));
+            if ($label === '') {
+                return;
             }
 
-            if (method_exists($attribute, 'get_visible') && !$attribute->get_visible()) {
+            $values = array_values(array_unique(array_filter(array_map(static function ($value) {
+                $value = trim(wp_strip_all_tags((string) $value));
+                return $value === '' ? '' : $value;
+            }, (array) $values))));
+
+            if (!$values) {
+                return;
+            }
+
+            if ($only_if_missing && isset($attributes[$label])) {
+                return;
+            }
+
+            if (isset($attributes[$label]) && !$only_if_missing) {
+                $current = array_map('trim', explode(',', (string) $attributes[$label]));
+                $values = array_values(array_unique(array_merge($current, $values)));
+            }
+
+            $attributes[$label] = implode(', ', $values);
+        };
+
+        $format_attribute_label = static function ($raw_label) {
+            $raw_label = preg_replace('/^pa_/', '', (string) $raw_label);
+            $raw_label = str_replace(array('_', '-'), ' ', $raw_label);
+            $raw_label = trim((string) preg_replace('/\\s+/u', ' ', $raw_label));
+            if ($raw_label === '') {
+                return '';
+            }
+            return function_exists('mb_convert_case')
+                ? mb_convert_case($raw_label, MB_CASE_TITLE, 'UTF-8')
+                : ucwords($raw_label);
+        };
+
+        /* Atributos técnicos canónicos de SEO Taxonomy. */
+        if (function_exists('seo_attributes_get_product_rows')) {
+            $canonical_groups = array();
+
+            foreach ((array) seo_attributes_get_product_rows($product_id) as $row) {
+                if (isset($row->attribute_visible) && !(int) $row->attribute_visible) {
+                    continue;
+                }
+
+                $attribute_type = sanitize_key((string) ($row->attribute_type ?? ''));
+                $value = trim((string) ($row->attribute_value ?? ''));
+                if ($attribute_type === '' || $value === '') {
+                    continue;
+                }
+
+                $label = trim((string) ($row->attribute_name ?? ''));
+                if ($label === '') {
+                    $label = $format_attribute_label($attribute_type);
+                }
+                if ($label === '') {
+                    continue;
+                }
+
+                if (!isset($canonical_groups[$label])) {
+                    $canonical_groups[$label] = array();
+                }
+                $canonical_groups[$label][] = $value;
+            }
+
+            foreach ($canonical_groups as $label => $values) {
+                $append_attribute_values($label, $values);
+            }
+        }
+
+        /* Datos físicos de WooCommerce que también son comparables. */
+        $weight = trim((string) $compare_product->get_weight('edit'));
+        if ($weight !== '' && is_numeric($weight) && (float) $weight > 0) {
+            $weight_text = function_exists('wc_format_weight')
+                ? wc_format_weight($weight)
+                : $weight . ' ' . get_option('woocommerce_weight_unit', 'kg');
+            $append_attribute_values('Peso', array($weight_text), true);
+        }
+
+        $dimensions = $compare_product->get_dimensions(false);
+        if (is_array($dimensions)) {
+            $dimension_parts = array();
+            foreach (array('length' => 'L', 'width' => 'An', 'height' => 'Al') as $key => $prefix) {
+                $value = trim((string) ($dimensions[$key] ?? ''));
+                if ($value === '' || !is_numeric($value) || (float) $value <= 0) {
+                    continue;
+                }
+                $dimension_parts[] = $prefix . ' ' . (
+                    function_exists('wc_format_localized_decimal')
+                        ? wc_format_localized_decimal($value)
+                        : $value
+                );
+            }
+            if ($dimension_parts) {
+                $append_attribute_values(
+                    'Dimensiones',
+                    array(implode(' × ', $dimension_parts) . ' ' . get_option('woocommerce_dimension_unit', 'cm')),
+                    true
+                );
+            }
+        }
+
+        /* Atributos WooCommerce solo como fallback de información legacy. */
+        foreach ((array) $compare_product->get_attributes() as $attribute) {
+            if (!is_a($attribute, 'WC_Product_Attribute')) {
                 continue;
             }
 
@@ -434,6 +542,10 @@ if (!function_exists('dht_shared_product_compare_data')) {
             $attribute_label = function_exists('wc_attribute_label')
                 ? (string) wc_attribute_label($attribute_name, $compare_product)
                 : $attribute_name;
+
+            if ($attribute_label === '' || $attribute_label === $attribute_name) {
+                $attribute_label = $format_attribute_label($attribute_name);
+            }
 
             $values = array();
             if ($attribute->is_taxonomy()) {
@@ -448,26 +560,85 @@ if (!function_exists('dht_shared_product_compare_data')) {
                 $values = array();
             }
 
-            $values = array_values(array_unique(array_filter(array_map(static function ($value) {
-                $value = wp_strip_all_tags((string) $value);
-                return '' === trim($value) ? '' : trim($value);
-            }, (array) $values))));
+            $append_attribute_values($attribute_label, $values, true);
+        }
 
-            if (!$values || '' === trim($attribute_label)) {
-                continue;
+        /*
+         * Etiquetas semánticas canónicas. Se presentan por grupo para que la
+         * comparación sea útil y no como una bolsa de product_tag de WooCommerce.
+         */
+        global $wpdb;
+        $semantic_labels = array(
+            'tipo'       => 'Tipo',
+            'rol'        => 'Rol',
+            'aplicacion' => 'Aplicación',
+            'plataforma' => 'Plataforma',
+            'subtipo'    => 'Subtipo',
+        );
+
+        $vocabulary_table = $wpdb->prefix . 'seo_vocabulary';
+        $object_table = $wpdb->prefix . 'seo_object_vocabulary';
+        $semantic_available = function_exists('seo_catalog_table_exists')
+            && seo_catalog_table_exists($vocabulary_table)
+            && seo_catalog_table_exists($object_table);
+
+        if ($semantic_available) {
+            $semantic_rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT v.semantic_group, v.label
+                     FROM {$object_table} ov
+                     INNER JOIN {$vocabulary_table} v
+                        ON v.id = ov.vocabulary_id
+                       AND v.active = 1
+                     WHERE ov.object_type = 'product'
+                       AND ov.object_id = %d
+                       AND ov.status = 1
+                       AND v.semantic_group IN ('tipo','rol','aplicacion','plataforma','subtipo')
+                     ORDER BY FIELD(v.semantic_group,'tipo','rol','aplicacion','plataforma','subtipo'),
+                              v.label ASC",
+                    $product_id
+                ),
+                ARRAY_A
+            );
+
+            $semantic_groups = array();
+            foreach ((array) $semantic_rows as $row) {
+                $group = sanitize_key((string) ($row['semantic_group'] ?? ''));
+                $label = trim((string) ($row['label'] ?? ''));
+                if ($group === '' || $label === '' || !isset($semantic_labels[$group])) {
+                    continue;
+                }
+                if (!isset($semantic_groups[$group])) {
+                    $semantic_groups[$group] = array();
+                }
+                $semantic_groups[$group][] = $label;
             }
 
-            $attributes[$attribute_label] = implode(', ', $values);
+            foreach ($semantic_labels as $group => $display_label) {
+                if (!empty($semantic_groups[$group])) {
+                    $append_attribute_values($display_label, $semantic_groups[$group]);
+                }
+            }
         }
 
-        $tags = wp_get_post_terms($product_id, 'product_tag', array('fields' => 'names'));
-        if (is_wp_error($tags)) {
-            $tags = array();
-        }
-        $tags = array_values(array_unique(array_filter(array_map(static function ($tag) {
-            $tag = wp_strip_all_tags((string) $tag);
-            return '' === trim($tag) ? '' : trim($tag);
-        }, (array) $tags))));
+        /*
+         * Precio limpio: evita textos auxiliares para lectores de pantalla y
+         * entidades HTML visibles como "&euro;" en la tabla.
+         */
+        $price_html = (string) $compare_product->get_price_html();
+        $price_html = preg_replace(
+            '#<span[^>]*class=(["\\'])[^"\\']*\\bscreen-reader-text\\b[^"\\']*\\1[^>]*>.*?</span>#is',
+            '',
+            $price_html
+        );
+        $price_html = preg_replace('#</del>\\s*<ins\\b#i', '</del> → <ins', $price_html);
+        $price_text = html_entity_decode(
+            wp_strip_all_tags((string) $price_html, true),
+            ENT_QUOTES | ENT_HTML5,
+            (string) get_bloginfo('charset') ?: 'UTF-8'
+        );
+        $price_text = str_replace("\xC2\xA0", ' ', $price_text);
+        $price_text = trim((string) preg_replace('/[\\s\\x{00A0}]+/u', ' ', $price_text));
 
         $image_url = '';
         $image_candidates = dht_shared_product_image_candidates(
@@ -485,8 +656,8 @@ if (!function_exists('dht_shared_product_compare_data')) {
             'name'       => wp_strip_all_tags((string) $compare_product->get_name()),
             'url'        => esc_url_raw((string) get_permalink($product_id)),
             'image'      => $image_url,
-            'price'      => wp_strip_all_tags((string) $compare_product->get_price_html()),
-            'tags'       => $tags,
+            'price'      => $price_text,
+            'tags'       => array(),
             'attributes' => $attributes,
         );
     }
@@ -790,15 +961,20 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
                     });
                     tbody.appendChild(priceRow);
 
-                    var tagRow = document.createElement('tr');
-                    var tagHead = document.createElement('th');
-                    tagHead.scope = 'row';
-                    tagHead.textContent = 'Etiquetas';
-                    tagRow.appendChild(tagHead);
-                    chosen.forEach(function (product) {
-                        appendTextCell(tagRow, Array.isArray(product.tags) && product.tags.length ? product.tags.join(', ') : '—');
+                    var hasLegacyTags = chosen.some(function (product) {
+                        return Array.isArray(product.tags) && product.tags.length > 0;
                     });
-                    tbody.appendChild(tagRow);
+                    if (hasLegacyTags) {
+                        var tagRow = document.createElement('tr');
+                        var tagHead = document.createElement('th');
+                        tagHead.scope = 'row';
+                        tagHead.textContent = 'Etiquetas';
+                        tagRow.appendChild(tagHead);
+                        chosen.forEach(function (product) {
+                            appendTextCell(tagRow, Array.isArray(product.tags) && product.tags.length ? product.tags.join(', ') : '—');
+                        });
+                        tbody.appendChild(tagRow);
+                    }
 
                     attributeLabels.forEach(function (label) {
                         var row = document.createElement('tr');
