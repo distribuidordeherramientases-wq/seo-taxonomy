@@ -417,6 +417,95 @@ final class SEO_Dependiente_Plugin {
     }
 
     /**
+     * Convierte la imagen principal real del producto en data URI para Dompdf.
+     * Dompdf trabaja con remoto desactivado, por lo que las imágenes externas
+     * de proveedor también se descargan de forma segura y limitada antes de
+     * generar el PDF.
+     */
+    private static function comparison_product_image_data_uri($product_id) {
+        $product_id = absint($product_id);
+        if ($product_id < 1 || !function_exists('wc_get_product')) {
+            return '';
+        }
+
+        $product = wc_get_product($product_id);
+        if (!$product || !is_a($product, 'WC_Product')) {
+            return '';
+        }
+
+        // 1) Imagen principal local de WooCommerce.
+        $attachment_id = absint($product->get_image_id());
+        if ($attachment_id) {
+            $path = get_attached_file($attachment_id);
+            $mime = get_post_mime_type($attachment_id);
+            if ($path && is_readable($path) && $mime && 0 === strpos($mime, 'image/')) {
+                $bytes = file_get_contents($path);
+                if (is_string($bytes) && '' !== $bytes) {
+                    return 'data:' . $mime . ';base64,' . base64_encode($bytes);
+                }
+            }
+        }
+
+        // 2) Imagen real resuelta por el índice (incluye proveedores externos).
+        $url = '';
+        if (class_exists('SEO_Dependiente_Index') && method_exists('SEO_Dependiente_Index', 'product_image_url')) {
+            $url = (string) SEO_Dependiente_Index::product_image_url($product_id);
+        }
+        $url = esc_url_raw($url);
+        if (!$url) {
+            return '';
+        }
+
+        // Si la URL pertenece a uploads locales, evitamos una petición HTTP.
+        $uploads = wp_upload_dir(null, false);
+        if (empty($uploads['error']) && !empty($uploads['baseurl']) && !empty($uploads['basedir'])
+            && 0 === strpos($url, (string) $uploads['baseurl'])) {
+            $relative = ltrim(substr($url, strlen((string) $uploads['baseurl'])), '/');
+            $local_path = trailingslashit((string) $uploads['basedir']) . $relative;
+            if (is_readable($local_path)) {
+                $mime = function_exists('wp_check_filetype') ? (string) (wp_check_filetype($local_path)['type'] ?? '') : '';
+                if ($mime && 0 === strpos($mime, 'image/')) {
+                    $bytes = file_get_contents($local_path);
+                    if (is_string($bytes) && '' !== $bytes) {
+                        return 'data:' . $mime . ';base64,' . base64_encode($bytes);
+                    }
+                }
+            }
+        }
+
+        if (!function_exists('wp_safe_remote_get')) {
+            return '';
+        }
+
+        $response = wp_safe_remote_get($url, array(
+            'timeout'             => 6,
+            'redirection'         => 2,
+            'limit_response_size' => 2 * MB_IN_BYTES,
+            'user-agent'          => 'SEO Taxonomy Comparativa PDF/' . (defined('SEO_DEPENDIENTE_VERSION') ? SEO_DEPENDIENTE_VERSION : '1.0'),
+        ));
+        if (is_wp_error($response)) {
+            return '';
+        }
+
+        $code = absint(wp_remote_retrieve_response_code($response));
+        if ($code < 200 || $code >= 300) {
+            return '';
+        }
+
+        $mime = sanitize_mime_type((string) wp_remote_retrieve_header($response, 'content-type'));
+        if (!$mime || 0 !== strpos($mime, 'image/')) {
+            return '';
+        }
+
+        $bytes = wp_remote_retrieve_body($response);
+        if (!is_string($bytes) || '' === $bytes) {
+            return '';
+        }
+
+        return 'data:' . $mime . ';base64,' . base64_encode($bytes);
+    }
+
+    /**
      * Maqueta la comparación para A4 apaisado reutilizando la identidad
      * configurada en Facturas/Proformas/Presupuestos cuando está disponible.
      */
@@ -440,6 +529,14 @@ final class SEO_Dependiente_Plugin {
 
         $logo = (string) ($company['logo_data_uri'] ?? '');
         $criteria_labels = array_values(array_filter(array_map('sanitize_text_field', (array) ($criteria['labels'] ?? array()))));
+
+        $product_images = array();
+        foreach ($products as $product) {
+            $product_id = absint($product['id'] ?? 0);
+            if ($product_id) {
+                $product_images[$product_id] = self::comparison_product_image_data_uri($product_id);
+            }
+        }
 
         ob_start();
         ?>
@@ -466,6 +563,7 @@ final class SEO_Dependiente_Plugin {
                 th.criterion { width:12%; background:#f8faf8; text-align:left; }
                 tr.diff td,tr.diff th { background:#fffaf1; }
                 tr.priority th.criterion { border-left:3px solid #9eba24; }
+                .product-image { display:block; max-width:62px; max-height:62px; margin:0 auto 5px; object-fit:contain; }
                 .product-title { font-weight:bold; font-size:8px; line-height:1.25; }
                 .product-excerpt { margin-top:4px; color:#657168; font-size:6.8px; line-height:1.35; font-weight:normal; }
                 .product-link { margin-top:4px; color:#657168; font-size:6.2px; line-height:1.25; }
@@ -515,6 +613,10 @@ final class SEO_Dependiente_Plugin {
                         <th class="criterion">Criterio</th>
                         <?php foreach ($products as $product) : ?>
                             <th>
+                                <?php $pdf_product_id = absint($product['id'] ?? 0); ?>
+                                <?php if ($pdf_product_id && !empty($product_images[$pdf_product_id])) : ?>
+                                    <img class="product-image" src="<?php echo esc_attr((string) $product_images[$pdf_product_id]); ?>" alt="">
+                                <?php endif; ?>
                                 <div class="product-title"><?php echo esc_html((string) ($product['title'] ?? '')); ?></div>
                                 <?php if (!empty($product['excerpt'])) : ?>
                                     <div class="product-excerpt"><?php echo esc_html((string) $product['excerpt']); ?></div>
