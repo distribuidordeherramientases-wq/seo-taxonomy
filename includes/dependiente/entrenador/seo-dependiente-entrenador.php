@@ -511,8 +511,8 @@ final class SEO_Dependiente_Entrenador {
         if (class_exists('SEO_Dependiente_Reset') && SEO_Dependiente_Reset::is_locked()) {
             wp_send_json_error(array('message' => 'El conocimiento se está reiniciando. Espera a que termine.'), 423);
         }
-        if (!self::ensure_ready() || !class_exists('SEO_Dependiente_API')) {
-            wp_send_json_error(array('message' => 'El motor del Dependiente no está disponible.'), 500);
+        if (!self::ensure_ready() || !class_exists('SEO_Dependiente_V3_API')) {
+            wp_send_json_error(array('message' => 'El motor V3 del Dependiente no está disponible.'), 500);
         }
 
         $lesson_key = sanitize_key((string) wp_unslash($_POST['lesson_key'] ?? ''));
