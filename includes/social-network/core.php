@@ -1367,6 +1367,7 @@ function seo_social_network_scheduler_import_columns()
         'content_id'   => array('contenido_id', 'content_id', 'id', 'post_id'),
         'providers'    => array('redes', 'red', 'provider', 'providers'),
         'scheduled_at' => array('fecha_hora', 'fecha', 'scheduled_at', 'date_time', 'datetime'),
+        'priority'     => array('prioridad', 'priority', 'prioritaria', 'urgente'),
         'title'        => array('titulo', 'title'),
     );
 }
@@ -1496,6 +1497,7 @@ function seo_social_network_scheduler_exportable_agenda_rows()
             wp_date('Y-m-d H:i', $timestamp, wp_timezone()),
             wp_timezone_string(),
             'programada',
+            ('post' === (string) $row->post_type && function_exists('seo_social_network_news_is_priority') && seo_social_network_news_is_priority((int) $row->post_id)) ? 'si' : '',
         );
     }
 
@@ -1560,7 +1562,7 @@ function seo_social_network_handle_scheduler_export()
     if ('template' === $kind) {
         seo_social_network_scheduler_send_csv(
             'programacion-social-plantilla-' . $stamp . '.csv',
-            array('contenido_id', 'titulo', 'redes', 'fecha_hora'),
+            array('contenido_id', 'titulo', 'redes', 'fecha_hora', 'prioridad'),
             array()
         );
     }
@@ -1576,7 +1578,7 @@ function seo_social_network_handle_scheduler_export()
     if ('agenda' === $kind) {
         seo_social_network_scheduler_send_csv(
             'agenda-social-' . $stamp . '.csv',
-            array('contenido_id', 'titulo', 'tipo', 'redes', 'fecha_hora', 'zona_horaria', 'estado'),
+            array('contenido_id', 'titulo', 'tipo', 'redes', 'fecha_hora', 'zona_horaria', 'estado', 'prioridad'),
             seo_social_network_scheduler_exportable_agenda_rows()
         );
     }
@@ -1753,11 +1755,18 @@ function seo_social_network_scheduler_parse_import_file($path)
         $content_id = absint(isset($row[$columns['content_id']]) ? $row[$columns['content_id']] : 0);
         $provider_values = isset($row[$columns['providers']]) ? $row[$columns['providers']] : '';
         $raw_date = isset($row[$columns['scheduled_at']]) ? $row[$columns['scheduled_at']] : '';
+        $raw_priority = isset($columns['priority'], $row[$columns['priority']]) ? sanitize_text_field($row[$columns['priority']]) : '';
         $csv_title = isset($columns['title'], $row[$columns['title']]) ? sanitize_text_field($row[$columns['title']]) : '';
         $providers = seo_social_network_scheduler_parse_providers($provider_values);
         $post = $content_id ? get_post($content_id) : null;
         $date_result = seo_social_network_scheduler_parse_import_datetime($raw_date);
         $timestamp = is_wp_error($date_result) ? 0 : (int) $date_result;
+        $priority_value = remove_accents(strtolower(trim((string) $raw_priority)));
+        $is_priority = in_array($priority_value, array('1', 'si', 'yes', 'true', 'prioridad', 'prioritaria', 'urgente'), true);
+        $is_news = $post && function_exists('seo_social_network_is_news_content') && seo_social_network_is_news_content($post);
+        if ($timestamp && $is_news && function_exists('seo_social_network_news_timestamp_at_fixed_time')) {
+            $timestamp = seo_social_network_news_timestamp_at_fixed_time($timestamp);
+        }
 
         $base_errors = array();
         if (!$content_id) {
@@ -1812,6 +1821,8 @@ function seo_social_network_scheduler_parse_import_file($path)
                 'scheduled_at'  => $timestamp,
                 'scheduled_txt' => $timestamp ? wp_date('Y-m-d H:i', $timestamp, wp_timezone()) : (string) $raw_date,
                 'existing_at'   => $existing,
+                'priority'      => $is_news && $is_priority ? 1 : 0,
+                'is_news'       => $is_news ? 1 : 0,
                 'errors'        => array_values(array_unique($errors)),
             );
         }
@@ -1910,11 +1921,26 @@ function seo_social_network_handle_scheduler_import_confirm()
             continue;
         }
         $had_existing = !empty($entry['existing_at']);
-        $result = seo_social_network_set_scheduled_publication(
-            absint($entry['content_id']),
-            sanitize_key($entry['provider']),
-            absint($entry['scheduled_at'])
-        );
+        $post = get_post(absint($entry['content_id']));
+        if (
+            $post
+            && function_exists('seo_social_network_is_news_content')
+            && seo_social_network_is_news_content($post)
+            && function_exists('seo_social_network_schedule_news_publication')
+        ) {
+            $result = seo_social_network_schedule_news_publication(
+                absint($entry['content_id']),
+                sanitize_key($entry['provider']),
+                absint($entry['scheduled_at']),
+                !empty($entry['priority'])
+            );
+        } else {
+            $result = seo_social_network_set_scheduled_publication(
+                absint($entry['content_id']),
+                sanitize_key($entry['provider']),
+                absint($entry['scheduled_at'])
+            );
+        }
         if (is_wp_error($result)) {
             $failed++;
         } elseif ($had_existing) {
