@@ -967,7 +967,7 @@ function seo_search_maybe_install_log_table() {
 add_action('admin_init', 'seo_search_maybe_install_log_table');
 
 function seo_search_log_query($keyword, $results_count) {
-    if (!seo_search_get_option('log_searches', 1)) {
+    if (!seo_search_get_option('log_searches', 1) || current_user_can('manage_options')) {
         return;
     }
 

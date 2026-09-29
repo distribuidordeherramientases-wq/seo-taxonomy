@@ -23,7 +23,7 @@ const SEO_GOOGLE_OPTION_SETTINGS       = 'seo_google_intelligence_settings';
 const SEO_GOOGLE_OPTION_TOKENS         = 'seo_google_intelligence_tokens';
 const SEO_GOOGLE_OPTION_DB_VERSION     = 'seo_google_intelligence_db_version';
 const SEO_GOOGLE_MODULE_VERSION        = '2.1.0';
-const SEO_GOOGLE_DB_VERSION            = '1.3.0';
+const SEO_GOOGLE_DB_VERSION            = '1.5.0';
 const SEO_GOOGLE_INITIAL_SYNC_DAYS      = 90;
 const SEO_GOOGLE_FINAL_DATA_DELAY_DAYS = 3;
 const SEO_GOOGLE_ROW_LIMIT              = 25000;
@@ -632,12 +632,18 @@ function seo_google_table_exists($table_name) {
 function seo_google_tables_status() {
     $runs_table = seo_google_table('sync_runs');
     $data_table = seo_google_table('search_data');
+    $totals_table = seo_google_table('search_totals');
+    $pages_table = seo_google_table('search_pages');
 
     return array(
         'runs_table'  => $runs_table,
         'data_table'  => $data_table,
+        'totals_table' => $totals_table,
+        'pages_table' => $pages_table,
         'runs_exists' => seo_google_table_exists($runs_table),
         'data_exists' => seo_google_table_exists($data_table),
+        'totals_exists' => seo_google_table_exists($totals_table),
+        'pages_exists' => seo_google_table_exists($pages_table),
     );
 }
 
@@ -659,6 +665,8 @@ function seo_google_install_tables($force = false) {
         && SEO_GOOGLE_DB_VERSION === $installed_version
         && $status['runs_exists']
         && $status['data_exists']
+        && $status['totals_exists']
+        && $status['pages_exists']
     ) {
         return true;
     }
@@ -667,6 +675,8 @@ function seo_google_install_tables($force = false) {
 
     $runs_table     = $status['runs_table'];
     $data_table     = $status['data_table'];
+    $totals_table   = $status['totals_table'];
+    $pages_table    = $status['pages_table'];
     $charset_collate = $wpdb->get_charset_collate();
 
     $runs_sql = "CREATE TABLE {$runs_table} (
@@ -717,6 +727,46 @@ function seo_google_install_tables($force = false) {
         KEY sync_run_id (sync_run_id)
     ) {$charset_collate};";
 
+    // Los totales sin dimensión son comparables con el gráfico de rendimiento
+    // de Search Console. La tabla consulta+página es una muestra diagnóstica.
+    $totals_sql = "CREATE TABLE {$totals_table} (
+        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        property_id varchar(255) NOT NULL,
+        property_hash char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+        data_date date NOT NULL,
+        search_type varchar(20) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'web',
+        clicks double NOT NULL DEFAULT 0,
+        impressions double NOT NULL DEFAULT 0,
+        ctr double NOT NULL DEFAULT 0,
+        position double NOT NULL DEFAULT 0,
+        pages_synced tinyint(1) unsigned NOT NULL DEFAULT 0,
+        sync_run_id bigint(20) unsigned NOT NULL DEFAULT 0,
+        updated_at datetime NOT NULL,
+        PRIMARY KEY  (id),
+        UNIQUE KEY property_day (property_hash,data_date,search_type),
+        KEY property_date (property_hash,data_date)
+    ) {$charset_collate};";
+
+    $pages_sql = "CREATE TABLE {$pages_table} (
+        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        property_id varchar(255) NOT NULL,
+        property_hash char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+        data_date date NOT NULL,
+        search_type varchar(20) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'web',
+        page_url text NOT NULL,
+        page_hash char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+        clicks double NOT NULL DEFAULT 0,
+        impressions double NOT NULL DEFAULT 0,
+        ctr double NOT NULL DEFAULT 0,
+        position double NOT NULL DEFAULT 0,
+        sync_run_id bigint(20) unsigned NOT NULL DEFAULT 0,
+        updated_at datetime NOT NULL,
+        PRIMARY KEY  (id),
+        UNIQUE KEY property_page_day (property_hash,data_date,search_type,page_hash),
+        KEY property_date (property_hash,data_date),
+        KEY page_hash (page_hash)
+    ) {$charset_collate};";
+
     $errors          = array();
     $previous_errors = $wpdb->suppress_errors(true);
 
@@ -738,11 +788,27 @@ function seo_google_install_tables($force = false) {
         }
     }
 
+    if (!seo_google_table_exists($totals_table)) {
+        $wpdb->last_error = '';
+        $result = $wpdb->query(rtrim($totals_sql, ";\r\n\t "));
+        if (false === $result) {
+            $errors[] = $totals_table . ': ' . ($wpdb->last_error ?: 'CREATE TABLE devolvió false.');
+        }
+    }
+
+    if (!seo_google_table_exists($pages_table)) {
+        $wpdb->last_error = '';
+        $result = $wpdb->query(rtrim($pages_sql, ";\r\n\t "));
+        if (false === $result) $errors[] = $pages_table . ': ' . ($wpdb->last_error ?: 'CREATE TABLE devolvió false.');
+    }
+
     // Segunda pasada: mecanismo oficial de WordPress para futuras mejoras
     // del esquema. Las columnas hash usan ASCII para que el índice compuesto
     // sea compatible también con límites InnoDB antiguos.
     dbDelta($runs_sql);
     dbDelta($data_sql);
+    dbDelta($totals_sql);
+    dbDelta($pages_sql);
     $wpdb->suppress_errors($previous_errors);
 
     $status = seo_google_tables_status();
@@ -754,6 +820,12 @@ function seo_google_install_tables($force = false) {
 
     if (!$status['data_exists']) {
         $missing[] = $data_table;
+    }
+    if (!$status['totals_exists']) {
+        $missing[] = $totals_table;
+    }
+    if (!$status['pages_exists']) {
+        $missing[] = $pages_table;
     }
 
     if ($missing) {
@@ -872,7 +944,7 @@ function seo_google_api_post_json($url, array $payload) {
  * Descarga un día de Search Console conservando consulta y página juntas.
  * Google expone hasta 50.000 filas diarias por tipo de búsqueda.
  */
-function seo_google_fetch_search_day($property_id, $date) {
+function seo_google_fetch_search_day($property_id, $date, $dimensions = array('query', 'page')) {
     $endpoint = 'https://www.googleapis.com/webmasters/v3/sites/'
         . rawurlencode($property_id)
         . '/searchAnalytics/query';
@@ -885,9 +957,9 @@ function seo_google_fetch_search_day($property_id, $date) {
             array(
                 'startDate'       => $date,
                 'endDate'         => $date,
-                'dimensions'      => array('query', 'page'),
+                'dimensions'      => $dimensions,
                 'type'            => 'web',
-                'aggregationType' => 'auto',
+                'aggregationType' => $dimensions === array('page') ? 'byPage' : 'auto',
                 'dataState'       => 'final',
                 'rowLimit'        => SEO_GOOGLE_ROW_LIMIT,
                 'startRow'        => $start_row,
@@ -910,7 +982,80 @@ function seo_google_fetch_search_day($property_id, $date) {
         }
     }
 
+    if ($dimensions === array('page') && count($all_rows) >= SEO_GOOGLE_MAX_ROWS_PER_DAY) {
+        return new WP_Error('seo_google_pages_truncated', 'Google ha alcanzado el límite diario de 50.000 páginas; no se marcará este día como completo.');
+    }
+
     return $all_rows;
+}
+
+/** Filas por URL sin desglosar consultas anónimas. */
+function seo_google_upsert_page_rows($run_id, $property_id, $date, array $rows) {
+    global $wpdb;
+    $table = seo_google_table('search_pages');
+    $now = current_time('mysql', true);
+    $property_hash = hash('sha256', $property_id);
+    $stored = 0;
+    foreach (array_chunk($rows, 200) as $chunk) {
+        $placeholders = array();
+        $args = array();
+        foreach ($chunk as $row) {
+            $url = esc_url_raw((string) ($row['keys'][0] ?? ''));
+            if (!$url) continue;
+            $placeholders[] = '(%s,%s,%s,%s,%s,%s,%f,%f,%f,%f,%d,%s)';
+            array_push($args, $property_id, $property_hash, $date, 'web', $url, hash('sha256', $url),
+                (float) ($row['clicks'] ?? 0), (float) ($row['impressions'] ?? 0),
+                (float) ($row['ctr'] ?? 0), (float) ($row['position'] ?? 0), absint($run_id), $now);
+        }
+        if (!$placeholders) continue;
+        $sql = "INSERT INTO {$table} (property_id,property_hash,data_date,search_type,page_url,page_hash,clicks,impressions,ctr,position,sync_run_id,updated_at)
+            VALUES " . implode(',', $placeholders) . " ON DUPLICATE KEY UPDATE
+            property_id=VALUES(property_id),page_url=VALUES(page_url),clicks=VALUES(clicks),impressions=VALUES(impressions),ctr=VALUES(ctr),position=VALUES(position),sync_run_id=VALUES(sync_run_id),updated_at=VALUES(updated_at)";
+        if (false === $wpdb->query($wpdb->prepare($sql, $args))) {
+            return new WP_Error('seo_google_pages_database_error', $wpdb->last_error);
+        }
+        $stored += count($placeholders);
+    }
+    return $stored;
+}
+
+/** Total diario de propiedad, sin dimensiones ni filtros, búsqueda web final. */
+function seo_google_fetch_property_day($property_id, $date) {
+    $endpoint = 'https://www.googleapis.com/webmasters/v3/sites/'
+        . rawurlencode($property_id) . '/searchAnalytics/query';
+    $response = seo_google_api_post_json($endpoint, array(
+        'startDate' => $date,
+        'endDate' => $date,
+        'dimensions' => array('date'),
+        'type' => 'web',
+        'aggregationType' => 'byProperty',
+        'dataState' => 'final',
+    ));
+    if (is_wp_error($response)) return $response;
+    $rows = isset($response['rows']) && is_array($response['rows']) ? $response['rows'] : array();
+    if (!$rows) return array('clicks'=>0, 'impressions'=>0, 'ctr'=>0, 'position'=>0);
+    $row = $rows[0];
+    if (!isset($row['keys'][0]) || $row['keys'][0] !== $date) {
+        return new WP_Error('seo_google_property_day_mismatch', 'Google devolvió un día distinto para el total de la propiedad.');
+    }
+    return array(
+        'clicks' => (float) ($row['clicks'] ?? 0),
+        'impressions' => (float) ($row['impressions'] ?? 0),
+        'ctr' => (float) ($row['ctr'] ?? 0),
+        'position' => (float) ($row['position'] ?? 0),
+    );
+}
+
+/** Persiste también días de cero impresiones para poder comprobar cobertura. */
+function seo_google_upsert_property_day($run_id, $property_id, $date, array $totals) {
+    global $wpdb;
+    $table = seo_google_table('search_totals');
+    $sql = "INSERT INTO {$table} (property_id,property_hash,data_date,search_type,clicks,impressions,ctr,position,pages_synced,sync_run_id,updated_at)
+        VALUES (%s,%s,%s,%s,%f,%f,%f,%f,1,%d,%s)
+        ON DUPLICATE KEY UPDATE property_id=VALUES(property_id),clicks=VALUES(clicks),impressions=VALUES(impressions),ctr=VALUES(ctr),position=VALUES(position),pages_synced=1,sync_run_id=VALUES(sync_run_id),updated_at=VALUES(updated_at)";
+    $result = $wpdb->query($wpdb->prepare($sql, $property_id, hash('sha256', $property_id), $date, 'web',
+        $totals['clicks'], $totals['impressions'], $totals['ctr'], $totals['position'], absint($run_id), current_time('mysql', true)));
+    return false === $result ? new WP_Error('seo_google_totals_database_error', $wpdb->last_error) : true;
 }
 
 /**
@@ -1185,13 +1330,25 @@ function seo_google_sync_start_handler() {
         )
     );
 
+    // Tras actualizar el esquema, las filas históricas no contienen totales
+    // de propiedad. Recuperar la ventana entera una sola vez.
+    $totals_table = seo_google_table('search_totals');
+    $totals_coverage = $wpdb->get_row($wpdb->prepare(
+        "SELECT MIN(data_date) AS first_date, MAX(data_date) AS last_date, COUNT(*) AS days
+         FROM {$totals_table} WHERE property_hash = %s AND data_date BETWEEN %s AND %s AND search_type = 'web' AND pages_synced = 1",
+        $property_hash, $initial_from, $date_to
+    ), ARRAY_A);
+    $totals_complete_through_last = !empty($totals_coverage['last_date'])
+        && $totals_coverage['first_date'] === $initial_from
+        && (int) $totals_coverage['days'] === seo_google_days_inclusive($initial_from, $totals_coverage['last_date']);
+
     $mode      = 'initial';
     $date_from = $initial_from;
 
-    if ($last_date) {
+    if ($last_date && $totals_complete_through_last) {
         $mode = 'incremental';
         try {
-            $overlap_from = (new DateTimeImmutable($last_date))->modify('-6 days')->format('Y-m-d');
+            $overlap_from = (new DateTimeImmutable($totals_coverage['last_date']))->modify('-6 days')->format('Y-m-d');
             $date_from    = max($initial_from, $overlap_from);
         } catch (Exception $exception) {
             $date_from = $initial_from;
@@ -1310,9 +1467,11 @@ function seo_google_sync_day_handler() {
     }
 
     $rows = seo_google_fetch_search_day($run['property_id'], $date);
+    $pages = is_wp_error($rows) ? $rows : seo_google_fetch_search_day($run['property_id'], $date, array('page'));
+    $totals = is_wp_error($pages) ? $pages : seo_google_fetch_property_day($run['property_id'], $date);
 
-    if (is_wp_error($rows)) {
-        $message = $rows->get_error_message();
+    if (is_wp_error($totals)) {
+        $message = $totals->get_error_message();
         $now     = current_time('mysql', true);
 
         $wpdb->update(
@@ -1331,7 +1490,32 @@ function seo_google_sync_day_handler() {
         seo_google_ajax_error(array('message' => $message), 500);
     }
 
-    $stored = seo_google_upsert_search_rows($run_id, $run['property_id'], $date, $rows);
+    // Un día puede cambiar entre sincronizaciones. Sustituimos sus filas de
+    // detalle y página en una transacción para no conservar URLs ya retiradas.
+    $property_hash = hash('sha256', $run['property_id']);
+    $transaction_started = false !== $wpdb->query('START TRANSACTION');
+    if ($transaction_started) {
+        $deleted_detail = $wpdb->delete(seo_google_table('search_data'),
+            array('property_hash'=>$property_hash,'data_date'=>$date,'search_type'=>'web'), array('%s','%s','%s'));
+        $deleted_pages = $wpdb->delete(seo_google_table('search_pages'),
+            array('property_hash'=>$property_hash,'data_date'=>$date,'search_type'=>'web'), array('%s','%s','%s'));
+        $stored = (false === $deleted_detail || false === $deleted_pages)
+            ? new WP_Error('seo_google_day_delete_error', $wpdb->last_error)
+            : seo_google_upsert_search_rows($run_id, $run['property_id'], $date, $rows);
+    } else {
+        $stored = new WP_Error('seo_google_transaction_error', $wpdb->last_error);
+    }
+
+    if (!is_wp_error($stored)) {
+        $page_stored = seo_google_upsert_page_rows($run_id, $run['property_id'], $date, $pages);
+        $stored = is_wp_error($page_stored) ? $page_stored : seo_google_upsert_property_day($run_id, $run['property_id'], $date, $totals);
+        if (!is_wp_error($stored)) $stored = count($rows);
+    }
+
+    if ($transaction_started) {
+        if (is_wp_error($stored)) $wpdb->query('ROLLBACK');
+        elseif (false === $wpdb->query('COMMIT')) $stored = new WP_Error('seo_google_commit_error', $wpdb->last_error);
+    }
 
     if (is_wp_error($stored)) {
         $message = $stored->get_error_message();
@@ -1408,6 +1592,15 @@ function seo_google_sync_day_handler() {
 function seo_google_latest_data_date($property_id) {
     global $wpdb;
 
+    $totals_table = seo_google_table('search_totals');
+    if (seo_google_table_exists($totals_table)) {
+        $latest_total = $wpdb->get_var($wpdb->prepare(
+            "SELECT MAX(data_date) FROM {$totals_table} WHERE property_hash = %s AND search_type = 'web'",
+            hash('sha256', $property_id)
+        ));
+        if ($latest_total) return $latest_total;
+    }
+
     $table = seo_google_table('search_data');
 
     if (!seo_google_table_exists($table)) {
@@ -1423,12 +1616,76 @@ function seo_google_latest_data_date($property_id) {
 }
 
 /**
+ * Totales comparables con Search Console solo cuando están todos los días.
+ * Consultas y páginas siguen siendo un diagnóstico parcial y no se suman
+ * para presentar clics/impresiones de la propiedad.
+ */
+function seo_google_period_metrics($property_id, $date_from, $date_to) {
+    global $wpdb;
+    $table = seo_google_table('search_data');
+    $row = $wpdb->get_row($wpdb->prepare(
+        "SELECT COALESCE(SUM(clicks),0) AS clicks, COALESCE(SUM(impressions),0) AS impressions,
+            COUNT(DISTINCT query_hash) AS queries, COUNT(DISTINCT page_hash) AS pages,
+            CASE WHEN SUM(impressions)>0 THEN SUM(clicks)/SUM(impressions) ELSE 0 END AS ctr,
+            CASE WHEN SUM(impressions)>0 THEN SUM(position*impressions)/SUM(impressions) ELSE 0 END AS position
+         FROM {$table} WHERE property_hash=%s AND data_date BETWEEN %s AND %s AND search_type='web'",
+        hash('sha256', $property_id), $date_from, $date_to
+    ), ARRAY_A);
+    $row = is_array($row) ? $row : array();
+    $row['source'] = 'query_page_partial';
+    $row['days_available'] = 0;
+    $row['days_expected'] = seo_google_days_inclusive($date_from, $date_to);
+
+    $totals_table = seo_google_table('search_totals');
+    if (!seo_google_table_exists($totals_table)) return $row;
+    $totals = $wpdb->get_row($wpdb->prepare(
+        "SELECT COUNT(*) AS days_available, COALESCE(SUM(clicks),0) AS clicks,
+            COALESCE(SUM(impressions),0) AS impressions,
+            CASE WHEN SUM(impressions)>0 THEN SUM(clicks)/SUM(impressions) ELSE 0 END AS ctr,
+            CASE WHEN SUM(impressions)>0 THEN SUM(position*impressions)/SUM(impressions) ELSE 0 END AS position
+         FROM {$totals_table} WHERE property_hash=%s AND data_date BETWEEN %s AND %s AND search_type='web'",
+        hash('sha256', $property_id), $date_from, $date_to
+    ), ARRAY_A);
+    $row['days_available'] = (int) ($totals['days_available'] ?? 0);
+    if ($row['days_available'] !== $row['days_expected']) return $row;
+    foreach (array('clicks','impressions','ctr','position') as $key) $row[$key] = $totals[$key];
+    if (seo_google_pages_period_complete($property_id, $date_from, $date_to)) {
+        $pages_table = seo_google_table('search_pages');
+        $row['pages'] = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(DISTINCT page_hash) FROM {$pages_table} WHERE property_hash=%s AND search_type='web' AND data_date BETWEEN %s AND %s",
+            hash('sha256', $property_id), $date_from, $date_to
+        ));
+        $row['pages_source'] = 'gsc_page_web_final';
+    } else {
+        $row['pages_source'] = 'query_page_partial';
+    }
+    $row['source'] = 'gsc_property_web_final';
+    return $row;
+}
+
+function seo_google_metrics_coverage_notice($metrics) {
+    if (($metrics['source'] ?? '') === 'gsc_property_web_final') return '';
+    return 'Datos parciales de consulta y página: ' . (int) ($metrics['days_available'] ?? 0)
+        . '/' . (int) ($metrics['days_expected'] ?? 0)
+        . ' días con totales de propiedad. Sincroniza Google Intelligence para comparar los totales con Search Console. Las listas de consultas y páginas son diagnósticas.';
+}
+
+/** Cobertura real de las filas por página, incluidos los días sin URLs. */
+function seo_google_pages_period_complete($property_id, $date_from, $date_to) {
+    global $wpdb;
+    $table = seo_google_table('search_totals');
+    if (!seo_google_table_exists($table)) return false;
+    $count = (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(*) FROM {$table} WHERE property_hash=%s AND search_type='web' AND pages_synced=1 AND data_date BETWEEN %s AND %s",
+        hash('sha256', $property_id), $date_from, $date_to
+    ));
+    return $count === seo_google_days_inclusive($date_from, $date_to);
+}
+
+/**
  * Métricas agregadas del período más reciente disponible.
  */
 function seo_google_get_summary_metrics($property_id, $days = 28) {
-    global $wpdb;
-
-    $table       = seo_google_table('search_data');
     $latest_date = seo_google_latest_data_date($property_id);
 
     if (!$latest_date) {
@@ -1443,23 +1700,7 @@ function seo_google_get_summary_metrics($property_id, $days = 28) {
         $date_from = gmdate('Y-m-d', strtotime($latest_date . ' -27 days'));
     }
 
-    $row = $wpdb->get_row(
-        $wpdb->prepare(
-            "SELECT
-                COALESCE(SUM(clicks),0) AS clicks,
-                COALESCE(SUM(impressions),0) AS impressions,
-                COUNT(DISTINCT query_hash) AS queries,
-                COUNT(DISTINCT page_hash) AS pages,
-                CASE WHEN SUM(impressions) > 0 THEN SUM(clicks) / SUM(impressions) ELSE 0 END AS ctr,
-                CASE WHEN SUM(impressions) > 0 THEN SUM(position * impressions) / SUM(impressions) ELSE 0 END AS position
-             FROM {$table}
-             WHERE property_hash = %s AND data_date BETWEEN %s AND %s",
-            hash('sha256', $property_id),
-            $date_from,
-            $latest_date
-        ),
-        ARRAY_A
-    );
+    $row = seo_google_period_metrics($property_id, $date_from, $latest_date);
 
     if (!$row) {
         return null;
@@ -1507,7 +1748,8 @@ function seo_google_get_top_queries($property_id, $date_from, $date_to, $limit =
 function seo_google_get_top_pages($property_id, $date_from, $date_to, $limit = 15) {
     global $wpdb;
 
-    $table = seo_google_table('search_data');
+    $table = seo_google_table(seo_google_pages_period_complete($property_id, $date_from, $date_to)
+        ? 'search_pages' : 'search_data');
 
     return $wpdb->get_results(
         $wpdb->prepare(
@@ -1926,12 +2168,14 @@ function seo_google_render_sync_status() {
     $table_status = seo_google_tables_status();
     echo '<p style="color:#646970;"><strong>Versión:</strong> ' . esc_html(SEO_GOOGLE_MODULE_VERSION)
         . ' · <strong>Tabla de ejecuciones:</strong> ' . ($table_status['runs_exists'] ? 'OK' : 'NO EXISTE')
-        . ' · <strong>Tabla de datos:</strong> ' . ($table_status['data_exists'] ? 'OK' : 'NO EXISTE') . '</p>';
+        . ' · <strong>Consultas:</strong> ' . ($table_status['data_exists'] ? 'OK' : 'NO EXISTE')
+        . ' · <strong>Totales:</strong> ' . ($table_status['totals_exists'] ? 'OK' : 'NO EXISTE')
+        . ' · <strong>Páginas:</strong> ' . ($table_status['pages_exists'] ? 'OK' : 'NO EXISTE') . '</p>';
 
     if (is_wp_error($install_result)) {
         echo '<div class="notice notice-error inline"><p><strong>No se pudieron preparar las tablas:</strong> '
             . esc_html($install_result->get_error_message()) . '</p></div>';
-        echo '<p>No se consultará el historial hasta que las dos tablas indiquen <strong>OK</strong>.</p>';
+        echo '<p>No se consultará el historial hasta que todas las tablas indiquen <strong>OK</strong>.</p>';
         echo '</div>';
         return;
     }
@@ -1951,7 +2195,7 @@ function seo_google_render_sync_status() {
     echo '<p><strong>Último día almacenado:</strong> ' . ($latest ? esc_html($latest) : 'Sin datos todavía') . '</p>';
 
     echo '<div style="background:#f6f7f7;border-left:4px solid #2271b1;padding:12px 14px;margin:16px 0;">';
-    echo '<p style="margin:0 0 6px;"><strong>Primera sincronización:</strong> descarga 90 días de datos finalizados.</p>';
+    echo '<p style="margin:0 0 6px;"><strong>Primera sincronización o migración:</strong> descarga 90 días de totales de propiedad, páginas y consultas finalizados.</p>';
     echo '<p style="margin:0;"><strong>Sincronizaciones posteriores:</strong> actualizan los últimos 7 días con solapamiento para recoger correcciones de Google.</p>';
     echo '</div>';
 
@@ -2130,6 +2374,17 @@ function seo_google_get_summary_trend_data($property_id, $days = 365) {
             ->format('Y-m-d');
     } catch (Exception $exception) {
         $date_from = gmdate('Y-m-d', strtotime($latest_date . ' -364 days'));
+    }
+
+    $totals_table = seo_google_table('search_totals');
+    if (seo_google_table_exists($totals_table)) {
+        $totals_rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT data_date,clicks,impressions,ctr,position FROM {$totals_table}
+             WHERE property_hash=%s AND data_date BETWEEN %s AND %s AND search_type='web' ORDER BY data_date ASC",
+            hash('sha256', $property_id), $date_from, $latest_date
+        ), ARRAY_A);
+        // Never splice property totals with a different aggregation method.
+        if ($totals_rows) return $totals_rows;
     }
 
     $rows = $wpdb->get_results(
@@ -2498,6 +2753,8 @@ function seo_google_render_summary() {
     echo '<div style="background:#fff;border:1px solid #dcdcde;padding:20px;border-radius:6px;">';
     echo '<h3 style="margin-top:0;">Últimos 28 días disponibles</h3>';
     echo '<p><code>' . esc_html($metrics['date_from']) . '</code> → <code>' . esc_html($metrics['date_to']) . '</code></p>';
+    $coverage_notice = seo_google_metrics_coverage_notice($metrics);
+    if ($coverage_notice) echo '<div class="notice notice-warning inline"><p>' . esc_html($coverage_notice) . '</p></div>';
     echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;">';
 
     foreach ($cards as $label => $value) {
@@ -2508,7 +2765,7 @@ function seo_google_render_summary() {
     }
 
     echo '</div>';
-    echo '<p class="description" style="margin-top:14px;">La posición se pondera por impresiones. Search Console puede devolver las filas principales y no garantiza un conjunto exhaustivo de consultas.</p>';
+    echo '<p class="description" style="margin-top:14px;">Clics, impresiones, CTR y posición proceden del total de propiedad de Search Console cuando la cobertura está completa. Consultas y páginas son una muestra diagnóstica; no suman necesariamente el total.</p>';
     echo '</div>';
 
     $trend_rows = seo_google_get_summary_trend_data($settings['property_id'], 365);
@@ -2726,8 +2983,9 @@ function seo_google_get_page_query_evidence($property_id, $page_hash, $date_from
 function seo_google_get_signal_pages($property_id, $date_from, $date_to, $limit = 30, $min_impressions = 1, $search = '') {
     global $wpdb;
 
-    $table = seo_google_table('search_data');
-    $where = "property_hash = %s AND data_date BETWEEN %s AND %s";
+    $page_source = seo_google_pages_period_complete($property_id, $date_from, $date_to);
+    $table = seo_google_table($page_source ? 'search_pages' : 'search_data');
+    $where = "property_hash = %s AND data_date BETWEEN %s AND %s AND search_type = 'web'";
     $args  = array(hash('sha256', $property_id), $date_from, $date_to);
 
     if ('' !== $search) {
@@ -2743,7 +3001,7 @@ function seo_google_get_signal_pages($property_id, $date_from, $date_to, $limit 
                 MAX(page_url) AS label,
                 SUM(clicks) AS clicks,
                 SUM(impressions) AS impressions,
-                COUNT(DISTINCT query_hash) AS queries,
+                " . ($page_source ? '0' : 'COUNT(DISTINCT query_hash)') . " AS queries,
                 CASE WHEN SUM(impressions) > 0 THEN SUM(clicks) / SUM(impressions) ELSE 0 END AS ctr,
                 CASE WHEN SUM(impressions) > 0 THEN SUM(position * impressions) / SUM(impressions) ELSE 0 END AS position
             FROM {$table}
@@ -2754,6 +3012,10 @@ function seo_google_get_signal_pages($property_id, $date_from, $date_to, $limit 
             LIMIT %d";
 
     $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
+
+    if ($page_source) {
+        seo_google_attach_page_query_counts($rows, $property_id, $date_from, $date_to);
+    }
 
     foreach ($rows as &$row) {
         $row['evidence'] = seo_google_get_page_query_evidence(
@@ -2767,6 +3029,26 @@ function seo_google_get_signal_pages($property_id, $date_from, $date_to, $limit 
     unset($row);
 
     return $rows;
+}
+
+/** Consulta+página solo aporta el número de consultas visibles, nunca los totales de la URL. */
+function seo_google_attach_page_query_counts(&$rows, $property_id, $date_from, $date_to) {
+    global $wpdb;
+    if (!$rows) return;
+    $hashes = array_values(array_unique(array_filter(array_column($rows, 'page_hash'))));
+    if (!$hashes) return;
+    $table = seo_google_table('search_data');
+    $placeholders = implode(',', array_fill(0, count($hashes), '%s'));
+    $counts = $wpdb->get_results($wpdb->prepare(
+        "SELECT page_hash,COUNT(DISTINCT query_hash) AS queries FROM {$table}
+         WHERE property_hash=%s AND search_type='web' AND data_date BETWEEN %s AND %s
+           AND page_hash IN ({$placeholders}) GROUP BY page_hash",
+        array_merge(array(hash('sha256', $property_id), $date_from, $date_to), $hashes)
+    ), ARRAY_A);
+    $by_hash = array();
+    foreach ((array) $counts as $count) $by_hash[$count['page_hash']] = (int) $count['queries'];
+    foreach ($rows as &$row) $row['queries'] = $by_hash[$row['page_hash']] ?? 0;
+    unset($row);
 }
 
 /**
@@ -2821,6 +3103,9 @@ function seo_google_render_signals() {
     submit_button('Aplicar', 'secondary', 'submit', false);
     echo '</form>';
     echo '<p class="description"><code>' . esc_html($period['current_from']) . '</code> → <code>' . esc_html($period['current_to']) . '</code></p>';
+    if (!seo_google_pages_period_complete($settings['property_id'], $period['current_from'], $period['current_to'])) {
+        echo '<p class="notice notice-warning inline">Páginas parciales: faltan días sincronizados por URL. Las consultas visibles tampoco representan todas las búsquedas.</p>';
+    }
     echo '</div>';
 
     echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;overflow:auto;">';
@@ -2890,8 +3175,11 @@ function seo_google_render_signals() {
 function seo_google_get_dimension_changes($property_id, $dimension, array $period, $min_impressions = 3, $limit = 25) {
     global $wpdb;
 
-    $table = seo_google_table('search_data');
     $dimension = ('page' === $dimension) ? 'page' : 'query';
+    $complete_pages = 'page' === $dimension
+        && seo_google_pages_period_complete($property_id, $period['previous_from'], $period['previous_to'])
+        && seo_google_pages_period_complete($property_id, $period['current_from'], $period['current_to']);
+    $table = seo_google_table($complete_pages ? 'search_pages' : 'search_data');
     $hash_field = ('page' === $dimension) ? 'page_hash' : 'query_hash';
     $text_field = ('page' === $dimension) ? 'page_url' : 'query_text';
 
@@ -2911,7 +3199,7 @@ function seo_google_get_dimension_changes($property_id, $dimension, array $perio
                        / SUM(CASE WHEN data_date BETWEEN %s AND %s THEN impressions ELSE 0 END)
                     ELSE 0 END AS previous_position
             FROM {$table}
-            WHERE property_hash = %s
+            WHERE property_hash = %s AND search_type = 'web'
               AND data_date BETWEEN %s AND %s
             GROUP BY {$hash_field}
             HAVING current_impressions >= %f OR previous_impressions >= %f";
@@ -3002,6 +3290,10 @@ function seo_google_render_changes() {
     echo '</form>';
     echo '<p><strong>Actual:</strong> <code>' . esc_html($period['current_from']) . '</code> → <code>' . esc_html($period['current_to']) . '</code><br>';
     echo '<strong>Anterior:</strong> <code>' . esc_html($period['previous_from']) . '</code> → <code>' . esc_html($period['previous_to']) . '</code></p>';
+    if (!seo_google_pages_period_complete($settings['property_id'], $period['previous_from'], $period['previous_to'])
+        || !seo_google_pages_period_complete($settings['property_id'], $period['current_from'], $period['current_to'])) {
+        echo '<p class="notice notice-warning inline">Los cambios por página proceden de consultas visibles y son parciales hasta completar la sincronización de ambos períodos.</p>';
+    }
     echo '</div>';
 
     seo_google_render_change_sections('Consultas', $query_changes, false);
@@ -3614,18 +3906,19 @@ function seo_google_render_comparison() {
 function seo_google_get_all_page_metrics($property_id, $date_from, $date_to, $limit = 5000) {
     global $wpdb;
 
-    $table = seo_google_table('search_data');
-    return $wpdb->get_results(
+    $page_source = seo_google_pages_period_complete($property_id, $date_from, $date_to);
+    $table = seo_google_table($page_source ? 'search_pages' : 'search_data');
+    $rows = $wpdb->get_results(
         $wpdb->prepare(
             "SELECT
                 page_hash,
                 MAX(page_url) AS page_url,
                 SUM(clicks) AS clicks,
                 SUM(impressions) AS impressions,
-                COUNT(DISTINCT query_hash) AS queries,
+                " . ($page_source ? '0' : 'COUNT(DISTINCT query_hash)') . " AS queries,
                 CASE WHEN SUM(impressions) > 0 THEN SUM(position * impressions) / SUM(impressions) ELSE 0 END AS position
              FROM {$table}
-             WHERE property_hash = %s AND data_date BETWEEN %s AND %s
+             WHERE property_hash = %s AND search_type = 'web' AND data_date BETWEEN %s AND %s
              GROUP BY page_hash
              ORDER BY impressions DESC
              LIMIT %d",
@@ -3636,6 +3929,8 @@ function seo_google_get_all_page_metrics($property_id, $date_from, $date_to, $li
         ),
         ARRAY_A
     );
+    if ($page_source) seo_google_attach_page_query_counts($rows, $property_id, $date_from, $date_to);
+    return $rows;
 }
 
 /**
@@ -3705,6 +4000,9 @@ function seo_google_render_coverage() {
     echo '<h3 style="margin-top:0;">Cobertura observada</h3>';
     echo '<p>Distribución de las páginas que Google ha mostrado. Esta cobertura describe visibilidad; todavía no mide si el catálogo es suficiente o correcto.</p>';
     echo '<p><code>' . esc_html($period['current_from']) . '</code> → <code>' . esc_html($period['current_to']) . '</code></p>';
+    if (!seo_google_pages_period_complete($settings['property_id'], $period['current_from'], $period['current_to'])) {
+        echo '<p class="notice notice-warning inline">Cobertura parcial basada en consultas visibles hasta completar la sincronización diaria de páginas.</p>';
+    }
     echo '</div>';
 
     echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:20px;">';

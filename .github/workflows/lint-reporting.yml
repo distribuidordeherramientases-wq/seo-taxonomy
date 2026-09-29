@@ -1,0 +1,42 @@
+name: Lint Reporting
+
+on:
+  pull_request:
+    branches:
+      - staging
+    paths:
+      - 'includes/analista/**'
+      - 'includes/ojeador/**'
+      - 'includes/seo-google-info.php'
+      - 'includes/seo-ai-search-report.php'
+      - 'includes/seo-landing-google-signals.php'
+      - 'includes/seo-post-opportunities.php'
+      - 'includes/seo-post-reports.php'
+      - 'includes/seo-reports.php'
+      - 'includes/seo-search.php'
+      - 'includes/productos/seo-product-reports.php'
+      - 'includes/categorias/seo-category-reports.php'
+      - 'includes/import-export/suppliers/google-search.php'
+      - 'includes/import-export/suppliers/google-ecommerce.php'
+      - '.github/workflows/lint-reporting.yml'
+  workflow_dispatch:
+
+jobs:
+  php-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate reporting PHP syntax
+        run: |
+          find includes/analista includes/ojeador -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          php -l includes/seo-google-info.php
+          php -l includes/seo-ai-search-report.php
+          php -l includes/seo-landing-google-signals.php
+          php -l includes/seo-post-opportunities.php
+          php -l includes/seo-post-reports.php
+          php -l includes/seo-reports.php
+          php -l includes/seo-search.php
+          php -l includes/productos/seo-product-reports.php
+          php -l includes/categorias/seo-category-reports.php
+          php -l includes/import-export/suppliers/google-search.php
+          php -l includes/import-export/suppliers/google-ecommerce.php

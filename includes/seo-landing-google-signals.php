@@ -387,8 +387,10 @@ function seo_landing_google_source_status() {
 /**
  * Reporte GA4 agregado por pagePath, cacheado para no golpear la API en cada carga.
  */
-function seo_landing_google_analytics_page_map( $force = false ) {
-    $cache_key = 'seo_landing_ga4_page_map_v1';
+function seo_landing_google_analytics_page_map( $force = false, $start_date = '30daysAgo', $end_date = 'today' ) {
+    $start_date = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $start_date) ? $start_date : '30daysAgo';
+    $end_date = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $end_date) ? $end_date : 'today';
+    $cache_key = 'seo_landing_ga4_page_map_v2_' . md5($start_date . ':' . $end_date);
     if ( ! $force ) {
         $cached = get_transient( $cache_key );
         if ( is_array( $cached ) ) {
@@ -402,7 +404,7 @@ function seo_landing_google_analytics_page_map( $force = false ) {
 
     $report = seo_google_analytics_run_report(
         [
-            'dateRanges' => [ [ 'startDate' => '30daysAgo', 'endDate' => 'today' ] ],
+            'dateRanges' => [ [ 'startDate' => $start_date, 'endDate' => $end_date ] ],
             'dimensions' => [ [ 'name' => 'pagePath' ] ],
             'metrics'    => [
                 [ 'name' => 'sessions' ],

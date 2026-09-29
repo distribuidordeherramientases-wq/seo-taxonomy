@@ -216,7 +216,12 @@ function seo_reports_ai_search_page_changes($property_id, array $period, array $
         return array();
     }
 
-    $table = seo_google_table('search_data');
+    $complete_pages = function_exists('seo_google_pages_period_complete')
+        && seo_google_pages_period_complete($property_id, $period['previous_from'], $period['previous_to'])
+        && seo_google_pages_period_complete($property_id, $period['current_from'], $period['current_to']);
+    // No deducir crecimiento de URLs a partir de dos muestras de consultas truncadas.
+    if (!$complete_pages) return array();
+    $table = seo_google_table('search_pages');
     if (function_exists('seo_google_table_exists') && !seo_google_table_exists($table)) {
         return array();
     }
@@ -243,7 +248,7 @@ function seo_reports_ai_search_page_changes($property_id, array $period, array $
         SUM(CASE WHEN data_date BETWEEN %s AND %s THEN impressions ELSE 0 END) AS previous_impressions,
         SUM(CASE WHEN data_date BETWEEN %s AND %s THEN clicks ELSE 0 END) AS previous_clicks
         FROM {$table}
-        WHERE property_hash = %s
+        WHERE property_hash = %s AND search_type = 'web'
           AND data_date BETWEEN %s AND %s
           AND page_hash IN ({$placeholders})
         GROUP BY page_hash";
@@ -326,10 +331,14 @@ function seo_reports_ai_search_build($days = 28) {
 
     $page_hashes = wp_list_pluck($pages, 'page_hash');
     $changes = seo_reports_ai_search_page_changes($property_id, $period, $page_hashes);
+    $pages_complete = function_exists('seo_google_pages_period_complete')
+        && seo_google_pages_period_complete($property_id, $period['current_from'], $period['current_to']);
+    $changes_complete = $pages_complete
+        && seo_google_pages_period_complete($property_id, $period['previous_from'], $period['previous_to']);
 
     $ga4_map = array();
     if (function_exists('seo_landing_google_analytics_page_map')) {
-        $ga4_map = (array) seo_landing_google_analytics_page_map(false);
+        $ga4_map = (array) seo_landing_google_analytics_page_map(false, $period['current_from'], $period['current_to']);
     }
     $ga4_available = !empty($ga4_map);
 
@@ -554,6 +563,8 @@ function seo_reports_ai_search_build($days = 28) {
         'period'        => $period,
         'rows'          => $rows,
         'ga4_available' => $ga4_available,
+        'pages_complete' => $pages_complete,
+        'changes_complete' => $changes_complete,
         'summary'       => array(
             'pages'            => count($rows),
             'high'             => $high,
@@ -616,6 +627,11 @@ function seo_reports_render_ai_search_readiness() {
     }
 
     echo '<p class="description" style="margin:0 0 12px;">Periodo Search Console: <code>' . esc_html((string) ($period['current_from'] ?? '')) . '</code> → <code>' . esc_html((string) ($period['current_to'] ?? '')) . '</code>, comparado con el periodo inmediatamente anterior.</p>';
+    if (empty($report['pages_complete'])) {
+        echo '<p class="notice notice-warning inline">Los datos por URL son parciales hasta completar la sincronización por página. No se calcula crecimiento con esa muestra.</p>';
+    } elseif (empty($report['changes_complete'])) {
+        echo '<p class="notice notice-warning inline">Falta sincronizar el período anterior por página; el crecimiento queda sin calcular.</p>';
+    }
     echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;margin-bottom:18px;">';
     foreach ($cards as $card) {
         echo '<div style="border:1px solid #dcdcde;border-radius:8px;padding:14px;background:#fff;">';

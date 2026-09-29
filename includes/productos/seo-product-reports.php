@@ -67,14 +67,14 @@ if (!function_exists('seo_product_reports_gsc_request')) {
         }
 
         $days = seo_product_reports_days($days);
-        $end_timestamp = current_time('timestamp');
-        $start_timestamp = strtotime('-' . max(0, $days - 1) . ' days', $end_timestamp);
+        $period = seo_google_reporting_dates($days);
 
         $request = [
-            'startDate' => wp_date('Y-m-d', $start_timestamp),
-            'endDate'   => wp_date('Y-m-d', $end_timestamp),
+            'startDate' => $period['startDate'],
+            'endDate'   => $period['endDate'],
             'rowLimit'  => min(25000, max(1, absint($row_limit))),
-            'dataState' => 'all',
+            'dataState' => 'final',
+            'aggregationType' => 'byPage',
             'dimensionFilterGroups' => [
                 [
                     'groupType' => 'and',
@@ -220,12 +220,7 @@ if (!function_exists('seo_product_reports_ga_page')) {
             $path = '/' . ltrim($path, '/');
         }
         $report = seo_google_analytics_run_report([
-            'dateRanges' => [
-                [
-                    'startDate' => max(1, $days - 1) . 'daysAgo',
-                    'endDate'   => 'today',
-                ],
-            ],
+            'dateRanges' => [seo_google_reporting_dates($days)],
             'dimensions' => [
                 ['name' => 'pagePath'],
             ],
@@ -333,12 +328,7 @@ if (!function_exists('seo_product_reports_ga_ecommerce')) {
             : ['orGroup' => ['expressions' => $expressions]];
 
         $report = seo_google_analytics_run_report([
-            'dateRanges' => [
-                [
-                    'startDate' => max(1, $days - 1) . 'daysAgo',
-                    'endDate'   => 'today',
-                ],
-            ],
+            'dateRanges' => [seo_google_reporting_dates($days)],
             'dimensions' => [
                 ['name' => 'itemId'],
                 ['name' => 'itemName'],
@@ -663,16 +653,16 @@ if (!function_exists('seo_product_reports_catalog_snapshot')) {
             return $product_id;
         };
 
-        $end_timestamp = current_time('timestamp');
-        $start_timestamp = strtotime('-' . max(0, $days - 1) . ' days', $end_timestamp);
+        $period = seo_google_reporting_dates($days);
 
         if (!empty($google['search_console']) && function_exists('seo_google_search_console_query')) {
             $gsc = seo_google_search_console_query([
-                'startDate'  => wp_date('Y-m-d', $start_timestamp),
-                'endDate'    => wp_date('Y-m-d', $end_timestamp),
+                'startDate'  => $period['startDate'],
+                'endDate'    => $period['endDate'],
                 'dimensions' => ['page'],
+                'aggregationType' => 'byPage',
                 'rowLimit'   => 25000,
-                'dataState'  => 'all',
+                'dataState'  => 'final',
             ]);
 
             if (is_wp_error($gsc)) {
@@ -694,10 +684,7 @@ if (!function_exists('seo_product_reports_catalog_snapshot')) {
 
         if (!empty($google['analytics']) && function_exists('seo_google_analytics_run_report')) {
             $ga = seo_google_analytics_run_report([
-                'dateRanges' => [[
-                    'startDate' => max(1, $days - 1) . 'daysAgo',
-                    'endDate'   => 'today',
-                ]],
+                'dateRanges' => [seo_google_reporting_dates($days)],
                 'dimensions' => [
                     ['name' => 'pagePath'],
                 ],
@@ -723,10 +710,7 @@ if (!function_exists('seo_product_reports_catalog_snapshot')) {
             }
 
             $ecommerce = seo_google_analytics_run_report([
-                'dateRanges' => [[
-                    'startDate' => max(1, $days - 1) . 'daysAgo',
-                    'endDate'   => 'today',
-                ]],
+                'dateRanges' => [seo_google_reporting_dates($days)],
                 'dimensions' => [
                     ['name' => 'itemId'],
                     ['name' => 'itemName'],

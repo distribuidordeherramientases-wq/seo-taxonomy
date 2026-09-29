@@ -38,6 +38,8 @@ final class SEO_Dependiente_Entrenador {
     const LAB_MODULE_SIZE = 25;
     const LAB_IMPORT_LIMIT = 5000;
     const LAB_UPLOAD_MAX_BYTES = 2097152;
+    const LAB_QUEUE_STATE_OPTION = 'seo_dependiente_academy_lab_queue_state';
+    const LAB_QUEUE_HISTORY_LIMIT = 20;
 
     /**
      * Diagnostico de preparacion de L7 dentro de la peticion/proceso actual.
@@ -1103,12 +1105,28 @@ final class SEO_Dependiente_Entrenador {
         $update_current = class_exists('SEO_Dependiente_Actualizacion') && SEO_Dependiente_Actualizacion::has_pending_work()
             ? SEO_Dependiente_Actualizacion::monitor_current()
             : null;
+        $lab_pending = self::pending_lab_batch();
+        $lab_queue_state = self::lab_queue_state();
+        $lab_current = $lab_pending ? array(
+            'lesson_key'   => (string) ($lab_pending['batch_key'] ?? ''),
+            'lesson_order' => 999,
+            'title'        => 'Preguntas al Dependiente',
+            'status'       => 'processing',
+            'next_module'  => 0,
+            'module_count' => 0,
+            'summary'      => self::lab_summary((string) ($lab_pending['batch_key'] ?? '')),
+            'queue'        => self::lab_queue_overview(),
+        ) : null;
 
         return array(
             'state' => $state,
-            'running' => self::is_auto_running($state),
+            'running' => self::is_auto_running($state) || (bool) $lab_pending,
             'scheduler' => self::automation_scheduler_status(),
-            'current' => $update_current ?: ($current_key ? array(
+            'queue' => self::lab_queue_overview(),
+            'next_due_ts' => $lab_pending
+                ? absint($lab_queue_state['next_due_ts'] ?? 0)
+                : absint($state['direct_worker_not_before'] ?? 0),
+            'current' => $lab_current ?: ($update_current ?: ($current_key ? array(
                 'lesson_key'   => $current_key,
                 'lesson_order' => absint($definition['order'] ?? 0),
                 'title'        => (string) ($definition['title'] ?? ''),
@@ -1116,8 +1134,19 @@ final class SEO_Dependiente_Entrenador {
                 'next_module'  => self::next_pending_module($current_key),
                 'module_count' => absint($lesson['module_count'] ?? 0),
                 'summary'      => self::lesson_summary($current_key),
-            ) : null),
+            ) : null)),
         );
+    }
+
+    /**
+     * Fuente única para el Gestor de workers: Academia sigue teniendo trabajo
+     * mientras haya una formación automática activa o preguntas manuales en cola.
+     */
+    public static function process_has_pending_work() {
+        if (self::pending_lab_batch()) {
+            return true;
+        }
+        return self::is_auto_running(self::auto_state());
     }
 
     private static function auto_prepare_lesson_batch($lesson_key) {
@@ -1605,6 +1634,12 @@ final class SEO_Dependiente_Entrenador {
      * @return bool
      */
     public static function process_manager_slice($seconds = 20, $backend = 'manager_cron') {
+        // Los lotes manuales son una cola persistente independiente de la
+        // pantalla. Se procesan con el mismo regulador y presupuesto de Academia.
+        if (self::pending_lab_batch()) {
+            return self::process_lab_queue_slice($seconds, $backend);
+        }
+
         $state = self::auto_state();
         if (!self::is_auto_running($state)) {
             return false;
@@ -1932,12 +1967,14 @@ final class SEO_Dependiente_Entrenador {
                 throw new RuntimeException('No se pudo guardar ninguna pregunta del lote.');
             }
 
+            self::wake_lab_queue();
             wp_send_json_success(array(
                 'batch_key' => $batch_key,
                 'created'   => $created,
                 'snapshot'  => $snapshot,
                 'summary'   => self::lab_summary($batch_key),
-                'message'   => 'Lote preparado con ' . number_format_i18n($created) . ' preguntas. Todavía no se ha ejecutado ninguna.',
+                'queue'     => self::lab_queue_overview(),
+                'message'   => 'Archivo añadido a la cola con ' . number_format_i18n($created) . ' preguntas. Academia lo procesará en segundo plano.',
             ));
         } catch (Throwable $error) {
             wp_send_json_error(array('message' => $error->getMessage()), 400);
@@ -1971,45 +2008,12 @@ final class SEO_Dependiente_Entrenador {
         }
 
         if (!self::acquire_db_lock('lab_run')) {
-            wp_send_json_error(array('message' => 'Ya se está ejecutando otro lote del Laboratorio.'), 423);
+            wp_send_json_error(array('message' => 'Academia ya está procesando preguntas en segundo plano.'), 423);
         }
 
         try {
-            $questions = self::pending_lab_questions($batch_key, $batch_size);
-            $rows = array();
-            $knowledge_changed = false;
-            foreach ($questions as $question) {
-                $run_id = self::run_question($question, $batch_uuid);
-                if ($run_id) {
-                    $run = self::run_by_id($run_id);
-                    if ($run) {
-                        $presented = self::present_run($run);
-                        $rows[] = $presented;
-                        $evaluation = is_array($presented['evaluation'] ?? null) ? $presented['evaluation'] : array();
-                        if (absint($evaluation['learned_signals'] ?? 0) > 0) {
-                            $knowledge_changed = true;
-                        }
-                    }
-                }
-            }
-            if ($knowledge_changed) {
-                update_option(
-                    self::KNOWLEDGE_SNAPSHOT_OPTION,
-                    max(1, absint(get_option(self::KNOWLEDGE_SNAPSHOT_OPTION, 0)) + 1),
-                    false
-                );
-            }
-            $summary = self::lab_summary($batch_key);
-            $done = absint($summary['total'] ?? 0) > 0 && absint($summary['answered'] ?? 0) >= absint($summary['total'] ?? 0);
-
-            wp_send_json_success(array(
-                'batch_key'  => $batch_key,
-                'batch_uuid' => $batch_uuid,
-                'processed'  => count($questions),
-                'done'       => $done,
-                'summary'    => $summary,
-                'rows'       => $rows,
-            ));
+            $step = self::run_lab_batch_step($batch_key, $batch_size, $batch_uuid);
+            wp_send_json_success($step);
         } catch (Throwable $error) {
             wp_send_json_error(array('message' => $error->getMessage()), 500);
         } finally {
@@ -2060,12 +2064,16 @@ final class SEO_Dependiente_Entrenador {
             ));
         }
 
+        if ($ids) {
+            self::wake_lab_queue();
+        }
         wp_send_json_success(array(
             'batch_key' => $batch_key,
             'reset'     => count($ids),
             'summary'   => self::lab_summary($batch_key),
+            'queue'     => self::lab_queue_overview(),
             'message'   => $ids
-                ? number_format_i18n(count($ids)) . ' preguntas no aprendidas quedan preparadas para un nuevo intento.'
+                ? number_format_i18n(count($ids)) . ' preguntas no aprendidas vuelven a la cola para un nuevo intento automático.'
                 : 'No hay preguntas no aprendidas pendientes de reintento.',
         ));
     }
@@ -3380,22 +3388,23 @@ final class SEO_Dependiente_Entrenador {
                     <p class="description">Las líneas vacías se ignoran. Las preguntas repetidas dentro del mismo lote se eliminan.</p>
                 </div>
                 <div class="seo-dependiente-trainer__lab-upload">
-                    <label for="seo-dependiente-lab-file"><strong>O cargar archivo</strong></label>
-                    <input id="seo-dependiente-lab-file" type="file" data-trainer-lab-file accept=".txt,.csv,.json,text/plain,text/csv,application/json">
-                    <p class="description"><strong>TXT:</strong> una pregunta por línea. <strong>CSV:</strong> <code>question</code>/<code>pregunta</code> y, opcionalmente, <code>answer</code>/<code>respuesta</code>. <strong>JSON:</strong> textos u objetos con esos mismos campos. Máximo 5.000 preguntas / 2 MB.</p>
+                    <label for="seo-dependiente-lab-file"><strong>O cargar archivos a la cola</strong></label>
+                    <input id="seo-dependiente-lab-file" type="file" multiple data-trainer-lab-file accept=".txt,.csv,.json,text/plain,text/csv,application/json">
+                    <p class="description"><strong>TXT:</strong> una pregunta por línea. <strong>CSV:</strong> <code>question</code>/<code>pregunta</code> y, opcionalmente, <code>answer</code>/<code>respuesta</code>. <strong>JSON:</strong> textos u objetos con esos mismos campos. Máximo 5.000 preguntas y 2 MB <strong>por archivo</strong>. Puedes seleccionar varios archivos a la vez.</p>
                     <p class="description"><strong>Sin corrección manual:</strong> si aportas una respuesta de FAQ se usa como evidencia adicional; si no, Academia comprueba automáticamente estabilidad semántica, cobertura y ranking interno.</p>
                 </div>
             </div>
 
             <div class="seo-dependiente-trainer__lab-actions">
-                <button type="button" class="button" data-trainer-lab-import <?php disabled($auto_running); ?>>Cargar preguntas</button>
+                <button type="button" class="button button-primary" data-trainer-lab-import <?php disabled($auto_running); ?>>Añadir a la cola</button>
                 <?php if ($batch_key) : ?>
-                    <button type="button" class="button button-primary" data-trainer-lab-run <?php disabled($auto_running || $done); ?>><?php echo $done ? 'Lote completado' : 'Enviar preguntas al Dependiente'; ?></button>
                     <button type="button" class="button" data-trainer-lab-rescan <?php disabled($auto_running || absint($summary['failed']) < 1); ?>>Reintentar no aprendidas</button>
                     <button type="button" class="button" data-trainer-lab-export>Descargar resultados JSON</button>
                 <?php endif; ?>
             </div>
-            <p class="description" data-trainer-lab-status aria-live="polite"><?php echo $batch_key ? esc_html('Último lote: ' . number_format_i18n(absint($summary['answered'])) . ' de ' . number_format_i18n(absint($summary['total'])) . ' preguntas ejecutadas.') : 'Carga preguntas para empezar.'; ?></p>
+            <p class="description" data-trainer-lab-status aria-live="polite"><?php echo $batch_key ? esc_html('La cola se procesa automáticamente con el Gestor de workers. Lote mostrado: ' . number_format_i18n(absint($summary['answered'])) . ' de ' . number_format_i18n(absint($summary['total'])) . ' preguntas ejecutadas.') : 'Añade preguntas o archivos; Academia los procesará aunque cierres esta pantalla.'; ?></p>
+
+            <?php self::render_lab_queue(); ?>
 
             <?php if ($batch_key) : ?>
                 <div class="seo-dependiente-trainer__lab-progress">
@@ -6424,6 +6433,339 @@ final class SEO_Dependiente_Entrenador {
             }
         }
         return $created;
+    }
+
+    private static function default_lab_queue_state() {
+        $speed = self::auto_speed_config();
+        return array(
+            'batch_size'      => absint($speed['initial_batch'] ?? self::AJAX_BATCH_INITIAL),
+            'fast_streak'     => 0,
+            'next_due_ts'     => 0,
+            'last_duration'   => 0,
+            'last_processed'  => 0,
+            'last_batch_key'  => '',
+            'last_backend'    => '',
+            'last_error'      => '',
+            'updated_at'      => '',
+        );
+    }
+
+    private static function lab_queue_state() {
+        $state = get_option(self::LAB_QUEUE_STATE_OPTION, array());
+        $state = wp_parse_args(is_array($state) ? $state : array(), self::default_lab_queue_state());
+        $state['batch_size'] = self::sanitize_batch_size($state['batch_size'] ?? self::AJAX_BATCH_INITIAL);
+        return $state;
+    }
+
+    private static function save_lab_queue_state($changes) {
+        $state = self::lab_queue_state();
+        foreach ((array) $changes as $key => $value) {
+            $state[$key] = $value;
+        }
+        $state['updated_at'] = current_time('mysql');
+        update_option(self::LAB_QUEUE_STATE_OPTION, $state, false);
+        return $state;
+    }
+
+    /**
+     * Despierta el Gestor de workers. No crea un worker paralelo: únicamente
+     * adelanta el próximo ciclo del supervisor común.
+     */
+    private static function wake_lab_queue($delay = 0) {
+        self::save_lab_queue_state(array(
+            'next_due_ts' => time() + max(0, absint($delay)),
+            'last_error'  => '',
+        ));
+        if (function_exists('seo_process_supervisor_nudge')) {
+            seo_process_supervisor_nudge(max(0, absint($delay)), 'academy_question_queue');
+        }
+        if (function_exists('seo_process_supervisor_schedule_backup')) {
+            seo_process_supervisor_schedule_backup();
+        }
+    }
+
+    private static function lab_batch_meta($batch_key) {
+        global $wpdb;
+        $json = $wpdb->get_var($wpdb->prepare(
+            'SELECT expected_json FROM ' . self::questions_table() . ' WHERE lesson_key=%s AND enabled=1 ORDER BY id ASC LIMIT 1',
+            sanitize_key((string) $batch_key)
+        ));
+        return self::decode_json($json);
+    }
+
+    private static function pending_lab_batch() {
+        global $wpdb;
+        $pattern = $wpdb->esc_like(self::LAB_PREFIX) . '%';
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT q.lesson_key AS batch_key, MIN(q.id) AS first_id
+             FROM " . self::questions_table() . " q
+             LEFT JOIN " . self::runs_table() . " r
+               ON r.question_id=q.id
+              AND r.lesson_key=q.lesson_key
+              AND r.status='answered'
+             WHERE q.lesson_key LIKE %s
+               AND q.enabled=1
+               AND r.id IS NULL
+             GROUP BY q.lesson_key
+             ORDER BY first_id ASC
+             LIMIT 1",
+            $pattern
+        ), ARRAY_A);
+        if (!is_array($row) || empty($row['batch_key'])) {
+            return null;
+        }
+        $batch_key = sanitize_key((string) $row['batch_key']);
+        $meta = self::lab_batch_meta($batch_key);
+        return array(
+            'batch_key' => $batch_key,
+            'first_id'  => absint($row['first_id'] ?? 0),
+            'filename'  => sanitize_file_name((string) ($meta['filename'] ?? '')),
+            'summary'   => self::lab_summary($batch_key),
+        );
+    }
+
+    private static function lab_queue_batches($limit = self::LAB_QUEUE_HISTORY_LIMIT) {
+        global $wpdb;
+        $limit = max(1, min(50, absint($limit)));
+        $pattern = $wpdb->esc_like(self::LAB_PREFIX) . '%';
+        $rows = (array) $wpdb->get_results($wpdb->prepare(
+            'SELECT lesson_key AS batch_key, MIN(id) AS first_id, MAX(id) AS max_id, MIN(created_at) AS created_at
+             FROM ' . self::questions_table() . '
+             WHERE lesson_key LIKE %s AND enabled=1
+             GROUP BY lesson_key
+             ORDER BY first_id DESC
+             LIMIT %d',
+            $pattern,
+            $limit
+        ), ARRAY_A);
+        $out = array();
+        foreach ($rows as $row) {
+            $batch_key = sanitize_key((string) ($row['batch_key'] ?? ''));
+            if (!$batch_key) {
+                continue;
+            }
+            $summary = self::lab_summary($batch_key);
+            $meta = self::lab_batch_meta($batch_key);
+            $total = absint($summary['total'] ?? 0);
+            $answered = absint($summary['answered'] ?? 0);
+            $status = $total > 0 && $answered >= $total
+                ? 'completed'
+                : ($answered > 0 ? 'processing' : 'pending');
+            $out[] = array(
+                'batch_key' => $batch_key,
+                'filename'  => sanitize_file_name((string) ($meta['filename'] ?? '')) ?: 'Preguntas pegadas',
+                'created_at'=> (string) ($row['created_at'] ?? ''),
+                'status'    => $status,
+                'summary'   => $summary,
+            );
+        }
+        return $out;
+    }
+
+    private static function lab_queue_overview() {
+        $batches = self::lab_queue_batches(self::LAB_QUEUE_HISTORY_LIMIT);
+        $overview = array(
+            'batches'           => count($batches),
+            'pending_batches'   => 0,
+            'completed_batches' => 0,
+            'total'             => 0,
+            'answered'          => 0,
+            'learned'           => 0,
+            'failed'            => 0,
+            'errors'            => 0,
+        );
+        foreach ($batches as $batch) {
+            $summary = (array) ($batch['summary'] ?? array());
+            foreach (array('total','answered','learned','failed','errors') as $key) {
+                $overview[$key] += absint($summary[$key] ?? 0);
+            }
+            if ('completed' === (string) ($batch['status'] ?? '')) {
+                $overview['completed_batches']++;
+            } else {
+                $overview['pending_batches']++;
+            }
+        }
+        return $overview;
+    }
+
+    private static function render_lab_queue() {
+        $batches = self::lab_queue_batches(self::LAB_QUEUE_HISTORY_LIMIT);
+        if (!$batches) {
+            return;
+        }
+        ?>
+        <div class="seo-dependiente-trainer__lab-queue">
+            <h3>Cola de archivos</h3>
+            <p class="description">Los lotes se tramitan por orden de llegada con el Gestor de workers. Puedes cerrar esta pantalla: el progreso queda persistido en Academia.</p>
+            <div class="seo-dependiente-trainer__table-wrap">
+                <table class="widefat striped">
+                    <thead><tr><th>Archivo / lote</th><th>Progreso</th><th>Aprendidas</th><th>No aprendidas</th><th>Estado</th></tr></thead>
+                    <tbody>
+                    <?php foreach ($batches as $batch) :
+                        $s = (array) ($batch['summary'] ?? array());
+                        $status = (string) ($batch['status'] ?? 'pending');
+                        $labels = array('pending'=>'En cola','processing'=>'Procesando','completed'=>'Completado');
+                    ?>
+                        <tr>
+                            <td><strong><?php echo esc_html((string) ($batch['filename'] ?? 'Preguntas')); ?></strong><div class="description"><code><?php echo esc_html((string) ($batch['batch_key'] ?? '')); ?></code></div></td>
+                            <td><?php echo esc_html(number_format_i18n(absint($s['answered'] ?? 0)) . ' / ' . number_format_i18n(absint($s['total'] ?? 0))); ?></td>
+                            <td><?php echo esc_html(number_format_i18n(absint($s['learned'] ?? 0))); ?></td>
+                            <td><?php echo esc_html(number_format_i18n(absint($s['failed'] ?? 0))); ?></td>
+                            <td><span class="seo-dependiente-trainer__status <?php echo 'completed' === $status ? 'is-ok' : ('processing' === $status ? 'is-neutral' : 'is-empty'); ?>"><?php echo esc_html($labels[$status] ?? ucfirst($status)); ?></span></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <?php
+    }
+
+    private static function run_lab_batch_step($batch_key, $batch_size, $batch_uuid = '') {
+        $batch_key = self::sanitize_lab_batch_key($batch_key);
+        if (!$batch_key || !self::lab_batch_exists($batch_key)) {
+            throw new RuntimeException('Lote de preguntas no encontrado.');
+        }
+        $batch_size = self::sanitize_batch_size($batch_size);
+        $batch_uuid = self::sanitize_uuid($batch_uuid);
+        if (!$batch_uuid) {
+            $batch_uuid = wp_generate_uuid4();
+        }
+
+        $questions = self::pending_lab_questions($batch_key, $batch_size);
+        $rows = array();
+        $knowledge_changed = false;
+        foreach ($questions as $question) {
+            $run_id = self::run_question($question, $batch_uuid);
+            if (!$run_id) {
+                continue;
+            }
+            $run = self::run_by_id($run_id);
+            if (!$run) {
+                continue;
+            }
+            $presented = self::present_run($run);
+            $rows[] = $presented;
+            $evaluation = is_array($presented['evaluation'] ?? null) ? $presented['evaluation'] : array();
+            if (absint($evaluation['learned_signals'] ?? 0) > 0) {
+                $knowledge_changed = true;
+            }
+        }
+        if ($knowledge_changed) {
+            update_option(
+                self::KNOWLEDGE_SNAPSHOT_OPTION,
+                max(1, absint(get_option(self::KNOWLEDGE_SNAPSHOT_OPTION, 0)) + 1),
+                false
+            );
+        }
+
+        $summary = self::lab_summary($batch_key);
+        $done = absint($summary['total'] ?? 0) > 0
+            && absint($summary['answered'] ?? 0) >= absint($summary['total'] ?? 0);
+
+        return array(
+            'batch_key'  => $batch_key,
+            'batch_uuid' => $batch_uuid,
+            'processed'  => count($questions),
+            'done'       => $done,
+            'summary'    => $summary,
+            'rows'       => $rows,
+        );
+    }
+
+    /**
+     * Ejecuta un único lote adaptativo dentro de la ventana del Gestor. No se
+     * queda en un while largo: devuelve el control para que el supervisor rote
+     * con Import/Export, Clasificador y el resto de procesos.
+     */
+    private static function process_lab_queue_slice($seconds = 20, $backend = 'manager_cron') {
+        if (class_exists('SEO_Dependiente_Reset') && SEO_Dependiente_Reset::is_locked()) {
+            return false;
+        }
+
+        $pending = self::pending_lab_batch();
+        if (!$pending) {
+            self::save_lab_queue_state(array('next_due_ts'=>0, 'last_processed'=>0, 'last_error'=>''));
+            return false;
+        }
+
+        $state = self::lab_queue_state();
+        $due = absint($state['next_due_ts'] ?? 0);
+        if ($due && $due > time()) {
+            return false;
+        }
+        if (!self::acquire_db_lock('lab_run')) {
+            return false;
+        }
+
+        $started = microtime(true);
+        $processed = 0;
+        $delay = 1;
+        try {
+            $batch_key = (string) ($pending['batch_key'] ?? '');
+            $batch_size = self::sanitize_batch_size($state['batch_size'] ?? self::AJAX_BATCH_INITIAL);
+            $step = self::run_lab_batch_step($batch_key, $batch_size);
+            $processed = absint($step['processed'] ?? 0);
+            $duration = max(0.001, microtime(true) - $started);
+            $speed = self::auto_speed_config();
+            $fast_streak = absint($state['fast_streak'] ?? 0);
+
+            if ($duration >= (float) ($speed['very_slow_seconds'] ?? 14)) {
+                $batch_size = absint($speed['min_batch'] ?? 1);
+                $fast_streak = 0;
+                $delay = absint($speed['critical_delay_seconds'] ?? 5);
+            } elseif ($duration >= (float) ($speed['slow_seconds'] ?? 7)) {
+                $batch_size = max(
+                    absint($speed['min_batch'] ?? 1),
+                    (int) floor($batch_size * (float) ($speed['slowdown_factor'] ?? 0.5))
+                );
+                $fast_streak = 0;
+                $delay = absint($speed['slow_delay_seconds'] ?? 2);
+            } elseif ($duration <= (float) ($speed['fast_seconds'] ?? 2.5)) {
+                $fast_streak++;
+                if ($fast_streak >= absint($speed['fast_streak_required'] ?? 2)) {
+                    $batch_size = min(
+                        absint($speed['max_batch'] ?? self::AJAX_BATCH_LIMIT),
+                        max($batch_size + 1, (int) ceil($batch_size * (float) ($speed['growth_factor'] ?? 1.34)))
+                    );
+                    $fast_streak = 0;
+                }
+                $delay = absint($speed['normal_delay_seconds'] ?? 1);
+            } else {
+                $fast_streak = 0;
+                $delay = absint($speed['normal_delay_seconds'] ?? 1);
+            }
+
+            self::save_lab_queue_state(array(
+                'batch_size'     => self::sanitize_batch_size($batch_size),
+                'fast_streak'    => $fast_streak,
+                'next_due_ts'    => time() + max(1, $delay),
+                'last_duration'  => round($duration, 3),
+                'last_processed' => $processed,
+                'last_batch_key' => $batch_key,
+                'last_backend'   => sanitize_key((string) $backend),
+                'last_error'     => '',
+            ));
+        } catch (Throwable $error) {
+            self::save_lab_queue_state(array(
+                'next_due_ts' => time() + 10,
+                'last_error'  => sanitize_text_field($error->getMessage()),
+                'last_backend'=> sanitize_key((string) $backend),
+            ));
+            if (function_exists('seo_process_supervisor_log')) {
+                seo_process_supervisor_log('error', 'academy_question_queue_error', $error->getMessage(), 'Academia');
+            }
+            return false;
+        } finally {
+            self::release_db_lock('lab_run');
+        }
+
+        if (self::pending_lab_batch()) {
+            self::wake_lab_queue($delay);
+        } else {
+            self::save_lab_queue_state(array('next_due_ts'=>0));
+        }
+        return $processed > 0;
     }
 
     private static function new_lab_batch_key() {

@@ -33,11 +33,17 @@ if (!function_exists('seo_analista_ga4_snapshot')) {
      * Importante: eventos del embudo son recuentos de eventos, no usuarios
      * únicos. Por eso las tasas derivadas se etiquetan como tasas de eventos.
      */
-    function seo_analista_ga4_snapshot($days = 28) {
+    function seo_analista_ga4_snapshot($days = 28, $end_date = '') {
         $days = seo_analista_days($days);
         $start_offset = max(0, $days - 1);
-        $start_date = $start_offset > 0 ? $start_offset . 'daysAgo' : 'today';
-        $end_date = 'today';
+        $end_date = (string) $end_date;
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $end_date)) $end_date = wp_date('Y-m-d');
+        try {
+            $start_date = (new DateTimeImmutable($end_date))->modify('-' . $start_offset . ' days')->format('Y-m-d');
+        } catch (Exception $exception) {
+            $end_date = wp_date('Y-m-d');
+            $start_date = wp_date('Y-m-d', current_time('timestamp') - ($start_offset * DAY_IN_SECONDS));
+        }
 
         $empty = array(
             'available' => false,
@@ -48,8 +54,8 @@ if (!function_exists('seo_analista_ga4_snapshot')) {
             'revenue' => 0.0,
             'period' => array(
                 'days' => $days,
-                'start' => wp_date('Y-m-d', current_time('timestamp') - ($start_offset * DAY_IN_SECONDS)),
-                'end' => wp_date('Y-m-d'),
+                'start' => $start_date,
+                'end' => $end_date,
                 'latest_date' => '',
             ),
             'funnel' => array(
@@ -99,7 +105,7 @@ if (!function_exists('seo_analista_ga4_snapshot')) {
 
         if (!function_exists('seo_google_analytics_run_report')) return $empty;
 
-        $cache_key = 'seo_analista_ga4_v2_' . get_current_blog_id() . '_' . $days;
+        $cache_key = 'seo_analista_ga4_v3_' . get_current_blog_id() . '_' . $days . '_' . str_replace('-', '', $end_date);
         $cached = get_transient($cache_key);
         if (is_array($cached)) return $cached;
 
@@ -331,8 +337,12 @@ if (!function_exists('seo_analista_internal_search_snapshot')) {
         if (!seo_analista_table_exists($table)) return $out;
 
         $since = wp_date('Y-m-d H:i:s', current_time('timestamp') - ($days * DAY_IN_SECONDS));
+        // El registro guarda user_id: excluir también las pruebas históricas
+        // de quienes actualmente administran el sitio.
+        $admin_ids = array_map('absint', (array) get_users(array('capability'=>'manage_options','fields'=>'ID')));
+        $exclude_admins = $admin_ids ? ' AND user_id NOT IN (' . implode(',', $admin_ids) . ')' : '';
         $summary = $wpdb->get_row($wpdb->prepare(
-            "SELECT COUNT(*) total, COUNT(DISTINCT normalized_term) unique_terms, SUM(CASE WHEN results_count=0 THEN 1 ELSE 0 END) zero_results FROM {$table} WHERE searched_at >= %s",
+            "SELECT COUNT(*) total, COUNT(DISTINCT normalized_term) unique_terms, SUM(CASE WHEN results_count=0 THEN 1 ELSE 0 END) zero_results FROM {$table} WHERE searched_at >= %s{$exclude_admins}",
             $since
         ), ARRAY_A);
         $out['available'] = true;
@@ -340,7 +350,7 @@ if (!function_exists('seo_analista_internal_search_snapshot')) {
         $out['unique'] = (int) ($summary['unique_terms'] ?? 0);
         $out['zero_results'] = (int) ($summary['zero_results'] ?? 0);
 
-        $sql = "SELECT MAX(search_term) search_term, normalized_term, COUNT(*) searches, AVG(results_count) avg_results, SUM(CASE WHEN results_count=0 THEN 1 ELSE 0 END) zero_count, MAX(searched_at) last_search FROM {$table} WHERE searched_at >= %s GROUP BY normalized_term ORDER BY searches DESC, zero_count DESC LIMIT %d";
+        $sql = "SELECT MAX(search_term) search_term, normalized_term, COUNT(*) searches, AVG(results_count) avg_results, SUM(CASE WHEN results_count=0 THEN 1 ELSE 0 END) zero_count, MAX(searched_at) last_search FROM {$table} WHERE searched_at >= %s{$exclude_admins} GROUP BY normalized_term ORDER BY searches DESC, zero_count DESC LIMIT %d";
         $out['top'] = (array) $wpdb->get_results($wpdb->prepare($sql, $since, max(5, min(100, absint($limit)))), ARRAY_A);
         foreach ($out['top'] as $row) {
             if ((int) ($row['zero_count'] ?? 0) > 0 || (float) ($row['avg_results'] ?? 0) < 2.0) $out['gaps'][] = $row;
