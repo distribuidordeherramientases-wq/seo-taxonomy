@@ -627,7 +627,7 @@ if (!function_exists('dht_shared_product_compare_data')) {
          */
         $price_html = (string) $compare_product->get_price_html();
         $price_html = preg_replace(
-            '#<span[^>]*class=(["\\'])[^"\\']*\\bscreen-reader-text\\b[^"\\']*\\1[^>]*>.*?</span>#is',
+            "#<span[^>]*class=[\"'][^\"']*\\bscreen-reader-text\\b[^\"']*[\"'][^>]*>.*?</span>#is",
             '',
             $price_html
         );
