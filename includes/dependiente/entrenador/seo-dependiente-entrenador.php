@@ -2930,6 +2930,119 @@ final class SEO_Dependiente_Entrenador {
      * invalida solo los datos preparados de L10 y conserva intactos L1-L9 y el
      * conocimiento activo. Se ejecuta una sola vez gracias a metadata.
      */
+    /**
+     * Repara el estado concreto producido por el bug de L10 en el que la
+     * lección se completaba correctamente en automático, el controlador cerraba
+     * el curso y, al cargar después la pantalla, la migración semantic-v2 se
+     * ejecutaba otra vez porque la metadata de finalización había perdido
+     * l10_curriculum. Esa segunda migración borraba preguntas/runs y dejaba L10
+     * otra vez como ready.
+     *
+     * La recuperación es deliberadamente estricta para no confundir una
+     * migración legítima desde el currículo antiguo con una finalización real:
+     * - L1-L9 deben seguir completadas.
+     * - L10 debe estar exactamente en el estado vacío creado por la migración.
+     * - el estado automático debe haber cerrado el curso pocos minutos antes.
+     */
+    private static function recover_l10_completion_after_metadata_loss($row, $metadata) {
+        global $wpdb;
+
+        if (!is_array($row) || !is_array($metadata)) {
+            return false;
+        }
+        if ('ready' !== sanitize_key((string) ($row['status'] ?? ''))) {
+            return false;
+        }
+        if ('semantic-v2' !== (string) ($metadata['l10_curriculum'] ?? '')) {
+            return false;
+        }
+        if ('reset_debt_replay_v1' !== (string) ($metadata['migration'] ?? '')) {
+            return false;
+        }
+        if (
+            absint($row['item_count'] ?? 0) > 0
+            || absint($row['module_count'] ?? 0) > 0
+            || absint($row['completed_items'] ?? 0) > 0
+            || !empty($row['source_signature'])
+        ) {
+            return false;
+        }
+
+        $state = self::auto_state();
+        $message = trim((string) ($state['last_message'] ?? ''));
+        $completion_messages = array(
+            'Formación automática completada. Todas las lecciones disponibles han terminado.',
+            'Todas las lecciones disponibles ya están completadas.',
+        );
+        if (
+            !empty($state['enabled'])
+            || 'auto' !== sanitize_key((string) ($state['mode'] ?? ''))
+            || 'completed' !== sanitize_key((string) ($state['status'] ?? ''))
+            || '' !== trim((string) ($state['current_lesson'] ?? ''))
+            || !in_array($message, $completion_messages, true)
+        ) {
+            return false;
+        }
+
+        $row_updated = DateTimeImmutable::createFromFormat(
+            'Y-m-d H:i:s',
+            (string) ($row['updated_at'] ?? ''),
+            wp_timezone()
+        );
+        $auto_updated = DateTimeImmutable::createFromFormat(
+            'Y-m-d H:i:s',
+            (string) ($state['updated_at'] ?? ''),
+            wp_timezone()
+        );
+        if (!$row_updated || !$auto_updated) {
+            return false;
+        }
+        $delta = $row_updated->getTimestamp() - $auto_updated->getTimestamp();
+        if ($delta < 0 || $delta > (15 * MINUTE_IN_SECONDS)) {
+            return false;
+        }
+
+        $prior_total = absint($wpdb->get_var(
+            'SELECT COUNT(*) FROM ' . self::lessons_table() . ' WHERE lesson_order < 10'
+        ));
+        $prior_incomplete = absint($wpdb->get_var(
+            "SELECT COUNT(*) FROM " . self::lessons_table() . " WHERE lesson_order < 10 AND status <> 'completed'"
+        ));
+        if ($prior_total < 9 || $prior_incomplete > 0) {
+            return false;
+        }
+
+        $metadata['completion_recovered'] = true;
+        $metadata['completion_recovery_reason'] = 'l10_curriculum_marker_lost_after_completion';
+        $metadata['completion_recovered_at'] = current_time('mysql');
+        $metadata['curriculum_version'] = self::CURRICULUM_VERSION;
+        $metadata['knowledge_changed'] = false;
+        $metadata['quality_gate'] = array(
+            'passed'           => true,
+            'pass_any_ratio'   => 0.0,
+            'min_pass_any'     => 0.0,
+            'technical_errors' => 0,
+            'recovered'        => true,
+        );
+
+        $snapshot_after = max(
+            absint(get_option(self::KNOWLEDGE_SNAPSHOT_OPTION, 0)),
+            absint($row['snapshot_before'] ?? 0)
+        );
+
+        return false !== $wpdb->update(
+            self::lessons_table(),
+            array(
+                'status'         => 'completed',
+                'snapshot_after' => $snapshot_after,
+                'metadata'       => self::json($metadata),
+                'completed_at'   => (string) ($state['updated_at'] ?? current_time('mysql')),
+                'updated_at'     => current_time('mysql'),
+            ),
+            array('lesson_key' => 'v2_l10_consolidation_debt')
+        );
+    }
+
     private static function migrate_l10_semantic_curriculum() {
         global $wpdb;
         // Nunca se borra un temario mientras el worker automático está activo.
@@ -2947,6 +3060,7 @@ final class SEO_Dependiente_Entrenador {
         }
         $metadata = self::decode_json($row['metadata'] ?? '');
         if ('semantic-v2' === (string) ($metadata['l10_curriculum'] ?? '')) {
+            self::recover_l10_completion_after_metadata_loss($row, $metadata);
             return;
         }
         $status = sanitize_key((string) ($row['status'] ?? 'ready'));
@@ -6117,6 +6231,33 @@ final class SEO_Dependiente_Entrenador {
 
     private static function update_lesson($lesson_key, $data) {
         global $wpdb;
+
+        // L10 semantic-v2 usa la metadata como marca de migración única. Cualquier
+        // actualización posterior (preparación, error, quality gate o finalización)
+        // debe conservar esa marca; si se pierde, sync_lessons() interpreta
+        // erróneamente que aún queda por migrar y vuelve a poner L10 en ready.
+        if ('v2_l10_consolidation_debt' === $lesson_key && array_key_exists('metadata', (array) $data)) {
+            $incoming_metadata = self::decode_json($data['metadata']);
+            $existing_row = self::lesson_row($lesson_key);
+            $existing_metadata = is_array($existing_row)
+                ? self::decode_json($existing_row['metadata'] ?? '')
+                : array();
+
+            $curriculum = class_exists('SEO_Dependiente_V3_Lesson10')
+                ? (string) SEO_Dependiente_V3_Lesson10::CURRICULUM
+                : (string) ($existing_metadata['l10_curriculum'] ?? 'semantic-v2');
+            $incoming_metadata['l10_curriculum'] = $curriculum ?: 'semantic-v2';
+
+            if (
+                empty($incoming_metadata['migration'])
+                && !empty($existing_metadata['migration'])
+            ) {
+                $incoming_metadata['migration'] = (string) $existing_metadata['migration'];
+            }
+
+            $data['metadata'] = $incoming_metadata;
+        }
+
         $allowed = array(
             'status','module_count','item_count','completed_items','prepare_offset','prepare_total',
             'snapshot_before','snapshot_after','source_signature','metadata','started_at','completed_at'
