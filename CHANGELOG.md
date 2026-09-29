@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Propuesta de valor / cabecera
+
+- Añadida bajo la navegación principal una franja común con los dos pilares comerciales de la tienda: **Dependiente** para ayudar a localizar el producto adecuado y **Compra con respaldo** para hacer visible el acompañamiento antes y después de la compra.
+- Ambos mensajes tienen el mismo peso visual, enlazan a `/dependiente/` y `/nuestro-servicio/`, son responsive y se omiten en carrito, checkout y Mi cuenta para no distraer el funnel transaccional.
+
+
 ### Dependiente / Academia
 
 - Corregida la **Lección 10** para que conserve la marca de currículo `semantic-v2` al guardar preparación, quality gate y finalización. La pérdida de esa marca hacía que, después de completar correctamente L10, la sincronización la interpretase de nuevo como pendiente de migración y la devolviese a **Disponible**.
