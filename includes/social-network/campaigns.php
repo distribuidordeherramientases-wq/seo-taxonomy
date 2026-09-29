@@ -777,6 +777,7 @@ function seo_social_campaign_exportable_agenda_rows()
             wp_date('Y-m-d H:i', (int) $row['timestamp'], wp_timezone()),
             wp_timezone_string(),
             'programada',
+            '',
         );
     }
     return $result;
