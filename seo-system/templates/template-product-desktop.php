@@ -871,8 +871,6 @@ $schema_product_graph = array(
         <?php endif; ?>
       </div>
 
-      <?php dht_template_render_service_promise('purchase', 'product'); ?>
-
       <div class="dh-product-trust" aria-label="Ventajas de compra">
         <div><span aria-hidden="true">🚚</span> Envío</div>
         <div><span aria-hidden="true">🔒</span> Pago seguro</div>
@@ -880,10 +878,10 @@ $schema_product_graph = array(
         <div><span aria-hidden="true">🛡️</span> Garantía</div>
       </div>
 
-      <div class="dh-contact-box">
-        <span>¿Prefieres hablar con una persona?</span>
-        <a href="tel:+34640874540">640 87 45 40</a>
-        <a href="mailto:servicioacliente@distribuidordeherramientas.es">Escríbenos</a>
+      <div class="dh-purchase-support" aria-label="Ayuda antes de comprar">
+        <span><strong>¿Dudas antes de comprar?</strong> Te ayudamos con compatibilidad, proveedor o pedido.</span>
+        <a href="https://wa.me/34640874540" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+        <a href="<?php echo esc_url(dht_template_service_page_url()); ?>">Soporte</a>
       </div>
 
     </section>
