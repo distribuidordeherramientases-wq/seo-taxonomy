@@ -453,10 +453,11 @@ final class SEO_Dependiente_Plugin {
                 .head { border-bottom:2px solid #17211b; padding-bottom:10px; margin-bottom:14px; }
                 .brand { display:table; width:100%; }
                 .brand-main,.brand-meta { display:table-cell; vertical-align:middle; }
-                .brand-meta { text-align:right; color:#657168; font-size:8px; }
+                .brand-meta { text-align:right; color:#657168; font-size:8px; line-height:1.45; }
                 .logo { max-height:34px; max-width:150px; vertical-align:middle; margin-right:10px; }
                 h1 { margin:0; font-size:20px; line-height:1.1; }
                 .subtitle { margin:4px 0 0; color:#657168; }
+                .seller { margin-top:5px; color:#657168; font-size:7px; line-height:1.4; }
                 .criteria { margin:0 0 12px; padding:8px 10px; background:#f2f6e7; border-radius:5px; }
                 .chip { display:inline-block; margin:2px 4px 2px 0; padding:3px 5px; border:1px solid #ccd6b0; border-radius:8px; font-size:7px; }
                 table { width:100%; border-collapse:collapse; table-layout:fixed; }
@@ -466,7 +467,8 @@ final class SEO_Dependiente_Plugin {
                 tr.diff td,tr.diff th { background:#fffaf1; }
                 tr.priority th.criterion { border-left:3px solid #9eba24; }
                 .product-title { font-weight:bold; font-size:8px; line-height:1.25; }
-                .product-link { margin-top:3px; color:#657168; font-size:6.5px; }
+                .product-excerpt { margin-top:4px; color:#657168; font-size:6.8px; line-height:1.35; font-weight:normal; }
+                .product-link { margin-top:4px; color:#657168; font-size:6.2px; line-height:1.25; }
                 .priority-note { display:block; margin-top:2px; color:#6b762d; font-size:6px; text-transform:uppercase; }
                 .footer { margin-top:10px; color:#7b857e; font-size:7px; }
             </style>
@@ -478,8 +480,20 @@ final class SEO_Dependiente_Plugin {
                         <?php if ($logo) : ?><img class="logo" src="<?php echo esc_attr($logo); ?>" alt=""><?php endif; ?>
                         <h1>Comparativa de productos</h1>
                         <p class="subtitle"><?php echo esc_html($brand); ?></p>
+                        <div class="seller">
+                            <?php if (!empty($company['name'])) : ?><strong><?php echo esc_html((string) $company['name']); ?></strong><?php endif; ?>
+                            <?php if (!empty($company['tax_id'])) : ?> · NIF/CIF: <?php echo esc_html((string) $company['tax_id']); ?><?php endif; ?>
+                            <?php if (!empty($company['address'])) : ?><br><?php echo esc_html((string) $company['address']); ?><?php endif; ?>
+                            <?php if (trim((string) ($company['postcode'] ?? '') . ' ' . (string) ($company['city'] ?? ''))) : ?>
+                                · <?php echo esc_html(trim((string) ($company['postcode'] ?? '') . ' ' . (string) ($company['city'] ?? ''))); ?>
+                            <?php endif; ?>
+                            <?php if (!empty($company['phone']) || !empty($company['email'])) : ?><br><?php endif; ?>
+                            <?php if (!empty($company['phone'])) : ?>Tel. <?php echo esc_html((string) $company['phone']); ?><?php endif; ?>
+                            <?php if (!empty($company['email'])) : ?> · <?php echo esc_html((string) $company['email']); ?><?php endif; ?>
+                        </div>
                     </div>
                     <div class="brand-meta">
+                        Documento informativo<br>
                         Generado el <?php echo esc_html(wp_date('d/m/Y H:i')); ?><br>
                         <?php echo esc_html(count($products)); ?> productos comparados
                     </div>
@@ -502,6 +516,9 @@ final class SEO_Dependiente_Plugin {
                         <?php foreach ($products as $product) : ?>
                             <th>
                                 <div class="product-title"><?php echo esc_html((string) ($product['title'] ?? '')); ?></div>
+                                <?php if (!empty($product['excerpt'])) : ?>
+                                    <div class="product-excerpt"><?php echo esc_html((string) $product['excerpt']); ?></div>
+                                <?php endif; ?>
                                 <?php if (!empty($product['url'])) : ?>
                                     <div class="product-link"><?php echo esc_html((string) $product['url']); ?></div>
                                 <?php endif; ?>
