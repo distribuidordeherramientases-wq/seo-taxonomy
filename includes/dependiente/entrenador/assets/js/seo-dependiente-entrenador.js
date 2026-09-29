@@ -29,6 +29,7 @@
     const labFile = root.querySelector('[data-trainer-lab-file]');
     const labImportButton = root.querySelector('[data-trainer-lab-import]');
     const labRunButton = root.querySelector('[data-trainer-lab-run]');
+    const labRescanButton = root.querySelector('[data-trainer-lab-rescan]');
     const labExportButton = root.querySelector('[data-trainer-lab-export]');
     const labStatus = root.querySelector('[data-trainer-lab-status]');
     const labProgressBar = root.querySelector('[data-trainer-lab-progress-bar]');
@@ -42,7 +43,7 @@
     let autoRunning = root.dataset.autoRunning === '1';
     let labBatchKey = labRoot ? (labRoot.dataset.labBatchKey || '') : '';
     const baseDisabled = new WeakMap();
-    [prepareButton, runModuleButton, autoButton, manualButton, stopButton, labImportButton, labRunButton, labExportButton, exportCourseButton, updateStartButton, updateExportButton]
+    [prepareButton, runModuleButton, autoButton, manualButton, stopButton, labImportButton, labRunButton, labRescanButton, labExportButton, exportCourseButton, updateStartButton, updateExportButton]
         .concat(exportLessonButtons, exportProgressButtons)
         .forEach(function (button) {
             if (button) baseDisabled.set(button, !!button.disabled);
@@ -490,10 +491,15 @@
             }).join('') + '</ol>'
             : '<span class="description">Sin productos devueltos.</span>';
         const isError = String(row.status || '') === 'error';
+        const evaluationStatus = String(row.evaluation_status || evaluation.status || '');
+        const learned = evaluationStatus.indexOf('pass_') === 0;
+        const statusClass = isError ? 'is-error' : (learned ? 'is-pass' : 'is-fail');
+        const statusLabel = isError ? 'Error técnico' : (learned ? 'Aprendida' : 'No aprendida');
         return '<tr>' +
             '<td><strong>' + escapeHtml(row.question || '') + '</strong>' +
                 (row.search_strategy ? '<div class="description">Estrategia: <code>' + escapeHtml(row.search_strategy) + '</code></div>' : '') + '</td>' +
-            '<td><span class="seo-dependiente-trainer__status ' + (isError ? 'is-error' : 'is-neutral') + '">' + (isError ? 'Error técnico' : 'Observada') + '</span>' +
+            '<td><span class="seo-dependiente-trainer__status ' + statusClass + '">' + statusLabel + '</span>' +
+                (diagnostic ? '<div class="description">' + escapeHtml(diagnostic) + '</div>' : '') +
                 (row.error_message ? '<div class="description">' + escapeHtml(row.error_message) + '</div>' : '') + '</td>' +
             '<td>' + resultsHtml + '</td>' +
             '</tr>';
@@ -599,7 +605,7 @@
 
                 if (labStatus) labStatus.textContent = 'Lote: ' + answered + ' de ' + total + ' preguntas · ' + duration.toFixed(1) + ' s último lote · siguiente lote: ' + batchSize + '.';
                 if (data.done) {
-                    if (labStatus) labStatus.textContent = 'Lote completado. Estas preguntas han sido solo de diagnóstico y no han modificado el conocimiento.';
+                    if (labStatus) labStatus.textContent = 'Lote completado: ' + Number(summary.learned || 0) + ' aprendidas · ' + Number(summary.failed || 0) + ' no aprendidas · ' + Number(summary.errors || 0) + ' errores técnicos.';
                     window.setTimeout(function () { window.location.reload(); }, 700);
                     return;
                 }
@@ -608,6 +614,20 @@
             }
         } catch (error) {
             if (labStatus) labStatus.textContent = 'Ejecución detenida: ' + error.message;
+            setBusy(false);
+        }
+    }
+
+    async function rescanLabFailures() {
+        if (busy || !labBatchKey || !labRescanButton) return;
+        setBusy(true);
+        if (labStatus) labStatus.textContent = 'Preparando un nuevo intento de las preguntas no aprendidas…';
+        try {
+            const data = await post('seo_dependiente_entrenador_lab_rescan', { batch_key: labBatchKey });
+            if (labStatus) labStatus.textContent = data.message || 'Preguntas no aprendidas preparadas.';
+            window.setTimeout(function () { window.location.reload(); }, 600);
+        } catch (error) {
+            if (labStatus) labStatus.textContent = 'No se pudo preparar el reintento: ' + error.message;
             setBusy(false);
         }
     }
@@ -777,6 +797,7 @@
     });
     labImportButton && labImportButton.addEventListener('click', importLabBatch);
     labRunButton && labRunButton.addEventListener('click', runLabBatch);
+    labRescanButton && labRescanButton.addEventListener('click', rescanLabFailures);
     labExportButton && labExportButton.addEventListener('click', exportLabBatch);
     updateStartButton && updateStartButton.addEventListener('click', startKnowledgeUpdate);
     updateExportButton && updateExportButton.addEventListener('click', exportKnowledgeUpdate);
