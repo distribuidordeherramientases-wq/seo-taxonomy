@@ -2027,19 +2027,38 @@ function seo_social_network_handle_scheduler_action()
         exit;
     }
 
+    $post = get_post($content_id);
+    $is_news = $post && function_exists('seo_social_network_is_news_content') && seo_social_network_is_news_content($post);
     $dates = isset($_POST['schedule_at']) && is_array($_POST['schedule_at']) ? wp_unslash($_POST['schedule_at']) : array();
     $raw_date = isset($dates[$content_id]) ? sanitize_text_field($dates[$content_id]) : '';
-    $dt = $raw_date !== '' ? DateTimeImmutable::createFromFormat('Y-m-d\TH:i', $raw_date, wp_timezone()) : false;
-    $timestamp = $dt instanceof DateTimeImmutable ? $dt->getTimestamp() : 0;
 
+    if ($is_news) {
+        $dt = $raw_date !== '' ? DateTimeImmutable::createFromFormat('!Y-m-d', $raw_date, wp_timezone()) : false;
+        if ($dt instanceof DateTimeImmutable) {
+            list($news_hour, $news_minute) = array_map('intval', explode(':', seo_social_network_news_fixed_publication_time()));
+            $dt = $dt->setTime($news_hour, $news_minute, 0);
+        }
+    } else {
+        $dt = $raw_date !== '' ? DateTimeImmutable::createFromFormat('Y-m-d\TH:i', $raw_date, wp_timezone()) : false;
+    }
+
+    $timestamp = $dt instanceof DateTimeImmutable ? $dt->getTimestamp() : 0;
     if (!$timestamp || $timestamp <= time() + 30) {
         wp_safe_redirect(seo_social_network_admin_url('scheduler', array('social_msg' => 'scheduler_invalid_date')));
         exit;
     }
 
+    $priority_by_content = isset($_POST['priority']) && is_array($_POST['priority'])
+        ? wp_unslash($_POST['priority'])
+        : array();
+    $is_priority = $is_news && !empty($priority_by_content[$content_id]);
+
     $failed = 0;
     foreach ($providers as $provider) {
-        if (is_wp_error(seo_social_network_set_scheduled_publication($content_id, $provider, $timestamp))) {
+        $result = $is_news
+            ? seo_social_network_schedule_news_publication($content_id, $provider, $timestamp, $is_priority)
+            : seo_social_network_set_scheduled_publication($content_id, $provider, $timestamp);
+        if (is_wp_error($result)) {
             $failed++;
         }
     }
