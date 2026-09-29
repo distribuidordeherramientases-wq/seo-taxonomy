@@ -314,6 +314,24 @@ En Facebook, las publicaciones de campaña fuerzan el formato con imagen aunque 
 
 La vista previa del Programador muestra tanto el texto como la creatividad que se utilizará para el primer producto de la campaña.
 
+### Horarios comerciales y prioridad editorial
+
+La agenda separa las publicaciones comerciales de las editoriales:
+
+- las **ofertas de campaña** se programan a las **18:00**;
+- las entradas de la categoría **Noticias** se programan a las **20:00**;
+- una oferta y una noticia pueden publicarse el mismo día en la misma red;
+- las páginas y landings mantienen la fecha/hora manual del Programador.
+
+Las Noticias pueden marcarse como **Prioritarias**. Para cada red, el Programador reutiliza los huecos editoriales futuros ya existentes y los ordena así:
+
+1. Noticias prioritarias;
+2. Noticias no prioritarias.
+
+Una noticia prioritaria adelanta a las no prioritarias, que se desplazan a los siguientes huecos editoriales. Entre noticias con la misma prioridad se conserva el orden cronológico previsto. Este reordenamiento no mueve ofertas, páginas ni landings.
+
+La importación CSV admite la columna opcional `prioridad` con valores como `si`, `1`, `true` o `prioritaria`. Para las Noticias, la hora indicada en el CSV se normaliza a las 20:00.
+
 ### Prioridad comercial y hora de publicación
 
 Las ofertas de campaña se programan con una regla distinta al contenido editorial:
@@ -349,7 +367,7 @@ El resumen mensual muestra:
 - días libres futuros;
 - días con más de una publicación en la misma red.
 
-Los días con colisión en una misma red se resaltan visualmente. Debajo del calendario se mantiene una **vista compacta cronológica** para pantallas pequeñas y revisiones rápidas.
+Los días con colisión real en una misma red se resaltan visualmente. La combinación intencional **oferta a las 18:00 + pieza editorial a las 20:00** no se considera colisión; sí se avisa cuando hay más de una oferta o más de una pieza editorial de la misma red en el mismo día. Debajo del calendario se mantiene una **vista compacta cronológica** para pantallas pequeñas y revisiones rápidas.
 
 No se duplica ninguna programación ni se crea una tabla adicional: las entradas/landings proceden de la agenda social existente y las ofertas de los metadatos de programación de Campañas.
 
