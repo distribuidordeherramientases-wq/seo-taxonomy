@@ -645,6 +645,12 @@ if (!function_exists('dht_shared_product_compare_data')) {
             $price_text = trim((string) preg_replace('/[\\s\\x{00A0}]+/u', ' ', $price_text));
         }
 
+        $excerpt = trim(wp_strip_all_tags((string) $compare_product->get_short_description()));
+        if ($excerpt === '') {
+            $excerpt = trim(wp_strip_all_tags((string) $compare_product->get_description()));
+        }
+        $excerpt = $excerpt !== '' ? wp_trim_words($excerpt, 26, '…') : '';
+
         $image_url = '';
         $image_candidates = dht_shared_product_image_candidates(
             $product_id,
@@ -662,6 +668,7 @@ if (!function_exists('dht_shared_product_compare_data')) {
             'url'        => esc_url_raw((string) get_permalink($product_id)),
             'image'      => $image_url,
             'price'      => $price_text,
+            'excerpt'    => $excerpt,
             'tags'       => array(),
             'attributes' => $attributes,
         );
@@ -823,6 +830,14 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
             font-weight: 700;
             text-decoration: none;
         }
+        .dht-category-live-compare-product-description {
+            margin: 0;
+            max-width: 320px;
+            font-size: .84em;
+            line-height: 1.4;
+            font-weight: 400;
+            opacity: .72;
+        }
         @media (max-width: 767px) {
             .dht-category-live-compare {
                 padding: 12px;
@@ -883,6 +898,7 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
                 var toolbar = root.querySelector('[data-dht-compare-toolbar]');
                 var countNode = root.querySelector('[data-dht-compare-count]');
                 var showButton = root.querySelector('[data-dht-compare-show]');
+                var pdfButton = root.querySelector('[data-dht-compare-pdf]');
                 var clearButton = root.querySelector('[data-dht-compare-clear]');
                 var result = root.querySelector('[data-dht-compare-result]');
                 var toggles = Array.prototype.slice.call(root.querySelectorAll('[data-dht-compare-product]'));
@@ -907,10 +923,57 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
                     if (showButton) {
                         showButton.disabled = selected.length < 2;
                     }
+                    if (pdfButton) {
+                        pdfButton.disabled = selected.length < 2;
+                    }
                     if (result && selected.length < 2) {
                         result.hidden = true;
                         result.innerHTML = '';
                     }
+                }
+
+                function downloadComparisonPdf() {
+                    if (selected.length < 2) {
+                        return;
+                    }
+
+                    var pdfUrl = String(root.getAttribute('data-dht-compare-pdf-url') || '');
+                    var pdfNonce = String(root.getAttribute('data-dht-compare-pdf-nonce') || '');
+                    if (!pdfUrl || !pdfNonce) {
+                        return;
+                    }
+
+                    var form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = pdfUrl;
+                    form.target = '_blank';
+                    form.style.display = 'none';
+
+                    var fields = {
+                        action: 'seo_dependiente_compare_pdf',
+                        nonce: pdfNonce
+                    };
+                    Object.keys(fields).forEach(function (name) {
+                        var input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = name;
+                        input.value = fields[name];
+                        form.appendChild(input);
+                    });
+
+                    selected.slice(0, 4).forEach(function (id) {
+                        var input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'ids[]';
+                        input.value = String(id);
+                        form.appendChild(input);
+                    });
+
+                    document.body.appendChild(form);
+                    form.submit();
+                    window.setTimeout(function () {
+                        form.remove();
+                    }, 1000);
                 }
 
                 function renderComparison() {
@@ -1027,6 +1090,14 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
                         link.href = product.url || '#';
                         link.textContent = product.name || 'Producto';
                         productBox.appendChild(link);
+
+                        if (product.excerpt) {
+                            var description = document.createElement('p');
+                            description.className = 'dht-category-live-compare-product-description';
+                            description.textContent = product.excerpt;
+                            productBox.appendChild(description);
+                        }
+
                         th.appendChild(productBox);
                         headRow.appendChild(th);
                     });
@@ -1121,6 +1192,11 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
 
                     if (event.target.closest('[data-dht-compare-show]')) {
                         renderComparison();
+                        return;
+                    }
+
+                    if (event.target.closest('[data-dht-compare-pdf]')) {
+                        downloadComparisonPdf();
                         return;
                     }
 
@@ -1229,7 +1305,7 @@ if (!function_exists('dht_shared_render_product_grid')) {
             $compare_id = 'dht-category-compare-' . $compare_instance;
             $data_id = $compare_id . '-data';
 
-            echo '<div class="dht-category-compare-scope" data-dht-category-compare data-dht-compare-data-id="' . esc_attr($data_id) . '">';
+            echo '<div class="dht-category-compare-scope" data-dht-category-compare data-dht-compare-data-id="' . esc_attr($data_id) . '" data-dht-compare-pdf-url="' . esc_url(admin_url('admin-post.php')) . '" data-dht-compare-pdf-nonce="' . esc_attr(wp_create_nonce('seo_dependiente_compare_pdf')) . '">';
         }
 
         echo '<ul class="products ' . esc_attr($extra_class) . '">';
@@ -1243,8 +1319,9 @@ if (!function_exists('dht_shared_render_product_grid')) {
             echo '<div class="dht-category-live-compare-toolbar">';
             echo '<span class="dht-category-live-compare-count" data-dht-compare-count>0 productos seleccionados</span>';
             echo '<button type="button" data-dht-compare-show disabled>Comparar seleccionados</button>';
+            echo '<button type="button" data-dht-compare-pdf disabled>Descargar comparativa PDF</button>';
             echo '<button type="button" data-dht-compare-clear>Limpiar</button>';
-            echo '<p class="dht-category-live-compare-note">Selecciona entre 2 y 4 productos. La tabla usa sus atributos visibles y etiquetas de producto.</p>';
+            echo '<p class="dht-category-live-compare-note">Selecciona entre 2 y 4 productos. La comparativa usa la clasificación y los atributos canónicos disponibles en el catálogo.</p>';
             echo '</div>';
             echo '<div class="dht-category-live-compare-result" data-dht-compare-result hidden></div>';
             echo '</div>';
