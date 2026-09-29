@@ -1,0 +1,14 @@
+name: Temporal lint L10 completion persistence
+
+on:
+  push:
+    branches:
+      - fix/l10-completion-persistence
+
+jobs:
+  php-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP syntax
+        run: php -l includes/dependiente/entrenador/seo-dependiente-entrenador.php
