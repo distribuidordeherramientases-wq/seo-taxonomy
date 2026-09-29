@@ -314,6 +314,19 @@ En Facebook, las publicaciones de campaña fuerzan el formato con imagen aunque 
 
 La vista previa del Programador muestra tanto el texto como la creatividad que se utilizará para el primer producto de la campaña.
 
+### Prioridad comercial y hora de publicación
+
+Las ofertas de campaña se programan con una regla distinta al contenido editorial:
+
+- hora fija de publicación: **18:00**, usando la zona horaria configurada en WordPress;
+- una entrada o landing programada el mismo día **no bloquea** una oferta;
+- puede haber, por tanto, una publicación editorial y una oferta en la misma red durante el mismo día;
+- se limita a **una oferta de campaña por día y por red** para evitar saturación;
+- si las 18:00 de un día ya están reservadas por otra oferta de campaña en esa red, el planificador utiliza el siguiente día disponible dentro de las fechas de campaña;
+- los contenidos editoriales existentes no se mueven ni se reprograman.
+
+El Programador ya no solicita separación mínima ni hora preferida para campañas. Esos controles siguen perteneciendo al contenido editorial/manual cuando corresponda; las ofertas usan su propia franja comercial.
+
 
 ---
 
