@@ -2591,10 +2591,10 @@ function seo_social_network_render_scheduler()
     $providers = seo_social_network_get_providers();
 
     echo '<section class="seo-social-card">';
-    echo '<div class="seo-social-intro"><div><h2>Programador</h2><p>Selecciona una pieza, marca las redes y elige fecha y hora. El texto se genera automáticamente con la plantilla correspondiente. No tienes que volver a redactar Facebook, Instagram, LinkedIn, Pinterest o X aquí.</p></div><span class="seo-social-state is-scheduled">Agenda</span></div>';
+    echo '<div class="seo-social-intro"><div><h2>Programador</h2><p>Las ofertas de campaña salen a las <strong>18:00</strong>. Las entradas de <strong>Noticias</strong> salen a las <strong>20:00</strong> y pueden marcarse como prioritarias para adelantar a las noticias normales. Páginas y landings mantienen fecha y hora manual.</p></div><span class="seo-social-state is-scheduled">Agenda</span></div>';
 
     echo '<div class="seo-social-scheduler-io">';
-    echo '<div class="seo-social-scheduler-io__block"><h3>Programacion masiva con Excel / CSV</h3><p class="seo-social-help">Descarga la lista de contenidos, prepara la hoja en Excel y guardala como <strong>CSV UTF-8</strong>. Columnas obligatorias: <code>contenido_id</code>, <code>redes</code> y <code>fecha_hora</code>. En <code>redes</code> puedes usar una o varias, por ejemplo <code>facebook,instagram,x</code>. Las fechas aceptan <code>2026-09-25 10:30</code> o <code>25/09/2026 10:30</code>.</p>';
+    echo '<div class="seo-social-scheduler-io__block"><h3>Programacion masiva con Excel / CSV</h3><p class="seo-social-help">Descarga la lista de contenidos, prepara la hoja en Excel y guardala como <strong>CSV UTF-8</strong>. Columnas obligatorias: <code>contenido_id</code>, <code>redes</code> y <code>fecha_hora</code>. Para Noticias puedes añadir <code>prioridad</code> con valor <code>si</code> o <code>1</code>; la hora se normaliza automáticamente a las 20:00. En <code>redes</code> puedes usar una o varias, por ejemplo <code>facebook,instagram,x</code>. Las fechas aceptan <code>2026-09-25 10:30</code> o <code>25/09/2026 10:30</code>.</p>';
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" enctype="multipart/form-data" class="seo-social-import-form">';
     echo '<input type="hidden" name="action" value="seo_social_network_scheduler_import_preview">';
     wp_nonce_field('seo_social_network_scheduler_import');
@@ -2632,7 +2632,7 @@ function seo_social_network_render_scheduler()
         }
 
         echo '<div class="seo-social-import-preview"><div class="seo-social-intro"><div><h3>Previsualizacion de importacion</h3><p>Valida antes de crear tareas. Las filas con error no se importaran. Si ya existe una programacion para el mismo contenido y red, se reprogramara a la nueva fecha.</p></div><span class="seo-social-state ' . ($error_count ? 'is-pending' : 'is-ok') . '">' . esc_html((string) $valid_count) . ' validas · ' . esc_html((string) $error_count) . ' con error</span></div>';
-        echo '<div class="seo-social-table-wrap"><table class="seo-social-table"><thead><tr><th>Fila</th><th>Contenido</th><th>Red</th><th>Fecha y hora</th><th>Resultado</th></tr></thead><tbody>';
+        echo '<div class="seo-social-table-wrap"><table class="seo-social-table"><thead><tr><th>Fila</th><th>Contenido</th><th>Red</th><th>Fecha y hora</th><th>Prioridad</th><th>Resultado</th></tr></thead><tbody>';
         foreach ($import_preview['entries'] as $entry) {
             $errors = isset($entry['errors']) && is_array($entry['errors']) ? $entry['errors'] : array();
             $state_class = !empty($errors) ? 'is-failed' : (!empty($entry['existing_at']) ? 'is-pending' : 'is-ok');
@@ -2642,6 +2642,7 @@ function seo_social_network_render_scheduler()
             echo '<td><strong>' . esc_html((string) $entry['title']) . '</strong><br><small>#' . esc_html((string) absint($entry['content_id'])) . '</small></td>';
             echo '<td>' . esc_html((string) $entry['provider']) . '</td>';
             echo '<td>' . esc_html((string) $entry['scheduled_txt']) . '</td>';
+            echo '<td>' . (!empty($entry['priority']) ? '<span class="seo-social-state is-pending">Prioritaria</span>' : '-') . '</td>';
             echo '<td><span class="seo-social-state ' . esc_attr($state_class) . '">' . esc_html($state_text) . '</span>';
             if (!empty($errors)) {
                 echo '<br><small style="color:#b32d2e">' . esc_html(implode('; ', $errors)) . '</small>';
@@ -2683,7 +2684,7 @@ function seo_social_network_render_scheduler()
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
     echo '<input type="hidden" name="action" value="seo_social_network_scheduler_action">';
     wp_nonce_field('seo_social_network_scheduler');
-    echo '<div class="seo-social-table-wrap"><table class="seo-social-table"><thead><tr><th>Contenido</th><th>Redes</th><th>Fecha y hora</th><th>Acción</th></tr></thead><tbody>';
+    echo '<div class="seo-social-table-wrap"><table class="seo-social-table"><thead><tr><th>Contenido</th><th>Redes</th><th>Fecha / prioridad</th><th>Acción</th></tr></thead><tbody>';
 
     if (!$query->have_posts()) {
         echo '<tr><td colspan="4">No se ha encontrado contenido publicado.</td></tr>';
@@ -2695,6 +2696,8 @@ function seo_social_network_render_scheduler()
         if (!$post) {
             continue;
         }
+        $is_news = function_exists('seo_social_network_is_news_content') && seo_social_network_is_news_content($post);
+        $news_priority = $is_news && function_exists('seo_social_network_news_is_priority') && seo_social_network_news_is_priority($post->ID);
 
         echo '<tr id="seo-social-content-' . esc_attr((string) $post->ID) . '">';
         echo '<td class="seo-social-content-title"><strong><a href="' . esc_url(get_edit_post_link($post->ID)) . '">' . esc_html(get_the_title($post)) . '</a></strong><br><span class="seo-social-state">' . esc_html(seo_social_network_content_type_label($post)) . '</span><p class="seo-social-help">Publicado: ' . esc_html(get_the_date('', $post)) . ' · #' . esc_html((string) $post->ID) . '</p>';
@@ -2725,11 +2728,17 @@ function seo_social_network_render_scheduler()
                 continue;
             }
             $label = isset($provider['label']) ? $provider['label'] : ucfirst($provider_key);
-            echo '<div class="seo-social-scheduled-item"><span class="seo-social-state is-scheduled">' . esc_html($label) . ': ' . esc_html(wp_date(get_option('date_format') . ' ' . get_option('time_format'), $timestamp, wp_timezone())) . '</span><button type="submit" name="cancel_schedule" value="' . esc_attr($post->ID . '|' . $provider_key) . '">Cancelar</button></div>';
+            echo '<div class="seo-social-scheduled-item"><span class="seo-social-state is-scheduled">' . esc_html($label) . ': ' . esc_html(wp_date(get_option('date_format') . ' ' . get_option('time_format'), $timestamp, wp_timezone())) . ($is_news && $news_priority ? ' · PRIORITARIA' : '') . '</span><button type="submit" name="cancel_schedule" value="' . esc_attr($post->ID . '|' . $provider_key) . '">Cancelar</button></div>';
         }
         echo '</div></td>';
 
-        echo '<td class="seo-social-date"><input type="datetime-local" name="schedule_at[' . esc_attr((string) $post->ID) . ']" aria-label="Fecha y hora para ' . esc_attr(get_the_title($post)) . '"><p class="seo-social-help">Zona horaria: ' . esc_html(wp_timezone_string()) . '</p></td>';
+        if ($is_news) {
+            echo '<td class="seo-social-date"><input type="date" name="schedule_at[' . esc_attr((string) $post->ID) . ']" aria-label="Fecha para ' . esc_attr(get_the_title($post)) . '">';
+            echo '<p class="seo-social-help"><strong>Hora fija: 20:00.</strong> Una noticia prioritaria adelanta a las no prioritarias ya programadas en cada red seleccionada.</p>';
+            echo '<label style="display:inline-flex;align-items:center;gap:7px;margin-top:6px;font-weight:600"><input type="checkbox" name="priority[' . esc_attr((string) $post->ID) . ']" value="1" ' . checked($news_priority, true, false) . '> Prioritaria</label></td>';
+        } else {
+            echo '<td class="seo-social-date"><input type="datetime-local" name="schedule_at[' . esc_attr((string) $post->ID) . ']" aria-label="Fecha y hora para ' . esc_attr(get_the_title($post)) . '"><p class="seo-social-help">Zona horaria: ' . esc_html(wp_timezone_string()) . '</p></td>';
+        }
 
         echo '<td><div class="seo-social-row-actions" style="margin-top:0"><button type="submit" name="schedule_content_id" value="' . esc_attr((string) $post->ID) . '" class="button button-primary" ' . disabled(!$has_connected, true, false) . '>Programar</button><button type="submit" name="publish_content_id" value="' . esc_attr((string) $post->ID) . '" class="button" ' . disabled(!$has_connected, true, false) . '>Publicar ahora</button></div>';
         echo '<details style="margin-top:9px"><summary style="cursor:pointer">Vista previa</summary><div class="seo-social-template-preview-grid">';
@@ -2746,7 +2755,7 @@ function seo_social_network_render_scheduler()
     wp_reset_postdata();
 
     echo '</tbody></table></div></form>';
-    echo '<p class="seo-social-code-note"><strong>Cómo funciona:</strong> el Programador solo guarda la fecha y las redes. En el momento de publicar, toma la plantilla general de cada red. WordPress ejecuta las tareas con WP-Cron, por lo que la hora puede depender de que el sitio reciba una petición alrededor de ese momento.</p>';
+    echo '<p class="seo-social-code-note"><strong>Cómo funciona:</strong> las ofertas reservan las 18:00 y Noticias las 20:00. Una noticia prioritaria toma el primer hueco editorial futuro y desplaza detrás las noticias no prioritarias sin tocar ofertas, páginas ni landings. WordPress ejecuta las tareas con WP-Cron, por lo que la ejecución real puede retrasarse hasta la siguiente petición al sitio.</p>';
     echo '</section>';
 }
 
