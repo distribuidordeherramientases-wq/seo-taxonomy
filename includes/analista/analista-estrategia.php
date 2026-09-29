@@ -67,7 +67,11 @@ if (!function_exists('seo_analista_source_health_all')) {
                 : 'Fuente local no disponible.',
         );
 
-        $ga4 = function_exists('seo_analista_ga4_snapshot') ? (array) seo_analista_ga4_snapshot($days) : array();
+        $property_id = function_exists('seo_analista_resolve_property_id') ? seo_analista_resolve_property_id() : '';
+        $gsc_period = $property_id && function_exists('seo_analista_period')
+            ? seo_analista_period($property_id, $days) : array();
+        $ga4 = function_exists('seo_analista_ga4_snapshot')
+            ? (array) seo_analista_ga4_snapshot($days, $gsc_period['date_to'] ?? '') : array();
         $sessions = (int) ($ga4['sessions'] ?? 0);
         $purchases = (int) ($ga4['purchases'] ?? 0);
         $revenue = (float) ($ga4['revenue'] ?? 0);

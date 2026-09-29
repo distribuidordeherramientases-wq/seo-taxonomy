@@ -8,6 +8,8 @@ on:
       - 'includes/analista/**'
       - 'includes/ojeador/**'
       - 'includes/seo-google-info.php'
+      - 'includes/seo-ai-search-report.php'
+      - 'includes/seo-landing-google-signals.php'
       - 'includes/seo-post-opportunities.php'
       - 'includes/seo-post-reports.php'
       - 'includes/seo-reports.php'
@@ -28,6 +30,8 @@ jobs:
         run: |
           find includes/analista includes/ojeador -type f -name '*.php' -print0 | xargs -0 -n1 php -l
           php -l includes/seo-google-info.php
+          php -l includes/seo-ai-search-report.php
+          php -l includes/seo-landing-google-signals.php
           php -l includes/seo-post-opportunities.php
           php -l includes/seo-post-reports.php
           php -l includes/seo-reports.php

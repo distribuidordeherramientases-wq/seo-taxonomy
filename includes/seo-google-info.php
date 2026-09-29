@@ -2983,8 +2983,9 @@ function seo_google_get_page_query_evidence($property_id, $page_hash, $date_from
 function seo_google_get_signal_pages($property_id, $date_from, $date_to, $limit = 30, $min_impressions = 1, $search = '') {
     global $wpdb;
 
-    $table = seo_google_table('search_data');
-    $where = "property_hash = %s AND data_date BETWEEN %s AND %s";
+    $page_source = seo_google_pages_period_complete($property_id, $date_from, $date_to);
+    $table = seo_google_table($page_source ? 'search_pages' : 'search_data');
+    $where = "property_hash = %s AND data_date BETWEEN %s AND %s AND search_type = 'web'";
     $args  = array(hash('sha256', $property_id), $date_from, $date_to);
 
     if ('' !== $search) {
@@ -3000,7 +3001,7 @@ function seo_google_get_signal_pages($property_id, $date_from, $date_to, $limit 
                 MAX(page_url) AS label,
                 SUM(clicks) AS clicks,
                 SUM(impressions) AS impressions,
-                COUNT(DISTINCT query_hash) AS queries,
+                " . ($page_source ? '0' : 'COUNT(DISTINCT query_hash)') . " AS queries,
                 CASE WHEN SUM(impressions) > 0 THEN SUM(clicks) / SUM(impressions) ELSE 0 END AS ctr,
                 CASE WHEN SUM(impressions) > 0 THEN SUM(position * impressions) / SUM(impressions) ELSE 0 END AS position
             FROM {$table}
@@ -3011,6 +3012,10 @@ function seo_google_get_signal_pages($property_id, $date_from, $date_to, $limit 
             LIMIT %d";
 
     $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
+
+    if ($page_source) {
+        seo_google_attach_page_query_counts($rows, $property_id, $date_from, $date_to);
+    }
 
     foreach ($rows as &$row) {
         $row['evidence'] = seo_google_get_page_query_evidence(
@@ -3024,6 +3029,26 @@ function seo_google_get_signal_pages($property_id, $date_from, $date_to, $limit 
     unset($row);
 
     return $rows;
+}
+
+/** Consulta+página solo aporta el número de consultas visibles, nunca los totales de la URL. */
+function seo_google_attach_page_query_counts(&$rows, $property_id, $date_from, $date_to) {
+    global $wpdb;
+    if (!$rows) return;
+    $hashes = array_values(array_unique(array_filter(array_column($rows, 'page_hash'))));
+    if (!$hashes) return;
+    $table = seo_google_table('search_data');
+    $placeholders = implode(',', array_fill(0, count($hashes), '%s'));
+    $counts = $wpdb->get_results($wpdb->prepare(
+        "SELECT page_hash,COUNT(DISTINCT query_hash) AS queries FROM {$table}
+         WHERE property_hash=%s AND search_type='web' AND data_date BETWEEN %s AND %s
+           AND page_hash IN ({$placeholders}) GROUP BY page_hash",
+        array_merge(array(hash('sha256', $property_id), $date_from, $date_to), $hashes)
+    ), ARRAY_A);
+    $by_hash = array();
+    foreach ((array) $counts as $count) $by_hash[$count['page_hash']] = (int) $count['queries'];
+    foreach ($rows as &$row) $row['queries'] = $by_hash[$row['page_hash']] ?? 0;
+    unset($row);
 }
 
 /**
@@ -3078,6 +3103,9 @@ function seo_google_render_signals() {
     submit_button('Aplicar', 'secondary', 'submit', false);
     echo '</form>';
     echo '<p class="description"><code>' . esc_html($period['current_from']) . '</code> → <code>' . esc_html($period['current_to']) . '</code></p>';
+    if (!seo_google_pages_period_complete($settings['property_id'], $period['current_from'], $period['current_to'])) {
+        echo '<p class="notice notice-warning inline">Páginas parciales: faltan días sincronizados por URL. Las consultas visibles tampoco representan todas las búsquedas.</p>';
+    }
     echo '</div>';
 
     echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;overflow:auto;">';
@@ -3147,8 +3175,11 @@ function seo_google_render_signals() {
 function seo_google_get_dimension_changes($property_id, $dimension, array $period, $min_impressions = 3, $limit = 25) {
     global $wpdb;
 
-    $table = seo_google_table('search_data');
     $dimension = ('page' === $dimension) ? 'page' : 'query';
+    $complete_pages = 'page' === $dimension
+        && seo_google_pages_period_complete($property_id, $period['previous_from'], $period['previous_to'])
+        && seo_google_pages_period_complete($property_id, $period['current_from'], $period['current_to']);
+    $table = seo_google_table($complete_pages ? 'search_pages' : 'search_data');
     $hash_field = ('page' === $dimension) ? 'page_hash' : 'query_hash';
     $text_field = ('page' === $dimension) ? 'page_url' : 'query_text';
 
@@ -3168,7 +3199,7 @@ function seo_google_get_dimension_changes($property_id, $dimension, array $perio
                        / SUM(CASE WHEN data_date BETWEEN %s AND %s THEN impressions ELSE 0 END)
                     ELSE 0 END AS previous_position
             FROM {$table}
-            WHERE property_hash = %s
+            WHERE property_hash = %s AND search_type = 'web'
               AND data_date BETWEEN %s AND %s
             GROUP BY {$hash_field}
             HAVING current_impressions >= %f OR previous_impressions >= %f";
@@ -3259,6 +3290,10 @@ function seo_google_render_changes() {
     echo '</form>';
     echo '<p><strong>Actual:</strong> <code>' . esc_html($period['current_from']) . '</code> → <code>' . esc_html($period['current_to']) . '</code><br>';
     echo '<strong>Anterior:</strong> <code>' . esc_html($period['previous_from']) . '</code> → <code>' . esc_html($period['previous_to']) . '</code></p>';
+    if (!seo_google_pages_period_complete($settings['property_id'], $period['previous_from'], $period['previous_to'])
+        || !seo_google_pages_period_complete($settings['property_id'], $period['current_from'], $period['current_to'])) {
+        echo '<p class="notice notice-warning inline">Los cambios por página proceden de consultas visibles y son parciales hasta completar la sincronización de ambos períodos.</p>';
+    }
     echo '</div>';
 
     seo_google_render_change_sections('Consultas', $query_changes, false);
@@ -3871,18 +3906,19 @@ function seo_google_render_comparison() {
 function seo_google_get_all_page_metrics($property_id, $date_from, $date_to, $limit = 5000) {
     global $wpdb;
 
-    $table = seo_google_table('search_data');
-    return $wpdb->get_results(
+    $page_source = seo_google_pages_period_complete($property_id, $date_from, $date_to);
+    $table = seo_google_table($page_source ? 'search_pages' : 'search_data');
+    $rows = $wpdb->get_results(
         $wpdb->prepare(
             "SELECT
                 page_hash,
                 MAX(page_url) AS page_url,
                 SUM(clicks) AS clicks,
                 SUM(impressions) AS impressions,
-                COUNT(DISTINCT query_hash) AS queries,
+                " . ($page_source ? '0' : 'COUNT(DISTINCT query_hash)') . " AS queries,
                 CASE WHEN SUM(impressions) > 0 THEN SUM(position * impressions) / SUM(impressions) ELSE 0 END AS position
              FROM {$table}
-             WHERE property_hash = %s AND data_date BETWEEN %s AND %s
+             WHERE property_hash = %s AND search_type = 'web' AND data_date BETWEEN %s AND %s
              GROUP BY page_hash
              ORDER BY impressions DESC
              LIMIT %d",
@@ -3893,6 +3929,8 @@ function seo_google_get_all_page_metrics($property_id, $date_from, $date_to, $li
         ),
         ARRAY_A
     );
+    if ($page_source) seo_google_attach_page_query_counts($rows, $property_id, $date_from, $date_to);
+    return $rows;
 }
 
 /**
@@ -3962,6 +4000,9 @@ function seo_google_render_coverage() {
     echo '<h3 style="margin-top:0;">Cobertura observada</h3>';
     echo '<p>Distribución de las páginas que Google ha mostrado. Esta cobertura describe visibilidad; todavía no mide si el catálogo es suficiente o correcto.</p>';
     echo '<p><code>' . esc_html($period['current_from']) . '</code> → <code>' . esc_html($period['current_to']) . '</code></p>';
+    if (!seo_google_pages_period_complete($settings['property_id'], $period['current_from'], $period['current_to'])) {
+        echo '<p class="notice notice-warning inline">Cobertura parcial basada en consultas visibles hasta completar la sincronización diaria de páginas.</p>';
+    }
     echo '</div>';
 
     echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:20px;">';
