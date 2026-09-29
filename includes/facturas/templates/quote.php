@@ -190,7 +190,18 @@ $valid_date = $valid_ts ? wp_date(get_option('date_format', 'd/m/Y'), $valid_ts)
 <table class="totals">
     <tr><td>Subtotal productos</td><td><?php echo esc_html($money($totals['subtotal_items'] ?? 0)); ?></td></tr>
     <?php if ($show_discounts && !empty($totals['discount_total'])) : ?><tr><td>Descuentos</td><td>-<?php echo esc_html($money($totals['discount_total'])); ?></td></tr><?php endif; ?>
-    <?php if ($show_shipping) : ?><tr><td>Transporte</td><td><?php echo esc_html($money($totals['shipping_total'] ?? 0)); ?></td></tr><?php endif; ?>
+    <?php if ($show_shipping) : ?>
+        <tr>
+            <td>Transporte</td>
+            <td>
+                <?php if (!empty($totals['shipping_pending'])) : ?>
+                    <strong>Pendiente de calcular</strong>
+                <?php else : ?>
+                    <?php echo esc_html($money($totals['shipping_total'] ?? 0)); ?>
+                <?php endif; ?>
+            </td>
+        </tr>
+    <?php endif; ?>
     <?php if (!empty($totals['fee_total'])) : ?><tr><td>Otros cargos</td><td><?php echo esc_html($money($totals['fee_total'])); ?></td></tr><?php endif; ?>
     <?php if ($show_tax) : ?>
         <tr><td>BASE IMPONIBLE</td><td><?php echo esc_html($money($totals['base_total'] ?? 0)); ?></td></tr>
@@ -211,6 +222,9 @@ $valid_date = $valid_ts ? wp_date(get_option('date_format', 'd/m/Y'), $valid_ts)
         <?php endif; ?>
     <?php endif; ?>
     <tr class="grand"><td><?php echo esc_html($total_label); ?></td><td><?php echo esc_html($money($totals['total'] ?? 0)); ?></td></tr>
+    <?php if (!empty($totals['shipping_pending'])) : ?>
+        <tr><td colspan="2"><strong>Total provisional:</strong> el transporte se calculará al indicar el destino de envío.</td></tr>
+    <?php endif; ?>
 </table>
 
 <?php if (!empty($fiscal['enabled']) && !empty($fiscal['note'])) : ?>
