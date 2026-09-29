@@ -26,10 +26,11 @@ final class SEO_Facturas_PDF {
      * Convierte HTML en binario PDF sin guardarlo. Se usa para presupuestos
      * efimeros generados desde el carrito y tambien internamente por create_pdf().
      */
-    public static function render_binary($html, $document_number = '', $context_id = 0) {
+    public static function render_binary($html, $document_number = '', $context_id = 0, $orientation = 'portrait') {
         $html = (string) $html;
         $document_number = (string) $document_number;
         $context_id = absint($context_id);
+        $orientation = in_array((string) $orientation, array('portrait', 'landscape'), true) ? (string) $orientation : 'portrait';
 
         if ('' === trim($html)) {
             return new WP_Error('seo_facturas_pdf_invalid_html', 'El HTML del documento esta vacio.');
@@ -40,7 +41,8 @@ final class SEO_Facturas_PDF {
             null,
             $html,
             $context_id,
-            $document_number
+            $document_number,
+            $orientation
         );
 
         if (is_wp_error($custom_binary)) {
@@ -69,7 +71,7 @@ final class SEO_Facturas_PDF {
 
             $dompdf = new $dompdf_class($options);
             $dompdf->loadHtml($html, 'UTF-8');
-            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->setPaper('A4', $orientation);
             $dompdf->render();
             $binary = $dompdf->output();
 
