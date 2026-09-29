@@ -165,7 +165,7 @@ final class SEO_Dependiente_Search_Log {
         $strategy_detail = is_array($data['strategy_detail'] ?? null) ? $data['strategy_detail'] : array();
         $top_results = self::compact_results((array) ($data['results'] ?? array()));
         $request_kind = sanitize_key((string) ($data['request_kind'] ?? 'search')) ?: 'search';
-        if (!in_array($request_kind, array('search', 'refine', 'paginate'), true)) {
+        if (!in_array($request_kind, array('search', 'refine', 'paginate', 'training'), true)) {
             $request_kind = 'search';
         }
 
@@ -202,7 +202,10 @@ final class SEO_Dependiente_Search_Log {
         }
 
         $log_id = absint($wpdb->insert_id);
-        if ($allow_learning && 'search' === $request_kind && class_exists('SEO_Dependiente_Learning')) {
+        if ($allow_learning && in_array($request_kind, array('search','training'), true) && class_exists('SEO_Dependiente_Learning')) {
+            // En training se conserva la pregunta y sus terminos no resueltos como
+            // evidencia revisable. observe_search solo generara equivalencias si
+            // existe evidencia suficiente de sesion/reformulacion.
             SEO_Dependiente_Learning::observe_search($log_id);
         }
 
@@ -577,7 +580,7 @@ final class SEO_Dependiente_Search_Log {
                 "SELECT id, query_original, semantic_signature, detected_intent, detected_object,
                         unresolved_terms, learning_status, learning_candidate, feedback, result_count, created_at
                  FROM " . self::table() . "
-                 WHERE request_kind = 'search'
+                 WHERE request_kind IN ('search','training')
                    AND created_at >= DATE_SUB(%s, INTERVAL %d DAY)
                    AND learning_status IN ('new','candidate','reviewed')
                  ORDER BY id DESC

@@ -3,8 +3,8 @@
  * SEO System - Integracion Social de Marketing / Campanas.
  *
  * Marketing es la fuente de verdad: esta capa solo consume campanas habilitadas
- * y sus productos, genera el mensaje por red y los inserta en huecos libres de
- * la agenda social sin mover publicaciones ya programadas.
+ * y sus productos, genera el mensaje por red y programa las ofertas a una hora
+ * comercial fija sin desplazar ni bloquear el contenido editorial ya agendado.
  */
 
 defined('ABSPATH') || exit;
@@ -358,6 +358,21 @@ function seo_social_campaign_publish_product($campaign_id, $product_id, $provide
 }
 
 /**
+ * Hora comercial fija para publicaciones de productos en campaña.
+ *
+ * Las entradas y landings pueden convivir el mismo día: la prioridad comercial
+ * se expresa reservando las 18:00 para ofertas. Se mantiene filtrable por si
+ * alguna instalación necesita otra hora sin reescribir el planificador.
+ *
+ * @return string HH:MM
+ */
+function seo_social_campaign_fixed_publication_time()
+{
+    $time = (string) apply_filters('seo_social_campaign_fixed_publication_time', '18:00');
+    return preg_match('/^([01]\\d|2[0-3]):[0-5]\\d$/', $time) ? $time : '18:00';
+}
+
+/**
  * @param int    $campaign_id
  * @param string $provider
  * @return string
@@ -413,6 +428,13 @@ function seo_social_campaign_set_schedule($campaign_id, $product_id, $provider, 
     $product_id = absint($product_id);
     $provider = sanitize_key($provider);
     $timestamp = absint($timestamp);
+
+    if ($timestamp > 0) {
+        $timezone = wp_timezone();
+        $local = (new DateTimeImmutable('@' . $timestamp))->setTimezone($timezone);
+        list($fixed_hour, $fixed_minute) = array_map('intval', explode(':', seo_social_campaign_fixed_publication_time()));
+        $timestamp = $local->setTime($fixed_hour, $fixed_minute, 0)->getTimestamp();
+    }
 
     if ($timestamp <= time() + 30) {
         return new WP_Error('invalid_campaign_schedule', 'La fecha de campaña debe estar en el futuro.');
@@ -473,97 +495,90 @@ function seo_social_campaign_run_scheduled($campaign_id, $product_id, $provider)
 add_action('seo_social_campaign_publish_scheduled', 'seo_social_campaign_run_scheduled', 10, 3);
 
 /**
- * Devuelve todos los timestamps ya ocupados por una red: agenda normal y campañas.
+ * Devuelve los días ya ocupados por OTRAS ofertas de campaña en una red.
+ *
+ * El contenido editorial normal se ignora deliberadamente: una entrada o
+ * landing puede publicarse el mismo día que una oferta. Solo evitamos dos
+ * ofertas de campaña el mismo día y en la misma red.
  *
  * @param string $provider
- * @return int[]
+ * @return string[] Días locales en formato Y-m-d.
  */
-function seo_social_campaign_occupied_timestamps($provider)
+function seo_social_campaign_occupied_offer_days($provider)
 {
     global $wpdb;
     $provider = sanitize_key($provider);
-    $timestamps = array();
-
-    $normal_key = seo_social_network_schedule_meta_key($provider);
-    $normal = $wpdb->get_col(
-        $wpdb->prepare(
-            "SELECT meta_value FROM {$wpdb->postmeta} WHERE meta_key = %s AND CAST(meta_value AS UNSIGNED) > %d",
-            $normal_key,
-            time()
-        )
-    );
-    foreach ((array) $normal as $value) {
-        $ts = absint($value);
-        if ($ts) {
-            $timestamps[] = $ts;
-        }
-    }
+    $days = array();
+    $timezone = wp_timezone();
 
     $prefix = '_seo_social_campaign_schedule_';
     $suffix = '_' . $provider;
     $like = $wpdb->esc_like($prefix) . '%' . $wpdb->esc_like($suffix);
-    $campaign = $wpdb->get_col(
+    $scheduled = $wpdb->get_col(
         $wpdb->prepare(
-            "SELECT meta_value FROM {$wpdb->postmeta} WHERE meta_key LIKE %s AND CAST(meta_value AS UNSIGNED) > %d",
+            "SELECT meta_value FROM {$wpdb->postmeta}
+             WHERE meta_key LIKE %s
+               AND CAST(meta_value AS UNSIGNED) > %d",
             $like,
             time()
         )
     );
-    foreach ((array) $campaign as $value) {
+    foreach ((array) $scheduled as $value) {
         $ts = absint($value);
         if ($ts) {
-            $timestamps[] = $ts;
+            $days[] = wp_date('Y-m-d', $ts, $timezone);
         }
     }
 
-    // Tambien se consideran publicaciones recientes ya ejecutadas para que una
-    // campaña no se coloque pegada a algo que acaba de salir en la misma red.
+    // Si hoy ya se publicó una oferta en esta red, también reservamos el día
+    // aunque la tarea ya no figure en postmeta.
     $publications_table = seo_social_network_publications_table();
-    $recent_from = wp_date('Y-m-d H:i:s', time() - (7 * DAY_IN_SECONDS), wp_timezone());
-    $recent = $wpdb->get_col(
+    $today = wp_date('Y-m-d', time(), $timezone);
+    $published = $wpdb->get_col(
         $wpdb->prepare(
             "SELECT published_at FROM {$publications_table}
              WHERE provider = %s
+               AND content_type = 'campaign_product'
                AND status = 'published'
                AND published_at IS NOT NULL
                AND published_at >= %s",
             $provider,
-            $recent_from
+            $today . ' 00:00:00'
         )
     );
-    foreach ((array) $recent as $mysql) {
-        $dt = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', (string) $mysql, wp_timezone());
+    foreach ((array) $published as $mysql) {
+        $dt = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', (string) $mysql, $timezone);
         if ($dt instanceof DateTimeImmutable) {
-            $timestamps[] = $dt->getTimestamp();
+            $days[] = $dt->format('Y-m-d');
         }
     }
 
-    $timestamps = array_values(array_unique($timestamps));
-    sort($timestamps, SORT_NUMERIC);
-    return $timestamps;
+    $days = array_values(array_unique(array_filter($days)));
+    sort($days, SORT_STRING);
+    return $days;
 }
 
 /**
+ * Genera un candidato diario a la hora comercial fija de ofertas.
+ *
  * @param object $campaign
- * @param string $preferred_time HH:MM
  * @return int[]
  */
-function seo_social_campaign_candidate_slots($campaign, $preferred_time)
+function seo_social_campaign_candidate_slots($campaign)
 {
-    $preferred_time = preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', (string) $preferred_time)
-        ? (string) $preferred_time
-        : '10:30';
+    $fixed_time = seo_social_campaign_fixed_publication_time();
     $timezone = wp_timezone();
     $start_ts = seo_marketing_campaigns_timestamp($campaign->start_at);
     $end_ts = seo_marketing_campaigns_timestamp($campaign->end_at);
     $from_ts = max(time() + 60, $start_ts);
+
     if (!$from_ts || !$end_ts || $from_ts > $end_ts) {
         return array();
     }
 
     $from = (new DateTimeImmutable('@' . $from_ts))->setTimezone($timezone)->setTime(0, 0, 0);
     $to = (new DateTimeImmutable('@' . $end_ts))->setTimezone($timezone)->setTime(23, 59, 59);
-    list($hour, $minute) = array_map('intval', explode(':', $preferred_time));
+    list($hour, $minute) = array_map('intval', explode(':', $fixed_time));
 
     $slots = array();
     for ($day = $from; $day <= $to; $day = $day->modify('+1 day')) {
@@ -577,23 +592,21 @@ function seo_social_campaign_candidate_slots($campaign, $preferred_time)
 }
 
 /**
- * @param int   $timestamp
- * @param int[] $occupied
- * @param int   $min_gap_seconds
+ * @param int      $timestamp
+ * @param string[] $occupied_days
  * @return bool
  */
-function seo_social_campaign_slot_is_free($timestamp, $occupied, $min_gap_seconds)
+function seo_social_campaign_offer_day_is_free($timestamp, $occupied_days)
 {
-    foreach ((array) $occupied as $existing) {
-        if (abs((int) $timestamp - (int) $existing) < $min_gap_seconds) {
-            return false;
-        }
-    }
-    return true;
+    $day = wp_date('Y-m-d', absint($timestamp), wp_timezone());
+    return $day !== '' && !in_array($day, (array) $occupied_days, true);
 }
 
 /**
- * Inserta productos de una campaña en huecos libres sin mover la agenda existente.
+ * Programa productos de campaña a las 18:00 sin bloquearse por posts/landings.
+ *
+ * Se reserva como máximo una oferta diaria por red. El resto de contenidos
+ * sociales puede coexistir ese mismo día a cualquier otra hora.
  */
 function seo_social_campaign_handle_plan()
 {
@@ -607,8 +620,6 @@ function seo_social_campaign_handle_plan()
         ? array_values(array_unique(array_filter(array_map('sanitize_key', wp_unslash($_POST['providers'])))))
         : array();
     $max_items = isset($_POST['max_items']) ? min(50, max(1, absint($_POST['max_items']))) : 4;
-    $min_gap_hours = isset($_POST['min_gap_hours']) ? min(168, max(6, absint($_POST['min_gap_hours']))) : 36;
-    $preferred_time = isset($_POST['preferred_time']) ? sanitize_text_field(wp_unslash($_POST['preferred_time'])) : '10:30';
 
     $item = function_exists('seo_marketing_campaigns_get_social_campaign')
         ? seo_marketing_campaigns_get_social_campaign($campaign_id)
@@ -630,11 +641,10 @@ function seo_social_campaign_handle_plan()
 
     $created = 0;
     $skipped = 0;
-    $gap = $min_gap_hours * HOUR_IN_SECONDS;
-    $slots = seo_social_campaign_candidate_slots($item['campaign'], $preferred_time);
+    $slots = seo_social_campaign_candidate_slots($item['campaign']);
 
     foreach ($providers as $provider) {
-        $occupied = seo_social_campaign_occupied_timestamps($provider);
+        $occupied_days = seo_social_campaign_occupied_offer_days($provider);
         $provider_created = 0;
 
         foreach ((array) $item['products'] as $product_item) {
@@ -656,7 +666,7 @@ function seo_social_campaign_handle_plan()
 
             $chosen = 0;
             foreach ($slots as $slot) {
-                if (seo_social_campaign_slot_is_free($slot, $occupied, $gap)) {
+                if (seo_social_campaign_offer_day_is_free($slot, $occupied_days)) {
                     $chosen = $slot;
                     break;
                 }
@@ -671,8 +681,9 @@ function seo_social_campaign_handle_plan()
                 $skipped++;
                 continue;
             }
-            $occupied[] = $chosen;
-            sort($occupied, SORT_NUMERIC);
+            $occupied_days[] = wp_date('Y-m-d', $chosen, wp_timezone());
+            $occupied_days = array_values(array_unique($occupied_days));
+            sort($occupied_days, SORT_STRING);
             $created++;
             $provider_created++;
         }
@@ -766,6 +777,7 @@ function seo_social_campaign_exportable_agenda_rows()
             wp_date('Y-m-d H:i', (int) $row['timestamp'], wp_timezone()),
             wp_timezone_string(),
             'programada',
+            '',
         );
     }
     return $result;
@@ -786,8 +798,8 @@ function seo_social_campaign_render_scheduler_panel()
         $created = isset($_GET['campaign_created']) ? absint($_GET['campaign_created']) : 0;
         $skipped = isset($_GET['campaign_skipped']) ? absint($_GET['campaign_skipped']) : 0;
         $texts = array(
-            'planned'    => array('success', sprintf('Campaña insertada en la agenda: %d publicacion(es) nuevas; %d producto(s) sin hueco o ya programados/publicados.', $created, $skipped)),
-            'no_slots'   => array('warning', 'No hay huecos suficientes dentro del periodo de la campaña con la separacion elegida. No se ha movido ninguna publicacion existente.'),
+            'planned'    => array('success', sprintf('Campaña programada: %d oferta(s) nuevas a las 18:00; %d producto(s) ya programados/publicados o sin día disponible.', $created, $skipped)),
+            'no_slots'   => array('warning', 'No quedan días disponibles para nuevas ofertas dentro del periodo de campaña. Las entradas y landings no bloquean estos huecos; solo se reserva una oferta diaria por red.'),
             'missing'    => array('warning', 'Selecciona una campaña valida y al menos una red social.'),
             'no_provider'=> array('warning', 'Ninguna de las redes seleccionadas esta conectada.'),
             'cancelled'  => array('success', 'Publicacion de campaña cancelada.'),
@@ -808,7 +820,7 @@ function seo_social_campaign_render_scheduler_panel()
     }
 
     echo '<section class="seo-social-card" style="margin-top:18px">';
-    echo '<div class="seo-social-intro"><div><h2>Campañas de Marketing</h2><p>Lee directamente <strong>Marketing → Campañas</strong>. Inserta productos en oferta en huecos libres de la agenda de cada red sin mover entradas ni landings ya programadas.</p></div><span class="seo-social-state is-ok">Fuente: Marketing</span></div>';
+    echo '<div class="seo-social-intro"><div><h2>Campañas de Marketing</h2><p>Lee directamente <strong>Marketing → Campañas</strong>. Las ofertas se programan a las <strong>18:00</strong> y pueden convivir el mismo día con entradas o landings. Solo se evita duplicar dos ofertas de campaña el mismo día en una misma red.</p></div><span class="seo-social-state is-ok">Fuente: Marketing</span></div>';
 
     if (!$campaigns) {
         echo '<p class="seo-social-code-note">No hay campañas habilitadas actuales o futuras con productos disponibles.</p></section>';
@@ -846,12 +858,11 @@ function seo_social_campaign_render_scheduler_panel()
         }
         echo '</div></div>';
         echo '<div class="seo-social-grid" style="margin-top:12px">';
-        echo '<div class="seo-social-field"><label>Max. productos por red</label><input type="number" name="max_items" min="1" max="50" value="4"><p class="seo-social-help">Evita convertir la campaña en una sucesion de anuncios.</p></div>';
-        echo '<div class="seo-social-field"><label>Separacion minima</label><select name="min_gap_hours"><option value="18">18 horas</option><option value="24">24 horas</option><option value="36" selected>36 horas</option><option value="48">48 horas</option><option value="72">72 horas</option></select><p class="seo-social-help">Se aplica respecto a cualquier publicacion ya programada en esa red.</p></div>';
-        echo '<div class="seo-social-field"><label>Hora preferida</label><input type="time" name="preferred_time" value="10:30"></div>';
+        echo '<div class="seo-social-field"><label>Max. productos por red</label><input type="number" name="max_items" min="1" max="50" value="4"><p class="seo-social-help">Se programa como máximo una oferta por día y red.</p></div>';
+        echo '<div class="seo-social-field"><label>Hora comercial de ofertas</label><input type="text" value="' . esc_attr(seo_social_campaign_fixed_publication_time()) . '" readonly><p class="seo-social-help">Hora fija de WordPress. Los posts y landings del mismo día no bloquean la oferta.</p></div>';
         echo '</div>';
-        echo '<div class="seo-social-actions"><button class="button button-primary" type="submit" ' . disabled(empty($connected), true, false) . '>Insertar en huecos libres</button></div>';
-        echo '<p class="seo-social-help">No reprograma contenido existente. Si no cabe un producto dentro de las fechas de campaña respetando la separacion, se deja fuera. La creatividad usa la foto real del producto: Media local cuando existe o imagen externa activa del proveedor sin importarla a Media.</p>';
+        echo '<div class="seo-social-actions"><button class="button button-primary" type="submit" ' . disabled(empty($connected), true, false) . '>Programar ofertas a las 18:00</button></div>';
+        echo '<p class="seo-social-help">No mueve ni reprograma contenido editorial existente. Si una entrada sale por la mañana y una oferta a las 18:00, ambas se mantienen. Si ya existe otra oferta de campaña ese día en la misma red, se utiliza el siguiente día disponible. La creatividad usa la foto real del producto: Media local o imagen externa activa del proveedor sin importarla a Media.</p>';
         echo '</form>';
 
         if (!empty($products[0])) {

@@ -147,16 +147,33 @@ function seo_social_calendar_events()
 function seo_social_calendar_has_same_network_collision($events)
 {
     $counts = array();
+
     foreach ((array) $events as $event) {
         $provider = sanitize_key((string) ($event['provider'] ?? ''));
         if ($provider === '') {
             continue;
         }
-        $counts[$provider] = isset($counts[$provider]) ? $counts[$provider] + 1 : 1;
-        if ($counts[$provider] > 1) {
+
+        $type = sanitize_key((string) ($event['type_key'] ?? 'other'));
+        $bucket = ('campaign' === $type) ? 'campaign' : 'editorial';
+
+        if (!isset($counts[$provider])) {
+            $counts[$provider] = array(
+                'campaign'  => 0,
+                'editorial' => 0,
+            );
+        }
+
+        $counts[$provider][$bucket]++;
+
+        // Una oferta + una pieza editorial el mismo día es intencional:
+        // oferta a las 18:00 y Noticias a las 20:00. Solo avisamos si hay
+        // duplicidad dentro del mismo tipo de agenda.
+        if ($counts[$provider]['campaign'] > 1 || $counts[$provider]['editorial'] > 1) {
             return true;
         }
     }
+
     return false;
 }
 
@@ -241,7 +258,7 @@ function seo_social_calendar_render_admin()
     $current = (new DateTimeImmutable('now', wp_timezone()))->format('Y-m');
 
     echo '<section class="seo-social-card seo-social-calendar-head">';
-    echo '<div class="seo-social-intro"><div><h2>Calendario de publicaciones</h2><p>Vista mensual de la misma agenda del Programador. Combina entradas, landings y ofertas de campañas para detectar huecos y dobles publicaciones antes de que se ejecuten.</p></div><span class="seo-social-state is-scheduled">Agenda visual</span></div>';
+    echo '<div class="seo-social-intro"><div><h2>Calendario de publicaciones</h2><p>Vista mensual de la misma agenda del Programador. Combina entradas, landings y ofertas de campañas. Una oferta y una pieza editorial pueden convivir el mismo día; el aviso se reserva para duplicados del mismo tipo en una misma red.</p></div><span class="seo-social-state is-scheduled">Agenda visual</span></div>';
 
     echo '<div class="seo-social-calendar-toolbar">';
     echo '<div class="seo-social-calendar-nav">';
@@ -268,14 +285,14 @@ function seo_social_calendar_render_admin()
     echo '<span class="seo-social-calendar-legend-item is-post">Entrada</span>';
     echo '<span class="seo-social-calendar-legend-item is-page">Landing</span>';
     echo '<span class="seo-social-calendar-legend-item is-campaign">Oferta</span>';
-    echo '<span class="seo-social-calendar-legend-item is-collision">Doble misma red</span>';
+    echo '<span class="seo-social-calendar-legend-item is-collision">Duplicado real</span>';
     echo '</div></div>';
 
     echo '<div class="seo-social-calendar-metrics">';
     echo '<div><strong>' . esc_html((string) $event_count) . '</strong><span>publicaciones</span></div>';
     echo '<div><strong>' . esc_html((string) $occupied_days) . '</strong><span>días ocupados</span></div>';
     echo '<div><strong>' . esc_html((string) $empty_future_days) . '</strong><span>días libres futuros</span></div>';
-    echo '<div class="' . ($collision_days ? 'has-warning' : '') . '"><strong>' . esc_html((string) $collision_days) . '</strong><span>días dobles en la misma red</span></div>';
+    echo '<div class="' . ($collision_days ? 'has-warning' : '') . '"><strong>' . esc_html((string) $collision_days) . '</strong><span>días con duplicado real</span></div>';
     echo '</div>';
     echo '</section>';
 
@@ -349,7 +366,7 @@ function seo_social_calendar_render_admin()
     echo '</section>';
 
     echo '<section class="seo-social-card">';
-    echo '<div class="seo-social-intro"><div><h2>Vista compacta</h2><p>Listado cronológico del mes. Útil en móvil y para revisar rápidamente horas, redes y posibles días dobles.</p></div></div>';
+    echo '<div class="seo-social-intro"><div><h2>Vista compacta</h2><p>Listado cronológico del mes. Útil en móvil y para revisar rápidamente horas, redes y duplicados reales.</p></div></div>';
 
     if (!$events) {
         echo '<p class="seo-social-code-note">No hay publicaciones programadas para este mes' . ($provider_filter !== '' ? ' en la red seleccionada' : '') . '.</p>';

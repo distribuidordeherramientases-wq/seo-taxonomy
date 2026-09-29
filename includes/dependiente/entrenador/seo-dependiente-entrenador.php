@@ -56,6 +56,7 @@ final class SEO_Dependiente_Entrenador {
         add_action('wp_ajax_seo_dependiente_entrenador_auto_status', array(__CLASS__, 'ajax_auto_status'));
         add_action('wp_ajax_seo_dependiente_entrenador_lab_import', array(__CLASS__, 'ajax_lab_import'));
         add_action('wp_ajax_seo_dependiente_entrenador_lab_run', array(__CLASS__, 'ajax_lab_run'));
+        add_action('wp_ajax_seo_dependiente_entrenador_lab_rescan', array(__CLASS__, 'ajax_lab_rescan'));
         add_action('wp_ajax_seo_dependiente_entrenador_lab_export', array(__CLASS__, 'ajax_lab_export'));
         add_action(self::AUTO_WORKER_HOOK, array(__CLASS__, 'auto_worker'));
         add_action(self::AUTO_WATCHDOG_HOOK, array(__CLASS__, 'auto_watchdog'));
@@ -510,8 +511,8 @@ final class SEO_Dependiente_Entrenador {
         if (class_exists('SEO_Dependiente_Reset') && SEO_Dependiente_Reset::is_locked()) {
             wp_send_json_error(array('message' => 'El conocimiento se está reiniciando. Espera a que termine.'), 423);
         }
-        if (!self::ensure_ready() || !class_exists('SEO_Dependiente_API')) {
-            wp_send_json_error(array('message' => 'El motor del Dependiente no está disponible.'), 500);
+        if (!self::ensure_ready() || !class_exists('SEO_Dependiente_V3_API')) {
+            wp_send_json_error(array('message' => 'El motor V3 del Dependiente no está disponible.'), 500);
         }
 
         $lesson_key = sanitize_key((string) wp_unslash($_POST['lesson_key'] ?? ''));
@@ -1876,7 +1877,7 @@ final class SEO_Dependiente_Entrenador {
             wp_send_json_error(array('message' => 'El conocimiento se está reiniciando. Espera a que termine.'), 423);
         }
 
-        $default_mode = self::sanitize_mode($_POST['mode'] ?? 'need');
+        $default_mode = 'need';
         $source = 'text';
         $filename = '';
         $items = array();
@@ -1976,14 +1977,27 @@ final class SEO_Dependiente_Entrenador {
         try {
             $questions = self::pending_lab_questions($batch_key, $batch_size);
             $rows = array();
+            $knowledge_changed = false;
             foreach ($questions as $question) {
                 $run_id = self::run_question($question, $batch_uuid);
                 if ($run_id) {
                     $run = self::run_by_id($run_id);
                     if ($run) {
-                        $rows[] = self::present_run($run);
+                        $presented = self::present_run($run);
+                        $rows[] = $presented;
+                        $evaluation = is_array($presented['evaluation'] ?? null) ? $presented['evaluation'] : array();
+                        if (absint($evaluation['learned_signals'] ?? 0) > 0) {
+                            $knowledge_changed = true;
+                        }
                     }
                 }
+            }
+            if ($knowledge_changed) {
+                update_option(
+                    self::KNOWLEDGE_SNAPSHOT_OPTION,
+                    max(1, absint(get_option(self::KNOWLEDGE_SNAPSHOT_OPTION, 0)) + 1),
+                    false
+                );
             }
             $summary = self::lab_summary($batch_key);
             $done = absint($summary['total'] ?? 0) > 0 && absint($summary['answered'] ?? 0) >= absint($summary['total'] ?? 0);
@@ -2001,6 +2015,59 @@ final class SEO_Dependiente_Entrenador {
         } finally {
             self::release_db_lock('lab_run');
         }
+    }
+
+    public static function ajax_lab_rescan() {
+        self::guard_ajax();
+        if (!self::ensure_ready()) {
+            wp_send_json_error(array('message' => 'Academia no disponible.'), 500);
+        }
+        $batch_key = self::sanitize_lab_batch_key($_POST['batch_key'] ?? '');
+        if (!$batch_key || !self::lab_batch_exists($batch_key)) {
+            wp_send_json_error(array('message' => 'Lote de preguntas no encontrado.'), 404);
+        }
+        if (self::is_auto_running()) {
+            wp_send_json_error(array('message' => 'La formación automática todavía está activa.'), 409);
+        }
+
+        global $wpdb;
+        $question_ids = (array) $wpdb->get_col($wpdb->prepare(
+            "SELECT q.id
+             FROM " . self::questions_table() . " q
+             INNER JOIN " . self::runs_table() . " r
+               ON r.question_id = q.id
+              AND r.lesson_key = q.lesson_key
+             WHERE q.lesson_key = %s
+               AND q.enabled = 1
+               AND (
+                    r.status = 'error'
+                    OR r.evaluation_status = 'fail'
+                    OR r.evaluation_status = 'error'
+                    OR r.evaluation_status IS NULL
+                    OR r.evaluation_status = ''
+               )",
+            $batch_key
+        ));
+        $ids = array_values(array_filter(array_map('absint', $question_ids)));
+        if ($ids) {
+            $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+            $params = array_merge(array($batch_key), $ids);
+            $wpdb->query($wpdb->prepare(
+                "DELETE FROM " . self::runs_table() . "
+                 WHERE lesson_key = %s
+                   AND question_id IN ({$placeholders})",
+                $params
+            ));
+        }
+
+        wp_send_json_success(array(
+            'batch_key' => $batch_key,
+            'reset'     => count($ids),
+            'summary'   => self::lab_summary($batch_key),
+            'message'   => $ids
+                ? number_format_i18n(count($ids)) . ' preguntas no aprendidas quedan preparadas para un nuevo intento.'
+                : 'No hay preguntas no aprendidas pendientes de reintento.',
+        ));
     }
 
     public static function ajax_lab_export() {
@@ -2036,6 +2103,7 @@ final class SEO_Dependiente_Entrenador {
                 'sequence_no' => absint($row['sequence_no'] ?? 0),
                 'mode'        => (string) ($row['mode'] ?? ''),
                 'question'    => (string) ($row['question'] ?? ''),
+                'teacher_answer' => (string) ($meta['teacher_answer'] ?? ''),
                 'run'         => empty($row['run_id']) ? null : array(
                     'status'            => (string) ($row['run_status'] ?? ''),
                     'result_count'      => absint($row['result_count'] ?? 0),
@@ -2044,6 +2112,7 @@ final class SEO_Dependiente_Entrenador {
                     'search_strategy'   => (string) ($row['search_strategy'] ?? ''),
                     'execution_ms'      => isset($row['execution_ms']) ? (float) $row['execution_ms'] : null,
                     'evaluation_status' => (string) ($row['evaluation_status'] ?? ''),
+                    'evaluation'        => self::decode_json($row['evaluation_json'] ?? ''),
                     'top_results'       => self::decode_json($row['top_results'] ?? ''),
                     'response_meta'     => self::decode_json($row['response_meta'] ?? ''),
                     'error_message'     => (string) ($row['error_message'] ?? ''),
@@ -2069,10 +2138,12 @@ final class SEO_Dependiente_Entrenador {
             ),
             'summary' => self::lab_summary($batch_key),
             'notes' => array(
-                'diagnostic_only'             => true,
+                'diagnostic_only'             => false,
                 'customer_search_log_written' => false,
-                'observational_learning_used' => false,
-                'knowledge_modified'          => false,
+                'training_log_written'        => true,
+                'autonomous_evaluation'       => true,
+                'knowledge_modified'          => true,
+                'learning_policy'             => 'Cada pregunta se autoevalúa; solo las aprobadas activan memoria de lenguaje-producto. Las fallidas quedan como deuda para reintento.',
             ),
             'items' => $items,
         );
@@ -2797,6 +2868,23 @@ final class SEO_Dependiente_Entrenador {
     }
 
     /**
+     * Las preguntas manuales del banco no son trafico de clientes. V3 las guarda
+     * como training para que puedan aportar evidencia de aprendizaje sin
+     * contaminar las metricas comerciales.
+     */
+    public static function lab_v3_request_kind($request_kind) {
+        return 'training';
+    }
+
+    public static function lab_v3_allow_learning($allow_learning = false) {
+        return false;
+    }
+
+    public static function lab_v3_learning_source($source = '') {
+        return 'question_bank';
+    }
+
+    /**
      * Academia puede pedir al API un diagnóstico interno de recuperación. El
      * filtro solo existe durante sus propias llamadas REST, por lo que esos datos
      * no se exponen en las búsquedas normales de clientes.
@@ -3264,8 +3352,8 @@ final class SEO_Dependiente_Entrenador {
             ?>
             <section class="postbox seo-dependiente-admin__box seo-dependiente-trainer__manual-locked">
                 <h2 class="seo-dependiente-admin__box-title">Laboratorio de preguntas bloqueado</h2>
-                <p>Cuando termine la formación básica se desbloqueará un laboratorio para probar al Dependiente con preguntas libres. Podrás pegarlas en un campo de texto o cargar lotes desde TXT, CSV o JSON.</p>
-                <p class="description">El Laboratorio será diagnóstico: sus consultas estarán aisladas del tráfico de clientes y no modificarán el conocimiento por sí solas.</p>
+                <p>Cuando termine la formación básica se desbloqueará un banco para enviar preguntas reales al Dependiente. Podrás pegarlas en un campo de texto o cargar lotes desde TXT, CSV o JSON.</p>
+                <p class="description">Las preguntas se ejecutarán contra el Dependiente V3 y quedarán registradas como material de entrenamiento separado del tráfico de clientes.</p>
             </section>
             <?php
             return;
@@ -3279,10 +3367,10 @@ final class SEO_Dependiente_Entrenador {
         <section class="postbox seo-dependiente-admin__box seo-dependiente-trainer__lab" data-trainer-lab data-lab-batch-key="<?php echo esc_attr($batch_key); ?>">
             <div class="seo-dependiente-trainer__section-head">
                 <div>
-                    <h2 class="seo-dependiente-admin__box-title">Laboratorio de preguntas</h2>
-                    <p>Prueba el conocimiento ya formado sin contaminar el aprendizaje. Puedes lanzar una pregunta, pegar varias líneas o importar un archivo completo.</p>
+                    <h2 class="seo-dependiente-admin__box-title">Preguntas al Dependiente</h2>
+                    <p>Envía preguntas reales al Dependiente como si fueran de un cliente. El Intérprete las analiza, Dependiente propone la solución y Academia decide automáticamente si la respuesta queda aprendida o pasa a deuda para reintentar.</p>
                 </div>
-                <span class="seo-dependiente-trainer__isolation">Solo diagnóstico · no aprende</span>
+                <span class="seo-dependiente-trainer__isolation">Aprendizaje autónomo · separado de clientes</span>
             </div>
 
             <div class="seo-dependiente-trainer__lab-grid">
@@ -3294,33 +3382,28 @@ final class SEO_Dependiente_Entrenador {
                 <div class="seo-dependiente-trainer__lab-upload">
                     <label for="seo-dependiente-lab-file"><strong>O cargar archivo</strong></label>
                     <input id="seo-dependiente-lab-file" type="file" data-trainer-lab-file accept=".txt,.csv,.json,text/plain,text/csv,application/json">
-                    <p class="description"><strong>TXT:</strong> una pregunta por línea. <strong>CSV:</strong> columnas <code>question</code> y opcional <code>mode</code>. <strong>JSON:</strong> array de textos u objetos con <code>question</code> y <code>mode</code>. Máximo 5.000 preguntas / 2 MB.</p>
-                    <label for="seo-dependiente-lab-mode"><strong>Modo por defecto</strong></label>
-                    <select id="seo-dependiente-lab-mode" data-trainer-lab-mode>
-                        <option value="need">Necesidad</option>
-                        <option value="product">Producto</option>
-                        <option value="tool">Herramienta</option>
-                        <option value="compare">Comparar</option>
-                    </select>
+                    <p class="description"><strong>TXT:</strong> una pregunta por línea. <strong>CSV:</strong> <code>question</code>/<code>pregunta</code> y, opcionalmente, <code>answer</code>/<code>respuesta</code>. <strong>JSON:</strong> textos u objetos con esos mismos campos. Máximo 5.000 preguntas / 2 MB.</p>
+                    <p class="description"><strong>Sin corrección manual:</strong> si aportas una respuesta de FAQ se usa como evidencia adicional; si no, Academia comprueba automáticamente estabilidad semántica, cobertura y ranking interno.</p>
                 </div>
             </div>
 
             <div class="seo-dependiente-trainer__lab-actions">
-                <button type="button" class="button" data-trainer-lab-import <?php disabled($auto_running); ?>>Preparar nuevo lote</button>
+                <button type="button" class="button" data-trainer-lab-import <?php disabled($auto_running); ?>>Cargar preguntas</button>
                 <?php if ($batch_key) : ?>
-                    <button type="button" class="button button-primary" data-trainer-lab-run <?php disabled($auto_running || $done); ?>><?php echo $done ? 'Lote completado' : 'Lanzar lote completo'; ?></button>
+                    <button type="button" class="button button-primary" data-trainer-lab-run <?php disabled($auto_running || $done); ?>><?php echo $done ? 'Lote completado' : 'Enviar preguntas al Dependiente'; ?></button>
+                    <button type="button" class="button" data-trainer-lab-rescan <?php disabled($auto_running || absint($summary['failed']) < 1); ?>>Reintentar no aprendidas</button>
                     <button type="button" class="button" data-trainer-lab-export>Descargar resultados JSON</button>
                 <?php endif; ?>
             </div>
-            <p class="description" data-trainer-lab-status aria-live="polite"><?php echo $batch_key ? esc_html('Último lote: ' . number_format_i18n(absint($summary['answered'])) . ' de ' . number_format_i18n(absint($summary['total'])) . ' preguntas ejecutadas.') : 'Prepara un lote para empezar.'; ?></p>
+            <p class="description" data-trainer-lab-status aria-live="polite"><?php echo $batch_key ? esc_html('Último lote: ' . number_format_i18n(absint($summary['answered'])) . ' de ' . number_format_i18n(absint($summary['total'])) . ' preguntas ejecutadas.') : 'Carga preguntas para empezar.'; ?></p>
 
             <?php if ($batch_key) : ?>
                 <div class="seo-dependiente-trainer__lab-progress">
                     <div class="seo-dependiente-trainer__progress"><div class="seo-dependiente-trainer__progress-bar" data-trainer-lab-progress-bar style="width:<?php echo esc_attr(absint($summary['total']) ? min(100, round((absint($summary['answered']) / absint($summary['total'])) * 100)) : 0); ?>%"></div></div>
                     <div class="seo-dependiente-trainer__current-summary">
                         <span><strong data-trainer-lab-summary="answered"><?php echo esc_html(number_format_i18n(absint($summary['answered']))); ?></strong> / <strong data-trainer-lab-summary="total"><?php echo esc_html(number_format_i18n(absint($summary['total']))); ?></strong> ejecutadas</span>
-                        <span><strong data-trainer-lab-summary="with_results"><?php echo esc_html(number_format_i18n(absint($summary['with_results']))); ?></strong> con resultados</span>
-                        <span><strong data-trainer-lab-summary="zero_results"><?php echo esc_html(number_format_i18n(absint($summary['zero_results']))); ?></strong> sin resultados</span>
+                        <span><strong data-trainer-lab-summary="learned"><?php echo esc_html(number_format_i18n(absint($summary['learned']))); ?></strong> aprendidas</span>
+                        <span><strong data-trainer-lab-summary="failed"><?php echo esc_html(number_format_i18n(absint($summary['failed']))); ?></strong> no aprendidas</span>
                         <span><strong data-trainer-lab-summary="errors"><?php echo esc_html(number_format_i18n(absint($summary['errors']))); ?></strong> errores técnicos</span>
                     </div>
                 </div>
@@ -3349,11 +3432,17 @@ final class SEO_Dependiente_Entrenador {
 
     private static function render_lab_run_row($row) {
         $status = (string) ($row['status'] ?? '');
+        $evaluation = is_array($row['evaluation'] ?? null) ? $row['evaluation'] : array();
+        $evaluation_status = sanitize_key((string) ($row['evaluation_status'] ?? $evaluation['status'] ?? ''));
+        $diagnostic = sanitize_key((string) ($evaluation['diagnostic_type'] ?? ''));
+        $learned = 0 === strpos($evaluation_status, 'pass_');
+        $label = 'error' === $status ? 'Error técnico' : ($learned ? 'Aprendida' : 'No aprendida');
+        $class = 'error' === $status ? 'is-error' : ($learned ? 'is-ok' : 'is-empty');
         $results = (array) ($row['top_results'] ?? array());
         ?>
         <tr>
             <td><strong><?php echo esc_html((string) ($row['question'] ?? '')); ?></strong><?php if (!empty($row['search_strategy'])) : ?><div class="description">Estrategia: <code><?php echo esc_html((string) $row['search_strategy']); ?></code></div><?php endif; ?></td>
-            <td><span class="seo-dependiente-trainer__status <?php echo 'error' === $status ? 'is-error' : 'is-neutral'; ?>"><?php echo 'error' === $status ? 'Error técnico' : 'Observada'; ?></span><?php if (!empty($row['error_message'])) : ?><div class="description"><?php echo esc_html((string) $row['error_message']); ?></div><?php endif; ?></td>
+            <td><span class="seo-dependiente-trainer__status <?php echo esc_attr($class); ?>"><?php echo esc_html($label); ?></span><?php if ($diagnostic) : ?><div class="description"><?php echo esc_html(str_replace('_', ' ', $diagnostic)); ?></div><?php endif; ?><?php if (!empty($row['error_message'])) : ?><div class="description"><?php echo esc_html((string) $row['error_message']); ?></div><?php endif; ?></td>
             <td>
                 <?php if ($results) : ?>
                     <ol class="seo-dependiente-trainer__answer-list">
@@ -4834,7 +4923,7 @@ final class SEO_Dependiente_Entrenador {
             'source_id'     => absint($item['source_id'] ?? 0) ?: null,
             'source_key'    => self::shorten($source_key, 190),
             'question_type' => sanitize_key((string) ($item['question_type'] ?? 'other')),
-            'mode'          => self::sanitize_mode($item['mode'] ?? 'need'),
+            'mode'          => 'need',
             'question'      => $question,
             'expected_json' => wp_json_encode((array) ($item['expected'] ?? array()), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'enabled'       => 1,
@@ -5143,6 +5232,7 @@ final class SEO_Dependiente_Entrenador {
             'results'         => $results,
             'total'           => absint($pagination['total'] ?? count($results)),
             'search_strategy' => $strategy,
+            'search_id'       => sanitize_text_field((string) ($v3['search_uuid'] ?? '')),
             'semantic'        => array(
                 'normalized' => (string) ($interpretation['normalized'] ?? ''),
                 'filtered'   => (string) ($interpretation['filtered'] ?? ''),
@@ -5199,7 +5289,8 @@ final class SEO_Dependiente_Entrenador {
         $expected_preview_kind = sanitize_key((string) ($expected_preview['kind'] ?? ''));
         $use_v3_l10_semantic = 'v2_l10_consolidation_debt' === $lesson_key
             && class_exists('SEO_Dependiente_V3_API');
-        $use_v3_runtime = $use_v3_lesson9 || $use_v3_l10_semantic;
+        $use_v3_lab_training = 0 === strpos($lesson_key, self::LAB_PREFIX) && class_exists('SEO_Dependiente_V3_API');
+        $use_v3_runtime = $use_v3_lesson9 || $use_v3_l10_semantic || $use_v3_lab_training;
 
         $request = new WP_REST_Request($use_v3_runtime ? 'GET' : 'POST', $use_v3_runtime ? '/seo-taxonomy/v3/search' : '/seo-taxonomy/v1/search');
         if ($use_v3_runtime) {
@@ -5221,7 +5312,13 @@ final class SEO_Dependiente_Entrenador {
         // L10, en cambio, revalida exclusivamente conocimiento ya activo.
         $use_classroom_stage = self::lesson_uses_classroom_stage($lesson_key);
         $faq_owner_only = 'v2_l6_faq' === $lesson_key || 'faq' === $expected_preview_kind;
-        add_filter('seo_dependiente_should_log_search', array(__CLASS__, 'skip_customer_search_log'), 999, 4);
+        if ($use_v3_lab_training) {
+            add_filter('seo_dependiente_v3_request_kind', array(__CLASS__, 'lab_v3_request_kind'), 999, 4);
+            add_filter('seo_dependiente_v3_allow_learning', array(__CLASS__, 'lab_v3_allow_learning'), 999, 4);
+            add_filter('seo_dependiente_v3_learning_source', array(__CLASS__, 'lab_v3_learning_source'), 999, 4);
+        } else {
+            add_filter('seo_dependiente_should_log_search', array(__CLASS__, 'skip_customer_search_log'), 999, 4);
+        }
         add_filter('seo_dependiente_expose_search_diagnostic', array(__CLASS__, 'expose_search_diagnostic'), 999, 3);
         if ($use_classroom_stage) {
             add_filter('seo_dependiente_include_academy_stage', array(__CLASS__, 'include_academy_stage_rules'), 999, 1);
@@ -5236,8 +5333,8 @@ final class SEO_Dependiente_Entrenador {
                 }
                 $response = self::run_lesson9_v3_search(
                     $request,
-                    $use_v3_l10_semantic ? 'v3_l10_semantic' : 'v3_l9',
-                    $use_v3_l10_semantic ? 'lesson10_semantic_regression' : 'lesson9_classroom'
+                    $use_v3_lab_training ? 'v3_training' : ($use_v3_l10_semantic ? 'v3_l10_semantic' : 'v3_l9'),
+                    $use_v3_lab_training ? 'manual_question_training' : ($use_v3_l10_semantic ? 'lesson10_semantic_regression' : 'lesson9_classroom')
                 );
             } else {
                 $response = SEO_Dependiente_API::search($request);
@@ -5248,7 +5345,13 @@ final class SEO_Dependiente_Entrenador {
             if ($use_v3_lesson9) {
                 SEO_Dependiente_V3_Lesson9::set_classroom_lesson('');
             }
-            remove_filter('seo_dependiente_should_log_search', array(__CLASS__, 'skip_customer_search_log'), 999);
+            if ($use_v3_lab_training) {
+                remove_filter('seo_dependiente_v3_request_kind', array(__CLASS__, 'lab_v3_request_kind'), 999);
+                remove_filter('seo_dependiente_v3_allow_learning', array(__CLASS__, 'lab_v3_allow_learning'), 999);
+                remove_filter('seo_dependiente_v3_learning_source', array(__CLASS__, 'lab_v3_learning_source'), 999);
+            } else {
+                remove_filter('seo_dependiente_should_log_search', array(__CLASS__, 'skip_customer_search_log'), 999);
+            }
             remove_filter('seo_dependiente_expose_search_diagnostic', array(__CLASS__, 'expose_search_diagnostic'), 999);
             if ($use_classroom_stage) {
                 remove_filter('seo_dependiente_include_academy_stage', array(__CLASS__, 'include_academy_stage_rules'), 999);
@@ -5293,6 +5396,29 @@ final class SEO_Dependiente_Entrenador {
             );
         }
 
+        // Para el banco de preguntas evaluamos el ranking interno anterior al
+        // gating visual. Así sabemos qué solución propone realmente el motor,
+        // incluso cuando la interfaz pública pediría una aclaración.
+        if ($use_v3_lab_training) {
+            $internal_ranked = self::lab_ranked_from_data($data);
+            $result_ids = array();
+            $compact_results = array();
+            foreach (array_slice($internal_ranked, 0, 8) as $position => $result) {
+                $product_id = absint($result['id'] ?? 0);
+                if (!$product_id) {
+                    continue;
+                }
+                $result_ids[] = $product_id;
+                $compact_results[] = array(
+                    'id'       => $product_id,
+                    'title'    => sanitize_text_field((string) ($result['title'] ?? '')),
+                    'score'    => isset($result['score']) ? round((float) $result['score'], 4) : null,
+                    'position' => $position + 1,
+                    'reasons'  => array_values(array_slice(array_map('sanitize_text_field', (array) ($result['sources'] ?? array())), 0, 4)),
+                );
+            }
+        }
+
         $related_results = self::compact_related_results((array) ($data['related'] ?? array()), 12);
         $related_editorial_results = isset($data['related_editorial'])
             ? self::compact_related_results((array) $data['related_editorial'], 18)
@@ -5318,10 +5444,20 @@ final class SEO_Dependiente_Entrenador {
             $evaluation_related_results = $related_results;
         }
 
-        $evaluation = self::evaluate_question($question, $result_ids, $status, $evaluation_related_results);
-        $diagnostic_related_results = 'faq' === $expected_kind ? $related_faq_results : $evaluation_related_results;
-        $evaluation['diagnostic_type'] = self::diagnose_evaluation($question, $evaluation, $data, $result_ids, $diagnostic_related_results);
-        $evaluation['classroom_stage_used'] = (bool) $use_classroom_stage;
+        if ($use_v3_lab_training) {
+            $evaluation = self::evaluate_lab_training_question($question, $data, $status);
+            $learned_signals = 0;
+            if (0 === strpos((string) ($evaluation['status'] ?? ''), 'pass_')) {
+                $learned_signals = self::teach_lab_training_question($question, $data, $evaluation);
+            }
+            $evaluation['learned_signals'] = absint($learned_signals);
+            $evaluation['classroom_stage_used'] = false;
+        } else {
+            $evaluation = self::evaluate_question($question, $result_ids, $status, $evaluation_related_results);
+            $diagnostic_related_results = 'faq' === $expected_kind ? $related_faq_results : $evaluation_related_results;
+            $evaluation['diagnostic_type'] = self::diagnose_evaluation($question, $evaluation, $data, $result_ids, $diagnostic_related_results);
+            $evaluation['classroom_stage_used'] = (bool) $use_classroom_stage;
+        }
         $semantic = is_array($data['semantic'] ?? null) ? $data['semantic'] : array();
         $search_diagnostic = self::sanitize_search_diagnostic($data['search_diagnostic'] ?? array());
         $meta = array(
@@ -5340,12 +5476,17 @@ final class SEO_Dependiente_Entrenador {
         );
 
         $is_related_only = in_array($expected_kind, array('content','faq'), true);
-        $effective_result_count = $is_related_only
-            ? count($evaluation_related_results)
-            : max(0, absint($data['total'] ?? 0));
-        $effective_returned_count = $is_related_only
-            ? count($evaluation_related_results)
-            : count($all_results);
+        $v3_debug_for_count = is_array($data['v3_debug'] ?? null) ? $data['v3_debug'] : array();
+        $effective_result_count = $use_v3_lab_training
+            ? absint($v3_debug_for_count['final_ranked'] ?? count($result_ids))
+            : ($is_related_only
+                ? count($evaluation_related_results)
+                : max(0, absint($data['total'] ?? 0)));
+        $effective_returned_count = $use_v3_lab_training
+            ? count($compact_results)
+            : ($is_related_only
+                ? count($evaluation_related_results)
+                : count($all_results));
         $effective_search_strategy = 'content' === $expected_kind
             ? 'editorial_semantic'
             : ('faq' === $expected_kind ? 'faq_owner' : sanitize_key((string) ($data['search_strategy'] ?? '')));
@@ -5359,7 +5500,9 @@ final class SEO_Dependiente_Entrenador {
                 'reasons' => array('Contenido relacionado · ' . sanitize_key((string) ($item['type'] ?? ''))),
             );
         }, $evaluation_related_results);
-        $stored_top_results = $is_related_only ? $related_top_results : ($compact_results ?: $related_top_results);
+        $stored_top_results = $use_v3_lab_training
+            ? $compact_results
+            : ($is_related_only ? $related_top_results : ($compact_results ?: $related_top_results));
 
         $inserted = $wpdb->insert(self::runs_table(), array(
             'batch_uuid'        => $batch_uuid,
@@ -5387,6 +5530,368 @@ final class SEO_Dependiente_Entrenador {
         ));
 
         return false === $inserted ? 0 : absint($wpdb->insert_id);
+    }
+
+    private static function lab_ranked_from_data($data) {
+        $debug = is_array($data['v3_debug'] ?? null) ? $data['v3_debug'] : array();
+        $ranked = array();
+        foreach (array_slice((array) ($debug['ranked_top'] ?? array()), 0, 20) as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $id = absint($item['id'] ?? 0);
+            if (!$id) {
+                continue;
+            }
+            $ranked[] = array(
+                'id'                => $id,
+                'title'             => sanitize_text_field((string) ($item['title'] ?? '')),
+                'score'             => isset($item['score']) ? (float) $item['score'] : 0.0,
+                'coverage'          => absint($item['coverage'] ?? 0),
+                'coverage_total'    => absint($item['coverage_total'] ?? 0),
+                'phrase_hit'        => !empty($item['phrase_hit']),
+                'solution_priority' => absint($item['solution_priority'] ?? 0),
+                'lesson9_strength'  => absint($item['lesson9_strength'] ?? 0),
+                'sources'           => array_values(array_slice((array) ($item['sources'] ?? array()), 0, 8)),
+            );
+        }
+        return $ranked;
+    }
+
+    /**
+     * Segunda lectura autónoma de un texto usando Intérprete + catálogo, sin
+     * pasar por REST ni escribir en el log de clientes. Sirve como contraste
+     * independiente del ranking obtenido con la pregunta original.
+     */
+    private static function lab_probe_text($text) {
+        $text = trim((string) $text);
+        if (
+            '' === $text
+            || !class_exists('SEO_Dependiente_V3_Interpreter')
+            || !class_exists('SEO_Dependiente_V3_Catalog')
+        ) {
+            return array('ids'=>array(), 'ranked'=>array(), 'semantic'=>array(), 'decision'=>array());
+        }
+        try {
+            $semantic = SEO_Dependiente_V3_Interpreter::interpret($text);
+            $catalog = SEO_Dependiente_V3_Catalog::search($semantic, array(
+                'page' => 1,
+                'per_page' => 18,
+            ));
+            if (is_wp_error($catalog) || !is_array($catalog)) {
+                return array('ids'=>array(), 'ranked'=>array(), 'semantic'=>$semantic, 'decision'=>array());
+            }
+            $debug = is_array($catalog['debug'] ?? null) ? $catalog['debug'] : array();
+            $ranked = array();
+            $ids = array();
+            foreach (array_slice((array) ($debug['ranked_top'] ?? array()), 0, 8) as $item) {
+                if (!is_array($item)) {
+                    continue;
+                }
+                $id = absint($item['id'] ?? 0);
+                if (!$id) {
+                    continue;
+                }
+                $ids[] = $id;
+                $ranked[] = $item;
+            }
+            return array(
+                'ids'      => array_values(array_unique($ids)),
+                'ranked'   => $ranked,
+                'semantic' => is_array($semantic) ? $semantic : array(),
+                'decision' => is_array($catalog['decision'] ?? null) ? $catalog['decision'] : array(),
+            );
+        } catch (Throwable $error) {
+            return array('ids'=>array(), 'ranked'=>array(), 'semantic'=>array(), 'decision'=>array());
+        }
+    }
+
+    private static function lab_rank_overlap($left, $right) {
+        $left = array_values(array_unique(array_filter(array_map('absint', (array) $left))));
+        $right = array_values(array_unique(array_filter(array_map('absint', (array) $right))));
+        if (!$left || !$right) {
+            return 0.0;
+        }
+        if ($left[0] === $right[0]) {
+            return 1.0;
+        }
+        if (array_intersect(array_slice($left, 0, 3), array_slice($right, 0, 3))) {
+            return 0.85;
+        }
+        if (array_intersect(array_slice($left, 0, 8), array_slice($right, 0, 8))) {
+            return 0.65;
+        }
+        return 0.0;
+    }
+
+    private static function lab_semantic_terms($semantic) {
+        $out = array();
+        foreach ((array) ($semantic['concepts'] ?? array()) as $role => $values) {
+            foreach ((array) $values as $value) {
+                $value = class_exists('SEO_Dependiente_V3_DB')
+                    ? SEO_Dependiente_V3_DB::normalize((string) $value)
+                    : sanitize_title((string) $value);
+                if ($value) {
+                    $out[$value] = true;
+                }
+            }
+        }
+        foreach ((array) ($semantic['groups'] ?? array()) as $group) {
+            if (!is_array($group)) {
+                continue;
+            }
+            $value = class_exists('SEO_Dependiente_V3_DB')
+                ? SEO_Dependiente_V3_DB::normalize((string) ($group['canonical'] ?? ''))
+                : sanitize_title((string) ($group['canonical'] ?? ''));
+            if ($value) {
+                $out[$value] = true;
+            }
+        }
+        return array_keys($out);
+    }
+
+    /**
+     * Autoevaluación equivalente al entrenador: no pregunta al usuario si la
+     * respuesta es correcta. Exige que Intérprete y catálogo produzcan una
+     * solución estable, con confianza pública suficiente y cobertura semántica.
+     * Si existe una respuesta FAQ, se usa como segundo profesor, nunca como
+     * requisito para poder entrenar.
+     */
+    private static function evaluate_lab_training_question($question, $data, $run_status) {
+        if ('error' === $run_status) {
+            return array(
+                'status' => 'error',
+                'score' => 0,
+                'diagnostic_type' => 'technical_error',
+            );
+        }
+
+        $ranked = self::lab_ranked_from_data($data);
+        if (!$ranked) {
+            return array(
+                'status' => 'fail',
+                'score' => 0,
+                'diagnostic_type' => 'retrieval_gap',
+                'reason' => 'El motor no produjo candidatos internos.',
+            );
+        }
+
+        $semantic = is_array($data['semantic'] ?? null) ? $data['semantic'] : array();
+        if (empty($semantic['groups']) && empty($semantic['actions']) && empty($semantic['routes'])) {
+            return array(
+                'status' => 'fail',
+                'score' => 0,
+                'diagnostic_type' => 'parser_gap',
+                'reason' => 'El Intérprete no consiguió estructurar la pregunta.',
+            );
+        }
+
+        $debug = is_array($data['v3_debug'] ?? null) ? $data['v3_debug'] : array();
+        $decision = is_array($debug['decision'] ?? null) ? $debug['decision'] : array();
+        $confidence = absint($decision['confidence'] ?? 0);
+        $needs_choice = !empty($decision['needs_choice']);
+        $top = (array) $ranked[0];
+        $coverage = absint($top['coverage'] ?? 0);
+        $coverage_total = absint($top['coverage_total'] ?? 0);
+        $coverage_ratio = $coverage_total > 0 ? min(1, $coverage / $coverage_total) : 0.0;
+        $original_ids = array_values(array_filter(array_map(static function ($item) {
+            return absint($item['id'] ?? 0);
+        }, $ranked)));
+
+        $normalized_question = class_exists('SEO_Dependiente_V3_DB')
+            ? SEO_Dependiente_V3_DB::normalize((string) ($semantic['normalized'] ?? $question['question'] ?? ''))
+            : sanitize_title((string) ($semantic['normalized'] ?? $question['question'] ?? ''));
+        $canonical_query = trim((string) ($semantic['filtered'] ?? ''));
+        $stability_tested = false;
+        $stability = 0.75;
+        $canonical_probe = array('ids'=>array());
+        if ($canonical_query && $canonical_query !== $normalized_question) {
+            $canonical_probe = self::lab_probe_text($canonical_query);
+            if (!empty($canonical_probe['ids'])) {
+                $stability_tested = true;
+                $stability = self::lab_rank_overlap($original_ids, $canonical_probe['ids']);
+            }
+        }
+
+        $expected = self::decode_json($question['expected_json'] ?? '');
+        $teacher_answer = trim((string) ($expected['teacher_answer'] ?? ''));
+        $teacher_used = false;
+        $teacher_score = null;
+        $teacher_probe = array('ids'=>array(), 'semantic'=>array());
+        if ('' !== $teacher_answer) {
+            $teacher_probe = self::lab_probe_text($teacher_answer);
+            if (!empty($teacher_probe['ids'])) {
+                $teacher_used = true;
+                $teacher_score = self::lab_rank_overlap($original_ids, $teacher_probe['ids']);
+            } else {
+                $question_terms = self::lab_semantic_terms($semantic);
+                $answer_terms = self::lab_semantic_terms((array) ($teacher_probe['semantic'] ?? array()));
+                if ($question_terms && $answer_terms) {
+                    $teacher_used = true;
+                    $shared = count(array_intersect($question_terms, $answer_terms));
+                    $teacher_score = $shared > 0
+                        ? min(1, $shared / max(1, min(count($question_terms), count($answer_terms))))
+                        : 0.0;
+                }
+            }
+        }
+
+        $diagnostic = 'mastered';
+        $reason = '';
+        if ($needs_choice || $confidence < 70) {
+            $diagnostic = $needs_choice ? 'clarification_gap' : 'low_confidence';
+            $reason = 'La respuesta pública todavía no es suficientemente segura para decidir por el cliente.';
+        } elseif ($coverage_total > 0 && $coverage_ratio < 0.75) {
+            $diagnostic = 'semantic_coverage_gap';
+            $reason = 'El primer candidato no cubre suficiente parte de la pregunta.';
+        } elseif ($stability_tested && $stability < 0.65) {
+            $diagnostic = 'ranking_gap';
+            $reason = 'La pregunta natural y su reconstrucción canónica no convergen en la misma solución.';
+        } elseif ($teacher_used && null !== $teacher_score && $teacher_score < 0.50) {
+            $diagnostic = 'teacher_answer_mismatch';
+            $reason = 'La solución propuesta no coincide con la evidencia aportada por la respuesta de referencia.';
+        }
+
+        $confidence_score = min(1, $confidence / 100);
+        $teacher_component = $teacher_used && null !== $teacher_score ? $teacher_score : $stability;
+        $score = round(
+            (0.40 * $confidence_score)
+            + (0.25 * $coverage_ratio)
+            + (0.20 * $stability)
+            + (0.15 * $teacher_component),
+            4
+        );
+
+        $passed = 'mastered' === $diagnostic && $score >= 0.70;
+        $top_id = absint($top['id'] ?? 0);
+        $status = 'fail';
+        if ($passed) {
+            $canonical_top = absint($canonical_probe['ids'][0] ?? 0);
+            $teacher_ids = array_values(array_filter(array_map('absint', (array) ($teacher_probe['ids'] ?? array()))));
+            $strong_top1 = (!$stability_tested || $canonical_top === $top_id)
+                && (!$teacher_used || !$teacher_ids || $teacher_ids[0] === $top_id || in_array($top_id, array_slice($teacher_ids, 0, 3), true));
+            $status = $strong_top1 ? 'pass_top1' : 'pass_top3';
+        }
+
+        return array(
+            'status'             => $status,
+            'score'              => $passed ? $score : 0,
+            'diagnostic_type'    => $diagnostic,
+            'reason'             => $reason,
+            'matched_product_id' => $passed ? $top_id : null,
+            'matched_position'   => $passed ? 1 : null,
+            'self_check' => array(
+                'confidence'       => $confidence,
+                'needs_choice'     => $needs_choice,
+                'coverage'         => $coverage,
+                'coverage_total'   => $coverage_total,
+                'coverage_ratio'   => round($coverage_ratio, 4),
+                'stability_tested' => $stability_tested,
+                'stability'        => round($stability, 4),
+                'teacher_answer'   => '' !== $teacher_answer,
+                'teacher_used'     => $teacher_used,
+                'teacher_score'    => null === $teacher_score ? null : round($teacher_score, 4),
+                'top_product_id'   => $top_id,
+            ),
+        );
+    }
+
+    /**
+     * Una pregunta aprobada se convierte en memoria de lenguaje-producto L9.
+     * Solo se memoriza la frase que ya ha superado el autoexamen; una pregunta
+     * fallida nunca altera el conocimiento.
+     */
+    private static function teach_lab_training_question($question, $data, $evaluation) {
+        if (
+            !class_exists('SEO_Dependiente_V3_Lesson9')
+            || !class_exists('SEO_Dependiente_V3_DB')
+            || 0 !== strpos((string) ($evaluation['status'] ?? ''), 'pass_')
+        ) {
+            return 0;
+        }
+        $product_id = absint($evaluation['matched_product_id'] ?? 0);
+        $lesson_key = 'manual_training';
+        $raw = (string) ($question['question'] ?? '');
+        $normalized = SEO_Dependiente_V3_DB::normalize($raw);
+        if (!$product_id || !$lesson_key || !$normalized) {
+            return 0;
+        }
+
+        $semantic = is_array($data['semantic'] ?? null) ? $data['semantic'] : array();
+        $anchors = array();
+        foreach ((array) ($semantic['groups'] ?? array()) as $group) {
+            if (!is_array($group)) {
+                continue;
+            }
+            foreach (array_merge(
+                array((string) ($group['canonical'] ?? '')),
+                (array) ($group['variants'] ?? array())
+            ) as $value) {
+                foreach (explode(' ', SEO_Dependiente_V3_DB::normalize($value)) as $token) {
+                    if (strlen($token) >= 3) {
+                        $anchors[$token] = true;
+                    }
+                }
+            }
+        }
+
+        $signals = array();
+        $seen = array();
+        $words = array_values(array_filter(explode(' ', $normalized)));
+        if (count($words) >= 2 && count($words) <= 5) {
+            $signals[] = array(
+                'signal_type' => 'manual_question',
+                'signal_text' => $raw,
+                'normalized_signal' => $normalized,
+                'semantic_group' => 'training',
+                'vocabulary_id' => 0,
+                'weight' => 300,
+            );
+            $seen[$normalized] = true;
+        }
+
+        foreach (SEO_Dependiente_V3_DB::ngrams($normalized, 5) as $ngram) {
+            $parts = array_values(array_filter(explode(' ', $ngram)));
+            $size = count($parts);
+            if ($size < 3 || $size > 5 || isset($seen[$ngram])) {
+                continue;
+            }
+            $has_anchor = !$anchors;
+            foreach ($parts as $token) {
+                if (isset($anchors[$token])) {
+                    $has_anchor = true;
+                    break;
+                }
+            }
+            if (!$has_anchor) {
+                continue;
+            }
+            $signals[] = array(
+                'signal_type' => 'manual_question',
+                'signal_text' => $ngram,
+                'normalized_signal' => $ngram,
+                'semantic_group' => 'training',
+                'vocabulary_id' => 0,
+                'weight' => 180 + (20 * $size),
+            );
+            $seen[$ngram] = true;
+            if (count($signals) >= 8) {
+                break;
+            }
+        }
+
+        if (!$signals) {
+            return 0;
+        }
+
+        $staged = SEO_Dependiente_V3_Lesson9::stage_product_memory($lesson_key, array(
+            'product_id' => $product_id,
+            'signals' => $signals,
+        ));
+        if ($staged < 1) {
+            return 0;
+        }
+        return SEO_Dependiente_V3_Lesson9::activate_stage($lesson_key);
     }
 
     private static function compact_related_results($items, $limit = 18) {
@@ -5764,8 +6269,8 @@ final class SEO_Dependiente_Entrenador {
                     continue;
                 }
                 $question = (string) ($row['question'] ?? $row['pregunta'] ?? $row['q'] ?? '');
-                $mode = (string) ($row['mode'] ?? $row['modo'] ?? $default_mode);
-                $items[] = array('question' => $question, 'mode' => $mode);
+                $answer = (string) ($row['answer'] ?? $row['respuesta'] ?? $row['a'] ?? '');
+                $items[] = array('question' => $question, 'answer' => $answer, 'mode' => $default_mode);
             }
             return $items;
         }
@@ -5806,25 +6311,26 @@ final class SEO_Dependiente_Entrenador {
             }
             $header = array_map(function ($value) { return strtolower(remove_accents(trim((string) $value))); }, $rows[0]);
             $q_index = null;
-            $mode_index = null;
+            $answer_index = null;
             foreach ($header as $index => $name) {
                 if (in_array($name, array('question', 'pregunta', 'q'), true)) {
                     $q_index = $index;
                 }
-                if (in_array($name, array('mode', 'modo'), true)) {
-                    $mode_index = $index;
+                if (in_array($name, array('answer', 'respuesta', 'a'), true)) {
+                    $answer_index = $index;
                 }
             }
             $has_header = null !== $q_index;
             if (!$has_header) {
                 $q_index = 0;
-                $mode_index = isset($rows[0][1]) ? 1 : null;
+                $answer_index = null;
             }
             $items = array();
             foreach (array_slice($rows, $has_header ? 1 : 0) as $row) {
                 $items[] = array(
                     'question' => (string) ($row[$q_index] ?? ''),
-                    'mode'     => null !== $mode_index ? (string) ($row[$mode_index] ?? $default_mode) : $default_mode,
+                    'answer'   => null !== $answer_index ? (string) ($row[$answer_index] ?? '') : '',
+                    'mode'     => $default_mode,
                 );
             }
             return $items;
@@ -5870,9 +6376,12 @@ final class SEO_Dependiente_Entrenador {
                 continue;
             }
             $seen[$key] = true;
+            $answer = sanitize_textarea_field((string) ($item['answer'] ?? ''));
+            $answer = self::shorten($answer, 3000);
             $out[] = array(
                 'question' => $question,
-                'mode'     => self::sanitize_mode($item['mode'] ?? $default_mode),
+                'answer'   => $answer,
+                'mode'     => 'need',
             );
         }
         return $out;
@@ -5888,17 +6397,21 @@ final class SEO_Dependiente_Entrenador {
             $normalized = class_exists('SEO_Dependiente_Index') ? SEO_Dependiente_Index::normalize($question) : strtolower(remove_accents($question));
             $hash = hash('sha256', $batch_key . '|' . $normalized);
             $module_no = (int) ceil($sequence / self::LAB_MODULE_SIZE);
-            $expected = array_merge(array('kind' => 'lab'), (array) $meta);
+            $expected = array_merge(array(
+                'kind' => 'training',
+                'training_source' => 'question_bank',
+                'teacher_answer' => (string) ($item['answer'] ?? ''),
+            ), (array) $meta);
             $inserted = $wpdb->insert(self::questions_table(), array(
                 'question_hash' => $hash,
                 'lesson_key'    => $batch_key,
                 'lesson_order'  => 999,
                 'module_no'     => $module_no,
                 'sequence_no'   => $sequence,
-                'source_type'   => 'lab',
+                'source_type'   => 'manual_training',
                 'source_id'     => null,
-                'source_key'    => 'lab:' . $sequence,
-                'question_type' => 'lab_free',
+                'source_key'    => 'training:' . $sequence,
+                'question_type' => 'manual_training',
                 'mode'          => self::sanitize_mode($item['mode'] ?? 'need'),
                 'question'      => $question,
                 'expected_json' => self::json($expected),
@@ -5960,6 +6473,8 @@ final class SEO_Dependiente_Entrenador {
         $row = $wpdb->get_row($wpdb->prepare(
             "SELECT COUNT(q.id) AS total,
                     COALESCE(SUM(r.status = 'answered'), 0) AS answered,
+                    COALESCE(SUM(r.evaluation_status IN ('pass_top1','pass_top3','pass_top8')), 0) AS learned,
+                    COALESCE(SUM(r.evaluation_status = 'fail'), 0) AS failed,
                     COALESCE(SUM(r.status = 'answered' AND r.returned_count > 0), 0) AS with_results,
                     COALESCE(SUM(r.status = 'answered' AND r.returned_count = 0), 0) AS zero_results,
                     COALESCE(SUM(r.status = 'error'), 0) AS errors
@@ -5972,7 +6487,7 @@ final class SEO_Dependiente_Entrenador {
     }
 
     private static function empty_lab_summary() {
-        return array('total' => 0, 'answered' => 0, 'with_results' => 0, 'zero_results' => 0, 'errors' => 0);
+        return array('total' => 0, 'answered' => 0, 'learned' => 0, 'failed' => 0, 'with_results' => 0, 'zero_results' => 0, 'errors' => 0);
     }
 
     private static function strip_utf8_bom($value) {
