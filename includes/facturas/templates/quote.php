@@ -10,6 +10,7 @@ $items = $snapshot['items'] ?? array();
 $tax_lines = $snapshot['tax_lines'] ?? array();
 $fiscal = $snapshot['fiscal'] ?? array();
 $totals = $snapshot['totals'] ?? array();
+$comparison = is_array($snapshot['comparison'] ?? null) ? $snapshot['comparison'] : array();
 $currency = (string) ($snapshot['cart']['currency'] ?? 'EUR');
 $title = trim((string) ($document['title'] ?? 'PRESUPUESTO'));
 $show_sku = !empty($document['show_sku']);
@@ -100,6 +101,20 @@ $valid_date = $valid_ts ? wp_date(get_option('date_format', 'd/m/Y'), $valid_ts)
     .totals .grand td { font-weight:700; font-size:11px; }
     .fiscal-note { margin-top: 14px; border: 1px solid #d6b45e; background: #fffaf0; padding: 8px 10px; }
     .terms { margin-top:20px; padding:9px 11px; border:1px solid #c8c8c8; background:#fafafa; }
+    .commercial-sheet { margin-top:14px; border:1px solid #c9d1d6; page-break-inside:avoid; }
+    .commercial-sheet td { vertical-align:top; padding:9px; }
+    .commercial-sheet .media { width:120px; text-align:center; background:#fafafa; }
+    .commercial-sheet .media img { max-width:105px; max-height:105px; }
+    .commercial-sheet h3 { margin:0 0 5px; color:#244f61; font-size:13px; }
+    .commercial-sheet p { margin:4px 0; }
+    .commercial-meta { margin:6px 0 0; font-size:9px; color:#555; }
+    .commercial-attrs { margin-top:7px; width:100%; }
+    .commercial-attrs td { border-top:1px solid #e2e5e7; padding:3px 5px; font-size:8.8px; }
+    .commercial-attrs td:first-child { width:34%; font-weight:700; color:#445; }
+    .comparison { margin-top:12px; font-size:8.5px; }
+    .comparison th,.comparison td { border:1px solid #777; padding:4px; vertical-align:top; }
+    .comparison th { background:#f2f5f6; font-weight:700; }
+    .comparison .criterion { width:120px; }
     .muted { color:#666; }
     .footer { margin-top:26px; border-top:1px solid #bbb; padding-top:7px; text-align:center; font-size:8.5px; color:#555; }
 </style>
@@ -226,6 +241,80 @@ $valid_date = $valid_ts ? wp_date(get_option('date_format', 'd/m/Y'), $valid_ts)
         <tr><td colspan="2"><strong>Total provisional:</strong> el transporte se calculará al indicar el destino de envío.</td></tr>
     <?php endif; ?>
 </table>
+
+<?php
+$commercial_items = array_values(array_filter($items, static function ($item) {
+    return !empty($item['commercial']) && is_array($item['commercial']);
+}));
+?>
+<?php if ($commercial_items) : ?>
+<h2>Información de los productos</h2>
+<p class="muted">Ficha comercial incluida para conservar el contexto de la selección en el momento de generar este documento.</p>
+<?php foreach ($commercial_items as $item) : ?>
+    <?php $commercial = $item['commercial']; ?>
+    <table class="commercial-sheet">
+        <tr>
+            <td class="media">
+                <?php if (!empty($commercial['image_data_uri'])) : ?>
+                    <img src="<?php echo esc_attr($commercial['image_data_uri']); ?>" alt="">
+                <?php else : ?>
+                    <span class="muted">Sin imagen local disponible</span>
+                <?php endif; ?>
+            </td>
+            <td>
+                <h3><?php echo esc_html($item['name'] ?? ($commercial['name'] ?? 'Producto')); ?></h3>
+                <?php if (!empty($item['sku'])) : ?><p><strong>Referencia:</strong> <?php echo esc_html($item['sku']); ?></p><?php endif; ?>
+                <?php if (!empty($commercial['summary'])) : ?><p><strong>Resumen:</strong> <?php echo esc_html($commercial['summary']); ?></p><?php endif; ?>
+                <?php if (!empty($commercial['description']) && $commercial['description'] !== ($commercial['summary'] ?? '')) : ?>
+                    <p><?php echo esc_html($commercial['description']); ?></p>
+                <?php endif; ?>
+                <?php if (!empty($commercial['categories'])) : ?>
+                    <p class="commercial-meta"><strong>Categorías:</strong> <?php echo esc_html(implode(' · ', (array) $commercial['categories'])); ?></p>
+                <?php endif; ?>
+                <?php if (!empty($commercial['tags'])) : ?>
+                    <p class="commercial-meta"><strong>Etiquetas:</strong> <?php echo esc_html(implode(' · ', (array) $commercial['tags'])); ?></p>
+                <?php endif; ?>
+                <?php if (!empty($commercial['attributes']) && is_array($commercial['attributes'])) : ?>
+                    <table class="commercial-attrs">
+                        <?php foreach ($commercial['attributes'] as $label => $value) : ?>
+                            <tr>
+                                <td><?php echo esc_html($label); ?></td>
+                                <td><?php echo esc_html($value); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </table>
+                <?php endif; ?>
+            </td>
+        </tr>
+    </table>
+<?php endforeach; ?>
+<?php endif; ?>
+
+<?php if (!empty($comparison['requested']) && !empty($comparison['products']) && !empty($comparison['rows'])) : ?>
+<h2>Comparativa realizada durante la selección</h2>
+<p class="muted">Se incluye porque estos productos fueron comparados expresamente durante esta sesión antes de generar el documento.</p>
+<table class="comparison">
+    <thead>
+        <tr>
+            <th class="criterion">Criterio</th>
+            <?php foreach ((array) $comparison['products'] as $product) : ?>
+                <th><?php echo esc_html($product['name'] ?? 'Producto'); ?></th>
+            <?php endforeach; ?>
+        </tr>
+    </thead>
+    <tbody>
+        <?php foreach ((array) $comparison['rows'] as $row) : ?>
+            <tr>
+                <th class="criterion"><?php echo esc_html($row['label'] ?? ''); ?></th>
+                <?php foreach ((array) $comparison['products'] as $product) : ?>
+                    <?php $pid = (string) ($product['id'] ?? ''); ?>
+                    <td><?php echo esc_html($row['values'][$pid] ?? '—'); ?></td>
+                <?php endforeach; ?>
+            </tr>
+        <?php endforeach; ?>
+    </tbody>
+</table>
+<?php endif; ?>
 
 <?php if (!empty($fiscal['enabled']) && !empty($fiscal['note'])) : ?>
 <div class="fiscal-note"><strong>Condiciones fiscales del destino:</strong><br><?php echo nl2br(esc_html($fiscal['note'])); ?></div>

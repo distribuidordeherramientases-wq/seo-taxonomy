@@ -666,14 +666,24 @@ unset($dht_show_value_bar);
 /*
  * Campañas promocionales activas.
  *
- * Integración deliberadamente defensiva: el header no depende de que el
- * Gestor de Plantillas, la tabla de campañas o las variantes estén disponibles
- * durante una subida. Si falta cualquier pieza, simplemente no imprime la
- * franja y evita provocar un error 500 en todo el sitio.
+ * Se muestran en contextos de descubrimiento (home, tienda, categorias, etc.),
+ * pero no deben interponerse cuando el usuario ya ha elegido un producto o
+ * esta avanzando por el funnel de compra.
  */
+$dht_show_campaigns = true;
 if (
-    function_exists('seo_marketing_campaigns_get_public_active') &&
-    (!function_exists('seo_marketing_campaigns_public_template_is_enabled') || seo_marketing_campaigns_public_template_is_enabled())
+    (function_exists('is_product') && is_product())
+    || (function_exists('is_cart') && is_cart())
+    || (function_exists('is_checkout') && is_checkout())
+    || (function_exists('is_account_page') && is_account_page())
+) {
+    $dht_show_campaigns = false;
+}
+
+if (
+    $dht_show_campaigns
+    && function_exists('seo_marketing_campaigns_get_public_active')
+    && (!function_exists('seo_marketing_campaigns_public_template_is_enabled') || seo_marketing_campaigns_public_template_is_enabled())
 ) {
     $dht_campaigns_preview = seo_marketing_campaigns_get_public_active();
 
@@ -689,6 +699,7 @@ if (
 
     unset($dht_campaigns_preview);
 }
+unset($dht_show_campaigns);
 
 /* Migas de pan globales, debajo de la navegacion principal. */
 if (function_exists('dht_header_render_breadcrumbs')) {

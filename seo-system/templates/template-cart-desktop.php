@@ -47,7 +47,7 @@ $cart_count = dht_seo_cart_v3_count();
         }
 
         .dht-cart-desktop .dht-container {
-            width: min(var(--dht-cart-container, 1180px), calc(100% - 48px));
+            width: min(var(--dht-cart-container, 1380px), calc(100% - 48px));
             margin-left: auto;
             margin-right: auto;
         }
@@ -91,21 +91,56 @@ $cart_count = dht_seo_cart_v3_count();
         }
 
         .dht-cart-desktop .dht-cart-main {
-            padding: 30px 0 64px;
+            padding: 18px 0 56px;
         }
 
         .dht-cart-desktop .dht-cart-toolbar {
             display: flex;
-            align-items: center;
+            align-items: flex-end;
             justify-content: space-between;
             gap: 18px;
-            margin-bottom: 18px;
+            margin-bottom: 14px;
         }
 
-        .dht-cart-desktop .dht-cart-toolbar h2 {
+        .dht-cart-desktop .dht-cart-toolbar-copy {
+            min-width: 0;
+        }
+
+        .dht-cart-desktop .dht-cart-toolbar-kicker {
+            display: block;
+            margin-bottom: 3px;
+            color: var(--cart-muted);
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+        }
+
+        .dht-cart-desktop .dht-cart-toolbar-title {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+        }
+
+        .dht-cart-desktop .dht-cart-toolbar h1 {
             margin: 0;
             color: var(--cart-text);
-            font-size: 21px;
+            font-size: 30px;
+            line-height: 1.1;
+        }
+
+        .dht-cart-desktop .dht-cart-toolbar-count {
+            color: var(--cart-muted);
+            font-size: 13px;
+            font-weight: 750;
+        }
+
+        .dht-cart-desktop .dht-cart-toolbar p {
+            margin: 5px 0 0;
+            max-width: 760px;
+            color: var(--cart-muted);
+            font-size: 13px;
+            line-height: 1.45;
         }
 
         .dht-cart-desktop .dht-cart-back {
@@ -448,32 +483,31 @@ $cart_count = dht_seo_cart_v3_count();
         }
     </style>
 
-    <section class="dht-cart-hero">
-        <div class="dht-container dht-cart-hero-inner">
-            <div>
-                <span class="dht-cart-kicker">Tu pedido</span>
-                <h1>Carrito</h1>
-                <p>
-                    <?php if ($cart_count > 0) : ?>
-                        Revisa los productos, modifica las cantidades o elimina lo que no necesites antes de finalizar la compra.
-                    <?php else : ?>
-                        Los productos que anadas apareceran aqui antes de finalizar la compra.
-                    <?php endif; ?>
-                </p>
-            </div>
-        </div>
-    </section>
-
     <section class="dht-cart-main">
         <div class="dht-container">
             <div class="dht-cart-toolbar">
-                <h2>Resumen de tu compra</h2>
+                <div class="dht-cart-toolbar-copy">
+                    <span class="dht-cart-toolbar-kicker">Tu pedido</span>
+                    <div class="dht-cart-toolbar-title">
+                        <h1>Carrito</h1>
+                        <span class="dht-cart-toolbar-count">
+                            <?php echo esc_html(number_format_i18n($cart_count)); ?> <?php echo 1 === $cart_count ? 'articulo' : 'articulos'; ?>
+                        </span>
+                    </div>
+                    <p>
+                        <?php if ($cart_count > 0) : ?>
+                            Revisa productos, cantidades y total antes de finalizar la compra.
+                        <?php else : ?>
+                            Los productos que anadas apareceran aqui.
+                        <?php endif; ?>
+                    </p>
+                </div>
                 <a class="dht-cart-back" href="<?php echo esc_url($shop_url); ?>">&larr; Seguir comprando</a>
             </div>
 
-            <?php dht_template_render_service_promise('strip', 'checkout'); ?>
-
             <?php dht_seo_cart_v3_render(); ?>
+
+            <?php dht_template_render_service_promise('strip', 'checkout'); ?>
         </div>
     </section>
 </main>
