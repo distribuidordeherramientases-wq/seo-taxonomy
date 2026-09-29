@@ -5,7 +5,7 @@ Tags: seo, woocommerce, taxonomy, catalog, automation
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 2.3.8.1
+Stable tag: 2.3.8.4
 License: MIT
 License URI: https://opensource.org/license/mit
 

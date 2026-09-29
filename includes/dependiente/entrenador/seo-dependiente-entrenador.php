@@ -2942,7 +2942,7 @@ final class SEO_Dependiente_Entrenador {
      * migración legítima desde el currículo antiguo con una finalización real:
      * - L1-L9 deben seguir completadas.
      * - L10 debe estar exactamente en el estado vacío creado por la migración.
-     * - el estado automático debe haber cerrado el curso pocos minutos antes.
+     * - el estado automático debe constar como completado y sin lección activa.
      */
     private static function recover_l10_completion_after_metadata_loss($row, $metadata) {
         global $wpdb;
@@ -2984,23 +2984,11 @@ final class SEO_Dependiente_Entrenador {
             return false;
         }
 
-        $row_updated = DateTimeImmutable::createFromFormat(
-            'Y-m-d H:i:s',
-            (string) ($row['updated_at'] ?? ''),
-            wp_timezone()
-        );
-        $auto_updated = DateTimeImmutable::createFromFormat(
-            'Y-m-d H:i:s',
-            (string) ($state['updated_at'] ?? ''),
-            wp_timezone()
-        );
-        if (!$row_updated || !$auto_updated) {
-            return false;
-        }
-        $delta = $row_updated->getTimestamp() - $auto_updated->getTimestamp();
-        if ($delta < 0 || $delta > (15 * MINUTE_IN_SECONDS)) {
-            return false;
-        }
+        // No usamos updated_at como prueba temporal: sync_lessons() actualiza
+        // ese campo en cada carga de Academia. Si el hotfix se instala después,
+        // una ventana de minutos impediría recuperar una L10 que sí terminó.
+        // La recuperación queda protegida por el estado vacío exacto de la
+        // remigración, el cierre automático del curso y L1-L9 completadas.
 
         $prior_total = absint($wpdb->get_var(
             'SELECT COUNT(*) FROM ' . self::lessons_table() . ' WHERE lesson_order < 10'
