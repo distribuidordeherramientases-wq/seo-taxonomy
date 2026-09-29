@@ -48,6 +48,60 @@ $person_name = static function ($address) {
     return trim((string) ($address['first_name'] ?? '') . ' ' . (string) ($address['last_name'] ?? ''));
 };
 
+$select_commercial_attributes = static function ($attributes, $limit = 10) {
+    $attributes = is_array($attributes) ? $attributes : array();
+    $limit = max(1, absint($limit));
+    if (!$attributes) {
+        return array();
+    }
+
+    $priority = array(
+        'tipo',
+        'aplicacion',
+        'rol',
+        'plataforma',
+        'subtipo',
+        'marca',
+        'modelo',
+        'potencia',
+        'presion',
+        'tension',
+        'voltaje',
+        'capacidad',
+        'peso',
+        'dimensiones',
+    );
+
+    $selected = array();
+    $used = array();
+    foreach ($priority as $wanted) {
+        foreach ($attributes as $label => $value) {
+            $key = function_exists('remove_accents') ? remove_accents((string) $label) : (string) $label;
+            $key = sanitize_title($key);
+            if ($wanted === $key && !isset($used[$label])) {
+                $selected[$label] = $value;
+                $used[$label] = true;
+                break;
+            }
+        }
+        if (count($selected) >= $limit) {
+            return $selected;
+        }
+    }
+
+    foreach ($attributes as $label => $value) {
+        if (isset($used[$label])) {
+            continue;
+        }
+        $selected[$label] = $value;
+        if (count($selected) >= $limit) {
+            break;
+        }
+    }
+
+    return $selected;
+};
+
 $address_lines = static function ($address) {
     $lines = array();
     foreach (array(
@@ -274,7 +328,7 @@ $commercial_items = array_values(array_filter($items, static function ($item) {
                     <p class="commercial-meta"><strong>Categoría:</strong> <?php echo esc_html(implode(' · ', array_slice((array) $commercial['categories'], 0, 3))); ?></p>
                 <?php endif; ?>
                 <?php if (!empty($commercial['attributes']) && is_array($commercial['attributes'])) : ?>
-                    <?php $commercial_attributes = array_slice($commercial['attributes'], 0, 10, true); ?>
+                    <?php $commercial_attributes = $select_commercial_attributes($commercial['attributes'], 10); ?>
                     <table class="commercial-attrs">
                         <?php foreach ($commercial_attributes as $label => $value) : ?>
                             <tr>
