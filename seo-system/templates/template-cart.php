@@ -50,6 +50,103 @@ if (!function_exists('dht_seo_cart_v3_money')) {
     }
 }
 
+if (!function_exists('dht_seo_cart_v3_product_image')) {
+    /**
+     * Resuelve la imagen del carrito con la misma prioridad que el catálogo:
+     * Media local -> proveedor externo -> placeholder.
+     *
+     * Para variaciones se prueba primero la variación y después el producto padre,
+     * porque las imágenes externas del proveedor suelen estar asociadas al producto.
+     */
+    function dht_seo_cart_v3_product_image($product, $cart_product_id = 0, $alt = '')
+    {
+        $ids = array();
+
+        if (is_object($product) && method_exists($product, 'get_id')) {
+            $ids[] = absint($product->get_id());
+        }
+
+        $cart_product_id = absint($cart_product_id);
+        if ($cart_product_id > 0) {
+            $ids[] = $cart_product_id;
+        }
+
+        if (is_object($product) && method_exists($product, 'get_parent_id')) {
+            $parent_id = absint($product->get_parent_id());
+            if ($parent_id > 0) {
+                $ids[] = $parent_id;
+            }
+        }
+
+        $ids = array_values(array_unique(array_filter($ids)));
+        $candidates = array();
+        $seen = array();
+
+        foreach ($ids as $product_id) {
+            if (!function_exists('dht_shared_product_image_candidates')) {
+                break;
+            }
+
+            foreach ((array) dht_shared_product_image_candidates($product_id, 'medium', 5, false) as $candidate) {
+                $url = esc_url_raw((string) ($candidate['url'] ?? ''));
+                if ($url === '' || isset($seen[$url])) {
+                    continue;
+                }
+
+                $seen[$url] = true;
+                $candidates[] = $candidate;
+            }
+        }
+
+        $placeholder = function_exists('dht_template_placeholder_image_url')
+            ? esc_url_raw((string) dht_template_placeholder_image_url('medium'))
+            : '';
+
+        if ($placeholder !== '' && !isset($seen[$placeholder])) {
+            $candidates[] = array(
+                'attachment_id' => 0,
+                'url' => $placeholder,
+                'source' => 'placeholder',
+            );
+        }
+
+        if (!$candidates) {
+            return is_object($product) && method_exists($product, 'get_image')
+                ? (string) $product->get_image('medium')
+                : '';
+        }
+
+        $selected = array_shift($candidates);
+        $fallback_urls = array();
+        foreach ($candidates as $candidate) {
+            $url = esc_url_raw((string) ($candidate['url'] ?? ''));
+            if ($url !== '') {
+                $fallback_urls[] = $url;
+            }
+        }
+
+        $url = esc_url_raw((string) ($selected['url'] ?? ''));
+        if ($url === '') {
+            return '';
+        }
+
+        $onerror = function_exists('dht_shared_image_fallback_onerror')
+            ? dht_shared_image_fallback_onerror($fallback_urls)
+            : 'this.onerror=null;';
+
+        $source = sanitize_html_class((string) ($selected['source'] ?? 'external'));
+        $classes = array('dht-cart-product-image', 'dht-product-image', 'dht-' . $source . '-product-image');
+
+        return sprintf(
+            '<img src="%1$s" alt="%2$s" class="%3$s" loading="lazy" decoding="async" data-dht-fallback-index="0" onerror="%4$s">',
+            esc_url($url),
+            esc_attr((string) $alt),
+            esc_attr(implode(' ', $classes)),
+            esc_attr($onerror)
+        );
+    }
+}
+
 if (!function_exists('dht_seo_cart_v3_empty')) {
     function dht_seo_cart_v3_empty()
     {
@@ -174,7 +271,7 @@ if (!function_exists('dht_seo_cart_v3_render')) {
                                     $permalink = (string) $product->get_permalink($cart_item);
                                 }
 
-                                $thumbnail = method_exists($product, 'get_image') ? $product->get_image('woocommerce_thumbnail') : '';
+                                $thumbnail = dht_seo_cart_v3_product_image($product, $product_id, $name);
                                 $price = method_exists($cart, 'get_product_price') ? $cart->get_product_price($product) : '';
                                 $subtotal = method_exists($cart, 'get_product_subtotal') ? $cart->get_product_subtotal($product, $quantity) : '';
 
