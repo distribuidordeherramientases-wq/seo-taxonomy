@@ -36,6 +36,7 @@ final class SEO_Facturas_Snapshot {
             $items[] = array(
                 'item_id'       => absint($item_id),
                 'product_id'    => absint($item->get_product_id()),
+                'object_id'     => absint($item->get_product_id()),
                 'variation_id'  => absint($item->get_variation_id()),
                 'sku'           => $product ? (string) $product->get_sku() : '',
                 'name'          => (string) $item->get_name(),
