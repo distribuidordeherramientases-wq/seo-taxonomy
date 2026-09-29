@@ -91,20 +91,48 @@ $cart_count = dht_seo_cart_v3_count();
         }
 
         .dht-cart-mobile .dht-cart-mobile-main {
-            padding: 16px 0 44px;
+            padding: 12px 0 40px;
         }
 
         .dht-cart-mobile .dht-cart-mobile-toolbar {
             display: flex;
-            align-items: center;
+            align-items: flex-end;
             justify-content: space-between;
             gap: 12px;
-            margin-bottom: 13px;
+            margin-bottom: 11px;
         }
 
-        .dht-cart-mobile .dht-cart-mobile-toolbar strong {
+        .dht-cart-mobile .dht-cart-mobile-toolbar-copy {
+            min-width: 0;
+        }
+
+        .dht-cart-mobile .dht-cart-mobile-toolbar-kicker {
+            display: block;
+            margin-bottom: 2px;
+            color: var(--cart-muted);
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+        }
+
+        .dht-cart-mobile .dht-cart-mobile-toolbar-title {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .dht-cart-mobile .dht-cart-mobile-toolbar h1 {
+            margin: 0;
             color: var(--cart-text);
-            font-size: 15px;
+            font-size: 25px;
+            line-height: 1.1;
+        }
+
+        .dht-cart-mobile .dht-cart-mobile-toolbar-count {
+            color: var(--cart-muted);
+            font-size: 11px;
+            font-weight: 750;
         }
 
         .dht-cart-mobile .dht-cart-mobile-back {
@@ -443,30 +471,24 @@ $cart_count = dht_seo_cart_v3_count();
         }
     </style>
 
-    <section class="dht-cart-mobile-head">
-        <div class="dht-container">
-            <div class="dht-cart-mobile-head-row">
-                <div>
-                    <span class="dht-cart-mobile-kicker">Tu pedido</span>
-                    <h1>Carrito</h1>
-                </div>
-                <span class="dht-cart-mobile-count">
-                    <?php echo esc_html(number_format_i18n($cart_count)); ?> <?php echo 1 === $cart_count ? 'articulo' : 'articulos'; ?>
-                </span>
-            </div>
-        </div>
-    </section>
-
     <section class="dht-cart-mobile-main">
         <div class="dht-container">
             <div class="dht-cart-mobile-toolbar">
-                <strong>Tu compra</strong>
+                <div class="dht-cart-mobile-toolbar-copy">
+                    <span class="dht-cart-mobile-toolbar-kicker">Tu pedido</span>
+                    <div class="dht-cart-mobile-toolbar-title">
+                        <h1>Carrito</h1>
+                        <span class="dht-cart-mobile-toolbar-count">
+                            <?php echo esc_html(number_format_i18n($cart_count)); ?> <?php echo 1 === $cart_count ? 'articulo' : 'articulos'; ?>
+                        </span>
+                    </div>
+                </div>
                 <a class="dht-cart-mobile-back" href="<?php echo esc_url($shop_url); ?>">&larr; Seguir comprando</a>
             </div>
 
-            <?php dht_template_render_service_promise('strip', 'checkout'); ?>
-
             <?php dht_seo_cart_v3_render(); ?>
+
+            <?php dht_template_render_service_promise('strip', 'checkout'); ?>
         </div>
     </section>
 </main>
