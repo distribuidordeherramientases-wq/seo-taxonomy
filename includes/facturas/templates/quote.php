@@ -24,6 +24,8 @@ $detail_heading = trim((string) ($document['detail_heading'] ?? 'Detalle del pre
 $reference_label = trim((string) ($document['reference_label'] ?? 'Referencia:'));
 $validity_label = trim((string) ($document['validity_label'] ?? 'Valido hasta:'));
 $total_label = trim((string) ($document['total_label'] ?? 'TOTAL PRESUPUESTO'));
+$shipping_pending = !empty($totals['shipping_pending']);
+$display_total_label = $shipping_pending ? 'TOTAL PROVISIONAL' : $total_label;
 
 $money = static function ($amount) use ($currency) {
     $amount = (float) $amount;
@@ -115,6 +117,9 @@ $valid_date = $valid_ts ? wp_date(get_option('date_format', 'd/m/Y'), $valid_ts)
     .comparison th,.comparison td { border:1px solid #777; padding:4px; vertical-align:top; }
     .comparison th { background:#f2f5f6; font-weight:700; }
     .comparison .criterion { width:120px; }
+    .support-strip { margin-top:18px; padding:10px 12px; border:1px solid #9fb8c4; background:#f4f8fa; color:#263943; }
+    .support-strip strong { color:#244f61; font-size:11px; }
+    .support-strip .contact-line { margin-top:5px; font-weight:700; }
     .muted { color:#666; }
     .footer { margin-top:26px; border-top:1px solid #bbb; padding-top:7px; text-align:center; font-size:8.5px; color:#555; }
 </style>
@@ -168,11 +173,11 @@ $valid_date = $valid_ts ? wp_date(get_option('date_format', 'd/m/Y'), $valid_ts)
         <tr><td>Base imponible:</td><td><?php echo esc_html($money($totals['base_total'] ?? 0)); ?></td></tr>
         <tr><td>Impuestos:</td><td><?php echo esc_html($money($totals['total_tax'] ?? 0)); ?></td></tr>
     <?php endif; ?>
-    <tr><td>Total:</td><td><strong><?php echo esc_html($money($totals['total'] ?? 0)); ?></strong></td></tr>
+    <tr><td><?php echo esc_html($shipping_pending ? 'Total provisional:' : 'Total:'); ?></td><td><strong><?php echo esc_html($money($totals['total'] ?? 0)); ?></strong></td></tr>
 </table>
 
 <?php if ($show_shipping && !empty(array_filter($shipping))) : ?>
-<h2>Destino usado para el calculo</h2>
+<h2><?php echo esc_html($shipping_pending ? 'Destino indicado por el cliente' : 'Destino usado para el cálculo'); ?></h2>
 <div><?php foreach ($address_lines($shipping) as $line) : ?><?php echo esc_html($line); ?><br><?php endforeach; ?></div>
 <?php endif; ?>
 
@@ -236,9 +241,9 @@ $valid_date = $valid_ts ? wp_date(get_option('date_format', 'd/m/Y'), $valid_ts)
             <tr><td><?php echo esc_html($fallback_tax_label); ?></td><td><?php echo esc_html($money($totals['total_tax'] ?? 0)); ?></td></tr>
         <?php endif; ?>
     <?php endif; ?>
-    <tr class="grand"><td><?php echo esc_html($total_label); ?></td><td><?php echo esc_html($money($totals['total'] ?? 0)); ?></td></tr>
-    <?php if (!empty($totals['shipping_pending'])) : ?>
-        <tr><td colspan="2"><strong>Total provisional:</strong> el transporte se calculará al indicar el destino de envío.</td></tr>
+    <tr class="grand"><td><?php echo esc_html($display_total_label); ?></td><td><?php echo esc_html($money($totals['total'] ?? 0)); ?></td></tr>
+    <?php if ($shipping_pending) : ?>
+        <tr><td colspan="2"><strong>Transporte pendiente de calcular.</strong> El importe final se confirmará al indicar el destino completo de envío.</td></tr>
     <?php endif; ?>
 </table>
 
@@ -265,18 +270,13 @@ $commercial_items = array_values(array_filter($items, static function ($item) {
                 <h3><?php echo esc_html($item['name'] ?? ($commercial['name'] ?? 'Producto')); ?></h3>
                 <?php if (!empty($item['sku'])) : ?><p><strong>Referencia:</strong> <?php echo esc_html($item['sku']); ?></p><?php endif; ?>
                 <?php if (!empty($commercial['summary'])) : ?><p><strong>Resumen:</strong> <?php echo esc_html($commercial['summary']); ?></p><?php endif; ?>
-                <?php if (!empty($commercial['description']) && $commercial['description'] !== ($commercial['summary'] ?? '')) : ?>
-                    <p><?php echo esc_html($commercial['description']); ?></p>
-                <?php endif; ?>
                 <?php if (!empty($commercial['categories'])) : ?>
-                    <p class="commercial-meta"><strong>Categorías:</strong> <?php echo esc_html(implode(' · ', (array) $commercial['categories'])); ?></p>
-                <?php endif; ?>
-                <?php if (!empty($commercial['tags'])) : ?>
-                    <p class="commercial-meta"><strong>Etiquetas:</strong> <?php echo esc_html(implode(' · ', (array) $commercial['tags'])); ?></p>
+                    <p class="commercial-meta"><strong>Categoría:</strong> <?php echo esc_html(implode(' · ', array_slice((array) $commercial['categories'], 0, 3))); ?></p>
                 <?php endif; ?>
                 <?php if (!empty($commercial['attributes']) && is_array($commercial['attributes'])) : ?>
+                    <?php $commercial_attributes = array_slice($commercial['attributes'], 0, 10, true); ?>
                     <table class="commercial-attrs">
-                        <?php foreach ($commercial['attributes'] as $label => $value) : ?>
+                        <?php foreach ($commercial_attributes as $label => $value) : ?>
                             <tr>
                                 <td><?php echo esc_html($label); ?></td>
                                 <td><?php echo esc_html($value); ?></td>
@@ -323,6 +323,18 @@ $commercial_items = array_values(array_filter($items, static function ($item) {
 <?php if (!empty($document['terms_text'])) : ?>
 <div class="terms"><?php echo nl2br(esc_html($document['terms_text'])); ?></div>
 <?php endif; ?>
+
+<div class="support-strip">
+    <strong>¿Necesitas ayuda antes de decidir?</strong><br>
+    Te ayudamos a confirmar que el producto es adecuado y te acompañamos antes, durante y después de la compra.
+    <?php if (!empty($seller['phone']) || !empty($seller['email'])) : ?>
+        <div class="contact-line">
+            <?php if (!empty($seller['phone'])) : ?><?php echo esc_html($seller['phone']); ?><?php endif; ?>
+            <?php if (!empty($seller['phone']) && !empty($seller['email'])) : ?> &nbsp;·&nbsp; <?php endif; ?>
+            <?php if (!empty($seller['email'])) : ?><?php echo esc_html($seller['email']); ?><?php endif; ?>
+        </div>
+    <?php endif; ?>
+</div>
 
 <div class="footer">
     <?php if (!empty($document['footer_text'])) : ?><?php echo nl2br(esc_html($document['footer_text'])); ?><br><?php endif; ?>
