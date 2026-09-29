@@ -774,6 +774,33 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
         .dht-category-live-compare-table tbody th {
             width: 180px;
             font-weight: 700;
+            background: var(--dht-surface, #fff);
+        }
+        .dht-category-live-compare-table thead th:first-child,
+        .dht-category-live-compare-table tbody tr:not(.dht-compare-section) > th:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 2;
+        }
+        .dht-category-live-compare-table thead th:first-child {
+            z-index: 3;
+        }
+        .dht-category-live-compare-table .dht-compare-section th {
+            padding-top: 14px;
+            padding-bottom: 10px;
+            background: var(--dht-surface-soft, #f8fafc);
+            font-size: .92em;
+            letter-spacing: .02em;
+            text-transform: uppercase;
+        }
+        .dht-category-live-compare-table .dht-compare-different > th {
+            box-shadow: inset 3px 0 0 currentColor;
+        }
+        .dht-category-live-compare-table .dht-compare-different > td {
+            font-weight: 700;
+        }
+        .dht-category-live-compare-table td {
+            min-width: 170px;
         }
         .dht-category-live-compare-product {
             display: grid;
@@ -893,6 +920,41 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
                         return;
                     }
 
+                    var normalizeLabel = function (value) {
+                        return String(value || '')
+                            .normalize('NFD')
+                            .replace(/[\u0300-\u036f]/g, '')
+                            .toLowerCase()
+                            .trim();
+                    };
+
+                    var semanticPriority = {
+                        'tipo': 10,
+                        'rol': 20,
+                        'aplicacion': 30,
+                        'plataforma': 40,
+                        'subtipo': 50
+                    };
+
+                    var technicalPriority = {
+                        'marca': 10,
+                        'fabricante': 20,
+                        'modelo': 30,
+                        'potencia': 40,
+                        'presion': 50,
+                        'tension': 60,
+                        'voltaje': 60,
+                        'caudal': 70,
+                        'tecnologia de accionamiento': 80,
+                        'accionamiento': 80,
+                        'numero de etapas': 90,
+                        'etapas': 90,
+                        'capacidad': 100,
+                        'material': 110,
+                        'dimensiones': 400,
+                        'peso': 410
+                    };
+
                     var attributeLabels = [];
                     chosen.forEach(function (product) {
                         var attributes = product.attributes || {};
@@ -902,7 +964,24 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
                             }
                         });
                     });
-                    attributeLabels.sort(function (a, b) {
+
+                    var semanticLabels = attributeLabels.filter(function (label) {
+                        return Object.prototype.hasOwnProperty.call(semanticPriority, normalizeLabel(label));
+                    });
+                    var technicalLabels = attributeLabels.filter(function (label) {
+                        return !Object.prototype.hasOwnProperty.call(semanticPriority, normalizeLabel(label));
+                    });
+
+                    semanticLabels.sort(function (a, b) {
+                        return (semanticPriority[normalizeLabel(a)] || 999)
+                            - (semanticPriority[normalizeLabel(b)] || 999);
+                    });
+                    technicalLabels.sort(function (a, b) {
+                        var ap = technicalPriority[normalizeLabel(a)] || 999;
+                        var bp = technicalPriority[normalizeLabel(b)] || 999;
+                        if (ap !== bp) {
+                            return ap - bp;
+                        }
                         return a.localeCompare(b, 'es', {sensitivity: 'base'});
                     });
 
@@ -951,43 +1030,67 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
 
                     var tbody = document.createElement('tbody');
 
-                    var priceRow = document.createElement('tr');
-                    var priceHead = document.createElement('th');
-                    priceHead.scope = 'row';
-                    priceHead.textContent = 'Precio';
-                    priceRow.appendChild(priceHead);
-                    chosen.forEach(function (product) {
-                        appendTextCell(priceRow, product.price);
-                    });
-                    tbody.appendChild(priceRow);
-
-                    var hasLegacyTags = chosen.some(function (product) {
-                        return Array.isArray(product.tags) && product.tags.length > 0;
-                    });
-                    if (hasLegacyTags) {
-                        var tagRow = document.createElement('tr');
-                        var tagHead = document.createElement('th');
-                        tagHead.scope = 'row';
-                        tagHead.textContent = 'Etiquetas';
-                        tagRow.appendChild(tagHead);
-                        chosen.forEach(function (product) {
-                            appendTextCell(tagRow, Array.isArray(product.tags) && product.tags.length ? product.tags.join(', ') : '—');
-                        });
-                        tbody.appendChild(tagRow);
+                    function appendSection(label) {
+                        var row = document.createElement('tr');
+                        row.className = 'dht-compare-section';
+                        var cell = document.createElement('th');
+                        cell.colSpan = chosen.length + 1;
+                        cell.textContent = label;
+                        row.appendChild(cell);
+                        tbody.appendChild(row);
                     }
 
-                    attributeLabels.forEach(function (label) {
+                    function appendComparisonRow(label, valueResolver) {
+                        var values = chosen.map(function (product) {
+                            return text(valueResolver(product));
+                        });
+                        var normalizedValues = values.map(function (value) {
+                            return normalizeLabel(value);
+                        });
+                        var uniqueValues = normalizedValues.filter(function (value, index, all) {
+                            return all.indexOf(value) === index;
+                        });
+
                         var row = document.createElement('tr');
+                        if (uniqueValues.length > 1) {
+                            row.className = 'dht-compare-different';
+                        }
+
                         var rowHead = document.createElement('th');
                         rowHead.scope = 'row';
                         rowHead.textContent = label;
                         row.appendChild(rowHead);
-                        chosen.forEach(function (product) {
-                            var attrs = product.attributes || {};
-                            appendTextCell(row, attrs[label] || '—');
+
+                        values.forEach(function (value) {
+                            appendTextCell(row, value);
                         });
                         tbody.appendChild(row);
+                    }
+
+                    appendSection('Datos comerciales');
+                    appendComparisonRow('Precio', function (product) {
+                        return product.price;
                     });
+
+                    if (semanticLabels.length) {
+                        appendSection('Clasificación');
+                        semanticLabels.forEach(function (label) {
+                            appendComparisonRow(label, function (product) {
+                                var attrs = product.attributes || {};
+                                return attrs[label] || '—';
+                            });
+                        });
+                    }
+
+                    if (technicalLabels.length) {
+                        appendSection('Características técnicas');
+                        technicalLabels.forEach(function (label) {
+                            appendComparisonRow(label, function (product) {
+                                var attrs = product.attributes || {};
+                                return attrs[label] || '—';
+                            });
+                        });
+                    }
 
                     table.appendChild(tbody);
                     wrap.appendChild(table);
