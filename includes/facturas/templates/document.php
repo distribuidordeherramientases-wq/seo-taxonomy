@@ -245,7 +245,7 @@ $document_footer = trim((string) ($document['footer_text'] ?? ''));
                         <?php if (!empty($commercial['image_data_uri'])) : ?>
                             <img src="<?php echo esc_attr($commercial['image_data_uri']); ?>" alt="">
                         <?php else : ?>
-                            <span class="muted">Sin imagen local disponible</span>
+                            <span class="muted">Sin imagen disponible</span>
                         <?php endif; ?>
                     </td>
                     <td>
