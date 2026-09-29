@@ -34,6 +34,8 @@ CSV: **Validar CSV antes de importar**, **Descargar plantilla CSV**, **Exportar 
 
 Filtros: Tipo y búsqueda. Cada fila permite elegir redes con checkboxes, fecha/hora, **Programar**, **Publicar ahora** y cancelar programaciones.
 
+Las **ofertas de campañas** usan una regla comercial propia: se programan automáticamente a las **18:00**. Los posts y landings del mismo día no bloquean la oferta. Se mantiene como límite una oferta de campaña por día y por red; si ese día ya contiene otra oferta, se utiliza el siguiente día disponible dentro del periodo de campaña.
+
 ### Conexiones
 Tarjeta por proveedor con estado Conectado/Sin conectar. Las credenciales se detallan en Conexiones y credenciales.
 
