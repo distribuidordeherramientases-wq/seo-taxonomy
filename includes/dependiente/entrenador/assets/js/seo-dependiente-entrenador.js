@@ -28,7 +28,6 @@
     const labText = root.querySelector('[data-trainer-lab-text]');
     const labFile = root.querySelector('[data-trainer-lab-file]');
     const labImportButton = root.querySelector('[data-trainer-lab-import]');
-    const labRunButton = root.querySelector('[data-trainer-lab-run]');
     const labRescanButton = root.querySelector('[data-trainer-lab-rescan]');
     const labExportButton = root.querySelector('[data-trainer-lab-export]');
     const labStatus = root.querySelector('[data-trainer-lab-status]');
@@ -43,7 +42,7 @@
     let autoRunning = root.dataset.autoRunning === '1';
     let labBatchKey = labRoot ? (labRoot.dataset.labBatchKey || '') : '';
     const baseDisabled = new WeakMap();
-    [prepareButton, runModuleButton, autoButton, manualButton, stopButton, labImportButton, labRunButton, labRescanButton, labExportButton, exportCourseButton, updateStartButton, updateExportButton]
+    [prepareButton, runModuleButton, autoButton, manualButton, stopButton, labImportButton, labRescanButton, labExportButton, exportCourseButton, updateStartButton, updateExportButton]
         .concat(exportLessonButtons, exportProgressButtons)
         .forEach(function (button) {
             if (button) baseDisabled.set(button, !!button.disabled);
@@ -161,11 +160,9 @@
         if (manualButton) manualButton.disabled = busy || !autoRunning;
         if (stopButton) stopButton.disabled = busy || !!baseDisabled.get(stopButton);
         if (labImportButton) labImportButton.disabled = busy || autoRunning || !!baseDisabled.get(labImportButton);
-        if (labRunButton) labRunButton.disabled = busy || autoRunning || !!baseDisabled.get(labRunButton);
         if (labExportButton) labExportButton.disabled = busy || !!baseDisabled.get(labExportButton);
         if (labFile) labFile.disabled = busy;
         if (labText) labText.disabled = busy;
-        if (labMode) labMode.disabled = busy;
         root.classList.toggle('is-busy', busy);
     }
 
@@ -518,105 +515,51 @@
     async function importLabBatch() {
         if (busy || !labRoot) return;
         const text = labText ? labText.value.trim() : '';
-        const file = labFile && labFile.files && labFile.files[0] ? labFile.files[0] : null;
-        if (!text && !file) {
-            if (labStatus) labStatus.textContent = 'Escribe al menos una pregunta o selecciona un archivo.';
+        const files = labFile && labFile.files ? Array.from(labFile.files) : [];
+        if (!text && !files.length) {
+            if (labStatus) labStatus.textContent = 'Escribe al menos una pregunta o selecciona uno o varios archivos.';
             return;
         }
+
         setBusy(true);
-        if (labStatus) labStatus.textContent = 'Cargando preguntas para el Dependiente…';
+        let queuedFiles = 0;
+        let queuedQuestions = 0;
         try {
-            const form = new FormData();
-            form.set('questions_text', text);
-            if (file) form.set('lab_file', file, file.name);
-            const data = await postForm('seo_dependiente_entrenador_lab_import', form);
-            labBatchKey = data.batch_key || '';
-            if (labStatus) labStatus.textContent = data.message || 'Preguntas cargadas.';
-            window.setTimeout(function () { window.location.reload(); }, 500);
-        } catch (error) {
-            if (labStatus) labStatus.textContent = 'No se pudo preparar el lote: ' + error.message;
-            setBusy(false);
-        }
-    }
-
-    async function runLabBatch() {
-        if (busy || !labBatchKey) return;
-        setBusy(true);
-        const batchMin = Math.max(1, Number(config.batchMin || 1));
-        const batchMax = Math.max(batchMin, Number(config.batchMax || 4));
-        const fastSeconds = Math.max(0.5, Number(config.fastSeconds || 2.5));
-        const slowSeconds = Math.max(fastSeconds + 0.5, Number(config.slowSeconds || 7));
-        const hardSeconds = Math.max(slowSeconds + 1, Number(config.hardSeconds || 14));
-        const maxRetries = Math.max(1, Number(config.maxRetries || 6));
-        let batchSize = Math.max(batchMin, Math.min(batchMax, Number(config.batchSize || 1)));
-        let batchUuid = createUuid();
-        let retries = 0;
-        let fastStreak = 0;
-        let noProgress = 0;
-        let lastAnswered = -1;
-        if (labStatus) labStatus.textContent = 'Enviando preguntas al Dependiente de forma adaptativa…';
-
-        try {
-            while (true) {
-                const startedAt = performance.now();
-                let data;
-                try {
-                    data = await post('seo_dependiente_entrenador_lab_run', {
-                        batch_key: labBatchKey,
-                        batch_uuid: batchUuid,
-                        batch_size: batchSize
-                    });
-                    retries = 0;
-                } catch (error) {
-                    if (!error.transient || retries >= maxRetries) throw error;
-                    retries += 1;
-                    batchSize = batchMin;
-                    fastStreak = 0;
-                    const wait = retryDelay(retries);
-                    if (labStatus) labStatus.textContent = 'Problema temporal. Reintento ' + retries + '/' + maxRetries + ' en ' + Math.round(wait / 1000) + ' s.';
-                    await sleep(wait);
-                    continue;
-                }
-
-                const duration = Math.max(0, (performance.now() - startedAt) / 1000);
-                batchUuid = data.batch_uuid || batchUuid;
-                const summary = data.summary || {};
-                const answered = Number(summary.answered || 0);
-                const total = Number(summary.total || 0);
-                updateLabSummary(summary);
-                prependLabRows(data.rows || []);
-
-                if (answered <= lastAnswered) noProgress += 1; else noProgress = 0;
-                lastAnswered = answered;
-                if (noProgress >= 3) throw new Error('El lote no avanza después de varios intentos. Se conserva todo lo ya ejecutado.');
-
-                if (duration >= hardSeconds) {
-                    batchSize = batchMin;
-                    fastStreak = 0;
-                } else if (duration >= slowSeconds) {
-                    batchSize = Math.max(batchMin, Math.floor(batchSize / 2));
-                    fastStreak = 0;
-                } else if (duration <= fastSeconds) {
-                    fastStreak += 1;
-                    if (fastStreak >= 2 && batchSize < batchMax) {
-                        batchSize += 1;
-                        fastStreak = 0;
-                    }
-                } else {
-                    fastStreak = 0;
-                }
-
-                if (labStatus) labStatus.textContent = 'Lote: ' + answered + ' de ' + total + ' preguntas · ' + duration.toFixed(1) + ' s último lote · siguiente lote: ' + batchSize + '.';
-                if (data.done) {
-                    if (labStatus) labStatus.textContent = 'Lote completado: ' + Number(summary.learned || 0) + ' aprendidas · ' + Number(summary.failed || 0) + ' no aprendidas · ' + Number(summary.errors || 0) + ' errores técnicos.';
-                    window.setTimeout(function () { window.location.reload(); }, 700);
-                    return;
-                }
-                if (Number(data.processed || 0) < 1) throw new Error('No quedan preguntas procesables, pero el lote no se ha podido cerrar.');
-                await sleep(duration >= hardSeconds ? 5000 : (duration >= slowSeconds ? 1800 : 350));
+            // Si hay texto libre se guarda primero como un lote propio.
+            if (text) {
+                if (labStatus) labStatus.textContent = 'Añadiendo preguntas escritas a la cola…';
+                const form = new FormData();
+                form.set('questions_text', text);
+                const data = await postForm('seo_dependiente_entrenador_lab_import', form);
+                labBatchKey = data.batch_key || labBatchKey;
+                queuedQuestions += Number(data.created || 0);
             }
+
+            // Cada archivo se sube por separado: evita superar post_max_size y
+            // conserva un lote identificable por archivo en la cola.
+            for (let i = 0; i < files.length; i += 1) {
+                const file = files[i];
+                if (labStatus) {
+                    labStatus.textContent = 'Añadiendo archivo ' + (i + 1) + ' de ' + files.length + ': ' + file.name + '…';
+                }
+                const form = new FormData();
+                form.set('lab_file', file, file.name);
+                const data = await postForm('seo_dependiente_entrenador_lab_import', form);
+                labBatchKey = data.batch_key || labBatchKey;
+                queuedFiles += 1;
+                queuedQuestions += Number(data.created || 0);
+            }
+
+            if (labStatus) {
+                const parts = [];
+                if (queuedFiles) parts.push(queuedFiles + ' archivo' + (queuedFiles === 1 ? '' : 's'));
+                if (text) parts.push('preguntas escritas');
+                labStatus.textContent = 'Añadidos a la cola: ' + parts.join(' + ') + ' · ' +
+                    new Intl.NumberFormat().format(queuedQuestions) + ' preguntas. Academia continuará en segundo plano.';
+            }
+            window.setTimeout(function () { window.location.reload(); }, 900);
         } catch (error) {
-            if (labStatus) labStatus.textContent = 'Ejecución detenida: ' + error.message;
+            if (labStatus) labStatus.textContent = 'No se pudo añadir todo a la cola: ' + error.message;
             setBusy(false);
         }
     }
@@ -799,7 +742,6 @@
         }
     });
     labImportButton && labImportButton.addEventListener('click', importLabBatch);
-    labRunButton && labRunButton.addEventListener('click', runLabBatch);
     labRescanButton && labRescanButton.addEventListener('click', rescanLabFailures);
     labExportButton && labExportButton.addEventListener('click', exportLabBatch);
     updateStartButton && updateStartButton.addEventListener('click', startKnowledgeUpdate);
