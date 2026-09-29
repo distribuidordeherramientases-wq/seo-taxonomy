@@ -17,6 +17,7 @@ Los cambios validados en `staging` que todavía no formen parte de una publicaci
 
 ### Marketing y campañas
 
+- El planificador social de campañas prioriza ahora las **ofertas a las 18:00**: entradas y landings del mismo día ya no bloquean la programación comercial. Se mantiene un máximo de una oferta de campaña por día y red; si el día ya está ocupado por otra oferta, se usa el siguiente día disponible. Se eliminan para campañas los controles de separación mínima y hora preferida.
 - Añadida pestaña **Informes** de Marketing con dos vistas: **Campañas** y **Redes sociales**. Mide visitas firmadas, interacciones, pedidos atribuidos, facturación atribuida, conversión y ventas observadas durante campañas.
 - Las franjas públicas de campaña incorporan enlaces firmados y contador de visitas por producto sin PII. Las visitas sociales conservan atribución de última interacción durante 30 días y se asocian al pedido WooCommerce (checkout clásico y Store API/Blocks).
 - Las publicaciones sociales de campaña guardan `campaign_id` para unir campaña → publicación → visita → pedido. Los informes distinguen explícitamente **atribución directa** de **ventas observadas durante el periodo**, evitando presentar correlación como causalidad.
