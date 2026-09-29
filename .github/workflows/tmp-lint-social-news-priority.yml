@@ -1,0 +1,23 @@
+name: Temporal lint social news priority
+
+on:
+  push:
+    branches:
+      - feature/social-news-priority-20h
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP syntax
+        run: |
+          php -l includes/social-network/core.php
+          php -l includes/social-network/campaigns.php
+          php -l includes/social-network/calendar.php
+      - name: Static checks
+        run: |
+          grep -q "seo_social_network_schedule_news_publication" includes/social-network/core.php
+          grep -q "Hora fija: 20:00" includes/social-network/core.php
+          grep -q "18:00" includes/social-network/campaigns.php
+          grep -q "prioridad" docs/MARKETING.md
