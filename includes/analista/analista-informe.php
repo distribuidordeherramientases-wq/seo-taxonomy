@@ -157,6 +157,14 @@ if (!function_exists('seo_analista_render_where_we_are')) {
         if ($days <= 0) $days = 28;
         $bing = function_exists('seo_analista_bing_snapshot') ? (array) seo_analista_bing_snapshot($days, 30) : array();
 
+        if (function_exists('seo_google_metrics_coverage_notice')) {
+            $current_notice = seo_google_metrics_coverage_notice($current);
+            $previous_notice = seo_google_metrics_coverage_notice($previous);
+            if ($current_notice || $previous_notice) {
+                echo '<div class="notice notice-warning inline"><p>' . esc_html($current_notice ?: $previous_notice) . ' La comparación entre periodos puede no ser fiable hasta completar ambos.' . '</p></div>';
+            }
+        }
+
         echo '<div class="seo-analista-grid">';
         seo_analista_render_metric_card('Índice de visibilidad', number_format_i18n((float) ($data['visibility_index'] ?? 0), 1), seo_analista_metric_delta($data['visibility_index'] ?? 0, $data['previous_visibility_index'] ?? 0), 'Índice propio basado en distribución de posiciones.');
         seo_analista_render_metric_card('Impresiones', number_format_i18n((float) ($current['impressions'] ?? 0), 0), seo_analista_metric_delta($current['impressions'] ?? 0, $previous['impressions'] ?? 0), 'Veces que Google mostró una URL del sitio.');
@@ -236,7 +244,7 @@ if (!function_exists('seo_analista_render_where_we_are')) {
 
         $freshness = array();
         if (!empty($period['date_to'])) $freshness[] = 'Search Console hasta ' . (string) $period['date_to'];
-        if (!empty($ga4['period']['latest_date'])) $freshness[] = 'GA4 hasta ' . (string) $ga4['period']['latest_date'];
+        if (!empty($ga4['period']['end'])) $freshness[] = 'GA4 consultado hasta ' . (string) $ga4['period']['end'];
         if (!empty($bing['connected']) && !empty($bing['latest_date'])) $freshness[] = 'Bing hasta ' . (string) $bing['latest_date'];
         if ($freshness) {
             echo '<div class="seo-analista-action"><strong>Actualización de fuentes</strong><p>' . esc_html(implode(' · ', $freshness) . '. Las fechas pueden diferir por el retraso propio de cada plataforma.') . '</p></div>';

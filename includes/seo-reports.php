@@ -326,7 +326,7 @@ function seo_reports_general_build_json($report_key) {
             $metrics = ('connected' === $status && $property_id !== '') ? seo_google_get_summary_metrics($property_id, 28) : array();
             $trend = ($metrics && $property_id !== '') ? seo_google_get_summary_trend_data($property_id, 365) : array();
             $ga4 = function_exists('seo_analista_ga4_snapshot')
-                ? (array) seo_analista_ga4_snapshot(28)
+                ? (array) seo_analista_ga4_snapshot(28, (string) ($metrics['date_to'] ?? ''))
                 : array();
             $bing = function_exists('seo_analista_bing_snapshot')
                 ? (array) seo_analista_bing_snapshot(28, 30)
@@ -541,6 +541,8 @@ function seo_reports_render_google_search_summary() {
     echo '<div style="background:#fff;border:1px solid #dcdcde;padding:20px;border-radius:6px;">';
     echo '<h3 style="margin-top:0;">Últimos 28 días disponibles</h3>';
     echo '<p><code>' . esc_html($metrics['date_from']) . '</code> → <code>' . esc_html($metrics['date_to']) . '</code></p>';
+    $coverage_notice = seo_google_metrics_coverage_notice($metrics);
+    if ($coverage_notice) echo '<div class="notice notice-warning inline"><p>' . esc_html($coverage_notice) . '</p></div>';
     echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;">';
 
     foreach ($cards as $label => $value) {
@@ -551,7 +553,7 @@ function seo_reports_render_google_search_summary() {
     }
 
     echo '</div>';
-    echo '<p class="description" style="margin-top:14px;">La posición se pondera por impresiones. Search Console puede devolver las filas principales y no garantiza un conjunto exhaustivo de consultas.</p>';
+    echo '<p class="description" style="margin-top:14px;">Clics, impresiones, CTR y posición proceden de los totales de propiedad cuando el periodo está completo. Consultas y páginas son datos diagnósticos parciales.</p>';
     echo '</div>';
 
     $trend_rows = seo_google_get_summary_trend_data($property_id, 365);
@@ -560,7 +562,7 @@ function seo_reports_render_google_search_summary() {
     // Contexto de negocio: Search Console explica visibilidad; GA4 explica
     // comportamiento. No se comparan clics y sesiones como si fueran iguales.
     if (function_exists('seo_analista_ga4_snapshot')) {
-        $ga4 = (array) seo_analista_ga4_snapshot(28);
+        $ga4 = (array) seo_analista_ga4_snapshot(28, (string) ($metrics['date_to'] ?? ''));
         if (!empty($ga4['available'])) {
             $funnel = (array) ($ga4['funnel'] ?? array());
             $target = (array) ($ga4['target_market'] ?? array());
@@ -569,7 +571,7 @@ function seo_reports_render_google_search_summary() {
 
             echo '<div style="background:#fff;border:1px solid #dcdcde;padding:20px;border-radius:8px;margin-top:16px;">';
             echo '<h3 style="margin-top:0;">Contexto de tráfico y conversión · GA4</h3>';
-            echo '<p class="description">Complementa la visibilidad de Google con comportamiento real en la web. Los eventos ecommerce son recuentos de eventos y las compras deben contrastarse con WooCommerce.</p>';
+            echo '<p class="description">GA4 del ' . esc_html((string) ($ga4['period']['start'] ?? '')) . ' al ' . esc_html((string) ($ga4['period']['end'] ?? '')) . ', el mismo periodo que Search Console. Las sesiones no equivalen a clics; los eventos ecommerce deben contrastarse con WooCommerce. La exclusión de administradores no corrige datos históricos ya enviados.</p>';
             echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:14px;">';
 
             $ga_cards = array(
