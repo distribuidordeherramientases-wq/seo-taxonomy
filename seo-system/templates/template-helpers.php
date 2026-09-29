@@ -622,23 +622,28 @@ if (!function_exists('dht_shared_product_compare_data')) {
         }
 
         /*
-         * Precio limpio: evita textos auxiliares para lectores de pantalla y
-         * entidades HTML visibles como "&euro;" en la tabla.
+         * La comparativa pública muestra un único precio: el precio efectivo
+         * actual de WooCommerce para este producto. Si hay una oferta activa,
+         * se muestra el precio de oferta; si no, el precio normal. No se muestran
+         * rangos, precios de Ojeador ni el precio anterior tachado.
          */
-        $price_html = (string) $compare_product->get_price_html();
-        $price_html = preg_replace(
-            "#<span[^>]*class=[\"'][^\"']*\\bscreen-reader-text\\b[^\"']*[\"'][^>]*>.*?</span>#is",
-            '',
-            $price_html
-        );
-        $price_html = preg_replace('#</del>\\s*<ins\\b#i', '</del> → <ins', $price_html);
-        $price_text = html_entity_decode(
-            wp_strip_all_tags((string) $price_html, true),
-            ENT_QUOTES | ENT_HTML5,
-            (string) get_bloginfo('charset') ?: 'UTF-8'
-        );
-        $price_text = str_replace("\xC2\xA0", ' ', $price_text);
-        $price_text = trim((string) preg_replace('/[\\s\\x{00A0}]+/u', ' ', $price_text));
+        $price_text = '';
+        $effective_price = $compare_product->get_price('view');
+        if ('' !== (string) $effective_price && is_numeric($effective_price)) {
+            $display_price = function_exists('wc_get_price_to_display')
+                ? wc_get_price_to_display($compare_product, array('price' => (float) $effective_price))
+                : (float) $effective_price;
+            $price_html = function_exists('wc_price')
+                ? wc_price($display_price)
+                : (string) $display_price;
+            $price_text = html_entity_decode(
+                wp_strip_all_tags((string) $price_html, true),
+                ENT_QUOTES | ENT_HTML5,
+                (string) get_bloginfo('charset') ?: 'UTF-8'
+            );
+            $price_text = str_replace("\xC2\xA0", ' ', $price_text);
+            $price_text = trim((string) preg_replace('/[\\s\\x{00A0}]+/u', ' ', $price_text));
+        }
 
         $image_url = '';
         $image_candidates = dht_shared_product_image_candidates(
