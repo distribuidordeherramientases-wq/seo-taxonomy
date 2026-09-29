@@ -126,6 +126,27 @@ function seo_social_programador_mysql_from_timestamp($timestamp)
     return wp_date('Y-m-d H:i:s', (int) $timestamp, wp_timezone());
 }
 
+
+/**
+ * Comprueba si una fecha/hora cae en la franja reservada a campañas.
+ *
+ * Las 18:00 quedan reservadas para publicaciones de campaña. El programador
+ * editorial debe usar cualquier otra hora para evitar colisiones y mantener
+ * ambos calendarios independientes.
+ *
+ * @param int $timestamp
+ * @return bool
+ */
+function seo_social_programador_is_campaign_reserved_time($timestamp)
+{
+    $time = wp_date('H:i', (int) $timestamp, wp_timezone());
+    $reserved = function_exists('seo_social_campaign_fixed_publication_time')
+        ? seo_social_campaign_fixed_publication_time()
+        : '18:00';
+
+    return $time === $reserved;
+}
+
 /**
  * @param int $schedule_id
  * @return object|null
@@ -180,6 +201,10 @@ function seo_social_programador_create_job($content_id, $provider, $timestamp, $
 
     if ($timestamp <= (time() + 30)) {
         return new WP_Error('past_datetime', 'Programa la publicacion al menos un minuto en el futuro.');
+    }
+
+    if (seo_social_programador_is_campaign_reserved_time($timestamp)) {
+        return new WP_Error('campaign_reserved_time', 'Las 18:00 estan reservadas para publicaciones de campaña. Elige otra hora para noticias, posts o landings.');
     }
 
     global $wpdb;
@@ -548,7 +573,7 @@ function seo_social_programador_render_admin()
     }
     echo '</select><p class="seo-social-help">Se muestran los 150 contenidos publicados modificados mas recientemente.</p></div>';
 
-    echo '<div class="seo-social-field"><label>Fecha y hora</label><input type="datetime-local" name="scheduled_at" value="' . esc_attr($default_datetime) . '" required><p class="seo-social-help">Zona horaria WordPress: ' . esc_html(wp_timezone_string()) . '.</p></div>';
+    echo '<div class="seo-social-field"><label>Fecha y hora</label><input type="datetime-local" name="scheduled_at" value="' . esc_attr($default_datetime) . '" required><p class="seo-social-help">Zona horaria WordPress: ' . esc_html(wp_timezone_string()) . '. Las 18:00 estan reservadas para campañas; usa cualquier otra hora para contenido editorial.</p></div>';
     echo '</div>';
 
     echo '<div class="seo-social-field" style="margin-top:14px"><label>Publicar en</label><div style="display:flex;gap:18px;flex-wrap:wrap;padding:10px 0">';
