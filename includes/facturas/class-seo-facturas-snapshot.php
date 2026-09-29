@@ -373,7 +373,7 @@ final class SEO_Facturas_Snapshot {
         }
 
         if (!$attachment_id) {
-            return '';
+            return self::supplier_image_data_uri(absint($product->get_id()));
         }
 
         $path = '';
@@ -397,7 +397,7 @@ final class SEO_Facturas_Snapshot {
             $path = (string) get_attached_file($attachment_id);
         }
         if (!$path || !is_readable($path)) {
-            return '';
+            return self::supplier_image_data_uri(absint($product->get_id()));
         }
 
         $mime = function_exists('wp_check_filetype') ? (string) (wp_check_filetype($path)['type'] ?? '') : '';
@@ -414,6 +414,80 @@ final class SEO_Facturas_Snapshot {
         }
 
         return 'data:' . $mime . ';base64,' . base64_encode($bytes);
+    }
+
+    private static function supplier_image_data_uri($product_id) {
+        $product_id = absint($product_id);
+        if (!$product_id) {
+            return '';
+        }
+
+        $urls = array();
+        $add = static function ($url) use (&$urls) {
+            $url = esc_url_raw((string) $url);
+            if ($url && preg_match('#^https?://#i', $url) && !in_array($url, $urls, true)) {
+                $urls[] = $url;
+            }
+        };
+
+        global $wpdb;
+        $table = $wpdb->prefix . 'seo_supplier_images';
+        $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table))) === $table;
+        if ($exists) {
+            $rows = $wpdb->get_col(
+                $wpdb->prepare(
+                    "SELECT image_url
+                     FROM {$table}
+                     WHERE product_id = %d
+                       AND status = 'active'
+                       AND image_url IS NOT NULL
+                       AND TRIM(image_url) <> ''
+                     ORDER BY is_primary DESC, position ASC, id ASC
+                     LIMIT 3",
+                    $product_id
+                )
+            );
+            foreach ((array) $rows as $url) {
+                $add($url);
+            }
+        }
+
+        if (function_exists('seo_supplier_v2_external_primary_url')) {
+            $add(seo_supplier_v2_external_primary_url($product_id));
+        }
+
+        foreach ($urls as $url) {
+            $response = wp_safe_remote_get($url, array(
+                'timeout'             => 8,
+                'redirection'         => 3,
+                'limit_response_size' => 3145728,
+                'headers'             => array(
+                    'User-Agent' => 'Mozilla/5.0 (compatible; DistribuidorDeHerramientas/1.0)',
+                    'Accept'     => 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+                ),
+            ));
+            if (is_wp_error($response)) {
+                continue;
+            }
+
+            $code = (int) wp_remote_retrieve_response_code($response);
+            $body = wp_remote_retrieve_body($response);
+            $mime = strtolower(trim((string) wp_remote_retrieve_header($response, 'content-type')));
+            if ($code < 200 || $code >= 300 || !is_string($body) || '' === $body) {
+                continue;
+            }
+
+            if (false !== strpos($mime, ';')) {
+                $mime = trim(strtok($mime, ';'));
+            }
+            if (!preg_match('#^image/(jpeg|png|gif|webp|avif)$#i', $mime)) {
+                continue;
+            }
+
+            return 'data:' . $mime . ';base64,' . base64_encode($body);
+        }
+
+        return '';
     }
 
     private static function address_snapshot($address) {
