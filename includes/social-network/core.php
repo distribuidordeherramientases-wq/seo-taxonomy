@@ -918,6 +918,236 @@ function seo_social_network_clear_scheduled_publication($content_id, $provider)
 }
 
 /**
+ * Hora fija de publicación para Noticias.
+ *
+ * @return string HH:MM
+ */
+function seo_social_network_news_fixed_publication_time()
+{
+    $time = (string) apply_filters('seo_social_network_news_fixed_publication_time', '20:00');
+    return preg_match('/^([01]\\d|2[0-3]):[0-5]\\d$/', $time) ? $time : '20:00';
+}
+
+/**
+ * Determina si una entrada pertenece a la categoría editorial Noticias.
+ *
+ * @param WP_Post|int $post
+ * @return bool
+ */
+function seo_social_network_is_news_content($post)
+{
+    $post = get_post($post);
+    if (!$post instanceof WP_Post || 'post' !== $post->post_type) {
+        return false;
+    }
+
+    $is_news = false;
+    foreach ((array) get_the_category($post->ID) as $term) {
+        if (
+            (isset($term->slug) && 'noticias' === sanitize_title((string) $term->slug))
+            || (isset($term->name) && 'noticias' === sanitize_title((string) $term->name))
+        ) {
+            $is_news = true;
+            break;
+        }
+    }
+
+    return (bool) apply_filters('seo_social_network_is_news_content', $is_news, $post);
+}
+
+/**
+ * Prioridad editorial global de una noticia.
+ *
+ * @return string
+ */
+function seo_social_network_news_priority_meta_key()
+{
+    return '_seo_social_news_priority';
+}
+
+/**
+ * @param int $content_id
+ * @return bool
+ */
+function seo_social_network_news_is_priority($content_id)
+{
+    return '1' === (string) get_post_meta(absint($content_id), seo_social_network_news_priority_meta_key(), true);
+}
+
+/**
+ * @param int  $content_id
+ * @param bool $priority
+ */
+function seo_social_network_news_set_priority($content_id, $priority)
+{
+    $content_id = absint($content_id);
+    if (!$content_id) {
+        return;
+    }
+
+    if ($priority) {
+        update_post_meta($content_id, seo_social_network_news_priority_meta_key(), '1');
+    } else {
+        delete_post_meta($content_id, seo_social_network_news_priority_meta_key());
+    }
+}
+
+/**
+ * Normaliza un timestamp al día local correspondiente y a las 20:00.
+ *
+ * @param int $timestamp
+ * @return int
+ */
+function seo_social_network_news_timestamp_at_fixed_time($timestamp)
+{
+    $timestamp = absint($timestamp);
+    if (!$timestamp) {
+        return 0;
+    }
+
+    $timezone = wp_timezone();
+    $date = (new DateTimeImmutable('@' . $timestamp))->setTimezone($timezone);
+    list($hour, $minute) = array_map('intval', explode(':', seo_social_network_news_fixed_publication_time()));
+    return $date->setTime($hour, $minute, 0)->getTimestamp();
+}
+
+/**
+ * Reordena la cola futura de Noticias para una red.
+ *
+ * Las fechas ya previstas se conservan como huecos editoriales, pero todas se
+ * normalizan a las 20:00. Las noticias prioritarias ocupan primero esos huecos;
+ * las no prioritarias se desplazan detrás manteniendo su orden cronológico.
+ *
+ * @param int    $content_id
+ * @param string $provider
+ * @param int    $requested_timestamp
+ * @param bool   $priority
+ * @return true|WP_Error
+ */
+function seo_social_network_schedule_news_publication($content_id, $provider, $requested_timestamp, $priority = false)
+{
+    global $wpdb;
+
+    $content_id = absint($content_id);
+    $provider = sanitize_key($provider);
+    $post = get_post($content_id);
+
+    if (!$post || !seo_social_network_is_news_content($post)) {
+        return new WP_Error('not_news_content', 'La prioridad editorial solo se aplica a entradas de Noticias.');
+    }
+
+    $requested_timestamp = seo_social_network_news_timestamp_at_fixed_time($requested_timestamp);
+    if ($requested_timestamp <= time() + 30) {
+        return new WP_Error('invalid_news_schedule', 'La noticia debe programarse a las 20:00 de una fecha futura.');
+    }
+
+    seo_social_network_news_set_priority($content_id, (bool) $priority);
+
+    $meta_key = seo_social_network_schedule_meta_key($provider);
+    $rows = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT pm.post_id, pm.meta_value
+             FROM {$wpdb->postmeta} pm
+             INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+             WHERE pm.meta_key = %s
+               AND CAST(pm.meta_value AS UNSIGNED) > %d
+               AND p.post_status = 'publish'
+               AND p.post_type = 'post'
+             ORDER BY CAST(pm.meta_value AS UNSIGNED) ASC, pm.post_id ASC",
+            $meta_key,
+            time() + 30
+        )
+    );
+
+    $items = array();
+    $slots = array();
+
+    foreach ((array) $rows as $row) {
+        $row_id = absint($row->post_id);
+        if (!$row_id || $row_id === $content_id) {
+            continue;
+        }
+
+        $row_post = get_post($row_id);
+        if (!$row_post || !seo_social_network_is_news_content($row_post)) {
+            continue;
+        }
+
+        $original_timestamp = absint($row->meta_value);
+        $fixed_timestamp = seo_social_network_news_timestamp_at_fixed_time($original_timestamp);
+        if ($fixed_timestamp <= time() + 30) {
+            $fixed_timestamp = seo_social_network_news_timestamp_at_fixed_time(
+                strtotime('+1 day', time())
+            );
+        }
+
+        $items[] = array(
+            'content_id' => $row_id,
+            'priority'   => seo_social_network_news_is_priority($row_id) ? 1 : 0,
+            'order_at'   => $original_timestamp,
+        );
+        $slots[wp_date('Y-m-d', $fixed_timestamp, wp_timezone())] = $fixed_timestamp;
+    }
+
+    $items[] = array(
+        'content_id' => $content_id,
+        'priority'   => $priority ? 1 : 0,
+        'order_at'   => $requested_timestamp,
+    );
+    $slots[wp_date('Y-m-d', $requested_timestamp, wp_timezone())] = $requested_timestamp;
+
+    uasort(
+        $slots,
+        static function ($a, $b) {
+            return ((int) $a) <=> ((int) $b);
+        }
+    );
+    $slots = array_values($slots);
+
+    while (count($slots) < count($items)) {
+        $last = !empty($slots) ? (int) end($slots) : $requested_timestamp;
+        $next = (new DateTimeImmutable('@' . $last))
+            ->setTimezone(wp_timezone())
+            ->modify('+1 day')
+            ->getTimestamp();
+        $next = seo_social_network_news_timestamp_at_fixed_time($next);
+        $slots[] = $next;
+    }
+
+    usort(
+        $items,
+        static function ($a, $b) {
+            if ((int) $a['priority'] !== (int) $b['priority']) {
+                return (int) $b['priority'] <=> (int) $a['priority'];
+            }
+            $date_order = ((int) $a['order_at']) <=> ((int) $b['order_at']);
+            if (0 !== $date_order) {
+                return $date_order;
+            }
+            return ((int) $a['content_id']) <=> ((int) $b['content_id']);
+        }
+    );
+
+    foreach ($items as $index => $item) {
+        $slot = isset($slots[$index]) ? absint($slots[$index]) : 0;
+        if (!$slot) {
+            return new WP_Error('news_slot_missing', 'No se pudo resolver un hueco editorial para la noticia.');
+        }
+
+        $result = seo_social_network_set_scheduled_publication(
+            absint($item['content_id']),
+            $provider,
+            $slot
+        );
+        if (is_wp_error($result)) {
+            return $result;
+        }
+    }
+
+    return true;
+}
+
+/**
  * Ejecuta una publicacion creada desde el Programador.
  *
  * @param int    $content_id
