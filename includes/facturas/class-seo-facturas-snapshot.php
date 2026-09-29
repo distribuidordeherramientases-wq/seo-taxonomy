@@ -144,6 +144,54 @@ final class SEO_Facturas_Snapshot {
     }
 
     /**
+     * Convierte contenido editorial de producto en texto continuo apto para PDF.
+     * Sustituye cierres de bloque por espacios para evitar uniones como
+     * "empezar.Entre" y normaliza espacios sin introducir truncamientos visuales.
+     */
+    private static function commercial_clean_text($html) {
+        $charset = (string) get_bloginfo('charset');
+        if ('' === $charset) {
+            $charset = 'UTF-8';
+        }
+
+        $text = html_entity_decode((string) $html, ENT_QUOTES | ENT_HTML5, $charset);
+        $text = preg_replace('#<(?:br|hr)\s*/?>#i', ' ', $text);
+        $text = preg_replace('#</(?:p|div|li|ul|ol|h[1-6]|tr|td|th|section|article)>#i', ' ', $text);
+        $text = wp_strip_all_tags((string) $text);
+        $text = preg_replace('/([.!?])(?=[\p{Lu}\d])/u', '$1 ', (string) $text);
+        $text = preg_replace('/\s+/u', ' ', (string) $text);
+
+        return trim((string) $text);
+    }
+
+    /**
+     * Resume usando frases completas cuando el contenido dispone de puntuacion.
+     * Si el origen carece de frases, aplica un limite de palabras sin usar
+     * elipsis para que el PDF no parezca texto cortado.
+     */
+    private static function commercial_sentence_excerpt($html, $max_sentences = 2, $fallback_words = 55) {
+        $text = self::commercial_clean_text($html);
+        if ('' === $text) {
+            return '';
+        }
+
+        $max_sentences = max(1, absint($max_sentences));
+        $fallback_words = max(10, absint($fallback_words));
+        $sentences = preg_split('/(?<=[.!?])\s+/u', $text, -1, PREG_SPLIT_NO_EMPTY);
+
+        if (is_array($sentences) && (count($sentences) > 1 || preg_match('/[.!?]$/u', $text))) {
+            return trim(implode(' ', array_slice($sentences, 0, $max_sentences)));
+        }
+
+        $words = preg_split('/\s+/u', $text, -1, PREG_SPLIT_NO_EMPTY);
+        if (!is_array($words) || count($words) <= $fallback_words) {
+            return $text;
+        }
+
+        return rtrim(implode(' ', array_slice($words, 0, $fallback_words)), " \t\n\r\0\x0B,;:-") . '.';
+    }
+
+    /**
      * Copia comercial del producto para presupuestos/proformas.
      *
      * Se congela dentro del snapshot para que el documento conserve la ficha
@@ -163,15 +211,15 @@ final class SEO_Facturas_Snapshot {
         }
 
         $product_id = absint($source->get_id());
-        $summary = trim(wp_strip_all_tags((string) $source->get_short_description()));
-        $description = trim(wp_strip_all_tags((string) $source->get_description()));
+        $short_description = (string) $source->get_short_description();
+        $full_description = (string) $source->get_description();
 
-        if ('' === $summary && '' !== $description) {
-            $summary = wp_trim_words($description, 34, '…');
-        } else {
-            $summary = wp_trim_words($summary, 34, '…');
-        }
-        $description = '' !== $description ? wp_trim_words($description, 110, '…') : '';
+        $summary_source = '' !== trim(wp_strip_all_tags($short_description))
+            ? $short_description
+            : $full_description;
+
+        $summary = self::commercial_sentence_excerpt($summary_source, 2, 55);
+        $description = self::commercial_sentence_excerpt($full_description, 3, 90);
 
         $categories = wp_get_post_terms($product_id, 'product_cat', array('fields' => 'names'));
         if (is_wp_error($categories)) {
