@@ -988,6 +988,13 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
                         return;
                     }
 
+                    try {
+                        window.sessionStorage.setItem(
+                            'seoLastRequestedComparison',
+                            JSON.stringify(selected.slice(0, 6).map(function (id) { return Number(id); }).filter(Boolean))
+                        );
+                    } catch (storageError) { /* storage can be unavailable */ }
+
                     var normalizeLabel = function (value) {
                         return String(value || '')
                             .normalize('NFD')
