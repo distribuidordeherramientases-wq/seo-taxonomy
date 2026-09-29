@@ -918,6 +918,236 @@ function seo_social_network_clear_scheduled_publication($content_id, $provider)
 }
 
 /**
+ * Hora fija de publicación para Noticias.
+ *
+ * @return string HH:MM
+ */
+function seo_social_network_news_fixed_publication_time()
+{
+    $time = (string) apply_filters('seo_social_network_news_fixed_publication_time', '20:00');
+    return preg_match('/^([01]\\d|2[0-3]):[0-5]\\d$/', $time) ? $time : '20:00';
+}
+
+/**
+ * Determina si una entrada pertenece a la categoría editorial Noticias.
+ *
+ * @param WP_Post|int $post
+ * @return bool
+ */
+function seo_social_network_is_news_content($post)
+{
+    $post = get_post($post);
+    if (!$post instanceof WP_Post || 'post' !== $post->post_type) {
+        return false;
+    }
+
+    $is_news = false;
+    foreach ((array) get_the_category($post->ID) as $term) {
+        if (
+            (isset($term->slug) && 'noticias' === sanitize_title((string) $term->slug))
+            || (isset($term->name) && 'noticias' === sanitize_title((string) $term->name))
+        ) {
+            $is_news = true;
+            break;
+        }
+    }
+
+    return (bool) apply_filters('seo_social_network_is_news_content', $is_news, $post);
+}
+
+/**
+ * Prioridad editorial global de una noticia.
+ *
+ * @return string
+ */
+function seo_social_network_news_priority_meta_key()
+{
+    return '_seo_social_news_priority';
+}
+
+/**
+ * @param int $content_id
+ * @return bool
+ */
+function seo_social_network_news_is_priority($content_id)
+{
+    return '1' === (string) get_post_meta(absint($content_id), seo_social_network_news_priority_meta_key(), true);
+}
+
+/**
+ * @param int  $content_id
+ * @param bool $priority
+ */
+function seo_social_network_news_set_priority($content_id, $priority)
+{
+    $content_id = absint($content_id);
+    if (!$content_id) {
+        return;
+    }
+
+    if ($priority) {
+        update_post_meta($content_id, seo_social_network_news_priority_meta_key(), '1');
+    } else {
+        delete_post_meta($content_id, seo_social_network_news_priority_meta_key());
+    }
+}
+
+/**
+ * Normaliza un timestamp al día local correspondiente y a las 20:00.
+ *
+ * @param int $timestamp
+ * @return int
+ */
+function seo_social_network_news_timestamp_at_fixed_time($timestamp)
+{
+    $timestamp = absint($timestamp);
+    if (!$timestamp) {
+        return 0;
+    }
+
+    $timezone = wp_timezone();
+    $date = (new DateTimeImmutable('@' . $timestamp))->setTimezone($timezone);
+    list($hour, $minute) = array_map('intval', explode(':', seo_social_network_news_fixed_publication_time()));
+    return $date->setTime($hour, $minute, 0)->getTimestamp();
+}
+
+/**
+ * Reordena la cola futura de Noticias para una red.
+ *
+ * Las fechas ya previstas se conservan como huecos editoriales, pero todas se
+ * normalizan a las 20:00. Las noticias prioritarias ocupan primero esos huecos;
+ * las no prioritarias se desplazan detrás manteniendo su orden cronológico.
+ *
+ * @param int    $content_id
+ * @param string $provider
+ * @param int    $requested_timestamp
+ * @param bool   $priority
+ * @return true|WP_Error
+ */
+function seo_social_network_schedule_news_publication($content_id, $provider, $requested_timestamp, $priority = false)
+{
+    global $wpdb;
+
+    $content_id = absint($content_id);
+    $provider = sanitize_key($provider);
+    $post = get_post($content_id);
+
+    if (!$post || !seo_social_network_is_news_content($post)) {
+        return new WP_Error('not_news_content', 'La prioridad editorial solo se aplica a entradas de Noticias.');
+    }
+
+    $requested_timestamp = seo_social_network_news_timestamp_at_fixed_time($requested_timestamp);
+    if ($requested_timestamp <= time() + 30) {
+        return new WP_Error('invalid_news_schedule', 'La noticia debe programarse a las 20:00 de una fecha futura.');
+    }
+
+    seo_social_network_news_set_priority($content_id, (bool) $priority);
+
+    $meta_key = seo_social_network_schedule_meta_key($provider);
+    $rows = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT pm.post_id, pm.meta_value
+             FROM {$wpdb->postmeta} pm
+             INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+             WHERE pm.meta_key = %s
+               AND CAST(pm.meta_value AS UNSIGNED) > %d
+               AND p.post_status = 'publish'
+               AND p.post_type = 'post'
+             ORDER BY CAST(pm.meta_value AS UNSIGNED) ASC, pm.post_id ASC",
+            $meta_key,
+            time() + 30
+        )
+    );
+
+    $items = array();
+    $slots = array();
+
+    foreach ((array) $rows as $row) {
+        $row_id = absint($row->post_id);
+        if (!$row_id || $row_id === $content_id) {
+            continue;
+        }
+
+        $row_post = get_post($row_id);
+        if (!$row_post || !seo_social_network_is_news_content($row_post)) {
+            continue;
+        }
+
+        $original_timestamp = absint($row->meta_value);
+        $fixed_timestamp = seo_social_network_news_timestamp_at_fixed_time($original_timestamp);
+        if ($fixed_timestamp <= time() + 30) {
+            $fixed_timestamp = seo_social_network_news_timestamp_at_fixed_time(
+                strtotime('+1 day', time())
+            );
+        }
+
+        $items[] = array(
+            'content_id' => $row_id,
+            'priority'   => seo_social_network_news_is_priority($row_id) ? 1 : 0,
+            'order_at'   => $original_timestamp,
+        );
+        $slots[wp_date('Y-m-d', $fixed_timestamp, wp_timezone())] = $fixed_timestamp;
+    }
+
+    $items[] = array(
+        'content_id' => $content_id,
+        'priority'   => $priority ? 1 : 0,
+        'order_at'   => $requested_timestamp,
+    );
+    $slots[wp_date('Y-m-d', $requested_timestamp, wp_timezone())] = $requested_timestamp;
+
+    uasort(
+        $slots,
+        static function ($a, $b) {
+            return ((int) $a) <=> ((int) $b);
+        }
+    );
+    $slots = array_values($slots);
+
+    while (count($slots) < count($items)) {
+        $last = !empty($slots) ? (int) end($slots) : $requested_timestamp;
+        $next = (new DateTimeImmutable('@' . $last))
+            ->setTimezone(wp_timezone())
+            ->modify('+1 day')
+            ->getTimestamp();
+        $next = seo_social_network_news_timestamp_at_fixed_time($next);
+        $slots[] = $next;
+    }
+
+    usort(
+        $items,
+        static function ($a, $b) {
+            if ((int) $a['priority'] !== (int) $b['priority']) {
+                return (int) $b['priority'] <=> (int) $a['priority'];
+            }
+            $date_order = ((int) $a['order_at']) <=> ((int) $b['order_at']);
+            if (0 !== $date_order) {
+                return $date_order;
+            }
+            return ((int) $a['content_id']) <=> ((int) $b['content_id']);
+        }
+    );
+
+    foreach ($items as $index => $item) {
+        $slot = isset($slots[$index]) ? absint($slots[$index]) : 0;
+        if (!$slot) {
+            return new WP_Error('news_slot_missing', 'No se pudo resolver un hueco editorial para la noticia.');
+        }
+
+        $result = seo_social_network_set_scheduled_publication(
+            absint($item['content_id']),
+            $provider,
+            $slot
+        );
+        if (is_wp_error($result)) {
+            return $result;
+        }
+    }
+
+    return true;
+}
+
+/**
  * Ejecuta una publicacion creada desde el Programador.
  *
  * @param int    $content_id
@@ -1137,6 +1367,7 @@ function seo_social_network_scheduler_import_columns()
         'content_id'   => array('contenido_id', 'content_id', 'id', 'post_id'),
         'providers'    => array('redes', 'red', 'provider', 'providers'),
         'scheduled_at' => array('fecha_hora', 'fecha', 'scheduled_at', 'date_time', 'datetime'),
+        'priority'     => array('prioridad', 'priority', 'prioritaria', 'urgente'),
         'title'        => array('titulo', 'title'),
     );
 }
@@ -1266,6 +1497,7 @@ function seo_social_network_scheduler_exportable_agenda_rows()
             wp_date('Y-m-d H:i', $timestamp, wp_timezone()),
             wp_timezone_string(),
             'programada',
+            ('post' === (string) $row->post_type && function_exists('seo_social_network_news_is_priority') && seo_social_network_news_is_priority((int) $row->post_id)) ? 'si' : '',
         );
     }
 
@@ -1330,7 +1562,7 @@ function seo_social_network_handle_scheduler_export()
     if ('template' === $kind) {
         seo_social_network_scheduler_send_csv(
             'programacion-social-plantilla-' . $stamp . '.csv',
-            array('contenido_id', 'titulo', 'redes', 'fecha_hora'),
+            array('contenido_id', 'titulo', 'redes', 'fecha_hora', 'prioridad'),
             array()
         );
     }
@@ -1346,7 +1578,7 @@ function seo_social_network_handle_scheduler_export()
     if ('agenda' === $kind) {
         seo_social_network_scheduler_send_csv(
             'agenda-social-' . $stamp . '.csv',
-            array('contenido_id', 'titulo', 'tipo', 'redes', 'fecha_hora', 'zona_horaria', 'estado'),
+            array('contenido_id', 'titulo', 'tipo', 'redes', 'fecha_hora', 'zona_horaria', 'estado', 'prioridad'),
             seo_social_network_scheduler_exportable_agenda_rows()
         );
     }
@@ -1523,11 +1755,18 @@ function seo_social_network_scheduler_parse_import_file($path)
         $content_id = absint(isset($row[$columns['content_id']]) ? $row[$columns['content_id']] : 0);
         $provider_values = isset($row[$columns['providers']]) ? $row[$columns['providers']] : '';
         $raw_date = isset($row[$columns['scheduled_at']]) ? $row[$columns['scheduled_at']] : '';
+        $raw_priority = isset($columns['priority'], $row[$columns['priority']]) ? sanitize_text_field($row[$columns['priority']]) : '';
         $csv_title = isset($columns['title'], $row[$columns['title']]) ? sanitize_text_field($row[$columns['title']]) : '';
         $providers = seo_social_network_scheduler_parse_providers($provider_values);
         $post = $content_id ? get_post($content_id) : null;
         $date_result = seo_social_network_scheduler_parse_import_datetime($raw_date);
         $timestamp = is_wp_error($date_result) ? 0 : (int) $date_result;
+        $priority_value = remove_accents(strtolower(trim((string) $raw_priority)));
+        $is_priority = in_array($priority_value, array('1', 'si', 'yes', 'true', 'prioridad', 'prioritaria', 'urgente'), true);
+        $is_news = $post && function_exists('seo_social_network_is_news_content') && seo_social_network_is_news_content($post);
+        if ($timestamp && $is_news && function_exists('seo_social_network_news_timestamp_at_fixed_time')) {
+            $timestamp = seo_social_network_news_timestamp_at_fixed_time($timestamp);
+        }
 
         $base_errors = array();
         if (!$content_id) {
@@ -1582,6 +1821,8 @@ function seo_social_network_scheduler_parse_import_file($path)
                 'scheduled_at'  => $timestamp,
                 'scheduled_txt' => $timestamp ? wp_date('Y-m-d H:i', $timestamp, wp_timezone()) : (string) $raw_date,
                 'existing_at'   => $existing,
+                'priority'      => $is_news && $is_priority ? 1 : 0,
+                'is_news'       => $is_news ? 1 : 0,
                 'errors'        => array_values(array_unique($errors)),
             );
         }
@@ -1680,11 +1921,26 @@ function seo_social_network_handle_scheduler_import_confirm()
             continue;
         }
         $had_existing = !empty($entry['existing_at']);
-        $result = seo_social_network_set_scheduled_publication(
-            absint($entry['content_id']),
-            sanitize_key($entry['provider']),
-            absint($entry['scheduled_at'])
-        );
+        $post = get_post(absint($entry['content_id']));
+        if (
+            $post
+            && function_exists('seo_social_network_is_news_content')
+            && seo_social_network_is_news_content($post)
+            && function_exists('seo_social_network_schedule_news_publication')
+        ) {
+            $result = seo_social_network_schedule_news_publication(
+                absint($entry['content_id']),
+                sanitize_key($entry['provider']),
+                absint($entry['scheduled_at']),
+                !empty($entry['priority'])
+            );
+        } else {
+            $result = seo_social_network_set_scheduled_publication(
+                absint($entry['content_id']),
+                sanitize_key($entry['provider']),
+                absint($entry['scheduled_at'])
+            );
+        }
         if (is_wp_error($result)) {
             $failed++;
         } elseif ($had_existing) {
@@ -1771,19 +2027,38 @@ function seo_social_network_handle_scheduler_action()
         exit;
     }
 
+    $post = get_post($content_id);
+    $is_news = $post && function_exists('seo_social_network_is_news_content') && seo_social_network_is_news_content($post);
     $dates = isset($_POST['schedule_at']) && is_array($_POST['schedule_at']) ? wp_unslash($_POST['schedule_at']) : array();
     $raw_date = isset($dates[$content_id]) ? sanitize_text_field($dates[$content_id]) : '';
-    $dt = $raw_date !== '' ? DateTimeImmutable::createFromFormat('Y-m-d\TH:i', $raw_date, wp_timezone()) : false;
-    $timestamp = $dt instanceof DateTimeImmutable ? $dt->getTimestamp() : 0;
 
+    if ($is_news) {
+        $dt = $raw_date !== '' ? DateTimeImmutable::createFromFormat('!Y-m-d', $raw_date, wp_timezone()) : false;
+        if ($dt instanceof DateTimeImmutable) {
+            list($news_hour, $news_minute) = array_map('intval', explode(':', seo_social_network_news_fixed_publication_time()));
+            $dt = $dt->setTime($news_hour, $news_minute, 0);
+        }
+    } else {
+        $dt = $raw_date !== '' ? DateTimeImmutable::createFromFormat('Y-m-d\TH:i', $raw_date, wp_timezone()) : false;
+    }
+
+    $timestamp = $dt instanceof DateTimeImmutable ? $dt->getTimestamp() : 0;
     if (!$timestamp || $timestamp <= time() + 30) {
         wp_safe_redirect(seo_social_network_admin_url('scheduler', array('social_msg' => 'scheduler_invalid_date')));
         exit;
     }
 
+    $priority_by_content = isset($_POST['priority']) && is_array($_POST['priority'])
+        ? wp_unslash($_POST['priority'])
+        : array();
+    $is_priority = $is_news && !empty($priority_by_content[$content_id]);
+
     $failed = 0;
     foreach ($providers as $provider) {
-        if (is_wp_error(seo_social_network_set_scheduled_publication($content_id, $provider, $timestamp))) {
+        $result = $is_news
+            ? seo_social_network_schedule_news_publication($content_id, $provider, $timestamp, $is_priority)
+            : seo_social_network_set_scheduled_publication($content_id, $provider, $timestamp);
+        if (is_wp_error($result)) {
             $failed++;
         }
     }
@@ -2316,10 +2591,10 @@ function seo_social_network_render_scheduler()
     $providers = seo_social_network_get_providers();
 
     echo '<section class="seo-social-card">';
-    echo '<div class="seo-social-intro"><div><h2>Programador</h2><p>Selecciona una pieza, marca las redes y elige fecha y hora. El texto se genera automáticamente con la plantilla correspondiente. No tienes que volver a redactar Facebook, Instagram, LinkedIn, Pinterest o X aquí.</p></div><span class="seo-social-state is-scheduled">Agenda</span></div>';
+    echo '<div class="seo-social-intro"><div><h2>Programador</h2><p>Las ofertas de campaña salen a las <strong>18:00</strong>. Las entradas de <strong>Noticias</strong> salen a las <strong>20:00</strong> y pueden marcarse como prioritarias para adelantar a las noticias normales. Páginas y landings mantienen fecha y hora manual.</p></div><span class="seo-social-state is-scheduled">Agenda</span></div>';
 
     echo '<div class="seo-social-scheduler-io">';
-    echo '<div class="seo-social-scheduler-io__block"><h3>Programacion masiva con Excel / CSV</h3><p class="seo-social-help">Descarga la lista de contenidos, prepara la hoja en Excel y guardala como <strong>CSV UTF-8</strong>. Columnas obligatorias: <code>contenido_id</code>, <code>redes</code> y <code>fecha_hora</code>. En <code>redes</code> puedes usar una o varias, por ejemplo <code>facebook,instagram,x</code>. Las fechas aceptan <code>2026-09-25 10:30</code> o <code>25/09/2026 10:30</code>.</p>';
+    echo '<div class="seo-social-scheduler-io__block"><h3>Programacion masiva con Excel / CSV</h3><p class="seo-social-help">Descarga la lista de contenidos, prepara la hoja en Excel y guardala como <strong>CSV UTF-8</strong>. Columnas obligatorias: <code>contenido_id</code>, <code>redes</code> y <code>fecha_hora</code>. Para Noticias puedes añadir <code>prioridad</code> con valor <code>si</code> o <code>1</code>; la hora se normaliza automáticamente a las 20:00. En <code>redes</code> puedes usar una o varias, por ejemplo <code>facebook,instagram,x</code>. Las fechas aceptan <code>2026-09-25 10:30</code> o <code>25/09/2026 10:30</code>.</p>';
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" enctype="multipart/form-data" class="seo-social-import-form">';
     echo '<input type="hidden" name="action" value="seo_social_network_scheduler_import_preview">';
     wp_nonce_field('seo_social_network_scheduler_import');
@@ -2357,7 +2632,7 @@ function seo_social_network_render_scheduler()
         }
 
         echo '<div class="seo-social-import-preview"><div class="seo-social-intro"><div><h3>Previsualizacion de importacion</h3><p>Valida antes de crear tareas. Las filas con error no se importaran. Si ya existe una programacion para el mismo contenido y red, se reprogramara a la nueva fecha.</p></div><span class="seo-social-state ' . ($error_count ? 'is-pending' : 'is-ok') . '">' . esc_html((string) $valid_count) . ' validas · ' . esc_html((string) $error_count) . ' con error</span></div>';
-        echo '<div class="seo-social-table-wrap"><table class="seo-social-table"><thead><tr><th>Fila</th><th>Contenido</th><th>Red</th><th>Fecha y hora</th><th>Resultado</th></tr></thead><tbody>';
+        echo '<div class="seo-social-table-wrap"><table class="seo-social-table"><thead><tr><th>Fila</th><th>Contenido</th><th>Red</th><th>Fecha y hora</th><th>Prioridad</th><th>Resultado</th></tr></thead><tbody>';
         foreach ($import_preview['entries'] as $entry) {
             $errors = isset($entry['errors']) && is_array($entry['errors']) ? $entry['errors'] : array();
             $state_class = !empty($errors) ? 'is-failed' : (!empty($entry['existing_at']) ? 'is-pending' : 'is-ok');
@@ -2367,6 +2642,7 @@ function seo_social_network_render_scheduler()
             echo '<td><strong>' . esc_html((string) $entry['title']) . '</strong><br><small>#' . esc_html((string) absint($entry['content_id'])) . '</small></td>';
             echo '<td>' . esc_html((string) $entry['provider']) . '</td>';
             echo '<td>' . esc_html((string) $entry['scheduled_txt']) . '</td>';
+            echo '<td>' . (!empty($entry['priority']) ? '<span class="seo-social-state is-pending">Prioritaria</span>' : '-') . '</td>';
             echo '<td><span class="seo-social-state ' . esc_attr($state_class) . '">' . esc_html($state_text) . '</span>';
             if (!empty($errors)) {
                 echo '<br><small style="color:#b32d2e">' . esc_html(implode('; ', $errors)) . '</small>';
@@ -2408,7 +2684,7 @@ function seo_social_network_render_scheduler()
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
     echo '<input type="hidden" name="action" value="seo_social_network_scheduler_action">';
     wp_nonce_field('seo_social_network_scheduler');
-    echo '<div class="seo-social-table-wrap"><table class="seo-social-table"><thead><tr><th>Contenido</th><th>Redes</th><th>Fecha y hora</th><th>Acción</th></tr></thead><tbody>';
+    echo '<div class="seo-social-table-wrap"><table class="seo-social-table"><thead><tr><th>Contenido</th><th>Redes</th><th>Fecha / prioridad</th><th>Acción</th></tr></thead><tbody>';
 
     if (!$query->have_posts()) {
         echo '<tr><td colspan="4">No se ha encontrado contenido publicado.</td></tr>';
@@ -2420,6 +2696,8 @@ function seo_social_network_render_scheduler()
         if (!$post) {
             continue;
         }
+        $is_news = function_exists('seo_social_network_is_news_content') && seo_social_network_is_news_content($post);
+        $news_priority = $is_news && function_exists('seo_social_network_news_is_priority') && seo_social_network_news_is_priority($post->ID);
 
         echo '<tr id="seo-social-content-' . esc_attr((string) $post->ID) . '">';
         echo '<td class="seo-social-content-title"><strong><a href="' . esc_url(get_edit_post_link($post->ID)) . '">' . esc_html(get_the_title($post)) . '</a></strong><br><span class="seo-social-state">' . esc_html(seo_social_network_content_type_label($post)) . '</span><p class="seo-social-help">Publicado: ' . esc_html(get_the_date('', $post)) . ' · #' . esc_html((string) $post->ID) . '</p>';
@@ -2450,11 +2728,17 @@ function seo_social_network_render_scheduler()
                 continue;
             }
             $label = isset($provider['label']) ? $provider['label'] : ucfirst($provider_key);
-            echo '<div class="seo-social-scheduled-item"><span class="seo-social-state is-scheduled">' . esc_html($label) . ': ' . esc_html(wp_date(get_option('date_format') . ' ' . get_option('time_format'), $timestamp, wp_timezone())) . '</span><button type="submit" name="cancel_schedule" value="' . esc_attr($post->ID . '|' . $provider_key) . '">Cancelar</button></div>';
+            echo '<div class="seo-social-scheduled-item"><span class="seo-social-state is-scheduled">' . esc_html($label) . ': ' . esc_html(wp_date(get_option('date_format') . ' ' . get_option('time_format'), $timestamp, wp_timezone())) . ($is_news && $news_priority ? ' · PRIORITARIA' : '') . '</span><button type="submit" name="cancel_schedule" value="' . esc_attr($post->ID . '|' . $provider_key) . '">Cancelar</button></div>';
         }
         echo '</div></td>';
 
-        echo '<td class="seo-social-date"><input type="datetime-local" name="schedule_at[' . esc_attr((string) $post->ID) . ']" aria-label="Fecha y hora para ' . esc_attr(get_the_title($post)) . '"><p class="seo-social-help">Zona horaria: ' . esc_html(wp_timezone_string()) . '</p></td>';
+        if ($is_news) {
+            echo '<td class="seo-social-date"><input type="date" name="schedule_at[' . esc_attr((string) $post->ID) . ']" aria-label="Fecha para ' . esc_attr(get_the_title($post)) . '">';
+            echo '<p class="seo-social-help"><strong>Hora fija: 20:00.</strong> Una noticia prioritaria adelanta a las no prioritarias ya programadas en cada red seleccionada.</p>';
+            echo '<label style="display:inline-flex;align-items:center;gap:7px;margin-top:6px;font-weight:600"><input type="checkbox" name="priority[' . esc_attr((string) $post->ID) . ']" value="1" ' . checked($news_priority, true, false) . '> Prioritaria</label></td>';
+        } else {
+            echo '<td class="seo-social-date"><input type="datetime-local" name="schedule_at[' . esc_attr((string) $post->ID) . ']" aria-label="Fecha y hora para ' . esc_attr(get_the_title($post)) . '"><p class="seo-social-help">Zona horaria: ' . esc_html(wp_timezone_string()) . '</p></td>';
+        }
 
         echo '<td><div class="seo-social-row-actions" style="margin-top:0"><button type="submit" name="schedule_content_id" value="' . esc_attr((string) $post->ID) . '" class="button button-primary" ' . disabled(!$has_connected, true, false) . '>Programar</button><button type="submit" name="publish_content_id" value="' . esc_attr((string) $post->ID) . '" class="button" ' . disabled(!$has_connected, true, false) . '>Publicar ahora</button></div>';
         echo '<details style="margin-top:9px"><summary style="cursor:pointer">Vista previa</summary><div class="seo-social-template-preview-grid">';
@@ -2471,7 +2755,7 @@ function seo_social_network_render_scheduler()
     wp_reset_postdata();
 
     echo '</tbody></table></div></form>';
-    echo '<p class="seo-social-code-note"><strong>Cómo funciona:</strong> el Programador solo guarda la fecha y las redes. En el momento de publicar, toma la plantilla general de cada red. WordPress ejecuta las tareas con WP-Cron, por lo que la hora puede depender de que el sitio reciba una petición alrededor de ese momento.</p>';
+    echo '<p class="seo-social-code-note"><strong>Cómo funciona:</strong> las ofertas reservan las 18:00 y Noticias las 20:00. Una noticia prioritaria toma el primer hueco editorial futuro y desplaza detrás las noticias no prioritarias sin tocar ofertas, páginas ni landings. WordPress ejecuta las tareas con WP-Cron, por lo que la ejecución real puede retrasarse hasta la siguiente petición al sitio.</p>';
     echo '</section>';
 }
 
