@@ -636,9 +636,15 @@ function seo_post_opportunities_load_analytics_service()
 function seo_post_opportunities_ga4_performance(array $posts, $days = 60)
 {
     $days = in_array((int) $days, array(28, 60, 90), true) ? (int) $days : 60;
+    $gsc_context = seo_post_opportunities_gsc_data($days);
+    $gsc_period = (array) ($gsc_context['period'] ?? array());
+    $period = $gsc_period ? array('startDate'=>$gsc_period['current_from'],'endDate'=>$gsc_period['current_to'])
+        : (function_exists('seo_google_reporting_dates') ? seo_google_reporting_dates($days)
+            : array('startDate'=>max(1,$days-1).'daysAgo','endDate'=>'today'));
     $empty = array(
         'available'=>false,
         'error'=>'',
+        'period'=>$period,
         'daily'=>array(),
         'posts'=>array(),
         'post_daily'=>array(),
@@ -650,14 +656,14 @@ function seo_post_opportunities_ga4_performance(array $posts, $days = 60)
         return $empty;
     }
 
-    $cache_key = 'seo_post_opp_ga4_v2_' . get_current_blog_id() . '_' . $days;
+    $cache_key = 'seo_post_opp_ga4_v3_' . get_current_blog_id() . '_' . $days . '_' . str_replace('-', '', $period['endDate']);
     $cached = get_transient($cache_key);
     if (is_array($cached)) {
         return $cached;
     }
 
     $report = seo_google_analytics_run_report(array(
-        'dateRanges'=>array(array('startDate'=>max(1,$days-1).'daysAgo','endDate'=>'today')),
+        'dateRanges'=>array($period),
         'dimensions'=>array(array('name'=>'date'),array('name'=>'pagePath')),
         'metrics'=>array(array('name'=>'sessions'),array('name'=>'activeUsers'),array('name'=>'screenPageViews')),
         'limit'=>100000,
@@ -765,6 +771,7 @@ function seo_post_opportunities_gsc_performance(array $posts, $days = 60)
     $empty = array(
         'available'=>false,
         'error'=>'',
+        'source'=>'',
         'daily'=>array(),
         'posts'=>array(),
         'post_daily'=>array(),
@@ -801,6 +808,9 @@ function seo_post_opportunities_gsc_performance(array $posts, $days = 60)
     $property_hash = hash('sha256', (string)$gsc['property_id']);
     $from = (string)$gsc['period']['current_from'];
     $to = (string)$gsc['period']['current_to'];
+    $page_complete = function_exists('seo_google_pages_period_complete')
+        && seo_google_pages_period_complete((string)$gsc['property_id'], $from, $to);
+    if ($page_complete) $table = seo_google_table('search_pages');
     $daily = array();
     $post_rows = array();
     $post_daily = array();
@@ -808,7 +818,7 @@ function seo_post_opportunities_gsc_performance(array $posts, $days = 60)
     foreach (array_chunk(array_keys($hash_to_post), 180) as $hashes) {
         $placeholders = implode(',', array_fill(0, count($hashes), '%s'));
         $sql = $wpdb->prepare(
-            "SELECT data_date,page_hash,SUM(clicks) clicks,SUM(impressions) impressions,COUNT(DISTINCT query_hash) queries,CASE WHEN SUM(impressions)>0 THEN SUM(position*impressions)/SUM(impressions) ELSE 0 END position FROM {$table} WHERE property_hash=%s AND data_date BETWEEN %s AND %s AND page_hash IN ({$placeholders}) GROUP BY data_date,page_hash ORDER BY data_date ASC",
+            "SELECT data_date,page_hash,SUM(clicks) clicks,SUM(impressions) impressions," . ($page_complete ? '0' : 'COUNT(DISTINCT query_hash)') . " queries,CASE WHEN SUM(impressions)>0 THEN SUM(position*impressions)/SUM(impressions) ELSE 0 END position FROM {$table} WHERE property_hash=%s AND data_date BETWEEN %s AND %s AND page_hash IN ({$placeholders}) GROUP BY data_date,page_hash ORDER BY data_date ASC",
             array_merge(array($property_hash,$from,$to),$hashes)
         );
         foreach ((array)$wpdb->get_results($sql, ARRAY_A) as $row) {
@@ -850,6 +860,21 @@ function seo_post_opportunities_gsc_performance(array $posts, $days = 60)
         }
     }
 
+    if ($page_complete) {
+        $detail_table = seo_google_table('search_data');
+        foreach (array_chunk(array_keys($hash_to_post), 180) as $hashes) {
+            $placeholders = implode(',', array_fill(0, count($hashes), '%s'));
+            $query_sql = $wpdb->prepare(
+                "SELECT page_hash,COUNT(DISTINCT query_hash) queries FROM {$detail_table} WHERE property_hash=%s AND data_date BETWEEN %s AND %s AND page_hash IN ({$placeholders}) GROUP BY page_hash",
+                array_merge(array($property_hash,$from,$to),$hashes)
+            );
+            foreach ((array)$wpdb->get_results($query_sql, ARRAY_A) as $query_row) {
+                $post_id = (int) ($hash_to_post[$query_row['page_hash']] ?? 0);
+                if ($post_id && isset($post_rows[$post_id])) $post_rows[$post_id]['queries'] += (int) $query_row['queries'];
+            }
+        }
+    }
+
     $finalize = function($row) {
         $impressions = (float)($row['impressions'] ?? 0);
         $row['position'] = $impressions > 0 ? (float)$row['weighted'] / $impressions : 0;
@@ -884,6 +909,7 @@ function seo_post_opportunities_gsc_performance(array $posts, $days = 60)
     return array(
         'available'=>true,
         'error'=>'',
+        'source'=>$page_complete ? 'gsc_page_web_final' : 'query_page_partial',
         'daily'=>$daily,
         'posts'=>array_values($post_rows),
         'post_daily'=>$post_daily,
@@ -1661,11 +1687,17 @@ function seo_post_opportunities_render_performance(array $posts, $days)
     echo '<section id="' . esc_attr($chart_id) . '" style="background:#fff;border:1px solid #dcdcde;padding:20px;border-radius:8px;margin:18px 0;">';
     echo '<div style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap;">';
     echo '<div><h2 style="margin:0 0 6px;">Rendimiento de Posts</h2>';
-    echo '<p style="margin:0;color:#646970;">Analytics mide sesiones y vistas de los posts. Search Console mide clics, impresiones y posición orgánica. Se reutilizan las conexiones existentes.</p></div>';
+    echo '<p style="margin:0;color:#646970;">Analytics mide sesiones y vistas de los posts. Search Console mide clics, impresiones y posición por URL. Se reutilizan las conexiones existentes.</p></div>';
     echo '<div style="display:flex;gap:6px;flex-wrap:wrap;">';
     echo '<span style="padding:4px 8px;border-radius:12px;background:' . (!empty($ga4['available']) ? '#edfaef' : '#fcf0f1') . ';">GA4 ' . (!empty($ga4['available']) ? 'activo' : 'no disponible') . '</span>';
     echo '<span style="padding:4px 8px;border-radius:12px;background:' . (!empty($gsc['available']) ? '#edfaef' : '#fcf0f1') . ';">Search Console ' . (!empty($gsc['available']) ? 'activo' : 'no disponible') . '</span>';
     echo '</div></div>';
+
+    if (!empty($gsc['available']) && ($gsc['source'] ?? '') !== 'gsc_page_web_final') {
+        echo '<div class="notice notice-warning inline"><p>Search Console: cifras de posts basadas en consultas y páginas visibles, una muestra parcial. Sincroniza la tabla diaria de páginas para usar las cifras de URL completas. Las métricas de posts no son el total de toda la propiedad.</p></div>';
+    } elseif (!empty($gsc['available'])) {
+        echo '<p class="description">Search Console: agregación por página, búsqueda web finalizada. La suma mostrada comprende solo los posts publicados analizados.</p>';
+    }
 
     $cards = array(
         'Vistas de posts' => !empty($ga4['available']) ? (int)round($ga4['summary']['pageviews']) : '—',

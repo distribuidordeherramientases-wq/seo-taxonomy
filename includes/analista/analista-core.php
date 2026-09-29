@@ -274,29 +274,8 @@ if (!function_exists('seo_analista_period')) {
 
 if (!function_exists('seo_analista_period_metrics')) {
     function seo_analista_period_metrics($property_id, $date_from, $date_to) {
-        global $wpdb;
-        if (!$property_id || !function_exists('seo_google_table')) return array();
-        $table = seo_google_table('search_data');
-
-        $row = $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT
-                    COALESCE(SUM(clicks),0) AS clicks,
-                    COALESCE(SUM(impressions),0) AS impressions,
-                    COUNT(DISTINCT query_hash) AS queries,
-                    COUNT(DISTINCT page_hash) AS pages,
-                    CASE WHEN SUM(impressions) > 0 THEN SUM(clicks) / SUM(impressions) ELSE 0 END AS ctr,
-                    CASE WHEN SUM(impressions) > 0 THEN SUM(position * impressions) / SUM(impressions) ELSE 0 END AS position
-                 FROM {$table}
-                 WHERE property_hash = %s AND data_date BETWEEN %s AND %s",
-                hash('sha256', $property_id),
-                $date_from,
-                $date_to
-            ),
-            ARRAY_A
-        );
-
-        return is_array($row) ? $row : array();
+        if (!$property_id || !function_exists('seo_google_period_metrics')) return array();
+        return seo_google_period_metrics($property_id, $date_from, $date_to);
     }
 }
 
@@ -342,6 +321,28 @@ if (!function_exists('seo_analista_page_rows')) {
         if (!$property_id || !function_exists('seo_google_table')) return array();
         $table = seo_google_table('search_data');
         $limit = max(50, min(5000, absint($limit)));
+
+        if (function_exists('seo_google_pages_period_complete')
+            && seo_google_pages_period_complete($property_id, $date_from, $date_to)) {
+            $pages_table = seo_google_table('search_pages');
+            $pages = (array) $wpdb->get_results($wpdb->prepare(
+                "SELECT page_hash,MAX(page_url) AS page_url,SUM(clicks) AS clicks,SUM(impressions) AS impressions,
+                    CASE WHEN SUM(impressions)>0 THEN SUM(clicks)/SUM(impressions) ELSE 0 END AS ctr,
+                    CASE WHEN SUM(impressions)>0 THEN SUM(position*impressions)/SUM(impressions) ELSE 0 END AS position
+                 FROM {$pages_table} WHERE property_hash=%s AND search_type='web' AND data_date BETWEEN %s AND %s
+                 GROUP BY page_hash HAVING SUM(impressions)>0 ORDER BY impressions DESC,clicks DESC LIMIT %d",
+                hash('sha256', $property_id), $date_from, $date_to, $limit
+            ), ARRAY_A);
+            $query_counts = (array) $wpdb->get_results($wpdb->prepare(
+                "SELECT page_hash,COUNT(DISTINCT query_hash) AS queries FROM {$table}
+                 WHERE property_hash=%s AND data_date BETWEEN %s AND %s GROUP BY page_hash",
+                hash('sha256', $property_id), $date_from, $date_to
+            ), ARRAY_A);
+            $query_map = array_column($query_counts, 'queries', 'page_hash');
+            foreach ($pages as &$page) $page['queries'] = (int) ($query_map[$page['page_hash']] ?? 0);
+            unset($page);
+            return $pages;
+        }
 
         return (array) $wpdb->get_results(
             $wpdb->prepare(

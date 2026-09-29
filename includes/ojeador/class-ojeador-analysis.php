@@ -77,6 +77,7 @@ final class SEO_Ojeador_Analysis {
             'merchants' => self::merchant_ranking(30),
             'notes' => array(
                 'Los resultados de Google Shopping son una muestra de la consulta y no equivalen al tamaño total del mercado.',
+                'Las impresiones atribuidas a categorías por Analista proceden de filas de página y consulta, que pueden ser parciales; no equivalen al total de la propiedad de Search Console.',
                 'El número de resultados suele estar limitado por la respuesta del proveedor; por eso no se usa como índice de demanda.',
                 'El índice de oportunidad es una prioridad interna: combina profundidad relativa de nuestro catálogo, amplitud de comercios, visibilidad de Analista y volumen de reseñas. No es una estimación de ventas.',
                 'La dispersión min–max de precios se muestra como contexto, pero no genera recomendaciones por sí sola porque una categoría puede mezclar productos y gamas diferentes.',

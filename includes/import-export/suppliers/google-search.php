@@ -168,6 +168,21 @@ if ( ! function_exists( 'seo_google_api_request' ) ) {
     }
 }
 
+/** Ventana común, finalizada, para comparar informes GSC y GA4. */
+if ( ! function_exists( 'seo_google_reporting_dates' ) ) {
+    function seo_google_reporting_dates( $days = 28 ) {
+        $days = max( 1, absint( $days ) );
+        if ( function_exists( 'seo_google_finalized_end_date' ) ) {
+            $end = seo_google_finalized_end_date();
+        } else {
+            $end = ( new DateTimeImmutable( 'now', new DateTimeZone( 'America/Los_Angeles' ) ) )
+                ->modify( '-3 days' )->format( 'Y-m-d' );
+        }
+        $start = ( new DateTimeImmutable( $end ) )->modify( '-' . ( $days - 1 ) . ' days' )->format( 'Y-m-d' );
+        return array( 'startDate' => $start, 'endDate' => $end );
+    }
+}
+
 if ( ! function_exists( 'seo_google_search_console_query' ) ) {
     function seo_google_search_console_query( $request = [] ) {
         $settings = seo_google_search_settings();
@@ -324,6 +339,23 @@ if ( ! function_exists( 'seo_google_search_save_settings' ) ) {
     add_action( 'admin_post_seo_google_search_save', 'seo_google_search_save_settings' );
 }
 
+// Una página pública cacheada puede contener el tag para visitantes anónimos.
+// Esta cookie de sesión evita que ese HTML active GA4 en el navegador admin.
+if ( ! function_exists( 'seo_google_mark_admin_browser' ) ) {
+    function seo_google_mark_admin_browser() {
+        if ( headers_sent() ) return;
+        if ( current_user_can( 'manage_options' ) ) {
+            setcookie( 'seo_skip_analytics', '1', time() + DAY_IN_SECONDS, COOKIEPATH ?: '/', COOKIE_DOMAIN, is_ssl(), false );
+        }
+    }
+    add_action( 'init', 'seo_google_mark_admin_browser', 20 );
+    add_action( 'wp_logout', function() {
+        if ( ! headers_sent() ) {
+            setcookie( 'seo_skip_analytics', '', time() - HOUR_IN_SECONDS, COOKIEPATH ?: '/', COOKIE_DOMAIN, is_ssl(), false );
+        }
+    } );
+}
+
 if ( ! function_exists( 'seo_google_frontend_tracking' ) ) {
     function seo_google_frontend_tracking() {
         if ( is_admin() || current_user_can( 'manage_options' ) ) {
@@ -345,12 +377,17 @@ if ( ! function_exists( 'seo_google_frontend_tracking' ) ) {
         }
         ?>
         <!-- SEO System: Google Analytics 4 -->
-        <script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo esc_attr( $measurement_id ); ?>"></script>
         <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', <?php echo wp_json_encode( $measurement_id ); ?>);
+        if (!/(?:^|;\s*)seo_skip_analytics=1(?:;|$)/.test(document.cookie)) {
+            window.dataLayer = window.dataLayer || [];
+            window.gtag = function(){dataLayer.push(arguments);};
+            window.gtag('js', new Date());
+            window.gtag('config', <?php echo wp_json_encode( $measurement_id ); ?>);
+            var seoGaScript = document.createElement('script');
+            seoGaScript.async = true;
+            seoGaScript.src = <?php echo wp_json_encode( 'https://www.googletagmanager.com/gtag/js?id=' . $measurement_id ); ?>;
+            document.head.appendChild(seoGaScript);
+        }
         </script>
         <?php
     }
@@ -367,4 +404,3 @@ if ( is_readable( $seo_google_ecommerce_module ) ) {
     require_once $seo_google_ecommerce_module;
 }
 unset( $seo_google_ecommerce_module );
-

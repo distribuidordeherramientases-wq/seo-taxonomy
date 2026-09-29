@@ -157,6 +157,12 @@ if (!function_exists('seo_analista_lazy_render_search_console')) {
             return;
         }
 
+        if (function_exists('seo_google_metrics_coverage_notice')) {
+            $notice = seo_google_metrics_coverage_notice($current);
+            $previous_notice = seo_google_metrics_coverage_notice($previous);
+            if ($notice || $previous_notice) echo '<div class="notice notice-warning inline"><p>' . esc_html(($notice ?: $previous_notice) . ' Comparación provisional hasta completar ambos periodos.') . '</p></div>';
+        }
+
         echo '<div class="seo-analista-grid">';
         seo_analista_render_metric_card('Impresiones', number_format_i18n((float) ($current['impressions'] ?? 0), 0), seo_analista_metric_delta($current['impressions'] ?? 0, $previous['impressions'] ?? 0));
         seo_analista_render_metric_card('Clics', number_format_i18n((float) ($current['clicks'] ?? 0), 0), seo_analista_metric_delta($current['clicks'] ?? 0, $previous['clicks'] ?? 0));
