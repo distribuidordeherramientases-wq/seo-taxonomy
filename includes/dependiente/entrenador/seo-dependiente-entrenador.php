@@ -3437,7 +3437,7 @@ final class SEO_Dependiente_Entrenador {
         $diagnostic = sanitize_key((string) ($evaluation['diagnostic_type'] ?? ''));
         $learned = 0 === strpos($evaluation_status, 'pass_');
         $label = 'error' === $status ? 'Error técnico' : ($learned ? 'Aprendida' : 'No aprendida');
-        $class = 'error' === $status ? 'is-error' : ($learned ? 'is-pass' : 'is-fail');
+        $class = 'error' === $status ? 'is-error' : ($learned ? 'is-ok' : 'is-empty');
         $results = (array) ($row['top_results'] ?? array());
         ?>
         <tr>
@@ -5232,6 +5232,7 @@ final class SEO_Dependiente_Entrenador {
             'results'         => $results,
             'total'           => absint($pagination['total'] ?? count($results)),
             'search_strategy' => $strategy,
+            'search_id'       => sanitize_text_field((string) ($v3['search_uuid'] ?? '')),
             'semantic'        => array(
                 'normalized' => (string) ($interpretation['normalized'] ?? ''),
                 'filtered'   => (string) ($interpretation['filtered'] ?? ''),
@@ -5809,7 +5810,7 @@ final class SEO_Dependiente_Entrenador {
             return 0;
         }
         $product_id = absint($evaluation['matched_product_id'] ?? 0);
-        $lesson_key = sanitize_key((string) ($question['lesson_key'] ?? ''));
+        $lesson_key = 'manual_training';
         $raw = (string) ($question['question'] ?? '');
         $normalized = SEO_Dependiente_V3_DB::normalize($raw);
         if (!$product_id || !$lesson_key || !$normalized) {
