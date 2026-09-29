@@ -1876,7 +1876,7 @@ final class SEO_Dependiente_Entrenador {
             wp_send_json_error(array('message' => 'El conocimiento se está reiniciando. Espera a que termine.'), 423);
         }
 
-        $default_mode = self::sanitize_mode($_POST['mode'] ?? 'need');
+        $default_mode = 'need';
         $source = 'text';
         $filename = '';
         $items = array();
@@ -2069,10 +2069,12 @@ final class SEO_Dependiente_Entrenador {
             ),
             'summary' => self::lab_summary($batch_key),
             'notes' => array(
-                'diagnostic_only'             => true,
+                'diagnostic_only'             => false,
                 'customer_search_log_written' => false,
-                'observational_learning_used' => false,
+                'training_log_written'        => true,
+                'observational_learning_used' => true,
                 'knowledge_modified'          => false,
+                'learning_policy'             => 'Las preguntas alimentan evidencia/candidatos revisables; no se activan reglas automáticamente.',
             ),
             'items' => $items,
         );
@@ -2797,6 +2799,23 @@ final class SEO_Dependiente_Entrenador {
     }
 
     /**
+     * Las preguntas manuales del banco no son trafico de clientes. V3 las guarda
+     * como training para que puedan aportar evidencia de aprendizaje sin
+     * contaminar las metricas comerciales.
+     */
+    public static function lab_v3_request_kind($request_kind) {
+        return 'training';
+    }
+
+    public static function lab_v3_allow_learning($allow_learning = false) {
+        return true;
+    }
+
+    public static function lab_v3_learning_source($source = '') {
+        return 'question_bank';
+    }
+
+    /**
      * Academia puede pedir al API un diagnóstico interno de recuperación. El
      * filtro solo existe durante sus propias llamadas REST, por lo que esos datos
      * no se exponen en las búsquedas normales de clientes.
@@ -3264,8 +3283,8 @@ final class SEO_Dependiente_Entrenador {
             ?>
             <section class="postbox seo-dependiente-admin__box seo-dependiente-trainer__manual-locked">
                 <h2 class="seo-dependiente-admin__box-title">Laboratorio de preguntas bloqueado</h2>
-                <p>Cuando termine la formación básica se desbloqueará un laboratorio para probar al Dependiente con preguntas libres. Podrás pegarlas en un campo de texto o cargar lotes desde TXT, CSV o JSON.</p>
-                <p class="description">El Laboratorio será diagnóstico: sus consultas estarán aisladas del tráfico de clientes y no modificarán el conocimiento por sí solas.</p>
+                <p>Cuando termine la formación básica se desbloqueará un banco para enviar preguntas reales al Dependiente. Podrás pegarlas en un campo de texto o cargar lotes desde TXT, CSV o JSON.</p>
+                <p class="description">Las preguntas se ejecutarán contra el Dependiente V3 y quedarán registradas como material de entrenamiento separado del tráfico de clientes.</p>
             </section>
             <?php
             return;
@@ -3279,10 +3298,10 @@ final class SEO_Dependiente_Entrenador {
         <section class="postbox seo-dependiente-admin__box seo-dependiente-trainer__lab" data-trainer-lab data-lab-batch-key="<?php echo esc_attr($batch_key); ?>">
             <div class="seo-dependiente-trainer__section-head">
                 <div>
-                    <h2 class="seo-dependiente-admin__box-title">Laboratorio de preguntas</h2>
-                    <p>Prueba el conocimiento ya formado sin contaminar el aprendizaje. Puedes lanzar una pregunta, pegar varias líneas o importar un archivo completo.</p>
+                    <h2 class="seo-dependiente-admin__box-title">Preguntas al Dependiente</h2>
+                    <p>Envía preguntas reales al Dependiente. Puedes escribir una, pegar muchas líneas o cargar un archivo completo. El Dependiente las responderá con su motor V3 y conservará su interpretación como evidencia de entrenamiento.</p>
                 </div>
-                <span class="seo-dependiente-trainer__isolation">Solo diagnóstico · no aprende</span>
+                <span class="seo-dependiente-trainer__isolation">Entrenamiento supervisado · separado de clientes</span>
             </div>
 
             <div class="seo-dependiente-trainer__lab-grid">
@@ -3294,25 +3313,19 @@ final class SEO_Dependiente_Entrenador {
                 <div class="seo-dependiente-trainer__lab-upload">
                     <label for="seo-dependiente-lab-file"><strong>O cargar archivo</strong></label>
                     <input id="seo-dependiente-lab-file" type="file" data-trainer-lab-file accept=".txt,.csv,.json,text/plain,text/csv,application/json">
-                    <p class="description"><strong>TXT:</strong> una pregunta por línea. <strong>CSV:</strong> columnas <code>question</code> y opcional <code>mode</code>. <strong>JSON:</strong> array de textos u objetos con <code>question</code> y <code>mode</code>. Máximo 5.000 preguntas / 2 MB.</p>
-                    <label for="seo-dependiente-lab-mode"><strong>Modo por defecto</strong></label>
-                    <select id="seo-dependiente-lab-mode" data-trainer-lab-mode>
-                        <option value="need">Necesidad</option>
-                        <option value="product">Producto</option>
-                        <option value="tool">Herramienta</option>
-                        <option value="compare">Comparar</option>
-                    </select>
+                    <p class="description"><strong>TXT:</strong> una pregunta por línea. <strong>CSV:</strong> columna <code>question</code> o <code>pregunta</code>. <strong>JSON:</strong> array de textos u objetos con <code>question</code> o <code>pregunta</code>. Máximo 5.000 preguntas / 2 MB.</p>
+                    <p class="description"><strong>Sin modo manual:</strong> cada línea se envía como una pregunta natural y el propio Dependiente decide cómo interpretarla.</p>
                 </div>
             </div>
 
             <div class="seo-dependiente-trainer__lab-actions">
-                <button type="button" class="button" data-trainer-lab-import <?php disabled($auto_running); ?>>Preparar nuevo lote</button>
+                <button type="button" class="button" data-trainer-lab-import <?php disabled($auto_running); ?>>Cargar preguntas</button>
                 <?php if ($batch_key) : ?>
-                    <button type="button" class="button button-primary" data-trainer-lab-run <?php disabled($auto_running || $done); ?>><?php echo $done ? 'Lote completado' : 'Lanzar lote completo'; ?></button>
+                    <button type="button" class="button button-primary" data-trainer-lab-run <?php disabled($auto_running || $done); ?>><?php echo $done ? 'Lote completado' : 'Enviar preguntas al Dependiente'; ?></button>
                     <button type="button" class="button" data-trainer-lab-export>Descargar resultados JSON</button>
                 <?php endif; ?>
             </div>
-            <p class="description" data-trainer-lab-status aria-live="polite"><?php echo $batch_key ? esc_html('Último lote: ' . number_format_i18n(absint($summary['answered'])) . ' de ' . number_format_i18n(absint($summary['total'])) . ' preguntas ejecutadas.') : 'Prepara un lote para empezar.'; ?></p>
+            <p class="description" data-trainer-lab-status aria-live="polite"><?php echo $batch_key ? esc_html('Último lote: ' . number_format_i18n(absint($summary['answered'])) . ' de ' . number_format_i18n(absint($summary['total'])) . ' preguntas ejecutadas.') : 'Carga preguntas para empezar.'; ?></p>
 
             <?php if ($batch_key) : ?>
                 <div class="seo-dependiente-trainer__lab-progress">
@@ -3353,7 +3366,7 @@ final class SEO_Dependiente_Entrenador {
         ?>
         <tr>
             <td><strong><?php echo esc_html((string) ($row['question'] ?? '')); ?></strong><?php if (!empty($row['search_strategy'])) : ?><div class="description">Estrategia: <code><?php echo esc_html((string) $row['search_strategy']); ?></code></div><?php endif; ?></td>
-            <td><span class="seo-dependiente-trainer__status <?php echo 'error' === $status ? 'is-error' : 'is-neutral'; ?>"><?php echo 'error' === $status ? 'Error técnico' : 'Observada'; ?></span><?php if (!empty($row['error_message'])) : ?><div class="description"><?php echo esc_html((string) $row['error_message']); ?></div><?php endif; ?></td>
+            <td><span class="seo-dependiente-trainer__status <?php echo 'error' === $status ? 'is-error' : 'is-neutral'; ?>"><?php echo 'error' === $status ? 'Error técnico' : 'Respondida'; ?></span><?php if (!empty($row['error_message'])) : ?><div class="description"><?php echo esc_html((string) $row['error_message']); ?></div><?php endif; ?></td>
             <td>
                 <?php if ($results) : ?>
                     <ol class="seo-dependiente-trainer__answer-list">
@@ -4834,7 +4847,7 @@ final class SEO_Dependiente_Entrenador {
             'source_id'     => absint($item['source_id'] ?? 0) ?: null,
             'source_key'    => self::shorten($source_key, 190),
             'question_type' => sanitize_key((string) ($item['question_type'] ?? 'other')),
-            'mode'          => self::sanitize_mode($item['mode'] ?? 'need'),
+            'mode'          => 'need',
             'question'      => $question,
             'expected_json' => wp_json_encode((array) ($item['expected'] ?? array()), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'enabled'       => 1,
@@ -5199,7 +5212,8 @@ final class SEO_Dependiente_Entrenador {
         $expected_preview_kind = sanitize_key((string) ($expected_preview['kind'] ?? ''));
         $use_v3_l10_semantic = 'v2_l10_consolidation_debt' === $lesson_key
             && class_exists('SEO_Dependiente_V3_API');
-        $use_v3_runtime = $use_v3_lesson9 || $use_v3_l10_semantic;
+        $use_v3_lab_training = 0 === strpos($lesson_key, self::LAB_PREFIX) && class_exists('SEO_Dependiente_V3_API');
+        $use_v3_runtime = $use_v3_lesson9 || $use_v3_l10_semantic || $use_v3_lab_training;
 
         $request = new WP_REST_Request($use_v3_runtime ? 'GET' : 'POST', $use_v3_runtime ? '/seo-taxonomy/v3/search' : '/seo-taxonomy/v1/search');
         if ($use_v3_runtime) {
@@ -5221,7 +5235,13 @@ final class SEO_Dependiente_Entrenador {
         // L10, en cambio, revalida exclusivamente conocimiento ya activo.
         $use_classroom_stage = self::lesson_uses_classroom_stage($lesson_key);
         $faq_owner_only = 'v2_l6_faq' === $lesson_key || 'faq' === $expected_preview_kind;
-        add_filter('seo_dependiente_should_log_search', array(__CLASS__, 'skip_customer_search_log'), 999, 4);
+        if ($use_v3_lab_training) {
+            add_filter('seo_dependiente_v3_request_kind', array(__CLASS__, 'lab_v3_request_kind'), 999, 4);
+            add_filter('seo_dependiente_v3_allow_learning', array(__CLASS__, 'lab_v3_allow_learning'), 999, 4);
+            add_filter('seo_dependiente_v3_learning_source', array(__CLASS__, 'lab_v3_learning_source'), 999, 4);
+        } else {
+            add_filter('seo_dependiente_should_log_search', array(__CLASS__, 'skip_customer_search_log'), 999, 4);
+        }
         add_filter('seo_dependiente_expose_search_diagnostic', array(__CLASS__, 'expose_search_diagnostic'), 999, 3);
         if ($use_classroom_stage) {
             add_filter('seo_dependiente_include_academy_stage', array(__CLASS__, 'include_academy_stage_rules'), 999, 1);
@@ -5236,8 +5256,8 @@ final class SEO_Dependiente_Entrenador {
                 }
                 $response = self::run_lesson9_v3_search(
                     $request,
-                    $use_v3_l10_semantic ? 'v3_l10_semantic' : 'v3_l9',
-                    $use_v3_l10_semantic ? 'lesson10_semantic_regression' : 'lesson9_classroom'
+                    $use_v3_lab_training ? 'v3_training' : ($use_v3_l10_semantic ? 'v3_l10_semantic' : 'v3_l9'),
+                    $use_v3_lab_training ? 'manual_question_training' : ($use_v3_l10_semantic ? 'lesson10_semantic_regression' : 'lesson9_classroom')
                 );
             } else {
                 $response = SEO_Dependiente_API::search($request);
@@ -5248,7 +5268,13 @@ final class SEO_Dependiente_Entrenador {
             if ($use_v3_lesson9) {
                 SEO_Dependiente_V3_Lesson9::set_classroom_lesson('');
             }
-            remove_filter('seo_dependiente_should_log_search', array(__CLASS__, 'skip_customer_search_log'), 999);
+            if ($use_v3_lab_training) {
+                remove_filter('seo_dependiente_v3_request_kind', array(__CLASS__, 'lab_v3_request_kind'), 999);
+                remove_filter('seo_dependiente_v3_allow_learning', array(__CLASS__, 'lab_v3_allow_learning'), 999);
+                remove_filter('seo_dependiente_v3_learning_source', array(__CLASS__, 'lab_v3_learning_source'), 999);
+            } else {
+                remove_filter('seo_dependiente_should_log_search', array(__CLASS__, 'skip_customer_search_log'), 999);
+            }
             remove_filter('seo_dependiente_expose_search_diagnostic', array(__CLASS__, 'expose_search_diagnostic'), 999);
             if ($use_classroom_stage) {
                 remove_filter('seo_dependiente_include_academy_stage', array(__CLASS__, 'include_academy_stage_rules'), 999);
@@ -5764,8 +5790,7 @@ final class SEO_Dependiente_Entrenador {
                     continue;
                 }
                 $question = (string) ($row['question'] ?? $row['pregunta'] ?? $row['q'] ?? '');
-                $mode = (string) ($row['mode'] ?? $row['modo'] ?? $default_mode);
-                $items[] = array('question' => $question, 'mode' => $mode);
+                $items[] = array('question' => $question, 'mode' => $default_mode);
             }
             return $items;
         }
@@ -5806,25 +5831,20 @@ final class SEO_Dependiente_Entrenador {
             }
             $header = array_map(function ($value) { return strtolower(remove_accents(trim((string) $value))); }, $rows[0]);
             $q_index = null;
-            $mode_index = null;
             foreach ($header as $index => $name) {
                 if (in_array($name, array('question', 'pregunta', 'q'), true)) {
                     $q_index = $index;
-                }
-                if (in_array($name, array('mode', 'modo'), true)) {
-                    $mode_index = $index;
                 }
             }
             $has_header = null !== $q_index;
             if (!$has_header) {
                 $q_index = 0;
-                $mode_index = isset($rows[0][1]) ? 1 : null;
             }
             $items = array();
             foreach (array_slice($rows, $has_header ? 1 : 0) as $row) {
                 $items[] = array(
                     'question' => (string) ($row[$q_index] ?? ''),
-                    'mode'     => null !== $mode_index ? (string) ($row[$mode_index] ?? $default_mode) : $default_mode,
+                    'mode'     => $default_mode,
                 );
             }
             return $items;
@@ -5872,7 +5892,7 @@ final class SEO_Dependiente_Entrenador {
             $seen[$key] = true;
             $out[] = array(
                 'question' => $question,
-                'mode'     => self::sanitize_mode($item['mode'] ?? $default_mode),
+                'mode'     => 'need',
             );
         }
         return $out;
@@ -5888,17 +5908,17 @@ final class SEO_Dependiente_Entrenador {
             $normalized = class_exists('SEO_Dependiente_Index') ? SEO_Dependiente_Index::normalize($question) : strtolower(remove_accents($question));
             $hash = hash('sha256', $batch_key . '|' . $normalized);
             $module_no = (int) ceil($sequence / self::LAB_MODULE_SIZE);
-            $expected = array_merge(array('kind' => 'lab'), (array) $meta);
+            $expected = array_merge(array('kind' => 'training', 'training_source' => 'question_bank'), (array) $meta);
             $inserted = $wpdb->insert(self::questions_table(), array(
                 'question_hash' => $hash,
                 'lesson_key'    => $batch_key,
                 'lesson_order'  => 999,
                 'module_no'     => $module_no,
                 'sequence_no'   => $sequence,
-                'source_type'   => 'lab',
+                'source_type'   => 'manual_training',
                 'source_id'     => null,
-                'source_key'    => 'lab:' . $sequence,
-                'question_type' => 'lab_free',
+                'source_key'    => 'training:' . $sequence,
+                'question_type' => 'manual_training',
                 'mode'          => self::sanitize_mode($item['mode'] ?? 'need'),
                 'question'      => $question,
                 'expected_json' => self::json($expected),

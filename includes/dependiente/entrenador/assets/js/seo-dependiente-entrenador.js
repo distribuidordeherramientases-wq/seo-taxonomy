@@ -27,7 +27,6 @@
     const labRoot = root.querySelector('[data-trainer-lab]');
     const labText = root.querySelector('[data-trainer-lab-text]');
     const labFile = root.querySelector('[data-trainer-lab-file]');
-    const labMode = root.querySelector('[data-trainer-lab-mode]');
     const labImportButton = root.querySelector('[data-trainer-lab-import]');
     const labRunButton = root.querySelector('[data-trainer-lab-run]');
     const labExportButton = root.querySelector('[data-trainer-lab-export]');
@@ -199,7 +198,7 @@
             pass_top8: 'Correcto · Top 8',
             fail: 'No superado',
             error: 'Error técnico',
-            observed: 'Observada · sin aprendizaje'
+            observed: 'Respondida · sin aprendizaje'
         };
         return labels[status] || status || 'Sin evaluar';
     }
@@ -516,15 +515,14 @@
             return;
         }
         setBusy(true);
-        if (labStatus) labStatus.textContent = 'Preparando el lote de preguntas…';
+        if (labStatus) labStatus.textContent = 'Cargando preguntas para el Dependiente…';
         try {
             const form = new FormData();
             form.set('questions_text', text);
-            form.set('mode', labMode ? labMode.value : 'need');
             if (file) form.set('lab_file', file, file.name);
             const data = await postForm('seo_dependiente_entrenador_lab_import', form);
             labBatchKey = data.batch_key || '';
-            if (labStatus) labStatus.textContent = data.message || 'Lote preparado.';
+            if (labStatus) labStatus.textContent = data.message || 'Preguntas cargadas.';
             window.setTimeout(function () { window.location.reload(); }, 500);
         } catch (error) {
             if (labStatus) labStatus.textContent = 'No se pudo preparar el lote: ' + error.message;
@@ -547,7 +545,7 @@
         let fastStreak = 0;
         let noProgress = 0;
         let lastAnswered = -1;
-        if (labStatus) labStatus.textContent = 'Ejecutando el lote de forma adaptativa…';
+        if (labStatus) labStatus.textContent = 'Enviando preguntas al Dependiente de forma adaptativa…';
 
         try {
             while (true) {

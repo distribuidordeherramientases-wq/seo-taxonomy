@@ -79,14 +79,47 @@ final class SEO_Dependiente_V3_API {
         );
 
 
-        // El runtime V3 es la fuente publica real de consultas. Registramos la
-        // pregunta y su interpretacion en el log canonico para Analista, Auditor
-        // y Solucionador, pero sin activar el aprendizaje legacy.
+        // El runtime V3 es la fuente publica real de consultas. Por defecto
+        // registra trafico publico sin aprendizaje. Herramientas internas, como
+        // el banco de preguntas de Academia, pueden habilitar aprendizaje
+        // supervisado y marcar la consulta como training mediante filtros que
+        // solo existen durante esa llamada PHP.
         $search_uuid = '';
-        if (class_exists('SEO_Dependiente_Search_Log')) {
+        $should_log_search = (bool) apply_filters(
+            'seo_dependiente_should_log_search',
+            true,
+            $query,
+            'search',
+            $request
+        );
+        if ($should_log_search && class_exists('SEO_Dependiente_Search_Log')) {
             $decision = (array) ($catalog['decision'] ?? array());
             $pagination = (array) ($catalog['pagination'] ?? array());
             $request_kind = $page > 1 ? 'paginate' : ($category !== '' ? 'refine' : 'search');
+            $request_kind = sanitize_key((string) apply_filters(
+                'seo_dependiente_v3_request_kind',
+                $request_kind,
+                $query,
+                $request,
+                $catalog
+            ));
+            if (!in_array($request_kind, array('search','refine','paginate','training'), true)) {
+                $request_kind = 'search';
+            }
+            $allow_learning = (bool) apply_filters(
+                'seo_dependiente_v3_allow_learning',
+                false,
+                $query,
+                $request,
+                $catalog
+            );
+            $learning_source = sanitize_key((string) apply_filters(
+                'seo_dependiente_v3_learning_source',
+                '',
+                $query,
+                $request,
+                $catalog
+            ));
             $strategy_detail = array(
                 'runtime' => 'v3',
                 'build' => '3.1.0-visual-guidance',
@@ -99,6 +132,7 @@ final class SEO_Dependiente_V3_API {
                     'candidate_count' => absint($decision['candidate_count'] ?? ($pagination['candidate_total'] ?? 0)),
                 ),
                 'category' => $category,
+                'learning_source' => $learning_source,
                 'suggestions' => array_values(array_slice(array_map(static function ($item) {
                     return array(
                         'id' => absint($item['id'] ?? 0),
@@ -120,7 +154,7 @@ final class SEO_Dependiente_V3_API {
                 'result_count' => count((array) ($catalog['products'] ?? array())),
                 'results' => (array) ($catalog['products'] ?? array()),
                 'execution_ms' => round((microtime(true) - $started) * 1000, 3),
-                'allow_learning' => false,
+                'allow_learning' => $allow_learning,
             ));
         }
 
