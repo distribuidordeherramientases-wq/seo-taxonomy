@@ -1068,14 +1068,14 @@
 ========================================================== */
 
 .dh-product-page {
-    width: min(var(--dht-container), 92%);
-    margin: 45px auto;
+    width: min(1440px, calc(100% - 40px));
+    margin: 20px auto 45px;
 }
 
 .dh-product-layout {
     display: grid;
     grid-template-columns: minmax(340px, .95fr) minmax(0, 1.05fr);
-    gap: 48px;
+    gap: 32px;
     align-items: start;
 }
 
@@ -1093,7 +1093,7 @@
 
 .dh-gallery-main {
     display: flex;
-    min-height: 420px;
+    min-height: 360px;
     align-items: center;
     justify-content: center;
 }
