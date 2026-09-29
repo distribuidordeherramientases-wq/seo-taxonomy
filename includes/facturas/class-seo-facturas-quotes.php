@@ -366,6 +366,7 @@ final class SEO_Facturas_Quotes {
             $items[] = array(
                 'cart_item_key' => sanitize_text_field((string) $cart_item_key),
                 'product_id'    => absint($cart_item['product_id'] ?? 0),
+                'object_id'     => absint($cart_item['product_id'] ?? 0),
                 'variation_id'  => absint($cart_item['variation_id'] ?? 0),
                 'sku'           => $product ? (string) $product->get_sku() : '',
                 'name'          => $product ? (string) $product->get_name() : '',
