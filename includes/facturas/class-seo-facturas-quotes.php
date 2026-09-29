@@ -14,6 +14,7 @@ final class SEO_Facturas_Quotes {
 
     private static $initialized = false;
     private static $rendered = false;
+    private static $dht_rendered = false;
     private static $request_kind = 'quote';
 
     public static function init() {
@@ -24,7 +25,7 @@ final class SEO_Facturas_Quotes {
 
         add_action('wp_enqueue_scripts', array(__CLASS__, 'enqueue_assets'));
         add_action('woocommerce_proceed_to_checkout', array(__CLASS__, 'render_cart_form'), 30);
-        add_action('seo_facturas_cart_documents', array(__CLASS__, 'render_cart_form'), 10);
+        add_action('seo_facturas_cart_documents', array(__CLASS__, 'render_dht_cart_form'), 10);
         add_filter('render_block_woocommerce/cart', array(__CLASS__, 'append_to_cart_block'), 20, 2);
         add_shortcode('seo_facturas_presupuesto', array(__CLASS__, 'shortcode'));
         add_action('template_redirect', array(__CLASS__, 'handle_download'), 20);
@@ -42,6 +43,24 @@ final class SEO_Facturas_Quotes {
             return;
         }
         self::$rendered = true;
+        self::enqueue_front_assets();
+        echo self::form_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+    }
+
+    /**
+     * Render exclusivo para la plantilla DHT del carrito.
+     *
+     * No reutiliza la bandera $rendered porque WooCommerce puede procesar
+     * previamente su Cart Block aunque la plantilla DHT sea la salida final.
+     * En ese caso, marcar $rendered no debe impedir que el resumen DHT muestre
+     * sus documentos descargables.
+     */
+    public static function render_dht_cart_form() {
+        if (self::$dht_rendered || !self::is_available()) {
+            return;
+        }
+
+        self::$dht_rendered = true;
         self::enqueue_front_assets();
         echo self::form_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
     }

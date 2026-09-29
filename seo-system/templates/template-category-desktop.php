@@ -324,43 +324,6 @@ $json = array(
 
     </section>
 
-    <section class="dht-service-section" aria-label="Nuestro servicio de acompañamiento">
-        <div class="dht-container">
-            <?php dht_template_render_service_promise('strip', 'browse'); ?>
-        </div>
-    </section>
-
-
-    <!-- =====================================================
-         DESCRIPCIÓN DE LA CATEGORÍA
-    ====================================================== -->
-
-    <?php if(!empty($category_description)): ?>
-
-        <section class="dht-section dht-category-description-section">
-
-            <div class="dht-container">
-
-                <div class="dht-category-description-card">
-                    <span class="dht-category-description-kicker">Sobre esta familia</span>
-                    <div class="dht-category-description">
-                        <?php echo wp_kses_post($category_description); ?>
-                    </div>
-                </div>
-
-            </div>
-
-        </section>
-
-    <?php endif; ?>
-
-    <section class="dht-section dht-category-assistant-section" aria-label="Ayuda para elegir">
-        <div class="dht-container">
-            <?php dht_template_render_dependiente_cta($term->name, 'context'); ?>
-        </div>
-    </section>
-
-
     <!-- =====================================================
          PRODUCTOS DE LA CATEGORÍA
     ====================================================== -->
@@ -473,6 +436,36 @@ $json = array(
     <?php endif; ?>
 
     <?php wp_reset_postdata(); ?>
+
+    <section class="dht-section dht-category-assistant-section" aria-label="Ayuda para elegir">
+        <div class="dht-container">
+            <?php dht_template_render_dependiente_cta($term->name, 'compact'); ?>
+        </div>
+    </section>
+
+    <!-- =====================================================
+         DESCRIPCIÓN DE LA CATEGORÍA
+    ====================================================== -->
+
+    <?php if(!empty($category_description)): ?>
+
+        <section class="dht-section dht-category-description-section">
+
+            <div class="dht-container">
+
+                <div class="dht-category-description-card">
+                    <span class="dht-category-description-kicker">Sobre esta familia</span>
+                    <div class="dht-category-description">
+                        <?php echo wp_kses_post($category_description); ?>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+    <?php endif; ?>
+
 
 
     <!-- =====================================================

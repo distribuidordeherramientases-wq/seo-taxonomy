@@ -607,7 +607,8 @@ if (function_exists('generate_navigation_position')) {
  */
 $dht_show_value_bar = true;
 if (
-    (function_exists('is_cart') && is_cart())
+    (function_exists('is_front_page') && is_front_page())
+    || (function_exists('is_cart') && is_cart())
     || (function_exists('is_checkout') && is_checkout())
     || (function_exists('is_account_page') && is_account_page())
 ) {

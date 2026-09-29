@@ -31,6 +31,7 @@
             compareCount: root.querySelector('[data-dependiente-compare-count]'),
             compareClear: root.querySelector('[data-dependiente-compare-clear]'),
             compareOpen: root.querySelector('[data-dependiente-compare-open]'),
+            comparePdf: root.querySelector('[data-dependiente-compare-pdf]'),
             dialog: root.querySelector('[data-dependiente-dialog]'),
             dialogClose: root.querySelector('[data-dependiente-dialog-close]'),
             compareContent: root.querySelector('[data-dependiente-compare-content]'),
@@ -291,6 +292,7 @@
             });
 
             elements.compareOpen.addEventListener('click', openComparison);
+            if (elements.comparePdf) elements.comparePdf.addEventListener('click', downloadComparisonPdf);
             elements.dialogClose.addEventListener('click', closeDialog);
             elements.dialog.addEventListener('click', function (event) {
                 if (event.target === elements.dialog) closeDialog();
@@ -1685,10 +1687,10 @@
             if (!id) return;
             if (state.compare.has(id)) {
                 state.compare.delete(id);
-            } else if (state.compare.size < Number(config.compareMax || 4)) {
+            } else if (state.compare.size < Number(config.compareMax || 6)) {
                 state.compare.add(id);
             } else {
-                elements.status.textContent = 'Puedes comparar un máximo de cuatro productos.';
+                elements.status.textContent = 'Puedes comparar un máximo de ' + Number(config.compareMax || 6) + ' productos.';
                 return;
             }
             persistCompareIds(state.compare);
@@ -1701,6 +1703,7 @@
             elements.compareTray.hidden = count === 0;
             elements.compareCount.textContent = count + (count === 1 ? ' producto' : ' productos');
             elements.compareOpen.disabled = count < 2;
+            if (elements.comparePdf) elements.comparePdf.disabled = count < 2;
         }
 
         function syncCompareButtons() {
@@ -1721,6 +1724,41 @@
             } catch (error) {
                 elements.compareContent.innerHTML = '<div class="seo-dependiente__compare-content"><div class="seo-dependiente__empty"><strong>No se pudo crear la comparación</strong><span>' + escapeHtml(error.message) + '</span></div></div>';
             }
+        }
+
+        function downloadComparisonPdf() {
+            if (state.compare.size < 2 || !config.comparePdfUrl || !config.comparePdfNonce) return;
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = String(config.comparePdfUrl);
+            form.target = '_blank';
+            form.style.display = 'none';
+
+            const fields = {
+                action: 'seo_dependiente_compare_pdf',
+                nonce: String(config.comparePdfNonce)
+            };
+
+            Object.keys(fields).forEach(function (name) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = name;
+                input.value = fields[name];
+                form.appendChild(input);
+            });
+
+            Array.from(state.compare).slice(0, Number(config.compareMax || 6)).forEach(function (id) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'ids[]';
+                input.value = String(Number(id));
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+            window.setTimeout(function () { form.remove(); }, 1000);
         }
 
         function renderComparison(data) {
@@ -1820,7 +1858,7 @@
     function loadCompareIds() {
         try {
             const values = JSON.parse(window.sessionStorage.getItem('seoDependienteCompare') || '[]');
-            return new Set((Array.isArray(values) ? values : []).map(Number).filter(Boolean).slice(0, Number(config.compareMax || 4)));
+            return new Set((Array.isArray(values) ? values : []).map(Number).filter(Boolean).slice(0, Number(config.compareMax || 6)));
         } catch (error) {
             return new Set();
         }

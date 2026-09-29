@@ -46,6 +46,16 @@ Para cada imagen pueden aparecer:
 
 La pantalla también muestra Imágenes de navegación, Fuentes de datos detectadas y Lógica del Dependiente.
 
+### Comparador público
+
+El modo **Comparar opciones** permite seleccionar entre **2 y 6 productos** del catálogo.
+
+- **Comparar** abre la tabla comparativa con precio, marca, referencia, disponibilidad, peso, dimensiones, categorías, Vocabulary y atributos disponibles.
+- **Vaciar** elimina la selección actual.
+- **Descargar PDF** [Exporta] genera la comparación visible como documento PDF sin crear pedido, factura, proforma ni presupuesto.
+- El PDF reutiliza el motor Dompdf del módulo **Facturas y presupuestos** y se genera en **A4 apaisado** para mantener legibles hasta seis productos.
+- Cuando existe identidad corporativa configurada en Facturas y presupuestos, el PDF reutiliza nombre comercial y logotipo.
+
 ### Zona peligrosa
 
 **Borrar conocimiento del Dependiente** [Elimina] reinicia conocimiento aprendido. Exige la confirmación:
