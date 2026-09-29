@@ -18,6 +18,10 @@ Los cambios validados en `staging` que todavía no formen parte de una publicaci
 
 ### Marketing y campañas
 
+- Separada la agenda social comercial de la editorial: las **ofertas de campaña** se programan a las **18:00** y las entradas de **Noticias** a las **20:00**.
+- Añadida prioridad editorial para Noticias. Las marcadas como **Prioritarias** adelantan a las no prioritarias dentro de los huecos futuros de cada red, sin mover ofertas, páginas ni landings.
+- El Programador y el CSV admiten el campo `prioridad`; el calendario deja de considerar colisión la combinación intencional oferta + pieza editorial del mismo día.
+
 - El planificador social de campañas prioriza ahora las **ofertas a las 18:00**: entradas y landings del mismo día ya no bloquean la programación comercial. Se mantiene un máximo de una oferta de campaña por día y red; si el día ya está ocupado por otra oferta, se usa el siguiente día disponible. Se eliminan para campañas los controles de separación mínima y hora preferida.
 - Añadida pestaña **Informes** de Marketing con dos vistas: **Campañas** y **Redes sociales**. Mide visitas firmadas, interacciones, pedidos atribuidos, facturación atribuida, conversión y ventas observadas durante campañas.
 - Las franjas públicas de campaña incorporan enlaces firmados y contador de visitas por producto sin PII. Las visitas sociales conservan atribución de última interacción durante 30 días y se asocian al pedido WooCommerce (checkout clásico y Store API/Blocks).
