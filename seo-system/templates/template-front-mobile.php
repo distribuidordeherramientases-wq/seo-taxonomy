@@ -765,56 +765,29 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
 
 <main class="dht-storefront dht-storefront--mobile dht-front-structure" id="dht-storefront">
     <div class="sf-layout sf-layout--mobile">
-        <section class="sf-mobile-entry" aria-labelledby="dht-home-title-mobile">
+        <section class="sf-mobile-assistance" aria-labelledby="dht-home-title-mobile">
             <div class="sf-mobile-shell">
-                <div class="sf-mobile-finder">
-                    <div class="sf-mobile-finder-copy">
-                        <span class="sf-eyebrow">Tu Dependiente del catálogo</span>
-                        <h1 id="dht-home-title-mobile">Encuentra lo que necesitas con Dependiente</h1>
-                        <p>Cuéntale qué quieres hacer, qué problema tienes o qué necesitas conseguir. Puedes escribirlo como se lo explicarías a un dependiente.</p>
-                        <div class="sf-home-search" aria-label="Preguntar al Dependiente">
-                            <form class="sf-home-search-form" role="search" method="get" action="<?php echo esc_url(home_url('/dependiente/')); ?>">
-                                <label class="screen-reader-text" for="dht-home-search-mobile">Cuéntale a Dependiente qué necesitas</label>
-                                <input id="dht-home-search-mobile" type="search" name="dep_q" placeholder="¿Qué necesitas hacer o resolver?" autocomplete="off">
-                                <button type="submit">Preguntar</button>
-                            </form>
-                        </div>
-                        <div class="sf-search-examples" aria-label="Ejemplos para preguntar al Dependiente">
-                            <a class="sf-search-example" style="text-decoration:none;color:inherit" href="<?php echo esc_url(add_query_arg('dep_q', 'se me ha roto un grifo y quiero cambiarlo', home_url('/dependiente/'))); ?>"><span>se me ha roto un grifo</span></a>
-                            <a class="sf-search-example" style="text-decoration:none;color:inherit" href="<?php echo esc_url(add_query_arg('dep_q', 'quiero perforar una pared de hormigón', home_url('/dependiente/'))); ?>"><span>perforar una pared de hormigón</span></a>
-                            <a class="sf-search-example" style="text-decoration:none;color:inherit" href="<?php echo esc_url(add_query_arg('dep_q', 'necesito una máquina para cortar los arbustos del jardín', home_url('/dependiente/'))); ?>"><span>cortar los arbustos del jardín</span></a>
-                            <a class="sf-search-example" style="text-decoration:none;color:inherit" href="<?php echo esc_url(add_query_arg('dep_q', 'quiero reparar un motor y no sé qué herramienta necesito', home_url('/dependiente/'))); ?>"><span>reparar un motor</span></a>
-                        </div>
-                        <a class="sf-mobile-catalog-link" href="<?php echo esc_url(dht_template_shop_url()); ?>">Ver todo el catálogo →</a>
-                    </div>
-                    <div class="sf-mobile-person">
+                <div class="sf-mobile-assistance-card">
+                    <div class="sf-mobile-assistance-title">
                         <?php if ($dht_dependiente_image) : ?>
-                            <img src="<?php echo esc_url($dht_dependiente_image); ?>" alt="Persona del equipo de Distribuidor de Herramientas" loading="eager" fetchpriority="high">
-                        <?php else : ?>
-                            <div class="sf-mobile-person-fallback"><svg viewBox="0 0 200 200" aria-hidden="true" focusable="false"><circle cx="100" cy="68" r="38" fill="currentColor" opacity=".95"/><path d="M35 180c7-45 32-68 65-68s58 23 65 68H35z" fill="currentColor" opacity=".95"/><path d="M58 68c3-29 20-47 42-47s39 18 42 47c-12-9-27-14-42-14s-30 5-42 14z" fill="currentColor" opacity=".75"/></svg></div>
+                            <img src="<?php echo esc_url($dht_dependiente_image); ?>" alt="Dependiente, asistente del catálogo" loading="lazy">
                         <?php endif; ?>
-                        <div class="sf-mobile-person-badge"><strong>Dependiente te ayuda a buscar</strong><span>Si prefieres una persona, también puedes llamarnos.</span></div>
+                        <div>
+                            <span class="sf-eyebrow">Ayuda para elegir</span>
+                            <h1 id="dht-home-title-mobile">¿Qué necesitas hacer?</h1>
+                        </div>
                     </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="sf-mobile-service" aria-labelledby="dht-service-title-mobile">
-            <div class="sf-mobile-shell">
-                <div class="sf-mobile-service-panel">
-                    <span class="sf-service-kicker">Soporte personal antes y después de la compra</span>
-                    <h2 id="dht-service-title-mobile">Te ayudamos como intermediarios</h2>
-                    <p>Si surge una incidencia, te ayudamos en castellano con la comunicación y el seguimiento frente al fabricante o distribuidor.</p>
-                    <div class="sf-mobile-service-grid">
-                        <div class="sf-mobile-service-point"><strong>Antes de comprar</strong><span>Orientación para encontrar y comparar opciones.</span></div>
-                        <div class="sf-mobile-service-point"><strong>Después de comprar</strong><span>Ayuda con correos, tickets y seguimiento de incidencias.</span></div>
-                        <div class="sf-mobile-service-point"><strong>Proveedores extranjeros</strong><span>Te ayudamos a gestionar la comunicación cuando el proceso se complica.</span></div>
+                    <p>Descríbelo con tus palabras y busca opciones dentro del catálogo.</p>
+                    <form class="sf-home-search-form" role="search" method="get" action="<?php echo esc_url(home_url('/dependiente/')); ?>">
+                        <label class="screen-reader-text" for="dht-home-search-mobile">Describe lo que necesitas</label>
+                        <input id="dht-home-search-mobile" type="search" name="dep_q" placeholder="¿Qué necesitas hacer o resolver?" autocomplete="off">
+                        <button type="submit">Buscar</button>
+                    </form>
+                    <div class="sf-mobile-assistance-human">
+                        <strong>¿Prefieres una persona?</strong>
+                        <a href="<?php echo esc_url($dht_whatsapp_url); ?>" target="_blank" rel="noopener noreferrer">Hablar por WhatsApp</a>
+                        <a href="<?php echo esc_url($dht_service_url); ?>">Conocer el servicio</a>
                     </div>
-                    <div class="sf-mobile-service-actions">
-                        <a href="<?php echo esc_url($dht_phone_href); ?>">Llamar</a>
-                        <a href="<?php echo esc_url($dht_whatsapp_url); ?>" target="_blank" rel="noopener noreferrer">WhatsApp</a>
-                    </div>
-                    <small class="sf-service-legal">Somos apoyo e interlocutor en la gestión; no sustituimos el soporte técnico del fabricante ni alteramos las responsabilidades y garantías legales aplicables.</small>
                 </div>
             </div>
         </section>
@@ -894,21 +867,6 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
             <div class="sf-mobile-shell">
                 <div class="sf-mobile-heading"><h2>Productos populares</h2><a href="<?php echo esc_url(dht_template_shop_url()); ?>">Ver más</a></div>
                 <?php $render_products(array_slice($popular_products, 0, 10), 'sf-products--mobile'); ?>
-            </div>
-        </section>
-
-        <section class="sf-mobile-promo sf-mobile-promo--split">
-            <div class="sf-mobile-shell">
-                <div class="sf-mobile-help">
-                    <span>Antes de comprar</span>
-                    <strong>Busca por producto, uso, necesidad o referencia.</strong>
-                    <a href="#dht-home-title-mobile">Volver al buscador</a>
-                </div>
-                <div class="sf-mobile-help sf-mobile-help--service">
-                    <span>Después de comprar</span>
-                    <strong>Si hay una incidencia, te ayudamos como intermediarios en la gestión.</strong>
-                    <a href="<?php echo esc_url($dht_service_url); ?>">Cómo funciona</a>
-                </div>
             </div>
         </section>
 

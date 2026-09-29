@@ -7513,3 +7513,36 @@ html {
     }
 }
 
+
+
+/* ==========================================================
+   MARKETING 2026-09 · JERARQUIA COMERCIAL
+   Producto primero; asistencia compacta y contextual.
+========================================================== */
+.sf-assistance-compact{padding:22px 0;background:#f7f9fb;border-bottom:1px solid #e5e9ed}
+.sf-assistance-compact__panel{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(300px,.75fr);gap:18px;align-items:stretch}
+.sf-assistance-compact__finder,.sf-assistance-compact__human{min-width:0;padding:20px 22px;border:1px solid #dfe5ea;border-radius:14px;background:#fff}
+.sf-assistance-compact__identity{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+.sf-assistance-compact__identity img{width:64px;height:64px;flex:0 0 64px;border-radius:14px;object-fit:cover;object-position:center top}
+.sf-assistance-compact__finder h1{margin:2px 0 0;font-size:clamp(22px,2.4vw,32px);line-height:1.08}
+.sf-assistance-compact__finder>p,.sf-assistance-compact__human p{margin:8px 0 14px;color:#5f6b76;font-size:14px;line-height:1.5}
+.sf-assistance-compact__human{display:flex;flex-direction:column;justify-content:center;background:#f4faf6}
+.sf-assistance-compact__human>strong{margin-top:4px;font-size:20px;line-height:1.2}
+.sf-assistance-compact__link{background:transparent!important;color:#1d6b43!important;border:1px solid #bfd7c8!important}
+.sf-mobile-assistance{padding:14px 0 20px;background:#f7f9fb}
+.sf-mobile-assistance-card{padding:16px;border:1px solid #dfe5ea;border-radius:14px;background:#fff}
+.sf-mobile-assistance-title{display:flex;align-items:center;gap:10px}
+.sf-mobile-assistance-title img{width:48px;height:48px;flex:0 0 48px;border-radius:11px;object-fit:cover;object-position:center top}
+.sf-mobile-assistance-title h1{margin:2px 0 0;font-size:22px;line-height:1.1}
+.sf-mobile-assistance-card>p{margin:10px 0 12px;color:#5f6b76;font-size:13px;line-height:1.45}
+.sf-mobile-assistance-human{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:12px;padding-top:12px;border-top:1px solid #e6eaee;font-size:13px}
+.sf-mobile-assistance-human strong{margin-right:auto}
+.sf-mobile-assistance-human a{font-weight:800;text-decoration:none}
+.dh-purchase-support{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:12px 0 4px;padding:12px 14px;border:1px solid #dfe6ec;border-radius:10px;background:#f7faf8;color:#334155;font-size:13px;line-height:1.4}
+.dh-purchase-support span{flex:1 1 320px}
+.dh-purchase-support a{font-weight:800;text-decoration:none;white-space:nowrap}
+@media(max-width:767px){
+  .sf-assistance-compact__panel{grid-template-columns:1fr}
+  .sf-assistance-compact__finder,.sf-assistance-compact__human{padding:16px}
+  .dh-purchase-support{align-items:flex-start}
+}
