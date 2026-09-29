@@ -26,6 +26,8 @@ final class SEO_Facturas_Snapshot {
             )
             : array();
 
+        $include_commercial = SEO_Facturas_Documents::TYPE_PROFORMA === sanitize_key((string) $document_type);
+
         $items = array();
         foreach ($order->get_items('line_item') as $item_id => $item) {
             $product = $item->get_product();
@@ -44,6 +46,9 @@ final class SEO_Facturas_Snapshot {
                 'total_tax'     => (float) $item->get_total_tax(),
                 'unit_net'      => $qty > 0 ? ($total / $qty) : $total,
                 'tax_class'     => (string) $item->get_tax_class(),
+                'commercial'    => ($include_commercial && $product)
+                    ? self::product_commercial_snapshot($product)
+                    : array(),
             );
         }
 
@@ -136,6 +141,147 @@ final class SEO_Facturas_Snapshot {
         );
 
         return apply_filters('seo_facturas_order_snapshot', $snapshot, $order, $document_type);
+    }
+
+    /**
+     * Copia comercial del producto para presupuestos/proformas.
+     *
+     * Se congela dentro del snapshot para que el documento conserve la ficha
+     * mostrada al cliente aunque el producto cambie posteriormente.
+     */
+    public static function product_commercial_snapshot($product) {
+        if (!$product || !is_a($product, 'WC_Product')) {
+            return array();
+        }
+
+        $source = $product;
+        if (is_a($product, 'WC_Product_Variation') && $product->get_parent_id()) {
+            $parent = wc_get_product($product->get_parent_id());
+            if ($parent) {
+                $source = $parent;
+            }
+        }
+
+        $product_id = absint($source->get_id());
+        $summary = trim(wp_strip_all_tags((string) $source->get_short_description()));
+        $description = trim(wp_strip_all_tags((string) $source->get_description()));
+
+        if ('' === $summary && '' !== $description) {
+            $summary = wp_trim_words($description, 34, '…');
+        } else {
+            $summary = wp_trim_words($summary, 34, '…');
+        }
+        $description = '' !== $description ? wp_trim_words($description, 110, '…') : '';
+
+        $categories = wp_get_post_terms($product_id, 'product_cat', array('fields' => 'names'));
+        if (is_wp_error($categories)) {
+            $categories = array();
+        }
+
+        $tags = wp_get_post_terms($product_id, 'product_tag', array('fields' => 'names'));
+        if (is_wp_error($tags)) {
+            $tags = array();
+        }
+
+        $attributes = array();
+        if (function_exists('dht_shared_product_compare_data')) {
+            $compare = dht_shared_product_compare_data($source, 3);
+            if (is_array($compare) && !empty($compare['attributes']) && is_array($compare['attributes'])) {
+                $attributes = $compare['attributes'];
+            }
+        }
+
+        if (!$attributes) {
+            foreach ((array) $source->get_attributes() as $attribute) {
+                if (!is_a($attribute, 'WC_Product_Attribute')) {
+                    continue;
+                }
+
+                $name = (string) $attribute->get_name();
+                $label = function_exists('wc_attribute_label')
+                    ? (string) wc_attribute_label($name, $source)
+                    : $name;
+                $values = $attribute->is_taxonomy() && function_exists('wc_get_product_terms')
+                    ? wc_get_product_terms($product_id, $name, array('fields' => 'names'))
+                    : (array) $attribute->get_options();
+
+                if (is_wp_error($values)) {
+                    $values = array();
+                }
+
+                $values = array_values(array_unique(array_filter(array_map(static function ($value) {
+                    return trim(wp_strip_all_tags((string) $value));
+                }, (array) $values))));
+
+                if ($label && $values) {
+                    $attributes[wp_strip_all_tags($label)] = implode(', ', $values);
+                }
+            }
+        }
+
+        $image_data_uri = self::product_image_data_uri($source);
+
+        $effective_price = $product->get_price('view');
+        $price_text = '';
+        if ('' !== (string) $effective_price && is_numeric($effective_price)) {
+            $display_price = function_exists('wc_get_price_to_display')
+                ? wc_get_price_to_display($product, array('price' => (float) $effective_price))
+                : (float) $effective_price;
+            $price_html = function_exists('wc_price') ? wc_price($display_price) : (string) $display_price;
+            $price_text = html_entity_decode(
+                wp_strip_all_tags((string) $price_html, true),
+                ENT_QUOTES | ENT_HTML5,
+                (string) get_bloginfo('charset') ?: 'UTF-8'
+            );
+            $price_text = str_replace("\xC2\xA0", ' ', $price_text);
+            $price_text = trim((string) preg_replace('/[\\s\\x{00A0}]+/u', ' ', $price_text));
+        }
+
+        return array(
+            'product_id'     => $product_id,
+            'name'           => wp_strip_all_tags((string) $product->get_name()),
+            'url'            => esc_url_raw((string) get_permalink($product_id)),
+            'image_data_uri' => $image_data_uri,
+            'summary'        => $summary,
+            'description'    => $description,
+            'categories'     => array_slice(array_values(array_unique(array_filter(array_map('sanitize_text_field', (array) $categories)))), 0, 8),
+            'tags'           => array_slice(array_values(array_unique(array_filter(array_map('sanitize_text_field', (array) $tags)))), 0, 12),
+            'attributes'     => array_slice($attributes, 0, 20, true),
+            'price'          => $price_text,
+        );
+    }
+
+    private static function product_image_data_uri($product) {
+        if (!$product || !is_a($product, 'WC_Product')) {
+            return '';
+        }
+
+        $attachment_id = absint($product->get_image_id());
+        if (!$attachment_id && is_a($product, 'WC_Product_Variation') && $product->get_parent_id()) {
+            $parent = wc_get_product($product->get_parent_id());
+            $attachment_id = $parent ? absint($parent->get_image_id()) : 0;
+        }
+
+        if (!$attachment_id) {
+            return '';
+        }
+
+        $path = get_attached_file($attachment_id);
+        if (!$path || !is_readable($path)) {
+            return '';
+        }
+
+        $mime = get_post_mime_type($attachment_id);
+        if (!$mime || 0 !== strpos($mime, 'image/')) {
+            return '';
+        }
+
+        $bytes = file_get_contents($path);
+        if (!is_string($bytes) || '' === $bytes) {
+            return '';
+        }
+
+        return 'data:' . $mime . ';base64,' . base64_encode($bytes);
     }
 
     private static function address_snapshot($address) {
