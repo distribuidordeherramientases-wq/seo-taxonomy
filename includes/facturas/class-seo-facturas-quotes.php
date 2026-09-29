@@ -269,16 +269,6 @@ final class SEO_Facturas_Quotes {
 
         WC()->cart->calculate_totals();
 
-        if (
-            SEO_Facturas_Settings::get('quote_show_shipping', 1)
-            && WC()->cart->needs_shipping()
-            && WC()->customer
-            && is_callable(array(WC()->customer, 'has_calculated_shipping'))
-            && !WC()->customer->has_calculated_shipping()
-        ) {
-            self::fail('Para generar un documento completo, indica primero el destino de envio en el carrito para que WooCommerce calcule el transporte.');
-        }
-
         if ('quote' === $kind) {
             $numbering = SEO_Facturas_Documents::reserve_number(SEO_Facturas_Documents::TYPE_QUOTE);
         } else {
@@ -465,6 +455,12 @@ final class SEO_Facturas_Quotes {
                 'subtotal_items' => (float) $cart->get_subtotal(),
                 'discount_total' => (float) $cart->get_discount_total(),
                 'shipping_total' => (float) $cart->get_shipping_total(),
+                'shipping_pending' => (
+                    $cart->needs_shipping()
+                    && $customer
+                    && is_callable(array($customer, 'has_calculated_shipping'))
+                    && !$customer->has_calculated_shipping()
+                ),
                 'fee_total'      => (float) $cart->get_fee_total(),
                 'total_tax'      => (float) $cart->get_total_tax(),
                 'total'          => (float) $cart->get_total('edit'),
@@ -635,19 +631,37 @@ final class SEO_Facturas_Quotes {
     }
 
     private static function is_quote_available() {
-        return (bool) (
-            SEO_Facturas_Settings::get('enabled', 0)
-            && SEO_Facturas_Settings::get('quote_enabled', 0)
-            && class_exists('WooCommerce')
-        );
+        if (!class_exists('WooCommerce')) {
+            return false;
+        }
+
+        /*
+         * Los documentos comerciales del carrito deben seguir disponibles
+         * aunque el sistema documental global no este activado. Ese interruptor
+         * controla la emision automatica ligada a pedidos/facturas, no debe
+         * ocultar la opcion de preparar un presupuesto antes de comprar.
+         */
+        if (!SEO_Facturas_Settings::get('enabled', 0)) {
+            return true;
+        }
+
+        return (bool) SEO_Facturas_Settings::get('quote_enabled', 0);
     }
 
     private static function is_proforma_draft_available() {
-        return (bool) (
-            SEO_Facturas_Settings::get('enabled', 0)
-            && SEO_Facturas_Settings::get('proforma_enabled', 1)
-            && class_exists('WooCommerce')
-        );
+        if (!class_exists('WooCommerce')) {
+            return false;
+        }
+
+        /*
+         * Igual que el presupuesto, la proforma borrador es una previsualizacion
+         * comercial del carrito. No crea pedido ni factura fiscal.
+         */
+        if (!SEO_Facturas_Settings::get('enabled', 0)) {
+            return true;
+        }
+
+        return (bool) SEO_Facturas_Settings::get('proforma_enabled', 1);
     }
 
     private static function draft_numbering() {
