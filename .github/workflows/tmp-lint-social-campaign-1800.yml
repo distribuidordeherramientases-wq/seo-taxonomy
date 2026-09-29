@@ -1,0 +1,21 @@
+name: Temporal lint social campaign 1800
+
+on:
+  push:
+    branches:
+      - fix/social-campaign-offers-1800
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP syntax
+        run: php -l includes/social-network/campaigns.php
+      - name: Scheduling rule sanity
+        run: |
+          grep -q "seo_social_campaign_fixed_publication_time" includes/social-network/campaigns.php
+          grep -q "18:00" includes/social-network/campaigns.php
+          ! grep -q "name=\\\"min_gap_hours\\\"" includes/social-network/campaigns.php
+          ! grep -q "name=\\\"preferred_time\\\"" includes/social-network/campaigns.php
+          grep -q "seo_social_campaign_occupied_offer_days" includes/social-network/campaigns.php
