@@ -376,12 +376,34 @@ final class SEO_Facturas_Snapshot {
             return '';
         }
 
-        $path = get_attached_file($attachment_id);
+        $path = '';
+        $image = wp_get_attachment_image_src($attachment_id, 'medium');
+        if (is_array($image) && !empty($image[0])) {
+            $uploads = wp_upload_dir(null, false);
+            $baseurl = rtrim((string) ($uploads['baseurl'] ?? ''), '/');
+            $basedir = rtrim((string) ($uploads['basedir'] ?? ''), DIRECTORY_SEPARATOR);
+            $url = (string) $image[0];
+
+            if ($baseurl && $basedir && 0 === strpos($url, $baseurl . '/')) {
+                $relative = ltrim(substr($url, strlen($baseurl)), '/');
+                $candidate = $basedir . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+                if (is_readable($candidate)) {
+                    $path = $candidate;
+                }
+            }
+        }
+
+        if ('' === $path) {
+            $path = (string) get_attached_file($attachment_id);
+        }
         if (!$path || !is_readable($path)) {
             return '';
         }
 
-        $mime = get_post_mime_type($attachment_id);
+        $mime = function_exists('wp_check_filetype') ? (string) (wp_check_filetype($path)['type'] ?? '') : '';
+        if (!$mime) {
+            $mime = (string) get_post_mime_type($attachment_id);
+        }
         if (!$mime || 0 !== strpos($mime, 'image/')) {
             return '';
         }
