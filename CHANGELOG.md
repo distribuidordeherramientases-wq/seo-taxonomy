@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Dependiente / Academia
+
+- Corregida la **Lección 10** para que conserve la marca de currículo `semantic-v2` al guardar preparación, quality gate y finalización. La pérdida de esa marca hacía que, después de completar correctamente L10, la sincronización la interpretase de nuevo como pendiente de migración y la devolviese a **Disponible**.
+- Añadida una recuperación conservadora del caso ya ocurrido: si L1-L9 están completadas, L10 quedó vacía exactamente por esta remigración y el controlador automático acababa de cerrar el curso, se restaura L10 como **Completada** sin obligar a ejecutarla por tercera vez.
+
 Los cambios validados en `staging` que todavía no formen parte de una publicación de producción se documentan aquí. Al cerrar una release semanal, estas entradas se trasladan a la versión fechada correspondiente.
 
 ### Administración y navegación
