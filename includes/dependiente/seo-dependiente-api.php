@@ -973,23 +973,43 @@ final class SEO_Dependiente_API {
     }
 
     public static function compare(WP_REST_Request $request) {
+        $params = self::request_params($request);
+        $ids = isset($params['ids']) ? (array) $params['ids'] : array();
+        $result = self::comparison_data($ids);
+
+        return is_wp_error($result) ? $result : rest_ensure_response($result);
+    }
+
+    /**
+     * Construye los datos canónicos del comparador para pantalla y PDF.
+     * El límite de seis productos se aplica también en servidor.
+     */
+    public static function comparison_data($ids) {
         $ready = self::woocommerce_ready();
         if (is_wp_error($ready)) {
             return $ready;
         }
-        $params = self::request_params($request);
-        $ids = isset($params['ids']) ? array_values(array_unique(array_filter(array_map('absint', (array) $params['ids'])))) : array();
-        $ids = array_slice($ids, 0, 4);
+
+        $ids = array_values(array_unique(array_filter(array_map('absint', (array) $ids))));
+        $ids = array_slice($ids, 0, 6);
+        if (count($ids) < 2) {
+            return new WP_Error(
+                'seo_dependiente_compare_minimum',
+                'Selecciona al menos dos productos para comparar.',
+                array('status' => 400)
+            );
+        }
+
         $rows = SEO_Dependiente_Index::get_rows_by_ids($ids);
         $documents = array_map(array('SEO_Dependiente_Index', 'decode_row'), $rows);
 
-        $products = array();
+        $products_by_id = array();
         foreach ($documents as $document) {
             $product = wc_get_product(absint($document['product_id']));
             if (!$product || !$product->is_visible()) {
                 continue;
             }
-            $products[] = array(
+            $products_by_id[$product->get_id()] = array(
                 'id'          => $product->get_id(),
                 'title'       => $product->get_name(),
                 'url'         => get_permalink($product->get_id()),
@@ -1008,14 +1028,30 @@ final class SEO_Dependiente_API {
             );
         }
 
+        // Respeta el orden elegido por el usuario.
+        $products = array();
+        foreach ($ids as $id) {
+            if (isset($products_by_id[$id])) {
+                $products[] = $products_by_id[$id];
+            }
+        }
+
+        if (count($products) < 2) {
+            return new WP_Error(
+                'seo_dependiente_compare_unavailable',
+                'No hay suficientes productos visibles para crear la comparación.',
+                array('status' => 404)
+            );
+        }
+
         $criteria = self::comparison_criteria($documents);
         $comparison_rows = self::comparison_rows($products, $criteria);
 
-        return rest_ensure_response(array(
+        return array(
             'products' => $products,
             'criteria' => $criteria,
             'rows'     => $comparison_rows,
-        ));
+        );
     }
 
     private static function sanitize_semantic_hint($hint) {
