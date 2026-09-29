@@ -380,7 +380,7 @@ final class SEO_Facturas_Admin {
                 <?php self::text_row($option, 'invoice_email_ids', 'IDs de email WooCommerce', $s['invoice_email_ids'], 'text', 'Separados por comas. Ej.: customer_processing_order,customer_completed_order'); ?>
                 <?php self::checkbox_row($option, 'invoice_show_order_reference', 'Referencia del pedido', $s['invoice_show_order_reference'], 'Mostrar pedido WooCommerce y fecha del pedido.'); ?>
                 <?php self::checkbox_row($option, 'invoice_show_payment_method', 'Metodo de pago', $s['invoice_show_payment_method'], 'Mostrar el metodo de pago en el PDF.'); ?>
-                <?php self::checkbox_row($option, 'invoice_show_sku', 'SKU / referencia', $s['invoice_show_sku'], 'Mostrar SKU en las lineas de producto.'); ?>
+                <?php self::checkbox_row($option, 'invoice_show_sku', 'Referencia interna del producto', $s['invoice_show_sku'], 'Mostrar el ID interno de WordPress del producto. El SKU del proveedor no se muestra al cliente.'); ?>
                 <?php self::textarea_row($option, 'invoice_footer_text', 'Pie exclusivo de factura', $s['invoice_footer_text'], 'Se muestra ademas del pie comun.'); ?>
             </table>
             <?php submit_button('Guardar facturas'); ?>
@@ -407,7 +407,7 @@ final class SEO_Facturas_Admin {
                 <?php self::text_row($option, 'proforma_email_ids', 'IDs de email WooCommerce', $s['proforma_email_ids'], 'text', 'Por defecto: customer_on_hold_order'); ?>
                 <?php self::checkbox_row($option, 'proforma_show_order_reference', 'Referencia del pedido', $s['proforma_show_order_reference'], 'Mostrar pedido WooCommerce y fecha del pedido.'); ?>
                 <?php self::checkbox_row($option, 'proforma_show_payment_method', 'Metodo de pago', $s['proforma_show_payment_method'], 'Mostrar el metodo de pago seleccionado.'); ?>
-                <?php self::checkbox_row($option, 'proforma_show_sku', 'SKU / referencia', $s['proforma_show_sku'], 'Mostrar SKU en las lineas de producto.'); ?>
+                <?php self::checkbox_row($option, 'proforma_show_sku', 'Referencia interna del producto', $s['proforma_show_sku'], 'Mostrar el ID interno de WordPress del producto. El SKU del proveedor no se muestra al cliente.'); ?>
                 <?php self::checkbox_row($option, 'proforma_show_payment_info', 'Instrucciones de pago', $s['proforma_show_payment_info'], 'Incluir datos para transferencia/Bizum en la proforma.'); ?>
                 <?php self::text_row($option, 'proforma_beneficiary', 'Beneficiario', $s['proforma_beneficiary']); ?>
                 <?php self::text_row($option, 'proforma_iban', 'IBAN', $s['proforma_iban']); ?>
@@ -450,7 +450,7 @@ final class SEO_Facturas_Admin {
 
             <h3>Contenido del PDF</h3>
             <table class="form-table" role="presentation">
-                <?php self::checkbox_row($option, 'quote_show_sku', 'SKU / referencia', $s['quote_show_sku'], 'Mostrar SKU.'); ?>
+                <?php self::checkbox_row($option, 'quote_show_sku', 'Referencia interna del producto', $s['quote_show_sku'], 'Mostrar el ID interno de WordPress del producto. El SKU del proveedor no se muestra al cliente.'); ?>
                 <?php self::checkbox_row($option, 'quote_show_tax', 'Impuestos', $s['quote_show_tax'], 'Desglosar base e impuestos.'); ?>
                 <?php self::checkbox_row($option, 'quote_show_shipping', 'Transporte', $s['quote_show_shipping'], 'Mostrar transporte y destino utilizado por WooCommerce.'); ?>
                 <?php self::checkbox_row($option, 'quote_show_discounts', 'Descuentos', $s['quote_show_discounts'], 'Mostrar descuentos aplicados al carrito.'); ?>
