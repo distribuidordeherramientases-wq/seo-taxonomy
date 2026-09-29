@@ -26,6 +26,8 @@ final class SEO_Dependiente_Plugin {
         // suficientemente tarde para crear/actualizar paginas y menus.
         add_action('admin_init', array($this, 'ensure_public_page'), 20);
         add_action('rest_api_init', array('SEO_Dependiente_API', 'register_routes'));
+        add_action('admin_post_seo_dependiente_compare_pdf', array($this, 'download_compare_pdf'));
+        add_action('admin_post_nopriv_seo_dependiente_compare_pdf', array($this, 'download_compare_pdf'));
 
         add_filter('template_include', array($this, 'template_include'), 99);
         add_filter('wp_robots', array($this, 'filter_query_state_robots'), 99);
@@ -299,7 +301,7 @@ final class SEO_Dependiente_Plugin {
             <div class="seo-dependiente__compare-tray" data-dependiente-compare-tray hidden>
                 <div>
                     <strong data-dependiente-compare-count>0 productos</strong>
-                    <span>Selecciona entre 2 y 4 para comparar.</span>
+                    <span>Selecciona entre 2 y 6 para comparar.</span>
                 </div>
                 <div class="seo-dependiente__compare-actions">
                     <button type="button" class="is-secondary" data-dependiente-compare-clear>Vaciar</button>
@@ -310,7 +312,10 @@ final class SEO_Dependiente_Plugin {
             <dialog class="seo-dependiente__dialog" data-dependiente-dialog>
                 <div class="seo-dependiente__dialog-head">
                     <div><span>Comparador</span><h2>Qué cambia entre estas opciones</h2></div>
-                    <button type="button" class="seo-dependiente__dialog-close" data-dependiente-dialog-close aria-label="Cerrar">×</button>
+                    <div class="seo-dependiente__dialog-actions">
+                        <button type="button" class="seo-dependiente__compare-pdf" data-dependiente-compare-pdf disabled>Descargar PDF</button>
+                        <button type="button" class="seo-dependiente__dialog-close" data-dependiente-dialog-close aria-label="Cerrar">×</button>
+                    </div>
                 </div>
                 <div data-dependiente-compare-content></div>
             </dialog>
@@ -364,6 +369,177 @@ final class SEO_Dependiente_Plugin {
         return '';
     }
 
+    /**
+     * Descarga una comparación puntual en PDF sin crear pedido, factura,
+     * presupuesto ni documento persistente.
+     */
+    public function download_compare_pdf() {
+        check_admin_referer('seo_dependiente_compare_pdf', 'nonce');
+
+        $ids = isset($_POST['ids']) ? (array) wp_unslash($_POST['ids']) : array();
+        $ids = array_values(array_unique(array_filter(array_map('absint', $ids))));
+        $ids = array_slice($ids, 0, 6);
+
+        if (count($ids) < 2) {
+            wp_die(esc_html__('Selecciona al menos dos productos para comparar.', 'seo-system'), '', array('response' => 400));
+        }
+
+        $comparison = SEO_Dependiente_API::comparison_data($ids);
+        if (is_wp_error($comparison)) {
+            wp_die(esc_html($comparison->get_error_message()), '', array('response' => 400));
+        }
+
+        if (!class_exists('SEO_Facturas_PDF')) {
+            $bootstrap = dirname(__DIR__) . '/facturas/seo-facturas-bootstrap.php';
+            if (is_readable($bootstrap)) {
+                require_once $bootstrap;
+            }
+        }
+
+        if (!class_exists('SEO_Facturas_PDF')) {
+            wp_die(esc_html__('El motor PDF no está disponible.', 'seo-system'), '', array('response' => 500));
+        }
+
+        $html = self::comparison_pdf_html($comparison);
+        $document_number = 'comparativa-' . wp_date('Ymd-His');
+        $binary = SEO_Facturas_PDF::render_binary($html, $document_number, 0, 'landscape');
+
+        if (is_wp_error($binary)) {
+            wp_die(esc_html($binary->get_error_message()), '', array('response' => 500));
+        }
+
+        nocache_headers();
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: attachment; filename="' . sanitize_file_name($document_number . '.pdf') . '"');
+        header('Content-Length: ' . strlen($binary));
+        echo $binary; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        exit;
+    }
+
+    /**
+     * Maqueta la comparación para A4 apaisado reutilizando la identidad
+     * configurada en Facturas/Proformas/Presupuestos cuando está disponible.
+     */
+    private static function comparison_pdf_html(array $comparison) {
+        $products = (array) ($comparison['products'] ?? array());
+        $rows = (array) ($comparison['rows'] ?? array());
+        $criteria = (array) ($comparison['criteria'] ?? array());
+
+        $company = array();
+        if (class_exists('SEO_Facturas_Settings')) {
+            $company = (array) SEO_Facturas_Settings::company_snapshot();
+        }
+
+        $brand = (string) ($company['trade_name'] ?? '');
+        if ('' === trim($brand)) {
+            $brand = (string) ($company['name'] ?? '');
+        }
+        if ('' === trim($brand)) {
+            $brand = (string) get_bloginfo('name');
+        }
+
+        $logo = (string) ($company['logo_data_uri'] ?? '');
+        $criteria_labels = array_values(array_filter(array_map('sanitize_text_field', (array) ($criteria['labels'] ?? array()))));
+
+        ob_start();
+        ?>
+        <!doctype html>
+        <html lang="es">
+        <head>
+            <meta charset="utf-8">
+            <style>
+                @page { margin: 18mm 12mm 16mm; }
+                body { font-family: "DejaVu Sans", sans-serif; color:#17211b; font-size:9px; }
+                .head { border-bottom:2px solid #17211b; padding-bottom:10px; margin-bottom:14px; }
+                .brand { display:table; width:100%; }
+                .brand-main,.brand-meta { display:table-cell; vertical-align:middle; }
+                .brand-meta { text-align:right; color:#657168; font-size:8px; }
+                .logo { max-height:34px; max-width:150px; vertical-align:middle; margin-right:10px; }
+                h1 { margin:0; font-size:20px; line-height:1.1; }
+                .subtitle { margin:4px 0 0; color:#657168; }
+                .criteria { margin:0 0 12px; padding:8px 10px; background:#f2f6e7; border-radius:5px; }
+                .chip { display:inline-block; margin:2px 4px 2px 0; padding:3px 5px; border:1px solid #ccd6b0; border-radius:8px; font-size:7px; }
+                table { width:100%; border-collapse:collapse; table-layout:fixed; }
+                th,td { border:1px solid #d9dfda; padding:5px; vertical-align:top; word-wrap:break-word; }
+                thead th { background:#f3f6f4; font-size:8px; }
+                th.criterion { width:12%; background:#f8faf8; text-align:left; }
+                tr.diff td,tr.diff th { background:#fffaf1; }
+                tr.priority th.criterion { border-left:3px solid #9eba24; }
+                .product-title { font-weight:bold; font-size:8px; line-height:1.25; }
+                .product-link { margin-top:3px; color:#657168; font-size:6.5px; }
+                .priority-note { display:block; margin-top:2px; color:#6b762d; font-size:6px; text-transform:uppercase; }
+                .footer { margin-top:10px; color:#7b857e; font-size:7px; }
+            </style>
+        </head>
+        <body>
+            <div class="head">
+                <div class="brand">
+                    <div class="brand-main">
+                        <?php if ($logo) : ?><img class="logo" src="<?php echo esc_attr($logo); ?>" alt=""><?php endif; ?>
+                        <h1>Comparativa de productos</h1>
+                        <p class="subtitle"><?php echo esc_html($brand); ?></p>
+                    </div>
+                    <div class="brand-meta">
+                        Generado el <?php echo esc_html(wp_date('d/m/Y H:i')); ?><br>
+                        <?php echo esc_html(count($products)); ?> productos comparados
+                    </div>
+                </div>
+            </div>
+
+            <?php if ($criteria_labels) : ?>
+                <div class="criteria">
+                    <strong><?php echo esc_html((string) ($criteria['title'] ?? 'Qué conviene comprobar')); ?></strong><br>
+                    <?php foreach ($criteria_labels as $label) : ?>
+                        <span class="chip"><?php echo esc_html($label); ?></span>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th class="criterion">Criterio</th>
+                        <?php foreach ($products as $product) : ?>
+                            <th>
+                                <div class="product-title"><?php echo esc_html((string) ($product['title'] ?? '')); ?></div>
+                                <?php if (!empty($product['url'])) : ?>
+                                    <div class="product-link"><?php echo esc_html((string) $product['url']); ?></div>
+                                <?php endif; ?>
+                            </th>
+                        <?php endforeach; ?>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($rows as $row) : ?>
+                        <tr class="<?php echo !empty($row['different']) ? 'diff ' : ''; ?><?php echo !empty($row['priority']) ? 'priority' : ''; ?>">
+                            <th class="criterion">
+                                <?php echo esc_html((string) ($row['label'] ?? '')); ?>
+                                <?php if (!empty($row['priority'])) : ?><span class="priority-note">Prioridad de compra</span><?php endif; ?>
+                            </th>
+                            <?php foreach ($products as $product) : ?>
+                                <?php
+                                $product_id = (string) absint($product['id'] ?? 0);
+                                $value = isset($row['values'][$product_id]) && '' !== (string) $row['values'][$product_id]
+                                    ? (string) $row['values'][$product_id]
+                                    : '—';
+                                ?>
+                                <td><?php echo esc_html($value); ?></td>
+                            <?php endforeach; ?>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+
+            <div class="footer">
+                Comparativa informativa basada en los datos disponibles en el catálogo en el momento de generar el documento.
+                Precios, disponibilidad y características pueden cambiar.
+            </div>
+        </body>
+        </html>
+        <?php
+        return (string) ob_get_clean();
+    }
+
     private function enqueue_assets() {
         if ($this->assets_enqueued) {
             return;
@@ -402,8 +578,10 @@ final class SEO_Dependiente_Plugin {
             'weightUnit'       => get_option('woocommerce_weight_unit', 'kg'),
             'dimensionUnit'    => get_option('woocommerce_dimension_unit', 'cm'),
             'resultsPerPage'   => absint(self::option('results_per_page', 18)),
-            'compareMax'       => 4,
+            'compareMax'       => 6,
             'placeholderImage' => esc_url_raw($fallback_image),
+            'comparePdfUrl'     => esc_url_raw(admin_url('admin-post.php')),
+            'comparePdfNonce'   => wp_create_nonce('seo_dependiente_compare_pdf'),
             'labels'           => array(
                 'error'       => 'No he podido completar la búsqueda. Inténtalo de nuevo.',
                 'loading'     => 'Estoy revisando el catálogo…',
