@@ -32,6 +32,15 @@ Checkboxes para tipos de contenido y redes de destino. **Guardar automatización
 ### Programador
 CSV: **Validar CSV antes de importar**, **Descargar plantilla CSV**, **Exportar contenidos**, **Exportar agenda**, **Exportar historial** e **Importar programaciones** tras validar.
 
+Reglas horarias:
+- ofertas de campaña: **18:00**;
+- entradas de la categoría **Noticias**: **20:00**;
+- páginas/landings: fecha y hora manual.
+
+En las filas de Noticias aparece la casilla **Prioritaria**. Las prioritarias ocupan primero los huecos futuros de Noticias de cada red y adelantan a las no prioritarias, que se desplazan detrás. Ofertas y Noticias pueden convivir el mismo día.
+
+El CSV admite la columna opcional **prioridad** (`si`, `1`, `true`, `prioritaria`). Para Noticias la hora se normaliza a las 20:00.
+
 Filtros: Tipo y búsqueda. Cada fila permite elegir redes con checkboxes, fecha/hora, **Programar**, **Publicar ahora** y cancelar programaciones.
 
 Las **ofertas de campañas** usan una regla comercial propia: se programan automáticamente a las **18:00**. Los posts y landings del mismo día no bloquean la oferta. Se mantiene como límite una oferta de campaña por día y por red; si ese día ya contiene otra oferta, se utiliza el siguiente día disponible dentro del periodo de campaña.
