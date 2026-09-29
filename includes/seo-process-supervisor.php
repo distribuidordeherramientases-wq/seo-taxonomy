@@ -671,7 +671,13 @@ if (!function_exists('seo_process_supervisor_import_pending')) {
 
 if (!function_exists('seo_process_supervisor_academy_pending')) {
     function seo_process_supervisor_academy_pending() {
-        if (!class_exists('SEO_Dependiente_Entrenador') || !is_callable(array('SEO_Dependiente_Entrenador', 'process_monitor_payload'))) {
+        if (!class_exists('SEO_Dependiente_Entrenador')) {
+            return false;
+        }
+        if (is_callable(array('SEO_Dependiente_Entrenador', 'process_has_pending_work'))) {
+            return (bool) SEO_Dependiente_Entrenador::process_has_pending_work();
+        }
+        if (!is_callable(array('SEO_Dependiente_Entrenador', 'process_monitor_payload'))) {
             return false;
         }
         $payload = SEO_Dependiente_Entrenador::process_monitor_payload();
@@ -941,7 +947,10 @@ if (!function_exists('seo_process_supervisor_run_manager_window')) {
                     ? (array) SEO_Dependiente_Entrenador::process_monitor_payload()
                     : array();
                 $academy_state = isset($academy_payload['state']) && is_array($academy_payload['state']) ? $academy_payload['state'] : array();
-                $academy_due = absint($academy_state['direct_worker_not_before'] ?? 0);
+                $academy_due = absint($academy_payload['next_due_ts'] ?? 0);
+                if (!$academy_due) {
+                    $academy_due = absint($academy_state['direct_worker_not_before'] ?? 0);
+                }
                 if ($academy_due && $academy_due > time()) {
                     seo_process_supervisor_managed_update('academy', array(
                         'name' => 'Academia', 'pending' => 1, 'healthy' => 1, 'last_checked' => time(),
@@ -1227,7 +1236,14 @@ if (!function_exists('seo_process_supervisor_check_academy')) {
         }
         $payload = SEO_Dependiente_Entrenador::process_monitor_payload();
         $state = isset($payload['state']) && is_array($payload['state']) ? $payload['state'] : array();
-        $pending = !empty($payload['current']) && !empty($state['enabled']) && 'auto' === (string) ($state['mode'] ?? '') && 'completed' !== (string) ($state['status'] ?? '');
+        $queue = isset($payload['queue']) && is_array($payload['queue']) ? $payload['queue'] : array();
+        $queue_pending = absint($queue['pending_batches'] ?? 0) > 0;
+        $pending = $queue_pending || (
+            !empty($payload['current'])
+            && !empty($state['enabled'])
+            && 'auto' === (string) ($state['mode'] ?? '')
+            && 'completed' !== (string) ($state['status'] ?? '')
+        );
         $heartbeat = absint($state['controller_heartbeat_ts'] ?? 0);
         $controller = !empty($state['controller_active']) && $heartbeat && (time() - $heartbeat) <= 120;
         if ($controller && !empty($state['controller_pid'])) {
@@ -1244,12 +1260,17 @@ if (!function_exists('seo_process_supervisor_check_academy')) {
         $running_confirmed = $controller || $worker;
         $healthy = $running_confirmed || $direct_fresh;
         $key = 'academy';
+        if ($queue_pending) {
+            $healthy = true;
+        }
         $managed_now = seo_process_supervisor_managed_update($key, array(
             'name'         => 'Academia',
             'pending'      => $pending ? 1 : 0,
             'healthy'      => $healthy ? 1 : 0,
             'last_checked' => time(),
-            'detail'       => $healthy ? 'Controlador activo o arrancando.' : ($pending ? 'Formación pendiente sin controlador.' : 'Academia sin ejecución automática pendiente.'),
+            'detail'       => $queue_pending
+                ? 'Cola de preguntas pendiente; el Gestor la procesa por ventanas adaptativas.'
+                : ($healthy ? 'Controlador activo o arrancando.' : ($pending ? 'Formación pendiente sin controlador.' : 'Academia sin ejecución automática pendiente.')),
         ));
         if ($running_confirmed && 'requested' === (string) ($managed_now['last_result'] ?? '')) {
             seo_process_supervisor_managed_update($key, array(
@@ -1259,6 +1280,9 @@ if (!function_exists('seo_process_supervisor_check_academy')) {
                 'last_confirmed_at' => time(),
             ));
             seo_process_supervisor_log('success', 'process_running_confirmed', 'Academia confirmó heartbeat; el proceso está realmente ejecutándose.', 'Academia');
+        }
+        if ($queue_pending) {
+            return;
         }
         if (!$pending || $healthy || !seo_process_supervisor_backoff_ready($key, $settings['restart_cooldown'])) {
             return;
