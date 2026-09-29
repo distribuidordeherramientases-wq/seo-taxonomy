@@ -597,6 +597,72 @@ if (function_exists('generate_navigation_position')) {
 }
 
 /*
+ * Propuesta de valor principal.
+ *
+ * Se coloca inmediatamente después de la navegación para que los dos pilares
+ * comerciales de la tienda sean visibles antes de entrar en el contenido:
+ * ayuda para localizar el producto y acompañamiento durante la compra.
+ *
+ * En el funnel transaccional se omite para no introducir salidas innecesarias.
+ */
+$dht_show_value_bar = true;
+if (
+    (function_exists('is_cart') && is_cart())
+    || (function_exists('is_checkout') && is_checkout())
+    || (function_exists('is_account_page') && is_account_page())
+) {
+    $dht_show_value_bar = false;
+}
+
+if ($dht_show_value_bar) {
+    $dht_dependiente_url = function_exists('dht_template_dependiente_page_url')
+        ? dht_template_dependiente_page_url()
+        : home_url('/dependiente/');
+    $dht_service_url = function_exists('dht_template_service_page_url')
+        ? dht_template_service_page_url()
+        : home_url('/nuestro-servicio/');
+    ?>
+    <section class="dht-header-value" aria-label="Cómo te ayudamos">
+        <div class="dht-header-value__inner">
+            <a class="dht-header-value__item dht-header-value__item--assistant" href="<?php echo esc_url($dht_dependiente_url); ?>">
+                <span class="dht-header-value__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                        <circle cx="11" cy="11" r="6"></circle>
+                        <path d="m16 16 4 4"></path>
+                        <path d="M8.5 11h5"></path>
+                        <path d="M11 8.5v5"></path>
+                    </svg>
+                </span>
+                <span class="dht-header-value__copy">
+                    <span class="dht-header-value__kicker">Ayuda para elegir</span>
+                    <strong>¿No sabes qué producto necesitas?</strong>
+                    <span class="dht-header-value__text">Dependiente relaciona tu necesidad con el catálogo para ayudarte a localizar opciones.</span>
+                </span>
+                <span class="dht-header-value__cta">Preguntar al Dependiente <span aria-hidden="true">→</span></span>
+            </a>
+
+            <a class="dht-header-value__item dht-header-value__item--service" href="<?php echo esc_url($dht_service_url); ?>">
+                <span class="dht-header-value__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 3 20 6v5c0 5-3.3 8.4-8 10-4.7-1.6-8-5-8-10V6l8-3z"></path>
+                        <path d="m8.5 12 2.2 2.2 4.8-5"></path>
+                    </svg>
+                </span>
+                <span class="dht-header-value__copy">
+                    <span class="dht-header-value__kicker">Compra con respaldo</span>
+                    <strong>Una persona detrás de tu compra</strong>
+                    <span class="dht-header-value__text">Te ayudamos antes de comprar y, si surge una incidencia, te acompañamos en la gestión y el seguimiento.</span>
+                </span>
+                <span class="dht-header-value__cta">Conocer nuestro servicio <span aria-hidden="true">→</span></span>
+            </a>
+        </div>
+    </section>
+    <?php
+    unset($dht_dependiente_url, $dht_service_url);
+}
+unset($dht_show_value_bar);
+
+/*
  * Campañas promocionales activas.
  *
  * Integración deliberadamente defensiva: el header no depende de que el

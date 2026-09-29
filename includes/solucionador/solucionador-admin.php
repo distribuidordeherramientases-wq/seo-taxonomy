@@ -8,7 +8,7 @@ defined('ABSPATH') || exit;
 final class SEO_Solucionador_Admin {
     public static function init() {
         add_action('admin_menu', array(__CLASS__, 'register_page'), 30);
-        add_filter('seo_tools_items', array(__CLASS__, 'tool_card'), 30, 1);
+        add_filter('seo_content_items', array(__CLASS__, 'content_card'), 30, 1);
         add_filter('parent_file', array(__CLASS__, 'parent_file'), 30, 1);
         add_filter('submenu_file', array(__CLASS__, 'submenu_file'), 30, 1);
         add_action('admin_post_seo_solucionador_scan', array(__CLASS__, 'handle_scan'));
@@ -18,23 +18,23 @@ final class SEO_Solucionador_Admin {
     public static function register_page() {
         add_submenu_page(
             null,
-            'Solucionador',
-            'Solucionador',
+            'Editor',
+            'Editor',
             'manage_options',
             'seo-solucionador',
             array(__CLASS__, 'render')
         );
     }
 
-    public static function tool_card($tools) {
-        $tools = is_array($tools) ? $tools : array();
-        $tools[] = array(
-            'title' => 'Solucionador',
-            'icon' => 'dashicons-lightbulb',
+    public static function content_card($items) {
+        $items = is_array($items) ? $items : array();
+        $items[] = array(
+            'title' => 'Editor',
+            'icon' => 'dashicons-edit-page',
             'page' => 'seo-solucionador',
-            'desc' => 'Convierte preguntas y senales en propuestas concretas de posts, ya clasificadas con Vocabulary y categorias.',
+            'desc' => 'Gestiona propuestas editoriales y borradores a partir de señales internas del catálogo y de otros servicios.',
         );
-        return $tools;
+        return $items;
     }
 
     public static function parent_file($parent_file) {
@@ -44,7 +44,7 @@ final class SEO_Solucionador_Admin {
 
     public static function submenu_file($submenu_file) {
         $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
-        return $page === 'seo-solucionador' ? 'seo-tools' : $submenu_file;
+        return $page === 'seo-solucionador' ? 'seo-content' : $submenu_file;
     }
 
     private static function redirect($args = array()) {
@@ -56,7 +56,7 @@ final class SEO_Solucionador_Admin {
     }
 
     public static function handle_scan() {
-        if (!current_user_can('manage_options')) wp_die('No tienes permisos para ejecutar Solucionador.');
+        if (!current_user_can('manage_options')) wp_die('No tienes permisos para ejecutar Editor.');
         check_admin_referer('seo_solucionador_scan');
         $days = isset($_POST['days']) ? max(30, min(365, absint($_POST['days']))) : 180;
         SEO_Solucionador_Engine::scan($days);
@@ -65,7 +65,7 @@ final class SEO_Solucionador_Admin {
     }
 
     public static function handle_topic() {
-        if (!current_user_can('manage_options')) wp_die('No tienes permisos para gestionar Solucionador.');
+        if (!current_user_can('manage_options')) wp_die('No tienes permisos para gestionar Editor.');
         $id = absint($_POST['topic_id'] ?? 0);
         check_admin_referer('seo_solucionador_topic_' . $id);
         $action = sanitize_key((string) ($_POST['topic_action'] ?? ''));
@@ -123,11 +123,11 @@ final class SEO_Solucionador_Admin {
         $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'summary';
         if (!in_array($tab, array('summary','proposals','coverage','sources'), true)) $tab = 'summary';
 
-        echo '<div class="wrap seo-solucionador"><h1>Solucionador <small style="font-weight:400;color:#646970">v' . esc_html(SEO_SOLUCIONADOR_VERSION) . '</small></h1>';
-        echo '<p>Analiza preguntas y senales, comprueba si ya existe una respuesta editorial y propone el post concreto que falta. La propuesta no es un post. Solo al aprobarla se crea un <strong>borrador</strong> con categorias y Vocabulary ya asignados.</p>';
+        echo '<div class="wrap seo-solucionador"><h1>Editor <small style="font-weight:400;color:#646970">v' . esc_html(SEO_SOLUCIONADOR_VERSION) . '</small></h1>';
+        echo '<p>Analiza preguntas y senales internas, comprueba si ya existe una respuesta editorial y propone el contenido que falta. La propuesta no es un post. Solo al aprobarla se crea un <strong>borrador</strong> con categorias y Vocabulary ya asignados.</p>';
         self::render_export_button();
 
-        if (!empty($_GET['scan'])) echo '<div class="notice notice-success is-dismissible"><p>Analisis de Solucionador completado.</p></div>';
+        if (!empty($_GET['scan'])) echo '<div class="notice notice-success is-dismissible"><p>Analisis de Editor completado.</p></div>';
         if (!empty($_GET['sol_msg']) && $_GET['sol_msg'] === 'draft_created') {
             $post_id = absint($_GET['post_id'] ?? 0);
             echo '<div class="notice notice-success is-dismissible"><p>Borrador creado y clasificado.';
@@ -297,7 +297,7 @@ final class SEO_Solucionador_Admin {
         $counts = SEO_Solucionador_DB::table_exists($e)
             ? (array) $wpdb->get_results("SELECT source_type,SUM(occurrences) evidence FROM {$e} GROUP BY source_type ORDER BY evidence DESC", ARRAY_A)
             : array();
-        echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Fuentes del Solucionador</h2>';
+        echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Fuentes del Editor</h2>';
         echo '<p><strong>Dependiente / Interprete:</strong> fuente principal. Preguntas reales, intent, objeto, contexto, estado, resultados y feedback.</p>';
         echo '<p><strong>Analista:</strong> las busquedas internas pueden originar propuestas. El plan de decision normalmente solo refuerza; MEJORAR_PRODUCTO/IMPULSAR_CATEGORIA no se convierten en preguntas de cliente.</p>';
         echo '<p><strong>Auditor:</strong> solo entran probes de comportamiento y gaps editoriales de una allowlist. Hallazgos tecnicos de indice, schema, excerpt, servidor, etc. quedan fuera.</p>';
