@@ -85,7 +85,14 @@ final class SEO_Dependiente_V3_API {
         // supervisado y marcar la consulta como training mediante filtros que
         // solo existen durante esa llamada PHP.
         $search_uuid = '';
-        if (class_exists('SEO_Dependiente_Search_Log')) {
+        $should_log_search = (bool) apply_filters(
+            'seo_dependiente_should_log_search',
+            true,
+            $query,
+            'search',
+            $request
+        );
+        if ($should_log_search && class_exists('SEO_Dependiente_Search_Log')) {
             $decision = (array) ($catalog['decision'] ?? array());
             $pagination = (array) ($catalog['pagination'] ?? array());
             $request_kind = $page > 1 ? 'paginate' : ($category !== '' ? 'refine' : 'search');
