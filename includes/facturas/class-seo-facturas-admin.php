@@ -298,7 +298,7 @@ final class SEO_Facturas_Admin {
             <h2>Configuracion comun</h2>
             <p>Estos datos se utilizan en facturas, proformas y presupuestos. Se configuran una sola vez.</p>
             <table class="form-table" role="presentation">
-                <?php self::checkbox_row($option, 'enabled', 'Sistema documental', $s['enabled'], 'Activar facturas, proformas y presupuestos configurados en sus respectivas pestañas.'); ?>
+                <?php self::checkbox_row($option, 'enabled', 'Sistema documental', $s['enabled'], 'Activa la emision documental ligada a pedidos. Presupuesto y proforma borrador del carrito siguen disponibles aunque este interruptor este desactivado.'); ?>
                 <?php self::text_row($option, 'company_name', 'Razon social', $s['company_name']); ?>
                 <?php self::text_row($option, 'company_trade_name', 'Nombre comercial', $s['company_trade_name']); ?>
                 <?php self::text_row($option, 'company_tax_id', 'NIF / CIF', $s['company_tax_id']); ?>
