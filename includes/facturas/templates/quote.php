@@ -251,7 +251,7 @@ $valid_date = $valid_ts ? wp_date(get_option('date_format', 'd/m/Y'), $valid_ts)
 <?php foreach ($items as $item) : ?>
 <tr>
     <?php if ($show_images) : ?><td class="pic"><?php if (!empty($item['image_data_uri'])) : ?><img src="<?php echo esc_attr($item['image_data_uri']); ?>" alt=""><?php endif; ?></td><?php endif; ?>
-    <?php if ($show_sku) : ?><td class="ref"><?php echo esc_html($item['sku'] ?: ('ID ' . ($item['product_id'] ?? ''))); ?></td><?php endif; ?>
+    <?php if ($show_sku) : ?><td class="ref"><?php echo esc_html((string) ($item['object_id'] ?? $item['product_id'] ?? '')); ?></td><?php endif; ?>
     <td><?php echo esc_html($item['name'] ?? ''); ?></td>
     <td class="qty"><?php echo esc_html($item['quantity'] ?? 0); ?></td>
     <td class="num"><?php echo esc_html($money($item['unit_net'] ?? 0)); ?></td>
@@ -322,7 +322,7 @@ $commercial_items = array_values(array_filter($items, static function ($item) {
             </td>
             <td>
                 <h3><?php echo esc_html($item['name'] ?? ($commercial['name'] ?? 'Producto')); ?></h3>
-                <?php if (!empty($item['sku'])) : ?><p><strong>Referencia:</strong> <?php echo esc_html($item['sku']); ?></p><?php endif; ?>
+                <?php if (!empty($item['object_id']) || !empty($item['product_id'])) : ?><p><strong>Referencia:</strong> <?php echo esc_html((string) ($item['object_id'] ?? $item['product_id'])); ?></p><?php endif; ?>
                 <?php if (!empty($commercial['summary'])) : ?><p><strong>Resumen:</strong> <?php echo esc_html($commercial['summary']); ?></p><?php endif; ?>
                 <?php if (!empty($commercial['categories'])) : ?>
                     <p class="commercial-meta"><strong>Categoría:</strong> <?php echo esc_html(implode(' · ', array_slice((array) $commercial['categories'], 0, 3))); ?></p>
