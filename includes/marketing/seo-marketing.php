@@ -4116,7 +4116,8 @@ function seo_marketing_get_requested_sitemap_filename()
     $filename = (string) get_query_var('seo_marketing_sitemap');
 
     if ($filename === '' && isset($_SERVER['REQUEST_URI'])) {
-        $request_path = (string) wp_parse_url(wp_unslash($_SERVER['REQUEST_URI']), PHP_URL_PATH);
+        $request_uri  = sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI']));
+        $request_path = (string) wp_parse_url($request_uri, PHP_URL_PATH);
         $home_path    = (string) wp_parse_url(home_url('/'), PHP_URL_PATH);
         $request_path = '/' . ltrim($request_path, '/');
         $home_path    = '/' . trim($home_path, '/');
@@ -4179,10 +4180,10 @@ function seo_marketing_maybe_serve_sitemap()
     $etag  = '"' . md5($filename . '|' . $mtime . '|' . $size) . '"';
 
     $if_none_match = isset($_SERVER['HTTP_IF_NONE_MATCH'])
-        ? trim((string) wp_unslash($_SERVER['HTTP_IF_NONE_MATCH']))
+        ? sanitize_text_field(wp_unslash($_SERVER['HTTP_IF_NONE_MATCH']))
         : '';
     $if_modified_since = isset($_SERVER['HTTP_IF_MODIFIED_SINCE'])
-        ? strtotime((string) wp_unslash($_SERVER['HTTP_IF_MODIFIED_SINCE']))
+        ? strtotime(sanitize_text_field(wp_unslash($_SERVER['HTTP_IF_MODIFIED_SINCE'])))
         : false;
 
     if ($if_none_match === $etag || ($if_modified_since && $if_modified_since >= $mtime)) {
