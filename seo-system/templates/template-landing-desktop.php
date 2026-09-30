@@ -616,7 +616,7 @@ $main_image = dht_landing_v6_main_image($post_id, $related_cat_ids, 'large');
                     continue;
                 }
                 $term_image = dht_landing_v6_term_image((int) $term->term_id, 'medium_large', true);
-                $term_description = wp_trim_words(wp_strip_all_tags(term_description((int) $term->term_id, 'product_cat')), 22);
+                $term_description = wp_trim_words(wp_strip_all_tags(term_description((int) $term->term_id)), 22);
             ?>
                 <a class="dht-v6-hub dht-v6-category" href="<?php echo esc_url($term_url); ?>">
                     <span class="dht-v6-hub-media">
