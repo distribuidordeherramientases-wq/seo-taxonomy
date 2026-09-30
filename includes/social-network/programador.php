@@ -324,7 +324,7 @@ add_action('seo_social_programador_run_job', 'seo_social_programador_run_job', 1
 function seo_social_programador_handle_create()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para programar publicaciones.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para programar publicaciones.', 'seo-taxonomy'));
     }
 
     check_admin_referer('seo_social_programador_create');
@@ -382,7 +382,7 @@ add_action('admin_post_seo_social_programador_create', 'seo_social_programador_h
 function seo_social_programador_handle_cancel()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para cancelar publicaciones.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para cancelar publicaciones.', 'seo-taxonomy'));
     }
 
     $schedule_id = isset($_POST['schedule_id']) ? absint($_POST['schedule_id']) : 0;
@@ -420,7 +420,7 @@ add_action('admin_post_seo_social_programador_cancel', 'seo_social_programador_h
 function seo_social_programador_handle_retry()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para reintentar publicaciones.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para reintentar publicaciones.', 'seo-taxonomy'));
     }
 
     $schedule_id = isset($_POST['schedule_id']) ? absint($_POST['schedule_id']) : 0;
