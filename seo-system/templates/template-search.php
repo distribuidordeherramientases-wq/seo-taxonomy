@@ -39,7 +39,7 @@ if (function_exists('dht_template_render_header')) {
                         global $wp_query;
                         echo esc_html(
                             sprintf(
-                                _n('%s producto encontrado', '%s productos encontrados', (int) $wp_query->found_posts, 'woocommerce'),
+                                _n('%s producto encontrado', '%s productos encontrados', (int) $wp_query->found_posts, 'seo-taxonomy'),
                                 number_format_i18n((int) $wp_query->found_posts)
                             )
                         );
@@ -118,7 +118,7 @@ if (function_exists('dht_template_render_header')) {
                             <li class="product dh-product-card dht-search-product-card">
                                 <a href="<?php echo esc_url($permalink); ?>" class="dh-product-link dht-search-product-link">
                                     <?php if ($card_product->is_on_sale()) : ?>
-                                        <span class="onsale"><?php echo esc_html__('Oferta', 'woocommerce'); ?></span>
+                                        <span class="onsale"><?php echo esc_html__('Oferta', 'seo-taxonomy'); ?></span>
                                     <?php endif; ?>
 
                                     <div class="dh-product-image dht-search-product-image">
