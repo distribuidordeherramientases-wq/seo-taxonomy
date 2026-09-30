@@ -846,10 +846,11 @@ if (!function_exists('seo_images_cleanup_audit_media_batch')) {
                 "SELECT ID, post_parent, post_title, guid
                  FROM {$wpdb->posts}
                  WHERE post_type = 'attachment'
-                   AND post_mime_type LIKE 'image/%%'
+                   AND post_mime_type LIKE %s
                    AND ID > %d
                  ORDER BY ID ASC
                  LIMIT %d",
+                $wpdb->esc_like('image/') . '%',
                 $cursor,
                 $limit
             ),
