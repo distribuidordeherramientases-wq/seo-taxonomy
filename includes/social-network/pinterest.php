@@ -515,7 +515,7 @@ function seo_social_pinterest_publish($payload)
 function seo_social_pinterest_oauth_start()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para conectar Pinterest.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para conectar Pinterest.', 'seo-taxonomy'));
     }
     check_admin_referer('seo_social_pinterest_oauth_start');
 
@@ -764,7 +764,7 @@ function seo_social_pinterest_merchant_settings()
 function seo_social_pinterest_save_merchant_connection()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para configurar Pinterest.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para configurar Pinterest.', 'seo-taxonomy'));
     }
 
     check_admin_referer('seo_social_pinterest_merchant_save', 'seo_social_pinterest_merchant_nonce');
