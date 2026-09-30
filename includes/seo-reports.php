@@ -3202,7 +3202,7 @@ EXPORT CSV SEO TABLES
     
         $rows = $wpdb->get_results("SELECT * FROM `$table_name`", ARRAY_A);
     
-        $filename = $table_name . '_' . date('Ymd_His') . '.csv';
+        $filename = $table_name . '_' . gmdate('Ymd_His') . '.csv';
     
         nocache_headers();
     
