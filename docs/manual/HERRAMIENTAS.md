@@ -158,6 +158,30 @@ Pestañas: **Resumen**, **Integridad del código**, **Chequeos avanzados**, **Co
 
 Acciones: **Ejecutar validación completa**, **Ejecutar siguiente bloque**, repetir los bloques de auditoría 404, **Reiniciar auditoría**, **Actualizar chequeos pasivos** y **Ejecutar prueba transaccional controlada**. En diagnósticos hay checkbox de autorización para envío automático, **Guardar autorización** y **Enviar ahora el último diagnóstico**.
 
+### Compatibilidad WordPress.org
+
+**Integridad del código** incorpora un scanner estático de solo lectura inspirado en Plugin Check y en las revisiones del WordPress.org Plugins Team. Su objetivo es detectar antes de empaquetar una versión pública los patrones que suelen bloquear una revisión.
+
+Comprueba, entre otros:
+
+- coherencia de `Version`, `SEO_SYSTEM_VERSION`, `Stable tag`, `Tested up to`, tags y descripción corta;
+- archivos `.bak`, dumps, logs o comprimidos que no deberían distribuirse;
+- etiquetas `<script>` / `<style>` directas y assets remotos;
+- uso de `move_uploaded_file()`;
+- acceso `mysqli_*` que requiere revisión;
+- superglobales sin sanitización evidente y nonces sin sanitizar;
+- endpoints REST declarados públicos para confirmar que su exposición es intencionada;
+- rutas hardcodeadas, referencias manuales a `wp-load.php` y PHP sin guardia `ABSPATH`;
+- shortcodes globales sin prefijo distintivo;
+- text domains incorrectos o ausentes;
+- JSON embebido con opciones de escaping riesgosas;
+- escrituras de archivos cuya ubicación debe comprobarse;
+- dominios de servicios externos detectados en el código que no aparecen documentados en `readme.txt`.
+
+Los chequeos concluyentes se marcan como error. Los patrones heurísticos se muestran como **Revisar**, porque requieren contexto y pueden tener excepciones legítimas. Cada hallazgo conserva archivo, línea, regla y detalle para facilitar la corrección.
+
+El scanner se ejecuta dentro de **Ejecutar validación completa**, por lo que también queda incluido en los informes técnicos/JSON. El objetivo operativo es que una release destinada al directorio de WordPress.org no se considere lista mientras estos controles tengan incidencias relevantes.
+
 ## Menu Manager
 
 Checkboxes: **Incluir Soluciones**, **Incluir Blog**, **Incluir Dependiente**.
