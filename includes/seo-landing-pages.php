@@ -388,7 +388,7 @@ function seo_landing_get_external_signals()
 function seo_landing_sync_external_signals()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para sincronizar candidatas.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para sincronizar candidatas.', 'seo-taxonomy'));
     }
     check_admin_referer('seo_landing_sync_signals');
 
@@ -547,7 +547,7 @@ add_action('admin_post_seo_landing_sync_signals', 'seo_landing_sync_external_sig
 function seo_landing_handle_save_candidate()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para guardar candidatas.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para guardar candidatas.', 'seo-taxonomy'));
     }
     check_admin_referer('seo_landing_save_candidate');
     seo_landing_maybe_install();
@@ -646,7 +646,7 @@ function seo_landing_export_get_seo_meta($post_id, $field)
 function seo_landing_export_seo_csv()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para exportar el informe SEO.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para exportar el informe SEO.', 'seo-taxonomy'));
     }
 
     check_admin_referer('seo_landing_export_seo_csv');
@@ -662,7 +662,7 @@ function seo_landing_export_seo_csv()
 
     $output = fopen('php://output', 'w');
     if (false === $output) {
-        wp_die(esc_html__('No se pudo generar el archivo CSV.', 'seo-system'));
+        wp_die(esc_html__('No se pudo generar el archivo CSV.', 'seo-taxonomy'));
     }
 
     // BOM UTF-8 para que Excel abra correctamente tildes y eñes.
@@ -955,7 +955,7 @@ function seo_landing_build_analysis_export()
 function seo_landing_export_analysis_json()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para exportar el informe SEO.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para exportar el informe SEO.', 'seo-taxonomy'));
     }
 
     check_admin_referer('seo_landing_export_analysis_json');
