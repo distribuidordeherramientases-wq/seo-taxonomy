@@ -18,7 +18,7 @@ define( 'SEO_CLONADOR_DIR', __DIR__ );
 
 $seo_clonador_required = array(
     __DIR__ . '/connections.php',
-    __DIR__ . '/engine-2.7.2.php',
+    __DIR__ . '/engine.php',
     __DIR__ . '/admin.php',
 );
 
