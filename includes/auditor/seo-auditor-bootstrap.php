@@ -20,4 +20,6 @@ if (!defined('SEO_AUDITOR_URL') && defined('SEO_SYSTEM_URL')) {
 }
 
 require_once SEO_AUDITOR_PATH . 'class-seo-auditor.php';
+require_once SEO_AUDITOR_PATH . 'class-seo-auditor-category-rebalance.php';
 SEO_Auditor::init();
+SEO_Auditor_Category_Rebalance::init();
