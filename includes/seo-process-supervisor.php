@@ -1810,7 +1810,8 @@ if (!function_exists('seo_process_supervisor_render_page')) {
             <?php
             $cron_php = '/opt/alt/php' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION . '/usr/bin/php';
             $cron_file = SEO_SYSTEM_PATH . 'includes/process-manager-cron.php';
-            $cron_command = $cron_php . ' ' . $cron_file . ' >/dev/null 2>&1';
+            $cron_wp_load = trailingslashit(ABSPATH) . 'wp-load.php';
+            $cron_command = escapeshellarg($cron_php) . ' ' . escapeshellarg($cron_file) . ' ' . escapeshellarg($cron_wp_load) . ' >/dev/null 2>&1';
             ?>
             <div class="seo-worker-settings">
                 <strong>Cron real del servidor recomendado: cada minuto</strong>
