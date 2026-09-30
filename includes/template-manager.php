@@ -1383,7 +1383,7 @@ function seo_tm_pro_sync_open_pair() {
 
     $staging = seo_clonador_open('staging');
     if (is_wp_error($staging)) {
-        @mysqli_close($pro);
+        @seo_clonador_db_close($pro);
         return new WP_Error('seo_tm_sync_staging_connection', 'No se pudo abrir la conexión STAGING: ' . $staging->get_error_message());
     }
 
@@ -1397,27 +1397,26 @@ function seo_tm_pro_sync_open_pair() {
 
 function seo_tm_pro_sync_close_pair($pair) {
     if (!is_array($pair)) return;
-    if (!empty($pair['pro']) && $pair['pro'] instanceof mysqli) @mysqli_close($pair['pro']);
-    if (!empty($pair['staging']) && $pair['staging'] instanceof mysqli) @mysqli_close($pair['staging']);
+    if (!empty($pair['pro']) && $pair['pro'] instanceof wpdb) @seo_clonador_db_close($pair['pro']);
+    if (!empty($pair['staging']) && $pair['staging'] instanceof wpdb) @seo_clonador_db_close($pair['staging']);
 }
 
-function seo_tm_pro_sync_query_columns($mysqli, $table) {
+function seo_tm_pro_sync_query_columns($db, $table) {
     $table_sql = seo_tm_pro_sync_quote_identifier($table);
     if ($table_sql === '') return new WP_Error('seo_tm_sync_bad_table', 'Nombre de tabla no válido.');
 
-    $result = @mysqli_query($mysqli, "SHOW COLUMNS FROM {$table_sql}");
-    if ($result === false) {
-        return new WP_Error('seo_tm_sync_columns_failed', trim((string) mysqli_error($mysqli)) ?: 'No se pudieron leer las columnas.');
+    $rows = seo_clonador_db_rows($db, "SHOW COLUMNS FROM {$table_sql}");
+    $error = seo_clonador_db_error($db);
+    if ($error !== '') {
+        return new WP_Error('seo_tm_sync_columns_failed', $error ?: 'No se pudieron leer las columnas.');
     }
 
     $columns = [];
-    while ($row = mysqli_fetch_assoc($result)) {
+    foreach ($rows as $row) {
         if (!empty($row['Field'])) $columns[] = (string) $row['Field'];
     }
-    mysqli_free_result($result);
     return $columns;
 }
-
 function seo_tm_pro_sync_schema_check() {
     $pair = seo_tm_pro_sync_open_pair();
     if (is_wp_error($pair)) return $pair;
@@ -1447,7 +1446,7 @@ function seo_tm_pro_sync_schema_check() {
     return true;
 }
 
-function seo_tm_pro_sync_fetch_rows($mysqli, $table) {
+function seo_tm_pro_sync_fetch_rows($db, $table) {
     $table_sql = seo_tm_pro_sync_quote_identifier($table);
     if ($table_sql === '') return new WP_Error('seo_tm_sync_bad_table', 'Nombre de tabla no válido.');
 
@@ -1459,17 +1458,13 @@ function seo_tm_pro_sync_fetch_rows($mysqli, $table) {
     }
 
     $sql = 'SELECT ' . implode(', ', $columns) . " FROM {$table_sql} ORDER BY `id`, `template_key`";
-    $result = @mysqli_query($mysqli, $sql);
-    if ($result === false) {
-        return new WP_Error('seo_tm_sync_read_failed', trim((string) mysqli_error($mysqli)) ?: 'No se pudieron leer las plantillas.');
+    $rows = seo_clonador_db_rows($db, $sql);
+    $error = seo_clonador_db_error($db);
+    if ($error !== '') {
+        return new WP_Error('seo_tm_sync_read_failed', $error ?: 'No se pudieron leer las plantillas.');
     }
-
-    $rows = [];
-    while ($row = mysqli_fetch_assoc($result)) $rows[] = $row;
-    mysqli_free_result($result);
     return $rows;
 }
-
 function seo_tm_pro_sync_compare_rows($source_rows, $target_rows) {
     $source_map = [];
     $target_map = [];
@@ -1518,7 +1513,7 @@ function seo_tm_pro_sync_compare() {
 
 function seo_tm_pro_sync_sql_value($mysqli, $value) {
     if ($value === null) return 'NULL';
-    return "'" . mysqli_real_escape_string($mysqli, (string) $value) . "'";
+    return "'" . seo_clonador_db_escape($mysqli, (string) $value) . "'";
 }
 
 function seo_tm_handle_sync_from_pro() {
@@ -1590,15 +1585,15 @@ function seo_tm_handle_sync_from_pro() {
     foreach (seo_tm_pro_sync_columns() as $column) $columns[] = seo_tm_pro_sync_quote_identifier($column);
     $column_sql = implode(', ', $columns);
 
-    if (@mysqli_query($pair['staging'], 'START TRANSACTION') === false) {
-        $error = trim((string) mysqli_error($pair['staging']));
+    if (@seo_clonador_db_query($pair['staging'], 'START TRANSACTION') === false) {
+        $error = trim((string) seo_clonador_db_error($pair['staging']));
         seo_tm_pro_sync_close_pair($pair);
         seo_tm_redirect('sincronizar', 'No se pudo iniciar la transacción en STAGING. Backup creado: ' . $backup_table_name . '. ' . $error, 'error');
     }
 
-    if (@mysqli_query($pair['staging'], "DELETE FROM {$staging_table_sql}") === false) {
-        $error = trim((string) mysqli_error($pair['staging']));
-        @mysqli_query($pair['staging'], 'ROLLBACK');
+    if (@seo_clonador_db_query($pair['staging'], "DELETE FROM {$staging_table_sql}") === false) {
+        $error = trim((string) seo_clonador_db_error($pair['staging']));
+        @seo_clonador_db_query($pair['staging'], 'ROLLBACK');
         seo_tm_pro_sync_close_pair($pair);
         seo_tm_redirect('sincronizar', 'La conexión STAGING no pudo vaciar la tabla. No se aplicaron cambios. Backup: ' . $backup_table_name . '. Error: ' . $error, 'error');
     }
@@ -1610,9 +1605,9 @@ function seo_tm_handle_sync_from_pro() {
         }
 
         $sql = "INSERT INTO {$staging_table_sql} ({$column_sql}) VALUES (" . implode(', ', $values) . ')';
-        if (@mysqli_query($pair['staging'], $sql) === false) {
-            $error = trim((string) mysqli_error($pair['staging']));
-            @mysqli_query($pair['staging'], 'ROLLBACK');
+        if (@seo_clonador_db_query($pair['staging'], $sql) === false) {
+            $error = trim((string) seo_clonador_db_error($pair['staging']));
+            @seo_clonador_db_query($pair['staging'], 'ROLLBACK');
             seo_tm_pro_sync_close_pair($pair);
             seo_tm_redirect('sincronizar', 'Falló la copia de una plantilla. Se revirtió STAGING. Backup: ' . $backup_table_name . '. Error: ' . $error, 'error');
         }
@@ -1620,7 +1615,7 @@ function seo_tm_handle_sync_from_pro() {
 
     $target_rows = seo_tm_pro_sync_fetch_rows($pair['staging'], $pair['staging_table']);
     if (is_wp_error($target_rows)) {
-        @mysqli_query($pair['staging'], 'ROLLBACK');
+        @seo_clonador_db_query($pair['staging'], 'ROLLBACK');
         $message = $target_rows->get_error_message();
         seo_tm_pro_sync_close_pair($pair);
         seo_tm_redirect('sincronizar', 'La copia se revirtió porque no pudo verificarse STAGING: ' . $message . '. Backup: ' . $backup_table_name, 'error');
@@ -1628,13 +1623,13 @@ function seo_tm_handle_sync_from_pro() {
 
     $after = seo_tm_pro_sync_compare_rows($source_rows, $target_rows);
     if (!$after['equal']) {
-        @mysqli_query($pair['staging'], 'ROLLBACK');
+        @seo_clonador_db_query($pair['staging'], 'ROLLBACK');
         seo_tm_pro_sync_close_pair($pair);
         seo_tm_redirect('sincronizar', 'La copia se revirtió porque PRO y STAGING no quedaron idénticos. Backup: ' . $backup_table_name, 'error');
     }
 
-    if (@mysqli_query($pair['staging'], 'COMMIT') === false) {
-        $error = trim((string) mysqli_error($pair['staging']));
+    if (@seo_clonador_db_query($pair['staging'], 'COMMIT') === false) {
+        $error = trim((string) seo_clonador_db_error($pair['staging']));
         seo_tm_pro_sync_close_pair($pair);
         seo_tm_redirect('sincronizar', 'MySQL no confirmó la transacción. Revisa STAGING. Backup: ' . $backup_table_name . '. Error: ' . $error, 'error');
     }
