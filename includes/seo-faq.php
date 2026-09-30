@@ -4793,6 +4793,7 @@ function seo_faq_show_notice()
                 <?php
                 echo esc_html(
                     sprintf(
+                        /* translators: %d: número de filas FAQ creadas. */
                         _n(
                             'Se ha creado %d fila de FAQ.',
                             'Se han creado %d filas de FAQ.',
@@ -4819,6 +4820,7 @@ function seo_faq_show_notice()
                 <?php
                 echo esc_html(
                     sprintf(
+                        /* translators: %d: número de copias FAQ duplicadas eliminadas. */
                         _n(
                             'Se ha eliminado %d copia duplicada de FAQ.',
                             'Se han eliminado %d copias duplicadas de FAQ.',
@@ -4860,6 +4862,7 @@ function seo_faq_show_notice()
                 <?php
                 echo esc_html(
                     sprintf(
+                        /* translators: %d: número de FAQs huérfanas eliminadas. */
                         _n(
                             'Se ha eliminado %d FAQ huérfana.',
                             'Se han eliminado %d FAQs huérfanas.',
