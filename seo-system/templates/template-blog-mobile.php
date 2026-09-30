@@ -323,7 +323,7 @@ $editorial_category_ids = array_values(array_unique(array_filter($editorial_cate
 
 if ($is_blog_category) {
     $blog_title = trim((string) $current_category->name);
-    $blog_intro = trim(wp_strip_all_tags((string) term_description($current_category->term_id, 'category')));
+    $blog_intro = trim(wp_strip_all_tags((string) term_description($current_category->term_id)));
 } else {
     $blog_title = $blog_page_id ? trim((string) get_the_title($blog_page_id)) : '';
     $blog_intro = '';
