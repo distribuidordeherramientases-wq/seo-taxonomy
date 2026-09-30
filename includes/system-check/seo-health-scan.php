@@ -1057,18 +1057,25 @@ if (!function_exists('seo_health_scan_rest_results')) {
     }
 }
 
+if (!function_exists('seo_health_scan_rest_permission')) {
+    function seo_health_scan_rest_permission(WP_REST_Request $request) {
+        $authorized = seo_health_scan_auth_run($request);
+        return is_wp_error($authorized) ? $authorized : true;
+    }
+}
+
 if (!function_exists('seo_health_scan_register_rest')) {
     function seo_health_scan_register_rest() {
         seo_health_scan_maybe_upgrade();
         register_rest_route('seo-system/v1', '/health-scan/batch', array(
             'methods' => WP_REST_Server::READABLE,
             'callback' => 'seo_health_scan_rest_batch',
-            'permission_callback' => '__return_true',
+            'permission_callback' => 'seo_health_scan_rest_permission',
         ));
         register_rest_route('seo-system/v1', '/health-scan/results', array(
             'methods' => WP_REST_Server::CREATABLE,
             'callback' => 'seo_health_scan_rest_results',
-            'permission_callback' => '__return_true',
+            'permission_callback' => 'seo_health_scan_rest_permission',
         ));
     }
 }
