@@ -284,6 +284,64 @@ if ( ! function_exists( 'seo_clonador_db_open' ) ) {
     }
 }
 
+if ( ! function_exists( 'seo_clonador_db_query' ) ) {
+    function seo_clonador_db_query( $db, $sql ) {
+        if ( ! ( $db instanceof wpdb ) ) {
+            return false;
+        }
+        return $db->query( (string) $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery -- SQL is assembled by Clonador from validated identifiers and prepared/escaped values.
+    }
+}
+
+if ( ! function_exists( 'seo_clonador_db_rows' ) ) {
+    function seo_clonador_db_rows( $db, $sql ) {
+        if ( ! ( $db instanceof wpdb ) ) {
+            return array();
+        }
+        $rows = $db->get_results( (string) $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery -- Secondary DB abstraction; callers validate identifiers and values.
+        return is_array( $rows ) ? $rows : array();
+    }
+}
+
+if ( ! function_exists( 'seo_clonador_db_error' ) ) {
+    function seo_clonador_db_error( $db ) {
+        return $db instanceof wpdb ? sanitize_text_field( (string) $db->last_error ) : '';
+    }
+}
+
+if ( ! function_exists( 'seo_clonador_db_escape' ) ) {
+    function seo_clonador_db_escape( $db, $value ) {
+        if ( ! ( $db instanceof wpdb ) ) {
+            return '';
+        }
+        $prepared = $db->prepare( '%s', (string) $value );
+        if ( ! is_string( $prepared ) || strlen( $prepared ) < 2 ) {
+            return '';
+        }
+        return substr( $prepared, 1, -1 );
+    }
+}
+
+if ( ! function_exists( 'seo_clonador_db_insert_id' ) ) {
+    function seo_clonador_db_insert_id( $db ) {
+        return $db instanceof wpdb ? absint( $db->insert_id ) : 0;
+    }
+}
+
+if ( ! function_exists( 'seo_clonador_db_affected_rows' ) ) {
+    function seo_clonador_db_affected_rows( $db ) {
+        return $db instanceof wpdb ? max( 0, (int) $db->rows_affected ) : 0;
+    }
+}
+
+if ( ! function_exists( 'seo_clonador_db_close' ) ) {
+    function seo_clonador_db_close( $db ) {
+        if ( $db instanceof wpdb ) {
+            return $db->close();
+        }
+        return false;
+    }
+}
 if ( ! function_exists( 'seo_clonador_db_test_connection' ) ) {
     function seo_clonador_db_test_connection( $env ) {
         $settings = seo_clonador_db_settings( $env );
