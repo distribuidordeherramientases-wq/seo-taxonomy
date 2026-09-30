@@ -146,7 +146,7 @@ add_filter('the_excerpt', function($excerpt) {
     $excerpt = (string) $excerpt;
 
     return wp_trim_words(
-        strip_tags($excerpt),
+        wp_strip_all_tags($excerpt),
         30,
         ''
     );
