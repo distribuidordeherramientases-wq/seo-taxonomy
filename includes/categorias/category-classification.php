@@ -1,18 +1,5 @@
 <?php
-/*
-Plugin Name: SEO Menu Manager
-Plugin URI: https://www.distribuidordeherramientas.es/
-Description: Clasificación de productos con etiqueas
-Version: 1.0.0
-Requires PHP: 7.4
-Requires at least: 5.8f
-Author: David Perez Martorell davidperezmartorell@gmail.com
-Author URI: https://focazul.wordpress.com/
-License: GPL2
-Text Domain: category-classification
-*/
-
-
+/** Internal SEO Taxonomy module. */
 if (!defined('ABSPATH')) exit;
 
 /**
