@@ -123,42 +123,51 @@ final class SEO_Ingeniero {
         return self::$provider;
     }
 
-    public static function category_candidates($limit = 20) {
-        global $wpdb;
-        $limit = max(1, min(100, absint($limit)));
+    public static function category_candidates($limit = 20, $only_missing = false) {
+        $limit = absint($limit);
         $excluded = array_filter(array_map('absint', (array) apply_filters(
             'seo_ingeniero_excluded_term_ids',
             array(absint(get_option('default_product_cat', 0)))
         )));
-        $where_excluded = $excluded ? ' AND t.term_id NOT IN (' . implode(',', $excluded) . ')' : '';
 
-        $rows = (array) $wpdb->get_results(
-            "SELECT t.term_id,t.name,tt.count
-             FROM {$wpdb->terms} t
-             INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_id=t.term_id AND tt.taxonomy='product_cat'
-             WHERE tt.count>0 {$where_excluded}
-             ORDER BY tt.count DESC,t.name ASC
-             LIMIT {$limit}",
-            ARRAY_A
-        );
-        return $rows;
+        $terms = get_terms(array(
+            'taxonomy'=>'product_cat',
+            'hide_empty'=>true,
+            'exclude'=>$excluded,
+            'orderby'=>'count',
+            'order'=>'DESC',
+        ));
+        if (is_wp_error($terms)) return array();
+
+        $stats = $only_missing ? SEO_Ingeniero_DB::category_stats_map(self::LESSON_TECHNICAL) : array();
+        $rows = array();
+        foreach ((array) $terms as $term) {
+            $term_id = absint($term->term_id ?? 0);
+            if (!$term_id) continue;
+            if ($only_missing && !empty($stats[$term_id]['knowledge'])) continue;
+            $rows[] = array(
+                'term_id'=>$term_id,
+                'name'=>(string) ($term->name ?? ''),
+                'count'=>absint($term->count ?? 0),
+            );
+        }
+
+        usort($rows, static function($a, $b) {
+            $count_cmp = absint($b['count'] ?? 0) <=> absint($a['count'] ?? 0);
+            if (0 !== $count_cmp) return $count_cmp;
+            return strcasecmp((string) ($a['name'] ?? ''), (string) ($b['name'] ?? ''));
+        });
+
+        return $limit > 0 ? array_slice($rows, 0, $limit) : $rows;
     }
 
     public static function prepare_lesson($limit = 20, $only_missing = true) {
-        $candidates = self::category_candidates($limit);
-        $stats = SEO_Ingeniero_DB::category_stats_map(self::LESSON_TECHNICAL);
+        $limit = max(1, min(100, absint($limit)));
+        $candidates = self::category_candidates($limit, $only_missing);
         $queue = array();
         foreach ($candidates as $row) {
             $term_id = absint($row['term_id'] ?? 0);
-            if (!$term_id) continue;
-            if ($only_missing && !empty($stats[$term_id]['knowledge'])) continue;
-            $queue[] = $term_id;
-        }
-        if (!$queue && $only_missing) {
-            foreach ($candidates as $row) {
-                $term_id = absint($row['term_id'] ?? 0);
-                if ($term_id) $queue[] = $term_id;
-            }
+            if ($term_id) $queue[] = $term_id;
         }
 
         $state = self::default_state();
