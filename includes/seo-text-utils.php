@@ -17,7 +17,7 @@ if (!function_exists('seo_clean_text')) {
 
         $text = remove_accents(
             mb_strtolower(
-                strip_tags($text)
+                wp_strip_all_tags($text)
             )
         );
 
