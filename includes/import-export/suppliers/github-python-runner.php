@@ -670,6 +670,13 @@ if ( ! function_exists( 'seo_github_python_runner_callback' ) ) {
     }
 }
 
+if ( ! function_exists( 'seo_github_python_runner_permission_callback' ) ) {
+    function seo_github_python_runner_permission_callback( WP_REST_Request $request ) {
+        $authorized = seo_github_python_runner_authorize_callback( $request );
+        return is_wp_error( $authorized ) ? $authorized : true;
+    }
+}
+
 if ( ! function_exists( 'seo_github_python_runner_register_rest' ) ) {
     function seo_github_python_runner_register_rest() {
         register_rest_route(
@@ -678,7 +685,7 @@ if ( ! function_exists( 'seo_github_python_runner_register_rest' ) ) {
             [
                 'methods'             => WP_REST_Server::CREATABLE,
                 'callback'            => 'seo_github_python_runner_callback',
-                'permission_callback' => '__return_true',
+                'permission_callback' => 'seo_github_python_runner_permission_callback',
             ]
         );
     }
