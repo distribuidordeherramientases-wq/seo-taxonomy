@@ -75,7 +75,8 @@ function seo_menu_manager_page() {
                             _n(
                                 '%d elemento añadido al menú SEO.',
                                 '%d elementos añadidos al menú SEO.',
-                                (int) $result
+                                (int) $result,
+                                'seo-taxonomy'
                             ),
                             (int) $result
                         )
