@@ -3196,7 +3196,7 @@ Cinco o seis FAQs.
 
             ?>
 
-                <li id="cat_row_<?php echo $term_id; ?>" style="
+                <li id="cat_row_<?php echo esc_attr((int) $term_id); ?>" style="
                     margin-bottom:20px;
                     padding:18px;
                     border:1px solid #e5e7eb;
@@ -3342,7 +3342,7 @@ Cinco o seis FAQs.
 
                     <div style="margin-top:12px; margin-bottom:12px; font-size:12px;">
                         <strong>Nombre de la Categoría:</strong>
-                        <input type="text" name="cat_name[<?php echo $term_id; ?>]" value="<?php echo esc_attr($category->name); ?>" style="width:100%; font-size:13px; padding:6px 10px; border:1px solid #c3c4c7; border-radius:4px; margin-top:4px;">
+                        <input type="text" name="cat_name[<?php echo esc_attr((int) $term_id); ?>]" value="<?php echo esc_attr($category->name); ?>" style="width:100%; font-size:13px; padding:6px 10px; border:1px solid #c3c4c7; border-radius:4px; margin-top:4px;">
                     </div>
                     
 
@@ -3352,7 +3352,7 @@ Cinco o seis FAQs.
                         <strong>Excerpt SEO:</strong>
                     
                         <textarea
-                            name="cat_excerpt[<?php echo $term_id; ?>]"
+                            name="cat_excerpt[<?php echo esc_attr((int) $term_id); ?>]"
                             style="width:100%; min-height:80px; font-size:12px; margin-top:4px; border:1px solid #c3c4c7; border-radius:4px; padding:6px; box-sizing:border-box; font-family:sans-serif; resize:vertical;"
                         ><?php echo esc_textarea($seo_excerpt); ?></textarea>
                     </div>
@@ -3363,7 +3363,7 @@ Cinco o seis FAQs.
                         <strong>Etiquetas SEO:</strong>
                     
                         <textarea
-                            name="cat_tags[<?php echo $term_id; ?>]"
+                            name="cat_tags[<?php echo esc_attr((int) $term_id); ?>]"
                             style="width:100%; min-height:60px; font-size:12px; margin-top:4px; border:1px solid #c3c4c7; border-radius:4px; padding:6px; box-sizing:border-box; font-family:sans-serif; resize:vertical;"
                         ><?php echo esc_textarea($seo_node_keywords); ?></textarea>
                     </div>
@@ -3372,7 +3372,7 @@ Cinco o seis FAQs.
 
                     <div style="margin-bottom:12px; font-size:12px;">
                         <strong>Descripción (Contenido SEO):</strong>
-                        <textarea name="cat_description[<?php echo $term_id; ?>]" style="width:100%; min-height:100px; font-size:12px; margin-top:4px; border:1px solid #c3c4c7; border-radius:4px; padding:6px; box-sizing:border-box; font-family:sans-serif; resize:vertical;"><?php echo esc_textarea($seo_description); ?></textarea>
+                        <textarea name="cat_description[<?php echo esc_attr((int) $term_id); ?>]" style="width:100%; min-height:100px; font-size:12px; margin-top:4px; border:1px solid #c3c4c7; border-radius:4px; padding:6px; box-sizing:border-box; font-family:sans-serif; resize:vertical;"><?php echo esc_textarea($seo_description); ?></textarea>
                     </div>
                     <!-- ELIMINAR CATEGORÍA Y CREAR REDIRECCIÓN -->
 <div style="background:#fcfcfc; border:1px dashed #c3c4c7; padding:12px; border-radius:6px; margin-top:12px; display:flex; gap:12px; flex-direction:column;">
@@ -3385,10 +3385,10 @@ Cinco o seis FAQs.
 
         <div style="display:flex; flex-direction:column; gap:4px;">
             <label style="font-size:11px; color:#646970; font-weight:600;">1. Clusters</label>
-            <select id="cluster_<?php echo $term_id; ?>"
+            <select id="cluster_<?php echo esc_attr((int) $term_id); ?>"
                     class="seo-select-<?php echo esc_attr((int) $term_id); ?>"
                     data-level="1"
-                    onchange="seoFiltrarCascada(<?php echo (int) $term_id; ?>, 1)"
+                    onchange="seoFiltrarCascada(<?php echo esc_attr((int) $term_id); ?>, 1)"
                     style="width:160px; font-size:12px; height:28px;">
 
                 <option value="">-- Seleccionar Cluster --</option>
@@ -3404,11 +3404,11 @@ Cinco o seis FAQs.
 
         <div style="display:flex; flex-direction:column; gap:4px;">
             <label style="font-size:11px; color:#646970; font-weight:600;">2. Hubs Primarios</label>
-            <select id="hub_p_<?php echo $term_id; ?>"
+            <select id="hub_p_<?php echo esc_attr((int) $term_id); ?>"
                     class="seo-select-<?php echo esc_attr((int) $term_id); ?>"
                     data-level="2"
                     disabled
-                    onchange="seoFiltrarCascada(<?php echo (int) $term_id; ?>, 2)"
+                    onchange="seoFiltrarCascada(<?php echo esc_attr((int) $term_id); ?>, 2)"
                     style="width:160px; font-size:12px; height:28px;">
 
                 <option value="">-- Esperando Cluster --</option>
@@ -3422,7 +3422,7 @@ Cinco o seis FAQs.
                     class="seo-select-<?php echo esc_attr((int) $term_id); ?>"
                     data-level="3"
                     disabled
-                    onchange="seoFiltrarCascada(<?php echo (int) $term_id; ?>, 3)"
+                    onchange="seoFiltrarCascada(<?php echo esc_attr((int) $term_id); ?>, 3)"
                     style="width:160px; font-size:12px; height:28px;">
 
                 <option value="">-- Esperando Hub P. --</option>
@@ -3436,7 +3436,7 @@ Cinco o seis FAQs.
                     class="seo-select-<?php echo esc_attr((int) $term_id); ?>"
                     data-level="4"
                     disabled
-                    onchange="seoFiltrarCascada(<?php echo (int) $term_id; ?>, 4)"
+                    onchange="seoFiltrarCascada(<?php echo esc_attr((int) $term_id); ?>, 4)"
                     style="width:160px; font-size:12px; height:28px;">
 
                 <option value="">-- Esperando Hub S. --</option>
@@ -3449,7 +3449,7 @@ Cinco o seis FAQs.
                 🔗 Enlace Destino de Redirección:
             </label>
 
-            <div id="url_preview_<?php echo $term_id; ?>"
+            <div id="url_preview_<?php echo esc_attr((int) $term_id); ?>"
                  style="font-size:11px; color:#646970; background:#f0f0f1; padding:6px 10px; border:1px solid #dcdcde; border-radius:4px; min-height:28px; word-break:break-all; display:flex; align-items:center;">
 
                 <i>Ningún destino seleccionado</i>
@@ -3459,9 +3459,9 @@ Cinco o seis FAQs.
 
         <div style="display:flex; flex-direction:column; gap:4px;">
             <button type="button"
-                    id="btn_redirect_<?php echo $term_id; ?>"
+                    id="btn_redirect_<?php echo esc_attr((int) $term_id); ?>"
                     disabled
-                    onclick="seoProcesarAccionV2(<?php echo $term_id; ?>, '<?php echo esc_js($url_origen_completa); ?>', 'borrado_total')"
+                    onclick="seoProcesarAccionV2(<?php echo esc_attr((int) $term_id); ?>, '<?php echo esc_js($url_origen_completa); ?>', 'borrado_total')"
                     style="height:28px; padding:0 12px; background:#f6f7f7; border:1px solid #dcdcde; color:#a7aaad; border-radius:4px; font-weight:bold; cursor:not-allowed; transition:all 0.2s;">
 
                 Eliminar Categoría
