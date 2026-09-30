@@ -1315,18 +1315,26 @@ function seo_proveedores_analizar_archivo() {
 
     check_admin_referer( 'seo_proveedores_analizar', 'seo_proveedores_nonce' );
 
-    $recipe_id = sanitize_key( $_POST['receta_importacion'] ?? '' );
+    $recipe_id = isset( $_POST['receta_importacion'] )
+        ? sanitize_key( wp_unslash( $_POST['receta_importacion'] ) )
+        : '';
     $recipe    = seo_proveedores_obtener_receta( $recipe_id );
 
     if ( ! is_array( $recipe ) ) {
         wp_die( 'Selecciona una receta de importacion valida.' );
     }
 
-    if ( empty( $_FILES['proveedores_archivo']['tmp_name'] ) || ! is_uploaded_file( $_FILES['proveedores_archivo']['tmp_name'] ) ) {
-        wp_die( 'No se ha recibido un archivo valido.' );
+    $uploaded_file = isset( $_FILES['proveedores_archivo'] ) && is_array( $_FILES['proveedores_archivo'] )
+        ? $_FILES['proveedores_archivo']
+        : [];
+
+    if ( empty( $uploaded_file['tmp_name'] ) ) {
+        wp_die( esc_html__( 'No se ha recibido un archivo válido.', 'seo-taxonomy' ) );
     }
 
-    $filename  = sanitize_file_name( $_FILES['proveedores_archivo']['name'] );
+    $filename  = isset( $uploaded_file['name'] )
+        ? sanitize_file_name( wp_unslash( $uploaded_file['name'] ) )
+        : '';
     $extension = strtolower( pathinfo( $filename, PATHINFO_EXTENSION ) );
 
     $recipe_extensions = array_values( array_filter( array_map( 'sanitize_key', (array) ( $recipe['accepted_extensions'] ?? [ 'csv', 'xls', 'xlsx' ] ) ) ) );
@@ -1354,12 +1362,24 @@ function seo_proveedores_analizar_archivo() {
         wp_die( esc_html( $storage->get_error_message() ) );
     }
 
-    $stored_name = wp_unique_filename( $storage['dir'], $filename );
-    $stored_path = trailingslashit( $storage['dir'] ) . $stored_name;
+    $stored = seo_taxonomy_store_uploaded_file(
+        $uploaded_file,
+        $storage['dir'],
+        [
+            'csv'  => 'text/csv',
+            'xls'  => 'application/vnd.ms-excel',
+            'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ],
+        $filename,
+        false
+    );
 
-    if ( ! move_uploaded_file( $_FILES['proveedores_archivo']['tmp_name'], $stored_path ) ) {
-        wp_die( 'No se pudo guardar el archivo original.' );
+    if ( is_wp_error( $stored ) ) {
+        wp_die( esc_html( $stored->get_error_message() ) );
     }
+
+    $stored_name = (string) $stored['name'];
+    $stored_path = (string) $stored['path'];
 
     $analysis = 'xlsx' === $extension
         ? seo_proveedores_analizar_xlsx( $stored_path )
