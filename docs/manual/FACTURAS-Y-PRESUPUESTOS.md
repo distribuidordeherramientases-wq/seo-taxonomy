@@ -114,6 +114,8 @@ Al guardar con la gestión fiscal activa, el módulo activa el cálculo de impue
 
 En este proyecto los PVP del catálogo se consideran precios finales con IVA. Por tanto debe mantenerse activada **Los precios del catálogo ya incluyen IVA**.
 
+Cuando esta regla está activa, el módulo alinea además WooCommerce para **mostrar precios con IVA tanto en tienda como en carrito/checkout**. Así, un producto mostrado a 301,08 € IVA incluido debe seguir totalizando 301,08 € durante la compra; el IVA se desglosa dentro de ese importe y no se añade encima.
+
 Si WooCommerce interpreta esos mismos PVP como precios **sin impuestos**, añadirá de nuevo el IVA al crear carrito/pedido. La Factura no corrige ese error: copia los importes del pedido, por lo que reflejaría el total inflado.
 
 **No modifica documentos ni pedidos ya emitidos**. El ajuste afecta a los cálculos posteriores de WooCommerce.
