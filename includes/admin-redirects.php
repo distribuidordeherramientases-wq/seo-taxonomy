@@ -644,7 +644,7 @@ if (!function_exists('seo_redirects_admin_issue_badge')) {
 if (!function_exists('seo_redirects_admin_send_json_download')) {
     function seo_redirects_admin_send_json_download($filename, $payload) {
         if (headers_sent()) {
-            wp_die(esc_html__('No se puede iniciar la descarga porque ya se enviaron cabeceras.', 'seo-menu-manager'));
+            wp_die(esc_html__('No se puede iniciar la descarga porque ya se enviaron cabeceras.', 'seo-taxonomy'));
         }
 
         nocache_headers();
@@ -657,7 +657,7 @@ if (!function_exists('seo_redirects_admin_send_json_download')) {
         );
 
         if (!is_string($json)) {
-            wp_die(esc_html__('No se pudo generar el JSON de redirecciones.', 'seo-menu-manager'));
+            wp_die(esc_html__('No se pudo generar el JSON de redirecciones.', 'seo-taxonomy'));
         }
 
         echo $json; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- descarga JSON controlada.
@@ -926,7 +926,7 @@ if (!function_exists('seo_redirects_admin_import_json_file')) {
 
 function seo_menu_manager_redirects_page() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para gestionar redirecciones.', 'seo-menu-manager'));
+        wp_die(esc_html__('No tienes permisos para gestionar redirecciones.', 'seo-taxonomy'));
     }
 
     global $wpdb;
@@ -1023,19 +1023,19 @@ function seo_menu_manager_redirects_page() {
                 $message = trim($origin_error . ' ' . $target_error);
                 $message_class = 'error';
             } elseif ($origin_url === '' || $target_url === '') {
-                $message = __('Por favor, rellena tanto la URL de origen como la de destino.', 'seo-menu-manager');
+                $message = __('Por favor, rellena tanto la URL de origen como la de destino.', 'seo-taxonomy');
                 $message_class = 'error';
             } elseif (seo_redirects_admin_effective_path($origin_url) === seo_redirects_admin_effective_path($target_url)) {
-                $message = __('No se puede crear una redirección hacia la misma URL.', 'seo-menu-manager');
+                $message = __('No se puede crear una redirección hacia la misma URL.', 'seo-taxonomy');
                 $message_class = 'error';
             } elseif (($duplicate = seo_redirects_admin_find_duplicate_origin($existing_rows, $origin_url)) !== null) {
                 $message = sprintf(
-                    __('Ya existe una redirección con el mismo origen efectivo (ID %d). Edítala en lugar de crear otra.', 'seo-menu-manager'),
+                    __('Ya existe una redirección con el mismo origen efectivo (ID %d). Edítala en lugar de crear otra.', 'seo-taxonomy'),
                     (int) $duplicate->id
                 );
                 $message_class = 'error';
             } elseif (seo_redirects_admin_would_create_cycle($existing_rows, $origin_url, $target_url)) {
-                $message = __('La nueva regla crearía un ciclo de redirección. No se ha guardado.', 'seo-menu-manager');
+                $message = __('La nueva regla crearía un ciclo de redirección. No se ha guardado.', 'seo-taxonomy');
                 $message_class = 'error';
             } else {
                 $inserted = $wpdb->insert(
@@ -1051,10 +1051,10 @@ function seo_menu_manager_redirects_page() {
                 );
 
                 if ($inserted === false) {
-                    $message = __('Error al insertar la redirección.', 'seo-menu-manager');
+                    $message = __('Error al insertar la redirección.', 'seo-taxonomy');
                     $message_class = 'error';
                 } else {
-                    $message = __('Redirección añadida correctamente.', 'seo-menu-manager');
+                    $message = __('Redirección añadida correctamente.', 'seo-taxonomy');
                     $existing_rows = seo_redirects_admin_existing_rows($table_redirects, $wpdb);
                 }
             }
@@ -1085,19 +1085,19 @@ function seo_menu_manager_redirects_page() {
                     $message = trim($origin_error . ' ' . $target_error);
                     $message_class = 'error';
                 } elseif ($origin_url === '' || $target_url === '') {
-                    $message = __('Origen y destino son obligatorios.', 'seo-menu-manager');
+                    $message = __('Origen y destino son obligatorios.', 'seo-taxonomy');
                     $message_class = 'error';
                 } elseif (seo_redirects_admin_effective_path($origin_url) === seo_redirects_admin_effective_path($target_url)) {
-                    $message = __('No se puede redirigir una URL hacia sí misma.', 'seo-menu-manager');
+                    $message = __('No se puede redirigir una URL hacia sí misma.', 'seo-taxonomy');
                     $message_class = 'error';
                 } elseif (($duplicate = seo_redirects_admin_find_duplicate_origin($existing_rows, $origin_url, $id_to_update)) !== null) {
                     $message = sprintf(
-                        __('El origen entra en conflicto con la redirección ID %d.', 'seo-menu-manager'),
+                        __('El origen entra en conflicto con la redirección ID %d.', 'seo-taxonomy'),
                         (int) $duplicate->id
                     );
                     $message_class = 'error';
                 } elseif (seo_redirects_admin_would_create_cycle($existing_rows, $origin_url, $target_url, $id_to_update)) {
-                    $message = __('El cambio crearía un ciclo de redirección. No se ha guardado.', 'seo-menu-manager');
+                    $message = __('El cambio crearía un ciclo de redirección. No se ha guardado.', 'seo-taxonomy');
                     $message_class = 'error';
                 } else {
                     $updated = $wpdb->update(
@@ -1113,10 +1113,10 @@ function seo_menu_manager_redirects_page() {
                     );
 
                     if ($updated === false) {
-                        $message = __('Error al actualizar la redirección.', 'seo-menu-manager');
+                        $message = __('Error al actualizar la redirección.', 'seo-taxonomy');
                         $message_class = 'error';
                     } else {
-                        $message = __('Redirección actualizada correctamente.', 'seo-menu-manager');
+                        $message = __('Redirección actualizada correctamente.', 'seo-taxonomy');
                         $existing_rows = seo_redirects_admin_existing_rows($table_redirects, $wpdb);
                     }
                 }
@@ -1132,7 +1132,7 @@ function seo_menu_manager_redirects_page() {
 
         if (check_admin_referer('seo_delete_redirect_nonce_' . $id_to_delete)) {
             $wpdb->delete($table_redirects, array('id' => $id_to_delete), array('%d'));
-            $message = __('Redirección eliminada correctamente.', 'seo-menu-manager');
+            $message = __('Redirección eliminada correctamente.', 'seo-taxonomy');
             $existing_rows = seo_redirects_admin_existing_rows($table_redirects, $wpdb);
         }
     }
