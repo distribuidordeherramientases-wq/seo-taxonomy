@@ -91,6 +91,30 @@ if (!function_exists('seo_classifier_engineer_vocab_semantic_rules')) {
     }
 }
 
+if (!function_exists('seo_classifier_engineer_vocab_prepare_row')) {
+    function seo_classifier_engineer_vocab_prepare_row(array $row) {
+        $parts = [
+            (string) ($row['summary'] ?? ''),
+            implode(' ', (array) ($row['tags'] ?? [])),
+        ];
+        $evidence = [];
+        foreach ((array) ($row['facts'] ?? []) as $fact) {
+            $text = trim((string) ($fact['evidence'] ?? ''));
+            if ($text === '') continue;
+            $evidence[] = $text;
+            $parts[] = $text;
+        }
+        return [
+            'knowledge_type'=>sanitize_key((string) ($row['knowledge_type'] ?? '')),
+            'status'=>sanitize_key((string) ($row['status'] ?? 'review')),
+            'confidence'=>max(0.0, min(1.0, (float) ($row['confidence'] ?? 0))),
+            'text'=>trim(implode(' ', $parts)),
+            'summary'=>trim((string) ($row['summary'] ?? '')),
+            'evidence'=>$evidence,
+        ];
+    }
+}
+
 if (!function_exists('seo_classifier_engineer_vocab_rows')) {
     function seo_classifier_engineer_vocab_rows($term_id) {
         $term_id = absint($term_id);
@@ -110,25 +134,7 @@ if (!function_exists('seo_classifier_engineer_vocab_rows')) {
 
         $rows = [];
         foreach ((array) $knowledge as $row) {
-            $parts = [
-                (string) ($row['summary'] ?? ''),
-                implode(' ', (array) ($row['tags'] ?? [])),
-            ];
-            $evidence = [];
-            foreach ((array) ($row['facts'] ?? []) as $fact) {
-                $text = trim((string) ($fact['evidence'] ?? ''));
-                if ($text === '') continue;
-                $evidence[] = $text;
-                $parts[] = $text;
-            }
-            $rows[] = [
-                'knowledge_type'=>sanitize_key((string) ($row['knowledge_type'] ?? '')),
-                'status'=>sanitize_key((string) ($row['status'] ?? 'review')),
-                'confidence'=>max(0.0, min(1.0, (float) ($row['confidence'] ?? 0))),
-                'text'=>trim(implode(' ', $parts)),
-                'summary'=>trim((string) ($row['summary'] ?? '')),
-                'evidence'=>$evidence,
-            ];
+            $rows[] = seo_classifier_engineer_vocab_prepare_row((array) $row);
         }
         return $rows;
     }
@@ -138,6 +144,7 @@ if (!function_exists('seo_classifier_engineer_vocab_find_evidence')) {
     function seo_classifier_engineer_vocab_find_evidence(array $rows, array $patterns) {
         $matches = [];
         $best_confidence = 0.0;
+        $status_counts = ['active'=>0,'review'=>0];
         foreach ($rows as $row) {
             $text = (string) ($row['text'] ?? '');
             $hit = false;
@@ -148,6 +155,8 @@ if (!function_exists('seo_classifier_engineer_vocab_find_evidence')) {
                 }
             }
             if (!$hit) continue;
+            $status = sanitize_key((string) ($row['status'] ?? 'review'));
+            if (isset($status_counts[$status])) $status_counts[$status]++;
             $best_confidence = max($best_confidence, (float) ($row['confidence'] ?? 0));
             $snippet = '';
             foreach ((array) ($row['evidence'] ?? []) as $evidence) {
@@ -165,6 +174,8 @@ if (!function_exists('seo_classifier_engineer_vocab_find_evidence')) {
             'matched'=>!empty($matches),
             'confidence'=>round($best_confidence, 4),
             'evidence'=>array_values(array_unique(array_slice($matches, 0, 3))),
+            'evidence_status'=>$status_counts,
+            'provisional'=>empty($status_counts['active']) && !empty($status_counts['review']),
         ];
     }
 }
@@ -233,22 +244,26 @@ if (!function_exists('seo_classifier_engineer_vocab_label_match')) {
 }
 
 if (!function_exists('seo_classifier_engineer_vocab_report')) {
-    function seo_classifier_engineer_vocab_report($term_id) {
+    function seo_classifier_engineer_vocab_report($term_id, $prepared_rows = null, $attribute_catalog = null, $vocabulary_index = null, $prepared_term = null) {
         $term_id = absint($term_id);
-        $term = $term_id ? get_term($term_id, 'product_cat') : null;
+        $term = $prepared_term ?: ($term_id ? get_term($term_id, 'product_cat') : null);
         if (!$term || is_wp_error($term)) {
             return new WP_Error('classifier_engineer_category', 'La categoría no existe.');
         }
 
-        $rows = seo_classifier_engineer_vocab_rows($term_id);
+        $rows = is_array($prepared_rows) ? $prepared_rows : seo_classifier_engineer_vocab_rows($term_id);
         if (is_wp_error($rows)) return $rows;
 
-        $attribute_catalog = function_exists('seo_classifier_attribute_catalog')
-            ? (array) seo_classifier_attribute_catalog()
-            : [];
-        $vocabulary_index = function_exists('seo_classifier_vocabulary_index')
-            ? (array) seo_classifier_vocabulary_index()
-            : [];
+        if (!is_array($attribute_catalog)) {
+            $attribute_catalog = function_exists('seo_classifier_attribute_catalog')
+                ? (array) seo_classifier_attribute_catalog()
+                : [];
+        }
+        if (!is_array($vocabulary_index)) {
+            $vocabulary_index = function_exists('seo_classifier_vocabulary_index')
+                ? (array) seo_classifier_vocabulary_index()
+                : [];
+        }
 
         $attribute_results = [];
         foreach (seo_classifier_engineer_vocab_attribute_rules() as $rule) {
@@ -275,6 +290,8 @@ if (!function_exists('seo_classifier_engineer_vocab_report')) {
                 'suggested_terms'=>$terms,
                 'confidence'=>$signal['confidence'],
                 'evidence'=>$signal['evidence'],
+                'evidence_status'=>$signal['evidence_status'],
+                'provisional'=>!empty($signal['provisional']),
             ];
         }
 
@@ -292,6 +309,8 @@ if (!function_exists('seo_classifier_engineer_vocab_report')) {
                 'existing_label'=>(string) ($match['term']['label'] ?? ''),
                 'confidence'=>$signal['confidence'],
                 'evidence'=>$signal['evidence'],
+                'evidence_status'=>$signal['evidence_status'],
+                'provisional'=>!empty($signal['provisional']),
             ];
         }
 
@@ -309,7 +328,7 @@ if (!function_exists('seo_classifier_engineer_vocab_report')) {
 
         return [
             'schema'=>'seo-classifier-engineer-vocab-report',
-            'schema_version'=>2,
+            'schema_version'=>3,
             'generated_at'=>current_time('mysql'),
             'term_id'=>$term_id,
             'category'=>(string) $term->name,
@@ -319,7 +338,7 @@ if (!function_exists('seo_classifier_engineer_vocab_report')) {
             'attributes'=>$attribute_results,
             'labels'=>$label_results,
             'stats'=>$stats,
-            'policy'=>'Solo propone. Puede analizar conocimiento active o review de Ingeniero, pero no crea etiquetas, términos ni atributos y no modifica productos.',
+            'policy'=>'Analiza conocimiento active o review de Ingeniero. La aceptación explícita puede ampliar los maestros canónicos, pero no asigna automáticamente esos conceptos a productos ni contenido público.',
         ];
     }
 }
