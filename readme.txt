@@ -5,7 +5,7 @@ Tags: seo, woocommerce, taxonomy, catalog, automation
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 2.3.8.4
+Stable tag: 2.3.9
 License: MIT
 License URI: https://opensource.org/license/mit
 
@@ -84,6 +84,18 @@ No todas. Algunos módulos pueden usar servicios externos para obtener informaci
 
 == Changelog ==
 
+= 2.3.9 - 2026-09-30 =
+
+* Consolida el ciclo completo de parches 2.3.8.x en una versión estable.
+* Mejora Dependiente, Academia e Intérprete, incluida la estabilidad de L9/L10 y el entrenamiento por preguntas.
+* Incorpora Ingeniero y su integración con Clasificador para ampliar conocimiento, atributos y vocabulario por categoría.
+* Amplía Auditor con calidad SEO, auditorías por bloques y equilibrio de categorías.
+* Mejora Marketing, campañas, calendario e informes de redes sociales.
+* Reorganiza Contenidos, Editor y Comentarista.
+* Mejora comparador, carrito, Presupuestos/Proformas y generación PDF.
+* Corrige el tratamiento de PVP con IVA incluido para evitar duplicar impuestos en carrito y checkout.
+* Amplía la documentación operativa, Wiki y proceso de publicación.
+
 = 2.3.8.1 - 2026-09-26 =
 
 * Ampliada la gestión de campañas comerciales.
@@ -128,6 +140,10 @@ No todas. Algunos módulos pueden usar servicios externos para obtener informaci
 El historial técnico completo se mantiene en `CHANGELOG.md`.
 
 == Upgrade Notice ==
+
+= 2.3.9 =
+
+Consolida los parches 2.3.8.x en la versión estable 2.3.9. Incluye mejoras de Dependiente/Academia, Ingeniero y Clasificador, Auditor, Marketing, categorías, comparador, documentos comerciales y correcciones de IVA incluido. Se recomienda validar catálogo, carrito/checkout y procesos automáticos después de actualizar.
 
 = 2.3.8.1 =
 
