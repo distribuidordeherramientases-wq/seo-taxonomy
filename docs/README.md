@@ -21,6 +21,7 @@ La documentación se divide en dos niveles:
 - [Productos](manual/PRODUCTOS.md)
 - [Categorías](manual/CATEGORIAS.md)
 - [Etiquetas y vocabulario](manual/ETIQUETAS-Y-VOCABULARIO.md)
+- [Clasificador](manual/CLASIFICADOR.md)
 - [Páginas](manual/PAGINAS.md)
 - [Entradas](manual/ENTRADAS.md)
 - [Imágenes](manual/IMAGENES.md)
