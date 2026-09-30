@@ -550,7 +550,7 @@ function seo_ie_batch_guard_manual_import( $entity ) {
         wp_die(
             esc_html__(
                 'Hay una importacion por lotes en curso. Espera a que termine o deten la cola antes de iniciar una importacion individual.',
-                'seo-system'
+                'seo-taxonomy'
             )
         );
     }
@@ -1988,7 +1988,7 @@ function seo_ie_batch_handle_file_download() {
     }
 
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para descargar archivos de la cola.', 'seo-system' ) );
+        wp_die( esc_html__( 'No tienes permisos para descargar archivos de la cola.', 'seo-taxonomy' ) );
     }
 
     $bucket   = sanitize_key( $_GET['seo_ie_batch_bucket'] ?? '' );
@@ -1996,7 +1996,7 @@ function seo_ie_batch_handle_file_download() {
     $action   = 'seo_ie_batch_file_' . $operation . '_' . $bucket . '_' . $filename;
 
     if ( ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['seo_ie_batch_file_nonce'] ?? '' ) ), $action ) ) {
-        wp_die( esc_html__( 'El enlace de descarga ha caducado.', 'seo-system' ) );
+        wp_die( esc_html__( 'El enlace de descarga ha caducado.', 'seo-taxonomy' ) );
     }
 
     $path = seo_ie_batch_resolve_managed_file( $bucket, $filename, true );
@@ -2007,7 +2007,7 @@ function seo_ie_batch_handle_file_download() {
     if ( 'download_log' === $operation ) {
         $path .= '.log.json';
         if ( ! is_file( $path ) ) {
-            wp_die( esc_html__( 'Este archivo no tiene un log disponible.', 'seo-system' ) );
+            wp_die( esc_html__( 'Este archivo no tiene un log disponible.', 'seo-taxonomy' ) );
         }
     }
 
@@ -2166,7 +2166,7 @@ function seo_ie_batch_admin_action() {
     }
 
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para gestionar la importacion por lotes.', 'seo-system' ) );
+        wp_die( esc_html__( 'No tienes permisos para gestionar la importacion por lotes.', 'seo-taxonomy' ) );
     }
 
     check_admin_referer( 'seo_ie_batch_admin', 'seo_ie_batch_nonce' );
