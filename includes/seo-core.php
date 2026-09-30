@@ -1,18 +1,5 @@
 <?php
-/*
-Plugin Name: SEO Menu Manager
-Plugin URI: https://www.distribuidordeherramientas.es/
-Description: GProceso central de la adminsitracion
-Version: 1.0.0
-Requires PHP: 7.4
-Requires at least: 5.8
-Author: David Perez Martorell davidperezmartorell@gmail.com
-Author URI: https://focazul.wordpress.com/
-License: GPL2
-Text Domain: seo-menu-manager
-*/
-
-
+/** Internal SEO Taxonomy module. */
 if (!defined('ABSPATH')) exit;
 
 // Vista jerárquica de Taxonomía. Se mantiene separada de seo-reports.php.
