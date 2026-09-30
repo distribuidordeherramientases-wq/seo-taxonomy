@@ -69,6 +69,38 @@ Tabla:
 - **Reasignar a…**: selector de nuevo Hub secundario.
 - **Modificar** [Modifica]: mueve la relación estructural de esa categoría.
 
+## Equilibrar categorías desde Auditor
+
+Ruta: **SEO Taxonomy → Contenidos → Auditor → Equilibrar categorías**.
+
+La vista separa dos niveles:
+
+- **Revisión por tamaño**: avisa de categorías fuera del objetivo operativo aunque todavía no exista una solución semántica segura.
+- **Propuesta ejecutable**: aparece solo cuando Auditor dispone de evidencia suficiente para proponer una división o una concentración concreta.
+
+Para división:
+
+- las categorías con más de 10 productos aparecen como revisión por tamaño;
+- una propuesta ejecutable exige cohortes TIPO/SUBTIPO suficientemente diferenciadas;
+- los productos ambiguos o sin asignación segura permanecen en la categoría origen.
+
+Para concentración:
+
+- las categorías con 1–4 productos aparecen como revisión por tamaño;
+- una propuesta ejecutable exige una categoría hermana suficientemente parecida en nombre o Vocabulary;
+- no se fusiona una categoría únicamente por ser pequeña.
+
+Las filas de diagnóstico solo permiten **Abrir categoría** [Consulta]. No mueven productos ni modifican la taxonomía.
+
+Las propuestas ejecutables conservan el flujo:
+
+1. revisar;
+2. aprobar o descartar;
+3. aplicar de forma explícita;
+4. revalidar antes de mover productos.
+
+Al concentrar una categoría, el sistema valida que el origen pueda eliminarse y crea la redirección 301 correspondiente cuando la operación se ejecuta.
+
 ## Informes Google
 
 Muestra el informe Google específico de categorías y permite revisar visibilidad y señales de rendimiento disponibles para cada categoría.
