@@ -145,7 +145,7 @@ if ( ! function_exists( 'seo_github_python_runner_test_connection' ) ) {
 if ( ! function_exists( 'seo_github_python_runner_save_settings' ) ) {
     function seo_github_python_runner_save_settings() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'No tienes permisos para guardar esta conexion.', 'seo-system' ) );
+            wp_die( esc_html__( 'No tienes permisos para guardar esta conexion.', 'seo-taxonomy' ) );
         }
         check_admin_referer( 'seo_github_python_runner_save', 'seo_github_python_runner_nonce' );
 
@@ -387,7 +387,7 @@ if ( ! function_exists( 'seo_github_python_runner_start_prepared' ) ) {
 if ( ! function_exists( 'seo_github_python_runner_handle_launch' ) ) {
     function seo_github_python_runner_handle_launch() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'No tienes permisos para iniciar el scraper Python.', 'seo-system' ) );
+            wp_die( esc_html__( 'No tienes permisos para iniciar el scraper Python.', 'seo-taxonomy' ) );
         }
         check_admin_referer( 'seo_github_python_runner_launch', 'seo_github_python_runner_launch_nonce' );
 
