@@ -72,6 +72,7 @@ function seo_menu_manager_page() {
                     echo '<div class="notice notice-success"><p>';
                     echo esc_html(
                         sprintf(
+                            /* translators: %d: número de elementos añadidos al menú SEO. */
                             _n(
                                 '%d elemento añadido al menú SEO.',
                                 '%d elementos añadidos al menú SEO.',
