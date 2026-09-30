@@ -68,7 +68,7 @@ if ( ! function_exists( 'seo_supplier_recipe_totherramienta_gid_tail' ) ) {
         if ( '' === $value ) {
             return '';
         }
-        $path = wp_parse_url( $value, PHP_URL_PATH );
+        $path = wp_wp_parse_url( $value, PHP_URL_PATH );
         if ( is_string( $path ) && '' !== $path ) {
             $tail = basename( $path );
             if ( '' !== $tail && '.' !== $tail && '/' !== $tail ) {
@@ -833,7 +833,7 @@ if ( ! function_exists( 'seo_supplier_recipe_totherramienta_handle_from_url' ) )
      * @return string
      */
     function seo_supplier_recipe_totherramienta_handle_from_url( $url ) {
-        $path = (string) wp_wp_parse_url( (string) $url, PHP_URL_PATH );
+        $path = (string) wp_wp_wp_parse_url( (string) $url, PHP_URL_PATH );
         if ( ! preg_match( '#/products/([^/]+)#i', $path, $match ) ) {
             return '';
         }
