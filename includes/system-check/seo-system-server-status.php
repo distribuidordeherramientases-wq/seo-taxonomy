@@ -1752,7 +1752,9 @@ function seo_server_status_collect_security_checks($deep = false) {
     }
 
     $php_error_log = trim((string) ini_get('error_log'));
-    $doc_root = !empty($_SERVER['DOCUMENT_ROOT']) ? wp_normalize_path((string) $_SERVER['DOCUMENT_ROOT']) : '';
+    $doc_root = !empty($_SERVER['DOCUMENT_ROOT'])
+        ? wp_normalize_path(sanitize_text_field(wp_unslash($_SERVER['DOCUMENT_ROOT'])))
+        : '';
     $php_log_public = false;
     if ($php_error_log !== '' && $doc_root !== '' && strpos(wp_normalize_path($php_error_log), trailingslashit(untrailingslashit($doc_root))) === 0) {
         $php_log_public = true;
@@ -3348,7 +3350,7 @@ function seo_server_status_get_php_error_log_info() {
     }
 
     if (!empty($_SERVER['DOCUMENT_ROOT'])) {
-        $document_root = realpath((string) $_SERVER['DOCUMENT_ROOT']);
+        $document_root = realpath(sanitize_text_field(wp_unslash($_SERVER['DOCUMENT_ROOT'])));
         if ($document_root !== false) {
             $normalized_root = trailingslashit(untrailingslashit(wp_normalize_path($document_root)));
             $info['private_known'] = true;
