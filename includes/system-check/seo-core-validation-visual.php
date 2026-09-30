@@ -236,7 +236,7 @@ add_action('seo_core_system_test_completed', 'seo_core_visual_auto_dispatch_afte
 
 function seo_core_visual_admin_run() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para ejecutar este chequeo.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para ejecutar este chequeo.', 'seo-taxonomy'));
     }
     check_admin_referer('seo_core_visual_run', 'seo_core_visual_nonce');
 
