@@ -360,7 +360,7 @@ final class SEO_Facturas_Admin {
             </table>
 
             <p class="description">Estado actual de impuestos WooCommerce: <strong><?php echo esc_html($woo_tax_enabled ? 'activados' : 'desactivados'); ?></strong>. Precios introducidos con IVA: <strong><?php echo esc_html($woo_prices_include_tax ? 'sí' : 'no'); ?></strong>. Mostrar precios en tienda: <strong><?php echo esc_html('incl' === $woo_tax_display_shop ? 'con IVA' : 'sin IVA'); ?></strong>. Mostrar precios en carrito/checkout: <strong><?php echo esc_html('incl' === $woo_tax_display_cart ? 'con IVA' : 'sin IVA'); ?></strong>.</p>
-            <p class="description"><strong>Regla del proyecto:</strong> si el catálogo guarda PVP final con IVA, mantén activada «Los precios del catálogo ya incluyen IVA». Si se desactiva, WooCommerce tratará el precio guardado como base imponible y añadirá IVA encima.</p>
+            <p class="description"><strong>Regla del proyecto:</strong> si el catálogo guarda PVP final con IVA, mantén activada «Los precios del catálogo ya incluyen IVA». Esta regla se aplica aunque «Gestión fiscal desde Facturación» esté desactivada. Si se desactiva, WooCommerce tratará el precio guardado como base imponible y añadirá IVA encima.</p>
             <p class="description">No se modifican facturas o proformas ya emitidas. Sus snapshots permanecen inmutables.</p>
             <?php submit_button('Guardar fiscalidad'); ?>
         </form>
