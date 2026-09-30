@@ -375,14 +375,14 @@ if ( ! function_exists( 'seo_clonador_db_redirect_url' ) ) {
 if ( ! function_exists( 'seo_clonador_db_save_handler' ) ) {
     function seo_clonador_db_save_handler() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'No tienes permisos para gestionar conexiones de entornos.', 'seo-system' ) );
+            wp_die( esc_html__( 'No tienes permisos para gestionar conexiones de entornos.', 'seo-taxonomy' ) );
         }
 
         check_admin_referer( 'seo_clonador_db_save', 'seo_clonador_db_nonce' );
         $env     = sanitize_key( wp_unslash( $_POST['env'] ?? '' ) );
         $allowed = seo_clonador_db_allowed_envs();
         if ( ! isset( $allowed[ $env ] ) ) {
-            wp_die( esc_html__( 'Entorno no valido.', 'seo-system' ) );
+            wp_die( esc_html__( 'Entorno no valido.', 'seo-taxonomy' ) );
         }
 
         $all      = seo_clonador_db_option();
@@ -432,14 +432,14 @@ add_action( 'admin_post_seo_clonador_db_save', 'seo_clonador_db_save_handler' );
 if ( ! function_exists( 'seo_clonador_db_test_handler' ) ) {
     function seo_clonador_db_test_handler() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'No tienes permisos para probar conexiones de entornos.', 'seo-system' ) );
+            wp_die( esc_html__( 'No tienes permisos para probar conexiones de entornos.', 'seo-taxonomy' ) );
         }
 
         check_admin_referer( 'seo_clonador_db_test', 'seo_clonador_db_test_nonce' );
         $env     = sanitize_key( wp_unslash( $_POST['env'] ?? '' ) );
         $allowed = seo_clonador_db_allowed_envs();
         if ( ! isset( $allowed[ $env ] ) ) {
-            wp_die( esc_html__( 'Entorno no valido.', 'seo-system' ) );
+            wp_die( esc_html__( 'Entorno no valido.', 'seo-taxonomy' ) );
         }
 
         $test = seo_clonador_db_test_connection( $env );
