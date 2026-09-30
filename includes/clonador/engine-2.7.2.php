@@ -294,6 +294,11 @@ final class SEO_Clonador_Engine {
             'seo_dependiente_trainer_questions',
             'seo_dependiente_trainer_runs',
             'seo_dependiente_l9_signals',
+
+            // Ingeniero: conocimiento tecnico externo ya aprobado y sus fuentes.
+            // Se copian los datos, pero no runtime, configuracion ni uso de SerpApi.
+            'seo_ingeniero_sources',
+            'seo_ingeniero_knowledge',
         );
     }
 
@@ -508,6 +513,11 @@ final class SEO_Clonador_Engine {
             "SELECT COUNT(*) c FROM `{$tables['seo_dependiente_l9_signals']}` l LEFT JOIN `{$tables['posts']}` p ON p.ID=l.product_id AND p.post_type='product' AND p.post_status NOT IN ('trash','auto-draft') WHERE p.ID IS NULL");if(is_wp_error($r))return$r;
         $r=$check('l9_vocab_orphans','Memoria L9 contiene Vocabulary inexistente',
             "SELECT COUNT(*) c FROM `{$tables['seo_dependiente_l9_signals']}` l LEFT JOIN `{$tables['seo_vocabulary']}` v ON v.id=l.vocabulary_id WHERE COALESCE(l.vocabulary_id,0)>0 AND v.id IS NULL");if(is_wp_error($r))return$r;
+
+        $r=$check('ingeniero_source_category_orphans','Fuentes de Ingeniero contienen categorias inexistentes',
+            "SELECT COUNT(*) c FROM `{$tables['seo_ingeniero_sources']}` s LEFT JOIN `{$tables['term_taxonomy']}` tt ON tt.term_id=s.term_id AND tt.taxonomy='product_cat' WHERE s.term_id>0 AND tt.term_taxonomy_id IS NULL");if(is_wp_error($r))return$r;
+        $r=$check('ingeniero_knowledge_category_orphans','Conocimiento de Ingeniero contiene categorias inexistentes',
+            "SELECT COUNT(*) c FROM `{$tables['seo_ingeniero_knowledge']}` k LEFT JOIN `{$tables['term_taxonomy']}` tt ON tt.term_id=k.term_id AND tt.taxonomy='product_cat' WHERE k.term_id>0 AND tt.term_taxonomy_id IS NULL");if(is_wp_error($r))return$r;
 
         if (!empty($checks['evidence_tag_orphans'])) {
             $message = 'Evidencias de etiqueta contienen origen inexistente: ' . absint($checks['evidence_tag_orphans']) . ' filas.';
@@ -2143,6 +2153,8 @@ final class SEO_Clonador_Engine {
             'table:seo_interprete_lexicon_evidence',
             'table:seo_dependiente_trainer_lessons',
             'table:seo_dependiente_l9_signals',
+            'table:seo_ingeniero_sources',
+            'table:seo_ingeniero_knowledge',
             'option:seo_dependiente_knowledge_snapshot',
             'option:seo_dependiente_academy_update_last_success',
         );
@@ -2567,7 +2579,7 @@ final class SEO_Clonador_Engine {
             'schema_reconcile' => array('label'=>'Alineando esquemas gestionados con PRO','kind'=>'copy','tables'=>array()),
             'reset_posts' => array('label'=>'Vaciando objetos gestionados de STAGING','kind'=>'delete','tables'=>array($t('posts'),$t('postmeta'),$t('term_relationships'))),
             'reset_taxonomies' => array('label'=>'Vaciando taxonomias gestionadas de STAGING','kind'=>'delete','tables'=>array($t('terms'),$t('term_taxonomy'),$t('termmeta'),$t('term_relationships'))),
-            'reset_custom' => array('label'=>'Vaciando catalogo y conocimiento portable','kind'=>'delete','tables'=>array($t('seo_object_vocabulary'),$t('seo_nodes'),$t('seo_relations'),$t('seo_faq'),$t('seo_type_role_map'),$t('sql_product_atributos'),$t('sql_atributos_aliases'),$t('sql_atributos_terminos'),$t('sql_atributos'),$t('seo_vocabulary'),$t('seo_dependiente_semantics'),$t('seo_interprete_lexicon'),$t('seo_interprete_lexicon_evidence'),$t('seo_dependiente_trainer_lessons'),$t('seo_dependiente_trainer_questions'),$t('seo_dependiente_trainer_runs'),$t('seo_dependiente_l9_signals'))),
+            'reset_custom' => array('label'=>'Vaciando catalogo y conocimiento portable','kind'=>'delete','tables'=>array($t('seo_object_vocabulary'),$t('seo_nodes'),$t('seo_relations'),$t('seo_faq'),$t('seo_type_role_map'),$t('sql_product_atributos'),$t('sql_atributos_aliases'),$t('sql_atributos_terminos'),$t('sql_atributos'),$t('seo_vocabulary'),$t('seo_dependiente_semantics'),$t('seo_interprete_lexicon'),$t('seo_interprete_lexicon_evidence'),$t('seo_dependiente_trainer_lessons'),$t('seo_dependiente_trainer_questions'),$t('seo_dependiente_trainer_runs'),$t('seo_dependiente_l9_signals'),$t('seo_ingeniero_sources'),$t('seo_ingeniero_knowledge'))),
             'reset_runtime' => array('label'=>'Limpiando runtime derivado de Dependiente','kind'=>'delete','tables'=>array($t('seo_dependiente_index'),$t('seo_dependiente_search_log'),$t('seo_dependiente_l9_exercises'))),
             'posts' => array('label'=>'Copiando productos, posts y paginas','kind'=>'copy','tables'=>array($t('posts'))),
             'post_parents' => array('label'=>'Reconstruyendo jerarquia de posts','kind'=>'copy','tables'=>array($t('posts'))),
@@ -2595,6 +2607,8 @@ final class SEO_Clonador_Engine {
             'trainer_questions' => array('label'=>'Copiando historial de preguntas de Academia','kind'=>'copy','tables'=>array($t('seo_dependiente_trainer_questions'))),
             'trainer_runs' => array('label'=>'Copiando historial de ejecuciones de Academia','kind'=>'copy','tables'=>array($t('seo_dependiente_trainer_runs'))),
             'l9_signals' => array('label'=>'Copiando memoria L9 de productos','kind'=>'copy','tables'=>array($t('seo_dependiente_l9_signals'))),
+            'ingeniero_sources' => array('label'=>'Copiando fuentes de Ingeniero','kind'=>'copy','tables'=>array($t('seo_ingeniero_sources'))),
+            'ingeniero_knowledge' => array('label'=>'Copiando conocimiento tecnico de Ingeniero','kind'=>'copy','tables'=>array($t('seo_ingeniero_knowledge'))),
             'dependiente_options' => array('label'=>'Sincronizando estado portable de Dependiente y Academia','kind'=>'copy','tables'=>array($t('options'))),
             'structural_options' => array('label'=>'Sincronizando menus, portada, widgets y estructura del sitio','kind'=>'copy','tables'=>array($t('options'))),
             'woo_attribute_taxonomies' => array('label'=>'Copiando taxonomias de atributos WooCommerce','kind'=>'copy','tables'=>array($t('woocommerce_attribute_taxonomies'))),
@@ -2825,6 +2839,8 @@ final class SEO_Clonador_Engine {
             array('key'=>'seo_dependiente_trainer_questions','where'=>'1=1'),
             array('key'=>'seo_dependiente_trainer_runs','where'=>'1=1'),
             array('key'=>'seo_dependiente_l9_signals','where'=>'1=1'),
+            array('key'=>'seo_ingeniero_knowledge','where'=>'1=1'),
+            array('key'=>'seo_ingeniero_sources','where'=>'1=1'),
         );
         $index = absint($state['cursor']['index'] ?? 0);
         if ($index >= count($targets)) {
@@ -3280,7 +3296,15 @@ final class SEO_Clonador_Engine {
         $insert=array();foreach($rows as $row){$cursor=absint($row['id']);$product=self::worker_required_map_id($pmap,$row['product_id']??0,'Producto L9');if(is_wp_error($product))return$product;$vid=absint($row['vocabulary_id']??0);$vocab=0;if($vid){$vocab=self::worker_required_map_id($vmap,$vid,'Vocabulary L9');if(is_wp_error($vocab))return$vocab;}$row['product_id']=$product;$row['vocabulary_id']=$vocab?:null;$row['source_hash']=hash('sha256',implode('|',array((string)($row['lesson_key']??''),$product,sanitize_key((string)($row['signal_type']??'')),(string)($row['normalized_signal']??''),sanitize_key((string)($row['semantic_group']??'')),$vocab)));unset($row['id']);$insert[]=$row;}
         foreach(array_chunk($insert,120) as $chunk){$r=self::insert_rows($stg,$stg_tables['seo_dependiente_l9_signals'],$columns,$chunk,false);if(is_wp_error($r))return$r;}
         self::worker_stat_add($state,'seo_dependiente_l9_signals',count($insert));$state['cursor']=array('id'=>$cursor);$state['message']='Memoria L9 clonada: '.absint($state['stats']['seo_dependiente_l9_signals']??0).' senales.';
-        if(count($rows)<$limit){$state['phase']='dependiente_options';$state['cursor']=array('index'=>0);}return true;
+        if(count($rows)<$limit){$state['phase']='ingeniero_sources';$state['cursor']=array('offset'=>0);}return true;
+    }
+
+    private static function worker_batch_ingeniero_sources($pro,$stg,$pro_tables,$stg_tables,&$state){
+        return self::worker_batch_raw_history_table($pro,$stg,$pro_tables,$stg_tables,$state,'seo_ingeniero_sources','ingeniero_knowledge');
+    }
+
+    private static function worker_batch_ingeniero_knowledge($pro,$stg,$pro_tables,$stg_tables,&$state){
+        return self::worker_batch_raw_history_table($pro,$stg,$pro_tables,$stg_tables,$state,'seo_ingeniero_knowledge','dependiente_options');
     }
 
     private static function normalize_portable_dependiente_option($name,$value){
@@ -3449,6 +3473,8 @@ final class SEO_Clonador_Engine {
             case 'trainer_questions': return self::worker_batch_trainer_questions($pro,$stg,$pro_tables,$stg_tables,$state);
             case 'trainer_runs': return self::worker_batch_trainer_runs($pro,$stg,$pro_tables,$stg_tables,$state);
             case 'l9_signals': return self::worker_batch_l9_signals($pro,$stg,$pro_tables,$stg_tables,$state);
+            case 'ingeniero_sources': return self::worker_batch_ingeniero_sources($pro,$stg,$pro_tables,$stg_tables,$state);
+            case 'ingeniero_knowledge': return self::worker_batch_ingeniero_knowledge($pro,$stg,$pro_tables,$stg_tables,$state);
             case 'dependiente_options': return self::worker_phase_dependiente_options($pro,$stg,$pro_tables,$stg_tables,$state);
             case 'structural_options': return self::worker_phase_structural_options($pro,$stg,$pro_tables,$stg_tables,$state);
             case 'woo_attribute_taxonomies': return self::worker_phase_woo_attribute_taxonomies($pro,$stg,$pro_tables,$stg_tables,$state);
