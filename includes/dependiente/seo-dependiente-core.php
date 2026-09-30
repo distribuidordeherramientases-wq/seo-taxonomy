@@ -381,7 +381,7 @@ final class SEO_Dependiente_Plugin {
         $ids = array_slice($ids, 0, 6);
 
         if (count($ids) < 2) {
-            wp_die(esc_html__('Selecciona al menos dos productos para comparar.', 'seo-system'), '', array('response' => 400));
+            wp_die(esc_html__('Selecciona al menos dos productos para comparar.', 'seo-taxonomy'), '', array('response' => 400));
         }
 
         $comparison = SEO_Dependiente_API::comparison_data($ids);
@@ -397,7 +397,7 @@ final class SEO_Dependiente_Plugin {
         }
 
         if (!class_exists('SEO_Facturas_PDF')) {
-            wp_die(esc_html__('El motor PDF no está disponible.', 'seo-system'), '', array('response' => 500));
+            wp_die(esc_html__('El motor PDF no está disponible.', 'seo-taxonomy'), '', array('response' => 500));
         }
 
         $html = self::comparison_pdf_html($comparison);
