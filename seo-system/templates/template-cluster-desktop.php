@@ -129,7 +129,7 @@ dht_template_render_header();
 ?>
 
 <script type="application/ld+json" id="schema-cluster">
-<?php echo wp_json_encode(array('@context' => 'https://schema.org', '@graph' => $json_graph), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
+<?php echo wp_json_encode(array('@context' => 'https://schema.org', '@graph' => $json_graph), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>
 </script>
 
 <main class="hub-page cluster-page dht-desktop-template">
