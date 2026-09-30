@@ -324,6 +324,7 @@ final class SEO_Facturas_Admin {
         $s = SEO_Facturas_Settings::taxation();
         $option = SEO_Facturas_Settings::TAX_OPTION;
         $woo_tax_enabled = 'yes' === get_option('woocommerce_calc_taxes', 'no');
+        $woo_prices_include_tax = 'yes' === get_option('woocommerce_prices_include_tax', 'no');
         ?>
         <form method="post" action="options.php" class="seo-facturas-settings-form">
             <?php settings_fields('seo_facturas_tax_group'); ?>
@@ -334,6 +335,7 @@ final class SEO_Facturas_Admin {
 
             <table class="form-table" role="presentation">
                 <?php self::checkbox_row($option, 'tax_manager_enabled', 'Gestión fiscal desde Facturación', $s['tax_manager_enabled'], 'Activar estas reglas y utilizarlas en los cálculos de WooCommerce.'); ?>
+                <?php self::checkbox_row($option, 'tax_prices_include_tax', 'Los precios del catálogo ya incluyen IVA', $s['tax_prices_include_tax'], 'Actívalo si el PVP guardado en WooCommerce es el precio final con IVA. Evita que WooCommerce vuelva a sumar el impuesto sobre ese mismo PVP.'); ?>
                 <?php self::checkbox_row($option, 'tax_restrict_to_spain', 'Vender solo en España', $s['tax_restrict_to_spain'], 'Limitar los países de facturación y envío de WooCommerce a España mientras este gestor esté activo.'); ?>
                 <?php self::checkbox_row($option, 'tax_shipping', 'IVA sobre transporte', $s['tax_shipping'], 'Aplicar al transporte la misma tasa fiscal de la zona cuando WooCommerce calcule los portes.'); ?>
             </table>
@@ -355,7 +357,8 @@ final class SEO_Facturas_Admin {
                 <?php self::textarea_row($option, 'tax_special_note', 'Canarias, Ceuta y Melilla', $s['tax_special_note'], 'Se añade a los documentos de estos destinos. Puedes modificar el texto cuando definamos la fiscalidad definitiva de IGIC/IPSI.'); ?>
             </table>
 
-            <p class="description">Estado actual de impuestos WooCommerce: <strong><?php echo esc_html($woo_tax_enabled ? 'activados' : 'desactivados'); ?></strong>. Al guardar con la gestión fiscal activa, el módulo activa el cálculo de impuestos de WooCommerce y sincroniza tasas internas propias.</p>
+            <p class="description">Estado actual de impuestos WooCommerce: <strong><?php echo esc_html($woo_tax_enabled ? 'activados' : 'desactivados'); ?></strong>. Precios introducidos con IVA: <strong><?php echo esc_html($woo_prices_include_tax ? 'sí' : 'no'); ?></strong>.</p>
+            <p class="description"><strong>Regla del proyecto:</strong> si el catálogo guarda PVP final con IVA, mantén activada «Los precios del catálogo ya incluyen IVA». Si se desactiva, WooCommerce tratará el precio guardado como base imponible y añadirá IVA encima.</p>
             <p class="description">No se modifican facturas o proformas ya emitidas. Sus snapshots permanecen inmutables.</p>
             <?php submit_button('Guardar fiscalidad'); ?>
         </form>

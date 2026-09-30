@@ -49,6 +49,7 @@ final class SEO_Facturas_Settings {
     public static function tax_defaults() {
         return array(
             'tax_manager_enabled' => 0,
+            'tax_prices_include_tax' => 1,
             'tax_restrict_to_spain' => 1,
             'tax_shipping' => 1,
             'tax_peninsula_rate' => 21.0,
@@ -246,8 +247,9 @@ final class SEO_Facturas_Settings {
         $d = self::tax_defaults();
 
         $clean = array(
-            'tax_manager_enabled'  => empty($input['tax_manager_enabled']) ? 0 : 1,
-            'tax_restrict_to_spain'=> empty($input['tax_restrict_to_spain']) ? 0 : 1,
+            'tax_manager_enabled'   => empty($input['tax_manager_enabled']) ? 0 : 1,
+            'tax_prices_include_tax'=> empty($input['tax_prices_include_tax']) ? 0 : 1,
+            'tax_restrict_to_spain' => empty($input['tax_restrict_to_spain']) ? 0 : 1,
             'tax_shipping'         => empty($input['tax_shipping']) ? 0 : 1,
             'tax_peninsula_rate'   => self::sanitize_tax_rate($input['tax_peninsula_rate'] ?? $d['tax_peninsula_rate']),
             'tax_baleares_rate'    => self::sanitize_tax_rate($input['tax_baleares_rate'] ?? $d['tax_baleares_rate']),
