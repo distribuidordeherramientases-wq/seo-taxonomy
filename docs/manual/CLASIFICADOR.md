@@ -139,6 +139,7 @@ También puede detectar que falta una **definición de atributo** en el maestro.
 Dentro de **Semántica → Clasificador** aparecen las subsecciones:
 
 - **Etiquetas de productos**.
+- **Ingeniero → vocabulario**.
 - **Atributos de productos**.
 - **Etiquetas de categorías**.
 - **Formato / ejemplos**.
