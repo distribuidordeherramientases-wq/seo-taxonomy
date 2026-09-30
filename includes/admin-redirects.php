@@ -1030,6 +1030,7 @@ function seo_menu_manager_redirects_page() {
                 $message_class = 'error';
             } elseif (($duplicate = seo_redirects_admin_find_duplicate_origin($existing_rows, $origin_url)) !== null) {
                 $message = sprintf(
+                    /* translators: %d: ID de la redirección existente. */
                     __('Ya existe una redirección con el mismo origen efectivo (ID %d). Edítala en lugar de crear otra.', 'seo-taxonomy'),
                     (int) $duplicate->id
                 );
@@ -1092,6 +1093,7 @@ function seo_menu_manager_redirects_page() {
                     $message_class = 'error';
                 } elseif (($duplicate = seo_redirects_admin_find_duplicate_origin($existing_rows, $origin_url, $id_to_update)) !== null) {
                     $message = sprintf(
+                        /* translators: %d: ID de la redirección en conflicto. */
                         __('El origen entra en conflicto con la redirección ID %d.', 'seo-taxonomy'),
                         (int) $duplicate->id
                     );
