@@ -1,17 +1,5 @@
 <?php
-/*
-Plugin Name: SEO Menu Manager
-Plugin URI: https://www.distribuidordeherramientas.es/
-Description: Generador de informes de correcta clasificacion de productos en su jerarquia
-Version: 1.1.0
-Requires PHP: 7.4
-Requires at least: 5.8
-Author: David Perez Martorell davidperezmartorell@gmail.com
-Author URI: https://focazul.wordpress.com/
-License: GPL2
-Text Domain: seo-report-classification
-*/
-
+/** Internal SEO Taxonomy module. */
 if (!defined('ABSPATH')) exit;
 
 function seo_report_classification() {
