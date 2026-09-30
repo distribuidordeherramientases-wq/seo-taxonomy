@@ -1,17 +1,5 @@
 <?php
-/*
-Plugin Name: SEO Menu Manager
-Plugin URI: https://www.distribuidordeherramientas.es/
-Description: Generador de informes con vistas Normal y Detallada
-Version: 1.2.6
-Requires PHP: 7.4
-Requires at least: 5.8
-Author: David Perez Martorell davidperezmartorell@gmail.com
-Author URI: https://focazul.wordfpress.com/
-License: GPL2
-Text Domain: seo-menu-manager
-*/
-
+/** Internal SEO Taxonomy module. */
 if (!defined('ABSPATH')) exit;
 
 // Informe editorial: oportunidades de posts a partir de las conexiones Google ya existentes.
