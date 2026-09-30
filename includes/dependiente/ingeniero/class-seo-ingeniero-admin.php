@@ -152,7 +152,8 @@ final class SEO_Ingeniero_Admin {
         $totals = SEO_Ingeniero_DB::totals();
         $stats_map = SEO_Ingeniero_DB::category_stats_map();
         $category_states = SEO_Ingeniero::category_states();
-        $candidates = SEO_Ingeniero::category_candidates(100);
+        $all_candidates = SEO_Ingeniero::category_candidates(0);
+        $table_candidates = array_slice($all_candidates, 0, 100);
         $usage = SEO_Ingeniero_SerpApi_Provider::usage_month();
         $settings = SEO_Ingeniero_SerpApi_Provider::settings();
         $detail_term_id = absint($_GET['term_id'] ?? 0);
@@ -166,7 +167,7 @@ final class SEO_Ingeniero_Admin {
         echo '<p class="description">Separación deliberada: <code>seo_dependiente_index</code> sigue representando nuestro catálogo; <code>seo_ingeniero_knowledge</code> conserva teoría externa trazable por fuentes.</p>';
         echo '</div>';
 
-        self::render_kpis($candidates, $category_states, $totals, $state);
+        self::render_kpis($all_candidates, $stats_map, $category_states, $totals, $state);
 
         echo '<div class="postbox seo-dependiente-admin__box" style="padding:18px">';
         echo '<h3 style="margin-top:0">Lección 1 · Documentación técnica</h3>';
@@ -174,7 +175,7 @@ final class SEO_Ingeniero_Admin {
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
         echo '<input type="hidden" name="action" value="seo_ingeniero_prepare">';
         wp_nonce_field('seo_ingeniero_prepare');
-        echo '<label><strong>Categorías piloto</strong><br><input type="number" name="limit" min="1" max="100" value="20" class="small-text"></label> ';
+        echo '<label><strong>Categorías por lote</strong><br><input type="number" name="limit" min="1" max="100" value="20" class="small-text"><br><small class="description">Se seleccionan entre las pendientes.</small></label> ';
         submit_button('Preparar lección', 'secondary', 'submit', false);
         echo '</form>';
 
@@ -198,7 +199,7 @@ final class SEO_Ingeniero_Admin {
         echo '</div>';
 
         echo '<p style="margin:15px 0 4px"><strong>Estado:</strong> ' . esc_html((string) ($state['status'] ?? 'stopped')) . ' · ';
-        echo esc_html(number_format_i18n($progress['processed'])) . '/' . esc_html(number_format_i18n($progress['total'])) . ' categorías · lote adaptativo ' . esc_html(absint($state['batch_size'] ?? 1)) . '.</p>';
+        echo '<strong>Lote actual:</strong> ' . esc_html(number_format_i18n($progress['processed'])) . '/' . esc_html(number_format_i18n($progress['total'])) . ' categorías · lote adaptativo ' . esc_html(absint($state['batch_size'] ?? 1)) . '.</p>';
         if (!empty($state['last_message'])) echo '<p class="description">' . esc_html((string) $state['last_message']) . '</p>';
         if (!empty($state['last_error'])) echo '<p style="color:#b32d2e"><strong>Último error:</strong> ' . esc_html((string) $state['last_error']) . '</p>';
         echo '</div>';
@@ -224,7 +225,7 @@ final class SEO_Ingeniero_Admin {
         echo '</form>';
         echo '</div>';
 
-        self::render_category_table($candidates, $stats_map, $category_states);
+        self::render_category_table($table_candidates, $stats_map, $category_states, count($all_candidates));
 
         if ($detail_term_id) self::render_category_detail($detail_term_id);
 
@@ -236,23 +237,42 @@ final class SEO_Ingeniero_Admin {
         echo '</section>';
     }
 
-    private static function render_kpis($candidates, $category_states, $totals, $state) {
+    private static function render_kpis($candidates, $stats_map, $category_states, $totals, $state) {
         $total = count((array) $candidates);
-        $investigated = 0; $pending = 0; $review = 0; $errors = 0;
+        $investigated = 0;
+        $pending = 0;
+        $approved = 0;
+        $review = 0;
+        $errors = 0;
         $last = 0;
+
         foreach ((array) $candidates as $row) {
             $tid = absint($row['term_id'] ?? 0);
+            if (!$tid) continue;
+
+            $stat = (array) ($stats_map[$tid] ?? array());
+            $knowledge = absint($stat['knowledge'] ?? 0);
+            $active = absint($stat['active'] ?? 0);
+            $review_count = absint($stat['review'] ?? 0);
             $status = sanitize_key((string) ($category_states[$tid]['status'] ?? 'pendiente'));
-            if (in_array($status, array('aprendido','revisar'), true)) $investigated++;
-            if ('pendiente' === $status) $pending++;
-            if ('revisar' === $status) $review++;
+
+            if ($knowledge > 0) $investigated++;
+            if ($active > 0 && $review_count < 1) $approved++;
+            if ($review_count > 0) $review++;
             if ('error' === $status) $errors++;
-            $last = max($last, absint($category_states[$tid]['last_research_at'] ?? $category_states[$tid]['updated_at'] ?? 0));
+            if ($knowledge < 1 && 'error' !== $status) $pending++;
+
+            $last = max(
+                $last,
+                absint($category_states[$tid]['last_research_at'] ?? $category_states[$tid]['updated_at'] ?? 0)
+            );
         }
+
         $cards = array(
-            'Categorías con productos'=>$total,
+            'Total a investigar'=>$total,
             'Investigadas'=>$investigated,
             'Pendientes'=>$pending,
+            'Aprobadas'=>$approved,
             'En revisión'=>$review,
             'Errores'=>$errors,
             'Fuentes'=>$totals['sources'],
@@ -265,11 +285,16 @@ final class SEO_Ingeniero_Admin {
             echo '<div class="postbox" style="padding:14px;margin:0"><strong style="display:block;font-size:20px">' . esc_html((string) $value) . '</strong><span>' . esc_html($label) . '</span></div>';
         }
         echo '</div>';
+        echo '<p class="description" style="margin-top:-6px"><strong>Investigadas</strong> significa que Ingeniero ya ha obtenido conocimiento de la categoría. <strong>Aprobadas</strong> son las investigadas que ya no tienen bloques pendientes de revisión.</p>';
     }
 
-    private static function render_category_table($candidates, $stats_map, $category_states) {
+    private static function render_category_table($candidates, $stats_map, $category_states, $catalog_total = 0) {
         echo '<div class="postbox seo-dependiente-admin__box" style="padding:18px">';
         echo '<h3 style="margin-top:0">Categorías</h3>';
+        $catalog_total = absint($catalog_total);
+        if ($catalog_total > count((array) $candidates)) {
+            echo '<p class="description">La tabla muestra las primeras ' . esc_html(number_format_i18n(count((array) $candidates))) . ' categorías de ' . esc_html(number_format_i18n($catalog_total)) . ' con productos, ordenadas por número de productos. Los KPI superiores sí usan el catálogo completo.</p>';
+        }
         $review_total = 0;
         foreach ((array) $stats_map as $stat_row) $review_total += absint($stat_row['review'] ?? 0);
         if ($review_total > 0) {
