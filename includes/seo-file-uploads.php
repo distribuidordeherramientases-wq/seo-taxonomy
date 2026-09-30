@@ -46,6 +46,7 @@ function seo_taxonomy_store_uploaded_file(array $file, $destination_dir, array $
     $error = isset($file['error']) ? absint($file['error']) : UPLOAD_ERR_OK;
     if (UPLOAD_ERR_OK !== $error) {
         /* translators: %d: código numérico de error de subida PHP. */
+        /* translators: %d: código numérico de error de subida PHP. */
         return new WP_Error('seo_upload_error', sprintf(__('La subida devolvió el código de error %d.', 'seo-taxonomy'), $error));
     }
 
