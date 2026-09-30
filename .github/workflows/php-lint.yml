@@ -1,0 +1,21 @@
+name: PHP Lint
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: php-lint-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  php-lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint all PHP
+        run: find . -type f -name '*.php' -not -path './vendor/*' -not -path './.git/*' -print0 | sort -z | xargs -0 -n1 php -l
