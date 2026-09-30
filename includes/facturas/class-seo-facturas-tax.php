@@ -54,6 +54,10 @@ final class SEO_Facturas_Tax {
         }
 
         update_option('woocommerce_calc_taxes', 'yes');
+        update_option(
+            'woocommerce_prices_include_tax',
+            empty($settings['tax_prices_include_tax']) ? 'no' : 'yes'
+        );
 
         $zones = self::zone_definitions($settings);
         $ids = get_option(self::IDS_OPTION, array());
@@ -298,7 +302,7 @@ final class SEO_Facturas_Tax {
 
     private static function settings_hash($settings) {
         $keys = array(
-            'tax_manager_enabled', 'tax_restrict_to_spain', 'tax_shipping',
+            'tax_manager_enabled', 'tax_prices_include_tax', 'tax_restrict_to_spain', 'tax_shipping',
             'tax_peninsula_rate', 'tax_baleares_rate', 'tax_canarias_rate',
             'tax_ceuta_rate', 'tax_melilla_rate',
         );
