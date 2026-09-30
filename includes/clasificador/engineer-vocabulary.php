@@ -98,9 +98,14 @@ if (!function_exists('seo_classifier_engineer_vocab_rows')) {
             return new WP_Error('classifier_engineer_unavailable', 'Ingeniero no está disponible.');
         }
 
-        $knowledge = SEO_Ingeniero::active_knowledge($term_id);
+        $knowledge = class_exists('SEO_Ingeniero_DB')
+            ? SEO_Ingeniero_DB::knowledge_for_category($term_id, false, SEO_Ingeniero::LESSON_TECHNICAL)
+            : [];
+        $knowledge = array_values(array_filter((array) $knowledge, static function($row) {
+            return in_array(sanitize_key((string) ($row['status'] ?? '')), ['active','review'], true);
+        }));
         if (!$knowledge) {
-            return new WP_Error('classifier_engineer_empty', 'La categoría no tiene conocimiento activo de Ingeniero.');
+            return new WP_Error('classifier_engineer_empty', 'La categoría no tiene conocimiento activo ni pendiente de revisión en Ingeniero.');
         }
 
         $rows = [];
@@ -118,6 +123,7 @@ if (!function_exists('seo_classifier_engineer_vocab_rows')) {
             }
             $rows[] = [
                 'knowledge_type'=>sanitize_key((string) ($row['knowledge_type'] ?? '')),
+                'status'=>sanitize_key((string) ($row['status'] ?? 'review')),
                 'confidence'=>max(0.0, min(1.0, (float) ($row['confidence'] ?? 0))),
                 'text'=>trim(implode(' ', $parts)),
                 'summary'=>trim((string) ($row['summary'] ?? '')),
@@ -295,17 +301,25 @@ if (!function_exists('seo_classifier_engineer_vocab_report')) {
             if (isset($stats[$status])) $stats[$status]++;
         }
 
+        $knowledge_status = ['active'=>0,'review'=>0];
+        foreach ($rows as $row) {
+            $status = sanitize_key((string) ($row['status'] ?? 'review'));
+            if (isset($knowledge_status[$status])) $knowledge_status[$status]++;
+        }
+
         return [
             'schema'=>'seo-classifier-engineer-vocab-report',
-            'schema_version'=>1,
+            'schema_version'=>2,
             'generated_at'=>current_time('mysql'),
             'term_id'=>$term_id,
             'category'=>(string) $term->name,
             'knowledge_count'=>count($rows),
+            'knowledge_status'=>$knowledge_status,
+            'uses_provisional_knowledge'=>!empty($knowledge_status['review']),
             'attributes'=>$attribute_results,
             'labels'=>$label_results,
             'stats'=>$stats,
-            'policy'=>'Solo propone. No crea etiquetas, términos ni atributos y no modifica productos.',
+            'policy'=>'Solo propone. Puede analizar conocimiento active o review de Ingeniero, pero no crea etiquetas, términos ni atributos y no modifica productos.',
         ];
     }
 }
