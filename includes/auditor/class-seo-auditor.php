@@ -8,7 +8,7 @@ defined('ABSPATH') || exit;
  * Principios:
  * - PRO y sus fuentes canonicas son la verdad de origen.
  * - El auditor observa, contrasta, prioriza y propone revision humana.
- * - No reindexa, no entrena, no corrige taxonomias, no mueve productos.
+ * - La auditoria base no reindexa, no entrena ni modifica el catalogo.\n * - Las acciones de Equilibrar categorias son un flujo separado, explicito y aprobado por administrador.
  * - Una correlacion semantica nunca se presenta como causalidad demostrada.
  */
 final class SEO_Auditor {
@@ -199,7 +199,7 @@ final class SEO_Auditor {
 
         echo '<div class="wrap"><section class="seo-auditor">';
         echo '<div class="seo-auditor__hero">';
-        echo '<div><h2>Auditor de contenidos y datos</h2><p>Revisa la calidad y coherencia de productos, categorias, posts, paginas, FAQs, relaciones, arquitectura e indice. Esta area no audita Academia ni modifica contenido.</p></div>';
+        echo '<div><h2>Auditor de contenidos y datos</h2><p>Revisa la calidad y coherencia de productos, categorias, posts, paginas, FAQs, relaciones, arquitectura e indice. La auditoria es de solo lectura; la vista Equilibrar categorias permite aplicar exclusivamente propuestas aprobadas por un administrador.</p></div>';
         echo '</div>';
 
         self::render_content_audit_actions($catalog_report, $scoped_reports);
