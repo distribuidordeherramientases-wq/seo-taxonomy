@@ -198,29 +198,61 @@ Objetivo:
 
 > detectar conceptos que Ingeniero considera relevantes para una categoría pero que todavía pueden no estar representados correctamente en Etiquetas o Atributos.
 
-Flujo:
+La pantalla ya no obliga a seleccionar una categoría cada vez. Clasificador analiza en bloque las categorías con conocimiento de Ingeniero y presenta una tabla con:
 
-1. seleccionar una categoría con conocimiento activo o pendiente de revisión en Ingeniero;
-2. pulsar **Analizar conocimiento de Ingeniero**;
-3. el Clasificador compara esa evidencia con los maestros existentes;
-4. muestra atributos/dimensiones y conceptos semánticos detectados;
-5. marca cada propuesta como **Candidato nuevo**, **Posible equivalente** o **Ya cubierto**;
-6. muestra evidencia y confianza;
-7. la revisión humana decide si hay que ampliar el maestro.
+- categoría;
+- propuesta;
+- tipo/modelo (atributo o etiqueta semántica);
+- estado frente al maestro;
+- posible equivalente actual;
+- confianza;
+- evidencia activa o pendiente de revisión;
+- acción disponible.
 
-La primera versión es deliberadamente de solo lectura. **No crea etiquetas, términos ni atributos y no modifica productos.** Cuando usa filas `review`, el informe las identifica como evidencia provisional; no se consideran aprobadas por el mero hecho de analizarlas.
+Los estados son:
 
-El informe puede proponer, por ejemplo:
+- **Candidato nuevo**: no existe un equivalente suficiente en el maestro y puede aceptarse.
+- **Posible equivalente**: existe un concepto parecido; debe revisarse para evitar duplicados.
+- **Ya cubierto**: el maestro ya contiene el concepto.
 
-- atributos numéricos como presión máxima, caudal, potencia, tensión, nivel sonoro o temperatura de trabajo;
-- atributos controlados como fuente de alimentación y sus posibles términos;
-- conceptos semánticos de aplicación, plataforma o subtipo cuando aparecen de forma clara en la evidencia.
+### Aceptación individual
 
-La comparación intenta detectar equivalentes existentes antes de declarar un hueco, para reducir duplicados del tipo `presión` / `presión máxima` / `presión de trabajo`.
+Cada **Candidato nuevo** dispone de **Aceptar**.
 
-La arquitectura prevista es:
+La aceptación:
 
-**Ingeniero descubre → Clasificador estructura → revisión humana amplía maestros → Clasificador completa productos → Auditor mide cobertura.**
+- crea el atributo o etiqueta en el maestro canónico si todavía no existe;
+- en atributos de tipo término puede crear también los valores controlados detectados;
+- no asigna automáticamente el concepto a productos;
+- no mueve categorías;
+- no modifica contenido público.
+
+Cuando la evidencia procede únicamente de conocimiento Ingeniero todavía en `review`, la fila se marca como **provisional** y la aceptación individual exige confirmación explícita.
+
+### Aceptación masiva
+
+**Aceptar todos los candidatos nuevos** acelera las cargas grandes.
+
+La acción:
+
+- deduplica el mismo concepto cuando aparece en varias categorías;
+- crea una sola vez cada atributo/etiqueta;
+- utiliza únicamente candidatos nuevos sustentados por conocimiento activo de Ingeniero;
+- omite los candidatos sustentados solo por `review`;
+- omite **Posible equivalente** para evitar duplicados;
+- no asigna todavía los conceptos a productos o categorías.
+
+Los candidatos provisionales se conservan para decisión individual.
+
+### Rendimiento
+
+El análisis global carga una sola vez los maestros de Etiquetas y Atributos y lee el conocimiento de Ingeniero por lote. De este modo puede revisar muchas categorías sin repetir las mismas consultas por cada categoría.
+
+La comparación sigue intentando detectar equivalentes existentes antes de declarar un hueco, para reducir duplicados del tipo `presión` / `presión máxima` / `presión de trabajo`.
+
+La arquitectura queda:
+
+**Ingeniero descubre → Clasificador amplía/estructura maestros → Clasificador propone asignaciones → Auditor mide cobertura.**
 
 ## Jobs y procesamiento adaptativo
 
