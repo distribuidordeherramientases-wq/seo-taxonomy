@@ -420,7 +420,7 @@ while (have_posts()) :
         );
 
         if (trim($description_html) === '') {
-            $description_html = (string) term_description($product_cat->term_id, 'product_cat');
+            $description_html = (string) term_description($product_cat->term_id);
         }
 
         $category_descriptions[(int) $product_cat->term_id] = trim($description_html);
