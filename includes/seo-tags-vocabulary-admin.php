@@ -4462,21 +4462,24 @@ if (!function_exists('seo_assignment_render_engineer_vocab')) {
         foreach ((array) $categories as $category) {
             $term_id = absint($category->term_id ?? 0);
             $stat = (array) ($stats[$term_id] ?? []);
-            if (absint($stat['active'] ?? 0) < 1) continue;
+            $active = absint($stat['active'] ?? 0);
+            $review = absint($stat['review'] ?? 0);
+            if (($active + $review) < 1) continue;
             $available[] = [
                 'id'=>$term_id,
                 'name'=>(string) ($category->name ?? ''),
-                'active'=>absint($stat['active'] ?? 0),
+                'active'=>$active,
+                'review'=>$review,
                 'confidence'=>(float) ($stat['avg_confidence'] ?? 0),
             ];
         }
 
         echo '<div class="seo-tags-panel">';
         echo '<h3 style="margin-top:0">Ampliar vocabulario desde Ingeniero</h3>';
-        echo '<p>Compara el conocimiento técnico <strong>activo</strong> de Ingeniero con los maestros de Etiquetas y Atributos. Busca dimensiones o conceptos que pueden faltar en nuestro modelo. <strong>No crea ni asigna nada automáticamente.</strong></p>';
+        echo '<p>Compara el conocimiento técnico <strong>activo o pendiente de revisión</strong> de Ingeniero con los maestros de Etiquetas y Atributos. Busca dimensiones o conceptos que pueden faltar en nuestro modelo. <strong>No crea ni asigna nada automáticamente.</strong></p>';
 
         if (!$available) {
-            echo '<div class="notice notice-warning inline"><p>No hay categorías con conocimiento activo de Ingeniero. Aprueba primero conocimiento técnico en Ingeniero.</p></div>';
+            echo '<div class="notice notice-warning inline"><p>No hay categorías con conocimiento activo ni pendiente de revisión en Ingeniero.</p></div>';
             echo '</div>';
             return;
         }
@@ -4485,10 +4488,13 @@ if (!function_exists('seo_assignment_render_engineer_vocab')) {
         wp_nonce_field('seo_assignment_admin','seo_assignment_nonce');
         echo '<input type="hidden" name="seo_assignment_action" value="analyze_engineer_vocab">';
         echo '<input type="hidden" name="assignment_section" value="engineer_vocab">';
-        echo '<label><strong>Categoría con conocimiento activo</strong><br><select name="engineer_term_id" required style="min-width:320px">';
+        echo '<label><strong>Categoría con conocimiento de Ingeniero</strong><br><select name="engineer_term_id" required style="min-width:320px">';
         echo '<option value="">Seleccionar categoría…</option>';
         foreach ($available as $row) {
-            $suffix = ' · ' . number_format_i18n($row['active']) . ' conocimientos · ' . number_format_i18n($row['confidence'] * 100, 0) . '%';
+            $parts = [];
+            if (!empty($row['active'])) $parts[] = number_format_i18n($row['active']) . ' activos';
+            if (!empty($row['review'])) $parts[] = number_format_i18n($row['review']) . ' en revisión';
+            $suffix = ' · ' . implode(' · ', $parts) . ' · confianza ' . number_format_i18n($row['confidence'] * 100, 0) . '%';
             echo '<option value="'.esc_attr($row['id']).'" '.selected($selected,$row['id'],false).'>'.esc_html($row['name'].$suffix).'</option>';
         }
         echo '</select></label>';
@@ -4515,11 +4521,18 @@ if (!function_exists('seo_assignment_render_engineer_vocab')) {
 
         echo '<div class="seo-tags-panel">';
         echo '<h3 style="margin-top:0">Resultado · '.esc_html((string)($report['category'] ?? '')).'</h3>';
-        echo '<p><strong>Conocimiento analizado:</strong> '.esc_html(number_format_i18n(absint($report['knowledge_count'] ?? 0))).' bloques activos. ';
+        $active_count = absint($report['knowledge_status']['active'] ?? 0);
+        $review_count = absint($report['knowledge_status']['review'] ?? 0);
+        echo '<p><strong>Conocimiento analizado:</strong> '.esc_html(number_format_i18n(absint($report['knowledge_count'] ?? 0))).' bloques';
+        echo ' · '.esc_html(number_format_i18n($active_count)).' activos';
+        echo ' · '.esc_html(number_format_i18n($review_count)).' en revisión. ';
         echo '<strong>Nuevos:</strong> '.esc_html(number_format_i18n(absint($report['stats']['new'] ?? 0))).' · ';
         echo '<strong>Posibles equivalentes:</strong> '.esc_html(number_format_i18n(absint($report['stats']['possible'] ?? 0))).' · ';
         echo '<strong>Ya cubiertos:</strong> '.esc_html(number_format_i18n(absint($report['stats']['covered'] ?? 0))).'.</p>';
-        echo '<p class="seo-tags-help">Las propuestas se apoyan únicamente en conocimiento aprobado de Ingeniero y reglas conservadoras. Deben revisarse antes de ampliar el maestro.</p>';
+        if ($review_count > 0) {
+            echo '<div class="notice notice-warning inline"><p><strong>Informe provisional:</strong> incluye conocimiento de Ingeniero pendiente de revisión. Puede usarse para detectar candidatos, pero no implica que esa evidencia esté aprobada.</p></div>';
+        }
+        echo '<p class="seo-tags-help">El análisis es de solo lectura. Las propuestas deben revisarse antes de ampliar los maestros.</p>';
         echo '</div>';
 
         echo '<h3>Atributos / dimensiones técnicas detectadas</h3>';
