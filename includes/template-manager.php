@@ -1,13 +1,5 @@
 <?php
-/*
-Plugin Name: SEO Menu Manager
-Plugin URI: https://www.distribuidordeherramientas.es/
-Description: Gestión dinámica y escalable de plantillas SEO, archivos y asignaciones.
-Version: 2.1.0
-Requires PHP: 7.4
-Author: David Perez Martorell
-*/
-
+/** Internal SEO Taxonomy module. */
 if (!defined('ABSPATH')) exit;
 
 /* =========================================================
