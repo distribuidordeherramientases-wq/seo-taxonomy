@@ -11,7 +11,7 @@ defined('ABSPATH') || exit;
  */
 
 if (!defined('SEO_CORE_WPORG_VALIDATION_VERSION')) {
-    define('SEO_CORE_WPORG_VALIDATION_VERSION', '1.0.0');
+    define('SEO_CORE_WPORG_VALIDATION_VERSION', '1.1.0');
 }
 
 function seo_core_wporg_scan_root() {
@@ -276,6 +276,13 @@ function seo_core_wporg_static_findings() {
         'i18n' => array(),
         'json' => array(),
         'filesystem' => array(),
+        'prepared_sql' => array(),
+        'db_parameters' => array(),
+        'output_escaping' => array(),
+        'translator_comments' => array(),
+        'deprecated' => array(),
+        'http_api' => array(),
+        'datetime' => array(),
         'external_services' => array(),
     );
 
@@ -381,7 +388,66 @@ function seo_core_wporg_static_findings() {
                 seo_core_wporg_add_hit($groups['filesystem'], 'filesystem_write', $relative, $line_no, 'Escritura de fichero: confirmar que el destino usa uploads/database y no carpetas del plugin/core.');
             }
 
-            if (preg_match_all('/https?:\/\/([a-z0-9.-]+)/i', $line, $urls)) {
+            
+            // Familias que tambien aparecen en WordPress Plugin Check.
+            if (preg_match('/\$wpdb->(?:query|get_results|get_var|get_col|get_row)\s*\(/i', $line)) {
+                $sql_window = implode("\n", array_slice($lines, $index, 16));
+                if (stripos($sql_window, '->prepare(') === false && stripos($sql_window, 'prepare(') === false) {
+                    seo_core_wporg_add_hit($groups['prepared_sql'], 'wpdb_query_not_prepared', $relative, $line_no, 'Consulta $wpdb sin prepare() detectable; revisar PreparedSQL.NotPrepared.');
+                }
+                if (preg_match('/\bLIKE\s+[\'"][^\'"]*%[^\'"]*[\'"]/i', $sql_window)) {
+                    seo_core_wporg_add_hit($groups['prepared_sql'], 'like_wildcard_in_query', $relative, $line_no, 'LIKE contiene comodines dentro del SQL; pasar el patron mediante un parametro de prepare().');
+                }
+                if (preg_match('/(?:FROM|JOIN|INTO|UPDATE|DELETE\s+FROM)\s*[\'"]?\s*\.\s*\$[A-Za-z_]/i', $sql_window)) {
+                    seo_core_wporg_add_hit($groups['db_parameters'], 'dynamic_sql_concatenation', $relative, $line_no, 'SQL con concatenacion dinamica detectable; revisar identificadores y parametros.');
+                }
+            }
+
+            if (
+                preg_match('/(?:\$wpdb->(?:query|get_results|get_var|get_col|get_row)|\$wpdb->prepare)\s*\(/i', $line)
+                && preg_match('/\.\s*\$[A-Za-z_]/i', $line)
+            ) {
+                seo_core_wporg_add_hit($groups['db_parameters'], 'sql_dynamic_parameter', $relative, $line_no, 'Se detecta concatenacion de variable en una expresion SQL; revisar preparacion/identificadores.');
+            }
+
+            if (
+                preg_match('/\b(?:echo|print)\s+.*\$[A-Za-z_]/i', $line)
+                && !preg_match('/\b(?:esc_html|esc_attr|esc_url|esc_js|wp_kses|wp_kses_post|wp_json_encode|number_format_i18n|selected|checked|disabled)\s*\(/i', $line)
+            ) {
+                seo_core_wporg_add_hit($groups['output_escaping'], 'output_not_escaped', $relative, $line_no, 'Salida dinamica sin una funcion de escape reconocible; revisar OutputNotEscaped.');
+            }
+
+            if (preg_match('/\b(?:wp_die|wp_send_json_error|wp_send_json_success)\s*\(\s*\$[A-Za-z_]/i', $line)) {
+                seo_core_wporg_add_hit($groups['output_escaping'], 'dynamic_error_output', $relative, $line_no, 'Mensaje dinamico enviado directamente a una salida de error; revisar el escape segun contexto.');
+            }
+
+            if (
+                preg_match('/\b(?:__|_e|_n|_x|esc_html__|esc_attr__|esc_html_e|esc_attr_e)\s*\(/i', $line)
+                && preg_match('/%[0-9$+\-.\']*[sdif]/i', $line)
+            ) {
+                $previous = implode("\n", array_slice($lines, max(0, $index - 3), min(3, $index)));
+                if (stripos($previous, 'translators:') === false) {
+                    seo_core_wporg_add_hit($groups['translator_comments'], 'missing_translators_comment', $relative, $line_no, 'Placeholder traducible sin comentario translators: detectable.');
+                }
+            }
+
+            if (preg_match('/\bterm_description\s*\([^,]+,\s*[\'"][^\'"]+[\'"]\s*\)/i', $line)) {
+                seo_core_wporg_add_hit($groups['deprecated'], 'term_description_param2', $relative, $line_no, 'term_description() usa un segundo parametro obsoleto.');
+            }
+
+            if (preg_match('/\bcurl_[a-z0-9_]+\s*\(/i', $line)) {
+                seo_core_wporg_add_hit($groups['http_api'], 'curl_direct', $relative, $line_no, 'cURL directo detectado; revisar la HTTP API de WordPress.');
+            }
+
+            if (preg_match('/\bdate\s*\(/i', $line) && !preg_match('/\b(?:gmdate|wp_date)\s*\(/i', $line)) {
+                seo_core_wporg_add_hit($groups['datetime'], 'date_direct', $relative, $line_no, 'date() directo detectado; revisar wp_date()/gmdate().');
+            }
+
+            if (preg_match('/\b(?:fclose|fwrite|fopen|unlink|rename|chmod|is_writable|readfile|rmdir|fread)\s*\(/i', $line)) {
+                seo_core_wporg_add_hit($groups['filesystem'], 'filesystem_direct_api', $relative, $line_no, 'Operacion directa de filesystem; revisar WP_Filesystem.');
+            }
+
+if (preg_match_all('/https?:\/\/([a-z0-9.-]+)/i', $line, $urls)) {
                 foreach ((array) $urls[1] as $host) {
                     $host = strtolower((string) $host);
                     if (
@@ -434,8 +500,15 @@ function seo_core_system_test_wordpress_org_results() {
         seo_core_wporg_result('0.31 WordPress.org · prefijos globales', $groups['prefixes'], 'warning', 95, 'No se detectan shortcodes globales sin prefijo propio'),
         seo_core_wporg_result('0.32 WordPress.org · internacionalización', $groups['i18n'], 'warning', 80, 'No se detectan text domains legados/ausentes en los patrones analizados'),
         seo_core_wporg_result('0.33 WordPress.org · JSON embebido', $groups['json'], 'warning', 95, 'No se detecta JSON_UNESCAPED_SLASHES en wp_json_encode'),
-        seo_core_wporg_result('0.34 WordPress.org · escritura de archivos', $groups['filesystem'], 'warning', 75, 'No se detectan escrituras de ficheros que requieran validar ubicación'),
-        seo_core_wporg_result('0.35 WordPress.org · servicios externos documentados', $groups['external_services'], 'warning', 75, 'Los dominios externos detectados aparecen documentados en readme.txt')
+        seo_core_wporg_result('0.34 WordPress.org · escritura de archivos', $groups['filesystem'], 'warning', 75, 'No se detectan operaciones directas de filesystem que requieran revisión'),
+        seo_core_wporg_result('0.35 WordPress.org · SQL preparado', $groups['prepared_sql'], 'warning', 85, 'Las consultas $wpdb analizadas usan prepare() y no contienen comodines LIKE directos'),
+        seo_core_wporg_result('0.36 WordPress.org · parámetros SQL', $groups['db_parameters'], 'warning', 85, 'No se detectan concatenaciones SQL dinámicas que requieran revisión'),
+        seo_core_wporg_result('0.37 WordPress.org · escapado de salida', $groups['output_escaping'], 'warning', 80, 'No se detectan salidas dinámicas sin escape reconocible'),
+        seo_core_wporg_result('0.38 WordPress.org · comentarios translators', $groups['translator_comments'], 'warning', 90, 'Los placeholders traducibles analizados incluyen comentario translators'),
+        seo_core_wporg_result('0.39 WordPress.org · APIs obsoletas', $groups['deprecated'], 'warning', 95, 'No se detectan llamadas con parámetros obsoletos conocidos'),
+        seo_core_wporg_result('0.40 WordPress.org · HTTP API', $groups['http_api'], 'warning', 95, 'No se detectan llamadas cURL directas'),
+        seo_core_wporg_result('0.41 WordPress.org · fecha/hora', $groups['datetime'], 'warning', 95, 'No se detectan llamadas date() directas sin sustituto WordPress'),
+        seo_core_wporg_result('0.42 WordPress.org · servicios externos documentados', $groups['external_services'], 'warning', 75, 'Los dominios externos detectados aparecen documentados en readme.txt')
     );
 }
 
