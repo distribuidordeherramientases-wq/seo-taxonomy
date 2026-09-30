@@ -192,7 +192,7 @@ El modo profundo:
 
 ## Ingeniero → vocabulario
 
-Esta subpestaña conecta el conocimiento técnico aprobado de **Ingeniero** con los maestros canónicos.
+Esta subpestaña conecta el conocimiento técnico de **Ingeniero** con los maestros canónicos. Puede analizar conocimiento **activo** y, de forma provisional, conocimiento en estado **review** pendiente de revisión.
 
 Objetivo:
 
@@ -200,7 +200,7 @@ Objetivo:
 
 Flujo:
 
-1. seleccionar una categoría con conocimiento activo de Ingeniero;
+1. seleccionar una categoría con conocimiento activo o pendiente de revisión en Ingeniero;
 2. pulsar **Analizar conocimiento de Ingeniero**;
 3. el Clasificador compara esa evidencia con los maestros existentes;
 4. muestra atributos/dimensiones y conceptos semánticos detectados;
@@ -208,7 +208,7 @@ Flujo:
 6. muestra evidencia y confianza;
 7. la revisión humana decide si hay que ampliar el maestro.
 
-La primera versión es deliberadamente de solo lectura. **No crea etiquetas, términos ni atributos y no modifica productos.**
+La primera versión es deliberadamente de solo lectura. **No crea etiquetas, términos ni atributos y no modifica productos.** Cuando usa filas `review`, el informe las identifica como evidencia provisional; no se consideran aprobadas por el mero hecho de analizarlas.
 
 El informe puede proponer, por ejemplo:
 
