@@ -163,11 +163,11 @@ function seo_search_get_custom_meta_keys() {
 
 function seo_search_vocabulary_groups() {
     return array(
-        'rol'        => __('ROL', 'seo-search'),
-        'tipo'       => __('TIPO', 'seo-search'),
-        'aplicacion' => __('Aplicacion', 'seo-search'),
-        'plataforma' => __('Plataforma', 'seo-search'),
-        'subtipo'    => __('Subtipo', 'seo-search'),
+        'rol'        => __('ROL', 'seo-taxonomy'),
+        'tipo'       => __('TIPO', 'seo-taxonomy'),
+        'aplicacion' => __('Aplicacion', 'seo-taxonomy'),
+        'plataforma' => __('Plataforma', 'seo-taxonomy'),
+        'subtipo'    => __('Subtipo', 'seo-taxonomy'),
     );
 }
 
@@ -1123,7 +1123,7 @@ function seo_search_autocomplete_fast($keyword, $category_limit = 3, $product_li
 
 function seo_search_ajax_autocomplete() {
     if (!class_exists('WooCommerce')) {
-        wp_send_json_error(array('message' => __('WooCommerce no está activo.', 'seo-search')), 503);
+        wp_send_json_error(array('message' => __('WooCommerce no está activo.', 'seo-taxonomy')), 503);
     }
 
     check_ajax_referer('seo_search_autocomplete', 'nonce');
@@ -1170,10 +1170,10 @@ function seo_search_enqueue_front_assets() {
         'nonce'            => wp_create_nonce('seo_search_autocomplete'),
         'enabled'          => (bool) seo_search_get_option('autocomplete_enabled', 1),
         'minChars'         => max(3, absint(seo_search_get_option('autocomplete_min_chars', 3))),
-        'searchLabel'      => __('Ver todos los resultados', 'seo-search'),
-        'emptyLabel'       => __('Sin coincidencias', 'seo-search'),
+        'searchLabel'      => __('Ver todos los resultados', 'seo-taxonomy'),
+        'emptyLabel'       => __('Sin coincidencias', 'seo-taxonomy'),
         'dependienteUrl'   => esc_url_raw($dependiente_url),
-        'dependienteLabel' => __('¿No sabes cómo se llama? Preguntar al Dependiente', 'seo-search'),
+        'dependienteLabel' => __('¿No sabes cómo se llama? Preguntar al Dependiente', 'seo-taxonomy'),
     );
 
     wp_add_inline_script('jquery', 'window.seoSearchConfig=' . wp_json_encode($config) . ';', 'before');
@@ -1442,13 +1442,13 @@ function seo_search_frontend_css() {
 
 add_shortcode('seo_search', function ($atts) {
     if (!class_exists('WooCommerce')) {
-        return '<p>' . esc_html__('SEO Search necesita WooCommerce para funcionar.', 'seo-search') . '</p>';
+        return '<p>' . esc_html__('SEO Search necesita WooCommerce para funcionar.', 'seo-taxonomy') . '</p>';
     }
 
     seo_search_enqueue_front_assets();
 
     $atts = shortcode_atts(array(
-        'placeholder' => __('Buscar productos, referencias, categorías…', 'seo-search'),
+        'placeholder' => __('Buscar productos, referencias, categorías…', 'seo-taxonomy'),
         'button_text' => '🔍',
         'class'       => '',
     ), $atts, 'seo_search');
@@ -1461,7 +1461,7 @@ add_shortcode('seo_search', function ($atts) {
     ?>
     <div class="seo-search-box <?php echo esc_attr($atts['class']); ?>">
         <form class="seo-search-form" method="get" action="<?php echo esc_url($shop_url); ?>" role="search">
-            <label class="screen-reader-text" for="<?php echo esc_attr($id); ?>"><?php esc_html_e('Buscar productos', 'seo-search'); ?></label>
+            <label class="screen-reader-text" for="<?php echo esc_attr($id); ?>"><?php esc_html_e('Buscar productos', 'seo-taxonomy'); ?></label>
             <input
                 id="<?php echo esc_attr($id); ?>"
                 class="seo-search-input"
@@ -1474,7 +1474,7 @@ add_shortcode('seo_search', function ($atts) {
                 aria-controls="<?php echo esc_attr($id); ?>-listbox"
             >
             <input type="hidden" name="post_type" value="product">
-            <button type="submit" class="seo-search-button" aria-label="<?php esc_attr_e('Buscar', 'seo-search'); ?>"><?php echo esc_html($atts['button_text']); ?></button>
+            <button type="submit" class="seo-search-button" aria-label="<?php esc_attr_e('Buscar', 'seo-taxonomy'); ?>"><?php echo esc_html($atts['button_text']); ?></button>
             <?php seo_search_preserve_query_fields(array('s', 'post_type', 'paged', 'product-page')); ?>
         </form>
         <?php if (seo_search_get_option('autocomplete_enabled', 1)) : ?>
@@ -1611,8 +1611,8 @@ function seo_search_render_light_related_categories() {
     ?>
     <div class="seo-search-related-categories">
         <div class="seo-search-related-categories-head">
-            <strong><?php esc_html_e('Categorías que mejor encajan', 'seo-search'); ?></strong>
-            <span><?php esc_html_e('Elige una para acotar la búsqueda.', 'seo-search'); ?></span>
+            <strong><?php esc_html_e('Categorías que mejor encajan', 'seo-taxonomy'); ?></strong>
+            <span><?php esc_html_e('Elige una para acotar la búsqueda.', 'seo-taxonomy'); ?></span>
         </div>
         <div class="seo-search-related-categories-grid">
             <?php foreach ($cats as $cat) :
@@ -1672,7 +1672,7 @@ function seo_search_render_advanced_search_shortcode($atts = array(), $shortcode
                 <label class="seo-search-vocab-field">
                     <span><?php echo esc_html($label); ?></span>
                     <select class="<?php echo $auto_submit ? 'seo-search-auto-submit' : ''; ?>" name="filter_vocab[<?php echo esc_attr($group); ?>]">
-                        <option value=""><?php printf(esc_html__('Todos los %s', 'seo-search'), esc_html(function_exists('mb_strtolower') ? mb_strtolower($label) : strtolower($label))); ?></option>
+                        <option value=""><?php printf(esc_html__('Todos los %s', 'seo-taxonomy'), esc_html(function_exists('mb_strtolower') ? mb_strtolower($label) : strtolower($label))); ?></option>
                         <?php foreach ($terms as $term) : ?>
                             <option value="<?php echo esc_attr($term['slug']); ?>" <?php selected($current, $term['slug']); ?>>
                                 <?php echo esc_html($term['name']); ?><?php echo $show_counts ? ' (' . absint($term['count']) . ')' : ''; ?>
@@ -1684,9 +1684,9 @@ function seo_search_render_advanced_search_shortcode($atts = array(), $shortcode
         </div>
         <?php seo_search_preserve_query_fields(array('filter_vocab', 'paged', 'product-page')); ?>
         <div class="seo-search-vocab-actions">
-            <button type="submit"><?php esc_html_e('Aplicar filtros', 'seo-search'); ?></button>
+            <button type="submit"><?php esc_html_e('Aplicar filtros', 'seo-taxonomy'); ?></button>
             <?php $clear_url = remove_query_arg(array('filter_vocab', 'filter_category', 'paged', 'product-page')); ?>
-            <a href="<?php echo esc_url($clear_url); ?>"><?php esc_html_e('Limpiar', 'seo-search'); ?></a>
+            <a href="<?php echo esc_url($clear_url); ?>"><?php esc_html_e('Limpiar', 'seo-taxonomy'); ?></a>
         </div>
     </form>
     <?php
@@ -1819,16 +1819,16 @@ add_action('admin_menu', function () {
     // ya generan enlaces con `admin.php?page=seo-search`.
     add_submenu_page(
         null,
-        __('SEO Search', 'seo-search'),
-        __('SEO Search', 'seo-search'),
+        __('SEO Search', 'seo-taxonomy'),
+        __('SEO Search', 'seo-taxonomy'),
         'manage_options',
-        'seo-search',
+        'seo-taxonomy',
         'seo_search_settings_page'
     );
 }, 99);
 
 function seo_search_snippet_info() {
-    echo '<div class="notice notice-info inline"><p><strong>' . esc_html__('Shortcodes:', 'seo-search') . '</strong> <code>[seo_search]</code> ' . esc_html__('para búsqueda normal', 'seo-search') . ' · <code>[advanced_search]</code> ' . esc_html__('para filtros semánticos avanzados.', 'seo-search') . '</p></div>';
+    echo '<div class="notice notice-info inline"><p><strong>' . esc_html__('Shortcodes:', 'seo-taxonomy') . '</strong> <code>[seo_search]</code> ' . esc_html__('para búsqueda normal', 'seo-taxonomy') . ' · <code>[advanced_search]</code> ' . esc_html__('para filtros semánticos avanzados.', 'seo-taxonomy') . '</p></div>';
 }
 
 function seo_search_admin_checkbox($name, $label, $description = '') {
@@ -1848,26 +1848,26 @@ function seo_search_settings_page() {
     $options = seo_search_get_options();
     $tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'general';
     $tabs = array(
-        'general' => __('General', 'seo-search'),
-        'fields' => __('Campos de búsqueda', 'seo-search'),
-        'display' => __('Resultados y filtros', 'seo-search'),
-        'advanced' => __('Búsqueda con filtros', 'seo-search'),
-        'analytics' => __('Estadísticas', 'seo-search'),
+        'general' => __('General', 'seo-taxonomy'),
+        'fields' => __('Campos de búsqueda', 'seo-taxonomy'),
+        'display' => __('Resultados y filtros', 'seo-taxonomy'),
+        'advanced' => __('Búsqueda con filtros', 'seo-taxonomy'),
+        'analytics' => __('Estadísticas', 'seo-taxonomy'),
     );
 
     if (isset($_POST['seo_search_clear_logs']) && check_admin_referer('seo_search_clear_logs')) {
         global $wpdb;
         $wpdb->query('TRUNCATE TABLE ' . seo_search_log_table_name()); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-        echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Historial eliminado.', 'seo-search') . '</p></div>';
+        echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Historial eliminado.', 'seo-taxonomy') . '</p></div>';
     }
     ?>
     <div class="wrap">
-        <h1><?php esc_html_e('SEO Search 2.2', 'seo-search'); ?></h1>
+        <h1><?php esc_html_e('SEO Search 2.2', 'seo-taxonomy'); ?></h1>
         <?php seo_search_snippet_info(); ?>
 
         <nav class="nav-tab-wrapper">
             <?php foreach ($tabs as $slug => $label) : ?>
-                <a class="nav-tab <?php echo $tab === $slug ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(add_query_arg(array('page' => 'seo-search', 'tab' => $slug), admin_url('admin.php'))); ?>"><?php echo esc_html($label); ?></a>
+                <a class="nav-tab <?php echo $tab === $slug ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(add_query_arg(array('page' => 'seo-taxonomy', 'tab' => $slug), admin_url('admin.php'))); ?>"><?php echo esc_html($label); ?></a>
             <?php endforeach; ?>
         </nav>
 
@@ -1878,74 +1878,74 @@ function seo_search_settings_page() {
                 <?php settings_fields('seo_search_settings_group'); ?>
                 <table class="form-table" role="presentation">
                     <?php if ('general' === $tab) : ?>
-                        <tr><th><?php esc_html_e('Resultados por página', 'seo-search'); ?></th><td><input type="number" min="1" max="100" name="<?php echo esc_attr(SEO_SEARCH_OPTION); ?>[results_per_page]" value="<?php echo absint($options['results_per_page']); ?>"></td></tr>
-                        <tr><th><?php esc_html_e('Página de resultados', 'seo-search'); ?></th><td><?php wp_dropdown_pages(array('name' => SEO_SEARCH_OPTION . '[results_page_id]', 'selected' => absint($options['results_page_id']), 'show_option_none' => __('Página de inicio', 'seo-search'))); ?><p class="description"><?php esc_html_e('El formulario enviará aquí la búsqueda. La página puede estar vacía.', 'seo-search'); ?></p></td></tr>
-                        <tr><th><?php esc_html_e('Parámetro de URL', 'seo-search'); ?></th><td><input type="text" name="<?php echo esc_attr(SEO_SEARCH_OPTION); ?>[query_parameter]" value="<?php echo esc_attr($options['query_parameter']); ?>" class="regular-text"><p class="description"><?php esc_html_e('Por compatibilidad se recomienda mantener “q”.', 'seo-search'); ?></p></td></tr>
-                        <tr><th><?php esc_html_e('Autocompletado', 'seo-search'); ?></th><td><?php seo_search_admin_checkbox('autocomplete_enabled', __('Activar sugerencias mientras se escribe', 'seo-search')); ?><p><label><?php esc_html_e('Mínimo de caracteres', 'seo-search'); ?> <input type="number" min="1" max="5" name="<?php echo esc_attr(SEO_SEARCH_OPTION); ?>[autocomplete_min_chars]" value="<?php echo absint($options['autocomplete_min_chars']); ?>"></label></p><p><label><?php esc_html_e('Número de sugerencias', 'seo-search'); ?> <input type="number" min="3" max="20" name="<?php echo esc_attr(SEO_SEARCH_OPTION); ?>[autocomplete_limit]" value="<?php echo absint($options['autocomplete_limit']); ?>"></label></p></td></tr>
-                        <tr><th><?php esc_html_e('Tolerancia a errores', 'seo-search'); ?></th><td><?php seo_search_admin_checkbox('typo_tolerance', __('Activar coincidencias aproximadas', 'seo-search'), __('Se usa como respaldo cuando hay pocos resultados exactos.', 'seo-search')); ?><p><label><?php esc_html_e('Productos máximos del índice aproximado', 'seo-search'); ?> <input type="number" min="100" max="5000" name="<?php echo esc_attr(SEO_SEARCH_OPTION); ?>[fuzzy_scan_limit]" value="<?php echo absint($options['fuzzy_scan_limit']); ?>"></label></p></td></tr>
-                        <tr><th><?php esc_html_e('Sinónimos', 'seo-search'); ?></th><td><textarea name="<?php echo esc_attr(SEO_SEARCH_OPTION); ?>[synonyms]" rows="7" class="large-text code"><?php echo esc_textarea($options['synonyms']); ?></textarea><p class="description"><?php esc_html_e('Una línea por grupo. Ejemplo: movil=telefono,smartphone', 'seo-search'); ?></p></td></tr>
-                        <tr><th><?php esc_html_e('Analítica', 'seo-search'); ?></th><td><?php seo_search_admin_checkbox('log_searches', __('Registrar términos y número de resultados', 'seo-search')); ?></td></tr>
+                        <tr><th><?php esc_html_e('Resultados por página', 'seo-taxonomy'); ?></th><td><input type="number" min="1" max="100" name="<?php echo esc_attr(SEO_SEARCH_OPTION); ?>[results_per_page]" value="<?php echo absint($options['results_per_page']); ?>"></td></tr>
+                        <tr><th><?php esc_html_e('Página de resultados', 'seo-taxonomy'); ?></th><td><?php wp_dropdown_pages(array('name' => SEO_SEARCH_OPTION . '[results_page_id]', 'selected' => absint($options['results_page_id']), 'show_option_none' => __('Página de inicio', 'seo-taxonomy'))); ?><p class="description"><?php esc_html_e('El formulario enviará aquí la búsqueda. La página puede estar vacía.', 'seo-taxonomy'); ?></p></td></tr>
+                        <tr><th><?php esc_html_e('Parámetro de URL', 'seo-taxonomy'); ?></th><td><input type="text" name="<?php echo esc_attr(SEO_SEARCH_OPTION); ?>[query_parameter]" value="<?php echo esc_attr($options['query_parameter']); ?>" class="regular-text"><p class="description"><?php esc_html_e('Por compatibilidad se recomienda mantener “q”.', 'seo-taxonomy'); ?></p></td></tr>
+                        <tr><th><?php esc_html_e('Autocompletado', 'seo-taxonomy'); ?></th><td><?php seo_search_admin_checkbox('autocomplete_enabled', __('Activar sugerencias mientras se escribe', 'seo-taxonomy')); ?><p><label><?php esc_html_e('Mínimo de caracteres', 'seo-taxonomy'); ?> <input type="number" min="1" max="5" name="<?php echo esc_attr(SEO_SEARCH_OPTION); ?>[autocomplete_min_chars]" value="<?php echo absint($options['autocomplete_min_chars']); ?>"></label></p><p><label><?php esc_html_e('Número de sugerencias', 'seo-taxonomy'); ?> <input type="number" min="3" max="20" name="<?php echo esc_attr(SEO_SEARCH_OPTION); ?>[autocomplete_limit]" value="<?php echo absint($options['autocomplete_limit']); ?>"></label></p></td></tr>
+                        <tr><th><?php esc_html_e('Tolerancia a errores', 'seo-taxonomy'); ?></th><td><?php seo_search_admin_checkbox('typo_tolerance', __('Activar coincidencias aproximadas', 'seo-taxonomy'), __('Se usa como respaldo cuando hay pocos resultados exactos.', 'seo-taxonomy')); ?><p><label><?php esc_html_e('Productos máximos del índice aproximado', 'seo-taxonomy'); ?> <input type="number" min="100" max="5000" name="<?php echo esc_attr(SEO_SEARCH_OPTION); ?>[fuzzy_scan_limit]" value="<?php echo absint($options['fuzzy_scan_limit']); ?>"></label></p></td></tr>
+                        <tr><th><?php esc_html_e('Sinónimos', 'seo-taxonomy'); ?></th><td><textarea name="<?php echo esc_attr(SEO_SEARCH_OPTION); ?>[synonyms]" rows="7" class="large-text code"><?php echo esc_textarea($options['synonyms']); ?></textarea><p class="description"><?php esc_html_e('Una línea por grupo. Ejemplo: movil=telefono,smartphone', 'seo-taxonomy'); ?></p></td></tr>
+                        <tr><th><?php esc_html_e('Analítica', 'seo-taxonomy'); ?></th><td><?php seo_search_admin_checkbox('log_searches', __('Registrar términos y número de resultados', 'seo-taxonomy')); ?></td></tr>
                     <?php elseif ('fields' === $tab) : ?>
-                        <tr><th><?php esc_html_e('Buscar en', 'seo-search'); ?></th><td>
-                            <?php seo_search_admin_checkbox('search_title', __('Título del producto', 'seo-search')); ?><br><br>
-                            <?php seo_search_admin_checkbox('search_content', __('Descripción corta y descripción', 'seo-search')); ?><br><br>
-                            <?php seo_search_admin_checkbox('search_sku', __('SKU / referencia', 'seo-search')); ?><br><br>
-                            <?php seo_search_admin_checkbox('search_categories', __('Categorías', 'seo-search')); ?><br><br>
-                            <?php seo_search_admin_checkbox('search_vocabulary', __('Vocabulario canonico: TIPO, ROL, APLICACION, PLATAFORMA y SUBTIPO', 'seo-search')); ?><br><br>
-                            <?php seo_search_admin_checkbox('search_attributes', __('Atributos globales y atributos del producto', 'seo-search')); ?>
+                        <tr><th><?php esc_html_e('Buscar en', 'seo-taxonomy'); ?></th><td>
+                            <?php seo_search_admin_checkbox('search_title', __('Título del producto', 'seo-taxonomy')); ?><br><br>
+                            <?php seo_search_admin_checkbox('search_content', __('Descripción corta y descripción', 'seo-taxonomy')); ?><br><br>
+                            <?php seo_search_admin_checkbox('search_sku', __('SKU / referencia', 'seo-taxonomy')); ?><br><br>
+                            <?php seo_search_admin_checkbox('search_categories', __('Categorías', 'seo-taxonomy')); ?><br><br>
+                            <?php seo_search_admin_checkbox('search_vocabulary', __('Vocabulario canonico: TIPO, ROL, APLICACION, PLATAFORMA y SUBTIPO', 'seo-taxonomy')); ?><br><br>
+                            <?php seo_search_admin_checkbox('search_attributes', __('Atributos globales y atributos del producto', 'seo-taxonomy')); ?>
                         </td></tr>
-                        <tr><th><?php esc_html_e('Metadatos personalizados', 'seo-search'); ?></th><td><input type="text" class="large-text" name="<?php echo esc_attr(SEO_SEARCH_OPTION); ?>[custom_meta_keys]" value="<?php echo esc_attr($options['custom_meta_keys']); ?>"><p class="description"><?php esc_html_e('Claves separadas por comas, por ejemplo: referencia_proveedor, codigo_fabricante', 'seo-search'); ?></p></td></tr>
+                        <tr><th><?php esc_html_e('Metadatos personalizados', 'seo-taxonomy'); ?></th><td><input type="text" class="large-text" name="<?php echo esc_attr(SEO_SEARCH_OPTION); ?>[custom_meta_keys]" value="<?php echo esc_attr($options['custom_meta_keys']); ?>"><p class="description"><?php esc_html_e('Claves separadas por comas, por ejemplo: referencia_proveedor, codigo_fabricante', 'seo-taxonomy'); ?></p></td></tr>
                     <?php elseif ('advanced' === $tab) : ?>
                         <tr>
-                            <th><?php esc_html_e('Búsqueda avanzada', 'seo-search'); ?></th>
+                            <th><?php esc_html_e('Búsqueda avanzada', 'seo-taxonomy'); ?></th>
                             <td>
-                                <?php seo_search_admin_checkbox('filter_vocabulary', __('Activar filtros semánticos canónicos', 'seo-search'), __('Usa exclusivamente el vocabulario TIPO, ROL, APLICACIÓN, PLATAFORMA y SUBTIPO.', 'seo-search')); ?>
-                                <p class="description"><?php esc_html_e('Esta función pertenece a SEO Search. WooCommerce solo aporta el catálogo de productos; no se registra ninguna pantalla dentro de su menú.', 'seo-search'); ?></p>
+                                <?php seo_search_admin_checkbox('filter_vocabulary', __('Activar filtros semánticos canónicos', 'seo-taxonomy'), __('Usa exclusivamente el vocabulario TIPO, ROL, APLICACIÓN, PLATAFORMA y SUBTIPO.', 'seo-taxonomy')); ?>
+                                <p class="description"><?php esc_html_e('Esta función pertenece a SEO Search. WooCommerce solo aporta el catálogo de productos; no se registra ninguna pantalla dentro de su menú.', 'seo-taxonomy'); ?></p>
                             </td>
                         </tr>
                         <tr>
-                            <th><?php esc_html_e('Filtros visibles', 'seo-search'); ?></th>
+                            <th><?php esc_html_e('Filtros visibles', 'seo-taxonomy'); ?></th>
                             <td>
-                                <?php seo_search_admin_checkbox('advanced_filter_rol', __('ROL', 'seo-search')); ?><br><br>
-                                <?php seo_search_admin_checkbox('advanced_filter_tipo', __('TIPO', 'seo-search')); ?><br><br>
-                                <?php seo_search_admin_checkbox('advanced_filter_aplicacion', __('APLICACIÓN', 'seo-search')); ?><br><br>
-                                <?php seo_search_admin_checkbox('advanced_filter_plataforma', __('PLATAFORMA', 'seo-search')); ?><br><br>
-                                <?php seo_search_admin_checkbox('advanced_filter_subtipo', __('SUBTIPO', 'seo-search')); ?>
+                                <?php seo_search_admin_checkbox('advanced_filter_rol', __('ROL', 'seo-taxonomy')); ?><br><br>
+                                <?php seo_search_admin_checkbox('advanced_filter_tipo', __('TIPO', 'seo-taxonomy')); ?><br><br>
+                                <?php seo_search_admin_checkbox('advanced_filter_aplicacion', __('APLICACIÓN', 'seo-taxonomy')); ?><br><br>
+                                <?php seo_search_admin_checkbox('advanced_filter_plataforma', __('PLATAFORMA', 'seo-taxonomy')); ?><br><br>
+                                <?php seo_search_admin_checkbox('advanced_filter_subtipo', __('SUBTIPO', 'seo-taxonomy')); ?>
                             </td>
                         </tr>
                         <tr>
-                            <th><?php esc_html_e('Comportamiento', 'seo-search'); ?></th>
+                            <th><?php esc_html_e('Comportamiento', 'seo-taxonomy'); ?></th>
                             <td>
-                                <?php seo_search_admin_checkbox('advanced_show_counts', __('Mostrar cantidad de productos junto a cada valor', 'seo-search')); ?><br><br>
-                                <?php seo_search_admin_checkbox('advanced_auto_submit', __('Aplicar automáticamente al cambiar un filtro', 'seo-search'), __('Si está desactivado se utiliza el botón “Aplicar filtros”.', 'seo-search')); ?>
+                                <?php seo_search_admin_checkbox('advanced_show_counts', __('Mostrar cantidad de productos junto a cada valor', 'seo-taxonomy')); ?><br><br>
+                                <?php seo_search_admin_checkbox('advanced_auto_submit', __('Aplicar automáticamente al cambiar un filtro', 'seo-taxonomy'), __('Si está desactivado se utiliza el botón “Aplicar filtros”.', 'seo-taxonomy')); ?>
                             </td>
                         </tr>
                         <tr>
-                            <th><?php esc_html_e('Shortcode', 'seo-search'); ?></th>
+                            <th><?php esc_html_e('Shortcode', 'seo-taxonomy'); ?></th>
                             <td>
                                 <code>[advanced_search]</code>
-                                <p class="description"><?php esc_html_e('Inserta la barra de filtros avanzados en la tienda, una página o una plantilla. Por defecto envía los filtros a la página de tienda de WooCommerce.', 'seo-search'); ?></p>
+                                <p class="description"><?php esc_html_e('Inserta la barra de filtros avanzados en la tienda, una página o una plantilla. Por defecto envía los filtros a la página de tienda de WooCommerce.', 'seo-taxonomy'); ?></p>
                             </td>
                         </tr>
                     <?php elseif ('display' === $tab) : ?>
-                        <tr><th><?php esc_html_e('Tarjetas de producto', 'seo-search'); ?></th><td>
-                            <?php seo_search_admin_checkbox('show_image', __('Mostrar imagen', 'seo-search')); ?><br><br>
-                            <?php seo_search_admin_checkbox('show_price', __('Mostrar precio', 'seo-search')); ?><br><br>
-                            <?php seo_search_admin_checkbox('show_stock', __('Mostrar disponibilidad', 'seo-search')); ?><br><br>
-                            <?php seo_search_admin_checkbox('show_sku', __('Mostrar SKU / referencia', 'seo-search')); ?><br><br>
-                            <?php seo_search_admin_checkbox('show_category', __('Mostrar categorías', 'seo-search')); ?><br><br>
-                            <?php seo_search_admin_checkbox('show_excerpt', __('Mostrar descripción corta', 'seo-search')); ?>
+                        <tr><th><?php esc_html_e('Tarjetas de producto', 'seo-taxonomy'); ?></th><td>
+                            <?php seo_search_admin_checkbox('show_image', __('Mostrar imagen', 'seo-taxonomy')); ?><br><br>
+                            <?php seo_search_admin_checkbox('show_price', __('Mostrar precio', 'seo-taxonomy')); ?><br><br>
+                            <?php seo_search_admin_checkbox('show_stock', __('Mostrar disponibilidad', 'seo-taxonomy')); ?><br><br>
+                            <?php seo_search_admin_checkbox('show_sku', __('Mostrar SKU / referencia', 'seo-taxonomy')); ?><br><br>
+                            <?php seo_search_admin_checkbox('show_category', __('Mostrar categorías', 'seo-taxonomy')); ?><br><br>
+                            <?php seo_search_admin_checkbox('show_excerpt', __('Mostrar descripción corta', 'seo-taxonomy')); ?>
                         </td></tr>
-                        <tr><th><?php esc_html_e('Diseño', 'seo-search'); ?></th><td><select name="<?php echo esc_attr(SEO_SEARCH_OPTION); ?>[default_layout]"><option value="grid" <?php selected($options['default_layout'], 'grid'); ?>><?php esc_html_e('Cuadrícula', 'seo-search'); ?></option><option value="list" <?php selected($options['default_layout'], 'list'); ?>><?php esc_html_e('Lista', 'seo-search'); ?></option></select> <label><?php esc_html_e('Columnas', 'seo-search'); ?> <input type="number" min="2" max="6" name="<?php echo esc_attr(SEO_SEARCH_OPTION); ?>[grid_columns]" value="<?php echo absint($options['grid_columns']); ?>"></label></td></tr>
-                        <tr><th><?php esc_html_e('Filtros', 'seo-search'); ?></th><td>
-                            <?php seo_search_admin_checkbox('filter_categories', __('Categoría', 'seo-search')); ?><br><br>
-                            <?php seo_search_admin_checkbox('filter_brand', __('Marca', 'seo-search')); ?><br><br>
-                            <?php seo_search_admin_checkbox('filter_attributes', __('Atributos', 'seo-search')); ?><br><br>
-                            <?php seo_search_admin_checkbox('filter_price', __('Precio', 'seo-search')); ?><br><br>
-                            <?php seo_search_admin_checkbox('filter_stock', __('Disponibilidad', 'seo-search')); ?>
+                        <tr><th><?php esc_html_e('Diseño', 'seo-taxonomy'); ?></th><td><select name="<?php echo esc_attr(SEO_SEARCH_OPTION); ?>[default_layout]"><option value="grid" <?php selected($options['default_layout'], 'grid'); ?>><?php esc_html_e('Cuadrícula', 'seo-taxonomy'); ?></option><option value="list" <?php selected($options['default_layout'], 'list'); ?>><?php esc_html_e('Lista', 'seo-taxonomy'); ?></option></select> <label><?php esc_html_e('Columnas', 'seo-taxonomy'); ?> <input type="number" min="2" max="6" name="<?php echo esc_attr(SEO_SEARCH_OPTION); ?>[grid_columns]" value="<?php echo absint($options['grid_columns']); ?>"></label></td></tr>
+                        <tr><th><?php esc_html_e('Filtros', 'seo-taxonomy'); ?></th><td>
+                            <?php seo_search_admin_checkbox('filter_categories', __('Categoría', 'seo-taxonomy')); ?><br><br>
+                            <?php seo_search_admin_checkbox('filter_brand', __('Marca', 'seo-taxonomy')); ?><br><br>
+                            <?php seo_search_admin_checkbox('filter_attributes', __('Atributos', 'seo-taxonomy')); ?><br><br>
+                            <?php seo_search_admin_checkbox('filter_price', __('Precio', 'seo-taxonomy')); ?><br><br>
+                            <?php seo_search_admin_checkbox('filter_stock', __('Disponibilidad', 'seo-taxonomy')); ?>
                         </td></tr>
-                        <tr><th><?php esc_html_e('Taxonomía de marca', 'seo-search'); ?></th><td><input type="text" name="<?php echo esc_attr(SEO_SEARCH_OPTION); ?>[brand_taxonomy]" value="<?php echo esc_attr($options['brand_taxonomy']); ?>" class="regular-text"><p class="description"><?php esc_html_e('Ejemplos habituales: product_brand, pa_brand, yith_product_brand.', 'seo-search'); ?></p></td></tr>
-                        <tr><th><?php esc_html_e('Mensaje sin resultados', 'seo-search'); ?></th><td><textarea name="<?php echo esc_attr(SEO_SEARCH_OPTION); ?>[no_results_text]" rows="3" class="large-text"><?php echo esc_textarea($options['no_results_text']); ?></textarea></td></tr>
+                        <tr><th><?php esc_html_e('Taxonomía de marca', 'seo-taxonomy'); ?></th><td><input type="text" name="<?php echo esc_attr(SEO_SEARCH_OPTION); ?>[brand_taxonomy]" value="<?php echo esc_attr($options['brand_taxonomy']); ?>" class="regular-text"><p class="description"><?php esc_html_e('Ejemplos habituales: product_brand, pa_brand, yith_product_brand.', 'seo-taxonomy'); ?></p></td></tr>
+                        <tr><th><?php esc_html_e('Mensaje sin resultados', 'seo-taxonomy'); ?></th><td><textarea name="<?php echo esc_attr(SEO_SEARCH_OPTION); ?>[no_results_text]" rows="3" class="large-text"><?php echo esc_textarea($options['no_results_text']); ?></textarea></td></tr>
                     <?php endif; ?>
                 </table>
                 <?php submit_button(); ?>
@@ -1953,11 +1953,11 @@ function seo_search_settings_page() {
 
             <?php if ('general' === $tab) : ?>
                 <hr>
-                <h2><?php esc_html_e('Vista previa', 'seo-search'); ?></h2>
+                <h2><?php esc_html_e('Vista previa', 'seo-taxonomy'); ?></h2>
                 <?php echo do_shortcode('[seo_search]'); ?>
             <?php elseif ('advanced' === $tab) : ?>
                 <hr>
-                <h2><?php esc_html_e('Vista previa de filtros avanzados', 'seo-search'); ?></h2>
+                <h2><?php esc_html_e('Vista previa de filtros avanzados', 'seo-taxonomy'); ?></h2>
                 <?php echo do_shortcode('[advanced_search]'); ?>
             <?php endif; ?>
         <?php endif; ?>
@@ -1975,19 +1975,19 @@ function seo_search_render_admin_analytics() {
     $summary = $wpdb->get_row("SELECT COUNT(*) AS total, SUM(CASE WHEN results_count = 0 THEN 1 ELSE 0 END) AS zero_count, COUNT(DISTINCT normalized_term) AS unique_terms FROM {$table} WHERE searched_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)", ARRAY_A); // phpcs:ignore
     ?>
     <div style="display:grid;grid-template-columns:repeat(3,minmax(160px,1fr));gap:16px;margin:20px 0;max-width:900px">
-        <div class="postbox" style="padding:18px"><strong style="font-size:28px"><?php echo absint(isset($summary['total']) ? $summary['total'] : 0); ?></strong><br><?php esc_html_e('Búsquedas en 30 días', 'seo-search'); ?></div>
-        <div class="postbox" style="padding:18px"><strong style="font-size:28px"><?php echo absint(isset($summary['unique_terms']) ? $summary['unique_terms'] : 0); ?></strong><br><?php esc_html_e('Términos distintos', 'seo-search'); ?></div>
-        <div class="postbox" style="padding:18px"><strong style="font-size:28px"><?php echo absint(isset($summary['zero_count']) ? $summary['zero_count'] : 0); ?></strong><br><?php esc_html_e('Búsquedas sin resultados', 'seo-search'); ?></div>
+        <div class="postbox" style="padding:18px"><strong style="font-size:28px"><?php echo absint(isset($summary['total']) ? $summary['total'] : 0); ?></strong><br><?php esc_html_e('Búsquedas en 30 días', 'seo-taxonomy'); ?></div>
+        <div class="postbox" style="padding:18px"><strong style="font-size:28px"><?php echo absint(isset($summary['unique_terms']) ? $summary['unique_terms'] : 0); ?></strong><br><?php esc_html_e('Términos distintos', 'seo-taxonomy'); ?></div>
+        <div class="postbox" style="padding:18px"><strong style="font-size:28px"><?php echo absint(isset($summary['zero_count']) ? $summary['zero_count'] : 0); ?></strong><br><?php esc_html_e('Búsquedas sin resultados', 'seo-taxonomy'); ?></div>
     </div>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:20px">
-        <?php seo_search_render_stats_table(__('Más buscado', 'seo-search'), $top, false); ?>
-        <?php seo_search_render_stats_table(__('Sin resultados', 'seo-search'), $zero, true); ?>
+        <?php seo_search_render_stats_table(__('Más buscado', 'seo-taxonomy'), $top, false); ?>
+        <?php seo_search_render_stats_table(__('Sin resultados', 'seo-taxonomy'), $zero, true); ?>
     </div>
 
     <form method="post" style="margin-top:24px">
         <?php wp_nonce_field('seo_search_clear_logs'); ?>
-        <button type="submit" name="seo_search_clear_logs" value="1" class="button button-secondary" onclick="return confirm('<?php echo esc_js(__('¿Eliminar todo el historial de búsquedas?', 'seo-search')); ?>')"><?php esc_html_e('Eliminar historial', 'seo-search'); ?></button>
+        <button type="submit" name="seo_search_clear_logs" value="1" class="button button-secondary" onclick="return confirm('<?php echo esc_js(__('¿Eliminar todo el historial de búsquedas?', 'seo-taxonomy')); ?>')"><?php esc_html_e('Eliminar historial', 'seo-taxonomy'); ?></button>
     </form>
     <?php
 }
@@ -1997,10 +1997,10 @@ function seo_search_render_stats_table($title, $rows, $zero_table) {
     <div>
         <h2><?php echo esc_html($title); ?></h2>
         <table class="widefat striped">
-            <thead><tr><th><?php esc_html_e('Término', 'seo-search'); ?></th><th><?php esc_html_e('Búsquedas', 'seo-search'); ?></th><?php if (!$zero_table) : ?><th><?php esc_html_e('Resultados', 'seo-search'); ?></th><?php endif; ?><th><?php esc_html_e('Última', 'seo-search'); ?></th></tr></thead>
+            <thead><tr><th><?php esc_html_e('Término', 'seo-taxonomy'); ?></th><th><?php esc_html_e('Búsquedas', 'seo-taxonomy'); ?></th><?php if (!$zero_table) : ?><th><?php esc_html_e('Resultados', 'seo-taxonomy'); ?></th><?php endif; ?><th><?php esc_html_e('Última', 'seo-taxonomy'); ?></th></tr></thead>
             <tbody>
             <?php if (!$rows) : ?>
-                <tr><td colspan="4"><?php esc_html_e('Todavía no hay datos.', 'seo-search'); ?></td></tr>
+                <tr><td colspan="4"><?php esc_html_e('Todavía no hay datos.', 'seo-taxonomy'); ?></td></tr>
             <?php else : foreach ($rows as $row) : ?>
                 <tr><td><?php echo esc_html($row['search_term']); ?></td><td><?php echo absint($row['searches']); ?></td><?php if (!$zero_table) : ?><td><?php echo absint($row['last_results']); ?></td><?php endif; ?><td><?php echo esc_html(mysql2date(get_option('date_format') . ' ' . get_option('time_format'), $row['last_search'])); ?></td></tr>
             <?php endforeach; endif; ?>
@@ -2019,6 +2019,6 @@ add_action('admin_notices', function () {
         return;
     }
     if (!class_exists('WooCommerce')) {
-        echo '<div class="notice notice-error"><p>' . esc_html__('SEO Search 2.0 requiere WooCommerce activo.', 'seo-search') . '</p></div>';
+        echo '<div class="notice notice-error"><p>' . esc_html__('SEO Search 2.0 requiere WooCommerce activo.', 'seo-taxonomy') . '</p></div>';
     }
 });
