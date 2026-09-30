@@ -7,8 +7,8 @@ La pantalla concentra la semántica canónica y los atributos técnicos.
 ## Dominios superiores
 
 - **Etiquetas**
+- **Clasificador**
 - **Atributos**
-- **Asignación**
 - **Google esquema**
 
 ## Etiquetas
@@ -106,7 +106,13 @@ Filtros: Producto/SKU/ID, Categoría, Cobertura, Filas, **Filtrar** y **Limpiar*
 
 Tabla: Producto, Categorías, Atributos canónicos, Cobertura, Modificado y Acción.
 
-## Asignación
+## Clasificador
+
+El Clasificador es la mesa de asignación asistida de la semántica del catálogo. Analiza productos, detecta huecos o anomalías y propone valores canónicos para TIPO, ROL, APLICACIÓN, PLATAFORMA y SUBTIPO. También puede proponer atributos técnicos.
+
+La documentación completa del servicio está en **[Clasificador](CLASIFICADOR.md)**.
+
+Subpestañas: **Etiquetas de productos**, **Atributos de productos**, **Etiquetas de categorías** y **Formato / ejemplos**.
 
 Filtros: Buscar, Categoría, Cobertura, Prioridad, Filas, **Filtrar** y **Limpiar**.
 
@@ -121,7 +127,7 @@ Flujo de trabajo:
 
 Controles del proceso: **Pausar**, **Reanudar** y **Cancelar** [Proceso].
 
-Las tablas presentan producto/categoría, cobertura o prioridad y las propuestas de TIPO, ROL, APLICACIÓN, PLATAFORMA y SUBTIPO. **Asignación asistida** y **Revisión manual** separan propuestas automáticas de decisiones humanas.
+Las tablas presentan producto/categoría, cobertura o prioridad y las propuestas de TIPO, ROL, APLICACIÓN, PLATAFORMA y SUBTIPO. El **Clasificador** genera propuestas; la revisión/confirmación humana decide qué se guarda.
 
 ## Google esquema
 
