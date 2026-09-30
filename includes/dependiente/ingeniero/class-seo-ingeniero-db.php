@@ -286,6 +286,68 @@ final class SEO_Ingeniero_DB {
         return false === $ok ? new WP_Error('ingeniero_review_update', $wpdb->last_error ?: 'No se pudo guardar la revisión.') : true;
     }
 
+    public static function approve_review_for_category($term_id, $lesson = 'l1_technical') {
+        global $wpdb;
+        $term_id = absint($term_id);
+        $lesson = sanitize_key((string) $lesson);
+        if (!$term_id) {
+            return new WP_Error('ingeniero_approve_term', 'La categoría no es válida.');
+        }
+
+        $table = self::table('knowledge');
+        $updated = $wpdb->query($wpdb->prepare(
+            "UPDATE {$table}
+             SET status='active', updated_at=%s
+             WHERE term_id=%d AND lesson=%s AND status='review'",
+            gmdate('Y-m-d H:i:s'),
+            $term_id,
+            $lesson
+        ));
+        if (false === $updated) {
+            return new WP_Error('ingeniero_approve_category', $wpdb->last_error ?: 'No se pudo aprobar el conocimiento de la categoría.');
+        }
+        return absint($updated);
+    }
+
+    public static function approve_all_review($lesson = 'l1_technical') {
+        global $wpdb;
+        $lesson = sanitize_key((string) $lesson);
+        $table = self::table('knowledge');
+
+        $term_ids = array_values(array_filter(array_map('absint', (array) $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT term_id
+             FROM {$table}
+             WHERE lesson=%s AND status='review'
+             ORDER BY term_id ASC",
+            $lesson
+        )))));
+
+        if (!$term_ids) {
+            return array(
+                'knowledge'=>0,
+                'categories'=>0,
+                'term_ids'=>array(),
+            );
+        }
+
+        $updated = $wpdb->query($wpdb->prepare(
+            "UPDATE {$table}
+             SET status='active', updated_at=%s
+             WHERE lesson=%s AND status='review'",
+            gmdate('Y-m-d H:i:s'),
+            $lesson
+        ));
+        if (false === $updated) {
+            return new WP_Error('ingeniero_approve_all', $wpdb->last_error ?: 'No se pudo aprobar el conocimiento en revisión.');
+        }
+
+        return array(
+            'knowledge'=>absint($updated),
+            'categories'=>count($term_ids),
+            'term_ids'=>$term_ids,
+        );
+    }
+
     public static function supersede_category($term_id, $lesson = 'l1_technical') {
         global $wpdb;
         $where = array('term_id'=>absint($term_id),'lesson'=>sanitize_key($lesson));
