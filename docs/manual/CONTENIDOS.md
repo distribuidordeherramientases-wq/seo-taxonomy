@@ -35,3 +35,16 @@ Esto permite mantener enlaces internos, formularios y redirecciones existentes. 
 El Auditor de datos se accede desde **SEO Taxonomy → Contenidos → Auditor**. Permite ejecutar auditorías independientes de Productos, Categorías, Posts, Páginas, FAQs y Motor/índice, además de la auditoría global del catálogo y la vista de Calidad SEO.
 
 La auditoría de **Academia / Estudiante** queda separada dentro de **Dependiente → Auditor Academia**.
+
+### Equilibrar categorías
+
+La subvista **Equilibrar categorías** distingue entre diagnóstico y ejecución:
+
+- **Revisar por división**: categorías por encima del tamaño objetivo, aunque todavía no haya cohortes TIPO/SUBTIPO suficientes para proponer cómo dividir.
+- **Propuestas de división**: subconjunto con evidencia semántica suficiente y destinos/cohortes revisables.
+- **Revisar concentración**: categorías de 1–4 productos, aunque todavía no exista una hermana suficientemente parecida.
+- **Propuestas de concentración**: subconjunto con un destino sugerido suficientemente similar.
+
+Un contador a cero en **Propuestas** no significa que la taxonomía esté equilibrada; los contadores de **Revisar** muestran los casos que merecen atención aunque Auditor todavía no pueda proponer una operación segura.
+
+Las filas diagnósticas son de solo lectura. Solo una propuesta aprobada puede ejecutarse.

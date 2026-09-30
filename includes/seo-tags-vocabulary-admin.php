@@ -2969,6 +2969,7 @@ if (!function_exists('seo_assignment_sections')) {
     function seo_assignment_sections() {
         return [
             'product_labels'     => 'Etiquetas de productos',
+            'engineer_vocab'      => 'Ingeniero → vocabulario',
             'product_attributes' => 'Atributos de productos',
             'category_labels'    => 'Etiquetas de categorías',
             'format_examples'    => 'Formato / ejemplos',
@@ -3651,6 +3652,9 @@ if (!function_exists('seo_assignment_notice')) {
             'mass_saved'=>['success','Propuestas viables aplicadas.'],
             'job_started'=>['success','Trabajo del Clasificador enviado a la cola.'],
             'apply_job_started'=>['success','Aplicación de propuestas enviada a la cola.'],
+            'engineer_vocab_analyzed'=>['success','Conocimiento de Ingeniero analizado contra los maestros canónicos.'],
+            'engineer_vocab_accepted'=>['success','Propuesta de Ingeniero aceptada en el maestro canónico.'],
+            'engineer_vocab_all_accepted'=>['success','Candidatos nuevos de Ingeniero aceptados en bloque.'],
             'nothing'=>['warning','No había propuestas viables para aplicar.'],
             'error'=>['error','No se pudo completar la asignación.'],
         ];
@@ -3860,6 +3864,49 @@ if (!function_exists('seo_assignment_handle_request')) {
         $section=sanitize_key(wp_unslash($_POST['assignment_section'] ?? 'product_labels'));
         if (!array_key_exists($section,seo_assignment_sections())) $section='product_labels';
         try {
+            if ($action==='accept_engineer_vocab_candidate') {
+                if ($section !== 'engineer_vocab') throw new InvalidArgumentException('La aceptación de Ingeniero está disponible en Ingeniero → vocabulario.');
+                if (!function_exists('seo_classifier_engineer_vocab_accept_candidate')) throw new RuntimeException('No está disponible la aceptación de vocabulario de Ingeniero.');
+                $term_id = absint($_POST['engineer_term_id'] ?? 0);
+                $kind = sanitize_key(wp_unslash($_POST['engineer_candidate_kind'] ?? ''));
+                $key = sanitize_text_field(wp_unslash($_POST['engineer_candidate_key'] ?? ''));
+                if ($term_id < 1 || $kind === '' || $key === '') throw new InvalidArgumentException('La propuesta no es válida.');
+                $result = seo_classifier_engineer_vocab_accept_candidate($term_id, $kind, $key);
+                if (is_wp_error($result)) throw new RuntimeException($result->get_error_message());
+                if (function_exists('seo_classifier_bump_profiles_generation')) seo_classifier_bump_profiles_generation();
+                $detail = (!empty($result['created']) ? 'Creado: ' : 'Ya existía: ') . (string) ($result['label'] ?? '');
+                seo_assignment_redirect($section, 'engineer_vocab_accepted', $detail);
+            }
+            if ($action==='accept_all_engineer_vocab') {
+                if ($section !== 'engineer_vocab') throw new InvalidArgumentException('La aceptación masiva de Ingeniero está disponible en Ingeniero → vocabulario.');
+                if (!function_exists('seo_classifier_engineer_vocab_accept_all')) throw new RuntimeException('No está disponible la aceptación masiva de vocabulario de Ingeniero.');
+                $result = seo_classifier_engineer_vocab_accept_all();
+                if (is_wp_error($result)) throw new RuntimeException($result->get_error_message());
+                if (function_exists('seo_classifier_bump_profiles_generation')) seo_classifier_bump_profiles_generation();
+                $detail = 'Creados: ' . absint($result['created'] ?? 0)
+                    . ' · reutilizados: ' . absint($result['reused'] ?? 0)
+                    . ' · provisionales omitidos: ' . absint($result['skipped_provisional'] ?? 0)
+                    . ' · errores: ' . count((array) ($result['errors'] ?? [])) . '.';
+                seo_assignment_redirect($section, 'engineer_vocab_all_accepted', $detail);
+            }
+            if ($action==='analyze_engineer_vocab') {
+                if ($section !== 'engineer_vocab') throw new InvalidArgumentException('El análisis de Ingeniero está disponible en Ingeniero → vocabulario.');
+                if (!function_exists('seo_classifier_engineer_vocab_report')) throw new RuntimeException('No está disponible el analizador de vocabulario de Ingeniero.');
+                $term_id = absint($_POST['engineer_term_id'] ?? 0);
+                if ($term_id < 1) throw new InvalidArgumentException('Selecciona una categoría con conocimiento activo de Ingeniero.');
+                $report = seo_classifier_engineer_vocab_report($term_id);
+                if (is_wp_error($report)) throw new RuntimeException($report->get_error_message());
+                set_transient('seo_classifier_engineer_vocab_report_' . get_current_user_id(), $report, DAY_IN_SECONDS);
+                $url = add_query_arg([
+                    'page'=>'seo-tags-vocabulary',
+                    'domain'=>'assignment',
+                    'assignment_section'=>'engineer_vocab',
+                    'engineer_term_id'=>$term_id,
+                    'assignment_notice'=>'engineer_vocab_analyzed',
+                ], admin_url('admin.php'));
+                wp_safe_redirect($url);
+                exit;
+            }
             if ($action==='start_classifier_job') {
                 if ($section !== 'product_labels') throw new InvalidArgumentException('Los jobs adaptativos están disponibles en Etiquetas de productos.');
                 if (!function_exists('seo_classifier_job_create')) throw new RuntimeException('No está disponible la cola del Clasificador.');
@@ -4426,16 +4473,174 @@ if (!function_exists('seo_assignment_render_pagination')) {
     }
 }
 
+if (!function_exists('seo_assignment_render_engineer_vocab')) {
+    function seo_assignment_render_engineer_vocab() {
+        if (!function_exists('seo_classifier_engineer_vocab_bulk_reports') || !function_exists('seo_classifier_engineer_vocab_flat_rows')) {
+            echo '<div class="notice notice-error inline"><p>No está disponible el analizador global de Ingeniero.</p></div>';
+            return;
+        }
+
+        $reports = seo_classifier_engineer_vocab_bulk_reports();
+        if (is_wp_error($reports)) {
+            echo '<div class="notice notice-error inline"><p>' . esc_html($reports->get_error_message()) . '</p></div>';
+            return;
+        }
+        $rows = seo_classifier_engineer_vocab_flat_rows((array) $reports);
+
+        $pending = [];
+        $covered = [];
+        $unique_new = [];
+        $provisional_new = 0;
+        foreach ($rows as $row) {
+            $status = (string) ($row['status'] ?? '');
+            if ($status === 'covered') {
+                $covered[] = $row;
+                continue;
+            }
+            $pending[] = $row;
+            if ($status === 'new') {
+                if (!empty($row['provisional'])) {
+                    $provisional_new++;
+                    continue;
+                }
+                $dedupe = (string) ($row['kind'] ?? '') . '|' . (string) ($row['key'] ?? '');
+                if (!isset($unique_new[$dedupe])) $unique_new[$dedupe] = $row;
+            }
+        }
+
+        $category_ids = [];
+        foreach ((array) $reports as $report) {
+            $tid = absint($report['term_id'] ?? 0);
+            if ($tid > 0) $category_ids[$tid] = true;
+        }
+
+        echo '<div class="seo-tags-panel">';
+        echo '<h3 style="margin-top:0">Ingeniero → vocabulario</h3>';
+        echo '<p>Clasificador revisa de una vez todas las categorías con conocimiento de Ingeniero y compara los conceptos encontrados con los maestros canónicos. <strong>Aceptar</strong> da de alta el concepto en Etiquetas o Atributos; no lo asigna todavía a productos ni modifica contenido público.</p>';
+        echo '<p><strong>Categorías analizadas:</strong> ' . esc_html(number_format_i18n(count($category_ids))) . ' · ';
+        echo '<strong>Pendientes/revisables:</strong> ' . esc_html(number_format_i18n(count($pending))) . ' · ';
+        echo '<strong>Ya cubiertos:</strong> ' . esc_html(number_format_i18n(count($covered))) . ' · ';
+        echo '<strong>Candidatos nuevos únicos:</strong> ' . esc_html(number_format_i18n(count($unique_new))) . '.</p>';
+
+        if ($unique_new) {
+            echo '<form method="post" style="display:inline-block;margin-right:8px">';
+            wp_nonce_field('seo_assignment_admin','seo_assignment_nonce');
+            echo '<input type="hidden" name="seo_assignment_action" value="accept_all_engineer_vocab">';
+            echo '<input type="hidden" name="assignment_section" value="engineer_vocab">';
+            echo '<button class="button button-primary" type="submit" onclick="return confirm(\'Se crearán todos los candidatos nuevos con evidencia activa. Los posibles equivalentes y los candidatos sustentados solo por conocimiento en revisión se omitirán. ¿Continuar?\')">Aceptar todos los candidatos nuevos (' . esc_html(number_format_i18n(count($unique_new))) . ')</button>';
+            echo '</form>';
+        }
+        if ($provisional_new > 0) {
+            echo '<span class="description">' . esc_html(number_format_i18n($provisional_new)) . ' propuestas nuevas tienen únicamente evidencia todavía en revisión y se aceptan solo una a una.</span>';
+        }
+        echo '<p class="seo-tags-help" style="margin-bottom:0">Los casos <strong>Posible equivalente</strong> nunca se crean en bloque: deben revisarse para no duplicar conceptos ya existentes.</p>';
+        echo '</div>';
+
+        if (!$rows) {
+            echo '<div class="seo-tags-panel"><p style="margin:0">Ingeniero todavía no tiene conocimiento utilizable para generar propuestas.</p></div>';
+            return;
+        }
+
+        $status_labels = [
+            'new'=>'Candidato nuevo',
+            'possible'=>'Posible equivalente',
+            'covered'=>'Ya cubierto',
+        ];
+        $status_classes = [
+            'new'=>'new',
+            'possible'=>'review',
+            'covered'=>'active',
+        ];
+
+        echo '<div style="overflow:auto">';
+        echo '<table class="widefat striped seo-tags-table">';
+        echo '<thead><tr><th>Categoría</th><th>Propuesta</th><th>Modelo</th><th>Estado</th><th>Equivalente actual</th><th>Confianza</th><th>Evidencia Ingeniero</th><th>Acción</th></tr></thead><tbody>';
+
+        foreach ($pending as $row) {
+            $status = (string) ($row['status'] ?? 'new');
+            $active_evidence = absint($row['evidence_status']['active'] ?? 0);
+            $review_evidence = absint($row['evidence_status']['review'] ?? 0);
+            echo '<tr>';
+            echo '<td><strong>' . esc_html((string) ($row['category'] ?? '')) . '</strong><br><small>#' . esc_html(absint($row['term_id'] ?? 0)) . '</small></td>';
+            echo '<td><strong>' . esc_html((string) ($row['value'] ?? '')) . '</strong>';
+            if (!empty($row['suggested_terms'])) echo '<br><small>Valores: ' . esc_html(implode(' · ', (array) $row['suggested_terms'])) . '</small>';
+            echo '</td>';
+            echo '<td>' . esc_html((string) ($row['kind'] === 'attribute' ? 'ATRIBUTO · ' : 'ETIQUETA · ') . (string) ($row['model'] ?? '')) . '</td>';
+            echo '<td><span class="seo-tags-state ' . esc_attr($status_classes[$status] ?? 'pending') . '">' . esc_html($status_labels[$status] ?? $status) . '</span>';
+            if (!empty($row['provisional'])) echo '<br><small style="color:#8a5a00">provisional</small>';
+            echo '</td>';
+            echo '<td>';
+            if (!empty($row['existing'])) {
+                echo '<strong>' . esc_html((string) $row['existing']) . '</strong>';
+                if (!empty($row['match_score'])) echo '<br><small>similitud ' . esc_html(number_format_i18n(((float)$row['match_score'])*100,0)) . '%</small>';
+            } else echo '—';
+            echo '</td>';
+            echo '<td><strong>' . esc_html(number_format_i18n(((float)($row['confidence'] ?? 0))*100,0)) . '%</strong></td>';
+            echo '<td>';
+            echo '<small>Activa: ' . esc_html(number_format_i18n($active_evidence)) . ' · revisión: ' . esc_html(number_format_i18n($review_evidence)) . '</small>';
+            if (!empty($row['evidence'])) {
+                echo '<details><summary>Ver evidencia</summary>';
+                foreach (array_slice((array)$row['evidence'],0,2) as $evidence) echo '<div style="margin-top:5px">' . esc_html((string)$evidence) . '</div>';
+                echo '</details>';
+            }
+            echo '</td>';
+            echo '<td>';
+            if ($status === 'new') {
+                echo '<form method="post">';
+                wp_nonce_field('seo_assignment_admin','seo_assignment_nonce');
+                echo '<input type="hidden" name="seo_assignment_action" value="accept_engineer_vocab_candidate">';
+                echo '<input type="hidden" name="assignment_section" value="engineer_vocab">';
+                echo '<input type="hidden" name="engineer_term_id" value="' . esc_attr(absint($row['term_id'] ?? 0)) . '">';
+                echo '<input type="hidden" name="engineer_candidate_kind" value="' . esc_attr((string)($row['kind'] ?? '')) . '">';
+                echo '<input type="hidden" name="engineer_candidate_key" value="' . esc_attr((string)($row['key'] ?? '')) . '">';
+                $confirm = !empty($row['provisional'])
+                    ? ' onclick="return confirm(\'Esta propuesta se apoya únicamente en conocimiento de Ingeniero todavía en revisión. ¿Aceptar igualmente?\')"'
+                    : '';
+                echo '<button class="button button-small button-primary" type="submit"' . $confirm . '>Aceptar</button>';
+                echo '</form>';
+            } else {
+                $url = $row['kind'] === 'attribute'
+                    ? admin_url('admin.php?page=seo-tags-vocabulary&domain=attributes&attribute_section=definitions')
+                    : admin_url('admin.php?page=seo-tags-vocabulary&domain=labels&section=vocabulary');
+                echo '<a class="button button-small" href="' . esc_url($url) . '">Revisar equivalente</a>';
+            }
+            echo '</td>';
+            echo '</tr>';
+        }
+
+        if (!$pending) echo '<tr><td colspan="8"><strong>No quedan candidatos nuevos ni posibles equivalentes.</strong></td></tr>';
+        echo '</tbody></table></div>';
+
+        if ($covered) {
+            echo '<details class="seo-tags-panel" style="margin-top:18px">';
+            echo '<summary style="cursor:pointer;font-weight:700">Ya cubiertos por el maestro (' . esc_html(number_format_i18n(count($covered))) . ')</summary>';
+            echo '<div style="overflow:auto;margin-top:12px"><table class="widefat striped"><thead><tr><th>Categoría</th><th>Concepto</th><th>Modelo</th><th>Confianza</th></tr></thead><tbody>';
+            foreach ($covered as $row) {
+                echo '<tr><td>' . esc_html((string)($row['category'] ?? '')) . '</td><td><strong>' . esc_html((string)($row['value'] ?? '')) . '</strong></td><td>' . esc_html((string)($row['model'] ?? '')) . '</td><td>' . esc_html(number_format_i18n(((float)($row['confidence'] ?? 0))*100,0)) . '%</td></tr>';
+            }
+            echo '</tbody></table></div></details>';
+        }
+
+        echo '<div class="seo-tags-panel" style="margin-top:18px">';
+        echo '<strong>Regla de seguridad</strong><p style="margin-bottom:0">Aceptar amplía únicamente el maestro canónico. La asignación a productos/categorías sigue siendo una fase posterior del Clasificador y la cobertura será comprobada por Auditor.</p>';
+        echo '</div>';
+    }
+}
+
 if (!function_exists('seo_assignment_render')) {
     function seo_assignment_render() {
         $section=sanitize_key($_GET['assignment_section'] ?? 'product_labels'); if(!array_key_exists($section,seo_assignment_sections()))$section='product_labels';
-        echo '<div class="seo-semantic-domain-title"><h2 style="margin:0">Asignación asistida</h2><span class="seo-tags-mode">Revisión manual</span></div>';
-        echo '<p class="seo-tags-intro">Inventaría huecos de clasificación, propone valores ya existentes y permite confirmar cada fila. Los maestros siguen gestionándose exclusivamente en Etiquetas y Atributos.</p>';
+        echo '<div class="seo-semantic-domain-title"><h2 style="margin:0">Clasificador</h2><span class="seo-tags-mode">Asignación asistida</span></div>';
+        echo '<p class="seo-tags-intro">Clasifica etiquetas semánticas y detecta huecos o anomalías del catálogo. Propone valores canónicos, permite revisar cada fila y ejecutar análisis rápidos o profundos. Los maestros siguen gestionándose en Etiquetas y Atributos.</p>';
         seo_assignment_notice(); seo_assignment_render_summary();
         $base=admin_url('admin.php?page=seo-tags-vocabulary&domain=assignment'); echo '<nav class="nav-tab-wrapper seo-semantic-subtabs">';
         foreach(seo_assignment_sections() as $key=>$label)echo '<a class="nav-tab '.($section===$key?'nav-tab-active':'').'" href="'.esc_url($base.'&assignment_section='.$key).'">'.esc_html($label).'</a>'; echo '</nav>';
         if ($section === 'format_examples') {
             seo_assignment_render_format_examples();
+            return;
+        }
+        if ($section === 'engineer_vocab') {
+            seo_assignment_render_engineer_vocab();
             return;
         }
         $filters=seo_assignment_current_filters($section);
@@ -4481,8 +4686,8 @@ if (!function_exists('seo_tags_vocabulary_admin_page')) {
 
         echo '<nav class="nav-tab-wrapper seo-semantic-domain-tabs">';
         echo '<a class="nav-tab ' . ($domain === 'labels' ? 'nav-tab-active' : '') . '" href="' . esc_url($base . '&domain=labels&section=vocabulary') . '">Etiquetas</a>';
+        echo '<a class="nav-tab ' . ($domain === 'assignment' ? 'nav-tab-active' : '') . '" href="' . esc_url($base . '&domain=assignment&assignment_section=product_labels') . '">Clasificador</a>';
         echo '<a class="nav-tab ' . ($domain === 'attributes' ? 'nav-tab-active' : '') . '" href="' . esc_url($base . '&domain=attributes&attribute_section=definitions') . '">Atributos</a>';
-        echo '<a class="nav-tab ' . ($domain === 'assignment' ? 'nav-tab-active' : '') . '" href="' . esc_url($base . '&domain=assignment&assignment_section=product_labels') . '">Asignación</a>';
         echo '<a class="nav-tab ' . ($domain === 'google_schema' ? 'nav-tab-active' : '') . '" href="' . esc_url($base . '&domain=google_schema') . '">Google esquema</a>';
         echo '</nav>';
 

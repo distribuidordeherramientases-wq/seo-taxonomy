@@ -60,6 +60,7 @@ final class SEO_Dependiente_Entrenador {
         add_action('wp_ajax_seo_dependiente_entrenador_lab_run', array(__CLASS__, 'ajax_lab_run'));
         add_action('wp_ajax_seo_dependiente_entrenador_lab_rescan', array(__CLASS__, 'ajax_lab_rescan'));
         add_action('wp_ajax_seo_dependiente_entrenador_lab_export', array(__CLASS__, 'ajax_lab_export'));
+        add_action('wp_ajax_seo_dependiente_entrenador_lab_report', array(__CLASS__, 'ajax_lab_report'));
         add_action(self::AUTO_WORKER_HOOK, array(__CLASS__, 'auto_worker'));
         add_action(self::AUTO_WATCHDOG_HOOK, array(__CLASS__, 'auto_watchdog'));
     }
@@ -2075,6 +2076,102 @@ final class SEO_Dependiente_Entrenador {
             'message'   => $ids
                 ? number_format_i18n(count($ids)) . ' preguntas no aprendidas vuelven a la cola para un nuevo intento automático.'
                 : 'No hay preguntas no aprendidas pendientes de reintento.',
+        ));
+    }
+
+    public static function ajax_lab_report() {
+        self::guard_ajax();
+        $batch_key = self::sanitize_lab_batch_key($_POST['batch_key'] ?? '');
+        if (!$batch_key || !self::lab_batch_exists($batch_key)) {
+            wp_send_json_error(array('message' => 'Lote de preguntas no encontrado.'), 404);
+        }
+
+        global $wpdb;
+        $rows = (array) $wpdb->get_results($wpdb->prepare(
+            "SELECT q.question, r.status, r.evaluation_status, r.evaluation_score,
+                    r.evaluation_json, r.top_results, r.execution_ms
+             FROM " . self::questions_table() . " q
+             LEFT JOIN " . self::runs_table() . " r
+               ON r.question_id = q.id
+              AND r.lesson_key = q.lesson_key
+             WHERE q.lesson_key = %s
+               AND q.enabled = 1
+             ORDER BY q.sequence_no ASC, q.id ASC",
+            $batch_key
+        ), ARRAY_A);
+
+        $diagnostics = array();
+        $examples = array(
+            'learned' => array(),
+            'failed'  => array(),
+        );
+        $score_sum = 0.0;
+        $score_count = 0;
+        $execution_sum = 0.0;
+        $execution_count = 0;
+
+        foreach ($rows as $row) {
+            if (empty($row['evaluation_status'])) {
+                continue;
+            }
+            $evaluation = self::decode_json($row['evaluation_json'] ?? '');
+            $diagnostic = sanitize_key((string) ($evaluation['diagnostic_type'] ?? ''));
+            if (!$diagnostic) {
+                $diagnostic = 0 === strpos((string) $row['evaluation_status'], 'pass_') ? 'mastered' : 'unknown';
+            }
+            if (!isset($diagnostics[$diagnostic])) {
+                $diagnostics[$diagnostic] = 0;
+            }
+            $diagnostics[$diagnostic]++;
+
+            if (isset($row['evaluation_score']) && '' !== (string) $row['evaluation_score']) {
+                $score_sum += (float) $row['evaluation_score'];
+                $score_count++;
+            }
+            if (isset($row['execution_ms']) && '' !== (string) $row['execution_ms']) {
+                $execution_sum += (float) $row['execution_ms'];
+                $execution_count++;
+            }
+
+            $learned = 0 === strpos((string) $row['evaluation_status'], 'pass_');
+            $bucket = $learned ? 'learned' : 'failed';
+            if (count($examples[$bucket]) < 8) {
+                $self_check = is_array($evaluation['self_check'] ?? null) ? $evaluation['self_check'] : array();
+                $top = self::decode_json($row['top_results'] ?? '');
+                $examples[$bucket][] = array(
+                    'question' => (string) ($row['question'] ?? ''),
+                    'status' => (string) ($row['evaluation_status'] ?? ''),
+                    'diagnostic' => $diagnostic,
+                    'reason' => (string) ($evaluation['reason'] ?? ''),
+                    'score' => isset($row['evaluation_score']) ? (float) $row['evaluation_score'] : null,
+                    'confidence' => isset($self_check['confidence']) ? absint($self_check['confidence']) : null,
+                    'coverage_ratio' => isset($self_check['coverage_ratio']) ? (float) $self_check['coverage_ratio'] : null,
+                    'stability' => isset($self_check['stability']) ? (float) $self_check['stability'] : null,
+                    'needs_choice' => !empty($self_check['needs_choice']),
+                    'learned_signals' => absint($evaluation['learned_signals'] ?? 0),
+                    'top_results' => array_values(array_slice((array) $top, 0, 5)),
+                );
+            }
+        }
+
+        arsort($diagnostics);
+        $meta = self::lab_batch_meta($batch_key);
+        $summary = self::lab_summary($batch_key);
+
+        wp_send_json_success(array(
+            'batch_key' => $batch_key,
+            'filename' => sanitize_file_name((string) ($meta['filename'] ?? '')) ?: 'Preguntas',
+            'summary' => $summary,
+            'diagnostics' => $diagnostics,
+            'averages' => array(
+                'evaluation_score' => $score_count ? round($score_sum / $score_count, 4) : null,
+                'execution_ms' => $execution_count ? round($execution_sum / $execution_count, 1) : null,
+            ),
+            'examples' => $examples,
+            'policy' => array(
+                'pass' => 'Solo se considera aprendida una pregunta cuando supera la autoevaluación. Entonces puede activar memoria de lenguaje-producto.',
+                'fail' => 'Una pregunta no aprendida no modifica el conocimiento y queda disponible para reintento.',
+            ),
         ));
     }
 
@@ -6599,7 +6696,7 @@ final class SEO_Dependiente_Entrenador {
             <p class="description">Los lotes se tramitan por orden de llegada con el Gestor de workers. Puedes cerrar esta pantalla: el progreso queda persistido en Academia.</p>
             <div class="seo-dependiente-trainer__table-wrap">
                 <table class="widefat striped">
-                    <thead><tr><th>Archivo / lote</th><th>Progreso</th><th>Aprendidas</th><th>No aprendidas</th><th>Estado</th></tr></thead>
+                    <thead><tr><th>Archivo / lote</th><th>Progreso</th><th>Aprendidas</th><th>No aprendidas</th><th>Estado</th><th>Informe</th></tr></thead>
                     <tbody>
                     <?php foreach ($batches as $batch) :
                         $s = (array) ($batch['summary'] ?? array());
@@ -6612,6 +6709,13 @@ final class SEO_Dependiente_Entrenador {
                             <td><?php echo esc_html(number_format_i18n(absint($s['learned'] ?? 0))); ?></td>
                             <td><?php echo esc_html(number_format_i18n(absint($s['failed'] ?? 0))); ?></td>
                             <td><span class="seo-dependiente-trainer__status <?php echo 'completed' === $status ? 'is-ok' : ('processing' === $status ? 'is-neutral' : 'is-empty'); ?>"><?php echo esc_html($labels[$status] ?? ucfirst($status)); ?></span></td>
+                            <td>
+                                <button type="button" class="button button-small" data-trainer-lab-report-key="<?php echo esc_attr((string) ($batch['batch_key'] ?? '')); ?>">Ver aprendizaje</button>
+                                <button type="button" class="button button-small" data-trainer-lab-export-key="<?php echo esc_attr((string) ($batch['batch_key'] ?? '')); ?>">JSON</button>
+                            </td>
+                        </tr>
+                        <tr data-trainer-lab-report-row="<?php echo esc_attr((string) ($batch['batch_key'] ?? '')); ?>" style="display:none">
+                            <td colspan="6"><div data-trainer-lab-report-body="<?php echo esc_attr((string) ($batch['batch_key'] ?? '')); ?>"></div></td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>

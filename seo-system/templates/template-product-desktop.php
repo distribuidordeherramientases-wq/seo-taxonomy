@@ -826,7 +826,7 @@ $schema_product_graph = array(
 
           <?php endif; ?>
 
-          <div class="dh-tax-label">IVA incluido</div>
+          <div class="dh-tax-label"><?php echo esc_html(function_exists('wc_prices_include_tax') && wc_prices_include_tax() ? 'IVA incluido' : 'IVA no incluido'); ?></div>
         </div>
 
       </div>

@@ -39,7 +39,7 @@ En **Reasignación de Categorías**, el selector **Reasignar a…** elige el nue
 Vista jerárquica de lectura para comprobar el árbol efectivo.
 
 ### Semántica
-Abre la pantalla canónica de Etiquetas/Vocabulary.
+Abre la pantalla canónica de **Etiquetas**, **Clasificador**, **Atributos** y **Google esquema**. El Clasificador analiza productos y propone asignaciones semánticas/atributos; su documentación operativa está en [Clasificador](CLASIFICADOR.md).
 
 ## Templates
 

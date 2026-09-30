@@ -901,7 +901,7 @@ if (!function_exists('seo_processes_collect_classifier')) {
                 'id'=>'classifier','name'=>'Clasificador','kind'=>'Proceso manual · gestionado tras arrancar',
                 'state'=>seo_processes_state('stopped','Parado','stopped'),'speed'=>'0 productos/min','response'=>'Sin lote medido',
                 'load'=>'Sin job iniciado','activity'=>'Sin actividad registrada','activity_age'=>null,'progress'=>null,'progress_text'=>'—',
-                'detail'=>'El Clasificador solo se inicia desde Semántica > Asignación.','url'=>seo_processes_admin_url('seo-tags-vocabulary', array('domain'=>'assignment','assignment_section'=>'product_labels')),
+                'detail'=>'El Clasificador se inicia desde Semántica > Clasificador.','url'=>seo_processes_admin_url('seo-tags-vocabulary', array('domain'=>'assignment','assignment_section'=>'product_labels')),
                 'can_start'=>false,'start_label'=>'Reanudar'
             );
         }

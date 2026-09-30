@@ -7,6 +7,8 @@ final class SEO_Ingeniero_Admin {
         add_action('admin_post_seo_ingeniero_control', array(__CLASS__, 'handle_control'));
         add_action('admin_post_seo_ingeniero_research_category', array(__CLASS__, 'handle_research_category'));
         add_action('admin_post_seo_ingeniero_review', array(__CLASS__, 'handle_review'));
+        add_action('admin_post_seo_ingeniero_approve_category', array(__CLASS__, 'handle_approve_category'));
+        add_action('admin_post_seo_ingeniero_approve_all', array(__CLASS__, 'handle_approve_all'));
         add_action('admin_post_seo_ingeniero_export', array(__CLASS__, 'handle_export'));
         add_action('admin_post_seo_ingeniero_settings', array(__CLASS__, 'handle_settings'));
     }
@@ -20,6 +22,27 @@ final class SEO_Ingeniero_Admin {
         $base = add_query_arg(array('page'=>'seo-dependiente','tab'=>'engineer'), admin_url('admin.php'));
         wp_safe_redirect(add_query_arg((array) $args, $base));
         exit;
+    }
+
+    private static function refresh_category_state($term_id) {
+        $term_id = absint($term_id);
+        if (!$term_id) return array('active'=>0,'review'=>0);
+
+        $rows = SEO_Ingeniero_DB::knowledge_for_category($term_id, false);
+        $review_count = 0;
+        $active_count = 0;
+        foreach ($rows as $row) {
+            if ('review' === ($row['status'] ?? '')) $review_count++;
+            if ('active' === ($row['status'] ?? '')) $active_count++;
+        }
+
+        SEO_Ingeniero::set_category_state(
+            $term_id,
+            $review_count > 0 ? 'revisar' : ($active_count > 0 ? 'aprendido' : 'pendiente'),
+            array('last_error'=>'')
+        );
+
+        return array('active'=>$active_count,'review'=>$review_count);
     }
 
     public static function handle_prepare() {
@@ -61,19 +84,46 @@ final class SEO_Ingeniero_Admin {
         $result = SEO_Ingeniero_DB::review_knowledge($id, $status);
         if (is_wp_error($result)) self::redirect(array('term_id'=>$term_id,'ingeniero_error'=>rawurlencode($result->get_error_message())));
 
-        $rows = SEO_Ingeniero_DB::knowledge_for_category($term_id, false);
-        $review_count = 0;
-        $active_count = 0;
-        foreach ($rows as $row) {
-            if ('review' === ($row['status'] ?? '')) $review_count++;
-            if ('active' === ($row['status'] ?? '')) $active_count++;
-        }
-        SEO_Ingeniero::set_category_state(
-            $term_id,
-            $review_count > 0 ? 'revisar' : ($active_count > 0 ? 'aprendido' : 'pendiente'),
-            array('last_error'=>'')
-        );
+        self::refresh_category_state($term_id);
         self::redirect(array('term_id'=>$term_id,'ingeniero_notice'=>'reviewed'));
+    }
+
+    public static function handle_approve_category() {
+        self::guard('seo_ingeniero_approve_category');
+        $term_id = absint($_POST['term_id'] ?? 0);
+        if (!$term_id) {
+            self::redirect(array('ingeniero_error'=>rawurlencode('La categoría no es válida.')));
+        }
+
+        $updated = SEO_Ingeniero_DB::approve_review_for_category($term_id, SEO_Ingeniero::LESSON_TECHNICAL);
+        if (is_wp_error($updated)) {
+            self::redirect(array('term_id'=>$term_id,'ingeniero_error'=>rawurlencode($updated->get_error_message())));
+        }
+
+        self::refresh_category_state($term_id);
+        self::redirect(array(
+            'term_id'=>$term_id,
+            'ingeniero_notice'=>'category_approved',
+            'ingeniero_approved_knowledge'=>absint($updated),
+        ));
+    }
+
+    public static function handle_approve_all() {
+        self::guard('seo_ingeniero_approve_all');
+        $result = SEO_Ingeniero_DB::approve_all_review(SEO_Ingeniero::LESSON_TECHNICAL);
+        if (is_wp_error($result)) {
+            self::redirect(array('ingeniero_error'=>rawurlencode($result->get_error_message())));
+        }
+
+        foreach ((array) ($result['term_ids'] ?? array()) as $term_id) {
+            self::refresh_category_state(absint($term_id));
+        }
+
+        self::redirect(array(
+            'ingeniero_notice'=>'all_approved',
+            'ingeniero_approved_categories'=>absint($result['categories'] ?? 0),
+            'ingeniero_approved_knowledge'=>absint($result['knowledge'] ?? 0),
+        ));
     }
 
     public static function handle_export() {
@@ -220,6 +270,18 @@ final class SEO_Ingeniero_Admin {
     private static function render_category_table($candidates, $stats_map, $category_states) {
         echo '<div class="postbox seo-dependiente-admin__box" style="padding:18px">';
         echo '<h3 style="margin-top:0">Categorías</h3>';
+        $review_total = 0;
+        foreach ((array) $stats_map as $stat_row) $review_total += absint($stat_row['review'] ?? 0);
+        if ($review_total > 0) {
+            echo '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 14px">';
+            echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin:0">';
+            echo '<input type="hidden" name="action" value="seo_ingeniero_approve_all">';
+            wp_nonce_field('seo_ingeniero_approve_all');
+            echo '<button class="button button-primary" type="submit" onclick="return confirm(\'Se aprobarán todos los conocimientos actualmente en revisión de Ingeniero. Los rechazados no se modificarán. ¿Continuar?\')">Aprobar todas las categorías en revisión (' . esc_html(number_format_i18n($review_total)) . ')</button>';
+            echo '</form>';
+            echo '<span class="description">Convierte únicamente <code>review</code> en <code>active</code>; no toca rechazados ni conocimiento sustituido.</span>';
+            echo '</div>';
+        }
         echo '<table class="widefat striped"><thead><tr><th>Categoría</th><th>Productos</th><th>Estado</th><th>Fuentes</th><th>Conocimiento</th><th>Confianza</th><th>Última</th><th>Acciones</th></tr></thead><tbody>';
         foreach ((array) $candidates as $row) {
             $tid = absint($row['term_id'] ?? 0);
@@ -238,7 +300,14 @@ final class SEO_Ingeniero_Admin {
             echo '<td>' . esc_html(number_format_i18n(absint($stat['knowledge'] ?? 0))) . '</td>';
             echo '<td>' . esc_html(number_format_i18n(((float)($stat['avg_confidence'] ?? 0))*100,1)) . '%</td>';
             echo '<td>' . ($last ? esc_html(wp_date('d/m/Y H:i',$last)) : '—') . '</td>';
-            echo '<td><a class="button button-small" href="' . esc_url(add_query_arg(array('page'=>'seo-dependiente','tab'=>'engineer','term_id'=>$tid), admin_url('admin.php'))) . '">Revisar conocimiento</a> ';
+            echo '<td>';
+            if (absint($stat['review'] ?? 0) > 0) {
+                echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline">';
+                echo '<input type="hidden" name="action" value="seo_ingeniero_approve_category"><input type="hidden" name="term_id" value="' . esc_attr($tid) . '">';
+                wp_nonce_field('seo_ingeniero_approve_category');
+                echo '<button class="button button-small button-primary" type="submit" onclick="return confirm(\'Se aprobará todo el conocimiento en revisión de esta categoría. ¿Continuar?\')">Aprobar categoría</button></form> ';
+            }
+            echo '<a class="button button-small" href="' . esc_url(add_query_arg(array('page'=>'seo-dependiente','tab'=>'engineer','term_id'=>$tid), admin_url('admin.php'))) . '">Revisar conocimiento</a> ';
             echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline">';
             echo '<input type="hidden" name="action" value="seo_ingeniero_research_category"><input type="hidden" name="term_id" value="' . esc_attr($tid) . '">';
             wp_nonce_field('seo_ingeniero_research_category');
@@ -324,6 +393,8 @@ final class SEO_Ingeniero_Admin {
             'stopped'=>'Investigación detenida.',
             'researched'=>'Categoría reinvestigada.',
             'reviewed'=>'Revisión guardada.',
+            'category_approved'=>'Categoría aprobada.',
+            'all_approved'=>'Conocimiento en revisión aprobado en bloque.',
             'settings'=>'Configuración guardada.',
             'exchange_imported'=>'Conocimiento externo importado para revisión.',
         );
@@ -335,6 +406,11 @@ final class SEO_Ingeniero_Admin {
                     . ' · Conocimientos: ' . absint($_GET['ingeniero_import_knowledge'] ?? 0)
                     . ' · Omitidos: ' . absint($_GET['ingeniero_import_skipped'] ?? 0)
                     . ' · Errores: ' . absint($_GET['ingeniero_import_errors'] ?? 0) . '.';
+            } elseif ('category_approved' === $notice) {
+                $suffix = ' Conocimientos aprobados: ' . absint($_GET['ingeniero_approved_knowledge'] ?? 0) . '.';
+            } elseif ('all_approved' === $notice) {
+                $suffix = ' Categorías: ' . absint($_GET['ingeniero_approved_categories'] ?? 0)
+                    . ' · Conocimientos aprobados: ' . absint($_GET['ingeniero_approved_knowledge'] ?? 0) . '.';
             }
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html($messages[$notice] . $suffix) . '</p></div>';
         }

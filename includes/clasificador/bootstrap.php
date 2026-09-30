@@ -16,6 +16,7 @@ require_once __DIR__ . '/scorer.php';
 require_once __DIR__ . '/novelty.php';
 require_once __DIR__ . '/labels.php';
 require_once __DIR__ . '/attributes.php';
+require_once __DIR__ . '/engineer-vocabulary.php';
 require_once __DIR__ . '/classifier.php';
 require_once __DIR__ . '/jobs.php';
 require_once __DIR__ . '/evaluation.php';
