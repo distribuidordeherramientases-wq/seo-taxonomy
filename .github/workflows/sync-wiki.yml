@@ -42,6 +42,7 @@ jobs:
               "docs/manual/PRODUCTOS.md": ("Productos.md", "Productos"),
               "docs/manual/CATEGORIAS.md": ("Categorias.md", "Categorias"),
               "docs/manual/ETIQUETAS-Y-VOCABULARIO.md": ("Etiquetas-y-vocabulario.md", "Etiquetas"),
+              "docs/manual/CLASIFICADOR.md": ("Clasificador.md", "Clasificador"),
               "docs/manual/PAGINAS.md": ("Paginas.md", "Paginas"),
               "docs/manual/ENTRADAS.md": ("Entradas.md", "Entradas"),
               "docs/manual/IMAGENES.md": ("Imagenes.md", "Imagenes"),
@@ -111,6 +112,7 @@ jobs:
           - [[Productos|Productos]]
           - [[Categorías|Categorias]]
           - [[Etiquetas y vocabulario|Etiquetas-y-vocabulario]]
+          - [[Clasificador|Clasificador]]
           - [[Páginas|Paginas]]
           - [[Entradas|Entradas]]
           - [[Imágenes|Imagenes]]
