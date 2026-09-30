@@ -1672,7 +1672,7 @@ function seo_search_render_advanced_search_shortcode($atts = array(), $shortcode
                 <label class="seo-search-vocab-field">
                     <span><?php echo esc_html($label); ?></span>
                     <select class="<?php echo $auto_submit ? 'seo-search-auto-submit' : ''; ?>" name="filter_vocab[<?php echo esc_attr($group); ?>]">
-                        <option value=""><?php printf(esc_html__('Todos los %s', 'seo-taxonomy'), esc_html(function_exists('mb_strtolower') ? mb_strtolower($label) : strtolower($label))); ?></option>
+                        <option value=""><?php /* translators: %s: nombre del grupo de vocabulario. */ printf(esc_html__('Todos los %s', 'seo-taxonomy'), esc_html(function_exists('mb_strtolower') ? mb_strtolower($label) : strtolower($label))); ?></option>
                         <?php foreach ($terms as $term) : ?>
                             <option value="<?php echo esc_attr($term['slug']); ?>" <?php selected($current, $term['slug']); ?>>
                                 <?php echo esc_html($term['name']); ?><?php echo $show_counts ? ' (' . absint($term['count']) . ')' : ''; ?>
