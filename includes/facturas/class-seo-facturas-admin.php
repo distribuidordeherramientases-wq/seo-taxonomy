@@ -325,6 +325,8 @@ final class SEO_Facturas_Admin {
         $option = SEO_Facturas_Settings::TAX_OPTION;
         $woo_tax_enabled = 'yes' === get_option('woocommerce_calc_taxes', 'no');
         $woo_prices_include_tax = 'yes' === get_option('woocommerce_prices_include_tax', 'no');
+        $woo_tax_display_shop = (string) get_option('woocommerce_tax_display_shop', 'excl');
+        $woo_tax_display_cart = (string) get_option('woocommerce_tax_display_cart', 'excl');
         ?>
         <form method="post" action="options.php" class="seo-facturas-settings-form">
             <?php settings_fields('seo_facturas_tax_group'); ?>
@@ -357,7 +359,7 @@ final class SEO_Facturas_Admin {
                 <?php self::textarea_row($option, 'tax_special_note', 'Canarias, Ceuta y Melilla', $s['tax_special_note'], 'Se añade a los documentos de estos destinos. Puedes modificar el texto cuando definamos la fiscalidad definitiva de IGIC/IPSI.'); ?>
             </table>
 
-            <p class="description">Estado actual de impuestos WooCommerce: <strong><?php echo esc_html($woo_tax_enabled ? 'activados' : 'desactivados'); ?></strong>. Precios introducidos con IVA: <strong><?php echo esc_html($woo_prices_include_tax ? 'sí' : 'no'); ?></strong>.</p>
+            <p class="description">Estado actual de impuestos WooCommerce: <strong><?php echo esc_html($woo_tax_enabled ? 'activados' : 'desactivados'); ?></strong>. Precios introducidos con IVA: <strong><?php echo esc_html($woo_prices_include_tax ? 'sí' : 'no'); ?></strong>. Mostrar precios en tienda: <strong><?php echo esc_html('incl' === $woo_tax_display_shop ? 'con IVA' : 'sin IVA'); ?></strong>. Mostrar precios en carrito/checkout: <strong><?php echo esc_html('incl' === $woo_tax_display_cart ? 'con IVA' : 'sin IVA'); ?></strong>.</p>
             <p class="description"><strong>Regla del proyecto:</strong> si el catálogo guarda PVP final con IVA, mantén activada «Los precios del catálogo ya incluyen IVA». Si se desactiva, WooCommerce tratará el precio guardado como base imponible y añadirá IVA encima.</p>
             <p class="description">No se modifican facturas o proformas ya emitidas. Sus snapshots permanecen inmutables.</p>
             <?php submit_button('Guardar fiscalidad'); ?>

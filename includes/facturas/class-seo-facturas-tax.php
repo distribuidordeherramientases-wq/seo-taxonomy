@@ -54,10 +54,18 @@ final class SEO_Facturas_Tax {
         }
 
         update_option('woocommerce_calc_taxes', 'yes');
-        update_option(
-            'woocommerce_prices_include_tax',
-            empty($settings['tax_prices_include_tax']) ? 'no' : 'yes'
-        );
+        $prices_include_tax = empty($settings['tax_prices_include_tax']) ? 'no' : 'yes';
+        update_option('woocommerce_prices_include_tax', $prices_include_tax);
+
+        /*
+         * El proyecto usa el mismo criterio comercial en ficha, carrito y
+         * checkout: el PVP visible es el importe final que paga el cliente.
+         * Alineamos tambien la presentacion fiscal de WooCommerce para evitar
+         * que un precio mostrado como "IVA incluido" reaparezca como base neta
+         * y vuelva a gravarse visualmente en el funnel.
+         */
+        update_option('woocommerce_tax_display_shop', 'yes' === $prices_include_tax ? 'incl' : 'excl');
+        update_option('woocommerce_tax_display_cart', 'yes' === $prices_include_tax ? 'incl' : 'excl');
 
         $zones = self::zone_definitions($settings);
         $ids = get_option(self::IDS_OPTION, array());
