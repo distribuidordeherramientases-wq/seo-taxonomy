@@ -447,7 +447,7 @@ $grid_posts = ($paged === 1) ? array_slice($posts, 5) : $posts;
 ?>
 
 <script type="application/ld+json">
-<?php echo wp_json_encode($json, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT); ?>
+<?php echo wp_json_encode($json, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_PRETTY_PRINT); ?>
 </script>
 
 <style id="dht-blog-news-v3-css">
