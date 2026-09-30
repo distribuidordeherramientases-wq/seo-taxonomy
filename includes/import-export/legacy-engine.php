@@ -4668,23 +4668,42 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
             wp_die( $message );
         }
 
-        if ( empty( $_FILES['products_csv']['tmp_name'] ) || ! is_uploaded_file( $_FILES['products_csv']['tmp_name'] ) ) {
-            wp_die( esc_html__( 'No se ha recibido un CSV de productos válido.', 'seo-system' ) );
+        $products_file = isset( $_FILES['products_csv'] ) && is_array( $_FILES['products_csv'] )
+            ? $_FILES['products_csv']
+            : array();
+
+        if ( empty( $products_file['tmp_name'] ) ) {
+            wp_die( esc_html__( 'No se ha recibido un CSV de productos válido.', 'seo-taxonomy' ) );
         }
 
-        $upload_dir = wp_upload_dir();
-        $temp_dir   = trailingslashit( $upload_dir['basedir'] ) . 'seo-import-temp';
-        wp_mkdir_p( $temp_dir );
+        $upload_dir = wp_upload_dir( null, false );
+        if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
+            wp_die( esc_html__( 'No se pudo resolver el directorio de subidas de WordPress.', 'seo-taxonomy' ) );
+        }
 
-        $client_token = sanitize_key( $_POST['seo_import_client_token'] ?? '' );
+        $temp_dir = trailingslashit( wp_normalize_path( (string) $upload_dir['basedir'] ) ) . 'seo-taxonomy/import-temp';
+
+        $client_token = isset( $_POST['seo_import_client_token'] )
+            ? sanitize_key( wp_unslash( $_POST['seo_import_client_token'] ) )
+            : '';
         $token = 1 === preg_match( '/^[a-z0-9]{20,64}$/', $client_token )
             ? $client_token
             : strtolower( wp_generate_password( 24, false, false ) );
-        $path  = trailingslashit( $temp_dir ) . 'products-v2-' . $user_id . '-' . sanitize_file_name( $token ) . '.csv';
+        $preferred_name = 'products-v2-' . $user_id . '-' . sanitize_file_name( $token ) . '.csv';
 
-        if ( ! move_uploaded_file( $_FILES['products_csv']['tmp_name'], $path ) ) {
-            wp_die( esc_html__( 'No se pudo guardar temporalmente el CSV.', 'seo-system' ) );
+        $stored = seo_taxonomy_store_uploaded_file(
+            $products_file,
+            $temp_dir,
+            array( 'csv' => 'text/csv', 'txt' => 'text/plain' ),
+            $preferred_name,
+            false
+        );
+
+        if ( is_wp_error( $stored ) ) {
+            wp_die( esc_html( $stored->get_error_message() ) );
         }
+
+        $path = (string) $stored['path'];
 
         $handle = fopen( $path, 'r' );
 
