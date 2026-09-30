@@ -39,6 +39,7 @@ if (function_exists('dht_template_render_header')) {
                         global $wp_query;
                         echo esc_html(
                             sprintf(
+                                /* translators: %s: número localizado de productos encontrados. */
                                 _n('%s producto encontrado', '%s productos encontrados', (int) $wp_query->found_posts, 'seo-taxonomy'),
                                 number_format_i18n((int) $wp_query->found_posts)
                             )
