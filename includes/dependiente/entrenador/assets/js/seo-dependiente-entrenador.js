@@ -30,6 +30,8 @@
     const labImportButton = root.querySelector('[data-trainer-lab-import]');
     const labRescanButton = root.querySelector('[data-trainer-lab-rescan]');
     const labExportButton = root.querySelector('[data-trainer-lab-export]');
+    const labReportButtons = Array.from(root.querySelectorAll('[data-trainer-lab-report-key]'));
+    const labRowExportButtons = Array.from(root.querySelectorAll('[data-trainer-lab-export-key]'));
     const labStatus = root.querySelector('[data-trainer-lab-status]');
     const labProgressBar = root.querySelector('[data-trainer-lab-progress-bar]');
     const labRunBody = root.querySelector('[data-trainer-lab-run-body]');
@@ -601,6 +603,122 @@
         }
     }
 
+    function labDiagnosticLabel(value) {
+        const labels = {
+            mastered: 'Aprendida',
+            clarification_gap: 'Necesita aclaración',
+            low_confidence: 'Confianza insuficiente',
+            semantic_coverage_gap: 'Cobertura semántica insuficiente',
+            ranking_gap: 'Fallo de ranking/estabilidad',
+            parser_gap: 'Fallo de interpretación',
+            retrieval_gap: 'Sin candidatos',
+            technical_error: 'Error técnico',
+            teacher_answer_mismatch: 'No coincide con respuesta de referencia',
+            unknown: 'Sin diagnóstico'
+        };
+        return labels[value] || String(value || '').replace(/_/g, ' ');
+    }
+
+    function renderLabLearningReport(data) {
+        const summary = data.summary || {};
+        const diagnostics = data.diagnostics || {};
+        const averages = data.averages || {};
+        const examples = data.examples || {};
+        const total = Number(summary.total || 0);
+        const answered = Number(summary.answered || 0);
+        const learned = Number(summary.learned || 0);
+        const failed = Number(summary.failed || 0);
+        const errors = Number(summary.errors || 0);
+        const rate = answered ? ((learned / answered) * 100).toFixed(1) : '0.0';
+
+        const diagnosticRows = Object.keys(diagnostics).map(function (key) {
+            return '<tr><td>' + escapeHtml(labDiagnosticLabel(key)) + '</td><td><strong>' +
+                escapeHtml(String(diagnostics[key])) + '</strong></td></tr>';
+        }).join('');
+
+        function exampleList(items, title) {
+            if (!Array.isArray(items) || !items.length) return '';
+            return '<h4>' + escapeHtml(title) + '</h4><ol>' + items.map(function (item) {
+                const top = Array.isArray(item.top_results) ? item.top_results.slice(0, 3) : [];
+                const products = top.length
+                    ? '<div class="description">Top: ' + top.map(function (p) { return escapeHtml(p.title || ''); }).join(' · ') + '</div>'
+                    : '';
+                const details = [
+                    item.diagnostic ? labDiagnosticLabel(item.diagnostic) : '',
+                    item.confidence !== null && item.confidence !== undefined ? 'confianza ' + item.confidence : '',
+                    item.coverage_ratio !== null && item.coverage_ratio !== undefined ? 'cobertura ' + Math.round(Number(item.coverage_ratio) * 100) + '%' : '',
+                    item.stability !== null && item.stability !== undefined ? 'estabilidad ' + Math.round(Number(item.stability) * 100) + '%' : '',
+                    item.needs_choice ? 'requiere aclaración' : ''
+                ].filter(Boolean).join(' · ');
+                return '<li><strong>' + escapeHtml(item.question || '') + '</strong>' +
+                    (details ? '<div class="description">' + escapeHtml(details) + '</div>' : '') +
+                    (item.reason ? '<div class="description">' + escapeHtml(item.reason) + '</div>' : '') +
+                    products + '</li>';
+            }).join('') + '</ol>';
+        }
+
+        return '<div class="seo-dependiente-trainer__learning-report">' +
+            '<p><strong>' + escapeHtml(data.filename || 'Lote') + '</strong> · ' +
+            answered.toLocaleString() + ' / ' + total.toLocaleString() + ' evaluadas · ' +
+            learned.toLocaleString() + ' aprendidas · ' + failed.toLocaleString() + ' no aprendidas · ' +
+            errors.toLocaleString() + ' errores.</p>' +
+            '<p><strong>Tasa de aprendizaje sobre evaluadas:</strong> ' + rate + '%' +
+            (averages.evaluation_score !== null && averages.evaluation_score !== undefined
+                ? ' · score medio ' + Number(averages.evaluation_score).toFixed(3)
+                : '') +
+            (averages.execution_ms !== null && averages.execution_ms !== undefined
+                ? ' · tiempo medio ' + (Number(averages.execution_ms) / 1000).toFixed(2) + ' s'
+                : '') + '</p>' +
+            (diagnosticRows
+                ? '<table class="widefat striped"><thead><tr><th>Diagnóstico</th><th>Preguntas</th></tr></thead><tbody>' + diagnosticRows + '</tbody></table>'
+                : '<p class="description">Este lote todavía no tiene evaluaciones.</p>') +
+            exampleList(examples.learned || [], 'Ejemplos aprendidos') +
+            exampleList(examples.failed || [], 'Ejemplos no aprendidos') +
+            '</div>';
+    }
+
+    async function showLabLearningReport(event) {
+        const button = event && event.currentTarget ? event.currentTarget : null;
+        const key = button && button.dataset ? String(button.dataset.trainerLabReportKey || '') : '';
+        if (!key) return;
+        const row = root.querySelector('[data-trainer-lab-report-row="' + key + '"]');
+        const body = root.querySelector('[data-trainer-lab-report-body="' + key + '"]');
+        if (!row || !body) return;
+
+        if (row.style.display !== 'none' && body.dataset.loaded === '1') {
+            row.style.display = 'none';
+            return;
+        }
+
+        row.style.display = '';
+        body.innerHTML = '<p class="description">Calculando aprendizaje del lote…</p>';
+        try {
+            const data = await post('seo_dependiente_entrenador_lab_report', { batch_key: key });
+            body.innerHTML = renderLabLearningReport(data);
+            body.dataset.loaded = '1';
+        } catch (error) {
+            body.innerHTML = '<p class="description">No se pudo cargar el informe: ' + escapeHtml(error.message) + '</p>';
+        }
+    }
+
+    async function exportLabBatchByKey(event) {
+        const button = event && event.currentTarget ? event.currentTarget : null;
+        const key = button && button.dataset ? String(button.dataset.trainerLabExportKey || '') : '';
+        if (!key || busy) return;
+        setBusy(true);
+        if (labStatus) labStatus.textContent = 'Preparando JSON del lote seleccionado…';
+        try {
+            const data = await post('seo_dependiente_entrenador_lab_export', { batch_key: key });
+            const blob = new Blob([JSON.stringify(data.document || {}, null, 2)], { type: 'application/json;charset=utf-8' });
+            downloadBlob(blob, data.filename || ('dependiente-laboratorio-' + key + '.json'));
+            if (labStatus) labStatus.textContent = 'JSON del lote descargado.';
+        } catch (error) {
+            if (labStatus) labStatus.textContent = 'No se pudo descargar el JSON: ' + error.message;
+        } finally {
+            setBusy(false);
+        }
+    }
+
     async function startKnowledgeUpdate() {
         if (busy || !updateStartButton) return;
         setBusy(true);
@@ -744,6 +862,8 @@
     labImportButton && labImportButton.addEventListener('click', importLabBatch);
     labRescanButton && labRescanButton.addEventListener('click', rescanLabFailures);
     labExportButton && labExportButton.addEventListener('click', exportLabBatch);
+    labReportButtons.forEach(function (button) { button.addEventListener('click', showLabLearningReport); });
+    labRowExportButtons.forEach(function (button) { button.addEventListener('click', exportLabBatchByKey); });
     updateStartButton && updateStartButton.addEventListener('click', startKnowledgeUpdate);
     updateExportButton && updateExportButton.addEventListener('click', exportKnowledgeUpdate);
 
