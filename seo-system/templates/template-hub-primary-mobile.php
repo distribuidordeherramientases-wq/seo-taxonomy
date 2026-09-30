@@ -263,7 +263,7 @@ dht_template_render_header();
                             $image = dht_template_placeholder_image_url('woocommerce_thumbnail');
                         }
 
-                        $description = wp_trim_words(wp_strip_all_tags(term_description($category_id, 'product_cat')), 20);
+                        $description = wp_trim_words(wp_strip_all_tags(term_description($category_id)), 20);
                         ?>
                         <a class="hub-card hub-category-card" href="<?php echo esc_url($link); ?>">
                             <?php if ($image) : ?>
