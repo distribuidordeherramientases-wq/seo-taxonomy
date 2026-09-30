@@ -618,12 +618,20 @@ if ( ! function_exists( 'seo_github_python_runner_callback' ) ) {
             return $storage;
         }
 
-        $stored_name = wp_unique_filename( $storage['dir'], $source_name );
-        $stored_path = trailingslashit( $storage['dir'] ) . $stored_name;
-        $moved = is_uploaded_file( $file['tmp_name'] )
-            ? move_uploaded_file( $file['tmp_name'], $stored_path )
-            : @rename( $file['tmp_name'], $stored_path );
-        if ( ! $moved ) {
+        $stored = seo_taxonomy_store_uploaded_file(
+            $file,
+            $storage['dir'],
+            [ 'csv' => 'text/csv', 'txt' => 'text/plain' ],
+            $source_name,
+            true
+        );
+        if ( is_wp_error( $stored ) ) {
+            return new WP_Error( 'seo_github_python_callback_store', $stored->get_error_message(), [ 'status' => 500 ] );
+        }
+
+        $stored_name = (string) $stored['name'];
+        $stored_path = (string) $stored['path'];
+        if ( '' === $stored_path ) {
             return new WP_Error( 'seo_github_python_callback_store', 'No se pudo conservar el CSV recibido desde GitHub.', [ 'status' => 500 ] );
         }
 
