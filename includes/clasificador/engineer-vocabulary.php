@@ -56,7 +56,7 @@ if (!function_exists('seo_classifier_engineer_vocab_attribute_rules')) {
             ],
             [
                 'slug'=>'par','name'=>'Par','type'=>'numero','unit'=>'N·m','group'=>'rendimiento',
-                'patterns'=>['/\bpar\b/iu','/\b\d+(?:[,.]\d+)?\s*(?:n\s*[·.\-]?\s*m|nm)\b/iu'],
+                'patterns'=>['/\bpar(?:\s+m[aá]ximo|\s+motor|\s+nominal)\b/iu','/\b\d+(?:[,.]\d+)?\s*(?:n\s*[·.\-]?\s*m|nm)\b/iu'],
             ],
             [
                 'slug'=>'velocidad_rotacion','name'=>'Velocidad de rotación','type'=>'numero','unit'=>'rpm','group'=>'rendimiento',
