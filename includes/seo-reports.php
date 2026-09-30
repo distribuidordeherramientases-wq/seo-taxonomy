@@ -435,13 +435,13 @@ function seo_reports_general_ajax_partial() {
 /** Descarga JSON: calcula únicamente el informe solicitado. */
 function seo_reports_general_json_handler() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para exportar este informe.', 'seo-menu-manager'));
+        wp_die(esc_html__('No tienes permisos para exportar este informe.', 'seo-taxonomy'));
     }
 
     $report_key = isset($_GET['report']) ? sanitize_key(wp_unslash($_GET['report'])) : '';
     $definitions = seo_reports_general_definitions();
     if (!isset($definitions[$report_key])) {
-        wp_die(esc_html__('Informe no reconocido.', 'seo-menu-manager'));
+        wp_die(esc_html__('Informe no reconocido.', 'seo-taxonomy'));
     }
 
     check_admin_referer('seo_reports_general_json_' . $report_key);
@@ -456,7 +456,7 @@ function seo_reports_general_json_handler() {
         JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR
     );
     if (false === $json) {
-        wp_die(esc_html__('No se ha podido generar el JSON del informe.', 'seo-menu-manager'));
+        wp_die(esc_html__('No se ha podido generar el JSON del informe.', 'seo-taxonomy'));
     }
 
     nocache_headers();
