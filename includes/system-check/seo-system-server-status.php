@@ -1166,13 +1166,10 @@ function seo_server_status_security_salts_status() {
  * Localiza wp-config.php sin asumir una unica ubicacion.
  */
 function seo_server_status_security_wp_config_path() {
-    $candidates = array(
-        ABSPATH . 'wp-config.php',
-        dirname(rtrim(ABSPATH, '/\\')) . '/wp-config.php',
-    );
-    foreach ($candidates as $candidate) {
-        if (is_file($candidate)) {
-            return wp_normalize_path($candidate);
+    foreach ((array) get_included_files() as $candidate) {
+        $candidate = wp_normalize_path((string) $candidate);
+        if (basename($candidate) === 'wp-config.php' && is_file($candidate)) {
+            return $candidate;
         }
     }
     return '';
