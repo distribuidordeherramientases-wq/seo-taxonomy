@@ -237,7 +237,7 @@ $json = array(
 <!-- DHT CATEGORY ORDER V2 2026-09-06 -->
 
 <script type="application/ld+json" id="dht-schema-category">
-<?php echo wp_json_encode($json, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
+<?php echo wp_json_encode($json, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>
 </script>
 
 
