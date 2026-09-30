@@ -14,46 +14,11 @@ add_action('wp_head', function () {
 
 
 /* =========================================================
-   TRACKING AUXILIAR DEL TEMA
-   - GA4 SE GESTIONA DESDE EL PLUGIN SEO SYSTEM
-   - SOLO EN FRONTEND
+   TRACKING
+   Las balizas de terceros no se cargan automaticamente desde el plugin.
+   Las integraciones de analitica deben activarse/configurarse expresamente
+   desde sus modulos y respetar el consentimiento aplicable.
 ========================================================= */
-function dht_scripts_globales() {
-
-    if ( is_admin() ) return;
-    if ( current_user_can('manage_options') ) return; // evita medición interna
-
-    ?>
-
-    <!-- Cloudflare Insights -->
-    <script defer src="https://static.cloudflareinsights.com/beacon.min.js"
-    data-cf-beacon='{"token":"0f5c4f0eb18c4a88aed6898c030f742f"}'></script>
-
-    <!-- Clarity SOLO en interacción inicial -->
-    <script>
-    (function(){
-        function loadClarity(){
-            if(window.__clarity_loaded) return;
-            window.__clarity_loaded = true;
-
-            (function(c,l,a,r,i,t,y){
-                c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-                t=l.createElement(r);t.async=1;
-                t.src="https://www.clarity.ms/tag/"+i+"?ref=bwt";
-                y=l.getElementsByTagName(r)[0];
-                y.parentNode.insertBefore(t,y);
-            })(window, document, "clarity", "script", "ww0i0jxbs8");
-        }
-
-        window.addEventListener('scroll', loadClarity, {once:true});
-        window.addEventListener('mousemove', loadClarity, {once:true});
-        setTimeout(loadClarity, 5000);
-    })();
-    </script>
-    <?php
-}
-add_action('wp_head', 'dht_scripts_globales', 999);
-
 
 /* =========================================================
    DESACTIVAR HEADER DEFAULT GENERATEPRESS
@@ -316,35 +281,28 @@ add_action('init', 'seo_system_private_log_bootstrap', 1);
  * Devuelve el document root publico normalizado.
  */
 function seo_system_private_log_document_root() {
-
-    if (empty($_SERVER['DOCUMENT_ROOT'])) {
+    $uploads = wp_upload_dir(null, false);
+    if (!empty($uploads['error']) || empty($uploads['basedir'])) {
         return '';
     }
-
-    $document_root = realpath((string) $_SERVER['DOCUMENT_ROOT']);
-
-    if ($document_root === false) {
-        return '';
-    }
-
-    return untrailingslashit(wp_normalize_path($document_root));
+    return untrailingslashit(wp_normalize_path((string) $uploads['basedir']));
 }
 
 /**
- * Comprueba que una ruta no este dentro del document root publico.
+ * Compatibilidad con el nombre historico: valida que la ruta pertenezca
+ * al directorio privado permitido dentro de uploads/seo-taxonomy/private-logs.
  */
 function seo_system_private_log_is_outside_public_root($path) {
-
-    $document_root = seo_system_private_log_document_root();
-
-    if ($document_root === '' || $path === '') {
+    $uploads = wp_upload_dir(null, false);
+    if (!empty($uploads['error']) || empty($uploads['basedir']) || $path === '') {
         return false;
     }
 
-    $normalized_path = wp_normalize_path($path);
-    $normalized_root = trailingslashit($document_root);
+    $allowed = trailingslashit(wp_normalize_path((string) $uploads['basedir']))
+        . 'seo-taxonomy/private-logs/';
+    $normalized = wp_normalize_path((string) $path);
 
-    return strpos($normalized_path, $normalized_root) !== 0;
+    return strpos($normalized, $allowed) === 0;
 }
 
 /**
@@ -387,32 +345,13 @@ function seo_system_private_log_current_day() {
  * del document root, conserva su directorio para no cambiar de ubicacion.
  */
 function seo_system_get_private_log_directory() {
-
-    $saved_path = get_option('seo_system_private_log_path', '');
-
-    if (
-        is_string($saved_path) &&
-        $saved_path !== '' &&
-        seo_system_private_log_is_outside_public_root($saved_path)
-    ) {
-        $saved_dir = dirname(wp_normalize_path($saved_path));
-
-        if (seo_system_private_log_is_outside_public_root($saved_dir . '/seo-system-probe.tmp')) {
-            return wp_normalize_path($saved_dir);
-        }
-    }
-
-    $document_root = seo_system_private_log_document_root();
-
-    if ($document_root === '') {
+    $uploads = wp_upload_dir(null, false);
+    if (!empty($uploads['error']) || empty($uploads['basedir'])) {
         return '';
     }
 
-    $private_dir = dirname($document_root) . '/seo-system-private';
-
-    if (!seo_system_private_log_is_outside_public_root($private_dir . '/seo-system-probe.tmp')) {
-        return '';
-    }
+    $private_dir = trailingslashit(wp_normalize_path((string) $uploads['basedir']))
+        . 'seo-taxonomy/private-logs';
 
     return wp_normalize_path($private_dir);
 }
@@ -711,6 +650,16 @@ function seo_system_private_log_bootstrap() {
             return false;
         }
         @chmod($private_dir, 0700);
+
+        // Defensa adicional contra acceso web directo en servidores Apache.
+        $htaccess = trailingslashit($private_dir) . '.htaccess';
+        if (!file_exists($htaccess)) {
+            @file_put_contents($htaccess, "Require all denied\nDeny from all\n", LOCK_EX);
+        }
+        $index = trailingslashit($private_dir) . 'index.php';
+        if (!file_exists($index)) {
+            @file_put_contents($index, "<?php\n// Silence is golden.\n", LOCK_EX);
+        }
     }
 
     if (!is_writable($private_dir)) {
