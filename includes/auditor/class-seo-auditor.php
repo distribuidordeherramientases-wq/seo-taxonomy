@@ -17,7 +17,7 @@ final class SEO_Auditor {
     const ACADEMY_REPORT_OPTION = 'seo_auditor_last_academy_report';
     const SCOPED_REPORT_OPTION = 'seo_auditor_scoped_reports';
     const HISTORY_OPTION = 'seo_auditor_history';
-    const REPORT_VERSION = 7;
+    const REPORT_VERSION = 8;
     const MAX_BEHAVIOR_PROBES = 60;
     const MAX_BEHAVIOR_CROSS_PROBES = 24;
     const MAX_BEHAVIOR_FAQ_PROBES = 18;
@@ -656,6 +656,11 @@ final class SEO_Auditor {
         $source_quality = self::build_source_quality($inventory, self::$findings);
         $pre_academy_gate = self::build_pre_academy_gate($source_quality, $behavior);
 
+        $category_rebalance_inventory = self::build_category_rebalance_inventory(
+            (array) $inventory['categories'],
+            (array) $inventory['category_products']
+        );
+
         $public_inventory = $inventory;
         unset(
             $public_inventory['products'], $public_inventory['index_products'], $public_inventory['product_posts'],
@@ -686,6 +691,7 @@ final class SEO_Auditor {
             'action_plan'=>$action_plan,
             'findings'=>array_slice(self::$findings, 0, self::MAX_FINDINGS),
             'category_profiles'=>array_slice($category_profiles, 0, self::MAX_CATEGORY_PROFILES),
+            'category_rebalance_inventory'=>$category_rebalance_inventory,
             'architecture_profiles'=>$architecture_profiles,
             'notes'=>array(
                 'read_only'=>true,
@@ -1716,6 +1722,28 @@ final class SEO_Auditor {
         $primary_used=array();foreach($architecture['secondary_to_primary'] as $sid=>$ids)foreach(array_keys((array)$ids) as $pid)$primary_used[$pid]=true;
         foreach(array_keys($primary_used) as $pid){$clusters=array_keys((array)($architecture['primary_to_cluster'][$pid]??array()));if(!$clusters)self::finding('primary_without_cluster','medium','hub_primary',$pid,(string)(get_the_title($pid)?:"Hub primario #{$pid}"),'Hub primario sin Cluster',array(),'Completar la cadena arquitectonica o revisar si el hub esta obsoleto.');elseif(count($clusters)>1)self::finding('primary_multiple_clusters','low','hub_primary',$pid,(string)(get_the_title($pid)?:"Hub primario #{$pid}"),'Hub primario enlazado a varios Clusters',array('cluster_ids'=>$clusters),'Confirmar si la arquitectura admite multiples padres; si no, revisar la relacion.');}
         return $architecture;
+    }
+
+    private static function build_category_rebalance_inventory($categories, $category_products) {
+        $rows = array();
+        foreach ((array) $categories as $cid => $term) {
+            $cid = absint($cid);
+            if (!$cid || !is_object($term)) continue;
+            $products = count((array) ($category_products[$cid] ?? array()));
+            if ($products < 1) continue;
+            $rows[] = array(
+                'category_id'=>$cid,
+                'category'=>(string) ($term->name ?? ''),
+                'parent_id'=>absint($term->parent ?? 0),
+                'products'=>$products,
+            );
+        }
+        usort($rows, static function($a, $b) {
+            $cmp = absint($b['products'] ?? 0) <=> absint($a['products'] ?? 0);
+            if (0 !== $cmp) return $cmp;
+            return strcasecmp((string) ($a['category'] ?? ''), (string) ($b['category'] ?? ''));
+        });
+        return $rows;
     }
 
     private static function audit_category_homogeneity($products, $categories, $category_products, $object_vocabulary=array()) {
