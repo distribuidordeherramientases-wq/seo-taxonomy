@@ -12,9 +12,10 @@ defined('ABSPATH') || exit;
 
 final class SEO_Auditor_Category_Rebalance {
     const OPTION = 'seo_auditor_category_rebalance_v1';
-    const VERSION = 1;
+    const VERSION = 2;
     const IDEAL_MIN = 5;
     const IDEAL_MAX = 10;
+    const DIAGNOSTIC_LIMIT = 250;
 
     public static function init() {
         add_action('admin_post_seo_auditor_rebalance_save', array(__CLASS__, 'handle_save'));
@@ -29,17 +30,40 @@ final class SEO_Auditor_Category_Rebalance {
         $split = array_values(array_filter($proposals, static function($row){ return 'split' === ($row['kind'] ?? ''); }));
         $merge = array_values(array_filter($proposals, static function($row){ return 'merge' === ($row['kind'] ?? ''); }));
 
+        $inventory_from_report = !empty($report['category_rebalance_inventory']) && is_array($report['category_rebalance_inventory']);
+        $inventory = self::size_inventory($report);
+        $profiles = self::profile_map($report);
+
+        $split_review = array_values(array_filter($inventory, static function($row){
+            return absint($row['products'] ?? 0) > self::IDEAL_MAX;
+        }));
+        $merge_review = array_values(array_filter($inventory, static function($row){
+            $n = absint($row['products'] ?? 0);
+            return $n > 0 && $n < self::IDEAL_MIN;
+        }));
+
+        $split_ids = array();
+        foreach ($split as $row) $split_ids[absint($row['source_id'] ?? 0)] = true;
+        $merge_ids = array();
+        foreach ($merge as $row) $merge_ids[absint($row['source_id'] ?? 0)] = true;
+
         self::render_notice();
 
         echo '<div class="seo-auditor__rebalance">';
         echo '<div class="seo-auditor__metrics">';
-        self::metric('Candidatas a dividir', count($split));
-        self::metric('Candidatas a concentrar', count($merge));
+        self::metric('Revisar por division', count($split_review));
+        self::metric('Propuestas de division', count($split));
+        self::metric('Revisar concentracion', count($merge_review));
+        self::metric('Propuestas de concentracion', count($merge));
         self::metric('Tamano objetivo', self::IDEAL_MIN . '-' . self::IDEAL_MAX);
         self::metric('Aprobadas', self::approved_count($state));
         echo '</div>';
 
-        echo '<div class="notice notice-info inline"><p><strong>Flujo semiautomatico.</strong> El Auditor propone. Dividir crea/reutiliza categorias y mueve solo los productos de la cohorte aprobada. Concentrar exige elegir categoria destino, mueve los productos, elimina la categoria origen solo si queda segura para borrar y crea un 301 hacia el destino.</p></div>';
+        echo '<div class="notice notice-info inline"><p><strong>Diagnostico + propuesta.</strong> El Auditor ya no oculta una categoria solo porque aun no sepa como dividirla o con que hermana concentrarla. Primero marca las categorias que merecen revision por tamano; cuando existe evidencia semantica suficiente, ademas genera una propuesta ejecutable. Ninguna revision por tamano modifica el catalogo.</p></div>';
+
+        if (!$inventory_from_report) {
+            echo '<div class="notice notice-warning inline"><p>La auditoria guardada es anterior a este diagnostico ampliado. Los recuentos por tamano se han calculado con el catalogo actual; las propuestas semanticas siguen procediendo de la ultima auditoria guardada. Repite la auditoria completa para sincronizar ambas capas.</p></div>';
+        }
 
         echo '<div class="seo-auditor__rebalance-toolbar">';
         self::render_apply_all_form('split', 'Aplicar todas las divisiones aprobadas');
@@ -47,25 +71,168 @@ final class SEO_Auditor_Category_Rebalance {
         echo '</div>';
 
         echo '<h3>Dividir categorias grandes o mezcladas</h3>';
-        echo '<p class="description">Las cohortes proceden de TIPO/SUBTIPO canonicos. Productos ambiguos o no asignados se quedan en la categoria origen y nunca se mueven automaticamente.</p>';
+        echo '<p class="description">Una categoria con mas de ' . esc_html(self::IDEAL_MAX) . ' productos se muestra como <strong>revision por tamano</strong>. Solo se convierte en propuesta ejecutable cuando el Auditor encuentra cohortes TIPO/SUBTIPO suficientemente diferenciadas. Los productos ambiguos o no asignados permanecen en origen.</p>';
+
         if (!$split) {
-            echo '<p>No hay propuestas de division en la ultima auditoria.</p>';
+            echo '<p><strong>No hay propuestas de division ejecutables en la ultima auditoria.</strong> Esto no significa que no existan categorias grandes que revisar.</p>';
         } else {
-            foreach ($split as $proposal) {
-                self::render_split($proposal, $state);
+            echo '<h4>Propuestas con evidencia semantica suficiente</h4>';
+            foreach ($split as $proposal) self::render_split($proposal, $state);
+        }
+
+        $split_diagnostics = array_values(array_filter($split_review, static function($row) use ($split_ids){
+            return empty($split_ids[absint($row['category_id'] ?? 0)]);
+        }));
+        self::render_diagnostic_table('split', $split_diagnostics, $profiles);
+
+        echo '<h3 style="margin-top:28px">Concentrar categorias pequenas</h3>';
+        echo '<p class="description">Todas las categorias con 1-' . esc_html(self::IDEAL_MIN - 1) . ' productos aparecen como <strong>revision por tamano</strong>. Solo se genera una propuesta ejecutable cuando existe una categoria hermana suficientemente parecida; el destino sugerido sigue siendo orientativo y puede cambiarse antes de aprobar.</p>';
+
+        if (!$merge) {
+            echo '<p><strong>No hay propuestas de concentracion ejecutables en la ultima auditoria.</strong> Esto no significa que no existan categorias pequenas que revisar.</p>';
+        } else {
+            echo '<h4>Propuestas con destino suficientemente parecido</h4>';
+            foreach ($merge as $proposal) self::render_merge($proposal, $state);
+        }
+
+        $merge_diagnostics = array_values(array_filter($merge_review, static function($row) use ($merge_ids){
+            return empty($merge_ids[absint($row['category_id'] ?? 0)]);
+        }));
+        self::render_diagnostic_table('merge', $merge_diagnostics, $profiles);
+        echo '</div>';
+    }
+
+    private static function size_inventory($report) {
+        $rows = array();
+        if (!empty($report['category_rebalance_inventory']) && is_array($report['category_rebalance_inventory'])) {
+            foreach ((array) $report['category_rebalance_inventory'] as $row) {
+                $cid = absint($row['category_id'] ?? 0);
+                $products = absint($row['products'] ?? 0);
+                if (!$cid || $products < 1) continue;
+                $rows[] = array(
+                    'category_id'=>$cid,
+                    'category'=>(string) ($row['category'] ?? ''),
+                    'parent_id'=>absint($row['parent_id'] ?? 0),
+                    'products'=>$products,
+                );
+            }
+        } else {
+            global $wpdb;
+            $terms = get_terms(array('taxonomy'=>'product_cat','hide_empty'=>false));
+            if (is_wp_error($terms)) $terms = array();
+
+            $counts = array();
+            $sql = "SELECT tt.term_id,COUNT(DISTINCT p.ID) products
+                    FROM {$wpdb->term_taxonomy} tt
+                    INNER JOIN {$wpdb->term_relationships} tr ON tr.term_taxonomy_id=tt.term_taxonomy_id
+                    INNER JOIN {$wpdb->posts} p ON p.ID=tr.object_id AND p.post_type='product' AND p.post_status='publish'
+                    WHERE tt.taxonomy='product_cat'
+                    GROUP BY tt.term_id";
+            foreach ((array) $wpdb->get_results($sql, ARRAY_A) as $row) {
+                $counts[absint($row['term_id'] ?? 0)] = absint($row['products'] ?? 0);
+            }
+
+            foreach ((array) $terms as $term) {
+                $cid = absint($term->term_id ?? 0);
+                $products = absint($counts[$cid] ?? 0);
+                if (!$cid || $products < 1) continue;
+                $rows[] = array(
+                    'category_id'=>$cid,
+                    'category'=>(string) ($term->name ?? ''),
+                    'parent_id'=>absint($term->parent ?? 0),
+                    'products'=>$products,
+                );
             }
         }
 
-        echo '<h3 style="margin-top:28px">Concentrar categorias pequenas</h3>';
-        echo '<p class="description">Se revisan categorias con 1-' . esc_html(self::IDEAL_MIN - 1) . ' productos. El destino sugerido es orientativo y siempre puede cambiarse antes de aprobar.</p>';
-        if (!$merge) {
-            echo '<p>No hay propuestas de concentracion con una categoria hermana suficientemente parecida.</p>';
-        } else {
-            foreach ($merge as $proposal) {
-                self::render_merge($proposal, $state);
-            }
+        usort($rows, static function($a, $b){
+            $cmp = absint($b['products'] ?? 0) <=> absint($a['products'] ?? 0);
+            if (0 !== $cmp) return $cmp;
+            return strcasecmp((string) ($a['category'] ?? ''), (string) ($b['category'] ?? ''));
+        });
+        return $rows;
+    }
+
+    private static function profile_map($report) {
+        $map = array();
+        foreach ((array) ($report['category_profiles'] ?? array()) as $profile) {
+            $cid = absint($profile['category_id'] ?? 0);
+            if ($cid) $map[$cid] = (array) $profile;
         }
-        echo '</div>';
+        return $map;
+    }
+
+    private static function render_diagnostic_table($kind, $rows, $profiles) {
+        $rows = array_values((array) $rows);
+        $is_split = 'split' === $kind;
+        $title = $is_split ? 'Revisar por tamano, sin propuesta de division' : 'Categorias pequenas sin destino sugerido';
+        echo '<h4 style="margin-top:18px">' . esc_html($title) . ' (' . esc_html(number_format_i18n(count($rows))) . ')</h4>';
+
+        if (!$rows) {
+            echo '<p class="description">No quedan categorias de este tipo sin una propuesta ejecutable.</p>';
+            return;
+        }
+
+        $visible = array_slice($rows, 0, self::DIAGNOSTIC_LIMIT);
+        echo '<div style="overflow:auto"><table class="widefat striped"><thead><tr>';
+        echo '<th>Categoria</th><th>Productos</th>';
+        if ($is_split) echo '<th>Evidencia semantica</th>';
+        else echo '<th>Rama</th>';
+        echo '<th>Diagnostico</th><th>Accion</th></tr></thead><tbody>';
+
+        foreach ($visible as $row) {
+            $cid = absint($row['category_id'] ?? 0);
+            $products = absint($row['products'] ?? 0);
+            $profile = (array) ($profiles[$cid] ?? array());
+            $flags = array_map('sanitize_key', (array) ($profile['flags'] ?? array()));
+
+            echo '<tr>';
+            echo '<td><strong>' . esc_html((string) ($row['category'] ?? '')) . '</strong><br><small>#' . esc_html($cid) . '</small></td>';
+            echo '<td><strong>' . esc_html(number_format_i18n($products)) . '</strong></td>';
+
+            if ($is_split) {
+                if ($profile) {
+                    $coherence = isset($profile['coherence']) ? number_format_i18n(100 * (float) $profile['coherence'], 1) . '%' : '—';
+                    echo '<td>Coherencia: <strong>' . esc_html($coherence) . '</strong>';
+                    $concepts = array();
+                    foreach (array_slice((array) ($profile['top_concepts'] ?? array()), 0, 3) as $concept) {
+                        $label = (string) ($concept['concept'] ?? '');
+                        $ratio = isset($concept['ratio']) ? number_format_i18n(100 * (float) $concept['ratio'], 0) . '%' : '';
+                        if ($label !== '') $concepts[] = $label . ($ratio !== '' ? ' ' . $ratio : '');
+                    }
+                    if ($concepts) echo '<br><small>' . esc_html(implode(' · ', $concepts)) . '</small>';
+                    echo '</td>';
+                } else {
+                    echo '<td><span class="description">Sin perfil semantico guardado.</span></td>';
+                }
+
+                if (!$profile || empty($profile['top_concepts'])) {
+                    $reason = 'Categoria grande, pero falta cobertura TIPO/SUBTIPO suficiente para justificar una division concreta.';
+                } elseif (in_array('heterogeneous', $flags, true)) {
+                    $reason = 'Hay mezcla semantica, pero no se han formado dos cohortes TIPO/SUBTIPO suficientemente exclusivas para mover productos con seguridad.';
+                } else {
+                    $reason = 'Tamano fuera del objetivo; todavia no cumple la regla de dos cohortes TIPO/SUBTIPO diferenciadas (25–75 % y solapamiento bajo).';
+                }
+            } else {
+                $parent_id = absint($row['parent_id'] ?? 0);
+                $parent = $parent_id ? get_term($parent_id, 'product_cat') : null;
+                $parent_name = ($parent && !is_wp_error($parent)) ? (string) $parent->name : 'Nivel raiz';
+                echo '<td>' . esc_html($parent_name) . ($parent_id ? '<br><small>#' . esc_html($parent_id) . '</small>' : '') . '</td>';
+                $reason = 'Categoria pequena; no se encontro una hermana del mismo nivel con similitud suficiente (>=30 %) en nombre o Vocabulary para proponer una concentracion segura.';
+            }
+
+            echo '<td>' . esc_html($reason) . '</td>';
+            $edit = get_edit_term_link($cid, 'product_cat');
+            echo '<td>';
+            if ($edit && !is_wp_error($edit)) echo '<a class="button button-small" href="' . esc_url($edit) . '">Abrir categoria</a>';
+            else echo '—';
+            echo '</td></tr>';
+        }
+        echo '</tbody></table></div>';
+
+        if (count($rows) > count($visible)) {
+            echo '<p class="description">Se muestran las primeras ' . esc_html(number_format_i18n(count($visible))) . ' de ' . esc_html(number_format_i18n(count($rows))) . ' categorias, ordenadas por numero de productos.</p>';
+        }
     }
 
     private static function render_notice() {
