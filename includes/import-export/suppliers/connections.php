@@ -122,7 +122,7 @@ if ( ! function_exists( 'seo_proveedores_api_connections' ) ) {
 if ( ! function_exists( 'seo_proveedores_render_conexiones' ) ) {
     function seo_proveedores_render_conexiones() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'No tienes permisos para gestionar conexiones de proveedores.', 'seo-system' ) );
+            wp_die( esc_html__( 'No tienes permisos para gestionar conexiones de proveedores.', 'seo-taxonomy' ) );
         }
 
         $connections = seo_proveedores_api_connections();
