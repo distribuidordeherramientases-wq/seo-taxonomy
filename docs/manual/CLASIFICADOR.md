@@ -139,6 +139,7 @@ También puede detectar que falta una **definición de atributo** en el maestro.
 Dentro de **Semántica → Clasificador** aparecen las subsecciones:
 
 - **Etiquetas de productos**.
+- **Ingeniero → vocabulario**.
 - **Atributos de productos**.
 - **Etiquetas de categorías**.
 - **Formato / ejemplos**.
@@ -188,6 +189,38 @@ El modo profundo:
 - evita apoyarse únicamente en una caché anterior.
 
 Úsalo cuando quieras revisar un conjunto dudoso, cuando hayan cambiado fuentes o cuando necesites regenerar evidencia.
+
+## Ingeniero → vocabulario
+
+Esta subpestaña conecta el conocimiento técnico aprobado de **Ingeniero** con los maestros canónicos.
+
+Objetivo:
+
+> detectar conceptos que Ingeniero considera relevantes para una categoría pero que todavía pueden no estar representados correctamente en Etiquetas o Atributos.
+
+Flujo:
+
+1. seleccionar una categoría con conocimiento activo de Ingeniero;
+2. pulsar **Analizar conocimiento de Ingeniero**;
+3. el Clasificador compara esa evidencia con los maestros existentes;
+4. muestra atributos/dimensiones y conceptos semánticos detectados;
+5. marca cada propuesta como **Candidato nuevo**, **Posible equivalente** o **Ya cubierto**;
+6. muestra evidencia y confianza;
+7. la revisión humana decide si hay que ampliar el maestro.
+
+La primera versión es deliberadamente de solo lectura. **No crea etiquetas, términos ni atributos y no modifica productos.**
+
+El informe puede proponer, por ejemplo:
+
+- atributos numéricos como presión máxima, caudal, potencia, tensión, nivel sonoro o temperatura de trabajo;
+- atributos controlados como fuente de alimentación y sus posibles términos;
+- conceptos semánticos de aplicación, plataforma o subtipo cuando aparecen de forma clara en la evidencia.
+
+La comparación intenta detectar equivalentes existentes antes de declarar un hueco, para reducir duplicados del tipo `presión` / `presión máxima` / `presión de trabajo`.
+
+La arquitectura prevista es:
+
+**Ingeniero descubre → Clasificador estructura → revisión humana amplía maestros → Clasificador completa productos → Auditor mide cobertura.**
 
 ## Jobs y procesamiento adaptativo
 
