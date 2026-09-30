@@ -477,76 +477,106 @@ final class SEO_Auditor_Category_Rebalance {
     private static function copy_category_context($source_id, $target_id, $concept) {
         global $wpdb;
         $relations = $wpdb->prefix . 'seo_relations';
-        $ov = $wpdb->prefix . 'seo_object_vocabulary';
         $v = $wpdb->prefix . 'seo_vocabulary';
         $map = $wpdb->prefix . 'seo_type_role_map';
 
+        // Mantener la nueva categoria dentro del mismo hub secundario.
         $rows = (array) $wpdb->get_results($wpdb->prepare(
             "SELECT source_type,source_id,target_type,relation_type FROM {$relations} WHERE target_type='product_cat' AND target_id=%d AND relation_type='hub_secondary_to_category'",
             $source_id
         ), ARRAY_A);
+
+        $missing_relations = array();
         foreach ($rows as $row) {
             $exists = (int) $wpdb->get_var($wpdb->prepare(
                 "SELECT COUNT(*) FROM {$relations} WHERE source_type=%s AND source_id=%d AND target_type='product_cat' AND target_id=%d AND relation_type=%s",
                 $row['source_type'], absint($row['source_id']), $target_id, $row['relation_type']
             ));
-            if (!$exists) {
-                $wpdb->insert($relations, array(
-                    'source_type'=>$row['source_type'],
-                    'source_id'=>absint($row['source_id']),
-                    'target_type'=>'product_cat',
-                    'target_id'=>$target_id,
-                    'relation_type'=>$row['relation_type'],
-                    'created_at'=>current_time('mysql'),
-                ), array('%s','%d','%s','%d','%s','%s'));
-            }
+            if (!$exists) $missing_relations[] = $row;
         }
 
-        list($group, $slug) = array_pad(explode(':', $concept, 2), 2, '');
-        $group = sanitize_key($group); $slug = sanitize_key($slug);
-        $exclude_groups = 'tipo' === $group ? array('tipo','subtipo','rol') : array('subtipo');
+        if ($missing_relations) {
+            if (!class_exists('SEO_Data_Layer') || !class_exists('SEO_Data_Operation')) {
+                return new WP_Error('seo_rebalance_data_layer', 'No esta disponible la capa transaccional para registrar la nueva categoria en la jerarquia.');
+            }
+            $operation = SEO_Data_Layer::operation(array(
+                'type'=>'auditor_rebalance_category_relation',
+                'label'=>'Vincular categoria creada por Auditor',
+                'source_module'=>'auditor_rebalance',
+                'rollbackable'=>true,
+                'risk_level'=>'medium',
+                'audit_level'=>'full',
+                'metadata'=>array('source_category_id'=>$source_id,'target_category_id'=>$target_id),
+            ));
+            $operation->mark_validated(array('relations'=>count($missing_relations)));
+            $operation->mark_previewed(count($missing_relations));
+            $operation->execute(static function($op) use ($missing_relations, $target_id) {
+                foreach ($missing_relations as $row) {
+                    $op->insert('relations', array(
+                        'source_type'=>(string)$row['source_type'],
+                        'source_id'=>absint($row['source_id']),
+                        'target_type'=>'product_cat',
+                        'target_id'=>$target_id,
+                        'relation_type'=>(string)$row['relation_type'],
+                        'created_at'=>current_time('mysql'),
+                    ), array(
+                        'related_object_type'=>'product_cat',
+                        'related_object_id'=>$target_id,
+                        'reason'=>'auditor_category_split',
+                    ));
+                }
+            });
+        }
 
+        // Construir Vocabulary de la nueva categoria a partir de la categoria
+        // origen, sustituyendo la dimension TIPO/SUBTIPO que define la cohorte.
+        if (!function_exists('seo_category_vocabulary_replace')) {
+            return new WP_Error('seo_rebalance_vocab_writer', 'No esta disponible la escritura canonica de Vocabulary de categorias.');
+        }
+
+        $groups = array('rol'=>array(),'tipo'=>array(),'aplicacion'=>array(),'plataforma'=>array(),'subtipo'=>array());
         $source_vocab = (array) $wpdb->get_results($wpdb->prepare(
-            "SELECT ov.vocabulary_id,v.semantic_group FROM {$ov} ov INNER JOIN {$v} v ON v.id=ov.vocabulary_id WHERE ov.object_type='product_cat' AND ov.object_id=%d AND ov.status=1 AND v.active=1",
+            "SELECT ov.vocabulary_id,v.semantic_group
+             FROM {$wpdb->prefix}seo_object_vocabulary ov
+             INNER JOIN {$v} v ON v.id=ov.vocabulary_id
+             WHERE ov.object_type='product_cat' AND ov.object_id=%d AND ov.status=1 AND v.active=1
+               AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')",
             $source_id
         ), ARRAY_A);
+
+        list($group, $slug) = array_pad(explode(':', $concept, 2), 2, '');
+        $group = sanitize_key($group);
+        $slug = sanitize_key($slug);
+        $replace_groups = 'tipo' === $group ? array('tipo','subtipo','rol') : array('subtipo');
+
         foreach ($source_vocab as $row) {
-            if (in_array((string) $row['semantic_group'], $exclude_groups, true)) continue;
-            self::upsert_category_vocabulary($target_id, absint($row['vocabulary_id']), 'auditor_rebalance');
+            $semantic_group = sanitize_key((string)($row['semantic_group'] ?? ''));
+            if (!isset($groups[$semantic_group]) || in_array($semantic_group, $replace_groups, true)) continue;
+            $groups[$semantic_group][] = absint($row['vocabulary_id']);
         }
 
         $concept_id = absint($wpdb->get_var($wpdb->prepare(
             "SELECT id FROM {$v} WHERE semantic_group=%s AND slug=%s AND active=1 LIMIT 1",
             $group, $slug
         )));
-        if ($concept_id) {
-            self::upsert_category_vocabulary($target_id, $concept_id, 'auditor_rebalance');
+        if ($concept_id && isset($groups[$group])) {
+            $groups[$group][] = $concept_id;
             if ('tipo' === $group) {
                 $role_id = absint($wpdb->get_var($wpdb->prepare(
                     "SELECT role_vocabulary_id FROM {$map} WHERE type_vocabulary_id=%d AND active=1 LIMIT 1",
                     $concept_id
                 )));
-                if ($role_id) self::upsert_category_vocabulary($target_id, $role_id, 'auditor_rebalance');
+                if ($role_id) $groups['rol'][] = $role_id;
             }
         }
-    }
 
-    private static function upsert_category_vocabulary($category_id, $vocabulary_id, $source) {
-        global $wpdb;
-        $table = $wpdb->prefix . 'seo_object_vocabulary';
-        $id = absint($wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM {$table} WHERE object_type='product_cat' AND object_id=%d AND vocabulary_id=%d LIMIT 1",
-            $category_id, $vocabulary_id
-        )));
-        if ($id) {
-            $wpdb->update($table, array('status'=>1,'source'=>$source,'confidence'=>1,'updated_at'=>current_time('mysql', true)), array('id'=>$id), array('%d','%s','%f','%s'), array('%d'));
-        } else {
-            $wpdb->insert($table, array(
-                'object_type'=>'product_cat','object_id'=>$category_id,'vocabulary_id'=>$vocabulary_id,
-                'source'=>$source,'confidence'=>1,'status'=>1,
-                'created_at'=>current_time('mysql', true),'updated_at'=>current_time('mysql', true),
-            ), array('%s','%d','%d','%s','%f','%d','%s','%s'));
+        foreach ($groups as $key=>$ids) {
+            $groups[$key] = array_values(array_unique(array_filter(array_map('absint', $ids))));
         }
+        $saved = seo_category_vocabulary_replace($target_id, $groups, 'auditor_rebalance');
+        if (is_wp_error($saved)) return $saved;
+
+        return true;
     }
 
     private static function prepare_redirect($origin_url, $target_url) {
@@ -803,7 +833,7 @@ final class SEO_Auditor_Category_Rebalance {
             'page'=>'seo-content-auditor',
             'audit_view'=>'rebalance',
             'rebalance_status'=>sanitize_key($status),
-            'rebalance_message'=>rawurlencode((string)$message),
+            'rebalance_message'=>(string)$message,
         ), admin_url('admin.php')));
         exit;
     }
