@@ -75,6 +75,7 @@ El PDF **no realiza un segundo cálculo fiscal independiente**. Los documentos c
 Controles:
 
 - **Gestión fiscal desde Facturación**;
+- **Los precios del catálogo ya incluyen IVA**;
 - **Vender solo en España**;
 - **IVA sobre transporte**;
 - IVA Península;
@@ -89,6 +90,7 @@ Controles:
 | Opción | Valor |
 | --- | ---: |
 | Gestión fiscal desde Facturación | Desactivada |
+| Los precios del catálogo ya incluyen IVA | **Activado** |
 | Vender solo en España | Activado |
 | IVA sobre transporte | Activado |
 | Península | 21 % |
@@ -106,7 +108,15 @@ Detección de zonas:
 
 La versión actual **no calcula IGIC ni IPSI**. Para Canarias, Ceuta y Melilla puede usarse 0 % de IVA y una advertencia documental. La nota por defecto avisa de que impuestos, despacho, transporte u otros gastos en destino pueden no estar incluidos.
 
-Al guardar con la gestión fiscal activa, el módulo puede activar el cálculo de impuestos de WooCommerce y sincronizar sus tasas. **No modifica documentos ya emitidos**.
+Al guardar con la gestión fiscal activa, el módulo activa el cálculo de impuestos de WooCommerce, sincroniza sus tasas y también sincroniza si los precios almacenados **incluyen IVA**.
+
+### Evitar IVA duplicado
+
+En este proyecto los PVP del catálogo se consideran precios finales con IVA. Por tanto debe mantenerse activada **Los precios del catálogo ya incluyen IVA**.
+
+Si WooCommerce interpreta esos mismos PVP como precios **sin impuestos**, añadirá de nuevo el IVA al crear carrito/pedido. La Factura no corrige ese error: copia los importes del pedido, por lo que reflejaría el total inflado.
+
+**No modifica documentos ni pedidos ya emitidos**. El ajuste afecta a los cálculos posteriores de WooCommerce.
 
 ## Numeración
 
