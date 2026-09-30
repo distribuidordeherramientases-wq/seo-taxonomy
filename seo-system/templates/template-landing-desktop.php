@@ -487,7 +487,7 @@ $json = array(
 $main_image = dht_landing_v6_main_image($post_id, $related_cat_ids, 'large');
 ?>
 <script type="application/ld+json">
-<?php echo wp_json_encode($json, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT); ?>
+<?php echo wp_json_encode($json, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_PRETTY_PRINT); ?>
 </script>
 
 <style id="dht-landing-v6-css">
