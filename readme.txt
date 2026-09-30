@@ -15,28 +15,28 @@ SEO and commercial platform for WooCommerce: taxonomy, catalog, analytics, autom
 
 SEO Taxonomy is a modular platform for WordPress and WooCommerce designed for sites with large product catalogs and integrated SEO, commercial, and operational management needs.
 
-El plugin centraliza herramientas que normalmente quedan repartidas entre múltiples pantallas y procesos.
+The plugin centralizes tools that are often spread across multiple screens and processes.
 
-Funciones principales:
+Key features:
 
-* Arquitectura SEO basada en Cluster → Hub primario → Hub secundario → Categoría → Producto.
-* Gestión de productos, categorías, páginas, entradas e imágenes.
-* Vocabulary, etiquetas semánticas y atributos.
-* Informes SEO, auditoría y controles de calidad.
-* Gestión de redirecciones.
-* Plantillas para productos, categorías, carrito, checkout y otras áreas del sitio.
-* Importación, exportación y sincronización de proveedores.
-* Gestión de imágenes locales y externas.
-* Ojeador y análisis comparativo de mercado.
-* Analista y señales de demanda.
-* Campañas comerciales con productos, precios, fechas y restauración automática.
-* Redes sociales y programador de publicaciones.
-* FAQs y contenidos.
-* Dependiente, Intérprete, Academia y servicios de aprendizaje.
-* Gestor de procesos y workers para operaciones pesadas.
-* Herramientas de diagnóstico, mantenimiento y validación.
+* SEO architecture based on Cluster -> Primary Hub -> Secondary Hub -> Category -> Product.
+* Product, category, page, post, and image management.
+* Vocabulary, semantic labels, and attributes.
+* SEO reports, auditing, and quality controls.
+* Redirect management.
+* Templates for products, categories, cart, checkout, and other site areas.
+* Supplier import, export, and synchronization.
+* Local and external image management.
+* Market monitoring and price comparison.
+* Demand analysis and signals.
+* Commercial campaigns with products, prices, dates, and automatic restoration.
+* Social networks and publication scheduling.
+* FAQs and content management.
+* Dependent, Interpreter, Academy, and learning services.
+* Process manager and workers for heavy operations.
+* Diagnostic, maintenance, and validation tools.
 
-SEO Taxonomy se desarrolla de forma activa y utiliza STAGING para validar cambios antes de promoverlos a producción.
+SEO Taxonomy is actively developed and uses staging to validate changes before promoting them to production.
 
 == Installation ==
 
