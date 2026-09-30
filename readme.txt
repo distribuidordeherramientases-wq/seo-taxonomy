@@ -9,11 +9,11 @@ Stable tag: 2.3.9
 License: MIT
 License URI: https://opensource.org/license/mit
 
-Plataforma SEO y comercial para WooCommerce: taxonomía, catálogo, análisis, automatización, campañas, proveedores y herramientas de mantenimiento.
+SEO and commercial platform for WooCommerce: taxonomy, catalog, analytics, automation, campaigns, suppliers, and maintenance tools.
 
 == Description ==
 
-SEO Taxonomy es una plataforma modular para WordPress y WooCommerce orientada a sitios con catálogos amplios y necesidades de gestión SEO, comercial y operativa desde un único entorno.
+SEO Taxonomy is a modular platform for WordPress and WooCommerce designed for sites with large product catalogs and integrated SEO, commercial, and operational management needs.
 
 El plugin centraliza herramientas que normalmente quedan repartidas entre múltiples pantallas y procesos.
 
