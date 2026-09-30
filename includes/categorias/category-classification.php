@@ -1600,7 +1600,7 @@ if ($run_inventory || $auto_keywords) {
             }
 
             if ($show_c_content && !empty($cluster_obj->post_content)) {
-                echo '<div><strong>Descripción:</strong> ' . esc_html(wp_trim_words(strip_tags($cluster_obj->post_content), 25)) . '</div>';
+                echo '<div><strong>Descripción:</strong> ' . esc_html(wp_trim_words(wp_strip_all_tags($cluster_obj->post_content), 25)) . '</div>';
             }
 
             echo '</div>';
@@ -1633,7 +1633,7 @@ if ($run_inventory || $auto_keywords) {
             }
 
             if ($show_hp_content && !empty($hp_obj->post_content)) {
-                echo '<div><strong>Descripción:</strong> ' . esc_html(wp_trim_words(strip_tags($hp_obj->post_content), 25)) . '</div>';
+                echo '<div><strong>Descripción:</strong> ' . esc_html(wp_trim_words(wp_strip_all_tags($hp_obj->post_content), 25)) . '</div>';
             }
 
             echo '</div>';
@@ -1677,7 +1677,7 @@ if ($run_inventory || $auto_keywords) {
                 }
 
                 if ($show_hs_content && !empty($hs_obj->post_content)) {
-                    echo '<div><strong>Descripción:</strong> ' . esc_html(wp_trim_words(strip_tags($hs_obj->post_content), 25)) . '</div>';
+                    echo '<div><strong>Descripción:</strong> ' . esc_html(wp_trim_words(wp_strip_all_tags($hs_obj->post_content), 25)) . '</div>';
                 }
                 
                 
@@ -1834,7 +1834,7 @@ if ($run_inventory || $auto_keywords) {
                             if ($show_p_content) {
                                 echo '<div>Descripción: '.esc_html(
                                     wp_trim_words(
-                                        strip_tags($p->post_content),
+                                        wp_strip_all_tags($p->post_content),
                                         30
                                     )
                                 ).'</div>';
