@@ -187,7 +187,7 @@ function interceptar_redireccion_antes_de_wordpress() {
 
     global $wpdb;
 
-    $url_solicitada = $_SERVER['REQUEST_URI'];
+    $url_solicitada = isset($_SERVER['REQUEST_URI']) ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'])) : '/';
 
     if (($pos = strpos($url_solicitada, '?')) !== false) {
         $url_solicitada = substr($url_solicitada, 0, $pos);
