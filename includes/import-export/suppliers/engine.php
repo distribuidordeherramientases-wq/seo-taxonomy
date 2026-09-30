@@ -1890,7 +1890,7 @@ function seo_proveedores_render_importador() {
     $last    = is_array( $last ) ? $last : [];
     ?>
     <div class="card" style="max-width:none;padding:20px;margin-top:20px;">
-        <h2><?php echo esc_html__( 'Importar catalogo de proveedor', 'seo-system' ); ?></h2>
+        <h2><?php echo esc_html__( 'Importar catalogo de proveedor', 'seo-taxonomy' ); ?></h2>
         <p><code>Modulo de proveedores Build 032</code></p>
 
         <?php if ( ! empty( $_GET['seo_prov_github_started'] ) ) : ?>
@@ -2144,75 +2144,75 @@ function seo_ie_render_log( $log ) {
 
     ?>
     <div class="card" style="max-width:none;padding:20px;margin-top:20px;">
-        <h2><?php echo esc_html__( 'Último proceso', 'seo-system' ); ?></h2>
+        <h2><?php echo esc_html__( 'Último proceso', 'seo-taxonomy' ); ?></h2>
 
         <table class="widefat striped" style="max-width:900px;">
             <tbody>
                 <tr>
-                    <th><?php echo esc_html__( 'Operación', 'seo-system' ); ?></th>
+                    <th><?php echo esc_html__( 'Operación', 'seo-taxonomy' ); ?></th>
                     <td><?php echo esc_html( $log['operacion'] ?? '' ); ?></td>
                 </tr>
                 <tr>
-                    <th><?php echo esc_html__( 'Fecha', 'seo-system' ); ?></th>
+                    <th><?php echo esc_html__( 'Fecha', 'seo-taxonomy' ); ?></th>
                     <td><?php echo esc_html( $log['fecha'] ?? '' ); ?></td>
                 </tr>
                 <tr>
-                    <th><?php echo esc_html__( 'Archivo', 'seo-system' ); ?></th>
+                    <th><?php echo esc_html__( 'Archivo', 'seo-taxonomy' ); ?></th>
                     <td><?php echo esc_html( $log['archivo'] ?? '' ); ?></td>
                 </tr>
                 <tr>
-                    <th><?php echo esc_html__( 'Procesados', 'seo-system' ); ?></th>
+                    <th><?php echo esc_html__( 'Procesados', 'seo-taxonomy' ); ?></th>
                     <td><?php echo absint( $log['procesados'] ?? 0 ); ?></td>
                 </tr>
                 <tr>
-                    <th><?php echo esc_html__( 'Correctos', 'seo-system' ); ?></th>
+                    <th><?php echo esc_html__( 'Correctos', 'seo-taxonomy' ); ?></th>
                     <td><?php echo absint( $log['correctos'] ?? 0 ); ?></td>
                 </tr>
                 <?php if ( isset( $log['creados'] ) ) : ?>
                     <tr>
-                        <th><?php echo esc_html__( 'Creados', 'seo-system' ); ?></th>
+                        <th><?php echo esc_html__( 'Creados', 'seo-taxonomy' ); ?></th>
                         <td><?php echo absint( $log['creados'] ); ?></td>
                     </tr>
                 <?php endif; ?>
                 <?php if ( isset( $log['actualizados'] ) ) : ?>
                     <tr>
-                        <th><?php echo esc_html__( 'Actualizados en catálogo', 'seo-system' ); ?></th>
+                        <th><?php echo esc_html__( 'Actualizados en catálogo', 'seo-taxonomy' ); ?></th>
                         <td><?php echo absint( $log['actualizados'] ); ?></td>
                     </tr>
                 <?php endif; ?>
                 <?php if ( isset( $log['pendientes_actualizacion'] ) ) : ?>
                     <tr>
-                        <th><?php echo esc_html__( 'Pendientes de aplicar', 'seo-system' ); ?></th>
+                        <th><?php echo esc_html__( 'Pendientes de aplicar', 'seo-taxonomy' ); ?></th>
                         <td><?php echo absint( $log['pendientes_actualizacion'] ); ?></td>
                     </tr>
                 <?php endif; ?>
                 <?php if ( isset( $log['omitidos'] ) ) : ?>
                     <tr>
-                        <th><?php echo esc_html__( 'Omitidos', 'seo-system' ); ?></th>
+                        <th><?php echo esc_html__( 'Omitidos', 'seo-taxonomy' ); ?></th>
                         <td><?php echo absint( $log['omitidos'] ); ?></td>
                     </tr>
                 <?php endif; ?>
                 <?php if ( isset( $log['advertencias'] ) ) : ?>
                     <tr>
-                        <th><?php echo esc_html__( 'Advertencias', 'seo-system' ); ?></th>
+                        <th><?php echo esc_html__( 'Advertencias', 'seo-taxonomy' ); ?></th>
                         <td><?php echo absint( $log['advertencias'] ); ?></td>
                     </tr>
                 <?php endif; ?>
                 <?php if ( ! empty( $log['simulacion'] ) ) : ?>
                     <tr>
-                        <th><?php echo esc_html__( 'Modo', 'seo-system' ); ?></th>
-                        <td><?php echo esc_html__( 'Simulación: sin escritura', 'seo-system' ); ?></td>
+                        <th><?php echo esc_html__( 'Modo', 'seo-taxonomy' ); ?></th>
+                        <td><?php echo esc_html__( 'Simulación: sin escritura', 'seo-taxonomy' ); ?></td>
                     </tr>
                 <?php endif; ?>
                 <tr>
-                    <th><?php echo esc_html__( 'Errores', 'seo-system' ); ?></th>
+                    <th><?php echo esc_html__( 'Errores', 'seo-taxonomy' ); ?></th>
                     <td><?php echo absint( $log['errores'] ?? 0 ); ?></td>
                 </tr>
             </tbody>
         </table>
 
         <?php if ( ! empty( $log['detalles'] ) ) : ?>
-            <h3><?php echo esc_html__( 'Detalle', 'seo-system' ); ?></h3>
+            <h3><?php echo esc_html__( 'Detalle', 'seo-taxonomy' ); ?></h3>
 
             <div style="max-height:350px;overflow:auto;border:1px solid #ccd0d4;background:#fff;padding:10px;">
                 <ul style="margin:0 0 0 20px;">
@@ -2225,7 +2225,7 @@ function seo_ie_render_log( $log ) {
 
         <?php if ( ! empty( $log['truncado'] ) ) : ?>
             <p>
-                <?php echo esc_html__( 'El detalle se ha limitado a 200 mensajes.', 'seo-system' ); ?>
+                <?php echo esc_html__( 'El detalle se ha limitado a 200 mensajes.', 'seo-taxonomy' ); ?>
             </p>
         <?php endif; ?>
     </div>
@@ -2612,7 +2612,7 @@ function seo_proveedores_exportar_productos_csv() {
     }
 
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para exportar productos de proveedores.', 'seo-system' ) );
+        wp_die( esc_html__( 'No tienes permisos para exportar productos de proveedores.', 'seo-taxonomy' ) );
     }
 
     check_admin_referer( 'seo_export_supplier_products_csv', 'seo_export_supplier_products_nonce' );
@@ -2622,7 +2622,7 @@ function seo_proveedores_exportar_productos_csv() {
     $table = seo_proveedores_tabla_productos();
     $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
     if ( $exists !== $table ) {
-        wp_die( esc_html__( 'No existe el catálogo de productos de proveedores.', 'seo-system' ) );
+        wp_die( esc_html__( 'No existe el catálogo de productos de proveedores.', 'seo-taxonomy' ) );
     }
 
     if ( function_exists( 'seo_supplier_sync_ensure_schema' ) ) {
