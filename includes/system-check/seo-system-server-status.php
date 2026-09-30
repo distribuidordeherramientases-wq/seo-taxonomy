@@ -594,11 +594,35 @@ function seo_server_status_monitor_rotate_secret() {
     return seo_server_status_monitor_get_secret(true);
 }
 
+function seo_server_status_external_monitor_permission(WP_REST_Request $request) {
+    $secret = get_option(seo_server_status_monitor_secret_option_name(), '');
+    if (!is_string($secret) || strlen($secret) < 32) {
+        return new WP_Error('seo_monitor_not_configured', 'El monitor externo todavía no está configurado.', array('status' => 503));
+    }
+
+    $body = (string) $request->get_body();
+    if ($body === '' || strlen($body) > 1048576) {
+        return new WP_Error('seo_monitor_bad_payload', 'Payload vacío o demasiado grande.', array('status' => 413));
+    }
+
+    $provided_signature = strtolower(trim((string) $request->get_header('x-seo-monitor-signature')));
+    if (strpos($provided_signature, 'sha256=') === 0) {
+        $provided_signature = substr($provided_signature, 7);
+    }
+
+    $expected_signature = hash_hmac('sha256', $body, $secret);
+    if ($provided_signature === '' || !hash_equals($expected_signature, $provided_signature)) {
+        return new WP_Error('seo_monitor_invalid_signature', 'Firma del monitor no válida.', array('status' => 401));
+    }
+
+    return true;
+}
+
 function seo_server_status_register_external_monitor_route() {
     register_rest_route('seo-system/v1', '/external-monitor', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'seo_server_status_external_monitor_receive',
-        'permission_callback' => '__return_true',
+        'permission_callback' => 'seo_server_status_external_monitor_permission',
     ));
 }
 
