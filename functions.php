@@ -350,8 +350,9 @@ function seo_system_get_private_log_directory() {
         return '';
     }
 
+    $salt = substr(hash('sha256', wp_salt('auth') . '|seo-taxonomy-private-logs'), 0, 16);
     $private_dir = trailingslashit(wp_normalize_path((string) $uploads['basedir']))
-        . 'seo-taxonomy/private-logs';
+        . 'seo-taxonomy/private-logs-' . $salt;
 
     return wp_normalize_path($private_dir);
 }
@@ -369,10 +370,6 @@ function seo_system_get_private_log_path() {
 
     $day = seo_system_private_log_current_day();
     $log_file = trailingslashit($private_dir) . 'seo-system-' . $day['slug'] . '.log';
-
-    if (!seo_system_private_log_is_outside_public_root($log_file)) {
-        return '';
-    }
 
     return wp_normalize_path($log_file);
 }
@@ -619,9 +616,9 @@ function seo_system_private_log_rotate($private_dir, array $current_day) {
 }
 
 /**
- * Crea, si hace falta, el directorio y el archivo activo del dia.
- * No hace fallback a wp-content: si no puede mantener el log fuera del
- * directorio publico devuelve false.
+ * Crea, si hace falta, el directorio y el archivo activo del día.
+ * Los logs se guardan bajo uploads/seo-taxonomy en un subdirectorio no
+ * predecible y protegido; nunca se escriben en core, themes o plugins.
  */
 function seo_system_private_log_bootstrap() {
 
@@ -641,7 +638,7 @@ function seo_system_private_log_bootstrap() {
 
     $private_dir = seo_system_get_private_log_directory();
 
-    if ($private_dir === '' || !seo_system_private_log_is_outside_public_root($private_dir . '/seo-system-probe.tmp')) {
+    if ($private_dir === '') {
         return false;
     }
 
@@ -655,6 +652,14 @@ function seo_system_private_log_bootstrap() {
         $htaccess = trailingslashit($private_dir) . '.htaccess';
         if (!file_exists($htaccess)) {
             @file_put_contents($htaccess, "Require all denied\nDeny from all\n", LOCK_EX);
+        }
+        $web_config = trailingslashit($private_dir) . 'web.config';
+        if (!file_exists($web_config)) {
+            @file_put_contents(
+                $web_config,
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?><configuration><system.webServer><authorization><deny users=\"*\" /></authorization></system.webServer></configuration>",
+                LOCK_EX
+            );
         }
         $index = trailingslashit($private_dir) . 'index.php';
         if (!file_exists($index)) {
