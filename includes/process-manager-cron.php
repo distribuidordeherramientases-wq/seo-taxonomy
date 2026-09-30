@@ -1,4 +1,10 @@
 <?php
+
+// CLI entrypoint: block every direct web request before loading WordPress.
+if ( ! defined( 'ABSPATH' ) && 'cli' !== PHP_SAPI ) {
+    exit;
+}
+
 /**
  * SEO Taxonomy - entrada CLI del gestor periodico de procesos.
  *
