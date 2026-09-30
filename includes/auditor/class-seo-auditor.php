@@ -8,7 +8,7 @@ defined('ABSPATH') || exit;
  * Principios:
  * - PRO y sus fuentes canonicas son la verdad de origen.
  * - El auditor observa, contrasta, prioriza y propone revision humana.
- * - No reindexa, no entrena, no corrige taxonomias, no mueve productos.
+ * - La auditoria base no reindexa, no entrena ni modifica el catalogo.\n * - Las acciones de Equilibrar categorias son un flujo separado, explicito y aprobado por administrador.
  * - Una correlacion semantica nunca se presenta como causalidad demostrada.
  */
 final class SEO_Auditor {
@@ -182,7 +182,7 @@ final class SEO_Auditor {
         $scoped_reports = (array) get_option(self::SCOPED_REPORT_OPTION, array());
         $history = (array) get_option(self::HISTORY_OPTION, array());
         $view = sanitize_key((string) ($_GET['audit_view'] ?? 'summary'));
-        if (!in_array($view, array('summary','quality','findings','categories','architecture','behavior'), true)) {
+        if (!in_array($view, array('summary','quality','findings','categories','rebalance','architecture','behavior'), true)) {
             $view = 'summary';
         }
 
@@ -199,7 +199,7 @@ final class SEO_Auditor {
 
         echo '<div class="wrap"><section class="seo-auditor">';
         echo '<div class="seo-auditor__hero">';
-        echo '<div><h2>Auditor de contenidos y datos</h2><p>Revisa la calidad y coherencia de productos, categorias, posts, paginas, FAQs, relaciones, arquitectura e indice. Esta area no audita Academia ni modifica contenido.</p></div>';
+        echo '<div><h2>Auditor de contenidos y datos</h2><p>Revisa la calidad y coherencia de productos, categorias, posts, paginas, FAQs, relaciones, arquitectura e indice. La auditoria es de solo lectura; la vista Equilibrar categorias permite aplicar exclusivamente propuestas aprobadas por un administrador.</p></div>';
         echo '</div>';
 
         self::render_content_audit_actions($catalog_report, $scoped_reports);
@@ -224,6 +224,8 @@ final class SEO_Auditor {
             if ($catalog_report) self::render_findings($catalog_report); else self::render_missing_scope('catalogo');
         } elseif ('categories' === $view) {
             if ($catalog_report) self::render_categories($catalog_report); else self::render_missing_scope('catalogo');
+        } elseif ('rebalance' === $view) {
+            if ($catalog_report && class_exists('SEO_Auditor_Category_Rebalance')) SEO_Auditor_Category_Rebalance::render($catalog_report); else self::render_missing_scope('catalogo');
         } elseif ('architecture' === $view) {
             if ($catalog_report) self::render_architecture($catalog_report); else self::render_missing_scope('catalogo');
         } elseif ('behavior' === $view) {
@@ -1773,11 +1775,11 @@ final class SEO_Auditor {
                 }
             }
 
-            if ($n <= 2) {
+            if ($n < 5) {
                 $merge = self::category_merge_candidate($cid,$categories,$category_products,$object_vocabulary);
                 if ($merge) {
                     $profile['flags'][]='merge_candidate';
-                    self::finding('category_merge_candidate','low','category',$cid,(string)$categories[$cid]->name,'Categoria pequena con posible hermana para fusion',array('products'=>$n,'candidate'=>$merge),'Revisar manualmente si ambas categorias cubren la misma familia/intencion. No fusionar solo por tamano.');
+                    self::finding('category_merge_candidate','low','category',$cid,(string)$categories[$cid]->name,'Categoria pequena con posible hermana para fusion',array('products'=>$n,'candidate'=>$merge),'Revisar manualmente si ambas categorias cubren la misma familia/intencion. Para concentrar, elegir destino y crear 301; no fusionar solo por tamano.');
                 }
             }
 
@@ -3166,6 +3168,7 @@ final class SEO_Auditor {
             'quality'=>'Calidad SEO',
             'findings'=>'Hallazgos catalogo',
             'categories'=>'Categorias y productos',
+            'rebalance'=>'Equilibrar categorias',
             'architecture'=>'Hubs y relaciones',
             'behavior'=>'Pruebas del motor',
         ) as $slug=>$label) {
