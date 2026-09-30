@@ -390,7 +390,7 @@ if (!function_exists('seo_pictures_anomalies_get_reference_filenames')) {
         }
 
         if ($attachment_url) {
-            $filenames[] = basename((string) wp_parse_url($attachment_url, PHP_URL_PATH));
+            $filenames[] = basename((string) wp_wp_parse_url($attachment_url, PHP_URL_PATH));
         }
 
         seo_pictures_anomalies_collect_metadata_filenames(
