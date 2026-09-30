@@ -84,7 +84,7 @@ if ( is_readable( $seo_import_batch_file ) ) {
         static function () {
             if ( current_user_can( 'manage_options' ) ) {
                 echo '<div class="notice notice-error"><p>'
-                    . esc_html__( 'SEO System no encuentra includes/import-export/queue/batch.php. La importacion por lotes no estara disponible.', 'seo-system' )
+                    . esc_html__( 'SEO System no encuentra includes/import-export/queue/batch.php. La importacion por lotes no estara disponible.', 'seo-taxonomy' )
                     . '</p></div>';
             }
         }
@@ -701,7 +701,7 @@ function seo_ie_open_csv_download( $filename ) {
     $output = fopen( 'php://output', 'w' );
 
     if ( false === $output ) {
-        wp_die( esc_html__( 'No se pudo generar el archivo CSV.', 'seo-system' ) );
+        wp_die( esc_html__( 'No se pudo generar el archivo CSV.', 'seo-taxonomy' ) );
     }
 
     // BOM UTF-8 para que Excel interprete correctamente ñ y tildes.
@@ -1036,7 +1036,7 @@ function seo_export_categories_csv() {
     }
 
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para exportar categorías.', 'seo-system' ) );
+        wp_die( esc_html__( 'No tienes permisos para exportar categorías.', 'seo-taxonomy' ) );
     }
 
     check_admin_referer(
@@ -1095,7 +1095,7 @@ function seo_export_categories_csv() {
     if ( is_wp_error( $categories ) ) {
         wp_die(
             esc_html( $categories->get_error_message() ),
-            esc_html__( 'Error exportando categorías', 'seo-system' )
+            esc_html__( 'Error exportando categorías', 'seo-taxonomy' )
         );
     }
 
@@ -1223,7 +1223,7 @@ function seo_import_categories_csv() {
     }
 
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para importar categorías.', 'seo-system' ) );
+        wp_die( esc_html__( 'No tienes permisos para importar categorías.', 'seo-taxonomy' ) );
     }
 
     check_admin_referer(
@@ -1238,27 +1238,27 @@ function seo_import_categories_csv() {
             && ! is_uploaded_file( $_FILES['categories_csv']['tmp_name'] )
         )
     ) {
-        wp_die( esc_html__( 'No se ha recibido un CSV de categorías válido.', 'seo-system' ) );
+        wp_die( esc_html__( 'No se ha recibido un CSV de categorías válido.', 'seo-taxonomy' ) );
     }
 
     $handle = fopen( $_FILES['categories_csv']['tmp_name'], 'r' );
 
     if ( false === $handle ) {
-        wp_die( esc_html__( 'No se pudo abrir el CSV de categorías.', 'seo-system' ) );
+        wp_die( esc_html__( 'No se pudo abrir el CSV de categorías.', 'seo-taxonomy' ) );
     }
 
     $header = seo_ie_read_csv_row( $handle );
 
     if ( false === $header ) {
         fclose( $handle );
-        wp_die( esc_html__( 'El CSV de categorías está vacío.', 'seo-system' ) );
+        wp_die( esc_html__( 'El CSV de categorías está vacío.', 'seo-taxonomy' ) );
     }
 
     $header = seo_ie_normalize_csv_header( $header, 'category' );
 
     if ( ! in_array( 'category_id', $header, true ) ) {
         fclose( $handle );
-        wp_die( esc_html__( 'Falta la columna category_id.', 'seo-system' ) );
+        wp_die( esc_html__( 'Falta la columna category_id.', 'seo-taxonomy' ) );
     }
 
     $log = [
@@ -2612,13 +2612,13 @@ function seo_export_products_csv() {
     }
 
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para exportar productos.', 'seo-system' ) );
+        wp_die( esc_html__( 'No tienes permisos para exportar productos.', 'seo-taxonomy' ) );
     }
 
     check_admin_referer( 'seo_export_products_csv', 'seo_export_products_nonce' );
 
     if ( ! seo_ie_product_v2_wc_ready() ) {
-        wp_die( esc_html__( 'WooCommerce debe estar activo para exportar el catálogo.', 'seo-system' ) );
+        wp_die( esc_html__( 'WooCommerce debe estar activo para exportar el catálogo.', 'seo-taxonomy' ) );
     }
 
     global $wpdb;
@@ -4355,7 +4355,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
             throw new RuntimeException( 'El usuario que inició la importación ya no tiene permisos suficientes.' );
         }
     } elseif ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para importar productos.', 'seo-system' ) );
+        wp_die( esc_html__( 'No tienes permisos para importar productos.', 'seo-taxonomy' ) );
     }
 
     if ( ! seo_ie_product_v2_wc_ready() ) {
@@ -4363,7 +4363,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
             throw new RuntimeException( 'WooCommerce no está disponible para continuar la importación.' );
         }
 
-        wp_die( esc_html__( 'WooCommerce debe estar activo para importar productos.', 'seo-system' ) );
+        wp_die( esc_html__( 'WooCommerce debe estar activo para importar productos.', 'seo-taxonomy' ) );
     }
 
     $batch_size = absint( seo_ie_product_import_adaptive_config()['initial_rows'] ); // Fallback; se recalcula antes de cada lote.
@@ -4537,7 +4537,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
                 wp_send_json_error( [ 'message' => 'No existe una importación recuperable con ese token.' ], 404 );
             }
 
-            wp_die( esc_html__( 'No existe una importación recuperable con ese token.', 'seo-system' ) );
+            wp_die( esc_html__( 'No existe una importación recuperable con ese token.', 'seo-taxonomy' ) );
         }
 
         if ( absint( $state['user_id'] ?? 0 ) !== $user_id ) {
@@ -4545,7 +4545,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
                 wp_send_json_error( [ 'message' => 'La importación no pertenece al usuario actual.' ], 403 );
             }
 
-            wp_die( esc_html__( 'La importación no pertenece al usuario actual.', 'seo-system' ) );
+            wp_die( esc_html__( 'La importación no pertenece al usuario actual.', 'seo-taxonomy' ) );
         }
 
         if ( empty( $state['path'] ) || ! is_file( $state['path'] ) ) {
@@ -4659,7 +4659,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
         $active_import = seo_ie_product_import_get_active( $user_id );
 
         if ( ! empty( $active_import ) ) {
-            $message = esc_html__( 'Ya existe una importación de productos en curso. Espera a que termine o reanúdala desde esta misma pantalla.', 'seo-system' );
+            $message = esc_html__( 'Ya existe una importación de productos en curso. Espera a que termine o reanúdala desde esta misma pantalla.', 'seo-taxonomy' );
 
             if ( $is_ajax ) {
                 wp_send_json_error( [ 'message' => $message ], 409 );
@@ -4709,7 +4709,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
 
         if ( false === $handle ) {
             @unlink( $path );
-            wp_die( esc_html__( 'No se pudo abrir el CSV de productos.', 'seo-system' ) );
+            wp_die( esc_html__( 'No se pudo abrir el CSV de productos.', 'seo-taxonomy' ) );
         }
 
         $header = seo_ie_read_csv_row( $handle );
@@ -4717,7 +4717,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
         if ( false === $header ) {
             fclose( $handle );
             @unlink( $path );
-            wp_die( esc_html__( 'El CSV de productos está vacío.', 'seo-system' ) );
+            wp_die( esc_html__( 'El CSV de productos está vacío.', 'seo-taxonomy' ) );
         }
 
         $header = seo_ie_normalize_csv_header( $header, 'product' );
@@ -4729,7 +4729,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
             @unlink( $path );
             wp_die(
                 sprintf(
-                    esc_html__( 'El CSV contiene cabeceras duplicadas después de normalizarlas: %s.', 'seo-system' ),
+                    esc_html__( 'El CSV contiene cabeceras duplicadas después de normalizarlas: %s.', 'seo-taxonomy' ),
                     esc_html( implode( ', ', $duplicates ) )
                 )
             );
@@ -4738,7 +4738,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
         if ( empty( array_intersect( [ 'product_id', 'sku', 'slug' ], $header ) ) && ! in_array( 'titulo', $header, true ) ) {
             fclose( $handle );
             @unlink( $path );
-            wp_die( esc_html__( 'El CSV necesita product_id, SKU, slug o título para identificar o crear productos.', 'seo-system' ) );
+            wp_die( esc_html__( 'El CSV necesita product_id, SKU, slug o título para identificar o crear productos.', 'seo-taxonomy' ) );
         }
 
         $options = [
@@ -4765,7 +4765,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
         if ( ! in_array( true, $selected_blocks, true ) ) {
             fclose( $handle );
             @unlink( $path );
-            wp_die( esc_html__( 'Selecciona al menos un bloque de datos para importar.', 'seo-system' ) );
+            wp_die( esc_html__( 'Selecciona al menos un bloque de datos para importar.', 'seo-taxonomy' ) );
         }
 
         $state = [
@@ -4826,7 +4826,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
                 wp_send_json_error( [ 'message' => 'No se pudo iniciar la cola de importación del servidor.' ], 500 );
             }
 
-            wp_die( esc_html__( 'No se pudo iniciar la cola de importación del servidor.', 'seo-system' ) );
+            wp_die( esc_html__( 'No se pudo iniciar la cola de importación del servidor.', 'seo-taxonomy' ) );
         }
 
         seo_ie_product_import_schedule_watchdog( $user_id, $token, 60 );
@@ -4859,7 +4859,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
                 return;
             }
 
-            wp_die( esc_html__( 'La importación ha caducado o no se puede continuar.', 'seo-system' ) );
+            wp_die( esc_html__( 'La importación ha caducado o no se puede continuar.', 'seo-taxonomy' ) );
         }
 
         $handle = fopen( $state['path'], 'r' );
@@ -4869,7 +4869,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
                 throw new RuntimeException( 'No se pudo reabrir el CSV de productos.' );
             }
 
-            wp_die( esc_html__( 'No se pudo reabrir el CSV de productos.', 'seo-system' ) );
+            wp_die( esc_html__( 'No se pudo reabrir el CSV de productos.', 'seo-taxonomy' ) );
         }
 
         fseek( $handle, absint( $state['offset'] ?? 0 ) );
@@ -7098,7 +7098,7 @@ function seo_export_pages_csv() {
         wp_die(
             esc_html__(
                 'No tienes permisos para exportar páginas.',
-                'seo-system'
+                'seo-taxonomy'
             )
         );
     }
@@ -7266,7 +7266,7 @@ function seo_import_pages_csv() {
         wp_die(
             esc_html__(
                 'No tienes permisos para importar páginas.',
-                'seo-system'
+                'seo-taxonomy'
             )
         );
     }
@@ -7286,7 +7286,7 @@ function seo_import_pages_csv() {
         wp_die(
             esc_html__(
                 'No se ha recibido un CSV de páginas válido.',
-                'seo-system'
+                'seo-taxonomy'
             )
         );
     }
@@ -7318,7 +7318,7 @@ function seo_import_pages_csv() {
         wp_die(
             esc_html__(
                 'Selecciona al menos un bloque de datos para importar.',
-                'seo-system'
+                'seo-taxonomy'
             )
         );
     }
@@ -7329,7 +7329,7 @@ function seo_import_pages_csv() {
         wp_die(
             esc_html__(
                 'No se pudo abrir el CSV de páginas.',
-                'seo-system'
+                'seo-taxonomy'
             )
         );
     }
@@ -7341,7 +7341,7 @@ function seo_import_pages_csv() {
         wp_die(
             esc_html__(
                 'El CSV de páginas está vacío.',
-                'seo-system'
+                'seo-taxonomy'
             )
         );
     }
@@ -7373,7 +7373,7 @@ function seo_import_pages_csv() {
             sprintf(
                 esc_html__(
                     'El CSV contiene cabeceras duplicadas después de normalizarlas: %s.',
-                    'seo-system'
+                    'seo-taxonomy'
                 ),
                 esc_html( implode( ', ', $duplicate_headers ) )
             )
@@ -7396,7 +7396,7 @@ function seo_import_pages_csv() {
         wp_die(
             esc_html__(
                 'El CSV necesita page_id, ruta, url o slug. El título solo permite crear páginas nuevas.',
-                'seo-system'
+                'seo-taxonomy'
             )
         );
     }
@@ -7442,7 +7442,7 @@ function seo_import_pages_csv() {
             wp_die(
                 esc_html__(
                     'El CSV supera el límite de 20.000 páginas por proceso.',
-                    'seo-system'
+                    'seo-taxonomy'
                 )
             );
         }
@@ -8928,7 +8928,7 @@ function seo_export_posts_csv() {
     }
 
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para exportar entradas.', 'seo-system' ) );
+        wp_die( esc_html__( 'No tienes permisos para exportar entradas.', 'seo-taxonomy' ) );
     }
 
     check_admin_referer( 'seo_export_posts_csv', 'seo_export_posts_nonce' );
@@ -9063,7 +9063,7 @@ function seo_import_posts_csv() {
     }
 
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para importar entradas.', 'seo-system' ) );
+        wp_die( esc_html__( 'No tienes permisos para importar entradas.', 'seo-taxonomy' ) );
     }
 
     check_admin_referer( 'seo_import_posts_csv', 'seo_import_posts_nonce' );
@@ -9075,7 +9075,7 @@ function seo_import_posts_csv() {
             && ! is_uploaded_file( $_FILES['posts_csv']['tmp_name'] )
         )
     ) {
-        wp_die( esc_html__( 'No se ha recibido un CSV de entradas válido.', 'seo-system' ) );
+        wp_die( esc_html__( 'No se ha recibido un CSV de entradas válido.', 'seo-taxonomy' ) );
     }
 
     $mode = sanitize_key( $_POST['post_import_mode'] ?? 'create_update' );
@@ -9097,18 +9097,18 @@ function seo_import_posts_csv() {
         && ! $import_seo_meta && ! $import_custom_meta && ! $import_image
         && ! $import_relations
     ) {
-        wp_die( esc_html__( 'Selecciona al menos un bloque de datos para importar.', 'seo-system' ) );
+        wp_die( esc_html__( 'Selecciona al menos un bloque de datos para importar.', 'seo-taxonomy' ) );
     }
 
     $handle = fopen( $_FILES['posts_csv']['tmp_name'], 'r' );
     if ( false === $handle ) {
-        wp_die( esc_html__( 'No se pudo abrir el CSV de entradas.', 'seo-system' ) );
+        wp_die( esc_html__( 'No se pudo abrir el CSV de entradas.', 'seo-taxonomy' ) );
     }
 
     $header = seo_ie_read_csv_row( $handle );
     if ( false === $header ) {
         fclose( $handle );
-        wp_die( esc_html__( 'El CSV de entradas está vacío.', 'seo-system' ) );
+        wp_die( esc_html__( 'El CSV de entradas está vacío.', 'seo-taxonomy' ) );
     }
 
     $header = seo_ie_normalize_csv_header( $header, 'post' );
@@ -9135,7 +9135,7 @@ function seo_import_posts_csv() {
         fclose( $handle );
         wp_die(
             sprintf(
-                esc_html__( 'El CSV contiene cabeceras duplicadas después de normalizarlas: %s.', 'seo-system' ),
+                esc_html__( 'El CSV contiene cabeceras duplicadas después de normalizarlas: %s.', 'seo-taxonomy' ),
                 esc_html( implode( ', ', $duplicate_headers ) )
             )
         );
@@ -9144,7 +9144,7 @@ function seo_import_posts_csv() {
     $identity_columns = array_intersect( [ 'post_id', 'slug', 'url' ], $header );
     if ( empty( $identity_columns ) && ( 'update_only' === $mode || ! in_array( 'titulo', $header, true ) ) ) {
         fclose( $handle );
-        wp_die( esc_html__( 'El CSV necesita post_id, slug o url. El título solo permite crear entradas nuevas.', 'seo-system' ) );
+        wp_die( esc_html__( 'El CSV necesita post_id, slug o url. El título solo permite crear entradas nuevas.', 'seo-taxonomy' ) );
     }
 
     $log = [
@@ -9182,7 +9182,7 @@ function seo_import_posts_csv() {
 
         if ( 20000 <= count( $items ) ) {
             fclose( $handle );
-            wp_die( esc_html__( 'El CSV supera el límite de 20.000 entradas por proceso.', 'seo-system' ) );
+            wp_die( esc_html__( 'El CSV supera el límite de 20.000 entradas por proceso.', 'seo-taxonomy' ) );
         }
 
         $row         = seo_ie_build_csv_row( $header, $csv_row );
@@ -9601,7 +9601,7 @@ function seo_export_faqs_csv() {
     }
 
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para exportar FAQs.', 'seo-system' ) );
+        wp_die( esc_html__( 'No tienes permisos para exportar FAQs.', 'seo-taxonomy' ) );
     }
 
     check_admin_referer(
@@ -9732,7 +9732,7 @@ function seo_import_faqs_csv() {
     }
 
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para importar FAQs.', 'seo-system' ) );
+        wp_die( esc_html__( 'No tienes permisos para importar FAQs.', 'seo-taxonomy' ) );
     }
 
     check_admin_referer(
@@ -9747,20 +9747,20 @@ function seo_import_faqs_csv() {
             && ! is_uploaded_file( $_FILES['faqs_csv']['tmp_name'] )
         )
     ) {
-        wp_die( esc_html__( 'No se ha recibido un CSV de FAQs válido.', 'seo-system' ) );
+        wp_die( esc_html__( 'No se ha recibido un CSV de FAQs válido.', 'seo-taxonomy' ) );
     }
 
     $handle = fopen( $_FILES['faqs_csv']['tmp_name'], 'r' );
 
     if ( false === $handle ) {
-        wp_die( esc_html__( 'No se pudo abrir el CSV de FAQs.', 'seo-system' ) );
+        wp_die( esc_html__( 'No se pudo abrir el CSV de FAQs.', 'seo-taxonomy' ) );
     }
 
     $header = seo_ie_read_csv_row( $handle );
 
     if ( false === $header ) {
         fclose( $handle );
-        wp_die( esc_html__( 'El CSV de FAQs está vacío.', 'seo-system' ) );
+        wp_die( esc_html__( 'El CSV de FAQs está vacío.', 'seo-taxonomy' ) );
     }
 
     $header = seo_ie_normalize_csv_header( $header, 'faq' );
@@ -9777,7 +9777,7 @@ function seo_import_faqs_csv() {
             fclose( $handle );
             wp_die(
                 sprintf(
-                    esc_html__( 'Falta la columna obligatoria %s.', 'seo-system' ),
+                    esc_html__( 'Falta la columna obligatoria %s.', 'seo-taxonomy' ),
                     esc_html( $required_column )
                 )
             );
@@ -10088,13 +10088,13 @@ function seo_export_redirects_csv() {
     }
 
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para exportar redirects.', 'seo-system' ) );
+        wp_die( esc_html__( 'No tienes permisos para exportar redirects.', 'seo-taxonomy' ) );
     }
 
     check_admin_referer( 'seo_export_redirects_csv', 'seo_export_redirects_nonce' );
 
     if ( ! seo_ie_redirects_table_exists() ) {
-        wp_die( esc_html__( 'No existe la tabla wp_seo_redirects.', 'seo-system' ) );
+        wp_die( esc_html__( 'No existe la tabla wp_seo_redirects.', 'seo-taxonomy' ) );
     }
 
     global $wpdb;
@@ -10160,7 +10160,7 @@ function seo_import_redirects_csv() {
     }
 
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para importar redirects.', 'seo-system' ) );
+        wp_die( esc_html__( 'No tienes permisos para importar redirects.', 'seo-taxonomy' ) );
     }
 
     check_admin_referer( 'seo_import_redirects_csv', 'seo_import_redirects_nonce' );
@@ -10172,22 +10172,22 @@ function seo_import_redirects_csv() {
             && ! is_uploaded_file( $_FILES['redirects_csv']['tmp_name'] )
         )
     ) {
-        wp_die( esc_html__( 'No se ha recibido un CSV de redirects valido.', 'seo-system' ) );
+        wp_die( esc_html__( 'No se ha recibido un CSV de redirects valido.', 'seo-taxonomy' ) );
     }
 
     if ( ! seo_ie_redirects_table_exists() ) {
-        wp_die( esc_html__( 'No existe la tabla wp_seo_redirects.', 'seo-system' ) );
+        wp_die( esc_html__( 'No existe la tabla wp_seo_redirects.', 'seo-taxonomy' ) );
     }
 
     $handle = fopen( $_FILES['redirects_csv']['tmp_name'], 'r' );
     if ( false === $handle ) {
-        wp_die( esc_html__( 'No se pudo abrir el CSV de redirects.', 'seo-system' ) );
+        wp_die( esc_html__( 'No se pudo abrir el CSV de redirects.', 'seo-taxonomy' ) );
     }
 
     $header = seo_ie_read_csv_row( $handle );
     if ( false === $header ) {
         fclose( $handle );
-        wp_die( esc_html__( 'El CSV de redirects esta vacio.', 'seo-system' ) );
+        wp_die( esc_html__( 'El CSV de redirects esta vacio.', 'seo-taxonomy' ) );
     }
 
     $header = seo_ie_normalize_csv_header( $header, 'redirect' );
@@ -10198,7 +10198,7 @@ function seo_import_redirects_csv() {
         fclose( $handle );
         wp_die(
             sprintf(
-                esc_html__( 'El CSV contiene cabeceras duplicadas: %s.', 'seo-system' ),
+                esc_html__( 'El CSV contiene cabeceras duplicadas: %s.', 'seo-taxonomy' ),
                 esc_html( implode( ', ', $duplicates ) )
             )
         );
@@ -10209,7 +10209,7 @@ function seo_import_redirects_csv() {
             fclose( $handle );
             wp_die(
                 sprintf(
-                    esc_html__( 'Falta la columna obligatoria %s.', 'seo-system' ),
+                    esc_html__( 'Falta la columna obligatoria %s.', 'seo-taxonomy' ),
                     esc_html( $required )
                 )
             );
@@ -10623,10 +10623,10 @@ function seo_ie_render_product_export_filters() {
      * Estados disponibles.
      */
     $statuses = [
-        'publish' => __( 'Publicado', 'seo-system' ),
-        'draft'   => __( 'Borrador', 'seo-system' ),
-        'pending' => __( 'Pendiente de revisión', 'seo-system' ),
-        'private' => __( 'Privado', 'seo-system' ),
+        'publish' => __( 'Publicado', 'seo-taxonomy' ),
+        'draft'   => __( 'Borrador', 'seo-taxonomy' ),
+        'pending' => __( 'Pendiente de revisión', 'seo-taxonomy' ),
+        'private' => __( 'Privado', 'seo-taxonomy' ),
     ];
 
     $filter_id = 'seo-product-export-filters';
@@ -10637,14 +10637,14 @@ function seo_ie_render_product_export_filters() {
         style="margin:18px 0;padding:16px;background:#f6f7f7;border:1px solid #dcdcde;border-radius:6px;"
     >
         <h3 style="margin-top:0;">
-            <?php esc_html_e( 'Filtros de exportación', 'seo-system' ); ?>
+            <?php esc_html_e( 'Filtros de exportación', 'seo-taxonomy' ); ?>
         </h3>
 
         <p style="margin-top:0;color:#646970;">
             <?php
             esc_html_e(
                 'Puedes combinar cluster, hubs, categorías y estados. Si no seleccionas un filtro, se exportarán todos sus valores.',
-                'seo-system'
+                'seo-taxonomy'
             );
             ?>
         </p>
@@ -10654,7 +10654,7 @@ function seo_ie_render_product_export_filters() {
         >
             <div>
                 <label for="seo-export-cluster">
-                    <strong><?php esc_html_e( 'Cluster', 'seo-system' ); ?></strong>
+                    <strong><?php esc_html_e( 'Cluster', 'seo-taxonomy' ); ?></strong>
                 </label>
 
                 <select
@@ -10663,7 +10663,7 @@ function seo_ie_render_product_export_filters() {
                     style="width:100%;margin-top:5px;"
                 >
                     <option value="0">
-                        <?php esc_html_e( 'Todos los clusters', 'seo-system' ); ?>
+                        <?php esc_html_e( 'Todos los clusters', 'seo-taxonomy' ); ?>
                     </option>
 
                     <?php foreach ( $cluster_ids as $cluster_id ) : ?>
@@ -10683,7 +10683,7 @@ function seo_ie_render_product_export_filters() {
 
             <div>
                 <label for="seo-export-primary">
-                    <strong><?php esc_html_e( 'Hub primario', 'seo-system' ); ?></strong>
+                    <strong><?php esc_html_e( 'Hub primario', 'seo-taxonomy' ); ?></strong>
                 </label>
 
                 <select
@@ -10692,7 +10692,7 @@ function seo_ie_render_product_export_filters() {
                     style="width:100%;margin-top:5px;"
                 >
                     <option value="0">
-                        <?php esc_html_e( 'Todos los hubs primarios', 'seo-system' ); ?>
+                        <?php esc_html_e( 'Todos los hubs primarios', 'seo-taxonomy' ); ?>
                     </option>
 
                     <?php foreach ( $primary_ids as $primary_id ) : ?>
@@ -10717,7 +10717,7 @@ function seo_ie_render_product_export_filters() {
 
             <div>
                 <label for="seo-export-secondary">
-                    <strong><?php esc_html_e( 'Hub secundario', 'seo-system' ); ?></strong>
+                    <strong><?php esc_html_e( 'Hub secundario', 'seo-taxonomy' ); ?></strong>
                 </label>
 
                 <select
@@ -10726,7 +10726,7 @@ function seo_ie_render_product_export_filters() {
                     style="width:100%;margin-top:5px;"
                 >
                     <option value="0">
-                        <?php esc_html_e( 'Todos los hubs secundarios', 'seo-system' ); ?>
+                        <?php esc_html_e( 'Todos los hubs secundarios', 'seo-taxonomy' ); ?>
                     </option>
 
                     <?php foreach ( $secondary_ids as $secondary_id ) : ?>
@@ -10751,7 +10751,7 @@ function seo_ie_render_product_export_filters() {
 
             <div>
                 <label for="seo-export-categories">
-                    <strong><?php esc_html_e( 'Categorías', 'seo-system' ); ?></strong>
+                    <strong><?php esc_html_e( 'Categorías', 'seo-taxonomy' ); ?></strong>
                 </label>
 
                 <select
@@ -10799,7 +10799,7 @@ function seo_ie_render_product_export_filters() {
                     <?php
                     esc_html_e(
                         'Mantén Ctrl o Cmd para seleccionar varias.',
-                        'seo-system'
+                        'seo-taxonomy'
                     );
                     ?>
                 </small>
@@ -10807,7 +10807,7 @@ function seo_ie_render_product_export_filters() {
         </div>
 
         <div style="margin-top:16px;">
-            <strong><?php esc_html_e( 'Estado', 'seo-system' ); ?></strong>
+            <strong><?php esc_html_e( 'Estado', 'seo-taxonomy' ); ?></strong>
 
             <div
                 style="display:flex;flex-wrap:wrap;gap:14px;margin-top:7px;"
@@ -10984,7 +10984,7 @@ function seo_ie_render_product_export_filters() {
 function seo_import_export_page() {
 
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para acceder a esta página.', 'seo-system' ) );
+        wp_die( esc_html__( 'No tienes permisos para acceder a esta página.', 'seo-taxonomy' ) );
     }
 
     $allowed_tabs = [ 'wordpress', 'import-batch', 'clonador', 'catalogo-semantico', 'inventarios-comerciales', 'importar-proveedor', 'importar-amazon', 'conexiones-proveedores', 'catalogo-proveedores', 'sincronizacion-proveedores' ];
@@ -10997,7 +10997,7 @@ function seo_import_export_page() {
     $base = add_query_arg( [ 'page' => 'seo-import-export' ], admin_url( 'admin.php' ) );
     ?>
     <div class="wrap">
-        <h1><?php echo esc_html__( 'Importar / Exportar SEO System', 'seo-system' ); ?></h1>
+        <h1><?php echo esc_html__( 'Importar / Exportar SEO System', 'seo-taxonomy' ); ?></h1>
         <nav class="nav-tab-wrapper" style="margin-bottom:20px;">
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'wordpress', $base ) ); ?>" class="nav-tab <?php echo 'wordpress' === $tab ? 'nav-tab-active' : ''; ?>">Importacion individual</a>
             <a href="<?php echo esc_url( add_query_arg( 'seo_ie_tab', 'import-batch', $base ) ); ?>" class="nav-tab <?php echo 'import-batch' === $tab ? 'nav-tab-active' : ''; ?>">Importacion por lotes</a>
@@ -11012,7 +11012,7 @@ function seo_import_export_page() {
         </nav>
 
         <?php if ( 'wordpress' === $tab ) : ?>
-            <p><?php echo esc_html__( 'Los CSV se generan en UTF-8 y usan punto y coma como separador.', 'seo-system' ); ?></p>
+            <p><?php echo esc_html__( 'Los CSV se generan en UTF-8 y usan punto y coma como separador.', 'seo-taxonomy' ); ?></p>
 
             <div
                 id="seo-product-import-status"
