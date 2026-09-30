@@ -3180,11 +3180,14 @@ EXPORT CSV SEO TABLES
     
         $table_key = sanitize_key($_GET['table']);
     
+        $export_nonce = isset($_GET['_wpnonce'])
+            ? sanitize_text_field(wp_unslash($_GET['_wpnonce']))
+            : '';
         if (
-            empty($_GET['_wpnonce']) ||
-            !wp_verify_nonce($_GET['_wpnonce'], 'seo_export_csv_' . $table_key)
+            $export_nonce === '' ||
+            !wp_verify_nonce($export_nonce, 'seo_export_csv_' . $table_key)
         ) {
-            wp_die('Nonce inválido.');
+            wp_die(esc_html__('Nonce inválido.', 'seo-taxonomy'));
         }
     
         global $wpdb;
