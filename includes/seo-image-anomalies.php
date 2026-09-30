@@ -658,6 +658,8 @@ if (!function_exists('seo_pictures_anomalies_build_usage_report')) {
         $meta_key_regex = 'image|images|img|imagen|imagenes|photo|picture|foto|fotos|media|attachment|thumbnail|miniatura|gallery|galeria|logo|logotipo|icon|icono|banner|cabecera|fondo|avatar|featured|destacada';
         $image_value_regex = '\\.(jpe?g|png|gif|webp|avif|svg|bmp|tiff?)([^a-z0-9]|$)';
         $postmeta_rows = $wpdb->get_results($wpdb->prepare("\n            SELECT pm.post_id, pm.meta_key, pm.meta_value\n            FROM {$wpdb->postmeta} pm\n            INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id\n            WHERE p.post_type <> 'attachment'\n              AND p.post_status NOT IN ('trash', 'auto-draft')\n              AND pm.meta_key NOT IN (\n                  '_thumbnail_id',\n                  '_product_image_gallery',\n                  '_wp_attached_file',\n                  '_wp_attachment_metadata',\n                  '_wp_attachment_backup_sizes'\n              )\n              AND (\n                  pm.meta_key REGEXP %s\n                  OR pm.meta_value REGEXP %s\n                  OR pm.meta_value LIKE %s\n                  OR pm.meta_value LIKE %s\n                  OR pm.meta_value LIKE %s\n                  OR pm.meta_value LIKE %s\n                  OR pm.meta_value LIKE %s\n                  OR pm.meta_value LIKE %s\n                  OR pm.meta_value LIKE %s\n              )\n        ",
+            $wpdb->esc_like('_transient_') . '%',
+            $wpdb->esc_like('_site_transient_') . '%',
             $meta_key_regex,
             $image_value_regex,
             '%' . $wpdb->esc_like('/uploads/') . '%',
