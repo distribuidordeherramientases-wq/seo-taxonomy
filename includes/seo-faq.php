@@ -4797,7 +4797,7 @@ function seo_faq_show_notice()
                             'Se ha creado %d fila de FAQ.',
                             'Se han creado %d filas de FAQ.',
                             $total,
-                            'seo-system'
+                            'seo-taxonomy'
                         ),
                         $total
                     )
@@ -4823,7 +4823,7 @@ function seo_faq_show_notice()
                             'Se ha eliminado %d copia duplicada de FAQ.',
                             'Se han eliminado %d copias duplicadas de FAQ.',
                             $total,
-                            'seo-system'
+                            'seo-taxonomy'
                         ),
                         $total
                     ) . $operation_text
@@ -4864,7 +4864,7 @@ function seo_faq_show_notice()
                             'Se ha eliminado %d FAQ huérfana.',
                             'Se han eliminado %d FAQs huérfanas.',
                             $total,
-                            'seo-system'
+                            'seo-taxonomy'
                         ),
                         $total
                     ) . $operation_text
