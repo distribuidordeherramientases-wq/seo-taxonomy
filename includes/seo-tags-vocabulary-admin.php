@@ -4429,8 +4429,8 @@ if (!function_exists('seo_assignment_render_pagination')) {
 if (!function_exists('seo_assignment_render')) {
     function seo_assignment_render() {
         $section=sanitize_key($_GET['assignment_section'] ?? 'product_labels'); if(!array_key_exists($section,seo_assignment_sections()))$section='product_labels';
-        echo '<div class="seo-semantic-domain-title"><h2 style="margin:0">Asignación asistida</h2><span class="seo-tags-mode">Revisión manual</span></div>';
-        echo '<p class="seo-tags-intro">Inventaría huecos de clasificación, propone valores ya existentes y permite confirmar cada fila. Los maestros siguen gestionándose exclusivamente en Etiquetas y Atributos.</p>';
+        echo '<div class="seo-semantic-domain-title"><h2 style="margin:0">Clasificador</h2><span class="seo-tags-mode">Asignación asistida</span></div>';
+        echo '<p class="seo-tags-intro">Clasifica etiquetas semánticas y detecta huecos o anomalías del catálogo. Propone valores canónicos, permite revisar cada fila y ejecutar análisis rápidos o profundos. Los maestros siguen gestionándose en Etiquetas y Atributos.</p>';
         seo_assignment_notice(); seo_assignment_render_summary();
         $base=admin_url('admin.php?page=seo-tags-vocabulary&domain=assignment'); echo '<nav class="nav-tab-wrapper seo-semantic-subtabs">';
         foreach(seo_assignment_sections() as $key=>$label)echo '<a class="nav-tab '.($section===$key?'nav-tab-active':'').'" href="'.esc_url($base.'&assignment_section='.$key).'">'.esc_html($label).'</a>'; echo '</nav>';
@@ -4481,8 +4481,8 @@ if (!function_exists('seo_tags_vocabulary_admin_page')) {
 
         echo '<nav class="nav-tab-wrapper seo-semantic-domain-tabs">';
         echo '<a class="nav-tab ' . ($domain === 'labels' ? 'nav-tab-active' : '') . '" href="' . esc_url($base . '&domain=labels&section=vocabulary') . '">Etiquetas</a>';
+        echo '<a class="nav-tab ' . ($domain === 'assignment' ? 'nav-tab-active' : '') . '" href="' . esc_url($base . '&domain=assignment&assignment_section=product_labels') . '">Clasificador</a>';
         echo '<a class="nav-tab ' . ($domain === 'attributes' ? 'nav-tab-active' : '') . '" href="' . esc_url($base . '&domain=attributes&attribute_section=definitions') . '">Atributos</a>';
-        echo '<a class="nav-tab ' . ($domain === 'assignment' ? 'nav-tab-active' : '') . '" href="' . esc_url($base . '&domain=assignment&assignment_section=product_labels') . '">Asignación</a>';
         echo '<a class="nav-tab ' . ($domain === 'google_schema' ? 'nav-tab-active' : '') . '" href="' . esc_url($base . '&domain=google_schema') . '">Google esquema</a>';
         echo '</nav>';
 
