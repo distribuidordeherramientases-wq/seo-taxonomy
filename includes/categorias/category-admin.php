@@ -3386,9 +3386,9 @@ Cinco o seis FAQs.
         <div style="display:flex; flex-direction:column; gap:4px;">
             <label style="font-size:11px; color:#646970; font-weight:600;">1. Clusters</label>
             <select id="cluster_<?php echo $term_id; ?>"
-                    class="seo-select-<?php echo $term_id; ?>"
+                    class="seo-select-<?php echo esc_attr((int) $term_id); ?>"
                     data-level="1"
-                    onchange="seoFiltrarCascada(<?php echo $term_id; ?>, 1)"
+                    onchange="seoFiltrarCascada(<?php echo (int) $term_id; ?>, 1)"
                     style="width:160px; font-size:12px; height:28px;">
 
                 <option value="">-- Seleccionar Cluster --</option>
@@ -3405,10 +3405,10 @@ Cinco o seis FAQs.
         <div style="display:flex; flex-direction:column; gap:4px;">
             <label style="font-size:11px; color:#646970; font-weight:600;">2. Hubs Primarios</label>
             <select id="hub_p_<?php echo $term_id; ?>"
-                    class="seo-select-<?php echo $term_id; ?>"
+                    class="seo-select-<?php echo esc_attr((int) $term_id); ?>"
                     data-level="2"
                     disabled
-                    onchange="seoFiltrarCascada(<?php echo $term_id; ?>, 2)"
+                    onchange="seoFiltrarCascada(<?php echo (int) $term_id; ?>, 2)"
                     style="width:160px; font-size:12px; height:28px;">
 
                 <option value="">-- Esperando Cluster --</option>
@@ -3418,11 +3418,11 @@ Cinco o seis FAQs.
 
         <div style="display:flex; flex-direction:column; gap:4px;">
             <label style="font-size:11px; color:#646970; font-weight:600;">3. Hubs Secundarios</label>
-            <select id="hub_s_<?php echo $term_id; ?>"
-                    class="seo-select-<?php echo $term_id; ?>"
+            <select id="hub_s_<?php echo esc_attr((int) $term_id); ?>"
+                    class="seo-select-<?php echo esc_attr((int) $term_id); ?>"
                     data-level="3"
                     disabled
-                    onchange="seoFiltrarCascada(<?php echo $term_id; ?>, 3)"
+                    onchange="seoFiltrarCascada(<?php echo (int) $term_id; ?>, 3)"
                     style="width:160px; font-size:12px; height:28px;">
 
                 <option value="">-- Esperando Hub P. --</option>
@@ -3432,11 +3432,11 @@ Cinco o seis FAQs.
 
         <div style="display:flex; flex-direction:column; gap:4px;">
             <label style="font-size:11px; color:#646970; font-weight:600;">4. Categoría Destino</label>
-            <select id="cat_dest_<?php echo $term_id; ?>"
-                    class="seo-select-<?php echo $term_id; ?>"
+            <select id="cat_dest_<?php echo esc_attr((int) $term_id); ?>"
+                    class="seo-select-<?php echo esc_attr((int) $term_id); ?>"
                     data-level="4"
                     disabled
-                    onchange="seoFiltrarCascada(<?php echo $term_id; ?>, 4)"
+                    onchange="seoFiltrarCascada(<?php echo (int) $term_id; ?>, 4)"
                     style="width:160px; font-size:12px; height:28px;">
 
                 <option value="">-- Esperando Hub S. --</option>
