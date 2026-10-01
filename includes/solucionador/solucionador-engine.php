@@ -233,10 +233,12 @@ final class SEO_Solucionador_Engine {
             + absint($stats['ingeniero'] ?? 0)
             + absint($stats['clasificador'] ?? 0);
         $editorial_origins = absint($stats['analista'] ?? 0) + absint($stats['auditor'] ?? 0);
+        $comparison_profiles = absint($stats['comparador'] ?? 0);
 
         return $dependiente >= 2
             || ($dependiente >= 1 && $support >= 1)
-            || ($editorial_origins >= 2 && absint($stats['total'] ?? 0) >= 2);
+            || ($editorial_origins >= 2 && absint($stats['total'] ?? 0) >= 2)
+            || ($comparison_profiles >= 1 && absint($stats['total'] ?? 0) >= 1);
     }
 
     private static function category_product_count($term_id) {
