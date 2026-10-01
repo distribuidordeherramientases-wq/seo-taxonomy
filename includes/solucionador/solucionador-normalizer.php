@@ -470,7 +470,9 @@ final class SEO_Solucionador_Normalizer {
         $hint = sanitize_key((string) $hint);
         if ($hint !== '' && !in_array($hint, array('linguistic_bridge','search','need'), true)) return $hint;
         if ($condition !== '' || in_array($object, self::problem_objects(), true)) return 'problem';
+        if (preg_match('/\b(guia de compra|como elegir|que elegir|cual elegir|comparar|comparativa|diferencia|diferencias|antes de comprar)\b/u', $normalized)) return 'decision';
         if (preg_match('/\b(como|pasos|procedimiento)\b/u', $normalized)) return 'procedure';
+        if ($action === 'elegir') return 'decision';
         if ($action !== '') return 'need';
         return 'question';
     }
@@ -479,7 +481,7 @@ final class SEO_Solucionador_Normalizer {
         $intent = sanitize_key((string) $intent);
         if ($intent === 'problem') return 'problem';
         if (preg_match('/compat/', $intent)) return 'compatibility';
-        if (preg_match('/compar|choice|decision/', $intent)) return 'decision';
+        if (preg_match('/compar|choice|decision|eleg|eleccion|compra|buying/', $intent)) return 'decision';
         return 'task';
     }
 
