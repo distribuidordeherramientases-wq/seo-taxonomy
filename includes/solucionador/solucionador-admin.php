@@ -169,11 +169,15 @@ final class SEO_Solucionador_Admin {
     public static function render() {
         if (!current_user_can('manage_options')) return;
         SEO_Solucionador_DB::maybe_install();
+        $initialization = SEO_Solucionador_Engine::ensure_initialized(180);
         $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'summary';
         if (!in_array($tab, array('summary','diagnostics','proposals','coverage','sources','tests','data'), true)) $tab = 'summary';
 
         echo '<div class="wrap seo-solucionador"><h1>Solucionador <small style="font-weight:400;color:#646970">v' . esc_html(SEO_SOLUCIONADOR_VERSION) . '</small></h1>';
         echo '<p><strong>Capa de decision editorial.</strong> Solucionador unifica conclusiones de Auditor, Analista, Clasificador, Dependiente/Interprete, Ojeador e Ingeniero; detecta carencias, oportunidades, duplicidades y canibalizacion; prioriza la actuacion y prepara el brief. <strong>No investiga, interpreta ni mide por su cuenta y no publica contenido.</strong></p>';
+        if (is_wp_error($initialization)) {
+            echo '<div class="notice notice-warning inline"><p><strong>Inicialización pendiente:</strong> ' . esc_html($initialization->get_error_message()) . '</p></div>';
+        }
         self::render_export_button();
 
         if (!empty($_GET['scan'])) echo '<div class="notice notice-success is-dismissible"><p>Analisis de Solucionador completado.</p></div>';
