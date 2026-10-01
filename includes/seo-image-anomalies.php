@@ -702,6 +702,8 @@ if (!function_exists('seo_pictures_anomalies_build_usage_report')) {
          * 7) Metadatos de términos usados por temas y plugins.
          */
         $termmeta_rows = $wpdb->get_results($wpdb->prepare("\n            SELECT term_id, meta_key, meta_value\n            FROM {$wpdb->termmeta}\n            WHERE meta_key <> 'thumbnail_id'\n              AND (\n                  meta_key REGEXP %s\n                  OR meta_value REGEXP %s\n                  OR meta_value LIKE %s\n                  OR meta_value LIKE %s\n                  OR meta_value LIKE %s\n                  OR meta_value LIKE %s\n                  OR meta_value LIKE %s\n              )\n        ",
+            $wpdb->esc_like('_transient_') . '%',
+            $wpdb->esc_like('_site_transient_') . '%',
             $meta_key_regex,
             $image_value_regex,
             '%' . $wpdb->esc_like('/uploads/') . '%',
@@ -726,7 +728,7 @@ if (!function_exists('seo_pictures_anomalies_build_usage_report')) {
          * 8) Ajustes del sitio y del tema: logo, icono, widgets, cabeceras,
          * fondos y opciones de plugins que almacenan un ID o una URL.
          */
-        $option_rows = $wpdb->get_results($wpdb->prepare("\n            SELECT option_name, option_value\n            FROM {$wpdb->options}\n            WHERE option_name NOT LIKE '\\_transient\\_%%'\n              AND option_name NOT LIKE '\\_site\\_transient\\_%%'\n              AND (\n                  option_name REGEXP %s\n                  OR option_value REGEXP %s\n                  OR option_value LIKE %s\n                  OR option_value LIKE %s\n                  OR option_value LIKE %s\n                  OR option_value LIKE %s\n                  OR option_value LIKE %s\n                  OR option_value LIKE %s\n              )\n        ",
+        $option_rows = $wpdb->get_results($wpdb->prepare("\n            SELECT option_name, option_value\n            FROM {$wpdb->options}\n            WHERE option_name NOT LIKE %s\n              AND option_name NOT LIKE %s\n              AND (\n                  option_name REGEXP %s\n                  OR option_value REGEXP %s\n                  OR option_value LIKE %s\n                  OR option_value LIKE %s\n                  OR option_value LIKE %s\n                  OR option_value LIKE %s\n                  OR option_value LIKE %s\n                  OR option_value LIKE %s\n              )\n        ",
             $meta_key_regex,
             $image_value_regex,
             '%' . $wpdb->esc_like('/uploads/') . '%',
