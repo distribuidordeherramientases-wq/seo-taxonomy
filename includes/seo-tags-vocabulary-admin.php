@@ -3237,7 +3237,7 @@ if (!function_exists('seo_assignment_apply_product_labels_json')) {
                 if ($value === '') continue;
                 if (!function_exists('seo_catalog_find_active_vocabulary_term')) throw new RuntimeException('No está disponible el resolver canónico de etiquetas.');
                 $term = seo_catalog_find_active_vocabulary_term($group, $value);
-                if (!$term) throw new InvalidArgumentException('«' . $value . '» no existe como etiqueta activa de ' . strtoupper($group) . '.');
+                if (!$term) throw new InvalidArgumentException('«' . esc_html($value) . '» no existe como etiqueta activa de ' . esc_html(strtoupper($group)) . '.');
                 $ids[] = (int) $term['id'];
             }
             if ($group === 'tipo' && count(array_unique($ids)) !== 1) throw new InvalidArgumentException('TIPO debe contener exactamente un valor existente.');
@@ -3246,7 +3246,7 @@ if (!function_exists('seo_assignment_apply_product_labels_json')) {
         if (!$groups) throw new InvalidArgumentException('No hay grupos de etiquetas válidos para actualizar.');
         if (!function_exists('seo_catalog_apply_product_vocabulary_changes')) throw new RuntimeException('No está disponible la escritura canónica de etiquetas de producto.');
         $result = seo_catalog_apply_product_vocabulary_changes(absint($product_id), $groups, 'assignment_admin');
-        if (empty($result['ok'])) throw new RuntimeException((string) ($result['message'] ?? 'No se pudo actualizar la clasificación.'));
+        if (empty($result['ok'])) throw new RuntimeException(esc_html((string) ($result['message'] ?? 'No se pudo actualizar la clasificación.')));
         return true;
     }
 }
@@ -3349,7 +3349,7 @@ if (!function_exists('seo_assignment_create_and_assign_new_product_label')) {
                     if (seo_tags_vocab_table_exists($map)) $wpdb->update($map, ['active'=>0], ['type_vocabulary_id'=>$term_id], ['%d'], ['%d']);
                 }
             }
-            throw new RuntimeException((string)($result['message'] ?? 'No se pudo asignar la nueva etiqueta al producto.'));
+            throw new RuntimeException(esc_html((string)($result['message'] ?? 'No se pudo asignar la nueva etiqueta al producto.')));
         }
 
         return ['term_id'=>$term_id,'created'=>$created,'group'=>$group,'label'=>$label];
@@ -3398,7 +3398,7 @@ if (!function_exists('seo_assignment_apply_category_labels_json')) {
         }
         if (!function_exists('seo_category_vocabulary_replace')) throw new RuntimeException('No está disponible la escritura canónica de categorías.');
         $result = seo_category_vocabulary_replace(absint($category_id), $groups, 'assignment_admin');
-        if (is_wp_error($result)) throw new RuntimeException($result->get_error_message());
+        if (is_wp_error($result)) throw new RuntimeException(esc_html($result->get_error_message()));
         return true;
     }
 }
@@ -3732,12 +3732,12 @@ if (!function_exists('seo_assignment_parse_group_json')) {
         if ($raw === '') return [];
         $decoded = json_decode($raw, true);
         if (!is_array($decoded) || ($decoded && array_keys($decoded) !== range(0, count($decoded) - 1))) {
-            throw new InvalidArgumentException(strtoupper((string) $group) . ': introduce un JSON de lista, por ejemplo ["Valor"].');
+            throw new InvalidArgumentException(esc_html(strtoupper((string) $group)) . ': introduce un JSON de lista, por ejemplo ["Valor"].');
         }
         $values = [];
         foreach ($decoded as $value) {
             if (is_array($value) || is_object($value)) {
-                throw new InvalidArgumentException(strtoupper((string) $group) . ': cada elemento debe ser texto.');
+                throw new InvalidArgumentException(esc_html(strtoupper((string) $group)) . ': cada elemento debe ser texto.');
             }
             $value = trim((string) $value);
             if ($value !== '') $values[] = $value;
