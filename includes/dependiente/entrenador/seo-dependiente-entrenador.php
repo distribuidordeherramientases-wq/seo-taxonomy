@@ -4088,8 +4088,10 @@ final class SEO_Dependiente_Entrenador {
         if (!class_exists('SEO_Dependiente_Index') || !SEO_Dependiente_Index::table_exists()) {
             return $cache;
         }
+        $index_table = SEO_Dependiente_Index::table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Dependiente index table; query has no external values.
         $rows = (array) $wpdb->get_results(
-            'SELECT product_id,title,brand_slug,categories_json,vocabulary_json FROM ' . SEO_Dependiente_Index::table() . ' ORDER BY product_id ASC',
+            "SELECT product_id,title,brand_slug,categories_json,vocabulary_json FROM {$index_table} ORDER BY product_id ASC",
             ARRAY_A
         );
         $seen = array();
@@ -4345,8 +4347,10 @@ final class SEO_Dependiente_Entrenador {
             return $cache;
         }
 
+        $index_table = SEO_Dependiente_Index::table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Dependiente index table; query has no external values.
         $rows = (array) $wpdb->get_results(
-            'SELECT product_id,vocabulary_json,tags_json,attributes_json FROM ' . SEO_Dependiente_Index::table() . ' ORDER BY product_id ASC',
+            "SELECT product_id,vocabulary_json,tags_json,attributes_json FROM {$index_table} ORDER BY product_id ASC",
             ARRAY_A
         );
         $tiers = array(
@@ -7504,10 +7508,12 @@ final class SEO_Dependiente_Entrenador {
         if (2 === $module_no) {
             if (!$product_ids || !class_exists('SEO_Dependiente_Index') || !SEO_Dependiente_Index::table_exists()) return array();
             $out = array();
+            $index_table = SEO_Dependiente_Index::table();
             foreach (array_chunk($product_ids, 200) as $chunk) {
                 $placeholders = implode(',', array_fill(0, count($chunk), '%d'));
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Dependiente index table plus generated %d placeholders; every product ID is bound through prepare().
                 $rows = (array) $wpdb->get_results($wpdb->prepare(
-                    'SELECT product_id,title,brand_slug,categories_json,vocabulary_json FROM ' . SEO_Dependiente_Index::table() . " WHERE product_id IN ({$placeholders}) ORDER BY product_id ASC",
+                    "SELECT product_id,title,brand_slug,categories_json,vocabulary_json FROM {$index_table} WHERE product_id IN ({$placeholders}) ORDER BY product_id ASC",
                     $chunk
                 ), ARRAY_A);
                 foreach ($rows as $row) {
@@ -7551,10 +7557,12 @@ final class SEO_Dependiente_Entrenador {
         if (4 === $module_no) {
             if (!$product_ids || !class_exists('SEO_Dependiente_Index') || !SEO_Dependiente_Index::table_exists()) return array();
             $out = array();
+            $index_table = SEO_Dependiente_Index::table();
             foreach (array_chunk($product_ids, 200) as $chunk) {
                 $placeholders = implode(',', array_fill(0, count($chunk), '%d'));
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Dependiente index table plus generated %d placeholders; every product ID is bound through prepare().
                 $rows = (array) $wpdb->get_results($wpdb->prepare(
-                    'SELECT product_id,vocabulary_json,tags_json,attributes_json FROM ' . SEO_Dependiente_Index::table() . " WHERE product_id IN ({$placeholders}) ORDER BY product_id ASC",
+                    "SELECT product_id,vocabulary_json,tags_json,attributes_json FROM {$index_table} WHERE product_id IN ({$placeholders}) ORDER BY product_id ASC",
                     $chunk
                 ), ARRAY_A);
                 foreach ($rows as $row) {
