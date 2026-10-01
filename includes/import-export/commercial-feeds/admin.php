@@ -73,7 +73,7 @@ function seo_ie_cf_admin_save_settings() {
             }
             $path = trailingslashit( $storage['dir'] ) . $filename;
             if ( file_exists( $path ) ) {
-                @unlink( $path );
+                wp_delete_file( $path );
             }
         }
     }
