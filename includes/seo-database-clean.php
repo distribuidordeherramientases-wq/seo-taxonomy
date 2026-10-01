@@ -220,13 +220,15 @@ function seo_clean_db_render_action_form($action, $label, $button_class, $confir
         echo '<input type="hidden" name="' . esc_attr($name) . '" value="' . esc_attr($value) . '">';
     }
 
-    $confirm_attribute = '';
-
     if ($confirm_message !== '') {
-        $confirm_attribute = ' onclick="return confirm(' . esc_attr(wp_json_encode($confirm_message)) . ');"';
+        $confirm_json = wp_json_encode($confirm_message);
+        if (false === $confirm_json) {
+            $confirm_json = '""';
+        }
+        echo '<button type="submit" class="' . esc_attr($button_class) . '" onclick="return confirm(' . esc_attr($confirm_json) . ');">' . esc_html($label) . '</button>';
+    } else {
+        echo '<button type="submit" class="' . esc_attr($button_class) . '">' . esc_html($label) . '</button>';
     }
-
-    echo '<button type="submit" class="' . esc_attr($button_class) . '"' . $confirm_attribute . '>' . esc_html($label) . '</button>';
     echo '</form>';
 }
 
@@ -289,9 +291,9 @@ function seo_clean_db_stream_sql_export($type) {
     header('Expires: 0');
 
     echo "-- SEO System database export\n";
-    echo "-- Type: " . $type . "\n";
-    echo "-- Site: " . home_url() . "\n";
-    echo "-- Generated: " . gmdate('Y-m-d H:i:s') . " UTC\n\n";
+    echo "-- Type: " . esc_html($type) . "\n";
+    echo "-- Site: " . esc_url(home_url()) . "\n";
+    echo "-- Generated: " . esc_html(gmdate('Y-m-d H:i:s')) . " UTC\n\n";
     echo "SET SQL_MODE = \"NO_AUTO_VALUE_ON_ZERO\";\n";
     echo "SET time_zone = \"+00:00\";\n";
     echo "SET FOREIGN_KEY_CHECKS = 0;\n\n";
@@ -335,9 +337,12 @@ function seo_clean_db_stream_table_sql($table) {
     }
 
     echo "\n-- --------------------------------------------------------\n";
+    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SQL backup stream must remain raw SQL; values and identifiers are escaped for SQL above.
     echo "-- Table structure for `" . $table . "`\n";
     echo "-- --------------------------------------------------------\n\n";
+    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SQL backup stream must remain raw SQL; values and identifiers are escaped for SQL above.
     echo "DROP TABLE IF EXISTS `" . $table . "`;\n";
+    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SQL backup stream must remain raw SQL; values and identifiers are escaped for SQL above.
     echo $create[1] . ";\n\n";
 
     $count = (int) $wpdb->get_var('SELECT COUNT(*) FROM `' . esc_sql($table) . '`');
@@ -346,6 +351,7 @@ function seo_clean_db_stream_table_sql($table) {
         return;
     }
 
+    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SQL backup stream must remain raw SQL; values and identifiers are escaped for SQL above.
     echo "-- Data for `" . $table . "`\n\n";
 
     $limit = 500;
@@ -374,6 +380,7 @@ function seo_clean_db_stream_table_sql($table) {
                 return "'" . $wpdb->_real_escape((string) $value) . "'";
             }, array_values($row));
 
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SQL backup stream must remain raw SQL; values and identifiers are escaped for SQL above.
             echo 'INSERT INTO `' . $table . '` (' . implode(', ', $columns) . ') VALUES (' . implode(', ', $values) . ");\n";
         }
 
@@ -2448,7 +2455,7 @@ function seo_clean_db_cleanup_row($label, $count, $risk, $action, $button_label,
     echo '<tr>';
     echo '<td><strong>' . esc_html($label) . '</strong></td>';
     echo '<td>' . esc_html(number_format_i18n($count)) . '</td>';
-    echo '<td>' . seo_clean_db_badge($risk_status, $risk) . '</td>';
+    echo '<td>' . wp_kses_post(seo_clean_db_badge($risk_status, $risk)) . '</td>';
     echo '<td>';
 
     if ((int) $count > 0) {
