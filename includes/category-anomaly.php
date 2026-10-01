@@ -472,7 +472,7 @@ function search_category_anomaly() {
             <option value="0">Categoría</option>
             <?php foreach ($all_cats as $c): ?>
                 <?php if (empty($category_ids_from_db) || in_array($c->term_id, $category_ids_from_db)): ?>
-                    <option value="<?php echo $c->term_id; ?>" <?php selected($cat, $c->term_id); ?>>
+                    <option value="<?php echo esc_attr((string) $c->term_id); ?>" <?php selected($cat, $c->term_id); ?>>
                         <?php echo esc_html($c->name); ?>
                     </option>
                 <?php endif; ?>
@@ -569,6 +569,7 @@ if ($cluster > 0 || $hub_primario > 0 || $hub_secundario > 0 || $cat > 0) {
 
 
 if (!$run_anomalies) {
+    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Buffered admin HTML is assembled by this view with context-specific escaping.
     echo ob_get_clean();
     return;
 }
@@ -677,6 +678,7 @@ $cats_to_analyze = array_unique($cats_to_analyze);
 if (empty($cats_to_analyze)) {
 
     echo '<p>No hay categorías para analizar.</p>';
+    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Buffered admin HTML is assembled by this view with context-specific escaping.
     echo ob_get_clean();
     return;
 }
@@ -1199,6 +1201,7 @@ if (
 
 echo '</ul>';
 
+// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Buffered admin HTML is assembled by this view with context-specific escaping.
 echo ob_get_clean();
 
 }
