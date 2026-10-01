@@ -2036,10 +2036,13 @@ final class SEO_Dependiente_Entrenador {
         }
 
         global $wpdb;
+        $questions_table = self::questions_table();
+        $runs_table = self::runs_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia tables; batch key is bound through prepare().
         $question_ids = (array) $wpdb->get_col($wpdb->prepare(
             "SELECT q.id
-             FROM " . self::questions_table() . " q
-             INNER JOIN " . self::runs_table() . " r
+             FROM {$questions_table} q
+             INNER JOIN {$runs_table} r
                ON r.question_id = q.id
               AND r.lesson_key = q.lesson_key
              WHERE q.lesson_key = %s
@@ -2057,8 +2060,9 @@ final class SEO_Dependiente_Entrenador {
         if ($ids) {
             $placeholders = implode(',', array_fill(0, count($ids), '%d'));
             $params = array_merge(array($batch_key), $ids);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal runs table plus generated %d placeholders; batch key and question IDs are bound through prepare().
             $wpdb->query($wpdb->prepare(
-                "DELETE FROM " . self::runs_table() . "
+                "DELETE FROM {$runs_table}
                  WHERE lesson_key = %s
                    AND question_id IN ({$placeholders})",
                 $params
@@ -2087,11 +2091,14 @@ final class SEO_Dependiente_Entrenador {
         }
 
         global $wpdb;
+        $questions_table = self::questions_table();
+        $runs_table = self::runs_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia tables; batch key is bound through prepare().
         $rows = (array) $wpdb->get_results($wpdb->prepare(
             "SELECT q.question, r.status, r.evaluation_status, r.evaluation_score,
                     r.evaluation_json, r.top_results, r.execution_ms
-             FROM " . self::questions_table() . " q
-             LEFT JOIN " . self::runs_table() . " r
+             FROM {$questions_table} q
+             LEFT JOIN {$runs_table} r
                ON r.question_id = q.id
               AND r.lesson_key = q.lesson_key
              WHERE q.lesson_key = %s
@@ -2183,14 +2190,17 @@ final class SEO_Dependiente_Entrenador {
         }
 
         global $wpdb;
+        $questions_table = self::questions_table();
+        $runs_table = self::runs_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia tables; batch key is bound through prepare().
         $questions = (array) $wpdb->get_results($wpdb->prepare(
             "SELECT q.*, r.id AS run_id, r.batch_uuid, r.status AS run_status,
                     r.result_count, r.returned_count, r.search_uuid, r.search_strategy,
                     r.execution_ms, r.evaluation_status, r.evaluation_score,
                     r.evaluation_json, r.top_results, r.response_meta, r.error_message,
                     r.created_at AS run_created_at
-             FROM " . self::questions_table() . " q
-             LEFT JOIN " . self::runs_table() . " r ON r.question_id = q.id AND r.lesson_key = q.lesson_key
+             FROM {$questions_table} q
+             LEFT JOIN {$runs_table} r ON r.question_id = q.id AND r.lesson_key = q.lesson_key
              WHERE q.lesson_key = %s AND q.enabled = 1
              ORDER BY q.sequence_no ASC, q.id ASC",
             $batch_key
@@ -2434,6 +2444,9 @@ final class SEO_Dependiente_Entrenador {
             return array();
         }
 
+        $questions_table = self::questions_table();
+        $runs_table = self::runs_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia tables; lesson key is bound through prepare().
         $rows = (array) $wpdb->get_results($wpdb->prepare(
             "SELECT q.module_no,
                     q.question_type,
@@ -2450,8 +2463,8 @@ final class SEO_Dependiente_Entrenador {
                     COALESCE(SUM(CASE WHEN r.execution_ms IS NOT NULL THEN 1 ELSE 0 END), 0) AS execution_count,
                     MIN(r.created_at) AS first_run_at,
                     MAX(r.created_at) AS last_run_at
-             FROM " . self::questions_table() . " q
-             LEFT JOIN " . self::runs_table() . " r
+             FROM {$questions_table} q
+             LEFT JOIN {$runs_table} r
                ON r.question_id = q.id
               AND r.lesson_key = q.lesson_key
              WHERE q.lesson_key = %s
@@ -2673,13 +2686,15 @@ final class SEO_Dependiente_Entrenador {
 
     private static function progress_search_strategy_summary($lesson_key) {
         global $wpdb;
+        $runs_table = self::runs_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal runs table; lesson key is bound through prepare().
         $rows = (array) $wpdb->get_results($wpdb->prepare(
             "SELECT COALESCE(NULLIF(search_strategy, ''), 'unknown') AS strategy,
                     COUNT(*) AS uses,
                     COALESCE(SUM(CASE WHEN result_count > 0 THEN 1 ELSE 0 END), 0) AS with_results,
                     COALESCE(SUM(CASE WHEN result_count = 0 THEN 1 ELSE 0 END), 0) AS zero_results,
                     AVG(execution_ms) AS avg_execution_ms
-             FROM " . self::runs_table() . "
+             FROM {$runs_table}
              WHERE lesson_key = %s
                AND status = 'answered'
              GROUP BY COALESCE(NULLIF(search_strategy, ''), 'unknown')
@@ -2789,14 +2804,17 @@ final class SEO_Dependiente_Entrenador {
         }
 
         global $wpdb;
+        $questions_table = self::questions_table();
+        $runs_table = self::runs_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia tables; lesson key is bound through prepare().
         $questions = (array) $wpdb->get_results($wpdb->prepare(
             "SELECT q.*, r.id AS run_id, r.batch_uuid, r.status AS run_status,
                     r.result_count, r.returned_count, r.search_uuid, r.search_strategy,
                     r.execution_ms, r.evaluation_status, r.evaluation_score,
                     r.evaluation_json, r.top_results, r.response_meta, r.error_message,
                     r.created_at AS run_created_at
-             FROM " . self::questions_table() . " q
-             LEFT JOIN " . self::runs_table() . " r ON r.question_id = q.id AND r.lesson_key = q.lesson_key
+             FROM {$questions_table} q
+             LEFT JOIN {$runs_table} r ON r.question_id = q.id AND r.lesson_key = q.lesson_key
              WHERE q.lesson_key = %s AND q.enabled = 1
              ORDER BY q.sequence_no ASC, q.id ASC",
             $lesson_key
