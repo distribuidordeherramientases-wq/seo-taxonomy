@@ -727,21 +727,52 @@ final class SEO_Comparador_Engine {
         return SEO_Comparador_DB::editorial($profile_id);
     }
 
+    public static function measured_axis_confidence($profile_id,$axis_key) {
+        global $wpdb;
+        $profile_id = absint($profile_id);
+        $axis_key = sanitize_key((string) $axis_key);
+        if (!$profile_id || $axis_key === '') return 0.0;
+        $value = $wpdb->get_var($wpdb->prepare(
+            "SELECT AVG(v.confidence)
+             FROM " . SEO_Comparador_DB::table('values') . " v
+             JOIN " . SEO_Comparador_DB::table('products') . " p ON p.id=v.comparison_product_id
+             WHERE p.profile_id=%d
+               AND v.axis_key=%s
+               AND v.normalized_value<>''
+               AND v.verification_status IN ('verified','probable','derived_safe')",
+            $profile_id,
+            $axis_key
+        ));
+        return is_numeric($value) ? max(0.0,min(1.0,(float)$value)) : 0.0;
+    }
+
     public static function save_axes($profile_id,$rows) {
         global $wpdb;
         $profile_id=absint($profile_id);
         if (!SEO_Comparador_DB::get_profile($profile_id)) return new WP_Error('comparador_profile','Perfil no encontrado.');
+        $settings=self::settings();
         $known=array();
+        $blocked=array();
         foreach (SEO_Comparador_DB::axes($profile_id) as $row) $known[$row['axis_key']]=$row;
         foreach ((array)$rows as $key=>$raw) {
             $key=sanitize_key((string)$key);
             if (!isset($known[$key]) || !is_array($raw)) continue;
+            $requested_min=max((float)$settings['min_axis_confidence'],max(0.1,min(1,(float)($raw['min_confidence'] ?? $known[$key]['min_confidence']))));
+            $measured=self::measured_axis_confidence($profile_id,$key);
+            $coverage=(float)($known[$key]['coverage'] ?? 0);
+            $requested_publishable=!empty($raw['publishable']);
+            $publishable=$requested_publishable
+                && $coverage >= (float)$settings['min_axis_coverage']
+                && $measured >= $requested_min;
+            if ($requested_publishable && !$publishable) {
+                $blocked[]=sanitize_text_field((string)($raw['label'] ?? $known[$key]['label']));
+            }
             $wpdb->update(SEO_Comparador_DB::table('axes'),array(
                 'label'=>sanitize_text_field((string)($raw['label'] ?? $known[$key]['label'])),
                 'unit'=>sanitize_text_field((string)($raw['unit'] ?? $known[$key]['unit'])),
                 'priority'=>max(0,min(100,absint($raw['priority'] ?? $known[$key]['priority']))),
-                'min_confidence'=>max(0.1,min(1,(float)($raw['min_confidence'] ?? $known[$key]['min_confidence']))),
-                'publishable'=>empty($raw['publishable'])?0:1,
+                'min_confidence'=>$requested_min,
+                'publishable'=>$publishable?1:0,
                 'manual_override'=>1,
                 'source'=>'manual',
                 'updated_at'=>self::now(),
@@ -749,7 +780,7 @@ final class SEO_Comparador_Engine {
         }
         self::generate_editorial($profile_id);
         SEO_Comparador_DB::update_status($profile_id,'needs_review','axes_updated','Ejes comparativos revisados manualmente.','admin');
-        return true;
+        return array('blocked_axes'=>array_values(array_unique($blocked)));
     }
 
     public static function send_to_solucionador($profile_id,$reason='') {
