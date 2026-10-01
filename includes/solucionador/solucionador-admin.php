@@ -601,6 +601,22 @@ final class SEO_Solucionador_Admin {
             ARRAY_A
         );
 
+        $evidence_map = array();
+        $topic_ids = array_values(array_filter(array_map(static function($row){ return absint($row['id'] ?? 0); }, $rows)));
+        if ($topic_ids) {
+            $evidence_table = SEO_Solucionador_DB::evidence_table();
+            $placeholders = implode(',', array_fill(0, count($topic_ids), '%d'));
+            $sql = "SELECT topic_id,source_type,SUM(occurrences) total
+                    FROM {$evidence_table}
+                    WHERE topic_id IN ({$placeholders})
+                    GROUP BY topic_id,source_type";
+            foreach ((array) $wpdb->get_results($wpdb->prepare($sql, $topic_ids), ARRAY_A) as $evidence_row) {
+                $tid = absint($evidence_row['topic_id'] ?? 0);
+                $type = sanitize_key((string) ($evidence_row['source_type'] ?? ''));
+                if ($tid && $type !== '') $evidence_map[$tid][$type] = absint($evidence_row['total'] ?? 0);
+            }
+        }
+
         echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Propuestas editoriales</h2>';
         $brief_topic_id = absint($_GET['brief_topic_id'] ?? 0);
         if ($brief_topic_id) {
@@ -621,10 +637,23 @@ final class SEO_Solucionador_Admin {
             echo '<code>' . esc_html((string) ($row['canonical_key'] ?? '')) . '</code></td>';
 
             echo '<td><div class="seo-sol-meta"><strong>Categorias:</strong> ' . self::category_chips($row) . '</div>' . self::vocab_chips($row) . '</td>';
-            echo '<td>D: ' . esc_html(number_format_i18n(absint($row['interpreter_evidence'] ?? 0)))
-                . '<br>C: ' . esc_html(number_format_i18n(absint($row['comentarista_evidence'] ?? 0)))
-                . '<br>A: ' . esc_html(number_format_i18n(absint($row['analyst_evidence'] ?? 0)))
-                . '<br>U: ' . esc_html(number_format_i18n(absint($row['auditor_evidence'] ?? 0))) . '</td>';
+            $topic_evidence = (array) ($evidence_map[absint($row['id'] ?? 0)] ?? array());
+            $source_labels = array(
+                'dependiente'=>'Dependiente/Intérprete',
+                'analista'=>'Analista',
+                'auditor'=>'Auditor',
+                'comentarista'=>'Comentarista',
+                'ojeador'=>'Ojeador',
+                'ingeniero'=>'Ingeniero',
+                'clasificador'=>'Clasificador',
+            );
+            echo '<td>';
+            foreach ($source_labels as $source_key=>$source_label) {
+                $count = absint($topic_evidence[$source_key] ?? 0);
+                if ($count > 0) echo '<div><strong>' . esc_html($source_label) . ':</strong> ' . esc_html(number_format_i18n($count)) . '</div>';
+            }
+            if (!$topic_evidence) echo '—';
+            echo '</td>';
 
             echo '<td><strong>' . esc_html(str_replace('_', ' ', (string) ($row['coverage_status'] ?? ''))) . '</strong>';
             if ($existing_post_id) echo '<br><a href="' . esc_url(SEO_Solucionador_Posts::edit_url($existing_post_id)) . '">Abrir post #' . esc_html($existing_post_id) . '</a>';
