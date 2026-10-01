@@ -681,14 +681,14 @@ function seo_system_mysql_audit_render() {
 
     echo '<h3>Señales globales del servidor MySQL</h3><table class="seo-status-table"><thead><tr><th>Señal</th><th>Valor</th><th>Estado</th><th>Lectura</th></tr></thead><tbody>';
     foreach ($signals as $row) {
-        echo '<tr><td><strong>'.esc_html($row[0]).'</strong></td><td>'.esc_html($row[1]).'</td><td>'.seo_server_status_badge($row[2]).'</td><td class="seo-muted">'.esc_html($row[3]).'</td></tr>';
+        echo '<tr><td><strong>'.esc_html($row[0]).'</strong></td><td>'.esc_html($row[1]).'</td><td>'.wp_kses_post(seo_server_status_badge($row[2])).'</td><td class="seo-muted">'.esc_html($row[3]).'</td></tr>';
     }
     echo '</tbody></table>';
 
     echo '<h3 style="margin-top:22px">Tablas propias e índices</h3><table class="seo-status-table"><thead><tr><th>Tabla</th><th>Filas aprox.</th><th>Tamaño</th><th>Índices</th><th>PRIMARY</th></tr></thead><tbody>';
     foreach (array_slice((array)$custom['tables'],0,30) as $table) {
         $size=(float)$table['data_length']+(float)$table['index_length'];
-        echo '<tr><td><code>'.esc_html($table['table']).'</code></td><td>'.esc_html(number_format_i18n($table['rows'])).'</td><td>'.esc_html(seo_server_status_format_bytes($size)).'</td><td>'.esc_html(number_format_i18n($table['index_count'])).'</td><td>'.(!empty($table['has_primary'])?seo_server_status_badge('ok'):seo_server_status_badge('info')).'</td></tr>';
+        echo '<tr><td><code>'.esc_html($table['table']).'</code></td><td>'.esc_html(number_format_i18n($table['rows'])).'</td><td>'.esc_html(seo_server_status_format_bytes($size)).'</td><td>'.esc_html(number_format_i18n($table['index_count'])).'</td><td>'.(!empty($table['has_primary'])?wp_kses_post(seo_server_status_badge('ok')):wp_kses_post(seo_server_status_badge('info'))).'</td></tr>';
     }
     echo '</tbody></table>';
 
@@ -712,7 +712,7 @@ function seo_system_mysql_audit_render() {
     echo '<h3 style="margin-top:22px">EXPLAIN de consultas representativas</h3><p>EXPLAIN analiza el plan del optimizador sin ejecutar el SELECT de negocio.</p>';
     echo '<table class="seo-status-table"><thead><tr><th>Consulta</th><th>Tabla</th><th>Tipo</th><th>Índice</th><th>Filas</th><th>Extra</th><th>Estado</th></tr></thead><tbody>';
     foreach ((array)$audit['plans'] as $plan) {
-        echo '<tr><td><strong>'.esc_html($plan['label']).'</strong><div class="seo-muted">'.esc_html($plan['detail']).'</div></td><td><code>'.esc_html($plan['table']).'</code></td><td><code>'.esc_html($plan['type']).'</code></td><td><code>'.esc_html($plan['key_used']?:'—').'</code></td><td>'.esc_html(number_format_i18n($plan['rows'])).'</td><td class="seo-muted">'.esc_html($plan['extra']).'</td><td>'.seo_server_status_badge($plan['status']).'</td></tr>';
+        echo '<tr><td><strong>'.esc_html($plan['label']).'</strong><div class="seo-muted">'.esc_html($plan['detail']).'</div></td><td><code>'.esc_html($plan['table']).'</code></td><td><code>'.esc_html($plan['type']).'</code></td><td><code>'.esc_html($plan['key_used']?:'—').'</code></td><td>'.esc_html(number_format_i18n($plan['rows'])).'</td><td class="seo-muted">'.esc_html($plan['extra']).'</td><td>'.wp_kses_post(seo_server_status_badge($plan['status'])).'</td></tr>';
     }
     if (empty($audit['plans'])) echo '<tr><td colspan="7">No se pudieron construir planes para las tablas disponibles.</td></tr>';
     echo '</tbody></table>';
