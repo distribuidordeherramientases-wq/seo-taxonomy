@@ -30,6 +30,7 @@ require_once SEO_SOLUCIONADOR_PATH . 'solucionador-catalog.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-posts.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-engine.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-export.php';
+require_once SEO_SOLUCIONADOR_PATH . 'solucionador-tests.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-admin.php';
 
 add_action('init', array('SEO_Solucionador_DB', 'maybe_install'), 6);
