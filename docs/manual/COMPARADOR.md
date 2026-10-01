@@ -333,4 +333,6 @@ Cubren:
 
 Issue principal de implementación: **#485**.
 
+Import/Export JSON editorial y JSON de visitas: **#498**.
+
 La implementación se valida primero en **staging**. Producción requiere autorización expresa.
