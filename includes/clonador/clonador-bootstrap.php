@@ -46,5 +46,5 @@ foreach ( $seo_clonador_required as $seo_clonador_file ) {
 }
 
 require_once __DIR__ . '/connections.php';
-require_once __DIR__ . '/engine-2.7.2.php';
+require_once __DIR__ . '/engine.php';
 require_once __DIR__ . '/admin.php';
