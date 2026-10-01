@@ -385,6 +385,44 @@ function seo_landing_get_external_signals()
 /**
  * Sincroniza senales externas en el inventario de candidatas.
  */
+function seo_landing_route_defaults($route = array())
+{
+    return wp_parse_args((array) $route, array(
+        'page'=>'seo-page-admin',
+        'tab'=>'landing-report',
+        'diag_scope'=>'',
+        'diag_view'=>'',
+    ));
+}
+
+function seo_landing_route_from_request()
+{
+    $page = isset($_POST['return_page']) ? sanitize_key(wp_unslash($_POST['return_page'])) : 'seo-page-admin';
+    $tab = isset($_POST['return_tab']) ? sanitize_key(wp_unslash($_POST['return_tab'])) : 'landing-report';
+    $scope = isset($_POST['return_diag_scope']) ? sanitize_key(wp_unslash($_POST['return_diag_scope'])) : '';
+    $view = isset($_POST['return_diag_view']) ? sanitize_key(wp_unslash($_POST['return_diag_view'])) : '';
+    return seo_landing_route_defaults(array('page'=>$page,'tab'=>$tab,'diag_scope'=>$scope,'diag_view'=>$view));
+}
+
+function seo_landing_route_url($route = array(), $extra = array())
+{
+    $route = seo_landing_route_defaults($route);
+    $args = array('page'=>$route['page']);
+    if ($route['tab'] !== '') $args['tab'] = $route['tab'];
+    if ($route['diag_scope'] !== '') $args['diag_scope'] = $route['diag_scope'];
+    if ($route['diag_view'] !== '') $args['diag_view'] = $route['diag_view'];
+    return add_query_arg(array_merge($args, (array) $extra), admin_url('admin.php'));
+}
+
+function seo_landing_route_hidden_fields($route)
+{
+    $route = seo_landing_route_defaults($route);
+    echo '<input type="hidden" name="return_page" value="' . esc_attr($route['page']) . '">';
+    echo '<input type="hidden" name="return_tab" value="' . esc_attr($route['tab']) . '">';
+    echo '<input type="hidden" name="return_diag_scope" value="' . esc_attr($route['diag_scope']) . '">';
+    echo '<input type="hidden" name="return_diag_view" value="' . esc_attr($route['diag_view']) . '">';
+}
+
 function seo_landing_sync_external_signals()
 {
     if (!current_user_can('manage_options')) {
@@ -524,18 +562,13 @@ function seo_landing_sync_external_signals()
         }
     }
 
-    $url = add_query_arg(
-        array(
-            'page' => 'seo-page-admin',
-            'tab' => 'landing-report',
-            'landing_msg' => 'synced',
-            'created' => $created,
-            'updated' => $updated,
-            'deduplicated' => $deduplicated,
-            'preserved' => $preserved,
-        ),
-        admin_url('admin.php')
-    );
+    $url = seo_landing_route_url(seo_landing_route_from_request(), array(
+        'landing_msg'=>'synced',
+        'created'=>$created,
+        'updated'=>$updated,
+        'deduplicated'=>$deduplicated,
+        'preserved'=>$preserved,
+    ));
     wp_safe_redirect($url);
     exit;
 }
@@ -557,7 +590,7 @@ function seo_landing_handle_save_candidate()
     $id = absint($_POST['candidate_id'] ?? 0);
     $title = sanitize_text_field(wp_unslash($_POST['title'] ?? ''));
     if ($title === '') {
-        wp_safe_redirect(add_query_arg(array('page'=>'seo-page-admin','tab'=>'landing-report','landing_msg'=>'missing_title'), admin_url('admin.php')));
+        wp_safe_redirect(seo_landing_route_url(seo_landing_route_from_request(), array('landing_msg'=>'missing_title')));
         exit;
     }
 
@@ -604,7 +637,7 @@ function seo_landing_handle_save_candidate()
         $id = (int) $wpdb->insert_id;
     }
 
-    wp_safe_redirect(add_query_arg(array('page'=>'seo-page-admin','tab'=>'landing-report','landing_msg'=>'saved','candidate_id'=>$id), admin_url('admin.php')));
+    wp_safe_redirect(seo_landing_route_url(seo_landing_route_from_request(), array('landing_msg'=>'saved','candidate_id'=>$id)));
     exit;
 }
 add_action('admin_post_seo_landing_save_candidate', 'seo_landing_handle_save_candidate');
@@ -1115,7 +1148,7 @@ function seo_landing_render_views_chart()
     echo '</div>';
 }
 
-function seo_landing_render_candidate_form($prefill = array())
+function seo_landing_render_candidate_form($prefill = array(), $route = array())
 {
     $requirements = $prefill['requirements'] ?? array();
     $scores = $prefill['scores'] ?? array();
@@ -1124,6 +1157,8 @@ function seo_landing_render_candidate_form($prefill = array())
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="seo-landing-form">';
     echo '<input type="hidden" name="action" value="seo_landing_save_candidate">';
     wp_nonce_field('seo_landing_save_candidate');
+
+    seo_landing_route_hidden_fields($route);
 
     echo '<div class="seo-landing-form-grid">';
     echo '<label><strong>Titulo de trabajo</strong><input type="text" name="title" value="' . esc_attr($prefill['title'] ?? '') . '" required></label>';
@@ -1162,8 +1197,9 @@ function seo_landing_render_candidate_form($prefill = array())
 /**
  * Pantalla del informe dentro de Paginas > Informe landings.
  */
-function seo_landing_render_admin_tab()
+function seo_landing_render_admin_tab($route = array())
 {
+    $route = seo_landing_route_defaults($route);
     seo_landing_maybe_install();
     seo_landing_render_notice();
 
@@ -1337,6 +1373,7 @@ echo '</details>';
         echo '<p><strong>' . esc_html(number_format_i18n(count($external))) . ' oportunidades externas disponibles.</strong></p>';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_landing_sync_signals">';
         wp_nonce_field('seo_landing_sync_signals');
+        seo_landing_route_hidden_fields($route);
         echo '<button type="submit" class="button button-primary">Sincronizar para revision</button></form>';
         echo '<p class="description">Las senales no demostrables quedan como pendientes y conservan un pre-score. Un solapamiento claro con una landing existente invalida la creacion de una nueva URL.</p>';
     }
@@ -1394,7 +1431,7 @@ echo '</details>';
     } else {
         echo '<div style="overflow:auto"><table class="seo-landing-table"><thead><tr><th>Hub secundario</th><th>Categorias</th><th>Productos</th><th>Landings vinculadas</th><th>Accion</th></tr></thead><tbody>';
         foreach ($gaps as $gap) {
-            $prefill_url = add_query_arg(array('page'=>'seo-page-admin','tab'=>'landing-report','new_candidate'=>1,'gap_id'=>$gap->ID), admin_url('admin.php'));
+            $prefill_url = seo_landing_route_url($route, array('new_candidate'=>1,'gap_id'=>$gap->ID));
             echo '<tr><td><strong>' . esc_html($gap->post_title) . '</strong><br><code>#' . esc_html((string) $gap->ID) . '</code></td><td>' . esc_html(number_format_i18n((int) $gap->category_count)) . '</td><td>' . esc_html(number_format_i18n((int) $gap->product_count)) . '</td><td>' . esc_html(number_format_i18n((int) $gap->landing_count)) . '</td><td><a class="button button-small" href="' . esc_url($prefill_url) . '">Evaluar oportunidad</a></td></tr>';
         }
         echo '</tbody></table></div>';
@@ -1413,5 +1450,5 @@ echo '</details>';
             );
         }
     }
-    seo_landing_render_candidate_form($prefill);
+    seo_landing_render_candidate_form($prefill, $route);
 }

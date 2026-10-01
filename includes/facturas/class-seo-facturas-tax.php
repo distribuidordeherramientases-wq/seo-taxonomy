@@ -24,6 +24,12 @@ final class SEO_Facturas_Tax {
         }
         self::$initialized = true;
 
+        /*
+         * La interpretacion del PVP no depende del gestor de tasas.
+         * En este proyecto el precio almacenado es el PVP final con IVA.
+         */
+        self::sync_price_tax_mode();
+
         add_filter('woocommerce_find_rates', array(__CLASS__, 'filter_rates'), 99, 2);
         add_filter('woocommerce_countries_allowed_countries', array(__CLASS__, 'allowed_countries'), 99, 1);
         add_filter('woocommerce_countries_shipping_countries', array(__CLASS__, 'allowed_countries'), 99, 1);
@@ -38,6 +44,41 @@ final class SEO_Facturas_Tax {
     }
 
     /**
+     * Sincroniza como WooCommerce interpreta y muestra los precios del catalogo.
+     *
+     * Esta regla es independiente de tax_manager_enabled. El gestor fiscal
+     * puede estar apagado y WooCommerce aun debe saber que el PVP almacenado
+     * ya incluye IVA; de lo contrario vuelve a sumarlo en carrito/checkout.
+     */
+    public static function sync_price_tax_mode($settings = null) {
+        $settings = is_array($settings) ? $settings : SEO_Facturas_Settings::taxation();
+        $prices_include_tax = empty($settings['tax_prices_include_tax']) ? 'no' : 'yes';
+        $display_mode = 'yes' === $prices_include_tax ? 'incl' : 'excl';
+        $changed = false;
+
+        if ((string) get_option('woocommerce_prices_include_tax', 'no') !== $prices_include_tax) {
+            update_option('woocommerce_prices_include_tax', $prices_include_tax);
+            $changed = true;
+        }
+
+        if ((string) get_option('woocommerce_tax_display_shop', 'excl') !== $display_mode) {
+            update_option('woocommerce_tax_display_shop', $display_mode);
+            $changed = true;
+        }
+
+        if ((string) get_option('woocommerce_tax_display_cart', 'excl') !== $display_mode) {
+            update_option('woocommerce_tax_display_cart', $display_mode);
+            $changed = true;
+        }
+
+        if ($changed) {
+            self::flush_tax_cache();
+        }
+
+        return $changed;
+    }
+
+    /**
      * Guarda/actualiza las tasas tecnicas que WooCommerce necesita para poder
      * asociar un rate_id real a los impuestos del pedido. Usamos una clase
      * fiscal interna para que estas filas no interfieran cuando el gestor esta
@@ -49,23 +90,18 @@ final class SEO_Facturas_Tax {
         }
 
         $settings = is_array($settings) ? $settings : SEO_Facturas_Settings::taxation();
+
+        /*
+         * El modo de precios debe sincronizarse incluso si el gestor de tasas
+         * esta apagado. Son dos responsabilidades distintas.
+         */
+        self::sync_price_tax_mode($settings);
+
         if (empty($settings['tax_manager_enabled'])) {
             return true;
         }
 
         update_option('woocommerce_calc_taxes', 'yes');
-        $prices_include_tax = empty($settings['tax_prices_include_tax']) ? 'no' : 'yes';
-        update_option('woocommerce_prices_include_tax', $prices_include_tax);
-
-        /*
-         * El proyecto usa el mismo criterio comercial en ficha, carrito y
-         * checkout: el PVP visible es el importe final que paga el cliente.
-         * Alineamos tambien la presentacion fiscal de WooCommerce para evitar
-         * que un precio mostrado como "IVA incluido" reaparezca como base neta
-         * y vuelva a gravarse visualmente en el funnel.
-         */
-        update_option('woocommerce_tax_display_shop', 'yes' === $prices_include_tax ? 'incl' : 'excl');
-        update_option('woocommerce_tax_display_cart', 'yes' === $prices_include_tax ? 'incl' : 'excl');
 
         $zones = self::zone_definitions($settings);
         $ids = get_option(self::IDS_OPTION, array());

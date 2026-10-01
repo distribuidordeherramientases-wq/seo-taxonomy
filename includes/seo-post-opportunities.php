@@ -1831,11 +1831,18 @@ JS;
     echo '</section>';
 }
 
-function seo_post_opportunities_render_page()
+function seo_post_opportunities_render_page($route = array())
 {
     if (!current_user_can('manage_options')) {
         return;
     }
+
+    $route = wp_parse_args((array) $route, array(
+        'page'=>'seo-post-editor',
+        'tab'=>'opportunities',
+        'diag_scope'=>'',
+        'diag_view'=>'',
+    ));
 
     $days = isset($_GET['post_days']) ? absint($_GET['post_days']) : 60;
     $days = in_array($days, array(28, 60, 90), true) ? $days : 60;
@@ -1856,7 +1863,10 @@ function seo_post_opportunities_render_page()
     echo '<p><code>V' . esc_html(SEO_POST_OPPORTUNITIES_VERSION) . '</code> · Prioridad combina <strong>Autoridad 58% + Ventas 34% + Novedad 8%</strong>. No equivale a volumen de búsqueda.</p>';
 
     echo '<form method="get" style="display:flex;gap:12px;align-items:end;flex-wrap:wrap;">';
-    echo '<input type="hidden" name="page" value="seo-post-editor"><input type="hidden" name="tab" value="opportunities">';
+    echo '<input type="hidden" name="page" value="' . esc_attr((string) $route['page']) . '">';
+    if (!empty($route['tab'])) echo '<input type="hidden" name="tab" value="' . esc_attr((string) $route['tab']) . '">';
+    if (!empty($route['diag_scope'])) echo '<input type="hidden" name="diag_scope" value="' . esc_attr((string) $route['diag_scope']) . '">';
+    if (!empty($route['diag_view'])) echo '<input type="hidden" name="diag_view" value="' . esc_attr((string) $route['diag_view']) . '">';
     echo '<label><strong>Horizonte Search Console</strong><br><select name="post_days">';
     foreach (array(28, 60, 90) as $d) {
         echo '<option value="' . esc_attr($d) . '" ' . selected($days, $d, false) . '>' . esc_html($d) . ' días</option>';

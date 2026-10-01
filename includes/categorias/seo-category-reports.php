@@ -304,11 +304,16 @@ if (!function_exists('seo_category_reports_admin_url')) {
             $page_slug = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : 'category-seo-admin';
         }
 
+        $central = sanitize_key($page_slug) === 'seo-solucionador';
         $args = [
             'page' => sanitize_key($page_slug),
-            'tab'  => 'informes',
+            'tab'  => $central ? 'diagnostics' : 'informes',
             'days' => seo_category_reports_days($days),
         ];
+        if ($central) {
+            $args['diag_scope'] = 'categories';
+            $args['diag_view'] = 'google';
+        }
 
         if (absint($term_id) > 0) {
             $args['report_category_id'] = absint($term_id);
@@ -1254,7 +1259,13 @@ if (!function_exists('seo_category_reports_render_selector')) {
 
         echo '<form method="get" class="seo-category-report-filter">';
         echo '<input type="hidden" name="page" value="' . esc_attr($page_slug) . '">';
-        echo '<input type="hidden" name="tab" value="informes">';
+        if (sanitize_key($page_slug) === 'seo-solucionador') {
+            echo '<input type="hidden" name="tab" value="diagnostics">';
+            echo '<input type="hidden" name="diag_scope" value="categories">';
+            echo '<input type="hidden" name="diag_view" value="google">';
+        } else {
+            echo '<input type="hidden" name="tab" value="informes">';
+        }
         echo '<input type="hidden" name="score_order" value="' . esc_attr($score_order) . '">';
         echo '<div><label>Buscar</label><input type="text" name="q" value="' . esc_attr($search) . '" placeholder="Nombre, slug o ID"></div>';
         echo '<div><label>Periodo</label><select name="days">';
@@ -1322,12 +1333,16 @@ if (!function_exists('seo_category_reports_render_selector')) {
         if ($total_pages > 1) {
             $base_args = [
                 'page' => sanitize_key($page_slug),
-                'tab' => 'informes',
+                'tab' => sanitize_key($page_slug) === 'seo-solucionador' ? 'diagnostics' : 'informes',
                 'q' => $search,
                 'days' => $days,
                 'score_order' => $score_order,
                 'paged' => '%#%',
             ];
+            if (sanitize_key($page_slug) === 'seo-solucionador') {
+                $base_args['diag_scope'] = 'categories';
+                $base_args['diag_view'] = 'google';
+            }
             echo '<div style="margin-top:18px;">';
             echo wp_kses_post(paginate_links([
                 'base' => esc_url_raw(add_query_arg($base_args, admin_url('admin.php'))),

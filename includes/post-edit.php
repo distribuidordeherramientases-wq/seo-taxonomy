@@ -661,14 +661,10 @@ if (!function_exists('seo_post_editor_render_tabs')) {
         }
 
         $edit_url = seo_post_editor_section_url('edit', $context);
-        $opportunities_url = seo_post_editor_section_url('opportunities', $context);
-        $errors_url = seo_post_editor_section_url('errors', $context);
-
         echo '<h2 class="nav-tab-wrapper" style="margin-top:14px;">';
-        echo '<a class="nav-tab ' . ('edit' === $active_section ? 'nav-tab-active' : '') . '" href="' . esc_url($edit_url) . '">Editar posts</a>';
-        echo '<a class="nav-tab ' . ('opportunities' === $active_section ? 'nav-tab-active' : '') . '" href="' . esc_url($opportunities_url) . '">Oportunidades posts</a>';
-        echo '<a class="nav-tab ' . ('errors' === $active_section ? 'nav-tab-active' : '') . '" href="' . esc_url($errors_url) . '">Errores</a>';
+        echo '<a class="nav-tab nav-tab-active" href="' . esc_url($edit_url) . '">Editar posts</a>';
         echo '</h2>';
+        echo '<p class="description">El análisis de rendimiento, oportunidades y errores está centralizado en <a href="' . esc_url(class_exists('SEO_Solucionador_Admin') ? SEO_Solucionador_Admin::diagnostics_url('posts','opportunities') : admin_url('admin.php?page=seo-solucionador&tab=diagnostics&diag_scope=posts&diag_view=opportunities')) . '">Solucionador → Diagnóstico editorial</a>.</p>';
     }
 }
 
@@ -686,36 +682,13 @@ if (!function_exists('seo_page_edit_posts')) {
         $new_post = !empty($_GET['new_post']);
         $message = isset($_GET['seo_post_msg']) ? sanitize_key(wp_unslash($_GET['seo_post_msg'])) : '';
 
-        if ('errors' === $active_section) {
-            echo '<div style="padding:10px 0 30px;max-width:1280px;">';
-            echo '<h1 style="margin-bottom:8px;">Entradas</h1>';
-            echo '<p style="margin-top:0;color:#646970;">Errores de disponibilidad y test de carga externo solo para posts publicados.</p>';
-            seo_post_editor_render_tabs('errors', $context);
-            if (function_exists('seo_health_render_scope_tab')) {
-                seo_health_render_scope_tab('post');
-            } else {
-                echo '<div class="notice notice-error inline"><p>No se ha podido cargar <code>system-check/seo-health-scan.php</code>.</p></div>';
-            }
-            echo '</div>';
-            return;
-        }
-
-        // Oportunidades deja de formar parte de Informes y se integra como
-        // segunda pestana de Entradas, junto al editor/listado de posts.
-        if ('opportunities' === $active_section) {
-            echo '<div style="padding:10px 0 30px;max-width:1280px;">';
-            echo '<h1 style="margin-bottom:8px;">Entradas</h1>';
-            echo '<p style="margin-top:0;color:#646970;">Gestiona las entradas existentes y usa las oportunidades editoriales para decidir que posts crear, actualizar o consolidar.</p>';
-            seo_post_editor_render_tabs('opportunities', $context);
-
-            if (function_exists('seo_post_opportunities_render_page')) {
-                seo_post_opportunities_render_page();
-            } else {
-                echo '<div class="notice notice-error inline"><p>No esta disponible el modulo <code>seo-post-opportunities.php</code>.</p></div>';
-            }
-
-            echo '</div>';
-            return;
+        if (in_array($active_section, array('opportunities','errors'), true)) {
+            $view = $active_section === 'errors' ? 'health' : 'opportunities';
+            $url = class_exists('SEO_Solucionador_Admin')
+                ? SEO_Solucionador_Admin::diagnostics_url('posts', $view)
+                : add_query_arg(array('page'=>'seo-solucionador','tab'=>'diagnostics','diag_scope'=>'posts','diag_view'=>$view), admin_url('admin.php'));
+            wp_safe_redirect($url);
+            exit;
         }
 
         $notice_messages = array(
@@ -1031,9 +1004,6 @@ if (!function_exists('seo_page_edit_posts')) {
         echo '<p style="margin-top:0;color:#646970;">Selecciona una entrada para editarla. La categoria de producto se gestiona exclusivamente mediante SEO Relations.</p>';
         echo '</div>';
         echo '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
-        if (function_exists('seo_post_reports_admin_url')) {
-            echo '<a class="button" href="' . esc_url(seo_post_reports_admin_url(0, $score_days)) . '">Informes Google</a>';
-        }
         echo '<a class="button button-primary" href="' . esc_url(seo_post_editor_admin_url(array('new_post' => 1), $context)) . '">Nueva entrada</a>';
         echo '</div>';
         echo '</div>';
@@ -1129,7 +1099,7 @@ if (!function_exists('seo_page_edit_posts')) {
                         $score_bg = $score >= 70 ? '#edfaef' : ($score >= 40 ? '#fff8e5' : '#f0f0f1');
                         $score_fg = $score >= 70 ? '#008a20' : ($score >= 40 ? '#996800' : '#50575e');
                         $score_text = !empty($score_summary['has_snapshot']) ? $score . '/100' : '—';
-                        $report_url = $reports_available ? seo_post_reports_admin_url($post_id, $score_days) : '';
+                        $report_url = '';
                         ?>
                         <tr>
                             <td><?php echo absint($post_id); ?></td>
@@ -1160,9 +1130,7 @@ if (!function_exists('seo_page_edit_posts')) {
                             <td><?php echo esc_html(mysql2date('d/m/Y H:i', $post->post_modified)); ?></td>
                             <td style="display:flex;gap:5px;flex-wrap:wrap;">
                                 <a class="button button-small" href="<?php echo esc_url($edit_url); ?>">Editar</a>
-                                <?php if ($report_url !== ''): ?>
-                                    <a class="button button-small" href="<?php echo esc_url($report_url); ?>">Informe</a>
-                                <?php endif; ?>
+
                             </td>
                         </tr>
                     <?php endforeach; ?>
