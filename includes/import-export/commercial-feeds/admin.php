@@ -199,7 +199,7 @@ function seo_ie_cf_render_admin() {
     $history     = seo_ie_cf_history();
     $storage     = seo_ie_cf_storage();
     $environment = seo_ie_cf_environment_info();
-    $is_staging  = ! seo_ie_cf_is_production();
+    $is_staging  = 'production' !== (string) ( $environment['effective'] ?? '' );
     $next_daily  = seo_ie_cf_next_daily_scheduled();
     $supervisor_settings = function_exists( 'seo_process_supervisor_settings' ) ? seo_process_supervisor_settings() : [];
     $manager_enabled = ! empty( $supervisor_settings['enabled'] ) && ! empty( $supervisor_settings['commercial_feeds'] );
@@ -223,6 +223,14 @@ function seo_ie_cf_render_admin() {
         echo '<div class="notice notice-success inline"><p><strong>PRODUCCION:</strong> este entorno genera los inventarios comerciales reales. Las plataformas descargan desde estas URLs; no existe un envio directo desde WordPress.</p></div>';
     }
 
+    if ( ! empty( $environment['mismatch'] ) ) {
+        echo '<div class="notice notice-warning inline"><p><strong>Entorno discrepante:</strong> WordPress informa <code>'
+            . esc_html( strtoupper( (string) ( $environment['reported'] ?? '' ) ) )
+            . '</code>, pero la deteccion efectiva por hostname es <code>'
+            . esc_html( strtoupper( (string) ( $environment['effective'] ?? '' ) ) )
+            . '</code>. Revisa <code>WP_ENVIRONMENT_TYPE</code> en la configuracion del entorno.</p></div>';
+    }
+
     if ( ! $manager_enabled ) {
         echo '<div class="notice notice-error inline"><p><strong>Gestor de workers:</strong> Inventarios comerciales no esta habilitado en Procesos &gt; Gestor de workers. Puedes iniciar una generacion, pero no avanzara hasta habilitar ese proceso.</p></div>';
     }
@@ -243,12 +251,17 @@ function seo_ie_cf_render_admin() {
         </p>
 
         <div class="card" style="max-width:none;padding:16px 20px;margin-top:16px;">
-            <strong>Entorno detectado:</strong>
+            <strong>Entorno informado por WordPress:</strong>
+            <code><?php echo esc_html( strtoupper( (string) ( $environment['reported'] ?? '' ) ) ); ?></code>
+            &nbsp;·&nbsp; <strong>Entorno efectivo:</strong>
             <code><?php echo esc_html( strtoupper( (string) ( $environment['effective'] ?? '' ) ) ); ?></code>
-            &nbsp;·&nbsp; <strong>Host:</strong> <code><?php echo esc_html( (string) ( $environment['host'] ?? '' ) ); ?></code>
+            <br>
+            <strong>Host:</strong> <code><?php echo esc_html( (string) ( $environment['host'] ?? '' ) ); ?></code>
             <?php if ( ! is_wp_error( $storage ) ) : ?>
                 &nbsp;·&nbsp; <strong>Host de feeds:</strong> <code><?php echo esc_html( (string) wp_parse_url( $storage['url'], PHP_URL_HOST ) ); ?></code>
             <?php endif; ?>
+            &nbsp;·&nbsp; <strong>Origen de la deteccion:</strong>
+            <code><?php echo esc_html( (string) ( $environment['source'] ?? '' ) ); ?></code>
             <?php if ( ! is_wp_error( $storage ) && ! empty( $storage['url_corrected'] ) ) : ?>
                 <p class="description" style="margin-bottom:0;">Se ha corregido automaticamente una URL de uploads heredada de otro entorno para evitar mezclar PRO y STAGING.</p>
             <?php endif; ?>
