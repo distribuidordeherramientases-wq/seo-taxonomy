@@ -35,15 +35,19 @@ CSV: **Validar CSV antes de importar**, **Descargar plantilla CSV**, **Exportar 
 Reglas horarias:
 - ofertas de campaña: **18:00**;
 - entradas de la categoría **Noticias**: **20:00**;
-- páginas/landings: fecha y hora manual.
+- resto de entradas y páginas/landings: **22:00**.
+
+La franja de las **22:00** es una cola editorial compartida por red: admite como máximo una pieza al día y alterna entradas y páginas/landings cuando hay contenido de ambos tipos. Si solo queda un tipo disponible, continúa con ese tipo.
 
 En las filas de Noticias aparece la casilla **Prioritaria**. Las prioritarias ocupan primero los huecos futuros de Noticias de cada red y adelantan a las no prioritarias, que se desplazan detrás. Ofertas y Noticias pueden convivir el mismo día.
 
-El CSV admite la columna opcional **prioridad** (`si`, `1`, `true`, `prioritaria`). Para Noticias la hora se normaliza a las 20:00.
+El CSV admite la columna opcional **prioridad** (`si`, `1`, `true`, `prioritaria`). La hora se normaliza automáticamente según el tipo: **20:00** para Noticias y **22:00** para el resto de entradas y páginas/landings.
 
 Filtros: Tipo y búsqueda. Cada fila permite elegir redes con checkboxes, fecha/hora, **Programar**, **Publicar ahora** y cancelar programaciones.
 
-Las **ofertas de campañas** usan una regla comercial propia: se programan automáticamente a las **18:00**. Los posts y landings del mismo día no bloquean la oferta. Se mantiene como límite una oferta de campaña por día y por red; si ese día ya contiene otra oferta, se utiliza el siguiente día disponible dentro del periodo de campaña.
+Las **ofertas de campañas** usan una regla comercial propia: se programan automáticamente a las **18:00**. Noticias y la cola editorial de las 22:00 no bloquean la oferta. Se mantiene como límite una oferta de campaña por día y por red; si ese día ya contiene otra oferta, se utiliza el siguiente día disponible dentro del periodo de campaña.
+
+La automatización al publicar contenido en WordPress respeta las mismas franjas: Noticias entran en la cola de las **20:00** y el resto de entradas/páginas en la cola de las **22:00**, en lugar de enviarse inmediatamente a la red social.
 
 ### Conexiones
 Tarjeta por proveedor con estado Conectado/Sin conectar. Las credenciales se detallan en Conexiones y credenciales.
