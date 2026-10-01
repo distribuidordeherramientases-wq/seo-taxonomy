@@ -305,6 +305,7 @@ function seo_search_get_vocabulary_matching_product_ids($vocabulary_filters, $ba
     ";
 
     $params = array_merge($where_params, $base_params, $having_params);
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal tables and generated clauses/placeholders; all external values are bound through prepare().
     return array_values(array_unique(array_map('absint', (array) $wpdb->get_col($wpdb->prepare($sql, $params)))));
 }
 
@@ -552,8 +553,8 @@ function seo_search_find_matching_ids($keyword, $max_ids = 5000) {
     ";
 
     $params = array_merge($score_params, $where_params, array(absint($max_ids)));
-    $prepared = $wpdb->prepare($sql, $params);
-    $rows = $wpdb->get_results($prepared, ARRAY_A);
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Query fragments are generated from fixed search fields; all values and limit are bound through prepare().
+    $rows = $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
 
     $ids = array();
     foreach ($rows as $row) {
@@ -593,16 +594,18 @@ function seo_search_fuzzy_ids($keyword, $scan_limit = 1200) {
 
     if (!is_array($index)) {
         $limit = min(5000, max(100, absint($scan_limit)));
-        $sql = $wpdb->prepare(
-            "SELECT p.ID, p.post_title, sku.meta_value AS sku
-             FROM {$wpdb->posts} p
-             LEFT JOIN {$wpdb->postmeta} sku ON sku.post_id = p.ID AND sku.meta_key = '_sku'
-             WHERE p.post_type = 'product' AND p.post_status = 'publish'
-             ORDER BY p.post_modified_gmt DESC
-             LIMIT %d",
-            $limit
+        $index = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT p.ID, p.post_title, sku.meta_value AS sku
+                 FROM {$wpdb->posts} p
+                 LEFT JOIN {$wpdb->postmeta} sku ON sku.post_id = p.ID AND sku.meta_key = '_sku'
+                 WHERE p.post_type = 'product' AND p.post_status = 'publish'
+                 ORDER BY p.post_modified_gmt DESC
+                 LIMIT %d",
+                $limit
+            ),
+            ARRAY_A
         );
-        $index = $wpdb->get_results($sql, ARRAY_A);
         set_transient($cache_key, $index, 12 * HOUR_IN_SECONDS);
     }
 
@@ -839,19 +842,21 @@ function seo_search_build_facets($product_ids) {
     }
 
     $taxonomies = array_values(array_unique($taxonomies));
-    $id_sql = implode(',', $product_ids);
+    $id_placeholders = implode(',', array_fill(0, count($product_ids), '%d'));
     $tax_placeholders = implode(',', array_fill(0, count($taxonomies), '%s'));
 
     $sql = "SELECT tt.taxonomy, t.term_id, t.name, t.slug, COUNT(DISTINCT tr.object_id) AS product_count
             FROM {$wpdb->term_relationships} tr
             INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
             INNER JOIN {$wpdb->terms} t ON t.term_id = tt.term_id
-            WHERE tr.object_id IN ({$id_sql})
+            WHERE tr.object_id IN ({$id_placeholders})
               AND tt.taxonomy IN ({$tax_placeholders})
             GROUP BY tt.taxonomy, t.term_id, t.name, t.slug
             ORDER BY tt.taxonomy ASC, product_count DESC, t.name ASC";
 
-    $rows = $wpdb->get_results($wpdb->prepare($sql, $taxonomies), ARRAY_A);
+    $facet_params = array_merge($product_ids, $taxonomies);
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Placeholder lists are generated internally; all product IDs and taxonomy values are bound through prepare().
+    $rows = $wpdb->get_results($wpdb->prepare($sql, $facet_params), ARRAY_A);
     $facets = seo_search_empty_facets();
 
     foreach ($rows as $row) {
@@ -1097,6 +1102,7 @@ function seo_search_autocomplete_fast($keyword, $category_limit = 3, $product_li
     $params[] = $prefix;
     $params[] = $product_limit;
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- WHERE clauses are fixed LIKE placeholders; all search values and limit are bound through prepare().
     $product_rows = $wpdb->get_results($wpdb->prepare($sql, $params));
 
     foreach ((array) $product_rows as $row) {
@@ -1879,7 +1885,7 @@ function seo_search_settings_page() {
                 <table class="form-table" role="presentation">
                     <?php if ('general' === $tab) : ?>
                         <tr><th><?php esc_html_e('Resultados por página', 'seo-taxonomy'); ?></th><td><input type="number" min="1" max="100" name="<?php echo esc_attr(SEO_SEARCH_OPTION); ?>[results_per_page]" value="<?php echo absint($options['results_per_page']); ?>"></td></tr>
-                        <tr><th><?php esc_html_e('Página de resultados', 'seo-taxonomy'); ?></th><td><?php wp_dropdown_pages(array('name' => SEO_SEARCH_OPTION . '[results_page_id]', 'selected' => absint($options['results_page_id']), 'show_option_none' => __('Página de inicio', 'seo-taxonomy'))); ?><p class="description"><?php esc_html_e('El formulario enviará aquí la búsqueda. La página puede estar vacía.', 'seo-taxonomy'); ?></p></td></tr>
+                        <tr><th><?php esc_html_e('Página de resultados', 'seo-taxonomy'); ?></th><td><?php wp_dropdown_pages(array('name' => esc_attr(SEO_SEARCH_OPTION . '[results_page_id]'), 'selected' => absint($options['results_page_id']), 'show_option_none' => esc_html__('Página de inicio', 'seo-taxonomy'))); ?><p class="description"><?php esc_html_e('El formulario enviará aquí la búsqueda. La página puede estar vacía.', 'seo-taxonomy'); ?></p></td></tr>
                         <tr><th><?php esc_html_e('Parámetro de URL', 'seo-taxonomy'); ?></th><td><input type="text" name="<?php echo esc_attr(SEO_SEARCH_OPTION); ?>[query_parameter]" value="<?php echo esc_attr($options['query_parameter']); ?>" class="regular-text"><p class="description"><?php esc_html_e('Por compatibilidad se recomienda mantener “q”.', 'seo-taxonomy'); ?></p></td></tr>
                         <tr><th><?php esc_html_e('Autocompletado', 'seo-taxonomy'); ?></th><td><?php seo_search_admin_checkbox('autocomplete_enabled', __('Activar sugerencias mientras se escribe', 'seo-taxonomy')); ?><p><label><?php esc_html_e('Mínimo de caracteres', 'seo-taxonomy'); ?> <input type="number" min="1" max="5" name="<?php echo esc_attr(SEO_SEARCH_OPTION); ?>[autocomplete_min_chars]" value="<?php echo absint($options['autocomplete_min_chars']); ?>"></label></p><p><label><?php esc_html_e('Número de sugerencias', 'seo-taxonomy'); ?> <input type="number" min="3" max="20" name="<?php echo esc_attr(SEO_SEARCH_OPTION); ?>[autocomplete_limit]" value="<?php echo absint($options['autocomplete_limit']); ?>"></label></p></td></tr>
                         <tr><th><?php esc_html_e('Tolerancia a errores', 'seo-taxonomy'); ?></th><td><?php seo_search_admin_checkbox('typo_tolerance', __('Activar coincidencias aproximadas', 'seo-taxonomy'), __('Se usa como respaldo cuando hay pocos resultados exactos.', 'seo-taxonomy')); ?><p><label><?php esc_html_e('Productos máximos del índice aproximado', 'seo-taxonomy'); ?> <input type="number" min="100" max="5000" name="<?php echo esc_attr(SEO_SEARCH_OPTION); ?>[fuzzy_scan_limit]" value="<?php echo absint($options['fuzzy_scan_limit']); ?>"></label></p></td></tr>
