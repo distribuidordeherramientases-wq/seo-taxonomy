@@ -1468,8 +1468,8 @@ function seo_google_opportunity_render_rows(array $rows, $empty_message, $limit 
         echo '<article class="seo-opp-row">';
         echo '<div class="seo-opp-score">' . absint($row['priority']) . '<small>/100</small></div>';
         echo '<div class="seo-opp-body"><div class="seo-opp-head">';
-        echo seo_google_opportunity_badge($row['action_label'], seo_google_opportunity_action_tone($row['action']));
-        echo seo_google_opportunity_badge($row['confidence'], 'gray');
+        echo wp_kses_post(seo_google_opportunity_badge($row['action_label'], seo_google_opportunity_action_tone($row['action'])));
+        echo wp_kses_post(seo_google_opportunity_badge($row['confidence'], 'gray'));
         echo '<strong>' . esc_html($row['topic']) . '</strong></div>';
         echo '<p>' . esc_html($row['reason']) . '</p>';
         if ($metric_text !== '') {
@@ -1492,7 +1492,7 @@ function seo_google_opportunity_render_rows(array $rows, $empty_message, $limit 
         }
         echo '<div class="seo-opp-sources">';
         foreach ($row['sources'] as $source) {
-            echo seo_google_opportunity_badge($source, 'gray');
+            echo wp_kses_post(seo_google_opportunity_badge($source, 'gray'));
         }
         echo '</div></div></article>';
     }
@@ -1529,7 +1529,7 @@ function seo_google_opportunity_render_source_cards(array $sources) {
         $source = (array) ($sources[$key] ?? array());
         $connected = !empty($source['connected']);
         echo '<div class="seo-opp-card"><h3>' . esc_html($label) . '</h3>';
-        echo seo_google_opportunity_badge($connected ? 'OPERATIVO' : 'REVISAR', $connected ? 'green' : 'red');
+        echo wp_kses_post(seo_google_opportunity_badge($connected ? 'OPERATIVO' : 'REVISAR', $connected ? 'green' : 'red'));
         echo '<p>' . esc_html((string) ($source['detail'] ?? 'Sin diagnóstico.')) . '</p></div>';
     }
     echo '</div>';
@@ -1652,7 +1652,7 @@ function seo_google_opportunity_render_results(array $payload, $days) {
     } else {
         echo '<table class="widefat striped"><thead><tr><th>Landing</th><th>Diagnóstico</th><th>GA4</th><th>Search Console</th></tr></thead><tbody>';
         foreach (array_slice($results['landings'], 0, 80) as $row) {
-            echo '<tr><td><a href="' . esc_url($row['url']) . '" target="_blank" rel="noopener"><strong>' . esc_html($row['title']) . '</strong></a></td><td>' . seo_google_opportunity_badge($row['assessment'], 'gray') . '</td><td>' . esc_html(number_format_i18n((int) $row['pageviews'])) . ' vistas · ' . esc_html(number_format_i18n((int) $row['sessions'])) . ' sesiones</td><td>' . esc_html(number_format_i18n((int) $row['clicks'])) . ' clics · ' . esc_html(number_format_i18n((int) $row['impressions'])) . ' impresiones · pos. ' . ($row['position'] ? esc_html(number_format_i18n((float) $row['position'], 1)) : '—') . '</td></tr>';
+            echo '<tr><td><a href="' . esc_url($row['url']) . '" target="_blank" rel="noopener"><strong>' . esc_html($row['title']) . '</strong></a></td><td>' . wp_kses_post(seo_google_opportunity_badge($row['assessment'], 'gray')) . '</td><td>' . esc_html(number_format_i18n((int) $row['pageviews'])) . ' vistas · ' . esc_html(number_format_i18n((int) $row['sessions'])) . ' sesiones</td><td>' . esc_html(number_format_i18n((int) $row['clicks'])) . ' clics · ' . esc_html(number_format_i18n((int) $row['impressions'])) . ' impresiones · pos. ' . ($row['position'] ? esc_html(number_format_i18n((float) $row['position'], 1)) : '—') . '</td></tr>';
         }
         echo '</tbody></table>';
     }
@@ -1664,7 +1664,7 @@ function seo_google_opportunity_render_results(array $payload, $days) {
     } else {
         echo '<table class="widefat striped"><thead><tr><th>Post</th><th>Diagnóstico</th><th>GA4</th><th>Search Console</th></tr></thead><tbody>';
         foreach (array_slice($results['posts'], 0, 80) as $row) {
-            echo '<tr><td><a href="' . esc_url($row['url']) . '" target="_blank" rel="noopener"><strong>' . esc_html($row['title']) . '</strong></a></td><td>' . seo_google_opportunity_badge($row['assessment'], 'gray') . '</td><td>' . esc_html(number_format_i18n((int) $row['pageviews'])) . ' vistas · ' . esc_html(number_format_i18n((int) $row['sessions'])) . ' sesiones</td><td>' . esc_html(number_format_i18n((int) $row['clicks'])) . ' clics · ' . esc_html(number_format_i18n((int) $row['impressions'])) . ' impresiones · pos. ' . (!empty($row['position']) ? esc_html(number_format_i18n((float) $row['position'], 1)) : '—') . '</td></tr>';
+            echo '<tr><td><a href="' . esc_url($row['url']) . '" target="_blank" rel="noopener"><strong>' . esc_html($row['title']) . '</strong></a></td><td>' . wp_kses_post(seo_google_opportunity_badge($row['assessment'], 'gray')) . '</td><td>' . esc_html(number_format_i18n((int) $row['pageviews'])) . ' vistas · ' . esc_html(number_format_i18n((int) $row['sessions'])) . ' sesiones</td><td>' . esc_html(number_format_i18n((int) $row['clicks'])) . ' clics · ' . esc_html(number_format_i18n((int) $row['impressions'])) . ' impresiones · pos. ' . (!empty($row['position']) ? esc_html(number_format_i18n((float) $row['position'], 1)) : '—') . '</td></tr>';
         }
         echo '</tbody></table>';
     }
