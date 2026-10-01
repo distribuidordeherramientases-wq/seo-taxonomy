@@ -11,7 +11,7 @@ defined('ABSPATH') || exit;
  */
 
 if (!defined('SEO_CORE_WPORG_VALIDATION_VERSION')) {
-    define('SEO_CORE_WPORG_VALIDATION_VERSION', '1.1.0');
+    define('SEO_CORE_WPORG_VALIDATION_VERSION', '1.2.0');
 }
 
 function seo_core_wporg_scan_root() {
@@ -283,6 +283,9 @@ function seo_core_wporg_static_findings() {
         'deprecated' => array(),
         'http_api' => array(),
         'datetime' => array(),
+        'unslash' => array(),
+        'exception_escaping' => array(),
+        'alternative_functions' => array(),
         'external_services' => array(),
     );
 
@@ -443,6 +446,64 @@ function seo_core_wporg_static_findings() {
                 seo_core_wporg_add_hit($groups['datetime'], 'date_direct', $relative, $line_no, 'date() directo detectado; revisar wp_date()/gmdate().');
             }
 
+            if (
+                preg_match('/\$_(?:GET|POST|REQUEST|COOKIE)\s*\[/i', $line)
+                && preg_match('/\b(?:sanitize_text_field|sanitize_textarea_field|sanitize_key|sanitize_title|esc_url_raw)\s*\(/i', $line)
+                && stripos($line, 'wp_unslash(') === false
+            ) {
+                seo_core_wporg_add_hit(
+                    $groups['unslash'],
+                    'missing_unslash',
+                    $relative,
+                    $line_no,
+                    'Superglobal sanitizada sin wp_unslash() detectable; revisar WordPress.Security.ValidatedSanitizedInput.MissingUnslash.'
+                );
+            }
+
+            if (
+                preg_match('/(?:->getMessage\(\)|->get_error_message\(\))/i', $line)
+                && preg_match('/\b(?:echo|print|wp_die|wp_send_json_error|wp_send_json_success)\b/i', $line)
+                && !preg_match('/\b(?:esc_html|esc_attr|wp_kses|wp_kses_post|sanitize_text_field)\s*\(/i', $line)
+            ) {
+                seo_core_wporg_add_hit(
+                    $groups['exception_escaping'],
+                    'exception_not_escaped',
+                    $relative,
+                    $line_no,
+                    'Mensaje de excepción/error enviado a salida sin escape detectable; revisar ExceptionNotEscaped.'
+                );
+            }
+
+            if (preg_match('/\bparse_url\s*\(/i', $line)) {
+                seo_core_wporg_add_hit(
+                    $groups['alternative_functions'],
+                    'parse_url_direct',
+                    $relative,
+                    $line_no,
+                    'parse_url() directo detectado; usar wp_parse_url().'
+                );
+            }
+
+            if (preg_match('/\bstrip_tags\s*\(/i', $line)) {
+                seo_core_wporg_add_hit(
+                    $groups['alternative_functions'],
+                    'strip_tags_direct',
+                    $relative,
+                    $line_no,
+                    'strip_tags() directo detectado; revisar wp_strip_all_tags().'
+                );
+            }
+
+            if (preg_match('/\bmysqli_(?:query|real_escape_string|fetch_assoc|free_result|insert_id|affected_rows|error|close)\s*\(/i', $line)) {
+                seo_core_wporg_add_hit(
+                    $groups['alternative_functions'],
+                    'mysqli_restricted',
+                    $relative,
+                    $line_no,
+                    'Función mysqli directa detectada; Plugin Check exige usar la abstracción $wpdb.'
+                );
+            }
+
             if (preg_match('/\b(?:fclose|fwrite|fopen|unlink|rename|chmod|is_writable|readfile|rmdir|fread)\s*\(/i', $line)) {
                 seo_core_wporg_add_hit($groups['filesystem'], 'filesystem_direct_api', $relative, $line_no, 'Operacion directa de filesystem; revisar WP_Filesystem.');
             }
@@ -508,7 +569,10 @@ function seo_core_system_test_wordpress_org_results() {
         seo_core_wporg_result('0.39 WordPress.org · APIs obsoletas', $groups['deprecated'], 'warning', 95, 'No se detectan llamadas con parámetros obsoletos conocidos'),
         seo_core_wporg_result('0.40 WordPress.org · HTTP API', $groups['http_api'], 'warning', 95, 'No se detectan llamadas cURL directas'),
         seo_core_wporg_result('0.41 WordPress.org · fecha/hora', $groups['datetime'], 'warning', 95, 'No se detectan llamadas date() directas sin sustituto WordPress'),
-        seo_core_wporg_result('0.42 WordPress.org · servicios externos documentados', $groups['external_services'], 'warning', 75, 'Los dominios externos detectados aparecen documentados en readme.txt')
+        seo_core_wporg_result('0.42 WordPress.org · wp_unslash en entradas', $groups['unslash'], 'warning', 85, 'Las entradas sanitizadas analizadas incluyen wp_unslash() cuando corresponde'),
+        seo_core_wporg_result('0.43 WordPress.org · excepciones y errores escapados', $groups['exception_escaping'], 'warning', 85, 'No se detectan mensajes de excepción enviados a salida sin escape'),
+        seo_core_wporg_result('0.44 WordPress.org · funciones alternativas', $groups['alternative_functions'], 'warning', 95, 'No se detectan parse_url(), strip_tags() ni mysqli directos en los patrones analizados'),
+        seo_core_wporg_result('0.45 WordPress.org · servicios externos documentados', $groups['external_services'], 'warning', 75, 'Los dominios externos detectados aparecen documentados en readme.txt')
     );
 }
 
