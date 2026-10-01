@@ -347,7 +347,7 @@ function seo_proveedores_preparar_csv_estandar( $state, $recipe, $mapping = [] )
     fclose( $out );
 
     if ( 0 === $log['preparados'] ) {
-        @unlink( $path );
+        wp_delete_file( $path );
         return new WP_Error( 'supplier_no_prepared_rows', 'La receta no produjo ninguna fila valida.' );
     }
 
@@ -1164,7 +1164,7 @@ function seo_proveedores_xls_filas( $path ) {
 
     if ( 0 !== $status || '' === $converted ) {
         foreach ( (array) glob( trailingslashit( $tmp_dir ) . '*' ) as $file ) {
-            @unlink( $file );
+            wp_delete_file( $file );
         }
         @rmdir( $tmp_dir );
 
@@ -1177,7 +1177,7 @@ function seo_proveedores_xls_filas( $path ) {
     $rows = seo_proveedores_xlsx_filas_ligeras( $converted );
 
     foreach ( (array) glob( trailingslashit( $tmp_dir ) . '*' ) as $file ) {
-        @unlink( $file );
+        wp_delete_file( $file );
     }
     @rmdir( $tmp_dir );
 
