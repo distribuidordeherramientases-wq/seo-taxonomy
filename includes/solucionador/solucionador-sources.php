@@ -497,18 +497,168 @@ final class SEO_Solucionador_Sources {
         return $out;
     }
 
+
+    /**
+     * Comparador aun puede evolucionar como servicio independiente. Solucionador
+     * consume solo un contrato normalizado publicado por Comparador; no vuelve a
+     * calcular comparativas de mercado.
+     */
+    public static function comparador($limit = 240) {
+        $signals = apply_filters('seo_solucionador_comparador_signals', array(), max(20,min(500,absint($limit))));
+        $out = array();
+        foreach (array_slice((array) $signals,0,max(20,min(500,absint($limit)))) as $row) {
+            if (!is_array($row)) continue;
+            $term_id = absint($row['category_id'] ?? $row['term_id'] ?? 0);
+            $text = trim((string) ($row['source_text'] ?? $row['topic'] ?? $row['summary'] ?? ''));
+            if ($text === '') continue;
+            $out[] = array(
+                'source_type'=>'comparador',
+                'proposal_role'=>'reinforcement',
+                'source_id'=>sanitize_text_field((string) ($row['source_id'] ?? ('comparison:' . md5($text . '|' . $term_id)))),
+                'source_text'=>$text,
+                'signal_type'=>sanitize_key((string) ($row['signal_type'] ?? 'market_comparison')),
+                'category_id'=>$term_id,
+                'entity_type'=>$term_id ? 'product_cat' : sanitize_key((string) ($row['entity_type'] ?? '')),
+                'entity_id'=>$term_id ?: absint($row['entity_id'] ?? 0),
+                'hints'=>array(
+                    'intent'=>(string) ($row['intent'] ?? 'decision'),
+                    'object'=>(string) ($row['object'] ?? ''),
+                    'context'=>(string) ($row['context'] ?? ''),
+                    'category_id'=>$term_id,
+                ),
+                'occurrences'=>max(1,absint($row['occurrences'] ?? 1)),
+                'confidence'=>max(0,min(1,(float) ($row['confidence'] ?? 0.7))),
+                'evidence_score'=>max(0.25,min(1.0,(float) ($row['evidence_score'] ?? 0.70))),
+                'observed_at'=>sanitize_text_field((string) ($row['observed_at'] ?? current_time('mysql'))),
+                'source_meta'=>array_merge((array) ($row['metadata'] ?? array()),array(
+                    'proposal_role'=>'reinforcement',
+                    'term_id'=>$term_id,
+                    'types'=>(array) ($row['types'] ?? array()),
+                    'differentiators'=>(array) ($row['differentiators'] ?? array()),
+                    'decisive_features'=>(array) ($row['decisive_features'] ?? array()),
+                    'advantages'=>(array) ($row['advantages'] ?? array()),
+                    'limitations'=>(array) ($row['limitations'] ?? array()),
+                    'representative_refs'=>(array) ($row['representative_refs'] ?? array()),
+                )),
+            );
+        }
+        return $out;
+    }
+
+    /**
+     * Marketing puede reforzar prioridad, nunca originar por si solo una URL.
+     * Se deja un contrato desacoplado para campañas/estacionalidad/interes.
+     */
+    public static function marketing($limit = 120) {
+        $signals = apply_filters('seo_solucionador_marketing_priorities', array(), max(10,min(300,absint($limit))));
+        $out = array();
+        foreach (array_slice((array) $signals,0,max(10,min(300,absint($limit)))) as $row) {
+            if (!is_array($row)) continue;
+            $term_id = absint($row['category_id'] ?? $row['term_id'] ?? 0);
+            $text = trim((string) ($row['topic'] ?? $row['source_text'] ?? ''));
+            if ($text === '') continue;
+            $out[] = array(
+                'source_type'=>'marketing',
+                'proposal_role'=>'reinforcement',
+                'source_id'=>sanitize_text_field((string) ($row['source_id'] ?? ('marketing:' . md5($text . '|' . $term_id)))),
+                'source_text'=>$text,
+                'signal_type'=>sanitize_key((string) ($row['signal_type'] ?? 'commercial_priority')),
+                'category_id'=>$term_id,
+                'entity_type'=>$term_id ? 'product_cat' : '',
+                'entity_id'=>$term_id,
+                'hints'=>array('category_id'=>$term_id,'object'=>(string) ($row['category_name'] ?? '')),
+                'occurrences'=>1,
+                'confidence'=>max(0,min(1,(float) ($row['confidence'] ?? 0.6))),
+                'evidence_score'=>max(0.1,min(0.8,(float) ($row['evidence_score'] ?? 0.45))),
+                'observed_at'=>sanitize_text_field((string) ($row['observed_at'] ?? current_time('mysql'))),
+                'source_meta'=>array(
+                    'proposal_role'=>'reinforcement',
+                    'term_id'=>$term_id,
+                    'category_priority'=>(float) ($row['category_priority'] ?? 0),
+                    'campaign'=>(string) ($row['campaign'] ?? ''),
+                    'seasonality'=>(string) ($row['seasonality'] ?? ''),
+                    'commercial_interest'=>(float) ($row['commercial_interest'] ?? 0),
+                ),
+            );
+        }
+        return $out;
+    }
+
+    private static function normalize_rows(array $rows) {
+        $out = array();
+        foreach ($rows as $row) {
+            if (!is_array($row)) continue;
+            $meta = is_array($row['source_meta'] ?? null) ? $row['source_meta'] : array();
+            $hints = is_array($row['hints'] ?? null) ? $row['hints'] : array();
+
+            $category_id = absint($row['category_id'] ?? $meta['category_id'] ?? $meta['term_id'] ?? $hints['category_id'] ?? 0);
+            $entity_type = sanitize_key((string) ($row['entity_type'] ?? $meta['entity_type'] ?? ''));
+            $entity_id = absint($row['entity_id'] ?? $meta['entity_id'] ?? 0);
+
+            if (!$entity_id && !empty($meta['clicked_product_id'])) {
+                $entity_type = 'product';
+                $entity_id = absint($meta['clicked_product_id']);
+            }
+            if (!$entity_id && !empty($meta['product_id'])) {
+                $entity_type = 'product';
+                $entity_id = absint($meta['product_id']);
+            }
+            if (!$category_id && $entity_type === 'product' && $entity_id) {
+                $ids = wp_get_post_terms($entity_id,'product_cat',array('fields'=>'ids'));
+                if (!is_wp_error($ids) && $ids) $category_id = absint(reset($ids));
+            }
+            if (!$category_id && !empty($meta['top_results']) && is_array($meta['top_results'])) {
+                foreach ($meta['top_results'] as $result) {
+                    if (!is_array($result)) continue;
+                    $product_id = absint($result['product_id'] ?? $result['id'] ?? $result['post_id'] ?? 0);
+                    if (!$product_id) continue;
+                    $ids = wp_get_post_terms($product_id,'product_cat',array('fields'=>'ids'));
+                    if (!is_wp_error($ids) && $ids) {
+                        $category_id = absint(reset($ids));
+                        break;
+                    }
+                }
+            }
+            if (!$category_id && !empty($meta['semantic_matches']) && is_array($meta['semantic_matches'])) {
+                foreach ($meta['semantic_matches'] as $match) {
+                    if (!is_array($match)) continue;
+                    if (in_array(sanitize_key((string) ($match['type'] ?? $match['object_type'] ?? '')),array('category','product_cat'),true)) {
+                        $category_id = absint($match['id'] ?? $match['term_id'] ?? $match['object_id'] ?? 0);
+                        if ($category_id) break;
+                    }
+                }
+            }
+            if ($category_id && $entity_type === '') {
+                $entity_type = 'product_cat';
+                $entity_id = $category_id;
+            }
+
+            $row['category_id'] = $category_id;
+            $row['entity_type'] = $entity_type;
+            $row['entity_id'] = $entity_id;
+            $row['signal_type'] = sanitize_key((string) ($row['signal_type'] ?? $meta['signal_type'] ?? $meta['kind'] ?? $meta['code'] ?? $row['source_type'] ?? 'signal'));
+            $row['confidence'] = max(0,min(1,(float) ($row['confidence'] ?? $meta['confidence'] ?? $row['evidence_score'] ?? 0.6)));
+            $row['hints'] = $hints;
+            if ($category_id && empty($row['hints']['category_id'])) $row['hints']['category_id'] = $category_id;
+            $out[] = $row;
+        }
+        return $out;
+    }
+
     public static function all($days = 180) {
         // Orden intencional: primero las preguntas reales y los gaps/probes que
         // pueden originar temas. Comentarista aporta preguntas o refuerzos y
         // Analista queda al final para reforzar cualquier origen del ciclo.
-        return array_merge(
+        return self::normalize_rows(array_merge(
             self::dependiente($days, 1600),
             self::auditor(300),
             self::comentarista(1200),
             self::analista(min(180, $days), 160),
             self::ojeador(180),
+            self::comparador(240),
             self::ingeniero(260),
-            self::clasificador(260)
-        );
+            self::clasificador(260),
+            self::marketing(120)
+        ));
     }
 }
