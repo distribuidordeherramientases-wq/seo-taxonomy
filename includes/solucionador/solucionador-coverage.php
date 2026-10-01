@@ -1,12 +1,16 @@
 <?php
 /**
- * Solucionador - indice editorial y comprobacion de cobertura.
+ * Solucionador - indice editorial y comprobacion de cobertura RF v1.0.
+ *
+ * La cobertura es multientidad: posts, paginas/landings/hubs y product_cat.
+ * Solucionador no crea contenido desde aqui; solo responde que URL ya existe,
+ * cuanto cubre la intencion y si hay riesgo de duplicacion/canibalizacion.
  */
 
 defined('ABSPATH') || exit;
 
 final class SEO_Solucionador_Coverage {
-    private static function post_vocabulary_text($post_id) {
+    private static function object_vocabulary_text($object_type, $object_id) {
         global $wpdb;
         $ov = $wpdb->prefix . 'seo_object_vocabulary';
         $v = $wpdb->prefix . 'seo_vocabulary';
@@ -15,39 +19,128 @@ final class SEO_Solucionador_Coverage {
             "SELECT v.label
              FROM {$ov} ov
              INNER JOIN {$v} v ON v.id=ov.vocabulary_id AND v.active=1
-             WHERE ov.object_type='post' AND ov.object_id=%d AND ov.status=1
-             ORDER BY v.semantic_group,v.id LIMIT 40",
-            absint($post_id)
+             WHERE ov.object_type=%s AND ov.object_id=%d AND ov.status=1
+             ORDER BY v.semantic_group,v.id LIMIT 60",
+            sanitize_key((string) $object_type),
+            absint($object_id)
         ));
         return implode(' ', array_filter(array_map('sanitize_text_field', $labels)));
     }
 
-    private static function post_category_text($post_id) {
+    private static function post_category_ids($post_id) {
         global $wpdb;
         $relations = $wpdb->prefix . 'seo_relations';
-        if (!SEO_Solucionador_DB::table_exists($relations)) return '';
-        $labels = (array) $wpdb->get_col($wpdb->prepare(
-            "SELECT DISTINCT t.name
-             FROM {$relations} r
-             INNER JOIN {$wpdb->terms} t ON t.term_id=r.target_id
-             INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_id=t.term_id AND tt.taxonomy='product_cat'
-             WHERE r.source_type='post' AND r.source_id=%d
-               AND r.target_type='product_cat' AND r.relation_type='post_to_category'
-             ORDER BY t.name ASC LIMIT 20",
+        if (!SEO_Solucionador_DB::table_exists($relations)) return array();
+        return array_values(array_unique(array_filter(array_map('absint', (array) $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT target_id
+             FROM {$relations}
+             WHERE source_type='post' AND source_id=%d
+               AND target_type='product_cat' AND relation_type='post_to_category'
+             ORDER BY target_id ASC LIMIT 30",
             absint($post_id)
+        ))))));
+    }
+
+    private static function post_category_text($post_id) {
+        $names = array();
+        foreach (self::post_category_ids($post_id) as $term_id) {
+            $term = get_term($term_id, 'product_cat');
+            if ($term && !is_wp_error($term)) $names[] = (string) $term->name;
+        }
+        return implode(' ', $names);
+    }
+
+    private static function page_role($page_id) {
+        global $wpdb;
+        $nodes = $wpdb->prefix . 'seo_nodes';
+        if (!SEO_Solucionador_DB::table_exists($nodes)) return 'page';
+        $role = (string) $wpdb->get_var($wpdb->prepare(
+            "SELECT seo_role FROM {$nodes}
+             WHERE object_type='page' AND object_id=%d AND status=1
+             ORDER BY FIELD(seo_role,'landing','hub_secondary','hub_primary','cluster','corporate_page') ASC,id ASC
+             LIMIT 1",
+            absint($page_id)
         ));
-        return implode(' ', array_filter(array_map('sanitize_text_field', $labels)));
+        return sanitize_key($role) ?: 'page';
+    }
+
+    private static function page_category_ids($page_id, $role = '') {
+        global $wpdb;
+        $relations = $wpdb->prefix . 'seo_relations';
+        if (!SEO_Solucionador_DB::table_exists($relations)) return array();
+
+        $page_id = absint($page_id);
+        $role = sanitize_key((string) $role);
+        $ids = array();
+
+        // Landings se relacionan directamente con product_cat.
+        foreach ((array) $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT target_id FROM {$relations}
+             WHERE source_id=%d
+               AND target_type='product_cat'
+               AND relation_type IN ('landing_to_category','hub_secondary_to_category')
+             ORDER BY target_id ASC LIMIT 50",
+            $page_id
+        )) as $id) {
+            if (absint($id)) $ids[] = absint($id);
+        }
+
+        // Hubs primarios/clusters heredan categorias descendientes para contexto,
+        // no para afirmar cobertura exacta.
+        if (!$ids && in_array($role,array('cluster','hub_primary'),true)) {
+            $children = (array) $wpdb->get_col($wpdb->prepare(
+                "SELECT DISTINCT target_id FROM {$relations}
+                 WHERE source_id=%d AND target_type IN ('hub_primary','hub_secondary','page')
+                 ORDER BY target_id ASC LIMIT 100",
+                $page_id
+            ));
+            foreach ($children as $child_id) {
+                foreach ((array) $wpdb->get_col($wpdb->prepare(
+                    "SELECT DISTINCT target_id FROM {$relations}
+                     WHERE source_id=%d AND target_type='product_cat'
+                     ORDER BY target_id ASC LIMIT 50",
+                    absint($child_id)
+                )) as $id) {
+                    if (absint($id)) $ids[] = absint($id);
+                }
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    private static function category_text($term_id) {
+        global $wpdb;
+        $nodes = $wpdb->prefix . 'seo_nodes';
+        $parts = array();
+        $term = get_term(absint($term_id), 'product_cat');
+        if ($term && !is_wp_error($term)) {
+            $parts[] = (string) $term->name;
+            if (!empty($term->description)) $parts[] = (string) $term->description;
+        }
+        if (SEO_Solucionador_DB::table_exists($nodes)) {
+            $rows = (array) $wpdb->get_col($wpdb->prepare(
+                "SELECT keywords FROM {$nodes}
+                 WHERE object_type='category' AND object_id=%d
+                   AND seo_role IN ('excerpt','description','category') AND status=1
+                 ORDER BY FIELD(seo_role,'excerpt','description','category') ASC,id ASC",
+                absint($term_id)
+            ));
+            foreach ($rows as $text) if (trim((string) $text) !== '') $parts[] = (string) $text;
+        }
+        return trim(implode("
+", $parts));
     }
 
     private static function headings($html) {
         $out = array();
-        if (preg_match_all('/<h[23][^>]*>(.*?)<\/h[23]>/isu', (string) $html, $matches)) {
+        if (preg_match_all('/<h[1-3][^>]*>(.*?)<\/h[1-3]>/isu', (string) $html, $matches)) {
             foreach ((array) ($matches[1] ?? array()) as $heading) {
                 $heading = trim(wp_strip_all_tags((string) $heading));
                 if ($heading !== '') $out[] = $heading;
             }
         }
-        return array_slice(array_values(array_unique($out)), 0, 40);
+        return array_slice(array_values(array_unique($out)), 0, 60);
     }
 
     private static function context_supports_object($object, $article_context) {
@@ -57,9 +150,9 @@ final class SEO_Solucionador_Coverage {
         return false !== strpos(' ' . $context . ' ', ' ' . $object . ' ');
     }
 
-    private static function inherited_heading_profile($heading, array $title_profile, $article_context) {
+    private static function inherited_heading_profile($heading, array $title_profile, $article_context, $category_id = 0) {
         if (!SEO_Solucionador_Normalizer::is_solution_signal($heading)) return array();
-        $profile = SEO_Solucionador_Normalizer::profile($heading);
+        $profile = SEO_Solucionador_Normalizer::profile($heading,array('category_id'=>absint($category_id)));
         if (!$profile) return array();
 
         $title_object = (string) ($title_profile['object'] ?? '');
@@ -69,200 +162,346 @@ final class SEO_Solucionador_Coverage {
             self::context_supports_object($heading_object, $article_context)
         );
 
-        // H2/H3 no son consultas independientes. Si su objeto es gramatical,
-        // discursivo o no esta respaldado por titulo/Vocabulary/categorias, se
-        // hereda el objeto principal del articulo. Asi evitamos fingerprints
-        // como object=importa, object=tres u object=decide.
         if (SEO_Solucionador_Normalizer::is_weak_profile($profile) || !$supported_object) {
             if ($title_object === '') return array();
-            $hints = array(
-                'action' => (string) (($profile['action'] ?? '') ?: ($title_profile['action'] ?? '')),
-                'object' => $title_object,
-                'context' => (string) (($profile['context'] ?? '') ?: ($title_profile['context'] ?? '')),
-                'state' => (string) (($profile['condition'] ?? '') ?: ($title_profile['condition'] ?? '')),
-                'intent' => (string) (($profile['intent'] ?? '') ?: ($title_profile['intent'] ?? '')),
-            );
-            $profile = SEO_Solucionador_Normalizer::profile(trim($heading . ' ' . $article_context), $hints);
-        } elseif (empty($profile['context']) && !empty($title_profile['context'])) {
-            $profile = SEO_Solucionador_Normalizer::profile($heading, array(
-                'action' => (string) ($profile['action'] ?? ''),
-                'object' => (string) ($profile['object'] ?? ''),
-                'context' => (string) ($title_profile['context'] ?? ''),
-                'state' => (string) ($profile['condition'] ?? ''),
-                'intent' => (string) ($profile['intent'] ?? ''),
+            $profile = SEO_Solucionador_Normalizer::profile(trim($heading . ' ' . $article_context), array(
+                'action'=>(string) (($profile['action'] ?? '') ?: ($title_profile['action'] ?? '')),
+                'object'=>$title_object,
+                'context'=>(string) (($profile['context'] ?? '') ?: ($title_profile['context'] ?? '')),
+                'state'=>(string) (($profile['condition'] ?? '') ?: ($title_profile['condition'] ?? '')),
+                'intent'=>(string) (($profile['intent'] ?? '') ?: ($title_profile['intent'] ?? '')),
+                'category_id'=>absint($category_id),
             ));
         }
-
         if (!$profile || SEO_Solucionador_Normalizer::is_weak_profile($profile)) return array();
-        $object = (string) ($profile['object'] ?? '');
-        if ($object !== $title_object && !self::context_supports_object($object, $article_context)) return array();
         return $profile;
     }
 
-    public static function rebuild_post_index($limit = 3500) {
+    private static function insert_item($entity_type,$entity_id,$seo_role,$category_id,$scope,$title,$url,$text,$profile,$vocabulary='') {
+        if (!$profile || SEO_Solucionador_Normalizer::is_weak_profile($profile)) return false;
+        return SEO_Solucionador_DB::insert_coverage_item(array(
+            'entity_type'=>$entity_type,
+            'entity_id'=>absint($entity_id),
+            'seo_role'=>$seo_role,
+            'category_id'=>absint($category_id),
+            'scope'=>$scope,
+            'title'=>$title,
+            'url'=>$url,
+            'source_text'=>$text,
+            'profile'=>$profile,
+            'vocabulary_text'=>$vocabulary,
+        ));
+    }
+
+    private static function index_post(array $post) {
+        $post_id = absint($post['ID'] ?? 0);
+        if (!$post_id) return 0;
+
+        $category_ids = self::post_category_ids($post_id);
+        $category_id = absint(reset($category_ids));
+        $vocab = self::object_vocabulary_text('post',$post_id);
+        $categories = self::post_category_text($post_id);
+        $title = trim((string) ($post['post_title'] ?? ''));
+        $content = (string) ($post['post_content'] ?? '');
+        $semantic_context = trim($vocab . ' ' . $categories);
+        $article_context = trim($title . ' ' . $semantic_context);
+        $editorial_type = SEO_Solucionador_Normalizer::editorial_type($title,$content);
+
+        if (!SEO_Solucionador_Normalizer::coverage_eligible_editorial_type($editorial_type)) return 0;
+
+        $profile = SEO_Solucionador_Normalizer::profile($title,array('category_id'=>$category_id));
+        if (!$profile || SEO_Solucionador_Normalizer::is_weak_profile($profile)) {
+            $profile = SEO_Solucionador_Normalizer::profile(trim($title . ' ' . $semantic_context),array('category_id'=>$category_id));
+        }
+
+        $count = 0;
+        if ($profile) {
+            SEO_Solucionador_DB::insert_post_topic($post_id,'title',$title,$profile); // compatibilidad.
+            if (self::insert_item('post',$post_id,'post',$category_id,'title',$title,get_permalink($post_id),$title,$profile,$vocab)) $count++;
+        }
+
+        if ($profile) {
+            foreach (self::headings($content) as $heading) {
+                $hp = self::inherited_heading_profile($heading,$profile,$article_context,$category_id);
+                if (!$hp) continue;
+                SEO_Solucionador_DB::insert_post_topic($post_id,'heading',$heading,$hp);
+                if (self::insert_item('post',$post_id,'post',$category_id,'heading',$title,get_permalink($post_id),$heading,$hp,$vocab)) $count++;
+            }
+
+            $plain = trim(wp_strip_all_tags(strip_shortcodes($content)));
+            if ($plain !== '') {
+                $snippet = wp_trim_words($plain,90,'');
+                $cp = SEO_Solucionador_Normalizer::profile(trim($title . ' ' . $snippet),array(
+                    'action'=>(string) ($profile['action'] ?? ''),
+                    'object'=>(string) ($profile['object'] ?? ''),
+                    'context'=>(string) ($profile['context'] ?? ''),
+                    'state'=>(string) ($profile['condition'] ?? ''),
+                    'intent'=>(string) ($profile['intent'] ?? ''),
+                    'category_id'=>$category_id,
+                ));
+                if ($cp && self::insert_item('post',$post_id,'post',$category_id,'content',$title,get_permalink($post_id),$snippet,$cp,$vocab)) $count++;
+            }
+        }
+        return $count;
+    }
+
+    private static function index_page(array $page) {
+        $page_id = absint($page['ID'] ?? 0);
+        if (!$page_id) return 0;
+        $role = self::page_role($page_id);
+        $category_ids = self::page_category_ids($page_id,$role);
+        $category_id = absint(reset($category_ids));
+        $vocab = self::object_vocabulary_text('page',$page_id);
+        $title = trim((string) ($page['post_title'] ?? ''));
+        $content = (string) ($page['post_content'] ?? '');
+        $url = get_permalink($page_id);
+
+        $hints = array('category_id'=>$category_id);
+        if (in_array($role,array('landing','hub_secondary','hub_primary','cluster'),true)) {
+            $hints['intent'] = 'decision';
+            $hints['action'] = 'elegir';
+        }
+        $profile = SEO_Solucionador_Normalizer::profile(trim($title . ' ' . $vocab),$hints);
+        $count = 0;
+        if ($profile && self::insert_item('page',$page_id,$role,$category_id,'title',$title,$url,$title,$profile,$vocab)) $count++;
+
+        if ($profile) {
+            $context = trim($title . ' ' . $vocab);
+            foreach (self::headings($content) as $heading) {
+                $hp = self::inherited_heading_profile($heading,$profile,$context,$category_id);
+                if ($hp && self::insert_item('page',$page_id,$role,$category_id,'heading',$title,$url,$heading,$hp,$vocab)) $count++;
+            }
+            $plain = trim(wp_strip_all_tags(strip_shortcodes($content)));
+            if ($plain !== '') {
+                $snippet = wp_trim_words($plain,90,'');
+                $cp = SEO_Solucionador_Normalizer::profile(trim($title . ' ' . $snippet),array_merge($hints,array(
+                    'object'=>(string) ($profile['object'] ?? ''),
+                    'context'=>(string) ($profile['context'] ?? ''),
+                )));
+                if ($cp && self::insert_item('page',$page_id,$role,$category_id,'content',$title,$url,$snippet,$cp,$vocab)) $count++;
+            }
+        }
+        return $count;
+    }
+
+    private static function index_category($term) {
+        if (!$term || is_wp_error($term)) return 0;
+        $term_id = absint($term->term_id ?? 0);
+        if (!$term_id) return 0;
+
+        $title = (string) $term->name;
+        $content = self::category_text($term_id);
+        $vocab = self::object_vocabulary_text('product_cat',$term_id);
+        $url = get_term_link($term);
+        if (is_wp_error($url)) $url = '';
+
+        // Una categoria representa la intencion comercial principal de su familia.
+        $profile = SEO_Solucionador_Normalizer::profile('elegir ' . $title,array(
+            'intent'=>'decision',
+            'action'=>'elegir',
+            'object'=>$title,
+            'category_id'=>$term_id,
+        ));
+        $count = 0;
+        if ($profile && self::insert_item('product_cat',$term_id,'category',$term_id,'title',$title,$url,$title,$profile,$vocab)) $count++;
+
+        foreach (self::headings($content) as $heading) {
+            $hp = self::inherited_heading_profile($heading,$profile,trim($title . ' ' . $vocab),$term_id);
+            if ($hp && self::insert_item('product_cat',$term_id,'category',$term_id,'heading',$title,$url,$heading,$hp,$vocab)) $count++;
+        }
+
+        $plain = trim(wp_strip_all_tags($content));
+        if ($plain !== '' && $profile) {
+            $snippet = wp_trim_words($plain,100,'');
+            $cp = SEO_Solucionador_Normalizer::profile(trim($title . ' ' . $snippet),array(
+                'intent'=>'decision',
+                'action'=>'elegir',
+                'object'=>$title,
+                'category_id'=>$term_id,
+            ));
+            if ($cp && self::insert_item('product_cat',$term_id,'category',$term_id,'content',$title,$url,$snippet,$cp,$vocab)) $count++;
+        }
+        return $count;
+    }
+
+    public static function rebuild_index($limit = 5000) {
         global $wpdb;
         SEO_Solucionador_DB::clear_post_topics();
-        $limit = min(8000, max(100, absint($limit)));
+        SEO_Solucionador_DB::clear_coverage_index();
+        $limit = min(12000,max(100,absint($limit)));
+
         $posts = (array) $wpdb->get_results($wpdb->prepare(
             "SELECT ID,post_title,post_excerpt,post_content
              FROM {$wpdb->posts}
              WHERE post_type='post' AND post_status IN ('publish','future','draft')
              ORDER BY ID ASC LIMIT %d",
             $limit
-        ), ARRAY_A);
+        ),ARRAY_A);
+        $pages = (array) $wpdb->get_results($wpdb->prepare(
+            "SELECT ID,post_title,post_excerpt,post_content
+             FROM {$wpdb->posts}
+             WHERE post_type='page' AND post_status IN ('publish','future','draft')
+             ORDER BY ID ASC LIMIT %d",
+            min($limit,5000)
+        ),ARRAY_A);
+        $terms = get_terms(array('taxonomy'=>'product_cat','hide_empty'=>false));
+        if (is_wp_error($terms)) $terms = array();
 
-        $indexed = 0;
-        foreach ($posts as $post) {
-            $post_id = absint($post['ID'] ?? 0);
-            if (!$post_id) continue;
-            $vocab = self::post_vocabulary_text($post_id);
-            $categories = self::post_category_text($post_id);
-            $semantic_context = trim($vocab . ' ' . $categories);
-            $title = trim((string) ($post['post_title'] ?? ''));
-            $article_context = trim($title . ' ' . $semantic_context);
-            $editorial_type = SEO_Solucionador_Normalizer::editorial_type($title, (string) ($post['post_content'] ?? ''));
+        $rows = 0;
+        foreach ($posts as $post) $rows += self::index_post($post);
+        foreach ($pages as $page) $rows += self::index_page($page);
+        foreach ((array) $terms as $term) $rows += self::index_category($term);
 
-            // Noticias, piezas informativas, legales y comparativas no deben
-            // convertirse artificialmente en cobertura de una solucion. Solo
-            // indexamos contenidos que realmente pueden responder una necesidad.
-            if (!SEO_Solucionador_Normalizer::coverage_eligible_editorial_type($editorial_type)) {
-                continue;
-            }
+        return array(
+            'posts'=>count($posts),
+            'pages'=>count($pages),
+            'categories'=>count((array) $terms),
+            'topics'=>$rows,
+        );
+    }
 
-            // El titulo manda. El contexto semantico solo se usa como fallback si
-            // el titulo por si solo no produce un perfil suficientemente fiable.
-            $title_profile = SEO_Solucionador_Normalizer::profile($title);
-            if (!$title_profile || SEO_Solucionador_Normalizer::is_weak_profile($title_profile)) {
-                $title_profile = SEO_Solucionador_Normalizer::profile(trim($title . ' ' . $semantic_context));
-            }
-            if ($title_profile && !SEO_Solucionador_Normalizer::is_weak_profile($title_profile)) {
-                SEO_Solucionador_DB::insert_post_topic($post_id, 'title', $title, $title_profile);
-                $indexed++;
-            }
+    // Compatibilidad con el nombre historico.
+    public static function rebuild_post_index($limit = 5000) {
+        return self::rebuild_index($limit);
+    }
 
-            if (!$title_profile) continue;
-            foreach (self::headings((string) ($post['post_content'] ?? '')) as $heading) {
-                $profile = self::inherited_heading_profile($heading, $title_profile, $article_context);
-                if (!$profile) continue;
-                SEO_Solucionador_DB::insert_post_topic($post_id, 'heading', $heading, $profile);
-                $indexed++;
-            }
+    private static function contradiction($left,$right) {
+        $a = SEO_Solucionador_Normalizer::normalize((string) $left);
+        $b = SEO_Solucionador_Normalizer::normalize((string) $right);
+        $pairs = array(
+            array('compatible','incompatible'),
+            array('se puede','no se puede'),
+            array('debe','no debe'),
+            array('recomendado','no recomendado'),
+            array('seguro','no seguro'),
+        );
+        foreach ($pairs as $pair) {
+            $a1 = strpos($a,$pair[0]) !== false; $a2 = strpos($a,$pair[1]) !== false;
+            $b1 = strpos($b,$pair[0]) !== false; $b2 = strpos($b,$pair[1]) !== false;
+            if (($a1 && $b2) || ($a2 && $b1)) return true;
         }
-        return array('posts' => count($posts), 'topics' => $indexed);
+        return false;
+    }
+
+    private static function score_row(array $profile,array $row) {
+        $action = (string) ($profile['action'] ?? '');
+        $object = (string) ($profile['object'] ?? '');
+        $condition = (string) ($profile['condition'] ?? '');
+        $context = (string) ($profile['context'] ?? '');
+        $category_id = absint($profile['category_id'] ?? 0);
+
+        $candidate = implode(' ',array_filter(array($action,$object,str_replace('_',' ',$condition),$context)));
+        $score = SEO_Solucionador_Normalizer::similarity($candidate,(string) ($row['source_text'] ?? ''));
+        if ($action !== '' && $action === (string) ($row['action_term'] ?? '')) $score += 0.22;
+        if ($object !== '' && $object === (string) ($row['object_term'] ?? '')) $score += 0.34;
+        elseif ($object !== '' && (string) ($row['object_term'] ?? '') !== '') {
+            $score += 0.12 * SEO_Solucionador_Normalizer::similarity($object,(string) $row['object_term']);
+        }
+        if ($condition !== '' && $condition === (string) ($row['condition_term'] ?? '')) $score += 0.16;
+        if ($context !== '' && $context === (string) ($row['context_term'] ?? '')) $score += 0.12;
+        if ($category_id && $category_id === absint($row['category_id'] ?? 0)) $score += 0.22;
+        if ((string) ($row['scope'] ?? '') === 'title') $score += 0.10;
+        if ((string) ($row['scope'] ?? '') === 'content') $score -= 0.05;
+        return max(0,min(1,$score));
     }
 
     public static function find(array $profile) {
         global $wpdb;
-        $table = SEO_Solucionador_DB::post_topics_table();
-        $key = (string) ($profile['canonical_key'] ?? '');
-        if ($key === '') return array('status'=>'uncovered','post_id'=>0,'score'=>0,'scope'=>'');
-
-        $exact = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM {$table} WHERE canonical_key=%s
-             ORDER BY CASE WHEN scope='title' THEN 0 ELSE 1 END,confidence DESC,id ASC LIMIT 1",
-            $key
-        ), ARRAY_A);
-        if ($exact) {
-            $post_id = absint($exact['post_id']);
-            return array(
-                'status' => get_post_status($post_id) === 'draft' ? 'draft_pending' : 'covered_exact',
-                'post_id' => $post_id,
-                'score' => 1.0,
-                'scope' => (string) $exact['scope'],
-            );
+        $table = SEO_Solucionador_DB::coverage_table();
+        $key = sanitize_text_field((string) ($profile['canonical_key'] ?? ''));
+        if ($key === '' || !SEO_Solucionador_DB::table_exists($table)) {
+            return array('status'=>'uncovered','entity_type'=>'','entity_id'=>0,'post_id'=>0,'score'=>0,'scope'=>'','matches'=>array());
         }
 
         $object = sanitize_text_field((string) ($profile['object'] ?? ''));
         $action = sanitize_text_field((string) ($profile['action'] ?? ''));
-        $condition = sanitize_text_field((string) ($profile['condition'] ?? ''));
-        $context = sanitize_text_field((string) ($profile['context'] ?? ''));
+        $category_id = absint($profile['category_id'] ?? 0);
 
-        $where = array();
-        $params = array();
-        if ($object !== '') {
-            $where[] = 'object_term=%s';
-            $params[] = $object;
-        }
-        if ($action !== '') {
-            $where[] = 'action_term=%s';
-            $params[] = $action;
-        }
-        if (!$where) return array('status'=>'uncovered','post_id'=>0,'score'=>0,'scope'=>'');
+        $where = array('canonical_key=%s');
+        $params = array($key);
+        if ($object !== '') { $where[]='object_term=%s'; $params[]=$object; }
+        if ($action !== '') { $where[]='action_term=%s'; $params[]=$action; }
+        if ($category_id) { $where[]='category_id=%d'; $params[]=$category_id; }
 
-        $sql = "SELECT * FROM {$table} WHERE (" . implode(' OR ', $where) . ")
-                ORDER BY CASE WHEN scope='title' THEN 0 ELSE 1 END,confidence DESC,id ASC LIMIT 400";
-        $rows = (array) $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
+        $sql = "SELECT * FROM {$table} WHERE (" . implode(' OR ',$where) . ")
+                ORDER BY CASE WHEN canonical_key=%s THEN 0 WHEN category_id=%d AND %d>0 THEN 1 ELSE 2 END,
+                         CASE WHEN scope='title' THEN 0 WHEN scope='heading' THEN 1 ELSE 2 END,
+                         confidence DESC,id ASC
+                LIMIT 700";
+        $params[] = $key;
+        $params[] = $category_id;
+        $params[] = $category_id;
+        $rows = (array) $wpdb->get_results($wpdb->prepare($sql,$params),ARRAY_A);
 
-        $best = null;
-        $best_score = 0.0;
-        $candidate_text = implode(' ', array_filter(array(
-            $action,
-            $object,
-            str_replace('_', ' ', $condition),
-            $context,
-        )));
-
+        $ranked = array();
         foreach ($rows as $row) {
-            $row_action = (string) ($row['action_term'] ?? '');
-            $row_object = (string) ($row['object_term'] ?? '');
-            $row_condition = (string) ($row['condition_term'] ?? '');
-            $row_context = (string) ($row['context_term'] ?? '');
+            $score = self::score_row($profile,$row);
+            if ($score < 0.42) continue;
+            $row['match_score'] = $score;
+            $ranked[] = $row;
+        }
+        usort($ranked,static function($a,$b){ return ($b['match_score'] <=> $a['match_score']); });
+        $ranked = array_slice($ranked,0,20);
 
-            // Una coincidencia de accion sin objeto comun no basta para decir que
-            // un post cubre la necesidad.
-            if ($object !== '' && $row_object !== '' && $object !== $row_object) {
-                $lexical = SEO_Solucionador_Normalizer::similarity($object, $row_object);
-                if ($lexical < 0.50) continue;
+        if (!$ranked) {
+            return array('status'=>'uncovered','entity_type'=>'','entity_id'=>0,'post_id'=>0,'score'=>0,'scope'=>'','matches'=>array());
+        }
+
+        $best = $ranked[0];
+        $best_score = (float) $best['match_score'];
+        $strong = array_values(array_filter($ranked,static function($row){ return (float) ($row['match_score'] ?? 0) >= 0.82; }));
+        $entities = array();
+        foreach ($strong as $row) $entities[(string)$row['entity_type'] . ':' . absint($row['entity_id'])] = $row;
+
+        $status = 'uncovered';
+        if (count($entities) > 1) {
+            $status = 'duplicate';
+            $strong_values = array_values($entities);
+            for ($i=0;$i<count($strong_values);$i++) {
+                for ($j=$i+1;$j<count($strong_values);$j++) {
+                    if (self::contradiction($strong_values[$i]['source_text'] ?? '',$strong_values[$j]['source_text'] ?? '')) {
+                        $status = 'conflict';
+                        break 2;
+                    }
+                }
             }
-
-            $score = SEO_Solucionador_Normalizer::similarity($candidate_text, (string) ($row['source_text'] ?? ''));
-            if ($action !== '' && $action === $row_action) $score += 0.25;
-            if ($object !== '' && $object === $row_object) $score += 0.35;
-            if ($condition !== '' && $condition === $row_condition) $score += 0.20;
-            if ($context !== '' && $context === $row_context) $score += 0.18;
-            elseif ($context !== '' && $row_context !== '' && $context !== $row_context) $score -= 0.12;
-            if ((string) ($row['scope'] ?? '') === 'title') $score += 0.12;
-            $score = min(1.0, max(0.0, $score));
-            if ($score > $best_score) {
-                $best_score = $score;
-                $best = $row;
-            }
+        } elseif ($best_score >= 0.90 && in_array((string) ($best['scope'] ?? ''),array('title','heading'),true)) {
+            $status = 'covered';
+        } elseif ($best_score >= 0.72) {
+            $status = 'partial_coverage';
+        } elseif ($best_score >= 0.52) {
+            $status = 'weak_coverage';
         }
 
-        if (!$best || $best_score < 0.58) {
-            return array('status'=>'uncovered','post_id'=>0,'score'=>$best_score,'scope'=>'');
-        }
-        $best_post_id = absint($best['post_id']);
-        if ($best_post_id && get_post_status($best_post_id) === 'draft') {
-            return array(
-                'status'=>'draft_pending',
-                'post_id'=>$best_post_id,
-                'score'=>$best_score,
-                'scope'=>(string)$best['scope'],
+        $matches = array();
+        foreach (array_slice($ranked,0,10) as $row) {
+            $matches[] = array(
+                'entity_type'=>(string) ($row['entity_type'] ?? ''),
+                'entity_id'=>absint($row['entity_id'] ?? 0),
+                'seo_role'=>(string) ($row['seo_role'] ?? ''),
+                'category_id'=>absint($row['category_id'] ?? 0),
+                'scope'=>(string) ($row['scope'] ?? ''),
+                'title'=>(string) ($row['title'] ?? ''),
+                'url'=>(string) ($row['url'] ?? ''),
+                'source_text'=>(string) ($row['source_text'] ?? ''),
+                'score'=>round((float) ($row['match_score'] ?? 0),4),
             );
         }
-        $row_condition = (string) ($best['condition_term'] ?? '');
-        if ($condition !== '' && $row_condition === '') {
-            return array(
-                'status'=>'covered_parent',
-                'post_id'=>absint($best['post_id']),
-                'score'=>$best_score,
-                'scope'=>(string)$best['scope'],
-            );
-        }
-        if ($best_score >= 0.82) {
-            return array(
-                'status'=>'covered_partial',
-                'post_id'=>absint($best['post_id']),
-                'score'=>$best_score,
-                'scope'=>(string)$best['scope'],
-            );
-        }
+
+        $entity_type = (string) ($best['entity_type'] ?? '');
+        $entity_id = absint($best['entity_id'] ?? 0);
         return array(
-            'status'=>'needs_expansion',
-            'post_id'=>absint($best['post_id']),
-            'score'=>$best_score,
-            'scope'=>(string)$best['scope'],
+            'status'=>$status,
+            'entity_type'=>$entity_type,
+            'entity_id'=>$entity_id,
+            'post_id'=>$entity_type === 'post' ? $entity_id : 0,
+            'score'=>round($best_score,4),
+            'scope'=>(string) ($best['scope'] ?? ''),
+            'seo_role'=>(string) ($best['seo_role'] ?? ''),
+            'category_id'=>absint($best['category_id'] ?? 0),
+            'title'=>(string) ($best['title'] ?? ''),
+            'url'=>(string) ($best['url'] ?? ''),
+            'matches'=>$matches,
         );
     }
 }
