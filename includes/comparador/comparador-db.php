@@ -155,6 +155,7 @@ final class SEO_Comparador_DB {
             market_overview longtext NULL,
             own_catalog_position longtext NULL,
             limits longtext NULL,
+            editorial_limitations longtext NULL,
             conclusion longtext NULL,
             origin varchar(32) NOT NULL DEFAULT 'generated',
             source_hash_at_edit char(64) NOT NULL DEFAULT '',
