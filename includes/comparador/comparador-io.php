@@ -8,7 +8,7 @@ defined('ABSPATH') || exit;
 final class SEO_Comparador_IO {
     const CONTENT_SCHEMA = 'seo-comparador-editorial-v1';
     const VISITS_SCHEMA = 'seo-comparador-visitas-v1';
-    const MAX_IMPORT_BYTES = 2097152;
+    const MAX_IMPORT_BYTES = 8388608;
 
     public static function init() {
         add_action('admin_post_seo_comparador_export_content', array(__CLASS__, 'handle_export_content'));
@@ -61,6 +61,11 @@ final class SEO_Comparador_IO {
         header('X-Content-Type-Options: nosniff');
         echo $json; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON de descarga generado con wp_json_encode().
         exit;
+    }
+
+    private static function mysql_datetime($value) {
+        $value = trim((string) $value);
+        return preg_match('/^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$/', $value) ? $value : '';
     }
 
     private static function text_excerpt($text, $length = 2400) {
@@ -203,8 +208,11 @@ final class SEO_Comparador_IO {
         foreach (SEO_Comparador_DB::products(absint($profile['id'])) as $product) {
             $comparison_product_id = absint($product['id'] ?? 0);
             $row = self::export_product($product, (array) ($values[$comparison_product_id] ?? array()));
-            if (($product['source_type'] ?? '') === 'own') $own_products[] = $row;
-            else $external_products[] = $row;
+            if (($product['source_type'] ?? '') === 'own') {
+                $own_products[] = $row;
+            } elseif (!empty($product['representative'])) {
+                $external_products[] = $row;
+            }
         }
 
         $editorial = SEO_Comparador_DB::editorial(absint($profile['id']));
@@ -253,6 +261,11 @@ final class SEO_Comparador_IO {
             'axes' => $axes,
             'own_products' => $own_products,
             'external_products' => $external_products,
+            'external_products_summary' => array(
+                'seen' => absint($profile['external_products_seen'] ?? 0),
+                'comparable' => absint($profile['external_products_comparable'] ?? 0),
+                'representatives_exported' => count($external_products),
+            ),
             'canonical_post' => $post_context,
             'generated_context' => array(
                 'summary' => (string) ($editorial['summary'] ?? ''),
@@ -271,6 +284,9 @@ final class SEO_Comparador_IO {
         if ($slug !== '') $term = get_term_by('slug', $slug, 'product_cat');
 
         $term_id = absint($category['term_id'] ?? 0);
+        if ($term && $term_id && absint($term->term_id) !== $term_id) {
+            return new WP_Error('comparador_import_category_mismatch', 'El slug y el term_id del JSON apuntan a categorías distintas.');
+        }
         if (!$term && $term_id) $term = get_term($term_id, 'product_cat');
         if (!$term || is_wp_error($term)) {
             return new WP_Error('comparador_import_category', 'La categoría indicada en el JSON no existe.');
@@ -315,7 +331,7 @@ final class SEO_Comparador_IO {
         return SEO_Comparador_Engine::save_axes(absint($profile_id), $mapped);
     }
 
-    public static function import_editorial_payload(array $payload, $filename = '') {
+    public static function import_editorial_payload(array $payload, $filename = '', $expected_profile_id = 0) {
         global $wpdb;
         SEO_Comparador_DB::maybe_install();
 
@@ -328,6 +344,9 @@ final class SEO_Comparador_IO {
 
         $profile = (array) $resolved['profile'];
         $profile_id = absint($profile['id'] ?? 0);
+        if (absint($expected_profile_id) && $profile_id !== absint($expected_profile_id)) {
+            return new WP_Error('comparador_import_wrong_profile', 'El JSON pertenece a otra comparativa/categoría. Ábrela antes de importarlo.');
+        }
         $editorial_input = (array) ($payload['editorial'] ?? array());
         if (!$editorial_input) {
             return new WP_Error('comparador_import_editorial', 'El JSON no contiene la sección editorial.');
@@ -346,9 +365,9 @@ final class SEO_Comparador_IO {
 
         $export_profile = (array) ($payload['profile'] ?? array());
         $export_hash = sanitize_text_field((string) ($export_profile['source_hash'] ?? ''));
-        $export_snapshot = sanitize_text_field((string) ($export_profile['source_snapshot_at'] ?? ''));
+        $export_snapshot = self::mysql_datetime($export_profile['source_snapshot_at'] ?? '');
         $current_hash = sanitize_text_field((string) ($profile['source_hash'] ?? ''));
-        $current_snapshot = sanitize_text_field((string) ($profile['source_snapshot_at'] ?? ''));
+        $current_snapshot = self::mysql_datetime($profile['source_snapshot_at'] ?? '');
 
         $stale_hash = $export_hash !== '' && $current_hash !== '' && !hash_equals($current_hash, $export_hash);
         $stale_snapshot = $export_snapshot !== '' && $current_snapshot !== '' && $export_snapshot !== $current_snapshot;
@@ -442,7 +461,7 @@ final class SEO_Comparador_IO {
 
         $size = isset($file['size']) ? absint($file['size']) : 0;
         if ($size < 1 || $size > self::MAX_IMPORT_BYTES) {
-            return new WP_Error('comparador_import_size', 'El JSON debe ocupar entre 1 byte y 2 MB.');
+            return new WP_Error('comparador_import_size', 'El JSON debe ocupar entre 1 byte y 8 MB.');
         }
 
         $name = isset($file['name']) ? sanitize_file_name((string) $file['name']) : '';
@@ -495,7 +514,7 @@ final class SEO_Comparador_IO {
             self::redirect('comparisons', array('profile_id' => $profile_id));
         }
 
-        $result = self::import_editorial_payload((array) $uploaded['payload'], (string) $uploaded['filename']);
+        $result = self::import_editorial_payload((array) $uploaded['payload'], (string) $uploaded['filename'], $profile_id);
         if (is_wp_error($result)) {
             self::notice($result->get_error_message(), 'error');
             self::redirect('comparisons', array('profile_id' => $profile_id));
