@@ -969,129 +969,189 @@ final class SEO_Solucionador_Admin {
 
     private static function render_proposals() {
         global $wpdb;
-        $table = SEO_Solucionador_DB::topics_table();
+        $topics_table = SEO_Solucionador_DB::topics_table();
+        $evidence_table = SEO_Solucionador_DB::evidence_table();
+
         $rows = (array) $wpdb->get_results(
-            "SELECT * FROM {$table}
-             WHERE status<>'dismissed'
-             ORDER BY CASE WHEN status='draft_created' THEN 1 ELSE 0 END ASC,priority_score DESC,evidence_total DESC,id DESC
-             LIMIT 250",
+            "SELECT * FROM {$topics_table}
+             ORDER BY priority_score DESC,evidence_total DESC,id DESC
+             LIMIT 1200",
             ARRAY_A
         );
 
-        $evidence_map = array();
-        $topic_ids = array_values(array_filter(array_map(static function($row){ return absint($row['id'] ?? 0); }, $rows)));
-        if ($topic_ids) {
-            $evidence_table = SEO_Solucionador_DB::evidence_table();
-            $placeholders = implode(',', array_fill(0, count($topic_ids), '%d'));
-            $sql = "SELECT topic_id,source_type,SUM(occurrences) total
-                    FROM {$evidence_table}
-                    WHERE topic_id IN ({$placeholders})
-                    GROUP BY topic_id,source_type";
-            foreach ((array) $wpdb->get_results($wpdb->prepare($sql, $topic_ids), ARRAY_A) as $evidence_row) {
-                $tid = absint($evidence_row['topic_id'] ?? 0);
-                $type = sanitize_key((string) ($evidence_row['source_type'] ?? ''));
-                if ($tid && $type !== '') $evidence_map[$tid][$type] = absint($evidence_row['total'] ?? 0);
-            }
+        $category_filter = absint($_GET['sol_category'] ?? 0);
+        $cluster_filter = absint($_GET['sol_cluster'] ?? 0);
+        $source_filter = sanitize_key(wp_unslash($_GET['sol_source'] ?? ''));
+        $action_filter = strtoupper(sanitize_text_field(wp_unslash($_GET['sol_action'] ?? '')));
+        $coverage_filter = sanitize_key(wp_unslash($_GET['sol_coverage'] ?? ''));
+        $priority_filter = sanitize_key(wp_unslash($_GET['sol_priority'] ?? ''));
+        $state_filter = sanitize_key(wp_unslash($_GET['sol_state'] ?? ''));
+
+        $source_topic_ids = array();
+        if ($source_filter !== '' && SEO_Solucionador_DB::table_exists($evidence_table)) {
+            $source_topic_ids = array_flip(array_map('absint',(array) $wpdb->get_col($wpdb->prepare(
+                "SELECT DISTINCT topic_id FROM {$evidence_table} WHERE source_type=%s",
+                $source_filter
+            ))));
         }
 
-        echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Propuestas editoriales</h2>';
-        $brief_topic_id = absint($_GET['brief_topic_id'] ?? 0);
-        if ($brief_topic_id) {
-            $brief_topic = SEO_Solucionador_DB::get_topic($brief_topic_id);
-            if ($brief_topic) self::render_brief($brief_topic);
-        }
-        echo '<p class="description">Cada fila conserva una decisión editorial y su estado. Solucionador decide y prepara el brief; Entradas/Páginas/Categorías son el lugar de ejecución. Crear un post sigue requiriendo aprobación explícita y genera únicamente un borrador.</p>';
-        echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>Prioridad</th><th>Pregunta / titulo</th><th>Clasificacion propuesta</th><th>Evidencias</th><th>Cobertura</th><th>Accion</th></tr></thead><tbody>';
-        if (!$rows) echo '<tr><td colspan="6">Todavia no hay propuestas. Ejecuta el analisis desde Resumen.</td></tr>';
-
+        $clusters = array();
+        $categories = array();
         foreach ($rows as $row) {
-            $existing_post_id = absint($row['existing_post_id'] ?? 0);
-            $draft_post_id = absint($row['draft_post_id'] ?? 0);
-            echo '<tr>';
-            echo '<td><strong class="seo-sol-score">' . esc_html(number_format_i18n((float) ($row['priority_score'] ?? 0), 0)) . '</strong><br><span class="description">' . esc_html((string) ($row['status'] ?? 'candidate')) . '</span></td>';
-            echo '<td><strong>' . esc_html((string) ($row['suggested_title'] ?? '')) . '</strong>';
-            echo '<div class="description" style="margin-top:5px">Pregunta observada: ' . esc_html((string) ($row['canonical_question'] ?? '')) . '</div>';
-            echo '<code>' . esc_html((string) ($row['canonical_key'] ?? '')) . '</code></td>';
-
-            echo '<td><div class="seo-sol-meta"><strong>Categorias:</strong> ' . self::category_chips($row) . '</div>' . self::vocab_chips($row) . '</td>';
-            $topic_evidence = (array) ($evidence_map[absint($row['id'] ?? 0)] ?? array());
-            $source_labels = array(
-                'dependiente'=>'Dependiente/Intérprete',
-                'analista'=>'Analista',
-                'auditor'=>'Auditor',
-                'comentarista'=>'Comentarista',
-                'ojeador'=>'Ojeador',
-                'ingeniero'=>'Ingeniero',
-                'clasificador'=>'Clasificador',
-            );
-            echo '<td>';
-            foreach ($source_labels as $source_key=>$source_label) {
-                $count = absint($topic_evidence[$source_key] ?? 0);
-                if ($count > 0) echo '<div><strong>' . esc_html($source_label) . ':</strong> ' . esc_html(number_format_i18n($count)) . '</div>';
+            $hierarchy = SEO_Solucionador_DB::hierarchy($row);
+            $cluster = (array) ($hierarchy['cluster'] ?? array());
+            if (!empty($cluster['id'])) $clusters[absint($cluster['id'])] = (string) ($cluster['name'] ?? ('#' . absint($cluster['id'])));
+            $term_id = absint($row['primary_category_id'] ?? 0);
+            if ($term_id && !isset($categories[$term_id])) {
+                $term = get_term($term_id,'product_cat');
+                $categories[$term_id] = ($term && !is_wp_error($term)) ? (string) $term->name : ('#' . $term_id);
             }
-            if (!$topic_evidence) echo '—';
-            echo '</td>';
+        }
+        asort($clusters,SORT_NATURAL|SORT_FLAG_CASE);
+        asort($categories,SORT_NATURAL|SORT_FLAG_CASE);
 
-            echo '<td><strong>' . esc_html(str_replace('_', ' ', (string) ($row['coverage_status'] ?? ''))) . '</strong>';
-            if ($existing_post_id) echo '<br><a href="' . esc_url(SEO_Solucionador_Posts::edit_url($existing_post_id)) . '">Abrir post #' . esc_html($existing_post_id) . '</a>';
-            if ($draft_post_id) echo '<br><a href="' . esc_url(SEO_Solucionador_Posts::edit_url($draft_post_id)) . '"><strong>Abrir borrador #' . esc_html($draft_post_id) . '</strong></a>';
-            echo '</td>';
+        $rows = array_values(array_filter($rows,static function($row) use ($category_filter,$cluster_filter,$source_filter,$source_topic_ids,$action_filter,$coverage_filter,$priority_filter,$state_filter) {
+            if ($category_filter && absint($row['primary_category_id'] ?? 0) !== $category_filter) return false;
+            if ($source_filter !== '' && empty($source_topic_ids[absint($row['id'] ?? 0)])) return false;
+            if ($action_filter !== '' && strtoupper((string)($row['recommended_action'] ?? '')) !== $action_filter) return false;
+            if ($coverage_filter !== '' && sanitize_key((string)($row['coverage_status'] ?? '')) !== $coverage_filter) return false;
+            if ($state_filter !== '' && sanitize_key((string)($row['workflow_state'] ?? '')) !== $state_filter) return false;
+            if ($cluster_filter) {
+                $hier = SEO_Solucionador_DB::hierarchy($row);
+                if (absint($hier['cluster']['id'] ?? 0) !== $cluster_filter) return false;
+            }
+            $priority = (float) ($row['priority_score'] ?? 0);
+            if ($priority_filter === 'high' && $priority < 70) return false;
+            if ($priority_filter === 'medium' && ($priority < 40 || $priority >= 70)) return false;
+            if ($priority_filter === 'low' && $priority >= 40) return false;
+            return true;
+        }));
 
-            echo '<td><strong>' . esc_html(self::action_label((string) ($row['recommended_action'] ?? ''))) . '</strong>';
-            echo '<p><a class="button button-small" href="' . esc_url(self::url('proposals', array('brief_topic_id'=>absint($row['id'])))) . '#brief">Ver brief</a></p>';
-            if ($draft_post_id && get_post_type($draft_post_id) === 'post' && get_post_status($draft_post_id) !== 'trash') {
-                echo '<p><a class="button button-primary" href="' . esc_url(SEO_Solucionador_Posts::edit_url($draft_post_id)) . '">Rellenar contenido</a></p>';
-            } elseif ((string) ($row['recommended_action'] ?? '') === 'create_post') {
-                $proposal = array(
-                    'categories' => SEO_Solucionador_DB::proposed_categories($row),
-                    'vocabulary' => SEO_Solucionador_DB::proposed_vocabulary($row),
-                );
-                if (SEO_Solucionador_Catalog::proposal_ready($proposal)) {
-                    echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin-top:8px">';
-                    echo '<input type="hidden" name="action" value="seo_solucionador_topic"><input type="hidden" name="topic_id" value="' . esc_attr(absint($row['id'])) . '"><input type="hidden" name="topic_action" value="create_draft">';
-                    wp_nonce_field('seo_solucionador_topic_' . absint($row['id']));
-                    submit_button('Aprobar y crear borrador', 'primary small', 'submit', false);
-                    echo '</form>';
-                } else {
-                    echo '<p class="seo-sol-warning">Reanalizar: falta clasificacion suficiente para crear un borrador homogeneo.</p>';
+        $source_options = SEO_Solucionador_DB::table_exists($evidence_table)
+            ? (array) $wpdb->get_col("SELECT DISTINCT source_type FROM {$evidence_table} ORDER BY source_type ASC")
+            : array();
+
+        $detail_id = absint($_GET['topic_id'] ?? $_GET['brief_topic_id'] ?? 0);
+        if ($detail_id) {
+            $detail = SEO_Solucionador_DB::get_topic($detail_id);
+            if ($detail) self::render_opportunity_detail($detail);
+        }
+
+        echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Oportunidades y decisiones editoriales</h2>';
+        echo '<p class="description">Una fila representa un <strong>tema canónico</strong>, no una pregunta aislada. La decisión sigue el orden: comprobar cobertura → mejorar/fusionar → investigar si falta conocimiento → crear URL solo como última opción.</p>';
+
+        echo '<form method="get" class="seo-sol-filters">';
+        echo '<input type="hidden" name="page" value="seo-solucionador"><input type="hidden" name="tab" value="proposals">';
+
+        echo '<label>Categoría<select name="sol_category"><option value="0">Todas</option>';
+        foreach ($categories as $id=>$name) echo '<option value="' . esc_attr($id) . '" ' . selected($category_filter,$id,false) . '>' . esc_html($name) . ' (#' . esc_html($id) . ')</option>';
+        echo '</select></label>';
+
+        echo '<label>Cluster<select name="sol_cluster"><option value="0">Todos</option>';
+        foreach ($clusters as $id=>$name) echo '<option value="' . esc_attr($id) . '" ' . selected($cluster_filter,$id,false) . '>' . esc_html($name) . '</option>';
+        echo '</select></label>';
+
+        echo '<label>Fuente<select name="sol_source"><option value="">Todas</option>';
+        foreach ($source_options as $source) echo '<option value="' . esc_attr($source) . '" ' . selected($source_filter,$source,false) . '>' . esc_html($source) . '</option>';
+        echo '</select></label>';
+
+        $actions = array('NO_ACTION','IMPROVE_POST','IMPROVE_LANDING','IMPROVE_CATEGORY','IMPROVE_PAGE','MERGE_CONTENT','CREATE_POST','CREATE_LANDING','INVESTIGATE','DEFER');
+        echo '<label>Acción<select name="sol_action"><option value="">Todas</option>';
+        foreach ($actions as $action) echo '<option value="' . esc_attr($action) . '" ' . selected($action_filter,$action,false) . '>' . esc_html(self::action_label($action)) . '</option>';
+        echo '</select></label>';
+
+        echo '<label>Cobertura<select name="sol_coverage"><option value="">Todas</option>';
+        foreach (array('uncovered','weak_coverage','partial_coverage','covered','duplicate','conflict') as $status) echo '<option value="' . esc_attr($status) . '" ' . selected($coverage_filter,$status,false) . '>' . esc_html(self::coverage_label($status)) . '</option>';
+        echo '</select></label>';
+
+        echo '<label>Prioridad<select name="sol_priority"><option value="">Todas</option><option value="high" ' . selected($priority_filter,'high',false) . '>70–100</option><option value="medium" ' . selected($priority_filter,'medium',false) . '>40–69</option><option value="low" ' . selected($priority_filter,'low',false) . '>0–39</option></select></label>';
+
+        echo '<label>Estado<select name="sol_state"><option value="">Todos</option>';
+        foreach (SEO_Solucionador_DB::workflow_states() as $state) echo '<option value="' . esc_attr($state) . '" ' . selected($state_filter,$state,false) . '>' . esc_html(self::workflow_label($state)) . '</option>';
+        echo '</select></label>';
+
+        echo '<div><button class="button button-primary" type="submit">Filtrar</button> <a class="button" href="' . esc_url(self::url('proposals')) . '">Limpiar</a></div>';
+        echo '</form>';
+
+        echo '<p><strong>' . esc_html(number_format_i18n(count($rows))) . '</strong> oportunidades con los filtros actuales.</p>';
+        echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>Prioridad</th><th>Tema / categoría</th><th>Evidencias</th><th>Cobertura / riesgos</th><th>Decisión</th><th>Workflow</th><th>Acción</th></tr></thead><tbody>';
+        if (!$rows) echo '<tr><td colspan="7">No hay oportunidades con estos filtros.</td></tr>';
+
+        foreach (array_slice($rows,0,500) as $row) {
+            $topic_id = absint($row['id'] ?? 0);
+            $term_id = absint($row['primary_category_id'] ?? 0);
+            $category_name = $term_id ? ($categories[$term_id] ?? ('#' . $term_id)) : 'Sin categoría principal';
+            $source_counts = array();
+            if ($topic_id && SEO_Solucionador_DB::table_exists($evidence_table)) {
+                foreach ((array) $wpdb->get_results($wpdb->prepare(
+                    "SELECT source_type,SUM(occurrences) total FROM {$evidence_table} WHERE topic_id=%d GROUP BY source_type ORDER BY total DESC",
+                    $topic_id
+                ),ARRAY_A) as $src) {
+                    $source_counts[] = (string)$src['source_type'] . ' ' . number_format_i18n(absint($src['total'] ?? 0));
                 }
-            } elseif ((string) ($row['recommended_action'] ?? '') === 'create_landing') {
-                echo '<p><a class="button button-primary" href="' . esc_url(self::diagnostics_url('pages','landings')) . '">Revisar candidata de landing</a></p>';
-                echo '<p class="description">Solucionador recomienda una landing porque existe una candidata suficientemente similar con requisitos válidos. La creación final se realiza en Páginas.</p>';
-            } elseif ($existing_post_id) {
-                echo '<p><a class="button" href="' . esc_url(SEO_Solucionador_Posts::edit_url($existing_post_id)) . '">Revisar post existente</a></p>';
             }
 
-            if (!$draft_post_id) {
-                echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin-top:8px">';
-                echo '<input type="hidden" name="action" value="seo_solucionador_topic"><input type="hidden" name="topic_id" value="' . esc_attr(absint($row['id'])) . '">';
-                wp_nonce_field('seo_solucionador_topic_' . absint($row['id']));
-                echo '<select name="topic_action"><option value="observe">Observar</option><option value="candidate">Mantener candidato</option><option value="dismissed">Descartar</option></select> ';
-                submit_button('Guardar', 'secondary small', 'submit', false);
-                echo '</form>';
-            }
+            echo '<tr>';
+            echo '<td><strong class="seo-sol-score">' . esc_html(number_format_i18n((float)($row['priority_score'] ?? 0),0)) . '</strong>/100</td>';
+            echo '<td><strong>' . esc_html((string)(($row['suggested_title'] ?? '') ?: ($row['canonical_question'] ?? ''))) . '</strong><br><span class="description">' . esc_html($category_name) . ($term_id ? ' (#' . $term_id . ')' : '') . '</span><br><code>' . esc_html((string)($row['canonical_key'] ?? '')) . '</code></td>';
+            echo '<td>' . ($source_counts ? esc_html(implode(' · ',$source_counts)) : '—') . '</td>';
+            echo '<td><strong>' . esc_html(self::coverage_label((string)($row['coverage_status'] ?? 'uncovered'))) . '</strong><br><small>dup. ' . esc_html(number_format_i18n((float)($row['duplication_risk'] ?? 0),0)) . '/100 · canib. ' . esc_html(number_format_i18n((float)($row['cannibalization_risk'] ?? 0),0)) . '/100</small></td>';
+            echo '<td><strong>' . esc_html(self::action_label((string)($row['recommended_action'] ?? 'DEFER'))) . '</strong><br><small>' . esc_html(wp_trim_words((string)($row['decision_reason'] ?? ''),24,'…')) . '</small></td>';
+            echo '<td><strong>' . esc_html(self::workflow_label((string)($row['workflow_state'] ?? 'detected'))) . '</strong><br><small>' . esc_html((string)($row['knowledge_status'] ?? '')) . '</small></td>';
+
+            echo '<td><a class="button button-primary button-small" href="' . esc_url(self::url('proposals',array('topic_id'=>$topic_id))) . '#opportunity">Abrir ficha</a>';
+            $edit = self::entity_edit_url((string)($row['existing_entity_type'] ?? ''),absint($row['existing_entity_id'] ?? 0));
+            if ($edit) echo '<br><a class="button button-small" style="margin-top:5px" href="' . esc_url($edit) . '">Editar existente</a>';
+            $draft = absint($row['draft_post_id'] ?? 0);
+            if ($draft && get_post_type($draft)==='post' && get_post_status($draft)!=='trash') echo '<br><a style="margin-top:5px;display:inline-block" href="' . esc_url(SEO_Solucionador_Posts::edit_url($draft)) . '">Abrir borrador #' . esc_html($draft) . '</a>';
             echo '</td></tr>';
         }
         echo '</tbody></table></div></div>';
-        self::render_landing_decisions();
     }
 
     private static function render_coverage() {
         global $wpdb;
-        $table = SEO_Solucionador_DB::post_topics_table();
-        $rows = (array) $wpdb->get_results(
-            "SELECT pt.*,p.post_title,p.post_status FROM {$table} pt
-             INNER JOIN {$wpdb->posts} p ON p.ID=pt.post_id
-             ORDER BY pt.post_id DESC,pt.scope ASC LIMIT 600",
-            ARRAY_A
-        );
+        $table = SEO_Solucionador_DB::coverage_table();
+
         echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Cobertura editorial existente</h2>';
-        echo '<p class="description">Titulos y H2/H3 publicados/programados se traducen a una huella canonica. Vocabulary y categorias relacionadas se usan como contexto para evitar proponer dos veces la misma solucion.</p>';
-        echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>Post</th><th>Ambito</th><th>Texto detectado</th><th>Huella canonica</th></tr></thead><tbody>';
-        if (!$rows) echo '<tr><td colspan="4">No hay indice editorial. Ejecuta el analisis.</td></tr>';
+        echo '<p class="description">Índice multientidad usado para evitar duplicación y canibalización. Incluye posts, páginas, landings, hubs y categorías; analiza título, H1/H2/H3, contenido, categorías asociadas y Vocabulary.</p>';
+
+        if (!SEO_Solucionador_DB::table_exists($table)) {
+            echo '<p>El índice todavía no existe. Ejecuta Reanalizar fuentes desde Resumen.</p></div>';
+            return;
+        }
+
+        $entity_filter = sanitize_key(wp_unslash($_GET['coverage_entity'] ?? ''));
+        $category_filter = absint($_GET['coverage_category'] ?? 0);
+        $where = array('1=1');
+        $params = array();
+        if ($entity_filter !== '') { $where[]='entity_type=%s'; $params[]=$entity_filter; }
+        if ($category_filter) { $where[]='category_id=%d'; $params[]=$category_filter; }
+
+        $sql = "SELECT * FROM {$table} WHERE " . implode(' AND ',$where) . " ORDER BY entity_type,entity_id,scope,id LIMIT 1200";
+        if ($params) $sql = $wpdb->prepare($sql,$params);
+        $rows = (array) $wpdb->get_results($sql,ARRAY_A);
+
+        $counts = (array) $wpdb->get_results("SELECT entity_type,COUNT(DISTINCT entity_id) entities,COUNT(*) fingerprints FROM {$table} GROUP BY entity_type ORDER BY entity_type",ARRAY_A);
+        echo '<div class="seo-sol-grid">';
+        foreach ($counts as $count) self::card((string)$count['entity_type'],absint($count['entities'] ?? 0),number_format_i18n(absint($count['fingerprints'] ?? 0)) . ' huellas semánticas');
+        echo '</div>';
+
+        echo '<form method="get" class="seo-sol-filters"><input type="hidden" name="page" value="seo-solucionador"><input type="hidden" name="tab" value="coverage">';
+        echo '<label>Entidad<select name="coverage_entity"><option value="">Todas</option>';
+        foreach (array('post'=>'Posts','page'=>'Páginas / landings / hubs','product_cat'=>'Categorías') as $value=>$label) echo '<option value="' . esc_attr($value) . '" ' . selected($entity_filter,$value,false) . '>' . esc_html($label) . '</option>';
+        echo '</select></label>';
+        echo '<label>Categoría ID<input type="number" min="0" name="coverage_category" value="' . esc_attr($category_filter ?: '') . '" placeholder="term_id"></label>';
+        echo '<div><button class="button button-primary">Filtrar</button> <a class="button" href="' . esc_url(self::url('coverage')) . '">Limpiar</a></div></form>';
+
+        echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>Entidad</th><th>Rol</th><th>Categoría</th><th>Ámbito</th><th>Texto detectado</th><th>Tema canónico</th><th>Confianza</th></tr></thead><tbody>';
+        if (!$rows) echo '<tr><td colspan="7">Sin huellas con estos filtros.</td></tr>';
         foreach ($rows as $row) {
-            echo '<tr><td><a href="' . esc_url(SEO_Solucionador_Posts::edit_url(absint($row['post_id']))) . '"><strong>' . esc_html((string) ($row['post_title'] ?? '')) . '</strong></a><br><code>#' . esc_html(absint($row['post_id'])) . '</code></td>';
-            echo '<td>' . esc_html((string) ($row['scope'] ?? '')) . '</td><td>' . esc_html((string) ($row['source_text'] ?? '')) . '</td><td><code>' . esc_html((string) ($row['canonical_key'] ?? '')) . '</code></td></tr>';
+            $edit = self::entity_edit_url((string)($row['entity_type'] ?? ''),absint($row['entity_id'] ?? 0));
+            echo '<tr><td><strong>' . esc_html((string)($row['entity_type'] ?? '')) . ' #' . esc_html(absint($row['entity_id'] ?? 0)) . '</strong>';
+            if (!empty($row['title'])) echo '<br>' . esc_html((string)$row['title']);
+            if ($edit) echo '<br><a href="' . esc_url($edit) . '">Editar</a>';
+            echo '</td><td>' . esc_html((string)($row['seo_role'] ?? '')) . '</td><td>' . esc_html(absint($row['category_id'] ?? 0) ?: '—') . '</td><td>' . esc_html((string)($row['scope'] ?? '')) . '</td><td>' . esc_html(wp_trim_words((string)($row['source_text'] ?? ''),32,'…')) . '</td><td><code>' . esc_html((string)($row['canonical_key'] ?? '')) . '</code></td><td>' . esc_html(number_format_i18n((float)($row['confidence'] ?? 0)*100,0)) . '%</td></tr>';
         }
         echo '</tbody></table></div></div>';
     }
