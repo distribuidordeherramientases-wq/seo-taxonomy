@@ -575,8 +575,8 @@ $main_image = dht_landing_v6_main_image($post_id, $related_cat_ids, 'large');
         <aside class="dht-v6-side" aria-label="Imagen y ventajas de la solucion">
             <?php if (!empty($main_image['url'])) : ?>
                 <figure class="dht-v6-featured">
-                    <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image helper builds HTML with context-specific escaping. ?>
-<?php echo dht_landing_v6_img($main_image, get_the_title(), 'dht-v6-featured-image', 'eager', 'high'); ?>
+                    <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image helper builds HTML with context-specific escaping.
+                        echo dht_landing_v6_img($main_image, get_the_title(), 'dht-v6-featured-image', 'eager', 'high'); ?>
                 </figure>
             <?php endif; ?>
 
@@ -621,8 +621,8 @@ $main_image = dht_landing_v6_main_image($post_id, $related_cat_ids, 'large');
             ?>
                 <a class="dht-v6-hub dht-v6-category" href="<?php echo esc_url($term_url); ?>">
                     <span class="dht-v6-hub-media">
-                        <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image helper builds HTML with context-specific escaping. ?>
-<?php echo dht_landing_v6_img($term_image, $term->name, 'dht-v6-category-image'); ?>
+                        <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image helper builds HTML with context-specific escaping.
+                        echo dht_landing_v6_img($term_image, $term->name, 'dht-v6-category-image'); ?>
                     </span>
                     <span class="dht-v6-hub-body">
                         <strong><?php echo esc_html($term->name); ?></strong>
@@ -671,8 +671,8 @@ $main_image = dht_landing_v6_main_image($post_id, $related_cat_ids, 'large');
                     ?>
                         <article class="dht-v6-product">
                             <a class="dht-v6-product-media" href="<?php echo esc_url($product_url); ?>">
-                                <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image helper builds HTML with context-specific escaping. ?>
-<?php echo dht_landing_v6_img($image, $product->get_name(), 'dht-v6-product-image'); ?>
+                                <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image helper builds HTML with context-specific escaping.
+                        echo dht_landing_v6_img($image, $product->get_name(), 'dht-v6-product-image'); ?>
                             </a>
                             <div class="dht-v6-product-body">
                                 <h3 class="dht-v6-product-title"><a href="<?php echo esc_url($product_url); ?>"><?php echo esc_html($product->get_name()); ?></a></h3>
