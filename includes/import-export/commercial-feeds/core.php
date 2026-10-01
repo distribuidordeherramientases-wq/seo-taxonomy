@@ -134,31 +134,77 @@ function seo_ie_cf_sanitize_daily_time( $value ) {
 }
 
 /**
- * Informacion efectiva del entorno. WordPress considera production si no se
- * define WP_ENVIRONMENT_TYPE; por seguridad un host que contiene staging,
- * stage, dev, test o local nunca se trata como produccion comercial.
+ * Resuelve el entorno comercial a partir del entorno informado por WordPress
+ * y del hostname real. La resolucion es deliberadamente conservadora:
+ *
+ * - un host con segmentos de staging/dev/test/local siempre queda protegido;
+ * - los hosts canonicos de produccion prevalecen sobre WP_ENVIRONMENT_TYPE;
+ * - cualquier otro dominio respeta el valor informado por WordPress.
+ *
+ * @param string $reported Entorno informado por wp_get_environment_type().
+ * @param string $host     Host real de home_url().
+ * @return array{effective:string,reported:string,host:string,source:string,mismatch:bool}
  */
-function seo_ie_cf_environment_info() {
-    $reported = function_exists( 'wp_get_environment_type' ) ? (string) wp_get_environment_type() : 'production';
-    $host     = strtolower( (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST ) );
-    $effective = $reported ?: 'production';
+function seo_ie_cf_resolve_environment( $reported, $host ) {
+    $reported = sanitize_key( (string) $reported );
+    if ( '' === $reported ) {
+        $reported = 'production';
+    }
+
+    $host = strtolower( trim( (string) $host ) );
+    $host = rtrim( $host, '.' );
+
+    $production_hosts = (array) apply_filters(
+        'seo_ie_cf_production_hosts',
+        [
+            'distribuidordeherramientas.es',
+            'www.distribuidordeherramientas.es',
+        ]
+    );
+    $production_hosts = array_values(
+        array_unique(
+            array_filter(
+                array_map(
+                    static function ( $production_host ) {
+                        return strtolower( rtrim( trim( (string) $production_host ), '.' ) );
+                    },
+                    $production_hosts
+                )
+            )
+        )
+    );
+
+    $effective = $reported;
     $source    = 'wp_environment';
 
     if (
-        'production' === $effective
-        && '' !== $host
+        '' !== $host
         && preg_match( '/(^|[.\-])(staging|stage|dev|test|local)([.\-]|$)/i', $host )
     ) {
         $effective = 'staging';
         $source    = 'host_safety';
+    } elseif ( '' !== $host && in_array( $host, $production_hosts, true ) ) {
+        $effective = 'production';
+        $source    = 'canonical_production_host';
     }
 
     return [
         'effective' => sanitize_key( $effective ),
-        'reported'  => sanitize_key( $reported ),
+        'reported'  => $reported,
         'host'      => $host,
         'source'    => $source,
+        'mismatch'  => $reported !== $effective,
     ];
+}
+
+/**
+ * Informacion efectiva del entorno.
+ */
+function seo_ie_cf_environment_info() {
+    $reported = function_exists( 'wp_get_environment_type' ) ? (string) wp_get_environment_type() : 'production';
+    $host     = strtolower( (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST ) );
+
+    return seo_ie_cf_resolve_environment( $reported, $host );
 }
 
 /**
