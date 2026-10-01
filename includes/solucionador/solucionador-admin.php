@@ -935,6 +935,9 @@ final class SEO_Solucionador_Admin {
             .seo-sol-table{overflow:auto}.seo-sol-table table{min-width:1280px}
             .seo-sol-table code{font-size:11px;word-break:break-all}.seo-sol-meta{margin:0 0 5px}
             .seo-sol-warning{color:#996800;font-size:12px}.seo-sol-score{font-size:20px}
+            .seo-sol-brief-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:16px}
+            .seo-sol-brief-grid section{background:#fff;border:1px solid #dcdcde;border-radius:7px;padding:14px}
+            @media(max-width:1100px){.seo-sol-brief-grid{grid-template-columns:1fr}}
         </style>';
     }
 }
