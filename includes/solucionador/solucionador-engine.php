@@ -232,6 +232,9 @@ final class SEO_Solucionador_Engine {
         $c = max(0, (int) ($stats['comentarista'] ?? 0));
         $a = max(0, (int) ($stats['analista'] ?? 0));
         $u = max(0, (int) ($stats['auditor'] ?? 0));
+        $o = max(0, (int) ($stats['ojeador'] ?? 0));
+        $i = max(0, (int) ($stats['ingeniero'] ?? 0));
+        $k = max(0, (int) ($stats['clasificador'] ?? 0));
         $z = max(0, (int) ($stats['zero_results'] ?? 0));
         $n = max(0, (int) ($stats['negative_feedback'] ?? 0));
         $score = 10
@@ -239,6 +242,9 @@ final class SEO_Solucionador_Engine {
             + (7 * log(1 + $c))
             + (6 * log(1 + $a))
             + (3 * log(1 + $u))
+            + (4 * log(1 + $o))
+            + (3 * log(1 + $i))
+            + (3 * log(1 + $k))
             + (5 * log(1 + $z))
             + (7 * log(1 + $n));
         if ($coverage_status === 'uncovered') $score += 12;
@@ -254,6 +260,10 @@ final class SEO_Solucionador_Engine {
         $comentarista = absint($stats['comentarista'] ?? 0);
         $analista = absint($stats['analista'] ?? 0);
         $auditor = absint($stats['auditor'] ?? 0);
+        $ojeador = absint($stats['ojeador'] ?? 0);
+        $ingeniero = absint($stats['ingeniero'] ?? 0);
+        $clasificador = absint($stats['clasificador'] ?? 0);
+        $support = $analista + $comentarista + $auditor + $ojeador + $ingeniero + $clasificador;
 
         if (in_array($coverage_status, array('covered_exact','draft_pending'), true)) return 'no_action';
         if ($coverage_status === 'covered_parent') return 'create_section';
@@ -264,7 +274,7 @@ final class SEO_Solucionador_Engine {
             // observacion; la propuesta pasa a crear post con repeticion o cruce
             // independiente de fuentes.
             if ($dependiente >= 2) return 'create_post';
-            if ($dependiente >= 1 && ($analista >= 1 || $comentarista >= 1 || $auditor >= 1)) return 'create_post';
+            if ($dependiente >= 1 && $support >= 1) return 'create_post';
             // Comentarista es evidencia secundaria. Varias reviews del mismo o
             // de distintos productos no justifican por si solas un nuevo post.
             // Hace falta una pregunta real o un gap editorial independiente.
