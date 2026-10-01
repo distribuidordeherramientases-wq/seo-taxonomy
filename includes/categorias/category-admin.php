@@ -1531,8 +1531,6 @@ if (!function_exists('seo_category_catalog_export_json')) {
             $catalog_sort = 'products_desc';
         }
 
-        $valid_product_status_sql = "p.post_status NOT IN ('trash','auto-draft','inherit')";
-
         $total_categories = (int) $wpdb->get_var(
             "SELECT COUNT(*) FROM {$tt_table} WHERE taxonomy = 'product_cat'"
         );
@@ -1540,7 +1538,7 @@ if (!function_exists('seo_category_catalog_export_json')) {
             "SELECT COUNT(*)
              FROM {$posts_table} p
              WHERE p.post_type = 'product'
-               AND {$valid_product_status_sql}"
+               AND p.post_status NOT IN ('trash','auto-draft','inherit')"
         );
         $published_products = (int) $wpdb->get_var(
             "SELECT COUNT(*)
@@ -1554,7 +1552,7 @@ if (!function_exists('seo_category_catalog_export_json')) {
              INNER JOIN {$relationships_table} tr ON tr.object_id = p.ID
              INNER JOIN {$tt_table} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
              WHERE p.post_type = 'product'
-               AND {$valid_product_status_sql}
+               AND p.post_status NOT IN ('trash','auto-draft','inherit')
                AND tt.taxonomy = 'product_cat'"
         );
         $category_product_assignments = (int) $wpdb->get_var(
@@ -1564,7 +1562,7 @@ if (!function_exists('seo_category_catalog_export_json')) {
              INNER JOIN {$posts_table} p ON p.ID = tr.object_id
              WHERE tt.taxonomy = 'product_cat'
                AND p.post_type = 'product'
-               AND {$valid_product_status_sql}"
+               AND p.post_status NOT IN ('trash','auto-draft','inherit')"
         );
         $categories_with_products = (int) $wpdb->get_var(
             "SELECT COUNT(DISTINCT tt.term_id)
@@ -1573,7 +1571,7 @@ if (!function_exists('seo_category_catalog_export_json')) {
              INNER JOIN {$posts_table} p ON p.ID = tr.object_id
              WHERE tt.taxonomy = 'product_cat'
                AND p.post_type = 'product'
-               AND {$valid_product_status_sql}"
+               AND p.post_status NOT IN ('trash','auto-draft','inherit')"
         );
         $multi_category_products = (int) $wpdb->get_var(
             "SELECT COUNT(*) FROM (
@@ -1582,7 +1580,7 @@ if (!function_exists('seo_category_catalog_export_json')) {
                 INNER JOIN {$relationships_table} tr ON tr.object_id = p.ID
                 INNER JOIN {$tt_table} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
                 WHERE p.post_type = 'product'
-                  AND {$valid_product_status_sql}
+                  AND p.post_status NOT IN ('trash','auto-draft','inherit')
                   AND tt.taxonomy = 'product_cat'
                 GROUP BY p.ID
                 HAVING COUNT(DISTINCT tt.term_id) > 1
@@ -1680,9 +1678,13 @@ if (!function_exists('seo_category_catalog_export_json')) {
                 break;
         }
 
-        $summary_rows = $search_params
-            ? $wpdb->get_results($wpdb->prepare($summary_sql, ...$search_params), ARRAY_A)
-            : $wpdb->get_results($summary_sql, ARRAY_A);
+        if ($search_params) {
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal WordPress tables and closed search/sort fragments; search values are bound through prepare().
+            $summary_rows = $wpdb->get_results($wpdb->prepare($summary_sql, ...$search_params), ARRAY_A);
+        } else {
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal WordPress tables and closed state/sort fragments; query has no external values.
+            $summary_rows = $wpdb->get_results($summary_sql, ARRAY_A);
+        }
         $summary_rows = is_array($summary_rows) ? $summary_rows : [];
 
         // Mapa completo de categorias para construir rutas aunque el export este filtrado.
@@ -1714,7 +1716,7 @@ if (!function_exists('seo_category_catalog_export_json')) {
                     ON pm.post_id = p.ID
                    AND pm.meta_key IN ('_sku','_stock_status','_stock')
              WHERE p.post_type = 'product'
-               AND {$valid_product_status_sql}
+               AND p.post_status NOT IN ('trash','auto-draft','inherit')
                AND NOT EXISTS (
                     SELECT 1
                     FROM {$relationships_table} tr_u
@@ -1814,6 +1816,7 @@ if (!function_exists('seo_category_catalog_export_json')) {
                     GROUP BY tt.term_id, p.ID, p.post_title, p.post_name, p.post_status
                     ORDER BY tt.term_id ASC, p.post_title ASC";
 
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal WordPress tables plus generated %d placeholders; all category IDs are bound through prepare().
                 $product_rows = $wpdb->get_results(
                     $wpdb->prepare($product_sql, ...$batch_category_ids),
                     ARRAY_A
@@ -1950,8 +1953,6 @@ if (!function_exists('seo_category_catalog_table_render')) {
         // papelera, autodraft e inherit. Las categorías cuentan relaciones
         // directas product_cat -> product.
         // -----------------------------------------------------------------
-        $valid_product_status_sql = "p.post_status NOT IN ('trash','auto-draft','inherit')";
-
         $total_categories = (int) $wpdb->get_var(
             "SELECT COUNT(*) FROM {$tt_table} WHERE taxonomy = 'product_cat'"
         );
@@ -1960,7 +1961,7 @@ if (!function_exists('seo_category_catalog_table_render')) {
             "SELECT COUNT(*)
              FROM {$posts_table} p
              WHERE p.post_type = 'product'
-               AND {$valid_product_status_sql}"
+               AND p.post_status NOT IN ('trash','auto-draft','inherit')"
         );
 
         $published_products = (int) $wpdb->get_var(
@@ -1976,7 +1977,7 @@ if (!function_exists('seo_category_catalog_table_render')) {
              INNER JOIN {$relationships_table} tr ON tr.object_id = p.ID
              INNER JOIN {$tt_table} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
              WHERE p.post_type = 'product'
-               AND {$valid_product_status_sql}
+               AND p.post_status NOT IN ('trash','auto-draft','inherit')
                AND tt.taxonomy = 'product_cat'"
         );
 
@@ -1987,7 +1988,7 @@ if (!function_exists('seo_category_catalog_table_render')) {
              INNER JOIN {$posts_table} p ON p.ID = tr.object_id
              WHERE tt.taxonomy = 'product_cat'
                AND p.post_type = 'product'
-               AND {$valid_product_status_sql}"
+               AND p.post_status NOT IN ('trash','auto-draft','inherit')"
         );
 
         $categories_with_products = (int) $wpdb->get_var(
@@ -1997,7 +1998,7 @@ if (!function_exists('seo_category_catalog_table_render')) {
              INNER JOIN {$posts_table} p ON p.ID = tr.object_id
              WHERE tt.taxonomy = 'product_cat'
                AND p.post_type = 'product'
-               AND {$valid_product_status_sql}"
+               AND p.post_status NOT IN ('trash','auto-draft','inherit')"
         );
 
         $multi_category_products = (int) $wpdb->get_var(
@@ -2007,7 +2008,7 @@ if (!function_exists('seo_category_catalog_table_render')) {
                 INNER JOIN {$relationships_table} tr ON tr.object_id = p.ID
                 INNER JOIN {$tt_table} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
                 WHERE p.post_type = 'product'
-                  AND {$valid_product_status_sql}
+                  AND p.post_status NOT IN ('trash','auto-draft','inherit')
                   AND tt.taxonomy = 'product_cat'
                 GROUP BY p.ID
                 HAVING COUNT(DISTINCT tt.term_id) > 1
@@ -2113,9 +2114,13 @@ if (!function_exists('seo_category_catalog_table_render')) {
                 break;
         }
 
-        $summary_rows = $search_params
-            ? $wpdb->get_results($wpdb->prepare($summary_sql, ...$search_params), ARRAY_A)
-            : $wpdb->get_results($summary_sql, ARRAY_A);
+        if ($search_params) {
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal WordPress tables and closed search/sort fragments; search values are bound through prepare().
+            $summary_rows = $wpdb->get_results($wpdb->prepare($summary_sql, ...$search_params), ARRAY_A);
+        } else {
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal WordPress tables and closed state/sort fragments; query has no external values.
+            $summary_rows = $wpdb->get_results($summary_sql, ARRAY_A);
+        }
 
         $summary_rows = is_array($summary_rows) ? $summary_rows : [];
         $filtered_categories = count($summary_rows);
@@ -2184,6 +2189,7 @@ if (!function_exists('seo_category_catalog_table_render')) {
                 GROUP BY tt.term_id, p.ID, p.post_title, p.post_status
                 ORDER BY tt.term_id ASC, p.post_title ASC";
 
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal WordPress tables plus generated %d placeholders; all category IDs are bound through prepare().
             $product_rows = $wpdb->get_results(
                 $wpdb->prepare($product_sql, ...$page_category_ids),
                 ARRAY_A
@@ -2621,6 +2627,7 @@ if ($active_tab === 'reasignar_categorias') {
     }
 
     // 1. Clusters Únicos (Nivel 1)
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal plugin/core table names; query has no external values.
     $clusters_sistema = $wpdb->get_results("
         SELECT DISTINCT r.source_id as id, p.post_title as nombre 
         FROM $tabla_relations r
@@ -2630,6 +2637,7 @@ if ($active_tab === 'reasignar_categorias') {
     ");
 
     // 2. Mapeo General de Relaciones
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal plugin/core table names; query has no external values.
     $mapeo_completo = $wpdb->get_results("
         SELECT r.source_id, r.source_type, r.target_id, r.target_type, r.relation_type, p.post_title as target_title
         FROM $tabla_relations r
@@ -2638,6 +2646,7 @@ if ($active_tab === 'reasignar_categorias') {
     ");
 
     // 3. Relaciones Nivel 3 -> Nivel 4 (Hub Secundario a Categorías)
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal plugin/core table names; query has no external values.
     $relaciones_categorias = $wpdb->get_results("
         SELECT r.source_id as hub_secundario_id, r.target_id as cat_term_id, t.name as cat_nombre
         FROM $tabla_relations r
@@ -2648,6 +2657,7 @@ if ($active_tab === 'reasignar_categorias') {
 
     // 4. Precalcular URLs absolutas
     $urls_precalculadas = [];
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal relations table; query has no external values.
     $post_ids_unicos = $wpdb->get_col("SELECT DISTINCT target_id FROM $tabla_relations UNION SELECT DISTINCT source_id FROM $tabla_relations");
     if (!empty($post_ids_unicos)) {
         foreach ($post_ids_unicos as $p_id) {
@@ -3859,6 +3869,7 @@ function seoProcesarAccionV2(termId, urlOrigen) {
          * Buscar una redirección anterior con el mismo origen.
          * origin_url tiene un índice único.
          */
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal redirects table; origin URL is bound through prepare().
         $existing_redirect_id = $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT id
