@@ -378,7 +378,8 @@ final class SEO_Dependiente_Plugin {
 
         $ids = isset($_POST['ids']) ? (array) wp_unslash($_POST['ids']) : array();
         $ids = array_values(array_unique(array_filter(array_map('absint', $ids))));
-        $ids = array_slice($ids, 0, 6);
+        $compare_max = function_exists('seo_comparador_store_compare_max') ? seo_comparador_store_compare_max() : 6;
+        $ids = array_slice($ids, 0, $compare_max);
 
         if (count($ids) < 2) {
             wp_die(esc_html__('Selecciona al menos dos productos para comparar.', 'seo-taxonomy'), '', array('response' => 400));
@@ -697,7 +698,7 @@ final class SEO_Dependiente_Plugin {
             'weightUnit'       => get_option('woocommerce_weight_unit', 'kg'),
             'dimensionUnit'    => get_option('woocommerce_dimension_unit', 'cm'),
             'resultsPerPage'   => absint(self::option('results_per_page', 18)),
-            'compareMax'       => 6,
+            'compareMax'       => function_exists('seo_comparador_store_compare_max') ? seo_comparador_store_compare_max() : 6,
             'placeholderImage' => esc_url_raw($fallback_image),
             'comparePdfUrl'     => esc_url_raw(admin_url('admin-post.php')),
             'comparePdfNonce'   => wp_create_nonce('seo_dependiente_compare_pdf'),
