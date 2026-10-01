@@ -6,7 +6,7 @@
 defined('ABSPATH') || exit;
 
 final class SEO_Solucionador_Export {
-    const SCHEMA = 'seo-solucionador-export-v1';
+    const SCHEMA = 'seo-solucionador-export-v2';
 
     public static function init() {
         add_action('admin_post_seo_solucionador_export_json', array(__CLASS__, 'download'));
@@ -48,6 +48,9 @@ final class SEO_Solucionador_Export {
         $topics_table = SEO_Solucionador_DB::topics_table();
         $evidence_table = SEO_Solucionador_DB::evidence_table();
         $post_topics_table = SEO_Solucionador_DB::post_topics_table();
+        $coverage_table = SEO_Solucionador_DB::coverage_table();
+        $workflow_table = SEO_Solucionador_DB::workflow_table();
+        $tracking_table = SEO_Solucionador_DB::tracking_table();
 
         $topics = SEO_Solucionador_DB::table_exists($topics_table)
             ? (array) $wpdb->get_results(
@@ -80,18 +83,22 @@ final class SEO_Solucionador_Export {
         }
 
         $coverage_rows = array();
-        if (SEO_Solucionador_DB::table_exists($post_topics_table)) {
+        if (SEO_Solucionador_DB::table_exists($coverage_table)) {
             $coverage_raw = (array) $wpdb->get_results(
-                "SELECT pt.*,p.post_title,p.post_status,p.post_modified_gmt
-                 FROM {$post_topics_table} pt
-                 LEFT JOIN {$wpdb->posts} p ON p.ID=pt.post_id
-                 ORDER BY pt.post_id ASC,pt.scope ASC,pt.id ASC",
+                "SELECT * FROM {$coverage_table} ORDER BY entity_type,entity_id,scope,id ASC",
                 ARRAY_A
             );
             foreach ($coverage_raw as $row) {
                 $coverage_rows[] = self::normalize_coverage($row);
             }
         }
+
+        $workflow_rows = SEO_Solucionador_DB::table_exists($workflow_table)
+            ? (array) $wpdb->get_results("SELECT * FROM {$workflow_table} ORDER BY topic_id,id ASC",ARRAY_A)
+            : array();
+        $tracking_rows = SEO_Solucionador_DB::table_exists($tracking_table)
+            ? (array) $wpdb->get_results("SELECT * FROM {$tracking_table} ORDER BY topic_id,snapshot_at,id ASC",ARRAY_A)
+            : array();
 
         return array(
             'schema' => self::SCHEMA,
@@ -103,9 +110,11 @@ final class SEO_Solucionador_Export {
                 'db_version' => (string) get_option(SEO_Solucionador_DB::VERSION_OPTION, ''),
             ),
             'last_scan' => (array) get_option('seo_solucionador_last_scan', array()),
-            'summary' => self::summary($topics_table, $evidence_table, $post_topics_table),
+            'summary' => self::summary($topics_table, $evidence_table, $coverage_table),
             'topics' => $topic_rows,
             'editorial_coverage' => $coverage_rows,
+            'workflow_history' => $workflow_rows,
+            'tracking_history' => $tracking_rows,
         );
     }
 
@@ -129,13 +138,26 @@ final class SEO_Solucionador_Export {
             'proposal' => array(
                 'suggested_title' => (string) ($row['suggested_title'] ?? ''),
                 'recommended_action' => (string) ($row['recommended_action'] ?? ''),
+                'decision_reason' => (string) ($row['decision_reason'] ?? ''),
                 'status' => (string) ($row['status'] ?? ''),
+                'workflow_state' => (string) ($row['workflow_state'] ?? ''),
+                'content_type' => (string) ($row['content_type'] ?? ''),
                 'priority_score' => (float) ($row['priority_score'] ?? 0),
+                'priority_components' => SEO_Solucionador_DB::priority_components($row),
+                'requirements' => SEO_Solucionador_DB::decision_requirements($row),
                 'vocabulary' => SEO_Solucionador_DB::proposed_vocabulary($row),
                 'categories' => SEO_Solucionador_DB::proposed_categories($row),
+                'primary_category_id' => absint($row['primary_category_id'] ?? 0),
+                'hierarchy' => SEO_Solucionador_DB::hierarchy($row),
             ),
             'coverage' => array(
                 'status' => (string) ($row['coverage_status'] ?? ''),
+                'score' => (float) ($row['coverage_score'] ?? 0),
+                'existing_entity_type' => (string) ($row['existing_entity_type'] ?? ''),
+                'existing_entity_id' => absint($row['existing_entity_id'] ?? 0),
+                'duplication_risk' => (float) ($row['duplication_risk'] ?? 0),
+                'cannibalization_risk' => (float) ($row['cannibalization_risk'] ?? 0),
+                'knowledge_status' => (string) ($row['knowledge_status'] ?? ''),
                 'existing_post' => self::post_info($existing_post_id),
                 'draft_post' => self::post_info($draft_post_id),
             ),
@@ -166,9 +188,14 @@ final class SEO_Solucionador_Export {
             'id' => absint($row['id'] ?? 0),
             'source_type' => (string) ($row['source_type'] ?? ''),
             'source_id' => self::nullable_string($row['source_id'] ?? null),
+            'signal_type' => (string) ($row['signal_type'] ?? ''),
+            'entity_type' => (string) ($row['entity_type'] ?? ''),
+            'entity_id' => absint($row['entity_id'] ?? 0),
+            'category_id' => absint($row['category_id'] ?? 0),
             'source_text' => (string) ($row['source_text'] ?? ''),
             'source_meta' => SEO_Solucionador_DB::decode_json($row['source_meta'] ?? '', array()),
             'occurrences' => max(1, absint($row['occurrences'] ?? 1)),
+            'confidence' => (float) ($row['confidence'] ?? 0),
             'evidence_score' => (float) ($row['evidence_score'] ?? 0),
             'observed_at' => self::nullable_string($row['observed_at'] ?? null),
             'created_at' => self::nullable_string($row['created_at'] ?? null),
@@ -176,20 +203,18 @@ final class SEO_Solucionador_Export {
     }
 
     private static function normalize_coverage(array $row) {
-        $post_id = absint($row['post_id'] ?? 0);
         return array(
             'id' => absint($row['id'] ?? 0),
-            'post' => array(
-                'id' => $post_id,
-                'title' => (string) ($row['post_title'] ?? ''),
-                'status' => (string) ($row['post_status'] ?? ''),
-                'url' => $post_id ? (string) get_permalink($post_id) : '',
-                'edit_url' => $post_id ? (string) get_edit_post_link($post_id, 'raw') : '',
-                'modified_gmt' => self::nullable_string($row['post_modified_gmt'] ?? null),
-            ),
+            'entity_type' => (string) ($row['entity_type'] ?? ''),
+            'entity_id' => absint($row['entity_id'] ?? 0),
+            'seo_role' => (string) ($row['seo_role'] ?? ''),
+            'category_id' => absint($row['category_id'] ?? 0),
+            'title' => (string) ($row['title'] ?? ''),
+            'url' => (string) ($row['url'] ?? ''),
             'scope' => (string) ($row['scope'] ?? ''),
             'source_text' => (string) ($row['source_text'] ?? ''),
             'canonical_key' => (string) ($row['canonical_key'] ?? ''),
+            'vocabulary_text' => (string) ($row['vocabulary_text'] ?? ''),
             'profile' => array(
                 'intent' => (string) ($row['intent'] ?? ''),
                 'action' => (string) ($row['action_term'] ?? ''),
@@ -218,7 +243,7 @@ final class SEO_Solucionador_Export {
         );
     }
 
-    private static function summary($topics_table, $evidence_table, $post_topics_table) {
+    private static function summary($topics_table, $evidence_table, $coverage_table) {
         global $wpdb;
         $summary = array(
             'topics_total' => 0,
@@ -248,8 +273,8 @@ final class SEO_Solucionador_Export {
             }
         }
 
-        if (SEO_Solucionador_DB::table_exists($post_topics_table)) {
-            $summary['editorial_coverage_rows'] = absint($wpdb->get_var("SELECT COUNT(*) FROM {$post_topics_table}"));
+        if (SEO_Solucionador_DB::table_exists($coverage_table)) {
+            $summary['editorial_coverage_rows'] = absint($wpdb->get_var("SELECT COUNT(*) FROM {$coverage_table}"));
         }
         return $summary;
     }
