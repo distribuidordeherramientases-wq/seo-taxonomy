@@ -768,7 +768,7 @@ $schema_product_graph = array(
       <?php else : ?>
 
         <div class="dh-product-no-image">
-          <?php echo wc_placeholder_img('woocommerce_single'); ?>
+          <?php echo wp_kses_post(wc_placeholder_img('woocommerce_single')); ?>
         </div>
 
       <?php endif; ?>
@@ -839,10 +839,10 @@ $schema_product_graph = array(
       <?php if ($short_description !== '') : ?>
         <div class="dh-product-excerpt">
           <?php
-          echo apply_filters(
+          echo wp_kses_post(apply_filters(
               'woocommerce_short_description',
               $short_description
-          );
+          ));
           ?>
         </div>
       <?php endif; ?>
