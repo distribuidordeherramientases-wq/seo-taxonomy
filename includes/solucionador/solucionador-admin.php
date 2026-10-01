@@ -1230,99 +1230,70 @@ final class SEO_Solucionador_Admin {
     private static function render_data() {
         global $wpdb;
 
-        $topics = SEO_Solucionador_DB::topics_table();
-        $evidence = SEO_Solucionador_DB::evidence_table();
-        $post_topics = SEO_Solucionador_DB::post_topics_table();
+        $tables = array(
+            'Temas / decisiones'=>SEO_Solucionador_DB::topics_table(),
+            'Evidencias'=>SEO_Solucionador_DB::evidence_table(),
+            'Cobertura multientidad'=>SEO_Solucionador_DB::coverage_table(),
+            'Workflow'=>SEO_Solucionador_DB::workflow_table(),
+            'Seguimiento'=>SEO_Solucionador_DB::tracking_table(),
+            'Cobertura posts (compatibilidad)'=>SEO_Solucionador_DB::post_topics_table(),
+        );
 
         echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Datos internos de Solucionador</h2>';
-        echo '<p class="description">Vista de solo lectura de las tablas que sustentan las propuestas. Sirve para comprobar que el analisis tiene datos, que posts propone crear o ampliar y que evidencias y cobertura utiliza.</p>';
+        echo '<p class="description">Vista de solo lectura para comprobar trazabilidad. La interfaz editorial normal está en Propuestas y Cobertura; esta pestaña muestra la persistencia que las sustenta.</p>';
 
-        echo '<h3>' . esc_html($topics) . ' · temas y propuestas</h3>';
-        if (!SEO_Solucionador_DB::table_exists($topics)) {
-            echo '<p class="seo-sol-warning">La tabla no existe.</p>';
-        } else {
-            $rows = (array) $wpdb->get_results(
-                "SELECT id,suggested_title,canonical_question,canonical_key,status,coverage_status,recommended_action,evidence_total,existing_post_id,draft_post_id,priority_score,last_analyzed_at
-                 FROM {$topics}
-                 ORDER BY CASE WHEN recommended_action='create_post' THEN 0 WHEN recommended_action IN ('expand_existing_post','create_section') THEN 1 ELSE 2 END,
-                          priority_score DESC,id DESC
-                 LIMIT 500",
-                ARRAY_A
-            );
-            echo '<p><strong>Filas mostradas:</strong> ' . esc_html(number_format_i18n(count($rows))) . '</p>';
-            echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>ID</th><th>Post / pregunta</th><th>Huella</th><th>Estado</th><th>Cobertura</th><th>Accion</th><th>Evidencias</th><th>Post existente</th><th>Borrador</th><th>Prioridad</th><th>Analizado</th></tr></thead><tbody>';
-            if (!$rows) echo '<tr><td colspan="11">Tabla vacia. Ejecuta Reanalizar fuentes desde Resumen.</td></tr>';
-            foreach ($rows as $row) {
-                echo '<tr><td>' . esc_html(absint($row['id'] ?? 0)) . '</td>';
-                echo '<td><strong>' . esc_html((string) ($row['suggested_title'] ?? '')) . '</strong><br><span class="description">' . esc_html((string) ($row['canonical_question'] ?? '')) . '</span></td>';
-                echo '<td><code>' . esc_html((string) ($row['canonical_key'] ?? '')) . '</code></td>';
-                echo '<td>' . esc_html((string) ($row['status'] ?? '')) . '</td>';
-                echo '<td>' . esc_html((string) ($row['coverage_status'] ?? '')) . '</td>';
-                echo '<td><strong>' . esc_html((string) ($row['recommended_action'] ?? '')) . '</strong></td>';
-                echo '<td>' . esc_html(number_format_i18n(absint($row['evidence_total'] ?? 0))) . '</td>';
-                echo '<td>' . esc_html(absint($row['existing_post_id'] ?? 0) ?: '-') . '</td>';
-                echo '<td>' . esc_html(absint($row['draft_post_id'] ?? 0) ?: '-') . '</td>';
-                echo '<td>' . esc_html(number_format_i18n((float) ($row['priority_score'] ?? 0), 0)) . '</td>';
-                echo '<td>' . esc_html((string) ($row['last_analyzed_at'] ?? '')) . '</td></tr>';
+        foreach ($tables as $label=>$table) {
+            echo '<h3 style="margin-top:24px">' . esc_html($label) . ' · <code>' . esc_html($table) . '</code></h3>';
+            if (!SEO_Solucionador_DB::table_exists($table)) {
+                echo '<p class="seo-sol-warning">La tabla no existe todavía.</p>';
+                continue;
             }
-            echo '</tbody></table></div>';
-        }
 
-        echo '<h3 style="margin-top:24px">' . esc_html($evidence) . ' · evidencias</h3>';
-        if (!SEO_Solucionador_DB::table_exists($evidence)) {
-            echo '<p class="seo-sol-warning">La tabla no existe.</p>';
-        } else {
-            $rows = (array) $wpdb->get_results(
-                "SELECT id,topic_id,source_type,source_id,source_text,occurrences,evidence_score,observed_at
-                 FROM {$evidence}
-                 ORDER BY topic_id DESC,evidence_score DESC,occurrences DESC,id DESC
-                 LIMIT 500",
-                ARRAY_A
-            );
-            echo '<p><strong>Filas mostradas:</strong> ' . esc_html(number_format_i18n(count($rows))) . '</p>';
-            echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>ID</th><th>Tema</th><th>Fuente</th><th>ID fuente</th><th>Texto</th><th>Ocurrencias</th><th>Peso</th><th>Observado</th></tr></thead><tbody>';
-            if (!$rows) echo '<tr><td colspan="8">Tabla vacia. Las evidencias se reconstruyen al reanalizar.</td></tr>';
-            foreach ($rows as $row) {
-                echo '<tr><td>' . esc_html(absint($row['id'] ?? 0)) . '</td>';
-                echo '<td>' . esc_html(absint($row['topic_id'] ?? 0)) . '</td>';
-                echo '<td>' . esc_html((string) ($row['source_type'] ?? '')) . '</td>';
-                echo '<td><code>' . esc_html((string) ($row['source_id'] ?? '')) . '</code></td>';
-                echo '<td>' . esc_html((string) ($row['source_text'] ?? '')) . '</td>';
-                echo '<td>' . esc_html(number_format_i18n(absint($row['occurrences'] ?? 0))) . '</td>';
-                echo '<td>' . esc_html(number_format_i18n((float) ($row['evidence_score'] ?? 0), 2)) . '</td>';
-                echo '<td>' . esc_html((string) ($row['observed_at'] ?? '')) . '</td></tr>';
+            $count = absint($wpdb->get_var("SELECT COUNT(*) FROM {$table}"));
+            echo '<p><strong>' . esc_html(number_format_i18n($count)) . '</strong> filas totales.</p>';
+
+            if ($table === SEO_Solucionador_DB::topics_table()) {
+                $rows = (array)$wpdb->get_results("SELECT id,suggested_title,primary_category_id,coverage_status,recommended_action,workflow_state,knowledge_status,duplication_risk,cannibalization_risk,priority_score,evidence_total,last_analyzed_at FROM {$table} ORDER BY priority_score DESC,id DESC LIMIT 300",ARRAY_A);
+                echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>ID</th><th>Tema</th><th>Categoría</th><th>Cobertura</th><th>Decisión</th><th>Workflow</th><th>Conocimiento</th><th>Riesgos</th><th>Prioridad</th><th>Evidencias</th><th>Analizado</th></tr></thead><tbody>';
+                foreach ($rows as $row) echo '<tr><td>' . esc_html(absint($row['id'])) . '</td><td>' . esc_html((string)$row['suggested_title']) . '</td><td>' . esc_html(absint($row['primary_category_id']) ?: '—') . '</td><td>' . esc_html((string)$row['coverage_status']) . '</td><td><strong>' . esc_html((string)$row['recommended_action']) . '</strong></td><td>' . esc_html((string)$row['workflow_state']) . '</td><td>' . esc_html((string)$row['knowledge_status']) . '</td><td>dup ' . esc_html(number_format_i18n((float)$row['duplication_risk'],0)) . ' / canib ' . esc_html(number_format_i18n((float)$row['cannibalization_risk'],0)) . '</td><td>' . esc_html(number_format_i18n((float)$row['priority_score'],0)) . '</td><td>' . esc_html(number_format_i18n(absint($row['evidence_total']))) . '</td><td>' . esc_html((string)$row['last_analyzed_at']) . '</td></tr>';
+                echo '</tbody></table></div>';
+                continue;
             }
-            echo '</tbody></table></div>';
-        }
 
-        echo '<h3 style="margin-top:24px">' . esc_html($post_topics) . ' · cobertura de posts</h3>';
-        if (!SEO_Solucionador_DB::table_exists($post_topics)) {
-            echo '<p class="seo-sol-warning">La tabla no existe.</p>';
-        } else {
-            $rows = (array) $wpdb->get_results(
-                "SELECT pt.id,pt.post_id,p.post_title,p.post_status,pt.scope,pt.source_text,pt.canonical_key,pt.confidence,pt.updated_at
-                 FROM {$post_topics} pt
-                 LEFT JOIN {$wpdb->posts} p ON p.ID=pt.post_id
-                 ORDER BY pt.post_id DESC,pt.scope ASC,pt.id DESC
-                 LIMIT 500",
-                ARRAY_A
-            );
-            echo '<p><strong>Filas mostradas:</strong> ' . esc_html(number_format_i18n(count($rows))) . '</p>';
-            echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>ID</th><th>Post</th><th>Estado</th><th>Ambito</th><th>Texto</th><th>Huella</th><th>Confianza</th><th>Actualizado</th></tr></thead><tbody>';
-            if (!$rows) echo '<tr><td colspan="8">Tabla vacia. Ejecuta el analisis para reconstruir el indice de cobertura.</td></tr>';
-            foreach ($rows as $row) {
-                echo '<tr><td>' . esc_html(absint($row['id'] ?? 0)) . '</td>';
-                echo '<td>#' . esc_html(absint($row['post_id'] ?? 0)) . ' · ' . esc_html((string) ($row['post_title'] ?? '')) . '</td>';
-                echo '<td>' . esc_html((string) ($row['post_status'] ?? '')) . '</td>';
-                echo '<td>' . esc_html((string) ($row['scope'] ?? '')) . '</td>';
-                echo '<td>' . esc_html((string) ($row['source_text'] ?? '')) . '</td>';
-                echo '<td><code>' . esc_html((string) ($row['canonical_key'] ?? '')) . '</code></td>';
-                echo '<td>' . esc_html(number_format_i18n((float) ($row['confidence'] ?? 0), 2)) . '</td>';
-                echo '<td>' . esc_html((string) ($row['updated_at'] ?? '')) . '</td></tr>';
+            if ($table === SEO_Solucionador_DB::evidence_table()) {
+                $rows = (array)$wpdb->get_results("SELECT id,topic_id,source_type,source_id,signal_type,entity_type,entity_id,category_id,confidence,evidence_score,occurrences,observed_at FROM {$table} ORDER BY topic_id DESC,evidence_score DESC,id DESC LIMIT 300",ARRAY_A);
+                echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>ID</th><th>Tema</th><th>Fuente</th><th>Señal</th><th>Entidad</th><th>Categoría</th><th>Confianza</th><th>Peso</th><th>Ocurrencias</th><th>Observado</th></tr></thead><tbody>';
+                foreach ($rows as $row) echo '<tr><td>' . esc_html(absint($row['id'])) . '</td><td>' . esc_html(absint($row['topic_id'])) . '</td><td>' . esc_html((string)$row['source_type']) . '<br><code>' . esc_html((string)$row['source_id']) . '</code></td><td>' . esc_html((string)$row['signal_type']) . '</td><td>' . esc_html((string)$row['entity_type']) . ' #' . esc_html(absint($row['entity_id']) ?: '—') . '</td><td>' . esc_html(absint($row['category_id']) ?: '—') . '</td><td>' . esc_html(number_format_i18n((float)$row['confidence']*100,0)) . '%</td><td>' . esc_html(number_format_i18n((float)$row['evidence_score'],2)) . '</td><td>' . esc_html(number_format_i18n(absint($row['occurrences']))) . '</td><td>' . esc_html((string)$row['observed_at']) . '</td></tr>';
+                echo '</tbody></table></div>';
+                continue;
             }
-            echo '</tbody></table></div>';
-        }
 
+            if ($table === SEO_Solucionador_DB::coverage_table()) {
+                $rows = (array)$wpdb->get_results("SELECT id,entity_type,entity_id,seo_role,category_id,scope,title,canonical_key,confidence,updated_at FROM {$table} ORDER BY id DESC LIMIT 300",ARRAY_A);
+                echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>ID</th><th>Entidad</th><th>Rol</th><th>Categoría</th><th>Ámbito</th><th>Título</th><th>Huella</th><th>Confianza</th><th>Actualizado</th></tr></thead><tbody>';
+                foreach ($rows as $row) echo '<tr><td>' . esc_html(absint($row['id'])) . '</td><td>' . esc_html((string)$row['entity_type']) . ' #' . esc_html(absint($row['entity_id'])) . '</td><td>' . esc_html((string)$row['seo_role']) . '</td><td>' . esc_html(absint($row['category_id']) ?: '—') . '</td><td>' . esc_html((string)$row['scope']) . '</td><td>' . esc_html((string)$row['title']) . '</td><td><code>' . esc_html((string)$row['canonical_key']) . '</code></td><td>' . esc_html(number_format_i18n((float)$row['confidence']*100,0)) . '%</td><td>' . esc_html((string)$row['updated_at']) . '</td></tr>';
+                echo '</tbody></table></div>';
+                continue;
+            }
+
+            if ($table === SEO_Solucionador_DB::workflow_table()) {
+                $rows = (array)$wpdb->get_results("SELECT id,topic_id,from_state,to_state,action_code,reason,user_id,created_at FROM {$table} ORDER BY id DESC LIMIT 300",ARRAY_A);
+                echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>ID</th><th>Tema</th><th>De</th><th>A</th><th>Acción</th><th>Motivo</th><th>Usuario</th><th>Fecha</th></tr></thead><tbody>';
+                foreach ($rows as $row) echo '<tr><td>' . esc_html(absint($row['id'])) . '</td><td>' . esc_html(absint($row['topic_id'])) . '</td><td>' . esc_html((string)$row['from_state']) . '</td><td><strong>' . esc_html((string)$row['to_state']) . '</strong></td><td>' . esc_html((string)$row['action_code']) . '</td><td>' . esc_html((string)$row['reason']) . '</td><td>' . esc_html(absint($row['user_id']) ?: 'sistema') . '</td><td>' . esc_html((string)$row['created_at']) . '</td></tr>';
+                echo '</tbody></table></div>';
+                continue;
+            }
+
+            if ($table === SEO_Solucionador_DB::tracking_table()) {
+                $rows = (array)$wpdb->get_results("SELECT id,topic_id,entity_type,entity_id,period_days,impressions,clicks,position,sessions,pageviews,outcome_state,snapshot_at FROM {$table} ORDER BY snapshot_at DESC,id DESC LIMIT 300",ARRAY_A);
+                echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>ID</th><th>Tema</th><th>Entidad</th><th>Periodo</th><th>Impresiones</th><th>Clics</th><th>Posición</th><th>Sesiones</th><th>Vistas</th><th>Resultado</th><th>Fecha</th></tr></thead><tbody>';
+                foreach ($rows as $row) echo '<tr><td>' . esc_html(absint($row['id'])) . '</td><td>' . esc_html(absint($row['topic_id'])) . '</td><td>' . esc_html((string)$row['entity_type']) . ' #' . esc_html(absint($row['entity_id'])) . '</td><td>' . esc_html(absint($row['period_days'])) . 'd</td><td>' . esc_html(number_format_i18n(absint($row['impressions']))) . '</td><td>' . esc_html(number_format_i18n(absint($row['clicks']))) . '</td><td>' . esc_html(number_format_i18n((float)$row['position'],1)) . '</td><td>' . esc_html(number_format_i18n(absint($row['sessions']))) . '</td><td>' . esc_html(number_format_i18n(absint($row['pageviews']))) . '</td><td>' . esc_html((string)$row['outcome_state']) . '</td><td>' . esc_html((string)$row['snapshot_at']) . '</td></tr>';
+                echo '</tbody></table></div>';
+                continue;
+            }
+
+            echo '<p class="description">Tabla conservada por compatibilidad. La cobertura operativa actual está en ' . esc_html(SEO_Solucionador_DB::coverage_table()) . '.</p>';
+        }
         echo '</div>';
     }
 
@@ -1333,7 +1304,7 @@ final class SEO_Solucionador_Admin {
         wp_nonce_field('seo_solucionador_export_json');
         submit_button('Descargar resultados JSON', 'secondary', 'submit', false);
         echo '</form>';
-        echo '<span class="description" style="margin-left:10px">Incluye propuestas, clasificacion, evidencias, cobertura editorial y ultimo analisis.</span>';
+        echo '<span class="description" style="margin-left:10px">Incluye decisiones, evidencias, cobertura multientidad, workflow, seguimiento y último análisis.</span>';
         echo '</div>';
     }
 
