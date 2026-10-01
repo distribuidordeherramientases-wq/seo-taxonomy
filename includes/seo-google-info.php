@@ -2902,9 +2902,7 @@ function seo_google_get_signal_queries($property_id, $date_from, $date_to, $limi
             LIMIT %d";
 
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Search Console table and closed report fragments; all filter/range/limit values are bound through prepare().
-    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Search Console table and closed report fragments; all filter/range/limit values are bound through prepare().
-    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Search Console table and closed report fragments; all filter/range/limit values are bound through prepare().
-    $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A); /* seo-wporg-reviewed */ /* seo-wporg-reviewed */
+    $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
 
     foreach ($rows as &$row) {
         $evidence = seo_google_get_query_page_evidence(
@@ -3020,6 +3018,7 @@ function seo_google_get_signal_pages($property_id, $date_from, $date_to, $limit 
             ORDER BY impressions DESC, clicks DESC
             LIMIT %d";
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Search Console table and closed report fragments; all filter/range/limit values are bound through prepare().
     $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
 
     if ($page_source) {
@@ -3230,6 +3229,7 @@ function seo_google_get_dimension_changes($property_id, $dimension, array $perio
         max(0, (float) $min_impressions),
     );
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Search Console table and closed report fragments; all filter/range/limit values are bound through prepare().
     $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
     $groups = array('new' => array(), 'lost' => array(), 'growth' => array(), 'decline' => array());
 
