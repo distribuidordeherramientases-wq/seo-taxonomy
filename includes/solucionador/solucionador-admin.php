@@ -750,6 +750,9 @@ final class SEO_Solucionador_Admin {
                 } else {
                     echo '<p class="seo-sol-warning">Reanalizar: falta clasificacion suficiente para crear un borrador homogeneo.</p>';
                 }
+            } elseif ((string) ($row['recommended_action'] ?? '') === 'create_landing') {
+                echo '<p><a class="button button-primary" href="' . esc_url(self::diagnostics_url('pages','landings')) . '">Revisar candidata de landing</a></p>';
+                echo '<p class="description">Solucionador recomienda una landing porque existe una candidata suficientemente similar con requisitos válidos. La creación final se realiza en Páginas.</p>';
             } elseif ($existing_post_id) {
                 echo '<p><a class="button" href="' . esc_url(SEO_Solucionador_Posts::edit_url($existing_post_id)) . '">Revisar post existente</a></p>';
             }
