@@ -21,7 +21,7 @@ $logo_html = $logo_id ? wp_get_attachment_image($logo_id, 'medium', false, array
 <div class="dependiente-v3-app">
     <header class="dependiente-v3-app__header">
         <a href="<?php echo esc_url($home_url); ?>" class="dependiente-v3-app__brand">
-            <?php if ($logo_html) : echo $logo_html; else : ?><strong><?php echo esc_html($site_name); ?></strong><?php endif; ?>
+            <?php if ($logo_html) : echo wp_kses_post($logo_html); else : ?><strong><?php echo esc_html($site_name); ?></strong><?php endif; ?>
             <span>Dependiente</span>
         </a>
         <nav>
