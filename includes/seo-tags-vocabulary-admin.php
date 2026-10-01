@@ -30,6 +30,7 @@ if (!function_exists('seo_tags_vocab_table_exists')) {
 if (!function_exists('seo_tags_vocab_prepare_sql')) {
     function seo_tags_vocab_prepare_sql($sql, array $args = []) {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- This helper centralizes prepare(); callers provide generated SQL plus a separate value array.
         return $args ? $wpdb->prepare($sql, ...$args) : $sql;
     }
 }
@@ -312,6 +313,7 @@ if (!function_exists('seo_tags_vocab_get_category_profiles')) {
         }
 
         $ph = seo_tags_vocab_placeholders($category_ids, '%d');
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- %d placeholder list is generated internally; every category ID is bound through prepare().
         $count_rows = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT tt.term_id AS category_id, COUNT(DISTINCT p.ID) AS product_count
@@ -770,6 +772,7 @@ if (!function_exists('seo_tags_vocab_render_products')) {
             "SELECT COUNT(*) FROM {$wpdb->posts} p WHERE {$where_sql}",
             $args
         );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $count_sql is returned by seo_tags_vocab_prepare_sql(); dynamic values are bound there, remaining clauses are internal.
         $total = (int) $wpdb->get_var($count_sql);
         $total_pages = max(1, (int) ceil($total / $per_page));
         if ($page_number > $total_pages) {
@@ -800,6 +803,7 @@ if (!function_exists('seo_tags_vocab_render_products')) {
                 $query_args
             );
         }
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $products_sql is returned by seo_tags_vocab_prepare_sql(); filters/limits are bound there.
         $products = (array) $wpdb->get_results($products_sql, ARRAY_A);
         $product_ids = array_map('intval', array_column($products, 'ID'));
 
@@ -819,6 +823,7 @@ if (!function_exists('seo_tags_vocab_render_products')) {
         if ($product_ids) {
             $ph = seo_tags_vocab_placeholders($product_ids, '%d');
 
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- %d placeholder list is generated internally; all product IDs are bound through prepare().
             $sku_rows = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT post_id, MAX(meta_value) AS sku
@@ -834,6 +839,7 @@ if (!function_exists('seo_tags_vocab_render_products')) {
                 $sku_map[(int) $row['post_id']] = (string) ($row['sku'] ?? '');
             }
 
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- %d placeholder list is generated internally; all product IDs are bound through prepare().
             $tag_rows = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT tr.object_id AS product_id,t.name
@@ -944,6 +950,7 @@ if (!function_exists('seo_tags_vocab_render_products')) {
 
             if ($product_ids) {
                 $ph = seo_tags_vocab_placeholders($product_ids, '%d');
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- %d placeholder list is generated internally; all product IDs are bound through prepare().
                 $category_rows = $wpdb->get_results(
                     $wpdb->prepare(
                         "SELECT tr.object_id AS product_id, tt.term_id, t.name
