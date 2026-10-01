@@ -110,12 +110,12 @@ final class SEO_System_Updater
     private static function run_migration(string $version, string $file): void
     {
         if (!is_readable($file)) {
-            throw new RuntimeException('Migration file is not readable: ' . $file);
+            throw new RuntimeException('Migration file is not readable: ' . esc_html($file));
         }
 
         $migration = require $file;
         if (!is_callable($migration)) {
-            throw new RuntimeException('Migration ' . $version . ' does not return a callable.');
+            throw new RuntimeException('Migration ' . esc_html($version) . ' does not return a callable.');
         }
 
         $result = $migration();
@@ -123,7 +123,7 @@ final class SEO_System_Updater
             $message = is_wp_error($result)
                 ? $result->get_error_message()
                 : 'Migration returned false.';
-            throw new RuntimeException('Migration ' . $version . ' failed: ' . $message);
+            throw new RuntimeException('Migration ' . esc_html($version) . ' failed: ' . esc_html($message));
         }
     }
 
