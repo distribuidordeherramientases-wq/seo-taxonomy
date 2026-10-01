@@ -511,9 +511,11 @@ final class SEO_Solucionador_Sources {
             $term_id = absint($row['category_id'] ?? $row['term_id'] ?? 0);
             $text = trim((string) ($row['source_text'] ?? $row['topic'] ?? $row['summary'] ?? ''));
             if ($text === '') continue;
+            $proposal_role = sanitize_key((string) ($row['proposal_role'] ?? 'origin'));
+            if (!in_array($proposal_role, array('origin','reinforcement'), true)) $proposal_role = 'origin';
             $out[] = array(
                 'source_type'=>'comparador',
-                'proposal_role'=>'reinforcement',
+                'proposal_role'=>$proposal_role,
                 'source_id'=>sanitize_text_field((string) ($row['source_id'] ?? ('comparison:' . md5($text . '|' . $term_id)))),
                 'source_text'=>$text,
                 'signal_type'=>sanitize_key((string) ($row['signal_type'] ?? 'market_comparison')),
@@ -531,7 +533,7 @@ final class SEO_Solucionador_Sources {
                 'evidence_score'=>max(0.25,min(1.0,(float) ($row['evidence_score'] ?? 0.70))),
                 'observed_at'=>sanitize_text_field((string) ($row['observed_at'] ?? current_time('mysql'))),
                 'source_meta'=>array_merge((array) ($row['metadata'] ?? array()),array(
-                    'proposal_role'=>'reinforcement',
+                    'proposal_role'=>$proposal_role,
                     'term_id'=>$term_id,
                     'types'=>(array) ($row['types'] ?? array()),
                     'differentiators'=>(array) ($row['differentiators'] ?? array()),
