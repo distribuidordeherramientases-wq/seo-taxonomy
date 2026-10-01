@@ -1261,6 +1261,7 @@ if (!function_exists('dht_shared_render_product_card')) {
         }
 
         echo '<div class="dh-product-image">';
+// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Shared image helper returns context-escaped HTML and may include functional fallback attributes.
         echo dht_shared_product_card_image_html($card_product, 'woocommerce_thumbnail', $supplier_limit);
         echo '</div>';
         echo '<div class="dh-product-title">' . esc_html($card_product->get_name()) . '</div>';
