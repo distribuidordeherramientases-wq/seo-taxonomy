@@ -4665,7 +4665,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
                 wp_send_json_error( [ 'message' => $message ], 409 );
             }
 
-            wp_die( $message );
+            wp_die( esc_html( $message ) );
         }
 
         $products_file = isset( $_FILES['products_csv'] ) && is_array( $_FILES['products_csv'] )
