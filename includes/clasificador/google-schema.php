@@ -542,7 +542,7 @@ if (!function_exists('seo_classifier_google_schema_render_panel')) {
         echo '</div>';
 
         foreach ($types as $type => $label) {
-            echo '<h2>' . esc_html($label) . ' <span style="font-weight:400;color:#646970">(' . number_format_i18n(count($grouped[$type])) . ')</span></h2>';
+            echo '<h2>' . esc_html($label) . ' <span style="font-weight:400;color:#646970">(' . esc_html(number_format_i18n(count($grouped[$type]))) . ')</span></h2>';
             if (!$grouped[$type]) {
                 echo '<p>No hay elementos de este tipo en <code>seo_relations</code>.</p>';
                 continue;
