@@ -225,6 +225,7 @@ function seo_faq_increment_block_metric($object_type, $object_id, $metric)
                 {$time_field} = VALUES({$time_field}),
                 updated_at = VALUES(updated_at)";
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Table is internal; metric/time fields come from the closed $allowed map; data values are bound through prepare().
     return $wpdb->query(
         $wpdb->prepare($sql, (int) $object_type, absint($object_id), $now, $now)
     );
@@ -292,6 +293,7 @@ function seo_faq_track_event()
                       AND object_id = %d
                       AND active = 1
                       AND id IN ({$placeholders})";
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal FAQ table plus generated %d placeholders; object and FAQ IDs are bound through prepare().
             $wpdb->query($wpdb->prepare($sql, $params));
         } else {
             $wpdb->query(
@@ -2502,9 +2504,9 @@ function seo_faq_get_target_counts($object_type, $object_ids)
         GROUP BY object_id
     ";
 
-    $params   = array_merge([$object_type], $object_ids);
-    $prepared = $wpdb->prepare($query, $params);
-    $rows     = $wpdb->get_results($prepared);
+    $params = array_merge([$object_type], $object_ids);
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal FAQ table plus generated %d placeholders; all values are bound through prepare().
+    $rows = $wpdb->get_results($wpdb->prepare($query, $params));
     $counts   = [];
 
     foreach ($rows as $row) {
@@ -3534,6 +3536,7 @@ function seo_faq_report_get_tracking_metrics()
         return $empty;
     }
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal metrics table name; query has no external values.
     $row = $wpdb->get_row(
         "SELECT COUNT(*) AS objects_tracked,
                 COALESCE(SUM(block_render_count), 0) AS block_renders,
@@ -3677,7 +3680,7 @@ function seo_faq_report_get_performance_rows($filters, $limit = 100)
         'open_rate' => '(open_count / NULLIF(load_count, 0)) DESC, load_count DESC, id ASC',
         'recent'    => 'updated_at DESC, id DESC',
     ];
-    $order_by = $order_map[$filters['order'] ?? 'loads'];
+    $order_by = $order_map[$filters['order'] ?? 'loads'] ?? $order_map['loads'];
 
     $sql = "SELECT id, object_type, object_id, question, active,
                    load_count, open_count,
@@ -3686,13 +3689,11 @@ function seo_faq_report_get_performance_rows($filters, $limit = 100)
             FROM {$table}
             WHERE " . implode(' AND ', $where) . "
             ORDER BY {$order_by}
-            LIMIT {$limit}";
+            LIMIT %d";
 
-    if ($args) {
-        $sql = $wpdb->prepare($sql, $args);
-    }
-
-    $rows = $wpdb->get_results($sql, ARRAY_A);
+    $args[] = $limit;
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal table and whitelisted WHERE/ORDER BY fragments; all filter values and LIMIT are bound through prepare().
+    $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
     return is_array($rows) ? $rows : [];
 }
 
