@@ -100,7 +100,7 @@ final class SEO_Comparador_IO {
             'use_cases' => SEO_Comparador_DB::decode_json($row['use_cases'] ?? '[]'),
             'market_overview' => (string) ($row['market_overview'] ?? ''),
             'own_catalog_position' => (string) ($row['own_catalog_position'] ?? ''),
-            'limitations' => SEO_Comparador_DB::decode_json($row['limits'] ?? '[]'),
+            'limitations' => SEO_Comparador_DB::decode_json($row['editorial_limitations'] ?? '[]'),
             'conclusion' => (string) ($row['conclusion'] ?? ''),
         );
     }
@@ -398,7 +398,7 @@ final class SEO_Comparador_IO {
             'use_cases' => wp_json_encode($use_cases, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'market_overview' => $market_overview,
             'own_catalog_position' => $own_catalog_position,
-            'limits' => wp_json_encode($limitations, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'editorial_limitations' => wp_json_encode($limitations, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'conclusion' => $conclusion,
             'origin' => 'manual_import',
             'source_hash_at_edit' => $export_hash,
