@@ -369,6 +369,16 @@ final class SEO_Comparador_Engine {
         return $labels;
     }
 
+    public static function axis_publishable_for_test($known, $total, $variation, $avg_confidence) {
+        $settings = self::settings();
+        $total = max(1, absint($total));
+        $coverage = absint($known) / $total;
+        return absint($known) >= 2
+            && absint($variation) >= 2
+            && $coverage >= (float) $settings['min_axis_coverage']
+            && (float) $avg_confidence >= (float) $settings['min_axis_confidence'];
+    }
+
     private static function axis_statistics(array $records, array $settings, array $legacy_labels) {
         $total = count($records);
         if ($total < 1) return array();
@@ -396,10 +406,7 @@ final class SEO_Comparador_Engine {
             $avg_conf = $row['known'] ? $row['confidence'] / $row['known'] : 0;
             $variation = count($row['values']);
             $legacy = isset($legacy_labels[$key]);
-            $publishable = $row['known'] >= 2
-                && $variation >= 2
-                && $coverage >= (float) $settings['min_axis_coverage']
-                && $avg_conf >= (float) $settings['min_axis_confidence'];
+            $publishable = self::axis_publishable_for_test($row['known'],$total,$variation,$avg_conf);
             $priority = ($legacy ? 25 : 0) + min(50, (int) round($coverage * 50)) + min(25, max(0,$variation-1)*5);
             $out[] = array(
                 'axis_key'=>$key,
@@ -466,6 +473,16 @@ final class SEO_Comparador_Engine {
         return 'needs_review';
     }
 
+    public static function resolve_recalculated_status($old_status, $old_hash, $new_hash, $has_published_post, $base_status) {
+        $old_status = sanitize_key((string) $old_status);
+        $base_status = sanitize_key((string) $base_status) ?: 'needs_review';
+        if ($base_status === 'blocked') return 'blocked';
+        if ($old_status === 'ready_for_solucionador' && (string) $old_hash === (string) $new_hash) return 'ready_for_solucionador';
+        if ($has_published_post && (string) $old_hash !== '' && (string) $old_hash !== (string) $new_hash) return 'needs_update';
+        if (in_array($old_status,array('approved','post_draft','published','monitoring'),true) && (string) $old_hash === (string) $new_hash) return $old_status;
+        return 'needs_review';
+    }
+
     public static function build_profile($term_id) {
         global $wpdb;
         SEO_Comparador_DB::maybe_install();
@@ -514,11 +531,13 @@ final class SEO_Comparador_Engine {
 
         $semantic_conflicts = (array) apply_filters('seo_comparador_semantic_conflicts', array(), $term_id, $own);
         $base_status = self::profile_quality_status(count($own), count($external), count($publishable_axes), count($semantic_conflicts));
-        if ($base_status === 'blocked') $status = 'blocked';
-        elseif ($old_status === 'ready_for_solucionador' && $old_hash === $hash) $status = 'ready_for_solucionador';
-        elseif (!empty($post_map['post_id']) && get_post_status(absint($post_map['post_id'])) === 'publish' && $old_hash !== '' && $old_hash !== $hash) $status = 'needs_update';
-        elseif (in_array($old_status,array('approved','post_draft','published','monitoring'),true) && $old_hash === $hash) $status = $old_status;
-        else $status = 'needs_review';
+        $status = self::resolve_recalculated_status(
+            $old_status,
+            $old_hash,
+            $hash,
+            !empty($post_map['post_id']) && get_post_status(absint($post_map['post_id'])) === 'publish',
+            $base_status
+        );
 
         $row = array(
             'canonical_key'=>self::profile_key($term_id),
