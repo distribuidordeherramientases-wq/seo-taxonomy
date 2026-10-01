@@ -988,15 +988,15 @@ final class SEO_Ojeador_DB {
         global $wpdb;
         $products = self::table('products');
         $now = self::utc_now();
-        $sql = $wpdb->prepare(
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; cutoff time is bound through prepare().
+        return absint($wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(p.ID)
              FROM {$wpdb->posts} p
              LEFT JOIN {$products} m ON m.object_id=p.ID
              WHERE p.post_type='product' AND p.post_status='publish'
                AND (m.object_id IS NULL OR m.next_scan_at IS NULL OR m.next_scan_at <= %s)",
             $now
-        );
-        return absint($wpdb->get_var($sql));
+        )));
     }
 
     public static function due_product_ids($limit) {
@@ -1004,7 +1004,8 @@ final class SEO_Ojeador_DB {
         $limit = max(1, min(50, absint($limit)));
         $products = self::table('products');
         $now = self::utc_now();
-        $sql = $wpdb->prepare(
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; cutoff time and LIMIT are bound through prepare().
+        return array_map('absint', (array) $wpdb->get_col($wpdb->prepare(
             "SELECT p.ID
              FROM {$wpdb->posts} p
              LEFT JOIN {$products} m ON m.object_id=p.ID
@@ -1016,8 +1017,7 @@ final class SEO_Ojeador_DB {
              LIMIT %d",
             $now,
             $limit
-        );
-        return array_map('absint', (array) $wpdb->get_col($sql));
+        )));
     }
 
     public static function save_scan($identity, $scan, $interval_hours) {
@@ -1090,10 +1090,12 @@ final class SEO_Ojeador_DB {
             'updated_at' => $now,
         );
 
-        $exists = $wpdb->get_var($wpdb->prepare('SELECT object_id FROM ' . self::table('products') . ' WHERE object_id=%d', $object_id));
+        $products_table = self::table('products');
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; object ID is bound through prepare().
+        $exists = $wpdb->get_var($wpdb->prepare("SELECT object_id FROM {$products_table} WHERE object_id=%d", $object_id));
         $ok = $exists
-            ? $wpdb->update(self::table('products'), $row, array('object_id'=>$object_id))
-            : $wpdb->insert(self::table('products'), $row);
+            ? $wpdb->update($products_table, $row, array('object_id'=>$object_id))
+            : $wpdb->insert($products_table, $row);
         if ($ok === false) {
             return new WP_Error('ojeador_save_scan', 'No se pudo guardar la comparación del producto.');
         }
@@ -1150,17 +1152,19 @@ final class SEO_Ojeador_DB {
             'observed_at' => $now,
             'raw_json' => isset($offer['raw']) ? wp_json_encode($offer['raw'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null,
         );
+        $offers_table = self::table('offers');
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; object ID and offer hash are bound through prepare().
         $existing = $wpdb->get_row($wpdb->prepare(
-            'SELECT id,first_seen_at FROM ' . self::table('offers') . ' WHERE object_id=%d AND offer_hash=%s LIMIT 1',
+            "SELECT id,first_seen_at FROM {$offers_table} WHERE object_id=%d AND offer_hash=%s LIMIT 1",
             absint($object_id),
             $offer_hash
         ), ARRAY_A);
         if ($existing) {
-            $wpdb->update(self::table('offers'), $data, array('id'=>absint($existing['id'])));
+            $wpdb->update($offers_table, $data, array('id'=>absint($existing['id'])));
             return absint($existing['id']);
         }
         $data['first_seen_at'] = $now;
-        $wpdb->insert(self::table('offers'), $data);
+        $wpdb->insert($offers_table, $data);
         return $wpdb->insert_id ? absint($wpdb->insert_id) : new WP_Error('ojeador_offer_insert', 'No se pudo guardar la oferta.');
     }
 
@@ -1195,8 +1199,10 @@ final class SEO_Ojeador_DB {
     public static function offers_for_object($object_id, $limit = 1000) {
         global $wpdb;
         $limit = max(1, min(1000, absint($limit)));
+        $offers_table = self::table('offers');
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; object ID and LIMIT are bound through prepare().
         return $wpdb->get_results($wpdb->prepare(
-            'SELECT * FROM ' . self::table('offers') . ' WHERE object_id=%d AND active=1 ORDER BY COALESCE(total_price,price) ASC, offer_position ASC LIMIT %d',
+            "SELECT * FROM {$offers_table} WHERE object_id=%d AND active=1 ORDER BY COALESCE(total_price,price) ASC, offer_position ASC LIMIT %d",
             absint($object_id),
             $limit
         ), ARRAY_A);
@@ -1205,7 +1211,9 @@ final class SEO_Ojeador_DB {
     public static function comparison_for_object($object_id) {
         global $wpdb;
         $object_id = absint($object_id);
-        $market = $wpdb->get_row($wpdb->prepare('SELECT * FROM ' . self::table('products') . ' WHERE object_id=%d LIMIT 1', $object_id), ARRAY_A);
+        $products_table = self::table('products');
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; object ID is bound through prepare().
+        $market = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$products_table} WHERE object_id=%d LIMIT 1", $object_id), ARRAY_A);
         $our = self::live_price($object_id);
         $offers = self::offers_for_object($object_id, 1000);
         $median = isset($market['market_median']) && $market['market_median'] !== null ? (float) $market['market_median'] : null;
@@ -1244,11 +1252,10 @@ final class SEO_Ojeador_DB {
                 LEFT JOIN {$wpdb->posts} p ON p.ID=m.object_id
                 {$where}
                 ORDER BY CASE WHEN m.status='ok' THEN 0 ELSE 1 END, m.last_scan_at DESC, m.object_id DESC
-                LIMIT {$limit}";
-        if ($params) {
-            $sql = $wpdb->prepare($sql, $params);
-        }
-        return $wpdb->get_results($sql, ARRAY_A);
+                LIMIT %d";
+        $params[] = $limit;
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table and fixed status WHERE; search values and LIMIT are bound through prepare().
+        return $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
     }
 
     public static function summary() {
@@ -1371,15 +1378,19 @@ final class SEO_Ojeador_DB {
     public static function list_query_logs($limit = 100) {
         global $wpdb;
         $limit = max(1, min(5000, absint($limit)));
+        $query_log_table = self::table('query_log');
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; LIMIT is bound through prepare().
         return $wpdb->get_results($wpdb->prepare(
-            'SELECT * FROM ' . self::table('query_log') . ' ORDER BY id DESC LIMIT %d',
+            "SELECT * FROM {$query_log_table} ORDER BY id DESC LIMIT %d",
             $limit
         ), ARRAY_A);
     }
 
     public static function latest_query_log() {
         global $wpdb;
-        return $wpdb->get_row('SELECT * FROM ' . self::table('query_log') . ' ORDER BY id DESC LIMIT 1', ARRAY_A);
+        $query_log_table = self::table('query_log');
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; query has no external values.
+        return $wpdb->get_row("SELECT * FROM {$query_log_table} ORDER BY id DESC LIMIT 1", ARRAY_A);
     }
 
     /* ---------------------------------------------------------------------
@@ -1400,12 +1411,16 @@ final class SEO_Ojeador_DB {
 
     public static function active_run() {
         global $wpdb;
-        return $wpdb->get_row("SELECT * FROM " . self::table('runs') . " WHERE status IN ('pending','running') ORDER BY id ASC LIMIT 1", ARRAY_A);
+        $runs_table = self::table('runs');
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; query has no external values.
+        return $wpdb->get_row("SELECT * FROM {$runs_table} WHERE status IN ('pending','running') ORDER BY id ASC LIMIT 1", ARRAY_A);
     }
 
     public static function latest_run() {
         global $wpdb;
-        return $wpdb->get_row('SELECT * FROM ' . self::table('runs') . ' ORDER BY id DESC LIMIT 1', ARRAY_A);
+        $runs_table = self::table('runs');
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; query has no external values.
+        return $wpdb->get_row("SELECT * FROM {$runs_table} ORDER BY id DESC LIMIT 1", ARRAY_A);
     }
 
     public static function update_run($run_id, $data) {
