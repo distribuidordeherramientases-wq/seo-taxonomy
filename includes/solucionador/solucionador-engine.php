@@ -553,6 +553,50 @@ final class SEO_Solucionador_Engine {
         );
     }
 
+    /**
+     * Garantiza que una instalación nueva disponga de un primer análisis.
+     *
+     * El análisis inicial se ejecuta una sola vez, cuando todavía no existe
+     * seo_solucionador_last_scan. Un lock evita ejecuciones simultáneas desde
+     * dos pestañas o desde pantalla + exportación.
+     *
+     * @return array|WP_Error
+     */
+    public static function ensure_initialized($days = 180) {
+        $last = get_option('seo_solucionador_last_scan', array());
+        if (is_array($last) && !empty($last['at'])) {
+            return $last;
+        }
+
+        $lock_key = 'seo_solucionador_initial_scan_lock';
+        if (get_transient($lock_key)) {
+            return new WP_Error(
+                'seo_solucionador_initializing',
+                'Solucionador está preparando su primer análisis. Vuelve a cargar la pantalla en unos instantes.'
+            );
+        }
+
+        set_transient($lock_key, 1, 5 * MINUTE_IN_SECONDS);
+
+        try {
+            $result = self::scan($days);
+            delete_transient($lock_key);
+            delete_option('seo_solucionador_init_error');
+            return is_array($result) ? $result : array();
+        } catch (Throwable $e) {
+            delete_transient($lock_key);
+            update_option('seo_solucionador_init_error', array(
+                'at' => time(),
+                'message' => sanitize_text_field($e->getMessage()),
+            ), false);
+
+            return new WP_Error(
+                'seo_solucionador_initial_scan_failed',
+                'No se pudo completar el análisis inicial de Solucionador: ' . $e->getMessage()
+            );
+        }
+    }
+
     public static function scan($days = 180) {
         global $wpdb;
         SEO_Solucionador_DB::maybe_install();
