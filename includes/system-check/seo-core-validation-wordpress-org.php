@@ -11,7 +11,7 @@ defined('ABSPATH') || exit;
  */
 
 if (!defined('SEO_CORE_WPORG_VALIDATION_VERSION')) {
-    define('SEO_CORE_WPORG_VALIDATION_VERSION', '1.2.0');
+    define('SEO_CORE_WPORG_VALIDATION_VERSION', '1.3.0');
 }
 
 function seo_core_wporg_filesystem() {
@@ -433,7 +433,7 @@ function seo_core_wporg_static_findings() {
 
             if (
                 preg_match('/\b(?:echo|print)\s+.*\$[A-Za-z_]/i', $line)
-                && !preg_match('/\b(?:esc_html|esc_attr|esc_url|esc_js|wp_kses|wp_kses_post|wp_json_encode|number_format_i18n|selected|checked|disabled)\s*\(/i', $line)
+                && !preg_match('/\b(?:esc_html|esc_attr|esc_url|esc_js|wp_kses|wp_kses_post|wp_json_encode|selected|checked|disabled)\s*\(/i', $line)
             ) {
                 seo_core_wporg_add_hit($groups['output_escaping'], 'output_not_escaped', $relative, $line_no, 'Salida dinamica sin una funcion de escape reconocible; revisar OutputNotEscaped.');
             }
