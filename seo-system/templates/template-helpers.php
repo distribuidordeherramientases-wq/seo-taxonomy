@@ -894,6 +894,7 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
                     byId[String(product.id)] = product;
                 });
 
+                var compareMax = Math.max(2, Math.min(6, Number(root.getAttribute('data-dht-compare-max') || 6)));
                 var selected = [];
                 var toolbar = root.querySelector('[data-dht-compare-toolbar]');
                 var countNode = root.querySelector('[data-dht-compare-count]');
@@ -909,7 +910,7 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
                         var active = selected.indexOf(id) !== -1;
                         button.setAttribute('aria-pressed', active ? 'true' : 'false');
                         button.textContent = active ? 'Seleccionado' : 'Comparar';
-                        button.disabled = !active && selected.length >= 4;
+                        button.disabled = !active && selected.length >= compareMax;
                     });
 
                     if (toolbar) {
@@ -961,7 +962,7 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
                         form.appendChild(input);
                     });
 
-                    selected.slice(0, 4).forEach(function (id) {
+                    selected.slice(0, compareMax).forEach(function (id) {
                         var input = document.createElement('input');
                         input.type = 'hidden';
                         input.name = 'ids[]';
@@ -991,7 +992,7 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
                     try {
                         window.sessionStorage.setItem(
                             'seoLastRequestedComparison',
-                            JSON.stringify(selected.slice(0, 6).map(function (id) { return Number(id); }).filter(Boolean))
+                            JSON.stringify(selected.slice(0, compareMax).map(function (id) { return Number(id); }).filter(Boolean))
                         );
                     } catch (storageError) { /* storage can be unavailable */ }
 
@@ -1190,7 +1191,7 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
                         var index = selected.indexOf(id);
                         if (index !== -1) {
                             selected.splice(index, 1);
-                        } else if (selected.length < 4) {
+                        } else if (selected.length < compareMax) {
                             selected.push(id);
                         }
                         sync();
@@ -1311,8 +1312,9 @@ if (!function_exists('dht_shared_render_product_grid')) {
             $compare_instance++;
             $compare_id = 'dht-category-compare-' . $compare_instance;
             $data_id = $compare_id . '-data';
+            $compare_max = function_exists('seo_comparador_store_compare_max') ? seo_comparador_store_compare_max() : 6;
 
-            echo '<div class="dht-category-compare-scope" data-dht-category-compare data-dht-compare-data-id="' . esc_attr($data_id) . '" data-dht-compare-pdf-url="' . esc_url(admin_url('admin-post.php')) . '" data-dht-compare-pdf-nonce="' . esc_attr(wp_create_nonce('seo_dependiente_compare_pdf')) . '">';
+            echo '<div class="dht-category-compare-scope" data-dht-category-compare data-dht-compare-max="' . esc_attr((string) $compare_max) . '" data-dht-compare-data-id="' . esc_attr($data_id) . '" data-dht-compare-pdf-url="' . esc_url(admin_url('admin-post.php')) . '" data-dht-compare-pdf-nonce="' . esc_attr(wp_create_nonce('seo_dependiente_compare_pdf')) . '">';
         }
 
         echo '<ul class="products ' . esc_attr($extra_class) . '">';
@@ -1328,7 +1330,7 @@ if (!function_exists('dht_shared_render_product_grid')) {
             echo '<button type="button" data-dht-compare-show disabled>Comparar seleccionados</button>';
             echo '<button type="button" data-dht-compare-pdf disabled>Descargar comparativa PDF</button>';
             echo '<button type="button" data-dht-compare-clear>Limpiar</button>';
-            echo '<p class="dht-category-live-compare-note">Selecciona entre 2 y 4 productos. La comparativa usa la clasificación y los atributos canónicos disponibles en el catálogo.</p>';
+            echo '<p class="dht-category-live-compare-note">Selecciona entre 2 y ' . esc_html((string) $compare_max) . ' productos. La comparativa usa la clasificación y los atributos canónicos disponibles en el catálogo.</p>';
             echo '</div>';
             echo '<div class="dht-category-live-compare-result" data-dht-compare-result hidden></div>';
             echo '</div>';
