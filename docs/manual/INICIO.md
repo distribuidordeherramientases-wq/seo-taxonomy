@@ -34,7 +34,7 @@ La guía de Inicio recuerda el orden general: crear/publicar contenido, asignar 
 | Ingeniero | Investiga conocimiento técnico externo por categoría, con fuente, evidencia y confianza. |
 | Clasificador | Detecta huecos y propone etiquetas y atributos canónicos; solo cambia datos cuando se confirma o aplica. |
 | Auditor | Mide calidad, cobertura, coherencia, arquitectura, índice y aprendizaje; sus hallazgos son señales de revisión. |
-| Editor | Convierte necesidades y gaps editoriales explícitos en propuestas o borradores; no publica automáticamente. |
+| Solucionador | Convierte necesidades y gaps editoriales explícitos en propuestas o borradores; no publica automáticamente. |
 
 ## Flujo general de información
 
@@ -76,7 +76,7 @@ flowchart TD
     I --> X
     J --> X
     X --> Y[Gaps y mejoras]
-    Y -->|Gap editorial explícito| Z[Editor]
+    Y -->|Gap editorial explícito| Z[Solucionador]
     Z --> AA[Borrador / mejora de contenido]
     AA --> E
     Y -->|Dato de catálogo| E
@@ -87,7 +87,7 @@ flowchart TD
 
 ### Lectura rápida
 
-**Importamos o editamos → consolidamos el catálogo → Academia enseña a Dependiente → Intérprete aprende el lenguaje del cliente → Ingeniero aporta evidencia técnica → Clasificador la estructura y propone cambios → Auditor detecta huecos → Editor y los editores de catálogo corrigen → Dependiente vuelve a actualizarse.**
+**Importamos o editamos → consolidamos el catálogo → Academia enseña a Dependiente → Intérprete aprende el lenguaje del cliente → Ingeniero aporta evidencia técnica → Clasificador la estructura y propone cambios → Auditor detecta huecos → Solucionador y los editores de catálogo corrigen → Dependiente vuelve a actualizarse.**
 
 Reglas importantes:
 

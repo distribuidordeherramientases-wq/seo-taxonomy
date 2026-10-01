@@ -18,8 +18,8 @@ final class SEO_Solucionador_Admin {
     public static function register_page() {
         add_submenu_page(
             null,
-            'Editor',
-            'Editor',
+            'Solucionador',
+            'Solucionador',
             'manage_options',
             'seo-solucionador',
             array(__CLASS__, 'render')
@@ -29,7 +29,7 @@ final class SEO_Solucionador_Admin {
     public static function content_card($items) {
         $items = is_array($items) ? $items : array();
         $items[] = array(
-            'title' => 'Editor',
+            'title' => 'Solucionador',
             'icon' => 'dashicons-edit-page',
             'page' => 'seo-solucionador',
             'desc' => 'Gestiona propuestas editoriales y borradores a partir de señales internas del catálogo y de otros servicios.',
@@ -56,7 +56,7 @@ final class SEO_Solucionador_Admin {
     }
 
     public static function handle_scan() {
-        if (!current_user_can('manage_options')) wp_die('No tienes permisos para ejecutar Editor.');
+        if (!current_user_can('manage_options')) wp_die('No tienes permisos para ejecutar Solucionador.');
         check_admin_referer('seo_solucionador_scan');
         $days = isset($_POST['days']) ? max(30, min(365, absint($_POST['days']))) : 180;
         SEO_Solucionador_Engine::scan($days);
@@ -65,7 +65,7 @@ final class SEO_Solucionador_Admin {
     }
 
     public static function handle_topic() {
-        if (!current_user_can('manage_options')) wp_die('No tienes permisos para gestionar Editor.');
+        if (!current_user_can('manage_options')) wp_die('No tienes permisos para gestionar Solucionador.');
         $id = absint($_POST['topic_id'] ?? 0);
         check_admin_referer('seo_solucionador_topic_' . $id);
         $action = sanitize_key((string) ($_POST['topic_action'] ?? ''));
@@ -94,6 +94,7 @@ final class SEO_Solucionador_Admin {
             'proposals' => 'Propuestas de posts',
             'coverage' => 'Cobertura de posts',
             'sources' => 'Fuentes',
+            'data' => 'Datos internos',
         );
         echo '<nav class="nav-tab-wrapper">';
         foreach ($tabs as $key => $label) {
@@ -121,13 +122,13 @@ final class SEO_Solucionador_Admin {
         if (!current_user_can('manage_options')) return;
         SEO_Solucionador_DB::maybe_install();
         $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'summary';
-        if (!in_array($tab, array('summary','proposals','coverage','sources'), true)) $tab = 'summary';
+        if (!in_array($tab, array('summary','proposals','coverage','sources','data'), true)) $tab = 'summary';
 
-        echo '<div class="wrap seo-solucionador"><h1>Editor <small style="font-weight:400;color:#646970">v' . esc_html(SEO_SOLUCIONADOR_VERSION) . '</small></h1>';
+        echo '<div class="wrap seo-solucionador"><h1>Solucionador <small style="font-weight:400;color:#646970">v' . esc_html(SEO_SOLUCIONADOR_VERSION) . '</small></h1>';
         echo '<p>Analiza preguntas y senales internas, comprueba si ya existe una respuesta editorial y propone el contenido que falta. La propuesta no es un post. Solo al aprobarla se crea un <strong>borrador</strong> con categorias y Vocabulary ya asignados.</p>';
         self::render_export_button();
 
-        if (!empty($_GET['scan'])) echo '<div class="notice notice-success is-dismissible"><p>Analisis de Editor completado.</p></div>';
+        if (!empty($_GET['scan'])) echo '<div class="notice notice-success is-dismissible"><p>Analisis de Solucionador completado.</p></div>';
         if (!empty($_GET['sol_msg']) && $_GET['sol_msg'] === 'draft_created') {
             $post_id = absint($_GET['post_id'] ?? 0);
             echo '<div class="notice notice-success is-dismissible"><p>Borrador creado y clasificado.';
@@ -146,7 +147,8 @@ final class SEO_Solucionador_Admin {
         if ($tab === 'summary') self::render_summary();
         elseif ($tab === 'proposals') self::render_proposals();
         elseif ($tab === 'coverage') self::render_coverage();
-        else self::render_sources();
+        elseif ($tab === 'sources') self::render_sources();
+        else self::render_data();
         self::styles();
         echo '</div>';
     }
@@ -297,7 +299,7 @@ final class SEO_Solucionador_Admin {
         $counts = SEO_Solucionador_DB::table_exists($e)
             ? (array) $wpdb->get_results("SELECT source_type,SUM(occurrences) evidence FROM {$e} GROUP BY source_type ORDER BY evidence DESC", ARRAY_A)
             : array();
-        echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Fuentes del Editor</h2>';
+        echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Fuentes del Solucionador</h2>';
         echo '<p><strong>Dependiente / Interprete:</strong> fuente principal. Preguntas reales, intent, objeto, contexto, estado, resultados y feedback.</p>';
         echo '<p><strong>Analista:</strong> las busquedas internas pueden originar propuestas. El plan de decision normalmente solo refuerza; MEJORAR_PRODUCTO/IMPULSAR_CATEGORIA no se convierten en preguntas de cliente.</p>';
         echo '<p><strong>Auditor:</strong> solo entran probes de comportamiento y gaps editoriales de una allowlist. Hallazgos tecnicos de indice, schema, excerpt, servidor, etc. quedan fuera.</p>';
@@ -308,6 +310,105 @@ final class SEO_Solucionador_Admin {
             foreach ($counts as $row) echo '<li><strong>' . esc_html((string) $row['source_type']) . ':</strong> ' . esc_html(number_format_i18n(absint($row['evidence'] ?? 0))) . '</li>';
             echo '</ul>';
         }
+        echo '</div>';
+    }
+
+    private static function render_data() {
+        global $wpdb;
+
+        $topics = SEO_Solucionador_DB::topics_table();
+        $evidence = SEO_Solucionador_DB::evidence_table();
+        $post_topics = SEO_Solucionador_DB::post_topics_table();
+
+        echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Datos internos de Solucionador</h2>';
+        echo '<p class="description">Vista de solo lectura de las tablas que sustentan las propuestas. Sirve para comprobar que el analisis tiene datos, que posts propone crear o ampliar y que evidencias y cobertura utiliza.</p>';
+
+        echo '<h3>' . esc_html($topics) . ' · temas y propuestas</h3>';
+        if (!SEO_Solucionador_DB::table_exists($topics)) {
+            echo '<p class="seo-sol-warning">La tabla no existe.</p>';
+        } else {
+            $rows = (array) $wpdb->get_results(
+                "SELECT id,suggested_title,canonical_question,canonical_key,status,coverage_status,recommended_action,evidence_total,existing_post_id,draft_post_id,priority_score,last_analyzed_at
+                 FROM {$topics}
+                 ORDER BY CASE WHEN recommended_action='create_post' THEN 0 WHEN recommended_action IN ('expand_existing_post','create_section') THEN 1 ELSE 2 END,
+                          priority_score DESC,id DESC
+                 LIMIT 500",
+                ARRAY_A
+            );
+            echo '<p><strong>Filas mostradas:</strong> ' . esc_html(number_format_i18n(count($rows))) . '</p>';
+            echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>ID</th><th>Post / pregunta</th><th>Huella</th><th>Estado</th><th>Cobertura</th><th>Accion</th><th>Evidencias</th><th>Post existente</th><th>Borrador</th><th>Prioridad</th><th>Analizado</th></tr></thead><tbody>';
+            if (!$rows) echo '<tr><td colspan="11">Tabla vacia. Ejecuta Reanalizar fuentes desde Resumen.</td></tr>';
+            foreach ($rows as $row) {
+                echo '<tr><td>' . esc_html(absint($row['id'] ?? 0)) . '</td>';
+                echo '<td><strong>' . esc_html((string) ($row['suggested_title'] ?? '')) . '</strong><br><span class="description">' . esc_html((string) ($row['canonical_question'] ?? '')) . '</span></td>';
+                echo '<td><code>' . esc_html((string) ($row['canonical_key'] ?? '')) . '</code></td>';
+                echo '<td>' . esc_html((string) ($row['status'] ?? '')) . '</td>';
+                echo '<td>' . esc_html((string) ($row['coverage_status'] ?? '')) . '</td>';
+                echo '<td><strong>' . esc_html((string) ($row['recommended_action'] ?? '')) . '</strong></td>';
+                echo '<td>' . esc_html(number_format_i18n(absint($row['evidence_total'] ?? 0))) . '</td>';
+                echo '<td>' . esc_html(absint($row['existing_post_id'] ?? 0) ?: '-') . '</td>';
+                echo '<td>' . esc_html(absint($row['draft_post_id'] ?? 0) ?: '-') . '</td>';
+                echo '<td>' . esc_html(number_format_i18n((float) ($row['priority_score'] ?? 0), 0)) . '</td>';
+                echo '<td>' . esc_html((string) ($row['last_analyzed_at'] ?? '')) . '</td></tr>';
+            }
+            echo '</tbody></table></div>';
+        }
+
+        echo '<h3 style="margin-top:24px">' . esc_html($evidence) . ' · evidencias</h3>';
+        if (!SEO_Solucionador_DB::table_exists($evidence)) {
+            echo '<p class="seo-sol-warning">La tabla no existe.</p>';
+        } else {
+            $rows = (array) $wpdb->get_results(
+                "SELECT id,topic_id,source_type,source_id,source_text,occurrences,evidence_score,observed_at
+                 FROM {$evidence}
+                 ORDER BY topic_id DESC,evidence_score DESC,occurrences DESC,id DESC
+                 LIMIT 500",
+                ARRAY_A
+            );
+            echo '<p><strong>Filas mostradas:</strong> ' . esc_html(number_format_i18n(count($rows))) . '</p>';
+            echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>ID</th><th>Tema</th><th>Fuente</th><th>ID fuente</th><th>Texto</th><th>Ocurrencias</th><th>Peso</th><th>Observado</th></tr></thead><tbody>';
+            if (!$rows) echo '<tr><td colspan="8">Tabla vacia. Las evidencias se reconstruyen al reanalizar.</td></tr>';
+            foreach ($rows as $row) {
+                echo '<tr><td>' . esc_html(absint($row['id'] ?? 0)) . '</td>';
+                echo '<td>' . esc_html(absint($row['topic_id'] ?? 0)) . '</td>';
+                echo '<td>' . esc_html((string) ($row['source_type'] ?? '')) . '</td>';
+                echo '<td><code>' . esc_html((string) ($row['source_id'] ?? '')) . '</code></td>';
+                echo '<td>' . esc_html((string) ($row['source_text'] ?? '')) . '</td>';
+                echo '<td>' . esc_html(number_format_i18n(absint($row['occurrences'] ?? 0))) . '</td>';
+                echo '<td>' . esc_html(number_format_i18n((float) ($row['evidence_score'] ?? 0), 2)) . '</td>';
+                echo '<td>' . esc_html((string) ($row['observed_at'] ?? '')) . '</td></tr>';
+            }
+            echo '</tbody></table></div>';
+        }
+
+        echo '<h3 style="margin-top:24px">' . esc_html($post_topics) . ' · cobertura de posts</h3>';
+        if (!SEO_Solucionador_DB::table_exists($post_topics)) {
+            echo '<p class="seo-sol-warning">La tabla no existe.</p>';
+        } else {
+            $rows = (array) $wpdb->get_results(
+                "SELECT pt.id,pt.post_id,p.post_title,p.post_status,pt.scope,pt.source_text,pt.canonical_key,pt.confidence,pt.updated_at
+                 FROM {$post_topics} pt
+                 LEFT JOIN {$wpdb->posts} p ON p.ID=pt.post_id
+                 ORDER BY pt.post_id DESC,pt.scope ASC,pt.id DESC
+                 LIMIT 500",
+                ARRAY_A
+            );
+            echo '<p><strong>Filas mostradas:</strong> ' . esc_html(number_format_i18n(count($rows))) . '</p>';
+            echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>ID</th><th>Post</th><th>Estado</th><th>Ambito</th><th>Texto</th><th>Huella</th><th>Confianza</th><th>Actualizado</th></tr></thead><tbody>';
+            if (!$rows) echo '<tr><td colspan="8">Tabla vacia. Ejecuta el analisis para reconstruir el indice de cobertura.</td></tr>';
+            foreach ($rows as $row) {
+                echo '<tr><td>' . esc_html(absint($row['id'] ?? 0)) . '</td>';
+                echo '<td>#' . esc_html(absint($row['post_id'] ?? 0)) . ' · ' . esc_html((string) ($row['post_title'] ?? '')) . '</td>';
+                echo '<td>' . esc_html((string) ($row['post_status'] ?? '')) . '</td>';
+                echo '<td>' . esc_html((string) ($row['scope'] ?? '')) . '</td>';
+                echo '<td>' . esc_html((string) ($row['source_text'] ?? '')) . '</td>';
+                echo '<td><code>' . esc_html((string) ($row['canonical_key'] ?? '')) . '</code></td>';
+                echo '<td>' . esc_html(number_format_i18n((float) ($row['confidence'] ?? 0), 2)) . '</td>';
+                echo '<td>' . esc_html((string) ($row['updated_at'] ?? '')) . '</td></tr>';
+            }
+            echo '</tbody></table></div>';
+        }
+
         echo '</div>';
     }
 

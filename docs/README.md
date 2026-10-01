@@ -31,7 +31,7 @@ La documentación se divide en dos niveles:
 - [Marketing](manual/MARKETING.md)
 - [Import / Export](manual/IMPORT-EXPORT.md)
 - [Facturas y presupuestos](manual/FACTURAS-Y-PRESUPUESTOS.md)
-- [Editor](manual/SOLUCIONADOR.md)
+- [Solucionador](manual/SOLUCIONADOR.md)
 - [Ojeador](manual/OJEADOR.md)
 - [Comentarista](manual/COMENTARISTA.md)
 

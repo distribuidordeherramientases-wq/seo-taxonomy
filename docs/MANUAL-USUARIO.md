@@ -28,7 +28,7 @@ SEO Taxonomy muestra estas entradas principales:
 5. Dependiente
 6. Herramientas
 
-La pantalla **Contenidos** agrupa los accesos habituales a **Productos, Categorías, Páginas, Entradas, Imágenes, Editor y Auditor**. Las pantallas conservan sus rutas y funcionamiento; solo cambia su ubicación en la navegación principal.
+La pantalla **Contenidos** agrupa los accesos habituales a **Productos, Categorías, Páginas, Entradas, Imágenes, Solucionador y Auditor**. Las pantallas conservan sus rutas y funcionamiento; solo cambia su ubicación en la navegación principal.
 
 La pantalla **Herramientas** abre los módulos avanzados: Taxonomy, Templates, Search, Redirects, Marketing, Data Table, Clean DB, Import / Export, Procesos, Logística, Conexiones con proveedores, FAQs, Estado del servidor, Plugin Validation, Menu Manager, Facturas y presupuestos y Ojeador.
 

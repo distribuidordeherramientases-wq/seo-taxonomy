@@ -168,4 +168,4 @@ Para añadir elementos hay paneles de Páginas, Entradas, Categorías y Enlaces 
 
 - **Comentarista**: gestiona evidencias externas, comentarios, vídeos, publicaciones sociales y enlaces asociados a productos.
 
-> **Editor** se encuentra ahora en **SEO Taxonomy → Contenidos**, junto con Productos, Categorías, Páginas, Entradas, Imágenes y Auditor.
+> **Solucionador** se encuentra en **SEO Taxonomy → Contenidos**, junto con Productos, Categorías, Páginas, Entradas, Imágenes y Auditor.
