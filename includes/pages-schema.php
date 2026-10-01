@@ -99,7 +99,7 @@ function search_pages_schema() {
                 font-weight:bold;
             ">';
 
-            echo '📁 '.$row->cluster;
+            echo '📁 '.esc_html((string) $row->cluster);
             echo '</div>';
 
             $cluster_actual = $row->cluster;
@@ -173,7 +173,7 @@ function search_pages_schema() {
                 font-weight:bold;
             ">';
 
-            echo '📂 '.$row->hub_primary;
+            echo '📂 '.esc_html((string) $row->hub_primary);
             echo '</div>';
 
             $hub_actual = $row->hub_primary;
@@ -216,13 +216,13 @@ function search_pages_schema() {
         ">';
 
         echo '<h3 style="margin:0;">';
-        echo '📄 '.$row->hub_secondary;
+        echo '📄 '.esc_html((string) $row->hub_secondary);
         echo '</h3>';
 
         echo '<p>';
-        echo '<strong>ID:</strong> '.$row->hub_secondary_id.'<br>';
+        echo '<strong>ID:</strong> '.esc_html((string) $row->hub_secondary_id).'<br>';
 
-        echo '<strong>Estado:</strong> '.$row->post_status.'<br>';
+        echo '<strong>Estado:</strong> '.esc_html((string) $row->post_status).'<br>';
 
         echo '<strong>Extracto:</strong><br>';
 
@@ -330,7 +330,7 @@ function search_pages_schema() {
                 font-weight:bold;
             ">';
             
-            echo $score_gpt . '% - ' . esc_html($score_label);
+            echo esc_html((string) $score_gpt) . '% - ' . esc_html($score_label);
             
             echo '</span>';
             
@@ -935,7 +935,7 @@ $level = $match['level'] ?? 'hub_secondary';
         font-weight:bold;
         background:#fff;
     ">';
-    echo $score . '% - ' . esc_html($label);
+    echo esc_html((string) $score) . '% - ' . esc_html($label);
     echo '</span>';
 
     echo '<br>';
