@@ -60,7 +60,8 @@ final class SEO_Solucionador_Engine {
             || $decision_language;
 
         if ($category_id && $is_decision && empty($profile['condition'])) {
-            $name = self::category_name($category_id);
+            $name = trim((string) ($source['category_name'] ?? ''));
+            if ($name === '') $name = self::category_name($category_id);
             if ($name !== '') $profile['object'] = SEO_Solucionador_Normalizer::normalize($name);
             $profile['intent'] = 'decision';
             $profile['key_intent'] = 'decision';
@@ -508,6 +509,48 @@ final class SEO_Solucionador_Engine {
         }
         $row['outcome_state'] = $outcome;
         SEO_Solucionador_DB::add_tracking_snapshot($topic_id,$row);
+    }
+
+    /**
+     * API de regresion RF v1.0. No escribe datos: permite validar la
+     * normalizacion/category-first con escenarios deterministas.
+     */
+    public static function normalize_topic_for_test($text, array $source = array()) {
+        $profile = SEO_Solucionador_Normalizer::profile(
+            (string) $text,
+            (array) ($source['hints'] ?? array())
+        );
+        return self::canonicalize_profile((array) $profile,$source);
+    }
+
+    /**
+     * Evalua solo reglas de decision. No consulta servicios ni modifica BD.
+     * Se usa para los tests funcionales obligatorios de RF v1.0.
+     */
+    public static function evaluate_scenario_for_test(array $scenario) {
+        $profile = (array) ($scenario['profile'] ?? array());
+        $stats = wp_parse_args((array) ($scenario['stats'] ?? array()),array(
+            'total'=>0,'dependiente'=>0,'comentarista'=>0,'analista'=>0,'auditor'=>0,
+            'ojeador'=>0,'comparador'=>0,'ingeniero'=>0,'clasificador'=>0,'marketing'=>0,
+            'zero_results'=>0,'negative_feedback'=>0,
+        ));
+        $coverage = wp_parse_args((array) ($scenario['coverage'] ?? array()),array(
+            'status'=>'uncovered','entity_type'=>'','entity_id'=>0,'seo_role'=>'','matches'=>array(),'score'=>0,
+        ));
+        $knowledge = wp_parse_args((array) ($scenario['knowledge'] ?? array()),array(
+            'status'=>'insufficient','count'=>0,'confidence'=>0,
+        ));
+        $risks = wp_parse_args((array) ($scenario['risks'] ?? array()),array(
+            'duplication_risk'=>0,'cannibalization_risk'=>0,
+        ));
+        $primary_category_id = absint($scenario['primary_category_id'] ?? $profile['category_id'] ?? 0);
+        $landing = (array) ($scenario['landing'] ?? array());
+        $requirements = self::requirements($stats,$coverage,$knowledge,$risks,$primary_category_id,$landing);
+        $decision = self::decision($profile,$stats,$coverage,$knowledge,$risks,$primary_category_id,$landing,$requirements);
+        return array(
+            'decision'=>$decision,
+            'requirements'=>$requirements,
+        );
     }
 
     public static function scan($days = 180) {
