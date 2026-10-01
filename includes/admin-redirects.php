@@ -1446,47 +1446,47 @@ function seo_menu_manager_redirects_page() {
 
         <div class="seo-rd-kpis">
             <div class="seo-rd-kpi is-ok">
-                <strong><?php echo number_format_i18n($stats['total']); ?></strong>
+                <strong><?php echo esc_html(number_format_i18n($stats['total'])); ?></strong>
                 <span>Redirects activos</span>
             </div>
             <div class="seo-rd-kpi">
-                <strong><?php echo number_format_i18n($stats['with_hits']); ?></strong>
+                <strong><?php echo esc_html(number_format_i18n($stats['with_hits'])); ?></strong>
                 <span>Con actividad</span>
             </div>
             <div class="seo-rd-kpi">
-                <strong><?php echo number_format_i18n($stats['without_hits']); ?></strong>
+                <strong><?php echo esc_html(number_format_i18n($stats['without_hits'])); ?></strong>
                 <span>Sin uso registrado</span>
             </div>
             <div class="seo-rd-kpi">
-                <strong><?php echo number_format_i18n($stats['hits_total']); ?></strong>
+                <strong><?php echo esc_html(number_format_i18n($stats['hits_total'])); ?></strong>
                 <span>Hits acumulados</span>
             </div>
             <div class="seo-rd-kpi">
-                <strong><?php echo number_format_i18n($stats['last_24h']); ?></strong>
+                <strong><?php echo esc_html(number_format_i18n($stats['last_24h'])); ?></strong>
                 <span>Usados en 24 h</span>
             </div>
             <div class="seo-rd-kpi">
-                <strong><?php echo number_format_i18n($stats['last_7d']); ?></strong>
+                <strong><?php echo esc_html(number_format_i18n($stats['last_7d'])); ?></strong>
                 <span>Usados en 7 días</span>
             </div>
             <div class="seo-rd-kpi">
-                <strong><?php echo number_format_i18n($stats['last_30d']); ?></strong>
+                <strong><?php echo esc_html(number_format_i18n($stats['last_30d'])); ?></strong>
                 <span>Usados en 30 días</span>
             </div>
             <div class="seo-rd-kpi <?php echo $stats['structural'] ? 'is-error' : 'is-ok'; ?>">
-                <strong><?php echo number_format_i18n($stats['structural']); ?></strong>
+                <strong><?php echo esc_html(number_format_i18n($stats['structural'])); ?></strong>
                 <span>Incorrectos estructurales</span>
             </div>
             <div class="seo-rd-kpi <?php echo $stats['suspicious'] ? 'is-warning' : 'is-ok'; ?>">
-                <strong><?php echo number_format_i18n($stats['suspicious']); ?></strong>
+                <strong><?php echo esc_html(number_format_i18n($stats['suspicious'])); ?></strong>
                 <span>Sospechosos (heurístico)</span>
             </div>
             <div class="seo-rd-kpi <?php echo $stats['chains'] ? 'is-warning' : 'is-ok'; ?>">
-                <strong><?php echo number_format_i18n($stats['chains']); ?></strong>
+                <strong><?php echo esc_html(number_format_i18n($stats['chains'])); ?></strong>
                 <span>Cadenas</span>
             </div>
             <div class="seo-rd-kpi <?php echo $stats['cycles'] ? 'is-error' : 'is-ok'; ?>">
-                <strong><?php echo number_format_i18n($stats['cycles']); ?></strong>
+                <strong><?php echo esc_html(number_format_i18n($stats['cycles'])); ?></strong>
                 <span>Ciclos</span>
             </div>
         </div>
@@ -1563,7 +1563,7 @@ function seo_menu_manager_redirects_page() {
                             </div>
                         </div>
                         <div style="text-align:right;">
-                            <strong><?php echo number_format_i18n((int) $review_row->hits); ?></strong><br>
+                            <strong><?php echo esc_html(number_format_i18n((int) $review_row->hits)); ?></strong><br>
                             <span style="color:#646970;">hits</span>
                         </div>
                     </div>
@@ -1611,7 +1611,7 @@ function seo_menu_manager_redirects_page() {
                 <h2 style="margin-bottom:10px;">
                     Redirecciones
                     <span style="font-weight:normal;color:#646970;">
-                        (<?php echo number_format_i18n($total_filtered); ?>)
+                        (<?php echo esc_html(number_format_i18n($total_filtered)); ?>)
                     </span>
                 </h2>
 
@@ -1629,7 +1629,7 @@ function seo_menu_manager_redirects_page() {
                         ?>
                         <a class="<?php echo esc_attr($button_class); ?>" href="<?php echo esc_url($url); ?>">
                             <?php echo esc_html($label); ?>
-                            (<?php echo number_format_i18n($filter_counts[$key]); ?>)
+                            (<?php echo esc_html(number_format_i18n($filter_counts[$key])); ?>)
                         </a>
                     <?php endforeach; ?>
                 </div>
@@ -1730,7 +1730,7 @@ function seo_menu_manager_redirects_page() {
                                 </td>
 
                                 <td class="column-hits">
-                                    <strong><?php echo number_format_i18n((int) $row->hits); ?></strong>
+                                    <strong><?php echo esc_html(number_format_i18n((int) $row->hits)); ?></strong>
                                 </td>
 
                                 <td class="column-last">
