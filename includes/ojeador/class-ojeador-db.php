@@ -645,7 +645,7 @@ final class SEO_Ojeador_DB {
             );
         }
 
-        return array(
+        $summary = array(
             'term_id' => $term_id,
             'status' => $status,
             'results' => $seen,
@@ -653,6 +653,8 @@ final class SEO_Ojeador_DB {
             'save_errors' => $save_errors,
             'last_save_error' => $last_save_error,
         );
+        do_action('seo_ojeador_category_snapshot_saved', $term_id, $summary, $scan);
+        return $summary;
     }
 
     public static function save_category_error($term_id, $error, $query = '') {
