@@ -177,7 +177,8 @@ final class SEO_Comparador_Admin {
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_comparador_settings">';
         wp_nonce_field('seo_comparador_settings');
         echo '<div class="seo-cmp-form-grid">';
-        self::number_field('Máx. productos propios','settings[max_own_products]',$settings['max_own_products'],20,1000,1);
+        self::number_field('Máx. productos en comparador de tienda','settings[store_compare_max]',$settings['store_compare_max'],2,6,1);
+        self::number_field('Máx. productos propios por perfil','settings[max_own_products]',$settings['max_own_products'],20,1000,1);
         self::number_field('Máx. referencias Ojeador','settings[max_external_products]',$settings['max_external_products'],20,2000,1);
         self::number_field('Máx. ejes por perfil','settings[max_axes]',$settings['max_axes'],3,40,1);
         self::number_field('Mín. productos comparables','settings[min_products]',$settings['min_products'],2,20,1);
