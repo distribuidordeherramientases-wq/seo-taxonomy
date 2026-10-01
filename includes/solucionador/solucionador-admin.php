@@ -84,23 +84,47 @@ final class SEO_Solucionador_Admin {
         $id = absint($_POST['topic_id'] ?? 0);
         check_admin_referer('seo_solucionador_topic_' . $id);
         $action = sanitize_key((string) ($_POST['topic_action'] ?? ''));
+        $reason = sanitize_textarea_field(wp_unslash($_POST['workflow_reason'] ?? ''));
         if (!$id) self::redirect(array('sol_error'=>'missing_topic'));
+
+        $topic = SEO_Solucionador_DB::get_topic($id);
+        if (!$topic) self::redirect(array('sol_error'=>'missing_topic'));
 
         if ($action === 'create_draft') {
             $result = SEO_Solucionador_Posts::create_draft($id);
             if (is_wp_error($result)) {
                 set_transient('seo_solucionador_notice_' . get_current_user_id(), $result->get_error_message(), 90);
-                self::redirect(array('sol_error'=>'create_draft'));
+                self::redirect(array('sol_error'=>'create_draft','topic_id'=>$id));
             }
-            self::redirect(array('sol_msg'=>'draft_created','post_id'=>absint($result)));
+            self::redirect(array('sol_msg'=>'draft_created','post_id'=>absint($result),'topic_id'=>$id));
         }
 
-        if (in_array($action, array('dismissed','observe','candidate','approved'), true)) {
-            SEO_Solucionador_DB::update_topic($id, array('status'=>$action));
-            self::redirect(array('sol_msg'=>'saved'));
+        $workflow_map = array(
+            'candidate'   => array('state'=>'candidate','legacy'=>'candidate'),
+            'approved'    => array('state'=>'approved','legacy'=>'approved'),
+            'brief_ready' => array('state'=>'brief_ready','legacy'=>'approved'),
+            'deferred'    => array('state'=>'deferred','legacy'=>'observe'),
+            'rejected'    => array('state'=>'rejected','legacy'=>'dismissed'),
+            'closed'      => array('state'=>'closed','legacy'=>'covered'),
+        );
+
+        if (isset($workflow_map[$action])) {
+            if ($reason === '') {
+                set_transient('seo_solucionador_notice_' . get_current_user_id(), 'Indica el motivo del cambio de estado. La trazabilidad exige usuario, fecha y motivo.', 90);
+                self::redirect(array('sol_error'=>'reason_required','topic_id'=>$id));
+            }
+            $target = $workflow_map[$action];
+            SEO_Solucionador_DB::update_topic($id, array('status'=>$target['legacy']));
+            SEO_Solucionador_DB::record_workflow(
+                $id,
+                $target['state'],
+                $reason,
+                (string) ($topic['recommended_action'] ?? '')
+            );
+            self::redirect(array('sol_msg'=>'saved','topic_id'=>$id));
         }
 
-        self::redirect(array('sol_error'=>'invalid_action'));
+        self::redirect(array('sol_error'=>'invalid_action','topic_id'=>$id));
     }
 
     private static function tabs($current) {
@@ -124,19 +148,20 @@ final class SEO_Solucionador_Admin {
         global $wpdb;
         $table = SEO_Solucionador_DB::topics_table();
         if (!SEO_Solucionador_DB::table_exists($table)) return array();
+
         return array(
-            'total' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table}"),
-            'candidate' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE status IN ('candidate','approved') AND recommended_action IN ('create_post','create_landing')"),
-            'drafts' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE status='draft_created'"),
-            'covered' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE coverage_status LIKE 'covered_%'"),
-            'uncovered' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE coverage_status='uncovered'"),
-            'expand' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE recommended_action IN ('expand_existing_post','create_section')"),
-            'observe' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE recommended_action IN ('observe','no_action')"),
-            'landing_candidates' => function_exists('seo_landing_get_candidates')
-                ? count(array_filter((array) seo_landing_get_candidates(500), static function($row) {
-                    return in_array(sanitize_key((string) ($row->status ?? '')), array('detected','candidate','review','approved'), true);
-                }))
-                : 0,
+            'total'        => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE workflow_state<>'rejected'"),
+            'active'       => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE workflow_state IN ('detected','validated','candidate','approved','brief_ready','in_editing','scheduled','monitoring')"),
+            'candidate'    => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE workflow_state='candidate'"),
+            'approved'     => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE workflow_state IN ('approved','brief_ready')"),
+            'rejected'     => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE workflow_state='rejected'"),
+            'improve'      => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE recommended_action IN ('IMPROVE_POST','IMPROVE_LANDING','IMPROVE_CATEGORY','IMPROVE_PAGE') AND workflow_state<>'rejected'"),
+            'duplicates'   => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE recommended_action='MERGE_CONTENT' OR coverage_status IN ('duplicate','conflict')"),
+            'investigate'  => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE recommended_action='INVESTIGATE' AND workflow_state<>'rejected'"),
+            'deferred'     => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE workflow_state='deferred' OR recommended_action='DEFER'"),
+            'create_post'  => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE recommended_action='CREATE_POST' AND workflow_state<>'rejected'"),
+            'create_landing'=> (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE recommended_action='CREATE_LANDING' AND workflow_state<>'rejected'"),
+            'monitoring'   => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE workflow_state='monitoring'"),
         );
     }
 
@@ -179,30 +204,42 @@ final class SEO_Solucionador_Admin {
     private static function render_summary() {
         $counts = self::counts();
         $last = get_option('seo_solucionador_last_scan', array());
+
         echo '<div class="seo-sol-grid">';
-        self::card('Temas detectados', $counts['total'] ?? 0, 'Problemas y procedimientos canonicos observados.');
-        self::card('Sin cobertura', $counts['uncovered'] ?? 0, 'No se ha encontrado un post equivalente.');
-        self::card('Crear contenido', $counts['candidate'] ?? 0, 'Propuestas de post/guía que requieren una nueva pieza editorial.');
-        self::card('Landings a decidir', $counts['landing_candidates'] ?? 0, 'Candidatas detectadas o en revisión dentro del mismo circuito editorial.');
-        self::card('Borradores creados', $counts['drafts'] ?? 0, 'Propuestas aprobadas pendientes de contenido/publicacion.');
-        self::card('Ampliar existentes', $counts['expand'] ?? 0, 'Conviene ampliar un post o crear una seccion.');
-        self::card('Cubiertos', $counts['covered'] ?? 0, 'Existe cobertura editorial identificada.');
-        self::card('Observar / no actuar', $counts['observe'] ?? 0, 'Decisiones conservadas sin ejecucion editorial inmediata.');
+        self::card('Oportunidades activas', $counts['active'] ?? 0, 'Necesidades que siguen dentro del circuito editorial.');
+        self::card('Candidatos', $counts['candidate'] ?? 0, 'Decisiones candidatas pendientes de validación humana.');
+        self::card('Aprobados / brief', $counts['approved'] ?? 0, 'Actuaciones aprobadas o con brief listo.');
+        self::card('Mejorar existente', $counts['improve'] ?? 0, 'Posts, landings, categorías o páginas que deben reforzarse.');
+        self::card('Duplicados / conflictos', $counts['duplicates'] ?? 0, 'Casos que requieren consolidar, fusionar o investigar.');
+        self::card('Pendientes de investigación', $counts['investigate'] ?? 0, 'Falta conocimiento fiable o existe conflicto.');
+        self::card('Aplazados', $counts['deferred'] ?? 0, 'Todavía no cumplen las condiciones para actuar.');
+        self::card('En seguimiento', $counts['monitoring'] ?? 0, 'Intervenciones publicadas esperando resultados de Analista.');
         echo '</div>';
 
-        echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Analizar ahora</h2>';
-        echo '<p>Reconstruye el mapa de decision usando las conclusiones ya disponibles de los servicios. Dependiente/Interprete y gaps editoriales explicitos pueden originar temas; Analista, Auditor, Ojeador, Ingeniero y Clasificador aportan contexto, prioridad y evidencia sin sustituir a sus servicios de origen.</p>';
+        echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Decisión editorial</h2>';
+        echo '<p>Solucionador responde cinco preguntas: <strong>dónde existe una oportunidad, por qué existe, qué contenido ya la cubre, qué acción mínima conviene y qué necesita la Editora para ejecutarla</strong>. Crear una URL nueva es la última opción.</p>';
+        echo '<p><a class="button button-primary" href="' . esc_url(self::url('proposals')) . '">Abrir oportunidades</a> <a class="button" href="' . esc_url(self::url('coverage')) . '">Revisar cobertura</a></p>';
+        echo '</div>';
+
+        echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Reanalizar fuentes</h2>';
+        echo '<p>Reconstruye evidencia, temas canónicos, cobertura multientidad y decisiones usando únicamente datos ya producidos por los servicios especialistas. No lanza investigación técnica, Google Shopping ni búsquedas externas nuevas.</p>';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_solucionador_scan">';
         wp_nonce_field('seo_solucionador_scan');
-        echo '<label><strong>Ventana:</strong> <select name="days"><option value="90">90 dias</option><option value="180" selected>180 dias</option><option value="365">365 dias</option></select></label> ';
+        echo '<label><strong>Ventana:</strong> <select name="days"><option value="90">90 días</option><option value="180" selected>180 días</option><option value="365">365 días</option></select></label> ';
         submit_button('Reanalizar fuentes', 'primary', 'submit', false);
         echo '</form>';
         if ($last) {
-            echo '<p class="description" style="margin-top:12px">Ultimo analisis: <strong>' . esc_html(wp_date('d/m/Y H:i', absint($last['at'] ?? 0))) . '</strong> · senales: ' . esc_html(number_format_i18n(absint($last['sources_seen'] ?? 0))) . ' · aceptadas: ' . esc_html(number_format_i18n(absint($last['accepted'] ?? 0))) . ' · descartadas/refuerzo sin origen: ' . esc_html(number_format_i18n(absint($last['discarded'] ?? 0))) . ' · temas obsoletos limpiados: ' . esc_html(number_format_i18n(absint($last['pruned_topics'] ?? 0))) . ' · posts indexados: ' . esc_html(number_format_i18n(absint($last['posts_indexed'] ?? 0))) . ' · temas de post: ' . esc_html(number_format_i18n(absint($last['post_topics_indexed'] ?? 0))) . '</p>';
+            echo '<p class="description" style="margin-top:12px">Último análisis: <strong>' . esc_html(wp_date('d/m/Y H:i', absint($last['at'] ?? 0))) . '</strong>';
+            echo ' · señales: ' . esc_html(number_format_i18n(absint($last['sources_seen'] ?? 0)));
+            echo ' · aceptadas: ' . esc_html(number_format_i18n(absint($last['accepted'] ?? 0)));
+            echo ' · descartadas/refuerzos sin origen: ' . esc_html(number_format_i18n(absint($last['discarded'] ?? 0)));
+            echo ' · posts: ' . esc_html(number_format_i18n(absint($last['posts_indexed'] ?? 0)));
+            echo ' · páginas: ' . esc_html(number_format_i18n(absint($last['pages_indexed'] ?? 0)));
+            echo ' · categorías: ' . esc_html(number_format_i18n(absint($last['categories_indexed'] ?? 0)));
+            echo ' · huellas de cobertura: ' . esc_html(number_format_i18n(absint($last['post_topics_indexed'] ?? 0))) . '</p>';
         }
         echo '</div>';
     }
-
 
     private static function diagnostics_nav($scope, $view) {
         $items = array(
