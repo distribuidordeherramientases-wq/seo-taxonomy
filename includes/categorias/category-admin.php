@@ -1266,9 +1266,9 @@ if (!function_exists('seo_category_inventory_render')) {
         $to = min($offset + count($categories), $total_categories);
 
         echo '<div style="display:flex;gap:12px;flex-wrap:wrap;margin:16px 0;">';
-        echo '<span style="background:#fff;border:1px solid #dcdcde;padding:7px 10px;border-radius:5px;"><strong>Categorías:</strong> ' . number_format_i18n($total_categories) . '</span>';
-        echo '<span style="background:#fff;border:1px solid #dcdcde;padding:7px 10px;border-radius:5px;"><strong>Mostrando:</strong> ' . number_format_i18n($from) . '–' . number_format_i18n($to) . '</span>';
-        echo '<span style="background:#fff;border:1px solid #dcdcde;padding:7px 10px;border-radius:5px;"><strong>Por página:</strong> ' . number_format_i18n($per_page) . '</span>';
+        echo '<span style="background:#fff;border:1px solid #dcdcde;padding:7px 10px;border-radius:5px;"><strong>Categorías:</strong> ' . esc_html(number_format_i18n($total_categories)) . '</span>';
+        echo '<span style="background:#fff;border:1px solid #dcdcde;padding:7px 10px;border-radius:5px;"><strong>Mostrando:</strong> ' . esc_html(number_format_i18n($from)) . '–' . esc_html(number_format_i18n($to)) . '</span>';
+        echo '<span style="background:#fff;border:1px solid #dcdcde;padding:7px 10px;border-radius:5px;"><strong>Por página:</strong> ' . esc_html(number_format_i18n($per_page)) . '</span>';
         echo '</div>';
 
         echo '<div style="overflow-x:auto;background:#fff;border:1px solid #dcdcde;">';
@@ -1362,7 +1362,7 @@ if (!function_exists('seo_category_inventory_render')) {
                     $faq_active++;
                 }
             }
-            echo '<strong>' . number_format_i18n($faq_active) . ' activas</strong> / ' . number_format_i18n($faq_count) . ' relacionadas';
+            echo '<strong>' . esc_html(number_format_i18n($faq_active)) . ' activas</strong> / ' . esc_html(number_format_i18n($faq_count)) . ' relacionadas';
             if ($faq_count) {
                 echo '<details style="margin-top:6px;"><summary>Ver preguntas</summary><ul style="margin:6px 0 0 18px;">';
                 foreach ($faqs[$category_id] as $faq_row) {
@@ -1375,7 +1375,7 @@ if (!function_exists('seo_category_inventory_render')) {
             echo '</td>';
 
             echo '<td>';
-            echo '<strong>' . number_format_i18n($published_posts) . ' publicados</strong> / ' . number_format_i18n(count($posts[$category_id])) . ' relacionados';
+            echo '<strong>' . esc_html(number_format_i18n($published_posts)) . ' publicados</strong> / ' . esc_html(number_format_i18n(count($posts[$category_id]))) . ' relacionados';
             if (!empty($posts[$category_id])) {
                 echo '<ul style="margin:6px 0 0 18px;">';
                 foreach ($posts[$category_id] as $row) {
@@ -1386,7 +1386,7 @@ if (!function_exists('seo_category_inventory_render')) {
             echo '</td>';
 
             echo '<td>';
-            echo '<strong>' . number_format_i18n($published_landings) . ' publicadas</strong> / ' . number_format_i18n(count($landings[$category_id])) . ' relacionadas';
+            echo '<strong>' . esc_html(number_format_i18n($published_landings)) . ' publicadas</strong> / ' . esc_html(number_format_i18n(count($landings[$category_id]))) . ' relacionadas';
             if (!empty($landings[$category_id])) {
                 echo '<ul style="margin:6px 0 0 18px;">';
                 foreach ($landings[$category_id] as $row) {
@@ -1396,7 +1396,7 @@ if (!function_exists('seo_category_inventory_render')) {
             }
             echo '</td>';
 
-            echo '<td style="text-align:center;font-size:16px;"><strong>' . number_format_i18n(absint($category->count)) . '</strong></td>';
+            echo '<td style="text-align:center;font-size:16px;"><strong>' . esc_html(number_format_i18n(absint($category->count))) . '</strong></td>';
             echo '<td style="text-align:center;">';
             echo '<span style="display:inline-block;padding:5px 8px;border-radius:12px;' . esc_attr($load_style) . '"><strong>' . esc_html($url_load) . '</strong> · ' . esc_html($load_label) . '</span>';
             echo '<div style="font-size:10px;color:#646970;margin-top:4px;">posts + landings publicados</div>';
@@ -2255,7 +2255,7 @@ if (!function_exists('seo_category_catalog_table_render')) {
 
         $from = $filtered_categories > 0 ? ($offset + 1) : 0;
         $to = min($offset + count($page_rows), $filtered_categories);
-        echo '<p style="color:#646970;margin:0 0 10px;">Mostrando categorías <strong>' . number_format_i18n($from) . '–' . number_format_i18n($to) . '</strong> de <strong>' . number_format_i18n($filtered_categories) . '</strong> según los filtros actuales.</p>';
+        echo '<p style="color:#646970;margin:0 0 10px;">Mostrando categorías <strong>' . esc_html(number_format_i18n($from)) . '–' . esc_html(number_format_i18n($to)) . '</strong> de <strong>' . esc_html(number_format_i18n($filtered_categories)) . '</strong> según los filtros actuales.</p>';
 
         if (!$page_rows) {
             echo '<div class="notice notice-info inline"><p>No hay categorías que coincidan con los filtros.</p></div></div>';
@@ -2316,21 +2316,21 @@ if (!function_exists('seo_category_catalog_table_render')) {
             echo '</td>';
 
             echo '<td>' . esc_html($path !== '' ? $path : $category_name) . '</td>';
-            echo '<td style="text-align:center;font-size:18px;"><strong>' . number_format_i18n($product_count) . '</strong></td>';
-            echo '<td style="text-align:center;"><strong>' . number_format_i18n($published_count) . '</strong></td>';
-            echo '<td style="text-align:center;">' . number_format_i18n($nonpublished_count) . '</td>';
+            echo '<td style="text-align:center;font-size:18px;"><strong>' . esc_html(number_format_i18n($product_count)) . '</strong></td>';
+            echo '<td style="text-align:center;"><strong>' . esc_html(number_format_i18n($published_count)) . '</strong></td>';
+            echo '<td style="text-align:center;">' . esc_html(number_format_i18n($nonpublished_count)) . '</td>';
 
             $counter_style = $woo_count === $published_count
                 ? 'color:#006505;'
                 : 'color:#b32d2e;font-weight:700;';
-            echo '<td style="text-align:center;' . esc_attr($counter_style) . '">' . number_format_i18n($woo_count) . '</td>';
+            echo '<td style="text-align:center;' . esc_attr($counter_style) . '">' . esc_html(number_format_i18n($woo_count)) . '</td>';
 
             echo '<td>';
             if ($product_count === 0) {
                 echo '<span style="color:#b32d2e;font-weight:600;">Categoría vacía</span>';
             } else {
                 echo '<details>';
-                echo '<summary style="cursor:pointer;"><strong>Ver productos (' . number_format_i18n($product_count) . ')</strong></summary>';
+                echo '<summary style="cursor:pointer;"><strong>Ver productos (' . esc_html(number_format_i18n($product_count)) . ')</strong></summary>';
                 echo '<div style="margin-top:8px;max-height:420px;overflow:auto;border-left:3px solid #dcdcde;padding-left:10px;">';
                 echo '<ol style="margin:0 0 0 18px;">';
                 $shown = 0;
@@ -2361,7 +2361,7 @@ if (!function_exists('seo_category_catalog_table_render')) {
                 }
                 echo '</ol>';
                 if ($product_count > $shown) {
-                    echo '<p style="margin:8px 0 0;color:#646970;"><strong>Mostrando ' . number_format_i18n($shown) . ' de ' . number_format_i18n($product_count) . '.</strong> La cuenta superior sigue siendo completa.</p>';
+                    echo '<p style="margin:8px 0 0;color:#646970;"><strong>Mostrando ' . esc_html(number_format_i18n($shown)) . ' de ' . esc_html(number_format_i18n($product_count)) . '.</strong> La cuenta superior sigue siendo completa.</p>';
                 }
                 echo '</div>';
                 echo '</details>';
