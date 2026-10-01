@@ -4682,7 +4682,7 @@ function seo_faq_report_render_rows($title, $rows, $columns)
             } elseif (in_array($column, ['open_rate', 'engagement_rate'], true) && $value !== '' && $value !== null) {
                 $value = $value . '%';
             }
-            echo '<td>' . seo_faq_report_format_cell($value) . '</td>';
+            echo '<td>' . wp_kses_post(seo_faq_report_format_cell($value)) . '</td>';
         }
         echo '</tr>';
     }
