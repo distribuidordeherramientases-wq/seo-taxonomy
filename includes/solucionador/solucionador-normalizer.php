@@ -395,8 +395,22 @@ final class SEO_Solucionador_Normalizer {
         }
 
         if (!$best) return array();
+
+        $object = (string) ($best['canonical'] ?? '');
+        // Conserva complementos tecnicos del tipo "X de Y" cuando la entidad
+        // conocida es la cabeza nominal. Evita perder "de aire" en
+        // "compresor de aire" y funciona tambien para otras familias.
+        $head = preg_quote($object, '/');
+        if ($object !== '' && strpos($object, ' de ') === false
+            && preg_match('/(?:^|\s)' . $head . '\s+de\s+([a-z0-9-]{3,})(?:\s|$)/u', $normalized, $m)) {
+            $tail = self::canonical_singular((string) ($m[1] ?? ''));
+            if ($tail !== '' && !isset(self::generic_object_words()[$tail])) {
+                $object .= ' de ' . $tail;
+            }
+        }
+
         return array(
-            'object'=>(string) ($best['canonical'] ?? ''),
+            'object'=>$object,
             'category_id'=>absint($best['term_id'] ?? 0),
             'source'=>(string) ($best['kind'] ?? ''),
         );
