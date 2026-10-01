@@ -115,6 +115,23 @@ final class SEO_Solucionador_Posts {
         if (strtoupper((string) ($topic['recommended_action'] ?? '')) !== 'CREATE_POST') {
             return new WP_Error('solucionador_not_new_post', 'Esta propuesta no requiere crear un post nuevo.');
         }
+        $workflow_state = sanitize_key((string) ($topic['workflow_state'] ?? 'detected'));
+        if (!in_array($workflow_state, array('approved','brief_ready'), true)) {
+            return new WP_Error(
+                'solucionador_not_approved',
+                'Primero aprueba la actuación o marca el brief como listo. Solucionador no crea borradores desde una decisión no aprobada.'
+            );
+        }
+
+        $requirements = SEO_Solucionador_DB::decision_requirements($topic);
+        foreach (array('real_evidence','category_identified','coverage_allows_new','knowledge_sufficient','duplication_below_threshold') as $requirement) {
+            if (isset($requirements[$requirement]) && empty($requirements[$requirement]['pass'])) {
+                return new WP_Error(
+                    'solucionador_requirement_block',
+                    'La propuesta ya no cumple una condición obligatoria para crear una URL nueva. Reanaliza antes de preparar el borrador.'
+                );
+            }
+        }
 
         $proposal = array(
             'categories' => SEO_Solucionador_DB::proposed_categories($topic),
