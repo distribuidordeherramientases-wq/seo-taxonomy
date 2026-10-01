@@ -607,6 +607,27 @@ final class SEO_Solucionador_Sources {
                 $ids = wp_get_post_terms($entity_id,'product_cat',array('fields'=>'ids'));
                 if (!is_wp_error($ids) && $ids) $category_id = absint(reset($ids));
             }
+            if (!$category_id && !empty($meta['top_results']) && is_array($meta['top_results'])) {
+                foreach ($meta['top_results'] as $result) {
+                    if (!is_array($result)) continue;
+                    $product_id = absint($result['product_id'] ?? $result['id'] ?? $result['post_id'] ?? 0);
+                    if (!$product_id) continue;
+                    $ids = wp_get_post_terms($product_id,'product_cat',array('fields'=>'ids'));
+                    if (!is_wp_error($ids) && $ids) {
+                        $category_id = absint(reset($ids));
+                        break;
+                    }
+                }
+            }
+            if (!$category_id && !empty($meta['semantic_matches']) && is_array($meta['semantic_matches'])) {
+                foreach ($meta['semantic_matches'] as $match) {
+                    if (!is_array($match)) continue;
+                    if (in_array(sanitize_key((string) ($match['type'] ?? $match['object_type'] ?? '')),array('category','product_cat'),true)) {
+                        $category_id = absint($match['id'] ?? $match['term_id'] ?? $match['object_id'] ?? 0);
+                        if ($category_id) break;
+                    }
+                }
+            }
             if ($category_id && $entity_type === '') {
                 $entity_type = 'product_cat';
                 $entity_id = $category_id;
