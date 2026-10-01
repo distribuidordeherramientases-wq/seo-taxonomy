@@ -90,7 +90,7 @@ final class SEO_Data_Layer
 
         if (!isset($tables[$key])) {
             throw new InvalidArgumentException(
-                sprintf('La tabla lógica "%s" no está registrada en el Data Layer.', $key)
+                sprintf('La tabla lógica "%s" no está registrada en el Data Layer.', esc_html($key))
             );
         }
 
@@ -110,7 +110,7 @@ final class SEO_Data_Layer
         }
 
         throw new InvalidArgumentException(
-            sprintf('La tabla "%s" no está registrada en el Data Layer.', $table_name)
+            sprintf('La tabla "%s" no está registrada en el Data Layer.', esc_html($table_name))
         );
     }
 
@@ -164,7 +164,7 @@ final class SEO_Data_Layer
 
             if (!in_array($column, $allowed, true)) {
                 throw new InvalidArgumentException(
-                    sprintf('La columna %s no existe en la tabla %s.', $column, $table_name)
+                    sprintf('La columna %s no existe en la tabla %s.', esc_html((string) $column), esc_html($table_name))
                 );
             }
         }
