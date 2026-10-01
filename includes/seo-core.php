@@ -476,12 +476,12 @@ function seo_render_cluster_row($page, $templates, $hub_primary_pages) {
     echo '<div style="min-width:220px;">';
 
     echo '<strong>' . esc_html($page->post_title) . '</strong><br>';
-    echo 'ID: ' . $id . '<br><br>';
+    echo 'ID: ' . esc_html((string) $id) . '<br><br>';
 
     echo '<span style="font-size:12px;padding:3px 6px;background:' .
         ($is_publish ? '#2e7d32' : '#e53935') .
         ';color:#fff;border-radius:4px;">' .
-        strtoupper($post_status) .
+        esc_html(strtoupper((string) $post_status)) .
     '</span><br><br>';
 
     wp_nonce_field('seo_cluster_action', 'seo_cluster_nonce');
@@ -528,7 +528,7 @@ function seo_render_cluster_row($page, $templates, $hub_primary_pages) {
         if (!isset($hub_map[$hid])) continue;
 
         echo '<label style="display:block;color:#1b5e20;font-weight:600;">';
-        echo "<input type='checkbox' name='cluster[$id][hub_primary][]' value='{$hid}' checked> ";
+        echo "<input type='checkbox' name='cluster[" . esc_attr((string) $id) . "][hub_primary][]' value='" . esc_attr((string) $hid) . "' checked> ";
         echo esc_html($h->post_title);
         echo '</label>';
     }
@@ -549,7 +549,7 @@ function seo_render_cluster_row($page, $templates, $hub_primary_pages) {
         if (in_array($hid, $global_assigned_hubs)) continue;
 
         echo '<label style="display:block;">';
-        echo "<input type='checkbox' name='cluster[$id][hub_primary][]' value='{$hid}'> ";
+        echo "<input type='checkbox' name='cluster[" . esc_attr((string) $id) . "][hub_primary][]' value='" . esc_attr((string) $hid) . "'> ";
         echo esc_html($h->post_title);
         echo '</label>';
     }
@@ -632,15 +632,15 @@ function seo_render_hub_primary_row($page, $templates) {
     $next = ($status === 'publish') ? 'draft' : 'publish';
 
     echo '<strong>' . esc_html($page->post_title) . '</strong><br>';
-    echo 'ID: ' . $id . '<br><br>';
+    echo 'ID: ' . esc_html((string) $id) . '<br><br>';
 
     echo '<span style="font-size:12px;padding:3px 6px;background:' .
         ($status === 'publish' ? '#2e7d32' : '#e53935') .
         ';color:#fff;border-radius:4px;">' .
-        strtoupper($status) .
+        esc_html(strtoupper((string) $status)) .
     '</span><br><br>';
 
-    echo "<button type='button' class='seo-toggle-status' data-id='{$id}' data-type='hub_primary' data-status='{$next}'>Toggle</button>";
+    echo "<button type='button' class='seo-toggle-status' data-id='" . esc_attr((string) $id) . "' data-type='hub_primary' data-status='" . esc_attr((string) $next) . "'>Toggle</button>";
 
     echo '<br><br>';
 
@@ -682,7 +682,7 @@ function seo_render_hub_primary_row($page, $templates) {
         if (!isset($selected_map[$hid])) continue;
 
         echo '<label style="display:block;color:#1b5e20;font-weight:600;">';
-        echo "<input type='checkbox' name='hub_primary[$id][hub_secondary][]' value='{$hid}' checked> ";
+        echo "<input type='checkbox' name='hub_primary[" . esc_attr((string) $id) . "][hub_secondary][]' value='" . esc_attr((string) $hid) . "' checked> ";
         echo esc_html($h->post_title);
         echo '</label>';
     }
@@ -703,7 +703,7 @@ function seo_render_hub_primary_row($page, $templates) {
         if (in_array($hid, $global_assigned_secondary)) continue;
 
         echo '<label style="display:block;">';
-        echo "<input type='checkbox' name='hub_primary[$id][hub_secondary][]' value='{$hid}'> ";
+        echo "<input type='checkbox' name='hub_primary[" . esc_attr((string) $id) . "][hub_secondary][]' value='" . esc_attr((string) $hid) . "'> ";
         echo esc_html($h->post_title);
         echo '</label>';
     }
@@ -767,7 +767,7 @@ function seo_render_hub_secondary_row($page, $templates, $categories) {
     wp_nonce_field('seo_cluster_action', 'seo_cluster_nonce');
 
     echo "<input type='hidden' name='action_type' value='save'>";
-    echo "<input type='hidden' name='hub_secondary[$id][id]' value='{$id}'>";
+    echo "<input type='hidden' name='hub_secondary[" . esc_attr((string) $id) . "][id]' value='" . esc_attr((string) $id) . "'>";
 
     echo '<div style="display:flex;gap:20px;padding:12px;border:1px solid #ff9800;margin:10px 0;background:#fffaf0;">';
 
@@ -780,15 +780,15 @@ function seo_render_hub_secondary_row($page, $templates, $categories) {
     $next = ($status === 'publish') ? 'draft' : 'publish';
 
     echo '<strong>' . esc_html($page->post_title) . '</strong><br>';
-    echo 'ID: ' . $id . '<br><br>';
+    echo 'ID: ' . esc_html((string) $id) . '<br><br>';
 
     echo '<span style="padding:3px 6px;background:' .
         ($status === 'publish' ? '#2e7d32' : '#e53935') .
         ';color:#fff;border-radius:4px;">' .
-        strtoupper($status) .
+        esc_html(strtoupper((string) $status)) .
     '</span><br><br>';
 
-    echo "<button type='button' class='seo-toggle-status' data-id='{$id}' data-type='hub_secondary' data-status='{$next}'>Toggle</button>";
+    echo "<button type='button' class='seo-toggle-status' data-id='" . esc_attr((string) $id) . "' data-type='hub_secondary' data-status='" . esc_attr((string) $next) . "'>Toggle</button>";
 
     echo '<br><br>';
 
@@ -815,7 +815,7 @@ function seo_render_hub_secondary_row($page, $templates, $categories) {
     /* Campo de búsqueda */
     echo '<input type="text" 
                  placeholder="🔍 Buscar categoría disponible..." 
-                 onkeyup="filtrarCategoriasHubSecundario(this, ' . $id . ')" 
+                 onkeyup="filtrarCategoriasHubSecundario(this, ' . esc_attr((string) $id) . ')" 
                  style="width:100%; max-width:300px; margin: 6px 0; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px;">';
 
     /* SELECCIONADAS (VERDE ARRIBA) */
@@ -828,7 +828,7 @@ function seo_render_hub_secondary_row($page, $templates, $categories) {
         if (!isset($cat_map[$cid])) continue;
 
         echo '<label style="display:block;color:#1b5e20;font-weight:600;">';
-        echo "<input type='checkbox' name='hub_secondary[$id][categories][]' value='{$cid}' checked> ";
+        echo "<input type='checkbox' name='hub_secondary[" . esc_attr((string) $id) . "][categories][]' value='" . esc_attr((string) $cid) . "' checked> ";
         echo esc_html($c->name);
         echo '</label>';
     }
@@ -836,7 +836,7 @@ function seo_render_hub_secondary_row($page, $templates, $categories) {
     echo '</div>';
 
         /* DISPONIBLES REALES (SCROLL ABAJO) */
-            echo '<div id="container-disponibles-' . $id . '" style="max-height:180px;overflow-y:auto;border:1px solid #ccc;padding:6px;">';
+            echo '<div id="container-disponibles-' . esc_attr((string) $id) . '" style="max-height:180px;overflow-y:auto;border:1px solid #ccc;padding:6px;">';
         
             foreach ($categories as $c) {
                 $cid = (int) $c->term_id;
@@ -855,7 +855,7 @@ function seo_render_hub_secondary_row($page, $templates, $categories) {
                 }
         
                 echo '<label class="cat-item" style="display:block;">';
-                echo "<input type='checkbox' name='hub_secondary[$id][categories][]' value='{$cid}'> ";
+                echo "<input type='checkbox' name='hub_secondary[" . esc_attr((string) $id) . "][categories][]' value='" . esc_attr((string) $cid) . "'> ";
                 echo esc_html($c->name);
                 echo '</label>';
             }
@@ -935,7 +935,7 @@ function seo_render_reasignacion_ui($data) {
         echo '<select name="new_hub_id" style="width:100%;">';
         foreach ($hubs as $h) {
             $selected = ($h->ID == $row->source_id) ? 'selected' : '';
-            echo '<option value="' . (int)$h->ID . '" ' . $selected . '>' . esc_html($h->post_title) . ' (' . (int)$h->ID . ')</option>';
+            echo '<option value="' . esc_attr((string) (int) $h->ID) . '" ' . esc_attr($selected) . '>' . esc_html($h->post_title) . ' (' . esc_html((string) (int) $h->ID) . ')</option>';
         }
         echo '</select>';
         echo '</td>';
