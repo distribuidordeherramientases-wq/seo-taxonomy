@@ -961,10 +961,17 @@ function seo_reports_page() {
     
     $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'informes';
 
+    if ($active_tab === 'content') {
+        $target = class_exists('SEO_Solucionador_Admin')
+            ? SEO_Solucionador_Admin::diagnostics_url('content')
+            : add_query_arg(array('page'=>'seo-solucionador','tab'=>'diagnostics','diag_scope'=>'content'), admin_url('admin.php'));
+        wp_safe_redirect($target);
+        exit;
+    }
+
     $allowed_tabs = [
         'informes',
         'dashboard',
-        'content',
         'anomalias',
         'growth_executive',
         'google_intelligence',
@@ -983,7 +990,6 @@ function seo_reports_page() {
     echo '<h2 class="nav-tab-wrapper">';
     echo '<a class="nav-tab ' . ($active_tab === 'informes' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=informes') . '">Informes</a>';
     echo '<a class="nav-tab ' . ($active_tab === 'dashboard' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=dashboard') . '">Panel</a>';
-    echo '<a class="nav-tab ' . ($active_tab === 'content' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=content') . '">Contenido</a>';
     echo '<a class="nav-tab ' . ($active_tab === 'anomalias' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=anomalias') . '">Anomalías</a>';
     echo '<a class="nav-tab ' . ($active_tab === 'analista' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=analista') . '">Analista</a>';
     echo '</h2>';
@@ -995,12 +1001,6 @@ function seo_reports_page() {
         seo_reports_render_general_shell();
     } elseif ($active_tab === 'dashboard') {
         seo_dashboard_page();
-    } elseif ($active_tab === 'content') {
-        if (function_exists('seo_report_contents_render_page')) {
-            seo_report_contents_render_page();
-        } else {
-            echo '<div class="notice notice-error inline"><p>Falta el archivo <code>seo-report-contents.php</code>.</p></div>';
-        }
     } elseif ($active_tab === 'anomalias') {
         seo_render_anomalies_report();
     } elseif ($active_tab === 'growth_executive') {

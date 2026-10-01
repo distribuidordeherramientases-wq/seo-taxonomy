@@ -285,13 +285,14 @@ if (!function_exists('seo_post_reports_percent')) {
 if (!function_exists('seo_post_reports_admin_url')) {
     function seo_post_reports_admin_url($post_id = 0, $days = 28, array $extra = []) {
         $args = [
-            'page' => 'seo-post-reports',
-            'days' => seo_post_reports_days($days),
+            'page'=>'seo-solucionador',
+            'tab'=>'diagnostics',
+            'diag_scope'=>'posts',
+            'diag_view'=>'opportunities',
+            'post_days'=>seo_post_reports_days($days),
         ];
-        if (absint($post_id) > 0) {
-            $args['post_id'] = absint($post_id);
-        }
-        return add_query_arg(array_merge($args, $extra), admin_url('edit.php'));
+        if (absint($post_id) > 0) $args['focus_post_id'] = absint($post_id);
+        return add_query_arg(array_merge($args, $extra), admin_url('admin.php'));
     }
 }
 
@@ -1054,6 +1055,9 @@ if (!function_exists('seo_post_reports_page')) {
         }
 
         $post_id = isset($_GET['post_id']) ? absint($_GET['post_id']) : 0;
+        $target = seo_post_reports_admin_url($post_id, isset($_GET['days']) ? absint($_GET['days']) : 28);
+        wp_safe_redirect($target);
+        exit;
 
         echo '<div style="padding:10px 0 30px;max-width:1280px;">';
         echo '<style>
@@ -1105,3 +1109,10 @@ if (!function_exists('seo_post_reports_register_admin_page')) {
     }
 }
 add_action('admin_menu', 'seo_post_reports_register_admin_page');
+
+if (!function_exists('seo_post_reports_hide_legacy_submenu')) {
+    function seo_post_reports_hide_legacy_submenu() {
+        remove_submenu_page('edit.php', 'seo-post-reports');
+    }
+}
+add_action('admin_menu', 'seo_post_reports_hide_legacy_submenu', 999);

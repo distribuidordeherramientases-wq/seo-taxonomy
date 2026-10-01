@@ -378,6 +378,125 @@ final class SEO_Solucionador_Sources {
         return $out;
     }
 
+    public static function ojeador($limit = 180) {
+        if (!class_exists('SEO_Ojeador_Analysis') || !method_exists('SEO_Ojeador_Analysis','dashboard')) return array();
+        $dashboard = SEO_Ojeador_Analysis::dashboard(max(20, min(300, absint($limit))));
+        $out = array();
+        foreach ((array) ($dashboard['recommendations'] ?? array()) as $row) {
+            $term_id = absint($row['term_id'] ?? 0);
+            $category = trim((string) ($row['category_name'] ?? ''));
+            if (!$term_id || $category === '') continue;
+            $query = trim((string) ($row['query_text'] ?? ''));
+            $text = $query !== '' ? $query : ('elegir ' . $category);
+            $out[] = array(
+                'source_type'=>'ojeador',
+                'proposal_role'=>'reinforcement',
+                'source_id'=>'market:' . $term_id . ':' . sanitize_key((string) ($row['code'] ?? 'signal')),
+                'source_text'=>$text,
+                'hints'=>array(
+                    'intent'=>'eleccion',
+                    'action'=>'elegir',
+                    'object'=>$category,
+                ),
+                'occurrences'=>1,
+                'evidence_score'=>min(1.0, max(0.25, ((float) ($row['priority'] ?? 50)) / 100)),
+                'observed_at'=>current_time('mysql'),
+                'source_meta'=>array(
+                    'proposal_role'=>'reinforcement',
+                    'term_id'=>$term_id,
+                    'category'=>$category,
+                    'code'=>(string) ($row['code'] ?? ''),
+                    'signal'=>(string) ($row['signal'] ?? ''),
+                    'action'=>(string) ($row['action'] ?? ''),
+                    'reason'=>(string) ($row['reason'] ?? ''),
+                    'opportunity_index'=>(float) ($row['opportunity_index'] ?? 0),
+                    'competition_index'=>(float) ($row['competition_index'] ?? 0),
+                    'catalog_gap_index'=>(float) ($row['catalog_gap_index'] ?? 0),
+                    'visibility_index'=>(float) ($row['visibility_index'] ?? 0),
+                ),
+            );
+        }
+        return array_slice($out, 0, max(1, min(300, absint($limit))));
+    }
+
+    public static function ingeniero($limit = 260) {
+        if (!class_exists('SEO_Ingeniero') || !class_exists('SEO_Ingeniero_DB')) return array();
+        $stats = SEO_Ingeniero_DB::category_stats_map();
+        $out = array();
+        foreach ($stats as $term_id=>$stat) {
+            if (absint($stat['active'] ?? 0) < 1) continue;
+            $term = get_term(absint($term_id), 'product_cat');
+            if (!$term || is_wp_error($term)) continue;
+            $category = (string) $term->name;
+            foreach (array_slice((array) SEO_Ingeniero::active_knowledge(absint($term_id)), 0, 3) as $row) {
+                $summary = trim((string) (($row['summary'] ?? '') ?: ($row['concept'] ?? '')));
+                if ($summary === '') continue;
+                $out[] = array(
+                    'source_type'=>'ingeniero',
+                    'proposal_role'=>'reinforcement',
+                    'source_id'=>'knowledge:' . absint($row['id'] ?? 0) . ':' . absint($term_id),
+                    'source_text'=>$summary,
+                    'hints'=>array('object'=>$category),
+                    'occurrences'=>1,
+                    'evidence_score'=>min(1.0, max(0.30, (float) ($row['confidence'] ?? 0.6))),
+                    'observed_at'=>(string) ($row['updated_at'] ?? current_time('mysql')),
+                    'source_meta'=>array(
+                        'proposal_role'=>'reinforcement',
+                        'term_id'=>absint($term_id),
+                        'category'=>$category,
+                        'knowledge_type'=>(string) ($row['knowledge_type'] ?? ''),
+                        'concept'=>(string) ($row['concept'] ?? ''),
+                        'confidence'=>(float) ($row['confidence'] ?? 0),
+                    ),
+                );
+                if (count($out) >= max(20, absint($limit))) break 2;
+            }
+        }
+        return $out;
+    }
+
+    public static function clasificador($limit = 260) {
+        if (!function_exists('seo_classifier_engineer_vocab_bulk_reports') || !function_exists('seo_classifier_engineer_vocab_flat_rows')) return array();
+        $reports = seo_classifier_engineer_vocab_bulk_reports();
+        if (is_wp_error($reports)) return array();
+        $rows = seo_classifier_engineer_vocab_flat_rows((array) $reports);
+        $out = array();
+        foreach ($rows as $row) {
+            if (!in_array((string) ($row['status'] ?? ''), array('new','possible'), true)) continue;
+            $term_id = absint($row['term_id'] ?? 0);
+            $category = trim((string) ($row['category'] ?? ''));
+            $value = trim((string) ($row['value'] ?? ''));
+            if (!$term_id || $category === '' || $value === '') continue;
+            $out[] = array(
+                'source_type'=>'clasificador',
+                'proposal_role'=>'reinforcement',
+                'source_id'=>'vocab:' . $term_id . ':' . sanitize_key((string) ($row['kind'] ?? '')) . ':' . md5((string) ($row['key'] ?? $value)),
+                'source_text'=>'elegir ' . $category . ' ' . $value,
+                'hints'=>array(
+                    'intent'=>'eleccion',
+                    'action'=>'elegir',
+                    'object'=>$category,
+                    'context'=>$value,
+                ),
+                'occurrences'=>1,
+                'evidence_score'=>min(1.0, max(0.30, (float) ($row['confidence'] ?? 0.6))),
+                'observed_at'=>current_time('mysql'),
+                'source_meta'=>array(
+                    'proposal_role'=>'reinforcement',
+                    'term_id'=>$term_id,
+                    'category'=>$category,
+                    'kind'=>(string) ($row['kind'] ?? ''),
+                    'concept'=>$value,
+                    'master_status'=>(string) ($row['status'] ?? ''),
+                    'equivalent'=>(string) ($row['existing'] ?? ''),
+                    'provisional'=>!empty($row['provisional']),
+                ),
+            );
+            if (count($out) >= max(20, absint($limit))) break;
+        }
+        return $out;
+    }
+
     public static function all($days = 180) {
         // Orden intencional: primero las preguntas reales y los gaps/probes que
         // pueden originar temas. Comentarista aporta preguntas o refuerzos y
@@ -386,7 +505,10 @@ final class SEO_Solucionador_Sources {
             self::dependiente($days, 1600),
             self::auditor(300),
             self::comentarista(1200),
-            self::analista(min(180, $days), 160)
+            self::analista(min(180, $days), 160),
+            self::ojeador(180),
+            self::ingeniero(260),
+            self::clasificador(260)
         );
     }
 }

@@ -379,6 +379,9 @@ final class SEO_Solucionador_DB {
             'comentarista' => 0,
             'analista' => 0,
             'auditor' => 0,
+            'ojeador' => 0,
+            'ingeniero' => 0,
+            'clasificador' => 0,
             'zero_results' => 0,
             'negative_feedback' => 0,
         );
