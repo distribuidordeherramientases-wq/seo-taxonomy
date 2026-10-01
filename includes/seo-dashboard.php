@@ -131,10 +131,10 @@ function seo_dashboard_page() {
     ?>
 
     <div class="seo-kpis">
-        <div class="seo-card seo-card-blue"><span>CLUSTERS</span><strong><?php echo count($clusters); ?></strong><small>Estructuras principales</small></div>
-        <div class="seo-card seo-card-violet"><span>PÁGINAS SEO</span><strong><?php echo $seo_pages; ?></strong><small><?php echo count($hubs_primary); ?> primarias · <?php echo count($hubs_secondary); ?> secundarias · <?php echo $landings; ?> landings</small></div>
-        <div class="seo-card seo-card-amber"><span>CATEGORÍAS CUBIERTAS</span><strong><?php echo count($all_categories); ?></strong><small>Categorías únicas vinculadas</small></div>
-        <div class="seo-card seo-card-green"><span>PRODUCTOS CUBIERTOS</span><strong><?php echo count($all_products); ?></strong><small>Productos publicados únicos</small></div>
+        <div class="seo-card seo-card-blue"><span>CLUSTERS</span><strong><?php echo esc_html((string) count($clusters)); ?></strong><small>Estructuras principales</small></div>
+        <div class="seo-card seo-card-violet"><span>PÁGINAS SEO</span><strong><?php echo esc_html((string) $seo_pages); ?></strong><small><?php echo esc_html((string) count($hubs_primary)); ?> primarias · <?php echo esc_html((string) count($hubs_secondary)); ?> secundarias · <?php echo esc_html((string) $landings); ?> landings</small></div>
+        <div class="seo-card seo-card-amber"><span>CATEGORÍAS CUBIERTAS</span><strong><?php echo esc_html((string) count($all_categories)); ?></strong><small>Categorías únicas vinculadas</small></div>
+        <div class="seo-card seo-card-green"><span>PRODUCTOS CUBIERTOS</span><strong><?php echo esc_html((string) count($all_products)); ?></strong><small>Productos publicados únicos</small></div>
     </div>
 
     <?php if (!$cluster_reports): ?>
