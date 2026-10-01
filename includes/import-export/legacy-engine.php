@@ -2541,8 +2541,8 @@ function seo_ie_product_reduced_vocabulary_map( $product_ids ) {
                      FIELD(v.semantic_group,'tipo','subtipo','rol','aplicacion','plataforma') ASC,
                      v.slug ASC
         ";
-        $prepared = $wpdb->prepare( $sql, $chunk );
-        $rows     = $prepared ? $wpdb->get_results( $prepared ) : [];
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Vocabulary tables plus generated %d placeholders; all product IDs are bound through prepare().
+        $rows = $wpdb->get_results( $wpdb->prepare( $sql, $chunk ) );
 
         foreach ( (array) $rows as $row ) {
             $object_id = absint( $row->object_id ?? 0 );
@@ -9619,6 +9619,7 @@ function seo_export_faqs_csv() {
         $wpdb->prepare("SHOW COLUMNS FROM `{$table}` LIKE %s", 'ambito')
     );
     $faq_scope_select = $faq_has_legacy_scope ? 'ambito' : "'' AS ambito";
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- FAQ table is internal and $faq_scope_select is selected only from two fixed SQL fragments; query has no external values.
     $faqs  = $wpdb->get_results(
         "
         SELECT
