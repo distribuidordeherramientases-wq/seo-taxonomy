@@ -103,8 +103,16 @@ final class SEO_Comparador_Admin {
         $profile_id=absint($_POST['profile_id'] ?? 0);
         check_admin_referer('seo_comparador_axes_' . $profile_id);
         $result=SEO_Comparador_Engine::save_axes($profile_id,(array)($_POST['axes'] ?? array()));
-        if (is_wp_error($result)) self::notice($result->get_error_message(),'error');
-        else self::notice('Ejes comparativos guardados; el perfil vuelve a revisión.');
+        if (is_wp_error($result)) {
+            self::notice($result->get_error_message(),'error');
+        } elseif (!empty($result['blocked_axes'])) {
+            self::notice(
+                'Ejes guardados. No se han marcado como publicables por falta de cobertura/confianza: ' . implode(', ',array_slice((array)$result['blocked_axes'],0,8)),
+                'warning'
+            );
+        } else {
+            self::notice('Ejes comparativos guardados; el perfil vuelve a revisión.');
+        }
         self::redirect('comparisons',array('profile_id'=>$profile_id));
     }
 
