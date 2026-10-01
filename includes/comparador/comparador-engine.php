@@ -13,6 +13,7 @@ final class SEO_Comparador_Engine {
 
     public static function defaults() {
         return array(
+            'store_compare_max' => 6,
             'max_own_products' => 300,
             'max_external_products' => 500,
             'max_axes' => 20,
@@ -31,6 +32,7 @@ final class SEO_Comparador_Engine {
     public static function sanitize_settings($raw) {
         $raw = wp_parse_args(is_array($raw) ? $raw : array(), self::defaults());
         return array(
+            'store_compare_max' => max(2, min(6, absint($raw['store_compare_max']))),
             'max_own_products' => max(20, min(1000, absint($raw['max_own_products']))),
             'max_external_products' => max(20, min(2000, absint($raw['max_external_products']))),
             'max_axes' => max(3, min(40, absint($raw['max_axes']))),
