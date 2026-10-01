@@ -75,9 +75,9 @@ WooCommerce + Ojeador + conocimiento existente
 
 ## Persistencia
 
-Versión funcional inicial: **1.0.0**.
+Versión funcional actual: **1.1.0**.
 
-Versión del esquema: **1.0.0**.
+Versión del esquema: **1.1.0**.
 
 Tablas propias:
 
@@ -206,6 +206,88 @@ Cuando Ojeador guarda un nuevo snapshot, publica el evento:
 Comparador marca el perfil como pendiente de revisión/actualización. Si ya existe un post publicado y cambia materialmente el hash de fuentes, pasa a `needs_update`.
 
 El post público no se sobrescribe automáticamente.
+
+## Import / Export JSON
+
+Desde la ficha de cada perfil Comparador existen dos flujos distintos.
+
+### Exportar JSON de contenido
+
+La operación **Exportar JSON de contenido** genera un paquete con schema:
+
+`seo-comparador-editorial-v1`
+
+Incluye como contexto de solo lectura:
+
+- categoría y URL;
+- perfil, estado, confianza, snapshot y hash de fuentes;
+- ejes, cobertura y confianza medida;
+- productos propios;
+- referencias externas deduplicadas de Ojeador;
+- valores normalizados, estado de verificación, confianza y fecha;
+- post canónico existente, si lo hay;
+- resumen de contexto generado.
+
+Las únicas secciones editables/importables son:
+
+- `editorial`;
+- `manual_axis_overrides`.
+
+La sección `editorial` soporta:
+
+- `suggested_title`;
+- `excerpt`;
+- `comparison_text`;
+- `product_types`;
+- `main_differences`;
+- `buying_criteria`;
+- `use_cases`;
+- `market_overview`;
+- `own_catalog_position`;
+- `limitations`;
+- `conclusion`.
+
+### Importar comparativa editorial
+
+El importador:
+
+1. comprueba el schema;
+2. resuelve la categoría por slug/term_id y el perfil compatible;
+3. compara `source_hash` y `source_snapshot_at` con las fuentes actuales;
+4. avisa si el texto fue redactado con un snapshot anterior;
+5. importa sólo la capa editorial;
+6. aplica únicamente los overrides de ejes incluidos expresamente;
+7. incrementa la versión editorial;
+8. registra origen `manual_import`;
+9. deja el perfil en `needs_review`;
+10. registra el cambio en workflow.
+
+El importador **no** sustituye productos, snapshots de Ojeador, valores automáticos ni inventario y no modifica un post publicado.
+
+Los recálculos posteriores de Comparador actualizan el contexto generado, pero no pisan una `comparison_text` importada manualmente.
+
+## JSON de visitas
+
+La pestaña Rendimiento y la ficha de perfil permiten exportar un segundo schema:
+
+`seo-comparador-visitas-v1`
+
+Puede generarse para 28 o 90 días.
+
+El JSON reutiliza exclusivamente los datos disponibles en Analista e incluye:
+
+- perfil y categoría;
+- post canónico y URL;
+- periodo actual y anterior;
+- impresiones;
+- clics;
+- CTR;
+- posición;
+- número de consultas cuando Analista lo proporciona;
+- sesiones y vistas si están disponibles;
+- variación absoluta y porcentual frente al periodo anterior.
+
+Comparador no crea otra conexión con Search Console, Analytics o Bing para producir este JSON.
 
 ## Rendimiento
 
