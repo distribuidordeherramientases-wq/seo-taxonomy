@@ -211,12 +211,14 @@ if (!function_exists('seo_page_vocab_replace_manual_group')) {
                       AND active = 1
                       AND id IN ({$placeholders})";
             $params = array_merge(array($group), $vocabulary_ids);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Vocabulary table plus generated placeholders; all data values are bound through prepare().
             $valid_ids = $wpdb->get_col($wpdb->prepare($sql, $params));
             $vocabulary_ids = array_values(array_unique(array_map('intval', (array) $valid_ids)));
         }
 
         $current_ids = array_map(
             'intval',
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Vocabulary tables; group and page ID are bound through prepare().
             (array) $wpdb->get_col(
                 $wpdb->prepare(
                     "SELECT ov.vocabulary_id
@@ -250,6 +252,7 @@ if (!function_exists('seo_page_vocab_replace_manual_group')) {
                       AND v.semantic_group = %s
                       AND ov.vocabulary_id IN ({$placeholders})";
             $params = array_merge(array($page_id, $group), $to_remove);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Vocabulary tables plus generated %d placeholders; all values are bound through prepare().
             $updated = $wpdb->query($wpdb->prepare($sql, $params));
             if ($updated === false) {
                 return new WP_Error('seo_page_vocab_remove', 'No se pudieron retirar asignaciones de Vocabulary: ' . $wpdb->last_error);
@@ -448,6 +451,7 @@ if (!function_exists('seo_page_vocab_export_group')) {
         }
         $sql .= " ORDER BY v.{$field} ASC";
 
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Vocabulary tables and a whitelisted ORDER BY field; all data values are bound through prepare().
         return array_values(array_filter(array_map('strval', (array) $wpdb->get_col($wpdb->prepare($sql, $params)))));
     }
 }
@@ -495,6 +499,7 @@ if (!function_exists('seo_page_vocab_import_row')) {
                       AND active = 1
                       AND slug IN ({$placeholders})";
             $params = array_merge(array($group), $slugs);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Vocabulary table plus generated %s placeholders; group and slugs are bound through prepare().
             $rows = $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
 
             $resolved = array();
