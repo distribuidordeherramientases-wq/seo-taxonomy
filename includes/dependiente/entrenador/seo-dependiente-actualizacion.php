@@ -158,7 +158,7 @@ final class SEO_Dependiente_Actualizacion {
                         <div class="seo-dependiente-trainer__update-module is-<?php echo esc_attr($status); ?>">
                             <strong>M<?php echo esc_html($number); ?></strong>
                             <span><?php echo esc_html($label); ?></span>
-                            <small><?php echo 'completed' === $status ? 'Completado' : ('skipped' === $status ? 'Sin novedades' : ($count ? esc_html(number_format_i18n($count)) . ' ejercicios' : ucfirst($status))); ?></small>
+                            <small><?php echo 'completed' === $status ? 'Completado' : ('skipped' === $status ? 'Sin novedades' : ($count ? esc_html(number_format_i18n($count)) . ' ejercicios' : esc_html(ucfirst($status)))); ?></small>
                         </div>
                     <?php endforeach; ?>
                 </div>
