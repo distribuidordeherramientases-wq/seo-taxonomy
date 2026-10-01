@@ -588,7 +588,8 @@ $grid_posts    = ($paged === 1) ? array_slice($landing_posts, 5) : $landing_post
                     </div>
                     <div class="dht-front-grid">
                         <article class="dht-lead-card">
-                            <a class="dht-lead-media" href="<?php echo esc_url(get_permalink($featured_id)); ?>" aria-label="<?php echo esc_attr(get_the_title($featured_id)); ?>"><?php echo dht_solutions_v2_img($featured_image, get_the_title($featured_id), 'eager', 'high'); ?></a>
+                            <a class="dht-lead-media" href="<?php echo esc_url(get_permalink($featured_id)); ?>" aria-label="<?php echo esc_attr(get_the_title($featured_id)); ?>"><?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image helper builds HTML with context-specific escaping. ?>
+<?php echo dht_solutions_v2_img($featured_image, get_the_title($featured_id), 'eager', 'high'); ?></a>
                             <div class="dht-lead-body">
                                 <?php if ($featured_terms) : ?><div class="dht-solution-pills"><?php foreach (array_slice($featured_terms, 0, 3) as $term) : ?><span class="dht-solution-pill"><?php echo esc_html($term->name); ?></span><?php endforeach; ?></div><?php endif; ?>
                                 <h2><a href="<?php echo esc_url(get_permalink($featured_id)); ?>"><?php echo esc_html(get_the_title($featured_id)); ?></a></h2>
@@ -605,7 +606,8 @@ $grid_posts    = ($paged === 1) ? array_slice($landing_posts, 5) : $landing_post
                                     $rail_terms = dht_solutions_v2_related_terms($rail_id);
                                 ?>
                                     <article class="dht-rail-card">
-                                        <a class="dht-rail-media" href="<?php echo esc_url(get_permalink($rail_id)); ?>" tabindex="-1" aria-hidden="true"><?php echo dht_solutions_v2_img($rail_image, get_the_title($rail_id)); ?></a>
+                                        <a class="dht-rail-media" href="<?php echo esc_url(get_permalink($rail_id)); ?>" tabindex="-1" aria-hidden="true"><?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image helper builds HTML with context-specific escaping. ?>
+<?php echo dht_solutions_v2_img($rail_image, get_the_title($rail_id)); ?></a>
                                         <div class="dht-rail-body">
                                             <?php if ($rail_terms) : ?><div class="dht-solution-pills"><span class="dht-solution-pill"><?php echo esc_html($rail_terms[0]->name); ?></span></div><?php endif; ?>
                                             <h3><a href="<?php echo esc_url(get_permalink($rail_id)); ?>"><?php echo esc_html(get_the_title($rail_id)); ?></a></h3>
@@ -633,7 +635,8 @@ $grid_posts    = ($paged === 1) ? array_slice($landing_posts, 5) : $landing_post
                             $landing_terms = dht_solutions_v2_related_terms($landing_id);
                         ?>
                             <article class="dht-solution-card">
-                                <a class="dht-solution-media" href="<?php echo esc_url(get_permalink($landing_id)); ?>" tabindex="-1" aria-hidden="true"><?php echo dht_solutions_v2_img($landing_image, get_the_title($landing_id)); ?></a>
+                                <a class="dht-solution-media" href="<?php echo esc_url(get_permalink($landing_id)); ?>" tabindex="-1" aria-hidden="true"><?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image helper builds HTML with context-specific escaping. ?>
+<?php echo dht_solutions_v2_img($landing_image, get_the_title($landing_id)); ?></a>
                                 <div class="dht-solution-body">
                                     <?php if ($landing_terms) : ?><div class="dht-solution-pills"><?php foreach (array_slice($landing_terms, 0, 2) as $term) : ?><span class="dht-solution-pill"><?php echo esc_html($term->name); ?></span><?php endforeach; ?></div><?php endif; ?>
                                     <h3><a href="<?php echo esc_url(get_permalink($landing_id)); ?>"><?php echo esc_html(get_the_title($landing_id)); ?></a></h3>
@@ -672,7 +675,8 @@ $grid_posts    = ($paged === 1) ? array_slice($landing_posts, 5) : $landing_post
                         $cluster_text  = dht_solutions_v2_excerpt($cluster_id, 20);
                     ?>
                         <article class="dht-cluster-card">
-                            <a class="dht-cluster-media" href="<?php echo esc_url(get_permalink($cluster_id)); ?>" tabindex="-1" aria-hidden="true"><?php echo dht_solutions_v2_img($cluster_image, get_the_title($cluster_id)); ?></a>
+                            <a class="dht-cluster-media" href="<?php echo esc_url(get_permalink($cluster_id)); ?>" tabindex="-1" aria-hidden="true"><?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image helper builds HTML with context-specific escaping. ?>
+<?php echo dht_solutions_v2_img($cluster_image, get_the_title($cluster_id)); ?></a>
                             <div class="dht-cluster-body"><h3><a href="<?php echo esc_url(get_permalink($cluster_id)); ?>"><?php echo esc_html(get_the_title($cluster_id)); ?></a></h3><p><?php echo esc_html($cluster_text); ?></p><a class="dht-read-link" href="<?php echo esc_url(get_permalink($cluster_id)); ?>">Explorar →</a></div>
                         </article>
                     <?php endwhile; ?>
