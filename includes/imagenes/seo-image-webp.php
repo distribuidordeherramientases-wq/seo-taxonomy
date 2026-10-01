@@ -259,13 +259,13 @@ if (!function_exists('seo_images_webp_convert_file')) {
 
         $saved = $editor->save($temp, 'image/webp');
         if (is_wp_error($saved)) {
-            @unlink($temp);
+            wp_delete_file($temp);
             return $saved;
         }
 
         $candidate = !empty($saved['path']) ? $saved['path'] : $temp;
         if (!is_file($candidate)) {
-            @unlink($temp);
+            wp_delete_file($temp);
             return new WP_Error('webp_not_created', 'El editor de WordPress no genero el WebP temporal.');
         }
 
@@ -277,9 +277,9 @@ if (!function_exists('seo_images_webp_convert_file')) {
             || (int) $after_dimensions[1] !== (int) $before_dimensions[1]
             || $candidate_mime !== 'image/webp'
         ) {
-            @unlink($candidate);
+            wp_delete_file($candidate);
             if ($candidate !== $temp) {
-                @unlink($temp);
+                wp_delete_file($temp);
             }
             return new WP_Error('webp_validation', 'El WebP generado no conserva formato o dimensiones y se ha descartado.');
         }
@@ -289,30 +289,30 @@ if (!function_exists('seo_images_webp_convert_file')) {
         $before = (int) @filesize($old_path);
         $after  = (int) @filesize($candidate);
         if ($before < 1 || $after < 1) {
-            @unlink($candidate);
+            wp_delete_file($candidate);
             if ($candidate !== $temp) {
-                @unlink($temp);
+                wp_delete_file($temp);
             }
             return new WP_Error('invalid_filesize', 'No se pudo validar el peso del archivo convertido.');
         }
 
         if (file_exists($target)) {
-            @unlink($candidate);
+            wp_delete_file($candidate);
             if ($candidate !== $temp) {
-                @unlink($temp);
+                wp_delete_file($temp);
             }
             return new WP_Error('target_collision', 'El nombre WebP de destino ya existe y no se sobrescribira.');
         }
 
         if (!@rename($candidate, $target)) {
-            @unlink($candidate);
+            wp_delete_file($candidate);
             if ($candidate !== $temp) {
-                @unlink($temp);
+                wp_delete_file($temp);
             }
             return new WP_Error('target_rename', 'No se pudo mover el WebP temporal a su nombre definitivo.');
         }
         if ($candidate !== $temp) {
-            @unlink($temp);
+            wp_delete_file($temp);
         }
 
         $permissions = @fileperms($old_path);
@@ -331,7 +331,7 @@ if (!function_exists('seo_images_webp_convert_file')) {
             || (int) $final_dims[0] !== (int) $before_dimensions[0]
             || (int) $final_dims[1] !== (int) $before_dimensions[1]
         ) {
-            @unlink($target);
+            wp_delete_file($target);
             return new WP_Error('final_validation', 'La validacion final del WebP ha fallado.');
         }
 
@@ -350,7 +350,7 @@ if (!function_exists('seo_images_webp_delete_candidates')) {
             if (!empty($map['new_path']) && is_file($map['new_path'])) {
                 wp_delete_file($map['new_path']);
                 if (is_file($map['new_path'])) {
-                    @unlink($map['new_path']);
+                    wp_delete_file($map['new_path']);
                 }
             }
         }
@@ -1023,7 +1023,7 @@ if (!function_exists('seo_images_webp_retire_originals')) {
         foreach ($renamed as $item) {
             wp_delete_file($item['backup']);
             if (is_file($item['backup'])) {
-                @unlink($item['backup']);
+                wp_delete_file($item['backup']);
             }
             if (is_file($item['backup'])) {
                 $leftovers[] = $item['backup'];
