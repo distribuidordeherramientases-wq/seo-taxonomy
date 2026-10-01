@@ -118,7 +118,7 @@ final class SEO_Comparador_Admin {
 
     public static function handle_action() {
         if (!current_user_can('manage_options')) wp_die('No tienes permisos.');
-        $profile_id=absint($_POST['profile_id'] ?? 0);
+        $profile_id=isset($_POST['profile_id']) ? absint(wp_unslash($_POST['profile_id'])) : 0;
         check_admin_referer('seo_comparador_action_' . $profile_id);
         $action=isset($_POST['profile_action']) ? sanitize_key(wp_unslash($_POST['profile_action'])) : '';
         $reason=isset($_POST['reason']) ? sanitize_textarea_field(wp_unslash($_POST['reason'])) : '';
@@ -271,9 +271,51 @@ final class SEO_Comparador_Admin {
         self::action_form($profile_id,'archive','Marcar no comparable','No existe un alcance comparativo útil.','');
         echo '</div>';
 
-        echo '<h3>Texto editorial base</h3>';
-        echo '<p>' . esc_html(wp_strip_all_tags((string)($editorial['summary'] ?? 'Todavía no generado.'))) . '</p>';
+        echo '<h3>Capa editorial</h3>';
+        echo '<p><strong>Versión:</strong> ' . esc_html(absint($editorial['version'] ?? 0)) . ' · <strong>Origen:</strong> ' . esc_html((string)($editorial['origin'] ?? 'generated')) . '</p>';
+        if (!empty($editorial['suggested_title'])) {
+            echo '<p><strong>Título sugerido:</strong> ' . esc_html((string)$editorial['suggested_title']) . '</p>';
+        }
+        echo '<p><strong>Contexto generado:</strong> ' . esc_html(wp_strip_all_tags((string)($editorial['summary'] ?? 'Todavía no generado.'))) . '</p>';
         echo '<p><strong>Extracto:</strong> ' . esc_html((string)($editorial['excerpt'] ?? '—')) . '</p>';
+        if (!empty($editorial['comparison_text'])) {
+            echo '<div class="seo-cmp-editorial-preview"><strong>Comparativa importada:</strong><p>' . esc_html(wp_html_excerpt(wp_strip_all_tags((string)$editorial['comparison_text']),1200,'…')) . '</p></div>';
+        }
+
+        $edited_hash=(string)($editorial['source_hash_at_edit'] ?? '');
+        $current_hash=(string)($profile['source_hash'] ?? '');
+        $edited_snapshot=(string)($editorial['source_snapshot_at_edit'] ?? '');
+        $current_snapshot=(string)($profile['source_snapshot_at'] ?? '');
+        $editorial_stale=($edited_hash!=='' && $current_hash!=='' && $edited_hash!==$current_hash)
+            || ($edited_snapshot!=='' && $current_snapshot!=='' && $edited_snapshot!==$current_snapshot);
+        if ($editorial_stale) {
+            echo '<div class="notice notice-warning inline"><p><strong>Contenido editorial desactualizado:</strong> el perfil fuente ha cambiado desde el JSON con el que se redactó. Revisa la comparativa antes de enviarla a Solucionador.</p></div>';
+        }
+
+        echo '<h3>Import / Export JSON</h3>';
+        echo '<div class="seo-cmp-io-grid"><div class="seo-cmp-io-card">';
+        echo '<h4>JSON de contenido</h4><p>Exporta fuentes y evidencia como contexto de solo lectura. La sección <code>editorial</code> y los <code>manual_axis_overrides</code> son las únicas partes importables.</p>';
+        $export_content_url=wp_nonce_url(
+            add_query_arg(array('action'=>'seo_comparador_export_content','profile_id'=>$profile_id),admin_url('admin-post.php')),
+            'seo_comparador_export_content_' . $profile_id
+        );
+        echo '<p><a class="button button-secondary" href="' . esc_url($export_content_url) . '">Exportar JSON de contenido</a></p>';
+        echo '<form method="post" enctype="multipart/form-data" action="' . esc_url(admin_url('admin-post.php')) . '">';
+        echo '<input type="hidden" name="action" value="seo_comparador_import_editorial"><input type="hidden" name="profile_id" value="' . esc_attr($profile_id) . '">';
+        wp_nonce_field('seo_comparador_import_editorial_' . $profile_id);
+        echo '<label><strong>Importar comparativa editorial</strong><br><input type="file" name="comparador_json" accept=".json,application/json" required></label>';
+        submit_button('Importar comparativa editorial','secondary','submit',false);
+        echo '</form></div>';
+
+        echo '<div class="seo-cmp-io-card"><h4>JSON de visitas</h4><p>Exporta las métricas disponibles en Analista para esta comparativa, sin consultar directamente Search Console, Analytics o Bing.</p>';
+        foreach (array(28,90) as $visit_days) {
+            $visits_url=wp_nonce_url(
+                add_query_arg(array('action'=>'seo_comparador_export_visits','days'=>$visit_days,'profile_id'=>$profile_id),admin_url('admin-post.php')),
+                'seo_comparador_export_visits_' . $visit_days . '_' . $profile_id
+            );
+            echo '<a class="button button-secondary" href="' . esc_url($visits_url) . '">Visitas ' . esc_html($visit_days) . ' días</a> ';
+        }
+        echo '</div></div>';
 
         echo '<h3>Ejes comparativos</h3>';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_comparador_axes"><input type="hidden" name="profile_id" value="' . esc_attr($profile_id) . '">';
@@ -316,6 +358,11 @@ final class SEO_Comparador_Admin {
         echo '<div class="postbox seo-cmp-box"><h2>Rendimiento de comparativas</h2>';
         echo '<p>Datos consumidos desde Analista; Comparador no realiza llamadas propias a Search Console, Analytics o Bing.</p>';
         echo '<p><a class="button ' . ($days===28?'button-primary':'') . '" href="' . esc_url(self::url('performance',array('days'=>28))) . '">28 días</a> <a class="button ' . ($days===90?'button-primary':'') . '" href="' . esc_url(self::url('performance',array('days'=>90))) . '">90 días</a></p>';
+        $visits_export_url=wp_nonce_url(
+            add_query_arg(array('action'=>'seo_comparador_export_visits','days'=>$days,'profile_id'=>0),admin_url('admin-post.php')),
+            'seo_comparador_export_visits_' . $days . '_0'
+        );
+        echo '<p><a class="button button-secondary" href="' . esc_url($visits_export_url) . '">Exportar JSON de visitas · ' . esc_html($days) . ' días</a></p>';
         echo '<div class="seo-cmp-table"><table class="widefat striped"><thead><tr><th>Comparativa</th><th>Impresiones</th><th>Clics</th><th>CTR</th><th>Posición</th><th>Sesiones</th><th>Vistas</th><th>Estado</th></tr></thead><tbody>';
         if (!$rows) echo '<tr><td colspan="8">No hay posts de comparativa vinculados o Analista todavía no dispone de métricas.</td></tr>';
         foreach ($rows as $row) {
@@ -355,6 +402,7 @@ final class SEO_Comparador_Admin {
         .seo-cmp-box{margin-top:18px}.seo-cmp-box h2{margin-top:0}.seo-cmp-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
         .seo-cmp-form-grid label{display:grid;gap:5px}.seo-cmp-form-grid input{width:100%}.seo-cmp-table{overflow:auto}.seo-cmp-table table{min-width:900px}
         .seo-cmp-actions{display:flex;gap:8px;flex-wrap:wrap}.seo-cmp-actions form{margin:0}.seo-cmp-inline{display:flex;gap:8px;align-items:end;flex-wrap:wrap}
+        .seo-cmp-io-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin:12px 0 22px}.seo-cmp-io-card{border:1px solid #dcdcde;border-radius:8px;padding:14px;background:#fdfdfd}.seo-cmp-io-card h4{margin:0 0 8px}.seo-cmp-io-card form{display:grid;gap:10px}.seo-cmp-editorial-preview{border-left:4px solid #2271b1;padding:10px 14px;background:#f6f7f7;margin:12px 0}
         .seo-cmp-status{display:inline-block;padding:3px 8px;border-radius:999px;background:#f0f0f1}.seo-cmp-status-ready_for_solucionador,.seo-cmp-status-published,.seo-cmp-status-monitoring{background:#edfaef;color:#0a6b25}
         .seo-cmp-status-needs_update,.seo-cmp-status-needs_review{background:#fff8e5;color:#8a5a00}.seo-cmp-status-blocked,.seo-cmp-status-archived{background:#fce8e8;color:#a61b1b}
         .seo-cmp-ok{color:#008a20}.seo-cmp-bad{color:#b32d2e}
