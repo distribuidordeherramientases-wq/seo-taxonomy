@@ -467,9 +467,12 @@ if (!function_exists('seo_product_sizes_page')) {
         <script>
         (function(){
             'use strict';
-            const products = <?php echo $products_json ?: '[]'; ?>;
-            const initialSettings = <?php echo $settings_json ?: '{}'; ?>;
-            const editBase = <?php echo $edit_base_json ?: '""'; ?>;
+            const products = <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON encoded with JSON_HEX_* flags for JavaScript context. ?>
+            <?php echo $products_json ?: '[]'; ?>;
+            const initialSettings = <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON encoded with JSON_HEX_* flags for JavaScript context. ?>
+            <?php echo $settings_json ?: '{}'; ?>;
+            const editBase = <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON encoded with JSON_HEX_* flags for JavaScript context. ?>
+            <?php echo $edit_base_json ?: '""'; ?>;
             const weightUnit = <?php echo wp_json_encode($weight_unit); ?>;
             const dimensionUnit = <?php echo wp_json_encode($dimension_unit); ?>;
             const numberFormat = new Intl.NumberFormat(undefined, {maximumFractionDigits: 2});
