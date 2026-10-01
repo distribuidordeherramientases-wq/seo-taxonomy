@@ -463,6 +463,20 @@ final class SEO_Solucionador_Normalizer {
         $condition_words = self::condition_words();
         $problem_objects = array_flip(self::problem_objects());
 
+        // Complementos nominales tecnicos: "compresor de aire", "llave de
+        // impacto", etc. Se prueban antes del fallback de una sola palabra y
+        // despues de los patrones especificos de accion/estado.
+        if (preg_match_all('/\b([a-z0-9-]{3,})\s+de\s+([a-z0-9-]{3,})\b/u', $normalized, $pairs, PREG_SET_ORDER)) {
+            foreach ($pairs as $pair) {
+                $head = self::canonical_singular((string) ($pair[1] ?? ''));
+                $tail = self::canonical_singular((string) ($pair[2] ?? ''));
+                if ($head === '' || $tail === '') continue;
+                if (isset($stop[$head]) || isset($generic[$head]) || isset($action_words[$head]) || isset($condition_words[$head])) continue;
+                if (isset($generic[$tail]) || isset($action_words[$tail]) || isset($condition_words[$tail])) continue;
+                return $head . ' de ' . $tail;
+            }
+        }
+
         // Si el problema es el sustantivo principal (p.ej. "deteccion de fugas"),
         // se conserva como objeto en vez de descartarlo como estado.
         foreach ((array) $tokens as $token) {
