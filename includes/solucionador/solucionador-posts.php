@@ -112,7 +112,7 @@ final class SEO_Solucionador_Posts {
 
         $title = sanitize_text_field((string) ($topic['suggested_title'] ?? ''));
         if ($title === '') return new WP_Error('solucionador_title_missing', 'La propuesta no tiene titulo.');
-        if ((string) ($topic['recommended_action'] ?? '') !== 'create_post') {
+        if (strtoupper((string) ($topic['recommended_action'] ?? '')) !== 'CREATE_POST') {
             return new WP_Error('solucionador_not_new_post', 'Esta propuesta no requiere crear un post nuevo.');
         }
 
@@ -157,11 +157,17 @@ final class SEO_Solucionador_Posts {
 
         SEO_Solucionador_DB::update_topic($topic_id, array(
             'status' => 'draft_created',
-            'coverage_status' => 'draft_pending',
+            'workflow_state' => 'in_editing',
             'draft_post_id' => $post_id,
             'approved_at' => current_time('mysql'),
             'draft_created_at' => current_time('mysql'),
         ));
+        SEO_Solucionador_DB::record_workflow(
+            $topic_id,
+            'in_editing',
+            'Propuesta aprobada: se crea un borrador de trabajo, no una publicacion.',
+            'CREATE_POST'
+        );
 
         return $post_id;
     }
@@ -174,10 +180,32 @@ final class SEO_Solucionador_Posts {
         if ($new_status === 'publish') {
             SEO_Solucionador_DB::update_topic($topic_id, array(
                 'status' => 'covered',
-                'coverage_status' => 'covered_exact',
+                'workflow_state' => 'monitoring',
+                'coverage_status' => 'covered',
+                'existing_entity_type' => 'post',
+                'existing_entity_id' => absint($post->ID),
                 'existing_post_id' => absint($post->ID),
                 'draft_post_id' => absint($post->ID),
+                'recommended_action' => 'NO_ACTION',
             ));
+            SEO_Solucionador_DB::record_workflow(
+                $topic_id,
+                'monitoring',
+                'Contenido publicado. Solucionador espera ahora resultados posteriores de Analista.',
+                'NO_ACTION'
+            );
+            return;
+        }
+
+        if ($new_status === 'future') {
+            SEO_Solucionador_DB::update_topic($topic_id,array('workflow_state'=>'scheduled'));
+            SEO_Solucionador_DB::record_workflow($topic_id,'scheduled','Contenido programado para publicacion.','CREATE_POST');
+            return;
+        }
+
+        if (in_array($new_status,array('draft','pending','private'),true) && $old_status !== $new_status) {
+            SEO_Solucionador_DB::update_topic($topic_id,array('workflow_state'=>'in_editing'));
+            SEO_Solucionador_DB::record_workflow($topic_id,'in_editing','Contenido en proceso editorial.','CREATE_POST');
             return;
         }
 
@@ -198,11 +226,18 @@ final class SEO_Solucionador_Posts {
         if (!$topic) return;
         $changes = array(
             'status' => 'candidate',
+            'workflow_state' => 'candidate',
             'coverage_status' => 'uncovered',
-            'recommended_action' => 'create_post',
+            'recommended_action' => 'CREATE_POST',
             'draft_post_id' => null,
         );
         if (absint($topic['existing_post_id'] ?? 0) === absint($post_id)) $changes['existing_post_id'] = null;
         SEO_Solucionador_DB::update_topic($topic_id, $changes);
+        SEO_Solucionador_DB::record_workflow(
+            $topic_id,
+            'candidate',
+            'El borrador asociado se elimino; la necesidad vuelve a decision editorial.',
+            'CREATE_POST'
+        );
     }
 }
