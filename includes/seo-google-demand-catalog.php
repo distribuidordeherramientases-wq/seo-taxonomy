@@ -1587,7 +1587,7 @@ function seo_google_render_demand_catalog() {
             if (!empty($item['dimension_labels'])) {
                 $parts = array();
                 foreach ($item['dimension_labels'] as $dim) { $parts[] = esc_html($dim['label']); }
-                echo implode('<br>', array_slice($parts, 0, 5));
+                echo wp_kses_post(implode('<br>', array_slice($parts, 0, 5)));
             } else {
                 echo '<small>Sin atributo concreto suficiente; revisar subintenciones.</small>';
             }
@@ -1644,7 +1644,7 @@ function seo_google_render_demand_catalog() {
             echo '<br><a href="' . esc_url($term_link) . '" target="_blank" rel="noopener noreferrer"><small>Abrir categoria</small></a>';
         }
         echo '</td>';
-        echo '<td style="min-width:150px;">' . seo_google_demand_badge($category['recommendation']);
+        echo '<td style="min-width:150px;">' . wp_kses_post(seo_google_demand_badge($category['recommendation']));
         echo '<br><small title="' . esc_attr($category['recommendation_note']) . '">' . esc_html($category['recommendation_note']) . '</small></td>';
         echo '<td>' . esc_html(number_format_i18n($category['product_count'])) . '</td>';
         echo '<td>' . esc_html(number_format_i18n($category['impressions'], 0)) . '</td>';
