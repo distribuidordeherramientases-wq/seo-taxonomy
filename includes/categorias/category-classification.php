@@ -1541,8 +1541,7 @@ if (isset($_POST['clear_category_keywords'])) {
 // =========================
     if ($cluster <= 0) {
         // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Buffered admin HTML is assembled by this view with context-specific escaping; post KSES would remove form controls.
-        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Buffered admin HTML is assembled by this view with context-specific escaping; post KSES would remove form controls.
-echo ob_get_clean();
+        echo ob_get_clean();
         echo '<p>Selecciona un cluster.</p>';
         return;
     }
@@ -1870,6 +1869,7 @@ echo '</form>';
 
 
 
+// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Buffered admin HTML is assembled by this view with context-specific escaping; post KSES would remove form controls.
 echo ob_get_clean();
 
 } // seo_product_classification
