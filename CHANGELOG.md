@@ -2,38 +2,96 @@
 
 ## [Unreleased]
 
-### Dependiente / Academia
-
-- Corregida la recuperación tardía de L10: ya no depende de una ventana de 15 minutos basada en `updated_at`, porque ese campo se reescribe al cargar Academia. La recuperación sigue exigiendo el estado exacto de remigración, cierre automático del curso y L1-L9 completadas.
-- Corregida la **Lección 10** para que conserve la marca de currículo `semantic-v2` al guardar preparación, quality gate y finalización. La pérdida de esa marca hacía que, después de completar correctamente L10, la sincronización la interpretase de nuevo como pendiente de migración y la devolviese a **Disponible**.
-- Añadida una recuperación conservadora del caso ya ocurrido: si L1-L9 están completadas, L10 quedó vacía exactamente por esta remigración y el controlador automático acababa de cerrar el curso, se restaura L10 como **Completada** sin obligar a ejecutarla por tercera vez.
-
 Los cambios validados en `staging` que todavía no formen parte de una publicación de producción se documentan aquí. Al cerrar una release semanal, estas entradas se trasladan a la versión fechada correspondiente.
 
-### Administración y navegación
+## [2.3.9] - 2026-09-30
 
-- **Comentarista** se ha movido a **Herramientas** para reducir la saturación del menú principal, conservando su slug y funcionamiento interno.
+Release estable que consolida el ciclo de parches **2.3.8.x** desplegado entre el 26 y el 30 de septiembre de 2026. Reúne las mejoras funcionales, correcciones y ajustes que fueron entrando sucesivamente como 2.3.8.1, 2.3.8.2 y siguientes hasta el cierre del ciclo.
 
-- Añadida la nueva sección **Contenidos** en el menú principal de SEO Taxonomy, que agrupa Productos, Categorías, Páginas, Entradas e Imágenes en una pantalla de accesos directos. Las rutas internas existentes se conservan para mantener compatibilidad con enlaces, formularios y redirecciones.
+### Dependiente, Academia e Intérprete
 
-### Marketing y campañas
+- Añadido diagnóstico en vivo de la **Lección 9** del Intérprete, con fase actual, conservación semántica, ruido, patrones consolidados, regresión y exportación JSON sin alterar el algoritmo de aprendizaje.
+- Añadida **parada segura** para Dependiente e Intérprete, integrada con el gestor de procesos.
+- Corregida la finalización y persistencia de la **Lección 10**, incluyendo conservación de la marca de currículo `semantic-v2`, recuperación tardía tras despliegues y restauración conservadora de cursos completados.
+- Añadido banco de **preguntas directas/manuales** para entrenar Dependiente V3.
+- Incorporado aprendizaje autónomo desde preguntas manuales, manteniendo trazabilidad de resultados y sin sustituir el conocimiento existente.
+- Añadida una **cola persistente de archivos de preguntas** para procesar lotes sucesivos sin perder el estado.
+- Añadido informe por lote de preguntas con evaluadas, aprendidas, fallidas, errores, confianza, cobertura, diagnóstico y descarga JSON específica por archivo.
 
-- Fijada la agenda social en tres franjas: ofertas de campaña a las **18:00**, Noticias a las **20:00** y resto de entradas/páginas a las **22:00**.
-- La franja de las 22:00 alterna entradas y páginas/landings cuando existen ambos tipos, manteniendo un único hueco editorial diario por red.
-- La programación manual, el CSV y la automatización al publicar contenido normalizan ahora cada pieza a su franja correspondiente; el calendario distingue las tres franjas para no marcar como colisión una combinación válida 18:00 + 20:00 + 22:00.
-- Separada la agenda social comercial de la editorial: las **ofertas de campaña** se programan a las **18:00** y las entradas de **Noticias** a las **20:00**.
-- Añadida prioridad editorial para Noticias. Las marcadas como **Prioritarias** adelantan a las no prioritarias dentro de los huecos futuros de cada red, sin mover ofertas, páginas ni landings.
-- El Programador y el CSV admiten el campo `prioridad`; el calendario deja de considerar colisión la combinación intencional oferta + pieza editorial del mismo día.
+### Ingeniero, Clasificador y Semántica
 
-- El planificador social de campañas prioriza ahora las **ofertas a las 18:00**: entradas y landings del mismo día ya no bloquean la programación comercial. Se mantiene un máximo de una oferta de campaña por día y red; si el día ya está ocupado por otra oferta, se usa el siguiente día disponible. Se eliminan para campañas los controles de separación mínima y hora preferida.
-- Añadida pestaña **Informes** de Marketing con dos vistas: **Campañas** y **Redes sociales**. Mide visitas firmadas, interacciones, pedidos atribuidos, facturación atribuida, conversión y ventas observadas durante campañas.
-- Las franjas públicas de campaña incorporan enlaces firmados y contador de visitas por producto sin PII. Las visitas sociales conservan atribución de última interacción durante 30 días y se asocian al pedido WooCommerce (checkout clásico y Store API/Blocks).
-- Las publicaciones sociales de campaña guardan `campaign_id` para unir campaña → publicación → visita → pedido. Los informes distinguen explícitamente **atribución directa** de **ventas observadas durante el periodo**, evitando presentar correlación como causalidad.
-- Añadida una pestaña **Calendario** en Redes sociales que combina entradas, landings y productos de campañas en una vista mensual, con colores por tipo, filtro por red, detección de días libres y dobles publicaciones, y listado compacto responsive.
-- Las publicaciones sociales de campañas resuelven la foto real del producto desde Media o desde imágenes externas activas del proveedor, sin importar la fuente externa a Media.
-- Las creatividades sociales incorporan la foto real del producto junto con campaña, precio anterior, precio de oferta y descuento; si el servidor no puede leer una imagen remota, el publicador recibe la URL original como fallback.
-- Facebook fuerza formato imagen para publicaciones de campaña aunque la conexión general esté configurada como enlace. Las creatividades cacheadas se purgan automáticamente a los 60 días y no crean attachments.
-- Las tarjetas públicas de campaña reutilizan el resolvedor compartido de imágenes de producto: priorizan Media local cuando existe y, en caso contrario, cargan directamente imágenes externas activas del proveedor sin importarlas a Media. Se conservan fallbacks entre varias URLs de proveedor y, como último recurso, el logo/placeholder.
+- Creado **Ingeniero** como servicio técnico dentro de Dependiente para investigar conocimiento externo por categoría, separado del catálogo y de las respuestas públicas.
+- Añadidas fuentes trazables, niveles de confianza, evidencias breves y relación conocimiento → fuente → URL original.
+- Corregido el tratamiento de **HTTP 429 de SerpApi** para pausar Ingeniero sin avanzar la categoría ni perder trabajo pendiente.
+- Añadida importación y exportación de conocimiento de Ingeniero en **CSV y JSON**, con remapeo de fuentes y estados de revisión.
+- Añadida aprobación individual y masiva de categorías/conocimiento en revisión antes de considerarlo activo.
+- Reorganizada la navegación de **Semántica** para mostrar **Clasificador** como sección propia junto a Etiquetas y Atributos.
+- Integrado Clasificador con el conocimiento de Ingeniero para detectar posibles **nuevos atributos, valores y conceptos semánticos** por categoría.
+- Clasificador distingue propuestas **Candidato nuevo / Posible equivalente / Ya cubierto** y puede trabajar con conocimiento activo o provisional en revisión.
+- Añadida tabla global **Ingeniero → vocabulario** y acciones de aceptación individual o masiva que amplían los maestros canónicos sin asignar automáticamente datos a productos.
+- El **Clonador PRO → STAGING** incorpora fuentes y conocimiento persistente de Ingeniero, manteniendo separados colas, cursores, configuración y consumo de SerpApi.
+
+### Auditor, Analista y control de calidad
+
+- Dividido **Auditor** en auditorías independientes por bloques: Productos, Categorías y arquitectura, Posts, Páginas/Landings, FAQs y Motor/índice de Dependiente.
+- Separados explícitamente **Auditor de contenidos** y **Auditor de Academia** para evitar mezclar diagnósticos de catálogo con aprendizaje.
+- Añadida una **puntuación interna de calidad SEO** por entidad, con desglose de relevancia, rigor, diferenciación, arquitectura semántica y preparación técnica.
+- Mejorado el informe de **Anomalías** para reducir falsos positivos en páginas funcionales/corporativas y añadir exportación JSON.
+- Añadido equilibrio semiautomático de categorías: propuestas de **división** para categorías heterogéneas y de **concentración** para categorías pequeñas, siempre con revisión/aprobación previa.
+- Separado el diagnóstico por tamaño de las propuestas ejecutables: se muestran categorías con más de 10 productos y categorías con 1–4 productos aunque todavía no exista una operación segura.
+- Mejorada la precisión de **Analista** y de los informes SEO para diferenciar mejor métricas de Google Search Console, GA4 y Bing.
+- Alineados los informes de GSC/GA4, excluyendo pruebas administrativas cuando corresponde y completando métricas de páginas.
+- Incorporada en **Estado del servidor → MySQL** una auditoría SQL de solo lectura con inventario, índices, EXPLAIN, métricas, histórico, gráficos y exportación JSON.
+
+### Marketing, campañas y redes sociales
+
+- Completada la gestión de campañas con edición, vaciado seguro, eliminación, restauración de precios y cancelación de tareas programadas.
+- Ampliada la importación/exportación de campañas a registros de campaña y producto, con resolución por `product_id`/SKU, modo fusión y sustitución explícita.
+- Añadida autodetección de filas de producto para mantener compatibilidad con CSV antiguos sin `record_type`.
+- Las campañas y publicaciones sociales reutilizan imágenes reales de producto desde **Media o proveedor externo**, sin importar imágenes externas a la biblioteca.
+- Las creatividades de campaña incorporan producto, precio anterior, precio de oferta y descuento, con fallback seguro cuando una imagen remota no puede componerse.
+- Añadido **Calendario** mensual de redes sociales con entradas, landings y campañas, filtro por red, detección de huecos/colisiones y vista responsive.
+- Añadidos **Informes de Marketing** para campañas y redes sociales con visitas, interacciones, pedidos, facturación, conversión y atribución.
+- Implementada atribución campaña → publicación → visita → pedido con ventana de última interacción de 30 días y sin almacenar PII adicional.
+- Reservadas las **18:00** para ofertas de campañas y las **20:00** para Noticias.
+- Añadida prioridad editorial para Noticias y soporte del campo `prioridad` en Programador/CSV.
+- Las piezas editoriales del mismo día ya no bloquean una oferta comercial; solo otra oferta de campaña ocupa el hueco comercial de las 18:00.
+
+### Frontend, contenidos y navegación
+
+- Añadidas plantillas específicas para **categorías de entradas** del blog, con variantes desktop/móvil y resolución automática desde el gestor de plantillas.
+- Las entradas del blog pueden mostrar hasta **8 productos relacionados** a partir de las categorías comerciales enlazadas explícitamente.
+- Reorientadas varias plantillas para priorizar **producto y catálogo** y compactar los bloques de asistencia/Dependiente.
+- Ajustados cabecera, ficha de producto y carrito para mejorar la jerarquía comercial y aprovechar mejor el primer pliegue.
+- Creada la sección administrativa **Contenidos**, agrupando Productos, Categorías, Páginas, Entradas e Imágenes sin cambiar sus rutas internas.
+- **Comentarista** se ha movido a **Herramientas**.
+- **Solucionador** pasa a presentarse como **Editor** y queda integrado en Contenidos, manteniendo sus slugs y datos internos por compatibilidad.
+
+### Comparador, carrito y documentos comerciales
+
+- Ampliado el **Comparador de Dependiente** de 4 a 6 productos.
+- Añadida exportación de comparativas a **PDF A4 apaisado** reutilizando Dompdf.
+- El comparador utiliza clasificación canónica y atributos técnicos de SEO Taxonomy, mostrando diferencias relevantes y manteniendo fallback de WooCommerce cuando aporta datos adicionales.
+- Corregidas las imágenes del carrito para admitir imágenes externas activas de proveedores y variaciones.
+- Recuperados **Presupuesto** y **Proforma borrador** en la plantilla de carrito DHT.
+- Restablecido el **Sistema documental** como interruptor maestro para Presupuesto/Proforma/Factura después de validar el flujo correcto.
+- Permitida la descarga de Presupuesto/Proforma cuando el transporte todavía no está calculado, marcando el total como provisional.
+- Mejorados Presupuesto y Proforma con resumen comercial, características relevantes, acompañamiento de compra y presentación más legible.
+- Los documentos de cliente muestran la **referencia interna/object_id** en lugar del SKU real del proveedor, manteniendo el SKU para la operativa interna.
+- Los PDF pueden utilizar imagen externa del proveedor cuando el producto no dispone de imagen en Media.
+- Corregida la interpretación fiscal para catálogos cuyo **PVP ya incluye IVA**: ficha, carrito y checkout mantienen el precio final visible y desglosan el impuesto sin volver a sumarlo.
+- La sincronización del modo de precios con IVA queda separada de la gestión automática de tasas para evitar duplicar IVA aunque el gestor fiscal esté desactivado.
+
+### Proveedores e importación
+
+- Añadida receta CSV para **Decathlon** dentro del flujo de catálogo intermedio de proveedores.
+
+### Documentación y proceso de publicación
+
+- Añadido `readme.txt` público actualizado para WordPress y documentado el proceso de versiones **feature/fix → staging → main → producción**.
+- Ampliada la documentación de Marketing, campañas, Clasificador, Ingeniero, Categorías, Contenidos, Dependiente y sistema documental.
+- Añadido un mapa general de servicios y flujo de información en la documentación canónica/Wiki.
+- Documentado el sistema completo de **Facturas, Proformas y Presupuestos**, incluyendo fiscalidad, numeración, snapshots, transporte pendiente e imágenes externas.
 
 ## [2.3.8.1] - 2026-09-26
 
