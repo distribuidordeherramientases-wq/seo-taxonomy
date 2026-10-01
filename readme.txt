@@ -40,221 +40,221 @@ SEO Taxonomy is actively developed and uses staging to validate changes before p
 
 == Installation ==
 
-1. Descarga el paquete del plugin.
-2. Sube la carpeta `seo-taxonomy` a `/wp-content/plugins/` o instala el ZIP desde WordPress.
-3. Activa **SEO Taxonomy** desde **Plugins**.
-4. Accede a **SEO Taxonomy** en el panel de administración.
-5. Revisa los módulos que utilizarás y configura las conexiones externas solo cuando sean necesarias.
-6. En instalaciones con WooCommerce, verifica catálogo, impuestos, moneda y entorno antes de ejecutar procesos masivos.
+1. Download the plugin package.
+2. Upload the `seo-taxonomy` folder to `/wp-content/plugins/` or install the ZIP file from WordPress.
+3. Activate **SEO Taxonomy** from **Plugins**.
+4. Open **SEO Taxonomy** in the WordPress administration area.
+5. Review the modules you intend to use and configure external connections only when required.
+6. On WooCommerce installations, verify the catalog, taxes, currency, and environment before running bulk operations.
 
-Para cambios importantes se recomienda validar primero en un entorno de staging.
+For significant changes, validation in a staging environment is recommended before production use.
 
 == Frequently Asked Questions ==
 
-= ¿SEO Taxonomy requiere WooCommerce? =
+= Does SEO Taxonomy require WooCommerce? =
 
-El objetivo principal del plugin es WordPress con WooCommerce. Muchas funciones de catálogo, productos, campañas, precios y proveedores dependen de WooCommerce. Algunas herramientas generales pueden funcionar sin él, pero la distribución está orientada a WooCommerce.
+The primary target is WordPress with WooCommerce. Many catalog, product, campaign, pricing, and supplier features depend on WooCommerce. Some general tools can work without it, but the distribution is intended for WooCommerce sites.
 
-= ¿El plugin modifica automáticamente precios y productos? =
+= Does the plugin automatically modify prices and products? =
 
-Solo los módulos que realizan acciones explícitas de escritura. Por ejemplo, una campaña habilitada puede aplicar su precio durante el periodo configurado y restaurar después la oferta anterior. Las pantallas administrativas indican cuándo una acción guarda, modifica o elimina información.
+Only modules that perform explicit write operations do so. For example, an enabled commercial campaign can apply a price during its configured period and restore the previous sale state afterwards. Administrative screens indicate when an action saves, modifies, or deletes information.
 
-= ¿Puedo probar cambios antes de aplicarlos en producción? =
+= Can I test changes before applying them to production? =
 
-Sí. El flujo de desarrollo recomendado utiliza una rama `staging` y un WordPress de pruebas antes de promover la versión a producción.
+Yes. The recommended development workflow uses a staging branch and a test WordPress installation before promoting a release to production.
 
-= ¿La importación de campañas puede eliminar productos? =
+= Can campaign imports remove products? =
 
-Por defecto trabaja en modo fusión: añade o actualiza sin retirar productos ausentes. Solo sustituye completamente los productos cuando se activa expresamente esa opción.
+By default, campaign imports use merge mode: they add or update entries without removing products that are absent from the import. Products are fully replaced only when that option is explicitly enabled.
 
-= ¿Las APIs externas son obligatorias? =
+= Are external APIs mandatory? =
 
-No todas. Algunos módulos pueden usar servicios externos para obtener información adicional. Las credenciales se configuran por módulo y no deben incluirse en archivos públicos ni en el repositorio.
+Not all of them. Some modules can use external services to obtain additional information. Credentials are configured per module and must not be included in public files or in the distributed package.
 
 == External services ==
 
-SEO Taxonomy puede conectarse a servicios externos únicamente cuando el administrador activa o utiliza el módulo correspondiente. El plugin no carga balizas de analítica de terceros de forma automática.
+SEO Taxonomy can connect to external services only when the administrator enables or uses the corresponding module. The plugin does not automatically load third-party analytics beacons.
 
-= Google APIs (Search Console, Analytics, OAuth, Trends y Cloud Run) =
+= Google APIs (Search Console, Analytics, OAuth, Trends, and Cloud Run) =
 
-Se utilizan para consultar Search Console y Analytics, obtener señales de Google Trends y, cuando el administrador lo configura, ejecutar procesos técnicos en Google Cloud Run.
+Used to query Search Console and Analytics, obtain Google Trends signals, and, when configured by the administrator, run technical processes in Google Cloud Run.
 
-Datos enviados: URL/sitio configurado, identificadores de propiedad o proyecto, consultas de búsqueda/tendencias, parámetros técnicos de la petición y credenciales OAuth o de cuenta de servicio cuando son necesarias. Estos datos se envían solo al guardar/probar la conexión o ejecutar el módulo correspondiente.
+Data sent: configured URL/site, property or project identifiers, search/trend queries, technical request parameters, and OAuth or service-account credentials when required. Data is sent only when saving/testing the connection or running the corresponding module.
 
 Terms: https://policies.google.com/terms
 Privacy: https://policies.google.com/privacy
 
-= Meta Graph API (Facebook e Instagram) =
+= Meta Graph API (Facebook and Instagram) =
 
-Se utiliza para conectar páginas/cuentas y publicar contenido cuando el administrador activa estas integraciones.
+Used to connect pages/accounts and publish content when the administrator enables these integrations.
 
-Datos enviados: identificadores de página/cuenta, tokens OAuth, texto de publicación, enlaces e imágenes/URLs de medios que el administrador decide publicar.
+Data sent: page/account identifiers, OAuth tokens, publication text, links, and images/media URLs selected by the administrator.
 
 Terms: https://www.facebook.com/terms.php
 Privacy: https://www.facebook.com/privacy/policy/
 
 = LinkedIn API =
 
-Se utiliza para conectar una organización y publicar contenido en LinkedIn cuando el administrador activa la integración.
+Used to connect an organization and publish content to LinkedIn when the administrator enables the integration.
 
-Datos enviados: identificador de organización, credenciales OAuth, texto de publicación y referencias a medios/enlaces seleccionados para publicar.
+Data sent: organization identifier, OAuth credentials, publication text, and selected media/link references.
 
 Terms: https://www.linkedin.com/legal/user-agreement
 Privacy: https://www.linkedin.com/legal/privacy-policy
 
 = Pinterest API =
 
-Se utiliza para conectar una cuenta/tablero y crear Pins cuando el administrador activa la integración.
+Used to connect an account/board and create Pins when the administrator enables the integration.
 
-Datos enviados: identificadores de cuenta/tablero, credenciales OAuth, título/descripción, enlaces e imágenes asociadas al Pin.
+Data sent: account/board identifiers, OAuth credentials, title/description, links, and images associated with the Pin.
 
 Terms: https://policy.pinterest.com/terms-of-service
 Privacy: https://policy.pinterest.com/privacy-policy
 
 = X API =
 
-Se utiliza para conectar una cuenta, publicar y consultar métricas de publicaciones cuando el administrador activa la integración.
+Used to connect an account, publish content, and query publication metrics when the administrator enables the integration.
 
-Datos enviados: credenciales OAuth, identificador de cuenta/publicación y contenido que el administrador decide publicar.
+Data sent: OAuth credentials, account/publication identifier, and content selected by the administrator.
 
 Terms: https://x.com/en/tos
 Privacy: https://x.com/en/privacy
 
 = Microsoft Bing Webmaster API =
 
-Se utiliza para consultar métricas de Bing Webmaster cuando el administrador configura la conexión.
+Used to query Bing Webmaster metrics when the administrator configures the connection.
 
-Datos enviados: URL del sitio, parámetros de consulta y credenciales/API key configuradas por el administrador.
+Data sent: site URL, query parameters, and credentials/API key configured by the administrator.
 
 Terms: https://www.microsoft.com/servicesagreement
 Privacy: https://privacy.microsoft.com/privacystatement
 
 = SerpApi =
 
-Ojeador e Ingeniero pueden utilizar SerpApi para consultar Google Shopping y resultados de búsqueda técnicos.
+Market-monitoring and technical-research modules can use SerpApi to query Google Shopping and technical search results.
 
-Datos enviados: API key, términos de búsqueda, categoría/mercado e idioma necesarios para la consulta. No se envían datos personales de visitantes de la tienda.
+Data sent: API key, search terms, category/market, and language required for the query. Personal data from store visitors is not sent.
 
 Terms and Privacy: https://serpapi.com/legal
 
 = Amazon APIs =
 
-Los importadores/integraciones de Amazon pueden solicitar tokens y consultar productos cuando el administrador configura sus credenciales.
+Amazon importers/integrations can request tokens and query products when the administrator configures the required credentials.
 
-Datos enviados: credenciales de aplicación, mercado y términos/identificadores de producto necesarios para la consulta.
+Data sent: application credentials, marketplace, and product search terms/identifiers required for the query.
 
 Conditions of Use: https://www.amazon.com/gp/help/customer/display.html?nodeId=508088
 Privacy Notice: https://www.amazon.com/gp/help/customer/display.html?nodeId=GX7NJQ4ZB8MHFRNJ
 
 = GitHub API and GitHub Actions =
 
-Algunos procesos opcionales de diagnóstico, chequeo visual y automatización pueden lanzar workflows o consultar repositorios configurados por el administrador.
+Optional diagnostic, visual-checking, and automation processes can launch workflows or query repositories configured by the administrator.
 
-Datos enviados: propietario/repositorio/workflow, parámetros del proceso, URL de callback cuando corresponde y token configurado por el administrador.
+Data sent: owner/repository/workflow, process parameters, callback URL when applicable, and the token configured by the administrator.
 
 Terms: https://docs.github.com/site-policy/github-terms/github-terms-of-service
 Privacy: https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement
 
 = Cloudflare API =
 
-El módulo de conexiones puede consultar la zona de Cloudflare cuando el administrador configura un API Token. SEO Taxonomy no carga Cloudflare Web Analytics automáticamente.
+The connections module can query a Cloudflare zone when the administrator configures an API token. SEO Taxonomy does not automatically load Cloudflare Web Analytics.
 
-Datos enviados: token de API, identificador de zona y parámetros de consulta necesarios para comprobar la conexión.
+Data sent: API token, zone identifier, and request parameters required to verify the connection.
 
 Terms: https://www.cloudflare.com/website-terms/
 Privacy: https://www.cloudflare.com/privacypolicy/
 
 = TikTok embeds =
 
-Comentarista puede mostrar un reproductor de TikTok únicamente cuando un contenido/importación incluye expresamente una URL o identificador de TikTok. En ese caso, el navegador del visitante puede conectarse a TikTok para cargar el reproductor.
+The reviews/content module can display a TikTok player only when imported or configured content explicitly includes a TikTok URL or identifier. In that case, the visitor's browser can connect to TikTok to load the player.
 
 Terms: https://www.tiktok.com/legal/terms-of-service
 Privacy: https://www.tiktok.com/legal/privacy-policy
 
 = Supplier and external content sources =
 
-Los módulos de proveedores, imágenes, Clasificador e Ingeniero pueden descargar feeds, páginas públicas, imágenes o documentación desde URLs externas indicadas/configuradas por el administrador o asociadas a productos/proveedores. La petición puede incluir la URL solicitada y cabeceras HTTP técnicas. No se envían datos personales de los visitantes de la tienda. El administrador es responsable de disponer de autorización para usar cada fuente y de revisar sus condiciones y política de privacidad.
+Supplier, image, classification, and technical-research modules can download feeds, public pages, images, or documentation from external URLs configured by the administrator or associated with products/suppliers. Requests can include the requested URL and technical HTTP headers. Personal data from store visitors is not sent. The administrator is responsible for having authorization to use each source and for reviewing its terms and privacy policy.
 
-Estas conexiones son opcionales salvo que una función concreta dependa expresamente de ellas. Las credenciales se almacenan en la instalación de WordPress y no deben distribuirse dentro del plugin.
+These connections are optional unless a specific function expressly depends on them. Credentials are stored in the WordPress installation and must not be distributed with the plugin.
 
 == Screenshots ==
 
-1. Panel principal de SEO Taxonomy.
-2. Gestión de productos y catálogo.
-3. Arquitectura de categorías y taxonomía.
-4. Informes y auditoría.
-5. Ojeador y análisis de mercado.
-6. Marketing y campañas comerciales.
-7. Dependiente y herramientas de aprendizaje.
-8. Gestor de procesos y workers.
+1. Main SEO Taxonomy dashboard.
+2. Product and catalog management.
+3. Category and taxonomy architecture.
+4. Reports and auditing.
+5. Market monitoring and comparison.
+6. Marketing and commercial campaigns.
+7. Dependent and learning tools.
+8. Process manager and workers.
 
 == Changelog ==
 
 = 2.3.9 - 2026-09-30 =
 
-* Consolida el ciclo completo de parches 2.3.8.x en una versión estable.
-* Mejora Dependiente, Academia e Intérprete, incluida la estabilidad de L9/L10 y el entrenamiento por preguntas.
-* Incorpora Ingeniero y su integración con Clasificador para ampliar conocimiento, atributos y vocabulario por categoría.
-* Amplía Auditor con calidad SEO, auditorías por bloques y equilibrio de categorías.
-* Mejora Marketing, campañas, calendario e informes de redes sociales.
-* Reorganiza Contenidos, Editor y Comentarista.
-* Mejora comparador, carrito, Presupuestos/Proformas y generación PDF.
-* Corrige el tratamiento de PVP con IVA incluido para evitar duplicar impuestos en carrito y checkout.
-* Amplía la documentación operativa, Wiki y proceso de publicación.
+* Consolidates the full 2.3.8.x patch cycle into a stable release.
+* Improves Dependent, Academy, and Interpreter, including L9/L10 stability and question-based training.
+* Adds Engineer and its integration with Classifier to expand category knowledge, attributes, and vocabulary.
+* Extends Auditor with SEO quality controls, block audits, and category balance.
+* Improves Marketing, campaigns, calendar, and social-network reports.
+* Reorganizes Content, Editor, and Review modules.
+* Improves comparison tools, cart, estimates/proformas, and PDF generation.
+* Corrects VAT-inclusive retail-price handling to avoid duplicate taxes in cart and checkout.
+* Extends operational documentation, Wiki, and publishing workflow.
 
 = 2.3.8.1 - 2026-09-26 =
 
-* Ampliada la gestión de campañas comerciales.
-* Añadida edición explícita de campañas existentes.
-* Añadidos vaciado de productos y eliminación segura de campañas.
-* La importación/exportación incluye campañas, productos, SKU, precios y posición.
-* Añadidos modos de fusión y sustitución completa de productos.
-* Añadida compatibilidad con archivos antiguos y autodetección de filas de producto.
-* Reforzada la restauración segura de precios y la prevención de solapamientos.
+* Extended commercial campaign management.
+* Added explicit editing of existing campaigns.
+* Added safe campaign product clearing and deletion.
+* Campaign import/export includes products, SKU, prices, and position.
+* Added merge and full-replacement modes.
+* Added compatibility with older files and product-row autodetection.
+* Strengthened safe price restoration and overlap prevention.
 
 = 2.3.7 - 2026-09-25 =
 
-* Creado el servicio de campañas comerciales y su integración con Analista.
-* Mejorado Ojeador con semáforo de precios, oportunidades y comparativas.
-* Añadidos inventarios comerciales y procesos de sincronización con proveedores.
-* Reforzado Dependiente V3 y la cobertura del catálogo.
-* Incorporado Solucionador y ampliado Comentarista.
-* Mejorados informes, Google Trends y feeds comerciales.
+* Added the commercial campaign service and its integration with Analyst.
+* Improved market monitoring with price indicators, opportunities, and comparisons.
+* Added commercial inventories and supplier synchronization processes.
+* Strengthened Dependent V3 and catalog coverage.
+* Added Solver and expanded the Review module.
+* Improved reports, Google Trends, and commercial feeds.
 
 = 2.3.6 - 2026-09-23 =
 
-* Ampliado Ojeador y la integración con Google Shopping.
-* Incorporadas nuevas fases de Academia y Entrenador.
-* Evolucionados Dependiente e Intérprete.
-* Ampliados auditoría, validación, FAQs, redirects e inventarios.
-* Mejorados importación, proveedores, imágenes y estabilidad de workers.
+* Expanded market monitoring and Google Shopping integration.
+* Added new Academy and Trainer phases.
+* Evolved Dependent and Interpreter.
+* Expanded auditing, validation, FAQs, redirects, and inventories.
+* Improved imports, suppliers, images, and worker stability.
 
 = 2.3.5 - 2026-09-17 =
 
-* Evolución amplia de Dependiente, Intérprete y Lingüista/Academia.
-* Mejoras de arquitectura comercial, plantillas e informes.
-* Nuevas herramientas de importación de proveedores.
-* Mejoras de mantenimiento y limpieza del plugin.
+* Major evolution of Dependent, Interpreter, and Linguist/Academy.
+* Improved commercial architecture, templates, and reports.
+* Added supplier import tools.
+* Improved plugin maintenance and cleanup.
 
 = 2.0.0 =
 
-* Primera versión pública documentada.
-* Nueva interfaz administrativa.
-* Gestión de productos, categorías, páginas e imágenes.
-* Informes, herramientas avanzadas y aprendizaje semántico.
+* First documented public release.
+* New administration interface.
+* Product, category, page, and image management.
+* Reports, advanced tools, and semantic learning.
 
-El historial técnico completo se mantiene en `CHANGELOG.md`.
+The full technical history is maintained in `CHANGELOG.md`.
 
 == Upgrade Notice ==
 
 = 2.3.9 =
 
-Consolida los parches 2.3.8.x en la versión estable 2.3.9. Incluye mejoras de Dependiente/Academia, Ingeniero y Clasificador, Auditor, Marketing, categorías, comparador, documentos comerciales y correcciones de IVA incluido. Se recomienda validar catálogo, carrito/checkout y procesos automáticos después de actualizar.
+Consolidates the 2.3.8.x patches into stable version 2.3.9. Includes improvements to Dependent/Academy, Engineer and Classifier, Auditor, Marketing, categories, comparison tools, commercial documents, and VAT-inclusive pricing. Catalog, cart/checkout, and automated processes should be validated after updating.
 
 = 2.3.8.1 =
 
-Amplía Marketing > Campañas con edición, importación completa de productos y precios, vaciado y eliminación segura. Se recomienda revisar las campañas activas después de actualizar.
+Extends Marketing > Campaigns with editing, complete product/price imports, clearing, and safe deletion. Active campaigns should be reviewed after updating.
 
 == License ==
 
-SEO Taxonomy se distribuye bajo licencia MIT. Consulta el archivo `LICENSE` incluido en el plugin.
+SEO Taxonomy is distributed under the MIT license. See the included `LICENSE` file.
