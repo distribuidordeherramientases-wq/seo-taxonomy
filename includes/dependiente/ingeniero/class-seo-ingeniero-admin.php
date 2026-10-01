@@ -368,7 +368,7 @@ final class SEO_Ingeniero_Admin {
                     $evidence = (string) ($fact['evidence'] ?? '');
                     echo '<li style="margin-bottom:8px">' . esc_html($evidence);
                     if ($url) {
-                        echo '<br><a href="' . $url . '" target="_blank" rel="noopener">Fuente: ' . esc_html($title ?: $url) . '</a>';
+                        echo '<br><a href="' . esc_url($url) . '" target="_blank" rel="noopener">Fuente: ' . esc_html($title ?: $url) . '</a>';
                     }
                     echo '</li>';
                 }
