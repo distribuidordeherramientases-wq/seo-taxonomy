@@ -1307,7 +1307,7 @@ final class SEO_Dependiente_Entrenador {
             );
         }
         if (absint($module_no) !== absint($next_module)) {
-            throw new RuntimeException('Debes completar primero el módulo ' . $next_module . '.');
+            throw new RuntimeException('Debes completar primero el módulo ' . esc_html((string) $next_module) . '.');
         }
         if (!self::acquire_db_lock('run')) {
             throw new RuntimeException('Ya se está ejecutando un módulo de la Academia en otro proceso.');
