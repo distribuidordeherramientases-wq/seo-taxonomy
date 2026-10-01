@@ -3391,7 +3391,7 @@ if (!function_exists('seo_assignment_apply_category_labels_json')) {
                 if ($value === '') continue;
                 if (!function_exists('seo_category_vocabulary_find_active_term')) throw new RuntimeException('No está disponible el resolver canónico de categorías.');
                 $term = seo_category_vocabulary_find_active_term($group, $value);
-                if (!$term) throw new InvalidArgumentException('«' . $value . '» no existe como etiqueta activa de ' . strtoupper($group) . '.');
+                if (!$term) throw new InvalidArgumentException('«' . esc_html($value) . '» no existe como etiqueta activa de ' . esc_html(strtoupper($group)) . '.');
                 $groups[$group][] = (int) $term['id'];
             }
             $groups[$group] = array_values(array_unique($groups[$group]));
