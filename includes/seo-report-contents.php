@@ -33,8 +33,9 @@ function seo_report_contents_table_exists($table_name) {
  */
 function seo_report_contents_url($args = array()) {
     $base = array(
-        'page' => 'seo-reports',
-        'tab'  => 'content',
+        'page'=>'seo-solucionador',
+        'tab'=>'diagnostics',
+        'diag_scope'=>'content',
     );
 
     return add_query_arg(
