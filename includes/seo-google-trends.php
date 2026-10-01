@@ -2431,9 +2431,9 @@ function seo_google_render_trends_market() {
 
     $notice = sanitize_key(wp_unslash($_GET['trends_notice'] ?? ''));
     if ('synced' === $notice) {
-        echo '<div class="notice notice-success inline"><p>Actualizacion completada: radar ' . number_format_i18n(absint($_GET['fetched'] ?? 0)) . ' recibidas / ' . number_format_i18n(absint($_GET['relevant'] ?? 0)) . ' relacionadas; mercado publico ' . number_format_i18n(absint($_GET['market_rows'] ?? 0)) . ' señales nuevas/actualizadas.</p></div>';
+        echo '<div class="notice notice-success inline"><p>Actualizacion completada: radar ' . esc_html(number_format_i18n(absint($_GET['fetched'] ?? 0))) . ' recibidas / ' . esc_html(number_format_i18n(absint($_GET['relevant'] ?? 0))) . ' relacionadas; mercado publico ' . esc_html(number_format_i18n(absint($_GET['market_rows'] ?? 0))) . ' señales nuevas/actualizadas.</p></div>';
     } elseif ('imported' === $notice) {
-        echo '<div class="notice notice-success inline"><p>CSV importado: ' . number_format_i18n(absint($_GET['rows'] ?? 0)) . ' señales procesadas.</p></div>';
+        echo '<div class="notice notice-success inline"><p>CSV importado: ' . esc_html(number_format_i18n(absint($_GET['rows'] ?? 0))) . ' señales procesadas.</p></div>';
     } elseif ('cleared' === $notice) {
         echo '<div class="notice notice-success inline"><p>Se han eliminado las señales almacenadas de Trends.</p></div>';
     } elseif ('settings_saved' === $notice) {
@@ -2516,7 +2516,7 @@ function seo_google_render_trends_market() {
         echo '<span class="seo-trends-seed" title="' . esc_attr($item['source']) . '">' . esc_html($item['label']) . '</span>';
     }
     if (count($universe) > 40) {
-        echo '<span class="seo-trends-muted"> +' . number_format_i18n(count($universe) - 40) . ' áreas</span>';
+        echo '<span class="seo-trends-muted"> +' . esc_html(number_format_i18n(count($universe) - 40)) . ' áreas</span>';
     }
     echo '</div></div>';
 
