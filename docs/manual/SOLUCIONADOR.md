@@ -8,6 +8,56 @@ Su responsabilidad es contestar:
 
 No sustituye a los servicios especialistas y no vuelve a realizar su trabajo. Consume sus resultados, comprueba la cobertura editorial y recomienda la **actuación mínima necesaria**.
 
+## Estado operativo actual
+
+- **Versión funcional de Solucionador:** 0.4.1.
+- **Versión del esquema de base de datos:** 0.4.0.
+- **Entorno de validación:** staging antes de producción.
+- **RF de referencia:** Requisitos Funcionales de Solucionador v1.0, 01/10/2026.
+- **Incidencias relacionadas:** #480 (primer análisis no inicializado) y #482 (validación de tablas y arranque en producción).
+
+La versión 0.4.1 corrige un problema operativo observado en producción con 0.4.0: Solucionador podía estar instalado, con su esquema reconocido, pero mostrar todos los KPIs a cero porque todavía no se había ejecutado ningún análisis inicial.
+
+Desde 0.4.1, si no existe `seo_solucionador_last_scan`, Solucionador ejecuta automáticamente el primer análisis al abrir su pantalla o antes de exportar sus resultados. El botón **Reanalizar fuentes** se mantiene para posteriores recalculados manuales.
+
+## Inicialización y persistencia
+
+Solucionador dispone de persistencia propia y no depende de que las tablas se creen manualmente desde phpMyAdmin.
+
+`SEO_Solucionador_DB::maybe_install()` comprueba:
+
+1. la versión registrada en `seo_solucionador_db_version`;
+2. que existan las seis tablas propias de Solucionador.
+
+Si la versión es correcta y las seis tablas existen, no hace nada. Si falta una tabla o el esquema necesita instalación/actualización, llama a `install()`, que usa el mecanismo `dbDelta()` de WordPress para crear o actualizar el esquema.
+
+Esto sigue el patrón:
+
+~~~text
+si esquema y tablas existen
+    continuar
+si falta alguna tabla o versión
+    crear/actualizar con dbDelta()
+~~~
+
+El primer análisis funcional se gestiona de forma separada mediante `SEO_Solucionador_Engine::ensure_initialized()`:
+
+~~~text
+si existe seo_solucionador_last_scan
+    no repetir el arranque inicial
+si no existe
+    bloquear inicializaciones simultáneas
+    ejecutar scan()
+    guardar seo_solucionador_last_scan
+~~~
+
+El bloqueo temporal evita que dos pestañas o una apertura de pantalla y una exportación intenten iniciar el mismo análisis a la vez. Si el arranque falla, se conserva un error de inicialización para poder diagnosticarlo.
+
+La instalación de tablas y el primer análisis son dos pasos distintos:
+
+- **persistencia:** asegura que el esquema existe;
+- **análisis:** llena evidencias, temas, cobertura y decisiones a partir de datos ya producidos por los servicios especialistas.
+
 ## Principios RF v1.0
 
 1. **Category-first.** La oportunidad intenta asociarse primero a product_cat (term_id) y desde ahí conoce hub secundario, hub primario, cluster y productos.
@@ -450,12 +500,39 @@ No ajusta automáticamente los criterios editoriales.
 
 ## Tablas
 
-- wp_seo_solucionador_topics
-- wp_seo_solucionador_evidence
-- wp_seo_solucionador_post_topics (compatibilidad con índice histórico de posts)
-- wp_seo_solucionador_coverage
-- wp_seo_solucionador_workflow
-- wp_seo_solucionador_tracking
+Solucionador mantiene seis tablas propias:
+
+- `wp_seo_solucionador_topics`
+- `wp_seo_solucionador_evidence`
+- `wp_seo_solucionador_post_topics` (compatibilidad con índice histórico de posts)
+- `wp_seo_solucionador_coverage`
+- `wp_seo_solucionador_workflow`
+- `wp_seo_solucionador_tracking`
+
+No deben crearse manualmente en una instalación normal. `SEO_Solucionador_DB::maybe_install()` valida las seis y, si falta cualquiera, vuelve a ejecutar la instalación del esquema mediante `dbDelta()`.
+
+### Qué almacena cada tabla
+
+- **topics:** tema canónico, categoría principal, cobertura, decisión, riesgos, prioridad y estado.
+- **evidence:** todas las evidencias que justifican cada tema.
+- **post_topics:** índice histórico de temas asociados a posts, conservado por compatibilidad.
+- **coverage:** huellas semánticas de posts, páginas, landings, hubs y categorías.
+- **workflow:** historial de cambios de estado, usuario, fecha y motivo.
+- **tracking:** métricas posteriores asociadas a la intervención editorial.
+
+### Comprobación previa a producción
+
+Antes de dar por válida una promoción de Solucionador a producción:
+
+1. confirmar que las seis tablas existen;
+2. confirmar la versión de esquema registrada;
+3. abrir Solucionador y comprobar que existe un `last_scan`;
+4. verificar que la cobertura editorial se ha indexado;
+5. verificar que las fuentes aportan señales;
+6. comprobar que los temas y decisiones aparecen cuando existen evidencias válidas;
+7. descargar el JSON y confirmar que refleja el mismo estado que la pantalla.
+
+Que los KPIs estén a cero no debe interpretarse automáticamente como ausencia de oportunidades. Primero debe comprobarse que existen tablas, que el análisis se ha ejecutado y que las fuentes están disponibles.
 
 ## Tests funcionales RF v1.0
 
