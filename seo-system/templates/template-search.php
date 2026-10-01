@@ -125,6 +125,7 @@ if (function_exists('dht_template_render_header')) {
                                     <div class="dh-product-image dht-search-product-image">
                                         <?php
                                         if (function_exists('dht_shared_product_card_image_html')) {
+// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Shared image helper returns context-escaped HTML and may include functional fallback attributes.
                                             echo dht_shared_product_card_image_html(
                                                 $card_product,
                                                 'woocommerce_thumbnail',
