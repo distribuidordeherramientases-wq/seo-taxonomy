@@ -354,6 +354,7 @@ if (!function_exists('dht_header_render_breadcrumbs')) {
 
     <?php if ($dht_css_inline !== '') : ?>
         <style id="dht-template-styles-inline">
+<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted local CSS file from this plugin; HTML escaping would corrupt CSS. ?>
 <?php echo $dht_css_inline; ?>
         </style>
     <?php endif; ?>
