@@ -132,6 +132,11 @@ final class SEO_Solucionador_Admin {
             'uncovered' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE coverage_status='uncovered'"),
             'expand' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE recommended_action IN ('expand_existing_post','create_section')"),
             'observe' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE recommended_action IN ('observe','no_action')"),
+            'landing_candidates' => function_exists('seo_landing_get_candidates')
+                ? count(array_filter((array) seo_landing_get_candidates(500), static function($row) {
+                    return in_array(sanitize_key((string) ($row->status ?? '')), array('detected','candidate','review','approved'), true);
+                }))
+                : 0,
         );
     }
 
@@ -177,7 +182,8 @@ final class SEO_Solucionador_Admin {
         echo '<div class="seo-sol-grid">';
         self::card('Temas detectados', $counts['total'] ?? 0, 'Problemas y procedimientos canonicos observados.');
         self::card('Sin cobertura', $counts['uncovered'] ?? 0, 'No se ha encontrado un post equivalente.');
-        self::card('Crear contenido', $counts['candidate'] ?? 0, 'Propuestas que requieren una nueva pieza editorial.');
+        self::card('Crear contenido', $counts['candidate'] ?? 0, 'Propuestas de post/guía que requieren una nueva pieza editorial.');
+        self::card('Landings a decidir', $counts['landing_candidates'] ?? 0, 'Candidatas detectadas o en revisión dentro del mismo circuito editorial.');
         self::card('Borradores creados', $counts['drafts'] ?? 0, 'Propuestas aprobadas pendientes de contenido/publicacion.');
         self::card('Ampliar existentes', $counts['expand'] ?? 0, 'Conviene ampliar un post o crear una seccion.');
         self::card('Cubiertos', $counts['covered'] ?? 0, 'Existe cobertura editorial identificada.');
@@ -590,6 +596,72 @@ final class SEO_Solucionador_Admin {
         return $names ? esc_html(implode(' · ', $names)) : '<span class="seo-sol-warning">Sin categoria suficiente</span>';
     }
 
+    private static function landing_decision_label($status) {
+        $status = sanitize_key((string) $status);
+        $labels = array(
+            'detected'=>'Revisar si crear landing',
+            'candidate'=>'Revisar si crear landing',
+            'review'=>'Revisar si crear landing',
+            'approved'=>'Crear landing',
+            'created'=>'Landing creada',
+            'published'=>'Landing publicada',
+            'paused'=>'No actuar ahora',
+            'rejected_requirements'=>'No crear',
+        );
+        return $labels[$status] ?? 'Revisar';
+    }
+
+    private static function render_landing_decisions() {
+        if (!function_exists('seo_landing_get_candidates')) return;
+        $rows = (array) seo_landing_get_candidates(250);
+
+        echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Decisiones de landing</h2>';
+        echo '<p class="description">Las candidatas y su scoring siguen usando el motor de landings existente, pero el diagnóstico visible y la decisión editorial se concentran aquí. La edición/creación final de la página continúa en Páginas.</p>';
+
+        if (!$rows) {
+            echo '<p>No hay candidatas de landing registradas.</p></div>';
+            return;
+        }
+
+        $types = function_exists('seo_landing_types') ? (array) seo_landing_types() : array();
+        $statuses = function_exists('seo_landing_statuses') ? (array) seo_landing_statuses() : array();
+
+        echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>Prioridad</th><th>Tema / intención</th><th>Tipo y fuente</th><th>Requisitos</th><th>Diagnóstico</th><th>Estado / decisión</th><th>Acción</th></tr></thead><tbody>';
+        foreach ($rows as $row) {
+            $status = sanitize_key((string) ($row->status ?? 'detected'));
+            $score = (float) ($row->total_score ?? 0);
+            $requirements = function_exists('seo_landing_decode_json') ? seo_landing_decode_json($row->requirements_json ?? '') : array();
+            $requirements_label = function_exists('seo_landing_requirements_summary')
+                ? seo_landing_requirements_summary($requirements)
+                : '—';
+            $type_key = sanitize_key((string) ($row->landing_type ?? ''));
+            $type = (string) ($types[$type_key] ?? ($type_key !== '' ? $type_key : 'Pendiente'));
+            $status_label = (string) ($statuses[$status] ?? $status);
+            $diagnostic = trim((string) ($row->existing_destination ?? ''));
+            $reason = trim((string) ($row->differentiation_reason ?? ''));
+            if ($reason !== '') $diagnostic .= ($diagnostic !== '' ? ' — ' : '') . $reason;
+            if ($diagnostic === '') $diagnostic = 'Pendiente de diagnóstico editorial.';
+
+            echo '<tr>';
+            echo '<td><strong class="seo-sol-score">' . esc_html(number_format_i18n($score, 0)) . '</strong><span class="description">/100</span></td>';
+            echo '<td><strong>' . esc_html((string) ($row->title ?? '')) . '</strong>';
+            if (!empty($row->intent)) echo '<div class="description" style="margin-top:5px">' . esc_html(wp_trim_words((string) $row->intent, 30)) . '</div>';
+            echo '</td>';
+            echo '<td><strong>' . esc_html($type) . '</strong><br><small>' . esc_html((string) ($row->source ?? '')) . '</small></td>';
+            echo '<td>' . esc_html($requirements_label) . '</td>';
+            echo '<td>' . esc_html(wp_trim_words($diagnostic, 32)) . '</td>';
+            echo '<td><strong>' . esc_html(self::landing_decision_label($status)) . '</strong><br><small>' . esc_html($status_label) . '</small></td>';
+            echo '<td><a class="button button-small" href="' . esc_url(self::diagnostics_url('pages','landings', array('candidate_id'=>absint($row->id ?? 0)))) . '">Revisar / editar decisión</a>';
+            $page_id = absint($row->page_id ?? 0);
+            if ($page_id > 0 && get_post_type($page_id) === 'page') {
+                $edit = get_edit_post_link($page_id, 'raw');
+                if ($edit) echo '<br><a href="' . esc_url($edit) . '">Abrir página #' . esc_html($page_id) . '</a>';
+            }
+            echo '</td></tr>';
+        }
+        echo '</tbody></table></div></div>';
+    }
+
     private static function render_proposals() {
         global $wpdb;
         $table = SEO_Solucionador_DB::topics_table();
@@ -693,6 +765,7 @@ final class SEO_Solucionador_Admin {
             echo '</td></tr>';
         }
         echo '</tbody></table></div></div>';
+        self::render_landing_decisions();
     }
 
     private static function render_coverage() {
