@@ -567,7 +567,8 @@ while (have_posts()) :
             <section class="dht-page-featured-section" aria-label="Imagen destacada de la pagina">
                 <div class="dht-container">
                     <figure class="dht-page-featured-card">
-                        <?php echo dht_page_image_tag_mobile($main_image, get_the_title(), 'dht-page-main-image', 'eager', 'high'); ?>
+                        <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image helper builds HTML with context-specific escaping. ?>
+<?php echo dht_page_image_tag_mobile($main_image, get_the_title(), 'dht-page-main-image', 'eager', 'high'); ?>
                     </figure>
                 </div>
             </section>
@@ -615,7 +616,8 @@ while (have_posts()) :
                                         ?>
                                         <article class="dht-page-product-card">
                                             <a class="dht-page-product-media" href="<?php echo esc_url($product_url); ?>" aria-label="<?php echo esc_attr($product->get_name()); ?>">
-                                                <?php echo dht_page_image_tag_mobile($image_source, $product->get_name(), 'dht-page-product-image'); ?>
+                                                <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image helper builds HTML with context-specific escaping. ?>
+<?php echo dht_page_image_tag_mobile($image_source, $product->get_name(), 'dht-page-product-image'); ?>
                                             </a>
                                             <div class="dht-page-product-body">
                                                 <h3><a href="<?php echo esc_url($product_url); ?>"><?php echo esc_html($product->get_name()); ?></a></h3>
@@ -655,7 +657,8 @@ while (have_posts()) :
                             ?>
                             <a class="dht-page-related-cat-card" href="<?php echo esc_url($term_link); ?>">
                                 <span class="dht-page-related-cat-media">
-                                    <?php echo dht_page_image_tag_mobile($cat_image, $product_cat->name, 'dht-page-category-image'); ?>
+                                    <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image helper builds HTML with context-specific escaping. ?>
+<?php echo dht_page_image_tag_mobile($cat_image, $product_cat->name, 'dht-page-category-image'); ?>
                                 </span>
                                 <span class="dht-page-related-cat-body">
                                     <span class="dht-page-related-cat-count"><?php echo esc_html(number_format_i18n((int) $product_cat->count)); ?> productos</span>
