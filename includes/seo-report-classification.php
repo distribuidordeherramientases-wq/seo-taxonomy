@@ -200,10 +200,10 @@ function seo_report_classification() {
     echo '<h2>Resumen ejecutivo</h2>';
 
     echo '<ul>';
-    echo '<li><strong>Productos analizados:</strong> '.$summary_total.'</li>';
-    echo '<li><strong>✅ Correctos:</strong> '.$summary_ok.'</li>';
-    echo '<li><strong>⚠ Revisables:</strong> '.$summary_warning.'</li>';
-    echo '<li><strong>❌ Sospechosos:</strong> '.$summary_bad.'</li>';
+    echo '<li><strong>Productos analizados:</strong> '.esc_html((string) $summary_total).'</li>';
+    echo '<li><strong>✅ Correctos:</strong> '.esc_html((string) $summary_ok).'</li>';
+    echo '<li><strong>⚠ Revisables:</strong> '.esc_html((string) $summary_warning).'</li>';
+    echo '<li><strong>❌ Sospechosos:</strong> '.esc_html((string) $summary_bad).'</li>';
     echo '</ul>';
 
     echo '<h2>Categorías más contaminadas</h2>';
@@ -235,12 +235,12 @@ function seo_report_classification() {
         echo '<td>'.esc_html($row['hub_secondary']).'</td>';
         echo '<td>'.esc_html($row['category']).'</td>';
 
-        echo '<td>'.$row['total'].'</td>';
-        echo '<td>'.$row['ok'].'</td>';
-        echo '<td>'.$row['warning'].'</td>';
-        echo '<td>'.$row['bad'].'</td>';
+        echo '<td>'.esc_html((string) $row['total']).'</td>';
+        echo '<td>'.esc_html((string) $row['ok']).'</td>';
+        echo '<td>'.esc_html((string) $row['warning']).'</td>';
+        echo '<td>'.esc_html((string) $row['bad']).'</td>';
 
-        echo '<td>'.$row['contamination'].'%</td>';
+        echo '<td>'.esc_html((string) $row['contamination']).'%</td>';
 
         echo '</tr>';
     }
