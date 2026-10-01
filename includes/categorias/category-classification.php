@@ -1540,7 +1540,9 @@ if (isset($_POST['clear_category_keywords'])) {
 // BLOQUEO DE EJECUCIÓN
 // =========================
     if ($cluster <= 0) {
-        echo ob_get_clean();
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Buffered admin HTML is assembled by this view with context-specific escaping; post KSES would remove form controls.
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Buffered admin HTML is assembled by this view with context-specific escaping; post KSES would remove form controls.
+echo ob_get_clean();
         echo '<p>Selecciona un cluster.</p>';
         return;
     }
@@ -1738,11 +1740,11 @@ if ($run_inventory || $auto_keywords) {
     </button>';
 
     if ($show_cat_id) {
-        echo '<div><strong>ID:</strong> ' . $term->term_id . '</div>';
+        echo '<div><strong>ID:</strong> ' . esc_html((string) $term->term_id) . '</div>';
     }
 
     if ($show_cat_slug) {
-        echo '<div><strong>Slug:</strong> ' . $term->slug . '</div>';
+        echo '<div><strong>Slug:</strong> ' . esc_html((string) $term->slug) . '</div>';
     }
 
     if ($show_cat_desc) {
