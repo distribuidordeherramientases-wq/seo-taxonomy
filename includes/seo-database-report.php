@@ -1187,7 +1187,7 @@ function seo_data_remove_directory(string $directory): void
         if (is_dir($path)) {
             seo_data_remove_directory($path);
         } else {
-            @unlink($path);
+            wp_delete_file($path);
         }
     }
 
