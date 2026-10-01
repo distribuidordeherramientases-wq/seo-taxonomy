@@ -104,6 +104,15 @@ final class SEO_Solucionador_Catalog {
             $comment_product = absint($meta['product_id'] ?? 0);
             if ($comment_product) self::add_score($product_scores, $comment_product, 1.25 * $weight);
 
+            $source_term_id = absint($meta['term_id'] ?? 0);
+            if ($source_term_id) self::add_score($category_scores, $source_term_id, 2.25 * $weight);
+            if (!empty($meta['category'])) {
+                $source_category = sanitize_text_field((string) $meta['category']);
+                if ($source_category !== '') {
+                    $category_name_scores[$source_category] = ($category_name_scores[$source_category] ?? 0) + (1.5 * $weight);
+                }
+            }
+
             foreach (array_slice((array) ($meta['top_results'] ?? array()), 0, 10) as $result) {
                 if (!is_array($result)) continue;
                 $pid = absint($result['id'] ?? 0);
