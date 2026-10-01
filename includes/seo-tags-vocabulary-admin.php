@@ -1699,17 +1699,15 @@ if (!function_exists('seo_tags_vocab_render_vocabulary')) {
             $args[] = $like;
         }
         $where_sql = implode(' AND ', $where);
-        $total = (int) $wpdb->get_var(seo_tags_vocab_prepare_sql(
-            "SELECT COUNT(*) FROM {$vocabulary} v WHERE {$where_sql}",
-            $args
-        ));
+        $count_query = "SELECT COUNT(*) FROM {$vocabulary} v WHERE {$where_sql}";
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Vocabulary table and closed WHERE fragments; all filter values are bound through prepare().
+        $total = (int) $wpdb->get_var($wpdb->prepare($count_query, ...$args));
         $total_pages = max(1, (int) ceil($total / $per_page));
 
         $query_args = $args;
         $query_args[] = $per_page;
         $query_args[] = $offset;
-        $rows = $wpdb->get_results(seo_tags_vocab_prepare_sql(
-            "SELECT
+        $rows_query = "SELECT
                 v.id, v.semantic_group, v.slug, v.label, v.active, v.source AS term_source,
                 COUNT(DISTINCT CASE WHEN ov.status = 1 THEN ov.id END) AS assignment_count,
                 COUNT(DISTINCT CASE WHEN ov.status = 1 AND p.ID IS NOT NULL THEN ov.object_id END) AS product_count,
@@ -1726,12 +1724,13 @@ if (!function_exists('seo_tags_vocab_render_vocabulary')) {
              WHERE {$where_sql}
              GROUP BY v.id, v.semantic_group, v.slug, v.label, v.active, v.source
              ORDER BY v.active DESC, product_count DESC, v.label ASC, v.slug ASC
-             LIMIT %d OFFSET %d",
-            $query_args
-        ), ARRAY_A);
+             LIMIT %d OFFSET %d";
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Vocabulary tables and closed WHERE fragments; filters, limit and offset are bound through prepare().
+        $rows = $wpdb->get_results($wpdb->prepare($rows_query, ...$query_args), ARRAY_A);
 
         $type_roles = [];
         if ($group === 'tipo' && seo_tags_vocab_table_exists($type_role_map)) {
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal Vocabulary mapping tables; query has no external values.
             $map_rows = $wpdb->get_results(
                 "SELECT trm.type_vocabulary_id, trm.role_vocabulary_id, rv.label AS role_label, rv.slug AS role_slug, rv.active AS role_active
                  FROM {$type_role_map} trm
@@ -1746,6 +1745,7 @@ if (!function_exists('seo_tags_vocab_render_vocabulary')) {
 
         $role_dependents = [];
         if ($group === 'rol' && seo_tags_vocab_table_exists($type_role_map)) {
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal Vocabulary mapping tables; query has no external values.
             $dep_rows = $wpdb->get_results(
                 "SELECT trm.role_vocabulary_id, COUNT(DISTINCT tv.id) AS type_count
                  FROM {$type_role_map} trm
@@ -2121,6 +2121,7 @@ if (!function_exists('seo_tags_vocab_get_dictionary_rows')) {
               . "LEFT JOIN {$wpdb->posts} p ON p.ID = ov.object_id AND p.post_type = 'product' AND p.post_status = 'publish'"
             : '';
 
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- assignment/join fragments are chosen internally from fixed SQL; table names are plugin/core tables and there are no external values.
         $rows = $wpdb->get_results(
             "SELECT
                 v.id,
@@ -2140,6 +2141,7 @@ if (!function_exists('seo_tags_vocab_get_dictionary_rows')) {
 
         $type_roles = [];
         if ($has_type_role_map) {
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal Vocabulary mapping tables; query has no external values.
             $map_rows = $wpdb->get_results(
                 "SELECT
                     trm.type_vocabulary_id,
