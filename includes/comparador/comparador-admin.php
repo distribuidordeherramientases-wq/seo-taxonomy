@@ -229,7 +229,7 @@ final class SEO_Comparador_Admin {
         if (!$profiles) echo '<tr><td colspan="8">Todavía no hay perfiles. Construye uno desde Configuración.</td></tr>';
         foreach ($profiles as $p) {
             echo '<tr><td><strong>' . esc_html((string)$p['canonical_name']) . '</strong><br><code>#' . esc_html(absint($p['primary_category_id'])) . '</code></td>';
-            echo '<td>' . self::status_badge((string)$p['status']) . '</td>';
+            echo '<td>' . wp_kses_post(self::status_badge((string)$p['status'])) . '</td>';
             echo '<td>' . esc_html(number_format_i18n(absint($p['own_products_count']))) . '</td>';
             echo '<td>' . esc_html(number_format_i18n(absint($p['external_products_comparable']))) . ' / ' . esc_html(number_format_i18n(absint($p['external_products_seen']))) . '</td>';
             echo '<td>' . esc_html(number_format_i18n(absint($p['comparison_axes_count']))) . '</td>';
@@ -254,7 +254,7 @@ final class SEO_Comparador_Admin {
         $external=count($products)-$own;
 
         echo '<div class="postbox seo-cmp-box"><h2>' . esc_html((string)$profile['canonical_name']) . ' · perfil #' . esc_html($profile_id) . '</h2>';
-        echo '<p><strong>Estado:</strong> ' . self::status_badge((string)$profile['status']) . ' · <strong>Productos:</strong> ' . esc_html($own) . ' propios / ' . esc_html($external) . ' externos deduplicados.</p>';
+        echo '<p><strong>Estado:</strong> ' . wp_kses_post(self::status_badge((string)$profile['status'])) . ' · <strong>Productos:</strong> ' . esc_html($own) . ' propios / ' . esc_html($external) . ' externos deduplicados.</p>';
 
         echo '<div class="seo-cmp-actions">';
         self::action_form($profile_id,'recalculate','Recalcular','','');
@@ -314,7 +314,7 @@ final class SEO_Comparador_Admin {
             echo '<tr><td><strong>' . esc_html((string)$row['post_title']) . '</strong><br><a href="' . esc_url((string)$row['url']) . '" target="_blank" rel="noopener">Abrir</a></td>';
             echo '<td>' . esc_html(number_format_i18n(absint($row['impressions']))) . '</td><td>' . esc_html(number_format_i18n(absint($row['clicks']))) . '</td>';
             echo '<td>' . esc_html(number_format_i18n((float)$row['ctr']*100,2)) . '%</td><td>' . esc_html(number_format_i18n((float)$row['position'],1)) . '</td>';
-            echo '<td>' . esc_html(number_format_i18n(absint($row['sessions']))) . '</td><td>' . esc_html(number_format_i18n(absint($row['pageviews']))) . '</td><td>' . self::status_badge((string)$row['status']) . '</td></tr>';
+            echo '<td>' . esc_html(number_format_i18n(absint($row['sessions']))) . '</td><td>' . esc_html(number_format_i18n(absint($row['pageviews']))) . '</td><td>' . wp_kses_post(self::status_badge((string)$row['status'])) . '</td></tr>';
         }
         echo '</tbody></table></div></div>';
     }
