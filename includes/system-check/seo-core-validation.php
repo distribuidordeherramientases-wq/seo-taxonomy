@@ -7137,12 +7137,12 @@ function seo_core_system_test_render_module_overview($results) {
             return isset($result['group']) && in_array($result['group'], $groups, true);
         }));
         if (empty($rows)) {
-            echo '<div class="seo-core-module-card"><h3>' . esc_html($title) . '</h3><div class="seo-core-module-score">Pendiente</div>' . seo_core_system_test_badge('info') . '</div>';
+            echo '<div class="seo-core-module-card"><h3>' . esc_html($title) . '</h3><div class="seo-core-module-score">Pendiente</div>' . wp_kses_post(seo_core_system_test_badge('info')) . '</div>';
             continue;
         }
         $health = seo_core_system_test_health_summary($rows);
         $badge_severity = $health['status'] === 'critical' ? 'ko' : ($health['status'] === 'important' || $health['status'] === 'warning' ? 'warning' : ($health['status'] === 'ok' ? 'ok' : 'info'));
-        echo '<div class="seo-core-module-card"><h3>' . esc_html($title) . '</h3><div class="seo-core-module-score">' . esc_html($health['score']) . '%</div>' . seo_core_system_test_badge($badge_severity) . '<p class="seo-core-test-muted">' . esc_html($health['critical']) . ' críticos · ' . esc_html($health['important']) . ' importantes · ' . esc_html($health['warning']) . ' avisos</p></div>';
+        echo '<div class="seo-core-module-card"><h3>' . esc_html($title) . '</h3><div class="seo-core-module-score">' . esc_html($health['score']) . '%</div>' . wp_kses_post(seo_core_system_test_badge($badge_severity)) . '<p class="seo-core-test-muted">' . esc_html($health['critical']) . ' críticos · ' . esc_html($health['important']) . ' importantes · ' . esc_html($health['warning']) . ' avisos</p></div>';
     }
     echo '</div>';
 }
@@ -7800,7 +7800,7 @@ function seo_core_system_test_summary_card($title, $value, $severity) {
     echo '<div class="seo-core-test-card">';
     echo '<h2>' . esc_html($title) . '</h2>';
     echo '<div class="seo-core-test-kpi">' . esc_html((string) $value) . '</div>';
-    echo seo_core_system_test_badge($severity);
+    echo wp_kses_post(seo_core_system_test_badge($severity));
     echo '</div>';
 }
 
@@ -8003,9 +8003,9 @@ function seo_core_system_test_render_business_report($results) {
             echo '<h3>' . esc_html($item_label) . '</h3>';
 
             if ($result) {
-                echo '<p>' . seo_core_system_test_result_badge($result) . ' <span class="seo-core-test-muted">' . esc_html((string) $result['detail']) . '</span></p>';
+                echo '<p>' . wp_kses_post(seo_core_system_test_result_badge($result)) . ' <span class="seo-core-test-muted">' . esc_html((string) $result['detail']) . '</span></p>';
             } else {
-                echo '<p>' . seo_core_system_test_badge('info') . ' <span class="seo-core-test-muted">Pendiente de implementar.</span></p>';
+                echo '<p>' . wp_kses_post(seo_core_system_test_badge('info')) . ' <span class="seo-core-test-muted">Pendiente de implementar.</span></p>';
             }
         }
 
@@ -8064,7 +8064,7 @@ function seo_core_system_test_render_group($results, $group, $show_heading = tru
             seo_core_system_test_render_product_excerpt_exports($result);
         }
         echo '</td>';
-        echo '<td>' . seo_core_system_test_result_badge($result) . '</td>';
+        echo '<td>' . wp_kses_post(seo_core_system_test_result_badge($result)) . '</td>';
         echo '</tr>';
     }
 
