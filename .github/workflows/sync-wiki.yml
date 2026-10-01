@@ -53,6 +53,7 @@ jobs:
               "docs/manual/IMPORT-EXPORT.md": ("Import-Export.md", "ImportExport"),
               "docs/manual/FACTURAS-Y-PRESUPUESTOS.md": ("Facturas-y-presupuestos.md", "Facturas"),
               "docs/manual/SOLUCIONADOR.md": ("Solucionador.md", "Solucionador"),
+              "docs/manual/COMPARADOR.md": ("Comparador.md", "Comparador"),
               "docs/manual/OJEADOR.md": ("Ojeador.md", "Ojeador"),
               "docs/manual/COMENTARISTA.md": ("Comentarista.md", "Comentarista"),
           }
@@ -123,6 +124,7 @@ jobs:
             - [[Import / Export|Import-Export]]
             - [[Facturas y presupuestos|Facturas-y-presupuestos]]
             - [[Solucionador|Solucionador]]
+            - [[Comparador|Comparador]]
             - [[Ojeador|Ojeador]]
           - [[Comentarista|Comentarista]]
           - [[Conexiones y credenciales|Conexiones-y-credenciales]]

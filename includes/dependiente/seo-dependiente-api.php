@@ -991,7 +991,8 @@ final class SEO_Dependiente_API {
         }
 
         $ids = array_values(array_unique(array_filter(array_map('absint', (array) $ids))));
-        $ids = array_slice($ids, 0, 6);
+        $compare_max = function_exists('seo_comparador_store_compare_max') ? seo_comparador_store_compare_max() : 6;
+        $ids = array_slice($ids, 0, $compare_max);
         if (count($ids) < 2) {
             return new WP_Error(
                 'seo_dependiente_compare_minimum',

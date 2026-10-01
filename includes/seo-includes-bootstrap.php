@@ -146,6 +146,9 @@ require_once SEO_SYSTEM_PATH . 'includes/seo-dashboard.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-google-info.php';
 require_once SEO_SYSTEM_PATH . 'includes/analista/analista-bootstrap.php';
 
+// Comparador: inteligencia comparativa persistente por categoria y contrato para Solucionador.
+require_once SEO_SYSTEM_PATH . 'includes/comparador/comparador-bootstrap.php';
+
 // Solucionador: convierte senales de cliente/mercado en propuestas de posts y borradores clasificados.
 require_once SEO_SYSTEM_PATH . 'includes/solucionador/solucionador-bootstrap.php';
 
