@@ -367,7 +367,7 @@ function seo_data_render_explorer(array $tables): void
     foreach ($rows as $row) {
         echo '<tr>';
         foreach ($column_names as $column_name) {
-            echo '<td>' . seo_data_format_cell($row[$column_name] ?? null) . '</td>';
+            echo '<td>' . wp_kses_post(seo_data_format_cell($row[$column_name] ?? null)) . '</td>';
         }
         echo '</tr>';
     }
@@ -708,9 +708,9 @@ function seo_data_render_operations_center(): void
         echo '<td><strong>#' . (int) $operation->id . ' · ' . esc_html($operation->operation_label) . '</strong><br><code>' . esc_html($operation->operation_type) . '</code></td>';
         echo '<td>' . esc_html($operation->source_module ?: '—') . '<br><span class="seo-operation-risk seo-risk-' . esc_attr($operation->risk_level) . '">' . esc_html($operation->risk_level) . '</span></td>';
         echo '<td>' . esc_html($operation->display_name ?: ('Usuario #' . (int) $operation->user_id)) . '</td>';
-        echo '<td>' . seo_data_operation_status_badge((string) $operation->status) . '</td>';
+        echo '<td>' . wp_kses_post(seo_data_operation_status_badge((string) $operation->status)) . '</td>';
         echo '<td>' . esc_html(number_format_i18n((int) $operation->recorded_changes)) . '</td>';
-        echo '<td>' . seo_data_operation_rollback_label($operation, $preview) . '</td>';
+        echo '<td>' . wp_kses_post(seo_data_operation_rollback_label($operation, $preview)) . '</td>';
         echo '<td><a class="button" href="' . esc_url($details_url) . '">Ver detalles</a> ';
         echo '<a class="button" href="' . esc_url($json_url) . '">JSON</a> ';
         seo_data_render_rollback_button($operation, $preview);
