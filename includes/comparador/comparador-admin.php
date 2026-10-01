@@ -80,7 +80,7 @@ final class SEO_Comparador_Admin {
     public static function handle_settings() {
         if (!current_user_can('manage_options')) wp_die('No tienes permisos.');
         check_admin_referer('seo_comparador_settings');
-        SEO_Comparador_Engine::save_settings((array)($_POST['settings'] ?? array()));
+        SEO_Comparador_Engine::save_settings(isset($_POST['settings']) ? (array) wp_unslash($_POST['settings']) : array());
         self::notice('Configuración de Comparador guardada.');
         self::redirect('settings');
     }
@@ -88,7 +88,7 @@ final class SEO_Comparador_Admin {
     public static function handle_build() {
         if (!current_user_can('manage_options')) wp_die('No tienes permisos.');
         check_admin_referer('seo_comparador_build');
-        $term_id=absint($_POST['term_id'] ?? 0);
+        $term_id=isset($_POST['term_id']) ? absint(wp_unslash($_POST['term_id'])) : 0;
         $result=SEO_Comparador_Engine::build_profile($term_id);
         if (is_wp_error($result)) {
             self::notice($result->get_error_message(),'error');
@@ -100,9 +100,9 @@ final class SEO_Comparador_Admin {
 
     public static function handle_axes() {
         if (!current_user_can('manage_options')) wp_die('No tienes permisos.');
-        $profile_id=absint($_POST['profile_id'] ?? 0);
+        $profile_id=isset($_POST['profile_id']) ? absint(wp_unslash($_POST['profile_id'])) : 0;
         check_admin_referer('seo_comparador_axes_' . $profile_id);
-        $result=SEO_Comparador_Engine::save_axes($profile_id,(array)($_POST['axes'] ?? array()));
+        $result=SEO_Comparador_Engine::save_axes($profile_id,isset($_POST['axes']) ? (array) wp_unslash($_POST['axes']) : array());
         if (is_wp_error($result)) {
             self::notice($result->get_error_message(),'error');
         } elseif (!empty($result['blocked_axes'])) {
@@ -120,12 +120,12 @@ final class SEO_Comparador_Admin {
         if (!current_user_can('manage_options')) wp_die('No tienes permisos.');
         $profile_id=absint($_POST['profile_id'] ?? 0);
         check_admin_referer('seo_comparador_action_' . $profile_id);
-        $action=sanitize_key((string)($_POST['profile_action'] ?? ''));
-        $reason=sanitize_textarea_field(wp_unslash($_POST['reason'] ?? ''));
+        $action=isset($_POST['profile_action']) ? sanitize_key(wp_unslash($_POST['profile_action'])) : '';
+        $reason=isset($_POST['reason']) ? sanitize_textarea_field(wp_unslash($_POST['reason'])) : '';
         if ($action==='send_solucionador') {
             $result=SEO_Comparador_Engine::send_to_solucionador($profile_id,$reason);
         } elseif ($action==='link_post') {
-            $result=SEO_Comparador_Engine::link_post($profile_id,absint($_POST['post_id'] ?? 0));
+            $result=SEO_Comparador_Engine::link_post($profile_id,isset($_POST['post_id']) ? absint(wp_unslash($_POST['post_id'])) : 0);
         } elseif ($action==='archive') {
             $result=SEO_Comparador_Engine::mark_not_comparable($profile_id,$reason);
         } elseif ($action==='recalculate') {
@@ -247,7 +247,7 @@ final class SEO_Comparador_Admin {
         }
         echo '</tbody></table></div></div>';
 
-        $profile_id=absint($_GET['profile_id'] ?? 0);
+        $profile_id=isset($_GET['profile_id']) ? absint(wp_unslash($_GET['profile_id'])) : 0;
         if ($profile_id) self::render_profile($profile_id);
     }
 
@@ -311,7 +311,7 @@ final class SEO_Comparador_Admin {
     }
 
     private static function render_performance() {
-        $days=isset($_GET['days']) && absint($_GET['days'])===90 ? 90 : 28;
+        $days=isset($_GET['days']) && absint(wp_unslash($_GET['days']))===90 ? 90 : 28;
         $rows=SEO_Comparador_Engine::performance_rows($days);
         echo '<div class="postbox seo-cmp-box"><h2>Rendimiento de comparativas</h2>';
         echo '<p>Datos consumidos desde Analista; Comparador no realiza llamadas propias a Search Console, Analytics o Bing.</p>';
