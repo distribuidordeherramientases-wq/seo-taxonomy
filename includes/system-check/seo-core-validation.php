@@ -7382,7 +7382,7 @@ function seo_core_system_test_render_links_404_items($group_results) {
             continue;
         }
         echo '<details class="seo-core-test-details">';
-        echo '<summary>' . esc_html($result['label']) . ': detalle de incidencias (' . number_format_i18n(count($result['items'])) . ')</summary>';
+        echo '<summary>' . esc_html($result['label']) . ': detalle de incidencias (' . esc_html(number_format_i18n(count($result['items']))) . ')</summary>';
         echo '<div class="seo-core-test-details-content"><div class="seo-core-test-table-wrap">';
         echo '<table class="seo-core-test-table"><thead><tr><th>Prioridad</th><th>Estado</th><th>URL</th><th>Origen</th><th>Detalle</th></tr></thead><tbody>';
         foreach ($result['items'] as $item) {
@@ -7465,7 +7465,7 @@ function seo_core_system_test_render_links_404($results) {
             continue;
         }
         echo '<details class="seo-core-test-details">';
-        echo '<summary>' . esc_html($result['label']) . ': detalle de incidencias (' . number_format_i18n(count($result['items'])) . ')</summary>';
+        echo '<summary>' . esc_html($result['label']) . ': detalle de incidencias (' . esc_html(number_format_i18n(count($result['items']))) . ')</summary>';
         echo '<div class="seo-core-test-details-content"><div class="seo-core-test-table-wrap">';
         echo '<table class="seo-core-test-table"><thead><tr><th>Prioridad</th><th>Estado</th><th>URL</th><th>Origen</th><th>Detalle</th></tr></thead><tbody>';
         foreach ($result['items'] as $item) {
