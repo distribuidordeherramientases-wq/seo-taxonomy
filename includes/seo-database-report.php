@@ -289,12 +289,15 @@ function seo_data_render_explorer(array $tables): void
 
     $count_sql = "SELECT COUNT(*) FROM `{$table_name}`{$where_sql}";
     if ($where_args) {
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Table/column identifiers are selected from the validated explorer allowlist; filter values are bound through prepare().
         $count_sql = $wpdb->prepare($count_sql, $where_args);
     }
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Explorer identifiers are validated against detected table/column allowlists before this query.
     $total_items = (int) $wpdb->get_var($count_sql);
 
     $query_sql = "SELECT * FROM `{$table_name}`{$where_sql} ORDER BY `{$orderby}` {$order} LIMIT %d OFFSET %d";
     $query_args = array_merge($where_args, [$per_page, $offset]);
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Explorer identifiers/order are allowlisted; filter values, limit and offset are bound through prepare().
     $rows = $wpdb->get_results($wpdb->prepare($query_sql, $query_args), ARRAY_A);
 
     echo '<div class="seo-data-panel">';
@@ -674,7 +677,13 @@ function seo_data_render_operations_center(): void
     $where_sql = $where ? ' WHERE ' . implode(' AND ', $where) : '';
 
     $count_sql = "SELECT COUNT(*) FROM `{$operations_table}` o{$where_sql}";
-    $total = $args ? (int) $wpdb->get_var($wpdb->prepare($count_sql, $args)) : (int) $wpdb->get_var($count_sql);
+    if ($args) {
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Data Layer table; all filter values are bound through prepare().
+        $total = (int) $wpdb->get_var($wpdb->prepare($count_sql, $args));
+    } else {
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Data Layer table; query contains no external values.
+        $total = (int) $wpdb->get_var($count_sql);
+    }
 
     $sql = "SELECT o.*, u.display_name,
                 (SELECT COUNT(*) FROM `{$changes_table}` c WHERE c.operation_id = o.id) AS recorded_changes
@@ -684,6 +693,7 @@ function seo_data_render_operations_center(): void
             ORDER BY o.id DESC
             LIMIT %d OFFSET %d";
     $query_args = array_merge($args, [$per_page, $offset]);
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Data Layer tables; filters, limit and offset are bound through prepare().
     $operations = $wpdb->get_results($wpdb->prepare($sql, $query_args));
 
     echo '<div class="seo-data-scroll"><table class="widefat striped seo-data-table seo-operations-table">';
