@@ -85,6 +85,7 @@ final class SEO_Solucionador_Normalizer {
             // Palabras discursivas que describen la redaccion, no el objeto real
             // de una necesidad. Evitan fingerprints como object=importa/tres/guia.
             'error','errores','guia','guias','comparativa','comparativas','historia','historias','mejor','mejores',
+            'compra','compras','comun','comunes','solucion','soluciones','problema','problemas','informacion',
             'consejo','consejos','importante','importa','decide','empieza','son','tener','tiene','haz','evita',
             'practica','practico','sencilla','sencillo','referencia','referencias','corresponde','conocer','entre',
             'quien','caso','casos','semi','continua','continuo','tipo','tipos','definir','adaptar','aplicaciones'
@@ -289,7 +290,127 @@ final class SEO_Solucionador_Normalizer {
         return $out;
     }
 
+
+    private static function canonical_phrase($text) {
+        $words = preg_split('/\s+/u', self::normalize_term($text));
+        $out = array();
+        foreach ((array) $words as $word) {
+            if ($word === '') continue;
+            $out[] = self::canonical_singular($word);
+        }
+        return trim(implode(' ', $out));
+    }
+
+    /**
+     * RF v1.0: el objeto se decide category-first, no por la primera palabra
+     * gramatical disponible. Priorizamos product_cat y despues Vocabulary
+     * canonico. Solo se usan entidades que realmente aparecen en el texto.
+     */
+    private static function known_entity_object($normalized) {
+        global $wpdb;
+        static $entities = null;
+
+        if (null === $entities) {
+            $entities = array();
+
+            $terms = get_terms(array(
+                'taxonomy'=>'product_cat',
+                'hide_empty'=>false,
+                'fields'=>'all',
+            ));
+            if (!is_wp_error($terms)) {
+                foreach ((array) $terms as $term) {
+                    $label = trim((string) ($term->name ?? ''));
+                    if ($label === '') continue;
+                    $entities[] = array(
+                        'label'=>$label,
+                        'canonical'=>self::canonical_phrase($label),
+                        'priority'=>300,
+                        'term_id'=>absint($term->term_id ?? 0),
+                        'kind'=>'category',
+                    );
+                }
+            }
+
+            $vocab = $wpdb->prefix . 'seo_vocabulary';
+            if (class_exists('SEO_Solucionador_DB') && SEO_Solucionador_DB::table_exists($vocab)) {
+                $rows = (array) $wpdb->get_results(
+                    "SELECT label,semantic_group FROM {$vocab}
+                     WHERE active=1
+                       AND semantic_group IN ('tipo','subtipo','aplicacion','plataforma','rol')
+                     ORDER BY semantic_group,label
+                     LIMIT 5000",
+                    ARRAY_A
+                );
+                foreach ($rows as $row) {
+                    $label = trim((string) ($row['label'] ?? ''));
+                    if ($label === '') continue;
+                    $group = sanitize_key((string) ($row['semantic_group'] ?? ''));
+                    $entities[] = array(
+                        'label'=>$label,
+                        'canonical'=>self::canonical_phrase($label),
+                        'priority'=>in_array($group,array('tipo','subtipo'),true) ? 240 : 210,
+                        'term_id'=>0,
+                        'kind'=>'vocabulary',
+                    );
+                }
+            }
+        }
+
+        $input_words = preg_split('/\s+/u', self::canonical_phrase($normalized));
+        $input_set = array_fill_keys(array_filter((array) $input_words), true);
+        $stop = self::stopwords();
+        $generic = self::generic_object_words();
+        $best = null;
+        $best_score = -1;
+
+        foreach ($entities as $entity) {
+            $candidate = trim((string) ($entity['canonical'] ?? ''));
+            if ($candidate === '') continue;
+            $words = preg_split('/\s+/u', $candidate);
+            $semantic_words = array();
+            foreach ((array) $words as $word) {
+                if ($word === '' || isset($stop[$word]) || isset($generic[$word])) continue;
+                $semantic_words[] = $word;
+            }
+            $semantic_words = array_values(array_unique($semantic_words));
+            if (!$semantic_words) continue;
+
+            $matched = 0;
+            foreach ($semantic_words as $word) {
+                if (isset($input_set[$word])) $matched++;
+            }
+            if ($matched !== count($semantic_words)) continue;
+
+            // Una entidad de una sola palabra muy corta es demasiado ambigua.
+            if (count($semantic_words) === 1 && strlen($semantic_words[0]) < 5) continue;
+
+            $score = (int) ($entity['priority'] ?? 0)
+                + (count($semantic_words) * 25)
+                + min(40, strlen($candidate));
+            if ($score > $best_score) {
+                $best_score = $score;
+                $best = $entity;
+            }
+        }
+
+        if (!$best) return array();
+        return array(
+            'object'=>(string) ($best['canonical'] ?? ''),
+            'category_id'=>absint($best['term_id'] ?? 0),
+            'source'=>(string) ($best['kind'] ?? ''),
+        );
+    }
+
+    public static function category_from_text($text) {
+        $known = self::known_entity_object(self::normalize($text));
+        return absint($known['category_id'] ?? 0);
+    }
+
     private static function detect_object($normalized, $action, $condition, $context) {
+        $known = self::known_entity_object($normalized);
+        if (!empty($known['object'])) return (string) $known['object'];
+
         // Patrones de alta precision para problemas/acciones frecuentes.
         if ($action === 'detectar' && preg_match('/\bfugas?\b/u', $normalized)) return 'fuga';
         if ($action === 'perforar') {
@@ -376,9 +497,12 @@ final class SEO_Solucionador_Normalizer {
         $context = self::canonical_singular(self::normalize_term($hints['context'] ?? ''));
         if ($context === '') $context = self::detect_context($normalized);
 
-        $object = self::canonical_singular(self::normalize_term($hints['object'] ?? ''));
+        $object = self::canonical_phrase(self::normalize_term($hints['object'] ?? ''));
+        $known_entity = self::known_entity_object($normalized);
         if ($object === '' || isset(self::generic_object_words()[$object])) {
-            $object = self::detect_object($normalized, $action, $condition, $context);
+            $object = !empty($known_entity['object'])
+                ? (string) $known_entity['object']
+                : self::detect_object($normalized, $action, $condition, $context);
         }
         if ($object === '' && $context !== '' && in_array($action, array('perforar','cortar','lijar','soldar','pintar'), true)) {
             $object = $context;
@@ -401,6 +525,7 @@ final class SEO_Solucionador_Normalizer {
 
         $confidence = 0.58;
         if (!empty($hints['object'])) $confidence += 0.14;
+        if (!empty($known_entity['category_id'])) $confidence += 0.12;
         if (!empty($hints['state']) || !empty($hints['condition'])) $confidence += 0.10;
         if (!empty($hints['context'])) $confidence += 0.05;
         if ($action !== '' && $action !== 'resolver') $confidence += 0.08;
@@ -416,6 +541,8 @@ final class SEO_Solucionador_Normalizer {
             'condition' => $condition,
             'context' => $context,
             'canonical_key' => $key,
+            'category_id' => absint($hints['category_id'] ?? $known_entity['category_id'] ?? 0),
+            'object_source' => !empty($known_entity['source']) ? (string) $known_entity['source'] : (!empty($hints['object']) ? 'hint' : 'language'),
             'confidence' => $confidence,
         );
     }
