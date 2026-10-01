@@ -1950,7 +1950,7 @@ function seo_supplier_crawl_build_standard_csv( $recipe ) {
     fclose( $out );
 
     if ( 0 === $written ) {
-        @unlink( $path );
+        wp_delete_file( $path );
         return new WP_Error( 'supplier_auto_csv_empty', 'Todavia no hay productos descubiertos para preparar el CSV.' );
     }
 
