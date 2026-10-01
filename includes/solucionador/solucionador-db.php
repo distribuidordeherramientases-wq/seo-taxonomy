@@ -606,12 +606,18 @@ final class SEO_Solucionador_DB {
         $entity_type = sanitize_key((string) ($row['entity_type'] ?? ''));
         $entity_id = absint($row['entity_id'] ?? 0);
         if (!$topic_id || $entity_type === '' || !$entity_id) return false;
-        return false !== $wpdb->insert(self::tracking_table(), array(
+
+        $source = sanitize_key((string) ($row['source'] ?? 'analista')) ?: 'analista';
+        $period_days = max(1,absint($row['period_days'] ?? 28));
+        $snapshot_at = sanitize_text_field((string) ($row['snapshot_at'] ?? current_time('mysql')));
+        if ($snapshot_at === '') $snapshot_at = current_time('mysql');
+
+        $payload = array(
             'topic_id'=>$topic_id,
             'entity_type'=>$entity_type,
             'entity_id'=>$entity_id,
-            'source'=>sanitize_key((string) ($row['source'] ?? 'analista')) ?: 'analista',
-            'period_days'=>max(1,absint($row['period_days'] ?? 28)),
+            'source'=>$source,
+            'period_days'=>$period_days,
             'impressions'=>max(0,(int) ($row['impressions'] ?? 0)),
             'clicks'=>max(0,(int) ($row['clicks'] ?? 0)),
             'ctr'=>max(0,(float) ($row['ctr'] ?? 0)),
@@ -620,8 +626,24 @@ final class SEO_Solucionador_DB {
             'pageviews'=>max(0,(int) ($row['pageviews'] ?? 0)),
             'outcome_state'=>sanitize_key((string) ($row['outcome_state'] ?? '')),
             'payload_json'=>wp_json_encode((array) ($row['payload'] ?? array()),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
-            'snapshot_at'=>sanitize_text_field((string) ($row['snapshot_at'] ?? current_time('mysql'))),
-        ));
+            'snapshot_at'=>$snapshot_at,
+        );
+
+        $table = self::tracking_table();
+        // Una reejecucion del mismo dia actualiza el snapshot en lugar de
+        // acumular filas identicas. Conservamos historial diario util.
+        $existing_id = absint($wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$table}
+             WHERE topic_id=%d AND entity_type=%s AND entity_id=%d
+               AND source=%s AND period_days=%d
+               AND DATE(snapshot_at)=DATE(%s)
+             ORDER BY id DESC LIMIT 1",
+            $topic_id,$entity_type,$entity_id,$source,$period_days,$snapshot_at
+        )));
+        if ($existing_id) {
+            return false !== $wpdb->update($table,$payload,array('id'=>$existing_id));
+        }
+        return false !== $wpdb->insert($table,$payload);
     }
 
     public static function tracking_history($topic_id, $limit = 24) {
