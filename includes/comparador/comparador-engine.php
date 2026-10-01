@@ -712,16 +712,31 @@ final class SEO_Comparador_Engine {
             'source_snapshot_at'=>(string)$profile['source_snapshot_at'],
         );
         $existing=SEO_Comparador_DB::editorial($profile_id);
-        $version=max(1,absint($existing['version'] ?? 0)+1);
-        $row=array(
-            'summary'=>wp_kses_post($summary),
-            'excerpt'=>sanitize_textarea_field($excerpt),
-            'buying_criteria'=>wp_json_encode($criteria,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
-            'limits'=>wp_json_encode($limits,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
-            'version'=>$version,
-            'generated_at'=>self::now(),
-            'updated_at'=>self::now(),
-        );
+        $manual_import=!empty($existing)
+            && sanitize_key((string)($existing['origin'] ?? ''))==='manual_import'
+            && trim((string)($existing['comparison_text'] ?? ''))!=='';
+
+        if ($manual_import) {
+            // Recalcular fuentes/ejes no debe pisar la comparativa editorial importada.
+            // Se actualiza sólo el contexto generado por el sistema.
+            $row=array(
+                'summary'=>wp_kses_post($summary),
+                'generated_at'=>self::now(),
+                'updated_at'=>self::now(),
+            );
+        } else {
+            $version=max(1,absint($existing['version'] ?? 0)+1);
+            $row=array(
+                'summary'=>wp_kses_post($summary),
+                'excerpt'=>sanitize_textarea_field($excerpt),
+                'buying_criteria'=>wp_json_encode($criteria,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
+                'limits'=>wp_json_encode($limits,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
+                'origin'=>'generated',
+                'version'=>$version,
+                'generated_at'=>self::now(),
+                'updated_at'=>self::now(),
+            );
+        }
         if ($existing) $wpdb->update(SEO_Comparador_DB::table('editorial'),$row,array('profile_id'=>absint($profile_id)));
         else { $row['profile_id']=absint($profile_id); $wpdb->insert(SEO_Comparador_DB::table('editorial'),$row); }
         return SEO_Comparador_DB::editorial($profile_id);
@@ -846,12 +861,15 @@ final class SEO_Comparador_Engine {
         foreach ($profiles as $profile) {
             if (!in_array((string)$profile['status'],array('ready_for_solucionador','approved','published','monitoring','needs_update'),true)) continue;
             $editorial=SEO_Comparador_DB::editorial(absint($profile['id']));
-            if (!$editorial || trim((string)$editorial['summary'])==='') continue;
+            $editorial_text=trim((string)($editorial['comparison_text'] ?? ''));
+            if ($editorial_text==='') $editorial_text=trim((string)($editorial['summary'] ?? ''));
+            if (!$editorial || $editorial_text==='') continue;
+            $editorial_text=wp_html_excerpt(wp_strip_all_tags($editorial_text),2400,'…');
             $axes=array_values(array_filter(SEO_Comparador_DB::axes(absint($profile['id'])),static function($a){return !empty($a['publishable']);}));
             $representative=array_values(array_filter(SEO_Comparador_DB::products(absint($profile['id']),'external'),static function($p){return !empty($p['representative']);}));
             $signals[]=array(
                 'source_id'=>'profile:' . absint($profile['id']),
-                'source_text'=>sanitize_text_field(wp_strip_all_tags((string)$editorial['summary'])),
+                'source_text'=>sanitize_textarea_field($editorial_text),
                 'signal_type'=>'comparison_profile',
                 'proposal_role'=>'origin',
                 'category_id'=>absint($profile['primary_category_id']),
@@ -873,7 +891,12 @@ final class SEO_Comparador_Engine {
                     'external_products_seen'=>absint($profile['external_products_seen']),
                     'external_products_comparable'=>absint($profile['external_products_comparable']),
                     'source_snapshot_at'=>(string)$profile['source_snapshot_at'],
+                    'editorial_version'=>absint($editorial['version'] ?? 0),
+                    'editorial_origin'=>(string)($editorial['origin'] ?? 'generated'),
+                    'suggested_title'=>(string)($editorial['suggested_title'] ?? ''),
+                    'main_differences'=>SEO_Comparador_DB::decode_json($editorial['main_differences'] ?? '[]'),
                     'buying_criteria'=>SEO_Comparador_DB::decode_json($editorial['buying_criteria'] ?? '[]'),
+                    'use_cases'=>SEO_Comparador_DB::decode_json($editorial['use_cases'] ?? '[]'),
                     'limits'=>SEO_Comparador_DB::decode_json($editorial['limits'] ?? '{}'),
                 ),
             );
