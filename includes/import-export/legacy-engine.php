@@ -3249,7 +3249,7 @@ function seo_ie_product_import_finalize_stopped( $user_id, $token, $state = [], 
     seo_ie_product_import_clear_active( $user_id, $token );
 
     if ( ! empty( $state['path'] ) && is_file( $state['path'] ) ) {
-        @unlink( $state['path'] );
+        wp_delete_file( $state['path'] );
     }
 
     // Se mantiene como lápida durante una hora para bloquear workers antiguos
@@ -4708,7 +4708,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
         $handle = fopen( $path, 'r' );
 
         if ( false === $handle ) {
-            @unlink( $path );
+            wp_delete_file( $path );
             wp_die( esc_html__( 'No se pudo abrir el CSV de productos.', 'seo-taxonomy' ) );
         }
 
@@ -4716,7 +4716,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
 
         if ( false === $header ) {
             fclose( $handle );
-            @unlink( $path );
+            wp_delete_file( $path );
             wp_die( esc_html__( 'El CSV de productos está vacío.', 'seo-taxonomy' ) );
         }
 
@@ -4726,7 +4726,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
 
         if ( ! empty( $duplicates ) ) {
             fclose( $handle );
-            @unlink( $path );
+            wp_delete_file( $path );
             wp_die(
                 sprintf(
                     /* translators: %s: lista de cabeceras CSV duplicadas. */
@@ -4738,7 +4738,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
 
         if ( empty( array_intersect( [ 'product_id', 'sku', 'slug' ], $header ) ) && ! in_array( 'titulo', $header, true ) ) {
             fclose( $handle );
-            @unlink( $path );
+            wp_delete_file( $path );
             wp_die( esc_html__( 'El CSV necesita product_id, SKU, slug o título para identificar o crear productos.', 'seo-taxonomy' ) );
         }
 
@@ -4765,7 +4765,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
 
         if ( ! in_array( true, $selected_blocks, true ) ) {
             fclose( $handle );
-            @unlink( $path );
+            wp_delete_file( $path );
             wp_die( esc_html__( 'Selecciona al menos un bloque de datos para importar.', 'seo-taxonomy' ) );
         }
 
@@ -4821,7 +4821,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
         if ( ! seo_ie_product_import_schedule( $user_id, $token, 0 ) ) {
             delete_transient( seo_ie_product_import_state_key( $user_id, $token ) );
             seo_ie_product_import_clear_active( $user_id, $token );
-            @unlink( $path );
+            wp_delete_file( $path );
 
             if ( $is_ajax ) {
                 wp_send_json_error( [ 'message' => 'No se pudo iniciar la cola de importación del servidor.' ], 500 );
@@ -5736,7 +5736,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
     seo_ie_product_import_clear_active( $user_id, $token );
 
     if ( ! empty( $state['path'] ) ) {
-        @unlink( $state['path'] );
+        wp_delete_file( $state['path'] );
     }
 
     if ( $dry_run ) {
