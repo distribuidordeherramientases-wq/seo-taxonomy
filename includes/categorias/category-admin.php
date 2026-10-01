@@ -2422,6 +2422,15 @@ if (!$requested_term_id && isset($_GET['edit_category_id'])) {
 
 $single_category_mode = $requested_term_id > 0;
 
+if (!$single_category_mode && in_array($active_tab, array('estructura','informes'), true)) {
+    $view = $active_tab === 'estructura' ? 'structure' : 'google';
+    $url = class_exists('SEO_Solucionador_Admin')
+        ? SEO_Solucionador_Admin::diagnostics_url('categories', $view)
+        : add_query_arg(array('page'=>'seo-solucionador','tab'=>'diagnostics','diag_scope'=>'categories','diag_view'=>$view), admin_url('admin.php'));
+    wp_safe_redirect($url);
+    exit;
+}
+
 if ($single_category_mode) {
     $requested_term = get_term($requested_term_id, 'product_cat');
 
@@ -2436,9 +2445,7 @@ if ($single_category_mode) {
 if (!in_array($active_tab,
 [
     'categorias',
-    'estructura',
     'reasignar_categorias',
-    'informes',
     'inventario',
     'tabla_catalogo'
 ], true)) {
@@ -2457,15 +2464,6 @@ $url_categorias = add_query_arg(
     admin_url('admin.php')
 );
 
-// URL PESTAÑA INFORME / ESTRUCTURA DE CATEGORÍAS
-$url_estructura = add_query_arg(
-    [
-        'page' => $page_slug,
-        'tab'  => 'estructura',
-    ],
-    admin_url('admin.php')
-);
-
 // URL PESTAÑA REASIGNACIÓN DE CATEGORÍAS
 $url_reasignar_categorias = add_query_arg(
     [
@@ -2476,14 +2474,6 @@ $url_reasignar_categorias = add_query_arg(
 );
 
 
-// URL PESTANA INFORMES GOOGLE
-$url_informes = add_query_arg(
-    [
-        'page' => $page_slug,
-        'tab'  => 'informes',
-    ],
-    admin_url('admin.php')
-);
 
 // URL PESTAÑA INVENTARIO EDITORIAL POR CATEGORÍA
 $url_inventario = add_query_arg(
@@ -2513,11 +2503,7 @@ echo '<h2 class="nav-tab-wrapper" style="margin-bottom:20px;">';
 
     echo '<a href="' . esc_url($url_categorias) . '" class="nav-tab ' . ($active_tab === 'categorias' ? 'nav-tab-active' : '') . '">Categorías</a>';
 
-    echo '<a href="' . esc_url($url_estructura) . '" class="nav-tab ' . ($active_tab === 'estructura' ? 'nav-tab-active' : '') . '">Informe categorías</a>';
-
     echo '<a href="' . esc_url($url_reasignar_categorias) . '" class="nav-tab ' . ($active_tab === 'reasignar_categorias' ? 'nav-tab-active' : '') . '">Reasignación de Categorías</a>';
-
-    echo '<a href="' . esc_url($url_informes) . '" class="nav-tab ' . ($active_tab === 'informes' ? 'nav-tab-active' : '') . '">Informes Google</a>';
 
     echo '<a href="' . esc_url($url_inventario) . '" class="nav-tab ' . ($active_tab === 'inventario' ? 'nav-tab-active' : '') . '">Inventario</a>';
 
@@ -2526,6 +2512,7 @@ echo '<h2 class="nav-tab-wrapper" style="margin-bottom:20px;">';
 
 
 echo '</h2>';
+echo '<p class="description">Los informes de estructura y rendimiento Google se consultan únicamente en <a href="' . esc_url(class_exists('SEO_Solucionador_Admin') ? SEO_Solucionador_Admin::diagnostics_url('categories','google') : admin_url('admin.php?page=seo-solucionador&tab=diagnostics&diag_scope=categories&diag_view=google')) . '">Solucionador → Diagnóstico editorial</a>. Inventario y Tabla catálogo permanecen aquí como datos fuente y herramientas de ejecución.</p>';
 }
 
 // =========================
@@ -2543,36 +2530,6 @@ if ($active_tab === 'tabla_catalogo') {
 // =========================
 if ($active_tab === 'inventario') {
     seo_category_inventory_render($page_slug);
-    echo '</div>';
-    return;
-}
-
-// =========================
-// PESTAÑA INFORME / ESTRUCTURA DE CATEGORÍAS
-// =========================
-if ($active_tab === 'estructura') {
-
-    if (function_exists('seo_render_total_structure_report')) {
-        seo_render_total_structure_report();
-    } else {
-        echo '<div class="notice notice-error"><p>No esta disponible el informe de estructura de categorias.</p></div>';
-    }
-
-    echo '</div>';
-    return;
-}
-
-// =========================
-// PESTANA INFORMES GOOGLE
-// =========================
-if ($active_tab === 'informes') {
-
-    if (function_exists('seo_category_reports_page')) {
-        seo_category_reports_page($page_slug);
-    } else {
-        echo '<div class="notice notice-error"><p>No esta disponible el modulo de informes Google por categoria.</p></div>';
-    }
-
     echo '</div>';
     return;
 }
