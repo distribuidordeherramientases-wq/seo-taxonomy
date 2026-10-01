@@ -520,7 +520,7 @@ function seo_tm_render_assignment_device_panel($template) {
     $dispatcher    = !empty($mobile['dispatcher']);
     $enabled       = !empty($mobile['variants_enabled']);
     $plugin_active = isset($template->is_active) && (int) $template->is_active === 1;
-    $field_name    = 'device_variants_enabled[' . esc_attr($template->template_key) . ']';
+    $field_name    = 'device_variants_enabled[' . sanitize_key((string) $template->template_key) . ']';
 
     echo '<div class="seo-tm-device-panel">';
     echo '<div class="seo-tm-device-panel-head">';
@@ -536,11 +536,11 @@ function seo_tm_render_assignment_device_panel($template) {
     }
 
     if ($dispatcher) {
-        echo '<input type="hidden" name="' . $field_name . '" value="1">';
+        echo '<input type="hidden" name="' . esc_attr($field_name) . '" value="1">';
         echo '<label><input type="checkbox" checked disabled> Usar plantillas específicas para teléfono y ordenador</label>';
         echo '<p class="description"><strong>Obligatorio actualmente:</strong> la principal es un gestor técnico y no contiene el diseño final. Para poder usar solo la principal, primero reemplázala por una plantilla completa desde «Archivos de plantilla».</p>';
     } else {
-        echo '<label><input type="checkbox" name="' . $field_name . '" value="1" ' . checked($enabled, true, false) . '> Usar plantillas específicas para teléfono y ordenador</label>';
+        echo '<label><input type="checkbox" name="' . esc_attr($field_name) . '" value="1" ' . checked($enabled, true, false) . '> Usar plantillas específicas para teléfono y ordenador</label>';
         echo '<p class="description">Si una secundaria no existe, se publica automáticamente la principal. Puedes activar el modo antes o después de subir las secundarias.</p>';
     }
 
@@ -2257,18 +2257,18 @@ function seo_tm_render_registry_tab() {
     echo '</tr></thead><tbody>';
 
     foreach ($templates as $template) {
-        $prefix = 'templates[' . esc_attr($template->template_key) . ']';
+        $prefix = 'templates[' . sanitize_key((string) $template->template_key) . ']';
         $current_file = basename($template->template_file);
 
         echo '<tr>';
-        echo '<td><input type="number" class="small-text" name="' . $prefix . '[display_order]" value="' . esc_attr((int) $template->display_order) . '"></td>';
+        echo '<td><input type="number" class="small-text" name="' . esc_attr($prefix . '[display_order]') . '" value="' . esc_attr((int) $template->display_order) . '"></td>';
 
         echo '<td>';
-        echo '<input type="text" class="regular-text" name="' . $prefix . '[template_name]" value="' . esc_attr($template->template_name) . '" required>';
+        echo '<input type="text" class="regular-text" name="' . esc_attr($prefix . '[template_name]') . '" value="' . esc_attr($template->template_name) . '" required>';
         echo '<p><code>' . esc_html($template->template_key) . '</code></p>';
         echo '</td>';
 
-        echo '<td><select name="' . $prefix . '[template_file]">';
+        echo '<td><select name="' . esc_attr($prefix . '[template_file]') . '">';
 
         if (!isset($files[$current_file])) {
             echo '<option value="' . esc_attr($current_file) . '" selected>' . esc_html($current_file . ' (no encontrado)') . '</option>';
@@ -2284,24 +2284,24 @@ function seo_tm_render_registry_tab() {
 
         echo '</select></td>';
 
-        echo '<td><select name="' . $prefix . '[template_type]">';
+        echo '<td><select name="' . esc_attr($prefix . '[template_type]') . '">';
         $types = seo_tm_template_types();
         foreach ($types as $value => $label) {
             echo '<option value="' . esc_attr($value) . '" ' . selected($template->template_type, $value, false) . '>' . esc_html($label) . '</option>';
         }
         echo '</select></td>';
 
-        echo '<td><select name="' . $prefix . '[assignment_mode]">';
+        echo '<td><select name="' . esc_attr($prefix . '[assignment_mode]') . '">';
         $modes = seo_tm_assignment_modes();
         foreach ($modes as $value => $label) {
             echo '<option value="' . esc_attr($value) . '" ' . selected($template->assignment_mode, $value, false) . '>' . esc_html($label) . '</option>';
         }
         echo '</select></td>';
 
-        echo '<td><label><input type="checkbox" name="' . $prefix . '[is_public]" value="1" ' . checked((int) $template->is_public, 1, false) . '> Sí</label></td>';
-        echo '<td><label><input type="checkbox" name="' . $prefix . '[is_active]" value="1" ' . checked((int) $template->is_active, 1, false) . '> Plugin</label></td>';
-        echo '<td><label><input type="checkbox" name="' . $prefix . '[is_assignable]" value="1" ' . checked((int) $template->is_assignable, 1, false) . '> Sí</label></td>';
-        echo '<td><textarea name="' . $prefix . '[description]" rows="3">' . esc_textarea((string) $template->description) . '</textarea></td>';
+        echo '<td><label><input type="checkbox" name="' . esc_attr($prefix . '[is_public]') . '" value="1" ' . checked((int) $template->is_public, 1, false) . '> Sí</label></td>';
+        echo '<td><label><input type="checkbox" name="' . esc_attr($prefix . '[is_active]') . '" value="1" ' . checked((int) $template->is_active, 1, false) . '> Plugin</label></td>';
+        echo '<td><label><input type="checkbox" name="' . esc_attr($prefix . '[is_assignable]') . '" value="1" ' . checked((int) $template->is_assignable, 1, false) . '> Sí</label></td>';
+        echo '<td><textarea name="' . esc_attr($prefix . '[description]') . '" rows="3">' . esc_textarea((string) $template->description) . '</textarea></td>';
         echo '</tr>';
     }
 
