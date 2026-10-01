@@ -1418,7 +1418,7 @@ echo '</details>';
             if ('' === $diagnostic) {
                 $diagnostic = 'Pendiente de revision editorial.';
             }
-            echo '<tr><td><strong>' . esc_html($candidate->title) . '</strong><br><small>' . esc_html(wp_trim_words((string) $candidate->intent, 22)) . '</small></td><td>' . esc_html($type_label) . '</td><td>' . esc_html($candidate->source) . '</td><td><span class="seo-landing-badge">' . esc_html(seo_landing_requirements_summary($requirements)) . '</span></td><td>' . $score_prefix . '<span class="seo-landing-score ' . esc_attr($score_class) . '">' . esc_html(number_format_i18n($score, 0)) . '</span>/100</td><td><small>' . esc_html(wp_trim_words($diagnostic, 28)) . '</small></td><td>' . esc_html($status_label) . '</td></tr>';
+            echo '<tr><td><strong>' . esc_html($candidate->title) . '</strong><br><small>' . esc_html(wp_trim_words((string) $candidate->intent, 22)) . '</small></td><td>' . esc_html($type_label) . '</td><td>' . esc_html($candidate->source) . '</td><td><span class="seo-landing-badge">' . esc_html(seo_landing_requirements_summary($requirements)) . '</span></td><td>' . wp_kses_post($score_prefix) . '<span class="seo-landing-score ' . esc_attr($score_class) . '">' . esc_html(number_format_i18n($score, 0)) . '</span>/100</td><td><small>' . esc_html(wp_trim_words($diagnostic, 28)) . '</small></td><td>' . esc_html($status_label) . '</td></tr>';
         }
         echo '</tbody></table></div>';
     }
