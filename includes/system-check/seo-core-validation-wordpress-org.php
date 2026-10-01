@@ -14,6 +14,20 @@ if (!defined('SEO_CORE_WPORG_VALIDATION_VERSION')) {
     define('SEO_CORE_WPORG_VALIDATION_VERSION', '1.2.0');
 }
 
+function seo_core_wporg_filesystem() {
+    global $wp_filesystem;
+
+    if (!function_exists('WP_Filesystem')) {
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+    }
+
+    if (!is_object($wp_filesystem) || !method_exists($wp_filesystem, 'get_contents')) {
+        WP_Filesystem();
+    }
+
+    return is_object($wp_filesystem) ? $wp_filesystem : null;
+}
+
 function seo_core_wporg_scan_root() {
     $root = defined('SEO_SYSTEM_PATH') ? SEO_SYSTEM_PATH : dirname(__DIR__, 2) . '/';
     $root = wp_normalize_path((string) $root);
@@ -29,40 +43,36 @@ function seo_core_wporg_relative_path($path, $root = '') {
 function seo_core_wporg_all_files() {
     $root = seo_core_wporg_scan_root();
     $files = array();
+    $filesystem = seo_core_wporg_filesystem();
 
-    if (!is_dir($root) || !is_readable($root)) {
+    if (!$filesystem || !$filesystem->is_dir($root)) {
         return $files;
     }
 
-    try {
-        $iterator = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS),
-            RecursiveIteratorIterator::LEAVES_ONLY
-        );
+    if (!function_exists('list_files')) {
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+    }
 
-        foreach ($iterator as $file_info) {
-            if (!$file_info->isFile()) {
-                continue;
-            }
-
-            $path = wp_normalize_path($file_info->getPathname());
-            $relative = seo_core_wporg_relative_path($path, $root);
-
-            if (
-                strpos($relative, '.git/') === 0
-                || strpos($relative, 'node_modules/') === 0
-            ) {
-                continue;
-            }
-
-            $files[] = array(
-                'path' => $path,
-                'file' => $relative,
-                'size' => (int) $file_info->getSize(),
-            );
+    $paths = list_files($root, 100);
+    foreach ((array) $paths as $path) {
+        $path = wp_normalize_path((string) $path);
+        if (!$filesystem->is_file($path)) {
+            continue;
         }
-    } catch (UnexpectedValueException $exception) {
-        return $files;
+
+        $relative = seo_core_wporg_relative_path($path, $root);
+        if (
+            strpos($relative, '.git/') === 0
+            || strpos($relative, 'node_modules/') === 0
+        ) {
+            continue;
+        }
+
+        $files[] = array(
+            'path' => $path,
+            'file' => $relative,
+            'size' => (int) $filesystem->size($path),
+        );
     }
 
     usort($files, static function ($left, $right) {
@@ -83,11 +93,17 @@ function seo_core_wporg_php_files() {
 }
 
 function seo_core_wporg_file_lines($path) {
-    if (!is_readable($path)) {
+    $filesystem = seo_core_wporg_filesystem();
+    if (!$filesystem || !$filesystem->is_file($path)) {
         return array();
     }
-    $lines = file($path, FILE_IGNORE_NEW_LINES);
-    return is_array($lines) ? $lines : array();
+
+    $content = $filesystem->get_contents($path);
+    if (!is_string($content)) {
+        return array();
+    }
+
+    return preg_split('/\r\n|\r|\n/', $content);
 }
 
 function seo_core_wporg_add_hit(&$hits, $rule, $file, $line, $detail) {
@@ -144,7 +160,8 @@ function seo_core_wporg_result($label, $hits, $severity = 'warning', $confidence
 
 function seo_core_wporg_readme_data() {
     $path = seo_core_wporg_scan_root() . 'readme.txt';
-    $content = is_readable($path) ? (string) file_get_contents($path) : '';
+    $filesystem = seo_core_wporg_filesystem();
+    $content = ($filesystem && $filesystem->is_file($path)) ? (string) $filesystem->get_contents($path) : '';
     $data = array(
         'path' => $path,
         'content' => $content,
@@ -184,7 +201,8 @@ function seo_core_wporg_readme_data() {
 
 function seo_core_wporg_plugin_header_data() {
     $path = defined('SEO_SYSTEM_FILE') ? SEO_SYSTEM_FILE : seo_core_wporg_scan_root() . 'seo-taxonomy.php';
-    $content = is_readable($path) ? (string) file_get_contents($path) : '';
+    $filesystem = seo_core_wporg_filesystem();
+    $content = ($filesystem && $filesystem->is_file($path)) ? (string) $filesystem->get_contents($path) : '';
     $data = array('path' => $path, 'name' => '', 'version' => '', 'text_domain' => '');
 
     foreach (array('Plugin Name' => 'name', 'Version' => 'version', 'Text Domain' => 'text_domain') as $header => $key) {
