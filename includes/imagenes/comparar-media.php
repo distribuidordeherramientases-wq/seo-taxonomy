@@ -487,7 +487,7 @@ if (!function_exists('seo_images_cleanup_insert_source_rows')) {
                     $db_error = 'wpdb rechazó la consulta antes de enviarla a MariaDB.';
                 }
                 throw new RuntimeException(
-                    'Error al indexar imágenes externas: ' . $db_error
+                    'Error al indexar imágenes externas: ' . esc_html($db_error)
                 );
             }
 
