@@ -629,8 +629,8 @@ $grid_posts = ($paged === 1) ? array_slice($posts, 5) : $posts;
                     <div class="dht-front-grid">
                         <article class="dht-lead-card">
                             <a class="dht-lead-media" href="<?php echo esc_url(get_permalink($featured_id)); ?>" aria-label="<?php echo esc_attr(get_the_title($featured_id)); ?>">
-                                <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image helper builds HTML with context-specific escaping. ?>
-<?php echo dht_blog_v2_img($featured_image, get_the_title($featured_id), '', 'eager', 'high'); ?>
+                                <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image helper builds HTML with context-specific escaping.
+                        echo dht_blog_v2_img($featured_image, get_the_title($featured_id), '', 'eager', 'high'); ?>
                             </a>
                             <div class="dht-lead-body">
                                 <div class="dht-card-meta">
@@ -652,8 +652,8 @@ $grid_posts = ($paged === 1) ? array_slice($posts, 5) : $posts;
                                     $rail_image      = dht_blog_v2_post_image($rail_id, 'medium_large');
                                 ?>
                                     <article class="dht-rail-card">
-                                        <a class="dht-rail-media" href="<?php echo esc_url(get_permalink($rail_id)); ?>" tabindex="-1" aria-hidden="true"><?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image helper builds HTML with context-specific escaping. ?>
-<?php echo dht_blog_v2_img($rail_image, get_the_title($rail_id)); ?></a>
+                                        <a class="dht-rail-media" href="<?php echo esc_url(get_permalink($rail_id)); ?>" tabindex="-1" aria-hidden="true"><?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image helper builds HTML with context-specific escaping.
+                        echo dht_blog_v2_img($rail_image, get_the_title($rail_id)); ?></a>
                                         <div class="dht-rail-body">
                                             <div class="dht-card-meta"><?php if ($rail_category) : ?><a href="<?php echo esc_url(get_category_link($rail_category)); ?>"><?php echo esc_html($rail_category->name); ?></a><span>•</span><?php endif; ?><span><?php echo esc_html($dht_blog_read_time($rail_id) . ' min'); ?></span></div>
                                             <h3><a href="<?php echo esc_url(get_permalink($rail_id)); ?>"><?php echo esc_html(get_the_title($rail_id)); ?></a></h3>
@@ -682,8 +682,8 @@ $grid_posts = ($paged === 1) ? array_slice($posts, 5) : $posts;
                             $post_image      = dht_blog_v2_post_image($post_id, 'medium_large');
                         ?>
                             <article class="dht-news-card">
-                                <a class="dht-news-card-media" href="<?php echo esc_url(get_permalink($post_id)); ?>" tabindex="-1" aria-hidden="true"><?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image helper builds HTML with context-specific escaping. ?>
-<?php echo dht_blog_v2_img($post_image, get_the_title($post_id)); ?></a>
+                                <a class="dht-news-card-media" href="<?php echo esc_url(get_permalink($post_id)); ?>" tabindex="-1" aria-hidden="true"><?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image helper builds HTML with context-specific escaping.
+                        echo dht_blog_v2_img($post_image, get_the_title($post_id)); ?></a>
                                 <div class="dht-news-card-body">
                                     <div class="dht-card-meta"><?php if ($post_category) : ?><a href="<?php echo esc_url(get_category_link($post_category)); ?>"><?php echo esc_html($post_category->name); ?></a><span>•</span><?php endif; ?><span><?php echo esc_html(get_the_date('', $post_id)); ?></span><span>•</span><span><?php echo esc_html($dht_blog_read_time($post_id) . ' min'); ?></span></div>
                                     <h3><a href="<?php echo esc_url(get_permalink($post_id)); ?>"><?php echo esc_html(get_the_title($post_id)); ?></a></h3>
