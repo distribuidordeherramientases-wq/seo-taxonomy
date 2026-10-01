@@ -330,7 +330,7 @@ if (!function_exists('seo_page_vocab_render_fields')) {
         echo '<div style="font-weight:700;margin-bottom:5px;">Etiquetas semánticas · Vocabulary canónico</div>';
         $role = $page_id > 0 ? seo_page_vocab_get_structural_role($page_id) : '';
         $role_text = $role !== '' ? ' El rol estructural <code>' . esc_html($role) . '</code> permanece separado en <code>wp_seo_nodes</code>.' : ' El rol estructural se guarda por separado en <code>wp_seo_nodes</code>.';
-        echo '<p style="margin:0 0 12px;color:#50575e;font-size:12px;">Se guardan en <code>wp_seo_object_vocabulary</code> con <code>object_type=page</code>.' . $role_text . '</p>';
+        echo '<p style="margin:0 0 12px;color:#50575e;font-size:12px;">Se guardan en <code>wp_seo_object_vocabulary</code> con <code>object_type=page</code>.' . wp_kses_post($role_text) . '</p>';
 
         $grid = $compact ? 'repeat(2,minmax(240px,1fr))' : 'repeat(2,minmax(280px,1fr))';
         echo '<div style="display:grid;grid-template-columns:' . esc_attr($grid) . ';gap:12px;">';
