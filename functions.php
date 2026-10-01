@@ -417,6 +417,22 @@ function seo_system_private_log_file_weekday($path) {
 }
 
 /**
+ * Elimina un archivo mediante WordPress y conserva un booleano fiable también
+ * en versiones anteriores a WordPress 6.7, donde wp_delete_file() no devolvía
+ * todavía el resultado de unlink().
+ */
+function seo_system_private_log_delete_file($path) {
+
+    $result = wp_delete_file($path);
+
+    if (is_bool($result)) {
+        return $result;
+    }
+
+    return !file_exists($path);
+}
+
+/**
  * Copia un archivo a gzip y elimina el original solo cuando el gzip
  * ha quedado creado correctamente.
  */
@@ -453,7 +469,7 @@ function seo_system_private_log_compress_file($source, $destination) {
     $output = @gzopen($temporary, 'wb9');
 
     if ($output === false) {
-        wp_delete_file($temporary);
+        seo_system_private_log_delete_file($temporary);
         @flock($input, LOCK_UN);
         @fclose($input);
         return false;
@@ -493,27 +509,27 @@ function seo_system_private_log_compress_file($source, $destination) {
     @fclose($input);
 
     if (!$ok) {
-        wp_delete_file($temporary);
+        seo_system_private_log_delete_file($temporary);
         return false;
     }
 
     @chmod($temporary, 0600);
 
-    if (is_file($destination) && !wp_delete_file($destination)) {
-        wp_delete_file($temporary);
+    if (is_file($destination) && !seo_system_private_log_delete_file($destination)) {
+        seo_system_private_log_delete_file($temporary);
         return false;
     }
 
     if (!@rename($temporary, $destination)) {
-        wp_delete_file($temporary);
+        seo_system_private_log_delete_file($temporary);
         return false;
     }
 
     @chmod($destination, 0600);
 
-    if (!wp_delete_file($source)) {
+    if (!seo_system_private_log_delete_file($source)) {
         // Conserva el original si no se puede completar la rotacion.
-        wp_delete_file($destination);
+        seo_system_private_log_delete_file($destination);
         return false;
     }
 
@@ -549,7 +565,7 @@ function seo_system_private_log_migrate_legacy($private_dir, array $current_day)
     $slugs = seo_system_private_log_weekday_slugs();
 
     if (!isset($slugs[$weekday])) {
-        return wp_delete_file($legacy);
+        return seo_system_private_log_delete_file($legacy);
     }
 
     $legacy_slug = $slugs[$weekday];
@@ -557,14 +573,14 @@ function seo_system_private_log_migrate_legacy($private_dir, array $current_day)
     // Si pertenece al mismo slot que hoy pero ya es antiguo, se descarta:
     // hoy debe sobrescribir ese slot semanal.
     if ($legacy_slug === $current_day['slug']) {
-        return wp_delete_file($legacy);
+        return seo_system_private_log_delete_file($legacy);
     }
 
     $legacy_paths = seo_system_private_log_slot_paths($private_dir, $legacy_slug);
 
     // No pisa un slot ya migrado/rotado. El legacy es solo compatibilidad.
     if (is_file($legacy_paths['active']) || is_file($legacy_paths['archive'])) {
-        return wp_delete_file($legacy);
+        return seo_system_private_log_delete_file($legacy);
     }
 
     return seo_system_private_log_compress_file($legacy, $legacy_paths['archive']);
@@ -589,7 +605,7 @@ function seo_system_private_log_rotate($private_dir, array $current_day) {
         if ($slug === $current_day['slug']) {
             // El gzip de este mismo dia corresponde, como minimo, a la semana
             // anterior y debe dejar paso al slot actual.
-            if (is_file($paths['archive']) && !wp_delete_file($paths['archive'])) {
+            if (is_file($paths['archive']) && !seo_system_private_log_delete_file($paths['archive'])) {
                 return false;
             }
 
@@ -597,7 +613,7 @@ function seo_system_private_log_rotate($private_dir, array $current_day) {
                 $active_date = seo_system_private_log_file_date($paths['active']);
 
                 // Mismo nombre de weekday, pero de otra semana: sobrescribir.
-                if ($active_date !== $current_day['date'] && !wp_delete_file($paths['active'])) {
+                if ($active_date !== $current_day['date'] && !seo_system_private_log_delete_file($paths['active'])) {
                     return false;
                 }
             }
