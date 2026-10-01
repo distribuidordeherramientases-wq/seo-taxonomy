@@ -1135,6 +1135,14 @@ $schema_product_graph = array(
     </section>
   <?php endif; ?>
 
+  <?php
+  // Comparador: extracto persistido de la comparativa canónica de la categoría.
+  // No ejecuta Ojeador ni análisis pesado durante la visita.
+  if (function_exists('seo_comparador_render_product_block')) {
+      seo_comparador_render_product_block($product_id);
+  }
+  ?>
+
   <section id="reviews" class="dh-product-reviews dh-product-customer-reviews">
     <h2>Opiniones de clientes de esta tienda</h2>
     <?php comments_template(); ?>
