@@ -174,7 +174,11 @@ final class SEO_Dependiente_Help {
             'semantic_hint'   => self::sanitize_context_value($data['semantic_hint'] ?? array(), 0),
             'entry_selection' => self::sanitize_context_value($data['entry_selection'] ?? array(), 0),
             'orderby'         => sanitize_key((string) ($data['orderby'] ?? 'relevance')),
-            'compare_ids'   => array_values(array_slice(array_unique(array_filter(array_map('absint', (array) ($data['compare_ids'] ?? array())))), 0, 4)),
+            'compare_ids'   => array_values(array_slice(
+                array_unique(array_filter(array_map('absint', (array) ($data['compare_ids'] ?? array())))),
+                0,
+                function_exists('seo_comparador_store_compare_max') ? seo_comparador_store_compare_max() : 6
+            )),
         );
 
         $context = array(
