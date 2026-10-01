@@ -1078,7 +1078,7 @@ if (!function_exists('seo_tags_vocab_render_products')) {
             }
         }
 
-        echo '<div class="seo-tags-count">Mostrando ' . number_format_i18n(count($products)) . ' de ' . number_format_i18n($total) . ' productos.</div>';
+        echo '<div class="seo-tags-count">Mostrando ' . esc_html(number_format_i18n(count($products))) . ' de ' . esc_html(number_format_i18n($total)) . ' productos.</div>';
         echo '<div style="overflow:auto">';
         echo '<table class="widefat striped seo-tags-table">';
         echo '<thead><tr><th>Producto</th><th>Etiquetas WooCommerce</th><th>Ámbito / ROL</th><th>TIPO</th><th>APLICACIÓN</th><th>PLATAFORMA</th><th>SUBTIPO</th><th>Alineación</th><th>Acción</th></tr></thead><tbody>';
@@ -1769,7 +1769,7 @@ if (!function_exists('seo_tags_vocab_render_vocabulary')) {
         echo '<div><button class="button" type="submit">Filtrar</button></div>';
         echo '</form></div>';
 
-        echo '<div class="seo-tags-count">' . esc_html(seo_tags_vocab_group_label($group)) . ': ' . number_format_i18n($total) . ' términos.</div>';
+        echo '<div class="seo-tags-count">' . esc_html(seo_tags_vocab_group_label($group)) . ': ' . esc_html(number_format_i18n($total)) . ' términos.</div>';
         echo '<div style="overflow:auto"><table class="widefat striped seo-tags-table"><thead><tr><th>ID</th><th>Nombre / edición</th><th>Slug</th><th>Estado</th>';
         if ($group === 'tipo') {
             echo '<th>ROL asociado</th>';
