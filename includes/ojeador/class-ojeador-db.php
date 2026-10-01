@@ -314,6 +314,7 @@ final class SEO_Ojeador_DB {
 
         $market = self::table('categories');
         $schema = self::google_schema_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Ojeador/Google Schema table names are internal; query has no external values.
         return (array) $wpdb->get_results(
             "SELECT tt.term_id,
                     t.name AS category_name,
@@ -629,13 +630,15 @@ final class SEO_Ojeador_DB {
             'updated_at' => $now,
         );
 
+        $categories_table = self::table('categories');
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; term ID is bound through prepare().
         $exists = $wpdb->get_var($wpdb->prepare(
-            'SELECT term_id FROM ' . self::table('categories') . ' WHERE term_id=%d',
+            "SELECT term_id FROM {$categories_table} WHERE term_id=%d",
             $term_id
         ));
         $ok = $exists
-            ? $wpdb->update(self::table('categories'), $row, array('term_id'=>$term_id))
-            : $wpdb->insert(self::table('categories'), $row);
+            ? $wpdb->update($categories_table, $row, array('term_id'=>$term_id))
+            : $wpdb->insert($categories_table, $row);
 
         if ($ok === false) {
             $db_error = sanitize_text_field((string) $wpdb->last_error);
@@ -719,14 +722,16 @@ final class SEO_Ojeador_DB {
             'raw_json' => isset($result['raw']) ? wp_json_encode($result['raw'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null,
         );
 
+        $category_results_table = self::table('category_results');
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; term ID and result hash are bound through prepare().
         $existing = $wpdb->get_row($wpdb->prepare(
-            'SELECT id,first_seen_at FROM ' . self::table('category_results') . ' WHERE term_id=%d AND result_hash=%s LIMIT 1',
+            "SELECT id,first_seen_at FROM {$category_results_table} WHERE term_id=%d AND result_hash=%s LIMIT 1",
             absint($term_id),
             $result_hash
         ), ARRAY_A);
 
         if ($existing) {
-            $ok = $wpdb->update(self::table('category_results'), $data, array('id'=>absint($existing['id'])));
+            $ok = $wpdb->update($category_results_table, $data, array('id'=>absint($existing['id'])));
             if ($ok === false) {
                 return new WP_Error('ojeador_category_result_update', 'No se pudo actualizar el resultado de Google Shopping: ' . sanitize_text_field((string) $wpdb->last_error));
             }
@@ -734,7 +739,7 @@ final class SEO_Ojeador_DB {
         }
 
         $data['first_seen_at'] = $now;
-        $ok = $wpdb->insert(self::table('category_results'), $data);
+        $ok = $wpdb->insert($category_results_table, $data);
         return ($ok !== false && $wpdb->insert_id)
             ? absint($wpdb->insert_id)
             : new WP_Error('ojeador_category_result_insert', 'No se pudo guardar el resultado de Google Shopping: ' . sanitize_text_field((string) $wpdb->last_error));
@@ -807,7 +812,7 @@ final class SEO_Ojeador_DB {
                     LEFT JOIN {$categories} c ON c.term_id=tt.term_id
                     LEFT JOIN {$schema} gm ON gm.object_type='product_cat' AND gm.object_id=tt.term_id
                     {$where}
-                    LIMIT {$limit}";
+                    LIMIT %d";
         } else {
             $sql = "SELECT tt.term_id,t.name AS woo_category,tt.count AS woo_product_count,
                            c.category_name,c.query_text,c.status,c.result_count,c.unique_result_count,
@@ -817,12 +822,11 @@ final class SEO_Ojeador_DB {
                     JOIN {$wpdb->terms} t ON t.term_id=tt.term_id
                     LEFT JOIN {$categories} c ON c.term_id=tt.term_id
                     {$where}
-                    LIMIT {$limit}";
+                    LIMIT %d";
         }
-        if ($params) {
-            $sql = $wpdb->prepare($sql, $params);
-        }
-        $rows = (array) $wpdb->get_results($sql, ARRAY_A);
+        $params[] = $limit;
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador/Schema tables and fixed WHERE fragments; search values and LIMIT are bound through prepare().
+        $rows = (array) $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
 
         foreach ($rows as &$row) {
             $row['product_count'] = absint($row['woo_product_count'] ?? 0);
@@ -872,9 +876,11 @@ final class SEO_Ojeador_DB {
         }
 
         $cutoff = gmdate('Y-m-d H:i:s', time() - ($max_age_hours * HOUR_IN_SECONDS));
+        $categories_table = self::table('categories');
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; query, excluded term and cutoff are bound through prepare().
         $source = $wpdb->get_row($wpdb->prepare(
             "SELECT term_id,status,result_count,last_scan_at
-             FROM " . self::table('categories') . "
+             FROM {$categories_table}
              WHERE query_text=%s
                AND term_id<>%d
                AND status IN ('ok','no_results')
@@ -947,8 +953,10 @@ final class SEO_Ojeador_DB {
     public static function results_for_category($term_id, $limit = 1000) {
         global $wpdb;
         $limit = max(1, min(5000, absint($limit)));
+        $category_results_table = self::table('category_results');
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; term ID and LIMIT are bound through prepare().
         return $wpdb->get_results($wpdb->prepare(
-            'SELECT * FROM ' . self::table('category_results') . ' WHERE term_id=%d AND active=1 ORDER BY result_position ASC,id ASC LIMIT %d',
+            "SELECT * FROM {$category_results_table} WHERE term_id=%d AND active=1 ORDER BY result_position ASC,id ASC LIMIT %d",
             absint($term_id),
             $limit
         ), ARRAY_A);
