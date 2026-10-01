@@ -18,6 +18,10 @@ final class SEO_Solucionador_Export {
         }
         check_admin_referer('seo_solucionador_export_json');
         SEO_Solucionador_DB::maybe_install();
+        $initialization = SEO_Solucionador_Engine::ensure_initialized(180);
+        if (is_wp_error($initialization)) {
+            wp_die(esc_html($initialization->get_error_message()));
+        }
 
         $payload = self::build_payload();
         $json = wp_json_encode(
