@@ -76,7 +76,7 @@ final class SEO_Comparador_DB {
             last_error text NULL,
             created_at datetime NOT NULL,
             updated_at datetime NOT NULL,
-            PRIMARY KEY (id),
+            PRIMARY KEY  (id),
             UNIQUE KEY canonical_key (canonical_key),
             KEY primary_category_id (primary_category_id),
             KEY status (status),
@@ -96,7 +96,7 @@ final class SEO_Comparador_DB {
             manual_override tinyint(1) unsigned NOT NULL DEFAULT 0,
             source varchar(32) NOT NULL DEFAULT 'auto',
             updated_at datetime NOT NULL,
-            PRIMARY KEY (id),
+            PRIMARY KEY  (id),
             UNIQUE KEY profile_axis (profile_id,axis_key),
             KEY profile_publishable (profile_id,publishable),
             KEY priority (priority)
@@ -117,7 +117,7 @@ final class SEO_Comparador_DB {
             raw_meta longtext NULL,
             created_at datetime NOT NULL,
             updated_at datetime NOT NULL,
-            PRIMARY KEY (id),
+            PRIMARY KEY  (id),
             UNIQUE KEY profile_product (profile_id,source_type,dedupe_key),
             KEY own_product_id (own_product_id),
             KEY source_type (source_type)
@@ -136,7 +136,7 @@ final class SEO_Comparador_DB {
             source_ref text NULL,
             observed_at datetime NULL,
             updated_at datetime NOT NULL,
-            PRIMARY KEY (id),
+            PRIMARY KEY  (id),
             UNIQUE KEY product_axis (comparison_product_id,axis_key),
             KEY axis_key (axis_key),
             KEY verification_status (verification_status)
@@ -152,7 +152,7 @@ final class SEO_Comparador_DB {
             generated_at datetime NULL,
             reviewed_at datetime NULL,
             updated_at datetime NOT NULL,
-            PRIMARY KEY (profile_id)
+            PRIMARY KEY  (profile_id)
         ) {$collate};");
 
         dbDelta("CREATE TABLE {$post_map} (
@@ -164,7 +164,7 @@ final class SEO_Comparador_DB {
             published_at datetime NULL,
             last_synced_at datetime NULL,
             created_at datetime NOT NULL,
-            PRIMARY KEY (id),
+            PRIMARY KEY  (id),
             UNIQUE KEY profile_post (profile_id,post_id),
             KEY post_id (post_id),
             KEY status (status)
@@ -180,7 +180,7 @@ final class SEO_Comparador_DB {
             user_id bigint(20) unsigned NOT NULL DEFAULT 0,
             origin varchar(32) NOT NULL DEFAULT 'system',
             created_at datetime NOT NULL,
-            PRIMARY KEY (id),
+            PRIMARY KEY  (id),
             KEY profile_id (profile_id),
             KEY to_state (to_state),
             KEY created_at (created_at)
@@ -212,7 +212,7 @@ final class SEO_Comparador_DB {
             $wpdb->prepare(
                 "SELECT * FROM " . self::table('profiles') . " WHERE primary_category_id=%d OR category_ids LIKE %s ORDER BY updated_at DESC,id DESC",
                 $term_id,
-                '%"' . $wpdb->esc_like((string) $term_id) . '"%'
+                '%' . $wpdb->esc_like((string) $term_id) . '%'
             ),
             ARRAY_A
         );
