@@ -345,7 +345,8 @@ function seo_ie_batch_cleanup_old_files( $force = false ) {
                 $bucket_stats['expired']++;
                 $result['expired']++;
 
-                if ( ! @unlink( $path ) ) {
+                wp_delete_file( $path );
+                if ( is_file( $path ) ) {
                     $bucket_stats['errors']++;
                     $result['errors']++;
                     continue;
@@ -354,8 +355,11 @@ function seo_ie_batch_cleanup_old_files( $force = false ) {
                 $bucket_stats['deleted']++;
                 $result['deleted']++;
 
-                if ( is_file( $path . '.log.json' ) && @unlink( $path . '.log.json' ) ) {
-                    $result['deleted_logs']++;
+                if ( is_file( $path . '.log.json' ) ) {
+                    wp_delete_file( $path . '.log.json' );
+                    if ( ! is_file( $path . '.log.json' ) ) {
+                        $result['deleted_logs']++;
+                    }
                 }
             }
 
@@ -843,7 +847,12 @@ function seo_ie_batch_move_file( $source, $target ) {
         return true;
     }
 
-    return @copy( $source, $target ) && @unlink( $source );
+    if ( ! @copy( $source, $target ) ) {
+        return false;
+    }
+
+    wp_delete_file( $source );
+    return ! is_file( $source );
 }
 
 /**
@@ -1000,7 +1009,7 @@ function seo_ie_batch_finalize_product_rejections( &$state, &$log ) {
 
     if ( '' === $work_path || ! is_file( $work_path ) || 0 === $count ) {
         if ( '' !== $work_path && is_file( $work_path ) ) {
-            @unlink( $work_path );
+            wp_delete_file( $work_path );
         }
         return '';
     }
@@ -1197,7 +1206,7 @@ function seo_ie_batch_start_product( $user_id, $processing_path, $detected ) {
 
     $handle = fopen( $path, 'r' );
     if ( false === $handle ) {
-        @unlink( $path );
+        wp_delete_file( $path );
         return new WP_Error( 'seo_batch_product_open', 'No se pudo abrir el CSV temporal de productos.' );
     }
 
@@ -1208,7 +1217,7 @@ function seo_ie_batch_start_product( $user_id, $processing_path, $detected ) {
 
     if ( ! empty( $duplicates ) ) {
         fclose( $handle );
-        @unlink( $path );
+        wp_delete_file( $path );
         return new WP_Error( 'seo_batch_product_headers', sprintf( 'Cabeceras duplicadas: %s.', implode( ', ', $duplicates ) ) );
     }
 
@@ -1294,7 +1303,7 @@ function seo_ie_batch_start_product( $user_id, $processing_path, $detected ) {
 
     if ( ! is_array( $active ) && ! is_array( $result ) ) {
         seo_ie_product_import_clear_active( $user_id, $token );
-        @unlink( $path );
+        wp_delete_file( $path );
         return new WP_Error( 'seo_batch_product_bootstrap', 'El primer lote de productos no dejo un estado recuperable.' );
     }
 
@@ -1848,7 +1857,7 @@ function seo_ie_batch_handle_product_stopped( $user_id, &$state, &$log ) {
 
     $rejected_work = (string) ( $state['queue_rejected_work_path'] ?? '' );
     if ( '' !== $rejected_work && is_file( $rejected_work ) ) {
-        @unlink( $rejected_work );
+        wp_delete_file( $rejected_work );
     }
 
     seo_ie_add_log_detail( $log, 'La cola se pauso y el CSV en curso volvio a pending.' );
@@ -2115,12 +2124,13 @@ function seo_ie_batch_delete_managed_file( $bucket, $filename ) {
     }
 
     try {
-        if ( ! @unlink( $path ) ) {
+        wp_delete_file( $path );
+        if ( is_file( $path ) ) {
             return new WP_Error( 'seo_batch_delete_failed', 'No se pudo borrar el CSV.' );
         }
 
         if ( is_file( $path . '.log.json' ) ) {
-            @unlink( $path . '.log.json' );
+            wp_delete_file( $path . '.log.json' );
         }
     } finally {
         seo_ie_batch_release_lock( $lock );
@@ -2373,7 +2383,7 @@ function seo_ie_batch_admin_action() {
                 try {
                     $target = seo_ie_batch_unique_path( $paths['pending'], basename( $source ) );
                     if ( seo_ie_batch_move_file( $source, $target ) ) {
-                        @unlink( $source . '.log.json' );
+                        wp_delete_file( $source . '.log.json' );
                         $notice['seo_ie_batch_message'] = 'El archivo se devolvio a pending.';
                     } else {
                         $notice['seo_ie_batch_error'] = 'No se pudo devolver el archivo a pending.';
