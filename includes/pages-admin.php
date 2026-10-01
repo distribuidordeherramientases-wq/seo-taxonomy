@@ -911,7 +911,15 @@ function seo_page_admin_callback() {
     seo_page_editor_process_create($notices);
 
     $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'estructura';
-    if (!in_array($tab, array('estructura', 'landings', 'landing-report', 'corporativas', 'errores'), true)) {
+    if (in_array($tab, array('landing-report','errores'), true)) {
+        $view = $tab === 'errores' ? 'health' : 'landings';
+        $url = class_exists('SEO_Solucionador_Admin')
+            ? SEO_Solucionador_Admin::diagnostics_url('pages', $view)
+            : add_query_arg(array('page'=>'seo-solucionador','tab'=>'diagnostics','diag_scope'=>'pages','diag_view'=>$view), admin_url('admin.php'));
+        wp_safe_redirect($url);
+        exit;
+    }
+    if (!in_array($tab, array('estructura', 'landings', 'corporativas'), true)) {
         $tab = 'estructura';
     }
 
@@ -921,18 +929,10 @@ function seo_page_admin_callback() {
     $category_paths = seo_page_editor_get_category_paths($tree);
     $all_categories = seo_page_editor_get_all_product_categories();
 
-    if ($tab === 'errores') {
-        $pages = array();
-        $title = 'Errores';
-        $description = 'Disponibilidad, señales SEO y test de carga externo solo para páginas WordPress publicadas.';
-    } elseif ($tab === 'landings') {
+    if ($tab === 'landings') {
         $pages = seo_page_editor_get_pages_by_roles(array('landing'));
         $title = 'Landing pages';
         $description = 'Páginas comerciales/editoriales conectadas directamente con una o varias categorías WooCommerce mediante landing_to_category.';
-    } elseif ($tab === 'landing-report') {
-        $pages = array();
-        $title = 'Informe landings';
-        $description = 'Rendimiento, señales externas, candidatas y cobertura de las landing pages.';
     } elseif ($tab === 'corporativas') {
         $pages = seo_page_editor_get_pages_by_roles(array('corporate_page'));
         $title = 'Páginas corporativas';
@@ -951,32 +951,11 @@ function seo_page_admin_callback() {
         <nav class="nav-tab-wrapper" style="margin-bottom:18px;">
             <a class="nav-tab <?php echo $tab === 'estructura' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(add_query_arg('tab', 'estructura', $base_url)); ?>">Estructura SEO</a>
             <a class="nav-tab <?php echo $tab === 'landings' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(add_query_arg('tab', 'landings', $base_url)); ?>">Landings</a>
-            <a class="nav-tab <?php echo $tab === 'landing-report' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(add_query_arg('tab', 'landing-report', $base_url)); ?>">Informe landings</a>
             <a class="nav-tab <?php echo $tab === 'corporativas' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(add_query_arg('tab', 'corporativas', $base_url)); ?>">Corporativas</a>
-            <a class="nav-tab <?php echo $tab === 'errores' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(add_query_arg('tab', 'errores', $base_url)); ?>">Errores</a>
         </nav>
+        <p class="description">Rendimiento, oportunidades de landings y errores se consultan únicamente en <a href="<?php echo esc_url(class_exists('SEO_Solucionador_Admin') ? SEO_Solucionador_Admin::diagnostics_url('pages','landings') : admin_url('admin.php?page=seo-solucionador&tab=diagnostics&diag_scope=pages&diag_view=landings')); ?>">Solucionador → Diagnóstico editorial</a>.</p>
 
         <?php foreach ($notices as $notice) { seo_page_editor_render_notice($notice); } ?>
-
-        <?php if ($tab === 'errores'): ?>
-            <?php if (function_exists('seo_health_render_scope_tab')): ?>
-                <?php seo_health_render_scope_tab('page'); ?>
-            <?php else: ?>
-                <div class="notice notice-error inline"><p>No se ha podido cargar <code>system-check/seo-health-scan.php</code>.</p></div>
-            <?php endif; ?>
-        </div>
-        <?php return; ?>
-        <?php endif; ?>
-
-        <?php if ($tab === 'landing-report'): ?>
-            <?php if (function_exists('seo_landing_render_admin_tab')): ?>
-                <?php seo_landing_render_admin_tab(); ?>
-            <?php else: ?>
-                <div class="notice notice-error inline"><p>No se ha podido cargar el módulo <code>seo-landing-pages.php</code>.</p></div>
-            <?php endif; ?>
-        </div>
-        <?php return; ?>
-        <?php endif; ?>
 
         <div style="background:#fff;border-left:4px solid #2271b1;padding:10px 14px;margin:0 0 16px;">
             <strong><?php echo esc_html($title); ?></strong> · <?php echo esc_html(number_format_i18n(count($pages))); ?> páginas.
