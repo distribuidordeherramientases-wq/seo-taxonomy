@@ -3201,11 +3201,14 @@ final class SEO_Dependiente_Entrenador {
         // La recuperación queda protegida por el estado vacío exacto de la
         // remigración, el cierre automático del curso y L1-L9 completadas.
 
+        $lessons_table = self::lessons_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia lessons table; query has no external values.
         $prior_total = absint($wpdb->get_var(
-            'SELECT COUNT(*) FROM ' . self::lessons_table() . ' WHERE lesson_order < 10'
+            "SELECT COUNT(*) FROM {$lessons_table} WHERE lesson_order < 10"
         ));
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia lessons table; query has no external values.
         $prior_incomplete = absint($wpdb->get_var(
-            "SELECT COUNT(*) FROM " . self::lessons_table() . " WHERE lesson_order < 10 AND status <> 'completed'"
+            "SELECT COUNT(*) FROM {$lessons_table} WHERE lesson_order < 10 AND status <> 'completed'"
         ));
         if ($prior_total < 9 || $prior_incomplete > 0) {
             return false;
@@ -3230,7 +3233,7 @@ final class SEO_Dependiente_Entrenador {
         );
 
         return false !== $wpdb->update(
-            self::lessons_table(),
+            $lessons_table,
             array(
                 'status'         => 'completed',
                 'snapshot_after' => $snapshot_after,
@@ -3250,8 +3253,10 @@ final class SEO_Dependiente_Entrenador {
             return;
         }
         $lesson_key = 'v2_l10_consolidation_debt';
+        $lessons_table = self::lessons_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia lessons table; lesson key is bound through prepare().
         $row = $wpdb->get_row($wpdb->prepare(
-            'SELECT * FROM ' . self::lessons_table() . ' WHERE lesson_key = %s LIMIT 1',
+            "SELECT * FROM {$lessons_table} WHERE lesson_key = %s LIMIT 1",
             $lesson_key
         ), ARRAY_A);
         if (!is_array($row)) {
@@ -3269,7 +3274,7 @@ final class SEO_Dependiente_Entrenador {
 
         self::clear_lesson_data($lesson_key);
         self::clear_staged_academy_rules($lesson_key);
-        $wpdb->update(self::lessons_table(), array(
+        $wpdb->update($lessons_table, array(
             'status'           => 'ready',
             'module_count'     => 0,
             'item_count'       => 0,
@@ -3290,7 +3295,8 @@ final class SEO_Dependiente_Entrenador {
 
     private static function sync_lessons() {
         global $wpdb;
-        if (!self::table_exists(self::lessons_table())) {
+        $lessons_table = $lessons_table;
+        if (!self::table_exists($lessons_table)) {
             return;
         }
 
@@ -3305,8 +3311,9 @@ final class SEO_Dependiente_Entrenador {
 
         $definitions = self::lesson_definitions();
         foreach ($definitions as $key => $definition) {
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia lessons table; lesson key is bound through prepare().
             $existing = absint($wpdb->get_var($wpdb->prepare(
-                'SELECT id FROM ' . self::lessons_table() . ' WHERE lesson_key = %s LIMIT 1',
+                "SELECT id FROM {$lessons_table} WHERE lesson_key = %s LIMIT 1",
                 $key
             )));
             $data = array(
@@ -3316,12 +3323,12 @@ final class SEO_Dependiente_Entrenador {
                 'updated_at'   => current_time('mysql'),
             );
             if ($existing) {
-                $wpdb->update(self::lessons_table(), $data, array('id' => $existing));
+                $wpdb->update($lessons_table, $data, array('id' => $existing));
             } else {
                 $data['lesson_key'] = $key;
                 $data['status'] = 1 === absint($definition['order']) ? 'ready' : 'locked';
                 $data['created_at'] = current_time('mysql');
-                $wpdb->insert(self::lessons_table(), $data);
+                $wpdb->insert($lessons_table, $data);
             }
         }
 
@@ -3338,11 +3345,11 @@ final class SEO_Dependiente_Entrenador {
             if (!$found_current) {
                 $found_current = true;
                 if ('locked' === $status) {
-                    $wpdb->update(self::lessons_table(), array('status' => 'ready'), array('lesson_key' => $key));
+                    $wpdb->update($lessons_table, array('status' => 'ready'), array('lesson_key' => $key));
                 }
             } elseif (!in_array($status, array('locked'), true)) {
                 // No se permite tener dos lecciones activas simultáneas.
-                $wpdb->update(self::lessons_table(), array('status' => 'locked'), array('lesson_key' => $key));
+                $wpdb->update($lessons_table, array('status' => 'locked'), array('lesson_key' => $key));
             }
         }
     }
@@ -3358,8 +3365,10 @@ final class SEO_Dependiente_Entrenador {
                 $syncing = false;
             }
         }
+        $lessons_table = self::lessons_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia lessons table; query has no external values.
         $rows = (array) $wpdb->get_results(
-            'SELECT * FROM ' . self::lessons_table() . ' ORDER BY lesson_order ASC, id ASC',
+            "SELECT * FROM {$lessons_table} ORDER BY lesson_order ASC, id ASC",
             ARRAY_A
         );
         $out = array();
@@ -3371,8 +3380,10 @@ final class SEO_Dependiente_Entrenador {
 
     private static function lesson_row($lesson_key) {
         global $wpdb;
+        $lessons_table = self::lessons_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia lessons table; lesson key is bound through prepare().
         $row = $wpdb->get_row($wpdb->prepare(
-            'SELECT * FROM ' . self::lessons_table() . ' WHERE lesson_key = %s LIMIT 1',
+            "SELECT * FROM {$lessons_table} WHERE lesson_key = %s LIMIT 1",
             $lesson_key
         ), ARRAY_A);
         return is_array($row) ? $row : null;
