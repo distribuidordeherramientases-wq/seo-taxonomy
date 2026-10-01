@@ -440,6 +440,22 @@ final class SEO_Comparador_IO {
             : 'JSON editorial importado y pendiente de revisión.';
         SEO_Comparador_DB::update_status($profile_id, 'needs_review', 'manual_import', $reason, 'manual_import');
 
+        // Mantener sincronizado el extracto persistido únicamente si la pieza
+        // canónica todavía NO está publicada. Un post público nunca se modifica
+        // desde una importación JSON: queda para revisión de Editora/Solucionador.
+        $post_map = SEO_Comparador_DB::post_map($profile_id);
+        $linked_post_id = absint($post_map['post_id'] ?? 0);
+        if ($linked_post_id && get_post_status($linked_post_id) !== 'publish') {
+            $public_axes = array();
+            foreach (SEO_Comparador_DB::axes($profile_id) as $axis) {
+                if (!empty($axis['publishable'])) $public_axes[] = sanitize_text_field((string) $axis['label']);
+                if (count($public_axes) >= 5) break;
+            }
+            update_post_meta($linked_post_id, '_seo_comparador_excerpt', $excerpt);
+            update_post_meta($linked_post_id, '_seo_comparador_axes', $public_axes);
+            update_post_meta($linked_post_id, '_seo_comparador_snapshot_at', $current_snapshot);
+        }
+
         return array(
             'profile_id' => $profile_id,
             'version' => $version,
