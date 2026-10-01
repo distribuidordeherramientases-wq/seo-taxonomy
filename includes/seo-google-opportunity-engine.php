@@ -1553,7 +1553,7 @@ function seo_google_opportunity_render_actions(array $payload, $days) {
         array('SEO / vigilancia', $summary['seo'] + $summary['watch'], 'Mejorar activos o esperar más evidencia'),
     );
     foreach ($cards as $card) {
-        echo '<div class="seo-opp-kpi"><span>' . esc_html($card[0]) . '</span><strong>' . number_format_i18n($card[1]) . '</strong><small>' . esc_html($card[2]) . '</small></div>';
+        echo '<div class="seo-opp-kpi"><span>' . esc_html($card[0]) . '</span><strong>' . esc_html(number_format_i18n($card[1])) . '</strong><small>' . esc_html($card[2]) . '</small></div>';
     }
     echo '</div>';
 
@@ -1586,7 +1586,7 @@ function seo_google_opportunity_render_market(array $payload, $days) {
     } else {
         echo '<table class="widefat striped"><thead><tr><th>Tendencia</th><th>Relevancia</th><th>Volumen agrupado</th><th>Área relacionada</th><th>Observada</th></tr></thead><tbody>';
         foreach (array_slice($emerging, 0, 80) as $row) {
-            echo '<tr><td><strong>' . esc_html($row['query']) . '</strong></td><td>' . number_format_i18n((float) $row['relevance_score'], 0) . '/100</td><td>' . esc_html($row['traffic_label'] ?: number_format_i18n((float) $row['traffic'], 0)) . '</td><td>' . esc_html(implode(', ', array_slice((array) $row['seeds'], 0, 3))) . '</td><td>' . esc_html($row['observed_at']) . '</td></tr>';
+            echo '<tr><td><strong>' . esc_html($row['query']) . '</strong></td><td>' . esc_html(number_format_i18n((float) $row['relevance_score'], 0)) . '/100</td><td>' . esc_html($row['traffic_label'] ?: esc_html(number_format_i18n((float) $row['traffic'], 0))) . '</td><td>' . esc_html(implode(', ', array_slice((array) $row['seeds'], 0, 3))) . '</td><td>' . esc_html($row['observed_at']) . '</td></tr>';
         }
         echo '</tbody></table>';
     }
@@ -1598,7 +1598,7 @@ function seo_google_opportunity_render_market(array $payload, $days) {
     } else {
         echo '<table class="widefat striped"><thead><tr><th>Búsqueda</th><th>Puntuación</th><th>Crecimiento</th><th>Semilla</th><th>Fuente</th></tr></thead><tbody>';
         foreach (array_slice($market, 0, 100) as $row) {
-            echo '<tr><td><strong>' . esc_html($row['query']) . '</strong></td><td>' . number_format_i18n((float) $row['score'], 0) . '/100</td><td>' . (!empty($row['breakout']) ? '<strong>BREAKOUT</strong>' : esc_html(number_format_i18n((float) $row['max_growth'], 0) . '%')) . '</td><td>' . esc_html(implode(', ', array_slice((array) $row['seeds'], 0, 3))) . '</td><td>' . esc_html(implode(', ', (array) $row['providers'])) . '</td></tr>';
+            echo '<tr><td><strong>' . esc_html($row['query']) . '</strong></td><td>' . esc_html(number_format_i18n((float) $row['score'], 0)) . '/100</td><td>' . (!empty($row['breakout']) ? '<strong>BREAKOUT</strong>' : esc_html(number_format_i18n((float) $row['max_growth'], 0) . '%')) . '</td><td>' . esc_html(implode(', ', array_slice((array) $row['seeds'], 0, 3))) . '</td><td>' . esc_html(implode(', ', (array) $row['providers'])) . '</td></tr>';
         }
         echo '</tbody></table>';
     }
@@ -1652,7 +1652,7 @@ function seo_google_opportunity_render_results(array $payload, $days) {
     } else {
         echo '<table class="widefat striped"><thead><tr><th>Landing</th><th>Diagnóstico</th><th>GA4</th><th>Search Console</th></tr></thead><tbody>';
         foreach (array_slice($results['landings'], 0, 80) as $row) {
-            echo '<tr><td><a href="' . esc_url($row['url']) . '" target="_blank" rel="noopener"><strong>' . esc_html($row['title']) . '</strong></a></td><td>' . seo_google_opportunity_badge($row['assessment'], 'gray') . '</td><td>' . number_format_i18n((int) $row['pageviews']) . ' vistas · ' . number_format_i18n((int) $row['sessions']) . ' sesiones</td><td>' . number_format_i18n((int) $row['clicks']) . ' clics · ' . number_format_i18n((int) $row['impressions']) . ' impresiones · pos. ' . ($row['position'] ? number_format_i18n((float) $row['position'], 1) : '—') . '</td></tr>';
+            echo '<tr><td><a href="' . esc_url($row['url']) . '" target="_blank" rel="noopener"><strong>' . esc_html($row['title']) . '</strong></a></td><td>' . seo_google_opportunity_badge($row['assessment'], 'gray') . '</td><td>' . esc_html(number_format_i18n((int) $row['pageviews'])) . ' vistas · ' . esc_html(number_format_i18n((int) $row['sessions'])) . ' sesiones</td><td>' . esc_html(number_format_i18n((int) $row['clicks'])) . ' clics · ' . esc_html(number_format_i18n((int) $row['impressions'])) . ' impresiones · pos. ' . ($row['position'] ? esc_html(number_format_i18n((float) $row['position'], 1)) : '—') . '</td></tr>';
         }
         echo '</tbody></table>';
     }
@@ -1664,7 +1664,7 @@ function seo_google_opportunity_render_results(array $payload, $days) {
     } else {
         echo '<table class="widefat striped"><thead><tr><th>Post</th><th>Diagnóstico</th><th>GA4</th><th>Search Console</th></tr></thead><tbody>';
         foreach (array_slice($results['posts'], 0, 80) as $row) {
-            echo '<tr><td><a href="' . esc_url($row['url']) . '" target="_blank" rel="noopener"><strong>' . esc_html($row['title']) . '</strong></a></td><td>' . seo_google_opportunity_badge($row['assessment'], 'gray') . '</td><td>' . number_format_i18n((int) $row['pageviews']) . ' vistas · ' . number_format_i18n((int) $row['sessions']) . ' sesiones</td><td>' . number_format_i18n((int) $row['clicks']) . ' clics · ' . number_format_i18n((int) $row['impressions']) . ' impresiones · pos. ' . (!empty($row['position']) ? number_format_i18n((float) $row['position'], 1) : '—') . '</td></tr>';
+            echo '<tr><td><a href="' . esc_url($row['url']) . '" target="_blank" rel="noopener"><strong>' . esc_html($row['title']) . '</strong></a></td><td>' . seo_google_opportunity_badge($row['assessment'], 'gray') . '</td><td>' . esc_html(number_format_i18n((int) $row['pageviews'])) . ' vistas · ' . esc_html(number_format_i18n((int) $row['sessions'])) . ' sesiones</td><td>' . esc_html(number_format_i18n((int) $row['clicks'])) . ' clics · ' . esc_html(number_format_i18n((int) $row['impressions'])) . ' impresiones · pos. ' . (!empty($row['position']) ? esc_html(number_format_i18n((float) $row['position'], 1)) : '—') . '</td></tr>';
         }
         echo '</tbody></table>';
     }
