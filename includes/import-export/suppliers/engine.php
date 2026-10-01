@@ -1947,8 +1947,8 @@ function seo_proveedores_render_importador() {
             </p>
             <p>
                 <strong>Archivo original:</strong> <?php echo esc_html( $state['source_name'] ?? $state['filename'] ); ?>
-                · <strong>Filas detectadas:</strong> <?php echo number_format_i18n( absint( $state['rows_total'] ?? 0 ) ); ?>
-                · <strong>Columnas:</strong> <?php echo number_format_i18n( count( (array) $state['header'] ) ); ?>
+                · <strong>Filas detectadas:</strong> <?php echo esc_html(number_format_i18n( absint( $state['rows_total'] ?? 0 ) )); ?>
+                · <strong>Columnas:</strong> <?php echo esc_html(number_format_i18n( count( (array) $state['header'] ) )); ?>
             </p>
             <p><a class="button" href="<?php echo esc_url( wp_nonce_url( add_query_arg( [ 'page' => 'seo-import-export', 'seo_ie_tab' => 'importar-proveedor', 'seo_prov_reset' => '1' ], admin_url( 'admin.php' ) ), 'seo_prov_reset' ) ); ?>">← Nueva importacion</a></p>
 
