@@ -474,19 +474,13 @@ final class SEO_Comparador_IO {
             return new WP_Error('comparador_import_tmp', 'El archivo temporal de importación no es válido.');
         }
 
-        require_once ABSPATH . 'wp-admin/includes/file.php';
-        if (!WP_Filesystem()) {
-            return new WP_Error('comparador_import_fs', 'No se pudo inicializar el sistema de archivos de WordPress.');
-        }
-        global $wp_filesystem;
-        $contents = $wp_filesystem->get_contents($tmp_name);
-        if (!is_string($contents) || $contents === '') {
-            return new WP_Error('comparador_import_read', 'No se pudo leer el JSON importado.');
+        if (!function_exists('wp_json_file_decode')) {
+            return new WP_Error('comparador_import_json_reader', 'La instalación de WordPress no dispone del lector JSON requerido.');
         }
 
-        $payload = json_decode($contents, true);
+        $payload = wp_json_file_decode($tmp_name, array('associative' => true));
         if (!is_array($payload)) {
-            return new WP_Error('comparador_import_json', 'JSON inválido: ' . json_last_error_msg());
+            return new WP_Error('comparador_import_json', 'El archivo no contiene un JSON válido.');
         }
         return array('payload' => $payload, 'filename' => $name);
     }
