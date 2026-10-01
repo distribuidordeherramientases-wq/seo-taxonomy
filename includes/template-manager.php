@@ -1,13 +1,5 @@
 <?php
-/*
-Plugin Name: SEO Menu Manager
-Plugin URI: https://www.distribuidordeherramientas.es/
-Description: Gestión dinámica y escalable de plantillas SEO, archivos y asignaciones.
-Version: 2.1.0
-Requires PHP: 7.4
-Author: David Perez Martorell
-*/
-
+/** Internal SEO Taxonomy module. */
 if (!defined('ABSPATH')) exit;
 
 /* =========================================================
@@ -16,7 +8,11 @@ if (!defined('ABSPATH')) exit;
 
 if (!function_exists('seo_template_dir')) {
     function seo_template_dir() {
-        return WP_PLUGIN_DIR . '/seo-taxonomy/seo-system/templates/';
+        if (defined('SEO_SYSTEM_PATH')) {
+            return trailingslashit(SEO_SYSTEM_PATH . 'seo-system/templates');
+        }
+
+        return trailingslashit(dirname(__DIR__) . '/seo-system/templates');
     }
 }
 
@@ -61,9 +57,14 @@ function seo_tm_redirect($tab, $message, $type = 'success') {
         exit;
     }
 
-    echo '<script>window.location.href=' . wp_json_encode($url) . ';</script>';
-    echo '<noscript><meta http-equiv="refresh" content="0;url=' . esc_url($url) . '"></noscript>';
-    exit;
+    wp_die(
+        sprintf(
+            '<p>%s</p><p><a class="button button-primary" href="%s">%s</a></p>',
+            esc_html($message),
+            esc_url($url),
+            esc_html__('Volver al gestor de plantillas', 'seo-taxonomy')
+        )
+    );
 }
 
 function seo_tm_render_notice() {
@@ -738,19 +739,10 @@ function seo_tm_validate_php_upload(array $uploaded_file) {
 }
 
 function seo_tm_create_backup($file_path) {
-    if (!file_exists($file_path)) {
-        return '';
-    }
-
-    $pathinfo    = pathinfo($file_path);
-    $backup_name = $pathinfo['filename'] . '_' . date_i18n('Ymd_His') . '.php';
-    $backup_path = trailingslashit(dirname($file_path)) . $backup_name;
-
-    if (!copy($file_path, $backup_path)) {
-        return new WP_Error('backup_failed', 'No se pudo crear el backup del archivo actual.');
-    }
-
-    return $backup_name;
+    return new WP_Error(
+        'template_files_read_only',
+        'Las plantillas incluidas en el plugin son de solo lectura. Actualízalas mediante una nueva versión del plugin.'
+    );
 }
 
 function seo_tm_sync_page_template_meta($template_key) {
@@ -1085,89 +1077,21 @@ function seo_tm_handle_assignments() {
 ========================================================= */
 
 function seo_tm_handle_replace_file() {
-    if (!isset($_POST['seo_tm_replace_file'])) return;
+    if (!isset($_POST['seo_tm_replace_file'])) {
+        return;
+    }
 
     if (!current_user_can('manage_options')) {
-        seo_tm_redirect('archivos', 'No tienes permisos para reemplazar archivos.', 'error');
+        seo_tm_redirect('archivos', 'No tienes permisos para gestionar plantillas.', 'error');
     }
 
     check_admin_referer('seo_tm_replace_file', 'seo_tm_replace_nonce');
 
-    $template_key = isset($_POST['template_key']) ? sanitize_key(wp_unslash($_POST['template_key'])) : '';
-    $template     = seo_tm_get_template_by_key($template_key);
-
-    if (!$template) {
-        seo_tm_redirect('archivos', 'La plantilla no existe en la base de datos.', 'error');
-    }
-
-    $uploaded_file = $_FILES['template_file'] ?? [];
-    $validation    = seo_tm_validate_php_upload($uploaded_file);
-
-    if (is_wp_error($validation)) {
-        seo_tm_redirect('archivos', $validation->get_error_message(), 'error');
-    }
-
-    $directory = trailingslashit(seo_template_dir());
-    if (!is_dir($directory) && !wp_mkdir_p($directory)) {
-        seo_tm_redirect('archivos', 'No se pudo crear el directorio de plantillas.', 'error');
-    }
-
-    $file_path = $directory . basename($template->template_file);
-
-    if (file_exists($file_path) && !is_writable($file_path)) {
-        seo_tm_redirect('archivos', 'El archivo actual no tiene permisos de escritura.', 'error');
-    }
-
-    if (!file_exists($file_path) && !is_writable($directory)) {
-        seo_tm_redirect('archivos', 'El directorio de plantillas no tiene permisos de escritura.', 'error');
-    }
-
-    $backup = seo_tm_create_backup($file_path);
-    if (is_wp_error($backup)) {
-        seo_tm_redirect('archivos', $backup->get_error_message(), 'error');
-    }
-
-    if (!move_uploaded_file($uploaded_file['tmp_name'], $file_path)) {
-        if ($backup !== '') {
-            $backup_path = trailingslashit($directory) . $backup;
-
-            if (is_file($backup_path)) {
-                copy($backup_path, $file_path);
-            }
-        }
-
-        seo_tm_redirect('archivos', 'No se pudo guardar la plantilla subida.', 'error');
-    }
-
-    global $wpdb;
-    $wpdb->update(
-        $wpdb->prefix . 'seo_templates',
-        [
-            'template_content' => null,
-            'updated_at'       => current_time('mysql'),
-        ],
-        ['template_key' => $template_key],
-        [null, '%s'],
-        ['%s']
+    seo_tm_redirect(
+        'archivos',
+        'Por seguridad, SEO Taxonomy no permite sobrescribir archivos PHP del plugin desde el navegador. Publica la plantilla mediante una actualización del plugin.',
+        'warning'
     );
-
-    if (seo_template_is_device_dispatcher($file_path)) {
-        $wpdb->update(
-            $wpdb->prefix . 'seo_templates',
-            ['device_variants_enabled' => 1],
-            ['template_key' => $template_key],
-            ['%d'],
-            ['%s']
-        );
-    }
-
-    seo_tm_sync_page_template_meta($template_key);
-
-    $message = $backup
-        ? 'Plantilla reemplazada. Backup creado: ' . $backup
-        : 'Archivo de plantilla creado correctamente.';
-
-    seo_tm_redirect('archivos', $message, 'success');
 }
 
 function seo_tm_handle_variant_settings() {
@@ -1228,92 +1152,22 @@ function seo_tm_handle_variant_settings() {
 }
 
 function seo_tm_handle_replace_variant_file() {
-    if (!isset($_POST['seo_tm_replace_variant_file'])) return;
+    if (!isset($_POST['seo_tm_replace_variant_file'])) {
+        return;
+    }
 
     if (!current_user_can('manage_options')) {
-        seo_tm_redirect('archivos', 'No tienes permisos para reemplazar variantes.', 'error');
+        seo_tm_redirect('archivos', 'No tienes permisos para gestionar plantillas.', 'error');
     }
 
     check_admin_referer('seo_tm_replace_variant_file', 'seo_tm_replace_variant_nonce');
 
-    $template_key = isset($_POST['template_key']) ? sanitize_key(wp_unslash($_POST['template_key'])) : '';
-    $variant      = isset($_POST['variant']) ? sanitize_key(wp_unslash($_POST['variant'])) : '';
-
-    if (!in_array($variant, ['mobile', 'desktop'], true)) {
-        seo_tm_redirect('archivos', 'La variante indicada no es válida.', 'error');
-    }
-
-    $template = seo_tm_get_template_by_key($template_key);
-
-    if (!$template) {
-        seo_tm_redirect('archivos', 'La plantilla principal no existe en la base de datos.', 'error');
-    }
-
-    $target_name = seo_template_variant_filename($template->template_file, $variant);
-
-    if ($target_name === '') {
-        seo_tm_redirect('archivos', 'No se puede generar un nombre de secundaria para esta plantilla.', 'error');
-    }
-
-    $uploaded_file = $_FILES['template_file'] ?? [];
-    $validation    = seo_tm_validate_php_upload($uploaded_file);
-
-    if (is_wp_error($validation)) {
-        seo_tm_redirect('archivos', $validation->get_error_message(), 'error');
-    }
-
-    $directory = trailingslashit(seo_template_dir());
-
-    if (!is_dir($directory) && !wp_mkdir_p($directory)) {
-        seo_tm_redirect('archivos', 'No se pudo crear el directorio de plantillas.', 'error');
-    }
-
-    $file_path = $directory . $target_name;
-
-    if (file_exists($file_path) && !is_writable($file_path)) {
-        seo_tm_redirect('archivos', 'La secundaria actual no tiene permisos de escritura.', 'error');
-    }
-
-    if (!file_exists($file_path) && !is_writable($directory)) {
-        seo_tm_redirect('archivos', 'El directorio de plantillas no tiene permisos de escritura.', 'error');
-    }
-
-    $backup = seo_tm_create_backup($file_path);
-
-    if (is_wp_error($backup)) {
-        seo_tm_redirect('archivos', $backup->get_error_message(), 'error');
-    }
-
-    if (!move_uploaded_file($uploaded_file['tmp_name'], $file_path)) {
-        if ($backup !== '') {
-            $backup_path = $directory . $backup;
-
-            if (is_file($backup_path)) {
-                copy($backup_path, $file_path);
-            }
-        }
-
-        seo_tm_redirect('archivos', 'No se pudo guardar la plantilla secundaria subida.', 'error');
-    }
-
-    global $wpdb;
-
-    $wpdb->update(
-        $wpdb->prefix . 'seo_templates',
-        ['updated_at' => current_time('mysql')],
-        ['template_key' => $template_key],
-        ['%s'],
-        ['%s']
+    seo_tm_redirect(
+        'archivos',
+        'Por seguridad, SEO Taxonomy no permite crear o sobrescribir variantes PHP desde el navegador. Publica las variantes mediante una actualización del plugin.',
+        'warning'
     );
-
-    $label = $variant === 'mobile' ? 'teléfono' : 'ordenador';
-    $message = $backup !== ''
-        ? 'Secundaria de ' . $label . ' reemplazada. Backup creado: ' . $backup
-        : 'Secundaria de ' . $label . ' creada correctamente.';
-
-    seo_tm_redirect('archivos', $message, 'success');
 }
-
 
 function seo_tm_handle_register_existing_file() {
     if (!isset($_POST['seo_tm_register_existing'])) return;
@@ -1390,106 +1244,22 @@ function seo_tm_handle_register_existing_file() {
 }
 
 function seo_tm_handle_upload_new_template() {
-    if (!isset($_POST['seo_tm_upload_new'])) return;
+    if (!isset($_POST['seo_tm_upload_new'])) {
+        return;
+    }
 
     if (!current_user_can('manage_options')) {
-        seo_tm_redirect('archivos', 'No tienes permisos para añadir plantillas.', 'error');
+        seo_tm_redirect('archivos', 'No tienes permisos para gestionar plantillas.', 'error');
     }
 
     check_admin_referer('seo_tm_upload_new', 'seo_tm_upload_new_nonce');
 
-    global $wpdb;
-
-    $template_key  = isset($_POST['template_key']) ? sanitize_key(wp_unslash($_POST['template_key'])) : '';
-    $template_name = isset($_POST['template_name']) ? sanitize_text_field(wp_unslash($_POST['template_name'])) : '';
-    $template_type = isset($_POST['template_type']) ? sanitize_key(wp_unslash($_POST['template_type'])) : 'page';
-    $uploaded_file = $_FILES['template_file'] ?? [];
-
-    if ($template_key === '' || $template_name === '') {
-        seo_tm_redirect('archivos', 'Completa la clave y el nombre de la plantilla.', 'error');
-    }
-
-    if (seo_tm_get_template_by_key($template_key)) {
-        seo_tm_redirect('archivos', 'Ya existe una plantilla con esa clave.', 'error');
-    }
-
-    $validation = seo_tm_validate_php_upload($uploaded_file);
-    if (is_wp_error($validation)) {
-        seo_tm_redirect('archivos', $validation->get_error_message(), 'error');
-    }
-
-    $filename = sanitize_file_name(basename($uploaded_file['name']));
-    if ($filename === '' || strtolower(pathinfo($filename, PATHINFO_EXTENSION)) !== 'php') {
-        seo_tm_redirect('archivos', 'El nombre físico del archivo no es válido.', 'error');
-    }
-
-    $variant_parent = seo_tm_find_variant_parent_by_filename($filename);
-
-    if ($variant_parent) {
-        $parent_name = isset($variant_parent['template']->template_name)
-            ? (string) $variant_parent['template']->template_name
-            : (string) $variant_parent['template']->template_key;
-
-        seo_tm_redirect(
-            'archivos',
-            'Ese archivo corresponde a una secundaria de «' . $parent_name . '». Súbelo desde la tarjeta de su plantilla principal para no crear una asignación independiente.',
-            'warning'
-        );
-    }
-
-    $directory = trailingslashit(seo_template_dir());
-    if (!is_dir($directory) && !wp_mkdir_p($directory)) {
-        seo_tm_redirect('archivos', 'No se pudo crear el directorio de plantillas.', 'error');
-    }
-
-    $destination = $directory . $filename;
-    if (file_exists($destination)) {
-        seo_tm_redirect('archivos', 'Ya existe un archivo con ese nombre. Regístralo como existente o usa otro nombre.', 'error');
-    }
-
-    if (!move_uploaded_file($uploaded_file['tmp_name'], $destination)) {
-        seo_tm_redirect('archivos', 'No se pudo copiar el archivo al directorio del plugin.', 'error');
-    }
-
-    $allowed_types = array_keys(seo_tm_template_types());
-    if (!in_array($template_type, $allowed_types, true)) {
-        $template_type = 'other';
-    }
-
-    $inserted = $wpdb->insert(
-        $wpdb->prefix . 'seo_templates',
-        [
-            'template_key'    => $template_key,
-            'template_name'   => $template_name,
-            'template_file'   => $filename,
-            'template_content'=> null,
-            'updated_at'      => current_time('mysql'),
-            'is_active'       => 0,
-            'template_type'   => $template_type,
-            'is_public'       => 0,
-            'is_assignable'   => 0,
-            'assignment_mode' => 'automatic',
-            'display_order'   => 0,
-            'description'     => '',
-        ],
-        ['%s', '%s', '%s', null, '%s', '%d', '%s', '%d', '%d', '%s', '%d', '%s']
+    seo_tm_redirect(
+        'archivos',
+        'La subida de archivos PHP desde el navegador está desactivada. Añade nuevas plantillas mediante una actualización del plugin y después regístralas desde esta pantalla.',
+        'warning'
     );
-
-    if ($inserted === false) {
-        @unlink($destination);
-        seo_tm_redirect('archivos', 'El archivo se subió, pero no se pudo registrar la plantilla: ' . $wpdb->last_error, 'error');
-    }
-
-    seo_tm_redirect('archivos', 'Nueva plantilla subida y registrada. Permanece inactiva hasta que la habilites.', 'success');
 }
-
-/* =========================================================
-   SINCRONIZACIÓN CONTROLADA PRO -> STAGING
-
-   Copia únicamente el contenido de wp_seo_templates.
-   Reutiliza las conexiones PRO / STAGING ya configuradas en
-   Importar/Exportar > Clonador. PRO es siempre solo lectura.
-========================================================= */
 
 function seo_tm_pro_sync_expected_source_database() {
     return 'hosting160568eu_kAqx7hSq';
@@ -1613,7 +1383,7 @@ function seo_tm_pro_sync_open_pair() {
 
     $staging = seo_clonador_open('staging');
     if (is_wp_error($staging)) {
-        @mysqli_close($pro);
+        @seo_clonador_db_close($pro);
         return new WP_Error('seo_tm_sync_staging_connection', 'No se pudo abrir la conexión STAGING: ' . $staging->get_error_message());
     }
 
@@ -1627,27 +1397,26 @@ function seo_tm_pro_sync_open_pair() {
 
 function seo_tm_pro_sync_close_pair($pair) {
     if (!is_array($pair)) return;
-    if (!empty($pair['pro']) && $pair['pro'] instanceof mysqli) @mysqli_close($pair['pro']);
-    if (!empty($pair['staging']) && $pair['staging'] instanceof mysqli) @mysqli_close($pair['staging']);
+    if (!empty($pair['pro']) && $pair['pro'] instanceof wpdb) @seo_clonador_db_close($pair['pro']);
+    if (!empty($pair['staging']) && $pair['staging'] instanceof wpdb) @seo_clonador_db_close($pair['staging']);
 }
 
-function seo_tm_pro_sync_query_columns($mysqli, $table) {
+function seo_tm_pro_sync_query_columns($db, $table) {
     $table_sql = seo_tm_pro_sync_quote_identifier($table);
     if ($table_sql === '') return new WP_Error('seo_tm_sync_bad_table', 'Nombre de tabla no válido.');
 
-    $result = @mysqli_query($mysqli, "SHOW COLUMNS FROM {$table_sql}");
-    if ($result === false) {
-        return new WP_Error('seo_tm_sync_columns_failed', trim((string) mysqli_error($mysqli)) ?: 'No se pudieron leer las columnas.');
+    $rows = seo_clonador_db_rows($db, "SHOW COLUMNS FROM {$table_sql}");
+    $error = seo_clonador_db_error($db);
+    if ($error !== '') {
+        return new WP_Error('seo_tm_sync_columns_failed', $error ?: 'No se pudieron leer las columnas.');
     }
 
     $columns = [];
-    while ($row = mysqli_fetch_assoc($result)) {
+    foreach ($rows as $row) {
         if (!empty($row['Field'])) $columns[] = (string) $row['Field'];
     }
-    mysqli_free_result($result);
     return $columns;
 }
-
 function seo_tm_pro_sync_schema_check() {
     $pair = seo_tm_pro_sync_open_pair();
     if (is_wp_error($pair)) return $pair;
@@ -1677,7 +1446,7 @@ function seo_tm_pro_sync_schema_check() {
     return true;
 }
 
-function seo_tm_pro_sync_fetch_rows($mysqli, $table) {
+function seo_tm_pro_sync_fetch_rows($db, $table) {
     $table_sql = seo_tm_pro_sync_quote_identifier($table);
     if ($table_sql === '') return new WP_Error('seo_tm_sync_bad_table', 'Nombre de tabla no válido.');
 
@@ -1689,17 +1458,13 @@ function seo_tm_pro_sync_fetch_rows($mysqli, $table) {
     }
 
     $sql = 'SELECT ' . implode(', ', $columns) . " FROM {$table_sql} ORDER BY `id`, `template_key`";
-    $result = @mysqli_query($mysqli, $sql);
-    if ($result === false) {
-        return new WP_Error('seo_tm_sync_read_failed', trim((string) mysqli_error($mysqli)) ?: 'No se pudieron leer las plantillas.');
+    $rows = seo_clonador_db_rows($db, $sql);
+    $error = seo_clonador_db_error($db);
+    if ($error !== '') {
+        return new WP_Error('seo_tm_sync_read_failed', $error ?: 'No se pudieron leer las plantillas.');
     }
-
-    $rows = [];
-    while ($row = mysqli_fetch_assoc($result)) $rows[] = $row;
-    mysqli_free_result($result);
     return $rows;
 }
-
 function seo_tm_pro_sync_compare_rows($source_rows, $target_rows) {
     $source_map = [];
     $target_map = [];
@@ -1748,7 +1513,7 @@ function seo_tm_pro_sync_compare() {
 
 function seo_tm_pro_sync_sql_value($mysqli, $value) {
     if ($value === null) return 'NULL';
-    return "'" . mysqli_real_escape_string($mysqli, (string) $value) . "'";
+    return "'" . seo_clonador_db_escape($mysqli, (string) $value) . "'";
 }
 
 function seo_tm_handle_sync_from_pro() {
@@ -1820,15 +1585,15 @@ function seo_tm_handle_sync_from_pro() {
     foreach (seo_tm_pro_sync_columns() as $column) $columns[] = seo_tm_pro_sync_quote_identifier($column);
     $column_sql = implode(', ', $columns);
 
-    if (@mysqli_query($pair['staging'], 'START TRANSACTION') === false) {
-        $error = trim((string) mysqli_error($pair['staging']));
+    if (@seo_clonador_db_query($pair['staging'], 'START TRANSACTION') === false) {
+        $error = trim((string) seo_clonador_db_error($pair['staging']));
         seo_tm_pro_sync_close_pair($pair);
         seo_tm_redirect('sincronizar', 'No se pudo iniciar la transacción en STAGING. Backup creado: ' . $backup_table_name . '. ' . $error, 'error');
     }
 
-    if (@mysqli_query($pair['staging'], "DELETE FROM {$staging_table_sql}") === false) {
-        $error = trim((string) mysqli_error($pair['staging']));
-        @mysqli_query($pair['staging'], 'ROLLBACK');
+    if (@seo_clonador_db_query($pair['staging'], "DELETE FROM {$staging_table_sql}") === false) {
+        $error = trim((string) seo_clonador_db_error($pair['staging']));
+        @seo_clonador_db_query($pair['staging'], 'ROLLBACK');
         seo_tm_pro_sync_close_pair($pair);
         seo_tm_redirect('sincronizar', 'La conexión STAGING no pudo vaciar la tabla. No se aplicaron cambios. Backup: ' . $backup_table_name . '. Error: ' . $error, 'error');
     }
@@ -1840,9 +1605,9 @@ function seo_tm_handle_sync_from_pro() {
         }
 
         $sql = "INSERT INTO {$staging_table_sql} ({$column_sql}) VALUES (" . implode(', ', $values) . ')';
-        if (@mysqli_query($pair['staging'], $sql) === false) {
-            $error = trim((string) mysqli_error($pair['staging']));
-            @mysqli_query($pair['staging'], 'ROLLBACK');
+        if (@seo_clonador_db_query($pair['staging'], $sql) === false) {
+            $error = trim((string) seo_clonador_db_error($pair['staging']));
+            @seo_clonador_db_query($pair['staging'], 'ROLLBACK');
             seo_tm_pro_sync_close_pair($pair);
             seo_tm_redirect('sincronizar', 'Falló la copia de una plantilla. Se revirtió STAGING. Backup: ' . $backup_table_name . '. Error: ' . $error, 'error');
         }
@@ -1850,7 +1615,7 @@ function seo_tm_handle_sync_from_pro() {
 
     $target_rows = seo_tm_pro_sync_fetch_rows($pair['staging'], $pair['staging_table']);
     if (is_wp_error($target_rows)) {
-        @mysqli_query($pair['staging'], 'ROLLBACK');
+        @seo_clonador_db_query($pair['staging'], 'ROLLBACK');
         $message = $target_rows->get_error_message();
         seo_tm_pro_sync_close_pair($pair);
         seo_tm_redirect('sincronizar', 'La copia se revirtió porque no pudo verificarse STAGING: ' . $message . '. Backup: ' . $backup_table_name, 'error');
@@ -1858,13 +1623,13 @@ function seo_tm_handle_sync_from_pro() {
 
     $after = seo_tm_pro_sync_compare_rows($source_rows, $target_rows);
     if (!$after['equal']) {
-        @mysqli_query($pair['staging'], 'ROLLBACK');
+        @seo_clonador_db_query($pair['staging'], 'ROLLBACK');
         seo_tm_pro_sync_close_pair($pair);
         seo_tm_redirect('sincronizar', 'La copia se revirtió porque PRO y STAGING no quedaron idénticos. Backup: ' . $backup_table_name, 'error');
     }
 
-    if (@mysqli_query($pair['staging'], 'COMMIT') === false) {
-        $error = trim((string) mysqli_error($pair['staging']));
+    if (@seo_clonador_db_query($pair['staging'], 'COMMIT') === false) {
+        $error = trim((string) seo_clonador_db_error($pair['staging']));
         seo_tm_pro_sync_close_pair($pair);
         seo_tm_redirect('sincronizar', 'MySQL no confirmó la transacción. Revisa STAGING. Backup: ' . $backup_table_name . '. Error: ' . $error, 'error');
     }

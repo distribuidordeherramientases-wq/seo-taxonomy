@@ -645,7 +645,7 @@ $schema_product_graph = array(
 );
 ?>
 <script type="application/ld+json" id="dht-schema-product">
-<?php echo wp_json_encode($schema_product_graph, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
+<?php echo wp_json_encode($schema_product_graph, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>
 </script>
 
 <div class="dh-product-page dht-desktop-template">

@@ -323,7 +323,7 @@ $editorial_category_ids = array_values(array_unique(array_filter($editorial_cate
 
 if ($is_blog_category) {
     $blog_title = trim((string) $current_category->name);
-    $blog_intro = trim(wp_strip_all_tags((string) term_description($current_category->term_id, 'category')));
+    $blog_intro = trim(wp_strip_all_tags((string) term_description($current_category->term_id)));
 } else {
     $blog_title = $blog_page_id ? trim((string) get_the_title($blog_page_id)) : '';
     $blog_intro = '';
@@ -447,7 +447,7 @@ $grid_posts = ($paged === 1) ? array_slice($posts, 5) : $posts;
 ?>
 
 <script type="application/ld+json">
-<?php echo wp_json_encode($json, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT); ?>
+<?php echo wp_json_encode($json, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_PRETTY_PRINT); ?>
 </script>
 
 <style id="dht-blog-news-v3-css">

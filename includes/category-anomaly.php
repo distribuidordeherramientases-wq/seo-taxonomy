@@ -337,27 +337,30 @@ function search_category_anomaly() {
         // =========================
         // PROCESAR BOTÓN "MOVER CATEGORÍA"
         // =========================
-            if (
-                isset($_POST['seo_move_category']) &&
-                $_POST['seo_move_category'] == 1
-            ) {
-            
-                if (
-                    !isset($_POST['seo_move_category_nonce']) ||
-                    !wp_verify_nonce($_POST['seo_move_category_nonce'], 'seo_move_category_action')
-                ) {
+            $move_category = isset($_POST['seo_move_category'])
+                ? sanitize_text_field(wp_unslash($_POST['seo_move_category']))
+                : '';
+            if ($move_category === '1') {
+                $move_nonce = isset($_POST['seo_move_category_nonce'])
+                    ? sanitize_text_field(wp_unslash($_POST['seo_move_category_nonce']))
+                    : '';
+
+                if ($move_nonce === '' || !wp_verify_nonce($move_nonce, 'seo_move_category_action')) {
                     return;
                 }
-            
-                $cat_id = intval($_POST['cat_id']);
-                $target_hs_id = intval($_POST['target_hs_id']);
+
+                $cat_id = isset($_POST['cat_id']) ? absint(wp_unslash($_POST['cat_id'])) : 0;
+                $target_hs_id = isset($_POST['target_hs_id']) ? absint(wp_unslash($_POST['target_hs_id'])) : 0;
             
                 if ($cat_id > 0 && $target_hs_id > 0) {
                     $move_result = seo_category_anomaly_move_relation_with_data_layer($cat_id, $target_hs_id);
                     if (is_wp_error($move_result)) {
                         echo '<div class="notice notice-error"><p>' . esc_html($move_result->get_error_message()) . '</p></div>';
                     } else {
-                        wp_safe_redirect(wp_unslash($_SERVER['REQUEST_URI']));
+                        $request_uri = isset($_SERVER['REQUEST_URI'])
+                            ? esc_url_raw(wp_unslash($_SERVER['REQUEST_URI']))
+                            : admin_url();
+                        wp_safe_redirect($request_uri);
                         exit;
                     }
                 }
@@ -367,12 +370,21 @@ function search_category_anomaly() {
     // =========================
     // FILTROS
     // =========================
-    $cluster        = isset($_GET['cluster']) ? intval($_GET['cluster']) : 0;
-    $hub_primario   = isset($_GET['hub_primario']) ? intval($_GET['hub_primario']) : 0;
-    $hub_secundario = isset($_GET['hub_secundario']) ? intval($_GET['hub_secundario']) : 0;
-    $cat            = isset($_GET['cat']) ? intval($_GET['cat']) : 0;
+    $cluster        = isset($_GET['cluster']) ? absint(wp_unslash($_GET['cluster'])) : 0;
+    $hub_primario   = isset($_GET['hub_primario']) ? absint(wp_unslash($_GET['hub_primario'])) : 0;
+    $hub_secundario = isset($_GET['hub_secundario']) ? absint(wp_unslash($_GET['hub_secundario'])) : 0;
+    $cat            = isset($_GET['cat']) ? absint(wp_unslash($_GET['cat'])) : 0;
 
-    $run_anomalies = isset($_GET['run_anomalies']) && $_GET['run_anomalies'] == 1;
+    $run_anomalies = isset($_GET['run_anomalies'])
+        && '1' === sanitize_text_field(wp_unslash($_GET['run_anomalies']));
+
+    $page_slug = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : 'product-page-admin';
+    $tab_slug  = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'inventario';
+    $w_title = isset($_GET['w_title']) ? absint(wp_unslash($_GET['w_title'])) : 20;
+    $w_tags = isset($_GET['w_tags']) ? absint(wp_unslash($_GET['w_tags'])) : 20;
+    $w_attrs = isset($_GET['w_attrs']) ? absint(wp_unslash($_GET['w_attrs'])) : 20;
+    $w_hierarchy = isset($_GET['w_hierarchy']) ? absint(wp_unslash($_GET['w_hierarchy'])) : 20;
+    $w_group = isset($_GET['w_group']) ? absint(wp_unslash($_GET['w_group'])) : 20;
 
     // =========================
     // SELECTS
@@ -424,15 +436,15 @@ function search_category_anomaly() {
 
 <form method="GET" style="margin-bottom:20px;padding:20px;background:#f6f7f7;border:1px solid #c3c4c7;border-radius:6px;">
 
-    <input type="hidden" name="page" value="<?php echo esc_attr($_GET['page'] ?? 'product-page-admin'); ?>">
-    <input type="hidden" name="tab" value="<?php echo esc_attr($_GET['tab'] ?? 'inventario'); ?>">
+    <input type="hidden" name="page" value="<?php echo esc_attr($page_slug); ?>">
+    <input type="hidden" name="tab" value="<?php echo esc_attr($tab_slug); ?>">
 
     <div style="display:flex;gap:15px;flex-wrap:wrap;">
 
         <select name="cluster" onchange="this.form.submit()">
             <option value="0">Cluster</option>
             <?php foreach ($cluster_ids as $id): $p = get_post($id); ?>
-                <option value="<?php echo $id; ?>" <?php selected($cluster, $id); ?>>
+                <option value="<?php echo esc_attr((int) $id); ?>" <?php selected($cluster, $id); ?>>
                     <?php echo esc_html($p ? $p->post_title : "Cluster $id"); ?>
                 </option>
             <?php endforeach; ?>
@@ -441,7 +453,7 @@ function search_category_anomaly() {
         <select name="hub_primario" onchange="this.form.submit()">
             <option value="0">Hub primario</option>
             <?php foreach ($hub_primarios_ids as $id): $p = get_post($id); ?>
-                <option value="<?php echo $id; ?>" <?php selected($hub_primario, $id); ?>>
+                <option value="<?php echo esc_attr((int) $id); ?>" <?php selected($hub_primario, $id); ?>>
                     <?php echo esc_html($p ? $p->post_title : "HP $id"); ?>
                 </option>
             <?php endforeach; ?>
@@ -450,7 +462,7 @@ function search_category_anomaly() {
         <select name="hub_secundario" onchange="this.form.submit()">
             <option value="0">Hub secundario</option>
             <?php foreach ($hub_secundarios_ids as $id): $p = get_post($id); ?>
-                <option value="<?php echo $id; ?>" <?php selected($hub_secundario, $id); ?>>
+                <option value="<?php echo esc_attr((int) $id); ?>" <?php selected($hub_secundario, $id); ?>>
                     <?php echo esc_html($p ? $p->post_title : "HS $id"); ?>
                 </option>
             <?php endforeach; ?>
@@ -476,22 +488,22 @@ function search_category_anomaly() {
         <table class="form-table">
             <tr>
                 <th>Nombre categoría</th>
-                <td><input type="number" name="w_title" value="<?php echo esc_attr($_GET['w_title'] ?? 20); ?>"></td>
+                <td><input type="number" name="w_title" value="<?php echo esc_attr($w_title); ?>"></td>
             </tr>
             
             <tr>
                 <th>Etiquetas SEO</th>
-                <td><input type="number" name="w_tags" value="<?php echo esc_attr($_GET['w_tags'] ?? 20); ?>"></td>
+                <td><input type="number" name="w_tags" value="<?php echo esc_attr($w_tags); ?>"></td>
             </tr>
             
             <tr>
                 <th>Excerpt + descripción de categoría</th>
-                <td><input type="number" name="w_attrs" value="<?php echo esc_attr($_GET['w_attrs'] ?? 20); ?>"></td>
+                <td><input type="number" name="w_attrs" value="<?php echo esc_attr($w_attrs); ?>"></td>
             </tr>
             
             <tr>
                 <th>Jerarquía (Cluster + Hubs)</th>
-                <td><input type="number" name="w_hierarchy" value="<?php echo esc_attr($_GET['w_hierarchy'] ?? 20); ?>"></td>
+                <td><input type="number" name="w_hierarchy" value="<?php echo esc_attr($w_hierarchy); ?>"></td>
             </tr>
             
 
@@ -500,7 +512,7 @@ function search_category_anomaly() {
     <td>
         <input type="number" 
         name="w_group" 
-        value="<?php echo esc_attr($_GET['w_group'] ?? 20); ?>">
+        value="<?php echo esc_attr($w_group); ?>">
     </td>
 </tr>
 

@@ -1,10 +1,5 @@
 <?php
-/*
-Plugin Name: SEO Menu Manager
-Description: Genera y sincroniza menús SEO desde base de datos.
-Version: 1.1.0
-*/
-
+/** Internal SEO Taxonomy module. */
 if (!defined('ABSPATH')) exit;
 
 /*************************************************
@@ -77,10 +72,12 @@ function seo_menu_manager_page() {
                     echo '<div class="notice notice-success"><p>';
                     echo esc_html(
                         sprintf(
+                            /* translators: %d: número de elementos añadidos al menú SEO. */
                             _n(
                                 '%d elemento añadido al menú SEO.',
                                 '%d elementos añadidos al menú SEO.',
-                                (int) $result
+                                (int) $result,
+                                'seo-taxonomy'
                             ),
                             (int) $result
                         )

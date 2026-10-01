@@ -484,7 +484,7 @@ function seo_social_linkedin_discover_organizations($token, $config)
 function seo_social_linkedin_oauth_start()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para conectar LinkedIn.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para conectar LinkedIn.', 'seo-taxonomy'));
     }
     check_admin_referer('seo_social_linkedin_oauth_start');
 

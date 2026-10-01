@@ -230,7 +230,7 @@ if (!function_exists('seo_images_cleanup_source_rows')) {
 
         if ($wpdb->last_error !== '') {
             throw new RuntimeException(
-                'Error al leer la fuente externa ' . (string) ($source['key'] ?? '') . ': ' . (string) $wpdb->last_error
+                'Error al leer la fuente externa ' . esc_html((string) ($source['key'] ?? '')) . ': ' . esc_html((string) $wpdb->last_error)
             );
         }
 

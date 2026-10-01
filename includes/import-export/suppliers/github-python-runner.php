@@ -145,7 +145,7 @@ if ( ! function_exists( 'seo_github_python_runner_test_connection' ) ) {
 if ( ! function_exists( 'seo_github_python_runner_save_settings' ) ) {
     function seo_github_python_runner_save_settings() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'No tienes permisos para guardar esta conexion.', 'seo-system' ) );
+            wp_die( esc_html__( 'No tienes permisos para guardar esta conexion.', 'seo-taxonomy' ) );
         }
         check_admin_referer( 'seo_github_python_runner_save', 'seo_github_python_runner_nonce' );
 
@@ -387,7 +387,7 @@ if ( ! function_exists( 'seo_github_python_runner_start_prepared' ) ) {
 if ( ! function_exists( 'seo_github_python_runner_handle_launch' ) ) {
     function seo_github_python_runner_handle_launch() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'No tienes permisos para iniciar el scraper Python.', 'seo-system' ) );
+            wp_die( esc_html__( 'No tienes permisos para iniciar el scraper Python.', 'seo-taxonomy' ) );
         }
         check_admin_referer( 'seo_github_python_runner_launch', 'seo_github_python_runner_launch_nonce' );
 
@@ -618,12 +618,20 @@ if ( ! function_exists( 'seo_github_python_runner_callback' ) ) {
             return $storage;
         }
 
-        $stored_name = wp_unique_filename( $storage['dir'], $source_name );
-        $stored_path = trailingslashit( $storage['dir'] ) . $stored_name;
-        $moved = is_uploaded_file( $file['tmp_name'] )
-            ? move_uploaded_file( $file['tmp_name'], $stored_path )
-            : @rename( $file['tmp_name'], $stored_path );
-        if ( ! $moved ) {
+        $stored = seo_taxonomy_store_uploaded_file(
+            $file,
+            $storage['dir'],
+            [ 'csv' => 'text/csv', 'txt' => 'text/plain' ],
+            $source_name,
+            true
+        );
+        if ( is_wp_error( $stored ) ) {
+            return new WP_Error( 'seo_github_python_callback_store', $stored->get_error_message(), [ 'status' => 500 ] );
+        }
+
+        $stored_name = (string) $stored['name'];
+        $stored_path = (string) $stored['path'];
+        if ( '' === $stored_path ) {
             return new WP_Error( 'seo_github_python_callback_store', 'No se pudo conservar el CSV recibido desde GitHub.', [ 'status' => 500 ] );
         }
 
@@ -662,6 +670,13 @@ if ( ! function_exists( 'seo_github_python_runner_callback' ) ) {
     }
 }
 
+if ( ! function_exists( 'seo_github_python_runner_permission_callback' ) ) {
+    function seo_github_python_runner_permission_callback( WP_REST_Request $request ) {
+        $authorized = seo_github_python_runner_authorize_callback( $request );
+        return is_wp_error( $authorized ) ? $authorized : true;
+    }
+}
+
 if ( ! function_exists( 'seo_github_python_runner_register_rest' ) ) {
     function seo_github_python_runner_register_rest() {
         register_rest_route(
@@ -670,7 +685,7 @@ if ( ! function_exists( 'seo_github_python_runner_register_rest' ) ) {
             [
                 'methods'             => WP_REST_Server::CREATABLE,
                 'callback'            => 'seo_github_python_runner_callback',
-                'permission_callback' => '__return_true',
+                'permission_callback' => 'seo_github_python_runner_permission_callback',
             ]
         );
     }

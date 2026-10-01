@@ -236,7 +236,7 @@ add_action('seo_core_system_test_completed', 'seo_core_visual_auto_dispatch_afte
 
 function seo_core_visual_admin_run() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para ejecutar este chequeo.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para ejecutar este chequeo.', 'seo-taxonomy'));
     }
     check_admin_referer('seo_core_visual_run', 'seo_core_visual_nonce');
 
@@ -260,6 +260,11 @@ function seo_core_visual_admin_run() {
 }
 add_action('admin_post_seo_core_visual_run', 'seo_core_visual_admin_run');
 
+function seo_core_visual_permission_callback(WP_REST_Request $request) {
+    $authorized = seo_core_visual_authorize_callback($request);
+    return is_wp_error($authorized) ? $authorized : true;
+}
+
 function seo_core_visual_register_rest_route() {
     register_rest_route(
         'seo-taxonomy/v1',
@@ -267,7 +272,7 @@ function seo_core_visual_register_rest_route() {
         array(
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => 'seo_core_visual_callback',
-            'permission_callback' => '__return_true',
+            'permission_callback' => 'seo_core_visual_permission_callback',
         )
     );
 }

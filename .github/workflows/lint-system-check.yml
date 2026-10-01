@@ -2,8 +2,6 @@ name: Lint System Check
 
 on:
   pull_request:
-    branches:
-      - staging
     paths:
       - 'includes/system-check/**'
       - 'docs/manual/HERRAMIENTAS.md'
@@ -22,5 +20,4 @@ jobs:
       - name: PHP syntax
         run: |
           php -v
-          php -l includes/system-check/seo-system-mysql-audit.php
-          php -l includes/system-check/seo-system-server-status.php
+          find includes/system-check -type f -name '*.php' -print0 | sort -z | xargs -0 -n1 php -l

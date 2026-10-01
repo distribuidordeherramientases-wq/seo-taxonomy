@@ -65,7 +65,7 @@ $schema_front = array(
 );
 ?>
 <script type="application/ld+json" id="dht-schema-front">
-<?php echo wp_json_encode($schema_front, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
+<?php echo wp_json_encode($schema_front, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>
 </script>
 <?php
 

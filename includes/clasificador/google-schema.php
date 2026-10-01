@@ -388,18 +388,18 @@ if (!function_exists('seo_classifier_google_schema_admin_post_save')) {
         check_admin_referer('seo_classifier_google_schema_save');
 
         $result = seo_classifier_google_schema_save_mapping(
-            sanitize_key((string)($_POST['object_type'] ?? '')),
-            absint($_POST['object_id'] ?? 0),
+            isset($_POST['object_type']) ? sanitize_key(wp_unslash($_POST['object_type'])) : '',
+            isset($_POST['object_id']) ? absint(wp_unslash($_POST['object_id'])) : 0,
             [
-                'google_taxonomy_id' => wp_unslash($_POST['google_taxonomy_id'] ?? ''),
-                'google_name_en' => wp_unslash($_POST['google_name_en'] ?? ''),
-                'google_path_en' => wp_unslash($_POST['google_path_en'] ?? ''),
-                'google_alias_es' => wp_unslash($_POST['google_alias_es'] ?? ''),
-                'suggested_wp_name' => wp_unslash($_POST['suggested_wp_name'] ?? ''),
-                'shopping_query' => wp_unslash($_POST['shopping_query'] ?? ''),
-                'status' => wp_unslash($_POST['status'] ?? 'pending'),
+                'google_taxonomy_id' => isset($_POST['google_taxonomy_id']) ? sanitize_text_field(wp_unslash($_POST['google_taxonomy_id'])) : '',
+                'google_name_en' => isset($_POST['google_name_en']) ? sanitize_text_field(wp_unslash($_POST['google_name_en'])) : '',
+                'google_path_en' => isset($_POST['google_path_en']) ? sanitize_text_field(wp_unslash($_POST['google_path_en'])) : '',
+                'google_alias_es' => isset($_POST['google_alias_es']) ? sanitize_text_field(wp_unslash($_POST['google_alias_es'])) : '',
+                'suggested_wp_name' => isset($_POST['suggested_wp_name']) ? sanitize_text_field(wp_unslash($_POST['suggested_wp_name'])) : '',
+                'shopping_query' => isset($_POST['shopping_query']) ? sanitize_text_field(wp_unslash($_POST['shopping_query'])) : '',
+                'status' => isset($_POST['status']) ? sanitize_key(wp_unslash($_POST['status'])) : 'pending',
                 'source' => 'manual',
-                'notes' => wp_unslash($_POST['notes'] ?? ''),
+                'notes' => isset($_POST['notes']) ? sanitize_textarea_field(wp_unslash($_POST['notes'])) : '',
             ]
         );
 
@@ -542,7 +542,7 @@ if (!function_exists('seo_classifier_google_schema_render_panel')) {
         echo '</div>';
 
         foreach ($types as $type => $label) {
-            echo '<h2>' . esc_html($label) . ' <span style="font-weight:400;color:#646970">(' . number_format_i18n(count($grouped[$type])) . ')</span></h2>';
+            echo '<h2>' . esc_html($label) . ' <span style="font-weight:400;color:#646970">(' . esc_html(number_format_i18n(count($grouped[$type]))) . ')</span></h2>';
             if (!$grouped[$type]) {
                 echo '<p>No hay elementos de este tipo en <code>seo_relations</code>.</p>';
                 continue;

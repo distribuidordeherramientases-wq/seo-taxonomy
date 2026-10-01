@@ -1069,7 +1069,7 @@ final class SEO_Dependiente_Linguista {
                         $lexicon_id,
                         'product',
                         $product_id,
-                        hash('sha256', $verb . '|' . $target . '|' . strip_tags((string) ($row['post_excerpt'] ?? ''))),
+                        hash('sha256', $verb . '|' . $target . '|' . wp_strip_all_tags((string) ($row['post_excerpt'] ?? ''))),
                         'ling_l2_actions',
                         0.76,
                         $contexts

@@ -158,7 +158,7 @@ final class SEO_Dependiente_Actualizacion {
                         <div class="seo-dependiente-trainer__update-module is-<?php echo esc_attr($status); ?>">
                             <strong>M<?php echo esc_html($number); ?></strong>
                             <span><?php echo esc_html($label); ?></span>
-                            <small><?php echo 'completed' === $status ? 'Completado' : ('skipped' === $status ? 'Sin novedades' : ($count ? number_format_i18n($count) . ' ejercicios' : ucfirst($status))); ?></small>
+                            <small><?php echo 'completed' === $status ? 'Completado' : ('skipped' === $status ? 'Sin novedades' : ($count ? esc_html(number_format_i18n($count)) . ' ejercicios' : ucfirst($status))); ?></small>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -404,7 +404,7 @@ final class SEO_Dependiente_Actualizacion {
         $modules[$module] = $module_state;
 
         if (absint($module_state['no_progress'] ?? 0) >= 6) {
-            throw new RuntimeException('M' . $module . ' acumula errores técnicos sin avanzar. Se detiene antes del merge.');
+            throw new RuntimeException('M' . esc_html((string) $module) . ' acumula errores técnicos sin avanzar. Se detiene antes del merge.');
         }
 
         if ($answered_now < absint($summary['total'] ?? 0)) {

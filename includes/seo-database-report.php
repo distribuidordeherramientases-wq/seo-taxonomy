@@ -207,7 +207,7 @@ function seo_data_render_overview(array $tables): void
         echo '<td><strong>' . esc_html($table['label']) . '</strong></td>';
         echo '<td><code>' . esc_html($table['name']) . '</code></td>';
         echo '<td>' . esc_html($table['description']) . '</td>';
-        echo '<td>' . number_format_i18n($table['rows']) . '</td>';
+        echo '<td>' . esc_html(number_format_i18n($table['rows'])) . '</td>';
         echo '<td>' . esc_html(size_format($table['data_bytes'] + $table['index_bytes'], 2)) . '</td>';
         echo '<td>' . esc_html($table['engine'] ?: '—') . '</td>';
         echo '<td><a class="button" href="' . esc_url($explore_url) . '">Explorar</a></td>';
@@ -331,7 +331,7 @@ function seo_data_render_explorer(array $tables): void
     echo '<div class="seo-data-meta">';
     echo '<strong>' . esc_html($tables[$table_name]['label']) . '</strong> · ';
     echo '<code>' . esc_html($table_name) . '</code> · ';
-    echo number_format_i18n($total_items) . ' filas encontradas';
+    echo esc_html(number_format_i18n($total_items)) . ' filas encontradas';
     echo '</div>';
 
     echo '<div class="seo-data-scroll">';
@@ -417,7 +417,7 @@ function seo_data_render_export(array $tables): void
         echo '<td><strong>' . esc_html($table['label']) . '</strong></td>';
         echo '<td><code>' . esc_html($table['name']) . '</code></td>';
         echo '<td>' . esc_html($table['description']) . '</td>';
-        echo '<td>' . number_format_i18n($table['rows']) . '</td>';
+        echo '<td>' . esc_html(number_format_i18n($table['rows'])) . '</td>';
         echo '<td><a class="button" href="' . esc_url($csv_url) . '">Descargar CSV</a></td>';
         echo '<td><a class="button" href="' . esc_url($sql_url) . '">Descargar SQL</a></td>';
         echo '</tr>';
@@ -709,7 +709,7 @@ function seo_data_render_operations_center(): void
         echo '<td>' . esc_html($operation->source_module ?: '—') . '<br><span class="seo-operation-risk seo-risk-' . esc_attr($operation->risk_level) . '">' . esc_html($operation->risk_level) . '</span></td>';
         echo '<td>' . esc_html($operation->display_name ?: ('Usuario #' . (int) $operation->user_id)) . '</td>';
         echo '<td>' . seo_data_operation_status_badge((string) $operation->status) . '</td>';
-        echo '<td>' . number_format_i18n((int) $operation->recorded_changes) . '</td>';
+        echo '<td>' . esc_html(number_format_i18n((int) $operation->recorded_changes)) . '</td>';
         echo '<td>' . seo_data_operation_rollback_label($operation, $preview) . '</td>';
         echo '<td><a class="button" href="' . esc_url($details_url) . '">Ver detalles</a> ';
         echo '<a class="button" href="' . esc_url($json_url) . '">JSON</a> ';

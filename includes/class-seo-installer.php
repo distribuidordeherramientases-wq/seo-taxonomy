@@ -543,7 +543,7 @@ final class SEO_System_Installer
         foreach ($files as $relative_file) {
             $file = SEO_SYSTEM_PATH . $relative_file;
             if (!is_readable($file)) {
-                throw new RuntimeException('Missing schema module: ' . $relative_file);
+                throw new RuntimeException('Missing schema module: ' . esc_html($relative_file));
             }
             require_once $file;
         }
@@ -583,15 +583,15 @@ final class SEO_System_Installer
     private static function run_installer(string $function, array $arguments = []): void
     {
         if (!function_exists($function)) {
-            throw new RuntimeException('Required installer function is missing: ' . $function);
+            throw new RuntimeException('Required installer function is missing: ' . esc_html($function));
         }
 
         $result = call_user_func_array($function, $arguments);
         if (is_wp_error($result)) {
-            throw new RuntimeException($function . ': ' . $result->get_error_message());
+            throw new RuntimeException(esc_html($function) . ': ' . esc_html($result->get_error_message()));
         }
         if ($result === false) {
-            throw new RuntimeException($function . ' returned false.');
+            throw new RuntimeException(esc_html($function) . ' returned false.');
         }
     }
 
@@ -778,7 +778,7 @@ final class SEO_System_Installer
 
         if ($missing) {
             throw new RuntimeException(
-                'Required SEO Taxonomy tables were not created: ' . implode(', ', $missing)
+                'Required SEO Taxonomy tables were not created: ' . esc_html(implode(', ', $missing))
             );
         }
     }

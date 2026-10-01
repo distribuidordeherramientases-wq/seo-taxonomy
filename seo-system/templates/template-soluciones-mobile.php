@@ -429,7 +429,7 @@ $rail_posts    = ($paged === 1) ? array_slice($landing_posts, 1, 4) : array();
 $grid_posts    = ($paged === 1) ? array_slice($landing_posts, 5) : $landing_posts;
 ?>
 
-<script type="application/ld+json"><?php echo wp_json_encode($json, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT); ?></script>
+<script type="application/ld+json"><?php echo wp_json_encode($json, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_PRETTY_PRINT); ?></script>
 
 <style id="dht-solutions-news-v3-css">
 .solutions-index-page.dht-solutions-news-v3{--dht-ink:#172033;--dht-navy:#22314f;--dht-accent:#4d46ff;--dht-soft:#f4f6fa;--dht-line:#e3e7ef;--dht-muted:#667085;background:#fff;color:var(--dht-ink)}

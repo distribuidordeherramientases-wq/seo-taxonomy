@@ -23,7 +23,7 @@ add_action('rest_api_init', 'seo_server_status_register_external_monitor_route')
  */
 function seo_server_status() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'seo-taxonomy'));
     }
 
     $active_tab = seo_server_status_get_active_tab();
@@ -594,11 +594,35 @@ function seo_server_status_monitor_rotate_secret() {
     return seo_server_status_monitor_get_secret(true);
 }
 
+function seo_server_status_external_monitor_permission(WP_REST_Request $request) {
+    $secret = get_option(seo_server_status_monitor_secret_option_name(), '');
+    if (!is_string($secret) || strlen($secret) < 32) {
+        return new WP_Error('seo_monitor_not_configured', 'El monitor externo todavía no está configurado.', array('status' => 503));
+    }
+
+    $body = (string) $request->get_body();
+    if ($body === '' || strlen($body) > 1048576) {
+        return new WP_Error('seo_monitor_bad_payload', 'Payload vacío o demasiado grande.', array('status' => 413));
+    }
+
+    $provided_signature = strtolower(trim((string) $request->get_header('x-seo-monitor-signature')));
+    if (strpos($provided_signature, 'sha256=') === 0) {
+        $provided_signature = substr($provided_signature, 7);
+    }
+
+    $expected_signature = hash_hmac('sha256', $body, $secret);
+    if ($provided_signature === '' || !hash_equals($expected_signature, $provided_signature)) {
+        return new WP_Error('seo_monitor_invalid_signature', 'Firma del monitor no válida.', array('status' => 401));
+    }
+
+    return true;
+}
+
 function seo_server_status_register_external_monitor_route() {
     register_rest_route('seo-system/v1', '/external-monitor', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'seo_server_status_external_monitor_receive',
-        'permission_callback' => '__return_true',
+        'permission_callback' => 'seo_server_status_external_monitor_permission',
     ));
 }
 
@@ -1142,13 +1166,10 @@ function seo_server_status_security_salts_status() {
  * Localiza wp-config.php sin asumir una unica ubicacion.
  */
 function seo_server_status_security_wp_config_path() {
-    $candidates = array(
-        ABSPATH . 'wp-config.php',
-        dirname(rtrim(ABSPATH, '/\\')) . '/wp-config.php',
-    );
-    foreach ($candidates as $candidate) {
-        if (is_file($candidate)) {
-            return wp_normalize_path($candidate);
+    foreach ((array) get_included_files() as $candidate) {
+        $candidate = wp_normalize_path((string) $candidate);
+        if (basename($candidate) === 'wp-config.php' && is_file($candidate)) {
+            return $candidate;
         }
     }
     return '';
@@ -1728,7 +1749,9 @@ function seo_server_status_collect_security_checks($deep = false) {
     }
 
     $php_error_log = trim((string) ini_get('error_log'));
-    $doc_root = !empty($_SERVER['DOCUMENT_ROOT']) ? wp_normalize_path((string) $_SERVER['DOCUMENT_ROOT']) : '';
+    $doc_root = !empty($_SERVER['DOCUMENT_ROOT'])
+        ? wp_normalize_path(sanitize_text_field(wp_unslash($_SERVER['DOCUMENT_ROOT'])))
+        : '';
     $php_log_public = false;
     if ($php_error_log !== '' && $doc_root !== '' && strpos(wp_normalize_path($php_error_log), trailingslashit(untrailingslashit($doc_root))) === 0) {
         $php_log_public = true;
@@ -3324,7 +3347,7 @@ function seo_server_status_get_php_error_log_info() {
     }
 
     if (!empty($_SERVER['DOCUMENT_ROOT'])) {
-        $document_root = realpath((string) $_SERVER['DOCUMENT_ROOT']);
+        $document_root = realpath(sanitize_text_field(wp_unslash($_SERVER['DOCUMENT_ROOT'])));
         if ($document_root !== false) {
             $normalized_root = trailingslashit(untrailingslashit(wp_normalize_path($document_root)));
             $info['private_known'] = true;

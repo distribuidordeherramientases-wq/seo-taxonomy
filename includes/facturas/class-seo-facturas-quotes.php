@@ -350,7 +350,7 @@ final class SEO_Facturas_Quotes {
         if (function_exists('current_datetime')) {
             $valid_until = current_datetime()->modify('+' . $validity_days . ' days')->format('Y-m-d H:i:s');
         } else {
-            $valid_until = date('Y-m-d H:i:s', time() + ($validity_days * DAY_IN_SECONDS));
+            $valid_until = wp_date('Y-m-d H:i:s', time() + ($validity_days * DAY_IN_SECONDS));
         }
 
         $items = array();

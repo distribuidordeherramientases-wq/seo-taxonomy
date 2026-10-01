@@ -841,7 +841,7 @@ function seo_ie_import_required_catalogs_csv() {
     }
 
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para importar vocabulario y atributos.', 'seo-system' ) );
+        wp_die( esc_html__( 'No tienes permisos para importar vocabulario y atributos.', 'seo-taxonomy' ) );
     }
 
     check_admin_referer( 'seo_import_required_catalogs_csv', 'seo_import_required_catalogs_nonce' );
@@ -853,18 +853,18 @@ function seo_ie_import_required_catalogs_csv() {
         || ( ! $internal_batch && ! is_uploaded_file( $_FILES['required_catalogs_csv']['tmp_name'] ) )
         || ( $internal_batch && ! is_file( $_FILES['required_catalogs_csv']['tmp_name'] ) )
     ) {
-        wp_die( esc_html__( 'No se ha recibido un CSV de catálogos válido.', 'seo-system' ) );
+        wp_die( esc_html__( 'No se ha recibido un CSV de catálogos válido.', 'seo-taxonomy' ) );
     }
 
     $handle = fopen( $_FILES['required_catalogs_csv']['tmp_name'], 'r' );
     if ( false === $handle ) {
-        wp_die( esc_html__( 'No se pudo abrir el CSV de catálogos.', 'seo-system' ) );
+        wp_die( esc_html__( 'No se pudo abrir el CSV de catálogos.', 'seo-taxonomy' ) );
     }
 
     $header = seo_ie_read_csv_row( $handle );
     if ( false === $header ) {
         fclose( $handle );
-        wp_die( esc_html__( 'El CSV de catálogos está vacío.', 'seo-system' ) );
+        wp_die( esc_html__( 'El CSV de catálogos está vacío.', 'seo-taxonomy' ) );
     }
 
     $header = array_map(
@@ -878,7 +878,7 @@ function seo_ie_import_required_catalogs_csv() {
 
     if ( ! in_array( 'tipo_registro', $header, true ) && ! in_array( 'tabla', $header, true ) ) {
         fclose( $handle );
-        wp_die( esc_html__( 'El CSV debe contener la columna tipo_registro (o tabla). Usa como plantilla el export de catálogos obligatorios.', 'seo-system' ) );
+        wp_die( esc_html__( 'El CSV debe contener la columna tipo_registro (o tabla). Usa como plantilla el export de catálogos obligatorios.', 'seo-taxonomy' ) );
     }
 
     $dry_run = ! empty( $_POST['required_catalogs_dry_run'] );

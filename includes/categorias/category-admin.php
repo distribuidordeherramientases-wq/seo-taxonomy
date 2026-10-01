@@ -1266,9 +1266,9 @@ if (!function_exists('seo_category_inventory_render')) {
         $to = min($offset + count($categories), $total_categories);
 
         echo '<div style="display:flex;gap:12px;flex-wrap:wrap;margin:16px 0;">';
-        echo '<span style="background:#fff;border:1px solid #dcdcde;padding:7px 10px;border-radius:5px;"><strong>Categorías:</strong> ' . number_format_i18n($total_categories) . '</span>';
-        echo '<span style="background:#fff;border:1px solid #dcdcde;padding:7px 10px;border-radius:5px;"><strong>Mostrando:</strong> ' . number_format_i18n($from) . '–' . number_format_i18n($to) . '</span>';
-        echo '<span style="background:#fff;border:1px solid #dcdcde;padding:7px 10px;border-radius:5px;"><strong>Por página:</strong> ' . number_format_i18n($per_page) . '</span>';
+        echo '<span style="background:#fff;border:1px solid #dcdcde;padding:7px 10px;border-radius:5px;"><strong>Categorías:</strong> ' . esc_html(number_format_i18n($total_categories)) . '</span>';
+        echo '<span style="background:#fff;border:1px solid #dcdcde;padding:7px 10px;border-radius:5px;"><strong>Mostrando:</strong> ' . esc_html(number_format_i18n($from)) . '–' . esc_html(number_format_i18n($to)) . '</span>';
+        echo '<span style="background:#fff;border:1px solid #dcdcde;padding:7px 10px;border-radius:5px;"><strong>Por página:</strong> ' . esc_html(number_format_i18n($per_page)) . '</span>';
         echo '</div>';
 
         echo '<div style="overflow-x:auto;background:#fff;border:1px solid #dcdcde;">';
@@ -1362,7 +1362,7 @@ if (!function_exists('seo_category_inventory_render')) {
                     $faq_active++;
                 }
             }
-            echo '<strong>' . number_format_i18n($faq_active) . ' activas</strong> / ' . number_format_i18n($faq_count) . ' relacionadas';
+            echo '<strong>' . esc_html(number_format_i18n($faq_active)) . ' activas</strong> / ' . esc_html(number_format_i18n($faq_count)) . ' relacionadas';
             if ($faq_count) {
                 echo '<details style="margin-top:6px;"><summary>Ver preguntas</summary><ul style="margin:6px 0 0 18px;">';
                 foreach ($faqs[$category_id] as $faq_row) {
@@ -1375,7 +1375,7 @@ if (!function_exists('seo_category_inventory_render')) {
             echo '</td>';
 
             echo '<td>';
-            echo '<strong>' . number_format_i18n($published_posts) . ' publicados</strong> / ' . number_format_i18n(count($posts[$category_id])) . ' relacionados';
+            echo '<strong>' . esc_html(number_format_i18n($published_posts)) . ' publicados</strong> / ' . esc_html(number_format_i18n(count($posts[$category_id]))) . ' relacionados';
             if (!empty($posts[$category_id])) {
                 echo '<ul style="margin:6px 0 0 18px;">';
                 foreach ($posts[$category_id] as $row) {
@@ -1386,7 +1386,7 @@ if (!function_exists('seo_category_inventory_render')) {
             echo '</td>';
 
             echo '<td>';
-            echo '<strong>' . number_format_i18n($published_landings) . ' publicadas</strong> / ' . number_format_i18n(count($landings[$category_id])) . ' relacionadas';
+            echo '<strong>' . esc_html(number_format_i18n($published_landings)) . ' publicadas</strong> / ' . esc_html(number_format_i18n(count($landings[$category_id]))) . ' relacionadas';
             if (!empty($landings[$category_id])) {
                 echo '<ul style="margin:6px 0 0 18px;">';
                 foreach ($landings[$category_id] as $row) {
@@ -1396,7 +1396,7 @@ if (!function_exists('seo_category_inventory_render')) {
             }
             echo '</td>';
 
-            echo '<td style="text-align:center;font-size:16px;"><strong>' . number_format_i18n(absint($category->count)) . '</strong></td>';
+            echo '<td style="text-align:center;font-size:16px;"><strong>' . esc_html(number_format_i18n(absint($category->count))) . '</strong></td>';
             echo '<td style="text-align:center;">';
             echo '<span style="display:inline-block;padding:5px 8px;border-radius:12px;' . esc_attr($load_style) . '"><strong>' . esc_html($url_load) . '</strong> · ' . esc_html($load_label) . '</span>';
             echo '<div style="font-size:10px;color:#646970;margin-top:4px;">posts + landings publicados</div>';
@@ -2255,7 +2255,7 @@ if (!function_exists('seo_category_catalog_table_render')) {
 
         $from = $filtered_categories > 0 ? ($offset + 1) : 0;
         $to = min($offset + count($page_rows), $filtered_categories);
-        echo '<p style="color:#646970;margin:0 0 10px;">Mostrando categorías <strong>' . number_format_i18n($from) . '–' . number_format_i18n($to) . '</strong> de <strong>' . number_format_i18n($filtered_categories) . '</strong> según los filtros actuales.</p>';
+        echo '<p style="color:#646970;margin:0 0 10px;">Mostrando categorías <strong>' . esc_html(number_format_i18n($from)) . '–' . esc_html(number_format_i18n($to)) . '</strong> de <strong>' . esc_html(number_format_i18n($filtered_categories)) . '</strong> según los filtros actuales.</p>';
 
         if (!$page_rows) {
             echo '<div class="notice notice-info inline"><p>No hay categorías que coincidan con los filtros.</p></div></div>';
@@ -2316,21 +2316,21 @@ if (!function_exists('seo_category_catalog_table_render')) {
             echo '</td>';
 
             echo '<td>' . esc_html($path !== '' ? $path : $category_name) . '</td>';
-            echo '<td style="text-align:center;font-size:18px;"><strong>' . number_format_i18n($product_count) . '</strong></td>';
-            echo '<td style="text-align:center;"><strong>' . number_format_i18n($published_count) . '</strong></td>';
-            echo '<td style="text-align:center;">' . number_format_i18n($nonpublished_count) . '</td>';
+            echo '<td style="text-align:center;font-size:18px;"><strong>' . esc_html(number_format_i18n($product_count)) . '</strong></td>';
+            echo '<td style="text-align:center;"><strong>' . esc_html(number_format_i18n($published_count)) . '</strong></td>';
+            echo '<td style="text-align:center;">' . esc_html(number_format_i18n($nonpublished_count)) . '</td>';
 
             $counter_style = $woo_count === $published_count
                 ? 'color:#006505;'
                 : 'color:#b32d2e;font-weight:700;';
-            echo '<td style="text-align:center;' . esc_attr($counter_style) . '">' . number_format_i18n($woo_count) . '</td>';
+            echo '<td style="text-align:center;' . esc_attr($counter_style) . '">' . esc_html(number_format_i18n($woo_count)) . '</td>';
 
             echo '<td>';
             if ($product_count === 0) {
                 echo '<span style="color:#b32d2e;font-weight:600;">Categoría vacía</span>';
             } else {
                 echo '<details>';
-                echo '<summary style="cursor:pointer;"><strong>Ver productos (' . number_format_i18n($product_count) . ')</strong></summary>';
+                echo '<summary style="cursor:pointer;"><strong>Ver productos (' . esc_html(number_format_i18n($product_count)) . ')</strong></summary>';
                 echo '<div style="margin-top:8px;max-height:420px;overflow:auto;border-left:3px solid #dcdcde;padding-left:10px;">';
                 echo '<ol style="margin:0 0 0 18px;">';
                 $shown = 0;
@@ -2361,7 +2361,7 @@ if (!function_exists('seo_category_catalog_table_render')) {
                 }
                 echo '</ol>';
                 if ($product_count > $shown) {
-                    echo '<p style="margin:8px 0 0;color:#646970;"><strong>Mostrando ' . number_format_i18n($shown) . ' de ' . number_format_i18n($product_count) . '.</strong> La cuenta superior sigue siendo completa.</p>';
+                    echo '<p style="margin:8px 0 0;color:#646970;"><strong>Mostrando ' . esc_html(number_format_i18n($shown)) . ' de ' . esc_html(number_format_i18n($product_count)) . '.</strong> La cuenta superior sigue siendo completa.</p>';
                 }
                 echo '</div>';
                 echo '</details>';
@@ -3196,7 +3196,7 @@ Cinco o seis FAQs.
 
             ?>
 
-                <li id="cat_row_<?php echo $term_id; ?>" style="
+                <li id="cat_row_<?php echo esc_attr((int) $term_id); ?>" style="
                     margin-bottom:20px;
                     padding:18px;
                     border:1px solid #e5e7eb;
@@ -3342,7 +3342,7 @@ Cinco o seis FAQs.
 
                     <div style="margin-top:12px; margin-bottom:12px; font-size:12px;">
                         <strong>Nombre de la Categoría:</strong>
-                        <input type="text" name="cat_name[<?php echo $term_id; ?>]" value="<?php echo esc_attr($category->name); ?>" style="width:100%; font-size:13px; padding:6px 10px; border:1px solid #c3c4c7; border-radius:4px; margin-top:4px;">
+                        <input type="text" name="cat_name[<?php echo esc_attr((int) $term_id); ?>]" value="<?php echo esc_attr($category->name); ?>" style="width:100%; font-size:13px; padding:6px 10px; border:1px solid #c3c4c7; border-radius:4px; margin-top:4px;">
                     </div>
                     
 
@@ -3352,7 +3352,7 @@ Cinco o seis FAQs.
                         <strong>Excerpt SEO:</strong>
                     
                         <textarea
-                            name="cat_excerpt[<?php echo $term_id; ?>]"
+                            name="cat_excerpt[<?php echo esc_attr((int) $term_id); ?>]"
                             style="width:100%; min-height:80px; font-size:12px; margin-top:4px; border:1px solid #c3c4c7; border-radius:4px; padding:6px; box-sizing:border-box; font-family:sans-serif; resize:vertical;"
                         ><?php echo esc_textarea($seo_excerpt); ?></textarea>
                     </div>
@@ -3363,7 +3363,7 @@ Cinco o seis FAQs.
                         <strong>Etiquetas SEO:</strong>
                     
                         <textarea
-                            name="cat_tags[<?php echo $term_id; ?>]"
+                            name="cat_tags[<?php echo esc_attr((int) $term_id); ?>]"
                             style="width:100%; min-height:60px; font-size:12px; margin-top:4px; border:1px solid #c3c4c7; border-radius:4px; padding:6px; box-sizing:border-box; font-family:sans-serif; resize:vertical;"
                         ><?php echo esc_textarea($seo_node_keywords); ?></textarea>
                     </div>
@@ -3372,7 +3372,7 @@ Cinco o seis FAQs.
 
                     <div style="margin-bottom:12px; font-size:12px;">
                         <strong>Descripción (Contenido SEO):</strong>
-                        <textarea name="cat_description[<?php echo $term_id; ?>]" style="width:100%; min-height:100px; font-size:12px; margin-top:4px; border:1px solid #c3c4c7; border-radius:4px; padding:6px; box-sizing:border-box; font-family:sans-serif; resize:vertical;"><?php echo esc_textarea($seo_description); ?></textarea>
+                        <textarea name="cat_description[<?php echo esc_attr((int) $term_id); ?>]" style="width:100%; min-height:100px; font-size:12px; margin-top:4px; border:1px solid #c3c4c7; border-radius:4px; padding:6px; box-sizing:border-box; font-family:sans-serif; resize:vertical;"><?php echo esc_textarea($seo_description); ?></textarea>
                     </div>
                     <!-- ELIMINAR CATEGORÍA Y CREAR REDIRECCIÓN -->
 <div style="background:#fcfcfc; border:1px dashed #c3c4c7; padding:12px; border-radius:6px; margin-top:12px; display:flex; gap:12px; flex-direction:column;">
@@ -3385,10 +3385,10 @@ Cinco o seis FAQs.
 
         <div style="display:flex; flex-direction:column; gap:4px;">
             <label style="font-size:11px; color:#646970; font-weight:600;">1. Clusters</label>
-            <select id="cluster_<?php echo $term_id; ?>"
-                    class="seo-select-<?php echo $term_id; ?>"
+            <select id="cluster_<?php echo esc_attr((int) $term_id); ?>"
+                    class="seo-select-<?php echo esc_attr((int) $term_id); ?>"
                     data-level="1"
-                    onchange="seoFiltrarCascada(<?php echo $term_id; ?>, 1)"
+                    onchange="seoFiltrarCascada(<?php echo esc_attr((int) $term_id); ?>, 1)"
                     style="width:160px; font-size:12px; height:28px;">
 
                 <option value="">-- Seleccionar Cluster --</option>
@@ -3404,11 +3404,11 @@ Cinco o seis FAQs.
 
         <div style="display:flex; flex-direction:column; gap:4px;">
             <label style="font-size:11px; color:#646970; font-weight:600;">2. Hubs Primarios</label>
-            <select id="hub_p_<?php echo $term_id; ?>"
-                    class="seo-select-<?php echo $term_id; ?>"
+            <select id="hub_p_<?php echo esc_attr((int) $term_id); ?>"
+                    class="seo-select-<?php echo esc_attr((int) $term_id); ?>"
                     data-level="2"
                     disabled
-                    onchange="seoFiltrarCascada(<?php echo $term_id; ?>, 2)"
+                    onchange="seoFiltrarCascada(<?php echo esc_attr((int) $term_id); ?>, 2)"
                     style="width:160px; font-size:12px; height:28px;">
 
                 <option value="">-- Esperando Cluster --</option>
@@ -3418,11 +3418,11 @@ Cinco o seis FAQs.
 
         <div style="display:flex; flex-direction:column; gap:4px;">
             <label style="font-size:11px; color:#646970; font-weight:600;">3. Hubs Secundarios</label>
-            <select id="hub_s_<?php echo $term_id; ?>"
-                    class="seo-select-<?php echo $term_id; ?>"
+            <select id="hub_s_<?php echo esc_attr((int) $term_id); ?>"
+                    class="seo-select-<?php echo esc_attr((int) $term_id); ?>"
                     data-level="3"
                     disabled
-                    onchange="seoFiltrarCascada(<?php echo $term_id; ?>, 3)"
+                    onchange="seoFiltrarCascada(<?php echo esc_attr((int) $term_id); ?>, 3)"
                     style="width:160px; font-size:12px; height:28px;">
 
                 <option value="">-- Esperando Hub P. --</option>
@@ -3432,11 +3432,11 @@ Cinco o seis FAQs.
 
         <div style="display:flex; flex-direction:column; gap:4px;">
             <label style="font-size:11px; color:#646970; font-weight:600;">4. Categoría Destino</label>
-            <select id="cat_dest_<?php echo $term_id; ?>"
-                    class="seo-select-<?php echo $term_id; ?>"
+            <select id="cat_dest_<?php echo esc_attr((int) $term_id); ?>"
+                    class="seo-select-<?php echo esc_attr((int) $term_id); ?>"
                     data-level="4"
                     disabled
-                    onchange="seoFiltrarCascada(<?php echo $term_id; ?>, 4)"
+                    onchange="seoFiltrarCascada(<?php echo esc_attr((int) $term_id); ?>, 4)"
                     style="width:160px; font-size:12px; height:28px;">
 
                 <option value="">-- Esperando Hub S. --</option>
@@ -3449,7 +3449,7 @@ Cinco o seis FAQs.
                 🔗 Enlace Destino de Redirección:
             </label>
 
-            <div id="url_preview_<?php echo $term_id; ?>"
+            <div id="url_preview_<?php echo esc_attr((int) $term_id); ?>"
                  style="font-size:11px; color:#646970; background:#f0f0f1; padding:6px 10px; border:1px solid #dcdcde; border-radius:4px; min-height:28px; word-break:break-all; display:flex; align-items:center;">
 
                 <i>Ningún destino seleccionado</i>
@@ -3459,9 +3459,9 @@ Cinco o seis FAQs.
 
         <div style="display:flex; flex-direction:column; gap:4px;">
             <button type="button"
-                    id="btn_redirect_<?php echo $term_id; ?>"
+                    id="btn_redirect_<?php echo esc_attr((int) $term_id); ?>"
                     disabled
-                    onclick="seoProcesarAccionV2(<?php echo $term_id; ?>, '<?php echo esc_js($url_origen_completa); ?>', 'borrado_total')"
+                    onclick="seoProcesarAccionV2(<?php echo esc_attr((int) $term_id); ?>, '<?php echo esc_js($url_origen_completa); ?>', 'borrado_total')"
                     style="height:28px; padding:0 12px; background:#f6f7f7; border:1px solid #dcdcde; color:#a7aaad; border-radius:4px; font-weight:bold; cursor:not-allowed; transition:all 0.2s;">
 
                 Eliminar Categoría

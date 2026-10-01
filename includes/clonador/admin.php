@@ -12,7 +12,7 @@ defined( 'ABSPATH' ) || exit;
 if ( ! function_exists( 'seo_clonador_render' ) ) {
     function seo_clonador_render() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'No tienes permisos para usar el Clonador.', 'seo-system' ) );
+            wp_die( esc_html__( 'No tienes permisos para usar el Clonador.', 'seo-taxonomy' ) );
         }
 
         $nonce   = wp_create_nonce( SEO_Clonador_Engine::NONCE_ACTION );

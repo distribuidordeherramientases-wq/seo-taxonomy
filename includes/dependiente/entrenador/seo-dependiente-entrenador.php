@@ -566,7 +566,7 @@ final class SEO_Dependiente_Entrenador {
             ));
         }
         if ($module_no !== $next_module) {
-            wp_send_json_error(array('message' => 'Debes completar primero el módulo ' . $next_module . '.'), 409);
+            wp_send_json_error(array('message' => 'Debes completar primero el módulo ' . esc_html((string) $next_module) . '.'), 409);
         }
 
         if (!self::acquire_db_lock('run')) {
@@ -1307,7 +1307,7 @@ final class SEO_Dependiente_Entrenador {
             );
         }
         if (absint($module_no) !== absint($next_module)) {
-            throw new RuntimeException('Debes completar primero el módulo ' . $next_module . '.');
+            throw new RuntimeException('Debes completar primero el módulo ' . esc_html((string) $next_module) . '.');
         }
         if (!self::acquire_db_lock('run')) {
             throw new RuntimeException('Ya se está ejecutando un módulo de la Academia en otro proceso.');
@@ -3960,7 +3960,7 @@ final class SEO_Dependiente_Entrenador {
             'offset'     => $offset,
         ));
         if (is_wp_error($terms)) {
-            throw new RuntimeException($terms->get_error_message());
+            throw new RuntimeException(esc_html($terms->get_error_message()));
         }
 
         $items = array();

@@ -487,7 +487,7 @@ if (!function_exists('seo_images_cleanup_insert_source_rows')) {
                     $db_error = 'wpdb rechazó la consulta antes de enviarla a MariaDB.';
                 }
                 throw new RuntimeException(
-                    'Error al indexar imágenes externas: ' . $db_error
+                    'Error al indexar imágenes externas: ' . esc_html($db_error)
                 );
             }
 
@@ -846,10 +846,11 @@ if (!function_exists('seo_images_cleanup_audit_media_batch')) {
                 "SELECT ID, post_parent, post_title, guid
                  FROM {$wpdb->posts}
                  WHERE post_type = 'attachment'
-                   AND post_mime_type LIKE 'image/%%'
+                   AND post_mime_type LIKE %s
                    AND ID > %d
                  ORDER BY ID ASC
                  LIMIT %d",
+                $wpdb->esc_like('image/') . '%',
                 $cursor,
                 $limit
             ),
