@@ -55,11 +55,23 @@ final class SEO_Solucionador_Engine {
         $text = SEO_Solucionador_Normalizer::normalize((string) ($source['source_text'] ?? ''));
 
         $decision_language = (bool) preg_match('/\b(elegir|eleccion|comprar|compra|diferencia|comparar|comparativa|que .* necesito|cual .* necesito|potencia|cable|bateria|par)\b/u',$text);
+        $is_comparison_profile = sanitize_key((string) ($source['source_type'] ?? '')) === 'comparador'
+            && $intent === 'comparison';
         $is_decision = $key_intent === 'decision'
             || in_array($intent,array('decision','choice','comparison','buying_guide','eleccion'),true)
             || $decision_language;
 
-        if ($category_id && $is_decision && empty($profile['condition'])) {
+        if ($category_id && $is_comparison_profile && empty($profile['condition'])) {
+            $name = trim((string) ($source['category_name'] ?? ''));
+            if ($name === '') $name = self::category_name($category_id);
+            if ($name !== '') $profile['object'] = SEO_Solucionador_Normalizer::normalize($name);
+            $profile['intent'] = 'comparison';
+            $profile['key_intent'] = 'comparison';
+            $profile['action'] = 'comparar';
+            $profile['condition'] = '';
+            $profile['context'] = '';
+            $profile['canonical_key'] = 'comparison|comparar|category-' . $category_id . '|general|general';
+        } elseif ($category_id && $is_decision && empty($profile['condition'])) {
             $name = trim((string) ($source['category_name'] ?? ''));
             if ($name === '') $name = self::category_name($category_id);
             if ($name !== '') $profile['object'] = SEO_Solucionador_Normalizer::normalize($name);
@@ -233,10 +245,12 @@ final class SEO_Solucionador_Engine {
             + absint($stats['ingeniero'] ?? 0)
             + absint($stats['clasificador'] ?? 0);
         $editorial_origins = absint($stats['analista'] ?? 0) + absint($stats['auditor'] ?? 0);
+        $comparison_profiles = absint($stats['comparador'] ?? 0);
 
         return $dependiente >= 2
             || ($dependiente >= 1 && $support >= 1)
-            || ($editorial_origins >= 2 && absint($stats['total'] ?? 0) >= 2);
+            || ($editorial_origins >= 2 && absint($stats['total'] ?? 0) >= 2)
+            || ($comparison_profiles >= 1 && absint($stats['total'] ?? 0) >= 1);
     }
 
     private static function category_product_count($term_id) {
@@ -302,7 +316,7 @@ final class SEO_Solucionador_Engine {
         $condition = trim((string) ($profile['condition'] ?? ''));
         return $condition === '' && (
             $key_intent === 'decision'
-            || in_array($intent,array('decision','choice','comparison','buying_guide','eleccion'),true)
+            || in_array($intent,array('decision','choice','buying_guide','eleccion'),true)
             || $action === 'elegir'
         );
     }
