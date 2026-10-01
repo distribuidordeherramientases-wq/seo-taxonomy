@@ -99,12 +99,12 @@ function seo_taxonomy_store_uploaded_file(array $file, $destination_dir, array $
 
     global $wp_filesystem;
     if (!WP_Filesystem() || !is_object($wp_filesystem)) {
-        @unlink($temporary_path);
+        wp_delete_file($temporary_path);
         return new WP_Error('seo_upload_filesystem', __('No se pudo inicializar el sistema de archivos de WordPress.', 'seo-taxonomy'));
     }
 
     if (!$wp_filesystem->move($temporary_path, $final_path, true)) {
-        @unlink($temporary_path);
+        wp_delete_file($temporary_path);
         return new WP_Error('seo_upload_move', __('No se pudo mover el archivo al directorio de destino.', 'seo-taxonomy'));
     }
 
