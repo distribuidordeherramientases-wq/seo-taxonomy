@@ -624,7 +624,7 @@ if (!function_exists('seo_category_info_related_render_paths')) {
                 $parts[] = '<span class="cir-node cir-node-secondary">Hub S.: ' . seo_category_info_related_linked_node($secondary_id) . '</span>';
             }
 
-            echo '<div class="cir-path">' . implode('<span class="cir-arrow">›</span>', $parts) . '</div>';
+            echo '<div class="cir-path">' . wp_kses_post(implode('<span class="cir-arrow">›</span>', $parts)) . '</div>';
         }
         echo '</div>';
     }
