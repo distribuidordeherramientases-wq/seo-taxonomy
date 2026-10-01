@@ -221,17 +221,18 @@ function interceptar_redireccion_antes_de_wordpress() {
 
     $tabla = $wpdb->prefix . 'seo_redirects';
 
-    $sql = $wpdb->prepare(
-        "SELECT id,target_url,hits
-         FROM $tabla
-         WHERE origin_url=%s
-            OR origin_url=%s
-         LIMIT 1",
-        $url_solicitada,
-        $url_alternativa
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal redirects table; both URL variants are bound through prepare().
+    $redireccion = $wpdb->get_row(
+        $wpdb->prepare(
+            "SELECT id,target_url,hits
+             FROM {$tabla}
+             WHERE origin_url=%s
+                OR origin_url=%s
+             LIMIT 1",
+            $url_solicitada,
+            $url_alternativa
+        )
     );
-
-    $redireccion = $wpdb->get_row($sql);
     if ($redireccion) {
 
         $wpdb->update(
