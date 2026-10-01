@@ -303,7 +303,7 @@ function seo_render_growth_executive_report() {
     </style>';
 
     echo '<div class="seo-growth-card"><div style="display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap"><div><h2 style="margin:0 0 5px">Qué potenciar</h2><p style="margin:0;max-width:820px">Panel ejecutivo para decidir <strong>qué proveedor buscar, dónde ampliar surtido y cuándo ampliar la estructura</strong>. Resume catálogo + Search Console + Google Trends; las pantallas de Google quedan como evidencia técnica.</p><p class="seo-growth-meta">V'.esc_html(SEO_GROWTH_EXECUTIVE_VERSION).' · Horizonte Search Console: '.absint($days).' días · Señales Trends almacenadas: '.esc_html(number_format_i18n($trend_count)).'</p></div><form method="get"><input type="hidden" name="page" value="seo-reports"><input type="hidden" name="tab" value="growth_executive"><label><strong>Horizonte</strong> <select name="growth_exec_days">';
-    foreach(array(28,60,90) as $d) echo '<option value="'.$d.'" '.selected($days,$d,false).'>'.$d.' días</option>';
+    foreach(array(28,60,90) as $d) echo '<option value="'.esc_attr((string) $d).'" '.selected($days,$d,false).'>'.esc_html((string) $d).' días</option>';
     echo '</select></label> '; submit_button('Actualizar','secondary','submit',false); echo '</form></div></div>';
 
     if(!$payload['source_ready']){
@@ -330,7 +330,7 @@ function seo_render_growth_executive_report() {
         $where=$ctx['category']?:($ctx['secondary']?:'Sin ubicación estructural clara');
         echo '<div class="seo-growth-decision"><div style="display:flex;gap:14px;align-items:flex-start"><div class="seo-growth-score">'.absint($d['priority']).'<span style="font-size:12px;font-weight:400">/100</span></div><div style="flex:1"><div><span class="seo-growth-pill">'.esc_html($a['label']).'</span> <strong style="font-size:15px">'.esc_html($i['label']).'</strong></div><div class="seo-growth-meta" style="margin-top:5px">Nivel sugerido: <strong>'.esc_html($a['level']).'</strong> · Encaje actual: '.esc_html($where).'</div>';
         if($dirs_text!=='') echo '<div style="margin-top:6px"><strong>Dirección:</strong> '.esc_html($dirs_text).'</div>'; else echo '<div style="margin-top:6px"><strong>Dirección:</strong> descomponer consultas y familias relacionadas antes de comprar.</div>';
-        echo '<div class="seo-growth-mini">'.seo_growth_exec_bar($d['search_score'],'Search').seo_growth_exec_bar($d['market_score'],'Trends').seo_growth_exec_bar($d['catalog_gap'],'Hueco catálogo').seo_growth_exec_bar($d['seo_need'],'Necesidad SEO').'</div>';
+        echo '<div class="seo-growth-mini">'.wp_kses_post(seo_growth_exec_bar($d['search_score'],'Search')).wp_kses_post(seo_growth_exec_bar($d['market_score'],'Trends')).wp_kses_post(seo_growth_exec_bar($d['catalog_gap'],'Hueco catálogo')).wp_kses_post(seo_growth_exec_bar($d['seo_need'],'Necesidad SEO')).'</div>';
         echo '<div class="seo-growth-meta" style="margin-top:8px"><strong>Proveedor:</strong> '.esc_html($a['supplier']).' · Confianza: '.esc_html($d['confidence']).'</div>';
         if(!empty($i['impressions'])) echo '<div class="seo-growth-meta">Search Console: '.esc_html(number_format_i18n((float)$i['impressions'],0)).' impresiones · posición '.($i['position']?esc_html(number_format_i18n((float)$i['position'],1)):'—').'.</div>';
         if(!empty($r['trend'])) echo '<div class="seo-growth-meta">Trends relacionado: '.esc_html($r['trend']['query']).(!empty($r['trend']['breakout'])?' · BREAKOUT':(!empty($r['trend']['max_growth'])?' · +'.esc_html(number_format_i18n((float)$r['trend']['max_growth'],0)).'%':'')).'.</div>';
@@ -343,7 +343,7 @@ function seo_render_growth_executive_report() {
     echo '</tbody></table></div></div><div>';
 
     echo '<div class="seo-growth-card"><h3 style="margin-top:0">Top oportunidades</h3>';
-    foreach(array_slice($rows,0,10) as $r){$p=absint($r['decision']['priority']);echo '<div style="margin:0 0 12px"><div style="display:flex;justify-content:space-between;gap:10px"><strong>'.esc_html($r['item']['label']).'</strong><span>'.$p.'</span></div><div style="height:10px;background:#e9ecef;border-radius:999px;overflow:hidden;margin-top:4px"><span style="display:block;height:100%;width:'.$p.'%;background:#2271b1"></span></div><div class="seo-growth-meta">'.esc_html($r['exec_action']['label']).'</div></div>';}
+    foreach(array_slice($rows,0,10) as $r){$p=absint($r['decision']['priority']);echo '<div style="margin:0 0 12px"><div style="display:flex;justify-content:space-between;gap:10px"><strong>'.esc_html($r['item']['label']).'</strong><span>'.esc_html((string) $p).'</span></div><div style="height:10px;background:#e9ecef;border-radius:999px;overflow:hidden;margin-top:4px"><span style="display:block;height:100%;width:'.esc_attr((string) $p).'%;background:#2271b1"></span></div><div class="seo-growth-meta">'.esc_html($r['exec_action']['label']).'</div></div>';}
     echo '</div>';
 
     echo '<div class="seo-growth-card"><h3 style="margin-top:0">Hubs a ampliar</h3>';
