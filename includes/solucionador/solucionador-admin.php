@@ -347,6 +347,23 @@ final class SEO_Solucionador_Admin {
             $items['Clasificador'] = array('available'=>false,'metric'=>0,'unit'=>'','detail'=>'Integración no disponible');
         }
 
+        if (class_exists('SEO_Solucionador_Sources')) {
+            $comparador = SEO_Solucionador_Sources::comparador(200);
+            $items['Comparador'] = array(
+                'available'=>!empty($comparador),
+                'metric'=>count($comparador),
+                'unit'=>'señales normalizadas',
+                'detail'=>!empty($comparador) ? 'Resultado publicado por Comparador; Solucionador no recalcula comparativas.' : 'Sin contrato/señales disponibles todavía',
+            );
+            $marketing = SEO_Solucionador_Sources::marketing(120);
+            $items['Marketing'] = array(
+                'available'=>!empty($marketing),
+                'metric'=>count($marketing),
+                'unit'=>'prioridades comerciales',
+                'detail'=>'Refuerza prioridad; nunca justifica por sí solo una URL nueva.',
+            );
+        }
+
         return $items;
     }
 
@@ -1168,8 +1185,10 @@ final class SEO_Solucionador_Admin {
         echo '<p><strong>Auditor:</strong> aporta diagnóstico, carencias y cobertura; Solucionador decide si esos hallazgos requieren actuación editorial.</p>';
         echo '<p><strong>Comentarista:</strong> aporta problemas o preguntas observadas en experiencias externas almacenadas.</p>';
         echo '<p><strong>Ojeador:</strong> aporta conclusiones de mercado y oportunidad ya calculadas; Solucionador no consulta Google Shopping por su cuenta.</p>';
-        echo '<p><strong>Ingeniero:</strong> aporta conocimiento técnico por categoría ya investigado y aprobado.</p>';
+        echo '<p><strong>Comparador:</strong> cuando publique su análisis ampliado, aporta tipologías, configuraciones, factores decisivos, ventajas/limitaciones y referencias representativas mediante un contrato normalizado. Solucionador no repite su cálculo.</p>';
+        echo '<p><strong>Ingeniero:</strong> aporta conocimiento técnico validado por categoría, con fuentes, URL, tipo, confianza y fecha.</p>';
         echo '<p><strong>Clasificador:</strong> aporta huecos y estructura semántica detectados a partir del catálogo y de Ingeniero.</p>';
+        echo '<p><strong>Marketing:</strong> puede reforzar prioridad comercial, campaña o estacionalidad; nunca origina por sí solo una URL nueva.</p>';
         echo '<p><strong>Entradas/Páginas/Categorías:</strong> aportan inventario, rendimiento y cobertura; sus editores quedan como lugares de ejecución.</p>';
         self::render_service_snapshot();
         if ($counts) {
@@ -1291,7 +1310,8 @@ final class SEO_Solucionador_Admin {
     }
 
     private static function card($label, $value, $desc) {
-        echo '<div class="seo-sol-card"><span>' . esc_html($label) . '</span><strong>' . esc_html(number_format_i18n((int) $value)) . '</strong><small>' . esc_html($desc) . '</small></div>';
+        $display = is_numeric($value) ? number_format_i18n((float) $value, floor((float)$value)==(float)$value ? 0 : 1) : (string) $value;
+        echo '<div class="seo-sol-card"><span>' . esc_html($label) . '</span><strong>' . esc_html($display) . '</strong><small>' . esc_html($desc) . '</small></div>';
     }
 
     private static function styles() {
@@ -1305,7 +1325,14 @@ final class SEO_Solucionador_Admin {
             .seo-sol-warning{color:#996800;font-size:12px}.seo-sol-score{font-size:20px}
             .seo-sol-brief-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:16px}
             .seo-sol-brief-grid section{background:#fff;border:1px solid #dcdcde;border-radius:7px;padding:14px}
-            @media(max-width:1100px){.seo-sol-brief-grid{grid-template-columns:1fr}}
+            .seo-sol-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;align-items:end;background:#f6f7f7;border:1px solid #dcdcde;border-radius:7px;padding:14px;margin:14px 0}
+            .seo-sol-filters label{font-weight:600}.seo-sol-filters select,.seo-sol-filters input{width:100%;margin-top:4px}
+            .seo-sol-opportunity-sections{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:18px}
+            .seo-sol-opportunity-sections>section{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:16px;min-width:0}
+            .seo-sol-opportunity-sections>section:nth-child(8),.seo-sol-opportunity-sections>section:nth-child(9){grid-column:1/-1}
+            .seo-sol-requirements{display:grid;gap:8px;padding-left:18px}.seo-sol-workflow-form{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:14px 0}
+            .seo-sol-knowledge,.seo-sol-market{border-left:3px solid #dcdcde;padding:8px 12px;margin:10px 0;background:#f6f7f7}
+            @media(max-width:1100px){.seo-sol-brief-grid,.seo-sol-opportunity-sections{grid-template-columns:1fr}.seo-sol-opportunity-sections>section:nth-child(8),.seo-sol-opportunity-sections>section:nth-child(9){grid-column:auto}}
         </style>';
     }
 }
