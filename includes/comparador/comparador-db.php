@@ -7,7 +7,7 @@ defined('ABSPATH') || exit;
 
 final class SEO_Comparador_DB {
     const VERSION_OPTION = 'seo_comparador_db_version';
-    const DB_VERSION = '1.0.0';
+    const DB_VERSION = '1.1.0';
 
     public static function table($name) {
         global $wpdb;
@@ -145,11 +145,25 @@ final class SEO_Comparador_DB {
         dbDelta("CREATE TABLE {$editorial} (
             profile_id bigint(20) unsigned NOT NULL,
             summary longtext NULL,
+            suggested_title text NULL,
             excerpt text NULL,
+            comparison_text longtext NULL,
+            product_types longtext NULL,
+            main_differences longtext NULL,
             buying_criteria longtext NULL,
+            use_cases longtext NULL,
+            market_overview longtext NULL,
+            own_catalog_position longtext NULL,
             limits longtext NULL,
+            conclusion longtext NULL,
+            origin varchar(32) NOT NULL DEFAULT 'generated',
+            source_hash_at_edit char(64) NOT NULL DEFAULT '',
+            source_snapshot_at_edit datetime NULL,
+            import_meta longtext NULL,
             version int(10) unsigned NOT NULL DEFAULT 1,
             generated_at datetime NULL,
+            imported_at datetime NULL,
+            imported_by bigint(20) unsigned NOT NULL DEFAULT 0,
             reviewed_at datetime NULL,
             updated_at datetime NOT NULL,
             PRIMARY KEY  (profile_id)
