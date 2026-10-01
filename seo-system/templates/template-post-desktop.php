@@ -540,8 +540,8 @@ if (did_action('wp_head')) {
 
                 <?php if (!empty($post_hero_image['url'])) : ?>
                     <figure class="dht-post-hero-media" data-image-source="<?php echo esc_attr($post_hero_image['source']); ?>">
-<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image helper builds HTML with context-specific escaping. ?>
-                        <?php echo dht_post_v12_img($post_hero_image, get_the_title(), 'dht-post-hero-image', 'eager', 'high'); ?>
+<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image helper builds HTML with context-specific escaping.
+                        echo dht_post_v12_img($post_hero_image, get_the_title(), 'dht-post-hero-image', 'eager', 'high'); ?>
                     </figure>
                 <?php endif; ?>
             </div>
