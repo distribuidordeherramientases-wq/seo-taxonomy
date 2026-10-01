@@ -134,6 +134,7 @@ final class SEO_Solucionador_Admin {
             'proposals' => 'Propuestas editoriales',
             'coverage' => 'Cobertura editorial',
             'sources' => 'Fuentes y servicios',
+            'tests' => 'Pruebas RF v1.0',
             'data' => 'Datos internos',
         );
         echo '<nav class="nav-tab-wrapper">';
@@ -169,7 +170,7 @@ final class SEO_Solucionador_Admin {
         if (!current_user_can('manage_options')) return;
         SEO_Solucionador_DB::maybe_install();
         $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'summary';
-        if (!in_array($tab, array('summary','diagnostics','proposals','coverage','sources','data'), true)) $tab = 'summary';
+        if (!in_array($tab, array('summary','diagnostics','proposals','coverage','sources','tests','data'), true)) $tab = 'summary';
 
         echo '<div class="wrap seo-solucionador"><h1>Solucionador <small style="font-weight:400;color:#646970">v' . esc_html(SEO_SOLUCIONADOR_VERSION) . '</small></h1>';
         echo '<p><strong>Capa de decision editorial.</strong> Solucionador unifica conclusiones de Auditor, Analista, Clasificador, Dependiente/Interprete, Ojeador e Ingeniero; detecta carencias, oportunidades, duplicidades y canibalizacion; prioriza la actuacion y prepara el brief. <strong>No investiga, interpreta ni mide por su cuenta y no publica contenido.</strong></p>';
@@ -196,6 +197,7 @@ final class SEO_Solucionador_Admin {
         elseif ($tab === 'proposals') self::render_proposals();
         elseif ($tab === 'coverage') self::render_coverage();
         elseif ($tab === 'sources') self::render_sources();
+        elseif ($tab === 'tests') self::render_tests();
         else self::render_data();
         self::styles();
         echo '</div>';
@@ -1197,6 +1199,32 @@ final class SEO_Solucionador_Admin {
             echo '</ul>';
         }
         echo '</div>';
+    }
+
+    private static function render_tests() {
+        echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Tests funcionales obligatorios · RF v1.0</h2>';
+        echo '<p class="description">Regresiones deterministas definidas por Dirección/Editora/Marketing. No crean, editan ni publican contenido.</p>';
+
+        if (!class_exists('SEO_Solucionador_Tests')) {
+            echo '<div class="notice notice-error inline"><p>No está cargado el módulo de tests.</p></div></div>';
+            return;
+        }
+
+        $report = SEO_Solucionador_Tests::run();
+        $ok = !empty($report['ok']);
+        echo '<div class="notice notice-' . ($ok ? 'success' : 'error') . ' inline"><p><strong>' . esc_html(number_format_i18n(absint($report['passed'] ?? 0))) . '/' . esc_html(number_format_i18n(absint($report['total'] ?? 0))) . ' tests superados.</strong>';
+        if (!$ok) echo ' No debe promocionarse a producción hasta revisar los fallos.';
+        echo '</p></div>';
+
+        echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>Test</th><th>Resultado</th><th>Esperado</th><th>Obtenido</th><th>Regla</th></tr></thead><tbody>';
+        foreach ((array)($report['tests'] ?? array()) as $row) {
+            echo '<tr><td><strong>#' . esc_html(absint($row['id'] ?? 0)) . ' · ' . esc_html((string)($row['name'] ?? '')) . '</strong></td>';
+            echo '<td><strong style="color:' . (!empty($row['pass']) ? '#008a20' : '#b32d2e') . '">' . (!empty($row['pass']) ? 'OK' : 'FALLO') . '</strong></td>';
+            echo '<td>' . esc_html((string)($row['expected'] ?? '')) . '</td>';
+            echo '<td><code>' . esc_html((string)($row['actual'] ?? '')) . '</code></td>';
+            echo '<td>' . esc_html((string)($row['detail'] ?? '')) . '</td></tr>';
+        }
+        echo '</tbody></table></div></div>';
     }
 
     private static function render_data() {
