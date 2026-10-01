@@ -8,15 +8,102 @@ Su unidad de trabajo principal es la **categoría o familia comparable**. Cruza 
 
 No sustituye al comparador interactivo de la tienda. Ese comparador sigue permitiendo al cliente seleccionar varios productos propios, ver diferencias y descargar la comparativa en PDF.
 
+## Dos comparadores: no son el mismo servicio
+
+En el proyecto conviven **dos funciones de comparación** con objetivos diferentes.
+
+| Componente | Usuario principal | Qué compara | Fuentes | Resultado |
+|---|---|---|---|---|
+| **Comparador de tienda** | Cliente de la web | Entre 2 y 6 productos propios | WooCommerce + atributos canónicos del catálogo | Tabla comparativa en la tienda y PDF descargable |
+| **Servicio Comparador** | Equipo editorial / SEO | Una categoría o familia frente a catálogo propio y mercado observado | WooCommerce + snapshots ya guardados por Ojeador + conocimiento disponible | Perfil comparativo, ejes, evidencia, JSON editorial, señal para Solucionador y seguimiento |
+
+### Comparador de tienda
+
+El comparador de tienda es una herramienta de **ayuda directa a la compra**.
+
+Permite seleccionar entre **2 y 6 productos propios**, ver sus diferencias usando los atributos disponibles en el catálogo y descargar la comparativa en PDF.
+
+Su función es responder a una pregunta concreta del comprador: **“¿en qué se diferencian estos productos que estoy valorando?”**
+
+No estudia el mercado externo, no genera contenido editorial y no decide si debe existir un post.
+
+El límite máximo de productos se administra desde **Contenidos > Comparador > Configuración** y se comparte con la comparación interactiva, Dependiente y el PDF para que no existan límites distintos en cada punto.
+
+### Servicio Comparador
+
+El servicio Comparador es una herramienta de **inteligencia comparativa y preparación editorial**.
+
+Trabaja principalmente por **categoría**. Su función es responder a preguntas como:
+
+- qué tipos o configuraciones existen dentro de una familia;
+- cuáles son los ejes técnicos que realmente permiten distinguir productos;
+- qué diferencias puede demostrar el catálogo propio;
+- qué variantes aparecen en el mercado ya observado por Ojeador;
+- qué datos están suficientemente cubiertos y cuáles siguen siendo desconocidos;
+- qué material puede entregarse a Solucionador para decidir si crear, mejorar, fusionar o no publicar contenido.
+
+Comparador **no es un redactor automático ni un sistema de publicación**. Prepara la evidencia y la capa comparativa; Solucionador conserva la decisión editorial y Editora ejecuta el contenido.
+
 ## Ubicación
 
 **Contenidos > Comparador**
 
-Pestañas:
+El servicio está organizado en tres pestañas:
 
-1. **Configuración**
-2. **Comparativas**
-3. **Rendimiento**
+1. **Configuración**: límites, umbrales de calidad, construcción/reconstrucción de perfiles y pruebas funcionales.
+2. **Comparativas**: perfiles por categoría, revisión de ejes, capa editorial, Import/Export JSON, relación con Solucionador y post canónico.
+3. **Rendimiento**: métricas de los posts de comparativas ya vinculados, reutilizando los datos de Analista.
+
+## Qué produce un perfil comparativo
+
+Cada perfil es una fotografía estructurada de una categoría comparable. Puede contener:
+
+- categoría principal y categorías asociadas;
+- número de productos propios;
+- referencias externas vistas por Ojeador;
+- referencias externas que han podido deduplicarse y comparar;
+- ejes comparativos detectados;
+- cobertura y confianza de cada eje;
+- valores conocidos y valores `unknown`;
+- fecha del snapshot de mercado;
+- hash de las fuentes;
+- estado del perfil;
+- resumen generado por el sistema;
+- capa editorial desarrollada;
+- relación con el post canónico;
+- historial de workflow.
+
+El objetivo no es llenar todos los campos a cualquier precio. **Un dato ausente permanece desconocido.** Un eje sólo puede considerarse publicable cuando supera los umbrales mínimos de cobertura y confianza.
+
+## Cómo interpretar los ejes
+
+Un **eje comparativo** es una característica que ayuda a distinguir configuraciones o productos dentro de la categoría, por ejemplo:
+
+- potencia;
+- capacidad;
+- presión;
+- par;
+- voltaje;
+- frecuencia;
+- carga;
+- peso;
+- velocidad;
+- caudal;
+- dimensiones;
+- temperatura.
+
+Para cada eje Comparador conserva, cuando existe:
+
+- nombre normalizado;
+- unidad;
+- prioridad;
+- cobertura;
+- confianza medida;
+- confianza mínima exigida;
+- condición publicable;
+- origen automático o ajuste manual.
+
+Un ajuste manual **no puede saltarse los controles de calidad**: si no existe cobertura o confianza suficiente, el eje no se convierte en publicable sólo porque un usuario marque una casilla.
 
 ## Responsabilidades
 
@@ -207,6 +294,147 @@ Comparador marca el perfil como pendiente de revisión/actualización. Si ya exi
 
 El post público no se sobrescribe automáticamente.
 
+## Informes y salidas del sistema
+
+Comparador no genera un único “informe”. Tiene varias salidas, cada una para una fase distinta del trabajo.
+
+### 1. Comparativa interactiva de tienda
+
+**Destino:** cliente.
+
+**Contenido:** selección de 2–6 productos propios, atributos comparables y diferencias disponibles en WooCommerce.
+
+**Salida:** vista en la web y PDF descargable.
+
+Esta salida ayuda a comprar; no incorpora el estudio de mercado de Ojeador ni la capa editorial del servicio Comparador.
+
+### 2. Informe interno del perfil comparativo
+
+**Destino:** equipo interno.
+
+Se visualiza en **Contenidos > Comparador > Comparativas** al abrir un perfil.
+
+Resume:
+
+- estado;
+- número de productos propios;
+- referencias externas vistas/comparables;
+- número de ejes válidos;
+- confianza;
+- fecha del snapshot;
+- texto de contexto generado;
+- versión y origen de la capa editorial;
+- ejes con cobertura y confianza;
+- referencias representativas;
+- post canónico vinculado;
+- avisos de caducidad o necesidad de revisión.
+
+Es el informe operativo para decidir si el perfil está suficientemente preparado antes de enviarlo a Solucionador.
+
+### 3. JSON de contenido
+
+**Botón:** `Exportar JSON de contenido`.
+
+**Schema:** `seo-comparador-editorial-v1`.
+
+Es el paquete pensado para sacar la evidencia del sistema, desarrollar una comparativa editorial y volver a importarla sin perder trazabilidad.
+
+La parte de fuentes es **sólo lectura**. Incluye:
+
+- categoría, slug y URL;
+- perfil, estado, confianza, snapshot y hash;
+- ejes, cobertura y confianza;
+- productos propios;
+- referencias externas representativas de Ojeador;
+- valores conocidos y desconocidos;
+- estado de verificación de los valores;
+- fechas de observación;
+- post canónico si ya existe;
+- resumen de contexto generado.
+
+La parte editable es `editorial` y, opcionalmente, `manual_axis_overrides`.
+
+### 4. Importación de comparativa editorial
+
+**Botón:** `Importar comparativa editorial`.
+
+No es una importación de inventario.
+
+Puede actualizar:
+
+- título sugerido;
+- extracto;
+- texto comparativo desarrollado;
+- tipos de producto;
+- diferencias principales;
+- criterios de compra;
+- casos de uso;
+- panorama de mercado;
+- posición del catálogo propio;
+- limitaciones editoriales;
+- conclusión;
+- overrides explícitos de ejes.
+
+No puede reemplazar:
+
+- productos WooCommerce;
+- resultados o snapshots de Ojeador;
+- valores automáticos;
+- inventario;
+- datos de visitas.
+
+Al importar:
+
+1. se valida el schema;
+2. se comprueba categoría y perfil;
+3. se compara el snapshot/hash con el estado actual;
+4. se avisa si el texto fue redactado con fuentes antiguas;
+5. se incrementa la versión editorial;
+6. se registra origen `manual_import`;
+7. el perfil queda en `needs_review`;
+8. se registra el cambio en workflow.
+
+Si existe un post publicado, la importación **no lo sobrescribe**. Si sólo existe un borrador vinculado, pueden mantenerse sincronizados sus metadatos internos de Comparador sin publicar nada.
+
+### 5. JSON de visitas
+
+**Botón:** `Exportar JSON de visitas`.
+
+**Schema:** `seo-comparador-visitas-v1`.
+
+Disponible para **28 o 90 días**.
+
+Es el informe de rendimiento de las comparativas ya vinculadas a un post. Reutiliza Analista y no abre otra conexión con Google Search Console, Analytics o Bing.
+
+Por cada comparativa puede incluir:
+
+- perfil;
+- categoría;
+- post y URL;
+- estado;
+- periodo actual;
+- periodo anterior;
+- impresiones;
+- clics;
+- CTR;
+- posición;
+- número de consultas, cuando Analista lo proporciona;
+- sesiones y vistas, cuando están disponibles;
+- diferencia absoluta y porcentual respecto al periodo anterior.
+
+Este JSON sirve para cerrar el ciclo: una comparativa publicada vuelve a ser observada por Analista y puede revisarse si su rendimiento o sus fuentes cambian.
+
+### 6. Extracto público en categoría y producto
+
+Cuando existe un post canónico publicado, las plantillas pueden mostrar un bloque ligero con:
+
+- título;
+- extracto;
+- hasta cinco ejes/diferencias relevantes;
+- enlace **Ver comparativa completa**.
+
+La plantilla sólo lee datos persistidos. **No ejecuta Ojeador ni recalcula el perfil durante una visita del cliente.**
+
 ## Import / Export JSON
 
 Desde la ficha de cada perfil Comparador existen dos flujos distintos.
@@ -311,6 +539,40 @@ Los posts de comparativa son posts WordPress normales con etiqueta `comparativas
 
 No son Noticias ni promociones. Por tanto entran en el flujo editorial/social normal y evergreen existente, sin crear otra automatización.
 
+## Flujo operativo recomendado
+
+Un ciclo normal de trabajo es:
+
+1. seleccionar o construir una categoría comparable;
+2. revisar productos propios y referencias externas deduplicadas;
+3. revisar los ejes y retirar los que no tengan suficiente cobertura/confianza;
+4. exportar el **JSON de contenido**;
+5. desarrollar o completar la sección editorial;
+6. importar la comparativa editorial;
+7. resolver cualquier aviso de snapshot antiguo;
+8. enviar el perfil a **Solucionador**;
+9. Solucionador comprueba cobertura, duplicación y canibalización;
+10. Solucionador decide `NO_ACTION`, mejorar/fusionar una pieza existente o `CREATE_POST`;
+11. Editora revisa y publica;
+12. Comparador vincula el post canónico y aplica la etiqueta `comparativas`;
+13. Analista mide el rendimiento;
+14. el **JSON de visitas** permite revisar resultados a 28/90 días;
+15. si cambian el catálogo o las fuentes de Ojeador, el perfil vuelve a revisión o `needs_update`.
+
+## Ejemplo conceptual
+
+Para una categoría como **limpiadores ultrasónicos**, Comparador puede encontrar productos propios y referencias externas con capacidades, potencias o frecuencias distintas.
+
+No concluye automáticamente que un modelo sea “mejor”. Primero determina qué diferencias están realmente demostradas y con qué cobertura. Después puede preparar un perfil que permita explicar:
+
+- qué capacidades aparecen;
+- qué diferencias de potencia/frecuencia son observables;
+- qué configuraciones están presentes;
+- qué casos de uso pueden documentarse con las fuentes disponibles;
+- dónde encaja el catálogo propio.
+
+Ese material puede convertirse en una comparativa editorial, pero la existencia de un post nuevo la decide Solucionador después de comprobar si ya existe una URL que deba mejorarse o fusionarse.
+
 ## Pruebas RF
 
 La pantalla Configuración ejecuta las comprobaciones CMP-001 a CMP-011 sin escribir datos ni llamar a servicios externos.
@@ -331,8 +593,8 @@ Cubren:
 
 ## Seguimiento
 
-Issue principal de implementación: **#485**.
-
-Import/Export JSON editorial y JSON de visitas: **#498**.
+- Implementación principal del servicio: **#485**.
+- Import/Export JSON editorial y JSON de visitas: **#498**.
+- Ampliación de documentación Wiki sobre comparadores, informes y funcionalidades: **#520**.
 
 La implementación se valida primero en **staging**. Producción requiere autorización expresa.
