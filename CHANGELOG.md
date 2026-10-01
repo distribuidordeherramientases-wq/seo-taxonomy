@@ -18,6 +18,9 @@ Los cambios validados en `staging` que todavía no formen parte de una publicaci
 
 ### Marketing y campañas
 
+- Fijada la agenda social en tres franjas: ofertas de campaña a las **18:00**, Noticias a las **20:00** y resto de entradas/páginas a las **22:00**.
+- La franja de las 22:00 alterna entradas y páginas/landings cuando existen ambos tipos, manteniendo un único hueco editorial diario por red.
+- La programación manual, el CSV y la automatización al publicar contenido normalizan ahora cada pieza a su franja correspondiente; el calendario distingue las tres franjas para no marcar como colisión una combinación válida 18:00 + 20:00 + 22:00.
 - Separada la agenda social comercial de la editorial: las **ofertas de campaña** se programan a las **18:00** y las entradas de **Noticias** a las **20:00**.
 - Añadida prioridad editorial para Noticias. Las marcadas como **Prioritarias** adelantan a las no prioritarias dentro de los huecos futuros de cada red, sin mover ofertas, páginas ni landings.
 - El Programador y el CSV admiten el campo `prioridad`; el calendario deja de considerar colisión la combinación intencional oferta + pieza editorial del mismo día.

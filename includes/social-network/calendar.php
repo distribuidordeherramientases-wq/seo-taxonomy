@@ -155,21 +155,39 @@ function seo_social_calendar_has_same_network_collision($events)
         }
 
         $type = sanitize_key((string) ($event['type_key'] ?? 'other'));
-        $bucket = ('campaign' === $type) ? 'campaign' : 'editorial';
+        $content_id = absint($event['content_id'] ?? 0);
+        $is_news = 'post' === $type
+            && $content_id
+            && function_exists('seo_social_network_is_news_content')
+            && seo_social_network_is_news_content($content_id);
+
+        if ('campaign' === $type) {
+            $bucket = 'campaign';
+        } elseif ($is_news) {
+            $bucket = 'news';
+        } else {
+            $bucket = 'editorial';
+        }
 
         if (!isset($counts[$provider])) {
             $counts[$provider] = array(
                 'campaign'  => 0,
+                'news'      => 0,
                 'editorial' => 0,
             );
         }
 
         $counts[$provider][$bucket]++;
 
-        // Una oferta + una pieza editorial el mismo día es intencional:
-        // oferta a las 18:00 y Noticias a las 20:00. Solo avisamos si hay
-        // duplicidad dentro del mismo tipo de agenda.
-        if ($counts[$provider]['campaign'] > 1 || $counts[$provider]['editorial'] > 1) {
+        // Las tres franjas son compatibles el mismo dia:
+        // 18:00 oferta, 20:00 Noticias y 22:00 entrada/landing.
+        // Solo se considera duplicado si una misma red tiene mas de una
+        // publicacion dentro de la misma franja funcional.
+        if (
+            $counts[$provider]['campaign'] > 1
+            || $counts[$provider]['news'] > 1
+            || $counts[$provider]['editorial'] > 1
+        ) {
             return true;
         }
     }
@@ -258,7 +276,7 @@ function seo_social_calendar_render_admin()
     $current = (new DateTimeImmutable('now', wp_timezone()))->format('Y-m');
 
     echo '<section class="seo-social-card seo-social-calendar-head">';
-    echo '<div class="seo-social-intro"><div><h2>Calendario de publicaciones</h2><p>Vista mensual de la misma agenda del Programador. Combina entradas, landings y ofertas de campañas. Una oferta y una pieza editorial pueden convivir el mismo día; el aviso se reserva para duplicados del mismo tipo en una misma red.</p></div><span class="seo-social-state is-scheduled">Agenda visual</span></div>';
+    echo '<div class="seo-social-intro"><div><h2>Calendario de publicaciones</h2><p>Vista mensual de la misma agenda del Programador: ofertas a las 18:00, Noticias a las 20:00 y entradas/landings a las 22:00. Las tres franjas pueden convivir el mismo día; el aviso se reserva para duplicados dentro de una misma franja y red.</p></div><span class="seo-social-state is-scheduled">Agenda visual</span></div>';
 
     echo '<div class="seo-social-calendar-toolbar">';
     echo '<div class="seo-social-calendar-nav">';
