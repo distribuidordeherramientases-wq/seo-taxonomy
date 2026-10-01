@@ -4729,7 +4729,8 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
             @unlink( $path );
             wp_die(
                 sprintf(
-                    esc_html__( 'El CSV contiene cabeceras duplicadas después de normalizarlas: %s.', 'seo-taxonomy' ),
+                    /* translators: %s: lista de cabeceras CSV duplicadas. */
+                esc_html__( 'El CSV contiene cabeceras duplicadas después de normalizarlas: %s.', 'seo-taxonomy' ),
                     esc_html( implode( ', ', $duplicates ) )
                 )
             );
@@ -7371,6 +7372,7 @@ function seo_import_pages_csv() {
         fclose( $handle );
         wp_die(
             sprintf(
+                /* translators: %s: lista de cabeceras CSV duplicadas. */
                 esc_html__(
                     'El CSV contiene cabeceras duplicadas después de normalizarlas: %s.',
                     'seo-taxonomy'
@@ -9135,6 +9137,7 @@ function seo_import_posts_csv() {
         fclose( $handle );
         wp_die(
             sprintf(
+                /* translators: %s: lista de cabeceras CSV duplicadas. */
                 esc_html__( 'El CSV contiene cabeceras duplicadas después de normalizarlas: %s.', 'seo-taxonomy' ),
                 esc_html( implode( ', ', $duplicate_headers ) )
             )
@@ -9777,6 +9780,7 @@ function seo_import_faqs_csv() {
             fclose( $handle );
             wp_die(
                 sprintf(
+                    /* translators: %s: nombre de la columna CSV obligatoria. */
                     esc_html__( 'Falta la columna obligatoria %s.', 'seo-taxonomy' ),
                     esc_html( $required_column )
                 )
@@ -10198,6 +10202,7 @@ function seo_import_redirects_csv() {
         fclose( $handle );
         wp_die(
             sprintf(
+                /* translators: %s: lista de cabeceras CSV duplicadas. */
                 esc_html__( 'El CSV contiene cabeceras duplicadas: %s.', 'seo-taxonomy' ),
                 esc_html( implode( ', ', $duplicates ) )
             )
@@ -10209,6 +10214,7 @@ function seo_import_redirects_csv() {
             fclose( $handle );
             wp_die(
                 sprintf(
+                    /* translators: %s: nombre de la columna CSV obligatoria. */
                     esc_html__( 'Falta la columna obligatoria %s.', 'seo-taxonomy' ),
                     esc_html( $required )
                 )
