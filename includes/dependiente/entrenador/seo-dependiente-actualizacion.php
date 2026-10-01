@@ -404,7 +404,7 @@ final class SEO_Dependiente_Actualizacion {
         $modules[$module] = $module_state;
 
         if (absint($module_state['no_progress'] ?? 0) >= 6) {
-            throw new RuntimeException('M' . $module . ' acumula errores técnicos sin avanzar. Se detiene antes del merge.');
+            throw new RuntimeException('M' . esc_html((string) $module) . ' acumula errores técnicos sin avanzar. Se detiene antes del merge.');
         }
 
         if ($answered_now < absint($summary['total'] ?? 0)) {
