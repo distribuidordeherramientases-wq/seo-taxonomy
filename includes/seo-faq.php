@@ -861,7 +861,7 @@ function seo_faq_delete_rows_with_data_layer(
                     if ($validation !== true) {
                         throw new RuntimeException(
                             is_string($validation) && $validation !== ''
-                                ? $validation
+                                ? esc_html($validation)
                                 : 'La FAQ #' . (int) $row['id'] . ' ya no cumple las condiciones de la operación.'
                         );
                     }
