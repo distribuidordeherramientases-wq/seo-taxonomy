@@ -221,7 +221,7 @@ final class SEO_Solucionador_Normalizer {
     }
 
     public static function coverage_eligible_editorial_type($type) {
-        return in_array(sanitize_key((string) $type), array('how_to','problem','buying_guide','solution'), true);
+        return in_array(sanitize_key((string) $type), array('how_to','problem','buying_guide','comparison','solution'), true);
     }
 
     public static function extract_problem_sentences($text, $limit = 3) {
