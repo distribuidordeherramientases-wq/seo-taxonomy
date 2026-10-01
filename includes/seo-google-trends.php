@@ -2450,7 +2450,7 @@ function seo_google_render_trends_market() {
     $radar_badge = $status['radar']['connected']
         ? 'OPERATIVO'
         : ('error' === (string) ($status['radar']['status'] ?? '') ? 'ERROR DE DESCARGA' : 'PENDIENTE DE PRUEBA');
-    echo seo_google_trends_status_badge($status['radar']['connected'], $radar_badge);
+    echo wp_kses_post(seo_google_trends_status_badge($status['radar']['connected'], $radar_badge));
     echo '<p>' . esc_html($status['radar']['detail']) . '</p>';
     if (!empty($status['radar']['last_sync'])) {
         echo '<p class="seo-trends-muted">Última prueba: ' . esc_html($status['radar']['last_sync']) . '</p>';
@@ -2475,7 +2475,7 @@ function seo_google_render_trends_market() {
         $market_badge = 'PENDIENTE DE PRUEBA';
         $market_badge_connected = false;
     }
-    echo seo_google_trends_status_badge($market_badge_connected, $market_badge);
+    echo wp_kses_post(seo_google_trends_status_badge($market_badge_connected, $market_badge));
     echo '<p>' . esc_html($status['market']['detail']) . '</p>';
     if (!empty($status['market']['diagnostic_phase']) || !empty($status['market']['diagnostic_http']) || !empty($status['market']['diagnostic_endpoint'])) {
         echo '<p class="seo-trends-muted"><strong>Ultimo diagnostico tecnico:</strong> ';
@@ -2491,7 +2491,7 @@ function seo_google_render_trends_market() {
 
     $gsc_connected = function_exists('seo_google_connection_status') && 'connected' === seo_google_connection_status();
     echo '<div class="seo-trends-card"><h3>Search Console</h3>';
-    echo seo_google_trends_status_badge($gsc_connected, $gsc_connected ? 'CONECTADO' : 'REVISAR');
+    echo wp_kses_post(seo_google_trends_status_badge($gsc_connected, $gsc_connected ? 'CONECTADO' : 'REVISAR'));
     echo '<p>Se usa para saber dónde ya aparece vuestra web y con qué consultas. No alimenta el radar ni sustituye la demanda externa.</p>';
     if (function_exists('seo_google_admin_url')) {
         echo '<a class="button" href="' . esc_url(seo_google_admin_url('sync')) . '">Ver sincronización</a>';
