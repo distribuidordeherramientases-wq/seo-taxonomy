@@ -270,14 +270,14 @@ if (!function_exists('seo_images_optimizer_recompress_file')) {
 
         $saved = $editor->save($temp_path, $mime_type);
         if (is_wp_error($saved)) {
-            @unlink($temp_path);
+            wp_delete_file($temp_path);
             $result['error'] = $saved->get_error_message();
             return $result;
         }
 
         $candidate = !empty($saved['path']) ? $saved['path'] : $temp_path;
         if (!is_file($candidate)) {
-            @unlink($temp_path);
+            wp_delete_file($temp_path);
             $result['error'] = 'El editor no genero el archivo temporal.';
             return $result;
         }
@@ -288,9 +288,9 @@ if (!function_exists('seo_images_optimizer_recompress_file')) {
             || (int) $after_dimensions[0] !== (int) $before_dimensions[0]
             || (int) $after_dimensions[1] !== (int) $before_dimensions[1]
         ) {
-            @unlink($candidate);
+            wp_delete_file($candidate);
             if ($candidate !== $temp_path) {
-                @unlink($temp_path);
+                wp_delete_file($temp_path);
             }
             $result['error'] = 'La recompresion cambio las dimensiones y se descarto.';
             return $result;
@@ -298,9 +298,9 @@ if (!function_exists('seo_images_optimizer_recompress_file')) {
 
         $candidate_mime = seo_images_optimizer_file_mime($candidate);
         if ($candidate_mime !== $mime_type) {
-            @unlink($candidate);
+            wp_delete_file($candidate);
             if ($candidate !== $temp_path) {
-                @unlink($temp_path);
+                wp_delete_file($temp_path);
             }
             $result['error'] = 'El formato generado no coincide con el original y se descarto.';
             return $result;
@@ -309,9 +309,9 @@ if (!function_exists('seo_images_optimizer_recompress_file')) {
         clearstatcache(true, $candidate);
         $after = (int) @filesize($candidate);
         if ($after < 1 || $after >= $before) {
-            @unlink($candidate);
+            wp_delete_file($candidate);
             if ($candidate !== $temp_path) {
-                @unlink($temp_path);
+                wp_delete_file($temp_path);
             }
             return $result;
         }
@@ -320,9 +320,9 @@ if (!function_exists('seo_images_optimizer_recompress_file')) {
         $backup = $path . '.seo-opt-backup-' . $suffix;
 
         if (!@rename($path, $backup)) {
-            @unlink($candidate);
+            wp_delete_file($candidate);
             if ($candidate !== $temp_path) {
-                @unlink($temp_path);
+                wp_delete_file($temp_path);
             }
             $result['error'] = 'No se pudo preparar el reemplazo seguro del original.';
             return $result;
@@ -330,9 +330,9 @@ if (!function_exists('seo_images_optimizer_recompress_file')) {
 
         if (!@rename($candidate, $path)) {
             @rename($backup, $path);
-            @unlink($candidate);
+            wp_delete_file($candidate);
             if ($candidate !== $temp_path) {
-                @unlink($temp_path);
+                wp_delete_file($temp_path);
             }
             $result['error'] = 'No se pudo sustituir el archivo; se restauro el original.';
             return $result;
@@ -342,7 +342,7 @@ if (!function_exists('seo_images_optimizer_recompress_file')) {
             @chmod($path, $permissions & 0777);
         }
         if ($candidate !== $temp_path) {
-            @unlink($temp_path);
+            wp_delete_file($temp_path);
         }
 
         clearstatcache(true, $path);
@@ -356,13 +356,13 @@ if (!function_exists('seo_images_optimizer_recompress_file')) {
             || (int) $final_dimensions[1] !== (int) $before_dimensions[1]
             || $final_mime !== $mime_type
         ) {
-            @unlink($path);
+            wp_delete_file($path);
             @rename($backup, $path);
             $result['error'] = 'El archivo optimizado no pudo validarse; se restauro el original.';
             return $result;
         }
 
-        @unlink($backup);
+        wp_delete_file($backup);
         $result['status'] = 'optimized';
         $result['after']  = $final_size;
         $result['saved']  = max(0, $before - $final_size);
