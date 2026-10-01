@@ -623,6 +623,18 @@ $json = array(
 
 
     <!-- =====================================================
+         COMPARATIVA CANÓNICA
+         Solo lectura persistida: no recalcula ni consulta Ojeador.
+    ====================================================== -->
+
+    <?php
+    if (function_exists('seo_comparador_render_category_block')) {
+        seo_comparador_render_category_block($term->term_id);
+    }
+    ?>
+
+
+    <!-- =====================================================
          FAQS DE LA CATEGORÍA
     ====================================================== -->
 
