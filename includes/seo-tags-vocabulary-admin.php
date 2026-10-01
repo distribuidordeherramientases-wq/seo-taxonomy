@@ -2812,8 +2812,14 @@ if (!function_exists('seo_semantic_attributes_render_products_inventory')) {
         }
 
         $where_sql = implode(' AND ', $where);
-        $count_sql = seo_tags_vocab_prepare_sql("SELECT COUNT(*) FROM {$wpdb->posts} p WHERE {$where_sql}", $args);
-        $total = (int) $wpdb->get_var($count_sql);
+        $count_query = "SELECT COUNT(*) FROM {$wpdb->posts} p WHERE {$where_sql}";
+        if ($args) {
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Closed WHERE fragments and internal attribute table; all search/category values are bound through prepare().
+            $total = (int) $wpdb->get_var($wpdb->prepare($count_query, ...$args));
+        } else {
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Closed WHERE fragments and internal attribute table; query has no external values.
+            $total = (int) $wpdb->get_var($count_query);
+        }
         $total_pages = max(1, (int) ceil($total / $per_page));
         if ($page_number > $total_pages) {
             $page_number = $total_pages;
@@ -2822,23 +2828,22 @@ if (!function_exists('seo_semantic_attributes_render_products_inventory')) {
         $query_args = $args;
         $query_args[] = $per_page;
         $query_args[] = $offset;
-        $products_sql = seo_tags_vocab_prepare_sql(
-            "SELECT p.ID,p.post_title,p.post_modified,
+        $products_query = "SELECT p.ID,p.post_title,p.post_modified,
                     (SELECT MAX(pm.meta_value) FROM {$wpdb->postmeta} pm WHERE pm.post_id=p.ID AND pm.meta_key='_sku') AS sku,
                     (SELECT COUNT(*) FROM `{$tables['values']}` pa_count WHERE pa_count.product_id=p.ID) AS attribute_count
              FROM {$wpdb->posts} p
              WHERE {$where_sql}
              ORDER BY p.post_modified DESC,p.ID DESC
-             LIMIT %d OFFSET %d",
-            $query_args
-        );
-        $products = (array) $wpdb->get_results($products_sql, ARRAY_A);
+             LIMIT %d OFFSET %d";
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Closed WHERE fragments and internal attribute table; filters, limit and offset are bound through prepare().
+        $products = (array) $wpdb->get_results($wpdb->prepare($products_query, ...$query_args), ARRAY_A);
         $product_ids = array_map('intval', array_column($products, 'ID'));
 
         $category_map = [];
         $attribute_map = [];
         if ($product_ids) {
             $ph = seo_tags_vocab_placeholders($product_ids, '%d');
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- %d placeholder list is generated internally; all product IDs are bound through prepare().
             $category_rows = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT tr.object_id AS product_id,t.name
@@ -3470,15 +3475,19 @@ if (!function_exists('seo_assignment_query_products')) {
             }
         }
         $where_sql = implode(' AND ', $where);
-        $count_sql = seo_tags_vocab_prepare_sql("SELECT COUNT(*) FROM {$wpdb->posts} p WHERE {$where_sql}", $args);
-        $total = (int) $wpdb->get_var($count_sql);
+        $count_query = "SELECT COUNT(*) FROM {$wpdb->posts} p WHERE {$where_sql}";
+        if ($args) {
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- WHERE fragments are built from fixed assignment rules; all variable values are bound through prepare().
+            $total = (int) $wpdb->get_var($wpdb->prepare($count_query, ...$args));
+        } else {
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- WHERE fragments are built entirely from fixed assignment rules; query has no external values.
+            $total = (int) $wpdb->get_var($count_query);
+        }
         $query_args = $args; $query_args[] = max(1,(int)$limit); $query_args[] = max(0,(int)$offset);
-        $sql = seo_tags_vocab_prepare_sql(
-            "SELECT p.ID,p.post_title,p.post_modified,(SELECT MAX(pm.meta_value) FROM {$wpdb->postmeta} pm WHERE pm.post_id=p.ID AND pm.meta_key='_sku') AS sku
-             FROM {$wpdb->posts} p WHERE {$where_sql} ORDER BY p.post_modified DESC,p.ID DESC LIMIT %d OFFSET %d",
-            $query_args
-        );
-        return (array) $wpdb->get_results($sql, ARRAY_A);
+        $query = "SELECT p.ID,p.post_title,p.post_modified,(SELECT MAX(pm.meta_value) FROM {$wpdb->postmeta} pm WHERE pm.post_id=p.ID AND pm.meta_key='_sku') AS sku
+             FROM {$wpdb->posts} p WHERE {$where_sql} ORDER BY p.post_modified DESC,p.ID DESC LIMIT %d OFFSET %d";
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- WHERE fragments are fixed assignment rules; filters, limit and offset are bound through prepare().
+        return (array) $wpdb->get_results($wpdb->prepare($query, ...$query_args), ARRAY_A);
     }
 }
 
@@ -3502,12 +3511,18 @@ if (!function_exists('seo_assignment_query_categories')) {
             $args[] = $group_map[$coverage];
         }
         $where_sql = implode(' AND ', $where);
-        $total = (int) $wpdb->get_var(seo_tags_vocab_prepare_sql("SELECT COUNT(*) FROM {$wpdb->terms} t JOIN {$wpdb->term_taxonomy} tt ON tt.term_id=t.term_id WHERE {$where_sql}", $args));
+        $count_query = "SELECT COUNT(*) FROM {$wpdb->terms} t JOIN {$wpdb->term_taxonomy} tt ON tt.term_id=t.term_id WHERE {$where_sql}";
+        if ($args) {
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- WHERE fragments are selected from fixed category-coverage rules; search/group values are bound through prepare().
+            $total = (int) $wpdb->get_var($wpdb->prepare($count_query, ...$args));
+        } else {
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- WHERE fragments are selected from fixed category-coverage rules; query has no external values.
+            $total = (int) $wpdb->get_var($count_query);
+        }
         $query_args=$args; $query_args[]=max(1,(int)$limit); $query_args[]=max(0,(int)$offset);
-        return (array) $wpdb->get_results(seo_tags_vocab_prepare_sql(
-            "SELECT t.term_id,t.name,t.slug,tt.count FROM {$wpdb->terms} t JOIN {$wpdb->term_taxonomy} tt ON tt.term_id=t.term_id WHERE {$where_sql} ORDER BY t.name LIMIT %d OFFSET %d",
-            $query_args
-        ), ARRAY_A);
+        $query = "SELECT t.term_id,t.name,t.slug,tt.count FROM {$wpdb->terms} t JOIN {$wpdb->term_taxonomy} tt ON tt.term_id=t.term_id WHERE {$where_sql} ORDER BY t.name LIMIT %d OFFSET %d";
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Closed category-coverage WHERE fragments; filter values, limit and offset are bound through prepare().
+        return (array) $wpdb->get_results($wpdb->prepare($query, ...$query_args), ARRAY_A);
     }
 }
 
