@@ -7546,3 +7546,22 @@ html {
   .sf-assistance-compact__finder,.sf-assistance-compact__human{padding:16px}
   .dh-purchase-support{align-items:flex-start}
 }
+
+
+/* ==========================================================
+   COMPARADOR · EXTRACTO CANÓNICO
+   Solo presenta datos persistidos y enlaza el post completo.
+========================================================== */
+.dht-comparador-extract{padding:28px 0}
+.dht-comparador-extract__card{padding:clamp(18px,3vw,30px);border:1px solid var(--dht-border,#dfe5ea);border-radius:16px;background:var(--dht-card-bg,#fff)}
+.dht-comparador-extract__card h2{margin:4px 0 10px;font-size:clamp(22px,2.2vw,30px);line-height:1.2}
+.dht-comparador-extract__card p{max-width:900px;color:var(--dht-text-soft,#5f6b76);line-height:1.65}
+.dht-comparador-extract__axes{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 18px;padding:0;list-style:none}
+.dht-comparador-extract__axes li{margin:0;padding:7px 10px;border:1px solid var(--dht-border,#dfe5ea);border-radius:999px;background:#f7f9fb;font-size:13px;font-weight:700}
+.dht-comparador-extract__link{display:inline-flex;align-items:center;justify-content:center;min-height:42px;margin-top:2px}
+@media(max-width:767px){
+  .dht-comparador-extract{padding:20px 0}
+  .dht-comparador-extract__card{padding:16px;border-radius:12px}
+  .dht-comparador-extract__axes{gap:6px}
+  .dht-comparador-extract__axes li{font-size:12px}
+}
