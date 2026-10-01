@@ -73,35 +73,77 @@ final class SEO_Solucionador_Coverage {
         $role = sanitize_key((string) $role);
         $ids = array();
 
-        // Landings se relacionan directamente con product_cat.
+        // Cada relacion se filtra tambien por source_type. Los IDs de posts,
+        // paginas y terminos pueden coincidir numericamente y no deben mezclarse.
         foreach ((array) $wpdb->get_col($wpdb->prepare(
             "SELECT DISTINCT target_id FROM {$relations}
              WHERE source_id=%d
                AND target_type='product_cat'
-               AND relation_type IN ('landing_to_category','hub_secondary_to_category')
+               AND (
+                    (source_type='landing' AND relation_type='landing_to_category')
+                    OR
+                    (source_type IN ('hub_secondary','hub_secundario') AND relation_type='hub_secondary_to_category')
+               )
              ORDER BY target_id ASC LIMIT 50",
             $page_id
         )) as $id) {
             if (absint($id)) $ids[] = absint($id);
         }
 
-        // Hubs primarios/clusters heredan categorias descendientes para contexto,
-        // no para afirmar cobertura exacta.
-        if (!$ids && in_array($role,array('cluster','hub_primary'),true)) {
+        // Hubs primarios/clusters heredan categorias descendientes solo como
+        // contexto. No se usa esa herencia para afirmar cobertura exacta.
+        if (!$ids && $role === 'hub_primary') {
             $children = (array) $wpdb->get_col($wpdb->prepare(
                 "SELECT DISTINCT target_id FROM {$relations}
-                 WHERE source_id=%d AND target_type IN ('hub_primary','hub_secondary','page')
+                 WHERE source_type='hub_primary' AND source_id=%d
+                   AND target_type IN ('hub_secondary','hub_secundario')
+                   AND relation_type IN ('hub_primary_to_hub_secondary','hub_primary_to_secondary')
                  ORDER BY target_id ASC LIMIT 100",
                 $page_id
             ));
             foreach ($children as $child_id) {
                 foreach ((array) $wpdb->get_col($wpdb->prepare(
                     "SELECT DISTINCT target_id FROM {$relations}
-                     WHERE source_id=%d AND target_type='product_cat'
+                     WHERE source_type IN ('hub_secondary','hub_secundario')
+                       AND source_id=%d
+                       AND target_type='product_cat'
+                       AND relation_type='hub_secondary_to_category'
                      ORDER BY target_id ASC LIMIT 50",
                     absint($child_id)
                 )) as $id) {
                     if (absint($id)) $ids[] = absint($id);
+                }
+            }
+        } elseif (!$ids && $role === 'cluster') {
+            $primaries = (array) $wpdb->get_col($wpdb->prepare(
+                "SELECT DISTINCT target_id FROM {$relations}
+                 WHERE source_type='cluster' AND source_id=%d
+                   AND target_type='hub_primary'
+                   AND relation_type IN ('cluster_to_primary','cluster_to_hub_primary')
+                 ORDER BY target_id ASC LIMIT 100",
+                $page_id
+            ));
+            foreach ($primaries as $primary_id) {
+                $secondaries = (array) $wpdb->get_col($wpdb->prepare(
+                    "SELECT DISTINCT target_id FROM {$relations}
+                     WHERE source_type='hub_primary' AND source_id=%d
+                       AND target_type IN ('hub_secondary','hub_secundario')
+                       AND relation_type IN ('hub_primary_to_hub_secondary','hub_primary_to_secondary')
+                     ORDER BY target_id ASC LIMIT 100",
+                    absint($primary_id)
+                ));
+                foreach ($secondaries as $child_id) {
+                    foreach ((array) $wpdb->get_col($wpdb->prepare(
+                        "SELECT DISTINCT target_id FROM {$relations}
+                         WHERE source_type IN ('hub_secondary','hub_secundario')
+                           AND source_id=%d
+                           AND target_type='product_cat'
+                           AND relation_type='hub_secondary_to_category'
+                         ORDER BY target_id ASC LIMIT 50",
+                        absint($child_id)
+                    )) as $id) {
+                        if (absint($id)) $ids[] = absint($id);
+                    }
                 }
             }
         }
