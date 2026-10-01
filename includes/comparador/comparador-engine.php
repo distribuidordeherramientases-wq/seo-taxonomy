@@ -453,6 +453,19 @@ final class SEO_Comparador_Engine {
         return 'category:' . absint($term_id);
     }
 
+    public static function debug_external_dedupe_key(array $row) {
+        return self::external_dedupe_key($row);
+    }
+
+    public static function profile_quality_status($own_count, $external_count, $publishable_axes, $semantic_conflicts = 0) {
+        $settings = self::settings();
+        if (absint($semantic_conflicts) > 0) return 'blocked';
+        if (absint($own_count) < 1) return 'blocked';
+        if (absint($own_count) + absint($external_count) < absint($settings['min_products'])) return 'needs_review';
+        if (absint($publishable_axes) < 1) return 'needs_review';
+        return 'needs_review';
+    }
+
     public static function build_profile($term_id) {
         global $wpdb;
         SEO_Comparador_DB::maybe_install();
@@ -499,9 +512,9 @@ final class SEO_Comparador_Engine {
         foreach ($publishable_axes as $axis) $confidence_parts[] = (float) ($axis['avg_confidence'] ?? 0);
         $confidence = $confidence_parts ? array_sum($confidence_parts) / count($confidence_parts) : 0.0;
 
-        $total_comparable = count($own) + count($external);
-        if (!$own) $status = 'blocked';
-        elseif ($total_comparable < absint($settings['min_products']) || !$publishable_axes) $status = 'needs_review';
+        $semantic_conflicts = (array) apply_filters('seo_comparador_semantic_conflicts', array(), $term_id, $own);
+        $base_status = self::profile_quality_status(count($own), count($external), count($publishable_axes), count($semantic_conflicts));
+        if ($base_status === 'blocked') $status = 'blocked';
         elseif ($old_status === 'ready_for_solucionador' && $old_hash === $hash) $status = 'ready_for_solucionador';
         elseif (!empty($post_map['post_id']) && get_post_status(absint($post_map['post_id'])) === 'publish' && $old_hash !== '' && $old_hash !== $hash) $status = 'needs_update';
         elseif (in_array($old_status,array('approved','post_draft','published','monitoring'),true) && $old_hash === $hash) $status = $old_status;
@@ -617,7 +630,16 @@ final class SEO_Comparador_Engine {
         self::generate_editorial($profile_id);
 
         if ($existing && $old_status !== $status) {
-            SEO_Comparador_DB::update_status($profile_id,$status,'recalculate','Perfil recalculado con las fuentes persistidas disponibles.','engine');
+            $wpdb->insert(SEO_Comparador_DB::table('workflow'),array(
+                'profile_id'=>$profile_id,
+                'from_state'=>$old_status,
+                'to_state'=>$status,
+                'action_code'=>'recalculate',
+                'reason'=>'Perfil recalculado con las fuentes persistidas disponibles.',
+                'user_id'=>get_current_user_id(),
+                'origin'=>'engine',
+                'created_at'=>$now,
+            ));
         }
         return SEO_Comparador_DB::get_profile($profile_id);
     }
@@ -748,6 +770,16 @@ final class SEO_Comparador_Engine {
         );
         if ($exists) $wpdb->update(SEO_Comparador_DB::table('post_map'),$row,array('id'=>absint($exists)));
         else { $row['created_at']=$now; $wpdb->insert(SEO_Comparador_DB::table('post_map'),$row); }
+        $editorial=SEO_Comparador_DB::editorial($profile_id);
+        $public_axes=array();
+        foreach (SEO_Comparador_DB::axes($profile_id) as $axis) {
+            if (!empty($axis['publishable'])) $public_axes[]=sanitize_text_field((string)$axis['label']);
+            if (count($public_axes)>=5) break;
+        }
+        update_post_meta($post_id,'_seo_comparador_profile_id',$profile_id);
+        update_post_meta($post_id,'_seo_comparador_excerpt',sanitize_text_field((string)($editorial['excerpt'] ?? '')));
+        update_post_meta($post_id,'_seo_comparador_axes',$public_axes);
+        update_post_meta($post_id,'_seo_comparador_snapshot_at',sanitize_text_field((string)($profile['source_snapshot_at'] ?? '')));
         SEO_Comparador_DB::update_status($profile_id,$post->post_status==='publish'?'published':'post_draft','link_post','Post canónico vinculado al perfil.','admin');
         return true;
     }
