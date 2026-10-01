@@ -1,17 +1,5 @@
 <?php
-/*
-Plugin Name: SEO Menu Manager
-Plugin URI: https://www.distribuidordeherramientas.es/
-Description: Generador de informes con vistas Normal y Detallada
-Version: 1.2.6
-Requires PHP: 7.4
-Requires at least: 5.8
-Author: David Perez Martorell davidperezmartorell@gmail.com
-Author URI: https://focazul.wordfpress.com/
-License: GPL2
-Text Domain: seo-menu-manager
-*/
-
+/** Internal SEO Taxonomy module. */
 if (!defined('ABSPATH')) exit;
 
 // Informe editorial: oportunidades de posts a partir de las conexiones Google ya existentes.
@@ -435,13 +423,13 @@ function seo_reports_general_ajax_partial() {
 /** Descarga JSON: calcula únicamente el informe solicitado. */
 function seo_reports_general_json_handler() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para exportar este informe.', 'seo-menu-manager'));
+        wp_die(esc_html__('No tienes permisos para exportar este informe.', 'seo-taxonomy'));
     }
 
     $report_key = isset($_GET['report']) ? sanitize_key(wp_unslash($_GET['report'])) : '';
     $definitions = seo_reports_general_definitions();
     if (!isset($definitions[$report_key])) {
-        wp_die(esc_html__('Informe no reconocido.', 'seo-menu-manager'));
+        wp_die(esc_html__('Informe no reconocido.', 'seo-taxonomy'));
     }
 
     check_admin_referer('seo_reports_general_json_' . $report_key);
@@ -456,7 +444,7 @@ function seo_reports_general_json_handler() {
         JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR
     );
     if (false === $json) {
-        wp_die(esc_html__('No se ha podido generar el JSON del informe.', 'seo-menu-manager'));
+        wp_die(esc_html__('No se ha podido generar el JSON del informe.', 'seo-taxonomy'));
     }
 
     nocache_headers();
@@ -3180,11 +3168,14 @@ EXPORT CSV SEO TABLES
     
         $table_key = sanitize_key($_GET['table']);
     
+        $export_nonce = isset($_GET['_wpnonce'])
+            ? sanitize_text_field(wp_unslash($_GET['_wpnonce']))
+            : '';
         if (
-            empty($_GET['_wpnonce']) ||
-            !wp_verify_nonce($_GET['_wpnonce'], 'seo_export_csv_' . $table_key)
+            $export_nonce === '' ||
+            !wp_verify_nonce($export_nonce, 'seo_export_csv_' . $table_key)
         ) {
-            wp_die('Nonce inválido.');
+            wp_die(esc_html__('Nonce inválido.', 'seo-taxonomy'));
         }
     
         global $wpdb;
@@ -3211,7 +3202,7 @@ EXPORT CSV SEO TABLES
     
         $rows = $wpdb->get_results("SELECT * FROM `$table_name`", ARRAY_A);
     
-        $filename = $table_name . '_' . date('Ymd_His') . '.csv';
+        $filename = $table_name . '_' . gmdate('Ymd_His') . '.csv';
     
         nocache_headers();
     

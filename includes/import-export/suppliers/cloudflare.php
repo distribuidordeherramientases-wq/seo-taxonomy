@@ -526,7 +526,7 @@ if ( ! function_exists( 'seo_cloudflare_security_audit' ) ) {
 if ( ! function_exists( 'seo_cloudflare_save_settings' ) ) {
     function seo_cloudflare_save_settings() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'No tienes permisos para guardar esta conexion.', 'seo-system' ) );
+            wp_die( esc_html__( 'No tienes permisos para guardar esta conexion.', 'seo-taxonomy' ) );
         }
         check_admin_referer( 'seo_cloudflare_save', 'seo_cloudflare_nonce' );
 

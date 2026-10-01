@@ -427,18 +427,18 @@ if (!function_exists('seo_post_editor_sanitize_content')) {
 if (!function_exists('seo_post_editor_handle_save')) {
     function seo_post_editor_handle_save() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para editar entradas.', 'seo-system'));
+            wp_die(esc_html__('No tienes permisos para editar entradas.', 'seo-taxonomy'));
         }
 
         $post_id = isset($_POST['post_id']) ? absint($_POST['post_id']) : 0;
         check_admin_referer('seo_post_editor_save_' . $post_id, 'seo_post_editor_nonce');
 
         if ($post_id > 0 && get_post_type($post_id) !== 'post') {
-            wp_die(esc_html__('La entrada indicada no existe.', 'seo-system'));
+            wp_die(esc_html__('La entrada indicada no existe.', 'seo-taxonomy'));
         }
 
         if ($post_id > 0 && !current_user_can('edit_post', $post_id)) {
-            wp_die(esc_html__('No tienes permisos para editar esta entrada.', 'seo-system'));
+            wp_die(esc_html__('No tienes permisos para editar esta entrada.', 'seo-taxonomy'));
         }
 
         if (!seo_post_editor_relations_table_exists()) {
@@ -557,14 +557,14 @@ if (!function_exists('seo_post_editor_handle_save')) {
 if (!function_exists('seo_post_editor_handle_trash')) {
     function seo_post_editor_handle_trash() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para enviar entradas a la papelera.', 'seo-system'));
+            wp_die(esc_html__('No tienes permisos para enviar entradas a la papelera.', 'seo-taxonomy'));
         }
 
         $post_id = isset($_POST['post_id']) ? absint($_POST['post_id']) : 0;
         check_admin_referer('seo_post_editor_trash_' . $post_id, 'seo_post_editor_trash_nonce');
 
         if ($post_id <= 0 || get_post_type($post_id) !== 'post' || !current_user_can('delete_post', $post_id)) {
-            wp_die(esc_html__('La entrada indicada no se puede eliminar.', 'seo-system'));
+            wp_die(esc_html__('La entrada indicada no se puede eliminar.', 'seo-taxonomy'));
         }
 
         $trashed = wp_trash_post($post_id);

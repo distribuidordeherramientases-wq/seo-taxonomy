@@ -234,15 +234,14 @@ if ( ! function_exists( 'seo_clonador_db_is_configured' ) ) {
 
 if ( ! function_exists( 'seo_clonador_db_open' ) ) {
     /**
-     * Abre una conexion mysqli independiente. El llamador debe cerrarla.
-     * El uso normal del Clonador es de lectura. La unica escritura remota
-     * admitida por diseño es el CLONACION integral sobre la conexion STAGING.
+     * Abre una conexión WordPress independiente al entorno indicado.
      *
-     * @return mysqli|WP_Error
+     * @param string $env pro|staging.
+     * @return wpdb|WP_Error
      */
     function seo_clonador_db_open( $env ) {
-        if ( ! extension_loaded( 'mysqli' ) || ! function_exists( 'mysqli_init' ) ) {
-            return new WP_Error( 'seo_clonador_db_no_mysqli', 'PHP no dispone de la extension mysqli.' );
+        if ( ! class_exists( 'wpdb' ) ) {
+            return new WP_Error( 'seo_clonador_db_no_wpdb', 'La clase wpdb no está disponible.' );
         }
 
         $settings = seo_clonador_db_settings( $env );
@@ -250,109 +249,149 @@ if ( ! function_exists( 'seo_clonador_db_open' ) ) {
             return new WP_Error( 'seo_clonador_db_missing', 'Faltan host, base de datos, usuario o contraseña.' );
         }
 
-        $mysqli = mysqli_init();
-        if ( ! $mysqli ) {
-            return new WP_Error( 'seo_clonador_db_init', 'No se pudo inicializar mysqli.' );
+        if ( ! empty( $settings['ssl_ca'] ) ) {
+            return new WP_Error(
+                'seo_clonador_db_ssl_ca',
+                'La conexión portable con wpdb no admite una CA TLS personalizada. Configura la confianza TLS en PHP/MySQL o usa un túnel privado.'
+            );
         }
 
-        @mysqli_options( $mysqli, MYSQLI_OPT_CONNECT_TIMEOUT, 6 );
-
-        $flags  = 0;
-        $ssl_ca = trim( (string) ( $settings['ssl_ca'] ?? '' ) );
-        if ( '' !== $ssl_ca ) {
-            @mysqli_ssl_set( $mysqli, null, null, $ssl_ca, null, null );
-            if ( defined( 'MYSQLI_CLIENT_SSL' ) ) {
-                $flags |= MYSQLI_CLIENT_SSL;
-            }
+        $host = trim( (string) $settings['host'] );
+        $port = absint( $settings['port'] ?? 3306 );
+        if ( $port > 0 && false === strpos( $host, ':' ) ) {
+            $host .= ':' . $port;
         }
 
-        $driver = null;
-        $previous_reporting = null;
-        if ( class_exists( 'mysqli_driver' ) ) {
-            $driver = new mysqli_driver();
-            $previous_reporting = $driver->report_mode;
-            $driver->report_mode = MYSQLI_REPORT_OFF;
-        }
-
-        $connected = @mysqli_real_connect(
-            $mysqli,
-            (string) $settings['host'],
+        $db = new wpdb(
             (string) $settings['username'],
             (string) $settings['password'],
             (string) $settings['database'],
-            absint( $settings['port'] ),
-            null,
-            $flags
+            $host
         );
+        $db->suppress_errors( true );
 
-        if ( $driver instanceof mysqli_driver && null !== $previous_reporting ) {
-            $driver->report_mode = $previous_reporting;
-        }
-
-        if ( ! $connected ) {
-            $message = trim( (string) mysqli_connect_error() );
-            @mysqli_close( $mysqli );
+        if ( ! empty( $db->last_error ) ) {
+            $message = sanitize_text_field( (string) $db->last_error );
+            $db->close();
             return new WP_Error(
                 'seo_clonador_db_connect',
-                '' !== $message ? $message : 'No se pudo abrir la conexion MySQL.'
+                $message !== '' ? $message : 'No se pudo abrir la conexión MySQL mediante wpdb.'
             );
         }
 
-        @mysqli_set_charset( $mysqli, 'utf8mb4' );
-        return $mysqli;
+        $db->query( 'SET NAMES utf8mb4' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Secondary DB connection managed by Clonador.
+        return $db;
     }
 }
 
+if ( ! function_exists( 'seo_clonador_db_query' ) ) {
+    function seo_clonador_db_query( $db, $sql ) {
+        if ( ! ( $db instanceof wpdb ) ) {
+            return false;
+        }
+        return $db->query( (string) $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery -- SQL is assembled by Clonador from validated identifiers and prepared/escaped values.
+    }
+}
+
+if ( ! function_exists( 'seo_clonador_db_rows' ) ) {
+    function seo_clonador_db_rows( $db, $sql ) {
+        if ( ! ( $db instanceof wpdb ) ) {
+            return array();
+        }
+        $rows = $db->get_results( (string) $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery -- Secondary DB abstraction; callers validate identifiers and values.
+        return is_array( $rows ) ? $rows : array();
+    }
+}
+
+if ( ! function_exists( 'seo_clonador_db_error' ) ) {
+    function seo_clonador_db_error( $db ) {
+        return $db instanceof wpdb ? sanitize_text_field( (string) $db->last_error ) : '';
+    }
+}
+
+if ( ! function_exists( 'seo_clonador_db_escape' ) ) {
+    function seo_clonador_db_escape( $db, $value ) {
+        if ( ! ( $db instanceof wpdb ) ) {
+            return '';
+        }
+        $prepared = $db->prepare( '%s', (string) $value );
+        if ( ! is_string( $prepared ) || strlen( $prepared ) < 2 ) {
+            return '';
+        }
+        return substr( $prepared, 1, -1 );
+    }
+}
+
+if ( ! function_exists( 'seo_clonador_db_insert_id' ) ) {
+    function seo_clonador_db_insert_id( $db ) {
+        return $db instanceof wpdb ? absint( $db->insert_id ) : 0;
+    }
+}
+
+if ( ! function_exists( 'seo_clonador_db_affected_rows' ) ) {
+    function seo_clonador_db_affected_rows( $db ) {
+        return $db instanceof wpdb ? max( 0, (int) $db->rows_affected ) : 0;
+    }
+}
+
+if ( ! function_exists( 'seo_clonador_db_close' ) ) {
+    function seo_clonador_db_close( $db ) {
+        if ( $db instanceof wpdb ) {
+            return $db->close();
+        }
+        return false;
+    }
+}
 if ( ! function_exists( 'seo_clonador_db_test_connection' ) ) {
     function seo_clonador_db_test_connection( $env ) {
         $settings = seo_clonador_db_settings( $env );
-        $mysqli   = seo_clonador_db_open( $env );
-        if ( is_wp_error( $mysqli ) ) {
-            return $mysqli;
+        $db       = seo_clonador_db_open( $env );
+        if ( is_wp_error( $db ) ) {
+            return $db;
         }
 
-        $server = '';
-        $db     = '';
-        $site   = '';
+        $row = $db->get_row(
+            'SELECT VERSION() AS server_version, DATABASE() AS database_name',
+            ARRAY_A
+        ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Intentional secondary DB diagnostic.
 
-        $result = @mysqli_query( $mysqli, 'SELECT VERSION() AS server_version, DATABASE() AS database_name' );
-        if ( $result ) {
-            $row = mysqli_fetch_assoc( $result );
-            $server = sanitize_text_field( (string) ( $row['server_version'] ?? '' ) );
-            $db     = sanitize_text_field( (string) ( $row['database_name'] ?? '' ) );
-            mysqli_free_result( $result );
+        if ( ! empty( $db->last_error ) ) {
+            $error = sanitize_text_field( (string) $db->last_error );
+            $db->close();
+            return new WP_Error( 'seo_clonador_db_test', $error );
         }
+
+        $server = sanitize_text_field( (string) ( $row['server_version'] ?? '' ) );
+        $name   = sanitize_text_field( (string) ( $row['database_name'] ?? '' ) );
 
         $prefix = (string) ( $settings['prefix'] ?? 'wp_' );
         if ( ! preg_match( '/^[A-Za-z0-9_]+$/', $prefix ) ) {
-            @mysqli_close( $mysqli );
-            return new WP_Error( 'seo_clonador_db_prefix', 'El prefijo de tablas no es valido.' );
+            $db->close();
+            return new WP_Error( 'seo_clonador_db_prefix', 'El prefijo de tablas no es válido.' );
         }
 
         $options_table = '`' . $prefix . 'options`';
-        $result = @mysqli_query(
-            $mysqli,
+        $site = $db->get_var(
             "SELECT option_value FROM {$options_table} WHERE option_name IN ('home','siteurl') ORDER BY FIELD(option_name,'home','siteurl') LIMIT 1"
-        );
-        if ( false === $result ) {
-            $error = trim( (string) mysqli_error( $mysqli ) );
-            @mysqli_close( $mysqli );
+        ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery -- Identifier is validated above.
+
+        if ( ! empty( $db->last_error ) ) {
+            $error = sanitize_text_field( (string) $db->last_error );
+            $db->close();
             return new WP_Error(
                 'seo_clonador_db_prefix_table',
-                'La conexion funciona, pero no se pudo leer ' . $prefix . 'options. Revisa el prefijo y que el usuario tenga permiso SELECT.' . ( '' !== $error ? ' ' . $error : '' )
+                'La conexión funciona, pero no se pudo leer ' . $prefix . 'options. ' . $error
             );
         }
-        $row = mysqli_fetch_assoc( $result );
-        $site = esc_url_raw( (string) ( $row['option_value'] ?? '' ) );
-        mysqli_free_result( $result );
-        @mysqli_close( $mysqli );
 
-        return [
+        $db->close();
+
+        return array(
             'ok'       => true,
             'server'   => $server,
-            'database' => $db,
-            'site_url' => $site,
-        ];
+            'database' => $name,
+            'site_url' => esc_url_raw( (string) $site ),
+        );
     }
 }
 
@@ -375,14 +414,14 @@ if ( ! function_exists( 'seo_clonador_db_redirect_url' ) ) {
 if ( ! function_exists( 'seo_clonador_db_save_handler' ) ) {
     function seo_clonador_db_save_handler() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'No tienes permisos para gestionar conexiones de entornos.', 'seo-system' ) );
+            wp_die( esc_html__( 'No tienes permisos para gestionar conexiones de entornos.', 'seo-taxonomy' ) );
         }
 
         check_admin_referer( 'seo_clonador_db_save', 'seo_clonador_db_nonce' );
         $env     = sanitize_key( wp_unslash( $_POST['env'] ?? '' ) );
         $allowed = seo_clonador_db_allowed_envs();
         if ( ! isset( $allowed[ $env ] ) ) {
-            wp_die( esc_html__( 'Entorno no valido.', 'seo-system' ) );
+            wp_die( esc_html__( 'Entorno no valido.', 'seo-taxonomy' ) );
         }
 
         $all      = seo_clonador_db_option();
@@ -432,14 +471,14 @@ add_action( 'admin_post_seo_clonador_db_save', 'seo_clonador_db_save_handler' );
 if ( ! function_exists( 'seo_clonador_db_test_handler' ) ) {
     function seo_clonador_db_test_handler() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'No tienes permisos para probar conexiones de entornos.', 'seo-system' ) );
+            wp_die( esc_html__( 'No tienes permisos para probar conexiones de entornos.', 'seo-taxonomy' ) );
         }
 
         check_admin_referer( 'seo_clonador_db_test', 'seo_clonador_db_test_nonce' );
         $env     = sanitize_key( wp_unslash( $_POST['env'] ?? '' ) );
         $allowed = seo_clonador_db_allowed_envs();
         if ( ! isset( $allowed[ $env ] ) ) {
-            wp_die( esc_html__( 'Entorno no valido.', 'seo-system' ) );
+            wp_die( esc_html__( 'Entorno no valido.', 'seo-taxonomy' ) );
         }
 
         $test = seo_clonador_db_test_connection( $env );
@@ -604,18 +643,19 @@ if ( ! function_exists( 'seo_clonador_db_prefix' ) ) {
 
 if ( ! function_exists( 'seo_clonador_open' ) ) {
     function seo_clonador_open( $env ) {
-        $mysqli = seo_clonador_db_open( $env );
-        if ( $mysqli instanceof mysqli ) {
-            if ( false === @mysqli_query( $mysqli, 'SET SESSION group_concat_max_len = 1048576' ) ) {
-                $message = sanitize_text_field( mysqli_error( $mysqli ) );
-                @mysqli_close( $mysqli );
+        $db = seo_clonador_db_open( $env );
+        if ( $db instanceof wpdb ) {
+            $ok = $db->query( 'SET SESSION group_concat_max_len = 1048576' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Session tuning for isolated Clonador connection.
+            if ( false === $ok ) {
+                $message = sanitize_text_field( (string) $db->last_error );
+                $db->close();
                 return new WP_Error(
                     'seo_clonador_group_concat',
                     'No se pudo configurar group_concat_max_len en ' . strtoupper( (string) $env ) . ( $message ? ': ' . $message : '.' )
                 );
             }
         }
-        return $mysqli;
+        return $db;
     }
 }
 

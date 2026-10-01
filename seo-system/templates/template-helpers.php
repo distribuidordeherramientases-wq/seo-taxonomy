@@ -1256,7 +1256,7 @@ if (!function_exists('dht_shared_render_product_card')) {
         echo '<a href="' . esc_url($permalink) . '" class="dh-product-link">';
 
         if ($card_product->is_on_sale()) {
-            echo '<span class="onsale">' . esc_html__('Oferta', 'woocommerce') . '</span>';
+            echo '<span class="onsale">' . esc_html__('Oferta', 'seo-taxonomy') . '</span>';
         }
 
         echo '<div class="dh-product-image">';

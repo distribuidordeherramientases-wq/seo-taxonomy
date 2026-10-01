@@ -192,7 +192,7 @@ function seo_google_connection_status() {
  */
 function seo_google_save_settings_handler() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para configurar Google Intelligence.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para configurar Google Intelligence.', 'seo-taxonomy'));
     }
 
     check_admin_referer('seo_google_save_settings', 'seo_google_settings_nonce');
@@ -246,7 +246,7 @@ function seo_google_save_settings_handler() {
  */
 function seo_google_connect_handler() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para conectar Google.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para conectar Google.', 'seo-taxonomy'));
     }
 
     check_admin_referer('seo_google_connect', 'seo_google_connect_nonce');
@@ -288,7 +288,7 @@ function seo_google_connect_handler() {
  */
 function seo_google_oauth_callback_handler() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para completar esta conexión.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para completar esta conexión.', 'seo-taxonomy'));
     }
 
     if (isset($_GET['error'])) {
@@ -534,7 +534,7 @@ function seo_google_get_search_console_properties() {
  */
 function seo_google_test_connection_handler() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para probar esta conexión.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para probar esta conexión.', 'seo-taxonomy'));
     }
 
     check_admin_referer('seo_google_test_connection', 'seo_google_test_nonce');
@@ -569,7 +569,7 @@ function seo_google_test_connection_handler() {
  */
 function seo_google_disconnect_handler() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para desconectar Google.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para desconectar Google.', 'seo-taxonomy'));
     }
 
     check_admin_referer('seo_google_disconnect', 'seo_google_disconnect_nonce');
@@ -851,7 +851,7 @@ function seo_google_install_tables($force = false) {
  */
 function seo_google_repair_tables_handler() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para reparar las tablas.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para reparar las tablas.', 'seo-taxonomy'));
     }
 
     check_admin_referer('seo_google_repair_tables', 'seo_google_repair_nonce');
@@ -2337,8 +2337,8 @@ JS;
             echo '<td>' . esc_html($run['started_at']) . '</td>';
             echo '<td><code>' . esc_html($run['date_from']) . '</code> → <code>' . esc_html($run['date_to']) . '</code></td>';
             echo '<td>' . esc_html($status_label[$run['status']] ?? $run['status']) . '</td>';
-            echo '<td>' . number_format_i18n(absint($run['days_completed'])) . '/' . number_format_i18n(absint($run['days_total'])) . '</td>';
-            echo '<td>' . number_format_i18n(absint($run['rows_upserted'])) . '</td>';
+            echo '<td>' . esc_html(number_format_i18n(absint($run['days_completed']))) . '/' . esc_html(number_format_i18n(absint($run['days_total']))) . '</td>';
+            echo '<td>' . esc_html(number_format_i18n(absint($run['rows_upserted']))) . '</td>';
             echo '<td>' . ($run['error_message'] ? esc_html($run['error_message']) : '—') . '</td>';
             echo '</tr>';
         }
@@ -2803,10 +2803,10 @@ function seo_google_render_top_table($title, array $rows, $is_url = false) {
             echo esc_html($label);
         }
         echo '</td>';
-        echo '<td>' . number_format_i18n((float) $row['impressions'], 0) . '</td>';
-        echo '<td>' . number_format_i18n((float) $row['clicks'], 0) . '</td>';
-        echo '<td>' . number_format_i18n(((float) $row['ctr']) * 100, 2) . '%</td>';
-        echo '<td>' . number_format_i18n((float) $row['position'], 1) . '</td></tr>';
+        echo '<td>' . esc_html(number_format_i18n((float) $row['impressions'], 0)) . '</td>';
+        echo '<td>' . esc_html(number_format_i18n((float) $row['clicks'], 0)) . '</td>';
+        echo '<td>' . esc_html(number_format_i18n(((float) $row['ctr']) * 100, 2)) . '%</td>';
+        echo '<td>' . esc_html(number_format_i18n((float) $row['position'], 1)) . '</td></tr>';
     }
 
     echo '</tbody></table></div>';
@@ -3117,19 +3117,19 @@ function seo_google_render_signals() {
         foreach ($queries as $row) {
             echo '<tr>';
             echo '<td><strong>' . esc_html($row['label']) . '</strong></td>';
-            echo '<td>' . number_format_i18n((float) $row['impressions'], 0) . '</td>';
-            echo '<td>' . number_format_i18n((float) $row['clicks'], 0) . '</td>';
-            echo '<td>' . number_format_i18n(((float) $row['ctr']) * 100, 2) . '%</td>';
-            echo '<td>' . number_format_i18n((float) $row['position'], 1) . '</td>';
-            echo '<td>' . number_format_i18n(absint($row['pages'])) . '</td>';
+            echo '<td>' . esc_html(number_format_i18n((float) $row['impressions'], 0)) . '</td>';
+            echo '<td>' . esc_html(number_format_i18n((float) $row['clicks'], 0)) . '</td>';
+            echo '<td>' . esc_html(number_format_i18n(((float) $row['ctr']) * 100, 2)) . '%</td>';
+            echo '<td>' . esc_html(number_format_i18n((float) $row['position'], 1)) . '</td>';
+            echo '<td>' . esc_html(number_format_i18n(absint($row['pages']))) . '</td>';
             echo '<td style="min-width:360px;">';
             if (!empty($row['evidence'])) {
                 echo '<details><summary>Ver URLs relacionadas</summary><ul style="margin:8px 0 0 18px;">';
                 foreach ($row['evidence'] as $evidence) {
                     echo '<li style="margin-bottom:7px;"><a href="' . esc_url($evidence['page_url']) . '" target="_blank" rel="noopener noreferrer">' . esc_html($evidence['page_url']) . '</a><br><small>';
-                    echo number_format_i18n((float) $evidence['impressions'], 0) . ' imp. · ';
-                    echo number_format_i18n((float) $evidence['clicks'], 0) . ' clics · pos. ';
-                    echo number_format_i18n((float) $evidence['position'], 1) . '</small></li>';
+                    echo esc_html(number_format_i18n((float) $evidence['impressions'], 0)) . ' imp. · ';
+                    echo esc_html(number_format_i18n((float) $evidence['clicks'], 0)) . ' clics · pos. ';
+                    echo esc_html(number_format_i18n((float) $evidence['position'], 1)) . '</small></li>';
                 }
                 echo '</ul></details>';
             } else {
@@ -3149,14 +3149,14 @@ function seo_google_render_signals() {
         echo '<table class="widefat striped"><thead><tr><th>URL</th><th>Imp.</th><th>Clics</th><th>Pos.</th><th>Consultas</th><th>Evidencias</th></tr></thead><tbody>';
         foreach ($pages as $row) {
             echo '<tr><td style="max-width:420px;word-break:break-word;"><a href="' . esc_url($row['label']) . '" target="_blank" rel="noopener noreferrer">' . esc_html($row['label']) . '</a></td>';
-            echo '<td>' . number_format_i18n((float) $row['impressions'], 0) . '</td>';
-            echo '<td>' . number_format_i18n((float) $row['clicks'], 0) . '</td>';
-            echo '<td>' . number_format_i18n((float) $row['position'], 1) . '</td>';
-            echo '<td>' . number_format_i18n(absint($row['queries'])) . '</td><td style="min-width:280px;">';
+            echo '<td>' . esc_html(number_format_i18n((float) $row['impressions'], 0)) . '</td>';
+            echo '<td>' . esc_html(number_format_i18n((float) $row['clicks'], 0)) . '</td>';
+            echo '<td>' . esc_html(number_format_i18n((float) $row['position'], 1)) . '</td>';
+            echo '<td>' . esc_html(number_format_i18n(absint($row['queries']))) . '</td><td style="min-width:280px;">';
             if (!empty($row['evidence'])) {
                 echo '<details><summary>Ver consultas</summary><ul style="margin:8px 0 0 18px;">';
                 foreach ($row['evidence'] as $evidence) {
-                    echo '<li><strong>' . esc_html($evidence['query_text']) . '</strong> — ' . number_format_i18n((float) $evidence['impressions'], 0) . ' imp. · pos. ' . number_format_i18n((float) $evidence['position'], 1) . '</li>';
+                    echo '<li><strong>' . esc_html($evidence['query_text']) . '</strong> — ' . esc_html(number_format_i18n((float) $evidence['impressions'], 0)) . ' imp. · pos. ' . esc_html(number_format_i18n((float) $evidence['position'], 1)) . '</li>';
                 }
                 echo '</ul></details>';
             } else {
@@ -3330,12 +3330,12 @@ function seo_google_render_change_sections($title, array $groups, $is_url) {
             } else {
                 echo esc_html($label_text);
             }
-            echo '</td><td>' . number_format_i18n((float) $row['previous_impressions'], 0) . '</td>';
-            echo '<td>' . number_format_i18n((float) $row['current_impressions'], 0) . '</td>';
+            echo '</td><td>' . esc_html(number_format_i18n((float) $row['previous_impressions'], 0)) . '</td>';
+            echo '<td>' . esc_html(number_format_i18n((float) $row['current_impressions'], 0)) . '</td>';
             $delta = (float) $row['delta'];
-            echo '<td>' . ($delta > 0 ? '+' : '') . number_format_i18n($delta, 0) . '</td>';
-            echo '<td>' . ((float) $row['previous_position'] > 0 ? number_format_i18n((float) $row['previous_position'], 1) : '—') . '</td>';
-            echo '<td>' . ((float) $row['current_position'] > 0 ? number_format_i18n((float) $row['current_position'], 1) : '—') . '</td></tr>';
+            echo '<td>' . ($delta > 0 ? '+' : '') . esc_html(number_format_i18n($delta, 0)) . '</td>';
+            echo '<td>' . ((float) $row['previous_position'] > 0 ? esc_html(number_format_i18n((float) $row['previous_position'], 1)) : '—') . '</td>';
+            echo '<td>' . ((float) $row['current_position'] > 0 ? esc_html(number_format_i18n((float) $row['current_position'], 1)) : '—') . '</td></tr>';
         }
         echo '</tbody></table></div>';
     }
@@ -3851,9 +3851,9 @@ function seo_google_render_comparison() {
     echo '<h3 style="margin-top:0;">Google vs. catálogo</h3>';
     echo '<p>Relaciona las URLs vistas por Google con entidades locales de WordPress/WooCommerce. Cuando una URL no existe directamente, se comprueba su cadena HTTP y se intenta relacionar el destino final.</p>';
     echo '<div style="display:flex;gap:14px;flex-wrap:wrap;">';
-    echo '<div style="border:1px solid #dcdcde;padding:12px 18px;border-radius:6px;"><small>Reconocidas</small><br><strong style="font-size:24px;">' . number_format_i18n($recognized) . '</strong></div>';
-    echo '<div style="border:1px solid #dcdcde;padding:12px 18px;border-radius:6px;"><small>Vía redirect</small><br><strong style="font-size:24px;">' . number_format_i18n($redirected) . '</strong></div>';
-    echo '<div style="border:1px solid #dcdcde;padding:12px 18px;border-radius:6px;"><small>No reconocidas</small><br><strong style="font-size:24px;">' . number_format_i18n($unrecognized) . '</strong></div>';
+    echo '<div style="border:1px solid #dcdcde;padding:12px 18px;border-radius:6px;"><small>Reconocidas</small><br><strong style="font-size:24px;">' . esc_html(number_format_i18n($recognized)) . '</strong></div>';
+    echo '<div style="border:1px solid #dcdcde;padding:12px 18px;border-radius:6px;"><small>Vía redirect</small><br><strong style="font-size:24px;">' . esc_html(number_format_i18n($redirected)) . '</strong></div>';
+    echo '<div style="border:1px solid #dcdcde;padding:12px 18px;border-radius:6px;"><small>No reconocidas</small><br><strong style="font-size:24px;">' . esc_html(number_format_i18n($unrecognized)) . '</strong></div>';
     echo '</div><p class="description">Se analizan las 100 páginas principales del período <code>' . esc_html($period['current_from']) . '</code> → <code>' . esc_html($period['current_to']) . '</code>. Los redirects comprobados se guardan durante 12 horas para evitar peticiones repetidas.</p>';
     echo '</div>';
 
@@ -3880,9 +3880,9 @@ function seo_google_render_comparison() {
         }
 
         echo '</td>';
-        echo '<td>' . number_format_i18n((float) $page['impressions'], 0) . '</td>';
-        echo '<td>' . number_format_i18n((float) $page['clicks'], 0) . '</td>';
-        echo '<td>' . number_format_i18n((float) $page['position'], 1) . '</td>';
+        echo '<td>' . esc_html(number_format_i18n((float) $page['impressions'], 0)) . '</td>';
+        echo '<td>' . esc_html(number_format_i18n((float) $page['clicks'], 0)) . '</td>';
+        echo '<td>' . esc_html(number_format_i18n((float) $page['position'], 1)) . '</td>';
         echo '<td><strong>' . esc_html($entity['type']) . '</strong>';
 
         if (!empty($entity['redirected']) && !empty($entity['recognized'])) {
@@ -3894,7 +3894,7 @@ function seo_google_render_comparison() {
         }
 
         echo '</td><td>' . esc_html($entity['status']) . '</td>';
-        echo '<td>' . number_format_i18n(absint($page['queries'])) . '</td></tr>';
+        echo '<td>' . esc_html(number_format_i18n(absint($page['queries']))) . '</td></tr>';
     }
 
     echo '</tbody></table></div>';
@@ -4010,14 +4010,14 @@ function seo_google_render_coverage() {
     echo '<table class="widefat striped"><thead><tr><th>Área</th><th>Páginas</th><th>Imp.</th><th>Clics</th><th>Pos.</th></tr></thead><tbody>';
     foreach (array_slice($areas, 0, 50, true) as $area => $values) {
         $position = $values['impressions'] > 0 ? $values['weighted_position'] / $values['impressions'] : 0;
-        echo '<tr><td><code>' . esc_html($area) . '</code></td><td>' . number_format_i18n($values['pages']) . '</td><td>' . number_format_i18n($values['impressions'], 0) . '</td><td>' . number_format_i18n($values['clicks'], 0) . '</td><td>' . number_format_i18n($position, 1) . '</td></tr>';
+        echo '<tr><td><code>' . esc_html($area) . '</code></td><td>' . esc_html(number_format_i18n($values['pages'])) . '</td><td>' . esc_html(number_format_i18n($values['impressions'], 0)) . '</td><td>' . esc_html(number_format_i18n($values['clicks'], 0)) . '</td><td>' . esc_html(number_format_i18n($position, 1)) . '</td></tr>';
     }
     echo '</tbody></table></div>';
 
     echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;"><h3 style="margin-top:0;">Páginas por rango de posición</h3>';
     echo '<table class="widefat striped"><thead><tr><th>Rango</th><th>Páginas</th></tr></thead><tbody>';
     foreach ($ranges as $range => $count) {
-        echo '<tr><td>' . esc_html($range) . '</td><td>' . number_format_i18n($count) . '</td></tr>';
+        echo '<tr><td>' . esc_html($range) . '</td><td>' . esc_html(number_format_i18n($count)) . '</td></tr>';
     }
     echo '</tbody></table><p class="description">Cada página se sitúa según su posición media ponderada del período.</p></div>';
     echo '</div>';
@@ -4133,13 +4133,13 @@ function seo_google_get_lab_rows($property_id, array $filters) {
  */
 function seo_google_export_csv_handler() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para exportar estos datos.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para exportar estos datos.', 'seo-taxonomy'));
     }
 
     check_admin_referer('seo_google_export_csv', 'seo_google_export_nonce');
     $settings = seo_google_get_settings();
     if ('connected' !== seo_google_connection_status()) {
-        wp_die(esc_html__('Google Search Console no está conectado.', 'seo-system'));
+        wp_die(esc_html__('Google Search Console no está conectado.', 'seo-taxonomy'));
     }
 
     $filters = seo_google_get_lab_filters($settings['property_id'], $_GET);
@@ -4172,7 +4172,7 @@ function seo_google_export_csv_handler() {
  */
 function seo_google_export_decisions_json_handler() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para exportar estos datos.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para exportar estos datos.', 'seo-taxonomy'));
     }
 
     check_admin_referer('seo_google_export_decisions_json');
@@ -4181,7 +4181,7 @@ function seo_google_export_decisions_json_handler() {
     $days = in_array($days, array(28, 60, 90), true) ? $days : 60;
 
     if (!function_exists('seo_google_opportunity_export_payload')) {
-        wp_die(esc_html__('El motor de decisiones de Google Intelligence no está disponible.', 'seo-system'));
+        wp_die(esc_html__('El motor de decisiones de Google Intelligence no está disponible.', 'seo-taxonomy'));
     }
 
     $payload = seo_google_opportunity_export_payload($days);
@@ -4259,7 +4259,7 @@ function seo_google_render_laboratory() {
     echo '</div>';
 
     echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;overflow:auto;">';
-    echo '<p><strong>Resultados:</strong> ' . number_format_i18n(count($rows)) . '</p>';
+    echo '<p><strong>Resultados:</strong> ' . esc_html(number_format_i18n(count($rows))) . '</p>';
     if (!$rows) {
         echo '<p>No hay filas que cumplan los filtros.</p></div>';
         return;
@@ -4274,8 +4274,8 @@ function seo_google_render_laboratory() {
         } else {
             echo '—';
         }
-        echo '</td><td>' . number_format_i18n((float) $row['impressions'], 0) . '</td><td>' . number_format_i18n((float) $row['clicks'], 0) . '</td>';
-        echo '<td>' . number_format_i18n(((float) $row['ctr']) * 100, 2) . '%</td><td>' . number_format_i18n((float) $row['position'], 1) . '</td></tr>';
+        echo '</td><td>' . esc_html(number_format_i18n((float) $row['impressions'], 0)) . '</td><td>' . esc_html(number_format_i18n((float) $row['clicks'], 0)) . '</td>';
+        echo '<td>' . esc_html(number_format_i18n(((float) $row['ctr']) * 100, 2)) . '%</td><td>' . esc_html(number_format_i18n((float) $row['position'], 1)) . '</td></tr>';
     }
     echo '</tbody></table></div>';
 }

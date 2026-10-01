@@ -1,4 +1,10 @@
 <?php
+
+// CLI entrypoint: block every direct web request before loading WordPress.
+if ( ! defined( 'ABSPATH' ) ) {
+    'cli' === PHP_SAPI || exit;
+}
+
 /**
  * SEO Taxonomy - entrada CLI del gestor periodico de procesos.
  *
@@ -12,8 +18,13 @@ if ('cli' !== PHP_SAPI) {
     exit(1);
 }
 
-$wp_load = dirname(__DIR__, 4) . '/wp-load.php';
-if (!is_readable($wp_load)) {
+if ($argc < 2) {
+    fwrite(STDERR, "Falta la ruta de wp-load.php.\n");
+    exit(64);
+}
+
+$wp_load = (string) $argv[1];
+if ($wp_load === '' || !is_readable($wp_load)) {
     fwrite(STDERR, "No se puede cargar wp-load.php.\n");
     exit(66);
 }

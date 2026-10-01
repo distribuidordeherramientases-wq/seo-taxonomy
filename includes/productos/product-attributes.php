@@ -63,7 +63,7 @@ if (!function_exists('seo_attributes_require_schema')) {
         $tables = seo_attributes_tables();
         foreach ($tables as $table) {
             if (!seo_attributes_table_is_innodb($table)) {
-                throw new RuntimeException('La tabla ' . $table . ' no existe o no usa InnoDB.');
+                throw new RuntimeException('La tabla ' . esc_html((string) $table) . ' no existe o no usa InnoDB.');
             }
         }
         if (!class_exists('SEO_Data_Layer') || !class_exists('SEO_Data_Operation')) {
@@ -177,7 +177,7 @@ if (!function_exists('seo_attributes_prepare_product_row')) {
         $definition = seo_attributes_get_definition($type, true);
         if (!$definition) {
             if ($strict) {
-                throw new InvalidArgumentException('El atributo «' . $type . '» no existe o está inactivo en el vocabulario canónico.');
+                throw new InvalidArgumentException('El atributo «' . esc_html($type) . '» no existe o está inactivo en el vocabulario canónico.');
             }
             return null;
         }
@@ -199,7 +199,7 @@ if (!function_exists('seo_attributes_prepare_product_row')) {
             if (!$term) {
                 if ($strict) {
                     throw new InvalidArgumentException(
-                        'El valor «' . $value . '» no existe como término/alias de «' . $type . '».'
+                        'El valor «' . esc_html($value) . '» no existe como término/alias de «' . esc_html($type) . '».'
                     );
                 }
                 return null;
@@ -512,7 +512,7 @@ if (!function_exists('seo_attributes_replace_product')) {
             ARRAY_A
         );
         if (!is_array($existing)) {
-            throw new RuntimeException('No se pudieron inventariar los atributos actuales: ' . $wpdb->last_error);
+            throw new RuntimeException('No se pudieron inventariar los atributos actuales: ' . esc_html($wpdb->last_error));
         }
 
         $source_module = sanitize_key((string) $source_module) ?: 'product_attributes';
@@ -672,7 +672,7 @@ if (!function_exists('seo_attributes_save_definition')) {
                 $wpdb->prepare("SELECT id FROM `{$tables['definitions']}` WHERE slug = %s LIMIT 1", $slug)
             );
             if ($duplicate > 0) {
-                throw new RuntimeException('Ya existe una definición con el slug «' . $slug . '».');
+                throw new RuntimeException('Ya existe una definición con el slug «' . esc_html($slug) . '».');
             }
         }
 
@@ -834,7 +834,7 @@ if (!function_exists('seo_attributes_delete_term')) {
             $wpdb->prepare("SELECT COUNT(*) FROM `{$tables['values']}` WHERE termino_id = %d", $term_id)
         );
         if ($usage > 0) {
-            throw new RuntimeException('El término tiene ' . $usage . ' asignaciones. Desactívalo en lugar de eliminarlo.');
+            throw new RuntimeException('El término tiene ' . esc_html((string) $usage) . ' asignaciones. Desactívalo en lugar de eliminarlo.');
         }
         $aliases = $wpdb->get_results(
             $wpdb->prepare("SELECT id FROM `{$tables['aliases']}` WHERE termino_id = %d ORDER BY id", $term_id),
@@ -957,7 +957,7 @@ if (!function_exists('seo_attributes_delete_master_type')) {
         $attribute_id = (int) $definition['id'];
         $usage = seo_attributes_usage_count((string) $definition['slug']);
         if ($usage > 0) {
-            throw new RuntimeException('El atributo «' . (string) $definition['slug'] . '» tiene ' . $usage . ' asignaciones. Usa el borrado global si realmente quieres eliminarlo.');
+            throw new RuntimeException('El atributo «' . esc_html((string) $definition['slug']) . '» tiene ' . esc_html((string) $usage) . ' asignaciones. Usa el borrado global si realmente quieres eliminarlo.');
         }
 
         $terms = $wpdb->get_results($wpdb->prepare("SELECT id FROM `{$tables['terms']}` WHERE atributo_id = %d ORDER BY id", $attribute_id), ARRAY_A);

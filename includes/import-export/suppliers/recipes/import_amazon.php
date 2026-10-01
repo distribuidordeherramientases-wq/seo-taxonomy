@@ -570,7 +570,7 @@ function seo_supplier_recipe_amazon_render_explorer() {
         if ( ! empty( $preview['categories'] ) ) {
             echo '<table class="widefat striped"><thead><tr><th>Node ID</th><th>Categoria Amazon</th><th>Jerarquia Amazon</th><th>Sales rank</th></tr></thead><tbody>';
             foreach ( $preview['categories'] as $cat ) {
-                echo '<tr><td><code>' . esc_html( $cat['amazon_node_id'] ) . '</code></td><td><strong>' . esc_html( $cat['context_name'] ) . '</strong></td><td>' . esc_html( $cat['path'] ) . '</td><td>' . ( $cat['sales_rank'] !== null ? number_format_i18n( $cat['sales_rank'] ) : '—' ) . '</td></tr>';
+                echo '<tr><td><code>' . esc_html( $cat['amazon_node_id'] ) . '</code></td><td><strong>' . esc_html( $cat['context_name'] ) . '</strong></td><td>' . esc_html( $cat['path'] ) . '</td><td>' . ( $cat['sales_rank'] !== null ? esc_html(number_format_i18n( $cat['sales_rank'] )) : '—' ) . '</td></tr>';
             }
             echo '</tbody></table>';
         }

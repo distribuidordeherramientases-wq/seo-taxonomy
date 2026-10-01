@@ -3,7 +3,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_CORE_SYSTEM_TEST_VERSION')) {
-    define('SEO_CORE_SYSTEM_TEST_VERSION', '8.9.2');
+    define('SEO_CORE_SYSTEM_TEST_VERSION', '8.10.0');
 }
 
 $seo_core_settings_module = __DIR__ . '/seo-core-validation-settings.php';
@@ -24,6 +24,11 @@ if (is_readable($seo_core_semantic_test_module)) {
 $seo_core_visual_test_module = __DIR__ . '/seo-core-validation-visual.php';
 if (is_readable($seo_core_visual_test_module)) {
     require_once $seo_core_visual_test_module;
+}
+
+$seo_core_wporg_test_module = __DIR__ . '/seo-core-validation-wordpress-org.php';
+if (is_readable($seo_core_wporg_test_module)) {
+    require_once $seo_core_wporg_test_module;
 }
 
 /**
@@ -112,14 +117,14 @@ function seo_core_system_test_csv_safe_value($value) {
  */
 function seo_core_system_test_export_missing_product_excerpts() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para exportar estos datos.', 'seo-system'), '', array('response' => 403));
+        wp_die(esc_html__('No tienes permisos para exportar estos datos.', 'seo-taxonomy'), '', array('response' => 403));
     }
 
     check_admin_referer('seo_core_export_missing_product_excerpts');
 
     $format = isset($_GET['format']) ? sanitize_key(wp_unslash($_GET['format'])) : 'json';
     if (!in_array($format, array('json', 'csv'), true)) {
-        wp_die(esc_html__('Formato de exportacion no valido.', 'seo-system'), '', array('response' => 400));
+        wp_die(esc_html__('Formato de exportacion no valido.', 'seo-taxonomy'), '', array('response' => 400));
     }
 
     $rows = seo_core_system_test_missing_product_excerpt_rows();
@@ -158,7 +163,7 @@ function seo_core_system_test_export_missing_product_excerpts() {
     header('Content-Type: text/csv; charset=utf-8');
     $out = fopen('php://output', 'w');
     if ($out === false) {
-        wp_die(esc_html__('No se pudo abrir la salida CSV.', 'seo-system'));
+        wp_die(esc_html__('No se pudo abrir la salida CSV.', 'seo-taxonomy'));
     }
 
     // UTF-8 BOM improves Excel compatibility; semicolon matches common es-ES CSV imports.
@@ -214,7 +219,7 @@ if (is_readable($seo_core_persistence_test_module)) {
 
 function seo_core_system_test() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'seo-taxonomy'));
     }
 
     $active_tab = seo_core_system_test_get_active_tab();
@@ -671,6 +676,9 @@ function seo_core_system_test_run_all(
     $results = array();
 
     $results = array_merge($results, seo_core_system_test_code_integrity());
+    if (function_exists('seo_core_system_test_wordpress_org_results')) {
+        $results = array_merge($results, seo_core_system_test_wordpress_org_results());
+    }
     if (function_exists('seo_core_system_test_persistence_results')) {
         $results = array_merge($results, seo_core_system_test_persistence_results());
     }
@@ -7374,7 +7382,7 @@ function seo_core_system_test_render_links_404_items($group_results) {
             continue;
         }
         echo '<details class="seo-core-test-details">';
-        echo '<summary>' . esc_html($result['label']) . ': detalle de incidencias (' . number_format_i18n(count($result['items'])) . ')</summary>';
+        echo '<summary>' . esc_html($result['label']) . ': detalle de incidencias (' . esc_html(number_format_i18n(count($result['items']))) . ')</summary>';
         echo '<div class="seo-core-test-details-content"><div class="seo-core-test-table-wrap">';
         echo '<table class="seo-core-test-table"><thead><tr><th>Prioridad</th><th>Estado</th><th>URL</th><th>Origen</th><th>Detalle</th></tr></thead><tbody>';
         foreach ($result['items'] as $item) {
@@ -7457,7 +7465,7 @@ function seo_core_system_test_render_links_404($results) {
             continue;
         }
         echo '<details class="seo-core-test-details">';
-        echo '<summary>' . esc_html($result['label']) . ': detalle de incidencias (' . number_format_i18n(count($result['items'])) . ')</summary>';
+        echo '<summary>' . esc_html($result['label']) . ': detalle de incidencias (' . esc_html(number_format_i18n(count($result['items']))) . ')</summary>';
         echo '<div class="seo-core-test-details-content"><div class="seo-core-test-table-wrap">';
         echo '<table class="seo-core-test-table"><thead><tr><th>Prioridad</th><th>Estado</th><th>URL</th><th>Origen</th><th>Detalle</th></tr></thead><tbody>';
         foreach ($result['items'] as $item) {
@@ -7477,7 +7485,7 @@ function seo_core_system_test_render_code_integrity($results) {
     $inventory = seo_core_system_test_get_code_inventory();
 
     echo '<h2>Integridad del código</h2>';
-    echo '<p>Inventario estático de los archivos PHP propios del plugin. No ejecuta los archivos analizados: lee sus tokens para localizar declaraciones, hooks y posibles colisiones.</p>';
+    echo '<p>Inventario estático de los archivos PHP propios del plugin. No ejecuta los archivos analizados: lee sus tokens para localizar declaraciones, hooks, posibles colisiones y patrones de compatibilidad con WordPress.org.</p>';
 
     echo '<div class="seo-core-test-grid">';
     seo_core_system_test_summary_card('Archivos PHP detectados', $inventory['file_count'], 'info');
@@ -7505,6 +7513,10 @@ function seo_core_system_test_render_code_integrity($results) {
     echo '</div>';
 
     seo_core_system_test_render_group($results, 'code_integrity', false);
+
+    if (function_exists('seo_core_wordpress_org_render_details')) {
+        seo_core_wordpress_org_render_details();
+    }
 
     seo_core_system_test_render_issue_details('Errores de sintaxis', $inventory['syntax_errors'], 'syntax');
     seo_core_system_test_render_file_list_details('Etiquetas PHP cortas', $inventory['short_open_tags']);

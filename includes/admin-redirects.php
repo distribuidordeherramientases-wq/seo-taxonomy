@@ -644,7 +644,7 @@ if (!function_exists('seo_redirects_admin_issue_badge')) {
 if (!function_exists('seo_redirects_admin_send_json_download')) {
     function seo_redirects_admin_send_json_download($filename, $payload) {
         if (headers_sent()) {
-            wp_die(esc_html__('No se puede iniciar la descarga porque ya se enviaron cabeceras.', 'seo-menu-manager'));
+            wp_die(esc_html__('No se puede iniciar la descarga porque ya se enviaron cabeceras.', 'seo-taxonomy'));
         }
 
         nocache_headers();
@@ -657,7 +657,7 @@ if (!function_exists('seo_redirects_admin_send_json_download')) {
         );
 
         if (!is_string($json)) {
-            wp_die(esc_html__('No se pudo generar el JSON de redirecciones.', 'seo-menu-manager'));
+            wp_die(esc_html__('No se pudo generar el JSON de redirecciones.', 'seo-taxonomy'));
         }
 
         echo $json; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- descarga JSON controlada.
@@ -926,7 +926,7 @@ if (!function_exists('seo_redirects_admin_import_json_file')) {
 
 function seo_menu_manager_redirects_page() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para gestionar redirecciones.', 'seo-menu-manager'));
+        wp_die(esc_html__('No tienes permisos para gestionar redirecciones.', 'seo-taxonomy'));
     }
 
     global $wpdb;
@@ -1023,19 +1023,20 @@ function seo_menu_manager_redirects_page() {
                 $message = trim($origin_error . ' ' . $target_error);
                 $message_class = 'error';
             } elseif ($origin_url === '' || $target_url === '') {
-                $message = __('Por favor, rellena tanto la URL de origen como la de destino.', 'seo-menu-manager');
+                $message = __('Por favor, rellena tanto la URL de origen como la de destino.', 'seo-taxonomy');
                 $message_class = 'error';
             } elseif (seo_redirects_admin_effective_path($origin_url) === seo_redirects_admin_effective_path($target_url)) {
-                $message = __('No se puede crear una redirección hacia la misma URL.', 'seo-menu-manager');
+                $message = __('No se puede crear una redirección hacia la misma URL.', 'seo-taxonomy');
                 $message_class = 'error';
             } elseif (($duplicate = seo_redirects_admin_find_duplicate_origin($existing_rows, $origin_url)) !== null) {
                 $message = sprintf(
-                    __('Ya existe una redirección con el mismo origen efectivo (ID %d). Edítala en lugar de crear otra.', 'seo-menu-manager'),
+                    /* translators: %d: ID de la redirección existente. */
+                    __('Ya existe una redirección con el mismo origen efectivo (ID %d). Edítala en lugar de crear otra.', 'seo-taxonomy'),
                     (int) $duplicate->id
                 );
                 $message_class = 'error';
             } elseif (seo_redirects_admin_would_create_cycle($existing_rows, $origin_url, $target_url)) {
-                $message = __('La nueva regla crearía un ciclo de redirección. No se ha guardado.', 'seo-menu-manager');
+                $message = __('La nueva regla crearía un ciclo de redirección. No se ha guardado.', 'seo-taxonomy');
                 $message_class = 'error';
             } else {
                 $inserted = $wpdb->insert(
@@ -1051,10 +1052,10 @@ function seo_menu_manager_redirects_page() {
                 );
 
                 if ($inserted === false) {
-                    $message = __('Error al insertar la redirección.', 'seo-menu-manager');
+                    $message = __('Error al insertar la redirección.', 'seo-taxonomy');
                     $message_class = 'error';
                 } else {
-                    $message = __('Redirección añadida correctamente.', 'seo-menu-manager');
+                    $message = __('Redirección añadida correctamente.', 'seo-taxonomy');
                     $existing_rows = seo_redirects_admin_existing_rows($table_redirects, $wpdb);
                 }
             }
@@ -1085,19 +1086,20 @@ function seo_menu_manager_redirects_page() {
                     $message = trim($origin_error . ' ' . $target_error);
                     $message_class = 'error';
                 } elseif ($origin_url === '' || $target_url === '') {
-                    $message = __('Origen y destino son obligatorios.', 'seo-menu-manager');
+                    $message = __('Origen y destino son obligatorios.', 'seo-taxonomy');
                     $message_class = 'error';
                 } elseif (seo_redirects_admin_effective_path($origin_url) === seo_redirects_admin_effective_path($target_url)) {
-                    $message = __('No se puede redirigir una URL hacia sí misma.', 'seo-menu-manager');
+                    $message = __('No se puede redirigir una URL hacia sí misma.', 'seo-taxonomy');
                     $message_class = 'error';
                 } elseif (($duplicate = seo_redirects_admin_find_duplicate_origin($existing_rows, $origin_url, $id_to_update)) !== null) {
                     $message = sprintf(
-                        __('El origen entra en conflicto con la redirección ID %d.', 'seo-menu-manager'),
+                        /* translators: %d: ID de la redirección en conflicto. */
+                        __('El origen entra en conflicto con la redirección ID %d.', 'seo-taxonomy'),
                         (int) $duplicate->id
                     );
                     $message_class = 'error';
                 } elseif (seo_redirects_admin_would_create_cycle($existing_rows, $origin_url, $target_url, $id_to_update)) {
-                    $message = __('El cambio crearía un ciclo de redirección. No se ha guardado.', 'seo-menu-manager');
+                    $message = __('El cambio crearía un ciclo de redirección. No se ha guardado.', 'seo-taxonomy');
                     $message_class = 'error';
                 } else {
                     $updated = $wpdb->update(
@@ -1113,10 +1115,10 @@ function seo_menu_manager_redirects_page() {
                     );
 
                     if ($updated === false) {
-                        $message = __('Error al actualizar la redirección.', 'seo-menu-manager');
+                        $message = __('Error al actualizar la redirección.', 'seo-taxonomy');
                         $message_class = 'error';
                     } else {
-                        $message = __('Redirección actualizada correctamente.', 'seo-menu-manager');
+                        $message = __('Redirección actualizada correctamente.', 'seo-taxonomy');
                         $existing_rows = seo_redirects_admin_existing_rows($table_redirects, $wpdb);
                     }
                 }
@@ -1132,7 +1134,7 @@ function seo_menu_manager_redirects_page() {
 
         if (check_admin_referer('seo_delete_redirect_nonce_' . $id_to_delete)) {
             $wpdb->delete($table_redirects, array('id' => $id_to_delete), array('%d'));
-            $message = __('Redirección eliminada correctamente.', 'seo-menu-manager');
+            $message = __('Redirección eliminada correctamente.', 'seo-taxonomy');
             $existing_rows = seo_redirects_admin_existing_rows($table_redirects, $wpdb);
         }
     }
@@ -1444,47 +1446,47 @@ function seo_menu_manager_redirects_page() {
 
         <div class="seo-rd-kpis">
             <div class="seo-rd-kpi is-ok">
-                <strong><?php echo number_format_i18n($stats['total']); ?></strong>
+                <strong><?php echo esc_html(number_format_i18n($stats['total'])); ?></strong>
                 <span>Redirects activos</span>
             </div>
             <div class="seo-rd-kpi">
-                <strong><?php echo number_format_i18n($stats['with_hits']); ?></strong>
+                <strong><?php echo esc_html(number_format_i18n($stats['with_hits'])); ?></strong>
                 <span>Con actividad</span>
             </div>
             <div class="seo-rd-kpi">
-                <strong><?php echo number_format_i18n($stats['without_hits']); ?></strong>
+                <strong><?php echo esc_html(number_format_i18n($stats['without_hits'])); ?></strong>
                 <span>Sin uso registrado</span>
             </div>
             <div class="seo-rd-kpi">
-                <strong><?php echo number_format_i18n($stats['hits_total']); ?></strong>
+                <strong><?php echo esc_html(number_format_i18n($stats['hits_total'])); ?></strong>
                 <span>Hits acumulados</span>
             </div>
             <div class="seo-rd-kpi">
-                <strong><?php echo number_format_i18n($stats['last_24h']); ?></strong>
+                <strong><?php echo esc_html(number_format_i18n($stats['last_24h'])); ?></strong>
                 <span>Usados en 24 h</span>
             </div>
             <div class="seo-rd-kpi">
-                <strong><?php echo number_format_i18n($stats['last_7d']); ?></strong>
+                <strong><?php echo esc_html(number_format_i18n($stats['last_7d'])); ?></strong>
                 <span>Usados en 7 días</span>
             </div>
             <div class="seo-rd-kpi">
-                <strong><?php echo number_format_i18n($stats['last_30d']); ?></strong>
+                <strong><?php echo esc_html(number_format_i18n($stats['last_30d'])); ?></strong>
                 <span>Usados en 30 días</span>
             </div>
             <div class="seo-rd-kpi <?php echo $stats['structural'] ? 'is-error' : 'is-ok'; ?>">
-                <strong><?php echo number_format_i18n($stats['structural']); ?></strong>
+                <strong><?php echo esc_html(number_format_i18n($stats['structural'])); ?></strong>
                 <span>Incorrectos estructurales</span>
             </div>
             <div class="seo-rd-kpi <?php echo $stats['suspicious'] ? 'is-warning' : 'is-ok'; ?>">
-                <strong><?php echo number_format_i18n($stats['suspicious']); ?></strong>
+                <strong><?php echo esc_html(number_format_i18n($stats['suspicious'])); ?></strong>
                 <span>Sospechosos (heurístico)</span>
             </div>
             <div class="seo-rd-kpi <?php echo $stats['chains'] ? 'is-warning' : 'is-ok'; ?>">
-                <strong><?php echo number_format_i18n($stats['chains']); ?></strong>
+                <strong><?php echo esc_html(number_format_i18n($stats['chains'])); ?></strong>
                 <span>Cadenas</span>
             </div>
             <div class="seo-rd-kpi <?php echo $stats['cycles'] ? 'is-error' : 'is-ok'; ?>">
-                <strong><?php echo number_format_i18n($stats['cycles']); ?></strong>
+                <strong><?php echo esc_html(number_format_i18n($stats['cycles'])); ?></strong>
                 <span>Ciclos</span>
             </div>
         </div>
@@ -1561,7 +1563,7 @@ function seo_menu_manager_redirects_page() {
                             </div>
                         </div>
                         <div style="text-align:right;">
-                            <strong><?php echo number_format_i18n((int) $review_row->hits); ?></strong><br>
+                            <strong><?php echo esc_html(number_format_i18n((int) $review_row->hits)); ?></strong><br>
                             <span style="color:#646970;">hits</span>
                         </div>
                     </div>
@@ -1609,7 +1611,7 @@ function seo_menu_manager_redirects_page() {
                 <h2 style="margin-bottom:10px;">
                     Redirecciones
                     <span style="font-weight:normal;color:#646970;">
-                        (<?php echo number_format_i18n($total_filtered); ?>)
+                        (<?php echo esc_html(number_format_i18n($total_filtered)); ?>)
                     </span>
                 </h2>
 
@@ -1627,7 +1629,7 @@ function seo_menu_manager_redirects_page() {
                         ?>
                         <a class="<?php echo esc_attr($button_class); ?>" href="<?php echo esc_url($url); ?>">
                             <?php echo esc_html($label); ?>
-                            (<?php echo number_format_i18n($filter_counts[$key]); ?>)
+                            (<?php echo esc_html(number_format_i18n($filter_counts[$key])); ?>)
                         </a>
                     <?php endforeach; ?>
                 </div>
@@ -1728,7 +1730,7 @@ function seo_menu_manager_redirects_page() {
                                 </td>
 
                                 <td class="column-hits">
-                                    <strong><?php echo number_format_i18n((int) $row->hits); ?></strong>
+                                    <strong><?php echo esc_html(number_format_i18n((int) $row->hits)); ?></strong>
                                 </td>
 
                                 <td class="column-last">

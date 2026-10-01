@@ -190,7 +190,7 @@ final class SEO_Data_Operation
 
         if ($wpdb->insert($table, $data) === false) {
             throw new RuntimeException(
-                sprintf('No se pudo insertar en %s: %s', $table, $wpdb->last_error)
+                sprintf('No se pudo insertar en %s: %s', esc_html($table), esc_html($wpdb->last_error))
             );
         }
 
@@ -257,7 +257,7 @@ final class SEO_Data_Operation
 
         if ($result === false) {
             throw new RuntimeException(
-                sprintf('No se pudo actualizar %s: %s', $table, $wpdb->last_error)
+                sprintf('No se pudo actualizar %s: %s', esc_html($table), esc_html($wpdb->last_error))
             );
         }
 
@@ -312,13 +312,13 @@ final class SEO_Data_Operation
 
         if ($deleted === false) {
             throw new RuntimeException(
-                sprintf('No se pudo eliminar de %s: %s', $table, $wpdb->last_error)
+                sprintf('No se pudo eliminar de %s: %s', esc_html($table), esc_html($wpdb->last_error))
             );
         }
 
         if ((int) $deleted !== 1) {
             throw new RuntimeException(
-                sprintf('La eliminación en %s afectó %d filas; se esperaba exactamente una.', $table, $deleted)
+                sprintf('La eliminación en %s afectó %d filas; se esperaba exactamente una.', esc_html($table), absint($deleted))
             );
         }
 
@@ -386,7 +386,7 @@ final class SEO_Data_Operation
 
         if ($inserted === false) {
             throw new RuntimeException(
-                'No se pudo registrar el cambio de la operación: ' . $wpdb->last_error
+                'No se pudo registrar el cambio de la operación: ' . esc_html($wpdb->last_error)
             );
         }
 
@@ -418,7 +418,7 @@ final class SEO_Data_Operation
 
         if ($inserted === false || (int) $wpdb->insert_id < 1) {
             throw new RuntimeException(
-                'No se pudo crear la operación de auditoría: ' . $wpdb->last_error
+                'No se pudo crear la operación de auditoría: ' . esc_html($wpdb->last_error)
             );
         }
 
@@ -440,7 +440,7 @@ final class SEO_Data_Operation
 
         if ($updated === false) {
             throw new RuntimeException(
-                'No se pudo actualizar el estado de la operación: ' . $wpdb->last_error
+                'No se pudo actualizar el estado de la operación: ' . esc_html($wpdb->last_error)
             );
         }
     }

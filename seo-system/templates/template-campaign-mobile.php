@@ -18,177 +18,25 @@ $dht_campaigns = seo_marketing_campaigns_get_public_active();
 if (!$dht_campaigns) {
     return;
 }
+
+wp_enqueue_style(
+    'dht-campaign-mobile',
+    SEO_SYSTEM_URL . 'seo-system/templates/assets/campaign-mobile.css',
+    array(),
+    SEO_SYSTEM_VERSION
+);
+wp_enqueue_script(
+    'dht-campaign-mobile',
+    SEO_SYSTEM_URL . 'seo-system/templates/assets/campaign-mobile.js',
+    array(),
+    SEO_SYSTEM_VERSION,
+    true
+);
+if (did_action('wp_head')) {
+    wp_print_styles('dht-campaign-mobile');
+}
 ?>
-<style id="dht-campaign-strip-mobile-style">
-    .dht-campaigns-shell {
-        --dht-campaign-bg: #f5f7fa;
-        --dht-campaign-surface: #ffffff;
-        --dht-campaign-text: #17212b;
-        --dht-campaign-muted: #64717d;
-        --dht-campaign-border: #dfe5eb;
-        --dht-campaign-accent: var(--dht-primary, #007acc);
-        --dht-campaign-accent-dark: var(--dht-primary-dark, #005b96);
-        --dht-campaign-price: #b42318;
-        --dht-campaign-badge-bg: #fff1f0;
-        --dht-campaign-badge-text: #9f1d16;
-        background: var(--dht-campaign-bg);
-        border-bottom: 1px solid var(--dht-campaign-border);
-        color: var(--dht-campaign-text);
-        padding: 12px 0 14px;
-    }
-    /*
-     * Personalizacion opcional por serie. Ejemplo:
-     * .dht-campaign--navidad { --dht-campaign-accent: #b42318; }
-     * .dht-campaign--dia-del-padre { --dht-campaign-bg: #eef5ff; }
-     */
-    .dht-campaigns-inner {
-        width: min(94%, var(--dht-container, 1180px));
-        margin: 0 auto;
-    }
-    .dht-campaign-block + .dht-campaign-block {
-        margin-top: 14px;
-        padding-top: 14px;
-        border-top: 1px solid var(--dht-campaign-border);
-    }
-    .dht-campaign-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 10px;
-    }
-    .dht-campaign-title {
-        font-size: 17px;
-        line-height: 1.2;
-        font-weight: 850;
-        letter-spacing: -.01em;
-    }
-    .dht-campaign-edition {
-        margin-left: 7px;
-        color: var(--dht-campaign-muted);
-        font-size: 12px;
-        font-weight: 700;
-    }
-    .dht-campaign-nav {
-        display: flex;
-        gap: 6px;
-        flex: 0 0 auto;
-    }
-    .dht-campaign-nav button {
-        width: 36px;
-        height: 36px;
-        border: 1px solid var(--dht-campaign-border);
-        border-radius: 999px;
-        background: var(--dht-campaign-surface);
-        color: var(--dht-campaign-text);
-        font-size: 22px;
-        line-height: 1;
-        cursor: pointer;
-    }
-    .dht-campaign-nav button:hover,
-    .dht-campaign-nav button:focus-visible {
-        border-color: var(--dht-campaign-accent);
-        color: var(--dht-campaign-accent-dark);
-        outline: none;
-    }
-    .dht-campaign-viewport {
-        overflow-x: auto;
-        scroll-behavior: smooth;
-        scroll-snap-type: x mandatory;
-        scrollbar-width: none;
-        -webkit-overflow-scrolling: touch;
-    }
-    .dht-campaign-viewport::-webkit-scrollbar { display: none; }
-    .dht-campaign-track {
-        display: flex;
-        gap: 12px;
-        align-items: stretch;
-    }
-    .dht-campaign-card {
-        flex: 0 0 min(82vw, 315px);
-        min-width: 0;
-        scroll-snap-align: start;
-        border: 1px solid var(--dht-campaign-border);
-        border-radius: 12px;
-        background: var(--dht-campaign-surface);
-        overflow: hidden;
-        box-shadow: 0 3px 14px rgba(17, 32, 48, .06);
-    }
-    .dht-campaign-card-link {
-        display: grid;
-        grid-template-rows: auto 1fr;
-        height: 100%;
-        color: inherit;
-        text-decoration: none;
-    }
-    .dht-campaign-image {
-        position: relative;
-        display: grid;
-        place-items: center;
-        min-height: 118px;
-        padding: 10px;
-        background: #fff;
-    }
-    .dht-campaign-image img {
-        display: block;
-        width: 100%;
-        height: 118px;
-        object-fit: contain;
-    }
-    .dht-campaign-discount {
-        position: absolute;
-        top: 9px;
-        left: 9px;
-        padding: 5px 8px;
-        border-radius: 999px;
-        background: var(--dht-campaign-badge-bg);
-        color: var(--dht-campaign-badge-text);
-        font-size: 12px;
-        font-weight: 850;
-    }
-    .dht-campaign-card-body {
-        display: flex;
-        flex-direction: column;
-        min-width: 0;
-        padding: 11px 12px 13px;
-    }
-    .dht-campaign-product-name {
-        display: -webkit-box;
-        min-height: 2.6em;
-        overflow: hidden;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
-        color: var(--dht-campaign-text);
-        font-size: 13px;
-        font-weight: 750;
-        line-height: 1.3;
-    }
-    .dht-campaign-prices {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: baseline;
-        gap: 7px;
-        margin-top: 9px;
-    }
-    .dht-campaign-price {
-        color: var(--dht-campaign-price);
-        font-size: 18px;
-        font-weight: 900;
-        line-height: 1;
-    }
-    .dht-campaign-regular {
-        color: var(--dht-campaign-muted);
-        font-size: 12px;
-        text-decoration: line-through;
-    }
-    .dht-campaign-cta {
-        margin-top: auto;
-        padding-top: 10px;
-        color: var(--dht-campaign-accent-dark);
-        font-size: 12px;
-        font-weight: 800;
-    }
-</style>
+
 
 <section class="dht-campaigns-shell dht-campaigns-shell--mobile" aria-label="Campañas promocionales activas">
     <div class="dht-campaigns-inner">
@@ -276,28 +124,6 @@ if (!$dht_campaigns) {
     </div>
 </section>
 
-<script>
-(function () {
-    if (window.dhtCampaignStripBound) return;
-    window.dhtCampaignStripBound = true;
 
-    document.addEventListener('click', function (event) {
-        var button = event.target.closest('[data-dht-campaign-scroll]');
-        if (!button) return;
-
-        var block = button.closest('.dht-campaign-block');
-        if (!block) return;
-
-        var viewport = block.querySelector('.dht-campaign-viewport');
-        if (!viewport) return;
-
-        var direction = button.getAttribute('data-dht-campaign-scroll') === 'prev' ? -1 : 1;
-        viewport.scrollBy({
-            left: direction * Math.max(240, viewport.clientWidth * 0.88),
-            behavior: 'smooth'
-        });
-    });
-}());
-</script>
 <?php
 unset($dht_campaigns, $dht_campaign_item, $dht_campaign, $dht_products, $dht_product_item, $dht_product, $dht_image_html, $dht_campaign_url);
