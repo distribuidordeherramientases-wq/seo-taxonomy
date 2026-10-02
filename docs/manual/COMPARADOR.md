@@ -4,7 +4,7 @@
 
 **Comparador** es el servicio de inteligencia comparativa de producto de SEO Taxonomy.
 
-Su unidad de trabajo principal es la **categoría o familia comparable**. Cruza el catálogo propio de WooCommerce con el mercado ya observado por **Ojeador**, normaliza los ejes de comparación, conserva trazabilidad y genera un perfil persistente que puede entregar a **Solucionador**.
+Su unidad de trabajo principal es la **categoría o familia comparable**. Cruza el catálogo propio de WooCommerce con el mercado ya observado por **Ojeador**, normaliza los ejes de comparación, conserva trazabilidad y genera un perfil persistente que pasa a la **evaluación editorial propia de Comparador**.
 
 No sustituye al comparador interactivo de la tienda. Ese comparador sigue permitiendo al cliente seleccionar varios productos propios, ver diferencias y descargar la comparativa en PDF.
 
@@ -42,7 +42,7 @@ Trabaja principalmente por **categoría**. Su función es responder a preguntas 
 - qué datos están suficientemente cubiertos y cuáles siguen siendo desconocidos;
 - qué material puede entregarse a Solucionador para decidir si crear, mejorar, fusionar o no publicar contenido.
 
-Comparador **no es un redactor automático ni un sistema de publicación**. Prepara la evidencia y la capa comparativa; Solucionador conserva la decisión editorial y Editora ejecuta el contenido.
+Comparador **no es un publicador automático**. Prepara la evidencia, evalúa la cobertura y propone CREATE_POST / IMPROVE_POST / MERGE_CONTENT / NO_ACTION / NEEDS_REVIEW; la Editora conserva la aprobación humana final y la publicación.
 
 ## Ubicación
 
@@ -116,8 +116,9 @@ Comparador:
 - conserva valores externos con procedencia, fecha y confianza;
 - registra datos desconocidos como `unknown`; no inventa atributos;
 - genera perfil estructurado, resumen editorial base y extracto;
-- entrega una señal estructurada a Solucionador;
-- vincula el perfil con el post canónico cuando Solucionador/Editora lo crean;
+- evalúa la cobertura editorial mediante una API neutral y persiste la actuación recomendada;
+- prepara un borrador sólo después de aprobación humana de la Editora;
+- vincula el perfil con su post canónico, aplica la etiqueta `comparativas`, rol `comparison` y `post_to_category`;
 - muestra en categoría y producto solamente extracto + enlace persistido;
 - consume métricas de Analista para los posts vinculados.
 
@@ -126,8 +127,8 @@ Comparador **no**:
 - consulta Google Shopping;
 - scrapea merchants;
 - consulta GA4/GSC/Bing por su cuenta;
-- decide crear una URL pública;
 - publica automáticamente;
+- envía perfiles a Solucionador;
 - sobrescribe un post ya publicado;
 - declara “mejor”, “peor”, “profesional” o equivalentes sin evidencia.
 
@@ -136,18 +137,14 @@ Comparador **no**:
 Flujo principal:
 
 ~~~text
-WooCommerce + Ojeador + conocimiento existente
+WooCommerce + snapshots persistidos de Ojeador
                   |
                   v
               Comparador
-      perfil + ejes + texto base
+     perfil + ejes + cobertura
                   |
                   v
-              Solucionador
- cobertura / duplicación / intención
-                  |
-                  v
- NO_ACTION | IMPROVE | MERGE | CREATE_POST
+ CREATE_POST | IMPROVE_POST | MERGE_CONTENT | NO_ACTION | NEEDS_REVIEW
                   |
                   v
                Editora
@@ -156,15 +153,16 @@ WooCommerce + Ojeador + conocimiento existente
           Post comparativa canónico
                   |
                   +--> categoría/productos: extracto + enlace
-                  +--> Marketing: flujo normal evergreen
                   +--> Analista: medición
 ~~~
 
+Solucionador queda fuera del circuito de Comparador.
+
 ## Persistencia
 
-Versión funcional actual: **1.1.0**.
+Versión funcional actual: **1.2.0**.
 
-Versión del esquema: **1.1.0**.
+Versión del esquema: **1.2.0**.
 
 Tablas propias:
 
@@ -234,7 +232,8 @@ Estados operativos:
 - `detected`
 - `profile_building`
 - `needs_review`
-- `ready_for_solucionador`
+- `ready_for_editorial`
+- `ready_for_solucionador` *(alias transitorio de compatibilidad)*
 - `approved`
 - `post_draft`
 - `published`
@@ -245,27 +244,21 @@ Estados operativos:
 
 Cada cambio de estado se guarda en `seo_comparador_workflow` con estado anterior, estado nuevo, acción, motivo, usuario/proceso, origen y fecha.
 
-## Integración con Solucionador
+## Decisión editorial y cobertura
 
-Comparador publica su contrato mediante:
+Comparador ya no publica `seo_solucionador_comparador_signals` ni depende de Solucionador para decidir el contenido.
 
-`seo_solucionador_comparador_signals`
+La evaluación se ejecuta con `SEO_Comparador_Engine::evaluate_editorial_decision()` sobre el perfil persistido y usa `SEO_Editorial_Coverage`, una API neutral que trabaja con contenido WordPress, relación `post_to_category`, rol editorial, etiqueta `comparativas` y una huella estable.
 
-Un perfil sólo se envía manualmente a Solucionador cuando dispone de:
+Acciones posibles:
 
-- mínimo de productos comparables;
-- al menos un eje publicable;
-- perfil no bloqueado.
+- `CREATE_POST`: perfil válido, al menos un eje publicable y sin cobertura equivalente;
+- `IMPROVE_POST`: existe una pieza relacionada pero faltan diferencias relevantes;
+- `MERGE_CONTENT`: varias piezas se solapan;
+- `NO_ACTION`: cobertura suficiente;
+- `NEEDS_REVIEW`: perfil insuficiente, conflictivo o stale.
 
-Solucionador conserva la autoridad editorial:
-
-- si ya existe cobertura suficiente: `NO_ACTION`;
-- si existe pieza relacionada: mejorar o fusionar;
-- si no existe cobertura y se cumplen los requisitos: puede decidir `CREATE_POST`.
-
-Una señal de Comparador mantiene intención `comparison`; no debe transformarse automáticamente en intención comercial de categoría.
-
-Cuando Solucionador crea el borrador de una comparativa aprobada, el perfil se vincula al post y se aplica la etiqueta WordPress **comparativas**.
+Tras la evaluación, la Editora aprueba la actuación. Sólo `CREATE_POST` aprobado permite **Preparar borrador**. Ese borrador se crea como `post` / `draft`, nunca se publica automáticamente, y se vincula con `seo_comparador_post_map`, etiqueta `comparativas`, rol `comparison` y `post_to_category`.
 
 ## Integración pública
 
@@ -329,7 +322,7 @@ Resume:
 - post canónico vinculado;
 - avisos de caducidad o necesidad de revisión.
 
-Es el informe operativo para decidir si el perfil está suficientemente preparado antes de enviarlo a Solucionador.
+Es el informe operativo para decidir si el perfil está suficientemente preparado antes de evaluar cobertura y pasarlo a la Editora.
 
 ### 3. JSON de contenido
 
@@ -550,14 +543,14 @@ Un ciclo normal de trabajo es:
 5. desarrollar o completar la sección editorial;
 6. importar la comparativa editorial;
 7. resolver cualquier aviso de snapshot antiguo;
-8. enviar el perfil a **Solucionador**;
-9. Solucionador comprueba cobertura, duplicación y canibalización;
-10. Solucionador decide `NO_ACTION`, mejorar/fusionar una pieza existente o `CREATE_POST`;
-11. Editora revisa y publica;
-12. Comparador vincula el post canónico y aplica la etiqueta `comparativas`;
-13. Analista mide el rendimiento;
-14. el **JSON de visitas** permite revisar resultados a 28/90 días;
-15. si cambian el catálogo o las fuentes de Ojeador, el perfil vuelve a revisión o `needs_update`.
+8. ejecutar **Revisar cobertura y decidir** dentro de Comparador;
+9. revisar `CREATE_POST`, `IMPROVE_POST`, `MERGE_CONTENT`, `NO_ACTION` o `NEEDS_REVIEW`;
+10. Editora aprueba la actuación;
+11. si es `CREATE_POST`, preparar un borrador WordPress;
+12. Editora revisa y publica;
+13. Comparador mantiene el vínculo canónico, etiqueta `comparativas`, rol `comparison` y `post_to_category`;
+14. Analista mide el rendimiento;
+15. si cambian catálogo u Ojeador, el perfil vuelve a revisión o `needs_update`.
 
 ## Ejemplo conceptual
 
@@ -571,7 +564,7 @@ No concluye automáticamente que un modelo sea “mejor”. Primero determina qu
 - qué casos de uso pueden documentarse con las fuentes disponibles;
 - dónde encaja el catálogo propio.
 
-Ese material puede convertirse en una comparativa editorial, pero la existencia de un post nuevo la decide Solucionador después de comprobar si ya existe una URL que deba mejorarse o fusionarse.
+Ese material puede convertirse en una comparativa editorial, pero Comparador evalúa primero la cobertura y la Editora aprueba la actuación antes de que pueda crearse un borrador.
 
 ## Pruebas RF
 
@@ -585,7 +578,9 @@ Cubren:
 - umbral de cobertura de ejes;
 - bloqueo por conflicto semántico;
 - preferencia por mejorar/fusionar si existe cobertura;
+- decisión propia de IMPROVE/MERGE/NO_ACTION con cobertura;
 - posibilidad de CREATE_POST sin cobertura;
+- NEEDS_REVIEW para perfiles insuficientes sin depender de Solucionador;
 - lectura pública persistida;
 - transición a NEEDS_UPDATE;
 - reutilización de Analista;
