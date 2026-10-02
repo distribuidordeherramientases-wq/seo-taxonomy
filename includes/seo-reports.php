@@ -2015,8 +2015,10 @@ function seo_render_faq_orphan_anomaly_row($label, $count, $description) {
  * - existe como product_cat;
  * - no es la categoría predeterminada de WooCommerce;
  * - no tiene ningún producto relacionado, independientemente de su estado;
- * - no tiene subcategorías hijas;
  * - no está vinculada comercialmente desde una landing.
+ *
+ * La jerarquía nativa de product_cat no forma parte de este control:
+ * tener o no subcategorías no se considera anomalía ni criterio de protección.
  */
 function seo_get_empty_product_category_delete_state($term_id) {
 
@@ -2029,7 +2031,6 @@ function seo_get_empty_product_category_delete_state($term_id) {
         'reason'        => '',
         'term'          => null,
         'product_count' => 0,
-        'child_count'   => 0,
         'landing_count' => 0,
     );
 
@@ -2089,21 +2090,6 @@ function seo_get_empty_product_category_delete_state($term_id) {
         return $state;
     }
 
-    $state['child_count'] = (int) $wpdb->get_var(
-        $wpdb->prepare(
-            "SELECT COUNT(*)
-             FROM {$wpdb->term_taxonomy}
-             WHERE taxonomy = 'product_cat'
-               AND parent = %d",
-            $term_id
-        )
-    );
-
-    if ($state['child_count'] > 0) {
-        $state['reason'] = 'Tiene subcategorías hijas.';
-        return $state;
-    }
-
     // Una categoría vacía puede seguir siendo un destino comercial válido de
     // una landing. Borrarla crearía inmediatamente una relación rota y una
     // nueva anomalía, por lo que se protege aunque no tenga productos todavía.
@@ -2124,7 +2110,7 @@ function seo_get_empty_product_category_delete_state($term_id) {
     }
 
     $state['eligible'] = true;
-    $state['reason'] = 'Sin productos, subcategorías ni landings asociadas.';
+    $state['reason'] = 'Sin productos ni landings asociadas.';
 
     return $state;
 }
@@ -2904,7 +2890,7 @@ function seo_render_anomalies_report() {
         // Categorías sin productos + limpieza segura desde el propio informe.
         echo '<div style="display:flex;align-items:center;justify-content:space-between;gap:15px;border-bottom:1px solid #ccd0d4;margin-top:40px;margin-bottom:15px;flex-wrap:wrap;">';
 
-        echo '<h3 style="color:#b57d00;margin:0;padding-bottom:5px;">📦 Categorías sin productos</h3>';
+        echo '<h3 style="color:#b57d00;margin:0;padding-bottom:5px;">📦 Categorías de producto con 0 productos</h3>';
 
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin:0 0 6px 0;" onsubmit="return confirm(\'Esta acción recalculará los contadores de TODAS las categorías de producto utilizando WordPress y WooCommerce. No se borrará, moverá ni publicará ningún producto y no se eliminará ninguna categoría. Puede tardar unos segundos. ¿Quieres continuar?\');">';
         echo '<input type="hidden" name="action" value="seo_recount_product_categories">';
@@ -3100,12 +3086,12 @@ function seo_render_anomalies_report() {
         } else {
 
             echo '<div style="background:#fff8e5;border-left:4px solid #dba617;padding:12px 14px;margin:0 0 14px;line-height:1.6;">';
-            echo 'Se han detectado <strong>' . esc_html(number_format_i18n(count($empty_categories))) . ' categorías sin ningún producto relacionado</strong>. ';
-            echo 'El borrado vuelve a comprobar el estado real justo antes de actuar y solo permite eliminar categorías sin productos y sin subcategorías. ';
+            echo 'Se han detectado <strong>' . esc_html(number_format_i18n(count($empty_categories))) . ' categorías WooCommerce con 0 productos relacionados</strong>. ';
+            echo 'El borrado vuelve a comprobar el estado real justo antes de actuar y solo permite eliminar categorías sin productos y sin relaciones funcionales protegidas. ';
             echo '<strong>No se elimina ningún producto.</strong>';
             echo '</div>';
 
-            echo '<form id="seo-empty-categories-form" method="post" action="' . esc_url(admin_url('admin-post.php')) . '" onsubmit="return confirm(\'Se eliminarán definitivamente las categorías seleccionadas que sigan sin productos y sin subcategorías. También se limpiarán sus relaciones y datos SEO asociados y sus FAQs. No se eliminará ningún producto. ¿Continuar?\');">';
+            echo '<form id="seo-empty-categories-form" method="post" action="' . esc_url(admin_url('admin-post.php')) . '" onsubmit="return confirm(\'Se eliminarán definitivamente las categorías seleccionadas que sigan con 0 productos y sin relaciones funcionales protegidas. También se limpiarán sus relaciones y datos SEO asociados y sus FAQs. No se eliminará ningún producto. La jerarquía product_cat no se usa como criterio. ¿Continuar?\');">';
             echo '<input type="hidden" name="action" value="seo_delete_empty_product_categories">';
             wp_nonce_field('seo_delete_empty_product_categories', 'seo_empty_categories_nonce');
 
@@ -3128,7 +3114,7 @@ function seo_render_anomalies_report() {
                 echo '<code style="font-size:12px;">(' . esc_html((int) $cat->term_id) . ')</code>';
 
                 if ($eligible) {
-                    echo '<div style="font-size:12px;color:#2e7d32;margin-top:2px;">Eliminable: sin productos y sin subcategorías.</div>';
+                    echo '<div style="font-size:12px;color:#2e7d32;margin-top:2px;">Eliminable: 0 productos y sin relaciones funcionales protegidas.</div>';
                 } else {
                     echo '<div style="font-size:12px;color:#b32d2e;margin-top:2px;">Protegida: ' . esc_html($state['reason']) . '</div>';
                 }
