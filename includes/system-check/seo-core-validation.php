@@ -3,7 +3,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_CORE_SYSTEM_TEST_VERSION')) {
-    define('SEO_CORE_SYSTEM_TEST_VERSION', '8.10.1');
+    define('SEO_CORE_SYSTEM_TEST_VERSION', '8.11.0');
 }
 
 $seo_core_settings_module = __DIR__ . '/seo-core-validation-settings.php';
@@ -289,7 +289,7 @@ function seo_core_system_test() {
             $run_started_at,
             $run_started_microtime
         );
-        $active_tab = 'advanced';
+        $active_tab = 'seo_content';
     } elseif (
         isset($_POST['seo_core_system_test_run']) &&
         check_admin_referer('seo_core_system_test_run', 'seo_core_system_test_nonce')
@@ -314,7 +314,7 @@ function seo_core_system_test() {
             seo_core_system_test_run_link_audit_phase($phase);
         }
         $results = seo_core_system_test_get_reporting_results();
-        $active_tab = 'advanced';
+        $active_tab = 'operation';
     } else {
         $stored_results = seo_core_system_test_get_reporting_results();
         if (!empty($stored_results)) {
@@ -322,7 +322,7 @@ function seo_core_system_test() {
         }
     }
 
-    if ($active_tab === 'advanced' && function_exists('seo_core_system_test_data_layer_active_results')) {
+    if ($active_tab === 'seo_content' && function_exists('seo_core_system_test_data_layer_active_results')) {
         $active_results = seo_core_system_test_data_layer_active_results();
         if (!empty($active_results)) {
             $results = is_array($results) ? array_merge($results, $active_results) : $active_results;
@@ -358,7 +358,7 @@ function seo_core_system_test() {
         $settings_results = is_array($results) ? $results : seo_core_system_test_get_reporting_results();
         seo_core_validation_render_settings_page($settings_results);
     } elseif ($results === null) {
-        if (in_array($active_tab, array('code_integrity', 'advanced'), true)) {
+        if (in_array($active_tab, array('code_integrity', 'operation', 'seo_content'), true)) {
             seo_core_system_test_render_compact_health(array(), $active_tab);
         }
         seo_core_system_test_render_intro();
@@ -383,7 +383,7 @@ function seo_core_system_test_get_active_tab() {
         ? sanitize_key(wp_unslash($_GET['seo_core_test_tab']))
         : 'summary';
 
-    if (in_array($tab, array('summary', 'code_integrity', 'advanced', 'settings'), true)) {
+    if (in_array($tab, array('summary', 'code_integrity', 'operation', 'seo_content', 'settings'), true)) {
         return $tab;
     }
 
@@ -391,7 +391,12 @@ function seo_core_system_test_get_active_tab() {
         return 'summary';
     }
 
-    $legacy_sections = array(
+    // Compatibilidad con enlaces guardados de la antigua pestaña única.
+    if ($tab === 'advanced') {
+        return 'operation';
+    }
+
+    $operation_sections = array(
         'functional',
         'visual',
         'links_404',
@@ -400,13 +405,19 @@ function seo_core_system_test_get_active_tab() {
         'catalog',
         'checkout',
         'emails',
-        'seo_system',
         'technical',
+    );
+    if (in_array($tab, $operation_sections, true)) {
+        return 'operation';
+    }
+
+    $seo_content_sections = array(
+        'seo_system',
         'data_layer',
         'semantic',
     );
 
-    return in_array($tab, $legacy_sections, true) ? 'advanced' : 'summary';
+    return in_array($tab, $seo_content_sections, true) ? 'seo_content' : 'summary';
 }
 
 function seo_core_system_test_get_requested_section() {
@@ -457,8 +468,8 @@ function seo_core_system_test_render_run_button($active_tab = 'summary') {
     wp_nonce_field('seo_core_system_test_run', 'seo_core_system_test_nonce');
     echo '<input type="hidden" name="seo_core_system_test_run" value="1">';
     submit_button('Ejecutar validación completa', 'primary', 'submit', false);
-    if ($active_tab === 'advanced') {
-        echo '<p class="description" style="margin-top:8px;">Actualiza todos los chequeos pasivos. La auditoría 404 y la prueba transaccional del Data Layer conservan sus controles propios dentro de Chequeos avanzados.</p>';
+    if (in_array($active_tab, array('operation', 'seo_content'), true)) {
+        echo '<p class="description" style="margin-top:8px;">Actualiza todos los chequeos pasivos. La auditoría 404 y la prueba transaccional del Data Layer conservan sus controles propios en sus áreas correspondientes.</p>';
     } else {
         echo '<p class="description" style="margin-top:8px;">Los tests se ejecutan en una sola pasada; cada vista solo organiza y filtra los resultados.</p>';
     }
@@ -525,7 +536,9 @@ function seo_core_system_test_tab_label($tab_id) {
     $labels = array(
         'summary'        => 'Resumen',
         'code_integrity' => 'Integridad del código',
-        'advanced'       => 'Chequeos avanzados',
+        'operation'      => 'Operación y tienda',
+        'seo_content'     => 'SEO, datos y contenido',
+        'advanced'        => 'Operación y tienda',
         'settings'       => 'Configuración',
         'functional'     => 'Funcionamiento público',
         'visual'         => 'Responsive y calidad visual',
@@ -551,7 +564,9 @@ function seo_core_system_test_tab_description($tab_id) {
     $descriptions = array(
         'summary'        => 'Indicadores globales, exportación PDF/JSON e informe técnico plegado.',
         'code_integrity' => 'La vista principal para revisar archivos, sintaxis, funciones, tipos, hooks y duplicados.',
-        'advanced'       => 'Todos los demás chequeos, agrupados en secciones plegables sin perder ninguna prueba.',
+        'operation'      => 'Funcionamiento público, responsive, enlaces, entorno, plantillas, catálogo, compra, correos y procesos técnicos.',
+        'seo_content'     => 'Datos internos SEO Core, Data Layer / Action Scheduler y contenido-semántica.',
+        'advanced'        => 'Compatibilidad con la antigua vista de chequeos avanzados.',
         'settings'       => 'Muestras, tolerancias, debug y sugerencias de corrección asistida.',
         'functional'     => 'Navegación pública, respuesta HTML, búsqueda, encabezados, canonical y datos estructurados.',
         'visual'         => 'Renderizado real en móvil, tablet y escritorio: overflow, recortes, solapamientos, imágenes y errores del navegador.',
@@ -574,7 +589,7 @@ function seo_core_system_test_tab_description($tab_id) {
 
 
 function seo_core_system_test_render_tabs($active_tab) {
-    $tab_ids = array('summary', 'code_integrity', 'advanced', 'settings');
+    $tab_ids = array('summary', 'code_integrity', 'operation', 'seo_content', 'settings');
 
     echo '<nav class="nav-tab-wrapper seo-core-test-tabs">';
     foreach ($tab_ids as $tab_id) {
@@ -675,7 +690,27 @@ function seo_core_system_test_render_styles() {
         .seo-core-advanced-group>summary small{display:block;margin-top:4px;color:#646970;font-weight:400;}
         .seo-core-nav-card.is-primary{border-color:#2271b1;border-left-width:5px;background:#f0f6fc;}
         .seo-core-summary-report{margin-top:22px;}
-        @media(max-width:900px){.seo-core-health-strip{grid-template-columns:repeat(2,minmax(140px,1fr));}.seo-core-health-box:first-child{grid-column:1/-1}.seo-core-priority-item{grid-template-columns:1fr;gap:5px;}.seo-core-run-meta-item{min-width:calc(50% - 10px);}}
+        .seo-core-summary-global{display:grid;grid-template-columns:minmax(220px,1.4fr) repeat(6,minmax(115px,.75fr));gap:10px;margin:16px 0 24px;}
+        .seo-core-summary-tab-grid{display:grid;grid-template-columns:repeat(3,minmax(240px,1fr));gap:14px;margin:12px 0 24px;}
+        .seo-core-summary-tab-card{display:block;text-decoration:none;color:#1d2327;border:1px solid #dcdcde;border-left:5px solid #2271b1;border-radius:8px;padding:14px 16px;background:#fff;}
+        .seo-core-summary-tab-card:hover,.seo-core-module-link:hover{border-color:#2271b1;box-shadow:0 2px 8px rgba(0,0,0,.06);color:#1d2327;}
+        .seo-core-summary-tab-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;font-size:15px;}
+        .seo-core-summary-tab-head span{font-size:24px;font-weight:750;white-space:nowrap;}
+        .seo-core-summary-tab-state{margin:6px 0 12px;font-weight:700;}
+        .seo-core-summary-tab-metrics{display:grid;grid-template-columns:repeat(2,minmax(100px,1fr));gap:7px 12px;color:#50575e;}
+        .seo-core-summary-tab-metrics span{display:block;}
+        .seo-core-summary-tab-metrics b{color:#1d2327;}
+        .seo-core-summary-tab-foot{border-top:1px solid #f0f0f1;margin-top:12px;padding-top:9px;color:#646970;font-size:12px;}
+        .seo-core-summary-tab-critical{border-left-color:#d63638;background:#fff5f5;}
+        .seo-core-summary-tab-important{border-left-color:#d97706;background:#fff8ed;}
+        .seo-core-summary-tab-warning{border-left-color:#dba617;background:#fffbea;}
+        .seo-core-summary-tab-ok{border-left-color:#00a32a;background:#f3fbf5;}
+        .seo-core-summary-tab-info,.seo-core-summary-tab-not_evaluable{border-left-color:#2271b1;background:#f0f6fc;}
+        .seo-core-module-link{display:block;text-decoration:none;color:#1d2327;}
+        .seo-core-module-state{font-weight:700;margin:4px 0 8px;}
+        @media(max-width:1100px){.seo-core-summary-global{grid-template-columns:repeat(3,minmax(140px,1fr));}.seo-core-summary-global .seo-core-health-box:first-child{grid-column:1/-1}.seo-core-summary-tab-grid{grid-template-columns:1fr;}}
+        @media(max-width:900px){.seo-core-health-strip{grid-template-columns:repeat(2,minmax(140px,1fr));}.seo-core-health-box:first-child{grid-column:1/-1}.seo-core-priority-item{grid-template-columns:1fr;gap:5px;}.seo-core-run-meta-item{min-width:calc(50% - 10px);}.seo-core-summary-global{grid-template-columns:repeat(2,minmax(130px,1fr));}}
+        @media(max-width:600px){.seo-core-summary-global{grid-template-columns:1fr 1fr;}.seo-core-summary-tab-metrics{grid-template-columns:1fr;}}
     </style>';
 }
 
@@ -7118,17 +7153,22 @@ function seo_core_system_test_groups_for_tab($active_tab) {
     if ($active_tab === 'code_integrity') {
         return array('code_integrity');
     }
-    if ($active_tab === 'advanced') {
+    if ($active_tab === 'operation') {
         return array(
             'functional',
+            'visual',
             'links_404',
             'system',
             'templates',
             'catalog',
             'checkout',
             'emails',
-            'seo_system',
             'technical',
+        );
+    }
+    if ($active_tab === 'seo_content') {
+        return array(
+            'seo_system',
             'data_layer',
             'semantic',
         );
@@ -7164,9 +7204,13 @@ function seo_core_system_test_render_compact_health($results, $active_tab = 'sum
     $tab_label = seo_core_system_test_tab_label($active_tab);
     $score_text = $health['score'] === null ? 'Pendiente' : seo_core_system_test_impact_label($health['status']) . ' · ' . (int) $health['score'] . '%';
 
-    $scope_text = $active_tab === 'advanced'
-        ? 'Reúne todos los chequeos que antes estaban repartidos en múltiples pestañas. Cada sección continúa incluida una sola vez dentro de SEO Core.'
-        : 'Esta vista filtra únicamente la integridad del código. Su estado ya está incluido dentro de SEO Core del resumen global.';
+    if ($active_tab === 'operation') {
+        $scope_text = 'Agrupa continuidad del negocio, tienda, frontend, enlaces y procesos técnicos. El Resumen ya refleja estos KPIs sin volver a ejecutar pruebas.';
+    } elseif ($active_tab === 'seo_content') {
+        $scope_text = 'Agrupa datos internos SEO Core, Data Layer / Action Scheduler y contenido-semántica. El Resumen ya refleja estos KPIs sin volver a ejecutar pruebas.';
+    } else {
+        $scope_text = 'Esta vista filtra únicamente la integridad del código. Su estado ya está incluido dentro del resumen global.';
+    }
 
     echo '<div class="seo-core-scope-note"><strong>' . esc_html($tab_label) . '</strong>' . esc_html($scope_text) . '</div>';
     echo '<div class="seo-core-health-strip">';
@@ -7206,28 +7250,94 @@ function seo_core_system_test_render_priority_issues($results, $limit = 12) {
     echo '</div>';
 }
 
-function seo_core_system_test_render_module_overview($results) {
-    $modules = array(
-        'Plugin' => array('code_integrity', 'system', 'templates', 'emails', 'seo_system'),
-        'Operación' => array('catalog', 'checkout', 'technical'),
-        'Funcionalidad' => array('functional'),
-        'Experiencia visual' => array('visual'),
-        'Enlaces y SEO' => array('links_404'),
-        'Data Layer' => array('data_layer'),
-        'Semántica' => array('semantic'),
+function seo_core_system_test_render_summary_tab_kpis($results) {
+    $tabs = array(
+        'code_integrity' => array(
+            'title' => 'Integridad del código',
+            'groups' => array('code_integrity'),
+        ),
+        'operation' => array(
+            'title' => 'Operación y tienda',
+            'groups' => seo_core_system_test_groups_for_tab('operation'),
+        ),
+        'seo_content' => array(
+            'title' => 'SEO, datos y contenido',
+            'groups' => seo_core_system_test_groups_for_tab('seo_content'),
+        ),
     );
-    echo '<h3>Desglose de SEO Core por área</h3><div class="seo-core-module-grid">';
-    foreach ($modules as $title => $groups) {
+
+    echo '<h3>Estado por pestaña</h3>';
+    echo '<div class="seo-core-summary-tab-grid">';
+    foreach ($tabs as $tab_id => $config) {
+        $groups = $config['groups'];
         $rows = array_values(array_filter((array) $results, static function ($result) use ($groups) {
             return isset($result['group']) && in_array($result['group'], $groups, true);
         }));
-        if (empty($rows)) {
-            echo '<div class="seo-core-module-card"><h3>' . esc_html($title) . '</h3><div class="seo-core-module-score">Pendiente</div>' . wp_kses_post(seo_core_system_test_badge('info')) . '</div>';
-            continue;
-        }
         $health = seo_core_system_test_health_summary($rows);
-        $badge_severity = $health['status'] === 'critical' ? 'ko' : ($health['status'] === 'important' || $health['status'] === 'warning' ? 'warning' : ($health['status'] === 'ok' ? 'ok' : 'info'));
-        echo '<div class="seo-core-module-card"><h3>' . esc_html($title) . '</h3><div class="seo-core-module-score">' . esc_html($health['score']) . '%</div>' . wp_kses_post(seo_core_system_test_badge($badge_severity)) . '<p class="seo-core-test-muted">' . esc_html($health['critical']) . ' críticos · ' . esc_html($health['important']) . ' importantes · ' . esc_html($health['warning']) . ' avisos</p></div>';
+        $score = $health['score'] === null ? 'Pendiente' : (int) $health['score'] . '%';
+        $impact = $health['status'];
+        $url = add_query_arg('seo_core_test_tab', $tab_id);
+
+        echo '<a class="seo-core-summary-tab-card seo-core-summary-tab-' . esc_attr($impact) . '" href="' . esc_url($url) . '">';
+        echo '<div class="seo-core-summary-tab-head"><strong>' . esc_html($config['title']) . '</strong><span>' . esc_html($score) . '</span></div>';
+        echo '<div class="seo-core-summary-tab-state">' . esc_html(seo_core_system_test_impact_label($impact)) . '</div>';
+        echo '<div class="seo-core-summary-tab-metrics">';
+        echo '<span><b>' . esc_html(number_format_i18n((int) $health['critical'])) . '</b> críticos</span>';
+        echo '<span><b>' . esc_html(number_format_i18n((int) $health['important'])) . '</b> importantes</span>';
+        echo '<span><b>' . esc_html(number_format_i18n((int) $health['warning'])) . '</b> avisos</span>';
+        echo '<span><b>' . esc_html(number_format_i18n((int) $health['ok'])) . '</b> correctos</span>';
+        echo '</div>';
+        echo '<div class="seo-core-summary-tab-foot">Cobertura ' . esc_html(number_format_i18n((int) $health['coverage'])) . '% · Confianza ' . esc_html(number_format_i18n((int) $health['confidence'])) . '%</div>';
+        echo '</a>';
+    }
+    echo '</div>';
+}
+
+
+function seo_core_system_test_render_module_overview($results) {
+    $modules = array(
+        'code_integrity' => array('title' => 'Integridad del código', 'tab' => 'code_integrity'),
+        'functional'     => array('title' => 'Funcionamiento público', 'tab' => 'operation'),
+        'visual'         => array('title' => 'Responsive y visual', 'tab' => 'operation'),
+        'links_404'      => array('title' => 'Enlaces y 404', 'tab' => 'operation'),
+        'system'         => array('title' => 'Entorno del plugin', 'tab' => 'operation'),
+        'templates'      => array('title' => 'Plantillas', 'tab' => 'operation'),
+        'catalog'        => array('title' => 'Catálogo', 'tab' => 'operation'),
+        'checkout'       => array('title' => 'Compra', 'tab' => 'operation'),
+        'emails'         => array('title' => 'Correos', 'tab' => 'operation'),
+        'technical'      => array('title' => 'Técnico y procesos', 'tab' => 'operation'),
+        'seo_system'     => array('title' => 'Datos internos SEO Core', 'tab' => 'seo_content'),
+        'data_layer'     => array('title' => 'Data Layer / Scheduler', 'tab' => 'seo_content'),
+        'semantic'       => array('title' => 'Contenido y semántica', 'tab' => 'seo_content'),
+    );
+
+    echo '<h3>KPIs por área</h3>';
+    echo '<div class="seo-core-module-grid">';
+    foreach ($modules as $group => $config) {
+        $rows = array_values(array_filter((array) $results, static function ($result) use ($group) {
+            return isset($result['group']) && $result['group'] === $group;
+        }));
+        $health = seo_core_system_test_health_summary($rows);
+        $score = $health['score'] === null ? 'Pendiente' : (int) $health['score'] . '%';
+        $impact = $health['status'];
+        $url = add_query_arg(
+            array(
+                'seo_core_test_tab' => $config['tab'],
+                'seo_core_test_section' => $group,
+            )
+        );
+
+        echo '<a class="seo-core-module-card seo-core-module-link seo-core-summary-tab-' . esc_attr($impact) . '" href="' . esc_url($url) . '">';
+        echo '<h3>' . esc_html($config['title']) . '</h3>';
+        echo '<div class="seo-core-module-score">' . esc_html($score) . '</div>';
+        echo '<div class="seo-core-module-state">' . esc_html(seo_core_system_test_impact_label($impact)) . '</div>';
+        echo '<p class="seo-core-test-muted">';
+        echo esc_html(number_format_i18n((int) $health['critical'])) . ' críticos · ';
+        echo esc_html(number_format_i18n((int) $health['important'])) . ' importantes · ';
+        echo esc_html(number_format_i18n((int) $health['warning'])) . ' avisos';
+        echo '</p>';
+        echo '<p class="seo-core-test-muted">' . esc_html(number_format_i18n((int) $health['ok'])) . ' correctos de ' . esc_html(number_format_i18n((int) $health['total'])) . ' evaluables · cobertura ' . esc_html(number_format_i18n((int) $health['coverage'])) . '%</p>';
+        echo '</a>';
     }
     echo '</div>';
 }
@@ -7360,7 +7470,7 @@ function seo_core_system_test_render_results($results, $active_tab) {
     $summary = seo_core_system_test_get_summary($results);
     $visible_results = seo_core_system_test_results_for_tab($results, $active_tab);
 
-    if (in_array($active_tab, array('code_integrity', 'advanced'), true)) {
+    if (in_array($active_tab, array('code_integrity', 'operation', 'seo_content'), true)) {
         seo_core_system_test_render_compact_health($visible_results, $active_tab);
     }
 
@@ -7374,37 +7484,47 @@ function seo_core_system_test_render_results($results, $active_tab) {
         return;
     }
 
-    if ($active_tab === 'advanced') {
-        seo_core_system_test_render_advanced_checks($results);
+    if (in_array($active_tab, array('operation', 'seo_content'), true)) {
+        seo_core_system_test_render_advanced_checks($results, $active_tab);
         return;
     }
 
     seo_core_system_test_render_summary($summary, $results);
 }
 
-function seo_core_system_test_render_advanced_checks($results) {
+function seo_core_system_test_render_advanced_checks($results, $active_tab = 'operation') {
     $requested = seo_core_system_test_get_requested_section();
-    $bundles = array(
-        'Funcionamiento, tienda y enlaces' => array(
-            'functional',
-            'visual',
-            'system',
-            'templates',
-            'catalog',
-            'checkout',
-            'emails',
-            'technical',
-            'links_404',
+    $all_bundles = array(
+        'operation' => array(
+            'title' => 'Operación y tienda',
+            'description' => 'Continuidad del negocio, navegación pública, frontend, enlaces, catálogo, compra, correos y procesos técnicos.',
+            'groups' => array(
+                'functional',
+                'visual',
+                'system',
+                'templates',
+                'catalog',
+                'checkout',
+                'emails',
+                'technical',
+                'links_404',
+            ),
         ),
-        'Datos, SEO y contenido' => array(
-            'seo_system',
-            'data_layer',
-            'semantic',
+        'seo_content' => array(
+            'title' => 'SEO, datos y contenido',
+            'description' => 'Datos internos SEO Core, persistencia, Action Scheduler, contenido, relaciones y semántica.',
+            'groups' => array(
+                'seo_system',
+                'data_layer',
+                'semantic',
+            ),
         ),
     );
+    $bundle = isset($all_bundles[$active_tab]) ? $all_bundles[$active_tab] : $all_bundles['operation'];
+    $bundles = array($bundle['title'] => $bundle['groups']);
 
-    echo '<h2>Chequeos avanzados</h2>';
-    echo '<p>Los chequeos no se han eliminado: se han concentrado en dos bloques. Abre únicamente el área que necesites revisar; PDF y JSON siguen incluyendo todos los resultados.</p>';
+    echo '<h2>' . esc_html($bundle['title']) . '</h2>';
+    echo '<p>' . esc_html($bundle['description']) . ' Cada apartado conserva todas sus pruebas; PDF y JSON siguen incluyendo la validación completa.</p>';
 
     foreach ($bundles as $bundle_title => $groups) {
         $bundle_rows = array_values(array_filter((array) $results, static function ($result) use ($groups) {
@@ -7859,16 +7979,29 @@ function seo_core_system_test_get_summary($results) {
 
 
 function seo_core_system_test_render_summary($summary, $results) {
-    echo '<h2>Accesos principales</h2>';
-    echo '<div class="seo-core-scope-note"><strong>Un resumen y tres destinos.</strong>Los indicadores superiores reúnen Servidor y SEO Core. Debajo solo eliges si quieres revisar la integridad del código, desplegar el resto de chequeos o ajustar sus tolerancias.</div>';
+    $health = seo_core_system_test_health_summary($results);
+    $score = $health['score'] === null ? 'Pendiente' : (int) $health['score'] . '%';
+    $status_label = $health['score'] === null ? 'Sin datos' : seo_core_system_test_impact_label($health['status']);
 
-    $sections = array('code_integrity', 'advanced', 'settings');
-    echo '<div class="seo-core-nav-grid">';
-    foreach ($sections as $tab_id) {
-        $url = add_query_arg('seo_core_test_tab', $tab_id);
-        $extra_class = $tab_id === 'code_integrity' ? ' is-primary' : '';
-        echo '<a class="seo-core-nav-card' . esc_attr($extra_class) . '" href="' . esc_url($url) . '"><strong>' . esc_html(seo_core_system_test_tab_label($tab_id)) . '</strong><span>' . esc_html(seo_core_system_test_tab_description($tab_id)) . '</span></a>';
+    echo '<h2>Resumen ejecutivo</h2>';
+    echo '<div class="seo-core-scope-note"><strong>Vista general de la última validación.</strong>Estos KPIs reutilizan los resultados ya guardados: entrar en Resumen no vuelve a ejecutar ningún chequeo. Desde cada tarjeta puedes abrir el detalle correspondiente.</div>';
+
+    echo '<div class="seo-core-summary-global">';
+    echo '<div class="seo-core-health-box seo-core-health-' . esc_attr($health['status']) . '"><strong>Estado global</strong><div class="seo-core-health-value">' . esc_html($status_label . ' · ' . $score) . '</div><span class="seo-core-test-muted">SEO Core / Plugin Validation</span></div>';
+    foreach (array('critical' => 'Críticos', 'important' => 'Importantes', 'warning' => 'Avisos', 'ok' => 'Correctos') as $key => $label) {
+        echo '<div class="seo-core-health-box seo-core-health-' . esc_attr($key) . '"><strong>' . esc_html($label) . '</strong><div class="seo-core-health-value">' . esc_html(number_format_i18n((int) $health[$key])) . '</div></div>';
     }
+    echo '<div class="seo-core-health-box seo-core-health-info"><strong>Cobertura</strong><div class="seo-core-health-value">' . esc_html(number_format_i18n((int) $health['coverage'])) . '%</div><span class="seo-core-test-muted">pruebas evaluables</span></div>';
+    echo '<div class="seo-core-health-box seo-core-health-info"><strong>Confianza</strong><div class="seo-core-health-value">' . esc_html(number_format_i18n((int) $health['confidence'])) . '%</div><span class="seo-core-test-muted">media de evidencias</span></div>';
+    echo '</div>';
+
+    seo_core_system_test_render_summary_tab_kpis($results);
+    seo_core_system_test_render_module_overview($results);
+    seo_core_system_test_render_priority_issues($results, 10);
+
+    echo '<div class="seo-core-nav-grid">';
+    $settings_url = add_query_arg('seo_core_test_tab', 'settings');
+    echo '<a class="seo-core-nav-card" href="' . esc_url($settings_url) . '"><strong>Configuración</strong><span>' . esc_html(seo_core_system_test_tab_description('settings')) . '</span></a>';
     echo '</div>';
 
     echo '<details class="seo-core-test-details seo-core-summary-report">';

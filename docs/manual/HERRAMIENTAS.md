@@ -147,7 +147,46 @@ El **chequeo completo** guarda una nueva fotografía MySQL. La exportación JSON
 
 ## Plugin Validation
 
-Pestañas: **Resumen**, **Integridad del código**, **Chequeos avanzados**, **Configuración**.
+Pestañas: **Resumen**, **Integridad del código**, **Operación y tienda**, **SEO, datos y contenido** y **Configuración**.
+
+### Resumen ejecutivo
+
+**Resumen** es el cuadro de mando de Plugin Validation. No vuelve a ejecutar pruebas: reutiliza la última validación persistida y muestra de un vistazo:
+
+- estado y puntuación global;
+- críticos, importantes, avisos y pruebas correctas;
+- cobertura de la validación;
+- confianza media de las evidencias;
+- estado agregado de **Integridad del código**, **Operación y tienda** y **SEO, datos y contenido**;
+- KPIs por área: score, críticos/importantes/avisos, correctos/evaluables y cobertura;
+- incidencias prioritarias que requieren atención;
+- acceso al informe técnico completo, PDF/JSON y Configuración.
+
+Las tarjetas del resumen son navegables: al pulsar un área se abre directamente su detalle sin volver a ejecutar la suite.
+
+### División de chequeos
+
+**Integridad del código** concentra inventario PHP, sintaxis, funciones, tipos, hooks, puntos de entrada, duplicados y compatibilidad WordPress.org.
+
+**Operación y tienda** reúne:
+
+- funcionamiento público;
+- responsive y calidad visual;
+- enlaces y 404;
+- entorno del plugin;
+- plantillas;
+- catálogo;
+- compra;
+- correos;
+- chequeos técnicos y de procesos.
+
+**SEO, datos y contenido** reúne:
+
+- datos internos SEO Core;
+- Data Layer y Action Scheduler;
+- contenido y semántica.
+
+Los enlaces antiguos a **Chequeos avanzados** siguen siendo compatibles y se redirigen a la nueva organización.
 
 Acciones: **Ejecutar validación completa**, **Ejecutar siguiente bloque**, repetir los bloques de auditoría 404, **Reiniciar auditoría**, **Actualizar chequeos pasivos** y **Ejecutar prueba transaccional controlada**. En diagnósticos hay checkbox de autorización para envío automático, **Guardar autorización** y **Enviar ahora el último diagnóstico**.
 
