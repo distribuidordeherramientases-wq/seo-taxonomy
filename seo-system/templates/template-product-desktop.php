@@ -931,69 +931,12 @@ $schema_product_graph = array(
 
   <?php
   /*
-   * Bloques editoriales contextuales.
-   *
-   * Orden acordado en producto:
-   * 1) Dependiente · preguntas habituales
-   * 2) Comparador · extracto persistido
-   * 3) Comentarista · comentarios externos
-   * 4) Ingeniero · información técnica
-   *
-   * Cada helper retorna sin imprimir nada cuando no hay contenido válido.
+   * Contenido contextual persistido.
+   * La selección y el render viven en template-helpers.php para mantener
+   * idéntico contrato funcional en desktop y móvil.
    */
-  $dht_product_context_category_ids = function_exists('dht_template_product_context_category_ids')
-      ? dht_template_product_context_category_ids($product_id)
-      : array();
-
-  $dht_dependiente_posts = function_exists('dht_template_context_posts_for_categories')
-      ? dht_template_context_posts_for_categories(
-          $dht_product_context_category_ids,
-          'dependiente_qa_basic',
-          3
-      )
-      : array();
-
-  if (function_exists('dht_template_render_context_posts')) {
-      dht_template_render_context_posts(
-          $dht_dependiente_posts,
-          'Preguntas habituales',
-          'dependiente',
-          'product'
-      );
-  }
-
-  // Comparador: solo lee el extracto persistido del post canónico publicado.
-  if (function_exists('seo_comparador_render_product_block')) {
-      seo_comparador_render_product_block($product_id);
-  }
-
-  $dht_external_product_comments = function_exists('dht_template_product_external_comments')
-      ? dht_template_product_external_comments($product_id, 12)
-      : array();
-
-  if (function_exists('dht_template_render_external_comments')) {
-      dht_template_render_external_comments(
-          $dht_external_product_comments,
-          'Comentarios externos sobre este producto',
-          'product'
-      );
-  }
-
-  $dht_ingeniero_posts = function_exists('dht_template_context_posts_for_categories')
-      ? dht_template_context_posts_for_categories(
-          $dht_product_context_category_ids,
-          'ingeniero_qa_specialized',
-          3
-      )
-      : array();
-
-  if (function_exists('dht_template_render_context_posts')) {
-      dht_template_render_context_posts(
-          $dht_ingeniero_posts,
-          'Información técnica',
-          'ingeniero',
-          'product'
-      );
+  if (function_exists('dht_template_render_product_context_blocks')) {
+      dht_template_render_product_context_blocks($product_id);
   }
   ?>
 
