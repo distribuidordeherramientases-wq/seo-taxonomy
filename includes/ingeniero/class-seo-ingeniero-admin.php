@@ -16,6 +16,8 @@ final class SEO_Ingeniero_Admin {
         add_action('admin_post_seo_ingeniero_approve_all', array(__CLASS__, 'handle_approve_all'));
         add_action('admin_post_seo_ingeniero_export', array(__CLASS__, 'handle_export'));
         add_action('admin_post_seo_ingeniero_settings', array(__CLASS__, 'handle_settings'));
+        add_action('admin_post_seo_ingeniero_editorial_action', array(__CLASS__, 'handle_editorial_action'));
+        add_action('admin_post_seo_ingeniero_editorial_refresh_batch', array(__CLASS__, 'handle_editorial_refresh_batch'));
     }
 
     public static function register_page() {
@@ -202,6 +204,69 @@ final class SEO_Ingeniero_Admin {
         self::redirect(array('ingeniero_notice'=>'settings'));
     }
 
+    public static function handle_editorial_action() {
+        self::guard('seo_ingeniero_editorial_action');
+        $editorial_id = absint($_POST['editorial_id'] ?? 0);
+        $command = sanitize_key((string) ($_POST['editorial_command'] ?? ''));
+        $dossier = SEO_Ingeniero_DB::editorial_get($editorial_id);
+        if (!$dossier) {
+            self::redirect(array('ingeniero_error'=>rawurlencode('No existe la propuesta editorial.')), 'editorial');
+        }
+
+        if ('reanalyze' === $command) {
+            $result = SEO_Ingeniero::refresh_editorial_category(absint($dossier['term_id'] ?? 0), true);
+            if (is_wp_error($result)) {
+                self::redirect(array('ingeniero_error'=>rawurlencode($result->get_error_message()),'editorial_id'=>$editorial_id), 'editorial');
+            }
+            self::redirect(array('ingeniero_notice'=>'editorial_reanalyzed','editorial_id'=>$editorial_id), 'editorial');
+        }
+
+        if ('approve' === $command) {
+            SEO_Ingeniero_DB::update_editorial($editorial_id, array('status'=>'approved'));
+            self::redirect(array('ingeniero_notice'=>'editorial_approved','editorial_id'=>$editorial_id), 'editorial');
+        }
+
+        if ('review' === $command) {
+            SEO_Ingeniero_DB::update_editorial($editorial_id, array('status'=>'review'));
+            self::redirect(array('ingeniero_notice'=>'editorial_review','editorial_id'=>$editorial_id), 'editorial');
+        }
+
+        if ('close' === $command) {
+            SEO_Ingeniero_DB::update_editorial($editorial_id, array('status'=>'closed'));
+            self::redirect(array('ingeniero_notice'=>'editorial_closed'), 'editorial');
+        }
+
+        if ('create_draft' === $command) {
+            $post_id = SEO_Ingeniero_Posts::create_draft($editorial_id);
+            if (is_wp_error($post_id)) {
+                self::redirect(array('ingeniero_error'=>rawurlencode($post_id->get_error_message()),'editorial_id'=>$editorial_id), 'editorial');
+            }
+            self::redirect(array('ingeniero_notice'=>'editorial_draft','editorial_id'=>$editorial_id,'post_id'=>absint($post_id)), 'editorial');
+        }
+
+        self::redirect(array('ingeniero_error'=>rawurlencode('Acción editorial no válida.'),'editorial_id'=>$editorial_id), 'editorial');
+    }
+
+    public static function handle_editorial_refresh_batch() {
+        self::guard('seo_ingeniero_editorial_refresh_batch');
+        $limit = max(1, min(20, absint($_POST['limit'] ?? 10)));
+        $stats = SEO_Ingeniero_DB::category_stats_map(SEO_Ingeniero::LESSON_TECHNICAL);
+        $processed = 0;
+        $errors = 0;
+        foreach ($stats as $term_id=>$row) {
+            if ($processed >= $limit) break;
+            if (absint($row['active'] ?? 0) < 1) continue;
+            $result = SEO_Ingeniero::refresh_editorial_category(absint($term_id), false);
+            $processed++;
+            if (is_wp_error($result)) $errors++;
+        }
+        self::redirect(array(
+            'ingeniero_notice'=>'editorial_refreshed',
+            'editorial_processed'=>$processed,
+            'editorial_errors'=>$errors,
+        ), 'editorial');
+    }
+
     public static function render() {
         if (!current_user_can('manage_options')) {
             wp_die(esc_html__('No tienes permisos para usar Ingeniero.', 'seo-taxonomy'));
@@ -253,7 +318,7 @@ final class SEO_Ingeniero_Admin {
         echo '<section class="seo-ingeniero">';
         echo '<div class="postbox seo-dependiente-admin__box" style="padding:18px">';
         echo '<h2 style="margin-top:0">Ingeniero</h2>';
-        echo '<p>Conocimiento externo técnico por categoría para complementar el catálogo. <strong>V1 no publica contenido ni modifica las respuestas públicas de Dependiente.</strong> Ingeniero consulta fuentes externas, crea una síntesis propia y conserva siempre la referencia al origen.</p>';
+        echo '<p>Investigación técnica por categoría. Ingeniero consulta fuentes externas, crea una síntesis propia y conserva siempre la referencia al origen. La salida editorial se gestiona aparte en la pestaña <strong>Editorial</strong> y nunca autopublica.</p>';
         echo '<p class="description">Separación deliberada: <code>seo_dependiente_index</code> sigue representando nuestro catálogo; <code>seo_ingeniero_knowledge</code> conserva teoría externa trazable por fuentes.</p>';
         echo '</div>';
 
@@ -328,12 +393,183 @@ final class SEO_Ingeniero_Admin {
     }
 
     private static function render_editorial_tab() {
+        self::render_notices();
+
+        $status = sanitize_key((string) ($_GET['editorial_status'] ?? ''));
+        $action = strtoupper(sanitize_key((string) ($_GET['editorial_action'] ?? '')));
+        $page = max(1, absint($_GET['paged'] ?? 1));
+        $list = SEO_Ingeniero_DB::editorial_rows(array(
+            'status'=>$status,
+            'action'=>$action,
+            'page'=>$page,
+            'per_page'=>30,
+        ));
+        $counts = SEO_Ingeniero_DB::editorial_counts();
+        $detail_id = absint($_GET['editorial_id'] ?? 0);
+
         echo '<section class="seo-ingeniero-editorial">';
         echo '<div class="postbox" style="padding:18px;margin-top:16px">';
-        echo '<h2 style="margin-top:0">Editorial</h2>';
-        echo '<p>Esta pestaña prepara dossiers técnicos trazables a partir del conocimiento activo de Ingeniero. La persistencia editorial y el workflow se activarán con el esquema 0.2.0.</p>';
+        echo '<h2 style="margin-top:0">Editorial técnico</h2>';
+        echo '<p>Convierte únicamente <strong>conocimiento active y trazable</strong> en dossiers técnicos. Ingeniero decide <code>CREATE_POST</code>, <code>IMPROVE_POST</code>, <code>MERGE_CONTENT</code>, <code>NO_ACTION</code> o <code>NEEDS_REVIEW</code> sin depender de Solucionador.</p>';
+        echo '<p class="description">Los dossiers guardan referencias a knowledge/sources y un <code>source_hash</code>; no duplican el contenido de investigación. Los borradores se crean sólo tras aprobación humana y nunca se publican automáticamente.</p>';
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap">';
+        echo '<input type="hidden" name="action" value="seo_ingeniero_editorial_refresh_batch">';
+        wp_nonce_field('seo_ingeniero_editorial_refresh_batch');
+        echo '<label><strong>Actualizar dossiers activos</strong><br><input class="small-text" type="number" name="limit" min="1" max="20" value="10"></label>';
+        submit_button('Procesar lote', 'secondary', 'submit', false);
+        echo '<span class="description">Procesa las categorías una a una y omite dossiers cuyo hash no ha cambiado.</span>';
+        echo '</form>';
         echo '</div>';
+
+        $cards = array(
+            'Dossiers'=>$counts['total'] ?? 0,
+            'Crear post'=>$counts['CREATE_POST'] ?? 0,
+            'Mejorar'=>$counts['IMPROVE_POST'] ?? 0,
+            'Fusionar'=>$counts['MERGE_CONTENT'] ?? 0,
+            'Sin acción'=>$counts['NO_ACTION'] ?? 0,
+            'Revisión'=>$counts['NEEDS_REVIEW'] ?? 0,
+            'Borradores'=>$counts['draft'] ?? 0,
+            'Publicados'=>$counts['published'] ?? 0,
+            'Necesitan actualizar'=>$counts['needs_update'] ?? 0,
+        );
+        echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin:16px 0">';
+        foreach ($cards as $label=>$value) {
+            echo '<div class="postbox" style="padding:13px;margin:0"><strong style="display:block;font-size:20px">' . esc_html(number_format_i18n(absint($value))) . '</strong><span>' . esc_html($label) . '</span></div>';
+        }
+        echo '</div>';
+
+        echo '<form method="get" action="' . esc_url(admin_url('admin.php')) . '" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin:12px 0">';
+        echo '<input type="hidden" name="page" value="seo-ingeniero"><input type="hidden" name="tab" value="editorial">';
+        echo '<label>Estado<br><select name="editorial_status"><option value="">Todos</option>';
+        foreach (array('candidate'=>'Candidato','review'=>'Revisión','approved'=>'Aprobado','draft'=>'Borrador','published'=>'Publicado','needs_update'=>'Necesita actualizar','closed'=>'Cerrado') as $key=>$label) {
+            echo '<option value="' . esc_attr($key) . '" ' . selected($status,$key,false) . '>' . esc_html($label) . '</option>';
+        }
+        echo '</select></label>';
+        echo '<label>Acción<br><select name="editorial_action"><option value="">Todas</option>';
+        foreach (array('CREATE_POST','IMPROVE_POST','MERGE_CONTENT','NO_ACTION','NEEDS_REVIEW') as $key) {
+            echo '<option value="' . esc_attr($key) . '" ' . selected($action,$key,false) . '>' . esc_html($key) . '</option>';
+        }
+        echo '</select></label>';
+        submit_button('Filtrar', 'secondary', 'submit', false);
+        echo '</form>';
+
+        echo '<div class="postbox" style="padding:0;margin-top:12px;overflow:auto">';
+        echo '<table class="widefat striped"><thead><tr><th>Categoría / tema</th><th>Acción</th><th>Cobertura</th><th>Estado</th><th>Base</th><th>Post</th><th>Actualizado</th><th>Acciones</th></tr></thead><tbody>';
+        foreach ((array) ($list['rows'] ?? array()) as $row) {
+            $term_id = absint($row['term_id'] ?? 0);
+            $term = $term_id ? get_term($term_id, 'product_cat') : null;
+            $category = $term && !is_wp_error($term) ? (string) $term->name : ('Categoría #' . $term_id);
+            $id = absint($row['id'] ?? 0);
+            $post_id = absint($row['post_id'] ?? 0);
+            echo '<tr>';
+            echo '<td><strong>' . esc_html($category) . '</strong><br><span>' . esc_html((string) ($row['suggested_title'] ?? '')) . '</span><br><code>' . esc_html((string) ($row['topic_key'] ?? '')) . '</code></td>';
+            echo '<td><code>' . esc_html((string) ($row['recommended_action'] ?? '')) . '</code></td>';
+            echo '<td><code>' . esc_html((string) ($row['coverage_status'] ?? '')) . '</code></td>';
+            echo '<td><code>' . esc_html((string) ($row['status'] ?? '')) . '</code></td>';
+            echo '<td>' . esc_html(number_format_i18n(count((array) ($row['knowledge_ids'] ?? array())))) . ' knowledge<br>' . esc_html(number_format_i18n(count((array) ($row['source_ids'] ?? array())))) . ' fuentes</td>';
+            echo '<td>';
+            if ($post_id && 'post' === get_post_type($post_id)) {
+                echo '<a href="' . esc_url(SEO_Ingeniero_Posts::edit_url($post_id)) . '">#' . esc_html($post_id) . ' · ' . esc_html((string) get_post_status($post_id)) . '</a>';
+            } else {
+                echo '—';
+            }
+            echo '</td>';
+            echo '<td>' . esc_html((string) ($row['updated_at'] ?? '')) . '</td>';
+            echo '<td style="min-width:250px"><a class="button button-small" href="' . esc_url(self::page_url('editorial', array('editorial_id'=>$id))) . '">Ver brief</a> ';
+            self::render_editorial_action_button($id, 'reanalyze', 'Reanalizar', 'secondary');
+            if (in_array((string) ($row['status'] ?? ''), array('candidate','review','needs_update'), true)) {
+                self::render_editorial_action_button($id, 'approve', 'Aprobar', 'primary');
+            }
+            if ('approved' === (string) ($row['status'] ?? '') && 'CREATE_POST' === strtoupper((string) ($row['recommended_action'] ?? '')) && !$post_id) {
+                self::render_editorial_action_button($id, 'create_draft', 'Crear borrador', 'primary');
+            }
+            echo '</td></tr>';
+        }
+        if (empty($list['rows'])) echo '<tr><td colspan="8">Todavía no hay dossiers que coincidan con los filtros.</td></tr>';
+        echo '</tbody></table></div>';
+
+        if (absint($list['pages'] ?? 1) > 1) {
+            $links = paginate_links(array(
+                'base'=>add_query_arg(array('page'=>'seo-ingeniero','tab'=>'editorial','editorial_status'=>$status,'editorial_action'=>$action,'paged'=>'%#%'), admin_url('admin.php')),
+                'format'=>'',
+                'current'=>absint($list['page'] ?? 1),
+                'total'=>absint($list['pages'] ?? 1),
+                'type'=>'list',
+            ));
+            if ($links) echo '<div class="tablenav"><div class="tablenav-pages" style="float:none;margin:12px 0">' . wp_kses_post($links) . '</div></div>';
+        }
+
+        if ($detail_id) self::render_editorial_brief($detail_id);
         echo '</section>';
+    }
+
+    private static function render_editorial_action_button($editorial_id, $command, $label, $class = 'secondary') {
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline-block;margin:2px">';
+        echo '<input type="hidden" name="action" value="seo_ingeniero_editorial_action"><input type="hidden" name="editorial_id" value="' . esc_attr(absint($editorial_id)) . '"><input type="hidden" name="editorial_command" value="' . esc_attr(sanitize_key($command)) . '">';
+        wp_nonce_field('seo_ingeniero_editorial_action');
+        echo '<button class="button button-small ' . ('primary' === $class ? 'button-primary' : '') . '" type="submit">' . esc_html($label) . '</button>';
+        echo '</form>';
+    }
+
+    private static function render_editorial_brief($editorial_id) {
+        $brief = SEO_Ingeniero::editorial_brief($editorial_id);
+        if (is_wp_error($brief)) {
+            echo '<div class="notice notice-error inline"><p>' . esc_html($brief->get_error_message()) . '</p></div>';
+            return;
+        }
+
+        $dossier = (array) ($brief['dossier'] ?? array());
+        $category = (array) ($brief['category'] ?? array());
+        echo '<div id="ingeniero-editorial-brief" class="postbox" style="padding:18px;margin-top:18px">';
+        echo '<h2 style="margin-top:0">Brief técnico para Editora</h2>';
+        echo '<p><strong>' . esc_html((string) ($dossier['suggested_title'] ?? '')) . '</strong></p>';
+        echo '<p>Categoría: <strong>' . esc_html((string) ($category['name'] ?? '')) . '</strong> · Tema: <code>' . esc_html((string) ($dossier['topic_key'] ?? '')) . '</code> · Acción: <code>' . esc_html((string) ($dossier['recommended_action'] ?? '')) . '</code>.</p>';
+
+        echo '<h3>Must cover</h3><ul>';
+        foreach ((array) ($brief['must_cover'] ?? array()) as $item) echo '<li>' . esc_html((string) $item) . '</li>';
+        echo '</ul>';
+
+        echo '<h3>Knowledge incluido</h3><table class="widefat striped"><thead><tr><th>Tipo / concepto</th><th>Síntesis</th><th>Confianza</th><th>Evidencias</th></tr></thead><tbody>';
+        foreach ((array) ($brief['knowledge'] ?? array()) as $row) {
+            echo '<tr><td><code>' . esc_html((string) ($row['knowledge_type'] ?? '')) . '</code><br>' . esc_html((string) ($row['concept'] ?? '')) . '</td>';
+            echo '<td>' . esc_html((string) ($row['summary'] ?? '')) . '</td>';
+            echo '<td>' . esc_html(number_format_i18n(((float) ($row['confidence'] ?? 0))*100,1)) . '%</td>';
+            echo '<td>' . esc_html(number_format_i18n(count((array) ($row['facts'] ?? array())))) . '</td></tr>';
+        }
+        echo '</tbody></table>';
+
+        echo '<h3 style="margin-top:18px">Fuentes trazables</h3><table class="widefat striped"><thead><tr><th>Fuente</th><th>Tipo</th><th>Confianza</th><th>Recuperada</th></tr></thead><tbody>';
+        foreach ((array) ($brief['sources'] ?? array()) as $source) {
+            echo '<tr><td><a href="' . esc_url((string) ($source['url'] ?? '')) . '" target="_blank" rel="noopener">' . esc_html((string) (($source['title'] ?? '') ?: ($source['url'] ?? ''))) . '</a></td>';
+            echo '<td><code>' . esc_html((string) ($source['source_type'] ?? '')) . '</code></td>';
+            echo '<td>' . esc_html((string) ($source['trust_level'] ?? '')) . '</td>';
+            echo '<td>' . esc_html((string) ($source['retrieved_at'] ?? '')) . '</td></tr>';
+        }
+        echo '</tbody></table>';
+
+        $coverage = (array) ($brief['coverage'] ?? array());
+        echo '<h3 style="margin-top:18px">Cobertura existente</h3>';
+        echo '<p>Estado: <code>' . esc_html((string) ($coverage['status'] ?? 'uncovered')) . '</code> · score ' . esc_html(number_format_i18n(((float) ($coverage['score'] ?? 0))*100,1)) . '%.</p>';
+        if (!empty($coverage['matches'])) {
+            echo '<ul>';
+            foreach (array_slice((array) $coverage['matches'], 0, 5) as $match) {
+                echo '<li>' . esc_html((string) ($match['title'] ?? '')) . ' · ' . esc_html(number_format_i18n(((float) ($match['score'] ?? 0))*100,1)) . '%</li>';
+            }
+            echo '</ul>';
+        }
+
+        echo '<div class="notice notice-warning inline"><p><strong>Verificación editorial:</strong> ' . esc_html((string) ($brief['verification_warning'] ?? '')) . '</p></div>';
+
+        $status = sanitize_key((string) ($dossier['status'] ?? 'candidate'));
+        $post_id = absint($dossier['post_id'] ?? 0);
+        echo '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:14px">';
+        self::render_editorial_action_button($editorial_id, 'reanalyze', 'Reanalizar cobertura', 'secondary');
+        if (in_array($status,array('candidate','review','needs_update'),true)) self::render_editorial_action_button($editorial_id,'approve','Aprobar propuesta','primary');
+        if ('approved' === $status && 'CREATE_POST' === strtoupper((string) ($dossier['recommended_action'] ?? '')) && !$post_id) self::render_editorial_action_button($editorial_id,'create_draft','Crear borrador','primary');
+        if (!$post_id && !in_array($status,array('closed','published'),true)) self::render_editorial_action_button($editorial_id,'close','Cerrar / no actuar','secondary');
+        if ($post_id && 'post' === get_post_type($post_id)) echo '<a class="button button-primary" href="' . esc_url(SEO_Ingeniero_Posts::edit_url($post_id)) . '">Abrir post #' . esc_html($post_id) . '</a>';
+        echo '</div>';
+        echo '</div>';
     }
 
     private static function render_data_tab() {
@@ -463,7 +699,7 @@ final class SEO_Ingeniero_Admin {
 
         echo '<div id="ingeniero-review" class="postbox seo-dependiente-admin__box" style="padding:18px">';
         echo '<h3 style="margin-top:0">Revisión · ' . esc_html((string) $term->name) . '</h3>';
-        echo '<p>El conocimiento activo puede ser consultado por otros módulos mediante <code>SEO_Ingeniero::active_knowledge(' . esc_html($term_id) . ')</code>. V1 todavía no lo inyecta en las respuestas públicas.</p>';
+        echo '<p>El conocimiento activo alimenta el Clasificador y el proceso editorial propio de Ingeniero. La publicación pública sólo aparece cuando la Editora publica un post con rol <code>ingeniero_qa_specialized</code>.</p>';
 
         echo '<h4>Conocimiento consolidado</h4>';
         echo '<table class="widefat striped"><thead><tr><th>Tipo</th><th>Resumen/evidencia</th><th>Confianza</th><th>Estado</th><th>Revisión</th></tr></thead><tbody>';
@@ -533,6 +769,12 @@ final class SEO_Ingeniero_Admin {
             'all_approved'=>'Conocimiento en revisión aprobado en bloque.',
             'settings'=>'Configuración guardada.',
             'exchange_imported'=>'Conocimiento externo importado para revisión.',
+            'editorial_reanalyzed'=>'Dossier editorial reanalizado.',
+            'editorial_approved'=>'Propuesta editorial aprobada.',
+            'editorial_review'=>'Propuesta devuelta a revisión.',
+            'editorial_closed'=>'Propuesta editorial cerrada.',
+            'editorial_draft'=>'Borrador técnico creado para la Editora.',
+            'editorial_refreshed'=>'Lote de dossiers actualizado.',
         );
         if ($notice && isset($messages[$notice])) {
             $suffix = '';
@@ -547,6 +789,11 @@ final class SEO_Ingeniero_Admin {
             } elseif ('all_approved' === $notice) {
                 $suffix = ' Categorías: ' . absint($_GET['ingeniero_approved_categories'] ?? 0)
                     . ' · Conocimientos aprobados: ' . absint($_GET['ingeniero_approved_knowledge'] ?? 0) . '.';
+            } elseif ('editorial_refreshed' === $notice) {
+                $suffix = ' Procesadas: ' . absint($_GET['editorial_processed'] ?? 0)
+                    . ' · Errores: ' . absint($_GET['editorial_errors'] ?? 0) . '.';
+            } elseif ('editorial_draft' === $notice) {
+                $suffix = ' Post #' . absint($_GET['post_id'] ?? 0) . '.';
             }
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html($messages[$notice] . $suffix) . '</p></div>';
         }
