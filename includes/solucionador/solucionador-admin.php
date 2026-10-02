@@ -310,7 +310,7 @@ final class SEO_Solucionador_Admin {
             "SELECT COUNT(DISTINCT p.ID)
              FROM {$wpdb->posts} p
              INNER JOIN {$wpdb->postmeta} pm ON pm.post_id=p.ID
-             WHERE p.post_type='post' AND p.post_status='draft' AND pm.meta_key=%s",
+             WHERE p.post_type='post' AND p.post_status<>'publish' AND p.post_status<>'trash' AND pm.meta_key=%s",
             $category_meta
         )));
         $published = absint($wpdb->get_var($wpdb->prepare(
@@ -489,11 +489,12 @@ final class SEO_Solucionador_Admin {
             $post_id = absint($row['ID'] ?? 0);
             $metrics = self::google_metrics_for_post($post_id);
             $has = !empty($metrics['has_snapshot']);
+            $available = $has || !empty($snapshot['available']);
             echo '<tr><td><a href="' . esc_url(SEO_Solucionador_Posts::edit_url($post_id)) . '"><strong>' . esc_html((string) ($row['post_title'] ?? '')) . '</strong></a></td>';
             echo '<td>Publicado</td>';
-            echo '<td>' . ($has ? esc_html(number_format_i18n(absint($metrics['impressions'] ?? 0))) : '—') . '</td>';
-            echo '<td>' . ($has ? esc_html(number_format_i18n(absint($metrics['clicks'] ?? 0))) : '—') . '</td>';
-            echo '<td>' . ($has ? esc_html(number_format_i18n(absint($metrics['pageviews'] ?? 0))) : '—') . '</td></tr>';
+            echo '<td>' . ($available ? esc_html(number_format_i18n(absint($metrics['impressions'] ?? 0))) : '—') . '</td>';
+            echo '<td>' . ($available ? esc_html(number_format_i18n(absint($metrics['clicks'] ?? 0))) : '—') . '</td>';
+            echo '<td>' . ($available ? esc_html(number_format_i18n(absint($metrics['pageviews'] ?? 0))) : '—') . '</td></tr>';
         }
         echo '</tbody></table>';
 
