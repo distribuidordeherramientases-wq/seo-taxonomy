@@ -6,7 +6,7 @@
 defined('ABSPATH') || exit;
 
 final class SEO_Solucionador_Export {
-    const SCHEMA = 'seo-solucionador-export-v2';
+    const SCHEMA = 'seo-solucionador-export-v3';
 
     public static function init() {
         add_action('admin_post_seo_solucionador_export_json', array(__CLASS__, 'download'));
@@ -55,7 +55,7 @@ final class SEO_Solucionador_Export {
         $post_topics_table = SEO_Solucionador_DB::post_topics_table();
         $coverage_table = SEO_Solucionador_DB::coverage_table();
         $workflow_table = SEO_Solucionador_DB::workflow_table();
-        $tracking_table = SEO_Solucionador_DB::tracking_table();
+        $dossiers_table = SEO_Solucionador_DB::dossiers_table();
 
         $topics = SEO_Solucionador_DB::table_exists($topics_table)
             ? (array) $wpdb->get_results(
@@ -101,9 +101,19 @@ final class SEO_Solucionador_Export {
         $workflow_rows = SEO_Solucionador_DB::table_exists($workflow_table)
             ? (array) $wpdb->get_results("SELECT * FROM {$workflow_table} ORDER BY topic_id,id ASC",ARRAY_A)
             : array();
-        $tracking_rows = SEO_Solucionador_DB::table_exists($tracking_table)
-            ? (array) $wpdb->get_results("SELECT * FROM {$tracking_table} ORDER BY topic_id,snapshot_at,id ASC",ARRAY_A)
+
+        $dossier_rows = SEO_Solucionador_DB::table_exists($dossiers_table)
+            ? (array) $wpdb->get_results(
+                "SELECT id,category_id,category_name,question_count,question_ids,score_avg,last_validated_at,source_hash,updated_at
+                 FROM {$dossiers_table} ORDER BY category_name,id",
+                ARRAY_A
+            )
             : array();
+        foreach ($dossier_rows as &$dossier_row) {
+            $dossier_row['question_ids'] = SEO_Solucionador_DB::decode_json($dossier_row['question_ids'] ?? '[]',array());
+            $dossier_row['note'] = 'Los resultados pesados de cada pregunta se cargan bajo demanda al abrir el brief.';
+        }
+        unset($dossier_row);
 
         return array(
             'schema' => self::SCHEMA,
@@ -115,11 +125,16 @@ final class SEO_Solucionador_Export {
                 'db_version' => (string) get_option(SEO_Solucionador_DB::VERSION_OPTION, ''),
             ),
             'last_scan' => (array) get_option('seo_solucionador_last_scan', array()),
+            'academy' => class_exists('SEO_Solucionador_Dossiers') ? SEO_Solucionador_Dossiers::snapshot() : array(),
             'summary' => self::summary($topics_table, $evidence_table, $coverage_table),
+            'dossiers' => $dossier_rows,
             'topics' => $topic_rows,
             'editorial_coverage' => $coverage_rows,
             'workflow_history' => $workflow_rows,
-            'tracking_history' => $tracking_rows,
+            'measurement' => array(
+                'source'=>'Analista',
+                'note'=>'Los KPIs globales no se exportan desde la tabla histórica de tracking de Solucionador.',
+            ),
         );
     }
 
