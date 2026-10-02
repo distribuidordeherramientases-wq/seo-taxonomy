@@ -888,10 +888,10 @@ $schema_product_graph = array(
       </div>
 
       <div class="dh-product-trust" aria-label="Condiciones de compra">
-        <a href="<?php echo esc_url(dht_template_shipping_policy_url()); ?>"><span aria-hidden="true">🚚</span><strong>Envío</strong><small>Ver condiciones</small></a>
-        <div><span aria-hidden="true">🔒</span><strong>Pago seguro</strong><small>Compra protegida</small></div>
-        <a href="<?php echo esc_url(dht_template_return_policy_url()); ?>"><span aria-hidden="true">↩️</span><strong>Devolución</strong><small>Ver política</small></a>
-        <div><span aria-hidden="true">🛡️</span><strong>Garantía</strong><small>Soporte posventa</small></div>
+        <a href="<?php echo esc_url(dht_template_shipping_policy_url()); ?>"><span aria-hidden="true">🚚</span><strong>Envío 2–3 días</strong><small>Fabricante, transporte y entrega acompañados</small></a>
+        <div><span aria-hidden="true">🔒</span><strong>Pago seguro</strong><small>Cobro protegido y pedido confirmado</small></div>
+        <a href="<?php echo esc_url(dht_template_return_policy_url()); ?>"><span aria-hidden="true">↩️</span><strong>Devolución</strong><small>Te ayudamos durante toda la gestión</small></a>
+        <div><span aria-hidden="true">🛡️</span><strong>Garantía</strong><small>Asistencia con fabricante y posventa</small></div>
       </div>
 
       <div class="dh-purchase-support" aria-label="Ayuda antes de comprar">
