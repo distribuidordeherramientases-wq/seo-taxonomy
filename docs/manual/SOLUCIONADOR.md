@@ -1,311 +1,188 @@
 # Solucionador
 
-Solucionador es el **sistema central de decisión editorial** de DistribuidorDeHerramientas.es.
+## Estado operativo
 
-Su responsabilidad es contestar:
-
-> ¿Qué debemos hacer con nuestros contenidos, por qué y con qué información debe trabajar la Editora?
-
-No sustituye a los servicios especialistas y no vuelve a realizar su trabajo. Consume sus resultados, comprueba la cobertura editorial y recomienda la **actuación mínima necesaria**.
-
-## Estado operativo actual
-
-- **Versión funcional de Solucionador:** 0.4.2.
-- **Versión del esquema de base de datos:** 0.4.0.
+- **Versión funcional:** 0.5.0.
+- **Versión de esquema:** 0.5.0.
+- **Arquitectura de referencia:** 02/10/2026.
+- **Issue de implementación:** #560.
 - **Entorno de validación:** staging antes de producción.
-- **RF de referencia:** Requisitos Funcionales de Solucionador v1.0, 01/10/2026.
-- **Incidencias relacionadas:** #480 (primer análisis no inicializado), #482 (validación de tablas y arranque en producción) y #544 (Academia de Dependiente → dossiers por categoría).
 
-La versión 0.4.1 corrige un problema operativo observado en producción con 0.4.0: Solucionador podía estar instalado, con su esquema reconocido, pero mostrar todos los KPIs a cero porque todavía no se había ejecutado ningún análisis inicial.
+## Responsabilidad
 
-Desde 0.4.1, si no existe `seo_solucionador_last_scan`, Solucionador ejecuta automáticamente el primer análisis al abrir su pantalla o antes de exportar sus resultados. El botón **Reanalizar fuentes** se mantiene para posteriores recalculados manuales.
-
-## Inicialización y persistencia
-
-Solucionador dispone de persistencia propia y no depende de que las tablas se creen manualmente desde phpMyAdmin.
-
-`SEO_Solucionador_DB::maybe_install()` comprueba:
-
-1. la versión registrada en `seo_solucionador_db_version`;
-2. que existan las seis tablas propias de Solucionador.
-
-Si la versión es correcta y las seis tablas existen, no hace nada. Si falta una tabla o el esquema necesita instalación/actualización, llama a `install()`, que usa el mecanismo `dbDelta()` de WordPress para crear o actualizar el esquema.
-
-Esto sigue el patrón:
+Solucionador tiene un único cometido editorial:
 
 ~~~text
-si esquema y tablas existen
-    continuar
-si falta alguna tabla o versión
-    crear/actualizar con dbDelta()
+Academia / Entrenador
+        ↓
+preguntas aprendidas pass_*
+        ↓
+dossier básico por product_cat
+        ↓
+cobertura editorial
+        ↓
+CREATE_POST / IMPROVE_POST / MERGE_CONTENT / NO_ACTION / DEFER
+        ↓
+brief básico
+        ↓
+Editora
+        ↓
+post WordPress
 ~~~
 
-El primer análisis funcional se gestiona de forma separada mediante `SEO_Solucionador_Engine::ensure_initialized()`:
+Solucionador **no** es el concentrador de todos los servicios.
 
-~~~text
-si existe seo_solucionador_last_scan
-    no repetir el arranque inicial
-si no existe
-    bloquear inicializaciones simultáneas
-    ejecutar scan()
-    guardar seo_solucionador_last_scan
-~~~
+Los procesos editoriales quedan separados:
 
-El bloqueo temporal evita que dos pestañas o una apertura de pantalla y una exportación intenten iniciar el mismo análisis a la vez. Si el arranque falla, se conserva un error de inicialización para poder diagnosticarlo.
+- **Dependiente / Academia → Solucionador**: contenido básico de preguntas habituales.
+- **Ingeniero → proceso editorial propio**: contenido técnico especializado.
+- **Ojeador → Comparador**: contenido comparativo.
+- **Analista**: medición global.
 
-La instalación de tablas y el primer análisis son dos pasos distintos:
+Solucionador no investiga, no consulta Internet, no compara mercado, no redacta contenido técnico, no ejecuta Google Shopping y no abre conexiones propias a GSC/GA4/Bing.
 
-- **persistencia:** asegura que el esquema existe;
-- **análisis:** llena evidencias, temas, cobertura y decisiones a partir de datos ya producidos por los servicios especialistas.
+## Entrada editorial única
 
-## Principios RF v1.0
+La materia prima editorial procede de Academia/Entrenador.
 
-1. **Category-first.** La oportunidad intenta asociarse primero a product_cat (term_id) y desde ahí conoce hub secundario, hub primario, cluster y productos.
-2. **Separación de capas.** Evidencia, tema canónico, cobertura, decisión y workflow se almacenan como conceptos distintos.
-3. **Mejorar antes de crear.** Una URL nueva es la última opción.
-4. **Cobertura multientidad.** Se comprueban posts, páginas, landings, hubs y categorías.
-5. **Decisión explicable.** La prioridad muestra componentes; la puntuación nunca sustituye a los requisitos obligatorios.
-6. **Brief, no artículo.** Solucionador entrega estructura, evidencias y conocimiento. La Editora redacta.
-7. **Sin publicación automática.** Como máximo prepara un borrador de trabajo después de aprobación humana. Los posts técnicos de Ingeniero siguen su workflow independiente.
-8. **Ciclo cerrado.** El contenido publicado entra en seguimiento y recibe métricas posteriores de los informes/Analista.
+Tablas fuente:
 
-## Flujo
+- `seo_dependiente_trainer_questions`
+- `seo_dependiente_trainer_runs`
 
-~~~text
-Analista
-Dependiente / Academia / Intérprete
-Ojeador
-Comparador
-Auditor
-Clasificador
-Marketing (solo prioridad)
-otras señales válidas
-        ↓
-      EVIDENCIAS
-        ↓
-  TEMA CANÓNICO
-        ↓
- COBERTURA EDITORIAL
-        ↓
- DECISIÓN MÍNIMA
-        ↓
-   BRIEF EDITORIAL
-        ↓
-      EDITORA
-        ↓
- CONTENIDO PUBLICADO
-        ↓
- ANALISTA / MÉTRICAS
-        ↓
-    SEGUIMIENTO
-~~~
+Una pregunta entra en Solucionador únicamente cuando:
 
-Solucionador **no** consulta Internet, Search Console, Analytics, Bing, Trends ni Google Shopping por su cuenta.
+1. está activa;
+2. pertenece al currículo;
+3. su último run está `answered`;
+4. `evaluation_status` empieza por `pass_`.
 
-## Fuentes
+Se conserva como contexto:
 
-### Dependiente / Intérprete
-
-Solucionador consume **dos carriles distintos** de Dependiente y no modifica su forma de aprender.
-
-#### Demanda real
-
-`seo_dependiente_search_log` representa lo que preguntan los visitantes:
-- preguntas;
-- búsquedas;
-- cero resultados;
-- problemas que quiere resolver el cliente;
-- lenguaje real;
-- resultados/feedback.
-
-Una búsqueda aislada es **evidencia**, no una orden para crear un post.
-
-#### Academia / conocimiento aprendido
-
-Solucionador lee `seo_dependiente_trainer_questions` y la **última ejecución** de cada pregunta en `seo_dependiente_trainer_runs`.
-
-Una pregunta sólo entra en el carril editorial de conocimiento aprendido cuando:
-- está activa;
-- pertenece al currículo de Academia;
-- el último run está `answered`;
-- `evaluation_status` empieza por `pass_`.
-
-Se conserva:
-- pregunta y tipo;
-- lección y módulo;
-- origen;
-- `expected_json`;
-- estado y score de evaluación;
-- `evaluation_json`;
-- `top_results`;
-- `response_meta`;
+- question;
+- question_type;
+- lesson_key;
+- source_type/source_id/source_key;
+- expected_json;
+- evaluation_status;
+- evaluation_score;
+- evaluation_json;
+- top_results;
+- response_meta;
 - fecha del último run.
 
-Solucionador resuelve `product_cat` únicamente cuando puede demostrarla por categoría, producto o owner de FAQ. Si no puede resolver la categoría, la pregunta permanece visible en KPI como **aprendida sin categoría** pero no se fuerza a ningún dossier.
+Los resultados internos de Academia son evidencia para Editora. **No se publican literalmente.**
 
-Las preguntas aprendidas se agrupan en **un dossier por categoría**, no en una URL por pregunta.
+## Asociación con product_cat
 
-Ejemplo:
+Solucionador sólo crea dossier cuando puede demostrar la categoría.
 
-~~~text
-Taladros · term_id 77
-17 preguntas aprendidas
-        ↓
-dossier dependiente_qa_basic
-        ↓
-cobertura existente
-        ↓
-CREATE_POST / IMPROVE_POST / MERGE_CONTENT / NO_ACTION / INVESTIGATE
-~~~
+Resolución admitida:
 
-El search log sigue midiendo demanda real y Academia sigue representando lo que Dependiente ya sabe. Son señales diferentes.
+- `kind=category` → category_id;
+- `kind=product` → producto → product_cat;
+- `kind=features` → source_product_id → product_cat;
+- `kind=faq`, owner_type=2 → product_cat;
+- `kind=faq`, owner_type=3 → producto → product_cat;
+- source_type category/product cuando la relación es inequívoca.
 
-### Analista
-Aporta lo que está ocurriendo:
-- consultas;
-- impresiones;
-- clics;
-- CTR;
-- posición;
-- evolución;
-- URLs al alza/baja;
-- búsquedas internas;
-- huecos y conclusiones.
+No se infiere una categoría por parecido textual.
 
-**Analista = qué está ocurriendo. Solucionador = qué debemos hacer con ello.**
+Una pregunta aprendida sin product_cat demostrable:
 
-### Ingeniero
+- no crea dossier;
+- no crea URL;
+- permanece contabilizada en el KPI **Aprendidas sin categoría**.
 
-Ingeniero ya **no es una fuente de decisión de Solucionador**. Desde la arquitectura editorial del 02/10/2026 mantiene su investigación técnica y dispone de su propio proceso **Ingeniero → Editorial → Editora → post**.
+## Dossier por categoría
 
-El conocimiento de Ingeniero puede seguir alimentando Clasificador/Vocabulary, pero Solucionador no lo usa para decidir si crear o mejorar posts técnicos.
+Tabla:
 
-### Ojeador
-Aporta contexto de mercado ya calculado por categoría:
-- variedad observada;
-- marcas/modelos;
-- amplitud de comerciantes;
-- precios/promoción;
-- competencia;
-- profundidad/huecos de catálogo.
+`{$wpdb->prefix}seo_solucionador_dossiers`
 
-### Comparador
-Contrato extensible mediante el filtro **seo_solucionador_comparador_signals**.
+Existe como máximo un dossier por `category_id`.
 
-Cuando Comparador publique su análisis ampliado, Solucionador podrá consumir:
-- tipos/configuraciones;
-- factores decisivos;
-- diferencias;
-- ventajas/limitaciones;
-- referencias representativas.
+El dossier persiste sólo información ligera:
 
-Solucionador no recalcula comparativas.
-
-### Auditor
-Aporta carencias, contenido débil, repeticiones, conceptos ausentes y problemas estructurales. Un hallazgo del Auditor no implica crear una URL.
-
-### Clasificador
-Es la referencia semántica del catálogo:
-- Vocabulary;
-- rol;
-- tipo/subtipo;
-- aplicación;
-- plataforma;
-- jerarquía;
-- categorías.
-
-También aporta huecos de vocabulario detectados a partir de Ingeniero.
-
-### Marketing
-Contrato opcional mediante el filtro **seo_solucionador_marketing_priorities**.
-
-Puede reforzar:
-- prioridad de categoría;
-- campaña;
-- estacionalidad;
-- interés comercial.
-
-Marketing **nunca origina por sí solo una URL nueva**.
-
-## Evidencias
-
-Tabla: **wp_seo_solucionador_evidence**.
-
-Campos RF relevantes:
-- source_type;
-- source_id;
-- signal_type;
-- source_text;
-- entity_type;
-- entity_id;
 - category_id;
-- confidence;
-- observed_at;
-- evidence_score;
-- source_meta.
+- category_name;
+- question_count;
+- question_ids;
+- score_avg;
+- last_validated_at;
+- source_hash;
+- scan_token;
+- fechas.
 
-Varias evidencias pueden reforzar **un único tema canónico**.
+No guarda una copia gigante de `top_results`, `evaluation_json` o `response_meta`.
 
-## Tema canónico
+Esos detalles se recuperan **bajo demanda** mediante `SEO_Solucionador_Dossiers::question_details()` al abrir el brief.
 
-Tabla: **wp_seo_solucionador_topics**.
+## Procesamiento por lotes
 
-Modelo semántico:
-- intent;
-- action_term;
-- object_term;
-- condition_term;
-- context_term;
-- primary_category_id;
-- proposed_vocabulary;
-- proposed_categories.
+El escaneo de Academia es reanudable.
 
-El objeto se selecciona con prioridad **category-first**:
-1. categorías;
-2. Vocabulary canónico;
-3. familias/productos;
-4. materiales/aplicaciones;
-5. lenguaje restante.
+Estado persistente:
 
-Términos editoriales como compra, guía, comunes, mejores, consejos, problema o información tienen peso bajo y no deben desplazar a la entidad técnica.
+`seo_solucionador_academia_scan_state`
 
-El normalizador conserva objetos nominales compuestos como **compresor de aire**.
+Contiene, entre otros:
 
-## Agrupación de preguntas
+- token del ciclo;
+- cursor;
+- preguntas procesadas;
+- aprendidas;
+- aprendidas con/sin categoría;
+- errores aislados;
+- estado complete;
+- fechas.
 
-Las dudas de elección de una misma categoría pueden converger en una huella canónica de categoría.
+Reglas:
 
-Ejemplo:
+- lotes pequeños;
+- cursor persistente;
+- no cargar todas las preguntas en una petición;
+- una categoría/pregunta con error no invalida el resto;
+- si la ejecución queda a medias, la siguiente continúa;
+- si un ciclo termina, el siguiente análisis manual inicia un token nuevo;
+- al finalizar se retiran dossiers antiguos que no aparecieron en el nuevo ciclo.
 
-~~~text
-¿Qué taladro necesito para hormigón?
-¿Qué potencia necesito?
-¿Taladro con cable o batería?
-        ↓
-decision|elegir|category-<term_id>|general|general
-~~~
+La fase editorial tiene su propio cursor:
 
-El objetivo es una necesidad editorial consolidada, no un artículo por pregunta.
+`seo_solucionador_editorial_scan_state`
 
-## Cobertura editorial
+De esta forma la construcción de dossiers y el análisis editorial pueden reanudarse independientemente.
 
-Tabla nueva: **wp_seo_solucionador_coverage**.
+## Search log
 
-Se reconstruye al reanalizar.
+`seo_dependiente_search_log` representa **demanda real de visitantes**.
 
-Entidades:
-- post;
-- page (incluye landing/hubs según seo_nodes);
-- product_cat.
+En Solucionador 0.5:
 
-Ámbitos indexados:
-- título/H1 lógico;
-- H2/H3;
-- fragmento representativo del contenido;
-- categorías relacionadas;
-- Vocabulary.
+- no origina temas;
+- no crea dossiers;
+- no carga payloads pesados en el flujo principal.
 
-Estados:
+Se conserva como fuente separada de información y puede utilizarse en el futuro como refuerzo ligero de prioridad sobre un dossier de Academia ya existente.
+
+## Cobertura editorial compartida
+
+La implementación de cobertura se ha extraído a la API neutral:
+
+`SEO_Editorial_Coverage`
+
+Archivo:
+
+`includes/editorial/seo-editorial-coverage.php`
+
+El antiguo nombre:
+
+`SEO_Solucionador_Coverage`
+
+permanece como wrapper de compatibilidad.
+
+La cobertura busca contenido existente para evitar crear URLs duplicadas. Puede detectar:
+
 - uncovered;
 - weak_coverage;
 - partial_coverage;
@@ -313,156 +190,130 @@ Estados:
 - duplicate;
 - conflict.
 
-duplicate aparece cuando varias entidades fuertes responden prácticamente a la misma intención. conflict añade indicios de contradicción entre contenidos.
+Ingeniero y Comparador pueden reutilizar la misma API sin depender conceptualmente de Solucionador.
 
-Solucionador calcula además:
-- duplication_risk;
-- cannibalization_risk.
+## Decisiones permitidas
 
-## Orden de decisión
+Solucionador sólo propone:
 
-1. comprobar contenido existente;
-2. comprobar si puede ampliarse;
-3. comprobar si corresponde mejorar la categoría;
-4. comprobar si encaja en una landing existente;
-5. comprobar fusión/consolidación;
-6. investigar si falta conocimiento;
-7. solo entonces plantear URL nueva.
+### CREATE_POST
 
-Acciones RF v1.0:
+Cuando:
 
-- NO_ACTION
-- IMPROVE_POST
-- IMPROVE_LANDING
-- IMPROVE_CATEGORY
-- IMPROVE_PAGE
-- MERGE_CONTENT
-- CREATE_POST
-- CREATE_LANDING
-- INVESTIGATE
-- DEFER
-- UPDATE_PRODUCT queda reservado para casos explícitamente específicos de ficha.
+- existe masa crítica de preguntas aprendidas;
+- hay product_cat demostrable;
+- no existe cobertura equivalente;
+- el riesgo de duplicación/canibalización es aceptable.
 
-### Reglas principales
+El mínimo por defecto es 3 preguntas pass_* y puede ajustarse mediante:
 
-- covered → NO_ACTION.
-- duplicate → MERGE_CONTENT.
-- conflict → INVESTIGATE.
-- cobertura parcial/débil → mejorar la entidad existente.
-- conocimiento técnico insuficiente → INVESTIGATE.
-- intención amplia que coincide con una familia existente → IMPROVE_CATEGORY antes de CREATE_LANDING.
-- URL nueva exige cobertura libre, evidencia real, conocimiento suficiente y riesgo aceptable.
+`seo_solucionador_min_academy_questions`
 
-## CREATE_POST
+### IMPROVE_POST
 
-Requiere:
-- necesidad real;
-- cobertura inexistente/débil;
-- evidencia suficiente;
-- conocimiento técnico suficiente;
-- riesgo de duplicación/canibalización por debajo del umbral;
-- aprobación humana antes de preparar el borrador.
+Cuando existe un post equivalente con cobertura débil o parcial.
 
-SEO_Solucionador_Posts::create_draft() rechaza una propuesta que no esté approved o brief_ready o que haya dejado de cumplir los gates.
+### MERGE_CONTENT
 
-## CREATE_LANDING
+Cuando la cobertura detecta piezas solapadas/duplicadas.
 
-No se deriva únicamente de una palabra clave o del tamaño del catálogo.
+### NO_ACTION
 
-Requiere una candidata de landing válida y:
-- intención diferenciada/estable;
-- cobertura comercial;
-- utilidad de compra;
-- destino lógico;
-- ausencia de URL equivalente;
-- evidencia, conocimiento y riesgos aceptables.
+Cuando la intención básica ya está suficientemente cubierta o existe un borrador/post del mismo topic.
 
-Una necesidad que coincide directamente con product_cat debe valorar primero IMPROVE_CATEGORY.
+### DEFER
 
-## Prioridad explicable
+Cuando:
 
-priority_score sigue existiendo para ordenar, pero la UI muestra priority_components.
+- falta categoría;
+- falta masa crítica;
+- existe conflicto;
+- la cobertura parcial no corresponde a un post editable equivalente;
+- no se cumplen las condiciones necesarias.
+
+Solucionador ya no crea landings ni propone acciones dependientes de conocimiento técnico de Ingeniero o de perfiles de Comparador.
+
+## Prioridad
+
+La prioridad sirve para ordenar dossiers, no sustituye los gates.
 
 Componentes actuales:
-- necesidad de usuario;
-- demanda/búsqueda;
-- oportunidad de visibilidad;
-- conocimiento técnico;
-- encaje con catálogo;
-- amplitud de mercado;
+
+- preguntas aprendidas;
+- encaje con product_cat/catálogo;
 - hueco de cobertura;
-- relevancia comercial;
+- confianza de Academia;
 - penalización por duplicación.
 
-Los pesos se pueden ajustar en el futuro sin convertir la puntuación en una decisión automática.
+No utiliza amplitud de mercado, prioridades de Marketing ni conocimiento técnico de Ingeniero.
 
-## Condiciones obligatorias
+## Brief para Editora
 
-decision_requirements registra, entre otras:
-- evidencia real;
-- categoría identificada;
-- cobertura compatible con URL nueva;
-- conocimiento suficiente;
-- duplicación/canibalización por debajo del umbral;
-- requisitos de landing cuando aplica.
+Al abrir un dossier, Solucionador recupera bajo demanda las preguntas y resultados internos.
 
-La ficha de oportunidad muestra estos gates.
+El brief contiene:
 
-## Pantallas
-
-### Resumen
-KPIs de:
-- oportunidades activas;
-- candidatos;
-- aprobados/brief;
-- contenidos a mejorar;
-- duplicados/conflictos;
-- investigación;
-- aplazados;
-- seguimiento;
-- preguntas de Academia aprendidas;
-- categorías con conocimiento aprendido.
-
-### Diagnóstico editorial
-Punto central visible para reutilizar informes existentes de:
-- Entradas;
-- Páginas/landings;
-- Categorías;
-- cobertura de contenido;
-- servicios fuente.
-
-Las pantallas de edición siguen siendo lugares de ejecución.
-
-### Propuestas editoriales
-Filtros por:
-- categoría;
-- cluster;
-- fuente;
-- acción;
-- cobertura;
-- prioridad;
+- título propuesto;
+- product_cat principal;
+- Vocabulary;
+- lista de preguntas aprendidas;
+- lección/tipo;
+- evaluation_status y score;
+- resultados internos relevantes;
+- cobertura existente;
+- motivo de la decisión;
+- contenido que no debe duplicarse;
+- productos propios y enlaces internos;
 - workflow.
 
-### Ficha de oportunidad
-Nueve bloques:
-1. Resumen.
-2. Evidencias.
-3. Categoría/hubs/cluster.
-4. Cobertura.
-5. Conocimiento.
-6. Mercado.
-7. Decisión.
-8. Brief para Editora.
-9. Seguimiento.
+Regla editorial:
 
-### Cobertura editorial
-Muestra el índice multientidad que sustenta la detección de duplicidad/canibalización.
+> Editora redacta. Solucionador no publica literalmente las respuestas internas de Academia.
 
-### Fuentes y servicios
-Explica el contrato de cada fuente y muestra disponibilidad.
+## Contrato del post
 
-Para Dependiente/Academia añade KPIs de:
-- preguntas totales;
+`SEO_Solucionador_Posts::create_draft()`:
+
+1. exige que la propuesta sea `CREATE_POST`;
+2. exige aprobación humana / brief_ready;
+3. vuelve a comprobar los gates;
+4. crea un `post` en estado `draft`;
+5. conserva `topic_id` y `canonical_key`;
+6. asigna Vocabulary;
+7. crea la relación `post_to_category` con product_cat;
+8. asigna el rol estable `dependiente_qa_basic`.
+
+El rol se asigna mediante la API común:
+
+`seo_post_editor_set_public_content_role()`
+
+Solucionador no publica automáticamente.
+
+El acoplamiento especial anterior con Comparador se ha eliminado.
+
+## Plantillas
+
+Las plantillas deben recuperar sólo posts:
+
+- `post_status=publish`;
+- relacionados con la product_cat correspondiente;
+- rol `dependiente_qa_basic`.
+
+Si no existe un post publicado compatible, no se muestra título, contenedor ni sección vacía.
+
+Las plantillas no consultan Academia directamente.
+
+## Fuentes y servicios en la interfaz
+
+La pestaña **Fuentes y servicios** muestra:
+
+### Dependiente / Academia
+
+Origen editorial único.
+
+KPIs:
+
+- procesadas;
 - aprendidas;
 - no aprendidas;
 - aprendidas con categoría;
@@ -470,143 +321,141 @@ Para Dependiente/Academia añade KPIs de:
 - categorías con conocimiento;
 - categorías sin conocimiento;
 - media de preguntas por categoría;
-- última ejecución de Academia.
+- cursor;
+- errores aislados;
+- estado del escaneo.
 
-### Pruebas RF v1.0
-Ejecuta siete regresiones funcionales sin modificar datos.
+### Dependiente / demanda real
 
-## Brief para Editora
+Search log informativo, separado del flujo editorial.
+
+### Cobertura editorial compartida
+
+Número de huellas del índice neutral.
+
+### Analista
+
+Fuente de medición posterior, no generador de temas.
+
+Ingeniero, Ojeador y Comparador se muestran conceptualmente como **procesos independientes** y Solucionador debe funcionar aunque estén desactivados.
+
+## Resumen
+
+El Resumen muestra principalmente:
+
+- dossiers con conocimiento;
+- preguntas aprendidas;
+- aprendidas sin categoría;
+- CREATE_POST;
+- IMPROVE_POST;
+- MERGE_CONTENT;
+- NO_ACTION;
+- DEFER/REVIEW;
+- borradores.
+
+También muestra el progreso del procesamiento por lotes.
+
+## Medición
+
+Los KPIs editoriales globales pertenecen a **Analista**.
+
+Solucionador conserva workflow y referencias de contenido, pero la antigua tabla de tracking se considera compatibilidad histórica y no la fuente global de medición.
+
+Al abrir un brief puede consultar métricas disponibles de Analista para el post correspondiente.
+
+## Persistencia
+
+Solucionador 0.5 mantiene:
+
+- `seo_solucionador_topics`
+- `seo_solucionador_evidence`
+- `seo_solucionador_post_topics` (compatibilidad)
+- `seo_solucionador_coverage` (almacenamiento actual del índice compartido)
+- `seo_solucionador_workflow`
+- `seo_solucionador_tracking` (compatibilidad histórica)
+- `seo_solucionador_dossiers`
+
+`SEO_Solucionador_DB::maybe_install()` comprueba versión y existencia de todas las tablas y usa `dbDelta()` cuando hace falta crear/actualizar el esquema.
+
+## Exportación JSON
+
+Schema actual:
+
+`seo-solucionador-export-v3`
 
 Incluye:
-- topic_id;
-- categoría y jerarquía;
-- acción/tipo de contenido;
-- necesidad/pregunta/intención/audiencia si existe;
-- evidencias;
-- URLs relacionadas y cobertura;
-- contenido que no debe repetirse;
-- preguntas reales;
-- preguntas aprendidas de Academia y su último resultado validado;
-- conceptos y conocimiento obligatorio;
-- productos/categorías relacionadas;
-- enlaces internos;
-- fuentes de Ingeniero;
-- contexto Ojeador/Comparador;
-- riesgos;
-- condiciones de decisión.
 
-Solucionador **no** decide longitud exacta, estilo final, frases, introducción ni texto definitivo.
+- estado del último escaneo;
+- snapshot de Academia;
+- dossiers ligeros;
+- temas/decisiones;
+- evidencias ligeras;
+- cobertura;
+- workflow.
 
-## Workflow
+No exporta la tabla histórica de tracking como fuente de KPIs globales.
 
-Tabla: **wp_seo_solucionador_workflow**.
+Los detalles pesados de las preguntas siguen siendo bajo demanda en el brief.
 
-Estados:
-- detected;
-- validated;
-- candidate;
-- approved;
-- brief_ready;
-- in_editing;
-- scheduled;
-- published;
-- monitoring;
-- closed;
-- rejected;
-- deferred.
+## Tests
 
-Los cambios manuales registran:
-- usuario;
-- fecha;
-- motivo;
-- acción editorial asociada.
+`SEO_Solucionador_Tests::run()` valida, sin escribir datos:
 
-Cuando una propuesta procede del dossier de Academia/Dependiente y termina en CREATE_POST, el borrador se marca con `_seo_solucionador_content_role = dependiente_qa_basic` y conserva la relación `post_to_category`. Las plantillas sólo recuperan estos posts cuando están publicados.
+1. dossier canónico único por categoría;
+2. masa crítica insuficiente → DEFER;
+3. categoría no demostrable → DEFER;
+4. dossier sin cobertura → CREATE_POST;
+5. covered → NO_ACTION;
+6. partial post → IMPROVE_POST;
+7. duplicate → MERGE_CONTENT;
+8. Academia como origen editorial único;
+9. APIs de lote/cursor/detalle bajo demanda;
+10. contrato del rol editorial común;
+11. cobertura neutral + wrapper compatible.
 
-Al publicar un borrador creado por Solucionador, el tema pasa a seguimiento; no se publica automáticamente desde Solucionador.
+Un fallo debe bloquear conscientemente una promoción a producción.
 
-## Seguimiento
+## Criterios de aceptación
 
-Tabla: **wp_seo_solucionador_tracking**.
+- N preguntas pass_* de una categoría generan un dossier con N referencias.
+- Una pregunta sin categoría demostrable no crea dossier ni URL.
+- Dos ciclos no duplican dossiers ni posts.
+- Un dossier cubierto nunca crea un segundo post.
+- CREATE_POST crea sólo draft.
+- El post usa `dependiente_qa_basic`.
+- El post conserva `post_to_category`.
+- Solucionador funciona sin Ingeniero, Ojeador o Comparador.
+- El escaneo es reanudable por lotes.
+- Los detalles pesados se cargan bajo demanda.
+- Las plantillas no muestran bloques sin un post publish.
+- La medición global procede de Analista.
 
-Solucionador reutiliza snapshots disponibles de informes/Analista para asociar al topic_id:
-- impresiones;
-- clics;
-- CTR;
-- posición;
-- sesiones;
-- vistas.
+## Flujo final
 
-Registra un estado orientativo:
-- baseline;
-- improved;
-- flat;
-- declined;
-- insufficient_data.
+~~~text
+Academia / Entrenador
+        ↓
+preguntas pass_*
+        ↓
+resolución product_cat
+        ↓
+dossier ligero persistente
+        ↓
+cobertura compartida
+        ↓
+decisión mínima
+        ↓
+brief bajo demanda
+        ↓
+Editora
+        ↓
+post WordPress draft
+        ↓
+publicación humana
+        ↓
+plantillas
+        ↓
+Analista
+~~~
 
-Este historial permite contestar posteriormente: **¿la intervención funcionó?**
-
-No ajusta automáticamente los criterios editoriales.
-
-## Tablas
-
-Solucionador mantiene seis tablas propias:
-
-- `wp_seo_solucionador_topics`
-- `wp_seo_solucionador_evidence`
-- `wp_seo_solucionador_post_topics` (compatibilidad con índice histórico de posts)
-- `wp_seo_solucionador_coverage`
-- `wp_seo_solucionador_workflow`
-- `wp_seo_solucionador_tracking`
-
-No deben crearse manualmente en una instalación normal. `SEO_Solucionador_DB::maybe_install()` valida las seis y, si falta cualquiera, vuelve a ejecutar la instalación del esquema mediante `dbDelta()`.
-
-### Qué almacena cada tabla
-
-- **topics:** tema canónico, categoría principal, cobertura, decisión, riesgos, prioridad y estado.
-- **evidence:** todas las evidencias que justifican cada tema.
-- **post_topics:** índice histórico de temas asociados a posts, conservado por compatibilidad.
-- **coverage:** huellas semánticas de posts, páginas, landings, hubs y categorías.
-- **workflow:** historial de cambios de estado, usuario, fecha y motivo.
-- **tracking:** métricas posteriores asociadas a la intervención editorial.
-
-### Comprobación previa a producción
-
-Antes de dar por válida una promoción de Solucionador a producción:
-
-1. confirmar que las seis tablas existen;
-2. confirmar la versión de esquema registrada;
-3. abrir Solucionador y comprobar que existe un `last_scan`;
-4. verificar que la cobertura editorial se ha indexado;
-5. verificar que las fuentes aportan señales;
-6. comprobar que los temas y decisiones aparecen cuando existen evidencias válidas;
-7. descargar el JSON y confirmar que refleja el mismo estado que la pantalla.
-
-Que los KPIs estén a cero no debe interpretarse automáticamente como ausencia de oportunidades. Primero debe comprobarse que existen tablas, que el análisis se ha ejecutado y que las fuentes están disponibles.
-
-## Tests funcionales RF v1.0
-
-SEO_Solucionador_Tests::run() valida:
-
-1. “Guía de Compra: Cómo Elegir un Compresor de Aire” → objeto compresor de aire, nunca compra.
-2. “Errores comunes al usar un compresor de aire” → objeto compresor de aire, intención problem/need.
-3. Intención ya cubierta → IMPROVE_POST o NO_ACTION, nunca CREATE_POST.
-4. Preguntas de elección de la misma categoría → un único canonical topic.
-5. Necesidad amplia coincidente con categoría → IMPROVE_CATEGORY antes de landing.
-6. Intención transversal válida y sin URL equivalente → CREATE_LANDING.
-7. Conocimiento insuficiente → INVESTIGATE.
-8. Dossier Academia → huella estable `dependiente_qa_basic` por categoría.
-9. Dossier aprendido sin cobertura, con evidencia y conocimiento suficientes → CREATE_POST.
-
-Un fallo se muestra en la pestaña **Pruebas RF v1.0** y debe bloquear una promoción consciente a producción.
-
-## Regla de seguridad
-
-- análisis: lectura;
-- decisión: recomendación;
-- workflow: humano;
-- brief: preparación;
-- borrador: solo tras aprobación;
-- publicación/modificación final: editor humano.
-
-Solucionador es el **cerebro de decisión editorial**, no un generador automático de páginas.
+Solucionador queda como un servicio pequeño, category-first y predecible para contenido básico de Dependiente.
