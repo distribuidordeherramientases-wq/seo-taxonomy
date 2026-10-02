@@ -8,7 +8,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_CORE_SEMANTIC_TEST_VERSION')) {
-    define('SEO_CORE_SEMANTIC_TEST_VERSION', '2.5.0');
+    define('SEO_CORE_SEMANTIC_TEST_VERSION', '2.5.1');
 }
 
 /**
@@ -658,9 +658,20 @@ function seo_core_system_test_semantic_tokens($text) {
         'recambios', 'general', 'varios', 'otros', 'profesional', 'profesionales', 'satkit', 'vevor'
     ));
 
+    // Términos técnicos/comerciales cortos cuyo significado se perdería al
+    // aplicar el mínimo general de cuatro caracteres. La lista es deliberadamente
+    // cerrada para no aumentar falsos positivos con abreviaturas ambiguas.
+    $short_meaningful = array(
+        'spa' => true,
+    );
+
     $tokens = array();
     foreach (explode(' ', $normalized) as $token) {
-        if ($token === '' || isset($stop[$token]) || strlen($token) < 4) {
+        if (
+            $token === ''
+            || isset($stop[$token])
+            || (strlen($token) < 4 && !isset($short_meaningful[$token]))
+        ) {
             continue;
         }
         $tokens[$token] = true;
