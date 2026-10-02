@@ -130,11 +130,10 @@ final class SEO_Solucionador_Admin {
     private static function tabs($current) {
         $tabs = array(
             'summary' => 'Resumen',
-            'diagnostics' => 'Diagnóstico editorial',
-            'proposals' => 'Propuestas editoriales',
+            'proposals' => 'Dossiers / propuestas',
             'coverage' => 'Cobertura editorial',
-            'sources' => 'Fuentes y servicios',
-            'tests' => 'Pruebas RF v1.0',
+            'sources' => 'Academia / fuentes',
+            'tests' => 'Pruebas arquitectura',
             'data' => 'Datos internos',
         );
         echo '<nav class="nav-tab-wrapper">';
@@ -150,19 +149,17 @@ final class SEO_Solucionador_Admin {
         $table = SEO_Solucionador_DB::topics_table();
         if (!SEO_Solucionador_DB::table_exists($table)) return array();
 
+        $base = "intent='dependiente_qa_basic'";
         return array(
-            'total'        => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE workflow_state<>'rejected'"),
-            'active'       => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE workflow_state IN ('detected','validated','candidate','approved','brief_ready','in_editing','scheduled','monitoring')"),
-            'candidate'    => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE workflow_state='candidate'"),
-            'approved'     => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE workflow_state IN ('approved','brief_ready')"),
-            'rejected'     => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE workflow_state='rejected'"),
-            'improve'      => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE recommended_action IN ('IMPROVE_POST','IMPROVE_LANDING','IMPROVE_CATEGORY','IMPROVE_PAGE') AND workflow_state<>'rejected'"),
-            'duplicates'   => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE recommended_action='MERGE_CONTENT' OR coverage_status IN ('duplicate','conflict')"),
-            'investigate'  => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE recommended_action='INVESTIGATE' AND workflow_state<>'rejected'"),
-            'deferred'     => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE workflow_state='deferred' OR recommended_action='DEFER'"),
-            'create_post'  => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE recommended_action='CREATE_POST' AND workflow_state<>'rejected'"),
-            'create_landing'=> (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE recommended_action='CREATE_LANDING' AND workflow_state<>'rejected'"),
-            'monitoring'   => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE workflow_state='monitoring'"),
+            'total'       => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE {$base} AND workflow_state<>'rejected'"),
+            'candidate'   => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE {$base} AND workflow_state='candidate'"),
+            'approved'    => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE {$base} AND workflow_state IN ('approved','brief_ready')"),
+            'create_post' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE {$base} AND recommended_action='CREATE_POST' AND workflow_state<>'rejected'"),
+            'improve'     => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE {$base} AND recommended_action='IMPROVE_POST' AND workflow_state<>'rejected'"),
+            'merge'       => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE {$base} AND recommended_action='MERGE_CONTENT' AND workflow_state<>'rejected'"),
+            'no_action'   => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE {$base} AND recommended_action='NO_ACTION' AND workflow_state<>'rejected'"),
+            'deferred'    => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE {$base} AND (workflow_state='deferred' OR recommended_action='DEFER')"),
+            'monitoring'  => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE {$base} AND workflow_state='monitoring'"),
         );
     }
 
@@ -171,19 +168,28 @@ final class SEO_Solucionador_Admin {
         SEO_Solucionador_DB::maybe_install();
         $initialization = SEO_Solucionador_Engine::ensure_initialized(180);
         $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'summary';
-        if (!in_array($tab, array('summary','diagnostics','proposals','coverage','sources','tests','data'), true)) $tab = 'summary';
+        if ($tab === 'diagnostics') $tab = 'summary'; // compatibilidad con enlaces antiguos.
+        if (!in_array($tab, array('summary','proposals','coverage','sources','tests','data'), true)) $tab = 'summary';
 
         echo '<div class="wrap seo-solucionador"><h1>Solucionador <small style="font-weight:400;color:#646970">v' . esc_html(SEO_SOLUCIONADOR_VERSION) . '</small></h1>';
-        echo '<p><strong>Capa de decision editorial.</strong> Solucionador unifica conclusiones de Auditor, Analista, Clasificador, Dependiente/Interprete, Ojeador e Ingeniero; detecta carencias, oportunidades, duplicidades y canibalizacion; prioriza la actuacion y prepara el brief. <strong>No investiga, interpreta ni mide por su cuenta y no publica contenido.</strong></p>';
+        echo '<p><strong>Academia/Entrenador → contenido básico por categoría.</strong> Solucionador organiza preguntas que Dependiente ya ha aprendido, comprueba la cobertura existente y prepara un brief para Editora. <strong>No investiga, no consulta mercado, no depende de Ingeniero/Comparador y no publica automáticamente.</strong></p>';
+
         if (is_wp_error($initialization)) {
             echo '<div class="notice notice-warning inline"><p><strong>Inicialización pendiente:</strong> ' . esc_html($initialization->get_error_message()) . '</p></div>';
         }
         self::render_export_button();
 
-        if (!empty($_GET['scan'])) echo '<div class="notice notice-success is-dismissible"><p>Analisis de Solucionador completado.</p></div>';
-        if (!empty($_GET['sol_msg']) && $_GET['sol_msg'] === 'draft_created') {
-            $post_id = absint($_GET['post_id'] ?? 0);
-            echo '<div class="notice notice-success is-dismissible"><p>Borrador creado y clasificado.';
+        if (!empty($_GET['scan'])) {
+            $last = get_option('seo_solucionador_last_scan',array());
+            if (is_array($last) && array_key_exists('complete',$last) && empty($last['complete'])) {
+                echo '<div class="notice notice-info is-dismissible"><p>Lote de Academia procesado. El escaneo sigue pendiente y puede reanudarse desde el cursor #' . esc_html(absint($last['cursor'] ?? 0)) . '.</p></div>';
+            } else {
+                echo '<div class="notice notice-success is-dismissible"><p>Análisis de Academia completado.</p></div>';
+            }
+        }
+        if (!empty($_GET['sol_msg']) && sanitize_key(wp_unslash($_GET['sol_msg'])) === 'draft_created') {
+            $post_id = isset($_GET['post_id']) ? absint(wp_unslash($_GET['post_id'])) : 0;
+            echo '<div class="notice notice-success is-dismissible"><p>Borrador creado y clasificado como <code>dependiente_qa_basic</code>.';
             if ($post_id) echo ' <a href="' . esc_url(SEO_Solucionador_Posts::edit_url($post_id)) . '"><strong>Abrir borrador #' . esc_html($post_id) . '</strong></a>';
             echo '</p></div>';
         } elseif (!empty($_GET['sol_msg'])) {
@@ -192,12 +198,11 @@ final class SEO_Solucionador_Admin {
         if (!empty($_GET['sol_error'])) {
             $msg = get_transient('seo_solucionador_notice_' . get_current_user_id());
             delete_transient('seo_solucionador_notice_' . get_current_user_id());
-            echo '<div class="notice notice-error is-dismissible"><p>' . esc_html($msg ?: 'No se pudo completar la accion.') . '</p></div>';
+            echo '<div class="notice notice-error is-dismissible"><p>' . esc_html($msg ?: 'No se pudo completar la acción.') . '</p></div>';
         }
 
         self::tabs($tab);
         if ($tab === 'summary') self::render_summary();
-        elseif ($tab === 'diagnostics') self::render_diagnostics();
         elseif ($tab === 'proposals') self::render_proposals();
         elseif ($tab === 'coverage') self::render_coverage();
         elseif ($tab === 'sources') self::render_sources();
@@ -210,44 +215,42 @@ final class SEO_Solucionador_Admin {
     private static function render_summary() {
         $counts = self::counts();
         $last = get_option('seo_solucionador_last_scan', array());
+        $academy = SEO_Solucionador_Sources::dependiente_academia_snapshot();
 
         echo '<div class="seo-sol-grid">';
-        self::card('Oportunidades activas', $counts['active'] ?? 0, 'Necesidades que siguen dentro del circuito editorial.');
-        self::card('Candidatos', $counts['candidate'] ?? 0, 'Decisiones candidatas pendientes de validación humana.');
-        self::card('Aprobados / brief', $counts['approved'] ?? 0, 'Actuaciones aprobadas o con brief listo.');
-        self::card('Mejorar existente', $counts['improve'] ?? 0, 'Posts, landings, categorías o páginas que deben reforzarse.');
-        self::card('Duplicados / conflictos', $counts['duplicates'] ?? 0, 'Casos que requieren consolidar, fusionar o investigar.');
-        self::card('Pendientes de investigación', $counts['investigate'] ?? 0, 'Falta conocimiento fiable o existe conflicto.');
-        self::card('Aplazados', $counts['deferred'] ?? 0, 'Todavía no cumplen las condiciones para actuar.');
-        self::card('En seguimiento', $counts['monitoring'] ?? 0, 'Intervenciones publicadas esperando resultados de Analista.');
-        if (class_exists('SEO_Solucionador_Sources') && method_exists('SEO_Solucionador_Sources','dependiente_academia_snapshot')) {
-            $academy = SEO_Solucionador_Sources::dependiente_academia_snapshot();
-            self::card('Dependiente aprendido', absint($academy['learned'] ?? 0), 'Preguntas de Academia cuyo último run está validado pass_*.');
-            self::card('Categorías con conocimiento', absint($academy['categories_with_knowledge'] ?? 0), 'Dossiers category-first disponibles para decisión editorial.');
-        }
+        self::card('Dossiers', $counts['total'] ?? 0, 'Un dossier por product_cat con conocimiento aprendido.');
+        self::card('Crear post', $counts['create_post'] ?? 0, 'Sin cobertura equivalente y con masa crítica suficiente.');
+        self::card('Mejorar post', $counts['improve'] ?? 0, 'Existe un post de la misma intención con cobertura parcial o débil.');
+        self::card('Fusionar', $counts['merge'] ?? 0, 'Hay piezas solapadas que conviene consolidar.');
+        self::card('Ya cubiertos', $counts['no_action'] ?? 0, 'La intención está suficientemente cubierta.');
+        self::card('Revisión / aplazados', $counts['deferred'] ?? 0, 'Falta masa crítica, categoría o existe una condición de revisión.');
+        self::card('Preguntas aprendidas', absint($academy['learned'] ?? 0), 'Último run answered con evaluation_status pass_*.');
+        self::card('Con categoría', absint($academy['learned_with_category'] ?? 0), 'Preguntas aprendidas con product_cat demostrable.');
+        self::card('Sin categoría', absint($academy['learned_without_category'] ?? 0), 'No crean dossier ni URL.');
+        self::card('Categorías con conocimiento', absint($academy['categories_with_knowledge'] ?? 0), 'product_cat que ya disponen de dossier.');
         echo '</div>';
 
-        echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Decisión editorial</h2>';
-        echo '<p>Solucionador responde cinco preguntas: <strong>dónde existe una oportunidad, por qué existe, qué contenido ya la cubre, qué acción mínima conviene y qué necesita la Editora para ejecutarla</strong>. Crear una URL nueva es la última opción.</p>';
-        echo '<p><a class="button button-primary" href="' . esc_url(self::url('proposals')) . '">Abrir oportunidades</a> <a class="button" href="' . esc_url(self::url('coverage')) . '">Revisar cobertura</a></p>';
+        echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Flujo editorial</h2>';
+        echo '<p><strong>Academia/Entrenador → dossier por categoría → cobertura → CREATE_POST / IMPROVE_POST / MERGE_CONTENT / NO_ACTION / DEFER → brief → Editora.</strong></p>';
+        echo '<p>Una pregunta aprendida no genera una URL. Las preguntas de la misma categoría se agrupan y Editora redacta el contenido público; los resultados internos de Academia sólo sirven como evidencia.</p>';
+        echo '<p><a class="button button-primary" href="' . esc_url(self::url('proposals')) . '">Abrir dossiers</a> <a class="button" href="' . esc_url(self::url('coverage')) . '">Revisar cobertura</a></p>';
         echo '</div>';
 
-        echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Reanalizar fuentes</h2>';
-        echo '<p>Reconstruye evidencia, temas canónicos, cobertura multientidad y decisiones usando únicamente datos ya producidos por los servicios especialistas. No lanza investigación técnica, Google Shopping ni búsquedas externas nuevas.</p>';
+        $in_progress = is_array($last) && array_key_exists('complete',$last) && empty($last['complete']);
+        echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">' . ($in_progress ? 'Continuar análisis por lotes' : 'Reanalizar Academia') . '</h2>';
+        echo '<p>Lee únicamente conocimiento ya aprendido por Dependiente. Procesa lotes pequeños con cursor persistente y puede reanudarse sin cargar todas las preguntas en memoria.</p>';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_solucionador_scan">';
         wp_nonce_field('seo_solucionador_scan');
-        echo '<label><strong>Ventana:</strong> <select name="days"><option value="90">90 días</option><option value="180" selected>180 días</option><option value="365">365 días</option></select></label> ';
-        submit_button('Reanalizar fuentes', 'primary', 'submit', false);
+        echo '<input type="hidden" name="days" value="180">';
+        submit_button($in_progress ? 'Continuar siguiente lote' : 'Reanalizar Academia', 'primary', 'submit', false);
         echo '</form>';
         if ($last) {
-            echo '<p class="description" style="margin-top:12px">Último análisis: <strong>' . esc_html(wp_date('d/m/Y H:i', absint($last['at'] ?? 0))) . '</strong>';
-            echo ' · señales: ' . esc_html(number_format_i18n(absint($last['sources_seen'] ?? 0)));
-            echo ' · aceptadas: ' . esc_html(number_format_i18n(absint($last['accepted'] ?? 0)));
-            echo ' · descartadas/refuerzos sin origen: ' . esc_html(number_format_i18n(absint($last['discarded'] ?? 0)));
-            echo ' · posts: ' . esc_html(number_format_i18n(absint($last['posts_indexed'] ?? 0)));
-            echo ' · páginas: ' . esc_html(number_format_i18n(absint($last['pages_indexed'] ?? 0)));
-            echo ' · categorías: ' . esc_html(number_format_i18n(absint($last['categories_indexed'] ?? 0)));
-            echo ' · huellas de cobertura: ' . esc_html(number_format_i18n(absint($last['post_topics_indexed'] ?? 0))) . '</p>';
+            echo '<p class="description" style="margin-top:12px">Última ejecución: <strong>' . esc_html(wp_date('d/m/Y H:i', absint($last['at'] ?? 0))) . '</strong>';
+            echo ' · cursor: ' . esc_html(number_format_i18n(absint($last['cursor'] ?? 0)));
+            echo ' · preguntas vistas: ' . esc_html(number_format_i18n(absint($last['sources_seen'] ?? 0)));
+            echo ' · evidencias aceptadas: ' . esc_html(number_format_i18n(absint($last['accepted'] ?? 0)));
+            if (isset($last['academy_categories'])) echo ' · dossiers: ' . esc_html(number_format_i18n(absint($last['academy_categories'])));
+            echo ' · estado: <strong>' . ($in_progress ? 'en curso' : 'completo') . '</strong></p>';
         }
         echo '</div>';
     }
@@ -286,113 +289,35 @@ final class SEO_Solucionador_Admin {
     }
 
     private static function service_snapshot() {
-        $items = array();
-
-        if (class_exists('SEO_Auditor') && method_exists('SEO_Auditor','last_catalog_report')) {
-            $report = SEO_Auditor::last_catalog_report();
-            $items['Auditor'] = array(
-                'available'=>!empty($report),
-                'metric'=>absint($report['summary']['findings'] ?? count((array) ($report['findings'] ?? array()))),
-                'unit'=>'hallazgos',
-                'detail'=>!empty($report['generated_at']) ? 'Último informe: ' . (string) $report['generated_at'] : 'Sin informe guardado',
-            );
-        } else {
-            $items['Auditor'] = array('available'=>false,'metric'=>0,'unit'=>'','detail'=>'Servicio no disponible');
-        }
-
-        if (function_exists('seo_analista_decision_plan')) {
-            $plan = (array) seo_analista_decision_plan(90, 100);
-            $items['Analista'] = array('available'=>true,'metric'=>count($plan),'unit'=>'directrices','detail'=>'Plan de decisión almacenado / calculable con datos existentes');
-        } else {
-            $items['Analista'] = array('available'=>false,'metric'=>0,'unit'=>'','detail'=>'Servicio no disponible');
-        }
-
         global $wpdb;
+        $items = array();
+        $academy = SEO_Solucionador_Sources::dependiente_academia_snapshot();
+
+        $items['Academia · conocimiento aprendido'] = array(
+            'available'=>!empty($academy['available']),
+            'metric'=>absint($academy['categories_with_knowledge'] ?? 0),
+            'unit'=>'dossiers por categoría',
+            'detail'=>number_format_i18n(absint($academy['learned'] ?? 0)) . ' preguntas pass_* · '
+                . number_format_i18n(absint($academy['learned_without_category'] ?? 0)) . ' sin categoría'
+        );
+
         $search_table = $wpdb->prefix . 'seo_dependiente_search_log';
-        $searches = 0;
-        if (class_exists('SEO_Solucionador_DB') && SEO_Solucionador_DB::table_exists($search_table)) {
-            $searches = absint($wpdb->get_var("SELECT COUNT(*) FROM {$search_table}"));
-        }
+        $searches = SEO_Solucionador_DB::table_exists($search_table)
+            ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$search_table} WHERE request_kind='search'"))
+            : 0;
         $items['Dependiente · demanda real'] = array(
             'available'=>$searches > 0,
             'metric'=>$searches,
             'unit'=>'consultas registradas',
-            'detail'=>'Search log de visitantes; se conserva separado del conocimiento aprendido.'
+            'detail'=>'Sólo refuerza prioridad de dossiers de Academia existentes; no origina temas.'
         );
 
-        if (class_exists('SEO_Solucionador_Sources') && method_exists('SEO_Solucionador_Sources','dependiente_academia_snapshot')) {
-            $academy = SEO_Solucionador_Sources::dependiente_academia_snapshot();
-            $items['Dependiente · Academia'] = array(
-                'available'=>!empty($academy['available']),
-                'metric'=>absint($academy['categories_with_knowledge'] ?? 0),
-                'unit'=>'categorías con conocimiento',
-                'detail'=>number_format_i18n(absint($academy['learned'] ?? 0)) . ' preguntas aprendidas · '
-                    . number_format_i18n(absint($academy['learned_without_category'] ?? 0)) . ' sin categoría'
-            );
-        } else {
-            $items['Dependiente · Academia'] = array('available'=>false,'metric'=>0,'unit'=>'','detail'=>'Integración no disponible');
-        }
-
-        if (class_exists('SEO_Ojeador_Analysis') && method_exists('SEO_Ojeador_Analysis','dashboard')) {
-            $dash = SEO_Ojeador_Analysis::dashboard(40);
-            $items['Ojeador'] = array(
-                'available'=>true,
-                'metric'=>count((array) ($dash['recommendations'] ?? array())),
-                'unit'=>'recomendaciones',
-                'detail'=>'Cobertura mercado: ' . number_format_i18n((float) ($dash['kpis']['valid_market_coverage_pct'] ?? 0), 1) . '%',
-            );
-        } else {
-            $items['Ojeador'] = array('available'=>false,'metric'=>0,'unit'=>'','detail'=>'Servicio no disponible');
-        }
-
-        if (class_exists('SEO_Ingeniero_DB')) {
-            $totals = SEO_Ingeniero_DB::totals();
-            $stats = SEO_Ingeniero_DB::category_stats_map();
-            $items['Ingeniero'] = array(
-                'available'=>true,
-                'metric'=>count((array) $stats),
-                'unit'=>'categorías con conocimiento',
-                'detail'=>number_format_i18n(absint($totals['knowledge'] ?? 0)) . ' bloques de conocimiento',
-            );
-        } else {
-            $items['Ingeniero'] = array('available'=>false,'metric'=>0,'unit'=>'','detail'=>'Servicio no disponible');
-        }
-
-        if (function_exists('seo_classifier_engineer_vocab_bulk_reports') && function_exists('seo_classifier_engineer_vocab_flat_rows')) {
-            $reports = seo_classifier_engineer_vocab_bulk_reports();
-            $rows = is_wp_error($reports) ? array() : seo_classifier_engineer_vocab_flat_rows((array) $reports);
-            $new = 0; $possible = 0;
-            foreach ((array) $rows as $row) {
-                if (($row['status'] ?? '') === 'new') $new++;
-                elseif (($row['status'] ?? '') === 'possible') $possible++;
-            }
-            $items['Clasificador'] = array(
-                'available'=>!is_wp_error($reports),
-                'metric'=>$new,
-                'unit'=>'conceptos nuevos detectados',
-                'detail'=>number_format_i18n($possible) . ' posibles equivalentes pendientes de revisión',
-            );
-        } else {
-            $items['Clasificador'] = array('available'=>false,'metric'=>0,'unit'=>'','detail'=>'Integración no disponible');
-        }
-
-        if (class_exists('SEO_Solucionador_Sources')) {
-            $comparador = SEO_Solucionador_Sources::comparador(200);
-            $items['Comparador'] = array(
-                'available'=>!empty($comparador),
-                'metric'=>count($comparador),
-                'unit'=>'señales normalizadas',
-                'detail'=>!empty($comparador) ? 'Resultado publicado por Comparador; Solucionador no recalcula comparativas.' : 'Sin contrato/señales disponibles todavía',
-            );
-            $marketing = SEO_Solucionador_Sources::marketing(120);
-            $items['Marketing'] = array(
-                'available'=>!empty($marketing),
-                'metric'=>count($marketing),
-                'unit'=>'prioridades comerciales',
-                'detail'=>'Refuerza prioridad; nunca justifica por sí solo una URL nueva.',
-            );
-        }
-
+        $items['Analista · medición'] = array(
+            'available'=>function_exists('seo_analista_get_data') || function_exists('seo_post_reports_get_summary'),
+            'metric'=>0,
+            'unit'=>'fuente externa de KPIs',
+            'detail'=>'Los resultados globales se consultan en Analista; Solucionador no abre conexiones GSC/GA4/Bing.'
+        );
         return $items;
     }
 
@@ -408,87 +333,11 @@ final class SEO_Solucionador_Admin {
     }
 
     private static function render_diagnostics() {
-        $scope = isset($_GET['diag_scope']) ? sanitize_key(wp_unslash($_GET['diag_scope'])) : 'overview';
-        $view = isset($_GET['diag_view']) ? sanitize_key(wp_unslash($_GET['diag_view'])) : '';
-        $allowed = array('overview','posts','pages','categories','content','services');
-        if (!in_array($scope, $allowed, true)) $scope = 'overview';
-
-        if ($scope === 'posts' && !in_array($view, array('opportunities','health'), true)) $view = 'opportunities';
-        if ($scope === 'pages' && !in_array($view, array('landings','health'), true)) $view = 'landings';
-        if ($scope === 'categories' && !in_array($view, array('google','structure'), true)) $view = 'google';
-
         echo '<div class="postbox" style="padding:18px;margin-top:18px">';
-        echo '<h2 style="margin-top:0">Diagnóstico editorial centralizado</h2>';
-        echo '<p>Este es el <strong>único punto de análisis editorial visible</strong>. Entradas, Páginas y Categorías conservan los datos y los editores de ejecución; sus informes se reutilizan aquí para evitar paneles paralelos.</p>';
+        echo '<h2 style="margin-top:0">Diagnóstico editorial migrado</h2>';
+        echo '<p>Desde Solucionador 0.5.0 el servicio ya no centraliza Auditor, Analista, Ingeniero, Ojeador o Comparador. Esta ruta se conserva sólo para enlaces antiguos.</p>';
+        echo '<p><a class="button button-primary" href="' . esc_url(self::url('proposals')) . '">Abrir dossiers</a> <a class="button" href="' . esc_url(self::url('coverage')) . '">Cobertura editorial</a> <a class="button" href="' . esc_url(self::url('sources')) . '">Academia / fuentes</a></p>';
         echo '</div>';
-        self::diagnostics_nav($scope, $view);
-
-        if ($scope === 'overview' || $scope === 'services') {
-            self::render_service_snapshot();
-            if ($scope === 'overview') {
-                echo '<div class="postbox" style="padding:18px;margin-top:18px"><h3 style="margin-top:0">Cómo leer el flujo</h3>';
-                echo '<p><strong>Servicios fuente</strong> producen hechos, conocimiento, señales y métricas. <strong>Solucionador</strong> cruza esas conclusiones, prioriza y decide la salida editorial. <strong>Editora / editores</strong> ejecutan la modificación en Entradas, Páginas, Categorías o Imágenes.</p>';
-                echo '<p style="margin-bottom:0"><strong>Solucionador no sustituye a Auditor, Analista, Clasificador, Dependiente, Intérprete, Ojeador ni Ingeniero:</strong> consume su resultado.</p></div>';
-            }
-            return;
-        }
-
-        if ($scope === 'posts') {
-            if ($view === 'health') {
-                if (function_exists('seo_health_render_scope_tab')) seo_health_render_scope_tab('post');
-                else echo '<div class="notice notice-error inline"><p>No está disponible el diagnóstico técnico de entradas.</p></div>';
-                return;
-            }
-            if (function_exists('seo_post_opportunities_render_page')) {
-                seo_post_opportunities_render_page(array(
-                    'page'=>'seo-solucionador',
-                    'tab'=>'diagnostics',
-                    'diag_scope'=>'posts',
-                    'diag_view'=>'opportunities',
-                ));
-            } else {
-                echo '<div class="notice notice-error inline"><p>No está disponible el informe de rendimiento y oportunidades de entradas.</p></div>';
-            }
-            return;
-        }
-
-        if ($scope === 'pages') {
-            if ($view === 'health') {
-                if (function_exists('seo_health_render_scope_tab')) seo_health_render_scope_tab('page');
-                else echo '<div class="notice notice-error inline"><p>No está disponible el diagnóstico técnico de páginas.</p></div>';
-                return;
-            }
-            if (function_exists('seo_landing_render_admin_tab')) {
-                seo_landing_render_admin_tab(array(
-                    'page'=>'seo-solucionador',
-                    'tab'=>'diagnostics',
-                    'diag_scope'=>'pages',
-                    'diag_view'=>'landings',
-                ));
-            } else {
-                echo '<div class="notice notice-error inline"><p>No está disponible el informe de landings.</p></div>';
-            }
-            return;
-        }
-
-        if ($scope === 'categories') {
-            if ($view === 'structure') {
-                if (function_exists('seo_render_total_structure_report')) seo_render_total_structure_report();
-                else echo '<div class="notice notice-error inline"><p>No está disponible el informe estructural de categorías.</p></div>';
-                return;
-            }
-            if (function_exists('seo_category_reports_page')) {
-                seo_category_reports_page('seo-solucionador');
-            } else {
-                echo '<div class="notice notice-error inline"><p>No está disponible el informe Google de categorías.</p></div>';
-            }
-            return;
-        }
-
-        if ($scope === 'content') {
-            if (function_exists('seo_report_contents_render_page')) seo_report_contents_render_page();
-            else echo '<div class="notice notice-error inline"><p>No está disponible el informe objetivo de cobertura de contenido.</p></div>';
-        }
     }
 
     private static function action_label($action) {
@@ -545,7 +394,6 @@ final class SEO_Solucionador_Admin {
 
     private static function editorial_brief(array $topic) {
         $topic_id = absint($topic['id'] ?? 0);
-        $evidence = SEO_Solucionador_DB::get_evidence_rows($topic_id);
         $categories = SEO_Solucionador_DB::proposed_categories($topic);
         $vocabulary = SEO_Solucionador_DB::proposed_vocabulary($topic);
         $hierarchy = SEO_Solucionador_DB::hierarchy($topic);
@@ -553,204 +401,92 @@ final class SEO_Solucionador_Admin {
         $priority_components = SEO_Solucionador_DB::priority_components($topic);
         $primary_category_id = absint($topic['primary_category_id'] ?? 0);
 
+        $question_ids = SEO_Solucionador_DB::decode_json($topic['dossier_question_ids'] ?? '',array());
+        $question_ids = array_values(array_unique(array_filter(array_map('absint',(array)$question_ids))));
+        if (!$question_ids) {
+            foreach (SEO_Solucionador_DB::get_evidence_rows($topic_id) as $row) {
+                $meta = (array) ($row['source_meta_decoded'] ?? array());
+                if (sanitize_key((string)($meta['dependiente_channel'] ?? '')) !== 'academy_learned') continue;
+                $qid = absint($meta['question_id'] ?? 0);
+                if ($qid) $question_ids[] = $qid;
+            }
+            $question_ids = array_values(array_unique($question_ids));
+        }
+        $question_details = SEO_Solucionador_Sources::academia_question_details($question_ids);
+        $questions = array_values(array_filter(array_map(static function($row){
+            return trim((string)($row['question'] ?? ''));
+        },$question_details)));
+
         $profile = array(
-            'intent'=>(string) ($topic['intent'] ?? ''),
-            'action'=>(string) ($topic['action_term'] ?? ''),
-            'object'=>(string) ($topic['object_term'] ?? ''),
-            'condition'=>(string) ($topic['condition_term'] ?? ''),
-            'context'=>(string) ($topic['context_term'] ?? ''),
-            'canonical_key'=>(string) ($topic['canonical_key'] ?? ''),
+            'intent'=>'dependiente_qa_basic',
+            'action'=>'resolver',
+            'object'=>($primary_category_id && ($term=get_term($primary_category_id,'product_cat')) && !is_wp_error($term)) ? (string)$term->name : (string)($topic['object_term'] ?? ''),
+            'condition'=>'',
+            'context'=>'',
+            'canonical_key'=>(string)($topic['canonical_key'] ?? ''),
             'category_id'=>$primary_category_id,
         );
-        $coverage = SEO_Solucionador_Coverage::find($profile);
-
-        $sources = array();
-        $questions = array();
-        $question_details = array();
-        $market = array();
-        foreach ($evidence as $row) {
-            $type = sanitize_key((string) ($row['source_type'] ?? ''));
-            if ($type !== '') $sources[$type] = ($sources[$type] ?? 0) + max(1,absint($row['occurrences'] ?? 1));
-            if ($type === 'dependiente') {
-                $meta = (array) ($row['source_meta_decoded'] ?? array());
-                $academy_questions = (array) ($meta['academy_questions'] ?? array());
-                if ($academy_questions) {
-                    foreach ($academy_questions as $item) {
-                        if (!is_array($item)) continue;
-                        $q = trim((string) ($item['question'] ?? ''));
-                        if ($q === '') continue;
-                        $questions[$q] = true;
-                        $key = absint($item['question_id'] ?? 0) ?: md5($q);
-                        $question_details[$key] = array(
-                            'question'=>$q,
-                            'question_type'=>(string) ($item['question_type'] ?? ''),
-                            'lesson_key'=>(string) ($item['lesson_key'] ?? ''),
-                            'evaluation_status'=>(string) ($item['evaluation_status'] ?? ''),
-                            'evaluation_score'=>(float) ($item['evaluation_score'] ?? 0),
-                            'top_results'=>(array) ($item['top_results'] ?? array()),
-                            'response_meta'=>(array) ($item['response_meta'] ?? array()),
-                            'observed_at'=>(string) ($item['observed_at'] ?? ''),
-                        );
-                    }
-                } else {
-                    $q = trim((string) ($row['source_text'] ?? ''));
-                    if ($q !== '') $questions[$q] = true;
-                }
-            }
-            if (in_array($type,array('ojeador','comparador'),true)) {
-                $meta = (array) ($row['source_meta_decoded'] ?? array());
-                $market[] = array(
-                    'source'=>$type,
-                    'text'=>(string) ($row['source_text'] ?? ''),
-                    'meta'=>$meta,
-                );
-            }
-        }
-
-        $concepts = array();
-        foreach ($categories as $category) {
-            $term_id = absint($category['term_id'] ?? $category['id'] ?? 0);
-            if (!$term_id || !function_exists('seo_classifier_engineer_vocab_report')) continue;
-            $report = seo_classifier_engineer_vocab_report($term_id);
-            if (is_wp_error($report)) continue;
-            foreach (array_merge((array) ($report['attributes'] ?? array()),(array) ($report['labels'] ?? array())) as $item) {
-                if (!in_array((string) ($item['status'] ?? ''),array('new','possible'),true)) continue;
-                $label = trim((string) (($item['name'] ?? '') ?: ($item['label'] ?? $item['value'] ?? '')));
-                if ($label !== '') $concepts[$label] = true;
-            }
-        }
-
-        $knowledge = array();
-        $technical_sources = array();
-        if ($primary_category_id && class_exists('SEO_Ingeniero')) {
-            $source_map = array();
-            if (class_exists('SEO_Ingeniero_DB')) {
-                foreach ((array) SEO_Ingeniero_DB::sources_for_category($primary_category_id) as $source) {
-                    $source_map[absint($source['id'] ?? 0)] = $source;
-                }
-            }
-            foreach ((array) SEO_Ingeniero::active_knowledge($primary_category_id) as $row) {
-                $item = array(
-                    'type'=>(string) ($row['knowledge_type'] ?? ''),
-                    'concept'=>(string) ($row['concept'] ?? ''),
-                    'summary'=>(string) ($row['summary'] ?? ''),
-                    'confidence'=>(float) ($row['confidence'] ?? 0),
-                    'facts'=>(array) ($row['facts'] ?? array()),
-                    'sources'=>array(),
-                );
-                foreach ((array) ($row['source_ids'] ?? array()) as $source_id) {
-                    $source_id = absint($source_id);
-                    if (!$source_id || empty($source_map[$source_id])) continue;
-                    $src = $source_map[$source_id];
-                    $normalized = array(
-                        'id'=>$source_id,
-                        'title'=>(string) ($src['title'] ?? ''),
-                        'url'=>(string) ($src['url'] ?? ''),
-                        'source_type'=>(string) ($src['source_type'] ?? ''),
-                        'trust_level'=>(string) ($src['trust_level'] ?? ''),
-                        'retrieved_at'=>(string) ($src['retrieved_at'] ?? ''),
-                    );
-                    $item['sources'][] = $normalized;
-                    $technical_sources[$source_id] = $normalized;
-                }
-                $knowledge[] = $item;
-            }
-        }
+        $coverage = class_exists('SEO_Editorial_Coverage')
+            ? SEO_Editorial_Coverage::find($profile)
+            : SEO_Solucionador_Coverage::find($profile);
 
         $products = array();
-        $cat_ids = array_values(array_unique(array_filter(array_map(static function($row){
-            return absint($row['term_id'] ?? $row['id'] ?? 0);
-        },(array) $categories))));
-        if ($primary_category_id && !in_array($primary_category_id,$cat_ids,true)) array_unshift($cat_ids,$primary_category_id);
-        if ($cat_ids) {
-            $ids = get_posts(array(
+        if ($primary_category_id) {
+            foreach ((array)get_posts(array(
                 'post_type'=>'product','post_status'=>'publish','posts_per_page'=>12,'fields'=>'ids',
-                'tax_query'=>array(array('taxonomy'=>'product_cat','field'=>'term_id','terms'=>$cat_ids,'operator'=>'IN')),
-            ));
-            foreach ((array) $ids as $product_id) {
+                'tax_query'=>array(array('taxonomy'=>'product_cat','field'=>'term_id','terms'=>array($primary_category_id)))
+            )) as $product_id) {
                 $products[] = array('id'=>absint($product_id),'title'=>get_the_title($product_id),'url'=>get_permalink($product_id));
             }
         }
 
         $preserve = array();
-        foreach ((array) ($coverage['matches'] ?? array()) as $match) {
-            $label = trim((string) ($match['title'] ?? ''));
-            $text = trim((string) ($match['source_text'] ?? ''));
-            if ($label !== '') $preserve[] = $label . ($text !== '' && $text !== $label ? ' — ' . wp_trim_words($text,22,'…') : '');
-        }
-        $preserve = array_slice(array_values(array_unique($preserve)),0,12);
-
         $links = array();
-        foreach ($categories as $category) {
-            $term_id = absint($category['term_id'] ?? $category['id'] ?? 0);
-            if (!$term_id) continue;
-            $term = get_term($term_id,'product_cat');
-            if (!$term || is_wp_error($term)) continue;
-            $url = get_term_link($term);
-            if (!is_wp_error($url)) $links[(string)$url] = array('label'=>(string)$term->name,'url'=>(string)$url);
+        foreach ((array)($coverage['matches'] ?? array()) as $match) {
+            $title = trim((string)($match['title'] ?? ''));
+            $text = trim((string)($match['source_text'] ?? ''));
+            if ($title !== '') $preserve[] = $title . ($text !== '' && $text !== $title ? ' — ' . wp_trim_words($text,22,'…') : '');
+            $url = trim((string)($match['url'] ?? ''));
+            if ($url !== '') $links[$url] = array('label'=>$title ?: $url,'url'=>$url);
         }
-        foreach ((array) ($coverage['matches'] ?? array()) as $match) {
-            $url = trim((string) ($match['url'] ?? ''));
-            if ($url !== '') $links[$url] = array('label'=>(string) (($match['title'] ?? '') ?: $url),'url'=>$url);
-        }
-
-        $audience = array();
-        foreach ((array) ($vocabulary['rol'] ?? array()) as $row) {
-            if (!empty($row['label'])) $audience[] = (string) $row['label'];
-        }
-
-        $must_cover = array();
-        foreach ($knowledge as $item) {
-            $label = trim((string) (($item['concept'] ?? '') ?: ($item['summary'] ?? '')));
-            if ($label !== '') $must_cover[$label] = true;
-            foreach ((array) ($item['facts'] ?? array()) as $fact) {
-                if (is_scalar($fact)) {
-                    $fact = trim((string) $fact);
-                    if ($fact !== '') $must_cover[$fact] = true;
-                }
+        if ($primary_category_id) {
+            $term = get_term($primary_category_id,'product_cat');
+            if ($term && !is_wp_error($term)) {
+                $url = get_term_link($term);
+                if (!is_wp_error($url)) $links[(string)$url] = array('label'=>(string)$term->name,'url'=>(string)$url);
             }
         }
-        foreach (array_keys($concepts) as $concept) $must_cover[$concept] = true;
-
-        $tracking = SEO_Solucionador_DB::tracking_history($topic_id,24);
-        $workflow = SEO_Solucionador_DB::workflow_history($topic_id,100);
 
         return array(
             'topic_id'=>$topic_id,
-            'topic'=>(string) (($topic['suggested_title'] ?? '') ?: ($topic['canonical_question'] ?? '')),
-            'question'=>(string) ($topic['canonical_question'] ?? ''),
-            'intent'=>(string) ($topic['intent'] ?? ''),
-            'audience'=>$audience,
-            'output'=>self::action_label((string) ($topic['recommended_action'] ?? 'DEFER')),
-            'action'=>(string) ($topic['recommended_action'] ?? 'DEFER'),
-            'decision_reason'=>(string) ($topic['decision_reason'] ?? ''),
-            'priority'=>(float) ($topic['priority_score'] ?? 0),
+            'topic'=>(string)(($topic['suggested_title'] ?? '') ?: ($topic['canonical_question'] ?? '')),
+            'question'=>(string)($topic['canonical_question'] ?? ''),
+            'intent'=>'dependiente_qa_basic',
+            'output'=>self::action_label((string)($topic['recommended_action'] ?? 'DEFER')),
+            'action'=>(string)($topic['recommended_action'] ?? 'DEFER'),
+            'decision_reason'=>(string)($topic['decision_reason'] ?? ''),
+            'priority'=>(float)($topic['priority_score'] ?? 0),
             'priority_components'=>$priority_components,
             'requirements'=>$requirements,
-            'sources'=>$sources,
-            'evidence'=>$evidence,
             'categories'=>$categories,
             'primary_category_id'=>$primary_category_id,
             'hierarchy'=>$hierarchy,
             'vocabulary'=>$vocabulary,
-            'concepts'=>array_slice(array_keys($concepts),0,30),
-            'knowledge'=>$knowledge,
-            'technical_sources'=>array_values($technical_sources),
             'products'=>$products,
-            'questions'=>array_values(array_keys($questions)),
-            'question_details'=>array_values($question_details),
-            'must_cover'=>array_slice(array_keys($must_cover),0,40),
-            'preserve'=>$preserve,
+            'questions'=>$questions,
+            'question_details'=>$question_details,
+            'question_count'=>count($question_ids),
+            'dossier_score'=>(float)($topic['dossier_score'] ?? 0),
+            'dossier_hash'=>(string)($topic['dossier_hash'] ?? ''),
+            'dossier_last_validated_at'=>(string)($topic['dossier_last_validated_at'] ?? ''),
+            'preserve'=>array_slice(array_values(array_unique($preserve)),0,12),
             'links'=>array_values($links),
             'coverage'=>$coverage,
-            'market'=>$market,
-            'duplication_risk'=>(float) ($topic['duplication_risk'] ?? 0),
-            'cannibalization_risk'=>(float) ($topic['cannibalization_risk'] ?? 0),
-            'knowledge_status'=>(string) ($topic['knowledge_status'] ?? 'unknown'),
-            'workflow_state'=>(string) ($topic['workflow_state'] ?? 'detected'),
-            'workflow'=>$workflow,
-            'tracking'=>$tracking,
-            'existing_entity_type'=>(string) ($topic['existing_entity_type'] ?? ''),
+            'duplication_risk'=>(float)($topic['duplication_risk'] ?? 0),
+            'cannibalization_risk'=>(float)($topic['cannibalization_risk'] ?? 0),
+            'workflow_state'=>(string)($topic['workflow_state'] ?? 'detected'),
+            'workflow'=>SEO_Solucionador_DB::workflow_history($topic_id,100),
+            'existing_entity_type'=>(string)($topic['existing_entity_type'] ?? ''),
             'existing_entity_id'=>absint($topic['existing_entity_id'] ?? 0),
             'draft_post_id'=>absint($topic['draft_post_id'] ?? 0),
         );
@@ -806,162 +542,88 @@ final class SEO_Solucionador_Admin {
 
         echo '<div id="opportunity" class="postbox" style="padding:20px;margin-top:18px;border-left:4px solid #2271b1">';
         echo '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap">';
-        echo '<div><h2 style="margin:0 0 6px">Ficha de oportunidad #' . esc_html($brief['topic_id']) . '</h2><strong style="font-size:18px">' . esc_html($brief['topic']) . '</strong><br><code>' . esc_html((string) ($topic['canonical_key'] ?? '')) . '</code></div>';
-        echo '<a class="button" href="' . esc_url(self::url('proposals')) . '">Cerrar ficha</a></div>';
+        echo '<div><h2 style="margin:0 0 6px">Dossier #' . esc_html($brief['topic_id']) . '</h2><strong style="font-size:18px">' . esc_html($brief['topic']) . '</strong><br><code>' . esc_html((string)($topic['canonical_key'] ?? '')) . '</code></div>';
+        echo '<a class="button" href="' . esc_url(self::url('proposals')) . '">Cerrar dossier</a></div>';
 
         echo '<div class="seo-sol-grid" style="margin-top:14px">';
+        self::card('Preguntas', $brief['question_count'], 'Referencias aprendidas pass_* asociadas al dossier.');
+        self::card('Score Academia', number_format_i18n($brief['dossier_score']*100,0) . '%', 'Media del último resultado validado.');
+        self::card('Cobertura', self::coverage_label((string)($brief['coverage']['status'] ?? 'uncovered')), 'Cobertura editorial existente.');
         self::card('Acción', $brief['output'], $brief['decision_reason']);
-        self::card('Prioridad', number_format_i18n($brief['priority'],0) . '/100', 'Desglose visible, no decisión única.');
-        self::card('Cobertura', self::coverage_label((string) ($brief['coverage']['status'] ?? 'uncovered')), 'Similitud ' . number_format_i18n((float)($brief['coverage']['score'] ?? 0)*100,0) . '%.');
-        self::card('Workflow', self::workflow_label($brief['workflow_state']), 'Estado humano de la actuación.');
-        self::card('Duplicación', number_format_i18n($brief['duplication_risk'],0) . '/100', 'Si el riesgo es alto no se crea URL nueva.');
-        self::card('Canibalización', number_format_i18n($brief['cannibalization_risk'],0) . '/100', 'Evalúa competencia entre destinos existentes.');
+        self::card('Workflow', self::workflow_label($brief['workflow_state']), 'Estado de revisión humana.');
         echo '</div>';
 
         echo '<div class="seo-sol-opportunity-sections">';
-
-        echo '<section><h3>1. Resumen</h3>';
-        echo '<p><strong>Qué se ha detectado:</strong> ' . esc_html($brief['question'] ?: $brief['topic']) . '</p>';
-        echo '<p><strong>Intención:</strong> ' . esc_html($brief['intent'] ?: '—') . '</p>';
-        if ($brief['audience']) echo '<p><strong>Audiencia:</strong> ' . esc_html(implode(' · ',$brief['audience'])) . '</p>';
-        echo '<h4>Prioridad explicada</h4>'; self::render_priority_components($brief);
+        echo '<section><h3>1. Dossier de Academia</h3>';
+        echo '<p><strong>Categoría principal:</strong> #' . esc_html($brief['primary_category_id'] ?: '—') . '</p>';
+        echo '<p><strong>Última validación:</strong> ' . esc_html($brief['dossier_last_validated_at'] ?: '—') . '</p>';
+        echo '<p><strong>Hash:</strong> <code>' . esc_html($brief['dossier_hash'] ?: '—') . '</code></p>';
+        echo '<h4>Prioridad</h4>'; self::render_priority_components($brief);
         echo '</section>';
 
-        echo '<section><h3>2. Evidencias</h3>';
-        echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>Fuente</th><th>Señal</th><th>Entidad</th><th>Categoría</th><th>Texto</th><th>Confianza</th><th>Fecha</th></tr></thead><tbody>';
-        if (!$brief['evidence']) echo '<tr><td colspan="7">Sin evidencias.</td></tr>';
-        foreach ($brief['evidence'] as $row) {
-            echo '<tr><td><strong>' . esc_html((string)($row['source_type'] ?? '')) . '</strong><br><code>' . esc_html((string)($row['source_id'] ?? '')) . '</code></td>';
-            echo '<td>' . esc_html((string)($row['signal_type'] ?? '')) . '</td>';
-            echo '<td>' . esc_html((string)($row['entity_type'] ?? '')) . ' #' . esc_html(absint($row['entity_id'] ?? 0) ?: '—') . '</td>';
-            echo '<td>' . esc_html(absint($row['category_id'] ?? 0) ?: '—') . '</td>';
-            echo '<td>' . esc_html(wp_trim_words((string)($row['source_text'] ?? ''),28,'…')) . '</td>';
-            echo '<td>' . esc_html(number_format_i18n((float)($row['confidence'] ?? 0)*100,0)) . '%</td>';
-            echo '<td>' . esc_html((string)($row['observed_at'] ?? '')) . '</td></tr>';
+        echo '<section><h3>2. Preguntas aprendidas</h3>';
+        echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>Pregunta</th><th>Lección / tipo</th><th>Validación</th><th>Resultado interno</th><th>Fecha</th></tr></thead><tbody>';
+        if (!$brief['question_details']) echo '<tr><td colspan="5">No se han podido cargar detalles del dossier.</td></tr>';
+        foreach ($brief['question_details'] as $item) {
+            $top = (array)($item['top_results'] ?? array());
+            $labels = array();
+            foreach (array_slice($top,0,3) as $result) {
+                if (!is_array($result)) continue;
+                $label = trim((string)($result['title'] ?? $result['name'] ?? $result['label'] ?? ''));
+                if ($label !== '') $labels[] = $label;
+            }
+            $result_text = $labels ? implode(' · ',$labels) : 'Evidencia interna disponible';
+            echo '<tr><td><strong>' . esc_html((string)($item['question'] ?? '')) . '</strong></td>';
+            echo '<td><code>' . esc_html((string)($item['lesson_key'] ?? '')) . '</code><br>' . esc_html((string)($item['question_type'] ?? '')) . '</td>';
+            echo '<td><strong>' . esc_html((string)($item['evaluation_status'] ?? '')) . '</strong><br>' . esc_html(number_format_i18n((float)($item['evaluation_score'] ?? 0)*100,0)) . '%</td>';
+            echo '<td>' . esc_html(wp_trim_words($result_text,30,'…')) . '</td>';
+            echo '<td>' . esc_html((string)($item['observed_at'] ?? '')) . '</td></tr>';
         }
-        echo '</tbody></table></div></section>';
+        echo '</tbody></table></div>';
+        echo '<p class="description"><strong>No publicar literalmente:</strong> estos resultados son evidencia interna. Editora redacta la respuesta pública.</p>';
+        echo '</section>';
 
-        echo '<section><h3>3. Categoría</h3>';
-        $h = (array) $brief['hierarchy'];
-        foreach (array('cluster'=>'Cluster','hub_primary'=>'Hub primario','hub_secondary'=>'Hub secundario','category'=>'Categoría principal') as $key=>$label) {
-            $row = (array) ($h[$key] ?? array());
-            echo '<p><strong>' . esc_html($label) . ':</strong> ' . (!empty($row['id']) ? '#' . esc_html(absint($row['id'])) . ' · ' . esc_html((string)($row['name'] ?? '')) : '—') . '</p>';
-        }
-        echo '<p><strong>Categorías relacionadas:</strong> ' . self::category_chips($topic) . '</p>';
-        echo '<p><strong>Vocabulary:</strong></p>' . self::vocab_chips($topic);
-        echo '<p><strong>Productos de referencia propios:</strong></p><ul>';
-        if (!$brief['products']) echo '<li>Sin productos relacionados recuperados.</li>';
-        foreach ($brief['products'] as $product) echo '<li><a href="' . esc_url(get_edit_post_link($product['id'],'raw')) . '">#' . esc_html($product['id']) . ' ' . esc_html($product['title']) . '</a></li>';
-        echo '</ul></section>';
-
-        echo '<section><h3>4. Cobertura</h3>';
+        echo '<section><h3>3. Cobertura existente</h3>';
         echo '<p><strong>Estado:</strong> ' . esc_html(self::coverage_label((string)($brief['coverage']['status'] ?? 'uncovered'))) . ' · <strong>score:</strong> ' . esc_html(number_format_i18n((float)($brief['coverage']['score'] ?? 0)*100,0)) . '%</p>';
-        echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>Destino</th><th>Tipo</th><th>Ámbito</th><th>Qué cubre</th><th>Similitud</th></tr></thead><tbody>';
-        if (empty($brief['coverage']['matches'])) echo '<tr><td colspan="5">No existe una URL relacionada con cobertura suficiente.</td></tr>';
+        echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>Destino</th><th>Tipo</th><th>Qué cubre</th><th>Similitud</th></tr></thead><tbody>';
+        if (empty($brief['coverage']['matches'])) echo '<tr><td colspan="4">No existe una URL relacionada con cobertura suficiente.</td></tr>';
         foreach ((array)($brief['coverage']['matches'] ?? array()) as $match) {
-            $url = (string)($match['url'] ?? '');
-            echo '<tr><td>' . ($url !== '' ? '<a href="' . esc_url($url) . '" target="_blank" rel="noopener">' . esc_html((string)($match['title'] ?? $url)) . '</a>' : esc_html((string)($match['title'] ?? ''))) . '</td>';
-            echo '<td>' . esc_html((string)($match['entity_type'] ?? '')) . ' / ' . esc_html((string)($match['seo_role'] ?? '')) . '</td>';
-            echo '<td>' . esc_html((string)($match['scope'] ?? '')) . '</td>';
+            $url=(string)($match['url'] ?? '');
+            echo '<tr><td>' . ($url!==''?'<a href="' . esc_url($url) . '" target="_blank" rel="noopener">' . esc_html((string)($match['title'] ?? $url)) . '</a>':esc_html((string)($match['title'] ?? ''))) . '</td>';
+            echo '<td>' . esc_html((string)($match['entity_type'] ?? '')) . '</td>';
             echo '<td>' . esc_html(wp_trim_words((string)($match['source_text'] ?? ''),30,'…')) . '</td>';
             echo '<td>' . esc_html(number_format_i18n((float)($match['score'] ?? 0)*100,0)) . '%</td></tr>';
         }
         echo '</tbody></table></div>';
-        if ($brief['preserve']) echo '<p><strong>No repetir / conservar:</strong> ' . esc_html(implode(' · ',$brief['preserve'])) . '</p>';
         echo '</section>';
 
-        echo '<section><h3>5. Conocimiento</h3>';
-        echo '<p><strong>Estado:</strong> ' . esc_html($brief['knowledge_status']) . '</p>';
-        if (!$brief['knowledge']) echo '<p>No existe conocimiento técnico activo suficiente de Ingeniero.</p>';
-        foreach ($brief['knowledge'] as $item) {
-            echo '<div class="seo-sol-knowledge"><strong>' . esc_html((string)($item['type'] ?? '')) . '</strong>';
-            if (!empty($item['concept'])) echo ' · ' . esc_html((string)$item['concept']);
-            echo '<p>' . esc_html((string)($item['summary'] ?? '')) . '</p>';
-            echo '<small>Confianza ' . esc_html(number_format_i18n((float)($item['confidence'] ?? 0)*100,0)) . '%</small>';
-            if (!empty($item['sources'])) {
-                echo '<ul>'; foreach ($item['sources'] as $src) {
-                    echo '<li><a href="' . esc_url((string)$src['url']) . '" target="_blank" rel="noopener">' . esc_html((string)(($src['title'] ?? '') ?: $src['url'])) . '</a> · ' . esc_html((string)$src['source_type']) . ' · confianza fuente ' . esc_html((string)$src['trust_level']) . '</li>';
-                } echo '</ul>';
-            }
-            echo '</div>';
-        }
-        if ($brief['concepts']) echo '<p><strong>Conceptos pendientes de Clasificador:</strong> ' . esc_html(implode(' · ',$brief['concepts'])) . '</p>';
-        echo '</section>';
-
-        echo '<section><h3>6. Mercado</h3>';
-        if (!$brief['market']) echo '<p>No hay evidencia de Ojeador/Comparador asociada a este tema.</p>';
-        foreach ($brief['market'] as $row) {
-            echo '<div class="seo-sol-market"><strong>' . esc_html(ucfirst((string)$row['source'])) . '</strong> · ' . esc_html(wp_trim_words((string)$row['text'],28,'…'));
-            $meta = (array)$row['meta'];
-            if (!empty($meta['signal'])) echo '<br><span>' . esc_html((string)$meta['signal']) . '</span>';
-            if (!empty($meta['reason'])) echo '<br><small>' . esc_html((string)$meta['reason']) . '</small>';
-            if (!empty($meta['decisive_features'])) echo '<br><small>Factores de compra: ' . esc_html(implode(' · ',array_map('strval',(array)$meta['decisive_features']))) . '</small>';
-            echo '</div>';
-        }
-        echo '</section>';
-
-        echo '<section><h3>7. Decisión</h3>';
-        echo '<p><strong>' . esc_html($brief['output']) . '</strong></p>';
-        echo '<p>' . esc_html($brief['decision_reason']) . '</p>';
-        echo '<p><strong>Riesgo de duplicación:</strong> ' . esc_html(number_format_i18n($brief['duplication_risk'],0)) . '/100 · <strong>canibalización:</strong> ' . esc_html(number_format_i18n($brief['cannibalization_risk'],0)) . '/100.</p>';
-        echo '<h4>Condiciones obligatorias</h4>'; self::render_requirements($brief);
+        echo '<section><h3>4. Decisión editorial</h3>';
+        echo '<p><strong>' . esc_html($brief['output']) . '</strong> — ' . esc_html($brief['decision_reason']) . '</p>';
+        echo '<h4>Condiciones</h4>'; self::render_requirements($brief);
         self::render_workflow_form($topic);
-        if ($entity_edit) echo '<p><a class="button" href="' . esc_url($entity_edit) . '">Abrir contenido existente para ejecutar</a></p>';
-        if ($brief['action'] === 'CREATE_POST' && in_array($brief['workflow_state'],array('approved','brief_ready'),true) && !$brief['draft_post_id']) {
+        if ($entity_edit) echo '<p><a class="button" href="' . esc_url($entity_edit) . '">Abrir post existente</a></p>';
+        if ($brief['action']==='CREATE_POST' && in_array($brief['workflow_state'],array('approved','brief_ready'),true) && !$brief['draft_post_id']) {
             echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_solucionador_topic"><input type="hidden" name="topic_id" value="' . esc_attr($brief['topic_id']) . '"><input type="hidden" name="topic_action" value="create_draft">';
             wp_nonce_field('seo_solucionador_topic_' . $brief['topic_id']);
             submit_button('Preparar borrador de post','primary','submit',false);
             echo '</form>';
         }
-        if ($brief['action'] === 'CREATE_LANDING') echo '<p><a class="button button-primary" href="' . esc_url(self::diagnostics_url('pages','landings')) . '">Abrir gestión de landings</a></p>';
         echo '</section>';
 
-        echo '<section><h3>8. Brief para Editora</h3>';
-        echo '<p><strong>Objetivo:</strong> ' . esc_html($brief['question'] ?: $brief['topic']) . '</p>';
-        if (!empty($brief['question_details'])) {
-            echo '<h4>Preguntas aprendidas por Dependiente</h4>';
-            echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>Pregunta</th><th>Lección / tipo</th><th>Validación</th><th>Resultado validado</th><th>Fecha</th></tr></thead><tbody>';
-            foreach ($brief['question_details'] as $item) {
-                $top = (array) ($item['top_results'] ?? array());
-                $result_labels = array();
-                foreach (array_slice($top,0,3) as $result) {
-                    if (!is_array($result)) continue;
-                    $label = trim((string)($result['title'] ?? $result['name'] ?? $result['label'] ?? ''));
-                    if ($label !== '') $result_labels[] = $label;
-                }
-                $result_text = $result_labels ? implode(' · ',$result_labels) : 'Resultado interno conservado en la evidencia';
-                echo '<tr><td><strong>' . esc_html((string)$item['question']) . '</strong></td>';
-                echo '<td><code>' . esc_html((string)$item['lesson_key']) . '</code><br>' . esc_html((string)$item['question_type']) . '</td>';
-                echo '<td><strong>' . esc_html((string)$item['evaluation_status']) . '</strong><br>score ' . esc_html(number_format_i18n((float)$item['evaluation_score']*100,0)) . '%</td>';
-                echo '<td>' . esc_html(wp_trim_words($result_text,30,'…')) . '</td>';
-                echo '<td>' . esc_html((string)$item['observed_at']) . '</td></tr>';
-            }
-            echo '</tbody></table></div>';
-            echo '<p class="description">Estos resultados son evidencia interna de Academia. Editora debe redactar la respuesta pública; no se publican literalmente las respuestas internas.</p>';
-        } elseif ($brief['questions']) {
-            echo '<h4>Preguntas reales a responder</h4><ul>';
-            foreach ($brief['questions'] as $q) echo '<li>' . esc_html($q) . '</li>';
-            echo '</ul>';
-        }
-        if ($brief['must_cover']) { echo '<h4>Temas / conceptos obligatorios disponibles</h4><ul>'; foreach ($brief['must_cover'] as $item) echo '<li>' . esc_html(wp_trim_words($item,35,'…')) . '</li>'; echo '</ul>'; }
-        if ($brief['preserve']) { echo '<h4>Contenido previo que no debe duplicarse</h4><ul>'; foreach ($brief['preserve'] as $item) echo '<li>' . esc_html($item) . '</li>'; echo '</ul>'; }
+        echo '<section><h3>5. Brief para Editora</h3>';
+        echo '<p><strong>Título propuesto:</strong> ' . esc_html($brief['topic']) . '</p>';
+        echo '<p><strong>Product_cat:</strong> #' . esc_html($brief['primary_category_id'] ?: '—') . '</p>';
+        if ($brief['questions']) { echo '<h4>Preguntas que debe resolver el post</h4><ul>'; foreach ($brief['questions'] as $q) echo '<li>' . esc_html($q) . '</li>'; echo '</ul>'; }
+        if ($brief['preserve']) { echo '<h4>Contenido existente que no debe duplicarse</h4><ul>'; foreach ($brief['preserve'] as $item) echo '<li>' . esc_html($item) . '</li>'; echo '</ul>'; }
         if ($brief['links']) { echo '<h4>Enlaces internos recomendados</h4><ul>'; foreach ($brief['links'] as $link) echo '<li><a href="' . esc_url($link['url']) . '" target="_blank" rel="noopener">' . esc_html($link['label']) . '</a></li>'; echo '</ul>'; }
-        if ($brief['technical_sources']) { echo '<h4>Fuentes técnicas verificadas</h4><ul>'; foreach ($brief['technical_sources'] as $src) echo '<li><a href="' . esc_url($src['url']) . '" target="_blank" rel="noopener">' . esc_html(($src['title'] ?? '') ?: $src['url']) . '</a> · ' . esc_html($src['source_type']) . ' · ' . esc_html($src['trust_level']) . '</li>'; echo '</ul>'; }
-        echo '<p class="description"><strong>La Editora decide la redacción:</strong> Solucionador no fija extensión, estilo, frases, introducción ni texto final.</p>';
+        echo '<p><strong>Vocabulary:</strong></p>' . self::vocab_chips($topic);
+        echo '<p class="description"><strong>Editora redacta.</strong> Solucionador no publica literalmente respuestas internas de Academia ni fija el texto final.</p>';
         echo '</section>';
 
-        echo '<section><h3>9. Seguimiento</h3>';
-        echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>Fecha</th><th>Entidad</th><th>Impresiones</th><th>Clics</th><th>Posición</th><th>Sesiones</th><th>Vistas</th><th>Resultado</th></tr></thead><tbody>';
-        if (!$brief['tracking']) echo '<tr><td colspan="8">Aún no hay snapshots posteriores asociados.</td></tr>';
-        foreach ($brief['tracking'] as $row) {
-            echo '<tr><td>' . esc_html((string)($row['snapshot_at'] ?? '')) . '</td><td>' . esc_html((string)($row['entity_type'] ?? '')) . ' #' . esc_html(absint($row['entity_id'] ?? 0)) . '</td><td>' . esc_html(number_format_i18n(absint($row['impressions'] ?? 0))) . '</td><td>' . esc_html(number_format_i18n(absint($row['clicks'] ?? 0))) . '</td><td>' . esc_html(number_format_i18n((float)($row['position'] ?? 0),1)) . '</td><td>' . esc_html(number_format_i18n(absint($row['sessions'] ?? 0))) . '</td><td>' . esc_html(number_format_i18n(absint($row['pageviews'] ?? 0))) . '</td><td>' . esc_html((string)($row['outcome_state'] ?? '')) . '</td></tr>';
-        }
-        echo '</tbody></table></div>';
-        echo '<h4>Historial de workflow</h4><ul>';
-        if (!$brief['workflow']) echo '<li>Sin cambios manuales registrados todavía.</li>';
-        foreach ($brief['workflow'] as $row) echo '<li><strong>' . esc_html(self::workflow_label((string)($row['to_state'] ?? ''))) . '</strong> · ' . esc_html((string)($row['created_at'] ?? '')) . ' · usuario #' . esc_html(absint($row['user_id'] ?? 0) ?: 'sistema') . ' · ' . esc_html((string)($row['reason'] ?? '')) . '</li>';
-        echo '</ul></section>';
-
+        echo '<section><h3>6. Workflow</h3><ul>';
+        if (!$brief['workflow']) echo '<li>Sin cambios humanos registrados todavía.</li>';
+        foreach ($brief['workflow'] as $row) echo '<li><strong>' . esc_html(self::workflow_label((string)($row['to_state'] ?? ''))) . '</strong> · ' . esc_html((string)($row['created_at'] ?? '')) . ' · ' . esc_html((string)($row['reason'] ?? '')) . '</li>';
+        echo '</ul><p class="description">Los KPIs globales posteriores a publicación pertenecen a Analista.</p></section>';
         echo '</div></div>';
     }
 
@@ -1064,141 +726,61 @@ final class SEO_Solucionador_Admin {
     private static function render_proposals() {
         global $wpdb;
         $topics_table = SEO_Solucionador_DB::topics_table();
-        $evidence_table = SEO_Solucionador_DB::evidence_table();
-
         $rows = (array) $wpdb->get_results(
             "SELECT * FROM {$topics_table}
-             ORDER BY priority_score DESC,evidence_total DESC,id DESC
-             LIMIT 1200",
+             WHERE intent='dependiente_qa_basic'
+             ORDER BY priority_score DESC,dossier_question_count DESC,id DESC
+             LIMIT 1500",
             ARRAY_A
         );
 
-        $category_filter = absint($_GET['sol_category'] ?? 0);
-        $cluster_filter = absint($_GET['sol_cluster'] ?? 0);
-        $source_filter = sanitize_key(wp_unslash($_GET['sol_source'] ?? ''));
-        $action_filter = strtoupper(sanitize_text_field(wp_unslash($_GET['sol_action'] ?? '')));
-        $coverage_filter = sanitize_key(wp_unslash($_GET['sol_coverage'] ?? ''));
-        $priority_filter = sanitize_key(wp_unslash($_GET['sol_priority'] ?? ''));
-        $state_filter = sanitize_key(wp_unslash($_GET['sol_state'] ?? ''));
+        $category_filter = isset($_GET['sol_category']) ? absint(wp_unslash($_GET['sol_category'])) : 0;
+        $action_filter = isset($_GET['sol_action']) ? strtoupper(sanitize_text_field(wp_unslash($_GET['sol_action']))) : '';
+        $coverage_filter = isset($_GET['sol_coverage']) ? sanitize_key(wp_unslash($_GET['sol_coverage'])) : '';
+        $state_filter = isset($_GET['sol_state']) ? sanitize_key(wp_unslash($_GET['sol_state'])) : '';
 
-        $source_topic_ids = array();
-        if ($source_filter !== '' && SEO_Solucionador_DB::table_exists($evidence_table)) {
-            $source_topic_ids = array_flip(array_map('absint',(array) $wpdb->get_col($wpdb->prepare(
-                "SELECT DISTINCT topic_id FROM {$evidence_table} WHERE source_type=%s",
-                $source_filter
-            ))));
-        }
-
-        $clusters = array();
         $categories = array();
         foreach ($rows as $row) {
-            $hierarchy = SEO_Solucionador_DB::hierarchy($row);
-            $cluster = (array) ($hierarchy['cluster'] ?? array());
-            if (!empty($cluster['id'])) $clusters[absint($cluster['id'])] = (string) ($cluster['name'] ?? ('#' . absint($cluster['id'])));
-            $term_id = absint($row['primary_category_id'] ?? 0);
+            $term_id=absint($row['primary_category_id'] ?? 0);
             if ($term_id && !isset($categories[$term_id])) {
-                $term = get_term($term_id,'product_cat');
-                $categories[$term_id] = ($term && !is_wp_error($term)) ? (string) $term->name : ('#' . $term_id);
+                $term=get_term($term_id,'product_cat');
+                $categories[$term_id]=($term&&!is_wp_error($term))?(string)$term->name:('#'.$term_id);
             }
         }
-        asort($clusters,SORT_NATURAL|SORT_FLAG_CASE);
         asort($categories,SORT_NATURAL|SORT_FLAG_CASE);
 
-        $rows = array_values(array_filter($rows,static function($row) use ($category_filter,$cluster_filter,$source_filter,$source_topic_ids,$action_filter,$coverage_filter,$priority_filter,$state_filter) {
-            if ($category_filter && absint($row['primary_category_id'] ?? 0) !== $category_filter) return false;
-            if ($source_filter !== '' && empty($source_topic_ids[absint($row['id'] ?? 0)])) return false;
-            if ($action_filter !== '' && strtoupper((string)($row['recommended_action'] ?? '')) !== $action_filter) return false;
-            if ($coverage_filter !== '' && sanitize_key((string)($row['coverage_status'] ?? '')) !== $coverage_filter) return false;
-            if ($state_filter !== '' && sanitize_key((string)($row['workflow_state'] ?? '')) !== $state_filter) return false;
-            if ($cluster_filter) {
-                $hier = SEO_Solucionador_DB::hierarchy($row);
-                if (absint($hier['cluster']['id'] ?? 0) !== $cluster_filter) return false;
-            }
-            $priority = (float) ($row['priority_score'] ?? 0);
-            if ($priority_filter === 'high' && $priority < 70) return false;
-            if ($priority_filter === 'medium' && ($priority < 40 || $priority >= 70)) return false;
-            if ($priority_filter === 'low' && $priority >= 40) return false;
+        $rows=array_values(array_filter($rows,static function($row) use($category_filter,$action_filter,$coverage_filter,$state_filter){
+            if($category_filter && absint($row['primary_category_id'] ?? 0)!==$category_filter)return false;
+            if($action_filter!=='' && strtoupper((string)($row['recommended_action'] ?? ''))!==$action_filter)return false;
+            if($coverage_filter!=='' && sanitize_key((string)($row['coverage_status'] ?? ''))!==$coverage_filter)return false;
+            if($state_filter!=='' && sanitize_key((string)($row['workflow_state'] ?? ''))!==$state_filter)return false;
             return true;
         }));
 
-        $source_options = SEO_Solucionador_DB::table_exists($evidence_table)
-            ? (array) $wpdb->get_col("SELECT DISTINCT source_type FROM {$evidence_table} ORDER BY source_type ASC")
-            : array();
+        $detail_id=isset($_GET['topic_id'])?absint(wp_unslash($_GET['topic_id'])):(isset($_GET['brief_topic_id'])?absint(wp_unslash($_GET['brief_topic_id'])):0);
+        if($detail_id){$detail=SEO_Solucionador_DB::get_topic($detail_id);if($detail)self::render_opportunity_detail($detail);}
 
-        $detail_id = absint($_GET['topic_id'] ?? $_GET['brief_topic_id'] ?? 0);
-        if ($detail_id) {
-            $detail = SEO_Solucionador_DB::get_topic($detail_id);
-            if ($detail) self::render_opportunity_detail($detail);
-        }
+        echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Dossiers y propuestas editoriales</h2>';
+        echo '<p class="description">Una fila representa un dossier de <strong>Academia por product_cat</strong>, no una pregunta aislada. Las únicas salidas son crear post, mejorar post, fusionar, no actuar o aplazar/revisar.</p>';
+        echo '<form method="get" class="seo-sol-filters"><input type="hidden" name="page" value="seo-solucionador"><input type="hidden" name="tab" value="proposals">';
+        echo '<label>Categoría<select name="sol_category"><option value="0">Todas</option>';foreach($categories as $id=>$name)echo '<option value="' . esc_attr($id) . '" ' . selected($category_filter,$id,false) . '>' . esc_html($name) . ' (#' . esc_html($id) . ')</option>';echo '</select></label>';
+        echo '<label>Acción<select name="sol_action"><option value="">Todas</option>';foreach(array('CREATE_POST','IMPROVE_POST','MERGE_CONTENT','NO_ACTION','DEFER') as $action)echo '<option value="' . esc_attr($action) . '" ' . selected($action_filter,$action,false) . '>' . esc_html(self::action_label($action)) . '</option>';echo '</select></label>';
+        echo '<label>Cobertura<select name="sol_coverage"><option value="">Todas</option>';foreach(array('uncovered','weak_coverage','partial_coverage','covered','duplicate','conflict') as $status)echo '<option value="' . esc_attr($status) . '" ' . selected($coverage_filter,$status,false) . '>' . esc_html(self::coverage_label($status)) . '</option>';echo '</select></label>';
+        echo '<label>Estado<select name="sol_state"><option value="">Todos</option>';foreach(SEO_Solucionador_DB::workflow_states() as $state)echo '<option value="' . esc_attr($state) . '" ' . selected($state_filter,$state,false) . '>' . esc_html(self::workflow_label($state)) . '</option>';echo '</select></label>';
+        echo '<div><button class="button button-primary" type="submit">Filtrar</button> <a class="button" href="' . esc_url(self::url('proposals')) . '">Limpiar</a></div></form>';
 
-        echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Oportunidades y decisiones editoriales</h2>';
-        echo '<p class="description">Una fila representa un <strong>tema canónico</strong>, no una pregunta aislada. La decisión sigue el orden: comprobar cobertura → mejorar/fusionar → investigar si falta conocimiento → crear URL solo como última opción.</p>';
-
-        echo '<form method="get" class="seo-sol-filters">';
-        echo '<input type="hidden" name="page" value="seo-solucionador"><input type="hidden" name="tab" value="proposals">';
-
-        echo '<label>Categoría<select name="sol_category"><option value="0">Todas</option>';
-        foreach ($categories as $id=>$name) echo '<option value="' . esc_attr($id) . '" ' . selected($category_filter,$id,false) . '>' . esc_html($name) . ' (#' . esc_html($id) . ')</option>';
-        echo '</select></label>';
-
-        echo '<label>Cluster<select name="sol_cluster"><option value="0">Todos</option>';
-        foreach ($clusters as $id=>$name) echo '<option value="' . esc_attr($id) . '" ' . selected($cluster_filter,$id,false) . '>' . esc_html($name) . '</option>';
-        echo '</select></label>';
-
-        echo '<label>Fuente<select name="sol_source"><option value="">Todas</option>';
-        foreach ($source_options as $source) echo '<option value="' . esc_attr($source) . '" ' . selected($source_filter,$source,false) . '>' . esc_html($source) . '</option>';
-        echo '</select></label>';
-
-        $actions = array('NO_ACTION','IMPROVE_POST','IMPROVE_LANDING','IMPROVE_CATEGORY','IMPROVE_PAGE','MERGE_CONTENT','CREATE_POST','CREATE_LANDING','INVESTIGATE','DEFER');
-        echo '<label>Acción<select name="sol_action"><option value="">Todas</option>';
-        foreach ($actions as $action) echo '<option value="' . esc_attr($action) . '" ' . selected($action_filter,$action,false) . '>' . esc_html(self::action_label($action)) . '</option>';
-        echo '</select></label>';
-
-        echo '<label>Cobertura<select name="sol_coverage"><option value="">Todas</option>';
-        foreach (array('uncovered','weak_coverage','partial_coverage','covered','duplicate','conflict') as $status) echo '<option value="' . esc_attr($status) . '" ' . selected($coverage_filter,$status,false) . '>' . esc_html(self::coverage_label($status)) . '</option>';
-        echo '</select></label>';
-
-        echo '<label>Prioridad<select name="sol_priority"><option value="">Todas</option><option value="high" ' . selected($priority_filter,'high',false) . '>70–100</option><option value="medium" ' . selected($priority_filter,'medium',false) . '>40–69</option><option value="low" ' . selected($priority_filter,'low',false) . '>0–39</option></select></label>';
-
-        echo '<label>Estado<select name="sol_state"><option value="">Todos</option>';
-        foreach (SEO_Solucionador_DB::workflow_states() as $state) echo '<option value="' . esc_attr($state) . '" ' . selected($state_filter,$state,false) . '>' . esc_html(self::workflow_label($state)) . '</option>';
-        echo '</select></label>';
-
-        echo '<div><button class="button button-primary" type="submit">Filtrar</button> <a class="button" href="' . esc_url(self::url('proposals')) . '">Limpiar</a></div>';
-        echo '</form>';
-
-        echo '<p><strong>' . esc_html(number_format_i18n(count($rows))) . '</strong> oportunidades con los filtros actuales.</p>';
-        echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>Prioridad</th><th>Tema / categoría</th><th>Evidencias</th><th>Cobertura / riesgos</th><th>Decisión</th><th>Workflow</th><th>Acción</th></tr></thead><tbody>';
-        if (!$rows) echo '<tr><td colspan="7">No hay oportunidades con estos filtros.</td></tr>';
-
-        foreach (array_slice($rows,0,500) as $row) {
-            $topic_id = absint($row['id'] ?? 0);
-            $term_id = absint($row['primary_category_id'] ?? 0);
-            $category_name = $term_id ? ($categories[$term_id] ?? ('#' . $term_id)) : 'Sin categoría principal';
-            $source_counts = array();
-            if ($topic_id && SEO_Solucionador_DB::table_exists($evidence_table)) {
-                foreach ((array) $wpdb->get_results($wpdb->prepare(
-                    "SELECT source_type,SUM(occurrences) total FROM {$evidence_table} WHERE topic_id=%d GROUP BY source_type ORDER BY total DESC",
-                    $topic_id
-                ),ARRAY_A) as $src) {
-                    $source_counts[] = (string)$src['source_type'] . ' ' . number_format_i18n(absint($src['total'] ?? 0));
-                }
-            }
-
-            echo '<tr>';
-            echo '<td><strong class="seo-sol-score">' . esc_html(number_format_i18n((float)($row['priority_score'] ?? 0),0)) . '</strong>/100</td>';
-            echo '<td><strong>' . esc_html((string)(($row['suggested_title'] ?? '') ?: ($row['canonical_question'] ?? ''))) . '</strong><br><span class="description">' . esc_html($category_name) . ($term_id ? ' (#' . $term_id . ')' : '') . '</span><br><code>' . esc_html((string)($row['canonical_key'] ?? '')) . '</code></td>';
-            echo '<td>' . ($source_counts ? esc_html(implode(' · ',$source_counts)) : '—') . '</td>';
-            echo '<td><strong>' . esc_html(self::coverage_label((string)($row['coverage_status'] ?? 'uncovered'))) . '</strong><br><small>dup. ' . esc_html(number_format_i18n((float)($row['duplication_risk'] ?? 0),0)) . '/100 · canib. ' . esc_html(number_format_i18n((float)($row['cannibalization_risk'] ?? 0),0)) . '/100</small></td>';
-            echo '<td><strong>' . esc_html(self::action_label((string)($row['recommended_action'] ?? 'DEFER'))) . '</strong><br><small>' . esc_html(wp_trim_words((string)($row['decision_reason'] ?? ''),24,'…')) . '</small></td>';
-            echo '<td><strong>' . esc_html(self::workflow_label((string)($row['workflow_state'] ?? 'detected'))) . '</strong><br><small>' . esc_html((string)($row['knowledge_status'] ?? '')) . '</small></td>';
-
-            echo '<td><a class="button button-primary button-small" href="' . esc_url(self::url('proposals',array('topic_id'=>$topic_id))) . '#opportunity">Abrir ficha</a>';
-            $edit = self::entity_edit_url((string)($row['existing_entity_type'] ?? ''),absint($row['existing_entity_id'] ?? 0));
-            if ($edit) echo '<br><a class="button button-small" style="margin-top:5px" href="' . esc_url($edit) . '">Editar existente</a>';
-            $draft = absint($row['draft_post_id'] ?? 0);
-            if ($draft && get_post_type($draft)==='post' && get_post_status($draft)!=='trash') echo '<br><a style="margin-top:5px;display:inline-block" href="' . esc_url(SEO_Solucionador_Posts::edit_url($draft)) . '">Abrir borrador #' . esc_html($draft) . '</a>';
-            echo '</td></tr>';
+        echo '<p><strong>' . esc_html(number_format_i18n(count($rows))) . '</strong> dossiers con los filtros actuales.</p>';
+        echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>Prioridad</th><th>Categoría / dossier</th><th>Preguntas</th><th>Cobertura</th><th>Decisión</th><th>Workflow</th><th></th></tr></thead><tbody>';
+        if(!$rows)echo '<tr><td colspan="7">No hay dossiers con estos filtros.</td></tr>';
+        foreach(array_slice($rows,0,700) as $row){
+            $topic_id=absint($row['id'] ?? 0);$term_id=absint($row['primary_category_id'] ?? 0);$category_name=$term_id?($categories[$term_id] ?? ('#'.$term_id)):'Sin categoría';
+            echo '<tr><td><strong class="seo-sol-score">' . esc_html(number_format_i18n((float)($row['priority_score'] ?? 0),0)) . '</strong>/100</td>';
+            echo '<td><strong>' . esc_html($category_name) . '</strong><br><span class="description">' . esc_html((string)($row['suggested_title'] ?? '')) . '</span><br><code>' . esc_html((string)($row['canonical_key'] ?? '')) . '</code></td>';
+            echo '<td><strong>' . esc_html(number_format_i18n(absint($row['dossier_question_count'] ?? 0))) . '</strong><br><small>score ' . esc_html(number_format_i18n((float)($row['dossier_score'] ?? 0)*100,0)) . '%</small></td>';
+            echo '<td><strong>' . esc_html(self::coverage_label((string)($row['coverage_status'] ?? 'uncovered'))) . '</strong><br><small>dup. ' . esc_html(number_format_i18n((float)($row['duplication_risk'] ?? 0),0)) . '/100</small></td>';
+            echo '<td><strong>' . esc_html(self::action_label((string)($row['recommended_action'] ?? 'DEFER'))) . '</strong><br><small>' . esc_html(wp_trim_words((string)($row['decision_reason'] ?? ''),22,'…')) . '</small></td>';
+            echo '<td>' . esc_html(self::workflow_label((string)($row['workflow_state'] ?? 'detected'))) . '</td>';
+            echo '<td><a class="button button-primary button-small" href="' . esc_url(self::url('proposals',array('topic_id'=>$topic_id))) . '#opportunity">Abrir dossier</a></td></tr>';
         }
         echo '</tbody></table></div></div>';
     }
@@ -1251,71 +833,39 @@ final class SEO_Solucionador_Admin {
     }
 
     private static function render_sources() {
-        global $wpdb;
-        $e = SEO_Solucionador_DB::evidence_table();
-        $counts = SEO_Solucionador_DB::table_exists($e)
-            ? (array) $wpdb->get_results("SELECT source_type,SUM(occurrences) evidence FROM {$e} GROUP BY source_type ORDER BY evidence DESC", ARRAY_A)
-            : array();
-        echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Fuentes del Solucionador</h2>';
-        echo '<p><strong>Dependiente / Intérprete · demanda real:</strong> conserva las consultas de visitantes, intent, objeto, contexto, resultados y feedback.</p>';
-        echo '<p><strong>Dependiente / Academia · conocimiento aprendido:</strong> Solucionador lee las preguntas cuyo último run está validado <code>pass_*</code>, conserva su resultado y las agrupa por <code>product_cat</code> en dossiers editoriales. Dependiente no se modifica ni se vuelve a entrenar desde aquí.</p>';
-        echo '<p><strong>Analista:</strong> las busquedas internas pueden originar propuestas. El plan de decision normalmente solo refuerza; MEJORAR_PRODUCTO/IMPULSAR_CATEGORIA no se convierten en preguntas de cliente.</p>';
-        echo '<p><strong>Auditor:</strong> aporta diagnóstico, carencias y cobertura; Solucionador decide si esos hallazgos requieren actuación editorial.</p>';
-        echo '<p><strong>Comentarista:</strong> aporta problemas o preguntas observadas en experiencias externas almacenadas.</p>';
-        echo '<p><strong>Ojeador:</strong> aporta conclusiones de mercado y oportunidad ya calculadas; Solucionador no consulta Google Shopping por su cuenta.</p>';
-        echo '<p><strong>Comparador:</strong> cuando publique su análisis ampliado, aporta tipologías, configuraciones, factores decisivos, ventajas/limitaciones y referencias representativas mediante un contrato normalizado. Solucionador no repite su cálculo.</p>';
-        echo '<p><strong>Ingeniero:</strong> aporta conocimiento técnico validado por categoría, con fuentes, URL, tipo, confianza y fecha.</p>';
-        echo '<p><strong>Clasificador:</strong> aporta huecos y estructura semántica detectados a partir del catálogo y de Ingeniero.</p>';
-        echo '<p><strong>Marketing:</strong> puede reforzar prioridad comercial, campaña o estacionalidad; nunca origina por sí solo una URL nueva.</p>';
-        echo '<p><strong>Entradas/Páginas/Categorías:</strong> aportan inventario, rendimiento y cobertura; sus editores quedan como lugares de ejecución.</p>';
+        $academy = SEO_Solucionador_Sources::dependiente_academia_snapshot();
+        echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Academia / Entrenador</h2>';
+        echo '<p><strong>Único origen editorial:</strong> preguntas activas cuyo último run está <code>answered</code> y <code>evaluation_status = pass_*</code>. Solucionador no modifica Dependiente ni vuelve a entrenarlo.</p>';
+        echo '<p>La categoría se acepta sólo cuando puede demostrarse mediante <code>expected_json</code>, producto o propietario de FAQ. Nunca se infiere por parecido textual.</p>';
+        echo '<div class="seo-sol-grid">';
+        self::card('Preguntas activas',absint($academy['questions_total'] ?? 0),'Currículo de Academia.');
+        self::card('Aprendidas',absint($academy['learned'] ?? 0),'Último run validado pass_*.');
+        self::card('No aprendidas',absint($academy['not_learned'] ?? 0),'Todavía sin pass_*.');
+        self::card('Con categoría',absint($academy['learned_with_category'] ?? 0),'Pueden alimentar un dossier.');
+        self::card('Sin categoría',absint($academy['learned_without_category'] ?? 0),'No generan dossier ni URL.');
+        self::card('Categorías con conocimiento',absint($academy['categories_with_knowledge'] ?? 0),'Dossiers detectados.');
+        self::card('Categorías sin conocimiento',absint($academy['categories_without_knowledge'] ?? 0),'product_cat sin dossier aprendido.');
+        self::card('Media preguntas / categoría',(float)($academy['avg_questions_per_category'] ?? 0),'Asignaciones por dossier.');
+        echo '</div>';
+        echo '<p class="description">Último run de Academia: <strong>' . esc_html((string)(($academy['last_run_at'] ?? '') ?: '—')) . '</strong>.</p>';
+
+        echo '<h3>Demanda real de Dependiente</h3>';
+        echo '<p><code>seo_dependiente_search_log</code> se conserva únicamente como refuerzo ligero de prioridad para categorías que ya tienen dossier. No origina temas independientes y no carga <code>top_results</code> completos.</p>';
         self::render_service_snapshot();
 
-        if (class_exists('SEO_Solucionador_Sources') && method_exists('SEO_Solucionador_Sources','dependiente_academia_snapshot')) {
-            $academy = SEO_Solucionador_Sources::dependiente_academia_snapshot();
-            echo '<h3>Dependiente / Academia · cobertura del conocimiento aprendido</h3>';
-            echo '<div class="seo-sol-grid">';
-            self::card('Preguntas Academia', absint($academy['questions_total'] ?? 0), 'Preguntas activas del currículo con seguimiento.');
-            self::card('Aprendidas', absint($academy['learned'] ?? 0), 'Último run respondido con evaluation_status pass_*.');
-            self::card('No aprendidas', absint($academy['not_learned'] ?? 0), 'Sin pass_* en su última ejecución o todavía sin ejecución.');
-            self::card('Aprendidas con categoría', absint($academy['learned_with_category'] ?? 0), 'Pueden formar parte de un dossier editorial.');
-            self::card('Aprendidas sin categoría', absint($academy['learned_without_category'] ?? 0), 'No se fuerza una asociación si product_cat no puede demostrarse.');
-            self::card('Categorías con conocimiento', absint($academy['categories_with_knowledge'] ?? 0), 'Dossiers que Solucionador puede analizar.');
-            self::card('Categorías sin conocimiento', absint($academy['categories_without_knowledge'] ?? 0), 'product_cat existentes todavía sin preguntas aprendidas asociables.');
-            self::card('Media preguntas / categoría', (float)($academy['avg_questions_per_category'] ?? 0), 'Asignaciones aprendidas entre categorías con conocimiento.');
-            echo '</div>';
-            echo '<p class="description">Última ejecución de Academia: <strong>' . esc_html((string)(($academy['last_run_at'] ?? '') ?: '—')) . '</strong>. Un dossier no implica automáticamente CREATE_POST: después se comprueban cobertura, conocimiento, duplicación y canibalización.</p>';
-        }
-
-        if ($counts) {
-            echo '<h3>Evidencias acumuladas en propuestas</h3><ul>';
-            foreach ($counts as $row) echo '<li><strong>' . esc_html((string) $row['source_type']) . ':</strong> ' . esc_html(number_format_i18n(absint($row['evidence'] ?? 0))) . '</li>';
-            echo '</ul>';
-        }
+        echo '<h3>Servicios fuera de Solucionador</h3>';
+        echo '<p>Ingeniero, Ojeador/Comparador, Clasificador, Marketing, Comentarista, Auditor y Analista mantienen procesos independientes. <strong>Analista</strong> es la fuente de KPIs globales posteriores a publicación.</p>';
         echo '</div>';
     }
 
     private static function render_tests() {
-        echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Tests funcionales obligatorios · RF v1.0</h2>';
-        echo '<p class="description">Regresiones deterministas definidas por Dirección/Editora/Marketing. No crean, editan ni publican contenido.</p>';
-
-        if (!class_exists('SEO_Solucionador_Tests')) {
-            echo '<div class="notice notice-error inline"><p>No está cargado el módulo de tests.</p></div></div>';
-            return;
-        }
-
+        echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Tests · Arquitectura separada</h2>';
+        echo '<p class="description">Regresiones sin publicación automática para comprobar dossiers de Academia, cobertura, decisiones básicas, lotes y rol <code>dependiente_qa_basic</code>.</p>';
         $report = SEO_Solucionador_Tests::run();
-        $ok = !empty($report['ok']);
-        echo '<div class="notice notice-' . ($ok ? 'success' : 'error') . ' inline"><p><strong>' . esc_html(number_format_i18n(absint($report['passed'] ?? 0))) . '/' . esc_html(number_format_i18n(absint($report['total'] ?? 0))) . ' tests superados.</strong>';
-        if (!$ok) echo ' No debe promocionarse a producción hasta revisar los fallos.';
-        echo '</p></div>';
-
-        echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>Test</th><th>Resultado</th><th>Esperado</th><th>Obtenido</th><th>Regla</th></tr></thead><tbody>';
-        foreach ((array)($report['tests'] ?? array()) as $row) {
-            echo '<tr><td><strong>#' . esc_html(absint($row['id'] ?? 0)) . ' · ' . esc_html((string)($row['name'] ?? '')) . '</strong></td>';
-            echo '<td><strong style="color:' . (!empty($row['pass']) ? '#008a20' : '#b32d2e') . '">' . (!empty($row['pass']) ? 'OK' : 'FALLO') . '</strong></td>';
-            echo '<td>' . esc_html((string)($row['expected'] ?? '')) . '</td>';
-            echo '<td><code>' . esc_html((string)($row['actual'] ?? '')) . '</code></td>';
-            echo '<td>' . esc_html((string)($row['detail'] ?? '')) . '</td></tr>';
+        echo '<p><strong>' . esc_html(absint($report['passed'] ?? 0)) . '/' . esc_html(absint($report['total'] ?? 0)) . '</strong> pruebas superadas.</p>';
+        echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>Test</th><th>Resultado</th><th>Esperado</th><th>Actual</th><th>Regla</th></tr></thead><tbody>';
+        foreach((array)($report['tests'] ?? array()) as $row){
+            echo '<tr><td><strong>' . esc_html((string)($row['name'] ?? '')) . '</strong></td><td>' . (!empty($row['pass'])?'<strong style="color:#008a20">OK</strong>':'<strong style="color:#b32d2e">FALLO</strong>') . '</td><td>' . esc_html((string)($row['expected'] ?? '')) . '</td><td>' . esc_html((string)($row['actual'] ?? '')) . '</td><td>' . esc_html((string)($row['detail'] ?? '')) . '</td></tr>';
         }
         echo '</tbody></table></div></div>';
     }
