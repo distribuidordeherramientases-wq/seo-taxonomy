@@ -5013,11 +5013,13 @@ final class SEO_Dependiente_Entrenador {
         if(null!==$cache)return $cache;
         global $wpdb;
         $cache=array();
+        $questions_table = self::questions_table();
         $previous=array('v2_l1_categories','v2_l2_inventory','v2_l3_type_role','v2_l4_features','v2_l5_editorial','v2_l6_faq','v2_l7_cross');
         $per=max(20,(int)floor(self::MAX_EXAM_SOURCES/count($previous)));
         foreach($previous as $lesson_key){
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia questions table; lesson key and LIMIT are bound through prepare().
             $rows=(array)$wpdb->get_results($wpdb->prepare(
-                'SELECT id,source_type,source_id,source_key,question_type,mode,question,expected_json FROM '.self::questions_table().' WHERE lesson_key=%s AND enabled=1 ORDER BY id ASC LIMIT %d',
+                "SELECT id,source_type,source_id,source_key,question_type,mode,question,expected_json FROM {$questions_table} WHERE lesson_key=%s AND enabled=1 ORDER BY id ASC LIMIT %d",
                 $lesson_key,$per
             ),ARRAY_A);
             foreach($rows as $row){
@@ -5042,8 +5044,10 @@ final class SEO_Dependiente_Entrenador {
         $source_key = sanitize_text_field((string) ($item['source_key'] ?? ''));
         $normalized = class_exists('SEO_Dependiente_Index') ? SEO_Dependiente_Index::normalize($question) : strtolower($question);
         $hash = hash('sha256', $lesson_key . '|' . $source_key . '|' . $normalized);
+        $questions_table = self::questions_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia questions table; question hash is bound through prepare().
         $exists = absint($wpdb->get_var($wpdb->prepare(
-            'SELECT id FROM ' . self::questions_table() . ' WHERE question_hash = %s LIMIT 1',
+            "SELECT id FROM {$questions_table} WHERE question_hash = %s LIMIT 1",
             $hash
         )));
         if ($exists) {
@@ -5052,7 +5056,7 @@ final class SEO_Dependiente_Entrenador {
 
         $module_size = max(1, absint($definition['module_size'] ?? 25));
         $module_no = (int) ceil(max(1, $sequence) / $module_size);
-        $inserted = $wpdb->insert(self::questions_table(), array(
+        $inserted = $wpdb->insert($questions_table, array(
             'question_hash' => $hash,
             'lesson_key'    => $lesson_key,
             'lesson_order'  => absint($definition['order'] ?? 0),
@@ -5275,20 +5279,24 @@ final class SEO_Dependiente_Entrenador {
 
     private static function clear_lesson_data($lesson_key) {
         global $wpdb;
+        $questions_table = self::questions_table();
+        $runs_table = self::runs_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia questions table; lesson key is bound through prepare().
         $question_ids = (array) $wpdb->get_col($wpdb->prepare(
-            'SELECT id FROM ' . self::questions_table() . ' WHERE lesson_key = %s',
+            "SELECT id FROM {$questions_table} WHERE lesson_key = %s",
             $lesson_key
         ));
         if ($question_ids) {
             $ids = array_values(array_filter(array_map('absint', $question_ids)));
             if ($ids) {
                 $placeholders = implode(',', array_fill(0, count($ids), '%d'));
-                $sql = $wpdb->prepare('DELETE FROM ' . self::runs_table() . " WHERE question_id IN ({$placeholders})", $ids);
-                $wpdb->query($sql);
+                $sql = "DELETE FROM {$runs_table} WHERE question_id IN ({$placeholders})";
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal runs table plus generated %d placeholders; all question IDs are bound through prepare().
+                $wpdb->query($wpdb->prepare($sql, $ids));
             }
         }
-        $wpdb->delete(self::runs_table(), array('lesson_key' => $lesson_key));
-        $wpdb->delete(self::questions_table(), array('lesson_key' => $lesson_key));
+        $wpdb->delete($runs_table, array('lesson_key' => $lesson_key));
+        $wpdb->delete($questions_table, array('lesson_key' => $lesson_key));
     }
 
     private static function prepare_response($lesson_key, $done) {
@@ -5308,10 +5316,13 @@ final class SEO_Dependiente_Entrenador {
 
     private static function pending_module_questions($lesson_key, $module_no, $limit) {
         global $wpdb;
+        $questions_table = self::questions_table();
+        $runs_table = self::runs_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia tables; lesson key, module and LIMIT are bound through prepare().
         return (array) $wpdb->get_results($wpdb->prepare(
             "SELECT q.*
-             FROM " . self::questions_table() . " q
-             LEFT JOIN " . self::runs_table() . " r
+             FROM {$questions_table} q
+             LEFT JOIN {$runs_table} r
                ON r.question_id = q.id
               AND r.lesson_key = q.lesson_key
               AND r.status = 'answered'
@@ -5405,16 +5416,19 @@ final class SEO_Dependiente_Entrenador {
             return 0;
         }
 
+        $runs_table = self::runs_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia runs table; question ID and lesson key are bound through prepare().
         $existing_answered = absint($wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM " . self::runs_table() . " WHERE question_id = %d AND lesson_key = %s AND status = 'answered' ORDER BY id DESC LIMIT 1",
+            "SELECT id FROM {$runs_table} WHERE question_id = %d AND lesson_key = %s AND status = 'answered' ORDER BY id DESC LIMIT 1",
             $question_id,
             (string) $question['lesson_key']
         )));
         if ($existing_answered) {
             return $existing_answered;
         }
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia runs table; question ID and lesson key are bound through prepare().
         $wpdb->query($wpdb->prepare(
-            "DELETE FROM " . self::runs_table() . " WHERE question_id = %d AND lesson_key = %s AND status = 'error'",
+            "DELETE FROM {$runs_table} WHERE question_id = %d AND lesson_key = %s AND status = 'error'",
             $question_id,
             (string) $question['lesson_key']
         ));
@@ -5643,7 +5657,7 @@ final class SEO_Dependiente_Entrenador {
             ? $compact_results
             : ($is_related_only ? $related_top_results : ($compact_results ?: $related_top_results));
 
-        $inserted = $wpdb->insert(self::runs_table(), array(
+        $inserted = $wpdb->insert($runs_table, array(
             'batch_uuid'        => $batch_uuid,
             'lesson_key'        => sanitize_key((string) ($question['lesson_key'] ?? '')),
             'module_no'         => absint($question['module_no'] ?? 0),
