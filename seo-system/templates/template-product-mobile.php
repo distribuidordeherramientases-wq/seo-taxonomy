@@ -178,6 +178,28 @@ $product_tag_terms = (!is_wp_error($product_tag_terms) && is_array($product_tag_
     ? array_values($product_tag_terms)
     : array();
 
+/*
+ * Clasificación compacta visible en la compra:
+ * categorías product_cat asignadas + ancestros para conservar contexto.
+ */
+$product_category_terms = get_the_terms($product_id, 'product_cat');
+$product_category_terms = (!is_wp_error($product_category_terms) && is_array($product_category_terms))
+    ? array_values($product_category_terms)
+    : array();
+
+$classification_category_terms = array();
+foreach ($product_category_terms as $product_category_term) {
+    $ancestor_ids = array_reverse(get_ancestors($product_category_term->term_id, 'product_cat', 'taxonomy'));
+    foreach ($ancestor_ids as $ancestor_id) {
+        $ancestor_term = get_term(absint($ancestor_id), 'product_cat');
+        if ($ancestor_term instanceof WP_Term && !is_wp_error($ancestor_term)) {
+            $classification_category_terms[$ancestor_term->term_id] = $ancestor_term;
+        }
+    }
+    $classification_category_terms[$product_category_term->term_id] = $product_category_term;
+}
+$classification_category_terms = array_values($classification_category_terms);
+
 $format_specification_label = static function ($raw_label) {
     $raw_label = preg_replace('/^pa_/', '', (string) $raw_label);
     $raw_label = str_replace(array('_', '-'), ' ', $raw_label);
@@ -844,17 +866,32 @@ $schema_product_graph = array(
             <?php echo wp_kses_post(wc_get_stock_html($product)); ?>
           </div>
 
-          <div class="dh-cart">
-            <?php woocommerce_template_single_add_to_cart(); ?>
+          <div class="dh-purchase-actions">
+            <div class="dh-cart">
+              <?php woocommerce_template_single_add_to_cart(); ?>
+            </div>
+
+            <?php if ($product->is_type('simple') && $product->is_purchasable() && $product->is_in_stock()) : ?>
+              <?php
+              $buy_now_url = add_query_arg(
+                  array(
+                      'add-to-cart' => $product_id,
+                      'quantity'    => 1,
+                  ),
+                  wc_get_checkout_url()
+              );
+              ?>
+              <a class="dh-buy-now-button" href="<?php echo esc_url($buy_now_url); ?>">Comprar ahora</a>
+            <?php endif; ?>
           </div>
         <?php endif; ?>
       </div>
 
       <div class="dh-product-trust" aria-label="Condiciones de compra">
-        <a href="<?php echo esc_url(dht_template_shipping_policy_url()); ?>"><span aria-hidden="true">🚚</span><strong>Envío</strong><small>Ver condiciones</small></a>
-        <div><span aria-hidden="true">🔒</span><strong>Pago seguro</strong><small>Compra protegida</small></div>
-        <a href="<?php echo esc_url(dht_template_return_policy_url()); ?>"><span aria-hidden="true">↩️</span><strong>Devolución</strong><small>Ver política</small></a>
-        <div><span aria-hidden="true">🛡️</span><strong>Garantía</strong><small>Soporte posventa</small></div>
+        <a href="<?php echo esc_url(dht_template_shipping_policy_url()); ?>"><span aria-hidden="true">🚚</span><strong>Envío 2–3 días</strong><small>Fabricante, transporte y entrega acompañados</small></a>
+        <div><span aria-hidden="true">🔒</span><strong>Pago seguro</strong><small>Cobro protegido y pedido confirmado</small></div>
+        <a href="<?php echo esc_url(dht_template_return_policy_url()); ?>"><span aria-hidden="true">↩️</span><strong>Devolución</strong><small>Te ayudamos durante toda la gestión</small></a>
+        <div><span aria-hidden="true">🛡️</span><strong>Garantía</strong><small>Asistencia con fabricante y posventa</small></div>
       </div>
 
       <div class="dh-purchase-support" aria-label="Ayuda antes de comprar">
@@ -899,20 +936,29 @@ $schema_product_graph = array(
     </section>
   <?php endif; ?>
 
-  <section class="dh-product-classification-section" aria-label="Categoría y características">
+  <section class="dh-product-classification-section" aria-label="Categorías, etiquetas y atributos">
     <div class="dh-product-classification">
       <div class="dh-product-classification__chips">
-        <?php echo wp_kses_post(wc_get_product_category_list($product_id, ' ')); ?>
+        <?php foreach ($classification_category_terms as $product_category_term) : ?>
+          <?php $product_category_url = get_term_link($product_category_term); ?>
+          <?php if (!is_wp_error($product_category_url)) : ?>
+            <a class="dh-product-chip dh-product-chip--category" href="<?php echo esc_url($product_category_url); ?>"><?php echo esc_html($product_category_term->name); ?></a>
+          <?php endif; ?>
+        <?php endforeach; ?>
+
+        <?php foreach ($product_specifications as $specification) : ?>
+          <span class="dh-product-chip dh-product-chip--attribute"><strong><?php echo esc_html($specification['label']); ?>:</strong> <?php echo esc_html($specification['value']); ?></span>
+        <?php endforeach; ?>
 
         <?php foreach ($product_tag_terms as $product_tag) : ?>
           <?php $product_tag_url = get_term_link($product_tag); ?>
           <?php if (!is_wp_error($product_tag_url)) : ?>
-            <a class="dh-product-tag" href="<?php echo esc_url($product_tag_url); ?>"><?php echo esc_html($product_tag->name); ?></a>
+            <a class="dh-product-chip dh-product-chip--tag" href="<?php echo esc_url($product_tag_url); ?>"><?php echo esc_html($product_tag->name); ?></a>
           <?php endif; ?>
         <?php endforeach; ?>
 
         <?php foreach ($technical_tags as $tag) : ?>
-          <span class="dh-product-tag"><?php echo esc_html($tag); ?></span>
+          <span class="dh-product-chip dh-product-chip--semantic"><?php echo esc_html($tag); ?></span>
         <?php endforeach; ?>
       </div>
     </div>
@@ -977,6 +1023,28 @@ $schema_product_graph = array(
 
 <script>
 document.addEventListener('click', function (event) {
+
+    const buyNowButton = event.target.closest('.dh-buy-now-button');
+
+    if (buyNowButton) {
+        event.preventDefault();
+
+        let buyNowUrl;
+        try {
+            buyNowUrl = new URL(buyNowButton.href, window.location.origin);
+        } catch (error) {
+            window.location.href = buyNowButton.href;
+            return;
+        }
+
+        const purchaseBox = buyNowButton.closest('#dh-product-purchase');
+        const quantityInput = purchaseBox ? purchaseBox.querySelector('input.qty') : null;
+        const quantity = quantityInput ? parseFloat(quantityInput.value) : 1;
+
+        buyNowUrl.searchParams.set('quantity', Number.isFinite(quantity) && quantity > 0 ? quantity : 1);
+        window.location.href = buyNowUrl.toString();
+        return;
+    }
     const thumbButton = event.target.closest('.dh-gallery-thumb');
 
     if (thumbButton) {

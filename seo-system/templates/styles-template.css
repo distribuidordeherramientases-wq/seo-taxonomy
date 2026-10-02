@@ -7805,6 +7805,37 @@ html {
 .dh-buybox-card{
     margin-top:22px;
 }
+.dh-purchase-actions{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:10px;
+    align-items:end;
+}
+.dh-purchase-actions .dh-cart{
+    min-width:0;
+}
+.dh-purchase-actions .dh-cart form.cart{
+    margin:0;
+}
+.dh-buy-now-button{
+    display:inline-flex;
+    min-height:48px;
+    align-items:center;
+    justify-content:center;
+    padding:0 22px;
+    border-radius:var(--dht-radius-small);
+    background:var(--dht-primary);
+    color:#fff!important;
+    font-weight:850;
+    line-height:1.2;
+    text-decoration:none;
+    white-space:nowrap;
+}
+.dh-buy-now-button:hover,
+.dh-buy-now-button:focus-visible{
+    background:var(--dht-primary-dark);
+    color:#fff!important;
+}
 .dh-cart .single_add_to_cart_button{
     background:var(--dht-secondary)!important;
     color:#111!important;
@@ -7905,6 +7936,26 @@ html {
 .dh-product-classification__chips > a:focus-visible{
     border-color:var(--dht-primary);
     color:var(--dht-primary-dark);
+}
+.dh-product-chip--category{
+    background:#eef6fc!important;
+    border-color:#cfe3f3!important;
+    color:#0b5f96!important;
+}
+.dh-product-chip--attribute{
+    background:#f7f8fa!important;
+}
+.dh-product-chip--attribute strong{
+    margin-right:4px;
+    color:#334155;
+}
+.dh-product-chip--tag{
+    background:#fff9e8!important;
+    border-color:#eadca8!important;
+}
+.dh-product-chip--semantic{
+    background:#eef8f2!important;
+    border-color:#cfe7d8!important;
 }
 .dh-purchase-return-bar{
     display:flex;
@@ -8032,6 +8083,13 @@ html {
     .dht-mobile-template .dh-buybox-card{
         margin-top:14px;
     }
+    .dht-mobile-template .dh-purchase-actions{
+        grid-template-columns:minmax(0,1fr) auto;
+    }
+    .dht-mobile-template .dh-buy-now-button{
+        min-width:126px;
+        padding-inline:14px;
+    }
     .dht-mobile-template .dh-product-trust{
         grid-template-columns:repeat(2,minmax(0,1fr));
     }
@@ -8078,6 +8136,12 @@ html {
 }
 
 @media (max-width: 520px){
+    .dht-mobile-template .dh-purchase-actions{
+        grid-template-columns:1fr;
+    }
+    .dht-mobile-template .dh-buy-now-button{
+        width:100%;
+    }
     .dht-mobile-template .dh-product-trust{
         grid-template-columns:repeat(2,minmax(0,1fr));
     }
