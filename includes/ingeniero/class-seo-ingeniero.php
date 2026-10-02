@@ -892,6 +892,25 @@ final class SEO_Ingeniero {
         return 'CREATE_POST';
     }
 
+    /**
+     * Helpers deterministas para la batería funcional de Ingeniero.
+     * No escriben datos ni consultan servicios externos.
+     */
+    public static function editorial_groups_for_test(array $knowledge) {
+        $groups = self::editorial_groups($knowledge);
+        $out = array();
+        foreach ($groups as $key=>$rows) $out[$key] = count((array) $rows);
+        return $out;
+    }
+
+    public static function editorial_source_hash_for_test(array $rows, array $source_ids) {
+        return self::editorial_source_hash($rows, $source_ids);
+    }
+
+    public static function editorial_action_for_test(array $coverage, $knowledge_count, $source_count, $avg_confidence) {
+        return self::editorial_action($coverage, $knowledge_count, $source_count, $avg_confidence);
+    }
+
     public static function dispatch($delay = 0) {
         if (!self::is_pending()) return false;
         $delay = max(0, absint($delay));
