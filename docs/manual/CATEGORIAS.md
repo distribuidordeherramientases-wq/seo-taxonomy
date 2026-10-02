@@ -138,3 +138,15 @@ Filtros:
 - **Limpiar** [Consulta].
 
 Tabla: Categoría, Ruta, Reales, Publicados, No publicados, Contador Woo y Productos asignados directamente. Los enlaces **Editor SEO**, **Editar WC** y **Ver** llevan a las vistas correspondientes.
+
+
+## Bloques contextuales en la categoría pública
+
+Después del catálogo/contenido propio y antes de las familias/afiliados, la plantilla puede mostrar:
+
+1. **Comparativa**: extracto del post canónico publicado de Comparador.
+2. **Preguntas habituales**: posts publicados relacionados mediante `post_to_category` y marcados `dependiente_qa_basic`.
+3. **Comentarios externos**: selección de comentarios `published` de Comentarista sobre productos de la categoría; se identifica el producto y se limita la repetición por referencia.
+4. **Información técnica**: posts publicados relacionados y marcados `ingeniero_qa_specialized`.
+
+Las plantillas son de solo lectura: no consultan servicios externos ni recalculan conocimiento. Un bloque sin contenido válido no genera título, contenedor ni hueco visual.
