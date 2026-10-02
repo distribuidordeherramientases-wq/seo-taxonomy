@@ -165,9 +165,13 @@ La tabla informa elemento, estado, HTTP, tiempo, detalle y último chequeo.
 
 Después del contenido comercial y técnico propio del producto, la plantilla puede mostrar, en este orden:
 
-1. **Preguntas habituales**: posts publicados relacionados con alguna categoría del producto y marcados como `dependiente_qa_basic`.
+1. **Preguntas habituales**: posts `publish` relacionados con las categorías WooCommerce del producto mediante `seo_relations.relation_type = post_to_category` y marcados con `_seo_solucionador_content_role = dependiente_qa_basic`.
 2. **Comparativa**: extracto persistido de Comparador cuando existe un post canónico publicado.
-3. **Comentarios externos**: registros `published` de Comentarista asociados al producto.
-4. **Información técnica**: posts publicados relacionados y marcados como `ingeniero_qa_specialized`.
+3. **Comentarios externos**: registros `published` y `content_type = comment` de Comentarista asociados directamente al producto.
+4. **Información técnica**: posts `publish` relacionados mediante `post_to_category` y marcados con `_seo_solucionador_content_role = ingeniero_qa_specialized`.
 
-La ficha no ejecuta Dependiente, Ingeniero, Ojeador ni Comparador durante la visita. Si una fuente no tiene contenido válido, no se imprime título, contenedor ni espacio vacío. Los posts se enlazan en lugar de duplicar su respuesta completa.
+La selección editorial **no usa categorías WordPress del blog, etiquetas, nombres, slugs ni coincidencias de texto**. Para producto se toman sus `product_cat` reales desde la más específica y se añaden ancestros como fallback.
+
+Los bloques de posts se presentan como título + extracto + enlace, con dos tarjetas por fila en escritorio y una en móvil. Comentarista se muestra plegado inicialmente mediante `details`; su valoración externa nunca se mezcla con las reseñas WooCommerce de la tienda.
+
+La ficha no ejecuta Dependiente, Ingeniero ni Ojeador durante la visita. Comparador sólo lee su resultado público persistido. Si una fuente no tiene contenido válido, no se imprime título, contenedor ni espacio vacío. Soluciones/Landings no forman parte de estos bloques.

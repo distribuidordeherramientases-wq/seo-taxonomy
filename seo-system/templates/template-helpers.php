@@ -1976,6 +1976,14 @@ if (!function_exists('dht_template_external_comment_text')) {
 }
 
 if (!function_exists('dht_template_render_external_comments')) {
+    /**
+     * Renderiza comentarios externos persistidos por Comentarista.
+     *
+     * La seccion solo se imprime cuando existe al menos un comentario con texto
+     * valido. Los comentarios quedan plegados inicialmente para no saturar la
+     * ficha y mantienen separada cualquier valoracion externa de las reseñas
+     * WooCommerce de la tienda.
+     */
     function dht_template_render_external_comments($rows, $title, $context = 'product')
     {
         $context = in_array($context, array('product', 'category'), true) ? $context : 'product';
@@ -1990,6 +1998,17 @@ if (!function_exists('dht_template_render_external_comments')) {
         if (!$valid) {
             return;
         }
+
+        $comment_count = count($valid);
+        $summary_label = sprintf(
+            _n(
+                'Ver %d comentario externo',
+                'Ver %d comentarios externos',
+                $comment_count,
+                'seo-taxonomy'
+            ),
+            $comment_count
+        );
         ?>
         <section class="dht-external-comments dht-external-comments--<?php echo esc_attr($context); ?> seo-comentarista">
             <?php if ('category' === $context) : ?><div class="dht-container"><?php endif; ?>
@@ -1999,58 +2018,173 @@ if (!function_exists('dht_template_render_external_comments')) {
                 <p>Opiniones y experiencias publicadas en fuentes externas. No son reseñas de clientes de Distribuidor de Herramientas y no forman parte de la valoración de nuestra tienda.</p>
             </header>
 
-            <div class="dht-external-comments__list">
-                <?php foreach ($valid as $external_comment) : ?>
-                    <?php
-                    $external_comment_text = dht_template_external_comment_text($external_comment);
-                    $external_comment_meta = function_exists('seo_comentarista_render_source_meta')
-                        ? seo_comentarista_render_source_meta($external_comment)
-                        : '';
-                    $external_comment_rating = function_exists('seo_comentarista_rating_text')
-                        ? seo_comentarista_rating_text($external_comment)
-                        : '';
-                    $product_title = trim((string) ($external_comment['product_title'] ?? ''));
-                    $product_url = esc_url_raw((string) ($external_comment['product_url'] ?? ''));
-                    ?>
-                    <article class="dht-external-comment">
-                        <?php if ('category' === $context && $product_title !== '') : ?>
-                            <h3 class="dht-external-comment__product">
-                                <?php if ($product_url !== '') : ?>
-                                    <a href="<?php echo esc_url($product_url); ?>"><?php echo esc_html($product_title); ?></a>
-                                <?php else : ?>
-                                    <?php echo esc_html($product_title); ?>
-                                <?php endif; ?>
-                            </h3>
-                        <?php endif; ?>
+            <details class="dht-external-comments__details">
+                <summary>
+                    <span><?php echo esc_html($summary_label); ?></span>
+                    <span class="dht-external-comments__toggle" aria-hidden="true">+</span>
+                </summary>
 
-                        <div class="dht-external-comment__meta">
-                            <strong>Comentario externo</strong>
-                            <?php if ($external_comment_rating !== '') : ?>
-                                <span>Valoración en la fuente: <strong><?php echo esc_html($external_comment_rating); ?></strong></span>
+                <div class="dht-external-comments__list">
+                    <?php foreach ($valid as $external_comment) : ?>
+                        <?php
+                        $external_comment_text = dht_template_external_comment_text($external_comment);
+                        $external_comment_meta = function_exists('seo_comentarista_render_source_meta')
+                            ? seo_comentarista_render_source_meta($external_comment)
+                            : '';
+                        $external_comment_rating = function_exists('seo_comentarista_rating_text')
+                            ? seo_comentarista_rating_text($external_comment)
+                            : '';
+                        $product_title = trim((string) ($external_comment['product_title'] ?? ''));
+                        $product_url = esc_url_raw((string) ($external_comment['product_url'] ?? ''));
+                        ?>
+                        <article class="dht-external-comment">
+                            <?php if ('category' === $context && $product_title !== '') : ?>
+                                <h3 class="dht-external-comment__product">
+                                    <?php if ($product_url !== '') : ?>
+                                        <a href="<?php echo esc_url($product_url); ?>"><?php echo esc_html($product_title); ?></a>
+                                    <?php else : ?>
+                                        <?php echo esc_html($product_title); ?>
+                                    <?php endif; ?>
+                                </h3>
                             <?php endif; ?>
-                        </div>
 
-                        <blockquote><?php echo wp_kses_post(wpautop($external_comment_text)); ?></blockquote>
+                            <div class="dht-external-comment__meta">
+                                <strong>Comentario externo</strong>
+                                <?php if ($external_comment_rating !== '') : ?>
+                                    <span>Valoración en la fuente: <strong><?php echo esc_html($external_comment_rating); ?></strong></span>
+                                <?php endif; ?>
+                            </div>
 
-                        <?php if ($external_comment_meta !== '') : ?>
-                            <p class="dht-external-comment__source">
-                                <strong>Fuente:</strong>
-                                <?php echo wp_kses($external_comment_meta, array(
-                                    'strong' => array(),
-                                    'a' => array(
-                                        'href' => array(),
-                                        'target' => array(),
-                                        'rel' => array(),
-                                    ),
-                                )); ?>
-                            </p>
-                        <?php endif; ?>
-                    </article>
-                <?php endforeach; ?>
-            </div>
+                            <blockquote><?php echo wp_kses_post(wpautop($external_comment_text)); ?></blockquote>
+
+                            <?php if ($external_comment_meta !== '') : ?>
+                                <p class="dht-external-comment__source">
+                                    <strong>Fuente:</strong>
+                                    <?php echo wp_kses($external_comment_meta, array(
+                                        'strong' => array(),
+                                        'a' => array(
+                                            'href' => array(),
+                                            'target' => array(),
+                                            'rel' => array(),
+                                        ),
+                                    )); ?>
+                                </p>
+                            <?php endif; ?>
+                        </article>
+                    <?php endforeach; ?>
+                </div>
+            </details>
             <?php if ('category' === $context) : ?></div><?php endif; ?>
         </section>
         <?php
+    }
+}
+
+/**
+ * Render contextual completo de una ficha de producto.
+ *
+ * Contrato:
+ * - seleccion editorial solo por product_cat + seo_relations(post_to_category);
+ * - rol mediante _seo_solucionador_content_role;
+ * - Comparador conserva su contrato publico propio;
+ * - Comentarista se lee de su tabla persistida;
+ * - no se usan categorias de posts, etiquetas, nombres, slugs ni texto libre.
+ */
+if (!function_exists('dht_template_render_product_context_blocks')) {
+    function dht_template_render_product_context_blocks($product_id)
+    {
+        $product_id = absint($product_id);
+        if ($product_id < 1) {
+            return;
+        }
+
+        $category_ids = dht_template_product_context_category_ids($product_id);
+
+        $dependiente_posts = dht_template_context_posts_for_categories(
+            $category_ids,
+            'dependiente_qa_basic',
+            4
+        );
+        dht_template_render_context_posts(
+            $dependiente_posts,
+            'Preguntas habituales',
+            'dependiente',
+            'product'
+        );
+
+        if (function_exists('seo_comparador_render_product_block')) {
+            seo_comparador_render_product_block($product_id);
+        }
+
+        $external_comments = dht_template_product_external_comments($product_id, 12);
+        dht_template_render_external_comments(
+            $external_comments,
+            'Comentarios externos sobre este producto',
+            'product'
+        );
+
+        $ingeniero_posts = dht_template_context_posts_for_categories(
+            $category_ids,
+            'ingeniero_qa_specialized',
+            4
+        );
+        dht_template_render_context_posts(
+            $ingeniero_posts,
+            'Información técnica',
+            'ingeniero',
+            'product'
+        );
+    }
+}
+
+/**
+ * Render contextual completo de una categoria de producto.
+ *
+ * La categoria usa exclusivamente su term_id product_cat. No se infiere
+ * contexto desde categorias editoriales de WordPress, tags, slug o nombre.
+ */
+if (!function_exists('dht_template_render_category_context_blocks')) {
+    function dht_template_render_category_context_blocks($term_id)
+    {
+        $term_id = absint($term_id);
+        if ($term_id < 1) {
+            return;
+        }
+
+        if (function_exists('seo_comparador_render_category_block')) {
+            seo_comparador_render_category_block($term_id);
+        }
+
+        $dependiente_posts = dht_template_context_posts_for_categories(
+            array($term_id),
+            'dependiente_qa_basic',
+            4
+        );
+        dht_template_render_context_posts(
+            $dependiente_posts,
+            'Preguntas habituales',
+            'dependiente',
+            'category'
+        );
+
+        $external_comments = dht_template_category_external_comments($term_id, 6, 2);
+        dht_template_render_external_comments(
+            $external_comments,
+            'Comentarios externos sobre productos de esta categoría',
+            'category'
+        );
+
+        $ingeniero_posts = dht_template_context_posts_for_categories(
+            array($term_id),
+            'ingeniero_qa_specialized',
+            4
+        );
+        dht_template_render_context_posts(
+            $ingeniero_posts,
+            'Información técnica',
+            'ingeniero',
+            'category'
+        );
     }
 }
 
