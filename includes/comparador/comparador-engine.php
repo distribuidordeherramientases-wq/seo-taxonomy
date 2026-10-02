@@ -559,6 +559,15 @@ final class SEO_Comparador_Engine {
             'updated_at'=>$now,
         );
 
+        // Una fuente nueva invalida la decisión editorial previa. No se reutiliza
+        // CREATE/IMPROVE/MERGE/NO_ACTION calculado sobre otro hash.
+        if ($existing && $old_hash !== '' && $old_hash !== $hash) {
+            $row['recommended_action']='';
+            $row['decision_reason']='';
+            $row['coverage_json']=null;
+            $row['editorial_decided_at']=null;
+        }
+
         if ($existing) {
             $profile_id = absint($existing['id']);
             $wpdb->update(SEO_Comparador_DB::table('profiles'),$row,array('id'=>$profile_id));
