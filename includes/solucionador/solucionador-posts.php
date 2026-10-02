@@ -125,7 +125,7 @@ final class SEO_Solucionador_Posts {
         }
 
         $requirements = SEO_Solucionador_DB::decision_requirements($topic);
-        foreach (array('real_evidence','category_identified','coverage_allows_new','knowledge_sufficient','duplication_below_threshold') as $requirement) {
+        foreach (array('academy_mass','category_identified','coverage_allows_new','duplication_below_threshold') as $requirement) {
             if (isset($requirements[$requirement]) && empty($requirements[$requirement]['pass'])) {
                 return new WP_Error(
                     'solucionador_requirement_block',
@@ -162,7 +162,15 @@ final class SEO_Solucionador_Posts {
         update_post_meta($post_id, self::META_CANONICAL_KEY, (string) ($topic['canonical_key'] ?? ''));
 
         if (sanitize_key((string) ($topic['intent'] ?? '')) === 'dependiente_qa_basic') {
-            update_post_meta($post_id, self::META_CONTENT_ROLE, 'dependiente_qa_basic');
+            if (function_exists('seo_post_editor_set_public_content_role')) {
+                $role_result = seo_post_editor_set_public_content_role($post_id,'dependiente_qa_basic');
+                if (is_wp_error($role_result)) {
+                    wp_delete_post($post_id,true);
+                    return $role_result;
+                }
+            } else {
+                update_post_meta($post_id, self::META_CONTENT_ROLE, 'dependiente_qa_basic');
+            }
         }
 
         $vocab_result = self::assign_vocabulary($post_id, $topic);
@@ -191,20 +199,7 @@ final class SEO_Solucionador_Posts {
             'CREATE_POST'
         );
 
-        // Si la necesidad procede de un perfil validado de Comparador, conserva
-        // automáticamente la relación perfil -> post y aplica la etiqueta
-        // "comparativas". Comparador no crea el post: solo enlaza el borrador que
-        // Solucionador ya ha decidido y la Editora continuará revisando.
-        if (class_exists('SEO_Comparador_Engine')) {
-            foreach ((array) SEO_Solucionador_DB::get_evidence_rows($topic_id) as $evidence) {
-                if (sanitize_key((string) ($evidence['source_type'] ?? '')) !== 'comparador') continue;
-                $meta = json_decode((string) ($evidence['source_meta'] ?? ''), true);
-                $profile_id = is_array($meta) ? absint($meta['profile_id'] ?? 0) : 0;
-                if (!$profile_id) continue;
-                SEO_Comparador_Engine::link_post($profile_id, $post_id);
-                break;
-            }
-        }
+
 
         return $post_id;
     }
