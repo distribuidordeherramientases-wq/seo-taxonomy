@@ -1446,6 +1446,7 @@ final class SEO_Dependiente_API {
                     '%' . $wpdb->esc_like(sanitize_title($form)) . '%',
                     $limit
                 );
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql is the direct result of $wpdb->prepare() above; all search values and the limit are bound placeholders.
                 foreach ((array) $wpdb->get_col($sql) as $product_id) {
                     $ids[absint($product_id)] = true;
                     if (count($ids) >= $limit) {
@@ -1472,6 +1473,7 @@ final class SEO_Dependiente_API {
             'SELECT * FROM `' . esc_sql(SEO_Dependiente_Index::table()) . "` WHERE product_id IN ({$placeholders})",
             $ids
         );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql is the direct result of $wpdb->prepare() above; dynamic fragments come only from internal allowlists/generated placeholders.
         return (array) $wpdb->get_results($sql, ARRAY_A);
     }
 
@@ -1754,6 +1756,7 @@ final class SEO_Dependiente_API {
             'SELECT * FROM `' . esc_sql(SEO_Dependiente_Index::table()) . "` WHERE {$where} ORDER BY featured DESC, updated_at DESC LIMIT %d",
             $params
         );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql is the direct result of $wpdb->prepare() above; dynamic fragments come only from internal allowlists/generated placeholders.
         return (array) $wpdb->get_results($sql, ARRAY_A);
     }
 
@@ -1909,6 +1912,7 @@ final class SEO_Dependiente_API {
             $where_groups[] = '(' . implode(' OR ', $variant_parts) . ')';
         }
         $params[] = min(self::CANDIDATE_LIMIT, max(20, absint($limit)));
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $where_groups contains only fixed SQL templates with %s placeholders; every value is bound through $params.
         $sql = $wpdb->prepare(
             "SELECT DISTINCT p.ID
                FROM {$wpdb->posts} p
@@ -1919,6 +1923,7 @@ final class SEO_Dependiente_API {
               LIMIT %d",
             $params
         );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql is the direct result of $wpdb->prepare() above; generated predicates contain placeholders only.
         return array_values(array_filter(array_map('absint', (array) $wpdb->get_col($sql))));
     }
 
@@ -2159,6 +2164,7 @@ final class SEO_Dependiente_API {
             'SELECT * FROM `' . esc_sql(SEO_Dependiente_Index::table()) . "` WHERE {$where} ORDER BY featured DESC, updated_at DESC LIMIT %d",
             $params
         );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql is the direct result of $wpdb->prepare() above; dynamic fragments come only from internal allowlists/generated placeholders.
         return (array) $wpdb->get_results($sql, ARRAY_A);
     }
 
@@ -4368,6 +4374,7 @@ final class SEO_Dependiente_API {
                 GROUP BY ov.object_id
                 ORDER BY exact_hits DESC, ov.object_id DESC
                 LIMIT {$limit}";
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Vocabulary tables and allowlisted object types; all token/ID values are bound through prepare().
         return array_values(array_filter(array_map('absint', (array) $wpdb->get_col($wpdb->prepare($sql, $params)))));
     }
 
@@ -4412,6 +4419,7 @@ final class SEO_Dependiente_API {
                 GROUP BY ov.object_id
                 ORDER BY semantic_hits DESC, ov.object_id DESC
                 LIMIT {$limit}";
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Vocabulary tables and allowlisted object types; all token/ID values are bound through prepare().
         return array_values(array_filter(array_map('absint', (array) $wpdb->get_col($wpdb->prepare($sql, $params)))));
     }
 
@@ -4685,6 +4693,7 @@ final class SEO_Dependiente_API {
                           WHERE active=1 AND (" . implode(' OR ', $owner_conditions) . ")
                           ORDER BY sort_order ASC,id ASC
                           LIMIT {$owner_limit}";
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- FAQ table and condition templates are internal; product/category IDs are bound through prepare().
             foreach ((array) $wpdb->get_results($wpdb->prepare($owner_sql, $owner_params), ARRAY_A) as $row) {
                 $faq_id = absint($row['id'] ?? 0);
                 if (!$faq_id) {
@@ -4725,6 +4734,7 @@ final class SEO_Dependiente_API {
                     FROM {$faq_table}
                     WHERE active=1 AND object_type IN (2,3) AND (" . implode(' OR ', $conditions) . ")
                     ORDER BY updated_at DESC,id DESC LIMIT {$text_limit}";
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- FAQ table and textual predicates are internal; search tokens are bound through prepare().
             foreach ((array) $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A) as $row) {
                 $faq_id = absint($row['id'] ?? 0);
                 if (!$faq_id) {
@@ -4903,6 +4913,7 @@ final class SEO_Dependiente_API {
              LIMIT 400",
             $category_ids
         );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql is the direct result of $wpdb->prepare() above; relation IDs are bound placeholders and table identifiers are internal.
         $rows = $wpdb->get_results($sql, ARRAY_A);
         if (!$rows) {
             return array();

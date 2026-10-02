@@ -17,7 +17,6 @@ final class SEO_Ingeniero_Admin {
         add_action('admin_post_seo_ingeniero_export', array(__CLASS__, 'handle_export'));
         add_action('admin_post_seo_ingeniero_settings', array(__CLASS__, 'handle_settings'));
         add_action('admin_post_seo_ingeniero_editorial_action', array(__CLASS__, 'handle_editorial_action'));
-        add_action('admin_post_seo_ingeniero_editorial_refresh_batch', array(__CLASS__, 'handle_editorial_refresh_batch'));
     }
 
     public static function register_page() {
@@ -247,32 +246,15 @@ final class SEO_Ingeniero_Admin {
         self::redirect(array('ingeniero_error'=>rawurlencode('Acción editorial no válida.'),'editorial_id'=>$editorial_id), 'editorial');
     }
 
-    public static function handle_editorial_refresh_batch() {
-        self::guard('seo_ingeniero_editorial_refresh_batch');
-        $limit = max(1, min(20, absint($_POST['limit'] ?? 10)));
-        $stats = SEO_Ingeniero_DB::category_stats_map(SEO_Ingeniero::LESSON_TECHNICAL);
-        $processed = 0;
-        $errors = 0;
-        foreach ($stats as $term_id=>$row) {
-            if ($processed >= $limit) break;
-            if (absint($row['active'] ?? 0) < 1) continue;
-            $result = SEO_Ingeniero::refresh_editorial_category(absint($term_id), false);
-            $processed++;
-            if (is_wp_error($result)) $errors++;
-        }
-        self::redirect(array(
-            'ingeniero_notice'=>'editorial_refreshed',
-            'editorial_processed'=>$processed,
-            'editorial_errors'=>$errors,
-        ), 'editorial');
-    }
-
     public static function render() {
         if (!current_user_can('manage_options')) {
             wp_die(esc_html__('No tienes permisos para usar Ingeniero.', 'seo-taxonomy'));
         }
 
         SEO_Ingeniero_DB::maybe_install();
+        if (class_exists('SEO_Ingeniero_Process')) {
+            SEO_Ingeniero_Process::kick_editorial_refresh();
+        }
         $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'research';
         if (!in_array($tab, array('research', 'editorial', 'data', 'tests'), true)) {
             $tab = 'research';
@@ -410,13 +392,7 @@ final class SEO_Ingeniero_Admin {
         echo '<h2 style="margin-top:0">Editorial técnico</h2>';
         echo '<p>Convierte únicamente <strong>conocimiento active y trazable</strong> en dossiers técnicos. Ingeniero decide <code>CREATE_POST</code>, <code>IMPROVE_POST</code>, <code>MERGE_CONTENT</code>, <code>NO_ACTION</code> o <code>NEEDS_REVIEW</code> sin depender de Solucionador.</p>';
         echo '<p class="description">Los dossiers guardan referencias a knowledge/sources y un <code>source_hash</code>; no duplican el contenido de investigación. Los borradores se crean sólo tras aprobación humana y nunca se publican automáticamente.</p>';
-        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap">';
-        echo '<input type="hidden" name="action" value="seo_ingeniero_editorial_refresh_batch">';
-        wp_nonce_field('seo_ingeniero_editorial_refresh_batch');
-        echo '<label><strong>Actualizar dossiers activos</strong><br><input class="small-text" type="number" name="limit" min="1" max="20" value="10"></label>';
-        submit_button('Procesar lote', 'secondary', 'submit', false);
-        echo '<span class="description">Procesa las categorías una a una y omite dossiers cuyo hash no ha cambiado.</span>';
-        echo '</form>';
+        echo '<p><strong>Preparación automática:</strong> todas las categorías con conocimiento activo se convierten en dossiers editoriales en segundo plano. Aquí sólo tienes que revisar, aprobar, devolver a revisión o cerrar cada propuesta.</p>';
         echo '</div>';
 
         $cards = array(

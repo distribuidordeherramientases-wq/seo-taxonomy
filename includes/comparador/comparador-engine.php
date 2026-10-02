@@ -10,6 +10,115 @@ defined('ABSPATH') || exit;
 
 final class SEO_Comparador_Engine {
     const SETTINGS_OPTION = 'seo_comparador_settings';
+    const AUTO_STATE_OPTION = 'seo_comparador_auto_refresh_state';
+    const AUTO_REFRESH_HOOK = 'seo_comparador_auto_refresh';
+    const AUTO_REFRESH_STEP_HOOK = 'seo_comparador_auto_refresh_step';
+
+    public static function init() {
+        add_action('init', array(__CLASS__, 'schedule_automatic_refresh'), 21);
+        add_action(self::AUTO_REFRESH_HOOK, array(__CLASS__, 'automatic_refresh'));
+        add_action(self::AUTO_REFRESH_STEP_HOOK, array(__CLASS__, 'automatic_refresh'));
+    }
+
+    public static function schedule_automatic_refresh() {
+        if (!wp_next_scheduled(self::AUTO_REFRESH_HOOK)) {
+            wp_schedule_event(time() + 5 * MINUTE_IN_SECONDS, 'hourly', self::AUTO_REFRESH_HOOK);
+        }
+    }
+
+    public static function kick_automatic_refresh() {
+        if (!wp_next_scheduled(self::AUTO_REFRESH_STEP_HOOK)) {
+            wp_schedule_single_event(time() + 15, self::AUTO_REFRESH_STEP_HOOK);
+        }
+    }
+
+    private static function automatic_category_ids() {
+        $ids = get_terms(array(
+            'taxonomy'=>'product_cat',
+            'hide_empty'=>true,
+            'fields'=>'ids',
+            'number'=>0,
+            'orderby'=>'term_id',
+            'order'=>'ASC',
+        ));
+        if (is_wp_error($ids)) return array();
+        return array_values(array_unique(array_filter(array_map('absint',(array)$ids))));
+    }
+
+    private static function fresh_auto_state() {
+        return array(
+            'cursor'=>0,
+            'processed'=>0,
+            'errors'=>0,
+            'coverage_rebuilt'=>false,
+            'complete'=>false,
+            'started_at'=>current_time('mysql'),
+            'updated_at'=>current_time('mysql'),
+            'completed_at'=>'',
+        );
+    }
+
+    public static function automatic_refresh() {
+        $lock_key='seo_comparador_auto_refresh_lock';
+        if (get_transient($lock_key)) return;
+        set_transient($lock_key,1,2*MINUTE_IN_SECONDS);
+
+        try {
+            SEO_Comparador_DB::maybe_install();
+            $state=get_option(self::AUTO_STATE_OPTION,array());
+            if (!is_array($state) || !$state) $state=self::fresh_auto_state();
+
+            if (!empty($state['complete'])) {
+                $completed=!empty($state['completed_at']) ? strtotime((string)$state['completed_at']) : 0;
+                if ($completed && (time()-$completed) < 6*HOUR_IN_SECONDS) return;
+                $state=self::fresh_auto_state();
+            }
+
+            $ids=self::automatic_category_ids();
+            if (!$ids) {
+                $state['complete']=true;
+                $state['completed_at']=current_time('mysql');
+                $state['updated_at']=current_time('mysql');
+                update_option(self::AUTO_STATE_OPTION,$state,false);
+                return;
+            }
+
+            if (empty($state['coverage_rebuilt']) && class_exists('SEO_Editorial_Coverage')) {
+                SEO_Editorial_Coverage::rebuild_index(7000);
+                $state['coverage_rebuilt']=true;
+            }
+
+            $cursor=max(0,absint($state['cursor'] ?? 0));
+            $slice=array_slice($ids,$cursor,10);
+
+            foreach ($slice as $term_id) {
+                $profile=self::build_profile($term_id);
+                $state['processed']=absint($state['processed'] ?? 0)+1;
+                if (is_wp_error($profile) || empty($profile['id'])) {
+                    $state['errors']=absint($state['errors'] ?? 0)+1;
+                    continue;
+                }
+                $decision=self::evaluate_editorial_decision(absint($profile['id']));
+                if (is_wp_error($decision)) {
+                    $state['errors']=absint($state['errors'] ?? 0)+1;
+                }
+            }
+
+            $state['cursor']=$cursor+count($slice);
+            $state['updated_at']=current_time('mysql');
+            if ($state['cursor'] >= count($ids)) {
+                $state['complete']=true;
+                $state['completed_at']=current_time('mysql');
+            }
+            update_option(self::AUTO_STATE_OPTION,$state,false);
+
+            if (empty($state['complete']) && !wp_next_scheduled(self::AUTO_REFRESH_STEP_HOOK)) {
+                wp_schedule_single_event(time()+30,self::AUTO_REFRESH_STEP_HOOK);
+            }
+        } finally {
+            delete_transient($lock_key);
+        }
+    }
 
     public static function defaults() {
         return array(

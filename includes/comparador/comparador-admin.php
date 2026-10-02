@@ -162,12 +162,13 @@ final class SEO_Comparador_Admin {
     public static function render() {
         if (!current_user_can('manage_options')) return;
         SEO_Comparador_DB::maybe_install();
+        SEO_Comparador_Engine::kick_automatic_refresh();
         $tab=isset($_GET['tab'])?sanitize_key(wp_unslash($_GET['tab'])):'comparisons';
         if (!in_array($tab,array('settings','comparisons','performance'),true)) $tab='comparisons';
 
         echo '<div class="wrap seo-comparador">';
         echo '<h1>Comparador <small style="font-weight:400;color:#646970">v' . esc_html(SEO_COMPARADOR_VERSION) . '</small></h1>';
-        echo '<p><strong>Inteligencia comparativa de producto.</strong> Cruza catálogo propio con mercado ya observado por Ojeador, conserva datos y confianza, genera un perfil comparativo y lo entrega a Solucionador. <strong>No publica ni consulta fuentes externas por su cuenta.</strong></p>';
+        echo '<p><strong>Inteligencia comparativa de producto.</strong> Cruza catálogo propio con mercado ya observado por Ojeador, conserva datos y confianza, genera un perfil comparativo y deja la actuación editorial preparada para la Editora. <strong>No publica ni consulta fuentes externas por su cuenta.</strong></p>';
         self::render_notice();
         self::tabs($tab);
         if ($tab==='settings') self::render_settings();
@@ -183,7 +184,7 @@ final class SEO_Comparador_Admin {
         self::card('Esquema BD',get_option(SEO_Comparador_DB::VERSION_OPTION,'—'),'Tablas seo_comparador_*');
         self::card('Comparador tienda','2–6 productos','Se conserva sin cambios.');
         self::card('Fuente mercado',class_exists('SEO_Ojeador_DB')?'Ojeador disponible':'Ojeador no disponible','Sólo datos persistidos.');
-        self::card('Salida editorial','Solucionador','Comparador no decide URL.');
+        self::card('Salida editorial','Editora','Comparador prepara la actuación; la aprobación sigue siendo humana.');
         echo '</div>';
 
         echo '<div class="postbox seo-cmp-box"><h2>Parámetros generales</h2>';

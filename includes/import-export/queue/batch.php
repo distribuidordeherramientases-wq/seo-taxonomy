@@ -23,6 +23,55 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Abre un stream nativo para lectura/escritura incremental de CSV.
+ *
+ * Los lectores/escritores CSV existentes trabajan con recursos PHP; cargar
+ * archivos completos mediante WP_Filesystem aumentaría el uso de memoria.
+ *
+ * @param string $path Ruta.
+ * @param string $mode Modo.
+ * @return resource|false
+ */
+function seo_ie_batch_stream_open( $path, $mode ) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Streaming incremental de CSV requiere un recurso PHP nativo.
+    return fopen( $path, $mode );
+}
+
+/**
+ * Escribe bytes en un stream CSV.
+ *
+ * @param resource $handle Recurso.
+ * @param string   $data Datos.
+ * @return int|false
+ */
+function seo_ie_batch_stream_write( $handle, $data ) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Escritura incremental sobre el mismo recurso usado por el serializador CSV.
+    return fwrite( $handle, $data );
+}
+
+/**
+ * Cierra un stream CSV.
+ *
+ * @param resource $handle Recurso.
+ * @return bool
+ */
+function seo_ie_batch_stream_close( $handle ) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre explícito del recurso nativo de CSV.
+    return fclose( $handle );
+}
+
+/**
+ * Envía un archivo gestionado al cliente sin cargarlo completo en memoria.
+ *
+ * @param string $path Ruta.
+ * @return int|false
+ */
+function seo_ie_batch_stream_output( $path ) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Las descargas de CSV/log pueden ser grandes y deben transmitirse por streaming.
+    return readfile( $path );
+}
+
 /*
  * Base defensiva heredada del Build 027.
  *
@@ -588,13 +637,13 @@ function seo_ie_batch_detect_entity( $path ) {
         return new WP_Error( 'seo_batch_file', 'El archivo no existe o no es CSV.' );
     }
 
-    $handle = fopen( $path, 'r' );
+    $handle = seo_ie_batch_stream_open( $path, 'r' );
     if ( false === $handle ) {
         return new WP_Error( 'seo_batch_open', 'No se pudo abrir el CSV.' );
     }
 
     $raw = seo_ie_read_csv_row( $handle );
-    fclose( $handle );
+    seo_ie_batch_stream_close( $handle );
 
     if ( false === $raw || empty( array_filter( (array) $raw, static fn( $value ) => '' !== trim( (string) $value ) ) ) ) {
         return new WP_Error( 'seo_batch_empty', 'El CSV esta vacio o no contiene cabecera.' );
@@ -843,6 +892,7 @@ function seo_ie_batch_move_file( $source, $target ) {
 
     wp_mkdir_p( dirname( $target ) );
 
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Movimiento atómico dentro del directorio gestionado; existe fallback copy/wp_delete_file inmediatamente debajo.
     if ( @rename( $source, $target ) ) {
         return true;
     }
@@ -935,14 +985,14 @@ function seo_ie_batch_product_record_rejections( &$state, $line, $row, $issues, 
     }
 
     $new_file = ! is_file( $work_path ) || 0 === filesize( $work_path );
-    $handle   = fopen( $work_path, 'ab' );
+    $handle   = seo_ie_batch_stream_open( $work_path, 'ab' );
     if ( false === $handle ) {
         return 0;
     }
 
     $columns = seo_ie_batch_product_rejection_columns( $state );
     if ( $new_file ) {
-        fwrite( $handle, "\xEF\xBB\xBF" );
+        seo_ie_batch_stream_write( $handle, "\xEF\xBB\xBF" );
         seo_ie_write_csv_row( $handle, $columns );
     }
 
@@ -961,7 +1011,7 @@ function seo_ie_batch_product_record_rejections( &$state, $line, $row, $issues, 
     }
 
     if ( empty( $normalized_issues ) ) {
-        fclose( $handle );
+        seo_ie_batch_stream_close( $handle );
         return 0;
     }
 
@@ -987,7 +1037,7 @@ function seo_ie_batch_product_record_rejections( &$state, $line, $row, $issues, 
     }
 
     seo_ie_write_csv_row( $handle, $csv_values );
-    fclose( $handle );
+    seo_ie_batch_stream_close( $handle );
 
     $state['rejected_count']       = absint( $state['rejected_count'] ?? 0 ) + 1;
     $state['rejected_issue_count'] = absint( $state['rejected_issue_count'] ?? 0 ) + count( $normalized_issues );
@@ -1204,7 +1254,7 @@ function seo_ie_batch_start_product( $user_id, $processing_path, $detected ) {
         return new WP_Error( 'seo_batch_product_copy', 'No se pudo copiar el CSV de productos a la carpeta temporal.' );
     }
 
-    $handle = fopen( $path, 'r' );
+    $handle = seo_ie_batch_stream_open( $path, 'r' );
     if ( false === $handle ) {
         wp_delete_file( $path );
         return new WP_Error( 'seo_batch_product_open', 'No se pudo abrir el CSV temporal de productos.' );
@@ -1216,7 +1266,7 @@ function seo_ie_batch_start_product( $user_id, $processing_path, $detected ) {
     $duplicates = array_keys( array_filter( $counts, static fn( $count ) => 1 < $count ) );
 
     if ( ! empty( $duplicates ) ) {
-        fclose( $handle );
+        seo_ie_batch_stream_close( $handle );
         wp_delete_file( $path );
         return new WP_Error( 'seo_batch_product_headers', sprintf( 'Cabeceras duplicadas: %s.', implode( ', ', $duplicates ) ) );
     }
@@ -1270,7 +1320,7 @@ function seo_ie_batch_start_product( $user_id, $processing_path, $detected ) {
         ],
     ];
 
-    fclose( $handle );
+    seo_ie_batch_stream_close( $handle );
     seo_ie_product_import_add_transaction(
         $state,
         'batch_file_validated',
@@ -2028,7 +2078,7 @@ function seo_ie_batch_handle_file_download() {
     header( 'Content-Type: ' . ( 'download_log' === $operation ? 'application/json' : 'text/csv' ) . '; charset=utf-8' );
     header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( basename( $path ) ) . '"' );
     header( 'Content-Length: ' . (string) filesize( $path ) );
-    readfile( $path );
+    seo_ie_batch_stream_output( $path );
     exit;
 }
 
@@ -2044,14 +2094,14 @@ function seo_ie_batch_preview_file( $path, $max_rows = 10 ) {
         return new WP_Error( 'seo_batch_preview_missing', 'El archivo ya no existe.' );
     }
 
-    $handle = fopen( $path, 'r' );
+    $handle = seo_ie_batch_stream_open( $path, 'r' );
     if ( false === $handle ) {
         return new WP_Error( 'seo_batch_preview_open', 'No se pudo abrir el archivo.' );
     }
 
     $header = seo_ie_read_csv_row( $handle );
     if ( false === $header ) {
-        fclose( $handle );
+        seo_ie_batch_stream_close( $handle );
         return new WP_Error( 'seo_batch_preview_empty', 'El archivo esta vacio.' );
     }
 
@@ -2084,7 +2134,7 @@ function seo_ie_batch_preview_file( $path, $max_rows = 10 ) {
         );
     }
 
-    fclose( $handle );
+    seo_ie_batch_stream_close( $handle );
 
     $log = [];
     if ( is_file( $path . '.log.json' ) ) {

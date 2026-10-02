@@ -4,11 +4,109 @@ defined('ABSPATH') || exit;
 final class SEO_Ingeniero_Process {
     const LOCK_OPTION = 'seo_ingeniero_process_lock';
     const CATEGORIES_PER_CYCLE = 1;
+    const EDITORIAL_STATE_OPTION = 'seo_ingeniero_editorial_refresh_state';
+    const EDITORIAL_REFRESH_HOOK = 'seo_ingeniero_editorial_refresh';
+    const EDITORIAL_REFRESH_STEP_HOOK = 'seo_ingeniero_editorial_refresh_step';
     public static function init() {
         add_filter('seo_process_supervisor_has_pending_work', array(__CLASS__, 'filter_pending_work'), 30, 1);
         add_filter('seo_process_supervisor_manager_targets', array(__CLASS__, 'filter_manager_targets'), 30, 3);
         add_filter('seo_processes_monitor_items', array(__CLASS__, 'filter_monitor_items'), 30, 1);
         add_action('seo_ingeniero_worker_tick', array(__CLASS__, 'fallback_tick'));
+        add_action('init', array(__CLASS__, 'schedule_editorial_refresh'), 22);
+        add_action(self::EDITORIAL_REFRESH_HOOK, array(__CLASS__, 'editorial_refresh'));
+        add_action(self::EDITORIAL_REFRESH_STEP_HOOK, array(__CLASS__, 'editorial_refresh'));
+    }
+
+    public static function schedule_editorial_refresh() {
+        if (!wp_next_scheduled(self::EDITORIAL_REFRESH_HOOK)) {
+            wp_schedule_event(time() + 5 * MINUTE_IN_SECONDS, 'hourly', self::EDITORIAL_REFRESH_HOOK);
+        }
+    }
+
+    public static function kick_editorial_refresh() {
+        if (!wp_next_scheduled(self::EDITORIAL_REFRESH_STEP_HOOK)) {
+            wp_schedule_single_event(time() + 10, self::EDITORIAL_REFRESH_STEP_HOOK);
+        }
+    }
+
+    private static function fresh_editorial_state() {
+        return array(
+            'cursor'=>0,
+            'processed'=>0,
+            'errors'=>0,
+            'coverage_rebuilt'=>false,
+            'complete'=>false,
+            'started_at'=>current_time('mysql'),
+            'updated_at'=>current_time('mysql'),
+            'completed_at'=>'',
+        );
+    }
+
+    private static function editorial_term_ids() {
+        $stats = SEO_Ingeniero_DB::category_stats_map(SEO_Ingeniero::LESSON_TECHNICAL);
+        $ids = array();
+        foreach ((array) $stats as $term_id=>$row) {
+            if (absint($row['active'] ?? 0) > 0) $ids[] = absint($term_id);
+        }
+        $ids = array_values(array_unique(array_filter($ids)));
+        sort($ids, SORT_NUMERIC);
+        return $ids;
+    }
+
+    public static function editorial_refresh() {
+        $lock_key='seo_ingeniero_editorial_refresh_lock';
+        if (get_transient($lock_key)) return;
+        set_transient($lock_key,1,2*MINUTE_IN_SECONDS);
+
+        try {
+            SEO_Ingeniero_DB::maybe_install();
+            $state=get_option(self::EDITORIAL_STATE_OPTION,array());
+            if (!is_array($state) || !$state) $state=self::fresh_editorial_state();
+
+            if (!empty($state['complete'])) {
+                $completed=!empty($state['completed_at']) ? strtotime((string)$state['completed_at']) : 0;
+                if ($completed && (time()-$completed) < 6*HOUR_IN_SECONDS) return;
+                $state=self::fresh_editorial_state();
+            }
+
+            $ids=self::editorial_term_ids();
+            if (!$ids) {
+                $state['complete']=true;
+                $state['completed_at']=current_time('mysql');
+                $state['updated_at']=current_time('mysql');
+                update_option(self::EDITORIAL_STATE_OPTION,$state,false);
+                return;
+            }
+
+            if (empty($state['coverage_rebuilt']) && class_exists('SEO_Editorial_Coverage')) {
+                SEO_Editorial_Coverage::rebuild_index(7000);
+                $state['coverage_rebuilt']=true;
+            }
+
+            $cursor=max(0,absint($state['cursor'] ?? 0));
+            $slice=array_slice($ids,$cursor,15);
+            foreach ($slice as $term_id) {
+                $result=SEO_Ingeniero::refresh_editorial_category($term_id,false);
+                $state['processed']=absint($state['processed'] ?? 0)+1;
+                if (is_wp_error($result)) {
+                    $state['errors']=absint($state['errors'] ?? 0)+1;
+                }
+            }
+
+            $state['cursor']=$cursor+count($slice);
+            $state['updated_at']=current_time('mysql');
+            if ($state['cursor'] >= count($ids)) {
+                $state['complete']=true;
+                $state['completed_at']=current_time('mysql');
+            }
+            update_option(self::EDITORIAL_STATE_OPTION,$state,false);
+
+            if (empty($state['complete']) && !wp_next_scheduled(self::EDITORIAL_REFRESH_STEP_HOOK)) {
+                wp_schedule_single_event(time()+20,self::EDITORIAL_REFRESH_STEP_HOOK);
+            }
+        } finally {
+            delete_transient($lock_key);
+        }
     }
 
     public static function filter_pending_work($pending) {
