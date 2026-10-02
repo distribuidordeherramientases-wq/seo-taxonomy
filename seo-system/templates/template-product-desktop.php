@@ -652,7 +652,9 @@ $schema_product_graph = array(
 
   <div class="dh-product-layout dh-desktop-product-layout">
 
-    <div class="dh-product-gallery">
+    <div class="dh-product-left">
+
+      <div class="dh-product-gallery">
 
       <?php if ($main_image_id) : ?>
 
@@ -768,6 +770,39 @@ $schema_product_graph = array(
 
       <?php endif; ?>
 
+      </div>
+
+      <?php if ($short_description !== '') : ?>
+        <div class="dh-product-excerpt dh-product-excerpt--primary">
+          <?php
+          echo wp_kses_post(apply_filters(
+              'woocommerce_short_description',
+              $short_description
+          ));
+          ?>
+        </div>
+      <?php endif; ?>
+
+      <section id="dh-product-description" class="dh-product-description dh-product-description--primary">
+        <div class="dh-product-description-content">
+          <?php the_content(); ?>
+        </div>
+      </section>
+
+      <?php if (!empty($product_specifications)) : ?>
+        <section class="dh-product-specifications dh-product-specifications--primary" aria-labelledby="dh-product-specifications-title">
+          <h2 id="dh-product-specifications-title">Especificaciones técnicas</h2>
+          <dl class="dh-product-specifications-list">
+            <?php foreach ($product_specifications as $specification) : ?>
+              <div class="dh-product-specification-row">
+                <dt><?php echo esc_html($specification['label']); ?></dt>
+                <dd><?php echo esc_html($specification['value']); ?></dd>
+              </div>
+            <?php endforeach; ?>
+          </dl>
+        </section>
+      <?php endif; ?>
+
     </div>
 
     <section class="dh-product-summary">
@@ -831,32 +866,6 @@ $schema_product_graph = array(
 
       </div>
 
-      <?php if ($short_description !== '') : ?>
-        <div class="dh-product-excerpt">
-          <?php
-          echo wp_kses_post(apply_filters(
-              'woocommerce_short_description',
-              $short_description
-          ));
-          ?>
-        </div>
-      <?php endif; ?>
-
-      <?php if (!empty($summary_specifications)) : ?>
-        <section class="dh-product-key-attributes" aria-labelledby="dh-product-key-attributes-title">
-          <h2 id="dh-product-key-attributes-title">Datos principales</h2>
-
-          <dl class="dh-product-key-attributes-list">
-            <?php foreach ($summary_specifications as $specification) : ?>
-              <div class="dh-product-key-attribute">
-                <dt><?php echo esc_html($specification['label']); ?></dt>
-                <dd><?php echo esc_html($specification['value']); ?></dd>
-              </div>
-            <?php endforeach; ?>
-          </dl>
-        </section>
-      <?php endif; ?>
-
       <div id="dh-product-purchase" class="dh-buybox-card">
         <?php if ($supplier_out_of_stock) : ?>
           <?php dht_render_stock_alert_form($product_id); ?>
@@ -871,63 +880,60 @@ $schema_product_graph = array(
         <?php endif; ?>
       </div>
 
-      <div class="dh-product-trust" aria-label="Ventajas de compra">
-        <div><span aria-hidden="true">🚚</span> Envío</div>
-        <div><span aria-hidden="true">🔒</span> Pago seguro</div>
-        <div><span aria-hidden="true">↩️</span> Devolución</div>
-        <div><span aria-hidden="true">🛡️</span> Garantía</div>
+      <div class="dh-product-trust" aria-label="Condiciones de compra">
+        <a href="<?php echo esc_url(dht_template_shipping_policy_url()); ?>"><span aria-hidden="true">🚚</span><strong>Envío</strong><small>Ver condiciones</small></a>
+        <div><span aria-hidden="true">🔒</span><strong>Pago seguro</strong><small>Compra protegida</small></div>
+        <a href="<?php echo esc_url(dht_template_return_policy_url()); ?>"><span aria-hidden="true">↩️</span><strong>Devolución</strong><small>Ver política</small></a>
+        <div><span aria-hidden="true">🛡️</span><strong>Garantía</strong><small>Soporte posventa</small></div>
       </div>
 
       <div class="dh-purchase-support" aria-label="Ayuda antes de comprar">
         <span><strong>¿Dudas antes de comprar?</strong> Te ayudamos con compatibilidad, proveedor o pedido.</span>
-        <a href="https://wa.me/34640874540" target="_blank" rel="noopener noreferrer">WhatsApp</a>
-        <a href="<?php echo esc_url(dht_template_service_page_url()); ?>">Soporte</a>
+        <div class="dh-purchase-support__actions">
+          <a class="dh-support-button dh-support-button--whatsapp" href="<?php echo esc_url('https://wa.me/34640874540?text=' . rawurlencode('Hola, necesito ayuda con ' . $product->get_name() . '. ' . get_permalink($product_id))); ?>" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+          <a class="dh-support-button dh-support-button--service" href="<?php echo esc_url(dht_template_service_page_url()); ?>">Soporte</a>
+        </div>
+      </div>
+
+      <div class="dh-product-classification" aria-label="Categoría y características del producto">
+        <div class="dh-product-classification__chips">
+          <?php
+          echo wp_kses_post(wc_get_product_category_list(
+              $product_id,
+              ' '
+          ));
+          ?>
+
+          <?php foreach ($product_tag_terms as $product_tag) : ?>
+            <?php $product_tag_url = get_term_link($product_tag); ?>
+            <?php if (!is_wp_error($product_tag_url)) : ?>
+              <a class="dh-product-tag" href="<?php echo esc_url($product_tag_url); ?>">
+                <?php echo esc_html($product_tag->name); ?>
+              </a>
+            <?php endif; ?>
+          <?php endforeach; ?>
+
+          <?php foreach ($technical_tags as $tag) : ?>
+            <span class="dh-product-tag"><?php echo esc_html($tag); ?></span>
+          <?php endforeach; ?>
+        </div>
       </div>
 
     </section>
 
   </div>
 
-  <section class="dh-product-description">
-
-    <div class="dh-product-description-content">
-      <?php the_content(); ?>
+  <div class="dh-purchase-return-bar" aria-label="Volver a la compra">
+    <div class="dh-purchase-return-bar__price">
+      <span>Precio actual</span>
+      <strong><?php echo wp_kses_post(wc_price((float) $product->get_price())); ?></strong>
     </div>
-
     <?php if (!$supplier_out_of_stock && $product->is_purchasable() && $product->is_in_stock()) : ?>
-      <a class="dh-back-to-purchase" href="#dh-product-purchase">
-        Comprar este producto
-      </a>
+      <a class="dh-purchase-return-bar__button" href="#dh-product-purchase">Comprar este producto</a>
+    <?php else : ?>
+      <a class="dh-purchase-return-bar__button dh-purchase-return-bar__button--muted" href="#dh-product-purchase">Consultar disponibilidad</a>
     <?php endif; ?>
-  </section>
-
-
-  <?php if (!empty($technical_tags)) : ?>
-    <section class="dh-technical-tags">
-      <h2>Aplicaciones y características</h2>
-
-      <div class="dh-product-tags">
-        <?php foreach ($technical_tags as $tag) : ?>
-          <span class="dh-product-tag"><?php echo esc_html($tag); ?></span>
-        <?php endforeach; ?>
-      </div>
-    </section>
-  <?php endif; ?>
-
-  <?php if (!empty($product_specifications)) : ?>
-    <section class="dh-product-specifications" aria-labelledby="dh-product-specifications-title">
-      <h2 id="dh-product-specifications-title">Especificaciones técnicas</h2>
-
-      <dl class="dh-product-specifications-list">
-        <?php foreach ($product_specifications as $specification) : ?>
-          <div class="dh-product-specification-row">
-            <dt><?php echo esc_html($specification['label']); ?></dt>
-            <dd><?php echo esc_html($specification['value']); ?></dd>
-          </div>
-        <?php endforeach; ?>
-      </dl>
-    </section>
-  <?php endif; ?>
+  </div>
 
   <?php
   /*
@@ -941,7 +947,7 @@ $schema_product_graph = array(
   ?>
 
   <section id="reviews" class="dh-product-reviews dh-product-customer-reviews">
-    <h2>Opiniones de clientes de esta tienda</h2>
+    <h2>Opiniones de clientes</h2>
     <?php comments_template(); ?>
   </section>
 
@@ -970,41 +976,11 @@ $schema_product_graph = array(
   if (function_exists('dht_render_amazon_product_block')) {
       dht_render_amazon_product_block($product, array(
           'limit' => 6,
-          'title' => 'Otras opciones que te pueden interesar',
+          'title' => 'Más opciones en Amazon',
           'mode'  => 'dynamic',
       ));
   }
   ?>
-
-  <section class="dh-related-categories">
-    <h2>Categorías relacionadas</h2>
-
-    <div class="dh-product-meta">
-      <?php
-      echo wp_kses_post(wc_get_product_category_list(
-          $product_id,
-          ', '
-      ));
-      ?>
-    </div>
-  </section>
-
-  <?php if (!empty($product_tag_terms)) : ?>
-    <section class="dh-product-taxonomy-tags" aria-labelledby="dh-product-taxonomy-tags-title">
-      <h2 id="dh-product-taxonomy-tags-title">Etiquetas del producto</h2>
-
-      <div class="dh-product-tags">
-        <?php foreach ($product_tag_terms as $product_tag) : ?>
-          <?php $product_tag_url = get_term_link($product_tag); ?>
-          <?php if (!is_wp_error($product_tag_url)) : ?>
-            <a class="dh-product-tag" href="<?php echo esc_url($product_tag_url); ?>">
-              <?php echo esc_html($product_tag->name); ?>
-            </a>
-          <?php endif; ?>
-        <?php endforeach; ?>
-      </div>
-    </section>
-  <?php endif; ?>
 
   <?php
   // VEVOR afiliado: productos descartados + ignorados, renderizados al final de la ficha.
