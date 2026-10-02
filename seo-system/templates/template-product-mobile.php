@@ -848,50 +848,51 @@ $schema_product_graph = array(
 
       <div class="dh-commerce-stack">
 
-        <div class="dh-price-card">
-          <div class="dh-price">
-            <?php
-            /*
-             * El importador guarda en WooCommerce el PVP final calculado sobre
-             * precio_con_iva del proveedor. No volvemos a sumar IVA aquí.
-             */
-            $regular = (float) $product->get_regular_price();
-            $sale    = (float) $product->get_sale_price();
-            $current = (float) $product->get_price();
-            ?>
-
-            <?php if ($product->is_on_sale() && $sale > 0 && $regular > $sale) : ?>
-
-              <div class="dh-price-current">
-                <?php echo wp_kses_post(wc_price($sale)); ?>
-              </div>
-
-              <div class="dh-price-old">
-                <span class="dh-label-old">Precio anterior</span>
-                <del><?php echo wp_kses_post(wc_price($regular)); ?></del>
-              </div>
-
-              <div class="dh-price-save">
-                <?php
-                $save    = $regular - $sale;
-                $percent = ($regular > 0) ? round(($save / $regular) * 100) : 0;
-                echo 'Ahorras ' . wp_kses_post(wc_price($save)) . ' (' . intval($percent) . '%)';
-                ?>
-              </div>
-
-            <?php elseif ($current > 0) : ?>
-
-              <div class="dh-price-current">
-                <?php echo wp_kses_post(wc_price($current)); ?>
-              </div>
-
-            <?php endif; ?>
-
-            <div class="dh-tax-label">IVA incluido</div>
-          </div>
-        </div>
-
         <div id="dh-product-purchase" class="dh-buybox-card">
+
+          <div class="dh-price-card dh-price-card--buybox">
+            <div class="dh-price">
+              <?php
+              /*
+               * El importador guarda en WooCommerce el PVP final calculado sobre
+               * precio_con_iva del proveedor. No volvemos a sumar IVA aquí.
+               */
+              $regular = (float) $product->get_regular_price();
+              $sale    = (float) $product->get_sale_price();
+              $current = (float) $product->get_price();
+              ?>
+
+              <?php if ($product->is_on_sale() && $sale > 0 && $regular > $sale) : ?>
+
+                <div class="dh-price-current">
+                  <?php echo wp_kses_post(wc_price($sale)); ?>
+                </div>
+
+                <div class="dh-price-old">
+                  <span class="dh-label-old">Precio anterior</span>
+                  <del><?php echo wp_kses_post(wc_price($regular)); ?></del>
+                </div>
+
+                <div class="dh-price-save">
+                  <?php
+                  $save    = $regular - $sale;
+                  $percent = ($regular > 0) ? round(($save / $regular) * 100) : 0;
+                  echo 'Ahorras ' . wp_kses_post(wc_price($save)) . ' (' . intval($percent) . '%)';
+                  ?>
+                </div>
+
+              <?php elseif ($current > 0) : ?>
+
+                <div class="dh-price-current">
+                  <?php echo wp_kses_post(wc_price($current)); ?>
+                </div>
+
+              <?php endif; ?>
+
+              <div class="dh-tax-label">IVA incluido</div>
+            </div>
+          </div>
+
           <?php if ($supplier_out_of_stock) : ?>
             <?php dht_render_stock_alert_form($product_id); ?>
           <?php else : ?>
@@ -920,6 +921,7 @@ $schema_product_graph = array(
               <?php endif; ?>
             </div>
           <?php endif; ?>
+
         </div>
 
       </div>
@@ -1048,7 +1050,61 @@ $schema_product_graph = array(
 </div>
 
 <script>
+(function () {
+    const purchaseBox = document.getElementById('dh-product-purchase');
+    if (!purchaseBox) {
+        return;
+    }
+
+    const quantity = purchaseBox.querySelector('.quantity');
+    const input = quantity ? quantity.querySelector('input.qty') : null;
+    if (!quantity || !input || quantity.classList.contains('dh-qty-stepper')) {
+        return;
+    }
+
+    quantity.classList.add('dh-qty-stepper');
+
+    const minus = document.createElement('button');
+    minus.type = 'button';
+    minus.className = 'dh-qty-button dh-qty-button--minus';
+    minus.setAttribute('aria-label', 'Quitar una unidad');
+    minus.textContent = '−';
+
+    const plus = document.createElement('button');
+    plus.type = 'button';
+    plus.className = 'dh-qty-button dh-qty-button--plus';
+    plus.setAttribute('aria-label', 'Añadir una unidad');
+    plus.textContent = '+';
+
+    quantity.insertBefore(minus, input);
+    quantity.appendChild(plus);
+})();
+
 document.addEventListener('click', function (event) {
+
+    const quantityButton = event.target.closest('.dh-qty-button');
+    if (quantityButton) {
+        event.preventDefault();
+
+        const stepper = quantityButton.closest('.dh-qty-stepper');
+        const input = stepper ? stepper.querySelector('input.qty') : null;
+        if (!input) {
+            return;
+        }
+
+        const step = parseFloat(input.step) > 0 ? parseFloat(input.step) : 1;
+        const min = input.min !== '' && Number.isFinite(parseFloat(input.min)) ? parseFloat(input.min) : 1;
+        const max = input.max !== '' && Number.isFinite(parseFloat(input.max)) ? parseFloat(input.max) : Infinity;
+        let value = Number.isFinite(parseFloat(input.value)) ? parseFloat(input.value) : min;
+
+        value += quantityButton.classList.contains('dh-qty-button--plus') ? step : -step;
+        value = Math.max(min, Math.min(max, value));
+
+        input.value = String(value);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        return;
+    }
 
     const buyNowButton = event.target.closest('.dh-buy-now-button');
 
