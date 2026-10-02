@@ -1,9 +1,9 @@
 <?php
 /**
- * Solucionador - motor de decision editorial RF v1.0.
+ * Solucionador v0.5 - Academia/Entrenador -> dossier -> cobertura -> brief.
  *
- * Principio: servicios especialistas -> evidencia -> tema canonico -> cobertura
- * -> decision minima -> brief. No consulta Internet, no redacta y no publica.
+ * Sólo organiza conocimiento ya aprendido de Dependiente. No investiga,
+ * no compara mercado, no redacta y no publica.
  */
 
 defined('ABSPATH') || exit;
@@ -12,7 +12,7 @@ final class SEO_Solucionador_Engine {
     const EDITORIAL_SCAN_OPTION = 'seo_solucionador_editorial_scan_state';
     private static function representative_question($topic_id, $fallback = '') {
         $rows = SEO_Solucionador_DB::get_evidence_rows($topic_id);
-        foreach (array('dependiente','analista','auditor','comentarista','ojeador','comparador','clasificador') as $source_type) {
+        foreach (array('dependiente') as $source_type) {
             $best = '';
             $best_score = -1;
             foreach ($rows as $row) {
@@ -49,57 +49,26 @@ final class SEO_Solucionador_Engine {
      */
     private static function canonicalize_profile(array $profile, array $source = array()) {
         $category_id = absint($source['category_id'] ?? $profile['category_id'] ?? 0);
-        if ($category_id) $profile['category_id'] = $category_id;
+        if (!$category_id) return $profile;
 
-        $intent = sanitize_key((string) ($profile['intent'] ?? ''));
-        $key_intent = sanitize_key((string) ($profile['key_intent'] ?? ''));
-        $text = SEO_Solucionador_Normalizer::normalize((string) ($source['source_text'] ?? ''));
+        $meta = is_array($source['source_meta'] ?? null) ? $source['source_meta'] : array();
+        $channel = sanitize_key((string)($meta['dependiente_channel'] ?? ''));
+        $is_academy = sanitize_key((string)($source['source_type'] ?? '')) === 'dependiente'
+            && $channel === 'academy_learned_dossier';
+        if (!$is_academy) return $profile;
 
-        $source_meta = is_array($source['source_meta'] ?? null) ? $source['source_meta'] : array();
-        $dependiente_channel = sanitize_key((string) ($source_meta['dependiente_channel'] ?? ''));
-        $is_academy_dossier = sanitize_key((string) ($source['source_type'] ?? '')) === 'dependiente'
-            && $dependiente_channel === 'academy_learned_dossier';
+        $name = trim((string)($source['category_name'] ?? $meta['category_name'] ?? ''));
+        if ($name === '') $name = self::category_name($category_id);
 
-        $decision_language = (bool) preg_match('/\b(elegir|eleccion|comprar|compra|diferencia|comparar|comparativa|que .* necesito|cual .* necesito|potencia|cable|bateria|par)\b/u',$text);
-        $is_comparison_profile = sanitize_key((string) ($source['source_type'] ?? '')) === 'comparador'
-            && $intent === 'comparison';
-        $is_decision = $key_intent === 'decision'
-            || in_array($intent,array('decision','choice','comparison','buying_guide','eleccion'),true)
-            || $decision_language;
-
-        if ($category_id && $is_academy_dossier) {
-            $name = trim((string) ($source['category_name'] ?? $source_meta['category_name'] ?? ''));
-            if ($name === '') $name = self::category_name($category_id);
-            if ($name !== '') $profile['object'] = SEO_Solucionador_Normalizer::normalize($name);
-            $profile['intent'] = 'dependiente_qa_basic';
-            $profile['key_intent'] = 'dependiente_qa_basic';
-            $profile['action'] = 'resolver';
-            $profile['condition'] = '';
-            $profile['context'] = '';
-            $profile['category_id'] = $category_id;
-            $profile['confidence'] = max(0.90,(float) ($profile['confidence'] ?? 0));
-            $profile['canonical_key'] = 'dependiente-qa-basic|resolver|category-' . $category_id . '|general|general';
-        } elseif ($category_id && $is_comparison_profile && empty($profile['condition'])) {
-            $name = trim((string) ($source['category_name'] ?? ''));
-            if ($name === '') $name = self::category_name($category_id);
-            if ($name !== '') $profile['object'] = SEO_Solucionador_Normalizer::normalize($name);
-            $profile['intent'] = 'comparison';
-            $profile['key_intent'] = 'comparison';
-            $profile['action'] = 'comparar';
-            $profile['condition'] = '';
-            $profile['context'] = '';
-            $profile['canonical_key'] = 'comparison|comparar|category-' . $category_id . '|general|general';
-        } elseif ($category_id && $is_decision && empty($profile['condition'])) {
-            $name = trim((string) ($source['category_name'] ?? ''));
-            if ($name === '') $name = self::category_name($category_id);
-            if ($name !== '') $profile['object'] = SEO_Solucionador_Normalizer::normalize($name);
-            $profile['intent'] = 'decision';
-            $profile['key_intent'] = 'decision';
-            $profile['action'] = 'elegir';
-            $profile['condition'] = '';
-            $profile['context'] = '';
-            $profile['canonical_key'] = 'decision|elegir|category-' . $category_id . '|general|general';
-        }
+        $profile['object'] = $name !== '' ? SEO_Solucionador_Normalizer::normalize($name) : '';
+        $profile['intent'] = 'dependiente_qa_basic';
+        $profile['key_intent'] = 'dependiente_qa_basic';
+        $profile['action'] = 'resolver';
+        $profile['condition'] = '';
+        $profile['context'] = '';
+        $profile['category_id'] = $category_id;
+        $profile['confidence'] = max(0.90,(float)($profile['confidence'] ?? 0));
+        $profile['canonical_key'] = 'dependiente-qa-basic|resolver|category-' . $category_id . '|general|general';
         return $profile;
     }
 
@@ -115,60 +84,6 @@ final class SEO_Solucionador_Engine {
             }
         }
         return SEO_Solucionador_Normalizer::suggested_title($profile);
-    }
-
-    private static function origin_match(array $profile, array $source, array $origins, array $by_key, array $by_category) {
-        $key = (string) ($profile['canonical_key'] ?? '');
-        if ($key !== '' && !empty($by_key[$key])) return absint($by_key[$key]);
-
-        $category_id = absint($source['category_id'] ?? $profile['category_id'] ?? 0);
-        $candidate_ids = $category_id && !empty($by_category[$category_id])
-            ? (array) $by_category[$category_id]
-            : array_keys($origins);
-
-        $best_id = 0;
-        $best = 0.0;
-        foreach ($candidate_ids as $topic_id) {
-            $origin = $origins[$topic_id] ?? array();
-            if (!$origin) continue;
-            $score = 0.0;
-            $origin_cat = absint($origin['category_id'] ?? 0);
-            if ($category_id && $origin_cat === $category_id) $score += 0.52;
-            $score += 0.28 * SEO_Solucionador_Normalizer::similarity(
-                (string) ($profile['object'] ?? ''),
-                (string) ($origin['object'] ?? '')
-            );
-            if ((string) ($profile['action'] ?? '') !== '' && (string) ($profile['action'] ?? '') === (string) ($origin['action'] ?? '')) $score += 0.12;
-            if ((string) ($profile['key_intent'] ?? '') !== '' && (string) ($profile['key_intent'] ?? '') === (string) ($origin['key_intent'] ?? '')) $score += 0.08;
-            if ($score > $best) {
-                $best = $score;
-                $best_id = absint($topic_id);
-            }
-        }
-        return $best >= 0.56 ? $best_id : 0;
-    }
-
-    private static function primary_category_id($topic_id, array $proposal, array $profile) {
-        $scores = array();
-        $profile_category = absint($profile['category_id'] ?? 0);
-        if ($profile_category) $scores[$profile_category] = 20.0;
-
-        foreach (SEO_Solucionador_DB::get_evidence_rows($topic_id) as $row) {
-            $term_id = absint($row['category_id'] ?? 0);
-            if (!$term_id) continue;
-            $scores[$term_id] = ($scores[$term_id] ?? 0)
-                + max(0.2,(float) ($row['evidence_score'] ?? 1))
-                * max(1,absint($row['occurrences'] ?? 1));
-        }
-        foreach ((array) ($proposal['categories'] ?? array()) as $index=>$row) {
-            $term_id = absint($row['id'] ?? $row['term_id'] ?? 0);
-            if (!$term_id) continue;
-            $scores[$term_id] = ($scores[$term_id] ?? 0)
-                + max(0.5,(float) ($row['score'] ?? (4 - $index)));
-        }
-        if (!$scores) return 0;
-        arsort($scores,SORT_NUMERIC);
-        return absint(array_key_first($scores));
     }
 
     private static function hierarchy($term_id) {
@@ -315,69 +230,6 @@ final class SEO_Solucionador_Engine {
         $out['duplication_penalty'] = array('label'=>'Riesgo de duplicación','score'=>-$penalty,'max'=>0);
         $total -= $penalty;
         return array('total'=>round(max(0,min(100,$total)),2),'components'=>$out);
-    }
-
-    private static function broad_category_intent(array $profile, $primary_category_id) {
-        if (!absint($primary_category_id)) return false;
-        $intent = sanitize_key((string) ($profile['intent'] ?? ''));
-        $key_intent = sanitize_key((string) ($profile['key_intent'] ?? ''));
-        $action = sanitize_key((string) ($profile['action'] ?? ''));
-        $condition = trim((string) ($profile['condition'] ?? ''));
-        return $condition === '' && (
-            $key_intent === 'decision'
-            || in_array($intent,array('decision','choice','buying_guide','eleccion'),true)
-            || $action === 'elegir'
-        );
-    }
-
-    private static function landing_candidate_for_profile(array $profile, $suggested_title = '') {
-        if (!function_exists('seo_landing_get_candidates')) return array();
-        static $candidates = null;
-        if ($candidates === null) $candidates = (array) seo_landing_get_candidates(500);
-
-        $topic_text = trim(implode(' ',array_filter(array(
-            (string) $suggested_title,
-            (string) ($profile['action'] ?? ''),
-            (string) ($profile['object'] ?? ''),
-            (string) ($profile['context'] ?? ''),
-            (string) ($profile['condition'] ?? ''),
-        ))));
-        if ($topic_text === '') return array();
-
-        $best = array();
-        $best_score = 0.0;
-        foreach ($candidates as $candidate) {
-            $status = sanitize_key((string) ($candidate->status ?? ''));
-            if (!in_array($status,array('candidate','review','approved'),true)) continue;
-            $candidate_text = trim((string) ($candidate->title ?? '') . ' ' . (string) ($candidate->intent ?? ''));
-            if ($candidate_text === '') continue;
-
-            $similarity = SEO_Solucionador_Normalizer::similarity($topic_text,$candidate_text);
-            if ($similarity < 0.62 || $similarity <= $best_score) continue;
-
-            $requirements = function_exists('seo_landing_decode_json')
-                ? seo_landing_decode_json($candidate->requirements_json ?? '')
-                : array();
-            $pass = function_exists('seo_landing_requirements_pass')
-                ? seo_landing_requirements_pass($requirements)
-                : ($status === 'approved');
-            $score = (float) ($candidate->total_score ?? 0);
-            if ($status !== 'approved' && (!$pass || $score < 60)) continue;
-
-            $best_score = $similarity;
-            $best = array(
-                'id'=>absint($candidate->id ?? 0),
-                'page_id'=>absint($candidate->page_id ?? 0),
-                'status'=>$status,
-                'score'=>$score,
-                'similarity'=>round($similarity,4),
-                'requirements'=>$requirements,
-                'requirements_pass'=>(bool) $pass,
-                'title'=>(string) ($candidate->title ?? ''),
-                'intent'=>(string) ($candidate->intent ?? ''),
-            );
-        }
-        return $best;
     }
 
     private static function requirements(array $stats,array $coverage,array $knowledge,array $risks,$primary_category_id,array $landing) {
