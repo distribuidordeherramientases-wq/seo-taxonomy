@@ -977,7 +977,6 @@ final class SEO_Solucionador_Sources {
             self::analista(min(180, $days), 160),
             self::ojeador(180),
             self::comparador(240),
-            self::ingeniero(260),
             self::clasificador(260),
             self::marketing(120)
         ));
