@@ -3008,6 +3008,9 @@ if (!function_exists('dht_template_category_query_url')) {
             unset($args[$key]);
         }
 
+        /* La paginación previa no debe sobrevivir al cambio de un filtro. */
+        unset($args['dht_page']);
+
         foreach ((array) $overrides as $key => $value) {
             if (null === $value || '' === $value || array() === $value) {
                 unset($args[$key]);
@@ -3016,7 +3019,6 @@ if (!function_exists('dht_template_category_query_url')) {
             }
         }
 
-        unset($args['dht_page']);
         return $args ? add_query_arg($args, $base_url) : $base_url;
     }
 }
