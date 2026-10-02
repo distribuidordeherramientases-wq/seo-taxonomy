@@ -229,12 +229,18 @@ final class SEO_Comparador_Admin {
     }
 
     private static function render_comparisons() {
-        $profiles=SEO_Comparador_DB::list_profiles(1000);
+        $per_page=100;
+        $page=max(1,isset($_GET['cmp_paged']) ? absint(wp_unslash($_GET['cmp_paged'])) : 1);
+        $total=SEO_Comparador_DB::profile_count();
+        $status_counts=SEO_Comparador_DB::profile_status_counts();
+        $profiles=SEO_Comparador_DB::list_profiles_page($per_page,($page-1)*$per_page);
+        $ready=absint($status_counts['ready_for_editorial'] ?? 0)+absint($status_counts['ready_for_solucionador'] ?? 0);
+        $published=absint($status_counts['published'] ?? 0)+absint($status_counts['monitoring'] ?? 0);
         echo '<div class="seo-cmp-grid">';
-        self::card('Perfiles',count($profiles),'Alcances comparables persistidos.');
-        self::card('Listos para Editora',count(array_filter($profiles,static function($p){return in_array(($p['status']??''),array('ready_for_editorial','ready_for_solucionador'),true);})),'Perfil validado y actuación editorial calculada.');
-        self::card('Publicados',count(array_filter($profiles,static function($p){return in_array(($p['status']??''),array('published','monitoring'),true);})),'Con post canónico vinculado.');
-        self::card('Necesitan actualización',count(array_filter($profiles,static function($p){return ($p['status']??'')==='needs_update';})),'Las fuentes han cambiado materialmente.');
+        self::card('Perfiles',$total,'Alcances comparables persistidos.');
+        self::card('Listos para Editora',$ready,'Perfil validado y actuación editorial calculada.');
+        self::card('Publicados',$published,'Con post canónico vinculado.');
+        self::card('Necesitan actualización',absint($status_counts['needs_update'] ?? 0),'Las fuentes han cambiado materialmente.');
         echo '</div>';
 
         echo '<div class="postbox seo-cmp-box"><h2>Perfiles comparativos</h2>';
@@ -250,7 +256,20 @@ final class SEO_Comparador_Admin {
             echo '<td>' . esc_html((string)$p['source_snapshot_at']) . '</td>';
             echo '<td><a class="button" href="' . esc_url(self::url('comparisons',array('profile_id'=>absint($p['id'])))) . '">Abrir</a></td></tr>';
         }
-        echo '</tbody></table></div></div>';
+        echo '</tbody></table></div>';
+        $pages=max(1,(int)ceil($total/$per_page));
+        if ($pages>1) {
+            echo '<div class="tablenav"><div class="tablenav-pages">';
+            echo wp_kses_post(paginate_links(array(
+                'base'=>add_query_arg('cmp_paged','%#%',self::url('comparisons')),
+                'format'=>'',
+                'current'=>$page,
+                'total'=>$pages,
+                'type'=>'plain',
+            )));
+            echo '</div></div>';
+        }
+        echo '</div>';
 
         $profile_id=isset($_GET['profile_id']) ? absint(wp_unslash($_GET['profile_id'])) : 0;
         if ($profile_id) self::render_profile($profile_id);
