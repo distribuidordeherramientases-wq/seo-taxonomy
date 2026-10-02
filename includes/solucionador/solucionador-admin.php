@@ -345,19 +345,6 @@ final class SEO_Solucionador_Admin {
             $items['Ojeador'] = array('available'=>false,'metric'=>0,'unit'=>'','detail'=>'Servicio no disponible');
         }
 
-        if (class_exists('SEO_Ingeniero_DB')) {
-            $totals = SEO_Ingeniero_DB::totals();
-            $stats = SEO_Ingeniero_DB::category_stats_map();
-            $items['Ingeniero'] = array(
-                'available'=>true,
-                'metric'=>count((array) $stats),
-                'unit'=>'categorías con conocimiento',
-                'detail'=>number_format_i18n(absint($totals['knowledge'] ?? 0)) . ' bloques de conocimiento',
-            );
-        } else {
-            $items['Ingeniero'] = array('available'=>false,'metric'=>0,'unit'=>'','detail'=>'Servicio no disponible');
-        }
-
         if (function_exists('seo_classifier_engineer_vocab_bulk_reports') && function_exists('seo_classifier_engineer_vocab_flat_rows')) {
             $reports = seo_classifier_engineer_vocab_bulk_reports();
             $rows = is_wp_error($reports) ? array() : seo_classifier_engineer_vocab_flat_rows((array) $reports);
@@ -428,7 +415,7 @@ final class SEO_Solucionador_Admin {
             if ($scope === 'overview') {
                 echo '<div class="postbox" style="padding:18px;margin-top:18px"><h3 style="margin-top:0">Cómo leer el flujo</h3>';
                 echo '<p><strong>Servicios fuente</strong> producen hechos, conocimiento, señales y métricas. <strong>Solucionador</strong> cruza esas conclusiones, prioriza y decide la salida editorial. <strong>Editora / editores</strong> ejecutan la modificación en Entradas, Páginas, Categorías o Imágenes.</p>';
-                echo '<p style="margin-bottom:0"><strong>Solucionador no sustituye a Auditor, Analista, Clasificador, Dependiente, Intérprete, Ojeador ni Ingeniero:</strong> consume su resultado.</p></div>';
+                echo '<p style="margin-bottom:0"><strong>Solucionador consume señales de Auditor, Analista, Clasificador, Dependiente, Intérprete, Ojeador y Comparador.</strong> Ingeniero mantiene un proceso editorial técnico independiente y no alimenta el brief de Solucionador.</p></div>';
             }
             return;
         }
@@ -620,43 +607,6 @@ final class SEO_Solucionador_Admin {
             }
         }
 
-        $knowledge = array();
-        $technical_sources = array();
-        if ($primary_category_id && class_exists('SEO_Ingeniero')) {
-            $source_map = array();
-            if (class_exists('SEO_Ingeniero_DB')) {
-                foreach ((array) SEO_Ingeniero_DB::sources_for_category($primary_category_id) as $source) {
-                    $source_map[absint($source['id'] ?? 0)] = $source;
-                }
-            }
-            foreach ((array) SEO_Ingeniero::active_knowledge($primary_category_id) as $row) {
-                $item = array(
-                    'type'=>(string) ($row['knowledge_type'] ?? ''),
-                    'concept'=>(string) ($row['concept'] ?? ''),
-                    'summary'=>(string) ($row['summary'] ?? ''),
-                    'confidence'=>(float) ($row['confidence'] ?? 0),
-                    'facts'=>(array) ($row['facts'] ?? array()),
-                    'sources'=>array(),
-                );
-                foreach ((array) ($row['source_ids'] ?? array()) as $source_id) {
-                    $source_id = absint($source_id);
-                    if (!$source_id || empty($source_map[$source_id])) continue;
-                    $src = $source_map[$source_id];
-                    $normalized = array(
-                        'id'=>$source_id,
-                        'title'=>(string) ($src['title'] ?? ''),
-                        'url'=>(string) ($src['url'] ?? ''),
-                        'source_type'=>(string) ($src['source_type'] ?? ''),
-                        'trust_level'=>(string) ($src['trust_level'] ?? ''),
-                        'retrieved_at'=>(string) ($src['retrieved_at'] ?? ''),
-                    );
-                    $item['sources'][] = $normalized;
-                    $technical_sources[$source_id] = $normalized;
-                }
-                $knowledge[] = $item;
-            }
-        }
-
         $products = array();
         $cat_ids = array_values(array_unique(array_filter(array_map(static function($row){
             return absint($row['term_id'] ?? $row['id'] ?? 0);
@@ -700,16 +650,6 @@ final class SEO_Solucionador_Admin {
         }
 
         $must_cover = array();
-        foreach ($knowledge as $item) {
-            $label = trim((string) (($item['concept'] ?? '') ?: ($item['summary'] ?? '')));
-            if ($label !== '') $must_cover[$label] = true;
-            foreach ((array) ($item['facts'] ?? array()) as $fact) {
-                if (is_scalar($fact)) {
-                    $fact = trim((string) $fact);
-                    if ($fact !== '') $must_cover[$fact] = true;
-                }
-            }
-        }
         foreach (array_keys($concepts) as $concept) $must_cover[$concept] = true;
 
         $tracking = SEO_Solucionador_DB::tracking_history($topic_id,24);
@@ -734,8 +674,6 @@ final class SEO_Solucionador_Admin {
             'hierarchy'=>$hierarchy,
             'vocabulary'=>$vocabulary,
             'concepts'=>array_slice(array_keys($concepts),0,30),
-            'knowledge'=>$knowledge,
-            'technical_sources'=>array_values($technical_sources),
             'products'=>$products,
             'questions'=>array_values(array_keys($questions)),
             'question_details'=>array_values($question_details),
@@ -870,21 +808,9 @@ final class SEO_Solucionador_Admin {
         if ($brief['preserve']) echo '<p><strong>No repetir / conservar:</strong> ' . esc_html(implode(' · ',$brief['preserve'])) . '</p>';
         echo '</section>';
 
-        echo '<section><h3>5. Conocimiento</h3>';
+        echo '<section><h3>5. Conocimiento editorial</h3>';
         echo '<p><strong>Estado:</strong> ' . esc_html($brief['knowledge_status']) . '</p>';
-        if (!$brief['knowledge']) echo '<p>No existe conocimiento técnico activo suficiente de Ingeniero.</p>';
-        foreach ($brief['knowledge'] as $item) {
-            echo '<div class="seo-sol-knowledge"><strong>' . esc_html((string)($item['type'] ?? '')) . '</strong>';
-            if (!empty($item['concept'])) echo ' · ' . esc_html((string)$item['concept']);
-            echo '<p>' . esc_html((string)($item['summary'] ?? '')) . '</p>';
-            echo '<small>Confianza ' . esc_html(number_format_i18n((float)($item['confidence'] ?? 0)*100,0)) . '%</small>';
-            if (!empty($item['sources'])) {
-                echo '<ul>'; foreach ($item['sources'] as $src) {
-                    echo '<li><a href="' . esc_url((string)$src['url']) . '" target="_blank" rel="noopener">' . esc_html((string)(($src['title'] ?? '') ?: $src['url'])) . '</a> · ' . esc_html((string)$src['source_type']) . ' · confianza fuente ' . esc_html((string)$src['trust_level']) . '</li>';
-                } echo '</ul>';
-            }
-            echo '</div>';
-        }
+        echo '<p class="description">Este estado pertenece al conocimiento editorial de Dependiente/Academia y a las evidencias propias de Solucionador. El conocimiento técnico de Ingeniero se gestiona únicamente en su proceso editorial independiente.</p>';
         if ($brief['concepts']) echo '<p><strong>Conceptos pendientes de Clasificador:</strong> ' . esc_html(implode(' · ',$brief['concepts'])) . '</p>';
         echo '</section>';
 
@@ -946,7 +872,6 @@ final class SEO_Solucionador_Admin {
         if ($brief['must_cover']) { echo '<h4>Temas / conceptos obligatorios disponibles</h4><ul>'; foreach ($brief['must_cover'] as $item) echo '<li>' . esc_html(wp_trim_words($item,35,'…')) . '</li>'; echo '</ul>'; }
         if ($brief['preserve']) { echo '<h4>Contenido previo que no debe duplicarse</h4><ul>'; foreach ($brief['preserve'] as $item) echo '<li>' . esc_html($item) . '</li>'; echo '</ul>'; }
         if ($brief['links']) { echo '<h4>Enlaces internos recomendados</h4><ul>'; foreach ($brief['links'] as $link) echo '<li><a href="' . esc_url($link['url']) . '" target="_blank" rel="noopener">' . esc_html($link['label']) . '</a></li>'; echo '</ul>'; }
-        if ($brief['technical_sources']) { echo '<h4>Fuentes técnicas verificadas</h4><ul>'; foreach ($brief['technical_sources'] as $src) echo '<li><a href="' . esc_url($src['url']) . '" target="_blank" rel="noopener">' . esc_html(($src['title'] ?? '') ?: $src['url']) . '</a> · ' . esc_html($src['source_type']) . ' · ' . esc_html($src['trust_level']) . '</li>'; echo '</ul>'; }
         echo '<p class="description"><strong>La Editora decide la redacción:</strong> Solucionador no fija extensión, estilo, frases, introducción ni texto final.</p>';
         echo '</section>';
 
@@ -1264,7 +1189,7 @@ final class SEO_Solucionador_Admin {
         echo '<p><strong>Comentarista:</strong> aporta problemas o preguntas observadas en experiencias externas almacenadas.</p>';
         echo '<p><strong>Ojeador:</strong> aporta conclusiones de mercado y oportunidad ya calculadas; Solucionador no consulta Google Shopping por su cuenta.</p>';
         echo '<p><strong>Comparador:</strong> cuando publique su análisis ampliado, aporta tipologías, configuraciones, factores decisivos, ventajas/limitaciones y referencias representativas mediante un contrato normalizado. Solucionador no repite su cálculo.</p>';
-        echo '<p><strong>Ingeniero:</strong> aporta conocimiento técnico validado por categoría, con fuentes, URL, tipo, confianza y fecha.</p>';
+        echo '<p><strong>Ingeniero:</strong> proceso editorial técnico independiente. No se incorpora como fuente del Solucionador; ambos comparten únicamente la API neutral de cobertura.</p>';
         echo '<p><strong>Clasificador:</strong> aporta huecos y estructura semántica detectados a partir del catálogo y de Ingeniero.</p>';
         echo '<p><strong>Marketing:</strong> puede reforzar prioridad comercial, campaña o estacionalidad; nunca origina por sí solo una URL nueva.</p>';
         echo '<p><strong>Entradas/Páginas/Categorías:</strong> aportan inventario, rendimiento y cobertura; sus editores quedan como lugares de ejecución.</p>';
