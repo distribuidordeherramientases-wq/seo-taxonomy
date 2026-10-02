@@ -803,7 +803,6 @@ final class SEO_Solucionador_Engine {
                 $discarded++;
                 continue;
             }
-        }
 
             SEO_Solucionador_DB::add_evidence($topic_id,$source);
             $topic_ids[$topic_id] = true;
