@@ -251,6 +251,25 @@ final class SEO_Comparador_DB {
         );
     }
 
+    public static function profile_count() {
+        global $wpdb;
+        return absint($wpdb->get_var('SELECT COUNT(*) FROM ' . self::table('profiles')));
+    }
+
+    public static function list_profiles_page($limit = 100, $offset = 0) {
+        global $wpdb;
+        $limit = max(1, min(250, absint($limit)));
+        $offset = max(0, absint($offset));
+        return (array) $wpdb->get_results(
+            $wpdb->prepare(
+                'SELECT * FROM ' . self::table('profiles') . ' ORDER BY updated_at DESC,id DESC LIMIT %d OFFSET %d',
+                $limit,
+                $offset
+            ),
+            ARRAY_A
+        );
+    }
+
     public static function axes($profile_id) {
         global $wpdb;
         return (array) $wpdb->get_results(
