@@ -356,7 +356,7 @@ final class SEO_Ingeniero_Admin {
         echo '</div>';
 
         echo '<p style="margin:15px 0 4px"><strong>Estado:</strong> ' . esc_html((string) ($state['status'] ?? 'stopped')) . ' · ';
-        echo '<strong>Lote actual:</strong> ' . esc_html(number_format_i18n($progress['processed'])) . '/' . esc_html(number_format_i18n($progress['total'])) . ' categorías · lote adaptativo ' . esc_html(absint($state['batch_size'] ?? 1)) . '.</p>';
+        echo '<strong>Progreso:</strong> ' . esc_html(number_format_i18n($progress['processed'])) . '/' . esc_html(number_format_i18n($progress['total'])) . ' categorías · <strong>1 categoría por ciclo</strong>.</p>';
         if (!empty($state['last_message'])) echo '<p class="description">' . esc_html((string) $state['last_message']) . '</p>';
         if (!empty($state['last_error'])) echo '<p style="color:#b32d2e"><strong>Último error:</strong> ' . esc_html((string) $state['last_error']) . '</p>';
         echo '</div>';
