@@ -249,16 +249,30 @@ No utiliza amplitud de mercado, prioridades de Marketing ni conocimiento técnic
 
 ## Interfaz visible simplificada
 
-La interfaz de Solucionador expone únicamente tres pantallas:
+La navegación diaria de Solucionador queda reducida a tres vistas:
 
-1. **Posts propuestos**: una propuesta por dossier/categoría con conocimiento. Muestra título, estado, acciones **Convertir en borrador / Descartar / Recuperar** y debajo las preguntas con una respuesta legible derivada del último entrenamiento validado de Dependiente.
-2. **Visitas Google**: muestra los posts creados por Solucionador y los datos persistidos de Google disponibles para los últimos 28 días: impresiones, clics y vistas.
-3. **Informes JSON**: descarga un único informe con propuestas, preguntas/respuestas, estado de los posts y métricas Google disponibles.
+1. **Resumen**
+   - Posts propuestos.
+   - Borradores.
+   - Publicados.
+   - La sincronización con Academia se ejecuta automáticamente en segundo plano; no se muestra un botón manual de procesamiento.
 
-Cobertura, Vocabulary, workflow, evidencias, tests y demás diagnóstico continúan funcionando como infraestructura interna, pero no forman parte de la navegación diaria.
+2. **Diagnóstico editorial**
+   - Una fila por categoría con conocimiento aprendido.
+   - Columnas: título propuesto, número de preguntas, estado y acción.
+   - Si está pendiente, la única acción visible es **Convertir en post**.
+   - Si ya se convirtió, se muestra como **Borrador** o **Publicado** y no vuelve a ofrecer el botón de conversión.
+   - Las preguntas/respuestas no se muestran en esta pantalla. Se recuperan sólo al convertir la propuesta y se copian al `post_content` del borrador.
 
-**Descartar no borra la propuesta**: cambia su estado a descartada y permite recuperarla posteriormente.
+3. **Visitas Google**
+   - Sólo posts publicados creados por Solucionador.
+   - Impresiones y clics de Google Search Console.
+   - Vistas de Google Analytics.
+   - Periodo visible: 28 días.
+   - La propia pantalla solicita el snapshot de reporting cacheado/actualizado del sitio.
+   - El informe JSON se descarga desde esta misma vista; no tiene una pestaña separada.
 
+Cobertura, Vocabulary, workflow, evidencias, tests y diagnóstico técnico siguen disponibles para el motor como infraestructura interna, pero no forman parte de la interfaz operativa.
 ## Brief para Editora
 
 Al abrir un dossier, Solucionador recupera bajo demanda las preguntas y resultados internos.
