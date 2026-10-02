@@ -3,7 +3,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_CORE_SYSTEM_TEST_VERSION')) {
-    define('SEO_CORE_SYSTEM_TEST_VERSION', '8.10.0');
+    define('SEO_CORE_SYSTEM_TEST_VERSION', '8.10.1');
 }
 
 $seo_core_settings_module = __DIR__ . '/seo-core-validation-settings.php';
@@ -29,6 +29,53 @@ if (is_readable($seo_core_visual_test_module)) {
 $seo_core_wporg_test_module = __DIR__ . '/seo-core-validation-wordpress-org.php';
 if (is_readable($seo_core_wporg_test_module)) {
     require_once $seo_core_wporg_test_module;
+}
+
+/**
+ * Resuelve el entorno efectivo para los chequeos que cambian de criterio
+ * entre producción y entornos protegidos.
+ *
+ * WordPress puede seguir informando "production" cuando el hosting no define
+ * WP_ENVIRONMENT_TYPE. Por eso se usa también el hostname como defensa:
+ * staging.distribuidordeherramientas.es nunca debe evaluarse como una tienda
+ * pública indexable.
+ */
+function seo_core_system_test_environment_type() {
+    $reported = function_exists('wp_get_environment_type')
+        ? sanitize_key((string) wp_get_environment_type())
+        : 'production';
+
+    $host = strtolower((string) wp_parse_url(home_url('/'), PHP_URL_HOST));
+    $host = rtrim($host, '.');
+
+    $production_hosts = array(
+        'distribuidordeherramientas.es',
+        'www.distribuidordeherramientas.es',
+    );
+
+    if (in_array($host, $production_hosts, true)) {
+        return 'production';
+    }
+
+    if (
+        $host !== ''
+        && (
+            strpos($host, 'staging.') === 0
+            || preg_match('/(?:^|[.-])(?:staging|stage|dev|development|test|testing|local)(?:[.-]|$)/i', $host)
+        )
+    ) {
+        return 'staging';
+    }
+
+    if (in_array($reported, array('local', 'development', 'staging'), true)) {
+        return $reported;
+    }
+
+    return 'production';
+}
+
+function seo_core_system_test_is_nonproduction() {
+    return seo_core_system_test_environment_type() !== 'production';
 }
 
 /**
@@ -4165,6 +4212,23 @@ function seo_core_system_test_canonical_check($urls, $enabled) {
 
 function seo_core_system_test_robots_check($urls, $enabled) {
     if ((string) get_option('blog_public', '1') === '0') {
+        $environment = seo_core_system_test_environment_type();
+        if ($environment !== 'production') {
+            return seo_core_system_test_check_info(
+                'Entorno ' . strtoupper($environment) . ' protegido contra indexación mediante blog_public=0. Es el comportamiento esperado y no se considera una incidencia de producción.',
+                array(
+                    'owner' => 'SEO',
+                    'area' => 'indexation',
+                    'evidence' => array(
+                        'environment' => $environment,
+                        'blog_public' => false,
+                        'expected_protection' => true,
+                    ),
+                    'coverage' => 100,
+                    'confidence' => 100,
+                )
+            );
+        }
         return seo_core_system_test_check_warning('WordPress tiene activada la opcion de disuadir a los motores de busqueda. La politica robots publica no puede considerarse correcta para produccion.', array('owner' => 'SEO'));
     }
     if (!$enabled) {
@@ -4940,8 +5004,29 @@ function seo_core_system_test_store_readiness_check($product, $urls, $enabled) {
 }
 
 function seo_core_system_test_indexation_readiness_check($urls, $enabled) {
-    $evidence = array('blog_public' => (string) get_option('blog_public', '1') === '1', 'robots_txt' => array(), 'public_pages' => array());
+    $environment = seo_core_system_test_environment_type();
+    $evidence = array(
+        'environment' => $environment,
+        'blog_public' => (string) get_option('blog_public', '1') === '1',
+        'robots_txt' => array(),
+        'public_pages' => array(),
+    );
     $critical = array(); $warnings = array(); $blocked = array(); $checked = 0; $targets = 0;
+
+    if (!$evidence['blog_public'] && $environment !== 'production') {
+        $evidence['expected_protection'] = true;
+        return seo_core_system_test_check_info(
+            'Entorno ' . strtoupper($environment) . ' protegido deliberadamente contra indexación. blog_public=0 es correcto aquí y se evaluará como bloqueo crítico únicamente en producción.',
+            array(
+                'owner' => 'SEO',
+                'area' => 'indexation',
+                'evidence' => $evidence,
+                'coverage' => 100,
+                'confidence' => 100,
+            )
+        );
+    }
+
     if (!$evidence['blog_public']) $critical[] = 'WordPress disuade a los buscadores';
     if (!$enabled) return seo_core_system_test_check_info('Comprobación HTTP de indexación desactivada.', array('owner' => 'SEO', 'area' => 'indexation', 'evidence' => $evidence));
 
