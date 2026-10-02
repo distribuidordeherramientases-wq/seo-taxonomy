@@ -611,7 +611,10 @@ if (!function_exists('seo_images_webp_apply_reference_updates')) {
             $sql = "SELECT ID, post_content, post_excerpt, post_content_filtered FROM {$wpdb->posts}
                     WHERE ID > %d AND ({$where_content} OR {$where_excerpt} OR {$where_filtered})
                     ORDER BY ID ASC LIMIT %d";
-            $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
+            $prepared_sql = $wpdb->prepare($sql, $args);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
+            $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
             foreach ((array) $rows as $row) {
                 $after = max($after, (int) $row['ID']);
                 $content = str_replace(array_keys($pairs), array_values($pairs), (string) $row['post_content'], $count_content);
@@ -659,7 +662,10 @@ if (!function_exists('seo_images_webp_apply_reference_updates')) {
                         FROM {$set['table']}
                         WHERE {$set['id_col']} > %d AND {$like}{$exclude}
                         ORDER BY {$set['id_col']} ASC LIMIT %d";
-                $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
+                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
+            $prepared_sql = $wpdb->prepare($sql, $args);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
+            $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
                 foreach ((array) $rows as $row) {
                     $after = max($after, (int) $row['row_id']);
                     $prepared = seo_images_webp_prepare_value_update($row['meta_value'], $pairs);
@@ -697,7 +703,10 @@ if (!function_exists('seo_images_webp_apply_reference_updates')) {
                       AND option_name NOT LIKE '\\_transient\\_%'
                       AND option_name NOT LIKE '\\_site\\_transient\\_%'
                     ORDER BY option_id ASC LIMIT %d";
-            $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
+            $prepared_sql = $wpdb->prepare($sql, $args);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
+            $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
             foreach ((array) $rows as $row) {
                 $after = max($after, (int) $row['option_id']);
                 $prepared = seo_images_webp_prepare_value_update($row['option_value'], $pairs);
@@ -725,7 +734,10 @@ if (!function_exists('seo_images_webp_apply_reference_updates')) {
             $sql = "SELECT term_taxonomy_id, term_id, taxonomy, description FROM {$wpdb->term_taxonomy}
                     WHERE term_taxonomy_id > %d AND {$like}
                     ORDER BY term_taxonomy_id ASC LIMIT %d";
-            $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
+            $prepared_sql = $wpdb->prepare($sql, $args);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
+            $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
             foreach ((array) $rows as $row) {
                 $after = max($after, (int) $row['term_taxonomy_id']);
                 $new = str_replace(array_keys($pairs), array_values($pairs), (string) $row['description'], $count);
@@ -757,7 +769,10 @@ if (!function_exists('seo_images_webp_apply_reference_updates')) {
             $sql = "SELECT comment_ID, comment_content FROM {$wpdb->comments}
                     WHERE comment_ID > %d AND {$like}
                     ORDER BY comment_ID ASC LIMIT %d";
-            $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
+            $prepared_sql = $wpdb->prepare($sql, $args);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
+            $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
             foreach ((array) $rows as $row) {
                 $after = max($after, (int) $row['comment_ID']);
                 $new = str_replace(array_keys($pairs), array_values($pairs), (string) $row['comment_content'], $count);
@@ -862,7 +877,10 @@ if (!function_exists('seo_images_webp_remaining_references')) {
                 $sql = 'SELECT ' . $check['id'] . ' AS row_id, ' . implode(', ', $check['cols']) . ' FROM ' . $check['table']
                     . ' WHERE ' . $check['id'] . ' > %d AND (' . implode(' OR ', $likes) . ')' . $check['extra']
                     . ' ORDER BY ' . $check['id'] . ' ASC LIMIT %d';
-                $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
+                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
+            $prepared_sql = $wpdb->prepare($sql, $args);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
+            $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
                 foreach ((array) $rows as $row) {
                     $after = max($after, (int) $row['row_id']);
                     foreach ($check['cols'] as $column) {
