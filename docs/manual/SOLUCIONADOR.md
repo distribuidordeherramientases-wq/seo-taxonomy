@@ -408,6 +408,8 @@ Schema actual:
 
 `seo-solucionador-export-v3`
 
+El brief carga los detalles de las preguntas sólo cuando se abre.
+
 Incluye:
 
 - estado del último escaneo;

@@ -55,8 +55,8 @@ final class SEO_Solucionador_Tests {
 
         $source=array(
             'source_type'=>'dependiente',
-            'category_id'=>77,
-            'category_name'=>'Taladros',
+            'category_id'=>absint($category_id),
+            'category_name'=>(string)$category_name,
             'source_meta'=>array(
                 'dependiente_channel'=>'academy_learned_dossier',
                 'editorial_family'=>'dependiente_qa_basic',
@@ -66,8 +66,8 @@ final class SEO_Solucionador_Tests {
             'hints'=>array(
                 'intent'=>'dependiente_qa_basic',
                 'action'=>'resolver',
-                'object'=>'Taladros',
-                'category_id'=>77,
+                'object'=>(string)$category_name,
+                'category_id'=>absint($category_id),
             ),
         );
         $profile=SEO_Solucionador_Engine::normalize_topic_for_test(

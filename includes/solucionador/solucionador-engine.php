@@ -187,18 +187,23 @@ final class SEO_Solucionador_Engine {
     }
 
     private static function knowledge_status($term_id, array $stats) {
-        // Solucionador ya no consume conocimiento de Ingeniero. Su conocimiento
-        // editorial procede de Dependiente/Academia y del resto de evidencias
-        // propias de este proceso.
-        $dependiente = absint($stats['dependiente'] ?? 0);
-        if ($dependiente > 0) {
-            return array(
-                'status'=>'sufficient',
-                'count'=>$dependiente,
-                'confidence'=>min(0.95, 0.65 + min(0.25, $dependiente * 0.05)),
-            );
+        $term_id = absint($term_id);
+        $best_confidence = 0.0;
+        $active_count = 0;
+
+        if ($term_id && class_exists('SEO_Ingeniero') && method_exists('SEO_Ingeniero','active_knowledge')) {
+            foreach ((array) SEO_Ingeniero::active_knowledge($term_id) as $row) {
+                $active_count++;
+                $best_confidence = max($best_confidence,(float) ($row['confidence'] ?? 0));
+            }
         }
-        return array('status'=>'insufficient','count'=>0,'confidence'=>0.0);
+        if ($active_count > 0 && $best_confidence >= 0.55) {
+            return array('status'=>'sufficient','count'=>$active_count,'confidence'=>round($best_confidence,3));
+        }
+        if (absint($stats['ingeniero'] ?? 0) > 0) {
+            return array('status'=>'sufficient','count'=>absint($stats['ingeniero']),'confidence'=>0.60);
+        }
+        return array('status'=>'insufficient','count'=>$active_count,'confidence'=>round($best_confidence,3));
     }
 
     private static function risks(array $coverage, $primary_category_id) {
@@ -262,6 +267,7 @@ final class SEO_Solucionador_Engine {
             'coverage_gap'=>25,
             'validation_confidence'=>10,
         );
+        $max = array('learned_questions'=>45,'real_demand'=>15,'catalog_fit'=>15,'coverage_gap'=>20);
         $labels = array(
             'learned_questions'=>'Preguntas aprendidas',
             'category_fit'=>'Encaje con product_cat',
@@ -314,6 +320,7 @@ final class SEO_Solucionador_Engine {
 
     private static function decision(array $profile,array $stats,array $coverage,array $knowledge,array $risks,$primary_category_id,array $landing,array $requirements) {
         $coverage_status = sanitize_key((string) ($coverage['status'] ?? 'uncovered'));
+        $entity_type = sanitize_key((string) ($coverage['entity_type'] ?? ''));
 
         if (!$primary_category_id) {
             return array('action'=>'DEFER','reason'=>'No existe una product_cat demostrable para este conocimiento de Academia.');
@@ -442,27 +449,19 @@ final class SEO_Solucionador_Engine {
     public static function evaluate_scenario_for_test(array $scenario) {
         $profile = (array) ($scenario['profile'] ?? array());
         $stats = wp_parse_args((array) ($scenario['stats'] ?? array()),array(
-            'total'=>0,'dependiente'=>0,'comentarista'=>0,'analista'=>0,'auditor'=>0,
-            'ojeador'=>0,'comparador'=>0,'clasificador'=>0,'marketing'=>0,
-            'zero_results'=>0,'negative_feedback'=>0,
+            'total'=>0,'dependiente'=>0,'academy_questions'=>0,'search_demand'=>0,
         ));
         $coverage = wp_parse_args((array) ($scenario['coverage'] ?? array()),array(
             'status'=>'uncovered','entity_type'=>'','entity_id'=>0,'seo_role'=>'','matches'=>array(),'score'=>0,
         ));
-        $knowledge = wp_parse_args((array) ($scenario['knowledge'] ?? array()),array(
-            'status'=>'insufficient','count'=>0,'confidence'=>0,
-        ));
+        $knowledge = array('status'=>'not_required','count'=>0,'confidence'=>1);
         $risks = wp_parse_args((array) ($scenario['risks'] ?? array()),array(
             'duplication_risk'=>0,'cannibalization_risk'=>0,
         ));
         $primary_category_id = absint($scenario['primary_category_id'] ?? $profile['category_id'] ?? 0);
-        $landing = (array) ($scenario['landing'] ?? array());
-        $requirements = self::requirements($stats,$coverage,$knowledge,$risks,$primary_category_id,$landing);
-        $decision = self::decision($profile,$stats,$coverage,$knowledge,$risks,$primary_category_id,$landing,$requirements);
-        return array(
-            'decision'=>$decision,
-            'requirements'=>$requirements,
-        );
+        $requirements = self::requirements($stats,$coverage,$knowledge,$risks,$primary_category_id,array(),$profile);
+        $decision = self::decision($profile,$stats,$coverage,$knowledge,$risks,$primary_category_id,array(),$requirements);
+        return array('decision'=>$decision,'requirements'=>$requirements);
     }
 
     /**
@@ -804,6 +803,7 @@ final class SEO_Solucionador_Engine {
                 $discarded++;
                 continue;
             }
+        }
 
             SEO_Solucionador_DB::add_evidence($topic_id,$source);
             $topic_ids[$topic_id] = true;

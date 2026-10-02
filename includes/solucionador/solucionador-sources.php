@@ -1,16 +1,20 @@
 <?php
 /**
- * Solucionador - adaptadores de fuentes locales.
+ * Solucionador - fuente editorial reducida.
  *
- * v0.4.2 conserva la demanda real del log de Dependiente V3 y añade, como
- * fuente editorial separada, el conocimiento aprendido por Academia. Solucionador
- * no modifica Dependiente: consume preguntas cuyo ultimo run esta validado pass_*,
- * resuelve product_cat y construye dossiers category-first.
+ * Arquitectura v0.5.0:
+ * Academia/Entrenador -> dossier por product_cat -> cobertura -> brief.
+ *
+ * Dependiente no se modifica. Solucionador lee preguntas activas cuyo ultimo
+ * run esta answered + pass_*. El search_log se conserva solo como refuerzo
+ * ligero de prioridad para categorias que ya disponen de dossier.
  */
 
 defined('ABSPATH') || exit;
 
 final class SEO_Solucionador_Sources {
+    const SNAPSHOT_OPTION = 'seo_solucionador_academia_snapshot';
+
     private static function table_exists($table) {
         return SEO_Solucionador_DB::table_exists($table);
     }
@@ -19,12 +23,6 @@ final class SEO_Solucionador_Sources {
         if (is_array($value)) return $value;
         $decoded = json_decode((string) $value, true);
         return is_array($decoded) ? $decoded : array();
-    }
-
-    private static $dependiente_academia_cache = null;
-
-    private static function origin_flag($value = true) {
-        return $value ? 'origin' : 'reinforcement';
     }
 
     private static function valid_product_cat_ids(array $ids) {
@@ -45,8 +43,8 @@ final class SEO_Solucionador_Sources {
     }
 
     /**
-     * Resuelve una pregunta de Academia a product_cat sin inferencias semanticas.
-     * Solo acepta relaciones demostrables por expected/source/FAQ/producto.
+     * Resuelve product_cat solo por relaciones demostrables.
+     * Nunca usa parecido textual.
      */
     private static function academy_category_ids(array $row, array $expected) {
         global $wpdb;
@@ -67,11 +65,8 @@ final class SEO_Solucionador_Sources {
         } elseif ($kind === 'faq') {
             $owner_type = absint($expected['owner_type'] ?? 0);
             $owner_id = absint($expected['owner_id'] ?? 0);
-            if ($owner_type === 2) {
-                $ids[] = $owner_id;
-            } elseif ($owner_type === 3) {
-                $ids = array_merge($ids, self::product_category_ids($owner_id));
-            }
+            if ($owner_type === 2) $ids[] = $owner_id;
+            elseif ($owner_type === 3) $ids = array_merge($ids, self::product_category_ids($owner_id));
         }
 
         if (!empty($expected['source_product_id'])) {
@@ -101,123 +96,247 @@ final class SEO_Solucionador_Sources {
         return self::valid_product_cat_ids($ids);
     }
 
-    private static function dependiente_academia_data() {
-        if (self::$dependiente_academia_cache !== null) {
-            return self::$dependiente_academia_cache;
-        }
-
+    private static function academy_tables() {
         global $wpdb;
-        $questions = $wpdb->prefix . 'seo_dependiente_trainer_questions';
-        $runs = $wpdb->prefix . 'seo_dependiente_trainer_runs';
-
-        $empty = array(
-            'stats'=>array(
-                'available'=>false,
-                'questions_total'=>0,
-                'learned'=>0,
-                'not_learned'=>0,
-                'learned_with_category'=>0,
-                'learned_without_category'=>0,
-                'categories_with_knowledge'=>0,
-                'categories_total'=>0,
-                'categories_without_knowledge'=>0,
-                'avg_questions_per_category'=>0,
-                'last_run_at'=>'',
-            ),
-            'dossiers'=>array(),
+        return array(
+            'questions'=>$wpdb->prefix . 'seo_dependiente_trainer_questions',
+            'runs'=>$wpdb->prefix . 'seo_dependiente_trainer_runs',
         );
+    }
 
-        if (!self::table_exists($questions) || !self::table_exists($runs)) {
-            self::$dependiente_academia_cache = $empty;
-            return $empty;
-        }
+    private static function academy_where() {
+        return "q.enabled=1 AND q.lesson_key<>'' AND q.lesson_key NOT LIKE 'lab\\_%'";
+    }
 
-        $where = "q.enabled=1 AND q.lesson_key<>'' AND q.lesson_key NOT LIKE 'lab\\_%'";
+    /**
+     * Estadisticas baratas. Las metricas que exigen resolver categoria se
+     * actualizan durante el scan y se guardan en SNAPSHOT_OPTION.
+     */
+    private static function academy_base_stats() {
+        global $wpdb;
+        $tables = self::academy_tables();
+        $empty = array(
+            'available'=>false,
+            'questions_total'=>0,
+            'learned'=>0,
+            'not_learned'=>0,
+            'learned_with_category'=>0,
+            'learned_without_category'=>0,
+            'categories_with_knowledge'=>0,
+            'categories_total'=>0,
+            'categories_without_knowledge'=>0,
+            'avg_questions_per_category'=>0,
+            'last_run_at'=>'',
+        );
+        if (!self::table_exists($tables['questions']) || !self::table_exists($tables['runs'])) return $empty;
 
-        $total = absint($wpdb->get_var(
-            "SELECT COUNT(*) FROM {$questions} q WHERE {$where}"
-        ));
-
-        $aggregate = $wpdb->get_row(
+        $where = self::academy_where();
+        $row = $wpdb->get_row(
             "SELECT
-                COUNT(r.id) evaluated,
+                COUNT(q.id) questions_total,
                 SUM(CASE WHEN r.status='answered' AND LEFT(COALESCE(r.evaluation_status,''),5)='pass_' THEN 1 ELSE 0 END) learned,
                 MAX(r.created_at) last_run_at
-             FROM {$questions} q
+             FROM {$tables['questions']} q
              LEFT JOIN (
                 SELECT question_id,MAX(id) latest_run_id
-                FROM {$runs}
+                FROM {$tables['runs']}
                 WHERE question_id IS NOT NULL
                 GROUP BY question_id
              ) latest ON latest.question_id=q.id
-             LEFT JOIN {$runs} r ON r.id=latest.latest_run_id
+             LEFT JOIN {$tables['runs']} r ON r.id=latest.latest_run_id
              WHERE {$where}",
             ARRAY_A
         );
-        $learned_total = absint($aggregate['learned'] ?? 0);
+        $total = absint($row['questions_total'] ?? 0);
+        $learned = absint($row['learned'] ?? 0);
+        $categories_total = wp_count_terms(array('taxonomy'=>'product_cat','hide_empty'=>false));
+        $categories_total = is_wp_error($categories_total) ? 0 : absint($categories_total);
 
-        $rows = (array) $wpdb->get_results(
+        return array(
+            'available'=>true,
+            'questions_total'=>$total,
+            'learned'=>$learned,
+            'not_learned'=>max(0,$total-$learned),
+            'learned_with_category'=>0,
+            'learned_without_category'=>0,
+            'categories_with_knowledge'=>0,
+            'categories_total'=>$categories_total,
+            'categories_without_knowledge'=>$categories_total,
+            'avg_questions_per_category'=>0,
+            'last_run_at'=>(string) ($row['last_run_at'] ?? ''),
+        );
+    }
+
+    public static function dependiente_academia_snapshot() {
+        $base = self::academy_base_stats();
+        $saved = get_option(self::SNAPSHOT_OPTION, array());
+        if (!is_array($saved)) $saved = array();
+        foreach (array(
+            'learned_with_category','learned_without_category','categories_with_knowledge',
+            'categories_without_knowledge','avg_questions_per_category','last_run_at'
+        ) as $key) {
+            if (array_key_exists($key,$saved)) $base[$key] = $saved[$key];
+        }
+        return $base;
+    }
+
+    /**
+     * Lote ligero de conocimiento aprendido.
+     *
+     * No carga evaluation_json/top_results/response_meta. Esos datos se consultan
+     * bajo demanda cuando Editora abre o exporta el brief.
+     */
+    public static function academia_batch($cursor = 0, $limit = 200) {
+        global $wpdb;
+        $tables = self::academy_tables();
+        $cursor = absint($cursor);
+        $limit = max(25,min(500,absint($limit)));
+
+        if (!self::table_exists($tables['questions']) || !self::table_exists($tables['runs'])) {
+            return array('sources'=>array(),'next_cursor'=>$cursor,'complete'=>true,'seen'=>0,'with_category'=>0,'without_category'=>0);
+        }
+
+        $where = self::academy_where();
+        $rows = (array) $wpdb->get_results($wpdb->prepare(
             "SELECT
-                q.id question_id,
-                q.lesson_key,
-                q.lesson_order,
-                q.module_no,
-                q.source_type,
-                q.source_id,
-                q.source_key,
-                q.question_type,
-                q.mode,
-                q.question,
-                q.expected_json,
-                r.id run_id,
-                r.status run_status,
-                r.search_strategy,
-                r.evaluation_status,
-                r.evaluation_score,
-                r.evaluation_json,
-                r.top_results,
-                r.response_meta,
-                r.created_at run_created_at
-             FROM {$questions} q
+                q.id question_id,q.lesson_key,q.question_type,q.source_type,q.source_id,
+                q.source_key,q.question,q.expected_json,
+                r.id run_id,r.evaluation_status,r.evaluation_score,r.created_at run_created_at
+             FROM {$tables['questions']} q
              INNER JOIN (
                 SELECT question_id,MAX(id) latest_run_id
-                FROM {$runs}
+                FROM {$tables['runs']}
                 WHERE question_id IS NOT NULL
                 GROUP BY question_id
              ) latest ON latest.question_id=q.id
-             INNER JOIN {$runs} r ON r.id=latest.latest_run_id
+             INNER JOIN {$tables['runs']} r ON r.id=latest.latest_run_id
              WHERE {$where}
+               AND q.id>%d
                AND r.status='answered'
                AND LEFT(COALESCE(r.evaluation_status,''),5)='pass_'
-             ORDER BY q.lesson_order ASC,q.id ASC",
-            ARRAY_A
-        );
+             ORDER BY q.id ASC
+             LIMIT %d",
+            $cursor,
+            $limit
+        ), ARRAY_A);
 
-        $by_category = array();
-        $learned_with_category = 0;
-        $learned_without_category = 0;
-        $assignments = 0;
+        $sources = array();
+        $with_category = 0;
+        $without_category = 0;
+        $next_cursor = $cursor;
 
         foreach ($rows as $row) {
+            $question_id = absint($row['question_id'] ?? 0);
+            if (!$question_id) continue;
+            $next_cursor = max($next_cursor,$question_id);
+
             $expected = self::decode($row['expected_json'] ?? '');
-            $category_ids = self::academy_category_ids($row, $expected);
+            $category_ids = self::academy_category_ids($row,$expected);
             if (!$category_ids) {
-                $learned_without_category++;
+                $without_category++;
                 continue;
             }
-            $learned_with_category++;
+            $with_category++;
 
-            $detail = array(
+            foreach ($category_ids as $term_id) {
+                $term = get_term($term_id,'product_cat');
+                if (!$term || is_wp_error($term)) continue;
+                $category_name = (string) $term->name;
+                $score = max(0,min(1,(float) ($row['evaluation_score'] ?? 0)));
+
+                $sources[] = array(
+                    'source_type'=>'dependiente',
+                    'proposal_role'=>'origin',
+                    'source_id'=>'academy-question:' . $question_id . ':category:' . $term_id,
+                    'signal_type'=>'learned_question',
+                    'entity_type'=>'product_cat',
+                    'entity_id'=>$term_id,
+                    'category_id'=>$term_id,
+                    'category_name'=>$category_name,
+                    'source_text'=>sanitize_text_field((string) ($row['question'] ?? '')),
+                    'hints'=>array(
+                        'intent'=>'dependiente_qa_basic',
+                        'action'=>'resolver',
+                        'object'=>$category_name,
+                        'category_id'=>$term_id,
+                    ),
+                    'occurrences'=>1,
+                    'confidence'=>$score > 0 ? $score : 0.90,
+                    'evidence_score'=>1.00,
+                    'observed_at'=>sanitize_text_field((string) ($row['run_created_at'] ?? '')),
+                    'source_meta'=>array(
+                        'proposal_role'=>'origin',
+                        'dependiente_channel'=>'academy_learned',
+                        'editorial_family'=>'dependiente_qa_basic',
+                        'question_id'=>$question_id,
+                        'run_id'=>absint($row['run_id'] ?? 0),
+                        'question_type'=>sanitize_key((string) ($row['question_type'] ?? '')),
+                        'lesson_key'=>sanitize_key((string) ($row['lesson_key'] ?? '')),
+                        'source_type'=>sanitize_key((string) ($row['source_type'] ?? '')),
+                        'source_id'=>absint($row['source_id'] ?? 0) ?: null,
+                        'source_key'=>sanitize_text_field((string) ($row['source_key'] ?? '')),
+                        'expected_kind'=>sanitize_key((string) ($expected['kind'] ?? '')),
+                        'evaluation_status'=>sanitize_key((string) ($row['evaluation_status'] ?? '')),
+                        'evaluation_score'=>$score,
+                        'category_id'=>$term_id,
+                        'category_name'=>$category_name,
+                    ),
+                );
+            }
+        }
+
+        return array(
+            'sources'=>$sources,
+            'next_cursor'=>$next_cursor,
+            'complete'=>count($rows) < $limit,
+            'seen'=>count($rows),
+            'with_category'=>$with_category,
+            'without_category'=>$without_category,
+        );
+    }
+
+    /**
+     * Recupera resultados internos completos solo cuando el brief los necesita.
+     */
+    public static function academia_question_details(array $question_ids) {
+        global $wpdb;
+        $tables = self::academy_tables();
+        $ids = array_values(array_unique(array_filter(array_map('absint',$question_ids))));
+        if (!$ids || !self::table_exists($tables['questions']) || !self::table_exists($tables['runs'])) return array();
+        $ids = array_slice($ids,0,250);
+
+        $placeholders = implode(',',array_fill(0,count($ids),'%d'));
+        $sql = "SELECT
+                    q.id question_id,q.lesson_key,q.question_type,q.source_type,q.source_id,q.source_key,
+                    q.question,q.expected_json,
+                    r.id run_id,r.status run_status,r.search_strategy,r.evaluation_status,r.evaluation_score,
+                    r.evaluation_json,r.top_results,r.response_meta,r.created_at run_created_at
+                FROM {$tables['questions']} q
+                INNER JOIN (
+                    SELECT question_id,MAX(id) latest_run_id
+                    FROM {$tables['runs']}
+                    WHERE question_id IS NOT NULL
+                    GROUP BY question_id
+                ) latest ON latest.question_id=q.id
+                INNER JOIN {$tables['runs']} r ON r.id=latest.latest_run_id
+                WHERE q.id IN ({$placeholders})
+                  AND r.status='answered'
+                  AND LEFT(COALESCE(r.evaluation_status,''),5)='pass_'
+                ORDER BY q.id ASC";
+        $rows = (array) $wpdb->get_results($wpdb->prepare($sql,$ids),ARRAY_A);
+
+        $out = array();
+        foreach ($rows as $row) {
+            $out[] = array(
                 'question_id'=>absint($row['question_id'] ?? 0),
                 'run_id'=>absint($row['run_id'] ?? 0),
                 'question'=>sanitize_text_field((string) ($row['question'] ?? '')),
                 'question_type'=>sanitize_key((string) ($row['question_type'] ?? '')),
                 'lesson_key'=>sanitize_key((string) ($row['lesson_key'] ?? '')),
-                'module_no'=>absint($row['module_no'] ?? 0),
                 'source_type'=>sanitize_key((string) ($row['source_type'] ?? '')),
                 'source_id'=>absint($row['source_id'] ?? 0) ?: null,
                 'source_key'=>sanitize_text_field((string) ($row['source_key'] ?? '')),
-                'expected'=>$expected,
+                'expected'=>self::decode($row['expected_json'] ?? ''),
                 'evaluation_status'=>sanitize_key((string) ($row['evaluation_status'] ?? '')),
                 'evaluation_score'=>max(0,min(1,(float) ($row['evaluation_score'] ?? 0))),
                 'evaluation'=>self::decode($row['evaluation_json'] ?? ''),
@@ -353,531 +472,101 @@ final class SEO_Solucionador_Sources {
 
         global $wpdb;
         $table = $wpdb->prefix . 'seo_dependiente_search_log';
-
-        $days = min(365, max(7, absint($days)));
-        $limit = min(3000, max(50, absint($limit)));
-        // Academia aporta lo que Dependiente ya sabe; search_log conserva por
-        // separado lo que los visitantes preguntan. Ambos son señales distintas.
-        $out = self::dependiente_academia_dossiers();
-        $seen = array();
-        $out_index = array();
-
-        // Demanda real: log canonico del Dependiente. Desde v0.2.4 V3
-        // registra aqui cada consulta publica sin activar aprendizaje legacy.
-        if (self::table_exists($table)) {
-            $sql = "SELECT
-                        s.id source_id,
-                        s.query_original source_text,
-                        s.query_normalized normalized_text,
-                        s.detected_intent,
-                        s.detected_object,
-                        s.detected_context,
-                        s.detected_state,
-                        s.clicked_product_id,
-                        s.top_results,
-                        s.semantic_analysis,
-                        s.strategy_detail,
-                        s.candidate_count,
-                        s.result_count,
-                        s.created_at observed_at,
-                        a.occurrences,
-                        a.zero_results,
-                        a.negative_feedback
-                    FROM {$table} s
-                    INNER JOIN (
-                        SELECT
-                            MAX(id) last_id,
-                            COUNT(*) occurrences,
-                            SUM(CASE WHEN candidate_count=0 THEN 1 ELSE 0 END) zero_results,
-                            SUM(CASE WHEN feedback<0 THEN 1 ELSE 0 END) negative_feedback
-                        FROM {$table}
-                        WHERE request_kind='search'
-                          AND created_at >= DATE_SUB(%s, INTERVAL %d DAY)
-                        GROUP BY COALESCE(NULLIF(semantic_signature,''),query_hash),
-                                 COALESCE(detected_intent,''),COALESCE(detected_object,''),
-                                 COALESCE(detected_context,''),COALESCE(detected_state,'')
-                    ) a ON a.last_id=s.id
-                    ORDER BY a.occurrences DESC,a.zero_results DESC,a.negative_feedback DESC,s.id DESC
-                    LIMIT %d";
-
-            $rows = (array) $wpdb->get_results(
-                $wpdb->prepare($sql, current_time('mysql'), $days, $limit),
-                ARRAY_A
-            );
-
-            foreach ($rows as $row) {
-                $text = (string) ($row['source_text'] ?? '');
-                if (!SEO_Solucionador_Normalizer::is_solution_signal(
-                    $text,
-                    (string) ($row['detected_intent'] ?? ''),
-                    (string) ($row['detected_state'] ?? '')
-                )) continue;
-
-                $semantic = self::decode($row['semantic_analysis'] ?? '');
-                $strategy_detail = self::decode($row['strategy_detail'] ?? '');
-                $matches = array_values(array_slice((array) ($semantic['matches'] ?? array()), 0, 24));
-                $top_results = array_values(array_slice(self::decode($row['top_results'] ?? ''), 0, 12));
-                $normalized = (string) ($row['normalized_text'] ?? SEO_Solucionador_Normalizer::normalize($text));
-                $seen[$normalized] = true;
-
-                $out[] = array(
-                    'source_type' => 'dependiente',
-                    'proposal_role' => self::origin_flag(true),
-                    'source_id' => 'search:' . md5(implode('|', array(
-                        $normalized,
-                        (string) ($row['detected_intent'] ?? ''),
-                        (string) ($row['detected_object'] ?? ''),
-                        (string) ($row['detected_context'] ?? ''),
-                        (string) ($row['detected_state'] ?? ''),
-                    ))),
-                    'source_text' => $text,
-                    'hints' => array(
-                        'intent' => (string) ($row['detected_intent'] ?? ''),
-                        'object' => (string) ($row['detected_object'] ?? ''),
-                        'context' => (string) ($row['detected_context'] ?? ''),
-                        'state' => (string) ($row['detected_state'] ?? ''),
-                    ),
-                    'occurrences' => max(1, absint($row['occurrences'] ?? 1)),
-                    'evidence_score' => 1.00,
-                    'observed_at' => (string) ($row['observed_at'] ?? ''),
-                    'source_meta' => array(
-                        'proposal_role' => 'origin',
-                        'dependiente_channel' => sanitize_key((string) ($strategy_detail['runtime'] ?? 'structured_search_log')) ?: 'structured_search_log',
-                        'last_log_id' => absint($row['source_id'] ?? 0),
-                        'zero_results' => absint($row['zero_results'] ?? 0),
-                        'negative_feedback' => absint($row['negative_feedback'] ?? 0),
-                        'candidate_count' => absint($row['candidate_count'] ?? 0),
-                        'shown_results' => absint($row['result_count'] ?? 0),
-                        'clicked_product_id' => absint($row['clicked_product_id'] ?? 0),
-                        'top_results' => $top_results,
-                        'semantic_matches' => $matches,
-                        'actions' => array_values(array_slice((array) ($semantic['actions'] ?? array()), 0, 12)),
-                        'decision' => is_array($strategy_detail['decision'] ?? null) ? $strategy_detail['decision'] : array(),
-                    ),
-                );
-                $out_index[$normalized] = count($out) - 1;
-            }
-        }
-
-        // Historico complementario: Analista conserva busquedas internas previas
-        // a la instrumentacion de V3. Se suman siempre (no solo como fallback de
-        // tabla inexistente) y se deduplican frente al log canonico.
-        if (function_exists('seo_analista_internal_search_snapshot')) {
-            $snapshot = seo_analista_internal_search_snapshot($days, min(250, $limit));
-            foreach ((array) ($snapshot['top'] ?? array()) as $row) {
-                $text = (string) ($row['search_term'] ?? '');
-                $normalized = (string) ($row['normalized_term'] ?? SEO_Solucionador_Normalizer::normalize($text));
-                if ($text === '') continue;
-                if (isset($seen[$normalized])) {
-                    $idx = isset($out_index[$normalized]) ? absint($out_index[$normalized]) : -1;
-                    if ($idx >= 0 && isset($out[$idx])) {
-                        $out[$idx]['occurrences'] = max(1, absint($out[$idx]['occurrences'] ?? 1)) + max(1, absint($row['searches'] ?? 1));
-                        $out[$idx]['source_meta']['zero_results'] = absint($out[$idx]['source_meta']['zero_results'] ?? 0) + absint($row['zero_count'] ?? 0);
-                        $out[$idx]['source_meta']['historical_searches'] = absint($row['searches'] ?? 0);
-                    }
-                    continue;
-                }
-                if (!SEO_Solucionador_Normalizer::is_solution_signal($text)) continue;
-                $seen[$normalized] = true;
-                $out[] = array(
-                    'source_type' => 'dependiente',
-                    'proposal_role' => 'origin',
-                    'source_id' => 'historic-search:' . md5($normalized),
-                    'source_text' => $text,
-                    'hints' => array(),
-                    'occurrences' => max(1, absint($row['searches'] ?? 1)),
-                    'evidence_score' => 0.90,
-                    'observed_at' => (string) ($row['last_search'] ?? ''),
-                    'source_meta' => array(
-                        'proposal_role' => 'origin',
-                        'dependiente_channel' => 'analista_internal_search_history',
-                        'zero_results' => absint($row['zero_count'] ?? 0),
-                        'negative_feedback' => 0,
-                        'avg_results' => (float) ($row['avg_results'] ?? 0),
-                    ),
-                );
-                $out_index[$normalized] = count($out) - 1;
-            }
-        }
-
-        return $out;
-    }
-
-    public static function comentarista($limit = 1200) {
-        global $wpdb;
-        $table = $wpdb->prefix . 'seo_comentarista';
         if (!self::table_exists($table)) return array();
 
-        $limit = min(2500, max(50, absint($limit)));
+        $allowed = array_fill_keys(array_values(array_unique(array_filter(array_map('absint',$category_ids)))),true);
+        if (!$allowed) return array();
+
+        $days = max(7,min(365,absint($days)));
+        $limit = max(25,min(1000,absint($limit)));
+
         $rows = (array) $wpdb->get_results($wpdb->prepare(
-            "SELECT c.id,c.product_id,c.content_type,c.source_name,c.source_title,c.source_content,c.editorial_summary,
-                    c.source_published_at,c.captured_at,p.post_title product_title
-             FROM {$table} c
-             LEFT JOIN {$wpdb->posts} p ON p.ID=c.product_id AND p.post_type='product'
-             WHERE c.status='published'
-               AND c.content_type IN ('comment','article','social_post')
-               AND (c.editorial_summary IS NOT NULL OR c.source_content IS NOT NULL)
-             ORDER BY c.id DESC LIMIT %d",
+            "SELECT clicked_product_id,
+                    COUNT(*) occurrences,
+                    SUM(CASE WHEN candidate_count=0 THEN 1 ELSE 0 END) zero_results,
+                    SUM(CASE WHEN feedback<0 THEN 1 ELSE 0 END) negative_feedback,
+                    MAX(created_at) observed_at
+             FROM {$table}
+             WHERE request_kind='search'
+               AND clicked_product_id>0
+               AND created_at>=DATE_SUB(%s,INTERVAL %d DAY)
+             GROUP BY clicked_product_id
+             ORDER BY occurrences DESC
+             LIMIT %d",
+            current_time('mysql'),
+            $days,
             $limit
-        ), ARRAY_A);
+        ),ARRAY_A);
 
-        $out = array();
+        $by_category = array();
         foreach ($rows as $row) {
-            $blob = trim((string) ($row['editorial_summary'] ?? '') . ' ' . (string) ($row['source_content'] ?? ''));
-            foreach (SEO_Solucionador_Normalizer::extract_comentarista_signals($blob, 4) as $index => $signal) {
-                $sentence = (string) ($signal['text'] ?? '');
-                $role = sanitize_key((string) ($signal['proposal_role'] ?? 'reinforcement')) ?: 'reinforcement';
-                $kind = sanitize_key((string) ($signal['kind'] ?? 'problem_statement'));
-                if ($sentence === '') continue;
-                $out[] = array(
-                    'source_type' => 'comentarista',
-                    'proposal_role' => $role,
-                    'source_id' => (string) absint($row['id'] ?? 0) . ':' . $kind . ':' . ($index + 1),
-                    'source_text' => $sentence,
-                    'hints' => array(),
-                    'occurrences' => 1,
-                    'evidence_score' => $role === 'origin' ? 0.70 : 0.45,
-                    'observed_at' => (string) (($row['source_published_at'] ?? '') ?: ($row['captured_at'] ?? '')),
-                    'source_meta' => array(
-                        'proposal_role' => $role,
-                        'comentarista_signal_kind' => $kind,
-                        'product_id' => absint($row['product_id'] ?? 0),
-                        'product_title' => (string) ($row['product_title'] ?? ''),
-                        'source_name' => (string) ($row['source_name'] ?? ''),
-                        'source_title' => (string) ($row['source_title'] ?? ''),
-                    ),
-                );
-            }
-        }
-        return $out;
-    }
-
-    private static function analyst_action_can_originate($action, $channel, array $entity) {
-        $action = strtoupper(sanitize_text_field((string) $action));
-        $channel = sanitize_key((string) $channel);
-        $type = sanitize_key((string) ($entity['type'] ?? ''));
-
-        // Nunca convertir una instruccion de mejorar/impulsar una entidad concreta
-        // del catalogo en una pregunta para clientes.
-        if (in_array($type, array('product','product_cat','category','cluster','hub_primary','hub_secondary'), true)) {
-            if (preg_match('/^(MEJORAR|IMPULSAR)_/', $action)) return false;
-        }
-        if (preg_match('/(PRODUCTO|CATEGORIA|ESTRUCTURA|CLUSTER|HUB)/', $action) && !preg_match('/CREAR_(POST|CONTENIDO|GUIA)/', $action)) {
-            return false;
-        }
-
-        // Solo las directrices explicitamente orientadas a crear cobertura editorial
-        // pueden originar una propuesta sin una pregunta previa del cliente.
-        if (preg_match('/CREAR_(POST|CONTENIDO|GUIA)|NUEVO_(POST|CONTENIDO)|COBERTURA_(NUEVA|EDITORIAL)|CONTENT_GAP|EDITORIAL_GAP/', $action)) return true;
-        if ($channel === 'contenido' && $type === '' && preg_match('/CREAR|COBERTURA|NUEV/', $action)) return true;
-        return false;
-    }
-
-    public static function analista($days = 90, $limit = 160) {
-        $out = array();
-        $days = min(365, max(7, absint($days)));
-        $limit = min(250, max(20, absint($limit)));
-
-        // Las busquedas internas se consumen desde dependiente(), incluso cuando
-        // proceden del snapshot de Analista como fallback. Asi no se duplican ni
-        // se contabilizan como demanda de mercado.
-
-        if (function_exists('seo_analista_decision_plan')) {
-            $plan = seo_analista_decision_plan($days, min(80, $limit));
-            foreach ((array) $plan as $row) {
-                $entity = is_array($row['entity'] ?? null) ? $row['entity'] : array();
-                $origin = self::analyst_action_can_originate(
-                    (string) ($row['action'] ?? ''),
-                    (string) ($row['channel'] ?? ''),
-                    $entity
-                );
-
-                $texts = array_filter(array_merge(
-                    array((string) ($row['topic'] ?? '')),
-                    array_slice((array) ($row['keywords'] ?? array()), 0, 5)
-                ));
-                foreach ($texts as $text) {
-                    if (!SEO_Solucionador_Normalizer::is_solution_signal($text)) continue;
-                    $out[] = array(
-                        'source_type' => 'analista',
-                        'proposal_role' => self::origin_flag($origin),
-                        'source_id' => 'plan:' . md5(SEO_Solucionador_Normalizer::normalize((string) ($row['topic'] ?? '')) . '|' . SEO_Solucionador_Normalizer::normalize((string) $text)),
-                        'source_text' => (string) $text,
-                        'hints' => array(),
-                        'occurrences' => 1,
-                        'evidence_score' => min(1.0, max(0.45, ((float) ($row['priority'] ?? 50)) / 100)),
-                        'observed_at' => current_time('mysql'),
-                        'source_meta' => array(
-                            'proposal_role' => self::origin_flag($origin),
-                            'priority' => (int) ($row['priority'] ?? 0),
-                            'action' => (string) ($row['action'] ?? ''),
-                            'channel' => (string) ($row['channel'] ?? ''),
-                            'analista_channel' => 'decision_plan',
-                            'entity' => $entity,
-                            'catalog' => is_array($row['catalog'] ?? null) ? $row['catalog'] : array(),
-                            'target' => is_array($row['target'] ?? null) ? $row['target'] : array(),
-                            'keywords' => array_values(array_slice((array) ($row['keywords'] ?? array()), 0, 8)),
-                        ),
-                    );
+            foreach (self::product_category_ids(absint($row['clicked_product_id'] ?? 0)) as $term_id) {
+                if (empty($allowed[$term_id])) continue;
+                if (!isset($by_category[$term_id])) {
+                    $by_category[$term_id] = array('occurrences'=>0,'zero_results'=>0,'negative_feedback'=>0,'observed_at'=>'');
+                }
+                $by_category[$term_id]['occurrences'] += absint($row['occurrences'] ?? 0);
+                $by_category[$term_id]['zero_results'] += absint($row['zero_results'] ?? 0);
+                $by_category[$term_id]['negative_feedback'] += absint($row['negative_feedback'] ?? 0);
+                if ((string) ($row['observed_at'] ?? '') > $by_category[$term_id]['observed_at']) {
+                    $by_category[$term_id]['observed_at'] = (string) $row['observed_at'];
                 }
             }
         }
-        return $out;
-    }
-
-    private static function auditor_editorial_code($code) {
-        $code = sanitize_key((string) $code);
-        if ($code === '') return false;
-        return (bool) preg_match('/(^|_)(content_gap|editorial_gap|search_gap|query_gap|intent_gap|missing_content|missing_faq|faq_coverage|unanswered_query|uncovered_intent)(_|$)/', $code);
-    }
-
-    public static function auditor($limit = 250) {
-        if (!class_exists('SEO_Auditor') || !method_exists('SEO_Auditor', 'last_catalog_report')) return array();
-        $report = SEO_Auditor::last_catalog_report();
-        if (!is_array($report) || !$report) return array();
 
         $out = array();
-
-        // Las pruebas de comportamiento que contienen una consulta de cliente si
-        // pueden originar una necesidad, siempre que el resultado no sea correcto.
-        foreach (array_slice((array) ($report['behavior_audit']['samples'] ?? array()), 0, 80) as $sample) {
-            $query = (string) ($sample['query'] ?? '');
-            $status = sanitize_key((string) ($sample['status'] ?? ''));
-            if ($query === '' || $status === 'ok' || !SEO_Solucionador_Normalizer::is_solution_signal($query)) continue;
-            $out[] = array(
-                'source_type' => 'auditor',
-                'proposal_role' => self::origin_flag(true),
-                'source_id' => 'behavior:' . md5(SEO_Solucionador_Normalizer::normalize($query)),
-                'source_text' => $query,
-                'hints' => array(),
-                'occurrences' => 1,
-                'evidence_score' => 0.50,
-                'observed_at' => (string) ($report['generated_at'] ?? current_time('mysql')),
-                'source_meta' => array(
-                    'proposal_role' => 'origin',
-                    'auditor_channel' => 'behavior_probe',
-                    'status' => $status,
-                    'kind' => (string) ($sample['kind'] ?? ''),
-                    'diagnostics' => array_values((array) ($sample['diagnostics'] ?? array())),
-                ),
-            );
-        }
-
-        // Findings generales del Auditor son tecnicos por defecto. Solo una
-        // allowlist de gaps editoriales puede alimentar Solucionador.
-        foreach (array_slice((array) ($report['findings'] ?? array()), 0, $limit) as $finding) {
-            $code = sanitize_key((string) ($finding['code'] ?? ''));
-            $entity_type = sanitize_key((string) ($finding['entity_type'] ?? ''));
-            if (!self::auditor_editorial_code($code) || $entity_type === 'system') continue;
-
-            $evidence = is_array($finding['evidence'] ?? null) ? $finding['evidence'] : array();
-            $candidate_texts = array_filter(array(
-                (string) ($evidence['query'] ?? ''),
-                (string) ($evidence['search_term'] ?? ''),
-            ));
-            $text = '';
-            foreach ($candidate_texts as $candidate) {
-                if (SEO_Solucionador_Normalizer::is_solution_signal($candidate)) {
-                    $text = $candidate;
-                    break;
-                }
-            }
-            if ($text === '') continue;
-
-            $out[] = array(
-                'source_type' => 'auditor',
-                'proposal_role' => self::origin_flag(true),
-                'source_id' => 'finding:' . md5($code . '|' . SEO_Solucionador_Normalizer::normalize($text)),
-                'source_text' => $text,
-                'hints' => array(),
-                'occurrences' => 1,
-                'evidence_score' => 0.45,
-                'observed_at' => (string) ($report['generated_at'] ?? current_time('mysql')),
-                'source_meta' => array(
-                    'proposal_role' => 'origin',
-                    'auditor_channel' => 'editorial_finding',
-                    'code' => $code,
-                    'severity' => (string) ($finding['severity'] ?? ''),
-                    'entity_type' => $entity_type,
-                    'entity_id' => $finding['entity_id'] ?? '',
-                ),
-            );
-        }
-        return $out;
-    }
-
-    public static function ojeador($limit = 180) {
-        if (!class_exists('SEO_Ojeador_Analysis') || !method_exists('SEO_Ojeador_Analysis','dashboard')) return array();
-        $dashboard = SEO_Ojeador_Analysis::dashboard(max(20, min(300, absint($limit))));
-        $out = array();
-        foreach ((array) ($dashboard['recommendations'] ?? array()) as $row) {
-            $term_id = absint($row['term_id'] ?? 0);
-            $category = trim((string) ($row['category_name'] ?? ''));
-            if (!$term_id || $category === '') continue;
-            $query = trim((string) ($row['query_text'] ?? ''));
-            $text = $query !== '' ? $query : ('elegir ' . $category);
-            $out[] = array(
-                'source_type'=>'ojeador',
-                'proposal_role'=>'reinforcement',
-                'source_id'=>'market:' . $term_id . ':' . sanitize_key((string) ($row['code'] ?? 'signal')),
-                'source_text'=>$text,
-                'hints'=>array(
-                    'intent'=>'eleccion',
-                    'action'=>'elegir',
-                    'object'=>$category,
-                ),
-                'occurrences'=>1,
-                'evidence_score'=>min(1.0, max(0.25, ((float) ($row['priority'] ?? 50)) / 100)),
-                'observed_at'=>current_time('mysql'),
-                'source_meta'=>array(
-                    'proposal_role'=>'reinforcement',
-                    'term_id'=>$term_id,
-                    'category'=>$category,
-                    'code'=>(string) ($row['code'] ?? ''),
-                    'signal'=>(string) ($row['signal'] ?? ''),
-                    'action'=>(string) ($row['action'] ?? ''),
-                    'reason'=>(string) ($row['reason'] ?? ''),
-                    'opportunity_index'=>(float) ($row['opportunity_index'] ?? 0),
-                    'competition_index'=>(float) ($row['competition_index'] ?? 0),
-                    'catalog_gap_index'=>(float) ($row['catalog_gap_index'] ?? 0),
-                    'visibility_index'=>(float) ($row['visibility_index'] ?? 0),
-                ),
-            );
-        }
-        return array_slice($out, 0, max(1, min(300, absint($limit))));
-    }
-
-    public static function ingeniero($limit = 260) {
-        if (!class_exists('SEO_Ingeniero') || !class_exists('SEO_Ingeniero_DB')) return array();
-        $stats = SEO_Ingeniero_DB::category_stats_map();
-        $out = array();
-        foreach ($stats as $term_id=>$stat) {
-            if (absint($stat['active'] ?? 0) < 1) continue;
-            $term = get_term(absint($term_id), 'product_cat');
+        foreach ($by_category as $term_id=>$stats) {
+            $term = get_term($term_id,'product_cat');
             if (!$term || is_wp_error($term)) continue;
-            $category = (string) $term->name;
-            foreach (array_slice((array) SEO_Ingeniero::active_knowledge(absint($term_id)), 0, 3) as $row) {
-                $summary = trim((string) (($row['summary'] ?? '') ?: ($row['concept'] ?? '')));
-                if ($summary === '') continue;
-                $out[] = array(
-                    'source_type'=>'ingeniero',
-                    'proposal_role'=>'reinforcement',
-                    'source_id'=>'knowledge:' . absint($row['id'] ?? 0) . ':' . absint($term_id),
-                    'source_text'=>$summary,
-                    'hints'=>array('object'=>$category),
-                    'occurrences'=>1,
-                    'evidence_score'=>min(1.0, max(0.30, (float) ($row['confidence'] ?? 0.6))),
-                    'observed_at'=>(string) ($row['updated_at'] ?? current_time('mysql')),
-                    'source_meta'=>array(
-                        'proposal_role'=>'reinforcement',
-                        'term_id'=>absint($term_id),
-                        'category'=>$category,
-                        'knowledge_type'=>(string) ($row['knowledge_type'] ?? ''),
-                        'concept'=>(string) ($row['concept'] ?? ''),
-                        'confidence'=>(float) ($row['confidence'] ?? 0),
-                    ),
-                );
-                if (count($out) >= max(20, absint($limit))) break 2;
-            }
-        }
-        return $out;
-    }
-
-    public static function clasificador($limit = 260) {
-        if (!function_exists('seo_classifier_engineer_vocab_bulk_reports') || !function_exists('seo_classifier_engineer_vocab_flat_rows')) return array();
-        $reports = seo_classifier_engineer_vocab_bulk_reports();
-        if (is_wp_error($reports)) return array();
-        $rows = seo_classifier_engineer_vocab_flat_rows((array) $reports);
-        $out = array();
-        foreach ($rows as $row) {
-            if (!in_array((string) ($row['status'] ?? ''), array('new','possible'), true)) continue;
-            $term_id = absint($row['term_id'] ?? 0);
-            $category = trim((string) ($row['category'] ?? ''));
-            $value = trim((string) ($row['value'] ?? ''));
-            if (!$term_id || $category === '' || $value === '') continue;
             $out[] = array(
-                'source_type'=>'clasificador',
+                'source_type'=>'dependiente',
                 'proposal_role'=>'reinforcement',
-                'source_id'=>'vocab:' . $term_id . ':' . sanitize_key((string) ($row['kind'] ?? '')) . ':' . md5((string) ($row['key'] ?? $value)),
-                'source_text'=>'elegir ' . $category . ' ' . $value,
+                'source_id'=>'search-demand-category:' . absint($term_id),
+                'signal_type'=>'real_demand_reinforcement',
+                'entity_type'=>'product_cat',
+                'entity_id'=>absint($term_id),
+                'category_id'=>absint($term_id),
+                'category_name'=>(string) $term->name,
+                'source_text'=>'Demanda real de clientes relacionada con ' . (string) $term->name,
                 'hints'=>array(
-                    'intent'=>'eleccion',
-                    'action'=>'elegir',
-                    'object'=>$category,
-                    'context'=>$value,
+                    'intent'=>'dependiente_qa_basic',
+                    'action'=>'resolver',
+                    'object'=>(string) $term->name,
+                    'category_id'=>absint($term_id),
                 ),
-                'occurrences'=>1,
-                'evidence_score'=>min(1.0, max(0.30, (float) ($row['confidence'] ?? 0.6))),
-                'observed_at'=>current_time('mysql'),
+                'occurrences'=>max(1,absint($stats['occurrences'] ?? 0)),
+                'confidence'=>0.75,
+                'evidence_score'=>0.35,
+                'observed_at'=>(string) ($stats['observed_at'] ?? ''),
                 'source_meta'=>array(
                     'proposal_role'=>'reinforcement',
-                    'term_id'=>$term_id,
-                    'category'=>$category,
-                    'kind'=>(string) ($row['kind'] ?? ''),
-                    'concept'=>$value,
-                    'master_status'=>(string) ($row['status'] ?? ''),
-                    'equivalent'=>(string) ($row['existing'] ?? ''),
-                    'provisional'=>!empty($row['provisional']),
+                    'dependiente_channel'=>'search_log_demand',
+                    'category_id'=>absint($term_id),
+                    'zero_results'=>absint($stats['zero_results'] ?? 0),
+                    'negative_feedback'=>absint($stats['negative_feedback'] ?? 0),
                 ),
-            );
-            if (count($out) >= max(20, absint($limit))) break;
-        }
-        return $out;
-    }
-
-
-    /**
-     * Comparador aun puede evolucionar como servicio independiente. Solucionador
-     * consume solo un contrato normalizado publicado por Comparador; no vuelve a
-     * calcular comparativas de mercado.
-     */
-    public static function comparador($limit = 240) {
-        $signals = apply_filters('seo_solucionador_comparador_signals', array(), max(20,min(500,absint($limit))));
-        $out = array();
-        foreach (array_slice((array) $signals,0,max(20,min(500,absint($limit)))) as $row) {
-            if (!is_array($row)) continue;
-            $term_id = absint($row['category_id'] ?? $row['term_id'] ?? 0);
-            $text = trim((string) ($row['source_text'] ?? $row['topic'] ?? $row['summary'] ?? ''));
-            if ($text === '') continue;
-            $proposal_role = sanitize_key((string) ($row['proposal_role'] ?? 'origin'));
-            if (!in_array($proposal_role, array('origin','reinforcement'), true)) $proposal_role = 'origin';
-            $out[] = array(
-                'source_type'=>'comparador',
-                'proposal_role'=>$proposal_role,
-                'source_id'=>sanitize_text_field((string) ($row['source_id'] ?? ('comparison:' . md5($text . '|' . $term_id)))),
-                'source_text'=>$text,
-                'signal_type'=>sanitize_key((string) ($row['signal_type'] ?? 'market_comparison')),
-                'category_id'=>$term_id,
-                'entity_type'=>$term_id ? 'product_cat' : sanitize_key((string) ($row['entity_type'] ?? '')),
-                'entity_id'=>$term_id ?: absint($row['entity_id'] ?? 0),
-                'hints'=>array(
-                    'intent'=>(string) ($row['intent'] ?? 'decision'),
-                    'object'=>(string) ($row['object'] ?? ''),
-                    'context'=>(string) ($row['context'] ?? ''),
-                    'category_id'=>$term_id,
-                ),
-                'occurrences'=>max(1,absint($row['occurrences'] ?? 1)),
-                'confidence'=>max(0,min(1,(float) ($row['confidence'] ?? 0.7))),
-                'evidence_score'=>max(0.25,min(1.0,(float) ($row['evidence_score'] ?? 0.70))),
-                'observed_at'=>sanitize_text_field((string) ($row['observed_at'] ?? current_time('mysql'))),
-                'source_meta'=>array_merge((array) ($row['metadata'] ?? array()),array(
-                    'proposal_role'=>$proposal_role,
-                    'term_id'=>$term_id,
-                    'types'=>(array) ($row['types'] ?? array()),
-                    'differentiators'=>(array) ($row['differentiators'] ?? array()),
-                    'decisive_features'=>(array) ($row['decisive_features'] ?? array()),
-                    'advantages'=>(array) ($row['advantages'] ?? array()),
-                    'limitations'=>(array) ($row['limitations'] ?? array()),
-                    'representative_refs'=>(array) ($row['representative_refs'] ?? array()),
-                )),
             );
         }
         return $out;
     }
 
+    public static function save_academia_snapshot(array $stats) {
+        $base = self::academy_base_stats();
+        $snapshot = array_merge($base,array(
+            'learned_with_category'=>absint($stats['learned_with_category'] ?? 0),
+            'learned_without_category'=>absint($stats['learned_without_category'] ?? 0),
+            'categories_with_knowledge'=>absint($stats['categories_with_knowledge'] ?? 0),
+            'categories_without_knowledge'=>max(0,absint($base['categories_total'] ?? 0)-absint($stats['categories_with_knowledge'] ?? 0)),
+            'avg_questions_per_category'=>(float) ($stats['avg_questions_per_category'] ?? 0),
+            'last_run_at'=>(string) (($stats['last_run_at'] ?? '') ?: ($base['last_run_at'] ?? '')),
+        ));
+        update_option(self::SNAPSHOT_OPTION,$snapshot,false);
+        return $snapshot;
+    }
+
     /**
-     * Marketing puede reforzar prioridad, nunca originar por si solo una URL.
-     * Se deja un contrato desacoplado para campañas/estacionalidad/interes.
+     * Compatibilidad. Ya no mezcla servicios externos y devuelve solo un lote
+     * de Academia. El motor v0.5.0 usa academia_batch() de forma paginada.
      */
     public static function marketing($limit = 120) {
         $signals = apply_filters('seo_solucionador_marketing_priorities', array(), max(10,min(300,absint($limit))));
