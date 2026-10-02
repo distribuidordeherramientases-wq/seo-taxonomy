@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- Integradas en las plantillas públicas de producto y categoría las capas de **Comparador, Dependiente, Comentarista e Ingeniero**, ocultando completamente cada bloque cuando no existe contenido publicado válido.
+- Añadido un rol editorial estable en Entradas para distinguir posts de **Preguntas habituales** e **Información técnica** sin inferirlo por el título; las plantillas consumen la relación explícita `post_to_category`.
+- Retirada la salida pública heredada de FAQs en estas plantillas para evitar duplicar el conocimiento migrado a los nuevos bloques editoriales.
+
 Los cambios validados en `staging` que todavía no formen parte de una publicación de producción se documentan aquí. Al cerrar una release semanal, estas entradas se trasladan a la versión fechada correspondiente.
 
 ## [2.3.9] - 2026-09-30
