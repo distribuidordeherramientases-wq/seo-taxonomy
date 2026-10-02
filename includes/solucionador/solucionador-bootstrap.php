@@ -27,6 +27,7 @@ if (!defined('SEO_SOLUCIONADOR_PATH')) {
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-db.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-normalizer.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-sources.php';
+require_once SEO_SYSTEM_PATH . 'includes/editorial/seo-editorial-coverage.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-coverage.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-catalog.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-posts.php';
