@@ -262,20 +262,8 @@ final class SEO_Solucionador_Engine {
     }
 
     private static function evidence_gate(array $stats) {
-        $dependiente = absint($stats['dependiente'] ?? 0);
-        $support = absint($stats['analista'] ?? 0)
-            + absint($stats['auditor'] ?? 0)
-            + absint($stats['comentarista'] ?? 0)
-            + absint($stats['ojeador'] ?? 0)
-            + absint($stats['comparador'] ?? 0)
-            + absint($stats['clasificador'] ?? 0);
-        $editorial_origins = absint($stats['analista'] ?? 0) + absint($stats['auditor'] ?? 0);
-        $comparison_profiles = absint($stats['comparador'] ?? 0);
-
-        return $dependiente >= 2
-            || ($dependiente >= 1 && $support >= 1)
-            || ($editorial_origins >= 2 && absint($stats['total'] ?? 0) >= 2)
-            || ($comparison_profiles >= 1 && absint($stats['total'] ?? 0) >= 1);
+        $minimum = max(1, absint(apply_filters('seo_solucionador_min_academy_questions', 3)));
+        return absint($stats['dependiente'] ?? 0) >= $minimum;
     }
 
     private static function category_product_count($term_id) {
@@ -284,41 +272,36 @@ final class SEO_Solucionador_Engine {
     }
 
     private static function priority_components(array $stats, array $coverage, array $knowledge, array $proposal, $primary_category_id, array $risks) {
-        $d = absint($stats['dependiente'] ?? 0);
-        $a = absint($stats['analista'] ?? 0);
-        $o = absint($stats['ojeador'] ?? 0);
-        $comp = absint($stats['comparador'] ?? 0);
-        $m = absint($stats['marketing'] ?? 0);
-        $zero = absint($stats['zero_results'] ?? 0);
-        $neg = absint($stats['negative_feedback'] ?? 0);
+        $learned = absint($stats['dependiente'] ?? 0);
         $products = self::category_product_count($primary_category_id);
         $coverage_status = sanitize_key((string) ($coverage['status'] ?? 'uncovered'));
 
         $scores = array(
-            'user_need'=>min(18,($d * 4.5) + ($zero * 2.5) + ($neg * 2.5)),
-            'search_demand'=>min(16,$a * 5.0),
-            'visibility_opportunity'=>min(10,$a * 2.5),
-            'technical_knowledge'=>($knowledge['status'] ?? '') === 'sufficient' ? min(14,8 + ((float) ($knowledge['confidence'] ?? 0) * 6)) : 0,
-            'catalog_fit'=>min(14,($primary_category_id ? 5 : 0) + min(6,log(1 + $products) * 1.4) + min(3,count((array) ($proposal['categories'] ?? array())))),
-            'market_breadth'=>min(8,($o * 2.5) + ($comp * 3.0)),
+            'learned_questions'=>min(45, $learned * 3.0),
+            'category_fit'=>min(20, ($primary_category_id ? 8 : 0) + min(12, log(1 + $products) * 2.4)),
             'coverage_gap'=>array(
-                'uncovered'=>10,
-                'weak_coverage'=>7,
-                'partial_coverage'=>4,
+                'uncovered'=>25,
+                'weak_coverage'=>16,
+                'partial_coverage'=>8,
                 'covered'=>0,
                 'duplicate'=>0,
                 'conflict'=>0,
             )[$coverage_status] ?? 0,
-            'business_relevance'=>min(10,($m * 3.0) + ($products > 0 ? min(7,log(1 + $products) * 1.5) : 0)),
+            'validation_confidence'=>($knowledge['status'] ?? '') === 'sufficient'
+                ? min(10, 5 + ((float) ($knowledge['confidence'] ?? 0) * 5))
+                : 0,
         );
         $max = array(
-            'user_need'=>18,'search_demand'=>16,'visibility_opportunity'=>10,'technical_knowledge'=>14,
-            'catalog_fit'=>14,'market_breadth'=>8,'coverage_gap'=>10,'business_relevance'=>10,
+            'learned_questions'=>45,
+            'category_fit'=>20,
+            'coverage_gap'=>25,
+            'validation_confidence'=>10,
         );
         $labels = array(
-            'user_need'=>'Necesidad de usuario','search_demand'=>'Demanda/busqueda','visibility_opportunity'=>'Oportunidad de visibilidad',
-            'technical_knowledge'=>'Conocimiento tecnico','catalog_fit'=>'Encaje con catalogo','market_breadth'=>'Amplitud de mercado',
-            'coverage_gap'=>'Hueco de cobertura','business_relevance'=>'Relevancia comercial',
+            'learned_questions'=>'Preguntas aprendidas',
+            'category_fit'=>'Encaje con product_cat',
+            'coverage_gap'=>'Hueco de cobertura',
+            'validation_confidence'=>'Confianza de Academia',
         );
         $out = array();
         $total = 0.0;
@@ -328,7 +311,7 @@ final class SEO_Solucionador_Engine {
             $out[$key] = array('label'=>$labels[$key],'score'=>$score,'max'=>$max[$key]);
         }
         $penalty = round(min(20,(float) ($risks['duplication_risk'] ?? 0) * 0.20),2);
-        $out['duplication_penalty'] = array('label'=>'Riesgo de duplicacion','score'=>-$penalty,'max'=>0);
+        $out['duplication_penalty'] = array('label'=>'Riesgo de duplicación','score'=>-$penalty,'max'=>0);
         $total -= $penalty;
         return array('total'=>round(max(0,min(100,$total)),2),'components'=>$out);
     }
@@ -398,85 +381,73 @@ final class SEO_Solucionador_Engine {
 
     private static function requirements(array $stats,array $coverage,array $knowledge,array $risks,$primary_category_id,array $landing) {
         $coverage_status = sanitize_key((string) ($coverage['status'] ?? 'uncovered'));
-        $real_evidence = self::evidence_gate($stats);
-        $coverage_allows_new = in_array($coverage_status,array('uncovered','weak_coverage'),true);
+        $mass_ok = self::evidence_gate($stats);
         $risk_ok = (float) ($risks['duplication_risk'] ?? 0) < 70
             && (float) ($risks['cannibalization_risk'] ?? 0) < 70;
-        $knowledge_ok = (string) ($knowledge['status'] ?? '') === 'sufficient';
 
         return array(
-            'real_evidence'=>array('pass'=>$real_evidence,'detail'=>'La necesidad debe tener repeticion o cruce independiente de fuentes.'),
-            'category_identified'=>array('pass'=>absint($primary_category_id)>0,'detail'=>'La oportunidad debe intentar asociarse primero a product_cat.'),
-            'coverage_allows_new'=>array('pass'=>$coverage_allows_new,'detail'=>'Crear URL solo con cobertura inexistente o debil.'),
-            'knowledge_sufficient'=>array('pass'=>$knowledge_ok,'detail'=>'Dependiente/Academia debe aportar conocimiento aprendido suficiente antes de redactar un tema técnico.'),
-            'duplication_below_threshold'=>array('pass'=>$risk_ok,'detail'=>'Riesgo de duplicacion/canibalizacion por debajo del umbral de bloqueo.'),
-            'landing_requirements'=>array('pass'=>!empty($landing['requirements_pass']),'detail'=>'CREATE_LANDING exige candidata valida, estable, comercial y diferenciada.'),
-            'landing_candidate'=>array('pass'=>!empty($landing),'detail'=>'Debe existir una candidata de landing previamente evaluada.'),
+            'academy_mass'=>array(
+                'pass'=>$mass_ok,
+                'detail'=>'El dossier debe alcanzar la masa crítica de preguntas pass_* de Academia.'
+            ),
+            'category_identified'=>array(
+                'pass'=>absint($primary_category_id)>0,
+                'detail'=>'La categoría product_cat debe ser demostrable; nunca se infiere por parecido textual.'
+            ),
+            'coverage_reviewed'=>array(
+                'pass'=>in_array($coverage_status,array('uncovered','weak_coverage','partial_coverage','covered','duplicate','conflict'),true),
+                'detail'=>'Siempre se comprueba la cobertura antes de crear o modificar contenido.'
+            ),
+            'duplication_below_threshold'=>array(
+                'pass'=>$risk_ok,
+                'detail'=>'CREATE_POST sólo puede avanzar con bajo riesgo de duplicación/canibalización.'
+            ),
         );
     }
 
     private static function improvement_action(array $coverage) {
         $type = sanitize_key((string) ($coverage['entity_type'] ?? ''));
-        $role = sanitize_key((string) ($coverage['seo_role'] ?? ''));
-        if ($type === 'product_cat') return 'IMPROVE_CATEGORY';
-        if ($type === 'post') return 'IMPROVE_POST';
-        if ($type === 'page' && $role === 'landing') return 'IMPROVE_LANDING';
-        if ($type === 'page') return 'IMPROVE_PAGE';
-        return 'DEFER';
+        return $type === 'post' ? 'IMPROVE_POST' : 'DEFER';
     }
 
     private static function decision(array $profile,array $stats,array $coverage,array $knowledge,array $risks,$primary_category_id,array $landing,array $requirements) {
         $coverage_status = sanitize_key((string) ($coverage['status'] ?? 'uncovered'));
 
+        if (!$primary_category_id) {
+            return array('action'=>'DEFER','reason'=>'No existe una product_cat demostrable para este conocimiento de Academia.');
+        }
+        if (!self::evidence_gate($stats)) {
+            return array('action'=>'DEFER','reason'=>'El dossier todavía no alcanza la masa crítica de preguntas aprendidas.');
+        }
         if ($coverage_status === 'conflict') {
-            return array('action'=>'INVESTIGATE','reason'=>'Hay contenidos potencialmente contradictorios. Primero debe resolverse el conflicto antes de editar o crear.');
+            return array('action'=>'DEFER','reason'=>'La cobertura existente es contradictoria y requiere revisión humana antes de editar.');
         }
         if ($coverage_status === 'duplicate') {
-            return array('action'=>'MERGE_CONTENT','reason'=>'Varias URLs cubren practicamente la misma intencion; consolidar antes de crear contenido.');
+            return array('action'=>'MERGE_CONTENT','reason'=>'Existen varias piezas solapadas; consolidar antes de crear otra URL.');
         }
         if ($coverage_status === 'covered') {
-            return array('action'=>'NO_ACTION','reason'=>'La intencion ya esta suficientemente cubierta por una URL existente.');
+            return array('action'=>'NO_ACTION','reason'=>'La intención básica de la categoría ya está suficientemente cubierta.');
         }
         if (in_array($coverage_status,array('partial_coverage','weak_coverage'),true)) {
             $action = self::improvement_action($coverage);
-            return array('action'=>$action,'reason'=>'Existe cobertura relacionada pero insuficiente; se prioriza mejorar la URL existente.');
-        }
-
-        if (($knowledge['status'] ?? '') !== 'sufficient') {
-            return array('action'=>'INVESTIGATE','reason'=>'No hay conocimiento tecnico validado suficiente para entregar el tema a Editora.');
-        }
-
-        // Una intencion comercial amplia que coincide con una familia existente
-        // debe mejorar primero product_cat, no fabricar una landing competidora.
-        if (self::broad_category_intent($profile,$primary_category_id)) {
-            return array('action'=>'IMPROVE_CATEGORY','reason'=>'La necesidad coincide con una familia de producto existente; la categoria es el destino principal antes que una nueva landing.');
+            if ($action === 'IMPROVE_POST') {
+                return array('action'=>'IMPROVE_POST','reason'=>'Existe un post de la misma intención con cobertura parcial o débil; se amplía antes de crear otro.');
+            }
+            return array('action'=>'DEFER','reason'=>'Existe cobertura parcial fuera de un post editable equivalente; requiere revisión antes de crear contenido.');
         }
 
         $risk_ok = !empty($requirements['duplication_below_threshold']['pass']);
-        $evidence_ok = !empty($requirements['real_evidence']['pass']);
-        $coverage_ok = !empty($requirements['coverage_allows_new']['pass']);
-
-        if (!empty($landing)
-            && !empty($requirements['landing_requirements']['pass'])
-            && $risk_ok && $evidence_ok && $coverage_ok) {
-            return array('action'=>'CREATE_LANDING','reason'=>'La intencion es transversal/comercial, la candidata de landing cumple requisitos y no existe una URL equivalente.');
+        if ($coverage_status === 'uncovered' && $risk_ok) {
+            return array('action'=>'CREATE_POST','reason'=>'Dossier básico con preguntas aprendidas suficientes, categoría resuelta y sin cobertura equivalente.');
         }
 
-        if ($risk_ok && $evidence_ok && $coverage_ok) {
-            return array('action'=>'CREATE_POST','reason'=>'Tema informativo concreto, con evidencia real, conocimiento suficiente y sin cobertura equivalente.');
-        }
-
-        return array('action'=>'DEFER','reason'=>'La evidencia o las condiciones obligatorias todavia no justifican una actuacion editorial.');
+        return array('action'=>'DEFER','reason'=>'Las condiciones del dossier todavía no justifican una actuación editorial.');
     }
 
     private static function content_type_for_action($action,array $coverage) {
         $action = strtoupper((string) $action);
-        if ($action === 'CREATE_POST' || $action === 'IMPROVE_POST') return 'post';
-        if ($action === 'CREATE_LANDING' || $action === 'IMPROVE_LANDING') return 'landing';
-        if ($action === 'IMPROVE_CATEGORY') return 'category';
-        if ($action === 'IMPROVE_PAGE') return 'page';
+        if (in_array($action,array('CREATE_POST','IMPROVE_POST'),true)) return 'post';
         if ($action === 'MERGE_CONTENT') return 'merge';
-        if ($action === 'INVESTIGATE') return 'research';
         return sanitize_key((string) ($coverage['entity_type'] ?? 'none')) ?: 'none';
     }
 
@@ -488,7 +459,7 @@ final class SEO_Solucionador_Engine {
         if ((string) $legacy_status === 'dismissed') return 'rejected';
         $action = strtoupper((string) $action);
         if ($action === 'NO_ACTION') return 'validated';
-        if (in_array($action,array('DEFER','INVESTIGATE'),true)) return 'deferred';
+        if ($action === 'DEFER') return 'deferred';
         return 'candidate';
     }
 
