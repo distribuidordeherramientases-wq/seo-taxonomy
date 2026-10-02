@@ -947,7 +947,7 @@ $schema_product_graph = array(
   ?>
 
   <section id="reviews" class="dh-product-reviews dh-product-customer-reviews">
-    <h2>Opiniones de clientes de esta tienda</h2>
+    <h2>Opiniones de clientes</h2>
     <?php comments_template(); ?>
   </section>
 
@@ -976,7 +976,7 @@ $schema_product_graph = array(
   if (function_exists('dht_render_amazon_product_block')) {
       dht_render_amazon_product_block($product, array(
           'limit' => 6,
-          'title' => 'Otras opciones que te pueden interesar',
+          'title' => 'Más opciones en Amazon',
           'mode'  => 'dynamic',
       ));
   }
