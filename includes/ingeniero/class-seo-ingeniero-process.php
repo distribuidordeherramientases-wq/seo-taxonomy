@@ -203,7 +203,7 @@ final class SEO_Ingeniero_Process {
         $items[] = array(
             'id'=>'ingeniero',
             'name'=>'Ingeniero',
-            'kind'=>'Dependiente · conocimiento técnico externo',
+            'kind'=>'Contenidos · conocimiento técnico y editorial',
             'state'=>$view_state,
             'speed'=>$speed,
             'response'=>$duration > 0 ? number_format_i18n($duration,2) . ' s último lote' : 'Sin lote medido',
@@ -213,7 +213,7 @@ final class SEO_Ingeniero_Process {
             'progress'=>$progress['total'] ? $progress['percentage'] : null,
             'progress_text'=>number_format_i18n($progress['processed']) . ' / ' . number_format_i18n($progress['total']) . ' categorías',
             'detail'=>(string) ($state['last_message'] ?? ''),
-            'url'=>add_query_arg(array('page'=>'seo-dependiente','tab'=>'engineer'), admin_url('admin.php')),
+            'url'=>add_query_arg(array('page'=>'seo-ingeniero','tab'=>'research'), admin_url('admin.php')),
             'can_start'=>!SEO_Ingeniero::is_pending() && $progress['pending'] > 0,
             'start_label'=>'Iniciar / continuar',
         );
