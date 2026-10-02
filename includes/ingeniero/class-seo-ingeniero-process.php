@@ -111,6 +111,10 @@ final class SEO_Ingeniero_Process {
                 'last_research_at'=>time(),
             ));
 
+            // El dossier se recalcula categoria a categoria y solo persiste
+            // cambios cuando varia su source_hash.
+            SEO_Ingeniero::refresh_editorial_category($term_id, false);
+
             SEO_Ingeniero::save_state(array(
                 'cursor'=>$cursor+1,
                 'processed'=>absint($state['processed'] ?? 0)+1,
