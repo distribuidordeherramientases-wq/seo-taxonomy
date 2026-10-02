@@ -599,6 +599,88 @@ final class SEO_Solucionador_Engine {
         ),array('id'=>$topic_id)) !== false;
     }
 
+    /**
+     * Materializa/actualiza el topic interno de una categoría concreta.
+     * La interfaz simplificada trabaja desde dossiers y usa este método sólo
+     * cuando necesita ejecutar una acción humana sobre una propuesta.
+     */
+    public static function prepare_category_topic($category_id) {
+        $category_id = absint($category_id);
+        if (!$category_id || !class_exists('SEO_Solucionador_Dossiers')) {
+            return new WP_Error('solucionador_category_missing', 'La categoría propuesta no es válida.');
+        }
+
+        $dossier = SEO_Solucionador_Dossiers::get_by_category($category_id);
+        if (!$dossier || absint($dossier['question_count'] ?? 0) < 1) {
+            return new WP_Error('solucionador_dossier_missing', 'No existe un dossier con preguntas aprendidas para esta categoría.');
+        }
+
+        $name = trim((string) ($dossier['category_name'] ?? ''));
+        if ($name === '') {
+            $term = get_term($category_id, 'product_cat');
+            if ($term && !is_wp_error($term)) $name = (string) $term->name;
+        }
+        if ($name === '') {
+            return new WP_Error('solucionador_category_name_missing', 'No se pudo resolver el nombre de la categoría.');
+        }
+
+        $ids = SEO_Solucionador_DB::decode_json($dossier['question_ids'] ?? '[]', array());
+        $source = array(
+            'dossier_id'=>absint($dossier['id'] ?? 0),
+            'source_type'=>'dependiente',
+            'proposal_role'=>'origin',
+            'source_id'=>'academy-category:' . $category_id,
+            'signal_type'=>'learned_category_dossier',
+            'entity_type'=>'product_cat',
+            'entity_id'=>$category_id,
+            'category_id'=>$category_id,
+            'category_name'=>$name,
+            'source_text'=>'Preguntas habituales sobre ' . $name . ': conocimiento aprendido por Dependiente.',
+            'hints'=>array(
+                'intent'=>'dependiente_qa_basic',
+                'action'=>'resolver',
+                'object'=>$name,
+                'category_id'=>$category_id,
+            ),
+            'occurrences'=>max(1,absint($dossier['question_count'] ?? 1)),
+            'confidence'=>max(0.60,min(1.0,(float) ($dossier['score_avg'] ?? 0.90))),
+            'evidence_score'=>1.00,
+            'observed_at'=>(string) ($dossier['last_validated_at'] ?? current_time('mysql')),
+            'source_meta'=>array(
+                'proposal_role'=>'origin',
+                'dependiente_channel'=>'academy_learned_dossier',
+                'editorial_family'=>'dependiente_qa_basic',
+                'dossier_id'=>absint($dossier['id'] ?? 0),
+                'category_id'=>$category_id,
+                'category_name'=>$name,
+                'question_count'=>absint($dossier['question_count'] ?? 0),
+                'question_ids'=>array_values(array_filter(array_map('absint',(array) $ids))),
+                'source_hash'=>(string) ($dossier['source_hash'] ?? ''),
+                'last_validated_at'=>(string) ($dossier['last_validated_at'] ?? ''),
+            ),
+        );
+
+        $profile = SEO_Solucionador_Normalizer::profile(
+            (string) $source['source_text'],
+            (array) $source['hints']
+        );
+        $profile = self::canonicalize_profile((array) $profile, $source);
+        if (!$profile || SEO_Solucionador_Normalizer::is_weak_profile($profile)) {
+            return new WP_Error('solucionador_profile_invalid', 'No se pudo preparar el perfil editorial de la categoría.');
+        }
+
+        $topic_id = SEO_Solucionador_DB::upsert_topic($profile, (string) $source['source_text']);
+        if (!$topic_id) {
+            return new WP_Error('solucionador_topic_write', 'No se pudo preparar la propuesta editorial.');
+        }
+
+        SEO_Solucionador_DB::add_evidence($topic_id, $source);
+        self::analyze_topic($topic_id);
+
+        $topic = SEO_Solucionador_DB::get_topic($topic_id);
+        return $topic ?: new WP_Error('solucionador_topic_missing', 'La propuesta no quedó disponible tras analizarla.');
+    }
+
     public static function scan($days = 180, $batch_size = 100) {
         SEO_Solucionador_DB::maybe_install();
         $batch_size = max(25,min(250,absint($batch_size)));
