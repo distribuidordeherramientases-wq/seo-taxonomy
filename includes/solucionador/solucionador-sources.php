@@ -292,6 +292,9 @@ final class SEO_Solucionador_Sources {
     }
 
     public static function dependiente_academia_snapshot() {
+        if (class_exists('SEO_Solucionador_Dossiers')) {
+            return SEO_Solucionador_Dossiers::snapshot();
+        }
         $data = self::dependiente_academia_data();
         return (array) ($data['stats'] ?? array());
     }
@@ -342,6 +345,12 @@ final class SEO_Solucionador_Sources {
     }
 
     public static function dependiente($days = 180, $limit = 1600) {
+        // Desde v0.5.0 el único origen editorial es el dossier persistido de
+        // Academia. El search_log deja de originar temas independientes.
+        if (class_exists('SEO_Solucionador_Dossiers')) {
+            return SEO_Solucionador_Dossiers::signals(min(500,max(1,absint($limit))),0);
+        }
+
         global $wpdb;
         $table = $wpdb->prefix . 'seo_dependiente_search_log';
 
@@ -966,19 +975,22 @@ final class SEO_Solucionador_Sources {
         return $out;
     }
 
-    public static function all($days = 180) {
-        // Orden intencional: primero las preguntas reales y los gaps/probes que
-        // pueden originar temas. Comentarista aporta preguntas o refuerzos y
-        // Analista queda al final para reforzar cualquier origen del ciclo.
-        return self::normalize_rows(array_merge(
-            self::dependiente($days, 1600),
-            self::auditor(300),
-            self::comentarista(1200),
-            self::analista(min(180, $days), 160),
-            self::ojeador(180),
-            self::comparador(240),
-            self::clasificador(260),
-            self::marketing(120)
-        ));
+    public static function editorial_source_contract() {
+        return array('dependiente_academia');
+    }
+
+    public static function all($days = 180, $limit = 100, $after_dossier_id = 0) {
+        // Arquitectura separada v0.5.0:
+        // Academia/Entrenador es el único origen editorial de Solucionador.
+        // Ingeniero, Ojeador, Comparador, Clasificador, Marketing, Comentarista,
+        // Auditor y Analista mantienen sus procesos editoriales independientes.
+        // Los detalles pesados de las preguntas se cargan sólo al abrir el brief.
+        if (!class_exists('SEO_Solucionador_Dossiers')) return array();
+        return self::normalize_rows(
+            SEO_Solucionador_Dossiers::signals(
+                min(500,max(1,absint($limit))),
+                absint($after_dossier_id)
+            )
+        );
     }
 }
