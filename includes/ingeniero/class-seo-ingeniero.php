@@ -728,6 +728,7 @@ final class SEO_Ingeniero {
 
         $sources = SEO_Ingeniero_DB::sources_by_ids((array) ($dossier['source_ids'] ?? array()));
         $term = $term_id ? get_term($term_id, 'product_cat') : null;
+        $internal_links = self::editorial_internal_links($term_id);
 
         return array(
             'dossier'=>$dossier,
@@ -747,8 +748,70 @@ final class SEO_Ingeniero {
                 );
             }, $sources),
             'must_cover'=>array_values(array_unique($must_cover)),
+            'internal_links'=>$internal_links,
             'coverage'=>(array) ($dossier['coverage'] ?? array()),
             'verification_warning'=>'La síntesis interna de Ingeniero no debe publicarse literalmente como afirmación si las fuentes enlazadas no la respaldan.',
+        );
+    }
+
+    private static function editorial_internal_links($term_id) {
+        $term_id = absint($term_id);
+        if (!$term_id) return array('products'=>array(),'categories'=>array());
+
+        $products = array();
+        $ids = get_posts(array(
+            'post_type'=>'product',
+            'post_status'=>'publish',
+            'posts_per_page'=>8,
+            'fields'=>'ids',
+            'orderby'=>'modified',
+            'order'=>'DESC',
+            'no_found_rows'=>true,
+            'tax_query'=>array(array(
+                'taxonomy'=>'product_cat',
+                'field'=>'term_id',
+                'terms'=>array($term_id),
+            )),
+        ));
+        foreach ((array) $ids as $post_id) {
+            $post_id = absint($post_id);
+            if (!$post_id) continue;
+            $products[] = array(
+                'id'=>$post_id,
+                'title'=>(string) get_the_title($post_id),
+                'url'=>(string) get_permalink($post_id),
+            );
+        }
+
+        $category_ids = array($term_id);
+        $ancestors = array_map('absint', (array) get_ancestors($term_id, 'product_cat', 'taxonomy'));
+        $category_ids = array_merge($category_ids, array_slice($ancestors, 0, 3));
+        $children = get_terms(array(
+            'taxonomy'=>'product_cat',
+            'hide_empty'=>true,
+            'parent'=>$term_id,
+            'number'=>5,
+            'orderby'=>'count',
+            'order'=>'DESC',
+        ));
+        if (!is_wp_error($children)) {
+            foreach ((array) $children as $child) $category_ids[] = absint($child->term_id ?? 0);
+        }
+
+        $categories = array();
+        foreach (array_values(array_unique(array_filter($category_ids))) as $category_id) {
+            $category = get_term($category_id, 'product_cat');
+            if (!$category || is_wp_error($category)) continue;
+            $categories[] = array(
+                'term_id'=>$category_id,
+                'name'=>(string) $category->name,
+                'url'=>(string) get_term_link($category),
+            );
+        }
+
+        return array(
+            'products'=>$products,
+            'categories'=>$categories,
         );
     }
 
